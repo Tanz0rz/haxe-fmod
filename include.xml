@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project>
+	<dependency name="lib/api/lowlevel/lib/fmod.dll" if="windows"/>
+	<dependency name="lib/api/studio/lib/fmodstudio.dll" if="windows" />
+</project>

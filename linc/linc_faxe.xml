@@ -13,11 +13,13 @@
 		<file name="${LINC_FAXE_PATH}/linc/linc_faxe.cpp" />
 	</files>
 
-	<target id="haxe">
+	<target id="haxe" toolid="exe">
 
 		<section if="windows">
 			<lib name="${NATIVE_TOOLKIT_PATH}/api/lowlevel/lib/fmod_vc.lib" />
 			<lib name="${NATIVE_TOOLKIT_PATH}/api/studio/lib/fmodstudio_vc.lib" />
+			<copyFile name="fmod.dll" from="${NATIVE_TOOLKIT_PATH}/api/lowlevel/lib/" toolId="exe" allowMissing="false"/>
+			<copyFile name="fmodstudio.dll" from="${NATIVE_TOOLKIT_PATH}/api/studio/lib/" toolId="exe" allowMissing="false"/>
 		</section>
 
 		<section if="linux HXCPP_M32">
