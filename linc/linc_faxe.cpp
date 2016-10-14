@@ -150,7 +150,7 @@ namespace linc
 			}
 		}
 
-		void faxe_load_event(const ::String& eventName)
+		void faxe_load_event(const ::String& eventPath, const ::String& eventName)
 		{
 			// Check it's not already loaded
 			if (loadedEvents.find(eventName) != loadedEvents.end())
@@ -161,11 +161,11 @@ namespace linc
 			// Try and load this event description
 			FMOD::Studio::EventDescription* tempEvnDesc;
 
-			auto result = fmodSoundSystem->getEvent(eventName.c_str(), &tempEvnDesc);
+			auto result = fmodSoundSystem->getEvent(eventPath.c_str(), &tempEvnDesc);
 
 			if (result != FMOD_OK)
 			{
-				printf("FMOD failed to LOAD event instance %s with error %s\n", eventName.c_str(), FMOD_ErrorString(result));
+				printf("FMOD failed to LOAD event instance %s with error %s\n", eventPath.c_str(), FMOD_ErrorString(result));
 				return;
 			}
 
@@ -175,7 +175,7 @@ namespace linc
 
 			if (result != FMOD_OK)
 			{
-				printf("FMOD failed to CREATE INSTANCE of event instance %s with error %s\n", eventName.c_str(), FMOD_ErrorString(result));
+				printf("FMOD failed to CREATE INSTANCE of event instance %s with error %s\n", eventPath.c_str(), FMOD_ErrorString(result));
 				return;
 			}
 

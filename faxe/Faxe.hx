@@ -26,7 +26,7 @@ extern class Faxe
 	public static function fmod_unload_sound(bankFilePath:String):Void;
 
 	@:native("linc::faxe::faxe_load_event")
-	public static function fmod_load_event(eventName:String):Void;
+	public static function fmod_load_event(eventPath:String, eventName:String):Void;
 
 	@:native("linc::faxe::faxe_play_event")
 	public static function fmod_play_event(eventName:String):Void;

@@ -83,9 +83,10 @@ namespace linc
 
 		/**
 		 * Load an event from a loaded bank
-		 * \param[eventName] ::String the name of the event to load into memory
+		 * \param[eventPath] ::String the path of the event to load into memory
+		 * \param[eventName] ::String the name you wish to give this event instance
 		 */
-		extern void faxe_load_event(const ::String& eventName);
+		extern void faxe_load_event(const ::String& eventPath, const ::String& eventName);
 
 
 		/**
