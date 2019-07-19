@@ -53,6 +53,9 @@ extern class Faxe
 
 	@:native("linc::faxe::faxe_set_event_param")
 	public static function fmod_set_param(eventName:String, paramName:String, sValue:Float):Void;
+	
+	@:native("linc::faxe::faxe_get_system")
+	public static function fmod_get_system() : cpp.Pointer<FmodSystem>;
 }
 
 @:enum abstract FmodTimeUnit(Int) from Int to Int {
@@ -246,5 +249,26 @@ extern class FmodChannel {
 	
 	@:native('setMode')
 	function setMode( mode:FmodMode ) : FmodResult;
+	
+}
+
+@:include('linc_faxe.h')
+@:native("FMOD::System")
+extern class FmodSystem {
+	
+	@:native('close')
+	function close() : FmodResult;
+	
+	@:native('createSound')
+	function createSound( 
+		name_or_data : cpp.ConstCharStar, 
+		mode : FmodMode, 
+		createExInfo : cpp.Pointer<FmodCreateSoundExInfo>, 
+		sound:cpp.Pointer<cpp.Pointer<FmodSound>>) : FmodResult;
+}
+
+@:include('linc_faxe.h')
+@:native("FMOD::FMOD_CREATESOUNDEXINFO")
+extern class FmodCreateSoundExInfo {
 	
 }

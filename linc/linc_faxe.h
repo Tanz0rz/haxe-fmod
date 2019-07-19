@@ -148,6 +148,8 @@ namespace linc
 		extern void faxe_set_channel_gain(int channelID, float gainDb);
 		extern void faxe_set_channel_position(int channelID, float x, float y, float z);
 		extern bool faxe_channel_playing(int channelID);
+		
+		extern FMOD::System* faxe_get_system();
 
 	} // faxe + fmod namespace
 } // linc namespace

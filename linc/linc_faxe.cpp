@@ -48,6 +48,10 @@ namespace linc
 		void faxe_set_debug(bool onOff){
 			faxe_debug = onOff;
 		}
+		
+		FMOD::System* faxe_get_system(){
+			return fmodLowLevelSoundSystem;
+		}
 
 		//// FMOD Init
 		void faxe_init(int numChannels)
