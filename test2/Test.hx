@@ -23,12 +23,12 @@ class Test
 			//chan.ptr.setVolume( 0.1 );
 		}
 		{	
-			chan.ptr.setPosition( 60*1000, FModTimeUnit.FTM_MS);
+			chan.ptr.setPosition( 60*1000, FmodTimeUnit.FTM_MS);
 		}
 		
 		{	
 			var f : cpp.UInt32 = 0;
-			chan.ptr.getPosition( cpp.Pointer.addressOf(f), FModTimeUnit.FTM_MS);
+			chan.ptr.getPosition( cpp.Pointer.addressOf(f), FmodTimeUnit.FTM_MS);
 			trace(f);
 		}
 		
