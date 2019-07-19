@@ -148,6 +148,39 @@ extern class Faxe
 	var FMOD_ERR_TOOMANYSAMPLES									= 81;
 }
 
+@:enum abstract FmodMode(Int) from Int to Int {
+	var FMOD_DEFAULT 		 				= 0x00000000;
+	var FMOD_LOOP_OFF 		 				= 0x00000001;
+	var FMOD_LOOP_NORMAL 	 				= 0x00000002;
+	var FMOD_LOOP_BIDI 		 				= 0x00000004;
+	var FMOD_2D  			 				= 0x00000008;
+	var FMOD_3D  			 				= 0x00000010;
+	var FMOD_CREATESTREAM  					= 0x00000080;
+	var FMOD_CREATESAMPLE 					= 0x00000100;
+	var FMOD_CREATECOMPRESSEDSAMPLE 		= 0x00000200;
+	var FMOD_OPENUSER  			 			= 0x00000400;
+	var FMOD_OPENMEMORY  			 		= 0x00000800;
+	var FMOD_OPENMEMORY_POINT  			 	= 0x10000000;
+	var FMOD_OPENRAW  			 			= 0x00001000;
+	var FMOD_OPENONLY  			 			= 0x00002000;
+	var FMOD_ACCURATETIME  			 		= 0x00004000;
+	var FMOD_MPEGSEARCH  			 		= 0x00008000;
+	var FMOD_NONBLOCKING  			 		= 0x00010000;
+	var FMOD_UNIQUE  			 			= 0x00020000;
+	var FMOD_3D_HEADRELATIVE  			 	= 0x00040000;
+	var FMOD_3D_WORLDRELATIVE  			 	= 0x00080000;
+	var FMOD_3D_INVERSEROLLOFF  			= 0x00100000;
+	var FMOD_3D_LINEARROLLOFF  			 	= 0x00200000;
+	var FMOD_3D_LINEARSQUAREROLLOFF 		= 0x00400000;
+	var FMOD_3D_INVERSETAPEREDROLLOFF  		= 0x00800000;
+	var FMOD_3D_CUSTOMROLLOFF  			 	= 0x04000000;
+	var FMOD_3D_IGNOREGEOMETRY  			= 0x40000000;
+	var FMOD_IGNORETAGS  			 		= 0x02000000;
+	var FMOD_LOWMEM  			 			= 0x08000000;
+	var FMOD_LOADSECONDARYRAM  			 	= 0x20000000;
+	var FMOD_VIRTUAL_PLAYFROMSTART 			= 0x80000000;
+}
+
 @:include('linc_faxe.h')
 @:native("FMOD::Channel")
 extern class FmodChannel {
@@ -170,4 +203,21 @@ extern class FmodChannel {
 	 */
 	@:native('stop')
 	function stop() : FmodResult;
+	
+	@:native('isPlaying')
+	function isPlaying( isPlaying : cpp.Pointer<Bool> ) : FmodResult;
+	
+	@:native('getMode')
+	function getMode( mode : cpp.Pointer<FmodMode> ) : FmodResult;
+	
+	@:native('getLoopCount')
+	function getLoopCount( nb:cpp.Pointer<Int> ) : FmodResult;
+	
+	@:native('setLoopCount')
+	function setLoopCount( nb:Int ) : FmodResult;
+	
+	@:native('setMode')
+	function setMode( mode:FmodMode ) : FmodResult;
+	
+	
 }
