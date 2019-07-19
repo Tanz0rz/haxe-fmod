@@ -134,6 +134,36 @@ namespace linc
 			// Store in loaded sounds map
 			loadedSounds[sndName] = tempSound;
 		}
+		
+		void faxe_play_sound(const ::String& sndName, bool paused)
+		{
+			//printf("playin %s\n",sndName.c_str());
+			// Ensure the sound has not already been loaded
+			if (loadedSounds.find(sndName) == loadedSounds.end())
+			{
+				//printf("not loaded \n");
+				return;
+			}
+			
+			FMOD::Sound* snd = loadedSounds[sndName];
+			int res = fmodLowLevelSoundSystem->playSound(snd, nullptr, paused, nullptr);
+			//printf("res %d\n",res);
+			//printf("chan %d\n",snd->);
+		}
+		
+		FMOD::Channel * faxe_play_sound_with_channel(const ::String& sndName, bool paused)
+		{
+			if (loadedSounds.find(sndName) == loadedSounds.end())
+			{
+				//printf("not loaded \n");
+				return nullptr;
+			}
+			
+			FMOD::Sound* snd = loadedSounds[sndName];
+			FMOD::Channel * chan = nullptr;
+			int res = fmodLowLevelSoundSystem->playSound(snd, nullptr, paused, &chan);
+			return chan;
+		}
 
 		void faxe_unload_sound(const ::String& sndName)
 		{

@@ -5,7 +5,7 @@
 # pick a target
 
 #-D mac
-#-D windows
+-D windows
 #-D linux
 #-D ios
 #-D android

@@ -31,6 +31,8 @@
 	#include <SIOUX.h>
 #endif
 
+#include <fmod_studio.hpp>
+
 namespace linc
 {
 	namespace faxe
@@ -72,6 +74,16 @@ namespace linc
 		 * \param[sndName] ::String the file path of the sound to load
 		 */
 		extern void faxe_load_sound(const ::String& sndName, bool looping = false, bool streaming = false);
+		
+		/**
+		 * plays a sound without further ado
+		 */
+		extern void faxe_play_sound(const ::String& sndName, bool paused = false);
+		
+		/**
+		 * plays a sound without further ado and gets result channel
+		 */
+		extern FMOD::Channel * faxe_play_sound_with_channel(const ::String& sndName, bool paused);
 
 		/**
 		 * Unload a sound from FMOD

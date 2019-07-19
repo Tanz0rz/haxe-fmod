@@ -14,7 +14,7 @@ class Test
 		Faxe.fmod_load_bank("./MasterBank.strings.bank");
 
 		// Load a test event
-		Faxe.fmod_load_event("event:/testEvent");
+		Faxe.fmod_load_event("event:/testEvent","toto");
 		Faxe.fmod_play_event("event:/testEvent");
 
 		// Get and set an even parameter to change effect values
