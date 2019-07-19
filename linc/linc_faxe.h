@@ -77,6 +77,8 @@ namespace linc
 		 */
 		extern void faxe_load_sound(const ::String& sndName, bool looping = false, bool streaming = false);
 		
+		extern FMOD::Sound * faxe_get_sound(const ::String& sndName);
+		
 		/**
 		 * plays a sound without further ado
 		 */

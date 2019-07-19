@@ -22,6 +22,9 @@ extern class Faxe
 	@:native("linc::faxe::faxe_load_sound")
 	public static function fmod_load_sound(soundPath:String, looping:Bool = false, streaming:Bool = false):Void;
 
+	@:native("linc::faxe::faxe_get_sound")
+	public static function fmod_get_sound(soundPath:String):cpp.Pointer<FmodSound>;
+	
 	@:native("linc::faxe::faxe_unload_sound")
 	public static function fmod_unload_sound(bankFilePath:String):Void;
 
@@ -183,6 +186,32 @@ extern class Faxe
 
 @:include('linc_faxe.h')
 @:native("FMOD::Channel")
+extern class FmodSound {
+	@:native('getMode')
+	function getMode( mode : cpp.Pointer<FmodMode> ) : FmodResult;
+	
+	@:native('getLoopCount')
+	function getLoopCount( nb:cpp.Pointer<Int> ) : FmodResult;
+	
+	@:native('setLoopCount')
+	function setLoopCount( nb:Int ) : FmodResult;
+	
+	@:native('setMode')
+	function setMode( mode:FmodMode ) : FmodResult;
+	
+	@:native('getPosition')
+	function getPosition( position : cpp.Pointer<cpp.UInt32>, postype : FmodTimeUnit ) : FmodResult;
+	
+	@:native('setPosition')
+	function setPosition( position : cpp.UInt32, postype : FmodTimeUnit ) : FmodResult;
+	
+	//use faxe release to fully release memory
+	@:native('release')
+	function release() : FmodResult;
+}
+
+@:include('linc_faxe.h')
+@:native("FMOD::Channel")
 extern class FmodChannel {
 	
 	@:native('getVolume')
@@ -191,7 +220,6 @@ extern class FmodChannel {
 	@:native('setVolume')
 	function setVolume( volume : cpp.Float32 ) : FmodResult;
 	
-	//beware
 	@:native('getPosition')
 	function getPosition( position : cpp.Pointer<cpp.UInt32>, postype : FmodTimeUnit ) : FmodResult;
 	
@@ -218,6 +246,5 @@ extern class FmodChannel {
 	
 	@:native('setMode')
 	function setMode( mode:FmodMode ) : FmodResult;
-	
 	
 }

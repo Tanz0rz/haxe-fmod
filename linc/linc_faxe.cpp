@@ -106,6 +106,14 @@ namespace linc
 			}
 		}
 
+		FMOD::Sound* faxe_get_sound(const ::String& sndName) {
+			if (loadedSounds.find(sndName) == loadedSounds.end()){
+				if(faxe_debug) printf("not loaded \n");
+				return nullptr;
+			}
+			return loadedSounds[sndName];
+		}
+		
 		void faxe_load_sound(const ::String& sndName, bool looping, bool streaming)
 		{
 			// Ensure the sound has not already been loaded

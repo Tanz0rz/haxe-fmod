@@ -47,6 +47,25 @@ class Test
 			chan.ptr.setLoopCount(10);
 		}
 		
+		chan.ptr.getVolume;
+		chan.ptr.setVolume;
+		chan.ptr.getPosition;
+		chan.ptr.setPosition;
+		chan.ptr.stop;
+		chan.ptr.isPlaying;
+		chan.ptr.getMode;
+		chan.ptr.getLoopCount;
+		chan.ptr.setLoopCount;
+		chan.ptr.setMode;
+		     
+		var snd : cpp.Pointer<FmodSound> = Faxe.fmod_get_sound(file);
+		snd.ptr.getMode;
+		snd.ptr.getLoopCount;
+		snd.ptr.setLoopCount;
+		snd.ptr.setMode;
+		snd.ptr.getPosition;
+		snd.ptr.setPosition;
+		snd.ptr.release;
 		
 		// Bad little forever loop to pump FMOD commands
 		while (true)
