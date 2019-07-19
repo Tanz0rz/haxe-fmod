@@ -2,3 +2,4 @@ lib/api/*
 lib/bin/*
 lib/doc/*
 test/cpp
+/test2/cpp

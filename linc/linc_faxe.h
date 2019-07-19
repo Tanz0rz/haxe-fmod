@@ -45,6 +45,8 @@ namespace linc
 		 */
 		extern void faxe_init(int numChannels = 32);
 
+		extern void faxe_set_debug(bool onOff);
+		
 		/**
 		 * Update the FMOD command buffer, should be called once per "tick"
 		 */

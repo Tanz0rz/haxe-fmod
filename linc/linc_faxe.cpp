@@ -43,6 +43,11 @@ namespace linc
 		std::map<::String, FMOD::Studio::Bank*> loadedBanks;
 		std::map<::String, FMOD::Sound*> loadedSounds;
 		std::map<::String, FMOD::Studio::EventInstance*> loadedEvents;
+		
+		bool faxe_debug = 0;
+		void faxe_set_debug(bool onOff){
+			faxe_debug = onOff;
+		}
 
 		//// FMOD Init
 		void faxe_init(int numChannels)
@@ -50,14 +55,14 @@ namespace linc
 			// Create our new fmod system
 			if (FMOD::Studio::System::create(&fmodSoundSystem) != FMOD_OK)
 			{
-				printf("Failure starting FMOD sound system!");
+				if(faxe_debug) printf("Failure starting FMOD sound system!");
 				return;
 			}
 
 			// All OK - Setup some channels to work with!
 			fmodSoundSystem->initialize(numChannels, FMOD_STUDIO_INIT_NORMAL, FMOD_INIT_NORMAL, nullptr);
 			fmodSoundSystem->getLowLevelSystem(&fmodLowLevelSoundSystem);
-			printf("FMOD Sound System Started with %d channels!\n", numChannels);
+			if(faxe_debug) printf("FMOD Sound System Started with %d channels!\n", numChannels);
 		}
 
 		void faxe_update()
@@ -79,7 +84,7 @@ namespace linc
 			auto result = fmodSoundSystem->loadBankFile(bankName.c_str(), FMOD_STUDIO_LOAD_BANK_NORMAL, &tempBank);
 			if (result != FMOD_OK)
 			{
-				printf("FMOD failed to LOAD sound bank %s with error %s\n", bankName.c_str(), FMOD_ErrorString(result));
+				if(faxe_debug) printf("FMOD failed to LOAD sound bank %s with error %s\n", bankName.c_str(), FMOD_ErrorString(result));
 				return;
 			}
 
@@ -127,7 +132,7 @@ namespace linc
 			auto result = fmodLowLevelSoundSystem->createSound(sndName.c_str(), loadSndMode, nullptr, &tempSound);
 			if (result != FMOD_OK)
 			{
-				printf("FMOD failed to LOAD sound %s with error %s\n", sndName.c_str(), FMOD_ErrorString(result));
+				if(faxe_debug) printf("FMOD failed to LOAD sound %s with error %s\n", sndName.c_str(), FMOD_ErrorString(result));
 				return;
 			}
 
@@ -137,25 +142,22 @@ namespace linc
 		
 		void faxe_play_sound(const ::String& sndName, bool paused)
 		{
-			//printf("playin %s\n",sndName.c_str());
-			// Ensure the sound has not already been loaded
 			if (loadedSounds.find(sndName) == loadedSounds.end())
 			{
-				//printf("not loaded \n");
+				if(faxe_debug) printf("not loaded \n");
 				return;
 			}
 			
 			FMOD::Sound* snd = loadedSounds[sndName];
 			int res = fmodLowLevelSoundSystem->playSound(snd, nullptr, paused, nullptr);
-			//printf("res %d\n",res);
-			//printf("chan %d\n",snd->);
+			if(faxe_debug && res ) printf("error playing\n");
 		}
 		
 		FMOD::Channel * faxe_play_sound_with_channel(const ::String& sndName, bool paused)
 		{
 			if (loadedSounds.find(sndName) == loadedSounds.end())
 			{
-				//printf("not loaded \n");
+				if(faxe_debug) printf("not loaded \n");
 				return nullptr;
 			}
 			
@@ -195,7 +197,7 @@ namespace linc
 
 			if (result != FMOD_OK)
 			{
-				printf("FMOD failed to LOAD event instance %s with error %s\n", eventPath.c_str(), FMOD_ErrorString(result));
+				if(faxe_debug) printf("FMOD failed to LOAD event instance %s with error %s\n", eventPath.c_str(), FMOD_ErrorString(result));
 				return;
 			}
 
@@ -205,7 +207,7 @@ namespace linc
 
 			if (result != FMOD_OK)
 			{
-				printf("FMOD failed to CREATE INSTANCE of event instance %s with error %s\n", eventPath.c_str(), FMOD_ErrorString(result));
+				if(faxe_debug) printf("FMOD failed to CREATE INSTANCE of event instance %s with error %s\n", eventPath.c_str(), FMOD_ErrorString(result));
 				return;
 			}
 
@@ -222,7 +224,7 @@ namespace linc
 				// Start the event instance
 				targetEvent->second->start();
 			} else {
-				printf("Event %s is not loaded!\n", eventName.c_str());
+				if(faxe_debug) printf("Event %s is not loaded!\n", eventName.c_str());
 			}
 		}
 
@@ -245,7 +247,7 @@ namespace linc
 				targetStopEvent->second->stop(stopMode);
 
 			} else {
-				printf("Event %s is not loaded!\n", eventName.c_str());
+				if(faxe_debug) printf("Event %s is not loaded!\n", eventName.c_str());
 			}
 		}
 
@@ -260,13 +262,13 @@ namespace linc
 
 				if (result != FMOD_OK)
 				{
-					printf("FMOD failed to GET PLAYBACK STATUS of event instance %s with error %s\n", eventName.c_str(), FMOD_ErrorString(result));
+					if(faxe_debug) printf("FMOD failed to GET PLAYBACK STATUS of event instance %s with error %s\n", eventName.c_str(), FMOD_ErrorString(result));
 					return false;
 				}
 
 				return (currentState == FMOD_STUDIO_PLAYBACK_PLAYING);
 			} else {
-				printf("Event %s is not loaded!\n", eventName.c_str());
+				if(faxe_debug) printf("Event %s is not loaded!\n", eventName.c_str());
 				return false;
 			}
 		}
@@ -282,13 +284,13 @@ namespace linc
 
 				if (result != FMOD_OK)
 				{
-					printf("FMOD failed to GET PARAM %s of event instance %s with error %s\n", paramName.c_str(), eventName.c_str(), FMOD_ErrorString(result));
+					if(faxe_debug) printf("FMOD failed to GET PARAM %s of event instance %s with error %s\n", paramName.c_str(), eventName.c_str(), FMOD_ErrorString(result));
 					return -1;
 				}
 
 				return currentValue;
 			} else {
-				printf("Event %s is not loaded!\n", eventName.c_str());
+				if(faxe_debug) printf("Event %s is not loaded!\n", eventName.c_str());
 				return -1;
 			}
 		}
@@ -302,10 +304,10 @@ namespace linc
 
 				if (result != FMOD_OK)
 				{
-					printf("FMOD failed to SET PARAM %s of event instance %s with error %s\n", paramName.c_str(), eventName.c_str(), FMOD_ErrorString(result));
+					if(faxe_debug) printf("FMOD failed to SET PARAM %s of event instance %s with error %s\n", paramName.c_str(), eventName.c_str(), FMOD_ErrorString(result));
 				}
 			} else {
-				printf("Event %s is not loaded!\n", eventName.c_str());
+				if(faxe_debug) printf("Event %s is not loaded!\n", eventName.c_str());
 			}
 		}
 
