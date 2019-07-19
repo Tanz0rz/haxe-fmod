@@ -34,13 +34,11 @@ extern class Faxe
 	@:native("linc::faxe::faxe_play_event")
 	public static function fmod_play_event(eventName:String):Void;
 	
-	
 	@:native("linc::faxe::faxe_play_sound")
 	public static function fmod_play_sound(soundName:String, paused:Bool):Void;
 	
 	@:native("linc::faxe::faxe_play_sound_with_channel")
 	public static function faxe_play_sound_with_channel(soundName:String, paused:Bool): cpp.Pointer<FmodChannel>;
-	
 
 	@:native("linc::faxe::faxe_stop_event")
 	public static function fmod_stop_event(eventName:String, forceStop:Bool):Void;
@@ -265,6 +263,14 @@ extern class FmodSystem {
 		mode : FmodMode, 
 		createExInfo : cpp.Pointer<FmodCreateSoundExInfo>, 
 		sound:cpp.Pointer<cpp.Pointer<FmodSound>>) : FmodResult;
+		
+		
+	@:native('getSoundRAM')
+	function getSoundRAM(
+		currentAlloced:cpp.Pointer<Int>,
+		maxAlloced:cpp.Pointer<Int>,
+		total:cpp.Pointer<Int>
+	) : FmodResult;
 }
 
 @:include('linc_faxe.h')

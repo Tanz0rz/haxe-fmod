@@ -67,6 +67,9 @@ class Test
 		snd.ptr.setPosition;
 		snd.ptr.release;
 		
+		var sys : cpp.Pointer<FmodSystem> = Faxe.fmod_get_system();
+		sys.ptr.getSoundRAM;
+		
 		// Bad little forever loop to pump FMOD commands
 		while (true)
 		{
