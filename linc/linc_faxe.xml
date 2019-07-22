@@ -13,25 +13,25 @@
 	</section>
 	
 	<section if="switch">
-		<set name="NATIVE_TOOLKIT_PATH" value="${LINC_FAXE_PATH}/lib/switch" />
+		<set name="NATIVE_TOOLKIT_PATH" value="${LINC_FAXE_PATH}/lib/Switch" />
 	</section>
 
-	<echo value="Found your FMOD API!" ifExists="${NATIVE_TOOLKIT_PATH}/api" />
+	<echo value="Found your FMOD API ${NATIVE_TOOLKIT_PATH}!" ifExists="${NATIVE_TOOLKIT_PATH}/api" />
 
 	<files id="haxe">
 		<compilerflag value="-I${LINC_FAXE_PATH}linc/" />
 		<compilerflag value="-I${NATIVE_TOOLKIT_PATH}/api/lowlevel/inc/" />
 		<compilerflag value="-I${NATIVE_TOOLKIT_PATH}/api/studio/inc/" />
+		
 		<compilerflag value="-std=c++11" if="linux" />
 		
 		<compilerflag value="-Wl,-rpath,$ORIGIN" if="linux" />
-		<compilerflag value="-Wl,-rpath,$ORIGIN" if="switch" />
 		
 		<file name="${LINC_FAXE_PATH}/linc/linc_faxe.cpp" />
 	</files>
-
 	
-	<target id="haxe" toolid="exe">
+	
+	<target id="haxe" toolid="exe" unless="switch">
 		<section if="windows HXCPP_M32" >
 			<lib name="${NATIVE_TOOLKIT_PATH}/api/lowlevel/lib/fmod_vc.lib" />
 			<lib name="${NATIVE_TOOLKIT_PATH}/api/studio/lib/fmodstudio_vc.lib" />
@@ -51,17 +51,16 @@
 			<lib name="${NATIVE_TOOLKIT_PATH}/api/lowlevel/lib/x86_64/libfmod.so" />
 			<lib name="${NATIVE_TOOLKIT_PATH}/api/studio/lib/x86_64/libfmodstudio.so" />
 		</section>
-		
-		<section if="switch">
-			<echo value="building for nx."  />
-			<lib name="${NATIVE_TOOLKIT_PATH}/api/lowlevel/lib/nx64/libfmod.a" />
-			<lib name="${NATIVE_TOOLKIT_PATH}/api/studio/lib/nx64/libfmodstudio.a" />
-		</section>
 	</target>
+
+	<!--TODO OVERRIDE  BuildMain.xml in project ... in the end I never came up with a true fix for nx and had to blit it over...-->
+	<!-- on switch have to copypaster this in BuildMain.xml -->
+	<!-- <lib name="C:/HaxeToolkit_347/haxelibs/faxe/git/lib/Switch/api/lowlevel/lib/nx64/libfmod.a" /> -->
+	<!-- <lib name="C:/HaxeToolkit_347/haxelibs/faxe/git/lib/Switch/api/studio/lib/nx64/libfmodstudio.a" /> -->
 	
 	<!-- put post builds here -->
-	<section  if="windows">
-		<echo value="building for win."  unless="switch"/>
+	<section  if="windows" unless="switch">
+		<echo value="building for win."  />
 		
 		<section if="windows HXCPP_M32" >
 			<copyFile name="fmod.dll" from="${NATIVE_TOOLKIT_PATH}/api/lowlevel/lib" toolId="exe" allowMissing="false"/>
