@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <project>
-
-	<echo value="adding deps" />
+	
+	<!-- <echo value="adding deps" /> -->
 
 	<dependency name="lib/Windows/api/lowlevel/lib/fmod.dll" if="windows HXCPP_M32"/>
 	<dependency name="lib/Windows/api/studio/lib/fmodstudio.dll" if="windows HXCPP_M32" />

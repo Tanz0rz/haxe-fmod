@@ -44,7 +44,7 @@ namespace linc
 		std::map<::String, FMOD::Sound*> loadedSounds;
 		std::map<::String, FMOD::Studio::EventInstance*> loadedEvents;
 		
-		bool faxe_debug = 0;
+		bool faxe_debug = false;
 		void faxe_set_debug(bool onOff){
 			faxe_debug = onOff;
 		}
@@ -118,26 +118,18 @@ namespace linc
 			return loadedSounds[sndName];
 		}
 		
-		void faxe_load_sound(const ::String& sndName, bool looping, bool streaming)
+		FMOD_RESULT faxe_load_sound(const ::String& sndName, bool looping, bool streaming)
 		{
 			// Ensure the sound has not already been loaded
 			if (loadedSounds.find(sndName) != loadedSounds.end())
 			{
-				return;
+				if(faxe_debug) printf("already loaded\n");
+				return FMOD_OK;
 			}
 
-			// Determine the loading mode based on boolean params
 			FMOD_MODE loadSndMode = FMOD_DEFAULT;
-
-			if (looping)
-			{
-				loadSndMode |= FMOD_LOOP_NORMAL;
-			}
-
-			if (streaming)
-			{
-				loadSndMode |= FMOD_CREATESTREAM;
-			}
+			if (looping)		loadSndMode |= FMOD_LOOP_NORMAL;
+			if (streaming)		loadSndMode |= FMOD_CREATESTREAM;
 
 			// Try and load this sound
 			FMOD::Sound* tempSound;
@@ -145,24 +137,26 @@ namespace linc
 			if (result != FMOD_OK)
 			{
 				if(faxe_debug) printf("FMOD failed to LOAD sound %s with error %s\n", sndName.c_str(), FMOD_ErrorString(result));
-				return;
+				return result;
 			}
 
 			// Store in loaded sounds map
 			loadedSounds[sndName] = tempSound;
+			return result;
 		}
 		
-		void faxe_play_sound(const ::String& sndName, bool paused)
+		FMOD_RESULT faxe_play_sound(const ::String& sndName, bool paused)
 		{
 			if (loadedSounds.find(sndName) == loadedSounds.end())
 			{
 				if(faxe_debug) printf("not loaded \n");
-				return;
+				return FMOD_ERR_INVALID_PARAM;
 			}
 			
 			FMOD::Sound* snd = loadedSounds[sndName];
-			int res = fmodLowLevelSoundSystem->playSound(snd, nullptr, paused, nullptr);
+			FMOD_RESULT res = fmodLowLevelSoundSystem->playSound(snd, nullptr, paused, nullptr);
 			if(faxe_debug && res ) printf("error playing\n");
+			return res;
 		}
 		
 		FMOD::Channel * faxe_play_sound_with_channel(const ::String& sndName, bool paused)

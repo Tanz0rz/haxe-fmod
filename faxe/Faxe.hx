@@ -20,7 +20,7 @@ extern class Faxe
 	public static function fmod_unload_bank(bankFilePath:String):Void;
 
 	@:native("linc::faxe::faxe_load_sound")
-	public static function fmod_load_sound(soundPath:String, looping:Bool = false, streaming:Bool = false):Void;
+	public static function fmod_load_sound(soundPath:String, looping:Bool = false, streaming:Bool = false):FmodResult;
 
 	@:native("linc::faxe::faxe_get_sound")
 	public static function fmod_get_sound(soundPath:String):cpp.Pointer<FmodSound>;
@@ -35,7 +35,7 @@ extern class Faxe
 	public static function fmod_play_event(eventName:String):Void;
 	
 	@:native("linc::faxe::faxe_play_sound")
-	public static function fmod_play_sound(soundName:String, paused:Bool):Void;
+	public static function fmod_play_sound(soundName:String, paused:Bool = false):FmodResult;
 	
 	@:native("linc::faxe::faxe_play_sound_with_channel")
 	public static function faxe_play_sound_with_channel(soundName:String, paused:Bool): cpp.Pointer<FmodChannel>;
@@ -54,6 +54,9 @@ extern class Faxe
 	
 	@:native("linc::faxe::faxe_get_system")
 	public static function fmod_get_system() : cpp.Pointer<FmodSystem>;
+	
+	@:native("linc::faxe::faxe_set_debug")
+	public static function fmod_set_debug(onOff : Bool):Void;
 }
 
 @:enum abstract FmodTimeUnit(Int) from Int to Int {

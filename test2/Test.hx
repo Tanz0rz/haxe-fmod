@@ -18,8 +18,6 @@ class Test
 		//Faxe.fmod_play_sound("accuser_nodrums.wav" , false );
 		var chan : cpp.Pointer<FmodChannel> = Faxe.faxe_play_sound_with_channel(file , false);
 		
-		
-		
 		{
 			var f : cpp.Float32 = 0.0;
 			chan.ptr.getVolume( cpp.Pointer.addressOf(f) );
