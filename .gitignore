@@ -3,3 +3,7 @@ lib/bin/*
 lib/doc/*
 test/cpp
 /test2/cpp
+/lib/Windows/api
+/test2/BUILD_WIN_DEBUG.bat
+/test2/toto.txt
+/test2/totoErr.txt

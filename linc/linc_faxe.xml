@@ -1,6 +1,20 @@
 <xml>
 
-	<set name="NATIVE_TOOLKIT_PATH" value="${LINC_FAXE_PATH}/lib/" />
+	<section if="windows">
+		<set name="NATIVE_TOOLKIT_PATH" value="${LINC_FAXE_PATH}/lib/Windows/" />
+	</section>
+	
+	<section if="linux HXCPP_M32">
+		<set name="NATIVE_TOOLKIT_PATH" value="${LINC_FAXE_PATH}/lib/Linux/" />
+	</section>
+	
+	<section if="linux HXCPP_M64">
+		<set name="NATIVE_TOOLKIT_PATH" value="${LINC_FAXE_PATH}/lib/Linux64/" />
+	</section>
+	
+	<section if="switch">
+		<set name="NATIVE_TOOLKIT_PATH" value="${LINC_FAXE_PATH}/lib/switch" />
+	</section>
 
 	<echo value="Found your FMOD API!" ifExists="${NATIVE_TOOLKIT_PATH}/api/" />
 
@@ -13,13 +27,12 @@
 		<file name="${LINC_FAXE_PATH}/linc/linc_faxe.cpp" />
 	</files>
 
+	
 	<target id="haxe" toolid="exe">
 
 		<section if="windows">
 			<lib name="${NATIVE_TOOLKIT_PATH}/api/lowlevel/lib/fmod_vc.lib" />
 			<lib name="${NATIVE_TOOLKIT_PATH}/api/studio/lib/fmodstudio_vc.lib" />
-			<copyFile name="fmod.dll" from="${NATIVE_TOOLKIT_PATH}/api/lowlevel/lib/" toolId="exe" allowMissing="false"/>
-			<copyFile name="fmodstudio.dll" from="${NATIVE_TOOLKIT_PATH}/api/studio/lib/" toolId="exe" allowMissing="false"/>
 		</section>
 
 		<section if="linux HXCPP_M32">
@@ -31,7 +44,13 @@
 			<lib name="${NATIVE_TOOLKIT_PATH}/api/lowlevel/lib/x86_64/libfmod.so" />
 			<lib name="${NATIVE_TOOLKIT_PATH}/api/studio/lib/x86_64/libfmodstudio.so" />
 		</section>
-
 	</target>
-
+	
+	<!-- put post builds here -->
+	<section  if="windows">
+		<copyFile name="fmod.dll" from="${NATIVE_TOOLKIT_PATH}/api/lowlevel/lib" toolId="exe" allowMissing="false"/>
+		<copyFile name="fmodstudio.dll" from="${NATIVE_TOOLKIT_PATH}/api/studio/lib" toolId="exe" allowMissing="false"/>
+	</section>
+	
+	
 </xml>
