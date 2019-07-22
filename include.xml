@@ -1,9 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <project>
+
+	<echo value="adding deps" />
+
 	<dependency name="lib/Windows/api/lowlevel/lib/fmod.dll" if="windows HXCPP_M32"/>
 	<dependency name="lib/Windows/api/studio/lib/fmodstudio.dll" if="windows HXCPP_M32" />
 	
-	<dependency name="lib/Windows/api/lowlevel/lib/fmod64.dll" if="windows HXCPP_M64"/>
-	<dependency name="lib/Windows/api/studio/lib/fmodstudio64.dll" if="windows HXCPP_M64" />
+	<dependency name="lib/Windows/api/lowlevel/lib/fmod64.dll" if="windows" unless="HXCPP_M32"/>
+	<dependency name="lib/Windows/api/studio/lib/fmodstudio64.dll" if="windows" unless="HXCPP_M32"/>
 	
 </project>
