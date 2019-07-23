@@ -191,6 +191,10 @@ class Snd {
 	public var 	volume 			: Float 				= 1.0;
 	public var 	curPlay 		: Null<Channel> 		= null;
 		
+	/**
+	 * for when stop is called explicitly
+	 * allows disposal
+	 */
 	public var 	onStop 									= new hxd.Signal();
 	public var 	sound 		: Sound						= null;
 		
@@ -227,7 +231,7 @@ class Snd {
 		}
 		
 		if ( sound != null) 	sound.dispose();
-		
+		onStop.dispose();
 		sound = null;
 		onEnd = null;
 		curPlay = null;
@@ -422,7 +426,7 @@ class Snd {
 	public function tweenPan(v:Float, ?easing:SndTV.TVType, milliseconds:Float) : TweenV {
 		TW.terminate(this);
 		if ( easing == null ) easing = TVType.TEase;
-		var t = TW.create(this, TVVPan, v, TEase, milliseconds);
+		var t = TW.create(this, TVVPan, v, easing, milliseconds);
 		refresh();
 		t.onUpdate = _refresh;
 		t.onEnd = _refresh;

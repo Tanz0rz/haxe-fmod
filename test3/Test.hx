@@ -140,7 +140,7 @@ class Test{
 			}
 		}
 		
-		if ( true ){
+		if ( false ){
 			trace("reading");
 			var all :Map<String,Snd> = new Map();
 			var dir = "win/snd/SFX";
@@ -153,6 +153,71 @@ class Test{
 				}
 			}
 			all.get("BBdino_grunt4.wav").playLoop( 10 ); 
+		}
+		
+		if ( false ){
+			trace("reading");
+			var t0 = haxe.Timer.stamp();
+			var all :Map<String,Snd> = new Map();
+			var dir = "win/snd/SFX";
+			for ( path in sys.FileSystem.readDirectory(dir)){
+				var snd = Snd.loadSfx( dir + "/" + path );
+				if( snd !=null ) 
+					all.set(path, snd);
+				else{
+					trace("not loaded " + snd);
+				}
+			}
+			var t1 = haxe.Timer.stamp();
+			trace("time to load" + (t1 - t0) + "sec");
+			all.get("wind1_loop.wav").fadePlay( 10000 );
+		}
+		
+		
+		if ( false ){
+			var file = "win/snd/music/Hell_master.ogg";
+			var sound : Snd = Snd.loadSfx( file );
+			if (sound != null) {
+				sound.play();
+				
+				sound.onStop.addOnce(function(){
+					trace("disposing");
+					sound.dispose();
+				});
+				
+				haxe.Timer.delay( function(){
+					trace("fading...");
+					sound.fadeStop( 10000 );
+				},1000);
+			}
+			else {
+				trace( "no such sound " + file);
+			}
+		}
+		
+		if ( true ){
+			var file = "win/snd/music/Hell_master.ogg";
+			var sound : Snd = Snd.loadSfx( file );
+			if (sound != null) {
+				sound.play();
+				haxe.Timer.delay( function(){
+					trace("lower");
+					Snd.setGlobalVolume( 0.5 );
+				}, 5000);
+				
+				haxe.Timer.delay( function(){
+					trace("top");
+					Snd.setGlobalVolume( 1.0 );
+				}, 10000);
+				
+				haxe.Timer.delay( function(){
+					trace("zero");
+					Snd.setGlobalVolume( 0.0 );
+				}, 15000);
+			}
+			else {
+				trace( "no such sound " + file);
+			}
 		}
 		
 		var h = new haxe.Timer( 15);
