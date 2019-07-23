@@ -11,9 +11,11 @@ class Test
 
 		var file = "accuser_nodrums.wav";
 		
-		var file = "04 - Flesh And Bones (feat. Benjamin Guerry).mp3";
+		
 		var file = "Bomblasta_nodrums.ogg";
 		var file = "Draculaugh.wav";
+		var file = "04 - Flesh And Bones (feat. Benjamin Guerry).mp3";
+		var file = "07 - Crush (feat. Jay Kloeckner).mp3";
 		Faxe.fmod_load_sound(file);
 		
 		var chan : FmodChannelRef = FaxeRef.playSound(file , false);
@@ -26,7 +28,7 @@ class Test
 		}
 		
 		{	//seek
-			chan.setPosition( 60*1000, FmodTimeUnit.FTM_MS);
+			//chan.setPosition( 60*1000, FmodTimeUnit.FTM_MS);
 		}
 		
 		{	

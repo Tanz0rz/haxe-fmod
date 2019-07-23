@@ -1,5 +1,6 @@
 package faxe;
 
+
 @:keep
 @:include('linc_faxe.h')
 #if !display
@@ -20,9 +21,15 @@ extern class Faxe
 	@:native("linc::faxe::faxe_unload_bank")
 	public static function fmod_unload_bank(bankFilePath:String):Void;
 
+	/**
+	 * registered the sounds internally
+	 */
 	@:native("linc::faxe::faxe_load_sound")
 	public static function fmod_load_sound(soundPath:String, looping:Bool = false, streaming:Bool = false):FmodResult;
 
+	/**
+	 * get registerd sounds
+	 */
 	@:native("linc::faxe::faxe_get_sound")
 	public static function fmod_get_sound(soundPath:String):cpp.Pointer<FmodSound>;
 	
@@ -37,6 +44,9 @@ extern class Faxe
 	
 	@:native("linc::faxe::faxe_play_sound")
 	public static function fmod_play_sound(soundName:String, paused:Bool = false):FmodResult;
+	
+	@:native("linc::faxe::faxe_play_sound_with_handle")
+	public static function fmod_play_sound_with_handle(snd : cpp.Pointer<FmodSound>):FmodResult;
 	
 	@:native("linc::faxe::faxe_play_sound_with_channel")
 	public static function fmod_play_sound_with_channel(soundName:String, paused:Bool): cpp.Pointer<FmodChannel>;
@@ -59,8 +69,6 @@ extern class Faxe
 	@:native("linc::faxe::faxe_set_debug")
 	public static function fmod_set_debug(onOff : Bool):Void;
 }
-
-
 
 @:enum abstract FmodTimeUnit(Int) from Int to Int {
 	var FTM_MS 			= 0x00000001;
@@ -216,9 +224,17 @@ extern class FmodSound {
 	@:native('getLength')
 	function getLength( len : cpp.Pointer<cpp.UInt32>, postype : FmodTimeUnit ) : FmodResult;
 	
-	//use faxe release to fully release memory
+	//use faxe release to fully release memory... 
 	@:native('release')
 	function release() : FmodResult;
+}
+
+
+@:keep
+@:include('linc_faxe.h')
+@:native("FMOD::ChannelGroup")
+extern class FmodChannelGroup {
+	
 }
 
 @:keep
@@ -265,6 +281,15 @@ extern class FmodChannel {
 	
 	@:native('setMode')
 	function setMode( mode:FmodMode ) : FmodResult;
+	
+	@:native('getPaused')
+	function getPaused( paused : cpp.Pointer<Bool> ) : FmodResult;
+	
+	@:native('setPaused')
+	function setPaused( paused : Bool ) : FmodResult;
+	
+	@:native('setPan')
+	function setPan( pan : Float ) : FmodResult;
 }
 
 @:keep
@@ -285,7 +310,7 @@ extern class FmodSystem {
 		name_or_data : cpp.ConstCharStar, 
 		mode : FmodMode, 
 		createExInfo : cpp.Pointer<FmodCreateSoundExInfo>, 
-		sound:cpp.Pointer<cpp.Pointer<FmodSound>>) : FmodResult;
+		sound:cpp.RawPointer<cpp.RawPointer<FmodSound>>) : FmodResult;
 		
 		
 	@:native('getSoundRAM')
@@ -293,6 +318,14 @@ extern class FmodSystem {
 		currentAlloced:cpp.Pointer<Int>,
 		maxAlloced:cpp.Pointer<Int>,
 		total:cpp.Pointer<Int>
+	) : FmodResult;
+	
+	@:native('playSound')
+	function playSound(
+		sound 			: cpp.Pointer<FmodSound>,
+		channelgroup 	: cpp.Pointer<FmodChannelGroup>,
+		paused 			: Bool,
+		channel			: cpp.RawPointer<cpp.RawPointer<FmodChannel>>
 	) : FmodResult;
 }
 
@@ -311,9 +344,45 @@ class FaxeRef {
 	}
 	
 	@:extern
-	public static inline function playSound(name:String,paused = false) : FmodChannelRef {
+	public static inline function playSound(name:String, ?paused = false) : FmodChannelRef {
 		var ptr : cpp.Pointer<FmodChannel> = Faxe.fmod_play_sound_with_channel(name,paused);
 		return cast ptr.ref;
+	}
+	
+	@:generic
+	@:extern
+	public static inline function nullptr<T>() : cpp.Pointer<T> {
+		return cast null;
+	}
+	
+	@:generic
+	@:extern
+	public static inline function nullptrR<T>() : cpp.RawPointer<T> {
+		return cast null;
+	}
+	
+	public static function playSoundWithHandle(snd:FmodSoundRef, ?paused : Bool = false) 
+		: cpp.Pointer<FmodChannel> 
+	{
+		var fmod : FmodSystemRef = getSystem();
+		
+		var cgroup : cpp.Pointer<FmodChannelGroup> = nullptr();
+		var chan : cpp.RawPointer<FmodChannel> = nullptrR();
+		var chanPtr : cpp.RawPointer<cpp.RawPointer<FmodChannel>> = cpp.RawPointer.addressOf(chan);
+		
+		//Reference are actually pointers !
+		var sndPtr : cpp.Pointer<FmodSound> = cast snd;
+		
+		var res = fmod.playSound( sndPtr, cgroup, paused, chanPtr );
+		
+		if ( res != FMOD_OK ){
+			#if debug
+			trace("[Faxe] Play sound error "+res);
+			#end
+			return null;
+		}
+		
+		return cpp.Pointer.fromRaw(chan);
 	}
 	
 	@:extern

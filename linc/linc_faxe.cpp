@@ -118,6 +118,8 @@ namespace linc
 			return loadedSounds[sndName];
 		}
 		
+		
+		
 		FMOD_RESULT faxe_load_sound(const ::String& sndName, bool looping, bool streaming)
 		{
 			// Ensure the sound has not already been loaded
@@ -143,6 +145,13 @@ namespace linc
 			// Store in loaded sounds map
 			loadedSounds[sndName] = tempSound;
 			return result;
+		}
+		
+		FMOD_RESULT faxe_play_sound_with_handle( FMOD::Sound * snd)
+		{
+			FMOD_RESULT res = fmodLowLevelSoundSystem->playSound(snd, nullptr, false, nullptr);
+			if(faxe_debug && res ) printf("error playing\n");
+			return res;
 		}
 		
 		FMOD_RESULT faxe_play_sound(const ::String& sndName, bool paused)

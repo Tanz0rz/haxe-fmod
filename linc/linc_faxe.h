@@ -84,6 +84,8 @@ namespace linc
 		 */
 		extern FMOD_RESULT faxe_play_sound(const ::String& sndName, bool paused = false);
 		
+		extern FMOD_RESULT faxe_play_sound_with_handle( FMOD::Sound * snd);
+		
 		/**
 		 * plays a sound without further ado and gets result channel
 		 */
