@@ -2,9 +2,10 @@ package faxe;
 
 @:keep
 @:include('linc_faxe.h')
+#if !display
 @:build(linc.Linc.touch())
 @:build(linc.Linc.xml('faxe'))
-
+#end
 extern class Faxe
 {
 	@:native("linc::faxe::faxe_init")
@@ -58,6 +59,8 @@ extern class Faxe
 	@:native("linc::faxe::faxe_set_debug")
 	public static function fmod_set_debug(onOff : Bool):Void;
 }
+
+
 
 @:enum abstract FmodTimeUnit(Int) from Int to Int {
 	var FTM_MS 			= 0x00000001;
@@ -189,7 +192,7 @@ extern class Faxe
 }
 
 @:include('linc_faxe.h')
-@:native("FMOD::Channel")
+@:native("FMOD::Sound")
 extern class FmodSound {
 	@:native('getMode')
 	function getMode( mode : cpp.Pointer<FmodMode> ) : FmodResult;
@@ -209,10 +212,15 @@ extern class FmodSound {
 	@:native('setPosition')
 	function setPosition( position : cpp.UInt32, postype : FmodTimeUnit ) : FmodResult;
 	
+	@:native('getLength')
+	function getLength( len : cpp.Pointer<cpp.UInt32>, postype : FmodTimeUnit ) : FmodResult;
+	
 	//use faxe release to fully release memory
 	@:native('release')
 	function release() : FmodResult;
 }
+
+@:native("::cpp::Reference<FMOD::Sound>") extern class FmodSoundRef extends FmodSound {}
 
 @:include('linc_faxe.h')
 @:native("FMOD::Channel")
@@ -236,6 +244,9 @@ extern class FmodChannel {
 	@:native('stop')
 	function stop() : FmodResult;
 	
+	@:native('release')
+	function release() : FmodResult;
+	
 	@:native('isPlaying')
 	function isPlaying( isPlaying : cpp.Pointer<Bool> ) : FmodResult;
 	
@@ -252,6 +263,7 @@ extern class FmodChannel {
 	function setMode( mode:FmodMode ) : FmodResult;
 	
 }
+@:native("::cpp::Reference<FMOD::Channel>") extern class FmodChannelRef extends FmodChannel {}
 
 @:include('linc_faxe.h')
 @:native("FMOD::System")
@@ -276,8 +288,19 @@ extern class FmodSystem {
 	) : FmodResult;
 }
 
+@:native("::cpp::Reference<FMOD::System>") extern class FmodSystemRef extends FmodSystem {}
+
 @:include('linc_faxe.h')
-@:native("FMOD::FMOD_CREATESOUNDEXINFO")
+class FaxeRef {
+	@:extern
+	public static inline function fmod_get_system() : FmodSystemRef{
+		var ptr : cpp.Pointer<FmodSystem> = Faxe.fmod_get_system();
+		return cast ptr.ref;
+	}
+}
+
+@:include('linc_faxe.h')
+@:native("FMOD_CREATESOUNDEXINFO")
 extern class FmodCreateSoundExInfo {
 	
 }

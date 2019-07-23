@@ -4,7 +4,7 @@
   <output>
     <movie outputType="CustomBuild" />
     <movie input="" />
-    <movie path="bin" />
+    <movie path="cpp" />
     <movie fps="0" />
     <movie width="0" />
     <movie height="0" />
@@ -15,20 +15,20 @@
   </output>
   <!-- Other classes to be compiled into your SWF -->
   <classpaths>
-    <class path="src" />
+    <class path="" />
   </classpaths>
   <!-- Build options -->
   <build>
     <option directives="" />
     <option flashStrict="False" />
     <option noInlineOnDebug="False" />
-    <option mainClass="Main" />
+    <option mainClass="Test" />
     <option enabledebug="False" />
-    <option additional="" />
+    <option additional="windows" />
   </build>
   <!-- haxelib libraries -->
   <haxelib>
-    <!-- example: <library name="..." /> -->
+    <library name="faxe" />
   </haxelib>
   <!-- Class files to compile (other referenced classes will automatically be included) -->
   <compileTargets>
@@ -38,6 +38,9 @@
   <hiddenPaths>
     <hidden path="obj" />
     <hidden path="bin" />
+    <hidden path="C:\HaxeToolkit\haxe\lib\faxe\git\test2" />
+    <hidden path="C:\HaxeToolkit\haxe\lib\faxe\git\test" />
+    <hidden path="C:\HaxeToolkit\haxe\lib\faxe\git\lib" />
   </hiddenPaths>
   <!-- Executed before build -->
   <preBuildCommand>haxe build.hxml</preBuildCommand>

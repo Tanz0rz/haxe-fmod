@@ -1,7 +1,10 @@
 import faxe.Faxe;
+import Cpp;
 
 class Test
 {
+	
+
 	static function main()
 	{
 		Faxe.fmod_init(36);
@@ -10,17 +13,14 @@ class Test
 		
 		var file = "04 - Flesh And Bones (feat. Benjamin Guerry).mp3";
 		var file = "Bomblasta_nodrums.ogg";
-		//Faxe.fmod_load_sound(file, false, true);
-		
 		var file = "Draculaugh.wav";
 		Faxe.fmod_load_sound(file);
 		
-		//Faxe.fmod_play_sound("accuser_nodrums.wav" , false );
-		var chan : cpp.Pointer<FmodChannel> = Faxe.faxe_play_sound_with_channel(file , false);
+		var chan : Ptr<FmodChannel> = Faxe.faxe_play_sound_with_channel(file , false);
 		
 		{
 			var f : cpp.Float32 = 0.0;
-			chan.ptr.getVolume( cpp.Pointer.addressOf(f) );
+			chan.ptr.getVolume( Cpp.addr(f) );
 			trace(f);
 			//chan.ptr.setVolume( 0.1 );
 		}
@@ -31,13 +31,13 @@ class Test
 		
 		{	
 			var f : cpp.UInt32 = 0;
-			chan.ptr.getPosition( cpp.Pointer.addressOf(f), FmodTimeUnit.FTM_MS);
+			chan.ptr.getPosition( Cpp.addr(f), FmodTimeUnit.FTM_MS);
 			trace(f);
 		}
 		
 		{
 			var b : Bool = false;
-			chan.ptr.isPlaying(cpp.Pointer.addressOf(b));
+			chan.ptr.isPlaying( Cpp.addr(b));
 			trace(b);
 		}
 		
@@ -57,17 +57,27 @@ class Test
 		chan.ptr.setLoopCount;
 		chan.ptr.setMode;
 		     
-		var snd : cpp.Pointer<FmodSound> = Faxe.fmod_get_sound(file);
+		var snd : Ptr<FmodSound> = Faxe.fmod_get_sound(file);
 		snd.ptr.getMode;
 		snd.ptr.getLoopCount;
 		snd.ptr.setLoopCount;
 		snd.ptr.setMode;
 		snd.ptr.getPosition;
 		snd.ptr.setPosition;
+		
+		
+		var s : Ptr<FmodCreateSoundExInfo> = Cpp.nullptr();
+		
+		var len : cpp.UInt32 = 0;
+		var res = snd.ptr.getLength( Cpp.addr(len), FmodTimeUnit.FTM_MS);
 		snd.ptr.release;
 		
-		var sys : cpp.Pointer<FmodSystem> = Faxe.fmod_get_system();
-		sys.ptr.getSoundRAM;
+		var ptr : Ptr<FmodSystem> = Faxe.fmod_get_system();
+		var sys = ptr.ref;
+		sys.getSoundRAM;
+		
+		var sys : FmodSystemRef = FaxeRef.fmod_get_system();
+		sys.getSoundRAM;
 		
 		// Bad little forever loop to pump FMOD commands
 		while (true)

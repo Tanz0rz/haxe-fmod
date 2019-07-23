@@ -1,7 +1,12 @@
 -main Test.hx
 
 -cpp cpp
--cp ../
+
+-cp ..
+#-lib faxe
+#-cp .
+
+
 -debug
 # pick a target
 
