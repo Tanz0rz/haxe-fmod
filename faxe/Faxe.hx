@@ -39,7 +39,7 @@ extern class Faxe
 	public static function fmod_play_sound(soundName:String, paused:Bool = false):FmodResult;
 	
 	@:native("linc::faxe::faxe_play_sound_with_channel")
-	public static function faxe_play_sound_with_channel(soundName:String, paused:Bool): cpp.Pointer<FmodChannel>;
+	public static function fmod_play_sound_with_channel(soundName:String, paused:Bool): cpp.Pointer<FmodChannel>;
 
 	@:native("linc::faxe::faxe_stop_event")
 	public static function fmod_stop_event(eventName:String, forceStop:Bool):Void;
@@ -191,6 +191,7 @@ extern class Faxe
 	var FMOD_VIRTUAL_PLAYFROMSTART 			= 0x80000000;
 }
 
+@:keep
 @:include('linc_faxe.h')
 @:native("FMOD::Sound")
 extern class FmodSound {
@@ -220,7 +221,10 @@ extern class FmodSound {
 	function release() : FmodResult;
 }
 
-@:native("::cpp::Reference<FMOD::Sound>") extern class FmodSoundRef extends FmodSound {}
+@:keep
+@:include('linc_faxe.h')
+@:native("::cpp::Reference<FMOD::Sound>") 
+extern class FmodSoundRef extends FmodSound {}
 
 @:include('linc_faxe.h')
 @:native("FMOD::Channel")
@@ -261,10 +265,14 @@ extern class FmodChannel {
 	
 	@:native('setMode')
 	function setMode( mode:FmodMode ) : FmodResult;
-	
 }
-@:native("::cpp::Reference<FMOD::Channel>") extern class FmodChannelRef extends FmodChannel {}
 
+@:keep
+@:include('linc_faxe.h')
+@:native("::cpp::Reference<FMOD::Channel>") 
+extern class FmodChannelRef extends FmodChannel {}
+
+@:keep
 @:include('linc_faxe.h')
 @:native("FMOD::System")
 extern class FmodSystem {
@@ -288,17 +296,34 @@ extern class FmodSystem {
 	) : FmodResult;
 }
 
-@:native("::cpp::Reference<FMOD::System>") extern class FmodSystemRef extends FmodSystem {}
+@:keep
+@:include('linc_faxe.h')
+@:native("::cpp::Reference<FMOD::System>") 
+extern class FmodSystemRef extends FmodSystem {}
 
+@:keep
 @:include('linc_faxe.h')
 class FaxeRef {
 	@:extern
-	public static inline function fmod_get_system() : FmodSystemRef{
+	public static inline function getSystem() : FmodSystemRef{
 		var ptr : cpp.Pointer<FmodSystem> = Faxe.fmod_get_system();
+		return cast ptr.ref;
+	}
+	
+	@:extern
+	public static inline function playSound(name:String,paused = false) : FmodChannelRef {
+		var ptr : cpp.Pointer<FmodChannel> = Faxe.fmod_play_sound_with_channel(name,paused);
+		return cast ptr.ref;
+	}
+	
+	@:extern
+	public static inline function getSound(name:String) : FmodSoundRef {
+		var ptr : cpp.Pointer<FmodSound> = Faxe.fmod_get_sound(name);
 		return cast ptr.ref;
 	}
 }
 
+@:keep
 @:include('linc_faxe.h')
 @:native("FMOD_CREATESOUNDEXINFO")
 extern class FmodCreateSoundExInfo {

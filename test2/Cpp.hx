@@ -1,6 +1,7 @@
 
 typedef Ptr<T> = cpp.Pointer<T>;
 
+@:keep
 class Cpp {
 
 	@:extern
