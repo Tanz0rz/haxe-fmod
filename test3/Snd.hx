@@ -58,15 +58,7 @@ class Channel {
 	}
 	
 	public inline function setPlayCursorSec(posSec:Float) {
-		if ( posSec < 0.0) posSec = 0.0;
-		var posU : cpp.UInt32 = 0;
-		posU = Math.round(posSec * 1000);
-		var res = data.setPosition( posU, FmodTimeUnit.FTM_MS );
-		if ( res != FMOD_OK){
-			#if debug
-			trace("[SND][Channel] Repositionning S err " + res);
-			#end
-		}
+		setPlayCursorMs( posSec * 1000.0 );
 	}
 	
 	public inline function setPlayCursorMs(posMs:Float) {
@@ -251,6 +243,7 @@ class Snd {
 		return this;
 	}
 	
+	
 	/**
 	 * launches the sound, stops previous and rewrite the cur play dropping it into oblivion for the gc
 	 */
@@ -310,6 +303,12 @@ class Snd {
 		return sound.length;
 	}
 	
+	public static inline 
+	function trunk(v:Float, digit:Int) : Float{
+		var hl = Math.pow( 10.0 , digit );
+		return Std.int( v * hl ) / hl;
+	}
+	
 	public static function dumpMemory(){
 		var v0 : Int = 0;
 		var v1 : Int = 0;
@@ -318,9 +317,28 @@ class Snd {
 		var v0p : cpp.Pointer<Int> = Cpp.addr(v0);
 		var v1p : cpp.Pointer<Int> = Cpp.addr(v1);
 		var v2p : cpp.Pointer<Int> = Cpp.addr(v2);
+		var str = "";
+		var res = fmodSystem.getSoundRAM( v0p, v1p, v2p );
+		if ( res != FMOD_OK){
+			#if debug
+			trace("[SND] cannot fetch snd ram dump ");
+			#end
+		}
 		
-		fmodSystem.getSoundRAM( v0p, v1p, v2p );
-		return "fmod all:" +(v0/1024)+"KB max:"+(v1/1024)+"KB total: "+(v2/1024)+" KB";
+		inline function f( val :Float) : Float{
+			return trunk(val, 2);
+		}
+		
+		if( v2 > 0 ){
+			str+="fmod Sound chip RAM all:" + f(v0 / 1024.0) + "KB \t max:" + f(v1 / 1024.0) + "KB \t total: " + f(v2 / 1024.0) + " KB\r\n";
+		}
+		
+		v0 = 0;
+		v1 = 0;
+		
+		var res = FaxeRef.Memory_GetStats( v0p, v1p, false );
+		str += "fmod Motherboard chip RAM all:" + f(v0 / 1024.0) + "KB \t max:" + f(v1 / 1024.0) + "KB \t total: " + f(v2 / 1024.0) + " KB";
+		return str;
 	}
 	
 	public function playLoop(?loops = 9999, ?vol:Float, ?startOffset = 0.0) {
@@ -412,6 +430,9 @@ class Snd {
 			#end
 		}
 	}
+	
+	public function	setPlayCursorSec( pos:Float ) 	if (curPlay != null)	curPlay.setPlayCursorSec(pos);
+	public function	setPlayCursorMs( pos:Float ) 	if (curPlay != null) 	curPlay.setPlayCursorMs(pos);
 	
 	public function tweenVolume(v:Float, ?easing:SndTV.TVType, milliseconds:Float) : TweenV {
 		TW.terminate(this);

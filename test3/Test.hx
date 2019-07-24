@@ -195,7 +195,7 @@ class Test{
 			}
 		}
 		
-		if ( true ){
+		if ( false ){
 			var file = "win/snd/music/Hell_master.ogg";
 			var sound : Snd = Snd.loadSfx( file );
 			if (sound != null) {
@@ -214,6 +214,79 @@ class Test{
 					trace("zero");
 					Snd.setGlobalVolume( 0.0 );
 				}, 15000);
+			}
+			else {
+				trace( "no such sound " + file);
+			}
+		}
+		
+		if ( false ){
+			var file = "win/snd/music/Hell_master.ogg";
+			var sound : Snd = Snd.loadSong( file );
+			if (sound != null) {
+				sound.play();
+				haxe.Timer.delay( function(){
+					sound.setPlayCursorSec( 60 );
+				}, 5000);
+			}
+			else {
+				trace( "no such sound " + file);
+			}
+			
+		}
+		
+		if ( false ){
+			var file = "win/snd/music/Hell_master.ogg";
+			var fmod = FaxeRef.getSystem();
+			trace("fm init mem:\t" + Snd.dumpMemory());
+			var sound : Snd = Snd.loadSfx( file );
+			trace("load mem:\t\t" + Snd.dumpMemory());
+			
+			if (sound != null) {
+				sound.play();
+				
+				haxe.Timer.delay( function(){
+					trace("playin mem:\t" + Snd.dumpMemory());
+					sound.dispose();
+					trace("dispose mem:\t" + Snd.dumpMemory());
+					cpp.vm.Gc.run(true);
+					trace("gc runmem:" + Snd.dumpMemory());
+				},5000);
+				
+				haxe.Timer.delay( function(){
+					trace("long aftermem: \t" + Snd.dumpMemory());
+					Sys.command("pause");
+					Sys.exit(0);
+				},10000);
+			}
+			else {
+				trace( "no such sound " + file);
+			}
+		}
+		
+		if ( true ){
+			var file = "win/snd/music/Hell_master.ogg";
+			var fmod = FaxeRef.getSystem();
+			trace("fm init mem:\t" + Snd.dumpMemory());
+			var sound : Snd = Snd.loadSong( file );
+			trace("load mem:\t\t" + Snd.dumpMemory());
+			
+			if (sound != null) {
+				sound.play();
+				
+				haxe.Timer.delay( function(){
+					trace("playin mem:\t" + Snd.dumpMemory());
+					sound.dispose();
+					trace("dispose mem:\t" + Snd.dumpMemory());
+					cpp.vm.Gc.run(true);
+					trace("gc runmem:\t" + Snd.dumpMemory());
+				},5000);
+				
+				haxe.Timer.delay( function(){
+					trace("long aftermem:\t" + Snd.dumpMemory());
+					Sys.command("pause");
+					Sys.exit(0);
+				},10000);
 			}
 			else {
 				trace( "no such sound " + file);

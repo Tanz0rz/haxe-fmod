@@ -1,5 +1,6 @@
 package faxe;
 
+private typedef Ptr<T> = cpp.Pointer<T>;
 
 @:keep
 @:include('linc_faxe.h')
@@ -347,6 +348,10 @@ class FaxeRef {
 	public static inline function playSound(name:String, ?paused = false) : FmodChannelRef {
 		var ptr : cpp.Pointer<FmodChannel> = Faxe.fmod_play_sound_with_channel(name,paused);
 		return cast ptr.ref;
+	}
+	
+	public static function Memory_GetStats(currentAlloced:Ptr<Int>, maxAlloced:Ptr<Int>, isBlockingOrFast:Bool) : FmodResult {
+		return untyped __cpp__("FMOD::Memory_GetStats({0},{1},{2})",currentAlloced,maxAlloced,isBlockingOrFast);
 	}
 	
 	@:generic
