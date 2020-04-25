@@ -9,3 +9,6 @@ test/cpp
 /test2/totoErr.txt
 /lib/Switch/api
 /test3/cpp
+/build
+/.vscode/
+/FmodProject

@@ -1,13 +1,13 @@
 {
-	"name" : "faxe",
-	"url" : "https://github.com/delahee/faxe/",
+	"name" : "myfaxe",
+	"url" : "https://github.com/Tanz0rz/faxe/",
 	"license" : "MIT",
-	"tags": ["fmod","audio","crossplatform"],
+	"tags": ["fmod","audio","windows"],
 	
-    "description" : "cpp fmod binding",
-    "version" : "0.0.66",
-	"releasenote" : "",
-	"contributors" : ["delahee"],
+    "description" : "cpp fmod binding for Windows",
+    "version" : "0.1.0",
+	"releasenote" : "Updated to work with Windows FMOD API v2.00.08",
+	"contributors" : ["delahee", "uhrobots", "Tanz0rz"],
     "dependencies" : { }
 }
 

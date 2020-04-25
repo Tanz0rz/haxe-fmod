@@ -44,7 +44,7 @@ namespace linc
 		std::map<::String, FMOD::Sound*> loadedSounds;
 		std::map<::String, FMOD::Studio::EventInstance*> loadedEvents;
 		
-		bool faxe_debug = false;
+		bool faxe_debug = true;
 		void faxe_set_debug(bool onOff){
 			faxe_debug = onOff;
 		}
@@ -64,8 +64,8 @@ namespace linc
 			}
 
 			// All OK - Setup some channels to work with!
-			fmodSoundSystem->initialize(numChannels, FMOD_STUDIO_INIT_NORMAL, FMOD_INIT_NORMAL, nullptr);
-			fmodSoundSystem->getLowLevelSystem(&fmodLowLevelSoundSystem);
+			fmodSoundSystem->initialize(numChannels, FMOD_STUDIO_INIT_LIVEUPDATE, FMOD_INIT_NORMAL, nullptr);
+			fmodSoundSystem->getCoreSystem(&fmodLowLevelSoundSystem);
 			if(faxe_debug) printf("FMOD Sound System Started with %d channels!\n", numChannels);
 		}
 
@@ -295,7 +295,7 @@ namespace linc
 			{
 				// Try and get the float param from EventInstance
 				float currentValue;
-				auto result = targetEvent->second->getParameterValue(paramName.c_str(), &currentValue);
+				auto result = targetEvent->second->getParameterByName(paramName.c_str(), &currentValue);
 
 				if (result != FMOD_OK)
 				{
@@ -315,7 +315,7 @@ namespace linc
 			auto targetEvent = loadedEvents.find(eventName);
 			if (targetEvent != loadedEvents.end())
 			{
-				auto result = targetEvent->second->setParameterValue(paramName.c_str(), sValue);
+				auto result = targetEvent->second->setParameterByName(paramName.c_str(), sValue);
 
 				if (result != FMOD_OK)
 				{
