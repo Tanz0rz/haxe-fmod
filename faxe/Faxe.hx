@@ -55,14 +55,17 @@ extern class Faxe
 	@:native("linc::faxe::faxe_stop_event")
 	public static function fmod_stop_event(eventName:String, forceStop:Bool):Void;
 
-	@:native("linc::faxe::faxe_event_playing")
-	public static function fmod_event_is_playing(eventName:String):Bool;
+	@:native("linc::faxe::faxe_is_event_playing")
+	public static function fmod_is_event_playing(eventName:String):Bool;
+
+	@:native("linc::faxe::faxe_get_event_playback_state")
+	public static function fmod_get_event_playback_state(eventName:String):FmodStudioPlaybackState;
 
 	@:native("linc::faxe::faxe_get_event_param")
-	public static function fmod_get_param(eventName:String, paramName:String):Float;
+	public static function fmod_get_event_param(eventName:String, paramName:String):Float;
 
 	@:native("linc::faxe::faxe_set_event_param")
-	public static function fmod_set_param(eventName:String, paramName:String, sValue:Float):Void;
+	public static function fmod_set_event_param(eventName:String, paramName:String, sValue:Float):Void;
 	
 	@:native("linc::faxe::faxe_get_system")
 	public static function fmod_get_system() : cpp.Pointer<FmodSystem>;
@@ -80,6 +83,15 @@ extern class Faxe
 	var FTM_MODORDER 	= 0x00000100;
 	var FTM_MODROW		= 0x00000200;
 	var FTM_MODPATTERN 	= 0x00000400;
+}
+
+@:enum abstract FmodStudioPlaybackState(Int) from Int to Int {
+	var FMOD_STUDIO_PLAYBACK_PLAYING 							= 0;
+	var FMOD_STUDIO_PLAYBACK_SUSTAINING 						= 1;
+	var FMOD_STUDIO_PLAYBACK_STOPPED 							= 2;
+	var FMOD_STUDIO_PLAYBACK_STARTING 							= 3;
+	var FMOD_STUDIO_PLAYBACK_STOPPING 							= 4;
+	var FMOD_STUDIO_PLAYBACK_FORCEINT 							= 5;
 }
 
 @:enum abstract FmodResult(Int) from Int to Int {

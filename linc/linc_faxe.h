@@ -126,7 +126,13 @@ namespace linc
 		 * \param[eventName] ::String the name of the event to check playing status of
 		 * \return ::Bool if the event is currently playing
 		 */
-		extern bool faxe_event_playing(const ::String& eventName);
+		extern bool faxe_is_event_playing(const ::String& eventName);
+
+		/**
+		 * Get the status of an existing event
+		 * \param[eventName] ::String the name of the event to check playing status of
+		 */
+		extern FMOD_STUDIO_PLAYBACK_STATE faxe_get_event_playback_state(const ::String& eventName);
 
 		/**
 		 * Check to see if an event is currently playing
