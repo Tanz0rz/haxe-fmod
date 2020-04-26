@@ -20,7 +20,7 @@ class MainTest
 		// Get and set an even parameter to change effect values
 		trace("Lowpass param defaults to: " + Faxe.fmod_get_event_param("song", "ActivateTrack2"));
 		trace("Setting it to 1");
-		Faxe.fmod_set_param("song", "ActivateTrack2", 1.0);
+		Faxe.fmod_set_event_param("song", "ActivateTrack2", 1.0);
 
 		// Bad little forever loop to pump FMOD commands
 		while (true)

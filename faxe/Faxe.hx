@@ -85,13 +85,16 @@ extern class Faxe
 	var FTM_MODPATTERN 	= 0x00000400;
 }
 
-@:enum abstract FmodStudioPlaybackState(Int) from Int to Int {
-	var FMOD_STUDIO_PLAYBACK_PLAYING 							= 0;
-	var FMOD_STUDIO_PLAYBACK_SUSTAINING 						= 1;
-	var FMOD_STUDIO_PLAYBACK_STOPPED 							= 2;
-	var FMOD_STUDIO_PLAYBACK_STARTING 							= 3;
-	var FMOD_STUDIO_PLAYBACK_STOPPING 							= 4;
-	var FMOD_STUDIO_PLAYBACK_FORCEINT 							= 5;
+// This enum leverages Haxe 4.x.x syntax to simplify abstract enum declarations. 
+// Eventually, all enums will be converted to this simpler form
+enum abstract FmodStudioPlaybackState(Int){
+	var FMOD_STUDIO_PLAYBACK_PLAYING;
+	var FMOD_STUDIO_PLAYBACK_SUSTAINING;
+	var FMOD_STUDIO_PLAYBACK_STOPPED;
+	var FMOD_STUDIO_PLAYBACK_STARTING;
+	var FMOD_STUDIO_PLAYBACK_STOPPING;
+    // This value comes back from FMOD as 65536, so I am not quite sure how it will map
+	var FMOD_STUDIO_PLAYBACK_FORCEINT;
 }
 
 @:enum abstract FmodResult(Int) from Int to Int {
