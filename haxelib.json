@@ -5,7 +5,7 @@
 	"tags": ["fmod","audio","windows"],
 	
     "description" : "cpp fmod binding for Windows",
-    "version" : "0.1.11-alpha",
+    "version" : "0.1.12-alpha",
 	"releasenote" : "Client library beginning to take shape",
 	"contributors" : ["Tanz0rz"],
     "dependencies" : { }
