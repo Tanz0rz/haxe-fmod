@@ -204,7 +204,7 @@ namespace linc
 
 		void faxe_load_event(const ::String& eventPath, const ::String& eventName)
 		{
-			// Check it's not already loaded
+			// Check that it isn't already loaded
 			if (loadedEvents.find(eventName) != loadedEvents.end())
 			{
 				return;

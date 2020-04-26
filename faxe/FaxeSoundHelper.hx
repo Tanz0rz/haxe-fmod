@@ -27,12 +27,15 @@ class FaxeSoundHelper {
         if (instance == null) {
             instance = new FaxeSoundHelper();
             Faxe.fmod_init(128);
-            Faxe.fmod_load_bank("./Master Bank.bank");
-            Faxe.fmod_load_bank("./Master Bank.strings.bank");
+            Faxe.fmod_load_bank("./Master.bank");
+            Faxe.fmod_load_bank("./Master.strings.bank");
         }
         return instance;
     }
 
+    // This load-as-we-go approach may cause songs to have a slight delay while they are loaded into memory
+    // It may make more sense to let all songs stay in memory and add an additional function to preload them
+    // More testing is needed
     public function PlaySong(songName:String) {
         // If the song passed in is already playing, ignore the request
         if (songName == PrimarySongName && Faxe.fmod_is_event_playing(PrimarySongEventInstance)){
@@ -50,6 +53,17 @@ class FaxeSoundHelper {
         PrimarySongName = songName;
     }
 
+    public function PreloadSound(soundName:String) {
+        Faxe.fmod_load_event('event:/SFX/${soundName}', soundName);
+    }
+
+    public function PlaySound(soundName:String) {
+        if (!Faxe.fmod_is_event_loaded(soundName)) {
+            Faxe.fmod_load_event('event:/SFX/${soundName}', soundName);
+        }
+        Faxe.fmod_play_event(soundName);
+    }
+
     // Fadeouts can be added to songs in Fmod Studio via the AHDSR Modulation on the event's main fader
     public function TransitionToStateAndStopMusic(state:FlxState){
         if (Faxe.fmod_is_event_playing(PrimarySongEventInstance)) {
@@ -57,6 +71,10 @@ class FaxeSoundHelper {
         }
         CurrentAction = STOPPING_SONG_AND_TRANSITIONING;
         DestinationState = state;
+    }
+
+    public function TransitionToState(state:FlxState){
+        FlxG.switchState(state);
     }
 
     public function Update() {
