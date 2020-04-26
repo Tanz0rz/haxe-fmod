@@ -271,6 +271,21 @@ namespace linc
 			}
 		}
 
+		void faxe_release_event(const ::String& eventName)
+		{
+			auto found = loadedEvents.find(eventName);
+
+			// Ensure the event has already been loaded
+			if (found != loadedEvents.end())
+			{
+				// Remove from loaded map
+				loadedEvents.erase(eventName);
+
+				// Unload the sound
+				found->second->release();
+			}
+		}
+
 		bool faxe_is_event_playing(const ::String& eventName)
 		{
 			auto targetEvent = loadedEvents.find(eventName);

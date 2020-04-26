@@ -1,12 +1,12 @@
 package faxe;
 
+
 import flixel.FlxState;
 import faxe.Faxe;
 import flixel.FlxG;
 
-
 enum FaxeSoundHelperAction {
-    NOTHING;
+    NONE;
     STOPPING_SONG_AND_TRANSITIONING;
 }
 
@@ -19,7 +19,7 @@ class FaxeSoundHelper {
 
     public var CurrentSong:String;
 
-    public var CurrentAction:FaxeSoundHelperAction = NOTHING;
+    public var CurrentAction:FaxeSoundHelperAction = NONE;
     public var DestinationState:FlxState;
 
     private function new () {}
@@ -30,7 +30,6 @@ class FaxeSoundHelper {
             Faxe.fmod_init(128);
             Faxe.fmod_load_bank("./Master Bank.bank");
             Faxe.fmod_load_bank("./Master Bank.strings.bank");
-            // FlxG.watch.add(this, "CurrentSong", "Current song: ");
         }
         return instance;
     }
@@ -42,7 +41,7 @@ class FaxeSoundHelper {
         }
 
         Faxe.fmod_load_event('event:/Music/${songName}', PrimarySongEventInstance);
-		Faxe.fmod_play_event(PrimarySongEventInstance);
+        Faxe.fmod_play_event(PrimarySongEventInstance);
         PrimarySongName = songName;
     }
 
@@ -62,8 +61,9 @@ class FaxeSoundHelper {
         FlxG.watch.addQuick("Current action: ", CurrentAction);
 
         if (CurrentAction == STOPPING_SONG_AND_TRANSITIONING && Faxe.fmod_get_event_playback_state(PrimarySongEventInstance) == FMOD_STUDIO_PLAYBACK_STOPPED){
+            Faxe.fmod_release_event(PrimarySongEventInstance);
             FlxG.switchState(DestinationState);
-            CurrentAction = NOTHING;
+            CurrentAction = NONE;
         }
     }
 }

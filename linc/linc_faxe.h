@@ -120,6 +120,11 @@ namespace linc
 		 */
 		extern void faxe_stop_event(const ::String& eventName, bool forceStop = false);
 
+		/**
+		 * Release a loaded event
+		 * \param[eventName] ::String the name of the event to release
+		 */
+		extern void faxe_release_event(const ::String& eventName);
 
 		/**
 		 * Check to see if an event is currently playing
