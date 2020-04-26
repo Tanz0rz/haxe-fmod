@@ -12,6 +12,10 @@ Features started:
 
 Repo notes:
 
+Always remember to call `Faxe.fmod_update()` in your state's update loop or you will get strange behavior in your game. This is how the engine process parameters and other events that are happening.
+
+When using Live Update, turn the auto-reconnect feature off or your game will not start. Hopefully that can be improved fairly easily.
+
 The `standalone-tests` directory holds some code that can be used to build a simple non-game example executable that reads a bank, plays music from it, and interacts with parameters.
 
 To compile it, `cd` into that directory and run: `haxe --cpp ../build --main MainTest.hx -p ../`
