@@ -235,6 +235,15 @@ namespace linc
 			loadedEvents[eventName] = tempEvnInst;
 		}
 
+		bool faxe_is_event_loaded(const ::String& eventName)
+		{
+			if (loadedEvents.find(eventName) != loadedEvents.end())
+			{
+				return true;
+			}
+			return false;
+		}
+
 		void faxe_play_event(const ::String& eventName)
 		{
 			// Ensure that the event is loaded first

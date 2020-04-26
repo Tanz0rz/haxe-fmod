@@ -1,6 +1,5 @@
 package faxe;
 
-
 import flixel.FlxState;
 import faxe.Faxe;
 import flixel.FlxG;
@@ -36,8 +35,14 @@ class FaxeSoundHelper {
 
     public function PlaySong(songName:String) {
         // If the song passed in is already playing, ignore the request
-        if (Faxe.fmod_is_event_playing(PrimarySongEventInstance) && songName == PrimarySongName){
+        if (songName == PrimarySongName && Faxe.fmod_is_event_playing(PrimarySongEventInstance)){
             return;
+        }
+        
+        // If we are changing songs, stop the current one immediately and release it from memory
+        if (songName != PrimarySongName && Faxe.fmod_is_event_loaded(PrimarySongEventInstance)){
+            Faxe.fmod_stop_event(PrimarySongEventInstance, true);
+            Faxe.fmod_release_event(PrimarySongEventInstance);
         }
 
         Faxe.fmod_load_event('event:/Music/${songName}', PrimarySongEventInstance);
@@ -61,7 +66,6 @@ class FaxeSoundHelper {
         FlxG.watch.addQuick("Current action: ", CurrentAction);
 
         if (CurrentAction == STOPPING_SONG_AND_TRANSITIONING && Faxe.fmod_get_event_playback_state(PrimarySongEventInstance) == FMOD_STUDIO_PLAYBACK_STOPPED){
-            Faxe.fmod_release_event(PrimarySongEventInstance);
             FlxG.switchState(DestinationState);
             CurrentAction = NONE;
         }

@@ -40,6 +40,9 @@ extern class Faxe
 	@:native("linc::faxe::faxe_load_event")
 	public static function fmod_load_event(eventPath:String, eventName:String):Void;
 
+	@:native("linc::faxe::faxe_is_event_loaded")
+	public static function fmod_is_event_loaded(eventName:String):Bool;
+
 	@:native("linc::faxe::faxe_play_event")
 	public static function fmod_play_event(eventName:String):Void;
 	

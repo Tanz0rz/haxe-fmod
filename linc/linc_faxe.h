@@ -106,6 +106,12 @@ namespace linc
 		 */
 		extern void faxe_load_event(const ::String& eventPath, const ::String& eventName);
 
+		/**
+		 * Check if an event is currently loaded
+		 * \param[eventName] ::String the event instance to check
+		 */
+		extern bool faxe_is_event_loaded(const ::String& eventName);
+
 
 		/**
 		 * Play an already loaded event
