@@ -1,18 +1,22 @@
 # faxe 2.0
-An updated version of the faxe FMOD Audio Engine for HaxeFlixel Windows deployments. I plan to decouple this from the flixel package eventually and want to dig into the html5 integration eventually. 
+An updated version of the faxe FMOD Audio Engine for HaxeFlixel Windows deployments. I plan to decouple this from the flixel package eventually and want to dig into the html5 integration too. 
 
 Note: This library will likely undergo many breaking changes early on
 
 This library was mostly completed by Aaron Shea and uhrobots. I have updated it to work with Windows FMOD API v2.00.08 on Haxe v4.x.x
 
+Tested compatibility:
+- Haxe 4.x.x
+- FMOD Studio 2.00.08
+
 Features added: 
 - Live Update is now available
-- Windows 2.00.08 compatibility
-
-Features started:
-- User-friendly client to interact with the FMOD API in a reasonable way
+- HaxeSoundHelper library to abstract away some low-level API calls and support music-fading state transitions
 
 Repo notes:
+
+- Songs should be placed inside a folder titled "Music" in your FMOD Studio project
+- Sound effects should be placed inside a folder titled "SFX" in your FMOD Studio project
 
 The FMOD engine needs a constant stream of update calls to function properly. If this is not present in your game, it will seem like the engine is either buggy or simply not working at all. You can manage these update calls by following one of these two patterns:
 - Call `add(new FaxeUpdater())` in the create method of every state
