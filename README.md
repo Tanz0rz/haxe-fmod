@@ -12,7 +12,9 @@ Features started:
 
 Repo notes:
 
-Always remember to call `Faxe.fmod_update()` in your state's update loop or you will get strange behavior in your game. This is how the engine process parameters and other events that are happening.
+The FMOD engine needs a constant stream of update calls to function properly. If this is not present in your game, it will seem like the engine is either buggy or simply not working at all. You can manage these update calls by following one of these two patterns:
+- Call `add(new FaxeUpdater())` in the create method of every state
+- Call `FaxeSoundHelper.GetInstance().Update()` in the update method of every state
 
 When using Live Update, turn the auto-reconnect feature off or your game will not start. Hopefully that can be improved fairly easily.
 
