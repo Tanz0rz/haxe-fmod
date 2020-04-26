@@ -1,5 +1,7 @@
 # faxe 2.0
-An updated version of the faxe FMOD Audio Engine for HaxeFlixel Windows deployments. I plan to decouple this from the flixel package eventually and want to dig into the html5 integration eventually.
+An updated version of the faxe FMOD Audio Engine for HaxeFlixel Windows deployments. I plan to decouple this from the flixel package eventually and want to dig into the html5 integration eventually. 
+
+Note: This library will likely undergo many breaking changes early on
 
 This library was mostly completed by Aaron Shea and uhrobots. I have updated it to work with Windows FMOD API v2.00.08 on Haxe v4.x.x
 
