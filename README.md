@@ -9,20 +9,27 @@ Tested compatibility:
 - Haxe 4.x.x
 - FMOD Studio 2.00.08
 
-Features added: 
-- Live Update is now available
+New features added: 
+- Live Update is now available (make sure to disable auto-reconnect in FMOD Studio)
 - HaxeSoundHelper library to abstract away some low-level API calls and support music-fading state transitions
 
-Repo notes:
+How to use:
+
+[Download the package via Haxelib](https://tanneris.me/faxe2)
 
 - Songs should be placed inside a folder titled "Music" in your FMOD Studio project
 - Sound effects should be placed inside a folder titled "SFX" in your FMOD Studio project
 
-The FMOD engine needs a constant stream of update calls to function properly. If this is not present in your game, it will seem like the engine is either buggy or simply not working at all. You can manage these update calls by following one of these two patterns:
+The built `Master.bank` and `Master.strings.bank` files from FMOD Studio should be placed next to your game's `.exe` file 
+
+The FMOD engine needs a constant stream of update calls to function properly. If this is not present in your game, it will seem like the engine is either buggy or simply not working at all. You can manage these update calls by following *one* of these two patterns:
 - Call `add(new FaxeUpdater())` in the create method of every state
+or
 - Call `FaxeSoundHelper.GetInstance().Update()` in the update method of every state
 
-When using Live Update, turn the auto-reconnect feature off or your game will not start. Hopefully that can be improved fairly easily.
+When using Live Update in FMOD Studio, turn the auto-reconnect feature off or your game will not start. Hopefully that issue can be resolved fairly easily.
+
+Testing the library:
 
 The `standalone-tests` directory holds some code that can be used to build a simple non-game example executable that reads a bank, plays music from it, and interacts with parameters.
 
