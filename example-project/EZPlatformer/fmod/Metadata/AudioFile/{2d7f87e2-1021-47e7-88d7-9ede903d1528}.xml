@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<objects serializationModel="Studio.02.00.00">
+	<object class="AudioFile" id="{2d7f87e2-1021-47e7-88d7-9ede903d1528}">
+		<property name="assetPath">
+			<value>Arp.ogg</value>
+		</property>
+		<property name="isStreaming">
+			<value>true</value>
+		</property>
+		<property name="frequencyInKHz">
+			<value>44.0999985</value>
+		</property>
+		<property name="channelCount">
+			<value>2</value>
+		</property>
+		<property name="length">
+			<value>124.8</value>
+		</property>
+		<relationship name="masterAssetFolder">
+			<destination>{337a4184-cf9b-443f-9322-561dc2ea41f4}</destination>
+		</relationship>
+	</object>
+</objects>

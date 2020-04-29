@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<objects serializationModel="Studio.02.00.00">
+	<object class="ParameterPreset" id="{cc83f2a8-4f29-4a96-b6a4-3a9fd43f1f0f}">
+		<property name="name">
+			<value>FadeArpIn</value>
+		</property>
+		<relationship name="folder">
+			<destination>{4337d17c-d764-45e1-8f8d-caa81f6298a2}</destination>
+		</relationship>
+		<relationship name="parameter">
+			<destination>{293aa1ce-c07e-4cc2-bc41-7a082a62b7fa}</destination>
+		</relationship>
+	</object>
+	<object class="GameParameter" id="{293aa1ce-c07e-4cc2-bc41-7a082a62b7fa}">
+		<property name="initialValue">
+			<value>0</value>
+		</property>
+		<property name="velocity">
+			<value>-0.2199999988079071</value>
+		</property>
+		<property name="seekSpeed">
+			<value>0.51000005006790161</value>
+		</property>
+	</object>
+</objects>

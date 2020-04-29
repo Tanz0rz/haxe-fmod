@@ -11,4 +11,8 @@ test/cpp
 /test3/cpp
 /build
 /.vscode/
-/FmodProject
+/example-project/EZPlatformer/export
+/example-project/EZPlatformer/fmod/.cache
+/example-project/EZPlatformer/fmod/.user
+/example-project/EZPlatformer/fmod/.unsaved/
+/example-project/EZPlatformer/fmod/Build
