@@ -27,8 +27,8 @@ class FaxeSoundHelper {
         if (instance == null) {
             instance = new FaxeSoundHelper();
             Faxe.fmod_init(128);
-            Faxe.fmod_load_bank("./Master.bank");
-            Faxe.fmod_load_bank("./Master.strings.bank");
+            Faxe.fmod_load_bank("assets/fmod/Desktop/Master.bank");
+            Faxe.fmod_load_bank("assets/fmod/Desktop/Master.strings.bank");
         }
         return instance;
     }
@@ -51,6 +51,11 @@ class FaxeSoundHelper {
         Faxe.fmod_load_event('event:/Music/${songName}', PrimarySongEventInstance);
         Faxe.fmod_play_event(PrimarySongEventInstance);
         PrimarySongName = songName;
+    }
+
+    // Need to add ability to validate a parameter exists first
+    public function SetEventParameterOnSong(parameterName:String, parameterValue:Float){
+        Faxe.fmod_set_event_param(PrimarySongEventInstance, parameterName, parameterValue);
     }
 
     public function PreloadSound(soundName:String) {

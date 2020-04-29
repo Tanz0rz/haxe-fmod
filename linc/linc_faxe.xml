@@ -4,6 +4,7 @@
 		<set name="NATIVE_TOOLKIT_PATH" value="${LINC_FAXE_PATH}/lib/Windows" />
 	</section>
 	
+	<!-- Outdated links for other platforms
 	<section if="linux HXCPP_M32">
 		<set name="NATIVE_TOOLKIT_PATH" value="${LINC_FAXE_PATH}/lib/Linux" />
 	</section>
@@ -15,7 +16,7 @@
 	<section if="switch">
 		<set name="NATIVE_TOOLKIT_PATH" value="${LINC_FAXE_PATH}/lib/Switch" />
 	</section>
-
+    -->
 	<echo value="Found your FMOD API ${NATIVE_TOOLKIT_PATH}!" ifExists="${NATIVE_TOOLKIT_PATH}/api" />
 
 	<files id="haxe">
@@ -24,9 +25,10 @@
 		<compilerflag value="-I${NATIVE_TOOLKIT_PATH}/api/fsbank/inc/" />
 		<compilerflag value="-I${NATIVE_TOOLKIT_PATH}/api/studio/inc/" />
 		
+		<!-- Additional linux compiler flags
 		<compilerflag value="-std=c++11" if="linux" />
-		
 		<compilerflag value="-Wl,-rpath,$ORIGIN" if="linux" />
+		-->
 		
 		<file name="${LINC_FAXE_PATH}/linc/linc_faxe.cpp" />
 	</files>

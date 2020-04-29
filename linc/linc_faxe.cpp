@@ -80,25 +80,25 @@ namespace linc
 		}
 
 		//// Sound Banks
-		void faxe_load_bank(const ::String& bankName)
+		void faxe_load_bank(const ::String& bankFilePath)
 		{
 			// Ensure this isn't already loaded
-			if (loadedBanks.find(bankName) != loadedBanks.end())
+			if (loadedBanks.find(bankFilePath) != loadedBanks.end())
 			{
 				return;
 			}
 
 			// Try and load the bank file
 			FMOD::Studio::Bank* tempBank;
-			auto result = fmodSoundSystem->loadBankFile(bankName.c_str(), FMOD_STUDIO_LOAD_BANK_NORMAL, &tempBank);
+			auto result = fmodSoundSystem->loadBankFile(bankFilePath.c_str(), FMOD_STUDIO_LOAD_BANK_NORMAL, &tempBank);
 			if (result != FMOD_OK)
 			{
-				if(faxe_debug) printf("FMOD failed to LOAD sound bank %s with error %s\n", bankName.c_str(), FMOD_ErrorString(result));
+				if(faxe_debug) printf("FMOD failed to LOAD sound bank %s with error %s\n", bankFilePath.c_str(), FMOD_ErrorString(result));
 				return;
 			}
 
 			// List is as loaded
-			loadedBanks[bankName] = tempBank;
+			loadedBanks[bankFilePath] = tempBank;
 		}
 
 		void faxe_unload_bank(const ::String& bankName)

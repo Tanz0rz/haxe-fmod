@@ -9,10 +9,17 @@ test/cpp
 /test2/totoErr.txt
 /lib/Switch/api
 /test3/cpp
-/build
+
+# Editor files
 /.vscode/
+
+# FMOD
 /example-project/EZPlatformer/export
 /example-project/EZPlatformer/fmod/.cache
 /example-project/EZPlatformer/fmod/.user
 /example-project/EZPlatformer/fmod/.unsaved/
 /example-project/EZPlatformer/fmod/Build
+
+# Builds
+faxe2.zip
+/build

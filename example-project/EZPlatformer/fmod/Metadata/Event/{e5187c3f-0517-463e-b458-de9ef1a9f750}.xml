@@ -61,7 +61,11 @@
 			<destination>{7a6e2e04-9ca1-4dc4-9df2-20f23d4a9d52}</destination>
 		</relationship>
 	</object>
-	<object class="EventAutomatableProperties" id="{ea34bf3e-4a13-4cb2-a302-4a7aebec332a}" />
+	<object class="EventAutomatableProperties" id="{ea34bf3e-4a13-4cb2-a302-4a7aebec332a}">
+		<property name="priority">
+			<value>4</value>
+		</property>
+	</object>
 	<object class="MarkerTrack" id="{184a91ff-5636-4288-9786-9fa7f3d12aea}" />
 	<object class="MarkerTrack" id="{7eef647c-b722-49ac-bc6f-d01dd08f6253}" />
 	<object class="GroupTrack" id="{5088e251-3bd6-4489-8744-090da58c6e0e}">
@@ -143,6 +147,9 @@
 		</relationship>
 	</object>
 	<object class="SingleSound" id="{83db78a9-ae84-4cc9-bbb1-1d50480fafd0}">
+		<property name="isAsync">
+			<value>true</value>
+		</property>
 		<property name="length">
 			<value>124.8</value>
 		</property>
@@ -250,7 +257,7 @@
 			<value>1</value>
 		</property>
 		<property name="value">
-			<value>-11</value>
+			<value>-10</value>
 		</property>
 	</object>
 </objects>
