@@ -42,7 +42,8 @@ namespace linc
 		// Maps to track what has been loaded already
 		std::map<::String, FMOD::Studio::Bank*> loadedBanks;
 		std::map<::String, FMOD::Sound*> loadedSounds;
-		std::map<::String, FMOD::Studio::EventInstance*> loadedEvents;
+		std::map<::String, FMOD::Studio::EventInstance*> loadedEventInstances;
+		std::map<::String, FMOD::Studio::EventDescription*> loadedEventDescriptions;
 		
 		bool faxe_debug = true;
 		void faxe_set_debug(bool onOff){
@@ -115,97 +116,43 @@ namespace linc
 			}
 		}
 
-		FMOD::Sound* faxe_get_sound(const ::String& sndName) {
-			if (loadedSounds.find(sndName) == loadedSounds.end()){
-				if(faxe_debug) printf("not loaded \n");
-				return nullptr;
-			}
-			return loadedSounds[sndName];
-		}
-		
-		
-		
-		FMOD_RESULT faxe_load_sound(const ::String& sndName, bool looping, bool streaming)
-		{
-			// Ensure the sound has not already been loaded
-			if (loadedSounds.find(sndName) != loadedSounds.end())
-			{
-				if(faxe_debug) printf("already loaded\n");
-				return FMOD_OK;
-			}
-
-			FMOD_MODE loadSndMode = FMOD_DEFAULT;
-			if (looping)		loadSndMode |= FMOD_LOOP_NORMAL;
-			if (streaming)		loadSndMode |= FMOD_CREATESTREAM;
-
-			// Try and load this sound
-			FMOD::Sound* tempSound;
-			auto result = fmodCoreSoundSystem->createSound(sndName.c_str(), loadSndMode, nullptr, &tempSound);
-			if (result != FMOD_OK)
-			{
-				if(faxe_debug) printf("FMOD failed to LOAD sound %s with error %s\n", sndName.c_str(), FMOD_ErrorString(result));
-				return result;
-			}
-
-			// Store in loaded sounds map
-			loadedSounds[sndName] = tempSound;
-			return result;
-		}
-		
-		FMOD_RESULT faxe_play_sound_with_handle( FMOD::Sound * snd)
-		{
-			FMOD_RESULT res = fmodCoreSoundSystem->playSound(snd, nullptr, false, nullptr);
-			if(faxe_debug && res ) printf("error playing\n");
-			return res;
-		}
-		
-		FMOD_RESULT faxe_play_sound(const ::String& sndName, bool paused)
-		{
-			if (loadedSounds.find(sndName) == loadedSounds.end())
-			{
-				if(faxe_debug) printf("not loaded \n");
-				return FMOD_ERR_INVALID_PARAM;
-			}
-			
-			FMOD::Sound* snd = loadedSounds[sndName];
-			FMOD_RESULT res = fmodCoreSoundSystem->playSound(snd, nullptr, paused, nullptr);
-			if(faxe_debug && res ) printf("error playing\n");
-			return res;
-		}
-		
-		FMOD::Channel * faxe_play_sound_with_channel(const ::String& sndName, bool paused)
-		{
-			if (loadedSounds.find(sndName) == loadedSounds.end())
-			{
-				if(faxe_debug) printf("not loaded \n");
-				return nullptr;
-			}
-			
-			FMOD::Sound* snd = loadedSounds[sndName];
-			FMOD::Channel * chan = nullptr;
-			int res = fmodCoreSoundSystem->playSound(snd, nullptr, paused, &chan);
-			return chan;
-		}
-
-		void faxe_unload_sound(const ::String& sndName)
-		{
-			auto found = loadedSounds.find(sndName);
-
-			// Ensure the sound has already been loaded
-			if (found != loadedSounds.end())
-			{
-				// Remove from loaded map
-				loadedSounds.erase(sndName);
-
-				// Unload the sound
-				found->second->release();
-			}
-		}
-
-		void faxe_load_event(const ::String& eventPath, const ::String& eventName)
+		void faxe_load_event_instance(const ::String& eventPath, const ::String& eventName)
 		{
 			// Check that it isn't already loaded
-			if (loadedEvents.find(eventName) != loadedEvents.end())
+			if (loadedEventInstances.find(eventName) != loadedEventInstances.end())
+			{
+				return;
+			}
+
+			// Try to load event description
+			FMOD::Studio::EventDescription* tempEvnDesc;
+
+			auto result = fmodSoundSystem->getEvent(eventPath.c_str(), &tempEvnDesc);
+
+			if (result != FMOD_OK)
+			{
+				if(faxe_debug) printf("FMOD failed to load event description %s with error %s\n", eventPath.c_str(), FMOD_ErrorString(result));
+				return;
+			}
+
+			// Now create an instance of this event that will be kept in memory
+			FMOD::Studio::EventInstance* tempEvnInst;
+			result = tempEvnDesc->createInstance(&tempEvnInst);
+
+			if (result != FMOD_OK)
+			{
+				if(faxe_debug) printf("FMOD failed to create an instance of event description %s with error %s\n", eventPath.c_str(), FMOD_ErrorString(result));
+				return;
+			}
+
+			// Store in event instance map
+			loadedEventInstances[eventName] = tempEvnInst;
+		}
+
+		void faxe_load_event_description(const ::String& eventPath, const ::String& eventName)
+		{
+			// Check that it isn't already loaded
+			if (loadedEventDescriptions.find(eventName) != loadedEventDescriptions.end())
 			{
 				return;
 			}
@@ -217,38 +164,72 @@ namespace linc
 
 			if (result != FMOD_OK)
 			{
-				if(faxe_debug) printf("FMOD failed to LOAD event instance %s with error %s\n", eventPath.c_str(), FMOD_ErrorString(result));
+				if(faxe_debug) printf("FMOD failed to load event description %s with error %s\n", eventPath.c_str(), FMOD_ErrorString(result));
 				return;
 			}
 
-			// Now create an instance of this event that we can keep in memory
-			FMOD::Studio::EventInstance* tempEvnInst;
-			result = tempEvnDesc->createInstance(&tempEvnInst);
-
-			if (result != FMOD_OK)
-			{
-				if(faxe_debug) printf("FMOD failed to CREATE INSTANCE of event instance %s with error %s\n", eventPath.c_str(), FMOD_ErrorString(result));
-				return;
-			}
-
-			// Store in event map
-			loadedEvents[eventName] = tempEvnInst;
+			// Store in event description map
+			loadedEventDescriptions[eventName] = tempEvnDesc;
 		}
 
-		bool faxe_is_event_loaded(const ::String& eventName)
+		void faxe_play_one_shot(const ::String& eventName)
 		{
-			if (loadedEvents.find(eventName) != loadedEvents.end())
+			// Ensure that the description is loaded first
+			auto targetEvent = loadedEventDescriptions.find(eventName);
+			if (targetEvent != loadedEventDescriptions.end())
+			{
+				// create an instance of the description and play it one time
+				FMOD::Studio::EventInstance* tempEvnInst;
+				auto result = targetEvent->second->createInstance(&tempEvnInst);
+				if (result != FMOD_OK)
+				{
+					if(faxe_debug) printf("FMOD failed to create instance of event instance %s with error %s\n", targetEvent->first.c_str(), FMOD_ErrorString(result));
+					return;
+				}
+				
+				result = tempEvnInst->start();
+				if (result != FMOD_OK)
+				{
+					if(faxe_debug) printf("FMOD failed to start instance of event instance %s with error %s\n", targetEvent->first.c_str(), FMOD_ErrorString(result));
+					return;
+				}
+
+				// Tell FMOD API to clean up memory as soon as event is over
+				result = tempEvnInst->release();
+				if (result != FMOD_OK)
+				{
+					if(faxe_debug) printf("FMOD failed to release instance of event instance %s with error %s\n", targetEvent->first.c_str(), FMOD_ErrorString(result));
+					return;
+				}
+			} else {
+				if(faxe_debug) printf("Event %s is not loaded!\n", eventName.c_str());
+			}
+			
+		}
+
+		bool faxe_is_event_instance_loaded(const ::String& eventName)
+		{
+			if (loadedEventInstances.find(eventName) != loadedEventInstances.end())
 			{
 				return true;
 			}
 			return false;
 		}
 
-		void faxe_play_event(const ::String& eventName)
+		bool faxe_is_event_description_loaded(const ::String& eventName)
+		{
+			if (loadedEventDescriptions.find(eventName) != loadedEventDescriptions.end())
+			{
+				return true;
+			}
+			return false;
+		}
+
+		void faxe_play_event_instance(const ::String& eventName)
 		{
 			// Ensure that the event is loaded first
-			auto targetEvent = loadedEvents.find(eventName);
-			if (targetEvent != loadedEvents.end())
+			auto targetEvent = loadedEventInstances.find(eventName);
+			if (targetEvent != loadedEventInstances.end())
 			{
 				// Start the event instance
 				targetEvent->second->start();
@@ -260,8 +241,8 @@ namespace linc
 		void faxe_stop_event(const ::String& eventName, bool forceStop)
 		{
 			// Find the event first
-			auto targetStopEvent = loadedEvents.find(eventName);
-			if (targetStopEvent != loadedEvents.end())
+			auto targetStopEvent = loadedEventInstances.find(eventName);
+			if (targetStopEvent != loadedEventInstances.end())
 			{
 				FMOD_STUDIO_STOP_MODE stopMode;
 
@@ -282,13 +263,13 @@ namespace linc
 
 		void faxe_release_event(const ::String& eventName)
 		{
-			auto found = loadedEvents.find(eventName);
+			auto found = loadedEventInstances.find(eventName);
 
 			// Ensure the event has already been loaded
-			if (found != loadedEvents.end())
+			if (found != loadedEventInstances.end())
 			{
 				// Remove from loaded map
-				loadedEvents.erase(eventName);
+				loadedEventInstances.erase(eventName);
 
 				// Unload the sound
 				found->second->release();
@@ -297,8 +278,8 @@ namespace linc
 
 		bool faxe_is_event_playing(const ::String& eventName)
 		{
-			auto targetEvent = loadedEvents.find(eventName);
-			if (targetEvent != loadedEvents.end())
+			auto targetEvent = loadedEventInstances.find(eventName);
+			if (targetEvent != loadedEventInstances.end())
 			{
 				// Check the playback state of this event
 				FMOD_STUDIO_PLAYBACK_STATE currentState;
@@ -319,8 +300,8 @@ namespace linc
 
 		FMOD_STUDIO_PLAYBACK_STATE faxe_get_event_playback_state(const ::String& eventName)
 		{
-			auto targetEvent = loadedEvents.find(eventName);
-			if (targetEvent != loadedEvents.end())
+			auto targetEvent = loadedEventInstances.find(eventName);
+			if (targetEvent != loadedEventInstances.end())
 			{
 				// Check the playback state of this event
 				FMOD_STUDIO_PLAYBACK_STATE currentState;
@@ -341,8 +322,8 @@ namespace linc
 
 		float faxe_get_event_param(const ::String& eventName, const ::String& paramName)
 		{
-			auto targetEvent = loadedEvents.find(eventName);
-			if (targetEvent != loadedEvents.end())
+			auto targetEvent = loadedEventInstances.find(eventName);
+			if (targetEvent != loadedEventInstances.end())
 			{
 				// Try and get the float param from EventInstance
 				float currentValue;
@@ -363,8 +344,8 @@ namespace linc
 
 		void faxe_set_event_param(const ::String& eventName, const ::String& paramName, float sValue)
 		{
-			auto targetEvent = loadedEvents.find(eventName);
-			if (targetEvent != loadedEvents.end())
+			auto targetEvent = loadedEventInstances.find(eventName);
+			if (targetEvent != loadedEventInstances.end())
 			{
 				auto result = targetEvent->second->setParameterByName(paramName.c_str(), sValue);
 

@@ -147,9 +147,6 @@
 		</relationship>
 	</object>
 	<object class="SingleSound" id="{83db78a9-ae84-4cc9-bbb1-1d50480fafd0}">
-		<property name="isAsync">
-			<value>true</value>
-		</property>
 		<property name="length">
 			<value>124.8</value>
 		</property>

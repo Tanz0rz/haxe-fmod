@@ -37,7 +37,7 @@ This library only supports loading a single master bank for all sounds.
 
 Set your FMOD Studio project to build banks to the correct location:
 
-- Create an `fmod` folder in your `assets` folder (so the path `assets/fmod` exists in your project) 
+- Create an `fmod` folder in your `assets` folder (so the path `assets/fmod/` exists in your project) 
 - Open up your FMOD Studio project and at the top of the window click Edit->Preferences, then click the "Build" tab on the window that pops up.
 - Under "Built banks output directory (optional)", click browse and navigate to the new `fmod` folder and select it.
 

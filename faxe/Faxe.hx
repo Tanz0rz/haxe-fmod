@@ -37,14 +37,23 @@ extern class Faxe
 	@:native("linc::faxe::faxe_unload_sound")
 	public static function fmod_unload_sound(bankFilePath:String):Void;
 
-	@:native("linc::faxe::faxe_load_event")
-	public static function fmod_load_event(eventPath:String, eventName:String):Void;
+	@:native("linc::faxe::faxe_load_event_instance")
+	public static function fmod_load_event_instance(eventPath:String, eventName:String):Void;
 
-	@:native("linc::faxe::faxe_is_event_loaded")
-	public static function fmod_is_event_loaded(eventName:String):Bool;
+	@:native("linc::faxe::faxe_load_event_description")
+	public static function fmod_load_event_description(eventPath:String, eventName:String):Void;
 
-	@:native("linc::faxe::faxe_play_event")
-	public static function fmod_play_event(eventName:String):Void;
+	@:native("linc::faxe::faxe_is_event_instance_loaded")
+	public static function fmod_is_event_instance_loaded(eventName:String):Bool;
+
+	@:native("linc::faxe::faxe_is_event_description_loaded")
+	public static function fmod_is_event_description_loaded(eventName:String):Bool;
+
+	@:native("linc::faxe::faxe_play_event_instance")
+	public static function fmod_play_event_instance(eventName:String):Void;
+	
+	@:native("linc::faxe::faxe_play_one_shot")
+	public static function fmod_play_one_shot(eventName:String):Void;
 	
 	@:native("linc::faxe::faxe_release_event")
 	public static function fmod_release_event(eventName:String):Void;

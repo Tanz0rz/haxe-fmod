@@ -1,5 +1,6 @@
 package;
 
+import FmodConstants.FmodSFX;
 import FmodConstants.FmodSongs;
 import flixel.FlxG;
 import flixel.FlxObject;
@@ -138,6 +139,7 @@ class PlayState extends FlxState
 
 		if (FlxG.keys.anyJustPressed([SPACE, UP, W]) && _player.isTouching(FlxObject.FLOOR))
 		{
+			FaxeSoundHelper.GetInstance().PlaySound(Std.string(FmodSFX.Jump));
 			_player.velocity.y = -_player.maxVelocity.y / 2;
 		}
 
@@ -174,6 +176,7 @@ class PlayState extends FlxState
 	function getCoin(Coin:FlxObject, Player:FlxObject):Void
 	{
 		FaxeSoundHelper.GetInstance().SetEventParameterOnSong("FadeArpIn", 1.0);
+		FaxeSoundHelper.GetInstance().PlaySound(Std.string(FmodSFX.Coin));
 		Coin.kill();
 		_scoreText.text = "SCORE: " + (_coins.countDead() * 100);
 

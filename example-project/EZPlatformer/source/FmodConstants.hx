@@ -9,5 +9,6 @@ enum FmodSongs {
 	MainLevel;
 }
 enum FmodSFX {
-	Empty;
+	Coin;
+	Jump;
 }

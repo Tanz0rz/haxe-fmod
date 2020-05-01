@@ -5,8 +5,8 @@
 	"tags": ["fmod","audio","windows"],
 	
     "description" : "cpp fmod binding for Windows",
-    "version" : "0.1.15",
-	"releasenote" : "More usable with a much better README",
+    "version" : "0.1.16",
+	"releasenote" : "Sound effects now follow the rules of their Event settings defined in FMOD Studio (Max Instances, Stealing, and probably more)",
 	"contributors" : ["Tanz0rz"],
     "dependencies" : { }
 }

@@ -70,54 +70,47 @@ namespace linc
 		 * \param[bankName] ::String the file path of the sound bank to unload
 		 */
 		extern void faxe_unload_bank(const ::String& bankName);
-
-		/**
-		 * Load an arbitrary sound into FMOD
-		 * \param[sndName] ::String the file path of the sound to load
-		 */
-		extern FMOD_RESULT faxe_load_sound(const ::String& sndName, bool looping = false, bool streaming = false);
 		
-		extern FMOD::Sound * faxe_get_sound(const ::String& sndName);
-		
-		/**
-		 * plays a sound without further ado
-		 */
-		extern FMOD_RESULT faxe_play_sound(const ::String& sndName, bool paused = false);
-		
-		extern FMOD_RESULT faxe_play_sound_with_handle( FMOD::Sound * snd);
-		
-		/**
-		 * plays a sound without further ado and gets result channel
-		 */
-		extern FMOD::Channel * faxe_play_sound_with_channel(const ::String& sndName, bool paused);
-
-		/**
-		 * Unload a sound from FMOD
-		 * \param[sndName] ::String the file path of the sound to unload
-		 */
-		extern void faxe_unload_sound(const ::String& sndName);
-
 		//// Event operations
 
 		/**
-		 * Load an event from a loaded bank
-		 * \param[eventPath] ::String the path of the event to load into memory
+		 * Load an event instance from a loaded bank
+		 * \param[eventPath] ::String the path of the event
 		 * \param[eventName] ::String the name you wish to give this event instance
 		 */
-		extern void faxe_load_event(const ::String& eventPath, const ::String& eventName);
+		extern void faxe_load_event_instance(const ::String& eventPath, const ::String& eventName);
 
 		/**
-		 * Check if an event is currently loaded
+		 * Load an event description from a loaded bank
+		 * \param[eventPath] ::String the path of the event
+		 * \param[eventName] ::String the name you wish to give this event description
+		 */
+		extern void faxe_load_event_description(const ::String& eventPath, const ::String& eventName);
+
+		/**
+		 * Check if an event instance is currently loaded
 		 * \param[eventName] ::String the event instance to check
 		 */
-		extern bool faxe_is_event_loaded(const ::String& eventName);
+		extern bool faxe_is_event_instance_loaded(const ::String& eventName);
+
+		/**
+		 * Check if an event description is currently loaded
+		 * \param[eventName] ::String the event description to check
+		 */
+		extern bool faxe_is_event_description_loaded(const ::String& eventName);
 
 
 		/**
-		 * Play an already loaded event
+		 * Play an already-loaded event instance
 		 * \param[eventName] ::String the name of the event to play
 		 */
-		extern void faxe_play_event(const ::String& eventName);
+		extern void faxe_play_event_instance(const ::String& eventName);
+
+		/**
+		 * Play an already-loaded event description as a fire-and-forget event
+		 * \param[eventName] ::String the name of the event to play
+		 */
+		extern void faxe_play_one_shot(const ::String& eventName);
 
 		/**
 		 * Play an already loaded event
