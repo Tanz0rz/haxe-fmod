@@ -238,6 +238,19 @@ namespace linc
 			}
 		}
 
+		void faxe_set_pause_on_event_instance(const ::String& eventName, bool shouldBePaused)
+		{
+			// Ensure that the event is loaded first
+			auto targetEvent = loadedEventInstances.find(eventName);
+			if (targetEvent != loadedEventInstances.end())
+			{
+				// Start the event instance
+				targetEvent->second->setPaused(shouldBePaused);
+			} else {
+				if(faxe_debug) printf("Event %s is not loaded!\n", eventName.c_str());
+			}
+		}
+
 		void faxe_stop_event(const ::String& eventName, bool forceStop)
 		{
 			// Find the event first

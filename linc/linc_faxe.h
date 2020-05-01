@@ -99,12 +99,18 @@ namespace linc
 		 */
 		extern bool faxe_is_event_description_loaded(const ::String& eventName);
 
-
 		/**
 		 * Play an already-loaded event instance
 		 * \param[eventName] ::String the name of the event to play
 		 */
 		extern void faxe_play_event_instance(const ::String& eventName);
+
+		/**
+		 * Set the pause state of an event instance
+		 * \param[eventName] ::String the name of the event instance
+		 * \param[shouldBePaused] bool if the event instance should be paused
+		 */
+		extern void faxe_set_pause_on_event_instance(const ::String& eventName, bool shouldBePaused);
 
 		/**
 		 * Play an already-loaded event description as a fire-and-forget event

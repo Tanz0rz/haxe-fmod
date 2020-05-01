@@ -51,6 +51,9 @@ extern class Faxe
 
 	@:native("linc::faxe::faxe_play_event_instance")
 	public static function fmod_play_event_instance(eventName:String):Void;
+
+	@:native("linc::faxe::faxe_set_pause_on_event_instance")
+	public static function fmod_set_pause_on_event_instance(eventName:String, shouldBePaused:Bool):Void;
 	
 	@:native("linc::faxe::faxe_play_one_shot")
 	public static function fmod_play_one_shot(eventName:String):Void;

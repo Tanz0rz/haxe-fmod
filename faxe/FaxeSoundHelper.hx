@@ -43,14 +43,23 @@ class FaxeSoundHelper {
         }
         
         // If we are changing songs, stop the current one immediately and release it from memory
-        if (songName != PrimarySongName && Faxe.fmod_is_event_loaded(PrimarySongEventInstance)){
+        if (songName != PrimarySongName && Faxe.fmod_is_event_instance_loaded(PrimarySongEventInstance)){
             Faxe.fmod_stop_event(PrimarySongEventInstance, true);
             Faxe.fmod_release_event(PrimarySongEventInstance);
         }
 
-        Faxe.fmod_load_event('event:/Music/${songName}', PrimarySongEventInstance);
-        Faxe.fmod_play_event(PrimarySongEventInstance);
+        Faxe.fmod_load_event_instance('event:/Music/${songName}', PrimarySongEventInstance);
+        Faxe.fmod_play_event_instance(PrimarySongEventInstance);
         PrimarySongName = songName;
+    }
+
+    public function PauseSong() {
+        Faxe.fmod_set_pause_on_event_instance(PrimarySongEventInstance, true);
+		Faxe.fmod_update();
+    }
+
+    public function UnpauseSong() {
+		Faxe.fmod_set_pause_on_event_instance(PrimarySongEventInstance, false);
     }
 
     // Need to add ability to validate a parameter exists first
@@ -58,15 +67,11 @@ class FaxeSoundHelper {
         Faxe.fmod_set_event_param(PrimarySongEventInstance, parameterName, parameterValue);
     }
 
-    public function PreloadSound(soundName:String) {
-        Faxe.fmod_load_event('event:/SFX/${soundName}', soundName);
-    }
-
     public function PlaySound(soundName:String) {
-        if (!Faxe.fmod_is_event_loaded(soundName)) {
-            Faxe.fmod_load_event('event:/SFX/${soundName}', soundName);
+        if (!Faxe.fmod_is_event_description_loaded(soundName)) {
+            Faxe.fmod_load_event_description('event:/SFX/${soundName}', soundName);
         }
-        Faxe.fmod_play_event(soundName);
+        Faxe.fmod_play_one_shot(soundName);
     }
 
     // Fadeouts can be added to songs in Fmod Studio via the AHDSR Modulation on the event's main fader
