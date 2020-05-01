@@ -4,47 +4,78 @@
    -------------------------------------------
  */
 
-studio.menu.addMenuItem({ name: "Export Haxe Constants",  execute: function() {createConstantsFile()} });
+studio.menu.addMenuItem({ name: "Export Haxe Constants",  execute: function() {displayDirectoryPickerModal()} });
 
 const constantsFileName = "FmodConstants.hx";
-const constantsOutputLocationFileName = "HaxeConstantsOutputLocation.txt";
+const cacheFileName = "CachedHaxeConstantsOutputLocation";
 
-function createConstantsFile() {
+function displayDirectoryPickerModal() {
 
-    var outputPath = readOutputPathFromFile();
-    if (!outputPath) {
-        alert("Did not find output path for constants file. Exiting...");
-        return;
-    } 
-    outputPath = "{0}\\{1}".format(outputPath, constantsFileName);;
-    var constantsFile = studio.system.getFile(outputPath);
+    var outputPathDir = readOutputPathFromFile();
+    studio.ui.showModalDialog({
+        windowTitle: "Select your Haxe project folder",
+        windowWidth: 800,
+        windowHeight: 0,
+        widgetType: studio.ui.widgetType.Layout,
+        layout: studio.ui.layoutType.VBoxLayout,
+        items: [
+            {
+                widgetType: studio.ui.widgetType.Layout,
+                layout: studio.ui.layoutType.HBoxLayout,
+                contentsMargins: { left: 0, top: 0, right: 0, bottom: 0 },
+                items: [
+                    { widgetType: studio.ui.widgetType.Spacer, sizePolicy: { horizontalPolicy: studio.ui.sizePolicy.MinimumExpanding } },
+                    { widgetType: studio.ui.widgetType.PathLineEdit, stretchFactor: 1, widgetId: "m_directoryPicker", text: outputPathDir, pathType: studio.ui.pathType.Directory},
+                    { widgetType: studio.ui.widgetType.PushButton, text: "Save", onClicked: function() { createConstantsFile(this); this.closeDialog(); } },
+                ],
+            },
+        ],
+    });
+};
+
+function createConstantsFile(directoryPickerWidget) {
+
+    var outputPath = directoryPickerWidget.findWidget("m_directoryPicker").text();
+
+    const fullOutputPath = "{0}/{1}".format(outputPath, constantsFileName);;
+    var constantsFile = studio.system.getFile(fullOutputPath);
     if (!constantsFile.open(studio.system.openMode.WriteOnly)) {    
-        alert("Failed to open constants file for writing: " + outputPath + "\n\nCheck the file is not read-only.");
-        console.error("Failed to open constants file for writing: " + outputPath);
+        alert("Failed to open constants file for writing: " + fullOutputPath + "\n\nCheck the file is not read-only.");
+        console.error("Failed to open constants file for writing: " + fullOutputPath);
         return;
     }
-    console.log("Opened file: " + outputPath);
+    console.log("Opened file: " + fullOutputPath);
     
     writeFileBody(constantsFile);
     constantsFile.close();
 
-    alert("Haxe constants file successfully created at:\n\n" + outputPath);
-    console.log("Haxe constants file successfully created at: " + outputPath);
+    saveOutputPathToFile(outputPath);
+
+    alert("Haxe constants file successfully created in:\n\n" + outputPath);
+    console.log("Haxe constants file successfully created in: " + outputPath);
 }
 
 function readOutputPathFromFile() {
-    const haxeSystemInformationFileLocation = studio.project.filePath.substr(0, studio.project.filePath.lastIndexOf("/") + 1) + constantsOutputLocationFileName;
+    const haxeSystemInformationFileLocation = studio.project.filePath.substr(0, studio.project.filePath.lastIndexOf("/") + 1) + cacheFileName;
     haxeSystemInformationFile = studio.system.getFile(haxeSystemInformationFileLocation);
-    if (!haxeSystemInformationFile.open(studio.system.openMode.ReadOnly)) {    
-        alert("Failed to open file: " + haxeSystemInformationFileLocation + "\n\nMake sure you have a file next to your Fmod Studio project file titled \"" 
-        + constantsOutputLocationFileName + "\" and put the file path for where you want your constants file to be saved inside it.");
-        console.error("Failed to open file: " + haxeSystemInformationFileLocation + "\n\nMake sure you have a file next to your Fmod Studio project file titled \"" 
-        + constantsOutputLocationFileName + "\" and put the file path for where you want your constants file to be saved inside it.");
-        return;
+    if (!haxeSystemInformationFile.open(studio.system.openMode.ReadOnly)) {
+        return "";
     }
     const fileData = haxeSystemInformationFile.readText(10000);
     haxeSystemInformationFile.close();
     return fileData;
+}
+
+function saveOutputPathToFile(outputDir) {
+    const haxeSystemInformationFileLocation = studio.project.filePath.substr(0, studio.project.filePath.lastIndexOf("/") + 1) + cacheFileName;
+    haxeSystemInformationFile = studio.system.getFile(haxeSystemInformationFileLocation);
+    if (!haxeSystemInformationFile.open(studio.system.openMode.WriteOnly)) {
+        alert("Failed to open file to cache selected directory: " + haxeSystemInformationFile);
+        console.error("Failed to open file to cache selected directory: " + haxeSystemInformationFile);
+        return;
+    }
+    haxeSystemInformationFile.writeText(outputDir);
+    haxeSystemInformationFile.close();
 }
 
 function writeFileBody(constantsFile) {
@@ -74,23 +105,24 @@ function writeFileBody(constantsFile) {
     });
 
     // Generate constants for music events
+    console.log("Exporting Music events")
     constantsFile.writeText("enum FmodSongs {\r\n");
     allEvents.forEach(function(object) {
         const path = object.getPath().replace(/(^[0-9])/g, "_$1"); // Don't allow identifier to start with a number
-
-        console.log("Path: " + path);
-
         if (path.split('/')[1] == "Music") {
+            console.log("Path: " + path);
             constantsFile.writeText("\t" + path.split('/')[2] + ";\r\n");
         }
     });
     constantsFile.writeText("}\r\n");
     
     // Generate constants for sfx events
+            console.log("Exporting SFX events")
     constantsFile.writeText("enum FmodSFX {\r\n");
     allEvents.forEach(function(object) {
         const path = object.getPath().replace(/(^[0-9])/g, "_$1"); // Don't allow identifier to start with a number
         if (path.split('/')[1] == "SFX") {
+            console.log("Path: " + path);
             constantsFile.writeText("\t" + path.split('/')[2] + ";\r\n");
         }
     });
