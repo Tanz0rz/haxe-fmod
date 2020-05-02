@@ -100,8 +100,15 @@ namespace linc
 		extern bool faxe_is_event_description_loaded(const ::String& eventName);
 
 		/**
+		 * Create a named event instance
+		 * \param[eventName] ::String the event description name
+		 * \param[instanceName] ::String the name to assign to the new event instance
+		 */
+		extern void faxe_create_event_instance_named(const ::String& eventName, const ::String& instanceName);
+
+		/**
 		 * Play an already-loaded event instance
-		 * \param[eventName] ::String the name of the event to play
+		 * \param[eventName] ::String thee name of the event to play
 		 */
 		extern void faxe_play_event_instance(const ::String& eventName);
 
@@ -116,33 +123,33 @@ namespace linc
 		 * Play an already-loaded event description as a fire-and-forget event
 		 * \param[eventName] ::String the name of the event to play
 		 */
-		extern void faxe_play_one_shot(const ::String& eventName);
+		extern void faxe_create_event_instance_one_shot(const ::String& eventName);
 
 		/**
 		 * Play an already loaded event
 		 * \param[eventName] ::String the name of the event to play
 		 * \param[forceStop] ::Bool should we force the event to stop immediately?
 		 */
-		extern void faxe_stop_event(const ::String& eventName, bool forceStop = false);
+		extern void faxe_stop_event_instance(const ::String& eventName, bool forceStop = false);
 
 		/**
 		 * Release a loaded event
 		 * \param[eventName] ::String the name of the event to release
 		 */
-		extern void faxe_release_event(const ::String& eventName);
+		extern void faxe_release_event_instance(const ::String& eventName);
 
 		/**
 		 * Check to see if an event is currently playing
 		 * \param[eventName] ::String the name of the event to check playing status of
 		 * \return ::Bool if the event is currently playing
 		 */
-		extern bool faxe_is_event_playing(const ::String& eventName);
+		extern bool faxe_is_event_instance_playing(const ::String& eventName);
 
 		/**
 		 * Get the status of an existing event
 		 * \param[eventName] ::String the name of the event to check playing status of
 		 */
-		extern FMOD_STUDIO_PLAYBACK_STATE faxe_get_event_playback_state(const ::String& eventName);
+		extern FMOD_STUDIO_PLAYBACK_STATE faxe_get_event_instance_playback_state(const ::String& eventName);
 
 		/**
 		 * Check to see if an event is currently playing
@@ -150,7 +157,7 @@ namespace linc
 		 * \param[paramName] ::String the name of the param to GET
 		 * \return float the current value of the param from the specified event
 		 */
-		extern float faxe_get_event_param(const ::String& eventName, const ::String& paramName);
+		extern float faxe_get_event_instance_param(const ::String& eventName, const ::String& paramName);
 
 		/**
 		 * Set the parameter value of a loaded event
@@ -158,7 +165,7 @@ namespace linc
 		 * \param[paramName] ::String the name of the param to SET
 		 * \param[sValue] float the new value to set the param to
 		 */
-		extern void faxe_set_event_param(const ::String& eventName, const ::String& paramName, float sValue);
+		extern void faxe_set_event_instance_param(const ::String& eventName, const ::String& paramName, float sValue);
 
 		//// Channel operations
 		extern void faxe_stop_all_channels();

@@ -37,9 +37,6 @@ extern class Faxe
 	@:native("linc::faxe::faxe_unload_sound")
 	public static function fmod_unload_sound(bankFilePath:String):Void;
 
-	@:native("linc::faxe::faxe_load_event_instance")
-	public static function fmod_load_event_instance(eventPath:String, eventName:String):Void;
-
 	@:native("linc::faxe::faxe_load_event_description")
 	public static function fmod_load_event_description(eventPath:String, eventName:String):Void;
 
@@ -49,17 +46,20 @@ extern class Faxe
 	@:native("linc::faxe::faxe_is_event_description_loaded")
 	public static function fmod_is_event_description_loaded(eventName:String):Bool;
 
+	@:native("linc::faxe::faxe_create_event_instance_named")
+	public static function fmod_create_event_instance_named(eventName:String, instanceName:String):Void;
+
 	@:native("linc::faxe::faxe_play_event_instance")
 	public static function fmod_play_event_instance(eventName:String):Void;
 
 	@:native("linc::faxe::faxe_set_pause_on_event_instance")
 	public static function fmod_set_pause_on_event_instance(eventName:String, shouldBePaused:Bool):Void;
 	
-	@:native("linc::faxe::faxe_play_one_shot")
-	public static function fmod_play_one_shot(eventName:String):Void;
+	@:native("linc::faxe::faxe_create_event_instance_one_shot")
+	public static function fmod_create_event_instance_one_shot(eventName:String):Void;
 	
-	@:native("linc::faxe::faxe_release_event")
-	public static function fmod_release_event(eventName:String):Void;
+	@:native("linc::faxe::faxe_release_event_instance")
+	public static function fmod_release_event_instance(eventName:String):Void;
 	
 	@:native("linc::faxe::faxe_play_sound")
 	public static function fmod_play_sound(soundName:String, paused:Bool = false):FmodResult;
@@ -70,20 +70,20 @@ extern class Faxe
 	@:native("linc::faxe::faxe_play_sound_with_channel")
 	public static function fmod_play_sound_with_channel(soundName:String, paused:Bool): cpp.Pointer<FmodChannel>;
 
-	@:native("linc::faxe::faxe_stop_event")
-	public static function fmod_stop_event(eventName:String, forceStop:Bool):Void;
+	@:native("linc::faxe::faxe_stop_event_instance")
+	public static function fmod_stop_event_instance(eventName:String, forceStop:Bool):Void;
 
-	@:native("linc::faxe::faxe_is_event_playing")
-	public static function fmod_is_event_playing(eventName:String):Bool;
+	@:native("linc::faxe::faxe_is_event_instance_playing")
+	public static function fmod_is_event_instance_playing(eventName:String):Bool;
 
-	@:native("linc::faxe::faxe_get_event_playback_state")
-	public static function fmod_get_event_playback_state(eventName:String):FmodStudioPlaybackState;
+	@:native("linc::faxe::faxe_get_event_instance_playback_state")
+	public static function fmod_get_event_instance_playback_state(eventName:String):FmodStudioPlaybackState;
 
-	@:native("linc::faxe::faxe_get_event_param")
-	public static function fmod_get_event_param(eventName:String, paramName:String):Float;
+	@:native("linc::faxe::faxe_get_event_instance_param")
+	public static function fmod_get_event_instance_param(eventName:String, paramName:String):Float;
 
-	@:native("linc::faxe::faxe_set_event_param")
-	public static function fmod_set_event_param(eventName:String, paramName:String, sValue:Float):Void;
+	@:native("linc::faxe::faxe_set_event_instance_param")
+	public static function fmod_set_event_instance_param(eventName:String, paramName:String, sValue:Float):Void;
 	
 	@:native("linc::faxe::faxe_get_system")
 	public static function fmod_get_system() : cpp.Pointer<FmodSystem>;
