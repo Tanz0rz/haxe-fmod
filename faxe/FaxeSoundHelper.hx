@@ -103,10 +103,7 @@ class FaxeSoundHelper {
         Do not play a looping sound effect with this call
     **/
     public function PlaySoundOneShot(soundName:String) {
-        if (!Faxe.fmod_is_event_description_loaded(soundName)) {
-            Faxe.fmod_load_event_description('event:/SFX/${soundName}', soundName);
-        }
-        Faxe.fmod_create_event_instance_one_shot(soundName);
+        Faxe.fmod_create_event_instance_one_shot('event:/SFX/${soundName}');
     }
 
     /**

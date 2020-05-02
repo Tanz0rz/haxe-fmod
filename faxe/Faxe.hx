@@ -10,11 +10,18 @@ private typedef Ptr<T> = cpp.Pointer<T>;
 #end
 extern class Faxe
 {
+	//// FMOD System
+
 	@:native("linc::faxe::faxe_init")
 	public static function fmod_init(numChannels:Int = 128):Void;
+	
+	@:native("linc::faxe::faxe_set_debug")
+	public static function fmod_set_debug(onOff : Bool):Void;
 
 	@:native("linc::faxe::faxe_update")
 	public static function fmod_update():Void;
+
+	//// Sound Banks
 
 	@:native("linc::faxe::faxe_load_bank")
 	public static function fmod_load_bank(bankFilePath:String):Void;
@@ -22,74 +29,48 @@ extern class Faxe
 	@:native("linc::faxe::faxe_unload_bank")
 	public static function fmod_unload_bank(bankFilePath:String):Void;
 
-	/**
-	 * registered the sounds internally
-	 */
-	@:native("linc::faxe::faxe_load_sound")
-	public static function fmod_load_sound(soundPath:String, looping:Bool = false, streaming:Bool = false):FmodResult;
-
-	/**
-	 * get registerd sounds
-	 */
-	@:native("linc::faxe::faxe_get_sound")
-	public static function fmod_get_sound(soundPath:String):cpp.Pointer<FmodSound>;
-	
-	@:native("linc::faxe::faxe_unload_sound")
-	public static function fmod_unload_sound(bankFilePath:String):Void;
+	//// Event Description
 
 	@:native("linc::faxe::faxe_load_event_description")
-	public static function fmod_load_event_description(eventPath:String, eventName:String):Void;
+	public static function fmod_load_event_description(eventPath:String):Void;
+
+	@:native("linc::faxe::faxe_is_event_description_loaded")
+	public static function fmod_is_event_description_loaded(eventDescriptionName:String):Bool;
+
+	//// Event Instances
+	
+	@:native("linc::faxe::faxe_create_event_instance_one_shot")
+	public static function fmod_create_event_instance_one_shot(eventName:String):Void;
+
+	@:native("linc::faxe::faxe_create_event_instance_named")
+	public static function fmod_create_event_instance_named(eventName:String, eventInstanceName:String):Void;
 
 	@:native("linc::faxe::faxe_is_event_instance_loaded")
 	public static function fmod_is_event_instance_loaded(eventName:String):Bool;
 
-	@:native("linc::faxe::faxe_is_event_description_loaded")
-	public static function fmod_is_event_description_loaded(eventName:String):Bool;
-
-	@:native("linc::faxe::faxe_create_event_instance_named")
-	public static function fmod_create_event_instance_named(eventName:String, instanceName:String):Void;
-
 	@:native("linc::faxe::faxe_play_event_instance")
-	public static function fmod_play_event_instance(eventName:String):Void;
+	public static function fmod_play_event_instance(eventInstanceName:String):Void;
 
 	@:native("linc::faxe::faxe_set_pause_on_event_instance")
-	public static function fmod_set_pause_on_event_instance(eventName:String, shouldBePaused:Bool):Void;
-	
-	@:native("linc::faxe::faxe_create_event_instance_one_shot")
-	public static function fmod_create_event_instance_one_shot(eventName:String):Void;
-	
-	@:native("linc::faxe::faxe_release_event_instance")
-	public static function fmod_release_event_instance(eventName:String):Void;
-	
-	@:native("linc::faxe::faxe_play_sound")
-	public static function fmod_play_sound(soundName:String, paused:Bool = false):FmodResult;
-	
-	@:native("linc::faxe::faxe_play_sound_with_handle")
-	public static function fmod_play_sound_with_handle(snd : cpp.Pointer<FmodSound>):FmodResult;
-	
-	@:native("linc::faxe::faxe_play_sound_with_channel")
-	public static function fmod_play_sound_with_channel(soundName:String, paused:Bool): cpp.Pointer<FmodChannel>;
+	public static function fmod_set_pause_on_event_instance(eventInstanceName:String, shouldBePaused:Bool):Void;
 
 	@:native("linc::faxe::faxe_stop_event_instance")
-	public static function fmod_stop_event_instance(eventName:String, forceStop:Bool):Void;
+	public static function fmod_stop_event_instance(eventInstanceName:String, forceStop:Bool):Void;
+	
+	@:native("linc::faxe::faxe_release_event_instance")
+	public static function fmod_release_event_instance(eventInstanceName:String):Void;
 
 	@:native("linc::faxe::faxe_is_event_instance_playing")
-	public static function fmod_is_event_instance_playing(eventName:String):Bool;
+	public static function fmod_is_event_instance_playing(eventInstanceName:String):Bool;
 
 	@:native("linc::faxe::faxe_get_event_instance_playback_state")
-	public static function fmod_get_event_instance_playback_state(eventName:String):FmodStudioPlaybackState;
+	public static function fmod_get_event_instance_playback_state(eventInstanceName:String):FmodStudioPlaybackState;
 
 	@:native("linc::faxe::faxe_get_event_instance_param")
-	public static function fmod_get_event_instance_param(eventName:String, paramName:String):Float;
+	public static function fmod_get_event_instance_param(eventInstanceName:String, paramName:String):Float;
 
 	@:native("linc::faxe::faxe_set_event_instance_param")
-	public static function fmod_set_event_instance_param(eventName:String, paramName:String, sValue:Float):Void;
-	
-	@:native("linc::faxe::faxe_get_system")
-	public static function fmod_get_system() : cpp.Pointer<FmodSystem>;
-	
-	@:native("linc::faxe::faxe_set_debug")
-	public static function fmod_set_debug(onOff : Bool):Void;
+	public static function fmod_set_event_instance_param(eventInstanceName:String, paramName:String, value:Float):Void;
 }
 
 @:enum abstract FmodTimeUnit(Int) from Int to Int {
@@ -103,7 +84,7 @@ extern class Faxe
 	var FTM_MODPATTERN 	= 0x00000400;
 }
 
-// This enum leverages Haxe 4.x.x syntax to simplify abstract enum declarations. 
+// This enum leverages Haxe 4.x.x syntax to simplify abstract enum declarations 
 // Eventually, all enums will be converted to this simpler form
 enum abstract FmodStudioPlaybackState(Int){
 	var FMOD_STUDIO_PLAYBACK_PLAYING;
@@ -231,208 +212,4 @@ enum abstract FmodStudioPlaybackState(Int){
 	var FMOD_LOWMEM  			 			= 0x08000000;
 	var FMOD_LOADSECONDARYRAM  			 	= 0x20000000;
 	var FMOD_VIRTUAL_PLAYFROMSTART 			= 0x80000000;
-}
-
-@:keep
-@:include('linc_faxe.h')
-@:native("FMOD::Sound")
-extern class FmodSound {
-	@:native('getMode')
-	function getMode( mode : cpp.Pointer<FmodMode> ) : FmodResult;
-	
-	@:native('getLoopCount')
-	function getLoopCount( nb:cpp.Pointer<Int> ) : FmodResult;
-	
-	@:native('setLoopCount')
-	function setLoopCount( nb:Int ) : FmodResult;
-	
-	@:native('setMode')
-	function setMode( mode:FmodMode ) : FmodResult;
-	
-	@:native('getPosition')
-	function getPosition( position : cpp.Pointer<cpp.UInt32>, postype : FmodTimeUnit ) : FmodResult;
-	
-	@:native('setPosition')
-	function setPosition( position : cpp.UInt32, postype : FmodTimeUnit ) : FmodResult;
-	
-	@:native('getLength')
-	function getLength( len : cpp.Pointer<cpp.UInt32>, postype : FmodTimeUnit ) : FmodResult;
-	
-	//use faxe release to fully release memory... 
-	@:native('release')
-	function release() : FmodResult;
-}
-
-
-@:keep
-@:include('linc_faxe.h')
-@:native("FMOD::ChannelGroup")
-extern class FmodChannelGroup {
-	
-}
-
-@:keep
-@:include('linc_faxe.h')
-@:native("::cpp::Reference<FMOD::Sound>") 
-extern class FmodSoundRef extends FmodSound {}
-
-@:include('linc_faxe.h')
-@:native("FMOD::Channel")
-extern class FmodChannel {
-	
-	@:native('getVolume')
-	function getVolume( volume : cpp.Pointer<cpp.Float32> ) : FmodResult;
-	
-	@:native('setVolume')
-	function setVolume( volume : cpp.Float32 ) : FmodResult;
-	
-	@:native('getPosition')
-	function getPosition( position : cpp.Pointer<cpp.UInt32>, postype : FmodTimeUnit ) : FmodResult;
-	
-	@:native('setPosition')
-	function setPosition( position : cpp.UInt32, postype : FmodTimeUnit ) : FmodResult;
-	
-	/**
-	 * Stops the channel (or all channels in the channel group) from playing. Makes it available for re-use by the priority system.
-	 */
-	@:native('stop')
-	function stop() : FmodResult;
-	
-	@:native('release')
-	function release() : FmodResult;
-	
-	@:native('isPlaying')
-	function isPlaying( isPlaying : cpp.Pointer<Bool> ) : FmodResult;
-	
-	@:native('getMode')
-	function getMode( mode : cpp.Pointer<FmodMode> ) : FmodResult;
-	
-	@:native('getLoopCount')
-	function getLoopCount( nb:cpp.Pointer<Int> ) : FmodResult;
-	
-	@:native('setLoopCount')
-	function setLoopCount( nb:Int ) : FmodResult;
-	
-	@:native('setMode')
-	function setMode( mode:FmodMode ) : FmodResult;
-	
-	@:native('getPaused')
-	function getPaused( paused : cpp.Pointer<Bool> ) : FmodResult;
-	
-	@:native('setPaused')
-	function setPaused( paused : Bool ) : FmodResult;
-	
-	@:native('setPan')
-	function setPan( pan : Float ) : FmodResult;
-}
-
-@:keep
-@:include('linc_faxe.h')
-@:native("::cpp::Reference<FMOD::Channel>") 
-extern class FmodChannelRef extends FmodChannel {}
-
-@:keep
-@:include('linc_faxe.h')
-@:native("FMOD::System")
-extern class FmodSystem {
-	
-	@:native('close')
-	function close() : FmodResult;
-	
-	@:native('createSound')
-	function createSound( 
-		name_or_data : cpp.ConstCharStar, 
-		mode : FmodMode, 
-		createExInfo : cpp.Pointer<FmodCreateSoundExInfo>, 
-		sound:cpp.RawPointer<cpp.RawPointer<FmodSound>>) : FmodResult;
-		
-		
-	@:native('getSoundRAM')
-	function getSoundRAM(
-		currentAlloced:cpp.Pointer<Int>,
-		maxAlloced:cpp.Pointer<Int>,
-		total:cpp.Pointer<Int>
-	) : FmodResult;
-	
-	@:native('playSound')
-	function playSound(
-		sound 			: cpp.Pointer<FmodSound>,
-		channelgroup 	: cpp.Pointer<FmodChannelGroup>,
-		paused 			: Bool,
-		channel			: cpp.RawPointer<cpp.RawPointer<FmodChannel>>
-	) : FmodResult;
-}
-
-@:keep
-@:include('linc_faxe.h')
-@:native("::cpp::Reference<FMOD::System>") 
-extern class FmodSystemRef extends FmodSystem {}
-
-@:keep
-@:include('linc_faxe.h')
-class FaxeRef {
-	@:extern
-	public static inline function getSystem() : FmodSystemRef{
-		var ptr : cpp.Pointer<FmodSystem> = Faxe.fmod_get_system();
-		return cast ptr.ref;
-	}
-	
-	@:extern
-	public static inline function playSound(name:String, ?paused = false) : FmodChannelRef {
-		var ptr : cpp.Pointer<FmodChannel> = Faxe.fmod_play_sound_with_channel(name,paused);
-		return cast ptr.ref;
-	}
-	
-	public static function Memory_GetStats(currentAlloced:Ptr<Int>, maxAlloced:Ptr<Int>, isBlockingOrFast:Bool) : FmodResult {
-		return untyped __cpp__("FMOD::Memory_GetStats({0},{1},{2})",currentAlloced,maxAlloced,isBlockingOrFast);
-	}
-	
-	@:generic
-	@:extern
-	public static inline function nullptr<T>() : cpp.Pointer<T> {
-		return cast null;
-	}
-	
-	@:generic
-	@:extern
-	public static inline function nullptrR<T>() : cpp.RawPointer<T> {
-		return cast null;
-	}
-	
-	public static function playSoundWithHandle(snd:FmodSoundRef, ?paused : Bool = false) 
-		: cpp.Pointer<FmodChannel> 
-	{
-		var fmod : FmodSystemRef = getSystem();
-		
-		var cgroup : cpp.Pointer<FmodChannelGroup> = nullptr();
-		var chan : cpp.RawPointer<FmodChannel> = nullptrR();
-		var chanPtr : cpp.RawPointer<cpp.RawPointer<FmodChannel>> = cpp.RawPointer.addressOf(chan);
-		
-		//Reference are actually pointers !
-		var sndPtr : cpp.Pointer<FmodSound> = cast snd;
-		
-		var res = fmod.playSound( sndPtr, cgroup, paused, chanPtr );
-		
-		if ( res != FMOD_OK ){
-			#if debug
-			trace("[Faxe] Play sound error "+res);
-			#end
-			return null;
-		}
-		
-		return cpp.Pointer.fromRaw(chan);
-	}
-	
-	@:extern
-	public static inline function getSound(name:String) : FmodSoundRef {
-		var ptr : cpp.Pointer<FmodSound> = Faxe.fmod_get_sound(name);
-		return cast ptr.ref;
-	}
-}
-
-@:keep
-@:include('linc_faxe.h')
-@:native("FMOD_CREATESOUNDEXINFO")
-extern class FmodCreateSoundExInfo {
-	
 }

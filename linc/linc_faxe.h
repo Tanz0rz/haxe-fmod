@@ -37,7 +37,7 @@ namespace linc
 {
 	namespace faxe
 	{
-		//// Baisc FMOD operations
+		//// FMOD System
 
 		/**
 		 * Initialization of FMOD sound system
@@ -45,6 +45,10 @@ namespace linc
 		 */
 		extern void faxe_init(int numChannels = 32);
 
+		/**
+		 * Turns on print statements for any errors happening within the FMOD integration
+		 * \param[onOff] turns debug messages on or off
+		 */
 		extern void faxe_set_debug(bool onOff);
 		
 		/**
@@ -52,12 +56,7 @@ namespace linc
 		 */
 		extern void faxe_update();
 
-		/**
-		 * Clean up allocated objects from the FMOD sound system
-		 */
-		extern void faxe_shutdown();
-
-		//// Sound + Bank operations
+		//// Sound Banks
 
 		/**
 		 * Load a FMOD sound bank file
@@ -71,110 +70,99 @@ namespace linc
 		 */
 		extern void faxe_unload_bank(const ::String& bankName);
 		
-		//// Event operations
-
-		/**
-		 * Load an event instance from a loaded bank
-		 * \param[eventPath] ::String the path of the event
-		 * \param[eventName] ::String the name you wish to give this event instance
-		 */
-		extern void faxe_load_event_instance(const ::String& eventPath, const ::String& eventName);
+		//// Event Descriptions
 
 		/**
 		 * Load an event description from a loaded bank
+		 * Event instances are spawned from event descriptions
+		 * Event descriptions are loaded automatically when creating event instances
 		 * \param[eventPath] ::String the path of the event
-		 * \param[eventName] ::String the name you wish to give this event description
 		 */
-		extern void faxe_load_event_description(const ::String& eventPath, const ::String& eventName);
-
-		/**
-		 * Check if an event instance is currently loaded
-		 * \param[eventName] ::String the event instance to check
-		 */
-		extern bool faxe_is_event_instance_loaded(const ::String& eventName);
+		extern void faxe_load_event_description(const ::String& eventPath);
 
 		/**
 		 * Check if an event description is currently loaded
-		 * \param[eventName] ::String the event description to check
+		 * \param[eventDescriptionName] ::String the event description to check
 		 */
-		extern bool faxe_is_event_description_loaded(const ::String& eventName);
+		extern bool faxe_is_event_description_loaded(const ::String& eventDescriptionName);
+
+		//// Event Instances
 
 		/**
-		 * Create a named event instance
-		 * \param[eventName] ::String the event description name
-		 * \param[instanceName] ::String the name to assign to the new event instance
-		 */
-		extern void faxe_create_event_instance_named(const ::String& eventName, const ::String& instanceName);
-
-		/**
-		 * Play an already-loaded event instance
-		 * \param[eventName] ::String thee name of the event to play
-		 */
-		extern void faxe_play_event_instance(const ::String& eventName);
-
-		/**
-		 * Set the pause state of an event instance
-		 * \param[eventName] ::String the name of the event instance
-		 * \param[shouldBePaused] bool if the event instance should be paused
-		 */
-		extern void faxe_set_pause_on_event_instance(const ::String& eventName, bool shouldBePaused);
-
-		/**
-		 * Play an already-loaded event description as a fire-and-forget event
+		 * Create and play an event instance in a fire-and-forget fashion
+		 * There is no way to interact with these events once they are started
+		 * Follows the Master Track rules set in the Event's settings in FMOD Studio (Max Instances, Stealing, and probably more)
 		 * \param[eventName] ::String the name of the event to play
 		 */
 		extern void faxe_create_event_instance_one_shot(const ::String& eventName);
 
 		/**
-		 * Play an already loaded event
-		 * \param[eventName] ::String the name of the event to play
+		 * Create and play an event instance and store a reference to it
+		 * Events created with this method can receive other commands via this API (like passing in parameters)
+		 * \param[eventName] ::String the event name
+		 * \param[eventInstanceName] ::String the name to assign to the new event instance
+		 */
+		extern void faxe_create_event_instance_named(const ::String& eventName, const ::String& eventInstanceName);
+
+		/**
+		 * Check if an event instance is currently loaded
+		 * \param[eventInstanceName] ::String the event instance to check
+		 */
+		extern bool faxe_is_event_instance_loaded(const ::String& eventInstanceName);
+
+		/**
+		 * Sends the "play" command to an existing event instance
+		 * \param[eventInstanceName] ::String the name of the event instance
+		 */
+		extern void faxe_play_event_instance(const ::String& eventInstanceName);
+
+		/**
+		 * Sends the "pause" or "unpause" command to an existing event instance
+		 * \param[eventInstanceName] ::String the name of the event instance
+		 * \param[shouldBePaused] bool if the event instance should be paused
+		 */
+		extern void faxe_set_pause_on_event_instance(const ::String& eventInstanceName, bool shouldBePaused);
+
+		/**
+		 * Sends the "stop" command to an existing event instance
+		 * \param[eventInstanceName] ::String the name of the event instance
 		 * \param[forceStop] ::Bool should we force the event to stop immediately?
 		 */
-		extern void faxe_stop_event_instance(const ::String& eventName, bool forceStop = false);
+		extern void faxe_stop_event_instance(const ::String& eventInstanceName, bool forceStop = false);
 
 		/**
-		 * Release a loaded event
-		 * \param[eventName] ::String the name of the event to release
+		 * Release a loaded event instance from memory
+		 * \param[eventInstanceName] ::String the name of the event instance
 		 */
-		extern void faxe_release_event_instance(const ::String& eventName);
+		extern void faxe_release_event_instance(const ::String& eventInstanceName);
 
 		/**
-		 * Check to see if an event is currently playing
-		 * \param[eventName] ::String the name of the event to check playing status of
+		 * Check to see if an event instance is currently playing
+		 * \param[eventInstanceName] ::String the name of the event instance
 		 * \return ::Bool if the event is currently playing
 		 */
-		extern bool faxe_is_event_instance_playing(const ::String& eventName);
+		extern bool faxe_is_event_instance_playing(const ::String& eventInstanceName);
 
 		/**
-		 * Get the status of an existing event
-		 * \param[eventName] ::String the name of the event to check playing status of
+		 * Get the playback state of an existing event instance
+		 * \param[eventInstanceName] ::String the name of the event instance
 		 */
-		extern FMOD_STUDIO_PLAYBACK_STATE faxe_get_event_instance_playback_state(const ::String& eventName);
+		extern FMOD_STUDIO_PLAYBACK_STATE faxe_get_event_instance_playback_state(const ::String& eventInstanceName);
 
 		/**
 		 * Check to see if an event is currently playing
-		 * \param[eventName] ::String the name of the event to get param value from
+		 * \param[eventInstanceName] ::String the name of the event to get param value from
 		 * \param[paramName] ::String the name of the param to GET
 		 * \return float the current value of the param from the specified event
 		 */
-		extern float faxe_get_event_instance_param(const ::String& eventName, const ::String& paramName);
+		extern float faxe_get_event_instance_param(const ::String& eventInstanceName, const ::String& paramName);
 
 		/**
 		 * Set the parameter value of a loaded event
-		 * \param[eventName] ::String the name of the event that contains the parameter to set
+		 * \param[eventInstanceName] ::String the name of the event that contains the parameter to set
 		 * \param[paramName] ::String the name of the param to SET
-		 * \param[sValue] float the new value to set the param to
+		 * \param[value] float the new value to set the param to
 		 */
-		extern void faxe_set_event_instance_param(const ::String& eventName, const ::String& paramName, float sValue);
-
-		//// Channel operations
-		extern void faxe_stop_all_channels();
-		extern void faxe_stop_channel(int channelID);
-		extern void faxe_set_channel_gain(int channelID, float gainDb);
-		extern void faxe_set_channel_position(int channelID, float x, float y, float z);
-		extern bool faxe_channel_playing(int channelID);
-		
-		extern FMOD::System* faxe_get_system();
-
+		extern void faxe_set_event_instance_param(const ::String& eventInstanceName, const ::String& paramName, float value);
 	} // faxe + fmod namespace
 } // linc namespace
