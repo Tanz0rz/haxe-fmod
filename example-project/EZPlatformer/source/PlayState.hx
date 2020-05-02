@@ -29,6 +29,16 @@ class PlayState extends FlxState
 	var _status:FlxText;
 	var _coins:FlxGroup;
 
+	override public function onFocus(){
+		super.onFocus();
+		FaxeSoundHelper.GetInstance().UnpauseSong();
+	}
+
+	override public function onFocusLost(){
+		super.onFocusLost();
+		FaxeSoundHelper.GetInstance().PauseSong();
+	}
+
 	override public function create():Void
 	{
 		add(new FaxeUpdater());

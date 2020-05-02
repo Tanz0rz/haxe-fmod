@@ -117,7 +117,7 @@ function writeFileBody(constantsFile) {
     constantsFile.writeText("}\r\n");
     
     // Generate constants for sfx events
-            console.log("Exporting SFX events")
+    console.log("Exporting SFX events")
     constantsFile.writeText("enum FmodSFX {\r\n");
     allEvents.forEach(function(object) {
         const path = object.getPath().replace(/(^[0-9])/g, "_$1"); // Don't allow identifier to start with a number

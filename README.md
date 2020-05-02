@@ -4,7 +4,7 @@
 
 A library to integrate HaxeFlixel games (on Haxe 4.x.x) with the FMOD audio engine for Windows deployments.
 
-The core C++ integration with FMOD's official API was completed by Aaron Shea. My continuation of the project has been to update the integration, add an example project, and also make it as simple as possible to use.
+The [core C++ integration with FMOD's official API](https://github.com/uhrobots/faxe) was completed by Aaron Shea. My continuation of the project has been to update the integration, add an example project, and also make it as simple as possible to use.
 
 This library takes a lot of setup to work correctly, so please make sure to read this page carefully as you integrate FMOD into your game!
 
@@ -12,6 +12,7 @@ LICENCE: [MIT](https://tanneris.me/mit-license)
 
 ## Table of Contents
 
+ - [Features](#features)
  - [FMOD Studio Project Configuration](#fmod-studio-project-configuration)
  - [How to Use This Library](#how-to-use-this-library)
  - [Example Project (Not completed yet)](#example-project-not-completed-yet)
