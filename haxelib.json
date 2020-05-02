@@ -4,9 +4,9 @@
 	"license" : "MIT",
 	"tags": ["fmod","audio","windows"],
 	
-    "description" : "cpp fmod binding for Windows",
-    "version" : "0.1.17",
-	"releasenote" : "Sound effects now follow the rules of their Event settings defined in FMOD Studio (Max Instances, Stealing, and probably more)",
+    "description" : "Use FMOD Studio with HaxeFlixel",
+    "version" : "0.2.0",
+	"releasenote" : "Cleaned up and simplified the c++ integration code. Built more functionality into the main helper class. Imrpoved Fmod Studio script.",
 	"contributors" : ["Tanz0rz"],
     "dependencies" : { }
 }

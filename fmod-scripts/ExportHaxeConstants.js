@@ -4,7 +4,7 @@
    -------------------------------------------
  */
 
-studio.menu.addMenuItem({ name: "Export Haxe Constants",  execute: function() {displayDirectoryPickerModal()} });
+studio.menu.addMenuItem({ name: "Export Haxe Constants and Build",  execute: function() {displayDirectoryPickerModal()} });
 
 const constantsFileName = "FmodConstants.hx";
 const cacheFileName = "CachedHaxeConstantsOutputLocation";
@@ -53,6 +53,9 @@ function createConstantsFile(directoryPickerWidget) {
 
     alert("Haxe constants file successfully created in:\n\n" + outputPath);
     console.log("Haxe constants file successfully created in: " + outputPath);
+    
+    console.log("Building banks...");
+    studio.project.build();
 }
 
 function readOutputPathFromFile() {

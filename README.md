@@ -18,6 +18,7 @@ LICENCE: [MIT](https://tanneris.me/mit-license)
  - [Example Project (Not completed yet)](#example-project-not-completed-yet)
  - [Testing This Library](#testing-this-library)
  - [Goals](#goals)
+ - [Contact](#contact)
 
 
 ## Features 
@@ -72,7 +73,7 @@ The FMOD engine needs a constant stream of update calls to function properly. If
 
 Inside the `example-project` folder, you will find a simple game from the [HaxeFlixel flixel-demos repo](https://tanneris.me/haxe-flixel-demos) that I converted over to use FMOD. It has a multi-layer song that responds to the player collecting coins. All sound effects in this game have multiple versions that are picked randomly when triggered by the player. Explore the project and code to get a hands-on feel for how to leverage this project.
 
-If you are you developing in VSCode and want auto-complete and import suggestions (assuming you have this all setup), make sure to open the `EZPlatofmrer` folder with VSCode so that the example project's `Project.xml` file is at the root of your VSCode's Explorer side bar.
+If you are developing in VSCode and want auto-complete and import suggestions while looking at the example project (assuming you have this all setup), open the `EZPlatofmrer` folder with VSCode so that the example project's `Project.xml` file is at the root of your VSCode's Explorer side bar.
 
 ## Testing This Library
 
@@ -89,3 +90,7 @@ This will create a `build` directory at the root of the repo. For this test exec
 Long-term, I would like to make this library available for all flavors of Haxe. I think this is very doable, but I am going to stick to HaxeFlixel for now until I am happy with the project. 
 
 I would also like to see this support HTML5 deployments, but I have no idea how much work that is going to be. PR's are welcome!
+
+## Contact
+
+Please use the ["Issues" tab](https://github.com/Tanz0rz/faxe2/issues) to report any problems!
