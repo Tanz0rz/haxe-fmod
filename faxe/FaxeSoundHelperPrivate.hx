@@ -36,7 +36,7 @@ class FaxeSoundHelperPrivate {
         return instance;
     }
 
-    private function PlaySongPrivate(songName:String) {
+    private function PlaySong(songName:String) {
         if (songName == CurrentSong){
             // If the song passed in is loaded, but not playing, start it again
             if (!Faxe.fmod_is_event_instance_playing(PrimarySongEventInstanceName)){
@@ -58,7 +58,7 @@ class FaxeSoundHelperPrivate {
         CurrentSong = songName;
     }
 
-    private function PlaySongTransitionPrivate(songName:String) {
+    private function PlaySongTransition(songName:String) {
         if (songName == CurrentSong){
             // If the song passed in is loaded, but not playing, start it again
             if (!Faxe.fmod_is_event_instance_playing(PrimarySongEventInstanceName)){
@@ -76,45 +76,61 @@ class FaxeSoundHelperPrivate {
         NextSong = songName;
     }
     
-    private function StopSongPrivate(){
+    private function StopSong(){
+        Faxe.fmod_stop_event_instance(PrimarySongEventInstanceName, false);
+    }
+    
+    private function StopSongImmediately(){
         Faxe.fmod_stop_event_instance(PrimarySongEventInstanceName, true);
     }
 
-    private function PauseSongPrivate() {
+    private function PauseSong() {
         Faxe.fmod_set_pause_on_event_instance(PrimarySongEventInstanceName, true);
 
         // Send additional update to FMOD to avoid dependency on main game loop
 		Faxe.fmod_update();
     }
 
-    private function UnpauseSongPrivate() {
+    private function UnpauseSong() {
 		Faxe.fmod_set_pause_on_event_instance(PrimarySongEventInstanceName, false);
     }
 
-    private function SetEventParameterOnSongPrivate(parameterName:String, parameterValue:Float){
+    private function GetEventParameterOnSong(parameterName:String):Float{
+        return Faxe.fmod_get_event_instance_param(PrimarySongEventInstanceName, parameterName);
+    }
+
+    private function SetEventParameterOnSong(parameterName:String, parameterValue:Float){
         Faxe.fmod_set_event_instance_param(PrimarySongEventInstanceName, parameterName, parameterValue);
     }
 
-    private function PlaySoundOneShotPrivate(soundName:String) {
+    private function PlaySoundOneShot(soundName:String) {
         Faxe.fmod_create_event_instance_one_shot('event:/SFX/${soundName}');
     }
 
-    private function PlaySoundPrivate(soundName:String):String {
+    private function PlaySound(soundName:String):String {
         var soundId = '${soundName}-${soundIdIncrementer}';
         Faxe.fmod_create_event_instance_named('event:/SFX/${soundName}', soundId);
         soundIdIncrementer++;
         return soundId;
     }
 
-    private function StopSoundPrivate(soundId:String){
+    private function StopSound(soundId:String){
         Faxe.fmod_stop_event_instance(soundId, false);
     }
 
-    private function StopSoundImmediatelyPrivate(soundId:String){
+    private function StopSoundImmediately(soundId:String){
         Faxe.fmod_stop_event_instance(soundId, true);
     }
 
-    private function TransitionToStateAndStopMusicPrivate(state:FlxState){
+    private function GetEventParameterOnSound(soundId:String, parameterName:String):Float{
+        return Faxe.fmod_get_event_instance_param(soundId, parameterName);
+    }
+
+    private function SetEventParameterOnSound(soundId:String, parameterName:String, parameterValue:Float){
+        Faxe.fmod_set_event_instance_param(soundId, parameterName, parameterValue);
+    }
+
+    private function TransitionToStateAndStopMusic(state:FlxState){
         if (Faxe.fmod_is_event_instance_loaded(PrimarySongEventInstanceName) && Faxe.fmod_is_event_instance_playing(PrimarySongEventInstanceName)) {
             Faxe.fmod_stop_event_instance(PrimarySongEventInstanceName, false);
         }
@@ -122,11 +138,11 @@ class FaxeSoundHelperPrivate {
         DestinationState = state;
     }
 
-    private function TransitionToStatePrivate(state:FlxState){
+    private function TransitionToState(state:FlxState){
         FlxG.switchState(state);
     }
 
-    private function UpdatePrivate() {
+    private function Update() {
         Faxe.fmod_update();
 
         FlxG.watch.addQuick("Current song name: ", CurrentSong);
@@ -139,7 +155,7 @@ class FaxeSoundHelperPrivate {
             FlxG.switchState(DestinationState);
             CurrentAction = NONE;
         } else if (CurrentAction == STOP_CURRENT_SONG_AND_PLAY_TO_NEW_SONG && Faxe.fmod_get_event_instance_playback_state(PrimarySongEventInstanceName) == FMOD_STUDIO_PLAYBACK_STOPPED){
-            PlaySongPrivate(NextSong);
+            PlaySong(NextSong);
             CurrentAction = NONE;
         }
     }

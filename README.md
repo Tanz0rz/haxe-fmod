@@ -87,9 +87,9 @@ This will create a `build` directory at the root of the repo. For this test exec
 
 ## Goals
 
-Long-term, I would like to make this library available for all flavors of Haxe. I think this is very doable, but I am going to stick to HaxeFlixel for now until I am happy with the project. 
+Long-term, I would like to make this library available for all flavors of Haxe. I am going to stick to HaxeFlixel for now until I am happy with the project, then explore how to make this a more general library.
 
-I would also like to see this support HTML5 deployments, but I have no idea how much work that is going to be. PR's are welcome!
+I would also like to see this support HTML5 deployments, but I have no idea how much work that is going to be. PR's here are welcome!
 
 ## Contact
 

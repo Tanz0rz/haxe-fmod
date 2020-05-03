@@ -12,7 +12,7 @@ class FaxeSoundHelper {
         @param songName event name of song in sound bank
     **/
     public static function PlaySong(songName:String){
-        FaxeSoundHelperPrivate.GetInstance().PlaySongPrivate(songName);
+        FaxeSoundHelperPrivate.GetInstance().PlaySong(songName);
     }
     
     /**
@@ -22,37 +22,52 @@ class FaxeSoundHelper {
         @see https://tanneris.me/FMOD-AHDSR
     **/
     public static function PlaySongTransition(songName:String) {
-        FaxeSoundHelperPrivate.GetInstance().PlaySongTransitionPrivate(songName);
+        FaxeSoundHelperPrivate.GetInstance().PlaySongTransition(songName);
     }
    
     /**
-        Sets the parameter on a song 
+        Gets event parameter value from song 
+        @param parameterName name of parameter on song
+    **/
+    public static function GetEventParameterOnSong(parameterName:String){
+        return FaxeSoundHelperPrivate.GetInstance().GetEventParameterOnSong(parameterName);
+    }
+   
+    /**
+        Sets event parameter value on a song 
         @param parameterName name of parameter on song
         @param parameterValue value for parameter
     **/
     public static function SetEventParameterOnSong(parameterName:String, parameterValue:Float){
-        FaxeSoundHelperPrivate.GetInstance().SetEventParameterOnSongPrivate(parameterName, parameterValue);
+        FaxeSoundHelperPrivate.GetInstance().SetEventParameterOnSong(parameterName, parameterValue);
+    }
+    
+    /**
+        Sends the "stop" command to the FMOD API for the current song
+    **/
+    public static function StopSong(){
+        FaxeSoundHelperPrivate.GetInstance().StopSong();
     }
     
     /**
         If a song is playing, it will stop immediately
     **/
-    public static function StopSong(){
-        FaxeSoundHelperPrivate.GetInstance().StopSongPrivate();
+    public static function StopSongImmediately(){
+        FaxeSoundHelperPrivate.GetInstance().StopSongImmediately();
     }
     
     /**
         If a song is playing, it will pause 
     **/
     public static function PauseSong(){
-        FaxeSoundHelperPrivate.GetInstance().PauseSongPrivate();
+        FaxeSoundHelperPrivate.GetInstance().PauseSong();
     }
     
     /**
         If a song is paused, it will unpause 
     **/
     public static function UnpauseSong(){
-        FaxeSoundHelperPrivate.GetInstance().UnpauseSongPrivate();
+        FaxeSoundHelperPrivate.GetInstance().UnpauseSong();
     }
   
     /**
@@ -64,7 +79,7 @@ class FaxeSoundHelper {
         @see https://tanneris.me/FMOD-Loop-Region
     **/
     public static function PlaySoundOneShot(soundName:String) {
-        FaxeSoundHelperPrivate.GetInstance().PlaySoundOneShotPrivate(soundName);
+        FaxeSoundHelperPrivate.GetInstance().PlaySoundOneShot(soundName);
     }
     
     /**
@@ -73,7 +88,26 @@ class FaxeSoundHelper {
         @return soundId of the new event instance
     **/
     public static function PlaySound(soundName:String):String {
-        return FaxeSoundHelperPrivate.GetInstance().PlaySoundPrivate(soundName);
+        return FaxeSoundHelperPrivate.GetInstance().PlaySound(soundName);
+    }
+   
+    /**
+        Get the parameter on a sound 
+        @param soundId Id of a currently-loaded sound
+        @param parameterName name of parameter on sound
+    **/
+    public static function GetEventParameterOnSound(soundId:String, parameterName:String):Float{
+        return FaxeSoundHelperPrivate.GetInstance().GetEventParameterOnSound(soundId, parameterName);
+    }
+   
+    /**
+        Sets the parameter on a sound 
+        @param soundId Id of a currently-loaded sound
+        @param parameterName name of parameter on sound
+        @param parameterValue value for parameter
+    **/
+    public static function SetEventParameterOnSound(soundId:String, parameterName:String, parameterValue:Float){
+        FaxeSoundHelperPrivate.GetInstance().SetEventParameterOnSound(soundId, parameterName, parameterValue);
     }
     
     /**
@@ -83,7 +117,7 @@ class FaxeSoundHelper {
         @param soundId Id of a currently-loaded sound
     **/
     public static function StopSound(soundId:String){
-        FaxeSoundHelperPrivate.GetInstance().StopSoundPrivate(soundId);
+        FaxeSoundHelperPrivate.GetInstance().StopSound(soundId);
     }
   
     /**
@@ -91,7 +125,7 @@ class FaxeSoundHelper {
         @param soundId Id of a currently-loaded sound
     **/
     public static function StopSoundImmediately(soundId:String){
-        FaxeSoundHelperPrivate.GetInstance().StopSoundImmediatelyPrivate(soundId);
+        FaxeSoundHelperPrivate.GetInstance().StopSoundImmediately(soundId);
     }
  
     /**
@@ -101,7 +135,7 @@ class FaxeSoundHelper {
         @see https://tanneris.me/FMOD-AHDSR
     **/
     public static function TransitionToStateAndStopMusic(state:FlxState){
-        FaxeSoundHelperPrivate.GetInstance().TransitionToStateAndStopMusicPrivate(state);
+        FaxeSoundHelperPrivate.GetInstance().TransitionToStateAndStopMusic(state);
     }
    
     /**
@@ -111,7 +145,7 @@ class FaxeSoundHelper {
         @param state the state to load
     **/
     public static function TransitionToState(state:FlxState){
-        FaxeSoundHelperPrivate.GetInstance().TransitionToStatePrivate(state);
+        FaxeSoundHelperPrivate.GetInstance().TransitionToState(state);
     }
    
     /**
@@ -120,6 +154,6 @@ class FaxeSoundHelper {
         This is managed automatically as long as add(new FaxeUpdater()) is in the create() of every state
     **/
     public static function Update() {
-        FaxeSoundHelperPrivate.GetInstance().UpdatePrivate();
+        FaxeSoundHelperPrivate.GetInstance().Update();
     }
 }
