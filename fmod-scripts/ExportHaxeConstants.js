@@ -113,24 +113,24 @@ function writeFileBody(constantsFile) {
 
     // Generate constants for music events
     console.log("Exporting Music events")
-    constantsFile.writeText("enum FmodSongs {\r\n");
+    constantsFile.writeText("class FmodSongs {\r\n");
     allEvents.forEach(function(object) {
         const path = object.getPath().replace(/(^[0-9])/g, "_$1"); // Don't allow identifier to start with a number
         if (path.split('/')[1] == "Music") {
             console.log("Path: " + path);
-            constantsFile.writeText("\t" + path.split('/')[2] + ";\r\n");
+            constantsFile.writeText("\t public static inline var " + path.split('/')[2] + ":String = \"" + path.split('/')[2] + "\";\r\n");
         }
     });
-    constantsFile.writeText("}\r\n");
+    constantsFile.writeText("}\r\n\r\n");
     
     // Generate constants for sfx events
     console.log("Exporting SFX events")
-    constantsFile.writeText("enum FmodSFX {\r\n");
+    constantsFile.writeText("class FmodSFX {\r\n");
     allEvents.forEach(function(object) {
         const path = object.getPath().replace(/(^[0-9])/g, "_$1"); // Don't allow identifier to start with a number
         if (path.split('/')[1] == "SFX") {
             console.log("Path: " + path);
-            constantsFile.writeText("\t" + path.split('/')[2] + ";\r\n");
+            constantsFile.writeText("\t public static inline var " + path.split('/')[2] + ":String = \"" + path.split('/')[2] + "\";\r\n");
         }
     });
     constantsFile.writeText("}\r\n");

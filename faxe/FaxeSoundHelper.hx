@@ -4,158 +4,122 @@ import flixel.FlxState;
 import faxe.Faxe;
 import flixel.FlxG;
 
-enum FaxeSoundHelperAction {
-    NONE;
-    STOP_SONG_AND_TRANSITION_SCENES;
-    STOP_CURRENT_SONG_AND_PLAY_TO_NEW_SONG;
-}
-
+@:access(faxe.FaxeSoundHelperPrivate)
 class FaxeSoundHelper {
 
-    public var CurrentSong:String;
-    public var NextSong:String;
-    private var PrimarySongEventInstance:String = "PrimarySongEventInstance";
-
-    private static var instance:FaxeSoundHelper;
-
-
-    public var CurrentAction:FaxeSoundHelperAction = NONE;
-    public var DestinationState:FlxState;
-
-    private var soundIdIncrementer:Int;
-
-    private function new () {}
-
-    public static function GetInstance():FaxeSoundHelper {
-        if (instance == null) {
-            instance = new FaxeSoundHelper();
-            Faxe.fmod_init(128);
-            Faxe.fmod_load_bank("assets/fmod/Desktop/Master.bank");
-            Faxe.fmod_load_bank("assets/fmod/Desktop/Master.strings.bank");
-        }
-        return instance;
-    }
-
-    public function PlaySong(songName:String) {
-        if (songName == CurrentSong){
-            // If the song passed in is loaded, but not playing, start it again
-            if (!Faxe.fmod_is_event_instance_playing(PrimarySongEventInstance)){
-                Faxe.fmod_play_event_instance(PrimarySongEventInstance);
-            } 
-            return;
-        }
-        
-        // If we are changing songs, make sure it is not playing, then release it from memory
-        if (songName != CurrentSong && CurrentSong != null){
-            if (Faxe.fmod_is_event_instance_playing(PrimarySongEventInstance)){
-                Faxe.fmod_stop_event_instance(PrimarySongEventInstance, true);
-            }
-            Faxe.fmod_release_event_instance(PrimarySongEventInstance);
-        }
-
-        // Create a brand new event instance of the song
-        Faxe.fmod_create_event_instance_named('event:/Music/${songName}', PrimarySongEventInstance);
-        CurrentSong = songName;
-    }
-
-    // Fadeouts and fadeins can be added to songs in Fmod Studio via the AHDSR Modulation on the event's main fader
-    public function PlaySongTransition(songName:String) {
-        if (songName == CurrentSong){
-            // If the song passed in is loaded, but not playing, start it again
-            if (!Faxe.fmod_is_event_instance_playing(PrimarySongEventInstance)){
-                Faxe.fmod_play_event_instance(PrimarySongEventInstance);
-            }
-            return;
-        }
-
-        // If we are changing songs, send a soft stop request to the event
-        if (songName != CurrentSong && CurrentSong != null && Faxe.fmod_is_event_instance_playing(PrimarySongEventInstance)) {
-            Faxe.fmod_stop_event_instance(PrimarySongEventInstance, false);
-        }
-
-        CurrentAction = STOP_CURRENT_SONG_AND_PLAY_TO_NEW_SONG;
-        NextSong = songName;
-    }
-
-    public function StopSong(){
-        Faxe.fmod_stop_event_instance(PrimarySongEventInstance, true);
-    }
-
-    public function PauseSong() {
-        Faxe.fmod_set_pause_on_event_instance(PrimarySongEventInstance, true);
-
-        // Send additional update to FMOD to avoid dependency on main game loop
-		Faxe.fmod_update();
-    }
-
-    public function UnpauseSong() {
-		Faxe.fmod_set_pause_on_event_instance(PrimarySongEventInstance, false);
-    }
-
-    // Need to add ability to validate a parameter exists first
-    public function SetEventParameterOnSong(parameterName:String, parameterValue:Float){
-        Faxe.fmod_set_event_instance_param(PrimarySongEventInstance, parameterName, parameterValue);
-    }
-
     /**
-        Plays a sound in a fire-and-forget fashion.
-        Follows the rules set in the Event's settings in FMOD Studio
-        Do not play a looping sound effect with this call
+        Plays a song from the sound bank
+        @param songName event name of song in sound bank
     **/
-    public function PlaySoundOneShot(soundName:String) {
-        Faxe.fmod_create_event_instance_one_shot('event:/SFX/${soundName}');
+    public static function PlaySong(songName:String){
+        FaxeSoundHelperPrivate.GetInstance().PlaySongPrivate(songName);
     }
-
+    
     /**
-        Plays a sound that can be stopped, paused, and restarted using the returned sound Id
-        Parameters can be passed to the sound using the sound name as the reference
-        If you would like an explicit handle to the sound event, use PlaySoundWithHandle
+        Sends the "stop" command to the FMOD API and waits for the
+        current song to stop before playing a new song from the sound bank
+        @param songName event name of song in sound bank
+        @see https://tanneris.me/FMOD-AHDSR
     **/
-    public function PlaySound(soundName:String):String {
-        var soundId = '${soundName}-${soundIdIncrementer}';
-        Faxe.fmod_create_event_instance_named('event:/SFX/${soundName}', soundId);
-        soundIdIncrementer++;
-        return soundId;
+    public static function PlaySongTransition(songName:String) {
+        FaxeSoundHelperPrivate.GetInstance().PlaySongTransitionPrivate(songName);
     }
-
-    public function StopSound(soundId:String){
-        Faxe.fmod_stop_event_instance(soundId, false);
+   
+    /**
+        Sets the parameter on a song 
+        @param parameterName name of parameter on song
+        @param parameterValue value for parameter
+    **/
+    public static function SetEventParameterOnSong(parameterName:String, parameterValue:Float){
+        FaxeSoundHelperPrivate.GetInstance().SetEventParameterOnSongPrivate(parameterName, parameterValue);
     }
-
-    public function StopSoundImmediately(soundId:String){
-        Faxe.fmod_stop_event_instance(soundId, true);
+    
+    /**
+        If a song is playing, it will stop immediately
+    **/
+    public static function StopSong(){
+        FaxeSoundHelperPrivate.GetInstance().StopSongPrivate();
     }
-
-    // Fadeouts can be added to songs in Fmod Studio via the AHDSR Modulation on the event's main fader
-    public function TransitionToStateAndStopMusic(state:FlxState){
-        if (Faxe.fmod_is_event_instance_loaded(PrimarySongEventInstance) && Faxe.fmod_is_event_instance_playing(PrimarySongEventInstance)) {
-            Faxe.fmod_stop_event_instance(PrimarySongEventInstance, false);
-        }
-        CurrentAction = STOP_SONG_AND_TRANSITION_SCENES;
-        DestinationState = state;
+    
+    /**
+        If a song is playing, it will pause 
+    **/
+    public static function PauseSong(){
+        FaxeSoundHelperPrivate.GetInstance().PauseSongPrivate();
     }
-
-    // Adding this in so the caller can keep their transition calls consistent
-    // Note: This will leave the current music playing
-    public function TransitionToState(state:FlxState){
-        FlxG.switchState(state);
+    
+    /**
+        If a song is paused, it will unpause 
+    **/
+    public static function UnpauseSong(){
+        FaxeSoundHelperPrivate.GetInstance().UnpauseSongPrivate();
     }
+  
+    /**
+        Plays a sound in a fire-and-forget fashion
 
-    public function Update() {
-        Faxe.fmod_update();
+        Do not play sounds with Loop Regions with this call
+        @param songName event name of song in sound bank
+        @see https://tanneris.me/FMOD-Macro-Controls
+        @see https://tanneris.me/FMOD-Loop-Region
+    **/
+    public static function PlaySoundOneShot(soundName:String) {
+        FaxeSoundHelperPrivate.GetInstance().PlaySoundOneShotPrivate(soundName);
+    }
+    
+    /**
+        Plays a sound and returns the Id to allow further processing
+        @param soundName event name of sound in sound bank
+        @return soundId of the new event instance
+    **/
+    public static function PlaySound(soundName:String):String {
+        return FaxeSoundHelperPrivate.GetInstance().PlaySoundPrivate(soundName);
+    }
+    
+    /**
+        Stops a sound for the provided sound Id
 
-        FlxG.watch.addQuick("Current song name: ", CurrentSong);
-        if (Faxe.fmod_is_event_instance_loaded(PrimarySongEventInstance)){
-            FlxG.watch.addQuick("Current song status: ", FaxeEnums.EventPlaybackStateToString(Faxe.fmod_get_event_instance_playback_state(PrimarySongEventInstance)));
-        } 
-        FlxG.watch.addQuick("Current action: ", CurrentAction);
+        To stop a sound immediately, use StopSoundImmediately(soundId)
+        @param soundId Id of a currently-loaded sound
+    **/
+    public static function StopSound(soundId:String){
+        FaxeSoundHelperPrivate.GetInstance().StopSoundPrivate(soundId);
+    }
+  
+    /**
+        Immediately stops a sound for the provided sound Id
+        @param soundId Id of a currently-loaded sound
+    **/
+    public static function StopSoundImmediately(soundId:String){
+        FaxeSoundHelperPrivate.GetInstance().StopSoundImmediatelyPrivate(soundId);
+    }
+ 
+    /**
+        Sends the "stop" command to the FMOD API and waits for the
+        current song to stop before triggering a state transition
+        @param state the state to load after the music stops
+        @see https://tanneris.me/FMOD-AHDSR
+    **/
+    public static function TransitionToStateAndStopMusic(state:FlxState){
+        FaxeSoundHelperPrivate.GetInstance().TransitionToStateAndStopMusicPrivate(state);
+    }
+   
+    /**
+        Convenience method that imply calls FlxG.switchState(state)
 
-        if (CurrentAction == STOP_SONG_AND_TRANSITION_SCENES && Faxe.fmod_get_event_instance_playback_state(PrimarySongEventInstance) == FMOD_STUDIO_PLAYBACK_STOPPED){
-            FlxG.switchState(DestinationState);
-            CurrentAction = NONE;
-        } else if (CurrentAction == STOP_CURRENT_SONG_AND_PLAY_TO_NEW_SONG && Faxe.fmod_get_event_instance_playback_state(PrimarySongEventInstance) == FMOD_STUDIO_PLAYBACK_STOPPED){
-            PlaySong(NextSong);
-            CurrentAction = NONE;
-        }
+        Music will continue to play even after loading the new state
+        @param state the state to load
+    **/
+    public static function TransitionToState(state:FlxState){
+        FaxeSoundHelperPrivate.GetInstance().TransitionToStatePrivate(state);
+    }
+   
+    /**
+        A call required by the FMOD API for update loop of the game
+
+        This is managed automatically as long as add(new FaxeUpdater()) is in the create() of every state
+    **/
+    public static function Update() {
+        FaxeSoundHelperPrivate.GetInstance().UpdatePrivate();
     }
 }
