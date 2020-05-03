@@ -1,7 +1,5 @@
 package faxe;
 
-private typedef Ptr<T> = cpp.Pointer<T>;
-
 @:keep
 @:include('linc_faxe.h')
 #if !display
@@ -29,7 +27,7 @@ extern class Faxe
 	@:native("linc::faxe::faxe_unload_bank")
 	public static function fmod_unload_bank(bankFilePath:String):Void;
 
-	//// Event Description
+	//// Event Descriptions
 
 	@:native("linc::faxe::faxe_load_event_description")
 	public static function fmod_load_event_description(eventPath:String):Void;
@@ -73,16 +71,7 @@ extern class Faxe
 	public static function fmod_set_event_instance_param(eventInstanceName:String, paramName:String, value:Float):Void;
 }
 
-@:enum abstract FmodTimeUnit(Int) from Int to Int {
-	var FTM_MS 			= 0x00000001;
-	var FTM_PCM 		= 0x00000002;
-	var FTM_PCMBYTES 	= 0x00000004;
-	var FTM_RAWBYTES 	= 0x00000008;
-	var FTM_PCMFRACTION = 0x00000010;
-	var FTM_MODORDER 	= 0x00000100;
-	var FTM_MODROW		= 0x00000200;
-	var FTM_MODPATTERN 	= 0x00000400;
-}
+//// Exported enums
 
 // This enum leverages Haxe 4.x.x syntax to simplify abstract enum declarations 
 // Eventually, all enums will be converted to this simpler form
@@ -179,37 +168,4 @@ enum abstract FmodStudioPlaybackState(Int){
 	var FMOD_ERR_NOT_LOCKED										= 79;
 	var FMOD_ERR_RECORD_DISCONNECTED							= 80;
 	var FMOD_ERR_TOOMANYSAMPLES									= 81;
-}
-
-@:enum abstract FmodMode(Int) from Int to Int {
-	var FMOD_DEFAULT 		 				= 0x00000000;
-	var FMOD_LOOP_OFF 		 				= 0x00000001;
-	var FMOD_LOOP_NORMAL 	 				= 0x00000002;
-	var FMOD_LOOP_BIDI 		 				= 0x00000004;
-	var FMOD_2D  			 				= 0x00000008;
-	var FMOD_3D  			 				= 0x00000010;
-	var FMOD_CREATESTREAM  					= 0x00000080;
-	var FMOD_CREATESAMPLE 					= 0x00000100;
-	var FMOD_CREATECOMPRESSEDSAMPLE 		= 0x00000200;
-	var FMOD_OPENUSER  			 			= 0x00000400;
-	var FMOD_OPENMEMORY  			 		= 0x00000800;
-	var FMOD_OPENMEMORY_POINT  			 	= 0x10000000;
-	var FMOD_OPENRAW  			 			= 0x00001000;
-	var FMOD_OPENONLY  			 			= 0x00002000;
-	var FMOD_ACCURATETIME  			 		= 0x00004000;
-	var FMOD_MPEGSEARCH  			 		= 0x00008000;
-	var FMOD_NONBLOCKING  			 		= 0x00010000;
-	var FMOD_UNIQUE  			 			= 0x00020000;
-	var FMOD_3D_HEADRELATIVE  			 	= 0x00040000;
-	var FMOD_3D_WORLDRELATIVE  			 	= 0x00080000;
-	var FMOD_3D_INVERSEROLLOFF  			= 0x00100000;
-	var FMOD_3D_LINEARROLLOFF  			 	= 0x00200000;
-	var FMOD_3D_LINEARSQUAREROLLOFF 		= 0x00400000;
-	var FMOD_3D_INVERSETAPEREDROLLOFF  		= 0x00800000;
-	var FMOD_3D_CUSTOMROLLOFF  			 	= 0x04000000;
-	var FMOD_3D_IGNOREGEOMETRY  			= 0x40000000;
-	var FMOD_IGNORETAGS  			 		= 0x02000000;
-	var FMOD_LOWMEM  			 			= 0x08000000;
-	var FMOD_LOADSECONDARYRAM  			 	= 0x20000000;
-	var FMOD_VIRTUAL_PLAYFROMSTART 			= 0x80000000;
 }

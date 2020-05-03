@@ -4,7 +4,11 @@
    -------------------------------------------
  */
 
-studio.menu.addMenuItem({ name: "Export Haxe Constants and Build",  execute: function() {displayDirectoryPickerModal()} });
+studio.menu.addMenuItem({ 
+    name: "Export Haxe Constants and Build",  
+    execute: function() {displayDirectoryPickerModal()},
+    keySequence: "Ctrl+B",
+});
 
 const constantsFileName = "FmodConstants.hx";
 const cacheFileName = "CachedHaxeConstantsOutputLocation";
