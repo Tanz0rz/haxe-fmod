@@ -1,10 +1,14 @@
-This is a utility script that will make using your FMOD Studio events in code much easier by giving your project autocomplete for your FMOD Sound Events. 
+# Connecting Bank Events to your Code
 
-It does this by placing an `FmodConstants.hx` file next to your Main `.hx` file which you can then import into your project.
+This script utilizes a very cool feature in FMOD Studio to give your code access to an always-up-to-date list of every event in your sound bank (using enums and autocomplete!).
+
+It does this by placing an `FmodConstants.hx` file next to your main `.hx` file which you can then import into your project.
 
 If you are using vscode, its autocomplete can be triggered by typing in "FmodSongs." or "FmodSFX." to pull up all available sounds in a nice list to browse though at your cursor.
 
 Make sure to cast the enum value to a string when you have selected your event.
+
+![Haxe Constants Demo](https://raw.githubusercontent.com/Tanz0rz/faxe2/5f03f8bf6ae459e6222daf3cfb902a7a2a885b7b/HaxeConstants.gif)
 
 ## Features:
 - Builds `FmodConstants.hx` in the project directory of your choosing
