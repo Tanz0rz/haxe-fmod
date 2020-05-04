@@ -2,11 +2,13 @@ package faxe;
 
 import flixel.FlxBasic;
 
-// Add this to your state via add(new FaxeUpdater()) 
-// It automatically sends update calls to FMOD
-// Updates are required by FMOD to function properly
+/**
+Add this to every state's create() method using add(new FaxeUpdater())
+
+It will automatically call FaxeSoundHelper.Update() in the background
+**/ 
 class FaxeUpdater extends FlxBasic {
     override public function update(elapsed:Float):Void {
-        FaxeSoundHelper.GetInstance().Update();
+        FaxeSoundHelper.Update();
     }
 }

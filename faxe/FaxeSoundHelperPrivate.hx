@@ -1,15 +1,16 @@
 package faxe;
 
+import faxe.FaxeEventListener.FaxeEvent;
 import flixel.FlxState;
 import faxe.Faxe;
 import flixel.FlxG;
 
 enum FaxeSoundHelperAction {
     NONE;
-    STOP_SONG_AND_TRANSITION_SCENES;
     STOP_CURRENT_SONG_AND_PLAY_TO_NEW_SONG;
 }
 
+@:access(faxe.FaxeUtilitiesFlixelPrivate)
 class FaxeSoundHelperPrivate {
 
     // Main song
@@ -20,6 +21,11 @@ class FaxeSoundHelperPrivate {
     // Update actions
     private var CurrentAction:FaxeSoundHelperAction = NONE;
     private var DestinationState:FlxState;
+
+    // Events
+    // currently can only handle one event listener, but this will become a list soon
+    private var eventListener:FaxeEventListener;
+    private var stoppingSong:Bool;
 
     // Data
     private var soundIdIncrementer:Int;
@@ -35,6 +41,8 @@ class FaxeSoundHelperPrivate {
         }
         return instance;
     }
+
+    //// Music
 
     private function PlaySong(songName:String) {
         if (songName == CurrentSong){
@@ -77,10 +85,12 @@ class FaxeSoundHelperPrivate {
     }
     
     private function StopSong(){
+        stoppingSong = true;
         Faxe.fmod_stop_event_instance(PrimarySongEventInstanceName, false);
     }
     
     private function StopSongImmediately(){
+        stoppingSong = true;
         Faxe.fmod_stop_event_instance(PrimarySongEventInstanceName, true);
     }
 
@@ -88,7 +98,7 @@ class FaxeSoundHelperPrivate {
         Faxe.fmod_set_pause_on_event_instance(PrimarySongEventInstanceName, true);
 
         // Send additional update to FMOD to avoid dependency on main game loop
-		Faxe.fmod_update();
+        Faxe.fmod_update();
     }
 
     private function UnpauseSong() {
@@ -103,6 +113,8 @@ class FaxeSoundHelperPrivate {
         Faxe.fmod_set_event_instance_param(PrimarySongEventInstanceName, parameterName, parameterValue);
     }
 
+    //// Sound effects
+  
     private function PlaySoundOneShot(soundName:String) {
         Faxe.fmod_create_event_instance_one_shot('event:/SFX/${soundName}');
     }
@@ -130,33 +142,28 @@ class FaxeSoundHelperPrivate {
         Faxe.fmod_set_event_instance_param(soundId, parameterName, parameterValue);
     }
 
-    private function TransitionToStateAndStopMusic(state:FlxState){
-        if (Faxe.fmod_is_event_instance_loaded(PrimarySongEventInstanceName) && Faxe.fmod_is_event_instance_playing(PrimarySongEventInstanceName)) {
-            Faxe.fmod_stop_event_instance(PrimarySongEventInstanceName, false);
-        }
-        CurrentAction = STOP_SONG_AND_TRANSITION_SCENES;
-        DestinationState = state;
+    //// Utility
+
+    private function RegisterEventListener(newEventListener:FaxeEventListener) {
+        eventListener = newEventListener;
     }
 
-    private function TransitionToState(state:FlxState){
-        FlxG.switchState(state);
-    }
+    //// System
 
     private function Update() {
         Faxe.fmod_update();
 
-        FlxG.watch.addQuick("Current song name: ", CurrentSong);
-        if (Faxe.fmod_is_event_instance_loaded(PrimarySongEventInstanceName)){
-            FlxG.watch.addQuick("Current song status: ", FaxeEnums.EventPlaybackStateToString(Faxe.fmod_get_event_instance_playback_state(PrimarySongEventInstanceName)));
-        } 
-        FlxG.watch.addQuick("Current action: ", CurrentAction);
-
-        if (CurrentAction == STOP_SONG_AND_TRANSITION_SCENES && Faxe.fmod_get_event_instance_playback_state(PrimarySongEventInstanceName) == FMOD_STUDIO_PLAYBACK_STOPPED){
-            FlxG.switchState(DestinationState);
-            CurrentAction = NONE;
-        } else if (CurrentAction == STOP_CURRENT_SONG_AND_PLAY_TO_NEW_SONG && Faxe.fmod_get_event_instance_playback_state(PrimarySongEventInstanceName) == FMOD_STUDIO_PLAYBACK_STOPPED){
+        if (CurrentAction == STOP_CURRENT_SONG_AND_PLAY_TO_NEW_SONG && Faxe.fmod_get_event_instance_playback_state(PrimarySongEventInstanceName) == FMOD_STUDIO_PLAYBACK_STOPPED){
             PlaySong(NextSong);
             CurrentAction = NONE;
+        }
+
+        // If a call was made to stop music, send out the copmletion status when ready
+        if (stoppingSong && Faxe.fmod_get_event_instance_playback_state(PrimarySongEventInstanceName) == FMOD_STUDIO_PLAYBACK_STOPPED) {
+            if (eventListener != null) {
+                eventListener.ReceiveEvent(FaxeEvent.MUSIC_STOPPED);
+            }
+            stoppingSong == false;
         }
     }
 }

@@ -7,6 +7,8 @@ import flixel.FlxG;
 @:access(faxe.FaxeSoundHelperPrivate)
 class FaxeSoundHelper {
 
+    //// Music
+
     /**
         Plays a song from the sound bank
         @param songName event name of song in sound bank
@@ -69,6 +71,8 @@ class FaxeSoundHelper {
     public static function UnpauseSong(){
         FaxeSoundHelperPrivate.GetInstance().UnpauseSong();
     }
+
+    //// Sound effects
   
     /**
         Plays a sound in a fire-and-forget fashion
@@ -127,29 +131,23 @@ class FaxeSoundHelper {
     public static function StopSoundImmediately(soundId:String){
         FaxeSoundHelperPrivate.GetInstance().StopSoundImmediately(soundId);
     }
- 
-    /**
-        Sends the "stop" command to the FMOD API and waits for the
-        current song to stop before triggering a state transition
-        @param state the state to load after the music stops
-        @see https://tanneris.me/FMOD-AHDSR
-    **/
-    public static function TransitionToStateAndStopMusic(state:FlxState){
-        FaxeSoundHelperPrivate.GetInstance().TransitionToStateAndStopMusic(state);
-    }
-   
-    /**
-        Convenience method that imply calls FlxG.switchState(state)
 
-        Music will continue to play even after loading the new state
-        @param state the state to load
-    **/
-    public static function TransitionToState(state:FlxState){
-        FaxeSoundHelperPrivate.GetInstance().TransitionToState(state);
-    }
-   
+    //// Utility
+
     /**
-        A call required by the FMOD API for update loop of the game
+        Experimental: register any class that satisfies the FaxeEventLister interface
+
+        Will be used to allow utility methods (like screen transition helpers) for any Haxe framework
+        @param eventListener An implementer of the FaxeEventListener interface
+    **/
+    public static function RegisterEventListener(eventListener:FaxeEventListener) {
+        FaxeSoundHelperPrivate.GetInstance().RegisterEventListener(eventListener);
+    }
+
+    //// System
+
+    /**
+        A call required by the FMOD API for the update loop of the game
 
         This is managed automatically as long as add(new FaxeUpdater()) is in the create() of every state
     **/
