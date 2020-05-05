@@ -9,7 +9,7 @@ import flixel.FlxG;
 class FaxeUtilitiesFlixelPrivate implements FaxeEventListener {
 
     private var DestinationState:FlxState;
-    private var transitioningWhenMusicIsStopped:Bool;
+    private var listeningForMusicStoppedEvent:Bool;
 
     private static var instance:FaxeUtilitiesFlixelPrivate;
     private function new () {}
@@ -22,7 +22,7 @@ class FaxeUtilitiesFlixelPrivate implements FaxeEventListener {
     }
 
     private function TransitionToStateAndStopMusic(state:FlxState){
-        transitioningWhenMusicIsStopped = true;
+        listeningForMusicStoppedEvent = true;
         DestinationState = state;
         FaxeSoundHelper.StopSong();
     }
@@ -32,9 +32,9 @@ class FaxeUtilitiesFlixelPrivate implements FaxeEventListener {
     }
 
     public function ReceiveEvent(faxeEvent:FaxeEvent) {
-        if (faxeEvent == FaxeEvent.MUSIC_STOPPED && transitioningWhenMusicIsStopped) {
+        if (listeningForMusicStoppedEvent && faxeEvent == FaxeEvent.MUSIC_STOPPED) {
             FlxG.switchState(DestinationState);
-            transitioningWhenMusicIsStopped = false;
+            listeningForMusicStoppedEvent = false;
         } 
     }
 }

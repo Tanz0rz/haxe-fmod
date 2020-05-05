@@ -46,6 +46,9 @@ namespace linc
 		std::map<::String, FMOD::Studio::EventInstance*> loadedEventInstances;
 		std::map<::String, FMOD::Studio::EventDescription*> loadedEventDescriptions;
 		
+		// Callback flags
+		bool song_stopped = false;
+
 		bool faxe_debug = true;
 		void faxe_set_debug(bool onOff){
 			faxe_debug = onOff;
@@ -229,6 +232,26 @@ namespace linc
 			loadedEventInstances[eventInstanceName] = eventInstance;
 		}
 
+		FMOD_RESULT F_CALLBACK SongStoppedCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type, FMOD_STUDIO_EVENTINSTANCE *event, void *parameters)
+		{
+			if (type == FMOD_STUDIO_EVENT_CALLBACK_STOPPED){	
+				song_stopped = true;
+			}
+			return FMOD_OK;
+		}
+
+		void faxe_add_playback_listener_to_event_instance(const ::String& eventInstanceName) {
+			auto existingEventInstance = loadedEventInstances.find(eventInstanceName);
+			if (existingEventInstance != loadedEventInstances.end())
+			{
+				existingEventInstance->second->setCallback(SongStoppedCallback);
+			}
+			else 
+			{
+				if(faxe_debug) printf("Could not add callback to %s because it wasn't found\n", eventInstanceName.c_str());
+			}
+		}
+
 		bool faxe_is_event_instance_loaded(const ::String& eventInstanceName)
 		{
 			if (loadedEventInstances.find(eventInstanceName) != loadedEventInstances.end())
@@ -367,6 +390,16 @@ namespace linc
 			} else {
 				if(faxe_debug) printf("Event %s is not loaded!\n", eventInstanceName.c_str());
 			}
+		}
+
+		//// Callbacks
+
+		bool faxe_check_event_song_stopped(){
+			if (song_stopped) {
+				song_stopped = false;
+				return true;
+			}
+			return false;
 		}
 
 	} // faxe + fmod namespace

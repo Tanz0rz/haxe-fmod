@@ -24,8 +24,7 @@ class FaxeSoundHelperPrivate {
 
     // Events
     // currently can only handle one event listener, but this will become a list soon
-    private var eventListener:FaxeEventListener;
-    private var stoppingSong:Bool;
+    private var eventListeners:Array<FaxeEventListener> = new Array();
 
     // Data
     private var soundIdIncrementer:Int;
@@ -63,6 +62,7 @@ class FaxeSoundHelperPrivate {
 
         // Create a brand new event instance of the song
         Faxe.fmod_create_event_instance_named('event:/Music/${songName}', PrimarySongEventInstanceName);
+        Faxe.fmod_add_playback_listener_to_event_instance(PrimarySongEventInstanceName);
         CurrentSong = songName;
     }
 
@@ -85,12 +85,10 @@ class FaxeSoundHelperPrivate {
     }
     
     private function StopSong(){
-        stoppingSong = true;
         Faxe.fmod_stop_event_instance(PrimarySongEventInstanceName, false);
     }
     
     private function StopSongImmediately(){
-        stoppingSong = true;
         Faxe.fmod_stop_event_instance(PrimarySongEventInstanceName, true);
     }
 
@@ -145,7 +143,7 @@ class FaxeSoundHelperPrivate {
     //// Utility
 
     private function RegisterEventListener(newEventListener:FaxeEventListener) {
-        eventListener = newEventListener;
+        eventListeners.push(newEventListener);
     }
 
     //// System
@@ -158,12 +156,10 @@ class FaxeSoundHelperPrivate {
             CurrentAction = NONE;
         }
 
-        // If a call was made to stop music, send out the copmletion status when ready
-        if (stoppingSong && Faxe.fmod_get_event_instance_playback_state(PrimarySongEventInstanceName) == FMOD_STUDIO_PLAYBACK_STOPPED) {
-            if (eventListener != null) {
+        if (Faxe.fmod_check_event_song_stopped()) {
+            for (eventListener in eventListeners) {
                 eventListener.ReceiveEvent(FaxeEvent.MUSIC_STOPPED);
             }
-            stoppingSong == false;
         }
     }
 }

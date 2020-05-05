@@ -106,6 +106,13 @@ namespace linc
 		extern void faxe_create_event_instance_named(const ::String& eventName, const ::String& eventInstanceName);
 
 		/**
+		 * Adds an "is stopped" event listener to an event instance
+		 * When any event instance with this listener on it stops, the result of faxe_check_event_song_stopped() will be true
+		 * \param[eventInstanceName] ::String the name of the event instance to add the "is stopped" listener to
+		 */
+		extern void faxe_add_playback_listener_to_event_instance(const ::String& eventInstanceName);
+
+		/**
 		 * Check if an event instance is currently loaded
 		 * \param[eventInstanceName] ::String the event instance to check
 		 */
@@ -165,5 +172,17 @@ namespace linc
 		 * \param[value] float the new value to set the param to
 		 */
 		extern void faxe_set_event_instance_param(const ::String& eventInstanceName, const ::String& paramName, float value);
+
+		//// Callbacks
+
+		/**
+		 * Note: Will check if any event with a playback listener on it is stopped
+		 * 
+		 * When a song has stopped playing, this function will return "true" one time
+		 * Subsequent calls to this method will return "false" until a song is stopped again
+		 * Can be used to build actions that should only happen after a song is done playing
+		 */
+		extern bool faxe_check_event_song_stopped();
+
 	} // faxe + fmod namespace
 } // linc namespace
