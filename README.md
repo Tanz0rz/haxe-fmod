@@ -8,6 +8,8 @@ The [core C++ integration with FMOD's official API](https://github.com/uhrobots/
 
 This library takes a lot of setup to work correctly, so please make sure to read this page carefully as you integrate FMOD into your game!
 
+[Download the package via Haxelib](https://tanneris.me/faxe2)
+
 LICENCE: [MIT](https://tanneris.me/mit-license)
 
 ## Table of Contents
@@ -16,6 +18,7 @@ LICENCE: [MIT](https://tanneris.me/mit-license)
  - [FMOD Studio Project Configuration](#fmod-studio-project-configuration)
  - [How to Use This Library](#how-to-use-this-library)
  - [Example Project (Not completed yet)](#example-project-not-completed-yet)
+ - [Local Development](#local-development)
  - [Testing This Library](#testing-this-library)
  - [Goals](#goals)
  - [Contact](#contact)
@@ -77,6 +80,15 @@ Inside the `example-project` folder, you will find a simple game from the [HaxeF
 
 If you are developing in VSCode and want auto-complete and import suggestions while looking at the example project (assuming you have this all setup), open the `EZPlatofmrer` folder with VSCode so that the example project's `Project.xml` file is at the root of your VSCode's Explorer side bar.
 
+## Local Development
+
+- Make sure it is not installed on your system `haxelib` by checking the output of `haxelib list`. If it is installed, you can uninstall it using `haxelib remove faxe2`
+- Clone down this repo
+- Point your `haxelib` at the local repo using `haxelib dev faxe2 <directory_to_the_git_clone>`
+
+This will setup the library for development by having an "installed" version of the faxe2 git repo. You can see the special `dev` status when you find `faxe2` in the output of `haxelib list`
+
+
 ## Testing This Library
 
 The `standalone-tests` directory holds some code that can be used to build a simple non-game example executable that reads a bank file, plays music from it, and interacts with parameters.
@@ -84,8 +96,6 @@ The `standalone-tests` directory holds some code that can be used to build a sim
 To compile it, `cd` into the `standalone-tests` directory and run: `haxe --cpp ../build --main MainTest.hx -p ../`
 
 This will create a `build` directory at the root of the repo. For this test executable to do anything, you will need to create a `Master.bank` and `Master.strings.bank` file using FMOD Studio 2.00.08 and place it in the `build` directory too. For further debugging, there is a boolean inside `linc/link_faxe.cpp` that can be used to get print statements to the console as it runs. Remember to recompile the example every time you change this boolean.
-
-[Download the package via Haxelib](https://tanneris.me/faxe2)
 
 ## Goals
 
