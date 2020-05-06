@@ -23,6 +23,8 @@ LICENCE: [MIT](https://tanneris.me/mit-license)
 
 ## Features 
 - FMOD in HaxeFlixel! (Windows builds only)
+  - Haxe version 4.x.x
+  - FMOD Studio/API version 2.00.08
 - FMOD Studio Live Update for real-time mixing of sounds in your game (make sure to disable auto-reconnect in FMOD Studio)
 - `HaxeSoundHelper` library to simplify FMOD calls and give utility functions to support cleaner state transitions
 - FMOD Studio script to automatically generate a Haxe constants file (`.hx`) that can be used to reference your Music and SFX in code without using strings

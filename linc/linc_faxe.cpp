@@ -47,7 +47,7 @@ namespace linc
 		std::map<::String, FMOD::Studio::EventDescription*> loadedEventDescriptions;
 		
 		// Callback flags
-		bool song_stopped = false;
+		unsigned int primaryEventCallbackFlags;
 
 		bool faxe_debug = true;
 		void faxe_set_debug(bool onOff){
@@ -232,26 +232,6 @@ namespace linc
 			loadedEventInstances[eventInstanceName] = eventInstance;
 		}
 
-		FMOD_RESULT F_CALLBACK SongStoppedCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type, FMOD_STUDIO_EVENTINSTANCE *event, void *parameters)
-		{
-			if (type == FMOD_STUDIO_EVENT_CALLBACK_STOPPED){	
-				song_stopped = true;
-			}
-			return FMOD_OK;
-		}
-
-		void faxe_add_playback_listener_to_event_instance(const ::String& eventInstanceName) {
-			auto existingEventInstance = loadedEventInstances.find(eventInstanceName);
-			if (existingEventInstance != loadedEventInstances.end())
-			{
-				existingEventInstance->second->setCallback(SongStoppedCallback);
-			}
-			else 
-			{
-				if(faxe_debug) printf("Could not add callback to %s because it wasn't found\n", eventInstanceName.c_str());
-			}
-		}
-
 		bool faxe_is_event_instance_loaded(const ::String& eventInstanceName)
 		{
 			if (loadedEventInstances.find(eventInstanceName) != loadedEventInstances.end())
@@ -394,12 +374,30 @@ namespace linc
 
 		//// Callbacks
 
-		bool faxe_check_event_song_stopped(){
-			if (song_stopped) {
-				song_stopped = false;
-				return true;
+		// Callback definitions must be defined before they are used in functions
+		FMOD_RESULT F_CALLBACK GetCallbackType(FMOD_STUDIO_EVENT_CALLBACK_TYPE type, FMOD_STUDIO_EVENTINSTANCE *event, void *parameters)
+		{
+			primaryEventCallbackFlags = primaryEventCallbackFlags | type;
+			return FMOD_OK;
+		}
+
+		void faxe_add_playback_listener_to_primary_event_instance(const ::String& eventInstanceName) {
+			auto existingEventInstance = loadedEventInstances.find(eventInstanceName);
+			if (existingEventInstance != loadedEventInstances.end())
+			{
+				primaryEventCallbackFlags = 0;
+				existingEventInstance->second->setCallback(GetCallbackType);
 			}
-			return false;
+			else 
+			{
+				if(faxe_debug) printf("Could not set callback to %s because it wasn't found\n", eventInstanceName.c_str());
+			}
+		}
+
+		bool faxe_check_for_primary_event_instance_callback(unsigned int callbackEventMask){
+			bool eventHappened = primaryEventCallbackFlags & callbackEventMask;
+			primaryEventCallbackFlags &= ~callbackEventMask;
+			return eventHappened;
 		}
 
 	} // faxe + fmod namespace

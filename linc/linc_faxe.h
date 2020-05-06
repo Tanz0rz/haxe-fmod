@@ -106,13 +106,6 @@ namespace linc
 		extern void faxe_create_event_instance_named(const ::String& eventName, const ::String& eventInstanceName);
 
 		/**
-		 * Adds an "is stopped" event listener to an event instance
-		 * When any event instance with this listener on it stops, the result of faxe_check_event_song_stopped() will be true
-		 * \param[eventInstanceName] ::String the name of the event instance to add the "is stopped" listener to
-		 */
-		extern void faxe_add_playback_listener_to_event_instance(const ::String& eventInstanceName);
-
-		/**
 		 * Check if an event instance is currently loaded
 		 * \param[eventInstanceName] ::String the event instance to check
 		 */
@@ -176,13 +169,21 @@ namespace linc
 		//// Callbacks
 
 		/**
-		 * Note: Will check if any event with a playback listener on it is stopped
-		 * 
-		 * When a song has stopped playing, this function will return "true" one time
-		 * Subsequent calls to this method will return "false" until a song is stopped again
-		 * Can be used to build actions that should only happen after a song is done playing
+		 * Adds an event listener to an event instance
+		 * Can only live on one instance at a time
+		 * Calling this function will reset all unread events
+		 * \param[eventInstanceName] ::String the name of the loaded event instance to add the event listener to
 		 */
-		extern bool faxe_check_event_song_stopped();
+		extern void faxe_add_playback_listener_to_primary_event_instance(const ::String& eventInstanceName);
+
+		/**
+		 * Can only be used after assigning the event listener to an event instance
+		 * Checks for any FMOD_STUDIO_EVENT_CALLBACK_TYPE callbacks to have occured on the primary event instance
+		 * Once a callback value is read, subsequent calls to check the same callback will return "false" until that event fires again
+		 * \param[callbackEventMask] ::unsigned int the bitmask that corresponds to the underlying callback type you want to check
+		 * \see https://tanneris.me/FMOD-Callback-Types
+		 */
+		extern bool faxe_check_for_primary_event_instance_callback(unsigned int callbackEventMask);
 
 	} // faxe + fmod namespace
 } // linc namespace

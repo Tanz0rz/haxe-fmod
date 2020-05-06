@@ -1,6 +1,8 @@
 package faxe;
 
 import faxe.FaxeEventListener.FaxeEvent;
+//TODO understand why this import looks like this
+import faxe.FaxeEventListener.FaxeCallback;
 import flixel.FlxState;
 import faxe.Faxe;
 import flixel.FlxG;
@@ -62,7 +64,7 @@ class FaxeSoundHelperPrivate {
 
         // Create a brand new event instance of the song
         Faxe.fmod_create_event_instance_named('event:/Music/${songName}', PrimarySongEventInstanceName);
-        Faxe.fmod_add_playback_listener_to_event_instance(PrimarySongEventInstanceName);
+        Faxe.fmod_add_playback_listener_to_primary_event_instance(PrimarySongEventInstanceName);
         CurrentSong = songName;
     }
 
@@ -156,7 +158,7 @@ class FaxeSoundHelperPrivate {
             CurrentAction = NONE;
         }
 
-        if (Faxe.fmod_check_event_song_stopped()) {
+        if (Faxe.fmod_check_for_primary_event_instance_callback(FaxeCallback.STOPPED)) {
             for (eventListener in eventListeners) {
                 eventListener.ReceiveEvent(FaxeEvent.MUSIC_STOPPED);
             }

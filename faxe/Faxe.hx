@@ -43,9 +43,6 @@ extern class Faxe
     @:native("linc::faxe::faxe_create_event_instance_named")
     public static function fmod_create_event_instance_named(eventName:String, eventInstanceName:String):Void;
 
-    @:native("linc::faxe::faxe_add_playback_listener_to_event_instance")
-    public static function fmod_add_playback_listener_to_event_instance(eventInstanceName:String):Void;
-
     @:native("linc::faxe::faxe_is_event_instance_loaded")
     public static function fmod_is_event_instance_loaded(eventName:String):Bool;
 
@@ -75,15 +72,18 @@ extern class Faxe
 
     //// Callbacks
 
-    @:native("linc::faxe::faxe_check_event_song_stopped")
-    public static function fmod_check_event_song_stopped():Bool;
+    @:native("linc::faxe::faxe_add_playback_listener_to_primary_event_instance")
+    public static function fmod_add_playback_listener_to_primary_event_instance(eventInstanceName:String):Void;
+
+    @:native("linc::faxe::faxe_check_for_primary_event_instance_callback")
+    public static function fmod_check_for_primary_event_instance_callback(callbackEventMask:UInt):Bool;
 }
 
 //// Exported enums
 
 // This enum leverages Haxe 4.x.x syntax to simplify abstract enum declarations 
 // Eventually, all enums will be converted to this simpler form
-enum abstract FmodStudioPlaybackState(Int){
+enum abstract FmodStudioPlaybackState(Int) {
     var FMOD_STUDIO_PLAYBACK_PLAYING;
     var FMOD_STUDIO_PLAYBACK_SUSTAINING;
     var FMOD_STUDIO_PLAYBACK_STOPPED;
