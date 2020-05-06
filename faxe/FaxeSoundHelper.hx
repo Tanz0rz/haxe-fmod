@@ -1,8 +1,6 @@
 package faxe;
 
-import flixel.FlxState;
 import faxe.Faxe;
-import flixel.FlxG;
 
 @:access(faxe.FaxeSoundHelperPrivate)
 class FaxeSoundHelper {

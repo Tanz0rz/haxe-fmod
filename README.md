@@ -1,8 +1,8 @@
-# FMOD for HaxeFlixel on Windows (faxe2)
+# FMOD for Haxe on Windows (faxe2)
 
 **Note: This library will likely undergo many breaking changes early on**
 
-A library to integrate HaxeFlixel games (on Haxe 4.x.x) with the FMOD audio engine for Windows deployments.
+A library to integrate Haxe 4.x.x games with the FMOD audio engine for Windows deployments.
 
 The [core C++ integration with FMOD's official API](https://github.com/uhrobots/faxe) was completed by Aaron Shea. My continuation of the project has been to update the integration, add an example project, and also make it as simple as possible to use.
 
@@ -25,7 +25,7 @@ LICENCE: [MIT](https://tanneris.me/mit-license)
 
 
 ## Features 
-- FMOD in HaxeFlixel! (Windows builds only)
+- FMOD in Haxe! (Windows builds only)
   - Haxe version 4.x.x
   - FMOD Studio/API version 2.00.08
 - FMOD Studio Live Update for real-time mixing of sounds in your game (make sure to disable auto-reconnect in FMOD Studio)
@@ -64,7 +64,7 @@ When using Live Update in FMOD Studio, turn the auto-reconnect feature off or yo
 
 First thing you need to do is get FMOD Studio API version 2.00.08. It can be found [here](https://tanneris.me/fmod-downloads) under the "FMOD Studio" dropdown. Once installed, find the `FMOD Studio API Windows` folder in the FMOD Studio API's installation directory. Take the entire `api` folder and copy it into the `lib/Windows` directory in this project. The path to the API in your local install of this library should look like this: `lib/Windows/api`.
 
-**Setup your HaxeFlixel project:**
+**Setup your Haxe project:**
 
 If you are using vscode and want your auto-complete and linter to be happy, make sure you add `<haxelib name="faxe2" />` to the "Libraries" section of your `Project.xml` file
 
@@ -82,11 +82,11 @@ If you are developing in VSCode and want auto-complete and import suggestions wh
 
 ## Local Development
 
-- Make sure it is not installed on your system `haxelib` by checking the output of `haxelib list`. If it is installed, you can uninstall it using `haxelib remove faxe2`
-- Clone down this repo
-- Point your `haxelib` at the local repo using `haxelib dev faxe2 <directory_to_the_git_clone>`
+1. Make sure `faxe2` is not installed on your system by checking the output of `haxelib list`. If it _is_ installed, you can uninstall it using `haxelib remove faxe2`
+2. Clone down this repo
+3. Point your `haxelib` at the local repo using `haxelib dev faxe2 <directory_to_the_git_clone>`
 
-This will setup the library for development by having an "installed" version of the faxe2 git repo. You can see the special `dev` status when you find `faxe2` in the output of `haxelib list`
+This will setup the git repo as an "installed" version of `faxe2` which can be imported by your projects the same way you import other libraries. You can see the special `dev` status when you find `faxe2` in the output of `haxelib list` and your Faxe imports in your Haxe game
 
 
 ## Testing This Library
@@ -99,9 +99,7 @@ This will create a `build` directory at the root of the repo. For this test exec
 
 ## Goals
 
-Long-term, I would like to make this library available for all flavors of Haxe. I am going to stick to HaxeFlixel for now until I am happy with the project, then explore how to make this a more general library.
-
-I would also like to see this support HTML5 deployments, but I have no idea how much work that is going to be. PR's here are welcome!
+I would like to see this library support HTML5 deployments, but I have no idea how much work that is going to be. PR's here are welcome!
 
 ## Contact
 

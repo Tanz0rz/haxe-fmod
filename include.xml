@@ -1,13 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <project>
-	
 	<!-- <echo value="adding deps" /> -->
 	<dependency name="lib/Windows/api/core/lib/x86/fmod.dll" if="windows HXCPP_M32"/>
 	<dependency name="lib/Windows/api/studio/lib/x86/fmodstudio.dll" if="windows HXCPP_M32" />
 	
 	<dependency name="lib/Windows/api/core/lib/x64/fmod.dll" if="windows" unless="HXCPP_M32"/>
 	<dependency name="lib/Windows/api/studio/lib/x64/fmodstudio.dll" if="windows" unless="HXCPP_M32"/>
-	
+
 	<section if="switch">
 	<!--???-->
 	</section>

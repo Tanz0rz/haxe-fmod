@@ -4,9 +4,9 @@
 	"license" : "MIT",
 	"tags": ["fmod","audio","windows"],
 	
-    "description" : "Use FMOD Studio with HaxeFlixel",
+    "description" : "Use FMOD Studio with Haxe",
     "version" : "0.2.0",
-	"releasenote" : "Cleaned up and simplified the c++ integration code. Built more functionality into the main helper class. Imrpoved Fmod Studio script.",
+	"releasenote" : "Library now supports any flavor of Haxe. Example project still in HaxeFlixel",
 	"contributors" : ["Tanz0rz"],
     "dependencies" : { }
 }

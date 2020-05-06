@@ -3,16 +3,13 @@ package faxe;
 import faxe.FaxeEventListener.FaxeEvent;
 //TODO understand why this import looks like this
 import faxe.FaxeEventListener.FaxeCallback;
-import flixel.FlxState;
 import faxe.Faxe;
-import flixel.FlxG;
 
 enum FaxeSoundHelperAction {
     NONE;
     STOP_CURRENT_SONG_AND_PLAY_TO_NEW_SONG;
 }
 
-@:access(faxe.FaxeUtilitiesFlixelPrivate)
 class FaxeSoundHelperPrivate {
 
     // Main song
@@ -22,7 +19,6 @@ class FaxeSoundHelperPrivate {
 
     // Update actions
     private var CurrentAction:FaxeSoundHelperAction = NONE;
-    private var DestinationState:FlxState;
 
     // Events
     // currently can only handle one event listener, but this will become a list soon

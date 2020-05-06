@@ -2,7 +2,6 @@ package faxe;
 
 import flixel.FlxState;
 import faxe.Faxe;
-import flixel.FlxG;
 
 @:access(faxe.FaxeUtilitiesFlixelPrivate)
 class FaxeUtilitiesFlixel {
