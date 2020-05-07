@@ -19,6 +19,7 @@ LICENCE: [MIT](https://tanneris.me/mit-license)
  - [How to Use This Library](#how-to-use-this-library)
  - [Example Project (Not completed yet)](#example-project-not-completed-yet)
  - [Local Development](#local-development)
+   - [Formatting Standards](#formatting)
  - [Testing This Library](#testing-this-library)
  - [Goals](#goals)
  - [Contact](#contact)
@@ -88,16 +89,11 @@ If you are developing in VSCode and want auto-complete and import suggestions wh
 
 This will setup the git repo as an "installed" version of `faxe2` which can be imported by your projects the same way you import other libraries. You can see the special `dev` status when you find `faxe2` in the output of `haxelib list` and your Faxe imports in your Haxe game
 
-### IDE configuration
-
 #### Formatting
 
 This repo uses [Haxe Checkstyle](https://haxecheckstyle.github.io/docs/haxe-checkstyle/home.html) for formatting of `.hx` files. Formatting configuration can be found in [hxformat.json](./hxformat.json)
 
-See the VS Code [Haxe Checkstyle plugin](https://marketplace.visualstudio.com/items?itemName=vshaxe.haxe-checkstyle). Note that format on save should be enabled for the best experience per the [VS Haxe formatting configuration](https://github.com/vshaxe/vshaxe/wiki/Formatting)
-
-
-
+For integrating formatting into VS Code, see the [Haxe Checkstyle plugin](https://marketplace.visualstudio.com/items?itemName=vshaxe.haxe-checkstyle). Note that format on save should be enabled for the best experience per the [VS Haxe formatting configuration](https://github.com/vshaxe/vshaxe/wiki/Formatting)
 
 ## Testing This Library
 
