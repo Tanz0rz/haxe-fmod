@@ -130,6 +130,10 @@ class FaxeSoundHelperPrivate {
         Faxe.fmod_stop_event_instance(soundId, true);
     }
 
+    private function ReleaseSound(soundId:String){
+        Faxe.fmod_release_event_instance(soundId);
+    }
+
     private function GetEventParameterOnSound(soundId:String, parameterName:String):Float{
         return Faxe.fmod_get_event_instance_param(soundId, parameterName);
     }

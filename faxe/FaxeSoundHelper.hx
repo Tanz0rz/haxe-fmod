@@ -26,7 +26,7 @@ class FaxeSoundHelper {
     }
    
     /**
-        Gets event parameter value from song 
+        Gets an event parameter value from the song 
         @param parameterName name of parameter on song
     **/
     public static function GetEventParameterOnSong(parameterName:String){
@@ -34,7 +34,9 @@ class FaxeSoundHelper {
     }
    
     /**
-        Sets event parameter value on a song 
+        Sets an event parameter value on the song 
+
+        Setting a parameter when the game is paused will require a manual call to Update() for FMOD to see the change
         @param parameterName name of parameter on song
         @param parameterValue value for parameter
     **/
@@ -89,7 +91,9 @@ class FaxeSoundHelper {
     /**
         Plays a sound and returns the Id to allow further interactions
 
-        Simple sound effects should be played with the PlaySoundOneShot call
+        When this sound is no longer needed, call ReleaseSound to cleanup memory
+
+        Simple sound effects should be played with PlaySoundOneShot
         @param soundName event name of sound in sound bank
         @return soundId of the new event instance
     **/
@@ -98,7 +102,7 @@ class FaxeSoundHelper {
     }
    
     /**
-        Get the parameter on a sound 
+        Gets an event parameter value from a sound 
         @param soundId Id of a currently-loaded sound
         @param parameterName name of parameter on sound
     **/
@@ -107,7 +111,9 @@ class FaxeSoundHelper {
     }
    
     /**
-        Sets the parameter on a sound 
+        Sets an event parameter value on a sound 
+
+        Setting a parameter when the game is paused will require a manual call to Update() for FMOD to see the change
         @param soundId Id of a currently-loaded sound
         @param parameterName name of parameter on sound
         @param parameterValue value for parameter
@@ -132,6 +138,14 @@ class FaxeSoundHelper {
     **/
     public static function StopSoundImmediately(soundId:String){
         FaxeSoundHelperPrivate.GetInstance().StopSoundImmediately(soundId);
+    }
+
+    /**
+        Immediately stops a sound for the provided sound Id and releases it from memory
+        @param soundId Id of a currently-loaded sound
+    **/
+    public static function ReleaseSound(soundId:String){
+        FaxeSoundHelperPrivate.GetInstance().ReleaseSound(soundId);
     }
 
     //// Utility
