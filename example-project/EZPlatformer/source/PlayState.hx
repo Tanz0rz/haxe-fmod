@@ -11,7 +11,7 @@ import flixel.group.FlxGroup;
 import flixel.text.FlxText;
 import flixel.tile.FlxTilemap;
 import flixel.util.FlxColor;
-import faxe.FaxeUpdater;
+import faxe.FaxeFlxUpdater;
 import faxe.FaxeSoundHelper;
 
 /**
@@ -31,18 +31,18 @@ class PlayState extends FlxState
 
 	override public function onFocus(){
 		super.onFocus();
-		FaxeSoundHelper.GetInstance().UnpauseSong();
+		FaxeSoundHelper.UnpauseSong();
 	}
 
 	override public function onFocusLost(){
 		super.onFocusLost();
-		FaxeSoundHelper.GetInstance().PauseSong();
+		FaxeSoundHelper.PauseSong();
 	}
 
 	override public function create():Void
 	{
-		add(new FaxeUpdater());
-		FaxeSoundHelper.GetInstance().PlaySong(Std.string(FmodSongs.MainLevel));
+		FaxeFlxUpdater.init();
+		FaxeSoundHelper.PlaySong(Std.string(FmodSongs.MainLevel));
 
 		FlxG.mouse.visible = false;
 		FlxG.cameras.bgColor = 0xffaaaaaa;
@@ -149,7 +149,7 @@ class PlayState extends FlxState
 
 		if (FlxG.keys.anyJustPressed([SPACE, UP, W]) && _player.isTouching(FlxObject.FLOOR))
 		{
-			FaxeSoundHelper.GetInstance().PlaySound(Std.string(FmodSFX.Jump));
+			FaxeSoundHelper.PlaySound(Std.string(FmodSFX.Jump));
 			_player.velocity.y = -_player.maxVelocity.y / 2;
 		}
 
@@ -185,8 +185,8 @@ class PlayState extends FlxState
 
 	function getCoin(Coin:FlxObject, Player:FlxObject):Void
 	{
-		FaxeSoundHelper.GetInstance().SetEventParameterOnSong("FadeArpIn", 1.0);
-		FaxeSoundHelper.GetInstance().PlaySound(Std.string(FmodSFX.Coin));
+		FaxeSoundHelper.SetEventParameterOnSong("FadeArpIn", 1.0);
+		FaxeSoundHelper.PlaySound(Std.string(FmodSFX.Coin));
 		Coin.kill();
 		_scoreText.text = "SCORE: " + (_coins.countDead() * 100);
 

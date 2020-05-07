@@ -4,11 +4,12 @@ import flixel.FlxBasic;
 import flixel.FlxG;
 
 /**
-Add this to every state's create() method by calling init()
+Add this to every state's create() method using add(new FaxeUpdater())
 
 It will automatically call FaxeSoundHelper.Update() in the background
 **/ 
 class FaxeFlxUpdater extends FlxBasic {
+
     public static function init() {
         FlxG.plugins.add(new FaxeFlxUpdater());
     }
