@@ -75,22 +75,26 @@ class FaxeSoundHelper {
     /**
         Plays a sound in a fire-and-forget fashion
 
-        Do not play sounds with Loop Regions with this call
-        @param songName event name of song in sound bank
+        There is no way to interact with these events once they are started
+        
+        Follows the event's Master Track rules which are set in FMOD Studio (Max Instances, Stealing, and probably more)
+        
+        @param soundName event name of sound in sound bank
         @see https://tanneris.me/FMOD-Macro-Controls
-        @see https://tanneris.me/FMOD-Loop-Region
     **/
     public static function PlaySoundOneShot(soundName:String) {
         FaxeSoundHelperPrivate.GetInstance().PlaySoundOneShot(soundName);
     }
     
     /**
-        Plays a sound and returns the Id to allow further processing
+        Plays a sound and returns the Id to allow further interactions
+
+        Simple sound effects should be played with the PlaySoundOneShot call
         @param soundName event name of sound in sound bank
         @return soundId of the new event instance
     **/
-    public static function PlaySound(soundName:String):String {
-        return FaxeSoundHelperPrivate.GetInstance().PlaySound(soundName);
+    public static function PlaySoundWithReference(soundName:String):String {
+        return FaxeSoundHelperPrivate.GetInstance().PlaySoundWithReference(soundName);
     }
    
     /**

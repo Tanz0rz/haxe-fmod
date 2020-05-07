@@ -32,18 +32,20 @@ class PlayState extends FlxState
 
 	override public function onFocus(){
 		super.onFocus();
-		FaxeSoundHelper.UnpauseSong();
+		FaxeSoundHelper.SetEventParameterOnSong("HighPass", 0);
 	}
 
 	override public function onFocusLost(){
 		super.onFocusLost();
-		FaxeSoundHelper.PauseSong();
+		FaxeSoundHelper.SetEventParameterOnSong("HighPass", 1);
+		// Update must be manually called when processing FMOD events while the game is paused
+		FaxeSoundHelper.Update();
 	}
 
 	override public function create():Void
 	{
-		FaxeUtilitiesFlixel.init();
-		FaxeSoundHelper.PlaySong(Std.string(FmodSongs.MainLevel));
+		FaxeFlxUpdater.init();
+		FaxeSoundHelper.PlaySong(FmodSongs.MainLevel);
 
 		FlxG.mouse.visible = false;
 		FlxG.cameras.bgColor = 0xffaaaaaa;
@@ -150,7 +152,7 @@ class PlayState extends FlxState
 
 		if (FlxG.keys.anyJustPressed([SPACE, UP, W]) && _player.isTouching(FlxObject.FLOOR))
 		{
-			FaxeSoundHelper.PlaySound(Std.string(FmodSFX.Jump));
+			FaxeSoundHelper.PlaySoundOneShot(FmodSFX.Jump);
 			_player.velocity.y = -_player.maxVelocity.y / 2;
 		}
 
@@ -187,7 +189,7 @@ class PlayState extends FlxState
 	function getCoin(Coin:FlxObject, Player:FlxObject):Void
 	{
 		FaxeSoundHelper.SetEventParameterOnSong("FadeArpIn", 1.0);
-		FaxeSoundHelper.PlaySound(Std.string(FmodSFX.Coin));
+		FaxeSoundHelper.PlaySoundOneShot(FmodSFX.Coin);
 		Coin.kill();
 		_scoreText.text = "SCORE: " + (_coins.countDead() * 100);
 

@@ -230,6 +230,11 @@ namespace linc
 
 			// Storing the event instance in a cache. There is no implicit cleanup of these instances.
 			loadedEventInstances[eventInstanceName] = eventInstance;
+			if (loadedEventInstances.size() > 25){
+				printf("Warn: FMOD - The number of cached sounds is now %zu. If you do not need a reference back to a sound, ", loadedEventInstances.size());
+				printf("it should be played as a one shot. When the cached sound count gets too high, sound reference corruption can occur\n");
+				// https://github.com/Tanz0rz/faxe2/issues/3
+			}
 		}
 
 		bool faxe_is_event_instance_loaded(const ::String& eventInstanceName)

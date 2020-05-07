@@ -5,10 +5,11 @@
 
 package;
 
-enum FmodSongs {
-	MainLevel;
+class FmodSongs {
+	 public static inline var MainLevel:String = "MainLevel";
 }
-enum FmodSFX {
-	Coin;
-	Jump;
+
+class FmodSFX {
+	 public static inline var Coin:String = "Coin";
+	 public static inline var Jump:String = "Jump";
 }
