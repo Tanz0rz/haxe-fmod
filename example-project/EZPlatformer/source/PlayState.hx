@@ -5,7 +5,6 @@ import FmodConstants.FmodSongs;
 import faxe.FaxeFlxUpdater;
 import faxe.FaxeSoundHelper;
 import faxe.FaxeSoundHelper;
-import faxe.FaxeUpdater;
 import faxe.FaxeUtilitiesFlixel;
 import flixel.FlxG;
 import flixel.FlxObject;
@@ -42,7 +41,7 @@ class PlayState extends FlxState {
 	}
 
 	override public function create():Void {
-		FaxeUtilitiesFlixel.init();
+		FaxeFlxUpdater.init();
 		FaxeSoundHelper.PlaySong(Std.string(FmodSongs.MainLevel));
 
 		FlxG.mouse.visible = false;
