@@ -2,6 +2,8 @@ package;
 
 import FmodConstants.FmodSFX;
 import FmodConstants.FmodSongs;
+import faxe.FaxeSoundHelper;
+import faxe.FaxeUpdater;
 import flixel.FlxG;
 import flixel.FlxObject;
 import flixel.FlxSprite;
@@ -11,15 +13,12 @@ import flixel.group.FlxGroup;
 import flixel.text.FlxText;
 import flixel.tile.FlxTilemap;
 import flixel.util.FlxColor;
-import faxe.FaxeUpdater;
-import faxe.FaxeSoundHelper;
 
 /**
  * @author Zaphod
  * Fmod additions - Tanz0rz
  */
-class PlayState extends FlxState
-{
+class PlayState extends FlxState {
 	static var _justDied:Bool = false;
 
 	var _level:FlxTilemap;
@@ -29,18 +28,17 @@ class PlayState extends FlxState
 	var _status:FlxText;
 	var _coins:FlxGroup;
 
-	override public function onFocus(){
+	override public function onFocus() {
 		super.onFocus();
 		FaxeSoundHelper.GetInstance().UnpauseSong();
 	}
 
-	override public function onFocusLost(){
+	override public function onFocusLost() {
 		super.onFocusLost();
 		FaxeSoundHelper.GetInstance().PauseSong();
 	}
 
-	override public function create():Void
-	{
+	override public function create():Void {
 		add(new FaxeUpdater());
 		FaxeSoundHelper.GetInstance().PlaySong(Std.string(FmodSongs.MainLevel));
 
@@ -125,30 +123,25 @@ class PlayState extends FlxState
 		_status = new FlxText(FlxG.width - 160 - 2, 2, 160, "Collect coins.");
 		_status.setFormat(null, 8, FlxColor.WHITE, RIGHT, NONE, FlxColor.BLACK);
 
-		if (_justDied)
-		{
+		if (_justDied) {
 			_status.text = "Aww, you died!";
 		}
 
 		add(_status);
 	}
 
-	override public function update(elapsed:Float):Void
-	{
+	override public function update(elapsed:Float):Void {
 		_player.acceleration.x = 0;
 
-		if (FlxG.keys.anyPressed([LEFT, A]))
-		{
+		if (FlxG.keys.anyPressed([LEFT, A])) {
 			_player.acceleration.x = -_player.maxVelocity.x * 4;
 		}
 
-		if (FlxG.keys.anyPressed([RIGHT, D]))
-		{
+		if (FlxG.keys.anyPressed([RIGHT, D])) {
 			_player.acceleration.x = _player.maxVelocity.x * 4;
 		}
 
-		if (FlxG.keys.anyJustPressed([SPACE, UP, W]) && _player.isTouching(FlxObject.FLOOR))
-		{
+		if (FlxG.keys.anyJustPressed([SPACE, UP, W]) && _player.isTouching(FlxObject.FLOOR)) {
 			FaxeSoundHelper.GetInstance().PlaySound(Std.string(FmodSFX.Jump));
 			_player.velocity.y = -_player.maxVelocity.y / 2;
 		}
@@ -159,8 +152,7 @@ class PlayState extends FlxState
 		FlxG.collide(_level, _player);
 		FlxG.overlap(_exit, _player, win);
 
-		if (_player.y > FlxG.height)
-		{
+		if (_player.y > FlxG.height) {
 			_justDied = true;
 			FlxG.resetState();
 		}
@@ -169,29 +161,25 @@ class PlayState extends FlxState
 	/**
 	 * Creates a new coin located on the specified tile
 	 */
-	function createCoin(X:Int, Y:Int):Void
-	{
+	function createCoin(X:Int, Y:Int):Void {
 		var coin:FlxSprite = new FlxSprite(X * 8 + 3, Y * 8 + 2);
 		coin.makeGraphic(2, 4, 0xffffff00);
 		_coins.add(coin);
 	}
 
-	function win(Exit:FlxObject, Player:FlxObject):Void
-	{
+	function win(Exit:FlxObject, Player:FlxObject):Void {
 		_status.text = "Yay, you won!";
 		_scoreText.text = "SCORE: 5000";
 		_player.kill();
-	} 
+	}
 
-	function getCoin(Coin:FlxObject, Player:FlxObject):Void
-	{
+	function getCoin(Coin:FlxObject, Player:FlxObject):Void {
 		FaxeSoundHelper.GetInstance().SetEventParameterOnSong("FadeArpIn", 1.0);
 		FaxeSoundHelper.GetInstance().PlaySound(Std.string(FmodSFX.Coin));
 		Coin.kill();
 		_scoreText.text = "SCORE: " + (_coins.countDead() * 100);
 
-		if (_coins.countLiving() == 0)
-		{
+		if (_coins.countLiving() == 0) {
 			_status.text = "Find the exit";
 			_exit.exists = true;
 		}
