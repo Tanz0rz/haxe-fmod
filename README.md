@@ -94,6 +94,10 @@ This will setup the git repo as an "installed" version of `faxe2` which can be i
 
 This repo uses [Haxe Checkstyle](https://haxecheckstyle.github.io/docs/haxe-checkstyle/home.html) for formatting of `.hx` files. Formatting configuration can be found in [hxformat.json](./hxformat.json)
 
+See the VS Code [Haxe Checkstyle plugin](https://marketplace.visualstudio.com/items?itemName=vshaxe.haxe-checkstyle). Note that format on save should be enabled for the best experience per the [VS Haxe formatting configuration](https://github.com/vshaxe/vshaxe/wiki/Formatting)
+
+
+
 
 ## Testing This Library
 
