@@ -11,5 +11,8 @@
 		"doWhile": "same",
 		"tryBody": "same",
 		"tryCatch": "same"
+	},
+	"indentation": {
+		"character": "    "
 	}
 }
