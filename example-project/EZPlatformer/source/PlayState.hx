@@ -44,7 +44,6 @@ class PlayState extends FlxState
 
 	override public function create():Void
 	{
-		FaxeFlxUpdater.init();
 		FaxeSoundHelper.PlaySong(FmodSongs.MainLevel);
 
 		FlxG.mouse.visible = false;
@@ -138,6 +137,8 @@ class PlayState extends FlxState
 
 	override public function update(elapsed:Float):Void
 	{
+		FaxeSoundHelper.Update();
+
 		_player.acceleration.x = 0;
 
 		if (FlxG.keys.anyPressed([LEFT, A]))
