@@ -1,8 +1,7 @@
 package faxe;
 
-import faxe.FaxeEventListener.FaxeEvent;
-//TODO understand why this import looks like this
-import faxe.FaxeEventListener.FaxeCallback;
+import faxe.FaxeEvents.FaxeEvent;
+import faxe.FaxeEvents.FaxeCallback;
 import faxe.Faxe;
 
 enum FaxeSoundHelperAction {

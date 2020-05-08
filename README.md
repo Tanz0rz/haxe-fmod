@@ -1,8 +1,8 @@
-# FMOD for Haxe on Windows (faxe2)
+# FMOD for Haxe on Windows
 
 **Note: This library will likely undergo many breaking changes early on**
 
-A library to integrate Haxe 4.x.x games with the FMOD audio engine for Windows deployments.
+A library to integrate the FMOD audio engine with Haxe 4.x.x games for Windows deployments.
 
 The [core C++ integration with FMOD's official API](https://github.com/uhrobots/faxe) was completed by Aaron Shea. My continuation of the project has been to update the integration, add an example project, and also make it as simple as possible to use.
 
