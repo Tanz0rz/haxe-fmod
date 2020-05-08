@@ -20,7 +20,7 @@ LICENCE: [MIT](https://tanneris.me/mit-license)
  - [Example Project](#example-project)
  - [Local Development](#local-development)
    - [Formatting Standards](#formatting)
- - [Testing This Library](#testing-this-library)
+ - [Testing This Library (currently outdated)](#testing-this-library-currently-outdated)
  - [Goals](#goals)
  - [Contact](#contact)
 
