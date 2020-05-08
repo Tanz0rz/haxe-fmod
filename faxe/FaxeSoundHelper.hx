@@ -23,7 +23,7 @@ class FaxeSoundHelper {
     }
 
     /**
-        Gets event parameter value from song
+        Gets an event parameter value from the song
         @param parameterName name of parameter on song
     **/
     public static function GetEventParameterOnSong(parameterName:String) {
@@ -31,7 +31,9 @@ class FaxeSoundHelper {
     }
 
     /**
-        Sets event parameter value on a song
+        Sets an event parameter value on the song
+
+        Setting a parameter when the game is paused will require a manual call to Update() for FMOD to see the change
         @param parameterName name of parameter on song
         @param parameterValue value for parameter
     **/
@@ -72,26 +74,32 @@ class FaxeSoundHelper {
     /**
         Plays a sound in a fire-and-forget fashion
 
-        Do not play sounds with Loop Regions with this call
-        @param songName event name of song in sound bank
+        There is no way to interact with these events once they are started
+
+        Follows the event's Master Track rules which are set in FMOD Studio (Max Instances, Stealing, and probably more)
+
+        @param soundName event name of sound in sound bank
         @see https://tanneris.me/FMOD-Macro-Controls
-        @see https://tanneris.me/FMOD-Loop-Region
     **/
     public static function PlaySoundOneShot(soundName:String) {
         FaxeSoundHelperPrivate.GetInstance().PlaySoundOneShot(soundName);
     }
 
     /**
-        Plays a sound and returns the Id to allow further processing
+        Plays a sound and returns the Id to allow further interactions
+
+        When this sound is no longer needed, call ReleaseSound to cleanup memory
+
+        Simple sound effects should be played with PlaySoundOneShot
         @param soundName event name of sound in sound bank
         @return soundId of the new event instance
     **/
-    public static function PlaySound(soundName:String):String {
-        return FaxeSoundHelperPrivate.GetInstance().PlaySound(soundName);
+    public static function PlaySoundWithReference(soundName:String):String {
+        return FaxeSoundHelperPrivate.GetInstance().PlaySoundWithReference(soundName);
     }
 
     /**
-        Get the parameter on a sound
+        Gets an event parameter value from a sound
         @param soundId Id of a currently-loaded sound
         @param parameterName name of parameter on sound
     **/
@@ -100,7 +108,9 @@ class FaxeSoundHelper {
     }
 
     /**
-        Sets the parameter on a sound
+        Sets an event parameter value on a sound
+
+        Setting a parameter when the game is paused will require a manual call to Update() for FMOD to see the change
         @param soundId Id of a currently-loaded sound
         @param parameterName name of parameter on sound
         @param parameterValue value for parameter
@@ -125,6 +135,14 @@ class FaxeSoundHelper {
     **/
     public static function StopSoundImmediately(soundId:String) {
         FaxeSoundHelperPrivate.GetInstance().StopSoundImmediately(soundId);
+    }
+
+    /**
+        Immediately stops a sound for the provided sound Id and releases it from memory
+        @param soundId Id of a currently-loaded sound
+    **/
+    public static function ReleaseSound(soundId:String) {
+        FaxeSoundHelperPrivate.GetInstance().ReleaseSound(soundId);
     }
 
     //// Utility

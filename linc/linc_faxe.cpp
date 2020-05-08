@@ -230,6 +230,13 @@ namespace linc
 
 			// Storing the event instance in a cache. There is no implicit cleanup of these instances.
 			loadedEventInstances[eventInstanceName] = eventInstance;
+			if (loadedEventInstances.size() > 25){
+				printf("Warn: FMOD - The number of cached sounds is now %zu. ", loadedEventInstances.size());
+				printf("Remember to release a sound after it is no longer needed. ");
+				printf("If you do not need a reference to a sound after playing it, create it as a one shot. ");
+				printf("When the cached sound count gets too high, sound reference corruption can occur\n");
+				// https://github.com/Tanz0rz/faxe2/issues/3
+			}
 		}
 
 		bool faxe_is_event_instance_loaded(const ::String& eventInstanceName)
@@ -285,11 +292,24 @@ namespace linc
 
 		void faxe_release_event_instance(const ::String& eventInstanceName)
 		{
-			auto found = loadedEventInstances.find(eventInstanceName);
-			if (found != loadedEventInstances.end())
+			auto existingEventInstance = loadedEventInstances.find(eventInstanceName);
+			if (existingEventInstance != loadedEventInstances.end())
 			{
+				auto result = existingEventInstance->second->stop(FMOD_STUDIO_STOP_IMMEDIATE);
+				if (result != FMOD_OK)
+				{
+					if(faxe_debug) printf("FMOD failed to stop event instance %s: %s\n", eventInstanceName.c_str(), FMOD_ErrorString(result));
+					return;
+				}
+
+				result = existingEventInstance->second->release();
+				if (result != FMOD_OK)
+				{
+					if(faxe_debug) printf("FMOD failed to release event instance %s: %s\n", eventInstanceName.c_str(), FMOD_ErrorString(result));
+					return;
+				}
+
 				loadedEventInstances.erase(eventInstanceName);
-				found->second->release();
 			}
 		}
 

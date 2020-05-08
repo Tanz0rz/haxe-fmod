@@ -11,6 +11,7 @@ test/cpp
 
 # Editor files
 /.vscode/
+/example-project/EZPlatformer/.vscode/
 
 # FMOD
 /example-project/EZPlatformer/export

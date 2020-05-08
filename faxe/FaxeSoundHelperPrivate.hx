@@ -117,7 +117,7 @@ class FaxeSoundHelperPrivate {
         Faxe.fmod_create_event_instance_one_shot('event:/SFX/${soundName}');
     }
 
-    private function PlaySound(soundName:String):String {
+    private function PlaySoundWithReference(soundName:String):String {
         var soundId = '${soundName}-${soundIdIncrementer}';
         Faxe.fmod_create_event_instance_named('event:/SFX/${soundName}', soundId);
         soundIdIncrementer++;
@@ -130,6 +130,10 @@ class FaxeSoundHelperPrivate {
 
     private function StopSoundImmediately(soundId:String) {
         Faxe.fmod_stop_event_instance(soundId, true);
+    }
+
+    private function ReleaseSound(soundId:String) {
+        Faxe.fmod_release_event_instance(soundId);
     }
 
     private function GetEventParameterOnSound(soundId:String, parameterName:String):Float {

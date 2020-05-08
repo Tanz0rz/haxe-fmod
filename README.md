@@ -17,9 +17,9 @@ LICENCE: [MIT](https://tanneris.me/mit-license)
  - [Features](#features)
  - [FMOD Studio Project Configuration](#fmod-studio-project-configuration)
  - [How to Use This Library](#how-to-use-this-library)
- - [Example Project (Not completed yet)](#example-project-not-completed-yet)
+ - [Example Project](#example-project)
  - [Local Development](#local-development)
- - [Testing This Library](#testing-this-library)
+ - [Testing This Library (currently outdated)](#testing-this-library-currently-outdated)
  - [Goals](#goals)
  - [Contact](#contact)
 
@@ -29,7 +29,8 @@ LICENCE: [MIT](https://tanneris.me/mit-license)
   - Haxe version 4.x.x
   - FMOD Studio/API version 2.00.08
 - FMOD Studio Live Update for real-time mixing of sounds in your game (make sure to disable auto-reconnect in FMOD Studio)
-- `HaxeSoundHelper` library to simplify FMOD calls and give utility functions to support cleaner state transitions
+- `FaxeSoundHelper` library to simplify FMOD calls
+- `FaxeUtilitiesFlixel` and `FaxeFlxUpdater` libraries with additional convenience methods for `Flixel` projects
 - FMOD Studio script to automatically generate a Haxe constants file (`.hx`) that can be used to reference your Music and SFX in code without using strings
 
 ## FMOD Studio Project Configuration
@@ -70,15 +71,22 @@ If you are using vscode and want your auto-complete and linter to be happy, make
 
 **Using the library in code:**
 
-The `HaxeSoundHelper` class is what you should be using most of the time. It abstracts away nearly all of the low-level details of interacting with the FMOD API. Always reference it by using `HaxeSoundHelper.GetInstance()`
+The `FaxeSoundHelper` class is what you should be using most of the time. It abstracts away nearly all of the low-level details of interacting with the FMOD API.
 
-The FMOD engine needs a constant stream of update calls to function properly. If this is not present in your game, it will seem like the engine is either buggy or simply not working at all. You can manage these update calls by calling `add(new FaxeUpdater())` in the create method of **every** state in your game.
+The FMOD engine needs a constant stream of update calls to function properly. If this is not present in your game, it will seem like the engine is either buggy or simply not working at all. Remember to call `FaxeSoundHelper.Update()` at the beginning of **every** update loop of **every** state in your game.
 
-## Example Project (Not completed yet)
+## Example Project
 
-Inside the `example-project` folder, you will find a simple game from the [HaxeFlixel flixel-demos repo](https://tanneris.me/haxe-flixel-demos) that I converted over to use FMOD. It has a multi-layer song that responds to the player collecting coins. All sound effects in this game have multiple versions that are picked randomly when triggered by the player. Explore the project and code to get a hands-on feel for how to leverage this project.
+Inside the `example-project` folder, you will find a simple game from the [HaxeFlixel flixel-demos repo](https://tanneris.me/haxe-flixel-demos) with this FMOD library added to it. It showcases the following:
+- A song with an additional layer that uses an event parameter controlled by how fast the player can collect coins.
+- A coin sound with multiple versions that are automatically randomized
+- A dynamic high-pass filter that is applied to the song when the game is paused (click off the screen to pause)
 
-If you are developing in VSCode and want auto-complete and import suggestions while looking at the example project (assuming you have this all setup), open the `EZPlatofmrer` folder with VSCode so that the example project's `Project.xml` file is at the root of your VSCode's Explorer side bar.
+The FMOD Studio project for the example game is also included.
+
+Play the game, explore the code, and open up the FMOD Studio project (try Live Update!). This will provide insight into the workflow, library calls, and features of this tool. Open the `EZPlatofmrer` folder directly with vscode to get autocomplete and function lookups as you look around the code.
+
+To play the game, run `lime test windows` in the `EZPlatformer` folder
 
 ## Local Development
 
@@ -99,7 +107,7 @@ See the VS Code [Haxe Checkstyle plugin](https://marketplace.visualstudio.com/it
 
 
 
-## Testing This Library
+## Testing This Library (currently outdated)
 
 The `standalone-tests` directory holds some code that can be used to build a simple non-game example executable that reads a bank file, plays music from it, and interacts with parameters.
 
