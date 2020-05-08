@@ -19,7 +19,6 @@ LICENCE: [MIT](https://tanneris.me/mit-license)
  - [How to Use This Library](#how-to-use-this-library)
  - [Example Project](#example-project)
  - [Local Development](#local-development)
- - [Testing This Library (currently outdated)](#testing-this-library-currently-outdated)
  - [Goals](#goals)
  - [Contact](#contact)
 
@@ -95,15 +94,6 @@ To play the game, run `lime test windows` in the `EZPlatformer` folder
 3. Point your `haxelib` at the local repo using `haxelib dev faxe2 <directory_to_the_git_clone>`
 
 This will setup the git repo as an "installed" version of `faxe2` which can be imported by your projects the same way you import other libraries. You can see the special `dev` status when you find `faxe2` in the output of `haxelib list` and your Faxe imports in your Haxe game
-
-
-## Testing This Library (currently outdated)
-
-The `standalone-tests` directory holds some code that can be used to build a simple non-game example executable that reads a bank file, plays music from it, and interacts with parameters.
-
-To compile it, `cd` into the `standalone-tests` directory and run: `haxe --cpp ../build --main MainTest.hx -p ../`
-
-This will create a `build` directory at the root of the repo. For this test executable to do anything, you will need to create a `Master.bank` and `Master.strings.bank` file using FMOD Studio 2.00.08 and place it in the `build` directory too. For further debugging, there is a boolean inside `linc/link_faxe.cpp` that can be used to get print statements to the console as it runs. Remember to recompile the example every time you change this boolean.
 
 ## Goals
 
