@@ -19,7 +19,6 @@ LICENCE: [MIT](https://tanneris.me/mit-license)
  - [How to Use This Library](#how-to-use-this-library)
  - [Example Project](#example-project)
  - [Local Development](#local-development)
-   - [Formatting Standards](#formatting)
  - [Testing This Library (currently outdated)](#testing-this-library-currently-outdated)
  - [Goals](#goals)
  - [Contact](#contact)
@@ -97,11 +96,11 @@ To play the game, run `lime test windows` in the `EZPlatformer` folder
 
 This will setup the git repo as an "installed" version of `faxe2` which can be imported by your projects the same way you import other libraries. You can see the special `dev` status when you find `faxe2` in the output of `haxelib list` and your Faxe imports in your Haxe game
 
-#### Formatting
+### Formatting
 
-This repo uses [Haxe Checkstyle](https://haxecheckstyle.github.io/docs/haxe-checkstyle/home.html) for formatting of `.hx` files. Formatting configuration can be found in [hxformat.json](./hxformat.json)
+This repo uses [Haxe Checkstyle](https://tanneris.me/Haxe-Checkstyle) to format all `.hx` files. The local configuration for this plugin can be found in [hxformat.json](./hxformat.json)
 
-For integrating formatting into VS Code, see the [Haxe Checkstyle plugin](https://marketplace.visualstudio.com/items?itemName=vshaxe.haxe-checkstyle). Note that format on save should be enabled for the best experience per the [VS Haxe formatting configuration](https://github.com/vshaxe/vshaxe/wiki/Formatting)
+For integrating this formatting tool into vscode, see the [Haxe Checkstyle plugin](https://tanneris.me/Haxe-Checkstyle-VSCode). Note that [formatOnSave](https://tanneris.me/Haxe-Checkstyle-Formatting) should be enabled for the best experience.
 
 ## Testing This Library (currently outdated)
 
