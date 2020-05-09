@@ -97,9 +97,7 @@ This will setup the git repo as an "installed" version of `faxe2` which can be i
 
 ### Formatting
 
-This repo uses [Haxe Checkstyle](https://tanneris.me/Haxe-Checkstyle) to format all `.hx` files. The local configuration for this plugin can be found in [hxformat.json](./hxformat.json)
-
-For integrating this formatting tool into vscode, see the [Haxe Checkstyle plugin](https://tanneris.me/Haxe-Checkstyle-VSCode). Note that [formatOnSave](https://tanneris.me/Haxe-Checkstyle-Formatting) should be enabled for the best experience.
+This project uses a built-in formatter to help keep code changes consistent. Please setup on-save formatting by following the top section of [this document](http://tanneris.me/Haxe-Checkstyle-Formatting)
 
 ## Goals
 
