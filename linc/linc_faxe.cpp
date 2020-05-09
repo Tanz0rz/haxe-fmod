@@ -49,12 +49,12 @@ namespace linc
 		// Callback flags
 		unsigned int primaryEventCallbackFlags;
 
+		//// FMOD System
+
 		bool faxe_debug = true;
 		void faxe_set_debug(bool onOff){
 			faxe_debug = onOff;
 		}
-
-		//// FMOD System
 
 		void faxe_init(int numChannels)
 		{

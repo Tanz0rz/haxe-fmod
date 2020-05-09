@@ -8,11 +8,11 @@ package faxe;
 #end
 extern class Faxe {
     //// FMOD System
-    @:native("linc::faxe::faxe_init")
-    public static function fmod_init(numChannels:Int = 128):Void;
-
     @:native("linc::faxe::faxe_set_debug")
     public static function fmod_set_debug(onOff:Bool):Void;
+
+    @:native("linc::faxe::faxe_init")
+    public static function fmod_init(numChannels:Int = 128):Void;
 
     @:native("linc::faxe::faxe_update")
     public static function fmod_update():Void;
@@ -74,8 +74,7 @@ extern class Faxe {
 }
 
 //// Exported enums
-// This enum leverages Haxe 4.x.x syntax to simplify abstract enum declarations
-// Eventually, all enums will be converted to this simpler form
+
 enum abstract FmodStudioPlaybackState(Int) {
     var FMOD_STUDIO_PLAYBACK_PLAYING;
     var FMOD_STUDIO_PLAYBACK_SUSTAINING;

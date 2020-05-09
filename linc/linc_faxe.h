@@ -41,16 +41,16 @@ namespace linc
 		//// FMOD System
 
 		/**
-		 * Initialization of FMOD sound system
-		 * \param[numChannels] number of channels to allocate for this sound system
-		 */
-		extern void faxe_init(int numChannels = 32);
-
-		/**
 		 * Turns on print statements for any errors happening within the FMOD integration
 		 * \param[onOff] turns debug messages on or off
 		 */
 		extern void faxe_set_debug(bool onOff);
+
+		/**
+		 * Initialization of FMOD sound system
+		 * \param[numChannels] number of channels to allocate for this sound system
+		 */
+		extern void faxe_init(int numChannels = 32);
 		
 		/**
 		 * Update the FMOD command buffer, should be called once per "tick"

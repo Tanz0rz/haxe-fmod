@@ -20,7 +20,6 @@ class FaxeSoundHelperPrivate {
     private var CurrentAction:FaxeSoundHelperAction = NONE;
 
     // Events
-    // currently can only handle one event listener, but this will become a list soon
     private var eventListeners:Array<FaxeEventListener> = new Array();
 
     // Data
@@ -154,12 +153,14 @@ class FaxeSoundHelperPrivate {
     private function Update() {
         Faxe.fmod_update();
 
+        // If transitioning songs, play the next song when the current one is stopped
         if (CurrentAction == STOP_CURRENT_SONG_AND_PLAY_TO_NEW_SONG
             && Faxe.fmod_get_event_instance_playback_state(PrimarySongEventInstanceName) == FMOD_STUDIO_PLAYBACK_STOPPED) {
             PlaySong(NextSong);
             CurrentAction = NONE;
         }
 
+        // Whenever a song stops, send out the event to any registered listeners
         if (Faxe.fmod_check_for_primary_event_instance_callback(FaxeCallback.STOPPED)) {
             for (eventListener in eventListeners) {
                 eventListener.ReceiveEvent(FaxeEvent.MUSIC_STOPPED);
