@@ -9,7 +9,6 @@ import flixel.FlxG;
     It will automatically call FaxeSoundHelper.Update() in the background
 **/
 class FaxeFlxUpdater extends FlxBasic {
-
     public static function init() {
         FlxG.plugins.add(new FaxeFlxUpdater());
     }

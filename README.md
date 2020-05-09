@@ -95,6 +95,10 @@ To play the game, run `lime test windows` in the `EZPlatformer` folder
 
 This will setup the git repo as an "installed" version of `faxe2` which can be imported by your projects the same way you import other libraries. You can see the special `dev` status when you find `faxe2` in the output of `haxelib list` and your Faxe imports in your Haxe game
 
+### Formatting
+
+This project uses a built-in formatter to help keep code changes consistent. Please setup on-save formatting by following the top section of [this document](http://tanneris.me/Haxe-Checkstyle-Formatting)
+
 ## Goals
 
 I would like to see this library support HTML5 deployments, but I have no idea how much work that is going to be. PR's here are welcome!

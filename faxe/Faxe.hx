@@ -6,21 +6,18 @@ package faxe;
 @:build(linc.Linc.touch())
 @:build(linc.Linc.xml('faxe'))
 #end
-extern class Faxe
-{
+extern class Faxe {
     //// FMOD System
-
     @:native("linc::faxe::faxe_init")
     public static function fmod_init(numChannels:Int = 128):Void;
 
     @:native("linc::faxe::faxe_set_debug")
-    public static function fmod_set_debug(onOff : Bool):Void;
+    public static function fmod_set_debug(onOff:Bool):Void;
 
     @:native("linc::faxe::faxe_update")
     public static function fmod_update():Void;
 
     //// Sound Banks
-
     @:native("linc::faxe::faxe_load_bank")
     public static function fmod_load_bank(bankFilePath:String):Void;
 
@@ -28,7 +25,6 @@ extern class Faxe
     public static function fmod_unload_bank(bankFilePath:String):Void;
 
     //// Event Descriptions
-
     @:native("linc::faxe::faxe_load_event_description")
     public static function fmod_load_event_description(eventPath:String):Void;
 
@@ -36,7 +32,6 @@ extern class Faxe
     public static function fmod_is_event_description_loaded(eventDescriptionName:String):Bool;
 
     //// Event Instances
-
     @:native("linc::faxe::faxe_create_event_instance_one_shot")
     public static function fmod_create_event_instance_one_shot(eventName:String):Void;
 
@@ -71,7 +66,6 @@ extern class Faxe
     public static function fmod_set_event_instance_param(eventInstanceName:String, paramName:String, value:Float):Void;
 
     //// Callbacks
-
     @:native("linc::faxe::faxe_add_playback_listener_to_primary_event_instance")
     public static function fmod_add_playback_listener_to_primary_event_instance(eventInstanceName:String):Void;
 
@@ -80,8 +74,7 @@ extern class Faxe
 }
 
 //// Exported enums
-
-// This enum leverages Haxe 4.x.x syntax to simplify abstract enum declarations 
+// This enum leverages Haxe 4.x.x syntax to simplify abstract enum declarations
 // Eventually, all enums will be converted to this simpler form
 enum abstract FmodStudioPlaybackState(Int) {
     var FMOD_STUDIO_PLAYBACK_PLAYING;

@@ -8,6 +8,7 @@ interface FaxeEventListener {
     public function ReceiveEvent(faxeEvent:FaxeEvent):Void;
 }
 
+// @formatter:off
 class FaxeCallback {
     public static inline var CREATED:UInt                  = 1;
     public static inline var DESTROYED:UInt                = 2;
@@ -27,3 +28,4 @@ class FaxeCallback {
     public static inline var REAL_TO_VIRTUAL:UInt          = 32768;
     public static inline var VIRTUAL_TO_REAL:UInt          = 65536;
 }
+// @formatter:on
