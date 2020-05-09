@@ -20,7 +20,6 @@ class FaxeSoundHelperPrivate {
     private var CurrentAction:FaxeSoundHelperAction = NONE;
 
     // Events
-    // currently can only handle one event listener, but this will become a list soon
     private var eventListeners:Array<FaxeEventListener> = new Array();
 
     // Data
