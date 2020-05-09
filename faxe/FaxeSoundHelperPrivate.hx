@@ -5,8 +5,6 @@ import faxe.FaxeEvents.FaxeCallback;
 import faxe.FaxeEvents.FaxeEvent;
 import faxe.FaxeEvents.FaxeEventListener;
 
-// TODO understand why this import looks like this
-
 enum FaxeSoundHelperAction {
     NONE;
     STOP_CURRENT_SONG_AND_PLAY_TO_NEW_SONG;
