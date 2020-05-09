@@ -1,8 +1,9 @@
 package faxe;
 
 import faxe.Faxe;
-import faxe.FaxeEventListener.FaxeCallback;
-import faxe.FaxeEventListener.FaxeEvent;
+import faxe.FaxeEvents.FaxeCallback;
+import faxe.FaxeEvents.FaxeEvent;
+import faxe.FaxeEvents.FaxeEventListener;
 
 // TODO understand why this import looks like this
 

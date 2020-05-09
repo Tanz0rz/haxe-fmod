@@ -1,7 +1,7 @@
 package faxe;
 
-import faxe.Faxe;
-import faxe.FaxeEventListener.FaxeEvent;
+import faxe.FaxeEvents.FaxeEvent;
+import faxe.FaxeEvents.FaxeEventListener;
 import faxe.FaxeSoundHelperPrivate;
 import flixel.FlxG;
 import flixel.FlxState;

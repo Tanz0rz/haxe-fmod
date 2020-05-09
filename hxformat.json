@@ -14,8 +14,5 @@
 	},
 	"indentation": {
 		"character": "    "
-	},
-	"excludes": [
-		"*FaxeEvents.hx"
-	]
+	}
 }
