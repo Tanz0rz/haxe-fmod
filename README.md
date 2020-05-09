@@ -101,14 +101,6 @@ This repo uses [Haxe Checkstyle](https://tanneris.me/Haxe-Checkstyle) to format 
 
 For integrating this formatting tool into vscode, see the [Haxe Checkstyle plugin](https://tanneris.me/Haxe-Checkstyle-VSCode). Note that [formatOnSave](https://tanneris.me/Haxe-Checkstyle-Formatting) should be enabled for the best experience.
 
-## Testing This Library (currently outdated)
-
-The `standalone-tests` directory holds some code that can be used to build a simple non-game example executable that reads a bank file, plays music from it, and interacts with parameters.
-
-To compile it, `cd` into the `standalone-tests` directory and run: `haxe --cpp ../build --main MainTest.hx -p ../`
-
-This will create a `build` directory at the root of the repo. For this test executable to do anything, you will need to create a `Master.bank` and `Master.strings.bank` file using FMOD Studio 2.00.08 and place it in the `build` directory too. For further debugging, there is a boolean inside `linc/link_faxe.cpp` that can be used to get print statements to the console as it runs. Remember to recompile the example every time you change this boolean.
-
 ## Goals
 
 I would like to see this library support HTML5 deployments, but I have no idea how much work that is going to be. PR's here are welcome!
