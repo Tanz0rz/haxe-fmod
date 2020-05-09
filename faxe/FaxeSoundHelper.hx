@@ -1,6 +1,7 @@
 package faxe;
 
 import faxe.Faxe;
+import faxe.FaxeEvents.FaxeEventListener;
 
 @:access(faxe.FaxeSoundHelperPrivate)
 class FaxeSoundHelper {

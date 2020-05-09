@@ -2,6 +2,7 @@ package faxe;
 
 import faxe.FaxeEvents.FaxeEvent;
 import faxe.FaxeEvents.FaxeCallback;
+import faxe.FaxeEvents.FaxeEventListener;
 import faxe.Faxe;
 
 enum FaxeSoundHelperAction {
