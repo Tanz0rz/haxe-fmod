@@ -1,23 +1,23 @@
-package faxe;
+package faxe.flixel;
 
-import faxe.FaxeEvents.FaxeEvent;
-import faxe.FaxeEvents.FaxeEventListener;
-import faxe.FaxeSoundHelperPrivate;
+import faxe.FmodEvents.FmodEvent;
+import faxe.FmodEvents.FmodEventListener;
+import faxe.FmodManagerPrivate;
 import flixel.FlxG;
 import flixel.FlxState;
 
-class FaxeUtilitiesFlixelPrivate implements FaxeEventListener {
+class FmodUtilitiesPrivate implements FmodEventListener {
     private var DestinationState:FlxState;
     private var listeningForMusicStoppedEvent:Bool;
 
-    private static var instance:FaxeUtilitiesFlixelPrivate;
+    private static var instance:FmodUtilitiesPrivate;
 
     private function new() {}
 
-    private static function GetInstance():FaxeUtilitiesFlixelPrivate {
+    private static function GetInstance():FmodUtilitiesPrivate {
         if (instance == null) {
-            instance = new FaxeUtilitiesFlixelPrivate();
-            FaxeSoundHelper.RegisterEventListener(instance);
+            instance = new FmodUtilitiesPrivate();
+            FmodManager.RegisterEventListener(instance);
         }
         return instance;
     }
@@ -25,15 +25,15 @@ class FaxeUtilitiesFlixelPrivate implements FaxeEventListener {
     private function TransitionToStateAndStopMusic(state:FlxState) {
         listeningForMusicStoppedEvent = true;
         DestinationState = state;
-        FaxeSoundHelper.StopSong();
+        FmodManager.StopSong();
     }
 
     private function TransitionToState(state:FlxState) {
         FlxG.switchState(state);
     }
 
-    public function ReceiveEvent(faxeEvent:FaxeEvent) {
-        if (listeningForMusicStoppedEvent && faxeEvent == FaxeEvent.MUSIC_STOPPED) {
+    public function ReceiveEvent(faxeEvent:FmodEvent) {
+        if (listeningForMusicStoppedEvent && faxeEvent == FmodEvent.MUSIC_STOPPED) {
             FlxG.switchState(DestinationState);
             listeningForMusicStoppedEvent = false;
         }

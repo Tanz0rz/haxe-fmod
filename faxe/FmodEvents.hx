@@ -1,15 +1,15 @@
 package faxe;
 
-enum FaxeEvent {
+enum FmodEvent {
     MUSIC_STOPPED;
 }
 
-interface FaxeEventListener {
-    public function ReceiveEvent(faxeEvent:FaxeEvent):Void;
+interface FmodEventListener {
+    public function ReceiveEvent(faxeEvent:FmodEvent):Void;
 }
 
 // @formatter:off
-class FaxeCallback {
+class FmodCallback {
     public static inline var CREATED:UInt                  = 1;
     public static inline var DESTROYED:UInt                = 2;
     public static inline var STARTING:UInt                 = 4;

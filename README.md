@@ -2,11 +2,11 @@
 
 **Note: This library will likely undergo many breaking changes early on**
 
-A library to integrate the FMOD audio engine with Haxe 4.x.x games for Windows deployments.
+A library to integrate the FMOD audio engine with Haxe 4 games for Windows deployments
 
-The [core C++ integration with FMOD's official API](https://github.com/uhrobots/faxe) was completed by Aaron Shea. My continuation of the project has been to update the integration, add an example project, and also make it as simple as possible to use.
+Primarily focuses on simplifying the FMOD Studio project workflow through the use of a well-documented [helper library](./faxe/FmodManager.hx)
 
-This library takes a lot of setup to work correctly, so please make sure to read this page carefully as you integrate FMOD into your game!
+Built on top of Aaron Shea's [C++ integration with FMOD's official API](https://github.com/uhrobots/faxe)
 
 [Download the package via Haxelib](https://tanneris.me/faxe2)
 
@@ -28,8 +28,8 @@ LICENCE: [MIT](https://tanneris.me/mit-license)
   - Haxe version 4.x.x
   - FMOD Studio/API version 2.00.08
 - FMOD Studio Live Update for real-time mixing of sounds in your game (make sure to disable auto-reconnect in FMOD Studio)
-- `FaxeSoundHelper` library to simplify FMOD calls
-- `FaxeUtilitiesFlixel` and `FaxeFlxUpdater` libraries with additional convenience methods for `Flixel` projects
+- `FmodManager` library to simplify FMOD calls
+- `FmodUtilities` and `FmodUpdater` libraries with additional convenience methods for `Flixel` projects
 - FMOD Studio script to automatically generate a Haxe constants file (`.hx`) that can be used to reference your Music and SFX in code without using strings
 
 ## FMOD Studio Project Configuration
@@ -70,9 +70,9 @@ If you are using vscode and want your auto-complete and linter to be happy, make
 
 **Using the library in code:**
 
-The `FaxeSoundHelper` class is what you should be using most of the time. It abstracts away nearly all of the low-level details of interacting with the FMOD API.
+The `FmodManager` class is what you should be using most of the time. It abstracts away nearly all of the low-level details of interacting with the FMOD API.
 
-The FMOD engine needs a constant stream of update calls to function properly. If this is not present in your game, it will seem like the engine is either buggy or simply not working at all. Remember to call `FaxeSoundHelper.Update()` at the beginning of **every** update loop of **every** state in your game.
+The FMOD engine needs a constant stream of update calls to function properly. If this is not present in your game, it will seem like the engine is either buggy or simply not working at all. Remember to call `FmodManager.Update()` at the beginning of **every** update loop of **every** state in your game.
 
 ## Example Project
 

@@ -1,10 +1,9 @@
-package faxe;
+package faxe.flixel;
 
-import faxe.Faxe;
 import flixel.FlxState;
 
-@:access(faxe.FaxeUtilitiesFlixelPrivate)
-class FaxeUtilitiesFlixel {
+@:access(faxe.flixel.FmodUtilitiesPrivate)
+class FmodUtilities {
     /** 
         Sends the "stop" command to the FMOD API and waits for the
         current song to stop before triggering a state transition
@@ -12,7 +11,7 @@ class FaxeUtilitiesFlixel {
         @see https://tanneris.me/FMOD-AHDSR
     **/
     public static function TransitionToStateAndStopMusic(state:FlxState) {
-        FaxeUtilitiesFlixelPrivate.GetInstance().TransitionToStateAndStopMusic(state);
+        FmodUtilitiesPrivate.GetInstance().TransitionToStateAndStopMusic(state);
     }
 
     /**
@@ -22,6 +21,6 @@ class FaxeUtilitiesFlixel {
         @param state the state to load
     **/
     public static function TransitionToState(state:FlxState) {
-        FaxeUtilitiesFlixelPrivate.GetInstance().TransitionToState(state);
+        FmodUtilitiesPrivate.GetInstance().TransitionToState(state);
     }
 }

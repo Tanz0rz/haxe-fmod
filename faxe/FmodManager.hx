@@ -1,27 +1,31 @@
 package faxe;
 
-import faxe.FaxeEvents.FaxeEventListener;
+import faxe.FmodEvents.FmodEventListener;
+import faxe.FmodManagerPrivate;
 
-@:access(faxe.FaxeSoundHelperPrivate)
-class FaxeSoundHelper {
+@:access(faxe.FmodManagerPrivate)
+class FmodManager {
     //// Music
 
     /**
         Plays a song from the sound bank
         @param songName event name of song in sound bank
     **/
+    @:noCompletion
     public static function PlaySong(songName:String) {
-        FaxeSoundHelperPrivate.GetInstance().PlaySong(songName);
+        FmodManagerPrivate.GetInstance().PlaySong(songName);
     }
 
     /**
+        Used to transition between two songs
+
         Sends the "stop" command to the FMOD API and waits for the
         current song to stop before playing a new song from the sound bank
         @param songName event name of song in sound bank
         @see https://tanneris.me/FMOD-AHDSR
     **/
     public static function PlaySongTransition(songName:String) {
-        FaxeSoundHelperPrivate.GetInstance().PlaySongTransition(songName);
+        FmodManagerPrivate.GetInstance().PlaySongTransition(songName);
     }
 
     /**
@@ -29,7 +33,7 @@ class FaxeSoundHelper {
         @param parameterName name of parameter on song
     **/
     public static function GetEventParameterOnSong(parameterName:String) {
-        return FaxeSoundHelperPrivate.GetInstance().GetEventParameterOnSong(parameterName);
+        return FmodManagerPrivate.GetInstance().GetEventParameterOnSong(parameterName);
     }
 
     /**
@@ -40,35 +44,35 @@ class FaxeSoundHelper {
         @param parameterValue value for parameter
     **/
     public static function SetEventParameterOnSong(parameterName:String, parameterValue:Float) {
-        FaxeSoundHelperPrivate.GetInstance().SetEventParameterOnSong(parameterName, parameterValue);
+        FmodManagerPrivate.GetInstance().SetEventParameterOnSong(parameterName, parameterValue);
     }
 
     /**
         Sends the "stop" command to the FMOD API for the current song
     **/
     public static function StopSong() {
-        FaxeSoundHelperPrivate.GetInstance().StopSong();
+        FmodManagerPrivate.GetInstance().StopSong();
     }
 
     /**
         If a song is playing, it will stop immediately
     **/
     public static function StopSongImmediately() {
-        FaxeSoundHelperPrivate.GetInstance().StopSongImmediately();
+        FmodManagerPrivate.GetInstance().StopSongImmediately();
     }
 
     /**
         If a song is playing, it will pause
     **/
     public static function PauseSong() {
-        FaxeSoundHelperPrivate.GetInstance().PauseSong();
+        FmodManagerPrivate.GetInstance().PauseSong();
     }
 
     /**
         If a song is paused, it will unpause
     **/
     public static function UnpauseSong() {
-        FaxeSoundHelperPrivate.GetInstance().UnpauseSong();
+        FmodManagerPrivate.GetInstance().UnpauseSong();
     }
 
     //// Sound effects
@@ -84,7 +88,7 @@ class FaxeSoundHelper {
         @see https://tanneris.me/FMOD-Macro-Controls
     **/
     public static function PlaySoundOneShot(soundName:String) {
-        FaxeSoundHelperPrivate.GetInstance().PlaySoundOneShot(soundName);
+        FmodManagerPrivate.GetInstance().PlaySoundOneShot(soundName);
     }
 
     /**
@@ -97,7 +101,7 @@ class FaxeSoundHelper {
         @return soundId of the new event instance
     **/
     public static function PlaySoundWithReference(soundName:String):String {
-        return FaxeSoundHelperPrivate.GetInstance().PlaySoundWithReference(soundName);
+        return FmodManagerPrivate.GetInstance().PlaySoundWithReference(soundName);
     }
 
     /**
@@ -106,7 +110,7 @@ class FaxeSoundHelper {
         @param parameterName name of parameter on sound
     **/
     public static function GetEventParameterOnSound(soundId:String, parameterName:String):Float {
-        return FaxeSoundHelperPrivate.GetInstance().GetEventParameterOnSound(soundId, parameterName);
+        return FmodManagerPrivate.GetInstance().GetEventParameterOnSound(soundId, parameterName);
     }
 
     /**
@@ -118,7 +122,7 @@ class FaxeSoundHelper {
         @param parameterValue value for parameter
     **/
     public static function SetEventParameterOnSound(soundId:String, parameterName:String, parameterValue:Float) {
-        FaxeSoundHelperPrivate.GetInstance().SetEventParameterOnSound(soundId, parameterName, parameterValue);
+        FmodManagerPrivate.GetInstance().SetEventParameterOnSound(soundId, parameterName, parameterValue);
     }
 
     /**
@@ -128,7 +132,7 @@ class FaxeSoundHelper {
         @param soundId Id of a currently-loaded sound
     **/
     public static function StopSound(soundId:String) {
-        FaxeSoundHelperPrivate.GetInstance().StopSound(soundId);
+        FmodManagerPrivate.GetInstance().StopSound(soundId);
     }
 
     /**
@@ -136,7 +140,7 @@ class FaxeSoundHelper {
         @param soundId Id of a currently-loaded sound
     **/
     public static function StopSoundImmediately(soundId:String) {
-        FaxeSoundHelperPrivate.GetInstance().StopSoundImmediately(soundId);
+        FmodManagerPrivate.GetInstance().StopSoundImmediately(soundId);
     }
 
     /**
@@ -144,19 +148,19 @@ class FaxeSoundHelper {
         @param soundId Id of a currently-loaded sound
     **/
     public static function ReleaseSound(soundId:String) {
-        FaxeSoundHelperPrivate.GetInstance().ReleaseSound(soundId);
+        FmodManagerPrivate.GetInstance().ReleaseSound(soundId);
     }
 
     //// Utility
 
     /**
-        Experimental: register any class that satisfies the FaxeEventLister interface
+        Experimental: register any class that satisfies the FmodEventLister interface
 
         Will be used to allow utility methods (like screen transition helpers) for any Haxe framework
-        @param eventListener An implementer of the FaxeEventListener interface
+        @param eventListener An implementer of the FmodEventListener interface
     **/
-    public static function RegisterEventListener(eventListener:FaxeEventListener) {
-        FaxeSoundHelperPrivate.GetInstance().RegisterEventListener(eventListener);
+    public static function RegisterEventListener(eventListener:FmodEventListener) {
+        FmodManagerPrivate.GetInstance().RegisterEventListener(eventListener);
     }
 
     //// System
@@ -167,6 +171,6 @@ class FaxeSoundHelper {
         This is managed automatically as long as add(new FaxeUpdater()) is in the create() of every state
     **/
     public static function Update() {
-        FaxeSoundHelperPrivate.GetInstance().Update();
+        FmodManagerPrivate.GetInstance().Update();
     }
 }

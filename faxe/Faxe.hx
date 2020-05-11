@@ -8,68 +8,68 @@ package faxe;
 #end
 extern class Faxe {
     //// FMOD System
-    @:native("linc::faxe::faxe_set_debug")
+    @:native("linc::faxe::fmod_set_debug")
     public static function fmod_set_debug(onOff:Bool):Void;
 
-    @:native("linc::faxe::faxe_init")
+    @:native("linc::faxe::fmod_init")
     public static function fmod_init(numChannels:Int = 128):Void;
 
-    @:native("linc::faxe::faxe_update")
+    @:native("linc::faxe::fmod_update")
     public static function fmod_update():Void;
 
     //// Sound Banks
-    @:native("linc::faxe::faxe_load_bank")
+    @:native("linc::faxe::fmod_load_bank")
     public static function fmod_load_bank(bankFilePath:String):Void;
 
-    @:native("linc::faxe::faxe_unload_bank")
+    @:native("linc::faxe::fmod_unload_bank")
     public static function fmod_unload_bank(bankFilePath:String):Void;
 
     //// Event Descriptions
-    @:native("linc::faxe::faxe_load_event_description")
+    @:native("linc::faxe::fmod_load_event_description")
     public static function fmod_load_event_description(eventPath:String):Void;
 
-    @:native("linc::faxe::faxe_is_event_description_loaded")
+    @:native("linc::faxe::fmod_is_event_description_loaded")
     public static function fmod_is_event_description_loaded(eventDescriptionName:String):Bool;
 
     //// Event Instances
-    @:native("linc::faxe::faxe_create_event_instance_one_shot")
+    @:native("linc::faxe::fmod_create_event_instance_one_shot")
     public static function fmod_create_event_instance_one_shot(eventName:String):Void;
 
-    @:native("linc::faxe::faxe_create_event_instance_named")
+    @:native("linc::faxe::fmod_create_event_instance_named")
     public static function fmod_create_event_instance_named(eventName:String, eventInstanceName:String):Void;
 
-    @:native("linc::faxe::faxe_is_event_instance_loaded")
+    @:native("linc::faxe::fmod_is_event_instance_loaded")
     public static function fmod_is_event_instance_loaded(eventName:String):Bool;
 
-    @:native("linc::faxe::faxe_play_event_instance")
+    @:native("linc::faxe::fmod_play_event_instance")
     public static function fmod_play_event_instance(eventInstanceName:String):Void;
 
-    @:native("linc::faxe::faxe_set_pause_on_event_instance")
+    @:native("linc::faxe::fmod_set_pause_on_event_instance")
     public static function fmod_set_pause_on_event_instance(eventInstanceName:String, shouldBePaused:Bool):Void;
 
-    @:native("linc::faxe::faxe_stop_event_instance")
+    @:native("linc::faxe::fmod_stop_event_instance")
     public static function fmod_stop_event_instance(eventInstanceName:String, forceStop:Bool):Void;
 
-    @:native("linc::faxe::faxe_release_event_instance")
+    @:native("linc::faxe::fmod_release_event_instance")
     public static function fmod_release_event_instance(eventInstanceName:String):Void;
 
-    @:native("linc::faxe::faxe_is_event_instance_playing")
+    @:native("linc::faxe::fmod_is_event_instance_playing")
     public static function fmod_is_event_instance_playing(eventInstanceName:String):Bool;
 
-    @:native("linc::faxe::faxe_get_event_instance_playback_state")
+    @:native("linc::faxe::fmod_get_event_instance_playback_state")
     public static function fmod_get_event_instance_playback_state(eventInstanceName:String):FmodStudioPlaybackState;
 
-    @:native("linc::faxe::faxe_get_event_instance_param")
+    @:native("linc::faxe::fmod_get_event_instance_param")
     public static function fmod_get_event_instance_param(eventInstanceName:String, paramName:String):Float;
 
-    @:native("linc::faxe::faxe_set_event_instance_param")
+    @:native("linc::faxe::fmod_set_event_instance_param")
     public static function fmod_set_event_instance_param(eventInstanceName:String, paramName:String, value:Float):Void;
 
     //// Callbacks
-    @:native("linc::faxe::faxe_add_playback_listener_to_primary_event_instance")
+    @:native("linc::faxe::fmod_add_playback_listener_to_primary_event_instance")
     public static function fmod_add_playback_listener_to_primary_event_instance(eventInstanceName:String):Void;
 
-    @:native("linc::faxe::faxe_check_for_primary_event_instance_callback")
+    @:native("linc::faxe::fmod_check_for_primary_event_instance_callback")
     public static function fmod_check_for_primary_event_instance_callback(callbackEventMask:UInt):Bool;
 }
 

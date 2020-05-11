@@ -14,8 +14,8 @@ If you are using vscode, its autocomplete can be triggered by typing in "FmodSon
 - Can be triggered using the hotkey `Ctrl+B` while FMOD Studio is in focus (you can then use `enter` to jump through the prompts quickly once the script is pointing at the right directory)
 
 ## Usage Examples:
-- Play a song: `FaxeSoundHelper.PlaySong(FmodSongs.MainSong);`
-- Play a sound effect: `FaxeSoundHelper.PlaySound(FmodSFX.CollectionCoin);`
+- Play a song: `FmodManager.PlaySong(FmodSongs.MainSong);`
+- Play a sound effect: `FmodManager.PlaySound(FmodSFX.CollectionCoin);`
 
 ## Installing the script:
 - Place the ExportHaxeConstants.js file in your FMOD Studio's "scripts" folder. This folder will be found wherever you installed FMOD Studio on your computer.

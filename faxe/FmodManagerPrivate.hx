@@ -1,37 +1,37 @@
 package faxe;
 
 import faxe.Faxe;
-import faxe.FaxeEvents.FaxeCallback;
-import faxe.FaxeEvents.FaxeEvent;
-import faxe.FaxeEvents.FaxeEventListener;
+import faxe.FmodEvents.FmodCallback;
+import faxe.FmodEvents.FmodEvent;
+import faxe.FmodEvents.FmodEventListener;
 
-enum FaxeSoundHelperAction {
+enum FmodManagerAction {
     NONE;
     STOP_CURRENT_SONG_AND_PLAY_TO_NEW_SONG;
 }
 
-class FaxeSoundHelperPrivate {
+class FmodManagerPrivate {
     // Main song
     private var CurrentSong:String;
     private var NextSong:String;
     private var PrimarySongEventInstanceName:String = "PrimarySongEventInstanceName";
 
     // Update actions
-    private var CurrentAction:FaxeSoundHelperAction = NONE;
+    private var CurrentAction:FmodManagerAction = NONE;
 
     // Events
-    private var eventListeners:Array<FaxeEventListener> = new Array();
+    private var eventListeners:Array<FmodEventListener> = new Array();
 
     // Data
     private var soundIdIncrementer:Int;
 
-    private static var instance:FaxeSoundHelperPrivate;
+    private static var instance:FmodManagerPrivate;
 
     private function new() {}
 
-    private static function GetInstance():FaxeSoundHelperPrivate {
+    private static function GetInstance():FmodManagerPrivate {
         if (instance == null) {
-            instance = new FaxeSoundHelperPrivate();
+            instance = new FmodManagerPrivate();
             Faxe.fmod_init(128);
             Faxe.fmod_load_bank("assets/fmod/Desktop/Master.bank");
             Faxe.fmod_load_bank("assets/fmod/Desktop/Master.strings.bank");
@@ -144,7 +144,7 @@ class FaxeSoundHelperPrivate {
 
     //// Utility
 
-    private function RegisterEventListener(newEventListener:FaxeEventListener) {
+    private function RegisterEventListener(newEventListener:FmodEventListener) {
         eventListeners.push(newEventListener);
     }
 
@@ -161,9 +161,9 @@ class FaxeSoundHelperPrivate {
         }
 
         // Whenever a song stops, send out the event to any registered listeners
-        if (Faxe.fmod_check_for_primary_event_instance_callback(FaxeCallback.STOPPED)) {
+        if (Faxe.fmod_check_for_primary_event_instance_callback(FmodCallback.STOPPED)) {
             for (eventListener in eventListeners) {
-                eventListener.ReceiveEvent(FaxeEvent.MUSIC_STOPPED);
+                eventListener.ReceiveEvent(FmodEvent.MUSIC_STOPPED);
             }
         }
     }
