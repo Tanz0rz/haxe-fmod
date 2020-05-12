@@ -8,15 +8,17 @@ Primarily focuses on simplifying the FMOD Studio project workflow through the us
 
 Built on top of Aaron Shea's [C++ integration with FMOD's official API](https://github.com/uhrobots/faxe)
 
-[Download the package via Haxelib](https://tanneris.me/faxe2)
-
 LICENCE: [MIT](https://tanneris.me/mit-license)
+
+Remember to follow the rules of [FMOD's license](https://tanneris.me/FMOD-License) when using this library
+
+[Download the package via Haxelib](https://tanneris.me/faxe2)
 
 ## Table of Contents
 
  - [Features](#features)
- - [FMOD Studio Project Configuration](#fmod-studio-project-configuration)
  - [How to Use This Library](#how-to-use-this-library)
+ - [FMOD Studio Project Configuration](#fmod-studio-project-configuration)
  - [Example Project](#example-project)
  - [Local Development](#local-development)
  - [Goals](#goals)
@@ -32,9 +34,43 @@ LICENCE: [MIT](https://tanneris.me/mit-license)
 - `FmodUtilities` and `FmodUpdater` libraries with additional convenience methods for `Flixel` projects
 - FMOD Studio script to automatically generate a Haxe constants file (`.hx`) that can be used to reference your Music and SFX in code without using strings
 
+## How to Use This Library
+
+Playing a song or sound effect in your game is extremely simple:
+
+```haxe
+    override public function create():Void {
+        // Plays a song in your game
+        FmodManager.PlaySong(FmodSongs.MainLevel);
+
+        // Plays a sound in your game
+        FmodManager.PlaySound(FmodSFX.PlayerJump);
+    }
+    
+    override public function update(elapsed:Float):Void {
+        // Update call required by FMOD to process commands
+        FmodManager.Update();
+    }
+```
+
+**Download the FMOD API:**
+
+To run FMOD in your game, you need get FMOD Studio API version 2.00.08. It can be found [here](https://tanneris.me/fmod-downloads) under the "FMOD Studio" dropdown. Once installed, find the `FMOD Studio API Windows` folder in the FMOD Studio API's installation directory. Take the entire `api` folder and copy it into the `lib/Windows` directory in this project. The path to the API in your local install of this library should look like this: `lib/Windows/api`.
+
+**Setup your Haxe project:**
+
+If you are using vscode and want your auto-complete and linter to be happy, make sure you add `<haxelib name="faxe2" />` to the "Libraries" section of your `Project.xml` file
+
+**Using the library in code:**
+
+The `FmodManager` class is what you should be using most of the time. It abstracts away nearly all of the low-level details of interacting with the FMOD API.
+
+The FMOD engine needs a constant stream of update calls to function properly. If this is not present in your game, it will seem like the engine is either buggy or simply not working at all. Remember to call `FmodManager.Update()` at the beginning of **every** update loop of **every** state in your game.
+
 ## FMOD Studio Project Configuration
 
 **FMOD Studio project structure**:
+
 - Songs should be placed inside a folder titled "Music" in your FMOD Studio project
 - Sound effects should be placed inside a folder titled "SFX" in your FMOD Studio project
 
@@ -52,27 +88,11 @@ From now on, your `Master.bank` and `Master.strings.bank` files should be built 
 
 **FMOD Studio Scripts:**
 
-Checkout the `fmod-scripts` folder to learn how to setup FMOD Studio to generate a Haxe constants file (`.hx`) that can be used to reference your Music and SFX in code without using strings.
+Checkout the [fmod-scripts](https://tanneris.me/haxe-fmod-scripts) folder in this repo to learn how to setup FMOD Studio to generate a Haxe constants file (`.hx`) that can be used to reference your Music and SFX in code without using strings.
 
 **FMOD Studio Live Update:**
 
 When using Live Update in FMOD Studio, turn the auto-reconnect feature off or your game will not start. Hopefully that issue can be resolved fairly easily.
-
-## How to Use This Library
-
-**Download the FMOD API first:**
-
-First thing you need to do is get FMOD Studio API version 2.00.08. It can be found [here](https://tanneris.me/fmod-downloads) under the "FMOD Studio" dropdown. Once installed, find the `FMOD Studio API Windows` folder in the FMOD Studio API's installation directory. Take the entire `api` folder and copy it into the `lib/Windows` directory in this project. The path to the API in your local install of this library should look like this: `lib/Windows/api`.
-
-**Setup your Haxe project:**
-
-If you are using vscode and want your auto-complete and linter to be happy, make sure you add `<haxelib name="faxe2" />` to the "Libraries" section of your `Project.xml` file
-
-**Using the library in code:**
-
-The `FmodManager` class is what you should be using most of the time. It abstracts away nearly all of the low-level details of interacting with the FMOD API.
-
-The FMOD engine needs a constant stream of update calls to function properly. If this is not present in your game, it will seem like the engine is either buggy or simply not working at all. Remember to call `FmodManager.Update()` at the beginning of **every** update loop of **every** state in your game.
 
 ## Example Project
 

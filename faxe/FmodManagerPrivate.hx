@@ -39,6 +39,26 @@ class FmodManagerPrivate {
         return instance;
     }
 
+    //// System
+
+    private function Update() {
+        Faxe.fmod_update();
+
+        // If transitioning songs, play the next song when the current one is stopped
+        if (CurrentAction == STOP_CURRENT_SONG_AND_PLAY_TO_NEW_SONG
+            && Faxe.fmod_get_event_instance_playback_state(PrimarySongEventInstanceName) == FMOD_STUDIO_PLAYBACK_STOPPED) {
+            PlaySong(NextSong);
+            CurrentAction = NONE;
+        }
+
+        // Whenever a song stops, send out the event to any registered listeners
+        if (Faxe.fmod_check_for_primary_event_instance_callback(FmodCallback.STOPPED)) {
+            for (eventListener in eventListeners) {
+                eventListener.ReceiveEvent(FmodEvent.MUSIC_STOPPED);
+            }
+        }
+    }
+
     //// Music
 
     private function PlaySong(songName:String) {
@@ -146,25 +166,5 @@ class FmodManagerPrivate {
 
     private function RegisterEventListener(newEventListener:FmodEventListener) {
         eventListeners.push(newEventListener);
-    }
-
-    //// System
-
-    private function Update() {
-        Faxe.fmod_update();
-
-        // If transitioning songs, play the next song when the current one is stopped
-        if (CurrentAction == STOP_CURRENT_SONG_AND_PLAY_TO_NEW_SONG
-            && Faxe.fmod_get_event_instance_playback_state(PrimarySongEventInstanceName) == FMOD_STUDIO_PLAYBACK_STOPPED) {
-            PlaySong(NextSong);
-            CurrentAction = NONE;
-        }
-
-        // Whenever a song stops, send out the event to any registered listeners
-        if (Faxe.fmod_check_for_primary_event_instance_callback(FmodCallback.STOPPED)) {
-            for (eventListener in eventListeners) {
-                eventListener.ReceiveEvent(FmodEvent.MUSIC_STOPPED);
-            }
-        }
     }
 }

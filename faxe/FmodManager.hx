@@ -5,6 +5,17 @@ import faxe.FmodManagerPrivate;
 
 @:access(faxe.FmodManagerPrivate)
 class FmodManager {
+    //// System
+
+    /**
+        A call required by the FMOD API for the update loop of the game
+
+        This is managed automatically as long as add(new FaxeUpdater()) is in the create() of every state
+    **/
+    public static function Update() {
+        FmodManagerPrivate.GetInstance().Update();
+    }
+
     //// Music
 
     /**
@@ -161,16 +172,5 @@ class FmodManager {
     **/
     public static function RegisterEventListener(eventListener:FmodEventListener) {
         FmodManagerPrivate.GetInstance().RegisterEventListener(eventListener);
-    }
-
-    //// System
-
-    /**
-        A call required by the FMOD API for the update loop of the game
-
-        This is managed automatically as long as add(new FaxeUpdater()) is in the create() of every state
-    **/
-    public static function Update() {
-        FmodManagerPrivate.GetInstance().Update();
     }
 }
