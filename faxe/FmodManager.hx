@@ -8,9 +8,7 @@ class FmodManager {
     //// System
 
     /**
-        A call required by the FMOD API for the update loop of the game
-
-        This is managed automatically as long as add(new FaxeUpdater()) is in the create() of every state
+        A call required by the FMOD API at all times. This should be in the main update loop of the game
     **/
     public static function Update() {
         FmodManagerPrivate.GetInstance().Update();
@@ -22,7 +20,6 @@ class FmodManager {
         Plays a song from the sound bank
         @param songName event name of song in sound bank
     **/
-    @:noCompletion
     public static function PlaySong(songName:String) {
         FmodManagerPrivate.GetInstance().PlaySong(songName);
     }
@@ -91,9 +88,9 @@ class FmodManager {
     /**
         Plays a sound in a fire-and-forget fashion
 
-        There is no way to interact with these events once they are started
+        There is no way to interact with these sounds once they are started
 
-        Follows the event's Master Track rules which are set in FMOD Studio (Max Instances, Stealing, and probably more)
+        Follows the Master Track rules which are set in FMOD Studio (Max Instances, Stealing, and probably more)
 
         @param soundName event name of sound in sound bank
         @see https://tanneris.me/FMOD-Macro-Controls

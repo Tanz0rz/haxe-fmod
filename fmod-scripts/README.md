@@ -6,7 +6,7 @@ It does this by placing an `FmodConstants.hx` file next to your main `.hx` file 
 
 If you are using vscode, its autocomplete can be triggered by typing in "FmodSongs." or "FmodSFX." 
 
-![Haxe Constants Demo](https://raw.githubusercontent.com/Tanz0rz/faxe2/c45b561153d632452803257da74bad2ae19a767b/HaxeConstants.gif)
+![Haxe Constants Demo](https://raw.githubusercontent.com/Tanz0rz/haxe-fmod/34baff733a24e4301b6b8457066cae870fb22570/HaxeConstants.gif)
 
 ## Features:
 - Builds `FmodConstants.hx` in the project directory of your choosing

@@ -5,8 +5,8 @@
 	"tags": ["fmod","audio","windows"],
 	
     "description" : "Use FMOD Studio with Haxe",
-    "version" : "0.2.0",
-	"releasenote" : "Library now supports any flavor of Haxe. Example project still in HaxeFlixel",
+    "version" : "0.3.0",
+	"releasenote" : "Updates to docs and libraries (released May 15th 2020)",
 	"contributors" : ["Tanz0rz"],
     "dependencies" : { }
 }
