@@ -8,6 +8,14 @@ class FmodManager {
     //// System
 
     /**
+        Enables console debug messages for the system-specific calls made to FMOD
+    **/
+    public static function EnableDebugMessages() {
+        FmodManagerPrivate.GetInstance().Update();
+    }
+
+
+    /**
         A call required by the FMOD API at all times. This should be in the main update loop of the game
     **/
     public static function Update() {

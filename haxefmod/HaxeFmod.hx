@@ -4,8 +4,8 @@ package haxefmod;
 @:keep
 @:include('linc_faxe.h')
 #if !display
-@:build(linc.Linc.touch())
-@:build(linc.Linc.xml('faxe'))
+@:build(faxe.Linc.touch())
+@:build(faxe.Linc.xml('faxe'))
 #end
 extern class HaxeFmod {
 

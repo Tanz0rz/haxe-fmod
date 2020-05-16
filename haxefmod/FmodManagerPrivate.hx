@@ -41,6 +41,10 @@ class FmodManagerPrivate {
 
     //// System
 
+    private function EnableDebugMessages() {
+        HaxeFmod.fmod_set_debug(true);
+    }
+
     private function Update() {
         HaxeFmod.fmod_update();
 

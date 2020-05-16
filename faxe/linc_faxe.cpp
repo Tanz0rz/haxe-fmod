@@ -51,7 +51,7 @@ namespace linc
 
 		//// FMOD System
 
-		bool fmod_debug = true;
+		bool fmod_debug = false;
 		void fmod_set_debug(bool onOff){
 			fmod_debug = onOff;
 		}

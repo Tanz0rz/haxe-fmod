@@ -20,7 +20,7 @@
 	<echo value="Found your FMOD API ${NATIVE_TOOLKIT_PATH}!" ifExists="${NATIVE_TOOLKIT_PATH}/api" />
 
 	<files id="haxe">
-		<compilerflag value="-I${LINC_FAXE_PATH}linc/" />
+		<compilerflag value="-I${LINC_FAXE_PATH}faxe/" />
 		<compilerflag value="-I${NATIVE_TOOLKIT_PATH}/api/core/inc/" />
 		<compilerflag value="-I${NATIVE_TOOLKIT_PATH}/api/fsbank/inc/" />
 		<compilerflag value="-I${NATIVE_TOOLKIT_PATH}/api/studio/inc/" />
@@ -30,7 +30,7 @@
 		<compilerflag value="-Wl,-rpath,$ORIGIN" if="linux" />
 		-->
 		
-		<file name="${LINC_FAXE_PATH}/linc/linc_faxe.cpp" />
+		<file name="${LINC_FAXE_PATH}/faxe/linc_faxe.cpp" />
 	</files>
 	
 	
