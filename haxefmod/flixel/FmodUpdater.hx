@@ -1,4 +1,4 @@
-package faxe.flixel;
+package haxefmod.flixel;
 
 import flixel.FlxBasic;
 import flixel.FlxG;

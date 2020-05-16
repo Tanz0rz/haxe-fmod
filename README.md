@@ -74,7 +74,7 @@ Create an `imports.hx` file at the root of your project with your FMOD imports t
 `imports.hx`:
 ```haxe
 // Fmod helper library
-import faxe.FmodManager;
+import haxefmod.FmodManager;
 // Static class containing all sound effect names
 import FmodConstants.FmodSFX;
 // Static class containing all song names
@@ -133,11 +133,7 @@ To play the game, run `lime test windows` in the `EZPlatformer` folder
 2. Clone down this repo
 3. Point your `haxelib` at the local repo using `haxelib dev faxe2 <directory_to_the_git_clone>`
 
-This will setup the git repo as an "installed" version of `faxe2` which can be imported by your projects the same way you import other libraries. You can see the special `dev` status when you find `faxe2` in the output of `haxelib list` and your Faxe imports in your Haxe game
-
-### Formatting
-
-This project uses a built-in formatter to help keep code changes consistent. Please setup on-save formatting by following the top section of [this document](http://tanneris.me/Haxe-Checkstyle-Formatting)
+This will setup the git repo as an "installed" version of `faxe2` which can be imported by your projects the same way you import other libraries. You can see the special `dev` status when you find `faxe2` in the output of `haxelib list` 
 
 ## Goals
 

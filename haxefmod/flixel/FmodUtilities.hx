@@ -1,8 +1,8 @@
-package faxe.flixel;
+package haxefmod.flixel;
 
 import flixel.FlxState;
 
-@:access(faxe.flixel.FmodUtilitiesPrivate)
+@:access(haxefmod.flixel.FmodUtilitiesPrivate)
 class FmodUtilities {
     /** 
         Sends the "stop" command to the FMOD API and waits for the

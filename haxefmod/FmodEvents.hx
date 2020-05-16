@@ -1,4 +1,4 @@
-package faxe;
+package haxefmod;
 
 enum FmodEvent {
     MUSIC_STOPPED;
@@ -8,7 +8,6 @@ interface FmodEventListener {
     public function ReceiveEvent(faxeEvent:FmodEvent):Void;
 }
 
-// @formatter:off
 class FmodCallback {
     public static inline var CREATED:UInt                  = 1;
     public static inline var DESTROYED:UInt                = 2;
@@ -28,4 +27,3 @@ class FmodCallback {
     public static inline var REAL_TO_VIRTUAL:UInt          = 32768;
     public static inline var VIRTUAL_TO_REAL:UInt          = 65536;
 }
-// @formatter:on

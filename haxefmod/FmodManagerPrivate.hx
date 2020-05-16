@@ -1,9 +1,9 @@
-package faxe;
+package haxefmod;
 
-import faxe.Faxe;
-import faxe.FmodEvents.FmodCallback;
-import faxe.FmodEvents.FmodEvent;
-import faxe.FmodEvents.FmodEventListener;
+import haxefmod.HaxeFmod;
+import haxefmod.FmodEvents.FmodCallback;
+import haxefmod.FmodEvents.FmodEvent;
+import haxefmod.FmodEvents.FmodEventListener;
 
 enum FmodManagerAction {
     NONE;
@@ -32,9 +32,9 @@ class FmodManagerPrivate {
     private static function GetInstance():FmodManagerPrivate {
         if (instance == null) {
             instance = new FmodManagerPrivate();
-            Faxe.fmod_init(128);
-            Faxe.fmod_load_bank("assets/fmod/Desktop/Master.bank");
-            Faxe.fmod_load_bank("assets/fmod/Desktop/Master.strings.bank");
+            HaxeFmod.fmod_init(128);
+            HaxeFmod.fmod_load_bank("assets/fmod/Desktop/Master.bank");
+            HaxeFmod.fmod_load_bank("assets/fmod/Desktop/Master.strings.bank");
         }
         return instance;
     }
@@ -42,17 +42,17 @@ class FmodManagerPrivate {
     //// System
 
     private function Update() {
-        Faxe.fmod_update();
+        HaxeFmod.fmod_update();
 
         // If transitioning songs, play the next song when the current one is stopped
         if (CurrentAction == STOP_CURRENT_SONG_AND_PLAY_TO_NEW_SONG
-            && Faxe.fmod_get_event_instance_playback_state(PrimarySongEventInstanceName) == FMOD_STUDIO_PLAYBACK_STOPPED) {
+            && HaxeFmod.fmod_get_event_instance_playback_state(PrimarySongEventInstanceName) == FMOD_STUDIO_PLAYBACK_STOPPED) {
             PlaySong(NextSong);
             CurrentAction = NONE;
         }
 
         // Whenever a song stops, send out the event to any registered listeners
-        if (Faxe.fmod_check_for_primary_event_instance_callback(FmodCallback.STOPPED)) {
+        if (HaxeFmod.fmod_check_for_primary_event_instance_callback(FmodCallback.STOPPED)) {
             for (eventListener in eventListeners) {
                 eventListener.ReceiveEvent(FmodEvent.MUSIC_STOPPED);
             }
@@ -64,38 +64,38 @@ class FmodManagerPrivate {
     private function PlaySong(songName:String) {
         if (songName == CurrentSong) {
             // If the song passed in is loaded, but not playing, start it again
-            if (!Faxe.fmod_is_event_instance_playing(PrimarySongEventInstanceName)) {
-                Faxe.fmod_play_event_instance(PrimarySongEventInstanceName);
+            if (!HaxeFmod.fmod_is_event_instance_playing(PrimarySongEventInstanceName)) {
+                HaxeFmod.fmod_play_event_instance(PrimarySongEventInstanceName);
             }
             return;
         }
 
         // If we are changing songs, make sure it is not playing, then release it from memory
         if (songName != CurrentSong && CurrentSong != null) {
-            if (Faxe.fmod_is_event_instance_playing(PrimarySongEventInstanceName)) {
-                Faxe.fmod_stop_event_instance(PrimarySongEventInstanceName, true);
+            if (HaxeFmod.fmod_is_event_instance_playing(PrimarySongEventInstanceName)) {
+                HaxeFmod.fmod_stop_event_instance(PrimarySongEventInstanceName, true);
             }
-            Faxe.fmod_release_event_instance(PrimarySongEventInstanceName);
+            HaxeFmod.fmod_release_event_instance(PrimarySongEventInstanceName);
         }
 
         // Create a brand new event instance of the song
-        Faxe.fmod_create_event_instance_named('event:/Music/${songName}', PrimarySongEventInstanceName);
-        Faxe.fmod_add_playback_listener_to_primary_event_instance(PrimarySongEventInstanceName);
+        HaxeFmod.fmod_create_event_instance_named('event:/Music/${songName}', PrimarySongEventInstanceName);
+        HaxeFmod.fmod_add_playback_listener_to_primary_event_instance(PrimarySongEventInstanceName);
         CurrentSong = songName;
     }
 
     private function PlaySongTransition(songName:String) {
         if (songName == CurrentSong) {
             // If the song passed in is loaded, but not playing, start it again
-            if (!Faxe.fmod_is_event_instance_playing(PrimarySongEventInstanceName)) {
-                Faxe.fmod_play_event_instance(PrimarySongEventInstanceName);
+            if (!HaxeFmod.fmod_is_event_instance_playing(PrimarySongEventInstanceName)) {
+                HaxeFmod.fmod_play_event_instance(PrimarySongEventInstanceName);
             }
             return;
         }
 
         // If we are changing songs, send a soft stop request to the event
-        if (songName != CurrentSong && CurrentSong != null && Faxe.fmod_is_event_instance_playing(PrimarySongEventInstanceName)) {
-            Faxe.fmod_stop_event_instance(PrimarySongEventInstanceName, false);
+        if (songName != CurrentSong && CurrentSong != null && HaxeFmod.fmod_is_event_instance_playing(PrimarySongEventInstanceName)) {
+            HaxeFmod.fmod_stop_event_instance(PrimarySongEventInstanceName, false);
         }
 
         CurrentAction = STOP_CURRENT_SONG_AND_PLAY_TO_NEW_SONG;
@@ -103,63 +103,63 @@ class FmodManagerPrivate {
     }
 
     private function StopSong() {
-        Faxe.fmod_stop_event_instance(PrimarySongEventInstanceName, false);
+        HaxeFmod.fmod_stop_event_instance(PrimarySongEventInstanceName, false);
     }
 
     private function StopSongImmediately() {
-        Faxe.fmod_stop_event_instance(PrimarySongEventInstanceName, true);
+        HaxeFmod.fmod_stop_event_instance(PrimarySongEventInstanceName, true);
     }
 
     private function PauseSong() {
-        Faxe.fmod_set_pause_on_event_instance(PrimarySongEventInstanceName, true);
+        HaxeFmod.fmod_set_pause_on_event_instance(PrimarySongEventInstanceName, true);
 
         // Send additional update to FMOD to avoid dependency on main game loop
-        Faxe.fmod_update();
+        HaxeFmod.fmod_update();
     }
 
     private function UnpauseSong() {
-        Faxe.fmod_set_pause_on_event_instance(PrimarySongEventInstanceName, false);
+        HaxeFmod.fmod_set_pause_on_event_instance(PrimarySongEventInstanceName, false);
     }
 
     private function GetEventParameterOnSong(parameterName:String):Float {
-        return Faxe.fmod_get_event_instance_param(PrimarySongEventInstanceName, parameterName);
+        return HaxeFmod.fmod_get_event_instance_param(PrimarySongEventInstanceName, parameterName);
     }
 
     private function SetEventParameterOnSong(parameterName:String, parameterValue:Float) {
-        Faxe.fmod_set_event_instance_param(PrimarySongEventInstanceName, parameterName, parameterValue);
+        HaxeFmod.fmod_set_event_instance_param(PrimarySongEventInstanceName, parameterName, parameterValue);
     }
 
     //// Sound effects
 
     private function PlaySoundOneShot(soundName:String) {
-        Faxe.fmod_create_event_instance_one_shot('event:/SFX/${soundName}');
+        HaxeFmod.fmod_create_event_instance_one_shot('event:/SFX/${soundName}');
     }
 
     private function PlaySoundWithReference(soundName:String):String {
         var soundId = '${soundName}-${soundIdIncrementer}';
-        Faxe.fmod_create_event_instance_named('event:/SFX/${soundName}', soundId);
+        HaxeFmod.fmod_create_event_instance_named('event:/SFX/${soundName}', soundId);
         soundIdIncrementer++;
         return soundId;
     }
 
     private function StopSound(soundId:String) {
-        Faxe.fmod_stop_event_instance(soundId, false);
+        HaxeFmod.fmod_stop_event_instance(soundId, false);
     }
 
     private function StopSoundImmediately(soundId:String) {
-        Faxe.fmod_stop_event_instance(soundId, true);
+        HaxeFmod.fmod_stop_event_instance(soundId, true);
     }
 
     private function ReleaseSound(soundId:String) {
-        Faxe.fmod_release_event_instance(soundId);
+        HaxeFmod.fmod_release_event_instance(soundId);
     }
 
     private function GetEventParameterOnSound(soundId:String, parameterName:String):Float {
-        return Faxe.fmod_get_event_instance_param(soundId, parameterName);
+        return HaxeFmod.fmod_get_event_instance_param(soundId, parameterName);
     }
 
     private function SetEventParameterOnSound(soundId:String, parameterName:String, parameterValue:Float) {
-        Faxe.fmod_set_event_instance_param(soundId, parameterName, parameterValue);
+        HaxeFmod.fmod_set_event_instance_param(soundId, parameterName, parameterValue);
     }
 
     //// Utility

@@ -1,9 +1,9 @@
-package faxe;
+package haxefmod;
 
-import faxe.FmodEvents.FmodEventListener;
-import faxe.FmodManagerPrivate;
+import haxefmod.FmodEvents.FmodEventListener;
+import haxefmod.FmodManagerPrivate;
 
-@:access(faxe.FmodManagerPrivate)
+@:access(haxefmod.FmodManagerPrivate)
 class FmodManager {
     //// System
 

@@ -1,8 +1,8 @@
-package faxe.flixel;
+package haxefmod.flixel;
 
-import faxe.FmodEvents.FmodEvent;
-import faxe.FmodEvents.FmodEventListener;
-import faxe.FmodManagerPrivate;
+import haxefmod.FmodEvents.FmodEvent;
+import haxefmod.FmodEvents.FmodEventListener;
+import haxefmod.FmodManagerPrivate;
 import flixel.FlxG;
 import flixel.FlxState;
 
