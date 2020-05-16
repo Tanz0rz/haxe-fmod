@@ -1,8 +1,5 @@
 package;
 
-import FmodConstants.FmodSFX;
-import FmodConstants.FmodSongs;
-import faxe.FmodManager;
 import flixel.FlxG;
 import flixel.FlxObject;
 import flixel.FlxSprite;

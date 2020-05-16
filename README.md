@@ -39,8 +39,6 @@ Remember to follow the rules of [FMOD's license](https://tanneris.me/FMOD-Licens
 After configuring your project to work with this library, playing a song or sound effect is extremely simple:
 
 ```haxe
-    import faxe.FmodManager;
-
     override public function create():Void {
         // Plays a song in your game
         FmodManager.PlaySong(FmodSongs.MainLevel);
@@ -71,9 +69,23 @@ If required, import the library in your project. On HaxeFlixel projects, add `<h
 
 **Use the library in code:**
 
+Create an `imports.hx` file at the root of your project with your FMOD imports to make the helpers globally available.
+
+`imports.hx`:
+```haxe
+// Fmod helper library
+import faxe.FmodManager;
+// Static class containing all sound effect names
+import FmodConstants.FmodSFX;
+// Static class containing all song names
+import FmodConstants.FmodSongs;
+```
+
 The `FmodManager` class is what you should be using most of the time. It abstracts away nearly all of the low-level details of interacting with the FMOD API.
 
-The FMOD engine needs a constant stream of update calls to function properly. If this is not present in your game, it will seem like the engine is either buggy or simply not working at all. Remember to call `FmodManager.Update()` at the beginning of **every** update loop of **every** state in your game.
+The `FmodSFX` and `FmodSongs` classes are auto-generated classes containing all event names in your FMOD studio bank file (see the [fmod-scripts](https://tanneris.me/haxe-fmod-scripts) folder in this repo)
+
+**important**: The FMOD engine needs a constant stream of update calls to function properly. If this is not present in your game, it will seem like the engine is either buggy or simply not working at all. Remember to call `FmodManager.Update()` at the beginning of **every** update loop of **every** state in your game.
 
 ## FMOD Studio Project Configuration
 
@@ -89,7 +101,7 @@ This library only supports loading a single master bank for all sounds.
 Set your FMOD Studio project to build banks to the correct location:
 
 - Create an `fmod` folder in your `assets` folder (so the path `assets/fmod/` exists in your project) 
-- Open up your FMOD Studio project and at the top of the window click Edit->Preferences, then click the "Build" tab on the window that pops up.
+- Open up your FMOD Studio project and at the top of the window, click Edit->Preferences, then click the "Build" tab on the window that pops up.
 - Under "Built banks output directory (optional)", click browse and navigate to the new `fmod` folder and select it.
 
 From now on, your `Master.bank` and `Master.strings.bank` files should be built in a folder found at `assets/fmod/Desktop` (the Desktop folder is created by FMOD Studio). 
