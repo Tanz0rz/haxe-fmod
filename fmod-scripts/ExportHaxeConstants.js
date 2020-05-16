@@ -118,7 +118,9 @@ function writeFileBody(constantsFile) {
         const path = object.getPath().replace(/(^[0-9])/g, "_$1"); // Don't allow identifier to start with a number
         if (path.split('/')[1] == "Music") {
             console.log("Path: " + path);
-            constantsFile.writeText("\t public static inline var " + path.split('/')[2] + ":String = \"" + path.split('/')[2] + "\";\r\n");
+            var finalSlashIndex = path.lastIndexOf('/');
+            var eventName = path.substring(finalSlashIndex + 1);
+            constantsFile.writeText("    public static inline var " + eventName + ":String = \"" + path + "\";\r\n");
         }
     });
     constantsFile.writeText("}\r\n\r\n");
@@ -130,7 +132,9 @@ function writeFileBody(constantsFile) {
         const path = object.getPath().replace(/(^[0-9])/g, "_$1"); // Don't allow identifier to start with a number
         if (path.split('/')[1] == "SFX") {
             console.log("Path: " + path);
-            constantsFile.writeText("\t public static inline var " + path.split('/')[2] + ":String = \"" + path.split('/')[2] + "\";\r\n");
+            var finalSlashIndex = path.lastIndexOf('/');
+            var eventName = path.substring(finalSlashIndex + 1);
+            constantsFile.writeText("    public static inline var " + eventName + ":String = \"" + path + "\";\r\n");
         }
     });
     constantsFile.writeText("}\r\n");

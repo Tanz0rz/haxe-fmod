@@ -93,17 +93,17 @@ namespace linc
 		 * Create and play an event instance in a fire-and-forget fashion
 		 * There is no way to interact with these events once they are started
 		 * Follows the Master Track rules set in the Event's settings in FMOD Studio (Max Instances, Stealing, and probably more)
-		 * \param[eventName] ::String the name of the event to play
+		 * \param[eventPath] ::String the bank path of the event
 		 */
-		extern void fmod_create_event_instance_one_shot(const ::String& eventName);
+		extern void fmod_create_event_instance_one_shot(const ::String& eventPath);
 
 		/**
 		 * Create and play an event instance and store a reference to it
 		 * Events created with this method can receive other commands via this API (like passing in parameters)
-		 * \param[eventName] ::String the event name
+		 * \param[eventPath] ::String the bank path of the event
 		 * \param[eventInstanceName] ::String the name to assign to the new event instance
 		 */
-		extern void fmod_create_event_instance_named(const ::String& eventName, const ::String& eventInstanceName);
+		extern void fmod_create_event_instance_named(const ::String& eventPath, const ::String& eventInstanceName);
 
 		/**
 		 * Check if an event instance is currently loaded

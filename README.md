@@ -22,7 +22,7 @@ Remember to follow the rules of [FMOD's license](https://tanneris.me/FMOD-Licens
  - [Example Project](#example-project)
  - [Local Development](#local-development)
  - [Goals](#goals)
- - [Contact](#contact)
+ - [Feature Requests and Contact](#feature-requests-and-contact)
 
 
 ## Features 
@@ -148,6 +148,6 @@ This will setup the git repo as an "installed" version of `haxefmod` which can b
 
 I would like to see this library support HTML5 deployments, but I have no idea how much work that is going to be. PR's here are welcome!
 
-## Contact
+## Feature Requests and Contact
 
-Please use the ["Issues" tab](https://github.com/Tanz0rz/haxe-fmod/issues) to report any problems!
+If you have any feature requests or are having issues using the library, please [open an Issue](https://tanneris.me/haxe-fmod-issues) here on Github

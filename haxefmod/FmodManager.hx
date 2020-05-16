@@ -26,10 +26,10 @@ class FmodManager {
 
     /**
         Plays a song from the sound bank
-        @param songName event name of song in sound bank
+        @param songPath bank path of the song event in the sound bank
     **/
-    public static function PlaySong(songName:String) {
-        FmodManagerPrivate.GetInstance().PlaySong(songName);
+    public static function PlaySong(songPath:String) {
+        FmodManagerPrivate.GetInstance().PlaySong(songPath);
     }
 
     /**
@@ -37,11 +37,11 @@ class FmodManager {
 
         Sends the "stop" command to the FMOD API and waits for the
         current song to stop before playing a new song from the sound bank
-        @param songName event name of song in sound bank
+        @param songPath bank path of the song event in the sound bank
         @see https://tanneris.me/FMOD-AHDSR
     **/
-    public static function PlaySongTransition(songName:String) {
-        FmodManagerPrivate.GetInstance().PlaySongTransition(songName);
+    public static function PlaySongTransition(songPath:String) {
+        FmodManagerPrivate.GetInstance().PlaySongTransition(songPath);
     }
 
     /**
@@ -100,11 +100,11 @@ class FmodManager {
 
         Follows the Master Track rules which are set in FMOD Studio (Max Instances, Stealing, and probably more)
 
-        @param soundName event name of sound in sound bank
+        @param soundPath bank path of the sound event in the sound bank
         @see https://tanneris.me/FMOD-Macro-Controls
     **/
-    public static function PlaySoundOneShot(soundName:String) {
-        FmodManagerPrivate.GetInstance().PlaySoundOneShot(soundName);
+    public static function PlaySoundOneShot(soundPath:String) {
+        FmodManagerPrivate.GetInstance().PlaySoundOneShot(soundPath);
     }
 
     /**
@@ -113,11 +113,11 @@ class FmodManager {
         When this sound is no longer needed, call ReleaseSound to cleanup memory
 
         Simple sound effects should be played with PlaySoundOneShot
-        @param soundName event name of sound in sound bank
+        @param soundPath bank path of the sound event in the sound bank
         @return soundId of the new event instance
     **/
-    public static function PlaySoundWithReference(soundName:String):String {
-        return FmodManagerPrivate.GetInstance().PlaySoundWithReference(soundName);
+    public static function PlaySoundWithReference(soundPath:String):String {
+        return FmodManagerPrivate.GetInstance().PlaySoundWithReference(soundPath);
     }
 
     /**

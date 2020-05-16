@@ -77,8 +77,8 @@ class FmodManagerPrivate {
 
     //// Music
 
-    private function PlaySong(songName:String) {
-        if (songName == CurrentSong) {
+    private function PlaySong(songPath:String) {
+        if (songPath == CurrentSong) {
             // If the song passed in is loaded, but not playing, start it again
             if (!HaxeFmod.fmod_is_event_instance_playing(PrimarySongEventInstanceName)) {
                 HaxeFmod.fmod_play_event_instance(PrimarySongEventInstanceName);
@@ -87,7 +87,7 @@ class FmodManagerPrivate {
         }
 
         // If we are changing songs, make sure it is not playing, then release it from memory
-        if (songName != CurrentSong && CurrentSong != null) {
+        if (songPath != CurrentSong && CurrentSong != null) {
             if (HaxeFmod.fmod_is_event_instance_playing(PrimarySongEventInstanceName)) {
                 HaxeFmod.fmod_stop_event_instance(PrimarySongEventInstanceName, true);
             }
@@ -95,13 +95,13 @@ class FmodManagerPrivate {
         }
 
         // Create a brand new event instance of the song
-        HaxeFmod.fmod_create_event_instance_named('event:/Music/${songName}', PrimarySongEventInstanceName);
+        HaxeFmod.fmod_create_event_instance_named(songPath, PrimarySongEventInstanceName);
         HaxeFmod.fmod_add_playback_listener_to_primary_event_instance(PrimarySongEventInstanceName);
-        CurrentSong = songName;
+        CurrentSong = songPath;
     }
 
-    private function PlaySongTransition(songName:String) {
-        if (songName == CurrentSong) {
+    private function PlaySongTransition(songPath:String) {
+        if (songPath == CurrentSong) {
             // If the song passed in is loaded, but not playing, start it again
             if (!HaxeFmod.fmod_is_event_instance_playing(PrimarySongEventInstanceName)) {
                 HaxeFmod.fmod_play_event_instance(PrimarySongEventInstanceName);
@@ -110,12 +110,12 @@ class FmodManagerPrivate {
         }
 
         // If we are changing songs, send a soft stop request to the event
-        if (songName != CurrentSong && CurrentSong != null && HaxeFmod.fmod_is_event_instance_playing(PrimarySongEventInstanceName)) {
+        if (songPath != CurrentSong && CurrentSong != null && HaxeFmod.fmod_is_event_instance_playing(PrimarySongEventInstanceName)) {
             HaxeFmod.fmod_stop_event_instance(PrimarySongEventInstanceName, false);
         }
 
         CurrentAction = STOP_CURRENT_SONG_AND_PLAY_TO_NEW_SONG;
-        NextSong = songName;
+        NextSong = songPath;
     }
 
     private function StopSong() {
@@ -147,13 +147,13 @@ class FmodManagerPrivate {
 
     //// Sound effects
 
-    private function PlaySoundOneShot(soundName:String) {
-        HaxeFmod.fmod_create_event_instance_one_shot('event:/SFX/${soundName}');
+    private function PlaySoundOneShot(soundPath:String) {
+        HaxeFmod.fmod_create_event_instance_one_shot(soundPath);
     }
 
-    private function PlaySoundWithReference(soundName:String):String {
-        var soundId = '${soundName}-${soundIdIncrementer}';
-        HaxeFmod.fmod_create_event_instance_named('event:/SFX/${soundName}', soundId);
+    private function PlaySoundWithReference(soundPath:String):String {
+        var soundId = '${soundPath}-${soundIdIncrementer}';
+        HaxeFmod.fmod_create_event_instance_named(soundPath, soundId);
         soundIdIncrementer++;
         return soundId;
     }

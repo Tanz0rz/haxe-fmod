@@ -33,13 +33,13 @@ extern class HaxeFmod {
     //// Events
 
     @:native("linc::faxe::fmod_create_event_instance_one_shot")
-    public static function fmod_create_event_instance_one_shot(eventName:String):Void;
+    public static function fmod_create_event_instance_one_shot(eventPath:String):Void;
 
     @:native("linc::faxe::fmod_create_event_instance_named")
-    public static function fmod_create_event_instance_named(eventName:String, eventInstanceName:String):Void;
+    public static function fmod_create_event_instance_named(eventPath:String, eventInstanceName:String):Void;
 
     @:native("linc::faxe::fmod_is_event_instance_loaded")
-    public static function fmod_is_event_instance_loaded(eventName:String):Bool;
+    public static function fmod_is_event_instance_loaded(eventPath:String):Bool;
 
     @:native("linc::faxe::fmod_play_event_instance")
     public static function fmod_play_event_instance(eventInstanceName:String):Void;
@@ -81,9 +81,9 @@ class HaxeFmod {
     public static function fmod_update():Void {}
     public static function fmod_load_bank(bankFilePath:String):Void {}
     public static function fmod_unload_bank(bankFilePath:String):Void {}
-    public static function fmod_create_event_instance_one_shot(eventName:String):Void {trace("Tried to play a sound effect");}
-    public static function fmod_create_event_instance_named(eventName:String, eventInstanceName:String):Void {}
-    public static function fmod_is_event_instance_loaded(eventName:String):Bool {return true;}
+    public static function fmod_create_event_instance_one_shot(eventPath:String):Void {trace("Tried to play a sound effect");}
+    public static function fmod_create_event_instance_named(eventPath:String, eventInstanceName:String):Void {}
+    public static function fmod_is_event_instance_loaded(eventPath:String):Bool {return true;}
     public static function fmod_play_event_instance(eventInstanceName:String):Void {}
     public static function fmod_set_pause_on_event_instance(eventInstanceName:String, shouldBePaused:Bool):Void {}
     public static function fmod_stop_event_instance(eventInstanceName:String, forceStop:Bool):Void {}
