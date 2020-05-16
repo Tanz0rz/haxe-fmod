@@ -87,6 +87,15 @@ The `FmodSFX` and `FmodSongs` classes are auto-generated classes containing all 
 
 **important**: The FMOD engine needs a constant stream of update calls to function properly. If this is not present in your game, it will seem like the engine is either buggy or simply not working at all. Remember to call `FmodManager.Update()` at the beginning of **every** update loop of **every** state in your game.
 
+**Global library settings:**
+
+Global settings for `haxefmod` are in a `Settings.hx` file found in the installation location of this library. The relative location of this file from the root of the library is `haxefmod/settings/Settings.hx`. Updating this library to newer versions will likely reset all global settings to their defaults.
+
+Settings available:
+```Haxe
+DebugMessages //Bool: Enables console output for internal FMOD API calls (can be helpful if things aren't working)
+```
+
 ## FMOD Studio Project Configuration
 
 **FMOD Studio project structure**:

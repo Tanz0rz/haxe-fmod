@@ -4,6 +4,7 @@ import haxefmod.HaxeFmod;
 import haxefmod.FmodEvents.FmodCallback;
 import haxefmod.FmodEvents.FmodEvent;
 import haxefmod.FmodEvents.FmodEventListener;
+import haxefmod.settings.Settings;
 
 enum FmodManagerAction {
     NONE;
@@ -25,6 +26,9 @@ class FmodManagerPrivate {
     // Data
     private var soundIdIncrementer:Int;
 
+    // Settings
+    private var settings:FmodSettings;
+
     private static var instance:FmodManagerPrivate;
 
     private function new() {}
@@ -35,6 +39,14 @@ class FmodManagerPrivate {
             HaxeFmod.fmod_init(128);
             HaxeFmod.fmod_load_bank("assets/fmod/Desktop/Master.bank");
             HaxeFmod.fmod_load_bank("assets/fmod/Desktop/Master.strings.bank");
+            instance.settings = Settings.LoadDefaultFmodSettings();
+            if (instance.settings.DebugMessages) {
+                instance.EnableDebugMessages();
+            }
+            // If the -debug flag is passed into the build, enable debug messages
+            #if debug
+            instance.EnableDebugMessages();
+            #end
         }
         return instance;
     }

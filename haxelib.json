@@ -6,7 +6,7 @@
 	
     "description" : "Use FMOD Studio with Haxe on Windows",
     "version" : "0.1.0-alpha",
-	"releasenote" : "This release features a fully-functional FMOD integration for Haxe on Windows deployments. Once this library reaches its 1.0.0 release, traditional semver standards will be followed",
+	"releasenote" : "This release features a fully-functional FMOD Studio integration for Haxe on Windows deployments. Once this library reaches its 1.0.0 release, traditional semver standards will be followed",
 	"contributors" : ["Tanz0rz"],
     "dependencies" : { }
 }
