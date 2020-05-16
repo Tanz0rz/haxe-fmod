@@ -11,7 +11,7 @@ class FmodManager {
         Enables console debug messages for the system-specific calls made to FMOD
     **/
     public static function EnableDebugMessages() {
-        FmodManagerPrivate.GetInstance().Update();
+        FmodManagerPrivate.GetInstance().EnableDebugMessages();
     }
 
 

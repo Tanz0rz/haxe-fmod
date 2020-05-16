@@ -44,7 +44,6 @@ namespace linc
 		std::map<::String, FMOD::Studio::Bank*> loadedBanks;
 		std::map<::String, FMOD::Sound*> loadedSounds;
 		std::map<::String, FMOD::Studio::EventInstance*> loadedEventInstances;
-		std::map<::String, FMOD::Studio::EventDescription*> loadedEventDescriptions;
 		
 		// Callback flags
 		unsigned int primaryEventCallbackFlags;
@@ -111,68 +110,20 @@ namespace linc
 			}
 		}
 
-		//// Event Descriptions
+		//// Events
 
-		void fmod_load_event_description(const ::String& eventPath)
+		void fmod_create_event_instance_one_shot(const ::String& eventPath)
 		{
-			if (loadedEventDescriptions.find(eventPath) != loadedEventDescriptions.end())
-			{
-				if(fmod_debug) printf("FMOD event description already loaded\n");
-				return;
-			}
-
-			FMOD::Studio::EventDescription* tempEvnDesc;
-			auto result = fmodSoundSystem->getEvent(eventPath.c_str(), &tempEvnDesc);
+			FMOD::Studio::EventDescription* eventDescription;
+			auto result = fmodSoundSystem->getEvent(eventPath.c_str(), &eventDescription);
 			if (result != FMOD_OK)
 			{
 				if(fmod_debug) printf("FMOD failed to load event description %s: %s\n", eventPath.c_str(), FMOD_ErrorString(result));
 				return;
 			}
 
-			loadedEventDescriptions[eventPath] = tempEvnDesc;
-		}
-
-		bool fmod_is_event_description_loaded(const ::String& eventDescriptionName)
-		{
-			if (loadedEventDescriptions.find(eventDescriptionName) != loadedEventDescriptions.end())
-			{
-				return true;
-			}
-			return false;
-		}
-
-		// Check cache for event description and try to load if missing
-		FMOD::Studio::EventDescription* internal_only_GetEventDescription(const ::String& eventPath) {
-			FMOD::Studio::EventDescription* eventDescription;
-			auto eventDescriptionMapEntry = loadedEventDescriptions.find(eventPath);
-			if (eventDescriptionMapEntry != loadedEventDescriptions.end()){
-				eventDescription = eventDescriptionMapEntry->second;
-			}
-			else
-			{
-				auto result = fmodSoundSystem->getEvent(eventPath.c_str(), &eventDescription);
-				if (result != FMOD_OK)
-				{
-					if(fmod_debug) printf("FMOD failed to load event description %s: %s\n", eventPath.c_str(), FMOD_ErrorString(result));
-					return NULL;
-				}
-				loadedEventDescriptions[eventPath] = eventDescription;
-			}
-			return eventDescription;
-		}
-
-		//// Event Instances
-
-		void fmod_create_event_instance_one_shot(const ::String& eventPath)
-		{
-			FMOD::Studio::EventDescription* eventDescription = internal_only_GetEventDescription(eventPath);
-			if (eventDescription == NULL){
-				if(fmod_debug) printf("FMOD did not play one shot because event description was missing\n");
-				return;
-			}
-
 			FMOD::Studio::EventInstance* tempEvnInst;
-			auto result = eventDescription->createInstance(&tempEvnInst);
+			result = eventDescription->createInstance(&tempEvnInst);
 			if (result != FMOD_OK)
 			{
 				if(fmod_debug) printf("FMOD failed to create instance of event %s: %s\n", eventPath.c_str(), FMOD_ErrorString(result));
@@ -207,13 +158,15 @@ namespace linc
 				if(fmod_debug) printf("FMOD request to create a new event instance %s with an existing instance name: %s. Destorying the old instance in preparation for the new one.\n", eventPath.c_str(), eventInstanceName.c_str());
 			}
 
-			FMOD::Studio::EventDescription* eventDescription = internal_only_GetEventDescription(eventPath);
-			if (eventDescription == NULL){
-				return;
+			FMOD::Studio::EventDescription* eventDescription;
+			auto result = fmodSoundSystem->getEvent(eventPath.c_str(), &eventDescription);
+			if (result != FMOD_OK)
+			{
+				if(fmod_debug) printf("FMOD failed to load event description %s: %s\n", eventPath.c_str(), FMOD_ErrorString(result));
 			}
 
 			FMOD::Studio::EventInstance* eventInstance;
-			auto result = eventDescription->createInstance(&eventInstance);
+			result = eventDescription->createInstance(&eventInstance);
 			if (result != FMOD_OK)
 			{
 				if(fmod_debug) printf("FMOD failed to create event instance %s: %s\n", eventPath.c_str(), FMOD_ErrorString(result));

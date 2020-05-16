@@ -87,7 +87,7 @@ namespace linc
 		 */
 		extern bool fmod_is_event_description_loaded(const ::String& eventDescriptionName);
 
-		//// Event Instances
+		//// Events
 
 		/**
 		 * Create and play an event instance in a fire-and-forget fashion
