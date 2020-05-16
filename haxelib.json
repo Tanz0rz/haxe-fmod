@@ -4,9 +4,9 @@
 	"license" : "MIT",
 	"tags": ["fmod","audio","windows"],
 	
-    "description" : "Use FMOD Studio with Haxe",
-    "version" : "0.3.0",
-	"releasenote" : "Updates to docs and libraries (released May 15th 2020)",
+    "description" : "Use FMOD Studio with Haxe on Windows",
+    "version" : "0.1.0-alpha",
+	"releasenote" : "This release features a fully-functional FMOD integration for Haxe on Windows deployments. Once this library reaches its 1.0.0 release, traditional semver standards will be followed",
 	"contributors" : ["Tanz0rz"],
     "dependencies" : { }
 }

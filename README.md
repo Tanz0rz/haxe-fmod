@@ -65,7 +65,7 @@ To run FMOD in your game, you need get FMOD Studio API version 2.00.08. It can b
 
 [Download the package via Haxelib](https://tanneris.me/haxelib)
 
-If required, import the library in your project. On HaxeFlixel projects, add `<haxelib name="faxe2" />` to the "Libraries" section of your `Project.xml` file
+If required, import the library in your project. On HaxeFlixel projects, add `<haxelib name="haxefmod" />` to the "Libraries" section of your `Project.xml` file
 
 **Use the library in code:**
 
@@ -129,11 +129,11 @@ To play the game, run `lime test windows` in the `EZPlatformer` folder
 
 ## Local Development
 
-1. Make sure `faxe2` is not installed on your system by checking the output of `haxelib list`. If it _is_ installed, you can uninstall it using `haxelib remove faxe2`
+1. Make sure `haxefmod` is not installed on your system by checking the output of `haxelib list`. If it _is_ installed, you can uninstall it using `haxelib remove haxefmod`
 2. Clone down this repo
-3. Point your `haxelib` at the local repo using `haxelib dev faxe2 <directory_to_the_git_clone>`
+3. Point your `haxelib` at the local repo using `haxelib dev haxefmod <directory_to_the_git_clone>`
 
-This will setup the git repo as an "installed" version of `faxe2` which can be imported by your projects the same way you import other libraries. You can see the special `dev` status when you find `faxe2` in the output of `haxelib list` 
+This will setup the git repo as an "installed" version of `haxefmod` which can be imported by your projects the same way you import other libraries. You can see the special `dev` status when you find `haxefmod` in the output of `haxelib list` 
 
 ## Goals
 
@@ -141,4 +141,4 @@ I would like to see this library support HTML5 deployments, but I have no idea h
 
 ## Contact
 
-Please use the ["Issues" tab](https://github.com/Tanz0rz/faxe2/issues) to report any problems!
+Please use the ["Issues" tab](https://github.com/Tanz0rz/haxe-fmod/issues) to report any problems!

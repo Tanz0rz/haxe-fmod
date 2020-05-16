@@ -34,7 +34,7 @@
 	<!-- _______________________________ Libraries ______________________________ -->
 
 	<haxelib name="flixel" />
-	<haxelib name="faxe2" />
+	<haxelib name="haxefmod" />
 	
 	<!--In case you want to use the addons package-->
 	<!--<haxelib name="flixel-addons" />-->
