@@ -23,3 +23,6 @@ test/cpp
 # Builds
 haxe-fmod.zip
 /build
+
+# Generated code
+*raw.js

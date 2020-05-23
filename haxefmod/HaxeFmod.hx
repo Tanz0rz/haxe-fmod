@@ -75,24 +75,25 @@ extern class HaxeFmod {
 }
 
 #elseif html5
-class HaxeFmod {
-    public static function fmod_set_debug(onOff:Bool):Void {}
-    public static function fmod_init(numChannels:Int = 128):Void {}
-    public static function fmod_update():Void {}
-    public static function fmod_load_bank(bankFilePath:String):Void {}
-    public static function fmod_unload_bank(bankFilePath:String):Void {}
-    public static function fmod_create_event_instance_one_shot(eventPath:String):Void {trace("Tried to play a sound effect");}
-    public static function fmod_create_event_instance_named(eventPath:String, eventInstanceName:String):Void {}
-    public static function fmod_is_event_instance_loaded(eventPath:String):Bool {return true;}
-    public static function fmod_play_event_instance(eventInstanceName:String):Void {}
-    public static function fmod_set_pause_on_event_instance(eventInstanceName:String, shouldBePaused:Bool):Void {}
-    public static function fmod_stop_event_instance(eventInstanceName:String, forceStop:Bool):Void {}
-    public static function fmod_release_event_instance(eventInstanceName:String):Void {}
-    public static function fmod_is_event_instance_playing(eventInstanceName:String):Bool {return true;}
-    public static function fmod_get_event_instance_playback_state(eventInstanceName:String):FmodStudioPlaybackState {return FMOD_STUDIO_PLAYBACK_PLAYING;}
-    public static function fmod_get_event_instance_param(eventInstanceName:String, paramName:String):Float {return 1.0;}
-    public static function fmod_set_event_instance_param(eventInstanceName:String, paramName:String, value:Float):Void {}
-    public static function fmod_add_playback_listener_to_primary_event_instance(eventInstanceName:String):Void {}
-    public static function fmod_check_for_primary_event_instance_callback(callbackEventMask:UInt):Bool {return true;}
+@:native("jaxe")
+extern class HaxeFmod {
+    public static function fmod_set_debug(onOff:Bool):Void;
+    public static function fmod_init(numChannels:Int = 128):Void;
+    public static function fmod_update():Void;
+    public static function fmod_load_bank(bankFilePath:String):Void;
+    public static function fmod_unload_bank(bankFilePath:String):Void;
+    public static function fmod_create_event_instance_one_shot(eventPath:String):Void;
+    public static function fmod_create_event_instance_named(eventPath:String, eventInstanceName:String):Void;
+    public static function fmod_is_event_instance_loaded(eventPath:String):Bool;
+    public static function fmod_play_event_instance(eventInstanceName:String):Void;
+    public static function fmod_set_pause_on_event_instance(eventInstanceName:String, shouldBePaused:Bool):Void;
+    public static function fmod_stop_event_instance(eventInstanceName:String, forceStop:Bool):Void;
+    public static function fmod_release_event_instance(eventInstanceName:String):Void;
+    public static function fmod_is_event_instance_playing(eventInstanceName:String):Bool;
+    public static function fmod_get_event_instance_playback_state(eventInstanceName:String):FmodStudioPlaybackState;
+    public static function fmod_get_event_instance_param(eventInstanceName:String, paramName:String):Float;
+    public static function fmod_set_event_instance_param(eventInstanceName:String, paramName:String, value:Float):Void;
+    public static function fmod_add_playback_listener_to_primary_event_instance(eventInstanceName:String):Void;
+    public static function fmod_check_for_primary_event_instance_callback(callbackEventMask:UInt):Bool;
 }
 #end
