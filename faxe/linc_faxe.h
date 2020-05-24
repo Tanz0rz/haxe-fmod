@@ -47,6 +47,11 @@ namespace linc
 		extern void fmod_set_debug(bool onOff);
 
 		/**
+		 * Only needed for the html5 API. Will always return true here
+		 */
+		extern bool fmod_is_initialized();
+
+		/**
 		 * Initialization of FMOD sound system
 		 * \param[numChannels] number of channels to allocate for this sound system
 		 */

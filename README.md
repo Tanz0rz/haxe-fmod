@@ -146,7 +146,7 @@ This will setup the git repo as an "installed" version of `haxefmod` which can b
 
 ## Goals
 
-I would like to see this library support HTML5 deployments, but I have no idea how much work that is going to be. PR's here are welcome!
+The work to support HTML5 deployments is underway! A basic use of the system is functional, but there is still much work to do.
 
 ## Feature Requests and Contact
 

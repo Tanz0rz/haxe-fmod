@@ -14,6 +14,20 @@ class FmodManager {
         FmodManagerPrivate.GetInstance().EnableDebugMessages();
     }
 
+    /**
+        Explicitly starts the FMOD audio engine (only required on html5)
+    **/
+    public static function Initialize() {
+        FmodManagerPrivate.GetInstance();
+    }
+
+
+    /**
+        Returns true if the FMOD audio engine is initialized
+    **/
+    public static function IsInitialized():Bool {
+        return FmodManagerPrivate.GetInstance().IsInitialized();
+    }
 
     /**
         A call required by the FMOD API at all times. This should be in the main update loop of the game

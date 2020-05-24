@@ -57,6 +57,10 @@ class FmodManagerPrivate {
         HaxeFmod.fmod_set_debug(true);
     }
 
+    private function IsInitialized():Bool {
+        return HaxeFmod.fmod_is_initialized();
+    }
+
     private function Update() {
         HaxeFmod.fmod_update();
 

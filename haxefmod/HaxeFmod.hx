@@ -16,6 +16,9 @@ extern class HaxeFmod {
     @:native("linc::faxe::fmod_set_debug")
     public static function fmod_set_debug(onOff:Bool):Void;
 
+    @:native("linc::faxe::fmod_is_initialized")
+    public static function fmod_is_initialized():Bool;
+
     @:native("linc::faxe::fmod_init")
     public static function fmod_init(numChannels:Int = 128):Void;
 
@@ -78,6 +81,7 @@ extern class HaxeFmod {
 @:native("jaxe")
 extern class HaxeFmod {
     public static function fmod_set_debug(onOff:Bool):Void;
+    public static function fmod_is_initialized():Bool;
     public static function fmod_init(numChannels:Int = 128):Void;
     public static function fmod_update():Void;
     public static function fmod_load_bank(bankFilePath:String):Void;

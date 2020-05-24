@@ -54,6 +54,10 @@ namespace linc
 		void fmod_set_debug(bool onOff){
 			fmod_debug = onOff;
 		}
+		
+		bool fmod_is_initialized() {
+			return true;
+		}
 
 		void fmod_init(int numChannels)
 		{
