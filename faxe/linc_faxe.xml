@@ -22,7 +22,6 @@
 	<files id="haxe">
 		<compilerflag value="-I${LINC_FAXE_PATH}faxe/" />
 		<compilerflag value="-I${NATIVE_TOOLKIT_PATH}/api/core/inc/" />
-		<compilerflag value="-I${NATIVE_TOOLKIT_PATH}/api/fsbank/inc/" />
 		<compilerflag value="-I${NATIVE_TOOLKIT_PATH}/api/studio/inc/" />
 		
 		<!-- Additional linux compiler flags

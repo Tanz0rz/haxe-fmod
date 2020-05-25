@@ -8,7 +8,7 @@
 	<dependency name="lib/Windows/api/core/lib/x64/fmod.dll" if="windows" unless="HXCPP_M32"/>
 	<dependency name="lib/Windows/api/studio/lib/x64/fmodstudio.dll" if="windows" unless="HXCPP_M32"/>
 
-	<dependency path="lib/html5/api/studio/lib/wasm/fmodstudio.js" if="html5"/>
-	<assets path="lib/html5/api/studio/lib/wasm/fmodstudio.wasm" rename="lib/fmodstudio.wasm" if="html5"/>
+	<dependency path="lib/html5/fmodstudio.js" if="html5"/>
+	<assets path="lib/html5/fmodstudio.wasm" rename="lib/fmodstudio.wasm" if="html5"/>
 	<dependency path="jaxe/jaxe.js" if="html5"/>
 </project>

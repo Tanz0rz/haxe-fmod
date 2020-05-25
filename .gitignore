@@ -1,8 +1,3 @@
-# FMOD library directories
-lib/api/*
-lib/bin/*
-lib/doc/*
-
 # Editor files
 /.vscode/
 /example-project/EZPlatformer/.vscode/

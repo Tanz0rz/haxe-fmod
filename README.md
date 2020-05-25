@@ -58,18 +58,6 @@ After configuring your project to work with this library, playing a song or soun
 
 This will be the tool you use to manage all audio for your game. Download FMOD Studio version 2.00.08 [here](https://tanneris.me/fmod-downloads). Once installed, follow the [FMOD Studio Project Configuration](#fmod-studio-project-configuration) section before moving on.
 
-**Download the FMOD API:**
-
-To run FMOD in your game, you need get FMOD Studio API version 2.00.08. You will have to download the Windows integration and HTML5 integration separately. The Windows API will be installed and the HTML5 API will come in a zip. They can both be found [here](https://tanneris.me/fmod-downloads) under the "FMOD Studio" dropdown. 
-
-Windows:
-
-Once installed, find the `FMOD Studio API Windows` folder in the FMOD Studio API's installation directory. Take the entire `api` folder and copy it into the `lib/Windows` directory of the `haxefmod` library. If you installed this library using `haxelib`, you can find the location of the library on your computer by running `haxelib config`. Once the `api` folder is copied into the `haxefmod` project, the path to the API folder should look like this: `haxefmod/lib/Windows/api`.
-
-HTML5:
-
-The HTML5 API will come in the form of a zip folder. Unzip it and move the `api` folder into `haxefmod/lib/html5` similarly to the process of installing the Windows API.
-
 **Add the library your Haxe project:**
 
 [Download the package via Haxelib](https://tanneris.me/haxelib)
@@ -107,7 +95,7 @@ DebugMessages //Bool: Enables console output for internal FMOD API calls (can be
 
 ## HTML5 Builds
 
-For HTML5 builds to work, a dedicated scene must be run before the game starts to give the FMOD engine a chance to fully load. See the [EZPlatformer example project](./example-project/EZPlatformer/source) for a demonstration of how to handle this. The `Main.hx` file loads the startup scene, waits for FMOD to initialize, then starts the game.
+For HTML5 builds to work, a dedicated scene must be run before the game starts to give the FMOD engine a chance to fully load. See the [EZPlatformer example project](./example-project/EZPlatformer/source) for a demonstration of how to handle this. The `Main.hx` file loads the startup scene, the startup scene initializes FMOD and waits for it to report back as initialized, then the game is started.
 
 ## FMOD Studio Project Configuration
 
