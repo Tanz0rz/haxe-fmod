@@ -36,19 +36,21 @@ class FmodManagerPrivate {
     private static function GetInstance():FmodManagerPrivate {
         if (instance == null) {
             instance = new FmodManagerPrivate();
-            HaxeFmod.fmod_init(128);
-            // For html5 deployments, the fmod system must be fully (asynchronously) loaded before loading the banks
-            #if windows
-            HaxeFmod.fmod_load_bank("assets/fmod/Desktop/Master.bank");
-            HaxeFmod.fmod_load_bank("assets/fmod/Desktop/Master.strings.bank");
-            #end
+            
             instance.settings = Settings.LoadDefaultFmodSettings();
             if (instance.settings.DebugMessages) {
-                instance.EnableDebugMessages();
+                HaxeFmod.fmod_set_debug(true);
             }
             // If the -debug flag is passed into the build, enable debug messages
             #if debug
-            instance.EnableDebugMessages();
+            HaxeFmod.fmod_set_debug(true)
+            #end
+
+            HaxeFmod.fmod_init(128);
+            // For html5 deployments, the banks must be loaded from inside the javascript fmod_init() call
+            #if windows
+            HaxeFmod.fmod_load_bank("assets/fmod/Desktop/Master.bank");
+            HaxeFmod.fmod_load_bank("assets/fmod/Desktop/Master.strings.bank");
             #end
         }
         return instance;

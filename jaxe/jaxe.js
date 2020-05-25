@@ -1,5 +1,5 @@
 /**
-* Jaxe - FMOD bindings for Haxe
+* Jaxe - Javascript FMOD bindings for Haxe
 *
 * The MIT License (MIT)
 *
@@ -39,17 +39,19 @@ class jaxe {
 	static FmodIsInitialized = false;      
 	// Cache of any named event instances
 	static loadedEventInstances = {};
-
 	// Callback flags
 	static primaryEventCallbackFlags = 0x00000000;
+	// Debug flag
+	static fmod_debug = false;
 
 	static fmod_set_debug(onOff){
-		console.log('fmod_set_debug');
+		jaxe.fmod_debug = onOff;
 	}
 	static fmod_is_initialized() {
 		return jaxe.FmodIsInitialized;
 	}
 	static fmod_init(numChannels){ 
+		if (jaxe.fmod_debug) console.log("Initializing HaxeFmod");
 		jaxe.FMOD['preRun'] = jaxe.preRun;                             // Will be called before FMOD runs, but after the Emscripten runtime has initialized
 		jaxe.FMOD['onRuntimeInitialized'] = jaxe.onRuntimeInitialized; // Called when the Emscripten runtime has initialized
 		jaxe.FMOD['TOTAL_MEMORY'] = 64*1024*1024;                      // Allocates an arbitrarily large amount of memory for the FMOD audio engine
@@ -61,7 +63,7 @@ class jaxe {
 		jaxe.CHECK_RESULT(result, 'update() failed');
 	}
 	static fmod_load_bank(bankFilePath){
-		console.log('fmod_load_bank');
+		if (jaxe.fmod_debug) console.log('loading bank: ' + bankFilePath);
 		
 		var result;
 		var outval = {};
@@ -70,15 +72,14 @@ class jaxe {
 		jaxe.loadedBanks[bankFilePath] = outval.val;
 	}
 	static fmod_unload_bank(bankFilePath){
-		console.log('fmod_unload_bank');
+		if (jaxe.fmod_debug) console.log('unloading bank: ' + bankFilePath);
 		var result;
 		result = jaxe.loadedBanks[bankFilePath].unload();
 		jaxe.CHECK_RESULT(result, 'unload() call failed for ' + jaxe.loadedBanks[bankFilePath]);
 		jaxe.loadedBanks[bankFilePath] = undefined;
 	}
 	static fmod_create_event_instance_one_shot(eventPath){
-
-		console.log('fmod_create_event_instance_one_shot');
+		if (jaxe.fmod_debug) console.log('Creating one shot of: ' + eventPath);
 		
 		var result = {};
 
@@ -98,37 +99,34 @@ class jaxe {
 
 	}
 	static fmod_create_event_instance_named(eventPath, eventInstanceName){
-		console.log('Creating event instance for ' + eventPath);
+		if (jaxe.fmod_debug) console.log('Creating an instnce of ' + eventPath + 'with the name: ' + eventInstanceName);
 
 		if (jaxe.loadedEventInstances[eventInstanceName]) {
-			console.log('Event instance is already loaded: ' + eventPath);
+			if (jaxe.fmod_debug) console.log('Event instance is already loaded: ' + eventInstanceName + '. Overwriting it with ' + eventPath);
 		}
 
 		var description = {};
 		var result = {};
-		console.log('Getting event description for ' + eventPath);
 		result = jaxe.gSystem.getEvent(eventPath, description);
 		jaxe.CHECK_RESULT(result, 'getEvent() call failed for ' + eventPath);
 
 		var instance = {};
-		console.log('Creating event instance for ' + eventPath);
 		result = description.val.createInstance(instance);
 		jaxe.CHECK_RESULT(result, 'createInstance() call failed for ' + eventPath);
 
-		console.log('Starting event instance ' + eventPath);
 		result = instance.val.start();
 		jaxe.CHECK_RESULT(result, 'start() call failed for ' + eventPath);
 
 		jaxe.loadedEventInstances[eventInstanceName] = instance.val;
 	}
 	static fmod_is_event_instance_loaded(eventInstanceName){
-		console.log('fmod_is_event_instance_loaded');
+		if (jaxe.fmod_debug) console.log('Checking if ' + eventInstanceName + ' is loaded');
 		return !!jaxe.loadedEventInstances[eventInstanceName]
 	}
 	static fmod_play_event_instance(eventInstanceName){
-		console.log('fmod_play_event_instance');
+		if (jaxe.fmod_debug) console.log('Playing event instance: ' + eventInstanceName);
 		if (!jaxe.loadedEventInstances[eventInstanceName]) {
-			console.log("Event instance " + eventInstanceName + "is not loaded!");
+			console.log("FMOD Error: Event instance " + eventInstanceName + "is not loaded!");
 			return;
 		}
 		var result;
@@ -136,9 +134,9 @@ class jaxe {
 		jaxe.CHECK_RESULT(result, 'start() call failed for ' + jaxe.loadedEventInstances[eventInstanceName]);
 	}
 	static fmod_set_pause_on_event_instance(eventInstanceName, shouldBePaused){
-		console.log('fmod_set_pause_on_event_instance');
+		if (jaxe.fmod_debug) console.log('Setting pause status of ' + eventInstanceName + ' to ' + shouldBePaused);
 		if (!jaxe.loadedEventInstances[eventInstanceName]) {
-			console.log("Event instance " + eventInstanceName + "is not loaded!");
+			console.log("FMOD Error: Event instance " + eventInstanceName + "is not loaded!");
 			return;
 		}
 		var result;
@@ -146,9 +144,9 @@ class jaxe {
 		jaxe.CHECK_RESULT(result, 'setPaused() call failed for ' + jaxe.loadedEventInstances[eventInstanceName]);
 	}
 	static fmod_stop_event_instance(eventInstanceName, forceStop){
-		console.log('fmod_stop_event_instance');
+		if (jaxe.fmod_debug) console.log('Stopping event instance: ' + eventInstanceName + '. Force stop: ' + forceStop);
 		if (!jaxe.loadedEventInstances[eventInstanceName]) {
-			console.log("Event instance " + eventInstanceName + "is not loaded!");
+			console.log("FMOD Error: Event instance " + eventInstanceName + "is not loaded!");
 			return;
 		}
 
@@ -166,9 +164,9 @@ class jaxe {
 
 	}
 	static fmod_release_event_instance(eventInstanceName){
-		console.log('fmod_release_event_instance: ' + eventInstanceName);
+		if (jaxe.fmod_debug) console.log('Releasing event instance: ' + eventInstanceName);
 		if (!jaxe.loadedEventInstances[eventInstanceName]) {
-			console.log("Event instance " + eventInstanceName + "is not loaded!");
+			console.log("FMOD Error: Event instance " + eventInstanceName + "is not loaded!");
 			return;
 		}
 
@@ -182,9 +180,9 @@ class jaxe {
 		jaxe.loadedEventInstances[eventInstanceName] = undefined;
 	}
 	static fmod_is_event_instance_playing(eventInstanceName){
-		console.log('fmod_is_event_instance_playing');
+		if (jaxe.fmod_debug) console.log('Checking if ' + eventInstanceName + ' is playing');
 		if (!jaxe.loadedEventInstances[eventInstanceName]) {
-			console.log("Event instance " + eventInstanceName + "is not loaded!");
+			console.log("FMOD Error: Event instance " + eventInstanceName + "is not loaded!");
 			return;
 		}
 
@@ -196,9 +194,9 @@ class jaxe {
 		return (outval.val == jaxe.FMOD.STUDIO_PLAYBACK_PLAYING);
 	}
 	static fmod_get_event_instance_playback_state(eventInstanceName){
-		console.log('fmod_get_event_instance_playback_state');
+		if (jaxe.fmod_debug) console.log('Getting playback state of ' + eventInstanceName);
 		if (!jaxe.loadedEventInstances[eventInstanceName]) {
-			console.log("Event instance " + eventInstanceName + "is not loaded!");
+			console.log("FMOD Error: Event instance " + eventInstanceName + "is not loaded!");
 			return;
 		}
 
@@ -210,9 +208,9 @@ class jaxe {
 		return outval.val;
 	}
 	static fmod_get_event_instance_param(eventInstanceName, paramName){
-		console.log('fmod_get_event_instance_param');
+		if (jaxe.fmod_debug) console.log('Getting event instance param (' + paramName + ') from ' + eventInstanceName);
 		if (!jaxe.loadedEventInstances[eventInstanceName]) {
-			console.log("Event instance " + eventInstanceName + "is not loaded!");
+			console.log("FMOD Error: Event instance " + eventInstanceName + "is not loaded!");
 			return;
 		}
 
@@ -224,9 +222,9 @@ class jaxe {
 		return outval.val;
 	}
 	static fmod_set_event_instance_param(eventInstanceName, paramName, value){
-		console.log('fmod_set_event_instance_param');
+		if (jaxe.fmod_debug) console.log('Setting event instance pram (' + paramName + ') to ' + value + ' for ' + eventInstanceName);
 		if(!jaxe.loadedEventInstances[eventInstanceName]){
-			console.log('Cannot find event instance: ' + eventInstanceName);
+			console.log('FMOD Error: Cannot find event instance: ' + eventInstanceName);
 			return;
 		}
 
@@ -242,9 +240,9 @@ class jaxe {
 	}
 
 	static fmod_add_playback_listener_to_primary_event_instance(eventInstanceName){
-		console.log('fmod_add_playback_listener_to_primary_event_instance');
+		if (jaxe.fmod_debug) console.log('Setting playback listener to track ' + eventInstanceName);
 		if(!jaxe.loadedEventInstances[eventInstanceName]){
-			console.log('Cannot find event instance: ' + eventInstanceName);
+			console.log('FMOD Error: Cannot find event instance: ' + eventInstanceName);
 			return;
 		}
 		jaxe.primaryEventCallbackFlags = 0x00000000;
@@ -254,6 +252,7 @@ class jaxe {
 		jaxe.CHECK_RESULT(result);
 
 	}
+	// Leaving debug messages off this to reduce console noise
 	static fmod_check_for_primary_event_instance_callback(callbackEventMask){
 		var eventHappened;
 		eventHappened = jaxe.primaryEventCallbackFlags & callbackEventMask;
@@ -348,6 +347,7 @@ class jaxe {
 		console.log("initialize FMOD\n");
 	
 		// 1024 virtual channels
+		// The STUDIO_INIT_LIVEUPDATE flag exists, but the Live Update feature on HTML5 is unsupported by FMOD
 		result = jaxe.gSystem.initialize(1024, jaxe.FMOD.STUDIO_INIT_NORMAL, jaxe.FMOD.INIT_NORMAL, null);
 		jaxe.CHECK_RESULT(result);
 		

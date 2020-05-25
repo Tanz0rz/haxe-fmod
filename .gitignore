@@ -1,19 +1,13 @@
+# FMOD library directories
 lib/api/*
 lib/bin/*
 lib/doc/*
-test/cpp
-/test2/cpp
-/test2/BUILD_WIN_DEBUG.bat
-/test2/toto.txt
-/test2/totoErr.txt
-/lib/Switch/api
-/test3/cpp
 
 # Editor files
 /.vscode/
 /example-project/EZPlatformer/.vscode/
 
-# FMOD
+# Example project
 /example-project/EZPlatformer/export
 /example-project/EZPlatformer/fmod/.cache
 /example-project/EZPlatformer/fmod/.user
@@ -22,7 +16,6 @@ test/cpp
 
 # Builds
 haxe-fmod.zip
-/build
 
 # Generated code
 *raw.js

@@ -61,6 +61,7 @@ namespace linc
 
 		void fmod_init(int numChannels)
 		{
+			if (fmod_debug) printf("Initializing HaxeFmod\n");
 			// Choose a reasonable default if 0 is passed in
 			if (numChannels == 0){
 				numChannels = 36;
@@ -69,7 +70,7 @@ namespace linc
 			// Create our new fmod system
 			if (FMOD::Studio::System::create(&fmodSoundSystem) != FMOD_OK)
 			{
-				if(fmod_debug) printf("Failure starting FMOD sound system!");
+				if(fmod_debug) printf("Failure starting FMOD sound system!\n");
 				return;
 			}
 

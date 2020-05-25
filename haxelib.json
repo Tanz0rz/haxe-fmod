@@ -2,11 +2,11 @@
 	"name" : "haxefmod",
 	"url" : "https://github.com/Tanz0rz/haxe-fmod/",
 	"license" : "MIT",
-	"tags": ["fmod","audio","windows"],
+	"tags": ["fmod","audio","windows", "html5", "web"],
 	
-    "description" : "Use FMOD Studio with Haxe on Windows",
-    "version" : "0.1.0-alpha",
-	"releasenote" : "This release features a fully-functional FMOD Studio integration for Haxe on Windows deployments. Once this library reaches its 1.0.0 release, traditional semver standards will be followed",
+    "description" : "Use FMOD Studio with Haxe on Windows and HTML5",
+    "version" : "0.2.0-alpha",
+	"releasenote" : "This release introduces support for html5 builds. Testing on this build has been limited, but seems fully functional",
 	"contributors" : ["Tanz0rz"],
     "dependencies" : { }
 }
