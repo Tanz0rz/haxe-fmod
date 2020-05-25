@@ -42,7 +42,7 @@ extern class HaxeFmod {
     public static function fmod_create_event_instance_named(eventPath:String, eventInstanceName:String):Void;
 
     @:native("linc::faxe::fmod_is_event_instance_loaded")
-    public static function fmod_is_event_instance_loaded(eventPath:String):Bool;
+    public static function fmod_is_event_instance_loaded(eventInstanceName:String):Bool;
 
     @:native("linc::faxe::fmod_play_event_instance")
     public static function fmod_play_event_instance(eventInstanceName:String):Void;

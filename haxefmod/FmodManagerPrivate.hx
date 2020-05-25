@@ -24,7 +24,7 @@ class FmodManagerPrivate {
     private var eventListeners:Array<FmodEventListener> = new Array();
 
     // Data
-    private var soundIdIncrementer:Int;
+    private var soundIdIncrementer:Int = 0;
 
     // Settings
     private var settings:FmodSettings;
@@ -37,8 +37,11 @@ class FmodManagerPrivate {
         if (instance == null) {
             instance = new FmodManagerPrivate();
             HaxeFmod.fmod_init(128);
+            // For html5 deployments, the fmod system must be fully (asynchronously) loaded before loading the banks
+            #if windows
             HaxeFmod.fmod_load_bank("assets/fmod/Desktop/Master.bank");
             HaxeFmod.fmod_load_bank("assets/fmod/Desktop/Master.strings.bank");
+            #end
             instance.settings = Settings.LoadDefaultFmodSettings();
             if (instance.settings.DebugMessages) {
                 instance.EnableDebugMessages();
@@ -95,7 +98,8 @@ class FmodManagerPrivate {
             if (HaxeFmod.fmod_is_event_instance_playing(PrimarySongEventInstanceName)) {
                 HaxeFmod.fmod_stop_event_instance(PrimarySongEventInstanceName, true);
             }
-            HaxeFmod.fmod_release_event_instance(PrimarySongEventInstanceName);
+            // Releasing the primary song event instance is causing issues on html5 deployments
+            // HaxeFmod.fmod_release_event_instance(PrimarySongEventInstanceName);
         }
 
         // Create a brand new event instance of the song
