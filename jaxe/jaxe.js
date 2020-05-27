@@ -40,6 +40,7 @@ class jaxe {
 	// Cache of any named event instances
 	static loadedEventInstances = {};
 	// Callback flags
+	static trackedEventInstance;
 	static trackedEventInstanceCallbackFlags = 0x00000000;
 	// Debug flag
 	static fmod_debug = false;
@@ -60,7 +61,7 @@ class jaxe {
 	static fmod_update(){
 		var result;
 		result = jaxe.gSystem.update();
-		jaxe.CHECK_RESULT(result, 'update() failed');
+		jaxe.CHECK_RESULT(result, 'system update() failed');
 	}
 	static fmod_load_bank(bankFilePath){
 		if (jaxe.fmod_debug) console.log('loading bank: ' + bankFilePath);
@@ -75,7 +76,7 @@ class jaxe {
 		if (jaxe.fmod_debug) console.log('unloading bank: ' + bankFilePath);
 		var result;
 		result = jaxe.loadedBanks[bankFilePath].unload();
-		jaxe.CHECK_RESULT(result, 'unload() call failed for ' + jaxe.loadedBanks[bankFilePath]);
+		jaxe.CHECK_RESULT(result, 'unload() call failed for ' + bankFilePath);
 		jaxe.loadedBanks[bankFilePath] = undefined;
 	}
 	static fmod_create_event_instance_one_shot(eventPath){
@@ -112,10 +113,10 @@ class jaxe {
 
 		var instance = {};
 		result = description.val.createInstance(instance);
-		jaxe.CHECK_RESULT(result, 'createInstance() call failed for ' + eventPath);
+		jaxe.CHECK_RESULT(result, 'createInstance() call failed for ' + description.val);
 
 		result = instance.val.start();
-		jaxe.CHECK_RESULT(result, 'start() call failed for ' + eventPath);
+		jaxe.CHECK_RESULT(result, 'start() call failed for ' + instance.val);
 
 		jaxe.loadedEventInstances[eventInstanceName] = instance.val;
 	}
@@ -131,7 +132,7 @@ class jaxe {
 		}
 		var result;
 		result = jaxe.loadedEventInstances[eventInstanceName].start()
-		jaxe.CHECK_RESULT(result, 'start() call failed for ' + jaxe.loadedEventInstances[eventInstanceName]);
+		jaxe.CHECK_RESULT(result, 'start() call failed for ' + eventInstanceName);
 	}
 	static fmod_set_pause_on_event_instance(eventInstanceName, shouldBePaused){
 		if (jaxe.fmod_debug) console.log('Setting pause status of ' + eventInstanceName + ' to ' + shouldBePaused);
@@ -141,26 +142,28 @@ class jaxe {
 		}
 		var result;
 		result = jaxe.loadedEventInstances[eventInstanceName].setPaused(shouldBePaused);
-		jaxe.CHECK_RESULT(result, 'setPaused() call failed for ' + jaxe.loadedEventInstances[eventInstanceName]);
+		jaxe.CHECK_RESULT(result, 'setPaused() call failed for ' + eventInstanceName);
 	}
-	static fmod_stop_event_instance(eventInstanceName, forceStop){
-		if (jaxe.fmod_debug) console.log('Stopping event instance: ' + eventInstanceName + '. Force stop: ' + forceStop);
+	static fmod_stop_event_instance(eventInstanceName){
+		if (jaxe.fmod_debug) console.log('Stopping event instance: ' + eventInstanceName);
 		if (!jaxe.loadedEventInstances[eventInstanceName]) {
 			console.log("FMOD Error: Event instance " + eventInstanceName + "is not loaded!");
 			return;
 		}
-
-		var stopMode;
-
-		if (forceStop){
-			stopMode = jaxe.FMOD.STUDIO_STOP_IMMEDIATE;
-		} else {
-			stopMode = jaxe.FMOD.STUDIO_STOP_ALLOWFADEOUT;
-		}
-
 		var result;
-		result = jaxe.loadedEventInstances[eventInstanceName].stop(stopMode);
-		jaxe.CHECK_RESULT(result, 'stop() call failed for ' + jaxe.loadedEventInstances[eventInstanceName]);
+		result = jaxe.loadedEventInstances[eventInstanceName].stop(jaxe.FMOD.STUDIO_STOP_ALLOWFADEOUT);
+		jaxe.CHECK_RESULT(result, 'stop() call failed for ' + eventInstanceName);
+
+	}
+	static fmod_stop_event_instance_immediately(eventInstanceName){
+		if (jaxe.fmod_debug) console.log('Stopping event instance immediately: ' + eventInstanceName);
+		if (!jaxe.loadedEventInstances[eventInstanceName]) {
+			console.log("FMOD Error: Event instance " + eventInstanceName + "is not loaded!");
+			return;
+		}
+		var result;
+		result = jaxe.loadedEventInstances[eventInstanceName].stop(jaxe.FMOD.STUDIO_STOP_IMMEDIATE);
+		jaxe.CHECK_RESULT(result, 'stop() call failed for ' + eventInstanceName);
 
 	}
 	static fmod_release_event_instance(eventInstanceName){
@@ -172,10 +175,10 @@ class jaxe {
 
 		var result;
 		result = jaxe.loadedEventInstances[eventInstanceName].stop(jaxe.FMOD.STUDIO_STOP_IMMEDIATE);
-		jaxe.CHECK_RESULT(result);
+		jaxe.CHECK_RESULT(result, 'stop() call failed for ' + eventInstanceName);
 
 		result = jaxe.loadedEventInstances[eventInstanceName].release();
-		jaxe.CHECK_RESULT(result);
+		jaxe.CHECK_RESULT(result, 'release() call failed for ' + eventInstanceName);
 
 		jaxe.loadedEventInstances[eventInstanceName] = undefined;
 	}
@@ -189,7 +192,7 @@ class jaxe {
 		var result;
 		var outval = {};
 		result = jaxe.loadedEventInstances[eventInstanceName].getPlaybackState(outval);
-		jaxe.CHECK_RESULT(result);
+		jaxe.CHECK_RESULT(result, 'getPlaybackState() call failed for ' + eventInstanceName);
 
 		return (outval.val == jaxe.FMOD.STUDIO_PLAYBACK_PLAYING);
 	}
@@ -203,7 +206,7 @@ class jaxe {
 		var result;
 		var outval = {};
 		result = jaxe.loadedEventInstances[eventInstanceName].getPlaybackState(outval);
-		jaxe.CHECK_RESULT(result);
+		jaxe.CHECK_RESULT(result, 'getPlaybackState() call failed for ' + eventInstanceName);
 
 		return outval.val;
 	}
@@ -217,7 +220,7 @@ class jaxe {
 		var result;
 		var outval = {};
 		result = jaxe.loadedEventInstances[eventInstanceName].getParameterByName(paramName, outval);
-		jaxe.CHECK_RESULT(result);
+		jaxe.CHECK_RESULT(result, 'getParameterByName() call failed for ' + eventInstanceName);
 
 		return outval.val;
 	}
@@ -230,7 +233,7 @@ class jaxe {
 
 		var result = {};
 		result = jaxe.loadedEventInstances[eventInstanceName].setParameterByName(paramName, value, false);
-		jaxe.CHECK_RESULT(result);
+		jaxe.CHECK_RESULT(result, 'setParameterByName() call failed for ' + eventInstanceName);
 	}
 
 	static GetCallbackType(type, event, parameters)
@@ -245,15 +248,17 @@ class jaxe {
 			console.log('FMOD Error: Cannot find event instance: ' + eventInstanceName);
 			return;
 		}
+		
+		var result = {};
 		if (jaxe.trackedEventInstance != undefined) {
-			jaxe.trackedEventInstance.setCallback(undefined, jaxe.FMOD.STUDIO_EVENT_CALLBACK_ALL);
+			result = jaxe.trackedEventInstance.setCallback(undefined, jaxe.FMOD.STUDIO_EVENT_CALLBACK_ALL);
+			jaxe.CHECK_RESULT(result);
 		}
 		jaxe.trackedEventInstanceCallbackFlags = 0x00000000;
 		jaxe.trackedEventInstance = jaxe.loadedEventInstances[eventInstanceName];
-		
-		var result = {};
+	
 		result = jaxe.loadedEventInstances[eventInstanceName].setCallback(jaxe.GetCallbackType, jaxe.FMOD.STUDIO_EVENT_CALLBACK_ALL);
-		jaxe.CHECK_RESULT(result);
+		jaxe.CHECK_RESULT(result, 'setCallback() call failed for ' + eventInstanceName);
 
 	}
 	// Leaving debug messages off this to reduce console noise

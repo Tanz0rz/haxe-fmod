@@ -98,7 +98,7 @@ class FmodManagerPrivate {
         // If we are changing songs, make sure it is not playing, then release it from memory
         if (songPath != CurrentSong && CurrentSong != null) {
             if (HaxeFmod.fmod_is_event_instance_playing(SongEventInstance)) {
-                HaxeFmod.fmod_stop_event_instance(SongEventInstance, true);
+                HaxeFmod.fmod_stop_event_instance_immediately(SongEventInstance);
             }
             // Releasing the primary song event instance is causing issues on html5 deployments
             // HaxeFmod.fmod_release_event_instance(SongEventInstance);
@@ -121,7 +121,7 @@ class FmodManagerPrivate {
 
         // If we are changing songs, send a soft stop request to the event
         if (songPath != CurrentSong && CurrentSong != null && HaxeFmod.fmod_is_event_instance_playing(SongEventInstance)) {
-            HaxeFmod.fmod_stop_event_instance(SongEventInstance, false);
+            HaxeFmod.fmod_stop_event_instance(SongEventInstance);
         }
 
         CurrentAction = STOP_CURRENT_SONG_AND_PLAY_TO_NEW_SONG;
@@ -129,11 +129,11 @@ class FmodManagerPrivate {
     }
 
     private function StopSong() {
-        HaxeFmod.fmod_stop_event_instance(SongEventInstance, false);
+        HaxeFmod.fmod_stop_event_instance(SongEventInstance);
     }
 
     private function StopSongImmediately() {
-        HaxeFmod.fmod_stop_event_instance(SongEventInstance, true);
+        HaxeFmod.fmod_stop_event_instance_immediately(SongEventInstance);
     }
 
     private function PauseSong() {
@@ -169,11 +169,11 @@ class FmodManagerPrivate {
     }
 
     private function StopSound(soundId:String) {
-        HaxeFmod.fmod_stop_event_instance(soundId, false);
+        HaxeFmod.fmod_stop_event_instance(soundId);
     }
 
     private function StopSoundImmediately(soundId:String) {
-        HaxeFmod.fmod_stop_event_instance(soundId, true);
+        HaxeFmod.fmod_stop_event_instance_immediately(soundId);
     }
 
     private function ReleaseSound(soundId:String) {

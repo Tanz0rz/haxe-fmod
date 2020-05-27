@@ -42,7 +42,9 @@ extern class HaxeFmod {
     @:native("linc::faxe::fmod_set_pause_on_event_instance")
     public static function fmod_set_pause_on_event_instance(eventInstanceName:String, shouldBePaused:Bool):Void;
     @:native("linc::faxe::fmod_stop_event_instance")
-    public static function fmod_stop_event_instance(eventInstanceName:String, forceStop:Bool):Void;
+    public static function fmod_stop_event_instance(eventInstanceName:String):Void;
+    @:native("linc::faxe::fmod_stop_event_instance")
+    public static function fmod_stop_event_instance_immediately(eventInstanceName:String):Void;
     @:native("linc::faxe::fmod_release_event_instance")
     public static function fmod_release_event_instance(eventInstanceName:String):Void;
     @:native("linc::faxe::fmod_is_event_instance_playing")
@@ -85,7 +87,8 @@ extern class HaxeFmod {
     public static function fmod_is_event_instance_loaded(eventPath:String):Bool;
     public static function fmod_play_event_instance(eventInstanceName:String):Void;
     public static function fmod_set_pause_on_event_instance(eventInstanceName:String, shouldBePaused:Bool):Void;
-    public static function fmod_stop_event_instance(eventInstanceName:String, forceStop:Bool):Void;
+    public static function fmod_stop_event_instance(eventInstanceName:String):Void;
+    public static function fmod_stop_event_instance_immediately(eventInstanceName:String):Void;
     public static function fmod_release_event_instance(eventInstanceName:String):Void;
     public static function fmod_is_event_instance_playing(eventInstanceName:String):Bool;
     public static function fmod_get_event_instance_playback_state(eventInstanceName:String):FmodStudioPlaybackState;

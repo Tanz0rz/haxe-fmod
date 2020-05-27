@@ -229,21 +229,23 @@ namespace linc
 			}
 		}
 
-		void fmod_stop_event_instance(const ::String& eventInstanceName, bool forceStop)
+		void fmod_stop_event_instance(const ::String& eventInstanceName)
 		{
 			auto targetStopEvent = loadedEventInstances.find(eventInstanceName);
 			if (targetStopEvent != loadedEventInstances.end())
 			{
-				FMOD_STUDIO_STOP_MODE stopMode;
+				targetStopEvent->second->stop(FMOD_STUDIO_STOP_ALLOWFADEOUT);
+			} else {
+				if(fmod_debug) printf("Event %s is not loaded!\n", eventInstanceName.c_str());
+			}
+		}
 
-				if (forceStop)
-				{
-					stopMode = FMOD_STUDIO_STOP_IMMEDIATE;
-				} else {
-					stopMode = FMOD_STUDIO_STOP_ALLOWFADEOUT;
-				}
-
-				targetStopEvent->second->stop(stopMode);
+		void fmod_stop_event_instance_immediately(const ::String& eventInstanceName)
+		{
+			auto targetStopEvent = loadedEventInstances.find(eventInstanceName);
+			if (targetStopEvent != loadedEventInstances.end())
+			{
+				targetStopEvent->second->stop(FMOD_STUDIO_STOP_IMMEDIATE);
 			} else {
 				if(fmod_debug) printf("Event %s is not loaded!\n", eventInstanceName.c_str());
 			}

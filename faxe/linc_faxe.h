@@ -132,9 +132,14 @@ namespace linc
 		/**
 		 * Sends the "stop" command to an existing event instance
 		 * \param[eventInstanceName] ::String the name of the event instance
-		 * \param[forceStop] ::Bool should we force the event to stop immediately?
 		 */
-		extern void fmod_stop_event_instance(const ::String& eventInstanceName, bool forceStop = false);
+		extern void fmod_stop_event_instance(const ::String& eventInstanceName);
+
+		/**
+		 * Immediately stops an existing event instance
+		 * \param[eventInstanceName] ::String the name of the event instance
+		 */
+		extern void fmod_stop_event_instance_immediately(const ::String& eventInstanceName);
 
 		/**
 		 * Release a loaded event instance from memory
