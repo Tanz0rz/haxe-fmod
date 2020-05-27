@@ -56,10 +56,10 @@ extern class HaxeFmod {
 
     //// Callbacks
 
-    @:native("linc::faxe::fmod_add_playback_listener_to_primary_event_instance")
-    public static function fmod_add_playback_listener_to_primary_event_instance(eventInstanceName:String):Void;
-    @:native("linc::faxe::fmod_check_for_primary_event_instance_callback")
-    public static function fmod_check_for_primary_event_instance_callback(callbackEventMask:UInt):Bool;
+    @:native("linc::faxe::fmod_set_playback_callback_tracking_for_event_instance")
+    public static function fmod_set_playback_callback_tracking_for_event_instance(eventInstanceName:String):Void;
+    @:native("linc::faxe::fmod_check_playback_callbacks")
+    public static function fmod_check_playback_callbacks(callbackEventMask:UInt):Bool;
 }
 
 #elseif html5
@@ -94,7 +94,7 @@ extern class HaxeFmod {
 
     //// Callbacks
 
-    public static function fmod_add_playback_listener_to_primary_event_instance(eventInstanceName:String):Void;
-    public static function fmod_check_for_primary_event_instance_callback(callbackEventMask:UInt):Bool;
+    public static function fmod_set_playback_callback_tracking_for_event_instance(eventInstanceName:String):Void;
+    public static function fmod_check_playback_callbacks(callbackEventMask:UInt):Bool;
 }
 #end

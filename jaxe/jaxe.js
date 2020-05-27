@@ -40,7 +40,7 @@ class jaxe {
 	// Cache of any named event instances
 	static loadedEventInstances = {};
 	// Callback flags
-	static primaryEventCallbackFlags = 0x00000000;
+	static trackedEventInstanceCallbackFlags = 0x00000000;
 	// Debug flag
 	static fmod_debug = false;
 
@@ -235,17 +235,21 @@ class jaxe {
 
 	static GetCallbackType(type, event, parameters)
 	{
-		jaxe.primaryEventCallbackFlags = jaxe.primaryEventCallbackFlags | type;
+		jaxe.trackedEventInstanceCallbackFlags = jaxe.trackedEventInstanceCallbackFlags | type;
 		return jaxe.FMOD.OK;
 	}
 
-	static fmod_add_playback_listener_to_primary_event_instance(eventInstanceName){
+	static fmod_set_playback_callback_tracking_for_event_instance(eventInstanceName){
 		if (jaxe.fmod_debug) console.log('Setting playback listener to track ' + eventInstanceName);
 		if(!jaxe.loadedEventInstances[eventInstanceName]){
 			console.log('FMOD Error: Cannot find event instance: ' + eventInstanceName);
 			return;
 		}
-		jaxe.primaryEventCallbackFlags = 0x00000000;
+		if (jaxe.trackedEventInstance != undefined) {
+			jaxe.trackedEventInstance.setCallback(undefined, jaxe.FMOD.STUDIO_EVENT_CALLBACK_ALL);
+		}
+		jaxe.trackedEventInstanceCallbackFlags = 0x00000000;
+		jaxe.trackedEventInstance = jaxe.loadedEventInstances[eventInstanceName];
 		
 		var result = {};
 		result = jaxe.loadedEventInstances[eventInstanceName].setCallback(jaxe.GetCallbackType, jaxe.FMOD.STUDIO_EVENT_CALLBACK_ALL);
@@ -253,10 +257,10 @@ class jaxe {
 
 	}
 	// Leaving debug messages off this to reduce console noise
-	static fmod_check_for_primary_event_instance_callback(callbackEventMask){
+	static fmod_check_playback_callbacks(callbackEventMask){
 		var eventHappened;
-		eventHappened = jaxe.primaryEventCallbackFlags & callbackEventMask;
-		jaxe.primaryEventCallbackFlags &= ~callbackEventMask;
+		eventHappened = jaxe.trackedEventInstanceCallbackFlags & callbackEventMask;
+		jaxe.trackedEventInstanceCallbackFlags &= ~callbackEventMask;
 		return eventHappened;
 	}
 

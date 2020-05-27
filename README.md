@@ -1,6 +1,8 @@
 # FMOD for Haxe on Windows and HTML5
 
-**Note: This library will likely undergo many breaking changes early on**
+**Note: The API of this library will change early on**
+
+**Other Note: Remember to follow the rules of [FMOD's license](https://tanneris.me/FMOD-License) when using this library**
 
 A library to integrate the FMOD audio engine with Haxe 4 games for Windows and HTML5 deployments
 
@@ -9,8 +11,6 @@ Primarily focuses on simplifying the FMOD Studio project workflow through the us
 The Windows integration was built on top of Aaron Shea's [C++ integration with FMOD's official API](https://tanneris.me/faxe)
 
 LICENCE: [MIT](https://tanneris.me/mit-license)
-
-Remember to follow the rules of [FMOD's license](https://tanneris.me/FMOD-License) when using this library
 
 [Download the package via Haxelib](https://tanneris.me/haxelib)
 
@@ -22,6 +22,7 @@ Remember to follow the rules of [FMOD's license](https://tanneris.me/FMOD-Licens
  - [FMOD Studio Project Configuration](#fmod-studio-project-configuration)
  - [Example Project](#example-project)
  - [Local Development](#local-development)
+ - [Goals](#goals)
  - [Feature Requests and Contact](#feature-requests-and-contact)
 
 
@@ -146,6 +147,11 @@ To play the game, run `lime test windows` or `lime test html5` in the `EZPlatfor
 3. Point your `haxelib` at the local repo using `haxelib dev haxefmod <directory_to_the_git_clone>`
 
 This will setup the git repo as an "installed" version of `haxefmod` which can be imported by your projects the same way you import other libraries. You can see the special `dev` status when you find `haxefmod` in the output of `haxelib list` 
+
+## Future Goals
+
+- Ability to attach callback functions to any event instance
+- Support for more banks than just the Master bank
 
 ## Feature Requests and Contact
 

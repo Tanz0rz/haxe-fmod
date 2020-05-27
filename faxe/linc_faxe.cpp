@@ -46,7 +46,8 @@ namespace linc
 		std::map<::String, FMOD::Studio::EventInstance*> loadedEventInstances;
 		
 		// Callback flags
-		unsigned int primaryEventCallbackFlags;
+		FMOD::Studio::EventInstance* trackedEventInstance;
+		unsigned int trackedEventInstanceCallbackFlags;
 
 		//// FMOD System
 
@@ -355,26 +356,30 @@ namespace linc
 		// Callback definitions must be defined before they are used in functions
 		FMOD_RESULT F_CALLBACK GetCallbackType(FMOD_STUDIO_EVENT_CALLBACK_TYPE type, FMOD_STUDIO_EVENTINSTANCE *event, void *parameters)
 		{
-			primaryEventCallbackFlags = primaryEventCallbackFlags | type;
+			trackedEventInstanceCallbackFlags = trackedEventInstanceCallbackFlags | type;
 			return FMOD_OK;
 		}
 
-		void fmod_add_playback_listener_to_primary_event_instance(const ::String& eventInstanceName) {
+		void fmod_set_playback_callback_tracking_for_event_instance(const ::String& eventInstanceName) {
 			auto existingEventInstance = loadedEventInstances.find(eventInstanceName);
 			if (existingEventInstance != loadedEventInstances.end())
 			{
-				primaryEventCallbackFlags = 0;
+				if (trackedEventInstance != NULL) {
+					trackedEventInstance->setCallback(NULL);
+				}
+				trackedEventInstanceCallbackFlags = 0;
+				trackedEventInstance = existingEventInstance->second;
 				existingEventInstance->second->setCallback(GetCallbackType);
 			}
 			else 
 			{
-				if(fmod_debug) printf("Could not set callback to %s because it wasn't found\n", eventInstanceName.c_str());
+				if(fmod_debug) printf("Could not set callback tracking on %s because it wasn't found\n", eventInstanceName.c_str());
 			}
 		}
 
-		bool fmod_check_for_primary_event_instance_callback(unsigned int callbackEventMask){
-			bool eventHappened = primaryEventCallbackFlags & callbackEventMask;
-			primaryEventCallbackFlags &= ~callbackEventMask;
+		bool fmod_check_playback_callbacks(unsigned int callbackEventMask){
+			bool eventHappened = trackedEventInstanceCallbackFlags & callbackEventMask;
+			trackedEventInstanceCallbackFlags &= ~callbackEventMask;
 			return eventHappened;
 		}
 
