@@ -29,6 +29,8 @@
 #include <fmod_studio.hpp>
 #include <fmod_errors.h>
 #include <map>
+#include <thread> 
+#include <csignal>
 
 #include "linc_faxe.h"
 
@@ -48,6 +50,10 @@ namespace linc
 		// Callback flags
 		FMOD::Studio::EventInstance* trackedEventInstance;
 		unsigned int trackedEventInstanceCallbackFlags;
+
+		// Background thread to automatically call FMOD's Update() function
+		std::thread autoUpdaterThread;
+		bool autoUpdaterThreadShouldExit;
 
 		//// FMOD System
 
@@ -76,14 +82,42 @@ namespace linc
 			}
 
 			// Initialize system with channel count and startup flags
-			fmodSoundSystem->initialize(numChannels, FMOD_STUDIO_INIT_LIVEUPDATE, FMOD_INIT_NORMAL, nullptr);
-			fmodSoundSystem->getCoreSystem(&fmodCoreSoundSystem);
+			auto result = fmodSoundSystem->initialize(numChannels, FMOD_STUDIO_INIT_LIVEUPDATE, FMOD_INIT_NORMAL, nullptr);
+			if (result != FMOD_OK)
+			{
+				printf("FMOD failed to initialize: %s\n", FMOD_ErrorString(result));
+				return;
+			}
+			result = fmodSoundSystem->getCoreSystem(&fmodCoreSoundSystem);
+			if (result != FMOD_OK)
+			{
+				printf("FMOD failed to get core system: %s\n", FMOD_ErrorString(result));
+				return;
+			}
+
+			autoUpdaterThread = std::thread(update_fmod_async);
+
 			if(fmod_debug) printf("FMOD Sound System Started with %d channels!\n", numChannels);
+		};
+
+		void fmod_update() 
+		{
+			auto result = fmodSoundSystem->update();
+			if (result != FMOD_OK)
+			{
+				printf("FMOD failed to self-update: %s\n", FMOD_ErrorString(result));
+				return;
+			}
 		}
 
-		void fmod_update()
+		void update_fmod_async()
 		{
-			fmodSoundSystem->update();
+   			signal(SIGTERM, [](int signum){autoUpdaterThreadShouldExit = true;}); 
+
+			while (!autoUpdaterThreadShouldExit){
+				fmod_update();
+				std::this_thread::sleep_for (std::chrono::milliseconds(16));
+			}
 		}
 
 		//// Sound Banks
@@ -185,7 +219,6 @@ namespace linc
 				if(fmod_debug) printf("FMOD failed to start event instance %s: %s\n", eventPath.c_str(), FMOD_ErrorString(result));
 				return;
 			}
-			if(fmod_debug) printf("FMOD created new named event instance %s\n", eventPath.c_str());
 
 			// Storing the event instance in a cache. There is no implicit cleanup of these instances.
 			loadedEventInstances[eventInstanceName] = eventInstance;

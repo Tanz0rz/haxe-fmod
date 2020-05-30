@@ -49,7 +49,7 @@ After configuring your project to work with this library, playing a song or soun
     }
     
     override public function update(elapsed:Float):Void {
-        // Update call required by FMOD to process commands
+        // Update call required to process asynchronous events
         FmodManager.Update();
     }
 ```
@@ -83,7 +83,7 @@ The `FmodManager` class is what you should be using most of the time. It abstrac
 
 The `FmodSFX` and `FmodSongs` classes are auto-generated classes containing all event names in your FMOD studio bank file (see the [fmod-scripts](https://tanneris.me/haxe-fmod-scripts) folder in this repo)
 
-**important**: The FMOD engine needs a constant stream of update calls to function properly. If this is not present in your game, it will seem like the engine is either buggy or simply not working at all. Remember to call `FmodManager.Update()` at the beginning of **every** update loop of **every** state in your game.
+**important**: This library needs a constant stream of update calls to function properly. Remember to call `FmodManager.Update()` at the beginning of **every** update loop of **every** state in your game.
 
 **Global library settings:**
 

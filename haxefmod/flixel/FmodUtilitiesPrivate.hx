@@ -23,6 +23,8 @@ class FmodUtilitiesPrivate implements FmodEventListener {
     }
 
     private function TransitionToStateAndStopMusic(state:FlxState) {
+        FmodManager.CheckIfUpdateIsBeingCalled();
+        
         listeningForMusicStoppedEvent = true;
         DestinationState = state;
         FmodManager.StopSong();

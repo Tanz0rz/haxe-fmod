@@ -21,7 +21,6 @@ class FmodManager {
         FmodManagerPrivate.GetInstance();
     }
 
-
     /**
         Returns true if the FMOD audio engine is initialized
     **/
@@ -30,7 +29,14 @@ class FmodManager {
     }
 
     /**
-        A call required by the FMOD API at all times. This should be in the main update loop of the game
+        Prints out a warning message to console if Update() has not been called recently
+    **/
+    public static function CheckIfUpdateIsBeingCalled() {
+        FmodManagerPrivate.GetInstance().CheckIfUpdateIsBeingCalled();
+    }
+
+    /**
+        A call required to process asynchronous events. This should be in the main update loop of the game
     **/
     public static function Update() {
         FmodManagerPrivate.GetInstance().Update();

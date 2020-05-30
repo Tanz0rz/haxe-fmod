@@ -5,8 +5,8 @@
 	"tags": ["fmod","audio","windows", "html5", "web"],
 	
     "description" : "Use FMOD Studio with Haxe on Windows and HTML5",
-    "version" : "0.2.0-alpha",
-	"releasenote" : "This release introduces support for html5 builds. Testing on this build has been limited, but seems fully functional",
+    "version" : "0.3.0-alpha",
+	"releasenote" : "Windows builds now use a background thread to automatically keep FMOD updated. Explicit update calls are still required by the user for aynchronous events to work (e.g. the helper function to smoothly fade to a new song or the helper function to change to a new scene after the current song fades out)",
 	"contributors" : ["Tanz0rz"],
     "dependencies" : { }
 }

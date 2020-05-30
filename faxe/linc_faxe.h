@@ -61,6 +61,11 @@ namespace linc
 		 * Update the FMOD command buffer, should be called once per "tick"
 		 */
 		extern void fmod_update();
+		
+		/**
+		 * Should be called by a background thread. Updates FMOD 60 times per second until a SIGTERM is received
+		 */
+		extern void update_fmod_async();
 
 		//// Sound Banks
 

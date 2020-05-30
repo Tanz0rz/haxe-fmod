@@ -1,14 +1,14 @@
 package haxefmod;
 
-import haxefmod.HaxeFmod;
 import haxefmod.FmodEvents.FmodCallback;
 import haxefmod.FmodEvents.FmodEvent;
 import haxefmod.FmodEvents.FmodEventListener;
+import haxefmod.HaxeFmod;
 import haxefmod.settings.Settings;
 
 enum FmodManagerAction {
     NONE;
-    STOP_CURRENT_SONG_AND_PLAY_TO_NEW_SONG;
+    STOP_CURRENT_SONG_AND_PLAY_NEW_SONG;
 }
 
 class FmodManagerPrivate {
@@ -25,6 +25,7 @@ class FmodManagerPrivate {
 
     // Data
     private var soundIdIncrementer:Int = 0;
+    private var lastUpdateCall:Float = 0;
 
     // Settings
     private var settings:FmodSettings;
@@ -66,11 +67,19 @@ class FmodManagerPrivate {
         return HaxeFmod.fmod_is_initialized();
     }
 
+    private function CheckIfUpdateIsBeingCalled() {
+        var timeSinceLastUpdate:Float = DateTools.delta(Date.now(), -lastUpdateCall).getTime();
+        if (timeSinceLastUpdate > 1000) {
+            trace("Warn: Is FmodManager.Update() in your game loop? It has been " + timeSinceLastUpdate + " milliseconds since it was last called. "
+             + "Song transitions and callback events will not work unless this function is called in your game loop.");
+        }
+    }
+
     private function Update() {
-        HaxeFmod.fmod_update();
+        lastUpdateCall = Date.now().getTime();
 
         // If transitioning songs, play the next song when the current one is stopped
-        if (CurrentAction == STOP_CURRENT_SONG_AND_PLAY_TO_NEW_SONG
+        if (CurrentAction == STOP_CURRENT_SONG_AND_PLAY_NEW_SONG
             && HaxeFmod.fmod_get_event_instance_playback_state(SongEventInstance) == FMOD_STUDIO_PLAYBACK_STOPPED) {
             PlaySong(NextSong);
             CurrentAction = NONE;
@@ -124,7 +133,8 @@ class FmodManagerPrivate {
             HaxeFmod.fmod_stop_event_instance(SongEventInstance);
         }
 
-        CurrentAction = STOP_CURRENT_SONG_AND_PLAY_TO_NEW_SONG;
+        CheckIfUpdateIsBeingCalled();
+        CurrentAction = STOP_CURRENT_SONG_AND_PLAY_NEW_SONG;
         NextSong = songPath;
     }
 
