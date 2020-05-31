@@ -283,7 +283,6 @@ class jaxe {
 	}
 
 	static preRun = function() {
-		var fileUrl = "/assets/fmod/Desktop/";
 		var fileName;
 		var folderName = "/";
 		var canRead = true;
@@ -297,6 +296,10 @@ class jaxe {
 		for (var count = 0; count < fileName.length; count++)
 		{
 			console.log('Mounting bank file: ' + fileName[count])
+
+			var applicationRoot = window.location.pathname;
+			var gameRoot = applicationRoot.substring(0, applicationRoot.lastIndexOf("/"));
+			var fileUrl = gameRoot + "/assets/fmod/Desktop/";
 
 			// Mounts a local file so that FMOD can recognize it when calling a function that uses a filename (ie loadBank/createSound)
 			jaxe.FMOD.FS_createPreloadedFile(folderName, fileName[count], fileUrl + fileName[count], canRead, canWrite);
@@ -325,9 +328,9 @@ class jaxe {
 		
 		// Optional.  Setting DSP Buffer size can affect latency and stability.
 		// Processing is currently done in the main thread so anything lower than 2048 samples can cause stuttering on some devices.
-	    console.log("set DSP Buffer size.\n");
-	    result = jaxe.gSystemCore.setDSPBufferSize(2048, 2);
-	    jaxe.CHECK_RESULT(result);
+		console.log("set DSP Buffer size.\n");
+		result = jaxe.gSystemCore.setDSPBufferSize(2048, 2);
+		jaxe.CHECK_RESULT(result);
 		
 		// Optional.  Set sample rate of mixer to be the same as the OS output rate.
 		// This can save CPU time and latency by avoiding the automatic insertion of a resampler at the output stage.
@@ -351,7 +354,7 @@ class jaxe {
 				jaxe.gAudioResumed = true;
 			}
 		}
-        document.addEventListener('click', resumeAudio);
+		document.addEventListener('click', resumeAudio);
 
 		console.log("initialize FMOD\n");
 	
@@ -378,10 +381,10 @@ class jaxe {
 		jaxe.FmodIsInitialized = true;
 	
 		return jaxe.FMOD.OK;
-  }
+	}
 
-  // Needs to be a local function to play nicely with setInterval
-  static updateFmod() {
-	  jaxe.gSystem.update();
-  }
+	// Needs to be a local function to play nicely with setInterval
+	static updateFmod() {
+		jaxe.gSystem.update();
+	}
 }
