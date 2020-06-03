@@ -22,20 +22,16 @@ LICENCE: [MIT](https://tanneris.me/mit-license)
  - [FMOD Studio Project Configuration](#fmod-studio-project-configuration)
  - [Example Project](#example-project)
  - [Local Development](#local-development)
- - [Goals](#goals)
+ - [Future Goals](#future-goals)
  - [Feature Requests and Contact](#feature-requests-and-contact)
 
 
-## Features 
+## <a name="features"></a>Features 
 - FMOD in Haxe!
-  - Haxe version 4.x.x
-  - FMOD Studio/API version 2.00.08
-- (Windows only) FMOD Studio Live Update for real-time mixing of sounds in your game (make sure to disable auto-reconnect in FMOD Studio)
-- `FmodManager` library to simplify FMOD calls
-- `FmodUtilities` and `FmodUpdater` libraries with additional convenience methods for `Flixel` projects
+- FMOD Studio Live Update (Windows only)
 - FMOD Studio script to automatically generate a Haxe constants file (`.hx`) that can be used to reference your Music and SFX in code without using strings
 
-## How to Use This Library
+## <a name="how-to-use-this-library"></a>How to Use This Library
 
 After configuring your project to work with this library, playing a song or sound effect is extremely simple:
 
@@ -49,7 +45,7 @@ After configuring your project to work with this library, playing a song or soun
     }
     
     override public function update(elapsed:Float):Void {
-        // Update call required to process asynchronous events
+        // Update call required to process any asynchronous events
         FmodManager.Update();
     }
 ```
@@ -87,18 +83,18 @@ The `FmodSFX` and `FmodSongs` classes are auto-generated classes containing all 
 
 **Global library settings:**
 
-Global settings for `haxefmod` are in a `Settings.hx` file found in the installation location of this library. The relative location of this file from the root of the library is `haxefmod/settings/Settings.hx`. Updating this library to newer versions will likely reset all global settings to their defaults.
+Global settings for `haxefmod` are in a `Settings.hx` file found in the installation location of this library. The relative location of this file from the root of the library is `haxefmod/Settings.hx`. Updating this library to newer versions will likely reset all global settings to their defaults.
 
 Settings available:
 ```Haxe
 DebugMessages //Bool: Enables console output for internal FMOD API calls (can be helpful if things aren't working)
 ```
 
-## HTML5 Builds
+## <a name="html5-builds"></a>HTML5 Builds
 
-For HTML5 builds to work, a dedicated scene must be run before the game starts to give the FMOD engine a chance to fully load. See the [EZPlatformer example project](./example-project/EZPlatformer/source) for a demonstration of how to handle this. The `Main.hx` file loads the startup scene, the startup scene initializes FMOD and waits for it to report back as initialized, then the game is started.
+For HTML5 builds to work, a dedicated scene must be run before the game starts to give the FMOD engine a chance to fully load. See the [EZPlatformer example project](http://tanneris.me/haxe-fmod-example-project) for a demonstration of how to handle this. The `Main.hx` file loads the startup scene, the startup scene initializes FMOD and waits for it to report back as initialized, then the game is started.
 
-## FMOD Studio Project Configuration
+## <a name="fmod-studio-project-configuration"></a>FMOD Studio Project Configuration
 
 **FMOD Studio project structure**:
 
@@ -127,7 +123,7 @@ When using Live Update in FMOD Studio, turn the auto-reconnect feature off or yo
 
 **Note**: Unfortunately, the Live Update feature is officially not available for HTML5 builds. The FMOD team said this has to do with the game running inside the browser.
 
-## Example Project
+## <a name="example-project"></a>Example Project
 
 Inside the `example-project` folder, you will find a simple game from the [HaxeFlixel flixel-demos repo](https://tanneris.me/haxe-flixel-demos) with this FMOD library added to it. It showcases the following:
 - A song with an additional layer that uses an event parameter controlled by how fast the player can collect coins.
@@ -140,7 +136,7 @@ Play the game, explore the code, and open up the FMOD Studio project (try Live U
 
 To play the game, run `lime test windows` or `lime test html5` in the `EZPlatformer` folder
 
-## Local Development
+## <a name="local-development"></a>Local Development
 
 1. Make sure `haxefmod` is not installed on your system by checking the output of `haxelib list`. If it _is_ installed, you can uninstall it using `haxelib remove haxefmod`
 2. Clone down this repo
@@ -148,11 +144,11 @@ To play the game, run `lime test windows` or `lime test html5` in the `EZPlatfor
 
 This will setup the git repo as an "installed" version of `haxefmod` which can be imported by your projects the same way you import other libraries. You can see the special `dev` status when you find `haxefmod` in the output of `haxelib list` 
 
-## Future Goals
+## <a name="future-goals"></a>Future Goals
 
 - Ability to attach callback functions to any event instance
 - Support for more banks than just the Master bank
 
-## Feature Requests and Contact
+## <a name="feature-requests-and-contact"></a>Feature Requests and Contact
 
 If you have any feature requests or are having issues using the library, please [open an Issue](https://tanneris.me/haxe-fmod-issues) here on Github

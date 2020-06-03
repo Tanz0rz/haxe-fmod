@@ -1,4 +1,4 @@
-package haxefmod.settings;
+package haxefmod;
 
 // To set these settings, change the struct in the return value of LoadDefaultFmodSettings()
 typedef FmodSettings = {

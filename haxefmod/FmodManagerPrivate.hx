@@ -3,8 +3,7 @@ package haxefmod;
 import haxefmod.FmodEvents.FmodCallback;
 import haxefmod.FmodEvents.FmodEvent;
 import haxefmod.FmodEvents.FmodEventListener;
-import haxefmod.HaxeFmod;
-import haxefmod.settings.Settings;
+import haxefmod.Settings;
 
 enum FmodManagerAction {
     NONE;
