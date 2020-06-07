@@ -32,8 +32,6 @@ class PlayState extends FlxState {
     override public function onFocusLost() {
         super.onFocusLost();
         FmodManager.SetEventParameterOnSong("HighPass", 1);
-        // Update must be manually called when processing FMOD events while the game is paused
-        FmodManager.Update();
     }
 
     override public function create():Void {
