@@ -33,9 +33,13 @@ LICENCE: [MIT](https://tanneris.me/mit-license)
 
 ## <a name="how-to-use-this-library"></a>How to Use This Library
 
+This library has been tested on games built with the `lime` and `openfl` cli tools, and should work on any Haxe framework that utilizes the `Project.xml` file for builds.
+
 After configuring your project to work with this library, playing a song or sound effect is extremely simple:
 
 ```haxe
+    // This example uses the create and update calls found in HaxeFlixel games
+
     override public function create():Void {
         // Plays a song in your game
         FmodManager.PlaySong(FmodSongs.MainLevel);
@@ -92,7 +96,7 @@ DebugMessages //Bool: Enables console output for internal FMOD API calls (can be
 
 ## <a name="html5-builds"></a>HTML5 Builds
 
-For HTML5 builds to work, a dedicated scene must be run before the game starts to give the FMOD engine a chance to fully load. See the [EZPlatformer example project](http://tanneris.me/haxe-fmod-example-project) for a demonstration of how to handle this. The `Main.hx` file loads the startup scene, the startup scene initializes FMOD and waits for it to report back as initialized, then the game is started.
+For HTML5 builds to work, a dedicated scene must be run before the game starts to give the FMOD engine a chance to fully load. See the [EZPlatformer example project (HaxeFlixel)](http://tanneris.me/haxe-fmod-example-project) for a demonstration of how to handle this. The `Main.hx` file loads the startup scene, the startup scene initializes FMOD and waits for it to report back as initialized, then the game is started.
 
 ## <a name="fmod-studio-project-configuration"></a>FMOD Studio Project Configuration
 
