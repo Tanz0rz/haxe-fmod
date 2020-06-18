@@ -67,21 +67,9 @@ If required, import the library in your project. On HaxeFlixel projects, add `<h
 
 **Use the library in code:**
 
-Create an `imports.hx` file next to your game's `Main.hx` and put the FMOD imports in it to make the helpers globally available.
+The `FmodManager` class is primary way to interact with FMOD in your game. It abstracts away nearly all of the low-level details of the FMOD API. You can look through all of the available function calls with descriptions [here](https://tanneris.me/haxe-fmod-helper-library).
 
-`imports.hx`:
-```haxe
-// Fmod helper library
-import haxefmod.FmodManager;
-// Static class containing all sound effect names
-import FmodConstants.FmodSFX;
-// Static class containing all song names
-import FmodConstants.FmodSongs;
-```
-
-The `FmodManager` class is what you should be using most of the time. It abstracts away nearly all of the low-level details of interacting with the FMOD API.
-
-The `FmodSFX` and `FmodSongs` classes are auto-generated classes containing all event names in your FMOD studio bank file (see the [fmod-scripts](https://tanneris.me/haxe-fmod-scripts) folder in this repo)
+Songs and sound effects are triggered by passing in the full FMOD bank event path to the `FmodManager.PlaySong` and `FmodManager.PlaySound` functions. To use the `FmodSongs` and `FmodSFX` classes shown in the example at the top of this readme (highly recommended), follow the additional setup instructions found in [fmod-scripts](https://tanneris.me/haxe-fmod-scripts) folder of this repo.
 
 **important**: This library needs a constant stream of update calls to function properly. Remember to call `FmodManager.Update()` at the beginning of **every** update loop of **every** state in your game.
 

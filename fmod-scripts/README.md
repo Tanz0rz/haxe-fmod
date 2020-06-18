@@ -17,6 +17,20 @@ If you are using vscode, its autocomplete can be triggered by typing in "FmodSon
 - Play a song: `FmodManager.PlaySong(FmodSongs.MainSong);`
 - Play a sound effect: `FmodManager.PlaySound(FmodSFX.CollectionCoin);`
 
+## Auto-imports:
+
+To avoid having to import three classes in every file of your game code, you can create an `import.hx` file next to your game's `Main.hx` to make the helpers globally available.
+
+`import.hx`:
+```haxe
+// Fmod helper library
+import haxefmod.FmodManager;
+// Static class containing all sound effect names
+import FmodConstants.FmodSFX;
+// Static class containing all song names
+import FmodConstants.FmodSongs;
+```
+
 ## Installing the script:
 - Place the ExportHaxeConstants.js file in your FMOD Studio's "scripts" folder. This folder will be found wherever you installed FMOD Studio on your computer.
 - In FMOD Studio, click the Scripts dropdown at the top and select "Reload". 
