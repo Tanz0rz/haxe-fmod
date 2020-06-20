@@ -45,7 +45,7 @@ After configuring your project to work with this library, playing a song or soun
         FmodManager.PlaySong(FmodSongs.MainLevel);
 
         // Plays a sound in your game
-        FmodManager.PlaySound(FmodSFX.PlayerJump);
+        FmodManager.PlaySoundOneShot(FmodSFX.PlayerJump);
     }
     
     override public function update(elapsed:Float):Void {
