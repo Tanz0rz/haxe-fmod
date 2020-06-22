@@ -28,8 +28,8 @@ LICENCE: [MIT](https://tanneris.me/mit-license)
 
 ## <a name="features"></a>Features 
 - FMOD in Haxe!
-- FMOD Studio Live Update (Windows only)
-- FMOD Studio script to automatically generate a Haxe constants file (`.hx`) that can be used to reference your Music and SFX in code without using strings
+- FMOD Studio [Live Update](http://tanneris.me/FMOD-Live-Update) (Windows only)
+- Auto-updated constants file for all FMOD Studio bank events [using code generation](https://tanneris.me/haxe-fmod-scripts)
 
 ## <a name="how-to-use-this-library"></a>How to Use This Library
 
@@ -42,10 +42,10 @@ After configuring your project to work with this library, playing a song or soun
 
     override public function create():Void {
         // Plays a song in your game
-        FmodManager.PlaySong(FmodSongs.MainLevel);
+        FmodManager.PlaySong("event:/Music/MainLevel");
 
         // Plays a sound in your game
-        FmodManager.PlaySoundOneShot(FmodSFX.PlayerJump);
+        FmodManager.PlaySoundOneShot("event:/SFX/Jump");
     }
     
     override public function update(elapsed:Float):Void {
@@ -67,9 +67,9 @@ If required, import the library in your project. On HaxeFlixel projects, add `<h
 
 **Use the library in code:**
 
-The `FmodManager` class is primary way to interact with FMOD in your game. It abstracts away nearly all of the low-level details of the FMOD API. You can look through all of the available function calls with descriptions [here](https://tanneris.me/haxe-fmod-helper-library).
+The `FmodManager` class is the primary way to interact with FMOD in your game. It abstracts away nearly all of the low-level details of the FMOD API. You can look through all of the available `FmodManager` function calls with descriptions [here](https://tanneris.me/haxe-fmod-helper-library).
 
-Songs and sound effects are triggered by passing in the full FMOD bank event path to the `FmodManager.PlaySong` and `FmodManager.PlaySound` functions. To use the `FmodSongs` and `FmodSFX` classes shown in the example at the top of this readme (highly recommended), follow the additional setup instructions found in [fmod-scripts](https://tanneris.me/haxe-fmod-scripts) folder of this repo.
+Songs and sound effects are triggered by passing in the full FMOD bank event path to the `FmodManager.PlaySong` and `FmodManager.PlaySound` functions. To use constants to reference the events instead of strings, follow the additional setup instructions found in the [fmod-scripts](https://tanneris.me/haxe-fmod-scripts) folder of this repo (highly recommended).
 
 **important**: This library needs a constant stream of update calls to function properly. Remember to call `FmodManager.Update()` at the beginning of **every** update loop of **every** state in your game.
 
@@ -84,11 +84,13 @@ DebugMessages //Bool: Enables console output for internal FMOD API calls (can be
 
 ## <a name="html5-builds"></a>HTML5 Builds
 
-For HTML5 builds to work, a dedicated scene must be run before the game starts to give the FMOD engine a chance to fully load. See the [EZPlatformer example project (HaxeFlixel)](http://tanneris.me/haxe-fmod-example-project) for a demonstration of how to handle this. The `Main.hx` file loads the startup scene, the startup scene initializes FMOD and waits for it to report back as initialized, then the game is started.
+For HTML5 builds to work, a dedicated scene must be run before the game starts to give the FMOD engine a chance to fully load. See the [EZPlatformer example project (HaxeFlixel)](http://tanneris.me/haxe-fmod-example-project) in the `example-project` folder of this repo for a demonstration of how to handle this. The `Main.hx` file loads the startup scene, the startup scene initializes FMOD and waits for it to report back as initialized, then the game is started.
 
 ## <a name="fmod-studio-project-configuration"></a>FMOD Studio Project Configuration
 
 **FMOD Studio project structure**:
+
+This structure is only required if you plan to utilize the [code generation script](https://tanneris.me/haxe-fmod-scripts) to sync your FMOD Studio project with your game code (highly recommended)
 
 - Songs should be placed inside a folder titled "Music" in your FMOD Studio project
 - Sound effects should be placed inside a folder titled "SFX" in your FMOD Studio project
@@ -111,9 +113,9 @@ Checkout the [fmod-scripts](https://tanneris.me/haxe-fmod-scripts) folder in thi
 
 **FMOD Studio Live Update:**
 
-When using Live Update in FMOD Studio, turn the auto-reconnect feature off or your game will not start. Hopefully that issue can be resolved fairly easily.
+When using [Live Update](http://tanneris.me/FMOD-Live-Update) in FMOD Studio, turn the auto-reconnect feature off or your game will not start. Hopefully this issue can be resolved fairly easily.
 
-**Note**: Unfortunately, the Live Update feature is officially not available for HTML5 builds. The FMOD team said this has to do with the game running inside the browser.
+**Note**: The Live Update feature will only work for Windows builds. It is officially unsupported for HTML5 builds. The FMOD team said this has to do with limitations caused by running games inside a browser.
 
 ## <a name="example-project"></a>Example Project
 
@@ -124,7 +126,7 @@ Inside the `example-project` folder, you will find a simple game from the [HaxeF
 
 The FMOD Studio project for the example game is also included.
 
-Play the game, explore the code, and open up the FMOD Studio project (try Live Update!). This will provide insight into the workflow, library calls, and features of this tool. Open the `EZPlatofmrer` folder directly with vscode to get autocomplete and function lookups as you look around the code.
+Play the game, explore the code, and open up the FMOD Studio project (try [Live Update](http://tanneris.me/FMOD-Live-Update)!). This will provide insight into the workflow, library calls, and features of this tool. Open the `EZPlatofmrer` folder directly with vscode to get autocomplete and function lookups as you look around the code.
 
 To play the game, run `lime test windows` or `lime test html5` in the `EZPlatformer` folder
 
