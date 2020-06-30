@@ -5,8 +5,8 @@
 	"tags": ["fmod","audio","windows", "html5", "web"],
 	
     "description" : "Use FMOD Studio with Haxe on Windows and HTML5",
-    "version" : "0.6.0-alpha",
-	"releasenote" : "Improving naming for Flixel-specific helper libraries",
+    "version" : "0.6.1-alpha",
+	"releasenote" : "Readme again!",
 	"contributors" : ["Tanz0rz"],
     "dependencies" : { }
 }
