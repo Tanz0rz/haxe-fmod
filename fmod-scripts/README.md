@@ -1,4 +1,4 @@
-# Connecting Bank Events to your Code
+# Connecting Bank Events to Your Code
 
 This script utilizes a very cool feature in FMOD Studio to give your code access to an always-up-to-date list of every event in your sound bank (using autocomplete!).
 

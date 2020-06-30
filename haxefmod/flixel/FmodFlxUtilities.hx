@@ -2,8 +2,8 @@ package haxefmod.flixel;
 
 import flixel.FlxState;
 
-@:access(haxefmod.flixel.FmodUtilitiesPrivate)
-class FmodUtilities {
+@:access(haxefmod.flixel.FmodFlxUtilitiesPrivate)
+class FmodFlxUtilities {
     /** 
         Sends the "stop" command to the FMOD API and waits for the
         current song to stop before triggering a state transition
@@ -11,7 +11,7 @@ class FmodUtilities {
         @see https://tanneris.me/FMOD-AHDSR
     **/
     public static function TransitionToStateAndStopMusic(state:FlxState) {
-        FmodUtilitiesPrivate.GetInstance().TransitionToStateAndStopMusic(state);
+        FmodFlxUtilitiesPrivate.GetInstance().TransitionToStateAndStopMusic(state);
     }
 
     /**
@@ -21,6 +21,6 @@ class FmodUtilities {
         @param state the state to load
     **/
     public static function TransitionToState(state:FlxState) {
-        FmodUtilitiesPrivate.GetInstance().TransitionToState(state);
+        FmodFlxUtilitiesPrivate.GetInstance().TransitionToState(state);
     }
 }

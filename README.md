@@ -27,9 +27,10 @@ LICENCE: [MIT](https://tanneris.me/mit-license)
 
 
 ## <a name="features"></a>Features 
-- FMOD in Haxe!
-- FMOD Studio [Live Update](http://tanneris.me/FMOD-Live-Update) (Windows only)
-- Auto-updated constants file for all FMOD Studio bank events [using code generation](https://tanneris.me/haxe-fmod-scripts)
+- Sounds loaded using an [FMOD bank](http://tanneris.me/FMOD-Banks) file
+- Event [parameters](http://tanneris.me/FMOD-Parameters) for altering sounds based on in-game actions
+- [Live Update](http://tanneris.me/FMOD-Live-Update) for mixing sounds while play testing (must be done on Windows game builds)
+- Easy referencing of FMOD Studio bank events in game code with the help of an [auto-updated constants file](https://tanneris.me/haxe-fmod-scripts)
 
 ## <a name="how-to-use-this-library"></a>How to Use This Library
 

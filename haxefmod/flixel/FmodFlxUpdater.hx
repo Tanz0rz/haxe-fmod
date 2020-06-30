@@ -8,7 +8,7 @@ import flixel.FlxG;
 
     It will automatically call FmodManager.Update() in the background
 **/
-class FmodUpdater extends FlxBasic {
+class FmodFlxUpdater extends FlxBasic {
     public static function init() {
         FlxG.plugins.add(new FmodUpdater());
     }

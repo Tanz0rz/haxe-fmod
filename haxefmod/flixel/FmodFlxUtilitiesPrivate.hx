@@ -6,17 +6,17 @@ import haxefmod.FmodManagerPrivate;
 import flixel.FlxG;
 import flixel.FlxState;
 
-class FmodUtilitiesPrivate implements FmodEventListener {
+class FmodFlxUtilitiesPrivate implements FmodEventListener {
     private var DestinationState:FlxState;
     private var listeningForMusicStoppedEvent:Bool;
 
-    private static var instance:FmodUtilitiesPrivate;
+    private static var instance:FmodFlxUtilitiesPrivate;
 
     private function new() {}
 
-    private static function GetInstance():FmodUtilitiesPrivate {
+    private static function GetInstance():FmodFlxUtilitiesPrivate {
         if (instance == null) {
-            instance = new FmodUtilitiesPrivate();
+            instance = new FmodFlxUtilitiesPrivate();
             FmodManager.RegisterEventListener(instance);
         }
         return instance;
