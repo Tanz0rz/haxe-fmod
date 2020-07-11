@@ -111,6 +111,13 @@ class FmodManager {
         FmodManagerPrivate.GetInstance().UnpauseSong();
     }
 
+    /**
+        Returns true if a song is playing
+    **/
+    public static function IsSongPlaying():Bool {
+        return FmodManagerPrivate.GetInstance().IsSongPlaying();
+    }
+
     //// Sound effects
 
     /**

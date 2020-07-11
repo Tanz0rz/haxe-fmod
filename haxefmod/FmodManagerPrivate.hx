@@ -164,6 +164,10 @@ class FmodManagerPrivate {
         HaxeFmod.fmod_set_event_instance_param(SongEventInstance, parameterName, parameterValue);
     }
 
+    private function IsSongPlaying():Bool {
+        return HaxeFmod.fmod_is_event_instance_playing(SongEventInstance);
+    }
+
     //// Sound effects
 
     private function PlaySoundOneShot(soundPath:String) {
