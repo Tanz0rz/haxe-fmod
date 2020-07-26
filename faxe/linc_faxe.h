@@ -184,21 +184,22 @@ namespace linc
 		//// Callbacks
 
 		/**
-		 * Tracks playback callback events for exactly one event instance
-		 * Callbacks can be checked with fmod_check_playback_callbacks
+		 * Tracks playback callback events for a given event instance
+		 * Callbacks can be checked with fmod_check_callbacks_for_event_instance
 		 * \param[eventInstanceName] ::String the name of the loaded event instance to track
 		 * \see https://tanneris.me/FMOD-Callback-Types
 		 */
-		extern void fmod_set_playback_callback_tracking_for_event_instance(const ::String& eventInstanceName);
+		extern void fmod_set_callback_tracking_for_event_instance(const ::String& eventInstanceName);
 
 		/**
 		 * Can only be used after assigning the event listener to an event instance
 		 * Checks for any FMOD_STUDIO_EVENT_CALLBACK_TYPE callbacks to have occured on the primary event instance
-		 * Once a callback value is read, subsequent calls to check the same callback will return "false" until that event fires again
+		 * Once a callback value specifiied by mask is read, that specific callback value is reset to 0
+		 * \param[eventInstanceName] ::String the name of the registered event instance to check
 		 * \param[callbackEventMask] ::unsigned int the bitmask that corresponds to the underlying callback type you want to check
 		 * \see https://tanneris.me/FMOD-Callback-Types
 		 */
-		extern bool fmod_check_playback_callbacks(unsigned int callbackEventMask);
+		extern bool fmod_check_callbacks_for_event_instance(const ::String& eventInstanceName, unsigned int callbackEventMask);
 
 	} // faxe + fmod namespace
 } // linc namespace

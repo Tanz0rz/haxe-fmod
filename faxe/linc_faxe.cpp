@@ -47,9 +47,8 @@ namespace linc
 		std::map<::String, FMOD::Sound*> loadedSounds;
 		std::map<::String, FMOD::Studio::EventInstance*> loadedEventInstances;
 		
-		// Callback flags
-		FMOD::Studio::EventInstance* trackedEventInstance;
-		unsigned int trackedEventInstanceCallbackFlags;
+		// Callbacks
+		std::map<::String, unsigned int> eventCallbacksFlagsMap;
 
 		// Background thread to automatically call FMOD's Update() function
 		std::thread autoUpdaterThread;
@@ -388,23 +387,47 @@ namespace linc
 
 		//// Callbacks
 
+		::String GetEventInstancePath(FMOD::Studio::EventInstance* eventInstance) {
+			char *path = new char [100];
+			int *retrieved = new int;
+			FMOD::Studio::EventDescription* eventDescription;
+			eventInstance->getDescription(&eventDescription);
+			eventDescription->getPath(path, 100, retrieved);
+			if (path == NULL){
+				printf("Fmod Callback could not find description of event\n");
+			}
+
+			// Haxe has a dedicated String class that must be used to convert char* to a string
+			::String pathAsString(path, *retrieved);
+
+			return pathAsString;
+		}
+
 		// Callback definitions must be defined before they are used in functions
 		FMOD_RESULT F_CALLBACK GetCallbackType(FMOD_STUDIO_EVENT_CALLBACK_TYPE type, FMOD_STUDIO_EVENTINSTANCE *event, void *parameters)
 		{
-			trackedEventInstanceCallbackFlags = trackedEventInstanceCallbackFlags | type;
-			return FMOD_OK;
+			auto eventInstancePath = GetEventInstancePath((FMOD::Studio::EventInstance*) event);
+			auto eventWithCallback = eventCallbacksFlagsMap.find(eventInstancePath);
+			if (eventWithCallback != eventCallbacksFlagsMap.end()) {
+				eventWithCallback->second = eventWithCallback->second | type;
+				return FMOD_OK;
+			}
+			return FMOD_ERR_EVENT_NOTFOUND;
 		}
 
-		void fmod_set_playback_callback_tracking_for_event_instance(const ::String& eventInstanceName) {
+		void fmod_set_callback_tracking_for_event_instance(const ::String& eventInstanceName) {
 			auto existingEventInstance = loadedEventInstances.find(eventInstanceName);
 			if (existingEventInstance != loadedEventInstances.end())
 			{
-				if (trackedEventInstance != NULL) {
-					trackedEventInstance->setCallback(NULL);
-				}
-				trackedEventInstanceCallbackFlags = 0;
-				trackedEventInstance = existingEventInstance->second;
 				existingEventInstance->second->setCallback(GetCallbackType);
+
+				auto eventInstancePath = GetEventInstancePath(existingEventInstance->second);
+				if (eventInstancePath.length == 0) 
+				{
+					printf("Haxefmod-cpp - Fmod Callback could not find description of event\n");
+				} else {
+					eventCallbacksFlagsMap[eventInstancePath] = 0;
+				}
 			}
 			else 
 			{
@@ -412,10 +435,25 @@ namespace linc
 			}
 		}
 
-		bool fmod_check_playback_callbacks(unsigned int callbackEventMask){
-			bool eventHappened = trackedEventInstanceCallbackFlags & callbackEventMask;
-			trackedEventInstanceCallbackFlags &= ~callbackEventMask;
-			return eventHappened;
+		bool fmod_check_callbacks_for_event_instance(const ::String& eventInstanceName, unsigned int callbackEventMask){
+			auto existingEventInstance = loadedEventInstances.find(eventInstanceName);
+			if (existingEventInstance != loadedEventInstances.end())
+			{
+				auto eventInstancePath = GetEventInstancePath(existingEventInstance->second);
+				if (eventInstancePath.length == 0) 
+				{
+					printf("Fmod Callback could not find description of event\n");
+				} else {
+					bool eventHappened = eventCallbacksFlagsMap[eventInstancePath] & callbackEventMask;
+					eventCallbacksFlagsMap[eventInstancePath] &= ~callbackEventMask;
+					return eventHappened;
+				}
+			}
+			else 
+			{
+				if(fmod_debug) printf("Could not check callback on %s because it wasn't found\n", eventInstanceName.c_str());
+			}
+			return false;
 		}
 
 	} // faxe + fmod namespace

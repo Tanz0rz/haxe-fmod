@@ -185,8 +185,8 @@ class jaxe {
 	static fmod_is_event_instance_playing(eventInstanceName){
 		if (jaxe.fmod_debug) console.log('Checking if ' + eventInstanceName + ' is playing');
 		if (!jaxe.loadedEventInstances[eventInstanceName]) {
-			console.log("FMOD Error: Event instance " + eventInstanceName + "is not loaded!");
-			return;
+			console.log("FMOD Error: Event instance " + eventInstanceName + "is not loaded. Returning false.");
+			return false;
 		}
 
 		var result;
@@ -261,6 +261,7 @@ class jaxe {
 		jaxe.CHECK_RESULT(result, 'setCallback() call failed for ' + eventInstanceName);
 
 	}
+
 	// Leaving debug messages off this to reduce console noise
 	static fmod_check_playback_callbacks(callbackEventMask){
 		var eventHappened;

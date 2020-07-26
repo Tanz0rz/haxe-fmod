@@ -5,9 +5,15 @@ import haxefmod.FmodEvents.FmodEvent;
 import haxefmod.FmodEvents.FmodEventListener;
 import haxefmod.Settings;
 
-enum FmodManagerAction {
-    NONE;
-    STOP_CURRENT_SONG_AND_PLAY_NEW_SONG;
+class FmodCallbackInfo {
+
+    public var CallbackFunction:Void->Void;
+    public var PlaybackEventMask:UInt;
+
+    public function new(callbackFunction:Void->Void, playbackEventMask:UInt) {
+        CallbackFunction = callbackFunction;
+        PlaybackEventMask = playbackEventMask;
+    }
 }
 
 class FmodManagerPrivate {
@@ -16,15 +22,15 @@ class FmodManagerPrivate {
     private var NextSong:String;
     private var SongEventInstance:String = "SongEventInstance";
 
-    // Update actions
-    private var CurrentAction:FmodManagerAction = NONE;
-
     // Events
     private var eventListeners:Array<FmodEventListener> = new Array();
 
     // Data
     private var soundIdIncrementer:Int = 0;
     private var lastUpdateCall:Float = 0;
+
+    // Event instances with registered callbacks
+    private var eventInstancesWithCallbacks:Map<String, FmodCallbackInfo> = new Map<String, FmodCallbackInfo>();
 
     // Settings
     private var settings:FmodSettings;
@@ -77,17 +83,19 @@ class FmodManagerPrivate {
     private function Update() {
         lastUpdateCall = Date.now().getTime();
 
-        // If transitioning songs, play the next song when the current one is stopped
-        if (CurrentAction == STOP_CURRENT_SONG_AND_PLAY_NEW_SONG
-            && HaxeFmod.fmod_get_event_instance_playback_state(SongEventInstance) == FMOD_STUDIO_PLAYBACK_STOPPED) {
-            PlaySong(NextSong);
-            CurrentAction = NONE;
-        }
-
+        // This may be entirely replaced by the new callback system
+        //
         // Whenever a song stops, send out the event to any registered listeners
-        if (HaxeFmod.fmod_check_playback_callbacks(FmodCallback.STOPPED)) {
-            for (eventListener in eventListeners) {
-                eventListener.ReceiveEvent(FmodEvent.MUSIC_STOPPED);
+        // if (HaxeFmod.fmod_check_callbacks_for_event_instance(SongEventInstance, FmodCallback.STOPPED)) {
+        //     for (eventListener in eventListeners) {
+        //         eventListener.ReceiveEvent(FmodEvent.MUSIC_STOPPED);
+        //     }
+        // }
+
+        // Go through any user-defined callbacks and execute them if needed
+        for (soundId in eventInstancesWithCallbacks.keys()) {
+            if (HaxeFmod.fmod_check_callbacks_for_event_instance(soundId, eventInstancesWithCallbacks[soundId].PlaybackEventMask)) {
+                eventInstancesWithCallbacks[soundId].CallbackFunction();
             }
         }
     }
@@ -95,6 +103,9 @@ class FmodManagerPrivate {
     //// Music
 
     private function PlaySong(songPath:String) {
+        // Clear out any callbacks when immediately playing a song
+        UnregisterCallbacksForSound(SongEventInstance);
+
         if (songPath == CurrentSong) {
             // If the song passed in is loaded, but not playing, start it again
             if (!HaxeFmod.fmod_is_event_instance_playing(SongEventInstance)) {
@@ -114,7 +125,6 @@ class FmodManagerPrivate {
 
         // Create a brand new event instance of the song
         HaxeFmod.fmod_create_event_instance_named(songPath, SongEventInstance);
-        HaxeFmod.fmod_set_playback_callback_tracking_for_event_instance(SongEventInstance);
         CurrentSong = songPath;
     }
 
@@ -133,8 +143,10 @@ class FmodManagerPrivate {
         }
 
         CheckIfUpdateIsBeingCalled();
-        CurrentAction = STOP_CURRENT_SONG_AND_PLAY_NEW_SONG;
         NextSong = songPath;
+        RegisterCallbacksForSound(SongEventInstance, () -> {
+                PlaySong(NextSong);
+            }, FmodCallback.STOPPED);
     }
 
     private function StopSong() {
@@ -199,6 +211,18 @@ class FmodManagerPrivate {
 
     private function SetEventParameterOnSound(soundId:String, parameterName:String, parameterValue:Float) {
         HaxeFmod.fmod_set_event_instance_param(soundId, parameterName, parameterValue);
+    }
+
+    //// Callbacks
+
+    private function RegisterCallbacksForSound(soundId:String, callback:Void->Void, playbackEventMask:UInt) {
+        var callbackInfo = new FmodCallbackInfo(callback, playbackEventMask);
+        eventInstancesWithCallbacks.set(soundId, callbackInfo);
+        HaxeFmod.fmod_set_callback_tracking_for_event_instance(soundId);
+    }
+
+    private function UnregisterCallbacksForSound(soundId:String) {
+        eventInstancesWithCallbacks.remove(soundId);
     }
 
     //// Utility
