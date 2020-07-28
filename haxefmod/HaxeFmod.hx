@@ -96,5 +96,8 @@ extern class HaxeFmod {
     public static function fmod_set_event_instance_param(eventInstanceName:String, paramName:String, value:Float):Void;
 
     //// Callbacks
+
+    public static function fmod_set_callback_tracking_for_event_instance(eventInstanceName:String):Void;
+    public static function fmod_check_callbacks_for_event_instance(eventInstanceName:String, callbackEventMask:UInt):Bool; 
 }
 #end

@@ -40,8 +40,9 @@ class jaxe {
 	// Cache of any named event instances
 	static loadedEventInstances = {};
 	// Callback flags
-	static trackedEventInstance;
-	static trackedEventInstanceCallbackFlags = 0x00000000;
+	static eventCallbacksFlagsDictionary = {};
+
+
 	// Debug flag
 	static fmod_debug = false;
 
@@ -236,37 +237,71 @@ class jaxe {
 		jaxe.CHECK_RESULT(result, 'setParameterByName() call failed for ' + eventInstanceName);
 	}
 
+	//// Callbacks
+
+	static GetEventInstancePath(eventInstance) {
+		var result = {};
+
+		var description = {};
+		result = eventInstance.getDescription(description);
+		jaxe.CHECK_RESULT(result, 'getDescription() call failed for event instance');
+
+		var path = {}, size = 100, retrieve = 0;
+		result = description.val.getPath(path, size, retrieve)
+		jaxe.CHECK_RESULT(result, 'getPath() call failed for event instance');
+
+		if (!path.val){
+			console.log('Fmod Callback could not find description of event for event instance');
+		}
+
+		return path.val;
+	}
+
 	static GetCallbackType(type, event, parameters)
 	{
-		jaxe.trackedEventInstanceCallbackFlags = jaxe.trackedEventInstanceCallbackFlags | type;
+		var eventInstancePath = jaxe.GetEventInstancePath(event);
+		if(jaxe.eventCallbacksFlagsDictionary[eventInstancePath] == undefined) {
+			console.log('FMOD Error: Cannot find event instance path in flags dictionary: ' + eventInstancePath);
+			return jaxe.FMOD.FMOD_ERR_EVENT_NOTFOUND;
+		}
+
+		jaxe.eventCallbacksFlagsDictionary[eventInstancePath] = jaxe.eventCallbacksFlagsDictionary[eventInstancePath] | type;
 		return jaxe.FMOD.OK;
 	}
 
-	static fmod_set_playback_callback_tracking_for_event_instance(eventInstanceName){
+	static fmod_set_callback_tracking_for_event_instance(eventInstanceName) {
 		if (jaxe.fmod_debug) console.log('Setting playback listener to track ' + eventInstanceName);
+		if(!jaxe.loadedEventInstances[eventInstanceName]){
+			console.log('FMOD Error: Cannot find event instance: ' + eventInstanceName);
+		}
+		
+		var eventInstancePath = jaxe.GetEventInstancePath(jaxe.loadedEventInstances[eventInstanceName]);
+		if (!eventInstancePath) {
+			console.log('FMOD Error: No event path found for ' + eventInstancePath);
+		}
+		
+		var result = {};
+		result = jaxe.loadedEventInstances[eventInstanceName].setCallback(jaxe.GetCallbackType, jaxe.FMOD.STUDIO_EVENT_CALLBACK_ALL);
+		jaxe.CHECK_RESULT(result, 'setCallback() call failed for ' + eventInstanceName);
+
+		jaxe.eventCallbacksFlagsDictionary[eventInstancePath] = 0x00000000;
+	}
+
+	static fmod_check_callbacks_for_event_instance(eventInstanceName, callbackEventMask){
 		if(!jaxe.loadedEventInstances[eventInstanceName]){
 			console.log('FMOD Error: Cannot find event instance: ' + eventInstanceName);
 			return;
 		}
-		
-		var result = {};
-		if (jaxe.trackedEventInstance != undefined) {
-			result = jaxe.trackedEventInstance.setCallback(undefined, jaxe.FMOD.STUDIO_EVENT_CALLBACK_ALL);
-			jaxe.CHECK_RESULT(result);
+
+		var eventInstancePath = jaxe.GetEventInstancePath(jaxe.loadedEventInstances[eventInstanceName]);
+		if (!eventInstancePath) {
+			console.log('FMOD Error: No event path found for ' + eventInstanceName);
+			return;
 		}
-		jaxe.trackedEventInstanceCallbackFlags = 0x00000000;
-		jaxe.trackedEventInstance = jaxe.loadedEventInstances[eventInstanceName];
-	
-		result = jaxe.loadedEventInstances[eventInstanceName].setCallback(jaxe.GetCallbackType, jaxe.FMOD.STUDIO_EVENT_CALLBACK_ALL);
-		jaxe.CHECK_RESULT(result, 'setCallback() call failed for ' + eventInstanceName);
 
-	}
-
-	// Leaving debug messages off this to reduce console noise
-	static fmod_check_playback_callbacks(callbackEventMask){
 		var eventHappened;
-		eventHappened = jaxe.trackedEventInstanceCallbackFlags & callbackEventMask;
-		jaxe.trackedEventInstanceCallbackFlags &= ~callbackEventMask;
+		eventHappened = jaxe.eventCallbacksFlagsDictionary[eventInstancePath] & callbackEventMask;
+		jaxe.eventCallbacksFlagsDictionary[eventInstancePath] &= ~callbackEventMask;
 		return eventHappened;
 	}
 
