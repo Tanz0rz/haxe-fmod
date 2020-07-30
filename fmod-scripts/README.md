@@ -35,7 +35,7 @@ import FmodConstants.FmodSongs;
 - Place the ExportHaxeConstants.js file in your FMOD Studio's "scripts" folder. This folder will be found wherever you installed FMOD Studio on your computer.
 - In FMOD Studio, click the Scripts dropdown at the top and select "Reload". 
 - Click on the Scripts dropdown again and you will see an "Export Haxe Constants" option now available.
-- When prompted, select the directory in your Haxe project where your main `.hx` file is located.
+- When prompted, select the directory in your Haxe project that contains your `Main.hx` file (this is usually the `/source` directory).
 
 
 **Note:** For your new constants file to stay up to date, this script must be run *every* time you build your sound bank (the script triggers the bank build for you!)
