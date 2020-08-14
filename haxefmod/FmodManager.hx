@@ -187,6 +187,22 @@ class FmodManager {
     }
 
     /**
+        Pauses a sound
+        @param soundId Id of a currently-loaded sound
+    **/
+    public static function PauseSound(soundId:String) {
+        FmodManagerPrivate.GetInstance().PauseSound(soundId);
+    }
+
+    /**
+        Unpauses a sound
+        @param soundId Id of a currently-loaded sound
+    **/
+    public static function UnpauseSound(soundId:String) {
+        FmodManagerPrivate.GetInstance().UnpauseSound(soundId);
+    }
+
+    /**
         Immediately stops a sound for the provided sound Id and releases it from memory
         @param soundId Id of a currently-loaded sound
     **/

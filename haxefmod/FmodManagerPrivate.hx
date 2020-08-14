@@ -201,6 +201,14 @@ class FmodManagerPrivate {
         HaxeFmod.fmod_stop_event_instance_immediately(soundId);
     }
 
+    private function PauseSound(soundId:String) {
+        HaxeFmod.fmod_set_pause_on_event_instance(soundId, true);
+    }
+
+    private function UnpauseSound(soundId:String) {
+        HaxeFmod.fmod_set_pause_on_event_instance(soundId, false);
+    }
+
     private function ReleaseSound(soundId:String) {
         HaxeFmod.fmod_release_event_instance(soundId);
     }
