@@ -103,12 +103,14 @@ class jaxe {
 	static fmod_create_event_instance_named(eventPath, eventInstanceName){
 		if (jaxe.fmod_debug) console.log('Creating an instnce of ' + eventPath + 'with the name: ' + eventInstanceName);
 
+		var result = {};
 		if (jaxe.loadedEventInstances[eventInstanceName]) {
 			if (jaxe.fmod_debug) console.log('Event instance is already loaded: ' + eventInstanceName + '. Overwriting it with ' + eventPath);
+			result = jaxe.loadedEventInstances[eventInstanceName].stop(jaxe.FMOD.STUDIO_STOP_IMMEDIATE);
+			jaxe.CHECK_RESULT(result, 'Tried stopping old event instance, but failed ' + eventInstanceName);
 		}
 
 		var description = {};
-		var result = {};
 		result = jaxe.gSystem.getEvent(eventPath, description);
 		jaxe.CHECK_RESULT(result, 'getEvent() call failed for ' + eventPath);
 

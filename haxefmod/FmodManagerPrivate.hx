@@ -124,6 +124,7 @@ class FmodManagerPrivate {
         }
 
         // Create a brand new event instance of the song
+        
         HaxeFmod.fmod_create_event_instance_named(songPath, SongEventInstance);
         CurrentSong = songPath;
     }
@@ -191,6 +192,15 @@ class FmodManagerPrivate {
         HaxeFmod.fmod_create_event_instance_named(soundPath, soundId);
         soundIdIncrementer++;
         return soundId;
+    }
+
+    private function PlaySoundAndAssignId(soundPath:String, soundId:String):String {
+        HaxeFmod.fmod_create_event_instance_named(soundPath, soundId);
+        return soundId;
+    }
+
+    public function IsSoundLoaded(soundId:String):Bool {
+        return HaxeFmod.fmod_is_event_instance_loaded(soundId);
     }
 
     private function StopSound(soundId:String) {
