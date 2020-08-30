@@ -42,14 +42,16 @@ class FmodManagerPrivate {
     private static function GetInstance():FmodManagerPrivate {
         if (instance == null) {
             instance = new FmodManagerPrivate();
-            
             instance.settings = Settings.LoadDefaultFmodSettings();
-            if (instance.settings.DebugMessages) {
-                HaxeFmod.fmod_set_debug(true);
-            }
+
             // If the -debug flag is passed into the build, enable debug messages
             #if debug
             HaxeFmod.fmod_set_debug(true);
+
+            // Suppress debug messages if specified in the settings file
+            if (instance.settings.SuppressDebugMessages){
+                HaxeFmod.fmod_set_debug(false);
+            }
             #end
 
             HaxeFmod.fmod_init(128);
