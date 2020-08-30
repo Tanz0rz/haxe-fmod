@@ -10,7 +10,7 @@ import flixel.FlxG;
 **/
 class FmodFlxUpdater extends FlxBasic {
     public static function init() {
-        FlxG.plugins.add(new FmodUpdater());
+        FlxG.plugins.add(new FmodFlxUpdater());
     }
 
     override public function update(elapsed:Float):Void {

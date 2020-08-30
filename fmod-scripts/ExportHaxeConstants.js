@@ -17,7 +17,7 @@ function displayDirectoryPickerModal() {
 
     var outputPathDir = readOutputPathFromFile();
     studio.ui.showModalDialog({
-        windowTitle: "Select your Haxe project folder",
+        windowTitle: "Select the folder with your Haxe project's Main class",
         windowWidth: 800,
         windowHeight: 0,
         widgetType: studio.ui.widgetType.Layout,
