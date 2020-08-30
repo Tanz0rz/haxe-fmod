@@ -206,6 +206,10 @@ class FmodManagerPrivate {
         return HaxeFmod.fmod_is_event_instance_loaded(soundId);
     }
 
+    public function IsSoundPlaying(soundId:String):Bool {
+        return HaxeFmod.fmod_is_event_instance_playing(soundId);
+    }
+
     private function StopSound(soundId:String) {
         HaxeFmod.fmod_stop_event_instance(soundId);
     }

@@ -171,7 +171,7 @@ class FmodManager {
     /**
         Checks if a given sound Id is loaded
 
-        @param soundPath bank path of the sound event in the sound bank
+        @param soundId Id of a loaded sound
         @return bool
     **/
     public static function IsSoundLoaded(soundId:String):Bool {
@@ -179,8 +179,18 @@ class FmodManager {
     }
 
     /**
+        Checks if a given sound Id is currently playing
+
+        @param soundId Id of a loaded sound
+        @return bool
+    **/
+    public static function IsSoundPlaying(soundId:String):Bool {
+        return FmodManagerPrivate.GetInstance().IsSoundPlaying(soundId);
+    }
+
+    /**
         Gets an event parameter value from a sound
-        @param soundId Id of a currently-loaded sound
+        @param soundId Id of a loaded sound
         @param parameterName name of parameter on sound
     **/
     public static function GetEventParameterOnSound(soundId:String, parameterName:String):Float {
@@ -191,7 +201,7 @@ class FmodManager {
         Sets an event parameter value on a sound
 
         Setting a parameter when the game is paused will require a manual call to Update() for FMOD to see the change
-        @param soundId Id of a currently-loaded sound
+        @param soundId Id of a loaded sound
         @param parameterName name of parameter on sound
         @param parameterValue value for parameter
     **/
@@ -203,7 +213,7 @@ class FmodManager {
         Stops a sound for the provided sound Id
 
         To stop a sound immediately, use StopSoundImmediately(soundId)
-        @param soundId Id of a currently-loaded sound
+        @param soundId Id of a loaded sound
     **/
     public static function StopSound(soundId:String) {
         FmodManagerPrivate.GetInstance().StopSound(soundId);
@@ -211,7 +221,7 @@ class FmodManager {
 
     /**
         Immediately stops a sound for the provided sound Id
-        @param soundId Id of a currently-loaded sound
+        @param soundId Id of a loaded sound
     **/
     public static function StopSoundImmediately(soundId:String) {
         FmodManagerPrivate.GetInstance().StopSoundImmediately(soundId);
@@ -219,7 +229,7 @@ class FmodManager {
 
     /**
         Pauses a sound
-        @param soundId Id of a currently-loaded sound
+        @param soundId Id of a loaded sound
     **/
     public static function PauseSound(soundId:String) {
         FmodManagerPrivate.GetInstance().PauseSound(soundId);
@@ -227,7 +237,7 @@ class FmodManager {
 
     /**
         Unpauses a sound
-        @param soundId Id of a currently-loaded sound
+        @param soundId Id of a loaded sound
     **/
     public static function UnpauseSound(soundId:String) {
         FmodManagerPrivate.GetInstance().UnpauseSound(soundId);
@@ -235,7 +245,7 @@ class FmodManager {
 
     /**
         Immediately stops a sound for the provided sound Id and releases it from memory
-        @param soundId Id of a currently-loaded sound
+        @param soundId Id of a loaded sound
     **/
     public static function ReleaseSound(soundId:String) {
         FmodManagerPrivate.GetInstance().ReleaseSound(soundId);
@@ -245,7 +255,7 @@ class FmodManager {
 
     /**
         Register a callback for a sound
-        @param soundId Id of a currently-loaded sound
+        @param soundId Id of a loaded sound
         @param callback Function to execute when the provided playbackEventMask is triggered
         @param playbackEventMask Event mask that will trigger the callback 
         @see The FmodCallback class in FmodEvents.hx
