@@ -148,6 +148,23 @@ class FmodManager {
     }
 
     /**
+        Plays a sound and sets the reference Id
+
+        When this sound is no longer needed, call ReleaseSound to cleanup memory
+
+        Simple sound effects should be played with PlaySoundOneShot
+        @param soundPath bank path of the sound event in the sound bank
+        @return soundId of the new event instance
+    **/
+    public static function PlaySoundAndAssignId(soundPath:String, soundId:String):String {
+        return FmodManagerPrivate.GetInstance().PlaySoundAndAssignId(soundPath, soundId);
+    }
+
+    public static function IsSoundLoaded(soundId:String):Bool {
+        return FmodManagerPrivate.GetInstance().IsSoundLoaded(soundId);
+    }
+
+    /**
         Gets an event parameter value from a sound
         @param soundId Id of a currently-loaded sound
         @param parameterName name of parameter on sound
@@ -184,6 +201,22 @@ class FmodManager {
     **/
     public static function StopSoundImmediately(soundId:String) {
         FmodManagerPrivate.GetInstance().StopSoundImmediately(soundId);
+    }
+
+    /**
+        Pauses a sound
+        @param soundId Id of a currently-loaded sound
+    **/
+    public static function PauseSound(soundId:String) {
+        FmodManagerPrivate.GetInstance().PauseSound(soundId);
+    }
+
+    /**
+        Unpauses a sound
+        @param soundId Id of a currently-loaded sound
+    **/
+    public static function UnpauseSound(soundId:String) {
+        FmodManagerPrivate.GetInstance().UnpauseSound(soundId);
     }
 
     /**
