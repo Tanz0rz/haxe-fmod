@@ -118,6 +118,14 @@ class FmodManager {
         return FmodManagerPrivate.GetInstance().IsSongPlaying();
     }
 
+    /**
+        Gets the event path of the current song.
+        If no song is playing, returns an empty string
+    **/
+    public static function GetCurrentSongPath():String {
+        return FmodManagerPrivate.GetInstance().GetCurrentSongPath();
+    }
+
     //// Sound effects
 
     /**
@@ -160,6 +168,12 @@ class FmodManager {
         return FmodManagerPrivate.GetInstance().PlaySoundAndAssignId(soundPath, soundId);
     }
 
+    /**
+        Checks if a given sound Id is loaded
+
+        @param soundPath bank path of the sound event in the sound bank
+        @return bool
+    **/
     public static function IsSoundLoaded(soundId:String):Bool {
         return FmodManagerPrivate.GetInstance().IsSoundLoaded(soundId);
     }

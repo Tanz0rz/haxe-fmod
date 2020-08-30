@@ -18,7 +18,7 @@ class FmodCallbackInfo {
 
 class FmodManagerPrivate {
     // Main song
-    private var CurrentSong:String;
+    private var CurrentSong:String = "";
     private var NextSong:String;
     private var SongEventInstance:String = "SongEventInstance";
 
@@ -123,8 +123,7 @@ class FmodManagerPrivate {
             // HaxeFmod.fmod_release_event_instance(SongEventInstance);
         }
 
-        // Create a brand new event instance of the song
-        
+        // Create a brand new event instance of the song        
         HaxeFmod.fmod_create_event_instance_named(songPath, SongEventInstance);
         CurrentSong = songPath;
     }
@@ -179,6 +178,10 @@ class FmodManagerPrivate {
 
     private function IsSongPlaying():Bool {
         return HaxeFmod.fmod_is_event_instance_playing(SongEventInstance);
+    }
+
+    private function GetCurrentSongPath():String {
+        return CurrentSong;
     }
 
     //// Sound effects
