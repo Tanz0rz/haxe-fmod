@@ -35,6 +35,13 @@ class FmodManager {
         FmodManagerPrivate.GetInstance().Update();
     }
 
+    /**
+        Prints out a warning message to console if Update() has not been called recently
+    **/
+    public static function CheckIfUpdateIsBeingCalled() {
+        FmodManagerPrivate.GetInstance().CheckIfUpdateIsBeingCalled();
+    }
+
     //// Music
 
     /**
