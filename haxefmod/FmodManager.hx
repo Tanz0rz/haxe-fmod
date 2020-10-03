@@ -254,6 +254,24 @@ class FmodManager {
     //// Callbacks
 
     /**
+        Register a callback for the current song
+        @param callback Function to execute when the provided playbackEventMask is triggered
+        @param playbackEventMask Event mask that will trigger the callback 
+        @see The FmodCallback class in FmodEvents.hx
+        @see https://tanneris.me/FMOD-Callback-Types
+    **/
+    public static function RegisterCallbacksForSong(callback:Void->Void, playbackEventMask:UInt) {
+        FmodManagerPrivate.GetInstance().RegisterCallbacksForSong(callback, playbackEventMask);
+    }
+
+    /**
+        Disables callbacks for the current song
+    **/
+    private function UnregisterCallbacksForSong() {
+        FmodManagerPrivate.GetInstance().UnregisterCallbacksForSong();
+    }
+
+    /**
         Register a callback for a sound
         @param soundId Id of a loaded sound
         @param callback Function to execute when the provided playbackEventMask is triggered

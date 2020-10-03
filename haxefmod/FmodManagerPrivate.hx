@@ -242,6 +242,16 @@ class FmodManagerPrivate {
 
     //// Callbacks
 
+    private function RegisterCallbacksForSong(callback:Void->Void, playbackEventMask:UInt) {
+        var callbackInfo = new FmodCallbackInfo(callback, playbackEventMask);
+        eventInstancesWithCallbacks.set(SongEventInstance, callbackInfo);
+        HaxeFmod.fmod_set_callback_tracking_for_event_instance(SongEventInstance);
+    }
+
+    private function UnregisterCallbacksForSong() {
+        eventInstancesWithCallbacks.remove(SongEventInstance);
+    }
+
     private function RegisterCallbacksForSound(soundId:String, callback:Void->Void, playbackEventMask:UInt) {
         var callbackInfo = new FmodCallbackInfo(callback, playbackEventMask);
         eventInstancesWithCallbacks.set(soundId, callbackInfo);
