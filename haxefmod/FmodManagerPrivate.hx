@@ -170,6 +170,10 @@ class FmodManagerPrivate {
         HaxeFmod.fmod_set_pause_on_event_instance(SongEventInstance, false);
     }
 
+    private function ClearAllCallbacks() {
+        eventInstancesWithCallbacks = new Map<String, FmodCallbackInfo>();
+    }
+
     private function GetEventParameterOnSong(parameterName:String):Float {
         return HaxeFmod.fmod_get_event_instance_param(SongEventInstance, parameterName);
     }

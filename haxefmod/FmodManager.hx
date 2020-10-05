@@ -112,6 +112,13 @@ class FmodManager {
     }
 
     /**
+        If a song is paused, it will unpause
+    **/
+    public static function ClearAllCallbacks() {
+        FmodManagerPrivate.GetInstance().ClearAllCallbacks();
+    }
+
+    /**
         Returns true if a song is playing
     **/
     public static function IsSongPlaying():Bool {
