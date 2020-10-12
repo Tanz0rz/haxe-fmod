@@ -15,3 +15,7 @@ haxe-fmod.zip
 
 # Generated code
 *raw.js
+
+faxe_hl/obj/
+faxe_hl/*.lib
+faxe_hl/*.exp
