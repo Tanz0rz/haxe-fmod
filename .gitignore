@@ -16,6 +16,9 @@ haxe-fmod.zip
 # Generated code
 *raw.js
 
+#build artefacts & such
 faxe_hl/obj/
 faxe_hl/*.lib
 faxe_hl/*.exp
+faxe_hl/*.hash
+faxe_hl/build2.bat
