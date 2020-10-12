@@ -13,7 +13,6 @@
 
 	<section if="hl">
 		<!-- Lime currently bundles 32 bit Hashlink -->
-		<echo value="Copying hl files"/>
 		<ndll name="faxe"/>
 		<dependency name="faxe_hl/faxe.hdll"/>
 		<dependency name="lib/Windows/api/core/lib/x86/fmod.dll"/>
