@@ -1,7 +1,7 @@
 package haxefmod;
 
 import haxefmod.FmodInternalEnums;
-#if (hl||true)
+#if hl
 private abstract HlString(hl.Bytes) from hl.Bytes to hl.Bytes{
     @:from static function fromHaxe(s:String)
         return @:privateAccess new HlString(s.toUtf8());
