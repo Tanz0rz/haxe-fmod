@@ -23,7 +23,8 @@ To avoid having to import three classes in every file of your game code, you can
 
 `import.hx`:
 ```haxe
-// Only use imports when not in the macro context. The FMOD files use build macros and will throw errors if imported within a macro context.
+// Only use imports when not in the macro context.
+// The FMOD files use build macros and will throw errors if imported within the macro context.
 #if !macro
 
 // Fmod helper library
