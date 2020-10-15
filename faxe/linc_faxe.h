@@ -43,7 +43,7 @@
 #endif
 
 #include <fmod_studio.hpp>
-		//// FMOD System
+		// FMOD System
 
 		/**
 		 * Turns on print statements for any errors happening within the FMOD integration
@@ -72,7 +72,7 @@
 		 */
 		extern void update_fmod_async();
 
-		//// Sound Banks
+		// Sound Banks
 
 		/**
 		 * Load a FMOD sound bank file
@@ -86,7 +86,7 @@
 		 */
 		HL_PRIM extern void HL_NAME(fmod_unload_bank)(faxe_string bankName);
 		
-		//// Event Descriptions
+		// Event Descriptions
 
 		/**
 		 * Load an event description from a loaded bank
@@ -102,7 +102,7 @@
 		 */
 		HL_PRIM extern bool HL_NAME(fmod_is_event_description_loaded)(faxe_string eventDescriptionName);
 
-		//// Events
+		// Events
 
 		/**
 		 * Create and play an event instance in a fire-and-forget fashion
@@ -186,7 +186,7 @@
 		 */
 		HL_PRIM extern void HL_NAME(fmod_set_event_instance_param)(faxe_string eventInstanceName, faxe_string paramName, float value);
 
-		//// Callbacks
+		// Callbacks
 
 		/**
 		 * Tracks playback callback events for a given event instance
