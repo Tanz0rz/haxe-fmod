@@ -28,11 +28,12 @@
 #define HL_NAME(n) faxe_##n
 #ifdef FAXE_HL
 #include <hl.h>
-typedef vbyte *faxe_string;
+#define faxe_string vstring*
 #else
 #define HL_PRIM
 // #define faxe_string const char*
-typedef const char *faxe_string;
+// typedef const char *faxe_string;
+#define faxe_string ::String
 #endif
 
 #define IMPLEMENT_API

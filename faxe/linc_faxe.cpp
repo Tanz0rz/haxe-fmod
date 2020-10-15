@@ -34,19 +34,33 @@
 #include <map>
 #include <thread>
 
-char *faxe_to_cstring(faxe_string s) { return (char *)s; }
+char *faxe_to_cstring(faxe_string s) {
+#ifdef FAXE_HL
+	return hl_to_utf8(s->bytes);
+#else
+	return (char *)s.c_str();
+#endif
+}
 
 int faxe_string_length(faxe_string s)
 {
-#if FAXE_HL
-	return hl_utf8_length(s, 0);
+#ifdef FAXE_HL
+	return s->length;
 #else
-	return s == "" ? 0 : 1;
+	return s.length;
 #endif
 }
 
 faxe_string faxe_string_from_c(char *s, int len) {
-	 return (faxe_string)s; 
+#ifdef FAXE_HL
+	faxe_string str = (faxe_string)hl_alloc_dynamic(&hlt_dynobj);
+	str->bytes = (uchar*)s;
+	str->length = len;
+	return (faxe_string)str;
+#else
+	return faxe_string(s,len);
+#endif
+	 
 }
 
 // FMOD Sound System
@@ -577,20 +591,21 @@ DEFINE_PRIM(_VOID, fmod_set_debug, _BOOL)
 DEFINE_PRIM(_BOOL, fmod_is_initialized, _NO_ARG)
 DEFINE_PRIM(_VOID, fmod_init, _I32)
 DEFINE_PRIM(_VOID, fmod_update, _NO_ARG)
-DEFINE_PRIM(_VOID, fmod_load_bank, _BYTES)
-DEFINE_PRIM(_VOID, fmod_unload_bank, _BYTES)
-DEFINE_PRIM(_VOID, fmod_create_event_instance_one_shot, _BYTES)
-DEFINE_PRIM(_VOID, fmod_create_event_instance_named, _BYTES _BYTES)
-DEFINE_PRIM(_BOOL, fmod_is_event_instance_loaded, _BYTES)
-DEFINE_PRIM(_VOID, fmod_play_event_instance, _BYTES)
-DEFINE_PRIM(_VOID, fmod_set_pause_on_event_instance, _BYTES _BOOL)
-DEFINE_PRIM(_VOID, fmod_stop_event_instance, _BYTES)
-DEFINE_PRIM(_VOID, fmod_stop_event_instance_immediately, _BYTES)
-DEFINE_PRIM(_VOID, fmod_release_event_instance, _BYTES)
-DEFINE_PRIM(_BOOL, fmod_is_event_instance_playing, _BYTES)
-DEFINE_PRIM(_I32, fmod_get_event_instance_playback_state, _BYTES)
-DEFINE_PRIM(_F32, fmod_get_event_instance_param, _BYTES _BYTES)
-DEFINE_PRIM(_VOID, fmod_set_event_instance_param, _BYTES _BYTES _F32)
-DEFINE_PRIM(_VOID, fmod_set_callback_tracking_for_event_instance, _BYTES)
-DEFINE_PRIM(_BOOL, fmod_check_callbacks_for_event_instance, _BYTES _I32)
+DEFINE_PRIM(_VOID, fmod_load_bank, _STRING)
+DEFINE_PRIM(_VOID, fmod_unload_bank, _STRING)
+DEFINE_PRIM(_VOID, fmod_create_event_instance_one_shot, _STRING)
+DEFINE_PRIM(_VOID, fmod_create_event_instance_named, _STRING _STRING)
+DEFINE_PRIM(_BOOL, fmod_is_event_instance_loaded, _STRING)
+DEFINE_PRIM(_VOID, fmod_play_event_instance, _STRING)
+DEFINE_PRIM(_VOID, fmod_set_pause_on_event_instance, _STRING _BOOL)
+DEFINE_PRIM(_VOID, fmod_stop_event_instance, _STRING)
+DEFINE_PRIM(_VOID, fmod_stop_event_instance_immediately, _STRING)
+DEFINE_PRIM(_VOID, fmod_release_event_instance, _STRING)
+DEFINE_PRIM(_BOOL, fmod_is_event_instance_playing, _STRING)
+DEFINE_PRIM(_I32, fmod_get_event_instance_playback_state, _STRING)
+DEFINE_PRIM(_F32, fmod_get_event_instance_param, _STRING _STRING)
+DEFINE_PRIM(_VOID, fmod_set_event_instance_param, _STRING _STRING _F32)
+DEFINE_PRIM(_VOID, fmod_set_callback_tracking_for_event_instance, _STRING)
+DEFINE_PRIM(_BOOL, fmod_check_callbacks_for_event_instance, _STRING _I32)
+// _STRING
 #endif
