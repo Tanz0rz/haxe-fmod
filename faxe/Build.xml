@@ -1,0 +1,33 @@
+<xml>
+    <section if="windows">
+        <set name="NATIVE_TOOLKIT_PATH" value="${this_dir}/../lib/Windows" />
+    </section>
+    <echo value="${this_dir}"/>
+    <!-- <echo value="Found your FMOD API ${NATIVE_TOOLKIT_PATH}!" ifExists="${NATIVE_TOOLKIT_PATH}/api" /> -->
+    <files id="faxe">
+        <compilerflag value="-DFAXE_HL"/>
+        <compilerflag value="-I${this_dir}/" />
+        <compilerflag value="-I${this_dir}/misc/" />
+        <compilerflag value="-I${NATIVE_TOOLKIT_PATH}/api/core/inc/" />
+        <compilerflag value="-I${NATIVE_TOOLKIT_PATH}/api/studio/inc/" />
+        <compilerflag value="-I${HASHLINK}/include" />
+        <file name="${this_dir}/linc_faxe.cpp" />
+    </files>
+
+
+    <target id="default" output="faxe" toolid="dll" tool="linker">
+        <section if="windows HXCPP_M32">
+            <lib name="${NATIVE_TOOLKIT_PATH}/api/core/lib/x86/fmod_vc.lib" />
+            <lib name="${NATIVE_TOOLKIT_PATH}/api/studio/lib/x86/fmodstudio_vc.lib" />
+        </section>
+
+        <section if="windows HXCPP_M64">
+            <lib name="${NATIVE_TOOLKIT_PATH}/api/core/lib/x64/fmod_vc.lib" />
+            <lib name="${NATIVE_TOOLKIT_PATH}/api/studio/lib/x64/fmodstudio_vc.lib" />
+        </section>
+
+        <files id="faxe"/>
+        <lib name="libhl32.lib"/>
+        <!-- <ext value=".hdll"/> -->
+    </target>
+</xml>

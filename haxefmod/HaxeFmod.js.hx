@@ -2,6 +2,7 @@ package haxefmod;
 
 import haxefmod.FmodInternalEnums;
 
+@:native("jaxe")
 extern class HaxeFmod {
 	// FMOD System
 	public static function fmod_set_debug(onOff:Bool):Void;
