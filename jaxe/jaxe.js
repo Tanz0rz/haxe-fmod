@@ -137,6 +137,27 @@ class jaxe {
 		result = jaxe.loadedEventInstances[eventInstanceName].start()
 		jaxe.CHECK_RESULT(result, 'start() call failed for ' + eventInstanceName);
 	}
+
+	static fmod_set_pause_for_all_events_on_bus(busPath, shouldBePaused){
+		var bus = {};
+
+		var result;
+		result = jaxe.gSystem.getBus(busPath, bus)
+		jaxe.CHECK_RESULT(result, 'Failed to get bus');
+		result = bus.val.setPaused(shouldBePaused);
+		jaxe.CHECK_RESULT(result, 'Failed to set pause on all events');
+	}
+
+	static fmod_stop_all_events_on_bus(busPath){
+		var bus = {};
+
+		var result;
+		result = jaxe.gSystem.getBus(busPath, bus)
+		jaxe.CHECK_RESULT(result, 'Failed to get bus');
+		result = bus.val.stopAllEvents(jaxe.FMOD.STUDIO_STOP_IMMEDIATE);
+		jaxe.CHECK_RESULT(result, 'Failed to stop all events');
+	}
+
 	static fmod_set_pause_on_event_instance(eventInstanceName, shouldBePaused){
 		if (jaxe.fmod_debug) console.log('Setting pause status of ' + eventInstanceName + ' to ' + shouldBePaused);
 		if (!jaxe.loadedEventInstances[eventInstanceName]) {

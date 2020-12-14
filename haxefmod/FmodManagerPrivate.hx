@@ -102,6 +102,18 @@ class FmodManagerPrivate {
         }
     }
 
+    private function StopAllSounds() {
+        HaxeFmod.fmod_stop_all_events_on_bus("bus:/");
+    }
+
+    private function PauseAllSounds() {
+        HaxeFmod.fmod_set_pause_for_all_events_on_bus("bus:/", true);
+    }
+
+    private function UnpauseAllSounds() {
+        HaxeFmod.fmod_set_pause_for_all_events_on_bus("bus:/", false);
+    }
+
     //// Music
 
     private function PlaySong(songPath:String) {

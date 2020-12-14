@@ -128,6 +128,19 @@ namespace linc
 		extern void fmod_play_event_instance(const ::String& eventInstanceName);
 
 		/**
+		 * Sends the "pause" or "unpause" command to all event instances on a given bus
+		 * \param[busPath] ::String the path to the bus
+		 * \param[shouldBePaused] bool if the event instance should be paused
+		 */
+		extern void fmod_set_pause_for_all_events_on_bus(const ::String& busPath, bool shouldBePaused);
+
+		/**
+		 * Sends the "stop" command to all event instances on a given bus
+		 * \param[busPath] ::String the path to the bus
+		 */
+		extern void fmod_stop_all_events_on_bus(const ::String& busPath);
+
+		/**
 		 * Sends the "pause" or "unpause" command to an existing event instance
 		 * \param[eventInstanceName] ::String the name of the event instance
 		 * \param[shouldBePaused] bool if the event instance should be paused

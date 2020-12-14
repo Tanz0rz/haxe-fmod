@@ -35,6 +35,18 @@ class FmodManager {
         FmodManagerPrivate.GetInstance().Update();
     }
 
+    public static function StopAllSounds() {
+        FmodManagerPrivate.GetInstance().StopAllSounds();
+    }
+
+    public static function PauseAllSounds() {
+        FmodManagerPrivate.GetInstance().PauseAllSounds();
+    }
+
+    public static function UnpauseAllSounds() {
+        FmodManagerPrivate.GetInstance().UnpauseAllSounds();
+    }
+
     /**
         Prints out a warning message to console if Update() has not been called recently
     **/

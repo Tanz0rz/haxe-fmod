@@ -39,6 +39,10 @@ extern class HaxeFmod {
     public static function fmod_is_event_instance_loaded(eventInstanceName:String):Bool;
     @:native("linc::faxe::fmod_play_event_instance")
     public static function fmod_play_event_instance(eventInstanceName:String):Void;
+    @:native("linc::faxe::fmod_set_pause_for_all_events_on_bus")
+    public static function fmod_set_pause_for_all_events_on_bus(busPath:String, shouldBePaused:Bool):Void;
+    @:native("linc::faxe::fmod_stop_all_events_on_bus")
+    public static function fmod_stop_all_events_on_bus(busPath:String):Void;
     @:native("linc::faxe::fmod_set_pause_on_event_instance")
     public static function fmod_set_pause_on_event_instance(eventInstanceName:String, shouldBePaused:Bool):Void;
     @:native("linc::faxe::fmod_stop_event_instance")
@@ -86,6 +90,8 @@ extern class HaxeFmod {
     public static function fmod_create_event_instance_named(eventPath:String, eventInstanceName:String):Void;
     public static function fmod_is_event_instance_loaded(eventInstanceName:String):Bool;
     public static function fmod_play_event_instance(eventInstanceName:String):Void;
+    public static function fmod_set_pause_for_all_events_on_bus(busPath:String, shouldBePaused:Bool):Void;
+    public static function fmod_stop_all_events_on_bus(busPath:String):Void;
     public static function fmod_set_pause_on_event_instance(eventInstanceName:String, shouldBePaused:Bool):Void;
     public static function fmod_stop_event_instance(eventInstanceName:String):Void;
     public static function fmod_stop_event_instance_immediately(eventInstanceName:String):Void;

@@ -5,8 +5,8 @@
 	"tags": ["fmod","audio","windows", "html5", "web"],
 	
     "description" : "Use FMOD Studio with Haxe on Windows and HTML5",
-    "version" : "0.7.1-alpha",
-	"releasenote" : "Readme updated to mention new callback feature",
+    "version" : "0.7.2-alpha",
+	"releasenote" : "The songs and all sounds can now be paused, unpaused, or stopped globally",
 	"contributors" : ["Tanz0rz"],
     "dependencies" : { }
 }

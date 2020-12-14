@@ -250,6 +250,36 @@ namespace linc
 			}
 		}
 
+		void fmod_set_pause_for_all_events_on_bus(const ::String& busPath, bool shouldBePaused)
+		{
+			FMOD::Studio::Bus* bus;
+			auto result = fmodSoundSystem->getBus(busPath.c_str(), &bus);
+			if (result != FMOD_OK)
+			{
+				if(fmod_debug) printf("FMOD failed to get bus %s: %s\n", busPath.c_str(), FMOD_ErrorString(result));
+			}
+			result = bus->setPaused(shouldBePaused);
+			if (result != FMOD_OK)
+			{
+				if(fmod_debug) printf("FMOD failed to set pause on all event instances on bus %s: %s\n", busPath.c_str(), FMOD_ErrorString(result));
+			}
+		}
+
+		void fmod_stop_all_events_on_bus(const ::String& busPath)
+		{
+			FMOD::Studio::Bus* bus;
+			auto result = fmodSoundSystem->getBus(busPath.c_str(), &bus);
+			if (result != FMOD_OK)
+			{
+				if(fmod_debug) printf("FMOD failed to get bus %s: %s\n", busPath.c_str(), FMOD_ErrorString(result));
+			}
+			result = bus->stopAllEvents(FMOD_STUDIO_STOP_IMMEDIATE);
+			if (result != FMOD_OK)
+			{
+				if(fmod_debug) printf("FMOD failed to stop event instances on bus %s: %s\n", busPath.c_str(), FMOD_ErrorString(result));
+			}
+		}
+
 		void fmod_set_pause_on_event_instance(const ::String& eventInstanceName, bool shouldBePaused)
 		{
 			auto targetEvent = loadedEventInstances.find(eventInstanceName);
