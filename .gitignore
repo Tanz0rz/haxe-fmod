@@ -15,5 +15,5 @@ haxe-fmod.zip
 
 # Generated code
 *raw.js
-faxe/obj
-test/out/*
+faxe/obj/
+test/out/

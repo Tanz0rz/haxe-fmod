@@ -133,6 +133,19 @@
 		HL_PRIM extern void HL_NAME(fmod_play_event_instance)(faxe_string eventInstanceName);
 
 		/**
+		 * Sends the "pause" or "unpause" command to all event instances on a given bus
+		 * \param[busPath] ::String the path to the bus
+		 * \param[shouldBePaused] bool if the event instance should be paused
+		 */
+		HL_PRIM extern void HL_NAME(fmod_set_pause_for_all_events_on_bus)(faxe_string busPath, bool shouldBePaused);
+
+		/**
+		 * Sends the "stop" command to all event instances on a given bus
+		 * \param[busPath] ::String the path to the bus
+		 */
+		HL_PRIM extern void HL_NAME(fmod_stop_all_events_on_bus)(faxe_string busPath);
+
+		/**
 		 * Sends the "pause" or "unpause" command to an existing event instance
 		 * \param[eventInstanceName] ::String the name of the event instance
 		 * \param[shouldBePaused] bool if the event instance should be paused

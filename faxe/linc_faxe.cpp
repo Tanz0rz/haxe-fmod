@@ -34,6 +34,10 @@
 #include <map>
 #include <thread>
 
+#if FAXE_HL
+static bool isThreadRegistered;
+#endif
+
 char *faxe_to_cstring(faxe_string s) {
 #ifdef FAXE_HL
 	return hl_to_utf8(s->bytes);
@@ -138,6 +142,14 @@ HL_PRIM void HL_NAME(fmod_update)()
 void update_fmod_async()
 {
 	signal(SIGTERM, [](int signum) { autoUpdaterThreadShouldExit = true; });
+
+	#if FAXE_HL
+	if(!isThreadRegistered){
+		isThreadRegistered = true;
+		vdynamic *ret;
+		hl_register_thread(&ret);
+	}
+	#endif
 
 	while (!autoUpdaterThreadShouldExit)
 	{
@@ -310,6 +322,36 @@ HL_PRIM void HL_NAME(fmod_play_event_instance)(faxe_string eventInstanceName)
 	{
 		if (fmod_debug)
 			printf("Event %s is not loaded!\n", faxe_to_cstring(eventInstanceName));
+	}
+}
+
+HL_PRIM void HL_NAME(fmod_set_pause_for_all_events_on_bus)(faxe_string busPath, bool shouldBePaused)
+{
+	FMOD::Studio::Bus* bus;
+	auto result = fmodSoundSystem->getBus(faxe_to_cstring(busPath), &bus);
+	if (result != FMOD_OK)
+	{
+		if(fmod_debug) printf("FMOD failed to get bus %s: %s\n", faxe_to_cstring(busPath), FMOD_ErrorString(result));
+	}
+	result = bus->setPaused(shouldBePaused);
+	if (result != FMOD_OK)
+	{
+		if(fmod_debug) printf("FMOD failed to set pause on all event instances on bus %s: %s\n", faxe_to_cstring(busPath), FMOD_ErrorString(result));
+	}
+}
+
+HL_PRIM void HL_NAME(fmod_stop_all_events_on_bus)(faxe_string busPath)
+{
+	FMOD::Studio::Bus* bus;
+	auto result = fmodSoundSystem->getBus(faxe_to_cstring(busPath), &bus);
+	if (result != FMOD_OK)
+	{
+		if(fmod_debug) printf("FMOD failed to get bus %s: %s\n", faxe_to_cstring(busPath), FMOD_ErrorString(result));
+	}
+	result = bus->stopAllEvents(FMOD_STUDIO_STOP_IMMEDIATE);
+	if (result != FMOD_OK)
+	{
+		if(fmod_debug) printf("FMOD failed to stop event instances on bus %s: %s\n", faxe_to_cstring(busPath), FMOD_ErrorString(result));
 	}
 }
 
@@ -597,6 +639,8 @@ DEFINE_PRIM(_VOID, fmod_create_event_instance_one_shot, _STRING)
 DEFINE_PRIM(_VOID, fmod_create_event_instance_named, _STRING _STRING)
 DEFINE_PRIM(_BOOL, fmod_is_event_instance_loaded, _STRING)
 DEFINE_PRIM(_VOID, fmod_play_event_instance, _STRING)
+DEFINE_PRIM(_VOID, fmod_set_pause_for_all_events_on_bus, _STRING _BOOL)
+DEFINE_PRIM(_VOID, fmod_stop_all_events_on_bus, _STRING)
 DEFINE_PRIM(_VOID, fmod_set_pause_on_event_instance, _STRING _BOOL)
 DEFINE_PRIM(_VOID, fmod_stop_event_instance, _STRING)
 DEFINE_PRIM(_VOID, fmod_stop_event_instance_immediately, _STRING)

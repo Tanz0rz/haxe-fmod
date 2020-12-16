@@ -34,6 +34,10 @@ extern class HaxeFmod {
 	public static function fmod_is_event_instance_loaded(eventInstanceName:String):Bool;
 	@:native("faxe_fmod_play_event_instance")
 	public static function fmod_play_event_instance(eventInstanceName:String):Void;
+    @:native("faxe_fmod_set_pause_for_all_events_on_bus")
+    public static function fmod_set_pause_for_all_events_on_bus(busPath:String, shouldBePaused:Bool):Void;
+    @:native("faxe_fmod_stop_all_events_on_bus")
+    public static function fmod_stop_all_events_on_bus(busPath:String):Void;
 	@:native("faxe_fmod_set_pause_on_event_instance")
 	public static function fmod_set_pause_on_event_instance(eventInstanceName:String, shouldBePaused:Bool):Void;
 	@:native("faxe_fmod_stop_event_instance")
