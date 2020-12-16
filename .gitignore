@@ -17,3 +17,4 @@ haxe-fmod.zip
 *raw.js
 faxe/obj/
 test/out/
+*.hash

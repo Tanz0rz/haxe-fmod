@@ -1,33 +1,72 @@
 <xml>
-    <section if="windows">
-        <set name="NATIVE_TOOLKIT_PATH" value="${this_dir}/../lib/Windows" />
+    <!-- Fmod does not support 32 bit macos-->
+    <!-- From the website : FMOD supports x86_64 back to macOS 10.7. Please note that both x86 and PPC are not accepted for submission to the Mac App Store and thus are no longer supported by FMOD.-->
+
+    <set name="FMOD_API_PATH" value="${this_dir}/../lib/Windows" if="windows"/>
+    <set name="FMOD_API_PATH" value="${this_dir}/../lib/Mac" if="macos"/>
+    <set name="FMOD_API_PATH" value="${this_dir}/../lib/Linux" if="linux"/>
+
+    <section if="linux">
+        <set name="FMOD_ARCH" value="x86" if="HXCPP_M32"/>
+        <set name="FMOD_ARCH" value="x86_64" if="HXCPP_M64"/>
     </section>
-    <echo value="${this_dir}"/>
-    <!-- <echo value="Found your FMOD API ${NATIVE_TOOLKIT_PATH}!" ifExists="${NATIVE_TOOLKIT_PATH}/api" /> -->
+
+    <echo value="Found your FMOD API in ${FMOD_API_PATH}!" ifExists="${FMOD_API_PATH}/api" />
+
     <files id="faxe">
         <compilerflag value="-DFAXE_HL"/>
         <compilerflag value="-I${this_dir}/" />
-        <compilerflag value="-I${this_dir}/misc/" />
-        <compilerflag value="-I${NATIVE_TOOLKIT_PATH}/api/core/inc/" />
-        <compilerflag value="-I${NATIVE_TOOLKIT_PATH}/api/studio/inc/" />
-        <compilerflag value="-I${HASHLINK}/include" />
+        <compilerflag value="-I${FMOD_API_PATH}/api/core/inc/" />
+        <compilerflag value="-I${FMOD_API_PATH}/api/studio/inc/" />
+        <compilerflag value="-I${HASHLINK}/include" if="HASHLINK"/>
+        <compilerflag value="-I/usr/local/include" if="macos || linux"/>
         <file name="${this_dir}/linc_faxe.cpp" />
     </files>
 
+    <set name="BINDIR" value="Windows" if="windows HXCPP_M32" unless="BINDIR"/>
+    <set name="BINDIR" value="Windows64" if="windows HXCPP_M64" unless="BINDIR"/>
+    <set name="BINDIR" value="Linux" if="linux HXCPP_M32" unless="BINDIR"/>
+    <set name="BINDIR" value="Linux64" if="linux HXCPP_M64" unless="BINDIR"/>
+    <set name="BINDIR" value="Mac64" if="macos" unless="BINDIR"/>
+
+    <set name="OUTPUT_DIR" value="../ndll" unless="OUTPUT_DIR" />
 
     <target id="default" output="faxe" toolid="dll" tool="linker">
+
+        <outdir name="${OUTPUT_DIR}/${BINDIR}"/>
+
         <section if="windows HXCPP_M32">
-            <lib name="${NATIVE_TOOLKIT_PATH}/api/core/lib/x86/fmod_vc.lib" />
-            <lib name="${NATIVE_TOOLKIT_PATH}/api/studio/lib/x86/fmodstudio_vc.lib" />
+            <lib name="${FMOD_API_PATH}/api/core/lib/x86/fmod_vc.lib" />
+            <lib name="${FMOD_API_PATH}/api/studio/lib/x86/fmodstudio_vc.lib" />
+            <lib name="libhl32.lib"/>
+            <!-- <lib name="${HASHLINK}/libhl.lib"/> -->
         </section>
 
         <section if="windows HXCPP_M64">
-            <lib name="${NATIVE_TOOLKIT_PATH}/api/core/lib/x64/fmod_vc.lib" />
-            <lib name="${NATIVE_TOOLKIT_PATH}/api/studio/lib/x64/fmodstudio_vc.lib" />
+            <lib name="${FMOD_API_PATH}/api/core/lib/x64/fmod_vc.lib" />
+            <lib name="${FMOD_API_PATH}/api/studio/lib/x64/fmodstudio_vc.lib" />
+            <lib name="${HASHLINK}/libhl.lib"/>
+        </section>
+
+        <section if="macos">
+            <lib name="-L${FMOD_API_PATH}/api/core/lib/"/>
+            <lib name="-L${FMOD_API_PATH}/api/studio/lib/"/>
+            <lib name="-lfmod"/>
+            <lib name="-lfmodstudio"/>
+            <lib name="-L/usr/local/lib"/>
+            <lib name="-lhl"/>
+        </section>
+
+        <section if="linux">
+            <lib name="-L${FMOD_API_PATH}/api/core/lib/${FMOD_ARCH}/"/>
+            <lib name="-L${FMOD_API_PATH}/api/studio/lib/${FMOD_ARCH}/"/>
+            <lib name="-lfmod"/>
+            <lib name="-lfmodstudio"/>
+            <lib name="-L/usr/local/lib"/>
+            <lib name="-lhl"/>
         </section>
 
         <files id="faxe"/>
-        <lib name="libhl32.lib"/>
-        <!-- <ext value=".hdll"/> -->
+        <ext value=".hdll"/>
     </target>
 </xml>

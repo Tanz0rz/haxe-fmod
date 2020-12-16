@@ -34,10 +34,6 @@
 #include <map>
 #include <thread>
 
-#if FAXE_HL
-static bool isThreadRegistered;
-#endif
-
 char *faxe_to_cstring(faxe_string s) {
 #ifdef FAXE_HL
 	return hl_to_utf8(s->bytes);
@@ -80,7 +76,11 @@ std::map<faxe_string, FMOD::Studio::EventInstance *> loadedEventInstances;
 std::map<faxe_string, unsigned int> eventCallbacksFlagsMap;
 
 // Background thread to automatically call FMOD's Update() function
+// #if FAXE_HL
+// hl_thread *autoUpdaterThread;
+// #else
 std::thread autoUpdaterThread;
+// #endif
 bool autoUpdaterThreadShouldExit;
 
 //// FMOD System
@@ -122,8 +122,11 @@ HL_PRIM void HL_NAME(fmod_init)(int numChannels)
 		printf("FMOD failed to get core system: %s\n", FMOD_ErrorString(result));
 		return;
 	}
-
-	autoUpdaterThread = std::thread(update_fmod_async);
+	// #if FAXE_HL
+	// autoUpdaterThread = hl_thread_start((void*)update_fmod_async,nullptr,true);
+	// #else
+	// autoUpdaterThread = std::thread(update_fmod_async);
+	// #endif
 
 	if (fmod_debug)
 		printf("FMOD Sound System Started with %d channels!\n", numChannels);
@@ -139,10 +142,12 @@ HL_PRIM void HL_NAME(fmod_update)()
 	}
 }
 
+#if FAXE_HL
+static bool isThreadRegistered = false;
+#endif
+
 void update_fmod_async()
 {
-	signal(SIGTERM, [](int signum) { autoUpdaterThreadShouldExit = true; });
-
 	#if FAXE_HL
 	if(!isThreadRegistered){
 		isThreadRegistered = true;
@@ -150,6 +155,7 @@ void update_fmod_async()
 		hl_register_thread(&ret);
 	}
 	#endif
+	signal(SIGTERM, [](int signum) { autoUpdaterThreadShouldExit = true; });
 
 	while (!autoUpdaterThreadShouldExit)
 	{

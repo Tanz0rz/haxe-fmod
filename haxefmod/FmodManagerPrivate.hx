@@ -55,6 +55,14 @@ class FmodManagerPrivate {
             #end
 
             HaxeFmod.fmod_init(128);
+            #if target.threaded
+            sys.thread.Thread.create(function(){
+                while(true){
+                    HaxeFmod.fmod_update();
+                    Sys.sleep(0.016);
+                }
+            });
+            #end
             // For html5 deployments, the banks must be loaded from inside the javascript fmod_init() call
             #if windows
             HaxeFmod.fmod_load_bank("assets/fmod/Desktop/Master.bank");
