@@ -140,6 +140,12 @@ To play the game, run `lime test windows` or `lime test html5` in the `EZPlatfor
 
 This will setup the git repo as an "installed" version of `haxefmod` which can be imported by your projects the same way you import other libraries. You can see the special `dev` status when you find `haxefmod` in the output of `haxelib list` 
 
+**Propagating changes to HashLink:**
+
+Any changes made to the C++ side of `haxefmod` will only be reflected in the HashLink deployments after `update-hashlink-hdll.bat` is run. If you aren't on Windows, the calls will need to be converted to your native shell.
+
+The script expects HashLink to be installed in the static location of `C:\HaxeToolkit\HashLink`
+
 ## <a name="future-goals"></a>Future Goals
 
 - Ability to attach callback functions to any event instance

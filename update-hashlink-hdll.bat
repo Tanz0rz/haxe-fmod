@@ -1,4 +1,8 @@
 @echo off
+
+:: This script should be run whenever there are changes to the C++ haxe-fmod library
+:: It regenerates the faxe.hdll file which is needed when a game is compiled into HashLink
+
 IF NOT EXIST "update-hashlink-hdll.bat" (
   echo This script can only be run from inside the same directory
   pause
@@ -23,4 +27,5 @@ move "faxe\faxe.dll" "ndll\Windows\faxe.hdll"
 move "faxe\faxe.dll.hash" "ndll\Windows\"
 echo.
 
-pause
+:: Uncomment this for the "press any key" prompt after the script is finished
+:: pause
