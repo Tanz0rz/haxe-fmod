@@ -30,6 +30,7 @@
 	</files>
 
 	<target id="haxe" toolid="exe" unless="switch">
+		<files id="faxe"/>
 		<section if="windows HXCPP_M32">
 			<lib name="${FMOD_API_PATH}/api/core/lib/x86/fmod_vc.lib" />
 			<lib name="${FMOD_API_PATH}/api/studio/lib/x86/fmodstudio_vc.lib" />

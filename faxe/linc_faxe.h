@@ -28,12 +28,8 @@
 #define HL_NAME(n) faxe_##n
 #ifdef FAXE_HL
 #include <hl.h>
-#define faxe_string vstring*
 #else
 #define HL_PRIM
-// #define faxe_string const char*
-// typedef const char *faxe_string;
-#define faxe_string ::String
 #endif
 
 #define IMPLEMENT_API
@@ -78,13 +74,13 @@
 		 * Load a FMOD sound bank file
 		 * \param[bankName] ::String the file path of the sound bank to load
 		 */
-		HL_PRIM extern void HL_NAME(fmod_load_bank)(faxe_string bankName);
+		HL_PRIM extern void HL_NAME(fmod_load_bank)(char* bankName);
 
 		/**
 		 * Unload a FMOD sound bank file
 		 * \param[bankName] ::String the file path of the sound bank to unload
 		 */
-		HL_PRIM extern void HL_NAME(fmod_unload_bank)(faxe_string bankName);
+		HL_PRIM extern void HL_NAME(fmod_unload_bank)(char* bankName);
 		
 		// Event Descriptions
 
@@ -94,13 +90,13 @@
 		 * Event descriptions are loaded automatically when creating event instances
 		 * \param[eventPath] ::String the path of the event
 		 */
-		HL_PRIM extern void HL_NAME(fmod_load_event_description)(faxe_string eventPath);
+		HL_PRIM extern void HL_NAME(fmod_load_event_description)(char* eventPath);
 
 		/**
 		 * Check if an event description is currently loaded
 		 * \param[eventDescriptionName] ::String the event description to check
 		 */
-		HL_PRIM extern bool HL_NAME(fmod_is_event_description_loaded)(faxe_string eventDescriptionName);
+		HL_PRIM extern bool HL_NAME(fmod_is_event_description_loaded)(char* eventDescriptionName);
 
 		// Events
 
@@ -110,7 +106,7 @@
 		 * Follows the Master Track rules set in the Event's settings in FMOD Studio (Max Instances, Stealing, and probably more)
 		 * \param[eventPath] ::String the bank path of the event
 		 */
-		HL_PRIM extern void HL_NAME(fmod_create_event_instance_one_shot)(faxe_string eventPath);
+		HL_PRIM extern void HL_NAME(fmod_create_event_instance_one_shot)(char* eventPath);
 
 		/**
 		 * Create and play an event instance and store a reference to it
@@ -118,70 +114,70 @@
 		 * \param[eventPath] ::String the bank path of the event
 		 * \param[eventInstanceName] ::String the name to assign to the new event instance
 		 */
-		HL_PRIM extern void HL_NAME(fmod_create_event_instance_named)(faxe_string eventPath, faxe_string eventInstanceName);
+		HL_PRIM extern void HL_NAME(fmod_create_event_instance_named)(char* eventPath, char* eventInstanceName);
 
 		/**
 		 * Check if an event instance is currently loaded
 		 * \param[eventInstanceName] ::String the event instance to check
 		 */
-		HL_PRIM extern bool HL_NAME(fmod_is_event_instance_loaded)(faxe_string eventInstanceName);
+		HL_PRIM extern bool HL_NAME(fmod_is_event_instance_loaded)(char* eventInstanceName);
 
 		/**
 		 * Sends the "play" command to an existing event instance
 		 * \param[eventInstanceName] ::String the name of the event instance
 		 */
-		HL_PRIM extern void HL_NAME(fmod_play_event_instance)(faxe_string eventInstanceName);
+		HL_PRIM extern void HL_NAME(fmod_play_event_instance)(char* eventInstanceName);
 
 		/**
 		 * Sends the "pause" or "unpause" command to all event instances on a given bus
 		 * \param[busPath] ::String the path to the bus
 		 * \param[shouldBePaused] bool if the event instance should be paused
 		 */
-		HL_PRIM extern void HL_NAME(fmod_set_pause_for_all_events_on_bus)(faxe_string busPath, bool shouldBePaused);
+		HL_PRIM extern void HL_NAME(fmod_set_pause_for_all_events_on_bus)(char* busPath, bool shouldBePaused);
 
 		/**
 		 * Sends the "stop" command to all event instances on a given bus
 		 * \param[busPath] ::String the path to the bus
 		 */
-		HL_PRIM extern void HL_NAME(fmod_stop_all_events_on_bus)(faxe_string busPath);
+		HL_PRIM extern void HL_NAME(fmod_stop_all_events_on_bus)(char* busPath);
 
 		/**
 		 * Sends the "pause" or "unpause" command to an existing event instance
 		 * \param[eventInstanceName] ::String the name of the event instance
 		 * \param[shouldBePaused] bool if the event instance should be paused
 		 */
-		HL_PRIM extern void HL_NAME(fmod_set_pause_on_event_instance)(faxe_string eventInstanceName, bool shouldBePaused);
+		HL_PRIM extern void HL_NAME(fmod_set_pause_on_event_instance)(char* eventInstanceName, bool shouldBePaused);
 
 		/**
 		 * Sends the "stop" command to an existing event instance
 		 * \param[eventInstanceName] ::String the name of the event instance
 		 */
-		HL_PRIM extern void HL_NAME(fmod_stop_event_instance)(faxe_string eventInstanceName);
+		HL_PRIM extern void HL_NAME(fmod_stop_event_instance)(char* eventInstanceName);
 
 		/**
 		 * Immediately stops an existing event instance
 		 * \param[eventInstanceName] ::String the name of the event instance
 		 */
-		HL_PRIM extern void HL_NAME(fmod_stop_event_instance_immediately)(faxe_string eventInstanceName);
+		HL_PRIM extern void HL_NAME(fmod_stop_event_instance_immediately)(char* eventInstanceName);
 
 		/**
 		 * Release a loaded event instance from memory
 		 * \param[eventInstanceName] ::String the name of the event instance
 		 */
-		HL_PRIM extern void HL_NAME(fmod_release_event_instance)(faxe_string eventInstanceName);
+		HL_PRIM extern void HL_NAME(fmod_release_event_instance)(char* eventInstanceName);
 
 		/**
 		 * Check to see if an event instance is currently playing
 		 * \param[eventInstanceName] ::String the name of the event instance
 		 * \return ::Bool if the event is currently playing
 		 */
-		HL_PRIM extern bool HL_NAME(fmod_is_event_instance_playing)(faxe_string eventInstanceName);
+		HL_PRIM extern bool HL_NAME(fmod_is_event_instance_playing)(char* eventInstanceName);
 
 		/**
 		 * Get the playback state of an existing event instance
 		 * \param[eventInstanceName] ::String the name of the event instance
 		 */
-		HL_PRIM extern FMOD_STUDIO_PLAYBACK_STATE HL_NAME(fmod_get_event_instance_playback_state)(faxe_string eventInstanceName);
+		HL_PRIM extern FMOD_STUDIO_PLAYBACK_STATE HL_NAME(fmod_get_event_instance_playback_state)(char* eventInstanceName);
 
 		/**
 		 * Check to see if an event is currently playing
@@ -189,7 +185,7 @@
 		 * \param[paramName] ::String the name of the param to GET
 		 * \return float the current value of the param from the specified event
 		 */
-		HL_PRIM extern float HL_NAME(fmod_get_event_instance_param)(faxe_string eventInstanceName, faxe_string paramName);
+		HL_PRIM extern float HL_NAME(fmod_get_event_instance_param)(char* eventInstanceName, char* paramName);
 
 		/**
 		 * Set the parameter value of a loaded event
@@ -197,7 +193,7 @@
 		 * \param[paramName] ::String the name of the param to SET
 		 * \param[value] float the new value to set the param to
 		 */
-		HL_PRIM extern void HL_NAME(fmod_set_event_instance_param)(faxe_string eventInstanceName, faxe_string paramName, float value);
+		HL_PRIM extern void HL_NAME(fmod_set_event_instance_param)(char* eventInstanceName, char* paramName, float value);
 
 		// Callbacks
 
@@ -207,7 +203,7 @@
 		 * \param[eventInstanceName] ::String the name of the loaded event instance to track
 		 * \see https://tanneris.me/FMOD-Callback-Types
 		 */
-		HL_PRIM extern void HL_NAME(fmod_set_callback_tracking_for_event_instance)(faxe_string eventInstanceName);
+		HL_PRIM extern void HL_NAME(fmod_set_callback_tracking_for_event_instance)(char* eventInstanceName);
 
 		/**
 		 * Can only be used after assigning the event listener to an event instance
@@ -217,4 +213,4 @@
 		 * \param[callbackEventMask] ::unsigned int the bitmask that corresponds to the underlying callback type you want to check
 		 * \see https://tanneris.me/FMOD-Callback-Types
 		 */
-		HL_PRIM extern bool HL_NAME(fmod_check_callbacks_for_event_instance)(faxe_string eventInstanceName, unsigned int callbackEventMask);
+		HL_PRIM extern bool HL_NAME(fmod_check_callbacks_for_event_instance)(char* eventInstanceName, unsigned int callbackEventMask);

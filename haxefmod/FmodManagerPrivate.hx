@@ -64,7 +64,7 @@ class FmodManagerPrivate {
             });
             #end
             // For html5 deployments, the banks must be loaded from inside the javascript fmod_init() call
-            #if windows
+            #if (cpp||hl)
             HaxeFmod.fmod_load_bank("assets/fmod/Desktop/Master.bank");
             HaxeFmod.fmod_load_bank("assets/fmod/Desktop/Master.strings.bank");
             #end
@@ -80,6 +80,7 @@ class FmodManagerPrivate {
 
     private function IsInitialized():Bool {
         return HaxeFmod.fmod_is_initialized();
+        // return true;
     }
 
     private function CheckIfUpdateIsBeingCalled() {
@@ -142,7 +143,7 @@ class FmodManagerPrivate {
                 HaxeFmod.fmod_stop_event_instance_immediately(SongEventInstance);
             }
             // Releasing the primary song event instance is causing issues on html5 deployments
-            // HaxeFmod.fmod_release_event_instance(SongEventInstance);
+            HaxeFmod.fmod_release_event_instance(SongEventInstance);
         }
 
         // Create a brand new event instance of the song        
@@ -161,7 +162,7 @@ class FmodManagerPrivate {
 
         // If we are changing songs, send a soft stop request to the event
         if (songPath != CurrentSong && CurrentSong != null && HaxeFmod.fmod_is_event_instance_playing(SongEventInstance)) {
-            HaxeFmod.fmod_stop_event_instance(SongEventInstance);
+            // HaxeFmod.fmod_stop_event_instance(SongEventInstance);
         }
 
         CheckIfUpdateIsBeingCalled();
@@ -196,6 +197,7 @@ class FmodManagerPrivate {
 
     private function GetEventParameterOnSong(parameterName:String):Float {
         return HaxeFmod.fmod_get_event_instance_param(SongEventInstance, parameterName);
+        // return 0.0;
     }
 
     private function SetEventParameterOnSong(parameterName:String, parameterValue:Float) {
@@ -204,6 +206,7 @@ class FmodManagerPrivate {
 
     private function IsSongPlaying():Bool {
         return HaxeFmod.fmod_is_event_instance_playing(SongEventInstance);
+        // return false;
     }
 
     private function GetCurrentSongPath():String {
@@ -230,10 +233,12 @@ class FmodManagerPrivate {
 
     public function IsSoundLoaded(soundId:String):Bool {
         return HaxeFmod.fmod_is_event_instance_loaded(soundId);
+        // return false;
     }
 
     public function IsSoundPlaying(soundId:String):Bool {
         return HaxeFmod.fmod_is_event_instance_playing(soundId);
+        // return false;
     }
 
     private function StopSound(soundId:String) {
@@ -258,6 +263,7 @@ class FmodManagerPrivate {
 
     private function GetEventParameterOnSound(soundId:String, parameterName:String):Float {
         return HaxeFmod.fmod_get_event_instance_param(soundId, parameterName);
+        // return 0.0;
     }
 
     private function SetEventParameterOnSound(soundId:String, parameterName:String, parameterValue:Float) {

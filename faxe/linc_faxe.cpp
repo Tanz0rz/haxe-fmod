@@ -34,52 +34,52 @@
 #include <map>
 #include <thread>
 
-char *faxe_to_cstring(faxe_string s) {
-#ifdef FAXE_HL
-	return hl_to_utf8(s->bytes);
-#else
-	return (char *)s.c_str();
-#endif
-}
+// char *faxe_to_cstring(char* s) {
+// #ifdef FAXE_HL
+// 	char* tmp = hl_to_utf8(s->bytes);
+// 	char* ret = (char*)malloc(strlen(tmp) * sizeof(char));
+// 	strcpy(ret,tmp);
+// 	return ret;
+// #else
+// 	return (char *)s.c_str();
+// #endif
+// }
 
-int faxe_string_length(faxe_string s)
-{
-#ifdef FAXE_HL
-	return s->length;
-#else
-	return s.length;
-#endif
-}
+// int char*_length(char* s)
+// {
+// #ifdef FAXE_HL
+// 	return s->length;
+// #else
+// 	return s.length;
+// #endif
+// }
 
-faxe_string faxe_string_from_c(char *s, int len) {
-#ifdef FAXE_HL
-	faxe_string str = (faxe_string)hl_alloc_dynamic(&hlt_dynobj);
-	str->bytes = (uchar*)s;
-	str->length = len;
-	return (faxe_string)str;
-#else
-	return faxe_string(s,len);
-#endif
+// char* faxe_from_c(char *s, int len) {
+// #ifdef FAXE_HL
+// 	return (char*)hl_alloc_strbytes(hl_to_utf16(s));
+// #else
+// 	return char*(s,len);
+// #endif
 	 
-}
+// }
 
 // FMOD Sound System
 FMOD::Studio::System *fmodSoundSystem;
 FMOD::System *fmodCoreSoundSystem;
 
 // Maps to track what has been loaded already
-std::map<faxe_string, FMOD::Studio::Bank *> loadedBanks;
-std::map<faxe_string, FMOD::Sound *> loadedSounds;
-std::map<faxe_string, FMOD::Studio::EventInstance *> loadedEventInstances;
+std::map<char*, FMOD::Studio::Bank *> loadedBanks;
+std::map<char*, FMOD::Sound *> loadedSounds;
+std::map<char*, FMOD::Studio::EventInstance *> loadedEventInstances;
 
 // Callbacks
-std::map<faxe_string, unsigned int> eventCallbacksFlagsMap;
+std::map<char*, unsigned int> eventCallbacksFlagsMap;
 
 // Background thread to automatically call FMOD's Update() function
 // #if FAXE_HL
 // hl_thread *autoUpdaterThread;
 // #else
-std::thread autoUpdaterThread;
+// std::thread autoUpdaterThread;
 // #endif
 bool autoUpdaterThreadShouldExit;
 
@@ -142,31 +142,31 @@ HL_PRIM void HL_NAME(fmod_update)()
 	}
 }
 
-#if FAXE_HL
-static bool isThreadRegistered = false;
-#endif
+// #if FAXE_HL
+// static bool isThreadRegistered = false;
+// #endif
 
-void update_fmod_async()
-{
-	#if FAXE_HL
-	if(!isThreadRegistered){
-		isThreadRegistered = true;
-		vdynamic *ret;
-		hl_register_thread(&ret);
-	}
-	#endif
-	signal(SIGTERM, [](int signum) { autoUpdaterThreadShouldExit = true; });
+// void update_fmod_async()
+// {
+// 	#if FAXE_HL
+// 	if(!isThreadRegistered){
+// 		isThreadRegistered = true;
+// 		vdynamic *ret;
+// 		hl_register_thread(&ret);
+// 	}
+// 	#endif
+// 	signal(SIGTERM, [](int signum) { autoUpdaterThreadShouldExit = true; });
 
-	while (!autoUpdaterThreadShouldExit)
-	{
-		faxe_fmod_update();
-		std::this_thread::sleep_for(std::chrono::milliseconds(16));
-	}
-}
+// 	while (!autoUpdaterThreadShouldExit)
+// 	{
+// 		faxe_fmod_update();
+// 		std::this_thread::sleep_for(std::chrono::milliseconds(16));
+// 	}
+// }
 
 //// Sound Banks
 
-HL_PRIM void HL_NAME(fmod_load_bank)(faxe_string bankFilePath)
+HL_PRIM void HL_NAME(fmod_load_bank)(char* bankFilePath)
 {
 	if (loadedBanks.find(bankFilePath) != loadedBanks.end())
 	{
@@ -175,19 +175,19 @@ HL_PRIM void HL_NAME(fmod_load_bank)(faxe_string bankFilePath)
 
 	FMOD::Studio::Bank *tempBank;
 	auto result = fmodSoundSystem->loadBankFile(
-		faxe_to_cstring(bankFilePath), FMOD_STUDIO_LOAD_BANK_NORMAL, &tempBank);
+		bankFilePath, FMOD_STUDIO_LOAD_BANK_NORMAL, &tempBank);
 	if (result != FMOD_OK)
 	{
 		if (fmod_debug)
 			printf("FMOD failed to LOAD sound bank %s: %s\n",
-				   faxe_to_cstring(bankFilePath), FMOD_ErrorString(result));
+				   bankFilePath, FMOD_ErrorString(result));
 		return;
 	}
 
 	loadedBanks[bankFilePath] = tempBank;
 }
 
-HL_PRIM void HL_NAME(fmod_unload_bank)(faxe_string bankName)
+HL_PRIM void HL_NAME(fmod_unload_bank)(char* bankName)
 {
 	auto found = loadedBanks.find(bankName);
 	if (found != loadedBanks.end())
@@ -200,16 +200,16 @@ HL_PRIM void HL_NAME(fmod_unload_bank)(faxe_string bankName)
 //// Events
 
 HL_PRIM void
-	HL_NAME(fmod_create_event_instance_one_shot)(faxe_string eventPath)
+	HL_NAME(fmod_create_event_instance_one_shot)(char* eventPath)
 {
 	FMOD::Studio::EventDescription *eventDescription;
 	auto result =
-		fmodSoundSystem->getEvent(faxe_to_cstring(eventPath), &eventDescription);
+		fmodSoundSystem->getEvent(eventPath, &eventDescription);
 	if (result != FMOD_OK)
 	{
 		if (fmod_debug)
 			printf("FMOD failed to load event description %s: %s\n",
-				   faxe_to_cstring(eventPath), FMOD_ErrorString(result));
+				   eventPath, FMOD_ErrorString(result));
 		return;
 	}
 
@@ -219,7 +219,7 @@ HL_PRIM void
 	{
 		if (fmod_debug)
 			printf("FMOD failed to create instance of event %s: %s\n",
-				   faxe_to_cstring(eventPath), FMOD_ErrorString(result));
+				   eventPath, FMOD_ErrorString(result));
 		return;
 	}
 
@@ -228,7 +228,7 @@ HL_PRIM void
 	{
 		if (fmod_debug)
 			printf("FMOD failed to start instance of event %s: %s\n",
-				   faxe_to_cstring(eventPath), FMOD_ErrorString(result));
+				   eventPath, FMOD_ErrorString(result));
 		return;
 	}
 
@@ -238,14 +238,14 @@ HL_PRIM void
 	{
 		if (fmod_debug)
 			printf("FMOD failed to release instance of event %s: %s\n",
-				   faxe_to_cstring(eventPath), FMOD_ErrorString(result));
+				   eventPath, FMOD_ErrorString(result));
 		return;
 	}
 }
 
 HL_PRIM void
-	HL_NAME(fmod_create_event_instance_named)(faxe_string eventPath,
-											  faxe_string eventInstanceName)
+	HL_NAME(fmod_create_event_instance_named)(char* eventPath,
+											  char* eventInstanceName)
 {
 	auto existingEventInstance = loadedEventInstances.find(eventInstanceName);
 	if (existingEventInstance != loadedEventInstances.end())
@@ -258,17 +258,17 @@ HL_PRIM void
 			printf("FMOD request to create a new event instance %s with an existing "
 				   "instance name: %s. Destorying the old instance in preparation "
 				   "for the new one.\n",
-				   faxe_to_cstring(eventPath), faxe_to_cstring(eventInstanceName));
+				   eventPath, eventInstanceName);
 	}
 
 	FMOD::Studio::EventDescription *eventDescription;
 	auto result =
-		fmodSoundSystem->getEvent(faxe_to_cstring(eventPath), &eventDescription);
+		fmodSoundSystem->getEvent(eventPath, &eventDescription);
 	if (result != FMOD_OK)
 	{
 		if (fmod_debug)
 			printf("FMOD failed to load event description %s: %s\n",
-				   faxe_to_cstring(eventPath), FMOD_ErrorString(result));
+				   eventPath, FMOD_ErrorString(result));
 	}
 
 	FMOD::Studio::EventInstance *eventInstance;
@@ -277,7 +277,7 @@ HL_PRIM void
 	{
 		if (fmod_debug)
 			printf("FMOD failed to create event instance %s: %s\n",
-				   faxe_to_cstring(eventPath), FMOD_ErrorString(result));
+				   eventPath, FMOD_ErrorString(result));
 		return;
 	}
 
@@ -286,7 +286,7 @@ HL_PRIM void
 	{
 		if (fmod_debug)
 			printf("FMOD failed to start event instance %s: %s\n",
-				   faxe_to_cstring(eventPath), FMOD_ErrorString(result));
+				   eventPath, FMOD_ErrorString(result));
 		return;
 	}
 
@@ -307,7 +307,7 @@ HL_PRIM void
 }
 
 HL_PRIM bool
-	HL_NAME(fmod_is_event_instance_loaded)(faxe_string eventInstanceName)
+	HL_NAME(fmod_is_event_instance_loaded)(char* eventInstanceName)
 {
 	if (loadedEventInstances.find(eventInstanceName) !=
 		loadedEventInstances.end())
@@ -317,7 +317,7 @@ HL_PRIM bool
 	return false;
 }
 
-HL_PRIM void HL_NAME(fmod_play_event_instance)(faxe_string eventInstanceName)
+HL_PRIM void HL_NAME(fmod_play_event_instance)(char* eventInstanceName)
 {
 	auto targetEvent = loadedEventInstances.find(eventInstanceName);
 	if (targetEvent != loadedEventInstances.end())
@@ -327,42 +327,42 @@ HL_PRIM void HL_NAME(fmod_play_event_instance)(faxe_string eventInstanceName)
 	else
 	{
 		if (fmod_debug)
-			printf("Event %s is not loaded!\n", faxe_to_cstring(eventInstanceName));
+			printf("Event %s is not loaded!\n", eventInstanceName);
 	}
 }
 
-HL_PRIM void HL_NAME(fmod_set_pause_for_all_events_on_bus)(faxe_string busPath, bool shouldBePaused)
+HL_PRIM void HL_NAME(fmod_set_pause_for_all_events_on_bus)(char* busPath, bool shouldBePaused)
 {
 	FMOD::Studio::Bus* bus;
-	auto result = fmodSoundSystem->getBus(faxe_to_cstring(busPath), &bus);
+	auto result = fmodSoundSystem->getBus(busPath, &bus);
 	if (result != FMOD_OK)
 	{
-		if(fmod_debug) printf("FMOD failed to get bus %s: %s\n", faxe_to_cstring(busPath), FMOD_ErrorString(result));
+		if(fmod_debug) printf("FMOD failed to get bus %s: %s\n", busPath, FMOD_ErrorString(result));
 	}
 	result = bus->setPaused(shouldBePaused);
 	if (result != FMOD_OK)
 	{
-		if(fmod_debug) printf("FMOD failed to set pause on all event instances on bus %s: %s\n", faxe_to_cstring(busPath), FMOD_ErrorString(result));
+		if(fmod_debug) printf("FMOD failed to set pause on all event instances on bus %s: %s\n", busPath, FMOD_ErrorString(result));
 	}
 }
 
-HL_PRIM void HL_NAME(fmod_stop_all_events_on_bus)(faxe_string busPath)
+HL_PRIM void HL_NAME(fmod_stop_all_events_on_bus)(char* busPath)
 {
 	FMOD::Studio::Bus* bus;
-	auto result = fmodSoundSystem->getBus(faxe_to_cstring(busPath), &bus);
+	auto result = fmodSoundSystem->getBus(busPath, &bus);
 	if (result != FMOD_OK)
 	{
-		if(fmod_debug) printf("FMOD failed to get bus %s: %s\n", faxe_to_cstring(busPath), FMOD_ErrorString(result));
+		if(fmod_debug) printf("FMOD failed to get bus %s: %s\n", busPath, FMOD_ErrorString(result));
 	}
 	result = bus->stopAllEvents(FMOD_STUDIO_STOP_IMMEDIATE);
 	if (result != FMOD_OK)
 	{
-		if(fmod_debug) printf("FMOD failed to stop event instances on bus %s: %s\n", faxe_to_cstring(busPath), FMOD_ErrorString(result));
+		if(fmod_debug) printf("FMOD failed to stop event instances on bus %s: %s\n", busPath, FMOD_ErrorString(result));
 	}
 }
 
 HL_PRIM void
-	HL_NAME(fmod_set_pause_on_event_instance)(faxe_string eventInstanceName,
+	HL_NAME(fmod_set_pause_on_event_instance)(char* eventInstanceName,
 											  bool shouldBePaused)
 {
 	auto targetEvent = loadedEventInstances.find(eventInstanceName);
@@ -373,11 +373,11 @@ HL_PRIM void
 	else
 	{
 		if (fmod_debug)
-			printf("Event %s is not loaded!\n", faxe_to_cstring(eventInstanceName));
+			printf("Event %s is not loaded!\n", eventInstanceName);
 	}
 }
 
-HL_PRIM void HL_NAME(fmod_stop_event_instance)(faxe_string eventInstanceName)
+HL_PRIM void HL_NAME(fmod_stop_event_instance)(char* eventInstanceName)
 {
 	auto targetStopEvent = loadedEventInstances.find(eventInstanceName);
 	if (targetStopEvent != loadedEventInstances.end())
@@ -387,12 +387,12 @@ HL_PRIM void HL_NAME(fmod_stop_event_instance)(faxe_string eventInstanceName)
 	else
 	{
 		if (fmod_debug)
-			printf("Event %s is not loaded!\n", faxe_to_cstring(eventInstanceName));
+			printf("Event %s is not loaded!\n", eventInstanceName);
 	}
 }
 
 HL_PRIM void
-	HL_NAME(fmod_stop_event_instance_immediately)(faxe_string eventInstanceName)
+	HL_NAME(fmod_stop_event_instance_immediately)(char* eventInstanceName)
 {
 	auto targetStopEvent = loadedEventInstances.find(eventInstanceName);
 	if (targetStopEvent != loadedEventInstances.end())
@@ -402,12 +402,12 @@ HL_PRIM void
 	else
 	{
 		if (fmod_debug)
-			printf("Event %s is not loaded!\n", faxe_to_cstring(eventInstanceName));
+			printf("Event %s is not loaded!\n", eventInstanceName);
 	}
 }
 
 HL_PRIM void
-	HL_NAME(fmod_release_event_instance)(faxe_string eventInstanceName)
+	HL_NAME(fmod_release_event_instance)(char* eventInstanceName)
 {
 	auto existingEventInstance = loadedEventInstances.find(eventInstanceName);
 	if (existingEventInstance != loadedEventInstances.end())
@@ -418,7 +418,7 @@ HL_PRIM void
 		{
 			if (fmod_debug)
 				printf("FMOD failed to stop event instance %s: %s\n",
-					   faxe_to_cstring(eventInstanceName), FMOD_ErrorString(result));
+					   eventInstanceName, FMOD_ErrorString(result));
 			return;
 		}
 
@@ -427,7 +427,7 @@ HL_PRIM void
 		{
 			if (fmod_debug)
 				printf("FMOD failed to release event instance %s: %s\n",
-					   faxe_to_cstring(eventInstanceName), FMOD_ErrorString(result));
+					   eventInstanceName, FMOD_ErrorString(result));
 			return;
 		}
 
@@ -436,7 +436,7 @@ HL_PRIM void
 }
 
 HL_PRIM bool
-	HL_NAME(fmod_is_event_instance_playing)(faxe_string eventInstanceName)
+	HL_NAME(fmod_is_event_instance_playing)(char* eventInstanceName)
 {
 	auto targetEvent = loadedEventInstances.find(eventInstanceName);
 	if (targetEvent != loadedEventInstances.end())
@@ -448,7 +448,7 @@ HL_PRIM bool
 		{
 			if (fmod_debug)
 				printf("FMOD failed to get playback state of event instance %s: %s\n",
-					   faxe_to_cstring(eventInstanceName), FMOD_ErrorString(result));
+					   eventInstanceName, FMOD_ErrorString(result));
 			return false;
 		}
 
@@ -457,13 +457,13 @@ HL_PRIM bool
 	else
 	{
 		if (fmod_debug)
-			printf("Event %s is not loaded!\n", faxe_to_cstring(eventInstanceName));
+			printf("Event %s is not loaded!\n", eventInstanceName);
 		return false;
 	}
 }
 
 HL_PRIM FMOD_STUDIO_PLAYBACK_STATE
-	HL_NAME(fmod_get_event_instance_playback_state)(faxe_string eventInstanceName)
+	HL_NAME(fmod_get_event_instance_playback_state)(char* eventInstanceName)
 {
 	auto targetEvent = loadedEventInstances.find(eventInstanceName);
 	if (targetEvent != loadedEventInstances.end())
@@ -475,7 +475,7 @@ HL_PRIM FMOD_STUDIO_PLAYBACK_STATE
 		{
 			if (fmod_debug)
 				printf("FMOD failed to get playback state of event instance %s: %s\n",
-					   faxe_to_cstring(eventInstanceName), FMOD_ErrorString(result));
+					   eventInstanceName, FMOD_ErrorString(result));
 			return FMOD_STUDIO_PLAYBACK_FORCEINT;
 		}
 
@@ -484,27 +484,27 @@ HL_PRIM FMOD_STUDIO_PLAYBACK_STATE
 	else
 	{
 		if (fmod_debug)
-			printf("Event %s is not loaded!\n", faxe_to_cstring(eventInstanceName));
+			printf("Event %s is not loaded!\n", eventInstanceName);
 		return FMOD_STUDIO_PLAYBACK_FORCEINT;
 	}
 }
 
 HL_PRIM float
-	HL_NAME(fmod_get_event_instance_param)(faxe_string eventInstanceName,
-										   faxe_string paramName)
+	HL_NAME(fmod_get_event_instance_param)(char* eventInstanceName,
+										   char* paramName)
 {
 	auto targetEvent = loadedEventInstances.find(eventInstanceName);
 	if (targetEvent != loadedEventInstances.end())
 	{
 		float currentValue;
 		auto result = targetEvent->second->getParameterByName(
-			faxe_to_cstring(paramName), &currentValue);
+			paramName, &currentValue);
 
 		if (result != FMOD_OK)
 		{
 			if (fmod_debug)
 				printf("FMOD failed to get param %s of event instance %s: %s\n",
-					   faxe_to_cstring(paramName), faxe_to_cstring(eventInstanceName),
+					   paramName, eventInstanceName,
 					   FMOD_ErrorString(result));
 			return -1;
 		}
@@ -514,51 +514,53 @@ HL_PRIM float
 	else
 	{
 		if (fmod_debug)
-			printf("Event %s is not loaded!\n", faxe_to_cstring(eventInstanceName));
+			printf("Event %s is not loaded!\n", eventInstanceName);
 		return -1;
 	}
 }
 
 HL_PRIM void
-	HL_NAME(fmod_set_event_instance_param)(faxe_string eventInstanceName,
-										   faxe_string paramName, float value)
+	HL_NAME(fmod_set_event_instance_param)(char* eventInstanceName,
+										   char* paramName, float value)
 {
 	auto targetEvent = loadedEventInstances.find(eventInstanceName);
 	if (targetEvent != loadedEventInstances.end())
 	{
 		auto result = targetEvent->second->setParameterByName(
-			faxe_to_cstring(paramName), value);
+			paramName, value);
 
 		if (result != FMOD_OK)
 		{
 			if (fmod_debug)
 				printf("FMOD failed to SET PARAM %s of event instance %s: %s\n",
-					   faxe_to_cstring(paramName), faxe_to_cstring(eventInstanceName),
+					   paramName, eventInstanceName,
 					   FMOD_ErrorString(result));
 		}
 	}
 	else
 	{
 		if (fmod_debug)
-			printf("Event %s is not loaded!\n", faxe_to_cstring(eventInstanceName));
+			printf("Event %s is not loaded!\n", eventInstanceName);
 	}
 }
 
 //// Callbacks
 
-faxe_string GetEventInstancePath(FMOD::Studio::EventInstance *eventInstance)
+char* GetEventInstancePath(FMOD::Studio::EventInstance *eventInstance)
 {
 	char *path = new char[100];
-	int *retrieved = new int;
+	int retrieved;
 	FMOD::Studio::EventDescription *eventDescription;
 	eventInstance->getDescription(&eventDescription);
-	eventDescription->getPath(path, 100, retrieved);
+	eventDescription->getPath(path, 100, &retrieved);
 	if (path == NULL)
 	{
 		printf("Fmod Callback could not find description of event\n");
 	}
-
-	return faxe_string_from_c(path, *retrieved);
+	char * ret = new char[retrieved];
+	strcpy(ret,path);
+	delete path;
+	return ret;
 }
 
 // Callback definitions must be defined before they are used in functions
@@ -578,7 +580,7 @@ FMOD_RESULT F_CALLBACK GetCallbackType(FMOD_STUDIO_EVENT_CALLBACK_TYPE type,
 }
 
 HL_PRIM void HL_NAME(fmod_set_callback_tracking_for_event_instance)(
-	faxe_string eventInstanceName)
+	char* eventInstanceName)
 {
 	auto existingEventInstance = loadedEventInstances.find(eventInstanceName);
 	if (existingEventInstance != loadedEventInstances.end())
@@ -587,7 +589,7 @@ HL_PRIM void HL_NAME(fmod_set_callback_tracking_for_event_instance)(
 
 		auto eventInstancePath =
 			GetEventInstancePath(existingEventInstance->second);
-		if (faxe_string_length(eventInstancePath) == 0)
+		if (strlen(eventInstancePath) == 0)
 		{
 			printf(
 				"Haxefmod-cpp - Fmod Callback could not find description of event\n");
@@ -601,19 +603,19 @@ HL_PRIM void HL_NAME(fmod_set_callback_tracking_for_event_instance)(
 	{
 		if (fmod_debug)
 			printf("Could not set callback tracking on %s because it wasn't found\n",
-				   faxe_to_cstring(eventInstanceName));
+				   eventInstanceName);
 	}
 }
 
 HL_PRIM bool HL_NAME(fmod_check_callbacks_for_event_instance)(
-	faxe_string eventInstanceName, unsigned int callbackEventMask)
+	char* eventInstanceName, unsigned int callbackEventMask)
 {
 	auto existingEventInstance = loadedEventInstances.find(eventInstanceName);
 	if (existingEventInstance != loadedEventInstances.end())
 	{
 		auto eventInstancePath =
 			GetEventInstancePath(existingEventInstance->second);
-		if (faxe_string_length(eventInstancePath) == 0)
+		if (strlen(eventInstancePath) == 0)
 		{
 			printf("Fmod Callback could not find description of event\n");
 		}
@@ -629,7 +631,7 @@ HL_PRIM bool HL_NAME(fmod_check_callbacks_for_event_instance)(
 	{
 		if (fmod_debug)
 			printf("Could not check callback on %s because it wasn't found\n",
-				   faxe_to_cstring(eventInstanceName));
+				   eventInstanceName);
 	}
 	return false;
 }
@@ -639,23 +641,23 @@ DEFINE_PRIM(_VOID, fmod_set_debug, _BOOL)
 DEFINE_PRIM(_BOOL, fmod_is_initialized, _NO_ARG)
 DEFINE_PRIM(_VOID, fmod_init, _I32)
 DEFINE_PRIM(_VOID, fmod_update, _NO_ARG)
-DEFINE_PRIM(_VOID, fmod_load_bank, _STRING)
-DEFINE_PRIM(_VOID, fmod_unload_bank, _STRING)
-DEFINE_PRIM(_VOID, fmod_create_event_instance_one_shot, _STRING)
-DEFINE_PRIM(_VOID, fmod_create_event_instance_named, _STRING _STRING)
-DEFINE_PRIM(_BOOL, fmod_is_event_instance_loaded, _STRING)
-DEFINE_PRIM(_VOID, fmod_play_event_instance, _STRING)
-DEFINE_PRIM(_VOID, fmod_set_pause_for_all_events_on_bus, _STRING _BOOL)
-DEFINE_PRIM(_VOID, fmod_stop_all_events_on_bus, _STRING)
-DEFINE_PRIM(_VOID, fmod_set_pause_on_event_instance, _STRING _BOOL)
-DEFINE_PRIM(_VOID, fmod_stop_event_instance, _STRING)
-DEFINE_PRIM(_VOID, fmod_stop_event_instance_immediately, _STRING)
-DEFINE_PRIM(_VOID, fmod_release_event_instance, _STRING)
-DEFINE_PRIM(_BOOL, fmod_is_event_instance_playing, _STRING)
-DEFINE_PRIM(_I32, fmod_get_event_instance_playback_state, _STRING)
-DEFINE_PRIM(_F32, fmod_get_event_instance_param, _STRING _STRING)
-DEFINE_PRIM(_VOID, fmod_set_event_instance_param, _STRING _STRING _F32)
-DEFINE_PRIM(_VOID, fmod_set_callback_tracking_for_event_instance, _STRING)
-DEFINE_PRIM(_BOOL, fmod_check_callbacks_for_event_instance, _STRING _I32)
+DEFINE_PRIM(_VOID, fmod_load_bank, _BYTES)
+DEFINE_PRIM(_VOID, fmod_unload_bank, _BYTES)
+DEFINE_PRIM(_VOID, fmod_create_event_instance_one_shot, _BYTES)
+DEFINE_PRIM(_VOID, fmod_create_event_instance_named, _BYTES _BYTES)
+DEFINE_PRIM(_BOOL, fmod_is_event_instance_loaded, _BYTES)
+DEFINE_PRIM(_VOID, fmod_play_event_instance, _BYTES)
+DEFINE_PRIM(_VOID, fmod_set_pause_for_all_events_on_bus, _BYTES _BOOL)
+DEFINE_PRIM(_VOID, fmod_stop_all_events_on_bus, _BYTES)
+DEFINE_PRIM(_VOID, fmod_set_pause_on_event_instance, _BYTES _BOOL)
+DEFINE_PRIM(_VOID, fmod_stop_event_instance, _BYTES)
+DEFINE_PRIM(_VOID, fmod_stop_event_instance_immediately, _BYTES)
+DEFINE_PRIM(_VOID, fmod_release_event_instance, _BYTES)
+DEFINE_PRIM(_BOOL, fmod_is_event_instance_playing, _BYTES)
+DEFINE_PRIM(_I32, fmod_get_event_instance_playback_state, _BYTES)
+DEFINE_PRIM(_F32, fmod_get_event_instance_param, _BYTES _BYTES)
+DEFINE_PRIM(_VOID, fmod_set_event_instance_param, _BYTES _BYTES _F32)
+DEFINE_PRIM(_VOID, fmod_set_callback_tracking_for_event_instance, _BYTES)
+DEFINE_PRIM(_BOOL, fmod_check_callbacks_for_event_instance, _BYTES _I32)
 // _STRING
 #endif
