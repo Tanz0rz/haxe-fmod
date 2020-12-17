@@ -34,46 +34,17 @@
 #include <map>
 #include <thread>
 
-// char *faxe_to_cstring(char* s) {
-// #ifdef FAXE_HL
-// 	char* tmp = hl_to_utf8(s->bytes);
-// 	char* ret = (char*)malloc(strlen(tmp) * sizeof(char));
-// 	strcpy(ret,tmp);
-// 	return ret;
-// #else
-// 	return (char *)s.c_str();
-// #endif
-// }
-
-// int char*_length(char* s)
-// {
-// #ifdef FAXE_HL
-// 	return s->length;
-// #else
-// 	return s.length;
-// #endif
-// }
-
-// char* faxe_from_c(char *s, int len) {
-// #ifdef FAXE_HL
-// 	return (char*)hl_alloc_strbytes(hl_to_utf16(s));
-// #else
-// 	return char*(s,len);
-// #endif
-	 
-// }
-
 // FMOD Sound System
 FMOD::Studio::System *fmodSoundSystem;
 FMOD::System *fmodCoreSoundSystem;
 
 // Maps to track what has been loaded already
-std::map<char*, FMOD::Studio::Bank *> loadedBanks;
-std::map<char*, FMOD::Sound *> loadedSounds;
-std::map<char*, FMOD::Studio::EventInstance *> loadedEventInstances;
+std::map<const char*, FMOD::Studio::Bank *> loadedBanks;
+std::map<const char*, FMOD::Sound *> loadedSounds;
+std::map<const char*, FMOD::Studio::EventInstance *> loadedEventInstances;
 
 // Callbacks
-std::map<char*, unsigned int> eventCallbacksFlagsMap;
+std::map<const char*, unsigned int> eventCallbacksFlagsMap;
 
 // Background thread to automatically call FMOD's Update() function
 // #if FAXE_HL
@@ -166,7 +137,7 @@ HL_PRIM void HL_NAME(fmod_update)()
 
 //// Sound Banks
 
-HL_PRIM void HL_NAME(fmod_load_bank)(char* bankFilePath)
+HL_PRIM void HL_NAME(fmod_load_bank)(const char* bankFilePath)
 {
 	if (loadedBanks.find(bankFilePath) != loadedBanks.end())
 	{
@@ -187,7 +158,7 @@ HL_PRIM void HL_NAME(fmod_load_bank)(char* bankFilePath)
 	loadedBanks[bankFilePath] = tempBank;
 }
 
-HL_PRIM void HL_NAME(fmod_unload_bank)(char* bankName)
+HL_PRIM void HL_NAME(fmod_unload_bank)(const char* bankName)
 {
 	auto found = loadedBanks.find(bankName);
 	if (found != loadedBanks.end())
@@ -200,7 +171,7 @@ HL_PRIM void HL_NAME(fmod_unload_bank)(char* bankName)
 //// Events
 
 HL_PRIM void
-	HL_NAME(fmod_create_event_instance_one_shot)(char* eventPath)
+	HL_NAME(fmod_create_event_instance_one_shot)(const char* eventPath)
 {
 	FMOD::Studio::EventDescription *eventDescription;
 	auto result =
@@ -244,8 +215,8 @@ HL_PRIM void
 }
 
 HL_PRIM void
-	HL_NAME(fmod_create_event_instance_named)(char* eventPath,
-											  char* eventInstanceName)
+	HL_NAME(fmod_create_event_instance_named)(const char* eventPath,
+											  const char* eventInstanceName)
 {
 	auto existingEventInstance = loadedEventInstances.find(eventInstanceName);
 	if (existingEventInstance != loadedEventInstances.end())
@@ -307,7 +278,7 @@ HL_PRIM void
 }
 
 HL_PRIM bool
-	HL_NAME(fmod_is_event_instance_loaded)(char* eventInstanceName)
+	HL_NAME(fmod_is_event_instance_loaded)(const char* eventInstanceName)
 {
 	if (loadedEventInstances.find(eventInstanceName) !=
 		loadedEventInstances.end())
@@ -317,7 +288,7 @@ HL_PRIM bool
 	return false;
 }
 
-HL_PRIM void HL_NAME(fmod_play_event_instance)(char* eventInstanceName)
+HL_PRIM void HL_NAME(fmod_play_event_instance)(const char* eventInstanceName)
 {
 	auto targetEvent = loadedEventInstances.find(eventInstanceName);
 	if (targetEvent != loadedEventInstances.end())
@@ -331,7 +302,7 @@ HL_PRIM void HL_NAME(fmod_play_event_instance)(char* eventInstanceName)
 	}
 }
 
-HL_PRIM void HL_NAME(fmod_set_pause_for_all_events_on_bus)(char* busPath, bool shouldBePaused)
+HL_PRIM void HL_NAME(fmod_set_pause_for_all_events_on_bus)(const char* busPath, bool shouldBePaused)
 {
 	FMOD::Studio::Bus* bus;
 	auto result = fmodSoundSystem->getBus(busPath, &bus);
@@ -346,7 +317,7 @@ HL_PRIM void HL_NAME(fmod_set_pause_for_all_events_on_bus)(char* busPath, bool s
 	}
 }
 
-HL_PRIM void HL_NAME(fmod_stop_all_events_on_bus)(char* busPath)
+HL_PRIM void HL_NAME(fmod_stop_all_events_on_bus)(const char* busPath)
 {
 	FMOD::Studio::Bus* bus;
 	auto result = fmodSoundSystem->getBus(busPath, &bus);
@@ -362,7 +333,7 @@ HL_PRIM void HL_NAME(fmod_stop_all_events_on_bus)(char* busPath)
 }
 
 HL_PRIM void
-	HL_NAME(fmod_set_pause_on_event_instance)(char* eventInstanceName,
+	HL_NAME(fmod_set_pause_on_event_instance)(const char* eventInstanceName,
 											  bool shouldBePaused)
 {
 	auto targetEvent = loadedEventInstances.find(eventInstanceName);
@@ -377,7 +348,7 @@ HL_PRIM void
 	}
 }
 
-HL_PRIM void HL_NAME(fmod_stop_event_instance)(char* eventInstanceName)
+HL_PRIM void HL_NAME(fmod_stop_event_instance)(const char* eventInstanceName)
 {
 	auto targetStopEvent = loadedEventInstances.find(eventInstanceName);
 	if (targetStopEvent != loadedEventInstances.end())
@@ -392,7 +363,7 @@ HL_PRIM void HL_NAME(fmod_stop_event_instance)(char* eventInstanceName)
 }
 
 HL_PRIM void
-	HL_NAME(fmod_stop_event_instance_immediately)(char* eventInstanceName)
+	HL_NAME(fmod_stop_event_instance_immediately)(const char* eventInstanceName)
 {
 	auto targetStopEvent = loadedEventInstances.find(eventInstanceName);
 	if (targetStopEvent != loadedEventInstances.end())
@@ -407,7 +378,7 @@ HL_PRIM void
 }
 
 HL_PRIM void
-	HL_NAME(fmod_release_event_instance)(char* eventInstanceName)
+	HL_NAME(fmod_release_event_instance)(const char* eventInstanceName)
 {
 	auto existingEventInstance = loadedEventInstances.find(eventInstanceName);
 	if (existingEventInstance != loadedEventInstances.end())
@@ -436,7 +407,7 @@ HL_PRIM void
 }
 
 HL_PRIM bool
-	HL_NAME(fmod_is_event_instance_playing)(char* eventInstanceName)
+	HL_NAME(fmod_is_event_instance_playing)(const char* eventInstanceName)
 {
 	auto targetEvent = loadedEventInstances.find(eventInstanceName);
 	if (targetEvent != loadedEventInstances.end())
@@ -463,7 +434,7 @@ HL_PRIM bool
 }
 
 HL_PRIM FMOD_STUDIO_PLAYBACK_STATE
-	HL_NAME(fmod_get_event_instance_playback_state)(char* eventInstanceName)
+	HL_NAME(fmod_get_event_instance_playback_state)(const char* eventInstanceName)
 {
 	auto targetEvent = loadedEventInstances.find(eventInstanceName);
 	if (targetEvent != loadedEventInstances.end())
@@ -490,8 +461,8 @@ HL_PRIM FMOD_STUDIO_PLAYBACK_STATE
 }
 
 HL_PRIM float
-	HL_NAME(fmod_get_event_instance_param)(char* eventInstanceName,
-										   char* paramName)
+	HL_NAME(fmod_get_event_instance_param)(const char* eventInstanceName,
+										   const char* paramName)
 {
 	auto targetEvent = loadedEventInstances.find(eventInstanceName);
 	if (targetEvent != loadedEventInstances.end())
@@ -520,8 +491,8 @@ HL_PRIM float
 }
 
 HL_PRIM void
-	HL_NAME(fmod_set_event_instance_param)(char* eventInstanceName,
-										   char* paramName, float value)
+	HL_NAME(fmod_set_event_instance_param)(const char* eventInstanceName,
+										   const char* paramName, float value)
 {
 	auto targetEvent = loadedEventInstances.find(eventInstanceName);
 	if (targetEvent != loadedEventInstances.end())
@@ -556,11 +527,9 @@ char* GetEventInstancePath(FMOD::Studio::EventInstance *eventInstance)
 	if (path == NULL)
 	{
 		printf("Fmod Callback could not find description of event\n");
+		return "";
 	}
-	char * ret = new char[retrieved];
-	strcpy(ret,path);
-	delete path;
-	return ret;
+	return path;
 }
 
 // Callback definitions must be defined before they are used in functions
@@ -580,7 +549,7 @@ FMOD_RESULT F_CALLBACK GetCallbackType(FMOD_STUDIO_EVENT_CALLBACK_TYPE type,
 }
 
 HL_PRIM void HL_NAME(fmod_set_callback_tracking_for_event_instance)(
-	char* eventInstanceName)
+	const char* eventInstanceName)
 {
 	auto existingEventInstance = loadedEventInstances.find(eventInstanceName);
 	if (existingEventInstance != loadedEventInstances.end())
@@ -608,7 +577,7 @@ HL_PRIM void HL_NAME(fmod_set_callback_tracking_for_event_instance)(
 }
 
 HL_PRIM bool HL_NAME(fmod_check_callbacks_for_event_instance)(
-	char* eventInstanceName, unsigned int callbackEventMask)
+	const char* eventInstanceName, unsigned int callbackEventMask)
 {
 	auto existingEventInstance = loadedEventInstances.find(eventInstanceName);
 	if (existingEventInstance != loadedEventInstances.end())
@@ -659,5 +628,4 @@ DEFINE_PRIM(_F32, fmod_get_event_instance_param, _BYTES _BYTES)
 DEFINE_PRIM(_VOID, fmod_set_event_instance_param, _BYTES _BYTES _F32)
 DEFINE_PRIM(_VOID, fmod_set_callback_tracking_for_event_instance, _BYTES)
 DEFINE_PRIM(_BOOL, fmod_check_callbacks_for_event_instance, _BYTES _I32)
-// _STRING
 #endif
