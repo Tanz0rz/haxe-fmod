@@ -4,12 +4,12 @@ import haxe.ds.StringMap;
 import cpp.ConstCharStar;
 import haxefmod.FmodInternalEnums;
 
-private abstract NativeString(cpp.Star<cpp.Char>) {
+private abstract NativeString(cpp.ConstCharStar) {
 	@:from static inline function fromString(s:String)
-		return untyped __cpp__("{0}.c_str()",s);
+		return cast cpp.ConstCharStar.fromString(s);
 
 	@:to inline function toString():String
-		return untyped __cpp__("String({0})",this);
+		return this.toString();
 }
 
 @:keep
