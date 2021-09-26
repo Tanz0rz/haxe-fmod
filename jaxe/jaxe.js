@@ -64,12 +64,13 @@ class jaxe {
 		result = jaxe.gSystem.update();
 		jaxe.CHECK_RESULT(result, 'system update() failed');
 	}
+
+	// This is not actually called by anything
 	static fmod_load_bank(bankFilePath){
 		if (jaxe.fmod_debug) console.log('loading bank: ' + bankFilePath);
-		
 		var result;
 		var outval = {};
-		result = jaxe.gSystem.loadBankFile("/" + bankFilePath, jaxe.FMOD.STUDIO_LOAD_BANK_NORMAL, outval);
+		result = jaxe.gSystem.loadBankFile("/" + bankFilePath, jaxe.FMOD.STUDIO_LOAD_BANK_DECOMPRESS_SAMPLES, outval);
 		jaxe.CHECK_RESULT(result, 'loadBankFile() call failed for ' + bankFilePath);
 		jaxe.loadedBanks[bankFilePath] = outval.val;
 	}
@@ -243,10 +244,11 @@ class jaxe {
 
 		var result;
 		var outval = {};
-		result = jaxe.loadedEventInstances[eventInstanceName].getParameterByName(paramName, outval);
+		var outvalFinal = {};
+		result = jaxe.loadedEventInstances[eventInstanceName].getParameterByName(paramName, outval, outvalFinal);
 		jaxe.CHECK_RESULT(result, 'getParameterByName() call failed for ' + eventInstanceName);
 
-		return outval.val;
+		return outvalFinal.val;
 	}
 	static fmod_set_event_instance_param(eventInstanceName, paramName, value){
 		if (jaxe.fmod_debug) console.log('Setting event instance pram (' + paramName + ') to ' + value + ' for ' + eventInstanceName);
@@ -430,11 +432,11 @@ class jaxe {
 		
 		window.setInterval(jaxe.updateFmod, 20);
 
-		result = jaxe.gSystem.loadBankFile("/" + "Master.bank", jaxe.FMOD.STUDIO_LOAD_BANK_NORMAL, outval);
+		result = jaxe.gSystem.loadBankFile("/" + "Master.bank", jaxe.FMOD.STUDIO_LOAD_BANK_DECOMPRESS_SAMPLES, outval);
 		jaxe.CHECK_RESULT(result);
 		jaxe.loadedBanks["Master.bank"] = outval.val;
 
-		result = jaxe.gSystem.loadBankFile("/" + "Master.strings.bank", jaxe.FMOD.STUDIO_LOAD_BANK_NORMAL, outval);
+		result = jaxe.gSystem.loadBankFile("/" + "Master.strings.bank", jaxe.FMOD.STUDIO_LOAD_BANK_DECOMPRESS_SAMPLES, outval);
 		jaxe.CHECK_RESULT(result);
 		jaxe.loadedBanks["Master.strings.bank"] = outval.val;
 		jaxe.FmodIsInitialized = true;
