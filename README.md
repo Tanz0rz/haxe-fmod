@@ -2,17 +2,17 @@
 
 **Note: The API of this library will change early on**
 
-**Other Note: Remember to follow the rules of [FMOD's license](https://tanneris.me/FMOD-License) when using this library**
+**Other Note: Remember to follow the rules of [FMOD's license](https://www.fmod.com/licensing) when using this library**
 
 A library to integrate the FMOD audio engine with Haxe 4 games for Windows and HTML5 deployments
 
-Primarily focuses on simplifying the FMOD Studio project workflow through the use of a well-documented [helper library](https://tanneris.me/haxe-fmod-helper-library)
+Primarily focuses on simplifying the FMOD Studio project workflow through the use of a well-documented [helper library](https://github.com/Tanz0rz/haxe-fmod/blob/master/haxefmod/FmodManager.hx)
 
-The Windows integration was built on top of Aaron Shea's [C++ integration with FMOD's official API](https://tanneris.me/faxe)
+The Windows integration was built on top of Aaron Shea's [C++ integration with FMOD's official API](https://github.com/ashea-code/faxe)
 
-LICENCE: [MIT](https://tanneris.me/mit-license)
+LICENCE: [MIT](https://en.wikipedia.org/wiki/MIT_License)
 
-[Download the package via Haxelib](https://tanneris.me/haxelib)
+[Download the package via Haxelib](https://lib.haxe.org/p/haxefmod)
 
 ## Table of Contents
 
@@ -27,11 +27,11 @@ LICENCE: [MIT](https://tanneris.me/mit-license)
 
 
 ## <a name="features"></a>Features 
-- Sounds loaded using an [FMOD bank](http://tanneris.me/FMOD-Banks) file
-- [Event parameters](http://tanneris.me/FMOD-Parameters) for dynamically altering sounds based on in-game actions
-- [Callbacks](https://tanneris.me/FMOD-Callbacks-Types) which enable the game to respond to the audio
-- [Live Update](http://tanneris.me/FMOD-Live-Update) for mixing sounds while play testing (must be done on Windows game builds)
-- Easy referencing of FMOD Studio bank events in game code with the help of an [auto-updated constants file](https://tanneris.me/haxe-fmod-scripts) (optional)
+- Sounds loaded using an [FMOD bank](https://www.fmod.com/docs/2.00/studio/fmod-studio-concepts.html#banks) file
+- [Event parameters](https://www.fmod.com/docs/2.00/studio/parameters-reference.html) for dynamically altering sounds based on in-game actions
+- [Callbacks](https://www.fmod.com/docs/2.00/api/studio-api-eventinstance.html#fmod_studio_event_callback_type) which enable the game to respond to the audio
+- [Live Update](https://fmod.com/docs/2.00/studio/editing-during-live-update.html) for mixing sounds while play testing (must be done on Windows game builds)
+- Easy referencing of FMOD Studio bank events in game code with the help of an [auto-updated constants file](https://github.com/Tanz0rz/haxe-fmod/tree/master/fmod-scripts) (optional)
 
 ## <a name="how-to-use-this-library"></a>How to Use This Library
 
@@ -59,17 +59,17 @@ After configuring your project to work with this library, playing a song or soun
 
 **Download FMOD Studio and setup your project:**
 
-This will be the tool you use to manage all audio for your game. Download FMOD Studio version 2.00.08 [here](https://tanneris.me/fmod-downloads). Once installed, follow the [FMOD Studio Project Configuration](#fmod-studio-project-configuration) section before moving on.
+This will be the tool you use to manage all audio for your game. Download FMOD Studio version 2.00.08 [here](https://fmod.com/download). Once installed, follow the [FMOD Studio Project Configuration](#fmod-studio-project-configuration) section before moving on.
 
 **Add the library your Haxe project:**
 
-[Download the package via Haxelib](https://tanneris.me/haxelib)
+[Download the package via Haxelib](https://lib.haxe.org/p/haxefmod)
 
 If required, import the library in your project. On HaxeFlixel projects, add `<haxelib name="haxefmod" />` to the "Libraries" section of your `Project.xml` file
 
 **Use the library in code:**
 
-The `FmodManager` class is the primary way to interact with FMOD in your game. It abstracts away nearly all of the low-level details of the FMOD API. You can look through all of the available `FmodManager` function calls with descriptions [here](https://tanneris.me/haxe-fmod-helper-library).
+The `FmodManager` class is the primary way to interact with FMOD in your game. It abstracts away nearly all of the low-level details of the FMOD API. You can look through all of the available `FmodManager` function calls with descriptions [here](https://github.com/Tanz0rz/haxe-fmod/blob/master/haxefmod/FmodManager.hx).
 
 Songs and sound effects are triggered by passing in the full FMOD bank event path to the `FmodManager.PlaySong`, `FmodManager.PlaySoundOneShot`, `FmodManager.PlaySoundWithReference`, `FmodManager.PlaySoundAndAssignId` functions. To use constants to reference the events instead of strings, follow the additional setup instructions found in the [fmod-scripts](https://tanneris.me/haxe-fmod-scripts) folder of this repo (highly recommended).
 
@@ -86,13 +86,13 @@ DebugMessages //Bool: Enables console output for internal FMOD API calls (can be
 
 ## <a name="html5-builds"></a>HTML5 Builds
 
-For HTML5 builds to work, a dedicated scene must be run before the game starts to give the FMOD engine a chance to fully load. See the [EZPlatformer example project (HaxeFlixel)](http://tanneris.me/haxe-fmod-example-project) in the `example-project` folder of this repo for a demonstration of how to handle this. The `Main.hx` file loads the startup scene, the startup scene initializes FMOD and waits for it to report back as initialized, then the game is started.
+For HTML5 builds to work, a dedicated scene must be run before the game starts to give the FMOD engine a chance to fully load. See the [EZPlatformer example project (HaxeFlixel)](https://github.com/Tanz0rz/haxe-fmod/tree/master/example-project/EZPlatformer/source) in the `example-project` folder of this repo for a demonstration of how to handle this. The `Main.hx` file loads the startup scene, the startup scene initializes FMOD and waits for it to report back as initialized, then the game is started.
 
 ## <a name="fmod-studio-project-configuration"></a>FMOD Studio Project Configuration
 
 **FMOD Studio project structure**:
 
-This structure is only required if you plan to utilize the [code generation script](https://tanneris.me/haxe-fmod-scripts) to sync your FMOD Studio project with your game code (highly recommended)
+This structure is only required if you plan to utilize the [code generation script](https://github.com/Tanz0rz/haxe-fmod/tree/master/fmod-scripts) to sync your FMOD Studio project with your game code (highly recommended)
 
 - Songs should be placed inside a folder titled "Music" in your FMOD Studio project
 - Sound effects should be placed inside a folder titled "SFX" in your FMOD Studio project
@@ -111,24 +111,24 @@ From now on, your `Master.bank` and `Master.strings.bank` files should be built 
 
 **FMOD Studio Scripts:**
 
-Checkout the [fmod-scripts](https://tanneris.me/haxe-fmod-scripts) folder in this repo to learn how to setup FMOD Studio to generate a Haxe constants file (`.hx`) that can be used to reference your Music and SFX in code without using strings.
+Checkout the [fmod-scripts](https://github.com/Tanz0rz/haxe-fmod/tree/master/fmod-scripts) folder in this repo to learn how to setup FMOD Studio to generate a Haxe constants file (`.hx`) that can be used to reference your Music and SFX in code without using strings.
 
 **FMOD Studio Live Update:**
 
-When using [Live Update](http://tanneris.me/FMOD-Live-Update) in FMOD Studio, turn the auto-reconnect feature off or your game will not start. Hopefully this issue can be resolved fairly easily.
+When using [Live Update](https://fmod.com/docs/2.00/studio/editing-during-live-update.html) in FMOD Studio, turn the auto-reconnect feature off or your game will not start. Hopefully this issue can be resolved fairly easily.
 
 **Note**: The Live Update feature will only work for Windows builds. It is officially unsupported for HTML5 builds. The FMOD team said this has to do with limitations caused by running games inside a browser.
 
 ## <a name="example-project"></a>Example Project
 
-Inside the `example-project` folder, you will find a simple game from the [HaxeFlixel flixel-demos repo](https://tanneris.me/haxe-flixel-demos) with this FMOD library added to it. It showcases the following:
+Inside the `example-project` folder, you will find a simple game from the [HaxeFlixel flixel-demos repo](https://github.com/HaxeFlixel/flixel-demos) with this FMOD library added to it. It showcases the following:
 - A song with an additional layer that uses an event parameter controlled by how fast the player can collect coins.
 - A coin sound with multiple versions that are automatically randomized
 - A dynamic high-pass filter that is applied to the song when the game is paused (click off the screen to pause)
 
 The FMOD Studio project for the example game is also included.
 
-Play the game, explore the code, and open up the FMOD Studio project (try [Live Update](http://tanneris.me/FMOD-Live-Update)!). This will provide insight into the workflow, library calls, and features of this tool. Open the `EZPlatofmrer` folder directly with vscode to get autocomplete and function lookups as you look around the code.
+Play the game, explore the code, and open up the FMOD Studio project (try [Live Update](https://fmod.com/docs/2.00/studio/editing-during-live-update.html)!). This will provide insight into the workflow, library calls, and features of this tool. Open the `EZPlatofmrer` folder directly with vscode to get autocomplete and function lookups as you look around the code.
 
 To play the game, run `lime test windows` or `lime test html5` in the `EZPlatformer` folder
 
@@ -147,4 +147,4 @@ This will setup the git repo as an "installed" version of `haxefmod` which can b
 
 ## <a name="feature-requests-and-contact"></a>Feature Requests and Contact
 
-If you have any feature requests or are having issues using the library, please [open an Issue](https://tanneris.me/haxe-fmod-issues) here on Github
+If you have any feature requests or are having issues using the library, please [open an Issue](https://github.com/Tanz0rz/haxe-fmod/issues) here on Github
