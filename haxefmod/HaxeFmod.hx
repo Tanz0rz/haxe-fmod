@@ -2,7 +2,7 @@ package haxefmod;
 
 import haxefmod.FmodInternalEnums;
 
-#if windows
+#if (windows||linux)
 @:keep
 @:include('linc_faxe.h')
 #if !display
