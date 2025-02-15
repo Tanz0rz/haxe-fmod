@@ -4,15 +4,15 @@
 		<set name="NATIVE_TOOLKIT_PATH" value="${LINC_FAXE_PATH}/lib/Windows" />
 	</section>
 	
-	<!-- Outdated links for other platforms
 	<section if="linux HXCPP_M32">
 		<set name="NATIVE_TOOLKIT_PATH" value="${LINC_FAXE_PATH}/lib/Linux" />
 	</section>
 	
 	<section if="linux HXCPP_M64">
-		<set name="NATIVE_TOOLKIT_PATH" value="${LINC_FAXE_PATH}/lib/Linux64" />
+		<set name="NATIVE_TOOLKIT_PATH" value="${LINC_FAXE_PATH}/lib/Linux" />
 	</section>
 	
+	<!-- Outdated links for other platforms
 	<section if="switch">
 		<set name="NATIVE_TOOLKIT_PATH" value="${LINC_FAXE_PATH}/lib/Switch" />
 	</section>
@@ -24,10 +24,8 @@
 		<compilerflag value="-I${NATIVE_TOOLKIT_PATH}/api/core/inc/" />
 		<compilerflag value="-I${NATIVE_TOOLKIT_PATH}/api/studio/inc/" />
 		
-		<!-- Additional linux compiler flags
 		<compilerflag value="-std=c++11" if="linux" />
-		<compilerflag value="-Wl,-rpath,$ORIGIN" if="linux" />
-		-->
+		<compilerflag value="-Wl,-rpath,./lib,--enable-new-dtags" if="linux" />
 		
 		<file name="${LINC_FAXE_PATH}/faxe/linc_faxe.cpp" />
 	</files>
@@ -44,17 +42,19 @@
 			<lib name="${NATIVE_TOOLKIT_PATH}/api/studio/lib/x64/fmodstudio_vc.lib" />
 		</section>
 
-		<!-- Outdated linux dependencies
 		<section if="linux HXCPP_M32">
-			<lib name="${NATIVE_TOOLKIT_PATH}/api/lowlevel/lib/x86/libfmod.so" />
+			<lib name="${NATIVE_TOOLKIT_PATH}/api/core/lib/x86/libfmod.so" />
 			<lib name="${NATIVE_TOOLKIT_PATH}/api/studio/lib/x86/libfmodstudio.so" />
+      <flag value="-Wl,-rpath,./lib"/>
+      <flag value="-Wl,--enable-new-dtags"/>
 		</section>
 
 		<section if="linux HXCPP_M64">
-			<lib name="${NATIVE_TOOLKIT_PATH}/api/lowlevel/lib/x86_64/libfmod.so" />
+			<lib name="${NATIVE_TOOLKIT_PATH}/api/core/lib/x86_64/libfmod.so" />
 			<lib name="${NATIVE_TOOLKIT_PATH}/api/studio/lib/x86_64/libfmodstudio.so" />
+      <flag value="-Wl,-rpath,./lib"/>
+      <flag value="-Wl,--enable-new-dtags"/>
 		</section>
-		-->
 	</target>
 
 	<!--TODO OVERRIDE  BuildMain.xml in project ... in the end I never came up with a true fix for nx and had to blit it over...-->
@@ -74,6 +74,29 @@
 		<section if="windows HXCPP_M64" >
 			<copyFile name="fmod.dll" from="${NATIVE_TOOLKIT_PATH}/api/core/lib/x64" toolId="exe" allowMissing="false"/>
 			<copyFile name="fmodstudio.dll" from="${NATIVE_TOOLKIT_PATH}/api/studio/lib/x64" toolId="exe" allowMissing="false"/>
+		</section>
+	</section>
+
+	<section  if="linux" unless="switch">
+		
+		<section if="linux HXCPP_M32" >
+		  <echo value="building for linux. x86"  />
+			<copyFile name="libfmod.so" from="${NATIVE_TOOLKIT_PATH}/api/core/lib/x86" toolId="exe" allowMissing="false"/>
+			<copyFile name="libfmod.so.14" from="${NATIVE_TOOLKIT_PATH}/api/core/lib/x86" toolId="exe" allowMissing="false"/>
+			<copyFile name="libfmod.so.14.6" from="${NATIVE_TOOLKIT_PATH}/api/core/lib/x86" toolId="exe" allowMissing="false"/>
+			<copyFile name="libfmodstudio.so" from="${NATIVE_TOOLKIT_PATH}/api/studio/lib/x86" toolId="exe" allowMissing="false"/>
+			<copyFile name="libfmodstudio.so.14" from="${NATIVE_TOOLKIT_PATH}/api/studio/lib/x86" toolId="exe" allowMissing="false"/>
+			<copyFile name="libfmodstudio.so.14.6" from="${NATIVE_TOOLKIT_PATH}/api/studio/lib/x86" toolId="exe" allowMissing="false"/>
+		</section>
+		
+		<section if="linux HXCPP_M64" >
+		  <echo value="building for linux. x64"  />
+			<copyFile name="libfmod.so" from="${NATIVE_TOOLKIT_PATH}/api/core/lib/x86_64" toolId="exe" allowMissing="false"/>
+			<copyFile name="libfmod.so.14" from="${NATIVE_TOOLKIT_PATH}/api/core/lib/x86_64" toolId="exe" allowMissing="false"/>
+			<copyFile name="libfmod.so.14.6" from="${NATIVE_TOOLKIT_PATH}/api/core/lib/x86_64" toolId="exe" allowMissing="false"/>
+			<copyFile name="libfmodstudio.so" from="${NATIVE_TOOLKIT_PATH}/api/studio/lib/x86_64" toolId="exe" allowMissing="false"/>
+			<copyFile name="libfmodstudio.so.14" from="${NATIVE_TOOLKIT_PATH}/api/studio/lib/x86_64" toolId="exe" allowMissing="false"/>
+			<copyFile name="libfmodstudio.so.14.6" from="${NATIVE_TOOLKIT_PATH}/api/studio/lib/x86_64" toolId="exe" allowMissing="false"/>
 		</section>
 	</section>
 	

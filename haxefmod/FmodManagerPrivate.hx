@@ -56,7 +56,7 @@ class FmodManagerPrivate {
 
             HaxeFmod.fmod_init(128);
             // For html5 deployments, the banks must be loaded from inside the javascript fmod_init() call
-            #if windows
+            #if (windows || linux)
             HaxeFmod.fmod_load_bank("assets/fmod/Desktop/Master.bank");
             HaxeFmod.fmod_load_bank("assets/fmod/Desktop/Master.strings.bank");
             #end

@@ -5,8 +5,18 @@
 	<dependency name="lib/Windows/api/core/lib/x86/fmod.dll" if="windows HXCPP_M32"/>
 	<dependency name="lib/Windows/api/studio/lib/x86/fmodstudio.dll" if="windows HXCPP_M32" />
 	
-	<dependency name="lib/Windows/api/core/lib/x64/fmod.dll" if="windows" unless="HXCPP_M32"/>
-	<dependency name="lib/Windows/api/studio/lib/x64/fmodstudio.dll" if="windows" unless="HXCPP_M32"/>
+	<dependency name="lib/Windows/api/core/lib/x64/fmod.dll" if="windows" unless="HXCPP_M64"/>
+	<dependency name="lib/Windows/api/studio/lib/x64/fmodstudio.dll" if="windows" unless="HXCPP_M64"/>
+
+	<dependency name="lib/Linux/api/core/lib/x86/fmod.so" if="linux HXCPP_M32"/>
+	<dependency name="lib/Linux/api/studio/lib/x86/fmodstudio.so" if="linux HXCPP_M32" />
+	<assets path="lib/Linux/api/core/lib/x86/" rename="lib/" if="linux HXCPP_M32" embed="false"/>
+	<assets path="lib/Linux/api/studio/lib/x86/" rename="lib/" if="linux HXCPP_M32" embed="false"/>
+
+	<dependency name="lib/Linux/api/core/lib/x86_x4/fmod.so" if="linux" unless="HXCPP_M32"/>
+	<dependency name="lib/Linux/api/studio/lib/x86_64/fmodstudio.so" if="linux" unless="HXCPP_M32"/>
+	<assets path="lib/Linux/api/core/lib/x86_64/" rename="lib/" if="linux" unless="HXCPP_M32" embed="false"/>
+	<assets path="lib/Linux/api/studio/lib/x86_64/" rename="lib/" if="linux" unless="HXCPP_M32" embed="false"/>
 
 	<dependency path="lib/html5/fmodstudio.js" if="html5"/>
 	<assets path="lib/html5/fmodstudio.wasm" rename="lib/fmodstudio.wasm" if="html5"/>

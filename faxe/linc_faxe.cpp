@@ -434,7 +434,7 @@ namespace linc
 		}
 
 		// Callback definitions must be defined before they are used in functions
-		FMOD_RESULT F_CALLBACK GetCallbackType(FMOD_STUDIO_EVENT_CALLBACK_TYPE type, FMOD_STUDIO_EVENTINSTANCE *event, void *parameters)
+		FMOD_RESULT F_CALL GetCallbackType(FMOD_STUDIO_EVENT_CALLBACK_TYPE type, FMOD_STUDIO_EVENTINSTANCE *event, void *parameters)
 		{
 			auto eventInstancePath = GetEventInstancePath((FMOD::Studio::EventInstance*) event);
 			auto eventWithCallback = eventCallbacksFlagsMap.find(eventInstancePath);
