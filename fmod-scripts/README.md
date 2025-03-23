@@ -2,7 +2,7 @@
 
 This script utilizes a very cool feature in FMOD Studio to give your code access to an always-up-to-date list of every event in your sound bank (using autocomplete!).
 
-It does this by placing an `FmodConstants.hx` file next to your main `.hx` file which you can then import into your project.
+It does this by placing an `FmodConstants.hx` file next to your main `.hx` file, which you can then import into your project.
 
 If you are using vscode, its autocomplete can be triggered by typing in "FmodSongs." or "FmodSFX." 
 
@@ -11,7 +11,7 @@ If you are using vscode, its autocomplete can be triggered by typing in "FmodSon
 ## Features:
 - Builds `FmodConstants.hx` in the project directory of your choosing
 - Automatically builds your FMOD Studio sound bank after generating the constants file
-- Can be triggered using the hotkey `Ctrl+B` while FMOD Studio is in focus (you can then use `enter` to jump through the prompts quickly once the script is pointing at the right directory)
+- Can be triggered using the hotkey `Ctrl+B` while FMOD Studio is in focus (you can then use `Enter` to jump through the prompts quickly once the script is pointing at the right directory)
 
 ## Usage Examples:
 - Play a song: `FmodManager.PlaySong(FmodSongs.MainSong);`

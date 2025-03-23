@@ -10,7 +10,7 @@ Primarily focuses on simplifying the FMOD Studio project workflow through the us
 
 The Windows integration was built on top of Aaron Shea's [C++ integration with FMOD's official API](https://github.com/ashea-code/faxe)
 
-LICENCE: [MIT](https://en.wikipedia.org/wiki/MIT_License)
+LICENSE: [MIT](https://en.wikipedia.org/wiki/MIT_License)
 
 [Download the package via Haxelib](https://lib.haxe.org/p/haxefmod)
 
@@ -57,11 +57,11 @@ After configuring your project to work with this library, playing a song or soun
 ```
 **Important note:** HTML5 builds require a "startup scene" to load FMOD before the game starts. See the [HTML5 Builds](#html5-builds) section for more information
 
-**Download FMOD Studio and setup your project:**
+**Download FMOD Studio and set up your project:**
 
 This will be the tool you use to manage all audio for your game. Download FMOD Studio version 2.00.08 [here](https://fmod.com/download). Once installed, follow the [FMOD Studio Project Configuration](#fmod-studio-project-configuration) section before moving on.
 
-**Add the library your Haxe project:**
+**Add the library to your Haxe project:**
 
 [Download the package via Haxelib](https://lib.haxe.org/p/haxefmod)
 
@@ -71,7 +71,7 @@ If required, import the library in your project. On HaxeFlixel projects, add `<h
 
 The `FmodManager` class is the primary way to interact with FMOD in your game. It abstracts away nearly all of the low-level details of the FMOD API. You can look through all of the available `FmodManager` function calls with descriptions [here](https://github.com/Tanz0rz/haxe-fmod/blob/master/haxefmod/FmodManager.hx).
 
-Songs and sound effects are triggered by passing in the full FMOD bank event path to the `FmodManager.PlaySong`, `FmodManager.PlaySoundOneShot`, `FmodManager.PlaySoundWithReference`, `FmodManager.PlaySoundAndAssignId` functions. To use constants to reference the events instead of strings, follow the additional setup instructions found in the [fmod-scripts](https://github.com/Tanz0rz/haxe-fmod/tree/master/fmod-scripts) folder of this repo (highly recommended).
+Songs and sound effects are triggered by passing in the full FMOD bank event path to the `FmodManager.PlaySong`, `FmodManager.PlaySoundOneShot`, `FmodManager.PlaySoundWithReference`, `FmodManager.PlaySoundAndAssignId` functions. To use constants to reference the events instead of strings, follow the additional set up instructions found in the [fmod-scripts](https://github.com/Tanz0rz/haxe-fmod/tree/master/fmod-scripts) folder of this repo (highly recommended).
 
 **important**: This library needs a constant stream of update calls to function properly. Remember to call `FmodManager.Update()` at the beginning of **every** update loop of **every** state in your game.
 
@@ -111,7 +111,7 @@ From now on, your `Master.bank` and `Master.strings.bank` files should be built 
 
 **FMOD Studio Scripts:**
 
-Checkout the [fmod-scripts](https://github.com/Tanz0rz/haxe-fmod/tree/master/fmod-scripts) folder in this repo to learn how to setup FMOD Studio to generate a Haxe constants file (`.hx`) that can be used to reference your Music and SFX in code without using strings.
+Checkout the [fmod-scripts](https://github.com/Tanz0rz/haxe-fmod/tree/master/fmod-scripts) folder in this repo to learn how to set up FMOD Studio to generate a Haxe constants file (`.hx`) that can be used to reference your Music and SFX in code without using strings.
 
 **FMOD Studio Live Update:**
 
@@ -128,7 +128,7 @@ Inside the `example-project` folder, you will find a simple game from the [HaxeF
 
 The FMOD Studio project for the example game is also included.
 
-Play the game, explore the code, and open up the FMOD Studio project (try [Live Update](https://fmod.com/docs/2.00/studio/editing-during-live-update.html)!). This will provide insight into the workflow, library calls, and features of this tool. Open the `EZPlatofmrer` folder directly with vscode to get autocomplete and function lookups as you look around the code.
+Play the game, explore the code, and open up the FMOD Studio project (try [Live Update](https://fmod.com/docs/2.00/studio/editing-during-live-update.html)!). This will provide insight into the workflow, library calls, and features of this tool. Open the `EZPlatformer` folder directly with vscode to get autocomplete and function lookups as you look around the code.
 
 To play the game, run `lime test windows` or `lime test html5` in the `EZPlatformer` folder
 
@@ -138,7 +138,7 @@ To play the game, run `lime test windows` or `lime test html5` in the `EZPlatfor
 2. Clone down this repo
 3. Point your `haxelib` at the local repo using `haxelib dev haxefmod <directory_to_the_git_clone>`
 
-This will setup the git repo as an "installed" version of `haxefmod` which can be imported by your projects the same way you import other libraries. You can see the special `dev` status when you find `haxefmod` in the output of `haxelib list` 
+This will set up the git repo as an "installed" version of `haxefmod` which can be imported by your projects the same way you import other libraries. You can see the special `dev` status when you find `haxefmod` in the output of `haxelib list` 
 
 ## <a name="future-goals"></a>Future Goals
 
