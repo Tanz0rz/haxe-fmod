@@ -71,7 +71,7 @@ If required, import the library in your project. On HaxeFlixel projects, add `<h
 
 The `FmodManager` class is the primary way to interact with FMOD in your game. It abstracts away nearly all of the low-level details of the FMOD API. You can look through all of the available `FmodManager` function calls with descriptions [here](https://github.com/Tanz0rz/haxe-fmod/blob/master/haxefmod/FmodManager.hx).
 
-Songs and sound effects are triggered by passing in the full FMOD bank event path to the `FmodManager.PlaySong`, `FmodManager.PlaySoundOneShot`, `FmodManager.PlaySoundWithReference`, `FmodManager.PlaySoundAndAssignId` functions. To use constants to reference the events instead of strings, follow the additional setup instructions found in the [fmod-scripts](https://tanneris.me/haxe-fmod-scripts) folder of this repo (highly recommended).
+Songs and sound effects are triggered by passing in the full FMOD bank event path to the `FmodManager.PlaySong`, `FmodManager.PlaySoundOneShot`, `FmodManager.PlaySoundWithReference`, `FmodManager.PlaySoundAndAssignId` functions. To use constants to reference the events instead of strings, follow the additional setup instructions found in the [fmod-scripts](https://github.com/Tanz0rz/haxe-fmod/tree/master/fmod-scripts) folder of this repo (highly recommended).
 
 **important**: This library needs a constant stream of update calls to function properly. Remember to call `FmodManager.Update()` at the beginning of **every** update loop of **every** state in your game.
 
