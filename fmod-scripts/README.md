@@ -11,14 +11,14 @@ If you are using vscode, its autocomplete can be triggered by typing in "FmodSon
 
 The generated code can be done in two different ways, depending on which is more useful for the given project: Either as Constants or Enums.
 
-Both methods automatically build your FMOD Studio sound bank after generating the constants file
+Both methods automatically build your FMOD Studio sound bank after generating the Events file.
 
 ## Constants
 
 ### Features:
 - Generates `FmodConstants.hx` in the project directory of your choosing
-- Can be triggered using the hotkey `Ctrl+B` while FMOD Studio is in focus (you can then use `enter` to jump through the prompts quickly once the script is pointing at the right directory)
-placing an `FmodConstants.hx` file
+- Can be triggered using the hotkey `Ctrl+B` while FMOD Studio is in focus placing an `FmodConstants.hx` file
+- You can then use `enter` to jump through the prompts quickly once the script is pointing at the right directory
 
 ### Usage Examples:
 - Play a song: `FmodManager.PlaySong(FmodSong.MainSong);`
@@ -30,8 +30,8 @@ placing an `FmodConstants.hx` file
 ### Features:
 - Allows for more advanced integrations in exchange for slightly more cumbersome calls to FmodManager 
 - Generates `FmodEventEnum.hx` in the project directory of your choosing
-- Can be triggered using the hotkey `Ctrl+Shift+B` while FMOD Studio is in focus (you can then use `enter` to jump through the prompts quickly once the script is pointing at the right directory)
-placing an `FmodEventEnum.hx` file
+- Can be triggered using the hotkey `Ctrl+B` while FMOD Studio is in focus placing an `FmodEventEnum.hx` file
+- You can then use `enter` to jump through the prompts quickly once the script is pointing at the right directory
 
 ### Usage Examples:
 - Play a song: `FmodManager.PlaySong(FmodEvent.event(FmodSong.MainSong));`
@@ -46,7 +46,7 @@ This can be shortened by leveraging `using FmodEventEnum.FmodEvent;` in your imp
 
 To avoid having to import the classes in every file of your game code, you can create an `import.hx` file next to your game's `Main.hx` to make the helpers globally available.
 
-`import.hx`:
+`import.hx` when using Constants:
 ```haxe
 // Fmod helper library
 import haxefmod.FmodManager;
@@ -56,10 +56,23 @@ import FmodConstants.FmodSFX;
 import FmodConstants.FmodSong;
 ```
 
+or
+
+`import.hx` when using Enums:
+```haxe
+// Fmod helper library
+import haxefmod.FmodManager;
+// Enum containing all sound effect names
+import FmodEventEnum.FmodSFX;
+// Enum containing all song names
+import FmodEventEnum.FmodSong;
+```
+
 ## Installing the script:
-- Place either the `ExportHaxeConstants.js`  or `ExportHaxeEnums.js` file in your FMOD projects's "scripts" folder (`%project_root_directory%/Scripts`).
+- Place either the `ExportHaxeConstants.js`  or `ExportHaxeEnums.js` file in your FMOD projects's `/Scripts` folder (`%project_root_directory%/Scripts`).
 - In FMOD Studio, click the Scripts dropdown at the top and select "Reload". 
-- Click on the Scripts dropdown again and you will see either "Export Haxe Constants and Build" or "Export Haxe Enums and Build option now available, depending on which script file was copied.
+- Click on the Scripts dropdown again and you will see either "Export Haxe Constants and Build" or "Export Haxe Enums and Build" option now available, depending on which script file was copied.
+- Script can be run by either selecting it from the dropdown menu, or pressing the `Ctrl+B` hotkey
 - When prompted, select the directory in your Haxe project that contains your `Main.hx` file (this is usually the `/source` directory).
 
 
