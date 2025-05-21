@@ -5,13 +5,13 @@
  */
 
 studio.menu.addMenuItem({ 
-    name: "Export Haxe Constants and Build",  
+    name: "Export Event Enums and Build",  
     execute: function() {displayDirectoryPickerModal()},
-    keySequence: "Ctrl+B",
+    keySequence: "Ctrl+Shift+B",
 });
 
-const constantsFileName = "FmodConstants.hx";
-const cacheFileName = "CachedHaxeConstantsOutputLocation";
+const constantsFileName = "FmodEventEnum.hx";
+const cacheFileName = "CachedHaxeEnumOutputLocation";
 
 function displayDirectoryPickerModal() {
 
@@ -111,35 +111,55 @@ function writeFileBody(constantsFile) {
         return 0;
     });
 
-    // Generate constants for music events
-    console.log("Exporting Music events")
-    constantsFile.writeText("class FmodSong {\r\n");
+    var allMusic = [];
+    var allSfx = [];
+
     allEvents.forEach(function(object) {
         // If the event starts with a number, prefix an underscore
         // Replace any whitespace in the event path with underscores
         const path = object.getPath().replace(/(^[0-9])/g, "_$1").replace(/ /g,"_");
+        console.log("Path: " + path);
+
+        var finalSlashIndex = path.lastIndexOf('/');
+        var eventName = path.substring(finalSlashIndex + 1);
         if (path.split('/')[1] == "Music") {
-            console.log("Path: " + path);
-            var finalSlashIndex = path.lastIndexOf('/');
-            var eventName = path.substring(finalSlashIndex + 1);
-            constantsFile.writeText("    public static inline var " + eventName + ":String = \"" + path + "\";\r\n");
+            allMusic.push({'path': path, 'name': eventName});
+        } else if (path.split('/')[1] == "SFX") {
+            allSfx.push({'path': path, 'name': eventName});
         }
+    });
+
+    console.log("Exporting music event enum")
+    constantsFile.writeText("enum FmodSong {\r\n");
+    allMusic.forEach(function(event) {
+        constantsFile.writeText("    " + event.name + ";\r\n");
     });
     constantsFile.writeText("}\r\n\r\n");
     
-    // Generate constants for sfx events
-    console.log("Exporting SFX events")
-    constantsFile.writeText("class FmodSFX {\r\n");
-    allEvents.forEach(function(object) {
-         // If the event starts with a number, prefix an underscore
-         // Replace any whitespace in the event path with underscores
-        const path = object.getPath().replace(/(^[0-9])/g, "_$1").replace(/ /g,"_");
-        if (path.split('/')[1] == "SFX") {
-            console.log("Path: " + path);
-            var finalSlashIndex = path.lastIndexOf('/');
-            var eventName = path.substring(finalSlashIndex + 1);
-            constantsFile.writeText("    public static inline var " + eventName + ":String = \"" + path + "\";\r\n");
-        }
+    console.log("Exporting SFX event enum")
+
+    constantsFile.writeText("enum FmodSFX {\r\n");
+    allSfx.forEach(function(event) {
+        constantsFile.writeText("    " + event.name + ";\r\n");
     });
+    constantsFile.writeText("}\r\n\r\n");
+
+    console.log("Exporting path util class and functions")
+    constantsFile.writeText("class FmodEvent {\r\n");
+    constantsFile.writeText("    public static extern overload function event(song:FmodSong):String {\r\n");
+    constantsFile.writeText("        return switch(song) {\r\n");
+    allMusic.forEach(function(event) {
+        constantsFile.writeText("            case " + event.name + ": \"" + event.path + "\";\r\n");
+    });
+    constantsFile.writeText("        }\r\n");
+    constantsFile.writeText("    }\r\n");
+
+    constantsFile.writeText("    public static extern overload function event(sfx:FmodSFX):String {\r\n");
+    constantsFile.writeText("        return switch(sfx) {\r\n");
+    allSfx.forEach(function(event) {
+        constantsFile.writeText("            case " + event.name + ": \"" + event.path + "\";\r\n");
+    });
+    constantsFile.writeText("        }\r\n");
+    constantsFile.writeText("    }\r\n");
     constantsFile.writeText("}\r\n");
 }

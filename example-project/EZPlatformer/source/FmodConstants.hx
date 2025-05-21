@@ -5,7 +5,7 @@
 
 package;
 
-class FmodSongs {
+class FmodSong {
     public static inline var MainLevel:String = "event:/Music/MainLevel";
 }
 

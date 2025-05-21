@@ -1,3 +1,3 @@
 import FmodConstants.FmodSFX;
-import FmodConstants.FmodSongs;
+import FmodConstants.FmodSong;
 import haxefmod.FmodManager;
