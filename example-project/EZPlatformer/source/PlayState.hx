@@ -36,7 +36,7 @@ class PlayState extends FlxState {
     }
 
     override public function create():Void {
-        FmodManager.PlaySong(FmodSongs.MainLevel);
+        FmodManager.PlaySong(FmodSong.MainLevel);
 
         FlxG.mouse.visible = false;
         FlxG.cameras.bgColor = 0xffaaaaaa;
