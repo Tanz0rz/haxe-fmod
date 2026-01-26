@@ -12,8 +12,8 @@ import haxefmod.backends.IFmodBackend.FmodEventHandle;
  */
 @:keep
 #if !display
-@:build(faxe.Linc.touch())
-@:build(faxe.Linc.xml('faxe', '../../'))
+@:build(haxefmod.backends.CppBackend_Linc.touch())
+@:build(haxefmod.backends.CppBackend_Linc.xml('faxe', '../../'))
 #end
 @:cppInclude('linc_faxe.h')
 class CppBackend implements IFmodBackend {
@@ -47,6 +47,11 @@ class CppBackend implements IFmodBackend {
 
     public function update():Void {
         CppFmod.fmod_update();
+    }
+
+    public function setAutoUpdate(enabled:Bool):Void {
+        CppFmod.fmod_set_auto_update(enabled);
+        log('Auto-update ${enabled ? "enabled" : "disabled"}');
     }
 
     //// Banks
@@ -161,6 +166,9 @@ private extern class CppFmod {
 
     @:native("linc::faxe::fmod_update")
     static function fmod_update():Void;
+
+    @:native("linc::faxe::fmod_set_auto_update")
+    static function fmod_set_auto_update(enabled:Bool):Void;
 
     // Banks
     @:native("linc::faxe::fmod_load_bank")

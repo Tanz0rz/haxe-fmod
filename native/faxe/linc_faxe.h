@@ -16,6 +16,7 @@ namespace faxe {
 extern bool fmod_is_initialized();
 extern int fmod_init(int numChannels);
 extern void fmod_update();
+extern void fmod_set_auto_update(bool enabled);
 
 //// Banks
 extern int fmod_load_bank(const ::String& path);

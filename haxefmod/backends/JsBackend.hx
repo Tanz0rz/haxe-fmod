@@ -39,6 +39,11 @@ class JsBackend implements IFmodBackend {
         JsFmod.fmod_update();
     }
 
+    public function setAutoUpdate(enabled:Bool):Void {
+        JsFmod.fmod_set_auto_update(enabled);
+        log('Auto-update ${enabled ? "enabled" : "disabled"}');
+    }
+
     //// Banks
 
     public function loadBank(bankFilePath:String):Void {
@@ -146,6 +151,7 @@ private extern class JsFmod {
     public static function fmod_is_initialized():Bool;
     public static function fmod_init(numChannels:Int):Void;
     public static function fmod_update():Void;
+    public static function fmod_set_auto_update(enabled:Bool):Void;
 
     // Banks
     public static function fmod_load_bank(path:String):Int;

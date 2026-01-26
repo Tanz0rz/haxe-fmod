@@ -47,6 +47,11 @@ class HlBackend implements IFmodBackend {
         HlFmod.update();
     }
 
+    public function setAutoUpdate(enabled:Bool):Void {
+        HlFmod.set_auto_update(enabled);
+        log('Auto-update ${enabled ? "enabled" : "disabled"}');
+    }
+
     //// Banks
 
     public function loadBank(bankFilePath:String):Void {
@@ -153,6 +158,7 @@ private extern class HlFmod {
     static function is_initialized():Bool;
     static function init(numChannels:Int):Int; // Returns FMOD_RESULT
     static function update():Void;
+    static function set_auto_update(enabled:Bool):Void;
 
     // Banks
     static function load_bank(path:hl.Bytes):Int; // Returns FMOD_RESULT
