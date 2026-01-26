@@ -1,21 +1,31 @@
 package haxefmod;
 
+import haxefmod.backends.IFmodBackend.FmodEventHandle;
+
+/**
+ * Cached event instance data.
+ */
+typedef CachedInstance = {
+    var eventPath:String;
+    var handle:FmodEventHandle;
+}
+
 /**
  * Pure Haxe cache for tracking FMOD resources.
  *
- * This replaces the caching logic that was previously duplicated in both
- * C++ (std::map in linc_faxe.cpp) and JavaScript (object in jaxe.js).
+ * This is the SINGLE SOURCE OF TRUTH for name→handle mapping.
+ * Native backends are stateless - they just maintain an array of FMOD pointers
+ * indexed by the handle. All name resolution happens here in Haxe.
  *
  * The cache tracks:
- * - Named event instances that have been created
- * - Loaded banks
- * - Event paths associated with instance names (for callbacks)
+ * - Named event instances: name → {eventPath, handle}
+ * - Loaded banks: path → true
  */
 class FmodCache {
     private static var instance:FmodCache;
 
-    /** Maps event instance name -> event path (e.g., "SongEventInstance" -> "event:/Music/MainLevel") */
-    private var eventInstances:Map<String, String>;
+    /** Maps event instance name → cached data (event path + native handle) */
+    private var eventInstances:Map<String, CachedInstance>;
 
     /** Set of loaded bank file paths */
     private var loadedBanks:Map<String, Bool>;
@@ -23,8 +33,11 @@ class FmodCache {
     /** Warning threshold for too many cached instances */
     private static inline var MAX_INSTANCES_WARNING:Int = 25;
 
+    /** Invalid handle constant */
+    public static inline var INVALID_HANDLE:FmodEventHandle = -1;
+
     private function new() {
-        eventInstances = new Map<String, String>();
+        eventInstances = new Map<String, CachedInstance>();
         loadedBanks = new Map<String, Bool>();
     }
 
@@ -41,9 +54,10 @@ class FmodCache {
      * Registers a new event instance in the cache.
      * @param instanceName The unique name for this instance
      * @param eventPath The FMOD event path (e.g., "event:/Music/MainLevel")
+     * @param handle The native handle returned by the backend
      */
-    public function registerEventInstance(instanceName:String, eventPath:String):Void {
-        eventInstances.set(instanceName, eventPath);
+    public function registerEventInstance(instanceName:String, eventPath:String, handle:FmodEventHandle):Void {
+        eventInstances.set(instanceName, {eventPath: eventPath, handle: handle});
         checkInstanceCount();
     }
 
@@ -62,11 +76,27 @@ class FmodCache {
     }
 
     /**
+     * Gets the native handle for a registered instance name.
+     * @return The handle, or INVALID_HANDLE (-1) if not found
+     */
+    public function getHandle(instanceName:String):FmodEventHandle {
+        var cached = eventInstances.get(instanceName);
+        if (cached != null) {
+            return cached.handle;
+        }
+        return INVALID_HANDLE;
+    }
+
+    /**
      * Gets the event path for a registered instance name.
      * @return The event path, or null if not found
      */
     public function getEventPath(instanceName:String):Null<String> {
-        return eventInstances.get(instanceName);
+        var cached = eventInstances.get(instanceName);
+        if (cached != null) {
+            return cached.eventPath;
+        }
+        return null;
     }
 
     /**
@@ -120,7 +150,7 @@ class FmodCache {
      * Clears all cached data. Use with caution.
      */
     public function clear():Void {
-        eventInstances = new Map<String, String>();
+        eventInstances = new Map<String, CachedInstance>();
         loadedBanks = new Map<String, Bool>();
     }
 

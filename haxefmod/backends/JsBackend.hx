@@ -1,19 +1,29 @@
 package haxefmod.backends;
 
 import haxefmod.FmodInternalEnums;
+import haxefmod.backends.IFmodBackend.FmodEventHandle;
 
 #if js
 /**
- * JavaScript/HTML5 backend implementation.
- * Wraps the native functions in jaxe.js.
+ * JavaScript backend - All logic lives here, native code is minimal FFI.
+ *
+ * DESIGN: Native jaxe.js is just raw FMOD API calls.
+ * All error handling, debug logging, and state comparison happens here in Haxe.
  */
 class JsBackend implements IFmodBackend {
+    private var debug:Bool = false;
+
     public function new() {}
+
+    private inline function log(msg:String):Void {
+        if (debug) js.Browser.console.log('FMOD JS: $msg');
+    }
 
     //// System
 
     public function setDebug(onOff:Bool):Void {
-        JsFmod.fmod_set_debug(onOff);
+        debug = onOff;
+        log('Debug ${onOff ? "enabled" : "disabled"}');
     }
 
     public function isInitialized():Bool {
@@ -22,6 +32,7 @@ class JsBackend implements IFmodBackend {
 
     public function init(numChannels:Int):Void {
         JsFmod.fmod_init(numChannels);
+        log('Initializing...');
     }
 
     public function update():Void {
@@ -31,112 +42,134 @@ class JsBackend implements IFmodBackend {
     //// Banks
 
     public function loadBank(bankFilePath:String):Void {
-        JsFmod.fmod_load_bank(bankFilePath);
+        var result = JsFmod.fmod_load_bank(bankFilePath);
+        if (result == 0) {
+            log('Loaded bank: $bankFilePath');
+        } else {
+            log('Failed to load bank $bankFilePath (error $result)');
+        }
     }
 
     public function unloadBank(bankFilePath:String):Void {
         JsFmod.fmod_unload_bank(bankFilePath);
+        log('Unloaded bank: $bankFilePath');
     }
 
     //// Event Instances
 
     public function createEventInstanceOneShot(eventPath:String):Void {
-        JsFmod.fmod_create_event_instance_one_shot(eventPath);
+        var result = JsFmod.fmod_fire_one_shot(eventPath);
+        if (result != 0) {
+            log('Failed to fire one-shot $eventPath (error $result)');
+        }
     }
 
-    public function createEventInstanceNamed(eventPath:String, eventInstanceName:String):Void {
-        JsFmod.fmod_create_event_instance_named(eventPath, eventInstanceName);
+    public function createEventInstance(eventPath:String):FmodEventHandle {
+        var handle = JsFmod.fmod_create_instance(eventPath);
+        if (handle >= 0) {
+            // Auto-start on creation
+            JsFmod.fmod_start(handle);
+            log('Created instance $handle for $eventPath');
+        } else {
+            log('Failed to create instance for $eventPath');
+        }
+        return handle;
     }
 
-    public function isEventInstanceLoaded(eventInstanceName:String):Bool {
-        return JsFmod.fmod_is_event_instance_loaded(eventInstanceName);
+    public function playEventInstance(handle:FmodEventHandle):Void {
+        JsFmod.fmod_start(handle);
     }
 
-    public function playEventInstance(eventInstanceName:String):Void {
-        JsFmod.fmod_play_event_instance(eventInstanceName);
+    public function isEventInstancePlaying(handle:FmodEventHandle):Bool {
+        var state:FmodStudioPlaybackState = cast JsFmod.fmod_get_playback_state(handle);
+        return state == FmodStudioPlaybackState.FMOD_STUDIO_PLAYBACK_PLAYING;
     }
 
-    public function isEventInstancePlaying(eventInstanceName:String):Bool {
-        return JsFmod.fmod_is_event_instance_playing(eventInstanceName);
+    public function getEventInstancePlaybackState(handle:FmodEventHandle):FmodStudioPlaybackState {
+        return cast JsFmod.fmod_get_playback_state(handle);
     }
 
-    public function getEventInstancePlaybackState(eventInstanceName:String):FmodStudioPlaybackState {
-        return JsFmod.fmod_get_event_instance_playback_state(eventInstanceName);
+    public function setPauseOnEventInstance(handle:FmodEventHandle, shouldBePaused:Bool):Void {
+        JsFmod.fmod_set_paused(handle, shouldBePaused);
     }
 
-    public function setPauseOnEventInstance(eventInstanceName:String, shouldBePaused:Bool):Void {
-        JsFmod.fmod_set_pause_on_event_instance(eventInstanceName, shouldBePaused);
+    public function stopEventInstance(handle:FmodEventHandle):Void {
+        JsFmod.fmod_stop(handle, 0); // Allow fadeout
     }
 
-    public function stopEventInstance(eventInstanceName:String):Void {
-        JsFmod.fmod_stop_event_instance(eventInstanceName);
+    public function stopEventInstanceImmediately(handle:FmodEventHandle):Void {
+        JsFmod.fmod_stop(handle, 1); // Immediate
     }
 
-    public function stopEventInstanceImmediately(eventInstanceName:String):Void {
-        JsFmod.fmod_stop_event_instance_immediately(eventInstanceName);
-    }
-
-    public function releaseEventInstance(eventInstanceName:String):Void {
-        JsFmod.fmod_release_event_instance(eventInstanceName);
+    public function releaseEventInstance(handle:FmodEventHandle):Void {
+        JsFmod.fmod_release(handle);
     }
 
     //// Parameters
 
-    public function getEventInstanceParam(eventInstanceName:String, paramName:String):Float {
-        return JsFmod.fmod_get_event_instance_param(eventInstanceName, paramName);
+    public function getEventInstanceParam(handle:FmodEventHandle, paramName:String):Float {
+        return JsFmod.fmod_get_param(handle, paramName);
     }
 
-    public function setEventInstanceParam(eventInstanceName:String, paramName:String, value:Float):Void {
-        JsFmod.fmod_set_event_instance_param(eventInstanceName, paramName, value);
+    public function setEventInstanceParam(handle:FmodEventHandle, paramName:String, value:Float):Void {
+        JsFmod.fmod_set_param(handle, paramName, value);
     }
 
     //// Bus operations
 
     public function setPauseForAllEventsOnBus(busPath:String, shouldBePaused:Bool):Void {
-        JsFmod.fmod_set_pause_for_all_events_on_bus(busPath, shouldBePaused);
+        JsFmod.fmod_set_bus_paused(busPath, shouldBePaused);
     }
 
     public function stopAllEventsOnBus(busPath:String):Void {
-        JsFmod.fmod_stop_all_events_on_bus(busPath);
+        JsFmod.fmod_stop_bus(busPath);
     }
 
     //// Callbacks
 
-    public function setCallbackTrackingForEventInstance(eventInstanceName:String):Void {
-        JsFmod.fmod_set_callback_tracking_for_event_instance(eventInstanceName);
+    public function setCallbackTrackingForEventInstance(handle:FmodEventHandle):Void {
+        JsFmod.fmod_enable_callbacks(handle);
     }
 
-    public function checkCallbacksForEventInstance(eventInstanceName:String, callbackEventMask:UInt):Bool {
-        return JsFmod.fmod_check_callbacks_for_event_instance(eventInstanceName, callbackEventMask);
+    public function checkCallbacksForEventInstance(handle:FmodEventHandle, callbackEventMask:UInt):Bool {
+        return JsFmod.fmod_poll_callbacks(handle, callbackEventMask);
     }
 }
 
 /**
- * Native extern declarations for JavaScript FMOD bindings.
+ * Minimal native FFI declarations.
+ * These map directly to raw FMOD API calls in jaxe.js.
  */
 @:native("jaxe")
 private extern class JsFmod {
-    public static function fmod_set_debug(onOff:Bool):Void;
+    // System
     public static function fmod_is_initialized():Bool;
     public static function fmod_init(numChannels:Int):Void;
     public static function fmod_update():Void;
-    public static function fmod_load_bank(bankFilePath:String):Void;
-    public static function fmod_unload_bank(bankFilePath:String):Void;
-    public static function fmod_create_event_instance_one_shot(eventPath:String):Void;
-    public static function fmod_create_event_instance_named(eventPath:String, eventInstanceName:String):Void;
-    public static function fmod_is_event_instance_loaded(eventInstanceName:String):Bool;
-    public static function fmod_play_event_instance(eventInstanceName:String):Void;
-    public static function fmod_is_event_instance_playing(eventInstanceName:String):Bool;
-    public static function fmod_get_event_instance_playback_state(eventInstanceName:String):FmodStudioPlaybackState;
-    public static function fmod_set_pause_on_event_instance(eventInstanceName:String, shouldBePaused:Bool):Void;
-    public static function fmod_stop_event_instance(eventInstanceName:String):Void;
-    public static function fmod_stop_event_instance_immediately(eventInstanceName:String):Void;
-    public static function fmod_release_event_instance(eventInstanceName:String):Void;
-    public static function fmod_get_event_instance_param(eventInstanceName:String, paramName:String):Float;
-    public static function fmod_set_event_instance_param(eventInstanceName:String, paramName:String, value:Float):Void;
-    public static function fmod_set_pause_for_all_events_on_bus(busPath:String, shouldBePaused:Bool):Void;
-    public static function fmod_stop_all_events_on_bus(busPath:String):Void;
-    public static function fmod_set_callback_tracking_for_event_instance(eventInstanceName:String):Void;
-    public static function fmod_check_callbacks_for_event_instance(eventInstanceName:String, callbackEventMask:UInt):Bool;
+
+    // Banks
+    public static function fmod_load_bank(path:String):Int;
+    public static function fmod_unload_bank(path:String):Void;
+
+    // Events
+    public static function fmod_fire_one_shot(eventPath:String):Int;
+    public static function fmod_create_instance(eventPath:String):Int;
+    public static function fmod_start(handle:Int):Void;
+    public static function fmod_stop(handle:Int, immediate:Int):Void;
+    public static function fmod_release(handle:Int):Void;
+    public static function fmod_set_paused(handle:Int, paused:Bool):Void;
+    public static function fmod_get_playback_state(handle:Int):Int;
+
+    // Parameters
+    public static function fmod_get_param(handle:Int, name:String):Float;
+    public static function fmod_set_param(handle:Int, name:String, value:Float):Void;
+
+    // Bus
+    public static function fmod_set_bus_paused(path:String, paused:Bool):Void;
+    public static function fmod_stop_bus(path:String):Void;
+
+    // Callbacks
+    public static function fmod_enable_callbacks(handle:Int):Void;
+    public static function fmod_poll_callbacks(handle:Int, mask:Int):Bool;
 }
 #end

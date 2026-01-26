@@ -1,19 +1,33 @@
 package haxefmod.backends;
 
 import haxefmod.FmodInternalEnums;
+import haxefmod.backends.IFmodBackend.FmodEventHandle;
 
 #if hl
 /**
- * HashLink backend implementation using native FFI bindings.
- * Calls FMOD Studio C API functions directly via hlaxe_fmod.hdll.
+ * HashLink backend - All logic lives here, native code is minimal FFI.
+ *
+ * DESIGN: Native hlaxe_fmod.c is just raw FMOD API calls.
+ * All error handling, debug logging, and state comparison happens here in Haxe.
  */
 class HlBackend implements IFmodBackend {
+    private var debug:Bool = false;
+
     public function new() {}
+
+    private inline function log(msg:String):Void {
+        if (debug) trace('FMOD HL: $msg');
+    }
+
+    private static inline function toBytes(s:String):hl.Bytes {
+        return @:privateAccess s.toUtf8();
+    }
 
     //// System
 
     public function setDebug(onOff:Bool):Void {
-        HlFmod.set_debug(onOff);
+        debug = onOff;
+        log('Debug ${onOff ? "enabled" : "disabled"}');
     }
 
     public function isInitialized():Bool {
@@ -21,7 +35,12 @@ class HlBackend implements IFmodBackend {
     }
 
     public function init(numChannels:Int):Void {
-        HlFmod.init(numChannels);
+        var result = HlFmod.init(numChannels);
+        if (result == 0) {
+            log('Initialized with $numChannels channels');
+        } else {
+            log('Init failed with error code $result');
+        }
     }
 
     public function update():Void {
@@ -31,125 +50,132 @@ class HlBackend implements IFmodBackend {
     //// Banks
 
     public function loadBank(bankFilePath:String):Void {
-        HlFmod.load_bank(toBytes(bankFilePath));
+        var result = HlFmod.load_bank(toBytes(bankFilePath));
+        if (result == 0) {
+            log('Loaded bank: $bankFilePath');
+        } else {
+            log('Failed to load bank $bankFilePath (error $result)');
+        }
     }
 
     public function unloadBank(bankFilePath:String):Void {
-        HlFmod.unload_bank(toBytes(bankFilePath));
+        log('unloadBank not implemented');
     }
 
     //// Event Instances
 
     public function createEventInstanceOneShot(eventPath:String):Void {
-        HlFmod.create_event_instance_one_shot(toBytes(eventPath));
+        var result = HlFmod.fire_one_shot(toBytes(eventPath));
+        if (result != 0) {
+            log('Failed to fire one-shot $eventPath (error $result)');
+        }
     }
 
-    public function createEventInstanceNamed(eventPath:String, eventInstanceName:String):Void {
-        HlFmod.create_event_instance_named(toBytes(eventPath), toBytes(eventInstanceName));
+    public function createEventInstance(eventPath:String):FmodEventHandle {
+        var handle = HlFmod.create_instance(toBytes(eventPath));
+        if (handle >= 0) {
+            // Auto-start on creation
+            HlFmod.start(handle);
+            log('Created instance $handle for $eventPath');
+        } else {
+            log('Failed to create instance for $eventPath');
+        }
+        return handle;
     }
 
-    public function isEventInstanceLoaded(eventInstanceName:String):Bool {
-        return HlFmod.is_event_instance_loaded(toBytes(eventInstanceName));
+    public function playEventInstance(handle:FmodEventHandle):Void {
+        HlFmod.start(handle);
     }
 
-    public function playEventInstance(eventInstanceName:String):Void {
-        HlFmod.play_event_instance(toBytes(eventInstanceName));
+    public function isEventInstancePlaying(handle:FmodEventHandle):Bool {
+        var state:FmodStudioPlaybackState = cast HlFmod.get_playback_state(handle);
+        return state == FmodStudioPlaybackState.FMOD_STUDIO_PLAYBACK_PLAYING;
     }
 
-    public function isEventInstancePlaying(eventInstanceName:String):Bool {
-        return HlFmod.is_event_instance_playing(toBytes(eventInstanceName));
+    public function getEventInstancePlaybackState(handle:FmodEventHandle):FmodStudioPlaybackState {
+        return cast HlFmod.get_playback_state(handle);
     }
 
-    public function getEventInstancePlaybackState(eventInstanceName:String):FmodStudioPlaybackState {
-        var state = HlFmod.get_event_instance_playback_state(toBytes(eventInstanceName));
-        return cast state;
+    public function setPauseOnEventInstance(handle:FmodEventHandle, shouldBePaused:Bool):Void {
+        HlFmod.set_paused(handle, shouldBePaused);
     }
 
-    public function setPauseOnEventInstance(eventInstanceName:String, shouldBePaused:Bool):Void {
-        HlFmod.set_pause_on_event_instance(toBytes(eventInstanceName), shouldBePaused);
+    public function stopEventInstance(handle:FmodEventHandle):Void {
+        HlFmod.stop(handle, 0); // Allow fadeout
     }
 
-    public function stopEventInstance(eventInstanceName:String):Void {
-        HlFmod.stop_event_instance(toBytes(eventInstanceName));
+    public function stopEventInstanceImmediately(handle:FmodEventHandle):Void {
+        HlFmod.stop(handle, 1); // Immediate
     }
 
-    public function stopEventInstanceImmediately(eventInstanceName:String):Void {
-        HlFmod.stop_event_instance_immediately(toBytes(eventInstanceName));
-    }
-
-    public function releaseEventInstance(eventInstanceName:String):Void {
-        HlFmod.release_event_instance(toBytes(eventInstanceName));
+    public function releaseEventInstance(handle:FmodEventHandle):Void {
+        HlFmod.release(handle);
     }
 
     //// Parameters
 
-    public function getEventInstanceParam(eventInstanceName:String, paramName:String):Float {
-        return HlFmod.get_event_instance_param(toBytes(eventInstanceName), toBytes(paramName));
+    public function getEventInstanceParam(handle:FmodEventHandle, paramName:String):Float {
+        return HlFmod.get_param(handle, toBytes(paramName));
     }
 
-    public function setEventInstanceParam(eventInstanceName:String, paramName:String, value:Float):Void {
-        HlFmod.set_event_instance_param(toBytes(eventInstanceName), toBytes(paramName), value);
+    public function setEventInstanceParam(handle:FmodEventHandle, paramName:String, value:Float):Void {
+        HlFmod.set_param(handle, toBytes(paramName), value);
     }
 
     //// Bus operations
 
     public function setPauseForAllEventsOnBus(busPath:String, shouldBePaused:Bool):Void {
-        HlFmod.set_pause_for_all_events_on_bus(toBytes(busPath), shouldBePaused);
+        HlFmod.set_bus_paused(toBytes(busPath), shouldBePaused);
     }
 
     public function stopAllEventsOnBus(busPath:String):Void {
-        HlFmod.stop_all_events_on_bus(toBytes(busPath));
+        HlFmod.stop_bus(toBytes(busPath));
     }
 
     //// Callbacks
 
-    public function setCallbackTrackingForEventInstance(eventInstanceName:String):Void {
-        HlFmod.set_callback_tracking_for_event_instance(toBytes(eventInstanceName));
+    public function setCallbackTrackingForEventInstance(handle:FmodEventHandle):Void {
+        HlFmod.enable_callbacks(handle);
     }
 
-    public function checkCallbacksForEventInstance(eventInstanceName:String, callbackEventMask:UInt):Bool {
-        return HlFmod.check_callbacks_for_event_instance(toBytes(eventInstanceName), callbackEventMask);
-    }
-
-    //// Utility
-
-    private static inline function toBytes(s:String):hl.Bytes {
-        return @:privateAccess s.toUtf8();
+    public function checkCallbacksForEventInstance(handle:FmodEventHandle, callbackEventMask:UInt):Bool {
+        return HlFmod.poll_callbacks(handle, callbackEventMask);
     }
 }
 
 /**
- * Native extern declarations for HashLink FMOD bindings.
- * These map to functions in hlaxe_fmod.c compiled as hlaxe_fmod.hdll.
+ * Minimal native FFI declarations.
+ * These map directly to raw FMOD API calls in hlaxe_fmod.c.
  */
 @:hlNative("hlaxe_fmod")
 private extern class HlFmod {
-    static function set_debug(onOff:Bool):Void;
+    // System
     static function is_initialized():Bool;
-    static function init(numChannels:Int):Void;
+    static function init(numChannels:Int):Int; // Returns FMOD_RESULT
     static function update():Void;
 
-    static function load_bank(bankFilePath:hl.Bytes):Void;
-    static function unload_bank(bankFilePath:hl.Bytes):Void;
+    // Banks
+    static function load_bank(path:hl.Bytes):Int; // Returns FMOD_RESULT
 
-    static function create_event_instance_one_shot(eventPath:hl.Bytes):Void;
-    static function create_event_instance_named(eventPath:hl.Bytes, eventInstanceName:hl.Bytes):Void;
-    static function is_event_instance_loaded(eventInstanceName:hl.Bytes):Bool;
-    static function play_event_instance(eventInstanceName:hl.Bytes):Void;
-    static function is_event_instance_playing(eventInstanceName:hl.Bytes):Bool;
-    static function get_event_instance_playback_state(eventInstanceName:hl.Bytes):Int;
-    static function set_pause_on_event_instance(eventInstanceName:hl.Bytes, shouldBePaused:Bool):Void;
-    static function stop_event_instance(eventInstanceName:hl.Bytes):Void;
-    static function stop_event_instance_immediately(eventInstanceName:hl.Bytes):Void;
-    static function release_event_instance(eventInstanceName:hl.Bytes):Void;
+    // Events
+    static function fire_one_shot(eventPath:hl.Bytes):Int; // Returns FMOD_RESULT
+    static function create_instance(eventPath:hl.Bytes):Int; // Returns handle or -1
+    static function start(handle:Int):Void;
+    static function stop(handle:Int, immediate:Int):Void;
+    static function release(handle:Int):Void;
+    static function set_paused(handle:Int, paused:Bool):Void;
+    static function get_playback_state(handle:Int):Int;
 
-    static function get_event_instance_param(eventInstanceName:hl.Bytes, paramName:hl.Bytes):Float;
-    static function set_event_instance_param(eventInstanceName:hl.Bytes, paramName:hl.Bytes, value:Float):Void;
+    // Parameters
+    static function get_param(handle:Int, name:hl.Bytes):Float;
+    static function set_param(handle:Int, name:hl.Bytes, value:Float):Void;
 
-    static function set_pause_for_all_events_on_bus(busPath:hl.Bytes, shouldBePaused:Bool):Void;
-    static function stop_all_events_on_bus(busPath:hl.Bytes):Void;
+    // Bus
+    static function set_bus_paused(path:hl.Bytes, paused:Bool):Void;
+    static function stop_bus(path:hl.Bytes):Void;
 
-    static function set_callback_tracking_for_event_instance(eventInstanceName:hl.Bytes):Void;
-    static function check_callbacks_for_event_instance(eventInstanceName:hl.Bytes, callbackEventMask:Int):Bool;
+    // Callbacks
+    static function enable_callbacks(handle:Int):Void;
+    static function poll_callbacks(handle:Int, mask:Int):Bool;
 }
 #end

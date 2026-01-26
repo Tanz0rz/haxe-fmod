@@ -5,6 +5,7 @@ import haxefmod.FmodEvents.FmodEvent;
 import haxefmod.FmodEvents.FmodEventListener;
 import haxefmod.Settings;
 import haxefmod.backends.IFmodBackend;
+import haxefmod.backends.IFmodBackend.FmodEventHandle;
 #if cpp
 import haxefmod.backends.CppBackend;
 #elseif js
@@ -80,6 +81,12 @@ class FmodManagerPrivate {
         return instance;
     }
 
+    //// Helper: resolve name to handle
+
+    private inline function getHandle(instanceName:String):FmodEventHandle {
+        return cache.getHandle(instanceName);
+    }
+
     //// System
 
     private function EnableDebugMessages() {
@@ -104,9 +111,9 @@ class FmodManagerPrivate {
         // Call native FMOD update
         backend.update();
 
-        // Process callbacks using the callback manager
-        callbackManager.processCallbacks((instanceName, mask) -> {
-            return backend.checkCallbacksForEventInstance(instanceName, mask);
+        // Process callbacks using the callback manager (now handle-based)
+        callbackManager.processCallbacks((handle, mask) -> {
+            return backend.checkCallbacksForEventInstance(handle, mask);
         });
     }
 
@@ -128,41 +135,50 @@ class FmodManagerPrivate {
         // Clear out any callbacks when immediately playing a song
         UnregisterCallbacksForSound(SongEventInstance);
 
-        if (songPath == CurrentSong) {
+        var handle = getHandle(SongEventInstance);
+
+        if (songPath == CurrentSong && handle != FmodCache.INVALID_HANDLE) {
             // If the song passed in is loaded, but not playing, start it again
-            if (!backend.isEventInstancePlaying(SongEventInstance)) {
-                backend.playEventInstance(SongEventInstance);
+            if (!backend.isEventInstancePlaying(handle)) {
+                backend.playEventInstance(handle);
             }
             return;
         }
 
         // If we are changing songs, make sure it is not playing, then release it from memory
-        if (songPath != CurrentSong && CurrentSong != null) {
-            if (backend.isEventInstancePlaying(SongEventInstance)) {
-                backend.stopEventInstanceImmediately(SongEventInstance);
+        if (songPath != CurrentSong && CurrentSong != null && handle != FmodCache.INVALID_HANDLE) {
+            if (backend.isEventInstancePlaying(handle)) {
+                backend.stopEventInstanceImmediately(handle);
             }
             // Releasing the primary song event instance is causing issues on html5 deployments
-            // backend.releaseEventInstance(SongEventInstance);
+            // backend.releaseEventInstance(handle);
+            // cache.unregisterEventInstance(SongEventInstance);
         }
 
         // Create a brand new event instance of the song
-        backend.createEventInstanceNamed(songPath, SongEventInstance);
-        cache.registerEventInstance(SongEventInstance, songPath);
-        CurrentSong = songPath;
+        var newHandle = backend.createEventInstance(songPath);
+        if (newHandle != FmodCache.INVALID_HANDLE) {
+            cache.registerEventInstance(SongEventInstance, songPath, newHandle);
+            CurrentSong = songPath;
+        }
     }
 
     private function PlaySongTransition(songPath:String) {
-        if (songPath == CurrentSong) {
+        var handle = getHandle(SongEventInstance);
+
+        if (songPath == CurrentSong && handle != FmodCache.INVALID_HANDLE) {
             // If the song passed in is loaded, but not playing, start it again
-            if (!backend.isEventInstancePlaying(SongEventInstance)) {
-                backend.playEventInstance(SongEventInstance);
+            if (!backend.isEventInstancePlaying(handle)) {
+                backend.playEventInstance(handle);
             }
             return;
         }
 
         // If we are changing songs, send a soft stop request to the event
-        if (songPath != CurrentSong && CurrentSong != null && backend.isEventInstancePlaying(SongEventInstance)) {
-            backend.stopEventInstance(SongEventInstance);
+        if (songPath != CurrentSong && CurrentSong != null && handle != FmodCache.INVALID_HANDLE) {
+            if (backend.isEventInstancePlaying(handle)) {
+                backend.stopEventInstance(handle);
+            }
         }
 
         CheckIfUpdateIsBeingCalled();
@@ -173,22 +189,33 @@ class FmodManagerPrivate {
     }
 
     private function StopSong() {
-        backend.stopEventInstance(SongEventInstance);
+        var handle = getHandle(SongEventInstance);
+        if (handle != FmodCache.INVALID_HANDLE) {
+            backend.stopEventInstance(handle);
+        }
     }
 
     private function StopSongImmediately() {
-        backend.stopEventInstanceImmediately(SongEventInstance);
+        var handle = getHandle(SongEventInstance);
+        if (handle != FmodCache.INVALID_HANDLE) {
+            backend.stopEventInstanceImmediately(handle);
+        }
     }
 
     private function PauseSong() {
-        backend.setPauseOnEventInstance(SongEventInstance, true);
-
-        // Send additional update to FMOD to avoid dependency on main game loop
-        backend.update();
+        var handle = getHandle(SongEventInstance);
+        if (handle != FmodCache.INVALID_HANDLE) {
+            backend.setPauseOnEventInstance(handle, true);
+            // Send additional update to FMOD to avoid dependency on main game loop
+            backend.update();
+        }
     }
 
     private function UnpauseSong() {
-        backend.setPauseOnEventInstance(SongEventInstance, false);
+        var handle = getHandle(SongEventInstance);
+        if (handle != FmodCache.INVALID_HANDLE) {
+            backend.setPauseOnEventInstance(handle, false);
+        }
     }
 
     private function ClearAllCallbacks() {
@@ -196,15 +223,26 @@ class FmodManagerPrivate {
     }
 
     private function GetEventParameterOnSong(parameterName:String):Float {
-        return backend.getEventInstanceParam(SongEventInstance, parameterName);
+        var handle = getHandle(SongEventInstance);
+        if (handle != FmodCache.INVALID_HANDLE) {
+            return backend.getEventInstanceParam(handle, parameterName);
+        }
+        return 0.0;
     }
 
     private function SetEventParameterOnSong(parameterName:String, parameterValue:Float) {
-        backend.setEventInstanceParam(SongEventInstance, parameterName, parameterValue);
+        var handle = getHandle(SongEventInstance);
+        if (handle != FmodCache.INVALID_HANDLE) {
+            backend.setEventInstanceParam(handle, parameterName, parameterValue);
+        }
     }
 
     private function IsSongPlaying():Bool {
-        return backend.isEventInstancePlaying(SongEventInstance);
+        var handle = getHandle(SongEventInstance);
+        if (handle != FmodCache.INVALID_HANDLE) {
+            return backend.isEventInstancePlaying(handle);
+        }
+        return false;
     }
 
     private function GetCurrentSongPath():String {
@@ -219,67 +257,98 @@ class FmodManagerPrivate {
 
     private function PlaySoundWithReference(soundPath:String):String {
         var soundId = '${soundPath}-${soundIdIncrementer}';
-        backend.createEventInstanceNamed(soundPath, soundId);
-        cache.registerEventInstance(soundId, soundPath);
-        soundIdIncrementer++;
-        return soundId;
+        var handle = backend.createEventInstance(soundPath);
+        if (handle != FmodCache.INVALID_HANDLE) {
+            cache.registerEventInstance(soundId, soundPath, handle);
+            soundIdIncrementer++;
+            return soundId;
+        }
+        return "";
     }
 
     private function PlaySoundAndAssignId(soundPath:String, soundId:String):String {
-        backend.createEventInstanceNamed(soundPath, soundId);
-        cache.registerEventInstance(soundId, soundPath);
-        return soundId;
+        var handle = backend.createEventInstance(soundPath);
+        if (handle != FmodCache.INVALID_HANDLE) {
+            cache.registerEventInstance(soundId, soundPath, handle);
+            return soundId;
+        }
+        return "";
     }
 
     public function IsSoundLoaded(soundId:String):Bool {
-        // Check Haxe cache first, fall back to native for backwards compatibility
-        if (cache.hasEventInstance(soundId)) {
-            return true;
-        }
-        return backend.isEventInstanceLoaded(soundId);
+        return cache.hasEventInstance(soundId);
     }
 
     public function IsSoundPlaying(soundId:String):Bool {
-        return backend.isEventInstancePlaying(soundId);
+        var handle = getHandle(soundId);
+        if (handle != FmodCache.INVALID_HANDLE) {
+            return backend.isEventInstancePlaying(handle);
+        }
+        return false;
     }
 
     private function StopSound(soundId:String) {
-        backend.stopEventInstance(soundId);
+        var handle = getHandle(soundId);
+        if (handle != FmodCache.INVALID_HANDLE) {
+            backend.stopEventInstance(handle);
+        }
     }
 
     private function StopSoundImmediately(soundId:String) {
-        backend.stopEventInstanceImmediately(soundId);
+        var handle = getHandle(soundId);
+        if (handle != FmodCache.INVALID_HANDLE) {
+            backend.stopEventInstanceImmediately(handle);
+        }
     }
 
     private function PauseSound(soundId:String) {
-        backend.setPauseOnEventInstance(soundId, true);
+        var handle = getHandle(soundId);
+        if (handle != FmodCache.INVALID_HANDLE) {
+            backend.setPauseOnEventInstance(handle, true);
+        }
     }
 
     private function UnpauseSound(soundId:String) {
-        backend.setPauseOnEventInstance(soundId, false);
+        var handle = getHandle(soundId);
+        if (handle != FmodCache.INVALID_HANDLE) {
+            backend.setPauseOnEventInstance(handle, false);
+        }
     }
 
     private function ReleaseSound(soundId:String) {
-        backend.releaseEventInstance(soundId);
+        var handle = getHandle(soundId);
+        if (handle != FmodCache.INVALID_HANDLE) {
+            backend.releaseEventInstance(handle);
+        }
         cache.unregisterEventInstance(soundId);
         callbackManager.unregisterCallback(soundId);
     }
 
     private function GetEventParameterOnSound(soundId:String, parameterName:String):Float {
-        return backend.getEventInstanceParam(soundId, parameterName);
+        var handle = getHandle(soundId);
+        if (handle != FmodCache.INVALID_HANDLE) {
+            return backend.getEventInstanceParam(handle, parameterName);
+        }
+        return 0.0;
     }
 
     private function SetEventParameterOnSound(soundId:String, parameterName:String, parameterValue:Float) {
-        backend.setEventInstanceParam(soundId, parameterName, parameterValue);
+        var handle = getHandle(soundId);
+        if (handle != FmodCache.INVALID_HANDLE) {
+            backend.setEventInstanceParam(handle, parameterName, parameterValue);
+        }
     }
 
     //// Callbacks
 
     private function RegisterCallbacksForSong(callback:Void->Void, playbackEventMask:UInt) {
+        var handle = getHandle(SongEventInstance);
+        if (handle == FmodCache.INVALID_HANDLE) return;
+
         var eventPath = cache.getEventPath(SongEventInstance);
         if (eventPath == null) eventPath = CurrentSong;
-        callbackManager.registerCallback(SongEventInstance, eventPath, callback, playbackEventMask);
-        backend.setCallbackTrackingForEventInstance(SongEventInstance);
+        callbackManager.registerCallback(SongEventInstance, eventPath, handle, callback, playbackEventMask);
+        backend.setCallbackTrackingForEventInstance(handle);
     }
 
     private function UnregisterCallbacksForSong() {
@@ -287,10 +356,13 @@ class FmodManagerPrivate {
     }
 
     private function RegisterCallbacksForSound(soundId:String, callback:Void->Void, playbackEventMask:UInt) {
+        var handle = getHandle(soundId);
+        if (handle == FmodCache.INVALID_HANDLE) return;
+
         var eventPath = cache.getEventPath(soundId);
         if (eventPath == null) eventPath = soundId;
-        callbackManager.registerCallback(soundId, eventPath, callback, playbackEventMask);
-        backend.setCallbackTrackingForEventInstance(soundId);
+        callbackManager.registerCallback(soundId, eventPath, handle, callback, playbackEventMask);
+        backend.setCallbackTrackingForEventInstance(handle);
     }
 
     private function UnregisterCallbacksForSound(soundId:String) {
