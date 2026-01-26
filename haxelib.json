@@ -2,11 +2,11 @@
 	"name" : "haxefmod",
 	"url" : "https://github.com/Tanz0rz/haxe-fmod/",
 	"license" : "MIT",
-	"tags": ["fmod","audio","windows", "html5", "web"],
-    "description" : "Use FMOD Studio with Haxe on Windows and HTML5",
-    "version" : "0.7.3-alpha",
-	"releasenote" : "Reduced library size",
+	"tags": ["fmod", "audio", "windows", "linux", "hashlink", "html5", "web", "openfl", "lime"],
+	"description" : "Use FMOD Studio with Haxe on HTML5, HashLink, Windows, and Linux",
+	"version" : "0.8.0-alpha",
+	"releasenote" : "Added Linux and HashLink support, auto-update for background FMOD processing",
 	"contributors" : ["Tanz0rz"],
-    "dependencies" : { }
+	"dependencies" : { }
 }
 

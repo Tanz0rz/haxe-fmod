@@ -21,7 +21,7 @@ class LoadFmodState extends FlxState {
     }
     override public function update(elapsed:Float):Void {
         if(FmodManager.IsInitialized()){
-            FlxG.switchState(new PlayState());
+            FlxG.switchState(PlayState.new);
         }
     }
 }

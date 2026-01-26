@@ -85,25 +85,16 @@ The `FmodManager` class is the primary way to interact with FMOD in your game. I
 
 Songs and sound effects are triggered by passing in the full FMOD bank event path to the `FmodManager.PlaySong`, `FmodManager.PlaySoundOneShot`, `FmodManager.PlaySoundWithReference`, `FmodManager.PlaySoundAndAssignId` functions. To use constants to reference the events instead of strings, follow the additional set up instructions found in the [fmod-scripts](https://github.com/Tanz0rz/haxe-fmod/tree/master/fmod-scripts) folder of this repo (highly recommended).
 
-**About `FmodManager.Update()`:**
+**Adding FMOD to your game loop:**
+    
+This library runs FMOD updates automatically (~60fps) independent of your game loop, so your game will function correctly even without directly calling the library's update method manually. Each platform handles this differently:
 
-This library runs FMOD updates automatically (~60fps) independent of your game loop, so your game will function correctly even without calling `FmodManager.Update()`. Each platform handles this differently:
+**C++**: Uses `std::thread` to run FMOD updates on a background thread
 
-- **C++**: Uses `std::thread` to run FMOD updates on a background thread
-- **HashLink**: Uses `pthread` (Linux) or Windows threads to run FMOD updates in the background
-- **HTML5**: Uses `setInterval` to schedule FMOD updates on the main thread
+**HashLink**: Uses `pthread` (Linux) or Windows threads to run FMOD updates in the background
 
-This ensures that parameter changes (like applying a filter when the game is paused) take effect immediately, even when your game loop isn't running.
+**HTML5**: Uses `setInterval` to schedule FMOD updates on the main thread
 
-It's still recommended to call `Update()` in your game loop for two reasons:
-
-1. **Callback timing**: If you use FMOD callbacks (e.g., to trigger game events when a sound finishes), calling `Update()` in your game loop ensures callbacks are processed in sync with your game logic rather than in the background.
-
-2. **Consistency**: Keeps FMOD's internal state synchronized with your game's frame rate, which can help with precise audio timing.
-
-If you don't use callbacks and don't need frame-precise audio sync, you can safely omit the `Update()` call entirely.
-
-You can disable auto-update with `FmodManager.SetAutoUpdate(false)` if you prefer full manual control, but then `FmodManager.Update()` becomes required.
 
 **Global library settings:**
 
