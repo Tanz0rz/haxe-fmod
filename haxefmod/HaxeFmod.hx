@@ -6,8 +6,8 @@ import haxefmod.FmodInternalEnums;
 @:keep
 @:include('linc_faxe.h')
 #if !display
-@:build(faxe.Linc.touch())
-@:build(faxe.Linc.xml('faxe'))
+@:build(haxefmod.backends.CppBackend_Linc.touch())
+@:build(haxefmod.backends.CppBackend_Linc.xml('faxe'))
 #end
 extern class HaxeFmod {
 

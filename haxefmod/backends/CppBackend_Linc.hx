@@ -1,4 +1,4 @@
-package faxe;
+package haxefmod.backends;
 
 import haxe.io.Path;
 import haxe.macro.Context;
@@ -6,7 +6,7 @@ import haxe.macro.Expr;
 
 using haxe.macro.PositionTools;
 
-class Linc {
+class CppBackend_Linc {
     /** Adds a private internal inline static variable called __touch,
         which sets the value to the current time so that builds are always
         updated by the code, and native changes are dragged in automatically (except for header only changes) */
@@ -48,8 +48,8 @@ class Linc {
         var _linc_include_path = Path.normalize(Path.join([_linc_lib_path, './native/faxe/linc_${_lib}.xml']));
         var _linc_lib_var = 'LINC_${_lib.toUpperCase()}_PATH';
 
-        var _define = '<set name="$_linc_lib_var" value="$_linc_lib_path/"/>';
-        var _import_path = '$${$_linc_lib_var}native/faxe/linc_${_lib}.xml';
+        var _define = '<set name="$_linc_lib_var" value="$_linc_lib_path"/>';
+        var _import_path = '$${$_linc_lib_var}/native/faxe/linc_${_lib}.xml';
         var _import = '<include name="$_import_path" />';
 
         _class.get().meta.add(":buildXml", [{expr: EConst(CString('$_define\n$_import')), pos: _pos}], _pos);
@@ -57,4 +57,4 @@ class Linc {
         return Context.getBuildFields();
     } // xml
 
-} // Linc
+} // CppBackend_Linc

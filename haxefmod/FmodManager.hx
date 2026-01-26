@@ -29,10 +29,20 @@ class FmodManager {
     }
 
     /**
-        A call required to process asynchronous events. This should be in the main update loop of the game
+        A call required to process asynchronous events. This should be in the main update loop of the game.
+        Note: With auto-update enabled (default), this is less critical but still recommended for callbacks.
     **/
     public static function Update() {
         FmodManagerPrivate.GetInstance().Update();
+    }
+
+    /**
+        Enables or disables automatic FMOD updates on a background thread (~60fps).
+        When enabled (default), FMOD processes parameter changes even when the game loop is paused.
+        Disable this if you want full manual control over when FMOD updates.
+    **/
+    public static function SetAutoUpdate(enabled:Bool) {
+        FmodManagerPrivate.GetInstance().SetAutoUpdate(enabled);
     }
 
     public static function StopAllSounds() {

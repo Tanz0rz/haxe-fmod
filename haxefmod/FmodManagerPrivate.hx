@@ -70,6 +70,12 @@ class FmodManagerPrivate {
 
             instance.backend.init(128);
 
+            // Enable auto-update by default so FMOD processes changes even when game loop is paused
+            // (JS/HTML5 enables this in jaxe.js onRuntimeInitialized)
+            #if (cpp || hl)
+            instance.backend.setAutoUpdate(true);
+            #end
+
             // For html5 deployments, the banks must be loaded from inside the javascript fmod_init() call
             #if (cpp || hl)
             instance.backend.loadBank("assets/fmod/Desktop/Master.bank");
@@ -95,6 +101,10 @@ class FmodManagerPrivate {
 
     private function IsInitialized():Bool {
         return backend.isInitialized();
+    }
+
+    private function SetAutoUpdate(enabled:Bool) {
+        backend.setAutoUpdate(enabled);
     }
 
     private function CheckIfUpdateIsBeingCalled() {

@@ -12,9 +12,25 @@
 #include <fmod_studio.h>
 #include <fmod.h>
 
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <pthread.h>
+#include <unistd.h>
+#endif
+
 // Global state (must be native - these are C pointers)
 static FMOD_STUDIO_SYSTEM* gStudioSystem = NULL;
 static FMOD_SYSTEM* gCoreSystem = NULL;
+
+// Auto-update thread state
+static volatile int gAutoUpdateRunning = 0;
+#ifdef _WIN32
+static HANDLE gUpdateThread = NULL;
+#else
+static pthread_t gUpdateThread;
+static int gThreadCreated = 0;
+#endif
 
 // Instance storage (must be native - these are C pointers)
 #define MAX_INSTANCES 256
@@ -64,6 +80,52 @@ HL_PRIM void HL_NAME(update)() {
     if (gStudioSystem) FMOD_Studio_System_Update(gStudioSystem);
 }
 DEFINE_PRIM(_VOID, update, _NO_ARG);
+
+// Auto-update thread function
+#ifdef _WIN32
+static DWORD WINAPI autoUpdateLoop(LPVOID param) {
+    while (gAutoUpdateRunning) {
+        if (gStudioSystem) FMOD_Studio_System_Update(gStudioSystem);
+        Sleep(16); // ~60fps
+    }
+    return 0;
+}
+#else
+static void* autoUpdateLoop(void* param) {
+    while (gAutoUpdateRunning) {
+        if (gStudioSystem) FMOD_Studio_System_Update(gStudioSystem);
+        usleep(16000); // ~60fps (16ms in microseconds)
+    }
+    return NULL;
+}
+#endif
+
+HL_PRIM void HL_NAME(set_auto_update)(bool enabled) {
+    if (enabled && !gAutoUpdateRunning) {
+        gAutoUpdateRunning = 1;
+#ifdef _WIN32
+        gUpdateThread = CreateThread(NULL, 0, autoUpdateLoop, NULL, 0, NULL);
+#else
+        pthread_create(&gUpdateThread, NULL, autoUpdateLoop, NULL);
+        gThreadCreated = 1;
+#endif
+    } else if (!enabled && gAutoUpdateRunning) {
+        gAutoUpdateRunning = 0;
+#ifdef _WIN32
+        if (gUpdateThread) {
+            WaitForSingleObject(gUpdateThread, INFINITE);
+            CloseHandle(gUpdateThread);
+            gUpdateThread = NULL;
+        }
+#else
+        if (gThreadCreated) {
+            pthread_join(gUpdateThread, NULL);
+            gThreadCreated = 0;
+        }
+#endif
+    }
+}
+DEFINE_PRIM(_VOID, set_auto_update, _BOOL);
 
 //// Banks
 

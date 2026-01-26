@@ -26,6 +26,10 @@ interface IFmodBackend {
     function init(numChannels:Int):Void;
     function update():Void;
 
+    /** Enables/disables automatic FMOD updates on a background timer (~60fps).
+        When enabled, FMOD processes changes even when the game loop is paused. */
+    function setAutoUpdate(enabled:Bool):Void;
+
     //// Banks
     function loadBank(bankFilePath:String):Void;
     function unloadBank(bankFilePath:String):Void;

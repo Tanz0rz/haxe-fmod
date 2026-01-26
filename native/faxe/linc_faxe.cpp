@@ -14,6 +14,9 @@
 #include <hxcpp.h>
 #include <fmod_studio.hpp>
 #include "linc_faxe.h"
+#include <thread>
+#include <atomic>
+#include <chrono>
 
 namespace linc {
 namespace faxe {
@@ -21,6 +24,10 @@ namespace faxe {
 // Global state
 static FMOD::Studio::System* gStudioSystem = NULL;
 static FMOD::System* gCoreSystem = NULL;
+
+// Auto-update thread
+static std::thread* gUpdateThread = NULL;
+static std::atomic<bool> gAutoUpdateRunning(false);
 
 // Instance storage (array-based, handle = index)
 #define MAX_INSTANCES 256
@@ -38,6 +45,16 @@ static FMOD_RESULT F_CALLBACK eventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type
         }
     }
     return FMOD_OK;
+}
+
+// Auto-update thread function
+static void autoUpdateLoop() {
+    while (gAutoUpdateRunning.load()) {
+        if (gStudioSystem) {
+            gStudioSystem->update();
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(16)); // ~60fps
+    }
 }
 
 //// System
@@ -66,6 +83,22 @@ int fmod_init(int numChannels) {
 
 void fmod_update() {
     if (gStudioSystem) gStudioSystem->update();
+}
+
+void fmod_set_auto_update(bool enabled) {
+    if (enabled && !gAutoUpdateRunning.load()) {
+        // Start auto-update thread
+        gAutoUpdateRunning.store(true);
+        gUpdateThread = new std::thread(autoUpdateLoop);
+    } else if (!enabled && gAutoUpdateRunning.load()) {
+        // Stop auto-update thread
+        gAutoUpdateRunning.store(false);
+        if (gUpdateThread && gUpdateThread->joinable()) {
+            gUpdateThread->join();
+            delete gUpdateThread;
+            gUpdateThread = NULL;
+        }
+    }
 }
 
 //// Banks
@@ -159,7 +192,7 @@ float fmod_get_param(int h, const ::String& name) {
 
 void fmod_set_param(int h, const ::String& name, float value) {
     if (h >= 0 && h < gInstanceCount && gInstances[h])
-        gInstances[h]->setParameterByName(name.c_str(), value);
+        gInstances[h]->setParameterByName(name.c_str(), value, false);
 }
 
 //// Bus

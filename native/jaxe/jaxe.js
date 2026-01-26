@@ -14,6 +14,7 @@ class jaxe {
     static gAudioResumed = false;
     static FmodIsInitialized = false;
     static loadedBanks = {};
+    static autoUpdateIntervalId = null;
 
     // Instance storage (must be native - these are JS FMOD objects)
     static instances = [];
@@ -34,6 +35,19 @@ class jaxe {
 
     static fmod_update() {
         jaxe.gSystem.update();
+    }
+
+    static fmod_set_auto_update(enabled) {
+        if (enabled && !jaxe.autoUpdateIntervalId) {
+            jaxe.autoUpdateIntervalId = window.setInterval(function() {
+                if (jaxe.gSystem && jaxe.gSystem.update) {
+                    jaxe.gSystem.update();
+                }
+            }, 16); // ~60fps
+        } else if (!enabled && jaxe.autoUpdateIntervalId) {
+            window.clearInterval(jaxe.autoUpdateIntervalId);
+            jaxe.autoUpdateIntervalId = null;
+        }
     }
 
     //// Banks
@@ -218,7 +232,8 @@ class jaxe {
 
         jaxe.gSystem.initialize(1024, jaxe.FMOD.STUDIO_INIT_NORMAL, jaxe.FMOD.INIT_NORMAL, null);
 
-        window.setInterval(function () { jaxe.gSystem.update(); }, 20);
+        // Enable auto-update by default
+        jaxe.fmod_set_auto_update(true);
 
         // Load default banks
         jaxe.gSystem.loadBankFile("/Master.bank", jaxe.FMOD.STUDIO_LOAD_BANK_NORMAL, outval);
