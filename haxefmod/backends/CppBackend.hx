@@ -5,12 +5,10 @@ import haxefmod.backends.IFmodBackend.FmodEventHandle;
 
 #if cpp
 /**
- * C++ backend implementation using linc/hxcpp bindings.
+ * C++ backend - All logic lives here, native code is minimal FFI.
  *
- * NOTE: The underlying linc_faxe.cpp still uses name-based lookups internally.
- * This wrapper converts handles to string keys ("h0", "h1", etc.) as a bridge.
- * This keeps the Haxe API consistent while allowing gradual simplification
- * of the C++ native code later.
+ * DESIGN: Native linc_faxe.cpp is just raw FMOD API calls.
+ * All error handling, debug logging, and state comparison happens here in Haxe.
  */
 @:keep
 #if !display
@@ -19,19 +17,19 @@ import haxefmod.backends.IFmodBackend.FmodEventHandle;
 #end
 @:cppInclude('linc_faxe.h')
 class CppBackend implements IFmodBackend {
-    private var nextHandle:Int = 0;
+    private var debug:Bool = false;
 
     public function new() {}
 
-    // Convert handle to string key for C++ layer
-    private inline function handleToKey(handle:FmodEventHandle):String {
-        return 'h$handle';
+    private inline function log(msg:String):Void {
+        if (debug) trace('FMOD CPP: $msg');
     }
 
     //// System
 
     public function setDebug(onOff:Bool):Void {
-        CppFmod.fmod_set_debug(onOff);
+        debug = onOff;
+        log('Debug ${onOff ? "enabled" : "disabled"}');
     }
 
     public function isInitialized():Bool {
@@ -39,7 +37,12 @@ class CppBackend implements IFmodBackend {
     }
 
     public function init(numChannels:Int):Void {
-        CppFmod.fmod_init(numChannels);
+        var result = CppFmod.fmod_init(numChannels);
+        if (result == 0) {
+            log('Initialized with $numChannels channels');
+        } else {
+            log('Init failed with error code $result');
+        }
     }
 
     public function update():Void {
@@ -49,152 +52,164 @@ class CppBackend implements IFmodBackend {
     //// Banks
 
     public function loadBank(bankFilePath:String):Void {
-        CppFmod.fmod_load_bank(bankFilePath);
+        var result = CppFmod.fmod_load_bank(bankFilePath);
+        if (result == 0) {
+            log('Loaded bank: $bankFilePath');
+        } else {
+            log('Failed to load bank $bankFilePath (error $result)');
+        }
     }
 
     public function unloadBank(bankFilePath:String):Void {
         CppFmod.fmod_unload_bank(bankFilePath);
+        log('Unloaded bank: $bankFilePath');
     }
 
-    //// Event Instances (handle-based, bridged to name-based C++)
+    //// Event Instances
 
     public function createEventInstanceOneShot(eventPath:String):Void {
-        CppFmod.fmod_create_event_instance_one_shot(eventPath);
+        var result = CppFmod.fmod_fire_one_shot(eventPath);
+        if (result != 0) {
+            log('Failed to fire one-shot $eventPath (error $result)');
+        }
     }
 
     public function createEventInstance(eventPath:String):FmodEventHandle {
-        var handle = nextHandle++;
-        var key = handleToKey(handle);
-        CppFmod.fmod_create_event_instance_named(eventPath, key);
+        var handle = CppFmod.fmod_create_instance(eventPath);
+        if (handle >= 0) {
+            // Auto-start on creation
+            CppFmod.fmod_start(handle);
+            log('Created instance $handle for $eventPath');
+        } else {
+            log('Failed to create instance for $eventPath');
+        }
         return handle;
     }
 
     public function playEventInstance(handle:FmodEventHandle):Void {
-        CppFmod.fmod_play_event_instance(handleToKey(handle));
+        CppFmod.fmod_start(handle);
     }
 
     public function isEventInstancePlaying(handle:FmodEventHandle):Bool {
-        return CppFmod.fmod_is_event_instance_playing(handleToKey(handle));
+        var state:FmodStudioPlaybackState = cast CppFmod.fmod_get_playback_state(handle);
+        return state == FmodStudioPlaybackState.FMOD_STUDIO_PLAYBACK_PLAYING;
     }
 
     public function getEventInstancePlaybackState(handle:FmodEventHandle):FmodStudioPlaybackState {
-        return CppFmod.fmod_get_event_instance_playback_state(handleToKey(handle));
+        return cast CppFmod.fmod_get_playback_state(handle);
     }
 
     public function setPauseOnEventInstance(handle:FmodEventHandle, shouldBePaused:Bool):Void {
-        CppFmod.fmod_set_pause_on_event_instance(handleToKey(handle), shouldBePaused);
+        CppFmod.fmod_set_paused(handle, shouldBePaused);
     }
 
     public function stopEventInstance(handle:FmodEventHandle):Void {
-        CppFmod.fmod_stop_event_instance(handleToKey(handle));
+        CppFmod.fmod_stop(handle, 0); // Allow fadeout
     }
 
     public function stopEventInstanceImmediately(handle:FmodEventHandle):Void {
-        CppFmod.fmod_stop_event_instance_immediately(handleToKey(handle));
+        CppFmod.fmod_stop(handle, 1); // Immediate
     }
 
     public function releaseEventInstance(handle:FmodEventHandle):Void {
-        CppFmod.fmod_release_event_instance(handleToKey(handle));
+        CppFmod.fmod_release(handle);
     }
 
     //// Parameters
 
     public function getEventInstanceParam(handle:FmodEventHandle, paramName:String):Float {
-        return CppFmod.fmod_get_event_instance_param(handleToKey(handle), paramName);
+        return CppFmod.fmod_get_param(handle, paramName);
     }
 
     public function setEventInstanceParam(handle:FmodEventHandle, paramName:String, value:Float):Void {
-        CppFmod.fmod_set_event_instance_param(handleToKey(handle), paramName, value);
+        CppFmod.fmod_set_param(handle, paramName, value);
     }
 
     //// Bus operations
 
     public function setPauseForAllEventsOnBus(busPath:String, shouldBePaused:Bool):Void {
-        CppFmod.fmod_set_pause_for_all_events_on_bus(busPath, shouldBePaused);
+        CppFmod.fmod_set_bus_paused(busPath, shouldBePaused);
     }
 
     public function stopAllEventsOnBus(busPath:String):Void {
-        CppFmod.fmod_stop_all_events_on_bus(busPath);
+        CppFmod.fmod_stop_bus(busPath);
     }
 
     //// Callbacks
 
     public function setCallbackTrackingForEventInstance(handle:FmodEventHandle):Void {
-        CppFmod.fmod_set_callback_tracking_for_event_instance(handleToKey(handle));
+        CppFmod.fmod_enable_callbacks(handle);
     }
 
     public function checkCallbacksForEventInstance(handle:FmodEventHandle, callbackEventMask:UInt):Bool {
-        return CppFmod.fmod_check_callbacks_for_event_instance(handleToKey(handle), callbackEventMask);
+        return CppFmod.fmod_poll_callbacks(handle, callbackEventMask);
     }
 }
 
 /**
- * Native extern declarations for C++ FMOD bindings.
- * These still use name-based API internally.
+ * Minimal native FFI declarations.
+ * These map directly to raw FMOD API calls in linc_faxe.cpp.
  */
 @:keep
 private extern class CppFmod {
-    @:native("linc::faxe::fmod_set_debug")
-    public static function fmod_set_debug(onOff:Bool):Void;
-
+    // System
     @:native("linc::faxe::fmod_is_initialized")
-    public static function fmod_is_initialized():Bool;
+    static function fmod_is_initialized():Bool;
 
     @:native("linc::faxe::fmod_init")
-    public static function fmod_init(numChannels:Int):Void;
+    static function fmod_init(numChannels:Int):Int;
 
     @:native("linc::faxe::fmod_update")
-    public static function fmod_update():Void;
+    static function fmod_update():Void;
 
+    // Banks
     @:native("linc::faxe::fmod_load_bank")
-    public static function fmod_load_bank(bankFilePath:String):Void;
+    static function fmod_load_bank(path:String):Int;
 
     @:native("linc::faxe::fmod_unload_bank")
-    public static function fmod_unload_bank(bankFilePath:String):Void;
+    static function fmod_unload_bank(path:String):Void;
 
-    @:native("linc::faxe::fmod_create_event_instance_one_shot")
-    public static function fmod_create_event_instance_one_shot(eventPath:String):Void;
+    // Events
+    @:native("linc::faxe::fmod_fire_one_shot")
+    static function fmod_fire_one_shot(eventPath:String):Int;
 
-    @:native("linc::faxe::fmod_create_event_instance_named")
-    public static function fmod_create_event_instance_named(eventPath:String, eventInstanceName:String):Void;
+    @:native("linc::faxe::fmod_create_instance")
+    static function fmod_create_instance(eventPath:String):Int;
 
-    @:native("linc::faxe::fmod_play_event_instance")
-    public static function fmod_play_event_instance(eventInstanceName:String):Void;
+    @:native("linc::faxe::fmod_start")
+    static function fmod_start(handle:Int):Void;
 
-    @:native("linc::faxe::fmod_is_event_instance_playing")
-    public static function fmod_is_event_instance_playing(eventInstanceName:String):Bool;
+    @:native("linc::faxe::fmod_stop")
+    static function fmod_stop(handle:Int, immediate:Int):Void;
 
-    @:native("linc::faxe::fmod_get_event_instance_playback_state")
-    public static function fmod_get_event_instance_playback_state(eventInstanceName:String):FmodStudioPlaybackState;
+    @:native("linc::faxe::fmod_release")
+    static function fmod_release(handle:Int):Void;
 
-    @:native("linc::faxe::fmod_set_pause_on_event_instance")
-    public static function fmod_set_pause_on_event_instance(eventInstanceName:String, shouldBePaused:Bool):Void;
+    @:native("linc::faxe::fmod_set_paused")
+    static function fmod_set_paused(handle:Int, paused:Bool):Void;
 
-    @:native("linc::faxe::fmod_stop_event_instance")
-    public static function fmod_stop_event_instance(eventInstanceName:String):Void;
+    @:native("linc::faxe::fmod_get_playback_state")
+    static function fmod_get_playback_state(handle:Int):Int;
 
-    @:native("linc::faxe::fmod_stop_event_instance_immediately")
-    public static function fmod_stop_event_instance_immediately(eventInstanceName:String):Void;
+    // Parameters
+    @:native("linc::faxe::fmod_get_param")
+    static function fmod_get_param(handle:Int, name:String):Float;
 
-    @:native("linc::faxe::fmod_release_event_instance")
-    public static function fmod_release_event_instance(eventInstanceName:String):Void;
+    @:native("linc::faxe::fmod_set_param")
+    static function fmod_set_param(handle:Int, name:String, value:Float):Void;
 
-    @:native("linc::faxe::fmod_get_event_instance_param")
-    public static function fmod_get_event_instance_param(eventInstanceName:String, paramName:String):Float;
+    // Bus
+    @:native("linc::faxe::fmod_set_bus_paused")
+    static function fmod_set_bus_paused(path:String, paused:Bool):Void;
 
-    @:native("linc::faxe::fmod_set_event_instance_param")
-    public static function fmod_set_event_instance_param(eventInstanceName:String, paramName:String, value:Float):Void;
+    @:native("linc::faxe::fmod_stop_bus")
+    static function fmod_stop_bus(path:String):Void;
 
-    @:native("linc::faxe::fmod_set_pause_for_all_events_on_bus")
-    public static function fmod_set_pause_for_all_events_on_bus(busPath:String, shouldBePaused:Bool):Void;
+    // Callbacks
+    @:native("linc::faxe::fmod_enable_callbacks")
+    static function fmod_enable_callbacks(handle:Int):Void;
 
-    @:native("linc::faxe::fmod_stop_all_events_on_bus")
-    public static function fmod_stop_all_events_on_bus(busPath:String):Void;
-
-    @:native("linc::faxe::fmod_set_callback_tracking_for_event_instance")
-    public static function fmod_set_callback_tracking_for_event_instance(eventInstanceName:String):Void;
-
-    @:native("linc::faxe::fmod_check_callbacks_for_event_instance")
-    public static function fmod_check_callbacks_for_event_instance(eventInstanceName:String, callbackEventMask:UInt):Bool;
+    @:native("linc::faxe::fmod_poll_callbacks")
+    static function fmod_poll_callbacks(handle:Int, mask:Int):Bool;
 }
 #end

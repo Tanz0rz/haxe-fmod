@@ -3,7 +3,6 @@
 	"url" : "https://github.com/Tanz0rz/haxe-fmod/",
 	"license" : "MIT",
 	"tags": ["fmod","audio","windows", "html5", "web"],
-	
     "description" : "Use FMOD Studio with Haxe on Windows and HTML5",
     "version" : "0.7.3-alpha",
 	"releasenote" : "Reduced library size",
