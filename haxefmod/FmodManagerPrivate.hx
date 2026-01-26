@@ -4,19 +4,21 @@ import haxefmod.FmodEvents.FmodCallback;
 import haxefmod.FmodEvents.FmodEvent;
 import haxefmod.FmodEvents.FmodEventListener;
 import haxefmod.Settings;
-
-class FmodCallbackInfo {
-
-    public var CallbackFunction:Void->Void;
-    public var PlaybackEventMask:UInt;
-
-    public function new(callbackFunction:Void->Void, playbackEventMask:UInt) {
-        CallbackFunction = callbackFunction;
-        PlaybackEventMask = playbackEventMask;
-    }
-}
+import haxefmod.backends.IFmodBackend;
+#if cpp
+import haxefmod.backends.CppBackend;
+#elseif js
+import haxefmod.backends.JsBackend;
+#elseif hl
+import haxefmod.backends.HlBackend;
+#end
 
 class FmodManagerPrivate {
+    // Backend
+    private var backend:IFmodBackend;
+    private var cache:FmodCache;
+    private var callbackManager:FmodCallbackManager;
+
     // Main song
     private var CurrentSong:String = "";
     private var NextSong:String;
@@ -29,15 +31,26 @@ class FmodManagerPrivate {
     private var soundIdIncrementer:Int = 0;
     private var lastUpdateCall:Float = 0;
 
-    // Event instances with registered callbacks
-    private var eventInstancesWithCallbacks:Map<String, FmodCallbackInfo> = new Map<String, FmodCallbackInfo>();
-
     // Settings
     private var settings:FmodSettings;
 
     private static var instance:FmodManagerPrivate;
 
-    private function new() {}
+    private function new() {
+        // Initialize the appropriate backend for this platform
+        #if cpp
+        backend = new CppBackend();
+        #elseif js
+        backend = new JsBackend();
+        #elseif hl
+        backend = new HlBackend();
+        #else
+        throw "No FMOD backend available for this platform";
+        #end
+
+        cache = FmodCache.getInstance();
+        callbackManager = FmodCallbackManager.getInstance();
+    }
 
     private static function GetInstance():FmodManagerPrivate {
         if (instance == null) {
@@ -46,19 +59,22 @@ class FmodManagerPrivate {
 
             // If the -debug flag is passed into the build, enable debug messages
             #if debug
-            HaxeFmod.fmod_set_debug(true);
+            instance.backend.setDebug(true);
 
             // Suppress debug messages if specified in the settings file
-            if (instance.settings.SuppressDebugMessages){
-                HaxeFmod.fmod_set_debug(false);
+            if (instance.settings.SuppressDebugMessages) {
+                instance.backend.setDebug(false);
             }
             #end
 
-            HaxeFmod.fmod_init(128);
+            instance.backend.init(128);
+
             // For html5 deployments, the banks must be loaded from inside the javascript fmod_init() call
-            #if windows
-            HaxeFmod.fmod_load_bank("assets/fmod/Desktop/Master.bank");
-            HaxeFmod.fmod_load_bank("assets/fmod/Desktop/Master.strings.bank");
+            #if (cpp || hl)
+            instance.backend.loadBank("assets/fmod/Desktop/Master.bank");
+            instance.backend.loadBank("assets/fmod/Desktop/Master.strings.bank");
+            instance.cache.registerBank("assets/fmod/Desktop/Master.bank");
+            instance.cache.registerBank("assets/fmod/Desktop/Master.strings.bank");
             #end
         }
         return instance;
@@ -67,51 +83,43 @@ class FmodManagerPrivate {
     //// System
 
     private function EnableDebugMessages() {
-        HaxeFmod.fmod_set_debug(true);
+        backend.setDebug(true);
     }
 
     private function IsInitialized():Bool {
-        return HaxeFmod.fmod_is_initialized();
+        return backend.isInitialized();
     }
 
     private function CheckIfUpdateIsBeingCalled() {
         var timeSinceLastUpdate:Float = DateTools.delta(Date.now(), -lastUpdateCall).getTime();
         if (timeSinceLastUpdate > 1000) {
             trace("Warn: Is FmodManager.Update() in your game loop? It has been " + timeSinceLastUpdate + " milliseconds since it was last called. "
-             + "Song transitions and callback events will not work unless this function is called in your game loop.");
+                + "Song transitions and callback events will not work unless this function is called in your game loop.");
         }
     }
 
     private function Update() {
         lastUpdateCall = Date.now().getTime();
 
-        // This may be entirely replaced by the new callback system
-        //
-        // Whenever a song stops, send out the event to any registered listeners
-        // if (HaxeFmod.fmod_check_callbacks_for_event_instance(SongEventInstance, FmodCallback.STOPPED)) {
-        //     for (eventListener in eventListeners) {
-        //         eventListener.ReceiveEvent(FmodEvent.MUSIC_STOPPED);
-        //     }
-        // }
+        // Call native FMOD update
+        backend.update();
 
-        // Go through any user-defined callbacks and execute them if needed
-        for (soundId in eventInstancesWithCallbacks.keys()) {
-            if (HaxeFmod.fmod_check_callbacks_for_event_instance(soundId, eventInstancesWithCallbacks[soundId].PlaybackEventMask)) {
-                eventInstancesWithCallbacks[soundId].CallbackFunction();
-            }
-        }
+        // Process callbacks using the callback manager
+        callbackManager.processCallbacks((instanceName, mask) -> {
+            return backend.checkCallbacksForEventInstance(instanceName, mask);
+        });
     }
 
     private function StopAllSounds() {
-        HaxeFmod.fmod_stop_all_events_on_bus("bus:/");
+        backend.stopAllEventsOnBus("bus:/");
     }
 
     private function PauseAllSounds() {
-        HaxeFmod.fmod_set_pause_for_all_events_on_bus("bus:/", true);
+        backend.setPauseForAllEventsOnBus("bus:/", true);
     }
 
     private function UnpauseAllSounds() {
-        HaxeFmod.fmod_set_pause_for_all_events_on_bus("bus:/", false);
+        backend.setPauseForAllEventsOnBus("bus:/", false);
     }
 
     //// Music
@@ -122,80 +130,81 @@ class FmodManagerPrivate {
 
         if (songPath == CurrentSong) {
             // If the song passed in is loaded, but not playing, start it again
-            if (!HaxeFmod.fmod_is_event_instance_playing(SongEventInstance)) {
-                HaxeFmod.fmod_play_event_instance(SongEventInstance);
+            if (!backend.isEventInstancePlaying(SongEventInstance)) {
+                backend.playEventInstance(SongEventInstance);
             }
             return;
         }
 
         // If we are changing songs, make sure it is not playing, then release it from memory
         if (songPath != CurrentSong && CurrentSong != null) {
-            if (HaxeFmod.fmod_is_event_instance_playing(SongEventInstance)) {
-                HaxeFmod.fmod_stop_event_instance_immediately(SongEventInstance);
+            if (backend.isEventInstancePlaying(SongEventInstance)) {
+                backend.stopEventInstanceImmediately(SongEventInstance);
             }
             // Releasing the primary song event instance is causing issues on html5 deployments
-            // HaxeFmod.fmod_release_event_instance(SongEventInstance);
+            // backend.releaseEventInstance(SongEventInstance);
         }
 
-        // Create a brand new event instance of the song        
-        HaxeFmod.fmod_create_event_instance_named(songPath, SongEventInstance);
+        // Create a brand new event instance of the song
+        backend.createEventInstanceNamed(songPath, SongEventInstance);
+        cache.registerEventInstance(SongEventInstance, songPath);
         CurrentSong = songPath;
     }
 
     private function PlaySongTransition(songPath:String) {
         if (songPath == CurrentSong) {
             // If the song passed in is loaded, but not playing, start it again
-            if (!HaxeFmod.fmod_is_event_instance_playing(SongEventInstance)) {
-                HaxeFmod.fmod_play_event_instance(SongEventInstance);
+            if (!backend.isEventInstancePlaying(SongEventInstance)) {
+                backend.playEventInstance(SongEventInstance);
             }
             return;
         }
 
         // If we are changing songs, send a soft stop request to the event
-        if (songPath != CurrentSong && CurrentSong != null && HaxeFmod.fmod_is_event_instance_playing(SongEventInstance)) {
-            HaxeFmod.fmod_stop_event_instance(SongEventInstance);
+        if (songPath != CurrentSong && CurrentSong != null && backend.isEventInstancePlaying(SongEventInstance)) {
+            backend.stopEventInstance(SongEventInstance);
         }
 
         CheckIfUpdateIsBeingCalled();
         NextSong = songPath;
         RegisterCallbacksForSound(SongEventInstance, () -> {
-                PlaySong(NextSong);
-            }, FmodCallback.STOPPED);
+            PlaySong(NextSong);
+        }, FmodCallback.STOPPED);
     }
 
     private function StopSong() {
-        HaxeFmod.fmod_stop_event_instance(SongEventInstance);
+        backend.stopEventInstance(SongEventInstance);
     }
 
     private function StopSongImmediately() {
-        HaxeFmod.fmod_stop_event_instance_immediately(SongEventInstance);
+        backend.stopEventInstanceImmediately(SongEventInstance);
     }
 
     private function PauseSong() {
-        HaxeFmod.fmod_set_pause_on_event_instance(SongEventInstance, true);
+        backend.setPauseOnEventInstance(SongEventInstance, true);
 
         // Send additional update to FMOD to avoid dependency on main game loop
-        HaxeFmod.fmod_update();
+        backend.update();
     }
 
     private function UnpauseSong() {
-        HaxeFmod.fmod_set_pause_on_event_instance(SongEventInstance, false);
+        backend.setPauseOnEventInstance(SongEventInstance, false);
     }
 
     private function ClearAllCallbacks() {
-        eventInstancesWithCallbacks = new Map<String, FmodCallbackInfo>();
+        callbackManager.clearAll();
     }
 
     private function GetEventParameterOnSong(parameterName:String):Float {
-        return HaxeFmod.fmod_get_event_instance_param(SongEventInstance, parameterName);
+        return backend.getEventInstanceParam(SongEventInstance, parameterName);
     }
 
     private function SetEventParameterOnSong(parameterName:String, parameterValue:Float) {
-        HaxeFmod.fmod_set_event_instance_param(SongEventInstance, parameterName, parameterValue);
+        backend.setEventInstanceParam(SongEventInstance, parameterName, parameterValue);
     }
 
     private function IsSongPlaying():Bool {
-        return HaxeFmod.fmod_is_event_instance_playing(SongEventInstance);
+        return backend.isEventInstancePlaying(SongEventInstance);
     }
 
     private function GetCurrentSongPath():String {
@@ -205,77 +214,87 @@ class FmodManagerPrivate {
     //// Sound effects
 
     private function PlaySoundOneShot(soundPath:String) {
-        HaxeFmod.fmod_create_event_instance_one_shot(soundPath);
+        backend.createEventInstanceOneShot(soundPath);
     }
 
     private function PlaySoundWithReference(soundPath:String):String {
         var soundId = '${soundPath}-${soundIdIncrementer}';
-        HaxeFmod.fmod_create_event_instance_named(soundPath, soundId);
+        backend.createEventInstanceNamed(soundPath, soundId);
+        cache.registerEventInstance(soundId, soundPath);
         soundIdIncrementer++;
         return soundId;
     }
 
     private function PlaySoundAndAssignId(soundPath:String, soundId:String):String {
-        HaxeFmod.fmod_create_event_instance_named(soundPath, soundId);
+        backend.createEventInstanceNamed(soundPath, soundId);
+        cache.registerEventInstance(soundId, soundPath);
         return soundId;
     }
 
     public function IsSoundLoaded(soundId:String):Bool {
-        return HaxeFmod.fmod_is_event_instance_loaded(soundId);
+        // Check Haxe cache first, fall back to native for backwards compatibility
+        if (cache.hasEventInstance(soundId)) {
+            return true;
+        }
+        return backend.isEventInstanceLoaded(soundId);
     }
 
     public function IsSoundPlaying(soundId:String):Bool {
-        return HaxeFmod.fmod_is_event_instance_playing(soundId);
+        return backend.isEventInstancePlaying(soundId);
     }
 
     private function StopSound(soundId:String) {
-        HaxeFmod.fmod_stop_event_instance(soundId);
+        backend.stopEventInstance(soundId);
     }
 
     private function StopSoundImmediately(soundId:String) {
-        HaxeFmod.fmod_stop_event_instance_immediately(soundId);
+        backend.stopEventInstanceImmediately(soundId);
     }
 
     private function PauseSound(soundId:String) {
-        HaxeFmod.fmod_set_pause_on_event_instance(soundId, true);
+        backend.setPauseOnEventInstance(soundId, true);
     }
 
     private function UnpauseSound(soundId:String) {
-        HaxeFmod.fmod_set_pause_on_event_instance(soundId, false);
+        backend.setPauseOnEventInstance(soundId, false);
     }
 
     private function ReleaseSound(soundId:String) {
-        HaxeFmod.fmod_release_event_instance(soundId);
+        backend.releaseEventInstance(soundId);
+        cache.unregisterEventInstance(soundId);
+        callbackManager.unregisterCallback(soundId);
     }
 
     private function GetEventParameterOnSound(soundId:String, parameterName:String):Float {
-        return HaxeFmod.fmod_get_event_instance_param(soundId, parameterName);
+        return backend.getEventInstanceParam(soundId, parameterName);
     }
 
     private function SetEventParameterOnSound(soundId:String, parameterName:String, parameterValue:Float) {
-        HaxeFmod.fmod_set_event_instance_param(soundId, parameterName, parameterValue);
+        backend.setEventInstanceParam(soundId, parameterName, parameterValue);
     }
 
     //// Callbacks
 
     private function RegisterCallbacksForSong(callback:Void->Void, playbackEventMask:UInt) {
-        var callbackInfo = new FmodCallbackInfo(callback, playbackEventMask);
-        eventInstancesWithCallbacks.set(SongEventInstance, callbackInfo);
-        HaxeFmod.fmod_set_callback_tracking_for_event_instance(SongEventInstance);
+        var eventPath = cache.getEventPath(SongEventInstance);
+        if (eventPath == null) eventPath = CurrentSong;
+        callbackManager.registerCallback(SongEventInstance, eventPath, callback, playbackEventMask);
+        backend.setCallbackTrackingForEventInstance(SongEventInstance);
     }
 
     private function UnregisterCallbacksForSong() {
-        eventInstancesWithCallbacks.remove(SongEventInstance);
+        callbackManager.unregisterCallback(SongEventInstance);
     }
 
     private function RegisterCallbacksForSound(soundId:String, callback:Void->Void, playbackEventMask:UInt) {
-        var callbackInfo = new FmodCallbackInfo(callback, playbackEventMask);
-        eventInstancesWithCallbacks.set(soundId, callbackInfo);
-        HaxeFmod.fmod_set_callback_tracking_for_event_instance(soundId);
+        var eventPath = cache.getEventPath(soundId);
+        if (eventPath == null) eventPath = soundId;
+        callbackManager.registerCallback(soundId, eventPath, callback, playbackEventMask);
+        backend.setCallbackTrackingForEventInstance(soundId);
     }
 
     private function UnregisterCallbacksForSound(soundId:String) {
-        eventInstancesWithCallbacks.remove(soundId);
+        callbackManager.unregisterCallback(soundId);
     }
 
     //// Utility
