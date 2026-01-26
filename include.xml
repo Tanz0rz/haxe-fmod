@@ -10,14 +10,20 @@
 
 	<dependency path="lib/html5/fmodstudio.js" if="html5"/>
 	<assets path="lib/html5/fmodstudio.wasm" rename="lib/fmodstudio.wasm" if="html5"/>
-	<dependency path="jaxe/jaxe.js" if="html5"/>
+	<dependency path="native/jaxe/jaxe.js" if="html5"/>
 
 	<!-- HashLink dependencies -->
-	<dependency name="lib/Windows/api/core/lib/x64/fmod.dll" if="hl windows"/>
-	<dependency name="lib/Windows/api/studio/lib/x64/fmodstudio.dll" if="hl windows"/>
-	<dependency name="lib/Linux/api/core/lib/x86_64/libfmod.so" if="hl linux"/>
-	<dependency name="lib/Linux/api/core/lib/x86_64/libfmod.so.11" if="hl linux"/>
-	<dependency name="lib/Linux/api/studio/lib/x86_64/libfmodstudio.so" if="hl linux"/>
-	<dependency name="lib/Linux/api/studio/lib/x86_64/libfmodstudio.so.11" if="hl linux"/>
-	<dependency name="hlaxe/hlaxe_fmod.hdll" if="hl"/>
+	<dependency path="lib/Windows/api/core/lib/x64/fmod.dll" if="hl windows"/>
+	<dependency path="lib/Windows/api/studio/lib/x64/fmodstudio.dll" if="hl windows"/>
+	<dependency path="lib/Linux/api/core/lib/x86_64/libfmod.so" if="hl linux"/>
+	<dependency path="lib/Linux/api/core/lib/x86_64/libfmod.so.11" if="hl linux"/>
+	<dependency path="lib/Linux/api/studio/lib/x86_64/libfmodstudio.so" if="hl linux"/>
+	<dependency path="lib/Linux/api/studio/lib/x86_64/libfmodstudio.so.11" if="hl linux"/>
+	<dependency path="native/hlaxe/hlaxe_fmod.hdll" if="hl"/>
+
+	<!-- Linux C++ dependencies -->
+	<dependency path="lib/Linux/api/core/lib/x86_64/libfmod.so" if="linux" unless="hl"/>
+	<dependency path="lib/Linux/api/core/lib/x86_64/libfmod.so.11" if="linux" unless="hl"/>
+	<dependency path="lib/Linux/api/studio/lib/x86_64/libfmodstudio.so" if="linux" unless="hl"/>
+	<dependency path="lib/Linux/api/studio/lib/x86_64/libfmodstudio.so.11" if="linux" unless="hl"/>
 </project>

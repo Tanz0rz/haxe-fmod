@@ -10,25 +10,20 @@
 	<echo value="Found your FMOD API ${NATIVE_TOOLKIT_PATH}!" ifExists="${NATIVE_TOOLKIT_PATH}/api" />
 
 	<files id="haxe">
-		<compilerflag value="-I${LINC_FAXE_PATH}faxe/" />
+		<compilerflag value="-I${LINC_FAXE_PATH}native/faxe/" />
 		<compilerflag value="-I${NATIVE_TOOLKIT_PATH}/api/core/inc/" />
 		<compilerflag value="-I${NATIVE_TOOLKIT_PATH}/api/studio/inc/" />
-		
-		<!-- Additional linux compiler flags
-		<compilerflag value="-std=c++11" if="linux" />
-		<compilerflag value="-Wl,-rpath,$ORIGIN" if="linux" />
-		-->
-		
-		<file name="${LINC_FAXE_PATH}/faxe/linc_faxe.cpp" />
+
+		<file name="${LINC_FAXE_PATH}/native/faxe/linc_faxe.cpp" />
 	</files>
-	
-	
+
+
 	<target id="haxe" toolid="exe" unless="switch">
 		<section if="windows HXCPP_M32" >
 			<lib name="${NATIVE_TOOLKIT_PATH}/api/core/lib/x86/fmod_vc.lib" />
 			<lib name="${NATIVE_TOOLKIT_PATH}/api/studio/lib/x86/fmodstudio_vc.lib" />
 		</section>
-		
+
 		<section if="windows HXCPP_M64" >
 			<lib name="${NATIVE_TOOLKIT_PATH}/api/core/lib/x64/fmod_vc.lib" />
 			<lib name="${NATIVE_TOOLKIT_PATH}/api/studio/lib/x64/fmodstudio_vc.lib" />
@@ -40,25 +35,20 @@
 		</section>
 	</target>
 
-	<!--TODO OVERRIDE  BuildMain.xml in project ... in the end I never came up with a true fix for nx and had to blit it over...-->
-	<!-- on switch have to copypaster this in BuildMain.xml -->
-	<!-- <lib name="C:/HaxeToolkit_347/haxelibs/faxe/git/lib/Switch/api/lowlevel/lib/nx64/libfmod.a" /> -->
-	<!-- <lib name="C:/HaxeToolkit_347/haxelibs/faxe/git/lib/Switch/api/studio/lib/nx64/libfmodstudio.a" /> -->
-	
 	<!-- put post builds here -->
 	<section  if="windows" unless="switch">
 		<echo value="building for win."  />
-		
+
 		<section if="windows HXCPP_M32" >
 			<copyFile name="fmod.dll" from="${NATIVE_TOOLKIT_PATH}/api/core/lib/x86" toolId="exe" allowMissing="false"/>
 			<copyFile name="fmodstudio.dll" from="${NATIVE_TOOLKIT_PATH}/api/studio/lib/x86" toolId="exe" allowMissing="false"/>
 		</section>
-		
+
 		<section if="windows HXCPP_M64" >
 			<copyFile name="fmod.dll" from="${NATIVE_TOOLKIT_PATH}/api/core/lib/x64" toolId="exe" allowMissing="false"/>
 			<copyFile name="fmodstudio.dll" from="${NATIVE_TOOLKIT_PATH}/api/studio/lib/x64" toolId="exe" allowMissing="false"/>
 		</section>
 	</section>
-	
-	
+
+
 </xml>
