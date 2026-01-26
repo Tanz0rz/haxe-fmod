@@ -3,11 +3,21 @@ package haxefmod.backends;
 import haxefmod.FmodInternalEnums;
 
 /**
+ * Handle type for FMOD event instances.
+ * This is an opaque integer - the native backend interprets it as an array index.
+ */
+typedef FmodEventHandle = Int;
+
+/**
  * Minimal interface for FMOD native backends.
- * Each backend implements raw FMOD API calls only - no caching or high-level logic.
  *
- * Event instances are identified by name strings. The backend maintains the mapping
- * from names to native FMOD handles internally.
+ * DESIGN: The native layer is stateless and handle-based.
+ * - createEventInstance() returns an integer handle
+ * - All operations take handles, not string names
+ * - The Haxe layer (FmodCache) manages name→handle mapping
+ * - Native code is just a thin array of FMOD pointers
+ *
+ * This eliminates duplicate caching logic across C++/JS/HL backends.
  */
 interface IFmodBackend {
     //// System
@@ -20,41 +30,41 @@ interface IFmodBackend {
     function loadBank(bankFilePath:String):Void;
     function unloadBank(bankFilePath:String):Void;
 
-    //// Event Instances
+    //// Event Instances (handle-based)
 
     /** Creates a one-shot event (plays immediately, auto-releases when done) */
     function createEventInstanceOneShot(eventPath:String):Void;
 
-    /** Creates a named event instance that can be controlled */
-    function createEventInstanceNamed(eventPath:String, eventInstanceName:String):Void;
+    /**
+     * Creates an event instance and returns a handle to control it.
+     * Returns -1 if creation failed.
+     */
+    function createEventInstance(eventPath:String):FmodEventHandle;
 
-    /** Checks if a named event instance exists in the native cache */
-    function isEventInstanceLoaded(eventInstanceName:String):Bool;
+    /** Starts playback of an event instance */
+    function playEventInstance(handle:FmodEventHandle):Void;
 
-    /** Starts playback of a named event instance */
-    function playEventInstance(eventInstanceName:String):Void;
+    /** Checks if an event instance is currently playing */
+    function isEventInstancePlaying(handle:FmodEventHandle):Bool;
 
-    /** Checks if a named event instance is currently playing */
-    function isEventInstancePlaying(eventInstanceName:String):Bool;
+    /** Gets the playback state of an event instance */
+    function getEventInstancePlaybackState(handle:FmodEventHandle):FmodStudioPlaybackState;
 
-    /** Gets the playback state of a named event instance */
-    function getEventInstancePlaybackState(eventInstanceName:String):FmodStudioPlaybackState;
+    /** Pauses or unpauses an event instance */
+    function setPauseOnEventInstance(handle:FmodEventHandle, shouldBePaused:Bool):Void;
 
-    /** Pauses or unpauses a named event instance */
-    function setPauseOnEventInstance(eventInstanceName:String, shouldBePaused:Bool):Void;
+    /** Stops an event instance (allows fadeout via AHDSR) */
+    function stopEventInstance(handle:FmodEventHandle):Void;
 
-    /** Stops a named event instance (allows fadeout via AHDSR) */
-    function stopEventInstance(eventInstanceName:String):Void;
+    /** Stops an event instance immediately (no fadeout) */
+    function stopEventInstanceImmediately(handle:FmodEventHandle):Void;
 
-    /** Stops a named event instance immediately (no fadeout) */
-    function stopEventInstanceImmediately(eventInstanceName:String):Void;
-
-    /** Releases a named event instance from memory */
-    function releaseEventInstance(eventInstanceName:String):Void;
+    /** Releases an event instance from memory. The handle becomes invalid. */
+    function releaseEventInstance(handle:FmodEventHandle):Void;
 
     //// Parameters
-    function getEventInstanceParam(eventInstanceName:String, paramName:String):Float;
-    function setEventInstanceParam(eventInstanceName:String, paramName:String, value:Float):Void;
+    function getEventInstanceParam(handle:FmodEventHandle, paramName:String):Float;
+    function setEventInstanceParam(handle:FmodEventHandle, paramName:String, value:Float):Void;
 
     //// Bus operations
     function setPauseForAllEventsOnBus(busPath:String, shouldBePaused:Bool):Void;
@@ -62,9 +72,9 @@ interface IFmodBackend {
 
     //// Callbacks
 
-    /** Enables callback tracking for a named event instance */
-    function setCallbackTrackingForEventInstance(eventInstanceName:String):Void;
+    /** Enables callback tracking for an event instance */
+    function setCallbackTrackingForEventInstance(handle:FmodEventHandle):Void;
 
-    /** Checks and clears callback flags for a named event instance */
-    function checkCallbacksForEventInstance(eventInstanceName:String, callbackEventMask:UInt):Bool;
+    /** Checks and clears callback flags for an event instance */
+    function checkCallbacksForEventInstance(handle:FmodEventHandle, callbackEventMask:UInt):Bool;
 }

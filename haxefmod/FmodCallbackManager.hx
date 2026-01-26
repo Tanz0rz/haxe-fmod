@@ -1,6 +1,7 @@
 package haxefmod;
 
 import haxefmod.FmodEvents.FmodCallback;
+import haxefmod.backends.IFmodBackend.FmodEventHandle;
 
 /**
  * Callback registration info for an event instance.
@@ -9,11 +10,13 @@ class FmodCallbackRegistration {
     public var callbackFunction:Void->Void;
     public var playbackEventMask:UInt;
     public var eventPath:String;
+    public var handle:FmodEventHandle;
 
-    public function new(callbackFunction:Void->Void, playbackEventMask:UInt, eventPath:String) {
+    public function new(callbackFunction:Void->Void, playbackEventMask:UInt, eventPath:String, handle:FmodEventHandle) {
         this.callbackFunction = callbackFunction;
         this.playbackEventMask = playbackEventMask;
         this.eventPath = eventPath;
+        this.handle = handle;
     }
 }
 
@@ -25,7 +28,7 @@ class FmodCallbackRegistration {
  *
  * Workflow:
  * 1. User calls registerCallback() to register interest in specific events
- * 2. Native backend is told to track callbacks for that instance
+ * 2. Native backend is told to track callbacks for that instance (via handle)
  * 3. On each update(), we poll the native layer for triggered callbacks
  * 4. If callbacks fired, we execute the registered Haxe functions
  */
@@ -49,13 +52,14 @@ class FmodCallbackManager {
     /**
      * Registers a callback for an event instance.
      *
-     * @param instanceName The event instance name
+     * @param instanceName The event instance name (for lookup/unregistration)
      * @param eventPath The FMOD event path for this instance
+     * @param handle The native handle for this instance
      * @param callback The function to call when the event fires
      * @param eventMask Bitmask of FmodCallback values to listen for
      */
-    public function registerCallback(instanceName:String, eventPath:String, callback:Void->Void, eventMask:UInt):Void {
-        var registration = new FmodCallbackRegistration(callback, eventMask, eventPath);
+    public function registerCallback(instanceName:String, eventPath:String, handle:FmodEventHandle, callback:Void->Void, eventMask:UInt):Void {
+        var registration = new FmodCallbackRegistration(callback, eventMask, eventPath, handle);
         registrations.set(instanceName, registration);
     }
 
@@ -92,12 +96,12 @@ class FmodCallbackManager {
      * Should be called each frame from FmodManager.Update().
      *
      * @param checkCallback Function that checks native callback flags.
-     *        Signature: (instanceName:String, eventMask:UInt) -> Bool
+     *        Signature: (handle:FmodEventHandle, eventMask:UInt) -> Bool
      */
-    public function processCallbacks(checkCallback:(String, UInt) -> Bool):Void {
+    public function processCallbacks(checkCallback:(FmodEventHandle, UInt) -> Bool):Void {
         for (instanceName in registrations.keys()) {
             var reg = registrations.get(instanceName);
-            if (reg != null && checkCallback(instanceName, reg.playbackEventMask)) {
+            if (reg != null && checkCallback(reg.handle, reg.playbackEventMask)) {
                 reg.callbackFunction();
             }
         }
