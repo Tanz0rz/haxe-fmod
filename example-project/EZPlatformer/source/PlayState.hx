@@ -1,6 +1,5 @@
 package;
 
-import haxefmod.FmodEvents.FmodCallback;
 import flixel.FlxG;
 import flixel.FlxObject;
 import flixel.FlxSprite;
@@ -10,21 +9,16 @@ import flixel.group.FlxGroup;
 import flixel.text.FlxText;
 import flixel.tile.FlxTilemap;
 import flixel.util.FlxColor;
-import flixel.util.FlxDirectionFlags;
 
-/**
- * @author Zaphod
- * Fmod additions - Tanz0rz
- */
 class PlayState extends FlxState {
-    static var _justDied:Bool = false;
-
     var _level:FlxTilemap;
     var _player:FlxSprite;
-    var _exit:FlxSprite;
-    var _scoreText:FlxText;
     var _status:FlxText;
+    var _prompt:FlxText;
     var _coins:FlxGroup;
+    var _started:Bool = false;
+    var _winTimer:Float = -1;
+    var _fadedOut:Bool = false;
 
     override public function onFocus() {
         super.onFocus();
@@ -43,144 +37,78 @@ class PlayState extends FlxState {
         FlxG.cameras.bgColor = 0xffaaaaaa;
 
         _level = new FlxTilemap();
-        _level.loadMapFromCSV("assets/level.csv", FlxGraphic.fromClass(GraphicAuto), 0, 0, AUTO);
+        var tileGraphic = FlxGraphic.fromClass(GraphicAuto);
+        tileGraphic.persist = true;
+        _level.loadMapFromCSV("assets/level.csv", tileGraphic, 0, 0, AUTO);
         add(_level);
 
-        // Create the _level _exit
-        _exit = new FlxSprite(35 * 8 + 1, 25 * 8);
-        _exit.makeGraphic(14, 16, FlxColor.GREEN);
-        _exit.exists = false;
-        add(_exit);
-
-        // Create _coins to collect (see createCoin() function below for more info)
+        // Create coin to collect
         _coins = new FlxGroup();
-
-        // Top left _coins
-        createCoin(18, 4);
-        createCoin(12, 4);
-        createCoin(9, 4);
-        createCoin(8, 11);
-        createCoin(1, 7);
-        createCoin(3, 4);
-        createCoin(5, 2);
-        createCoin(15, 11);
-        createCoin(16, 11);
-
-        // Bottom left _coins
-        createCoin(3, 16);
-        createCoin(4, 16);
-        createCoin(1, 23);
-        createCoin(2, 23);
-        createCoin(3, 23);
-        createCoin(4, 23);
-        createCoin(5, 23);
-        createCoin(12, 26);
-        createCoin(13, 26);
-        createCoin(17, 20);
-        createCoin(18, 20);
-
-        // Top right _coins
-        createCoin(21, 4);
-        createCoin(26, 2);
-        createCoin(29, 2);
-        createCoin(31, 5);
-        createCoin(34, 5);
-        createCoin(36, 8);
-        createCoin(33, 11);
-        createCoin(31, 11);
-        createCoin(29, 11);
-        createCoin(27, 11);
-        createCoin(25, 11);
-        createCoin(36, 14);
-
-        // Bottom right _coins
-        createCoin(38, 17);
-        createCoin(33, 17);
-        createCoin(28, 19);
-        createCoin(25, 20);
-        createCoin(18, 26);
-        createCoin(22, 26);
-        createCoin(26, 26);
-        createCoin(30, 26);
-
+        createCoin(16, 28);
         add(_coins);
 
-        // Create _player
-        _player = new FlxSprite(FlxG.width / 2 - 5);
+        // Create player on the floor
+        _player = new FlxSprite(5 * 8, 28 * 8);
         _player.makeGraphic(8, 8, FlxColor.RED);
         _player.maxVelocity.set(80, 200);
         _player.acceleration.y = 200;
-        _player.drag.x = _player.maxVelocity.x * 4;
         add(_player);
 
-        _scoreText = new FlxText(2, 2, 80, "SCORE: " + (_coins.countDead() * 100));
-        _scoreText.setFormat(null, 8, FlxColor.WHITE, null, NONE, FlxColor.BLACK);
-        add(_scoreText);
+        // Camera follows player, bounded to level
+        _level.follow();
+        FlxG.camera.follow(_player, LOCKON);
 
-        _status = new FlxText(FlxG.width - 160 - 2, 2, 160, "Collect coins.");
-        _status.setFormat(null, 8, FlxColor.WHITE, RIGHT, NONE, FlxColor.BLACK);
-
-        if (_justDied) {
-            _status.text = "Aww, you died!";
-        }
-
+        _status = new FlxText(2, 2, 200, "");
+        _status.setFormat(null, 8, FlxColor.WHITE, null, NONE, FlxColor.BLACK);
+        _status.scrollFactor.set(0, 0);
         add(_status);
+
+        _prompt = new FlxText(0, FlxG.height / 2 - 4, FlxG.width, "Press enter to start the test");
+        _prompt.setFormat(null, 8, FlxColor.WHITE, CENTER, NONE, FlxColor.BLACK);
+        _prompt.scrollFactor.set(0, 0);
+        add(_prompt);
     }
 
     override public function update(elapsed:Float):Void {
         FmodManager.Update();
 
-        _player.acceleration.x = 0;
-
-        if (FlxG.keys.anyPressed([LEFT, A])) {
-            _player.acceleration.x = -_player.maxVelocity.x * 4;
+        if (!_started) {
+            if (FlxG.keys.justPressed.ENTER) {
+                _started = true;
+                _prompt.text = "Song parameters";
+                _player.velocity.x = 40;
+            }
         }
 
-        if (FlxG.keys.anyPressed([RIGHT, D])) {
-            _player.acceleration.x = _player.maxVelocity.x * 4;
-        }
-
-        if (FlxG.keys.anyJustPressed([SPACE, UP, W]) && _player.isTouching(FlxDirectionFlags.DOWN)) {
-            FmodManager.PlaySoundOneShot(FmodSFX.Jump);
-            _player.velocity.y = -_player.maxVelocity.y / 2;
+        // After coin collected, fade arp out then switch to level 2
+        if (_winTimer >= 0) {
+            _winTimer += elapsed;
+            if (_winTimer >= 3.0 && !_fadedOut) {
+                _fadedOut = true;
+                FmodManager.SetEventParameterOnSong("FadeArpIn", 0);
+            }
+            if (_winTimer >= 6.0) {
+                FlxG.switchState(new PlayState2());
+            }
         }
 
         super.update(elapsed);
 
         FlxG.overlap(_coins, _player, getCoin);
         FlxG.collide(_level, _player);
-        FlxG.overlap(_exit, _player, win);
-
-        if (_player.y > FlxG.height) {
-            _justDied = true;
-            FlxG.resetState();
-        }
     }
 
-    /**
-     * Creates a new coin located on the specified tile
-     */
     function createCoin(X:Int, Y:Int):Void {
         var coin:FlxSprite = new FlxSprite(X * 8 + 3, Y * 8 + 2);
         coin.makeGraphic(2, 4, 0xffffff00);
         _coins.add(coin);
     }
 
-    function win(Exit:FlxObject, Player:FlxObject):Void {
-        _status.text = "Yay, you won!";
-        _scoreText.text = "SCORE: 5000";
-        _player.kill();
-    }
-
     function getCoin(Coin:FlxObject, Player:FlxObject):Void {
         FmodManager.SetEventParameterOnSong("FadeArpIn", 1.0);
         FmodManager.PlaySoundOneShot(FmodSFX.Coin);
         Coin.kill();
-        _scoreText.text = "SCORE: " + (_coins.countDead() * 100);
-
-        if (_coins.countLiving() == 0) {
-            _status.text = "Find the exit";
-            _exit.exists = true;
-        }
+        _status.text = "You win!";
+        _winTimer = 0;
     }
 }
