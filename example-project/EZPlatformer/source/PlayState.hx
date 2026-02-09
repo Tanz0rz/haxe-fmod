@@ -17,6 +17,7 @@ class PlayState extends FlxState {
     var _prompt:FlxText;
     var _coins:FlxGroup;
     var _started:Bool = false;
+    var _startDelay:Float = 0;
     var _winTimer:Float = -1;
     var _fadedOut:Bool = false;
 
@@ -73,7 +74,8 @@ class PlayState extends FlxState {
         FmodManager.Update();
 
         if (!_started) {
-            if (FlxG.keys.justPressed.ENTER) {
+            _startDelay += elapsed;
+            if (_startDelay >= 1.0 || FlxG.keys.justPressed.ENTER) {
                 _started = true;
                 _prompt.text = "Song parameters";
                 _player.velocity.x = 40;
