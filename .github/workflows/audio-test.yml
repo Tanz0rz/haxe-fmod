@@ -546,7 +546,10 @@ jobs:
 
       - name: Install ffmpeg
         shell: powershell
-        run: choco install ffmpeg -y --no-progress
+        run: |
+          choco install ffmpeg -y --no-progress
+          # Add choco shims to GITHUB_PATH so Git Bash can find ffmpeg
+          echo "C:\ProgramData\chocolatey\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Cache haxelib
         uses: actions/cache@v4
@@ -633,7 +636,10 @@ jobs:
 
       - name: Install ffmpeg
         shell: powershell
-        run: choco install ffmpeg -y --no-progress
+        run: |
+          choco install ffmpeg -y --no-progress
+          # Add choco shims to GITHUB_PATH so Git Bash can find ffmpeg
+          echo "C:\ProgramData\chocolatey\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Cache haxelib
         uses: actions/cache@v4
@@ -719,21 +725,21 @@ jobs:
         run: |
           BIN_DIR="example-project/EZPlatformer/export/hl/bin"
 
-          # Find the HL bytecode entry point
-          HLBOOT=$(find "$BIN_DIR" -name "hlboot.dat" -o -name "*.hl" | head -1)
-          if [ -z "$HLBOOT" ]; then
-            echo "ERROR: No hlboot.dat or .hl file found"
+          # Find the native HL/C compiled exe (NOT hl.exe from HashLink)
+          EXE=$(find "$BIN_DIR" -maxdepth 1 -name "*.exe" | head -1)
+          if [ -z "$EXE" ]; then
+            echo "ERROR: No .exe found in $BIN_DIR"
             ls -la "$BIN_DIR"
             exit 1
           fi
-          echo "Found HL entry: $HLBOOT"
+          echo "Found exe: $EXE"
 
           # FMOD_WAVWRITER makes FMOD write its mixed output directly to a WAV file.
           export FMOD_WAVWRITER="$GITHUB_WORKSPACE/audio-windows-hl.wav"
 
-          # Run with HashLink VM. Game auto-quits on level 2 right wall.
+          # Game auto-quits when player hits the right wall on level 2 (~15s).
           cd "$BIN_DIR"
-          timeout 60 hl.exe "$(basename "$HLBOOT")" || true
+          timeout 60 "./$(basename "$EXE")" || true
           cd -
 
           if [ -f "$GITHUB_WORKSPACE/audio-windows-hl.wav" ]; then
