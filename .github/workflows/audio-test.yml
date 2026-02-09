@@ -86,13 +86,13 @@ jobs:
           fi
 
           # Start recording from the virtual sink's monitor
-          ffmpeg -f pulse -i virtual_speaker.monitor -t 15 -y /tmp/audio-linux-cpp.wav &
+          ffmpeg -f pulse -i virtual_speaker.monitor -t 30 -y /tmp/audio-linux-cpp.wav &
           RECORD_PID=$!
 
           # Run the game
           cd "$BIN_DIR"
           chmod +x run.sh
-          timeout 15 ./run.sh || true
+          timeout 30 ./run.sh || true
           cd -
 
           # Wait for recording to finish
@@ -220,14 +220,14 @@ jobs:
           cd -
 
           # Start recording from the virtual sink's monitor
-          ffmpeg -f pulse -i virtual_speaker.monitor -t 15 -y /tmp/audio-linux-hl.wav &
+          ffmpeg -f pulse -i virtual_speaker.monitor -t 30 -y /tmp/audio-linux-hl.wav &
           RECORD_PID=$!
 
           # Run the game with library paths set
           cd "$BIN_DIR"
           chmod +x run.sh
           export LD_LIBRARY_PATH="$(pwd):$LD_LIBRARY_PATH"
-          timeout 15 ./run.sh || true
+          timeout 30 ./run.sh || true
           cd -
 
           # Wait for recording to finish
@@ -253,7 +253,7 @@ jobs:
   # ===========================================================================
   linux-html5:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -332,11 +332,11 @@ jobs:
           sleep 1
 
           # Start recording from the virtual sink's monitor
-          ffmpeg -f pulse -i virtual_speaker.monitor -t 15 -y /tmp/audio-html5.wav &
+          ffmpeg -f pulse -i virtual_speaker.monitor -t 30 -y /tmp/audio-html5.wav &
           RECORD_PID=$!
 
           # Wait for recording
-          sleep 16
+          sleep 31
 
           # Cleanup
           kill $CHROME_PID || true
@@ -391,10 +391,15 @@ jobs:
 
       - name: Install system dependencies
         run: |
-          brew install ffmpeg
-          # Attempt to install BlackHole virtual audio device (may fail)
-          brew install --cask blackhole-2ch || echo "BlackHole installation failed - audio recording will be skipped"
-          brew install switchaudio-osx || echo "SwitchAudioSource not available"
+          brew install ffmpeg switchaudio-osx
+          # Install BlackHole virtual audio driver from pre-built .pkg
+          curl -L -o /tmp/BlackHole2ch.pkg \
+            "https://github.com/jamesdwilson/BlackHole-with-releases/releases/download/BlackHole2ch.v0.5.0.pkg/BlackHole2ch.v0.5.0.pkg"
+          sudo installer -pkg /tmp/BlackHole2ch.pkg -target / || echo "BlackHole installation failed"
+          # Give CoreAudio a moment to discover the new device
+          sleep 2
+          # List available audio devices for debugging
+          SwitchAudioSource -a -t output || true
 
       - name: Build C++ target
         run: |
@@ -413,33 +418,30 @@ jobs:
           AUDIO_RECORDED=false
 
           # Try to set up BlackHole for audio capture
-          if command -v SwitchAudioSource &>/dev/null; then
-            # Set BlackHole as default output
-            SwitchAudioSource -s "BlackHole 2ch" -t output 2>/dev/null && {
-              echo "BlackHole set as default output"
+          if SwitchAudioSource -s "BlackHole 2ch" -t output 2>/dev/null; then
+            echo "BlackHole set as default output"
 
-              # Start recording from BlackHole input
-              ffmpeg -f avfoundation -i ":BlackHole 2ch" -t 15 -y /tmp/audio-mac-cpp.wav &
-              RECORD_PID=$!
+            # Start recording from BlackHole input
+            ffmpeg -f avfoundation -i ":BlackHole 2ch" -t 30 -y /tmp/audio-mac-cpp.wav &
+            RECORD_PID=$!
 
-              # Launch the app
-              "$APP_BUNDLE/Contents/MacOS/"* &
-              GAME_PID=$!
-              sleep 15
+            # Launch the app
+            "$APP_BUNDLE/Contents/MacOS/"* &
+            GAME_PID=$!
+            sleep 30
 
-              kill $GAME_PID || true
-              wait $RECORD_PID || true
-              AUDIO_RECORDED=true
-            } || echo "Failed to set BlackHole as output"
+            kill $GAME_PID || true
+            wait $RECORD_PID || true
+            AUDIO_RECORDED=true
+          else
+            echo "BlackHole not available as output device"
           fi
 
           if [ "$AUDIO_RECORDED" = false ]; then
             echo "Audio recording unavailable - verifying build launches without crashing"
-            # Just verify it starts and doesn't crash immediately
             "$APP_BUNDLE/Contents/MacOS/"* &
             GAME_PID=$!
             sleep 5
-            # Check if still running (didn't crash)
             if kill -0 $GAME_PID 2>/dev/null; then
               echo "PASS: Game launched and ran for 5 seconds without crashing"
               kill $GAME_PID || true
@@ -447,7 +449,6 @@ jobs:
               echo "FAIL: Game crashed within 5 seconds"
               exit 1
             fi
-            # Create a marker file instead of audio
             echo "Audio recording was not available on this runner. Build and launch verified." > /tmp/audio-mac-cpp.txt
           fi
 
@@ -493,9 +494,15 @@ jobs:
 
       - name: Install system dependencies
         run: |
-          # Attempt to install BlackHole virtual audio device (may fail)
-          brew install --cask blackhole-2ch || echo "BlackHole installation failed - audio recording will be skipped"
-          brew install switchaudio-osx || echo "SwitchAudioSource not available"
+          brew install switchaudio-osx
+          # Install BlackHole virtual audio driver from pre-built .pkg
+          curl -L -o /tmp/BlackHole2ch.pkg \
+            "https://github.com/jamesdwilson/BlackHole-with-releases/releases/download/BlackHole2ch.v0.5.0.pkg/BlackHole2ch.v0.5.0.pkg"
+          sudo installer -pkg /tmp/BlackHole2ch.pkg -target / || echo "BlackHole installation failed"
+          # Give CoreAudio a moment to discover the new device
+          sleep 2
+          # List available audio devices for debugging
+          SwitchAudioSource -a -t output || true
 
       - name: Build HashLink target
         run: |
@@ -514,22 +521,21 @@ jobs:
           AUDIO_RECORDED=false
 
           # Try to set up BlackHole for audio capture
-          if command -v SwitchAudioSource &>/dev/null; then
-            SwitchAudioSource -s "BlackHole 2ch" -t output 2>/dev/null && {
-              echo "BlackHole set as default output"
+          if SwitchAudioSource -s "BlackHole 2ch" -t output 2>/dev/null; then
+            echo "BlackHole set as default output"
 
-              ffmpeg -f avfoundation -i ":BlackHole 2ch" -t 15 -y /tmp/audio-mac-hl.wav &
-              RECORD_PID=$!
+            ffmpeg -f avfoundation -i ":BlackHole 2ch" -t 30 -y /tmp/audio-mac-hl.wav &
+            RECORD_PID=$!
 
-              open "$APP_BUNDLE"
-              sleep 15
+            open "$APP_BUNDLE"
+            sleep 30
 
-              # Kill the app
-              APP_NAME=$(basename "$APP_BUNDLE" .app)
-              pkill -f "$APP_NAME" || true
-              wait $RECORD_PID || true
-              AUDIO_RECORDED=true
-            } || echo "Failed to set BlackHole as output"
+            APP_NAME=$(basename "$APP_BUNDLE" .app)
+            pkill -f "$APP_NAME" || true
+            wait $RECORD_PID || true
+            AUDIO_RECORDED=true
+          else
+            echo "BlackHole not available as output device"
           fi
 
           if [ "$AUDIO_RECORDED" = false ]; then
