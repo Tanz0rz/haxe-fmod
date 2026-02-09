@@ -144,10 +144,23 @@ jobs:
         run: |
           git clone --depth 1 --branch 1.15 https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
           cd /tmp/hashlink-src
-          make -j$(nproc)
+          # Build with full output logged for debugging
+          make -j$(nproc) 2>&1 | tee /tmp/hashlink-build.log || {
+            echo "=== MAKE FAILED - retrying single-threaded for clearer output ==="
+            make 2>&1 | tee -a /tmp/hashlink-build.log
+            exit 1
+          }
           sudo make install
           sudo ldconfig
           hl --version || echo "HashLink installed"
+
+      - name: Upload HashLink build log
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hashlink-build-log
+          path: /tmp/hashlink-build.log
+          if-no-files-found: warn
 
       - name: Compile hlaxe_fmod.hdll
         run: |
