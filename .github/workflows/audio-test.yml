@@ -408,8 +408,15 @@ jobs:
           export FMOD_WAVWRITER=/tmp/audio-mac-cpp.wav
 
           # Game auto-quits when player hits the right wall on level 2 (~15s).
-          # Timeout at 60s as safety net.
-          timeout 60 "$APP_BUNDLE/Contents/MacOS/"* || true
+          # Timeout at 60s as safety net (macOS lacks GNU timeout).
+          "$APP_BUNDLE/Contents/MacOS/"* &
+          GAME_PID=$!
+          for i in $(seq 60); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill $GAME_PID 2>/dev/null || true
+          wait $GAME_PID 2>/dev/null || true
 
           if [ -f /tmp/audio-mac-cpp.wav ]; then
             echo "Audio recorded successfully"
@@ -475,8 +482,15 @@ jobs:
           export FMOD_WAVWRITER=/tmp/audio-mac-hl.wav
 
           # Game auto-quits when player hits the right wall on level 2 (~15s).
-          # Timeout at 60s as safety net.
-          timeout 60 "$APP_BUNDLE/Contents/MacOS/"* || true
+          # Timeout at 60s as safety net (macOS lacks GNU timeout).
+          "$APP_BUNDLE/Contents/MacOS/"* &
+          GAME_PID=$!
+          for i in $(seq 60); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill $GAME_PID 2>/dev/null || true
+          wait $GAME_PID 2>/dev/null || true
 
           if [ -f /tmp/audio-mac-hl.wav ]; then
             echo "Audio recorded successfully"
