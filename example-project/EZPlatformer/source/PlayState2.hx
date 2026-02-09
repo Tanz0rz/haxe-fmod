@@ -64,6 +64,13 @@ class PlayState2 extends FlxState {
             _jumped = true;
         }
 
+        // Quit when player hits the far right wall (native builds only)
+        #if sys
+        if (_player.x >= 38 * 8 && _player.isTouching(FlxDirectionFlags.RIGHT)) {
+            Sys.exit(0);
+        }
+        #end
+
         super.update(elapsed);
 
         FlxG.overlap(_coins, _player, getCoin);

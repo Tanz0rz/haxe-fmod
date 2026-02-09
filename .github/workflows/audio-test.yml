@@ -407,12 +407,9 @@ jobs:
           # This bypasses CoreAudio entirely - no virtual audio device needed.
           export FMOD_WAVWRITER=/tmp/audio-mac-cpp.wav
 
-          # Launch the app (extra time to account for startup before FMOD begins writing)
-          "$APP_BUNDLE/Contents/MacOS/"* &
-          GAME_PID=$!
-          sleep 40
-          kill $GAME_PID || true
-          wait $GAME_PID 2>/dev/null || true
+          # Game auto-quits when player hits the right wall on level 2 (~15s).
+          # Timeout at 60s as safety net.
+          timeout 60 "$APP_BUNDLE/Contents/MacOS/"* || true
 
           if [ -f /tmp/audio-mac-cpp.wav ]; then
             echo "Audio recorded successfully"
@@ -477,12 +474,9 @@ jobs:
           # This bypasses CoreAudio entirely - no virtual audio device needed.
           export FMOD_WAVWRITER=/tmp/audio-mac-hl.wav
 
-          open "$APP_BUNDLE"
-          sleep 45
-
-          APP_NAME=$(basename "$APP_BUNDLE" .app)
-          pkill -f "$APP_NAME" || true
-          sleep 2
+          # Game auto-quits when player hits the right wall on level 2 (~15s).
+          # Timeout at 60s as safety net.
+          timeout 60 "$APP_BUNDLE/Contents/MacOS/"* || true
 
           if [ -f /tmp/audio-mac-hl.wav ]; then
             echo "Audio recorded successfully"
