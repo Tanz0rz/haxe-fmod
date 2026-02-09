@@ -18,6 +18,11 @@
 #include <atomic>
 #include <chrono>
 
+// F_CALLBACK was removed in newer FMOD SDKs
+#ifndef F_CALLBACK
+#define F_CALLBACK F_CALL
+#endif
+
 namespace linc {
 namespace faxe {
 

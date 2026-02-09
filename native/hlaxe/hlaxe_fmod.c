@@ -12,6 +12,11 @@
 #include <fmod_studio.h>
 #include <fmod.h>
 
+// F_CALLBACK was removed in newer FMOD SDKs
+#ifndef F_CALLBACK
+#define F_CALLBACK F_CALL
+#endif
+
 #ifdef _WIN32
 #include <windows.h>
 #else

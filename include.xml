@@ -26,4 +26,13 @@
 	<dependency path="lib/Linux/api/core/lib/x86_64/libfmod.so.11" if="linux" unless="hl"/>
 	<dependency path="lib/Linux/api/studio/lib/x86_64/libfmodstudio.so" if="linux" unless="hl"/>
 	<dependency path="lib/Linux/api/studio/lib/x86_64/libfmodstudio.so.11" if="linux" unless="hl"/>
+
+	<!-- Mac C++ dependencies (ARM64/Apple Silicon only) -->
+	<dependency path="lib/Mac/api/core/lib/libfmod.dylib" if="mac" unless="hl"/>
+	<dependency path="lib/Mac/api/studio/inc/lib/libfmodstudio.dylib" if="mac" unless="hl"/>
+
+	<!-- Mac HashLink dependencies (ARM64/Apple Silicon only) -->
+	<dependency path="lib/Mac/api/core/lib/libfmod.dylib" if="hl mac"/>
+	<dependency path="lib/Mac/api/studio/inc/lib/libfmodstudio.dylib" if="hl mac"/>
+	<dependency path="native/hlaxe/hlaxe_fmod.hdll" if="hl mac"/>
 </project>

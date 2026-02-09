@@ -21,10 +21,15 @@ if [ ! -d "$BIN_DIR" ]; then
 fi
 
 echo "Copying FMOD libraries..."
-cp "$HAXEFMOD_DIR/lib/Linux/api/core/lib/x86_64/libfmod.so" "$BIN_DIR/"
-cp "$HAXEFMOD_DIR/lib/Linux/api/core/lib/x86_64/libfmod.so.11" "$BIN_DIR/"
-cp "$HAXEFMOD_DIR/lib/Linux/api/studio/lib/x86_64/libfmodstudio.so" "$BIN_DIR/"
-cp "$HAXEFMOD_DIR/lib/Linux/api/studio/lib/x86_64/libfmodstudio.so.11" "$BIN_DIR/"
+if [ "$(uname -s)" = "Darwin" ]; then
+    cp "$HAXEFMOD_DIR/lib/Mac/api/core/lib/libfmod.dylib" "$BIN_DIR/"
+    cp "$HAXEFMOD_DIR/lib/Mac/api/studio/inc/lib/libfmodstudio.dylib" "$BIN_DIR/"
+else
+    cp "$HAXEFMOD_DIR/lib/Linux/api/core/lib/x86_64/libfmod.so" "$BIN_DIR/"
+    cp "$HAXEFMOD_DIR/lib/Linux/api/core/lib/x86_64/libfmod.so.11" "$BIN_DIR/"
+    cp "$HAXEFMOD_DIR/lib/Linux/api/studio/lib/x86_64/libfmodstudio.so" "$BIN_DIR/"
+    cp "$HAXEFMOD_DIR/lib/Linux/api/studio/lib/x86_64/libfmodstudio.so.11" "$BIN_DIR/"
+fi
 
 echo "Copying hlaxe_fmod.hdll..."
 cp "$HAXEFMOD_DIR/native/hlaxe/hlaxe_fmod.hdll" "$BIN_DIR/"

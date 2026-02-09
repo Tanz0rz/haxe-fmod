@@ -1,10 +1,10 @@
-# FMOD for Haxe on HTML5, HashLink, Windows, and Linux
+# FMOD for Haxe on HTML5, HashLink, Windows, Linux, and macOS
 
 **Note: The API of this library will change early on**
 
 **Other Note: Remember to follow the rules of [FMOD's license](https://www.fmod.com/licensing) when using this library**
 
-A library to integrate the FMOD audio engine with Haxe 4 games for HTML5, HashLink, Windows, and Linux deployments
+A library to integrate the FMOD audio engine with Haxe 4 games for HTML5, HashLink, Windows, Linux, and macOS deployments
 
 Primarily focuses on simplifying the FMOD Studio project workflow through the use of a well-documented [helper library](https://github.com/Tanz0rz/haxe-fmod/blob/master/haxefmod/FmodManager.hx)
 
@@ -22,6 +22,7 @@ LICENSE: [MIT](https://en.wikipedia.org/wiki/MIT_License)
  - [HTML5 Builds](#html5-builds)
  - [HashLink Builds](#hashlink-builds)
  - [Linux Builds](#linux-builds)
+ - [macOS Builds](#macos-builds)
  - [FMOD Studio Project Configuration](#fmod-studio-project-configuration)
  - [Example Project](#example-project)
  - [Local Development](#local-development)
@@ -41,9 +42,10 @@ LICENSE: [MIT](https://en.wikipedia.org/wiki/MIT_License)
 | Platform | Target | Status |
 |----------|--------|--------|
 | HTML5 | WebAssembly | Supported |
-| HashLink | Windows / Linux | Supported |
+| HashLink | Windows / Linux / macOS | Supported |
 | Windows | C++ | Supported |
 | Linux | C++ | Supported |
+| macOS | C++ | Supported (ARM64/Apple Silicon only) |
 
 ## <a name="how-to-use-this-library"></a>How to Use This Library
 
@@ -91,7 +93,7 @@ This library runs FMOD updates automatically (~60fps) independent of your game l
 
 **C++**: Uses `std::thread` to run FMOD updates on a background thread
 
-**HashLink**: Uses `pthread` (Linux) or Windows threads to run FMOD updates in the background
+**HashLink**: Uses `pthread` (Linux/macOS) or Windows threads to run FMOD updates in the background
 
 **HTML5**: Uses `setInterval` to schedule FMOD updates on the main thread
 
@@ -148,6 +150,54 @@ To run the built game:
 ./export/linux/bin/run.sh
 ```
 
+## <a name="macos-builds"></a>macOS Builds
+
+**Note: macOS support currently targets ARM64 (Apple Silicon) Macs only. Intel Macs are not supported.**
+
+### macOS C++ Builds
+
+A build script is provided to automate the C++ build:
+
+```bash
+# From your project directory
+/path/to/haxefmod/scripts/build-mac.sh .
+```
+
+The script will:
+1. Build the macOS target using `lime build mac -64`
+2. Copy the FMOD dylibs (`libfmod.dylib`, `libfmodstudio.dylib`) into the `.app` bundle
+3. Ensure the executable's rpath is configured to find the dylibs
+
+To run the built game:
+```bash
+open export/macos/bin/YourGame.app
+```
+
+### macOS HashLink Builds
+
+A build script is provided to automate the HashLink build:
+
+```bash
+# From the haxe-fmod root directory
+./scripts/build-hl-mac.sh
+```
+
+The script will:
+1. Compile `hlaxe_fmod.hdll` for x86_64 (to match the HashLink runtime)
+2. Build the HashLink target using `lime build hl`
+3. Copy the FMOD dylibs and `hlaxe_fmod.hdll` into the `.app` bundle
+
+To run the built game:
+```bash
+open example-project/EZPlatformer/export/hl/bin/YourGame.app
+```
+
+### macOS Prerequisites
+
+- ARM64 (Apple Silicon) Mac
+- Homebrew with `haxe` and `hashlink` installed
+- FMOD Engine SDK for macOS (download from [fmod.com](https://www.fmod.com/download)), placed in `lib/Mac/`
+
 ## <a name="fmod-studio-project-configuration"></a>FMOD Studio Project Configuration
 
 **FMOD Studio project structure**:
@@ -202,6 +252,12 @@ lime test html5
 # Linux C++
 ../../scripts/build-linux.sh . && ./export/linux/bin/run.sh
 
+# macOS C++ (ARM64/Apple Silicon only)
+../../scripts/build-mac.sh . && open export/macos/bin/EZPlatformerTestEdition.app
+
+# macOS HashLink (ARM64/Apple Silicon only)
+../../scripts/build-hl-mac.sh && open export/hl/bin/EZPlatformerTestEdition.app
+
 # Windows
 lime test windows
 ```
@@ -223,7 +279,9 @@ The native backends (HashLink `.hdll` and C++ bindings) have pre-built binaries 
 
 Build scripts for copying dependencies are in the `scripts/` directory:
 - `scripts/build-hl.sh` - Build and package HashLink targets
-- `scripts/build-linux.sh` - Build and package Linux C++ targets 
+- `scripts/build-linux.sh` - Build and package Linux C++ targets
+- `scripts/build-mac.sh` - Build and package macOS C++ targets (ARM64/Apple Silicon only)
+- `scripts/build-hl-mac.sh` - Build and package macOS HashLink targets (ARM64/Apple Silicon only)
 
 ## <a name="future-goals"></a>Future Goals
 
