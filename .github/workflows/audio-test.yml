@@ -142,7 +142,8 @@ jobs:
 
       - name: Build and install HashLink
         run: |
-          git clone --depth 1 --branch 1.15 https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
+          # Use latest HashLink (master) which supports mbedtls 3.x on Ubuntu 24.04
+          git clone --depth 1 https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
           cd /tmp/hashlink-src
           # Build with full output logged for debugging
           make -j$(nproc) 2>&1 | tee /tmp/hashlink-build.log || {
