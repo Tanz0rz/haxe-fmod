@@ -148,19 +148,17 @@ jobs:
 
       - name: Build and install HashLink
         run: |
-          if [ ! -f /tmp/hashlink-build/hl ]; then
+          if [ ! -f /tmp/hashlink-build/bin/hl ]; then
+            rm -rf /tmp/hashlink-src /tmp/hashlink-build
             git clone --depth 1 --branch 1.15 https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
             cd /tmp/hashlink-src
-            mkdir -p build && cd build
-            cmake ..
-            make -j$(nproc)
-            mkdir -p /tmp/hashlink-build
-            cp -r ../build/* /tmp/hashlink-build/
-            cp -r ../src/hl.h /tmp/hashlink-build/
+            make -j$(nproc) PREFIX=/tmp/hashlink-build
+            make install PREFIX=/tmp/hashlink-build
           fi
-          cd /tmp/hashlink-build
-          sudo make install || sudo cp hl /usr/local/bin/ && sudo cp *.hdll /usr/local/lib/ && sudo cp libhl.so /usr/local/lib/
-          sudo cp /tmp/hashlink-build/hl.h /usr/local/include/ || true
+          sudo cp /tmp/hashlink-build/bin/hl /usr/local/bin/
+          sudo cp /tmp/hashlink-build/lib/libhl.so* /usr/local/lib/
+          sudo cp /tmp/hashlink-build/lib/*.hdll /usr/local/lib/
+          sudo cp -r /tmp/hashlink-build/include/* /usr/local/include/
           sudo ldconfig
 
       - name: Compile hlaxe_fmod.hdll
@@ -329,10 +327,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Haxe
-        uses: krdlab/setup-haxe@v1
-        with:
-          haxe-version: ${{ env.HAXE_VERSION }}
+      - name: Setup Haxe via Homebrew
+        run: |
+          brew install haxe neko
+          echo "HAXE_STD_PATH=$(brew --prefix)/lib/haxe/std" >> $GITHUB_ENV
 
       - name: Cache haxelib
         uses: actions/cache@v4
@@ -342,6 +340,7 @@ jobs:
 
       - name: Install Haxe libraries
         run: |
+          mkdir -p ~/haxelib
           haxelib setup ~/haxelib
           haxelib install lime 8.3.0 --always --quiet
           haxelib install openfl 9.5.0 --always --quiet
@@ -431,10 +430,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Haxe
-        uses: krdlab/setup-haxe@v1
-        with:
-          haxe-version: ${{ env.HAXE_VERSION }}
+      - name: Setup Haxe via Homebrew
+        run: |
+          brew install haxe neko hashlink ffmpeg
+          echo "HAXE_STD_PATH=$(brew --prefix)/lib/haxe/std" >> $GITHUB_ENV
 
       - name: Cache haxelib
         uses: actions/cache@v4
@@ -444,6 +443,7 @@ jobs:
 
       - name: Install Haxe libraries
         run: |
+          mkdir -p ~/haxelib
           haxelib setup ~/haxelib
           haxelib install lime 8.3.0 --always --quiet
           haxelib install openfl 9.5.0 --always --quiet
@@ -453,7 +453,6 @@ jobs:
 
       - name: Install system dependencies
         run: |
-          brew install hashlink ffmpeg
           # Attempt to install BlackHole virtual audio device (may fail)
           brew install --cask blackhole-2ch || echo "BlackHole installation failed - audio recording will be skipped"
           brew install switchaudio-osx || echo "SwitchAudioSource not available"
