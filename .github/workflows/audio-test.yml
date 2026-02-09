@@ -407,10 +407,10 @@ jobs:
           # This bypasses CoreAudio entirely - no virtual audio device needed.
           export FMOD_WAVWRITER=/tmp/audio-mac-cpp.wav
 
-          # Launch the app and let it run for 30 seconds
+          # Launch the app (extra time to account for startup before FMOD begins writing)
           "$APP_BUNDLE/Contents/MacOS/"* &
           GAME_PID=$!
-          sleep 30
+          sleep 40
           kill $GAME_PID || true
           wait $GAME_PID 2>/dev/null || true
 
@@ -478,7 +478,7 @@ jobs:
           export FMOD_WAVWRITER=/tmp/audio-mac-hl.wav
 
           open "$APP_BUNDLE"
-          sleep 30
+          sleep 45
 
           APP_NAME=$(basename "$APP_BUNDLE" .app)
           pkill -f "$APP_NAME" || true
