@@ -397,18 +397,21 @@ jobs:
         run: |
           git clone --depth 1 https://github.com/ExistentialAudio/BlackHole.git /tmp/blackhole-src
           cd /tmp/blackhole-src
-          # Use xcconfig file to avoid shell quoting issues with spaces in define values
-          cat > /tmp/blackhole.xcconfig << 'XCEOF'
-          GCC_PREPROCESSOR_DEFINITIONS = kNumber_Of_Channels=2 kPlugIn_BundleID="audio.existential.BlackHole2ch" DEVICE_NAME="BlackHole 2ch" DEVICE_MANUFACTURER_NAME="Existential Audio Inc."
-          XCEOF
+          # Use a prefix header to define config macros - avoids all shell/xcconfig quoting issues
+          cat > /tmp/blackhole-config.h << 'HEOF'
+          #define kNumber_Of_Channels 2
+          #define kPlugIn_BundleID "audio.existential.BlackHole2ch"
+          #define DEVICE_NAME "BlackHole 2ch"
+          #define DEVICE_MANUFACTURER_NAME "Existential Audio Inc."
+          HEOF
           xcodebuild \
             -project BlackHole.xcodeproj \
-            -xcconfig /tmp/blackhole.xcconfig \
             -configuration Release \
             -target BlackHole \
             CONFIGURATION_BUILD_DIR=/tmp/blackhole-build \
             PRODUCT_BUNDLE_IDENTIFIER=audio.existential.BlackHole2ch \
-            CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
+            CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO \
+            GCC_PREFIX_HEADER=/tmp/blackhole-config.h
           # Install the driver
           sudo mkdir -p /Library/Audio/Plug-Ins/HAL
           sudo cp -R /tmp/blackhole-build/BlackHole.driver /Library/Audio/Plug-Ins/HAL/BlackHole2ch.driver
@@ -526,18 +529,21 @@ jobs:
         run: |
           git clone --depth 1 https://github.com/ExistentialAudio/BlackHole.git /tmp/blackhole-src
           cd /tmp/blackhole-src
-          # Use xcconfig file to avoid shell quoting issues with spaces in define values
-          cat > /tmp/blackhole.xcconfig << 'XCEOF'
-          GCC_PREPROCESSOR_DEFINITIONS = kNumber_Of_Channels=2 kPlugIn_BundleID="audio.existential.BlackHole2ch" DEVICE_NAME="BlackHole 2ch" DEVICE_MANUFACTURER_NAME="Existential Audio Inc."
-          XCEOF
+          # Use a prefix header to define config macros - avoids all shell/xcconfig quoting issues
+          cat > /tmp/blackhole-config.h << 'HEOF'
+          #define kNumber_Of_Channels 2
+          #define kPlugIn_BundleID "audio.existential.BlackHole2ch"
+          #define DEVICE_NAME "BlackHole 2ch"
+          #define DEVICE_MANUFACTURER_NAME "Existential Audio Inc."
+          HEOF
           xcodebuild \
             -project BlackHole.xcodeproj \
-            -xcconfig /tmp/blackhole.xcconfig \
             -configuration Release \
             -target BlackHole \
             CONFIGURATION_BUILD_DIR=/tmp/blackhole-build \
             PRODUCT_BUNDLE_IDENTIFIER=audio.existential.BlackHole2ch \
-            CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
+            CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO \
+            GCC_PREFIX_HEADER=/tmp/blackhole-config.h
           sudo mkdir -p /Library/Audio/Plug-Ins/HAL
           sudo cp -R /tmp/blackhole-build/BlackHole.driver /Library/Audio/Plug-Ins/HAL/BlackHole2ch.driver
           sudo killall -9 coreaudiod || true
