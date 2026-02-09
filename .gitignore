@@ -1,3 +1,6 @@
+# macOS
+.DS_Store
+
 # Editor files
 /.vscode/
 /example-project/EZPlatformer/.vscode/
@@ -18,3 +21,6 @@ haxe-fmod.zip
 
 # C++
 /faxe/obj/
+
+# CI artifacts
+/ci/artifacts/

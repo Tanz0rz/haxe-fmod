@@ -11,6 +11,12 @@
 #include <hl.h>
 #include <fmod_studio.h>
 #include <fmod.h>
+#include <stdlib.h>
+
+// F_CALLBACK was removed in newer FMOD SDKs
+#ifndef F_CALLBACK
+#define F_CALLBACK F_CALL
+#endif
 
 #ifdef _WIN32
 #include <windows.h>
@@ -63,8 +69,17 @@ HL_PRIM int HL_NAME(init)(int numChannels) {
     FMOD_RESULT result = FMOD_Studio_System_Create(&gStudioSystem, FMOD_VERSION);
     if (result != FMOD_OK) return result;
 
+    // FMOD_WAVWRITER env var: write mixed audio to WAV file (for CI recording)
+    const char* wavWriterPath = getenv("FMOD_WAVWRITER");
+    void* extradriverdata = NULL;
+    if (wavWriterPath && wavWriterPath[0] != '\0') {
+        FMOD_Studio_System_GetCoreSystem(gStudioSystem, &gCoreSystem);
+        FMOD_System_SetOutput(gCoreSystem, FMOD_OUTPUTTYPE_WAVWRITER);
+        extradriverdata = (void*)wavWriterPath;
+    }
+
     result = FMOD_Studio_System_Initialize(gStudioSystem, numChannels,
-        FMOD_STUDIO_INIT_LIVEUPDATE, FMOD_INIT_NORMAL, NULL);
+        FMOD_STUDIO_INIT_LIVEUPDATE, FMOD_INIT_NORMAL, extradriverdata);
     if (result != FMOD_OK) {
         FMOD_Studio_System_Release(gStudioSystem);
         gStudioSystem = NULL;

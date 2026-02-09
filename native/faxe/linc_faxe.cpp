@@ -17,6 +17,12 @@
 #include <thread>
 #include <atomic>
 #include <chrono>
+#include <cstdlib>
+
+// F_CALLBACK was removed in newer FMOD SDKs
+#ifndef F_CALLBACK
+#define F_CALLBACK F_CALL
+#endif
 
 namespace linc {
 namespace faxe {
@@ -70,7 +76,16 @@ int fmod_init(int numChannels) {
     FMOD_RESULT result = FMOD::Studio::System::create(&gStudioSystem);
     if (result != FMOD_OK) return result;
 
-    result = gStudioSystem->initialize(numChannels, FMOD_STUDIO_INIT_LIVEUPDATE, FMOD_INIT_NORMAL, nullptr);
+    // FMOD_WAVWRITER env var: write mixed audio to WAV file (for CI recording)
+    const char* wavWriterPath = std::getenv("FMOD_WAVWRITER");
+    void* extradriverdata = nullptr;
+    if (wavWriterPath && wavWriterPath[0] != '\0') {
+        gStudioSystem->getCoreSystem(&gCoreSystem);
+        gCoreSystem->setOutput(FMOD_OUTPUTTYPE_WAVWRITER);
+        extradriverdata = (void*)wavWriterPath;
+    }
+
+    result = gStudioSystem->initialize(numChannels, FMOD_STUDIO_INIT_LIVEUPDATE, FMOD_INIT_NORMAL, extradriverdata);
     if (result != FMOD_OK) {
         gStudioSystem->release();
         gStudioSystem = NULL;
