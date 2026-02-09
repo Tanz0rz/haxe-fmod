@@ -403,6 +403,7 @@ jobs:
             -target BlackHole \
             CONFIGURATION_BUILD_DIR=/tmp/blackhole-build \
             PRODUCT_BUNDLE_IDENTIFIER=audio.existential.BlackHole2ch \
+            CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO \
             GCC_PREPROCESSOR_DEFINITIONS='kNumber_Of_Channels=2 kPlugIn_BundleID=\"audio.existential.BlackHole2ch\" DEVICE_NAME=\"BlackHole 2ch\" DEVICE_MANUFACTURER_NAME=\"Existential Audio Inc.\"'
           # Install the driver
           sudo mkdir -p /Library/Audio/Plug-Ins/HAL
@@ -527,6 +528,7 @@ jobs:
             -target BlackHole \
             CONFIGURATION_BUILD_DIR=/tmp/blackhole-build \
             PRODUCT_BUNDLE_IDENTIFIER=audio.existential.BlackHole2ch \
+            CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO \
             GCC_PREPROCESSOR_DEFINITIONS='kNumber_Of_Channels=2 kPlugIn_BundleID=\"audio.existential.BlackHole2ch\" DEVICE_NAME=\"BlackHole 2ch\" DEVICE_MANUFACTURER_NAME=\"Existential Audio Inc.\"'
           sudo mkdir -p /Library/Audio/Plug-Ins/HAL
           sudo cp -R /tmp/blackhole-build/BlackHole.driver /Library/Audio/Plug-Ins/HAL/BlackHole2ch.driver
