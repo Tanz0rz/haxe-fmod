@@ -3,10 +3,13 @@
 # Usage: ./ci/validate-audio.sh <wav-file> [min-duration-seconds]
 # Exits 0 if valid, 1 if validation fails.
 
-set -e
-
 WAV_FILE="$1"
 MIN_DURATION="${2:-10}"
+
+# On Windows, choco installs ffmpeg to a path that Git Bash may not see
+if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" ]]; then
+  export PATH="/c/ProgramData/chocolatey/bin:$PATH"
+fi
 
 if [ -z "$WAV_FILE" ]; then
   echo "Usage: $0 <wav-file> [min-duration-seconds]"
@@ -27,7 +30,7 @@ fi
 echo "OK"
 
 # 2. Check file size
-FILE_SIZE=$(stat -f%z "$WAV_FILE" 2>/dev/null || stat -c%s "$WAV_FILE" 2>/dev/null)
+FILE_SIZE=$(stat -f%z "$WAV_FILE" 2>/dev/null || stat -c%s "$WAV_FILE" 2>/dev/null || wc -c < "$WAV_FILE")
 echo -n "  [2/4] File size > 1KB .............. "
 if [ "$FILE_SIZE" -lt 1000 ]; then
   echo "FAIL (${FILE_SIZE} bytes)"
