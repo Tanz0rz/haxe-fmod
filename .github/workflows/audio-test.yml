@@ -654,19 +654,20 @@ jobs:
         shell: powershell
         run: |
           # Download HashLink release for Windows
-          $HL_VERSION = "1.14"
-          $HL_URL = "https://github.com/HaxeFoundation/hashlink/releases/download/${HL_VERSION}/hashlink-${HL_VERSION}-win64.zip"
-          Write-Host "Downloading HashLink $HL_VERSION from $HL_URL"
+          $HL_URL = "https://github.com/HaxeFoundation/hashlink/releases/download/1.14/hashlink-1.14.0-win.zip"
+          Write-Host "Downloading HashLink from $HL_URL"
           Invoke-WebRequest -Uri $HL_URL -OutFile "C:\hashlink.zip"
           Expand-Archive -Path "C:\hashlink.zip" -DestinationPath "C:\"
-          Rename-Item "C:\hashlink-${HL_VERSION}-win64" "C:\hashlink"
+          # Find the extracted directory (name varies by release)
+          $HL_DIR = Get-ChildItem "C:\" -Directory | Where-Object { $_.Name -like "hashlink*" } | Select-Object -First 1
+          Rename-Item $HL_DIR.FullName "C:\hashlink"
           # Add to PATH for subsequent steps
           echo "C:\hashlink" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           echo "HASHLINK_DIR=C:\hashlink" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           # Verify
           Write-Host "HashLink contents:"
           Get-ChildItem "C:\hashlink" | Format-Table Name, Length
-          try { & "C:\hashlink\hl.exe" --version 2>&1 } catch { Write-Host "HashLink installed" }
+          try { & "C:\hashlink\hl.exe" --version 2>&1 } catch { Write-Host "hl --version not supported" }
 
       - name: Compile hlaxe_fmod.hdll
         shell: cmd
