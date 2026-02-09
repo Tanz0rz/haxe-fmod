@@ -106,6 +106,9 @@ jobs:
             echo "WARNING: No audio file produced"
           fi
 
+      - name: Validate audio
+        run: ./ci/validate-audio.sh /tmp/audio-linux-cpp.wav 10
+
       - name: Upload audio artifact
         uses: actions/upload-artifact@v4
         if: always()
@@ -240,6 +243,9 @@ jobs:
             echo "WARNING: No audio file produced"
           fi
 
+      - name: Validate audio
+        run: ./ci/validate-audio.sh /tmp/audio-linux-hl.wav 10
+
       - name: Upload audio artifact
         uses: actions/upload-artifact@v4
         if: always()
@@ -350,6 +356,9 @@ jobs:
             echo "WARNING: No audio file produced"
           fi
 
+      - name: Validate audio
+        run: ./ci/validate-audio.sh /tmp/audio-html5.wav 10
+
       - name: Upload audio artifact
         uses: actions/upload-artifact@v4
         if: always()
@@ -369,7 +378,7 @@ jobs:
 
       - name: Setup Haxe via Homebrew
         run: |
-          brew install haxe neko
+          brew install haxe neko ffmpeg
           echo "HAXE_STD_PATH=$(brew --prefix)/lib/haxe/std" >> $GITHUB_ENV
 
       - name: Cache haxelib
@@ -425,6 +434,9 @@ jobs:
             echo "WARNING: No audio file produced"
           fi
 
+      - name: Validate audio
+        run: ./ci/validate-audio.sh /tmp/audio-mac-cpp.wav 10
+
       - name: Upload audio artifact
         uses: actions/upload-artifact@v4
         if: always()
@@ -444,7 +456,7 @@ jobs:
 
       - name: Setup Haxe via Homebrew
         run: |
-          brew install haxe neko hashlink
+          brew install haxe neko hashlink ffmpeg
           echo "HAXE_STD_PATH=$(brew --prefix)/lib/haxe/std" >> $GITHUB_ENV
 
       - name: Cache haxelib
@@ -498,6 +510,9 @@ jobs:
           else
             echo "WARNING: No audio file produced"
           fi
+
+      - name: Validate audio
+        run: ./ci/validate-audio.sh /tmp/audio-mac-hl.wav 10
 
       - name: Upload audio artifact
         uses: actions/upload-artifact@v4
