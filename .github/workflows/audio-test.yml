@@ -1,0 +1,519 @@
+name: Build and Audio Test
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+env:
+  HAXE_VERSION: 4.3.6
+
+jobs:
+  # ===========================================================================
+  # Linux C++ Build + Audio Recording
+  # ===========================================================================
+  linux-cpp:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v1
+        with:
+          haxe-version: ${{ env.HAXE_VERSION }}
+
+      - name: Cache haxelib
+        uses: actions/cache@v4
+        with:
+          path: ~/haxelib
+          key: haxelib-cpp-${{ runner.os }}-${{ env.HAXE_VERSION }}
+
+      - name: Install Haxe libraries
+        run: |
+          haxelib setup ~/haxelib
+          haxelib install lime 8.3.0 --always --quiet
+          haxelib install openfl 9.5.0 --always --quiet
+          haxelib install flixel 6.1.2 --always --quiet
+          haxelib install hxcpp 4.3.2 --always --quiet
+          haxelib dev haxefmod $GITHUB_WORKSPACE
+          yes | haxelib run lime setup || true
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pulseaudio xvfb ffmpeg patchelf libgl1-mesa-dev
+
+      - name: Build C++ target
+        run: |
+          ./scripts/build-linux.sh example-project/EZPlatformer
+
+      - name: Patch FMOD libraries
+        run: |
+          BIN_DIR="example-project/EZPlatformer/export/linux64/bin"
+          if [ ! -d "$BIN_DIR" ]; then
+            BIN_DIR="example-project/EZPlatformer/export/linux/bin"
+          fi
+          patchelf --clear-execstack "$BIN_DIR"/libfmod.so* || true
+          patchelf --clear-execstack "$BIN_DIR"/libfmodstudio.so* || true
+
+      - name: Record audio
+        run: |
+          # Start virtual display
+          Xvfb :99 -screen 0 1024x768x24 &
+          export DISPLAY=:99
+          sleep 1
+
+          # Start PulseAudio with virtual sink
+          pulseaudio --start --exit-idle-time=-1 || true
+          pactl load-module module-null-sink sink_name=virtual_speaker sink_properties=device.description=VirtualSpeaker
+          pactl set-default-sink virtual_speaker
+
+          # Find the bin directory
+          BIN_DIR="example-project/EZPlatformer/export/linux64/bin"
+          if [ ! -d "$BIN_DIR" ]; then
+            BIN_DIR="example-project/EZPlatformer/export/linux/bin"
+          fi
+
+          # Start recording from the virtual sink's monitor
+          ffmpeg -f pulse -i virtual_speaker.monitor -t 15 -y /tmp/audio-linux-cpp.wav &
+          RECORD_PID=$!
+
+          # Run the game
+          cd "$BIN_DIR"
+          chmod +x run.sh
+          timeout 15 ./run.sh || true
+          cd -
+
+          # Wait for recording to finish
+          wait $RECORD_PID || true
+
+          # Check if audio was captured
+          if [ -f /tmp/audio-linux-cpp.wav ]; then
+            echo "Audio recorded successfully"
+            ls -la /tmp/audio-linux-cpp.wav
+          else
+            echo "WARNING: No audio file produced"
+          fi
+
+      - name: Upload audio artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: audio-linux-cpp
+          path: /tmp/audio-linux-cpp.wav
+          if-no-files-found: warn
+
+  # ===========================================================================
+  # Linux HashLink Build + Audio Recording
+  # ===========================================================================
+  linux-hl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v1
+        with:
+          haxe-version: ${{ env.HAXE_VERSION }}
+
+      - name: Cache haxelib
+        uses: actions/cache@v4
+        with:
+          path: ~/haxelib
+          key: haxelib-hl-${{ runner.os }}-${{ env.HAXE_VERSION }}
+
+      - name: Install Haxe libraries
+        run: |
+          haxelib setup ~/haxelib
+          haxelib install lime 8.3.0 --always --quiet
+          haxelib install openfl 9.5.0 --always --quiet
+          haxelib install flixel 6.1.2 --always --quiet
+          haxelib dev haxefmod $GITHUB_WORKSPACE
+          yes | haxelib run lime setup || true
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pulseaudio xvfb ffmpeg patchelf \
+            cmake libpng-dev libjpeg-dev libsdl2-dev libgl1-mesa-dev \
+            libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev
+
+      - name: Cache HashLink build
+        uses: actions/cache@v4
+        with:
+          path: /tmp/hashlink-build
+          key: hashlink-${{ runner.os }}-v1.15
+
+      - name: Build and install HashLink
+        run: |
+          if [ ! -f /tmp/hashlink-build/hl ]; then
+            git clone --depth 1 --branch 1.15 https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
+            cd /tmp/hashlink-src
+            mkdir -p build && cd build
+            cmake ..
+            make -j$(nproc)
+            mkdir -p /tmp/hashlink-build
+            cp -r ../build/* /tmp/hashlink-build/
+            cp -r ../src/hl.h /tmp/hashlink-build/
+          fi
+          cd /tmp/hashlink-build
+          sudo make install || sudo cp hl /usr/local/bin/ && sudo cp *.hdll /usr/local/lib/ && sudo cp libhl.so /usr/local/lib/
+          sudo cp /tmp/hashlink-build/hl.h /usr/local/include/ || true
+          sudo ldconfig
+
+      - name: Compile hlaxe_fmod.hdll
+        run: |
+          cd native/hlaxe
+          make
+
+      - name: Build HashLink target
+        run: |
+          ./scripts/build-hl.sh example-project/EZPlatformer
+
+      - name: Patch FMOD libraries
+        run: |
+          BIN_DIR="example-project/EZPlatformer/export/hl/bin"
+          patchelf --clear-execstack "$BIN_DIR"/libfmod.so* || true
+          patchelf --clear-execstack "$BIN_DIR"/libfmodstudio.so* || true
+
+      - name: Record audio
+        run: |
+          # Start virtual display
+          Xvfb :99 -screen 0 1024x768x24 &
+          export DISPLAY=:99
+          sleep 1
+
+          # Start PulseAudio with virtual sink
+          pulseaudio --start --exit-idle-time=-1 || true
+          pactl load-module module-null-sink sink_name=virtual_speaker sink_properties=device.description=VirtualSpeaker
+          pactl set-default-sink virtual_speaker
+
+          BIN_DIR="example-project/EZPlatformer/export/hl/bin"
+
+          # Start recording from the virtual sink's monitor
+          ffmpeg -f pulse -i virtual_speaker.monitor -t 15 -y /tmp/audio-linux-hl.wav &
+          RECORD_PID=$!
+
+          # Run the game
+          cd "$BIN_DIR"
+          chmod +x run.sh
+          timeout 15 ./run.sh || true
+          cd -
+
+          # Wait for recording to finish
+          wait $RECORD_PID || true
+
+          if [ -f /tmp/audio-linux-hl.wav ]; then
+            echo "Audio recorded successfully"
+            ls -la /tmp/audio-linux-hl.wav
+          else
+            echo "WARNING: No audio file produced"
+          fi
+
+      - name: Upload audio artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: audio-linux-hl
+          path: /tmp/audio-linux-hl.wav
+          if-no-files-found: warn
+
+  # ===========================================================================
+  # Linux HTML5 Build + Audio Recording via Browser
+  # ===========================================================================
+  linux-html5:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v1
+        with:
+          haxe-version: ${{ env.HAXE_VERSION }}
+
+      - name: Cache haxelib
+        uses: actions/cache@v4
+        with:
+          path: ~/haxelib
+          key: haxelib-html5-${{ runner.os }}-${{ env.HAXE_VERSION }}
+
+      - name: Install Haxe libraries
+        run: |
+          haxelib setup ~/haxelib
+          haxelib install lime 8.3.0 --always --quiet
+          haxelib install openfl 9.5.0 --always --quiet
+          haxelib install flixel 6.1.2 --always --quiet
+          haxelib dev haxefmod $GITHUB_WORKSPACE
+          yes | haxelib run lime setup || true
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pulseaudio xvfb ffmpeg chromium-browser xdotool
+
+      - name: Build HTML5 target
+        run: |
+          cd example-project/EZPlatformer
+          haxelib run lime build html5
+
+      - name: Record audio
+        run: |
+          # Start virtual display
+          Xvfb :99 -screen 0 1024x768x24 &
+          export DISPLAY=:99
+          sleep 1
+
+          # Start PulseAudio with virtual sink
+          pulseaudio --start --exit-idle-time=-1 || true
+          pactl load-module module-null-sink sink_name=virtual_speaker sink_properties=device.description=VirtualSpeaker
+          pactl set-default-sink virtual_speaker
+
+          # Serve the HTML5 build
+          cd example-project/EZPlatformer/export/html5/bin
+          python3 -m http.server 8080 &
+          HTTP_PID=$!
+          cd -
+          sleep 1
+
+          # Launch Chromium with autoplay enabled
+          chromium-browser \
+            --no-sandbox \
+            --disable-gpu \
+            --autoplay-policy=no-user-gesture-required \
+            --window-size=640,480 \
+            --window-position=0,0 \
+            http://localhost:8080 &
+          CHROME_PID=$!
+          sleep 3
+
+          # Click on the browser window to ensure focus (activates FMOD audio engine)
+          xdotool mousemove 320 240 click 1
+          sleep 1
+
+          # Start recording from the virtual sink's monitor
+          ffmpeg -f pulse -i virtual_speaker.monitor -t 15 -y /tmp/audio-html5.wav &
+          RECORD_PID=$!
+
+          # Wait for recording
+          sleep 16
+
+          # Cleanup
+          kill $CHROME_PID || true
+          kill $HTTP_PID || true
+          wait $RECORD_PID || true
+
+          if [ -f /tmp/audio-html5.wav ]; then
+            echo "Audio recorded successfully"
+            ls -la /tmp/audio-html5.wav
+          else
+            echo "WARNING: No audio file produced"
+          fi
+
+      - name: Upload audio artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: audio-html5
+          path: /tmp/audio-html5.wav
+          if-no-files-found: warn
+
+  # ===========================================================================
+  # macOS C++ Build + Audio Recording (best effort)
+  # ===========================================================================
+  mac-cpp:
+    runs-on: macos-14
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v1
+        with:
+          haxe-version: ${{ env.HAXE_VERSION }}
+
+      - name: Cache haxelib
+        uses: actions/cache@v4
+        with:
+          path: ~/haxelib
+          key: haxelib-cpp-${{ runner.os }}-${{ env.HAXE_VERSION }}
+
+      - name: Install Haxe libraries
+        run: |
+          haxelib setup ~/haxelib
+          haxelib install lime 8.3.0 --always --quiet
+          haxelib install openfl 9.5.0 --always --quiet
+          haxelib install flixel 6.1.2 --always --quiet
+          haxelib install hxcpp 4.3.2 --always --quiet
+          haxelib dev haxefmod $GITHUB_WORKSPACE
+          yes | haxelib run lime setup || true
+
+      - name: Install system dependencies
+        run: |
+          brew install ffmpeg
+          # Attempt to install BlackHole virtual audio device (may fail)
+          brew install --cask blackhole-2ch || echo "BlackHole installation failed - audio recording will be skipped"
+          brew install switchaudio-osx || echo "SwitchAudioSource not available"
+
+      - name: Build C++ target
+        run: |
+          ./scripts/build-mac.sh example-project/EZPlatformer
+
+      - name: Record audio
+        run: |
+          # Find the .app bundle
+          APP_BUNDLE=$(find example-project/EZPlatformer/export -name "*.app" -path "*mac*" 2>/dev/null | head -1)
+          if [ -z "$APP_BUNDLE" ]; then
+            echo "ERROR: No .app bundle found"
+            exit 1
+          fi
+          echo "Found app: $APP_BUNDLE"
+
+          AUDIO_RECORDED=false
+
+          # Try to set up BlackHole for audio capture
+          if command -v SwitchAudioSource &>/dev/null; then
+            # Set BlackHole as default output
+            SwitchAudioSource -s "BlackHole 2ch" -t output 2>/dev/null && {
+              echo "BlackHole set as default output"
+
+              # Start recording from BlackHole input
+              ffmpeg -f avfoundation -i ":BlackHole 2ch" -t 15 -y /tmp/audio-mac-cpp.wav &
+              RECORD_PID=$!
+
+              # Launch the app
+              "$APP_BUNDLE/Contents/MacOS/"* &
+              GAME_PID=$!
+              sleep 15
+
+              kill $GAME_PID || true
+              wait $RECORD_PID || true
+              AUDIO_RECORDED=true
+            } || echo "Failed to set BlackHole as output"
+          fi
+
+          if [ "$AUDIO_RECORDED" = false ]; then
+            echo "Audio recording unavailable - verifying build launches without crashing"
+            # Just verify it starts and doesn't crash immediately
+            "$APP_BUNDLE/Contents/MacOS/"* &
+            GAME_PID=$!
+            sleep 5
+            # Check if still running (didn't crash)
+            if kill -0 $GAME_PID 2>/dev/null; then
+              echo "PASS: Game launched and ran for 5 seconds without crashing"
+              kill $GAME_PID || true
+            else
+              echo "FAIL: Game crashed within 5 seconds"
+              exit 1
+            fi
+            # Create a marker file instead of audio
+            echo "Audio recording was not available on this runner. Build and launch verified." > /tmp/audio-mac-cpp.txt
+          fi
+
+      - name: Upload audio artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: audio-mac-cpp
+          path: |
+            /tmp/audio-mac-cpp.wav
+            /tmp/audio-mac-cpp.txt
+          if-no-files-found: warn
+
+  # ===========================================================================
+  # macOS HashLink Build + Audio Recording (best effort)
+  # ===========================================================================
+  mac-hl:
+    runs-on: macos-14
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v1
+        with:
+          haxe-version: ${{ env.HAXE_VERSION }}
+
+      - name: Cache haxelib
+        uses: actions/cache@v4
+        with:
+          path: ~/haxelib
+          key: haxelib-hl-${{ runner.os }}-${{ env.HAXE_VERSION }}
+
+      - name: Install Haxe libraries
+        run: |
+          haxelib setup ~/haxelib
+          haxelib install lime 8.3.0 --always --quiet
+          haxelib install openfl 9.5.0 --always --quiet
+          haxelib install flixel 6.1.2 --always --quiet
+          haxelib dev haxefmod $GITHUB_WORKSPACE
+          yes | haxelib run lime setup || true
+
+      - name: Install system dependencies
+        run: |
+          brew install hashlink ffmpeg
+          # Attempt to install BlackHole virtual audio device (may fail)
+          brew install --cask blackhole-2ch || echo "BlackHole installation failed - audio recording will be skipped"
+          brew install switchaudio-osx || echo "SwitchAudioSource not available"
+
+      - name: Build HashLink target
+        run: |
+          ./scripts/build-hl-mac.sh
+
+      - name: Record audio
+        run: |
+          # Find the .app bundle
+          APP_BUNDLE=$(find example-project/EZPlatformer/export/hl -name "*.app" 2>/dev/null | head -1)
+          if [ -z "$APP_BUNDLE" ]; then
+            echo "ERROR: No .app bundle found"
+            exit 1
+          fi
+          echo "Found app: $APP_BUNDLE"
+
+          AUDIO_RECORDED=false
+
+          # Try to set up BlackHole for audio capture
+          if command -v SwitchAudioSource &>/dev/null; then
+            SwitchAudioSource -s "BlackHole 2ch" -t output 2>/dev/null && {
+              echo "BlackHole set as default output"
+
+              ffmpeg -f avfoundation -i ":BlackHole 2ch" -t 15 -y /tmp/audio-mac-hl.wav &
+              RECORD_PID=$!
+
+              open "$APP_BUNDLE"
+              sleep 15
+
+              # Kill the app
+              APP_NAME=$(basename "$APP_BUNDLE" .app)
+              pkill -f "$APP_NAME" || true
+              wait $RECORD_PID || true
+              AUDIO_RECORDED=true
+            } || echo "Failed to set BlackHole as output"
+          fi
+
+          if [ "$AUDIO_RECORDED" = false ]; then
+            echo "Audio recording unavailable - verifying build launches without crashing"
+            open "$APP_BUNDLE"
+            sleep 5
+            APP_NAME=$(basename "$APP_BUNDLE" .app)
+            if pgrep -f "$APP_NAME" >/dev/null; then
+              echo "PASS: Game launched and ran for 5 seconds without crashing"
+              pkill -f "$APP_NAME" || true
+            else
+              echo "FAIL: Game crashed within 5 seconds"
+              exit 1
+            fi
+            echo "Audio recording was not available on this runner. Build and launch verified." > /tmp/audio-mac-hl.txt
+          fi
+
+      - name: Upload audio artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: audio-mac-hl
+          path: |
+            /tmp/audio-mac-hl.wav
+            /tmp/audio-mac-hl.txt
+          if-no-files-found: warn
