@@ -13,7 +13,7 @@ echo "Downloading artifacts from run $RUN_ID"
 rm -f "$ARTIFACTS_DIR"/*.wav
 
 # Download all audio artifacts
-for name in audio-linux-cpp audio-linux-hl audio-html5 audio-mac-cpp audio-mac-hl; do
+for name in audio-linux-cpp audio-linux-hl audio-html5 audio-mac-cpp audio-mac-hl audio-windows-cpp audio-windows-hl; do
   echo -n "  $name... "
   if gh run download "$RUN_ID" --name "$name" --dir "$ARTIFACTS_DIR" 2>/dev/null; then
     echo "ok"

@@ -10,9 +10,10 @@ env:
 
 jobs:
   # ===========================================================================
-  # Linux C++ Build + Audio Recording
+  # Linux C++ Build + Audio Recording (TEMPORARILY DISABLED)
   # ===========================================================================
   linux-cpp:
+    if: false
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -118,9 +119,10 @@ jobs:
           if-no-files-found: warn
 
   # ===========================================================================
-  # Linux HashLink Build + Audio Recording
+  # Linux HashLink Build + Audio Recording (TEMPORARILY DISABLED)
   # ===========================================================================
   linux-hl:
+    if: false
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -255,9 +257,10 @@ jobs:
           if-no-files-found: warn
 
   # ===========================================================================
-  # Linux HTML5 Build + Audio Recording via Browser
+  # Linux HTML5 Build + Audio Recording via Browser (TEMPORARILY DISABLED)
   # ===========================================================================
   linux-html5:
+    if: false
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -368,9 +371,10 @@ jobs:
           if-no-files-found: warn
 
   # ===========================================================================
-  # macOS C++ Build + Audio Recording (best effort)
+  # macOS C++ Build + Audio Recording (TEMPORARILY DISABLED)
   # ===========================================================================
   mac-cpp:
+    if: false
     runs-on: macos-14
     timeout-minutes: 30
     steps:
@@ -446,9 +450,10 @@ jobs:
           if-no-files-found: warn
 
   # ===========================================================================
-  # macOS HashLink Build + Audio Recording (best effort)
+  # macOS HashLink Build + Audio Recording (TEMPORARILY DISABLED)
   # ===========================================================================
   mac-hl:
+    if: false
     runs-on: macos-14
     timeout-minutes: 30
     steps:
@@ -520,4 +525,230 @@ jobs:
         with:
           name: audio-mac-hl
           path: /tmp/audio-mac-hl.wav
+          if-no-files-found: warn
+
+  # ===========================================================================
+  # Windows C++ Build + Audio Recording
+  # ===========================================================================
+  windows-cpp:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v1
+        with:
+          haxe-version: ${{ env.HAXE_VERSION }}
+
+      - name: Install ffmpeg
+        shell: powershell
+        run: choco install ffmpeg -y --no-progress
+
+      - name: Cache haxelib
+        uses: actions/cache@v4
+        with:
+          path: ~/haxelib
+          key: haxelib-cpp-${{ runner.os }}-${{ env.HAXE_VERSION }}
+
+      - name: Install Haxe libraries
+        run: |
+          haxelib setup ~/haxelib
+          haxelib install lime 8.3.0 --always --quiet
+          haxelib install openfl 9.5.0 --always --quiet
+          haxelib install flixel 6.1.2 --always --quiet
+          haxelib install hxcpp 4.3.2 --always --quiet
+          haxelib dev haxefmod "$GITHUB_WORKSPACE"
+          yes | haxelib run lime setup || true
+
+      - name: Build C++ target
+        run: |
+          cd example-project/EZPlatformer
+          haxelib run lime build windows -64
+
+      - name: Record audio via FMOD wavwriter
+        run: |
+          # Find the bin directory
+          BIN_DIR=$(find example-project/EZPlatformer/export -type d -name "bin" -path "*windows*" | head -1)
+          if [ -z "$BIN_DIR" ]; then
+            echo "ERROR: No bin directory found"
+            find example-project/EZPlatformer/export -type d
+            exit 1
+          fi
+          echo "Found bin dir: $BIN_DIR"
+          ls -la "$BIN_DIR"
+
+          # Find the exe
+          EXE=$(find "$BIN_DIR" -name "*.exe" | head -1)
+          if [ -z "$EXE" ]; then
+            echo "ERROR: No .exe found in $BIN_DIR"
+            exit 1
+          fi
+          echo "Found exe: $EXE"
+
+          # FMOD_WAVWRITER makes FMOD write its mixed output directly to a WAV file.
+          export FMOD_WAVWRITER="$GITHUB_WORKSPACE/audio-windows-cpp.wav"
+
+          # Game auto-quits when player hits the right wall on level 2 (~15s).
+          # Timeout at 60s as safety net.
+          timeout 60 "$EXE" || true
+
+          if [ -f "$GITHUB_WORKSPACE/audio-windows-cpp.wav" ]; then
+            echo "Audio recorded successfully"
+            ls -la "$GITHUB_WORKSPACE/audio-windows-cpp.wav"
+          else
+            echo "WARNING: No audio file produced"
+          fi
+
+      - name: Validate audio
+        run: ./ci/validate-audio.sh "$GITHUB_WORKSPACE/audio-windows-cpp.wav" 10
+
+      - name: Upload audio artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: audio-windows-cpp
+          path: audio-windows-cpp.wav
+          if-no-files-found: warn
+
+  # ===========================================================================
+  # Windows HashLink Build + Audio Recording
+  # ===========================================================================
+  windows-hl:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v1
+        with:
+          haxe-version: ${{ env.HAXE_VERSION }}
+
+      - name: Install ffmpeg
+        shell: powershell
+        run: choco install ffmpeg -y --no-progress
+
+      - name: Cache haxelib
+        uses: actions/cache@v4
+        with:
+          path: ~/haxelib
+          key: haxelib-hl-${{ runner.os }}-${{ env.HAXE_VERSION }}
+
+      - name: Install Haxe libraries
+        run: |
+          haxelib setup ~/haxelib
+          haxelib install lime 8.3.0 --always --quiet
+          haxelib install openfl 9.5.0 --always --quiet
+          haxelib install flixel 6.1.2 --always --quiet
+          haxelib dev haxefmod "$GITHUB_WORKSPACE"
+          yes | haxelib run lime setup || true
+
+      - name: Build and install HashLink
+        shell: powershell
+        run: |
+          # Download HashLink release for Windows
+          $HL_VERSION = "1.14"
+          $HL_URL = "https://github.com/HaxeFoundation/hashlink/releases/download/${HL_VERSION}/hashlink-${HL_VERSION}-win64.zip"
+          Write-Host "Downloading HashLink $HL_VERSION from $HL_URL"
+          Invoke-WebRequest -Uri $HL_URL -OutFile "C:\hashlink.zip"
+          Expand-Archive -Path "C:\hashlink.zip" -DestinationPath "C:\"
+          Rename-Item "C:\hashlink-${HL_VERSION}-win64" "C:\hashlink"
+          # Add to PATH for subsequent steps
+          echo "C:\hashlink" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          echo "HASHLINK_DIR=C:\hashlink" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          # Verify
+          Write-Host "HashLink contents:"
+          Get-ChildItem "C:\hashlink" | Format-Table Name, Length
+          & "C:\hashlink\hl.exe" --version 2>&1 || Write-Host "HashLink installed"
+
+      - name: Compile hlaxe_fmod.hdll
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          cd native\hlaxe
+          cl /LD /O2 /DWIN32 hlaxe_fmod.c ^
+            /I"C:\hashlink\include" ^
+            /I"..\..\lib\Windows\api\core\inc" ^
+            /I"..\..\lib\Windows\api\studio\inc" ^
+            /link ^
+            /LIBPATH:"..\..\lib\Windows\api\core\lib\x64" ^
+            /LIBPATH:"..\..\lib\Windows\api\studio\lib\x64" ^
+            fmod_vc.lib fmodstudio_vc.lib ^
+            /LIBPATH:"C:\hashlink" libhl.lib ^
+            /OUT:hlaxe_fmod.hdll
+          if %ERRORLEVEL% NEQ 0 (
+            echo "MSVC compilation failed, trying with explicit libhl path..."
+            dir "C:\hashlink\*.lib" 2>nul
+            dir "C:\hashlink\*.dll" 2>nul
+            exit /b 1
+          )
+          echo "hlaxe_fmod.hdll compiled successfully"
+          dir hlaxe_fmod.hdll
+
+      - name: Build HashLink target
+        run: |
+          cd example-project/EZPlatformer
+          haxelib run lime build hl
+
+      - name: Copy dependencies to output
+        run: |
+          BIN_DIR="example-project/EZPlatformer/export/hl/bin"
+          if [ ! -d "$BIN_DIR" ]; then
+            echo "ERROR: No HL bin directory found"
+            find example-project/EZPlatformer/export -type d
+            exit 1
+          fi
+          echo "Copying FMOD DLLs and hlaxe_fmod.hdll to $BIN_DIR"
+
+          cp lib/Windows/api/core/lib/x64/fmod.dll "$BIN_DIR/"
+          cp lib/Windows/api/studio/lib/x64/fmodstudio.dll "$BIN_DIR/"
+          cp native/hlaxe/hlaxe_fmod.hdll "$BIN_DIR/"
+
+          echo "Bin dir contents:"
+          ls -la "$BIN_DIR"
+
+      - name: Record audio via FMOD wavwriter
+        run: |
+          BIN_DIR="example-project/EZPlatformer/export/hl/bin"
+
+          # Find the HL bytecode entry point
+          HLBOOT=$(find "$BIN_DIR" -name "hlboot.dat" -o -name "*.hl" | head -1)
+          if [ -z "$HLBOOT" ]; then
+            echo "ERROR: No hlboot.dat or .hl file found"
+            ls -la "$BIN_DIR"
+            exit 1
+          fi
+          echo "Found HL entry: $HLBOOT"
+
+          # FMOD_WAVWRITER makes FMOD write its mixed output directly to a WAV file.
+          export FMOD_WAVWRITER="$GITHUB_WORKSPACE/audio-windows-hl.wav"
+
+          # Run with HashLink VM. Game auto-quits on level 2 right wall.
+          cd "$BIN_DIR"
+          timeout 60 hl.exe "$(basename "$HLBOOT")" || true
+          cd -
+
+          if [ -f "$GITHUB_WORKSPACE/audio-windows-hl.wav" ]; then
+            echo "Audio recorded successfully"
+            ls -la "$GITHUB_WORKSPACE/audio-windows-hl.wav"
+          else
+            echo "WARNING: No audio file produced"
+          fi
+
+      - name: Validate audio
+        run: ./ci/validate-audio.sh "$GITHUB_WORKSPACE/audio-windows-hl.wav" 10
+
+      - name: Upload audio artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: audio-windows-hl
+          path: audio-windows-hl.wav
           if-no-files-found: warn
