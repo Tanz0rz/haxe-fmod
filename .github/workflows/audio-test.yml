@@ -137,8 +137,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y pulseaudio xvfb ffmpeg patchelf \
-            cmake libpng-dev libjpeg-dev libsdl2-dev libgl1-mesa-dev \
-            libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev
+            libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
+            libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev libz-dev
 
       - name: Build and install HashLink
         run: |
