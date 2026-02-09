@@ -666,7 +666,7 @@ jobs:
           # Verify
           Write-Host "HashLink contents:"
           Get-ChildItem "C:\hashlink" | Format-Table Name, Length
-          & "C:\hashlink\hl.exe" --version 2>&1 || Write-Host "HashLink installed"
+          try { & "C:\hashlink\hl.exe" --version 2>&1 } catch { Write-Host "HashLink installed" }
 
       - name: Compile hlaxe_fmod.hdll
         shell: cmd
