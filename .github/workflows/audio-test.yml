@@ -392,13 +392,25 @@ jobs:
       - name: Install system dependencies
         run: |
           brew install ffmpeg switchaudio-osx
-          # Install BlackHole virtual audio driver from pre-built .pkg
-          curl -L -o /tmp/BlackHole2ch.pkg \
-            "https://github.com/jamesdwilson/BlackHole-with-releases/releases/download/BlackHole2ch.v0.5.0.pkg/BlackHole2ch.v0.5.0.pkg"
-          sudo installer -pkg /tmp/BlackHole2ch.pkg -target / || echo "BlackHole installation failed"
-          # Give CoreAudio a moment to discover the new device
-          sleep 2
-          # List available audio devices for debugging
+
+      - name: Build and install BlackHole from source
+        run: |
+          git clone --depth 1 https://github.com/ExistentialAudio/BlackHole.git /tmp/blackhole-src
+          cd /tmp/blackhole-src
+          xcodebuild \
+            -project BlackHole.xcodeproj \
+            -configuration Release \
+            -target BlackHole \
+            CONFIGURATION_BUILD_DIR=/tmp/blackhole-build \
+            PRODUCT_BUNDLE_IDENTIFIER=audio.existential.BlackHole2ch \
+            GCC_PREPROCESSOR_DEFINITIONS='kNumber_Of_Channels=2 kPlugIn_BundleID=\"audio.existential.BlackHole2ch\" DEVICE_NAME=\"BlackHole 2ch\" DEVICE_MANUFACTURER_NAME=\"Existential Audio Inc.\"'
+          # Install the driver
+          sudo mkdir -p /Library/Audio/Plug-Ins/HAL
+          sudo cp -R /tmp/blackhole-build/BlackHole.driver /Library/Audio/Plug-Ins/HAL/BlackHole2ch.driver
+          # Restart CoreAudio to discover the new device
+          sudo killall -9 coreaudiod || true
+          sleep 3
+          # Verify BlackHole appears
           SwitchAudioSource -a -t output || true
 
       - name: Build C++ target
@@ -407,10 +419,7 @@ jobs:
 
       - name: Create aggregate audio device
         run: |
-          # Create an aggregate device pairing BlackHole with the default output.
-          # The default output provides a stable clock so BlackHole doesn't stall.
           swift scripts/create-aggregate-device.swift 2>&1 | tee /tmp/aggregate-log.txt || true
-          # Verify the aggregate device was created
           SwitchAudioSource -a -t output || true
 
       - name: Record audio
@@ -507,13 +516,22 @@ jobs:
       - name: Install system dependencies
         run: |
           brew install switchaudio-osx
-          # Install BlackHole virtual audio driver from pre-built .pkg
-          curl -L -o /tmp/BlackHole2ch.pkg \
-            "https://github.com/jamesdwilson/BlackHole-with-releases/releases/download/BlackHole2ch.v0.5.0.pkg/BlackHole2ch.v0.5.0.pkg"
-          sudo installer -pkg /tmp/BlackHole2ch.pkg -target / || echo "BlackHole installation failed"
-          # Give CoreAudio a moment to discover the new device
-          sleep 2
-          # List available audio devices for debugging
+
+      - name: Build and install BlackHole from source
+        run: |
+          git clone --depth 1 https://github.com/ExistentialAudio/BlackHole.git /tmp/blackhole-src
+          cd /tmp/blackhole-src
+          xcodebuild \
+            -project BlackHole.xcodeproj \
+            -configuration Release \
+            -target BlackHole \
+            CONFIGURATION_BUILD_DIR=/tmp/blackhole-build \
+            PRODUCT_BUNDLE_IDENTIFIER=audio.existential.BlackHole2ch \
+            GCC_PREPROCESSOR_DEFINITIONS='kNumber_Of_Channels=2 kPlugIn_BundleID=\"audio.existential.BlackHole2ch\" DEVICE_NAME=\"BlackHole 2ch\" DEVICE_MANUFACTURER_NAME=\"Existential Audio Inc.\"'
+          sudo mkdir -p /Library/Audio/Plug-Ins/HAL
+          sudo cp -R /tmp/blackhole-build/BlackHole.driver /Library/Audio/Plug-Ins/HAL/BlackHole2ch.driver
+          sudo killall -9 coreaudiod || true
+          sleep 3
           SwitchAudioSource -a -t output || true
 
       - name: Build HashLink target
