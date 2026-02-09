@@ -6,7 +6,7 @@
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ARTIFACTS_DIR="$SCRIPT_DIR/artifacts"
 
-RUN_ID="${1:-$(gh run list --limit 1 --json databaseId --jq '.[0].databaseId')}"
+RUN_ID="${1:-$(gh run list --status completed --limit 1 --json databaseId --jq '.[0].databaseId')}"
 echo "Downloading artifacts from run $RUN_ID"
 
 # Clean previous artifacts
