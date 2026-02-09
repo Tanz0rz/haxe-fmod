@@ -140,26 +140,14 @@ jobs:
             cmake libpng-dev libjpeg-dev libsdl2-dev libgl1-mesa-dev \
             libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev
 
-      - name: Cache HashLink build
-        uses: actions/cache@v4
-        with:
-          path: /tmp/hashlink-build
-          key: hashlink-${{ runner.os }}-v1.15
-
       - name: Build and install HashLink
         run: |
-          if [ ! -f /tmp/hashlink-build/bin/hl ]; then
-            rm -rf /tmp/hashlink-src /tmp/hashlink-build
-            git clone --depth 1 --branch 1.15 https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
-            cd /tmp/hashlink-src
-            make -j$(nproc) PREFIX=/tmp/hashlink-build
-            make install PREFIX=/tmp/hashlink-build
-          fi
-          sudo cp /tmp/hashlink-build/bin/hl /usr/local/bin/
-          sudo cp /tmp/hashlink-build/lib/libhl.so* /usr/local/lib/
-          sudo cp /tmp/hashlink-build/lib/*.hdll /usr/local/lib/
-          sudo cp -r /tmp/hashlink-build/include/* /usr/local/include/
+          git clone --depth 1 --branch 1.15 https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
+          cd /tmp/hashlink-src
+          make -j$(nproc)
+          sudo make install
           sudo ldconfig
+          hl --version || echo "HashLink installed"
 
       - name: Compile hlaxe_fmod.hdll
         run: |
