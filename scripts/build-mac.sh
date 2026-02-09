@@ -39,4 +39,4 @@ if [ -n "$EXE" ]; then
     install_name_tool -add_rpath @executable_path "$EXE" 2>/dev/null || true
 fi
 
-echo "Build complete! Run with: open $APP_BUNDLE"
+echo "Build complete! Run with: open $(pwd)/$APP_BUNDLE"

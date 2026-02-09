@@ -6,7 +6,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
-HLAXE_DIR="$ROOT_DIR/hlaxe"
+HLAXE_DIR="$ROOT_DIR/native/hlaxe"
 FMOD_CORE="$ROOT_DIR/lib/Linux/api/core"
 FMOD_STUDIO="$ROOT_DIR/lib/Linux/api/studio"
 

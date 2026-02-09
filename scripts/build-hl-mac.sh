@@ -49,4 +49,4 @@ cp "$FMOD_CORE/lib/libfmod.dylib" "$APP_MACOS/"
 cp "$FMOD_STUDIO/inc/lib/libfmodstudio.dylib" "$APP_MACOS/"
 
 echo "=== Done ==="
-echo "Run with: open $APP_BUNDLE"
+echo "Run with: open $(pwd)/$APP_BUNDLE"
