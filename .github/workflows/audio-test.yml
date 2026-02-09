@@ -42,7 +42,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y pulseaudio xvfb ffmpeg patchelf libgl1-mesa-dev
+          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg patchelf libgl1-mesa-dev
 
       - name: Build C++ target
         run: |
@@ -68,6 +68,16 @@ jobs:
           pulseaudio --start --exit-idle-time=-1 || true
           pactl load-module module-null-sink sink_name=virtual_speaker sink_properties=device.description=VirtualSpeaker
           pactl set-default-sink virtual_speaker
+
+          # Configure ALSA to route through PulseAudio (FMOD uses ALSA by default)
+          cat > ~/.asoundrc << 'ALSA_EOF'
+          pcm.!default {
+            type pulse
+          }
+          ctl.!default {
+            type pulse
+          }
+          ALSA_EOF
 
           # Find the bin directory
           BIN_DIR="example-project/EZPlatformer/export/linux64/bin"
@@ -136,7 +146,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y pulseaudio xvfb ffmpeg patchelf \
+          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg patchelf \
             libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
             libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev libz-dev
 
@@ -189,6 +199,16 @@ jobs:
           pulseaudio --start --exit-idle-time=-1 || true
           pactl load-module module-null-sink sink_name=virtual_speaker sink_properties=device.description=VirtualSpeaker
           pactl set-default-sink virtual_speaker
+
+          # Configure ALSA to route through PulseAudio (FMOD uses ALSA by default)
+          cat > ~/.asoundrc << 'ALSA_EOF'
+          pcm.!default {
+            type pulse
+          }
+          ctl.!default {
+            type pulse
+          }
+          ALSA_EOF
 
           BIN_DIR="example-project/EZPlatformer/export/hl/bin"
 
@@ -252,7 +272,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y pulseaudio xvfb ffmpeg chromium-browser xdotool
+          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg chromium-browser xdotool
 
       - name: Build HTML5 target
         run: |
@@ -270,6 +290,16 @@ jobs:
           pulseaudio --start --exit-idle-time=-1 || true
           pactl load-module module-null-sink sink_name=virtual_speaker sink_properties=device.description=VirtualSpeaker
           pactl set-default-sink virtual_speaker
+
+          # Configure ALSA to route through PulseAudio
+          cat > ~/.asoundrc << 'ALSA_EOF'
+          pcm.!default {
+            type pulse
+          }
+          ctl.!default {
+            type pulse
+          }
+          ALSA_EOF
 
           # Serve the HTML5 build
           cd example-project/EZPlatformer/export/html5/bin
