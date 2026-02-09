@@ -389,48 +389,11 @@ jobs:
           haxelib dev haxefmod $GITHUB_WORKSPACE
           yes | haxelib run lime setup || true
 
-      - name: Install system dependencies
-        run: |
-          brew install ffmpeg switchaudio-osx
-
-      - name: Build and install BlackHole from source
-        run: |
-          git clone --depth 1 https://github.com/ExistentialAudio/BlackHole.git /tmp/blackhole-src
-          cd /tmp/blackhole-src
-          # Use a prefix header to define config macros - avoids all shell/xcconfig quoting issues
-          cat > /tmp/blackhole-config.h << 'HEOF'
-          #define kNumber_Of_Channels 2
-          #define kPlugIn_BundleID "audio.existential.BlackHole2ch"
-          #define DEVICE_NAME "BlackHole 2ch"
-          #define DEVICE_MANUFACTURER_NAME "Existential Audio Inc."
-          HEOF
-          xcodebuild \
-            -project BlackHole.xcodeproj \
-            -configuration Release \
-            -target BlackHole \
-            CONFIGURATION_BUILD_DIR=/tmp/blackhole-build \
-            PRODUCT_BUNDLE_IDENTIFIER=audio.existential.BlackHole2ch \
-            CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO \
-            GCC_PREFIX_HEADER=/tmp/blackhole-config.h
-          # Install the driver
-          sudo mkdir -p /Library/Audio/Plug-Ins/HAL
-          sudo cp -R /tmp/blackhole-build/BlackHole.driver /Library/Audio/Plug-Ins/HAL/BlackHole2ch.driver
-          # Restart CoreAudio to discover the new device
-          sudo killall -9 coreaudiod || true
-          sleep 3
-          # Verify BlackHole appears
-          SwitchAudioSource -a -t output || true
-
       - name: Build C++ target
         run: |
           ./scripts/build-mac.sh example-project/EZPlatformer
 
-      - name: Create aggregate audio device
-        run: |
-          swift scripts/create-aggregate-device.swift 2>&1 | tee /tmp/aggregate-log.txt || true
-          SwitchAudioSource -a -t output || true
-
-      - name: Record audio
+      - name: Record audio via FMOD wavwriter
         run: |
           # Find the .app bundle
           APP_BUNDLE=$(find example-project/EZPlatformer/export -name "*.app" -path "*mac*" 2>/dev/null | head -1)
@@ -440,45 +403,22 @@ jobs:
           fi
           echo "Found app: $APP_BUNDLE"
 
-          AUDIO_RECORDED=false
+          # FMOD_WAVWRITER makes FMOD write its mixed output directly to a WAV file.
+          # This bypasses CoreAudio entirely - no virtual audio device needed.
+          export FMOD_WAVWRITER=/tmp/audio-mac-cpp.wav
 
-          # The aggregate device (FMOD+BlackHole) is now the default output.
-          # FMOD will output to it, and audio flows to both built-in speakers and BlackHole.
-          # We record from BlackHole's input tap.
-          if SwitchAudioSource -s "FMOD+BlackHole" -t output 2>/dev/null || \
-             SwitchAudioSource -s "BlackHole 2ch" -t output 2>/dev/null; then
-            echo "Audio output set for recording"
+          # Launch the app and let it run for 30 seconds
+          "$APP_BUNDLE/Contents/MacOS/"* &
+          GAME_PID=$!
+          sleep 30
+          kill $GAME_PID || true
+          wait $GAME_PID 2>/dev/null || true
 
-            # Start recording from BlackHole input
-            ffmpeg -f avfoundation -i ":BlackHole 2ch" -t 30 -y /tmp/audio-mac-cpp.wav &
-            RECORD_PID=$!
-            sleep 1
-
-            # Launch the app
-            "$APP_BUNDLE/Contents/MacOS/"* &
-            GAME_PID=$!
-            sleep 30
-
-            kill $GAME_PID || true
-            wait $RECORD_PID || true
-            AUDIO_RECORDED=true
+          if [ -f /tmp/audio-mac-cpp.wav ]; then
+            echo "Audio recorded successfully"
+            ls -la /tmp/audio-mac-cpp.wav
           else
-            echo "BlackHole not available as output device"
-          fi
-
-          if [ "$AUDIO_RECORDED" = false ]; then
-            echo "Audio recording unavailable - verifying build launches without crashing"
-            "$APP_BUNDLE/Contents/MacOS/"* &
-            GAME_PID=$!
-            sleep 5
-            if kill -0 $GAME_PID 2>/dev/null; then
-              echo "PASS: Game launched and ran for 5 seconds without crashing"
-              kill $GAME_PID || true
-            else
-              echo "FAIL: Game crashed within 5 seconds"
-              exit 1
-            fi
-            echo "Audio recording was not available on this runner. Build and launch verified." > /tmp/audio-mac-cpp.txt
+            echo "WARNING: No audio file produced"
           fi
 
       - name: Upload audio artifact
@@ -486,9 +426,7 @@ jobs:
         if: always()
         with:
           name: audio-mac-cpp
-          path: |
-            /tmp/audio-mac-cpp.wav
-            /tmp/audio-mac-cpp.txt
+          path: /tmp/audio-mac-cpp.wav
           if-no-files-found: warn
 
   # ===========================================================================
@@ -502,7 +440,7 @@ jobs:
 
       - name: Setup Haxe via Homebrew
         run: |
-          brew install haxe neko hashlink ffmpeg
+          brew install haxe neko hashlink
           echo "HAXE_STD_PATH=$(brew --prefix)/lib/haxe/std" >> $GITHUB_ENV
 
       - name: Cache haxelib
@@ -521,45 +459,11 @@ jobs:
           haxelib dev haxefmod $GITHUB_WORKSPACE
           yes | haxelib run lime setup || true
 
-      - name: Install system dependencies
-        run: |
-          brew install switchaudio-osx
-
-      - name: Build and install BlackHole from source
-        run: |
-          git clone --depth 1 https://github.com/ExistentialAudio/BlackHole.git /tmp/blackhole-src
-          cd /tmp/blackhole-src
-          # Use a prefix header to define config macros - avoids all shell/xcconfig quoting issues
-          cat > /tmp/blackhole-config.h << 'HEOF'
-          #define kNumber_Of_Channels 2
-          #define kPlugIn_BundleID "audio.existential.BlackHole2ch"
-          #define DEVICE_NAME "BlackHole 2ch"
-          #define DEVICE_MANUFACTURER_NAME "Existential Audio Inc."
-          HEOF
-          xcodebuild \
-            -project BlackHole.xcodeproj \
-            -configuration Release \
-            -target BlackHole \
-            CONFIGURATION_BUILD_DIR=/tmp/blackhole-build \
-            PRODUCT_BUNDLE_IDENTIFIER=audio.existential.BlackHole2ch \
-            CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO \
-            GCC_PREFIX_HEADER=/tmp/blackhole-config.h
-          sudo mkdir -p /Library/Audio/Plug-Ins/HAL
-          sudo cp -R /tmp/blackhole-build/BlackHole.driver /Library/Audio/Plug-Ins/HAL/BlackHole2ch.driver
-          sudo killall -9 coreaudiod || true
-          sleep 3
-          SwitchAudioSource -a -t output || true
-
       - name: Build HashLink target
         run: |
           ./scripts/build-hl-mac.sh
 
-      - name: Create aggregate audio device
-        run: |
-          swift scripts/create-aggregate-device.swift 2>&1 | tee /tmp/aggregate-log.txt || true
-          SwitchAudioSource -a -t output || true
-
-      - name: Record audio
+      - name: Record audio via FMOD wavwriter
         run: |
           # Find the .app bundle
           APP_BUNDLE=$(find example-project/EZPlatformer/export/hl -name "*.app" 2>/dev/null | head -1)
@@ -569,41 +473,22 @@ jobs:
           fi
           echo "Found app: $APP_BUNDLE"
 
-          AUDIO_RECORDED=false
+          # FMOD_WAVWRITER makes FMOD write its mixed output directly to a WAV file.
+          # This bypasses CoreAudio entirely - no virtual audio device needed.
+          export FMOD_WAVWRITER=/tmp/audio-mac-hl.wav
 
-          # Use the aggregate device (FMOD+BlackHole) as default output for stable clocking
-          if SwitchAudioSource -s "FMOD+BlackHole" -t output 2>/dev/null || \
-             SwitchAudioSource -s "BlackHole 2ch" -t output 2>/dev/null; then
-            echo "Audio output set for recording"
+          open "$APP_BUNDLE"
+          sleep 30
 
-            ffmpeg -f avfoundation -i ":BlackHole 2ch" -t 30 -y /tmp/audio-mac-hl.wav &
-            RECORD_PID=$!
-            sleep 1
+          APP_NAME=$(basename "$APP_BUNDLE" .app)
+          pkill -f "$APP_NAME" || true
+          sleep 2
 
-            open "$APP_BUNDLE"
-            sleep 30
-
-            APP_NAME=$(basename "$APP_BUNDLE" .app)
-            pkill -f "$APP_NAME" || true
-            wait $RECORD_PID || true
-            AUDIO_RECORDED=true
+          if [ -f /tmp/audio-mac-hl.wav ]; then
+            echo "Audio recorded successfully"
+            ls -la /tmp/audio-mac-hl.wav
           else
-            echo "BlackHole not available as output device"
-          fi
-
-          if [ "$AUDIO_RECORDED" = false ]; then
-            echo "Audio recording unavailable - verifying build launches without crashing"
-            open "$APP_BUNDLE"
-            sleep 5
-            APP_NAME=$(basename "$APP_BUNDLE" .app)
-            if pgrep -f "$APP_NAME" >/dev/null; then
-              echo "PASS: Game launched and ran for 5 seconds without crashing"
-              pkill -f "$APP_NAME" || true
-            else
-              echo "FAIL: Game crashed within 5 seconds"
-              exit 1
-            fi
-            echo "Audio recording was not available on this runner. Build and launch verified." > /tmp/audio-mac-hl.txt
+            echo "WARNING: No audio file produced"
           fi
 
       - name: Upload audio artifact
@@ -611,7 +496,5 @@ jobs:
         if: always()
         with:
           name: audio-mac-hl
-          path: |
-            /tmp/audio-mac-hl.wav
-            /tmp/audio-mac-hl.txt
+          path: /tmp/audio-mac-hl.wav
           if-no-files-found: warn
