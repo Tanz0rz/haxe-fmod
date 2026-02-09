@@ -176,6 +176,7 @@ jobs:
       - name: Compile hlaxe_fmod.hdll
         run: |
           cd native/hlaxe
+          make clean
           make
 
       - name: Build HashLink target
@@ -212,13 +213,20 @@ jobs:
 
           BIN_DIR="example-project/EZPlatformer/export/hl/bin"
 
+          # Ensure .so symlinks exist (build copies .so.11 but HL may need .so)
+          cd "$BIN_DIR"
+          ln -sf libfmod.so.11 libfmod.so 2>/dev/null || true
+          ln -sf libfmodstudio.so.11 libfmodstudio.so 2>/dev/null || true
+          cd -
+
           # Start recording from the virtual sink's monitor
           ffmpeg -f pulse -i virtual_speaker.monitor -t 15 -y /tmp/audio-linux-hl.wav &
           RECORD_PID=$!
 
-          # Run the game
+          # Run the game with library paths set
           cd "$BIN_DIR"
           chmod +x run.sh
+          export LD_LIBRARY_PATH="$(pwd):$LD_LIBRARY_PATH"
           timeout 15 ./run.sh || true
           cd -
 
