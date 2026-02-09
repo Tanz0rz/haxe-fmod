@@ -405,6 +405,14 @@ jobs:
         run: |
           ./scripts/build-mac.sh example-project/EZPlatformer
 
+      - name: Create aggregate audio device
+        run: |
+          # Create an aggregate device pairing BlackHole with the default output.
+          # The default output provides a stable clock so BlackHole doesn't stall.
+          swift scripts/create-aggregate-device.swift 2>&1 | tee /tmp/aggregate-log.txt || true
+          # Verify the aggregate device was created
+          SwitchAudioSource -a -t output || true
+
       - name: Record audio
         run: |
           # Find the .app bundle
@@ -417,13 +425,17 @@ jobs:
 
           AUDIO_RECORDED=false
 
-          # Try to set up BlackHole for audio capture
-          if SwitchAudioSource -s "BlackHole 2ch" -t output 2>/dev/null; then
-            echo "BlackHole set as default output"
+          # The aggregate device (FMOD+BlackHole) is now the default output.
+          # FMOD will output to it, and audio flows to both built-in speakers and BlackHole.
+          # We record from BlackHole's input tap.
+          if SwitchAudioSource -s "FMOD+BlackHole" -t output 2>/dev/null || \
+             SwitchAudioSource -s "BlackHole 2ch" -t output 2>/dev/null; then
+            echo "Audio output set for recording"
 
             # Start recording from BlackHole input
             ffmpeg -f avfoundation -i ":BlackHole 2ch" -t 30 -y /tmp/audio-mac-cpp.wav &
             RECORD_PID=$!
+            sleep 1
 
             # Launch the app
             "$APP_BUNDLE/Contents/MacOS/"* &
@@ -508,6 +520,11 @@ jobs:
         run: |
           ./scripts/build-hl-mac.sh
 
+      - name: Create aggregate audio device
+        run: |
+          swift scripts/create-aggregate-device.swift 2>&1 | tee /tmp/aggregate-log.txt || true
+          SwitchAudioSource -a -t output || true
+
       - name: Record audio
         run: |
           # Find the .app bundle
@@ -520,12 +537,14 @@ jobs:
 
           AUDIO_RECORDED=false
 
-          # Try to set up BlackHole for audio capture
-          if SwitchAudioSource -s "BlackHole 2ch" -t output 2>/dev/null; then
-            echo "BlackHole set as default output"
+          # Use the aggregate device (FMOD+BlackHole) as default output for stable clocking
+          if SwitchAudioSource -s "FMOD+BlackHole" -t output 2>/dev/null || \
+             SwitchAudioSource -s "BlackHole 2ch" -t output 2>/dev/null; then
+            echo "Audio output set for recording"
 
             ffmpeg -f avfoundation -i ":BlackHole 2ch" -t 30 -y /tmp/audio-mac-hl.wav &
             RECORD_PID=$!
+            sleep 1
 
             open "$APP_BUNDLE"
             sleep 30
