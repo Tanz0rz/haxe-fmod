@@ -519,7 +519,7 @@ jobs:
 
       - name: Build HashLink target
         run: |
-          ./scripts/build-hl-mac.sh
+          ./scripts/build-hl-mac.sh example-project/EZPlatformer
 
       - name: Validate build output
         run: |

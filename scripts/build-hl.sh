@@ -8,6 +8,13 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 HAXEFMOD_DIR="$(dirname "$SCRIPT_DIR")"
 PROJECT_DIR="${1:-.}"
 
+# Compile hlaxe_fmod.hdll if not already built
+HDLL="$HAXEFMOD_DIR/native/hlaxe/hlaxe_fmod.hdll"
+if [ ! -f "$HDLL" ]; then
+    echo "Compiling hlaxe_fmod.hdll..."
+    make -C "$HAXEFMOD_DIR/native/hlaxe"
+fi
+
 cd "$PROJECT_DIR"
 
 echo "Building HashLink target..."
@@ -29,6 +36,11 @@ else
     cp "$HAXEFMOD_DIR/lib/Linux/api/core/lib/x86_64/libfmod.so.11" "$BIN_DIR/"
     cp "$HAXEFMOD_DIR/lib/Linux/api/studio/lib/x86_64/libfmodstudio.so" "$BIN_DIR/"
     cp "$HAXEFMOD_DIR/lib/Linux/api/studio/lib/x86_64/libfmodstudio.so.11" "$BIN_DIR/"
+    # Create unversioned symlinks (HashLink dlopen needs .so, not .so.11)
+    cd "$BIN_DIR"
+    ln -sf libfmod.so.11 libfmod.so
+    ln -sf libfmodstudio.so.11 libfmodstudio.so
+    cd -
 fi
 
 echo "Copying hlaxe_fmod.hdll..."

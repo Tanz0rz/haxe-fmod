@@ -1,7 +1,7 @@
 #!/bin/bash
 # Build script for HashLink on macOS
 # NOTE: Currently targets ARM64 (Apple Silicon) Macs only. Will not work on Intel Macs.
-# Run from the haxe-fmod root directory
+# Usage: ./scripts/build-hl-mac.sh [project-dir]
 
 set -e
 
@@ -13,6 +13,7 @@ fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
+PROJECT_DIR="$(cd "${1:-.}" && pwd)"
 HLAXE_DIR="$ROOT_DIR/native/hlaxe"
 FMOD_CORE="$ROOT_DIR/lib/Mac/api/core"
 FMOD_STUDIO="$ROOT_DIR/lib/Mac/api/studio"
@@ -31,7 +32,7 @@ cc -dynamiclib -arch x86_64 -O2 -o hlaxe_fmod.hdll hlaxe_fmod.c \
     -install_name @executable_path/hlaxe_fmod.hdll
 
 echo "=== Building HL target ==="
-cd "$ROOT_DIR/example-project/EZPlatformer"
+cd "$PROJECT_DIR"
 haxelib run lime build hl
 
 # Find the .app bundle
@@ -49,4 +50,4 @@ cp "$FMOD_CORE/lib/libfmod.dylib" "$APP_MACOS/"
 cp "$FMOD_STUDIO/inc/lib/libfmodstudio.dylib" "$APP_MACOS/"
 
 echo "=== Done ==="
-echo "Run with: open $(pwd)/$APP_BUNDLE"
+echo "Run with: open $PROJECT_DIR/$APP_BUNDLE"
