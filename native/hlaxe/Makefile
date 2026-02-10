@@ -1,6 +1,8 @@
 # HashLink FMOD native library Makefile
 
-HAXEFMOD_ROOT := ../..
+ifndef FMOD_SDK
+$(error FMOD_SDK not set. Run: haxelib run haxefmod doctor)
+endif
 
 UNAME_S := $(shell uname -s)
 UNAME_M := $(shell uname -m)
@@ -17,7 +19,7 @@ SOURCE := hlaxe_fmod.c
 
 ifeq ($(UNAME_S),Darwin)
   # macOS (ARM64/Apple Silicon only)
-  FMOD_DIR := $(HAXEFMOD_ROOT)/lib/Mac
+  FMOD_DIR := $(FMOD_SDK)/mac
   CC := cc
   CFLAGS := -dynamiclib -arch x86_64 -install_name @executable_path/$(TARGET)
   HL_INCLUDE := $(shell brew --prefix hashlink)/include
@@ -25,11 +27,11 @@ ifeq ($(UNAME_S),Darwin)
               -I$(FMOD_DIR)/api/core/inc \
               -I$(FMOD_DIR)/api/studio/inc
   LIBDIRS := -L$(FMOD_DIR)/api/core/lib \
-             -L$(FMOD_DIR)/api/studio/inc/lib
+             -L$(FMOD_DIR)/api/studio/lib
   LIBS := -lfmod -lfmodstudio -lpthread
 else
   # Linux
-  FMOD_DIR := $(HAXEFMOD_ROOT)/lib/Linux
+  FMOD_DIR := $(FMOD_SDK)/linux
   CC := gcc
   CFLAGS := -shared -fPIC
   INCLUDES := -I/usr/include \
