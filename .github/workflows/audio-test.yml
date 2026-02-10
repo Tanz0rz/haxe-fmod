@@ -57,6 +57,15 @@ jobs:
           patchelf --clear-execstack "$BIN_DIR"/libfmod.so* || true
           patchelf --clear-execstack "$BIN_DIR"/libfmodstudio.so* || true
 
+      - name: Validate build output
+        run: |
+          BIN_DIR="example-project/EZPlatformer/export/linux64/bin"
+          if [ ! -d "$BIN_DIR" ]; then
+            BIN_DIR="example-project/EZPlatformer/export/linux/bin"
+          fi
+          echo "BIN_DIR=$BIN_DIR" >> "$GITHUB_ENV"
+          ./ci/validate-build.sh "$BIN_DIR" cpp
+
       - name: Record audio
         run: |
           # Start virtual display
@@ -92,8 +101,12 @@ jobs:
           # Run the game
           cd "$BIN_DIR"
           chmod +x run.sh
-          timeout 30 ./run.sh || true
+          timeout 30 ./run.sh > /tmp/game-linux-cpp.log 2>&1 || true
           cd -
+
+          echo "=== Game log ==="
+          cat /tmp/game-linux-cpp.log || true
+          echo "=== End game log ==="
 
           # Wait for recording to finish
           wait $RECORD_PID || true
@@ -109,12 +122,17 @@ jobs:
       - name: Validate audio
         run: ./ci/validate-audio.sh /tmp/audio-linux-cpp.wav 10
 
-      - name: Upload audio artifact
+      - name: Validate game log
+        run: ./ci/validate-game-log.sh /tmp/game-linux-cpp.log
+
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: audio-linux-cpp
-          path: /tmp/audio-linux-cpp.wav
+          path: |
+            /tmp/audio-linux-cpp.wav
+            /tmp/game-linux-cpp.log
           if-no-files-found: warn
 
   # ===========================================================================
@@ -192,6 +210,12 @@ jobs:
           patchelf --clear-execstack "$BIN_DIR"/libfmod.so* || true
           patchelf --clear-execstack "$BIN_DIR"/libfmodstudio.so* || true
 
+      - name: Validate build output
+        run: |
+          BIN_DIR="example-project/EZPlatformer/export/hl/bin"
+          echo "BIN_DIR=$BIN_DIR" >> "$GITHUB_ENV"
+          ./ci/validate-build.sh "$BIN_DIR" hl
+
       - name: Record audio
         run: |
           # Start virtual display
@@ -230,8 +254,12 @@ jobs:
           cd "$BIN_DIR"
           chmod +x run.sh
           export LD_LIBRARY_PATH="$(pwd):$LD_LIBRARY_PATH"
-          timeout 30 ./run.sh || true
+          timeout 30 ./run.sh > /tmp/game-linux-hl.log 2>&1 || true
           cd -
+
+          echo "=== Game log ==="
+          cat /tmp/game-linux-hl.log || true
+          echo "=== End game log ==="
 
           # Wait for recording to finish
           wait $RECORD_PID || true
@@ -246,12 +274,17 @@ jobs:
       - name: Validate audio
         run: ./ci/validate-audio.sh /tmp/audio-linux-hl.wav 10
 
-      - name: Upload audio artifact
+      - name: Validate game log
+        run: ./ci/validate-game-log.sh /tmp/game-linux-hl.log
+
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: audio-linux-hl
-          path: /tmp/audio-linux-hl.wav
+          path: |
+            /tmp/audio-linux-hl.wav
+            /tmp/game-linux-hl.log
           if-no-files-found: warn
 
   # ===========================================================================
@@ -368,7 +401,7 @@ jobs:
           if-no-files-found: warn
 
   # ===========================================================================
-  # macOS C++ Build + Audio Recording (best effort)
+  # macOS C++ Build + Audio Recording
   # ===========================================================================
   mac-cpp:
     runs-on: macos-14
@@ -402,14 +435,14 @@ jobs:
         run: |
           ./scripts/build-mac.sh example-project/EZPlatformer
 
+      - name: Validate build output
+        run: |
+          APP_BUNDLE=$(find example-project/EZPlatformer/export -name "*.app" -path "*mac*" 2>/dev/null | head -1)
+          echo "APP_BUNDLE=$APP_BUNDLE" >> "$GITHUB_ENV"
+          ./ci/validate-build.sh "$APP_BUNDLE/Contents/MacOS" cpp
+
       - name: Record audio via FMOD wavwriter
         run: |
-          # Find the .app bundle
-          APP_BUNDLE=$(find example-project/EZPlatformer/export -name "*.app" -path "*mac*" 2>/dev/null | head -1)
-          if [ -z "$APP_BUNDLE" ]; then
-            echo "ERROR: No .app bundle found"
-            exit 1
-          fi
           echo "Found app: $APP_BUNDLE"
 
           # FMOD_WAVWRITER makes FMOD write its mixed output directly to a WAV file.
@@ -418,7 +451,7 @@ jobs:
 
           # Game auto-quits when player hits the right wall on level 2 (~15s).
           # Timeout at 60s as safety net (macOS lacks GNU timeout).
-          "$APP_BUNDLE/Contents/MacOS/"* &
+          "$APP_BUNDLE/Contents/MacOS/"* > /tmp/game-mac-cpp.log 2>&1 &
           GAME_PID=$!
           for i in $(seq 60); do
             kill -0 $GAME_PID 2>/dev/null || break
@@ -426,6 +459,10 @@ jobs:
           done
           kill $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
+
+          echo "=== Game log ==="
+          cat /tmp/game-mac-cpp.log || true
+          echo "=== End game log ==="
 
           if [ -f /tmp/audio-mac-cpp.wav ]; then
             echo "Audio recorded successfully"
@@ -437,16 +474,21 @@ jobs:
       - name: Validate audio
         run: ./ci/validate-audio.sh /tmp/audio-mac-cpp.wav 10
 
-      - name: Upload audio artifact
+      - name: Validate game log
+        run: ./ci/validate-game-log.sh /tmp/game-mac-cpp.log
+
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: audio-mac-cpp
-          path: /tmp/audio-mac-cpp.wav
+          path: |
+            /tmp/audio-mac-cpp.wav
+            /tmp/game-mac-cpp.log
           if-no-files-found: warn
 
   # ===========================================================================
-  # macOS HashLink Build + Audio Recording (best effort)
+  # macOS HashLink Build + Audio Recording
   # ===========================================================================
   mac-hl:
     runs-on: macos-14
@@ -479,14 +521,14 @@ jobs:
         run: |
           ./scripts/build-hl-mac.sh
 
+      - name: Validate build output
+        run: |
+          APP_BUNDLE=$(find example-project/EZPlatformer/export/hl -name "*.app" 2>/dev/null | head -1)
+          echo "APP_BUNDLE=$APP_BUNDLE" >> "$GITHUB_ENV"
+          ./ci/validate-build.sh "$APP_BUNDLE/Contents/MacOS" hl
+
       - name: Record audio via FMOD wavwriter
         run: |
-          # Find the .app bundle
-          APP_BUNDLE=$(find example-project/EZPlatformer/export/hl -name "*.app" 2>/dev/null | head -1)
-          if [ -z "$APP_BUNDLE" ]; then
-            echo "ERROR: No .app bundle found"
-            exit 1
-          fi
           echo "Found app: $APP_BUNDLE"
 
           # FMOD_WAVWRITER makes FMOD write its mixed output directly to a WAV file.
@@ -495,7 +537,7 @@ jobs:
 
           # Game auto-quits when player hits the right wall on level 2 (~15s).
           # Timeout at 60s as safety net (macOS lacks GNU timeout).
-          "$APP_BUNDLE/Contents/MacOS/"* &
+          "$APP_BUNDLE/Contents/MacOS/"* > /tmp/game-mac-hl.log 2>&1 &
           GAME_PID=$!
           for i in $(seq 60); do
             kill -0 $GAME_PID 2>/dev/null || break
@@ -503,6 +545,10 @@ jobs:
           done
           kill $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
+
+          echo "=== Game log ==="
+          cat /tmp/game-mac-hl.log || true
+          echo "=== End game log ==="
 
           if [ -f /tmp/audio-mac-hl.wav ]; then
             echo "Audio recorded successfully"
@@ -514,10 +560,319 @@ jobs:
       - name: Validate audio
         run: ./ci/validate-audio.sh /tmp/audio-mac-hl.wav 10
 
-      - name: Upload audio artifact
+      - name: Validate game log
+        run: ./ci/validate-game-log.sh /tmp/game-mac-hl.log
+
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: audio-mac-hl
-          path: /tmp/audio-mac-hl.wav
+          path: |
+            /tmp/audio-mac-hl.wav
+            /tmp/game-mac-hl.log
+          if-no-files-found: warn
+
+  # ===========================================================================
+  # Windows C++ Build + Audio Recording
+  # ===========================================================================
+  windows-cpp:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v1
+        with:
+          haxe-version: ${{ env.HAXE_VERSION }}
+
+      - name: Install ffmpeg
+        shell: powershell
+        run: choco install ffmpeg -y --no-progress
+
+      - name: Add ffmpeg to PATH
+        run: |
+          # Add choco shim dir (avoids PowerShell BOM encoding issues with GITHUB_PATH)
+          echo "C:\\ProgramData\\chocolatey\\bin" >> "$GITHUB_PATH"
+          # Also add the actual ffmpeg binary directory
+          for d in /c/ProgramData/chocolatey/lib/ffmpeg/tools/*/bin; do
+            [ -d "$d" ] && cygpath -w "$d" >> "$GITHUB_PATH"
+          done
+          # Verify ffmpeg is available
+          export PATH="/c/ProgramData/chocolatey/bin:$PATH"
+          ffprobe -version | head -1 || echo "WARNING: ffprobe not found yet (will be in PATH for next step)"
+
+      - name: Cache haxelib
+        uses: actions/cache@v4
+        with:
+          path: ~/haxelib
+          key: haxelib-cpp-${{ runner.os }}-${{ env.HAXE_VERSION }}
+
+      - name: Install Haxe libraries
+        run: |
+          haxelib setup ~/haxelib
+          haxelib install lime 8.3.0 --always --quiet
+          haxelib install openfl 9.5.0 --always --quiet
+          haxelib install flixel 6.1.2 --always --quiet
+          haxelib install hxcpp 4.3.2 --always --quiet
+          haxelib dev haxefmod "$GITHUB_WORKSPACE"
+          yes | haxelib run lime setup || true
+
+      - name: Build C++ target
+        run: |
+          cd example-project/EZPlatformer
+          haxelib run lime build windows -64
+
+      - name: Validate build output
+        run: |
+          BIN_DIR=$(find example-project/EZPlatformer/export -type d -name "bin" -path "*windows*" | head -1)
+          echo "BIN_DIR=$BIN_DIR" >> "$GITHUB_ENV"
+          ./ci/validate-build.sh "$BIN_DIR" cpp
+
+      - name: Record audio via FMOD wavwriter
+        run: |
+          EXE=$(find "$BIN_DIR" -maxdepth 1 -name "*.exe" | head -1)
+          echo "Found exe: $EXE"
+
+          export FMOD_WAVWRITER="$GITHUB_WORKSPACE/audio-windows-cpp.wav"
+
+          # Game auto-quits when player hits the right wall on level 2 (~15s).
+          # Capture stdout/stderr to a log file for debugging.
+          cd "$BIN_DIR"
+          timeout 60 "./$(basename "$EXE")" > "$GITHUB_WORKSPACE/game-windows-cpp.log" 2>&1 || true
+          cd -
+
+          echo "=== Game log ==="
+          cat "$GITHUB_WORKSPACE/game-windows-cpp.log" || true
+          echo "=== End game log ==="
+
+          if [ -f "$GITHUB_WORKSPACE/audio-windows-cpp.wav" ]; then
+            echo "Audio recorded successfully"
+            ls -la "$GITHUB_WORKSPACE/audio-windows-cpp.wav"
+          else
+            echo "WARNING: No audio file produced"
+          fi
+
+      - name: Fix WAV header
+        shell: python
+        run: |
+          import struct, os
+          wav = os.path.join(os.environ['GITHUB_WORKSPACE'], 'audio-windows-cpp.wav')
+          if os.path.exists(wav):
+              with open(wav, 'r+b') as f:
+                  f.seek(22)
+                  num_channels = struct.unpack('<H', f.read(2))[0]
+                  if num_channels == 0:
+                      print(f"Fixing WAV header: 0 channels -> 2 channels (stereo)")
+                      f.seek(22)
+                      f.write(struct.pack('<H', 2))
+                      f.seek(28)
+                      f.write(struct.pack('<I', 192000))
+                      f.write(struct.pack('<H', 4))
+                      print("WAV header fixed")
+                  else:
+                      print(f"WAV header OK ({num_channels} channels)")
+          else:
+              print(f"WAV file not found: {wav}")
+
+      - name: Validate audio
+        run: ./ci/validate-audio.sh "$GITHUB_WORKSPACE/audio-windows-cpp.wav" 10
+
+      - name: Validate game log
+        run: ./ci/validate-game-log.sh "$GITHUB_WORKSPACE/game-windows-cpp.log"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: audio-windows-cpp
+          path: |
+            audio-windows-cpp.wav
+            game-windows-cpp.log
+          if-no-files-found: warn
+
+  # ===========================================================================
+  # Windows HashLink Build + Audio Recording
+  # ===========================================================================
+  windows-hl:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v1
+        with:
+          haxe-version: ${{ env.HAXE_VERSION }}
+
+      - name: Install ffmpeg
+        shell: powershell
+        run: choco install ffmpeg -y --no-progress
+
+      - name: Add ffmpeg to PATH
+        run: |
+          echo "C:\\ProgramData\\chocolatey\\bin" >> "$GITHUB_PATH"
+          for d in /c/ProgramData/chocolatey/lib/ffmpeg/tools/*/bin; do
+            [ -d "$d" ] && cygpath -w "$d" >> "$GITHUB_PATH"
+          done
+          export PATH="/c/ProgramData/chocolatey/bin:$PATH"
+          ffprobe -version | head -1 || echo "WARNING: ffprobe not found yet"
+
+      - name: Cache haxelib
+        uses: actions/cache@v4
+        with:
+          path: ~/haxelib
+          key: haxelib-hl-${{ runner.os }}-${{ env.HAXE_VERSION }}
+
+      - name: Install Haxe libraries
+        run: |
+          haxelib setup ~/haxelib
+          haxelib install lime 8.3.0 --always --quiet
+          haxelib install openfl 9.5.0 --always --quiet
+          haxelib install flixel 6.1.2 --always --quiet
+          haxelib dev haxefmod "$GITHUB_WORKSPACE"
+          yes | haxelib run lime setup || true
+
+      - name: Build and install HashLink
+        shell: powershell
+        run: |
+          # Download HashLink release for Windows
+          $HL_URL = "https://github.com/HaxeFoundation/hashlink/releases/download/1.14/hashlink-1.14.0-win.zip"
+          Write-Host "Downloading HashLink from $HL_URL"
+          Invoke-WebRequest -Uri $HL_URL -OutFile "C:\hashlink.zip"
+          Expand-Archive -Path "C:\hashlink.zip" -DestinationPath "C:\"
+          # Find the extracted directory (name varies by release)
+          $HL_DIR = Get-ChildItem "C:\" -Directory | Where-Object { $_.Name -like "hashlink*" } | Select-Object -First 1
+          Rename-Item $HL_DIR.FullName "C:\hashlink"
+          # Add to PATH for subsequent steps
+          echo "C:\hashlink" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          echo "HASHLINK_DIR=C:\hashlink" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          # Verify
+          Write-Host "HashLink contents:"
+          Get-ChildItem "C:\hashlink" | Format-Table Name, Length
+          try { & "C:\hashlink\hl.exe" --version 2>&1 } catch { Write-Host "hl --version not supported" }
+
+      - name: Compile hlaxe_fmod.hdll
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          cd native\hlaxe
+          cl /LD /O2 /DWIN32 hlaxe_fmod.c ^
+            /I"C:\hashlink\include" ^
+            /I"..\..\lib\Windows\api\core\inc" ^
+            /I"..\..\lib\Windows\api\studio\inc" ^
+            /link ^
+            /LIBPATH:"..\..\lib\Windows\api\core\lib\x64" ^
+            /LIBPATH:"..\..\lib\Windows\api\studio\lib\x64" ^
+            fmod_vc.lib fmodstudio_vc.lib ^
+            /LIBPATH:"C:\hashlink" libhl.lib ^
+            /OUT:hlaxe_fmod.hdll
+          if %ERRORLEVEL% NEQ 0 (
+            echo "MSVC compilation failed, trying with explicit libhl path..."
+            dir "C:\hashlink\*.lib" 2>nul
+            dir "C:\hashlink\*.dll" 2>nul
+            exit /b 1
+          )
+          echo "hlaxe_fmod.hdll compiled successfully"
+          dir hlaxe_fmod.hdll
+
+      - name: Build HashLink target
+        run: |
+          cd example-project/EZPlatformer
+          haxelib run lime build hl
+
+      - name: Copy dependencies to output
+        run: |
+          BIN_DIR="example-project/EZPlatformer/export/hl/bin"
+          if [ ! -d "$BIN_DIR" ]; then
+            echo "ERROR: No HL bin directory found"
+            find example-project/EZPlatformer/export -type d
+            exit 1
+          fi
+          echo "Copying FMOD DLLs and hlaxe_fmod.hdll to $BIN_DIR"
+
+          cp lib/Windows/api/core/lib/x64/fmod.dll "$BIN_DIR/"
+          cp lib/Windows/api/studio/lib/x64/fmodstudio.dll "$BIN_DIR/"
+          cp native/hlaxe/hlaxe_fmod.hdll "$BIN_DIR/"
+
+          echo "Bin dir contents:"
+          ls -la "$BIN_DIR"
+
+      - name: Validate build output
+        run: |
+          BIN_DIR="example-project/EZPlatformer/export/hl/bin"
+          echo "BIN_DIR=$BIN_DIR" >> "$GITHUB_ENV"
+          ./ci/validate-build.sh "$BIN_DIR" hl
+
+      - name: Record audio via FMOD wavwriter
+        run: |
+          EXE=$(find "$BIN_DIR" -maxdepth 1 -name "*.exe" | head -1)
+          echo "Found exe: $EXE"
+
+          export FMOD_WAVWRITER="$GITHUB_WORKSPACE/audio-windows-hl.wav"
+
+          # Game auto-quits when player hits the right wall on level 2 (~15s).
+          # Capture stdout/stderr to a log file for debugging.
+          cd "$BIN_DIR"
+          timeout 60 "./$(basename "$EXE")" > "$GITHUB_WORKSPACE/game-windows-hl.log" 2>&1 || true
+          cd -
+
+          echo "=== Game log ==="
+          cat "$GITHUB_WORKSPACE/game-windows-hl.log" || true
+          echo "=== End game log ==="
+
+          if [ -f "$GITHUB_WORKSPACE/audio-windows-hl.wav" ]; then
+            echo "Audio recorded successfully"
+            ls -la "$GITHUB_WORKSPACE/audio-windows-hl.wav"
+          else
+            echo "WARNING: No audio file produced"
+          fi
+
+      - name: Fix WAV header
+        shell: python
+        run: |
+          import struct, os
+          wav = os.path.join(os.environ['GITHUB_WORKSPACE'], 'audio-windows-hl.wav')
+          if os.path.exists(wav):
+              # FMOD WAVWRITER on Windows writes 0 channels in the WAV header when the
+              # process exits via Sys.exit() without calling FMOD release. Fix by patching
+              # the channel count (bytes 22-23) to 2 (stereo) and recalculating byte rate
+              # and block align fields.
+              with open(wav, 'r+b') as f:
+                  f.seek(22)
+                  num_channels = struct.unpack('<H', f.read(2))[0]
+                  if num_channels == 0:
+                      print(f"Fixing WAV header: 0 channels -> 2 channels (stereo)")
+                      f.seek(22)
+                      f.write(struct.pack('<H', 2))        # NumChannels = 2
+                      f.seek(28)
+                      f.write(struct.pack('<I', 192000))    # ByteRate = 48000 * 2 * 2
+                      f.write(struct.pack('<H', 4))         # BlockAlign = 2 * 2
+                      print("WAV header fixed")
+                  else:
+                      print(f"WAV header OK ({num_channels} channels)")
+          else:
+              print(f"WAV file not found: {wav}")
+
+      - name: Validate audio
+        run: ./ci/validate-audio.sh "$GITHUB_WORKSPACE/audio-windows-hl.wav" 10
+
+      - name: Validate game log
+        run: ./ci/validate-game-log.sh "$GITHUB_WORKSPACE/game-windows-hl.log"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: audio-windows-hl
+          path: |
+            audio-windows-hl.wav
+            game-windows-hl.log
           if-no-files-found: warn
