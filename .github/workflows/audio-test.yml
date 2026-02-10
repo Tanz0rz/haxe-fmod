@@ -5,6 +5,10 @@ on:
   pull_request:
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
 # Solo-build: include [job-name] in commit message to run only that job
 # e.g. "[linux-html5]" runs only the linux-html5 job
 # [skip-build] skips all jobs
