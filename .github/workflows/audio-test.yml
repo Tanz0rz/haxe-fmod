@@ -531,7 +531,6 @@ jobs:
   # Windows C++ Build + Audio Recording
   # ===========================================================================
   windows-cpp:
-    if: false
     runs-on: windows-latest
     timeout-minutes: 30
     defaults:
@@ -615,6 +614,28 @@ jobs:
           else
             echo "WARNING: No audio file produced"
           fi
+
+      - name: Fix WAV header
+        shell: python
+        run: |
+          import struct, os
+          wav = os.path.join(os.environ['GITHUB_WORKSPACE'], 'audio-windows-cpp.wav')
+          if os.path.exists(wav):
+              with open(wav, 'r+b') as f:
+                  f.seek(22)
+                  num_channels = struct.unpack('<H', f.read(2))[0]
+                  if num_channels == 0:
+                      print(f"Fixing WAV header: 0 channels -> 2 channels (stereo)")
+                      f.seek(22)
+                      f.write(struct.pack('<H', 2))
+                      f.seek(28)
+                      f.write(struct.pack('<I', 192000))
+                      f.write(struct.pack('<H', 4))
+                      print("WAV header fixed")
+                  else:
+                      print(f"WAV header OK ({num_channels} channels)")
+          else:
+              print(f"WAV file not found: {wav}")
 
       - name: Validate audio
         run: ./ci/validate-audio.sh "$GITHUB_WORKSPACE/audio-windows-cpp.wav" 10
