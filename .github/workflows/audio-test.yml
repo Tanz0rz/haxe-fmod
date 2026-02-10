@@ -122,6 +122,9 @@ jobs:
       - name: Validate audio
         run: ./ci/validate-audio.sh /tmp/audio-linux-cpp.wav 10
 
+      - name: Validate game log
+        run: ./ci/validate-game-log.sh /tmp/game-linux-cpp.log
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         if: always()
@@ -270,6 +273,9 @@ jobs:
 
       - name: Validate audio
         run: ./ci/validate-audio.sh /tmp/audio-linux-hl.wav 10
+
+      - name: Validate game log
+        run: ./ci/validate-game-log.sh /tmp/game-linux-hl.log
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -468,6 +474,9 @@ jobs:
       - name: Validate audio
         run: ./ci/validate-audio.sh /tmp/audio-mac-cpp.wav 10
 
+      - name: Validate game log
+        run: ./ci/validate-game-log.sh /tmp/game-mac-cpp.log
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         if: always()
@@ -550,6 +559,9 @@ jobs:
 
       - name: Validate audio
         run: ./ci/validate-audio.sh /tmp/audio-mac-hl.wav 10
+
+      - name: Validate game log
+        run: ./ci/validate-game-log.sh /tmp/game-mac-hl.log
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -669,6 +681,9 @@ jobs:
 
       - name: Validate audio
         run: ./ci/validate-audio.sh "$GITHUB_WORKSPACE/audio-windows-cpp.wav" 10
+
+      - name: Validate game log
+        run: ./ci/validate-game-log.sh "$GITHUB_WORKSPACE/game-windows-cpp.log"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -848,6 +863,9 @@ jobs:
 
       - name: Validate audio
         run: ./ci/validate-audio.sh "$GITHUB_WORKSPACE/audio-windows-hl.wav" 10
+
+      - name: Validate game log
+        run: ./ci/validate-game-log.sh "$GITHUB_WORKSPACE/game-windows-hl.log"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
