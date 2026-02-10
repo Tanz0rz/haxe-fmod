@@ -765,6 +765,26 @@ jobs:
             echo "WARNING: No audio file produced"
           fi
 
+      - name: Fix WAV header
+        run: |
+          WAV="$GITHUB_WORKSPACE/audio-windows-hl.wav"
+          if [ -f "$WAV" ]; then
+            # FMOD WAVWRITER on Windows writes 0 channels when process exits via Sys.exit().
+            # Re-wrap raw PCM data (skip 44-byte broken header) with a correct WAV header.
+            "$FFPROBE" -i "$WAV" 2>&1 | grep "0 channels" && {
+              echo "Fixing malformed WAV header (0 channels)..."
+              tail -c +45 "$WAV" > "${WAV}.raw"
+              "$FFMPEG" -f s16le -ar 48000 -ac 2 -i "${WAV}.raw" -y "${WAV}.fixed" 2>/dev/null
+              mv "${WAV}.fixed" "$WAV"
+              rm "${WAV}.raw"
+              echo "Fixed. New header:"
+              "$FFPROBE" -i "$WAV" 2>&1 | grep -E "Stream|Duration"
+            } || echo "WAV header OK, no fix needed"
+          fi
+        env:
+          FFPROBE: /c/ProgramData/chocolatey/bin/ffprobe.exe
+          FFMPEG: /c/ProgramData/chocolatey/bin/ffmpeg.exe
+
       - name: Validate audio
         run: ./ci/validate-audio.sh "$GITHUB_WORKSPACE/audio-windows-hl.wav" 10
 
