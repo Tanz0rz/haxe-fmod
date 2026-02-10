@@ -605,8 +605,10 @@ jobs:
           export FMOD_WAVWRITER="$GITHUB_WORKSPACE/audio-windows-cpp.wav"
 
           # Game auto-quits when player hits the right wall on level 2 (~15s).
-          # Timeout at 60s as safety net.
-          timeout 60 "$EXE" || true
+          # Must cd to bin dir so the game can find its assets and bank files.
+          cd "$BIN_DIR"
+          timeout 60 "./$(basename "$EXE")" || true
+          cd -
 
           if [ -f "$GITHUB_WORKSPACE/audio-windows-cpp.wav" ]; then
             echo "Audio recorded successfully"
