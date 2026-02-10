@@ -22,6 +22,12 @@ case "$PLATFORM" in
     echo "[haxefmod postbuild] Copying FMOD dylibs to $DEST"
     cp "$HAXEFMOD_DIR/lib/Mac/api/core/lib/libfmod.dylib" "$DEST/"
     cp "$HAXEFMOD_DIR/lib/Mac/api/studio/inc/lib/libfmodstudio.dylib" "$DEST/"
+
+    # Ensure rpath is set so the executable finds dylibs next to it
+    EXE=$(find "$DEST" -maxdepth 1 -type f -perm +111 ! -name "*.dylib" ! -name "*.ndll" -print 2>/dev/null | head -1)
+    if [ -n "$EXE" ]; then
+      install_name_tool -add_rpath @executable_path "$EXE" 2>/dev/null || true
+    fi
     echo "[haxefmod postbuild] Done - copied libfmod.dylib and libfmodstudio.dylib"
     ;;
   linux)
@@ -37,6 +43,20 @@ case "$PLATFORM" in
     cp "$HAXEFMOD_DIR/lib/Linux/api/core/lib/x86_64/libfmod.so.11" "$DEST/"
     cp "$HAXEFMOD_DIR/lib/Linux/api/studio/lib/x86_64/libfmodstudio.so" "$DEST/"
     cp "$HAXEFMOD_DIR/lib/Linux/api/studio/lib/x86_64/libfmodstudio.so.11" "$DEST/"
+
+    # Create run.sh wrapper that sets LD_LIBRARY_PATH (if it doesn't exist)
+    if [ ! -f "$DEST/run.sh" ]; then
+      EXE_NAME=$(find "$DEST" -maxdepth 1 -type f -executable ! -name "*.so*" ! -name "run.sh" -printf '%f\n' 2>/dev/null | head -1)
+      if [ -n "$EXE_NAME" ]; then
+        cat > "$DEST/run.sh" << RUNEOF
+#!/bin/bash
+cd "\$(dirname "\$0")"
+export LD_LIBRARY_PATH="\$(pwd):\$LD_LIBRARY_PATH"
+./$EXE_NAME "\$@"
+RUNEOF
+        chmod +x "$DEST/run.sh"
+      fi
+    fi
     echo "[haxefmod postbuild] Done - copied FMOD .so files"
     ;;
   *)
