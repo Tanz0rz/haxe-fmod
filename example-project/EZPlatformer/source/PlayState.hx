@@ -32,6 +32,7 @@ class PlayState extends FlxState {
     }
 
     override public function create():Void {
+        FmodManager.EnableDebugMessages();
         FmodManager.PlaySong(FmodSongs.MainLevel);
 
         FlxG.mouse.visible = false;

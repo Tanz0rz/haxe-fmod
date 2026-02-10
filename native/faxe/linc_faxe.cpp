@@ -82,6 +82,8 @@ int fmod_init(int numChannels) {
     if (wavWriterPath && wavWriterPath[0] != '\0') {
         gStudioSystem->getCoreSystem(&gCoreSystem);
         gCoreSystem->setOutput(FMOD_OUTPUTTYPE_WAVWRITER);
+        // Explicit stereo format so WAV header has correct channel count (Windows needs this)
+        gCoreSystem->setSoftwareFormat(48000, FMOD_SPEAKERMODE_STEREO, 0);
         extradriverdata = (void*)wavWriterPath;
     }
 
