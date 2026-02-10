@@ -46,7 +46,8 @@ jobs:
 
       - name: Build C++ target
         run: |
-          ./scripts/build-linux.sh example-project/EZPlatformer
+          cd example-project/EZPlatformer
+          haxelib run lime build linux -64
 
       - name: Patch FMOD libraries
         run: |
@@ -202,7 +203,8 @@ jobs:
 
       - name: Build HashLink target
         run: |
-          ./scripts/build-hl.sh example-project/EZPlatformer
+          cd example-project/EZPlatformer
+          haxelib run lime build hl
 
       - name: Patch FMOD libraries
         run: |
@@ -252,9 +254,10 @@ jobs:
 
           # Run the game with library paths set
           cd "$BIN_DIR"
-          chmod +x run.sh
           export LD_LIBRARY_PATH="$(pwd):$LD_LIBRARY_PATH"
-          timeout 30 ./run.sh > /tmp/game-linux-hl.log 2>&1 || true
+          EXE=$(find . -maxdepth 1 -type f -executable ! -name "*.so*" ! -name "*.hdll" ! -name "run.sh" -print -quit)
+          chmod +x "$EXE"
+          timeout 30 "$EXE" > /tmp/game-linux-hl.log 2>&1 || true
           cd -
 
           echo "=== Game log ==="
@@ -286,6 +289,13 @@ jobs:
             /tmp/audio-linux-hl.wav
             /tmp/game-linux-hl.log
           if-no-files-found: warn
+
+      - name: Upload hlaxe_fmod.hdll
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hdll-linux
+          path: native/hlaxe/hlaxe_fmod.hdll
 
   # ===========================================================================
   # Linux HTML5 Build + Audio Recording via Browser
@@ -433,7 +443,8 @@ jobs:
 
       - name: Build C++ target
         run: |
-          ./scripts/build-mac.sh example-project/EZPlatformer
+          cd example-project/EZPlatformer
+          haxelib run lime build mac -64
 
       - name: Validate build output
         run: |
@@ -519,7 +530,8 @@ jobs:
 
       - name: Build HashLink target
         run: |
-          ./scripts/build-hl-mac.sh
+          cd example-project/EZPlatformer
+          haxelib run lime build hl
 
       - name: Validate build output
         run: |
@@ -876,3 +888,10 @@ jobs:
             audio-windows-hl.wav
             game-windows-hl.log
           if-no-files-found: warn
+
+      - name: Upload hlaxe_fmod.hdll
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hdll-windows
+          path: native/hlaxe/hlaxe_fmod.hdll
