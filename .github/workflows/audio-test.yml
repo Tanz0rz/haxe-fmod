@@ -15,6 +15,7 @@ jobs:
   # ===========================================================================
   linux-cpp:
     runs-on: ubuntu-latest
+    if: ${{ !contains(github.event.head_commit.message, '[skip-build]') }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
@@ -147,6 +148,7 @@ jobs:
   # ===========================================================================
   linux-hl:
     runs-on: ubuntu-latest
+    if: ${{ !contains(github.event.head_commit.message, '[skip-build]') }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
@@ -313,6 +315,7 @@ jobs:
   # ===========================================================================
   linux-html5:
     runs-on: ubuntu-latest
+    if: ${{ !contains(github.event.head_commit.message, '[skip-build]') }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
@@ -430,6 +433,7 @@ jobs:
   # ===========================================================================
   mac-cpp:
     runs-on: macos-14
+    if: ${{ !contains(github.event.head_commit.message, '[skip-build]') }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
@@ -520,6 +524,7 @@ jobs:
   # ===========================================================================
   mac-hl:
     runs-on: macos-14
+    if: ${{ !contains(github.event.head_commit.message, '[skip-build]') }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
@@ -634,6 +639,7 @@ jobs:
   # ===========================================================================
   windows-cpp:
     runs-on: windows-latest
+    if: ${{ !contains(github.event.head_commit.message, '[skip-build]') }}
     timeout-minutes: 30
     defaults:
       run:
@@ -757,6 +763,7 @@ jobs:
   # ===========================================================================
   windows-hl:
     runs-on: windows-latest
+    if: ${{ !contains(github.event.head_commit.message, '[skip-build]') }}
     timeout-minutes: 30
     defaults:
       run:

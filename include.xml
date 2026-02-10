@@ -4,9 +4,9 @@
 	<templatePath name="templates" />
 
 	<!-- C++ postbuild: copy FMOD runtime libs from $FMOD_SDK -->
-	<postbuild command="bash ${haxelib:haxefmod}/scripts/postbuild-copy-fmod.sh mac cpp" if="mac" unless="hl html5" />
-	<postbuild command="bash ${haxelib:haxefmod}/scripts/postbuild-copy-fmod.sh linux cpp" if="linux" unless="hl html5" />
-	<postbuild command="bash ${haxelib:haxefmod}/scripts/postbuild-copy-fmod.sh windows cpp" if="windows" unless="hl html5" />
+	<postbuild command="bash ${haxelib:haxefmod}/scripts/postbuild-copy-fmod.sh mac cpp" if="mac" unless="hl" />
+	<postbuild command="bash ${haxelib:haxefmod}/scripts/postbuild-copy-fmod.sh linux cpp" if="linux" unless="hl" />
+	<postbuild command="bash ${haxelib:haxefmod}/scripts/postbuild-copy-fmod.sh windows cpp" if="windows" unless="hl" />
 
 	<!-- HL postbuild: copy FMOD runtime libs for HashLink targets -->
 	<postbuild command="bash ${haxelib:haxefmod}/scripts/postbuild-copy-fmod.sh mac hl" if="mac hl" unless="html5" />
