@@ -50,6 +50,8 @@ else
 fi
 
 # 3. Check duration
+echo "  DEBUG: running $FFPROBE -i $WAV_FILE ..."
+"$FFPROBE" -i "$WAV_FILE" -show_entries format=duration -of csv="p=0" 2>&1 || true
 DURATION=$("$FFPROBE" -i "$WAV_FILE" -show_entries format=duration -v quiet -of csv="p=0" 2>/dev/null)
 DURATION_INT=$(printf "%.0f" "$DURATION" 2>/dev/null || echo 0)
 echo -n "  [3/4] Duration >= ${MIN_DURATION}s .............. "
