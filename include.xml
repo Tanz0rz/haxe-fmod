@@ -14,7 +14,7 @@
 	<postbuild command="bash ${haxelib:haxefmod}/scripts/postbuild-copy-fmod.sh windows hl" if="windows hl" unless="html5" />
 
 	<!-- HTML5 dependencies -->
-	<dependency path="${FMOD_SDK}/html5/api/core/lib/upstream/wasm/fmodstudio.js" if="html5"/>
-	<assets path="${FMOD_SDK}/html5/api/core/lib/upstream/wasm/fmodstudio.wasm" rename="lib/fmodstudio.wasm" if="html5"/>
+	<dependency path="${FMOD_SDK}/html5/api/studio/lib/wasm/fmodstudio.js" if="html5"/>
+	<assets path="${FMOD_SDK}/html5/api/studio/lib/wasm/fmodstudio.wasm" rename="lib/fmodstudio.wasm" if="html5"/>
 	<dependency path="native/jaxe/jaxe.js" if="html5"/>
 </project>
