@@ -6,13 +6,19 @@
 WAV_FILE="$1"
 MIN_DURATION="${2:-10}"
 
-# On Windows, find ffmpeg from common choco install locations
+# Resolve ffprobe/ffmpeg commands (may need explicit paths on Windows)
+FFPROBE="ffprobe"
+FFMPEG="ffmpeg"
 if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" ]]; then
-  export PATH="/c/ProgramData/chocolatey/bin:$PATH"
-  # Also check choco's lib directory where the actual binary lives
-  for d in /c/ProgramData/chocolatey/lib/ffmpeg/tools/*/bin; do
-    [ -d "$d" ] && export PATH="$d:$PATH"
+  # On Windows/Git Bash, find ffprobe from choco install locations
+  for dir in "/c/ProgramData/chocolatey/bin" /c/ProgramData/chocolatey/lib/ffmpeg/tools/*/bin; do
+    if [ -x "$dir/ffprobe.exe" ]; then
+      FFPROBE="$dir/ffprobe.exe"
+      FFMPEG="$dir/ffmpeg.exe"
+      break
+    fi
   done
+  echo "  Using: $FFPROBE"
 fi
 
 if [ -z "$WAV_FILE" ]; then
@@ -44,7 +50,7 @@ else
 fi
 
 # 3. Check duration
-DURATION=$(ffprobe -i "$WAV_FILE" -show_entries format=duration -v quiet -of csv="p=0" 2>/dev/null)
+DURATION=$("$FFPROBE" -i "$WAV_FILE" -show_entries format=duration -v quiet -of csv="p=0" 2>/dev/null)
 DURATION_INT=$(printf "%.0f" "$DURATION" 2>/dev/null || echo 0)
 echo -n "  [3/4] Duration >= ${MIN_DURATION}s .............. "
 if [ -z "$DURATION" ]; then
@@ -58,7 +64,7 @@ else
 fi
 
 # 4. Check volume (not silent)
-MEAN_VOLUME=$(ffmpeg -i "$WAV_FILE" -af volumedetect -f null /dev/null 2>&1 | grep mean_volume | sed 's/.*mean_volume: //' | sed 's/ dB//')
+MEAN_VOLUME=$("$FFMPEG" -i "$WAV_FILE" -af volumedetect -f null /dev/null 2>&1 | grep mean_volume | sed 's/.*mean_volume: //' | sed 's/ dB//')
 VOLUME_INT=$(printf "%.0f" "$MEAN_VOLUME" 2>/dev/null || echo -91)
 echo -n "  [4/4] Mean volume > -60 dB ......... "
 if [ -z "$MEAN_VOLUME" ]; then

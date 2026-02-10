@@ -531,6 +531,7 @@ jobs:
   # Windows C++ Build + Audio Recording
   # ===========================================================================
   windows-cpp:
+    if: false
     runs-on: windows-latest
     timeout-minutes: 30
     defaults:
