@@ -60,23 +60,37 @@ fi
 # 4. Check FMOD bank files present
 echo -n "  [4/5] FMOD bank files .............. "
 BANKS_DIR="$BIN_DIR/assets/fmod/Desktop"
+# Mac .app bundles: assets are in Contents/Resources/, not Contents/MacOS/
+if [ ! -d "$BANKS_DIR" ] && [[ "$BIN_DIR" == *Contents/MacOS* ]]; then
+  RESOURCES_DIR="${BIN_DIR%/Contents/MacOS*}/Contents/Resources"
+  BANKS_DIR="$RESOURCES_DIR/assets/fmod/Desktop"
+fi
 if [ -f "$BANKS_DIR/Master.bank" ] && [ -f "$BANKS_DIR/Master.strings.bank" ]; then
   MASTER_SIZE=$(stat -f%z "$BANKS_DIR/Master.bank" 2>/dev/null || stat -c%s "$BANKS_DIR/Master.bank" 2>/dev/null || wc -c < "$BANKS_DIR/Master.bank")
   echo "OK (Master.bank: ${MASTER_SIZE} bytes)"
 else
   echo "FAIL (missing Master.bank or Master.strings.bank in $BANKS_DIR)"
-  if [ -d "$BIN_DIR/assets" ]; then
-    echo "         Assets found:"
-    find "$BIN_DIR/assets" -name "*.bank" 2>/dev/null | head -5
+  # Search broader for bank files
+  SEARCH_ROOT="$BIN_DIR"
+  [[ "$BIN_DIR" == *Contents/MacOS* ]] && SEARCH_ROOT="${BIN_DIR%/Contents/MacOS*}"
+  FOUND_BANKS=$(find "$SEARCH_ROOT" -name "*.bank" 2>/dev/null | head -5)
+  if [ -n "$FOUND_BANKS" ]; then
+    echo "         Banks found elsewhere:"
+    echo "$FOUND_BANKS"
   fi
   PASS=false
 fi
 
 # 5. Check manifest (lime asset library)
 echo -n "  [5/5] Lime asset manifest .......... "
-if [ -d "$BIN_DIR/manifest" ]; then
+MANIFEST_DIR="$BIN_DIR/manifest"
+# Mac .app bundles: manifest is in Contents/Resources/
+if [ ! -d "$MANIFEST_DIR" ] && [ ! -f "$MANIFEST_DIR" ] && [[ "$BIN_DIR" == *Contents/MacOS* ]]; then
+  MANIFEST_DIR="${BIN_DIR%/Contents/MacOS*}/Contents/Resources/manifest"
+fi
+if [ -d "$MANIFEST_DIR" ]; then
   echo "OK"
-elif [ -f "$BIN_DIR/manifest" ]; then
+elif [ -f "$MANIFEST_DIR" ]; then
   echo "OK (file)"
 else
   echo "WARN (no manifest directory — may still work)"
