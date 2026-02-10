@@ -6,9 +6,13 @@
 WAV_FILE="$1"
 MIN_DURATION="${2:-10}"
 
-# On Windows, choco installs ffmpeg to a path that Git Bash may not see
+# On Windows, find ffmpeg from common choco install locations
 if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" ]]; then
   export PATH="/c/ProgramData/chocolatey/bin:$PATH"
+  # Also check choco's lib directory where the actual binary lives
+  for d in /c/ProgramData/chocolatey/lib/ffmpeg/tools/*/bin; do
+    [ -d "$d" ] && export PATH="$d:$PATH"
+  done
 fi
 
 if [ -z "$WAV_FILE" ]; then
