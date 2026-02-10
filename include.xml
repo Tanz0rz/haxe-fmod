@@ -1,38 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <project>
 	<!-- This file will be automatically appended to the game's main Project.xml at build time -->
-	<!-- The dependency tag tells the compiler to include these files into the build of the game -->
+
+	<!-- templatePath copies pre-built hdlls + FMOD libs into HL build output automatically -->
+	<templatePath name="templates" />
+
+	<!-- Windows C++ dependencies (lime processes <dependency name=...> for .dll copying) -->
 	<dependency name="lib/Windows/api/core/lib/x86/fmod.dll" if="windows HXCPP_M32"/>
 	<dependency name="lib/Windows/api/studio/lib/x86/fmodstudio.dll" if="windows HXCPP_M32" />
-	
+
 	<dependency name="lib/Windows/api/core/lib/x64/fmod.dll" if="windows" unless="HXCPP_M32"/>
 	<dependency name="lib/Windows/api/studio/lib/x64/fmodstudio.dll" if="windows" unless="HXCPP_M32"/>
 
+	<!-- HTML5 dependencies -->
 	<dependency path="lib/html5/fmodstudio.js" if="html5"/>
 	<assets path="lib/html5/fmodstudio.wasm" rename="lib/fmodstudio.wasm" if="html5"/>
 	<dependency path="native/jaxe/jaxe.js" if="html5"/>
-
-	<!-- HashLink dependencies -->
-	<dependency path="lib/Windows/api/core/lib/x64/fmod.dll" if="hl windows"/>
-	<dependency path="lib/Windows/api/studio/lib/x64/fmodstudio.dll" if="hl windows"/>
-	<dependency path="lib/Linux/api/core/lib/x86_64/libfmod.so" if="hl linux"/>
-	<dependency path="lib/Linux/api/core/lib/x86_64/libfmod.so.11" if="hl linux"/>
-	<dependency path="lib/Linux/api/studio/lib/x86_64/libfmodstudio.so" if="hl linux"/>
-	<dependency path="lib/Linux/api/studio/lib/x86_64/libfmodstudio.so.11" if="hl linux"/>
-	<dependency path="native/hlaxe/hlaxe_fmod.hdll" if="hl"/>
-
-	<!-- Linux C++ dependencies -->
-	<dependency path="lib/Linux/api/core/lib/x86_64/libfmod.so" if="linux" unless="hl"/>
-	<dependency path="lib/Linux/api/core/lib/x86_64/libfmod.so.11" if="linux" unless="hl"/>
-	<dependency path="lib/Linux/api/studio/lib/x86_64/libfmodstudio.so" if="linux" unless="hl"/>
-	<dependency path="lib/Linux/api/studio/lib/x86_64/libfmodstudio.so.11" if="linux" unless="hl"/>
-
-	<!-- Mac C++ dependencies (ARM64/Apple Silicon only) -->
-	<dependency path="lib/Mac/api/core/lib/libfmod.dylib" if="mac" unless="hl"/>
-	<dependency path="lib/Mac/api/studio/inc/lib/libfmodstudio.dylib" if="mac" unless="hl"/>
-
-	<!-- Mac HashLink dependencies (ARM64/Apple Silicon only) -->
-	<dependency path="lib/Mac/api/core/lib/libfmod.dylib" if="hl mac"/>
-	<dependency path="lib/Mac/api/studio/inc/lib/libfmodstudio.dylib" if="hl mac"/>
-	<dependency path="native/hlaxe/hlaxe_fmod.hdll" if="hl mac"/>
 </project>

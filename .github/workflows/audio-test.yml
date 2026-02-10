@@ -287,6 +287,13 @@ jobs:
             /tmp/game-linux-hl.log
           if-no-files-found: warn
 
+      - name: Upload hlaxe_fmod.hdll
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hdll-linux
+          path: native/hlaxe/hlaxe_fmod.hdll
+
   # ===========================================================================
   # Linux HTML5 Build + Audio Recording via Browser
   # ===========================================================================
@@ -876,3 +883,10 @@ jobs:
             audio-windows-hl.wav
             game-windows-hl.log
           if-no-files-found: warn
+
+      - name: Upload hlaxe_fmod.hdll
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hdll-windows
+          path: native/hlaxe/hlaxe_fmod.hdll

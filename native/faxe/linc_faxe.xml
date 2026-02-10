@@ -60,6 +60,14 @@
 		</section>
 	</section>
 
+	<section if="linux" unless="switch">
+		<echo value="building for linux." />
+		<copyFile name="libfmod.so" from="${NATIVE_TOOLKIT_PATH}/api/core/lib/x86_64" toolId="exe" allowMissing="false"/>
+		<copyFile name="libfmod.so.11" from="${NATIVE_TOOLKIT_PATH}/api/core/lib/x86_64" toolId="exe" allowMissing="false"/>
+		<copyFile name="libfmodstudio.so" from="${NATIVE_TOOLKIT_PATH}/api/studio/lib/x86_64" toolId="exe" allowMissing="false"/>
+		<copyFile name="libfmodstudio.so.11" from="${NATIVE_TOOLKIT_PATH}/api/studio/lib/x86_64" toolId="exe" allowMissing="false"/>
+	</section>
+
 	<section if="mac" unless="switch">
 		<echo value="building for mac." />
 		<copyFile name="libfmod.dylib" from="${NATIVE_TOOLKIT_PATH}/api/core/lib" toolId="exe" allowMissing="false"/>
