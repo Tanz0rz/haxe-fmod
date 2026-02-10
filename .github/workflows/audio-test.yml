@@ -768,22 +768,19 @@ jobs:
       - name: Fix WAV header
         run: |
           WAV="$GITHUB_WORKSPACE/audio-windows-hl.wav"
+          FFPROBE="/c/ProgramData/chocolatey/bin/ffprobe.exe"
+          FFMPEG="/c/ProgramData/chocolatey/bin/ffmpeg.exe"
           if [ -f "$WAV" ]; then
-            # FMOD WAVWRITER on Windows writes 0 channels when process exits via Sys.exit().
-            # Re-wrap raw PCM data (skip 44-byte broken header) with a correct WAV header.
-            "$FFPROBE" -i "$WAV" 2>&1 | grep "0 channels" && {
-              echo "Fixing malformed WAV header (0 channels)..."
-              tail -c +45 "$WAV" > "${WAV}.raw"
-              "$FFMPEG" -f s16le -ar 48000 -ac 2 -i "${WAV}.raw" -y "${WAV}.fixed" 2>/dev/null
-              mv "${WAV}.fixed" "$WAV"
-              rm "${WAV}.raw"
-              echo "Fixed. New header:"
-              "$FFPROBE" -i "$WAV" 2>&1 | grep -E "Stream|Duration"
-            } || echo "WAV header OK, no fix needed"
+            # FMOD WAVWRITER on Windows writes 0 channels in WAV header when process
+            # exits via Sys.exit() without calling FMOD release. Re-wrap the raw PCM
+            # data with a correct header (skip 44-byte broken WAV header).
+            echo "Re-wrapping WAV with correct header..."
+            tail -c +45 "$WAV" > "${WAV}.raw"
+            "$FFMPEG" -f s16le -ar 48000 -ac 2 -i "${WAV}.raw" -y "${WAV}.fixed" 2>/dev/null
+            mv "${WAV}.fixed" "$WAV"
+            rm -f "${WAV}.raw"
+            "$FFPROBE" -i "$WAV" 2>&1 | grep -E "Stream|Duration" || true
           fi
-        env:
-          FFPROBE: /c/ProgramData/chocolatey/bin/ffprobe.exe
-          FFMPEG: /c/ProgramData/chocolatey/bin/ffmpeg.exe
 
       - name: Validate audio
         run: ./ci/validate-audio.sh "$GITHUB_WORKSPACE/audio-windows-hl.wav" 10
