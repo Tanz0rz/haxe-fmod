@@ -10,10 +10,9 @@ env:
 
 jobs:
   # ===========================================================================
-  # Linux C++ Build + Audio Recording (TEMPORARILY DISABLED)
+  # Linux C++ Build + Audio Recording
   # ===========================================================================
   linux-cpp:
-    if: false
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -58,6 +57,15 @@ jobs:
           patchelf --clear-execstack "$BIN_DIR"/libfmod.so* || true
           patchelf --clear-execstack "$BIN_DIR"/libfmodstudio.so* || true
 
+      - name: Validate build output
+        run: |
+          BIN_DIR="example-project/EZPlatformer/export/linux64/bin"
+          if [ ! -d "$BIN_DIR" ]; then
+            BIN_DIR="example-project/EZPlatformer/export/linux/bin"
+          fi
+          echo "BIN_DIR=$BIN_DIR" >> "$GITHUB_ENV"
+          ./ci/validate-build.sh "$BIN_DIR" cpp
+
       - name: Record audio
         run: |
           # Start virtual display
@@ -93,8 +101,12 @@ jobs:
           # Run the game
           cd "$BIN_DIR"
           chmod +x run.sh
-          timeout 30 ./run.sh || true
+          timeout 30 ./run.sh > /tmp/game-linux-cpp.log 2>&1 || true
           cd -
+
+          echo "=== Game log ==="
+          cat /tmp/game-linux-cpp.log || true
+          echo "=== End game log ==="
 
           # Wait for recording to finish
           wait $RECORD_PID || true
@@ -110,19 +122,20 @@ jobs:
       - name: Validate audio
         run: ./ci/validate-audio.sh /tmp/audio-linux-cpp.wav 10
 
-      - name: Upload audio artifact
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: audio-linux-cpp
-          path: /tmp/audio-linux-cpp.wav
+          path: |
+            /tmp/audio-linux-cpp.wav
+            /tmp/game-linux-cpp.log
           if-no-files-found: warn
 
   # ===========================================================================
-  # Linux HashLink Build + Audio Recording (TEMPORARILY DISABLED)
+  # Linux HashLink Build + Audio Recording
   # ===========================================================================
   linux-hl:
-    if: false
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -194,6 +207,12 @@ jobs:
           patchelf --clear-execstack "$BIN_DIR"/libfmod.so* || true
           patchelf --clear-execstack "$BIN_DIR"/libfmodstudio.so* || true
 
+      - name: Validate build output
+        run: |
+          BIN_DIR="example-project/EZPlatformer/export/hl/bin"
+          echo "BIN_DIR=$BIN_DIR" >> "$GITHUB_ENV"
+          ./ci/validate-build.sh "$BIN_DIR" hl
+
       - name: Record audio
         run: |
           # Start virtual display
@@ -232,8 +251,12 @@ jobs:
           cd "$BIN_DIR"
           chmod +x run.sh
           export LD_LIBRARY_PATH="$(pwd):$LD_LIBRARY_PATH"
-          timeout 30 ./run.sh || true
+          timeout 30 ./run.sh > /tmp/game-linux-hl.log 2>&1 || true
           cd -
+
+          echo "=== Game log ==="
+          cat /tmp/game-linux-hl.log || true
+          echo "=== End game log ==="
 
           # Wait for recording to finish
           wait $RECORD_PID || true
@@ -248,19 +271,20 @@ jobs:
       - name: Validate audio
         run: ./ci/validate-audio.sh /tmp/audio-linux-hl.wav 10
 
-      - name: Upload audio artifact
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: audio-linux-hl
-          path: /tmp/audio-linux-hl.wav
+          path: |
+            /tmp/audio-linux-hl.wav
+            /tmp/game-linux-hl.log
           if-no-files-found: warn
 
   # ===========================================================================
-  # Linux HTML5 Build + Audio Recording via Browser (TEMPORARILY DISABLED)
+  # Linux HTML5 Build + Audio Recording via Browser
   # ===========================================================================
   linux-html5:
-    if: false
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -371,10 +395,9 @@ jobs:
           if-no-files-found: warn
 
   # ===========================================================================
-  # macOS C++ Build + Audio Recording (TEMPORARILY DISABLED)
+  # macOS C++ Build + Audio Recording
   # ===========================================================================
   mac-cpp:
-    if: false
     runs-on: macos-14
     timeout-minutes: 30
     steps:
@@ -406,14 +429,14 @@ jobs:
         run: |
           ./scripts/build-mac.sh example-project/EZPlatformer
 
+      - name: Validate build output
+        run: |
+          APP_BUNDLE=$(find example-project/EZPlatformer/export -name "*.app" -path "*mac*" 2>/dev/null | head -1)
+          echo "APP_BUNDLE=$APP_BUNDLE" >> "$GITHUB_ENV"
+          ./ci/validate-build.sh "$APP_BUNDLE/Contents/MacOS" cpp
+
       - name: Record audio via FMOD wavwriter
         run: |
-          # Find the .app bundle
-          APP_BUNDLE=$(find example-project/EZPlatformer/export -name "*.app" -path "*mac*" 2>/dev/null | head -1)
-          if [ -z "$APP_BUNDLE" ]; then
-            echo "ERROR: No .app bundle found"
-            exit 1
-          fi
           echo "Found app: $APP_BUNDLE"
 
           # FMOD_WAVWRITER makes FMOD write its mixed output directly to a WAV file.
@@ -422,7 +445,7 @@ jobs:
 
           # Game auto-quits when player hits the right wall on level 2 (~15s).
           # Timeout at 60s as safety net (macOS lacks GNU timeout).
-          "$APP_BUNDLE/Contents/MacOS/"* &
+          "$APP_BUNDLE/Contents/MacOS/"* > /tmp/game-mac-cpp.log 2>&1 &
           GAME_PID=$!
           for i in $(seq 60); do
             kill -0 $GAME_PID 2>/dev/null || break
@@ -430,6 +453,10 @@ jobs:
           done
           kill $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
+
+          echo "=== Game log ==="
+          cat /tmp/game-mac-cpp.log || true
+          echo "=== End game log ==="
 
           if [ -f /tmp/audio-mac-cpp.wav ]; then
             echo "Audio recorded successfully"
@@ -441,19 +468,20 @@ jobs:
       - name: Validate audio
         run: ./ci/validate-audio.sh /tmp/audio-mac-cpp.wav 10
 
-      - name: Upload audio artifact
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: audio-mac-cpp
-          path: /tmp/audio-mac-cpp.wav
+          path: |
+            /tmp/audio-mac-cpp.wav
+            /tmp/game-mac-cpp.log
           if-no-files-found: warn
 
   # ===========================================================================
-  # macOS HashLink Build + Audio Recording (TEMPORARILY DISABLED)
+  # macOS HashLink Build + Audio Recording
   # ===========================================================================
   mac-hl:
-    if: false
     runs-on: macos-14
     timeout-minutes: 30
     steps:
@@ -484,14 +512,14 @@ jobs:
         run: |
           ./scripts/build-hl-mac.sh
 
+      - name: Validate build output
+        run: |
+          APP_BUNDLE=$(find example-project/EZPlatformer/export/hl -name "*.app" 2>/dev/null | head -1)
+          echo "APP_BUNDLE=$APP_BUNDLE" >> "$GITHUB_ENV"
+          ./ci/validate-build.sh "$APP_BUNDLE/Contents/MacOS" hl
+
       - name: Record audio via FMOD wavwriter
         run: |
-          # Find the .app bundle
-          APP_BUNDLE=$(find example-project/EZPlatformer/export/hl -name "*.app" 2>/dev/null | head -1)
-          if [ -z "$APP_BUNDLE" ]; then
-            echo "ERROR: No .app bundle found"
-            exit 1
-          fi
           echo "Found app: $APP_BUNDLE"
 
           # FMOD_WAVWRITER makes FMOD write its mixed output directly to a WAV file.
@@ -500,7 +528,7 @@ jobs:
 
           # Game auto-quits when player hits the right wall on level 2 (~15s).
           # Timeout at 60s as safety net (macOS lacks GNU timeout).
-          "$APP_BUNDLE/Contents/MacOS/"* &
+          "$APP_BUNDLE/Contents/MacOS/"* > /tmp/game-mac-hl.log 2>&1 &
           GAME_PID=$!
           for i in $(seq 60); do
             kill -0 $GAME_PID 2>/dev/null || break
@@ -508,6 +536,10 @@ jobs:
           done
           kill $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
+
+          echo "=== Game log ==="
+          cat /tmp/game-mac-hl.log || true
+          echo "=== End game log ==="
 
           if [ -f /tmp/audio-mac-hl.wav ]; then
             echo "Audio recorded successfully"
@@ -519,12 +551,14 @@ jobs:
       - name: Validate audio
         run: ./ci/validate-audio.sh /tmp/audio-mac-hl.wav 10
 
-      - name: Upload audio artifact
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: audio-mac-hl
-          path: /tmp/audio-mac-hl.wav
+          path: |
+            /tmp/audio-mac-hl.wav
+            /tmp/game-mac-hl.log
           if-no-files-found: warn
 
   # ===========================================================================
