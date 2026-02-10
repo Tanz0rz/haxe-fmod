@@ -254,9 +254,10 @@ jobs:
 
           # Run the game with library paths set
           cd "$BIN_DIR"
-          chmod +x run.sh
           export LD_LIBRARY_PATH="$(pwd):$LD_LIBRARY_PATH"
-          timeout 30 ./run.sh > /tmp/game-linux-hl.log 2>&1 || true
+          EXE=$(find . -maxdepth 1 -type f -executable ! -name "*.so*" ! -name "*.hdll" ! -name "run.sh" -print -quit)
+          chmod +x "$EXE"
+          timeout 30 "$EXE" > /tmp/game-linux-hl.log 2>&1 || true
           cd -
 
           echo "=== Game log ==="
