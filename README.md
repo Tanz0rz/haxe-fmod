@@ -82,6 +82,31 @@ The `FmodManager` class is the primary way to interact with FMOD in your game. I
 
 Songs and sound effects are triggered by passing in the full FMOD bank event path to the `FmodManager.PlaySong`, `FmodManager.PlaySoundOneShot`, `FmodManager.PlaySoundWithReference`, `FmodManager.PlaySoundAndAssignId` functions. To use constants to reference the events instead of strings, follow the additional set up instructions found in the [fmod-scripts](https://github.com/Tanz0rz/haxe-fmod/tree/master/fmod-scripts) folder of this repo (highly recommended).
 
+**Set up the FMOD Engine SDK:**
+
+This library requires you to supply your own FMOD Engine SDK (separate from FMOD Studio). Download it from [fmod.com/download](https://www.fmod.com/download) and extract it. The simplest place to store this would be at the root level of your project.
+
+Required versions:
+- **macOS**: FMOD Engine 2.03.12
+- **Linux / Windows / HTML5**: FMOD Engine 2.00.08
+
+Set the `FMOD_SDK` environment variable to point to the directory containing platform subdirs:
+
+```bash
+export FMOD_SDK=/path/to/your-project/fmod-sdk
+```
+
+Expected layout:
+```
+$FMOD_SDK/
+├── mac/api/core/inc/fmod.h        (macOS)
+├── linux/api/core/inc/fmod.h      (Linux)
+├── windows/api/core/inc/fmod.h    (Windows)
+└── html5/api/studio/lib/wasm/     (HTML5)
+```
+
+Run `haxelib run haxefmod doctor` to verify your setup.
+
 **Build and run:**
 
 All targets work with standard lime commands. FMOD libraries and native bindings are automatically copied to the output directory:

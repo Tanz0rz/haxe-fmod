@@ -1,16 +1,15 @@
 <xml>
 
 	<section if="windows">
-		<set name="NATIVE_TOOLKIT_PATH" value="${LINC_FAXE_PATH}/lib/Windows" />
+		<set name="NATIVE_TOOLKIT_PATH" value="${FMOD_SDK}/windows" />
 	</section>
 
 	<section if="linux">
-		<set name="NATIVE_TOOLKIT_PATH" value="${LINC_FAXE_PATH}/lib/Linux" />
+		<set name="NATIVE_TOOLKIT_PATH" value="${FMOD_SDK}/linux" />
 	</section>
 
-	<!-- Mac: ARM64 (Apple Silicon) only for now -->
 	<section if="mac">
-		<set name="NATIVE_TOOLKIT_PATH" value="${LINC_FAXE_PATH}/lib/Mac" />
+		<set name="NATIVE_TOOLKIT_PATH" value="${FMOD_SDK}/mac" />
 	</section>
 	<echo value="Found your FMOD API ${NATIVE_TOOLKIT_PATH}!" ifExists="${NATIVE_TOOLKIT_PATH}/api" />
 
@@ -41,38 +40,8 @@
 
 		<section if="mac">
 			<lib name="${NATIVE_TOOLKIT_PATH}/api/core/lib/libfmod.dylib" />
-			<lib name="${NATIVE_TOOLKIT_PATH}/api/studio/inc/lib/libfmodstudio.dylib" />
+			<lib name="${NATIVE_TOOLKIT_PATH}/api/studio/lib/libfmodstudio.dylib" />
 		</section>
 	</target>
-
-	<!-- put post builds here -->
-	<section  if="windows" unless="switch">
-		<echo value="building for win."  />
-
-		<section if="windows HXCPP_M32" >
-			<copyFile name="fmod.dll" from="${NATIVE_TOOLKIT_PATH}/api/core/lib/x86" toolId="exe" allowMissing="false"/>
-			<copyFile name="fmodstudio.dll" from="${NATIVE_TOOLKIT_PATH}/api/studio/lib/x86" toolId="exe" allowMissing="false"/>
-		</section>
-
-		<section if="windows HXCPP_M64" >
-			<copyFile name="fmod.dll" from="${NATIVE_TOOLKIT_PATH}/api/core/lib/x64" toolId="exe" allowMissing="false"/>
-			<copyFile name="fmodstudio.dll" from="${NATIVE_TOOLKIT_PATH}/api/studio/lib/x64" toolId="exe" allowMissing="false"/>
-		</section>
-	</section>
-
-	<section if="linux" unless="switch">
-		<echo value="building for linux." />
-		<copyFile name="libfmod.so" from="${NATIVE_TOOLKIT_PATH}/api/core/lib/x86_64" toolId="exe" allowMissing="false"/>
-		<copyFile name="libfmod.so.11" from="${NATIVE_TOOLKIT_PATH}/api/core/lib/x86_64" toolId="exe" allowMissing="false"/>
-		<copyFile name="libfmodstudio.so" from="${NATIVE_TOOLKIT_PATH}/api/studio/lib/x86_64" toolId="exe" allowMissing="false"/>
-		<copyFile name="libfmodstudio.so.11" from="${NATIVE_TOOLKIT_PATH}/api/studio/lib/x86_64" toolId="exe" allowMissing="false"/>
-	</section>
-
-	<section if="mac" unless="switch">
-		<echo value="building for mac." />
-		<copyFile name="libfmod.dylib" from="${NATIVE_TOOLKIT_PATH}/api/core/lib" toolId="exe" allowMissing="false"/>
-		<copyFile name="libfmodstudio.dylib" from="${NATIVE_TOOLKIT_PATH}/api/studio/inc/lib" toolId="exe" allowMissing="false"/>
-	</section>
-
 
 </xml>

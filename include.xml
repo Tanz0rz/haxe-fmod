@@ -1,23 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <project>
-	<!-- This file will be automatically appended to the game's main Project.xml at build time -->
-
-	<!-- templatePath copies pre-built hdlls + FMOD libs into HL build output automatically -->
+	<!-- templatePath copies pre-built hdlls into HL build output automatically -->
 	<templatePath name="templates" />
 
-	<!-- Windows C++ dependencies (lime processes <dependency name=...> for .dll copying) -->
-	<dependency name="lib/Windows/api/core/lib/x86/fmod.dll" if="windows HXCPP_M32"/>
-	<dependency name="lib/Windows/api/studio/lib/x86/fmodstudio.dll" if="windows HXCPP_M32" />
+	<!-- C++ postbuild: copy FMOD runtime libs from $FMOD_SDK -->
+	<postbuild command="bash ${haxelib:haxefmod}/scripts/postbuild-copy-fmod.sh mac cpp" if="mac" unless="hl" />
+	<postbuild command="bash ${haxelib:haxefmod}/scripts/postbuild-copy-fmod.sh linux cpp" if="linux" unless="hl" />
+	<postbuild command="bash ${haxelib:haxefmod}/scripts/postbuild-copy-fmod.sh windows cpp" if="windows" unless="hl" />
 
-	<dependency name="lib/Windows/api/core/lib/x64/fmod.dll" if="windows" unless="HXCPP_M32"/>
-	<dependency name="lib/Windows/api/studio/lib/x64/fmodstudio.dll" if="windows" unless="HXCPP_M32"/>
-
-	<!-- C++ Mac/Linux: copy FMOD shared libs to output dir after build -->
-	<postbuild command="${haxelib:haxefmod}/scripts/postbuild-copy-fmod.sh mac" if="mac" unless="hl html5" />
-	<postbuild command="${haxelib:haxefmod}/scripts/postbuild-copy-fmod.sh linux" if="linux" unless="hl html5" />
+	<!-- HL postbuild: copy FMOD runtime libs for HashLink targets -->
+	<postbuild command="bash ${haxelib:haxefmod}/scripts/postbuild-copy-fmod.sh mac hl" if="mac hl" unless="html5" />
+	<postbuild command="bash ${haxelib:haxefmod}/scripts/postbuild-copy-fmod.sh linux hl" if="linux hl" unless="html5" />
+	<postbuild command="bash ${haxelib:haxefmod}/scripts/postbuild-copy-fmod.sh windows hl" if="windows hl" unless="html5" />
 
 	<!-- HTML5 dependencies -->
-	<dependency path="lib/html5/fmodstudio.js" if="html5"/>
-	<assets path="lib/html5/fmodstudio.wasm" rename="lib/fmodstudio.wasm" if="html5"/>
+	<dependency path="${FMOD_SDK}/html5/api/studio/lib/wasm/fmodstudio.js" if="html5"/>
+	<assets path="${FMOD_SDK}/html5/api/studio/lib/wasm/fmodstudio.wasm" rename="lib/fmodstudio.wasm" if="html5"/>
 	<dependency path="native/jaxe/jaxe.js" if="html5"/>
 </project>
