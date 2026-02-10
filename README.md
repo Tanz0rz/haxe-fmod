@@ -113,17 +113,23 @@ For HTML5 builds to work, a dedicated scene must be run before the game starts t
 
 ## <a name="hashlink-builds"></a>HashLink Builds
 
-HashLink builds require the FMOD shared libraries and the `hlaxe_fmod.hdll` file to be in the same directory as the executable. A build script is provided to automate this:
+HashLink builds require the FMOD shared libraries and the `hlaxe_fmod.hdll` file to be in the same directory as the executable. Platform-specific build scripts are provided:
 
 ```bash
-# From your project directory
+# Linux
+/path/to/haxefmod/scripts/build-hl-linux.sh .
+
+# macOS (ARM64 only)
+/path/to/haxefmod/scripts/build-hl-mac.sh .
+
+# Generic (auto-detects platform)
 /path/to/haxefmod/scripts/build-hl.sh .
 ```
 
-The script will:
-1. Build the HashLink target using `lime build hl`
-2. Copy the FMOD libraries (`libfmod.so`, `libfmodstudio.so` on Linux; `.dll` on Windows)
-3. Copy `hlaxe_fmod.hdll`
+Each script will:
+1. Compile `hlaxe_fmod.hdll` if not already built
+2. Build the HashLink target using `lime build hl`
+3. Copy the FMOD libraries and `hlaxe_fmod.hdll` to the output
 4. Create a `run.sh` script that sets up `LD_LIBRARY_PATH` (Linux only)
 
 To run the built game on Linux:
@@ -178,8 +184,8 @@ open export/macos/bin/YourGame.app
 A build script is provided to automate the HashLink build:
 
 ```bash
-# From the haxe-fmod root directory
-./scripts/build-hl-mac.sh
+# From your project directory
+/path/to/haxefmod/scripts/build-hl-mac.sh .
 ```
 
 The script will:
@@ -189,7 +195,7 @@ The script will:
 
 To run the built game:
 ```bash
-open example-project/EZPlatformer/export/hl/bin/YourGame.app
+open export/hl/bin/YourGame.app
 ```
 
 ### macOS Prerequisites
@@ -256,7 +262,7 @@ lime test html5
 ../../scripts/build-mac.sh . && open export/macos/bin/EZPlatformerTestEdition.app
 
 # macOS HashLink (ARM64/Apple Silicon only)
-../../scripts/build-hl-mac.sh && open export/hl/bin/EZPlatformerTestEdition.app
+../../scripts/build-hl-mac.sh . && open export/hl/bin/EZPlatformerTestEdition.app
 
 # Windows
 lime test windows
@@ -278,10 +284,11 @@ The native backends (HashLink `.hdll` and C++ bindings) have pre-built binaries 
 - **C++**: The source is in `native/faxe/`. Built automatically by hxcpp during `lime build`.
 
 Build scripts for copying dependencies are in the `scripts/` directory:
-- `scripts/build-hl.sh` - Build and package HashLink targets
+- `scripts/build-hl.sh` - Build and package HashLink targets (generic, auto-detects platform)
+- `scripts/build-hl-linux.sh` - Build and package Linux HashLink targets
+- `scripts/build-hl-mac.sh` - Build and package macOS HashLink targets (ARM64/Apple Silicon only)
 - `scripts/build-linux.sh` - Build and package Linux C++ targets
 - `scripts/build-mac.sh` - Build and package macOS C++ targets (ARM64/Apple Silicon only)
-- `scripts/build-hl-mac.sh` - Build and package macOS HashLink targets (ARM64/Apple Silicon only)
 
 ## <a name="future-goals"></a>Future Goals
 
