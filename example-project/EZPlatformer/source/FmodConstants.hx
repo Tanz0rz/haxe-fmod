@@ -11,5 +11,5 @@ class FmodSongs {
 
 class FmodSFX {
     public static inline var Coin:String = "event:/SFX/Coin";
-    public static inline var Jump:String = "event:/SFX/JumpThatDoesNotExist";
+    public static inline var Jump:String = "event:/SFX/Jump";
 }
