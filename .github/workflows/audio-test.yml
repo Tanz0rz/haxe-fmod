@@ -766,21 +766,30 @@ jobs:
           fi
 
       - name: Fix WAV header
+        shell: python
         run: |
-          WAV="$GITHUB_WORKSPACE/audio-windows-hl.wav"
-          FFPROBE="/c/ProgramData/chocolatey/bin/ffprobe.exe"
-          FFMPEG="/c/ProgramData/chocolatey/bin/ffmpeg.exe"
-          if [ -f "$WAV" ]; then
-            # FMOD WAVWRITER on Windows writes 0 channels in WAV header when process
-            # exits via Sys.exit() without calling FMOD release. Re-wrap the raw PCM
-            # data with a correct header (skip 44-byte broken WAV header).
-            echo "Re-wrapping WAV with correct header..."
-            tail -c +45 "$WAV" > "${WAV}.raw"
-            "$FFMPEG" -f s16le -ar 48000 -ac 2 -i "${WAV}.raw" -y "${WAV}.fixed" 2>/dev/null
-            mv "${WAV}.fixed" "$WAV"
-            rm -f "${WAV}.raw"
-            "$FFPROBE" -i "$WAV" 2>&1 | grep -E "Stream|Duration" || true
-          fi
+          import struct, os
+          wav = os.path.join(os.environ['GITHUB_WORKSPACE'], 'audio-windows-hl.wav')
+          if os.path.exists(wav):
+              # FMOD WAVWRITER on Windows writes 0 channels in the WAV header when the
+              # process exits via Sys.exit() without calling FMOD release. Fix by patching
+              # the channel count (bytes 22-23) to 2 (stereo) and recalculating byte rate
+              # and block align fields.
+              with open(wav, 'r+b') as f:
+                  f.seek(22)
+                  num_channels = struct.unpack('<H', f.read(2))[0]
+                  if num_channels == 0:
+                      print(f"Fixing WAV header: 0 channels -> 2 channels (stereo)")
+                      f.seek(22)
+                      f.write(struct.pack('<H', 2))        # NumChannels = 2
+                      f.seek(28)
+                      f.write(struct.pack('<I', 192000))    # ByteRate = 48000 * 2 * 2
+                      f.write(struct.pack('<H', 4))         # BlockAlign = 2 * 2
+                      print("WAV header fixed")
+                  else:
+                      print(f"WAV header OK ({num_channels} channels)")
+          else:
+              print(f"WAV file not found: {wav}")
 
       - name: Validate audio
         run: ./ci/validate-audio.sh "$GITHUB_WORKSPACE/audio-windows-hl.wav" 10
