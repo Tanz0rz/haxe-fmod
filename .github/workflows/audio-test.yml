@@ -46,7 +46,8 @@ jobs:
 
       - name: Build C++ target
         run: |
-          ./scripts/build-linux.sh example-project/EZPlatformer
+          cd example-project/EZPlatformer
+          haxelib run lime build linux -64
 
       - name: Patch FMOD libraries
         run: |
@@ -202,7 +203,8 @@ jobs:
 
       - name: Build HashLink target
         run: |
-          ./scripts/build-hl.sh example-project/EZPlatformer
+          cd example-project/EZPlatformer
+          haxelib run lime build hl
 
       - name: Patch FMOD libraries
         run: |
@@ -440,7 +442,8 @@ jobs:
 
       - name: Build C++ target
         run: |
-          ./scripts/build-mac.sh example-project/EZPlatformer
+          cd example-project/EZPlatformer
+          haxelib run lime build mac -64
 
       - name: Validate build output
         run: |
@@ -526,7 +529,8 @@ jobs:
 
       - name: Build HashLink target
         run: |
-          ./scripts/build-hl-mac.sh example-project/EZPlatformer
+          cd example-project/EZPlatformer
+          haxelib run lime build hl
 
       - name: Validate build output
         run: |
