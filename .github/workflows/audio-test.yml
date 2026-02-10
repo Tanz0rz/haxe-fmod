@@ -581,34 +581,28 @@ jobs:
           cd example-project/EZPlatformer
           haxelib run lime build windows -64
 
+      - name: Validate build output
+        run: |
+          BIN_DIR=$(find example-project/EZPlatformer/export -type d -name "bin" -path "*windows*" | head -1)
+          echo "BIN_DIR=$BIN_DIR" >> "$GITHUB_ENV"
+          ./ci/validate-build.sh "$BIN_DIR" cpp
+
       - name: Record audio via FMOD wavwriter
         run: |
-          # Find the bin directory
-          BIN_DIR=$(find example-project/EZPlatformer/export -type d -name "bin" -path "*windows*" | head -1)
-          if [ -z "$BIN_DIR" ]; then
-            echo "ERROR: No bin directory found"
-            find example-project/EZPlatformer/export -type d
-            exit 1
-          fi
-          echo "Found bin dir: $BIN_DIR"
-          ls -la "$BIN_DIR"
-
-          # Find the exe
-          EXE=$(find "$BIN_DIR" -name "*.exe" | head -1)
-          if [ -z "$EXE" ]; then
-            echo "ERROR: No .exe found in $BIN_DIR"
-            exit 1
-          fi
+          EXE=$(find "$BIN_DIR" -maxdepth 1 -name "*.exe" | head -1)
           echo "Found exe: $EXE"
 
-          # FMOD_WAVWRITER makes FMOD write its mixed output directly to a WAV file.
           export FMOD_WAVWRITER="$GITHUB_WORKSPACE/audio-windows-cpp.wav"
 
           # Game auto-quits when player hits the right wall on level 2 (~15s).
-          # Must cd to bin dir so the game can find its assets and bank files.
+          # Capture stdout/stderr to a log file for debugging.
           cd "$BIN_DIR"
-          timeout 60 "./$(basename "$EXE")" || true
+          timeout 60 "./$(basename "$EXE")" > "$GITHUB_WORKSPACE/game-windows-cpp.log" 2>&1 || true
           cd -
+
+          echo "=== Game log ==="
+          cat "$GITHUB_WORKSPACE/game-windows-cpp.log" || true
+          echo "=== End game log ==="
 
           if [ -f "$GITHUB_WORKSPACE/audio-windows-cpp.wav" ]; then
             echo "Audio recorded successfully"
@@ -642,12 +636,14 @@ jobs:
       - name: Validate audio
         run: ./ci/validate-audio.sh "$GITHUB_WORKSPACE/audio-windows-cpp.wav" 10
 
-      - name: Upload audio artifact
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: audio-windows-cpp
-          path: audio-windows-cpp.wav
+          path: |
+            audio-windows-cpp.wav
+            game-windows-cpp.log
           if-no-files-found: warn
 
   # ===========================================================================
@@ -760,26 +756,28 @@ jobs:
           echo "Bin dir contents:"
           ls -la "$BIN_DIR"
 
-      - name: Record audio via FMOD wavwriter
+      - name: Validate build output
         run: |
           BIN_DIR="example-project/EZPlatformer/export/hl/bin"
+          echo "BIN_DIR=$BIN_DIR" >> "$GITHUB_ENV"
+          ./ci/validate-build.sh "$BIN_DIR" hl
 
-          # Find the native HL/C compiled exe (NOT hl.exe from HashLink)
+      - name: Record audio via FMOD wavwriter
+        run: |
           EXE=$(find "$BIN_DIR" -maxdepth 1 -name "*.exe" | head -1)
-          if [ -z "$EXE" ]; then
-            echo "ERROR: No .exe found in $BIN_DIR"
-            ls -la "$BIN_DIR"
-            exit 1
-          fi
           echo "Found exe: $EXE"
 
-          # FMOD_WAVWRITER makes FMOD write its mixed output directly to a WAV file.
           export FMOD_WAVWRITER="$GITHUB_WORKSPACE/audio-windows-hl.wav"
 
           # Game auto-quits when player hits the right wall on level 2 (~15s).
+          # Capture stdout/stderr to a log file for debugging.
           cd "$BIN_DIR"
-          timeout 60 "./$(basename "$EXE")" || true
+          timeout 60 "./$(basename "$EXE")" > "$GITHUB_WORKSPACE/game-windows-hl.log" 2>&1 || true
           cd -
+
+          echo "=== Game log ==="
+          cat "$GITHUB_WORKSPACE/game-windows-hl.log" || true
+          echo "=== End game log ==="
 
           if [ -f "$GITHUB_WORKSPACE/audio-windows-hl.wav" ]; then
             echo "Audio recorded successfully"
@@ -817,10 +815,12 @@ jobs:
       - name: Validate audio
         run: ./ci/validate-audio.sh "$GITHUB_WORKSPACE/audio-windows-hl.wav" 10
 
-      - name: Upload audio artifact
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: audio-windows-hl
-          path: audio-windows-hl.wav
+          path: |
+            audio-windows-hl.wav
+            game-windows-hl.log
           if-no-files-found: warn
