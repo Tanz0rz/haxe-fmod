@@ -12,6 +12,10 @@
 	<dependency name="lib/Windows/api/core/lib/x64/fmod.dll" if="windows" unless="HXCPP_M32"/>
 	<dependency name="lib/Windows/api/studio/lib/x64/fmodstudio.dll" if="windows" unless="HXCPP_M32"/>
 
+	<!-- C++ Mac/Linux: copy FMOD shared libs to output dir after build -->
+	<postbuild command="${haxelib:haxefmod}/scripts/postbuild-copy-fmod.sh mac" if="mac" unless="hl html5" />
+	<postbuild command="${haxelib:haxefmod}/scripts/postbuild-copy-fmod.sh linux" if="linux" unless="hl html5" />
+
 	<!-- HTML5 dependencies -->
 	<dependency path="lib/html5/fmodstudio.js" if="html5"/>
 	<assets path="lib/html5/fmodstudio.wasm" rename="lib/fmodstudio.wasm" if="html5"/>
