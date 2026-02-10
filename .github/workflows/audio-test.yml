@@ -13,6 +13,7 @@ jobs:
   # Linux C++ Build + Audio Recording (TEMPORARILY DISABLED)
   # ===========================================================================
   linux-cpp:
+    if: false
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -121,6 +122,7 @@ jobs:
   # Linux HashLink Build + Audio Recording (TEMPORARILY DISABLED)
   # ===========================================================================
   linux-hl:
+    if: false
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -258,6 +260,7 @@ jobs:
   # Linux HTML5 Build + Audio Recording via Browser (TEMPORARILY DISABLED)
   # ===========================================================================
   linux-html5:
+    if: false
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -371,6 +374,7 @@ jobs:
   # macOS C++ Build + Audio Recording (TEMPORARILY DISABLED)
   # ===========================================================================
   mac-cpp:
+    if: false
     runs-on: macos-14
     timeout-minutes: 30
     steps:
@@ -449,6 +453,7 @@ jobs:
   # macOS HashLink Build + Audio Recording (TEMPORARILY DISABLED)
   # ===========================================================================
   mac-hl:
+    if: false
     runs-on: macos-14
     timeout-minutes: 30
     steps:
@@ -526,6 +531,7 @@ jobs:
   # Windows C++ Build + Audio Recording
   # ===========================================================================
   windows-cpp:
+    if: false
     runs-on: windows-latest
     timeout-minutes: 30
     defaults:

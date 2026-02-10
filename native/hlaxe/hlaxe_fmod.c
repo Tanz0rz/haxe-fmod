@@ -75,6 +75,8 @@ HL_PRIM int HL_NAME(init)(int numChannels) {
     if (wavWriterPath && wavWriterPath[0] != '\0') {
         FMOD_Studio_System_GetCoreSystem(gStudioSystem, &gCoreSystem);
         FMOD_System_SetOutput(gCoreSystem, FMOD_OUTPUTTYPE_WAVWRITER);
+        // Explicit stereo format so WAV header has correct channel count (Windows needs this)
+        FMOD_System_SetSoftwareFormat(gCoreSystem, 48000, FMOD_SPEAKERMODE_STEREO, 0);
         extradriverdata = (void*)wavWriterPath;
     }
 
