@@ -107,6 +107,10 @@ $FMOD_SDK/
 
 Run `haxelib run haxefmod doctor` to verify your setup.
 
+**Troubleshooting: `Failed to load library hlaxe_fmod.hdll`**
+
+This error means the FMOD runtime libraries (`fmod.dll`, `libfmod.dylib`, etc.) are missing from your build output. Make sure `FMOD_SDK` is set before building. The build may appear to succeed without it, but the game will crash at startup. Run `haxelib run haxefmod doctor` to diagnose.
+
 **Build and run:**
 
 All targets work with standard lime commands. FMOD libraries and native bindings are automatically copied to the output directory:
