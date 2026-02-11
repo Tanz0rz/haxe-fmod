@@ -12,7 +12,12 @@ TARGET="$2"
 
 if [ -z "$FMOD_SDK" ]; then
   echo ""
-  echo "[haxefmod] ERROR: FMOD_SDK environment variable is not set."
+  echo "============================================================"
+  echo "  ERROR: FMOD_SDK environment variable is not set."
+  echo ""
+  echo "  Your build will NOT work without FMOD libraries!"
+  echo "  You will see: Failed to load library hlaxe_fmod.hdll"
+  echo "============================================================"
   echo ""
   echo "  haxe-fmod requires you to supply your own FMOD Engine SDK."
   echo ""
@@ -31,6 +36,8 @@ if [ -z "$FMOD_SDK" ]; then
   echo "       \$FMOD_SDK/windows/api/core/inc/fmod.h"
   echo ""
   echo "  3. Run 'haxelib run haxefmod doctor' to verify your setup."
+  echo ""
+  echo "============================================================"
   echo ""
   exit 1
 fi
