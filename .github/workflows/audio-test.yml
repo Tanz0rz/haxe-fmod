@@ -29,14 +29,13 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Download FMOD SDK
-        env:
-          GH_TOKEN: ${{ secrets.FMOD_SDK_TOKEN }}
         run: |
           mkdir -p "$FMOD_SDK"
-          gh release download 2.03.12 \
-            --repo Tanz0rz/fmod-sdk-cache \
-            --pattern "fmod-sdk-linux-2.03.12.tar.gz" \
-            --dir /tmp
+          curl -L \
+            -H "Authorization: token ${{ secrets.FMOD_SDK_TOKEN }}" \
+            -H "Accept: application/octet-stream" \
+            -o /tmp/fmod-sdk-linux-2.03.12.tar.gz \
+            "https://api.github.com/repos/Tanz0rz/fmod-sdk-cache/releases/assets/354714994"
           tar -xzf /tmp/fmod-sdk-linux-2.03.12.tar.gz -C "$FMOD_SDK"
           ls -la "$FMOD_SDK/api/core/inc/" | head -5
 
@@ -168,14 +167,13 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Download FMOD SDK
-        env:
-          GH_TOKEN: ${{ secrets.FMOD_SDK_TOKEN }}
         run: |
           mkdir -p "$FMOD_SDK"
-          gh release download 2.03.12 \
-            --repo Tanz0rz/fmod-sdk-cache \
-            --pattern "fmod-sdk-linux-2.03.12.tar.gz" \
-            --dir /tmp
+          curl -L \
+            -H "Authorization: token ${{ secrets.FMOD_SDK_TOKEN }}" \
+            -H "Accept: application/octet-stream" \
+            -o /tmp/fmod-sdk-linux-2.03.12.tar.gz \
+            "https://api.github.com/repos/Tanz0rz/fmod-sdk-cache/releases/assets/354714994"
           tar -xzf /tmp/fmod-sdk-linux-2.03.12.tar.gz -C "$FMOD_SDK"
           ls -la "$FMOD_SDK/api/core/inc/" | head -5
 
@@ -341,14 +339,13 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Download FMOD SDK
-        env:
-          GH_TOKEN: ${{ secrets.FMOD_SDK_TOKEN }}
         run: |
           mkdir -p "$FMOD_SDK"
-          gh release download 2.03.12 \
-            --repo Tanz0rz/fmod-sdk-cache \
-            --pattern "fmod-sdk-html5-2.03.12.zip" \
-            --dir /tmp
+          curl -L \
+            -H "Authorization: token ${{ secrets.FMOD_SDK_TOKEN }}" \
+            -H "Accept: application/octet-stream" \
+            -o /tmp/fmod-sdk-html5-2.03.12.zip \
+            "https://api.github.com/repos/Tanz0rz/fmod-sdk-cache/releases/assets/354714992"
           unzip -q /tmp/fmod-sdk-html5-2.03.12.zip -d "$FMOD_SDK"
           ls -la "$FMOD_SDK/api/studio/lib/wasm/" | head -5
 
@@ -465,14 +462,13 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Download FMOD SDK
-        env:
-          GH_TOKEN: ${{ secrets.FMOD_SDK_TOKEN }}
         run: |
           mkdir -p "$FMOD_SDK"
-          gh release download 2.03.12 \
-            --repo Tanz0rz/fmod-sdk-cache \
-            --pattern "fmod-sdk-mac-2.03.12.tar.gz" \
-            --dir /tmp
+          curl -L \
+            -H "Authorization: token ${{ secrets.FMOD_SDK_TOKEN }}" \
+            -H "Accept: application/octet-stream" \
+            -o /tmp/fmod-sdk-mac-2.03.12.tar.gz \
+            "https://api.github.com/repos/Tanz0rz/fmod-sdk-cache/releases/assets/354714996"
           tar -xzf /tmp/fmod-sdk-mac-2.03.12.tar.gz -C "$FMOD_SDK"
           ls -la "$FMOD_SDK/api/core/inc/" | head -5
 
@@ -562,14 +558,13 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Download FMOD SDK
-        env:
-          GH_TOKEN: ${{ secrets.FMOD_SDK_TOKEN }}
         run: |
           mkdir -p "$FMOD_SDK"
-          gh release download 2.03.12 \
-            --repo Tanz0rz/fmod-sdk-cache \
-            --pattern "fmod-sdk-mac-2.03.12.tar.gz" \
-            --dir /tmp
+          curl -L \
+            -H "Authorization: token ${{ secrets.FMOD_SDK_TOKEN }}" \
+            -H "Accept: application/octet-stream" \
+            -o /tmp/fmod-sdk-mac-2.03.12.tar.gz \
+            "https://api.github.com/repos/Tanz0rz/fmod-sdk-cache/releases/assets/354714996"
           tar -xzf /tmp/fmod-sdk-mac-2.03.12.tar.gz -C "$FMOD_SDK"
           echo "FMOD SDK contents:"
           ls -R "$FMOD_SDK/api/" | head -20
@@ -685,14 +680,13 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Download FMOD SDK
-        env:
-          GH_TOKEN: ${{ secrets.FMOD_SDK_TOKEN }}
         run: |
           mkdir -p "$FMOD_SDK"
-          gh release download 2.03.12 \
-            --repo Tanz0rz/fmod-sdk-cache \
-            --pattern "fmod-sdk-windows-2.03.12.zip" \
-            --dir /tmp
+          curl -L \
+            -H "Authorization: token ${{ secrets.FMOD_SDK_TOKEN }}" \
+            -H "Accept: application/octet-stream" \
+            -o /tmp/fmod-sdk-windows-2.03.12.zip \
+            "https://api.github.com/repos/Tanz0rz/fmod-sdk-cache/releases/assets/354715004"
           unzip -q /tmp/fmod-sdk-windows-2.03.12.zip -d "$FMOD_SDK"
           ls -la "$FMOD_SDK/api/core/inc/" | head -5
 
@@ -815,14 +809,13 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Download FMOD SDK
-        env:
-          GH_TOKEN: ${{ secrets.FMOD_SDK_TOKEN }}
         run: |
           mkdir -p "$FMOD_SDK"
-          gh release download 2.03.12 \
-            --repo Tanz0rz/fmod-sdk-cache \
-            --pattern "fmod-sdk-windows-2.03.12.zip" \
-            --dir /tmp
+          curl -L \
+            -H "Authorization: token ${{ secrets.FMOD_SDK_TOKEN }}" \
+            -H "Accept: application/octet-stream" \
+            -o /tmp/fmod-sdk-windows-2.03.12.zip \
+            "https://api.github.com/repos/Tanz0rz/fmod-sdk-cache/releases/assets/354715004"
           unzip -q /tmp/fmod-sdk-windows-2.03.12.zip -d "$FMOD_SDK"
           ls -la "$FMOD_SDK/api/core/inc/" | head -5
 
