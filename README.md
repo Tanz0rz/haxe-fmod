@@ -86,9 +86,8 @@ Songs and sound effects are triggered by passing in the full FMOD bank event pat
 
 This library requires you to supply your own FMOD Engine SDK (separate from FMOD Studio). Download it from [fmod.com/download](https://www.fmod.com/download) and extract it. The simplest place to store this would be at the root level of your project.
 
-Required versions:
-- **macOS**: FMOD Engine 2.03.12
-- **Linux / Windows / HTML5**: FMOD Engine 2.00.08
+Required version:
+- **All platforms**: FMOD Engine 2.03.12
 
 Set the `FMOD_SDK` environment variable to point to the directory containing platform subdirs:
 

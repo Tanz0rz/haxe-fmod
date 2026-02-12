@@ -55,8 +55,7 @@ class Run {
 			Sys.println("");
 			Sys.println("  To fix this:");
 			Sys.println("  1. Download FMOD Engine from https://www.fmod.com/download");
-			Sys.println('     - Mac requires version 2.03.12');
-			Sys.println('     - Linux/Windows require version 2.00.08');
+			Sys.println('     - All platforms require version 2.03.12');
 			Sys.println("  2. Extract and set FMOD_SDK to point to the extracted directory.");
 			Sys.println("     The simplest place to store this would be at the root level of your project.");
 			Sys.println("");
@@ -85,10 +84,7 @@ class Run {
 		var platform = detectPlatform();
 		var platformDir = '$fmodSdk/$platform';
 		var headerPath = '$platformDir/api/core/inc/fmod.h';
-		var expectedVersion = switch (platform) {
-			case "mac": "2.03.12";
-			default: "2.00.08";
-		};
+		var expectedVersion = "2.03.12";
 		if (!FileSystem.exists(headerPath)) {
 			fail('$platform SDK headers present', 'Not found: $headerPath');
 			Sys.println('         Download FMOD Engine $expectedVersion for $platform from https://www.fmod.com/download');
@@ -194,10 +190,7 @@ class Run {
 			];
 			default: [];
 		};
-		var expectedVersion = switch (platform) {
-			case "mac": "2.03.12";
-			default: "2.00.08";
-		};
+		var expectedVersion = "2.03.12";
 		var missing:Array<String> = [];
 		for (lib in libs) {
 			if (!FileSystem.exists(lib)) missing.push(lib);
@@ -265,7 +258,7 @@ class Run {
 			if (!jsExists) missing.push("fmodstudio.js");
 			if (!wasmExists) missing.push("fmodstudio.wasm");
 			fail("HTML5 SDK present (optional, needed for lime build html5)", 'Missing: ${missing.join(", ")}');
-			Sys.println('         Download FMOD Engine 2.00.08 for HTML5 from https://www.fmod.com/download');
+			Sys.println('         Download FMOD Engine 2.03.12 for HTML5 from https://www.fmod.com/download');
 			Sys.println('         and extract it to $$FMOD_SDK/html5/');
 		}
 	}
