@@ -281,12 +281,6 @@ jobs:
 
           BIN_DIR="example-project/EZPlatformer/export/hl/bin"
 
-          # Ensure .so symlinks exist
-          cd "$BIN_DIR"
-          ln -sf libfmod.so.11 libfmod.so 2>/dev/null || true
-          ln -sf libfmodstudio.so.11 libfmodstudio.so 2>/dev/null || true
-          cd -
-
           # Start recording from the virtual sink's monitor
           ffmpeg -f pulse -i virtual_speaker.monitor -t 30 -y /tmp/audio-linux-hl.wav &
           RECORD_PID=$!
