@@ -29,10 +29,16 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Download FMOD SDK
+        env:
+          GH_TOKEN: ${{ secrets.FMOD_SDK_TOKEN }}
         run: |
-          git clone --depth 1 --branch v1 \
-            https://x-access-token:${{ secrets.FMOD_SDK_TOKEN }}@github.com/Tanz0rz/fmod-sdk-cache.git \
-            "$FMOD_SDK"
+          mkdir -p "$FMOD_SDK"
+          gh release download 2.03.12 \
+            --repo Tanz0rz/fmod-sdk-cache \
+            --pattern "fmod-sdk-linux-2.03.12.tar.gz" \
+            --dir /tmp
+          tar -xzf /tmp/fmod-sdk-linux-2.03.12.tar.gz -C "$FMOD_SDK"
+          ls -la "$FMOD_SDK/api/core/inc/" | head -5
 
       - name: Setup Haxe
         uses: krdlab/setup-haxe@v1
@@ -162,10 +168,16 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Download FMOD SDK
+        env:
+          GH_TOKEN: ${{ secrets.FMOD_SDK_TOKEN }}
         run: |
-          git clone --depth 1 --branch v1 \
-            https://x-access-token:${{ secrets.FMOD_SDK_TOKEN }}@github.com/Tanz0rz/fmod-sdk-cache.git \
-            "$FMOD_SDK"
+          mkdir -p "$FMOD_SDK"
+          gh release download 2.03.12 \
+            --repo Tanz0rz/fmod-sdk-cache \
+            --pattern "fmod-sdk-linux-2.03.12.tar.gz" \
+            --dir /tmp
+          tar -xzf /tmp/fmod-sdk-linux-2.03.12.tar.gz -C "$FMOD_SDK"
+          ls -la "$FMOD_SDK/api/core/inc/" | head -5
 
       - name: Setup Haxe
         uses: krdlab/setup-haxe@v1
@@ -329,10 +341,16 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Download FMOD SDK
+        env:
+          GH_TOKEN: ${{ secrets.FMOD_SDK_TOKEN }}
         run: |
-          git clone --depth 1 --branch v1 \
-            https://x-access-token:${{ secrets.FMOD_SDK_TOKEN }}@github.com/Tanz0rz/fmod-sdk-cache.git \
-            "$FMOD_SDK"
+          mkdir -p "$FMOD_SDK"
+          gh release download 2.03.12 \
+            --repo Tanz0rz/fmod-sdk-cache \
+            --pattern "fmod-sdk-html5-2.03.12.zip" \
+            --dir /tmp
+          unzip -q /tmp/fmod-sdk-html5-2.03.12.zip -d "$FMOD_SDK"
+          ls -la "$FMOD_SDK/api/studio/lib/wasm/" | head -5
 
       - name: Setup Haxe
         uses: krdlab/setup-haxe@v1
@@ -447,10 +465,16 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Download FMOD SDK
+        env:
+          GH_TOKEN: ${{ secrets.FMOD_SDK_TOKEN }}
         run: |
-          git clone --depth 1 --branch v1 \
-            https://x-access-token:${{ secrets.FMOD_SDK_TOKEN }}@github.com/Tanz0rz/fmod-sdk-cache.git \
-            "$FMOD_SDK"
+          mkdir -p "$FMOD_SDK"
+          gh release download 2.03.12 \
+            --repo Tanz0rz/fmod-sdk-cache \
+            --pattern "fmod-sdk-mac-2.03.12.tar.gz" \
+            --dir /tmp
+          tar -xzf /tmp/fmod-sdk-mac-2.03.12.tar.gz -C "$FMOD_SDK"
+          ls -la "$FMOD_SDK/api/core/inc/" | head -5
 
       - name: Setup Haxe via Homebrew
         run: |
@@ -538,12 +562,17 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Download FMOD SDK
+        env:
+          GH_TOKEN: ${{ secrets.FMOD_SDK_TOKEN }}
         run: |
-          git clone --depth 1 --branch v1 \
-            https://x-access-token:${{ secrets.FMOD_SDK_TOKEN }}@github.com/Tanz0rz/fmod-sdk-cache.git \
-            "$FMOD_SDK"
+          mkdir -p "$FMOD_SDK"
+          gh release download 2.03.12 \
+            --repo Tanz0rz/fmod-sdk-cache \
+            --pattern "fmod-sdk-mac-2.03.12.tar.gz" \
+            --dir /tmp
+          tar -xzf /tmp/fmod-sdk-mac-2.03.12.tar.gz -C "$FMOD_SDK"
           echo "FMOD SDK contents:"
-          ls -R "$FMOD_SDK/mac/api/" | head -20
+          ls -R "$FMOD_SDK/api/" | head -20
 
       - name: Setup Haxe via Homebrew
         run: |
@@ -656,10 +685,16 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Download FMOD SDK
+        env:
+          GH_TOKEN: ${{ secrets.FMOD_SDK_TOKEN }}
         run: |
-          git clone --depth 1 --branch v1 \
-            https://x-access-token:${{ secrets.FMOD_SDK_TOKEN }}@github.com/Tanz0rz/fmod-sdk-cache.git \
-            "$FMOD_SDK"
+          mkdir -p "$FMOD_SDK"
+          gh release download 2.03.12 \
+            --repo Tanz0rz/fmod-sdk-cache \
+            --pattern "fmod-sdk-windows-2.03.12.zip" \
+            --dir /tmp
+          unzip -q /tmp/fmod-sdk-windows-2.03.12.zip -d "$FMOD_SDK"
+          ls -la "$FMOD_SDK/api/core/inc/" | head -5
 
       - name: Setup Haxe
         uses: krdlab/setup-haxe@v1
@@ -780,10 +815,16 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Download FMOD SDK
+        env:
+          GH_TOKEN: ${{ secrets.FMOD_SDK_TOKEN }}
         run: |
-          git clone --depth 1 --branch v1 \
-            https://x-access-token:${{ secrets.FMOD_SDK_TOKEN }}@github.com/Tanz0rz/fmod-sdk-cache.git \
-            "$FMOD_SDK"
+          mkdir -p "$FMOD_SDK"
+          gh release download 2.03.12 \
+            --repo Tanz0rz/fmod-sdk-cache \
+            --pattern "fmod-sdk-windows-2.03.12.zip" \
+            --dir /tmp
+          unzip -q /tmp/fmod-sdk-windows-2.03.12.zip -d "$FMOD_SDK"
+          ls -la "$FMOD_SDK/api/core/inc/" | head -5
 
       - name: Setup Haxe
         uses: krdlab/setup-haxe@v1
@@ -836,11 +877,11 @@ jobs:
           cd native\hlaxe
           cl /LD /O2 /DWIN32 hlaxe_fmod.c ^
             /I"C:\hashlink\include" ^
-            /I"%FMOD_SDK%\windows\api\core\inc" ^
-            /I"%FMOD_SDK%\windows\api\studio\inc" ^
+            /I"%FMOD_SDK%\api\core\inc" ^
+            /I"%FMOD_SDK%\api\studio\inc" ^
             /link ^
-            /LIBPATH:"%FMOD_SDK%\windows\api\core\lib\x64" ^
-            /LIBPATH:"%FMOD_SDK%\windows\api\studio\lib\x64" ^
+            /LIBPATH:"%FMOD_SDK%\api\core\lib\x64" ^
+            /LIBPATH:"%FMOD_SDK%\api\studio\lib\x64" ^
             fmod_vc.lib fmodstudio_vc.lib ^
             /LIBPATH:"C:\hashlink" libhl.lib ^
             /OUT:hlaxe_fmod.hdll
