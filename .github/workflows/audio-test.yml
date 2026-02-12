@@ -993,3 +993,48 @@ jobs:
             audio-windows-hl.wav
             game-windows-hl.log
           if-no-files-found: warn
+
+  # ===========================================================================
+  # Update Pre-built hdlls
+  # Commits freshly compiled hdlls back to repo if they changed
+  # ===========================================================================
+  update-hdlls:
+    runs-on: ubuntu-latest
+    needs: [linux-hl, mac-hl, windows-hl]
+    if: ${{ github.ref == 'refs/heads/hashlink-refactor-standardize' && github.event_name != 'pull_request' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download compiled hdlls
+        uses: actions/download-artifact@v4
+        with:
+          pattern: hlaxe_fmod-*.hdll
+          path: /tmp/hdlls
+
+      - name: Update templates directory
+        run: |
+          echo "Copying hdlls to templates..."
+          cp /tmp/hdlls/hlaxe_fmod-linux.hdll/hlaxe_fmod.hdll templates/bin/hl/Linux64/hlaxe_fmod.hdll
+          cp /tmp/hdlls/hlaxe_fmod-mac.hdll/hlaxe_fmod.hdll templates/bin/hl/Mac64/hlaxe_fmod.hdll
+          cp /tmp/hdlls/hlaxe_fmod-windows.hdll/hlaxe_fmod.hdll templates/bin/hl/Windows64/hlaxe_fmod.hdll
+          
+          echo "Checking for changes..."
+          git diff --stat templates/bin/hl/
+
+      - name: Commit updated hdlls
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git add templates/bin/hl/
+          
+          if git diff --staged --quiet; then
+            echo "No changes to hdlls"
+          else
+            git commit -m "Update pre-built hdlls from CI build
+
+Built against FMOD 2.03.12 from run ${{ github.run_id }}"
+            git push
+          fi
