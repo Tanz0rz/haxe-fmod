@@ -167,10 +167,10 @@ class Run {
 			pass("Visual Studio C++ tools (for lime build windows)", "");
 		} else {
 			fail("Visual Studio C++ tools (needed for lime build windows, not needed for lime build hl)", "cl.exe not found in PATH");
-			Sys.println("         Install Visual Studio with C++ build tools:");
-			Sys.println("         1. Download Visual Studio Community from https://visualstudio.microsoft.com/downloads/");
-			Sys.println('         2. During installation, select "Desktop development with C++" workload');
-			Sys.println("         3. Or install just Build Tools for Visual Studio (smaller download)");
+			Sys.println("         Install Build Tools for Visual Studio:");
+			Sys.println("         https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022");
+			Sys.println('         During installation, select "Desktop development with C++" workload');
+			Sys.println("");
 			Sys.println("         Note: lime build hl does not require this (uses pre-built hdlls)");
 		}
 	}
