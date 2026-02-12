@@ -242,6 +242,12 @@ jobs:
           echo "=== Copying compiled hdll to templates directory ==="
           cp native/hlaxe/hlaxe_fmod.hdll templates/bin/hl/Linux64/hlaxe_fmod.hdll
 
+      - name: Upload compiled hdll
+        uses: actions/upload-artifact@v4
+        with:
+          name: hlaxe_fmod-linux.hdll
+          path: native/hlaxe/hlaxe_fmod.hdll
+
       - name: Build HashLink target
         run: |
           cd example-project/EZPlatformer
@@ -623,6 +629,12 @@ jobs:
           echo "=== Copying compiled hdll to templates directory ==="
           cp native/hlaxe/hlaxe_fmod.hdll templates/bin/hl/Mac64/hlaxe_fmod.hdll
 
+      - name: Upload compiled hdll
+        uses: actions/upload-artifact@v4
+        with:
+          name: hlaxe_fmod-mac.hdll
+          path: native/hlaxe/hlaxe_fmod.hdll
+
       - name: Build HashLink target
         run: |
           cd example-project/EZPlatformer
@@ -904,6 +916,12 @@ jobs:
           fi
           echo "=== Copying compiled hdll to templates directory ==="
           cp native/hlaxe/hlaxe_fmod.hdll templates/bin/hl/Windows64/hlaxe_fmod.hdll
+
+      - name: Upload compiled hdll
+        uses: actions/upload-artifact@v4
+        with:
+          name: hlaxe_fmod-windows.hdll
+          path: native/hlaxe/hlaxe_fmod.hdll
 
       - name: Build HashLink target
         run: |
