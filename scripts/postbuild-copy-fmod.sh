@@ -82,10 +82,8 @@ case "$PLATFORM" in
     fi
     DEST="$BIN_DIR"
     echo "[haxefmod postbuild] Copying FMOD shared libraries to $DEST"
-    cp "$SDK_DIR/api/core/lib/x86_64/libfmod.so" "$DEST/"
-    cp "$SDK_DIR/api/core/lib/x86_64/libfmod.so.11" "$DEST/"
-    cp "$SDK_DIR/api/studio/lib/x86_64/libfmodstudio.so" "$DEST/"
-    cp "$SDK_DIR/api/studio/lib/x86_64/libfmodstudio.so.11" "$DEST/"
+    cp -P "$SDK_DIR/api/core/lib/x86_64/libfmod.so"* "$DEST/"
+    cp -P "$SDK_DIR/api/studio/lib/x86_64/libfmodstudio.so"* "$DEST/"
 
     # Create run.sh wrapper that sets LD_LIBRARY_PATH (if it doesn't exist)
     if [ ! -f "$DEST/run.sh" ]; then
