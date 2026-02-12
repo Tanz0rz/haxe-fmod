@@ -1033,8 +1033,11 @@ jobs:
           if git diff --staged --quiet; then
             echo "No changes to hdlls"
           else
-            git commit -m "Update pre-built hdlls from CI build
+            git commit -m "$(cat <<'COMMIT_MSG'
+          Update pre-built hdlls from CI build
 
-Built against FMOD 2.03.12 from run ${{ github.run_id }}"
+          Built against FMOD 2.03.12 from run ${{ github.run_id }}
+          COMMIT_MSG
+          )"
             git push
           fi
