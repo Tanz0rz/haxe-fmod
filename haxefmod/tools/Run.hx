@@ -172,7 +172,7 @@ class Run {
 			Sys.println("         Direct download:");
 			Sys.println("         https://aka.ms/vs/17/release.ltsc.17.4/vs_buildtools.exe");
 			Sys.println("");
-			Sys.println("         Or find 2022 build tools link at:");
+			Sys.println("         Or find the Fall 2022 LTSC build tools link at:");
 			Sys.println("         https://learn.microsoft.com/en-us/visualstudio/releases/2022/release-history#release-dates-and-build-numbers");
 			Sys.println("");
 			Sys.println('         During installation, select "Desktop development with C++" workload');
