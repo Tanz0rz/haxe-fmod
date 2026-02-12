@@ -43,7 +43,12 @@ class Run {
 		// 2. Key haxelib deps
 		checkHaxelibs();
 
-		// 3. FMOD_SDK env var set
+		// 3. Windows: Check for Visual Studio C++ tools
+		if (detectPlatform() == "windows") {
+			checkWindowsMsvc();
+		}
+
+		// 4. FMOD_SDK env var set
 		var fmodSdk = Sys.getEnv("FMOD_SDK");
 		if (fmodSdk == null || fmodSdk == "") {
 			fail("FMOD_SDK environment variable set", "Not set.");
@@ -67,7 +72,7 @@ class Run {
 		}
 		pass("FMOD_SDK environment variable set", fmodSdk);
 
-		// 4. FMOD_SDK dir exists
+		// 5. FMOD_SDK dir exists
 		if (!FileSystem.exists(fmodSdk) || !FileSystem.isDirectory(fmodSdk)) {
 			fail("FMOD_SDK directory exists", 'Directory not found: $fmodSdk');
 			Sys.println('         Check that the path in FMOD_SDK is correct: $fmodSdk');
@@ -76,7 +81,7 @@ class Run {
 		}
 		pass("FMOD_SDK directory exists", fmodSdk);
 
-		// 5. Current platform SDK present
+		// 6. Current platform SDK present
 		var platform = detectPlatform();
 		var platformDir = '$fmodSdk/$platform';
 		var headerPath = '$platformDir/api/core/inc/fmod.h';
@@ -92,21 +97,21 @@ class Run {
 			pass('$platform SDK headers present', headerPath);
 		}
 
-		// 6. Platform runtime libs present
+		// 7. Platform runtime libs present
 		checkRuntimeLibs(platformDir, platform);
 
-		// 7. FMOD version check
+		// 8. FMOD version check
 		if (FileSystem.exists(headerPath)) {
 			checkFmodVersion('$platformDir/api/core/inc/fmod_common.h', platform);
 		}
 
-		// 8. HTML5 SDK check
+		// 9. HTML5 SDK check
 		checkHtml5Sdk(fmodSdk);
 
-		// 9. Project.xml check (if in a project directory)
+		// 10. Project.xml check (if in a project directory)
 		checkProjectXml(cwd);
 
-		// 10. Bank files check (if in a project directory)
+		// 11. Bank files check (if in a project directory)
 		checkBankFiles(cwd);
 
 		Sys.println("");
@@ -152,6 +157,21 @@ class Run {
 			fail("haxelib dependencies", 'Missing: ${missing.join(", ")}. Install with: haxelib install <name>');
 		} else {
 			pass("haxelib dependencies (lime, openfl, flixel, hxcpp)", "");
+		}
+	}
+
+	static function checkWindowsMsvc() {
+		// Try to run cl.exe (MSVC compiler) to check if Visual Studio C++ tools are available
+		var result = runQuiet("cl", ["--version"]);
+		if (result.exitCode == 0) {
+			pass("Visual Studio C++ tools (for lime build windows)", "");
+		} else {
+			fail("Visual Studio C++ tools (needed for lime build windows, not needed for lime build hl)", "cl.exe not found in PATH");
+			Sys.println("         Install Visual Studio with C++ build tools:");
+			Sys.println("         1. Download Visual Studio Community from https://visualstudio.microsoft.com/downloads/");
+			Sys.println('         2. During installation, select "Desktop development with C++" workload');
+			Sys.println("         3. Or install just Build Tools for Visual Studio (smaller download)");
+			Sys.println("         Note: lime build hl does not require this (uses pre-built hdlls)");
 		}
 	}
 
