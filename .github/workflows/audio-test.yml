@@ -251,6 +251,18 @@ jobs:
           patchelf --clear-execstack "$BIN_DIR"/libfmod.so* || true
           patchelf --clear-execstack "$BIN_DIR"/libfmodstudio.so* || true
 
+      - name: Debug bin directory contents
+        run: |
+          BIN_DIR="example-project/EZPlatformer/export/hl/bin"
+          echo "=== Files in $BIN_DIR ==="
+          ls -la "$BIN_DIR" | grep -E "\.so|\.hdll|EZPlatformer"
+          echo ""
+          echo "=== hdll dependencies ==="
+          ldd "$BIN_DIR"/hlaxe_fmod.hdll || true
+          echo ""
+          echo "=== FMOD library symlinks ==="
+          ls -la "$BIN_DIR"/libfmod* || true
+
       - name: Validate build output
         run: |
           BIN_DIR="example-project/EZPlatformer/export/hl/bin"
