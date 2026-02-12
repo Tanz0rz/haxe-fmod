@@ -206,3 +206,4 @@ This will set up the git repo as an "installed" version of `haxefmod` which can 
 ## <a name="feature-requests-and-contact"></a>Feature Requests and Contact
 
 If you have any feature requests or are having issues using the library, please [open an Issue](https://github.com/Tanz0rz/haxe-fmod/issues) here on Github
+
