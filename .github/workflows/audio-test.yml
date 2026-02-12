@@ -239,6 +239,8 @@ jobs:
             echo "Pre-built:"
             file templates/bin/hl/Linux64/hlaxe_fmod.hdll
           fi
+          echo "=== Copying compiled hdll to templates directory ==="
+          cp native/hlaxe/hlaxe_fmod.hdll templates/bin/hl/Linux64/hlaxe_fmod.hdll
 
       - name: Build HashLink target
         run: |
@@ -618,6 +620,8 @@ jobs:
             echo "Pre-built:"
             file templates/bin/hl/Mac64/hlaxe_fmod.hdll
           fi
+          echo "=== Copying compiled hdll to templates directory ==="
+          cp native/hlaxe/hlaxe_fmod.hdll templates/bin/hl/Mac64/hlaxe_fmod.hdll
 
       - name: Build HashLink target
         run: |
@@ -898,6 +902,8 @@ jobs:
             echo "DIFFER: Compiled hdll differs from pre-built"
             echo "This may be expected if the toolchain version differs."
           fi
+          echo "=== Copying compiled hdll to templates directory ==="
+          cp native/hlaxe/hlaxe_fmod.hdll templates/bin/hl/Windows64/hlaxe_fmod.hdll
 
       - name: Build HashLink target
         run: |
