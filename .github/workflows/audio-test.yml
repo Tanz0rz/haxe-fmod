@@ -1071,7 +1071,7 @@ jobs:
   update-hdlls:
     runs-on: ubuntu-latest
     needs: [linux-hl, mac-hl, windows-hl]
-    if: ${{ github.ref == 'refs/heads/hashlink-refactor' && github.event_name != 'pull_request' }}
+    if: ${{ github.ref == 'refs/heads/hashlink-refactor' }}
     steps:
       - uses: actions/checkout@v4
         with:
