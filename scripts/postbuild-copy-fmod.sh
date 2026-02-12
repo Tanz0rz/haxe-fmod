@@ -30,9 +30,11 @@ if [ -z "$FMOD_SDK" ]; then
   echo "     export FMOD_SDK=/path/to/your-project/fmod-sdk"
   echo ""
   echo "     Expected layout:"
-  echo "       \$FMOD_SDK/mac/api/core/inc/fmod.h"
-  echo "       \$FMOD_SDK/linux/api/core/inc/fmod.h"
-  echo "       \$FMOD_SDK/windows/api/core/inc/fmod.h"
+  echo "       \$FMOD_SDK/api/core/inc/fmod.h"
+  echo "       \$FMOD_SDK/api/studio/inc/fmod_studio.h"
+  echo ""
+  echo "     Note: Set FMOD_SDK to the extracted installer directory."
+  echo "           Switch FMOD_SDK when building for different platforms."
   echo ""
   echo "  3. Run 'haxelib run haxefmod doctor' to verify your setup."
   echo ""
@@ -43,7 +45,7 @@ fi
 
 case "$PLATFORM" in
   mac)
-    SDK_DIR="$FMOD_SDK/mac"
+    SDK_DIR="$FMOD_SDK"
     # Find .app bundle in export directory
     if [ "$TARGET" = "hl" ]; then
       APP_DIR=$(find export -path "*/hl/*" -name "*.app" -type d 2>/dev/null | head -1)
@@ -67,7 +69,7 @@ case "$PLATFORM" in
     echo "[haxefmod postbuild] Done - copied libfmod.dylib and libfmodstudio.dylib"
     ;;
   linux)
-    SDK_DIR="$FMOD_SDK/linux"
+    SDK_DIR="$FMOD_SDK"
     # Find the bin directory in export
     if [ "$TARGET" = "hl" ]; then
       BIN_DIR=$(find export -path "*/hl/bin" -type d 2>/dev/null | head -1)
@@ -101,7 +103,7 @@ RUNEOF
     echo "[haxefmod postbuild] Done - copied FMOD .so files"
     ;;
   windows)
-    SDK_DIR="$FMOD_SDK/windows"
+    SDK_DIR="$FMOD_SDK"
     # Find the bin directory in export
     if [ "$TARGET" = "hl" ]; then
       BIN_DIR=$(find export -path "*/hl/bin" -type d 2>/dev/null | head -1)
