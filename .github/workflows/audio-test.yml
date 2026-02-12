@@ -1078,6 +1078,13 @@ jobs:
           ref: ${{ github.head_ref || github.ref_name }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Ensure we're on a branch
+        run: |
+          BRANCH_NAME="${{ github.head_ref || github.ref_name }}"
+          echo "Checking out branch: $BRANCH_NAME"
+          git checkout "$BRANCH_NAME"
+          git branch --show-current
+
       - name: Download compiled hdlls
         uses: actions/download-artifact@v4
         with:
