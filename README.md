@@ -86,23 +86,31 @@ Songs and sound effects are triggered by passing in the full FMOD bank event pat
 
 This library requires you to supply your own FMOD Engine SDK (separate from FMOD Studio). Download it from [fmod.com/download](https://www.fmod.com/download) and extract it. The simplest place to store this would be at the root level of your project.
 
-Required versions:
-- **macOS**: FMOD Engine 2.03.12
-- **Linux / Windows / HTML5**: FMOD Engine 2.00.08
+Required version:
+- **All platforms**: FMOD Engine 2.03.12
 
-Set the `FMOD_SDK` environment variable to point to the directory containing platform subdirs:
+Set the `FMOD_SDK` environment variable to point to the extracted FMOD installer directory:
 
 ```bash
-export FMOD_SDK=/path/to/your-project/fmod-sdk
+# Example for Linux:
+export FMOD_SDK=/path/to/fmodstudioapi20312linux
+
+# Example for macOS:
+export FMOD_SDK=/path/to/fmodstudioapi20312mac
+
+# Example for Windows:
+set FMOD_SDK=C:\path\to\fmodstudioapi20312win
 ```
 
-Expected layout:
+**Important**: Set `FMOD_SDK` to the directory that contains the `api/` folder from FMOD's installer. Switch the environment variable when building for different platforms.
+
+Expected layout (single platform at a time):
 ```
 $FMOD_SDK/
-├── mac/api/core/inc/fmod.h        (macOS)
-├── linux/api/core/inc/fmod.h      (Linux)
-├── windows/api/core/inc/fmod.h    (Windows)
-└── html5/api/studio/lib/wasm/     (HTML5)
+├── api/core/inc/fmod.h
+├── api/core/lib/...               (platform-specific libs)
+├── api/studio/inc/fmod_studio.h
+└── api/studio/lib/...             (platform-specific libs)
 ```
 
 Run `haxelib run haxefmod doctor` to verify your setup.
@@ -198,3 +206,4 @@ This will set up the git repo as an "installed" version of `haxefmod` which can 
 ## <a name="feature-requests-and-contact"></a>Feature Requests and Contact
 
 If you have any feature requests or are having issues using the library, please [open an Issue](https://github.com/Tanz0rz/haxe-fmod/issues) here on Github
+

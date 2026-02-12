@@ -19,26 +19,24 @@ SOURCE := hlaxe_fmod.c
 
 ifeq ($(UNAME_S),Darwin)
   # macOS (ARM64/Apple Silicon only)
-  FMOD_DIR := $(FMOD_SDK)/mac
   CC := cc
   CFLAGS := -dynamiclib -arch x86_64 -install_name @executable_path/$(TARGET)
   HL_INCLUDE := $(shell brew --prefix hashlink)/include
   INCLUDES := -I$(HL_INCLUDE) \
-              -I$(FMOD_DIR)/api/core/inc \
-              -I$(FMOD_DIR)/api/studio/inc
-  LIBDIRS := -L$(FMOD_DIR)/api/core/lib \
-             -L$(FMOD_DIR)/api/studio/lib
+              -I$(FMOD_SDK)/api/core/inc \
+              -I$(FMOD_SDK)/api/studio/inc
+  LIBDIRS := -L$(FMOD_SDK)/api/core/lib \
+             -L$(FMOD_SDK)/api/studio/lib
   LIBS := -lfmod -lfmodstudio -lpthread
 else
   # Linux
-  FMOD_DIR := $(FMOD_SDK)/linux
   CC := gcc
   CFLAGS := -shared -fPIC
   INCLUDES := -I/usr/include \
-              -I$(FMOD_DIR)/api/core/inc \
-              -I$(FMOD_DIR)/api/studio/inc
-  LIBDIRS := -L$(FMOD_DIR)/api/core/lib/x86_64 \
-             -L$(FMOD_DIR)/api/studio/lib/x86_64
+              -I$(FMOD_SDK)/api/core/inc \
+              -I$(FMOD_SDK)/api/studio/inc
+  LIBDIRS := -L$(FMOD_SDK)/api/core/lib/x86_64 \
+             -L$(FMOD_SDK)/api/studio/lib/x86_64
   LIBS := -lfmod -lfmodstudio -lpthread
 endif
 

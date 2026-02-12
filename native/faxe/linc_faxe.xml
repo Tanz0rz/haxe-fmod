@@ -1,15 +1,7 @@
 <xml>
 
-	<section if="windows">
-		<set name="NATIVE_TOOLKIT_PATH" value="${FMOD_SDK}/windows" />
-	</section>
-
-	<section if="linux">
-		<set name="NATIVE_TOOLKIT_PATH" value="${FMOD_SDK}/linux" />
-	</section>
-
-	<section if="mac">
-		<set name="NATIVE_TOOLKIT_PATH" value="${FMOD_SDK}/mac" />
+	<section>
+		<set name="NATIVE_TOOLKIT_PATH" value="${FMOD_SDK}" />
 	</section>
 	<echo value="Found your FMOD API ${NATIVE_TOOLKIT_PATH}!" ifExists="${NATIVE_TOOLKIT_PATH}/api" />
 

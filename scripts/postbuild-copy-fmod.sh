@@ -22,8 +22,7 @@ if [ -z "$FMOD_SDK" ]; then
   echo "  haxe-fmod requires you to supply your own FMOD Engine SDK."
   echo ""
   echo "  1. Download FMOD Engine from https://www.fmod.com/download"
-  echo "     - Mac: version 2.03.12"
-  echo "     - Linux/Windows: version 2.00.08"
+  echo "     - All platforms: version 2.03.12"
   echo ""
   echo "  2. Extract it and set FMOD_SDK to point to the extracted directory."
   echo "     The simplest place to store this would be at the root level of your project."
@@ -31,9 +30,11 @@ if [ -z "$FMOD_SDK" ]; then
   echo "     export FMOD_SDK=/path/to/your-project/fmod-sdk"
   echo ""
   echo "     Expected layout:"
-  echo "       \$FMOD_SDK/mac/api/core/inc/fmod.h"
-  echo "       \$FMOD_SDK/linux/api/core/inc/fmod.h"
-  echo "       \$FMOD_SDK/windows/api/core/inc/fmod.h"
+  echo "       \$FMOD_SDK/api/core/inc/fmod.h"
+  echo "       \$FMOD_SDK/api/studio/inc/fmod_studio.h"
+  echo ""
+  echo "     Note: Set FMOD_SDK to the extracted installer directory."
+  echo "           Switch FMOD_SDK when building for different platforms."
   echo ""
   echo "  3. Run 'haxelib run haxefmod doctor' to verify your setup."
   echo ""
@@ -44,7 +45,7 @@ fi
 
 case "$PLATFORM" in
   mac)
-    SDK_DIR="$FMOD_SDK/mac"
+    SDK_DIR="$FMOD_SDK"
     # Find .app bundle in export directory
     if [ "$TARGET" = "hl" ]; then
       APP_DIR=$(find export -path "*/hl/*" -name "*.app" -type d 2>/dev/null | head -1)
@@ -68,7 +69,7 @@ case "$PLATFORM" in
     echo "[haxefmod postbuild] Done - copied libfmod.dylib and libfmodstudio.dylib"
     ;;
   linux)
-    SDK_DIR="$FMOD_SDK/linux"
+    SDK_DIR="$FMOD_SDK"
     # Find the bin directory in export
     if [ "$TARGET" = "hl" ]; then
       BIN_DIR=$(find export -path "*/hl/bin" -type d 2>/dev/null | head -1)
@@ -81,10 +82,8 @@ case "$PLATFORM" in
     fi
     DEST="$BIN_DIR"
     echo "[haxefmod postbuild] Copying FMOD shared libraries to $DEST"
-    cp "$SDK_DIR/api/core/lib/x86_64/libfmod.so" "$DEST/"
-    cp "$SDK_DIR/api/core/lib/x86_64/libfmod.so.11" "$DEST/"
-    cp "$SDK_DIR/api/studio/lib/x86_64/libfmodstudio.so" "$DEST/"
-    cp "$SDK_DIR/api/studio/lib/x86_64/libfmodstudio.so.11" "$DEST/"
+    cp -P "$SDK_DIR/api/core/lib/x86_64/libfmod.so"* "$DEST/"
+    cp -P "$SDK_DIR/api/studio/lib/x86_64/libfmodstudio.so"* "$DEST/"
 
     # Create run.sh wrapper that sets LD_LIBRARY_PATH (if it doesn't exist)
     if [ ! -f "$DEST/run.sh" ]; then
@@ -102,7 +101,7 @@ RUNEOF
     echo "[haxefmod postbuild] Done - copied FMOD .so files"
     ;;
   windows)
-    SDK_DIR="$FMOD_SDK/windows"
+    SDK_DIR="$FMOD_SDK"
     # Find the bin directory in export
     if [ "$TARGET" = "hl" ]; then
       BIN_DIR=$(find export -path "*/hl/bin" -type d 2>/dev/null | head -1)
