@@ -42,6 +42,11 @@ LICENSE: [MIT](https://en.wikipedia.org/wiki/MIT_License)
 | Linux | C++ | Supported |
 | macOS | C++ | Supported |
 
+**Platform Requirements:**
+- **Linux**: x86_64 only. ARM64 Linux is not supported (FMOD does not provide an ARM64 Linux SDK)
+- **macOS**: ARM64 (Apple Silicon) and x86_64 (Intel) supported
+- **Windows**: x86_64 only
+
 ## <a name="how-to-use-this-library"></a>How to Use This Library
 
 This library has been tested on games built with the `lime` and `openfl` cli tools, and should work on any Haxe framework that utilizes the `Project.xml` file for builds.
@@ -92,17 +97,20 @@ Required version:
 Set the `FMOD_SDK` environment variable to point to the extracted FMOD installer directory:
 
 ```bash
-# Example for Linux:
-export FMOD_SDK=/path/to/fmodstudioapi20312linux
+# Example for Linux (use $HOME, not ~):
+export FMOD_SDK="$HOME/fmod/fmodstudioapi20312linux"
 
-# Example for macOS:
-export FMOD_SDK=/path/to/fmodstudioapi20312mac
+# Example for macOS (use $HOME, not ~):
+export FMOD_SDK="$HOME/fmod/fmodstudioapi20312mac"
 
 # Example for Windows:
 set FMOD_SDK=C:\path\to\fmodstudioapi20312win
 ```
 
-**Important**: Set `FMOD_SDK` to the directory that contains the `api/` folder from FMOD's installer. Switch the environment variable when building for different platforms.
+**Important**:
+- Set `FMOD_SDK` to the directory that contains the `api/` folder from FMOD's installer
+- Use `$HOME` instead of `~` for the path (the tilde doesn't expand in all contexts)
+- Switch the environment variable when building for different platforms
 
 Expected layout (single platform at a time):
 ```
