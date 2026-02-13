@@ -44,7 +44,7 @@ LICENSE: [MIT](https://en.wikipedia.org/wiki/MIT_License)
 
 **Platform Requirements:**
 - **Linux**: x86_64 only. ARM64 Linux is not supported (FMOD does not provide an ARM64 Linux SDK)
-- **macOS**: ARM64 (Apple Silicon) and x86_64 (Intel) supported
+- **macOS**: ARM64 (Apple Silicon) only. Intel Macs are not currently supported
 - **Windows**: x86_64 only
 
 ## <a name="how-to-use-this-library"></a>How to Use This Library
