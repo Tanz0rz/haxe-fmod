@@ -161,10 +161,12 @@ class PostBuild {
 			}
 		}
 
-		// Set rpath so executable finds dylibs next to it
-		var exe = findExecutable(dest, [".dylib", ".ndll", ".hdll"]);
-		if (exe != null) {
-			Sys.command("install_name_tool", ["-add_rpath", "@executable_path", exe]);
+		// Set rpath so executable finds dylibs next to it (C++ only — HL exe is bytecode, not Mach-O)
+		if (target != "hl") {
+			var exe = findExecutable(dest, [".dylib", ".ndll", ".hdll"]);
+			if (exe != null) {
+				Sys.command("install_name_tool", ["-add_rpath", "@executable_path", exe]);
+			}
 		}
 
 		log("Done - copied libfmod.dylib and libfmodstudio.dylib");
