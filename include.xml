@@ -13,8 +13,11 @@
 	<postbuild command="bash ${haxelib:haxefmod}/scripts/postbuild-copy-fmod.sh linux hl" if="linux hl" unless="html5" />
 	<postbuild command="bash ${haxelib:haxefmod}/scripts/postbuild-copy-fmod.sh windows hl" if="windows hl" unless="html5" />
 
-	<!-- HTML5 dependencies -->
-	<dependency path="${FMOD_SDK}/api/studio/lib/wasm/fmodstudio.js" if="html5"/>
-	<assets path="${FMOD_SDK}/api/studio/lib/wasm/fmodstudio.wasm" rename="lib/fmodstudio.wasm" if="html5"/>
+	<!-- HTML5 dependencies (placeholders replaced by postbuild) -->
+	<dependency path="native/html5/fmodstudio.js" if="html5"/>
+	<assets path="native/html5/fmodstudio.wasm" rename="lib/fmodstudio.wasm" if="html5"/>
 	<dependency path="native/jaxe/jaxe.js" if="html5"/>
+
+	<!-- HTML5 postbuild: replace placeholder FMOD files with real ones from FMOD_SDK_WEB -->
+	<postbuild command="bash ${haxelib:haxefmod}/scripts/postbuild-copy-fmod.sh html5 html5" if="html5" />
 </project>

@@ -117,8 +117,63 @@ RUNEOF
     cp "$SDK_DIR/api/studio/lib/x64/fmodstudio.dll" "$DEST/"
     echo "[haxefmod postbuild] Done - copied fmod.dll and fmodstudio.dll"
     ;;
+  html5)
+    if [ -z "$FMOD_SDK_WEB" ]; then
+      echo ""
+      echo "============================================================"
+      echo "  ERROR: FMOD_SDK_WEB environment variable is not set."
+      echo ""
+      echo "  HTML5 builds require the FMOD Engine SDK for HTML5."
+      echo ""
+      echo "  1. Download FMOD Engine 2.03.12 for HTML5 from:"
+      echo "     https://www.fmod.com/download"
+      echo ""
+      echo "  2. Extract it and set FMOD_SDK_WEB:"
+      echo ""
+      echo "     export FMOD_SDK_WEB=/path/to/fmodstudioapi20312html5"
+      echo ""
+      echo "     Or on Windows:"
+      echo "     set FMOD_SDK_WEB=C:\\path\\to\\fmodstudioapi20312html5"
+      echo ""
+      echo "  3. Run 'haxelib run haxefmod doctor' to verify your setup."
+      echo ""
+      echo "============================================================"
+      echo ""
+      exit 1
+    fi
+
+    SDK_DIR="$FMOD_SDK_WEB"
+    # Find the HTML5 bin directory
+    BIN_DIR=$(find export -path "*/html5/bin" -type d 2>/dev/null | head -1)
+    if [ -z "$BIN_DIR" ]; then
+      echo "[haxefmod postbuild] No html5/bin directory found - skipping FMOD file replacement"
+      exit 0
+    fi
+
+    echo "[haxefmod postbuild] Replacing FMOD placeholder files with real SDK files"
+
+    # Replace fmodstudio.js placeholder with real file
+    if [ -f "$SDK_DIR/api/studio/lib/wasm/fmodstudio.js" ]; then
+      cp "$SDK_DIR/api/studio/lib/wasm/fmodstudio.js" "$BIN_DIR/fmodstudio.js"
+      echo "[haxefmod postbuild] Replaced fmodstudio.js"
+    else
+      echo "[haxefmod postbuild] ERROR: $SDK_DIR/api/studio/lib/wasm/fmodstudio.js not found"
+      exit 1
+    fi
+
+    # Replace fmodstudio.wasm placeholder with real file
+    if [ -f "$SDK_DIR/api/studio/lib/wasm/fmodstudio.wasm" ]; then
+      cp "$SDK_DIR/api/studio/lib/wasm/fmodstudio.wasm" "$BIN_DIR/lib/fmodstudio.wasm"
+      echo "[haxefmod postbuild] Replaced fmodstudio.wasm"
+    else
+      echo "[haxefmod postbuild] ERROR: $SDK_DIR/api/studio/lib/wasm/fmodstudio.wasm not found"
+      exit 1
+    fi
+
+    echo "[haxefmod postbuild] Done - FMOD files ready for HTML5"
+    ;;
   *)
-    echo "[haxefmod postbuild] Unknown platform: $PLATFORM (expected mac, linux, or windows)"
+    echo "[haxefmod postbuild] Unknown platform: $PLATFORM (expected mac, linux, windows, or html5)"
     exit 1
     ;;
 esac
