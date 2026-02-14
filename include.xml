@@ -4,14 +4,14 @@
 	<templatePath name="templates" />
 
 	<!-- C++ postbuild: copy FMOD runtime libs from $FMOD_SDK -->
-	<postbuild command="bash ${haxelib:haxefmod}/scripts/postbuild-copy-fmod.sh mac cpp" if="mac" unless="hl" />
-	<postbuild command="bash ${haxelib:haxefmod}/scripts/postbuild-copy-fmod.sh linux cpp" if="linux" unless="hl" />
-	<postbuild command="bash ${haxelib:haxefmod}/scripts/postbuild-copy-fmod.sh windows cpp" if="windows" unless="hl" />
+	<postbuild command="haxelib run haxefmod postbuild mac cpp ${haxelib:haxefmod}" if="mac" unless="hl" />
+	<postbuild command="haxelib run haxefmod postbuild linux cpp ${haxelib:haxefmod}" if="linux" unless="hl" />
+	<postbuild command="haxelib run haxefmod postbuild windows cpp ${haxelib:haxefmod}" if="windows" unless="hl" />
 
 	<!-- HL postbuild: copy FMOD runtime libs for HashLink targets -->
-	<postbuild command="bash ${haxelib:haxefmod}/scripts/postbuild-copy-fmod.sh mac hl" if="mac hl" unless="html5" />
-	<postbuild command="bash ${haxelib:haxefmod}/scripts/postbuild-copy-fmod.sh linux hl" if="linux hl" unless="html5" />
-	<postbuild command="bash ${haxelib:haxefmod}/scripts/postbuild-copy-fmod.sh windows hl" if="windows hl" unless="html5" />
+	<postbuild command="haxelib run haxefmod postbuild mac hl ${haxelib:haxefmod}" if="mac hl" unless="html5" />
+	<postbuild command="haxelib run haxefmod postbuild linux hl ${haxelib:haxefmod}" if="linux hl" unless="html5" />
+	<postbuild command="haxelib run haxefmod postbuild windows hl ${haxelib:haxefmod}" if="windows hl" unless="html5" />
 
 	<!-- HTML5 dependencies (placeholders replaced by postbuild) -->
 	<dependency path="native/html5/fmodstudio.js" if="html5"/>
@@ -19,5 +19,5 @@
 	<dependency path="native/jaxe/jaxe.js" if="html5"/>
 
 	<!-- HTML5 postbuild: replace placeholder FMOD files with real ones from FMOD_SDK_WEB -->
-	<postbuild command="bash ${haxelib:haxefmod}/scripts/postbuild-copy-fmod.sh html5 html5" if="html5" />
+	<postbuild command="haxelib run haxefmod postbuild html5 html5 ${haxelib:haxefmod}" if="html5" />
 </project>

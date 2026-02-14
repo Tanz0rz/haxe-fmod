@@ -18,6 +18,14 @@ class Run {
 		switch (command) {
 			case "doctor":
 				runDoctor(cwd);
+			case "postbuild":
+				if (userArgs.length < 4) {
+					Sys.println("Usage: haxelib run haxefmod postbuild <platform> <target> <libroot>");
+					Sys.exit(1);
+				}
+				// cwd from haxelib is the caller's working directory (project dir)
+				// libRoot is passed explicitly from include.xml via ${haxelib:haxefmod}
+				PostBuild.run(userArgs[1], userArgs[2], userArgs[3], cwd);
 			default:
 				printUsage();
 		}
