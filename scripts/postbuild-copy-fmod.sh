@@ -94,6 +94,13 @@ case "$PLATFORM" in
     cp -P "$SDK_DIR/api/core/lib/x86_64/libfmod.so"* "$DEST/"
     cp -P "$SDK_DIR/api/studio/lib/x86_64/libfmodstudio.so"* "$DEST/"
 
+    # Set rpath on the executable so it finds FMOD .so files in its own directory
+    EXE_NAME=$(find "$DEST" -maxdepth 1 -type f -executable ! -name "*.so*" ! -name "*.hdll" ! -name "run.sh" -printf '%f\n' 2>/dev/null | head -1)
+    if [ -n "$EXE_NAME" ] && command -v patchelf >/dev/null 2>&1; then
+      patchelf --set-rpath '$ORIGIN' "$DEST/$EXE_NAME" 2>/dev/null || true
+      echo "[haxefmod postbuild] Set rpath on $EXE_NAME"
+    fi
+
     # Copy hlaxe_fmod.hdll from templates (always, to ensure correct version)
     if [ "$TARGET" = "hl" ]; then
       SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
