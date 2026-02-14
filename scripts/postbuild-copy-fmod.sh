@@ -139,14 +139,6 @@ RUNEOF
       echo ""
       echo "============================================================"
       echo ""
-
-      # Delete the HTML file to prevent the game from launching
-      HTML_FILE=$(find export -path "*/html5/bin/*.html" -type f 2>/dev/null | head -1)
-      if [ -n "$HTML_FILE" ]; then
-        rm "$HTML_FILE"
-        echo "[haxefmod postbuild] Deleted output HTML file to prevent launch with missing FMOD"
-      fi
-
       exit 1
     fi
 

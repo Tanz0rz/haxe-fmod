@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <project>
+	<!-- Compile-time environment validation -->
+	<haxeflag name="--macro" value="haxefmod.FmodBuildMacro.checkEnvironment()" />
+
 	<!-- templatePath copies pre-built hdlls into HL build output automatically -->
 	<templatePath name="templates" />
 
