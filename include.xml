@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <project>
+	<!-- Prebuild validation: check required environment variables -->
+	<prebuild command="bash ${haxelib:haxefmod}/scripts/prebuild-validate-env.sh html5" if="html5" />
+	<prebuild command="bash ${haxelib:haxefmod}/scripts/prebuild-validate-env.sh native" unless="html5" />
+
 	<!-- templatePath copies pre-built hdlls into HL build output automatically -->
 	<templatePath name="templates" />
 
