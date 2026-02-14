@@ -1,9 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <project>
-	<!-- Prebuild validation: check required environment variables -->
-	<prebuild command="bash ${haxelib:haxefmod}/scripts/prebuild-validate-env.sh html5" if="html5" />
-	<prebuild command="bash ${haxelib:haxefmod}/scripts/prebuild-validate-env.sh native" unless="html5" />
-
 	<!-- templatePath copies pre-built hdlls into HL build output automatically -->
 	<templatePath name="templates" />
 
@@ -17,8 +13,9 @@
 	<postbuild command="bash ${haxelib:haxefmod}/scripts/postbuild-copy-fmod.sh linux hl" if="linux hl" unless="html5" />
 	<postbuild command="bash ${haxelib:haxefmod}/scripts/postbuild-copy-fmod.sh windows hl" if="windows hl" unless="html5" />
 
-	<!-- HTML5 dependencies -->
-	<dependency path="${FMOD_SDK_WEB}/api/studio/lib/wasm/fmodstudio.js" if="html5"/>
-	<assets path="${FMOD_SDK_WEB}/api/studio/lib/wasm/fmodstudio.wasm" rename="lib/fmodstudio.wasm" if="html5"/>
+	<!-- HTML5 postbuild: copy FMOD WebAssembly files -->
+	<postbuild command="bash ${haxelib:haxefmod}/scripts/postbuild-copy-fmod.sh html5 html5" if="html5" />
+
+	<!-- HTML5 JS dependency (jaxe.js - our wrapper code) -->
 	<dependency path="native/jaxe/jaxe.js" if="html5"/>
 </project>

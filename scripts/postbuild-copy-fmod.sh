@@ -117,8 +117,52 @@ RUNEOF
     cp "$SDK_DIR/api/studio/lib/x64/fmodstudio.dll" "$DEST/"
     echo "[haxefmod postbuild] Done - copied fmod.dll and fmodstudio.dll"
     ;;
+  html5)
+    if [ -z "$FMOD_SDK_WEB" ]; then
+      echo ""
+      echo "============================================================"
+      echo "  ERROR: FMOD_SDK_WEB environment variable is not set."
+      echo ""
+      echo "  HTML5 builds require the FMOD Engine SDK for HTML5."
+      echo ""
+      echo "  1. Download FMOD Engine 2.03.12 for HTML5 from:"
+      echo "     https://www.fmod.com/download"
+      echo ""
+      echo "  2. Extract it and set FMOD_SDK_WEB:"
+      echo ""
+      echo "     export FMOD_SDK_WEB=/path/to/fmodstudioapi20312html5"
+      echo ""
+      echo "     Or on Windows:"
+      echo "     set FMOD_SDK_WEB=C:\\path\\to\\fmodstudioapi20312html5"
+      echo ""
+      echo "  3. Run 'haxelib run haxefmod doctor' to verify your setup."
+      echo ""
+      echo "============================================================"
+      echo ""
+      exit 1
+    fi
+
+    SDK_DIR="$FMOD_SDK_WEB"
+    # Find the HTML5 bin directory in export
+    BIN_DIR=$(find export -path "*/html5/bin" -type d 2>/dev/null | head -1)
+    if [ -z "$BIN_DIR" ]; then
+      echo "[haxefmod postbuild] No html5/bin directory found in export/ - skipping FMOD lib copy"
+      exit 0
+    fi
+    DEST="$BIN_DIR"
+    echo "[haxefmod postbuild] Copying FMOD WebAssembly files to $DEST"
+
+    # Copy fmodstudio.js as a dependency
+    cp "$SDK_DIR/api/studio/lib/wasm/fmodstudio.js" "$DEST/"
+
+    # Copy fmodstudio.wasm to lib/ subdirectory (matching the rename behavior)
+    mkdir -p "$DEST/lib"
+    cp "$SDK_DIR/api/studio/lib/wasm/fmodstudio.wasm" "$DEST/lib/"
+
+    echo "[haxefmod postbuild] Done - copied fmodstudio.js and fmodstudio.wasm"
+    ;;
   *)
-    echo "[haxefmod postbuild] Unknown platform: $PLATFORM (expected mac, linux, or windows)"
+    echo "[haxefmod postbuild] Unknown platform: $PLATFORM (expected mac, linux, windows, or html5)"
     exit 1
     ;;
 esac
