@@ -31,7 +31,7 @@ ifeq ($(UNAME_S),Darwin)
 else
   # Linux
   CC := gcc
-  CFLAGS := -shared -fPIC
+  CFLAGS := -shared -fPIC -Wl,-rpath,\$$ORIGIN
   INCLUDES := -I/usr/include \
               -I$(FMOD_SDK)/api/core/inc \
               -I$(FMOD_SDK)/api/studio/inc
