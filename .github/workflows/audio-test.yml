@@ -419,9 +419,25 @@ jobs:
           sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg chromium-browser xdotool
 
       - name: Build HTML5 target
+        env:
+          FMOD_SDK_WEB: ${{ env.FMOD_SDK }}
         run: |
           cd example-project/EZPlatformer
           haxelib run lime build html5
+
+      - name: Validate FMOD files replaced placeholders
+        run: |
+          FMOD_JS="example-project/EZPlatformer/export/html5/bin/lib/fmodstudio.js"
+          if [ ! -f "$FMOD_JS" ]; then
+            echo "FAIL: $FMOD_JS not found"
+            exit 1
+          fi
+          SIZE=$(stat --format=%s "$FMOD_JS")
+          if [ "$SIZE" -lt 1000 ]; then
+            echo "FAIL: $FMOD_JS is only $SIZE bytes — still a placeholder"
+            exit 1
+          fi
+          echo "OK: fmodstudio.js is $SIZE bytes (real SDK file)"
 
       - name: Record audio
         run: |
