@@ -60,6 +60,16 @@ case "$PLATFORM" in
     cp "$SDK_DIR/api/core/lib/libfmod.dylib" "$DEST/"
     cp "$SDK_DIR/api/studio/lib/libfmodstudio.dylib" "$DEST/"
 
+    # Ensure hlaxe_fmod.hdll is present (templatePath may be bypassed when HL_PATH is set)
+    if [ "$TARGET" = "hl" ] && [ ! -f "$DEST/hlaxe_fmod.hdll" ]; then
+      SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+      HDLL_SRC="$SCRIPT_DIR/../templates/bin/hl/Mac64/hlaxe_fmod.hdll"
+      if [ -f "$HDLL_SRC" ]; then
+        cp "$HDLL_SRC" "$DEST/"
+        echo "[haxefmod postbuild] Copied hlaxe_fmod.hdll (HL_PATH override detected)"
+      fi
+    fi
+
     # Ensure rpath is set so the executable finds dylibs next to it
     EXE=$(find "$DEST" -maxdepth 1 -type f -perm +111 ! -name "*.dylib" ! -name "*.ndll" ! -name "*.hdll" -print 2>/dev/null | head -1)
     if [ -n "$EXE" ]; then
@@ -83,6 +93,16 @@ case "$PLATFORM" in
     echo "[haxefmod postbuild] Copying FMOD shared libraries to $DEST"
     cp -P "$SDK_DIR/api/core/lib/x86_64/libfmod.so"* "$DEST/"
     cp -P "$SDK_DIR/api/studio/lib/x86_64/libfmodstudio.so"* "$DEST/"
+
+    # Ensure hlaxe_fmod.hdll is present (templatePath may be bypassed when HL_PATH is set)
+    if [ "$TARGET" = "hl" ] && [ ! -f "$DEST/hlaxe_fmod.hdll" ]; then
+      SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+      HDLL_SRC="$SCRIPT_DIR/../templates/bin/hl/Linux64/hlaxe_fmod.hdll"
+      if [ -f "$HDLL_SRC" ]; then
+        cp "$HDLL_SRC" "$DEST/"
+        echo "[haxefmod postbuild] Copied hlaxe_fmod.hdll (HL_PATH override detected)"
+      fi
+    fi
 
     # Create run.sh wrapper that sets LD_LIBRARY_PATH (if it doesn't exist)
     if [ ! -f "$DEST/run.sh" ]; then
@@ -115,6 +135,15 @@ RUNEOF
     echo "[haxefmod postbuild] Copying FMOD DLLs to $DEST"
     cp "$SDK_DIR/api/core/lib/x64/fmod.dll" "$DEST/"
     cp "$SDK_DIR/api/studio/lib/x64/fmodstudio.dll" "$DEST/"
+    # Ensure hlaxe_fmod.hdll is present (templatePath may be bypassed when HL_PATH is set)
+    if [ "$TARGET" = "hl" ] && [ ! -f "$DEST/hlaxe_fmod.hdll" ]; then
+      SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+      HDLL_SRC="$SCRIPT_DIR/../templates/bin/hl/Windows64/hlaxe_fmod.hdll"
+      if [ -f "$HDLL_SRC" ]; then
+        cp "$HDLL_SRC" "$DEST/"
+        echo "[haxefmod postbuild] Copied hlaxe_fmod.hdll (HL_PATH override detected)"
+      fi
+    fi
     echo "[haxefmod postbuild] Done - copied fmod.dll and fmodstudio.dll"
     ;;
   html5)
