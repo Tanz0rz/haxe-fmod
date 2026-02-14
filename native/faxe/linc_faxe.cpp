@@ -76,6 +76,22 @@ int fmod_init(int numChannels) {
     FMOD_RESULT result = FMOD::Studio::System::create(&gStudioSystem);
     if (result != FMOD_OK) return result;
 
+    // Verify runtime DLL version matches the header version we compiled against
+    gStudioSystem->getCoreSystem(&gCoreSystem);
+    unsigned int dllVersion;
+    gCoreSystem->getVersion(&dllVersion);
+    if (dllVersion != FMOD_VERSION) {
+        fprintf(stderr, "FMOD ERROR: Version mismatch! DLL is %04x.%02x.%02x but haxe-fmod was built for %04x.%02x.%02x\n",
+            (dllVersion >> 16) & 0xFFFF, (dllVersion >> 8) & 0xFF, dllVersion & 0xFF,
+            (FMOD_VERSION >> 16) & 0xFFFF, (FMOD_VERSION >> 8) & 0xFF, FMOD_VERSION & 0xFF);
+        fprintf(stderr, "FMOD ERROR: Download FMOD Engine SDK version %04x.%02x.%02x from https://www.fmod.com/download\n",
+            (FMOD_VERSION >> 16) & 0xFFFF, (FMOD_VERSION >> 8) & 0xFF, FMOD_VERSION & 0xFF);
+        gStudioSystem->release();
+        gStudioSystem = NULL;
+        gCoreSystem = NULL;
+        return FMOD_ERR_HEADER_MISMATCH;
+    }
+
     // FMOD_WAVWRITER env var: write mixed audio to WAV file (for CI recording)
     const char* wavWriterPath = std::getenv("FMOD_WAVWRITER");
     void* extradriverdata = nullptr;
