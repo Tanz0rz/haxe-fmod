@@ -208,6 +208,35 @@ RUNEOF
       exit 1
     fi
 
+    # Verify FMOD SDK Web version matches what haxe-fmod was built against
+    EXPECTED_VERSION_FILE="$SCRIPT_DIR/fmod_expected_version"
+    SDK_HEADER="$FMOD_SDK_WEB/api/core/inc/fmod_common.h"
+
+    if [ -f "$EXPECTED_VERSION_FILE" ] && [ -f "$SDK_HEADER" ]; then
+      EXPECTED_VERSION=$(tr -d '[:space:]' < "$EXPECTED_VERSION_FILE")
+      SDK_VERSION=$(grep '#define FMOD_VERSION' "$SDK_HEADER" | awk '{print $3}')
+
+      if [ -n "$EXPECTED_VERSION" ] && [ -n "$SDK_VERSION" ] && [ "$EXPECTED_VERSION" != "$SDK_VERSION" ]; then
+        echo ""
+        echo "============================================================"
+        echo "  ERROR: FMOD SDK Web version mismatch!"
+        echo ""
+        echo "  Your FMOD SDK Web:    $(hex_to_ver "$SDK_VERSION")"
+        echo "  haxe-fmod expects:    $(hex_to_ver "$EXPECTED_VERSION")"
+        echo ""
+        echo "  Download the correct version from https://www.fmod.com/download"
+        echo "============================================================"
+        echo ""
+        exit 1
+      else
+        echo "[haxefmod postbuild] FMOD SDK Web version $(hex_to_ver "$EXPECTED_VERSION") - OK"
+      fi
+    else
+      echo "[haxefmod postbuild] WARNING: Could not verify FMOD SDK Web version"
+      [ ! -f "$EXPECTED_VERSION_FILE" ] && echo "[haxefmod postbuild]   Missing: $EXPECTED_VERSION_FILE"
+      [ ! -f "$SDK_HEADER" ] && echo "[haxefmod postbuild]   Missing: $SDK_HEADER"
+    fi
+
     SDK_DIR="$FMOD_SDK_WEB"
     # Find the HTML5 bin directory
     BIN_DIR=$(find export -path "*/html5/bin" -type d 2>/dev/null | head -1)
