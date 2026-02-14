@@ -162,10 +162,15 @@ class PostBuild {
 		}
 
 		// Set rpath so executable finds dylibs next to it (C++ only — HL exe is bytecode, not Mach-O)
+		// Use Process to suppress stderr: rpath may already exist from lime/hxcpp
 		if (target != "hl") {
 			var exe = findExecutable(dest, [".dylib", ".ndll", ".hdll"]);
 			if (exe != null) {
-				Sys.command("install_name_tool", ["-add_rpath", "@executable_path", exe]);
+				try {
+					var proc = new sys.io.Process("install_name_tool", ["-add_rpath", "@executable_path", exe]);
+					proc.exitCode();
+					proc.close();
+				} catch (e:Dynamic) {}
 			}
 		}
 

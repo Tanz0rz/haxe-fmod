@@ -203,6 +203,8 @@ When using [Live Update](https://fmod.com/docs/2.00/studio/editing-during-live-u
 
 **Note**: Live Update only works on native builds (not HTML5). The FMOD team said this has to do with limitations caused by running games inside a browser.
 
+**Note**: On macOS and Windows, you may see a firewall dialog asking to allow incoming network connections when running your game. This is caused by FMOD's Live Update feature, which opens a local network socket (port 9264) so FMOD Studio can connect to your game for real-time audio mixing. This is normal and expected behavior — you can safely allow the connection during development.
+
 ## <a name="example-project"></a>Example Project
 
 See [haxe-fmod-test](https://github.com/Tanz0rz/haxe-fmod-test) for a complete working example — a HaxeFlixel game with FMOD audio, buildable on all supported platforms.
