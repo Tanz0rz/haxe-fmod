@@ -121,6 +121,15 @@ $FMOD_SDK/
 └── api/studio/lib/...             (platform-specific libs)
 ```
 
+**For HTML5 builds**, set a separate `FMOD_SDK_WEB` variable:
+
+```bash
+# Download FMOD Engine 2.03.12 for HTML5 and extract it
+export FMOD_SDK_WEB="$HOME/fmod/fmodstudioapi20312html5"
+```
+
+This allows you to have both your native SDK and HTML5 SDK configured simultaneously without switching between them.
+
 Run `haxelib run haxefmod doctor` to verify your setup.
 
 **Troubleshooting: `Failed to load library hlaxe_fmod.hdll`**
