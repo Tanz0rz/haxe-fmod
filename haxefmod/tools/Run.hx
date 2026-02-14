@@ -16,8 +16,8 @@ class Run {
 		var command = userArgs.length > 0 ? userArgs[0] : "help";
 
 		switch (command) {
-			case "doctor":
-				runDoctor(cwd);
+			case "check":
+				runCheck(cwd);
 			case "postbuild":
 				if (userArgs.length < 4) {
 					Sys.println("Usage: haxelib run haxefmod postbuild <platform> <target> <libroot>");
@@ -37,12 +37,12 @@ class Run {
 		Sys.println("Usage: haxelib run haxefmod <command>");
 		Sys.println("");
 		Sys.println("Commands:");
-		Sys.println("  doctor    Check your environment for correct FMOD SDK setup");
+		Sys.println("  check     Check your environment for correct FMOD SDK setup");
 		Sys.println("  help      Show this message");
 	}
 
-	static function runDoctor(cwd:String) {
-		Sys.println("haxefmod doctor - checking your environment...");
+	static function runCheck(cwd:String) {
+		Sys.println("haxefmod check - checking your environment...");
 		Sys.println("");
 
 		// 1. Haxe installed

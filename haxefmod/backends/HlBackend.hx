@@ -64,7 +64,7 @@ class HlBackend implements IFmodBackend {
     }
 
     public function unloadBank(bankFilePath:String):Void {
-        log('unloadBank not implemented');
+        trace('FMOD HL: unloadBank not implemented for HashLink target');
     }
 
     //// Event Instances

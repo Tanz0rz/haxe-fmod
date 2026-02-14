@@ -3,7 +3,6 @@ package haxefmod;
 import haxefmod.FmodEvents.FmodCallback;
 import haxefmod.FmodEvents.FmodEvent;
 import haxefmod.FmodEvents.FmodEventListener;
-import haxefmod.Settings;
 import haxefmod.backends.IFmodBackend;
 import haxefmod.backends.IFmodBackend.FmodEventHandle;
 #if cpp
@@ -32,9 +31,6 @@ class FmodManagerPrivate {
     private var soundIdIncrementer:Int = 0;
     private var lastUpdateCall:Float = 0;
 
-    // Settings
-    private var settings:FmodSettings;
-
     private static var instance:FmodManagerPrivate;
 
     private function new() {
@@ -56,16 +52,10 @@ class FmodManagerPrivate {
     private static function GetInstance():FmodManagerPrivate {
         if (instance == null) {
             instance = new FmodManagerPrivate();
-            instance.settings = Settings.LoadDefaultFmodSettings();
 
             // If the -debug flag is passed into the build, enable debug messages
             #if debug
             instance.backend.setDebug(true);
-
-            // Suppress debug messages if specified in the settings file
-            if (instance.settings.SuppressDebugMessages) {
-                instance.backend.setDebug(false);
-            }
             #end
 
             instance.backend.init(128);

@@ -1087,7 +1087,7 @@ jobs:
   update-hdlls:
     runs-on: ubuntu-latest
     needs: [linux-hl, mac-hl, windows-hl]
-    if: ${{ github.ref == 'refs/heads/hashlink-refactor' || github.head_ref == 'hashlink-refactor' || github.ref == 'refs/heads/haxelib-refactor-haxe' || github.head_ref == 'haxelib-refactor-haxe' }}
+    if: ${{ always() && !cancelled() && needs.linux-hl.result == 'success' && needs.mac-hl.result == 'success' && needs.windows-hl.result == 'success' }}
     steps:
       - uses: actions/checkout@v4
         with:
