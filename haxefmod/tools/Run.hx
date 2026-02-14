@@ -255,33 +255,19 @@ class Run {
 	}
 
 	static function checkHtml5Sdk(fmodSdk:String) {
-		var fmodSdkWeb = Sys.getEnv("FMOD_SDK_WEB");
-		if (fmodSdkWeb == null || fmodSdkWeb == "") {
-			fail("FMOD_SDK_WEB environment variable set (optional, needed for lime build html5)", "Not set");
-			Sys.println('         Download FMOD Engine 2.03.12 for HTML5 from https://www.fmod.com/download');
-			Sys.println('         Extract and set FMOD_SDK_WEB to the extracted installer directory:');
-			Sys.println('');
-			Sys.println('         export FMOD_SDK_WEB=/path/to/fmodstudioapi20312html5');
-			return;
-		}
-
-		if (!FileSystem.exists(fmodSdkWeb) || !FileSystem.isDirectory(fmodSdkWeb)) {
-			fail("FMOD_SDK_WEB directory exists", 'Directory not found: $fmodSdkWeb');
-			return;
-		}
-
-		var jsPath = '$fmodSdkWeb/api/studio/lib/wasm/fmodstudio.js';
-		var wasmPath = '$fmodSdkWeb/api/studio/lib/wasm/fmodstudio.wasm';
+		var jsPath = '$fmodSdk/api/studio/lib/wasm/fmodstudio.js';
+		var wasmPath = '$fmodSdk/api/studio/lib/wasm/fmodstudio.wasm';
 		var jsExists = FileSystem.exists(jsPath);
 		var wasmExists = FileSystem.exists(wasmPath);
 		if (jsExists && wasmExists) {
-			pass("HTML5 SDK present (optional)", fmodSdkWeb);
+			pass("HTML5 SDK present (optional)", "");
 		} else {
 			var missing:Array<String> = [];
 			if (!jsExists) missing.push("fmodstudio.js");
 			if (!wasmExists) missing.push("fmodstudio.wasm");
-			fail("HTML5 SDK files present", 'Missing: ${missing.join(", ")} in $fmodSdkWeb/api/studio/lib/wasm/');
+			fail("HTML5 SDK present (optional, needed for lime build html5)", 'Missing: ${missing.join(", ")}');
 			Sys.println('         Download FMOD Engine 2.03.12 for HTML5 from https://www.fmod.com/download');
+			Sys.println('         and set FMOD_SDK to the extracted installer directory.');
 		}
 	}
 
