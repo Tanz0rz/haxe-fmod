@@ -152,9 +152,10 @@ RUNEOF
 
     echo "[haxefmod postbuild] Replacing FMOD placeholder files with real SDK files"
 
-    # Replace fmodstudio.js placeholder with real file
+    # Replace fmodstudio.js placeholder with real file (in lib/ subdirectory)
     if [ -f "$SDK_DIR/api/studio/lib/wasm/fmodstudio.js" ]; then
-      cp "$SDK_DIR/api/studio/lib/wasm/fmodstudio.js" "$BIN_DIR/fmodstudio.js"
+      mkdir -p "$BIN_DIR/lib"
+      cp "$SDK_DIR/api/studio/lib/wasm/fmodstudio.js" "$BIN_DIR/lib/fmodstudio.js"
       echo "[haxefmod postbuild] Replaced fmodstudio.js"
     else
       echo "[haxefmod postbuild] ERROR: $SDK_DIR/api/studio/lib/wasm/fmodstudio.js not found"
