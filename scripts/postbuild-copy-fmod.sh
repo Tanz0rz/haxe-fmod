@@ -10,42 +10,7 @@ set -e
 PLATFORM="$1"
 TARGET="$2"
 
-if [ -z "$FMOD_SDK" ]; then
-  echo ""
-  echo "============================================================"
-  echo "  ERROR: FMOD_SDK environment variable is not set."
-  echo ""
-  echo "  Your build will NOT work without FMOD libraries!"
-  echo "  You will see: Failed to load library hlaxe_fmod.hdll"
-  echo "============================================================"
-  echo ""
-  echo "  haxe-fmod requires you to supply your own FMOD Engine SDK."
-  echo ""
-  echo "  1. Download FMOD Engine from https://www.fmod.com/download"
-  echo "     - All platforms: version 2.03.12"
-  echo ""
-  echo "  2. Extract it and set FMOD_SDK to point to the extracted directory."
-  echo ""
-  echo "     export FMOD_SDK=/path/to/fmodstudioapi20312mac"
-  echo ""
-  echo "     Expected layout:"
-  echo "       \$FMOD_SDK/api/core/inc/fmod.h"
-  echo "       \$FMOD_SDK/api/studio/inc/fmod_studio.h"
-  echo ""
-  echo "     Note: Set FMOD_SDK to the extracted installer directory."
-  echo "           Switch FMOD_SDK when building for different platforms."
-  echo ""
-  echo "  3. Run 'haxelib run haxefmod doctor' to verify your setup."
-  echo ""
-  echo "============================================================"
-  echo ""
-  exit 1
-fi
-
-# Verify FMOD SDK version matches what haxe-fmod was built against
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-EXPECTED_VERSION_FILE="$SCRIPT_DIR/fmod_expected_version"
-SDK_HEADER="$FMOD_SDK/api/core/inc/fmod_common.h"
 
 # Convert hex to readable version (0x00020312 -> 0002.03.12)
 hex_to_ver() {
@@ -53,29 +18,68 @@ hex_to_ver() {
   printf "%04x.%02x.%02x" $(( (hex >> 16) & 0xFFFF )) $(( (hex >> 8) & 0xFF )) $(( hex & 0xFF ))
 }
 
-if [ -f "$EXPECTED_VERSION_FILE" ] && [ -f "$SDK_HEADER" ]; then
-  EXPECTED_VERSION=$(tr -d '[:space:]' < "$EXPECTED_VERSION_FILE")
-  SDK_VERSION=$(grep '#define FMOD_VERSION' "$SDK_HEADER" | awk '{print $3}')
-
-  if [ -n "$EXPECTED_VERSION" ] && [ -n "$SDK_VERSION" ] && [ "$EXPECTED_VERSION" != "$SDK_VERSION" ]; then
+# Native platforms (mac, linux, windows) require FMOD_SDK; html5 uses FMOD_SDK_WEB instead
+if [ "$PLATFORM" != "html5" ]; then
+  if [ -z "$FMOD_SDK" ]; then
     echo ""
     echo "============================================================"
-    echo "  ERROR: FMOD SDK version mismatch!"
+    echo "  ERROR: FMOD_SDK environment variable is not set."
     echo ""
-    echo "  Your FMOD SDK:        $(hex_to_ver "$SDK_VERSION")"
-    echo "  haxe-fmod expects:    $(hex_to_ver "$EXPECTED_VERSION")"
+    echo "  Your build will NOT work without FMOD libraries!"
+    echo "  You will see: Failed to load library hlaxe_fmod.hdll"
+    echo "============================================================"
     echo ""
-    echo "  Download the correct version from https://www.fmod.com/download"
+    echo "  haxe-fmod requires you to supply your own FMOD Engine SDK."
+    echo ""
+    echo "  1. Download FMOD Engine from https://www.fmod.com/download"
+    echo "     - All platforms: version 2.03.12"
+    echo ""
+    echo "  2. Extract it and set FMOD_SDK to point to the extracted directory."
+    echo ""
+    echo "     export FMOD_SDK=/path/to/fmodstudioapi20312mac"
+    echo ""
+    echo "     Expected layout:"
+    echo "       \$FMOD_SDK/api/core/inc/fmod.h"
+    echo "       \$FMOD_SDK/api/studio/inc/fmod_studio.h"
+    echo ""
+    echo "     Note: Set FMOD_SDK to the extracted installer directory."
+    echo "           Switch FMOD_SDK when building for different platforms."
+    echo ""
+    echo "  3. Run 'haxelib run haxefmod doctor' to verify your setup."
+    echo ""
     echo "============================================================"
     echo ""
     exit 1
-  else
-    echo "[haxefmod postbuild] FMOD SDK version $(hex_to_ver "$EXPECTED_VERSION") - OK"
   fi
-else
-  echo "[haxefmod postbuild] WARNING: Could not verify FMOD SDK version"
-  [ ! -f "$EXPECTED_VERSION_FILE" ] && echo "[haxefmod postbuild]   Missing: $EXPECTED_VERSION_FILE"
-  [ ! -f "$SDK_HEADER" ] && echo "[haxefmod postbuild]   Missing: $SDK_HEADER"
+
+  # Verify FMOD SDK version matches what haxe-fmod was built against
+  EXPECTED_VERSION_FILE="$SCRIPT_DIR/fmod_expected_version"
+  SDK_HEADER="$FMOD_SDK/api/core/inc/fmod_common.h"
+
+  if [ -f "$EXPECTED_VERSION_FILE" ] && [ -f "$SDK_HEADER" ]; then
+    EXPECTED_VERSION=$(tr -d '[:space:]' < "$EXPECTED_VERSION_FILE")
+    SDK_VERSION=$(grep '#define FMOD_VERSION' "$SDK_HEADER" | awk '{print $3}')
+
+    if [ -n "$EXPECTED_VERSION" ] && [ -n "$SDK_VERSION" ] && [ "$EXPECTED_VERSION" != "$SDK_VERSION" ]; then
+      echo ""
+      echo "============================================================"
+      echo "  ERROR: FMOD SDK version mismatch!"
+      echo ""
+      echo "  Your FMOD SDK:        $(hex_to_ver "$SDK_VERSION")"
+      echo "  haxe-fmod expects:    $(hex_to_ver "$EXPECTED_VERSION")"
+      echo ""
+      echo "  Download the correct version from https://www.fmod.com/download"
+      echo "============================================================"
+      echo ""
+      exit 1
+    else
+      echo "[haxefmod postbuild] FMOD SDK version $(hex_to_ver "$EXPECTED_VERSION") - OK"
+    fi
+  else
+    echo "[haxefmod postbuild] WARNING: Could not verify FMOD SDK version"
+    [ ! -f "$EXPECTED_VERSION_FILE" ] && echo "[haxefmod postbuild]   Missing: $EXPECTED_VERSION_FILE"
+    [ ! -f "$SDK_HEADER" ] && echo "[haxefmod postbuild]   Missing: $SDK_HEADER"
+  fi
 fi
 
 case "$PLATFORM" in
