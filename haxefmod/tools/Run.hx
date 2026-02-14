@@ -158,12 +158,22 @@ class Run {
 	}
 
 	static function checkWindowsMsvc() {
-		// Try to run cl.exe (MSVC compiler) to check if Visual Studio C++ tools are available
+		// vswhere.exe is installed with Visual Studio 2017+ and is how hxcpp locates MSVC
+		var vswherePath = "C:\\Program Files (x86)\\Microsoft Visual Studio\\Installer\\vswhere.exe";
+		if (FileSystem.exists(vswherePath)) {
+			var result = runQuiet(vswherePath, ["-latest", "-property", "installationPath"]);
+			if (result.exitCode == 0 && result.stdout != "") {
+				pass("Visual Studio C++ tools (for lime build windows)", result.stdout);
+				return;
+			}
+		}
+
+		// Fallback: check if cl.exe is in PATH
 		var result = runQuiet("cl", ["--version"]);
 		if (result.exitCode == 0) {
 			pass("Visual Studio C++ tools (for lime build windows)", "");
 		} else {
-			fail("Visual Studio C++ tools (needed for lime build windows, not needed for lime build hl)", "cl.exe not found in PATH");
+			fail("Visual Studio C++ tools (needed for lime build windows, not needed for lime build hl)", "Not detected via vswhere or PATH");
 			Sys.println("         Install Build Tools for Visual Studio 2022:");
 			Sys.println("");
 			Sys.println("         Direct download:");
