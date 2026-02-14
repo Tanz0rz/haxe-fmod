@@ -42,6 +42,35 @@ if [ -z "$FMOD_SDK" ]; then
   exit 1
 fi
 
+# Verify FMOD SDK version matches what haxe-fmod was built against
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+EXPECTED_VERSION_FILE="$SCRIPT_DIR/fmod_expected_version"
+SDK_HEADER="$FMOD_SDK/api/core/inc/fmod_common.h"
+
+if [ -f "$EXPECTED_VERSION_FILE" ] && [ -f "$SDK_HEADER" ]; then
+  EXPECTED_VERSION=$(tr -d '[:space:]' < "$EXPECTED_VERSION_FILE")
+  SDK_VERSION=$(grep '#define FMOD_VERSION' "$SDK_HEADER" | awk '{print $3}')
+
+  if [ -n "$EXPECTED_VERSION" ] && [ -n "$SDK_VERSION" ] && [ "$EXPECTED_VERSION" != "$SDK_VERSION" ]; then
+    # Convert hex to readable version (0x00020312 -> 0002.03.12)
+    hex_to_ver() {
+      local hex=$((${1}))
+      printf "%04x.%02x.%02x" $(( (hex >> 16) & 0xFFFF )) $(( (hex >> 8) & 0xFF )) $(( hex & 0xFF ))
+    }
+    echo ""
+    echo "============================================================"
+    echo "  ERROR: FMOD SDK version mismatch!"
+    echo ""
+    echo "  Your FMOD SDK:        $(hex_to_ver "$SDK_VERSION")"
+    echo "  haxe-fmod expects:    $(hex_to_ver "$EXPECTED_VERSION")"
+    echo ""
+    echo "  Download the correct version from https://www.fmod.com/download"
+    echo "============================================================"
+    echo ""
+    exit 1
+  fi
+fi
+
 case "$PLATFORM" in
   mac)
     SDK_DIR="$FMOD_SDK"
@@ -62,7 +91,6 @@ case "$PLATFORM" in
 
     # Copy hlaxe_fmod.hdll from templates (always, to ensure correct version)
     if [ "$TARGET" = "hl" ]; then
-      SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
       HDLL_SRC="$SCRIPT_DIR/../templates/bin/hl/Mac64/hlaxe_fmod.hdll"
       if [ -f "$HDLL_SRC" ]; then
         cp "$HDLL_SRC" "$DEST/"
@@ -96,7 +124,6 @@ case "$PLATFORM" in
 
     # Copy hlaxe_fmod.hdll from templates (always, to ensure correct version)
     if [ "$TARGET" = "hl" ]; then
-      SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
       HDLL_SRC="$SCRIPT_DIR/../templates/bin/hl/Linux64/hlaxe_fmod.hdll"
       if [ -f "$HDLL_SRC" ]; then
         cp "$HDLL_SRC" "$DEST/"
@@ -137,7 +164,6 @@ RUNEOF
     cp "$SDK_DIR/api/studio/lib/x64/fmodstudio.dll" "$DEST/"
     # Copy hlaxe_fmod.hdll from templates (always, to ensure correct version)
     if [ "$TARGET" = "hl" ]; then
-      SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
       HDLL_SRC="$SCRIPT_DIR/../templates/bin/hl/Windows64/hlaxe_fmod.hdll"
       if [ -f "$HDLL_SRC" ]; then
         cp "$HDLL_SRC" "$DEST/"
