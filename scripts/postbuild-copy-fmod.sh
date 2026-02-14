@@ -47,16 +47,17 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 EXPECTED_VERSION_FILE="$SCRIPT_DIR/fmod_expected_version"
 SDK_HEADER="$FMOD_SDK/api/core/inc/fmod_common.h"
 
+# Convert hex to readable version (0x00020312 -> 0002.03.12)
+hex_to_ver() {
+  local hex=$((${1}))
+  printf "%04x.%02x.%02x" $(( (hex >> 16) & 0xFFFF )) $(( (hex >> 8) & 0xFF )) $(( hex & 0xFF ))
+}
+
 if [ -f "$EXPECTED_VERSION_FILE" ] && [ -f "$SDK_HEADER" ]; then
   EXPECTED_VERSION=$(tr -d '[:space:]' < "$EXPECTED_VERSION_FILE")
   SDK_VERSION=$(grep '#define FMOD_VERSION' "$SDK_HEADER" | awk '{print $3}')
 
   if [ -n "$EXPECTED_VERSION" ] && [ -n "$SDK_VERSION" ] && [ "$EXPECTED_VERSION" != "$SDK_VERSION" ]; then
-    # Convert hex to readable version (0x00020312 -> 0002.03.12)
-    hex_to_ver() {
-      local hex=$((${1}))
-      printf "%04x.%02x.%02x" $(( (hex >> 16) & 0xFFFF )) $(( (hex >> 8) & 0xFF )) $(( hex & 0xFF ))
-    }
     echo ""
     echo "============================================================"
     echo "  ERROR: FMOD SDK version mismatch!"
@@ -68,7 +69,13 @@ if [ -f "$EXPECTED_VERSION_FILE" ] && [ -f "$SDK_HEADER" ]; then
     echo "============================================================"
     echo ""
     exit 1
+  else
+    echo "[haxefmod postbuild] FMOD SDK version $(hex_to_ver "$EXPECTED_VERSION") - OK"
   fi
+else
+  echo "[haxefmod postbuild] WARNING: Could not verify FMOD SDK version"
+  [ ! -f "$EXPECTED_VERSION_FILE" ] && echo "[haxefmod postbuild]   Missing: $EXPECTED_VERSION_FILE"
+  [ ! -f "$SDK_HEADER" ] && echo "[haxefmod postbuild]   Missing: $SDK_HEADER"
 fi
 
 case "$PLATFORM" in
