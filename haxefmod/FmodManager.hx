@@ -29,10 +29,37 @@ class FmodManager {
     }
 
     /**
-        A call required to process asynchronous events. This should be in the main update loop of the game
+        Processes FMOD's asynchronous events including parameter changes and callbacks.
+
+        With auto-update enabled (the default), FMOD is automatically updated at ~60fps on a
+        background thread (C++/HashLink) or via setInterval (HTML5). This means calling Update()
+        manually is optional for most use cases.
+
+        You may still call Update() in your game loop if you want updates synchronized exactly
+        with your frame timing, but this provides minimal benefit since auto-update already
+        runs at the same rate as a typical game loop.
+
+        To disable auto-update and manage FMOD updates entirely yourself, call SetAutoUpdate(false).
     **/
     public static function Update() {
         FmodManagerPrivate.GetInstance().Update();
+    }
+
+    /**
+        Enables or disables automatic FMOD updates.
+
+        When enabled (the default), FMOD is updated automatically at ~60fps:
+        - C++: Background thread with 16ms sleep
+        - HashLink: Background thread using pthread (Linux) or Windows threads
+        - HTML5: JavaScript setInterval
+
+        This ensures FMOD processes parameter changes and callbacks even when the game loop
+        is paused (e.g., when the window loses focus).
+
+        @param enabled true to enable auto-update (default), false to disable
+    **/
+    public static function SetAutoUpdate(enabled:Bool) {
+        FmodManagerPrivate.GetInstance().SetAutoUpdate(enabled);
     }
 
     public static function StopAllSounds() {
@@ -86,8 +113,6 @@ class FmodManager {
 
     /**
         Sets an event parameter value on the song
-
-        Setting a parameter when the game is paused will require a manual call to Update() for FMOD to see the change
         @param parameterName name of parameter on song
         @param parameterValue value for parameter
     **/
@@ -218,8 +243,6 @@ class FmodManager {
 
     /**
         Sets an event parameter value on a sound
-
-        Setting a parameter when the game is paused will require a manual call to Update() for FMOD to see the change
         @param soundId Id of a loaded sound
         @param parameterName name of parameter on sound
         @param parameterValue value for parameter
@@ -313,7 +336,7 @@ class FmodManager {
     //// Utility
 
     /**
-        Experimental: register any class that satisfies the FmodEventLister interface
+        Experimental: register any class that satisfies the FmodEventListener interface
 
         Will be used to allow utility methods (like screen transition helpers) for any Haxe framework
         @param eventListener An implementer of the FmodEventListener interface

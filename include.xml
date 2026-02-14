@@ -1,14 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <project>
-	<!-- This file will be automatically appended to the game's main Project.xml at build time -->
-	<!-- The dependency tag tells the compiler to include these files into the build of the game -->
-	<dependency name="lib/Windows/api/core/lib/x86/fmod.dll" if="windows HXCPP_M32"/>
-	<dependency name="lib/Windows/api/studio/lib/x86/fmodstudio.dll" if="windows HXCPP_M32" />
-	
-	<dependency name="lib/Windows/api/core/lib/x64/fmod.dll" if="windows" unless="HXCPP_M32"/>
-	<dependency name="lib/Windows/api/studio/lib/x64/fmodstudio.dll" if="windows" unless="HXCPP_M32"/>
+	<!-- templatePath copies pre-built hdlls into HL build output automatically -->
+	<templatePath name="templates" />
 
-	<dependency path="lib/html5/fmodstudio.js" if="html5"/>
-	<assets path="lib/html5/fmodstudio.wasm" rename="lib/fmodstudio.wasm" if="html5"/>
-	<dependency path="jaxe/jaxe.js" if="html5"/>
+	<!-- C++ postbuild: copy FMOD runtime libs from $FMOD_SDK -->
+	<postbuild command="haxelib run haxefmod postbuild mac cpp ${haxelib:haxefmod}" if="mac" unless="hl" />
+	<postbuild command="haxelib run haxefmod postbuild linux cpp ${haxelib:haxefmod}" if="linux" unless="hl" />
+	<postbuild command="haxelib run haxefmod postbuild windows cpp ${haxelib:haxefmod}" if="windows" unless="hl" />
+
+	<!-- HL postbuild: copy FMOD runtime libs for HashLink targets -->
+	<postbuild command="haxelib run haxefmod postbuild mac hl ${haxelib:haxefmod}" if="mac hl" unless="html5" />
+	<postbuild command="haxelib run haxefmod postbuild linux hl ${haxelib:haxefmod}" if="linux hl" unless="html5" />
+	<postbuild command="haxelib run haxefmod postbuild windows hl ${haxelib:haxefmod}" if="windows hl" unless="html5" />
+
+	<!-- HTML5 dependencies (placeholders replaced by postbuild) -->
+	<dependency path="native/html5/fmodstudio.js" if="html5"/>
+	<assets path="native/html5/fmodstudio.wasm" rename="lib/fmodstudio.wasm" if="html5"/>
+	<dependency path="native/jaxe/jaxe.js" if="html5"/>
+
+	<!-- HTML5 postbuild: replace placeholder FMOD files with real ones from FMOD_SDK_WEB -->
+	<postbuild command="haxelib run haxefmod postbuild html5 html5 ${haxelib:haxefmod}" if="html5" />
 </project>
