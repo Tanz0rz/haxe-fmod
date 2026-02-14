@@ -418,7 +418,7 @@ class PostBuild {
 		Sys.println("     Note: Set FMOD_SDK to the extracted installer directory.");
 		Sys.println("           Switch FMOD_SDK when building for different platforms.");
 		Sys.println("");
-		Sys.println("  3. Run 'haxelib run haxefmod doctor' to verify your setup.");
+		Sys.println("  3. Run 'haxelib run haxefmod check' to verify your setup.");
 		Sys.println("");
 		Sys.println("============================================================");
 		Sys.println("");
@@ -441,7 +441,7 @@ class PostBuild {
 		Sys.println("     Or on Windows:");
 		Sys.println("     set FMOD_SDK_WEB=C:\\path\\to\\fmodstudioapi20312html5");
 		Sys.println("");
-		Sys.println("  3. Run 'haxelib run haxefmod doctor' to verify your setup.");
+		Sys.println("  3. Run 'haxelib run haxefmod check' to verify your setup.");
 		Sys.println("");
 		Sys.println("============================================================");
 		Sys.println("");

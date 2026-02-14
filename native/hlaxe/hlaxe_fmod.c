@@ -207,6 +207,7 @@ DEFINE_PRIM(_VOID, stop, _I32 _I32);
 
 HL_PRIM void HL_NAME(release)(int h) {
     if (h >= 0 && h < gInstanceCount && gInstances[h]) {
+        FMOD_Studio_EventInstance_Stop(gInstances[h], FMOD_STUDIO_STOP_IMMEDIATE);
         FMOD_Studio_EventInstance_Release(gInstances[h]);
         gInstances[h] = NULL;
         gCallbackFlags[h] = 0;

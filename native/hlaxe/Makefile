@@ -1,7 +1,7 @@
 # HashLink FMOD native library Makefile
 
 ifndef FMOD_SDK
-$(error FMOD_SDK not set. Run: haxelib run haxefmod doctor)
+$(error FMOD_SDK not set. Run: haxelib run haxefmod check)
 endif
 
 UNAME_S := $(shell uname -s)

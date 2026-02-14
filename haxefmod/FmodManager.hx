@@ -336,7 +336,7 @@ class FmodManager {
     //// Utility
 
     /**
-        Experimental: register any class that satisfies the FmodEventLister interface
+        Experimental: register any class that satisfies the FmodEventListener interface
 
         Will be used to allow utility methods (like screen transition helpers) for any Haxe framework
         @param eventListener An implementer of the FmodEventListener interface
