@@ -41,7 +41,7 @@ class CppBackend implements IFmodBackend {
         if (result == 0) {
             log('Initialized with $numChannels channels');
         } else {
-            log('Init failed with error code $result');
+            trace('FMOD ERROR: Init failed with error code $result');
         }
     }
 
@@ -61,7 +61,7 @@ class CppBackend implements IFmodBackend {
         if (result == 0) {
             log('Loaded bank: $bankFilePath');
         } else {
-            log('Failed to load bank $bankFilePath (error $result)');
+            trace('FMOD ERROR: Failed to load bank $bankFilePath (error $result)');
         }
     }
 

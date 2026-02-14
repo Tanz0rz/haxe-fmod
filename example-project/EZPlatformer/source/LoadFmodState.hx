@@ -7,7 +7,7 @@ import flixel.FlxState;
 
 /**
  * @author Tanner Moore
- * For games that are deployed to html5, the FMOD audio engine must be loaded before starting the game. 
+ * For games that are deployed to html5, the FMOD audio engine must be loaded before starting the game.
  */
 class LoadFmodState extends FlxState {
     override public function create():Void {
