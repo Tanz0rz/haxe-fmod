@@ -57,9 +57,9 @@ Required version:
 **For OS-native builds**, set the `FMOD_SDK` environment variable to point to the FMOD Engine directory:
 
 ```bash
-# For Linux/macOS (use $HOME, not ~)
+# For Linux/macOS
 # in ~/.bashrc or ~/.zshrc
-export FMOD_SDK="$HOME/fmod/fmodstudioapi20312"
+export FMOD_SDK="$HOME/fmod/fmodstudioapi20312" # (use $HOME, not ~)
 
 # For Windows
 # in the Environment Variables UI
@@ -69,9 +69,9 @@ export FMOD_SDK="$HOME/fmod/fmodstudioapi20312"
 **For HTML5 builds**, set a separate `FMOD_SDK_WEB` variable:
 
 ```bash
-# For Linux/macOS (use $HOME, not ~)
+# For Linux/macOS
 # in ~/.bashrc or ~/.zshrc
-export FMOD_SDK_WEB="$HOME/fmod/fmodstudioapi20312html5"
+export FMOD_SDK_WEB="$HOME/fmod/fmodstudioapi20312html5" # (use $HOME, not ~)
 
 # For Windows
 # in the Environment Variables UI

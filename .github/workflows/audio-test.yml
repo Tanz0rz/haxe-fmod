@@ -1086,6 +1086,8 @@ jobs:
   # ===========================================================================
   update-hdlls:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     needs: [linux-hl, mac-hl, windows-hl]
     if: ${{ always() && !cancelled() && needs.linux-hl.result == 'success' && needs.mac-hl.result == 'success' && needs.windows-hl.result == 'success' }}
     steps:

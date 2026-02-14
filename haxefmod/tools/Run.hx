@@ -64,16 +64,11 @@ class Run {
 			Sys.println("  To fix this:");
 			Sys.println("  1. Download FMOD Engine from https://www.fmod.com/download");
 			Sys.println('     - All platforms require version 2.03.12');
-			Sys.println("  2. Extract and set FMOD_SDK to point to the extracted directory.");
-			Sys.println("     The simplest place to store this would be at the root level of your project.");
+			Sys.println("  2. Install/extract it and set FMOD_SDK to point to the SDK directory.");
 			Sys.println("");
-			Sys.println("     export FMOD_SDK=/path/to/your-project/fmod-sdk");
+			Sys.println("     export FMOD_SDK=/path/to/fmodstudioapi20312");
 			Sys.println("");
-			Sys.println("  Expected layout:");
-			Sys.println("    $FMOD_SDK/api/core/inc/fmod.h");
-			Sys.println("    $FMOD_SDK/api/studio/inc/fmod_studio.h");
-			Sys.println("");
-			Sys.println("  Note: Set FMOD_SDK to the extracted installer directory.");
+			Sys.println("  Note: Set FMOD_SDK to the installed/extracted SDK directory.");
 			Sys.println("        Switch FMOD_SDK when building for different platforms.");
 			Sys.println("");
 			printSummary();
@@ -97,7 +92,7 @@ class Run {
 		if (!FileSystem.exists(headerPath)) {
 			fail('$platform SDK headers present', 'Not found: $headerPath');
 			Sys.println('         Download FMOD Engine $expectedVersion for $platform from https://www.fmod.com/download');
-			Sys.println('         and set FMOD_SDK to the extracted installer directory.');
+			Sys.println('         and set FMOD_SDK to the installed/extracted SDK directory.');
 		} else {
 			pass('$platform SDK headers present', headerPath);
 		}

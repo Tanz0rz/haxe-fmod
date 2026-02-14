@@ -407,15 +407,11 @@ class PostBuild {
 		Sys.println("  1. Download FMOD Engine from https://www.fmod.com/download");
 		Sys.println("     - All platforms: version 2.03.12");
 		Sys.println("");
-		Sys.println("  2. Extract it and set FMOD_SDK to point to the extracted directory.");
+		Sys.println("  2. Install/extract it and set FMOD_SDK to point to the SDK directory.");
 		Sys.println("");
-		Sys.println("     export FMOD_SDK=/path/to/fmodstudioapi20312mac");
+		Sys.println("     export FMOD_SDK=/path/to/fmodstudioapi20312");
 		Sys.println("");
-		Sys.println("     Expected layout:");
-		Sys.println("       $FMOD_SDK/api/core/inc/fmod.h");
-		Sys.println("       $FMOD_SDK/api/studio/inc/fmod_studio.h");
-		Sys.println("");
-		Sys.println("     Note: Set FMOD_SDK to the extracted installer directory.");
+		Sys.println("     Note: Set FMOD_SDK to the installed/extracted SDK directory.");
 		Sys.println("           Switch FMOD_SDK when building for different platforms.");
 		Sys.println("");
 		Sys.println("  3. Run 'haxelib run haxefmod check' to verify your setup.");
