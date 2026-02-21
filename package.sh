@@ -7,13 +7,16 @@ set -e
 
 rm -f haxefmod.zip
 
-zip -r haxefmod.zip . \
-  -x ".git/*" \
-  -x ".github/*" \
-  -x "ci/*" \
-  -x "example-project/*" \
-  -x "haxefmod.zip" \
-  -x "package.sh"
+zip -r haxefmod.zip \
+  haxefmod/ \
+  native/ \
+  templates/ \
+  scripts/ \
+  fmod-scripts/ \
+  include.xml \
+  haxelib.json \
+  README.md \
+  LICENSE
 
 echo ""
 echo "Created haxefmod.zip"
