@@ -243,7 +243,7 @@ class PostBuild {
 		// Create run.sh wrapper if it doesn't exist
 		var runSh = Path.join([binDir, "run.sh"]);
 		if (!FileSystem.exists(runSh)) {
-			var exeName = findExecutableName(binDir, [".so", ".hdll"]);
+			var exeName = findExecutableName(binDir, [".so", ".hdll", ".ndll"]);
 			if (exeName != null) {
 				var content = '#!/bin/bash\ncd "$$(dirname "$$0")"\nexport LD_LIBRARY_PATH="$$(pwd):$$LD_LIBRARY_PATH"\n./${exeName} "$$@"\n';
 				File.saveContent(runSh, content);
@@ -414,7 +414,8 @@ class PostBuild {
 			if (file == "run.sh") continue;
 			var excluded = false;
 			for (ext in excludeExts) {
-				if (StringTools.endsWith(file, ext)) {
+				// Use indexOf instead of endsWith to catch versioned files like libfmod.so.14
+				if (file.indexOf(ext) != -1) {
 					excluded = true;
 					break;
 				}
