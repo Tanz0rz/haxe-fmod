@@ -76,7 +76,20 @@ class BuildHdll {
 		}
 		info('Compiler: $compiler');
 
-		// 6. Build
+		// 6. Validate FMOD link libraries exist
+		var missingLibs = checkFmodLibs(fmodSdk, platform);
+		if (missingLibs.length > 0) {
+			error("FMOD link libraries not found:");
+			for (lib in missingLibs) {
+				Sys.println('    $lib');
+			}
+			Sys.println("");
+			Sys.println("  Check that FMOD_SDK points to the correct SDK directory for your platform.");
+			Sys.exit(1);
+		}
+		info("FMOD link libraries found");
+
+		// 7. Build
 		var sourceFile = Path.join([libRoot, "native", "hlaxe", "hlaxe_fmod.c"]);
 		if (!FileSystem.exists(sourceFile)) {
 			error('Source file not found: $sourceFile');
@@ -148,6 +161,29 @@ class BuildHdll {
 			case "windows": "cl";
 			default: "gcc";
 		};
+	}
+
+	static function checkFmodLibs(fmodSdk:String, platform:String):Array<String> {
+		var expected:Array<String> = switch (platform) {
+			case "linux": [
+				Path.join([fmodSdk, "api", "core", "lib", "x86_64", "libfmod.so"]),
+				Path.join([fmodSdk, "api", "studio", "lib", "x86_64", "libfmodstudio.so"]),
+			];
+			case "mac": [
+				Path.join([fmodSdk, "api", "core", "lib", "libfmod.dylib"]),
+				Path.join([fmodSdk, "api", "studio", "lib", "libfmodstudio.dylib"]),
+			];
+			case "windows": [
+				Path.join([fmodSdk, "api", "core", "lib", "x64", "fmod_vc.lib"]),
+				Path.join([fmodSdk, "api", "studio", "lib", "x64", "fmodstudio_vc.lib"]),
+			];
+			default: [];
+		};
+		var missing:Array<String> = [];
+		for (lib in expected) {
+			if (!FileSystem.exists(lib)) missing.push(lib);
+		}
+		return missing;
 	}
 
 	static function compilerAvailable(compiler:String, platform:String):Bool {
