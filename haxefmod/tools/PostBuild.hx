@@ -66,9 +66,42 @@ class PostBuild {
 			return;
 		}
 
-		if (expectedHex != sdkHex) {
-			var expectedVer = hexToVersion(expectedHex);
-			var sdkVer = hexToVersion(sdkHex);
+		if (expectedHex == sdkHex) {
+			var ver = hexToVersion(expectedHex);
+			if (sdkEnvName == "FMOD_SDK_WEB") {
+				log('FMOD SDK Web version $ver - OK');
+			} else {
+				log('FMOD SDK version $ver - OK');
+			}
+			return;
+		}
+
+		// Version mismatch — check for user-compiled hdll via marker file
+		// (HTML5 doesn't use hdlls, so marker files don't apply)
+		if (sdkEnvName != "FMOD_SDK_WEB") {
+			var platform = detectPlatform();
+			var platformDir = switch (platform) {
+				case "mac": "Mac64";
+				case "windows": "Windows64";
+				default: "Linux64";
+			};
+			var markerFile = Path.join([libRoot, "templates", "bin", "hl", platformDir, "hlaxe_fmod.version"]);
+			if (FileSystem.exists(markerFile)) {
+				var markerHex = StringTools.trim(File.getContent(markerFile));
+				if (markerHex == sdkHex) {
+					var ver = hexToVersion(sdkHex);
+					log('FMOD SDK version $ver - OK (custom-compiled hdll)');
+					return;
+				}
+			}
+		}
+
+		var expectedVer = hexToVersion(expectedHex);
+		var sdkVer = hexToVersion(sdkHex);
+
+		// Check for strict mode (old hard-fail behavior)
+		var strict = Sys.getEnv("FMOD_STRICT_VERSION");
+		if (strict == "1") {
 			Sys.println("");
 			Sys.println("============================================================");
 			Sys.println('  ERROR: FMOD SDK version mismatch!');
@@ -86,15 +119,42 @@ class PostBuild {
 			Sys.exit(1);
 		}
 
-		var ver = hexToVersion(expectedHex);
+		// Warn and suggest build-hdll instead of hard-failing
+		Sys.println("");
+		Sys.println("============================================================");
+		Sys.println('  WARNING: FMOD SDK version mismatch');
+		Sys.println("");
 		if (sdkEnvName == "FMOD_SDK_WEB") {
-			log('FMOD SDK Web version $ver - OK');
+			Sys.println('  Your FMOD SDK Web:    $sdkVer');
+			Sys.println('  haxe-fmod expects:    $expectedVer');
+			Sys.println("");
+			Sys.println("  Download the correct version from https://www.fmod.com/download");
 		} else {
-			log('FMOD SDK version $ver - OK');
+			Sys.println('  Your FMOD SDK:        $sdkVer');
+			Sys.println('  Pre-built hdll:       $expectedVer');
+			Sys.println("");
+			Sys.println("  To compile an hdll matching your SDK, run:");
+			Sys.println("    haxelib run haxefmod build-hdll");
+			Sys.println("");
+			Sys.println("  Or download FMOD $expectedVer from https://www.fmod.com/download");
+		}
+		Sys.println("============================================================");
+		Sys.println("");
+
+		// For HTML5, still fail — there are no pre-compiled binaries to swap
+		if (sdkEnvName == "FMOD_SDK_WEB") {
+			Sys.exit(1);
 		}
 	}
 
-	static function parseFmodVersion(headerPath:String):Null<String> {
+	static function detectPlatform():String {
+		var name = Sys.systemName();
+		if (name == "Windows") return "windows";
+		if (name == "Mac") return "mac";
+		return "linux";
+	}
+
+	public static function parseFmodVersion(headerPath:String):Null<String> {
 		var content = File.getContent(headerPath);
 		for (line in content.split("\n")) {
 			if (line.indexOf("FMOD_VERSION") != -1 && line.indexOf("#define") != -1) {
@@ -119,7 +179,7 @@ class PostBuild {
 		return null;
 	}
 
-	static function hexToVersion(hex:String):String {
+	public static function hexToVersion(hex:String):String {
 		var val = Std.parseInt(hex);
 		if (val == null) return hex;
 		var hexStr = StringTools.hex(val, 8);

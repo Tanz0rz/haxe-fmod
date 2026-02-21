@@ -7,6 +7,7 @@ Having problems? Join the [Haxe Discord](https://discord.com/channels/1623951453
  - [Features](#features)
  - [Supported Platforms](#supported-platforms)
  - [How to Use This Library](#how-to-use-this-library)
+ - [Using a Different FMOD Version](#using-a-different-fmod-version)
  - [HTML5 Builds](#html5-builds)
  - [FMOD Studio Project Configuration](#fmod-studio-project-configuration)
  - [License](#license)
@@ -51,7 +52,8 @@ This will be the tool you use to manage all audio for your game. Download FMOD S
 This library requires you to supply your own FMOD Engine SDK (separate from FMOD Studio). Download it from [fmod.com/download](https://www.fmod.com/download).
 
 Required version:
-- **All platforms**: FMOD Engine 2.03.12
+- **All platforms**: FMOD Engine 2.03.12 (recommended — pre-built binaries target this version)
+- Other versions are supported for HashLink builds — see [Using a Different FMOD Version](#using-a-different-fmod-version)
 
 **For OS-native builds**, set the `FMOD_SDK` environment variable to point to the FMOD Engine directory:
 
@@ -122,6 +124,27 @@ lime test windows
 lime test linux
 lime test mac
 ```
+
+## <a name="using-a-different-fmod-version"></a>Using a Different FMOD Version
+
+The pre-built HashLink binaries (hdlls) ship for FMOD 2.03.12. If you need a different FMOD version for HashLink builds, you can compile the hdll from source against your SDK:
+
+```bash
+# 1. Set FMOD_SDK to your version
+export FMOD_SDK=/path/to/your/fmodstudioapi
+
+# 2. Compile the hdll
+haxelib run haxefmod build-hdll
+
+# 3. Build as normal
+lime build hl
+```
+
+This requires a C compiler (`gcc` on Linux, `cc` on Mac, `cl` on Windows) and HashLink headers installed on your system.
+
+The `build-hdll` command will auto-detect your platform, find HashLink headers in common locations, compile the hdll, and place it where `lime build hl` expects it. If HashLink headers aren't found automatically, set `HASHLINK_DIR` to your HashLink installation directory.
+
+C++ and HTML5 targets compile from source during `lime build` and already work with any compatible FMOD version.
 
 ## <a name="html5-builds"></a>HTML5 Builds
 
