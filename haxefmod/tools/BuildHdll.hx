@@ -18,7 +18,7 @@ import haxe.io.Path;
  *   - HashLink headers (auto-detected from common locations or $HASHLINK_DIR)
  */
 class BuildHdll {
-	public static function run(libRoot:String):Void {
+	public static function run(libRoot:String, projectDir:String):Void {
 		Sys.println("");
 		Sys.println("haxefmod build-hdll - compiling hlaxe_fmod.hdll from source");
 		Sys.println("");
@@ -96,8 +96,7 @@ class BuildHdll {
 			Sys.exit(1);
 		}
 
-		var platformDir = getPlatformDir(platform);
-		var outputDir = Path.join([libRoot, "templates", "bin", "hl", platformDir]);
+		var outputDir = Path.join([projectDir, ".haxefmod"]);
 		if (!FileSystem.exists(outputDir)) {
 			FileSystem.createDirectory(outputDir);
 		}
@@ -135,6 +134,9 @@ class BuildHdll {
 		Sys.println('  Output:        $outputFile');
 		Sys.println('  Version file:  $versionFile');
 		Sys.println("");
+		Sys.println("  The .haxefmod/ directory is project-local and survives");
+		Sys.println("  library updates. Commit it to share with your team.");
+		Sys.println("");
 		Sys.println("  You can now run: lime build hl");
 		Sys.println("============================================================");
 		Sys.println("");
@@ -145,14 +147,6 @@ class BuildHdll {
 		if (name == "Windows") return "windows";
 		if (name == "Mac") return "mac";
 		return "linux";
-	}
-
-	static function getPlatformDir(platform:String):String {
-		return switch (platform) {
-			case "mac": "Mac64";
-			case "windows": "Windows64";
-			default: "Linux64";
-		};
 	}
 
 	static function getCompiler(platform:String):String {

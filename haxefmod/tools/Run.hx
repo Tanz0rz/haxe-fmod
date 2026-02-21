@@ -22,7 +22,7 @@ class Run {
 			case "check":
 				runCheck(cwd, libRoot);
 			case "build-hdll":
-				BuildHdll.run(libRoot);
+				BuildHdll.run(libRoot, cwd);
 			case "postbuild":
 				if (userArgs.length < 4) {
 					Sys.println("Usage: haxelib run haxefmod postbuild <platform> <target> <libroot>");
@@ -137,7 +137,7 @@ class Run {
 
 		// 8b. Pre-built hdll compatibility check
 		if (FileSystem.exists(headerPath)) {
-			checkHdllCompatibility(fmodSdk, platform, libRoot);
+			checkHdllCompatibility(fmodSdk, platform, libRoot, cwd);
 		}
 
 		// 9. HTML5 SDK check
@@ -292,7 +292,7 @@ class Run {
 		}
 	}
 
-	static function checkHdllCompatibility(fmodSdk:String, platform:String, libRoot:String) {
+	static function checkHdllCompatibility(fmodSdk:String, platform:String, libRoot:String, projectDir:String) {
 		var commonHeader = '$fmodSdk/api/core/inc/fmod_common.h';
 		var sdkHex = PostBuild.parseFmodVersion(commonHeader);
 		if (sdkHex == null) return;
@@ -306,18 +306,13 @@ class Run {
 			return;
 		}
 
-		// SDK doesn't match pre-built version — check for user-compiled hdll
-		var platformDir = switch (platform) {
-			case "mac": "Mac64";
-			case "windows": "Windows64";
-			default: "Linux64";
-		};
-		var markerFile = haxe.io.Path.join([libRoot, "templates", "bin", "hl", platformDir, "hlaxe_fmod.version"]);
+		// SDK doesn't match pre-built version — check for project-local custom-compiled hdll
+		var markerFile = haxe.io.Path.join([projectDir, ".haxefmod", "hlaxe_fmod.version"]);
 		if (FileSystem.exists(markerFile)) {
 			var markerHex = StringTools.trim(File.getContent(markerFile));
 			if (markerHex == sdkHex) {
 				var ver = PostBuild.hexToVersion(sdkHex);
-				pass("Custom-compiled hdll matches SDK", ver);
+				pass("Custom-compiled hdll matches SDK", '$ver (from .haxefmod/)');
 				return;
 			}
 		}

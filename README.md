@@ -133,7 +133,7 @@ The pre-built HashLink binaries (hdlls) ship for FMOD 2.03.12. If you need a dif
 # 1. Set FMOD_SDK to your version
 export FMOD_SDK=/path/to/your/fmodstudioapi
 
-# 2. Compile the hdll
+# 2. Compile the hdll (from your project directory)
 haxelib run haxefmod build-hdll
 
 # 3. Build as normal
@@ -142,7 +142,28 @@ lime build hl
 
 This requires a C compiler (`gcc` on Linux, `cc` on Mac, `cl` on Windows) and HashLink headers installed on your system.
 
-The `build-hdll` command will auto-detect your platform, find HashLink headers in common locations, compile the hdll, and place it where `lime build hl` expects it. If HashLink headers aren't found automatically, set `HASHLINK_DIR` to your HashLink installation directory.
+The `build-hdll` command will auto-detect your platform, find HashLink headers in common locations, compile the hdll, and place it in a `.haxefmod/` directory in your project. If HashLink headers aren't found automatically, set `HASHLINK_DIR` to your HashLink installation directory.
+
+### How the hdll is resolved
+
+At build time, `lime build hl` uses a tiered fallback to find the right hdll:
+
+1. **Project-local `.haxefmod/hlaxe_fmod.hdll`** — used if present (custom-compiled via `build-hdll`)
+2. **Pre-built `templates/bin/hl/<Platform>/hlaxe_fmod.hdll`** — ships with the library (targets FMOD 2.03.12)
+
+The build log will tell you which one was used: `(custom-compiled from .haxefmod/)` or `(pre-built)`.
+
+### Scenarios
+
+**Default (FMOD 2.03.12):** No `.haxefmod/` directory needed. The pre-built hdll matches your SDK. Everything works out of the box.
+
+**Custom FMOD version, after running `build-hdll`:** The hdll and a version marker are stored in `.haxefmod/`. The post-build step verifies the marker matches your SDK and copies the custom hdll to the export directory. Commit `.haxefmod/` to your repo so your team can share it.
+
+**Custom FMOD version, without running `build-hdll`:** The build fails with an error telling you to run `haxelib run haxefmod build-hdll`. A mismatched hdll and SDK will crash at runtime, so the build stops early.
+
+**After a library update (`haxelib update haxefmod`):** The `.haxefmod/` directory is in your project, not in the haxelib tree, so it survives library updates. No need to re-run `build-hdll`.
+
+**After upgrading your FMOD SDK:** The version marker in `.haxefmod/` won't match the new SDK. The build will fail with an error suggesting you re-run `build-hdll`.
 
 C++ and HTML5 targets compile from source during `lime build` and already work with any compatible FMOD version.
 
