@@ -1,8 +1,6 @@
 # FMOD for Haxe on HTML5, HashLink, Windows, Linux, and macOS
 
-
-
-[MIT License](https://en.wikipedia.org/wiki/MIT_License) 
+Having problems? Join the [Haxe Discord](https://discord.com/channels/162395145352904705/1472372604433076446/1472372604433076446) and ask for help!
 
 ## Table of Contents
 
@@ -11,6 +9,7 @@
  - [How to Use This Library](#how-to-use-this-library)
  - [HTML5 Builds](#html5-builds)
  - [FMOD Studio Project Configuration](#fmod-studio-project-configuration)
+ - [License](#license)
  - [Special Thanks](#special-thanks)
  - [Feature Requests and Contact](#feature-requests-and-contact)
 
@@ -162,9 +161,17 @@ Live Update **only works on native builds** (not HTML5). The FMOD team said this
 **Note**: On macOS and Windows, you may see a firewall dialog asking to allow incoming network connections when running your game. This is caused by the Live Update feature, which opens a local network socket (port 9264) so FMOD Studio can connect to your game for real-time audio mixing.
 
 
+## <a name="license"></a>License
+
+[MIT](https://en.wikipedia.org/wiki/MIT_License) 
+
 ## <a name="special-thanks"></a>Special Thanks
 This entire project was started as an expansion of Aaron Shea's [faxe](https://github.com/ashea-code/faxe).
 
 ## <a name="feature-requests-and-contact"></a>Feature Requests and Contact
 
-If you have any feature requests or are having issues using the library, please [open an Issue](https://github.com/Tanz0rz/haxe-fmod/issues) here on GitHub.
+If you have any feature requests or are having issues using the library, please do one (or both) of the following:
+
+- Join the [haxe-fmod channel on the official Haxe Discord](https://discord.com/channels/162395145352904705/1472372604433076446/1472372604433076446) and ask any questions you have there. Responses will be quick!
+
+-  [open an Issue](https://github.com/Tanz0rz/haxe-fmod/issues) here on GitHub.
