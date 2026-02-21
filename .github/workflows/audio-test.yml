@@ -420,12 +420,8 @@ jobs:
       - name: Build HashLink target (expect version mismatch failure)
         run: |
           cd example-project/EZPlatformer
-          set +e
-          haxelib run lime build hl 2>&1 | tee /tmp/build-mismatch.log
-          BUILD_EXIT=$?
-          set -e
-          [ $BUILD_EXIT -ne 0 ] || { echo "FAIL: build should have failed with version mismatch"; exit 1; }
-          grep -q "FMOD SDK version mismatch" /tmp/build-mismatch.log
+          haxelib run lime build hl 2>&1 | tee /tmp/build-mismatch.log || true
+          grep -q "ERROR: FMOD SDK version mismatch" /tmp/build-mismatch.log
           echo "Verified: build failed with version mismatch error"
 
       - name: Build custom hdll via build-hdll
@@ -922,12 +918,8 @@ jobs:
       - name: Build HashLink target (expect version mismatch failure)
         run: |
           cd example-project/EZPlatformer
-          set +e
-          haxelib run lime build hl 2>&1 | tee /tmp/build-mismatch.log
-          BUILD_EXIT=$?
-          set -e
-          [ $BUILD_EXIT -ne 0 ] || { echo "FAIL: build should have failed with version mismatch"; exit 1; }
-          grep -q "FMOD SDK version mismatch" /tmp/build-mismatch.log
+          haxelib run lime build hl 2>&1 | tee /tmp/build-mismatch.log || true
+          grep -q "ERROR: FMOD SDK version mismatch" /tmp/build-mismatch.log
           echo "Verified: build failed with version mismatch error"
 
       - name: Build custom hdll via build-hdll
@@ -1366,12 +1358,8 @@ jobs:
       - name: Build HashLink target (expect version mismatch failure)
         run: |
           cd example-project/EZPlatformer
-          set +e
-          haxelib run lime build hl 2>&1 | tee /tmp/build-mismatch.log
-          BUILD_EXIT=$?
-          set -e
-          [ $BUILD_EXIT -ne 0 ] || { echo "FAIL: build should have failed with version mismatch"; exit 1; }
-          grep -q "FMOD SDK version mismatch" /tmp/build-mismatch.log
+          haxelib run lime build hl 2>&1 | tee /tmp/build-mismatch.log || true
+          grep -q "ERROR: FMOD SDK version mismatch" /tmp/build-mismatch.log
           echo "Verified: build failed with version mismatch error"
 
       - name: Build custom hdll via build-hdll

@@ -105,7 +105,7 @@ class PostBuild {
 			Sys.println("  To compile an hdll matching your SDK, run:");
 			Sys.println("    haxelib run haxefmod build-hdll");
 			Sys.println("");
-			Sys.println("  Or download FMOD $expectedVer from https://www.fmod.com/download");
+			Sys.println('  Or download FMOD $expectedVer from https://www.fmod.com/download');
 			Sys.println("============================================================");
 			Sys.println("");
 			Sys.exit(1);
