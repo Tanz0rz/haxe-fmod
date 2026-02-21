@@ -19,6 +19,23 @@ env:
 
 jobs:
   # ===========================================================================
+  # Unit Tests (pure Haxe, no FMOD SDK needed)
+  # ===========================================================================
+  unit-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v1
+        with:
+          haxe-version: ${{ env.HAXE_VERSION }}
+
+      - name: Run unit tests
+        run: haxe tests/build.hxml
+
+  # ===========================================================================
   # Linux C++ Build + Audio Recording
   # ===========================================================================
   linux-cpp:
