@@ -208,4 +208,4 @@ If you have any feature requests or are having issues using the library, please 
 
 - Join the [haxe-fmod channel on the official Haxe Discord](https://discord.com/channels/162395145352904705/1472372604433076446/1472372604433076446) and ask any questions you have there. Responses will be quick!
 
-- [Open an issue](https://github.com/Tanz0rz/haxe-fmod/issues) here on GitHub.
+- [Open an Issue](https://github.com/Tanz0rz/haxe-fmod/issues) here on GitHub.
