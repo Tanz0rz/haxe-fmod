@@ -7,7 +7,7 @@ Having problems? Join the [Haxe Discord](https://discord.com/channels/1623951453
  - [Features](#features)
  - [Supported Platforms](#supported-platforms)
  - [How to Use This Library](#how-to-use-this-library)
- - [Using a Different FMOD Version](#using-a-different-fmod-version)
+ - [Selecting an FMOD Engine Version](#selecting-an-fmod-engine-version)
  - [HTML5 Builds](#html5-builds)
  - [FMOD Studio Project Configuration](#fmod-studio-project-configuration)
  - [License](#license)
@@ -19,7 +19,7 @@ Having problems? Join the [Haxe Discord](https://discord.com/channels/1623951453
 - Sounds loaded using an [FMOD bank](https://www.fmod.com/docs/2.03/studio/fmod-studio-concepts.html#banks) file
 - [Event parameters](https://www.fmod.com/docs/2.03/studio/parameters-reference.html) for dynamically altering sounds based on in-game actions
 - [Callbacks](https://www.fmod.com/docs/2.03/api/studio-api-eventinstance.html#fmod_studio_event_callback_type) which enable the game to respond to the audio
-- [Live Update](https://fmod.com/docs/2.03/studio/editing-during-live-update.html) for mixing sounds while play testing
+- [Live Update](https://fmod.com/docs/2.03/studio/editing-during-live-update.html) for mixing sounds while playtesting
 - Easy referencing of FMOD Studio bank events in game code with the help of an [auto-updated constants file](https://github.com/Tanz0rz/haxe-fmod/tree/master/fmod-scripts) (optional)
 
 ## <a name="supported-platforms"></a>Supported Platforms
@@ -35,7 +35,7 @@ Having problems? Join the [Haxe Discord](https://discord.com/channels/1623951453
 
 This library has been tested on games built with the `lime` and `openfl` CLI tools, and should work on any Haxe framework that utilizes the `Project.xml` file for builds.
 
-See [haxe-fmod-test](https://github.com/Tanz0rz/haxe-fmod-test) for a working example of a haxe-flixel game with this FMOD integration.
+See [haxe-fmod-test](https://github.com/Tanz0rz/haxe-fmod-test) for a working example of a HaxeFlixel game with this FMOD integration.
 
 **1. Add the library to your Haxe project:**
 
@@ -49,13 +49,11 @@ This will be the tool you use to manage all audio for your game. Download FMOD S
 
 **3. Set up the FMOD Engine SDK:**
 
-This library requires you to supply your own FMOD Engine SDK (separate from FMOD Studio). Download it from [fmod.com/download](https://www.fmod.com/download).
+This library requires you to supply your own FMOD Engine SDK (separate from FMOD Studio). The only officially supported version is 2.03.12. Download it from [fmod.com/download](https://www.fmod.com/download).
 
-Required version:
-- **All platforms**: FMOD Engine 2.03.12 (recommended — pre-built binaries target this version)
-- Other versions are supported for HashLink builds — see [Using a Different FMOD Version](#using-a-different-fmod-version)
+If you would like to use any other version of the FMOD Engine, see [Selecting an FMOD Engine Version](#selecting-an-fmod-engine-version).
 
-**For OS-native builds**, set the `FMOD_SDK` environment variable to point to the FMOD Engine directory:
+**For C++ and HashLink builds**, set the `FMOD_SDK` environment variable to point to the FMOD Engine directory:
 
 ```bash
 # For Linux/macOS
@@ -125,9 +123,13 @@ lime test linux
 lime test mac
 ```
 
-## <a name="using-a-different-fmod-version"></a>Using a Different FMOD Version
+## <a name="selecting-an-fmod-engine-version"></a>Selecting an FMOD Engine Version
 
-The pre-built HashLink binaries (hdlls) ship for FMOD 2.03.12. If you need a different FMOD version for HashLink builds, you can compile the hdll from source against your SDK:
+The officially supported FMOD Engine version is 2.03.12. Other versions **may work fine**, but I have not tested them.
+
+Importantly, this library comes pre-bundled with HashLink binaries (hdlls) for FMOD Engine version 2.03.12.
+
+If you use a different FMOD Engine version and want HashLink builds, you **must** compile the hdll for your platform from source against your installed version of the FMOD Engine:
 
 ```bash
 # 1. Set FMOD_SDK to your version
@@ -137,39 +139,27 @@ export FMOD_SDK=/path/to/your/fmodstudioapi
 haxelib run haxefmod build-hdll
 
 # 3. Build as normal
-lime build hl
+lime test hl
 ```
 
-This requires a C compiler (`gcc` on Linux, `cc` on Mac, `cl` on Windows) and HashLink headers installed on your system.
+This requires a C compiler (`gcc` on Linux, `cc` on macOS, `cl` on Windows) and HashLink headers installed on your system.
 
 The `build-hdll` command will auto-detect your platform, find HashLink headers in common locations, compile the hdll, and place it in a `.haxefmod/` directory in your project. If HashLink headers aren't found automatically, set `HASHLINK_DIR` to your HashLink installation directory.
 
 ### How the hdll is resolved
 
-At build time, `lime build hl` uses a tiered fallback to find the right hdll:
+At build time, `lime test hl` uses a tiered fallback to find the right hdll:
 
-1. **Project-local `.haxefmod/hlaxe_fmod.hdll`** — used if present (custom-compiled via `build-hdll`)
-2. **Pre-built `templates/bin/hl/<Platform>/hlaxe_fmod.hdll`** — ships with the library (targets FMOD 2.03.12)
+1. **Project-local `.haxefmod/hlaxe_fmod.hdll`** - used if present (custom-compiled via `build-hdll`)
+2. **Pre-built `<haxefmod_library_install_location>/templates/bin/hl/<Platform>/hlaxe_fmod.hdll`** - ships with the library (FMOD Engine 2.03.12)
 
-The build log will tell you which one was used: `(custom-compiled from .haxefmod/)` or `(pre-built)`.
+The build log will tell you which one was used.
 
-### Scenarios
-
-**Default (FMOD 2.03.12):** No `.haxefmod/` directory needed. The pre-built hdll matches your SDK. Everything works out of the box.
-
-**Custom FMOD version, after running `build-hdll`:** The hdll and a version marker are stored in `.haxefmod/`. The post-build step verifies the marker matches your SDK and copies the custom hdll to the export directory. Commit `.haxefmod/` to your repo so your team can share it.
-
-**Custom FMOD version, without running `build-hdll`:** The build fails with an error telling you to run `haxelib run haxefmod build-hdll`. A mismatched hdll and SDK will crash at runtime, so the build stops early.
-
-**After a library update (`haxelib update haxefmod`):** The `.haxefmod/` directory is in your project, not in the haxelib tree, so it survives library updates. No need to re-run `build-hdll`.
-
-**After upgrading your FMOD SDK:** The version marker in `.haxefmod/` won't match the new SDK. The build will fail with an error suggesting you re-run `build-hdll`.
-
-C++ and HTML5 targets compile from source during `lime build` and already work with any compatible FMOD version.
+C++ and HTML5 targets do not rely on the hdll and will work with any FMOD version (although they will warn if you use anything other than 2.03.12).
 
 ## <a name="html5-builds"></a>HTML5 Builds
 
-For HTML5 builds to work, a dedicated scene must be run before the game starts to give the FMOD engine a chance to fully load. See the [example project](https://github.com/Tanz0rz/haxe-fmod-test) for a demonstration of how to handle this. The `Main.hx` file loads the startup scene, the startup scene initializes FMOD and waits for it to report back as initialized, then the game is started.
+For HTML5 builds to work, a dedicated scene must be run before the game starts to give the FMOD Engine a chance to fully load. See the [example project](https://github.com/Tanz0rz/haxe-fmod-test) for a demonstration of how to handle this. The `Main.hx` file loads the startup scene, the startup scene initializes FMOD and waits for it to report back as initialized, then the game is started.
 
 ## <a name="fmod-studio-project-configuration"></a>FMOD Studio Project Configuration
 
@@ -187,8 +177,8 @@ This library only supports loading a single master bank for all sounds.
 Set your FMOD Studio project to build banks to the correct location:
 
 - Create an `fmod` folder in your `assets` folder (so the path `assets/fmod/` exists in your project)
-- Open up your FMOD Studio project and at the top of the window, click Edit->Preferences, then click the "Build" tab on the window that pops up.
-- Under "Built banks output directory (optional)", click browse and navigate to the new `fmod` folder and select it.
+- Open your FMOD Studio project and at the top of the window, click Edit > Preferences, then click the "Build" tab on the window that pops up.
+- Under "Built banks output directory (optional)", click Browse and navigate to the new `fmod` folder and select it.
 
 From now on, your `Master.bank` and `Master.strings.bank` files should be built in a folder found at `assets/fmod/Desktop` (the Desktop folder is created by FMOD Studio).
 
@@ -200,16 +190,16 @@ Check out the [fmod-scripts](https://github.com/Tanz0rz/haxe-fmod/tree/master/fm
 
 One of the most powerful features of the FMOD ecosystem. Mix your sounds in real-time by binding FMOD Studio to a running instance of your game.
 
-Live Update **only works on native builds** (not HTML5). The FMOD team said this is a limitation caused by running games inside web browsers and they have no plans to support this.
+Live Update **only works on native builds** (C++/HashLink). HTML5 builds will not work. The FMOD team said this is a limitation caused by running games inside web browsers and they have no plans to support this.
 
 **Note**: On macOS and Windows, you may see a firewall dialog asking to allow incoming network connections when running your game. This is caused by the Live Update feature, which opens a local network socket (port 9264) so FMOD Studio can connect to your game for real-time audio mixing.
 
-
 ## <a name="license"></a>License
 
-[MIT](https://en.wikipedia.org/wiki/MIT_License) 
+[MIT](https://en.wikipedia.org/wiki/MIT_License)
 
 ## <a name="special-thanks"></a>Special Thanks
+
 This entire project was started as an expansion of Aaron Shea's [faxe](https://github.com/ashea-code/faxe).
 
 ## <a name="feature-requests-and-contact"></a>Feature Requests and Contact
@@ -218,4 +208,4 @@ If you have any feature requests or are having issues using the library, please 
 
 - Join the [haxe-fmod channel on the official Haxe Discord](https://discord.com/channels/162395145352904705/1472372604433076446/1472372604433076446) and ask any questions you have there. Responses will be quick!
 
--  [open an Issue](https://github.com/Tanz0rz/haxe-fmod/issues) here on GitHub.
+- [Open an issue](https://github.com/Tanz0rz/haxe-fmod/issues) here on GitHub.
