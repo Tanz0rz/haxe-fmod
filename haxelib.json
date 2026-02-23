@@ -5,7 +5,7 @@
 	"tags": ["fmod", "audio", "windows", "linux", "mac", "hashlink", "html5", "web", "openfl", "lime"],
 	"description" : "Use FMOD Studio with Haxe on HTML5, HashLink, Windows, Linux, and macOS",
 	"version" : "1.0.1-beta",
-	"releasenote" : "Added build-hdll command for compiling hdlls against custom FMOD SDK versions. HashLink builds now fail with an error on SDK version mismatch (would silently break before). Project-local .haxefmod/ directory used for tiered hdll fallback.",
+	"releasenote" : "If users want to try using FMOD Engine versions other than version 2.03.12, they can now try.",
 	"contributors" : ["Tanz0rz"],
 	"dependencies" : { },
 	"main" : "haxefmod.tools.Run"
