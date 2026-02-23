@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}-${{ contains(github.event.head_commit.message, '[skip-build]') }}
   cancel-in-progress: true
 
 # Solo-build: include [job-name] in commit message to run only that job
