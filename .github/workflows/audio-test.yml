@@ -176,15 +176,19 @@ jobs:
             BIN_DIR="example-project/EZPlatformer/export/linux/bin"
           fi
 
-          ffmpeg -f pulse -i virtual_speaker.monitor -t 35 -y /tmp/volume-test-linux-cpp.wav &
-          RECORD_PID=$!
+          export FMOD_WAVWRITER=/tmp/volume-test-linux-cpp.wav
 
           cd "$BIN_DIR"
           chmod +x run.sh
-          timeout 35 ./run.sh > /tmp/volume-test-linux-cpp.log 2>&1 || true
+          ./run.sh > /tmp/volume-test-linux-cpp.log 2>&1 &
+          GAME_PID=$!
           cd -
-
-          wait $RECORD_PID || true
+          for i in $(seq 60); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill $GAME_PID 2>/dev/null || true
+          wait $GAME_PID 2>/dev/null || true
 
       - name: Validate volume/mute
         run: ./ci/validate-volume.sh /tmp/volume-test-linux-cpp.wav 30
@@ -384,21 +388,25 @@ jobs:
 
           BIN_DIR="example-project/EZPlatformer/export/hl/bin"
 
-          ffmpeg -f pulse -i virtual_speaker.monitor -t 35 -y /tmp/volume-test-linux-hl.wav &
-          RECORD_PID=$!
+          export FMOD_WAVWRITER=/tmp/volume-test-linux-hl.wav
 
           cd "$BIN_DIR"
           export LD_LIBRARY_PATH="$(pwd):$LD_LIBRARY_PATH"
           EXE=$(find . -maxdepth 1 -type f -executable ! -name "*.so*" ! -name "*.hdll" ! -name "run.sh" -print -quit)
           chmod +x "$EXE"
-          timeout 35 "$EXE" > /tmp/volume-test-linux-hl.log 2>&1 || true
+          "$EXE" > /tmp/volume-test-linux-hl.log 2>&1 &
+          GAME_PID=$!
           cd -
+          for i in $(seq 60); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill $GAME_PID 2>/dev/null || true
+          wait $GAME_PID 2>/dev/null || true
 
           echo "=== Volume test game log ==="
           cat /tmp/volume-test-linux-hl.log || true
           echo "=== End volume test game log ==="
-
-          wait $RECORD_PID || true
 
       - name: Validate volume/mute
         run: ./ci/validate-volume.sh /tmp/volume-test-linux-hl.wav 30
@@ -581,17 +589,21 @@ jobs:
 
           BIN_DIR="example-project/EZPlatformer/export/hl/bin"
 
-          ffmpeg -f pulse -i virtual_speaker.monitor -t 35 -y /tmp/volume-test-linux-hl-compat.wav &
-          RECORD_PID=$!
+          export FMOD_WAVWRITER=/tmp/volume-test-linux-hl-compat.wav
 
           cd "$BIN_DIR"
           export LD_LIBRARY_PATH="$(pwd):$LD_LIBRARY_PATH"
           EXE=$(find . -maxdepth 1 -type f -executable ! -name "*.so*" ! -name "*.hdll" ! -name "run.sh" -print -quit)
           chmod +x "$EXE"
-          timeout 35 "$EXE" > /tmp/volume-test-linux-hl-compat.log 2>&1 || true
+          "$EXE" > /tmp/volume-test-linux-hl-compat.log 2>&1 &
+          GAME_PID=$!
           cd -
-
-          wait $RECORD_PID || true
+          for i in $(seq 60); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill $GAME_PID 2>/dev/null || true
+          wait $GAME_PID 2>/dev/null || true
 
       - name: Validate volume/mute
         run: ./ci/validate-volume.sh /tmp/volume-test-linux-hl-compat.wav 30

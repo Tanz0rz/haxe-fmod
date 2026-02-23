@@ -61,9 +61,9 @@ get_segment_volume() {
   local start="$1"
   local duration="$2"
   local vol
-  vol=$("$FFMPEG" -i "$WAV_FILE" -ss "$start" -t "$duration" -af volumedetect -f null /dev/null 2>&1 | grep mean_volume | sed 's/.*mean_volume: //' | sed 's/ dB//')
+  vol=$("$FFMPEG" -ss "$start" -t "$duration" -i "$WAV_FILE" -af volumedetect -f null /dev/null 2>&1 | grep mean_volume | sed 's/.*mean_volume: //' | sed 's/ dB//')
   if [ -z "$vol" ]; then
-    vol=$("$FFMPEG" -f s16le -ar 48000 -ac 2 -i "$WAV_FILE" -ss "$start" -t "$duration" -af volumedetect -f null /dev/null 2>&1 | grep mean_volume | sed 's/.*mean_volume: //' | sed 's/ dB//')
+    vol=$("$FFMPEG" -ss "$start" -t "$duration" -f s16le -ar 48000 -ac 2 -i "$WAV_FILE" -af volumedetect -f null /dev/null 2>&1 | grep mean_volume | sed 's/.*mean_volume: //' | sed 's/ dB//')
   fi
   echo "$vol"
 }
