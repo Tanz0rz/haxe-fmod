@@ -73,6 +73,10 @@ interface IFmodBackend {
     //// Bus operations
     function setPauseForAllEventsOnBus(busPath:String, shouldBePaused:Bool):Void;
     function stopAllEventsOnBus(busPath:String):Void;
+    function setBusVolume(busPath:String, volume:Float):Void;
+    function getBusVolume(busPath:String):Float;
+    function setBusMute(busPath:String, mute:Bool):Void;
+    function getBusMute(busPath:String):Bool;
 
     //// Callbacks
 

@@ -21,7 +21,11 @@ class LoadFmodState extends FlxState {
     }
     override public function update(elapsed:Float):Void {
         if(FmodManager.IsInitialized()){
+            #if audio_test
+            FlxG.switchState(VolumeTestState.new);
+            #else
             FlxG.switchState(PlayState.new);
+            #end
         }
     }
 }

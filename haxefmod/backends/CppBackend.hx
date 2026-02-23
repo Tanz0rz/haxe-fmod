@@ -140,6 +140,22 @@ class CppBackend implements IFmodBackend {
         CppFmod.fmod_stop_bus(busPath);
     }
 
+    public function setBusVolume(busPath:String, volume:Float):Void {
+        CppFmod.fmod_set_bus_volume(busPath, volume);
+    }
+
+    public function getBusVolume(busPath:String):Float {
+        return CppFmod.fmod_get_bus_volume(busPath);
+    }
+
+    public function setBusMute(busPath:String, mute:Bool):Void {
+        CppFmod.fmod_set_bus_mute(busPath, mute);
+    }
+
+    public function getBusMute(busPath:String):Bool {
+        return CppFmod.fmod_get_bus_mute(busPath);
+    }
+
     //// Callbacks
 
     public function setCallbackTrackingForEventInstance(handle:FmodEventHandle):Void {
@@ -212,6 +228,18 @@ private extern class CppFmod {
 
     @:native("linc::faxe::fmod_stop_bus")
     static function fmod_stop_bus(path:String):Void;
+
+    @:native("linc::faxe::fmod_set_bus_volume")
+    static function fmod_set_bus_volume(path:String, volume:Float):Void;
+
+    @:native("linc::faxe::fmod_get_bus_volume")
+    static function fmod_get_bus_volume(path:String):Float;
+
+    @:native("linc::faxe::fmod_set_bus_mute")
+    static function fmod_set_bus_mute(path:String, mute:Bool):Void;
+
+    @:native("linc::faxe::fmod_get_bus_mute")
+    static function fmod_get_bus_mute(path:String):Bool;
 
     // Callbacks
     @:native("linc::faxe::fmod_enable_callbacks")

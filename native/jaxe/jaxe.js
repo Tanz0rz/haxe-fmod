@@ -167,6 +167,40 @@ class jaxe {
         }
     }
 
+    static fmod_set_bus_volume(path, volume) {
+        var bus = {};
+        if (jaxe.gSystem.getBus(path, bus) == jaxe.FMOD.OK) {
+            bus.val.setVolume(volume);
+        }
+    }
+
+    static fmod_get_bus_volume(path) {
+        var bus = {};
+        if (jaxe.gSystem.getBus(path, bus) == jaxe.FMOD.OK) {
+            var outval = {};
+            bus.val.getVolume(outval);
+            return outval.val;
+        }
+        return 0.0;
+    }
+
+    static fmod_set_bus_mute(path, mute) {
+        var bus = {};
+        if (jaxe.gSystem.getBus(path, bus) == jaxe.FMOD.OK) {
+            bus.val.setMute(mute);
+        }
+    }
+
+    static fmod_get_bus_mute(path) {
+        var bus = {};
+        if (jaxe.gSystem.getBus(path, bus) == jaxe.FMOD.OK) {
+            var outval = {};
+            bus.val.getMute(outval);
+            return outval.val;
+        }
+        return false;
+    }
+
     //// Callbacks
 
     static fmod_enable_callbacks(handle) {

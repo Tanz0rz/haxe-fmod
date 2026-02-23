@@ -263,6 +263,46 @@ HL_PRIM void HL_NAME(stop_bus)(vbyte* path) {
 }
 DEFINE_PRIM(_VOID, stop_bus, _BYTES);
 
+HL_PRIM void HL_NAME(set_bus_volume)(vbyte* path, double volume) {
+    if (!gStudioSystem) return;
+    FMOD_STUDIO_BUS* bus;
+    if (FMOD_Studio_System_GetBus(gStudioSystem, (const char*)path, &bus) == FMOD_OK)
+        FMOD_Studio_Bus_SetVolume(bus, (float)volume);
+}
+DEFINE_PRIM(_VOID, set_bus_volume, _BYTES _F64);
+
+HL_PRIM double HL_NAME(get_bus_volume)(vbyte* path) {
+    if (!gStudioSystem) return 0.0;
+    FMOD_STUDIO_BUS* bus;
+    if (FMOD_Studio_System_GetBus(gStudioSystem, (const char*)path, &bus) == FMOD_OK) {
+        float volume = 0.0f;
+        FMOD_Studio_Bus_GetVolume(bus, &volume, NULL);
+        return (double)volume;
+    }
+    return 0.0;
+}
+DEFINE_PRIM(_F64, get_bus_volume, _BYTES);
+
+HL_PRIM void HL_NAME(set_bus_mute)(vbyte* path, bool mute) {
+    if (!gStudioSystem) return;
+    FMOD_STUDIO_BUS* bus;
+    if (FMOD_Studio_System_GetBus(gStudioSystem, (const char*)path, &bus) == FMOD_OK)
+        FMOD_Studio_Bus_SetMute(bus, mute);
+}
+DEFINE_PRIM(_VOID, set_bus_mute, _BYTES _BOOL);
+
+HL_PRIM bool HL_NAME(get_bus_mute)(vbyte* path) {
+    if (!gStudioSystem) return false;
+    FMOD_STUDIO_BUS* bus;
+    if (FMOD_Studio_System_GetBus(gStudioSystem, (const char*)path, &bus) == FMOD_OK) {
+        FMOD_BOOL mute = 0;
+        FMOD_Studio_Bus_GetMute(bus, &mute);
+        return mute != 0;
+    }
+    return false;
+}
+DEFINE_PRIM(_BOOL, get_bus_mute, _BYTES);
+
 //// Callbacks
 
 HL_PRIM void HL_NAME(enable_callbacks)(int h) {

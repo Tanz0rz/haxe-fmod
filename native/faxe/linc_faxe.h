@@ -40,6 +40,10 @@ extern void fmod_set_param(int handle, const ::String& name, float value);
 //// Bus
 extern void fmod_set_bus_paused(const ::String& path, bool paused);
 extern void fmod_stop_bus(const ::String& path);
+extern void fmod_set_bus_volume(const ::String& path, float volume);
+extern float fmod_get_bus_volume(const ::String& path);
+extern void fmod_set_bus_mute(const ::String& path, bool mute);
+extern bool fmod_get_bus_mute(const ::String& path);
 
 //// Callbacks
 extern void fmod_enable_callbacks(int handle);

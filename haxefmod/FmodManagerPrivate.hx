@@ -129,6 +129,24 @@ class FmodManagerPrivate {
         backend.setPauseForAllEventsOnBus("bus:/", false);
     }
 
+    //// Bus
+
+    private function SetBusVolume(busPath:String, volume:Float) {
+        backend.setBusVolume(busPath, volume);
+    }
+
+    private function GetBusVolume(busPath:String):Float {
+        return backend.getBusVolume(busPath);
+    }
+
+    private function SetBusMute(busPath:String, mute:Bool) {
+        backend.setBusMute(busPath, mute);
+    }
+
+    private function GetBusMute(busPath:String):Bool {
+        return backend.getBusMute(busPath);
+    }
+
     //// Music
 
     private function PlaySong(songPath:String) {

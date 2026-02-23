@@ -74,6 +74,80 @@ class FmodManager {
         FmodManagerPrivate.GetInstance().UnpauseAllSounds();
     }
 
+    //// Bus
+
+    /**
+        Sets the volume for a bus.
+        Volume is linear: 0.0 = silent, 1.0 = full (default). Values > 1.0 amplify.
+        @param busPath FMOD bus path (e.g. "bus:/Music")
+        @param volume linear volume level
+    **/
+    public static function SetBusVolume(busPath:String, volume:Float) {
+        FmodManagerPrivate.GetInstance().SetBusVolume(busPath, volume);
+    }
+
+    /**
+        Gets the user-set volume for a bus (not the final mixed value).
+        @param busPath FMOD bus path (e.g. "bus:/Music")
+        @return linear volume level
+    **/
+    public static function GetBusVolume(busPath:String):Float {
+        return FmodManagerPrivate.GetInstance().GetBusVolume(busPath);
+    }
+
+    /**
+        Sets the mute state for a bus.
+        @param busPath FMOD bus path (e.g. "bus:/Music")
+        @param mute true to mute, false to unmute
+    **/
+    public static function SetBusMute(busPath:String, mute:Bool) {
+        FmodManagerPrivate.GetInstance().SetBusMute(busPath, mute);
+    }
+
+    /**
+        Gets the mute state for a bus.
+        @param busPath FMOD bus path (e.g. "bus:/Music")
+        @return true if muted
+    **/
+    public static function GetBusMute(busPath:String):Bool {
+        return FmodManagerPrivate.GetInstance().GetBusMute(busPath);
+    }
+
+    //// Master Bus
+
+    /**
+        Sets the master bus volume.
+        Volume is linear: 0.0 = silent, 1.0 = full (default). Values > 1.0 amplify.
+        @param volume linear volume level
+    **/
+    public static function SetMasterVolume(volume:Float) {
+        FmodManagerPrivate.GetInstance().SetBusVolume("bus:/", volume);
+    }
+
+    /**
+        Gets the master bus volume (user-set value, not the final mixed value).
+        @return linear volume level
+    **/
+    public static function GetMasterVolume():Float {
+        return FmodManagerPrivate.GetInstance().GetBusVolume("bus:/");
+    }
+
+    /**
+        Sets the master bus mute state.
+        @param mute true to mute, false to unmute
+    **/
+    public static function SetMasterMute(mute:Bool) {
+        FmodManagerPrivate.GetInstance().SetBusMute("bus:/", mute);
+    }
+
+    /**
+        Gets the master bus mute state.
+        @return true if muted
+    **/
+    public static function GetMasterMute():Bool {
+        return FmodManagerPrivate.GetInstance().GetBusMute("bus:/");
+    }
+
     /**
         Prints out a warning message to console if Update() has not been called recently
     **/
