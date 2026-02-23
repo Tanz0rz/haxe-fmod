@@ -98,6 +98,10 @@ class JsBackend implements IFmodBackend {
         JsFmod.fmod_set_paused(handle, shouldBePaused);
     }
 
+    public function getTimelinePosition(handle:FmodEventHandle):Int {
+        return JsFmod.fmod_get_timeline_position(handle);
+    }
+
     public function stopEventInstance(handle:FmodEventHandle):Void {
         JsFmod.fmod_stop(handle, 0); // Allow fadeout
     }
@@ -181,6 +185,7 @@ private extern class JsFmod {
     public static function fmod_release(handle:Int):Void;
     public static function fmod_set_paused(handle:Int, paused:Bool):Void;
     public static function fmod_get_playback_state(handle:Int):Int;
+    public static function fmod_get_timeline_position(handle:Int):Int;
 
     // Parameters
     public static function fmod_get_param(handle:Int, name:String):Float;

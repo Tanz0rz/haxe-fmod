@@ -267,6 +267,14 @@ class FmodManagerPrivate {
         return CurrentSong;
     }
 
+    private function GetSongTimelinePosition():Int {
+        var handle = getHandle(SongEventInstance);
+        if (handle != FmodCache.INVALID_HANDLE) {
+            return backend.getTimelinePosition(handle);
+        }
+        return 0;
+    }
+
     //// Sound effects
 
     private function PlaySoundOneShot(soundPath:String) {

@@ -57,6 +57,9 @@ interface IFmodBackend {
     /** Pauses or unpauses an event instance */
     function setPauseOnEventInstance(handle:FmodEventHandle, shouldBePaused:Bool):Void;
 
+    /** Gets the timeline position of an event instance in milliseconds */
+    function getTimelinePosition(handle:FmodEventHandle):Int;
+
     /** Stops an event instance (allows fadeout via AHDSR) */
     function stopEventInstance(handle:FmodEventHandle):Void;
 

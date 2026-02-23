@@ -229,6 +229,14 @@ HL_PRIM int HL_NAME(get_playback_state)(int h) {
 }
 DEFINE_PRIM(_I32, get_playback_state, _I32);
 
+HL_PRIM int HL_NAME(get_timeline_position)(int h) {
+    if (h < 0 || h >= gInstanceCount || !gInstances[h]) return 0;
+    int position = 0;
+    FMOD_Studio_EventInstance_GetTimelinePosition(gInstances[h], &position);
+    return position;
+}
+DEFINE_PRIM(_I32, get_timeline_position, _I32);
+
 //// Parameters
 
 HL_PRIM double HL_NAME(get_param)(int h, vbyte* name) {

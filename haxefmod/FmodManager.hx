@@ -244,6 +244,16 @@ class FmodManager {
         return FmodManagerPrivate.GetInstance().GetCurrentSongPath();
     }
 
+    /**
+        Gets the timeline position of the current song in milliseconds.
+        This reflects FMOD's audio processing timeline, which may differ
+        from wall-clock time when using output modes like WAVWRITER.
+        @return position in milliseconds, or 0 if no song is playing
+    **/
+    public static function GetSongTimelinePosition():Int {
+        return FmodManagerPrivate.GetInstance().GetSongTimelinePosition();
+    }
+
     //// Sound effects
 
     /**

@@ -136,6 +136,14 @@ class jaxe {
         return outval.val;
     }
 
+    static fmod_get_timeline_position(handle) {
+        var inst = jaxe.instances[handle];
+        if (!inst) return 0;
+        var outval = {};
+        inst.getTimelinePosition(outval);
+        return outval.val;
+    }
+
     //// Parameters
 
     static fmod_get_param(handle, name) {

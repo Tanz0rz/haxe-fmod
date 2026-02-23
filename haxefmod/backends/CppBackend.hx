@@ -108,6 +108,10 @@ class CppBackend implements IFmodBackend {
         CppFmod.fmod_set_paused(handle, shouldBePaused);
     }
 
+    public function getTimelinePosition(handle:FmodEventHandle):Int {
+        return CppFmod.fmod_get_timeline_position(handle);
+    }
+
     public function stopEventInstance(handle:FmodEventHandle):Void {
         CppFmod.fmod_stop(handle, 0); // Allow fadeout
     }
@@ -214,6 +218,9 @@ private extern class CppFmod {
 
     @:native("linc::faxe::fmod_get_playback_state")
     static function fmod_get_playback_state(handle:Int):Int;
+
+    @:native("linc::faxe::fmod_get_timeline_position")
+    static function fmod_get_timeline_position(handle:Int):Int;
 
     // Parameters
     @:native("linc::faxe::fmod_get_param")

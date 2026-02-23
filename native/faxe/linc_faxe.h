@@ -32,6 +32,7 @@ extern void fmod_stop(int handle, int immediate);
 extern void fmod_release(int handle);
 extern void fmod_set_paused(int handle, bool paused);
 extern int fmod_get_playback_state(int handle);
+extern int fmod_get_timeline_position(int handle);
 
 //// Parameters
 extern float fmod_get_param(int handle, const ::String& name);

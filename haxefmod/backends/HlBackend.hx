@@ -105,6 +105,10 @@ class HlBackend implements IFmodBackend {
         HlFmod.set_paused(handle, shouldBePaused);
     }
 
+    public function getTimelinePosition(handle:FmodEventHandle):Int {
+        return HlFmod.get_timeline_position(handle);
+    }
+
     public function stopEventInstance(handle:FmodEventHandle):Void {
         HlFmod.stop(handle, 0); // Allow fadeout
     }
@@ -187,6 +191,7 @@ private extern class HlFmod {
     static function release(handle:Int):Void;
     static function set_paused(handle:Int, paused:Bool):Void;
     static function get_playback_state(handle:Int):Int;
+    static function get_timeline_position(handle:Int):Int;
 
     // Parameters
     static function get_param(handle:Int, name:hl.Bytes):Float;

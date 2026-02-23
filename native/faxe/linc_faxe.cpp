@@ -198,6 +198,13 @@ int fmod_get_playback_state(int h) {
     return (int)state;
 }
 
+int fmod_get_timeline_position(int h) {
+    if (h < 0 || h >= gInstanceCount || !gInstances[h]) return 0;
+    int position = 0;
+    gInstances[h]->getTimelinePosition(&position);
+    return position;
+}
+
 //// Parameters
 
 float fmod_get_param(int h, const ::String& name) {
