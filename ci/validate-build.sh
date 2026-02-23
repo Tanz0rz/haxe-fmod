@@ -93,7 +93,7 @@ if [ -d "$MANIFEST_DIR" ]; then
 elif [ -f "$MANIFEST_DIR" ]; then
   echo "OK (file)"
 else
-  echo "WARN (no manifest directory — may still work)"
+  echo "WARN (no manifest directory - may still work)"
 fi
 
 echo ""

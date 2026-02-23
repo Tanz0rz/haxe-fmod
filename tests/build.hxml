@@ -1,0 +1,4 @@
+-cp .
+-cp tests
+-main tests.RunTests
+--interp

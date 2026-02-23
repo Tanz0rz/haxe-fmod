@@ -20,7 +20,7 @@ echo "OK"
 LINES=$(wc -l < "$LOG_FILE" | tr -d ' ')
 echo -n "  [2/3] Log has content .............. "
 if [ "$LINES" -eq 0 ]; then
-  echo "FAIL (empty — no FMOD debug output captured)"
+  echo "FAIL (empty - no FMOD debug output captured)"
   exit 1
 fi
 echo "OK ($LINES lines)"

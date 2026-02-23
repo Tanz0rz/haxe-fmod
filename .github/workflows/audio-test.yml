@@ -2,7 +2,6 @@ name: Build and Audio Test
 
 on:
   push:
-  pull_request:
   workflow_dispatch:
 
 concurrency:
@@ -19,34 +18,40 @@ env:
 
 jobs:
   # ===========================================================================
+  # Unit Tests (pure Haxe, no FMOD SDK needed)
+  # ===========================================================================
+  unit-tests:
+    runs-on: ubuntu-latest
+    if: ${{ !contains(github.event.head_commit.message, '[skip-build]') }}
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v1
+        with:
+          haxe-version: ${{ env.HAXE_VERSION }}
+
+      - name: Run unit tests
+        run: haxe tests/build.hxml
+
+  # ===========================================================================
   # Linux C++ Build + Audio Recording
   # ===========================================================================
   linux-cpp:
     runs-on: ubuntu-latest
-    #if: false  # Disabled
+    if: ${{ !contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-cpp]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]'))) }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
       - name: Download FMOD SDK
-        env:
-          GH_TOKEN: ${{ secrets.FMOD_SDK_TOKEN }}
         run: |
+          git clone --depth 1 --branch 2.03.12 \
+            https://x-access-token:${{ secrets.FMOD_SDK_TOKEN }}@github.com/Tanz0rz/fmod-sdk-cache.git \
+            /tmp/fmod-sdk-cache
           mkdir -p "$FMOD_SDK"
-
-          # Get asset ID dynamically from release tag
-          ASSET_ID=$(gh api repos/Tanz0rz/fmod-sdk-cache/releases/tags/2.03.12 \
-            --jq '.assets[] | select(.name == "fmod-sdk-linux-2.03.12.tar.gz") | .id')
-
-          echo "Downloading fmod-sdk-linux-2.03.12.tar.gz (asset ID: $ASSET_ID)"
-
-          curl -L \
-            -H "Authorization: token ${{ secrets.FMOD_SDK_TOKEN }}" \
-            -H "Accept: application/octet-stream" \
-            -o /tmp/fmod-sdk-linux-2.03.12.tar.gz \
-            "https://api.github.com/repos/Tanz0rz/fmod-sdk-cache/releases/assets/$ASSET_ID"
-
-          tar -xzf /tmp/fmod-sdk-linux-2.03.12.tar.gz -C "$FMOD_SDK"
+          cp -R /tmp/fmod-sdk-cache/linux/* "$FMOD_SDK/"
           ls -la "$FMOD_SDK/api/core/inc/" | head -5
 
       - name: Setup Haxe
@@ -171,30 +176,18 @@ jobs:
   # ===========================================================================
   linux-hl:
     runs-on: ubuntu-latest
-    if: ${{ !contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]'))) }}
+    if: ${{ !contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]'))) }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
       - name: Download FMOD SDK
-        env:
-          GH_TOKEN: ${{ secrets.FMOD_SDK_TOKEN }}
         run: |
+          git clone --depth 1 --branch 2.03.12 \
+            https://x-access-token:${{ secrets.FMOD_SDK_TOKEN }}@github.com/Tanz0rz/fmod-sdk-cache.git \
+            /tmp/fmod-sdk-cache
           mkdir -p "$FMOD_SDK"
-
-          # Get asset ID dynamically from release tag
-          ASSET_ID=$(gh api repos/Tanz0rz/fmod-sdk-cache/releases/tags/2.03.12 \
-            --jq '.assets[] | select(.name == "fmod-sdk-linux-2.03.12.tar.gz") | .id')
-
-          echo "Downloading fmod-sdk-linux-2.03.12.tar.gz (asset ID: $ASSET_ID)"
-
-          curl -L \
-            -H "Authorization: token ${{ secrets.FMOD_SDK_TOKEN }}" \
-            -H "Accept: application/octet-stream" \
-            -o /tmp/fmod-sdk-linux-2.03.12.tar.gz \
-            "https://api.github.com/repos/Tanz0rz/fmod-sdk-cache/releases/assets/$ASSET_ID"
-
-          tar -xzf /tmp/fmod-sdk-linux-2.03.12.tar.gz -C "$FMOD_SDK"
+          cp -R /tmp/fmod-sdk-cache/linux/* "$FMOD_SDK/"
           ls -la "$FMOD_SDK/api/core/inc/" | head -5
 
       - name: Setup Haxe
@@ -237,41 +230,39 @@ jobs:
           sudo ldconfig
           hl --version || echo "HashLink installed"
 
-      - name: Compile hlaxe_fmod.hdll from source
+      - name: Verify environment
         run: |
-          cd native/hlaxe
-          make clean
-          make
+          cd example-project/EZPlatformer
+          haxelib run haxefmod check || true
 
-      - name: Compare compiled hdll with pre-built
+      - name: Build HashLink target (pre-built hdll)
         run: |
-          echo "=== Compiled hdll ==="
-          ls -la native/hlaxe/hlaxe_fmod.hdll
-          echo "=== Pre-built hdll ==="
-          ls -la templates/bin/hl/Linux64/hlaxe_fmod.hdll
-          if cmp -s native/hlaxe/hlaxe_fmod.hdll templates/bin/hl/Linux64/hlaxe_fmod.hdll; then
-            echo "MATCH: Compiled hdll is identical to pre-built"
-          else
-            echo "DIFFER: Compiled hdll differs from pre-built"
-            echo "This may be expected if the toolchain version differs."
-            echo "Compiled:"
-            file native/hlaxe/hlaxe_fmod.hdll
-            echo "Pre-built:"
-            file templates/bin/hl/Linux64/hlaxe_fmod.hdll
-          fi
-          echo "=== Copying compiled hdll to templates directory ==="
-          cp native/hlaxe/hlaxe_fmod.hdll templates/bin/hl/Linux64/hlaxe_fmod.hdll
+          cd example-project/EZPlatformer
+          haxelib run lime build hl 2>&1 | tee /tmp/build-prebuilt.log
+          grep -q "(pre-built)" /tmp/build-prebuilt.log
+          echo "Verified: pre-built hdll was used"
+
+      - name: Build custom hdll via build-hdll
+        run: |
+          cd example-project/EZPlatformer
+          haxelib run haxefmod build-hdll
+          echo "=== .haxefmod/ contents ==="
+          ls -la .haxefmod/
+          cat .haxefmod/hlaxe_fmod.version
+
+      - name: Rebuild HashLink target (custom hdll)
+        run: |
+          rm -rf example-project/EZPlatformer/export/hl
+          cd example-project/EZPlatformer
+          haxelib run lime build hl 2>&1 | tee /tmp/build-custom.log
+          grep -q "(custom-compiled from .haxefmod/)" /tmp/build-custom.log
+          echo "Verified: custom-compiled hdll from .haxefmod/ was used"
 
       - name: Upload compiled hdll
         uses: actions/upload-artifact@v4
         with:
           name: hlaxe_fmod-linux.hdll
-          path: native/hlaxe/hlaxe_fmod.hdll
-
-      - name: Build HashLink target
-        run: |
-          cd example-project/EZPlatformer
-          haxelib run lime build hl
+          path: example-project/EZPlatformer/.haxefmod/hlaxe_fmod.hdll
 
       - name: Patch FMOD libraries
         run: |
@@ -363,34 +354,186 @@ jobs:
           if-no-files-found: warn
 
   # ===========================================================================
-  # Linux HTML5 Build + Audio Recording via Browser
+  # Linux HashLink Compat Build (FMOD 2.02.33 - version mismatch test)
   # ===========================================================================
-  linux-html5:
+  linux-hl-compat:
     runs-on: ubuntu-latest
-    if: ${{ !contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-html5]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]'))) }}
+    if: ${{ !contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-hl-compat]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]'))) }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
       - name: Download FMOD SDK
-        env:
-          GH_TOKEN: ${{ secrets.FMOD_SDK_TOKEN }}
         run: |
+          git clone --depth 1 --branch 2.02.33 \
+            https://x-access-token:${{ secrets.FMOD_SDK_TOKEN }}@github.com/Tanz0rz/fmod-sdk-cache.git \
+            /tmp/fmod-sdk-cache
           mkdir -p "$FMOD_SDK"
+          cp -R /tmp/fmod-sdk-cache/linux/* "$FMOD_SDK/"
+          ls -la "$FMOD_SDK/api/core/inc/" | head -5
 
-          # Get asset ID dynamically from release tag
-          ASSET_ID=$(gh api repos/Tanz0rz/fmod-sdk-cache/releases/tags/2.03.12 \
-            --jq '.assets[] | select(.name == "fmod-sdk-html5-2.03.12.zip") | .id')
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v1
+        with:
+          haxe-version: ${{ env.HAXE_VERSION }}
 
-          echo "Downloading fmod-sdk-html5-2.03.12.zip (asset ID: $ASSET_ID)"
+      - name: Cache haxelib
+        uses: actions/cache@v4
+        with:
+          path: ~/haxelib
+          key: haxelib-hl-${{ runner.os }}-${{ env.HAXE_VERSION }}
 
-          curl -L \
-            -H "Authorization: token ${{ secrets.FMOD_SDK_TOKEN }}" \
-            -H "Accept: application/octet-stream" \
-            -o /tmp/fmod-sdk-html5-2.03.12.zip \
-            "https://api.github.com/repos/Tanz0rz/fmod-sdk-cache/releases/assets/$ASSET_ID"
+      - name: Install Haxe libraries
+        run: |
+          haxelib setup ~/haxelib
+          haxelib install lime 8.3.0 --always --quiet
+          haxelib install openfl 9.5.0 --always --quiet
+          haxelib install flixel 6.1.2 --always --quiet
+          haxelib dev haxefmod $GITHUB_WORKSPACE
+          yes | haxelib run lime setup || true
 
-          unzip -q /tmp/fmod-sdk-html5-2.03.12.zip -d "$FMOD_SDK"
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg patchelf \
+            libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
+            libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev libz-dev
+
+      - name: Build and install HashLink
+        run: |
+          git clone --depth 1 https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
+          cd /tmp/hashlink-src
+          make -j$(nproc) 2>&1 | tee /tmp/hashlink-build.log || {
+            echo "=== MAKE FAILED - retrying single-threaded ==="
+            make 2>&1 | tee -a /tmp/hashlink-build.log
+            exit 1
+          }
+          sudo make install
+          sudo ldconfig
+          hl --version || echo "HashLink installed"
+
+      - name: Verify environment
+        run: |
+          cd example-project/EZPlatformer
+          haxelib run haxefmod check || true
+
+      - name: Build HashLink target (expect version mismatch failure)
+        run: |
+          cd example-project/EZPlatformer
+          haxelib run lime build hl 2>&1 | tee /tmp/build-mismatch.log || true
+          grep -q "ERROR: FMOD SDK version mismatch" /tmp/build-mismatch.log
+          echo "Verified: build failed with version mismatch error"
+
+      - name: Build custom hdll via build-hdll
+        run: |
+          cd example-project/EZPlatformer
+          haxelib run haxefmod build-hdll
+          echo "=== .haxefmod/ contents ==="
+          ls -la .haxefmod/
+          cat .haxefmod/hlaxe_fmod.version
+
+      - name: Rebuild HashLink target (custom hdll)
+        run: |
+          rm -rf example-project/EZPlatformer/export/hl
+          cd example-project/EZPlatformer
+          haxelib run lime build hl 2>&1 | tee /tmp/build-custom.log
+          grep -q "(custom-compiled from .haxefmod/)" /tmp/build-custom.log
+          echo "Verified: custom-compiled hdll from .haxefmod/ was used"
+
+      - name: Patch FMOD libraries
+        run: |
+          BIN_DIR="example-project/EZPlatformer/export/hl/bin"
+          patchelf --clear-execstack "$BIN_DIR"/libfmod.so* || true
+          patchelf --clear-execstack "$BIN_DIR"/libfmodstudio.so* || true
+
+      - name: Validate build output
+        run: |
+          BIN_DIR="example-project/EZPlatformer/export/hl/bin"
+          echo "BIN_DIR=$BIN_DIR" >> "$GITHUB_ENV"
+          ./ci/validate-build.sh "$BIN_DIR" hl
+
+      - name: Record audio
+        run: |
+          # Start virtual display
+          Xvfb :99 -screen 0 1024x768x24 &
+          export DISPLAY=:99
+          sleep 1
+
+          # Start PulseAudio with virtual sink
+          pulseaudio --start --exit-idle-time=-1 || true
+          pactl load-module module-null-sink sink_name=virtual_speaker sink_properties=device.description=VirtualSpeaker
+          pactl set-default-sink virtual_speaker
+
+          # Configure ALSA to route through PulseAudio (FMOD uses ALSA by default)
+          cat > ~/.asoundrc << 'ALSA_EOF'
+          pcm.!default {
+            type pulse
+          }
+          ctl.!default {
+            type pulse
+          }
+          ALSA_EOF
+
+          BIN_DIR="example-project/EZPlatformer/export/hl/bin"
+
+          # Start recording from the virtual sink's monitor
+          ffmpeg -f pulse -i virtual_speaker.monitor -t 30 -y /tmp/audio-linux-hl-compat.wav &
+          RECORD_PID=$!
+
+          # Run the game with library paths set
+          cd "$BIN_DIR"
+          export LD_LIBRARY_PATH="$(pwd):$LD_LIBRARY_PATH"
+          EXE=$(find . -maxdepth 1 -type f -executable ! -name "*.so*" ! -name "*.hdll" ! -name "run.sh" -print -quit)
+          chmod +x "$EXE"
+          timeout 30 "$EXE" > /tmp/game-linux-hl-compat.log 2>&1 || true
+          cd -
+
+          echo "=== Game log ==="
+          cat /tmp/game-linux-hl-compat.log || true
+          echo "=== End game log ==="
+
+          wait $RECORD_PID || true
+
+          if [ -f /tmp/audio-linux-hl-compat.wav ]; then
+            echo "Audio recorded successfully"
+            ls -la /tmp/audio-linux-hl-compat.wav
+          else
+            echo "WARNING: No audio file produced"
+          fi
+
+      - name: Validate audio
+        run: ./ci/validate-audio.sh /tmp/audio-linux-hl-compat.wav 10
+
+      - name: Validate game log
+        run: ./ci/validate-game-log.sh /tmp/game-linux-hl-compat.log
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: audio-linux-hl-compat
+          path: |
+            /tmp/audio-linux-hl-compat.wav
+            /tmp/game-linux-hl-compat.log
+          if-no-files-found: warn
+
+  # ===========================================================================
+  # Linux HTML5 Build + Audio Recording via Browser
+  # ===========================================================================
+  linux-html5:
+    runs-on: ubuntu-latest
+    if: ${{ !contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-html5]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]'))) }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download FMOD SDK
+        run: |
+          git clone --depth 1 --branch 2.03.12 \
+            https://x-access-token:${{ secrets.FMOD_SDK_TOKEN }}@github.com/Tanz0rz/fmod-sdk-cache.git \
+            /tmp/fmod-sdk-cache
+          mkdir -p "$FMOD_SDK"
+          cp -R /tmp/fmod-sdk-cache/html5/* "$FMOD_SDK/"
           ls -la "$FMOD_SDK/api/studio/lib/wasm/" | head -5
 
       - name: Setup Haxe
@@ -434,7 +577,7 @@ jobs:
           fi
           SIZE=$(stat --format=%s "$FMOD_JS")
           if [ "$SIZE" -lt 1000 ]; then
-            echo "FAIL: $FMOD_JS is only $SIZE bytes — still a placeholder"
+            echo "FAIL: $FMOD_JS is only $SIZE bytes - still a placeholder"
             exit 1
           fi
           echo "OK: fmodstudio.js is $SIZE bytes (real SDK file)"
@@ -516,30 +659,18 @@ jobs:
   # ===========================================================================
   mac-cpp:
     runs-on: macos-14
-    #if: false  # Disabled
+    if: ${{ !contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[mac-cpp]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]'))) }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
       - name: Download FMOD SDK
-        env:
-          GH_TOKEN: ${{ secrets.FMOD_SDK_TOKEN }}
         run: |
+          git clone --depth 1 --branch 2.03.12 \
+            https://x-access-token:${{ secrets.FMOD_SDK_TOKEN }}@github.com/Tanz0rz/fmod-sdk-cache.git \
+            /tmp/fmod-sdk-cache
           mkdir -p "$FMOD_SDK"
-
-          # Get asset ID dynamically from release tag
-          ASSET_ID=$(gh api repos/Tanz0rz/fmod-sdk-cache/releases/tags/2.03.12 \
-            --jq '.assets[] | select(.name == "fmod-sdk-mac-2.03.12.tar.gz") | .id')
-
-          echo "Downloading fmod-sdk-mac-2.03.12.tar.gz (asset ID: $ASSET_ID)"
-
-          curl -L \
-            -H "Authorization: token ${{ secrets.FMOD_SDK_TOKEN }}" \
-            -H "Accept: application/octet-stream" \
-            -o /tmp/fmod-sdk-mac-2.03.12.tar.gz \
-            "https://api.github.com/repos/Tanz0rz/fmod-sdk-cache/releases/assets/$ASSET_ID"
-
-          tar -xzf /tmp/fmod-sdk-mac-2.03.12.tar.gz -C "$FMOD_SDK"
+          cp -R /tmp/fmod-sdk-cache/mac/* "$FMOD_SDK/"
           ls -la "$FMOD_SDK/api/core/inc/" | head -5
 
       - name: Setup Haxe via Homebrew
@@ -622,32 +753,19 @@ jobs:
   # ===========================================================================
   mac-hl:
     runs-on: macos-14
-    if: ${{ !contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[mac-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]'))) }}
+    if: ${{ !contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[mac-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]'))) }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
       - name: Download FMOD SDK
-        env:
-          GH_TOKEN: ${{ secrets.FMOD_SDK_TOKEN }}
         run: |
+          git clone --depth 1 --branch 2.03.12 \
+            https://x-access-token:${{ secrets.FMOD_SDK_TOKEN }}@github.com/Tanz0rz/fmod-sdk-cache.git \
+            /tmp/fmod-sdk-cache
           mkdir -p "$FMOD_SDK"
-
-          # Get asset ID dynamically from release tag
-          ASSET_ID=$(gh api repos/Tanz0rz/fmod-sdk-cache/releases/tags/2.03.12 \
-            --jq '.assets[] | select(.name == "fmod-sdk-mac-2.03.12.tar.gz") | .id')
-
-          echo "Downloading fmod-sdk-mac-2.03.12.tar.gz (asset ID: $ASSET_ID)"
-
-          curl -L \
-            -H "Authorization: token ${{ secrets.FMOD_SDK_TOKEN }}" \
-            -H "Accept: application/octet-stream" \
-            -o /tmp/fmod-sdk-mac-2.03.12.tar.gz \
-            "https://api.github.com/repos/Tanz0rz/fmod-sdk-cache/releases/assets/$ASSET_ID"
-
-          tar -xzf /tmp/fmod-sdk-mac-2.03.12.tar.gz -C "$FMOD_SDK"
-          echo "FMOD SDK contents:"
-          ls -R "$FMOD_SDK/api/" | head -20
+          cp -R /tmp/fmod-sdk-cache/mac/* "$FMOD_SDK/"
+          ls -la "$FMOD_SDK/api/core/inc/" | head -5
 
       - name: Setup Haxe via Homebrew
         run: |
@@ -670,41 +788,39 @@ jobs:
           haxelib dev haxefmod $GITHUB_WORKSPACE
           yes | haxelib run lime setup || true
 
-      - name: Compile hlaxe_fmod.hdll from source
+      - name: Verify environment
         run: |
-          cd native/hlaxe
-          make clean
-          make
+          cd example-project/EZPlatformer
+          haxelib run haxefmod check || true
 
-      - name: Compare compiled hdll with pre-built
+      - name: Build HashLink target (pre-built hdll)
         run: |
-          echo "=== Compiled hdll ==="
-          ls -la native/hlaxe/hlaxe_fmod.hdll
-          echo "=== Pre-built hdll ==="
-          ls -la templates/bin/hl/Mac64/hlaxe_fmod.hdll
-          if cmp -s native/hlaxe/hlaxe_fmod.hdll templates/bin/hl/Mac64/hlaxe_fmod.hdll; then
-            echo "MATCH: Compiled hdll is identical to pre-built"
-          else
-            echo "DIFFER: Compiled hdll differs from pre-built"
-            echo "This may be expected if the toolchain version differs."
-            echo "Compiled:"
-            file native/hlaxe/hlaxe_fmod.hdll
-            echo "Pre-built:"
-            file templates/bin/hl/Mac64/hlaxe_fmod.hdll
-          fi
-          echo "=== Copying compiled hdll to templates directory ==="
-          cp native/hlaxe/hlaxe_fmod.hdll templates/bin/hl/Mac64/hlaxe_fmod.hdll
+          cd example-project/EZPlatformer
+          haxelib run lime build hl 2>&1 | tee /tmp/build-prebuilt.log
+          grep -q "(pre-built)" /tmp/build-prebuilt.log
+          echo "Verified: pre-built hdll was used"
+
+      - name: Build custom hdll via build-hdll
+        run: |
+          cd example-project/EZPlatformer
+          haxelib run haxefmod build-hdll
+          echo "=== .haxefmod/ contents ==="
+          ls -la .haxefmod/
+          cat .haxefmod/hlaxe_fmod.version
+
+      - name: Rebuild HashLink target (custom hdll)
+        run: |
+          rm -rf example-project/EZPlatformer/export/hl
+          cd example-project/EZPlatformer
+          haxelib run lime build hl 2>&1 | tee /tmp/build-custom.log
+          grep -q "(custom-compiled from .haxefmod/)" /tmp/build-custom.log
+          echo "Verified: custom-compiled hdll from .haxefmod/ was used"
 
       - name: Upload compiled hdll
         uses: actions/upload-artifact@v4
         with:
           name: hlaxe_fmod-mac.hdll
-          path: native/hlaxe/hlaxe_fmod.hdll
-
-      - name: Build HashLink target
-        run: |
-          cd example-project/EZPlatformer
-          haxelib run lime build hl
+          path: example-project/EZPlatformer/.haxefmod/hlaxe_fmod.hdll
 
       - name: Validate build output
         run: |
@@ -755,11 +871,127 @@ jobs:
           if-no-files-found: warn
 
   # ===========================================================================
+  # macOS HashLink Compat Build (FMOD 2.02.33 - version mismatch test)
+  # ===========================================================================
+  mac-hl-compat:
+    runs-on: macos-14
+    if: ${{ !contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[mac-hl-compat]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]'))) }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download FMOD SDK
+        run: |
+          git clone --depth 1 --branch 2.02.33 \
+            https://x-access-token:${{ secrets.FMOD_SDK_TOKEN }}@github.com/Tanz0rz/fmod-sdk-cache.git \
+            /tmp/fmod-sdk-cache
+          mkdir -p "$FMOD_SDK"
+          cp -R /tmp/fmod-sdk-cache/mac/* "$FMOD_SDK/"
+          ls -la "$FMOD_SDK/api/core/inc/" | head -5
+
+      - name: Setup Haxe via Homebrew
+        run: |
+          brew install haxe neko hashlink ffmpeg
+          echo "HAXE_STD_PATH=$(brew --prefix)/lib/haxe/std" >> $GITHUB_ENV
+
+      - name: Cache haxelib
+        uses: actions/cache@v4
+        with:
+          path: ~/haxelib
+          key: haxelib-hl-${{ runner.os }}-${{ env.HAXE_VERSION }}
+
+      - name: Install Haxe libraries
+        run: |
+          mkdir -p ~/haxelib
+          haxelib setup ~/haxelib
+          haxelib install lime 8.3.0 --always --quiet
+          haxelib install openfl 9.5.0 --always --quiet
+          haxelib install flixel 6.1.2 --always --quiet
+          haxelib dev haxefmod $GITHUB_WORKSPACE
+          yes | haxelib run lime setup || true
+
+      - name: Verify environment
+        run: |
+          cd example-project/EZPlatformer
+          haxelib run haxefmod check || true
+
+      - name: Build HashLink target (expect version mismatch failure)
+        run: |
+          cd example-project/EZPlatformer
+          haxelib run lime build hl 2>&1 | tee /tmp/build-mismatch.log || true
+          grep -q "ERROR: FMOD SDK version mismatch" /tmp/build-mismatch.log
+          echo "Verified: build failed with version mismatch error"
+
+      - name: Build custom hdll via build-hdll
+        run: |
+          cd example-project/EZPlatformer
+          haxelib run haxefmod build-hdll
+          echo "=== .haxefmod/ contents ==="
+          ls -la .haxefmod/
+          cat .haxefmod/hlaxe_fmod.version
+
+      - name: Rebuild HashLink target (custom hdll)
+        run: |
+          rm -rf example-project/EZPlatformer/export/hl
+          cd example-project/EZPlatformer
+          haxelib run lime build hl 2>&1 | tee /tmp/build-custom.log
+          grep -q "(custom-compiled from .haxefmod/)" /tmp/build-custom.log
+          echo "Verified: custom-compiled hdll from .haxefmod/ was used"
+
+      - name: Validate build output
+        run: |
+          APP_BUNDLE=$(find example-project/EZPlatformer/export/hl -name "*.app" 2>/dev/null | head -1)
+          echo "APP_BUNDLE=$APP_BUNDLE" >> "$GITHUB_ENV"
+          ./ci/validate-build.sh "$APP_BUNDLE/Contents/MacOS" hl
+
+      - name: Record audio via FMOD wavwriter
+        run: |
+          echo "Found app: $APP_BUNDLE"
+
+          export FMOD_WAVWRITER=/tmp/audio-mac-hl-compat.wav
+
+          "$APP_BUNDLE/Contents/MacOS/"* > /tmp/game-mac-hl-compat.log 2>&1 &
+          GAME_PID=$!
+          for i in $(seq 60); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill $GAME_PID 2>/dev/null || true
+          wait $GAME_PID 2>/dev/null || true
+
+          echo "=== Game log ==="
+          cat /tmp/game-mac-hl-compat.log || true
+          echo "=== End game log ==="
+
+          if [ -f /tmp/audio-mac-hl-compat.wav ]; then
+            echo "Audio recorded successfully"
+            ls -la /tmp/audio-mac-hl-compat.wav
+          else
+            echo "WARNING: No audio file produced"
+          fi
+
+      - name: Validate audio
+        run: ./ci/validate-audio.sh /tmp/audio-mac-hl-compat.wav 10
+
+      - name: Validate game log
+        run: ./ci/validate-game-log.sh /tmp/game-mac-hl-compat.log
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: audio-mac-hl-compat
+          path: |
+            /tmp/audio-mac-hl-compat.wav
+            /tmp/game-mac-hl-compat.log
+          if-no-files-found: warn
+
+  # ===========================================================================
   # Windows C++ Build + Audio Recording
   # ===========================================================================
   windows-cpp:
     runs-on: windows-latest
-    #if: false  # Disabled
+    if: ${{ !contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[windows-cpp]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]'))) }}
     timeout-minutes: 30
     defaults:
       run:
@@ -768,24 +1000,12 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Download FMOD SDK
-        env:
-          GH_TOKEN: ${{ secrets.FMOD_SDK_TOKEN }}
         run: |
+          git clone --depth 1 --branch 2.03.12 \
+            https://x-access-token:${{ secrets.FMOD_SDK_TOKEN }}@github.com/Tanz0rz/fmod-sdk-cache.git \
+            /tmp/fmod-sdk-cache
           mkdir -p "$FMOD_SDK"
-
-          # Get asset ID dynamically from release tag
-          ASSET_ID=$(gh api repos/Tanz0rz/fmod-sdk-cache/releases/tags/2.03.12 \
-            --jq '.assets[] | select(.name == "fmod-sdk-windows-2.03.12.zip") | .id')
-
-          echo "Downloading fmod-sdk-windows-2.03.12.zip (asset ID: $ASSET_ID)"
-
-          curl -L \
-            -H "Authorization: token ${{ secrets.FMOD_SDK_TOKEN }}" \
-            -H "Accept: application/octet-stream" \
-            -o /tmp/fmod-sdk-windows-2.03.12.zip \
-            "https://api.github.com/repos/Tanz0rz/fmod-sdk-cache/releases/assets/$ASSET_ID"
-
-          unzip -q /tmp/fmod-sdk-windows-2.03.12.zip -d "$FMOD_SDK"
+          cp -R /tmp/fmod-sdk-cache/windows/* "$FMOD_SDK/"
           ls -la "$FMOD_SDK/api/core/inc/" | head -5
 
       - name: Setup Haxe
@@ -898,7 +1118,7 @@ jobs:
   # ===========================================================================
   windows-hl:
     runs-on: windows-latest
-    if: ${{ !contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[windows-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]'))) }}
+    if: ${{ !contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[windows-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]'))) }}
     timeout-minutes: 30
     defaults:
       run:
@@ -907,24 +1127,12 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Download FMOD SDK
-        env:
-          GH_TOKEN: ${{ secrets.FMOD_SDK_TOKEN }}
         run: |
+          git clone --depth 1 --branch 2.03.12 \
+            https://x-access-token:${{ secrets.FMOD_SDK_TOKEN }}@github.com/Tanz0rz/fmod-sdk-cache.git \
+            /tmp/fmod-sdk-cache
           mkdir -p "$FMOD_SDK"
-
-          # Get asset ID dynamically from release tag
-          ASSET_ID=$(gh api repos/Tanz0rz/fmod-sdk-cache/releases/tags/2.03.12 \
-            --jq '.assets[] | select(.name == "fmod-sdk-windows-2.03.12.zip") | .id')
-
-          echo "Downloading fmod-sdk-windows-2.03.12.zip (asset ID: $ASSET_ID)"
-
-          curl -L \
-            -H "Authorization: token ${{ secrets.FMOD_SDK_TOKEN }}" \
-            -H "Accept: application/octet-stream" \
-            -o /tmp/fmod-sdk-windows-2.03.12.zip \
-            "https://api.github.com/repos/Tanz0rz/fmod-sdk-cache/releases/assets/$ASSET_ID"
-
-          unzip -q /tmp/fmod-sdk-windows-2.03.12.zip -d "$FMOD_SDK"
+          cp -R /tmp/fmod-sdk-cache/windows/* "$FMOD_SDK/"
           ls -la "$FMOD_SDK/api/core/inc/" | head -5
 
       - name: Setup Haxe
@@ -971,48 +1179,44 @@ jobs:
           echo "C:\hashlink" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           echo "HASHLINK_DIR=C:\hashlink" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-      - name: Compile hlaxe_fmod.hdll from source
+      - name: Verify environment
+        run: |
+          cd example-project/EZPlatformer
+          haxelib run haxefmod check || true
+
+      - name: Build HashLink target (pre-built hdll)
+        run: |
+          cd example-project/EZPlatformer
+          haxelib run lime build hl 2>&1 | tee /tmp/build-prebuilt.log
+          grep -q "(pre-built)" /tmp/build-prebuilt.log
+          echo "Verified: pre-built hdll was used"
+
+      - name: Build custom hdll via build-hdll
         shell: cmd
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-          cd native\hlaxe
-          cl /LD /O2 /DWIN32 hlaxe_fmod.c ^
-            /I"C:\hashlink\include" ^
-            /I"%FMOD_SDK%\api\core\inc" ^
-            /I"%FMOD_SDK%\api\studio\inc" ^
-            /link ^
-            /LIBPATH:"%FMOD_SDK%\api\core\lib\x64" ^
-            /LIBPATH:"%FMOD_SDK%\api\studio\lib\x64" ^
-            fmod_vc.lib fmodstudio_vc.lib ^
-            /LIBPATH:"C:\hashlink" libhl.lib ^
-            /OUT:hlaxe_fmod.hdll
-          dir hlaxe_fmod.hdll
+          cd example-project\EZPlatformer
+          haxelib run haxefmod build-hdll
 
-      - name: Compare compiled hdll with pre-built
+      - name: Verify custom hdll created
         run: |
-          echo "=== Compiled hdll ==="
-          ls -la native/hlaxe/hlaxe_fmod.hdll
-          echo "=== Pre-built hdll ==="
-          ls -la templates/bin/hl/Windows64/hlaxe_fmod.hdll
-          if cmp -s native/hlaxe/hlaxe_fmod.hdll templates/bin/hl/Windows64/hlaxe_fmod.hdll; then
-            echo "MATCH: Compiled hdll is identical to pre-built"
-          else
-            echo "DIFFER: Compiled hdll differs from pre-built"
-            echo "This may be expected if the toolchain version differs."
-          fi
-          echo "=== Copying compiled hdll to templates directory ==="
-          cp native/hlaxe/hlaxe_fmod.hdll templates/bin/hl/Windows64/hlaxe_fmod.hdll
+          echo "=== .haxefmod/ contents ==="
+          ls -la example-project/EZPlatformer/.haxefmod/
+          cat example-project/EZPlatformer/.haxefmod/hlaxe_fmod.version
+
+      - name: Rebuild HashLink target (custom hdll)
+        run: |
+          rm -rf example-project/EZPlatformer/export/hl
+          cd example-project/EZPlatformer
+          haxelib run lime build hl 2>&1 | tee /tmp/build-custom.log
+          grep -q "(custom-compiled from .haxefmod/)" /tmp/build-custom.log
+          echo "Verified: custom-compiled hdll from .haxefmod/ was used"
 
       - name: Upload compiled hdll
         uses: actions/upload-artifact@v4
         with:
           name: hlaxe_fmod-windows.hdll
-          path: native/hlaxe/hlaxe_fmod.hdll
-
-      - name: Build HashLink target
-        run: |
-          cd example-project/EZPlatformer
-          haxelib run lime build hl
+          path: example-project/EZPlatformer/.haxefmod/hlaxe_fmod.hdll
 
       - name: Validate build output
         run: |
@@ -1081,6 +1285,171 @@ jobs:
           if-no-files-found: warn
 
   # ===========================================================================
+  # Windows HashLink Compat Build (FMOD 2.02.33 - version mismatch test)
+  # ===========================================================================
+  windows-hl-compat:
+    runs-on: windows-latest
+    if: ${{ !contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[windows-hl-compat]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]'))) }}
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download FMOD SDK
+        run: |
+          git clone --depth 1 --branch 2.02.33 \
+            https://x-access-token:${{ secrets.FMOD_SDK_TOKEN }}@github.com/Tanz0rz/fmod-sdk-cache.git \
+            /tmp/fmod-sdk-cache
+          mkdir -p "$FMOD_SDK"
+          cp -R /tmp/fmod-sdk-cache/windows/* "$FMOD_SDK/"
+          ls -la "$FMOD_SDK/api/core/inc/" | head -5
+
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v1
+        with:
+          haxe-version: ${{ env.HAXE_VERSION }}
+
+      - name: Install ffmpeg
+        shell: powershell
+        run: choco install ffmpeg -y --no-progress
+
+      - name: Add ffmpeg to PATH
+        run: |
+          echo "C:\\ProgramData\\chocolatey\\bin" >> "$GITHUB_PATH"
+          for d in /c/ProgramData/chocolatey/lib/ffmpeg/tools/*/bin; do
+            [ -d "$d" ] && cygpath -w "$d" >> "$GITHUB_PATH"
+          done
+          export PATH="/c/ProgramData/chocolatey/bin:$PATH"
+          ffprobe -version | head -1 || echo "WARNING: ffprobe not found yet"
+
+      - name: Cache haxelib
+        uses: actions/cache@v4
+        with:
+          path: ~/haxelib
+          key: haxelib-hl-${{ runner.os }}-${{ env.HAXE_VERSION }}
+
+      - name: Install Haxe libraries
+        run: |
+          haxelib setup ~/haxelib
+          haxelib install lime 8.3.0 --always --quiet
+          haxelib install openfl 9.5.0 --always --quiet
+          haxelib install flixel 6.1.2 --always --quiet
+          haxelib dev haxefmod "$GITHUB_WORKSPACE"
+          yes | haxelib run lime setup || true
+
+      - name: Build and install HashLink
+        shell: powershell
+        run: |
+          $HL_URL = "https://github.com/HaxeFoundation/hashlink/releases/download/1.14/hashlink-1.14.0-win.zip"
+          Invoke-WebRequest -Uri $HL_URL -OutFile "C:\hashlink.zip"
+          Expand-Archive -Path "C:\hashlink.zip" -DestinationPath "C:\"
+          $HL_DIR = Get-ChildItem "C:\" -Directory | Where-Object { $_.Name -like "hashlink*" } | Select-Object -First 1
+          Rename-Item $HL_DIR.FullName "C:\hashlink"
+          echo "C:\hashlink" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          echo "HASHLINK_DIR=C:\hashlink" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Verify environment
+        run: |
+          cd example-project/EZPlatformer
+          haxelib run haxefmod check || true
+
+      - name: Build HashLink target (expect version mismatch failure)
+        run: |
+          cd example-project/EZPlatformer
+          haxelib run lime build hl 2>&1 | tee /tmp/build-mismatch.log || true
+          grep -q "ERROR: FMOD SDK version mismatch" /tmp/build-mismatch.log
+          echo "Verified: build failed with version mismatch error"
+
+      - name: Build custom hdll via build-hdll
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          cd example-project\EZPlatformer
+          haxelib run haxefmod build-hdll
+
+      - name: Verify custom hdll created
+        run: |
+          echo "=== .haxefmod/ contents ==="
+          ls -la example-project/EZPlatformer/.haxefmod/
+          cat example-project/EZPlatformer/.haxefmod/hlaxe_fmod.version
+
+      - name: Rebuild HashLink target (custom hdll)
+        run: |
+          rm -rf example-project/EZPlatformer/export/hl
+          cd example-project/EZPlatformer
+          haxelib run lime build hl 2>&1 | tee /tmp/build-custom.log
+          grep -q "(custom-compiled from .haxefmod/)" /tmp/build-custom.log
+          echo "Verified: custom-compiled hdll from .haxefmod/ was used"
+
+      - name: Validate build output
+        run: |
+          BIN_DIR="example-project/EZPlatformer/export/hl/bin"
+          echo "BIN_DIR=$BIN_DIR" >> "$GITHUB_ENV"
+          ./ci/validate-build.sh "$BIN_DIR" hl
+
+      - name: Record audio via FMOD wavwriter
+        run: |
+          EXE=$(find "$BIN_DIR" -maxdepth 1 -name "*.exe" | head -1)
+          echo "Found exe: $EXE"
+
+          export FMOD_WAVWRITER="$GITHUB_WORKSPACE/audio-windows-hl-compat.wav"
+
+          cd "$BIN_DIR"
+          timeout 60 "./$(basename "$EXE")" > "$GITHUB_WORKSPACE/game-windows-hl-compat.log" 2>&1 || true
+          cd -
+
+          echo "=== Game log ==="
+          cat "$GITHUB_WORKSPACE/game-windows-hl-compat.log" || true
+          echo "=== End game log ==="
+
+          if [ -f "$GITHUB_WORKSPACE/audio-windows-hl-compat.wav" ]; then
+            echo "Audio recorded successfully"
+            ls -la "$GITHUB_WORKSPACE/audio-windows-hl-compat.wav"
+          else
+            echo "WARNING: No audio file produced"
+          fi
+
+      - name: Fix WAV header
+        shell: python
+        run: |
+          import struct, os
+          wav = os.path.join(os.environ['GITHUB_WORKSPACE'], 'audio-windows-hl-compat.wav')
+          if os.path.exists(wav):
+              with open(wav, 'r+b') as f:
+                  f.seek(22)
+                  num_channels = struct.unpack('<H', f.read(2))[0]
+                  if num_channels == 0:
+                      print(f"Fixing WAV header: 0 channels -> 2 channels (stereo)")
+                      f.seek(22)
+                      f.write(struct.pack('<H', 2))
+                      f.seek(28)
+                      f.write(struct.pack('<I', 192000))
+                      f.write(struct.pack('<H', 4))
+                      print("WAV header fixed")
+                  else:
+                      print(f"WAV header OK ({num_channels} channels)")
+          else:
+              print(f"WAV file not found: {wav}")
+
+      - name: Validate audio
+        run: ./ci/validate-audio.sh "$GITHUB_WORKSPACE/audio-windows-hl-compat.wav" 10
+
+      - name: Validate game log
+        run: ./ci/validate-game-log.sh "$GITHUB_WORKSPACE/game-windows-hl-compat.log"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: audio-windows-hl-compat
+          path: |
+            audio-windows-hl-compat.wav
+            game-windows-hl-compat.log
+          if-no-files-found: warn
+
+  # ===========================================================================
   # Update Pre-built hdlls
   # Commits freshly compiled hdlls back to repo if they changed
   # ===========================================================================
@@ -1115,7 +1484,7 @@ jobs:
           cp /tmp/hdlls/hlaxe_fmod-linux.hdll/hlaxe_fmod.hdll templates/bin/hl/Linux64/hlaxe_fmod.hdll
           cp /tmp/hdlls/hlaxe_fmod-mac.hdll/hlaxe_fmod.hdll templates/bin/hl/Mac64/hlaxe_fmod.hdll
           cp /tmp/hdlls/hlaxe_fmod-windows.hdll/hlaxe_fmod.hdll templates/bin/hl/Windows64/hlaxe_fmod.hdll
-          
+
           echo "Checking for changes..."
           git diff --stat templates/bin/hl/
 

@@ -4,8 +4,8 @@
 	"license" : "MIT",
 	"tags": ["fmod", "audio", "windows", "linux", "mac", "hashlink", "html5", "web", "openfl", "lime"],
 	"description" : "Use FMOD Studio with Haxe on HTML5, HashLink, Windows, Linux, and macOS",
-	"version" : "1.0.0-beta",
-	"releasenote" : "Cross-platform support for Windows, Linux, and macOS via C++ and HashLink targets. FMOD Engine libraries are now required by the user. Checker script added to help setup process (haxelib run haxefmod check). FMOD 2.03.12 now the officially supported version.",
+	"version" : "1.0.1-beta",
+	"releasenote" : "Support added for users who want to try FMOD Engine versions other than version 2.03.12.",
 	"contributors" : ["Tanz0rz"],
 	"dependencies" : { },
 	"main" : "haxefmod.tools.Run"

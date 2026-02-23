@@ -15,9 +15,14 @@ class Run {
 
 		var command = userArgs.length > 0 ? userArgs[0] : "help";
 
+		// Resolve the haxelib root (parent of the directory haxelib passes as last arg)
+		var libRoot = resolveLibRoot();
+
 		switch (command) {
 			case "check":
-				runCheck(cwd);
+				runCheck(cwd, libRoot);
+			case "build-hdll":
+				BuildHdll.run(libRoot, cwd);
 			case "postbuild":
 				if (userArgs.length < 4) {
 					Sys.println("Usage: haxelib run haxefmod postbuild <platform> <target> <libroot>");
@@ -31,17 +36,42 @@ class Run {
 		}
 	}
 
+	static function resolveLibRoot():String {
+		// When run via haxelib, we can find our own root by checking where Run.hx lives
+		// The haxelib root is the directory containing haxefmod/, templates/, scripts/, etc.
+		// Use Sys.programPath() to find ourselves, then navigate up
+		try {
+			var result = runQuiet("haxelib", ["path", "haxefmod"]);
+			if (result.exitCode == 0) {
+				// haxelib path outputs one path per line; the first is the source dir
+				for (line in result.stdout.split("\n")) {
+					var trimmed = StringTools.trim(line);
+					if (trimmed != "" && !StringTools.startsWith(trimmed, "-")) {
+						// This is like /home/user/haxelib/haxefmod/git/haxefmod
+						// We need the parent (the lib root)
+						if (FileSystem.exists(haxe.io.Path.join([haxe.io.Path.directory(trimmed), "scripts", "fmod_expected_version"]))) {
+							return haxe.io.Path.directory(trimmed);
+						}
+					}
+				}
+			}
+		} catch (e:Dynamic) {}
+		// Fallback: use CWD (won't work in all cases but is better than nothing)
+		return Sys.getCwd();
+	}
+
 	static function printUsage() {
 		Sys.println("haxefmod - FMOD audio engine bindings for Haxe");
 		Sys.println("");
 		Sys.println("Usage: haxelib run haxefmod <command>");
 		Sys.println("");
 		Sys.println("Commands:");
-		Sys.println("  check     Check your environment for correct FMOD SDK setup");
-		Sys.println("  help      Show this message");
+		Sys.println("  check       Check your environment for correct FMOD SDK setup");
+		Sys.println("  build-hdll  Compile hlaxe_fmod.hdll from source against your FMOD SDK");
+		Sys.println("  help        Show this message");
 	}
 
-	static function runCheck(cwd:String) {
+	static function runCheck(cwd:String, libRoot:String) {
 		Sys.println("haxefmod check - checking your environment...");
 		Sys.println("");
 
@@ -103,6 +133,11 @@ class Run {
 		// 8. FMOD version check
 		if (FileSystem.exists(headerPath)) {
 			checkFmodVersion('$fmodSdk/api/core/inc/fmod_common.h', platform);
+		}
+
+		// 8b. Pre-built hdll compatibility check
+		if (FileSystem.exists(headerPath)) {
+			checkHdllCompatibility(fmodSdk, platform, libRoot, cwd);
 		}
 
 		// 9. HTML5 SDK check
@@ -255,6 +290,38 @@ class Run {
 			fail("FMOD version", 'Found $versionStr, expected $expected.');
 			Sys.println('         Download FMOD Engine $expected for $platform from https://www.fmod.com/download');
 		}
+	}
+
+	static function checkHdllCompatibility(fmodSdk:String, platform:String, libRoot:String, projectDir:String) {
+		var commonHeader = '$fmodSdk/api/core/inc/fmod_common.h';
+		var sdkHex = PostBuild.parseFmodVersion(commonHeader);
+		if (sdkHex == null) return;
+
+		var versionFile = haxe.io.Path.join([libRoot, "scripts", "fmod_expected_version"]);
+		if (!FileSystem.exists(versionFile)) return;
+		var expectedHex = StringTools.trim(File.getContent(versionFile));
+
+		if (sdkHex == expectedHex) {
+			pass("Pre-built hdll compatible with SDK", "");
+			return;
+		}
+
+		// SDK doesn't match pre-built version - check for project-local custom-compiled hdll
+		var markerFile = haxe.io.Path.join([projectDir, ".haxefmod", "hlaxe_fmod.version"]);
+		if (FileSystem.exists(markerFile)) {
+			var markerHex = StringTools.trim(File.getContent(markerFile));
+			if (markerHex == sdkHex) {
+				var ver = PostBuild.hexToVersion(sdkHex);
+				pass("Custom-compiled hdll matches SDK", '$ver (from .haxefmod/)');
+				return;
+			}
+		}
+
+		var sdkVer = PostBuild.hexToVersion(sdkHex);
+		var expectedVer = PostBuild.hexToVersion(expectedHex);
+		fail("Pre-built hdll compatible with SDK", 'SDK is $sdkVer, pre-built hdll is for $expectedVer');
+		Sys.println('         Run: haxelib run haxefmod build-hdll');
+		Sys.println('         This will compile hlaxe_fmod.hdll against your SDK.');
 	}
 
 	static function checkHtml5Sdk(fmodSdk:String) {

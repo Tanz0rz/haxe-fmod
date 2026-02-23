@@ -15,7 +15,7 @@ If you are using vscode, its autocomplete can be triggered by typing in "FmodSon
 
 ## Usage Examples:
 - Play a song: `FmodManager.PlaySong(FmodSongs.MainSong);`
-- Play a sound effect: `FmodManager.PlaySound(FmodSFX.CollectionCoin);`
+- Play a sound effect: `FmodManager.PlaySoundOneShot(FmodSFX.CollectionCoin);`
 
 ## Auto-imports:
 
