@@ -5,7 +5,7 @@
 	"tags": ["fmod", "audio", "windows", "linux", "mac", "hashlink", "html5", "web", "openfl", "lime"],
 	"description" : "Use FMOD Studio with Haxe on HTML5, HashLink, Windows, Linux, and macOS",
 	"version" : "1.0.1-beta",
-	"releasenote" : "If users want to try using FMOD Engine versions other than version 2.03.12, they can now try.",
+	"releasenote" : "Support added for users who want to try using FMOD Engine versions other than version 2.03.12.",
 	"contributors" : ["Tanz0rz"],
 	"dependencies" : { },
 	"main" : "haxefmod.tools.Run"
