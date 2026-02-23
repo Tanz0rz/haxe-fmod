@@ -191,7 +191,7 @@ jobs:
           wait $GAME_PID 2>/dev/null || true
 
       - name: Validate volume/mute
-        run: ./ci/validate-volume.sh /tmp/volume-test-linux-cpp.wav 30
+        run: ./ci/validate-volume.sh /tmp/volume-test-linux-cpp.wav 15
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -409,7 +409,7 @@ jobs:
           echo "=== End volume test game log ==="
 
       - name: Validate volume/mute
-        run: ./ci/validate-volume.sh /tmp/volume-test-linux-hl.wav 30
+        run: ./ci/validate-volume.sh /tmp/volume-test-linux-hl.wav 15
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -606,7 +606,7 @@ jobs:
           wait $GAME_PID 2>/dev/null || true
 
       - name: Validate volume/mute
-        run: ./ci/validate-volume.sh /tmp/volume-test-linux-hl-compat.wav 30
+        run: ./ci/validate-volume.sh /tmp/volume-test-linux-hl-compat.wav 15
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -779,17 +779,17 @@ jobs:
           xdotool mousemove 320 240 click 1
           sleep 1
 
-          ffmpeg -f pulse -i virtual_speaker.monitor -t 35 -y /tmp/volume-test-html5.wav &
+          ffmpeg -f pulse -i virtual_speaker.monitor -t 20 -y /tmp/volume-test-html5.wav &
           RECORD_PID=$!
 
-          sleep 36
+          sleep 21
 
           kill $CHROME_PID || true
           kill $HTTP_PID || true
           wait $RECORD_PID || true
 
       - name: Validate volume/mute
-        run: ./ci/validate-volume.sh /tmp/volume-test-html5.wav 30
+        run: ./ci/validate-volume.sh /tmp/volume-test-html5.wav 15
 
       - name: Upload audio artifact
         uses: actions/upload-artifact@v4
@@ -907,7 +907,7 @@ jobs:
           wait $GAME_PID 2>/dev/null || true
 
       - name: Validate volume/mute
-        run: ./ci/validate-volume.sh /tmp/volume-test-mac-cpp.wav 30
+        run: ./ci/validate-volume.sh /tmp/volume-test-mac-cpp.wav 15
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -1054,7 +1054,7 @@ jobs:
           wait $GAME_PID 2>/dev/null || true
 
       - name: Validate volume/mute
-        run: ./ci/validate-volume.sh /tmp/volume-test-mac-hl.wav 30
+        run: ./ci/validate-volume.sh /tmp/volume-test-mac-hl.wav 15
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -1195,7 +1195,7 @@ jobs:
           wait $GAME_PID 2>/dev/null || true
 
       - name: Validate volume/mute
-        run: ./ci/validate-volume.sh /tmp/volume-test-mac-hl-compat.wav 30
+        run: ./ci/validate-volume.sh /tmp/volume-test-mac-hl-compat.wav 15
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -1364,7 +1364,7 @@ jobs:
               print(f"WAV file not found: {wav}")
 
       - name: Validate volume/mute
-        run: ./ci/validate-volume.sh "$GITHUB_WORKSPACE/volume-test-windows-cpp.wav" 30
+        run: ./ci/validate-volume.sh "$GITHUB_WORKSPACE/volume-test-windows-cpp.wav" 15
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -1577,7 +1577,7 @@ jobs:
               print(f"WAV file not found: {wav}")
 
       - name: Validate volume/mute
-        run: ./ci/validate-volume.sh "$GITHUB_WORKSPACE/volume-test-windows-hl.wav" 30
+        run: ./ci/validate-volume.sh "$GITHUB_WORKSPACE/volume-test-windows-hl.wav" 15
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -1784,7 +1784,7 @@ jobs:
               print(f"WAV file not found: {wav}")
 
       - name: Validate volume/mute
-        run: ./ci/validate-volume.sh "$GITHUB_WORKSPACE/volume-test-windows-hl-compat.wav" 30
+        run: ./ci/validate-volume.sh "$GITHUB_WORKSPACE/volume-test-windows-hl-compat.wav" 15
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

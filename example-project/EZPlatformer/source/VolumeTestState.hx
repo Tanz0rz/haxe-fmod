@@ -8,10 +8,10 @@ import flixel.util.FlxColor;
 /**
  * CI test state for validating bus volume and mute controls.
  *
- * Runs a 3-phase test over 30 seconds of audio time:
- *   Phase 1 (0-10s): Full volume (default)
- *   Phase 2 (10-20s): Volume set to 30%
- *   Phase 3 (20-30s): Muted
+ * Runs a 3-phase test over 15 seconds of audio time:
+ *   Phase 1 (0-5s): Full volume (default)
+ *   Phase 2 (5-10s): Volume set to 30%
+ *   Phase 3 (10-15s): Muted
  *
  * Uses FMOD's timeline position instead of wall-clock time so that
  * phase transitions align with the audio output regardless of how
@@ -50,17 +50,17 @@ class VolumeTestState extends FlxState {
         var posMs = FmodManager.GetSongTimelinePosition();
         var posSec = posMs / 1000.0;
 
-        if (_phase == 1 && posSec >= 10) {
+        if (_phase == 1 && posSec >= 5) {
             _phase = 2;
             FmodManager.SetMasterVolume(0.3);
             _status.text = "VOLUME_TEST: Phase 2 - Volume 30%";
             trace("VOLUME_TEST: Phase 2 - Volume 30%");
-        } else if (_phase == 2 && posSec >= 20) {
+        } else if (_phase == 2 && posSec >= 10) {
             _phase = 3;
             FmodManager.SetMasterMute(true);
             _status.text = "VOLUME_TEST: Phase 3 - Muted";
             trace("VOLUME_TEST: Phase 3 - Muted");
-        } else if (_phase == 3 && posSec >= 30) {
+        } else if (_phase == 3 && posSec >= 15) {
             _complete = true;
             _status.text = "VOLUME_TEST: Complete";
             trace("VOLUME_TEST: Complete");

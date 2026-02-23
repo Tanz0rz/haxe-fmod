@@ -3,17 +3,17 @@
 # Usage: ./ci/validate-volume.sh <wav-file> [total-duration-seconds]
 #
 # The volume test records 3 phases:
-#   Phase 1 (0-10s): Full volume
-#   Phase 2 (10-20s): Volume at 30%
-#   Phase 3 (20-30s): Muted
+#   Phase 1 (0-5s): Full volume
+#   Phase 2 (5-10s): Volume at 30%
+#   Phase 3 (10-15s): Muted
 #
-# Samples a 2-second window at the CENTER of each phase (5s, 15s, 25s)
+# Samples a 2-second window at the CENTER of each phase
 # to avoid phase transition boundaries.
 #
 # Exits 0 if valid, 1 if validation fails.
 
 WAV_FILE="$1"
-TOTAL_DURATION="${2:-30}"
+TOTAL_DURATION="${2:-15}"
 
 # Resolve ffprobe/ffmpeg commands (may need explicit paths on Windows)
 FFPROBE="ffprobe"
