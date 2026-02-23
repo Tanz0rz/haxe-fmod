@@ -4,8 +4,8 @@
 	"license" : "MIT",
 	"tags": ["fmod", "audio", "windows", "linux", "mac", "hashlink", "html5", "web", "openfl", "lime"],
 	"description" : "Use FMOD Studio with Haxe on HTML5, HashLink, Windows, Linux, and macOS",
-	"version" : "1.0.1-beta",
-	"releasenote" : "Support added for users who want to try FMOD Engine versions other than version 2.03.12.",
+	"version" : "1.1.0-beta",
+	"releasenote" : "Support added for volume control and muting at the bus level. Method added to get song position in milliseconds.",
 	"contributors" : ["Tanz0rz"],
 	"dependencies" : { },
 	"main" : "haxefmod.tools.Run"

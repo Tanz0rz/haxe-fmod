@@ -136,6 +136,14 @@ class jaxe {
         return outval.val;
     }
 
+    static fmod_get_timeline_position(handle) {
+        var inst = jaxe.instances[handle];
+        if (!inst) return 0;
+        var outval = {};
+        inst.getTimelinePosition(outval);
+        return outval.val;
+    }
+
     //// Parameters
 
     static fmod_get_param(handle, name) {
@@ -165,6 +173,40 @@ class jaxe {
         if (jaxe.gSystem.getBus(path, bus) == jaxe.FMOD.OK) {
             bus.val.stopAllEvents(jaxe.FMOD.STUDIO_STOP_IMMEDIATE);
         }
+    }
+
+    static fmod_set_bus_volume(path, volume) {
+        var bus = {};
+        if (jaxe.gSystem.getBus(path, bus) == jaxe.FMOD.OK) {
+            bus.val.setVolume(volume);
+        }
+    }
+
+    static fmod_get_bus_volume(path) {
+        var bus = {};
+        if (jaxe.gSystem.getBus(path, bus) == jaxe.FMOD.OK) {
+            var outval = {};
+            bus.val.getVolume(outval);
+            return outval.val;
+        }
+        return 0.0;
+    }
+
+    static fmod_set_bus_mute(path, mute) {
+        var bus = {};
+        if (jaxe.gSystem.getBus(path, bus) == jaxe.FMOD.OK) {
+            bus.val.setMute(mute);
+        }
+    }
+
+    static fmod_get_bus_mute(path) {
+        var bus = {};
+        if (jaxe.gSystem.getBus(path, bus) == jaxe.FMOD.OK) {
+            var outval = {};
+            bus.val.getMute(outval);
+            return outval.val;
+        }
+        return false;
     }
 
     //// Callbacks

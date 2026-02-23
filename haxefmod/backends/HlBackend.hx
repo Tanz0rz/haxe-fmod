@@ -105,6 +105,10 @@ class HlBackend implements IFmodBackend {
         HlFmod.set_paused(handle, shouldBePaused);
     }
 
+    public function getTimelinePosition(handle:FmodEventHandle):Int {
+        return HlFmod.get_timeline_position(handle);
+    }
+
     public function stopEventInstance(handle:FmodEventHandle):Void {
         HlFmod.stop(handle, 0); // Allow fadeout
     }
@@ -135,6 +139,22 @@ class HlBackend implements IFmodBackend {
 
     public function stopAllEventsOnBus(busPath:String):Void {
         HlFmod.stop_bus(toBytes(busPath));
+    }
+
+    public function setBusVolume(busPath:String, volume:Float):Void {
+        HlFmod.set_bus_volume(toBytes(busPath), volume);
+    }
+
+    public function getBusVolume(busPath:String):Float {
+        return HlFmod.get_bus_volume(toBytes(busPath));
+    }
+
+    public function setBusMute(busPath:String, mute:Bool):Void {
+        HlFmod.set_bus_mute(toBytes(busPath), mute);
+    }
+
+    public function getBusMute(busPath:String):Bool {
+        return HlFmod.get_bus_mute(toBytes(busPath));
     }
 
     //// Callbacks
@@ -171,6 +191,7 @@ private extern class HlFmod {
     static function release(handle:Int):Void;
     static function set_paused(handle:Int, paused:Bool):Void;
     static function get_playback_state(handle:Int):Int;
+    static function get_timeline_position(handle:Int):Int;
 
     // Parameters
     static function get_param(handle:Int, name:hl.Bytes):Float;
@@ -179,6 +200,10 @@ private extern class HlFmod {
     // Bus
     static function set_bus_paused(path:hl.Bytes, paused:Bool):Void;
     static function stop_bus(path:hl.Bytes):Void;
+    static function set_bus_volume(path:hl.Bytes, volume:Float):Void;
+    static function get_bus_volume(path:hl.Bytes):Float;
+    static function set_bus_mute(path:hl.Bytes, mute:Bool):Void;
+    static function get_bus_mute(path:hl.Bytes):Bool;
 
     // Callbacks
     static function enable_callbacks(handle:Int):Void;

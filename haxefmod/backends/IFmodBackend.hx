@@ -57,6 +57,9 @@ interface IFmodBackend {
     /** Pauses or unpauses an event instance */
     function setPauseOnEventInstance(handle:FmodEventHandle, shouldBePaused:Bool):Void;
 
+    /** Gets the timeline position of an event instance in milliseconds */
+    function getTimelinePosition(handle:FmodEventHandle):Int;
+
     /** Stops an event instance (allows fadeout via AHDSR) */
     function stopEventInstance(handle:FmodEventHandle):Void;
 
@@ -73,6 +76,10 @@ interface IFmodBackend {
     //// Bus operations
     function setPauseForAllEventsOnBus(busPath:String, shouldBePaused:Bool):Void;
     function stopAllEventsOnBus(busPath:String):Void;
+    function setBusVolume(busPath:String, volume:Float):Void;
+    function getBusVolume(busPath:String):Float;
+    function setBusMute(busPath:String, mute:Bool):Void;
+    function getBusMute(busPath:String):Bool;
 
     //// Callbacks
 

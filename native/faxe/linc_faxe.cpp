@@ -198,6 +198,13 @@ int fmod_get_playback_state(int h) {
     return (int)state;
 }
 
+int fmod_get_timeline_position(int h) {
+    if (h < 0 || h >= gInstanceCount || !gInstances[h]) return 0;
+    int position = 0;
+    gInstances[h]->getTimelinePosition(&position);
+    return position;
+}
+
 //// Parameters
 
 float fmod_get_param(int h, const ::String& name) {
@@ -226,6 +233,42 @@ void fmod_stop_bus(const ::String& path) {
     FMOD::Studio::Bus* bus;
     if (gStudioSystem->getBus(path.c_str(), &bus) == FMOD_OK)
         bus->stopAllEvents(FMOD_STUDIO_STOP_IMMEDIATE);
+}
+
+void fmod_set_bus_volume(const ::String& path, float volume) {
+    if (!gStudioSystem) return;
+    FMOD::Studio::Bus* bus;
+    if (gStudioSystem->getBus(path.c_str(), &bus) == FMOD_OK)
+        bus->setVolume(volume);
+}
+
+float fmod_get_bus_volume(const ::String& path) {
+    if (!gStudioSystem) return 0.0f;
+    FMOD::Studio::Bus* bus;
+    if (gStudioSystem->getBus(path.c_str(), &bus) == FMOD_OK) {
+        float volume = 0.0f;
+        bus->getVolume(&volume, NULL);
+        return volume;
+    }
+    return 0.0f;
+}
+
+void fmod_set_bus_mute(const ::String& path, bool mute) {
+    if (!gStudioSystem) return;
+    FMOD::Studio::Bus* bus;
+    if (gStudioSystem->getBus(path.c_str(), &bus) == FMOD_OK)
+        bus->setMute(mute);
+}
+
+bool fmod_get_bus_mute(const ::String& path) {
+    if (!gStudioSystem) return false;
+    FMOD::Studio::Bus* bus;
+    if (gStudioSystem->getBus(path.c_str(), &bus) == FMOD_OK) {
+        bool mute = false;
+        bus->getMute(&mute);
+        return mute;
+    }
+    return false;
 }
 
 //// Callbacks

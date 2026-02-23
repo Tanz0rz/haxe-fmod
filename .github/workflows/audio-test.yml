@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}-${{ contains(github.event.head_commit.message, '[skip-build]') }}
   cancel-in-progress: true
 
 # Solo-build: include [job-name] in commit message to run only that job
@@ -161,6 +161,38 @@ jobs:
       - name: Validate game log
         run: ./ci/validate-game-log.sh /tmp/game-linux-cpp.log
 
+      - name: Build volume test
+        run: |
+          cd example-project/EZPlatformer
+          haxelib run lime clean linux
+          haxelib run lime build linux -64 -Daudio_test
+
+      - name: Record volume test
+        run: |
+          export DISPLAY=:99
+
+          BIN_DIR="example-project/EZPlatformer/export/linux64/bin"
+          if [ ! -d "$BIN_DIR" ]; then
+            BIN_DIR="example-project/EZPlatformer/export/linux/bin"
+          fi
+
+          export FMOD_WAVWRITER=/tmp/volume-test-linux-cpp.wav
+
+          cd "$BIN_DIR"
+          chmod +x run.sh
+          ./run.sh > /tmp/volume-test-linux-cpp.log 2>&1 &
+          GAME_PID=$!
+          cd -
+          for i in $(seq 60); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill $GAME_PID 2>/dev/null || true
+          wait $GAME_PID 2>/dev/null || true
+
+      - name: Validate volume/mute
+        run: ./ci/validate-volume.sh /tmp/volume-test-linux-cpp.wav 15
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         if: always()
@@ -169,6 +201,7 @@ jobs:
           path: |
             /tmp/audio-linux-cpp.wav
             /tmp/game-linux-cpp.log
+            /tmp/volume-test-linux-cpp.wav
           if-no-files-found: warn
 
   # ===========================================================================
@@ -343,6 +376,41 @@ jobs:
       - name: Validate game log
         run: ./ci/validate-game-log.sh /tmp/game-linux-hl.log
 
+      - name: Build volume test
+        run: |
+          cd example-project/EZPlatformer
+          haxelib run lime clean hl
+          haxelib run lime build hl -Daudio_test
+
+      - name: Record volume test
+        run: |
+          export DISPLAY=:99
+
+          BIN_DIR="example-project/EZPlatformer/export/hl/bin"
+
+          export FMOD_WAVWRITER=/tmp/volume-test-linux-hl.wav
+
+          cd "$BIN_DIR"
+          export LD_LIBRARY_PATH="$(pwd):$LD_LIBRARY_PATH"
+          EXE=$(find . -maxdepth 1 -type f -executable ! -name "*.so*" ! -name "*.hdll" ! -name "run.sh" -print -quit)
+          chmod +x "$EXE"
+          "$EXE" > /tmp/volume-test-linux-hl.log 2>&1 &
+          GAME_PID=$!
+          cd -
+          for i in $(seq 60); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill $GAME_PID 2>/dev/null || true
+          wait $GAME_PID 2>/dev/null || true
+
+          echo "=== Volume test game log ==="
+          cat /tmp/volume-test-linux-hl.log || true
+          echo "=== End volume test game log ==="
+
+      - name: Validate volume/mute
+        run: ./ci/validate-volume.sh /tmp/volume-test-linux-hl.wav 15
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         if: always()
@@ -351,6 +419,8 @@ jobs:
           path: |
             /tmp/audio-linux-hl.wav
             /tmp/game-linux-hl.log
+            /tmp/volume-test-linux-hl.wav
+            /tmp/volume-test-linux-hl.log
           if-no-files-found: warn
 
   # ===========================================================================
@@ -507,6 +577,37 @@ jobs:
       - name: Validate game log
         run: ./ci/validate-game-log.sh /tmp/game-linux-hl-compat.log
 
+      - name: Build volume test
+        run: |
+          cd example-project/EZPlatformer
+          haxelib run lime clean hl
+          haxelib run lime build hl -Daudio_test
+
+      - name: Record volume test
+        run: |
+          export DISPLAY=:99
+
+          BIN_DIR="example-project/EZPlatformer/export/hl/bin"
+
+          export FMOD_WAVWRITER=/tmp/volume-test-linux-hl-compat.wav
+
+          cd "$BIN_DIR"
+          export LD_LIBRARY_PATH="$(pwd):$LD_LIBRARY_PATH"
+          EXE=$(find . -maxdepth 1 -type f -executable ! -name "*.so*" ! -name "*.hdll" ! -name "run.sh" -print -quit)
+          chmod +x "$EXE"
+          "$EXE" > /tmp/volume-test-linux-hl-compat.log 2>&1 &
+          GAME_PID=$!
+          cd -
+          for i in $(seq 60); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill $GAME_PID 2>/dev/null || true
+          wait $GAME_PID 2>/dev/null || true
+
+      - name: Validate volume/mute
+        run: ./ci/validate-volume.sh /tmp/volume-test-linux-hl-compat.wav 15
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         if: always()
@@ -515,6 +616,7 @@ jobs:
           path: |
             /tmp/audio-linux-hl-compat.wav
             /tmp/game-linux-hl-compat.log
+            /tmp/volume-test-linux-hl-compat.wav
           if-no-files-found: warn
 
   # ===========================================================================
@@ -646,12 +748,57 @@ jobs:
       - name: Validate audio
         run: ./ci/validate-audio.sh /tmp/audio-html5.wav 10
 
+      - name: Build volume test
+        env:
+          FMOD_SDK_WEB: ${{ env.FMOD_SDK }}
+        run: |
+          cd example-project/EZPlatformer
+          haxelib run lime clean html5
+          haxelib run lime build html5 -Daudio_test
+
+      - name: Record volume test
+        run: |
+          export DISPLAY=:99
+
+          cd example-project/EZPlatformer/export/html5/bin
+          python3 -m http.server 8081 &
+          HTTP_PID=$!
+          cd -
+          sleep 1
+
+          chromium-browser \
+            --no-sandbox \
+            --disable-gpu \
+            --autoplay-policy=no-user-gesture-required \
+            --window-size=640,480 \
+            --window-position=0,0 \
+            http://localhost:8081 &
+          CHROME_PID=$!
+          sleep 3
+
+          xdotool mousemove 320 240 click 1
+          sleep 1
+
+          ffmpeg -f pulse -i virtual_speaker.monitor -t 20 -y /tmp/volume-test-html5.wav &
+          RECORD_PID=$!
+
+          sleep 21
+
+          kill $CHROME_PID || true
+          kill $HTTP_PID || true
+          wait $RECORD_PID || true
+
+      - name: Validate volume/mute
+        run: ./ci/validate-volume.sh /tmp/volume-test-html5.wav 15
+
       - name: Upload audio artifact
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: audio-html5
-          path: /tmp/audio-html5.wav
+          path: |
+            /tmp/audio-html5.wav
+            /tmp/volume-test-html5.wav
           if-no-files-found: warn
 
   # ===========================================================================
@@ -738,6 +885,30 @@ jobs:
       - name: Validate game log
         run: ./ci/validate-game-log.sh /tmp/game-mac-cpp.log
 
+      - name: Build volume test
+        run: |
+          cd example-project/EZPlatformer
+          haxelib run lime clean mac
+          haxelib run lime build mac -64 -Daudio_test
+
+      - name: Record volume test
+        run: |
+          APP_BUNDLE=$(find example-project/EZPlatformer/export -name "*.app" -path "*mac*" 2>/dev/null | head -1)
+
+          export FMOD_WAVWRITER=/tmp/volume-test-mac-cpp.wav
+
+          "$APP_BUNDLE/Contents/MacOS/"* > /tmp/volume-test-mac-cpp.log 2>&1 &
+          GAME_PID=$!
+          for i in $(seq 60); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill $GAME_PID 2>/dev/null || true
+          wait $GAME_PID 2>/dev/null || true
+
+      - name: Validate volume/mute
+        run: ./ci/validate-volume.sh /tmp/volume-test-mac-cpp.wav 15
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         if: always()
@@ -746,6 +917,7 @@ jobs:
           path: |
             /tmp/audio-mac-cpp.wav
             /tmp/game-mac-cpp.log
+            /tmp/volume-test-mac-cpp.wav
           if-no-files-found: warn
 
   # ===========================================================================
@@ -860,6 +1032,30 @@ jobs:
       - name: Validate game log
         run: ./ci/validate-game-log.sh /tmp/game-mac-hl.log
 
+      - name: Build volume test
+        run: |
+          cd example-project/EZPlatformer
+          haxelib run lime clean hl
+          haxelib run lime build hl -Daudio_test
+
+      - name: Record volume test
+        run: |
+          APP_BUNDLE=$(find example-project/EZPlatformer/export/hl -name "*.app" 2>/dev/null | head -1)
+
+          export FMOD_WAVWRITER=/tmp/volume-test-mac-hl.wav
+
+          "$APP_BUNDLE/Contents/MacOS/"* > /tmp/volume-test-mac-hl.log 2>&1 &
+          GAME_PID=$!
+          for i in $(seq 60); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill $GAME_PID 2>/dev/null || true
+          wait $GAME_PID 2>/dev/null || true
+
+      - name: Validate volume/mute
+        run: ./ci/validate-volume.sh /tmp/volume-test-mac-hl.wav 15
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         if: always()
@@ -868,6 +1064,7 @@ jobs:
           path: |
             /tmp/audio-mac-hl.wav
             /tmp/game-mac-hl.log
+            /tmp/volume-test-mac-hl.wav
           if-no-files-found: warn
 
   # ===========================================================================
@@ -976,6 +1173,30 @@ jobs:
       - name: Validate game log
         run: ./ci/validate-game-log.sh /tmp/game-mac-hl-compat.log
 
+      - name: Build volume test
+        run: |
+          cd example-project/EZPlatformer
+          haxelib run lime clean hl
+          haxelib run lime build hl -Daudio_test
+
+      - name: Record volume test
+        run: |
+          APP_BUNDLE=$(find example-project/EZPlatformer/export/hl -name "*.app" 2>/dev/null | head -1)
+
+          export FMOD_WAVWRITER=/tmp/volume-test-mac-hl-compat.wav
+
+          "$APP_BUNDLE/Contents/MacOS/"* > /tmp/volume-test-mac-hl-compat.log 2>&1 &
+          GAME_PID=$!
+          for i in $(seq 60); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill $GAME_PID 2>/dev/null || true
+          wait $GAME_PID 2>/dev/null || true
+
+      - name: Validate volume/mute
+        run: ./ci/validate-volume.sh /tmp/volume-test-mac-hl-compat.wav 15
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         if: always()
@@ -984,6 +1205,7 @@ jobs:
           path: |
             /tmp/audio-mac-hl-compat.wav
             /tmp/game-mac-hl-compat.log
+            /tmp/volume-test-mac-hl-compat.wav
           if-no-files-found: warn
 
   # ===========================================================================
@@ -1103,6 +1325,47 @@ jobs:
       - name: Validate game log
         run: ./ci/validate-game-log.sh "$GITHUB_WORKSPACE/game-windows-cpp.log"
 
+      - name: Build volume test
+        run: |
+          cd example-project/EZPlatformer
+          haxelib run lime clean windows
+          haxelib run lime build windows -64 -Daudio_test
+
+      - name: Record volume test
+        run: |
+          EXE=$(find "$BIN_DIR" -maxdepth 1 -name "*.exe" | head -1)
+
+          export FMOD_WAVWRITER="$GITHUB_WORKSPACE/volume-test-windows-cpp.wav"
+
+          cd "$BIN_DIR"
+          timeout 60 "./$(basename "$EXE")" > "$GITHUB_WORKSPACE/volume-test-windows-cpp.log" 2>&1 || true
+          cd -
+
+      - name: Fix volume test WAV header
+        shell: python
+        run: |
+          import struct, os
+          wav = os.path.join(os.environ['GITHUB_WORKSPACE'], 'volume-test-windows-cpp.wav')
+          if os.path.exists(wav):
+              with open(wav, 'r+b') as f:
+                  f.seek(22)
+                  num_channels = struct.unpack('<H', f.read(2))[0]
+                  if num_channels == 0:
+                      print(f"Fixing WAV header: 0 channels -> 2 channels (stereo)")
+                      f.seek(22)
+                      f.write(struct.pack('<H', 2))
+                      f.seek(28)
+                      f.write(struct.pack('<I', 192000))
+                      f.write(struct.pack('<H', 4))
+                      print("WAV header fixed")
+                  else:
+                      print(f"WAV header OK ({num_channels} channels)")
+          else:
+              print(f"WAV file not found: {wav}")
+
+      - name: Validate volume/mute
+        run: ./ci/validate-volume.sh "$GITHUB_WORKSPACE/volume-test-windows-cpp.wav" 15
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         if: always()
@@ -1111,6 +1374,7 @@ jobs:
           path: |
             audio-windows-cpp.wav
             game-windows-cpp.log
+            volume-test-windows-cpp.wav
           if-no-files-found: warn
 
   # ===========================================================================
@@ -1274,6 +1538,47 @@ jobs:
       - name: Validate game log
         run: ./ci/validate-game-log.sh "$GITHUB_WORKSPACE/game-windows-hl.log"
 
+      - name: Build volume test
+        run: |
+          cd example-project/EZPlatformer
+          haxelib run lime clean hl
+          haxelib run lime build hl -Daudio_test
+
+      - name: Record volume test
+        run: |
+          EXE=$(find "$BIN_DIR" -maxdepth 1 -name "*.exe" | head -1)
+
+          export FMOD_WAVWRITER="$GITHUB_WORKSPACE/volume-test-windows-hl.wav"
+
+          cd "$BIN_DIR"
+          timeout 60 "./$(basename "$EXE")" > "$GITHUB_WORKSPACE/volume-test-windows-hl.log" 2>&1 || true
+          cd -
+
+      - name: Fix volume test WAV header
+        shell: python
+        run: |
+          import struct, os
+          wav = os.path.join(os.environ['GITHUB_WORKSPACE'], 'volume-test-windows-hl.wav')
+          if os.path.exists(wav):
+              with open(wav, 'r+b') as f:
+                  f.seek(22)
+                  num_channels = struct.unpack('<H', f.read(2))[0]
+                  if num_channels == 0:
+                      print(f"Fixing WAV header: 0 channels -> 2 channels (stereo)")
+                      f.seek(22)
+                      f.write(struct.pack('<H', 2))
+                      f.seek(28)
+                      f.write(struct.pack('<I', 192000))
+                      f.write(struct.pack('<H', 4))
+                      print("WAV header fixed")
+                  else:
+                      print(f"WAV header OK ({num_channels} channels)")
+          else:
+              print(f"WAV file not found: {wav}")
+
+      - name: Validate volume/mute
+        run: ./ci/validate-volume.sh "$GITHUB_WORKSPACE/volume-test-windows-hl.wav" 15
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         if: always()
@@ -1282,6 +1587,7 @@ jobs:
           path: |
             audio-windows-hl.wav
             game-windows-hl.log
+            volume-test-windows-hl.wav
           if-no-files-found: warn
 
   # ===========================================================================
@@ -1439,6 +1745,47 @@ jobs:
       - name: Validate game log
         run: ./ci/validate-game-log.sh "$GITHUB_WORKSPACE/game-windows-hl-compat.log"
 
+      - name: Build volume test
+        run: |
+          cd example-project/EZPlatformer
+          haxelib run lime clean hl
+          haxelib run lime build hl -Daudio_test
+
+      - name: Record volume test
+        run: |
+          EXE=$(find "$BIN_DIR" -maxdepth 1 -name "*.exe" | head -1)
+
+          export FMOD_WAVWRITER="$GITHUB_WORKSPACE/volume-test-windows-hl-compat.wav"
+
+          cd "$BIN_DIR"
+          timeout 60 "./$(basename "$EXE")" > "$GITHUB_WORKSPACE/volume-test-windows-hl-compat.log" 2>&1 || true
+          cd -
+
+      - name: Fix volume test WAV header
+        shell: python
+        run: |
+          import struct, os
+          wav = os.path.join(os.environ['GITHUB_WORKSPACE'], 'volume-test-windows-hl-compat.wav')
+          if os.path.exists(wav):
+              with open(wav, 'r+b') as f:
+                  f.seek(22)
+                  num_channels = struct.unpack('<H', f.read(2))[0]
+                  if num_channels == 0:
+                      print(f"Fixing WAV header: 0 channels -> 2 channels (stereo)")
+                      f.seek(22)
+                      f.write(struct.pack('<H', 2))
+                      f.seek(28)
+                      f.write(struct.pack('<I', 192000))
+                      f.write(struct.pack('<H', 4))
+                      print("WAV header fixed")
+                  else:
+                      print(f"WAV header OK ({num_channels} channels)")
+          else:
+              print(f"WAV file not found: {wav}")
+
+      - name: Validate volume/mute
+        run: ./ci/validate-volume.sh "$GITHUB_WORKSPACE/volume-test-windows-hl-compat.wav" 15
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         if: always()
@@ -1447,6 +1794,7 @@ jobs:
           path: |
             audio-windows-hl-compat.wav
             game-windows-hl-compat.log
+            volume-test-windows-hl-compat.wav
           if-no-files-found: warn
 
   # ===========================================================================

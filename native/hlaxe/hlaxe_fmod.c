@@ -229,6 +229,14 @@ HL_PRIM int HL_NAME(get_playback_state)(int h) {
 }
 DEFINE_PRIM(_I32, get_playback_state, _I32);
 
+HL_PRIM int HL_NAME(get_timeline_position)(int h) {
+    if (h < 0 || h >= gInstanceCount || !gInstances[h]) return 0;
+    int position = 0;
+    FMOD_Studio_EventInstance_GetTimelinePosition(gInstances[h], &position);
+    return position;
+}
+DEFINE_PRIM(_I32, get_timeline_position, _I32);
+
 //// Parameters
 
 HL_PRIM double HL_NAME(get_param)(int h, vbyte* name) {
@@ -262,6 +270,46 @@ HL_PRIM void HL_NAME(stop_bus)(vbyte* path) {
         FMOD_Studio_Bus_StopAllEvents(bus, FMOD_STUDIO_STOP_ALLOWFADEOUT);
 }
 DEFINE_PRIM(_VOID, stop_bus, _BYTES);
+
+HL_PRIM void HL_NAME(set_bus_volume)(vbyte* path, double volume) {
+    if (!gStudioSystem) return;
+    FMOD_STUDIO_BUS* bus;
+    if (FMOD_Studio_System_GetBus(gStudioSystem, (const char*)path, &bus) == FMOD_OK)
+        FMOD_Studio_Bus_SetVolume(bus, (float)volume);
+}
+DEFINE_PRIM(_VOID, set_bus_volume, _BYTES _F64);
+
+HL_PRIM double HL_NAME(get_bus_volume)(vbyte* path) {
+    if (!gStudioSystem) return 0.0;
+    FMOD_STUDIO_BUS* bus;
+    if (FMOD_Studio_System_GetBus(gStudioSystem, (const char*)path, &bus) == FMOD_OK) {
+        float volume = 0.0f;
+        FMOD_Studio_Bus_GetVolume(bus, &volume, NULL);
+        return (double)volume;
+    }
+    return 0.0;
+}
+DEFINE_PRIM(_F64, get_bus_volume, _BYTES);
+
+HL_PRIM void HL_NAME(set_bus_mute)(vbyte* path, bool mute) {
+    if (!gStudioSystem) return;
+    FMOD_STUDIO_BUS* bus;
+    if (FMOD_Studio_System_GetBus(gStudioSystem, (const char*)path, &bus) == FMOD_OK)
+        FMOD_Studio_Bus_SetMute(bus, mute);
+}
+DEFINE_PRIM(_VOID, set_bus_mute, _BYTES _BOOL);
+
+HL_PRIM bool HL_NAME(get_bus_mute)(vbyte* path) {
+    if (!gStudioSystem) return false;
+    FMOD_STUDIO_BUS* bus;
+    if (FMOD_Studio_System_GetBus(gStudioSystem, (const char*)path, &bus) == FMOD_OK) {
+        FMOD_BOOL mute = 0;
+        FMOD_Studio_Bus_GetMute(bus, &mute);
+        return mute != 0;
+    }
+    return false;
+}
+DEFINE_PRIM(_BOOL, get_bus_mute, _BYTES);
 
 //// Callbacks
 

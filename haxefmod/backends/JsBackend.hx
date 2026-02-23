@@ -98,6 +98,10 @@ class JsBackend implements IFmodBackend {
         JsFmod.fmod_set_paused(handle, shouldBePaused);
     }
 
+    public function getTimelinePosition(handle:FmodEventHandle):Int {
+        return JsFmod.fmod_get_timeline_position(handle);
+    }
+
     public function stopEventInstance(handle:FmodEventHandle):Void {
         JsFmod.fmod_stop(handle, 0); // Allow fadeout
     }
@@ -128,6 +132,22 @@ class JsBackend implements IFmodBackend {
 
     public function stopAllEventsOnBus(busPath:String):Void {
         JsFmod.fmod_stop_bus(busPath);
+    }
+
+    public function setBusVolume(busPath:String, volume:Float):Void {
+        JsFmod.fmod_set_bus_volume(busPath, volume);
+    }
+
+    public function getBusVolume(busPath:String):Float {
+        return JsFmod.fmod_get_bus_volume(busPath);
+    }
+
+    public function setBusMute(busPath:String, mute:Bool):Void {
+        JsFmod.fmod_set_bus_mute(busPath, mute);
+    }
+
+    public function getBusMute(busPath:String):Bool {
+        return JsFmod.fmod_get_bus_mute(busPath);
     }
 
     //// Callbacks
@@ -165,6 +185,7 @@ private extern class JsFmod {
     public static function fmod_release(handle:Int):Void;
     public static function fmod_set_paused(handle:Int, paused:Bool):Void;
     public static function fmod_get_playback_state(handle:Int):Int;
+    public static function fmod_get_timeline_position(handle:Int):Int;
 
     // Parameters
     public static function fmod_get_param(handle:Int, name:String):Float;
@@ -173,6 +194,10 @@ private extern class JsFmod {
     // Bus
     public static function fmod_set_bus_paused(path:String, paused:Bool):Void;
     public static function fmod_stop_bus(path:String):Void;
+    public static function fmod_set_bus_volume(path:String, volume:Float):Void;
+    public static function fmod_get_bus_volume(path:String):Float;
+    public static function fmod_set_bus_mute(path:String, mute:Bool):Void;
+    public static function fmod_get_bus_mute(path:String):Bool;
 
     // Callbacks
     public static function fmod_enable_callbacks(handle:Int):Void;
