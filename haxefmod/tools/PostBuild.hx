@@ -8,7 +8,7 @@ import haxe.io.Path;
  * Post-build script to copy FMOD shared libraries to lime's output directory.
  * Called automatically by lime via <postbuild> in include.xml.
  *
- * Replaces scripts/postbuild-copy-fmod.sh with pure Haxe — no bash dependency.
+ * Replaces scripts/postbuild-copy-fmod.sh with pure Haxe - no bash dependency.
  */
 class PostBuild {
 	public static function run(platform:String, target:String, libRoot:String, projectDir:String):Void {
@@ -76,7 +76,7 @@ class PostBuild {
 			return;
 		}
 
-		// Version mismatch — check for project-local custom-compiled hdll via marker file
+		// Version mismatch - check for project-local custom-compiled hdll via marker file
 		// (HTML5 doesn't use hdlls, so marker files don't apply)
 		if (sdkEnvName != "FMOD_SDK_WEB") {
 			var markerFile = Path.join([projectDir, ".haxefmod", "hlaxe_fmod.version"]);
@@ -93,7 +93,7 @@ class PostBuild {
 		var expectedVer = hexToVersion(expectedHex);
 		var sdkVer = hexToVersion(sdkHex);
 
-		// HL builds: mismatched hdll/SDK will crash at runtime — hard error
+		// HL builds: mismatched hdll/SDK will crash at runtime - hard error
 		if (target == "hl") {
 			Sys.println("");
 			Sys.println("============================================================");
@@ -182,7 +182,7 @@ class PostBuild {
 		copyFile(Path.join([sdkDir, "api", "core", "lib", "libfmod.dylib"]), Path.join([dest, "libfmod.dylib"]));
 		copyFile(Path.join([sdkDir, "api", "studio", "lib", "libfmodstudio.dylib"]), Path.join([dest, "libfmodstudio.dylib"]));
 
-		// Copy hlaxe_fmod.hdll — prefer project-local .haxefmod/, fall back to pre-built
+		// Copy hlaxe_fmod.hdll - prefer project-local .haxefmod/, fall back to pre-built
 		if (target == "hl") {
 			var projectHdll = Path.join([projectDir, ".haxefmod", "hlaxe_fmod.hdll"]);
 			var prebuiltHdll = Path.join([libRoot, "templates", "bin", "hl", "Mac64", "hlaxe_fmod.hdll"]);
@@ -195,7 +195,7 @@ class PostBuild {
 			}
 		}
 
-		// Set rpath so executable finds dylibs next to it (C++ only — HL exe is bytecode, not Mach-O)
+		// Set rpath so executable finds dylibs next to it (C++ only - HL exe is bytecode, not Mach-O)
 		// Use Process to suppress stderr: rpath may already exist from lime/hxcpp
 		if (target != "hl") {
 			var exe = findExecutable(dest, [".dylib", ".ndll", ".hdll"]);
@@ -227,7 +227,7 @@ class PostBuild {
 		copyGlobSymlinks(Path.join([sdkDir, "api", "core", "lib", "x86_64"]), "libfmod.so", binDir);
 		copyGlobSymlinks(Path.join([sdkDir, "api", "studio", "lib", "x86_64"]), "libfmodstudio.so", binDir);
 
-		// Copy hlaxe_fmod.hdll — prefer project-local .haxefmod/, fall back to pre-built
+		// Copy hlaxe_fmod.hdll - prefer project-local .haxefmod/, fall back to pre-built
 		if (target == "hl") {
 			var projectHdll = Path.join([projectDir, ".haxefmod", "hlaxe_fmod.hdll"]);
 			var prebuiltHdll = Path.join([libRoot, "templates", "bin", "hl", "Linux64", "hlaxe_fmod.hdll"]);
@@ -269,7 +269,7 @@ class PostBuild {
 		copyFile(Path.join([sdkDir, "api", "core", "lib", "x64", "fmod.dll"]), Path.join([binDir, "fmod.dll"]));
 		copyFile(Path.join([sdkDir, "api", "studio", "lib", "x64", "fmodstudio.dll"]), Path.join([binDir, "fmodstudio.dll"]));
 
-		// Copy hlaxe_fmod.hdll — prefer project-local .haxefmod/, fall back to pre-built
+		// Copy hlaxe_fmod.hdll - prefer project-local .haxefmod/, fall back to pre-built
 		if (target == "hl") {
 			var projectHdll = Path.join([projectDir, ".haxefmod", "hlaxe_fmod.hdll"]);
 			var prebuiltHdll = Path.join([libRoot, "templates", "bin", "hl", "Windows64", "hlaxe_fmod.hdll"]);

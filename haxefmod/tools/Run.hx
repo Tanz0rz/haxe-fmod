@@ -306,7 +306,7 @@ class Run {
 			return;
 		}
 
-		// SDK doesn't match pre-built version — check for project-local custom-compiled hdll
+		// SDK doesn't match pre-built version - check for project-local custom-compiled hdll
 		var markerFile = haxe.io.Path.join([projectDir, ".haxefmod", "hlaxe_fmod.version"]);
 		if (FileSystem.exists(markerFile)) {
 			var markerHex = StringTools.trim(File.getContent(markerFile));

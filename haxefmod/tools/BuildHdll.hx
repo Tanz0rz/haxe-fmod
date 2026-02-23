@@ -189,7 +189,7 @@ class BuildHdll {
 			proc.stderr.readAll();
 			var code = proc.exitCode();
 			proc.close();
-			// cl.exe with no args exits non-zero but that's fine — it ran
+			// cl.exe with no args exits non-zero but that's fine - it ran
 			return platform == "windows" || code == 0;
 		} catch (e:Dynamic) {
 			return false;

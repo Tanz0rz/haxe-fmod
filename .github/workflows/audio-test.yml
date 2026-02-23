@@ -354,7 +354,7 @@ jobs:
           if-no-files-found: warn
 
   # ===========================================================================
-  # Linux HashLink Compat Build (FMOD 2.02.33 — version mismatch test)
+  # Linux HashLink Compat Build (FMOD 2.02.33 - version mismatch test)
   # ===========================================================================
   linux-hl-compat:
     runs-on: ubuntu-latest
@@ -577,7 +577,7 @@ jobs:
           fi
           SIZE=$(stat --format=%s "$FMOD_JS")
           if [ "$SIZE" -lt 1000 ]; then
-            echo "FAIL: $FMOD_JS is only $SIZE bytes — still a placeholder"
+            echo "FAIL: $FMOD_JS is only $SIZE bytes - still a placeholder"
             exit 1
           fi
           echo "OK: fmodstudio.js is $SIZE bytes (real SDK file)"
@@ -871,7 +871,7 @@ jobs:
           if-no-files-found: warn
 
   # ===========================================================================
-  # macOS HashLink Compat Build (FMOD 2.02.33 — version mismatch test)
+  # macOS HashLink Compat Build (FMOD 2.02.33 - version mismatch test)
   # ===========================================================================
   mac-hl-compat:
     runs-on: macos-14
@@ -1285,7 +1285,7 @@ jobs:
           if-no-files-found: warn
 
   # ===========================================================================
-  # Windows HashLink Compat Build (FMOD 2.02.33 — version mismatch test)
+  # Windows HashLink Compat Build (FMOD 2.02.33 - version mismatch test)
   # ===========================================================================
   windows-hl-compat:
     runs-on: windows-latest

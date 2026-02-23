@@ -54,7 +54,7 @@ fi
 # writes 0 channels), fall back to raw PCM interpretation (s16le, 48kHz, stereo).
 DURATION=$("$FFPROBE" -i "$WAV_FILE" -show_entries format=duration -v quiet -of csv="p=0" 2>/dev/null)
 if [ -z "$DURATION" ] || [ "$DURATION" = "N/A" ]; then
-  # Malformed WAV header — compute duration from file size assuming 48kHz 16-bit stereo
+  # Malformed WAV header - compute duration from file size assuming 48kHz 16-bit stereo
   # bytes = duration * 48000 * 2 channels * 2 bytes/sample = duration * 192000
   DURATION=$(awk "BEGIN {printf \"%.1f\", ($FILE_SIZE - 44) / 192000.0}")
 fi
@@ -82,7 +82,7 @@ if [ -z "$MEAN_VOLUME" ]; then
   echo "FAIL (could not detect volume)"
   PASS=false
 elif [ "$VOLUME_INT" -lt -60 ]; then
-  echo "FAIL (${MEAN_VOLUME} dB — silent)"
+  echo "FAIL (${MEAN_VOLUME} dB - silent)"
   PASS=false
 else
   echo "OK (${MEAN_VOLUME} dB)"
