@@ -164,6 +164,7 @@ jobs:
       - name: Build volume test
         run: |
           cd example-project/EZPlatformer
+          haxelib run lime clean linux
           haxelib run lime build linux -64 -Daudio_test
 
       - name: Record volume test
@@ -374,6 +375,7 @@ jobs:
       - name: Build volume test
         run: |
           cd example-project/EZPlatformer
+          haxelib run lime clean hl
           haxelib run lime build hl -Daudio_test
 
       - name: Record volume test
@@ -392,6 +394,10 @@ jobs:
           timeout 35 "$EXE" > /tmp/volume-test-linux-hl.log 2>&1 || true
           cd -
 
+          echo "=== Volume test game log ==="
+          cat /tmp/volume-test-linux-hl.log || true
+          echo "=== End volume test game log ==="
+
           wait $RECORD_PID || true
 
       - name: Validate volume/mute
@@ -406,6 +412,7 @@ jobs:
             /tmp/audio-linux-hl.wav
             /tmp/game-linux-hl.log
             /tmp/volume-test-linux-hl.wav
+            /tmp/volume-test-linux-hl.log
           if-no-files-found: warn
 
   # ===========================================================================
@@ -565,6 +572,7 @@ jobs:
       - name: Build volume test
         run: |
           cd example-project/EZPlatformer
+          haxelib run lime clean hl
           haxelib run lime build hl -Daudio_test
 
       - name: Record volume test
@@ -733,6 +741,7 @@ jobs:
           FMOD_SDK_WEB: ${{ env.FMOD_SDK }}
         run: |
           cd example-project/EZPlatformer
+          haxelib run lime clean html5
           haxelib run lime build html5 -Daudio_test
 
       - name: Record volume test
@@ -867,6 +876,7 @@ jobs:
       - name: Build volume test
         run: |
           cd example-project/EZPlatformer
+          haxelib run lime clean mac
           haxelib run lime build mac -64 -Daudio_test
 
       - name: Record volume test
@@ -1013,6 +1023,7 @@ jobs:
       - name: Build volume test
         run: |
           cd example-project/EZPlatformer
+          haxelib run lime clean hl
           haxelib run lime build hl -Daudio_test
 
       - name: Record volume test
@@ -1153,6 +1164,7 @@ jobs:
       - name: Build volume test
         run: |
           cd example-project/EZPlatformer
+          haxelib run lime clean hl
           haxelib run lime build hl -Daudio_test
 
       - name: Record volume test
@@ -1304,6 +1316,7 @@ jobs:
       - name: Build volume test
         run: |
           cd example-project/EZPlatformer
+          haxelib run lime clean windows
           haxelib run lime build windows -64 -Daudio_test
 
       - name: Record volume test
@@ -1516,6 +1529,7 @@ jobs:
       - name: Build volume test
         run: |
           cd example-project/EZPlatformer
+          haxelib run lime clean hl
           haxelib run lime build hl -Daudio_test
 
       - name: Record volume test
@@ -1722,6 +1736,7 @@ jobs:
       - name: Build volume test
         run: |
           cd example-project/EZPlatformer
+          haxelib run lime clean hl
           haxelib run lime build hl -Daudio_test
 
       - name: Record volume test
