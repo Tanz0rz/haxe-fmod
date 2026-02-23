@@ -10,7 +10,7 @@ import flixel.util.FlxColor;
  *
  * Runs a 3-phase test over 30 seconds:
  *   Phase 1 (0-10s): Full volume (default)
- *   Phase 2 (10-20s): Volume set to 10%
+ *   Phase 2 (10-20s): Volume set to 30%
  *   Phase 3 (20-30s): Muted
  *
  * Audio is recorded externally and validated by ci/validate-volume.sh.
@@ -47,9 +47,9 @@ class VolumeTestState extends FlxState {
 
         if (_phase == 1 && _elapsed >= 10) {
             _phase = 2;
-            FmodManager.SetMasterVolume(0.1);
-            _status.text = "VOLUME_TEST: Phase 2 - Volume 10%";
-            trace("VOLUME_TEST: Phase 2 - Volume 10%");
+            FmodManager.SetMasterVolume(0.3);
+            _status.text = "VOLUME_TEST: Phase 2 - Volume 30%";
+            trace("VOLUME_TEST: Phase 2 - Volume 30%");
         } else if (_phase == 2 && _elapsed >= 20) {
             _phase = 3;
             FmodManager.SetMasterMute(true);

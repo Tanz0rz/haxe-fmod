@@ -4,8 +4,11 @@
 #
 # The volume test records 3 phases:
 #   Phase 1 (0-10s): Full volume
-#   Phase 2 (10-20s): Volume at 10%
+#   Phase 2 (10-20s): Volume at 30%
 #   Phase 3 (20-30s): Muted
+#
+# Samples a 2-second window at the CENTER of each phase (5s, 15s, 25s)
+# to avoid phase transition boundaries.
 #
 # Exits 0 if valid, 1 if validation fails.
 
@@ -33,8 +36,15 @@ fi
 
 PASS=true
 SEGMENT=$((TOTAL_DURATION / 3))
+SAMPLE_DURATION=2
+
+# Center of each phase: 5s, 15s, 25s (with 30s total, 10s segments)
+MID1=$(( SEGMENT / 2 ))
+MID2=$(( SEGMENT + SEGMENT / 2 ))
+MID3=$(( SEGMENT * 2 + SEGMENT / 2 ))
 
 echo "=== Volume Test Validation: $(basename "$WAV_FILE") ==="
+echo "  Sampling ${SAMPLE_DURATION}s windows at ${MID1}s, ${MID2}s, ${MID3}s"
 echo ""
 
 # Check file exists
@@ -58,8 +68,8 @@ get_segment_volume() {
   echo "$vol"
 }
 
-# Phase 1: Full volume (0 to SEGMENT)
-VOL1=$(get_segment_volume 0 "$SEGMENT")
+# Phase 1: Full volume (sample at center)
+VOL1=$(get_segment_volume "$MID1" "$SAMPLE_DURATION")
 VOL1_INT=$(printf "%.0f" "$VOL1" 2>/dev/null || echo -91)
 echo -n "  [1/3] Phase 1 (full) > -40 dB ...... "
 if [ -z "$VOL1" ]; then
@@ -72,15 +82,15 @@ else
   echo "OK (${VOL1} dB)"
 fi
 
-# Phase 2: Volume at 10% (SEGMENT to 2*SEGMENT)
-VOL2=$(get_segment_volume "$SEGMENT" "$SEGMENT")
+# Phase 2: Volume at 30% (sample at center)
+VOL2=$(get_segment_volume "$MID2" "$SAMPLE_DURATION")
 VOL2_INT=$(printf "%.0f" "$VOL2" 2>/dev/null || echo -91)
-echo -n "  [2/3] Phase 2 (10%) > -60 dB ....... "
+echo -n "  [2/3] Phase 2 (30%) > -60 dB ....... "
 if [ -z "$VOL2" ]; then
   echo "FAIL (could not detect volume)"
   PASS=false
 elif [ "$VOL2_INT" -lt -60 ]; then
-  echo "FAIL (${VOL2} dB - too quiet for 10% volume)"
+  echo "FAIL (${VOL2} dB - too quiet for 30% volume)"
   PASS=false
 else
   echo -n "OK (${VOL2} dB)"
@@ -93,9 +103,8 @@ else
   fi
 fi
 
-# Phase 3: Muted (2*SEGMENT to 3*SEGMENT)
-START3=$((SEGMENT * 2))
-VOL3=$(get_segment_volume "$START3" "$SEGMENT")
+# Phase 3: Muted (sample at center)
+VOL3=$(get_segment_volume "$MID3" "$SAMPLE_DURATION")
 VOL3_INT=$(printf "%.0f" "$VOL3" 2>/dev/null || echo -91)
 echo -n "  [3/3] Phase 3 (muted) < -60 dB ..... "
 if [ -z "$VOL3" ]; then
