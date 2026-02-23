@@ -77,7 +77,7 @@ export FMOD_SDK_WEB="$HOME/fmod/fmodstudioapi20312html5" # (use $HOME, not ~)
 # FMOD_SDK_WEB=C:\path\to\fmodstudioapi20312html5
 ```
 
-This allows you to have both your native SDK and HTML5 SDK configured simultaneously.
+This allows you to have both your C++/HashLink SDK and HTML5 SDK configured simultaneously.
 
 **4. Check your setup:**
 
