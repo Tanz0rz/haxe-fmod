@@ -120,7 +120,7 @@ class FmodManager {
         Volume is linear: 0.0 = silent, 1.0 = full (default). Values > 1.0 amplify.
         @param volume linear volume level
     **/
-    public static function SetMasterVolume(volume:Float) {
+    public static function SetBusVolumeMaster(volume:Float) {
         FmodManagerPrivate.GetInstance().SetBusVolume("bus:/", volume);
     }
 
@@ -128,7 +128,7 @@ class FmodManager {
         Gets the master bus volume (user-set value, not the final mixed value).
         @return linear volume level
     **/
-    public static function GetMasterVolume():Float {
+    public static function GetBusVolumeMaster():Float {
         return FmodManagerPrivate.GetInstance().GetBusVolume("bus:/");
     }
 
@@ -136,7 +136,7 @@ class FmodManager {
         Sets the master bus mute state.
         @param mute true to mute, false to unmute
     **/
-    public static function SetMasterMute(mute:Bool) {
+    public static function SetBusMuteMaster(mute:Bool) {
         FmodManagerPrivate.GetInstance().SetBusMute("bus:/", mute);
     }
 
@@ -144,8 +144,46 @@ class FmodManager {
         Gets the master bus mute state.
         @return true if muted
     **/
-    public static function GetMasterMute():Bool {
+    public static function GetBusMuteMaster():Bool {
         return FmodManagerPrivate.GetInstance().GetBusMute("bus:/");
+    }
+
+    //// Master Bus (deprecated)
+
+    /**
+        Deprecated: Use SetBusVolumeMaster() instead. Will be removed in 2.0.0.
+        @param volume linear volume level
+    **/
+    @:deprecated("Use SetBusVolumeMaster() instead. Will be removed in 2.0.0.")
+    public static function SetMasterVolume(volume:Float) {
+        SetBusVolumeMaster(volume);
+    }
+
+    /**
+        Deprecated: Use GetBusVolumeMaster() instead. Will be removed in 2.0.0.
+        @return linear volume level
+    **/
+    @:deprecated("Use GetBusVolumeMaster() instead. Will be removed in 2.0.0.")
+    public static function GetMasterVolume():Float {
+        return GetBusVolumeMaster();
+    }
+
+    /**
+        Deprecated: Use SetBusMuteMaster() instead. Will be removed in 2.0.0.
+        @param mute true to mute, false to unmute
+    **/
+    @:deprecated("Use SetBusMuteMaster() instead. Will be removed in 2.0.0.")
+    public static function SetMasterMute(mute:Bool) {
+        SetBusMuteMaster(mute);
+    }
+
+    /**
+        Deprecated: Use GetBusMuteMaster() instead. Will be removed in 2.0.0.
+        @return true if muted
+    **/
+    @:deprecated("Use GetBusMuteMaster() instead. Will be removed in 2.0.0.")
+    public static function GetMasterMute():Bool {
+        return GetBusMuteMaster();
     }
 
     /**

@@ -52,12 +52,12 @@ class VolumeTestState extends FlxState {
 
         if (_phase == 1 && posSec >= 5) {
             _phase = 2;
-            FmodManager.SetMasterVolume(0.3);
+            FmodManager.SetBusVolumeMaster(0.3);
             _status.text = "VOLUME_TEST: Phase 2 - Volume 30%";
             trace("VOLUME_TEST: Phase 2 - Volume 30%");
         } else if (_phase == 2 && posSec >= 10) {
             _phase = 3;
-            FmodManager.SetMasterMute(true);
+            FmodManager.SetBusMuteMaster(true);
             _status.text = "VOLUME_TEST: Phase 3 - Muted";
             trace("VOLUME_TEST: Phase 3 - Muted");
         } else if (_phase == 3 && posSec >= 15) {
