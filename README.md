@@ -6,6 +6,7 @@ Having problems? Join the [Haxe Discord](https://discord.com/channels/1623951453
 
  - [Features](#features)
  - [Supported Platforms](#supported-platforms)
+ - [Prerequisites](#prerequisites)
  - [How to Use This Library](#how-to-use-this-library)
  - [Selecting an FMOD Engine Version](#selecting-an-fmod-engine-version)
  - [HTML5 Builds](#html5-builds)
@@ -30,6 +31,16 @@ Having problems? Join the [Haxe Discord](https://discord.com/channels/1623951453
 | Windows | x86_64 | C++, HashLink |
 | Linux | x86_64 | C++, HashLink |
 | macOS | ARM64 (Apple Silicon) | C++, HashLink |
+
+## <a name="prerequisites"></a>Prerequisites
+
+**FMOD Engine SDK** - Download version 2.03.12 from [fmod.com/download](https://www.fmod.com/download). See [How to Use This Library](#how-to-use-this-library) for setup instructions.
+
+**C++ compiler** (C++ builds only) - `lime build mac`, `lime build windows`, and `lime build linux` require a C++ compiler. HashLink and HTML5 builds do not.
+
+- **macOS**: Xcode Command Line Tools - install with `xcode-select --install`
+- **Windows**: Build Tools for Visual Studio 2022 with the "Desktop development with C++" workload selected during installation. [Direct download](https://aka.ms/vs/17/release.ltsc.17.4/vs_buildtools.exe), or find the Fall 2022 LTSC build tools link [here](https://learn.microsoft.com/en-us/visualstudio/releases/2022/release-history#release-dates-and-build-numbers).
+- **Linux**: `gcc` and `g++` (install via your package manager, e.g. `sudo apt install build-essential`)
 
 ## <a name="how-to-use-this-library"></a>How to Use This Library
 

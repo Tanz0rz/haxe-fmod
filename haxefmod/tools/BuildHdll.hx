@@ -252,7 +252,7 @@ class BuildHdll {
 				var studioLib = Path.join([fmodSdk, "api", "studio", "lib", "x86_64"]);
 				[
 					"-shared", "-fPIC",
-					"-Wl,-rpath,$$ORIGIN",
+					"-Wl,-rpath,$ORIGIN",
 					"-o", output,
 					source,
 					'-I$hlInclude',
