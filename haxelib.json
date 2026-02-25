@@ -4,8 +4,8 @@
 	"license" : "MIT",
 	"tags": ["fmod", "audio", "windows", "linux", "mac", "hashlink", "html5", "web", "openfl", "lime"],
 	"description" : "Use FMOD Studio with Haxe on HTML5, HashLink, Windows, Linux, and macOS",
-	"version" : "1.1.1-beta",
-	"releasenote" : "Updating the master bus volume/mute convenience methods to be more inline with the base bus control functions",
+	"version" : "1.1.2-beta",
+	"releasenote" : "Fixes HashLink build error on Linux",
 	"contributors" : ["Tanz0rz"],
 	"dependencies" : { },
 	"main" : "haxefmod.tools.Run"
