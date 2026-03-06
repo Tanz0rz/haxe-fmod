@@ -1,6 +1,6 @@
 # FMOD for Haxe on HTML5, HashLink, Windows, Linux, and macOS
 
-Having problems? Join the [Haxe Discord](https://discord.com/channels/162395145352904705/1472372604433076446/1472372604433076446) and ask for help!
+Having problems or want to chat? Join the [Haxe Discord](https://discord.com/channels/162395145352904705/1472372604433076446/1472372604433076446)!
 
 ## Table of Contents
 
@@ -8,8 +8,8 @@ Having problems? Join the [Haxe Discord](https://discord.com/channels/1623951453
  - [Supported Platforms](#supported-platforms)
  - [Prerequisites](#prerequisites)
  - [How to Use This Library](#how-to-use-this-library)
- - [Selecting an FMOD Engine Version](#selecting-an-fmod-engine-version)
  - [HTML5 Builds](#html5-builds)
+ - [Selecting an FMOD Engine Version](#selecting-an-fmod-engine-version)
  - [FMOD Studio Project Configuration](#fmod-studio-project-configuration)
  - [License](#license)
  - [Special Thanks](#special-thanks)
@@ -134,6 +134,10 @@ lime test linux
 lime test mac
 ```
 
+## <a name="html5-builds"></a>HTML5 Builds
+
+For HTML5 builds to work, a dedicated scene must be run before the game starts to give the FMOD Engine a chance to fully load. See the [example project](https://github.com/Tanz0rz/haxe-fmod-test) for a demonstration of how to handle this. The `Main.hx` file loads the startup scene, the startup scene initializes FMOD and waits for it to report back as initialized, then the game is started.
+
 ## <a name="selecting-an-fmod-engine-version"></a>Selecting an FMOD Engine Version
 
 The officially supported FMOD Engine version is 2.03.12. Other versions **may work fine**, but I have not tested them.
@@ -167,10 +171,6 @@ At build time, `lime test hl` uses a tiered fallback to find the right hdll:
 The build log will tell you which one was used.
 
 C++ and HTML5 targets do not rely on the hdll and will work with any FMOD version (although they will warn if you use anything other than 2.03.12).
-
-## <a name="html5-builds"></a>HTML5 Builds
-
-For HTML5 builds to work, a dedicated scene must be run before the game starts to give the FMOD Engine a chance to fully load. See the [example project](https://github.com/Tanz0rz/haxe-fmod-test) for a demonstration of how to handle this. The `Main.hx` file loads the startup scene, the startup scene initializes FMOD and waits for it to report back as initialized, then the game is started.
 
 ## <a name="fmod-studio-project-configuration"></a>FMOD Studio Project Configuration
 
