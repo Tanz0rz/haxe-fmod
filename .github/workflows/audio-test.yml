@@ -203,6 +203,35 @@ jobs:
       - name: Validate volume/mute
         run: ./ci/validate-volume.sh /tmp/volume-test-linux-cpp.wav 15
 
+      - name: Run API probe
+        run: |
+          export DISPLAY=:99
+
+          BIN_DIR="example-project/EZPlatformer/export/linux64/bin"
+          if [ ! -d "$BIN_DIR" ]; then
+            BIN_DIR="example-project/EZPlatformer/export/linux/bin"
+          fi
+
+          export HAXEFMOD_TEST_STATE=api-probe
+          cd "$BIN_DIR"
+          ./run.sh > /tmp/api-probe-linux-cpp.log 2>&1 &
+          GAME_PID=$!
+          cd -
+          for i in $(seq 30); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill $GAME_PID 2>/dev/null || true
+          wait $GAME_PID 2>/dev/null || true
+
+          grep "API_PROBE:" /tmp/api-probe-linux-cpp.log
+          grep -q "API_PROBE: COMPLETE" /tmp/api-probe-linux-cpp.log
+          if grep -q "pass=false" /tmp/api-probe-linux-cpp.log; then
+            echo "FAIL: API probe reported failing checks"
+            exit 1
+          fi
+          echo "API probe passed"
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         if: always()
@@ -212,6 +241,7 @@ jobs:
             /tmp/audio-linux-cpp.wav
             /tmp/game-linux-cpp.log
             /tmp/volume-test-linux-cpp.wav
+            /tmp/api-probe-linux-cpp.log
           if-no-files-found: warn
 
   # ===========================================================================
@@ -424,6 +454,34 @@ jobs:
       - name: Validate volume/mute
         run: ./ci/validate-volume.sh /tmp/volume-test-linux-hl.wav 15
 
+      - name: Run API probe
+        run: |
+          export DISPLAY=:99
+
+          BIN_DIR="example-project/EZPlatformer/export/hl/bin"
+
+          export HAXEFMOD_TEST_STATE=api-probe
+          cd "$BIN_DIR"
+          export LD_LIBRARY_PATH="$(pwd):$LD_LIBRARY_PATH"
+          EXE=$(find . -maxdepth 1 -type f -executable ! -name "*.so*" ! -name "*.hdll" ! -name "run.sh" -print -quit)
+          "$EXE" > /tmp/api-probe-linux-hl.log 2>&1 &
+          GAME_PID=$!
+          cd -
+          for i in $(seq 30); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill $GAME_PID 2>/dev/null || true
+          wait $GAME_PID 2>/dev/null || true
+
+          grep "API_PROBE:" /tmp/api-probe-linux-hl.log
+          grep -q "API_PROBE: COMPLETE" /tmp/api-probe-linux-hl.log
+          if grep -q "pass=false" /tmp/api-probe-linux-hl.log; then
+            echo "FAIL: API probe reported failing checks"
+            exit 1
+          fi
+          echo "API probe passed"
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         if: always()
@@ -433,6 +491,7 @@ jobs:
             /tmp/audio-linux-hl.wav
             /tmp/game-linux-hl.log
             /tmp/volume-test-linux-hl.wav
+            /tmp/api-probe-linux-hl.log
             /tmp/volume-test-linux-hl.log
           if-no-files-found: warn
 
@@ -807,6 +866,42 @@ jobs:
       - name: Validate volume/mute
         run: ./ci/validate-volume.sh /tmp/volume-test-html5.wav 15
 
+      - name: Run API probe (JS binding coverage)
+        run: |
+          export DISPLAY=:99
+
+          cd example-project/EZPlatformer/export/html5/bin
+          python3 -m http.server 8082 &
+          HTTP_PID=$!
+          sleep 1
+
+          # --enable-logging=stderr routes console.log to stderr so the
+          # probe results can be captured from the browser
+          chromium-browser \
+            --no-sandbox \
+            --disable-gpu \
+            --autoplay-policy=no-user-gesture-required \
+            --enable-logging=stderr --v=0 \
+            --window-size=640,480 \
+            --window-position=0,0 \
+            "http://localhost:8082/index.html?test=api-probe" > /tmp/api-probe-raw.log 2>&1 &
+          CHROME_PID=$!
+          sleep 3
+
+          xdotool mousemove 320 240 click 1
+          sleep 12
+
+          kill $CHROME_PID || true
+          kill $HTTP_PID || true
+
+          grep -o "API_PROBE:.*" /tmp/api-probe-raw.log | sed 's/",.*$//' | tee /tmp/api-probe-html5.log
+          grep -q "API_PROBE: COMPLETE" /tmp/api-probe-html5.log
+          if grep -q "pass=false" /tmp/api-probe-html5.log; then
+            echo "FAIL: API probe reported failing checks"
+            exit 1
+          fi
+          echo "API probe passed"
+
       - name: Upload audio artifact
         uses: actions/upload-artifact@v4
         if: always()
@@ -815,6 +910,7 @@ jobs:
           path: |
             /tmp/audio-html5.wav
             /tmp/volume-test-html5.wav
+            /tmp/api-probe-html5.log
           if-no-files-found: warn
 
   # ===========================================================================

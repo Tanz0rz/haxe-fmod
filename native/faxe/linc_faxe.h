@@ -50,6 +50,25 @@ extern bool fmod_get_bus_mute(const ::String& path);
 extern void fmod_enable_callbacks(int handle);
 extern bool fmod_poll_callbacks(int handle, unsigned int mask);
 
+//// Studio System (2.0 bindings)
+extern int fmod_sys_last_result();
+extern int fmod_sys_get_bus(const ::String& path);
+
+//// Bus (2.0 bindings)
+extern bool fmod_bus_is_valid(int handle);
+extern const char* fmod_bus_get_id(int handle);
+extern const char* fmod_bus_get_path(int handle);
+extern double fmod_bus_get_volume(int handle);
+extern double fmod_bus_get_final_volume(int handle);
+extern int fmod_bus_set_volume(int handle, double volume);
+extern bool fmod_bus_get_paused(int handle);
+extern int fmod_bus_set_paused(int handle, bool paused);
+extern bool fmod_bus_get_mute(int handle);
+extern int fmod_bus_set_mute(int handle, bool mute);
+extern int fmod_bus_stop_all_events(int handle, int stopMode);
+extern int fmod_bus_get_cpu_usage(int handle, ::Array<int> out);
+extern int fmod_bus_get_memory_usage(int handle, ::Array<int> out);
+
 //// Debug
 extern int fmod_debug_live_handle_count();
 

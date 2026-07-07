@@ -289,6 +289,159 @@ class jaxe {
         return jaxe.FMOD.OK;
     }
 
+    //// Studio System (2.0 bindings)
+
+    static TYPE_BUS = 4;
+    static lastResult = 0;
+    static ERR_INVALID_HANDLE = 30;
+    static ERR_UNSUPPORTED = 68;
+    static ERR_STUDIO_UNINITIALIZED = 75;
+
+    static fmod_sys_last_result() {
+        return jaxe.lastResult;
+    }
+
+    static fmod_sys_get_bus(path) {
+        if (!jaxe.FmodIsInitialized) {
+            jaxe.lastResult = jaxe.ERR_STUDIO_UNINITIALIZED;
+            return 0;
+        }
+        var bus = {};
+        jaxe.lastResult = jaxe.gSystem.getBus(path, bus);
+        if (jaxe.lastResult != jaxe.FMOD.OK || !bus.val) return 0;
+        return jaxe.handleAlloc(bus.val, jaxe.TYPE_BUS);
+    }
+
+    //// Bus (2.0 bindings)
+
+    static formatGuid(id) {
+        // FMOD JS GUID objects have Data1..Data3 ints and Data4 as an 8-byte array
+        if (typeof id === "string") return id;
+        function hex(value, width) {
+            var text = (value >>> 0).toString(16);
+            while (text.length < width) text = "0" + text;
+            return text.slice(-width);
+        }
+        var d4 = id.Data4;
+        return "{" + hex(id.Data1, 8) + "-" + hex(id.Data2, 4) + "-" + hex(id.Data3, 4) + "-"
+            + hex(d4[0], 2) + hex(d4[1], 2) + "-"
+            + hex(d4[2], 2) + hex(d4[3], 2) + hex(d4[4], 2) + hex(d4[5], 2) + hex(d4[6], 2) + hex(d4[7], 2) + "}";
+    }
+
+    static fmod_bus_is_valid(handle) {
+        var bus = jaxe.handleResolve(handle, jaxe.TYPE_BUS);
+        return bus != null && (!bus.isValid || bus.isValid());
+    }
+
+    static fmod_bus_get_id(handle) {
+        var bus = jaxe.handleResolve(handle, jaxe.TYPE_BUS);
+        if (!bus) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return ""; }
+        if (!bus.getID) { jaxe.lastResult = jaxe.ERR_UNSUPPORTED; return ""; }
+        var outval = {};
+        jaxe.lastResult = bus.getID(outval);
+        if (jaxe.lastResult != jaxe.FMOD.OK) return "";
+        return jaxe.formatGuid(outval.val);
+    }
+
+    static fmod_bus_get_path(handle) {
+        var bus = jaxe.handleResolve(handle, jaxe.TYPE_BUS);
+        if (!bus) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return ""; }
+        var outval = {};
+        jaxe.lastResult = bus.getPath(outval, 512, null);
+        if (jaxe.lastResult != jaxe.FMOD.OK) return "";
+        return outval.val;
+    }
+
+    static fmod_bus_get_volume(handle) {
+        var bus = jaxe.handleResolve(handle, jaxe.TYPE_BUS);
+        if (!bus) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0.0; }
+        var outval = {};
+        jaxe.lastResult = bus.getVolume(outval);
+        return outval.val || 0.0;
+    }
+
+    static fmod_bus_get_final_volume(handle) {
+        var bus = jaxe.handleResolve(handle, jaxe.TYPE_BUS);
+        if (!bus) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0.0; }
+        var volume = {};
+        var finalVolume = {};
+        jaxe.lastResult = bus.getVolume(volume, finalVolume);
+        return finalVolume.val || 0.0;
+    }
+
+    static fmod_bus_set_volume(handle, volume) {
+        var bus = jaxe.handleResolve(handle, jaxe.TYPE_BUS);
+        if (!bus) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = bus.setVolume(volume);
+        return jaxe.lastResult;
+    }
+
+    static fmod_bus_get_paused(handle) {
+        var bus = jaxe.handleResolve(handle, jaxe.TYPE_BUS);
+        if (!bus) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return false; }
+        var outval = {};
+        jaxe.lastResult = bus.getPaused(outval);
+        return !!outval.val;
+    }
+
+    static fmod_bus_set_paused(handle, paused) {
+        var bus = jaxe.handleResolve(handle, jaxe.TYPE_BUS);
+        if (!bus) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = bus.setPaused(paused);
+        return jaxe.lastResult;
+    }
+
+    static fmod_bus_get_mute(handle) {
+        var bus = jaxe.handleResolve(handle, jaxe.TYPE_BUS);
+        if (!bus) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return false; }
+        var outval = {};
+        jaxe.lastResult = bus.getMute(outval);
+        return !!outval.val;
+    }
+
+    static fmod_bus_set_mute(handle, mute) {
+        var bus = jaxe.handleResolve(handle, jaxe.TYPE_BUS);
+        if (!bus) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = bus.setMute(mute);
+        return jaxe.lastResult;
+    }
+
+    static fmod_bus_stop_all_events(handle, stopMode) {
+        var bus = jaxe.handleResolve(handle, jaxe.TYPE_BUS);
+        if (!bus) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = bus.stopAllEvents(
+            stopMode == 1 ? jaxe.FMOD.STUDIO_STOP_IMMEDIATE : jaxe.FMOD.STUDIO_STOP_ALLOWFADEOUT);
+        return jaxe.lastResult;
+    }
+
+    // out = int[2]: exclusive, inclusive (microseconds)
+    static fmod_bus_get_cpu_usage(handle, out) {
+        var bus = jaxe.handleResolve(handle, jaxe.TYPE_BUS);
+        if (!bus) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        if (!bus.getCPUUsage) { jaxe.lastResult = jaxe.ERR_UNSUPPORTED; return jaxe.lastResult; }
+        var exclusive = {};
+        var inclusive = {};
+        jaxe.lastResult = bus.getCPUUsage(exclusive, inclusive);
+        out[0] = exclusive.val | 0;
+        out[1] = inclusive.val | 0;
+        return jaxe.lastResult;
+    }
+
+    // out = int[3]: exclusive, inclusive, sampledata (bytes)
+    static fmod_bus_get_memory_usage(handle, out) {
+        var bus = jaxe.handleResolve(handle, jaxe.TYPE_BUS);
+        if (!bus) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        if (!bus.getMemoryUsage) { jaxe.lastResult = jaxe.ERR_UNSUPPORTED; return jaxe.lastResult; }
+        var outval = {};
+        jaxe.lastResult = bus.getMemoryUsage(outval);
+        if (jaxe.lastResult == jaxe.FMOD.OK && outval.val) {
+            out[0] = outval.val.exclusive | 0;
+            out[1] = outval.val.inclusive | 0;
+            out[2] = outval.val.sampledata | 0;
+        }
+        return jaxe.lastResult;
+    }
+
     //// Debug
 
     static fmod_debug_live_handle_count() {

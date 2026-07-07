@@ -4,9 +4,15 @@ import flixel.FlxG;
 import flixel.FlxState;
 import flixel.text.FlxText;
 import flixel.util.FlxColor;
+import haxefmod.studio.Bus;
+import haxefmod.studio.StudioSystem;
 
 /**
  * CI test state for validating bus volume and mute controls.
+ *
+ * Drives the master bus through the haxefmod.studio bindings (Bus handle
+ * API) so the recorded audio proves the bindings work end to end on every
+ * platform.
  *
  * Runs a 3-phase test over 15 seconds of audio time:
  *   Phase 1 (0-5s): Full volume (default)
@@ -23,12 +29,16 @@ class VolumeTestState extends FlxState {
     var _phase:Int = 0;
     var _status:FlxText;
     var _complete:Bool = false;
+    var _master:Bus;
 
     override public function create():Void {
         super.create();
 
         FmodManager.EnableDebugMessages();
         FmodManager.PlaySong(FmodSongs.MainLevel);
+
+        _master = StudioSystem.getBus("bus:/");
+        trace('VOLUME_TEST: master bus valid=${_master.isValid()} path=${_master.getPath()}');
 
         _status = new FlxText(0, 0, FlxG.width, "VOLUME_TEST: Starting");
         _status.setFormat(null, 16, FlxColor.WHITE, FlxTextAlign.CENTER, NONE, FlxColor.BLACK);
@@ -52,12 +62,14 @@ class VolumeTestState extends FlxState {
 
         if (_phase == 1 && posSec >= 5) {
             _phase = 2;
-            FmodManager.SetBusVolumeMaster(0.3);
+            _master.setVolume(0.3);
+            trace('VOLUME_TEST: getVolume=${_master.getVolume()}');
             _status.text = "VOLUME_TEST: Phase 2 - Volume 30%";
             trace("VOLUME_TEST: Phase 2 - Volume 30%");
         } else if (_phase == 2 && posSec >= 10) {
             _phase = 3;
-            FmodManager.SetBusMuteMaster(true);
+            _master.setMute(true);
+            trace('VOLUME_TEST: getMute=${_master.getMute()}');
             _status.text = "VOLUME_TEST: Phase 3 - Muted";
             trace("VOLUME_TEST: Phase 3 - Muted");
         } else if (_phase == 3 && posSec >= 15) {

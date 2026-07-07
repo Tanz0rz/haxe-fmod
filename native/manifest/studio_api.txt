@@ -52,5 +52,24 @@ get_bus_mute str -> bool
 enable_callbacks i32 -> void
 poll_callbacks i32 i32 -> bool
 
+## Studio System (2.0 bindings)
+sys_last_result -> i32
+sys_get_bus str -> i32
+
+## Bus (2.0 bindings)
+bus_is_valid i32 -> bool
+bus_get_id i32 -> str
+bus_get_path i32 -> str
+bus_get_volume i32 -> f64
+bus_get_final_volume i32 -> f64
+bus_set_volume i32 f64 -> i32
+bus_get_paused i32 -> bool
+bus_set_paused i32 bool -> i32
+bus_get_mute i32 -> bool
+bus_set_mute i32 bool -> i32
+bus_stop_all_events i32 i32 -> i32
+bus_get_cpu_usage i32 ibuf -> i32
+bus_get_memory_usage i32 ibuf -> i32
+
 ## Debug
 debug_live_handle_count -> i32

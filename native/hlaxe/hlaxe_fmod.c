@@ -13,6 +13,7 @@
 #include <fmod.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdio.h>
 #include "../shared/faxe_handles.h"
 
 // F_CALLBACK was removed in newer FMOD SDKs
@@ -358,6 +359,167 @@ HL_PRIM bool HL_NAME(poll_callbacks)(int h, int mask) {
     return fired;
 }
 DEFINE_PRIM(_BOOL, poll_callbacks, _I32 _I32);
+
+//// Studio System (2.0 bindings)
+
+// Result of the most recent studio binding call made from the Haxe thread.
+static FMOD_RESULT gLastResult = FMOD_OK;
+// Static buffer for string out-params. Contents are only valid until the
+// next binding call; the Haxe wrappers copy immediately.
+static char gStringBuf[512];
+
+HL_PRIM int HL_NAME(sys_last_result)() {
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, sys_last_result, _NO_ARG);
+
+HL_PRIM int HL_NAME(sys_get_bus)(vbyte* path) {
+    FMOD_STUDIO_BUS* bus = NULL;
+    if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    gLastResult = FMOD_Studio_System_GetBus(gStudioSystem, (const char*)path, &bus);
+    if (gLastResult != FMOD_OK || !bus) return 0;
+    return faxe_handle_alloc(bus, FAXE_TYPE_BUS);
+}
+DEFINE_PRIM(_I32, sys_get_bus, _BYTES);
+
+//// Bus (2.0 bindings)
+
+static FMOD_STUDIO_BUS* resolve_bus(int h) {
+    return (FMOD_STUDIO_BUS*)faxe_handle_resolve(h, FAXE_TYPE_BUS);
+}
+
+HL_PRIM bool HL_NAME(bus_is_valid)(int h) {
+    FMOD_STUDIO_BUS* bus = resolve_bus(h);
+    return bus != NULL && FMOD_Studio_Bus_IsValid(bus);
+}
+DEFINE_PRIM(_BOOL, bus_is_valid, _I32);
+
+HL_PRIM vbyte* HL_NAME(bus_get_id)(int h) {
+    FMOD_STUDIO_BUS* bus = resolve_bus(h);
+    FMOD_GUID id;
+    gStringBuf[0] = '\0';
+    if (!bus) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (vbyte*)gStringBuf; }
+    gLastResult = FMOD_Studio_Bus_GetID(bus, &id);
+    if (gLastResult == FMOD_OK) {
+        snprintf(gStringBuf, sizeof(gStringBuf),
+            "{%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x}",
+            id.Data1, id.Data2, id.Data3,
+            id.Data4[0], id.Data4[1], id.Data4[2], id.Data4[3],
+            id.Data4[4], id.Data4[5], id.Data4[6], id.Data4[7]);
+    }
+    return (vbyte*)gStringBuf;
+}
+DEFINE_PRIM(_BYTES, bus_get_id, _I32);
+
+HL_PRIM vbyte* HL_NAME(bus_get_path)(int h) {
+    FMOD_STUDIO_BUS* bus = resolve_bus(h);
+    int retrieved = 0;
+    gStringBuf[0] = '\0';
+    if (!bus) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (vbyte*)gStringBuf; }
+    gLastResult = FMOD_Studio_Bus_GetPath(bus, gStringBuf, sizeof(gStringBuf), &retrieved);
+    if (gLastResult != FMOD_OK) gStringBuf[0] = '\0';
+    return (vbyte*)gStringBuf;
+}
+DEFINE_PRIM(_BYTES, bus_get_path, _I32);
+
+HL_PRIM double HL_NAME(bus_get_volume)(int h) {
+    FMOD_STUDIO_BUS* bus = resolve_bus(h);
+    float volume = 0.0f;
+    if (!bus) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0.0; }
+    gLastResult = FMOD_Studio_Bus_GetVolume(bus, &volume, NULL);
+    return (double)volume;
+}
+DEFINE_PRIM(_F64, bus_get_volume, _I32);
+
+HL_PRIM double HL_NAME(bus_get_final_volume)(int h) {
+    FMOD_STUDIO_BUS* bus = resolve_bus(h);
+    float volume = 0.0f;
+    float finalVolume = 0.0f;
+    if (!bus) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0.0; }
+    gLastResult = FMOD_Studio_Bus_GetVolume(bus, &volume, &finalVolume);
+    return (double)finalVolume;
+}
+DEFINE_PRIM(_F64, bus_get_final_volume, _I32);
+
+HL_PRIM int HL_NAME(bus_set_volume)(int h, double volume) {
+    FMOD_STUDIO_BUS* bus = resolve_bus(h);
+    if (!bus) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_Studio_Bus_SetVolume(bus, (float)volume);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, bus_set_volume, _I32 _F64);
+
+HL_PRIM bool HL_NAME(bus_get_paused)(int h) {
+    FMOD_STUDIO_BUS* bus = resolve_bus(h);
+    FMOD_BOOL paused = 0;
+    if (!bus) { gLastResult = FMOD_ERR_INVALID_HANDLE; return false; }
+    gLastResult = FMOD_Studio_Bus_GetPaused(bus, &paused);
+    return paused != 0;
+}
+DEFINE_PRIM(_BOOL, bus_get_paused, _I32);
+
+HL_PRIM int HL_NAME(bus_set_paused)(int h, bool paused) {
+    FMOD_STUDIO_BUS* bus = resolve_bus(h);
+    if (!bus) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_Studio_Bus_SetPaused(bus, paused);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, bus_set_paused, _I32 _BOOL);
+
+HL_PRIM bool HL_NAME(bus_get_mute)(int h) {
+    FMOD_STUDIO_BUS* bus = resolve_bus(h);
+    FMOD_BOOL mute = 0;
+    if (!bus) { gLastResult = FMOD_ERR_INVALID_HANDLE; return false; }
+    gLastResult = FMOD_Studio_Bus_GetMute(bus, &mute);
+    return mute != 0;
+}
+DEFINE_PRIM(_BOOL, bus_get_mute, _I32);
+
+HL_PRIM int HL_NAME(bus_set_mute)(int h, bool mute) {
+    FMOD_STUDIO_BUS* bus = resolve_bus(h);
+    if (!bus) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_Studio_Bus_SetMute(bus, mute);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, bus_set_mute, _I32 _BOOL);
+
+HL_PRIM int HL_NAME(bus_stop_all_events)(int h, int stopMode) {
+    FMOD_STUDIO_BUS* bus = resolve_bus(h);
+    if (!bus) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_Studio_Bus_StopAllEvents(bus,
+        stopMode == 1 ? FMOD_STUDIO_STOP_IMMEDIATE : FMOD_STUDIO_STOP_ALLOWFADEOUT);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, bus_stop_all_events, _I32 _I32);
+
+// out = int[2]: exclusive, inclusive (microseconds)
+HL_PRIM int HL_NAME(bus_get_cpu_usage)(int h, vbyte* out) {
+    FMOD_STUDIO_BUS* bus = resolve_bus(h);
+    unsigned int exclusive = 0;
+    unsigned int inclusive = 0;
+    int* outInts = (int*)out;
+    if (!bus) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_Studio_Bus_GetCPUUsage(bus, &exclusive, &inclusive);
+    outInts[0] = (int)exclusive;
+    outInts[1] = (int)inclusive;
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, bus_get_cpu_usage, _I32 _BYTES);
+
+// out = int[3]: exclusive, inclusive, sampledata (bytes)
+HL_PRIM int HL_NAME(bus_get_memory_usage)(int h, vbyte* out) {
+    FMOD_STUDIO_BUS* bus = resolve_bus(h);
+    FMOD_STUDIO_MEMORY_USAGE usage;
+    int* outInts = (int*)out;
+    usage.exclusive = 0; usage.inclusive = 0; usage.sampledata = 0;
+    if (!bus) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_Studio_Bus_GetMemoryUsage(bus, &usage);
+    outInts[0] = usage.exclusive;
+    outInts[1] = usage.inclusive;
+    outInts[2] = usage.sampledata;
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, bus_get_memory_usage, _I32 _BYTES);
 
 //// Debug
 

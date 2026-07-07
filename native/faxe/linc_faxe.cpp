@@ -20,6 +20,7 @@
 #include <chrono>
 #include <cstdlib>
 #include <cstdint>
+#include <cstdio>
 
 // F_CALLBACK was removed in newer FMOD SDKs
 #ifndef F_CALLBACK
@@ -308,6 +309,149 @@ bool fmod_poll_callbacks(int h, unsigned int mask) {
     bool fired = (gCbFlags[idx] & mask) != 0;
     gCbFlags[idx] &= ~mask;
     return fired;
+}
+
+//// Studio System (2.0 bindings)
+
+// Result of the most recent studio binding call made from the Haxe thread.
+static FMOD_RESULT gLastResult = FMOD_OK;
+// Static buffer for string out-params. Contents are only valid until the
+// next binding call; the Haxe wrappers copy immediately.
+static char gStringBuf[512];
+
+int fmod_sys_last_result() {
+    return (int)gLastResult;
+}
+
+int fmod_sys_get_bus(const ::String& path) {
+    if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    FMOD::Studio::Bus* bus = NULL;
+    gLastResult = gStudioSystem->getBus(path.c_str(), &bus);
+    if (gLastResult != FMOD_OK || !bus) return 0;
+    return faxe_handle_alloc(bus, FAXE_TYPE_BUS);
+}
+
+//// Bus
+
+static inline FMOD::Studio::Bus* resolveBus(int h) {
+    return (FMOD::Studio::Bus*)faxe_handle_resolve(h, FAXE_TYPE_BUS);
+}
+
+bool fmod_bus_is_valid(int h) {
+    FMOD::Studio::Bus* bus = resolveBus(h);
+    return bus != NULL && bus->isValid();
+}
+
+const char* fmod_bus_get_id(int h) {
+    gStringBuf[0] = '\0';
+    FMOD::Studio::Bus* bus = resolveBus(h);
+    if (!bus) { gLastResult = FMOD_ERR_INVALID_HANDLE; return gStringBuf; }
+    FMOD_GUID id;
+    gLastResult = bus->getID(&id);
+    if (gLastResult == FMOD_OK) {
+        snprintf(gStringBuf, sizeof(gStringBuf),
+            "{%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x}",
+            id.Data1, id.Data2, id.Data3,
+            id.Data4[0], id.Data4[1], id.Data4[2], id.Data4[3],
+            id.Data4[4], id.Data4[5], id.Data4[6], id.Data4[7]);
+    }
+    return gStringBuf;
+}
+
+const char* fmod_bus_get_path(int h) {
+    gStringBuf[0] = '\0';
+    FMOD::Studio::Bus* bus = resolveBus(h);
+    if (!bus) { gLastResult = FMOD_ERR_INVALID_HANDLE; return gStringBuf; }
+    int retrieved = 0;
+    gLastResult = bus->getPath(gStringBuf, sizeof(gStringBuf), &retrieved);
+    if (gLastResult != FMOD_OK) gStringBuf[0] = '\0';
+    return gStringBuf;
+}
+
+double fmod_bus_get_volume(int h) {
+    FMOD::Studio::Bus* bus = resolveBus(h);
+    if (!bus) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0.0; }
+    float volume = 0.0f;
+    gLastResult = bus->getVolume(&volume, NULL);
+    return (double)volume;
+}
+
+double fmod_bus_get_final_volume(int h) {
+    FMOD::Studio::Bus* bus = resolveBus(h);
+    if (!bus) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0.0; }
+    float volume = 0.0f;
+    float finalVolume = 0.0f;
+    gLastResult = bus->getVolume(&volume, &finalVolume);
+    return (double)finalVolume;
+}
+
+int fmod_bus_set_volume(int h, double volume) {
+    FMOD::Studio::Bus* bus = resolveBus(h);
+    if (!bus) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = bus->setVolume((float)volume);
+    return (int)gLastResult;
+}
+
+bool fmod_bus_get_paused(int h) {
+    FMOD::Studio::Bus* bus = resolveBus(h);
+    if (!bus) { gLastResult = FMOD_ERR_INVALID_HANDLE; return false; }
+    bool paused = false;
+    gLastResult = bus->getPaused(&paused);
+    return paused;
+}
+
+int fmod_bus_set_paused(int h, bool paused) {
+    FMOD::Studio::Bus* bus = resolveBus(h);
+    if (!bus) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = bus->setPaused(paused);
+    return (int)gLastResult;
+}
+
+bool fmod_bus_get_mute(int h) {
+    FMOD::Studio::Bus* bus = resolveBus(h);
+    if (!bus) { gLastResult = FMOD_ERR_INVALID_HANDLE; return false; }
+    bool mute = false;
+    gLastResult = bus->getMute(&mute);
+    return mute;
+}
+
+int fmod_bus_set_mute(int h, bool mute) {
+    FMOD::Studio::Bus* bus = resolveBus(h);
+    if (!bus) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = bus->setMute(mute);
+    return (int)gLastResult;
+}
+
+int fmod_bus_stop_all_events(int h, int stopMode) {
+    FMOD::Studio::Bus* bus = resolveBus(h);
+    if (!bus) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = bus->stopAllEvents(stopMode == 1 ? FMOD_STUDIO_STOP_IMMEDIATE : FMOD_STUDIO_STOP_ALLOWFADEOUT);
+    return (int)gLastResult;
+}
+
+// out[0] = exclusive, out[1] = inclusive (microseconds)
+int fmod_bus_get_cpu_usage(int h, ::Array<int> out) {
+    FMOD::Studio::Bus* bus = resolveBus(h);
+    if (!bus) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    unsigned int exclusive = 0;
+    unsigned int inclusive = 0;
+    gLastResult = bus->getCPUUsage(&exclusive, &inclusive);
+    out[0] = (int)exclusive;
+    out[1] = (int)inclusive;
+    return (int)gLastResult;
+}
+
+// out[0] = exclusive, out[1] = inclusive, out[2] = sampledata (bytes)
+int fmod_bus_get_memory_usage(int h, ::Array<int> out) {
+    FMOD::Studio::Bus* bus = resolveBus(h);
+    if (!bus) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    FMOD_STUDIO_MEMORY_USAGE usage;
+    usage.exclusive = 0; usage.inclusive = 0; usage.sampledata = 0;
+    gLastResult = bus->getMemoryUsage(&usage);
+    out[0] = usage.exclusive;
+    out[1] = usage.inclusive;
+    out[2] = usage.sampledata;
+    return (int)gLastResult;
 }
 
 //// Debug
