@@ -31,6 +31,8 @@ class Run {
 				// cwd from haxelib is the caller's working directory (project dir)
 				// libRoot is passed explicitly from include.xml via ${haxelib:haxefmod}
 				PostBuild.run(userArgs[1], userArgs[2], userArgs[3], cwd);
+			case "verify-native":
+				Sys.exit(NativeManifestCheck.run(libRoot));
 			default:
 				printUsage();
 		}
@@ -66,9 +68,10 @@ class Run {
 		Sys.println("Usage: haxelib run haxefmod <command>");
 		Sys.println("");
 		Sys.println("Commands:");
-		Sys.println("  check       Check your environment for correct FMOD SDK setup");
-		Sys.println("  build-hdll  Compile hlaxe_fmod.hdll from source against your FMOD SDK");
-		Sys.println("  help        Show this message");
+		Sys.println("  check          Check your environment for correct FMOD SDK setup");
+		Sys.println("  build-hdll     Compile hlaxe_fmod.hdll from source against your FMOD SDK");
+		Sys.println("  verify-native  Verify the native shims are in lockstep with the FFI manifest");
+		Sys.println("  help           Show this message");
 	}
 
 	static function runCheck(cwd:String, libRoot:String) {

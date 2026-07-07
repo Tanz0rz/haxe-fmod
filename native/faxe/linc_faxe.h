@@ -50,5 +50,8 @@ extern bool fmod_get_bus_mute(const ::String& path);
 extern void fmod_enable_callbacks(int handle);
 extern bool fmod_poll_callbacks(int handle, unsigned int mask);
 
+//// Debug
+extern int fmod_debug_live_handle_count();
+
 } // namespace faxe
 } // namespace linc

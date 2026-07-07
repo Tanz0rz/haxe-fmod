@@ -35,6 +35,16 @@ jobs:
       - name: Run unit tests
         run: haxe tests/build.hxml
 
+      - name: Verify native shims match the FFI manifest
+        run: haxe -cp . --run haxefmod.tools.NativeManifestCheck
+
+      - name: Test native handle table (C99 and C++ modes)
+        run: |
+          gcc -std=c99 -Wall -Wextra -Werror -o /tmp/test_handles_c tests/native/test_faxe_handles.c
+          /tmp/test_handles_c
+          g++ -x c++ -Wall -Wextra -Werror -o /tmp/test_handles_cpp tests/native/test_faxe_handles.c
+          /tmp/test_handles_cpp
+
   # ===========================================================================
   # Linux C++ Build + Audio Recording
   # ===========================================================================

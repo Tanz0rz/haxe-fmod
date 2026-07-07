@@ -12,6 +12,8 @@
 #include <fmod_studio.h>
 #include <fmod.h>
 #include <stdlib.h>
+#include <stdint.h>
+#include "../shared/faxe_handles.h"
 
 // F_CALLBACK was removed in newer FMOD SDKs
 #ifndef F_CALLBACK
@@ -38,20 +40,26 @@ static pthread_t gUpdateThread;
 static int gThreadCreated = 0;
 #endif
 
-// Instance storage (must be native - these are C pointers)
-#define MAX_INSTANCES 256
-static FMOD_STUDIO_EVENTINSTANCE* gInstances[MAX_INSTANCES];
-static unsigned int gCallbackFlags[MAX_INSTANCES];
-static int gInstanceCount = 0;
+// Instance handles live in the shared generational table (faxe_handles.h).
+// Legacy callback flags, indexed by slot index (replaced by payload queue in M2).
+// Fixed size so the FMOD callback thread never races a Haxe-thread realloc.
+static unsigned int gCbFlags[FAXE_MAX_SLOTS];
 
-// Callback (must be native - FMOD invokes this)
+// Resolve an event instance handle to its FMOD pointer (NULL if stale/invalid)
+static FMOD_STUDIO_EVENTINSTANCE* resolve_instance(int h) {
+    return (FMOD_STUDIO_EVENTINSTANCE*)faxe_handle_resolve(h, FAXE_TYPE_EVI);
+}
+
+// Callback - runs on an FMOD thread, NOT an HL thread. Must not touch the
+// handle table or any HL values; the instance's handle is read back from
+// FMOD userdata instead.
 static FMOD_RESULT F_CALLBACK eventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type,
     FMOD_STUDIO_EVENTINSTANCE* event, void* parameters) {
-    for (int i = 0; i < gInstanceCount; i++) {
-        if (gInstances[i] == event) {
-            gCallbackFlags[i] |= type;
-            break;
-        }
+    void* userData = NULL;
+    FMOD_Studio_EventInstance_GetUserData(event, &userData);
+    int handle = (int)(intptr_t)userData;
+    if (handle > 0) {
+        gCbFlags[handle & 0xFFFF] |= type;
     }
     return FMOD_OK;
 }
@@ -154,6 +162,12 @@ HL_PRIM int HL_NAME(load_bank)(vbyte* path) {
 }
 DEFINE_PRIM(_I32, load_bank, _BYTES);
 
+HL_PRIM void HL_NAME(unload_bank)(vbyte* path) {
+    // Note: Would need bank tracking to implement properly.
+    // No-op matching the C++ backend behavior (real unload lands in M5).
+}
+DEFINE_PRIM(_VOID, unload_bank, _BYTES);
+
 //// Events - One shot
 
 HL_PRIM int HL_NAME(fire_one_shot)(vbyte* eventPath) {
@@ -177,7 +191,6 @@ DEFINE_PRIM(_I32, fire_one_shot, _BYTES);
 
 HL_PRIM int HL_NAME(create_instance)(vbyte* eventPath) {
     if (!gStudioSystem) return -1;
-    if (gInstanceCount >= MAX_INSTANCES) return -1;
 
     FMOD_STUDIO_EVENTDESCRIPTION* desc;
     if (FMOD_Studio_System_GetEvent(gStudioSystem, (const char*)eventPath, &desc) != FMOD_OK) return -1;
@@ -185,54 +198,65 @@ HL_PRIM int HL_NAME(create_instance)(vbyte* eventPath) {
     FMOD_STUDIO_EVENTINSTANCE* instance;
     if (FMOD_Studio_EventDescription_CreateInstance(desc, &instance) != FMOD_OK) return -1;
 
-    int handle = gInstanceCount++;
-    gInstances[handle] = instance;
-    gCallbackFlags[handle] = 0;
+    int handle = faxe_handle_alloc(instance, FAXE_TYPE_EVI);
+    if (handle == 0) {
+        FMOD_Studio_EventInstance_Release(instance);
+        return -1;
+    }
+
+    // Store the handle in userdata so FMOD-thread callbacks can find it
+    // without touching the handle table.
+    FMOD_Studio_EventInstance_SetUserData(instance, (void*)(intptr_t)handle);
+    gCbFlags[handle & 0xFFFF] = 0; // slot may be recycled - clear stale flags
     return handle;
 }
 DEFINE_PRIM(_I32, create_instance, _BYTES);
 
 HL_PRIM void HL_NAME(start)(int h) {
-    if (h >= 0 && h < gInstanceCount && gInstances[h])
-        FMOD_Studio_EventInstance_Start(gInstances[h]);
+    FMOD_STUDIO_EVENTINSTANCE* instance = resolve_instance(h);
+    if (instance) FMOD_Studio_EventInstance_Start(instance);
 }
 DEFINE_PRIM(_VOID, start, _I32);
 
 HL_PRIM void HL_NAME(stop)(int h, int immediate) {
-    if (h >= 0 && h < gInstanceCount && gInstances[h])
-        FMOD_Studio_EventInstance_Stop(gInstances[h],
+    FMOD_STUDIO_EVENTINSTANCE* instance = resolve_instance(h);
+    if (instance)
+        FMOD_Studio_EventInstance_Stop(instance,
             immediate ? FMOD_STUDIO_STOP_IMMEDIATE : FMOD_STUDIO_STOP_ALLOWFADEOUT);
 }
 DEFINE_PRIM(_VOID, stop, _I32 _I32);
 
 HL_PRIM void HL_NAME(release)(int h) {
-    if (h >= 0 && h < gInstanceCount && gInstances[h]) {
-        FMOD_Studio_EventInstance_Stop(gInstances[h], FMOD_STUDIO_STOP_IMMEDIATE);
-        FMOD_Studio_EventInstance_Release(gInstances[h]);
-        gInstances[h] = NULL;
-        gCallbackFlags[h] = 0;
+    FMOD_STUDIO_EVENTINSTANCE* instance = resolve_instance(h);
+    if (instance) {
+        FMOD_Studio_EventInstance_Stop(instance, FMOD_STUDIO_STOP_IMMEDIATE);
+        FMOD_Studio_EventInstance_Release(instance);
+        gCbFlags[h & 0xFFFF] = 0;
+        faxe_handle_free(h);
     }
 }
 DEFINE_PRIM(_VOID, release, _I32);
 
 HL_PRIM void HL_NAME(set_paused)(int h, bool paused) {
-    if (h >= 0 && h < gInstanceCount && gInstances[h])
-        FMOD_Studio_EventInstance_SetPaused(gInstances[h], paused);
+    FMOD_STUDIO_EVENTINSTANCE* instance = resolve_instance(h);
+    if (instance) FMOD_Studio_EventInstance_SetPaused(instance, paused);
 }
 DEFINE_PRIM(_VOID, set_paused, _I32 _BOOL);
 
 HL_PRIM int HL_NAME(get_playback_state)(int h) {
-    if (h < 0 || h >= gInstanceCount || !gInstances[h]) return FMOD_STUDIO_PLAYBACK_STOPPED;
+    FMOD_STUDIO_EVENTINSTANCE* instance = resolve_instance(h);
+    if (!instance) return FMOD_STUDIO_PLAYBACK_STOPPED;
     FMOD_STUDIO_PLAYBACK_STATE state;
-    FMOD_Studio_EventInstance_GetPlaybackState(gInstances[h], &state);
+    FMOD_Studio_EventInstance_GetPlaybackState(instance, &state);
     return (int)state;
 }
 DEFINE_PRIM(_I32, get_playback_state, _I32);
 
 HL_PRIM int HL_NAME(get_timeline_position)(int h) {
-    if (h < 0 || h >= gInstanceCount || !gInstances[h]) return 0;
+    FMOD_STUDIO_EVENTINSTANCE* instance = resolve_instance(h);
+    if (!instance) return 0;
     int position = 0;
-    FMOD_Studio_EventInstance_GetTimelinePosition(gInstances[h], &position);
+    FMOD_Studio_EventInstance_GetTimelinePosition(instance, &position);
     return position;
 }
 DEFINE_PRIM(_I32, get_timeline_position, _I32);
@@ -240,16 +264,18 @@ DEFINE_PRIM(_I32, get_timeline_position, _I32);
 //// Parameters
 
 HL_PRIM double HL_NAME(get_param)(int h, vbyte* name) {
-    if (h < 0 || h >= gInstanceCount || !gInstances[h]) return 0.0;
+    FMOD_STUDIO_EVENTINSTANCE* instance = resolve_instance(h);
+    if (!instance) return 0.0;
     float value = 0.0f;
-    FMOD_Studio_EventInstance_GetParameterByName(gInstances[h], (const char*)name, &value, NULL);
+    FMOD_Studio_EventInstance_GetParameterByName(instance, (const char*)name, &value, NULL);
     return (double)value;
 }
 DEFINE_PRIM(_F64, get_param, _I32 _BYTES);
 
 HL_PRIM void HL_NAME(set_param)(int h, vbyte* name, double value) {
-    if (h >= 0 && h < gInstanceCount && gInstances[h])
-        FMOD_Studio_EventInstance_SetParameterByName(gInstances[h], (const char*)name, (float)value, false);
+    FMOD_STUDIO_EVENTINSTANCE* instance = resolve_instance(h);
+    if (instance)
+        FMOD_Studio_EventInstance_SetParameterByName(instance, (const char*)name, (float)value, false);
 }
 DEFINE_PRIM(_VOID, set_param, _I32 _BYTES _F64);
 
@@ -314,17 +340,28 @@ DEFINE_PRIM(_BOOL, get_bus_mute, _BYTES);
 //// Callbacks
 
 HL_PRIM void HL_NAME(enable_callbacks)(int h) {
-    if (h >= 0 && h < gInstanceCount && gInstances[h])
-        FMOD_Studio_EventInstance_SetCallback(gInstances[h], eventCallback,
+    FMOD_STUDIO_EVENTINSTANCE* instance = resolve_instance(h);
+    if (instance) {
+        FMOD_Studio_EventInstance_SetCallback(instance, eventCallback,
             FMOD_STUDIO_EVENT_CALLBACK_STARTED | FMOD_STUDIO_EVENT_CALLBACK_STOPPED |
             FMOD_STUDIO_EVENT_CALLBACK_SOUND_PLAYED | FMOD_STUDIO_EVENT_CALLBACK_SOUND_STOPPED);
+        gCbFlags[h & 0xFFFF] = 0;
+    }
 }
 DEFINE_PRIM(_VOID, enable_callbacks, _I32);
 
 HL_PRIM bool HL_NAME(poll_callbacks)(int h, int mask) {
-    if (h < 0 || h >= gInstanceCount) return false;
-    bool fired = (gCallbackFlags[h] & mask) != 0;
-    gCallbackFlags[h] &= ~mask;
+    if (!resolve_instance(h)) return false;
+    int idx = h & 0xFFFF;
+    bool fired = (gCbFlags[idx] & mask) != 0;
+    gCbFlags[idx] &= ~mask;
     return fired;
 }
 DEFINE_PRIM(_BOOL, poll_callbacks, _I32 _I32);
+
+//// Debug
+
+HL_PRIM int HL_NAME(debug_live_handle_count)() {
+    return faxe_live_handle_count();
+}
+DEFINE_PRIM(_I32, debug_live_handle_count, _NO_ARG);

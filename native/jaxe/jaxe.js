@@ -16,9 +16,56 @@ class jaxe {
     static loadedBanks = {};
     static autoUpdateIntervalId = null;
 
-    // Instance storage (must be native - these are JS FMOD objects)
-    static instances = [];
-    static callbackFlags = [];
+    // Generational handle table - JS mirror of native/shared/faxe_handles.h.
+    // Handle encoding: (generation << 16) | index. Handle 0 is always invalid.
+    static TYPE_EVI = 1;
+    static slots = [];       // {ptr, gen, type, alive}
+    static freeList = [];    // stack of free slot indices
+    static liveCount = 0;
+    static callbackFlags = []; // legacy poll flags, indexed by slot index (replaced in M2)
+
+    static handleAlloc(ptr, type) {
+        if (!ptr) return 0;
+        var idx;
+        if (jaxe.freeList.length > 0) {
+            idx = jaxe.freeList.pop();
+        } else {
+            idx = jaxe.slots.length;
+            if (idx >= 0x10000) return 0;
+            jaxe.slots.push({ ptr: null, gen: 0, type: 0, alive: false });
+            jaxe.callbackFlags.push(0);
+        }
+        var s = jaxe.slots[idx];
+        s.ptr = ptr;
+        s.type = type;
+        s.alive = true;
+        if (s.gen == 0) s.gen = 1; // first use of this slot
+        jaxe.liveCount++;
+        return (s.gen << 16) | idx;
+    }
+
+    static handleResolve(handle, type) {
+        if (handle <= 0) return null;
+        var idx = handle & 0xFFFF;
+        var gen = (handle >> 16) & 0x7FFF;
+        var s = jaxe.slots[idx];
+        if (!s || !s.alive || s.gen != gen || s.type != type) return null;
+        return s.ptr;
+    }
+
+    static handleFree(handle) {
+        if (handle <= 0) return;
+        var idx = handle & 0xFFFF;
+        var gen = (handle >> 16) & 0x7FFF;
+        var s = jaxe.slots[idx];
+        if (!s || !s.alive || s.gen != gen) return;
+        s.alive = false;
+        s.ptr = null;
+        s.type = 0;
+        s.gen = (s.gen % 0x7FFF) + 1; // wraps 1..0x7FFF, never 0
+        jaxe.freeList.push(idx);
+        jaxe.liveCount--;
+    }
 
     //// System
 
@@ -95,41 +142,44 @@ class jaxe {
         result = desc.val.createInstance(instance);
         if (result != jaxe.FMOD.OK) return -1;
 
-        var handle = jaxe.instances.length;
-        jaxe.instances.push(instance.val);
-        jaxe.callbackFlags.push(0);
+        var handle = jaxe.handleAlloc(instance.val, jaxe.TYPE_EVI);
+        if (handle == 0) {
+            instance.val.release();
+            return -1;
+        }
+        jaxe.callbackFlags[handle & 0xFFFF] = 0; // slot may be recycled - clear stale flags
         return handle;
     }
 
     static fmod_start(handle) {
-        var inst = jaxe.instances[handle];
+        var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
         if (inst) inst.start();
     }
 
     static fmod_stop(handle, immediate) {
-        var inst = jaxe.instances[handle];
+        var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
         if (inst) {
             inst.stop(immediate ? jaxe.FMOD.STUDIO_STOP_IMMEDIATE : jaxe.FMOD.STUDIO_STOP_ALLOWFADEOUT);
         }
     }
 
     static fmod_release(handle) {
-        var inst = jaxe.instances[handle];
+        var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
         if (inst) {
             inst.stop(jaxe.FMOD.STUDIO_STOP_IMMEDIATE);
             inst.release();
-            jaxe.instances[handle] = null;
-            jaxe.callbackFlags[handle] = 0;
+            jaxe.callbackFlags[handle & 0xFFFF] = 0;
+            jaxe.handleFree(handle);
         }
     }
 
     static fmod_set_paused(handle, paused) {
-        var inst = jaxe.instances[handle];
+        var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
         if (inst) inst.setPaused(paused);
     }
 
     static fmod_get_playback_state(handle) {
-        var inst = jaxe.instances[handle];
+        var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
         if (!inst) return jaxe.FMOD.STUDIO_PLAYBACK_STOPPED;
         var outval = {};
         inst.getPlaybackState(outval);
@@ -137,7 +187,7 @@ class jaxe {
     }
 
     static fmod_get_timeline_position(handle) {
-        var inst = jaxe.instances[handle];
+        var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
         if (!inst) return 0;
         var outval = {};
         inst.getTimelinePosition(outval);
@@ -147,7 +197,7 @@ class jaxe {
     //// Parameters
 
     static fmod_get_param(handle, name) {
-        var inst = jaxe.instances[handle];
+        var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
         if (!inst) return 0.0;
         var outval = {};
         inst.getParameterByName(name, outval);
@@ -155,7 +205,7 @@ class jaxe {
     }
 
     static fmod_set_param(handle, name, value) {
-        var inst = jaxe.instances[handle];
+        var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
         if (inst) inst.setParameterByName(name, value, false);
     }
 
@@ -212,28 +262,37 @@ class jaxe {
     //// Callbacks
 
     static fmod_enable_callbacks(handle) {
-        var inst = jaxe.instances[handle];
+        var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
         if (inst) {
             inst.setCallback(jaxe.callbackHandler, jaxe.FMOD.STUDIO_EVENT_CALLBACK_ALL);
-            jaxe.callbackFlags[handle] = 0;
+            jaxe.callbackFlags[handle & 0xFFFF] = 0;
         }
     }
 
     static fmod_poll_callbacks(handle, mask) {
-        if (handle < 0 || handle >= jaxe.callbackFlags.length) return false;
-        var fired = (jaxe.callbackFlags[handle] & mask) != 0;
-        jaxe.callbackFlags[handle] &= ~mask;
+        if (!jaxe.handleResolve(handle, jaxe.TYPE_EVI)) return false;
+        var idx = handle & 0xFFFF;
+        var fired = (jaxe.callbackFlags[idx] & mask) != 0;
+        jaxe.callbackFlags[idx] &= ~mask;
         return fired;
     }
 
     static callbackHandler(type, event, parameters) {
-        for (var i = 0; i < jaxe.instances.length; i++) {
-            if (jaxe.instances[i] === event) {
+        // JS is single-threaded, so scanning the table here is safe.
+        for (var i = 0; i < jaxe.slots.length; i++) {
+            var s = jaxe.slots[i];
+            if (s.alive && s.ptr === event) {
                 jaxe.callbackFlags[i] |= type;
                 break;
             }
         }
         return jaxe.FMOD.OK;
+    }
+
+    //// Debug
+
+    static fmod_debug_live_handle_count() {
+        return jaxe.liveCount;
     }
 
     //// Initialization (Emscripten-specific, must stay here)

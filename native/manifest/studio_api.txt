@@ -1,0 +1,56 @@
+# haxefmod native FFI manifest - the source of truth for the native surface.
+#
+# Every function listed here must exist with matching arity in all three shims:
+#   native/faxe/linc_faxe.cpp   (C++ / hxcpp)     as fmod_<name>(...)
+#   native/hlaxe/hlaxe_fmod.c   (C / HashLink)    as DEFINE_PRIM(<ret>, <name>, <args>)
+#   native/jaxe/jaxe.js         (JS / Emscripten) as static fmod_<name>(...)
+#
+# Verified by: haxelib run haxefmod verify-native
+#
+# Format: <name> <argtype> <argtype> ... -> <rettype>
+# Types are logical (exact FFI types differ per backend, e.g. f32 vs f64);
+# the checker verifies presence and arity, not exact types.
+#
+# Naming domains (2.0 rework): sys_, bank_, evd_, evi_, bus_, vca_, cb_, ps_, core_.
+# Functions without a domain prefix are the legacy 1.x surface, migrated in M3+.
+
+## System
+is_initialized -> bool
+init i32 -> i32
+update -> void
+set_auto_update bool -> void
+
+## Banks
+load_bank str -> i32
+unload_bank str -> void
+
+## Events - one shot
+fire_one_shot str -> i32
+
+## Events - managed instances
+create_instance str -> i32
+start i32 -> void
+stop i32 i32 -> void
+release i32 -> void
+set_paused i32 bool -> void
+get_playback_state i32 -> i32
+get_timeline_position i32 -> i32
+
+## Parameters
+get_param i32 str -> f64
+set_param i32 str f64 -> void
+
+## Bus
+set_bus_paused str bool -> void
+stop_bus str -> void
+set_bus_volume str f64 -> void
+get_bus_volume str -> f64
+set_bus_mute str bool -> void
+get_bus_mute str -> bool
+
+## Callbacks (legacy poll mechanism, replaced in M2)
+enable_callbacks i32 -> void
+poll_callbacks i32 i32 -> bool
+
+## Debug
+debug_live_handle_count -> i32

@@ -14,10 +14,12 @@
 #include <hxcpp.h>
 #include <fmod_studio.hpp>
 #include "linc_faxe.h"
+#include "../shared/faxe_handles.h"
 #include <thread>
 #include <atomic>
 #include <chrono>
 #include <cstdlib>
+#include <cstdint>
 
 // F_CALLBACK was removed in newer FMOD SDKs
 #ifndef F_CALLBACK
@@ -35,20 +37,26 @@ static FMOD::System* gCoreSystem = NULL;
 static std::thread* gUpdateThread = NULL;
 static std::atomic<bool> gAutoUpdateRunning(false);
 
-// Instance storage (array-based, handle = index)
-#define MAX_INSTANCES 256
-static FMOD::Studio::EventInstance* gInstances[MAX_INSTANCES];
-static unsigned int gCallbackFlags[MAX_INSTANCES];
-static int gInstanceCount = 0;
+// Instance handles live in the shared generational table (faxe_handles.h).
+// Legacy callback flags, indexed by slot index (replaced by payload queue in M2).
+// Fixed size so the FMOD callback thread never races a Haxe-thread realloc.
+static unsigned int gCbFlags[FAXE_MAX_SLOTS];
 
-// Callback handler
+// Resolve an event instance handle to its FMOD pointer (NULL if stale/invalid)
+static inline FMOD::Studio::EventInstance* resolveInstance(int h) {
+    return (FMOD::Studio::EventInstance*)faxe_handle_resolve(h, FAXE_TYPE_EVI);
+}
+
+// Callback handler - runs on an FMOD thread. Must not touch the handle table;
+// the instance's handle is read back from FMOD userdata instead.
 static FMOD_RESULT F_CALLBACK eventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type,
     FMOD_STUDIO_EVENTINSTANCE* event, void* parameters) {
-    for (int i = 0; i < gInstanceCount; i++) {
-        if (gInstances[i] == (FMOD::Studio::EventInstance*)event) {
-            gCallbackFlags[i] |= type;
-            break;
-        }
+    FMOD::Studio::EventInstance* instance = (FMOD::Studio::EventInstance*)event;
+    void* userData = NULL;
+    instance->getUserData(&userData);
+    int handle = (int)(intptr_t)userData;
+    if (handle > 0) {
+        gCbFlags[handle & 0xFFFF] |= type;
     }
     return FMOD_OK;
 }
@@ -153,7 +161,6 @@ int fmod_fire_one_shot(const ::String& eventPath) {
 
 int fmod_create_instance(const ::String& eventPath) {
     if (!gStudioSystem) return -1;
-    if (gInstanceCount >= MAX_INSTANCES) return -1;
 
     FMOD::Studio::EventDescription* desc;
     if (gStudioSystem->getEvent(eventPath.c_str(), &desc) != FMOD_OK) return -1;
@@ -161,62 +168,74 @@ int fmod_create_instance(const ::String& eventPath) {
     FMOD::Studio::EventInstance* instance;
     if (desc->createInstance(&instance) != FMOD_OK) return -1;
 
-    int handle = gInstanceCount++;
-    gInstances[handle] = instance;
-    gCallbackFlags[handle] = 0;
+    int handle = faxe_handle_alloc(instance, FAXE_TYPE_EVI);
+    if (handle == 0) {
+        instance->release();
+        return -1;
+    }
+
+    // Store the handle in userdata so FMOD-thread callbacks can find it
+    // without touching the handle table.
+    instance->setUserData((void*)(intptr_t)handle);
+    gCbFlags[handle & 0xFFFF] = 0; // slot may be recycled - clear stale flags
     return handle;
 }
 
 void fmod_start(int h) {
-    if (h >= 0 && h < gInstanceCount && gInstances[h])
-        gInstances[h]->start();
+    FMOD::Studio::EventInstance* instance = resolveInstance(h);
+    if (instance) instance->start();
 }
 
 void fmod_stop(int h, int immediate) {
-    if (h >= 0 && h < gInstanceCount && gInstances[h])
-        gInstances[h]->stop(immediate ? FMOD_STUDIO_STOP_IMMEDIATE : FMOD_STUDIO_STOP_ALLOWFADEOUT);
+    FMOD::Studio::EventInstance* instance = resolveInstance(h);
+    if (instance)
+        instance->stop(immediate ? FMOD_STUDIO_STOP_IMMEDIATE : FMOD_STUDIO_STOP_ALLOWFADEOUT);
 }
 
 void fmod_release(int h) {
-    if (h >= 0 && h < gInstanceCount && gInstances[h]) {
-        gInstances[h]->stop(FMOD_STUDIO_STOP_IMMEDIATE);
-        gInstances[h]->release();
-        gInstances[h] = NULL;
-        gCallbackFlags[h] = 0;
+    FMOD::Studio::EventInstance* instance = resolveInstance(h);
+    if (instance) {
+        instance->stop(FMOD_STUDIO_STOP_IMMEDIATE);
+        instance->release();
+        gCbFlags[h & 0xFFFF] = 0;
+        faxe_handle_free(h);
     }
 }
 
 void fmod_set_paused(int h, bool paused) {
-    if (h >= 0 && h < gInstanceCount && gInstances[h])
-        gInstances[h]->setPaused(paused);
+    FMOD::Studio::EventInstance* instance = resolveInstance(h);
+    if (instance) instance->setPaused(paused);
 }
 
 int fmod_get_playback_state(int h) {
-    if (h < 0 || h >= gInstanceCount || !gInstances[h]) return FMOD_STUDIO_PLAYBACK_STOPPED;
+    FMOD::Studio::EventInstance* instance = resolveInstance(h);
+    if (!instance) return FMOD_STUDIO_PLAYBACK_STOPPED;
     FMOD_STUDIO_PLAYBACK_STATE state;
-    gInstances[h]->getPlaybackState(&state);
+    instance->getPlaybackState(&state);
     return (int)state;
 }
 
 int fmod_get_timeline_position(int h) {
-    if (h < 0 || h >= gInstanceCount || !gInstances[h]) return 0;
+    FMOD::Studio::EventInstance* instance = resolveInstance(h);
+    if (!instance) return 0;
     int position = 0;
-    gInstances[h]->getTimelinePosition(&position);
+    instance->getTimelinePosition(&position);
     return position;
 }
 
 //// Parameters
 
 float fmod_get_param(int h, const ::String& name) {
-    if (h < 0 || h >= gInstanceCount || !gInstances[h]) return 0.0f;
+    FMOD::Studio::EventInstance* instance = resolveInstance(h);
+    if (!instance) return 0.0f;
     float value = 0.0f;
-    gInstances[h]->getParameterByName(name.c_str(), &value);
+    instance->getParameterByName(name.c_str(), &value);
     return value;
 }
 
 void fmod_set_param(int h, const ::String& name, float value) {
-    if (h >= 0 && h < gInstanceCount && gInstances[h])
-        gInstances[h]->setParameterByName(name.c_str(), value, false);
+    FMOD::Studio::EventInstance* instance = resolveInstance(h);
+    if (instance) instance->setParameterByName(name.c_str(), value, false);
 }
 
 //// Bus
@@ -274,19 +293,27 @@ bool fmod_get_bus_mute(const ::String& path) {
 //// Callbacks
 
 void fmod_enable_callbacks(int h) {
-    if (h >= 0 && h < gInstanceCount && gInstances[h]) {
-        gInstances[h]->setCallback(eventCallback,
+    FMOD::Studio::EventInstance* instance = resolveInstance(h);
+    if (instance) {
+        instance->setCallback(eventCallback,
             FMOD_STUDIO_EVENT_CALLBACK_STARTED | FMOD_STUDIO_EVENT_CALLBACK_STOPPED |
             FMOD_STUDIO_EVENT_CALLBACK_SOUND_PLAYED | FMOD_STUDIO_EVENT_CALLBACK_SOUND_STOPPED);
-        gCallbackFlags[h] = 0;
+        gCbFlags[h & 0xFFFF] = 0;
     }
 }
 
 bool fmod_poll_callbacks(int h, unsigned int mask) {
-    if (h < 0 || h >= gInstanceCount) return false;
-    bool fired = (gCallbackFlags[h] & mask) != 0;
-    gCallbackFlags[h] &= ~mask;
+    if (!resolveInstance(h)) return false;
+    int idx = h & 0xFFFF;
+    bool fired = (gCbFlags[idx] & mask) != 0;
+    gCbFlags[idx] &= ~mask;
     return fired;
+}
+
+//// Debug
+
+int fmod_debug_live_handle_count() {
+    return faxe_live_handle_count();
 }
 
 } // namespace faxe
