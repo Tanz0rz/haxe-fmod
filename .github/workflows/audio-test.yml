@@ -1474,7 +1474,10 @@ jobs:
       - name: Build custom hdll via build-hdll
         shell: cmd
         run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          rem Locate vcvars64.bat via vswhere - the VS version/edition on the
+          rem runner image changes over time (e.g. windows-2025-vs2026).
+          for /f "usebackq tokens=*" %%i in (`"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -find VC\Auxiliary\Build\vcvars64.bat`) do call "%%i"
+          where cl || exit /b 1
           cd example-project\EZPlatformer
           haxelib run haxefmod build-hdll
 
@@ -1687,7 +1690,10 @@ jobs:
       - name: Build custom hdll via build-hdll
         shell: cmd
         run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          rem Locate vcvars64.bat via vswhere - the VS version/edition on the
+          rem runner image changes over time (e.g. windows-2025-vs2026).
+          for /f "usebackq tokens=*" %%i in (`"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -find VC\Auxiliary\Build\vcvars64.bat`) do call "%%i"
+          where cl || exit /b 1
           cd example-project\EZPlatformer
           haxelib run haxefmod build-hdll
 
