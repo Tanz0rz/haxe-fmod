@@ -48,9 +48,15 @@ get_bus_volume str -> f64
 set_bus_mute str bool -> void
 get_bus_mute str -> bool
 
-## Callbacks (legacy poll mechanism, replaced in M2)
-enable_callbacks i32 -> void
-poll_callbacks i32 i32 -> bool
+## Callbacks (payload queue - see native/shared/faxe_cbqueue.h)
+evi_set_callback_mask i32 i32 -> i32
+cb_next -> bool
+cb_handle -> i32
+cb_type -> i32
+cb_int i32 -> i32
+cb_float -> f64
+cb_string -> str
+cb_take_overflow -> bool
 
 ## Studio System (2.0 bindings)
 sys_last_result -> i32

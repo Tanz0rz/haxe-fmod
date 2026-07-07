@@ -29,6 +29,16 @@ class NativeStudioJs {
     /** Fills Scratch int buffer: [0]=exclusive, [1]=inclusive, [2]=sampledata (bytes) */
     public static inline function bus_get_memory_usage(handle:Int):Int return Raw.fmod_bus_get_memory_usage(handle, Scratch.intBuf());
 
+    // Callbacks
+    public static inline function evi_set_callback_mask(handle:Int, mask:Int):Int return Raw.fmod_evi_set_callback_mask(handle, mask);
+    public static inline function cb_next():Bool return Raw.fmod_cb_next();
+    public static inline function cb_handle():Int return Raw.fmod_cb_handle();
+    public static inline function cb_type():Int return Raw.fmod_cb_type();
+    public static inline function cb_int(index:Int):Int return Raw.fmod_cb_int(index);
+    public static inline function cb_float():Float return Raw.fmod_cb_float();
+    public static inline function cb_string():String return Raw.fmod_cb_string();
+    public static inline function cb_take_overflow():Bool return Raw.fmod_cb_take_overflow();
+
     // Debug
     public static inline function debug_live_handle_count():Int return Raw.fmod_debug_live_handle_count();
 }
@@ -50,6 +60,14 @@ private extern class Raw {
     static function fmod_bus_stop_all_events(handle:Int, stopMode:Int):Int;
     static function fmod_bus_get_cpu_usage(handle:Int, out:Array<Int>):Int;
     static function fmod_bus_get_memory_usage(handle:Int, out:Array<Int>):Int;
+    static function fmod_evi_set_callback_mask(handle:Int, mask:Int):Int;
+    static function fmod_cb_next():Bool;
+    static function fmod_cb_handle():Int;
+    static function fmod_cb_type():Int;
+    static function fmod_cb_int(index:Int):Int;
+    static function fmod_cb_float():Float;
+    static function fmod_cb_string():String;
+    static function fmod_cb_take_overflow():Bool;
     static function fmod_debug_live_handle_count():Int;
 }
 #end

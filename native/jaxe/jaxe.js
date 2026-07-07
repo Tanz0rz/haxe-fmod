@@ -22,7 +22,13 @@ class jaxe {
     static slots = [];       // {ptr, gen, type, alive}
     static freeList = [];    // stack of free slot indices
     static liveCount = 0;
-    static callbackFlags = []; // legacy poll flags, indexed by slot index (replaced in M2)
+
+    // Callback event queue - JS mirror of native/shared/faxe_cbqueue.h.
+    // JS is single-threaded so a plain array needs no locking.
+    static CBQ_CAPACITY = 256;
+    static cbQueue = [];
+    static cbOverflow = false;
+    static cbCurrent = { handle: 0, type: 0, i1: 0, i2: 0, i3: 0, f1: 0.0, str: "" };
 
     static handleAlloc(ptr, type) {
         if (!ptr) return 0;
@@ -33,7 +39,6 @@ class jaxe {
             idx = jaxe.slots.length;
             if (idx >= 0x10000) return 0;
             jaxe.slots.push({ ptr: null, gen: 0, type: 0, alive: false });
-            jaxe.callbackFlags.push(0);
         }
         var s = jaxe.slots[idx];
         s.ptr = ptr;
@@ -147,7 +152,6 @@ class jaxe {
             instance.val.release();
             return -1;
         }
-        jaxe.callbackFlags[handle & 0xFFFF] = 0; // slot may be recycled - clear stale flags
         return handle;
     }
 
@@ -168,7 +172,6 @@ class jaxe {
         if (inst) {
             inst.stop(jaxe.FMOD.STUDIO_STOP_IMMEDIATE);
             inst.release();
-            jaxe.callbackFlags[handle & 0xFFFF] = 0;
             jaxe.handleFree(handle);
         }
     }
@@ -261,32 +264,80 @@ class jaxe {
 
     //// Callbacks
 
-    static fmod_enable_callbacks(handle) {
+    static fmod_evi_set_callback_mask(handle, mask) {
         var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
-        if (inst) {
-            inst.setCallback(jaxe.callbackHandler, jaxe.FMOD.STUDIO_EVENT_CALLBACK_ALL);
-            jaxe.callbackFlags[handle & 0xFFFF] = 0;
-        }
-    }
-
-    static fmod_poll_callbacks(handle, mask) {
-        if (!jaxe.handleResolve(handle, jaxe.TYPE_EVI)) return false;
-        var idx = handle & 0xFFFF;
-        var fired = (jaxe.callbackFlags[idx] & mask) != 0;
-        jaxe.callbackFlags[idx] &= ~mask;
-        return fired;
+        if (!inst) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = inst.setCallback(jaxe.callbackHandler, mask >>> 0);
+        return jaxe.lastResult;
     }
 
     static callbackHandler(type, event, parameters) {
         // JS is single-threaded, so scanning the table here is safe.
+        var handle = 0;
         for (var i = 0; i < jaxe.slots.length; i++) {
             var s = jaxe.slots[i];
             if (s.alive && s.ptr === event) {
-                jaxe.callbackFlags[i] |= type;
+                handle = (s.gen << 16) | i;
                 break;
             }
         }
+        if (handle == 0) return jaxe.FMOD.OK;
+
+        var ev = { handle: handle, type: type, i1: 0, i2: 0, i3: 0, f1: 0.0, str: "" };
+
+        if (type == 0x00000800 /* TIMELINE_MARKER */ && parameters) {
+            if (typeof parameters.name === "string") ev.str = parameters.name;
+            if (typeof parameters.position === "number") ev.i1 = parameters.position;
+        } else if (type == 0x00001000 /* TIMELINE_BEAT */ && parameters) {
+            ev.i1 = parameters.bar | 0;
+            ev.i2 = parameters.beat | 0;
+            ev.i3 = parameters.position | 0;
+            ev.f1 = parameters.tempo || 0.0;
+        } else if (type == 0x00040000 /* NESTED_TIMELINE_BEAT */ && parameters && parameters.properties) {
+            ev.i1 = parameters.properties.bar | 0;
+            ev.i2 = parameters.properties.beat | 0;
+            ev.i3 = parameters.properties.position | 0;
+            ev.f1 = parameters.properties.tempo || 0.0;
+        }
+
+        jaxe.cbQueue.push(ev);
+        if (jaxe.cbQueue.length > jaxe.CBQ_CAPACITY) {
+            jaxe.cbQueue.shift(); // drop oldest
+            jaxe.cbOverflow = true;
+        }
         return jaxe.FMOD.OK;
+    }
+
+    static fmod_cb_next() {
+        if (jaxe.cbQueue.length == 0) return false;
+        jaxe.cbCurrent = jaxe.cbQueue.shift();
+        return true;
+    }
+
+    static fmod_cb_handle() {
+        return jaxe.cbCurrent.handle;
+    }
+
+    static fmod_cb_type() {
+        return jaxe.cbCurrent.type;
+    }
+
+    static fmod_cb_int(index) {
+        return index == 0 ? jaxe.cbCurrent.i1 : (index == 1 ? jaxe.cbCurrent.i2 : jaxe.cbCurrent.i3);
+    }
+
+    static fmod_cb_float() {
+        return jaxe.cbCurrent.f1;
+    }
+
+    static fmod_cb_string() {
+        return jaxe.cbCurrent.str;
+    }
+
+    static fmod_cb_take_overflow() {
+        var overflowed = jaxe.cbOverflow;
+        jaxe.cbOverflow = false;
+        return overflowed;
     }
 
     //// Studio System (2.0 bindings)

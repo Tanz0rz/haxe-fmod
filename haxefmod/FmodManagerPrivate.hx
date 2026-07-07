@@ -5,6 +5,8 @@ import haxefmod.FmodEvents.FmodEvent;
 import haxefmod.FmodEvents.FmodEventListener;
 import haxefmod.backends.IFmodBackend;
 import haxefmod.backends.IFmodBackend.FmodEventHandle;
+import haxefmod.runtime.CallbackDispatcher;
+import haxefmod.studio.Callbacks;
 #if cpp
 import haxefmod.backends.CppBackend;
 #elseif js
@@ -17,7 +19,6 @@ class FmodManagerPrivate {
     // Backend
     private var backend:IFmodBackend;
     private var cache:FmodCache;
-    private var callbackManager:FmodCallbackManager;
 
     // Main song
     private var CurrentSong:String = "";
@@ -46,7 +47,6 @@ class FmodManagerPrivate {
         #end
 
         cache = FmodCache.getInstance();
-        callbackManager = FmodCallbackManager.getInstance();
     }
 
     private static function GetInstance():FmodManagerPrivate {
@@ -111,10 +111,8 @@ class FmodManagerPrivate {
         // Call native FMOD update
         backend.update();
 
-        // Process callbacks using the callback manager (now handle-based)
-        callbackManager.processCallbacks((handle, mask) -> {
-            return backend.checkCallbacksForEventInstance(handle, mask);
-        });
+        // Drain the native callback queue and dispatch typed callbacks
+        CallbackDispatcher.update();
     }
 
     private function StopAllSounds() {
@@ -237,7 +235,7 @@ class FmodManagerPrivate {
     }
 
     private function ClearAllCallbacks() {
-        callbackManager.clearAll();
+        CallbackDispatcher.clearAll();
     }
 
     private function GetEventParameterOnSong(parameterName:String):Float {
@@ -344,10 +342,10 @@ class FmodManagerPrivate {
     private function ReleaseSound(soundId:String) {
         var handle = getHandle(soundId);
         if (handle != FmodCache.INVALID_HANDLE) {
+            CallbackDispatcher.remove(handle);
             backend.releaseEventInstance(handle);
         }
         cache.unregisterEventInstance(soundId);
-        callbackManager.unregisterCallback(soundId);
     }
 
     private function GetEventParameterOnSound(soundId:String, parameterName:String):Float {
@@ -370,29 +368,31 @@ class FmodManagerPrivate {
     private function RegisterCallbacksForSong(callback:Void->Void, playbackEventMask:UInt) {
         var handle = getHandle(SongEventInstance);
         if (handle == FmodCache.INVALID_HANDLE) return;
-
-        var eventPath = cache.getEventPath(SongEventInstance);
-        if (eventPath == null) eventPath = CurrentSong;
-        callbackManager.registerCallback(SongEventInstance, eventPath, handle, callback, playbackEventMask);
-        backend.setCallbackTrackingForEventInstance(handle);
+        CallbackDispatcher.setCallback(handle, _ -> callback(), playbackEventMask);
     }
 
     private function UnregisterCallbacksForSong() {
-        callbackManager.unregisterCallback(SongEventInstance);
+        CallbackDispatcher.remove(getHandle(SongEventInstance));
     }
 
     private function RegisterCallbacksForSound(soundId:String, callback:Void->Void, playbackEventMask:UInt) {
         var handle = getHandle(soundId);
         if (handle == FmodCache.INVALID_HANDLE) return;
-
-        var eventPath = cache.getEventPath(soundId);
-        if (eventPath == null) eventPath = soundId;
-        callbackManager.registerCallback(soundId, eventPath, handle, callback, playbackEventMask);
-        backend.setCallbackTrackingForEventInstance(handle);
+        CallbackDispatcher.setCallback(handle, _ -> callback(), playbackEventMask);
     }
 
     private function UnregisterCallbacksForSound(soundId:String) {
-        callbackManager.unregisterCallback(soundId);
+        CallbackDispatcher.remove(getHandle(soundId));
+    }
+
+    /**
+     * Registers a typed payload-carrying callback on the current song
+     * instance (timeline beats, markers, playback lifecycle).
+     */
+    private function OnSongEvent(handler:EventCallbackData->Void, ?playbackEventMask:Int) {
+        var handle = getHandle(SongEventInstance);
+        if (handle == FmodCache.INVALID_HANDLE) return;
+        CallbackDispatcher.setCallback(handle, handler, playbackEventMask);
     }
 
     //// Utility

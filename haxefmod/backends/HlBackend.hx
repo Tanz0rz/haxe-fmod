@@ -157,15 +157,6 @@ class HlBackend implements IFmodBackend {
         return HlFmod.get_bus_mute(toBytes(busPath));
     }
 
-    //// Callbacks
-
-    public function setCallbackTrackingForEventInstance(handle:FmodEventHandle):Void {
-        HlFmod.enable_callbacks(handle);
-    }
-
-    public function checkCallbacksForEventInstance(handle:FmodEventHandle, callbackEventMask:UInt):Bool {
-        return HlFmod.poll_callbacks(handle, callbackEventMask);
-    }
 }
 
 /**
@@ -204,9 +195,5 @@ private extern class HlFmod {
     static function get_bus_volume(path:hl.Bytes):Float;
     static function set_bus_mute(path:hl.Bytes, mute:Bool):Void;
     static function get_bus_mute(path:hl.Bytes):Bool;
-
-    // Callbacks
-    static function enable_callbacks(handle:Int):Void;
-    static function poll_callbacks(handle:Int, mask:Int):Bool;
 }
 #end

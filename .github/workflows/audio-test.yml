@@ -239,6 +239,32 @@ jobs:
           fi
           echo "API probe passed"
 
+      - name: Run callback test
+        run: |
+          export DISPLAY=:99
+
+          BIN_DIR="example-project/EZPlatformer/export/linux64/bin"
+          if [ ! -d "$BIN_DIR" ]; then
+            BIN_DIR="example-project/EZPlatformer/export/linux/bin"
+          fi
+
+          export HAXEFMOD_TEST_STATE=cb-test
+          cd "$BIN_DIR"
+          ./run.sh > /tmp/cb-test-linux-cpp.log 2>&1 &
+          GAME_PID=$!
+          cd -
+          for i in $(seq 30); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill $GAME_PID 2>/dev/null || true
+          wait $GAME_PID 2>/dev/null || true
+
+          grep "CB_TEST:" /tmp/cb-test-linux-cpp.log
+          grep -q "CB_TEST: Stopped" /tmp/cb-test-linux-cpp.log
+          grep -q "CB_TEST: COMPLETE" /tmp/cb-test-linux-cpp.log
+          echo "Callback test passed"
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         if: always()
@@ -249,6 +275,7 @@ jobs:
             /tmp/game-linux-cpp.log
             /tmp/volume-test-linux-cpp.wav
             /tmp/api-probe-linux-cpp.log
+            /tmp/cb-test-linux-cpp.log
           if-no-files-found: warn
 
   # ===========================================================================
@@ -489,6 +516,31 @@ jobs:
           fi
           echo "API probe passed"
 
+      - name: Run callback test
+        run: |
+          export DISPLAY=:99
+
+          BIN_DIR="example-project/EZPlatformer/export/hl/bin"
+
+          export HAXEFMOD_TEST_STATE=cb-test
+          cd "$BIN_DIR"
+          export LD_LIBRARY_PATH="$(pwd):$LD_LIBRARY_PATH"
+          EXE=$(find . -maxdepth 1 -type f -executable ! -name "*.so*" ! -name "*.hdll" ! -name "run.sh" -print -quit)
+          "$EXE" > /tmp/cb-test-linux-hl.log 2>&1 &
+          GAME_PID=$!
+          cd -
+          for i in $(seq 30); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill $GAME_PID 2>/dev/null || true
+          wait $GAME_PID 2>/dev/null || true
+
+          grep "CB_TEST:" /tmp/cb-test-linux-hl.log
+          grep -q "CB_TEST: Stopped" /tmp/cb-test-linux-hl.log
+          grep -q "CB_TEST: COMPLETE" /tmp/cb-test-linux-hl.log
+          echo "Callback test passed"
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         if: always()
@@ -499,6 +551,7 @@ jobs:
             /tmp/game-linux-hl.log
             /tmp/volume-test-linux-hl.wav
             /tmp/api-probe-linux-hl.log
+            /tmp/cb-test-linux-hl.log
             /tmp/volume-test-linux-hl.log
           if-no-files-found: warn
 
@@ -852,28 +905,34 @@ jobs:
             --no-sandbox \
             --disable-gpu \
             --autoplay-policy=no-user-gesture-required \
+            --enable-logging=stderr --v=0 \
             --window-size=640,480 \
             --window-position=0,0 \
-            http://localhost:8081 &
+            http://localhost:8081 > /tmp/volume-test-html5-console.log 2>&1 &
           CHROME_PID=$!
           sleep 3
 
           xdotool mousemove 320 240 click 1
           sleep 1
 
-          ffmpeg -f pulse -i virtual_speaker.monitor -t 20 -y /tmp/volume-test-html5.wav &
+          ffmpeg -f pulse -i virtual_speaker.monitor -t 25 -y /tmp/volume-test-html5.wav &
           RECORD_PID=$!
 
-          sleep 21
+          sleep 26
 
           kill $CHROME_PID || true
           kill $HTTP_PID || true
           wait $RECORD_PID || true
 
+          echo "=== Volume test console output ==="
+          grep -o "VOLUME_TEST.*" /tmp/volume-test-html5-console.log | sed 's/",.*$//' || true
+          echo "=== End volume test console output ==="
+
       - name: Validate volume/mute
         run: ./ci/validate-volume.sh /tmp/volume-test-html5.wav 15
 
       - name: Run API probe (JS binding coverage)
+        if: ${{ !cancelled() }}
         run: |
           export DISPLAY=:99
 
@@ -909,6 +968,38 @@ jobs:
           fi
           echo "API probe passed"
 
+      - name: Run callback test (JS payload delivery)
+        if: ${{ !cancelled() }}
+        run: |
+          export DISPLAY=:99
+
+          cd example-project/EZPlatformer/export/html5/bin
+          python3 -m http.server 8083 &
+          HTTP_PID=$!
+          sleep 1
+
+          chromium-browser \
+            --no-sandbox \
+            --disable-gpu \
+            --autoplay-policy=no-user-gesture-required \
+            --enable-logging=stderr --v=0 \
+            --window-size=640,480 \
+            --window-position=0,0 \
+            "http://localhost:8083/index.html?test=cb-test" > /tmp/cb-test-raw.log 2>&1 &
+          CHROME_PID=$!
+          sleep 3
+
+          xdotool mousemove 320 240 click 1
+          sleep 15
+
+          kill $CHROME_PID || true
+          kill $HTTP_PID || true
+
+          grep -o "CB_TEST:.*" /tmp/cb-test-raw.log | sed 's/",.*$//' | tee /tmp/cb-test-html5.log
+          grep -q "CB_TEST: Stopped" /tmp/cb-test-html5.log
+          grep -q "CB_TEST: COMPLETE" /tmp/cb-test-html5.log
+          echo "Callback test passed"
+
       - name: Upload audio artifact
         uses: actions/upload-artifact@v4
         if: always()
@@ -917,7 +1008,9 @@ jobs:
           path: |
             /tmp/audio-html5.wav
             /tmp/volume-test-html5.wav
+            /tmp/volume-test-html5-console.log
             /tmp/api-probe-html5.log
+            /tmp/cb-test-html5.log
           if-no-files-found: warn
 
   # ===========================================================================

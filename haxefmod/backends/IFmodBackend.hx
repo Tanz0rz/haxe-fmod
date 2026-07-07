@@ -80,12 +80,4 @@ interface IFmodBackend {
     function getBusVolume(busPath:String):Float;
     function setBusMute(busPath:String, mute:Bool):Void;
     function getBusMute(busPath:String):Bool;
-
-    //// Callbacks
-
-    /** Enables callback tracking for an event instance */
-    function setCallbackTrackingForEventInstance(handle:FmodEventHandle):Void;
-
-    /** Checks and clears callback flags for an event instance */
-    function checkCallbacksForEventInstance(handle:FmodEventHandle, callbackEventMask:UInt):Bool;
 }

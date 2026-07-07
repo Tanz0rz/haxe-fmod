@@ -150,15 +150,6 @@ class JsBackend implements IFmodBackend {
         return JsFmod.fmod_get_bus_mute(busPath);
     }
 
-    //// Callbacks
-
-    public function setCallbackTrackingForEventInstance(handle:FmodEventHandle):Void {
-        JsFmod.fmod_enable_callbacks(handle);
-    }
-
-    public function checkCallbacksForEventInstance(handle:FmodEventHandle, callbackEventMask:UInt):Bool {
-        return JsFmod.fmod_poll_callbacks(handle, callbackEventMask);
-    }
 }
 
 /**
@@ -198,9 +189,5 @@ private extern class JsFmod {
     public static function fmod_get_bus_volume(path:String):Float;
     public static function fmod_set_bus_mute(path:String, mute:Bool):Void;
     public static function fmod_get_bus_mute(path:String):Bool;
-
-    // Callbacks
-    public static function fmod_enable_callbacks(handle:Int):Void;
-    public static function fmod_poll_callbacks(handle:Int, mask:Int):Bool;
 }
 #end

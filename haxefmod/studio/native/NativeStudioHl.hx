@@ -37,6 +37,16 @@ class NativeStudioHl {
     /** Fills Scratch int buffer: [0]=exclusive, [1]=inclusive, [2]=sampledata (bytes) */
     public static inline function bus_get_memory_usage(handle:Int):Int return Raw.bus_get_memory_usage(handle, Scratch.intBuf());
 
+    // Callbacks
+    public static inline function evi_set_callback_mask(handle:Int, mask:Int):Int return Raw.evi_set_callback_mask(handle, mask);
+    public static inline function cb_next():Bool return Raw.cb_next();
+    public static inline function cb_handle():Int return Raw.cb_handle();
+    public static inline function cb_type():Int return Raw.cb_type();
+    public static inline function cb_int(index:Int):Int return Raw.cb_int(index);
+    public static inline function cb_float():Float return Raw.cb_float();
+    public static inline function cb_string():String return fromBytes(Raw.cb_string());
+    public static inline function cb_take_overflow():Bool return Raw.cb_take_overflow();
+
     // Debug
     public static inline function debug_live_handle_count():Int return Raw.debug_live_handle_count();
 }
@@ -58,6 +68,14 @@ private extern class Raw {
     static function bus_stop_all_events(handle:Int, stopMode:Int):Int;
     static function bus_get_cpu_usage(handle:Int, out:hl.Bytes):Int;
     static function bus_get_memory_usage(handle:Int, out:hl.Bytes):Int;
+    static function evi_set_callback_mask(handle:Int, mask:Int):Int;
+    static function cb_next():Bool;
+    static function cb_handle():Int;
+    static function cb_type():Int;
+    static function cb_int(index:Int):Int;
+    static function cb_float():Float;
+    static function cb_string():hl.Bytes;
+    static function cb_take_overflow():Bool;
     static function debug_live_handle_count():Int;
 }
 #end

@@ -25,6 +25,8 @@ class LoadFmodState extends FlxState {
             switch (TestConfig.testState()) {
                 case "api-probe":
                     FlxG.switchState(ApiProbeState.new);
+                case "cb-test":
+                    FlxG.switchState(BeatTestState.new);
                 default:
                     FlxG.switchState(VolumeTestState.new);
             }

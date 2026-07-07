@@ -34,6 +34,16 @@ class NativeStudioCpp {
     /** Fills Scratch int buffer: [0]=exclusive, [1]=inclusive, [2]=sampledata (bytes) */
     public static inline function bus_get_memory_usage(handle:Int):Int return Raw.bus_get_memory_usage(handle, Scratch.intBuf());
 
+    // Callbacks
+    public static inline function evi_set_callback_mask(handle:Int, mask:Int):Int return Raw.evi_set_callback_mask(handle, mask);
+    public static inline function cb_next():Bool return Raw.cb_next();
+    public static inline function cb_handle():Int return Raw.cb_handle();
+    public static inline function cb_type():Int return Raw.cb_type();
+    public static inline function cb_int(index:Int):Int return Raw.cb_int(index);
+    public static inline function cb_float():Float return Raw.cb_float();
+    public static inline function cb_string():String return Raw.cb_string().toString();
+    public static inline function cb_take_overflow():Bool return Raw.cb_take_overflow();
+
     // Debug
     public static inline function debug_live_handle_count():Int return Raw.debug_live_handle_count();
 }
@@ -85,6 +95,30 @@ private extern class Raw {
 
     @:native("linc::faxe::fmod_bus_get_memory_usage")
     static function bus_get_memory_usage(handle:Int, out:Array<Int>):Int;
+
+    @:native("linc::faxe::fmod_evi_set_callback_mask")
+    static function evi_set_callback_mask(handle:Int, mask:Int):Int;
+
+    @:native("linc::faxe::fmod_cb_next")
+    static function cb_next():Bool;
+
+    @:native("linc::faxe::fmod_cb_handle")
+    static function cb_handle():Int;
+
+    @:native("linc::faxe::fmod_cb_type")
+    static function cb_type():Int;
+
+    @:native("linc::faxe::fmod_cb_int")
+    static function cb_int(index:Int):Int;
+
+    @:native("linc::faxe::fmod_cb_float")
+    static function cb_float():Float;
+
+    @:native("linc::faxe::fmod_cb_string")
+    static function cb_string():cpp.ConstCharStar;
+
+    @:native("linc::faxe::fmod_cb_take_overflow")
+    static function cb_take_overflow():Bool;
 
     @:native("linc::faxe::fmod_debug_live_handle_count")
     static function debug_live_handle_count():Int;

@@ -429,6 +429,20 @@ class FmodManager {
     }
 
     /**
+        Registers a typed callback on the current song that receives full
+        payload data (timeline beats with bar/beat/tempo, timeline markers
+        with names, and playback lifecycle events).
+
+        Replaces any previously registered song callback. Requires
+        FmodManager.Update() to be called in the game loop.
+        @param handler Receives one EventCallbackData value per event
+        @param playbackEventMask Optional bitmask of EventCallbackType values (defaults to all playback events)
+    **/
+    public static function OnSongEvent(handler:haxefmod.studio.Callbacks.EventCallbackData->Void, ?playbackEventMask:Int) {
+        FmodManagerPrivate.GetInstance().OnSongEvent(handler, playbackEventMask);
+    }
+
+    /**
         Disables callbacks for the current song
     **/
     private function UnregisterCallbacksForSong() {

@@ -7,7 +7,7 @@ class RunTests {
 
 		var totalFailed = 0;
 		totalFailed += TestFmodCache.run();
-		totalFailed += TestFmodCallbackManager.run();
+		totalFailed += TestCallbackDispatcher.run();
 		totalFailed += TestVersionParsing.run();
 
 		Sys.println("");

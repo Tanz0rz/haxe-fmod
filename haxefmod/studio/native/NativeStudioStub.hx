@@ -27,6 +27,16 @@ class NativeStudioStub {
     public static function bus_get_cpu_usage(handle:Int):Int return ERR_UNSUPPORTED;
     public static function bus_get_memory_usage(handle:Int):Int return ERR_UNSUPPORTED;
 
+    // Callbacks
+    public static function evi_set_callback_mask(handle:Int, mask:Int):Int return ERR_UNSUPPORTED;
+    public static function cb_next():Bool return false;
+    public static function cb_handle():Int return 0;
+    public static function cb_type():Int return 0;
+    public static function cb_int(index:Int):Int return 0;
+    public static function cb_float():Float return 0.0;
+    public static function cb_string():String return "";
+    public static function cb_take_overflow():Bool return false;
+
     // Debug
     public static function debug_live_handle_count():Int return 0;
 }

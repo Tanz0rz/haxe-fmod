@@ -15,6 +15,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include "../shared/faxe_handles.h"
+#include "../shared/faxe_cbqueue.h"
 
 // F_CALLBACK was removed in newer FMOD SDKs
 #ifndef F_CALLBACK
@@ -32,6 +33,12 @@
 static FMOD_STUDIO_SYSTEM* gStudioSystem = NULL;
 static FMOD_SYSTEM* gCoreSystem = NULL;
 
+// Result of the most recent studio binding call made from the Haxe thread.
+static FMOD_RESULT gLastResult = FMOD_OK;
+// Static buffer for string out-params. Contents are only valid until the
+// next binding call; the Haxe wrappers copy immediately.
+static char gStringBuf[512];
+
 // Auto-update thread state
 static volatile int gAutoUpdateRunning = 0;
 #ifdef _WIN32
@@ -41,27 +48,68 @@ static pthread_t gUpdateThread;
 static int gThreadCreated = 0;
 #endif
 
-// Instance handles live in the shared generational table (faxe_handles.h).
-// Legacy callback flags, indexed by slot index (replaced by payload queue in M2).
-// Fixed size so the FMOD callback thread never races a Haxe-thread realloc.
-static unsigned int gCbFlags[FAXE_MAX_SLOTS];
-
 // Resolve an event instance handle to its FMOD pointer (NULL if stale/invalid)
 static FMOD_STUDIO_EVENTINSTANCE* resolve_instance(int h) {
     return (FMOD_STUDIO_EVENTINSTANCE*)faxe_handle_resolve(h, FAXE_TYPE_EVI);
 }
 
 // Callback - runs on an FMOD thread, NOT an HL thread. Must not touch the
-// handle table or any HL values; the instance's handle is read back from
-// FMOD userdata instead.
+// handle table or any HL values; it reads the instance handle back from FMOD
+// userdata, copies payloads into a plain C record, and pushes it onto the
+// shared queue. The Haxe thread drains the queue during update().
 static FMOD_RESULT F_CALLBACK eventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type,
     FMOD_STUDIO_EVENTINSTANCE* event, void* parameters) {
     void* userData = NULL;
+    int handle;
+    FaxeCbEvent ev;
+
     FMOD_Studio_EventInstance_GetUserData(event, &userData);
-    int handle = (int)(intptr_t)userData;
-    if (handle > 0) {
-        gCbFlags[handle & 0xFFFF] |= type;
+    handle = (int)(intptr_t)userData;
+    if (handle <= 0) return FMOD_OK;
+
+    memset(&ev, 0, sizeof(ev));
+    ev.handle = handle;
+    ev.type = (uint32_t)type;
+
+    switch (type) {
+        case FMOD_STUDIO_EVENT_CALLBACK_TIMELINE_MARKER: {
+            const FMOD_STUDIO_TIMELINE_MARKER_PROPERTIES* props =
+                (const FMOD_STUDIO_TIMELINE_MARKER_PROPERTIES*)parameters;
+            if (props) {
+                if (props->name) {
+                    strncpy(ev.str, props->name, FAXE_CBQ_STR_MAX - 1);
+                }
+                ev.i1 = props->position;
+            }
+            break;
+        }
+        case FMOD_STUDIO_EVENT_CALLBACK_TIMELINE_BEAT: {
+            const FMOD_STUDIO_TIMELINE_BEAT_PROPERTIES* props =
+                (const FMOD_STUDIO_TIMELINE_BEAT_PROPERTIES*)parameters;
+            if (props) {
+                ev.i1 = props->bar;
+                ev.i2 = props->beat;
+                ev.i3 = props->position;
+                ev.f1 = props->tempo;
+            }
+            break;
+        }
+        case FMOD_STUDIO_EVENT_CALLBACK_NESTED_TIMELINE_BEAT: {
+            const FMOD_STUDIO_TIMELINE_NESTED_BEAT_PROPERTIES* props =
+                (const FMOD_STUDIO_TIMELINE_NESTED_BEAT_PROPERTIES*)parameters;
+            if (props) {
+                ev.i1 = props->properties.bar;
+                ev.i2 = props->properties.beat;
+                ev.i3 = props->properties.position;
+                ev.f1 = props->properties.tempo;
+            }
+            break;
+        }
+        default:
+            break;
     }
+
+    faxe_cbq_push(&ev);
     return FMOD_OK;
 }
 
@@ -98,6 +146,7 @@ HL_PRIM int HL_NAME(init)(int numChannels) {
     }
 
     FMOD_Studio_System_GetCoreSystem(gStudioSystem, &gCoreSystem);
+    faxe_cbq_init();
     return FMOD_OK;
 }
 DEFINE_PRIM(_I32, init, _I32);
@@ -208,7 +257,6 @@ HL_PRIM int HL_NAME(create_instance)(vbyte* eventPath) {
     // Store the handle in userdata so FMOD-thread callbacks can find it
     // without touching the handle table.
     FMOD_Studio_EventInstance_SetUserData(instance, (void*)(intptr_t)handle);
-    gCbFlags[handle & 0xFFFF] = 0; // slot may be recycled - clear stale flags
     return handle;
 }
 DEFINE_PRIM(_I32, create_instance, _BYTES);
@@ -232,7 +280,6 @@ HL_PRIM void HL_NAME(release)(int h) {
     if (instance) {
         FMOD_Studio_EventInstance_Stop(instance, FMOD_STUDIO_STOP_IMMEDIATE);
         FMOD_Studio_EventInstance_Release(instance);
-        gCbFlags[h & 0xFFFF] = 0;
         faxe_handle_free(h);
     }
 }
@@ -340,33 +387,55 @@ DEFINE_PRIM(_BOOL, get_bus_mute, _BYTES);
 
 //// Callbacks
 
-HL_PRIM void HL_NAME(enable_callbacks)(int h) {
+HL_PRIM int HL_NAME(evi_set_callback_mask)(int h, int mask) {
     FMOD_STUDIO_EVENTINSTANCE* instance = resolve_instance(h);
-    if (instance) {
-        FMOD_Studio_EventInstance_SetCallback(instance, eventCallback,
-            FMOD_STUDIO_EVENT_CALLBACK_STARTED | FMOD_STUDIO_EVENT_CALLBACK_STOPPED |
-            FMOD_STUDIO_EVENT_CALLBACK_SOUND_PLAYED | FMOD_STUDIO_EVENT_CALLBACK_SOUND_STOPPED);
-        gCbFlags[h & 0xFFFF] = 0;
-    }
+    if (!instance) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_Studio_EventInstance_SetCallback(instance, eventCallback,
+        (FMOD_STUDIO_EVENT_CALLBACK_TYPE)(unsigned int)mask);
+    return (int)gLastResult;
 }
-DEFINE_PRIM(_VOID, enable_callbacks, _I32);
+DEFINE_PRIM(_I32, evi_set_callback_mask, _I32 _I32);
 
-HL_PRIM bool HL_NAME(poll_callbacks)(int h, int mask) {
-    if (!resolve_instance(h)) return false;
-    int idx = h & 0xFFFF;
-    bool fired = (gCbFlags[idx] & mask) != 0;
-    gCbFlags[idx] &= ~mask;
-    return fired;
+// Drain protocol: cb_next pops the oldest queued event into a static slot;
+// the accessors read fields from that slot. Haxe thread only.
+static FaxeCbEvent gCbCurrent;
+
+HL_PRIM bool HL_NAME(cb_next)() {
+    return faxe_cbq_pop(&gCbCurrent) == 1;
 }
-DEFINE_PRIM(_BOOL, poll_callbacks, _I32 _I32);
+DEFINE_PRIM(_BOOL, cb_next, _NO_ARG);
+
+HL_PRIM int HL_NAME(cb_handle)() {
+    return gCbCurrent.handle;
+}
+DEFINE_PRIM(_I32, cb_handle, _NO_ARG);
+
+HL_PRIM int HL_NAME(cb_type)() {
+    return (int)gCbCurrent.type;
+}
+DEFINE_PRIM(_I32, cb_type, _NO_ARG);
+
+HL_PRIM int HL_NAME(cb_int)(int index) {
+    return index == 0 ? gCbCurrent.i1 : (index == 1 ? gCbCurrent.i2 : gCbCurrent.i3);
+}
+DEFINE_PRIM(_I32, cb_int, _I32);
+
+HL_PRIM double HL_NAME(cb_float)() {
+    return (double)gCbCurrent.f1;
+}
+DEFINE_PRIM(_F64, cb_float, _NO_ARG);
+
+HL_PRIM vbyte* HL_NAME(cb_string)() {
+    return (vbyte*)gCbCurrent.str;
+}
+DEFINE_PRIM(_BYTES, cb_string, _NO_ARG);
+
+HL_PRIM bool HL_NAME(cb_take_overflow)() {
+    return faxe_cbq_take_overflow() == 1;
+}
+DEFINE_PRIM(_BOOL, cb_take_overflow, _NO_ARG);
 
 //// Studio System (2.0 bindings)
-
-// Result of the most recent studio binding call made from the Haxe thread.
-static FMOD_RESULT gLastResult = FMOD_OK;
-// Static buffer for string out-params. Contents are only valid until the
-// next binding call; the Haxe wrappers copy immediately.
-static char gStringBuf[512];
 
 HL_PRIM int HL_NAME(sys_last_result)() {
     return (int)gLastResult;

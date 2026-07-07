@@ -160,15 +160,6 @@ class CppBackend implements IFmodBackend {
         return CppFmod.fmod_get_bus_mute(busPath);
     }
 
-    //// Callbacks
-
-    public function setCallbackTrackingForEventInstance(handle:FmodEventHandle):Void {
-        CppFmod.fmod_enable_callbacks(handle);
-    }
-
-    public function checkCallbacksForEventInstance(handle:FmodEventHandle, callbackEventMask:UInt):Bool {
-        return CppFmod.fmod_poll_callbacks(handle, callbackEventMask);
-    }
 }
 
 /**
@@ -247,12 +238,5 @@ private extern class CppFmod {
 
     @:native("linc::faxe::fmod_get_bus_mute")
     static function fmod_get_bus_mute(path:String):Bool;
-
-    // Callbacks
-    @:native("linc::faxe::fmod_enable_callbacks")
-    static function fmod_enable_callbacks(handle:Int):Void;
-
-    @:native("linc::faxe::fmod_poll_callbacks")
-    static function fmod_poll_callbacks(handle:Int, mask:Int):Bool;
 }
 #end

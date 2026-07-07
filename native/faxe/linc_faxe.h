@@ -47,8 +47,14 @@ extern void fmod_set_bus_mute(const ::String& path, bool mute);
 extern bool fmod_get_bus_mute(const ::String& path);
 
 //// Callbacks
-extern void fmod_enable_callbacks(int handle);
-extern bool fmod_poll_callbacks(int handle, unsigned int mask);
+extern int fmod_evi_set_callback_mask(int handle, int mask);
+extern bool fmod_cb_next();
+extern int fmod_cb_handle();
+extern int fmod_cb_type();
+extern int fmod_cb_int(int index);
+extern double fmod_cb_float();
+extern const char* fmod_cb_string();
+extern bool fmod_cb_take_overflow();
 
 //// Studio System (2.0 bindings)
 extern int fmod_sys_last_result();
