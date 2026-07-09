@@ -8,6 +8,7 @@ class RunTests {
 		var totalFailed = 0;
 		totalFailed += TestCallbackDispatcher.run();
 		totalFailed += TestRuntime.run();
+		totalFailed += TestStringsBankParser.run();
 		totalFailed += TestStudioSurface.run();
 		totalFailed += TestVersionParsing.run();
 

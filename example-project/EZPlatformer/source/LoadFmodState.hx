@@ -31,6 +31,8 @@ class LoadFmodState extends FlxState {
                     FlxG.switchState(ProgrammerSoundTestState.new);
                 case "bank-test":
                     FlxG.switchState(BankLifecycleTestState.new);
+                case "pan-test":
+                    FlxG.switchState(EmitterPanTestState.new);
                 default:
                     FlxG.switchState(VolumeTestState.new);
             }

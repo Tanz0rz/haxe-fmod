@@ -33,6 +33,8 @@ class Run {
 				PostBuild.run(userArgs[1], userArgs[2], userArgs[3], cwd);
 			case "verify-native":
 				Sys.exit(NativeManifestCheck.run(libRoot));
+			case "generate":
+				Generate.run(userArgs.slice(1), cwd);
 			default:
 				printUsage();
 		}
@@ -71,6 +73,7 @@ class Run {
 		Sys.println("  check          Check your environment for correct FMOD SDK setup");
 		Sys.println("  build-hdll     Compile hlaxe_fmod.hdll from source against your FMOD SDK");
 		Sys.println("  verify-native  Verify the native shims are in lockstep with the FFI manifest");
+		Sys.println("  generate       Generate Haxe constant classes (FmodEvents, FmodBuses, ...) from Master.strings.bank");
 		Sys.println("  help           Show this message");
 	}
 
