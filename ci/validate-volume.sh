@@ -137,6 +137,13 @@ else
   echo "OK (${VOL3} dB)"
 fi
 
+# Informational profile (no gating: the muted phase is intentional silence,
+# so gap/trailing checks do not apply to volume-test recordings)
+PYTHON="python3"
+command -v python3 >/dev/null 2>&1 || PYTHON="python"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+"$PYTHON" "$SCRIPT_DIR/audio-profile.py" "$WAV_FILE" --no-gate || true
+
 echo ""
 if [ "$PASS" = true ]; then
   echo "  RESULT: PASS"
