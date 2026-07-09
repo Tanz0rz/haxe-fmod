@@ -68,6 +68,10 @@ class BeatTestState extends FlxState {
     override public function update(elapsed:Float):Void {
         super.update(elapsed);
 
+        // Drain the callback queue - typed callbacks are only delivered
+        // from FmodManager.Update(), the same way games consume them
+        FmodManager.Update();
+
         // Let the song play for 3 seconds of audio time, then soft-stop it
         if (!_stopRequested && FmodManager.GetSongTimelinePosition() >= 3000) {
             _stopRequested = true;

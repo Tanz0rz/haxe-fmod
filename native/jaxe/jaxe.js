@@ -152,6 +152,11 @@ class jaxe {
             instance.val.release();
             return -1;
         }
+        // Store the handle in FMOD userdata so callbacks can identify the
+        // instance. The wrapper object FMOD passes to callbacks is a fresh
+        // binding object each time, so JS identity (===) never matches the
+        // stored wrapper; userdata is the reliable channel (mirrors cpp/hl).
+        instance.val.setUserData(handle);
         return handle;
     }
 
@@ -203,7 +208,8 @@ class jaxe {
         var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
         if (!inst) return 0.0;
         var outval = {};
-        inst.getParameterByName(name, outval);
+        // (name, value, finalvalue) - unwanted outs must be explicit null
+        inst.getParameterByName(name, outval, null);
         return outval.val;
     }
 
@@ -239,7 +245,8 @@ class jaxe {
         var bus = {};
         if (jaxe.gSystem.getBus(path, bus) == jaxe.FMOD.OK) {
             var outval = {};
-            bus.val.getVolume(outval);
+            // (volume, finalvolume) - unwanted outs must be explicit null
+            bus.val.getVolume(outval, null);
             return outval.val;
         }
         return 0.0;
@@ -272,16 +279,17 @@ class jaxe {
     }
 
     static callbackHandler(type, event, parameters) {
-        // JS is single-threaded, so scanning the table here is safe.
+        // The event wrapper here is a fresh binding object (no JS identity
+        // with the stored wrapper), so read the handle from FMOD userdata -
+        // same mechanism as the cpp/hl shims.
         var handle = 0;
-        for (var i = 0; i < jaxe.slots.length; i++) {
-            var s = jaxe.slots[i];
-            if (s.alive && s.ptr === event) {
-                handle = (s.gen << 16) | i;
-                break;
+        if (event && event.getUserData) {
+            var ud = {};
+            if (event.getUserData(ud) == jaxe.FMOD.OK && typeof ud.val === "number") {
+                handle = ud.val | 0;
             }
         }
-        if (handle == 0) return jaxe.FMOD.OK;
+        if (handle <= 0) return jaxe.FMOD.OK;
 
         var ev = { handle: handle, type: type, i1: 0, i2: 0, i3: 0, f1: 0.0, str: "" };
 
@@ -407,7 +415,9 @@ class jaxe {
         var bus = jaxe.handleResolve(handle, jaxe.TYPE_BUS);
         if (!bus) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0.0; }
         var outval = {};
-        jaxe.lastResult = bus.getVolume(outval);
+        // FMOD JS bindings validate argument counts: unwanted out-params must
+        // be passed as an explicit null, never omitted
+        jaxe.lastResult = bus.getVolume(outval, null);
         return outval.val || 0.0;
     }
 
