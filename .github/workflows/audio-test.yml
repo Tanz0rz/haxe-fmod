@@ -529,6 +529,42 @@ jobs:
           bin-dir: example-project/EZPlatformer/export/hl/bin
           log-file: /tmp/pan-test-linux-hl.log
 
+      # Short smoke of the stress state so the weekly stress-test workflow
+      # cannot rot unnoticed; the full soak runs on its own schedule
+      - name: Run stress-test state (smoke)
+        if: ${{ !cancelled() }}
+        run: |
+          export DISPLAY=:99
+
+          BIN_DIR="example-project/EZPlatformer/export/hl/bin"
+
+          export HAXEFMOD_TEST_STATE=stress-test
+          export STRESS_SECONDS=15
+          cd "$BIN_DIR"
+          export LD_LIBRARY_PATH="$(pwd):$LD_LIBRARY_PATH"
+          EXE=$(find . -maxdepth 1 -type f -executable ! -name "*.so*" ! -name "*.hdll" ! -name "*.sh" ! -name "*.dat" -print -quit)
+          "$EXE" > /tmp/stress-smoke-linux-hl.log 2>&1 &
+          GAME_PID=$!
+          cd -
+          for i in $(seq 90); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill $GAME_PID 2>/dev/null || true
+          wait $GAME_PID 2>/dev/null || true
+
+          grep "STRESS_TEST:" /tmp/stress-smoke-linux-hl.log || true
+          if ! grep -q "STRESS_TEST: COMPLETE" /tmp/stress-smoke-linux-hl.log; then
+            echo "Stress smoke never completed - full log:"
+            cat /tmp/stress-smoke-linux-hl.log
+            exit 1
+          fi
+          if grep -q "pass=false" /tmp/stress-smoke-linux-hl.log; then
+            echo "Stress smoke reported failing checks"
+            exit 1
+          fi
+          echo "Stress smoke passed"
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         if: always()
@@ -543,6 +579,7 @@ jobs:
             /tmp/ps-test-linux-hl.log
             /tmp/bank-test-linux-hl.log
             /tmp/pan-test-linux-hl.log
+            /tmp/stress-smoke-linux-hl.log
             /tmp/volume-test-linux-hl.log
           if-no-files-found: warn
           overwrite: true
