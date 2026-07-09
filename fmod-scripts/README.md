@@ -1,3 +1,13 @@
+# DEPRECATED
+
+This FMOD Studio-side script is deprecated as of haxefmod 2.0. Generate constants directly from your built banks instead:
+
+```
+haxelib run haxefmod generate
+```
+
+It parses `Master.strings.bank` and emits `FmodEvents.hx`, `FmodBuses.hx`, `FmodVCAs.hx`, `FmodSnapshots.hx`, and `FmodParameters.hx` with no FMOD Studio scripting setup. The instructions below remain for 1.x users.
+
 # Connecting Bank Events to Your Code
 
 This script utilizes a very cool feature in FMOD Studio to give your code access to an always-up-to-date list of every event in your sound bank (using autocomplete!).

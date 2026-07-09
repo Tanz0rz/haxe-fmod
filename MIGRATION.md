@@ -1,0 +1,119 @@
+# Migrating from haxefmod 1.x to 2.0
+
+haxefmod 2.0 is a clean break: the string-based sound IDs and bitmask
+polling callbacks are gone, replaced by typed handles and payload-carrying
+callbacks, and the full FMOD Studio API is now exposed underneath the
+facade. This guide maps every removed 1.x API to its replacement.
+
+## The big picture
+
+2.0 is layered. Use whichever layer fits:
+
+- `FmodManager` - the friendly facade (song slot + sound effects), same
+  spirit as 1.x.
+- `haxefmod.runtime.FmodRuntime` - engine-agnostic runtime: settings,
+  refcounted banks, 3D attachment, listeners.
+- `haxefmod.studio.*` - the complete FMOD Studio API (events, buses,
+  VCAs, banks, parameters, profiling). Anything the facade does not
+  cover is available here; no more waiting on library changes.
+
+## Removed APIs and their replacements
+
+### Sound effects: string IDs -> FmodSound handles
+
+| 1.x | 2.0 |
+|---|---|
+| `PlaySoundWithReference(path):String` | `PlaySound(path):FmodSound` |
+| `PlaySoundAndAssignId(path, id):String` | `PlaySound(path):FmodSound` (keep the handle instead of an ID) |
+| `StopSound(id)` | `sound.stop()` |
+| `StopSoundImmediately(id)` | `sound.stopImmediately()` |
+| `PauseSound(id)` / `UnpauseSound(id)` | `sound.pause()` / `sound.unpause()` |
+| `IsSoundPlaying(id)` | `sound.isPlaying()` |
+| `IsSoundLoaded(id)` | `!sound.isNull()` |
+| `GetEventParameterOnSound(id, name)` | `sound.getParameter(name)` |
+| `SetEventParameterOnSound(id, name, v)` | `sound.setParameter(name, v)` |
+| `ReleaseSound(id)` | `sound.release()` |
+
+`FmodSound` is a zero-cost typed handle. Cast it to
+`haxefmod.studio.EventInstance` for the full instance API (pitch, 3D
+attributes, timeline control, labeled parameters, and more).
+
+### Callbacks: bitmask polling -> typed payloads
+
+| 1.x | 2.0 |
+|---|---|
+| `RegisterCallbacksForSong(cb, mask)` | `OnSongEvent(data -> switch (data) { ... })` |
+| `RegisterCallbacksForSound(id, cb, mask)` | `sound.onEvent(data -> ...)` |
+| `RegisterEventListener(listener)` | `OnSongEvent` / `sound.onEvent` |
+| `FmodCallback` bitmask constants | `haxefmod.studio.Callbacks.EventCallbackType` |
+
+Callbacks now carry payloads: `TimelineBeat(bar, beat, positionMs, tempo)`,
+`TimelineMarker(name, positionMs)`, `Stopped`, and the rest of the
+playback lifecycle. Handlers fire once per event (1.x coalesced repeats
+into one poll per frame) and replace the previous handler for the same
+instance when registered again.
+
+### Master volume aliases
+
+| 1.x | 2.0 |
+|---|---|
+| `SetMasterVolume(v)` / `GetMasterVolume()` | `SetBusVolumeMaster(v)` / `GetBusVolumeMaster()` |
+| `SetMasterMute(m)` / `GetMasterMute()` | `SetBusMuteMaster(m)` / `GetBusMuteMaster()` |
+
+### Removed without replacement
+
+- `CheckIfUpdateIsBeingCalled()` - internal diagnostic; call
+  `FmodManager.Update()` every frame (or add `FmodFlxUpdater`).
+
+## Behavior changes in kept APIs
+
+- `Initialize(?settings)` now accepts `haxefmod.runtime.FmodSettings`
+  (channels, sample rate, bank folder, auto-loaded banks, log level).
+- **Live Update is no longer always on.** It defaults to on only in
+  `-debug` builds. Force it with `Initialize({liveUpdate: true})` or
+  `-D haxefmod_live_update` (this restores the 1.x firewall prompt).
+- `PlaySongTransition` with nothing playing now starts the song
+  immediately (1.x silently did nothing until a song existed).
+- Switching songs with `PlaySong` now releases the previous song
+  instance (1.x deliberately leaked it to work around an html5 issue
+  that is fixed in 2.0).
+- Song/sound callbacks registered through the removed `Register*` APIs
+  fired at most once per frame; typed handlers fire once per event.
+- html5: `Destroyed` events are not delivered (an FMOD JS binding
+  limitation); handler cleanup happens in `release()` instead.
+
+## Bank loading
+
+1.x loaded the master banks behind the scenes and `unloadBank` was a
+no-op. 2.0 loads them through a refcounted registry with real unload:
+
+```haxe
+FmodRuntime.banks.load(FmodRuntime.bankPath("SFX.bank"));
+FmodRuntime.banks.unload(FmodRuntime.bankPath("SFX.bank")); // real unload at refcount 0
+```
+
+Async loading: `FmodRuntime.banks.loadAsync(path)` then poll
+`loadingState(path)`, or use `FmodFlxBankLoader` in HaxeFlixel games.
+
+## Constants generation
+
+The FMOD Studio-side script is deprecated. Generate constants straight
+from your built banks:
+
+```
+haxelib run haxefmod generate
+```
+
+This parses `assets/fmod/Desktop/Master.strings.bank` and writes
+`FmodEvents.hx`, `FmodBuses.hx`, `FmodVCAs.hx`, `FmodSnapshots.hx`, and
+`FmodParameters.hx` (with GUID companions) into `source/`.
+
+## New in 2.0 (no 1.x equivalent)
+
+- Full Studio API: `StudioSystem.getEvent/getBus/getVCA/getBank`,
+  GUID lookups, global parameters, labeled parameters, profiling.
+- 3D: `FmodFlxEmitter`, `FmodFlxListener`, `FmodRuntime.attach`,
+  `EventInstance.setPosition2D`, multi-listener support.
+- Programmer sounds: `instance.assignProgrammerSound(key)` resolves
+  audio-table keys (or file paths on native targets) on the FMOD thread.
+- `FmodFlxBankLoader`, `FmodFlxParameterTrigger` components.

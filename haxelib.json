@@ -4,8 +4,8 @@
 	"license" : "MIT",
 	"tags": ["fmod", "audio", "windows", "linux", "mac", "hashlink", "html5", "web", "openfl", "lime"],
 	"description" : "Use FMOD Studio with Haxe on HTML5, HashLink, Windows, Linux, and macOS",
-	"version" : "1.1.2-beta",
-	"releasenote" : "Fixes HashLink build error on Linux",
+	"version" : "2.0.0",
+	"releasenote" : "Full FMOD Studio API at runtime, typed sound handles and payload callbacks, refcounted banks, flixel components, and bank-driven constants generation. See MIGRATION.md",
 	"contributors" : ["Tanz0rz"],
 	"dependencies" : { },
 	"main" : "haxefmod.tools.Run"
