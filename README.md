@@ -21,12 +21,12 @@ Having problems? Join the [Haxe Discord](https://discord.com/channels/1623951453
 
 ## <a name="features"></a>Features
 - The full [FMOD Studio API](https://www.fmod.com/docs/2.03/api/studio-api.html) at runtime: events, buses, VCAs, snapshots, banks, global and labeled [parameters](https://www.fmod.com/docs/2.03/studio/parameters-reference.html), 3D/listeners, and profiling - with a friendly facade on top for the common cases
-- Typed, payload-carrying [callbacks](https://www.fmod.com/docs/2.03/api/studio-api-eventinstance.html#fmod_studio_event_callback_type): react to beats, timeline markers, and playback lifecycle with real data instead of polling
+- Typed, payload-carrying [callbacks](https://www.fmod.com/docs/2.03/api/studio-api-eventinstance.html#fmod_studio_event_callback_type): react to beats, timeline markers, and playback lifecycle events, each with its payload
 - Refcounted bank loading with real unload and async loading
 - HaxeFlixel components: emitter and listener for positional audio, bank loader, and zone-based parameter triggers
 - Programmer sounds for dialogue and other runtime-selected audio
 - [Live Update](https://fmod.com/docs/2.03/studio/editing-during-live-update.html) for mixing sounds while playtesting (on by default in debug builds)
-- `haxelib run haxefmod generate`: event/bus/VCA/parameter constants generated straight from your built banks - no FMOD Studio scripting required
+- `haxelib run haxefmod generate`: event/bus/VCA/parameter constants generated straight from your built banks
 
 ## <a name="supported-platforms"></a>Supported Platforms
 
@@ -145,7 +145,7 @@ lime test mac
 
 ## <a name="api-layers"></a>The API Layers
 
-Everything in 2.0 is layered, and every layer is public - the facade is a convenience, not a wall:
+Everything in 2.0 is layered, and every layer is public:
 
 | Layer | Use it for |
 |---|---|

@@ -77,6 +77,9 @@ class BankLifecycleTestState extends FlxState {
         check("unload_strings", FmodRuntime.banks.unload(stringsPath), "");
         check("master_gone", !FmodRuntime.banks.isLoaded(masterPath), "");
 
+        // Bank unloads process asynchronously; block until FMOD applies them
+        StudioSystem.flushCommands();
+
         // Events must stop resolving after their bank is unloaded
         var missing = StudioSystem.getEvent(FmodSongs.MainLevel);
         check("event_not_found_after_unload", missing.isNull(),
