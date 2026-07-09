@@ -51,10 +51,14 @@ runs:
         GATE="${{ inputs.gate }}"
 
         if [ "${{ inputs.copy-jump-wav }}" = "true" ]; then
-          # FMOD resolves the path relative to the process cwd, which is
-          # bin-dir on every platform (the state runs from there)
+          # FMOD resolves the path relative to the process cwd: bin-dir on
+          # Linux/Windows, but lime Mac apps chdir to Contents/Resources
           mkdir -p "$BIN_DIR/assets/fmod"
           cp example-project/EZPlatformer/fmod/Assets/Jump.wav "$BIN_DIR/assets/fmod/Jump.wav"
+          if [ -d "$BIN_DIR/../Resources" ]; then
+            mkdir -p "$BIN_DIR/../Resources/assets/fmod"
+            cp example-project/EZPlatformer/fmod/Assets/Jump.wav "$BIN_DIR/../Resources/assets/fmod/Jump.wav"
+          fi
         fi
 
         export HAXEFMOD_TEST_STATE="${{ inputs.state }}"
