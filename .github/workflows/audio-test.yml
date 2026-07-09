@@ -1371,7 +1371,7 @@ jobs:
         with:
           state: api-probe
           gate: API_PROBE
-          bin-dir: example-project/EZPlatformer/export/hl/bin/*.app/Contents/MacOS example-project/EZPlatformer/export/hl/*.app/Contents/MacOS
+          bin-dir: ${{ env.APP_BUNDLE }}/Contents/MacOS
           log-file: /tmp/api-probe-mac-hl.log
           use-wavwriter: "true"
 
@@ -1381,7 +1381,7 @@ jobs:
         with:
           state: cb-test
           gate: CB_TEST
-          bin-dir: example-project/EZPlatformer/export/hl/bin/*.app/Contents/MacOS example-project/EZPlatformer/export/hl/*.app/Contents/MacOS
+          bin-dir: ${{ env.APP_BUNDLE }}/Contents/MacOS
           log-file: /tmp/cb-test-mac-hl.log
           extra-gate: "CB_TEST: Stopped"
           use-wavwriter: "true"
@@ -1392,7 +1392,7 @@ jobs:
         with:
           state: ps-test
           gate: PS_TEST
-          bin-dir: example-project/EZPlatformer/export/hl/bin/*.app/Contents/MacOS example-project/EZPlatformer/export/hl/*.app/Contents/MacOS
+          bin-dir: ${{ env.APP_BUNDLE }}/Contents/MacOS
           log-file: /tmp/ps-test-mac-hl.log
           copy-jump-wav: "true"
           use-wavwriter: "true"
@@ -1403,7 +1403,7 @@ jobs:
         with:
           state: bank-test
           gate: BANK_TEST
-          bin-dir: example-project/EZPlatformer/export/hl/bin/*.app/Contents/MacOS example-project/EZPlatformer/export/hl/*.app/Contents/MacOS
+          bin-dir: ${{ env.APP_BUNDLE }}/Contents/MacOS
           log-file: /tmp/bank-test-mac-hl.log
           use-wavwriter: "true"
 
@@ -1413,7 +1413,7 @@ jobs:
         with:
           state: pan-test
           gate: PAN_TEST
-          bin-dir: example-project/EZPlatformer/export/hl/bin/*.app/Contents/MacOS example-project/EZPlatformer/export/hl/*.app/Contents/MacOS
+          bin-dir: ${{ env.APP_BUNDLE }}/Contents/MacOS
           log-file: /tmp/pan-test-mac-hl.log
           use-wavwriter: "true"
 

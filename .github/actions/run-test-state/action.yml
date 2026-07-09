@@ -40,8 +40,9 @@ runs:
     - name: Run ${{ inputs.state }}
       shell: bash
       run: |
-        # bin-dir may be a glob (linux exports land in linux64/ or linux/)
-        BIN_DIR=$(ls -d ${{ inputs.bin-dir }} 2>/dev/null | head -1)
+        # bin-dir may be a glob (linux exports land in linux64/ or linux/).
+        # The || true keeps set -e from killing the step when a glob misses.
+        BIN_DIR=$(ls -d ${{ inputs.bin-dir }} 2>/dev/null | head -1 || true)
         if [ -z "$BIN_DIR" ]; then
           echo "No bin directory matched: ${{ inputs.bin-dir }}"
           exit 1
@@ -65,11 +66,12 @@ runs:
         case "$(uname -s)" in
           Linux*)
             export DISPLAY=:99
-            if [ -f run.sh ]; then
+            export LD_LIBRARY_PATH="$(pwd):$LD_LIBRARY_PATH"
+            # The game binary directly; PostBuild's run.sh is only a fallback
+            # (on HL builds it can point at hlboot.dat instead of the exe)
+            EXE=$(find . -maxdepth 1 -type f -executable ! -name "*.so*" ! -name "*.hdll" ! -name "*.sh" ! -name "*.dat" -print -quit)
+            if [ -z "$EXE" ] && [ -f run.sh ]; then
               EXE=./run.sh
-            else
-              export LD_LIBRARY_PATH="$(pwd):$LD_LIBRARY_PATH"
-              EXE=$(find . -maxdepth 1 -type f -executable ! -name "*.so*" ! -name "*.hdll" ! -name "run.sh" -print -quit)
             fi
             ;;
           Darwin*)
@@ -91,13 +93,18 @@ runs:
         kill $GAME_PID 2>/dev/null || true
         wait $GAME_PID 2>/dev/null || true
 
-        grep "$GATE:" "$LOG_FILE"
-        grep -q "$GATE: COMPLETE" "$LOG_FILE"
+        grep "$GATE:" "$LOG_FILE" || true
+        fail() {
+          echo "$1"
+          echo "=== Full game log ==="
+          cat "$LOG_FILE" || true
+          exit 1
+        }
+        grep -q "$GATE: COMPLETE" "$LOG_FILE" || fail "$GATE never reached COMPLETE"
         if [ -n "${{ inputs.extra-gate }}" ]; then
-          grep -q "${{ inputs.extra-gate }}" "$LOG_FILE"
+          grep -q "${{ inputs.extra-gate }}" "$LOG_FILE" || fail "missing required line: ${{ inputs.extra-gate }}"
         fi
         if grep -q "pass=false" "$LOG_FILE"; then
-          echo "$GATE reported failing checks"
-          exit 1
+          fail "$GATE reported failing checks"
         fi
         echo "$GATE passed"
