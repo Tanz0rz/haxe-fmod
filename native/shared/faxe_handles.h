@@ -97,6 +97,21 @@ static int faxe_handle_alloc(void* ptr, unsigned char type) {
     return ((int)s->gen << 16) | idx;
 }
 
+/* Returns the existing handle for a pointer already in the table (same type),
+ * or allocates a new one. Prevents duplicate handles when FMOD returns the
+ * same object from multiple lookups (e.g. getBus by path then by ID).
+ * Linear scan is fine: called only from the Haxe thread on lookup paths. */
+static int faxe_handle_find_or_alloc(void* ptr, unsigned char type) {
+    int i;
+    if (!ptr) return 0;
+    for (i = 0; i < gFaxeSlotCap; i++) {
+        if (gFaxeSlots[i].alive && gFaxeSlots[i].ptr == ptr && gFaxeSlots[i].type == type) {
+            return ((int)gFaxeSlots[i].gen << 16) | i;
+        }
+    }
+    return faxe_handle_alloc(ptr, type);
+}
+
 /* Returns the stored pointer, or NULL if the handle is stale/invalid/mistyped. */
 static void* faxe_handle_resolve(int handle, unsigned char type) {
     int idx;

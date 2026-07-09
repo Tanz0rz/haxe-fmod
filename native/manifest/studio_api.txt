@@ -58,9 +58,69 @@ cb_float -> f64
 cb_string -> str
 cb_take_overflow -> bool
 
+# Conventions for the 2.0 surface:
+# - GUIDs cross the boundary as formatted strings "{8-4-4-4-12}" both ways.
+# - Parameter IDs cross as two i32 args (data1, data2).
+# - fbuf = caller-passed scratch double buffer, ibuf = scratch int buffer
+#   (see haxefmod/studio/native/Scratch.hx); layouts documented per function.
+# - 3D attributes are 12 flattened doubles: pos xyz, vel xyz, forward xyz, up xyz.
+# - List getters fill ibuf with handles and return the count written (capped
+#   at the ibuf capacity, 64); lastResult reports errors.
+# - Functions missing from the FMOD JS API return FMOD_ERR_UNSUPPORTED (68)
+#   on the js backend: sys_get_memory_usage, bus/evi cpu+memory usage.
+
 ## Studio System (2.0 bindings)
 sys_last_result -> i32
 sys_get_bus str -> i32
+sys_get_bus_by_id str -> i32
+sys_get_event str -> i32
+sys_get_event_by_id str -> i32
+sys_get_vca str -> i32
+sys_get_vca_by_id str -> i32
+sys_get_bank str -> i32
+sys_get_bank_by_id str -> i32
+sys_get_bank_count -> i32
+# fills ibuf with bank handles, returns count
+sys_get_bank_list ibuf -> i32
+# path -> GUID string ("" + lastResult on failure)
+sys_lookup_id str -> str
+# GUID string -> path
+sys_lookup_path str -> str
+# global parameters
+sys_get_param_by_name str -> f64
+sys_get_param_by_name_final str -> f64
+sys_set_param_by_name str f64 bool -> i32
+sys_set_param_by_name_with_label str str bool -> i32
+sys_get_param_by_id i32 i32 -> f64
+sys_get_param_by_id_final i32 i32 -> f64
+sys_set_param_by_id i32 i32 f64 bool -> i32
+sys_set_param_by_id_with_label i32 i32 str bool -> i32
+sys_get_parameter_description_count -> i32
+# returns param name; fbuf: [0]=min [1]=max [2]=default; ibuf: [0]=type [1]=flags [2]=id1 [3]=id2
+sys_get_parameter_description_by_index i32 fbuf ibuf -> str
+sys_get_parameter_description_by_name str fbuf ibuf -> str
+# global parameter labels (paramName, labelIndex)
+sys_get_parameter_label str i32 -> str
+# listeners
+sys_get_num_listeners -> i32
+sys_set_num_listeners i32 -> i32
+# fbuf[0..11] = 3D attributes; index arg selects listener
+sys_get_listener_attributes i32 fbuf -> i32
+sys_set_listener_attributes i32 f64 f64 f64 f64 f64 f64 f64 f64 f64 f64 f64 f64 -> i32
+sys_get_listener_weight i32 -> f64
+sys_set_listener_weight i32 f64 -> i32
+# bank loading (flags: bit0 = nonblocking); returns bank handle or 0
+sys_load_bank_file str i32 -> i32
+sys_unload_all -> i32
+sys_flush_commands -> i32
+sys_flush_sample_loading -> i32
+# profiling; fbuf: [0]=studio update us, [1..6]=core dsp/stream/geometry/update/conv1/conv2
+sys_get_cpu_usage fbuf -> i32
+# ibuf: [0..3]=cmdqueue cur/peak/cap/stall [4..7]=handle cur/peak/cap/stall; fbuf: [0]=cmd stalltime [1]=handle stalltime
+sys_get_buffer_usage ibuf fbuf -> i32
+sys_reset_buffer_usage -> i32
+# ibuf: [0]=exclusive [1]=inclusive [2]=sampledata; ERR_UNSUPPORTED on js
+sys_get_memory_usage ibuf -> i32
 
 ## Bus (2.0 bindings)
 bus_is_valid i32 -> bool
@@ -76,6 +136,121 @@ bus_set_mute i32 bool -> i32
 bus_stop_all_events i32 i32 -> i32
 bus_get_cpu_usage i32 ibuf -> i32
 bus_get_memory_usage i32 ibuf -> i32
+
+## VCA (2.0 bindings)
+vca_is_valid i32 -> bool
+vca_get_id i32 -> str
+vca_get_path i32 -> str
+vca_get_volume i32 -> f64
+vca_get_final_volume i32 -> f64
+vca_set_volume i32 f64 -> i32
+
+## Bank (2.0 bindings)
+bank_is_valid i32 -> bool
+bank_get_id i32 -> str
+bank_get_path i32 -> str
+# real unload; frees the bank handle on success
+bank_unload i32 -> i32
+bank_load_sample_data i32 -> i32
+bank_unload_sample_data i32 -> i32
+bank_get_loading_state i32 -> i32
+bank_get_sample_loading_state i32 -> i32
+bank_get_event_count i32 -> i32
+# fills ibuf with event description handles, returns count
+bank_get_event_list i32 ibuf -> i32
+bank_get_bus_count i32 -> i32
+bank_get_bus_list i32 ibuf -> i32
+bank_get_vca_count i32 -> i32
+bank_get_vca_list i32 ibuf -> i32
+bank_get_string_count i32 -> i32
+# string table path by index
+bank_get_string_info i32 i32 -> str
+# string table GUID by index (formatted string)
+bank_get_string_guid i32 i32 -> str
+
+## EventDescription (2.0 bindings)
+evd_is_valid i32 -> bool
+evd_get_id i32 -> str
+evd_get_path i32 -> str
+evd_get_length i32 -> i32
+# fbuf: [0]=min [1]=max
+evd_get_min_max_distance i32 fbuf -> i32
+evd_get_sound_size i32 -> f64
+evd_is_snapshot i32 -> bool
+evd_is_oneshot i32 -> bool
+evd_is_stream i32 -> bool
+evd_is_3d i32 -> bool
+evd_is_doppler_enabled i32 -> bool
+evd_has_sustain_point i32 -> bool
+# returns instance handle or 0; stores handle in FMOD userdata for callbacks
+evd_create_instance i32 -> i32
+evd_get_instance_count i32 -> i32
+# fills ibuf with instance handles for instances created through this binding
+# (instances get fresh handles if FMOD returns ones we have not seen; count returned)
+evd_get_instance_list i32 ibuf -> i32
+evd_release_all_instances i32 -> i32
+evd_load_sample_data i32 -> i32
+evd_unload_sample_data i32 -> i32
+evd_get_sample_loading_state i32 -> i32
+evd_get_parameter_description_count i32 -> i32
+# returns param name; fbuf: [0]=min [1]=max [2]=default; ibuf: [0]=type [1]=flags [2]=id1 [3]=id2
+evd_get_parameter_description_by_index i32 i32 fbuf ibuf -> str
+evd_get_parameter_description_by_name i32 str fbuf ibuf -> str
+# (paramName, labelIndex) -> label
+evd_get_parameter_label i32 str i32 -> str
+evd_get_user_property_count i32 -> i32
+evd_get_user_property_name i32 i32 -> str
+# FMOD_STUDIO_USER_PROPERTY_TYPE (0=int 1=bool 2=float 3=string)
+evd_get_user_property_type i32 i32 -> i32
+# int/bool coerced to float
+evd_get_user_property_float i32 i32 -> f64
+evd_get_user_property_string i32 i32 -> str
+
+## EventInstance (2.0 bindings)
+evi_is_valid i32 -> bool
+# returns the description handle (cached per description, like bus lookups)
+evi_get_description i32 -> i32
+evi_start i32 -> i32
+evi_stop i32 i32 -> i32
+evi_key_off i32 -> i32
+# releases the instance and frees the handle
+evi_release i32 -> i32
+evi_get_playback_state i32 -> i32
+evi_get_paused i32 -> bool
+evi_set_paused i32 bool -> i32
+evi_get_volume i32 -> f64
+evi_get_volume_final i32 -> f64
+evi_set_volume i32 f64 -> i32
+evi_get_pitch i32 -> f64
+evi_get_pitch_final i32 -> f64
+evi_set_pitch i32 f64 -> i32
+evi_get_timeline_position i32 -> i32
+evi_set_timeline_position i32 i32 -> i32
+evi_is_virtual i32 -> bool
+# fbuf: [0]=min [1]=max
+evi_get_min_max_distance i32 fbuf -> i32
+# fbuf[0..11] = pos/vel/forward/up
+evi_get_3d_attributes i32 fbuf -> i32
+evi_set_3d_attributes i32 f64 f64 f64 f64 f64 f64 f64 f64 f64 f64 f64 f64 -> i32
+evi_get_listener_mask i32 -> i32
+evi_set_listener_mask i32 i32 -> i32
+# FMOD_STUDIO_EVENT_PROPERTY index
+evi_get_property i32 i32 -> f64
+evi_set_property i32 i32 f64 -> i32
+evi_get_reverb_level i32 i32 -> f64
+evi_set_reverb_level i32 i32 f64 -> i32
+evi_get_param_by_name i32 str -> f64
+evi_get_param_by_name_final i32 str -> f64
+evi_set_param_by_name i32 str f64 bool -> i32
+evi_set_param_by_name_with_label i32 str str bool -> i32
+evi_get_param_by_id i32 i32 i32 -> f64
+evi_get_param_by_id_final i32 i32 i32 -> f64
+evi_set_param_by_id i32 i32 i32 f64 bool -> i32
+evi_set_param_by_id_with_label i32 i32 i32 str bool -> i32
+# ibuf: [0]=exclusive [1]=inclusive us; ERR_UNSUPPORTED on js
+evi_get_cpu_usage i32 ibuf -> i32
+# ibuf: [0]=exclusive [1]=inclusive [2]=sampledata; ERR_UNSUPPORTED on js
+evi_get_memory_usage i32 ibuf -> i32
 
 ## Debug
 debug_live_handle_count -> i32
