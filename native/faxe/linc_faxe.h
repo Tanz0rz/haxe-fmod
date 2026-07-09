@@ -58,6 +58,9 @@ extern bool fmod_cb_take_overflow();
 
 //// Studio System (2.0 bindings)
 extern int fmod_sys_last_result();
+extern int fmod_sys_init_ex(int numChannels, int sampleRate, int speakerMode, int studioFlags);
+extern int fmod_sys_set_debug_level(int level);
+extern int fmod_sys_load_bank_async(const ::String& path);
 extern int fmod_sys_get_bus(const ::String& path);
 extern int fmod_sys_get_bus_by_id(const ::String& guid);
 extern int fmod_sys_get_event(const ::String& path);

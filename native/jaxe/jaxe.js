@@ -16,6 +16,12 @@ class jaxe {
     static loadedBanks = {};
     static autoUpdateIntervalId = null;
 
+    // Init settings stored by fmod_sys_init_ex and consumed by
+    // onRuntimeInitialized. Legacy fmod_init leaves this null (defaults).
+    static pendingInit = null;
+    // Counter for unique MEMFS names used by fmod_sys_load_bank_async.
+    static asyncBankCounter = 0;
+
     // Generational handle table - JS mirror of native/shared/faxe_handles.h.
     // Handle encoding: (generation << 16) | index. Handle 0 is always invalid.
     // Type tags match native/shared/faxe_handles.h.
@@ -487,6 +493,7 @@ class jaxe {
     static ERR_INVALID_PARAM = 31;
     static ERR_UNSUPPORTED = 68;
     static ERR_INVALID_GUID = 31;   // malformed GUID string -> FMOD_ERR_INVALID_PARAM (shared shim convention)
+    static ERR_NOTREADY = 82;
     static ERR_STUDIO_UNINITIALIZED = 75;
 
     static sysReady() {
@@ -591,6 +598,41 @@ class jaxe {
     }
 
     static fmod_sys_last_result() {
+        return jaxe.lastResult;
+    }
+
+    // Settings-driven init: stores the settings for onRuntimeInitialized and
+    // kicks off module init exactly like fmod_init. Module startup is
+    // asynchronous - poll fmod_is_initialized for completion. Returns 0 (OK).
+    static fmod_sys_init_ex(numChannels, sampleRate, speakerMode, studioFlags) {
+        jaxe.pendingInit = {
+            numChannels: numChannels,
+            sampleRate: sampleRate,
+            speakerMode: speakerMode,
+            studioFlags: studioFlags
+        };
+        jaxe.FMOD['preRun'] = jaxe.preRun;
+        jaxe.FMOD['onRuntimeInitialized'] = jaxe.onRuntimeInitialized;
+        jaxe.FMOD['TOTAL_MEMORY'] = 64 * 1024 * 1024;
+        FMODModule(jaxe.FMOD);
+        return 0; // FMOD_OK
+    }
+
+    // FMOD_Debug_Initialize level mapping (0=none 1=error 2=warning 3=log),
+    // TTY mode, no file logging. Logging is baked into the wasm build, so
+    // the binding is usually absent - report 68 (ERR_UNSUPPORTED). The
+    // try/catch guards against arity differences across FMOD JS builds.
+    static fmod_sys_set_debug_level(level) {
+        if (!jaxe.FMOD.Debug_Initialize) { jaxe.lastResult = jaxe.ERR_UNSUPPORTED; return jaxe.lastResult; }
+        var flags = 0;
+        if (level == 1) flags = 1;      // FMOD_DEBUG_LEVEL_ERROR
+        else if (level == 2) flags = 2; // FMOD_DEBUG_LEVEL_WARNING
+        else if (level >= 3) flags = 4; // FMOD_DEBUG_LEVEL_LOG
+        try {
+            jaxe.lastResult = jaxe.FMOD.Debug_Initialize(flags, jaxe.FMOD.DEBUG_MODE_TTY, null, null);
+        } catch (e) {
+            jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        }
         return jaxe.lastResult;
     }
 
@@ -855,6 +897,47 @@ class jaxe {
         return jaxe.handleFindOrAlloc(bank.val, jaxe.TYPE_BANK);
     }
 
+    // Async bank load over HTTP (the file is NOT in MEMFS): allocates a
+    // handle backed by a {pendingBankPath} placeholder immediately, fetches
+    // `path` relative to the page origin, writes the bytes into MEMFS under
+    // a unique flat name, then swaps the real bank into the slot. Poll
+    // bank_get_loading_state: 2 (LOADING) while the fetch is pending,
+    // 4 (ERROR) if the fetch or load failed.
+    static fmod_sys_load_bank_async(path) {
+        if (!jaxe.sysReady()) return 0;
+        var placeholder = { pendingBankPath: path };
+        var handle = jaxe.handleAlloc(placeholder, jaxe.TYPE_BANK);
+        if (handle == 0) return 0;
+        jaxe.lastResult = jaxe.FMOD.OK;
+        var idx = handle & 0xFFFF;
+        var memfsName = "async_" + (++jaxe.asyncBankCounter) + ".bank";
+        try {
+            fetch(path).then(function (response) {
+                if (!response.ok) throw new Error("HTTP " + response.status);
+                return response.arrayBuffer();
+            }).then(function (buffer) {
+                var s = jaxe.slots[idx];
+                // handle freed (or recycled) while the fetch was in flight
+                if (!s || !s.alive || s.ptr !== placeholder) return;
+                jaxe.FMOD.FS_createDataFile('/', memfsName, new Uint8Array(buffer), true, false, false);
+                var bank = {};
+                var result = jaxe.gSystem.loadBankFile("/" + memfsName, jaxe.FMOD.STUDIO_LOAD_BANK_NORMAL, bank);
+                if (result != jaxe.FMOD.OK || !bank.val) {
+                    placeholder.pendingBankError = true;
+                    return;
+                }
+                // Swap the real bank into the slot; the handle stays valid.
+                s.ptr = bank.val;
+                s.raw = jaxe.rawPtr(bank.val);
+            }).catch(function () {
+                placeholder.pendingBankError = true;
+            });
+        } catch (e) {
+            placeholder.pendingBankError = true;
+        }
+        return handle;
+    }
+
     static fmod_sys_unload_all() {
         if (!jaxe.FmodIsInitialized) { jaxe.lastResult = jaxe.ERR_STUDIO_UNINITIALIZED; return jaxe.lastResult; }
         // All bank content is going away; uninstall every callback first or
@@ -1109,14 +1192,28 @@ class jaxe {
 
     //// Bank (2.0 bindings)
 
+    // Resolves a bank handle for the fmod_bank_* functions, treating async
+    // placeholders from fmod_sys_load_bank_async as not ready: sets
+    // lastResult = 82 (ERR_NOTREADY) and returns null so callers never touch
+    // a placeholder. bank_get_loading_state and bank_is_valid special-case
+    // placeholders instead of using this helper.
+    static resolveBankReady(handle) {
+        var bank = jaxe.handleResolve(handle, jaxe.TYPE_BANK);
+        if (!bank) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return null; }
+        if (bank.pendingBankPath) { jaxe.lastResult = jaxe.ERR_NOTREADY; return null; }
+        return bank;
+    }
+
     static fmod_bank_is_valid(handle) {
         var bank = jaxe.handleResolve(handle, jaxe.TYPE_BANK);
+        // async placeholders are not valid banks until the fetch lands
+        if (bank && bank.pendingBankPath) return false;
         return bank != null && (!bank.isValid || !!bank.isValid());
     }
 
     static fmod_bank_get_id(handle) {
-        var bank = jaxe.handleResolve(handle, jaxe.TYPE_BANK);
-        if (!bank) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return ""; }
+        var bank = jaxe.resolveBankReady(handle);
+        if (!bank) return "";
         if (!bank.getID) { jaxe.lastResult = jaxe.ERR_UNSUPPORTED; return ""; }
         var outval = {};
         jaxe.lastResult = bank.getID(outval);
@@ -1125,8 +1222,8 @@ class jaxe {
     }
 
     static fmod_bank_get_path(handle) {
-        var bank = jaxe.handleResolve(handle, jaxe.TYPE_BANK);
-        if (!bank) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return ""; }
+        var bank = jaxe.resolveBankReady(handle);
+        if (!bank) return "";
         var outval = {};
         jaxe.lastResult = bank.getPath(outval, 512, null);
         if (jaxe.lastResult != jaxe.FMOD.OK) return "";
@@ -1135,8 +1232,8 @@ class jaxe {
 
     // real unload; frees the bank handle on success
     static fmod_bank_unload(handle) {
-        var bank = jaxe.handleResolve(handle, jaxe.TYPE_BANK);
-        if (!bank) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        var bank = jaxe.resolveBankReady(handle);
+        if (!bank) return jaxe.lastResult;
         // Unloading destroys the bank's event instances; uninstall their
         // callbacks first or the FMOD JS module is corrupted.
         var cnt = {};
@@ -1155,39 +1252,45 @@ class jaxe {
     }
 
     static fmod_bank_load_sample_data(handle) {
-        var bank = jaxe.handleResolve(handle, jaxe.TYPE_BANK);
-        if (!bank) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        var bank = jaxe.resolveBankReady(handle);
+        if (!bank) return jaxe.lastResult;
         jaxe.lastResult = bank.loadSampleData();
         return jaxe.lastResult;
     }
 
     static fmod_bank_unload_sample_data(handle) {
-        var bank = jaxe.handleResolve(handle, jaxe.TYPE_BANK);
-        if (!bank) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        var bank = jaxe.resolveBankReady(handle);
+        if (!bank) return jaxe.lastResult;
         jaxe.lastResult = bank.unloadSampleData();
         return jaxe.lastResult;
     }
 
-    // FMOD_STUDIO_LOADING_STATE; invalid handle reports 1 (UNLOADED)
+    // FMOD_STUDIO_LOADING_STATE; invalid handle reports 1 (UNLOADED); async
+    // placeholders report 2 (LOADING) while the fetch is pending and
+    // 4 (ERROR) when it failed
     static fmod_bank_get_loading_state(handle) {
         var bank = jaxe.handleResolve(handle, jaxe.TYPE_BANK);
         if (!bank) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 1; }
+        if (bank.pendingBankPath) {
+            jaxe.lastResult = jaxe.FMOD.OK;
+            return bank.pendingBankError ? 4 : 2;
+        }
         var outval = {};
         jaxe.lastResult = bank.getLoadingState(outval);
         return jaxe.lastResult == jaxe.FMOD.OK ? outval.val | 0 : 1;
     }
 
     static fmod_bank_get_sample_loading_state(handle) {
-        var bank = jaxe.handleResolve(handle, jaxe.TYPE_BANK);
-        if (!bank) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 1; }
+        var bank = jaxe.resolveBankReady(handle);
+        if (!bank) return 1;
         var outval = {};
         jaxe.lastResult = bank.getSampleLoadingState(outval);
         return jaxe.lastResult == jaxe.FMOD.OK ? outval.val | 0 : 1;
     }
 
     static fmod_bank_get_event_count(handle) {
-        var bank = jaxe.handleResolve(handle, jaxe.TYPE_BANK);
-        if (!bank) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }
+        var bank = jaxe.resolveBankReady(handle);
+        if (!bank) return 0;
         var outval = {};
         jaxe.lastResult = bank.getEventCount(outval);
         return jaxe.lastResult == jaxe.FMOD.OK ? outval.val | 0 : 0;
@@ -1195,8 +1298,8 @@ class jaxe {
 
     // fills ibuf with event description handles, returns count
     static fmod_bank_get_event_list(handle, ibuf) {
-        var bank = jaxe.handleResolve(handle, jaxe.TYPE_BANK);
-        if (!bank) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }
+        var bank = jaxe.resolveBankReady(handle);
+        if (!bank) return 0;
         var list = {};
         var count = {};
         jaxe.lastResult = bank.getEventList(list, 64, count);
@@ -1205,16 +1308,16 @@ class jaxe {
     }
 
     static fmod_bank_get_bus_count(handle) {
-        var bank = jaxe.handleResolve(handle, jaxe.TYPE_BANK);
-        if (!bank) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }
+        var bank = jaxe.resolveBankReady(handle);
+        if (!bank) return 0;
         var outval = {};
         jaxe.lastResult = bank.getBusCount(outval);
         return jaxe.lastResult == jaxe.FMOD.OK ? outval.val | 0 : 0;
     }
 
     static fmod_bank_get_bus_list(handle, ibuf) {
-        var bank = jaxe.handleResolve(handle, jaxe.TYPE_BANK);
-        if (!bank) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }
+        var bank = jaxe.resolveBankReady(handle);
+        if (!bank) return 0;
         var list = {};
         var count = {};
         jaxe.lastResult = bank.getBusList(list, 64, count);
@@ -1223,16 +1326,16 @@ class jaxe {
     }
 
     static fmod_bank_get_vca_count(handle) {
-        var bank = jaxe.handleResolve(handle, jaxe.TYPE_BANK);
-        if (!bank) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }
+        var bank = jaxe.resolveBankReady(handle);
+        if (!bank) return 0;
         var outval = {};
         jaxe.lastResult = bank.getVCACount(outval);
         return jaxe.lastResult == jaxe.FMOD.OK ? outval.val | 0 : 0;
     }
 
     static fmod_bank_get_vca_list(handle, ibuf) {
-        var bank = jaxe.handleResolve(handle, jaxe.TYPE_BANK);
-        if (!bank) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }
+        var bank = jaxe.resolveBankReady(handle);
+        if (!bank) return 0;
         var list = {};
         var count = {};
         jaxe.lastResult = bank.getVCAList(list, 64, count);
@@ -1241,8 +1344,8 @@ class jaxe {
     }
 
     static fmod_bank_get_string_count(handle) {
-        var bank = jaxe.handleResolve(handle, jaxe.TYPE_BANK);
-        if (!bank) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }
+        var bank = jaxe.resolveBankReady(handle);
+        if (!bank) return 0;
         var outval = {};
         jaxe.lastResult = bank.getStringCount(outval);
         return jaxe.lastResult == jaxe.FMOD.OK ? outval.val | 0 : 0;
@@ -1250,8 +1353,8 @@ class jaxe {
 
     // string table path by index
     static fmod_bank_get_string_info(handle, index) {
-        var bank = jaxe.handleResolve(handle, jaxe.TYPE_BANK);
-        if (!bank) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return ""; }
+        var bank = jaxe.resolveBankReady(handle);
+        if (!bank) return "";
         var pathOut = {};
         // (index, id, path, size, retrieved) - unwanted id out passed as null
         jaxe.lastResult = bank.getStringInfo(index, null, pathOut, 512, null);
@@ -1261,8 +1364,8 @@ class jaxe {
 
     // string table GUID by index (formatted string)
     static fmod_bank_get_string_guid(handle, index) {
-        var bank = jaxe.handleResolve(handle, jaxe.TYPE_BANK);
-        if (!bank) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return ""; }
+        var bank = jaxe.resolveBankReady(handle);
+        if (!bank) return "";
         var id = jaxe.guidOut();
         var pathOut = {};
         jaxe.lastResult = bank.getStringInfo(index, id, pathOut, 512, null);
@@ -1926,6 +2029,9 @@ class jaxe {
 
     static onRuntimeInitialized = function () {
         var outval = {};
+        // Settings from fmod_sys_init_ex; null on the legacy fmod_init path
+        // (defaults below match the legacy behavior exactly).
+        var init = jaxe.pendingInit;
 
         jaxe.FMOD.Studio_System_Create(outval);
         jaxe.gSystem = outval.val;
@@ -1935,8 +2041,13 @@ class jaxe {
 
         jaxe.gSystemCore.setDSPBufferSize(2048, 2);
 
-        jaxe.gSystemCore.getDriverInfo(0, null, null, outval, null, null);
-        jaxe.gSystemCore.setSoftwareFormat(outval.val, jaxe.FMOD.SPEAKERMODE_DEFAULT, 0);
+        if (init && init.sampleRate > 0) {
+            jaxe.gSystemCore.setSoftwareFormat(init.sampleRate,
+                init.speakerMode > 0 ? init.speakerMode : jaxe.FMOD.SPEAKERMODE_DEFAULT, 0);
+        } else {
+            jaxe.gSystemCore.getDriverInfo(0, null, null, outval, null, null);
+            jaxe.gSystemCore.setSoftwareFormat(outval.val, jaxe.FMOD.SPEAKERMODE_DEFAULT, 0);
+        }
 
         // Browser audio resume handler
         document.addEventListener('click', function () {
@@ -1947,7 +2058,11 @@ class jaxe {
             }
         });
 
-        jaxe.gSystem.initialize(1024, jaxe.FMOD.STUDIO_INIT_NORMAL, jaxe.FMOD.INIT_NORMAL, null);
+        var numChannels = (init && init.numChannels > 0) ? init.numChannels : 1024;
+        var studioInitFlags = (init && (init.studioFlags & 1))
+            ? jaxe.FMOD.STUDIO_INIT_LIVEUPDATE
+            : jaxe.FMOD.STUDIO_INIT_NORMAL;
+        jaxe.gSystem.initialize(numChannels, studioInitFlags, jaxe.FMOD.INIT_NORMAL, null);
 
         // Enable auto-update by default
         jaxe.fmod_set_auto_update(true);

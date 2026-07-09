@@ -71,6 +71,13 @@ class NativeStudioJs {
     /** Fills Scratch int buffer: [0]=exclusive, [1]=inclusive, [2]=sampledata (bytes) */
     public static inline function sys_get_memory_usage():Int return Raw.fmod_sys_get_memory_usage(Scratch.intBuf());
 
+    public static inline function sys_init_ex(numChannels:Int, sampleRate:Int, speakerMode:Int, studioFlags:Int):Int return Raw.fmod_sys_init_ex(numChannels, sampleRate, speakerMode, studioFlags);
+    public static inline function sys_set_debug_level(level:Int):Int return Raw.fmod_sys_set_debug_level(level);
+    public static inline function sys_load_bank_async(path:String):Int return Raw.fmod_sys_load_bank_async(path);
+    public static inline function sys_is_initialized():Bool return Raw.fmod_is_initialized();
+    public static inline function sys_update():Void Raw.fmod_update();
+    public static inline function sys_set_auto_update(enabled:Bool):Void Raw.fmod_set_auto_update(enabled);
+
     // Bus
     public static inline function bus_is_valid(handle:Int):Bool return Raw.fmod_bus_is_valid(handle);
     public static inline function bus_get_id(handle:Int):String return Raw.fmod_bus_get_id(handle);
@@ -246,6 +253,9 @@ class NativeStudioJs {
 
 @:native("jaxe")
 private extern class Raw {
+    static function fmod_is_initialized():Bool;
+    static function fmod_update():Void;
+    static function fmod_set_auto_update(enabled:Bool):Void;
     static function fmod_sys_last_result():Int;
     static function fmod_sys_get_bus(path:String):Int;
     static function fmod_sys_get_bus_by_id(guid:String):Int;
@@ -285,6 +295,9 @@ private extern class Raw {
     static function fmod_sys_get_buffer_usage(iout:Array<Int>, fout:Array<Float>):Int;
     static function fmod_sys_reset_buffer_usage():Int;
     static function fmod_sys_get_memory_usage(out:Array<Int>):Int;
+    static function fmod_sys_init_ex(numChannels:Int, sampleRate:Int, speakerMode:Int, studioFlags:Int):Int;
+    static function fmod_sys_set_debug_level(level:Int):Int;
+    static function fmod_sys_load_bank_async(path:String):Int;
     static function fmod_bus_is_valid(handle:Int):Bool;
     static function fmod_bus_get_id(handle:Int):String;
     static function fmod_bus_get_path(handle:Int):String;

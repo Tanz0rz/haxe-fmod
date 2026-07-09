@@ -29,6 +29,8 @@ class LoadFmodState extends FlxState {
                     FlxG.switchState(BeatTestState.new);
                 case "ps-test":
                     FlxG.switchState(ProgrammerSoundTestState.new);
+                case "bank-test":
+                    FlxG.switchState(BankLifecycleTestState.new);
                 default:
                     FlxG.switchState(VolumeTestState.new);
             }

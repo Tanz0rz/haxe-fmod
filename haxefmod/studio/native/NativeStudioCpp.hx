@@ -6,10 +6,16 @@ package haxefmod.studio.native;
  * Converts const char* returns to Haxe String at the boundary; raw functions
  * live in linc_faxe.cpp.
  *
- * Note: build wiring (linc buildXml) currently comes from CppBackend, which
- * is always compiled via FmodManager. When the legacy backends are deleted,
- * the CppBackend_Linc build metas move to this class.
+ * This class carries the linc build wiring (LincBuild adds the @:buildXml
+ * meta pointing at native/faxe/linc_faxe.xml), so compiling it is what makes
+ * hxcpp build and link linc_faxe.cpp into the host project.
  */
+@:keep
+#if !display
+@:build(haxefmod.studio.native.LincBuild.touch())
+@:build(haxefmod.studio.native.LincBuild.xml('faxe', '../../../'))
+#end
+@:cppInclude('linc_faxe.h')
 class NativeStudioCpp {
     // System
     public static inline function sys_last_result():Int return Raw.sys_last_result();
@@ -75,6 +81,13 @@ class NativeStudioCpp {
 
     /** Fills Scratch int buffer: [0]=exclusive, [1]=inclusive, [2]=sampledata (bytes) */
     public static inline function sys_get_memory_usage():Int return Raw.sys_get_memory_usage(Scratch.intBuf());
+
+    public static inline function sys_init_ex(numChannels:Int, sampleRate:Int, speakerMode:Int, studioFlags:Int):Int return Raw.sys_init_ex(numChannels, sampleRate, speakerMode, studioFlags);
+    public static inline function sys_set_debug_level(level:Int):Int return Raw.sys_set_debug_level(level);
+    public static inline function sys_load_bank_async(path:String):Int return Raw.sys_load_bank_async(path);
+    public static inline function sys_is_initialized():Bool return Raw.is_initialized();
+    public static inline function sys_update():Void Raw.update();
+    public static inline function sys_set_auto_update(enabled:Bool):Void Raw.set_auto_update(enabled);
 
     // Bus
     public static inline function bus_is_valid(handle:Int):Bool return Raw.bus_is_valid(handle);
@@ -252,6 +265,15 @@ class NativeStudioCpp {
 @:keep
 @:include("linc_faxe.h")
 private extern class Raw {
+    @:native("linc::faxe::fmod_is_initialized")
+    static function is_initialized():Bool;
+
+    @:native("linc::faxe::fmod_update")
+    static function update():Void;
+
+    @:native("linc::faxe::fmod_set_auto_update")
+    static function set_auto_update(enabled:Bool):Void;
+
     @:native("linc::faxe::fmod_sys_last_result")
     static function sys_last_result():Int;
 
@@ -368,6 +390,15 @@ private extern class Raw {
 
     @:native("linc::faxe::fmod_sys_get_memory_usage")
     static function sys_get_memory_usage(out:Array<Int>):Int;
+
+    @:native("linc::faxe::fmod_sys_init_ex")
+    static function sys_init_ex(numChannels:Int, sampleRate:Int, speakerMode:Int, studioFlags:Int):Int;
+
+    @:native("linc::faxe::fmod_sys_set_debug_level")
+    static function sys_set_debug_level(level:Int):Int;
+
+    @:native("linc::faxe::fmod_sys_load_bank_async")
+    static function sys_load_bank_async(path:String):Int;
 
     @:native("linc::faxe::fmod_bus_is_valid")
     static function bus_is_valid(handle:Int):Bool;

@@ -584,6 +584,58 @@ int fmod_sys_last_result() {
     return (int)gLastResult;
 }
 
+// Settings-driven init: numChannels <= 0 falls back to 128; sampleRate 0 =
+// FMOD default; speakerMode 0 = default speaker mode; studioFlags bit0 =
+// live update. Keeps the FMOD_WAVWRITER env branch (CI recording), which
+// forces 48000/stereo and wins over the requested format. Idempotent:
+// returns FMOD_OK when already initialized.
+int fmod_sys_init_ex(int numChannels, int sampleRate, int speakerMode, int studioFlags) {
+    if (gStudioSystem != NULL) { gLastResult = FMOD_OK; return (int)gLastResult; }
+    if (numChannels <= 0) numChannels = 128;
+
+    gLastResult = FMOD::Studio::System::create(&gStudioSystem);
+    if (gLastResult != FMOD_OK) return (int)gLastResult;
+
+    // FMOD_WAVWRITER env var: write mixed audio to WAV file (for CI recording)
+    const char* wavWriterPath = std::getenv("FMOD_WAVWRITER");
+    void* extradriverdata = nullptr;
+    if (wavWriterPath && wavWriterPath[0] != '\0') {
+        gStudioSystem->getCoreSystem(&gCoreSystem);
+        gCoreSystem->setOutput(FMOD_OUTPUTTYPE_WAVWRITER);
+        // Explicit stereo format so WAV header has correct channel count (Windows needs this)
+        gCoreSystem->setSoftwareFormat(48000, FMOD_SPEAKERMODE_STEREO, 0);
+        extradriverdata = (void*)wavWriterPath;
+    } else if (sampleRate > 0 || speakerMode > 0) {
+        gStudioSystem->getCoreSystem(&gCoreSystem);
+        gCoreSystem->setSoftwareFormat(sampleRate, (FMOD_SPEAKERMODE)speakerMode, 0);
+    }
+
+    FMOD_STUDIO_INITFLAGS studioInitFlags = (studioFlags & 1) ? FMOD_STUDIO_INIT_LIVEUPDATE : FMOD_STUDIO_INIT_NORMAL;
+    gLastResult = gStudioSystem->initialize(numChannels, studioInitFlags, FMOD_INIT_NORMAL, extradriverdata);
+    if (gLastResult != FMOD_OK) {
+        gStudioSystem->release();
+        gStudioSystem = NULL;
+        return (int)gLastResult;
+    }
+
+    gStudioSystem->getCoreSystem(&gCoreSystem);
+    faxe_cbq_init();
+    gLastResult = FMOD_OK;
+    return (int)gLastResult;
+}
+
+// FMOD_Debug_Initialize level mapping (0=none 1=error 2=warning 3=log),
+// TTY mode, no file logging. The logging-stripped FMOD libs report
+// FMOD_ERR_UNSUPPORTED; that result is passed through.
+int fmod_sys_set_debug_level(int level) {
+    FMOD_DEBUG_FLAGS flags = FMOD_DEBUG_LEVEL_NONE;
+    if (level == 1) flags = FMOD_DEBUG_LEVEL_ERROR;
+    else if (level == 2) flags = FMOD_DEBUG_LEVEL_WARNING;
+    else if (level >= 3) flags = FMOD_DEBUG_LEVEL_LOG;
+    gLastResult = FMOD::Debug_Initialize(flags, FMOD_DEBUG_MODE_TTY, NULL, NULL);
+    return (int)gLastResult;
+}
+
 int fmod_sys_get_bus(const ::String& path) {
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
     FMOD::Studio::Bus* bus = NULL;
@@ -845,6 +897,16 @@ int fmod_sys_load_bank_file(const ::String& path, int flags) {
     FMOD_STUDIO_LOAD_BANK_FLAGS loadFlags = (flags & 1) ? FMOD_STUDIO_LOAD_BANK_NONBLOCKING : FMOD_STUDIO_LOAD_BANK_NORMAL;
     FMOD::Studio::Bank* bank = NULL;
     gLastResult = gStudioSystem->loadBankFile(path.c_str(), loadFlags, &bank);
+    if (gLastResult != FMOD_OK || !bank) return 0;
+    return faxe_handle_find_or_alloc(bank, FAXE_TYPE_BANK);
+}
+
+// Async bank load: always FMOD_STUDIO_LOAD_BANK_NONBLOCKING; poll
+// bank_get_loading_state. Returns a bank handle or 0.
+int fmod_sys_load_bank_async(const ::String& path) {
+    if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    FMOD::Studio::Bank* bank = NULL;
+    gLastResult = gStudioSystem->loadBankFile(path.c_str(), FMOD_STUDIO_LOAD_BANK_NONBLOCKING, &bank);
     if (gLastResult != FMOD_OK || !bank) return 0;
     return faxe_handle_find_or_alloc(bank, FAXE_TYPE_BANK);
 }

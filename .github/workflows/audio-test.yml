@@ -297,6 +297,36 @@ jobs:
           fi
           echo "Programmer sound test passed"
 
+      - name: Run bank lifecycle test
+        if: ${{ !cancelled() }}
+        run: |
+          export DISPLAY=:99
+
+          BIN_DIR="example-project/EZPlatformer/export/linux64/bin"
+          if [ ! -d "$BIN_DIR" ]; then
+            BIN_DIR="example-project/EZPlatformer/export/linux/bin"
+          fi
+
+          export HAXEFMOD_TEST_STATE=bank-test
+          cd "$BIN_DIR"
+          ./run.sh > /tmp/bank-test-linux-cpp.log 2>&1 &
+          GAME_PID=$!
+          cd -
+          for i in $(seq 30); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill $GAME_PID 2>/dev/null || true
+          wait $GAME_PID 2>/dev/null || true
+
+          grep "BANK_TEST:" /tmp/bank-test-linux-cpp.log
+          grep -q "BANK_TEST: COMPLETE" /tmp/bank-test-linux-cpp.log
+          if grep -q "pass=false" /tmp/bank-test-linux-cpp.log; then
+            echo "Bank lifecycle test had failing checks"
+            exit 1
+          fi
+          echo "Bank lifecycle test passed"
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         if: always()
@@ -603,6 +633,35 @@ jobs:
             exit 1
           fi
           echo "Programmer sound test passed"
+
+      - name: Run bank lifecycle test
+        if: ${{ !cancelled() }}
+        run: |
+          export DISPLAY=:99
+
+          BIN_DIR="example-project/EZPlatformer/export/hl/bin"
+
+          export HAXEFMOD_TEST_STATE=bank-test
+          cd "$BIN_DIR"
+          export LD_LIBRARY_PATH="$(pwd):$LD_LIBRARY_PATH"
+          EXE=$(find . -maxdepth 1 -type f -executable ! -name "*.so*" ! -name "*.hdll" ! -name "run.sh" -print -quit)
+          "$EXE" > /tmp/bank-test-linux-hl.log 2>&1 &
+          GAME_PID=$!
+          cd -
+          for i in $(seq 30); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill $GAME_PID 2>/dev/null || true
+          wait $GAME_PID 2>/dev/null || true
+
+          grep "BANK_TEST:" /tmp/bank-test-linux-hl.log
+          grep -q "BANK_TEST: COMPLETE" /tmp/bank-test-linux-hl.log
+          if grep -q "pass=false" /tmp/bank-test-linux-hl.log; then
+            echo "Bank lifecycle test had failing checks"
+            exit 1
+          fi
+          echo "Bank lifecycle test passed"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

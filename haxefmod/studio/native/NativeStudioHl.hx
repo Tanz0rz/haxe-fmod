@@ -79,6 +79,13 @@ class NativeStudioHl {
     /** Fills Scratch int buffer: [0]=exclusive, [1]=inclusive, [2]=sampledata (bytes) */
     public static inline function sys_get_memory_usage():Int return Raw.sys_get_memory_usage(Scratch.intBuf());
 
+    public static inline function sys_init_ex(numChannels:Int, sampleRate:Int, speakerMode:Int, studioFlags:Int):Int return Raw.sys_init_ex(numChannels, sampleRate, speakerMode, studioFlags);
+    public static inline function sys_set_debug_level(level:Int):Int return Raw.sys_set_debug_level(level);
+    public static inline function sys_load_bank_async(path:String):Int return Raw.sys_load_bank_async(toBytes(path));
+    public static inline function sys_is_initialized():Bool return Raw.is_initialized();
+    public static inline function sys_update():Void Raw.update();
+    public static inline function sys_set_auto_update(enabled:Bool):Void Raw.set_auto_update(enabled);
+
     // Bus
     public static inline function bus_is_valid(handle:Int):Bool return Raw.bus_is_valid(handle);
     public static inline function bus_get_id(handle:Int):String return fromBytes(Raw.bus_get_id(handle));
@@ -254,6 +261,9 @@ class NativeStudioHl {
 
 @:hlNative("hlaxe_fmod")
 private extern class Raw {
+    static function is_initialized():Bool;
+    static function update():Void;
+    static function set_auto_update(enabled:Bool):Void;
     static function sys_last_result():Int;
     static function sys_get_bus(path:hl.Bytes):Int;
     static function sys_get_bus_by_id(guid:hl.Bytes):Int;
@@ -293,6 +303,9 @@ private extern class Raw {
     static function sys_get_buffer_usage(iout:hl.Bytes, fout:hl.Bytes):Int;
     static function sys_reset_buffer_usage():Int;
     static function sys_get_memory_usage(out:hl.Bytes):Int;
+    static function sys_init_ex(numChannels:Int, sampleRate:Int, speakerMode:Int, studioFlags:Int):Int;
+    static function sys_set_debug_level(level:Int):Int;
+    static function sys_load_bank_async(path:hl.Bytes):Int;
     static function bus_is_valid(handle:Int):Bool;
     static function bus_get_id(handle:Int):hl.Bytes;
     static function bus_get_path(handle:Int):hl.Bytes;

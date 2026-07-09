@@ -640,6 +640,64 @@ HL_PRIM int HL_NAME(sys_last_result)() {
 }
 DEFINE_PRIM(_I32, sys_last_result, _NO_ARG);
 
+// Settings-driven init: numChannels <= 0 falls back to 128; sampleRate 0 =
+// FMOD default; speakerMode 0 = default speaker mode; studioFlags bit0 =
+// live update. Keeps the FMOD_WAVWRITER env branch (CI recording), which
+// forces 48000/stereo and wins over the requested format. Idempotent:
+// returns FMOD_OK when already initialized.
+HL_PRIM int HL_NAME(sys_init_ex)(int numChannels, int sampleRate, int speakerMode, int studioFlags) {
+    const char* wavWriterPath;
+    void* extradriverdata = NULL;
+    FMOD_STUDIO_INITFLAGS studioInitFlags;
+
+    if (gStudioSystem != NULL) { gLastResult = FMOD_OK; return (int)gLastResult; }
+    if (numChannels <= 0) numChannels = 128;
+
+    gLastResult = FMOD_Studio_System_Create(&gStudioSystem, FMOD_VERSION);
+    if (gLastResult != FMOD_OK) return (int)gLastResult;
+
+    // FMOD_WAVWRITER env var: write mixed audio to WAV file (for CI recording)
+    wavWriterPath = getenv("FMOD_WAVWRITER");
+    if (wavWriterPath && wavWriterPath[0] != '\0') {
+        FMOD_Studio_System_GetCoreSystem(gStudioSystem, &gCoreSystem);
+        FMOD_System_SetOutput(gCoreSystem, FMOD_OUTPUTTYPE_WAVWRITER);
+        // Explicit stereo format so WAV header has correct channel count (Windows needs this)
+        FMOD_System_SetSoftwareFormat(gCoreSystem, 48000, FMOD_SPEAKERMODE_STEREO, 0);
+        extradriverdata = (void*)wavWriterPath;
+    } else if (sampleRate > 0 || speakerMode > 0) {
+        FMOD_Studio_System_GetCoreSystem(gStudioSystem, &gCoreSystem);
+        FMOD_System_SetSoftwareFormat(gCoreSystem, sampleRate, (FMOD_SPEAKERMODE)speakerMode, 0);
+    }
+
+    studioInitFlags = (studioFlags & 1) ? FMOD_STUDIO_INIT_LIVEUPDATE : FMOD_STUDIO_INIT_NORMAL;
+    gLastResult = FMOD_Studio_System_Initialize(gStudioSystem, numChannels,
+        studioInitFlags, FMOD_INIT_NORMAL, extradriverdata);
+    if (gLastResult != FMOD_OK) {
+        FMOD_Studio_System_Release(gStudioSystem);
+        gStudioSystem = NULL;
+        return (int)gLastResult;
+    }
+
+    FMOD_Studio_System_GetCoreSystem(gStudioSystem, &gCoreSystem);
+    faxe_cbq_init();
+    gLastResult = FMOD_OK;
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, sys_init_ex, _I32 _I32 _I32 _I32);
+
+// FMOD_Debug_Initialize level mapping (0=none 1=error 2=warning 3=log),
+// TTY mode, no file logging. The logging-stripped FMOD libs report
+// FMOD_ERR_UNSUPPORTED; that result is passed through.
+HL_PRIM int HL_NAME(sys_set_debug_level)(int level) {
+    FMOD_DEBUG_FLAGS flags = FMOD_DEBUG_LEVEL_NONE;
+    if (level == 1) flags = FMOD_DEBUG_LEVEL_ERROR;
+    else if (level == 2) flags = FMOD_DEBUG_LEVEL_WARNING;
+    else if (level >= 3) flags = FMOD_DEBUG_LEVEL_LOG;
+    gLastResult = FMOD_Debug_Initialize(flags, FMOD_DEBUG_MODE_TTY, NULL, NULL);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, sys_set_debug_level, _I32);
+
 HL_PRIM int HL_NAME(sys_get_bus)(vbyte* path) {
     FMOD_STUDIO_BUS* bus = NULL;
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
@@ -951,6 +1009,18 @@ HL_PRIM int HL_NAME(sys_load_bank_file)(vbyte* path, int flags) {
     return faxe_handle_find_or_alloc(bank, FAXE_TYPE_BANK);
 }
 DEFINE_PRIM(_I32, sys_load_bank_file, _BYTES _I32);
+
+// Async bank load: always FMOD_STUDIO_LOAD_BANK_NONBLOCKING; poll
+// bank_get_loading_state. Returns a bank handle or 0.
+HL_PRIM int HL_NAME(sys_load_bank_async)(vbyte* path) {
+    FMOD_STUDIO_BANK* bank = NULL;
+    if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    gLastResult = FMOD_Studio_System_LoadBankFile(gStudioSystem, (const char*)path,
+        FMOD_STUDIO_LOAD_BANK_NONBLOCKING, &bank);
+    if (gLastResult != FMOD_OK || !bank) return 0;
+    return faxe_handle_find_or_alloc(bank, FAXE_TYPE_BANK);
+}
+DEFINE_PRIM(_I32, sys_load_bank_async, _BYTES);
 
 HL_PRIM int HL_NAME(sys_unload_all)() {
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }

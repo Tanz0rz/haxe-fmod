@@ -1,4 +1,4 @@
-package haxefmod.backends;
+package haxefmod.studio.native;
 
 import haxe.io.Path;
 import haxe.macro.Context;
@@ -6,7 +6,11 @@ import haxe.macro.Expr;
 
 using haxe.macro.PositionTools;
 
-class CppBackend_Linc {
+/**
+ * Build macros that wire the linc native sources (native/faxe/linc_faxe.cpp)
+ * into the hxcpp build of any project that compiles NativeStudioCpp.
+ */
+class LincBuild {
     /** Adds a private internal inline static variable called __touch,
         which sets the value to the current time so that builds are always
         updated by the code, and native changes are dragged in automatically (except for header only changes) */
@@ -31,7 +35,7 @@ class CppBackend_Linc {
         This means that somelib/ is the root.
         somelib/somelib/Somelib.hx is the calling file.
         LINC_SOMELIB_PATH is set to somelib/
-        ${LINC_SOMELIB_PATH}/linc/linc_${_lib}.xml is added directly. */
+        ${LINC_SOMELIB_PATH}/native/faxe/linc_${_lib}.xml is added directly. */
     macro public static function xml(_lib:String, _relative_root:String = '../'):Array<Field> {
         var _pos = Context.currentPos();
         var _pos_info = _pos.getInfos();
@@ -56,5 +60,4 @@ class CppBackend_Linc {
 
         return Context.getBuildFields();
     } // xml
-
-} // CppBackend_Linc
+} // LincBuild

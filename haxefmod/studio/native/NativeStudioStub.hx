@@ -51,6 +51,12 @@ class NativeStudioStub {
     public static function sys_get_buffer_usage():Int return ERR_UNSUPPORTED;
     public static function sys_reset_buffer_usage():Int return ERR_UNSUPPORTED;
     public static function sys_get_memory_usage():Int return ERR_UNSUPPORTED;
+    public static function sys_init_ex(numChannels:Int, sampleRate:Int, speakerMode:Int, studioFlags:Int):Int return ERR_UNSUPPORTED;
+    public static function sys_set_debug_level(level:Int):Int return ERR_UNSUPPORTED;
+    public static function sys_load_bank_async(path:String):Int return 0;
+    public static function sys_is_initialized():Bool return false;
+    public static function sys_update():Void {}
+    public static function sys_set_auto_update(enabled:Bool):Void {}
 
     // Bus
     public static function bus_is_valid(handle:Int):Bool return false;
