@@ -1,0 +1,95 @@
+name: Release Smoke Test
+
+# Post-release verification: installs haxefmod from lib.haxe.org (never from
+# the checkout) and builds the example project with it, proving that what
+# users actually download works end to end.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "haxefmod version to install (empty installs the latest release)"
+        required: false
+        default: ""
+
+env:
+  HAXE_VERSION: 4.3.6
+  FMOD_SDK: ${{ github.workspace }}/fmod-sdk
+
+jobs:
+  release-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      # The checkout provides the example project and ci scripts only; the
+      # library under test comes from lib.haxe.org
+      - uses: actions/checkout@v4
+
+      - name: Download FMOD SDK
+        run: |
+          git clone --depth 1 --branch 2.03.12 \
+            https://x-access-token:${{ secrets.FMOD_SDK_TOKEN }}@github.com/Tanz0rz/fmod-sdk-cache.git \
+            /tmp/fmod-sdk-cache
+          mkdir -p "$FMOD_SDK"
+          cp -R /tmp/fmod-sdk-cache/linux/* "$FMOD_SDK/"
+          ls -la "$FMOD_SDK/api/core/inc/" | head -5
+
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v1
+        with:
+          haxe-version: ${{ env.HAXE_VERSION }}
+
+      - name: Install Haxe libraries
+        run: |
+          haxelib setup ~/haxelib
+          haxelib install lime 8.3.0 --always --quiet
+          haxelib install openfl 9.5.0 --always --quiet
+          haxelib install flixel 6.1.2 --always --quiet
+          yes | haxelib run lime setup || true
+
+      - name: Install haxefmod from lib.haxe.org
+        run: |
+          # Never resolve haxefmod from the checkout - remove any dev/local
+          # state, then install the release under test
+          haxelib remove haxefmod || true
+          VERSION="${{ github.event.inputs.version }}"
+          if [ -n "$VERSION" ]; then
+            haxelib install haxefmod "$VERSION" --always --quiet
+          else
+            haxelib install haxefmod --always --quiet
+          fi
+          haxelib path haxefmod
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb patchelf \
+            libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
+            libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev libz-dev
+
+      - name: Build and install HashLink
+        run: |
+          # Pinned to the commit before the SDL3 port (hashlink #830, 2026-06-17).
+          # ubuntu-latest has no libsdl3-dev, so newer hashlink master does not build.
+          git clone https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
+          cd /tmp/hashlink-src
+          git checkout 781960a5daca32ad6d5cea87b255fe8b5872551e
+          make -j$(nproc) 2>&1 | tee /tmp/hashlink-build.log || {
+            echo "=== MAKE FAILED - retrying single-threaded ==="
+            make 2>&1 | tee -a /tmp/hashlink-build.log
+            exit 1
+          }
+          sudo make install
+          sudo ldconfig
+          hl --version || echo "HashLink installed"
+
+      - name: Build HashLink target from the installed release
+        run: |
+          cd example-project/EZPlatformer
+          haxelib run lime build hl 2>&1 | tee /tmp/release-build.log
+          grep -q "(pre-built)" /tmp/release-build.log
+          echo "Verified: pre-built hdll resolved from the installed release"
+
+      - name: Validate build output
+        run: |
+          ./ci/validate-build.sh example-project/EZPlatformer/export/hl/bin hl

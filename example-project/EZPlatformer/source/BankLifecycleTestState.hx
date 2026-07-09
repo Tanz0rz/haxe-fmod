@@ -31,6 +31,7 @@ class BankLifecycleTestState extends FlxState {
     var _asyncFrames:Int = 0;
     var _asyncMissing:haxefmod.studio.Bank;
     var _asyncDuplicate:haxefmod.studio.Bank;
+    var _baseline:Int = 0;
 
     static inline function log(message:String):Void {
         #if js
@@ -65,7 +66,15 @@ class BankLifecycleTestState extends FlxState {
         // fetch-into-virtual-filesystem loading path, so this target tests
         // that instead: both error legs exercise the full fetch machinery
         // (the happy path needs a bank that is not preloaded).
-        check("event_resolves", !FmodRuntime.createInstance(FmodSongs.MainLevel).isNull(), "");
+        // Warm the description cache first (lookups allocate one persistent
+        // deduped handle), then capture the leak baseline: the probe
+        // instance is released, so only the two async placeholders below
+        // may outlive this create() call.
+        StudioSystem.getEvent(FmodSongs.MainLevel);
+        _baseline = StudioSystem.liveHandleCount();
+        var probe:EventInstance = FmodRuntime.createInstance(FmodSongs.MainLevel);
+        check("event_resolves", !probe.isNull(), "");
+        probe.release();
         _asyncMissing = FmodRuntime.banks.loadAsync("assets/fmod/Desktop/DoesNotExist.bank");
         check("async_missing_handle", !_asyncMissing.isNull(), "");
         _asyncDuplicate = FmodRuntime.banks.loadAsync(masterPath);
@@ -79,6 +88,16 @@ class BankLifecycleTestState extends FlxState {
         check("master_loaded", FmodRuntime.banks.isLoaded(masterPath), "");
         check("master_refcount", FmodRuntime.banks.refCount(masterPath) == 1,
             'refs=${FmodRuntime.banks.refCount(masterPath)}');
+
+        // Warm the event description cache, then capture the leak baseline.
+        // Every handle allocated below is either released (the probe
+        // instance) or freed and re-allocated in equal number (the two bank
+        // handles across the unload/reload cycle), so the final live count
+        // must match. The warmed description handle survives the unload as
+        // a live-but-FMOD-invalid slot, which is exactly why it must be in
+        // the baseline.
+        StudioSystem.getEvent(FmodSongs.MainLevel);
+        var baseline = StudioSystem.liveHandleCount();
 
         // Refcount up and down leaves the bank loaded
         FmodRuntime.banks.load(masterPath);
@@ -111,6 +130,8 @@ class BankLifecycleTestState extends FlxState {
         FmodRuntime.banks.load(masterPath);
         FmodRuntime.banks.load(stringsPath);
         log('BANK_TEST: live_handles info=${StudioSystem.liveHandleCount()}');
+        check("no_handle_leaks", StudioSystem.liveHandleCount() == baseline,
+            'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
 
         log('BANK_TEST: COMPLETE passed=$_passCount failed=$_failCount');
         label.text = 'BANK_TEST complete: $_passCount passed, $_failCount failed';
@@ -135,6 +156,10 @@ class BankLifecycleTestState extends FlxState {
                 // network, then the load itself reports the duplicate
                 check("async_duplicate_errors", duplicateState == FmodLoadingState.ERROR,
                     'state=${(duplicateState : Int)}');
+                // The two async placeholders persist by design (errored
+                // handles keep reporting ERROR instead of being freed)
+                check("no_handle_leaks", StudioSystem.liveHandleCount() == _baseline + 2,
+                    'baseline=$_baseline now=${StudioSystem.liveHandleCount()}');
                 log('BANK_TEST: COMPLETE passed=$_passCount failed=$_failCount');
                 _done = true;
             }

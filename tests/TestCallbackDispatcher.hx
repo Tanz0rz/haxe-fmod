@@ -16,6 +16,7 @@ class TestCallbackDispatcher {
 		testDecodeNestedBeat();
 		testDecodeUnknown();
 		testRegistration();
+		testReentrancy();
 
 		Sys.println('  $passed passed, $failed failed');
 		return failed;
@@ -96,6 +97,64 @@ class TestCallbackDispatcher {
 		CallbackDispatcher.setCallback(7, _ -> {});
 		CallbackDispatcher.clearAll();
 		assert("clearAll removes handlers", !CallbackDispatcher.hasHandler(7));
+	}
+
+	static function testReentrancy() {
+		// Handlers may mutate registrations during delivery: remove
+		// themselves, register other handles, or re-register the same
+		// handle. None of it may crash or corrupt the registration map.
+		CallbackDispatcher.clearAll();
+
+		// A handler that removes itself mid-delivery
+		var selfRemoveCalls = 0;
+		CallbackDispatcher.setCallback(10, _ -> {
+			selfRemoveCalls++;
+			CallbackDispatcher.remove(10);
+		}, 0x20);
+		CallbackDispatcher.deliver(10, 0x20, 0, 0, 0, 0.0, "");
+		assert("self-removing handler ran once", selfRemoveCalls == 1);
+		assert("self-removing handler gone", !CallbackDispatcher.hasHandler(10));
+		CallbackDispatcher.deliver(10, 0x20, 0, 0, 0, 0.0, "");
+		assert("removed handler not called again", selfRemoveCalls == 1);
+
+		// A handler that registers a DIFFERENT handle mid-delivery
+		var secondCalls = 0;
+		CallbackDispatcher.setCallback(20, _ -> {
+			CallbackDispatcher.setCallback(21, _ -> secondCalls++, 0x20);
+		}, 0x20);
+		CallbackDispatcher.deliver(20, 0x20, 0, 0, 0, 0.0, "");
+		assert("handler registered during delivery exists", CallbackDispatcher.hasHandler(21));
+		CallbackDispatcher.deliver(21, 0x20, 0, 0, 0, 0.0, "");
+		assert("handler registered during delivery fires", secondCalls == 1);
+
+		// A handler that REPLACES itself mid-delivery
+		var oldCalls = 0;
+		var newCalls = 0;
+		CallbackDispatcher.setCallback(30, _ -> {
+			oldCalls++;
+			CallbackDispatcher.setCallback(30, _ -> newCalls++, 0x20);
+		}, 0x20);
+		CallbackDispatcher.deliver(30, 0x20, 0, 0, 0, 0.0, "");
+		CallbackDispatcher.deliver(30, 0x20, 0, 0, 0, 0.0, "");
+		assert("replaced handler ran once", oldCalls == 1);
+		assert("replacement handler took over", newCalls == 1);
+
+		// DESTROYED cleans up even when the handler mutates registrations
+		var destroyedSeen = false;
+		CallbackDispatcher.setCallback(40, data -> {
+			switch (data) {
+				case Destroyed:
+					destroyedSeen = true;
+					CallbackDispatcher.setCallback(41, _ -> {}, 0x20);
+				default:
+			}
+		}, 0x02);
+		CallbackDispatcher.deliver(40, 0x02, 0, 0, 0, 0.0, "");
+		assert("destroyed delivered", destroyedSeen);
+		assert("destroyed handle auto-removed", !CallbackDispatcher.hasHandler(40));
+		assert("registration from destroyed handler survives", CallbackDispatcher.hasHandler(41));
+
+		CallbackDispatcher.clearAll();
 	}
 
 	static function assert(name:String, condition:Bool) {

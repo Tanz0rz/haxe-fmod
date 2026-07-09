@@ -49,20 +49,28 @@ class CallbackDispatcher {
      */
     public static function update():Void {
         while (NativeStudio.cb_next()) {
-            var handle = NativeStudio.cb_handle();
-            var type = NativeStudio.cb_type();
-            var handler = handlers.get(handle);
-            if (handler != null) {
-                handler(decode(type,
-                    NativeStudio.cb_int(0), NativeStudio.cb_int(1), NativeStudio.cb_int(2),
-                    NativeStudio.cb_float(), NativeStudio.cb_string()));
-            }
-            if (type == (EventCallbackType.DESTROYED : Int)) {
-                handlers.remove(handle);
-            }
+            deliver(NativeStudio.cb_handle(), NativeStudio.cb_type(),
+                NativeStudio.cb_int(0), NativeStudio.cb_int(1), NativeStudio.cb_int(2),
+                NativeStudio.cb_float(), NativeStudio.cb_string());
         }
         if (NativeStudio.cb_take_overflow()) {
             trace("Warn: FMOD - callback event queue overflowed; oldest events were dropped");
+        }
+    }
+
+    /**
+     * Delivers one raw queue record to its handler. Handlers may mutate
+     * registrations freely (remove themselves, register other handles,
+     * release instances): delivery looks up the handler per event and never
+     * iterates the registration map. Public for unit tests.
+     */
+    public static function deliver(handle:Int, type:Int, i1:Int, i2:Int, i3:Int, f1:Float, str:String):Void {
+        var handler = handlers.get(handle);
+        if (handler != null) {
+            handler(decode(type, i1, i2, i3, f1, str));
+        }
+        if (type == (EventCallbackType.DESTROYED : Int)) {
+            handlers.remove(handle);
         }
     }
 

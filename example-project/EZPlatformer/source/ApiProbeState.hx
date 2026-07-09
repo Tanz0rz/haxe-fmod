@@ -5,6 +5,7 @@ import flixel.FlxState;
 import flixel.text.FlxText;
 import flixel.util.FlxColor;
 import haxefmod.studio.Bus;
+import haxefmod.studio.EventInstance;
 import haxefmod.studio.FmodResult;
 import haxefmod.studio.StudioSystem;
 import haxefmod.studio.Types;
@@ -116,6 +117,7 @@ class ApiProbeState extends FlxState {
         check("bus_lookup_cached", (again : Int) == (master : Int), "");
 
         probeM3Surface();
+        probeHandleSafety();
 
         info("live_handle_count_after", Std.string(StudioSystem.liveHandleCount()));
 
@@ -160,7 +162,9 @@ class ApiProbeState extends FlxState {
             }
         }
 
-        // Instance lifecycle
+        // Instance lifecycle. Every handle created between this baseline and
+        // the leak check below is released, so the live count must not move.
+        var lifecycleBaseline = StudioSystem.liveHandleCount();
         var instance = desc.createInstance();
         check("evd_create_instance", !instance.isNull(), 'handle=${(instance : Int)}');
         check("evi_is_valid", instance.isValid(), "");
@@ -206,6 +210,8 @@ class ApiProbeState extends FlxState {
             info("evi_get_3d_attributes", attrs == null ? "unavailable" : 'x=${attrs.position.x} y=${attrs.position.y}');
             instance2.release();
         }
+        check("no_handle_leaks_lifecycle", StudioSystem.liveHandleCount() == lifecycleBaseline,
+            'baseline=$lifecycleBaseline now=${StudioSystem.liveHandleCount()}');
 
         // Bank surface
         var bankCount = StudioSystem.getBankCount();
@@ -263,6 +269,64 @@ class ApiProbeState extends FlxState {
         check("evd_load_sample_data", sampleResult.isOk(), 'result=${sampleResult.toString()}');
         info("evd_get_sample_loading_state", Std.string((desc.getSampleLoadingState() : Int)));
         desc.unloadSampleData();
+    }
+
+    /**
+     * Runtime-verifies the generational handle table's safety promises
+     * through the real FFI: stale handles, cross-type misuse, double
+     * release, and slot reuse must all fail cleanly with
+     * FMOD_ERR_INVALID_HANDLE (or default getter values) instead of
+     * crashing or touching another object.
+     */
+    function probeHandleSafety():Void {
+        // Lookups below are deduplicated, so every handle this section
+        // creates is released and the live count must return to baseline
+        var baseline = StudioSystem.liveHandleCount();
+        var desc = StudioSystem.getEvent(FmodSongs.MainLevel);
+        var master = StudioSystem.getBus("bus:/");
+
+        // Stale handle: every call must be a safe no-op after release
+        var stale:EventInstance = desc.createInstance();
+        check("abuse_setup_instance", !stale.isNull(), 'handle=${(stale : Int)}');
+        stale.release();
+        check("stale_handle_invalid", !stale.isValid(), "");
+        var staleStart:FmodResult = stale.start();
+        check("stale_start_invalid_handle", staleStart == FmodResult.FMOD_ERR_INVALID_HANDLE,
+            'result=${staleStart.toString()}');
+        check("stale_get_volume_default", stale.getVolume() == 0.0, 'value=${stale.getVolume()}');
+        check("stale_get_timeline_default", stale.getTimelinePosition() == 0,
+            'value=${stale.getTimelinePosition()}');
+
+        // Cross-type misuse: a Bus handle passed as an EventInstance
+        var wrongInstance:EventInstance = cast (master : Int);
+        check("crosstype_bus_as_instance_invalid", !wrongInstance.isValid(), "");
+        var wrongStart:FmodResult = wrongInstance.start();
+        check("crosstype_bus_as_instance_start", wrongStart == FmodResult.FMOD_ERR_INVALID_HANDLE,
+            'result=${wrongStart.toString()}');
+
+        // ... and the reverse: an EventInstance handle passed as a Bus
+        var live:EventInstance = desc.createInstance();
+        var wrongBus:Bus = cast (live : Int);
+        var wrongSet:FmodResult = wrongBus.setVolume(1.0);
+        check("crosstype_instance_as_bus_set_volume", wrongSet == FmodResult.FMOD_ERR_INVALID_HANDLE,
+            'result=${wrongSet.toString()}');
+        live.release();
+
+        // Double release must fail cleanly, not crash
+        var doubleRelease:FmodResult = stale.release();
+        check("double_release_invalid_handle", doubleRelease == FmodResult.FMOD_ERR_INVALID_HANDLE,
+            'result=${doubleRelease.toString()}');
+
+        // Slot reuse: a new instance may reuse the freed slot, but the old
+        // handle's generation is stale and must never resolve to it
+        var reused:EventInstance = desc.createInstance();
+        check("reuse_new_instance_valid", reused.isValid(), 'handle=${(reused : Int)}');
+        check("reuse_stale_still_invalid", !stale.isValid(),
+            'stale=${(stale : Int)} new=${(reused : Int)}');
+        reused.release();
+
+        check("no_handle_leaks_abuse", StudioSystem.liveHandleCount() == baseline,
+            'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
     }
 
     override public function update(elapsed:Float):Void {

@@ -33,6 +33,8 @@ class LoadFmodState extends FlxState {
                     FlxG.switchState(BankLifecycleTestState.new);
                 case "pan-test":
                     FlxG.switchState(EmitterPanTestState.new);
+                case "stress-test":
+                    FlxG.switchState(StressTestState.new);
                 default:
                     FlxG.switchState(VolumeTestState.new);
             }

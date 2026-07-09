@@ -86,6 +86,9 @@ class ProgrammerSoundTestState extends FlxState {
         // triggers; this proves assignment, playback with the callback
         // armed, and cleanup are all safe.
         var desc = StudioSystem.getEvent(FmodSongs.MainLevel);
+        // Leak baseline after the lookup (descriptions cache a persistent
+        // deduped handle) and before the instance, which is released below
+        var baseline = StudioSystem.liveHandleCount();
         var instance:EventInstance = desc.createInstance();
         check("create_instance", !instance.isNull(), "");
         var assignResult = instance.assignProgrammerSound("assets/fmod/Jump.wav");
@@ -97,6 +100,8 @@ class ProgrammerSoundTestState extends FlxState {
         check("evi_release", instance.release().isOk(), "");
 
         info("live_handle_delta", Std.string(StudioSystem.liveHandleCount() - handlesBefore));
+        check("no_handle_leaks", StudioSystem.liveHandleCount() == baseline,
+            'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
 
         log('PS_TEST: COMPLETE passed=$_passCount failed=$_failCount');
         label.text = 'PS_TEST complete: $_passCount passed, $_failCount failed';

@@ -59,6 +59,13 @@ class EmitterPanTestState extends FlxState {
 
         log("PAN_TEST: Starting");
 
+        // Warm the event description cache (the lookup allocates one
+        // persistent deduped handle), then capture the leak baseline: the
+        // emitter's instance is the only allocation after this point and
+        // destroy() must release it.
+        StudioSystem.getEvent(FmodSongs.MainLevel);
+        var baseline = StudioSystem.liveHandleCount();
+
         // Emitter attached to a sprite: play + attach in one call
         var sprite = new FlxSprite(100, 50);
         sprite.width = 16;
@@ -117,6 +124,9 @@ class EmitterPanTestState extends FlxState {
                 approx(listenerAttributes.position.x, midX) && approx(listenerAttributes.position.y, midY),
                 'position=(${listenerAttributes.position.x}, ${listenerAttributes.position.y}) expected=($midX, $midY)');
         }
+
+        check("no_handle_leaks", StudioSystem.liveHandleCount() == baseline,
+            'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
 
         log('PAN_TEST: COMPLETE passed=$_passCount failed=$_failCount');
         label.text = 'PAN_TEST complete: $_passCount passed, $_failCount failed';
