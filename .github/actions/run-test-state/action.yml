@@ -1,0 +1,103 @@
+name: Run test state
+description: >
+  Runs one audio_test game state on a native target and gates on its log
+  output. The game binary is discovered per platform (run.sh on Linux C++,
+  executable scan on Linux HL, the app binary on Mac, the .exe on Windows).
+
+inputs:
+  state:
+    description: Test state name (HAXEFMOD_TEST_STATE value, e.g. cb-test)
+    required: true
+  gate:
+    description: Log line prefix the state emits (e.g. CB_TEST)
+    required: true
+  bin-dir:
+    description: Directory containing the game executable
+    required: true
+  log-file:
+    description: Path to write the captured game log
+    required: true
+  extra-gate:
+    description: Additional required log line (grepped verbatim), empty to skip
+    required: false
+    default: ""
+  copy-jump-wav:
+    description: Copy the example wav into the game assets first (ps-test)
+    required: false
+    default: "false"
+  use-wavwriter:
+    description: Route FMOD output to a scratch wav (platforms with no audio device)
+    required: false
+    default: "false"
+  timeout:
+    description: Seconds to wait for the state to exit
+    required: false
+    default: "30"
+
+runs:
+  using: composite
+  steps:
+    - name: Run ${{ inputs.state }}
+      shell: bash
+      run: |
+        # bin-dir may be a glob (linux exports land in linux64/ or linux/)
+        BIN_DIR=$(ls -d ${{ inputs.bin-dir }} 2>/dev/null | head -1)
+        if [ -z "$BIN_DIR" ]; then
+          echo "No bin directory matched: ${{ inputs.bin-dir }}"
+          exit 1
+        fi
+        LOG_FILE="${{ inputs.log-file }}"
+        GATE="${{ inputs.gate }}"
+
+        if [ "${{ inputs.copy-jump-wav }}" = "true" ]; then
+          # FMOD resolves the path relative to the process cwd, which is
+          # bin-dir on every platform (the state runs from there)
+          mkdir -p "$BIN_DIR/assets/fmod"
+          cp example-project/EZPlatformer/fmod/Assets/Jump.wav "$BIN_DIR/assets/fmod/Jump.wav"
+        fi
+
+        export HAXEFMOD_TEST_STATE="${{ inputs.state }}"
+        if [ "${{ inputs.use-wavwriter }}" = "true" ]; then
+          export FMOD_WAVWRITER="${RUNNER_TEMP}/state-${{ inputs.state }}.wav"
+        fi
+
+        cd "$BIN_DIR"
+        case "$(uname -s)" in
+          Linux*)
+            export DISPLAY=:99
+            if [ -f run.sh ]; then
+              EXE=./run.sh
+            else
+              export LD_LIBRARY_PATH="$(pwd):$LD_LIBRARY_PATH"
+              EXE=$(find . -maxdepth 1 -type f -executable ! -name "*.so*" ! -name "*.hdll" ! -name "run.sh" -print -quit)
+            fi
+            ;;
+          Darwin*)
+            EXE=$(find . -maxdepth 1 -type f ! -name "*.dylib" ! -name "*.hdll" ! -name "*.ndll" ! -name "*.so*" -print -quit)
+            ;;
+          *)
+            EXE=$(find . -maxdepth 1 -name "*.exe" -print -quit)
+            ;;
+        esac
+        echo "Running state ${{ inputs.state }} via $EXE"
+
+        "$EXE" > "$LOG_FILE" 2>&1 &
+        GAME_PID=$!
+        cd - > /dev/null
+        for i in $(seq "${{ inputs.timeout }}"); do
+          kill -0 $GAME_PID 2>/dev/null || break
+          sleep 1
+        done
+        kill $GAME_PID 2>/dev/null || true
+        wait $GAME_PID 2>/dev/null || true
+
+        grep "$GATE:" "$LOG_FILE"
+        grep -q "$GATE: COMPLETE" "$LOG_FILE"
+        if [ -n "${{ inputs.extra-gate }}" ]; then
+          grep -q "${{ inputs.extra-gate }}" "$LOG_FILE"
+        fi
+        if grep -q "pass=false" "$LOG_FILE"; then
+          echo "$GATE reported failing checks"
+          exit 1
+        fi
+        echo "$GATE passed"

@@ -222,6 +222,7 @@ extern int fmod_core_get_sound_length(int handle);
 
 //// Debug
 extern int fmod_debug_live_handle_count();
+extern int fmod_binding_abi_version();
 
 } // namespace faxe
 } // namespace linc

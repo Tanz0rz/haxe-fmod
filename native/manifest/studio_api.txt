@@ -11,6 +11,13 @@
 # Types are logical (exact FFI types differ per backend, e.g. f32 vs f64);
 # the checker verifies presence and arity, not exact types.
 #
+# abi-version: 2
+# The binding ABI version covers the shape of the native surface. Bump it in
+# lockstep with the "hlaxe_fmod_abi=" marker in hlaxe_fmod.c, the constants in
+# the other two shims, and FmodRuntime.BINDING_ABI whenever functions are
+# added, removed, or change signature. PostBuild.hx scans pre-built hdlls for
+# the marker and refuses mismatches before they become loader fatals.
+#
 # Naming domains (2.0 rework): sys_, bank_, evd_, evi_, bus_, vca_, cb_, ps_, core_.
 # Functions without a domain prefix are the legacy 1.x surface, migrated in M3+.
 
@@ -287,3 +294,4 @@ core_get_sound_length i32 -> i32
 
 ## Debug
 debug_live_handle_count -> i32
+binding_abi_version -> i32

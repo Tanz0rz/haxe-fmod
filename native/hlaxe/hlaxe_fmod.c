@@ -41,6 +41,11 @@ static FMOD_RESULT gLastResult = FMOD_OK;
 // next binding call; the Haxe wrappers copy immediately.
 static char gStringBuf[512];
 
+// Binding ABI marker. PostBuild.hx scans compiled hdlls for this string to
+// reject stale pre-built hdlls before they become loader fatals. Keep the
+// number in lockstep with the manifest header "# abi-version:".
+static const char gAbiMarker[] = "hlaxe_fmod_abi=2";
+
 // Auto-update thread state
 static volatile int gAutoUpdateRunning = 0;
 #ifdef _WIN32
@@ -2181,3 +2186,10 @@ HL_PRIM int HL_NAME(debug_live_handle_count)() {
     return faxe_live_handle_count();
 }
 DEFINE_PRIM(_I32, debug_live_handle_count, _NO_ARG);
+
+// Reads the version out of the marker so the string is always retained in
+// the compiled hdll and the prim can never disagree with it.
+HL_PRIM int HL_NAME(binding_abi_version)() {
+    return atoi(gAbiMarker + 15);
+}
+DEFINE_PRIM(_I32, binding_abi_version, _NO_ARG);

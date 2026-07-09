@@ -257,6 +257,7 @@ class NativeStudioHl {
 
     // Debug
     public static inline function debug_live_handle_count():Int return Raw.debug_live_handle_count();
+    public static inline function binding_abi_version():Int return Raw.binding_abi_version();
 }
 
 @:hlNative("hlaxe_fmod")
@@ -421,5 +422,6 @@ private extern class Raw {
     static function cb_string():hl.Bytes;
     static function cb_take_overflow():Bool;
     static function debug_live_handle_count():Int;
+    static function binding_abi_version():Int;
 }
 #end

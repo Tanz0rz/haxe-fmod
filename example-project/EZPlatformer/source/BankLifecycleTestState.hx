@@ -27,6 +27,10 @@ class BankLifecycleTestState extends FlxState {
     var _passCount:Int = 0;
     var _done:Bool = false;
     var _framesWaited:Int = 0;
+    var _awaitingAsync:Bool = false;
+    var _asyncFrames:Int = 0;
+    var _asyncMissing:haxefmod.studio.Bank;
+    var _asyncDuplicate:haxefmod.studio.Bank;
 
     static inline function log(message:String):Void {
         #if js
@@ -53,6 +57,23 @@ class BankLifecycleTestState extends FlxState {
 
         var masterPath = FmodRuntime.bankPath("Master.bank");
         var stringsPath = FmodRuntime.bankPath("Master.strings.bank");
+
+        #if js
+        // On html5 the shim preloads the master banks during its async init
+        // (outside the registry), so the refcount/unload flow does not apply.
+        // What CAN only be validated in a real browser is the async
+        // fetch-into-virtual-filesystem loading path, so this target tests
+        // that instead: both error legs exercise the full fetch machinery
+        // (the happy path needs a bank that is not preloaded).
+        check("event_resolves", !FmodRuntime.createInstance(FmodSongs.MainLevel).isNull(), "");
+        _asyncMissing = FmodRuntime.banks.loadAsync("assets/fmod/Desktop/DoesNotExist.bank");
+        check("async_missing_handle", !_asyncMissing.isNull(), "");
+        _asyncDuplicate = FmodRuntime.banks.loadAsync(masterPath);
+        check("async_duplicate_handle", !_asyncDuplicate.isNull(), "");
+        _awaitingAsync = true;
+        label.text = "BANK_TEST waiting on async fetches";
+        return;
+        #end
 
         // The default init registered both banks with one reference each
         check("master_loaded", FmodRuntime.banks.isLoaded(masterPath), "");
@@ -99,6 +120,27 @@ class BankLifecycleTestState extends FlxState {
     override public function update(elapsed:Float):Void {
         super.update(elapsed);
         FmodManager.Update();
+
+        if (_awaitingAsync) {
+            _asyncFrames++;
+            var missingState = _asyncMissing.getLoadingState();
+            var duplicateState = _asyncDuplicate.getLoadingState();
+            var settled = missingState != FmodLoadingState.LOADING && duplicateState != FmodLoadingState.LOADING;
+            if (settled || _asyncFrames > 600) {
+                _awaitingAsync = false;
+                // A missing URL must surface as ERROR, never hang or crash
+                check("async_missing_errors", missingState == FmodLoadingState.ERROR,
+                    'state=${(missingState : Int)}');
+                // The fetch of an already-loaded bank succeeds over the
+                // network, then the load itself reports the duplicate
+                check("async_duplicate_errors", duplicateState == FmodLoadingState.ERROR,
+                    'state=${(duplicateState : Int)}');
+                log('BANK_TEST: COMPLETE passed=$_passCount failed=$_failCount');
+                _done = true;
+            }
+            return;
+        }
+
         if (!_done) return;
 
         _framesWaited++;

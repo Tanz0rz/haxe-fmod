@@ -2014,6 +2014,11 @@ class jaxe {
         return jaxe.liveCount;
     }
 
+    static fmod_binding_abi_version() {
+        // Keep in lockstep with the manifest header "# abi-version:"
+        return 2;
+    }
+
     //// Initialization (Emscripten-specific, must stay here)
 
     static preRun = function () {

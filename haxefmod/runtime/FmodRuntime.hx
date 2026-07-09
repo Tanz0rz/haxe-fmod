@@ -31,10 +31,25 @@ class FmodRuntime {
      * poll isInitialized(), or just call update() every frame and start
      * playing sounds once it reports true.
      */
+    /** Expected native binding ABI - lockstep with the manifest "# abi-version:". */
+    public static inline var BINDING_ABI:Int = 2;
+
     public static function init(?settings:FmodSettings):FmodResult {
         if (initStarted) return FmodResult.FMOD_OK;
         initStarted = true;
         resolved = FmodSettingsResolver.resolve(settings);
+
+        #if hl
+        // A stale hdll usually dies at load with a missing-prim fatal (and
+        // PostBuild refuses it even earlier), but lazy prim resolution can
+        // let a mismatched hdll limp along - fail it loudly here instead.
+        if (NativeStudio.binding_abi_version() != BINDING_ABI) {
+            trace("Error: FMOD - hlaxe_fmod.hdll binding version "
+                + NativeStudio.binding_abi_version() + " does not match this haxefmod ("
+                + BINDING_ABI + "). Run: haxelib run haxefmod build-hdll");
+            return FmodResult.FMOD_ERR_VERSION;
+        }
+        #end
 
         NativeStudio.sys_set_debug_level(resolved.logLevel);
         var result:FmodResult = NativeStudio.sys_init_ex(

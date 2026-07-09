@@ -210,152 +210,52 @@ jobs:
       - name: Validate volume/mute
         run: ./ci/validate-volume.sh /tmp/volume-test-linux-cpp.wav 15
 
-      - name: Run API probe
-        run: |
-          export DISPLAY=:99
-
-          BIN_DIR="example-project/EZPlatformer/export/linux64/bin"
-          if [ ! -d "$BIN_DIR" ]; then
-            BIN_DIR="example-project/EZPlatformer/export/linux/bin"
-          fi
-
-          export HAXEFMOD_TEST_STATE=api-probe
-          cd "$BIN_DIR"
-          ./run.sh > /tmp/api-probe-linux-cpp.log 2>&1 &
-          GAME_PID=$!
-          cd -
-          for i in $(seq 30); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          kill $GAME_PID 2>/dev/null || true
-          wait $GAME_PID 2>/dev/null || true
-
-          grep "API_PROBE:" /tmp/api-probe-linux-cpp.log
-          grep -q "API_PROBE: COMPLETE" /tmp/api-probe-linux-cpp.log
-          if grep -q "pass=false" /tmp/api-probe-linux-cpp.log; then
-            echo "FAIL: API probe reported failing checks"
-            exit 1
-          fi
-          echo "API probe passed"
-
-      - name: Run callback test
-        run: |
-          export DISPLAY=:99
-
-          BIN_DIR="example-project/EZPlatformer/export/linux64/bin"
-          if [ ! -d "$BIN_DIR" ]; then
-            BIN_DIR="example-project/EZPlatformer/export/linux/bin"
-          fi
-
-          export HAXEFMOD_TEST_STATE=cb-test
-          cd "$BIN_DIR"
-          ./run.sh > /tmp/cb-test-linux-cpp.log 2>&1 &
-          GAME_PID=$!
-          cd -
-          for i in $(seq 30); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          kill $GAME_PID 2>/dev/null || true
-          wait $GAME_PID 2>/dev/null || true
-
-          grep "CB_TEST:" /tmp/cb-test-linux-cpp.log
-          grep -q "CB_TEST: Stopped" /tmp/cb-test-linux-cpp.log
-          grep -q "CB_TEST: COMPLETE" /tmp/cb-test-linux-cpp.log
-          echo "Callback test passed"
-
-      - name: Run programmer sound test
+      - name: Run api-probe state
         if: ${{ !cancelled() }}
-        run: |
-          export DISPLAY=:99
+        uses: ./.github/actions/run-test-state
+        with:
+          state: api-probe
+          gate: API_PROBE
+          bin-dir: example-project/EZPlatformer/export/linux*/bin
+          log-file: /tmp/api-probe-linux-cpp.log
 
-          BIN_DIR="example-project/EZPlatformer/export/linux64/bin"
-          if [ ! -d "$BIN_DIR" ]; then
-            BIN_DIR="example-project/EZPlatformer/export/linux/bin"
-          fi
-
-          cp example-project/EZPlatformer/fmod/Assets/Jump.wav "$BIN_DIR/assets/fmod/Jump.wav"
-
-          export HAXEFMOD_TEST_STATE=ps-test
-          cd "$BIN_DIR"
-          ./run.sh > /tmp/ps-test-linux-cpp.log 2>&1 &
-          GAME_PID=$!
-          cd -
-          for i in $(seq 30); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          kill $GAME_PID 2>/dev/null || true
-          wait $GAME_PID 2>/dev/null || true
-
-          grep "PS_TEST:" /tmp/ps-test-linux-cpp.log
-          grep -q "PS_TEST: COMPLETE" /tmp/ps-test-linux-cpp.log
-          if grep -q "pass=false" /tmp/ps-test-linux-cpp.log; then
-            echo "Programmer sound test had failing checks"
-            exit 1
-          fi
-          echo "Programmer sound test passed"
-
-      - name: Run bank lifecycle test
+      - name: Run cb-test state
         if: ${{ !cancelled() }}
-        run: |
-          export DISPLAY=:99
+        uses: ./.github/actions/run-test-state
+        with:
+          state: cb-test
+          gate: CB_TEST
+          bin-dir: example-project/EZPlatformer/export/linux*/bin
+          log-file: /tmp/cb-test-linux-cpp.log
+          extra-gate: "CB_TEST: Stopped"
 
-          BIN_DIR="example-project/EZPlatformer/export/linux64/bin"
-          if [ ! -d "$BIN_DIR" ]; then
-            BIN_DIR="example-project/EZPlatformer/export/linux/bin"
-          fi
-
-          export HAXEFMOD_TEST_STATE=bank-test
-          cd "$BIN_DIR"
-          ./run.sh > /tmp/bank-test-linux-cpp.log 2>&1 &
-          GAME_PID=$!
-          cd -
-          for i in $(seq 30); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          kill $GAME_PID 2>/dev/null || true
-          wait $GAME_PID 2>/dev/null || true
-
-          grep "BANK_TEST:" /tmp/bank-test-linux-cpp.log
-          grep -q "BANK_TEST: COMPLETE" /tmp/bank-test-linux-cpp.log
-          if grep -q "pass=false" /tmp/bank-test-linux-cpp.log; then
-            echo "Bank lifecycle test had failing checks"
-            exit 1
-          fi
-          echo "Bank lifecycle test passed"
-
-      - name: Run emitter pan test
+      - name: Run ps-test state
         if: ${{ !cancelled() }}
-        run: |
-          export DISPLAY=:99
+        uses: ./.github/actions/run-test-state
+        with:
+          state: ps-test
+          gate: PS_TEST
+          bin-dir: example-project/EZPlatformer/export/linux*/bin
+          log-file: /tmp/ps-test-linux-cpp.log
+          copy-jump-wav: "true"
 
-          BIN_DIR="example-project/EZPlatformer/export/linux64/bin"
-          if [ ! -d "$BIN_DIR" ]; then
-            BIN_DIR="example-project/EZPlatformer/export/linux/bin"
-          fi
+      - name: Run bank-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: bank-test
+          gate: BANK_TEST
+          bin-dir: example-project/EZPlatformer/export/linux*/bin
+          log-file: /tmp/bank-test-linux-cpp.log
 
-          export HAXEFMOD_TEST_STATE=pan-test
-          cd "$BIN_DIR"
-          ./run.sh > /tmp/pan-test-linux-cpp.log 2>&1 &
-          GAME_PID=$!
-          cd -
-          for i in $(seq 30); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          kill $GAME_PID 2>/dev/null || true
-          wait $GAME_PID 2>/dev/null || true
-
-          grep "PAN_TEST:" /tmp/pan-test-linux-cpp.log
-          grep -q "PAN_TEST: COMPLETE" /tmp/pan-test-linux-cpp.log
-          if grep -q "pass=false" /tmp/pan-test-linux-cpp.log; then
-            echo "Emitter pan test had failing checks"
-            exit 1
-          fi
-          echo "Emitter pan test passed"
+      - name: Run pan-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: pan-test
+          gate: PAN_TEST
+          bin-dir: example-project/EZPlatformer/export/linux*/bin
+          log-file: /tmp/pan-test-linux-cpp.log
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -580,147 +480,52 @@ jobs:
       - name: Validate volume/mute
         run: ./ci/validate-volume.sh /tmp/volume-test-linux-hl.wav 15
 
-      - name: Run API probe
-        run: |
-          export DISPLAY=:99
-
-          BIN_DIR="example-project/EZPlatformer/export/hl/bin"
-
-          export HAXEFMOD_TEST_STATE=api-probe
-          cd "$BIN_DIR"
-          export LD_LIBRARY_PATH="$(pwd):$LD_LIBRARY_PATH"
-          EXE=$(find . -maxdepth 1 -type f -executable ! -name "*.so*" ! -name "*.hdll" ! -name "run.sh" -print -quit)
-          "$EXE" > /tmp/api-probe-linux-hl.log 2>&1 &
-          GAME_PID=$!
-          cd -
-          for i in $(seq 30); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          kill $GAME_PID 2>/dev/null || true
-          wait $GAME_PID 2>/dev/null || true
-
-          grep "API_PROBE:" /tmp/api-probe-linux-hl.log
-          grep -q "API_PROBE: COMPLETE" /tmp/api-probe-linux-hl.log
-          if grep -q "pass=false" /tmp/api-probe-linux-hl.log; then
-            echo "FAIL: API probe reported failing checks"
-            exit 1
-          fi
-          echo "API probe passed"
-
-      - name: Run callback test
-        run: |
-          export DISPLAY=:99
-
-          BIN_DIR="example-project/EZPlatformer/export/hl/bin"
-
-          export HAXEFMOD_TEST_STATE=cb-test
-          cd "$BIN_DIR"
-          export LD_LIBRARY_PATH="$(pwd):$LD_LIBRARY_PATH"
-          EXE=$(find . -maxdepth 1 -type f -executable ! -name "*.so*" ! -name "*.hdll" ! -name "run.sh" -print -quit)
-          "$EXE" > /tmp/cb-test-linux-hl.log 2>&1 &
-          GAME_PID=$!
-          cd -
-          for i in $(seq 30); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          kill $GAME_PID 2>/dev/null || true
-          wait $GAME_PID 2>/dev/null || true
-
-          grep "CB_TEST:" /tmp/cb-test-linux-hl.log
-          grep -q "CB_TEST: Stopped" /tmp/cb-test-linux-hl.log
-          grep -q "CB_TEST: COMPLETE" /tmp/cb-test-linux-hl.log
-          echo "Callback test passed"
-
-      - name: Run programmer sound test
+      - name: Run api-probe state
         if: ${{ !cancelled() }}
-        run: |
-          export DISPLAY=:99
+        uses: ./.github/actions/run-test-state
+        with:
+          state: api-probe
+          gate: API_PROBE
+          bin-dir: example-project/EZPlatformer/export/hl/bin
+          log-file: /tmp/api-probe-linux-hl.log
 
-          BIN_DIR="example-project/EZPlatformer/export/hl/bin"
-
-          cp example-project/EZPlatformer/fmod/Assets/Jump.wav "$BIN_DIR/assets/fmod/Jump.wav"
-
-          export HAXEFMOD_TEST_STATE=ps-test
-          cd "$BIN_DIR"
-          export LD_LIBRARY_PATH="$(pwd):$LD_LIBRARY_PATH"
-          EXE=$(find . -maxdepth 1 -type f -executable ! -name "*.so*" ! -name "*.hdll" ! -name "run.sh" -print -quit)
-          "$EXE" > /tmp/ps-test-linux-hl.log 2>&1 &
-          GAME_PID=$!
-          cd -
-          for i in $(seq 30); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          kill $GAME_PID 2>/dev/null || true
-          wait $GAME_PID 2>/dev/null || true
-
-          grep "PS_TEST:" /tmp/ps-test-linux-hl.log
-          grep -q "PS_TEST: COMPLETE" /tmp/ps-test-linux-hl.log
-          if grep -q "pass=false" /tmp/ps-test-linux-hl.log; then
-            echo "Programmer sound test had failing checks"
-            exit 1
-          fi
-          echo "Programmer sound test passed"
-
-      - name: Run bank lifecycle test
+      - name: Run cb-test state
         if: ${{ !cancelled() }}
-        run: |
-          export DISPLAY=:99
+        uses: ./.github/actions/run-test-state
+        with:
+          state: cb-test
+          gate: CB_TEST
+          bin-dir: example-project/EZPlatformer/export/hl/bin
+          log-file: /tmp/cb-test-linux-hl.log
+          extra-gate: "CB_TEST: Stopped"
 
-          BIN_DIR="example-project/EZPlatformer/export/hl/bin"
-
-          export HAXEFMOD_TEST_STATE=bank-test
-          cd "$BIN_DIR"
-          export LD_LIBRARY_PATH="$(pwd):$LD_LIBRARY_PATH"
-          EXE=$(find . -maxdepth 1 -type f -executable ! -name "*.so*" ! -name "*.hdll" ! -name "run.sh" -print -quit)
-          "$EXE" > /tmp/bank-test-linux-hl.log 2>&1 &
-          GAME_PID=$!
-          cd -
-          for i in $(seq 30); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          kill $GAME_PID 2>/dev/null || true
-          wait $GAME_PID 2>/dev/null || true
-
-          grep "BANK_TEST:" /tmp/bank-test-linux-hl.log
-          grep -q "BANK_TEST: COMPLETE" /tmp/bank-test-linux-hl.log
-          if grep -q "pass=false" /tmp/bank-test-linux-hl.log; then
-            echo "Bank lifecycle test had failing checks"
-            exit 1
-          fi
-          echo "Bank lifecycle test passed"
-
-      - name: Run emitter pan test
+      - name: Run ps-test state
         if: ${{ !cancelled() }}
-        run: |
-          export DISPLAY=:99
+        uses: ./.github/actions/run-test-state
+        with:
+          state: ps-test
+          gate: PS_TEST
+          bin-dir: example-project/EZPlatformer/export/hl/bin
+          log-file: /tmp/ps-test-linux-hl.log
+          copy-jump-wav: "true"
 
-          BIN_DIR="example-project/EZPlatformer/export/hl/bin"
+      - name: Run bank-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: bank-test
+          gate: BANK_TEST
+          bin-dir: example-project/EZPlatformer/export/hl/bin
+          log-file: /tmp/bank-test-linux-hl.log
 
-          export HAXEFMOD_TEST_STATE=pan-test
-          cd "$BIN_DIR"
-          export LD_LIBRARY_PATH="$(pwd):$LD_LIBRARY_PATH"
-          EXE=$(find . -maxdepth 1 -type f -executable ! -name "*.so*" ! -name "*.hdll" ! -name "run.sh" -print -quit)
-          "$EXE" > /tmp/pan-test-linux-hl.log 2>&1 &
-          GAME_PID=$!
-          cd -
-          for i in $(seq 30); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          kill $GAME_PID 2>/dev/null || true
-          wait $GAME_PID 2>/dev/null || true
-
-          grep "PAN_TEST:" /tmp/pan-test-linux-hl.log
-          grep -q "PAN_TEST: COMPLETE" /tmp/pan-test-linux-hl.log
-          if grep -q "pass=false" /tmp/pan-test-linux-hl.log; then
-            echo "Emitter pan test had failing checks"
-            exit 1
-          fi
-          echo "Emitter pan test passed"
+      - name: Run pan-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: pan-test
+          gate: PAN_TEST
+          bin-dir: example-project/EZPlatformer/export/hl/bin
+          log-file: /tmp/pan-test-linux-hl.log
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -733,6 +538,9 @@ jobs:
             /tmp/volume-test-linux-hl.wav
             /tmp/api-probe-linux-hl.log
             /tmp/cb-test-linux-hl.log
+            /tmp/ps-test-linux-hl.log
+            /tmp/bank-test-linux-hl.log
+            /tmp/pan-test-linux-hl.log
             /tmp/volume-test-linux-hl.log
           if-no-files-found: warn
 
@@ -1181,6 +989,111 @@ jobs:
           grep -q "CB_TEST: COMPLETE" /tmp/cb-test-html5.log
           echo "Callback test passed"
 
+      - name: Run ps-test state (browser)
+        if: ${{ !cancelled() }}
+        run: |
+          export DISPLAY=:99
+
+          cd example-project/EZPlatformer/export/html5/bin
+          python3 -m http.server 8084 &
+          HTTP_PID=$!
+          sleep 1
+
+          chromium-browser \
+            --no-sandbox \
+            --disable-gpu \
+            --autoplay-policy=no-user-gesture-required \
+            --enable-logging=stderr --v=0 \
+            --window-size=640,480 \
+            --window-position=0,0 \
+            "http://localhost:8084/index.html?test=ps-test" > /tmp/ps-test-raw.log 2>&1 &
+          CHROME_PID=$!
+          sleep 3
+
+          xdotool mousemove 320 240 click 1
+          sleep 12
+
+          kill $CHROME_PID || true
+          kill $HTTP_PID || true
+
+          grep -o "PS_TEST:.*" /tmp/ps-test-raw.log | sed 's/",.*$//' | tee /tmp/ps-test-html5.log
+          grep -q "PS_TEST: COMPLETE" /tmp/ps-test-html5.log
+          if grep -q "pass=false" /tmp/ps-test-html5.log; then
+            echo "FAIL: ps-test reported failing checks"
+            exit 1
+          fi
+          echo "ps-test passed"
+
+      - name: Run bank-test state (browser)
+        if: ${{ !cancelled() }}
+        run: |
+          export DISPLAY=:99
+
+          cd example-project/EZPlatformer/export/html5/bin
+          python3 -m http.server 8085 &
+          HTTP_PID=$!
+          sleep 1
+
+          chromium-browser \
+            --no-sandbox \
+            --disable-gpu \
+            --autoplay-policy=no-user-gesture-required \
+            --enable-logging=stderr --v=0 \
+            --window-size=640,480 \
+            --window-position=0,0 \
+            "http://localhost:8085/index.html?test=bank-test" > /tmp/bank-test-raw.log 2>&1 &
+          CHROME_PID=$!
+          sleep 3
+
+          xdotool mousemove 320 240 click 1
+          sleep 18
+
+          kill $CHROME_PID || true
+          kill $HTTP_PID || true
+
+          grep -o "BANK_TEST:.*" /tmp/bank-test-raw.log | sed 's/",.*$//' | tee /tmp/bank-test-html5.log
+          grep -q "BANK_TEST: COMPLETE" /tmp/bank-test-html5.log
+          if grep -q "pass=false" /tmp/bank-test-html5.log; then
+            echo "FAIL: bank-test reported failing checks"
+            exit 1
+          fi
+          echo "bank-test passed"
+
+      - name: Run pan-test state (browser)
+        if: ${{ !cancelled() }}
+        run: |
+          export DISPLAY=:99
+
+          cd example-project/EZPlatformer/export/html5/bin
+          python3 -m http.server 8086 &
+          HTTP_PID=$!
+          sleep 1
+
+          chromium-browser \
+            --no-sandbox \
+            --disable-gpu \
+            --autoplay-policy=no-user-gesture-required \
+            --enable-logging=stderr --v=0 \
+            --window-size=640,480 \
+            --window-position=0,0 \
+            "http://localhost:8086/index.html?test=pan-test" > /tmp/pan-test-raw.log 2>&1 &
+          CHROME_PID=$!
+          sleep 3
+
+          xdotool mousemove 320 240 click 1
+          sleep 12
+
+          kill $CHROME_PID || true
+          kill $HTTP_PID || true
+
+          grep -o "PAN_TEST:.*" /tmp/pan-test-raw.log | sed 's/",.*$//' | tee /tmp/pan-test-html5.log
+          grep -q "PAN_TEST: COMPLETE" /tmp/pan-test-html5.log
+          if grep -q "pass=false" /tmp/pan-test-html5.log; then
+            echo "FAIL: pan-test reported failing checks"
+            exit 1
+          fi
+          echo "pan-test passed"
+
       - name: Upload audio artifact
         uses: actions/upload-artifact@v4
         if: always()
@@ -1192,6 +1105,9 @@ jobs:
             /tmp/volume-test-html5-console.log
             /tmp/api-probe-html5.log
             /tmp/cb-test-html5.log
+            /tmp/ps-test-html5.log
+            /tmp/bank-test-html5.log
+            /tmp/pan-test-html5.log
           if-no-files-found: warn
 
   # ===========================================================================
@@ -1449,6 +1365,58 @@ jobs:
       - name: Validate volume/mute
         run: ./ci/validate-volume.sh /tmp/volume-test-mac-hl.wav 15
 
+      - name: Run api-probe state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: api-probe
+          gate: API_PROBE
+          bin-dir: example-project/EZPlatformer/export/hl/bin/*.app/Contents/MacOS example-project/EZPlatformer/export/hl/*.app/Contents/MacOS
+          log-file: /tmp/api-probe-mac-hl.log
+          use-wavwriter: "true"
+
+      - name: Run cb-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: cb-test
+          gate: CB_TEST
+          bin-dir: example-project/EZPlatformer/export/hl/bin/*.app/Contents/MacOS example-project/EZPlatformer/export/hl/*.app/Contents/MacOS
+          log-file: /tmp/cb-test-mac-hl.log
+          extra-gate: "CB_TEST: Stopped"
+          use-wavwriter: "true"
+
+      - name: Run ps-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: ps-test
+          gate: PS_TEST
+          bin-dir: example-project/EZPlatformer/export/hl/bin/*.app/Contents/MacOS example-project/EZPlatformer/export/hl/*.app/Contents/MacOS
+          log-file: /tmp/ps-test-mac-hl.log
+          copy-jump-wav: "true"
+          use-wavwriter: "true"
+
+      - name: Run bank-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: bank-test
+          gate: BANK_TEST
+          bin-dir: example-project/EZPlatformer/export/hl/bin/*.app/Contents/MacOS example-project/EZPlatformer/export/hl/*.app/Contents/MacOS
+          log-file: /tmp/bank-test-mac-hl.log
+          use-wavwriter: "true"
+
+      - name: Run pan-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: pan-test
+          gate: PAN_TEST
+          bin-dir: example-project/EZPlatformer/export/hl/bin/*.app/Contents/MacOS example-project/EZPlatformer/export/hl/*.app/Contents/MacOS
+          log-file: /tmp/pan-test-mac-hl.log
+          use-wavwriter: "true"
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         if: always()
@@ -1458,6 +1426,11 @@ jobs:
             /tmp/audio-mac-hl.wav
             /tmp/game-mac-hl.log
             /tmp/volume-test-mac-hl.wav
+            /tmp/api-probe-mac-hl.log
+            /tmp/cb-test-mac-hl.log
+            /tmp/ps-test-mac-hl.log
+            /tmp/bank-test-mac-hl.log
+            /tmp/pan-test-mac-hl.log
           if-no-files-found: warn
 
   # ===========================================================================
@@ -1975,6 +1948,58 @@ jobs:
       - name: Validate volume/mute
         run: ./ci/validate-volume.sh "$GITHUB_WORKSPACE/volume-test-windows-hl.wav" 15
 
+      - name: Run api-probe state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: api-probe
+          gate: API_PROBE
+          bin-dir: example-project/EZPlatformer/export/hl/bin
+          log-file: ${{ github.workspace }}/api-probe-windows-hl.log
+          use-wavwriter: "true"
+
+      - name: Run cb-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: cb-test
+          gate: CB_TEST
+          bin-dir: example-project/EZPlatformer/export/hl/bin
+          log-file: ${{ github.workspace }}/cb-test-windows-hl.log
+          extra-gate: "CB_TEST: Stopped"
+          use-wavwriter: "true"
+
+      - name: Run ps-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: ps-test
+          gate: PS_TEST
+          bin-dir: example-project/EZPlatformer/export/hl/bin
+          log-file: ${{ github.workspace }}/ps-test-windows-hl.log
+          copy-jump-wav: "true"
+          use-wavwriter: "true"
+
+      - name: Run bank-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: bank-test
+          gate: BANK_TEST
+          bin-dir: example-project/EZPlatformer/export/hl/bin
+          log-file: ${{ github.workspace }}/bank-test-windows-hl.log
+          use-wavwriter: "true"
+
+      - name: Run pan-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: pan-test
+          gate: PAN_TEST
+          bin-dir: example-project/EZPlatformer/export/hl/bin
+          log-file: ${{ github.workspace }}/pan-test-windows-hl.log
+          use-wavwriter: "true"
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         if: always()
@@ -1984,6 +2009,11 @@ jobs:
             audio-windows-hl.wav
             game-windows-hl.log
             volume-test-windows-hl.wav
+            ${{ github.workspace }}/api-probe-windows-hl.log
+            ${{ github.workspace }}/cb-test-windows-hl.log
+            ${{ github.workspace }}/ps-test-windows-hl.log
+            ${{ github.workspace }}/bank-test-windows-hl.log
+            ${{ github.workspace }}/pan-test-windows-hl.log
           if-no-files-found: warn
 
   # ===========================================================================
@@ -2195,6 +2225,136 @@ jobs:
             game-windows-hl-compat.log
             volume-test-windows-hl-compat.wav
           if-no-files-found: warn
+
+  # ===========================================================================
+  # jaxe.js wasm harnesses (fast full-surface regression of the JS shim)
+  # ===========================================================================
+  js-harness:
+    runs-on: ubuntu-latest
+    if: ${{ !contains(github.event.head_commit.message, '[skip-build]') }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download FMOD html5 SDK
+        run: |
+          git clone --depth 1 --branch 2.03.12 \
+            https://x-access-token:${{ secrets.FMOD_SDK_TOKEN }}@github.com/Tanz0rz/fmod-sdk-cache.git \
+            /tmp/fmod-sdk-cache
+          ls /tmp/fmod-sdk-cache/html5/api/studio/lib/wasm/ | head -3
+
+      - name: Run jaxe harnesses against the real wasm
+        env:
+          FMOD_SDK_WEB: /tmp/fmod-sdk-cache/html5
+        run: |
+          node tests/js/jaxe-harness-full.js
+          node tests/js/ps-test.js
+          node tests/js/arity-audit.js
+
+  # ===========================================================================
+  # Package check: the haxelib zip must install and build a project
+  # ===========================================================================
+  package-check:
+    runs-on: ubuntu-latest
+    if: ${{ !contains(github.event.head_commit.message, '[skip-build]') }}
+    timeout-minutes: 30
+    env:
+      FMOD_SDK: ${{ github.workspace }}/fmod-sdk
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download FMOD SDK
+        run: |
+          git clone --depth 1 --branch 2.03.12 \
+            https://x-access-token:${{ secrets.FMOD_SDK_TOKEN }}@github.com/Tanz0rz/fmod-sdk-cache.git \
+            /tmp/fmod-sdk-cache
+          mkdir -p "$FMOD_SDK"
+          cp -R /tmp/fmod-sdk-cache/linux/* "$FMOD_SDK/"
+
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v1
+        with:
+          haxe-version: ${{ env.HAXE_VERSION }}
+
+      - name: Cache haxelib
+        uses: actions/cache@v4
+        with:
+          path: ~/haxelib
+          key: haxelib-package-${{ runner.os }}-${{ env.HAXE_VERSION }}
+
+      - name: Build the haxelib package
+        run: |
+          ./package.sh
+          echo "=== Package contents (top level) ==="
+          unzip -l haxefmod.zip | head -30
+
+          # Files the package must contain: the manifest drives PostBuild's
+          # ABI check, the shared headers drive build-hdll, MIGRATION.md is
+          # linked from the README
+          for required in \
+            "haxelib.json" \
+            "MIGRATION.md" \
+            "native/manifest/studio_api.txt" \
+            "native/shared/faxe_handles.h" \
+            "native/shared/faxe_cbqueue.h" \
+            "native/shared/faxe_guid.h" \
+            "native/shared/faxe_instctx.h" \
+            "native/hlaxe/hlaxe_fmod.c" \
+            "native/jaxe/jaxe.js" \
+            "templates/bin/hl/Linux64/hlaxe_fmod.hdll" \
+            "include.xml"; do
+            unzip -l haxefmod.zip | grep -q "$required" || {
+              echo "MISSING from package: $required"
+              exit 1
+            }
+          done
+          echo "All required files present"
+
+      - name: Install libraries with haxefmod from the package
+        run: |
+          haxelib setup ~/haxelib
+          haxelib install lime 8.3.0 --always --quiet
+          haxelib install openfl 9.5.0 --always --quiet
+          haxelib install flixel 6.1.2 --always --quiet
+          # The library under test comes from the zip, never from the checkout
+          haxelib remove haxefmod || true
+          haxelib install haxefmod.zip --always --quiet
+          haxelib path haxefmod
+          yes | haxelib run lime setup || true
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb patchelf \
+            libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
+            libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev libz-dev
+
+      - name: Build and install HashLink
+        run: |
+          # Pinned to the commit before the SDL3 port (hashlink #830, 2026-06-17).
+          # ubuntu-latest has no libsdl3-dev, so newer hashlink master does not build.
+          git clone https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
+          cd /tmp/hashlink-src
+          git checkout 781960a5daca32ad6d5cea87b255fe8b5872551e
+          make -j$(nproc) 2>&1 | tee /tmp/hashlink-build.log || {
+            echo "=== MAKE FAILED - retrying single-threaded ==="
+            make 2>&1 | tee -a /tmp/hashlink-build.log
+            exit 1
+          }
+          sudo make install
+          sudo ldconfig
+          hl --version || echo "HashLink installed"
+
+      - name: Build HashLink target from the installed package
+        run: |
+          cd example-project/EZPlatformer
+          haxelib run lime build hl 2>&1 | tee /tmp/package-build.log
+          grep -q "(pre-built)" /tmp/package-build.log
+          echo "Verified: pre-built hdll resolved from the installed package"
+
+      - name: Validate build output
+        run: |
+          ./ci/validate-build.sh example-project/EZPlatformer/export/hl/bin hl
 
   # ===========================================================================
   # Update Pre-built hdlls

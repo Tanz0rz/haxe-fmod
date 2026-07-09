@@ -190,4 +190,5 @@ class NativeStudioStub {
 
     // Debug
     public static function debug_live_handle_count():Int return 0;
+    public static function binding_abi_version():Int return 0;
 }

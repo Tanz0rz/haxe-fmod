@@ -1917,5 +1917,10 @@ int fmod_debug_live_handle_count() {
     return faxe_live_handle_count();
 }
 
+int fmod_binding_abi_version() {
+    // Keep in lockstep with the manifest header "# abi-version:"
+    return 2;
+}
+
 } // namespace faxe
 } // namespace linc

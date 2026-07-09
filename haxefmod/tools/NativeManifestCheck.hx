@@ -45,6 +45,7 @@ class NativeManifestCheck {
         diff("cpp (linc_faxe.cpp)", scanCpp(cppPath), manifest, errors);
         diff("hl (hlaxe_fmod.c)", scanHl(hlPath), manifest, errors);
         diff("js (jaxe.js)", scanJs(jsPath), manifest, errors);
+        checkAbiLockstep(libRoot, manifestPath, errors);
 
         var total = 0;
         for (_ in manifest.keys()) total++;
@@ -130,6 +131,61 @@ class NativeManifestCheck {
             if (token != "") tokens.push(token);
         }
         return tokens;
+    }
+
+    /**
+     * The binding ABI version is declared in four places that must agree:
+     * the manifest header, the hl marker string (scanned from hdll binaries
+     * by PostBuild), and the constants in the cpp/js shims and FmodRuntime.
+     */
+    static function checkAbiLockstep(libRoot:String, manifestPath:String, errors:Array<String>) {
+        var expected = -1;
+        for (line in File.getContent(manifestPath).split("\n")) {
+            var trimmed = StringTools.trim(line);
+            if (StringTools.startsWith(trimmed, "# abi-version:")) {
+                expected = Std.parseInt(StringTools.trim(trimmed.substr("# abi-version:".length)));
+                break;
+            }
+        }
+        if (expected == null || expected <= 0) {
+            errors.push('manifest: missing or invalid "# abi-version:" header');
+            return;
+        }
+
+        var checks = [
+            {
+                label: "hl marker (hlaxe_fmod.c)",
+                path: Path.join([libRoot, "native", "hlaxe", "hlaxe_fmod.c"]),
+                pattern: ~/hlaxe_fmod_abi=(\d+)/,
+            },
+            {
+                label: "cpp constant (linc_faxe.cpp)",
+                path: Path.join([libRoot, "native", "faxe", "linc_faxe.cpp"]),
+                pattern: ~/fmod_binding_abi_version\(\)\s*\{[^}]*return\s+(\d+)/,
+            },
+            {
+                label: "js constant (jaxe.js)",
+                path: Path.join([libRoot, "native", "jaxe", "jaxe.js"]),
+                pattern: ~/fmod_binding_abi_version\(\)\s*\{[^}]*return\s+(\d+)/,
+            },
+            {
+                label: "runtime constant (FmodRuntime.hx)",
+                path: Path.join([libRoot, "haxefmod", "runtime", "FmodRuntime.hx"]),
+                pattern: ~/BINDING_ABI:Int\s*=\s*(\d+)/,
+            },
+        ];
+        for (check in checks) {
+            if (!FileSystem.exists(check.path)) {
+                errors.push('abi: file not found: ${check.path}');
+                continue;
+            }
+            var content = File.getContent(check.path);
+            if (!check.pattern.match(content)) {
+                errors.push('abi: ${check.label} declares no version');
+            } else if (Std.parseInt(check.pattern.matched(1)) != expected) {
+                errors.push('abi: ${check.label} is ${check.pattern.matched(1)}, manifest says $expected');
+            }
+        }
     }
 
     static function diff(backend:String, found:Map<String, Int>, manifest:Map<String, Int>, errors:Array<String>) {

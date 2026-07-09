@@ -249,6 +249,7 @@ class NativeStudioJs {
 
     // Debug
     public static inline function debug_live_handle_count():Int return Raw.fmod_debug_live_handle_count();
+    public static inline function binding_abi_version():Int return Raw.fmod_binding_abi_version();
 }
 
 @:native("jaxe")
@@ -413,5 +414,6 @@ private extern class Raw {
     static function fmod_cb_string():String;
     static function fmod_cb_take_overflow():Bool;
     static function fmod_debug_live_handle_count():Int;
+    static function fmod_binding_abi_version():Int;
 }
 #end
