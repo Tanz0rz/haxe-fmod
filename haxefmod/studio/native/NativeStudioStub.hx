@@ -163,6 +163,15 @@ class NativeStudioStub {
     public static function evi_get_cpu_usage(handle:Int):Int return ERR_UNSUPPORTED;
     public static function evi_get_memory_usage(handle:Int):Int return ERR_UNSUPPORTED;
 
+    // Programmer sounds
+    public static function ps_assign(handle:Int, key:String):Int return ERR_UNSUPPORTED;
+    public static function ps_clear(handle:Int):Int return ERR_UNSUPPORTED;
+
+    // Core API micro subset
+    public static function core_create_sound(path:String, mode:Int):Int return 0;
+    public static function core_release_sound(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function core_get_sound_length(handle:Int):Int return -1;
+
     // Callbacks
     public static function evi_set_callback_mask(handle:Int, mask:Int):Int return ERR_UNSUPPORTED;
     public static function cb_next():Bool return false;

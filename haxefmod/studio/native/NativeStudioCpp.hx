@@ -51,7 +51,13 @@ class NativeStudioCpp {
     /** Fills Scratch float buffer [0..11]: pos xyz, vel xyz, forward xyz, up xyz */
     public static inline function sys_get_listener_attributes(index:Int):Int return Raw.sys_get_listener_attributes(index, Scratch.floatBuf());
 
-    public static inline function sys_set_listener_attributes(index:Int, px:Float, py:Float, pz:Float, vx:Float, vy:Float, vz:Float, fx:Float, fy:Float, fz:Float, ux:Float, uy:Float, uz:Float):Int return Raw.sys_set_listener_attributes(index, px, py, pz, vx, vy, vz, fx, fy, fz, ux, uy, uz);
+    public static function sys_set_listener_attributes(index:Int, px:Float, py:Float, pz:Float, vx:Float, vy:Float, vz:Float, fx:Float, fy:Float, fz:Float, ux:Float, uy:Float, uz:Float):Int {
+        Scratch.writeF(0, px); Scratch.writeF(1, py); Scratch.writeF(2, pz);
+        Scratch.writeF(3, vx); Scratch.writeF(4, vy); Scratch.writeF(5, vz);
+        Scratch.writeF(6, fx); Scratch.writeF(7, fy); Scratch.writeF(8, fz);
+        Scratch.writeF(9, ux); Scratch.writeF(10, uy); Scratch.writeF(11, uz);
+        return Raw.sys_set_listener_attributes(index, Scratch.floatBuf());
+    }
     public static inline function sys_get_listener_weight(index:Int):Float return Raw.sys_get_listener_weight(index);
     public static inline function sys_set_listener_weight(index:Int, weight:Float):Int return Raw.sys_set_listener_weight(index, weight);
     public static inline function sys_load_bank_file(path:String, flags:Int):Int return Raw.sys_load_bank_file(path, flags);
@@ -192,7 +198,13 @@ class NativeStudioCpp {
     /** Fills Scratch float buffer [0..11]: pos xyz, vel xyz, forward xyz, up xyz */
     public static inline function evi_get_3d_attributes(handle:Int):Int return Raw.evi_get_3d_attributes(handle, Scratch.floatBuf());
 
-    public static inline function evi_set_3d_attributes(handle:Int, px:Float, py:Float, pz:Float, vx:Float, vy:Float, vz:Float, fx:Float, fy:Float, fz:Float, ux:Float, uy:Float, uz:Float):Int return Raw.evi_set_3d_attributes(handle, px, py, pz, vx, vy, vz, fx, fy, fz, ux, uy, uz);
+    public static function evi_set_3d_attributes(handle:Int, px:Float, py:Float, pz:Float, vx:Float, vy:Float, vz:Float, fx:Float, fy:Float, fz:Float, ux:Float, uy:Float, uz:Float):Int {
+        Scratch.writeF(0, px); Scratch.writeF(1, py); Scratch.writeF(2, pz);
+        Scratch.writeF(3, vx); Scratch.writeF(4, vy); Scratch.writeF(5, vz);
+        Scratch.writeF(6, fx); Scratch.writeF(7, fy); Scratch.writeF(8, fz);
+        Scratch.writeF(9, ux); Scratch.writeF(10, uy); Scratch.writeF(11, uz);
+        return Raw.evi_set_3d_attributes(handle, Scratch.floatBuf());
+    }
     public static inline function evi_get_listener_mask(handle:Int):Int return Raw.evi_get_listener_mask(handle);
     public static inline function evi_set_listener_mask(handle:Int, mask:Int):Int return Raw.evi_set_listener_mask(handle, mask);
     public static inline function evi_get_property(handle:Int, property:Int):Float return Raw.evi_get_property(handle, property);
@@ -213,6 +225,15 @@ class NativeStudioCpp {
 
     /** Fills Scratch int buffer: [0]=exclusive, [1]=inclusive, [2]=sampledata (bytes) */
     public static inline function evi_get_memory_usage(handle:Int):Int return Raw.evi_get_memory_usage(handle, Scratch.intBuf());
+
+    // Programmer sounds
+    public static inline function ps_assign(handle:Int, key:String):Int return Raw.ps_assign(handle, key);
+    public static inline function ps_clear(handle:Int):Int return Raw.ps_clear(handle);
+
+    // Core API micro subset
+    public static inline function core_create_sound(path:String, mode:Int):Int return Raw.core_create_sound(path, mode);
+    public static inline function core_release_sound(handle:Int):Int return Raw.core_release_sound(handle);
+    public static inline function core_get_sound_length(handle:Int):Int return Raw.core_get_sound_length(handle);
 
     // Callbacks
     public static inline function evi_set_callback_mask(handle:Int, mask:Int):Int return Raw.evi_set_callback_mask(handle, mask);
@@ -316,7 +337,7 @@ private extern class Raw {
     static function sys_get_listener_attributes(index:Int, fout:Array<Float>):Int;
 
     @:native("linc::faxe::fmod_sys_set_listener_attributes")
-    static function sys_set_listener_attributes(index:Int, px:Float, py:Float, pz:Float, vx:Float, vy:Float, vz:Float, fx:Float, fy:Float, fz:Float, ux:Float, uy:Float, uz:Float):Int;
+    static function sys_set_listener_attributes(index:Int, f:Array<Float>):Int;
 
     @:native("linc::faxe::fmod_sys_get_listener_weight")
     static function sys_get_listener_weight(index:Int):Float;
@@ -601,7 +622,7 @@ private extern class Raw {
     static function evi_get_3d_attributes(handle:Int, fout:Array<Float>):Int;
 
     @:native("linc::faxe::fmod_evi_set_3d_attributes")
-    static function evi_set_3d_attributes(handle:Int, px:Float, py:Float, pz:Float, vx:Float, vy:Float, vz:Float, fx:Float, fy:Float, fz:Float, ux:Float, uy:Float, uz:Float):Int;
+    static function evi_set_3d_attributes(handle:Int, f:Array<Float>):Int;
 
     @:native("linc::faxe::fmod_evi_get_listener_mask")
     static function evi_get_listener_mask(handle:Int):Int;
@@ -650,6 +671,21 @@ private extern class Raw {
 
     @:native("linc::faxe::fmod_evi_get_memory_usage")
     static function evi_get_memory_usage(handle:Int, out:Array<Int>):Int;
+
+    @:native("linc::faxe::fmod_ps_assign")
+    static function ps_assign(handle:Int, key:String):Int;
+
+    @:native("linc::faxe::fmod_ps_clear")
+    static function ps_clear(handle:Int):Int;
+
+    @:native("linc::faxe::fmod_core_create_sound")
+    static function core_create_sound(path:String, mode:Int):Int;
+
+    @:native("linc::faxe::fmod_core_release_sound")
+    static function core_release_sound(handle:Int):Int;
+
+    @:native("linc::faxe::fmod_core_get_sound_length")
+    static function core_get_sound_length(handle:Int):Int;
 
     @:native("linc::faxe::fmod_evi_set_callback_mask")
     static function evi_set_callback_mask(handle:Int, mask:Int):Int;

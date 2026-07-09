@@ -106,7 +106,9 @@ sys_get_num_listeners -> i32
 sys_set_num_listeners i32 -> i32
 # fbuf[0..11] = 3D attributes; index arg selects listener
 sys_get_listener_attributes i32 fbuf -> i32
-sys_set_listener_attributes i32 f64 f64 f64 f64 f64 f64 f64 f64 f64 f64 f64 f64 -> i32
+# fbuf[0..11] = 3D attributes to apply (passed via buffer - the HL JIT
+# garbles native calls with more than ~10 arguments)
+sys_set_listener_attributes i32 fbuf -> i32
 sys_get_listener_weight i32 -> f64
 sys_set_listener_weight i32 f64 -> i32
 # bank loading (flags: bit0 = nonblocking); returns bank handle or 0
@@ -231,7 +233,8 @@ evi_is_virtual i32 -> bool
 evi_get_min_max_distance i32 fbuf -> i32
 # fbuf[0..11] = pos/vel/forward/up
 evi_get_3d_attributes i32 fbuf -> i32
-evi_set_3d_attributes i32 f64 f64 f64 f64 f64 f64 f64 f64 f64 f64 f64 f64 -> i32
+# fbuf[0..11] = 3D attributes to apply (buffer-passed, same as listener attrs)
+evi_set_3d_attributes i32 fbuf -> i32
 evi_get_listener_mask i32 -> i32
 evi_set_listener_mask i32 i32 -> i32
 # FMOD_STUDIO_EVENT_PROPERTY index
@@ -251,6 +254,21 @@ evi_set_param_by_id_with_label i32 i32 i32 str bool -> i32
 evi_get_cpu_usage i32 ibuf -> i32
 # ibuf: [0]=exclusive [1]=inclusive [2]=sampledata; ERR_UNSUPPORTED on js
 evi_get_memory_usage i32 ibuf -> i32
+
+## Programmer sounds (2.0 bindings)
+# Assigns an audio-table key (or a file path fallback) to the instance.
+# The native CREATE/DESTROY_PROGRAMMER_SOUND callbacks resolve it on the
+# FMOD thread via getSoundInfo/createSound - no FFI happens in callbacks.
+# Assign BEFORE starting the instance.
+ps_assign i32 str -> i32
+ps_clear i32 -> i32
+
+## Core API micro subset (programmer sounds only)
+# mode bit0 = loop normal. Returns a FAXE_TYPE_SOUND handle or 0.
+core_create_sound str i32 -> i32
+core_release_sound i32 -> i32
+# length in milliseconds (-1 on failure)
+core_get_sound_length i32 -> i32
 
 ## Debug
 debug_live_handle_count -> i32

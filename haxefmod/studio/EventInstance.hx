@@ -44,10 +44,12 @@ abstract EventInstance(Int) from Int to Int {
 
     /**
      * Releases the instance. FMOD destroys it once it stops; the handle
-     * becomes invalid immediately. Registered callbacks are cleaned up when
-     * the Destroyed event arrives.
+     * becomes invalid immediately and any registered callback is removed
+     * (the html5 backend cannot deliver events after release, so cleanup
+     * happens here on every target for consistent behavior).
      */
     public inline function release():FmodResult {
+        haxefmod.runtime.CallbackDispatcher.remove(this);
         return NativeStudio.evi_release(this);
     }
 
@@ -202,6 +204,20 @@ abstract EventInstance(Int) from Int to Int {
      */
     public inline function setCallback(handler:EventCallbackData->Void, ?mask:Int):Void {
         haxefmod.runtime.CallbackDispatcher.setCallback(this, handler, mask);
+    }
+
+    /**
+     * Assigns the audio-table key (or file path fallback) this instance's
+     * programmer instrument should play. The native shim resolves it on the
+     * FMOD thread when the instrument triggers. Assign BEFORE start().
+     */
+    public inline function assignProgrammerSound(key:String):FmodResult {
+        return NativeStudio.ps_assign(this, key);
+    }
+
+    /** Removes the programmer-sound assignment. */
+    public inline function clearProgrammerSound():FmodResult {
+        return NativeStudio.ps_clear(this);
     }
 
     /** CPU usage of this instance, or null on failure (unsupported on html5). */

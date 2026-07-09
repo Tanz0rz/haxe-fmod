@@ -24,6 +24,7 @@ class jaxe {
     static TYPE_BANK = 3;
     static TYPE_BUS = 4;
     static TYPE_VCA = 5;
+    static TYPE_SOUND = 6;
     static slots = [];       // {ptr, raw, gen, type, alive}
     static freeList = [];    // stack of free slot indices
     static liveCount = 0;
@@ -212,6 +213,9 @@ class jaxe {
     static fmod_release(handle) {
         var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
         if (inst) {
+            // Uninstall the callback first: destroying an instance with a
+            // callback installed corrupts the FMOD JS module.
+            jaxe.uninstallCallback(handle);
             inst.stop(jaxe.FMOD.STUDIO_STOP_IMMEDIATE);
             inst.release();
             jaxe.handleFree(handle);
@@ -308,10 +312,68 @@ class jaxe {
 
     //// Callbacks
 
+    // Per-instance callback masks and programmer-sound keys, keyed by handle.
+    // JS is single-threaded (callbacks run on the main thread), so plain maps
+    // are safe where cpp/hl need the userdata context struct.
+    static cbMasks = {};
+    static psKeys = {};
+
+    // The programmer-sound bits are added while a key is assigned. Unlike
+    // cpp/hl, DESTROYED is NOT forced in: FMOD's JS glue corrupts the wasm
+    // module if an instance is destroyed while a callback is installed
+    // ("Cannot use deleted val"), so callbacks are uninstalled in every
+    // destruction path instead (see uninstallCallback) and Destroyed events
+    // are never delivered on this backend.
+    static effectiveCallbackMask(handle) {
+        var mask = (jaxe.cbMasks[handle] || 0) >>> 0;
+        if (jaxe.psKeys[handle]) {
+            mask |= 0x80 /* CREATE_PROGRAMMER_SOUND */ | 0x100 /* DESTROY_PROGRAMMER_SOUND */;
+        }
+        return mask >>> 0;
+    }
+
+    // True if this handle has an FMOD callback installed (mask or ps key).
+    static hasCallbackState(handle) {
+        return jaxe.cbMasks[handle] !== undefined || jaxe.psKeys[handle] !== undefined;
+    }
+
+    // Removes the FMOD callback and per-handle state. MUST be called before
+    // any operation that can destroy the instance, or the FMOD JS glue
+    // corrupts the module.
+    static uninstallCallback(handle) {
+        if (!jaxe.hasCallbackState(handle)) return;
+        var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
+        if (inst) inst.setCallback(null, 0);
+        delete jaxe.cbMasks[handle];
+        delete jaxe.psKeys[handle];
+    }
+
+    // Uninstalls callbacks on every tracked instance (or only those whose
+    // description raw pointer is in descPtrs when given). Used before
+    // bulk-destroy operations: releaseAllInstances, bank unload, unloadAll.
+    static uninstallCallbacksFor(descPtrs) {
+        var handles = Object.keys(jaxe.cbMasks).concat(Object.keys(jaxe.psKeys));
+        for (var i = 0; i < handles.length; i++) {
+            var handle = handles[i] | 0;
+            var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
+            if (!inst) {
+                delete jaxe.cbMasks[handle];
+                delete jaxe.psKeys[handle];
+                continue;
+            }
+            if (descPtrs != null) {
+                var d = {};
+                if (inst.getDescription(d) != jaxe.FMOD.OK || !descPtrs.has(jaxe.rawPtr(d.val))) continue;
+            }
+            jaxe.uninstallCallback(handle);
+        }
+    }
+
     static fmod_evi_set_callback_mask(handle, mask) {
         var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
         if (!inst) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
-        jaxe.lastResult = inst.setCallback(jaxe.callbackHandler, mask >>> 0);
+        jaxe.cbMasks[handle] = mask >>> 0;
+        jaxe.lastResult = inst.setCallback(jaxe.callbackHandler, jaxe.effectiveCallbackMask(handle));
         return jaxe.lastResult;
     }
 
@@ -327,6 +389,32 @@ class jaxe {
             }
         }
         if (handle <= 0) return jaxe.FMOD.OK;
+
+        if (type == 0x80 /* CREATE_PROGRAMMER_SOUND */ && parameters) {
+            var key = jaxe.psKeys[handle];
+            if (key) {
+                var info = {};
+                var soundOut = {};
+                if (jaxe.gSystem.getSoundInfo(key, info) == jaxe.FMOD.OK) {
+                    // Audio table entry. The JS API takes the sound info object
+                    // directly in place of name/exinfo.
+                    if (jaxe.gSystemCore.createSound(info.val.name_or_data,
+                            (jaxe.FMOD.LOOP_NORMAL | jaxe.FMOD.CREATECOMPRESSEDSAMPLE | info.val.mode) >>> 0,
+                            info.val.exinfo, soundOut) == jaxe.FMOD.OK) {
+                        parameters.sound = soundOut.val;
+                        parameters.subsoundIndex = info.val.subsoundindex;
+                    }
+                } else if (jaxe.gSystemCore.createSound("/" + key, jaxe.FMOD.DEFAULT, null, soundOut) == jaxe.FMOD.OK) {
+                    // Plain file path fallback (relative to the MEMFS root)
+                    parameters.sound = soundOut.val;
+                    parameters.subsoundIndex = -1;
+                }
+            }
+        } else if (type == 0x100 /* DESTROY_PROGRAMMER_SOUND */ && parameters) {
+            if (parameters.sound && parameters.sound.release) {
+                parameters.sound.release();
+            }
+        }
 
         var ev = { handle: handle, type: type, i1: 0, i2: 0, i3: 0, f1: 0.0, str: "" };
 
@@ -349,6 +437,13 @@ class jaxe {
         if (jaxe.cbQueue.length > jaxe.CBQ_CAPACITY) {
             jaxe.cbQueue.shift(); // drop oldest
             jaxe.cbOverflow = true;
+        }
+
+        // Per-handle state ends with the instance (DESTROYED is always in
+        // the installed mask).
+        if (type == 0x02 /* DESTROYED */) {
+            delete jaxe.cbMasks[handle];
+            delete jaxe.psKeys[handle];
         }
         return jaxe.FMOD.OK;
     }
@@ -725,10 +820,10 @@ class jaxe {
         return jaxe.lastResult;
     }
 
-    static fmod_sys_set_listener_attributes(index, px, py, pz, vx, vy, vz, fx, fy, fz, ux, uy, uz) {
-        if (!jaxe.sysReady()) return jaxe.lastResult;
-        var attr = jaxe.buildAttributes3D(px, py, pz, vx, vy, vz, fx, fy, fz, ux, uy, uz);
-        jaxe.lastResult = jaxe.gSystem.setListenerAttributes(index, attr, null);
+    static fmod_sys_set_listener_attributes(index, f) {
+        if (!jaxe.FmodIsInitialized) { jaxe.lastResult = jaxe.ERR_STUDIO_UNINITIALIZED; return jaxe.lastResult; }
+        jaxe.lastResult = jaxe.gSystem.setListenerAttributes(index,
+            jaxe.buildAttributes3D(f[0], f[1], f[2], f[3], f[4], f[5], f[6], f[7], f[8], f[9], f[10], f[11]), null);
         return jaxe.lastResult;
     }
 
@@ -761,7 +856,10 @@ class jaxe {
     }
 
     static fmod_sys_unload_all() {
-        if (!jaxe.sysReady()) return jaxe.lastResult;
+        if (!jaxe.FmodIsInitialized) { jaxe.lastResult = jaxe.ERR_STUDIO_UNINITIALIZED; return jaxe.lastResult; }
+        // All bank content is going away; uninstall every callback first or
+        // the FMOD JS module is corrupted.
+        jaxe.uninstallCallbacksFor(null);
         jaxe.lastResult = jaxe.gSystem.unloadAll();
         return jaxe.lastResult;
     }
@@ -1039,6 +1137,18 @@ class jaxe {
     static fmod_bank_unload(handle) {
         var bank = jaxe.handleResolve(handle, jaxe.TYPE_BANK);
         if (!bank) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        // Unloading destroys the bank's event instances; uninstall their
+        // callbacks first or the FMOD JS module is corrupted.
+        var cnt = {};
+        if (bank.getEventCount(cnt) == jaxe.FMOD.OK && cnt.val > 0) {
+            var list = {};
+            var listed = {};
+            if (bank.getEventList(list, cnt.val, listed) == jaxe.FMOD.OK && list.val) {
+                var ptrs = new Set();
+                for (var i = 0; i < list.val.length; i++) ptrs.add(jaxe.rawPtr(list.val[i]));
+                jaxe.uninstallCallbacksFor(ptrs);
+            }
+        }
         jaxe.lastResult = bank.unload();
         if (jaxe.lastResult == jaxe.FMOD.OK) jaxe.handleFree(handle);
         return jaxe.lastResult;
@@ -1314,6 +1424,9 @@ class jaxe {
     static fmod_evd_release_all_instances(handle) {
         var evd = jaxe.handleResolve(handle, jaxe.TYPE_EVD);
         if (!evd) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        // Uninstall callbacks on this event's instances first: destroying an
+        // instance with a callback installed corrupts the FMOD JS module.
+        jaxe.uninstallCallbacksFor(new Set([jaxe.rawPtr(evd)]));
         jaxe.lastResult = evd.releaseAllInstances();
         return jaxe.lastResult;
     }
@@ -1466,6 +1579,9 @@ class jaxe {
     static fmod_evi_release(handle) {
         var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
         if (!inst) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        // Uninstall the callback first: destroying an instance with a
+        // callback installed corrupts the FMOD JS module.
+        jaxe.uninstallCallback(handle);
         jaxe.lastResult = inst.release();
         if (jaxe.lastResult == jaxe.FMOD.OK) jaxe.handleFree(handle);
         return jaxe.lastResult;
@@ -1590,11 +1706,11 @@ class jaxe {
         return jaxe.lastResult;
     }
 
-    static fmod_evi_set_3d_attributes(handle, px, py, pz, vx, vy, vz, fx, fy, fz, ux, uy, uz) {
+    static fmod_evi_set_3d_attributes(handle, f) {
         var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
         if (!inst) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
-        var attr = jaxe.buildAttributes3D(px, py, pz, vx, vy, vz, fx, fy, fz, ux, uy, uz);
-        jaxe.lastResult = inst.set3DAttributes(attr);
+        jaxe.lastResult = inst.set3DAttributes(
+            jaxe.buildAttributes3D(f[0], f[1], f[2], f[3], f[4], f[5], f[6], f[7], f[8], f[9], f[10], f[11]));
         return jaxe.lastResult;
     }
 
@@ -1734,6 +1850,59 @@ class jaxe {
             ibuf[2] = outval.val.sampledata | 0;
         }
         return jaxe.lastResult;
+    }
+
+    //// Programmer sounds
+
+    static fmod_ps_assign(handle, key) {
+        var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
+        if (!inst) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.psKeys[handle] = key;
+        jaxe.lastResult = inst.setCallback(jaxe.callbackHandler, jaxe.effectiveCallbackMask(handle));
+        return jaxe.lastResult;
+    }
+
+    static fmod_ps_clear(handle) {
+        var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
+        if (!inst) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        delete jaxe.psKeys[handle];
+        jaxe.lastResult = inst.setCallback(jaxe.callbackHandler, jaxe.effectiveCallbackMask(handle));
+        return jaxe.lastResult;
+    }
+
+    //// Core API micro subset (programmer sounds only)
+
+    static fmod_core_create_sound(path, mode) {
+        if (!jaxe.FmodIsInitialized) { jaxe.lastResult = jaxe.ERR_STUDIO_UNINITIALIZED; return 0; }
+        var soundOut = {};
+        var fmodMode = jaxe.FMOD.DEFAULT >>> 0;
+        if (mode & 1) fmodMode = (fmodMode | jaxe.FMOD.LOOP_NORMAL) >>> 0;
+        // Files live in the MEMFS root (banks are preloaded there)
+        jaxe.lastResult = jaxe.gSystemCore.createSound("/" + path, fmodMode, null, soundOut);
+        if (jaxe.lastResult != jaxe.FMOD.OK || !soundOut.val) return 0;
+        var handle = jaxe.handleAlloc(soundOut.val, jaxe.TYPE_SOUND);
+        if (handle == 0) {
+            soundOut.val.release();
+            return 0;
+        }
+        return handle;
+    }
+
+    static fmod_core_release_sound(handle) {
+        var sound = jaxe.handleResolve(handle, jaxe.TYPE_SOUND);
+        if (!sound) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = sound.release();
+        if (jaxe.lastResult == jaxe.FMOD.OK) jaxe.handleFree(handle);
+        return jaxe.lastResult;
+    }
+
+    static fmod_core_get_sound_length(handle) {
+        var sound = jaxe.handleResolve(handle, jaxe.TYPE_SOUND);
+        if (!sound) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return -1; }
+        var outval = {};
+        jaxe.lastResult = sound.getLength(outval, jaxe.FMOD.TIMEUNIT_MS);
+        if (jaxe.lastResult != jaxe.FMOD.OK) return -1;
+        return outval.val | 0;
     }
 
     //// Debug

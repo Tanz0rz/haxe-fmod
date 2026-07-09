@@ -2,6 +2,7 @@ package tests;
 
 import haxefmod.studio.Bank;
 import haxefmod.studio.Bus;
+import haxefmod.studio.CoreSound;
 import haxefmod.studio.EventDescription;
 import haxefmod.studio.EventInstance;
 import haxefmod.studio.StudioSystem;
@@ -124,5 +125,13 @@ class TestStudioSurface {
 
 		var instance:EventInstance = EventInstance.NULL;
 		assert(!instance.set3DAttributes(attrs).isOk(), "evi set3DAttributes result");
+
+		// Programmer sounds + core micro subset
+		assert(!instance.assignProgrammerSound("key").isOk(), "evi assignProgrammerSound result");
+		assert(!instance.clearProgrammerSound().isOk(), "evi clearProgrammerSound result");
+		var sound = CoreSound.create("missing.wav");
+		assert(sound.isNull(), "core sound null");
+		assert(sound.getLength() == -1, "core sound length default");
+		assert(!sound.release().isOk(), "core sound release result");
 	}
 }

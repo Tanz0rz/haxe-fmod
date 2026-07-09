@@ -265,6 +265,38 @@ jobs:
           grep -q "CB_TEST: COMPLETE" /tmp/cb-test-linux-cpp.log
           echo "Callback test passed"
 
+      - name: Run programmer sound test
+        if: ${{ !cancelled() }}
+        run: |
+          export DISPLAY=:99
+
+          BIN_DIR="example-project/EZPlatformer/export/linux64/bin"
+          if [ ! -d "$BIN_DIR" ]; then
+            BIN_DIR="example-project/EZPlatformer/export/linux/bin"
+          fi
+
+          cp example-project/EZPlatformer/fmod/Assets/Jump.wav "$BIN_DIR/assets/fmod/Jump.wav"
+
+          export HAXEFMOD_TEST_STATE=ps-test
+          cd "$BIN_DIR"
+          ./run.sh > /tmp/ps-test-linux-cpp.log 2>&1 &
+          GAME_PID=$!
+          cd -
+          for i in $(seq 30); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill $GAME_PID 2>/dev/null || true
+          wait $GAME_PID 2>/dev/null || true
+
+          grep "PS_TEST:" /tmp/ps-test-linux-cpp.log
+          grep -q "PS_TEST: COMPLETE" /tmp/ps-test-linux-cpp.log
+          if grep -q "pass=false" /tmp/ps-test-linux-cpp.log; then
+            echo "Programmer sound test had failing checks"
+            exit 1
+          fi
+          echo "Programmer sound test passed"
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         if: always()
@@ -540,6 +572,37 @@ jobs:
           grep -q "CB_TEST: Stopped" /tmp/cb-test-linux-hl.log
           grep -q "CB_TEST: COMPLETE" /tmp/cb-test-linux-hl.log
           echo "Callback test passed"
+
+      - name: Run programmer sound test
+        if: ${{ !cancelled() }}
+        run: |
+          export DISPLAY=:99
+
+          BIN_DIR="example-project/EZPlatformer/export/hl/bin"
+
+          cp example-project/EZPlatformer/fmod/Assets/Jump.wav "$BIN_DIR/assets/fmod/Jump.wav"
+
+          export HAXEFMOD_TEST_STATE=ps-test
+          cd "$BIN_DIR"
+          export LD_LIBRARY_PATH="$(pwd):$LD_LIBRARY_PATH"
+          EXE=$(find . -maxdepth 1 -type f -executable ! -name "*.so*" ! -name "*.hdll" ! -name "run.sh" -print -quit)
+          "$EXE" > /tmp/ps-test-linux-hl.log 2>&1 &
+          GAME_PID=$!
+          cd -
+          for i in $(seq 30); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill $GAME_PID 2>/dev/null || true
+          wait $GAME_PID 2>/dev/null || true
+
+          grep "PS_TEST:" /tmp/ps-test-linux-hl.log
+          grep -q "PS_TEST: COMPLETE" /tmp/ps-test-linux-hl.log
+          if grep -q "pass=false" /tmp/ps-test-linux-hl.log; then
+            echo "Programmer sound test had failing checks"
+            exit 1
+          fi
+          echo "Programmer sound test passed"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

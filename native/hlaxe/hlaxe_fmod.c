@@ -17,6 +17,7 @@
 #include "../shared/faxe_handles.h"
 #include "../shared/faxe_guid.h"
 #include "../shared/faxe_cbqueue.h"
+#include "../shared/faxe_instctx.h"
 
 // F_CALLBACK was removed in newer FMOD SDKs
 #ifndef F_CALLBACK
@@ -55,24 +56,65 @@ static FMOD_STUDIO_EVENTINSTANCE* resolve_instance(int h) {
 }
 
 // Callback - runs on an FMOD thread, NOT an HL thread. Must not touch the
-// handle table or any HL values; it reads the instance handle back from FMOD
-// userdata, copies payloads into a plain C record, and pushes it onto the
-// shared queue. The Haxe thread drains the queue during update().
+// handle table or any HL values; it reads the per-instance context back from
+// FMOD userdata, copies payloads into a plain C record, and pushes it onto
+// the shared queue. The Haxe thread drains the queue during update().
+// Programmer sounds are resolved right here on the FMOD thread: the key was
+// stored in the context by ps_assign (guarded by the queue mutex).
 static FMOD_RESULT F_CALLBACK eventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type,
     FMOD_STUDIO_EVENTINSTANCE* event, void* parameters) {
     void* userData = NULL;
+    FaxeInstCtx* ctx;
     int handle;
     FaxeCbEvent ev;
 
     FMOD_Studio_EventInstance_GetUserData(event, &userData);
-    handle = (int)(intptr_t)userData;
-    if (handle <= 0) return FMOD_OK;
+    ctx = (FaxeInstCtx*)userData;
+    if (!ctx || ctx->handle <= 0) return FMOD_OK;
+    handle = ctx->handle;
 
     memset(&ev, 0, sizeof(ev));
     ev.handle = handle;
     ev.type = (uint32_t)type;
 
     switch (type) {
+        case FMOD_STUDIO_EVENT_CALLBACK_CREATE_PROGRAMMER_SOUND: {
+            FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES* props =
+                (FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES*)parameters;
+            char key[FAXE_PS_KEY_MAX];
+            FMOD_STUDIO_SOUND_INFO info;
+            FMOD_SOUND* sound = NULL;
+            faxe_cbq_lock();
+            strncpy(key, ctx->psKey, FAXE_PS_KEY_MAX - 1);
+            key[FAXE_PS_KEY_MAX - 1] = '\0';
+            faxe_cbq_unlock();
+            if (props && key[0] != '\0' && gCoreSystem && gStudioSystem) {
+                if (FMOD_Studio_System_GetSoundInfo(gStudioSystem, key, &info) == FMOD_OK) {
+                    // Audio table entry
+                    if (FMOD_System_CreateSound(gCoreSystem, info.name_or_data,
+                            FMOD_LOOP_NORMAL | FMOD_CREATECOMPRESSEDSAMPLE | info.mode,
+                            &info.exinfo, &sound) == FMOD_OK) {
+                        props->sound = sound;
+                        props->subsoundIndex = info.subsoundindex;
+                    }
+                } else if (FMOD_System_CreateSound(gCoreSystem, key, FMOD_DEFAULT, NULL, &sound) == FMOD_OK) {
+                    // Plain file path fallback
+                    props->sound = sound;
+                    props->subsoundIndex = -1;
+                }
+                ctx->psSound = sound;
+            }
+            break;
+        }
+        case FMOD_STUDIO_EVENT_CALLBACK_DESTROY_PROGRAMMER_SOUND: {
+            FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES* props =
+                (FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES*)parameters;
+            if (props && props->sound) {
+                FMOD_Sound_Release(props->sound);
+            }
+            ctx->psSound = NULL;
+            break;
+        }
         case FMOD_STUDIO_EVENT_CALLBACK_TIMELINE_MARKER: {
             const FMOD_STUDIO_TIMELINE_MARKER_PROPERTIES* props =
                 (const FMOD_STUDIO_TIMELINE_MARKER_PROPERTIES*)parameters;
@@ -111,7 +153,46 @@ static FMOD_RESULT F_CALLBACK eventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type
     }
 
     faxe_cbq_push(&ev);
+
+    // The context's lifetime ends with the instance. DESTROYED is always in
+    // the installed mask (see attach_instance_ctx), so cleanup is guaranteed.
+    if (type == FMOD_STUDIO_EVENT_CALLBACK_DESTROYED) {
+        FMOD_Studio_EventInstance_SetUserData(event, NULL);
+        faxe_instctx_destroy(ctx);
+    }
     return FMOD_OK;
+}
+
+// Attaches the per-instance context and installs the shim callback with at
+// least the DESTROYED bit so the context is always reclaimed. Called from
+// every managed-instance creation path (Haxe thread).
+static int attach_instance_ctx(FMOD_STUDIO_EVENTINSTANCE* instance, int handle) {
+    FaxeInstCtx* ctx = faxe_instctx_create(handle);
+    if (!ctx) return 0;
+    FMOD_Studio_EventInstance_SetUserData(instance, ctx);
+    FMOD_Studio_EventInstance_SetCallback(instance, eventCallback, FMOD_STUDIO_EVENT_CALLBACK_DESTROYED);
+    return 1;
+}
+
+// Reads the context back from a live instance (Haxe thread only).
+static FaxeInstCtx* instance_ctx(FMOD_STUDIO_EVENTINSTANCE* instance) {
+    void* userData = NULL;
+    FMOD_Studio_EventInstance_GetUserData(instance, &userData);
+    return (FaxeInstCtx*)userData;
+}
+
+// Builds the mask actually installed on the instance: the user's mask plus
+// DESTROYED (context cleanup) plus the programmer-sound bits when a key is
+// assigned.
+static FMOD_STUDIO_EVENT_CALLBACK_TYPE effective_callback_mask(FaxeInstCtx* ctx) {
+    unsigned int mask = ctx->cbMask | FMOD_STUDIO_EVENT_CALLBACK_DESTROYED;
+    faxe_cbq_lock();
+    if (ctx->psKey[0] != '\0') {
+        mask |= FMOD_STUDIO_EVENT_CALLBACK_CREATE_PROGRAMMER_SOUND
+              | FMOD_STUDIO_EVENT_CALLBACK_DESTROY_PROGRAMMER_SOUND;
+    }
+    faxe_cbq_unlock();
+    return (FMOD_STUDIO_EVENT_CALLBACK_TYPE)mask;
 }
 
 //// System
@@ -255,9 +336,13 @@ HL_PRIM int HL_NAME(create_instance)(vbyte* eventPath) {
         return -1;
     }
 
-    // Store the handle in userdata so FMOD-thread callbacks can find it
-    // without touching the handle table.
-    FMOD_Studio_EventInstance_SetUserData(instance, (void*)(intptr_t)handle);
+    // Attach the per-instance context so FMOD-thread callbacks can find the
+    // handle (and programmer-sound key) without touching the handle table.
+    if (!attach_instance_ctx(instance, handle)) {
+        faxe_handle_free(handle);
+        FMOD_Studio_EventInstance_Release(instance);
+        return -1;
+    }
     return handle;
 }
 DEFINE_PRIM(_I32, create_instance, _BYTES);
@@ -390,12 +475,91 @@ DEFINE_PRIM(_BOOL, get_bus_mute, _BYTES);
 
 HL_PRIM int HL_NAME(evi_set_callback_mask)(int h, int mask) {
     FMOD_STUDIO_EVENTINSTANCE* instance = resolve_instance(h);
+    FaxeInstCtx* ctx;
     if (!instance) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    ctx = instance_ctx(instance);
+    if (!ctx) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    ctx->cbMask = (unsigned int)mask;
     gLastResult = FMOD_Studio_EventInstance_SetCallback(instance, eventCallback,
-        (FMOD_STUDIO_EVENT_CALLBACK_TYPE)(unsigned int)mask);
+        effective_callback_mask(ctx));
     return (int)gLastResult;
 }
 DEFINE_PRIM(_I32, evi_set_callback_mask, _I32 _I32);
+
+//// Programmer sounds
+
+HL_PRIM int HL_NAME(ps_assign)(int h, vbyte* key) {
+    FMOD_STUDIO_EVENTINSTANCE* instance = resolve_instance(h);
+    FaxeInstCtx* ctx;
+    if (!instance) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    ctx = instance_ctx(instance);
+    if (!ctx) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    faxe_cbq_lock();
+    strncpy(ctx->psKey, (const char*)key, FAXE_PS_KEY_MAX - 1);
+    ctx->psKey[FAXE_PS_KEY_MAX - 1] = '\0';
+    faxe_cbq_unlock();
+    gLastResult = FMOD_Studio_EventInstance_SetCallback(instance, eventCallback,
+        effective_callback_mask(ctx));
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, ps_assign, _I32 _BYTES);
+
+HL_PRIM int HL_NAME(ps_clear)(int h) {
+    FMOD_STUDIO_EVENTINSTANCE* instance = resolve_instance(h);
+    FaxeInstCtx* ctx;
+    if (!instance) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    ctx = instance_ctx(instance);
+    if (!ctx) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    faxe_cbq_lock();
+    ctx->psKey[0] = '\0';
+    faxe_cbq_unlock();
+    gLastResult = FMOD_Studio_EventInstance_SetCallback(instance, eventCallback,
+        effective_callback_mask(ctx));
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, ps_clear, _I32);
+
+//// Core API micro subset (programmer sounds only)
+
+static FMOD_SOUND* resolve_sound(int h) {
+    return (FMOD_SOUND*)faxe_handle_resolve(h, FAXE_TYPE_SOUND);
+}
+
+HL_PRIM int HL_NAME(core_create_sound)(vbyte* path, int mode) {
+    FMOD_SOUND* sound = NULL;
+    FMOD_MODE fmodMode = FMOD_DEFAULT;
+    int handle;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    if (mode & 1) fmodMode |= FMOD_LOOP_NORMAL;
+    gLastResult = FMOD_System_CreateSound(gCoreSystem, (const char*)path, fmodMode, NULL, &sound);
+    if (gLastResult != FMOD_OK || !sound) return 0;
+    handle = faxe_handle_alloc(sound, FAXE_TYPE_SOUND);
+    if (handle == 0) {
+        FMOD_Sound_Release(sound);
+        return 0;
+    }
+    return handle;
+}
+DEFINE_PRIM(_I32, core_create_sound, _BYTES _I32);
+
+HL_PRIM int HL_NAME(core_release_sound)(int h) {
+    FMOD_SOUND* sound = resolve_sound(h);
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_Sound_Release(sound);
+    if (gLastResult == FMOD_OK) faxe_handle_free(h);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, core_release_sound, _I32);
+
+HL_PRIM int HL_NAME(core_get_sound_length)(int h) {
+    FMOD_SOUND* sound = resolve_sound(h);
+    unsigned int length = 0;
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    gLastResult = FMOD_Sound_GetLength(sound, &length, FMOD_TIMEUNIT_MS);
+    if (gLastResult != FMOD_OK) return -1;
+    return (int)length;
+}
+DEFINE_PRIM(_I32, core_get_sound_length, _I32);
 
 // Drain protocol: cb_next pops the oldest queued event into a static slot;
 // the accessors read fields from that slot. Haxe thread only.
@@ -751,16 +915,15 @@ HL_PRIM int HL_NAME(sys_get_listener_attributes)(int index, vbyte* out) {
 }
 DEFINE_PRIM(_I32, sys_get_listener_attributes, _I32 _BYTES);
 
-HL_PRIM int HL_NAME(sys_set_listener_attributes)(int index,
-    double px, double py, double pz, double vx, double vy, double vz,
-    double fx, double fy, double fz, double ux, double uy, double uz) {
+HL_PRIM int HL_NAME(sys_set_listener_attributes)(int index, vbyte* f) {
     FMOD_3D_ATTRIBUTES attrs;
+    double* d = (double*)f;
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
-    pack_3d_attributes(&attrs, px, py, pz, vx, vy, vz, fx, fy, fz, ux, uy, uz);
+    pack_3d_attributes(&attrs, d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7], d[8], d[9], d[10], d[11]);
     gLastResult = FMOD_Studio_System_SetListenerAttributes(gStudioSystem, index, &attrs, NULL);
     return (int)gLastResult;
 }
-DEFINE_PRIM(_I32, sys_set_listener_attributes, _I32 _F64 _F64 _F64 _F64 _F64 _F64 _F64 _F64 _F64 _F64 _F64 _F64);
+DEFINE_PRIM(_I32, sys_set_listener_attributes, _I32 _BYTES);
 
 HL_PRIM double HL_NAME(sys_get_listener_weight)(int index) {
     float weight = 0.0f;
@@ -1401,7 +1564,11 @@ HL_PRIM int HL_NAME(evd_create_instance)(int h) {
         FMOD_Studio_EventInstance_Release(instance);
         return 0;
     }
-    FMOD_Studio_EventInstance_SetUserData(instance, (void*)(intptr_t)handle);
+    if (!attach_instance_ctx(instance, handle)) {
+        faxe_handle_free(handle);
+        FMOD_Studio_EventInstance_Release(instance);
+        return 0;
+    }
     return handle;
 }
 DEFINE_PRIM(_I32, evd_create_instance, _I32);
@@ -1759,17 +1926,16 @@ HL_PRIM int HL_NAME(evi_get_3d_attributes)(int h, vbyte* out) {
 }
 DEFINE_PRIM(_I32, evi_get_3d_attributes, _I32 _BYTES);
 
-HL_PRIM int HL_NAME(evi_set_3d_attributes)(int h,
-    double px, double py, double pz, double vx, double vy, double vz,
-    double fx, double fy, double fz, double ux, double uy, double uz) {
+HL_PRIM int HL_NAME(evi_set_3d_attributes)(int h, vbyte* f) {
     FMOD_STUDIO_EVENTINSTANCE* instance = resolve_instance(h);
     FMOD_3D_ATTRIBUTES attrs;
+    double* d = (double*)f;
     if (!instance) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
-    pack_3d_attributes(&attrs, px, py, pz, vx, vy, vz, fx, fy, fz, ux, uy, uz);
+    pack_3d_attributes(&attrs, d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7], d[8], d[9], d[10], d[11]);
     gLastResult = FMOD_Studio_EventInstance_Set3DAttributes(instance, &attrs);
     return (int)gLastResult;
 }
-DEFINE_PRIM(_I32, evi_set_3d_attributes, _I32 _F64 _F64 _F64 _F64 _F64 _F64 _F64 _F64 _F64 _F64 _F64 _F64);
+DEFINE_PRIM(_I32, evi_set_3d_attributes, _I32 _BYTES);
 
 HL_PRIM int HL_NAME(evi_get_listener_mask)(int h) {
     FMOD_STUDIO_EVENTINSTANCE* instance = resolve_instance(h);

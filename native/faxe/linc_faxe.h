@@ -85,7 +85,7 @@ extern const char* fmod_sys_get_parameter_label(const ::String& name, int labelI
 extern int fmod_sys_get_num_listeners();
 extern int fmod_sys_set_num_listeners(int num);
 extern int fmod_sys_get_listener_attributes(int index, ::Array<Float> fbuf);
-extern int fmod_sys_set_listener_attributes(int index, double px, double py, double pz, double vx, double vy, double vz, double fx, double fy, double fz, double ux, double uy, double uz);
+extern int fmod_sys_set_listener_attributes(int index, ::Array<Float> f);
 extern double fmod_sys_get_listener_weight(int index);
 extern int fmod_sys_set_listener_weight(int index, double weight);
 extern int fmod_sys_load_bank_file(const ::String& path, int flags);
@@ -190,7 +190,7 @@ extern int fmod_evi_set_timeline_position(int handle, int position);
 extern bool fmod_evi_is_virtual(int handle);
 extern int fmod_evi_get_min_max_distance(int handle, ::Array<Float> fbuf);
 extern int fmod_evi_get_3d_attributes(int handle, ::Array<Float> fbuf);
-extern int fmod_evi_set_3d_attributes(int handle, double px, double py, double pz, double vx, double vy, double vz, double fx, double fy, double fz, double ux, double uy, double uz);
+extern int fmod_evi_set_3d_attributes(int handle, ::Array<Float> f);
 extern int fmod_evi_get_listener_mask(int handle);
 extern int fmod_evi_set_listener_mask(int handle, int mask);
 extern double fmod_evi_get_property(int handle, int index);
@@ -207,6 +207,15 @@ extern int fmod_evi_set_param_by_id(int handle, int id1, int id2, double value, 
 extern int fmod_evi_set_param_by_id_with_label(int handle, int id1, int id2, const ::String& label, bool ignoreSeekSpeed);
 extern int fmod_evi_get_cpu_usage(int handle, ::Array<int> out);
 extern int fmod_evi_get_memory_usage(int handle, ::Array<int> out);
+
+//// Programmer sounds
+extern int fmod_ps_assign(int handle, const ::String& key);
+extern int fmod_ps_clear(int handle);
+
+//// Core API micro subset (programmer sounds only)
+extern int fmod_core_create_sound(const ::String& path, int mode);
+extern int fmod_core_release_sound(int handle);
+extern int fmod_core_get_sound_length(int handle);
 
 //// Debug
 extern int fmod_debug_live_handle_count();

@@ -34,6 +34,10 @@ class Scratch {
     public static inline function readF(index:Int):Float {
         return floats.getF64(index * 8);
     }
+
+    public static inline function writeF(index:Int, value:Float):Void {
+        floatBuf().setF64(index * 8, value);
+    }
     #else
     static var ints:Array<Int> = [for (_ in 0...CAPACITY) 0];
     static var floats:Array<Float> = [for (_ in 0...CAPACITY) 0.0];
@@ -52,6 +56,10 @@ class Scratch {
 
     public static inline function readF(index:Int):Float {
         return floats[index];
+    }
+
+    public static inline function writeF(index:Int, value:Float):Void {
+        floats[index] = value;
     }
     #end
 }

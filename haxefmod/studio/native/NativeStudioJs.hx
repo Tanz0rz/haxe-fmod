@@ -46,7 +46,13 @@ class NativeStudioJs {
     /** Fills Scratch float buffer [0..11]: pos xyz, vel xyz, forward xyz, up xyz */
     public static inline function sys_get_listener_attributes(index:Int):Int return Raw.fmod_sys_get_listener_attributes(index, Scratch.floatBuf());
 
-    public static inline function sys_set_listener_attributes(index:Int, px:Float, py:Float, pz:Float, vx:Float, vy:Float, vz:Float, fx:Float, fy:Float, fz:Float, ux:Float, uy:Float, uz:Float):Int return Raw.fmod_sys_set_listener_attributes(index, px, py, pz, vx, vy, vz, fx, fy, fz, ux, uy, uz);
+    public static function sys_set_listener_attributes(index:Int, px:Float, py:Float, pz:Float, vx:Float, vy:Float, vz:Float, fx:Float, fy:Float, fz:Float, ux:Float, uy:Float, uz:Float):Int {
+        Scratch.writeF(0, px); Scratch.writeF(1, py); Scratch.writeF(2, pz);
+        Scratch.writeF(3, vx); Scratch.writeF(4, vy); Scratch.writeF(5, vz);
+        Scratch.writeF(6, fx); Scratch.writeF(7, fy); Scratch.writeF(8, fz);
+        Scratch.writeF(9, ux); Scratch.writeF(10, uy); Scratch.writeF(11, uz);
+        return Raw.fmod_sys_set_listener_attributes(index, Scratch.floatBuf());
+    }
     public static inline function sys_get_listener_weight(index:Int):Float return Raw.fmod_sys_get_listener_weight(index);
     public static inline function sys_set_listener_weight(index:Int, weight:Float):Int return Raw.fmod_sys_set_listener_weight(index, weight);
     public static inline function sys_load_bank_file(path:String, flags:Int):Int return Raw.fmod_sys_load_bank_file(path, flags);
@@ -187,7 +193,13 @@ class NativeStudioJs {
     /** Fills Scratch float buffer [0..11]: pos xyz, vel xyz, forward xyz, up xyz */
     public static inline function evi_get_3d_attributes(handle:Int):Int return Raw.fmod_evi_get_3d_attributes(handle, Scratch.floatBuf());
 
-    public static inline function evi_set_3d_attributes(handle:Int, px:Float, py:Float, pz:Float, vx:Float, vy:Float, vz:Float, fx:Float, fy:Float, fz:Float, ux:Float, uy:Float, uz:Float):Int return Raw.fmod_evi_set_3d_attributes(handle, px, py, pz, vx, vy, vz, fx, fy, fz, ux, uy, uz);
+    public static function evi_set_3d_attributes(handle:Int, px:Float, py:Float, pz:Float, vx:Float, vy:Float, vz:Float, fx:Float, fy:Float, fz:Float, ux:Float, uy:Float, uz:Float):Int {
+        Scratch.writeF(0, px); Scratch.writeF(1, py); Scratch.writeF(2, pz);
+        Scratch.writeF(3, vx); Scratch.writeF(4, vy); Scratch.writeF(5, vz);
+        Scratch.writeF(6, fx); Scratch.writeF(7, fy); Scratch.writeF(8, fz);
+        Scratch.writeF(9, ux); Scratch.writeF(10, uy); Scratch.writeF(11, uz);
+        return Raw.fmod_evi_set_3d_attributes(handle, Scratch.floatBuf());
+    }
     public static inline function evi_get_listener_mask(handle:Int):Int return Raw.fmod_evi_get_listener_mask(handle);
     public static inline function evi_set_listener_mask(handle:Int, mask:Int):Int return Raw.fmod_evi_set_listener_mask(handle, mask);
     public static inline function evi_get_property(handle:Int, property:Int):Float return Raw.fmod_evi_get_property(handle, property);
@@ -208,6 +220,15 @@ class NativeStudioJs {
 
     /** Fills Scratch int buffer: [0]=exclusive, [1]=inclusive, [2]=sampledata (bytes) */
     public static inline function evi_get_memory_usage(handle:Int):Int return Raw.fmod_evi_get_memory_usage(handle, Scratch.intBuf());
+
+    // Programmer sounds
+    public static inline function ps_assign(handle:Int, key:String):Int return Raw.fmod_ps_assign(handle, key);
+    public static inline function ps_clear(handle:Int):Int return Raw.fmod_ps_clear(handle);
+
+    // Core API micro subset
+    public static inline function core_create_sound(path:String, mode:Int):Int return Raw.fmod_core_create_sound(path, mode);
+    public static inline function core_release_sound(handle:Int):Int return Raw.fmod_core_release_sound(handle);
+    public static inline function core_get_sound_length(handle:Int):Int return Raw.fmod_core_get_sound_length(handle);
 
     // Callbacks
     public static inline function evi_set_callback_mask(handle:Int, mask:Int):Int return Raw.fmod_evi_set_callback_mask(handle, mask);
@@ -253,7 +274,7 @@ private extern class Raw {
     static function fmod_sys_get_num_listeners():Int;
     static function fmod_sys_set_num_listeners(count:Int):Int;
     static function fmod_sys_get_listener_attributes(index:Int, fout:Array<Float>):Int;
-    static function fmod_sys_set_listener_attributes(index:Int, px:Float, py:Float, pz:Float, vx:Float, vy:Float, vz:Float, fx:Float, fy:Float, fz:Float, ux:Float, uy:Float, uz:Float):Int;
+    static function fmod_sys_set_listener_attributes(index:Int, f:Array<Float>):Int;
     static function fmod_sys_get_listener_weight(index:Int):Float;
     static function fmod_sys_set_listener_weight(index:Int, weight:Float):Int;
     static function fmod_sys_load_bank_file(path:String, flags:Int):Int;
@@ -348,7 +369,7 @@ private extern class Raw {
     static function fmod_evi_is_virtual(handle:Int):Bool;
     static function fmod_evi_get_min_max_distance(handle:Int, fout:Array<Float>):Int;
     static function fmod_evi_get_3d_attributes(handle:Int, fout:Array<Float>):Int;
-    static function fmod_evi_set_3d_attributes(handle:Int, px:Float, py:Float, pz:Float, vx:Float, vy:Float, vz:Float, fx:Float, fy:Float, fz:Float, ux:Float, uy:Float, uz:Float):Int;
+    static function fmod_evi_set_3d_attributes(handle:Int, f:Array<Float>):Int;
     static function fmod_evi_get_listener_mask(handle:Int):Int;
     static function fmod_evi_set_listener_mask(handle:Int, mask:Int):Int;
     static function fmod_evi_get_property(handle:Int, property:Int):Float;
@@ -365,6 +386,11 @@ private extern class Raw {
     static function fmod_evi_set_param_by_id_with_label(handle:Int, id1:Int, id2:Int, label:String, ignoreSeekSpeed:Bool):Int;
     static function fmod_evi_get_cpu_usage(handle:Int, out:Array<Int>):Int;
     static function fmod_evi_get_memory_usage(handle:Int, out:Array<Int>):Int;
+    static function fmod_ps_assign(handle:Int, key:String):Int;
+    static function fmod_ps_clear(handle:Int):Int;
+    static function fmod_core_create_sound(path:String, mode:Int):Int;
+    static function fmod_core_release_sound(handle:Int):Int;
+    static function fmod_core_get_sound_length(handle:Int):Int;
     static function fmod_evi_set_callback_mask(handle:Int, mask:Int):Int;
     static function fmod_cb_next():Bool;
     static function fmod_cb_handle():Int;

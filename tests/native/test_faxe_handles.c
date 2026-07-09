@@ -55,6 +55,20 @@ int main(void) {
     }
     assert(faxe_live_handle_count() == 1);
 
+    /* find_or_alloc: same pointer+type returns the same handle; a different
+     * type or pointer allocates fresh */
+    int f1 = faxe_handle_find_or_alloc(&dummy3, FAXE_TYPE_BUS);
+    assert(f1 > 0);
+    assert(faxe_handle_find_or_alloc(&dummy3, FAXE_TYPE_BUS) == f1);
+    int f2 = faxe_handle_find_or_alloc(&dummy3, FAXE_TYPE_VCA);
+    assert(f2 != f1);
+    int f3 = faxe_handle_find_or_alloc(&dummy1, FAXE_TYPE_BUS);
+    assert(f3 != f1);
+    assert(faxe_handle_find_or_alloc(NULL, FAXE_TYPE_BUS) == 0);
+    faxe_handle_free(f1);
+    faxe_handle_free(f2);
+    faxe_handle_free(f3);
+
     /* generation wrap: recycle one slot many times, gen stays in 1..0x7FFF */
     int h = h2;
     for (int i = 0; i < 40000; i++) {
