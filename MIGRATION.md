@@ -122,9 +122,6 @@ workflow and now emits the 2.0 constants files on every `Ctrl+B` bank
 build: `FmodEvents.hx`, `FmodBuses.hx`, `FmodVCAs.hx`,
 `FmodSnapshots.hx`, and `FmodParameters.hx`, each with a `...Guids`
 companion class holding the matching GUIDs under the same identifiers.
-`haxelib run haxefmod generate` produces identical files
-from a built `assets/fmod/Desktop/Master.strings.bank` when you want to
-generate without opening FMOD Studio.
 
 The old single-file `FmodConstants.hx` output is gone. Rename references
 using the mangling rules (`FmodSongs.MainLevel` becomes
@@ -132,7 +129,7 @@ using the mangling rules (`FmodSongs.MainLevel` becomes
 `FmodEvents.SFXJump`), then delete `FmodConstants.hx`. Later 1.x
 exports named the songs class `FmodSong`, which maps the same way.
 
-Both generators also emit `FmodEventEnum.hx`: a `FmodEventEnum` enum
+The export also emits `FmodEventEnum.hx`: a `FmodEventEnum` enum
 covering every event, with values named like the `FmodEvents`
 constants and `path()`/`guid()` mappers back to the strings. It suits
 switch statements and LDtk external enums. Ignore the file if you

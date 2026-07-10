@@ -25,13 +25,11 @@ top. See `MIGRATION.md` for the complete 1.x to 2.0 mapping.
   `FmodFlxBankLoader`, `FmodFlxParameterTrigger`.
 - Programmer sounds: `instance.assignProgrammerSound(key)` resolving audio
   table keys (or file paths on native targets) on the FMOD thread.
-- Two lockstep constants generators: the FMOD Studio export script
+- Constants generation baked into the export: the FMOD Studio script
   regenerates `FmodEvents`/`FmodBuses`/`FmodVCAs`/`FmodSnapshots`/
   `FmodParameters` (each with a `...Guids` companion class holding the
-  matching GUIDs) on every `Ctrl+B` bank build,
-  and `haxelib run haxefmod generate` emits identical files from a built
-  `Master.strings.bank`. A CI parity test keeps them byte-identical.
-- Event enum generation: both generators also emit `FmodEventEnum.hx`
+  matching GUIDs) on every `Ctrl+B` bank build.
+- Event enum generation: the export also emits `FmodEventEnum.hx`
   (a `FmodEventEnum` enum covering every event, named like the
   `FmodEvents` constants, with `path()` and `guid()` mappers) for
   switch statements and enum-importing tools such as LDtk.

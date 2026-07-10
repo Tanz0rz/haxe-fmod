@@ -148,7 +148,7 @@ lime test mac
 | Layer | Use it for |
 |---|---|
 | `FmodManager` + `FmodSound` | The common cases: one song, sound effects, bus volume/mute |
-| `haxefmod.flixel.*` | HaxeFlixel components: `FmodFlxSetup`, `FmodFlxUpdater`, `FmodFlxEmitter`, `FmodFlxListener`, `FmodFlxBankLoader`, `FmodFlxParameterTrigger` |
+| `haxefmod.flixel.*` | HaxeFlixel components: `FmodFlxSetup`, `FmodFlxUpdater`, `FmodFlxUtilities`, `FmodFlxEmitter`, `FmodFlxListener`, `FmodFlxBankLoader`, `FmodFlxParameterTrigger` |
 | `haxefmod.runtime.FmodRuntime` | Init settings, refcounted banks, 3D attachment, listeners |
 | `haxefmod.studio.*` | The complete FMOD Studio API: `StudioSystem`, `EventDescription`, `EventInstance`, `Bus`, `Vca`, `Bank` |
 
@@ -268,7 +268,8 @@ engine.setParameter("RPM", 0.5);
 From then on `Ctrl+B` regenerates the constants and builds banks in one keystroke.
 
 #### Event Enums
-If you are using a flow or tool that works better with enums, FmodEventEnum.hx holds enum representations of all sounds with additional helper functions that map them back to the path and GUID strings.
+
+If you are using a flow or tool that works better with enums, `FmodEventEnum.hx` holds enum representations of all sounds with additional helper functions that map them back to the path and GUID strings.
 
 #### Auto-imports
 
