@@ -27,7 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Download FMOD SDK
         run: |
@@ -39,7 +39,7 @@ jobs:
           ls -la "$FMOD_SDK/api/studio/lib/wasm/" | head -5
 
       - name: Setup Haxe
-        uses: krdlab/setup-haxe@v1
+        uses: krdlab/setup-haxe@v2
         with:
           # krdlab/setup-haxe only accepts exact versions (no "latest"), so
           # this pins the newest 4.3.x release; bump it manually as new Haxe
@@ -78,7 +78,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Download FMOD SDK
         run: |
@@ -90,7 +90,7 @@ jobs:
           ls -la "$FMOD_SDK/api/core/inc/" | head -5
 
       - name: Setup Haxe
-        uses: krdlab/setup-haxe@v1
+        uses: krdlab/setup-haxe@v2
         with:
           haxe-version: ${{ env.HAXE_VERSION }}
 
@@ -196,7 +196,7 @@ jobs:
     if: ${{ github.event_name == 'workflow_dispatch' }}
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Download FMOD SDK
         run: |
@@ -208,7 +208,7 @@ jobs:
           ls -la "$FMOD_SDK/api/core/inc/" | head -5
 
       - name: Setup Haxe
-        uses: krdlab/setup-haxe@v1
+        uses: krdlab/setup-haxe@v2
         with:
           haxe-version: ${{ env.HAXE_VERSION }}
 

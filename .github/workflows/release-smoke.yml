@@ -23,7 +23,7 @@ jobs:
     steps:
       # The checkout provides the example project and ci scripts only; the
       # library under test comes from lib.haxe.org
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Download FMOD SDK
         run: |
@@ -35,7 +35,7 @@ jobs:
           ls -la "$FMOD_SDK/api/core/inc/" | head -5
 
       - name: Setup Haxe
-        uses: krdlab/setup-haxe@v1
+        uses: krdlab/setup-haxe@v2
         with:
           haxe-version: ${{ env.HAXE_VERSION }}
 

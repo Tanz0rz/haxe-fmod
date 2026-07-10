@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Download FMOD SDK
         run: |
@@ -36,7 +36,7 @@ jobs:
           cp -R /tmp/fmod-sdk-cache/linux/* "$FMOD_SDK/"
 
       - name: Setup Haxe
-        uses: krdlab/setup-haxe@v1
+        uses: krdlab/setup-haxe@v2
         with:
           haxe-version: ${{ env.HAXE_VERSION }}
 
@@ -129,7 +129,7 @@ jobs:
           echo "Stress test passed"
 
       - name: Upload log
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: stress-test-log

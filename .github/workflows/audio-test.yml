@@ -25,10 +25,10 @@ jobs:
     if: ${{ !contains(github.event.head_commit.message, '[skip-build]') }}
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup Haxe
-        uses: krdlab/setup-haxe@v1
+        uses: krdlab/setup-haxe@v2
         with:
           haxe-version: ${{ env.HAXE_VERSION }}
 
@@ -60,7 +60,7 @@ jobs:
     if: ${{ !contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-cpp]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]'))) }}
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Download FMOD SDK
         run: |
@@ -72,12 +72,12 @@ jobs:
           ls -la "$FMOD_SDK/api/core/inc/" | head -5
 
       - name: Setup Haxe
-        uses: krdlab/setup-haxe@v1
+        uses: krdlab/setup-haxe@v2
         with:
           haxe-version: ${{ env.HAXE_VERSION }}
 
       - name: Cache haxelib
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/haxelib
           key: haxelib-cpp-${{ runner.os }}-${{ env.HAXE_VERSION }}
@@ -258,7 +258,7 @@ jobs:
           log-file: /tmp/pan-test-linux-cpp.log
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: audio-linux-cpp
@@ -279,7 +279,7 @@ jobs:
     if: ${{ !contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]'))) }}
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Download FMOD SDK
         run: |
@@ -291,12 +291,12 @@ jobs:
           ls -la "$FMOD_SDK/api/core/inc/" | head -5
 
       - name: Setup Haxe
-        uses: krdlab/setup-haxe@v1
+        uses: krdlab/setup-haxe@v2
         with:
           haxe-version: ${{ env.HAXE_VERSION }}
 
       - name: Cache haxelib
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/haxelib
           key: haxelib-hl-${{ runner.os }}-${{ env.HAXE_VERSION }}
@@ -362,7 +362,7 @@ jobs:
           echo "Verified: custom-compiled hdll from .haxefmod/ was used"
 
       - name: Upload compiled hdll
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: hlaxe_fmod-linux.hdll
           path: example-project/EZPlatformer/.haxefmod/hlaxe_fmod.hdll
@@ -589,7 +589,7 @@ jobs:
           echo "lime test delivered a working FMOD game end to end"
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: audio-linux-hl
@@ -616,7 +616,7 @@ jobs:
     if: ${{ !contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-hl-compat]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]'))) }}
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Download FMOD SDK
         run: |
@@ -628,12 +628,12 @@ jobs:
           ls -la "$FMOD_SDK/api/core/inc/" | head -5
 
       - name: Setup Haxe
-        uses: krdlab/setup-haxe@v1
+        uses: krdlab/setup-haxe@v2
         with:
           haxe-version: ${{ env.HAXE_VERSION }}
 
       - name: Cache haxelib
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/haxelib
           key: haxelib-hl-${{ runner.os }}-${{ env.HAXE_VERSION }}
@@ -797,7 +797,7 @@ jobs:
         run: ./ci/validate-volume.sh /tmp/volume-test-linux-hl-compat.wav 15
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: audio-linux-hl-compat
@@ -816,7 +816,7 @@ jobs:
     if: ${{ !contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-html5]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]'))) }}
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Download FMOD SDK
         run: |
@@ -828,12 +828,12 @@ jobs:
           ls -la "$FMOD_SDK/api/studio/lib/wasm/" | head -5
 
       - name: Setup Haxe
-        uses: krdlab/setup-haxe@v1
+        uses: krdlab/setup-haxe@v2
         with:
           haxe-version: ${{ env.HAXE_VERSION }}
 
       - name: Cache haxelib
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/haxelib
           key: haxelib-html5-${{ runner.os }}-${{ env.HAXE_VERSION }}
@@ -1195,7 +1195,7 @@ jobs:
           echo "pan-test passed"
 
       - name: Upload audio artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: audio-html5
@@ -1219,7 +1219,7 @@ jobs:
     if: ${{ !contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[mac-cpp]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]'))) }}
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Download FMOD SDK
         run: |
@@ -1232,11 +1232,14 @@ jobs:
 
       - name: Setup Haxe via Homebrew
         run: |
+          # The runner image ships a pre-tapped aws/tap that current
+          # Homebrew distrusts; untap it to keep installs warning-free
+          brew untap aws/tap 2>/dev/null || true
           brew install haxe neko ffmpeg
           echo "HAXE_STD_PATH=$(brew --prefix)/lib/haxe/std" >> $GITHUB_ENV
 
       - name: Cache haxelib
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/haxelib
           key: haxelib-cpp-${{ runner.os }}-${{ env.HAXE_VERSION }}
@@ -1320,7 +1323,7 @@ jobs:
         run: ./ci/validate-volume.sh /tmp/volume-test-mac-cpp.wav 15
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: audio-mac-cpp
@@ -1339,7 +1342,7 @@ jobs:
     if: ${{ !contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[mac-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]'))) }}
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Download FMOD SDK
         run: |
@@ -1352,11 +1355,14 @@ jobs:
 
       - name: Setup Haxe via Homebrew
         run: |
+          # The runner image ships a pre-tapped aws/tap that current
+          # Homebrew distrusts; untap it to keep installs warning-free
+          brew untap aws/tap 2>/dev/null || true
           brew install haxe neko hashlink ffmpeg
           echo "HAXE_STD_PATH=$(brew --prefix)/lib/haxe/std" >> $GITHUB_ENV
 
       - name: Cache haxelib
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/haxelib
           key: haxelib-hl-${{ runner.os }}-${{ env.HAXE_VERSION }}
@@ -1400,7 +1406,7 @@ jobs:
           echo "Verified: custom-compiled hdll from .haxefmod/ was used"
 
       - name: Upload compiled hdll
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: hlaxe_fmod-mac.hdll
           path: example-project/EZPlatformer/.haxefmod/hlaxe_fmod.hdll
@@ -1521,7 +1527,7 @@ jobs:
           use-wavwriter: "true"
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: audio-mac-hl
@@ -1545,7 +1551,7 @@ jobs:
     if: ${{ !contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[mac-hl-compat]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]'))) }}
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Download FMOD SDK
         run: |
@@ -1558,11 +1564,14 @@ jobs:
 
       - name: Setup Haxe via Homebrew
         run: |
+          # The runner image ships a pre-tapped aws/tap that current
+          # Homebrew distrusts; untap it to keep installs warning-free
+          brew untap aws/tap 2>/dev/null || true
           brew install haxe neko hashlink ffmpeg
           echo "HAXE_STD_PATH=$(brew --prefix)/lib/haxe/std" >> $GITHUB_ENV
 
       - name: Cache haxelib
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/haxelib
           key: haxelib-hl-${{ runner.os }}-${{ env.HAXE_VERSION }}
@@ -1668,7 +1677,7 @@ jobs:
         run: ./ci/validate-volume.sh /tmp/volume-test-mac-hl-compat.wav 15
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: audio-mac-hl-compat
@@ -1690,7 +1699,7 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Download FMOD SDK
         run: |
@@ -1702,7 +1711,7 @@ jobs:
           ls -la "$FMOD_SDK/api/core/inc/" | head -5
 
       - name: Setup Haxe
-        uses: krdlab/setup-haxe@v1
+        uses: krdlab/setup-haxe@v2
         with:
           haxe-version: ${{ env.HAXE_VERSION }}
 
@@ -1720,7 +1729,7 @@ jobs:
           ffprobe -version | head -1 || echo "WARNING: ffprobe not found yet"
 
       - name: Cache haxelib
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/haxelib
           key: haxelib-cpp-${{ runner.os }}-${{ env.HAXE_VERSION }}
@@ -1838,7 +1847,7 @@ jobs:
         run: ./ci/validate-volume.sh "$GITHUB_WORKSPACE/volume-test-windows-cpp.wav" 15
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: audio-windows-cpp
@@ -1860,7 +1869,7 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Download FMOD SDK
         run: |
@@ -1872,7 +1881,7 @@ jobs:
           ls -la "$FMOD_SDK/api/core/inc/" | head -5
 
       - name: Setup Haxe
-        uses: krdlab/setup-haxe@v1
+        uses: krdlab/setup-haxe@v2
         with:
           haxe-version: ${{ env.HAXE_VERSION }}
 
@@ -1890,7 +1899,7 @@ jobs:
           ffprobe -version | head -1 || echo "WARNING: ffprobe not found yet"
 
       - name: Cache haxelib
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/haxelib
           key: haxelib-hl-${{ runner.os }}-${{ env.HAXE_VERSION }}
@@ -1952,7 +1961,7 @@ jobs:
           echo "Verified: custom-compiled hdll from .haxefmod/ was used"
 
       - name: Upload compiled hdll
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: hlaxe_fmod-windows.hdll
           path: example-project/EZPlatformer/.haxefmod/hlaxe_fmod.hdll
@@ -2108,7 +2117,7 @@ jobs:
           use-wavwriter: "true"
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: audio-windows-hl
@@ -2135,7 +2144,7 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Download FMOD SDK
         run: |
@@ -2147,7 +2156,7 @@ jobs:
           ls -la "$FMOD_SDK/api/core/inc/" | head -5
 
       - name: Setup Haxe
-        uses: krdlab/setup-haxe@v1
+        uses: krdlab/setup-haxe@v2
         with:
           haxe-version: ${{ env.HAXE_VERSION }}
 
@@ -2165,7 +2174,7 @@ jobs:
           ffprobe -version | head -1 || echo "WARNING: ffprobe not found yet"
 
       - name: Cache haxelib
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/haxelib
           key: haxelib-hl-${{ runner.os }}-${{ env.HAXE_VERSION }}
@@ -2324,7 +2333,7 @@ jobs:
         run: ./ci/validate-volume.sh "$GITHUB_WORKSPACE/volume-test-windows-hl-compat.wav" 15
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: audio-windows-hl-compat
@@ -2343,7 +2352,7 @@ jobs:
     if: ${{ !contains(github.event.head_commit.message, '[skip-build]') }}
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Download FMOD html5 SDK
         run: |
@@ -2368,7 +2377,7 @@ jobs:
     if: ${{ !contains(github.event.head_commit.message, '[skip-build]') }}
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Download FMOD SDK
         run: |
@@ -2380,12 +2389,12 @@ jobs:
           ls -la "$FMOD_SDK/api/core/inc/" | head -5
 
       - name: Setup Haxe
-        uses: krdlab/setup-haxe@v1
+        uses: krdlab/setup-haxe@v2
         with:
           haxe-version: ${{ env.HAXE_VERSION }}
 
       - name: Cache haxelib
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/haxelib
           key: haxelib-doctor-${{ runner.os }}-${{ env.HAXE_VERSION }}
@@ -2481,7 +2490,7 @@ jobs:
     env:
       FMOD_SDK: ${{ github.workspace }}/fmod-sdk
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Verify tag matches haxelib.json version
         if: ${{ startsWith(github.ref, 'refs/tags/') }}
@@ -2503,12 +2512,12 @@ jobs:
           cp -R /tmp/fmod-sdk-cache/linux/* "$FMOD_SDK/"
 
       - name: Setup Haxe
-        uses: krdlab/setup-haxe@v1
+        uses: krdlab/setup-haxe@v2
         with:
           haxe-version: ${{ env.HAXE_VERSION }}
 
       - name: Cache haxelib
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/haxelib
           key: haxelib-package-${{ runner.os }}-${{ env.HAXE_VERSION }}
@@ -2619,7 +2628,7 @@ jobs:
     needs: [linux-hl, mac-hl, windows-hl]
     if: ${{ always() && !cancelled() && needs.linux-hl.result == 'success' && needs.mac-hl.result == 'success' && needs.windows-hl.result == 'success' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ github.head_ref || github.ref_name }}
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -2632,7 +2641,7 @@ jobs:
           git branch --show-current
 
       - name: Download compiled hdlls
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           pattern: hlaxe_fmod-*.hdll
           path: /tmp/hdlls
