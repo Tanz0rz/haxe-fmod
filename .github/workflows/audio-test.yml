@@ -258,7 +258,7 @@ jobs:
           log-file: /tmp/pan-test-linux-cpp.log
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: audio-linux-cpp
@@ -362,7 +362,7 @@ jobs:
           echo "Verified: custom-compiled hdll from .haxefmod/ was used"
 
       - name: Upload compiled hdll
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: hlaxe_fmod-linux.hdll
           path: example-project/EZPlatformer/.haxefmod/hlaxe_fmod.hdll
@@ -589,7 +589,7 @@ jobs:
           echo "lime test delivered a working FMOD game end to end"
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: audio-linux-hl
@@ -797,7 +797,7 @@ jobs:
         run: ./ci/validate-volume.sh /tmp/volume-test-linux-hl-compat.wav 15
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: audio-linux-hl-compat
@@ -1195,7 +1195,7 @@ jobs:
           echo "pan-test passed"
 
       - name: Upload audio artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: audio-html5
@@ -1323,7 +1323,7 @@ jobs:
         run: ./ci/validate-volume.sh /tmp/volume-test-mac-cpp.wav 15
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: audio-mac-cpp
@@ -1406,7 +1406,7 @@ jobs:
           echo "Verified: custom-compiled hdll from .haxefmod/ was used"
 
       - name: Upload compiled hdll
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: hlaxe_fmod-mac.hdll
           path: example-project/EZPlatformer/.haxefmod/hlaxe_fmod.hdll
@@ -1527,7 +1527,7 @@ jobs:
           use-wavwriter: "true"
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: audio-mac-hl
@@ -1677,7 +1677,7 @@ jobs:
         run: ./ci/validate-volume.sh /tmp/volume-test-mac-hl-compat.wav 15
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: audio-mac-hl-compat
@@ -1847,7 +1847,7 @@ jobs:
         run: ./ci/validate-volume.sh "$GITHUB_WORKSPACE/volume-test-windows-cpp.wav" 15
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: audio-windows-cpp
@@ -1961,7 +1961,7 @@ jobs:
           echo "Verified: custom-compiled hdll from .haxefmod/ was used"
 
       - name: Upload compiled hdll
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: hlaxe_fmod-windows.hdll
           path: example-project/EZPlatformer/.haxefmod/hlaxe_fmod.hdll
@@ -2117,7 +2117,7 @@ jobs:
           use-wavwriter: "true"
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: audio-windows-hl
@@ -2333,7 +2333,7 @@ jobs:
         run: ./ci/validate-volume.sh "$GITHUB_WORKSPACE/volume-test-windows-hl-compat.wav" 15
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: audio-windows-hl-compat
@@ -2641,7 +2641,7 @@ jobs:
           git branch --show-current
 
       - name: Download compiled hdlls
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v7
         with:
           pattern: hlaxe_fmod-*.hdll
           path: /tmp/hdlls
