@@ -31,14 +31,11 @@ engine.setParameter("RPM", 0.5);
 
 From then on `Ctrl+B` regenerates the constants and builds banks in one keystroke.
 
-## Event Enums (optional)
+## Event Enums
 
-The constants above are the cleanest way to use the library in code. Enums add a mapping call (`.path()`) on top, so they exist for the places a plain string cannot go: external tools that import Haxe enums, like binding levels to specific songs in LDtk, or exhaustive switch statements where the compiler should catch a missing case.
+Every export also writes `FmodEventEnum.hx`: a plain `FmodEventEnum` enum covering every event, with values named exactly like the `FmodEvents` constants, plus `FmodEventTools.path()` and `guid()` mappers back to the path and GUID strings.
 
-For those integrations, both generators can emit `FmodEventEnum.hx`: a plain `FmodEventEnum` enum covering every event, with values named exactly like the `FmodEvents` constants, plus `FmodEventTools.path()` and `guid()` mappers back to the path and GUID strings. Autocomplete filters the same way as the constants: typing `Mus` narrows to the music events.
-
-- FMOD Studio: press `Ctrl+Shift+B` (or Scripts -> Export Haxe Constants + Enums and Build) - writes the constants files, `FmodEventEnum.hx`, and builds banks.
-- CLI: `haxelib run haxefmod generate --enums`
+The constants above are the cleanest way to use the library in code. Enums add a mapping call (`.path()`) on top, so they exist for the places a plain string cannot go: external tools that import Haxe enums, like binding levels to specific songs in LDtk, or exhaustive switch statements where the compiler should catch a missing case. Ignore the file if you never need that - unused mappers are stripped by dead code elimination.
 
 ```haxe
 using FmodEventEnum.FmodEventTools;
@@ -60,6 +57,6 @@ import FmodEvents;
 #end
 ```
 
-**Note:** for the generated files to stay up to date, run the export every time you build your sound bank (the script builds the banks for you, so `Ctrl+B` or `Ctrl+Shift+B` is the whole loop).
+**Note:** for the generated files to stay up to date, run the export every time you build your sound bank (the script builds the banks for you, so `Ctrl+B` is the whole loop).
 
 Migrating from the 1.x `FmodConstants.hx` output? See `MIGRATION.md` for the rename mapping.

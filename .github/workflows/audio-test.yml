@@ -38,7 +38,7 @@ jobs:
       - name: Constants generator parity (CLI vs FMOD Studio script)
         run: |
           haxe -cp . --run haxefmod.tools.Generate \
-            --strings tests/fixtures/Master.strings.bank --out /tmp/gen-cli --enums
+            --strings tests/fixtures/Master.strings.bank --out /tmp/gen-cli
           node tests/js/constants-parity.js /tmp/gen-cli
           # The generated output must also compile
           haxe -cp /tmp/gen-cli --no-output FmodEvents FmodBuses FmodParameters FmodEventEnum

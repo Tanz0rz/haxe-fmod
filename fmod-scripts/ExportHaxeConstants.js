@@ -177,19 +177,13 @@ if (typeof studio !== "undefined") {
 
     studio.menu.addMenuItem({
         name: "Export Haxe Constants and Build",
-        execute: function () { displayDirectoryPickerModal(false); },
+        execute: function () { displayDirectoryPickerModal(); },
         keySequence: "Ctrl+B"
-    });
-
-    studio.menu.addMenuItem({
-        name: "Export Haxe Constants + Enums and Build",
-        execute: function () { displayDirectoryPickerModal(true); },
-        keySequence: "Ctrl+Shift+B"
     });
 
     var cacheFileName = "CachedHaxeConstantsOutputLocation";
 
-    function displayDirectoryPickerModal(includeEnums) {
+    function displayDirectoryPickerModal() {
         var outputPathDir = readOutputPathFromFile();
         studio.ui.showModalDialog({
             windowTitle: "Select your Haxe project's source folder",
@@ -205,7 +199,7 @@ if (typeof studio !== "undefined") {
                     items: [
                         { widgetType: studio.ui.widgetType.Spacer, sizePolicy: { horizontalPolicy: studio.ui.sizePolicy.MinimumExpanding } },
                         { widgetType: studio.ui.widgetType.PathLineEdit, stretchFactor: 1, widgetId: "m_directoryPicker", text: outputPathDir, pathType: studio.ui.pathType.Directory },
-                        { widgetType: studio.ui.widgetType.PushButton, text: "Save", onClicked: function () { createConstantsFiles(this, includeEnums); this.closeDialog(); } }
+                        { widgetType: studio.ui.widgetType.PushButton, text: "Save", onClicked: function () { createConstantsFiles(this); this.closeDialog(); } }
                     ]
                 }
             ]
@@ -249,15 +243,13 @@ if (typeof studio !== "undefined") {
         return entries;
     }
 
-    function createConstantsFiles(directoryPickerWidget, includeEnums) {
+    function createConstantsFiles(directoryPickerWidget) {
         var outputPath = directoryPickerWidget.findWidget("m_directoryPicker").text();
 
         var entries = collectEntries();
         var files = HaxefmodConstants.generate(entries);
-        if (includeEnums) {
-            var enumsText = HaxefmodConstants.generateEventEnums(entries);
-            if (enumsText !== null) files["FmodEventEnum.hx"] = enumsText;
-        }
+        var enumsText = HaxefmodConstants.generateEventEnums(entries);
+        if (enumsText !== null) files["FmodEventEnum.hx"] = enumsText;
         var written = [];
         for (var fileName in files) {
             var fullPath = outputPath + "/" + fileName;

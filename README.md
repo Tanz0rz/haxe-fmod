@@ -207,7 +207,7 @@ haxelib run haxefmod generate
 
 Parses `assets/fmod/Desktop/Master.strings.bank` (override with `--strings`) and writes the files into `source/` (override with `--out`, add a package with `--package`).
 
-**Optional event enums:** both generators can additionally emit `FmodEventEnum.hx` - a plain `FmodEventEnum` enum covering every event, with values named exactly like the `FmodEvents` constants (`MusicMainLevel`, `SFXJump`), plus `path()` and `guid()` mappers back to the path and GUID strings (`FmodEventEnum.SFXJump.path()` with `using FmodEventEnum.FmodEventTools`). In code the constants are cleaner (the enums add a mapping call), so the enums exist for integrations that need a real type: binding levels to specific songs in external tools like LDtk (which imports Haxe enums directly), or exhaustive switch statements. Use `Ctrl+Shift+B` in FMOD Studio or `haxelib run haxefmod generate --enums`.
+**Event enums:** both generators also emit `FmodEventEnum.hx` - a plain `FmodEventEnum` enum covering every event, with values named exactly like the `FmodEvents` constants (`MusicMainLevel`, `SFXJump`), plus `path()` and `guid()` mappers back to the path and GUID strings (`FmodEventEnum.SFXJump.path()` with `using FmodEventEnum.FmodEventTools`). In code the constants are cleaner (the enums add a mapping call), so the enums exist for integrations that need a real type: binding levels to specific songs in external tools like LDtk (which imports Haxe enums directly), or exhaustive switch statements. Ignore the file if you never need that - unused mappers are stripped by dead code elimination.
 
 ## <a name="migrating"></a>Migrating From 1.x
 
