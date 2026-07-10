@@ -316,6 +316,13 @@ class PostBuild {
 			copyHdll(projectDir, libRoot, "Linux64", binDir);
 		}
 
+		// Modern Linux kernels refuse to load libraries flagged with an
+		// executable stack, and FMOD ships its .so files that way. CI has
+		// always cleared the flag as a separate step; do it here so plain
+		// `lime test linux` works on end-user machines too. Silently skipped
+		// when patchelf is not installed (older kernels do not need it).
+		clearExecstack(binDir);
+
 		// Create run.sh wrapper if it doesn't exist
 		var runSh = Path.join([binDir, "run.sh"]);
 		if (!FileSystem.exists(runSh)) {
@@ -330,6 +337,38 @@ class PostBuild {
 		}
 
 		log("Done - copied FMOD .so files");
+	}
+
+	/** Clears the executable-stack flag on every FMOD .so in the directory. */
+	static function clearExecstack(binDir:String):Void {
+		for (file in FileSystem.readDirectory(binDir)) {
+			if (file.indexOf("libfmod") != 0 || file.indexOf(".so") == -1) continue;
+			var path = Path.join([binDir, file]);
+			if (isSymlink(path)) continue;
+			try {
+				var proc = new sys.io.Process("patchelf", ["--clear-execstack", path]);
+				var code = proc.exitCode();
+				proc.close();
+				if (code == 0) {
+					log('Cleared executable-stack flag on $file');
+				}
+			} catch (e:Dynamic) {
+				log("patchelf not found - skipped execstack clearing (needed on modern kernels; install patchelf if the game fails to load libfmod)");
+				return;
+			}
+		}
+	}
+
+	static function isSymlink(path:String):Bool {
+		// Haxe sys has no lstat; test -L works everywhere PostBuild handles symlinks (Linux only)
+		try {
+			var proc = new sys.io.Process("test", ["-L", path]);
+			var code = proc.exitCode();
+			proc.close();
+			return code == 0;
+		} catch (e:Dynamic) {
+			return false;
+		}
 	}
 
 	//// Windows

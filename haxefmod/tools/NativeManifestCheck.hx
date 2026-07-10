@@ -139,7 +139,7 @@ class NativeManifestCheck {
      * by PostBuild), and the constants in the cpp/js shims and FmodRuntime.
      */
     static function checkAbiLockstep(libRoot:String, manifestPath:String, errors:Array<String>) {
-        var expected = -1;
+        var expected:Null<Int> = null;
         for (line in File.getContent(manifestPath).split("\n")) {
             var trimmed = StringTools.trim(line);
             if (StringTools.startsWith(trimmed, "# abi-version:")) {
