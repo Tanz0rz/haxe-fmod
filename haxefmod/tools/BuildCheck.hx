@@ -46,12 +46,38 @@ class BuildCheck {
                 + "\n"
                 + "  Verify your setup with: haxelib run haxefmod check");
         }
+
+        // A set-but-wrong path must fail just as loudly as an unset one:
+        // the postbuild guards also catch it, but lime can bury their exit
+        // code, so the compile-time check is the reliable block
+        if (Context.defined("html5") || Context.defined("js")) {
+            requireSdkFile("FMOD_SDK_WEB", ["api", "studio", "lib", "wasm", "fmodstudio.js"]);
+        } else if (Context.defined("hl") || Context.defined("cpp")) {
+            requireSdkFile("FMOD_SDK", ["api", "core", "inc", "fmod_common.h"]);
+        }
     }
 
     static function requireEnv(name:String, message:String):Void {
         var value = Sys.getEnv(name);
         if (value == null || value == "") {
             Context.fatalError(message, Context.currentPos());
+        }
+    }
+
+    static function requireSdkFile(name:String, relParts:Array<String>):Void {
+        var value = Sys.getEnv(name);
+        if (value == null || value == "") return; // requireEnv already handled it
+        var marker = haxe.io.Path.join([value].concat(relParts));
+        if (!sys.FileSystem.exists(marker)) {
+            Context.fatalError(
+                'haxefmod: $name is set but does not look like an FMOD Engine SDK.\n'
+                + "\n"
+                + '  $name = $value\n'
+                + '  Missing: $marker\n'
+                + "\n"
+                + "  Check the path for typos, or re-download the FMOD Engine from https://www.fmod.com/download\n"
+                + "\n"
+                + "  Verify your setup with: haxelib run haxefmod check", Context.currentPos());
         }
     }
 }

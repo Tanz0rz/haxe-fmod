@@ -2570,6 +2570,65 @@ jobs:
           }
           echo "html5 build blocked with setup instructions"
 
+      # A set-but-wrong SDK path must fail as loudly as an unset one. It used
+      # to compile fine (HL needs no SDK at compile time), skip the postbuild
+      # version gate with a soft warning, and copy nothing - producing builds
+      # that only launched when stale libraries sat in export/ from earlier
+      # successful builds.
+      - name: Build blocks with a bogus FMOD_SDK (hl)
+        env:
+          FMOD_SDK: /tmp/definitely-not-an-sdk
+        run: |
+          cd example-project/EZPlatformer
+          if haxelib run lime build hl > /tmp/bogus-hl.log 2>&1; then
+            echo "FAIL: hl build succeeded with a bogus FMOD_SDK"
+            cat /tmp/bogus-hl.log
+            exit 1
+          fi
+          grep -q "does not look like an FMOD Engine SDK" /tmp/bogus-hl.log || {
+            echo "FAIL: build failed but not with the bogus-SDK message"
+            cat /tmp/bogus-hl.log
+            exit 1
+          }
+          echo "hl build blocked: bogus FMOD_SDK rejected at compile time"
+
+      - name: Postbuild rejects a bogus FMOD_SDK
+        env:
+          FMOD_SDK: /tmp/definitely-not-an-sdk
+        run: |
+          cd example-project/EZPlatformer
+          if haxelib run haxefmod postbuild linux hl "$GITHUB_WORKSPACE" > /tmp/bogus-postbuild.log 2>&1; then
+            echo "FAIL: postbuild exited 0 with a bogus FMOD_SDK"
+            cat /tmp/bogus-postbuild.log
+            exit 1
+          fi
+          grep -q "does not point at an FMOD SDK" /tmp/bogus-postbuild.log || {
+            echo "FAIL: postbuild failed but not with the bogus-SDK message"
+            cat /tmp/bogus-postbuild.log
+            exit 1
+          }
+          echo "postbuild blocked: bogus FMOD_SDK is a hard error"
+
+      - name: Postbuild rejects an SDK missing platform libraries
+        env:
+          FMOD_SDK: /tmp/incomplete-sdk
+        run: |
+          mkdir -p /tmp/incomplete-sdk/api/core/inc
+          cp "$GITHUB_WORKSPACE/fmod-sdk/api/core/inc/fmod_common.h" /tmp/incomplete-sdk/api/core/inc/
+          mkdir -p example-project/EZPlatformer/export/hl/bin
+          cd example-project/EZPlatformer
+          if haxelib run haxefmod postbuild linux hl "$GITHUB_WORKSPACE" > /tmp/incomplete-postbuild.log 2>&1; then
+            echo "FAIL: postbuild exited 0 with the platform libraries missing"
+            cat /tmp/incomplete-postbuild.log
+            exit 1
+          fi
+          grep -q "FMOD library directory not found" /tmp/incomplete-postbuild.log || {
+            echo "FAIL: postbuild failed but not with the missing-libraries message"
+            cat /tmp/incomplete-postbuild.log
+            exit 1
+          }
+          echo "postbuild blocked: incomplete SDK is a hard error"
+
   # ===========================================================================
   # Package check: the haxelib zip must install and build a project
   # ===========================================================================

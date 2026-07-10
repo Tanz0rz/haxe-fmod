@@ -51,10 +51,24 @@ class PostBuild {
 		var versionFile = Path.join([libRoot, "scripts", "fmod_expected_version"]);
 		var sdkHeader = Path.join([sdkPath, "api", "core", "inc", "fmod_common.h"]);
 
-		if (!FileSystem.exists(versionFile) || !FileSystem.exists(sdkHeader)) {
+		// A set-but-wrong SDK path is provably not an SDK: hard error, the
+		// same class of failure as an unset variable. A soft warning here
+		// used to let typo'd paths skip the version gate entirely and ship
+		// builds that only ran when stale libraries were still in export/.
+		if (!FileSystem.exists(sdkHeader)) {
+			log('ERROR: $sdkEnvName is set but does not point at an FMOD SDK');
+			log('  $sdkEnvName = $sdkPath');
+			log('  Missing: $sdkHeader');
+			log("  Check the path for typos, or re-download the FMOD Engine from https://www.fmod.com/download");
+			log("  Verify your setup with: haxelib run haxefmod check");
+			Sys.exit(1);
+		}
+
+		// The lib-side expected-version file going missing is a packaging
+		// problem, not a user setup problem - warn and continue
+		if (!FileSystem.exists(versionFile)) {
 			log("WARNING: Could not verify FMOD SDK version");
-			if (!FileSystem.exists(versionFile)) log('  Missing: $versionFile');
-			if (!FileSystem.exists(sdkHeader)) log('  Missing: $sdkHeader');
+			log('  Missing: $versionFile');
 			return;
 		}
 
@@ -506,7 +520,15 @@ class PostBuild {
 
 	/** Copy files matching a prefix from srcDir to destDir, preserving symlinks on Linux. */
 	static function copyGlobSymlinks(srcDir:String, prefix:String, destDir:String):Void {
-		if (!FileSystem.exists(srcDir)) return;
+		// Copying nothing silently produced binaries that only launched when
+		// stale libraries from an earlier build were still in the bin dir
+		if (!FileSystem.exists(srcDir)) {
+			log('ERROR: FMOD library directory not found: $srcDir');
+			log("  The FMOD_SDK directory has no libraries for this platform, so the");
+			log("  build output would fail to launch. Re-download the FMOD Engine or");
+			log("  fix FMOD_SDK, then rebuild.");
+			Sys.exit(1);
+		}
 		var files = FileSystem.readDirectory(srcDir);
 		for (file in files) {
 			if (StringTools.startsWith(file, prefix)) {

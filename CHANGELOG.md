@@ -34,7 +34,9 @@ top. See `MIGRATION.md` for the complete 1.x to 2.0 mapping.
   (`FmodSong`/`FmodSFX` plain enums with `FmodEvent.event()` path
   mappers) for switch statements and enum-importing tools such as LDtk.
 - Build-time SDK validation: lime builds fail immediately with setup
-  instructions when `FMOD_SDK` (or `FMOD_SDK_WEB` for HTML5) is missing.
+  instructions when `FMOD_SDK` (or `FMOD_SDK_WEB` for HTML5) is missing,
+  set to a path that is not an FMOD SDK, or missing the platform's
+  runtime libraries.
 - Binding ABI guard: stale pre-built hdlls are refused at build time with
   `build-hdll` instructions instead of crashing at game startup.
 
