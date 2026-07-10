@@ -14,6 +14,13 @@ package haxefmod.studio.native;
 class Scratch {
     public static inline var CAPACITY:Int = 1024;
 
+    /** Shared warning for list getters that hit the scratch capacity. */
+    public static function warnTruncated(what:String, returned:Int, total:Int):Void {
+        if (total > returned) {
+            trace('Warn: FMOD - $what list truncated ($returned of $total). Raise FAXE_LIST_MAX/Scratch.CAPACITY.');
+        }
+    }
+
     #if hl
     static var ints:hl.Bytes = null;
     static var floats:hl.Bytes = null;

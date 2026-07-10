@@ -18,13 +18,13 @@ import sys.io.File;
  *
  * With --enums it additionally emits FmodEventEnum.hx: a plain
  * FmodEventEnum enum covering every event, with values named exactly like
- * the FmodEvents constants, plus a FmodEventTools.path() mapper back to the path string
- * (usable as a static extension). Plain enums suit switch statements and
+ * the FmodEvents constants, plus FmodEventTools.path() and guid() mappers
+ * (usable as static extensions). Plain enums suit switch statements and
  * external tools that import Haxe enums (LDtk external enums, for example).
  *
  * Each file holds the path constants plus a companion class with the
  * matching GUIDs under the same identifiers, so autocomplete on the main
- * class only shows sounds:
+ * class only shows the paths:
  *
  *   FmodEvents.MusicMainLevel        "event:/Music/MainLevel"
  *   FmodEventsGuids.MusicMainLevel   "{e5187c3f-...}"
@@ -261,7 +261,7 @@ class Generate {
 		Sys.println("  --strings  Path to Master.strings.bank (default: assets/fmod/Desktop/Master.strings.bank)");
 		Sys.println("  --out      Output directory (default: source/ if it exists, else the current directory)");
 		Sys.println("  --package  Package for the generated classes (default: top-level)");
-		Sys.println("  --enums    Also emit FmodEventEnum.hx (FmodEventEnum enum with a path() mapper)");
+		Sys.println("  --enums    Also emit FmodEventEnum.hx (FmodEventEnum enum with path() and guid() mappers)");
 		Sys.exit(1);
 	}
 }

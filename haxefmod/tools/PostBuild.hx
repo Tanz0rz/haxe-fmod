@@ -367,7 +367,7 @@ class PostBuild {
 					log('Cleared executable-stack flag on $file');
 				}
 			} catch (e:Dynamic) {
-				log("patchelf not found - skipped execstack clearing (needed on modern kernels; install patchelf if the game fails to load libfmod)");
+				log("patchelf not found - skipped execstack clearing (needed on modern kernels). Install patchelf if the game fails to load libfmod.");
 				return;
 			}
 		}

@@ -52,7 +52,7 @@ class FmodManager {
     /** Turns on FMOD debug logging and facade operation traces. */
     public static function EnableDebugMessages():Void {
         debug = true;
-        NativeStudio.sys_set_debug_level(3);
+        NativeStudio.sys_set_debug_level(3); // 3 = log everything (the FmodSettings.logLevel scale)
     }
 
     /** True once FMOD is ready (html5 initializes asynchronously). */

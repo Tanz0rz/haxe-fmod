@@ -54,7 +54,7 @@ class CallbackDispatcher {
                 NativeStudio.cb_float(), NativeStudio.cb_string());
         }
         if (NativeStudio.cb_take_overflow()) {
-            trace("Warn: FMOD - callback event queue overflowed; oldest events were dropped");
+            trace("Warn: FMOD - callback event queue overflowed. Oldest events were dropped.");
         }
     }
 

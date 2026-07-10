@@ -78,7 +78,7 @@ export FMOD_SDK="$HOME/fmod/fmodstudioapi20312" # (use $HOME, not ~)
 
 # For Windows
 # in the Environment Variables UI
-# FMOD_SDK=C:\path\to\installer\output
+# FMOD_SDK=C:\path\to\fmodstudioapi20312
 ```
 
 **For HTML5 builds**, set a separate `FMOD_SDK_WEB` variable:
@@ -101,7 +101,7 @@ This allows you to have both your C++/HashLink SDK and HTML5 SDK configured simu
 
 **5. Use the library in code:**
 
-The `FmodManager` class is the friendly way to interact with FMOD in your game: a background song slot plus fire-and-forget and handle-based sound effects. You can look through all of the available function calls with descriptions [here](https://github.com/Tanz0rz/haxe-fmod/blob/master/haxefmod/FmodManager.hx).
+The `FmodManager` class is the friendly way to interact with FMOD in your game: a background song slot plus fire-and-forget and handle-based sound effects. The `FmodEvents` constants used below are generated from your banks (see [Generating Constants](#generating-constants)). You can look through all of the available function calls with descriptions [here](https://github.com/Tanz0rz/haxe-fmod/blob/master/haxefmod/FmodManager.hx).
 
 ```haxe
 public function StartLevel():Void {
@@ -195,7 +195,7 @@ Runtime settings passed to `FmodManager.Initialize(...)` override the defines.
 
 ## <a name="generating-constants"></a>Generating Constants From Your Banks
 
-Two generators emit identical files (`FmodEvents.hx`, `FmodBuses.hx`, `FmodVCAs.hx`, `FmodSnapshots.hx`, `FmodParameters.hx`). Each file also holds a `...Guids` companion class with the matching GUIDs under the same identifiers (`FmodEventsGuids.MusicMainLevel`) for GUID-based lookups, kept separate so autocomplete on the main class only shows sounds. A parity test in CI keeps the generators in lockstep.
+Two generators emit identical files (`FmodEvents.hx`, `FmodBuses.hx`, `FmodVCAs.hx`, `FmodSnapshots.hx`, `FmodParameters.hx`). Each file also holds a `...Guids` companion class with the matching GUIDs under the same identifiers (`FmodEventsGuids.MusicMainLevel`) for GUID-based lookups, kept separate so autocomplete on the main class only shows the paths. A parity test in CI keeps the generators in lockstep.
 
 **Recommended: generate on every export from inside FMOD Studio.** Install the [fmod-scripts](https://github.com/Tanz0rz/haxe-fmod/tree/master/fmod-scripts) script once. `Ctrl+B` in FMOD Studio then writes the constants and builds your banks in one step, so they can never drift from the project.
 
@@ -254,6 +254,8 @@ For HTML5 builds to work, a dedicated scene must be run before the game starts t
 ## <a name="fmod-studio-project-configuration"></a>FMOD Studio Project Configuration
 
 **FMOD Studio project structure**:
+
+Organize events into any folder structure you like. Folder names become part of the generated constant names (`event:/Music/MainLevel` becomes `FmodEvents.MusicMainLevel`), so top-level folders like "Music" and "SFX" keep the generated names readable.
 
 **FMOD Studio bank builds**:
 

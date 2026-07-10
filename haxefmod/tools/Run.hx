@@ -35,8 +35,13 @@ class Run {
 				Sys.exit(NativeManifestCheck.run(libRoot));
 			case "generate":
 				Generate.run(userArgs.slice(1), cwd);
-			default:
+			case "help":
 				printUsage();
+			case other:
+				Sys.println('Unknown command: $other');
+				Sys.println("");
+				printUsage();
+				Sys.exit(1);
 		}
 	}
 
@@ -291,7 +296,7 @@ class Run {
 		// All platforms now use 2.03.12
 		var expected = "2.03.12";
 		if (versionStr == expected) {
-			pass("FMOD version", '$versionStr (expected $expected)');
+			pass("FMOD version", versionStr);
 		} else {
 			fail("FMOD version", 'Found $versionStr, expected $expected.');
 			Sys.println('         Download FMOD Engine $expected for $platform from https://www.fmod.com/download');
@@ -333,10 +338,8 @@ class Run {
 	static function checkHtml5Sdk(fmodSdk:String) {
 		var fmodSdkWeb = Sys.getEnv("FMOD_SDK_WEB");
 		if (fmodSdkWeb == null || fmodSdkWeb == "") {
-			fail("FMOD_SDK_WEB environment variable set (needed for lime build html5)", "Not set");
-			Sys.println('         Download FMOD Engine 2.03.12 for HTML5 from https://www.fmod.com/download');
-			Sys.println('         Extract and set FMOD_SDK_WEB to the extracted installer directory:');
-			Sys.println('');
+			skip("FMOD_SDK_WEB environment variable set", "Not set. Only needed for lime build html5.");
+			Sys.println('         To build for HTML5 later: download FMOD Engine 2.03.12 for HTML5 from https://www.fmod.com/download and');
 			Sys.println('         export FMOD_SDK_WEB=/path/to/fmodstudioapi20312html5');
 			return;
 		}
@@ -383,7 +386,7 @@ class Run {
 		if (FileSystem.exists(bankPath)) {
 			pass("FMOD bank files present", bankPath);
 		} else {
-			fail("FMOD bank files present", 'Not found: assets/fmod/Desktop/Master.bank');
+			warn("FMOD bank files present", 'Not found: assets/fmod/Desktop/Master.bank. Build banks in FMOD Studio (Ctrl+B) before running the game.');
 		}
 	}
 
@@ -397,6 +400,18 @@ class Run {
 	static function fail(label:String, detail:String) {
 		failCount++;
 		Sys.println('  [FAIL] $label');
+		if (detail != "") Sys.println('         $detail');
+	}
+
+	/** A check that does not apply to this machine. Not counted. */
+	static function skip(label:String, detail:String) {
+		Sys.println('  [SKIP] $label');
+		if (detail != "") Sys.println('         $detail');
+	}
+
+	/** A heads-up that is normal during setup. Not counted as a failure. */
+	static function warn(label:String, detail:String) {
+		Sys.println('  [WARN] $label');
 		if (detail != "") Sys.println('         $detail');
 	}
 

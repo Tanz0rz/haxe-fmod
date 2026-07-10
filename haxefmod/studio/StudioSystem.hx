@@ -80,10 +80,7 @@ class StudioSystem {
     /** Loaded banks (up to Scratch.CAPACITY entries). */
     public static function getBankList():Array<Bank> {
         var count = NativeStudio.sys_get_bank_list();
-        var total = getBankCount();
-        if (total > count) {
-            trace('Warn: FMOD - bank list truncated ($count of $total); raise FAXE_LIST_MAX/Scratch.CAPACITY');
-        }
+        Scratch.warnTruncated("bank", count, getBankCount());
         return [for (i in 0...count) (Scratch.readI(i) : Bank)];
     }
 
@@ -282,6 +279,9 @@ class StudioSystem {
         return NativeStudio.debug_live_handle_count();
     }
 
+    /** Shared decode for the parameter-description scratch layout
+        (lockstep with the native writeParamDesc buffer order). */
+    @:allow(haxefmod.studio.EventDescription)
     static function readParameterDescription(name:String):Null<FmodParameterDescription> {
         if (!lastResult().isOk()) return null;
         return {

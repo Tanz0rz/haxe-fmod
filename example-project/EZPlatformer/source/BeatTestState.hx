@@ -32,7 +32,9 @@ import haxefmod.studio.native.NativeStudio;
 class BeatTestState extends FlxState {
     // Each started instance pushes at least Starting/Started/SoundPlayed
     // into the queue, so 100 instances push well past the 256-entry ring
-    // while updates are withheld
+    // while updates are withheld. Keep this flood comfortably above
+    // FAXE_CBQ_CAPACITY (native/shared/faxe_cbqueue.h) or the overflow
+    // phase stops exercising the recovery path
     static inline var OVERFLOW_INSTANCES:Int = 100;
     // ~5 seconds at 60fps for the overflow flag to trip
     static inline var OVERFLOW_WAIT_FRAMES:Int = 300;
