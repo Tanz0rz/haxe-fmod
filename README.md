@@ -1,6 +1,6 @@
 # FMOD for Haxe on HTML5, HashLink, Windows, Linux, and macOS
 
-Having problems or want to chat? Join the [Haxe Discord](https://discord.com/channels/162395145352904705/1472372604433076446/1472372604433076446)!
+Having problems or want to chat? [Join the Haxe Discord](https://discordapp.com/invite/0uEuWH3spjck73Lo), then follow the [haxe-fmod thread](https://discord.com/channels/162395145352904705/1472372604433076446).
 
 ## Table of Contents
 
@@ -293,6 +293,6 @@ This entire project was started as an expansion of Aaron Shea's [faxe](https://g
 
 If you have any feature requests or are having issues using the library, please do one (or both) of the following:
 
-- Join the [haxe-fmod channel on the official Haxe Discord](https://discord.com/channels/162395145352904705/1472372604433076446/1472372604433076446) and ask any questions you have there. Responses will be quick!
+- [Join the Haxe Discord](https://discordapp.com/invite/0uEuWH3spjck73Lo), then ask any questions you have in the [haxe-fmod thread](https://discord.com/channels/162395145352904705/1472372604433076446). Responses will be quick!
 
 - [Open an Issue](https://github.com/Tanz0rz/haxe-fmod/issues) here on GitHub.
