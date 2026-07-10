@@ -120,8 +120,9 @@ Async loading: `FmodRuntime.banks.loadAsync(path)` then poll
 The FMOD Studio export script (`fmod-scripts`) remains the recommended
 workflow and now emits the 2.0 constants files on every `Ctrl+B` bank
 build: `FmodEvents.hx`, `FmodBuses.hx`, `FmodVCAs.hx`,
-`FmodSnapshots.hx`, and `FmodParameters.hx`, each constant paired with a
-GUID companion. `haxelib run haxefmod generate` produces identical files
+`FmodSnapshots.hx`, and `FmodParameters.hx`, each with a `...Guids`
+companion class holding the matching GUIDs under the same identifiers.
+`haxelib run haxefmod generate` produces identical files
 from a built `assets/fmod/Desktop/Master.strings.bank` when you want to
 generate without opening FMOD Studio.
 

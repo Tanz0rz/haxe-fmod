@@ -52,8 +52,7 @@ var HaxefmodConstants = {
         return out;
     },
 
-    // Mirrors Generate.identifiersFor: numeric suffixes on collision, with
-    // each name reserving its "<name>Guid" companion atomically
+    // Mirrors Generate.identifiersFor: numeric suffixes on collision
     identifiersFor: function (paths, prefix) {
         var used = {};
         var out = [];
@@ -61,12 +60,11 @@ var HaxefmodConstants = {
             var base = this.mangle(paths[i], prefix);
             var name = base;
             var n = 2;
-            while (used[name] === true || used[name + "Guid"] === true) {
+            while (used[name] === true) {
                 name = base + n;
                 n++;
             }
             used[name] = true;
-            used[name + "Guid"] = true;
             out.push(name);
         }
         return out;
@@ -77,13 +75,20 @@ var HaxefmodConstants = {
         var lines = [];
         lines.push(this.header);
         lines.push("");
-        lines.push("class " + className + " {");
         var paths = [];
         for (var i = 0; i < entries.length; i++) paths.push(entries[i].path);
         var names = this.identifiersFor(paths, prefix);
+        lines.push("class " + className + " {");
         for (var j = 0; j < entries.length; j++) {
             lines.push("\tpublic static inline var " + names[j] + ':String = "' + entries[j].path + '";');
-            lines.push("\tpublic static inline var " + names[j] + 'Guid:String = "' + entries[j].guid + '";');
+        }
+        lines.push("}");
+        lines.push("");
+        // GUIDs live in a companion class under the same identifiers, so
+        // autocomplete on the main class only shows the paths
+        lines.push("class " + className + "Guids {");
+        for (var k = 0; k < entries.length; k++) {
+            lines.push("\tpublic static inline var " + names[k] + ':String = "' + entries[k].guid + '";');
         }
         lines.push("}");
         lines.push("");

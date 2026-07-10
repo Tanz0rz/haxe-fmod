@@ -110,8 +110,8 @@ class TestStringsBankParser {
 	static function testCollisionSuffixes() {
 		var names = Generate.identifiersFor(["event:/A B", "event:/A/B", "event:/AB"], "event:/");
 		assert("collisions get numeric suffixes", names.join(",") == "AB,AB2,AB3");
-		var guidClash = Generate.identifiersFor(["event:/Coin", "event:/Coin Guid"], "event:/");
-		assert("Guid pair names are reserved too", guidClash.join(",") == "Coin,CoinGuid2");
+		var guidLike = Generate.identifiersFor(["event:/Coin", "event:/Coin Guid"], "event:/");
+		assert("Guid-suffixed paths stay distinct", guidLike.join(",") == "Coin,CoinGuid");
 	}
 
 	static function testEventEnums() {

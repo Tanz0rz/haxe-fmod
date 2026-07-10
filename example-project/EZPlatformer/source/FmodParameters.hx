@@ -2,7 +2,10 @@
 
 class FmodParameters {
 	public static inline var FadeArpIn:String = "parameter:/FadeArpIn";
-	public static inline var FadeArpInGuid:String = "{293aa1ce-c07e-4cc2-bc41-7a082a62b7fa}";
 	public static inline var HighPass:String = "parameter:/HighPass";
-	public static inline var HighPassGuid:String = "{4e75eb97-ff6c-459d-a75b-0576603fe118}";
+}
+
+class FmodParametersGuids {
+	public static inline var FadeArpIn:String = "{293aa1ce-c07e-4cc2-bc41-7a082a62b7fa}";
+	public static inline var HighPass:String = "{4e75eb97-ff6c-459d-a75b-0576603fe118}";
 }

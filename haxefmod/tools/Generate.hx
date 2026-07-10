@@ -22,10 +22,12 @@ import sys.io.File;
  * enums suit switch statements and external tools that import Haxe enums
  * (LDtk external enums, for example).
  *
- * Each entry becomes two inline constants: the path and its GUID, e.g.
+ * Each file holds the path constants plus a companion class with the
+ * matching GUIDs under the same identifiers, so autocomplete on the main
+ * class only shows sounds:
  *
- *   public static inline var MusicMainLevel:String = "event:/Music/MainLevel";
- *   public static inline var MusicMainLevelGuid:String = "{e5187c3f-...}";
+ *   FmodEvents.MusicMainLevel        "event:/Music/MainLevel"
+ *   FmodEventsGuids.MusicMainLevel   "{e5187c3f-...}"
  *
  * Identifier mangling: the category prefix is stripped, the remaining path
  * is split into segments on "/", each segment is split on any character
@@ -190,11 +192,18 @@ class Generate {
 			lines.push('package $pkg;');
 			lines.push("");
 		}
-		lines.push('class $className {');
 		var names = identifiersFor(entries.map(e -> e.path), prefix);
+		lines.push('class $className {');
 		for (i in 0...entries.length) {
 			lines.push('\tpublic static inline var ${names[i]}:String = "${entries[i].path}";');
-			lines.push('\tpublic static inline var ${names[i]}Guid:String = "${entries[i].guid}";');
+		}
+		lines.push("}");
+		lines.push("");
+		// GUIDs live in a companion class under the same identifiers, so
+		// autocomplete on the main class only shows the paths
+		lines.push('class ${className}Guids {');
+		for (i in 0...entries.length) {
+			lines.push('\tpublic static inline var ${names[i]}:String = "${entries[i].guid}";');
 		}
 		lines.push("}");
 		lines.push("");
@@ -225,8 +234,8 @@ class Generate {
 		return name;
 	}
 
-	/** Assigns unique identifiers for a list of paths. collisions get
-		numeric suffixes. Each name also reserves its "<name>Guid" pair. */
+	/** Assigns unique identifiers for a list of paths. Collisions get
+		numeric suffixes. */
 	public static function identifiersFor(paths:Array<String>, prefix:String):Array<String> {
 		var used = new Map<String, Bool>();
 		var out = new Array<String>();
@@ -234,12 +243,11 @@ class Generate {
 			var base = mangle(p, prefix);
 			var name = base;
 			var n = 2;
-			while (used.exists(name) || used.exists(name + "Guid")) {
+			while (used.exists(name)) {
 				name = base + n;
 				n++;
 			}
 			used.set(name, true);
-			used.set(name + "Guid", true);
 			out.push(name);
 		}
 		return out;

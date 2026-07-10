@@ -2,7 +2,7 @@
 
 This script bakes constants generation into the export itself: press `Ctrl+B` in FMOD Studio and it writes the Haxe constants files AND builds your banks in one step. Because it runs on every export, the constants can never drift from the project - this is the recommended workflow.
 
-It emits the same files as `haxelib run haxefmod generate` (`FmodEvents.hx`, `FmodBuses.hx`, `FmodVCAs.hx`, `FmodSnapshots.hx`, `FmodParameters.hx`, each constant paired with a `...Guid` companion), byte-identical - a parity test in CI keeps the two generators in lockstep. Use the CLI when you want to generate from a built bank without opening FMOD Studio (CI, teammates without Studio).
+It emits the same files as `haxelib run haxefmod generate` (`FmodEvents.hx`, `FmodBuses.hx`, `FmodVCAs.hx`, `FmodSnapshots.hx`, `FmodParameters.hx`, each with a `...Guids` companion class holding the matching GUIDs), byte-identical - a parity test in CI keeps the two generators in lockstep. Use the CLI when you want to generate from a built bank without opening FMOD Studio (CI, teammates without Studio).
 
 ## Setup
 
@@ -14,7 +14,7 @@ From then on `Ctrl+B` regenerates the constants and builds banks in one keystrok
 
 ## Legacy note
 
-Before haxefmod 2.0 this script emitted a single `FmodConstants.hx` with `FmodSongs`/`FmodSFX` classes based on Music/SFX folder conventions. The 2.0 output covers every event, bus, VCA, snapshot, and global parameter with GUID companions. See `MIGRATION.md` for the rename mapping.
+Before haxefmod 2.0 this script emitted a single `FmodConstants.hx` with `FmodSongs`/`FmodSFX` classes based on Music/SFX folder conventions. The 2.0 output covers every event, bus, VCA, snapshot, and global parameter, with GUIDs available through `...Guids` companion classes. See `MIGRATION.md` for the rename mapping.
 
 # Event Enums (optional)
 

@@ -195,7 +195,7 @@ Runtime settings passed to `FmodManager.Initialize(...)` override the defines.
 
 ## <a name="generating-constants"></a>Generating Constants From Your Banks
 
-Two generators emit identical files (`FmodEvents.hx`, `FmodBuses.hx`, `FmodVCAs.hx`, `FmodSnapshots.hx`, `FmodParameters.hx`), each constant paired with a GUID companion (`MusicMainLevelGuid`) for GUID-based lookups. A parity test in CI keeps them in lockstep.
+Two generators emit identical files (`FmodEvents.hx`, `FmodBuses.hx`, `FmodVCAs.hx`, `FmodSnapshots.hx`, `FmodParameters.hx`). Each file also holds a `...Guids` companion class with the matching GUIDs under the same identifiers (`FmodEventsGuids.MusicMainLevel`) for GUID-based lookups, kept separate so autocomplete on the main class only shows sounds. A parity test in CI keeps the generators in lockstep.
 
 **Recommended: generate on every export from inside FMOD Studio.** Install the [fmod-scripts](https://github.com/Tanz0rz/haxe-fmod/tree/master/fmod-scripts) script once. `Ctrl+B` in FMOD Studio then writes the constants and builds your banks in one step, so they can never drift from the project.
 
