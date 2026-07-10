@@ -28,7 +28,7 @@ class VolumeTestState extends FlxState {
         super.create();
 
         FmodManager.EnableDebugMessages();
-        FmodManager.PlaySong(FmodSongs.MainLevel);
+        FmodManager.PlaySong(FmodSong.MainLevel);
 
         _status = new FlxText(0, 0, FlxG.width, "VOLUME_TEST: Starting");
         _status.setFormat(null, 16, FlxColor.WHITE, FlxTextAlign.CENTER, NONE, FlxColor.BLACK);
