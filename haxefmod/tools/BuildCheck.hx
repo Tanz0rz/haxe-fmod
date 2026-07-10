@@ -60,7 +60,7 @@ class BuildCheck {
     static function requireEnv(name:String, message:String):Void {
         var value = Sys.getEnv(name);
         if (value == null || value == "") {
-            Context.fatalError(message, Context.currentPos());
+            fail('$name is not set', message);
         }
     }
 
@@ -69,7 +69,7 @@ class BuildCheck {
         if (value == null || value == "") return; // requireEnv already handled it
         var marker = haxe.io.Path.join([value].concat(relParts));
         if (!sys.FileSystem.exists(marker)) {
-            Context.fatalError(
+            fail('$name is set but does not look like an FMOD Engine SDK',
                 'haxefmod: $name is set but does not look like an FMOD Engine SDK.\n'
                 + "\n"
                 + '  $name = $value\n'
@@ -77,8 +77,31 @@ class BuildCheck {
                 + "\n"
                 + "  Check the path for typos, or re-download the FMOD Engine from https://www.fmod.com/download\n"
                 + "\n"
-                + "  Verify your setup with: haxelib run haxefmod check", Context.currentPos());
+                + "  Verify your setup with: haxelib run haxefmod check");
         }
+    }
+
+    /** Prints the full instruction block cleanly (a multi-line
+        Context.fatalError renders every line behind a position prefix,
+        "(unknown) : ..." under --macro), then fails compilation with a
+        one-line error anchored to the project file. */
+    static function fail(summary:String, details:String):Void {
+        var stderr = Sys.stderr();
+        stderr.writeString("\n" + details + "\n\n");
+        stderr.flush();
+        Context.fatalError('haxefmod: $summary (setup instructions above)', errorPos());
+    }
+
+    /** A real position for the error line: the project's own project.xml
+        (the file that pulls in haxefmod), so the message reads as the
+        project configuration problem it is instead of "(unknown)". */
+    static function errorPos() {
+        for (candidate in ["project.xml", "Project.xml", "application.xml"]) {
+            if (sys.FileSystem.exists(candidate)) {
+                return Context.makePosition({min: 0, max: 0, file: candidate});
+            }
+        }
+        return Context.currentPos();
     }
 }
 #end
