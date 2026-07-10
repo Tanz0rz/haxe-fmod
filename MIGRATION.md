@@ -53,6 +53,25 @@ playback lifecycle. Handlers fire once per event (1.x coalesced repeats
 into one poll per frame) and replace the previous handler for the same
 instance when registered again.
 
+### Coming from flixel-fmod
+
+The separate flixel-fmod library is fully absorbed by 2.0's
+`haxefmod.flixel` package. Remove it from your dependencies and map:
+
+| flixel-fmod | 2.0 |
+|---|---|
+| `FlxFmod.Init()` | `haxefmod.flixel.FmodFlxSetup.init()` |
+| `FlxFmod.switchState(state)` | `haxefmod.flixel.FmodFlxUtilities.TransitionToState(state)` |
+| Hand-rolled sound tray / volume wiring | Covered by `FmodFlxSetup.init()` |
+
+`FmodFlxSetup.init()` covers everything the old `Init()` did (FMOD
+initialization, per-frame update plugin, `FlxG.sound` volume routed to
+the FMOD master bus, silenced sound tray beep) and also routes mute to
+the master bus mute flag, which flixel-fmod never did. It is safe to
+combine with an earlier `FmodManager.Initialize()` call (for example in
+an html5 preloader): initialization is guarded and the second call is
+a no-op.
+
 ### Master volume aliases
 
 | 1.x | 2.0 |

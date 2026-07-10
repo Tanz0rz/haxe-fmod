@@ -4,12 +4,17 @@ import flixel.FlxBasic;
 import flixel.FlxG;
 
 /**
-    Add this to every state's create() method using init()
+    Call init() once at startup (FmodFlxSetup.init() does this for you)
 
-    It will automatically call FmodManager.Update() in the background
+    It registers a global FlxG plugin that calls FmodManager.Update()
+    every frame across all states
 **/
 class FmodFlxUpdater extends FlxBasic {
+    static var added:Bool = false;
+
     public static function init() {
+        if (added) return;
+        added = true;
         FlxG.plugins.add(new FmodFlxUpdater());
     }
 
