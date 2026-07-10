@@ -110,6 +110,9 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ !contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-cpp]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]'))) }}
     timeout-minutes: 30
+    env:
+      HXCPP_COMPILE_CACHE: ${{ runner.temp }}/hxcpp-cache
+      HXCPP_CACHE_MB: "4000"
     steps:
       - uses: actions/checkout@v5
 
@@ -146,6 +149,14 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg patchelf libgl1-mesa-dev
+
+      - name: Cache hxcpp objects
+        uses: actions/cache@v5
+        with:
+          path: ${{ runner.temp }}/hxcpp-cache
+          key: hxcpp-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            hxcpp-${{ runner.os }}-
 
       - name: Build C++ target
         run: |
@@ -1265,6 +1276,9 @@ jobs:
     runs-on: macos-14
     if: ${{ !contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[mac-cpp]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]'))) }}
     timeout-minutes: 30
+    env:
+      HXCPP_COMPILE_CACHE: ${{ runner.temp }}/hxcpp-cache
+      HXCPP_CACHE_MB: "4000"
     steps:
       - uses: actions/checkout@v5
 
@@ -1300,6 +1314,14 @@ jobs:
           haxelib install hxcpp 4.3.2 --always --quiet
           haxelib dev haxefmod $GITHUB_WORKSPACE
           yes | haxelib run lime setup || true
+
+      - name: Cache hxcpp objects
+        uses: actions/cache@v5
+        with:
+          path: ${{ runner.temp }}/hxcpp-cache
+          key: hxcpp-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            hxcpp-${{ runner.os }}-
 
       - name: Build C++ target
         run: |
@@ -1739,6 +1761,9 @@ jobs:
     runs-on: windows-latest
     if: ${{ !contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[windows-cpp]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]'))) }}
     timeout-minutes: 30
+    env:
+      HXCPP_COMPILE_CACHE: ${{ runner.temp }}/hxcpp-cache
+      HXCPP_CACHE_MB: "4000"
     defaults:
       run:
         shell: bash
@@ -1786,6 +1811,14 @@ jobs:
           haxelib install hxcpp 4.3.2 --always --quiet
           haxelib dev haxefmod "$GITHUB_WORKSPACE"
           yes | haxelib run lime setup || true
+
+      - name: Cache hxcpp objects
+        uses: actions/cache@v5
+        with:
+          path: ${{ runner.temp }}/hxcpp-cache
+          key: hxcpp-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            hxcpp-${{ runner.os }}-
 
       - name: Build C++ target
         run: |
