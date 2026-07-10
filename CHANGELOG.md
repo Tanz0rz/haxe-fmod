@@ -18,7 +18,9 @@ top. See `MIGRATION.md` for the complete 1.x to 2.0 mapping.
   `release`; `PlaySoundOneShotAt(path, x, y)` for positional one-shots;
   `OnSongEvent`/`OnceSongEvent` typed payload callbacks (timeline beats,
   markers, playback lifecycle).
-- HaxeFlixel components: `FmodFlxEmitter`, `FmodFlxListener`,
+- HaxeFlixel components: `FmodFlxSetup.init()` one-call setup (FMOD init,
+  per-frame update plugin, `FlxG.sound` volume and mute routed to the FMOD
+  master bus, silenced sound tray beep), `FmodFlxEmitter`, `FmodFlxListener`,
   `FmodFlxBankLoader`, `FmodFlxParameterTrigger`.
 - Programmer sounds: `instance.assignProgrammerSound(key)` resolving audio
   table keys (or file paths on native targets) on the FMOD thread.

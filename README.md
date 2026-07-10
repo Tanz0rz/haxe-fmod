@@ -23,7 +23,7 @@ Having problems? Join the [Haxe Discord](https://discord.com/channels/1623951453
 - The full [FMOD Studio API](https://www.fmod.com/docs/2.03/api/studio-api.html) at runtime: events, buses, VCAs, snapshots, banks, global and labeled [parameters](https://www.fmod.com/docs/2.03/studio/parameters-reference.html), 3D/listeners, and profiling - with a friendly facade on top for the common cases
 - Typed, payload-carrying [callbacks](https://www.fmod.com/docs/2.03/api/studio-api-eventinstance.html#fmod_studio_event_callback_type): react to beats, timeline markers, and playback lifecycle events, each with its payload
 - Refcounted bank loading with real unload and async loading
-- HaxeFlixel components: emitter and listener for positional audio, bank loader, and zone-based parameter triggers
+- HaxeFlixel components: one-call setup that routes the flixel sound tray and volume keys to FMOD, emitter and listener for positional audio, bank loader, and zone-based parameter triggers
 - Programmer sounds for dialogue and other runtime-selected audio
 - [Live Update](https://fmod.com/docs/2.03/studio/editing-during-live-update.html) for mixing sounds while playtesting (on by default in debug builds)
 - Constants that never drift: the FMOD Studio export script regenerates event/bus/VCA/parameter constants on every `Ctrl+B` bank build, and `haxelib run haxefmod generate` produces the identical files from a built bank
@@ -129,7 +129,7 @@ public function OnBeat():Void {
 }
 ```
 
-Call `FmodManager.Update()` once per frame (HaxeFlixel games can just add `FmodFlxUpdater` once). Generate the `FmodEvents` constants with `haxelib run haxefmod generate` (see [Generating Constants](#generating-constants)).
+Call `FmodManager.Update()` once per frame. HaxeFlixel games can call `haxefmod.flixel.FmodFlxSetup.init()` once in their first state instead: it initializes FMOD, adds the `FmodFlxUpdater` plugin (which handles the per-frame update), routes `FlxG.sound` volume and mute (the plus, minus, and zero keys and the sound tray) to the FMOD master bus, and silences the sound tray's own beep so all audio comes from FMOD. Generate the `FmodEvents` constants with `haxelib run haxefmod generate` (see [Generating Constants](#generating-constants)).
 
 **6. Build and run:**
 
@@ -152,7 +152,7 @@ Everything in 2.0 is layered, and every layer is public:
 | Layer | Use it for |
 |---|---|
 | `FmodManager` + `FmodSound` | The common cases: one song, sound effects, bus volume/mute |
-| `haxefmod.flixel.*` | HaxeFlixel components: `FmodFlxUpdater`, `FmodFlxEmitter`, `FmodFlxListener`, `FmodFlxBankLoader`, `FmodFlxParameterTrigger` |
+| `haxefmod.flixel.*` | HaxeFlixel components: `FmodFlxSetup`, `FmodFlxUpdater`, `FmodFlxEmitter`, `FmodFlxListener`, `FmodFlxBankLoader`, `FmodFlxParameterTrigger` |
 | `haxefmod.runtime.FmodRuntime` | Init settings, refcounted banks, 3D attachment, listeners |
 | `haxefmod.studio.*` | The complete FMOD Studio API: `StudioSystem`, `EventDescription`, `EventInstance`, `Bus`, `Vca`, `Bank` |
 

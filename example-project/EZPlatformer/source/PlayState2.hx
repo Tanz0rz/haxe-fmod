@@ -55,7 +55,7 @@ class PlayState2 extends FlxState {
     }
 
     override public function update(elapsed:Float):Void {
-        FmodManager.Update();
+        // FmodManager.Update() runs via the FmodFlxUpdater plugin added in PlayState
 
         // Auto-jump when approaching the coin
         if (!_jumped && _player.x >= 14 * 8 && _player.isTouching(FlxDirectionFlags.DOWN)) {

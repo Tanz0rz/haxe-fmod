@@ -55,6 +55,11 @@ class ApiProbeState extends FlxState {
 
         log("API_PROBE: Starting");
 
+        // Installed here (instead of LoadFmodState) because the updater
+        // plugin it adds would drain the callback queue every frame and
+        // defeat cb-test's overflow phase
+        haxefmod.flixel.FmodFlxSetup.init();
+
         var handlesBefore = StudioSystem.liveHandleCount();
         info("live_handle_count_before", Std.string(handlesBefore));
 
@@ -118,6 +123,7 @@ class ApiProbeState extends FlxState {
 
         probeM3Surface();
         probeHandleSafety();
+        probeFlixelBridge();
 
         info("live_handle_count_after", Std.string(StudioSystem.liveHandleCount()));
 
@@ -327,6 +333,26 @@ class ApiProbeState extends FlxState {
 
         check("no_handle_leaks_abuse", StudioSystem.liveHandleCount() == baseline,
             'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
+    }
+
+    /**
+     * Verifies the FmodFlxSetup volume bridge installed in create():
+     * FlxG.sound volume and mute changes must land on the FMOD master bus.
+     */
+    function probeFlixelBridge():Void {
+        FlxG.sound.volume = 0.5;
+        check("flx_bridge_volume", Math.abs(FmodManager.GetBusVolumeMaster() - 0.5) < 0.001,
+            'value=${FmodManager.GetBusVolumeMaster()}');
+        FlxG.sound.toggleMuted();
+        check("flx_bridge_mute", FmodManager.GetBusMuteMaster(), "");
+        // Volume is carried by the mute flag, so it must survive the mute
+        check("flx_bridge_volume_kept", Math.abs(FmodManager.GetBusVolumeMaster() - 0.5) < 0.001,
+            'value=${FmodManager.GetBusVolumeMaster()}');
+        FlxG.sound.toggleMuted();
+        check("flx_bridge_mute_cleared", !FmodManager.GetBusMuteMaster(), "");
+        FlxG.sound.volume = 1.0;
+        check("flx_bridge_volume_restored", Math.abs(FmodManager.GetBusVolumeMaster() - 1.0) < 0.001,
+            'value=${FmodManager.GetBusVolumeMaster()}');
     }
 
     override public function update(elapsed:Float):Void {

@@ -63,7 +63,8 @@ instance when registered again.
 ### Removed without replacement
 
 - `CheckIfUpdateIsBeingCalled()` - internal diagnostic; call
-  `FmodManager.Update()` every frame (or add `FmodFlxUpdater`).
+  `FmodManager.Update()` every frame (or use `FmodFlxSetup.init()` /
+  `FmodFlxUpdater` in HaxeFlixel games).
 
 ## Behavior changes in kept APIs
 
@@ -112,6 +113,11 @@ using the mangling rules (`FmodSongs.MainLevel` becomes
 
 ## New in 2.0 (no 1.x equivalent)
 
+- `haxefmod.flixel.FmodFlxSetup.init()`: one-call HaxeFlixel setup that
+  initializes FMOD, adds the update plugin, routes `FlxG.sound` volume
+  and mute (the volume keys and the sound tray) to the FMOD master bus,
+  and silences the sound tray's own beep. Replaces the hand-rolled sound
+  tray and volume wiring that flixel-fmod-era projects carried.
 - Full Studio API: `StudioSystem.getEvent/getBus/getVCA/getBank`,
   GUID lookups, global parameters, labeled parameters, profiling.
 - 3D: `FmodFlxEmitter`, `FmodFlxListener`, `FmodRuntime.attach`,
