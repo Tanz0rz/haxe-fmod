@@ -10,6 +10,7 @@ The demo above was recorded with the 1.x class names. Autocomplete works the sam
 
 - `FmodEvents.hx`, `FmodBuses.hx`, `FmodVCAs.hx`, `FmodSnapshots.hx`, and `FmodParameters.hx` - one class per category, one constant per path
 - A `...Guids` companion class in each file holding the matching GUIDs under the same identifiers, kept separate so autocomplete on the main class only shows the paths
+- `FmodEventEnum.hx` - a plain enum covering every event, for tool integrations (see [Event Enums](#event-enums))
 
 Use the constants anywhere a path is expected:
 
@@ -23,19 +24,11 @@ engine.setParameter("RPM", 0.5);
 
 `haxelib run haxefmod generate` emits byte-identical files from a built `Master.strings.bank` (a parity test in CI keeps the two generators in lockstep). Use the CLI when you want to generate without opening FMOD Studio (CI, teammates without Studio).
 
-## Setup
+### Event Enums
 
-1. Copy `ExportHaxeConstants.js` into your FMOD Studio scripts folder (`Scripts` next to your `.fspro`, or the global scripts directory from Preferences).
-2. Reload scripts in FMOD Studio (Scripts menu) or restart Studio.
-3. Press `Ctrl+B` (or Scripts -> Export Haxe Constants and Build) and pick your Haxe project's `source` folder once. The choice is cached next to the project.
+`FmodEventEnum.hx` holds a plain `FmodEventEnum` enum with values named exactly like the `FmodEvents` constants, plus `FmodEventTools.path()` and `guid()` mappers back to the path and GUID strings.
 
-From then on `Ctrl+B` regenerates the constants and builds banks in one keystroke.
-
-## Event Enums
-
-Every export also writes `FmodEventEnum.hx`: a plain `FmodEventEnum` enum covering every event, with values named exactly like the `FmodEvents` constants, plus `FmodEventTools.path()` and `guid()` mappers back to the path and GUID strings.
-
-The constants above are the cleanest way to use the library in code. Enums add a mapping call (`.path()`) on top, so they exist for the places a plain string cannot go: external tools that import Haxe enums, like binding levels to specific songs in LDtk, or exhaustive switch statements where the compiler should catch a missing case. Ignore the file if you never need that - unused mappers are stripped by dead code elimination.
+The constants are the cleanest way to use the library in code. Enums add a mapping call (`.path()`) on top, so they exist for the places a plain string cannot go: external tools that import Haxe enums, like binding levels to specific songs in LDtk, or exhaustive switch statements where the compiler should catch a missing case. Ignore the file if you never need that - unused mappers are stripped by dead code elimination.
 
 ```haxe
 using FmodEventEnum.FmodEventTools;
@@ -45,6 +38,14 @@ FmodManager.PlaySoundOneShot(FmodEventEnum.SFXCoin.path());
 ```
 
 Without the `using` line, call the mappers directly: `FmodEventTools.path(FmodEventEnum.MusicMainLevel)`.
+
+## Setup
+
+1. Copy `ExportHaxeConstants.js` into your FMOD Studio scripts folder (`Scripts` next to your `.fspro`, or the global scripts directory from Preferences).
+2. Reload scripts in FMOD Studio (Scripts menu) or restart Studio.
+3. Press `Ctrl+B` (or Scripts -> Export Haxe Constants and Build) and pick your Haxe project's `source` folder once. The choice is cached next to the project.
+
+From then on `Ctrl+B` regenerates the constants and builds banks in one keystroke.
 
 ## Auto-imports
 
