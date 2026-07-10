@@ -22,7 +22,9 @@ class BuildCheck {
         // compiles have nothing to verify
         if (!Context.defined("lime")) return;
 
-        if (Context.defined("html5")) {
+        // Lime defines "html5" for the html5 target; "js" covers the same
+        // build if that define ever changes (the only lime js target is html5)
+        if (Context.defined("html5") || Context.defined("js")) {
             requireEnv("FMOD_SDK_WEB",
                 "haxefmod: FMOD_SDK_WEB is not set - HTML5 builds cannot include the FMOD engine.\n"
                 + "\n"

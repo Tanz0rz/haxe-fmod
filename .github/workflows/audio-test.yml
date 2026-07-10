@@ -2410,6 +2410,43 @@ jobs:
           fi
           echo "Doctor reported the missing FMOD_SDK"
 
+      # Negative-path proof that the compile-time gate blocks REAL lime
+      # builds (lime ignores postbuild exit codes, so this macro is the only
+      # thing standing between a missing SDK and a soundless game)
+      - name: Build blocks without FMOD_SDK (hl)
+        env:
+          FMOD_SDK: ""
+        run: |
+          cd example-project/EZPlatformer
+          if haxelib run lime build hl > /tmp/blocked-hl.log 2>&1; then
+            echo "FAIL: hl build succeeded without FMOD_SDK"
+            cat /tmp/blocked-hl.log
+            exit 1
+          fi
+          grep -q "FMOD_SDK is not set" /tmp/blocked-hl.log || {
+            echo "FAIL: build failed but not with the setup message"
+            cat /tmp/blocked-hl.log
+            exit 1
+          }
+          echo "hl build blocked with setup instructions"
+
+      - name: Build blocks without FMOD_SDK_WEB (html5)
+        env:
+          FMOD_SDK_WEB: ""
+        run: |
+          cd example-project/EZPlatformer
+          if haxelib run lime build html5 > /tmp/blocked-html5.log 2>&1; then
+            echo "FAIL: html5 build succeeded without FMOD_SDK_WEB"
+            cat /tmp/blocked-html5.log
+            exit 1
+          fi
+          grep -q "FMOD_SDK_WEB is not set" /tmp/blocked-html5.log || {
+            echo "FAIL: build failed but not with the setup message"
+            cat /tmp/blocked-html5.log
+            exit 1
+          }
+          echo "html5 build blocked with setup instructions"
+
   # ===========================================================================
   # Package check: the haxelib zip must install and build a project
   # ===========================================================================
