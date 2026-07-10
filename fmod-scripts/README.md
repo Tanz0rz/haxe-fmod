@@ -1,91 +1,50 @@
 # Connecting Bank Events to Your Code
 
-This script utilizes a very cool feature in FMOD Studio to give your code access to an always-up-to-date list of every event in your sound bank (using autocomplete!).
+This script gives your code an always-up-to-date, auto-completable list of everything in your sound banks. Press `Ctrl+B` in FMOD Studio and it writes the Haxe constants files **and** builds your banks in one step. Because it runs as part of every export, the constants can never drift from the project.
 
+![Haxe Constants Demo](../.github/fmod_constants.gif)
 
-It does this by generating haxe source code next to your main `.hx` file which you can then import into your project.
+## What gets generated
 
-If you are using vscode, its autocomplete can be triggered by typing in "FmodSong." or "FmodSFX." 
+- `FmodEvents.hx`, `FmodBuses.hx`, `FmodVCAs.hx`, `FmodSnapshots.hx`, and `FmodParameters.hx`
+- A `...Guids` companion class in each file holding the matching GUIDs under the same identifiers, kept separate so autocomplete on the main class only shows the paths
+- `FmodEventEnum.hx` - a plain enum covering every event, for tool integrations (see [Event Enums](#event-enums))
 
-![Haxe Constants Demo](https://raw.githubusercontent.com/Tanz0rz/haxe-fmod/34baff733a24e4301b6b8457066cae870fb22570/HaxeConstants.gif)
+Use the constants anywhere a path is expected:
 
-The generated code can be done in two different ways, depending on which is more useful for the given project: Either as Constants or Enums.
-
-Both methods automatically build your FMOD Studio sound bank after generating the Events file.
-
-## Constants
-
-### Features:
-- Generates `FmodConstants.hx` in the project directory of your choosing
-- Can be triggered using the hotkey `Ctrl+B` while FMOD Studio is in focus placing an `FmodConstants.hx` file
-- You can then use `enter` to jump through the prompts quickly once the script is pointing at the right directory
-
-### Usage Examples:
-- Play a song: `FmodManager.PlaySong(FmodSong.MainSong);`
-- Play a sound effect: `FmodManager.PlaySound(FmodSFX.CollectionCoin);`
-
-
-## Enums
-
-### Features:
-- Allows for more advanced integrations in exchange for slightly more cumbersome calls to FmodManager 
-- Generates `FmodEventEnum.hx` in the project directory of your choosing
-- Can be triggered using the hotkey `Ctrl+B` while FMOD Studio is in focus placing an `FmodEventEnum.hx` file
-- You can then use `enter` to jump through the prompts quickly once the script is pointing at the right directory
-
-### Usage Examples:
-- Play a song: `FmodManager.PlaySong(FmodEvent.event(FmodSong.MainSong));`
-- Play a sound effect: `FmodManager.PlaySound(FmodEvent.event(FmodSFX.CollectionCoin));`
-
-This can be shortened by leveraging `using FmodEventEnum.FmodEvent;` in your imports to make the calls look like:
-
-- Play a song: `FmodManager.PlaySong(FmodSong.MainSong.event());`
-- Play a sound effect: `FmodManager.PlaySound(FmodSFX.CollectionCoin.event());`
-
-## Auto-imports:
-
-To avoid having to import the classes in every file of your game code, you can create an `import.hx` file next to your game's `Main.hx` to make the helpers globally available.
-
-`import.hx` when using Constants:
 ```haxe
-// Only use imports when not in the macro context.
-// The FMOD files use build macros and will throw errors if imported within the macro context.
+FmodManager.PlaySong(FmodEvents.MusicMainLevel);
+FmodManager.PlaySoundOneShot(FmodEvents.SFXCoin);
+
+var engine = FmodManager.PlaySound(FmodEvents.SFXEngine);
+engine.setParameter("RPM", 0.5);
+```
+
+### Event Enums
+
+If you are using a flow or tool that works better with enums, `FmodEventEnum.hx` holds enum representations of all sounds with additional helper functions that map them back to the path and GUID strings.
+
+## Setup
+
+1. Copy `ExportHaxeConstants.js` into your FMOD Studio scripts folder (`Scripts` next to your `.fspro`, or the global scripts directory from Preferences).
+2. Reload scripts in FMOD Studio (Scripts menu) or restart Studio.
+3. Press `Ctrl+B` (or Scripts -> Export Haxe Constants and Build) and pick your Haxe project's `source` folder once. The choice is cached next to the project.
+
+From then on `Ctrl+B` regenerates the constants and builds banks in one keystroke.
+
+## Auto-imports
+
+To make the generated classes and the library available everywhere without per-file imports, create an `import.hx` next to your game's `Main.hx`. Wrap the imports in `#if !macro`: the FMOD classes use build macros and importing them inside the macro context breaks compilation.
+
+```haxe
 #if !macro
-
-// Fmod helper library
 import haxefmod.FmodManager;
-// Static class containing all sound effect names
-import FmodConstants.FmodSFX;
-// Static class containing all song names
-import FmodConstants.FmodSong;
-
+import FmodEvents;
 #end
 ```
 
-or
+**Note:** for the generated files to stay up to date, you must run the export **every** time you build your sound bank (the script builds the banks for you, so `Ctrl+B` is the whole loop).
 
-`import.hx` when using Enums:
-```haxe
-// Only use imports when not in the macro context.
-// The FMOD files use build macros and will throw errors if imported within the macro context.
-#if !macro
+## Migrating From Previous haxe-fmod Versions?
 
-// Fmod helper library
-import haxefmod.FmodManager;
-// Enum containing all sound effect names
-import FmodEventEnum.FmodSFX;
-// Enum containing all song names
-import FmodEventEnum.FmodSong;
-
-#end
-```
-
-## Installing the script:
-- Place either the `ExportHaxeConstants.js`  or `ExportHaxeEnums.js` file in your FMOD projects's `/Scripts` folder (`%project_root_directory%/Scripts`).
-- In FMOD Studio, click the Scripts dropdown at the top and select "Reload". 
-- Click on the Scripts dropdown again and you will see either "Export Haxe Constants and Build" or "Export Haxe Enums and Build" option now available, depending on which script file was copied.
-- Script can be run by either selecting it from the dropdown menu, or pressing the `Ctrl+B` hotkey
-- When prompted, select the directory in your Haxe project that contains your `Main.hx` file (this is usually the `/source` directory).
-
-
-**Note:** For your generated code to stay up to date, this script must be run *every* time you build your sound bank (the script triggers the bank build for you!)
+See `MIGRATION.md` for the rename mapping.

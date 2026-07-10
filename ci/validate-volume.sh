@@ -38,14 +38,7 @@ PASS=true
 SEGMENT=$((TOTAL_DURATION / 3))
 SAMPLE_DURATION=2
 
-# Center of each phase: 5s, 15s, 25s (with 30s total, 10s segments)
-MID1=$(( SEGMENT / 2 ))
-MID2=$(( SEGMENT + SEGMENT / 2 ))
-MID3=$(( SEGMENT * 2 + SEGMENT / 2 ))
-
 echo "=== Volume Test Validation: $(basename "$WAV_FILE") ==="
-echo "  Sampling ${SAMPLE_DURATION}s windows at ${MID1}s, ${MID2}s, ${MID3}s"
-echo ""
 
 # Check file exists
 echo -n "  [0/3] File exists .................. "
@@ -54,6 +47,33 @@ if [ ! -f "$WAV_FILE" ]; then
   exit 1
 fi
 echo "OK"
+
+# The phases run on the SONG timeline, but the recording starts on wall
+# clock. On html5 the browser takes several seconds to boot FMOD, so the
+# song (and therefore every phase boundary) lands later in the WAV.
+# Detect leading silence and shift the sample windows by it.
+OFFSET=0
+SILENCE_LOG=$("$FFMPEG" -i "$WAV_FILE" -af silencedetect=noise=-50dB:d=0.4 -f null /dev/null 2>&1 | grep -E "silence_(start|end)" | head -2)
+FIRST_START=$(echo "$SILENCE_LOG" | grep -m1 "silence_start" | sed 's/.*silence_start: \(-\{0,1\}[0-9.]*\).*/\1/')
+FIRST_END=$(echo "$SILENCE_LOG" | grep -m1 "silence_end" | sed 's/.*silence_end: \([0-9.]*\).*/\1/')
+if [ -n "$FIRST_START" ] && [ -n "$FIRST_END" ]; then
+  START_INT=$(printf "%.0f" "$FIRST_START" 2>/dev/null || echo 99)
+  END_INT=$(printf "%.0f" "$FIRST_END" 2>/dev/null || echo 0)
+  # Only treat it as startup delay if the silence begins at the very start
+  # and is a plausible boot time
+  if [ "$START_INT" -le 0 ] && [ "$END_INT" -ge 1 ] && [ "$END_INT" -le 8 ]; then
+    OFFSET=$END_INT
+  fi
+fi
+
+# Center of each phase, shifted by the detected start offset
+MID1=$(( OFFSET + SEGMENT / 2 ))
+MID2=$(( OFFSET + SEGMENT + SEGMENT / 2 ))
+MID3=$(( OFFSET + SEGMENT * 2 + SEGMENT / 2 ))
+
+echo "  Audio start offset: ${OFFSET}s"
+echo "  Sampling ${SAMPLE_DURATION}s windows at ${MID1}s, ${MID2}s, ${MID3}s"
+echo ""
 
 # Helper: get mean volume for a segment of the WAV file
 # Falls back to raw PCM input if WAV header is malformed
@@ -116,6 +136,13 @@ elif [ "$VOL3_INT" -ge -60 ]; then
 else
   echo "OK (${VOL3} dB)"
 fi
+
+# Informational profile (no gating: the muted phase is intentional silence,
+# so gap/trailing checks do not apply to volume-test recordings)
+PYTHON="python3"
+command -v python3 >/dev/null 2>&1 || PYTHON="python"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+"$PYTHON" "$SCRIPT_DIR/audio-profile.py" "$WAV_FILE" --no-gate || true
 
 echo ""
 if [ "$PASS" = true ]; then

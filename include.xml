@@ -3,6 +3,11 @@
 	<!-- templatePath copies pre-built hdlls into HL build output automatically -->
 	<templatePath name="templates" />
 
+	<!-- Fail COMPILATION when the FMOD SDK env vars are missing: lime ignores
+	     postbuild failures, so this is the only check that reliably stops
+	     `lime test` before a soundless game launches -->
+	<haxeflag name="--macro" value="haxefmod.tools.BuildCheck.verify()" />
+
 	<!-- C++ postbuild: copy FMOD runtime libs from $FMOD_SDK -->
 	<postbuild command="haxelib run haxefmod postbuild mac cpp ${haxelib:haxefmod}" if="mac" unless="hl" />
 	<postbuild command="haxelib run haxefmod postbuild linux cpp ${haxelib:haxefmod}" if="linux" unless="hl" />

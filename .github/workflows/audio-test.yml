@@ -25,15 +25,85 @@ jobs:
     if: ${{ !contains(github.event.head_commit.message, '[skip-build]') }}
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup Haxe
-        uses: krdlab/setup-haxe@v1
+        uses: krdlab/setup-haxe@v2
         with:
           haxe-version: ${{ env.HAXE_VERSION }}
 
       - name: Run unit tests
         run: haxe tests/build.hxml
+
+      - name: Constants generator parity (CLI vs FMOD Studio script)
+        run: |
+          haxe -cp . --run haxefmod.tools.Generate \
+            --strings tests/fixtures/Master.strings.bank --out /tmp/gen-cli
+          node tests/js/constants-parity.js /tmp/gen-cli
+          # The generated output must also compile
+          haxe -cp /tmp/gen-cli --no-output FmodEvents FmodBuses FmodParameters FmodEventEnum
+
+      - name: Verify native shims match the FFI manifest
+        run: haxe -cp . --run haxefmod.tools.NativeManifestCheck
+
+      - name: Test native handle table (C99 and C++ modes)
+        run: |
+          gcc -std=c99 -Wall -Wextra -Werror -o /tmp/test_handles_c tests/native/test_faxe_handles.c
+          /tmp/test_handles_c
+          g++ -x c++ -Wall -Wextra -Werror -o /tmp/test_handles_cpp tests/native/test_faxe_handles.c
+          /tmp/test_handles_cpp
+
+      - name: Test native callback queue (C99 and C++ modes)
+        run: |
+          gcc -std=c99 -pthread -Wall -Wextra -Werror -o /tmp/test_cbq_c tests/native/test_faxe_cbqueue.c
+          /tmp/test_cbq_c
+          g++ -x c++ -pthread -Wall -Wextra -Werror -o /tmp/test_cbq_cpp tests/native/test_faxe_cbqueue.c
+          /tmp/test_cbq_cpp
+
+  # ===========================================================================
+  # API docs (dox) - rendered from the haxefmod package, uploaded as artifact
+  # ===========================================================================
+  api-docs:
+    runs-on: ubuntu-latest
+    if: ${{ !contains(github.event.head_commit.message, '[skip-build]') }}
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v2
+        with:
+          haxe-version: ${{ env.HAXE_VERSION }}
+
+      - name: Cache haxelib
+        uses: actions/cache@v5
+        with:
+          path: ~/haxelib
+          key: haxelib-docs-${{ runner.os }}-${{ env.HAXE_VERSION }}
+
+      - name: Install dox
+        run: |
+          haxelib setup ~/haxelib
+          haxelib install dox --always --quiet
+
+      - name: Generate type XML
+        run: |
+          # haxefmod.flixel is ignored: the flixel components only type-check
+          # against an installed flixel, and the API docs cover the core
+          # library surface
+          mkdir -p /tmp/haxefmod-docs
+          haxe -cp . --no-output -D doc-gen \
+            --macro "include('haxefmod', true, ['haxefmod.flixel'])" \
+            -xml /tmp/haxefmod-docs/haxefmod-docs.xml --interp
+
+      - name: Render API docs
+        run: haxelib run dox -i /tmp/haxefmod-docs -o /tmp/haxefmod-api-docs -in haxefmod
+
+      - name: Upload API docs
+        uses: actions/upload-artifact@v6
+        with:
+          name: haxefmod-api-docs
+          path: /tmp/haxefmod-api-docs
 
   # ===========================================================================
   # Linux C++ Build + Audio Recording
@@ -43,24 +113,23 @@ jobs:
     if: ${{ !contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-cpp]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]'))) }}
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Download FMOD SDK
-        run: |
-          git clone --depth 1 --branch 2.03.12 \
-            https://x-access-token:${{ secrets.FMOD_SDK_TOKEN }}@github.com/Tanz0rz/fmod-sdk-cache.git \
-            /tmp/fmod-sdk-cache
-          mkdir -p "$FMOD_SDK"
-          cp -R /tmp/fmod-sdk-cache/linux/* "$FMOD_SDK/"
-          ls -la "$FMOD_SDK/api/core/inc/" | head -5
+        uses: ./.github/actions/fmod-sdk
+        with:
+          version: "2.03.12"
+          platform: linux
+          dest: ${{ env.FMOD_SDK }}
+          token: ${{ secrets.FMOD_SDK_TOKEN }}
 
       - name: Setup Haxe
-        uses: krdlab/setup-haxe@v1
+        uses: krdlab/setup-haxe@v2
         with:
           haxe-version: ${{ env.HAXE_VERSION }}
 
       - name: Cache haxelib
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/haxelib
           key: haxelib-cpp-${{ runner.os }}-${{ env.HAXE_VERSION }}
@@ -80,7 +149,18 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg patchelf libgl1-mesa-dev
 
+      - name: Cache hxcpp objects
+        uses: actions/cache@v5
+        with:
+          path: ${{ runner.temp }}/hxcpp-cache
+          key: hxcpp-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            hxcpp-${{ runner.os }}-
+
       - name: Build C++ target
+        env:
+          HXCPP_COMPILE_CACHE: ${{ runner.temp }}/hxcpp-cache
+          HXCPP_CACHE_MB: "4000"
         run: |
           cd example-project/EZPlatformer
           haxelib run lime build linux -64
@@ -162,6 +242,9 @@ jobs:
         run: ./ci/validate-game-log.sh /tmp/game-linux-cpp.log
 
       - name: Build volume test
+        env:
+          HXCPP_COMPILE_CACHE: ${{ runner.temp }}/hxcpp-cache
+          HXCPP_CACHE_MB: "4000"
         run: |
           cd example-project/EZPlatformer
           haxelib run lime clean linux
@@ -193,8 +276,55 @@ jobs:
       - name: Validate volume/mute
         run: ./ci/validate-volume.sh /tmp/volume-test-linux-cpp.wav 15
 
+      - name: Run api-probe state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: api-probe
+          gate: API_PROBE
+          bin-dir: example-project/EZPlatformer/export/linux*/bin
+          log-file: /tmp/api-probe-linux-cpp.log
+
+      - name: Run cb-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: cb-test
+          gate: CB_TEST
+          bin-dir: example-project/EZPlatformer/export/linux*/bin
+          log-file: /tmp/cb-test-linux-cpp.log
+          extra-gate: "CB_TEST: Stopped"
+
+      - name: Run ps-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: ps-test
+          gate: PS_TEST
+          bin-dir: example-project/EZPlatformer/export/linux*/bin
+          log-file: /tmp/ps-test-linux-cpp.log
+          copy-jump-wav: "true"
+
+      - name: Run bank-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: bank-test
+          gate: BANK_TEST
+          bin-dir: example-project/EZPlatformer/export/linux*/bin
+          log-file: /tmp/bank-test-linux-cpp.log
+
+      - name: Run pan-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: pan-test
+          gate: PAN_TEST
+          bin-dir: example-project/EZPlatformer/export/linux*/bin
+          log-file: /tmp/pan-test-linux-cpp.log
+
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: audio-linux-cpp
@@ -202,7 +332,10 @@ jobs:
             /tmp/audio-linux-cpp.wav
             /tmp/game-linux-cpp.log
             /tmp/volume-test-linux-cpp.wav
+            /tmp/api-probe-linux-cpp.log
+            /tmp/cb-test-linux-cpp.log
           if-no-files-found: warn
+          overwrite: true
 
   # ===========================================================================
   # Linux HashLink Build + Audio Recording
@@ -212,24 +345,23 @@ jobs:
     if: ${{ !contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]'))) }}
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Download FMOD SDK
-        run: |
-          git clone --depth 1 --branch 2.03.12 \
-            https://x-access-token:${{ secrets.FMOD_SDK_TOKEN }}@github.com/Tanz0rz/fmod-sdk-cache.git \
-            /tmp/fmod-sdk-cache
-          mkdir -p "$FMOD_SDK"
-          cp -R /tmp/fmod-sdk-cache/linux/* "$FMOD_SDK/"
-          ls -la "$FMOD_SDK/api/core/inc/" | head -5
+        uses: ./.github/actions/fmod-sdk
+        with:
+          version: "2.03.12"
+          platform: linux
+          dest: ${{ env.FMOD_SDK }}
+          token: ${{ secrets.FMOD_SDK_TOKEN }}
 
       - name: Setup Haxe
-        uses: krdlab/setup-haxe@v1
+        uses: krdlab/setup-haxe@v2
         with:
           haxe-version: ${{ env.HAXE_VERSION }}
 
       - name: Cache haxelib
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/haxelib
           key: haxelib-hl-${{ runner.os }}-${{ env.HAXE_VERSION }}
@@ -295,10 +427,11 @@ jobs:
           echo "Verified: custom-compiled hdll from .haxefmod/ was used"
 
       - name: Upload compiled hdll
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: hlaxe_fmod-linux.hdll
           path: example-project/EZPlatformer/.haxefmod/hlaxe_fmod.hdll
+          overwrite: true
 
       - name: Patch FMOD libraries
         run: |
@@ -414,8 +547,114 @@ jobs:
       - name: Validate volume/mute
         run: ./ci/validate-volume.sh /tmp/volume-test-linux-hl.wav 15
 
+      - name: Run api-probe state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: api-probe
+          gate: API_PROBE
+          bin-dir: example-project/EZPlatformer/export/hl/bin
+          log-file: /tmp/api-probe-linux-hl.log
+
+      - name: Run cb-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: cb-test
+          gate: CB_TEST
+          bin-dir: example-project/EZPlatformer/export/hl/bin
+          log-file: /tmp/cb-test-linux-hl.log
+          extra-gate: "CB_TEST: Stopped"
+
+      - name: Run ps-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: ps-test
+          gate: PS_TEST
+          bin-dir: example-project/EZPlatformer/export/hl/bin
+          log-file: /tmp/ps-test-linux-hl.log
+          copy-jump-wav: "true"
+
+      - name: Run bank-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: bank-test
+          gate: BANK_TEST
+          bin-dir: example-project/EZPlatformer/export/hl/bin
+          log-file: /tmp/bank-test-linux-hl.log
+
+      - name: Run pan-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: pan-test
+          gate: PAN_TEST
+          bin-dir: example-project/EZPlatformer/export/hl/bin
+          log-file: /tmp/pan-test-linux-hl.log
+
+      # Short smoke of the stress state so the weekly stress-test workflow
+      # cannot rot unnoticed. The full soak runs on its own schedule
+      - name: Run stress-test state (smoke)
+        if: ${{ !cancelled() }}
+        run: |
+          export DISPLAY=:99
+
+          BIN_DIR="example-project/EZPlatformer/export/hl/bin"
+
+          export HAXEFMOD_TEST_STATE=stress-test
+          export STRESS_SECONDS=15
+          cd "$BIN_DIR"
+          export LD_LIBRARY_PATH="$(pwd):$LD_LIBRARY_PATH"
+          EXE=$(find . -maxdepth 1 -type f -executable ! -name "*.so*" ! -name "*.hdll" ! -name "*.sh" ! -name "*.dat" -print -quit)
+          "$EXE" > /tmp/stress-smoke-linux-hl.log 2>&1 &
+          GAME_PID=$!
+          cd -
+          for i in $(seq 90); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill $GAME_PID 2>/dev/null || true
+          wait $GAME_PID 2>/dev/null || true
+
+          grep "STRESS_TEST:" /tmp/stress-smoke-linux-hl.log || true
+          if ! grep -q "STRESS_TEST: COMPLETE" /tmp/stress-smoke-linux-hl.log; then
+            echo "Stress smoke never completed - full log:"
+            cat /tmp/stress-smoke-linux-hl.log
+            exit 1
+          fi
+          if grep -q "pass=false" /tmp/stress-smoke-linux-hl.log; then
+            echo "Stress smoke reported failing checks"
+            exit 1
+          fi
+          echo "Stress smoke passed"
+
+      # The literal command users type. Everything else in this job builds
+      # and launches the game with CI plumbing. This proves lime's own
+      # launcher (working directory, library resolution, postbuild hooks)
+      # delivers a working FMOD game from a single command.
+      - name: lime test end to end
+        if: ${{ !cancelled() }}
+        run: |
+          export DISPLAY=:99
+          cd example-project/EZPlatformer
+          # -Daudio_test compiles the state selector in. Without it the
+          # normal game runs and no probe lines can appear
+          export HAXEFMOD_TEST_STATE=api-probe
+          timeout 180 haxelib run lime test hl -Daudio_test 2>&1 | tee /tmp/lime-test-linux-hl.log || true
+          grep -q "API_PROBE: COMPLETE" /tmp/lime-test-linux-hl.log || {
+            echo "lime test never reached the probe's COMPLETE line"
+            exit 1
+          }
+          if grep -q "pass=false" /tmp/lime-test-linux-hl.log; then
+            echo "lime test run reported failing checks"
+            exit 1
+          fi
+          echo "lime test delivered a working FMOD game end to end"
+
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: audio-linux-hl
@@ -423,8 +662,16 @@ jobs:
             /tmp/audio-linux-hl.wav
             /tmp/game-linux-hl.log
             /tmp/volume-test-linux-hl.wav
+            /tmp/api-probe-linux-hl.log
+            /tmp/cb-test-linux-hl.log
+            /tmp/ps-test-linux-hl.log
+            /tmp/bank-test-linux-hl.log
+            /tmp/pan-test-linux-hl.log
+            /tmp/stress-smoke-linux-hl.log
+            /tmp/lime-test-linux-hl.log
             /tmp/volume-test-linux-hl.log
           if-no-files-found: warn
+          overwrite: true
 
   # ===========================================================================
   # Linux HashLink Compat Build (FMOD 2.02.33 - version mismatch test)
@@ -434,24 +681,23 @@ jobs:
     if: ${{ !contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-hl-compat]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]'))) }}
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Download FMOD SDK
-        run: |
-          git clone --depth 1 --branch 2.02.33 \
-            https://x-access-token:${{ secrets.FMOD_SDK_TOKEN }}@github.com/Tanz0rz/fmod-sdk-cache.git \
-            /tmp/fmod-sdk-cache
-          mkdir -p "$FMOD_SDK"
-          cp -R /tmp/fmod-sdk-cache/linux/* "$FMOD_SDK/"
-          ls -la "$FMOD_SDK/api/core/inc/" | head -5
+        uses: ./.github/actions/fmod-sdk
+        with:
+          version: "2.02.33"
+          platform: linux
+          dest: ${{ env.FMOD_SDK }}
+          token: ${{ secrets.FMOD_SDK_TOKEN }}
 
       - name: Setup Haxe
-        uses: krdlab/setup-haxe@v1
+        uses: krdlab/setup-haxe@v2
         with:
           haxe-version: ${{ env.HAXE_VERSION }}
 
       - name: Cache haxelib
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/haxelib
           key: haxelib-hl-${{ runner.os }}-${{ env.HAXE_VERSION }}
@@ -615,7 +861,7 @@ jobs:
         run: ./ci/validate-volume.sh /tmp/volume-test-linux-hl-compat.wav 15
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: audio-linux-hl-compat
@@ -624,6 +870,7 @@ jobs:
             /tmp/game-linux-hl-compat.log
             /tmp/volume-test-linux-hl-compat.wav
           if-no-files-found: warn
+          overwrite: true
 
   # ===========================================================================
   # Linux HTML5 Build + Audio Recording via Browser
@@ -633,24 +880,23 @@ jobs:
     if: ${{ !contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-html5]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]'))) }}
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Download FMOD SDK
-        run: |
-          git clone --depth 1 --branch 2.03.12 \
-            https://x-access-token:${{ secrets.FMOD_SDK_TOKEN }}@github.com/Tanz0rz/fmod-sdk-cache.git \
-            /tmp/fmod-sdk-cache
-          mkdir -p "$FMOD_SDK"
-          cp -R /tmp/fmod-sdk-cache/html5/* "$FMOD_SDK/"
-          ls -la "$FMOD_SDK/api/studio/lib/wasm/" | head -5
+        uses: ./.github/actions/fmod-sdk
+        with:
+          version: "2.03.12"
+          platform: html5
+          dest: ${{ env.FMOD_SDK }}
+          token: ${{ secrets.FMOD_SDK_TOKEN }}
 
       - name: Setup Haxe
-        uses: krdlab/setup-haxe@v1
+        uses: krdlab/setup-haxe@v2
         with:
           haxe-version: ${{ env.HAXE_VERSION }}
 
       - name: Cache haxelib
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/haxelib
           key: haxelib-html5-${{ runner.os }}-${{ env.HAXE_VERSION }}
@@ -776,36 +1022,257 @@ jobs:
             --no-sandbox \
             --disable-gpu \
             --autoplay-policy=no-user-gesture-required \
+            --enable-logging=stderr --v=0 \
             --window-size=640,480 \
             --window-position=0,0 \
-            http://localhost:8081 &
+            http://localhost:8081 > /tmp/volume-test-html5-console.log 2>&1 &
           CHROME_PID=$!
           sleep 3
 
           xdotool mousemove 320 240 click 1
           sleep 1
 
-          ffmpeg -f pulse -i virtual_speaker.monitor -t 20 -y /tmp/volume-test-html5.wav &
+          ffmpeg -f pulse -i virtual_speaker.monitor -t 25 -y /tmp/volume-test-html5.wav &
           RECORD_PID=$!
 
-          sleep 21
+          sleep 26
 
           kill $CHROME_PID || true
           kill $HTTP_PID || true
           wait $RECORD_PID || true
 
+          echo "=== Volume test console output ==="
+          grep -o "VOLUME_TEST.*" /tmp/volume-test-html5-console.log | sed 's/",.*$//' || true
+          echo "=== End volume test console output ==="
+
       - name: Validate volume/mute
         run: ./ci/validate-volume.sh /tmp/volume-test-html5.wav 15
 
+      - name: Run API probe (JS binding coverage)
+        if: ${{ !cancelled() }}
+        run: |
+          export DISPLAY=:99
+
+          cd example-project/EZPlatformer/export/html5/bin
+          python3 -m http.server 8082 &
+          HTTP_PID=$!
+          sleep 1
+
+          # --enable-logging=stderr routes console.log to stderr so the
+          # probe results can be captured from the browser
+          chromium-browser \
+            --no-sandbox \
+            --disable-gpu \
+            --autoplay-policy=no-user-gesture-required \
+            --enable-logging=stderr --v=0 \
+            --window-size=640,480 \
+            --window-position=0,0 \
+            "http://localhost:8082/index.html?test=api-probe" > /tmp/api-probe-raw.log 2>&1 &
+          CHROME_PID=$!
+          sleep 3
+
+          xdotool mousemove 320 240 click 1
+
+          # Poll the raw chromium log for the completion gate instead of a
+          # fixed sleep - console lines land there continuously, so passing
+          # runs finish early and slow runs get up to 45s
+          for i in $(seq 45); do
+            grep -q "API_PROBE: COMPLETE" /tmp/api-probe-raw.log && break
+            sleep 1
+          done
+
+          kill $CHROME_PID || true
+          kill $HTTP_PID || true
+
+          grep -o "API_PROBE:.*" /tmp/api-probe-raw.log | sed 's/",.*$//' | tee /tmp/api-probe-html5.log
+          grep -q "API_PROBE: COMPLETE" /tmp/api-probe-html5.log
+          if grep -q "pass=false" /tmp/api-probe-html5.log; then
+            echo "FAIL: API probe reported failing checks"
+            exit 1
+          fi
+          echo "API probe passed"
+
+      - name: Run callback test (JS payload delivery)
+        if: ${{ !cancelled() }}
+        run: |
+          export DISPLAY=:99
+
+          cd example-project/EZPlatformer/export/html5/bin
+          python3 -m http.server 8083 &
+          HTTP_PID=$!
+          sleep 1
+
+          chromium-browser \
+            --no-sandbox \
+            --disable-gpu \
+            --autoplay-policy=no-user-gesture-required \
+            --enable-logging=stderr --v=0 \
+            --window-size=640,480 \
+            --window-position=0,0 \
+            "http://localhost:8083/index.html?test=cb-test" > /tmp/cb-test-raw.log 2>&1 &
+          CHROME_PID=$!
+          sleep 3
+
+          xdotool mousemove 320 240 click 1
+
+          # Poll the raw chromium log for the completion gate instead of a
+          # fixed sleep - console lines land there continuously, so passing
+          # runs finish early and slow runs get up to 45s
+          for i in $(seq 45); do
+            grep -q "CB_TEST: COMPLETE" /tmp/cb-test-raw.log && break
+            sleep 1
+          done
+
+          kill $CHROME_PID || true
+          kill $HTTP_PID || true
+
+          grep -o "CB_TEST:.*" /tmp/cb-test-raw.log | sed 's/",.*$//' | tee /tmp/cb-test-html5.log
+          grep -q "CB_TEST: Stopped" /tmp/cb-test-html5.log
+          grep -q "CB_TEST: COMPLETE" /tmp/cb-test-html5.log
+          echo "Callback test passed"
+
+      - name: Run ps-test state (browser)
+        if: ${{ !cancelled() }}
+        run: |
+          export DISPLAY=:99
+
+          cd example-project/EZPlatformer/export/html5/bin
+          python3 -m http.server 8084 &
+          HTTP_PID=$!
+          sleep 1
+
+          chromium-browser \
+            --no-sandbox \
+            --disable-gpu \
+            --autoplay-policy=no-user-gesture-required \
+            --enable-logging=stderr --v=0 \
+            --window-size=640,480 \
+            --window-position=0,0 \
+            "http://localhost:8084/index.html?test=ps-test" > /tmp/ps-test-raw.log 2>&1 &
+          CHROME_PID=$!
+          sleep 3
+
+          xdotool mousemove 320 240 click 1
+
+          # Poll the raw chromium log for the completion gate instead of a
+          # fixed sleep - console lines land there continuously, so passing
+          # runs finish early and slow runs get up to 45s
+          for i in $(seq 45); do
+            grep -q "PS_TEST: COMPLETE" /tmp/ps-test-raw.log && break
+            sleep 1
+          done
+
+          kill $CHROME_PID || true
+          kill $HTTP_PID || true
+
+          grep -o "PS_TEST:.*" /tmp/ps-test-raw.log | sed 's/",.*$//' | tee /tmp/ps-test-html5.log
+          grep -q "PS_TEST: COMPLETE" /tmp/ps-test-html5.log
+          if grep -q "pass=false" /tmp/ps-test-html5.log; then
+            echo "FAIL: ps-test reported failing checks"
+            exit 1
+          fi
+          echo "ps-test passed"
+
+      - name: Run bank-test state (browser)
+        if: ${{ !cancelled() }}
+        run: |
+          export DISPLAY=:99
+
+          cd example-project/EZPlatformer/export/html5/bin
+          python3 -m http.server 8085 &
+          HTTP_PID=$!
+          sleep 1
+
+          chromium-browser \
+            --no-sandbox \
+            --disable-gpu \
+            --autoplay-policy=no-user-gesture-required \
+            --enable-logging=stderr --v=0 \
+            --window-size=640,480 \
+            --window-position=0,0 \
+            "http://localhost:8085/index.html?test=bank-test" > /tmp/bank-test-raw.log 2>&1 &
+          CHROME_PID=$!
+          sleep 3
+
+          xdotool mousemove 320 240 click 1
+
+          # Poll the raw chromium log for the completion gate instead of a
+          # fixed sleep - console lines land there continuously, so passing
+          # runs finish early and slow runs get up to 45s
+          for i in $(seq 45); do
+            grep -q "BANK_TEST: COMPLETE" /tmp/bank-test-raw.log && break
+            sleep 1
+          done
+
+          kill $CHROME_PID || true
+          kill $HTTP_PID || true
+
+          grep -o "BANK_TEST:.*" /tmp/bank-test-raw.log | sed 's/",.*$//' | tee /tmp/bank-test-html5.log
+          grep -q "BANK_TEST: COMPLETE" /tmp/bank-test-html5.log
+          if grep -q "pass=false" /tmp/bank-test-html5.log; then
+            echo "FAIL: bank-test reported failing checks"
+            exit 1
+          fi
+          echo "bank-test passed"
+
+      - name: Run pan-test state (browser)
+        if: ${{ !cancelled() }}
+        run: |
+          export DISPLAY=:99
+
+          cd example-project/EZPlatformer/export/html5/bin
+          python3 -m http.server 8086 &
+          HTTP_PID=$!
+          sleep 1
+
+          chromium-browser \
+            --no-sandbox \
+            --disable-gpu \
+            --autoplay-policy=no-user-gesture-required \
+            --enable-logging=stderr --v=0 \
+            --window-size=640,480 \
+            --window-position=0,0 \
+            "http://localhost:8086/index.html?test=pan-test" > /tmp/pan-test-raw.log 2>&1 &
+          CHROME_PID=$!
+          sleep 3
+
+          xdotool mousemove 320 240 click 1
+
+          # Poll the raw chromium log for the completion gate instead of a
+          # fixed sleep - console lines land there continuously, so passing
+          # runs finish early and slow runs get up to 45s
+          for i in $(seq 45); do
+            grep -q "PAN_TEST: COMPLETE" /tmp/pan-test-raw.log && break
+            sleep 1
+          done
+
+          kill $CHROME_PID || true
+          kill $HTTP_PID || true
+
+          grep -o "PAN_TEST:.*" /tmp/pan-test-raw.log | sed 's/",.*$//' | tee /tmp/pan-test-html5.log
+          grep -q "PAN_TEST: COMPLETE" /tmp/pan-test-html5.log
+          if grep -q "pass=false" /tmp/pan-test-html5.log; then
+            echo "FAIL: pan-test reported failing checks"
+            exit 1
+          fi
+          echo "pan-test passed"
+
       - name: Upload audio artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: audio-html5
           path: |
             /tmp/audio-html5.wav
             /tmp/volume-test-html5.wav
+            /tmp/volume-test-html5-console.log
+            /tmp/api-probe-html5.log
+            /tmp/cb-test-html5.log
+            /tmp/ps-test-html5.log
+            /tmp/bank-test-html5.log
+            /tmp/pan-test-html5.log
           if-no-files-found: warn
+          overwrite: true
 
   # ===========================================================================
   # macOS C++ Build + Audio Recording
@@ -815,24 +1282,26 @@ jobs:
     if: ${{ !contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[mac-cpp]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]'))) }}
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Download FMOD SDK
-        run: |
-          git clone --depth 1 --branch 2.03.12 \
-            https://x-access-token:${{ secrets.FMOD_SDK_TOKEN }}@github.com/Tanz0rz/fmod-sdk-cache.git \
-            /tmp/fmod-sdk-cache
-          mkdir -p "$FMOD_SDK"
-          cp -R /tmp/fmod-sdk-cache/mac/* "$FMOD_SDK/"
-          ls -la "$FMOD_SDK/api/core/inc/" | head -5
+        uses: ./.github/actions/fmod-sdk
+        with:
+          version: "2.03.12"
+          platform: mac
+          dest: ${{ env.FMOD_SDK }}
+          token: ${{ secrets.FMOD_SDK_TOKEN }}
 
       - name: Setup Haxe via Homebrew
         run: |
+          # The runner image ships a pre-tapped aws/tap that current
+          # Homebrew distrusts. untap it to keep installs warning-free
+          brew untap aws/tap 2>/dev/null || true
           brew install haxe neko ffmpeg
           echo "HAXE_STD_PATH=$(brew --prefix)/lib/haxe/std" >> $GITHUB_ENV
 
       - name: Cache haxelib
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/haxelib
           key: haxelib-cpp-${{ runner.os }}-${{ env.HAXE_VERSION }}
@@ -848,7 +1317,18 @@ jobs:
           haxelib dev haxefmod $GITHUB_WORKSPACE
           yes | haxelib run lime setup || true
 
+      - name: Cache hxcpp objects
+        uses: actions/cache@v5
+        with:
+          path: ${{ runner.temp }}/hxcpp-cache
+          key: hxcpp-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            hxcpp-${{ runner.os }}-
+
       - name: Build C++ target
+        env:
+          HXCPP_COMPILE_CACHE: ${{ runner.temp }}/hxcpp-cache
+          HXCPP_CACHE_MB: "4000"
         run: |
           cd example-project/EZPlatformer
           haxelib run lime build mac -64
@@ -892,6 +1372,9 @@ jobs:
         run: ./ci/validate-game-log.sh /tmp/game-mac-cpp.log
 
       - name: Build volume test
+        env:
+          HXCPP_COMPILE_CACHE: ${{ runner.temp }}/hxcpp-cache
+          HXCPP_CACHE_MB: "4000"
         run: |
           cd example-project/EZPlatformer
           haxelib run lime clean mac
@@ -916,7 +1399,7 @@ jobs:
         run: ./ci/validate-volume.sh /tmp/volume-test-mac-cpp.wav 15
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: audio-mac-cpp
@@ -925,6 +1408,7 @@ jobs:
             /tmp/game-mac-cpp.log
             /tmp/volume-test-mac-cpp.wav
           if-no-files-found: warn
+          overwrite: true
 
   # ===========================================================================
   # macOS HashLink Build + Audio Recording
@@ -934,24 +1418,26 @@ jobs:
     if: ${{ !contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[mac-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]'))) }}
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Download FMOD SDK
-        run: |
-          git clone --depth 1 --branch 2.03.12 \
-            https://x-access-token:${{ secrets.FMOD_SDK_TOKEN }}@github.com/Tanz0rz/fmod-sdk-cache.git \
-            /tmp/fmod-sdk-cache
-          mkdir -p "$FMOD_SDK"
-          cp -R /tmp/fmod-sdk-cache/mac/* "$FMOD_SDK/"
-          ls -la "$FMOD_SDK/api/core/inc/" | head -5
+        uses: ./.github/actions/fmod-sdk
+        with:
+          version: "2.03.12"
+          platform: mac
+          dest: ${{ env.FMOD_SDK }}
+          token: ${{ secrets.FMOD_SDK_TOKEN }}
 
       - name: Setup Haxe via Homebrew
         run: |
+          # The runner image ships a pre-tapped aws/tap that current
+          # Homebrew distrusts. untap it to keep installs warning-free
+          brew untap aws/tap 2>/dev/null || true
           brew install haxe neko hashlink ffmpeg
           echo "HAXE_STD_PATH=$(brew --prefix)/lib/haxe/std" >> $GITHUB_ENV
 
       - name: Cache haxelib
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/haxelib
           key: haxelib-hl-${{ runner.os }}-${{ env.HAXE_VERSION }}
@@ -995,10 +1481,11 @@ jobs:
           echo "Verified: custom-compiled hdll from .haxefmod/ was used"
 
       - name: Upload compiled hdll
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: hlaxe_fmod-mac.hdll
           path: example-project/EZPlatformer/.haxefmod/hlaxe_fmod.hdll
+          overwrite: true
 
       - name: Validate build output
         run: |
@@ -1062,8 +1549,60 @@ jobs:
       - name: Validate volume/mute
         run: ./ci/validate-volume.sh /tmp/volume-test-mac-hl.wav 15
 
+      - name: Run api-probe state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: api-probe
+          gate: API_PROBE
+          bin-dir: ${{ env.APP_BUNDLE }}/Contents/MacOS
+          log-file: /tmp/api-probe-mac-hl.log
+          use-wavwriter: "true"
+
+      - name: Run cb-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: cb-test
+          gate: CB_TEST
+          bin-dir: ${{ env.APP_BUNDLE }}/Contents/MacOS
+          log-file: /tmp/cb-test-mac-hl.log
+          extra-gate: "CB_TEST: Stopped"
+          use-wavwriter: "true"
+
+      - name: Run ps-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: ps-test
+          gate: PS_TEST
+          bin-dir: ${{ env.APP_BUNDLE }}/Contents/MacOS
+          log-file: /tmp/ps-test-mac-hl.log
+          copy-jump-wav: "true"
+          use-wavwriter: "true"
+
+      - name: Run bank-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: bank-test
+          gate: BANK_TEST
+          bin-dir: ${{ env.APP_BUNDLE }}/Contents/MacOS
+          log-file: /tmp/bank-test-mac-hl.log
+          use-wavwriter: "true"
+
+      - name: Run pan-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: pan-test
+          gate: PAN_TEST
+          bin-dir: ${{ env.APP_BUNDLE }}/Contents/MacOS
+          log-file: /tmp/pan-test-mac-hl.log
+          use-wavwriter: "true"
+
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: audio-mac-hl
@@ -1071,7 +1610,13 @@ jobs:
             /tmp/audio-mac-hl.wav
             /tmp/game-mac-hl.log
             /tmp/volume-test-mac-hl.wav
+            /tmp/api-probe-mac-hl.log
+            /tmp/cb-test-mac-hl.log
+            /tmp/ps-test-mac-hl.log
+            /tmp/bank-test-mac-hl.log
+            /tmp/pan-test-mac-hl.log
           if-no-files-found: warn
+          overwrite: true
 
   # ===========================================================================
   # macOS HashLink Compat Build (FMOD 2.02.33 - version mismatch test)
@@ -1081,24 +1626,26 @@ jobs:
     if: ${{ !contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[mac-hl-compat]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]'))) }}
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Download FMOD SDK
-        run: |
-          git clone --depth 1 --branch 2.02.33 \
-            https://x-access-token:${{ secrets.FMOD_SDK_TOKEN }}@github.com/Tanz0rz/fmod-sdk-cache.git \
-            /tmp/fmod-sdk-cache
-          mkdir -p "$FMOD_SDK"
-          cp -R /tmp/fmod-sdk-cache/mac/* "$FMOD_SDK/"
-          ls -la "$FMOD_SDK/api/core/inc/" | head -5
+        uses: ./.github/actions/fmod-sdk
+        with:
+          version: "2.02.33"
+          platform: mac
+          dest: ${{ env.FMOD_SDK }}
+          token: ${{ secrets.FMOD_SDK_TOKEN }}
 
       - name: Setup Haxe via Homebrew
         run: |
+          # The runner image ships a pre-tapped aws/tap that current
+          # Homebrew distrusts. untap it to keep installs warning-free
+          brew untap aws/tap 2>/dev/null || true
           brew install haxe neko hashlink ffmpeg
           echo "HAXE_STD_PATH=$(brew --prefix)/lib/haxe/std" >> $GITHUB_ENV
 
       - name: Cache haxelib
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/haxelib
           key: haxelib-hl-${{ runner.os }}-${{ env.HAXE_VERSION }}
@@ -1204,7 +1751,7 @@ jobs:
         run: ./ci/validate-volume.sh /tmp/volume-test-mac-hl-compat.wav 15
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: audio-mac-hl-compat
@@ -1213,6 +1760,7 @@ jobs:
             /tmp/game-mac-hl-compat.log
             /tmp/volume-test-mac-hl-compat.wav
           if-no-files-found: warn
+          overwrite: true
 
   # ===========================================================================
   # Windows C++ Build + Audio Recording
@@ -1225,19 +1773,18 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Download FMOD SDK
-        run: |
-          git clone --depth 1 --branch 2.03.12 \
-            https://x-access-token:${{ secrets.FMOD_SDK_TOKEN }}@github.com/Tanz0rz/fmod-sdk-cache.git \
-            /tmp/fmod-sdk-cache
-          mkdir -p "$FMOD_SDK"
-          cp -R /tmp/fmod-sdk-cache/windows/* "$FMOD_SDK/"
-          ls -la "$FMOD_SDK/api/core/inc/" | head -5
+        uses: ./.github/actions/fmod-sdk
+        with:
+          version: "2.03.12"
+          platform: windows
+          dest: ${{ env.FMOD_SDK }}
+          token: ${{ secrets.FMOD_SDK_TOKEN }}
 
       - name: Setup Haxe
-        uses: krdlab/setup-haxe@v1
+        uses: krdlab/setup-haxe@v2
         with:
           haxe-version: ${{ env.HAXE_VERSION }}
 
@@ -1255,7 +1802,7 @@ jobs:
           ffprobe -version | head -1 || echo "WARNING: ffprobe not found yet"
 
       - name: Cache haxelib
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/haxelib
           key: haxelib-cpp-${{ runner.os }}-${{ env.HAXE_VERSION }}
@@ -1270,7 +1817,18 @@ jobs:
           haxelib dev haxefmod "$GITHUB_WORKSPACE"
           yes | haxelib run lime setup || true
 
+      - name: Cache hxcpp objects
+        uses: actions/cache@v5
+        with:
+          path: ${{ runner.temp }}/hxcpp-cache
+          key: hxcpp-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            hxcpp-${{ runner.os }}-
+
       - name: Build C++ target
+        env:
+          HXCPP_COMPILE_CACHE: ${{ runner.temp }}/hxcpp-cache
+          HXCPP_CACHE_MB: "4000"
         run: |
           cd example-project/EZPlatformer
           haxelib run lime build windows -64
@@ -1332,6 +1890,9 @@ jobs:
         run: ./ci/validate-game-log.sh "$GITHUB_WORKSPACE/game-windows-cpp.log"
 
       - name: Build volume test
+        env:
+          HXCPP_COMPILE_CACHE: ${{ runner.temp }}/hxcpp-cache
+          HXCPP_CACHE_MB: "4000"
         run: |
           cd example-project/EZPlatformer
           haxelib run lime clean windows
@@ -1373,7 +1934,7 @@ jobs:
         run: ./ci/validate-volume.sh "$GITHUB_WORKSPACE/volume-test-windows-cpp.wav" 15
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: audio-windows-cpp
@@ -1382,6 +1943,7 @@ jobs:
             game-windows-cpp.log
             volume-test-windows-cpp.wav
           if-no-files-found: warn
+          overwrite: true
 
   # ===========================================================================
   # Windows HashLink Build + Audio Recording
@@ -1394,19 +1956,18 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Download FMOD SDK
-        run: |
-          git clone --depth 1 --branch 2.03.12 \
-            https://x-access-token:${{ secrets.FMOD_SDK_TOKEN }}@github.com/Tanz0rz/fmod-sdk-cache.git \
-            /tmp/fmod-sdk-cache
-          mkdir -p "$FMOD_SDK"
-          cp -R /tmp/fmod-sdk-cache/windows/* "$FMOD_SDK/"
-          ls -la "$FMOD_SDK/api/core/inc/" | head -5
+        uses: ./.github/actions/fmod-sdk
+        with:
+          version: "2.03.12"
+          platform: windows
+          dest: ${{ env.FMOD_SDK }}
+          token: ${{ secrets.FMOD_SDK_TOKEN }}
 
       - name: Setup Haxe
-        uses: krdlab/setup-haxe@v1
+        uses: krdlab/setup-haxe@v2
         with:
           haxe-version: ${{ env.HAXE_VERSION }}
 
@@ -1424,7 +1985,7 @@ jobs:
           ffprobe -version | head -1 || echo "WARNING: ffprobe not found yet"
 
       - name: Cache haxelib
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/haxelib
           key: haxelib-hl-${{ runner.os }}-${{ env.HAXE_VERSION }}
@@ -1486,10 +2047,11 @@ jobs:
           echo "Verified: custom-compiled hdll from .haxefmod/ was used"
 
       - name: Upload compiled hdll
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: hlaxe_fmod-windows.hdll
           path: example-project/EZPlatformer/.haxefmod/hlaxe_fmod.hdll
+          overwrite: true
 
       - name: Validate build output
         run: |
@@ -1588,8 +2150,60 @@ jobs:
       - name: Validate volume/mute
         run: ./ci/validate-volume.sh "$GITHUB_WORKSPACE/volume-test-windows-hl.wav" 15
 
+      - name: Run api-probe state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: api-probe
+          gate: API_PROBE
+          bin-dir: example-project/EZPlatformer/export/hl/bin
+          log-file: ${{ github.workspace }}/api-probe-windows-hl.log
+          use-wavwriter: "true"
+
+      - name: Run cb-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: cb-test
+          gate: CB_TEST
+          bin-dir: example-project/EZPlatformer/export/hl/bin
+          log-file: ${{ github.workspace }}/cb-test-windows-hl.log
+          extra-gate: "CB_TEST: Stopped"
+          use-wavwriter: "true"
+
+      - name: Run ps-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: ps-test
+          gate: PS_TEST
+          bin-dir: example-project/EZPlatformer/export/hl/bin
+          log-file: ${{ github.workspace }}/ps-test-windows-hl.log
+          copy-jump-wav: "true"
+          use-wavwriter: "true"
+
+      - name: Run bank-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: bank-test
+          gate: BANK_TEST
+          bin-dir: example-project/EZPlatformer/export/hl/bin
+          log-file: ${{ github.workspace }}/bank-test-windows-hl.log
+          use-wavwriter: "true"
+
+      - name: Run pan-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: pan-test
+          gate: PAN_TEST
+          bin-dir: example-project/EZPlatformer/export/hl/bin
+          log-file: ${{ github.workspace }}/pan-test-windows-hl.log
+          use-wavwriter: "true"
+
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: audio-windows-hl
@@ -1597,7 +2211,13 @@ jobs:
             audio-windows-hl.wav
             game-windows-hl.log
             volume-test-windows-hl.wav
+            ${{ github.workspace }}/api-probe-windows-hl.log
+            ${{ github.workspace }}/cb-test-windows-hl.log
+            ${{ github.workspace }}/ps-test-windows-hl.log
+            ${{ github.workspace }}/bank-test-windows-hl.log
+            ${{ github.workspace }}/pan-test-windows-hl.log
           if-no-files-found: warn
+          overwrite: true
 
   # ===========================================================================
   # Windows HashLink Compat Build (FMOD 2.02.33 - version mismatch test)
@@ -1610,19 +2230,18 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Download FMOD SDK
-        run: |
-          git clone --depth 1 --branch 2.02.33 \
-            https://x-access-token:${{ secrets.FMOD_SDK_TOKEN }}@github.com/Tanz0rz/fmod-sdk-cache.git \
-            /tmp/fmod-sdk-cache
-          mkdir -p "$FMOD_SDK"
-          cp -R /tmp/fmod-sdk-cache/windows/* "$FMOD_SDK/"
-          ls -la "$FMOD_SDK/api/core/inc/" | head -5
+        uses: ./.github/actions/fmod-sdk
+        with:
+          version: "2.02.33"
+          platform: windows
+          dest: ${{ env.FMOD_SDK }}
+          token: ${{ secrets.FMOD_SDK_TOKEN }}
 
       - name: Setup Haxe
-        uses: krdlab/setup-haxe@v1
+        uses: krdlab/setup-haxe@v2
         with:
           haxe-version: ${{ env.HAXE_VERSION }}
 
@@ -1640,7 +2259,7 @@ jobs:
           ffprobe -version | head -1 || echo "WARNING: ffprobe not found yet"
 
       - name: Cache haxelib
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/haxelib
           key: haxelib-hl-${{ runner.os }}-${{ env.HAXE_VERSION }}
@@ -1799,7 +2418,7 @@ jobs:
         run: ./ci/validate-volume.sh "$GITHUB_WORKSPACE/volume-test-windows-hl-compat.wav" 15
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: audio-windows-hl-compat
@@ -1808,6 +2427,344 @@ jobs:
             game-windows-hl-compat.log
             volume-test-windows-hl-compat.wav
           if-no-files-found: warn
+          overwrite: true
+
+  # ===========================================================================
+  # jaxe.js wasm harnesses (fast full-surface regression of the JS shim)
+  # ===========================================================================
+  js-harness:
+    runs-on: ubuntu-latest
+    if: ${{ !contains(github.event.head_commit.message, '[skip-build]') }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download FMOD html5 SDK
+        uses: ./.github/actions/fmod-sdk
+        with:
+          version: "2.03.12"
+          platform: none
+          token: ${{ secrets.FMOD_SDK_TOKEN }}
+
+      - name: Run jaxe harnesses against the real wasm
+        env:
+          FMOD_SDK_WEB: /tmp/fmod-sdk-cache-2.03.12/html5
+        run: |
+          node tests/js/jaxe-harness-full.js
+          node tests/js/ps-test.js
+          node tests/js/arity-audit.js
+
+  # ===========================================================================
+  # Environment doctor: `haxelib run haxefmod check` must diagnose correctly
+  # ===========================================================================
+  env-doctor:
+    runs-on: ubuntu-latest
+    if: ${{ !contains(github.event.head_commit.message, '[skip-build]') }}
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download FMOD SDK
+        uses: ./.github/actions/fmod-sdk
+        with:
+          version: "2.03.12"
+          platform: linux
+          dest: ${{ env.FMOD_SDK }}
+          token: ${{ secrets.FMOD_SDK_TOKEN }}
+
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v2
+        with:
+          haxe-version: ${{ env.HAXE_VERSION }}
+
+      - name: Cache haxelib
+        uses: actions/cache@v5
+        with:
+          path: ~/haxelib
+          key: haxelib-doctor-${{ runner.os }}-${{ env.HAXE_VERSION }}
+
+      - name: Install Haxe libraries
+        run: |
+          haxelib setup ~/haxelib
+          haxelib install lime 8.3.0 --always --quiet
+          haxelib install openfl 9.5.0 --always --quiet
+          haxelib install flixel 6.1.2 --always --quiet
+          haxelib install hxcpp 4.3.2 --always --quiet
+          haxelib dev haxefmod $GITHUB_WORKSPACE
+          yes | haxelib run lime setup || true
+
+      - name: Doctor passes in a configured environment
+        env:
+          FMOD_SDK_WEB: /tmp/fmod-sdk-cache-2.03.12/html5
+        run: |
+          # A fully configured environment must pass by exit code AND report
+          cd example-project/EZPlatformer
+          haxelib run haxefmod check 2>&1 | tee /tmp/doctor-ok.log
+          grep -q "All .* checks passed!" /tmp/doctor-ok.log
+          if grep -q "\[FAIL\]" /tmp/doctor-ok.log; then
+            echo "FAIL: doctor reported failing checks in a configured environment"
+            exit 1
+          fi
+          echo "Doctor reported a fully configured environment"
+
+      - name: Doctor rejects a missing FMOD_SDK (negative test)
+        env:
+          FMOD_SDK: ""
+          FMOD_SDK_WEB: /tmp/fmod-sdk-cache-2.03.12/html5
+        run: |
+          # This scenario EXPECTS the doctor to fail. Every doctor check is
+          # scored against the outcome a missing FMOD_SDK must produce
+          # (every other check OK, the FMOD_SDK check FAIL, nonzero exit),
+          # so the summary below reads N/N when the doctor behaved correctly.
+          cd example-project/EZPlatformer
+          if haxelib run haxefmod check > /tmp/doctor-missing.log 2>&1; then
+            cat /tmp/doctor-missing.log
+            echo "NEGATIVE TEST FAILED: doctor exited 0 without FMOD_SDK"
+            exit 1
+          fi
+          cat /tmp/doctor-missing.log
+          echo ""
+          total=$(grep -cE "\[(OK|FAIL)\]" /tmp/doctor-missing.log)
+          fails=$(grep -c "\[FAIL\]" /tmp/doctor-missing.log)
+          if [ "$fails" -ne 1 ] || ! grep -q "\[FAIL\] FMOD_SDK environment variable set" /tmp/doctor-missing.log; then
+            echo "NEGATIVE TEST FAILED: expected exactly one failing check (FMOD_SDK), saw $fails"
+            exit 1
+          fi
+          echo "NEGATIVE TEST PASSED: $total/$total check outcomes matched expectations"
+          echo "  (FMOD_SDK check failed as intended and the doctor exited nonzero)"
+
+      # Negative-path proof that the compile-time gate blocks REAL lime
+      # builds (lime ignores postbuild exit codes, so this macro is the only
+      # thing standing between a missing SDK and a soundless game)
+      - name: Build blocks without FMOD_SDK (hl)
+        env:
+          FMOD_SDK: ""
+        run: |
+          cd example-project/EZPlatformer
+          if haxelib run lime build hl > /tmp/blocked-hl.log 2>&1; then
+            echo "FAIL: hl build succeeded without FMOD_SDK"
+            cat /tmp/blocked-hl.log
+            exit 1
+          fi
+          grep -q "FMOD_SDK is not set" /tmp/blocked-hl.log || {
+            echo "FAIL: build failed but not with the setup message"
+            cat /tmp/blocked-hl.log
+            exit 1
+          }
+          echo "hl build blocked with setup instructions"
+
+      - name: Build blocks without FMOD_SDK_WEB (html5)
+        env:
+          FMOD_SDK_WEB: ""
+        run: |
+          cd example-project/EZPlatformer
+          if haxelib run lime build html5 > /tmp/blocked-html5.log 2>&1; then
+            echo "FAIL: html5 build succeeded without FMOD_SDK_WEB"
+            cat /tmp/blocked-html5.log
+            exit 1
+          fi
+          grep -q "FMOD_SDK_WEB is not set" /tmp/blocked-html5.log || {
+            echo "FAIL: build failed but not with the setup message"
+            cat /tmp/blocked-html5.log
+            exit 1
+          }
+          echo "html5 build blocked with setup instructions"
+
+      # A set-but-wrong SDK path must fail as loudly as an unset one. It used
+      # to compile fine (HL needs no SDK at compile time), skip the postbuild
+      # version gate with a soft warning, and copy nothing - producing builds
+      # that only launched when stale libraries sat in export/ from earlier
+      # successful builds.
+      - name: Build blocks with a bogus FMOD_SDK (hl)
+        env:
+          FMOD_SDK: /tmp/definitely-not-an-sdk
+        run: |
+          cd example-project/EZPlatformer
+          if haxelib run lime build hl > /tmp/bogus-hl.log 2>&1; then
+            echo "FAIL: hl build succeeded with a bogus FMOD_SDK"
+            cat /tmp/bogus-hl.log
+            exit 1
+          fi
+          grep -q "does not look like an FMOD Engine SDK" /tmp/bogus-hl.log || {
+            echo "FAIL: build failed but not with the bogus-SDK message"
+            cat /tmp/bogus-hl.log
+            exit 1
+          }
+          echo "hl build blocked: bogus FMOD_SDK rejected at compile time"
+
+      - name: Postbuild rejects a bogus FMOD_SDK
+        env:
+          FMOD_SDK: /tmp/definitely-not-an-sdk
+        run: |
+          cd example-project/EZPlatformer
+          if haxelib run haxefmod postbuild linux hl "$GITHUB_WORKSPACE" > /tmp/bogus-postbuild.log 2>&1; then
+            echo "FAIL: postbuild exited 0 with a bogus FMOD_SDK"
+            cat /tmp/bogus-postbuild.log
+            exit 1
+          fi
+          grep -q "does not point at an FMOD SDK" /tmp/bogus-postbuild.log || {
+            echo "FAIL: postbuild failed but not with the bogus-SDK message"
+            cat /tmp/bogus-postbuild.log
+            exit 1
+          }
+          echo "postbuild blocked: bogus FMOD_SDK is a hard error"
+
+      - name: Postbuild rejects an SDK missing platform libraries
+        env:
+          FMOD_SDK: /tmp/incomplete-sdk
+        run: |
+          mkdir -p /tmp/incomplete-sdk/api/core/inc
+          cp "$GITHUB_WORKSPACE/fmod-sdk/api/core/inc/fmod_common.h" /tmp/incomplete-sdk/api/core/inc/
+          mkdir -p example-project/EZPlatformer/export/hl/bin
+          cd example-project/EZPlatformer
+          if haxelib run haxefmod postbuild linux hl "$GITHUB_WORKSPACE" > /tmp/incomplete-postbuild.log 2>&1; then
+            echo "FAIL: postbuild exited 0 with the platform libraries missing"
+            cat /tmp/incomplete-postbuild.log
+            exit 1
+          fi
+          grep -q "FMOD library directory not found" /tmp/incomplete-postbuild.log || {
+            echo "FAIL: postbuild failed but not with the missing-libraries message"
+            cat /tmp/incomplete-postbuild.log
+            exit 1
+          }
+          echo "postbuild blocked: incomplete SDK is a hard error"
+
+  # ===========================================================================
+  # Package check: the haxelib zip must install and build a project
+  # ===========================================================================
+  package-check:
+    runs-on: ubuntu-latest
+    if: ${{ !contains(github.event.head_commit.message, '[skip-build]') }}
+    timeout-minutes: 30
+    env:
+      FMOD_SDK: ${{ github.workspace }}/fmod-sdk
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Verify tag matches haxelib.json version
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
+        run: |
+          VERSION=$(grep '"version"' haxelib.json | sed 's/.*: *"\([^"]*\)".*/\1/')
+          TAG="${GITHUB_REF#refs/tags/}"
+          if [ "v$VERSION" != "$TAG" ]; then
+            echo "FAIL: tag $TAG does not match haxelib.json version v$VERSION"
+            exit 1
+          fi
+          echo "OK: tag $TAG matches haxelib.json version $VERSION"
+
+      - name: Download FMOD SDK
+        uses: ./.github/actions/fmod-sdk
+        with:
+          version: "2.03.12"
+          platform: linux
+          dest: ${{ env.FMOD_SDK }}
+          token: ${{ secrets.FMOD_SDK_TOKEN }}
+
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v2
+        with:
+          haxe-version: ${{ env.HAXE_VERSION }}
+
+      - name: Cache haxelib
+        uses: actions/cache@v5
+        with:
+          path: ~/haxelib
+          key: haxelib-package-${{ runner.os }}-${{ env.HAXE_VERSION }}
+
+      - name: Build the haxelib package
+        run: |
+          ./package.sh
+          echo "=== Package contents (top level) ==="
+          unzip -l haxefmod.zip | head -30
+
+          # Files the package must contain: the manifest drives PostBuild's
+          # ABI check, the shared headers drive build-hdll, MIGRATION.md is
+          # linked from the README
+          for required in \
+            "haxelib.json" \
+            "MIGRATION.md" \
+            "native/manifest/studio_api.txt" \
+            "native/shared/faxe_handles.h" \
+            "native/shared/faxe_cbqueue.h" \
+            "native/shared/faxe_guid.h" \
+            "native/shared/faxe_instctx.h" \
+            "native/hlaxe/hlaxe_fmod.c" \
+            "native/jaxe/jaxe.js" \
+            "templates/bin/hl/Linux64/hlaxe_fmod.hdll" \
+            "include.xml"; do
+            unzip -l haxefmod.zip | grep -q "$required" || {
+              echo "MISSING from package: $required"
+              exit 1
+            }
+          done
+          echo "All required files present"
+
+      - name: Install libraries with haxefmod from the package
+        run: |
+          haxelib setup ~/haxelib
+          haxelib install lime 8.3.0 --always --quiet
+          haxelib install openfl 9.5.0 --always --quiet
+          haxelib install flixel 6.1.2 --always --quiet
+          # The library under test comes from the zip, never from the checkout
+          haxelib remove haxefmod || true
+          haxelib install haxefmod.zip --always --quiet
+          haxelib path haxefmod
+          yes | haxelib run lime setup || true
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb patchelf \
+            libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
+            libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev libz-dev
+
+      - name: Build and install HashLink
+        run: |
+          # Pinned to the commit before the SDL3 port (hashlink #830, 2026-06-17).
+          # ubuntu-latest has no libsdl3-dev, so newer hashlink master does not build.
+          git clone https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
+          cd /tmp/hashlink-src
+          git checkout 781960a5daca32ad6d5cea87b255fe8b5872551e
+          make -j$(nproc) 2>&1 | tee /tmp/hashlink-build.log || {
+            echo "=== MAKE FAILED - retrying single-threaded ==="
+            make 2>&1 | tee -a /tmp/hashlink-build.log
+            exit 1
+          }
+          sudo make install
+          sudo ldconfig
+          hl --version || echo "HashLink installed"
+
+      - name: Build HashLink target from the installed package
+        run: |
+          cd example-project/EZPlatformer
+          haxelib run lime build hl 2>&1 | tee /tmp/package-build.log
+          grep -q "(pre-built)" /tmp/package-build.log
+          echo "Verified: pre-built hdll resolved from the installed package"
+
+      - name: Validate build output
+        run: |
+          ./ci/validate-build.sh example-project/EZPlatformer/export/hl/bin hl
+
+      - name: Build HTML5 target from the installed package
+        env:
+          FMOD_SDK_WEB: /tmp/fmod-sdk-cache-2.03.12/html5
+        run: |
+          cd example-project/EZPlatformer
+          haxelib run lime build html5
+
+      - name: Validate FMOD files replaced placeholders
+        run: |
+          FMOD_WASM="example-project/EZPlatformer/export/html5/bin/lib/fmodstudio.wasm"
+          if [ ! -f "$FMOD_WASM" ]; then
+            echo "FAIL: $FMOD_WASM not found"
+            exit 1
+          fi
+          SIZE=$(stat --format=%s "$FMOD_WASM")
+          if [ "$SIZE" -lt 100000 ]; then
+            echo "FAIL: $FMOD_WASM is only $SIZE bytes - still a placeholder"
+            exit 1
+          fi
+          echo "OK: fmodstudio.wasm is $SIZE bytes (real SDK file)"
 
   # ===========================================================================
   # Update Pre-built hdlls
@@ -1820,7 +2777,7 @@ jobs:
     needs: [linux-hl, mac-hl, windows-hl]
     if: ${{ always() && !cancelled() && needs.linux-hl.result == 'success' && needs.mac-hl.result == 'success' && needs.windows-hl.result == 'success' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ github.head_ref || github.ref_name }}
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -1833,7 +2790,7 @@ jobs:
           git branch --show-current
 
       - name: Download compiled hdlls
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           pattern: hlaxe_fmod-*.hdll
           path: /tmp/hdlls
@@ -1864,5 +2821,14 @@ jobs:
           Built against FMOD 2.03.12 from run ${{ github.run_id }}
           COMMIT_MSG
           )"
-            git push
+            BRANCH_NAME="${{ github.head_ref || github.ref_name }}"
+            # Another push may have landed while this workflow ran (e.g. a
+            # user commit or a concurrent job). rebase onto the latest remote
+            # branch before pushing and retry once if the push still races.
+            git pull --rebase origin "$BRANCH_NAME"
+            if ! git push; then
+              echo "Push rejected, rebasing and retrying once..."
+              git pull --rebase origin "$BRANCH_NAME"
+              git push
+            fi
           fi

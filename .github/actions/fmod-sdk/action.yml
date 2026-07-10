@@ -1,0 +1,64 @@
+name: FMOD SDK
+description: >
+  Provides the FMOD SDK from the Tanz0rz/fmod-sdk-cache repo, restoring it
+  from the GitHub Actions cache when possible and cloning the requested tag
+  only on a cache miss. Optionally copies one platform subtree into a
+  destination directory; the raw clone stays at /tmp/fmod-sdk-cache-<version>
+  for jobs that reference it directly.
+
+inputs:
+  version:
+    description: FMOD SDK version tag in the fmod-sdk-cache repo (e.g. 2.03.12)
+    required: true
+  platform:
+    description: >
+      SDK platform subtree to copy (linux, mac, windows, html5), or none to
+      keep only the raw clone
+    required: true
+  dest:
+    description: >
+      Directory to copy the platform subtree into; when omitted only the raw
+      clone at /tmp/fmod-sdk-cache-<version> is provided
+    required: false
+    default: ""
+  token:
+    description: Token with read access to the Tanz0rz/fmod-sdk-cache repo
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Cache FMOD SDK ${{ inputs.version }}
+      uses: actions/cache@v5
+      with:
+        path: /tmp/fmod-sdk-cache-${{ inputs.version }}
+        key: fmod-sdk-${{ inputs.version }}
+
+    - name: Provide FMOD SDK ${{ inputs.version }}
+      shell: bash
+      run: |
+        CACHE_DIR="/tmp/fmod-sdk-cache-${{ inputs.version }}"
+        # actions/cache resolves /tmp against the workspace drive root on
+        # Windows, while git-bash mounts /tmp elsewhere. clone to the
+        # drive-root path so the post-job cache save sees the same directory
+        case "$(uname -s)" in
+          MINGW*|MSYS*|CYGWIN*)
+            DRIVE=$(pwd -W | cut -c1 | tr '[:upper:]' '[:lower:]')
+            CACHE_DIR="/$DRIVE/tmp/fmod-sdk-cache-${{ inputs.version }}"
+            ;;
+        esac
+        if [ -z "$(ls -A "$CACHE_DIR" 2>/dev/null)" ]; then
+          git clone --depth 1 --branch "${{ inputs.version }}" \
+            https://x-access-token:${{ inputs.token }}@github.com/Tanz0rz/fmod-sdk-cache.git \
+            "$CACHE_DIR"
+          # The clone's origin URL embeds the token. Never persist it (or any
+          # git metadata) into the cache archive
+          rm -rf "$CACHE_DIR/.git"
+        else
+          echo "FMOD SDK ${{ inputs.version }} restored from the actions cache"
+        fi
+        if [ "${{ inputs.platform }}" != "none" ] && [ -n "${{ inputs.dest }}" ]; then
+          mkdir -p "${{ inputs.dest }}"
+          cp -R "$CACHE_DIR/${{ inputs.platform }}"/* "${{ inputs.dest }}/"
+          ls "${{ inputs.dest }}/api" | head -5
+        fi

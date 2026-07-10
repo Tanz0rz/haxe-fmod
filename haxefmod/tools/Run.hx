@@ -6,6 +6,8 @@ import sys.io.File;
 class Run {
 	static var passCount = 0;
 	static var failCount = 0;
+	static var warnCount = 0;
+	static var skipCount = 0;
 
 	public static function main() {
 		// haxelib passes the original cwd as the last arg
@@ -31,25 +33,34 @@ class Run {
 				// cwd from haxelib is the caller's working directory (project dir)
 				// libRoot is passed explicitly from include.xml via ${haxelib:haxefmod}
 				PostBuild.run(userArgs[1], userArgs[2], userArgs[3], cwd);
-			default:
+			case "verify-native":
+				Sys.exit(NativeManifestCheck.run(libRoot));
+			case "generate":
+				Generate.run(userArgs.slice(1), cwd);
+			case "help":
 				printUsage();
+			case other:
+				Sys.println('Unknown command: $other');
+				Sys.println("");
+				printUsage();
+				Sys.exit(1);
 		}
 	}
 
 	static function resolveLibRoot():String {
 		// When run via haxelib, we can find our own root by checking where Run.hx lives
-		// The haxelib root is the directory containing haxefmod/, templates/, scripts/, etc.
+		// The haxelib root is the directory containing haxefmod/, templates/, and the version marker
 		// Use Sys.programPath() to find ourselves, then navigate up
 		try {
 			var result = runQuiet("haxelib", ["path", "haxefmod"]);
 			if (result.exitCode == 0) {
-				// haxelib path outputs one path per line; the first is the source dir
+				// haxelib path outputs one path per line. The first is the source dir
 				for (line in result.stdout.split("\n")) {
 					var trimmed = StringTools.trim(line);
 					if (trimmed != "" && !StringTools.startsWith(trimmed, "-")) {
-						// This is like /home/user/haxelib/haxefmod/git/haxefmod
-						// We need the parent (the lib root)
-						if (FileSystem.exists(haxe.io.Path.join([haxe.io.Path.directory(trimmed), "scripts", "fmod_expected_version"]))) {
+						// The classpath line points inside the lib. The
+						// version marker identifies its parent as the root
+						if (FileSystem.exists(haxe.io.Path.join([haxe.io.Path.directory(trimmed), "fmod_expected_version"]))) {
 							return haxe.io.Path.directory(trimmed);
 						}
 					}
@@ -66,9 +77,11 @@ class Run {
 		Sys.println("Usage: haxelib run haxefmod <command>");
 		Sys.println("");
 		Sys.println("Commands:");
-		Sys.println("  check       Check your environment for correct FMOD SDK setup");
-		Sys.println("  build-hdll  Compile hlaxe_fmod.hdll from source against your FMOD SDK");
-		Sys.println("  help        Show this message");
+		Sys.println("  check          Check your environment for correct FMOD SDK setup");
+		Sys.println("  build-hdll     Compile hlaxe_fmod.hdll from source against your FMOD SDK");
+		Sys.println("  verify-native  Verify the native shims are in lockstep with the FFI manifest");
+		Sys.println("  generate       Generate Haxe constant classes (FmodEvents, FmodBuses, ...) from Master.strings.bank");
+		Sys.println("  help           Show this message");
 	}
 
 	static function runCheck(cwd:String, libRoot:String) {
@@ -285,7 +298,7 @@ class Run {
 		// All platforms now use 2.03.12
 		var expected = "2.03.12";
 		if (versionStr == expected) {
-			pass("FMOD version", '$versionStr (expected $expected)');
+			pass("FMOD version", versionStr);
 		} else {
 			fail("FMOD version", 'Found $versionStr, expected $expected.');
 			Sys.println('         Download FMOD Engine $expected for $platform from https://www.fmod.com/download');
@@ -297,7 +310,7 @@ class Run {
 		var sdkHex = PostBuild.parseFmodVersion(commonHeader);
 		if (sdkHex == null) return;
 
-		var versionFile = haxe.io.Path.join([libRoot, "scripts", "fmod_expected_version"]);
+		var versionFile = haxe.io.Path.join([libRoot, "fmod_expected_version"]);
 		if (!FileSystem.exists(versionFile)) return;
 		var expectedHex = StringTools.trim(File.getContent(versionFile));
 
@@ -327,10 +340,8 @@ class Run {
 	static function checkHtml5Sdk(fmodSdk:String) {
 		var fmodSdkWeb = Sys.getEnv("FMOD_SDK_WEB");
 		if (fmodSdkWeb == null || fmodSdkWeb == "") {
-			fail("FMOD_SDK_WEB environment variable set (needed for lime build html5)", "Not set");
-			Sys.println('         Download FMOD Engine 2.03.12 for HTML5 from https://www.fmod.com/download');
-			Sys.println('         Extract and set FMOD_SDK_WEB to the extracted installer directory:');
-			Sys.println('');
+			skip("FMOD_SDK_WEB environment variable set", "Not set. Only needed for lime build html5.");
+			Sys.println('         To build for HTML5 later: download FMOD Engine 2.03.12 for HTML5 from https://www.fmod.com/download and');
 			Sys.println('         export FMOD_SDK_WEB=/path/to/fmodstudioapi20312html5');
 			return;
 		}
@@ -377,7 +388,7 @@ class Run {
 		if (FileSystem.exists(bankPath)) {
 			pass("FMOD bank files present", bankPath);
 		} else {
-			fail("FMOD bank files present", 'Not found: assets/fmod/Desktop/Master.bank');
+			warn("FMOD bank files present", 'Not found: assets/fmod/Desktop/Master.bank. Build banks in FMOD Studio (Ctrl+B) before running the game.');
 		}
 	}
 
@@ -394,12 +405,32 @@ class Run {
 		if (detail != "") Sys.println('         $detail');
 	}
 
+	/** A check that does not apply to this machine. Not counted. */
+	static function skip(label:String, detail:String) {
+		skipCount++;
+		Sys.println('  [SKIP] $label');
+		if (detail != "") Sys.println('         $detail');
+	}
+
+	/** A heads-up that is normal during setup. Not counted as a failure. */
+	static function warn(label:String, detail:String) {
+		warnCount++;
+		Sys.println('  [WARN] $label');
+		if (detail != "") Sys.println('         $detail');
+	}
+
 	static function printSummary() {
 		var total = passCount + failCount;
 		if (failCount == 0) {
-			Sys.println('All $total checks passed!');
+			var notes = new Array<String>();
+			if (warnCount > 0) notes.push('$warnCount warning' + (warnCount == 1 ? "" : "s"));
+			if (skipCount > 0) notes.push('$skipCount skipped');
+			var suffix = notes.length > 0 ? ' (${notes.join(", ")})' : "";
+			Sys.println('All $total checks passed!$suffix');
 		} else {
 			Sys.println('$passCount/$total checks passed, $failCount failed.');
+			// Scripts and CI rely on the exit code reflecting the result
+			Sys.exit(1);
 		}
 	}
 }

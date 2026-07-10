@@ -48,13 +48,27 @@ class PostBuild {
 	//// Version verification
 
 	static function verifyVersion(libRoot:String, sdkPath:String, sdkEnvName:String, projectDir:String, target:String):Void {
-		var versionFile = Path.join([libRoot, "scripts", "fmod_expected_version"]);
+		var versionFile = Path.join([libRoot, "fmod_expected_version"]);
 		var sdkHeader = Path.join([sdkPath, "api", "core", "inc", "fmod_common.h"]);
 
-		if (!FileSystem.exists(versionFile) || !FileSystem.exists(sdkHeader)) {
+		// A set-but-wrong SDK path is provably not an SDK: hard error, the
+		// same class of failure as an unset variable. A soft warning here
+		// used to let typo'd paths skip the version gate entirely and ship
+		// builds that only ran when stale libraries were still in export/.
+		if (!FileSystem.exists(sdkHeader)) {
+			log('ERROR: $sdkEnvName is set but does not point at an FMOD SDK');
+			log('  $sdkEnvName = $sdkPath');
+			log('  Missing: $sdkHeader');
+			log("  Check the path for typos, or re-download the FMOD Engine from https://www.fmod.com/download");
+			log("  Verify your setup with: haxelib run haxefmod check");
+			Sys.exit(1);
+		}
+
+		// The lib-side expected-version file going missing is a packaging
+		// problem, not a user setup problem - warn and continue
+		if (!FileSystem.exists(versionFile)) {
 			log("WARNING: Could not verify FMOD SDK version");
-			if (!FileSystem.exists(versionFile)) log('  Missing: $versionFile');
-			if (!FileSystem.exists(sdkHeader)) log('  Missing: $sdkHeader');
+			log('  Missing: $versionFile');
 			return;
 		}
 
@@ -159,6 +173,98 @@ class PostBuild {
 		return '$product.$major.$minor';
 	}
 
+	//// hdll resolution (HL target)
+
+	// Expected ABI version comes from the manifest header ("# abi-version: N").
+	static function expectedAbiVersion(libRoot:String):Int {
+		var manifestPath = Path.join([libRoot, "native", "manifest", "studio_api.txt"]);
+		if (!FileSystem.exists(manifestPath)) return -1;
+		for (line in File.getContent(manifestPath).split("\n")) {
+			var trimmed = StringTools.trim(line);
+			if (StringTools.startsWith(trimmed, "# abi-version:")) {
+				var parsed = Std.parseInt(StringTools.trim(trimmed.substr("# abi-version:".length)));
+				return parsed == null ? -1 : parsed;
+			}
+		}
+		return -1;
+	}
+
+	// Scans the hdll binary for the embedded "hlaxe_fmod_abi=<N>" marker.
+	// Returns the version, or 0 when no marker exists (an hdll built before the ABI marker existed).
+	static function scanHdllAbi(hdllPath:String):Int {
+		var bytes = File.getBytes(hdllPath);
+		var marker = "hlaxe_fmod_abi=";
+		var limit = bytes.length - marker.length - 4;
+		var i = 0;
+		while (i < limit) {
+			var matched = true;
+			for (j in 0...marker.length) {
+				if (bytes.get(i + j) != marker.charCodeAt(j)) {
+					matched = false;
+					break;
+				}
+			}
+			if (matched) {
+				var digits = "";
+				var k = i + marker.length;
+				while (k < bytes.length) {
+					var c = bytes.get(k);
+					if (c < "0".code || c > "9".code) break;
+					digits += String.fromCharCode(c);
+					k++;
+				}
+				var parsed = Std.parseInt(digits);
+				return parsed == null ? 0 : parsed;
+			}
+			i++;
+		}
+		return 0;
+	}
+
+	// Tiered hdll resolution (project-local .haxefmod/ then pre-built) with a
+	// binding ABI check: an hdll compiled against an older native surface is
+	// missing prims and dies with a loader fatal at startup, so the build is
+	// stopped here with instructions instead.
+	static function copyHdll(projectDir:String, libRoot:String, platformDir:String, destDir:String):Void {
+		var projectHdll = Path.join([projectDir, ".haxefmod", "hlaxe_fmod.hdll"]);
+		var prebuiltHdll = Path.join([libRoot, "templates", "bin", "hl", platformDir, "hlaxe_fmod.hdll"]);
+		var source:String = null;
+		var flavor:String = null;
+		if (FileSystem.exists(projectHdll)) {
+			source = projectHdll;
+			flavor = "custom-compiled from .haxefmod/";
+		} else if (FileSystem.exists(prebuiltHdll)) {
+			source = prebuiltHdll;
+			flavor = "pre-built";
+		}
+		if (source == null) return;
+
+		var expected = expectedAbiVersion(libRoot);
+		if (expected > 0) {
+			var found = scanHdllAbi(source);
+			if (found != expected) {
+				Sys.println("");
+				Sys.println("  ==========================================================");
+				Sys.println("  ERROR: hlaxe_fmod.hdll binding version mismatch");
+				Sys.println("");
+				Sys.println('  hdll: $source');
+				Sys.println('  hdll binding ABI:     ' + (found == 0 ? "unknown (no ABI marker)" : Std.string(found)));
+				Sys.println('  library expects ABI:  $expected');
+				Sys.println("");
+				Sys.println("  This hdll was compiled against a different native surface and");
+				Sys.println("  would fail to load at startup. To compile a matching hdll, run:");
+				Sys.println("    haxelib run haxefmod build-hdll");
+				Sys.println("  from your project directory, then rebuild.");
+				Sys.println("  ==========================================================");
+				Sys.println("");
+				Sys.exit(1);
+			}
+		}
+
+		copyFile(source, Path.join([destDir, "hlaxe_fmod.hdll"]));
+		log('Copied hlaxe_fmod.hdll ($flavor)');
+	}
+
 	//// Mac
 
 	static function copyMac(sdkDir:String, target:String, libRoot:String, exportDir:String, projectDir:String):Void {
@@ -182,17 +288,9 @@ class PostBuild {
 		copyFile(Path.join([sdkDir, "api", "core", "lib", "libfmod.dylib"]), Path.join([dest, "libfmod.dylib"]));
 		copyFile(Path.join([sdkDir, "api", "studio", "lib", "libfmodstudio.dylib"]), Path.join([dest, "libfmodstudio.dylib"]));
 
-		// Copy hlaxe_fmod.hdll - prefer project-local .haxefmod/, fall back to pre-built
+		// Copy hlaxe_fmod.hdll - tiered resolution with binding ABI check
 		if (target == "hl") {
-			var projectHdll = Path.join([projectDir, ".haxefmod", "hlaxe_fmod.hdll"]);
-			var prebuiltHdll = Path.join([libRoot, "templates", "bin", "hl", "Mac64", "hlaxe_fmod.hdll"]);
-			if (FileSystem.exists(projectHdll)) {
-				copyFile(projectHdll, Path.join([dest, "hlaxe_fmod.hdll"]));
-				log("Copied hlaxe_fmod.hdll (custom-compiled from .haxefmod/)");
-			} else if (FileSystem.exists(prebuiltHdll)) {
-				copyFile(prebuiltHdll, Path.join([dest, "hlaxe_fmod.hdll"]));
-				log("Copied hlaxe_fmod.hdll (pre-built)");
-			}
+			copyHdll(projectDir, libRoot, "Mac64", dest);
 		}
 
 		// Set rpath so executable finds dylibs next to it (C++ only - HL exe is bytecode, not Mach-O)
@@ -227,23 +325,24 @@ class PostBuild {
 		copyGlobSymlinks(Path.join([sdkDir, "api", "core", "lib", "x86_64"]), "libfmod.so", binDir);
 		copyGlobSymlinks(Path.join([sdkDir, "api", "studio", "lib", "x86_64"]), "libfmodstudio.so", binDir);
 
-		// Copy hlaxe_fmod.hdll - prefer project-local .haxefmod/, fall back to pre-built
+		// Copy hlaxe_fmod.hdll - tiered resolution with binding ABI check
 		if (target == "hl") {
-			var projectHdll = Path.join([projectDir, ".haxefmod", "hlaxe_fmod.hdll"]);
-			var prebuiltHdll = Path.join([libRoot, "templates", "bin", "hl", "Linux64", "hlaxe_fmod.hdll"]);
-			if (FileSystem.exists(projectHdll)) {
-				copyFile(projectHdll, Path.join([binDir, "hlaxe_fmod.hdll"]));
-				log("Copied hlaxe_fmod.hdll (custom-compiled from .haxefmod/)");
-			} else if (FileSystem.exists(prebuiltHdll)) {
-				copyFile(prebuiltHdll, Path.join([binDir, "hlaxe_fmod.hdll"]));
-				log("Copied hlaxe_fmod.hdll (pre-built)");
-			}
+			copyHdll(projectDir, libRoot, "Linux64", binDir);
 		}
+
+		// Modern Linux kernels refuse to load libraries flagged with an
+		// executable stack, and FMOD ships its .so files that way. CI has
+		// always cleared the flag as a separate step. Do it here so plain
+		// `lime test linux` works on end-user machines too. Silently skipped
+		// when patchelf is not installed (older kernels do not need it).
+		clearExecstack(binDir);
 
 		// Create run.sh wrapper if it doesn't exist
 		var runSh = Path.join([binDir, "run.sh"]);
 		if (!FileSystem.exists(runSh)) {
-			var exeName = findExecutableName(binDir, [".so", ".hdll", ".ndll"]);
+			// .dat excluded: HL builds ship hlboot.dat next to the exe and
+			// run.sh must never point at it
+			var exeName = findExecutableName(binDir, [".so", ".hdll", ".ndll", ".dat"]);
 			if (exeName != null) {
 				var content = '#!/bin/bash\ncd "$$(dirname "$$0")"\nexport LD_LIBRARY_PATH="$$(pwd):$$LD_LIBRARY_PATH"\n./${exeName} "$$@"\n';
 				File.saveContent(runSh, content);
@@ -252,6 +351,38 @@ class PostBuild {
 		}
 
 		log("Done - copied FMOD .so files");
+	}
+
+	/** Clears the executable-stack flag on every FMOD .so in the directory. */
+	static function clearExecstack(binDir:String):Void {
+		for (file in FileSystem.readDirectory(binDir)) {
+			if (file.indexOf("libfmod") != 0 || file.indexOf(".so") == -1) continue;
+			var path = Path.join([binDir, file]);
+			if (isSymlink(path)) continue;
+			try {
+				var proc = new sys.io.Process("patchelf", ["--clear-execstack", path]);
+				var code = proc.exitCode();
+				proc.close();
+				if (code == 0) {
+					log('Cleared executable-stack flag on $file');
+				}
+			} catch (e:Dynamic) {
+				log("patchelf not found - skipped execstack clearing (needed on modern kernels). Install patchelf if the game fails to load libfmod.");
+				return;
+			}
+		}
+	}
+
+	static function isSymlink(path:String):Bool {
+		// Haxe sys has no lstat. Test -L works everywhere PostBuild handles symlinks (Linux only)
+		try {
+			var proc = new sys.io.Process("test", ["-L", path]);
+			var code = proc.exitCode();
+			proc.close();
+			return code == 0;
+		} catch (e:Dynamic) {
+			return false;
+		}
 	}
 
 	//// Windows
@@ -269,17 +400,9 @@ class PostBuild {
 		copyFile(Path.join([sdkDir, "api", "core", "lib", "x64", "fmod.dll"]), Path.join([binDir, "fmod.dll"]));
 		copyFile(Path.join([sdkDir, "api", "studio", "lib", "x64", "fmodstudio.dll"]), Path.join([binDir, "fmodstudio.dll"]));
 
-		// Copy hlaxe_fmod.hdll - prefer project-local .haxefmod/, fall back to pre-built
+		// Copy hlaxe_fmod.hdll - tiered resolution with binding ABI check
 		if (target == "hl") {
-			var projectHdll = Path.join([projectDir, ".haxefmod", "hlaxe_fmod.hdll"]);
-			var prebuiltHdll = Path.join([libRoot, "templates", "bin", "hl", "Windows64", "hlaxe_fmod.hdll"]);
-			if (FileSystem.exists(projectHdll)) {
-				copyFile(projectHdll, Path.join([binDir, "hlaxe_fmod.hdll"]));
-				log("Copied hlaxe_fmod.hdll (custom-compiled from .haxefmod/)");
-			} else if (FileSystem.exists(prebuiltHdll)) {
-				copyFile(prebuiltHdll, Path.join([binDir, "hlaxe_fmod.hdll"]));
-				log("Copied hlaxe_fmod.hdll (pre-built)");
-			}
+			copyHdll(projectDir, libRoot, "Windows64", binDir);
 		}
 
 		log("Done - copied fmod.dll and fmodstudio.dll");
@@ -397,7 +520,15 @@ class PostBuild {
 
 	/** Copy files matching a prefix from srcDir to destDir, preserving symlinks on Linux. */
 	static function copyGlobSymlinks(srcDir:String, prefix:String, destDir:String):Void {
-		if (!FileSystem.exists(srcDir)) return;
+		// Copying nothing silently produced binaries that only launched when
+		// stale libraries from an earlier build were still in the bin dir
+		if (!FileSystem.exists(srcDir)) {
+			log('ERROR: FMOD library directory not found: $srcDir');
+			log("  The FMOD_SDK directory has no libraries for this platform, so the");
+			log("  build output would fail to launch. Re-download the FMOD Engine or");
+			log("  fix FMOD_SDK, then rebuild.");
+			Sys.exit(1);
+		}
 		var files = FileSystem.readDirectory(srcDir);
 		for (file in files) {
 			if (StringTools.startsWith(file, prefix)) {

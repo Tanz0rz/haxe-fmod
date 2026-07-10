@@ -32,8 +32,11 @@ class PlayState extends FlxState {
     }
 
     override public function create():Void {
+        // One-call flixel setup: FmodFlxUpdater plugin (drives
+        // FmodManager.Update) plus FlxG.sound volume routing to FMOD
+        haxefmod.flixel.FmodFlxSetup.init();
         FmodManager.EnableDebugMessages();
-        FmodManager.PlaySong(FmodSong.MainLevel);
+        FmodManager.PlaySong(FmodEvents.MusicMainLevel);
 
         FlxG.mouse.visible = false;
         FlxG.cameras.bgColor = 0xffaaaaaa;
@@ -72,7 +75,7 @@ class PlayState extends FlxState {
     }
 
     override public function update(elapsed:Float):Void {
-        FmodManager.Update();
+        // FmodManager.Update() runs via the FmodFlxUpdater plugin
 
         if (!_started) {
             _startDelay += elapsed;
@@ -109,7 +112,7 @@ class PlayState extends FlxState {
 
     function getCoin(Coin:FlxObject, Player:FlxObject):Void {
         FmodManager.SetEventParameterOnSong("FadeArpIn", 1.0);
-        FmodManager.PlaySoundOneShot(FmodSFX.Coin);
+        FmodManager.PlaySoundOneShot(FmodEvents.SFXCoin);
         Coin.kill();
         _status.text = "You win!";
         _winTimer = 0;

@@ -28,11 +28,13 @@ fi
 
 PASS=true
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 echo "=== Audio Validation: $(basename "$WAV_FILE") ==="
 echo ""
 
 # 1. Check file exists
-echo -n "  [1/4] File exists .................. "
+echo -n "  [1/5] File exists .................. "
 if [ ! -f "$WAV_FILE" ]; then
   echo "FAIL (not found: $WAV_FILE)"
   exit 1
@@ -41,7 +43,7 @@ echo "OK"
 
 # 2. Check file size
 FILE_SIZE=$(stat -f%z "$WAV_FILE" 2>/dev/null || stat -c%s "$WAV_FILE" 2>/dev/null || wc -c < "$WAV_FILE")
-echo -n "  [2/4] File size > 1KB .............. "
+echo -n "  [2/5] File size > 1KB .............. "
 if [ "$FILE_SIZE" -lt 1000 ]; then
   echo "FAIL (${FILE_SIZE} bytes)"
   PASS=false
@@ -50,7 +52,7 @@ else
 fi
 
 # 3. Check duration
-# Try normal probe first; if WAV header is malformed (e.g. FMOD WAVWRITER on Windows
+# Try normal probe first. If WAV header is malformed (e.g. FMOD WAVWRITER on Windows
 # writes 0 channels), fall back to raw PCM interpretation (s16le, 48kHz, stereo).
 DURATION=$("$FFPROBE" -i "$WAV_FILE" -show_entries format=duration -v quiet -of csv="p=0" 2>/dev/null)
 if [ -z "$DURATION" ] || [ "$DURATION" = "N/A" ]; then
@@ -59,7 +61,7 @@ if [ -z "$DURATION" ] || [ "$DURATION" = "N/A" ]; then
   DURATION=$(awk "BEGIN {printf \"%.1f\", ($FILE_SIZE - 44) / 192000.0}")
 fi
 DURATION_INT=$(printf "%.0f" "$DURATION" 2>/dev/null || echo 0)
-echo -n "  [3/4] Duration >= ${MIN_DURATION}s .............. "
+echo -n "  [3/5] Duration >= ${MIN_DURATION}s .............. "
 if [ -z "$DURATION" ]; then
   echo "FAIL (could not read duration)"
   PASS=false
@@ -70,14 +72,18 @@ else
   echo "OK (${DURATION}s)"
 fi
 
+# Resolve a Python interpreter (python3 on Linux/Mac, python on Windows)
+PYTHON="python3"
+command -v python3 >/dev/null 2>&1 || PYTHON="python"
+
 # 4. Check volume (not silent)
-# Try normal ffmpeg volumedetect; if WAV header is malformed, use raw PCM input
+# Try normal ffmpeg volumedetect. If WAV header is malformed, use raw PCM input
 MEAN_VOLUME=$("$FFMPEG" -i "$WAV_FILE" -af volumedetect -f null /dev/null 2>&1 | grep mean_volume | sed 's/.*mean_volume: //' | sed 's/ dB//')
 if [ -z "$MEAN_VOLUME" ]; then
   MEAN_VOLUME=$("$FFMPEG" -f s16le -ar 48000 -ac 2 -i "$WAV_FILE" -af volumedetect -f null /dev/null 2>&1 | grep mean_volume | sed 's/.*mean_volume: //' | sed 's/ dB//')
 fi
 VOLUME_INT=$(printf "%.0f" "$MEAN_VOLUME" 2>/dev/null || echo -91)
-echo -n "  [4/4] Mean volume > -60 dB ......... "
+echo -n "  [4/5] Mean volume > -60 dB ......... "
 if [ -z "$MEAN_VOLUME" ]; then
   echo "FAIL (could not detect volume)"
   PASS=false
@@ -86,6 +92,17 @@ elif [ "$VOLUME_INT" -lt -60 ]; then
   PASS=false
 else
   echo "OK (${MEAN_VOLUME} dB)"
+fi
+
+# 5. Deep profile of the active region: enough active audio, no dropout
+# gaps, both channels alive, bounded leading silence, no sustained clipping.
+# The whole-file mean-volume check above cannot see any of these.
+echo "  [5/5] Active-region profile ........"
+if "$PYTHON" "$SCRIPT_DIR/audio-profile.py" "$WAV_FILE" --min-active "$MIN_DURATION"; then
+  echo "        OK"
+else
+  echo "        FAIL (see profile above)"
+  PASS=false
 fi
 
 echo ""

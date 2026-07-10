@@ -1,469 +1,353 @@
 package haxefmod;
 
-import haxefmod.FmodEvents.FmodEventListener;
-import haxefmod.FmodManagerPrivate;
+import haxefmod.FmodSound;
+import haxefmod.runtime.CallbackDispatcher;
+import haxefmod.runtime.FmodRuntime;
+import haxefmod.runtime.FmodSettings;
+import haxefmod.studio.Callbacks;
+import haxefmod.studio.EventInstance;
+import haxefmod.studio.StudioSystem;
+import haxefmod.studio.Types;
+import haxefmod.studio.native.NativeStudio;
 
-@:access(haxefmod.FmodManagerPrivate)
+/**
+ * The friendly FMOD facade: one background song slot plus fire-and-forget
+ * and handle-based sound effects. Built entirely on the public layers
+ * underneath - use haxefmod.runtime.FmodRuntime for banks/3D/settings and
+ * haxefmod.studio.* for the complete FMOD Studio API.
+ *
+ * Call FmodManager.Update() every frame (or add FmodFlxUpdater once).
+ */
 class FmodManager {
+    // Single music slot
+    static var songInstance:EventInstance = EventInstance.NULL;
+    static var CurrentSong:String = "";
+    static var NextSong:String;
+
+    static var lastUpdateCall:Float = 0;
+    static var debug:Bool = false;
+    static var initialized:Bool = false;
+
     //// System
 
     /**
-        Enables console debug messages for the system-specific calls made to FMOD
-    **/
-    public static function EnableDebugMessages() {
-        FmodManagerPrivate.GetInstance().EnableDebugMessages();
+     * Initializes FMOD. Optional settings control channels, live update,
+     * bank folder/auto-loading, and more (see FmodSettings). every other
+     * FmodManager call initializes with defaults on first use. First
+     * initialization wins: settings passed to a later call are ignored.
+     */
+    public static function Initialize(?settings:FmodSettings):Void {
+        if (initialized) {
+            if (settings != null) log("Initialize called again - already initialized, settings ignored");
+            return;
+        }
+        initialized = true;
+        FmodRuntime.init(settings);
+        #if debug
+        EnableDebugMessages();
+        #end
+        log("Initialized");
     }
 
-    /**
-        Explicitly starts the FMOD audio engine (only required on html5)
-    **/
-    public static function Initialize() {
-        FmodManagerPrivate.GetInstance();
+    /** Turns on FMOD debug logging and facade operation traces. */
+    public static function EnableDebugMessages():Void {
+        debug = true;
+        NativeStudio.sys_set_debug_level(3); // 3 = log everything (the FmodSettings.logLevel scale)
     }
 
-    /**
-        Returns true if the FMOD audio engine is initialized
-    **/
+    /** True once FMOD is ready (html5 initializes asynchronously). */
     public static function IsInitialized():Bool {
-        return FmodManagerPrivate.GetInstance().IsInitialized();
+        ensureInitialized();
+        return FmodRuntime.isInitialized();
     }
 
     /**
-        Processes FMOD's asynchronous events including parameter changes and callbacks.
-
-        With auto-update enabled (the default), FMOD is automatically updated at ~60fps on a
-        background thread (C++/HashLink) or via setInterval (HTML5). This means calling Update()
-        manually is optional for most use cases.
-
-        You may still call Update() in your game loop if you want updates synchronized exactly
-        with your frame timing, but this provides minimal benefit since auto-update already
-        runs at the same rate as a typical game loop.
-
-        To disable auto-update and manage FMOD updates entirely yourself, call SetAutoUpdate(false).
-    **/
-    public static function Update() {
-        FmodManagerPrivate.GetInstance().Update();
+     * Services FMOD: delivers callbacks, updates attached instances, and
+     * drives song transitions. Call once per frame.
+     */
+    public static function Update():Void {
+        ensureInitialized();
+        lastUpdateCall = Date.now().getTime();
+        FmodRuntime.update();
     }
 
     /**
-        Enables or disables automatic FMOD updates.
-
-        When enabled (the default), FMOD is updated automatically at ~60fps:
-        - C++: Background thread with 16ms sleep
-        - HashLink: Background thread using pthread (Linux) or Windows threads
-        - HTML5: JavaScript setInterval
-
-        This ensures FMOD processes parameter changes and callbacks even when the game loop
-        is paused (e.g., when the window loses focus).
-
-        @param enabled true to enable auto-update (default), false to disable
-    **/
-    public static function SetAutoUpdate(enabled:Bool) {
-        FmodManagerPrivate.GetInstance().SetAutoUpdate(enabled);
+     * Toggles the background auto-update that keeps audio running when the
+     * game loop stalls (on by default. typed callbacks still only arrive
+     * from Update).
+     */
+    public static function SetAutoUpdate(enabled:Bool):Void {
+        ensureInitialized();
+        NativeStudio.sys_set_auto_update(enabled);
     }
 
-    public static function StopAllSounds() {
-        FmodManagerPrivate.GetInstance().StopAllSounds();
+    //// Global controls
+
+    public static function StopAllSounds():Void {
+        ensureInitialized();
+        StudioSystem.getBus("bus:/").stopAllEvents(IMMEDIATE);
     }
 
-    public static function PauseAllSounds() {
-        FmodManagerPrivate.GetInstance().PauseAllSounds();
+    public static function PauseAllSounds():Void {
+        ensureInitialized();
+        FmodRuntime.pauseAll(true);
     }
 
-    public static function UnpauseAllSounds() {
-        FmodManagerPrivate.GetInstance().UnpauseAllSounds();
+    public static function UnpauseAllSounds():Void {
+        ensureInitialized();
+        FmodRuntime.pauseAll(false);
     }
 
-    //// Bus
+    //// Buses
 
-    /**
-        Sets the volume for a bus.
-        Volume is linear: 0.0 = silent, 1.0 = full (default). Values > 1.0 amplify.
-        @param busPath FMOD bus path (e.g. "bus:/Music")
-        @param volume linear volume level
-    **/
-    public static function SetBusVolume(busPath:String, volume:Float) {
-        FmodManagerPrivate.GetInstance().SetBusVolume(busPath, volume);
+    public static function SetBusVolume(busPath:String, volume:Float):Void {
+        ensureInitialized();
+        StudioSystem.getBus(busPath).setVolume(volume);
     }
 
-    /**
-        Gets the user-set volume for a bus (not the final mixed value).
-        @param busPath FMOD bus path (e.g. "bus:/Music")
-        @return linear volume level
-    **/
     public static function GetBusVolume(busPath:String):Float {
-        return FmodManagerPrivate.GetInstance().GetBusVolume(busPath);
+        ensureInitialized();
+        return StudioSystem.getBus(busPath).getVolume();
     }
 
-    /**
-        Sets the mute state for a bus.
-        @param busPath FMOD bus path (e.g. "bus:/Music")
-        @param mute true to mute, false to unmute
-    **/
-    public static function SetBusMute(busPath:String, mute:Bool) {
-        FmodManagerPrivate.GetInstance().SetBusMute(busPath, mute);
+    public static function SetBusMute(busPath:String, mute:Bool):Void {
+        ensureInitialized();
+        StudioSystem.getBus(busPath).setMute(mute);
     }
 
-    /**
-        Gets the mute state for a bus.
-        @param busPath FMOD bus path (e.g. "bus:/Music")
-        @return true if muted
-    **/
     public static function GetBusMute(busPath:String):Bool {
-        return FmodManagerPrivate.GetInstance().GetBusMute(busPath);
+        ensureInitialized();
+        return StudioSystem.getBus(busPath).getMute();
     }
 
-    //// Master Bus
-
-    /**
-        Sets the master bus volume.
-        Volume is linear: 0.0 = silent, 1.0 = full (default). Values > 1.0 amplify.
-        @param volume linear volume level
-    **/
-    public static function SetBusVolumeMaster(volume:Float) {
-        FmodManagerPrivate.GetInstance().SetBusVolume("bus:/", volume);
+    /** Master-bus ("bus:/") convenience variants. */
+    public static function SetBusVolumeMaster(volume:Float):Void {
+        SetBusVolume("bus:/", volume);
     }
 
-    /**
-        Gets the master bus volume (user-set value, not the final mixed value).
-        @return linear volume level
-    **/
     public static function GetBusVolumeMaster():Float {
-        return FmodManagerPrivate.GetInstance().GetBusVolume("bus:/");
+        return GetBusVolume("bus:/");
     }
 
-    /**
-        Sets the master bus mute state.
-        @param mute true to mute, false to unmute
-    **/
-    public static function SetBusMuteMaster(mute:Bool) {
-        FmodManagerPrivate.GetInstance().SetBusMute("bus:/", mute);
+    public static function SetBusMuteMaster(mute:Bool):Void {
+        SetBusMute("bus:/", mute);
     }
 
-    /**
-        Gets the master bus mute state.
-        @return true if muted
-    **/
     public static function GetBusMuteMaster():Bool {
-        return FmodManagerPrivate.GetInstance().GetBusMute("bus:/");
+        return GetBusMute("bus:/");
     }
 
-    //// Master Bus (deprecated)
+    //// Music (single song slot)
 
     /**
-        Deprecated: Use SetBusVolumeMaster() instead. Will be removed in 2.0.0.
-        @param volume linear volume level
-    **/
-    @:deprecated("Use SetBusVolumeMaster() instead. Will be removed in 2.0.0.")
-    public static function SetMasterVolume(volume:Float) {
-        SetBusVolumeMaster(volume);
-    }
+     * Plays a song, immediately replacing any current song. Calling it
+     * again with the current song restarts playback only if it stopped.
+     */
+    public static function PlaySong(songPath:String):Void {
+        ensureInitialized();
+        // A direct play supersedes any pending transition
+        NextSong = null;
 
-    /**
-        Deprecated: Use GetBusVolumeMaster() instead. Will be removed in 2.0.0.
-        @return linear volume level
-    **/
-    @:deprecated("Use GetBusVolumeMaster() instead. Will be removed in 2.0.0.")
-    public static function GetMasterVolume():Float {
-        return GetBusVolumeMaster();
-    }
+        if (songPath == CurrentSong && !songInstance.isNull()) {
+            if (!isInstancePlaying(songInstance)) {
+                songInstance.start();
+            }
+            return;
+        }
 
-    /**
-        Deprecated: Use SetBusMuteMaster() instead. Will be removed in 2.0.0.
-        @param mute true to mute, false to unmute
-    **/
-    @:deprecated("Use SetBusMuteMaster() instead. Will be removed in 2.0.0.")
-    public static function SetMasterMute(mute:Bool) {
-        SetBusMuteMaster(mute);
-    }
+        // Replace the current song: hard stop and release the old instance
+        if (!songInstance.isNull()) {
+            songInstance.stop(IMMEDIATE);
+            songInstance.release();
+            songInstance = EventInstance.NULL;
+        }
 
-    /**
-        Deprecated: Use GetBusMuteMaster() instead. Will be removed in 2.0.0.
-        @return true if muted
-    **/
-    @:deprecated("Use GetBusMuteMaster() instead. Will be removed in 2.0.0.")
-    public static function GetMasterMute():Bool {
-        return GetBusMuteMaster();
+        log('PlaySong $songPath');
+        var instance = FmodRuntime.createInstance(songPath);
+        if (instance.isNull()) return;
+        instance.start();
+        songInstance = instance;
+        CurrentSong = songPath;
     }
 
     /**
-        Prints out a warning message to console if Update() has not been called recently
-    **/
-    public static function CheckIfUpdateIsBeingCalled() {
-        FmodManagerPrivate.GetInstance().CheckIfUpdateIsBeingCalled();
+     * Fades out the current song (as authored), then plays the new one
+     * once the Stopped event arrives. Requires Update() every frame.
+     *
+     * The song has a single callback slot: the transition occupies it
+     * until the fade completes, so registering OnSongEvent during the
+     * fade cancels the transition, and a second transition during the
+     * fade cuts to the new song instead of crossfading.
+     */
+    public static function PlaySongTransition(songPath:String):Void {
+        ensureInitialized();
+
+        if (songPath == CurrentSong && !songInstance.isNull()) {
+            if (!isInstancePlaying(songInstance)) {
+                songInstance.start();
+            }
+            return;
+        }
+
+        // Nothing to fade out - just play it
+        if (songInstance.isNull() || !isInstancePlaying(songInstance)) {
+            PlaySong(songPath);
+            return;
+        }
+
+        log('PlaySongTransition $songPath');
+        NextSong = songPath;
+        songInstance.stop(ALLOWFADEOUT);
+        songInstance.setCallback(data -> {
+            switch (data) {
+                case Stopped:
+                    // StopSong since the transition was armed clears
+                    // NextSong, and the completed fade must stay silent
+                    if (NextSong != null) {
+                        var next = NextSong;
+                        NextSong = null;
+                        PlaySong(next);
+                    }
+                default:
+            }
+        }, EventCallbackType.STOPPED);
     }
 
-    //// Music
-
-    /**
-        Plays a song from the sound bank
-        @param songPath bank path of the song event in the sound bank
-    **/
-    public static function PlaySong(songPath:String) {
-        FmodManagerPrivate.GetInstance().PlaySong(songPath);
+    /** Fades the song out (as authored) and cancels any pending transition. */
+    public static function StopSong():Void {
+        ensureInitialized();
+        NextSong = null;
+        if (!songInstance.isNull()) songInstance.stop(ALLOWFADEOUT);
     }
 
-    /**
-        Used to transition between two songs
-
-        Sends the "stop" command to the FMOD API and waits for the
-        current song to stop before playing a new song from the sound bank
-        @param songPath bank path of the song event in the sound bank
-        @see https://tanneris.me/FMOD-AHDSR
-    **/
-    public static function PlaySongTransition(songPath:String) {
-        FmodManagerPrivate.GetInstance().PlaySongTransition(songPath);
+    /** Stops the song with no fade and cancels any pending transition. */
+    public static function StopSongImmediately():Void {
+        ensureInitialized();
+        NextSong = null;
+        if (!songInstance.isNull()) songInstance.stop(IMMEDIATE);
     }
 
-    /**
-        Gets an event parameter value from the song
-        @param parameterName name of parameter on song
-    **/
-    public static function GetEventParameterOnSong(parameterName:String) {
-        return FmodManagerPrivate.GetInstance().GetEventParameterOnSong(parameterName);
+    public static function PauseSong():Void {
+        ensureInitialized();
+        if (!songInstance.isNull()) {
+            songInstance.setPaused(true);
+            // Push the pause through FMOD immediately, independent of the
+            // game loop. The auto-update thread already ticks within ~16ms,
+            // so only manual-update setups need the push.
+            var s = FmodRuntime.settings();
+            if (s == null || !s.autoUpdate) NativeStudio.sys_update();
+        }
     }
 
-    /**
-        Sets an event parameter value on the song
-        @param parameterName name of parameter on song
-        @param parameterValue value for parameter
-    **/
-    public static function SetEventParameterOnSong(parameterName:String, parameterValue:Float) {
-        FmodManagerPrivate.GetInstance().SetEventParameterOnSong(parameterName, parameterValue);
+    public static function UnpauseSong():Void {
+        ensureInitialized();
+        if (!songInstance.isNull()) songInstance.setPaused(false);
     }
 
-    /**
-        Sends the "stop" command to the FMOD API for the current song
-    **/
-    public static function StopSong() {
-        FmodManagerPrivate.GetInstance().StopSong();
-    }
-
-    /**
-        If a song is playing, it will stop immediately
-    **/
-    public static function StopSongImmediately() {
-        FmodManagerPrivate.GetInstance().StopSongImmediately();
-    }
-
-    /**
-        If a song is playing, it will pause
-    **/
-    public static function PauseSong() {
-        FmodManagerPrivate.GetInstance().PauseSong();
-    }
-
-    /**
-        If a song is paused, it will unpause
-    **/
-    public static function UnpauseSong() {
-        FmodManagerPrivate.GetInstance().UnpauseSong();
-    }
-
-    /**
-        If a song is paused, it will unpause
-    **/
-    public static function ClearAllCallbacks() {
-        FmodManagerPrivate.GetInstance().ClearAllCallbacks();
-    }
-
-    /**
-        Returns true if a song is playing
-    **/
     public static function IsSongPlaying():Bool {
-        return FmodManagerPrivate.GetInstance().IsSongPlaying();
+        ensureInitialized();
+        return !songInstance.isNull() && isInstancePlaying(songInstance);
     }
 
-    /**
-        Gets the event path of the current song.
-        If no song is playing, returns an empty string
-    **/
     public static function GetCurrentSongPath():String {
-        return FmodManagerPrivate.GetInstance().GetCurrentSongPath();
+        return CurrentSong;
+    }
+
+    /** Timeline position of the current song in milliseconds. */
+    public static function GetSongTimelinePosition():Int {
+        ensureInitialized();
+        return songInstance.isNull() ? 0 : songInstance.getTimelinePosition();
+    }
+
+    public static function GetEventParameterOnSong(parameterName:String):Float {
+        ensureInitialized();
+        return songInstance.isNull() ? 0.0 : songInstance.getParameter(parameterName);
+    }
+
+    public static function SetEventParameterOnSong(parameterName:String, parameterValue:Float):Void {
+        ensureInitialized();
+        if (!songInstance.isNull()) songInstance.setParameter(parameterName, parameterValue);
     }
 
     /**
-        Gets the timeline position of the current song in milliseconds.
-        This reflects FMOD's audio processing timeline, which may differ
-        from wall-clock time when using output modes like WAVWRITER.
-        @return position in milliseconds, or 0 if no song is playing
-    **/
-    public static function GetSongTimelinePosition():Int {
-        return FmodManagerPrivate.GetInstance().GetSongTimelinePosition();
+     * Registers a typed payload callback (beats, markers, lifecycle) on the
+     * current song, delivered from Update(). Replaces any previous handler,
+     * including a pending PlaySongTransition's completion handler (the
+     * transition is then cancelled).
+     */
+    public static function OnSongEvent(handler:EventCallbackData->Void, ?mask:Int):Void {
+        ensureInitialized();
+        if (!songInstance.isNull()) songInstance.setCallback(handler, mask);
+    }
+
+    /**
+     * Registers a song callback that fires for the FIRST delivered event
+     * and then removes itself (use the mask to pick which events qualify).
+     * Replaces any previous song handler, like OnSongEvent.
+     */
+    public static function OnceSongEvent(handler:EventCallbackData->Void, ?mask:Int):Void {
+        ensureInitialized();
+        if (songInstance.isNull()) return;
+        var instance = songInstance;
+        instance.setCallback(data -> {
+            // The dispatcher force-subscribes DESTROYED for cleanup. It only
+            // consumes the single shot when the caller asked for it, but
+            // either way the instance is gone and the registration ends.
+            var unwanted = switch (data) {
+                case Destroyed: mask != null && (mask & EventCallbackType.DESTROYED) == 0;
+                default: false;
+            }
+            CallbackDispatcher.remove(instance);
+            if (!unwanted) handler(data);
+        }, mask);
     }
 
     //// Sound effects
 
-    /**
-        Plays a sound in a fire-and-forget fashion
+    /** Fire-and-forget playback (no handle. FMOD reclaims the instance). */
+    public static function PlaySoundOneShot(soundPath:String):Void {
+        ensureInitialized();
+        log('PlaySoundOneShot $soundPath');
+        FmodRuntime.playOneShot(soundPath);
+    }
 
-        There is no way to interact with these sounds once they are started
-
-        Follows the Master Track rules which are set in FMOD Studio (Max Instances, Stealing, and probably more)
-
-        @param soundPath bank path of the sound event in the sound bank
-        @see https://tanneris.me/FMOD-Macro-Controls
-    **/
-    public static function PlaySoundOneShot(soundPath:String) {
-        FmodManagerPrivate.GetInstance().PlaySoundOneShot(soundPath);
+    /** Fire-and-forget playback positioned in 2D space (uses listener 0). */
+    public static function PlaySoundOneShotAt(soundPath:String, x:Float, y:Float):Void {
+        ensureInitialized();
+        log('PlaySoundOneShotAt $soundPath');
+        FmodRuntime.playOneShot(soundPath, x, y);
     }
 
     /**
-        Plays a sound and returns the Id to allow further interactions
-
-        When this sound is no longer needed, call ReleaseSound to cleanup memory
-
-        Simple sound effects should be played with PlaySoundOneShot
-        @param soundPath bank path of the sound event in the sound bank
-        @return soundId of the new event instance
-    **/
-    public static function PlaySoundWithReference(soundPath:String):String {
-        return FmodManagerPrivate.GetInstance().PlaySoundWithReference(soundPath);
+     * Plays a sound and returns a typed handle for further control
+     * (parameters, callbacks, stop/pause). Call release() when done with
+     * the handle.
+     */
+    public static function PlaySound(soundPath:String):FmodSound {
+        ensureInitialized();
+        log('PlaySound $soundPath');
+        var instance = FmodRuntime.createInstance(soundPath);
+        if (instance.isNull()) return FmodSound.NULL;
+        instance.start();
+        return instance;
     }
 
-    /**
-        Plays a sound and sets the reference Id
-
-        When this sound is no longer needed, call ReleaseSound to cleanup memory
-
-        Simple sound effects should be played with PlaySoundOneShot
-        @param soundPath bank path of the sound event in the sound bank
-        @return soundId of the new event instance
-    **/
-    public static function PlaySoundAndAssignId(soundPath:String, soundId:String):String {
-        return FmodManagerPrivate.GetInstance().PlaySoundAndAssignId(soundPath, soundId);
+    /** Removes every registered event callback (song and sounds). */
+    public static function ClearAllCallbacks():Void {
+        CallbackDispatcher.clearAll();
     }
 
-    /**
-        Checks if a given sound Id is loaded
+    //// Internals
 
-        @param soundId Id of a loaded sound
-        @return bool
-    **/
-    public static function IsSoundLoaded(soundId:String):Bool {
-        return FmodManagerPrivate.GetInstance().IsSoundLoaded(soundId);
+    static inline function ensureInitialized():Void {
+        if (!initialized) Initialize();
     }
 
-    /**
-        Checks if a given sound Id is currently playing
-
-        @param soundId Id of a loaded sound
-        @return bool
-    **/
-    public static function IsSoundPlaying(soundId:String):Bool {
-        return FmodManagerPrivate.GetInstance().IsSoundPlaying(soundId);
+    static inline function isInstancePlaying(instance:EventInstance):Bool {
+        return instance.getPlaybackState() == FmodPlaybackState.PLAYING;
     }
 
-    /**
-        Gets an event parameter value from a sound
-        @param soundId Id of a loaded sound
-        @param parameterName name of parameter on sound
-    **/
-    public static function GetEventParameterOnSound(soundId:String, parameterName:String):Float {
-        return FmodManagerPrivate.GetInstance().GetEventParameterOnSound(soundId, parameterName);
-    }
-
-    /**
-        Sets an event parameter value on a sound
-        @param soundId Id of a loaded sound
-        @param parameterName name of parameter on sound
-        @param parameterValue value for parameter
-    **/
-    public static function SetEventParameterOnSound(soundId:String, parameterName:String, parameterValue:Float) {
-        FmodManagerPrivate.GetInstance().SetEventParameterOnSound(soundId, parameterName, parameterValue);
-    }
-
-    /**
-        Stops a sound for the provided sound Id
-
-        To stop a sound immediately, use StopSoundImmediately(soundId)
-        @param soundId Id of a loaded sound
-    **/
-    public static function StopSound(soundId:String) {
-        FmodManagerPrivate.GetInstance().StopSound(soundId);
-    }
-
-    /**
-        Immediately stops a sound for the provided sound Id
-        @param soundId Id of a loaded sound
-    **/
-    public static function StopSoundImmediately(soundId:String) {
-        FmodManagerPrivate.GetInstance().StopSoundImmediately(soundId);
-    }
-
-    /**
-        Pauses a sound
-        @param soundId Id of a loaded sound
-    **/
-    public static function PauseSound(soundId:String) {
-        FmodManagerPrivate.GetInstance().PauseSound(soundId);
-    }
-
-    /**
-        Unpauses a sound
-        @param soundId Id of a loaded sound
-    **/
-    public static function UnpauseSound(soundId:String) {
-        FmodManagerPrivate.GetInstance().UnpauseSound(soundId);
-    }
-
-    /**
-        Immediately stops a sound for the provided sound Id and releases it from memory
-        @param soundId Id of a loaded sound
-    **/
-    public static function ReleaseSound(soundId:String) {
-        FmodManagerPrivate.GetInstance().ReleaseSound(soundId);
-    }
-
-    //// Callbacks
-
-    /**
-        Register a callback for the current song
-        @param callback Function to execute when the provided playbackEventMask is triggered
-        @param playbackEventMask Event mask that will trigger the callback 
-        @see The FmodCallback class in FmodEvents.hx
-        @see https://tanneris.me/FMOD-Callback-Types
-    **/
-    public static function RegisterCallbacksForSong(callback:Void->Void, playbackEventMask:UInt) {
-        FmodManagerPrivate.GetInstance().RegisterCallbacksForSong(callback, playbackEventMask);
-    }
-
-    /**
-        Disables callbacks for the current song
-    **/
-    private function UnregisterCallbacksForSong() {
-        FmodManagerPrivate.GetInstance().UnregisterCallbacksForSong();
-    }
-
-    /**
-        Register a callback for a sound
-        @param soundId Id of a loaded sound
-        @param callback Function to execute when the provided playbackEventMask is triggered
-        @param playbackEventMask Event mask that will trigger the callback 
-        @see The FmodCallback class in FmodEvents.hx
-        @see https://tanneris.me/FMOD-Callback-Types
-    **/
-    public static function RegisterCallbacksForSound(soundId:String, callback:Void->Void, playbackEventMask:UInt) {
-        FmodManagerPrivate.GetInstance().RegisterCallbacksForSound(soundId, callback, playbackEventMask);
-    }
-
-    /**
-        Disables callbacks for a sound
-        @param soundId Id of a sound with registered callbacks
-    **/
-    private function UnregisterCallbacksForSound(soundId:String) {
-        FmodManagerPrivate.GetInstance().UnregisterCallbacksForSound(soundId);
-    }
-
-    //// Utility
-
-    /**
-        Experimental: register any class that satisfies the FmodEventListener interface
-
-        Will be used to allow utility methods (like screen transition helpers) for any Haxe framework
-        @param eventListener An implementer of the FmodEventListener interface
-    **/
-    public static function RegisterEventListener(eventListener:FmodEventListener) {
-        FmodManagerPrivate.GetInstance().RegisterEventListener(eventListener);
+    static function log(message:String):Void {
+        if (debug) trace('FMOD: $message');
     }
 }

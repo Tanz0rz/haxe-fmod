@@ -1,0 +1,138 @@
+name: Stress Test
+
+# Long-run soak of the native binding under sustained load: handle-table
+# growth past the initial slots, thousands of create/release cycles, and
+# dispatcher registration churn. Failures here are statistical (leaks,
+# rare races), so this runs on a weekly schedule and on demand instead of
+# gating every push.
+
+on:
+  schedule:
+    - cron: "0 5 * * 1"
+  workflow_dispatch:
+    inputs:
+      stress-seconds:
+        description: Churn phase duration in seconds
+        required: false
+        default: "300"
+
+env:
+  HAXE_VERSION: 4.3.6
+  FMOD_SDK: ${{ github.workspace }}/fmod-sdk
+
+jobs:
+  stress-linux-hl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download FMOD SDK
+        uses: ./.github/actions/fmod-sdk
+        with:
+          version: "2.03.12"
+          platform: linux
+          dest: ${{ env.FMOD_SDK }}
+          token: ${{ secrets.FMOD_SDK_TOKEN }}
+
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v2
+        with:
+          haxe-version: ${{ env.HAXE_VERSION }}
+
+      - name: Install Haxe libraries
+        run: |
+          haxelib setup ~/haxelib
+          haxelib install lime 8.3.0 --always --quiet
+          haxelib install openfl 9.5.0 --always --quiet
+          haxelib install flixel 6.1.2 --always --quiet
+          haxelib dev haxefmod $GITHUB_WORKSPACE
+          yes | haxelib run lime setup || true
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pulseaudio libasound2-plugins xvfb patchelf \
+            libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
+            libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev libz-dev
+
+      - name: Build and install HashLink
+        run: |
+          # Pinned to the commit before the SDL3 port (hashlink #830, 2026-06-17).
+          # ubuntu-latest has no libsdl3-dev, so newer hashlink master does not build.
+          git clone https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
+          cd /tmp/hashlink-src
+          git checkout 781960a5daca32ad6d5cea87b255fe8b5872551e
+          make -j$(nproc) 2>&1 | tee /tmp/hashlink-build.log || {
+            echo "=== MAKE FAILED - retrying single-threaded ==="
+            make 2>&1 | tee -a /tmp/hashlink-build.log
+            exit 1
+          }
+          sudo make install
+          sudo ldconfig
+          hl --version || echo "HashLink installed"
+
+      - name: Build stress target
+        run: |
+          cd example-project/EZPlatformer
+          haxelib run lime build hl -Daudio_test
+
+      - name: Run stress state
+        run: |
+          # Virtual display + audio sink (FMOD routes ALSA through Pulse)
+          Xvfb :99 -screen 0 1024x768x24 &
+          export DISPLAY=:99
+          sleep 1
+          pulseaudio --start --exit-idle-time=-1 || true
+          pactl load-module module-null-sink sink_name=virtual_speaker sink_properties=device.description=VirtualSpeaker
+          pactl set-default-sink virtual_speaker
+          cat > ~/.asoundrc << 'ALSA_EOF'
+          pcm.!default {
+            type pulse
+          }
+          ctl.!default {
+            type pulse
+          }
+          ALSA_EOF
+
+          BIN_DIR="example-project/EZPlatformer/export/hl/bin"
+          SECONDS_BUDGET="${{ github.event.inputs.stress-seconds || '300' }}"
+
+          export HAXEFMOD_TEST_STATE=stress-test
+          export STRESS_SECONDS="$SECONDS_BUDGET"
+          cd "$BIN_DIR"
+          export LD_LIBRARY_PATH="$(pwd):$LD_LIBRARY_PATH"
+          EXE=$(find . -maxdepth 1 -type f -executable ! -name "*.so*" ! -name "*.hdll" ! -name "*.sh" ! -name "*.dat" -print -quit)
+          "$EXE" > /tmp/stress-test.log 2>&1 &
+          GAME_PID=$!
+          cd -
+
+          # Wait for the state to finish (budget + generous margin)
+          LIMIT=$((SECONDS_BUDGET + 300))
+          for i in $(seq $LIMIT); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill $GAME_PID 2>/dev/null || true
+          wait $GAME_PID 2>/dev/null || true
+
+          grep "STRESS_TEST:" /tmp/stress-test.log || true
+          if ! grep -q "STRESS_TEST: COMPLETE" /tmp/stress-test.log; then
+            echo "Stress state never completed - full log:"
+            cat /tmp/stress-test.log
+            exit 1
+          fi
+          if grep -q "pass=false" /tmp/stress-test.log; then
+            echo "Stress state reported failing checks"
+            exit 1
+          fi
+          echo "Stress test passed"
+
+      - name: Upload log
+        uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: stress-test-log
+          path: /tmp/stress-test.log
+          if-no-files-found: warn
+          overwrite: true

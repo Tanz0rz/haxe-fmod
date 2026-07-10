@@ -1,0 +1,349 @@
+name: Canary
+
+# Canary builds against moving targets: latest haxelib releases, HashLink
+# master, and (on dispatch) a new FMOD SDK version. A failure here is an
+# early-warning signal to investigate upstream changes - it does NOT mean
+# main is broken and must not be treated as a broken-main page.
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+    inputs:
+      fmod-version:
+        description: "FMOD SDK version tag to test from the SDK cache"
+        required: false
+        default: "2.03.12"
+
+env:
+  HAXE_VERSION: 4.3.6
+  FMOD_SDK: ${{ github.workspace }}/fmod-sdk
+
+jobs:
+  # ===========================================================================
+  # Latest Haxe libraries (unpinned lime/openfl/flixel/hxcpp)
+  # ===========================================================================
+  latest-deps:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download FMOD SDK
+        uses: ./.github/actions/fmod-sdk
+        with:
+          version: "2.03.12"
+          platform: html5
+          dest: ${{ env.FMOD_SDK }}
+          token: ${{ secrets.FMOD_SDK_TOKEN }}
+
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v2
+        with:
+          # krdlab/setup-haxe only accepts exact versions (no "latest"), so
+          # this pins the newest 4.3.x release. bump it manually as new Haxe
+          # releases appear
+          haxe-version: 4.3.7
+
+      - name: Install Haxe libraries (latest, unpinned)
+        run: |
+          haxelib setup ~/haxelib
+          haxelib install lime --always --quiet
+          haxelib install openfl --always --quiet
+          haxelib install flixel --always --quiet
+          haxelib install hxcpp --always --quiet
+          haxelib dev haxefmod $GITHUB_WORKSPACE
+          yes | haxelib run lime setup || true
+
+      - name: Run unit tests
+        run: haxe tests/build.hxml
+
+      - name: Build HTML5 target (audio test states)
+        env:
+          FMOD_SDK_WEB: ${{ env.FMOD_SDK }}
+        run: |
+          # html5 needs no native toolchain and still compiles the flixel
+          # components against the latest flixel
+          cd example-project/EZPlatformer
+          haxelib run lime build html5 -Daudio_test
+
+  # ===========================================================================
+  # HashLink master (unpinned)
+  # This job exists to detect when the pre-SDL3 HashLink pin used by the main
+  # workflow can be dropped: once master builds and runs here, the pinned
+  # commit in audio-test.yml is no longer needed.
+  # ===========================================================================
+  hashlink-master:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download FMOD SDK
+        uses: ./.github/actions/fmod-sdk
+        with:
+          version: "2.03.12"
+          platform: linux
+          dest: ${{ env.FMOD_SDK }}
+          token: ${{ secrets.FMOD_SDK_TOKEN }}
+
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v2
+        with:
+          haxe-version: ${{ env.HAXE_VERSION }}
+
+      - name: Install Haxe libraries
+        run: |
+          haxelib setup ~/haxelib
+          haxelib install lime 8.3.0 --always --quiet
+          haxelib install openfl 9.5.0 --always --quiet
+          haxelib install flixel 6.1.2 --always --quiet
+          haxelib dev haxefmod $GITHUB_WORKSPACE
+          yes | haxelib run lime setup || true
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg patchelf \
+            libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
+            libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev libz-dev
+          # HashLink master may need SDL3 after the SDL3 port (hashlink #830);
+          # keep SDL2 installed too and tolerate runners without libsdl3-dev
+          sudo apt-get install -y libsdl3-dev || echo "libsdl3-dev not available on this runner"
+
+      - name: Build and install HashLink (master, unpinned)
+        run: |
+          # Intentionally unpinned: this canary tracks HashLink master so a
+          # green run signals the pre-SDL3 pin in audio-test.yml can go away
+          git clone --depth 1 https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
+          cd /tmp/hashlink-src
+          git rev-parse HEAD
+          make -j$(nproc) 2>&1 | tee /tmp/hashlink-build.log || {
+            echo "=== MAKE FAILED - retrying single-threaded ==="
+            make 2>&1 | tee -a /tmp/hashlink-build.log
+            exit 1
+          }
+          sudo make install
+          sudo ldconfig
+          hl --version || echo "HashLink installed"
+
+      - name: Build HashLink target (pre-built hdll)
+        run: |
+          cd example-project/EZPlatformer
+          haxelib run lime build hl 2>&1 | tee /tmp/build-prebuilt.log
+          grep -q "(pre-built)" /tmp/build-prebuilt.log
+          echo "Verified: pre-built hdll was used"
+
+      - name: Patch FMOD libraries
+        run: |
+          BIN_DIR="example-project/EZPlatformer/export/hl/bin"
+          patchelf --clear-execstack "$BIN_DIR"/libfmod.so* || true
+          patchelf --clear-execstack "$BIN_DIR"/libfmodstudio.so* || true
+
+      - name: Validate build output
+        run: |
+          ./ci/validate-build.sh example-project/EZPlatformer/export/hl/bin hl
+
+      - name: Run the game
+        run: |
+          # Start virtual display
+          Xvfb :99 -screen 0 1024x768x24 &
+          export DISPLAY=:99
+          sleep 1
+
+          # Start PulseAudio with virtual sink
+          pulseaudio --start --exit-idle-time=-1 || true
+          pactl load-module module-null-sink sink_name=virtual_speaker sink_properties=device.description=VirtualSpeaker
+          pactl set-default-sink virtual_speaker
+
+          # Configure ALSA to route through PulseAudio (FMOD uses ALSA by default)
+          cat > ~/.asoundrc << 'ALSA_EOF'
+          pcm.!default {
+            type pulse
+          }
+          ctl.!default {
+            type pulse
+          }
+          ALSA_EOF
+
+          BIN_DIR="example-project/EZPlatformer/export/hl/bin"
+
+          cd "$BIN_DIR"
+          export LD_LIBRARY_PATH="$(pwd):$LD_LIBRARY_PATH"
+          EXE=$(find . -maxdepth 1 -type f -executable ! -name "*.so*" ! -name "*.hdll" ! -name "run.sh" -print -quit)
+          chmod +x "$EXE"
+          timeout 20 "$EXE" > /tmp/game-canary-hl.log 2>&1 || true
+          cd -
+
+          echo "=== Game log ==="
+          cat /tmp/game-canary-hl.log || true
+          echo "=== End game log ==="
+
+      - name: Validate game log
+        run: ./ci/validate-game-log.sh /tmp/game-canary-hl.log
+
+  # ===========================================================================
+  # New FMOD version (workflow_dispatch only)
+  # One-click testing of a new FMOD release once its tag exists in the
+  # fmod-sdk-cache repo: linux-cpp compiles the C++ binding against the new
+  # headers, linux-hl goes through the build-hdll flow (a version mismatch
+  # against the pre-built hdll is expected for anything newer than 2.03.12).
+  # ===========================================================================
+  fmod-version:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download FMOD SDK
+        uses: ./.github/actions/fmod-sdk
+        with:
+          version: ${{ github.event.inputs.fmod-version }}
+          platform: linux
+          dest: ${{ env.FMOD_SDK }}
+          token: ${{ secrets.FMOD_SDK_TOKEN }}
+
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v2
+        with:
+          haxe-version: ${{ env.HAXE_VERSION }}
+
+      - name: Install Haxe libraries
+        run: |
+          haxelib setup ~/haxelib
+          haxelib install lime 8.3.0 --always --quiet
+          haxelib install openfl 9.5.0 --always --quiet
+          haxelib install flixel 6.1.2 --always --quiet
+          haxelib install hxcpp 4.3.2 --always --quiet
+          haxelib dev haxefmod $GITHUB_WORKSPACE
+          yes | haxelib run lime setup || true
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg patchelf \
+            libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
+            libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev libz-dev
+
+      - name: Build and install HashLink
+        run: |
+          # Pinned to the commit before the SDL3 port (hashlink #830, 2026-06-17).
+          # ubuntu-latest has no libsdl3-dev, so newer hashlink master does not build.
+          git clone https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
+          cd /tmp/hashlink-src
+          git checkout 781960a5daca32ad6d5cea87b255fe8b5872551e
+          make -j$(nproc) 2>&1 | tee /tmp/hashlink-build.log || {
+            echo "=== MAKE FAILED - retrying single-threaded ==="
+            make 2>&1 | tee -a /tmp/hashlink-build.log
+            exit 1
+          }
+          sudo make install
+          sudo ldconfig
+          hl --version || echo "HashLink installed"
+
+      - name: Build C++ target
+        run: |
+          cd example-project/EZPlatformer
+          haxelib run lime build linux -64
+
+      - name: Validate C++ build output
+        run: |
+          BIN_DIR="example-project/EZPlatformer/export/linux64/bin"
+          if [ ! -d "$BIN_DIR" ]; then
+            BIN_DIR="example-project/EZPlatformer/export/linux/bin"
+          fi
+          patchelf --clear-execstack "$BIN_DIR"/libfmod.so* || true
+          patchelf --clear-execstack "$BIN_DIR"/libfmodstudio.so* || true
+          ./ci/validate-build.sh "$BIN_DIR" cpp
+
+      - name: Build HashLink target (mismatch expected against pre-built hdll)
+        run: |
+          cd example-project/EZPlatformer
+          haxelib run lime build hl 2>&1 | tee /tmp/build-mismatch.log || true
+          if grep -q "ERROR: FMOD SDK version mismatch" /tmp/build-mismatch.log; then
+            echo "Pre-built hdll does not match this SDK - compiling a custom hdll next"
+          else
+            echo "Pre-built hdll matched this SDK"
+          fi
+
+      - name: Build custom hdll via build-hdll
+        run: |
+          cd example-project/EZPlatformer
+          haxelib run haxefmod build-hdll
+          echo "=== .haxefmod/ contents ==="
+          ls -la .haxefmod/
+          cat .haxefmod/hlaxe_fmod.version
+
+      - name: Rebuild HashLink target (custom hdll)
+        run: |
+          rm -rf example-project/EZPlatformer/export/hl
+          cd example-project/EZPlatformer
+          haxelib run lime build hl 2>&1 | tee /tmp/build-custom.log
+          grep -q "(custom-compiled from .haxefmod/)" /tmp/build-custom.log
+          echo "Verified: custom-compiled hdll from .haxefmod/ was used"
+
+      - name: Patch FMOD libraries
+        run: |
+          BIN_DIR="example-project/EZPlatformer/export/hl/bin"
+          patchelf --clear-execstack "$BIN_DIR"/libfmod.so* || true
+          patchelf --clear-execstack "$BIN_DIR"/libfmodstudio.so* || true
+
+      - name: Validate build output
+        run: |
+          ./ci/validate-build.sh example-project/EZPlatformer/export/hl/bin hl
+
+      - name: Record audio
+        run: |
+          # Start virtual display
+          Xvfb :99 -screen 0 1024x768x24 &
+          export DISPLAY=:99
+          sleep 1
+
+          # Start PulseAudio with virtual sink
+          pulseaudio --start --exit-idle-time=-1 || true
+          pactl load-module module-null-sink sink_name=virtual_speaker sink_properties=device.description=VirtualSpeaker
+          pactl set-default-sink virtual_speaker
+
+          # Configure ALSA to route through PulseAudio (FMOD uses ALSA by default)
+          cat > ~/.asoundrc << 'ALSA_EOF'
+          pcm.!default {
+            type pulse
+          }
+          ctl.!default {
+            type pulse
+          }
+          ALSA_EOF
+
+          BIN_DIR="example-project/EZPlatformer/export/hl/bin"
+
+          # Start recording from the virtual sink's monitor
+          ffmpeg -f pulse -i virtual_speaker.monitor -t 30 -y /tmp/audio-canary-fmod.wav &
+          RECORD_PID=$!
+
+          # Run the game with library paths set
+          cd "$BIN_DIR"
+          export LD_LIBRARY_PATH="$(pwd):$LD_LIBRARY_PATH"
+          EXE=$(find . -maxdepth 1 -type f -executable ! -name "*.so*" ! -name "*.hdll" ! -name "run.sh" -print -quit)
+          chmod +x "$EXE"
+          timeout 30 "$EXE" > /tmp/game-canary-fmod.log 2>&1 || true
+          cd -
+
+          echo "=== Game log ==="
+          cat /tmp/game-canary-fmod.log || true
+          echo "=== End game log ==="
+
+          wait $RECORD_PID || true
+
+          if [ -f /tmp/audio-canary-fmod.wav ]; then
+            echo "Audio recorded successfully"
+            ls -la /tmp/audio-canary-fmod.wav
+          else
+            echo "WARNING: No audio file produced"
+          fi
+
+      - name: Validate audio
+        run: ./ci/validate-audio.sh /tmp/audio-canary-fmod.wav 10
+
+      - name: Validate game log
+        run: ./ci/validate-game-log.sh /tmp/game-canary-fmod.log

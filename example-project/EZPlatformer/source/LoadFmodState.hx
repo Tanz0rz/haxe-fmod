@@ -22,7 +22,22 @@ class LoadFmodState extends FlxState {
     override public function update(elapsed:Float):Void {
         if(FmodManager.IsInitialized()){
             #if audio_test
-            FlxG.switchState(VolumeTestState.new);
+            switch (TestConfig.testState()) {
+                case "api-probe":
+                    FlxG.switchState(ApiProbeState.new);
+                case "cb-test":
+                    FlxG.switchState(BeatTestState.new);
+                case "ps-test":
+                    FlxG.switchState(ProgrammerSoundTestState.new);
+                case "bank-test":
+                    FlxG.switchState(BankLifecycleTestState.new);
+                case "pan-test":
+                    FlxG.switchState(EmitterPanTestState.new);
+                case "stress-test":
+                    FlxG.switchState(StressTestState.new);
+                default:
+                    FlxG.switchState(VolumeTestState.new);
+            }
             #else
             FlxG.switchState(PlayState.new);
             #end
