@@ -8,7 +8,7 @@ Having problems or want to chat? [Join the Haxe Discord](https://discordapp.com/
  - [Supported Platforms](#supported-platforms)
  - [Prerequisites](#prerequisites)
  - [How to Use This Library](#how-to-use-this-library)
- - [The API Layers](#api-layers)
+ - [The API Layers](#the-api-layers)
  - [Generating Constants From Your Banks](#generating-constants)
  - [Selecting an FMOD Engine Version](#selecting-an-fmod-engine-version)
  - [HTML5 Builds](#html5-builds)

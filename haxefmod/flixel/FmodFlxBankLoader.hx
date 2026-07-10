@@ -18,6 +18,8 @@ class FmodFlxBankLoader extends FlxBasic {
     /** True once every requested bank has finished loading. **/
     public var loaded(default, null):Bool = false;
 
+    var destroyed:Bool = false;
+
     var paths:Array<String>;
     var onLoaded:Void->Void;
 
@@ -43,7 +45,9 @@ class FmodFlxBankLoader extends FlxBasic {
 
     override public function update(elapsed:Float):Void {
         super.update(elapsed);
-        if (loaded) return;
+        // A destroyed loader has an empty path list, which would read as
+        // "all banks loaded" and fire onLoaded after the banks were released
+        if (loaded || destroyed) return;
         for (path in paths) {
             if (!FmodRuntime.banks.isLoaded(path)) return;
         }
@@ -53,6 +57,7 @@ class FmodFlxBankLoader extends FlxBasic {
 
     /** Releases this loader's bank references (refcounted unload). **/
     override public function destroy():Void {
+        destroyed = true;
         for (path in paths) {
             FmodRuntime.banks.unload(path);
         }

@@ -10,11 +10,10 @@ import flixel.FlxG;
     every frame across all states
 **/
 class FmodFlxUpdater extends FlxBasic {
-    static var added:Bool = false;
-
     public static function init() {
-        if (added) return;
-        added = true;
+        // Membership check instead of a static guard, so a destroyed and
+        // recreated FlxGame (fresh plugin list) gets the updater back
+        if (FlxG.plugins.get(FmodFlxUpdater) != null) return;
         FlxG.plugins.add(new FmodFlxUpdater());
     }
 

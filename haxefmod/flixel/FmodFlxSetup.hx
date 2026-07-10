@@ -20,15 +20,15 @@ import haxefmod.runtime.FmodSettings;
     back, set FlxG.sound.soundTray.silent = false after init(). To hide
     the tray entirely, set FlxG.sound.soundTrayEnabled = false.
 
-    Requires flixel 5.9.0 or newer (FlxG.sound.onVolumeChange).
+    Requires flixel 5.9.0 or newer (FlxG.sound.onVolumeChange). Calling
+    init() again is safe and rewires a recreated FlxGame.
 **/
 class FmodFlxSetup {
-    static var initialized:Bool = false;
+    #if FLX_SOUND_SYSTEM
+    static var volumeHandler:Float->Void = _ -> applyVolume();
+    #end
 
     public static function init(?settings:FmodSettings):Void {
-        if (initialized) return;
-        initialized = true;
-
         FmodManager.Initialize(settings);
         FmodFlxUpdater.init();
 
@@ -38,7 +38,10 @@ class FmodFlxSetup {
             FlxG.sound.soundTray.silent = true;
         }
         #end
-        FlxG.sound.onVolumeChange.add(_ -> applyVolume());
+        // Remove-then-add keeps exactly one wiring across repeated init
+        // calls and across a destroyed-and-recreated FlxGame (fresh signal)
+        FlxG.sound.onVolumeChange.remove(volumeHandler);
+        FlxG.sound.onVolumeChange.add(volumeHandler);
         applyVolume();
         #end
     }

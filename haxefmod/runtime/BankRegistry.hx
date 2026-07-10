@@ -41,6 +41,10 @@ class BankRegistry {
             entry.refs++;
             return entry.bank;
         }
+        // An entry can outlive its bank (unloadAll or an external unload).
+        // The old refs' holders are still out there, so a replacement
+        // carries their count forward instead of resetting to one.
+        var carriedRefs = entry != null ? entry.refs + 1 : 1;
         var bank:Bank = async
             ? NativeStudio.sys_load_bank_async(path)
             : StudioSystem.loadBankFile(path);
@@ -49,13 +53,13 @@ class BankRegistry {
             if (StudioSystem.lastResult() == FmodResult.FMOD_ERR_EVENT_ALREADY_LOADED) {
                 var existing = StudioSystem.getBank(bankPathFor(path));
                 if (!existing.isNull()) {
-                    banks.set(path, {bank: existing, refs: 1});
+                    banks.set(path, {bank: existing, refs: carriedRefs});
                     return existing;
                 }
             }
             return Bank.NULL;
         }
-        banks.set(path, {bank: bank, refs: 1});
+        banks.set(path, {bank: bank, refs: carriedRefs});
         return bank;
     }
 

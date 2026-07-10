@@ -29,6 +29,7 @@ class TestStringsBankParser {
 		testNotABank();
 		testMangling();
 		testCollisionSuffixes();
+		testEmitClass();
 		testEventEnums();
 
 		cleanup();
@@ -112,6 +113,29 @@ class TestStringsBankParser {
 		assert("collisions get numeric suffixes", names.join(",") == "AB,AB2,AB3");
 		var guidLike = Generate.identifiersFor(["event:/Coin", "event:/Coin Guid"], "event:/");
 		assert("Guid-suffixed paths stay distinct", guidLike.join(",") == "Coin,CoinGuid");
+	}
+
+	static function testEmitClass() {
+		var entries = [
+			{path: "event:/Music/MainLevel", guid: "{E5187C3F-0517-463E-B458-DE9EF1A9F750}"},
+			{path: "event:/SFX/Jump", guid: "{4562f533-1e6b-4ce9-a40a-814283edde66}"},
+		];
+		var expected = [
+			"// Generated haxefmod constants - do not edit (regenerate from FMOD Studio or via haxelib run haxefmod generate)",
+			"",
+			"class FmodEvents {",
+			"\tpublic static inline var MusicMainLevel:String = \"event:/Music/MainLevel\";",
+			"\tpublic static inline var SFXJump:String = \"event:/SFX/Jump\";",
+			"}",
+			"",
+			"class FmodEventsGuids {",
+			"\tpublic static inline var MusicMainLevel:String = \"{e5187c3f-0517-463e-b458-de9ef1a9f750}\";",
+			"\tpublic static inline var SFXJump:String = \"{4562f533-1e6b-4ce9-a40a-814283edde66}\";",
+			"}",
+			"",
+		].join("\n");
+		var actual = @:privateAccess Generate.emitClass("FmodEvents", "event:/", entries, "");
+		assert("emitClass golden output (paths class + Guids companion, lowercased)", actual == expected);
 	}
 
 	static function testEventEnums() {

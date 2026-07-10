@@ -145,6 +145,8 @@ class FmodManager {
      */
     public static function PlaySong(songPath:String):Void {
         ensureInitialized();
+        // A direct play supersedes any pending transition
+        NextSong = null;
 
         if (songPath == CurrentSong && !songInstance.isNull()) {
             if (!isInstancePlaying(songInstance)) {
@@ -171,6 +173,11 @@ class FmodManager {
     /**
      * Fades out the current song (as authored), then plays the new one
      * once the Stopped event arrives. Requires Update() every frame.
+     *
+     * The song has a single callback slot: the transition occupies it
+     * until the fade completes, so registering OnSongEvent during the
+     * fade cancels the transition, and a second transition during the
+     * fade cuts to the new song instead of crossfading.
      */
     public static function PlaySongTransition(songPath:String):Void {
         ensureInitialized();
@@ -194,19 +201,29 @@ class FmodManager {
         songInstance.setCallback(data -> {
             switch (data) {
                 case Stopped:
-                    PlaySong(NextSong);
+                    // StopSong since the transition was armed clears
+                    // NextSong, and the completed fade must stay silent
+                    if (NextSong != null) {
+                        var next = NextSong;
+                        NextSong = null;
+                        PlaySong(next);
+                    }
                 default:
             }
         }, EventCallbackType.STOPPED);
     }
 
+    /** Fades the song out (as authored) and cancels any pending transition. */
     public static function StopSong():Void {
         ensureInitialized();
+        NextSong = null;
         if (!songInstance.isNull()) songInstance.stop(ALLOWFADEOUT);
     }
 
+    /** Stops the song with no fade and cancels any pending transition. */
     public static function StopSongImmediately():Void {
         ensureInitialized();
+        NextSong = null;
         if (!songInstance.isNull()) songInstance.stop(IMMEDIATE);
     }
 
@@ -214,8 +231,11 @@ class FmodManager {
         ensureInitialized();
         if (!songInstance.isNull()) {
             songInstance.setPaused(true);
-            // Push the pause through FMOD immediately, independent of the game loop
-            NativeStudio.sys_update();
+            // Push the pause through FMOD immediately, independent of the
+            // game loop. The auto-update thread already ticks within ~16ms,
+            // so only manual-update setups need the push.
+            var s = FmodRuntime.settings();
+            if (s == null || !s.autoUpdate) NativeStudio.sys_update();
         }
     }
 
@@ -251,7 +271,9 @@ class FmodManager {
 
     /**
      * Registers a typed payload callback (beats, markers, lifecycle) on the
-     * current song. Replaces any previous handler. delivered from Update().
+     * current song, delivered from Update(). Replaces any previous handler,
+     * including a pending PlaySongTransition's completion handler (the
+     * transition is then cancelled).
      */
     public static function OnSongEvent(handler:EventCallbackData->Void, ?mask:Int):Void {
         ensureInitialized();
@@ -268,8 +290,15 @@ class FmodManager {
         if (songInstance.isNull()) return;
         var instance = songInstance;
         instance.setCallback(data -> {
+            // The dispatcher force-subscribes DESTROYED for cleanup. It only
+            // consumes the single shot when the caller asked for it, but
+            // either way the instance is gone and the registration ends.
+            var unwanted = switch (data) {
+                case Destroyed: mask != null && (mask & EventCallbackType.DESTROYED) == 0;
+                default: false;
+            }
             CallbackDispatcher.remove(instance);
-            handler(data);
+            if (!unwanted) handler(data);
         }, mask);
     }
 

@@ -6,6 +6,8 @@ import sys.io.File;
 class Run {
 	static var passCount = 0;
 	static var failCount = 0;
+	static var warnCount = 0;
+	static var skipCount = 0;
 
 	public static function main() {
 		// haxelib passes the original cwd as the last arg
@@ -47,7 +49,7 @@ class Run {
 
 	static function resolveLibRoot():String {
 		// When run via haxelib, we can find our own root by checking where Run.hx lives
-		// The haxelib root is the directory containing haxefmod/, templates/, scripts/, etc.
+		// The haxelib root is the directory containing haxefmod/, templates/, and the version marker
 		// Use Sys.programPath() to find ourselves, then navigate up
 		try {
 			var result = runQuiet("haxelib", ["path", "haxefmod"]);
@@ -56,8 +58,8 @@ class Run {
 				for (line in result.stdout.split("\n")) {
 					var trimmed = StringTools.trim(line);
 					if (trimmed != "" && !StringTools.startsWith(trimmed, "-")) {
-						// This is like /home/user/haxelib/haxefmod/git/haxefmod
-						// We need the parent (the lib root)
+						// The classpath line points inside the lib. The
+						// version marker identifies its parent as the root
 						if (FileSystem.exists(haxe.io.Path.join([haxe.io.Path.directory(trimmed), "fmod_expected_version"]))) {
 							return haxe.io.Path.directory(trimmed);
 						}
@@ -405,12 +407,14 @@ class Run {
 
 	/** A check that does not apply to this machine. Not counted. */
 	static function skip(label:String, detail:String) {
+		skipCount++;
 		Sys.println('  [SKIP] $label');
 		if (detail != "") Sys.println('         $detail');
 	}
 
 	/** A heads-up that is normal during setup. Not counted as a failure. */
 	static function warn(label:String, detail:String) {
+		warnCount++;
 		Sys.println('  [WARN] $label');
 		if (detail != "") Sys.println('         $detail');
 	}
@@ -418,7 +422,11 @@ class Run {
 	static function printSummary() {
 		var total = passCount + failCount;
 		if (failCount == 0) {
-			Sys.println('All $total checks passed!');
+			var notes = new Array<String>();
+			if (warnCount > 0) notes.push('$warnCount warning' + (warnCount == 1 ? "" : "s"));
+			if (skipCount > 0) notes.push('$skipCount skipped');
+			var suffix = notes.length > 0 ? ' (${notes.join(", ")})' : "";
+			Sys.println('All $total checks passed!$suffix');
 		} else {
 			Sys.println('$passCount/$total checks passed, $failCount failed.');
 			// Scripts and CI rely on the exit code reflecting the result

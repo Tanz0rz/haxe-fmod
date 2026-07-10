@@ -195,7 +195,7 @@ class Generate {
 		// autocomplete on the main class only shows the paths
 		lines.push('class ${className}Guids {');
 		for (i in 0...entries.length) {
-			lines.push('\tpublic static inline var ${names[i]}:String = "${entries[i].guid}";');
+			lines.push('\tpublic static inline var ${names[i]}:String = "${entries[i].guid.toLowerCase()}";');
 		}
 		lines.push("}");
 		lines.push("");
