@@ -63,14 +63,14 @@ class EmitterPanTestState extends FlxState {
         // persistent deduped handle), then capture the leak baseline: the
         // emitter's instance is the only allocation after this point and
         // destroy() must release it.
-        StudioSystem.getEvent(FmodSongs.MainLevel);
+        StudioSystem.getEvent(FmodEvents.MusicMainLevel);
         var baseline = StudioSystem.liveHandleCount();
 
         // Emitter attached to a sprite: play + attach in one call
         var sprite = new FlxSprite(100, 50);
         sprite.width = 16;
         sprite.height = 16;
-        var emitter = FmodFlxEmitter.play(FmodSongs.MainLevel, sprite);
+        var emitter = FmodFlxEmitter.play(FmodEvents.MusicMainLevel, sprite);
         add(emitter);
 
         check("emitter_instance_created", !emitter.instance.isNull(), "");

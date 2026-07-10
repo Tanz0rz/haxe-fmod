@@ -33,7 +33,7 @@ class PlayState extends FlxState {
 
     override public function create():Void {
         FmodManager.EnableDebugMessages();
-        FmodManager.PlaySong(FmodSongs.MainLevel);
+        FmodManager.PlaySong(FmodEvents.MusicMainLevel);
 
         FlxG.mouse.visible = false;
         FlxG.cameras.bgColor = 0xffaaaaaa;
@@ -109,7 +109,7 @@ class PlayState extends FlxState {
 
     function getCoin(Coin:FlxObject, Player:FlxObject):Void {
         FmodManager.SetEventParameterOnSong("FadeArpIn", 1.0);
-        FmodManager.PlaySoundOneShot(FmodSFX.Coin);
+        FmodManager.PlaySoundOneShot(FmodEvents.SFXCoin);
         Coin.kill();
         _status.text = "You win!";
         _winTimer = 0;

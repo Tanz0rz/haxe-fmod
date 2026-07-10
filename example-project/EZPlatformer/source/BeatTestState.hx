@@ -73,7 +73,7 @@ class BeatTestState extends FlxState {
         super.create();
 
         FmodManager.EnableDebugMessages();
-        FmodManager.PlaySong(FmodSongs.MainLevel);
+        FmodManager.PlaySong(FmodEvents.MusicMainLevel);
 
         _status = new FlxText(0, 0, FlxG.width, "CB_TEST running");
         _status.setFormat(null, 16, FlxColor.WHITE, FlxTextAlign.CENTER, NONE, FlxColor.BLACK);
@@ -133,7 +133,7 @@ class BeatTestState extends FlxState {
         // The song instance stays alive in the FmodManager slot and its
         // description handle is deduplicated, so this baseline only moves
         // if the overflow phase leaks instance handles
-        var desc = StudioSystem.getEvent(FmodSongs.MainLevel);
+        var desc = StudioSystem.getEvent(FmodEvents.MusicMainLevel);
         _baseline = StudioSystem.liveHandleCount();
 
         log('CB_TEST: Overflow phase starting instances=$OVERFLOW_INSTANCES');

@@ -59,7 +59,7 @@ class PlayState2 extends FlxState {
 
         // Auto-jump when approaching the coin
         if (!_jumped && _player.x >= 14 * 8 && _player.isTouching(FlxDirectionFlags.DOWN)) {
-            FmodManager.PlaySoundOneShot(FmodSFX.Jump);
+            FmodManager.PlaySoundOneShot(FmodEvents.SFXJump);
             _player.velocity.y = -_player.maxVelocity.y / 2;
             _jumped = true;
         }
@@ -84,7 +84,7 @@ class PlayState2 extends FlxState {
     }
 
     function getCoin(Coin:FlxObject, Player:FlxObject):Void {
-        FmodManager.PlaySoundOneShot(FmodSFX.Coin);
+        FmodManager.PlaySoundOneShot(FmodEvents.SFXCoin);
         Coin.kill();
         _status.text = "Oops! Collected the coin.";
     }

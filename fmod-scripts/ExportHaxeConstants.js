@@ -1,145 +1,241 @@
 /* -------------------------------------------
    FMOD Studio Script by Tanz0rz:
-   Export event names as Haxe constants
+   Export Haxe constants and build banks
+
+   Generates the same files as `haxelib run haxefmod generate`
+   (FmodEvents.hx, FmodBuses.hx, FmodVCAs.hx, FmodSnapshots.hx,
+   FmodParameters.hx) directly from the open FMOD Studio project, then
+   builds the banks. Because it runs as part of the export itself, the
+   constants can never drift from the project - this is the recommended
+   workflow. The CLI generator produces byte-identical output from a built
+   strings bank (a parity test in CI keeps the two in lockstep), so either
+   tool can regenerate the files.
+
+   The generation core below must mirror haxefmod/tools/Generate.hx
+   exactly: same categories, same identifier mangling, same collision
+   suffixes, same header, same formatting.
    -------------------------------------------
  */
 
-studio.menu.addMenuItem({ 
-    name: "Export Haxe Constants and Build",  
-    execute: function() {displayDirectoryPickerModal()},
-    keySequence: "Ctrl+B",
-});
+var HaxefmodConstants = {
+    header: "// Generated haxefmod constants - do not edit (regenerate from FMOD Studio or via haxelib run haxefmod generate)",
 
-const constantsFileName = "FmodConstants.hx";
-const cacheFileName = "CachedHaxeConstantsOutputLocation";
+    categories: [
+        { prefix: "event:/", className: "FmodEvents" },
+        { prefix: "bus:/", className: "FmodBuses" },
+        { prefix: "vca:/", className: "FmodVCAs" },
+        { prefix: "snapshot:/", className: "FmodSnapshots" },
+        { prefix: "parameter:/", className: "FmodParameters" }
+    ],
 
-function displayDirectoryPickerModal() {
+    // Mirrors Generate.mangle: strip the prefix, keep letters and digits,
+    // uppercase the first letter of every piece, "Root" for empty (bus:/),
+    // underscore prefix for a leading digit
+    mangle: function (path, prefix) {
+        var rest = path.indexOf(prefix) === 0 ? path.substr(prefix.length) : path;
+        var out = "";
+        var startOfPiece = true;
+        for (var i = 0; i < rest.length; i++) {
+            var ch = rest.charAt(i);
+            var isAlpha = (ch >= "a" && ch <= "z") || (ch >= "A" && ch <= "Z");
+            var isDigit = ch >= "0" && ch <= "9";
+            if (isAlpha || isDigit) {
+                out += (startOfPiece && isAlpha) ? ch.toUpperCase() : ch;
+                startOfPiece = false;
+            } else {
+                startOfPiece = true;
+            }
+        }
+        if (out === "") return "Root";
+        var first = out.charAt(0);
+        if (first >= "0" && first <= "9") out = "_" + out;
+        return out;
+    },
 
-    var outputPathDir = readOutputPathFromFile();
-    studio.ui.showModalDialog({
-        windowTitle: "Select the folder with your Haxe project's Main class",
-        windowWidth: 800,
-        windowHeight: 0,
-        widgetType: studio.ui.widgetType.Layout,
-        layout: studio.ui.layoutType.VBoxLayout,
-        items: [
-            {
-                widgetType: studio.ui.widgetType.Layout,
-                layout: studio.ui.layoutType.HBoxLayout,
-                contentsMargins: { left: 0, top: 0, right: 0, bottom: 0 },
-                items: [
-                    { widgetType: studio.ui.widgetType.Spacer, sizePolicy: { horizontalPolicy: studio.ui.sizePolicy.MinimumExpanding } },
-                    { widgetType: studio.ui.widgetType.PathLineEdit, stretchFactor: 1, widgetId: "m_directoryPicker", text: outputPathDir, pathType: studio.ui.pathType.Directory},
-                    { widgetType: studio.ui.widgetType.PushButton, text: "Save", onClicked: function() { createConstantsFile(this); this.closeDialog(); } },
-                ],
-            },
-        ],
-    });
+    // Mirrors Generate.identifiersFor: numeric suffixes on collision, with
+    // each name reserving its "<name>Guid" companion atomically
+    identifiersFor: function (paths, prefix) {
+        var used = {};
+        var out = [];
+        for (var i = 0; i < paths.length; i++) {
+            var base = this.mangle(paths[i], prefix);
+            var name = base;
+            var n = 2;
+            while (used[name] === true || used[name + "Guid"] === true) {
+                name = base + n;
+                n++;
+            }
+            used[name] = true;
+            used[name + "Guid"] = true;
+            out.push(name);
+        }
+        return out;
+    },
+
+    // Mirrors Generate.emitClass byte for byte (LF line endings, tabs)
+    emitClass: function (className, prefix, entries) {
+        var lines = [];
+        lines.push(this.header);
+        lines.push("");
+        lines.push("class " + className + " {");
+        var paths = [];
+        for (var i = 0; i < entries.length; i++) paths.push(entries[i].path);
+        var names = this.identifiersFor(paths, prefix);
+        for (var j = 0; j < entries.length; j++) {
+            lines.push("\tpublic static inline var " + names[j] + ':String = "' + entries[j].path + '";');
+            lines.push("\tpublic static inline var " + names[j] + 'Guid:String = "' + entries[j].guid + '";');
+        }
+        lines.push("}");
+        lines.push("");
+        return lines.join("\n");
+    },
+
+    // entries: [{path, guid}] in any order; returns {"FmodEvents.hx": text, ...}
+    // with entries sorted by path and GUIDs normalized to lowercase, exactly
+    // like the CLI generator
+    generate: function (entries) {
+        var files = {};
+        for (var c = 0; c < this.categories.length; c++) {
+            var cat = this.categories[c];
+            var matched = [];
+            for (var i = 0; i < entries.length; i++) {
+                if (entries[i].path.indexOf(cat.prefix) === 0) {
+                    matched.push({ path: entries[i].path, guid: String(entries[i].guid).toLowerCase() });
+                }
+            }
+            if (matched.length === 0) continue;
+            matched.sort(function (a, b) {
+                return a.path < b.path ? -1 : (a.path > b.path ? 1 : 0);
+            });
+            files[cat.className + ".hx"] = this.emitClass(cat.className, cat.prefix, matched);
+        }
+        return files;
+    }
 };
 
-function createConstantsFile(directoryPickerWidget) {
-
-    var outputPath = directoryPickerWidget.findWidget("m_directoryPicker").text();
-
-    const fullOutputPath = "{0}/{1}".format(outputPath, constantsFileName);;
-    var constantsFile = studio.system.getFile(fullOutputPath);
-    if (!constantsFile.open(studio.system.openMode.WriteOnly)) {    
-        alert("Failed to open constants file for writing: " + fullOutputPath + "\n\nCheck the file is not read-only.");
-        console.error("Failed to open constants file for writing: " + fullOutputPath);
-        return;
-    }
-    console.log("Opened file: " + fullOutputPath);
-    
-    writeFileBody(constantsFile);
-    constantsFile.close();
-
-    saveOutputPathToFile(outputPath);
-
-    alert("Haxe constants file successfully created in:\n\n" + outputPath);
-    console.log("Haxe constants file successfully created in: " + outputPath);
-    
-    console.log("Building banks...");
-    studio.project.build();
+// Node export for the CI parity test (tests/js/constants-parity.js)
+if (typeof module !== "undefined" && module.exports) {
+    module.exports = HaxefmodConstants;
 }
 
-function readOutputPathFromFile() {
-    const haxeSystemInformationFileLocation = studio.project.filePath.substr(0, studio.project.filePath.lastIndexOf("/") + 1) + cacheFileName;
-    haxeSystemInformationFile = studio.system.getFile(haxeSystemInformationFileLocation);
-    if (!haxeSystemInformationFile.open(studio.system.openMode.ReadOnly)) {
-        return "";
-    }
-    const fileData = haxeSystemInformationFile.readText(10000);
-    haxeSystemInformationFile.close();
-    return fileData;
-}
+// Everything below only exists inside FMOD Studio
+if (typeof studio !== "undefined") {
 
-function saveOutputPathToFile(outputDir) {
-    const haxeSystemInformationFileLocation = studio.project.filePath.substr(0, studio.project.filePath.lastIndexOf("/") + 1) + cacheFileName;
-    haxeSystemInformationFile = studio.system.getFile(haxeSystemInformationFileLocation);
-    if (!haxeSystemInformationFile.open(studio.system.openMode.WriteOnly)) {
-        alert("Failed to open file to cache selected directory: " + haxeSystemInformationFile);
-        console.error("Failed to open file to cache selected directory: " + haxeSystemInformationFile);
-        return;
-    }
-    haxeSystemInformationFile.writeText(outputDir);
-    haxeSystemInformationFile.close();
-}
-
-function writeFileBody(constantsFile) {
-    // Write header for file
-    constantsFile.writeText("/*\r\n    DO NOT EDIT THIS FILE DIRECTLY\r\n"
-    + "    This file was generated by a script in FMOD Studio \r\n*/\r\n\r\n");
-    constantsFile.writeText("package;\r\n\r\n")
-
-    // Read all events in from FMOD Studio project
-    var allEvents = studio.project.model.Event.findInstances();
-    if (allEvents.length === 0) {
-        return;
-    }
-
-    // Sort events alphabetically 
-    allEvents.sort(function(a, b) {
-        var pathA = a.getPath().toUpperCase();
-        var pathB = b.getPath().toUpperCase();
-
-        if (pathA < pathB) {
-            return -1;
-        }
-        if (pathA > pathB) {
-            return 1;        
-        }
-        return 0;
+    studio.menu.addMenuItem({
+        name: "Export Haxe Constants and Build",
+        execute: function () { displayDirectoryPickerModal(); },
+        keySequence: "Ctrl+B"
     });
 
-    // Generate constants for music events
-    console.log("Exporting Music events")
-    constantsFile.writeText("class FmodSongs {\r\n");
-    allEvents.forEach(function(object) {
-        // If the event starts with a number, prefix an underscore
-        // Replace any whitespace in the event path with underscores
-        const path = object.getPath().replace(/(^[0-9])/g, "_$1").replace(/ /g,"_");
-        if (path.split('/')[1] == "Music") {
-            console.log("Path: " + path);
-            var finalSlashIndex = path.lastIndexOf('/');
-            var eventName = path.substring(finalSlashIndex + 1);
-            constantsFile.writeText("    public static inline var " + eventName + ":String = \"" + path + "\";\r\n");
+    var cacheFileName = "CachedHaxeConstantsOutputLocation";
+
+    function displayDirectoryPickerModal() {
+        var outputPathDir = readOutputPathFromFile();
+        studio.ui.showModalDialog({
+            windowTitle: "Select your Haxe project's source folder",
+            windowWidth: 800,
+            windowHeight: 0,
+            widgetType: studio.ui.widgetType.Layout,
+            layout: studio.ui.layoutType.VBoxLayout,
+            items: [
+                {
+                    widgetType: studio.ui.widgetType.Layout,
+                    layout: studio.ui.layoutType.HBoxLayout,
+                    contentsMargins: { left: 0, top: 0, right: 0, bottom: 0 },
+                    items: [
+                        { widgetType: studio.ui.widgetType.Spacer, sizePolicy: { horizontalPolicy: studio.ui.sizePolicy.MinimumExpanding } },
+                        { widgetType: studio.ui.widgetType.PathLineEdit, stretchFactor: 1, widgetId: "m_directoryPicker", text: outputPathDir, pathType: studio.ui.pathType.Directory },
+                        { widgetType: studio.ui.widgetType.PushButton, text: "Save", onClicked: function () { createConstantsFiles(this); this.closeDialog(); } }
+                    ]
+                }
+            ]
+        });
+    }
+
+    // Collects {path, guid} entries from the open project: the same set the
+    // built strings bank will contain (events, snapshots, buses incl. the
+    // master "bus:/", VCAs, and global parameters)
+    function collectEntries() {
+        var entries = [];
+        var sources = [
+            studio.project.model.Event.findInstances(),
+            studio.project.model.Snapshot.findInstances(),
+            studio.project.model.MixerGroup.findInstances(),
+            studio.project.model.MixerReturn.findInstances(),
+            studio.project.model.MixerMaster.findInstances(),
+            studio.project.model.MixerVCA.findInstances(),
+            studio.project.model.ParameterPreset.findInstances()
+        ];
+        for (var s = 0; s < sources.length; s++) {
+            var objects = sources[s];
+            for (var i = 0; i < objects.length; i++) {
+                var path;
+                try {
+                    path = objects[i].getPath();
+                } catch (e) {
+                    continue;
+                }
+                if (typeof path !== "string") continue;
+                // Keep only the categories the constants cover (event-local
+                // parameters and folders report other path shapes)
+                for (var c = 0; c < HaxefmodConstants.categories.length; c++) {
+                    if (path.indexOf(HaxefmodConstants.categories[c].prefix) === 0) {
+                        entries.push({ path: path, guid: objects[i].id });
+                        break;
+                    }
+                }
+            }
         }
-    });
-    constantsFile.writeText("}\r\n\r\n");
-    
-    // Generate constants for sfx events
-    console.log("Exporting SFX events")
-    constantsFile.writeText("class FmodSFX {\r\n");
-    allEvents.forEach(function(object) {
-         // If the event starts with a number, prefix an underscore
-         // Replace any whitespace in the event path with underscores
-        const path = object.getPath().replace(/(^[0-9])/g, "_$1").replace(/ /g,"_");
-        if (path.split('/')[1] == "SFX") {
-            console.log("Path: " + path);
-            var finalSlashIndex = path.lastIndexOf('/');
-            var eventName = path.substring(finalSlashIndex + 1);
-            constantsFile.writeText("    public static inline var " + eventName + ":String = \"" + path + "\";\r\n");
+        return entries;
+    }
+
+    function createConstantsFiles(directoryPickerWidget) {
+        var outputPath = directoryPickerWidget.findWidget("m_directoryPicker").text();
+
+        var files = HaxefmodConstants.generate(collectEntries());
+        var written = [];
+        for (var fileName in files) {
+            var fullPath = outputPath + "/" + fileName;
+            var file = studio.system.getFile(fullPath);
+            if (!file.open(studio.system.openMode.WriteOnly)) {
+                alert("Failed to open constants file for writing: " + fullPath + "\n\nCheck the file is not read-only.");
+                console.error("Failed to open constants file for writing: " + fullPath);
+                return;
+            }
+            file.writeText(files[fileName]);
+            file.close();
+            written.push(fileName);
+            console.log("Wrote " + fullPath);
         }
-    });
-    constantsFile.writeText("}\r\n");
+
+        saveOutputPathToFile(outputPath);
+
+        console.log("Building banks...");
+        studio.project.build();
+
+        alert("Haxe constants written to:\n\n" + outputPath + "\n\n(" + written.join(", ") + ")\n\nBanks built.");
+    }
+
+    function readOutputPathFromFile() {
+        var location = studio.project.filePath.substr(0, studio.project.filePath.lastIndexOf("/") + 1) + cacheFileName;
+        var file = studio.system.getFile(location);
+        if (!file.open(studio.system.openMode.ReadOnly)) {
+            return "";
+        }
+        var fileData = file.readText(10000);
+        file.close();
+        return fileData;
+    }
+
+    function saveOutputPathToFile(outputDir) {
+        var location = studio.project.filePath.substr(0, studio.project.filePath.lastIndexOf("/") + 1) + cacheFileName;
+        var file = studio.system.getFile(location);
+        if (!file.open(studio.system.openMode.WriteOnly)) {
+            alert("Failed to open file to cache the selected directory: " + location);
+            console.error("Failed to open file to cache the selected directory: " + location);
+            return;
+        }
+        file.writeText(outputDir);
+        file.close();
+    }
 }

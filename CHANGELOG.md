@@ -22,8 +22,11 @@ top. See `MIGRATION.md` for the complete 1.x to 2.0 mapping.
   `FmodFlxBankLoader`, `FmodFlxParameterTrigger`.
 - Programmer sounds: `instance.assignProgrammerSound(key)` resolving audio
   table keys (or file paths on native targets) on the FMOD thread.
-- `haxelib run haxefmod generate`: event/bus/VCA/snapshot/parameter constant
-  classes generated directly from `Master.strings.bank`.
+- Two lockstep constants generators: the FMOD Studio export script
+  regenerates `FmodEvents`/`FmodBuses`/`FmodVCAs`/`FmodSnapshots`/
+  `FmodParameters` (with GUID companions) on every `Ctrl+B` bank build,
+  and `haxelib run haxefmod generate` emits identical files from a built
+  `Master.strings.bank`; a CI parity test keeps them byte-identical.
 - Build-time SDK validation: lime builds fail immediately with setup
   instructions when `FMOD_SDK` (or `FMOD_SDK_WEB` for HTML5) is missing.
 - Binding ABI guard: stale pre-built hdlls are refused at build time with
@@ -42,6 +45,8 @@ top. See `MIGRATION.md` for the complete 1.x to 2.0 mapping.
   libraries so modern kernels load them.
 
 ### Removed
+- The single-file `FmodConstants.hx` (`FmodSongs`/`FmodSFX`) output of the
+  Studio export script, replaced by the categorized 2.0 constants files.
 - String sound IDs (`PlaySoundWithReference`, `PlaySoundAndAssignId`, and
   the per-ID control calls) in favor of `FmodSound` handles.
 - Bitmask polling callbacks (`RegisterCallbacksForSong/Sound`,

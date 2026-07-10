@@ -70,9 +70,9 @@ class BankLifecycleTestState extends FlxState {
         // deduped handle), then capture the leak baseline: the probe
         // instance is released, so only the two async placeholders below
         // may outlive this create() call.
-        StudioSystem.getEvent(FmodSongs.MainLevel);
+        StudioSystem.getEvent(FmodEvents.MusicMainLevel);
         _baseline = StudioSystem.liveHandleCount();
-        var probe:EventInstance = FmodRuntime.createInstance(FmodSongs.MainLevel);
+        var probe:EventInstance = FmodRuntime.createInstance(FmodEvents.MusicMainLevel);
         check("event_resolves", !probe.isNull(), "");
         probe.release();
         _asyncMissing = FmodRuntime.banks.loadAsync("assets/fmod/Desktop/DoesNotExist.bank");
@@ -96,7 +96,7 @@ class BankLifecycleTestState extends FlxState {
         // must match. The warmed description handle survives the unload as
         // a live-but-FMOD-invalid slot, which is exactly why it must be in
         // the baseline.
-        StudioSystem.getEvent(FmodSongs.MainLevel);
+        StudioSystem.getEvent(FmodEvents.MusicMainLevel);
         var baseline = StudioSystem.liveHandleCount();
 
         // Refcount up and down leaves the bank loaded
@@ -106,7 +106,7 @@ class BankLifecycleTestState extends FlxState {
         check("still_loaded", FmodRuntime.banks.isLoaded(masterPath), "");
 
         // Play an event from the bank to prove content resolves
-        var instance:EventInstance = FmodRuntime.createInstance(FmodSongs.MainLevel);
+        var instance:EventInstance = FmodRuntime.createInstance(FmodEvents.MusicMainLevel);
         check("event_resolves", !instance.isNull(), "");
         check("event_starts", instance.start().isOk(), "");
         instance.stop(IMMEDIATE);
@@ -121,7 +121,7 @@ class BankLifecycleTestState extends FlxState {
         StudioSystem.flushCommands();
 
         // Events must stop resolving after their bank is unloaded
-        var missing = StudioSystem.getEvent(FmodSongs.MainLevel);
+        var missing = StudioSystem.getEvent(FmodEvents.MusicMainLevel);
         check("event_not_found_after_unload", missing.isNull(),
             'lastResult=${StudioSystem.lastResult().toString()}');
 

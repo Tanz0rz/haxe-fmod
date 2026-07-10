@@ -26,7 +26,7 @@ Having problems? Join the [Haxe Discord](https://discord.com/channels/1623951453
 - HaxeFlixel components: emitter and listener for positional audio, bank loader, and zone-based parameter triggers
 - Programmer sounds for dialogue and other runtime-selected audio
 - [Live Update](https://fmod.com/docs/2.03/studio/editing-during-live-update.html) for mixing sounds while playtesting (on by default in debug builds)
-- `haxelib run haxefmod generate`: event/bus/VCA/parameter constants generated straight from your built banks
+- Constants that never drift: the FMOD Studio export script regenerates event/bus/VCA/parameter constants on every `Ctrl+B` bank build, and `haxelib run haxefmod generate` produces the identical files from a built bank
 
 ## <a name="supported-platforms"></a>Supported Platforms
 
@@ -195,11 +195,17 @@ Runtime settings passed to `FmodManager.Initialize(...)` override the defines.
 
 ## <a name="generating-constants"></a>Generating Constants From Your Banks
 
+Two generators emit identical files (`FmodEvents.hx`, `FmodBuses.hx`, `FmodVCAs.hx`, `FmodSnapshots.hx`, `FmodParameters.hx`), each constant paired with a GUID companion (`MusicMainLevelGuid`) for GUID-based lookups. A parity test in CI keeps them in lockstep.
+
+**Recommended: generate on every export from inside FMOD Studio.** Install the [fmod-scripts](https://github.com/Tanz0rz/haxe-fmod/tree/master/fmod-scripts) script once; `Ctrl+B` in FMOD Studio then writes the constants and builds your banks in one step, so they can never drift from the project.
+
+**Alternative: generate from a built bank** (CI, or teammates without FMOD Studio):
+
 ```
 haxelib run haxefmod generate
 ```
 
-Parses `assets/fmod/Desktop/Master.strings.bank` (override with `--strings`) and writes `FmodEvents.hx`, `FmodBuses.hx`, `FmodVCAs.hx`, `FmodSnapshots.hx`, and `FmodParameters.hx` into `source/` (override with `--out`, add a package with `--package`). Each constant also gets a GUID companion (`MusicMainLevelGuid`) for GUID-based lookups. Re-run it whenever you rebuild banks - no FMOD Studio scripting setup required.
+Parses `assets/fmod/Desktop/Master.strings.bank` (override with `--strings`) and writes the files into `source/` (override with `--out`, add a package with `--package`).
 
 ## <a name="migrating"></a>Migrating From 1.x
 
@@ -261,7 +267,7 @@ From now on, your `Master.bank` and `Master.strings.bank` files should be built 
 
 **Constants generation:**
 
-Run `haxelib run haxefmod generate` after building banks to generate Haxe constants for your events, buses, VCAs, snapshots, and parameters (see [Generating Constants](#generating-constants)). The old FMOD Studio-side [fmod-scripts](https://github.com/Tanz0rz/haxe-fmod/tree/master/fmod-scripts) approach is deprecated.
+Install the [fmod-scripts](https://github.com/Tanz0rz/haxe-fmod/tree/master/fmod-scripts) export script so `Ctrl+B` in FMOD Studio regenerates your Haxe constants and builds banks in one step, or run `haxelib run haxefmod generate` against a built bank (see [Generating Constants](#generating-constants)); both produce identical files.
 
 **FMOD Studio Live Update:**
 

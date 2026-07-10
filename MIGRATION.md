@@ -97,16 +97,18 @@ Async loading: `FmodRuntime.banks.loadAsync(path)` then poll
 
 ## Constants generation
 
-The FMOD Studio-side script is deprecated. Generate constants straight
-from your built banks:
+The FMOD Studio export script (`fmod-scripts`) remains the recommended
+workflow and now emits the 2.0 constants files on every `Ctrl+B` bank
+build: `FmodEvents.hx`, `FmodBuses.hx`, `FmodVCAs.hx`,
+`FmodSnapshots.hx`, and `FmodParameters.hx`, each constant paired with a
+GUID companion. `haxelib run haxefmod generate` produces identical files
+from a built `assets/fmod/Desktop/Master.strings.bank` when you want to
+generate without opening FMOD Studio.
 
-```
-haxelib run haxefmod generate
-```
-
-This parses `assets/fmod/Desktop/Master.strings.bank` and writes
-`FmodEvents.hx`, `FmodBuses.hx`, `FmodVCAs.hx`, `FmodSnapshots.hx`, and
-`FmodParameters.hx` (with GUID companions) into `source/`.
+The old single-file `FmodConstants.hx` output is gone; rename references
+using the mangling rules (`FmodSongs.MainLevel` becomes
+`FmodEvents.MusicMainLevel`, `FmodSFX.Jump` becomes
+`FmodEvents.SFXJump`), then delete `FmodConstants.hx`.
 
 ## New in 2.0 (no 1.x equivalent)
 

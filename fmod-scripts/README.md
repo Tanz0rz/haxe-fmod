@@ -1,12 +1,20 @@
-# DEPRECATED
+# Keeping Your Constants Synced From Inside FMOD Studio
 
-This FMOD Studio-side script is deprecated as of haxefmod 2.0. Generate constants directly from your built banks instead:
+This script bakes constants generation into the export itself: press `Ctrl+B` in FMOD Studio and it writes the Haxe constants files AND builds your banks in one step. Because it runs on every export, the constants can never drift from the project - this is the recommended workflow.
 
-```
-haxelib run haxefmod generate
-```
+It emits the same files as `haxelib run haxefmod generate` (`FmodEvents.hx`, `FmodBuses.hx`, `FmodVCAs.hx`, `FmodSnapshots.hx`, `FmodParameters.hx`, each constant paired with a `...Guid` companion), byte-identical - a parity test in CI keeps the two generators in lockstep. Use the CLI when you want to generate from a built bank without opening FMOD Studio (CI, teammates without Studio).
 
-It parses `Master.strings.bank` and emits `FmodEvents.hx`, `FmodBuses.hx`, `FmodVCAs.hx`, `FmodSnapshots.hx`, and `FmodParameters.hx` with no FMOD Studio scripting setup. The instructions below remain for 1.x users.
+## Setup
+
+1. Copy `ExportHaxeConstants.js` into your FMOD Studio scripts folder (`Scripts` next to your `.fspro`, or the global scripts directory from Preferences).
+2. Reload scripts in FMOD Studio (Scripts menu) or restart Studio.
+3. Press `Ctrl+B` (or Scripts -> Export Haxe Constants and Build), pick your Haxe project's `source` folder once - the choice is cached next to the project.
+
+From then on `Ctrl+B` regenerates the constants and builds banks in one keystroke.
+
+## Legacy note
+
+Before haxefmod 2.0 this script emitted a single `FmodConstants.hx` with `FmodSongs`/`FmodSFX` classes based on Music/SFX folder conventions. The 2.0 output covers every event, bus, VCA, snapshot, and global parameter with GUID companions; see `MIGRATION.md` for the rename mapping.
 
 # Connecting Bank Events to Your Code
 

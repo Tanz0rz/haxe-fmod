@@ -35,7 +35,7 @@ class VolumeTestState extends FlxState {
         super.create();
 
         FmodManager.EnableDebugMessages();
-        FmodManager.PlaySong(FmodSongs.MainLevel);
+        FmodManager.PlaySong(FmodEvents.MusicMainLevel);
 
         _master = StudioSystem.getBus("bus:/");
         trace('VOLUME_TEST: master bus valid=${_master.isValid()} path=${_master.getPath()}');

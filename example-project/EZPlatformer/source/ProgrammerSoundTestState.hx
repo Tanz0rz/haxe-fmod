@@ -85,7 +85,7 @@ class ProgrammerSoundTestState extends FlxState {
         // example bank has no programmer instrument, so the callback never
         // triggers; this proves assignment, playback with the callback
         // armed, and cleanup are all safe.
-        var desc = StudioSystem.getEvent(FmodSongs.MainLevel);
+        var desc = StudioSystem.getEvent(FmodEvents.MusicMainLevel);
         // Leak baseline after the lookup (descriptions cache a persistent
         // deduped handle) and before the instance, which is released below
         var baseline = StudioSystem.liveHandleCount();

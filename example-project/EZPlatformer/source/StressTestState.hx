@@ -90,7 +90,7 @@ class StressTestState extends FlxState {
         // Warm the event description cache (the lookup allocates one
         // persistent deduped handle) so the baseline only moves if a phase
         // below leaks instance handles
-        StudioSystem.getEvent(FmodSongs.MainLevel);
+        StudioSystem.getEvent(FmodEvents.MusicMainLevel);
         _baseline = StudioSystem.liveHandleCount();
         info("baseline_handles", Std.string(_baseline));
     }
@@ -121,7 +121,7 @@ class StressTestState extends FlxState {
 
     /** Wide phase: many simultaneous instances, then a full release. */
     function runWidePhase():Void {
-        var desc = StudioSystem.getEvent(FmodSongs.MainLevel);
+        var desc = StudioSystem.getEvent(FmodEvents.MusicMainLevel);
 
         var instances:Array<EventInstance> = [];
         var validCount = 0;
@@ -153,7 +153,7 @@ class StressTestState extends FlxState {
 
     /** Churn phase: full create/start/stop/release cycles every frame. */
     function runChurnFrame(elapsed:Float):Void {
-        var desc = StudioSystem.getEvent(FmodSongs.MainLevel);
+        var desc = StudioSystem.getEvent(FmodEvents.MusicMainLevel);
         for (i in 0...CHURN_BATCH) {
             var instance = desc.createInstance();
             if (i == 0) {

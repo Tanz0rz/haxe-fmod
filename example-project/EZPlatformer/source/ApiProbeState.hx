@@ -129,10 +129,10 @@ class ApiProbeState extends FlxState {
     /** Exercises the M3 mass-binding surface: events, instances, banks, VCAs, system. */
     function probeM3Surface():Void {
         // Event description lookup and queries
-        var desc = StudioSystem.getEvent(FmodSongs.MainLevel);
+        var desc = StudioSystem.getEvent(FmodEvents.MusicMainLevel);
         check("sys_get_event", !desc.isNull(), 'handle=${(desc : Int)}');
         check("evd_is_valid", desc.isValid(), "");
-        check("evd_get_path", desc.getPath() == FmodSongs.MainLevel, 'value=${desc.getPath()}');
+        check("evd_get_path", desc.getPath() == FmodEvents.MusicMainLevel, 'value=${desc.getPath()}');
         var descGuid = desc.getID();
         check("evd_get_id", descGuid.length == 38, 'value=$descGuid');
         check("evd_get_length", desc.getLength() > 0, 'value=${desc.getLength()}');
@@ -142,12 +142,12 @@ class ApiProbeState extends FlxState {
         info("evd_is_3d", Std.string(desc.is3D()));
 
         // GUID round trip: path -> GUID -> event -> same handle
-        var lookedUp = StudioSystem.lookupID(FmodSongs.MainLevel);
+        var lookedUp = StudioSystem.lookupID(FmodEvents.MusicMainLevel);
         check("sys_lookup_id", lookedUp == descGuid, 'value=$lookedUp');
         var byId = StudioSystem.getEventByID(descGuid);
         check("sys_get_event_by_id", (byId : Int) == (desc : Int), 'handle=${(byId : Int)}');
         var pathBack = StudioSystem.lookupPath(descGuid);
-        check("sys_lookup_path", pathBack == FmodSongs.MainLevel, 'value=$pathBack');
+        check("sys_lookup_path", pathBack == FmodEvents.MusicMainLevel, 'value=$pathBack');
 
         // Parameters on the event
         var paramCount = desc.getParameterDescriptionCount();
@@ -282,7 +282,7 @@ class ApiProbeState extends FlxState {
         // Lookups below are deduplicated, so every handle this section
         // creates is released and the live count must return to baseline
         var baseline = StudioSystem.liveHandleCount();
-        var desc = StudioSystem.getEvent(FmodSongs.MainLevel);
+        var desc = StudioSystem.getEvent(FmodEvents.MusicMainLevel);
         var master = StudioSystem.getBus("bus:/");
 
         // Stale handle: every call must be a safe no-op after release
