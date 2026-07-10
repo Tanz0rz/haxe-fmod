@@ -2505,21 +2505,31 @@ jobs:
           fi
           echo "Doctor reported a fully configured environment"
 
-      - name: Doctor fails without FMOD_SDK
+      - name: Doctor rejects a missing FMOD_SDK (negative test)
         env:
           FMOD_SDK: ""
           FMOD_SDK_WEB: /tmp/fmod-sdk-cache-2.03.12/html5
         run: |
-          # A failing environment must fail by exit code AND name the problem
+          # This scenario EXPECTS the doctor to fail. Every doctor check is
+          # scored against the outcome a missing FMOD_SDK must produce
+          # (every other check OK, the FMOD_SDK check FAIL, nonzero exit),
+          # so the summary below reads N/N when the doctor behaved correctly.
           cd example-project/EZPlatformer
           if haxelib run haxefmod check > /tmp/doctor-missing.log 2>&1; then
             cat /tmp/doctor-missing.log
-            echo "FAIL: doctor exited 0 without FMOD_SDK"
+            echo "NEGATIVE TEST FAILED: doctor exited 0 without FMOD_SDK"
             exit 1
           fi
           cat /tmp/doctor-missing.log
-          grep -q "\[FAIL\] FMOD_SDK environment variable set" /tmp/doctor-missing.log
-          echo "Doctor failed with the missing FMOD_SDK named"
+          echo ""
+          total=$(grep -cE "\[(OK|FAIL)\]" /tmp/doctor-missing.log)
+          fails=$(grep -c "\[FAIL\]" /tmp/doctor-missing.log)
+          if [ "$fails" -ne 1 ] || ! grep -q "\[FAIL\] FMOD_SDK environment variable set" /tmp/doctor-missing.log; then
+            echo "NEGATIVE TEST FAILED: expected exactly one failing check (FMOD_SDK), saw $fails"
+            exit 1
+          fi
+          echo "NEGATIVE TEST PASSED: $total/$total check outcomes matched expectations"
+          echo "  (FMOD_SDK check failed as intended and the doctor exited nonzero)"
 
       # Negative-path proof that the compile-time gate blocks REAL lime
       # builds (lime ignores postbuild exit codes, so this macro is the only
