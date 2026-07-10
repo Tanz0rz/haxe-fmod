@@ -33,10 +33,14 @@ class FmodManager {
     /**
      * Initializes FMOD. Optional settings control channels, live update,
      * bank folder/auto-loading, and more (see FmodSettings); every other
-     * FmodManager call initializes with defaults on first use.
+     * FmodManager call initializes with defaults on first use. First
+     * initialization wins: settings passed to a later call are ignored.
      */
     public static function Initialize(?settings:FmodSettings):Void {
-        if (initialized) return;
+        if (initialized) {
+            if (settings != null) log("Initialize called again - already initialized, settings ignored");
+            return;
+        }
         initialized = true;
         FmodRuntime.init(settings);
         #if debug
@@ -249,9 +253,9 @@ class FmodManager {
      * Registers a typed payload callback (beats, markers, lifecycle) on the
      * current song. Replaces any previous handler; delivered from Update().
      */
-    public static function OnSongEvent(handler:EventCallbackData->Void, ?playbackEventMask:Int):Void {
+    public static function OnSongEvent(handler:EventCallbackData->Void, ?mask:Int):Void {
         ensureInitialized();
-        if (!songInstance.isNull()) songInstance.setCallback(handler, playbackEventMask);
+        if (!songInstance.isNull()) songInstance.setCallback(handler, mask);
     }
 
     /**
@@ -259,14 +263,14 @@ class FmodManager {
      * and then removes itself (use the mask to pick which events qualify).
      * Replaces any previous song handler, like OnSongEvent.
      */
-    public static function OnceSongEvent(handler:EventCallbackData->Void, ?playbackEventMask:Int):Void {
+    public static function OnceSongEvent(handler:EventCallbackData->Void, ?mask:Int):Void {
         ensureInitialized();
         if (songInstance.isNull()) return;
         var instance = songInstance;
         instance.setCallback(data -> {
             CallbackDispatcher.remove(instance);
             handler(data);
-        }, playbackEventMask);
+        }, mask);
     }
 
     //// Sound effects

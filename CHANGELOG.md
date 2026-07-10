@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.0 (unreleased)
+## 2.0.0
 
 A clean-break rework: the full FMOD Studio API at runtime, typed handles,
 payload-carrying callbacks, and a layered architecture with the facade on

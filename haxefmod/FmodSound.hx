@@ -9,7 +9,7 @@ import haxefmod.studio.Types;
  * A playing sound returned by FmodManager.PlaySound. Wraps a typed event
  * instance handle (this replaces the 1.x string sound IDs).
  *
- *   var explosion = FmodManager.PlaySound(FmodSFX.Explosion);
+ *   var explosion = FmodManager.PlaySound(FmodEvents.SFXExplosion);
  *   explosion.setParameter("Distance", 0.5);
  *   explosion.onEvent(data -> switch (data) {
  *       case Stopped: trace("done");

@@ -131,11 +131,10 @@ using the mangling rules (`FmodSongs.MainLevel` becomes
 `FmodEvents.SFXJump`), then delete `FmodConstants.hx`. Later 1.x
 exports named the songs class `FmodSong`; it maps the same way.
 
-If you used the 1.x `ExportHaxeEnums.js` script (or want plain enums
-for switch statements or LDtk external enums), both 2.0 generators can
-emit `FmodEventEnum.hx` with `FmodSong`/`FmodSFX` enums and
-`FmodEvent.event()` path mappers: `Ctrl+Shift+B` in FMOD Studio or
-`haxelib run haxefmod generate --enums`.
+If you want plain enums for switch statements or LDtk external enums,
+both 2.0 generators can emit `FmodEventEnum.hx` with `FmodSong`/
+`FmodSFX` enums and `FmodEvent.event()` path mappers: `Ctrl+Shift+B`
+in FMOD Studio or `haxelib run haxefmod generate --enums`.
 
 ## New in 2.0 (no 1.x equivalent)
 
@@ -144,6 +143,7 @@ emit `FmodEventEnum.hx` with `FmodSong`/`FmodSFX` enums and
   and mute (the volume keys and the sound tray) to the FMOD master bus,
   and silences the sound tray's own beep. Replaces the hand-rolled sound
   tray and volume wiring that flixel-fmod-era projects carried.
+  Requires flixel 5.9.0 or newer.
 - Full Studio API: `StudioSystem.getEvent/getBus/getVCA/getBank`,
   GUID lookups, global parameters, labeled parameters, profiling.
 - 3D: `FmodFlxEmitter`, `FmodFlxListener`, `FmodRuntime.attach`,

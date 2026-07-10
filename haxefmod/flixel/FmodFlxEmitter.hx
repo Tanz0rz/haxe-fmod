@@ -15,7 +15,7 @@ import haxefmod.studio.EventInstance;
     of its own - just make sure Update() runs every frame (or add
     FmodFlxUpdater once).
 
-        var emitter = FmodFlxEmitter.play(FmodSFX.Engine, car);
+        var emitter = FmodFlxEmitter.play(FmodEvents.SFXEngine, car);
         add(emitter);
         // later: emitter.destroy() detaches and releases the instance
 **/

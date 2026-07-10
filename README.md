@@ -129,7 +129,7 @@ public function OnBeat():Void {
 }
 ```
 
-Call `FmodManager.Update()` once per frame. HaxeFlixel games can call `haxefmod.flixel.FmodFlxSetup.init()` once in their first state instead: it initializes FMOD, adds the `FmodFlxUpdater` plugin (which handles the per-frame update), routes `FlxG.sound` volume and mute (the plus, minus, and zero keys and the sound tray) to the FMOD master bus, and silences the sound tray's own beep so all audio comes from FMOD. Generate the `FmodEvents` constants with `haxelib run haxefmod generate` (see [Generating Constants](#generating-constants)).
+Call `FmodManager.Update()` once per frame. HaxeFlixel games (flixel 5.9.0 or newer) can call `haxefmod.flixel.FmodFlxSetup.init()` once in their first state instead: it initializes FMOD, adds the `FmodFlxUpdater` plugin (which handles the per-frame update), routes `FlxG.sound` volume and mute (the plus, minus, and zero keys and the sound tray) to the FMOD master bus, and silences the sound tray's own beep so all audio comes from FMOD. Generate the `FmodEvents` constants with `haxelib run haxefmod generate` (see [Generating Constants](#generating-constants)).
 
 **6. Build and run:**
 

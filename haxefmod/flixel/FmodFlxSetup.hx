@@ -8,7 +8,9 @@ import haxefmod.runtime.FmodSettings;
     One-call FMOD setup for HaxeFlixel games. Call init() once from the
     first state's create():
 
-    - initializes FMOD (settings pass through to FmodManager.Initialize)
+    - initializes FMOD (settings pass through to FmodManager.Initialize;
+      first initialization wins, so settings are ignored if something
+      already initialized FMOD, like an html5 preloader)
     - adds FmodFlxUpdater so FmodManager.Update() runs every frame
     - routes FlxG.sound volume and mute changes (the plus, minus, and
       zero keys and the sound tray) to the FMOD master bus

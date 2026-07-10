@@ -25,15 +25,16 @@ class FmodRuntime {
     static var resolved:ResolvedFmodSettings = null;
     static var initStarted:Bool = false;
 
-    /**
-     * Initializes FMOD with the given settings (see FmodSettings for the
-     * define-driven defaults). On html5 initialization is asynchronous:
-     * poll isInitialized(), or just call update() every frame and start
-     * playing sounds once it reports true.
-     */
     /** Expected native binding ABI - lockstep with the manifest "# abi-version:". */
     public static inline var BINDING_ABI:Int = 2;
 
+    /**
+     * Initializes FMOD with the given settings (see FmodSettings for the
+     * define-driven defaults). First initialization wins: settings passed
+     * to any later init call are ignored. On html5 initialization is
+     * asynchronous: poll isInitialized(), or just call update() every
+     * frame and start playing sounds once it reports true.
+     */
     public static function init(?settings:FmodSettings):FmodResult {
         if (initStarted) return FmodResult.FMOD_OK;
         initStarted = true;
