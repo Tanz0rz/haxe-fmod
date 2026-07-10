@@ -58,7 +58,7 @@ class Run {
 					if (trimmed != "" && !StringTools.startsWith(trimmed, "-")) {
 						// This is like /home/user/haxelib/haxefmod/git/haxefmod
 						// We need the parent (the lib root)
-						if (FileSystem.exists(haxe.io.Path.join([haxe.io.Path.directory(trimmed), "scripts", "fmod_expected_version"]))) {
+						if (FileSystem.exists(haxe.io.Path.join([haxe.io.Path.directory(trimmed), "fmod_expected_version"]))) {
 							return haxe.io.Path.directory(trimmed);
 						}
 					}
@@ -308,7 +308,7 @@ class Run {
 		var sdkHex = PostBuild.parseFmodVersion(commonHeader);
 		if (sdkHex == null) return;
 
-		var versionFile = haxe.io.Path.join([libRoot, "scripts", "fmod_expected_version"]);
+		var versionFile = haxe.io.Path.join([libRoot, "fmod_expected_version"]);
 		if (!FileSystem.exists(versionFile)) return;
 		var expectedHex = StringTools.trim(File.getContent(versionFile));
 

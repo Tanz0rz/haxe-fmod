@@ -48,7 +48,7 @@ class PostBuild {
 	//// Version verification
 
 	static function verifyVersion(libRoot:String, sdkPath:String, sdkEnvName:String, projectDir:String, target:String):Void {
-		var versionFile = Path.join([libRoot, "scripts", "fmod_expected_version"]);
+		var versionFile = Path.join([libRoot, "fmod_expected_version"]);
 		var sdkHeader = Path.join([sdkPath, "api", "core", "inc", "fmod_common.h"]);
 
 		// A set-but-wrong SDK path is provably not an SDK: hard error, the

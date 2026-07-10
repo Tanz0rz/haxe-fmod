@@ -11,8 +11,8 @@ zip -r haxefmod.zip \
   haxefmod/ \
   native/ \
   templates/ \
-  scripts/ \
   fmod-scripts/ \
+  fmod_expected_version \
   include.xml \
   haxelib.json \
   README.md \
