@@ -5,7 +5,7 @@ import sys.FileSystem;
 import sys.io.File;
 
 /**
- * `haxelib run haxefmod generate [--strings <path>] [--out <dir>] [--package <pkg>]`
+ * `haxelib run haxefmod generate [--strings <path>] [--out <dir>] [--package <pkg>] [--enums]`
  *
  * Parses a compiled Master.strings.bank and emits one Haxe class per path
  * category found in it:
@@ -15,6 +15,12 @@ import sys.io.File;
  *   FmodVCAs.hx        vca:/...
  *   FmodSnapshots.hx   snapshot:/...
  *   FmodParameters.hx  parameter:/...
+ *
+ * With --enums it additionally emits FmodEventEnum.hx: plain enums for the
+ * events under event:/Music/ (FmodSong) and event:/SFX/ (FmodSFX) plus
+ * FmodEvent.event() overloads mapping each value to its path string. Plain
+ * enums suit switch statements and external tools that import Haxe enums
+ * (LDtk external enums, for example).
  *
  * Each entry becomes two inline constants: the path and its GUID, e.g.
  *
@@ -49,6 +55,7 @@ class Generate {
 		var stringsPath:Null<String> = null;
 		var outDir:Null<String> = null;
 		var pkg = "";
+		var enums = false;
 
 		var i = 0;
 		while (i < args.length) {
@@ -62,6 +69,8 @@ class Generate {
 				case "--package":
 					if (i + 1 >= args.length) usageError("--package requires a package name");
 					pkg = args[++i];
+				case "--enums":
+					enums = true;
 				case arg:
 					usageError('unknown argument "$arg"');
 			}
@@ -103,11 +112,72 @@ class Generate {
 			Sys.println('  ${cat.className}.hx: ${matched.length} ${cat.label}');
 		}
 
+		if (enums) {
+			var enumText = emitEventEnums(entries, pkg);
+			if (enumText == null) {
+				Sys.println("  FmodEventEnum.hx: skipped (no event:/Music/ or event:/SFX/ events)");
+			} else {
+				if (!FileSystem.exists(outDir)) FileSystem.createDirectory(outDir);
+				File.saveContent(haxe.io.Path.join([outDir, "FmodEventEnum.hx"]), enumText);
+				written++;
+				Sys.println("  FmodEventEnum.hx: event enums");
+			}
+		}
+
 		if (written == 0) {
 			Sys.println("No event:/, bus:/, vca:/, snapshot:/ or parameter:/ paths found - nothing to generate.");
 		} else {
 			Sys.println('Wrote $written file(s) to $outDir');
 		}
+	}
+
+	static var enumGroups = [
+		{prefix: "event:/Music/", enumName: "FmodSong", argName: "song"},
+		{prefix: "event:/SFX/", enumName: "FmodSFX", argName: "sfx"},
+	];
+
+	/** Emits FmodEventEnum.hx (plain enums for event:/Music/ and event:/SFX/
+		events plus FmodEvent.event() path mappers), or null when neither
+		folder has events. Kept in lockstep with
+		fmod-scripts/ExportHaxeConstants.js (byte-identical output). */
+	public static function emitEventEnums(entries:Array<StringsBankEntry>, pkg:String):Null<String> {
+		var groups = [];
+		for (def in enumGroups) {
+			var matched = entries.filter(e -> StringTools.startsWith(e.path, def.prefix));
+			if (matched.length == 0) continue;
+			matched.sort((a, b) -> a.path < b.path ? -1 : a.path > b.path ? 1 : 0);
+			groups.push({def: def, entries: matched, names: identifiersFor(matched.map(e -> e.path), def.prefix)});
+		}
+		if (groups.length == 0) return null;
+
+		var lines = new Array<String>();
+		lines.push("// Generated haxefmod constants - do not edit (regenerate from FMOD Studio or via haxelib run haxefmod generate)");
+		lines.push("");
+		if (pkg != "") {
+			lines.push('package $pkg;');
+			lines.push("");
+		}
+		for (g in groups) {
+			lines.push('enum ${g.def.enumName} {');
+			for (name in g.names) lines.push('\t$name;');
+			lines.push("}");
+			lines.push("");
+		}
+		lines.push("class FmodEvent {");
+		for (i in 0...groups.length) {
+			var g = groups[i];
+			lines.push('\tpublic static inline extern overload function event(${g.def.argName}:${g.def.enumName}):String {');
+			lines.push('\t\treturn switch (${g.def.argName}) {');
+			for (j in 0...g.entries.length) {
+				lines.push('\t\t\tcase ${g.names[j]}: "${g.entries[j].path}";');
+			}
+			lines.push("\t\t};");
+			lines.push("\t}");
+			if (i < groups.length - 1) lines.push("");
+		}
+		lines.push("}");
+		lines.push("");
+		return lines.join("\n");
 	}
 
 	static function emitClass(className:String, prefix:String, entries:Array<StringsBankEntry>, pkg:String):String {
@@ -181,10 +251,11 @@ class Generate {
 
 	static function usageError(message:String) {
 		Sys.println('generate: $message');
-		Sys.println("Usage: haxelib run haxefmod generate [--strings <path>] [--out <dir>] [--package <pkg>]");
+		Sys.println("Usage: haxelib run haxefmod generate [--strings <path>] [--out <dir>] [--package <pkg>] [--enums]");
 		Sys.println("  --strings  Path to Master.strings.bank (default: assets/fmod/Desktop/Master.strings.bank)");
 		Sys.println("  --out      Output directory (default: source/ if it exists, else the current directory)");
 		Sys.println("  --package  Package for the generated classes (default: top-level)");
+		Sys.println("  --enums    Also emit FmodEventEnum.hx (FmodSong/FmodSFX enums with path mappers)");
 		Sys.exit(1);
 	}
 }

@@ -128,7 +128,14 @@ generate without opening FMOD Studio.
 The old single-file `FmodConstants.hx` output is gone; rename references
 using the mangling rules (`FmodSongs.MainLevel` becomes
 `FmodEvents.MusicMainLevel`, `FmodSFX.Jump` becomes
-`FmodEvents.SFXJump`), then delete `FmodConstants.hx`.
+`FmodEvents.SFXJump`), then delete `FmodConstants.hx`. Later 1.x
+exports named the songs class `FmodSong`; it maps the same way.
+
+If you used the 1.x `ExportHaxeEnums.js` script (or want plain enums
+for switch statements or LDtk external enums), both 2.0 generators can
+emit `FmodEventEnum.hx` with `FmodSong`/`FmodSFX` enums and
+`FmodEvent.event()` path mappers: `Ctrl+Shift+B` in FMOD Studio or
+`haxelib run haxefmod generate --enums`.
 
 ## New in 2.0 (no 1.x equivalent)
 

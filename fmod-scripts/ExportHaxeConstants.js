@@ -90,6 +90,61 @@ var HaxefmodConstants = {
         return lines.join("\n");
     },
 
+    eventEnumGroups: [
+        { prefix: "event:/Music/", enumName: "FmodSong", argName: "song" },
+        { prefix: "event:/SFX/", enumName: "FmodSFX", argName: "sfx" }
+    ],
+
+    // Mirrors Generate.emitEventEnums byte for byte: plain enums for the
+    // event:/Music/ and event:/SFX/ folders plus FmodEvent.event() path
+    // mappers. Returns null when neither folder has events.
+    generateEventEnums: function (entries) {
+        var groups = [];
+        for (var g = 0; g < this.eventEnumGroups.length; g++) {
+            var def = this.eventEnumGroups[g];
+            var matched = [];
+            for (var i = 0; i < entries.length; i++) {
+                if (entries[i].path.indexOf(def.prefix) === 0) {
+                    matched.push({ path: entries[i].path });
+                }
+            }
+            if (matched.length === 0) continue;
+            matched.sort(function (a, b) {
+                return a.path < b.path ? -1 : (a.path > b.path ? 1 : 0);
+            });
+            var paths = [];
+            for (var j = 0; j < matched.length; j++) paths.push(matched[j].path);
+            groups.push({ def: def, entries: matched, names: this.identifiersFor(paths, def.prefix) });
+        }
+        if (groups.length === 0) return null;
+
+        var lines = [];
+        lines.push(this.header);
+        lines.push("");
+        for (var a = 0; a < groups.length; a++) {
+            var grp = groups[a];
+            lines.push("enum " + grp.def.enumName + " {");
+            for (var n = 0; n < grp.names.length; n++) lines.push("\t" + grp.names[n] + ";");
+            lines.push("}");
+            lines.push("");
+        }
+        lines.push("class FmodEvent {");
+        for (var b = 0; b < groups.length; b++) {
+            var grp2 = groups[b];
+            lines.push("\tpublic static inline extern overload function event(" + grp2.def.argName + ":" + grp2.def.enumName + "):String {");
+            lines.push("\t\treturn switch (" + grp2.def.argName + ") {");
+            for (var e = 0; e < grp2.entries.length; e++) {
+                lines.push("\t\t\tcase " + grp2.names[e] + ': "' + grp2.entries[e].path + '";');
+            }
+            lines.push("\t\t};");
+            lines.push("\t}");
+            if (b < groups.length - 1) lines.push("");
+        }
+        lines.push("}");
+        lines.push("");
+        return lines.join("\n");
+    },
+
     // entries: [{path, guid}] in any order; returns {"FmodEvents.hx": text, ...}
     // with entries sorted by path and GUIDs normalized to lowercase, exactly
     // like the CLI generator
@@ -123,13 +178,19 @@ if (typeof studio !== "undefined") {
 
     studio.menu.addMenuItem({
         name: "Export Haxe Constants and Build",
-        execute: function () { displayDirectoryPickerModal(); },
+        execute: function () { displayDirectoryPickerModal(false); },
         keySequence: "Ctrl+B"
+    });
+
+    studio.menu.addMenuItem({
+        name: "Export Haxe Constants + Enums and Build",
+        execute: function () { displayDirectoryPickerModal(true); },
+        keySequence: "Ctrl+Shift+B"
     });
 
     var cacheFileName = "CachedHaxeConstantsOutputLocation";
 
-    function displayDirectoryPickerModal() {
+    function displayDirectoryPickerModal(includeEnums) {
         var outputPathDir = readOutputPathFromFile();
         studio.ui.showModalDialog({
             windowTitle: "Select your Haxe project's source folder",
@@ -145,7 +206,7 @@ if (typeof studio !== "undefined") {
                     items: [
                         { widgetType: studio.ui.widgetType.Spacer, sizePolicy: { horizontalPolicy: studio.ui.sizePolicy.MinimumExpanding } },
                         { widgetType: studio.ui.widgetType.PathLineEdit, stretchFactor: 1, widgetId: "m_directoryPicker", text: outputPathDir, pathType: studio.ui.pathType.Directory },
-                        { widgetType: studio.ui.widgetType.PushButton, text: "Save", onClicked: function () { createConstantsFiles(this); this.closeDialog(); } }
+                        { widgetType: studio.ui.widgetType.PushButton, text: "Save", onClicked: function () { createConstantsFiles(this, includeEnums); this.closeDialog(); } }
                     ]
                 }
             ]
@@ -189,10 +250,15 @@ if (typeof studio !== "undefined") {
         return entries;
     }
 
-    function createConstantsFiles(directoryPickerWidget) {
+    function createConstantsFiles(directoryPickerWidget, includeEnums) {
         var outputPath = directoryPickerWidget.findWidget("m_directoryPicker").text();
 
-        var files = HaxefmodConstants.generate(collectEntries());
+        var entries = collectEntries();
+        var files = HaxefmodConstants.generate(entries);
+        if (includeEnums) {
+            var enumsText = HaxefmodConstants.generateEventEnums(entries);
+            if (enumsText !== null) files["FmodEventEnum.hx"] = enumsText;
+        }
         var written = [];
         for (var fileName in files) {
             var fullPath = outputPath + "/" + fileName;

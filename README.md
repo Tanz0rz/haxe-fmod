@@ -207,6 +207,8 @@ haxelib run haxefmod generate
 
 Parses `assets/fmod/Desktop/Master.strings.bank` (override with `--strings`) and writes the files into `source/` (override with `--out`, add a package with `--package`).
 
+**Optional event enums:** both generators can additionally emit `FmodEventEnum.hx` - plain enums for the events under `event:/Music/` (`FmodSong`) and `event:/SFX/` (`FmodSFX`) plus `FmodEvent.event()` overloads mapping each value to its path. Plain enums work in switch statements and in tools that import Haxe enums (LDtk external enums, for example). Use `Ctrl+Shift+B` in FMOD Studio or `haxelib run haxefmod generate --enums`.
+
 ## <a name="migrating"></a>Migrating From 1.x
 
 2.0 is a clean break: string sound IDs became typed `FmodSound` handles and bitmask polling callbacks became typed payload callbacks. See [MIGRATION.md](MIGRATION.md) for a complete 1.x to 2.0 mapping.

@@ -35,6 +35,10 @@ const FIXTURE_ENTRIES = [
 ];
 
 const studioFiles = core.generate(FIXTURE_ENTRIES);
+// The enum file is opt-in on both sides (CLI --enums, the Studio script's
+// "+ Enums" menu item) and must stay in the same byte-parity lockstep
+const enumsText = core.generateEventEnums(FIXTURE_ENTRIES);
+if (enumsText !== null) studioFiles['FmodEventEnum.hx'] = enumsText;
 
 let failures = 0;
 function fail(message) {

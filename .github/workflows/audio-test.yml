@@ -38,8 +38,10 @@ jobs:
       - name: Constants generator parity (CLI vs FMOD Studio script)
         run: |
           haxe -cp . --run haxefmod.tools.Generate \
-            --strings tests/fixtures/Master.strings.bank --out /tmp/gen-cli
+            --strings tests/fixtures/Master.strings.bank --out /tmp/gen-cli --enums
           node tests/js/constants-parity.js /tmp/gen-cli
+          # The generated output must also compile
+          haxe -cp /tmp/gen-cli --no-output FmodEvents FmodBuses FmodParameters FmodEventEnum
 
       - name: Verify native shims match the FFI manifest
         run: haxe -cp . --run haxefmod.tools.NativeManifestCheck

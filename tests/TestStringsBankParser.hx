@@ -29,6 +29,7 @@ class TestStringsBankParser {
 		testNotABank();
 		testMangling();
 		testCollisionSuffixes();
+		testEventEnums();
 
 		cleanup();
 		Sys.println('  $passed passed, $failed failed');
@@ -111,6 +112,54 @@ class TestStringsBankParser {
 		assert("collisions get numeric suffixes", names.join(",") == "AB,AB2,AB3");
 		var guidClash = Generate.identifiersFor(["event:/Coin", "event:/Coin Guid"], "event:/");
 		assert("Guid pair names are reserved too", guidClash.join(",") == "Coin,CoinGuid2");
+	}
+
+	static function testEventEnums() {
+		var entries = [
+			{path: "event:/SFX/Jump", guid: "{4562f533-1e6b-4ce9-a40a-814283edde66}"},
+			{path: "event:/Music/MainLevel", guid: "{e5187c3f-0517-463e-b458-de9ef1a9f750}"},
+			{path: "event:/SFX/Coin", guid: "{6c656399-97f5-432f-9817-c10c8c56939d}"},
+			{path: "bus:/Reverb", guid: "{1a13f11e-eecf-4c3c-b353-79423771ced9}"},
+		];
+		var expected = [
+			"// Generated haxefmod constants - do not edit (regenerate from FMOD Studio or via haxelib run haxefmod generate)",
+			"",
+			"enum FmodSong {",
+			"\tMainLevel;",
+			"}",
+			"",
+			"enum FmodSFX {",
+			"\tCoin;",
+			"\tJump;",
+			"}",
+			"",
+			"class FmodEvent {",
+			"\tpublic static inline extern overload function event(song:FmodSong):String {",
+			"\t\treturn switch (song) {",
+			"\t\t\tcase MainLevel: \"event:/Music/MainLevel\";",
+			"\t\t};",
+			"\t}",
+			"",
+			"\tpublic static inline extern overload function event(sfx:FmodSFX):String {",
+			"\t\treturn switch (sfx) {",
+			"\t\t\tcase Coin: \"event:/SFX/Coin\";",
+			"\t\t\tcase Jump: \"event:/SFX/Jump\";",
+			"\t\t};",
+			"\t}",
+			"}",
+			"",
+		].join("\n");
+		assert("enum file emits both groups sorted", Generate.emitEventEnums(entries, "") == expected);
+
+		var musicOnly = Generate.emitEventEnums([{path: "event:/Music/MainLevel", guid: "{e5187c3f-0517-463e-b458-de9ef1a9f750}"}], "");
+		assert("music-only file has FmodSong but no FmodSFX",
+			musicOnly != null && musicOnly.indexOf("enum FmodSong") != -1 && musicOnly.indexOf("FmodSFX") == -1);
+
+		assert("no matching events yields null",
+			Generate.emitEventEnums([{path: "event:/Ambience/Wind", guid: "{1a13f11e-eecf-4c3c-b353-79423771ced9}"}], "") == null);
+
+		var pkg = Generate.emitEventEnums([{path: "event:/SFX/Coin", guid: "{6c656399-97f5-432f-9817-c10c8c56939d}"}], "sounds");
+		assert("package line included when requested", pkg != null && pkg.indexOf("package sounds;") != -1);
 	}
 
 	//// helpers

@@ -29,6 +29,10 @@ top. See `MIGRATION.md` for the complete 1.x to 2.0 mapping.
   `FmodParameters` (with GUID companions) on every `Ctrl+B` bank build,
   and `haxelib run haxefmod generate` emits identical files from a built
   `Master.strings.bank`; a CI parity test keeps them byte-identical.
+- Optional event enum generation: `Ctrl+Shift+B` in FMOD Studio or
+  `haxelib run haxefmod generate --enums` also emits `FmodEventEnum.hx`
+  (`FmodSong`/`FmodSFX` plain enums with `FmodEvent.event()` path
+  mappers) for switch statements and enum-importing tools such as LDtk.
 - Build-time SDK validation: lime builds fail immediately with setup
   instructions when `FMOD_SDK` (or `FMOD_SDK_WEB` for HTML5) is missing.
 - Binding ABI guard: stale pre-built hdlls are refused at build time with
