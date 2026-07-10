@@ -321,7 +321,7 @@ class FmodManager {
     /**
      * Plays a sound and returns a typed handle for further control
      * (parameters, callbacks, stop/pause). Call release() when done with
-     * the handle. Replaces the 1.x string-ID PlaySoundWithReference family.
+     * the handle.
      */
     public static function PlaySound(soundPath:String):FmodSound {
         ensureInitialized();

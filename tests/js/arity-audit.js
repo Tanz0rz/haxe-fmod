@@ -1,5 +1,5 @@
 // Exercises EVERY jaxe.js public function against the real wasm to catch
-// embind arity errors (BindingError) anywhere in the legacy + 2.0 surface.
+// embind arity errors (BindingError) anywhere in the bound surface.
 
 // Path resolution: the FMOD html5 SDK comes from $FMOD_SDK_WEB (the same
 // variable lime builds use). The shim and banks are found relative to this

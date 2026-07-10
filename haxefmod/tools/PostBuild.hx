@@ -190,7 +190,7 @@ class PostBuild {
 	}
 
 	// Scans the hdll binary for the embedded "hlaxe_fmod_abi=<N>" marker.
-	// Returns the version, or 0 when no marker exists (a pre-2.0 hdll).
+	// Returns the version, or 0 when no marker exists (an hdll built before the ABI marker existed).
 	static function scanHdllAbi(hdllPath:String):Int {
 		var bytes = File.getBytes(hdllPath);
 		var marker = "hlaxe_fmod_abi=";
@@ -248,7 +248,7 @@ class PostBuild {
 				Sys.println("  ERROR: hlaxe_fmod.hdll binding version mismatch");
 				Sys.println("");
 				Sys.println('  hdll: $source');
-				Sys.println('  hdll binding ABI:     ' + (found == 0 ? "unknown (older than 2.0)" : Std.string(found)));
+				Sys.println('  hdll binding ABI:     ' + (found == 0 ? "unknown (no ABI marker)" : Std.string(found)));
 				Sys.println('  library expects ABI:  $expected');
 				Sys.println("");
 				Sys.println("  This hdll was compiled against a different native surface and");

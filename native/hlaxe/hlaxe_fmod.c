@@ -608,7 +608,7 @@ HL_PRIM bool HL_NAME(cb_take_overflow)() {
 }
 DEFINE_PRIM(_BOOL, cb_take_overflow, _NO_ARG);
 
-//// Studio System (2.0 bindings)
+//// Studio System
 
 // Copies a parameter description into the scratch buffers: name -> gStringBuf,
 // fbuf [0]=min [1]=max [2]=default, ibuf [0]=type [1]=flags [2]=id1 [3]=id2.
@@ -1139,7 +1139,7 @@ HL_PRIM int HL_NAME(sys_get_memory_usage)(vbyte* out) {
 }
 DEFINE_PRIM(_I32, sys_get_memory_usage, _BYTES);
 
-//// Bus (2.0 bindings)
+//// Bus
 
 static FMOD_STUDIO_BUS* resolve_bus(int h) {
     return (FMOD_STUDIO_BUS*)faxe_handle_resolve(h, FAXE_TYPE_BUS);
@@ -1278,7 +1278,7 @@ HL_PRIM int HL_NAME(bus_get_memory_usage)(int h, vbyte* out) {
 }
 DEFINE_PRIM(_I32, bus_get_memory_usage, _I32 _BYTES);
 
-//// VCA (2.0 bindings)
+//// VCA
 
 static FMOD_STUDIO_VCA* resolve_vca(int h) {
     return (FMOD_STUDIO_VCA*)faxe_handle_resolve(h, FAXE_TYPE_VCA);
@@ -1339,7 +1339,7 @@ HL_PRIM int HL_NAME(vca_set_volume)(int h, double volume) {
 }
 DEFINE_PRIM(_I32, vca_set_volume, _I32 _F64);
 
-//// Bank (2.0 bindings)
+//// Bank
 
 static FMOD_STUDIO_BANK* resolve_bank(int h) {
     return (FMOD_STUDIO_BANK*)faxe_handle_resolve(h, FAXE_TYPE_BANK);
@@ -1535,7 +1535,7 @@ HL_PRIM vbyte* HL_NAME(bank_get_string_guid)(int h, int index) {
 }
 DEFINE_PRIM(_BYTES, bank_get_string_guid, _I32 _I32);
 
-//// EventDescription (2.0 bindings)
+//// EventDescription
 
 static FMOD_STUDIO_EVENTDESCRIPTION* resolve_evd(int h) {
     return (FMOD_STUDIO_EVENTDESCRIPTION*)faxe_handle_resolve(h, FAXE_TYPE_EVD);
@@ -1845,7 +1845,7 @@ HL_PRIM vbyte* HL_NAME(evd_get_user_property_string)(int h, int index) {
 }
 DEFINE_PRIM(_BYTES, evd_get_user_property_string, _I32 _I32);
 
-//// EventInstance (2.0 bindings)
+//// EventInstance
 
 HL_PRIM bool HL_NAME(evi_is_valid)(int h) {
     FMOD_STUDIO_EVENTINSTANCE* instance = resolve_instance(h);

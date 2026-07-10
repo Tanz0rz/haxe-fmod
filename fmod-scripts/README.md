@@ -47,4 +47,4 @@ import FmodEvents;
 
 **Note:** for the generated files to stay up to date, run the export every time you build your sound bank (the script builds the banks for you, so `Ctrl+B` is the whole loop).
 
-Migrating from the 1.x `FmodConstants.hx` output? See `MIGRATION.md` for the rename mapping.
+Migrating from an older version's `FmodConstants.hx` output? See `MIGRATION.md` for the rename mapping.

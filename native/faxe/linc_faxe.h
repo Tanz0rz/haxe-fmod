@@ -56,7 +56,7 @@ extern double fmod_cb_float();
 extern const char* fmod_cb_string();
 extern bool fmod_cb_take_overflow();
 
-//// Studio System (2.0 bindings)
+//// Studio System
 extern int fmod_sys_last_result();
 extern int fmod_sys_init_ex(int numChannels, int sampleRate, int speakerMode, int studioFlags);
 extern int fmod_sys_set_debug_level(int level);
@@ -100,7 +100,7 @@ extern int fmod_sys_get_buffer_usage(::Array<int> ibuf, ::Array<Float> fbuf);
 extern int fmod_sys_reset_buffer_usage();
 extern int fmod_sys_get_memory_usage(::Array<int> ibuf);
 
-//// Bus (2.0 bindings)
+//// Bus
 extern bool fmod_bus_is_valid(int handle);
 extern const char* fmod_bus_get_id(int handle);
 extern const char* fmod_bus_get_path(int handle);
@@ -115,7 +115,7 @@ extern int fmod_bus_stop_all_events(int handle, int stopMode);
 extern int fmod_bus_get_cpu_usage(int handle, ::Array<int> out);
 extern int fmod_bus_get_memory_usage(int handle, ::Array<int> out);
 
-//// VCA (2.0 bindings)
+//// VCA
 extern bool fmod_vca_is_valid(int handle);
 extern const char* fmod_vca_get_id(int handle);
 extern const char* fmod_vca_get_path(int handle);
@@ -123,7 +123,7 @@ extern double fmod_vca_get_volume(int handle);
 extern double fmod_vca_get_final_volume(int handle);
 extern int fmod_vca_set_volume(int handle, double volume);
 
-//// Bank (2.0 bindings)
+//// Bank
 extern bool fmod_bank_is_valid(int handle);
 extern const char* fmod_bank_get_id(int handle);
 extern const char* fmod_bank_get_path(int handle);
@@ -142,7 +142,7 @@ extern int fmod_bank_get_string_count(int handle);
 extern const char* fmod_bank_get_string_info(int handle, int index);
 extern const char* fmod_bank_get_string_guid(int handle, int index);
 
-//// EventDescription (2.0 bindings)
+//// EventDescription
 extern bool fmod_evd_is_valid(int handle);
 extern const char* fmod_evd_get_id(int handle);
 extern const char* fmod_evd_get_path(int handle);
@@ -172,7 +172,7 @@ extern int fmod_evd_get_user_property_type(int handle, int index);
 extern double fmod_evd_get_user_property_float(int handle, int index);
 extern const char* fmod_evd_get_user_property_string(int handle, int index);
 
-//// EventInstance (2.0 bindings)
+//// EventInstance
 extern bool fmod_evi_is_valid(int handle);
 extern int fmod_evi_get_description(int handle);
 extern int fmod_evi_start(int handle);

@@ -18,8 +18,8 @@
 # added, removed, or change signature. PostBuild.hx scans pre-built hdlls for
 # the marker and refuses mismatches before they become loader fatals.
 #
-# Naming domains (2.0 rework): sys_, bank_, evd_, evi_, bus_, vca_, cb_, ps_, core_.
-# Functions without a domain prefix are the legacy 1.x surface, migrated in M3+.
+# Naming domains: sys_, bank_, evd_, evi_, bus_, vca_, cb_, ps_, core_.
+# Functions without a domain prefix predate the domain naming and are kept as is.
 
 ## System
 is_initialized -> bool
@@ -65,7 +65,7 @@ cb_float -> f64
 cb_string -> str
 cb_take_overflow -> bool
 
-# Conventions for the 2.0 surface:
+# Conventions for the domain-prefixed surface:
 # - GUIDs cross the boundary as formatted strings "{8-4-4-4-12}" both ways.
 # - Parameter IDs cross as two i32 args (data1, data2).
 # - fbuf = caller-passed scratch double buffer, ibuf = scratch int buffer

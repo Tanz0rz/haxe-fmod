@@ -522,7 +522,7 @@ class jaxe {
         return overflowed;
     }
 
-    //// Studio System (2.0 bindings)
+    //// Studio System
 
     static lastResult = 0;
     static ERR_INVALID_HANDLE = 30;
@@ -1085,7 +1085,7 @@ class jaxe {
         return jaxe.lastResult;
     }
 
-    //// Bus (2.0 bindings)
+    //// Bus
 
     static fmod_bus_is_valid(handle) {
         var bus = jaxe.handleResolve(handle, jaxe.TYPE_BUS);
@@ -1204,7 +1204,7 @@ class jaxe {
         return jaxe.lastResult;
     }
 
-    //// VCA (2.0 bindings)
+    //// VCA
 
     static fmod_vca_is_valid(handle) {
         var vca = jaxe.handleResolve(handle, jaxe.TYPE_VCA);
@@ -1254,7 +1254,7 @@ class jaxe {
         return jaxe.lastResult;
     }
 
-    //// Bank (2.0 bindings)
+    //// Bank
 
     // Resolves a bank handle for the fmod_bank_* functions, treating async
     // placeholders from fmod_sys_load_bank_async as not ready: sets
@@ -1455,7 +1455,7 @@ class jaxe {
         return jaxe.formatGuid(id);
     }
 
-    //// EventDescription (2.0 bindings)
+    //// EventDescription
 
     static fmod_evd_is_valid(handle) {
         var evd = jaxe.handleResolve(handle, jaxe.TYPE_EVD);
@@ -1721,7 +1721,7 @@ class jaxe {
         return prop.stringvalue || "";
     }
 
-    //// EventInstance (2.0 bindings)
+    //// EventInstance
 
     static fmod_evi_is_valid(handle) {
         var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);

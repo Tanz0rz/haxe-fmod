@@ -147,7 +147,7 @@ lime test mac
 
 ## <a name="api-layers"></a>The API Layers
 
-Everything in 2.0 is layered, and every layer is public:
+The library is layered, and every layer is public:
 
 | Layer | Use it for |
 |---|---|
@@ -211,7 +211,7 @@ Parses `assets/fmod/Desktop/Master.strings.bank` (override with `--strings`) and
 
 ## <a name="migrating"></a>Migrating From 1.x
 
-2.0 is a clean break: string sound IDs became typed `FmodSound` handles and bitmask polling callbacks became typed payload callbacks. See [MIGRATION.md](MIGRATION.md) for a complete 1.x to 2.0 mapping.
+Upgrading from 1.x (or the separate flixel-fmod library)? String sound IDs became typed `FmodSound` handles and bitmask polling callbacks became typed payload callbacks. See [MIGRATION.md](MIGRATION.md) for the complete mapping.
 
 ## <a name="selecting-an-fmod-engine-version"></a>Selecting an FMOD Engine Version
 

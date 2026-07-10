@@ -534,7 +534,7 @@ bool fmod_cb_take_overflow() {
     return faxe_cbq_take_overflow() == 1;
 }
 
-//// Studio System (2.0 bindings)
+//// Studio System
 
 // Shared helpers for the 2.0 bindings.
 
