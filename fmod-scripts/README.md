@@ -2,9 +2,7 @@
 
 This script gives your code an always-up-to-date, autocompletable list of everything in your sound banks. Press `Ctrl+B` in FMOD Studio and it writes the Haxe constants files AND builds your banks in one step. Because it runs as part of every export, the constants can never drift from the project - this is the recommended workflow.
 
-![Haxe Constants Demo](../.github/HaxeConstants.gif)
-
-The demo above was recorded with the 1.x class names. Autocomplete works the same way in 2.0 with the class names shown below.
+[**Watch the constants workflow demo**](../.github/fmod_constants.webm) - exporting from FMOD Studio and autocompleting the generated constants in code (GitHub plays the video when the link opens).
 
 ## What gets generated
 
@@ -28,16 +26,7 @@ engine.setParameter("RPM", 0.5);
 
 `FmodEventEnum.hx` holds a plain `FmodEventEnum` enum with values named exactly like the `FmodEvents` constants, plus `FmodEventTools.path()` and `guid()` mappers back to the path and GUID strings.
 
-The constants are the cleanest way to use the library in code. Enums add a mapping call (`.path()`) on top, so they exist for the places a plain string cannot go: external tools that import Haxe enums, like binding levels to specific songs in LDtk, or exhaustive switch statements where the compiler should catch a missing case. Ignore the file if you never need that - unused mappers are stripped by dead code elimination.
-
-```haxe
-using FmodEventEnum.FmodEventTools;
-
-FmodManager.PlaySong(FmodEventEnum.MusicMainLevel.path());
-FmodManager.PlaySoundOneShot(FmodEventEnum.SFXCoin.path());
-```
-
-Without the `using` line, call the mappers directly: `FmodEventTools.path(FmodEventEnum.MusicMainLevel)`.
+The constants are the cleanest way to use the library in code. Enums add a mapping call (`.path()`) on top, so they exist for the places a plain string cannot go: external tools that import Haxe enums, like binding levels to specific songs in LDtk, or exhaustive switch statements where the compiler should catch a missing case. 
 
 ## Setup
 
