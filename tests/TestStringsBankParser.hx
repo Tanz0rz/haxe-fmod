@@ -118,45 +118,35 @@ class TestStringsBankParser {
 		var entries = [
 			{path: "event:/SFX/Jump", guid: "{4562f533-1e6b-4ce9-a40a-814283edde66}"},
 			{path: "event:/Music/MainLevel", guid: "{e5187c3f-0517-463e-b458-de9ef1a9f750}"},
-			{path: "event:/SFX/Coin", guid: "{6c656399-97f5-432f-9817-c10c8c56939d}"},
-			{path: "bus:/Reverb", guid: "{1a13f11e-eecf-4c3c-b353-79423771ced9}"},
+			{path: "event:/Ambience/Wind", guid: "{1a13f11e-eecf-4c3c-b353-79423771ced9}"},
+			{path: "bus:/Reverb", guid: "{293aa1ce-c07e-4cc2-bc41-7a082a62b7fa}"},
 		];
 		var expected = [
 			"// Generated haxefmod constants - do not edit (regenerate from FMOD Studio or via haxelib run haxefmod generate)",
 			"",
-			"enum FmodSong {",
-			"\tMainLevel;",
+			"enum FmodEvent {",
+			"\tAmbienceWind;",
+			"\tMusicMainLevel;",
+			"\tSFXJump;",
 			"}",
 			"",
-			"enum FmodSFX {",
-			"\tCoin;",
-			"\tJump;",
-			"}",
-			"",
-			"class FmodEvent {",
-			"\tpublic static inline extern overload function event(song:FmodSong):String {",
-			"\t\treturn switch (song) {",
-			"\t\t\tcase MainLevel: \"event:/Music/MainLevel\";",
-			"\t\t};",
-			"\t}",
-			"",
-			"\tpublic static inline extern overload function event(sfx:FmodSFX):String {",
-			"\t\treturn switch (sfx) {",
-			"\t\t\tcase Coin: \"event:/SFX/Coin\";",
-			"\t\t\tcase Jump: \"event:/SFX/Jump\";",
+			"// Static extension: `using FmodEventEnum.FmodEventTools;` enables",
+			"// FmodEvent.MusicMainLevel.path()",
+			"class FmodEventTools {",
+			"\tpublic static inline function path(event:FmodEvent):String {",
+			"\t\treturn switch (event) {",
+			"\t\t\tcase AmbienceWind: \"event:/Ambience/Wind\";",
+			"\t\t\tcase MusicMainLevel: \"event:/Music/MainLevel\";",
+			"\t\t\tcase SFXJump: \"event:/SFX/Jump\";",
 			"\t\t};",
 			"\t}",
 			"}",
 			"",
 		].join("\n");
-		assert("enum file emits both groups sorted", Generate.emitEventEnums(entries, "") == expected);
+		assert("enum file covers every event with constants-matching names", Generate.emitEventEnums(entries, "") == expected);
 
-		var musicOnly = Generate.emitEventEnums([{path: "event:/Music/MainLevel", guid: "{e5187c3f-0517-463e-b458-de9ef1a9f750}"}], "");
-		assert("music-only file has FmodSong but no FmodSFX",
-			musicOnly != null && musicOnly.indexOf("enum FmodSong") != -1 && musicOnly.indexOf("FmodSFX") == -1);
-
-		assert("no matching events yields null",
-			Generate.emitEventEnums([{path: "event:/Ambience/Wind", guid: "{1a13f11e-eecf-4c3c-b353-79423771ced9}"}], "") == null);
+		assert("no events yields null",
+			Generate.emitEventEnums([{path: "bus:/Reverb", guid: "{293aa1ce-c07e-4cc2-bc41-7a082a62b7fa}"}], "") == null);
 
 		var pkg = Generate.emitEventEnums([{path: "event:/SFX/Coin", guid: "{6c656399-97f5-432f-9817-c10c8c56939d}"}], "sounds");
 		assert("package line included when requested", pkg != null && pkg.indexOf("package sounds;") != -1);

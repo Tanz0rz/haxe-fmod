@@ -133,9 +133,11 @@ using the mangling rules (`FmodSongs.MainLevel` becomes
 exports named the songs class `FmodSong`, which maps the same way.
 
 If you want plain enums for switch statements or LDtk external enums,
-both 2.0 generators can emit `FmodEventEnum.hx` with `FmodSong`/
-`FmodSFX` enums and `FmodEvent.event()` path mappers: `Ctrl+Shift+B`
-in FMOD Studio or `haxelib run haxefmod generate --enums`.
+both 2.0 generators can emit `FmodEventEnum.hx`: a `FmodEvent` enum
+covering every event, with values named like the `FmodEvents`
+constants and a `path()` mapper back to the path string. Use
+`Ctrl+Shift+B` in FMOD Studio or `haxelib run haxefmod generate
+--enums`.
 
 ## New in 2.0 (no 1.x equivalent)
 

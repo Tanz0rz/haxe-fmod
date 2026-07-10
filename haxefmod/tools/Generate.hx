@@ -16,11 +16,11 @@ import sys.io.File;
  *   FmodSnapshots.hx   snapshot:/...
  *   FmodParameters.hx  parameter:/...
  *
- * With --enums it additionally emits FmodEventEnum.hx: plain enums for the
- * events under event:/Music/ (FmodSong) and event:/SFX/ (FmodSFX) plus
- * FmodEvent.event() overloads mapping each value to its path string. Plain
- * enums suit switch statements and external tools that import Haxe enums
- * (LDtk external enums, for example).
+ * With --enums it additionally emits FmodEventEnum.hx: a plain FmodEvent
+ * enum covering every event, with values named exactly like the FmodEvents
+ * constants, plus a FmodEventTools.path() mapper back to the path string
+ * (usable as a static extension). Plain enums suit switch statements and
+ * external tools that import Haxe enums (LDtk external enums, for example).
  *
  * Each file holds the path constants plus a companion class with the
  * matching GUIDs under the same identifiers, so autocomplete on the main
@@ -117,12 +117,13 @@ class Generate {
 		if (enums) {
 			var enumText = emitEventEnums(entries, pkg);
 			if (enumText == null) {
-				Sys.println("  FmodEventEnum.hx: skipped (no event:/Music/ or event:/SFX/ events)");
+				Sys.println("  FmodEventEnum.hx: skipped (no events)");
 			} else {
+				var count = entries.filter(e -> StringTools.startsWith(e.path, "event:/")).length;
 				if (!FileSystem.exists(outDir)) FileSystem.createDirectory(outDir);
 				File.saveContent(haxe.io.Path.join([outDir, "FmodEventEnum.hx"]), enumText);
 				written++;
-				Sys.println("  FmodEventEnum.hx: event enums");
+				Sys.println('  FmodEventEnum.hx: $count events');
 			}
 		}
 
@@ -133,24 +134,16 @@ class Generate {
 		}
 	}
 
-	static var enumGroups = [
-		{prefix: "event:/Music/", enumName: "FmodSong", argName: "song"},
-		{prefix: "event:/SFX/", enumName: "FmodSFX", argName: "sfx"},
-	];
-
-	/** Emits FmodEventEnum.hx (plain enums for event:/Music/ and event:/SFX/
-		events plus FmodEvent.event() path mappers), or null when neither
-		folder has events. Kept in lockstep with
-		fmod-scripts/ExportHaxeConstants.js (byte-identical output). */
+	/** Emits FmodEventEnum.hx: one FmodEvent enum covering every event,
+		with values named exactly like the FmodEvents constants, plus a
+		FmodEventTools.path() mapper. Returns null when there are no events.
+		Kept in lockstep with fmod-scripts/ExportHaxeConstants.js
+		(byte-identical output). */
 	public static function emitEventEnums(entries:Array<StringsBankEntry>, pkg:String):Null<String> {
-		var groups = [];
-		for (def in enumGroups) {
-			var matched = entries.filter(e -> StringTools.startsWith(e.path, def.prefix));
-			if (matched.length == 0) continue;
-			matched.sort((a, b) -> a.path < b.path ? -1 : a.path > b.path ? 1 : 0);
-			groups.push({def: def, entries: matched, names: identifiersFor(matched.map(e -> e.path), def.prefix)});
-		}
-		if (groups.length == 0) return null;
+		var matched = entries.filter(e -> StringTools.startsWith(e.path, "event:/"));
+		if (matched.length == 0) return null;
+		matched.sort((a, b) -> a.path < b.path ? -1 : a.path > b.path ? 1 : 0);
+		var names = identifiersFor(matched.map(e -> e.path), "event:/");
 
 		var lines = new Array<String>();
 		lines.push("// Generated haxefmod constants - do not edit (regenerate from FMOD Studio or via haxelib run haxefmod generate)");
@@ -159,24 +152,20 @@ class Generate {
 			lines.push('package $pkg;');
 			lines.push("");
 		}
-		for (g in groups) {
-			lines.push('enum ${g.def.enumName} {');
-			for (name in g.names) lines.push('\t$name;');
-			lines.push("}");
-			lines.push("");
+		lines.push("enum FmodEvent {");
+		for (name in names) lines.push('\t$name;');
+		lines.push("}");
+		lines.push("");
+		lines.push("// Static extension: `using FmodEventEnum.FmodEventTools;` enables");
+		lines.push("// FmodEvent.MusicMainLevel.path()");
+		lines.push("class FmodEventTools {");
+		lines.push("\tpublic static inline function path(event:FmodEvent):String {");
+		lines.push("\t\treturn switch (event) {");
+		for (i in 0...matched.length) {
+			lines.push('\t\t\tcase ${names[i]}: "${matched[i].path}";');
 		}
-		lines.push("class FmodEvent {");
-		for (i in 0...groups.length) {
-			var g = groups[i];
-			lines.push('\tpublic static inline extern overload function event(${g.def.argName}:${g.def.enumName}):String {');
-			lines.push('\t\treturn switch (${g.def.argName}) {');
-			for (j in 0...g.entries.length) {
-				lines.push('\t\t\tcase ${g.names[j]}: "${g.entries[j].path}";');
-			}
-			lines.push("\t\t};");
-			lines.push("\t}");
-			if (i < groups.length - 1) lines.push("");
-		}
+		lines.push("\t\t};");
+		lines.push("\t}");
 		lines.push("}");
 		lines.push("");
 		return lines.join("\n");
@@ -263,7 +252,7 @@ class Generate {
 		Sys.println("  --strings  Path to Master.strings.bank (default: assets/fmod/Desktop/Master.strings.bank)");
 		Sys.println("  --out      Output directory (default: source/ if it exists, else the current directory)");
 		Sys.println("  --package  Package for the generated classes (default: top-level)");
-		Sys.println("  --enums    Also emit FmodEventEnum.hx (FmodSong/FmodSFX enums with path mappers)");
+		Sys.println("  --enums    Also emit FmodEventEnum.hx (FmodEvent enum with a path() mapper)");
 		Sys.exit(1);
 	}
 }

@@ -95,56 +95,42 @@ var HaxefmodConstants = {
         return lines.join("\n");
     },
 
-    eventEnumGroups: [
-        { prefix: "event:/Music/", enumName: "FmodSong", argName: "song" },
-        { prefix: "event:/SFX/", enumName: "FmodSFX", argName: "sfx" }
-    ],
-
-    // Mirrors Generate.emitEventEnums byte for byte: plain enums for the
-    // event:/Music/ and event:/SFX/ folders plus FmodEvent.event() path
-    // mappers. Returns null when neither folder has events.
+    // Mirrors Generate.emitEventEnums byte for byte: one FmodEvent enum
+    // covering every event (values named exactly like the FmodEvents
+    // constants) plus a FmodEventTools.path() mapper. Returns null when
+    // there are no events.
     generateEventEnums: function (entries) {
-        var groups = [];
-        for (var g = 0; g < this.eventEnumGroups.length; g++) {
-            var def = this.eventEnumGroups[g];
-            var matched = [];
-            for (var i = 0; i < entries.length; i++) {
-                if (entries[i].path.indexOf(def.prefix) === 0) {
-                    matched.push({ path: entries[i].path });
-                }
+        var matched = [];
+        for (var i = 0; i < entries.length; i++) {
+            if (entries[i].path.indexOf("event:/") === 0) {
+                matched.push({ path: entries[i].path });
             }
-            if (matched.length === 0) continue;
-            matched.sort(function (a, b) {
-                return a.path < b.path ? -1 : (a.path > b.path ? 1 : 0);
-            });
-            var paths = [];
-            for (var j = 0; j < matched.length; j++) paths.push(matched[j].path);
-            groups.push({ def: def, entries: matched, names: this.identifiersFor(paths, def.prefix) });
         }
-        if (groups.length === 0) return null;
+        if (matched.length === 0) return null;
+        matched.sort(function (a, b) {
+            return a.path < b.path ? -1 : (a.path > b.path ? 1 : 0);
+        });
+        var paths = [];
+        for (var j = 0; j < matched.length; j++) paths.push(matched[j].path);
+        var names = this.identifiersFor(paths, "event:/");
 
         var lines = [];
         lines.push(this.header);
         lines.push("");
-        for (var a = 0; a < groups.length; a++) {
-            var grp = groups[a];
-            lines.push("enum " + grp.def.enumName + " {");
-            for (var n = 0; n < grp.names.length; n++) lines.push("\t" + grp.names[n] + ";");
-            lines.push("}");
-            lines.push("");
+        lines.push("enum FmodEvent {");
+        for (var n = 0; n < names.length; n++) lines.push("\t" + names[n] + ";");
+        lines.push("}");
+        lines.push("");
+        lines.push("// Static extension: `using FmodEventEnum.FmodEventTools;` enables");
+        lines.push("// FmodEvent.MusicMainLevel.path()");
+        lines.push("class FmodEventTools {");
+        lines.push("\tpublic static inline function path(event:FmodEvent):String {");
+        lines.push("\t\treturn switch (event) {");
+        for (var e = 0; e < matched.length; e++) {
+            lines.push("\t\t\tcase " + names[e] + ': "' + matched[e].path + '";');
         }
-        lines.push("class FmodEvent {");
-        for (var b = 0; b < groups.length; b++) {
-            var grp2 = groups[b];
-            lines.push("\tpublic static inline extern overload function event(" + grp2.def.argName + ":" + grp2.def.enumName + "):String {");
-            lines.push("\t\treturn switch (" + grp2.def.argName + ") {");
-            for (var e = 0; e < grp2.entries.length; e++) {
-                lines.push("\t\t\tcase " + grp2.names[e] + ': "' + grp2.entries[e].path + '";');
-            }
-            lines.push("\t\t};");
-            lines.push("\t}");
-            if (b < groups.length - 1) lines.push("");
-        }
+        lines.push("\t\t};");
+        lines.push("\t}");
         lines.push("}");
         lines.push("");
         return lines.join("\n");

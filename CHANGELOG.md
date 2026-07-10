@@ -33,8 +33,9 @@ top. See `MIGRATION.md` for the complete 1.x to 2.0 mapping.
   `Master.strings.bank`. A CI parity test keeps them byte-identical.
 - Optional event enum generation: `Ctrl+Shift+B` in FMOD Studio or
   `haxelib run haxefmod generate --enums` also emits `FmodEventEnum.hx`
-  (`FmodSong`/`FmodSFX` plain enums with `FmodEvent.event()` path
-  mappers) for switch statements and enum-importing tools such as LDtk.
+  (a `FmodEvent` enum covering every event, named like the `FmodEvents`
+  constants, with a `path()` mapper) for switch statements and
+  enum-importing tools such as LDtk.
 - Build-time SDK validation: lime builds fail immediately with setup
   instructions when `FMOD_SDK` (or `FMOD_SDK_WEB` for HTML5) is missing,
   set to a path that is not an FMOD SDK, or missing the platform's
