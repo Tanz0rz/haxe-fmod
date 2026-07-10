@@ -9,7 +9,6 @@ Having problems or want to chat? [Join the Haxe Discord](https://discordapp.com/
  - [Prerequisites](#prerequisites)
  - [How to Use This Library](#how-to-use-this-library)
  - [The API Layers](#the-api-layers)
- - [Generating Constants From Your Banks](#generating-constants-from-your-banks)
  - [Selecting an FMOD Engine Version](#selecting-an-fmod-engine-version)
  - [HTML5 Builds](#html5-builds)
  - [FMOD Studio Project Configuration](#fmod-studio-project-configuration)
@@ -17,7 +16,6 @@ Having problems or want to chat? [Join the Haxe Discord](https://discordapp.com/
  - [License](#license)
  - [Special Thanks](#special-thanks)
  - [Feature Requests and Contact](#feature-requests-and-contact)
-
 
 ## Features
 - The full [FMOD Studio API](https://www.fmod.com/docs/2.03/api/studio-api.html) at runtime: events, buses, VCAs, snapshots, banks, global and labeled [parameters](https://www.fmod.com/docs/2.03/studio/parameters-reference.html), 3D/listeners, and profiling - with a friendly facade on top for the common cases
@@ -101,7 +99,7 @@ This allows you to have both your C++/HashLink SDK and HTML5 SDK configured simu
 
 **5. Use the library in code:**
 
-The `FmodManager` class is the friendly way to interact with FMOD in your game: a background song slot plus fire-and-forget and handle-based sound effects. The `FmodEvents` constants used below are generated from your banks (see [Generating Constants](#generating-constants-from-your-banks)). You can look through all of the available function calls with descriptions [here](https://github.com/Tanz0rz/haxe-fmod/blob/master/haxefmod/FmodManager.hx).
+The `FmodManager` class is the friendly way to interact with FMOD in your game: a background song slot plus fire-and-forget and handle-based sound effects. The `FmodEvents` constants used below are generated from your banks (see [FMOD Studio Project Configuration](#fmod-studio-project-configuration)). You can look through all of the available function calls with descriptions [here](https://github.com/Tanz0rz/haxe-fmod/blob/master/haxefmod/FmodManager.hx).
 
 ```haxe
 public function StartLevel():Void {
@@ -129,7 +127,7 @@ public function OnBeat():Void {
 }
 ```
 
-Call `FmodManager.Update()` once per frame. HaxeFlixel games (flixel 5.9.0 or newer) can call `haxefmod.flixel.FmodFlxSetup.init()` once in their first state instead: it initializes FMOD, adds the `FmodFlxUpdater` plugin (which handles the per-frame update), routes `FlxG.sound` volume and mute (the plus, minus, and zero keys and the sound tray) to the FMOD master bus, and silences the sound tray's own beep so all audio comes from FMOD. Generate the `FmodEvents` constants with `haxelib run haxefmod generate` (see [Generating Constants](#generating-constants-from-your-banks)).
+Call `FmodManager.Update()` once per frame. HaxeFlixel games (flixel 5.9.0 or newer) can call `haxefmod.flixel.FmodFlxSetup.init()` once in their first state instead: it initializes FMOD, adds the `FmodFlxUpdater` plugin (which handles the per-frame update), routes `FlxG.sound` volume and mute (the plus, minus, and zero keys and the sound tray) to the FMOD master bus, and silences the sound tray's own beep so all audio comes from FMOD. Generate the `FmodEvents` constants with `haxelib run haxefmod generate` (see [FMOD Studio Project Configuration](#fmod-studio-project-configuration)).
 
 **6. Build and run:**
 
@@ -191,66 +189,6 @@ Runtime settings passed to `FmodManager.Initialize(...)` override the defines.
 
 **HTML5 specifics**: initialization is asynchronous (see [HTML5 Builds](#html5-builds) for the loading-scene pattern). The FMOD web build ships FSB-only codecs, so loose wav/ogg loading and file-path programmer sounds are native-only (use audio table keys on HTML5). `Destroyed` callback events are not delivered on HTML5 (clean up in `release()`, which works on every target).
 
-## Generating Constants From Your Banks
-
-The [export script](fmod-scripts/ExportHaxeConstants.js) gives your code an always-up-to-date, auto-completable list of everything in your sound banks. Press `Ctrl+B` in FMOD Studio and it writes the Haxe constants files **and** builds your banks in one step. Because it runs as part of every export, the constants can never drift from the project.
-
-![Haxe Constants Demo](.github/fmod_constants.gif)
-
-### What gets generated
-
-- `FmodEvents.hx`, `FmodBuses.hx`, `FmodVCAs.hx`, `FmodSnapshots.hx`, and `FmodParameters.hx`
-- A `...Guids` companion class in each file holding the matching GUIDs under the same identifiers, kept separate so autocomplete on the main class only shows the paths
-- `FmodEventEnum.hx` - a plain enum covering every event, for tool integrations (see [Event Enums](#event-enums))
-
-Use the constants anywhere a path is expected:
-
-```haxe
-FmodManager.PlaySong(FmodEvents.MusicMainLevel);
-FmodManager.PlaySoundOneShot(FmodEvents.SFXCoin);
-
-var engine = FmodManager.PlaySound(FmodEvents.SFXEngine);
-engine.setParameter("RPM", 0.5);
-```
-
-`haxelib run haxefmod generate` emits byte-identical files from a built `Master.strings.bank`. Use the CLI when you want to generate without opening FMOD Studio. It parses `assets/fmod/Desktop/Master.strings.bank` (override with `--strings`) and writes the files into `source/` (override with `--out`, add a package with `--package`).
-
-### Setup
-
-1. Copy [`fmod-scripts/ExportHaxeConstants.js`](fmod-scripts/ExportHaxeConstants.js) into your FMOD Studio scripts folder (`Scripts` next to your `.fspro`, or the global scripts directory from Preferences).
-2. Reload scripts in FMOD Studio (Scripts menu) or restart Studio.
-3. Press `Ctrl+B` (or Scripts -> Export Haxe Constants and Build) and pick your Haxe project's `source` folder once. The choice is cached next to the project.
-
-From then on `Ctrl+B` regenerates the constants and builds banks in one keystroke.
-
-### Event Enums
-
-`FmodEventEnum.hx` holds a plain `FmodEventEnum` enum with values named exactly like the `FmodEvents` constants, plus `FmodEventTools.path()` and `guid()` mappers back to the path and GUID strings.
-
-The constants are the cleanest way to use the library in code. Enums add a mapping call (`.path()`) on top, so they exist for the places a plain string cannot go: external tools that import Haxe enums, like binding levels to specific songs in LDtk, or exhaustive switch statements where the compiler should catch a missing case. Ignore the file if you never need that - unused mappers are stripped by dead code elimination.
-
-```haxe
-using FmodEventEnum.FmodEventTools;
-
-FmodManager.PlaySong(FmodEventEnum.MusicMainLevel.path());
-FmodManager.PlaySoundOneShot(FmodEventEnum.SFXCoin.path());
-```
-
-Without the `using` line, call the mappers directly: `FmodEventTools.path(FmodEventEnum.MusicMainLevel)`.
-
-### Auto-imports
-
-To make the generated classes and the library available everywhere without per-file imports, create an `import.hx` next to your game's `Main.hx`. Wrap the imports in `#if !macro`: the FMOD classes use build macros and importing them inside the macro context breaks compilation.
-
-```haxe
-#if !macro
-import haxefmod.FmodManager;
-import FmodEvents;
-#end
-```
-
-**Note:** for the generated files to stay up to date, you must run the export **every** time you build your sound bank (the script builds the banks for you, so `Ctrl+B` is the whole loop).
-
 ## Selecting an FMOD Engine Version
 
 The officially supported FMOD Engine version is 2.03.12. Other versions **may work fine**, but I have not tested them.
@@ -291,11 +229,67 @@ For HTML5 builds to work, a dedicated scene must be run before the game starts t
 
 ## FMOD Studio Project Configuration
 
-**Constants generation:**
+### Generating Constants From Your Banks
 
-Install the [fmod-scripts](https://github.com/Tanz0rz/haxe-fmod/tree/master/fmod-scripts) export script so `Ctrl+B` in FMOD Studio regenerates your Haxe constants and builds banks in one step, or run `haxelib run haxefmod generate` against a built bank (see [Generating Constants From Your Banks](#generating-constants-from-your-banks)). Both generators produce identical files.
+The [export script](fmod-scripts/ExportHaxeConstants.js) gives your code an always-up-to-date, auto-completable list of everything in your sound banks. Press `Ctrl+B` in FMOD Studio and it writes the Haxe constants files **and** builds your banks in one step. Because it runs as part of every export, the constants can never drift from the project.
 
-**FMOD Studio Live Update:**
+![Haxe Constants Demo](.github/fmod_constants.gif)
+
+#### What gets generated
+
+- `FmodEvents.hx`, `FmodBuses.hx`, `FmodVCAs.hx`, `FmodSnapshots.hx`, and `FmodParameters.hx`
+- A `...Guids` companion class in each file holding the matching GUIDs under the same identifiers, kept separate so autocomplete on the main class only shows the paths
+- `FmodEventEnum.hx` - a plain enum covering every event, for tool integrations (see [Event Enums](#event-enums))
+
+Use the constants anywhere a path is expected:
+
+```haxe
+FmodManager.PlaySong(FmodEvents.MusicMainLevel);
+FmodManager.PlaySoundOneShot(FmodEvents.SFXCoin);
+
+var engine = FmodManager.PlaySound(FmodEvents.SFXEngine);
+engine.setParameter("RPM", 0.5);
+```
+
+`haxelib run haxefmod generate` emits byte-identical files from a built `Master.strings.bank`. Use the CLI when you want to generate without opening FMOD Studio. It parses `assets/fmod/Desktop/Master.strings.bank` (override with `--strings`) and writes the files into `source/` (override with `--out`, add a package with `--package`).
+
+#### Setup
+
+1. Copy [`fmod-scripts/ExportHaxeConstants.js`](fmod-scripts/ExportHaxeConstants.js) into your FMOD Studio scripts folder (`Scripts` next to your `.fspro`, or the global scripts directory from Preferences).
+2. Reload scripts in FMOD Studio (Scripts menu) or restart Studio.
+3. Press `Ctrl+B` (or Scripts -> Export Haxe Constants and Build) and pick your Haxe project's `source` folder once. The choice is cached next to the project.
+
+From then on `Ctrl+B` regenerates the constants and builds banks in one keystroke.
+
+#### Event Enums
+
+`FmodEventEnum.hx` holds a plain `FmodEventEnum` enum with values named exactly like the `FmodEvents` constants, plus `FmodEventTools.path()` and `guid()` mappers back to the path and GUID strings.
+
+The constants are the cleanest way to use the library in code. Enums add a mapping call (`.path()`) on top, so they exist for the places a plain string cannot go: external tools that import Haxe enums, like binding levels to specific songs in LDtk, or exhaustive switch statements where the compiler should catch a missing case. Ignore the file if you never need that - unused mappers are stripped by dead code elimination.
+
+```haxe
+using FmodEventEnum.FmodEventTools;
+
+FmodManager.PlaySong(FmodEventEnum.MusicMainLevel.path());
+FmodManager.PlaySoundOneShot(FmodEventEnum.SFXCoin.path());
+```
+
+Without the `using` line, call the mappers directly: `FmodEventTools.path(FmodEventEnum.MusicMainLevel)`.
+
+#### Auto-imports
+
+To make the generated classes and the library available everywhere without per-file imports, create an `import.hx` next to your game's `Main.hx`. Wrap the imports in `#if !macro`: the FMOD classes use build macros and importing them inside the macro context breaks compilation.
+
+```haxe
+#if !macro
+import haxefmod.FmodManager;
+import FmodEvents;
+#end
+```
+
+**Note:** for the generated files to stay up to date, you must run the export **every** time you build your sound bank (the script builds the banks for you, so `Ctrl+B` is the whole loop).
+
+### FMOD Studio Live Update
 
 One of the most powerful features of the FMOD ecosystem. Mix your sounds in real-time by binding FMOD Studio to a running instance of your game.
 
