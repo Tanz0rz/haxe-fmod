@@ -18,7 +18,7 @@ Before haxefmod 2.0 this script emitted a single `FmodConstants.hx` with `FmodSo
 
 # Event Enums (optional)
 
-Alongside the constants, both generators can emit `FmodEventEnum.hx`: a plain `FmodEventEnum` enum covering every event, with values named exactly like the `FmodEvents` constants, plus a `FmodEventTools.path()` mapper back to the path string. Plain enums suit switch statements and tools that import Haxe enums, such as LDtk external enums. Autocomplete filters the same way as the constants: typing `Mus` narrows to the music events.
+Alongside the constants, both generators can emit `FmodEventEnum.hx`: a plain `FmodEventEnum` enum covering every event, with values named exactly like the `FmodEvents` constants, plus `FmodEventTools.path()` and `guid()` mappers back to the path and GUID strings. Plain enums suit switch statements and tools that import Haxe enums, such as LDtk external enums. Autocomplete filters the same way as the constants: typing `Mus` narrows to the music events.
 
 - FMOD Studio: press `Ctrl+Shift+B` (or Scripts -> Export Haxe Constants + Enums and Build) - writes the constants files, `FmodEventEnum.hx`, and builds banks.
 - CLI: `haxelib run haxefmod generate --enums`

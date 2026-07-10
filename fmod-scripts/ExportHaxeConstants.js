@@ -97,13 +97,13 @@ var HaxefmodConstants = {
 
     // Mirrors Generate.emitEventEnums byte for byte: one FmodEventEnum enum
     // covering every event (values named exactly like the FmodEvents
-    // constants) plus a FmodEventTools.path() mapper. Returns null when
-    // there are no events.
+    // constants) plus FmodEventTools.path()/guid() mappers. Returns null
+    // when there are no events.
     generateEventEnums: function (entries) {
         var matched = [];
         for (var i = 0; i < entries.length; i++) {
             if (entries[i].path.indexOf("event:/") === 0) {
-                matched.push({ path: entries[i].path });
+                matched.push({ path: entries[i].path, guid: String(entries[i].guid).toLowerCase() });
             }
         }
         if (matched.length === 0) return null;
@@ -122,12 +122,20 @@ var HaxefmodConstants = {
         lines.push("}");
         lines.push("");
         lines.push("// Static extension: `using FmodEventEnum.FmodEventTools;` enables");
-        lines.push("// FmodEventEnum.MusicMainLevel.path()");
+        lines.push("// FmodEventEnum.MusicMainLevel.path() and .guid()");
         lines.push("class FmodEventTools {");
         lines.push("\tpublic static inline function path(event:FmodEventEnum):String {");
         lines.push("\t\treturn switch (event) {");
         for (var e = 0; e < matched.length; e++) {
             lines.push("\t\t\tcase " + names[e] + ': "' + matched[e].path + '";');
+        }
+        lines.push("\t\t};");
+        lines.push("\t}");
+        lines.push("");
+        lines.push("\tpublic static inline function guid(event:FmodEventEnum):String {");
+        lines.push("\t\treturn switch (event) {");
+        for (var g = 0; g < matched.length; g++) {
+            lines.push("\t\t\tcase " + names[g] + ': "' + matched[g].guid + '";');
         }
         lines.push("\t\t};");
         lines.push("\t}");

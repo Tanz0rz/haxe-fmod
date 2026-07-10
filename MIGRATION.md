@@ -135,7 +135,7 @@ exports named the songs class `FmodSong`, which maps the same way.
 If you want plain enums for switch statements or LDtk external enums,
 both 2.0 generators can emit `FmodEventEnum.hx`: a `FmodEventEnum`
 enum covering every event, with values named like the `FmodEvents`
-constants and a `path()` mapper back to the path string. Use
+constants and `path()`/`guid()` mappers back to the strings. Use
 `Ctrl+Shift+B` in FMOD Studio or `haxelib run haxefmod generate
 --enums`.
 

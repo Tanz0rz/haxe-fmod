@@ -136,7 +136,8 @@ class Generate {
 
 	/** Emits FmodEventEnum.hx: one FmodEventEnum enum covering every event,
 		with values named exactly like the FmodEvents constants, plus a
-		FmodEventTools.path() mapper. Returns null when there are no events.
+		FmodEventTools.path()/guid() mappers. Returns null when there are no
+		events.
 		Kept in lockstep with fmod-scripts/ExportHaxeConstants.js
 		(byte-identical output). */
 	public static function emitEventEnums(entries:Array<StringsBankEntry>, pkg:String):Null<String> {
@@ -157,12 +158,20 @@ class Generate {
 		lines.push("}");
 		lines.push("");
 		lines.push("// Static extension: `using FmodEventEnum.FmodEventTools;` enables");
-		lines.push("// FmodEventEnum.MusicMainLevel.path()");
+		lines.push("// FmodEventEnum.MusicMainLevel.path() and .guid()");
 		lines.push("class FmodEventTools {");
 		lines.push("\tpublic static inline function path(event:FmodEventEnum):String {");
 		lines.push("\t\treturn switch (event) {");
 		for (i in 0...matched.length) {
 			lines.push('\t\t\tcase ${names[i]}: "${matched[i].path}";');
+		}
+		lines.push("\t\t};");
+		lines.push("\t}");
+		lines.push("");
+		lines.push("\tpublic static inline function guid(event:FmodEventEnum):String {");
+		lines.push("\t\treturn switch (event) {");
+		for (i in 0...matched.length) {
+			lines.push('\t\t\tcase ${names[i]}: "${matched[i].guid.toLowerCase()}";');
 		}
 		lines.push("\t\t};");
 		lines.push("\t}");
