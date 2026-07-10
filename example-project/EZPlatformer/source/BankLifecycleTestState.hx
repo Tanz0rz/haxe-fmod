@@ -90,13 +90,12 @@ class BankLifecycleTestState extends FlxState {
             'refs=${FmodRuntime.banks.refCount(masterPath)}');
 
         // Warm the event description cache, then capture the leak baseline.
-        // Every handle allocated below is either released (the probe
-        // instance) or freed and re-allocated in equal number (the two bank
-        // handles across the unload/reload cycle), so the final live count
-        // must match. The warmed description handle survives the unload as
-        // a live-but-FMOD-invalid slot, which is exactly why it must be in
-        // the baseline.
-        StudioSystem.getEvent(FmodEvents.MusicMainLevel);
+        // Every handle allocated below is released (the probe instance),
+        // freed and re-allocated in equal number (the two bank handles), or
+        // reclaimed by the unload sweep and re-allocated by the post-reload
+        // lookup (the warmed description handle), so the final live count
+        // must match.
+        var warmed = StudioSystem.getEvent(FmodEvents.MusicMainLevel);
         var baseline = StudioSystem.liveHandleCount();
 
         // Refcount up and down leaves the bank loaded
@@ -120,15 +119,25 @@ class BankLifecycleTestState extends FlxState {
         // Bank unloads process asynchronously. Block until FMOD applies them
         StudioSystem.flushCommands();
 
-        // Events must stop resolving after their bank is unloaded
+        // Events must stop resolving after their bank is unloaded, and the
+        // unload sweep must have reclaimed the warmed description handle
+        // along with the two bank handles
         var missing = StudioSystem.getEvent(FmodEvents.MusicMainLevel);
         check("event_not_found_after_unload", missing.isNull(),
             'lastResult=${StudioSystem.lastResult().toString()}');
+        check("unload_reclaims_lookup_handles", StudioSystem.liveHandleCount() == baseline - 3,
+            'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
 
-        // Reload so shutdown paths in the harness stay happy, then report
-        // handle accounting (informational: lookups cache handles)
+        // Reload. The fresh lookup must return a live, working handle even
+        // when FMOD reuses the old object's address (the stale-slot
+        // aliasing regression), and it must be a new handle because the
+        // sweep bumped the old slot's generation
         FmodRuntime.banks.load(masterPath);
         FmodRuntime.banks.load(stringsPath);
+        var reloaded = StudioSystem.getEvent(FmodEvents.MusicMainLevel);
+        check("event_resolves_after_reload", !reloaded.isNull() && reloaded.isValid(), "");
+        check("reloaded_handle_is_fresh", (reloaded : Int) != (warmed : Int),
+            'warmed=${(warmed : Int)} reloaded=${(reloaded : Int)}');
         log('BANK_TEST: live_handles info=${StudioSystem.liveHandleCount()}');
         check("no_handle_leaks", StudioSystem.liveHandleCount() == baseline,
             'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
