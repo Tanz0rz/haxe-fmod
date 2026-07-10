@@ -207,7 +207,7 @@ haxelib run haxefmod generate
 
 Parses `assets/fmod/Desktop/Master.strings.bank` (override with `--strings`) and writes the files into `source/` (override with `--out`, add a package with `--package`).
 
-**Optional event enums:** both generators can additionally emit `FmodEventEnum.hx` - a plain `FmodEvent` enum covering every event, with values named exactly like the `FmodEvents` constants (`MusicMainLevel`, `SFXJump`), plus a `path()` mapper back to the path string (`FmodEvent.SFXJump.path()` with `using FmodEventEnum.FmodEventTools`). Plain enums work in switch statements and in tools that import Haxe enums (LDtk external enums, for example). Use `Ctrl+Shift+B` in FMOD Studio or `haxelib run haxefmod generate --enums`.
+**Optional event enums:** both generators can additionally emit `FmodEventEnum.hx` - a plain `FmodEventEnum` enum covering every event, with values named exactly like the `FmodEvents` constants (`MusicMainLevel`, `SFXJump`), plus a `path()` mapper back to the path string (`FmodEventEnum.SFXJump.path()` with `using FmodEventEnum.FmodEventTools`). Plain enums work in switch statements and in tools that import Haxe enums (LDtk external enums, for example). Use `Ctrl+Shift+B` in FMOD Studio or `haxelib run haxefmod generate --enums`.
 
 ## <a name="migrating"></a>Migrating From 1.x
 

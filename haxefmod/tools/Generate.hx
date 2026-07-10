@@ -16,9 +16,9 @@ import sys.io.File;
  *   FmodSnapshots.hx   snapshot:/...
  *   FmodParameters.hx  parameter:/...
  *
- * With --enums it additionally emits FmodEventEnum.hx: a plain FmodEvent
- * enum covering every event, with values named exactly like the FmodEvents
- * constants, plus a FmodEventTools.path() mapper back to the path string
+ * With --enums it additionally emits FmodEventEnum.hx: a plain
+ * FmodEventEnum enum covering every event, with values named exactly like
+ * the FmodEvents constants, plus a FmodEventTools.path() mapper back to the path string
  * (usable as a static extension). Plain enums suit switch statements and
  * external tools that import Haxe enums (LDtk external enums, for example).
  *
@@ -134,7 +134,7 @@ class Generate {
 		}
 	}
 
-	/** Emits FmodEventEnum.hx: one FmodEvent enum covering every event,
+	/** Emits FmodEventEnum.hx: one FmodEventEnum enum covering every event,
 		with values named exactly like the FmodEvents constants, plus a
 		FmodEventTools.path() mapper. Returns null when there are no events.
 		Kept in lockstep with fmod-scripts/ExportHaxeConstants.js
@@ -152,14 +152,14 @@ class Generate {
 			lines.push('package $pkg;');
 			lines.push("");
 		}
-		lines.push("enum FmodEvent {");
+		lines.push("enum FmodEventEnum {");
 		for (name in names) lines.push('\t$name;');
 		lines.push("}");
 		lines.push("");
 		lines.push("// Static extension: `using FmodEventEnum.FmodEventTools;` enables");
-		lines.push("// FmodEvent.MusicMainLevel.path()");
+		lines.push("// FmodEventEnum.MusicMainLevel.path()");
 		lines.push("class FmodEventTools {");
-		lines.push("\tpublic static inline function path(event:FmodEvent):String {");
+		lines.push("\tpublic static inline function path(event:FmodEventEnum):String {");
 		lines.push("\t\treturn switch (event) {");
 		for (i in 0...matched.length) {
 			lines.push('\t\t\tcase ${names[i]}: "${matched[i].path}";');
@@ -252,7 +252,7 @@ class Generate {
 		Sys.println("  --strings  Path to Master.strings.bank (default: assets/fmod/Desktop/Master.strings.bank)");
 		Sys.println("  --out      Output directory (default: source/ if it exists, else the current directory)");
 		Sys.println("  --package  Package for the generated classes (default: top-level)");
-		Sys.println("  --enums    Also emit FmodEventEnum.hx (FmodEvent enum with a path() mapper)");
+		Sys.println("  --enums    Also emit FmodEventEnum.hx (FmodEventEnum enum with a path() mapper)");
 		Sys.exit(1);
 	}
 }

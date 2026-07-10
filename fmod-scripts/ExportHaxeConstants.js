@@ -95,7 +95,7 @@ var HaxefmodConstants = {
         return lines.join("\n");
     },
 
-    // Mirrors Generate.emitEventEnums byte for byte: one FmodEvent enum
+    // Mirrors Generate.emitEventEnums byte for byte: one FmodEventEnum enum
     // covering every event (values named exactly like the FmodEvents
     // constants) plus a FmodEventTools.path() mapper. Returns null when
     // there are no events.
@@ -117,14 +117,14 @@ var HaxefmodConstants = {
         var lines = [];
         lines.push(this.header);
         lines.push("");
-        lines.push("enum FmodEvent {");
+        lines.push("enum FmodEventEnum {");
         for (var n = 0; n < names.length; n++) lines.push("\t" + names[n] + ";");
         lines.push("}");
         lines.push("");
         lines.push("// Static extension: `using FmodEventEnum.FmodEventTools;` enables");
-        lines.push("// FmodEvent.MusicMainLevel.path()");
+        lines.push("// FmodEventEnum.MusicMainLevel.path()");
         lines.push("class FmodEventTools {");
-        lines.push("\tpublic static inline function path(event:FmodEvent):String {");
+        lines.push("\tpublic static inline function path(event:FmodEventEnum):String {");
         lines.push("\t\treturn switch (event) {");
         for (var e = 0; e < matched.length; e++) {
             lines.push("\t\t\tcase " + names[e] + ': "' + matched[e].path + '";');
