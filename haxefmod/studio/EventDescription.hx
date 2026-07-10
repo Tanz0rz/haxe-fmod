@@ -9,7 +9,7 @@ import haxefmod.studio.native.Scratch;
  * instances are created from). Snapshots are event descriptions too.
  *
  * Obtain via StudioSystem.getEvent("event:/..."). Handles are plain ints
- * under the hood; a stale or invalid handle makes every call a safe no-op.
+ * under the hood. A stale or invalid handle makes every call a safe no-op.
  */
 abstract EventDescription(Int) from Int to Int {
     public static inline var NULL:EventDescription = cast 0;

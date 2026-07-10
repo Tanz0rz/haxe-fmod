@@ -47,7 +47,7 @@ class Run {
 		try {
 			var result = runQuiet("haxelib", ["path", "haxefmod"]);
 			if (result.exitCode == 0) {
-				// haxelib path outputs one path per line; the first is the source dir
+				// haxelib path outputs one path per line. The first is the source dir
 				for (line in result.stdout.split("\n")) {
 					var trimmed = StringTools.trim(line);
 					if (trimmed != "" && !StringTools.startsWith(trimmed, "-")) {

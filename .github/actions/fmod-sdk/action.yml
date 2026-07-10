@@ -39,7 +39,7 @@ runs:
       run: |
         CACHE_DIR="/tmp/fmod-sdk-cache-${{ inputs.version }}"
         # actions/cache resolves /tmp against the workspace drive root on
-        # Windows, while git-bash mounts /tmp elsewhere; clone to the
+        # Windows, while git-bash mounts /tmp elsewhere. clone to the
         # drive-root path so the post-job cache save sees the same directory
         case "$(uname -s)" in
           MINGW*|MSYS*|CYGWIN*)
@@ -51,7 +51,7 @@ runs:
           git clone --depth 1 --branch "${{ inputs.version }}" \
             https://x-access-token:${{ inputs.token }}@github.com/Tanz0rz/fmod-sdk-cache.git \
             "$CACHE_DIR"
-          # The clone's origin URL embeds the token; never persist it (or any
+          # The clone's origin URL embeds the token. Never persist it (or any
           # git metadata) into the cache archive
           rm -rf "$CACHE_DIR/.git"
         else

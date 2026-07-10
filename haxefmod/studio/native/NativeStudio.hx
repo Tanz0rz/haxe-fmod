@@ -4,7 +4,7 @@ package haxefmod.studio.native;
  * Compile-time backend selection for the FMOD Studio bindings.
  *
  * Each backend exposes the exact same static API (names and Haxe-level
- * types match native/manifest/studio_api.txt); string and buffer
+ * types match native/manifest/studio_api.txt). string and buffer
  * conversions are handled inside the per-target wrapper, so callers like
  * Bus.hx are fully target-agnostic.
  */

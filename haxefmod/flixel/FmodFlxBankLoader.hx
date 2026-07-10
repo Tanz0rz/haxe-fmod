@@ -25,7 +25,7 @@ class FmodFlxBankLoader extends FlxBasic {
         Starts loading immediately.
         @param bankFiles bank file names (resolved via FmodRuntime.bankPath)
         @param onLoaded called exactly once, when all banks are loaded
-        @param async load in the background (default); pass false to load
+        @param async load in the background (default). Pass false to load
         synchronously on native targets
     **/
     public function new(bankFiles:Array<String>, ?onLoaded:Void->Void, async:Bool = true) {

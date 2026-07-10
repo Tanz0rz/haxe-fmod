@@ -15,7 +15,7 @@
  * FMOD_ERR_INVALID_HANDLE instead of touching freed memory.
  *
  * Threading: the table must only be mutated from the Haxe thread. FMOD
- * callback threads must never call these functions; they receive handles
+ * callback threads must never call these functions. They receive handles
  * through FMOD userdata instead.
  *
  * The MIT License (MIT)
@@ -56,7 +56,7 @@ static int gFaxeSlotCap = 0;
 static int gFaxeFreeHead = -1;
 static int gFaxeLiveCount = 0;
 
-/* Doubling growth; links new slots into the free list (lowest index first). */
+/* Doubling growth. Links new slots into the free list (lowest index first). */
 static int faxe_handles_grow(void) {
     int newCap;
     int i;

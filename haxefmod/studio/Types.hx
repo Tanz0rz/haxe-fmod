@@ -145,9 +145,9 @@ typedef FmodBufferUsage = {
 typedef FmodUserProperty = {
     var name:String;
     var type:FmodUserPropertyType;
-    /** Numeric value (int/bool coerced); 0 for string properties. */
+    /** Numeric value (int/bool coerced). 0 for string properties. */
     var floatValue:Float;
-    /** String value; "" for non-string properties. */
+    /** String value. "" for non-string properties. */
     var stringValue:String;
 }
 

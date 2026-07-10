@@ -3,7 +3,7 @@ package haxefmod.studio.native;
 #if cpp
 /**
  * C++ (hxcpp) backend for the FMOD Studio bindings.
- * Converts const char* returns to Haxe String at the boundary; raw functions
+ * Converts const char* returns to Haxe String at the boundary. raw functions
  * live in linc_faxe.cpp.
  *
  * This class carries the linc build wiring (LincBuild adds the @:buildXml
@@ -44,10 +44,10 @@ class NativeStudioCpp {
     public static inline function sys_set_param_by_id_with_label(id1:Int, id2:Int, label:String, ignoreSeekSpeed:Bool):Int return Raw.sys_set_param_by_id_with_label(id1, id2, label, ignoreSeekSpeed);
     public static inline function sys_get_parameter_description_count():Int return Raw.sys_get_parameter_description_count();
 
-    /** Returns param name; fills Scratch float buffer: [0]=min, [1]=max, [2]=default; int buffer: [0]=type, [1]=flags, [2]=id1, [3]=id2 */
+    /** Returns param name. Fills Scratch float buffer: [0]=min, [1]=max, [2]=default. int buffer: [0]=type, [1]=flags, [2]=id1, [3]=id2 */
     public static inline function sys_get_parameter_description_by_index(index:Int):String return Raw.sys_get_parameter_description_by_index(index, Scratch.floatBuf(), Scratch.intBuf()).toString();
 
-    /** Returns param name; fills Scratch float buffer: [0]=min, [1]=max, [2]=default; int buffer: [0]=type, [1]=flags, [2]=id1, [3]=id2 */
+    /** Returns param name. Fills Scratch float buffer: [0]=min, [1]=max, [2]=default. int buffer: [0]=type, [1]=flags, [2]=id1, [3]=id2 */
     public static inline function sys_get_parameter_description_by_name(name:String):String return Raw.sys_get_parameter_description_by_name(name, Scratch.floatBuf(), Scratch.intBuf()).toString();
 
     public static inline function sys_get_parameter_label(parameterName:String, labelIndex:Int):String return Raw.sys_get_parameter_label(parameterName, labelIndex).toString();
@@ -74,7 +74,7 @@ class NativeStudioCpp {
     /** Fills Scratch float buffer: [0]=studio update us, [1..6]=core dsp/stream/geometry/update/conv1/conv2 */
     public static inline function sys_get_cpu_usage():Int return Raw.sys_get_cpu_usage(Scratch.floatBuf());
 
-    /** Fills Scratch int buffer: [0..3]=cmdqueue cur/peak/cap/stall, [4..7]=handle cur/peak/cap/stall; float buffer: [0]=cmd stalltime, [1]=handle stalltime */
+    /** Fills Scratch int buffer: [0..3]=cmdqueue cur/peak/cap/stall, [4..7]=handle cur/peak/cap/stall. float buffer: [0]=cmd stalltime, [1]=handle stalltime */
     public static inline function sys_get_buffer_usage():Int return Raw.sys_get_buffer_usage(Scratch.intBuf(), Scratch.floatBuf());
 
     public static inline function sys_reset_buffer_usage():Int return Raw.sys_reset_buffer_usage();
@@ -172,10 +172,10 @@ class NativeStudioCpp {
     public static inline function evd_get_sample_loading_state(handle:Int):Int return Raw.evd_get_sample_loading_state(handle);
     public static inline function evd_get_parameter_description_count(handle:Int):Int return Raw.evd_get_parameter_description_count(handle);
 
-    /** Returns param name; fills Scratch float buffer: [0]=min, [1]=max, [2]=default; int buffer: [0]=type, [1]=flags, [2]=id1, [3]=id2 */
+    /** Returns param name. Fills Scratch float buffer: [0]=min, [1]=max, [2]=default. int buffer: [0]=type, [1]=flags, [2]=id1, [3]=id2 */
     public static inline function evd_get_parameter_description_by_index(handle:Int, index:Int):String return Raw.evd_get_parameter_description_by_index(handle, index, Scratch.floatBuf(), Scratch.intBuf()).toString();
 
-    /** Returns param name; fills Scratch float buffer: [0]=min, [1]=max, [2]=default; int buffer: [0]=type, [1]=flags, [2]=id1, [3]=id2 */
+    /** Returns param name. Fills Scratch float buffer: [0]=min, [1]=max, [2]=default. int buffer: [0]=type, [1]=flags, [2]=id1, [3]=id2 */
     public static inline function evd_get_parameter_description_by_name(handle:Int, name:String):String return Raw.evd_get_parameter_description_by_name(handle, name, Scratch.floatBuf(), Scratch.intBuf()).toString();
 
     public static inline function evd_get_parameter_label(handle:Int, parameterName:String, labelIndex:Int):String return Raw.evd_get_parameter_label(handle, parameterName, labelIndex).toString();

@@ -13,7 +13,7 @@ import haxefmod.studio.StudioSystem;
     when the target crosses the zone edge, so manual parameter changes in
     between are not fought over.
 
-    With an event instance the parameter is set on that instance; WITHOUT
+    With an event instance the parameter is set on that instance. WITHOUT
     one it drives a GLOBAL parameter via StudioSystem.setParameter (the
     parameter must be marked global in FMOD Studio).
 
@@ -35,7 +35,7 @@ class FmodFlxParameterTrigger extends FlxBasic {
         @param parameterName the FMOD parameter to set
         @param valueInside value applied when the target enters the zone
         @param valueOutside value applied when the target leaves the zone
-        @param instance optional event instance to drive; omit to drive a
+        @param instance optional event instance to drive. Omit to drive a
         global parameter
     **/
     public function new(target:FlxObject, zone:FlxRect, parameterName:String,

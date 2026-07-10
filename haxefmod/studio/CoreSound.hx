@@ -7,7 +7,7 @@ import haxefmod.studio.native.NativeStudio;
  * for programmer sounds. Create from an audio file (native: a path on disk;
  * html5: a file preloaded into the virtual filesystem).
  *
- * The full Core API is out of scope for 2.0; this exists so games can
+ * The full Core API is out of scope for 2.0. This exists so games can
  * inspect and manage the loose audio files they feed to programmer sounds.
  */
 abstract CoreSound(Int) from Int to Int {

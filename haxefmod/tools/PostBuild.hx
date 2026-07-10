@@ -332,7 +332,7 @@ class PostBuild {
 
 		// Modern Linux kernels refuse to load libraries flagged with an
 		// executable stack, and FMOD ships its .so files that way. CI has
-		// always cleared the flag as a separate step; do it here so plain
+		// always cleared the flag as a separate step. Do it here so plain
 		// `lime test linux` works on end-user machines too. Silently skipped
 		// when patchelf is not installed (older kernels do not need it).
 		clearExecstack(binDir);
@@ -374,7 +374,7 @@ class PostBuild {
 	}
 
 	static function isSymlink(path:String):Bool {
-		// Haxe sys has no lstat; test -L works everywhere PostBuild handles symlinks (Linux only)
+		// Haxe sys has no lstat. Test -L works everywhere PostBuild handles symlinks (Linux only)
 		try {
 			var proc = new sys.io.Process("test", ["-L", path]);
 			var code = proc.exitCode();

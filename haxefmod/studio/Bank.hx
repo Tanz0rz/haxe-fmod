@@ -8,7 +8,7 @@ import haxefmod.studio.native.Scratch;
  * A handle to a loaded FMOD Studio bank.
  *
  * Obtain via StudioSystem.loadBankFile or StudioSystem.getBank. Handles are
- * plain ints under the hood; a stale or invalid handle makes every call a
+ * plain ints under the hood. A stale or invalid handle makes every call a
  * safe no-op (getters return defaults, setters return FMOD_ERR_INVALID_HANDLE).
  */
 abstract Bank(Int) from Int to Int {

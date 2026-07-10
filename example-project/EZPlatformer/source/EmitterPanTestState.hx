@@ -14,10 +14,10 @@ import haxefmod.studio.Types;
 
 /**
  * CI test state for the flixel attachment components. Logs one "PAN_TEST:"
- * line per check; CI gates on "PAN_TEST: COMPLETE" with no "pass=false".
+ * line per check. CI gates on "PAN_TEST: COMPLETE" with no "pass=false".
  *
  * The example bank has no 3D events, so audible stereo panning cannot be
- * validated yet; this state validates the attachment machinery end to end
+ * validated yet. This state validates the attachment machinery end to end
  * instead: FmodFlxEmitter follows a sprite's midpoint (2D events accept 3D
  * attributes, they just do not pan), detach/release on destroy, and
  * FmodFlxListener driving the listener position.
@@ -79,7 +79,7 @@ class EmitterPanTestState extends FlxState {
             state == FmodPlaybackState.PLAYING || state == FmodPlaybackState.STARTING,
             'state=$state');
 
-        // Move the sprite; FmodManager.Update drives the attach loop
+        // Move the sprite. FmodManager.Update drives the attach loop
         sprite.x = 300;
         sprite.y = 220;
         sprite.velocity.x = 40;

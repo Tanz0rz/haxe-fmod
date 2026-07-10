@@ -12,10 +12,10 @@
  * least the DESTROYED bit so cleanup is guaranteed).
  *
  * Threading: handle is written once before the context is attached. psKey
- * is written from the Haxe thread and read from FMOD threads; both sides
+ * is written from the Haxe thread and read from FMOD threads. Both sides
  * must hold the callback-queue mutex (see faxe_cbqueue.h) around access.
  *
- * Used by linc_faxe.cpp (C++) and hlaxe_fmod.c (C99); jaxe.js mirrors the
+ * Used by linc_faxe.cpp (C++) and hlaxe_fmod.c (C99). jaxe.js mirrors the
  * same logic with a plain map (JS is single-threaded).
  *
  * The MIT License (MIT)
@@ -32,7 +32,7 @@
 typedef struct {
     int handle;               /* handle-table handle for this instance */
     unsigned int cbMask;      /* callback mask requested via evi_set_callback_mask */
-    char psKey[FAXE_PS_KEY_MAX]; /* programmer-sound key or file path; "" = none */
+    char psKey[FAXE_PS_KEY_MAX]; /* programmer-sound key or file path. "" = none */
     void* psSound;            /* FMOD_SOUND* created for the active programmer sound */
 } FaxeInstCtx;
 

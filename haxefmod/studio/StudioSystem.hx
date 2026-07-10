@@ -26,7 +26,7 @@ class StudioSystem {
     /**
      * Looks up a bus by path (e.g. "bus:/" for the master bus).
      * Returns Bus.NULL if the system is not initialized or the path is
-     * unknown; check lastResult() for the reason.
+     * unknown. check lastResult() for the reason.
      */
     public static function getBus(path:String):Bus {
         if (busCache.exists(path)) {
@@ -87,19 +87,19 @@ class StudioSystem {
         return [for (i in 0...count) (Scratch.readI(i) : Bank)];
     }
 
-    /** Resolves a path to its GUID string ("" on failure; needs the strings bank loaded). */
+    /** Resolves a path to its GUID string ("" on failure. Needs the strings bank loaded). */
     public static function lookupID(path:String):String {
         return NativeStudio.sys_lookup_id(path);
     }
 
-    /** Resolves a GUID string to its path ("" on failure; needs the strings bank loaded). */
+    /** Resolves a GUID string to its path ("" on failure. Needs the strings bank loaded). */
     public static function lookupPath(guid:String):String {
         return NativeStudio.sys_lookup_path(guid);
     }
 
     /**
      * Loads a bank file. On html5 the file must already be in the virtual
-     * filesystem (the default banks are preloaded; use FmodRuntime for
+     * filesystem (the default banks are preloaded. Use FmodRuntime for
      * fetch-based loading). Returns Bank.NULL on failure.
      */
     public static function loadBankFile(path:String, flags:FmodLoadBankFlags = NORMAL):Bank {

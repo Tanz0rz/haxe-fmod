@@ -12,7 +12,7 @@ class AttachedInstances {
 
     public function new() {}
 
-    /** Attaches an instance; replaces the provider if already attached. */
+    /** Attaches an instance. replaces the provider if already attached. */
     public function attach(instance:EventInstance, provider:IFmodPositionProvider):Void {
         if (instance.isNull() || provider == null) return;
         for (entry in entries) {

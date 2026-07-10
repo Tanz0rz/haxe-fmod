@@ -145,7 +145,7 @@ var HaxefmodConstants = {
         return lines.join("\n");
     },
 
-    // entries: [{path, guid}] in any order; returns {"FmodEvents.hx": text, ...}
+    // entries: [{path, guid}] in any order. Returns {"FmodEvents.hx": text, ...}
     // with entries sorted by path and GUIDs normalized to lowercase, exactly
     // like the CLI generator
     generate: function (entries) {

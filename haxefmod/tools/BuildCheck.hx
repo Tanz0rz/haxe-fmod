@@ -16,13 +16,13 @@ import haxe.macro.Context;
 class BuildCheck {
     public static function verify():Void {
         // IDE completion/diagnostics runs compile the project without the
-        // shell environment; never block those
+        // shell environment. Never block those
         if (Context.defined("display")) return;
-        // Only lime builds ship FMOD runtimes; unit tests and plain haxe
+        // Only lime builds ship FMOD runtimes. Unit tests and plain haxe
         // compiles have nothing to verify
         if (!Context.defined("lime")) return;
 
-        // Lime defines "html5" for the html5 target; "js" covers the same
+        // Lime defines "html5" for the html5 target. "js" covers the same
         // build if that define ever changes (the only lime js target is html5)
         if (Context.defined("html5") || Context.defined("js")) {
             requireEnv("FMOD_SDK_WEB",

@@ -8,7 +8,7 @@ import haxefmod.studio.native.Scratch;
  * A handle to an FMOD Studio bus.
  *
  * Obtain via StudioSystem.getBus("bus:/..."). Handles are plain ints under
- * the hood; a stale or invalid handle makes every call a safe no-op (getters
+ * the hood. A stale or invalid handle makes every call a safe no-op (getters
  * return defaults, setters return FMOD_ERR_INVALID_HANDLE).
  */
 abstract Bus(Int) from Int to Int {

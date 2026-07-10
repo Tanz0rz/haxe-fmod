@@ -11,7 +11,7 @@ import haxefmod.studio.StudioSystem;
 
 /**
  * CI test state for the programmer-sound plumbing and the Core API micro
- * subset. Logs one "PS_TEST:" line per check; CI gates on "PS_TEST: COMPLETE"
+ * subset. Logs one "PS_TEST:" line per check. CI gates on "PS_TEST: COMPLETE"
  * with no "pass=false".
  *
  * The core subset is validated end to end against a real audio file (the CI
@@ -83,7 +83,7 @@ class ProgrammerSoundTestState extends FlxState {
 
         // Programmer-sound assignment plumbing on a real instance. The
         // example bank has no programmer instrument, so the callback never
-        // triggers; this proves assignment, playback with the callback
+        // triggers. This proves assignment, playback with the callback
         // armed, and cleanup are all safe.
         var desc = StudioSystem.getEvent(FmodEvents.MusicMainLevel);
         // Leak baseline after the lookup (descriptions cache a persistent

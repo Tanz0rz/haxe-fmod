@@ -6,7 +6,7 @@
 //
 // Usage: node tests/js/constants-parity.js <dir-with-cli-generated-files>
 // The directory comes from running the CLI generator against the checked-in
-// fixture bank (tests/fixtures/Master.strings.bank); the same entries are
+// fixture bank (tests/fixtures/Master.strings.bank). The same entries are
 // fed here to the Studio script's pure core and the outputs are diffed.
 const path = require('path');
 const fs = require('fs');
@@ -21,7 +21,7 @@ if (!cliDir) {
 }
 
 // The fixture bank's full entry set (runtime-verified against FMOD's own
-// string table enumeration; also asserted by TestStringsBankParser)
+// string table enumeration. Also asserted by TestStringsBankParser)
 const FIXTURE_ENTRIES = [
     { path: 'bus:/Reverb', guid: '{1a13f11e-eecf-4c3c-b353-79423771ced9}' },
     { path: 'parameter:/FadeArpIn', guid: '{293aa1ce-c07e-4cc2-bc41-7a082a62b7fa}' },

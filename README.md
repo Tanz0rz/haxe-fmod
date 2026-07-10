@@ -105,7 +105,7 @@ The `FmodManager` class is the friendly way to interact with FMOD in your game: 
 
 ```haxe
 public function StartLevel():Void {
-    // One background song at a time; transitions ride the authored fadeout
+    // One background song at a time. Transitions ride the authored fadeout
     FmodManager.PlaySong(FmodEvents.MusicMainLevel);
 }
 
@@ -191,13 +191,13 @@ FmodManager.Initialize({
 
 Runtime settings passed to `FmodManager.Initialize(...)` override the defines.
 
-**HTML5 specifics**: initialization is asynchronous (see [HTML5 Builds](#html5-builds) for the loading-scene pattern); the FMOD web build ships FSB-only codecs, so loose wav/ogg loading and file-path programmer sounds are native-only (use audio table keys on HTML5); and `Destroyed` callback events are not delivered on HTML5 (clean up in `release()`, which works on every target).
+**HTML5 specifics**: initialization is asynchronous (see [HTML5 Builds](#html5-builds) for the loading-scene pattern). The FMOD web build ships FSB-only codecs, so loose wav/ogg loading and file-path programmer sounds are native-only (use audio table keys on HTML5). `Destroyed` callback events are not delivered on HTML5 (clean up in `release()`, which works on every target).
 
 ## <a name="generating-constants"></a>Generating Constants From Your Banks
 
 Two generators emit identical files (`FmodEvents.hx`, `FmodBuses.hx`, `FmodVCAs.hx`, `FmodSnapshots.hx`, `FmodParameters.hx`), each constant paired with a GUID companion (`MusicMainLevelGuid`) for GUID-based lookups. A parity test in CI keeps them in lockstep.
 
-**Recommended: generate on every export from inside FMOD Studio.** Install the [fmod-scripts](https://github.com/Tanz0rz/haxe-fmod/tree/master/fmod-scripts) script once; `Ctrl+B` in FMOD Studio then writes the constants and builds your banks in one step, so they can never drift from the project.
+**Recommended: generate on every export from inside FMOD Studio.** Install the [fmod-scripts](https://github.com/Tanz0rz/haxe-fmod/tree/master/fmod-scripts) script once. `Ctrl+B` in FMOD Studio then writes the constants and builds your banks in one step, so they can never drift from the project.
 
 **Alternative: generate from a built bank** (CI, or teammates without FMOD Studio):
 
@@ -269,7 +269,7 @@ From now on, your `Master.bank` and `Master.strings.bank` files should be built 
 
 **Constants generation:**
 
-Install the [fmod-scripts](https://github.com/Tanz0rz/haxe-fmod/tree/master/fmod-scripts) export script so `Ctrl+B` in FMOD Studio regenerates your Haxe constants and builds banks in one step, or run `haxelib run haxefmod generate` against a built bank (see [Generating Constants](#generating-constants)); both produce identical files.
+Install the [fmod-scripts](https://github.com/Tanz0rz/haxe-fmod/tree/master/fmod-scripts) export script so `Ctrl+B` in FMOD Studio regenerates your Haxe constants and builds banks in one step, or run `haxelib run haxefmod generate` against a built bank (see [Generating Constants](#generating-constants)). Both generators produce identical files.
 
 **FMOD Studio Live Update:**
 

@@ -49,7 +49,7 @@ class Generate {
 		run(Sys.args(), Sys.getCwd());
 	}
 
-	/** Entry point used by Run.hx; cwd is the caller's working directory
+	/** Entry point used by Run.hx. cwd is the caller's working directory
 		as passed by haxelib run. */
 	public static function run(args:Array<String>, cwd:String) {
 		var stringsPath:Null<String> = null;
@@ -225,7 +225,7 @@ class Generate {
 		return name;
 	}
 
-	/** Assigns unique identifiers for a list of paths; collisions get
+	/** Assigns unique identifiers for a list of paths. collisions get
 		numeric suffixes. Each name also reserves its "<name>Guid" pair. */
 	public static function identifiersFor(paths:Array<String>, prefix:String):Array<String> {
 		var used = new Map<String, Bool>();

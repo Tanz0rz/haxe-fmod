@@ -29,18 +29,18 @@ typedef StringsBankEntry = {
  *   u16  nodeSize              always 8
  *   node[nodeCount], 8 bytes each:
  *     u24 fragOffset           offset of this node's NUL-terminated path
- *                              fragment in the fragment blob; 0xffffff means
+ *                              fragment in the fragment blob. 0xffffff means
  *                              an empty fragment (root node or leaf marker)
  *     u8  branchChar           lowercased first character of the fragment
  *                              (binary-search aid for path lookups)
  *     u24 value                first-child node index for interior nodes,
  *                              string index for leaves
- *     u8  childCount           number of children; 0 marks a leaf
+ *     u8  childCount           number of children. 0 marks a leaf
  *   u16  guidCountEnc          (guidCount << 1) | 1
  *   u16  guidSize              always 16
  *   guid[guidCount], 16 bytes: data1 u32 LE, data2 u16 LE, data3 u16 LE,
  *                              data4 8 raw bytes (same field order as
- *                              FMOD_GUID; formatted by faxe_guid_format)
+ *                              FMOD_GUID. Formatted by faxe_guid_format)
  *   u16  blobLen
  *   u8[blobLen]                fragment blob (NUL-terminated strings)
  *   u16  leafCount             == guidCount
@@ -117,7 +117,7 @@ class StringsBankParser {
 				var inner = findChunk(bytes, payloadStart + 4, payloadEnd, tag);
 				if (inner != null) return inner;
 			}
-			// RIFF chunks are word-aligned; sizes are padded to even
+			// RIFF chunks are word-aligned. Sizes are padded to even
 			p = payloadEnd + (size & 1);
 		}
 		return null;

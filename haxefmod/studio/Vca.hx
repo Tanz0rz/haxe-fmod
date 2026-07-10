@@ -6,7 +6,7 @@ import haxefmod.studio.native.NativeStudio;
  * A handle to an FMOD Studio VCA.
  *
  * Obtain via StudioSystem.getVCA("vca:/..."). Handles are plain ints under
- * the hood; a stale or invalid handle makes every call a safe no-op (getters
+ * the hood. A stale or invalid handle makes every call a safe no-op (getters
  * return defaults, setters return FMOD_ERR_INVALID_HANDLE).
  */
 abstract Vca(Int) from Int to Int {

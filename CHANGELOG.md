@@ -15,8 +15,9 @@ top. See `MIGRATION.md` for the complete 1.x to 2.0 mapping.
   3D instance attachment, listener helpers.
 - `FmodManager.PlaySound(path)` returning a typed `FmodSound` handle with
   `stop`, `pause`, `setVolume`, `setPitch`, `setParameter`, `onEvent`, and
-  `release`; `PlaySoundOneShotAt(path, x, y)` for positional one-shots;
-  `OnSongEvent`/`OnceSongEvent` typed payload callbacks (timeline beats,
+  `release`.
+- `PlaySoundOneShotAt(path, x, y)` for positional one-shots.
+- `OnSongEvent`/`OnceSongEvent` typed payload callbacks (timeline beats,
   markers, playback lifecycle).
 - HaxeFlixel components: `FmodFlxSetup.init()` one-call setup (FMOD init,
   per-frame update plugin, `FlxG.sound` volume and mute routed to the FMOD
@@ -28,7 +29,7 @@ top. See `MIGRATION.md` for the complete 1.x to 2.0 mapping.
   regenerates `FmodEvents`/`FmodBuses`/`FmodVCAs`/`FmodSnapshots`/
   `FmodParameters` (with GUID companions) on every `Ctrl+B` bank build,
   and `haxelib run haxefmod generate` emits identical files from a built
-  `Master.strings.bank`; a CI parity test keeps them byte-identical.
+  `Master.strings.bank`. A CI parity test keeps them byte-identical.
 - Optional event enum generation: `Ctrl+Shift+B` in FMOD Studio or
   `haxelib run haxefmod generate --enums` also emits `FmodEventEnum.hx`
   (`FmodSong`/`FmodSFX` plain enums with `FmodEvent.event()` path
@@ -49,8 +50,9 @@ top. See `MIGRATION.md` for the complete 1.x to 2.0 mapping.
   coalesced to one bitmask poll per frame).
 - `haxelib run haxefmod check` exits nonzero when any check fails.
 - Generated Linux `run.sh` no longer points at `hlboot.dat` on HashLink
-  builds; PostBuild clears the executable-stack flag on copied FMOD
-  libraries so modern kernels load them.
+  builds.
+- PostBuild clears the executable-stack flag on copied FMOD libraries
+  so modern kernels load them.
 
 ### Removed
 - The single-file `FmodConstants.hx` (`FmodSongs`/`FmodSFX`) output of the
@@ -64,9 +66,9 @@ top. See `MIGRATION.md` for the complete 1.x to 2.0 mapping.
 
 ### Known limitations
 - HTML5 never delivers `Destroyed` callback events (FMOD JS binding
-  limitation); handler cleanup happens in `release()` on all targets.
+  limitation). Handler cleanup happens in `release()` on all targets.
 - HTML5 ships FSB-only codecs: loose wav/ogg loading and file-path
-  programmer sounds are native-only; audio table keys are the HTML5 route.
+  programmer sounds are native-only. Audio table keys are the HTML5 route.
 - List getters return at most 1024 entries and warn when truncated.
 
 ## 1.1.2-beta and earlier

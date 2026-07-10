@@ -2,7 +2,7 @@
 // embind arity errors (BindingError) anywhere in the legacy + 2.0 surface.
 
 // Path resolution: the FMOD html5 SDK comes from $FMOD_SDK_WEB (the same
-// variable lime builds use); the shim and banks are found relative to this
+// variable lime builds use). The shim and banks are found relative to this
 // file so the harness runs from any cwd.
 const path = require('path');
 const fs = require('fs');

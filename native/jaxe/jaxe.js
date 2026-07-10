@@ -203,7 +203,7 @@ class jaxe {
         // Store the handle in FMOD userdata so callbacks can identify the
         // instance. The wrapper object FMOD passes to callbacks is a fresh
         // binding object each time, so JS identity (===) never matches the
-        // stored wrapper; userdata is the reliable channel (mirrors cpp/hl).
+        // stored wrapper. userdata is the reliable channel (mirrors cpp/hl).
         instance.val.setUserData(handle);
         return handle;
     }
@@ -545,7 +545,7 @@ class jaxe {
         return { Data1: 0, Data2: 0, Data3: 0, Data4: [0, 0, 0, 0, 0, 0, 0, 0] };
     }
 
-    // Parameter IDs cross the boundary as two i32; FMOD JS wants an object
+    // Parameter IDs cross the boundary as two i32. FMOD JS wants an object
     // with lowercase data1/data2 holding the unsigned 32-bit values
     static paramId(d1, d2) {
         return { data1: d1 >>> 0, data2: d2 >>> 0 };
@@ -553,7 +553,7 @@ class jaxe {
 
     // Shared writer for parameter descriptions. FMOD JS writes the struct
     // fields directly onto the out object (not out.val).
-    // Layout: fbuf [0]=min [1]=max [2]=default; ibuf [0]=type [1]=flags
+    // Layout: fbuf [0]=min [1]=max [2]=default. ibuf [0]=type [1]=flags
     // [2]=id1 [3]=id2. Returns the parameter name.
     static writeParamDesc(pd, fbuf, ibuf) {
         fbuf[0] = pd.minimum || 0.0;
@@ -567,7 +567,7 @@ class jaxe {
     }
 
     // FMOD JS writes 3D attribute getters as flat dotted keys directly on
-    // the out object ("position.x" ... "up.z"); flatten into fbuf[0..11]
+    // the out object ("position.x" ... "up.z"). flatten into fbuf[0..11]
     // in pos/vel/forward/up order
     static readAttributes3D(attr, fbuf) {
         var parts = ["position", "velocity", "forward", "up"];
@@ -591,7 +591,7 @@ class jaxe {
 
     // List getters fill ibuf with handles (capped at LIST_MAX, kept in
     // lockstep with Scratch.CAPACITY and the C shims' FAXE_LIST_MAX) and return the
-    // count written; entries the table has seen keep their existing handle
+    // count written. Entries the table has seen keep their existing handle
     static writeHandleList(items, count, ibuf, type) {
         var n = count | 0;
         if (n > jaxe.LIST_MAX) n = jaxe.LIST_MAX;
@@ -810,7 +810,7 @@ class jaxe {
         return jaxe.lastResult == jaxe.FMOD.OK ? outval.val | 0 : 0;
     }
 
-    // returns param name; fbuf/ibuf layout documented on writeParamDesc.
+    // returns param name. fbuf/ibuf layout documented on writeParamDesc.
     // The JS System API has no getParameterDescriptionByIndex, only
     // getParameterDescriptionList - index into the fetched list instead.
     static fmod_sys_get_parameter_description_by_index(index, fbuf, ibuf) {
@@ -887,7 +887,7 @@ class jaxe {
         return jaxe.lastResult;
     }
 
-    // bank loading (flags: bit0 = nonblocking); returns bank handle or 0.
+    // bank loading (flags: bit0 = nonblocking). Returns bank handle or 0.
     // Banks are preloaded into MEMFS at "/<name>" by preRun, so bare
     // filenames are resolved from the filesystem root like fmod_load_bank.
     static fmod_sys_load_bank_file(path, flags) {
@@ -909,7 +909,7 @@ class jaxe {
     // bank_get_loading_state: 2 (LOADING) while the fetch is pending,
     // 4 (ERROR) if the fetch or load failed or ASYNC_FETCH_TIMEOUT_MS
     // elapsed. fmod_bank_unload on a still-pending placeholder cancels the
-    // fetch and frees the handle; the pendingBankCancelled flag makes sure
+    // fetch and frees the handle. The pendingBankCancelled flag makes sure
     // a fetch that settles after that never reaches FMOD.
     static fmod_sys_load_bank_async(path) {
         if (!jaxe.sysReady()) return 0;
@@ -920,7 +920,7 @@ class jaxe {
         var idx = handle & 0xFFFF;
         var memfsName = "async_" + (++jaxe.asyncBankCounter) + ".bank";
         // Abort support is optional (missing AbortController just means the
-        // fetch keeps running in the background); the timeout below flips
+        // fetch keeps running in the background). The timeout below flips
         // the placeholder to ERROR either way.
         var controller = (typeof AbortController != "undefined") ? new AbortController() : null;
         placeholder.pendingBankController = controller;
@@ -955,7 +955,7 @@ class jaxe {
                     placeholder.pendingBankError = true;
                     return;
                 }
-                // Swap the real bank into the slot; the handle stays valid.
+                // Swap the real bank into the slot. The handle stays valid.
                 s.ptr = bank.val;
                 s.raw = jaxe.rawPtr(bank.val);
             }).catch(function () {
@@ -971,7 +971,7 @@ class jaxe {
 
     static fmod_sys_unload_all() {
         if (!jaxe.FmodIsInitialized) { jaxe.lastResult = jaxe.ERR_STUDIO_UNINITIALIZED; return jaxe.lastResult; }
-        // All bank content is going away; uninstall every callback first or
+        // All bank content is going away. Uninstall every callback first or
         // the FMOD JS module is corrupted.
         jaxe.uninstallCallbacksFor(null);
         jaxe.lastResult = jaxe.gSystem.unloadAll();
@@ -1037,7 +1037,7 @@ class jaxe {
         return jaxe.lastResult;
     }
 
-    // ibuf: [0]=exclusive [1]=inclusive [2]=sampledata; not exposed by the
+    // ibuf: [0]=exclusive [1]=inclusive [2]=sampledata. Not exposed by the
     // FMOD JS API, so this reports ERR_UNSUPPORTED
     static fmod_sys_get_memory_usage(ibuf) {
         if (!jaxe.sysReady()) return jaxe.lastResult;
@@ -1261,7 +1261,7 @@ class jaxe {
         return outval.val;
     }
 
-    // real unload; frees the bank handle on success. An async placeholder
+    // real unload. Frees the bank handle on success. An async placeholder
     // (pending or errored) is cancelled instead: abort the fetch, clear the
     // timeout, free the handle, FMOD_OK - the bank never reached FMOD, so
     // there is nothing to unload there.
@@ -1280,7 +1280,7 @@ class jaxe {
         }
         var bank = jaxe.resolveBankReady(handle);
         if (!bank) return jaxe.lastResult;
-        // Unloading destroys the bank's event instances; uninstall their
+        // Unloading destroys the bank's event instances. Uninstall their
         // callbacks first or the FMOD JS module is corrupted.
         var cnt = {};
         if (bank.getEventCount(cnt) == jaxe.FMOD.OK && cnt.val > 0) {
@@ -1311,7 +1311,7 @@ class jaxe {
         return jaxe.lastResult;
     }
 
-    // FMOD_STUDIO_LOADING_STATE; invalid handle reports 1 (UNLOADED); async
+    // FMOD_STUDIO_LOADING_STATE. Invalid handle reports 1 (UNLOADED). async
     // placeholders report 2 (LOADING) while the fetch is pending and
     // 4 (ERROR) when it failed
     static fmod_bank_get_loading_state(handle) {
@@ -1523,7 +1523,7 @@ class jaxe {
         return !!outval.val;
     }
 
-    // returns instance handle or 0; stores the handle in FMOD userdata so
+    // returns instance handle or 0. Stores the handle in FMOD userdata so
     // callbacks can identify the instance (same mechanism as fmod_create_instance)
     static fmod_evd_create_instance(handle) {
         var evd = jaxe.handleResolve(handle, jaxe.TYPE_EVD);
@@ -1548,7 +1548,7 @@ class jaxe {
         return jaxe.lastResult == jaxe.FMOD.OK ? outval.val | 0 : 0;
     }
 
-    // fills ibuf with instance handles; instances the table has already seen
+    // fills ibuf with instance handles. Instances the table has already seen
     // keep their handle, unseen ones (created outside this binding) get a
     // fresh handle stamped into their userdata for callback identification
     static fmod_evd_get_instance_list(handle, ibuf) {
@@ -1610,7 +1610,7 @@ class jaxe {
         return jaxe.lastResult == jaxe.FMOD.OK ? outval.val | 0 : 0;
     }
 
-    // returns param name; fbuf/ibuf layout documented on writeParamDesc
+    // returns param name. fbuf/ibuf layout documented on writeParamDesc
     static fmod_evd_get_parameter_description_by_index(handle, index, fbuf, ibuf) {
         var evd = jaxe.handleResolve(handle, jaxe.TYPE_EVD);
         if (!evd) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return ""; }
@@ -1647,7 +1647,7 @@ class jaxe {
         return jaxe.lastResult == jaxe.FMOD.OK ? outval.val | 0 : 0;
     }
 
-    // Shared user property fetch; struct fields land directly on the out
+    // Shared user property fetch. struct fields land directly on the out
     // object, with .val as a fallback in case a build wraps them
     static evdUserProp(handle, index) {
         var evd = jaxe.handleResolve(handle, jaxe.TYPE_EVD);
@@ -1736,7 +1736,7 @@ class jaxe {
         return jaxe.lastResult;
     }
 
-    // FMOD_STUDIO_PLAYBACK_STATE; invalid handle reports 2 (STOPPED)
+    // FMOD_STUDIO_PLAYBACK_STATE. Invalid handle reports 2 (STOPPED)
     static fmod_evi_get_playback_state(handle) {
         var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
         if (!inst) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 2; }
@@ -1971,7 +1971,7 @@ class jaxe {
         return jaxe.lastResult;
     }
 
-    // ibuf: [0]=exclusive [1]=inclusive us; not exposed by the FMOD JS API,
+    // ibuf: [0]=exclusive [1]=inclusive us. Not exposed by the FMOD JS API,
     // so this reports ERR_UNSUPPORTED
     static fmod_evi_get_cpu_usage(handle, ibuf) {
         var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
@@ -1985,7 +1985,7 @@ class jaxe {
         return jaxe.lastResult;
     }
 
-    // ibuf: [0]=exclusive [1]=inclusive [2]=sampledata; not exposed by the
+    // ibuf: [0]=exclusive [1]=inclusive [2]=sampledata. Not exposed by the
     // FMOD JS API, so this reports ERR_UNSUPPORTED
     static fmod_evi_get_memory_usage(handle, ibuf) {
         var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
@@ -2080,7 +2080,7 @@ class jaxe {
 
     static onRuntimeInitialized = function () {
         var outval = {};
-        // Settings from fmod_sys_init_ex; null on the legacy fmod_init path
+        // Settings from fmod_sys_init_ex. null on the legacy fmod_init path
         // (defaults below match the legacy behavior exactly).
         var init = jaxe.pendingInit;
 

@@ -15,7 +15,7 @@ facade. This guide maps every removed 1.x API to its replacement.
   refcounted banks, 3D attachment, listeners.
 - `haxefmod.studio.*` - the complete FMOD Studio API (events, buses,
   VCAs, banks, parameters, profiling). Anything the facade does not
-  cover is available here; no more waiting on library changes.
+  cover is available here.
 
 ## Removed APIs and their replacements
 
@@ -81,7 +81,7 @@ a no-op.
 
 ### Removed without replacement
 
-- `CheckIfUpdateIsBeingCalled()` - internal diagnostic; call
+- `CheckIfUpdateIsBeingCalled()` - internal diagnostic. Call
   `FmodManager.Update()` every frame (or use `FmodFlxSetup.init()` /
   `FmodFlxUpdater` in HaxeFlixel games).
 
@@ -98,9 +98,9 @@ a no-op.
   instance (1.x deliberately leaked it to work around an html5 issue
   that is fixed in 2.0).
 - Song/sound callbacks registered through the removed `Register*` APIs
-  fired at most once per frame; typed handlers fire once per event.
+  fired at most once per frame. Typed handlers fire once per event.
 - html5: `Destroyed` events are not delivered (an FMOD JS binding
-  limitation); handler cleanup happens in `release()` instead.
+  limitation). Handler cleanup happens in `release()` instead.
 
 ## Bank loading
 
@@ -125,11 +125,11 @@ GUID companion. `haxelib run haxefmod generate` produces identical files
 from a built `assets/fmod/Desktop/Master.strings.bank` when you want to
 generate without opening FMOD Studio.
 
-The old single-file `FmodConstants.hx` output is gone; rename references
+The old single-file `FmodConstants.hx` output is gone. Rename references
 using the mangling rules (`FmodSongs.MainLevel` becomes
 `FmodEvents.MusicMainLevel`, `FmodSFX.Jump` becomes
 `FmodEvents.SFXJump`), then delete `FmodConstants.hx`. Later 1.x
-exports named the songs class `FmodSong`; it maps the same way.
+exports named the songs class `FmodSong`, which maps the same way.
 
 If you want plain enums for switch statements or LDtk external enums,
 both 2.0 generators can emit `FmodEventEnum.hx` with `FmodSong`/

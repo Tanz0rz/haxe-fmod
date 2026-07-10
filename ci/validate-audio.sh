@@ -52,7 +52,7 @@ else
 fi
 
 # 3. Check duration
-# Try normal probe first; if WAV header is malformed (e.g. FMOD WAVWRITER on Windows
+# Try normal probe first. If WAV header is malformed (e.g. FMOD WAVWRITER on Windows
 # writes 0 channels), fall back to raw PCM interpretation (s16le, 48kHz, stereo).
 DURATION=$("$FFPROBE" -i "$WAV_FILE" -show_entries format=duration -v quiet -of csv="p=0" 2>/dev/null)
 if [ -z "$DURATION" ] || [ "$DURATION" = "N/A" ]; then
@@ -77,7 +77,7 @@ PYTHON="python3"
 command -v python3 >/dev/null 2>&1 || PYTHON="python"
 
 # 4. Check volume (not silent)
-# Try normal ffmpeg volumedetect; if WAV header is malformed, use raw PCM input
+# Try normal ffmpeg volumedetect. If WAV header is malformed, use raw PCM input
 MEAN_VOLUME=$("$FFMPEG" -i "$WAV_FILE" -af volumedetect -f null /dev/null 2>&1 | grep mean_volume | sed 's/.*mean_volume: //' | sed 's/ dB//')
 if [ -z "$MEAN_VOLUME" ]; then
   MEAN_VOLUME=$("$FFMPEG" -f s16le -ar 48000 -ac 2 -i "$WAV_FILE" -af volumedetect -f null /dev/null 2>&1 | grep mean_volume | sed 's/.*mean_volume: //' | sed 's/ dB//')

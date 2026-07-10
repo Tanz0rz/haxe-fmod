@@ -13,7 +13,7 @@ import haxefmod.studio.Types;
 /**
  * CI test state for the bank lifecycle: refcounted load, play from the
  * loaded bank, real unload, and lookup failure after unload. Logs one
- * "BANK_TEST:" line per check; CI gates on "BANK_TEST: COMPLETE" with no
+ * "BANK_TEST:" line per check. CI gates on "BANK_TEST: COMPLETE" with no
  * "pass=false".
  *
  * The default init auto-loads Master + strings through the registry, so
@@ -117,7 +117,7 @@ class BankLifecycleTestState extends FlxState {
         check("unload_strings", FmodRuntime.banks.unload(stringsPath), "");
         check("master_gone", !FmodRuntime.banks.isLoaded(masterPath), "");
 
-        // Bank unloads process asynchronously; block until FMOD applies them
+        // Bank unloads process asynchronously. Block until FMOD applies them
         StudioSystem.flushCommands();
 
         // Events must stop resolving after their bank is unloaded

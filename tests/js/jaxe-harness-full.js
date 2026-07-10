@@ -4,9 +4,9 @@
 // Usage: node harness.js
 
 
-// --- Browser stubs (jaxe.js expects window/document; FS preload uses XHR paths) ---
+// --- Browser stubs (jaxe.js expects window/document. FS preload uses XHR paths) ---
 // Path resolution: the FMOD html5 SDK comes from $FMOD_SDK_WEB (the same
-// variable lime builds use); the shim and banks are found relative to this
+// variable lime builds use). The shim and banks are found relative to this
 // file so the harness runs from any cwd.
 const path = require('path');
 const fs = require('fs');
@@ -30,7 +30,7 @@ global.FMODModule = require(path.join(SDK, 'fmodstudio.js')); // non-logging bui
 const src = fs.readFileSync(JAXE, 'utf8');
 eval(src + '\nglobal.jaxe = jaxe;');
 
-// Emscripten FS preload needs real URLs; in node, redirect the bank fetch to
+// Emscripten FS preload needs real URLs. in node, redirect the bank fetch to
 // local files by overriding preRun to write banks straight into MEMFS.
 jaxe.preRun = function () {
     for (const name of ['Master.bank', 'Master.strings.bank']) {
@@ -501,7 +501,7 @@ async function main() {
     expect('sys_load_bank_file already loaded', () => jaxe.fmod_sys_load_bank_file('Master.bank', 0), r => r === 0);
     expect('  lastResult == 70 already loaded', () => jaxe.fmod_sys_last_result(), r => r === 70);
 
-    // --- async HTTP bank load (fetch is faked; node never hits the network) ---
+    // --- async HTTP bank load (fetch is faked. node never hits the network) ---
     const prevFetch = global.fetch;
     const prevAsyncTimeout = jaxe.ASYNC_FETCH_TIMEOUT_MS;
     const bankBytes = fs.readFileSync(path.join(BANKS, 'Master.bank'));

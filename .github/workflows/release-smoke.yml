@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      # The checkout provides the example project and ci scripts only; the
+      # The checkout provides the example project and ci scripts only. The
       # library under test comes from lib.haxe.org
       - uses: actions/checkout@v5
 

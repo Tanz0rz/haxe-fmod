@@ -93,7 +93,7 @@ class NativeManifestCheck {
         return found;
     }
 
-    /** Matches: DEFINE_PRIM(_I32, create_instance, _BYTES); */
+    /** Matches: DEFINE_PRIM(_I32, create_instance, _BYTES). */
     static function scanHl(path:String):Map<String, Int> {
         var found = new Map<String, Int>();
         var re = ~/DEFINE_PRIM\s*\(\s*_\w+\s*,\s*(\w+)\s*,\s*([^)]*)\)/;

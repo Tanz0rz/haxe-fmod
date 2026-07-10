@@ -32,7 +32,7 @@ class FmodManager {
 
     /**
      * Initializes FMOD. Optional settings control channels, live update,
-     * bank folder/auto-loading, and more (see FmodSettings); every other
+     * bank folder/auto-loading, and more (see FmodSettings). every other
      * FmodManager call initializes with defaults on first use. First
      * initialization wins: settings passed to a later call are ignored.
      */
@@ -73,7 +73,7 @@ class FmodManager {
 
     /**
      * Toggles the background auto-update that keeps audio running when the
-     * game loop stalls (on by default; typed callbacks still only arrive
+     * game loop stalls (on by default. typed callbacks still only arrive
      * from Update).
      */
     public static function SetAutoUpdate(enabled:Bool):Void {
@@ -251,7 +251,7 @@ class FmodManager {
 
     /**
      * Registers a typed payload callback (beats, markers, lifecycle) on the
-     * current song. Replaces any previous handler; delivered from Update().
+     * current song. Replaces any previous handler. delivered from Update().
      */
     public static function OnSongEvent(handler:EventCallbackData->Void, ?mask:Int):Void {
         ensureInitialized();
@@ -275,7 +275,7 @@ class FmodManager {
 
     //// Sound effects
 
-    /** Fire-and-forget playback (no handle; FMOD reclaims the instance). */
+    /** Fire-and-forget playback (no handle. FMOD reclaims the instance). */
     public static function PlaySoundOneShot(soundPath:String):Void {
         ensureInitialized();
         log('PlaySoundOneShot $soundPath');

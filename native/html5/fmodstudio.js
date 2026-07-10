@@ -1,5 +1,5 @@
 // Placeholder for the FMOD WebAssembly module. The build replaces this file
-// with the real FMOD engine from $FMOD_SDK_WEB during postbuild; if you are
+// with the real FMOD engine from $FMOD_SDK_WEB during postbuild. If you are
 // reading this in a deployed game, that replacement never happened.
 (function () {
     var message = "haxefmod: the FMOD engine placeholder was never replaced. "

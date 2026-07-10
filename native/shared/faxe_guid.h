@@ -3,7 +3,7 @@
  *
  * GUIDs cross the FFI boundary as formatted strings "{8-4-4-4-12}", e.g.
  * "{1f687138-e06c-40f5-9bac-57f84bbcedd3}". Used by linc_faxe.cpp (C++) and
- * hlaxe_fmod.c (C99); jaxe.js mirrors the same logic in JavaScript.
+ * hlaxe_fmod.c (C99). jaxe.js mirrors the same logic in JavaScript.
  *
  * The MIT License (MIT)
  * Copyright (c) 2020 Tanner Moore

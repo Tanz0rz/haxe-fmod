@@ -1,6 +1,6 @@
 /*
  * Unit tests for native/shared/faxe_handles.h (the generational handle table
- * shared by the C++ and HashLink shims; jaxe.js mirrors the same logic).
+ * shared by the C++ and HashLink shims. jaxe.js mirrors the same logic).
  *
  * Compiled and run in CI in both C99 and C++ modes:
  *   gcc -std=c99 -Wall -Wextra -Werror -o test_c   tests/native/test_faxe_handles.c && ./test_c
@@ -55,7 +55,7 @@ int main(void) {
     }
     assert(faxe_live_handle_count() == 1);
 
-    /* find_or_alloc: same pointer+type returns the same handle; a different
+    /* find_or_alloc: same pointer+type returns the same handle. A different
      * type or pointer allocates fresh */
     int f1 = faxe_handle_find_or_alloc(&dummy3, FAXE_TYPE_BUS);
     assert(f1 > 0);

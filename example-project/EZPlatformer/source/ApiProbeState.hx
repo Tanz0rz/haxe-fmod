@@ -106,7 +106,7 @@ class ApiProbeState extends FlxState {
         var stopResult = master.stopAllEvents(FmodStopMode.IMMEDIATE);
         check("bus_stop_all_events", stopResult.isOk(), 'result=${stopResult.toString()}');
 
-        // Profiling - informational only (needs profiling enabled; may be
+        // Profiling - informational only (needs profiling enabled. May be
         // unsupported on some targets, especially HTML5)
         var cpu = master.getCpuUsage();
         info("bus_get_cpu_usage", cpu == null

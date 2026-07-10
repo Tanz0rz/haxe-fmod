@@ -9,7 +9,7 @@ import haxefmod.studio.StudioSystem;
     Positions an FMOD listener every frame.
 
     With a target, the listener follows the target's midpoint (typical for
-    a player character); without one, it follows the center of FlxG.camera,
+    a player character). Without one, it follows the center of FlxG.camera,
     which suits games where the camera is the player's ear.
 
     Add it to the state so its update() runs:
@@ -21,7 +21,7 @@ class FmodFlxListener extends FlxBasic {
     var listenerIndex:Int;
 
     /**
-        @param target the object to follow; omit to follow the camera center
+        @param target the object to follow. Omit to follow the camera center
         @param listenerIndex which listener to drive (0 unless using
         multiple listeners via StudioSystem.setNumListeners)
     **/
@@ -31,7 +31,7 @@ class FmodFlxListener extends FlxBasic {
         this.listenerIndex = listenerIndex;
     }
 
-    /** Retargets the listener; pass nothing to fall back to the camera. **/
+    /** Retargets the listener. Pass nothing to fall back to the camera. **/
     public function setTarget(?target:FlxObject):Void {
         this.target = target;
     }

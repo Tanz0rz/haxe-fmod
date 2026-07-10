@@ -11,7 +11,7 @@ import haxefmod.studio.Types;
 
 /**
  * Long-running CI stress state for the handle table and the callback
- * dispatcher. Logs one "STRESS_TEST:" line per check; CI gates on
+ * dispatcher. Logs one "STRESS_TEST:" line per check. CI gates on
  * "STRESS_TEST: COMPLETE" with no "pass=false".
  *
  * Wide phase: 80 simultaneous instances prove the handle table grows past

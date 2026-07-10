@@ -81,7 +81,7 @@ abstract FmodSound(EventInstance) from EventInstance to EventInstance {
 
     /**
      * Registers a typed payload callback (beats, markers, lifecycle) for
-     * this sound. Replaces any previous handler; delivered from
+     * this sound. Replaces any previous handler. delivered from
      * FmodManager.Update.
      */
     public inline function onEvent(handler:EventCallbackData->Void, ?mask:Int):Void {
@@ -90,7 +90,7 @@ abstract FmodSound(EventInstance) from EventInstance to EventInstance {
 
     /**
      * Releases the sound. It keeps playing to completion (or call stop
-     * first); the handle becomes invalid immediately.
+     * first). The handle becomes invalid immediately.
      */
     public inline function release():FmodResult {
         return this.release();

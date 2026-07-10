@@ -25,7 +25,7 @@ class FmodFlxEmitter extends FlxBasic {
 
     /**
         Attaches an existing event instance to a FlxObject. The caller is
-        responsible for starting the instance; destroy() releases it.
+        responsible for starting the instance. destroy() releases it.
         @param instance the event instance to position
         @param target the object to follow (midpoint and velocity)
     **/

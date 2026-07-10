@@ -10,7 +10,7 @@ import haxefmod.studio.native.NativeStudio;
 /**
  * The engine-agnostic FMOD runtime: settings-driven init, bank management,
  * 3D attachment, and per-frame servicing. FmodManager builds its friendly
- * facade on top of this; games that want more control use it directly:
+ * facade on top of this. games that want more control use it directly:
  *
  *   FmodRuntime.init({liveUpdate: true});
  *   var jump = FmodRuntime.createInstance("event:/SFX/Jump");
@@ -62,7 +62,7 @@ class FmodRuntime {
         loadDefaultBanks();
         NativeStudio.sys_set_auto_update(resolved.autoUpdate);
         #end
-        // html5: init completes asynchronously; the shim loads the default
+        // html5: init completes asynchronously. The shim loads the default
         // banks and enables auto-update itself once the module is ready.
         return result;
     }

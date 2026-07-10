@@ -8,7 +8,7 @@ import haxefmod.studio.native.NativeStudio;
 
 /**
  * Refcounted bank loading. Multiple systems (states, components) can ask
- * for the same bank; it is only unloaded when the last reference is
+ * for the same bank. It is only unloaded when the last reference is
  * released. Async loads go through FMOD's NONBLOCKING flag (native) or a
  * fetch into the virtual filesystem (html5) - poll loadingState or check
  * isReady.
@@ -60,7 +60,7 @@ class BankRegistry {
     }
 
     /**
-     * Releases one reference; unloads the bank when the count hits zero.
+     * Releases one reference. unloads the bank when the count hits zero.
      * Returns true when the bank was actually unloaded.
      */
     public function unload(path:String):Bool {
@@ -106,7 +106,7 @@ class BankRegistry {
     }
 
     static inline function bankPathFor(filePath:String):String {
-        // FMOD bank paths look like "bank:/Master"; derive from the file name
+        // FMOD bank paths look like "bank:/Master". Derive from the file name
         var file = filePath.split("/").pop();
         var name = file.split(".")[0];
         return 'bank:/$name';

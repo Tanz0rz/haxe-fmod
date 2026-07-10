@@ -86,7 +86,7 @@ def read_wav(path):
                 if fmt_channels > 0:
                     channels, rate, bits = fmt_channels, fmt_rate, fmt_bits
             elif chunk_id == b"data":
-                # size 0 = unfinalized WAVWRITER header; data runs to EOF
+                # size 0 = unfinalized WAVWRITER header. data runs to EOF
                 pcm = data[pos + 8:pos + 8 + size] if size > 0 else data[pos + 8:]
                 if size == 0:
                     break

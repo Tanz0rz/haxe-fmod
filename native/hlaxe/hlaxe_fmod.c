@@ -38,7 +38,7 @@ static FMOD_SYSTEM* gCoreSystem = NULL;
 // Result of the most recent studio binding call made from the Haxe thread.
 static FMOD_RESULT gLastResult = FMOD_OK;
 // Static buffer for string out-params. Contents are only valid until the
-// next binding call; the Haxe wrappers copy immediately.
+// next binding call. The Haxe wrappers copy immediately.
 static char gStringBuf[512];
 
 /* Shared list buffer for the list getters (Haxe thread only, like gStringBuf) */
@@ -64,7 +64,7 @@ static FMOD_STUDIO_EVENTINSTANCE* resolve_instance(int h) {
 }
 
 // Callback - runs on an FMOD thread, NOT an HL thread. Must not touch the
-// handle table or any HL values; it reads the per-instance context back from
+// handle table or any HL values. It reads the per-instance context back from
 // FMOD userdata, copies payloads into a plain C record, and pushes it onto
 // the shared queue. The Haxe thread drains the queue during update().
 // Programmer sounds are resolved right here on the FMOD thread: the key was
@@ -648,8 +648,8 @@ HL_PRIM int HL_NAME(sys_last_result)() {
 }
 DEFINE_PRIM(_I32, sys_last_result, _NO_ARG);
 
-// Settings-driven init: numChannels <= 0 falls back to 128; sampleRate 0 =
-// FMOD default; speakerMode 0 = default speaker mode; studioFlags bit0 =
+// Settings-driven init: numChannels <= 0 falls back to 128. sampleRate 0 =
+// FMOD default. speakerMode 0 = default speaker mode. studioFlags bit0 =
 // live update. Keeps the FMOD_WAVWRITER env branch (CI recording), which
 // forces 48000/stereo and wins over the requested format. Idempotent:
 // returns FMOD_OK when already initialized.
@@ -695,7 +695,7 @@ DEFINE_PRIM(_I32, sys_init_ex, _I32 _I32 _I32 _I32);
 
 // FMOD_Debug_Initialize level mapping (0=none 1=error 2=warning 3=log),
 // TTY mode, no file logging. The logging-stripped FMOD libs report
-// FMOD_ERR_UNSUPPORTED; that result is passed through.
+// FMOD_ERR_UNSUPPORTED. That result is passed through.
 HL_PRIM int HL_NAME(sys_set_debug_level)(int level) {
     FMOD_DEBUG_FLAGS flags = FMOD_DEBUG_LEVEL_NONE;
     if (level == 1) flags = FMOD_DEBUG_LEVEL_ERROR;
@@ -794,7 +794,7 @@ HL_PRIM int HL_NAME(sys_get_bank_count)() {
 }
 DEFINE_PRIM(_I32, sys_get_bank_count, _NO_ARG);
 
-// out = int[FAXE_LIST_MAX]: bank handles; returns the count written
+// out = int[FAXE_LIST_MAX]: bank handles. Returns the count written
 HL_PRIM int HL_NAME(sys_get_bank_list)(vbyte* out) {
     FMOD_STUDIO_BANK** banks = (FMOD_STUDIO_BANK**)gListBuf;
     int count = 0;
@@ -919,7 +919,7 @@ HL_PRIM int HL_NAME(sys_get_parameter_description_count)() {
 DEFINE_PRIM(_I32, sys_get_parameter_description_count, _NO_ARG);
 
 // FMOD has no by-index getter for global parameters, only the list call,
-// so fetch through the list; index must stay below the list cap (FAXE_LIST_MAX).
+// so fetch through the list. index must stay below the list cap (FAXE_LIST_MAX).
 HL_PRIM vbyte* HL_NAME(sys_get_parameter_description_by_index)(int index, vbyte* fbuf, vbyte* ibuf) {
     FMOD_STUDIO_PARAMETER_DESCRIPTION* list;
     int count = 0;
@@ -1011,7 +1011,7 @@ HL_PRIM int HL_NAME(sys_set_listener_weight)(int index, double weight) {
 }
 DEFINE_PRIM(_I32, sys_set_listener_weight, _I32 _F64);
 
-// flags: bit0 = nonblocking; returns a bank handle or 0 on failure
+// flags: bit0 = nonblocking. Returns a bank handle or 0 on failure
 HL_PRIM int HL_NAME(sys_load_bank_file)(vbyte* path, int flags) {
     FMOD_STUDIO_BANK* bank = NULL;
     FMOD_STUDIO_LOAD_BANK_FLAGS loadFlags;
@@ -1023,7 +1023,7 @@ HL_PRIM int HL_NAME(sys_load_bank_file)(vbyte* path, int flags) {
 }
 DEFINE_PRIM(_I32, sys_load_bank_file, _BYTES _I32);
 
-// Async bank load: always FMOD_STUDIO_LOAD_BANK_NONBLOCKING; poll
+// Async bank load: always FMOD_STUDIO_LOAD_BANK_NONBLOCKING. poll
 // bank_get_loading_state. Returns a bank handle or 0.
 HL_PRIM int HL_NAME(sys_load_bank_async)(vbyte* path) {
     FMOD_STUDIO_BANK* bank = NULL;
@@ -1354,7 +1354,7 @@ HL_PRIM vbyte* HL_NAME(bank_get_path)(int h) {
 }
 DEFINE_PRIM(_BYTES, bank_get_path, _I32);
 
-// Real unload; frees the bank handle on success so stale copies stop resolving
+// Real unload. Frees the bank handle on success so stale copies stop resolving
 HL_PRIM int HL_NAME(bank_unload)(int h) {
     FMOD_STUDIO_BANK* bank = resolve_bank(h);
     if (!bank) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
@@ -1407,7 +1407,7 @@ HL_PRIM int HL_NAME(bank_get_event_count)(int h) {
 }
 DEFINE_PRIM(_I32, bank_get_event_count, _I32);
 
-// out = int[FAXE_LIST_MAX]: event description handles; returns the count written
+// out = int[FAXE_LIST_MAX]: event description handles. Returns the count written
 HL_PRIM int HL_NAME(bank_get_event_list)(int h, vbyte* out) {
     FMOD_STUDIO_BANK* bank = resolve_bank(h);
     FMOD_STUDIO_EVENTDESCRIPTION** list = (FMOD_STUDIO_EVENTDESCRIPTION**)gListBuf;
@@ -1434,7 +1434,7 @@ HL_PRIM int HL_NAME(bank_get_bus_count)(int h) {
 }
 DEFINE_PRIM(_I32, bank_get_bus_count, _I32);
 
-// out = int[FAXE_LIST_MAX]: bus handles; returns the count written
+// out = int[FAXE_LIST_MAX]: bus handles. Returns the count written
 HL_PRIM int HL_NAME(bank_get_bus_list)(int h, vbyte* out) {
     FMOD_STUDIO_BANK* bank = resolve_bank(h);
     FMOD_STUDIO_BUS** list = (FMOD_STUDIO_BUS**)gListBuf;
@@ -1461,7 +1461,7 @@ HL_PRIM int HL_NAME(bank_get_vca_count)(int h) {
 }
 DEFINE_PRIM(_I32, bank_get_vca_count, _I32);
 
-// out = int[FAXE_LIST_MAX]: VCA handles; returns the count written
+// out = int[FAXE_LIST_MAX]: VCA handles. Returns the count written
 HL_PRIM int HL_NAME(bank_get_vca_list)(int h, vbyte* out) {
     FMOD_STUDIO_BANK* bank = resolve_bank(h);
     FMOD_STUDIO_VCA** list = (FMOD_STUDIO_VCA**)gListBuf;
@@ -1665,7 +1665,7 @@ HL_PRIM int HL_NAME(evd_get_instance_count)(int h) {
 }
 DEFINE_PRIM(_I32, evd_get_instance_count, _I32);
 
-// out = int[FAXE_LIST_MAX]: instance handles; returns the count written. Instances FMOD
+// out = int[FAXE_LIST_MAX]: instance handles. Returns the count written. Instances FMOD
 // returns that we have not seen before get fresh handles.
 HL_PRIM int HL_NAME(evd_get_instance_list)(int h, vbyte* out) {
     FMOD_STUDIO_EVENTDESCRIPTION* desc = resolve_evd(h);

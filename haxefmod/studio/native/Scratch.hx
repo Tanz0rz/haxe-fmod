@@ -3,7 +3,7 @@ package haxefmod.studio.native;
 /**
  * Reusable scratch buffers for struct out-params crossing the FFI boundary.
  *
- * The NativeStudio wrappers pass these buffers to native functions; callers
+ * The NativeStudio wrappers pass these buffers to native functions. Callers
  * read results back via readI/readF immediately after the call. Only ever
  * touched from the Haxe thread, so a single static buffer per type is safe.
  *

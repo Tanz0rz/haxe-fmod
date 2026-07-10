@@ -41,7 +41,7 @@ jobs:
         uses: krdlab/setup-haxe@v2
         with:
           # krdlab/setup-haxe only accepts exact versions (no "latest"), so
-          # this pins the newest 4.3.x release; bump it manually as new Haxe
+          # this pins the newest 4.3.x release. bump it manually as new Haxe
           # releases appear
           haxe-version: 4.3.7
 

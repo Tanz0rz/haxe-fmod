@@ -14,7 +14,7 @@ From then on `Ctrl+B` regenerates the constants and builds banks in one keystrok
 
 ## Legacy note
 
-Before haxefmod 2.0 this script emitted a single `FmodConstants.hx` with `FmodSongs`/`FmodSFX` classes based on Music/SFX folder conventions. The 2.0 output covers every event, bus, VCA, snapshot, and global parameter with GUID companions; see `MIGRATION.md` for the rename mapping.
+Before haxefmod 2.0 this script emitted a single `FmodConstants.hx` with `FmodSongs`/`FmodSFX` classes based on Music/SFX folder conventions. The 2.0 output covers every event, bus, VCA, snapshot, and global parameter with GUID companions. See `MIGRATION.md` for the rename mapping.
 
 # Event Enums (optional)
 

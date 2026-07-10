@@ -7,7 +7,7 @@ import haxefmod.studio.native.NativeStudio;
  * Drains the native callback event queue and dispatches typed callbacks on
  * the game thread.
  *
- * FMOD fires callbacks on its own threads; the native shims copy payloads
+ * FMOD fires callbacks on its own threads. The native shims copy payloads
  * into a plain C ring buffer. update() (called from FmodManager.Update)
  * drains that ring and delivers EventCallbackData to registered handlers.
  *

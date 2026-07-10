@@ -595,7 +595,7 @@ jobs:
           log-file: /tmp/pan-test-linux-hl.log
 
       # Short smoke of the stress state so the weekly stress-test workflow
-      # cannot rot unnoticed; the full soak runs on its own schedule
+      # cannot rot unnoticed. The full soak runs on its own schedule
       - name: Run stress-test state (smoke)
         if: ${{ !cancelled() }}
         run: |
@@ -631,7 +631,7 @@ jobs:
           echo "Stress smoke passed"
 
       # The literal command users type. Everything else in this job builds
-      # and launches the game with CI plumbing; this proves lime's own
+      # and launches the game with CI plumbing. This proves lime's own
       # launcher (working directory, library resolution, postbuild hooks)
       # delivers a working FMOD game from a single command.
       - name: lime test end to end
@@ -639,7 +639,7 @@ jobs:
         run: |
           export DISPLAY=:99
           cd example-project/EZPlatformer
-          # -Daudio_test compiles the state selector in; without it the
+          # -Daudio_test compiles the state selector in. Without it the
           # normal game runs and no probe lines can appear
           export HAXEFMOD_TEST_STATE=api-probe
           timeout 180 haxelib run lime test hl -Daudio_test 2>&1 | tee /tmp/lime-test-linux-hl.log || true
@@ -1295,7 +1295,7 @@ jobs:
       - name: Setup Haxe via Homebrew
         run: |
           # The runner image ships a pre-tapped aws/tap that current
-          # Homebrew distrusts; untap it to keep installs warning-free
+          # Homebrew distrusts. untap it to keep installs warning-free
           brew untap aws/tap 2>/dev/null || true
           brew install haxe neko ffmpeg
           echo "HAXE_STD_PATH=$(brew --prefix)/lib/haxe/std" >> $GITHUB_ENV
@@ -1431,7 +1431,7 @@ jobs:
       - name: Setup Haxe via Homebrew
         run: |
           # The runner image ships a pre-tapped aws/tap that current
-          # Homebrew distrusts; untap it to keep installs warning-free
+          # Homebrew distrusts. untap it to keep installs warning-free
           brew untap aws/tap 2>/dev/null || true
           brew install haxe neko hashlink ffmpeg
           echo "HAXE_STD_PATH=$(brew --prefix)/lib/haxe/std" >> $GITHUB_ENV
@@ -1639,7 +1639,7 @@ jobs:
       - name: Setup Haxe via Homebrew
         run: |
           # The runner image ships a pre-tapped aws/tap that current
-          # Homebrew distrusts; untap it to keep installs warning-free
+          # Homebrew distrusts. untap it to keep installs warning-free
           brew untap aws/tap 2>/dev/null || true
           brew install haxe neko hashlink ffmpeg
           echo "HAXE_STD_PATH=$(brew --prefix)/lib/haxe/std" >> $GITHUB_ENV
@@ -2823,7 +2823,7 @@ jobs:
           )"
             BRANCH_NAME="${{ github.head_ref || github.ref_name }}"
             # Another push may have landed while this workflow ran (e.g. a
-            # user commit or a concurrent job); rebase onto the latest remote
+            # user commit or a concurrent job). rebase onto the latest remote
             # branch before pushing and retry once if the push still races.
             git pull --rebase origin "$BRANCH_NAME"
             if ! git push; then

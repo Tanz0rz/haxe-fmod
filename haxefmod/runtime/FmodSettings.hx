@@ -1,7 +1,7 @@
 package haxefmod.runtime;
 
 /**
- * Settings for FmodRuntime.init. Every field is optional; unset fields fall
+ * Settings for FmodRuntime.init. Every field is optional. unset fields fall
  * back to compile-time defines, then to the built-in defaults.
  *
  * Compile-time defines (project.xml <haxedef/> or -D):

@@ -9,7 +9,7 @@ import haxefmod.studio.native.Scratch;
  * A handle to a playable FMOD Studio event instance.
  *
  * Obtain via EventDescription.createInstance (or the FmodRuntime helpers).
- * Handles are plain ints under the hood; a stale or invalid handle makes
+ * Handles are plain ints under the hood. A stale or invalid handle makes
  * every call a safe no-op (getters return defaults, setters return
  * FMOD_ERR_INVALID_HANDLE).
  */
@@ -43,7 +43,7 @@ abstract EventInstance(Int) from Int to Int {
     }
 
     /**
-     * Releases the instance. FMOD destroys it once it stops; the handle
+     * Releases the instance. FMOD destroys it once it stops. The handle
      * becomes invalid immediately and any registered callback is removed
      * (the html5 backend cannot deliver events after release, so cleanup
      * happens here on every target for consistent behavior).
@@ -199,7 +199,7 @@ abstract EventInstance(Int) from Int to Int {
 
     /**
      * Registers a typed payload callback for this instance (replaces any
-     * existing handler; removed automatically when the instance is
+     * existing handler. removed automatically when the instance is
      * destroyed). Delivered from FmodManager.Update / FmodRuntime.update.
      */
     public inline function setCallback(handler:EventCallbackData->Void, ?mask:Int):Void {

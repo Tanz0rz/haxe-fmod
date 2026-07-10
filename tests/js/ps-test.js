@@ -3,7 +3,7 @@
 // resolution logic (invoked directly - the example bank has no programmer
 // instrument to trigger it naturally).
 // Path resolution: the FMOD html5 SDK comes from $FMOD_SDK_WEB (the same
-// variable lime builds use); the shim and banks are found relative to this
+// variable lime builds use). The shim and banks are found relative to this
 // file so the harness runs from any cwd.
 const path = require('path');
 const fs = require('fs');
@@ -59,7 +59,7 @@ async function main() {
     // --- Core micro subset: the html5 Studio build ships FSB-only codecs,
     // so loose wav/ogg files fail with FMOD_ERR_FORMAT (19). The binding must
     // fail cleanly (0 handle + lastResult), never crash. Native targets load
-    // these files fine; that path is CI-validated by ProgrammerSoundTestState.
+    // these files fine. That path is CI-validated by ProgrammerSoundTestState.
     const snd = jaxe.fmod_core_create_sound('Jump.wav', 0);
     check('core_create_sound_format_limit', snd === 0 && jaxe.fmod_sys_last_result() === 19,
         `handle=${snd} lastResult=${jaxe.fmod_sys_last_result()}`);
