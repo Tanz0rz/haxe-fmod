@@ -1,6 +1,6 @@
 // Loads the real jaxe.js shim under Node with browser stubs and runs the
 // ApiProbeState sequence against the real FMOD 2.03.12 wasm, extended to
-// cover the full M3 2.0 binding surface (sys_/bank_/evd_/evi_/vca_).
+// cover the full domain-prefixed binding surface (sys_/bank_/evd_/evi_/vca_).
 // Usage: node harness.js
 
 
@@ -479,7 +479,7 @@ async function main() {
     check('evi_get_playback_state on released-out instance', () => jaxe.fmod_evi_get_playback_state(evi));
     check('legacy fmod_release to drop stale handle', () => { jaxe.fmod_release(evi); return 'ok'; });
 
-    // --- bank unload / reload via the 2.0 API ---
+    // --- bank unload / reload via the domain-prefixed API ---
     expect('bank_unload', () => jaxe.fmod_bank_unload(bank), r => r === 0);
     expect('bank_is_valid after unload', () => jaxe.fmod_bank_is_valid(bank), r => r === false);
     await pump(5);

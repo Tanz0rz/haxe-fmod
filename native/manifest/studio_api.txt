@@ -77,7 +77,7 @@ cb_take_overflow -> bool
 # - Functions missing from the FMOD JS API return FMOD_ERR_UNSUPPORTED (68)
 #   on the js backend: sys_get_memory_usage, bus/evi cpu+memory usage.
 
-## Studio System (2.0 bindings)
+## Studio System
 sys_last_result -> i32
 sys_get_bus str -> i32
 sys_get_bus_by_id str -> i32
@@ -132,7 +132,7 @@ sys_reset_buffer_usage -> i32
 # ibuf: [0]=exclusive [1]=inclusive [2]=sampledata; ERR_UNSUPPORTED on js
 sys_get_memory_usage ibuf -> i32
 
-## Bus (2.0 bindings)
+## Bus
 bus_is_valid i32 -> bool
 bus_get_id i32 -> str
 bus_get_path i32 -> str
@@ -147,7 +147,7 @@ bus_stop_all_events i32 i32 -> i32
 bus_get_cpu_usage i32 ibuf -> i32
 bus_get_memory_usage i32 ibuf -> i32
 
-## VCA (2.0 bindings)
+## VCA
 vca_is_valid i32 -> bool
 vca_get_id i32 -> str
 vca_get_path i32 -> str
@@ -155,7 +155,7 @@ vca_get_volume i32 -> f64
 vca_get_final_volume i32 -> f64
 vca_set_volume i32 f64 -> i32
 
-## Bank (2.0 bindings)
+## Bank
 bank_is_valid i32 -> bool
 bank_get_id i32 -> str
 bank_get_path i32 -> str
@@ -178,7 +178,7 @@ bank_get_string_info i32 i32 -> str
 # string table GUID by index (formatted string)
 bank_get_string_guid i32 i32 -> str
 
-## EventDescription (2.0 bindings)
+## EventDescription
 evd_is_valid i32 -> bool
 evd_get_id i32 -> str
 evd_get_path i32 -> str
@@ -216,7 +216,7 @@ evd_get_user_property_type i32 i32 -> i32
 evd_get_user_property_float i32 i32 -> f64
 evd_get_user_property_string i32 i32 -> str
 
-## EventInstance (2.0 bindings)
+## EventInstance
 evi_is_valid i32 -> bool
 # returns the description handle (cached per description, like bus lookups)
 evi_get_description i32 -> i32
@@ -263,7 +263,7 @@ evi_get_cpu_usage i32 ibuf -> i32
 # ibuf: [0]=exclusive [1]=inclusive [2]=sampledata; ERR_UNSUPPORTED on js
 evi_get_memory_usage i32 ibuf -> i32
 
-## Runtime init (2.0 bindings)
+## Runtime init
 # Settings-driven init: (numChannels, sampleRate, speakerMode, studioFlags).
 # sampleRate 0 = FMOD default; speakerMode 0 = default (FMOD_SPEAKERMODE);
 # studioFlags bit0 = live update. Keeps the FMOD_WAVWRITER env branch.
@@ -278,7 +278,7 @@ sys_set_debug_level i32 -> i32
 # fetch is pending, ERROR on fetch failure).
 sys_load_bank_async str -> i32
 
-## Programmer sounds (2.0 bindings)
+## Programmer sounds
 # Assigns an audio-table key (or a file path fallback) to the instance.
 # The native CREATE/DESTROY_PROGRAMMER_SOUND callbacks resolve it on the
 # FMOD thread via getSoundInfo/createSound - no FFI happens in callbacks.
