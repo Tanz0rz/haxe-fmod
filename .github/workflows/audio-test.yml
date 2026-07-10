@@ -574,8 +574,10 @@ jobs:
         run: |
           export DISPLAY=:99
           cd example-project/EZPlatformer
+          # -Daudio_test compiles the state selector in; without it the
+          # normal game runs and no probe lines can appear
           export HAXEFMOD_TEST_STATE=api-probe
-          timeout 180 haxelib run lime test hl 2>&1 | tee /tmp/lime-test-linux-hl.log || true
+          timeout 180 haxelib run lime test hl -Daudio_test 2>&1 | tee /tmp/lime-test-linux-hl.log || true
           grep -q "API_PROBE: COMPLETE" /tmp/lime-test-linux-hl.log || {
             echo "lime test never reached the probe's COMPLETE line"
             exit 1
