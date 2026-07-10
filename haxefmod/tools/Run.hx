@@ -406,6 +406,8 @@ class Run {
 			Sys.println('All $total checks passed!');
 		} else {
 			Sys.println('$passCount/$total checks passed, $failCount failed.');
+			// Scripts and CI rely on the exit code reflecting the result
+			Sys.exit(1);
 		}
 	}
 }

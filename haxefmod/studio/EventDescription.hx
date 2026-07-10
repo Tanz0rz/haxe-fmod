@@ -86,6 +86,10 @@ abstract EventDescription(Int) from Int to Int {
     /** Live instances of this event (up to Scratch.CAPACITY entries). */
     public function getInstanceList():Array<EventInstance> {
         var count = NativeStudio.evd_get_instance_list(this);
+        var total = getInstanceCount();
+        if (total > count) {
+            trace('Warn: FMOD - instance list truncated ($count of $total); raise FAXE_LIST_MAX/Scratch.CAPACITY');
+        }
         return [for (i in 0...count) (Scratch.readI(i) : EventInstance)];
     }
 

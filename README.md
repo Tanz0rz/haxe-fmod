@@ -143,6 +143,8 @@ lime test linux
 lime test mac
 ```
 
+**macOS note**: SDK libraries downloaded through a browser carry the quarantine attribute. FMOD signs its libraries so builds normally run without issue, but if macOS blocks the dylibs, clear the flag with `xattr -dr com.apple.quarantine "$FMOD_SDK"`.
+
 ## <a name="api-layers"></a>The API Layers
 
 Everything in 2.0 is layered, and every layer is public:
@@ -175,6 +177,21 @@ FmodManager.Initialize({
     autoLoadBanks: ["Master.bank", "Master.strings.bank", "SFX.bank"],
 });
 ```
+
+**Compile-time defines** (set in `Project.xml` via `<haxedef name="..." value="..." />` or on the command line with `-D`):
+
+| Define | Effect | Default |
+|---|---|---|
+| `haxefmod_num_channels` | Max virtual voices | 128 |
+| `haxefmod_sample_rate` | Mixer sample rate | FMOD device default |
+| `haxefmod_live_update` | Force Live Update on in any build | debug builds only |
+| `haxefmod_no_live_update` | Force Live Update off in any build | |
+| `haxefmod_bank_folder` | Folder the auto-loaded banks live in | `assets/fmod/Desktop` |
+| `haxefmod_log_level` | FMOD debug logging: 0 none, 1 error, 2 warning, 3 log | 1 |
+
+Runtime settings passed to `FmodManager.Initialize(...)` override the defines.
+
+**HTML5 specifics**: initialization is asynchronous (see [HTML5 Builds](#html5-builds) for the loading-scene pattern); the FMOD web build ships FSB-only codecs, so loose wav/ogg loading and file-path programmer sounds are native-only (use audio table keys on HTML5); and `Destroyed` callback events are not delivered on HTML5 (clean up in `release()`, which works on every target).
 
 ## <a name="generating-constants"></a>Generating Constants From Your Banks
 

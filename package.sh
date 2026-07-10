@@ -17,6 +17,7 @@ zip -r haxefmod.zip \
   haxelib.json \
   README.md \
   MIGRATION.md \
+  CHANGELOG.md \
   LICENSE
 
 echo ""

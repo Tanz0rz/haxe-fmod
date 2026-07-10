@@ -53,6 +53,51 @@ jobs:
           /tmp/test_cbq_cpp
 
   # ===========================================================================
+  # API docs (dox) - rendered from the haxefmod package, uploaded as artifact
+  # ===========================================================================
+  api-docs:
+    runs-on: ubuntu-latest
+    if: ${{ !contains(github.event.head_commit.message, '[skip-build]') }}
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v2
+        with:
+          haxe-version: ${{ env.HAXE_VERSION }}
+
+      - name: Cache haxelib
+        uses: actions/cache@v5
+        with:
+          path: ~/haxelib
+          key: haxelib-docs-${{ runner.os }}-${{ env.HAXE_VERSION }}
+
+      - name: Install dox
+        run: |
+          haxelib setup ~/haxelib
+          haxelib install dox --always --quiet
+
+      - name: Generate type XML
+        run: |
+          # haxefmod.flixel is ignored: the flixel components only type-check
+          # against an installed flixel, and the API docs cover the core
+          # library surface
+          mkdir -p /tmp/haxefmod-docs
+          haxe -cp . --no-output -D doc-gen \
+            --macro "include('haxefmod', true, ['haxefmod.flixel'])" \
+            -xml /tmp/haxefmod-docs/haxefmod-docs.xml --interp
+
+      - name: Render API docs
+        run: haxelib run dox -i /tmp/haxefmod-docs -o /tmp/haxefmod-api-docs -in haxefmod
+
+      - name: Upload API docs
+        uses: actions/upload-artifact@v6
+        with:
+          name: haxefmod-api-docs
+          path: /tmp/haxefmod-api-docs
+
+  # ===========================================================================
   # Linux C++ Build + Audio Recording
   # ===========================================================================
   linux-cpp:
@@ -63,13 +108,12 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: Download FMOD SDK
-        run: |
-          git clone --depth 1 --branch 2.03.12 \
-            https://x-access-token:${{ secrets.FMOD_SDK_TOKEN }}@github.com/Tanz0rz/fmod-sdk-cache.git \
-            /tmp/fmod-sdk-cache
-          mkdir -p "$FMOD_SDK"
-          cp -R /tmp/fmod-sdk-cache/linux/* "$FMOD_SDK/"
-          ls -la "$FMOD_SDK/api/core/inc/" | head -5
+        uses: ./.github/actions/fmod-sdk
+        with:
+          version: "2.03.12"
+          platform: linux
+          dest: ${{ env.FMOD_SDK }}
+          token: ${{ secrets.FMOD_SDK_TOKEN }}
 
       - name: Setup Haxe
         uses: krdlab/setup-haxe@v2
@@ -282,13 +326,12 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: Download FMOD SDK
-        run: |
-          git clone --depth 1 --branch 2.03.12 \
-            https://x-access-token:${{ secrets.FMOD_SDK_TOKEN }}@github.com/Tanz0rz/fmod-sdk-cache.git \
-            /tmp/fmod-sdk-cache
-          mkdir -p "$FMOD_SDK"
-          cp -R /tmp/fmod-sdk-cache/linux/* "$FMOD_SDK/"
-          ls -la "$FMOD_SDK/api/core/inc/" | head -5
+        uses: ./.github/actions/fmod-sdk
+        with:
+          version: "2.03.12"
+          platform: linux
+          dest: ${{ env.FMOD_SDK }}
+          token: ${{ secrets.FMOD_SDK_TOKEN }}
 
       - name: Setup Haxe
         uses: krdlab/setup-haxe@v2
@@ -619,13 +662,12 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: Download FMOD SDK
-        run: |
-          git clone --depth 1 --branch 2.02.33 \
-            https://x-access-token:${{ secrets.FMOD_SDK_TOKEN }}@github.com/Tanz0rz/fmod-sdk-cache.git \
-            /tmp/fmod-sdk-cache
-          mkdir -p "$FMOD_SDK"
-          cp -R /tmp/fmod-sdk-cache/linux/* "$FMOD_SDK/"
-          ls -la "$FMOD_SDK/api/core/inc/" | head -5
+        uses: ./.github/actions/fmod-sdk
+        with:
+          version: "2.02.33"
+          platform: linux
+          dest: ${{ env.FMOD_SDK }}
+          token: ${{ secrets.FMOD_SDK_TOKEN }}
 
       - name: Setup Haxe
         uses: krdlab/setup-haxe@v2
@@ -819,13 +861,12 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: Download FMOD SDK
-        run: |
-          git clone --depth 1 --branch 2.03.12 \
-            https://x-access-token:${{ secrets.FMOD_SDK_TOKEN }}@github.com/Tanz0rz/fmod-sdk-cache.git \
-            /tmp/fmod-sdk-cache
-          mkdir -p "$FMOD_SDK"
-          cp -R /tmp/fmod-sdk-cache/html5/* "$FMOD_SDK/"
-          ls -la "$FMOD_SDK/api/studio/lib/wasm/" | head -5
+        uses: ./.github/actions/fmod-sdk
+        with:
+          version: "2.03.12"
+          platform: html5
+          dest: ${{ env.FMOD_SDK }}
+          token: ${{ secrets.FMOD_SDK_TOKEN }}
 
       - name: Setup Haxe
         uses: krdlab/setup-haxe@v2
@@ -1222,13 +1263,12 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: Download FMOD SDK
-        run: |
-          git clone --depth 1 --branch 2.03.12 \
-            https://x-access-token:${{ secrets.FMOD_SDK_TOKEN }}@github.com/Tanz0rz/fmod-sdk-cache.git \
-            /tmp/fmod-sdk-cache
-          mkdir -p "$FMOD_SDK"
-          cp -R /tmp/fmod-sdk-cache/mac/* "$FMOD_SDK/"
-          ls -la "$FMOD_SDK/api/core/inc/" | head -5
+        uses: ./.github/actions/fmod-sdk
+        with:
+          version: "2.03.12"
+          platform: mac
+          dest: ${{ env.FMOD_SDK }}
+          token: ${{ secrets.FMOD_SDK_TOKEN }}
 
       - name: Setup Haxe via Homebrew
         run: |
@@ -1345,13 +1385,12 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: Download FMOD SDK
-        run: |
-          git clone --depth 1 --branch 2.03.12 \
-            https://x-access-token:${{ secrets.FMOD_SDK_TOKEN }}@github.com/Tanz0rz/fmod-sdk-cache.git \
-            /tmp/fmod-sdk-cache
-          mkdir -p "$FMOD_SDK"
-          cp -R /tmp/fmod-sdk-cache/mac/* "$FMOD_SDK/"
-          ls -la "$FMOD_SDK/api/core/inc/" | head -5
+        uses: ./.github/actions/fmod-sdk
+        with:
+          version: "2.03.12"
+          platform: mac
+          dest: ${{ env.FMOD_SDK }}
+          token: ${{ secrets.FMOD_SDK_TOKEN }}
 
       - name: Setup Haxe via Homebrew
         run: |
@@ -1554,13 +1593,12 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: Download FMOD SDK
-        run: |
-          git clone --depth 1 --branch 2.02.33 \
-            https://x-access-token:${{ secrets.FMOD_SDK_TOKEN }}@github.com/Tanz0rz/fmod-sdk-cache.git \
-            /tmp/fmod-sdk-cache
-          mkdir -p "$FMOD_SDK"
-          cp -R /tmp/fmod-sdk-cache/mac/* "$FMOD_SDK/"
-          ls -la "$FMOD_SDK/api/core/inc/" | head -5
+        uses: ./.github/actions/fmod-sdk
+        with:
+          version: "2.02.33"
+          platform: mac
+          dest: ${{ env.FMOD_SDK }}
+          token: ${{ secrets.FMOD_SDK_TOKEN }}
 
       - name: Setup Haxe via Homebrew
         run: |
@@ -1702,13 +1740,12 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: Download FMOD SDK
-        run: |
-          git clone --depth 1 --branch 2.03.12 \
-            https://x-access-token:${{ secrets.FMOD_SDK_TOKEN }}@github.com/Tanz0rz/fmod-sdk-cache.git \
-            /tmp/fmod-sdk-cache
-          mkdir -p "$FMOD_SDK"
-          cp -R /tmp/fmod-sdk-cache/windows/* "$FMOD_SDK/"
-          ls -la "$FMOD_SDK/api/core/inc/" | head -5
+        uses: ./.github/actions/fmod-sdk
+        with:
+          version: "2.03.12"
+          platform: windows
+          dest: ${{ env.FMOD_SDK }}
+          token: ${{ secrets.FMOD_SDK_TOKEN }}
 
       - name: Setup Haxe
         uses: krdlab/setup-haxe@v2
@@ -1872,13 +1909,12 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: Download FMOD SDK
-        run: |
-          git clone --depth 1 --branch 2.03.12 \
-            https://x-access-token:${{ secrets.FMOD_SDK_TOKEN }}@github.com/Tanz0rz/fmod-sdk-cache.git \
-            /tmp/fmod-sdk-cache
-          mkdir -p "$FMOD_SDK"
-          cp -R /tmp/fmod-sdk-cache/windows/* "$FMOD_SDK/"
-          ls -la "$FMOD_SDK/api/core/inc/" | head -5
+        uses: ./.github/actions/fmod-sdk
+        with:
+          version: "2.03.12"
+          platform: windows
+          dest: ${{ env.FMOD_SDK }}
+          token: ${{ secrets.FMOD_SDK_TOKEN }}
 
       - name: Setup Haxe
         uses: krdlab/setup-haxe@v2
@@ -2147,13 +2183,12 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: Download FMOD SDK
-        run: |
-          git clone --depth 1 --branch 2.02.33 \
-            https://x-access-token:${{ secrets.FMOD_SDK_TOKEN }}@github.com/Tanz0rz/fmod-sdk-cache.git \
-            /tmp/fmod-sdk-cache
-          mkdir -p "$FMOD_SDK"
-          cp -R /tmp/fmod-sdk-cache/windows/* "$FMOD_SDK/"
-          ls -la "$FMOD_SDK/api/core/inc/" | head -5
+        uses: ./.github/actions/fmod-sdk
+        with:
+          version: "2.02.33"
+          platform: windows
+          dest: ${{ env.FMOD_SDK }}
+          token: ${{ secrets.FMOD_SDK_TOKEN }}
 
       - name: Setup Haxe
         uses: krdlab/setup-haxe@v2
@@ -2355,15 +2390,15 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: Download FMOD html5 SDK
-        run: |
-          git clone --depth 1 --branch 2.03.12 \
-            https://x-access-token:${{ secrets.FMOD_SDK_TOKEN }}@github.com/Tanz0rz/fmod-sdk-cache.git \
-            /tmp/fmod-sdk-cache
-          ls /tmp/fmod-sdk-cache/html5/api/studio/lib/wasm/ | head -3
+        uses: ./.github/actions/fmod-sdk
+        with:
+          version: "2.03.12"
+          platform: none
+          token: ${{ secrets.FMOD_SDK_TOKEN }}
 
       - name: Run jaxe harnesses against the real wasm
         env:
-          FMOD_SDK_WEB: /tmp/fmod-sdk-cache/html5
+          FMOD_SDK_WEB: /tmp/fmod-sdk-cache-2.03.12/html5
         run: |
           node tests/js/jaxe-harness-full.js
           node tests/js/ps-test.js
@@ -2380,13 +2415,12 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: Download FMOD SDK
-        run: |
-          git clone --depth 1 --branch 2.03.12 \
-            https://x-access-token:${{ secrets.FMOD_SDK_TOKEN }}@github.com/Tanz0rz/fmod-sdk-cache.git \
-            /tmp/fmod-sdk-cache
-          mkdir -p "$FMOD_SDK"
-          cp -R /tmp/fmod-sdk-cache/linux/* "$FMOD_SDK/"
-          ls -la "$FMOD_SDK/api/core/inc/" | head -5
+        uses: ./.github/actions/fmod-sdk
+        with:
+          version: "2.03.12"
+          platform: linux
+          dest: ${{ env.FMOD_SDK }}
+          token: ${{ secrets.FMOD_SDK_TOKEN }}
 
       - name: Setup Haxe
         uses: krdlab/setup-haxe@v2
@@ -2411,11 +2445,9 @@ jobs:
 
       - name: Doctor passes in a configured environment
         env:
-          FMOD_SDK_WEB: /tmp/fmod-sdk-cache/html5
+          FMOD_SDK_WEB: /tmp/fmod-sdk-cache-2.03.12/html5
         run: |
-          # The check command always exits 0 (Run.hx reports failures in the
-          # printed summary, never via the exit code), so assertions are made
-          # on the output: the all-passed summary line and no [FAIL] lines.
+          # A fully configured environment must pass by exit code AND report
           cd example-project/EZPlatformer
           haxelib run haxefmod check 2>&1 | tee /tmp/doctor-ok.log
           grep -q "All .* checks passed!" /tmp/doctor-ok.log
@@ -2428,20 +2460,18 @@ jobs:
       - name: Doctor fails without FMOD_SDK
         env:
           FMOD_SDK: ""
-          FMOD_SDK_WEB: /tmp/fmod-sdk-cache/html5
+          FMOD_SDK_WEB: /tmp/fmod-sdk-cache-2.03.12/html5
         run: |
-          # The check command exits 0 even when checks fail, so the missing
-          # FMOD_SDK must be asserted from the [FAIL] report in the output.
+          # A failing environment must fail by exit code AND name the problem
           cd example-project/EZPlatformer
-          haxelib run haxefmod check > /tmp/doctor-missing.log 2>&1 || true
-          cat /tmp/doctor-missing.log
-          grep -q "\[FAIL\] FMOD_SDK environment variable set" /tmp/doctor-missing.log
-          grep -qi "FMOD_SDK" /tmp/doctor-missing.log
-          if grep -q "All .* checks passed!" /tmp/doctor-missing.log; then
-            echo "FAIL: doctor reported success without FMOD_SDK"
+          if haxelib run haxefmod check > /tmp/doctor-missing.log 2>&1; then
+            cat /tmp/doctor-missing.log
+            echo "FAIL: doctor exited 0 without FMOD_SDK"
             exit 1
           fi
-          echo "Doctor reported the missing FMOD_SDK"
+          cat /tmp/doctor-missing.log
+          grep -q "\[FAIL\] FMOD_SDK environment variable set" /tmp/doctor-missing.log
+          echo "Doctor failed with the missing FMOD_SDK named"
 
       # Negative-path proof that the compile-time gate blocks REAL lime
       # builds (lime ignores postbuild exit codes, so this macro is the only
@@ -2504,12 +2534,12 @@ jobs:
           echo "OK: tag $TAG matches haxelib.json version $VERSION"
 
       - name: Download FMOD SDK
-        run: |
-          git clone --depth 1 --branch 2.03.12 \
-            https://x-access-token:${{ secrets.FMOD_SDK_TOKEN }}@github.com/Tanz0rz/fmod-sdk-cache.git \
-            /tmp/fmod-sdk-cache
-          mkdir -p "$FMOD_SDK"
-          cp -R /tmp/fmod-sdk-cache/linux/* "$FMOD_SDK/"
+        uses: ./.github/actions/fmod-sdk
+        with:
+          version: "2.03.12"
+          platform: linux
+          dest: ${{ env.FMOD_SDK }}
+          token: ${{ secrets.FMOD_SDK_TOKEN }}
 
       - name: Setup Haxe
         uses: krdlab/setup-haxe@v2
@@ -2598,7 +2628,7 @@ jobs:
 
       - name: Build HTML5 target from the installed package
         env:
-          FMOD_SDK_WEB: /tmp/fmod-sdk-cache/html5
+          FMOD_SDK_WEB: /tmp/fmod-sdk-cache-2.03.12/html5
         run: |
           cd example-project/EZPlatformer
           haxelib run lime build html5

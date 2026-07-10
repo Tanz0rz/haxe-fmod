@@ -37,6 +37,10 @@
 #define FAXE_TYPE_SOUND 6  /* Core Sound (programmer sounds only) */
 
 #define FAXE_MAX_SLOTS 0x10000
+/* Max entries any list getter returns in one call. The Haxe-side scratch
+ * buffer (Scratch.CAPACITY) must match. Far beyond realistic FMOD projects;
+ * the abstracts warn when a list is larger and gets truncated. */
+#define FAXE_LIST_MAX 1024
 #define FAXE_GEN_MAX   0x7FFF
 
 typedef struct {

@@ -7,11 +7,12 @@ package haxefmod.studio.native;
  * read results back via readI/readF immediately after the call. Only ever
  * touched from the Haxe thread, so a single static buffer per type is safe.
  *
- * Capacity is 64 slots each - list-returning bindings (bank_get_event_list
- * and friends) cap their output at this size.
+ * Capacity is 1024 slots each, in lockstep with the native FAXE_LIST_MAX -
+ * list-returning bindings cap their output at this size and the abstracts
+ * warn when a larger list gets truncated.
  */
 class Scratch {
-    public static inline var CAPACITY:Int = 64;
+    public static inline var CAPACITY:Int = 1024;
 
     #if hl
     static var ints:hl.Bytes = null;

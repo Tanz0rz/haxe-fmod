@@ -43,6 +43,9 @@ static FMOD_RESULT gLastResult = FMOD_OK;
 // next binding call; the Haxe wrappers copy immediately.
 static char gStringBuf[512];
 
+// Shared list buffer for the list getters (Haxe thread only, like gStringBuf)
+static void* gListBuf[FAXE_LIST_MAX];
+
 // Auto-update thread
 static std::thread* gUpdateThread = NULL;
 static std::atomic<bool> gAutoUpdateRunning(false);
@@ -715,12 +718,12 @@ int fmod_sys_get_bank_count() {
     return count;
 }
 
-// Fills out with bank handles, returns the count written (capped at 64).
+// Fills out with bank handles, returns the count written (capped at FAXE_LIST_MAX).
 int fmod_sys_get_bank_list(::Array<int> out) {
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
-    FMOD::Studio::Bank* banks[64];
+    FMOD::Studio::Bank** banks = (FMOD::Studio::Bank**)gListBuf;
     int count = 0;
-    gLastResult = gStudioSystem->getBankList(banks, 64, &count);
+    gLastResult = gStudioSystem->getBankList(banks, FAXE_LIST_MAX, &count);
     if (gLastResult != FMOD_OK) return 0;
     int written = 0;
     for (int i = 0; i < count; i++) {
@@ -1234,13 +1237,13 @@ int fmod_bank_get_event_count(int h) {
     return count;
 }
 
-// Fills out with event description handles, returns the count written (capped at 64).
+// Fills out with event description handles, returns the count written (capped at FAXE_LIST_MAX).
 int fmod_bank_get_event_list(int h, ::Array<int> out) {
     FMOD::Studio::Bank* bank = resolveBank(h);
     if (!bank) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
-    FMOD::Studio::EventDescription* descs[64];
+    FMOD::Studio::EventDescription** descs = (FMOD::Studio::EventDescription**)gListBuf;
     int count = 0;
-    gLastResult = bank->getEventList(descs, 64, &count);
+    gLastResult = bank->getEventList(descs, FAXE_LIST_MAX, &count);
     if (gLastResult != FMOD_OK) return 0;
     int written = 0;
     for (int i = 0; i < count; i++) {
@@ -1261,9 +1264,9 @@ int fmod_bank_get_bus_count(int h) {
 int fmod_bank_get_bus_list(int h, ::Array<int> out) {
     FMOD::Studio::Bank* bank = resolveBank(h);
     if (!bank) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
-    FMOD::Studio::Bus* buses[64];
+    FMOD::Studio::Bus** buses = (FMOD::Studio::Bus**)gListBuf;
     int count = 0;
-    gLastResult = bank->getBusList(buses, 64, &count);
+    gLastResult = bank->getBusList(buses, FAXE_LIST_MAX, &count);
     if (gLastResult != FMOD_OK) return 0;
     int written = 0;
     for (int i = 0; i < count; i++) {
@@ -1284,9 +1287,9 @@ int fmod_bank_get_vca_count(int h) {
 int fmod_bank_get_vca_list(int h, ::Array<int> out) {
     FMOD::Studio::Bank* bank = resolveBank(h);
     if (!bank) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
-    FMOD::Studio::VCA* vcas[64];
+    FMOD::Studio::VCA** vcas = (FMOD::Studio::VCA**)gListBuf;
     int count = 0;
-    gLastResult = bank->getVCAList(vcas, 64, &count);
+    gLastResult = bank->getVCAList(vcas, FAXE_LIST_MAX, &count);
     if (gLastResult != FMOD_OK) return 0;
     int written = 0;
     for (int i = 0; i < count; i++) {
@@ -1465,14 +1468,14 @@ int fmod_evd_get_instance_count(int h) {
     return count;
 }
 
-// Fills out with instance handles, returns the count written (capped at 64).
+// Fills out with instance handles, returns the count written (capped at FAXE_LIST_MAX).
 // Instances FMOD returns that we have not seen get fresh handles.
 int fmod_evd_get_instance_list(int h, ::Array<int> out) {
     FMOD::Studio::EventDescription* desc = resolveDescription(h);
     if (!desc) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
-    FMOD::Studio::EventInstance* instances[64];
+    FMOD::Studio::EventInstance** instances = (FMOD::Studio::EventInstance**)gListBuf;
     int count = 0;
-    gLastResult = desc->getInstanceList(instances, 64, &count);
+    gLastResult = desc->getInstanceList(instances, FAXE_LIST_MAX, &count);
     if (gLastResult != FMOD_OK) return 0;
     int written = 0;
     for (int i = 0; i < count; i++) {

@@ -28,12 +28,12 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: Download FMOD SDK
-        run: |
-          git clone --depth 1 --branch 2.03.12 \
-            https://x-access-token:${{ secrets.FMOD_SDK_TOKEN }}@github.com/Tanz0rz/fmod-sdk-cache.git \
-            /tmp/fmod-sdk-cache
-          mkdir -p "$FMOD_SDK"
-          cp -R /tmp/fmod-sdk-cache/linux/* "$FMOD_SDK/"
+        uses: ./.github/actions/fmod-sdk
+        with:
+          version: "2.03.12"
+          platform: linux
+          dest: ${{ env.FMOD_SDK }}
+          token: ${{ secrets.FMOD_SDK_TOKEN }}
 
       - name: Setup Haxe
         uses: krdlab/setup-haxe@v2

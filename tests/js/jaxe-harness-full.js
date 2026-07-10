@@ -501,6 +501,71 @@ async function main() {
     expect('sys_load_bank_file already loaded', () => jaxe.fmod_sys_load_bank_file('Master.bank', 0), r => r === 0);
     expect('  lastResult == 70 already loaded', () => jaxe.fmod_sys_last_result(), r => r === 70);
 
+    // --- async HTTP bank load (fetch is faked; node never hits the network) ---
+    const prevFetch = global.fetch;
+    const prevAsyncTimeout = jaxe.ASYNC_FETCH_TIMEOUT_MS;
+    const bankBytes = fs.readFileSync(path.join(BANKS, 'Master.bank'));
+    const bankArrayBuffer = bankBytes.buffer.slice(bankBytes.byteOffset, bankBytes.byteOffset + bankBytes.byteLength);
+
+    // success path: fake fetch serves the bank bytes after a short delay
+    expect('bank_unload before async load', () => jaxe.fmod_bank_unload(bank3), r => r === 0);
+    await pump(5);
+    global.fetch = () => new Promise(resolve => setTimeout(() => resolve({
+        ok: true,
+        arrayBuffer: () => Promise.resolve(bankArrayBuffer),
+    }), 20));
+    const abank = expect('sys_load_bank_async', () => jaxe.fmod_sys_load_bank_async('Master.bank'), r => r > 0);
+    expect('async loading state pending', () => jaxe.fmod_bank_get_loading_state(abank), r => r === 2);
+    let astate = -1;
+    for (let i = 0; i < 100; i++) {
+        astate = jaxe.fmod_bank_get_loading_state(abank);
+        if (astate === 3) break;
+        await pump(2);
+    }
+    expect('async load reaches LOADED', () => astate, r => r === 3);
+    expect('event count after async load', () => jaxe.fmod_bank_get_event_count(abank), r => r === 3);
+
+    // timeout: never-settling fetch (rejects on abort like the real one)
+    // must flip the placeholder to ERROR once ASYNC_FETCH_TIMEOUT_MS passes
+    jaxe.ASYNC_FETCH_TIMEOUT_MS = 100;
+    global.fetch = (url, opts) => new Promise((resolve, reject) => {
+        if (opts && opts.signal) opts.signal.addEventListener('abort', () => reject(new Error('aborted')));
+    });
+    const tbank = expect('sys_load_bank_async hung fetch', () => jaxe.fmod_sys_load_bank_async('Hung.bank'), r => r > 0);
+    let tstate = -1;
+    for (let i = 0; i < 100; i++) {
+        tstate = jaxe.fmod_bank_get_loading_state(tbank);
+        if (tstate === 4) break;
+        await new Promise(r => setTimeout(r, 10));
+    }
+    expect('hung fetch times out to ERROR', () => tstate, r => r === 4);
+    expect('bank_unload timed-out placeholder', () => jaxe.fmod_bank_unload(tbank), r => r === 0);
+
+    // unload-while-pending: cancels the fetch and frees the handle
+    const liveBeforePending = jaxe.fmod_debug_live_handle_count();
+    const pbank = expect('sys_load_bank_async pending', () => jaxe.fmod_sys_load_bank_async('Pending.bank'), r => r > 0);
+    expect('live handle count while pending', () => jaxe.fmod_debug_live_handle_count(), r => r === liveBeforePending + 1);
+    expect('bank_unload while pending', () => jaxe.fmod_bank_unload(pbank), r => r === 0);
+    expect('bank_is_valid after pending unload', () => jaxe.fmod_bank_is_valid(pbank), r => r === false);
+    expect('handleResolve null after pending unload', () => jaxe.handleResolve(pbank, jaxe.TYPE_BANK), r => r === null);
+    expect('live handle count restored', () => jaxe.fmod_debug_live_handle_count(), r => r === liveBeforePending);
+
+    // late completion after unload: this fake ignores the abort signal (a
+    // response already in flight when abort lands), so the fetch resolves
+    // 200ms after the unload - the cancelled flag must drop the bank
+    let lateResolve = null;
+    global.fetch = () => new Promise(resolve => { lateResolve = resolve; });
+    const lbank = expect('sys_load_bank_async late completion', () => jaxe.fmod_sys_load_bank_async('Late.bank'), r => r > 0);
+    expect('bank_unload before late completion', () => jaxe.fmod_bank_unload(lbank), r => r === 0);
+    const banksBeforeLate = jaxe.fmod_sys_get_bank_count();
+    await new Promise(r => setTimeout(r, 200));
+    lateResolve({ ok: true, arrayBuffer: () => Promise.resolve(bankArrayBuffer) });
+    await pump(10);
+    expect('bank count unchanged after late completion', () => jaxe.fmod_sys_get_bank_count(), r => r === banksBeforeLate);
+
+    jaxe.ASYNC_FETCH_TIMEOUT_MS = prevAsyncTimeout;
+    global.fetch = prevFetch;
+
     // --- sys_unload_all last (invalidates everything) ---
     expect('sys_unload_all', () => jaxe.fmod_sys_unload_all(), r => r === 0);
     await pump(5);

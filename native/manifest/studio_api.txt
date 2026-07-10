@@ -71,8 +71,9 @@ cb_take_overflow -> bool
 # - fbuf = caller-passed scratch double buffer, ibuf = scratch int buffer
 #   (see haxefmod/studio/native/Scratch.hx); layouts documented per function.
 # - 3D attributes are 12 flattened doubles: pos xyz, vel xyz, forward xyz, up xyz.
-# - List getters fill ibuf with handles and return the count written (capped
-#   at the ibuf capacity, 64); lastResult reports errors.
+# - List getters fill ibuf with handles and return the count written, capped
+#   at FAXE_LIST_MAX (1024, lockstep with Scratch.CAPACITY); lastResult
+#   reports errors and the abstracts warn on truncation.
 # - Functions missing from the FMOD JS API return FMOD_ERR_UNSUPPORTED (68)
 #   on the js backend: sys_get_memory_usage, bus/evi cpu+memory usage.
 

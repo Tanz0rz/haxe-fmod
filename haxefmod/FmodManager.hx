@@ -254,6 +254,21 @@ class FmodManager {
         if (!songInstance.isNull()) songInstance.setCallback(handler, playbackEventMask);
     }
 
+    /**
+     * Registers a song callback that fires for the FIRST delivered event
+     * and then removes itself (use the mask to pick which events qualify).
+     * Replaces any previous song handler, like OnSongEvent.
+     */
+    public static function OnceSongEvent(handler:EventCallbackData->Void, ?playbackEventMask:Int):Void {
+        ensureInitialized();
+        if (songInstance.isNull()) return;
+        var instance = songInstance;
+        instance.setCallback(data -> {
+            CallbackDispatcher.remove(instance);
+            handler(data);
+        }, playbackEventMask);
+    }
+
     //// Sound effects
 
     /** Fire-and-forget playback (no handle; FMOD reclaims the instance). */
@@ -261,6 +276,13 @@ class FmodManager {
         ensureInitialized();
         log('PlaySoundOneShot $soundPath');
         FmodRuntime.playOneShot(soundPath);
+    }
+
+    /** Fire-and-forget playback positioned in 2D space (uses listener 0). */
+    public static function PlaySoundOneShotAt(soundPath:String, x:Float, y:Float):Void {
+        ensureInitialized();
+        log('PlaySoundOneShotAt $soundPath');
+        FmodRuntime.playOneShot(soundPath, x, y);
     }
 
     /**

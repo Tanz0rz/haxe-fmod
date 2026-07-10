@@ -41,6 +41,9 @@ static FMOD_RESULT gLastResult = FMOD_OK;
 // next binding call; the Haxe wrappers copy immediately.
 static char gStringBuf[512];
 
+/* Shared list buffer for the list getters (Haxe thread only, like gStringBuf) */
+static void* gListBuf[FAXE_LIST_MAX];
+
 // Binding ABI marker. PostBuild.hx scans compiled hdlls for this string to
 // reject stale pre-built hdlls before they become loader fatals. Keep the
 // number in lockstep with the manifest header "# abi-version:".
@@ -791,16 +794,16 @@ HL_PRIM int HL_NAME(sys_get_bank_count)() {
 }
 DEFINE_PRIM(_I32, sys_get_bank_count, _NO_ARG);
 
-// out = int[64]: bank handles; returns the count written
+// out = int[FAXE_LIST_MAX]: bank handles; returns the count written
 HL_PRIM int HL_NAME(sys_get_bank_list)(vbyte* out) {
-    FMOD_STUDIO_BANK* banks[64];
+    FMOD_STUDIO_BANK** banks = (FMOD_STUDIO_BANK**)gListBuf;
     int count = 0;
     int i;
     int* outInts = (int*)out;
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
-    gLastResult = FMOD_Studio_System_GetBankList(gStudioSystem, banks, 64, &count);
+    gLastResult = FMOD_Studio_System_GetBankList(gStudioSystem, banks, FAXE_LIST_MAX, &count);
     if (gLastResult != FMOD_OK) return 0;
-    if (count > 64) count = 64;
+    if (count > FAXE_LIST_MAX) count = FAXE_LIST_MAX;
     for (i = 0; i < count; i++) {
         outInts[i] = faxe_handle_find_or_alloc(banks[i], FAXE_TYPE_BANK);
     }
@@ -916,17 +919,22 @@ HL_PRIM int HL_NAME(sys_get_parameter_description_count)() {
 DEFINE_PRIM(_I32, sys_get_parameter_description_count, _NO_ARG);
 
 // FMOD has no by-index getter for global parameters, only the list call,
-// so fetch through the list; index must stay below the list cap (64).
+// so fetch through the list; index must stay below the list cap (FAXE_LIST_MAX).
 HL_PRIM vbyte* HL_NAME(sys_get_parameter_description_by_index)(int index, vbyte* fbuf, vbyte* ibuf) {
-    FMOD_STUDIO_PARAMETER_DESCRIPTION list[64];
+    FMOD_STUDIO_PARAMETER_DESCRIPTION* list;
     int count = 0;
     gStringBuf[0] = '\0';
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (vbyte*)gStringBuf; }
-    if (index < 0 || index >= 64) { gLastResult = FMOD_ERR_INVALID_PARAM; return (vbyte*)gStringBuf; }
+    if (index < 0 || index >= FAXE_LIST_MAX) { gLastResult = FMOD_ERR_INVALID_PARAM; return (vbyte*)gStringBuf; }
+    list = (FMOD_STUDIO_PARAMETER_DESCRIPTION*)malloc((size_t)(index + 1) * sizeof(FMOD_STUDIO_PARAMETER_DESCRIPTION));
+    if (!list) { gLastResult = FMOD_ERR_MEMORY; return (vbyte*)gStringBuf; }
     gLastResult = FMOD_Studio_System_GetParameterDescriptionList(gStudioSystem, list, index + 1, &count);
-    if (gLastResult != FMOD_OK) return (vbyte*)gStringBuf;
-    if (index >= count) { gLastResult = FMOD_ERR_INVALID_PARAM; return (vbyte*)gStringBuf; }
-    write_param_desc(&list[index], fbuf, ibuf);
+    if (gLastResult == FMOD_OK && index < count) {
+        write_param_desc(&list[index], fbuf, ibuf);
+    } else if (gLastResult == FMOD_OK) {
+        gLastResult = FMOD_ERR_INVALID_PARAM;
+    }
+    free(list);
     return (vbyte*)gStringBuf;
 }
 DEFINE_PRIM(_BYTES, sys_get_parameter_description_by_index, _I32 _BYTES _BYTES);
@@ -1399,17 +1407,17 @@ HL_PRIM int HL_NAME(bank_get_event_count)(int h) {
 }
 DEFINE_PRIM(_I32, bank_get_event_count, _I32);
 
-// out = int[64]: event description handles; returns the count written
+// out = int[FAXE_LIST_MAX]: event description handles; returns the count written
 HL_PRIM int HL_NAME(bank_get_event_list)(int h, vbyte* out) {
     FMOD_STUDIO_BANK* bank = resolve_bank(h);
-    FMOD_STUDIO_EVENTDESCRIPTION* list[64];
+    FMOD_STUDIO_EVENTDESCRIPTION** list = (FMOD_STUDIO_EVENTDESCRIPTION**)gListBuf;
     int count = 0;
     int i;
     int* outInts = (int*)out;
     if (!bank) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
-    gLastResult = FMOD_Studio_Bank_GetEventList(bank, list, 64, &count);
+    gLastResult = FMOD_Studio_Bank_GetEventList(bank, list, FAXE_LIST_MAX, &count);
     if (gLastResult != FMOD_OK) return 0;
-    if (count > 64) count = 64;
+    if (count > FAXE_LIST_MAX) count = FAXE_LIST_MAX;
     for (i = 0; i < count; i++) {
         outInts[i] = faxe_handle_find_or_alloc(list[i], FAXE_TYPE_EVD);
     }
@@ -1426,17 +1434,17 @@ HL_PRIM int HL_NAME(bank_get_bus_count)(int h) {
 }
 DEFINE_PRIM(_I32, bank_get_bus_count, _I32);
 
-// out = int[64]: bus handles; returns the count written
+// out = int[FAXE_LIST_MAX]: bus handles; returns the count written
 HL_PRIM int HL_NAME(bank_get_bus_list)(int h, vbyte* out) {
     FMOD_STUDIO_BANK* bank = resolve_bank(h);
-    FMOD_STUDIO_BUS* list[64];
+    FMOD_STUDIO_BUS** list = (FMOD_STUDIO_BUS**)gListBuf;
     int count = 0;
     int i;
     int* outInts = (int*)out;
     if (!bank) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
-    gLastResult = FMOD_Studio_Bank_GetBusList(bank, list, 64, &count);
+    gLastResult = FMOD_Studio_Bank_GetBusList(bank, list, FAXE_LIST_MAX, &count);
     if (gLastResult != FMOD_OK) return 0;
-    if (count > 64) count = 64;
+    if (count > FAXE_LIST_MAX) count = FAXE_LIST_MAX;
     for (i = 0; i < count; i++) {
         outInts[i] = faxe_handle_find_or_alloc(list[i], FAXE_TYPE_BUS);
     }
@@ -1453,17 +1461,17 @@ HL_PRIM int HL_NAME(bank_get_vca_count)(int h) {
 }
 DEFINE_PRIM(_I32, bank_get_vca_count, _I32);
 
-// out = int[64]: VCA handles; returns the count written
+// out = int[FAXE_LIST_MAX]: VCA handles; returns the count written
 HL_PRIM int HL_NAME(bank_get_vca_list)(int h, vbyte* out) {
     FMOD_STUDIO_BANK* bank = resolve_bank(h);
-    FMOD_STUDIO_VCA* list[64];
+    FMOD_STUDIO_VCA** list = (FMOD_STUDIO_VCA**)gListBuf;
     int count = 0;
     int i;
     int* outInts = (int*)out;
     if (!bank) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
-    gLastResult = FMOD_Studio_Bank_GetVCAList(bank, list, 64, &count);
+    gLastResult = FMOD_Studio_Bank_GetVCAList(bank, list, FAXE_LIST_MAX, &count);
     if (gLastResult != FMOD_OK) return 0;
-    if (count > 64) count = 64;
+    if (count > FAXE_LIST_MAX) count = FAXE_LIST_MAX;
     for (i = 0; i < count; i++) {
         outInts[i] = faxe_handle_find_or_alloc(list[i], FAXE_TYPE_VCA);
     }
@@ -1657,18 +1665,18 @@ HL_PRIM int HL_NAME(evd_get_instance_count)(int h) {
 }
 DEFINE_PRIM(_I32, evd_get_instance_count, _I32);
 
-// out = int[64]: instance handles; returns the count written. Instances FMOD
+// out = int[FAXE_LIST_MAX]: instance handles; returns the count written. Instances FMOD
 // returns that we have not seen before get fresh handles.
 HL_PRIM int HL_NAME(evd_get_instance_list)(int h, vbyte* out) {
     FMOD_STUDIO_EVENTDESCRIPTION* desc = resolve_evd(h);
-    FMOD_STUDIO_EVENTINSTANCE* list[64];
+    FMOD_STUDIO_EVENTINSTANCE** list = (FMOD_STUDIO_EVENTINSTANCE**)gListBuf;
     int count = 0;
     int i;
     int* outInts = (int*)out;
     if (!desc) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
-    gLastResult = FMOD_Studio_EventDescription_GetInstanceList(desc, list, 64, &count);
+    gLastResult = FMOD_Studio_EventDescription_GetInstanceList(desc, list, FAXE_LIST_MAX, &count);
     if (gLastResult != FMOD_OK) return 0;
-    if (count > 64) count = 64;
+    if (count > FAXE_LIST_MAX) count = FAXE_LIST_MAX;
     for (i = 0; i < count; i++) {
         outInts[i] = faxe_handle_find_or_alloc(list[i], FAXE_TYPE_EVI);
     }

@@ -80,6 +80,10 @@ class StudioSystem {
     /** Loaded banks (up to Scratch.CAPACITY entries). */
     public static function getBankList():Array<Bank> {
         var count = NativeStudio.sys_get_bank_list();
+        var total = getBankCount();
+        if (total > count) {
+            trace('Warn: FMOD - bank list truncated ($count of $total); raise FAXE_LIST_MAX/Scratch.CAPACITY');
+        }
         return [for (i in 0...count) (Scratch.readI(i) : Bank)];
     }
 

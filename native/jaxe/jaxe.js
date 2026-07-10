@@ -21,6 +21,9 @@ class jaxe {
     static pendingInit = null;
     // Counter for unique MEMFS names used by fmod_sys_load_bank_async.
     static asyncBankCounter = 0;
+    // Async bank fetches are aborted after this many ms (tests shrink it);
+    // the placeholder then reports loading state ERROR.
+    static ASYNC_FETCH_TIMEOUT_MS = 30000;
 
     // Generational handle table - JS mirror of native/shared/faxe_handles.h.
     // Handle encoding: (generation << 16) | index. Handle 0 is always invalid.
@@ -31,6 +34,7 @@ class jaxe {
     static TYPE_BUS = 4;
     static TYPE_VCA = 5;
     static TYPE_SOUND = 6;
+    static LIST_MAX = 1024;
     static slots = [];       // {ptr, raw, gen, type, alive}
     static freeList = [];    // stack of free slot indices
     static liveCount = 0;
@@ -585,11 +589,12 @@ class jaxe {
         };
     }
 
-    // List getters fill ibuf with handles (capped at 64) and return the
+    // List getters fill ibuf with handles (capped at LIST_MAX, kept in
+    // lockstep with Scratch.CAPACITY and the C shims' FAXE_LIST_MAX) and return the
     // count written; entries the table has seen keep their existing handle
     static writeHandleList(items, count, ibuf, type) {
         var n = count | 0;
-        if (n > 64) n = 64;
+        if (n > jaxe.LIST_MAX) n = jaxe.LIST_MAX;
         if (items.length < n) n = items.length;
         for (var i = 0; i < n; i++) {
             ibuf[i] = jaxe.handleFindOrAlloc(items[i], type);
@@ -720,7 +725,7 @@ class jaxe {
         if (!jaxe.sysReady()) return 0;
         var list = {};
         var count = {};
-        jaxe.lastResult = jaxe.gSystem.getBankList(list, 64, count);
+        jaxe.lastResult = jaxe.gSystem.getBankList(list, jaxe.LIST_MAX, count);
         if (jaxe.lastResult != jaxe.FMOD.OK || !list.val) return 0;
         return jaxe.writeHandleList(list.val, count.val, ibuf, jaxe.TYPE_BANK);
     }
@@ -812,7 +817,7 @@ class jaxe {
         if (!jaxe.sysReady()) return "";
         var list = {};
         var count = {};
-        jaxe.lastResult = jaxe.gSystem.getParameterDescriptionList(list, 64, count);
+        jaxe.lastResult = jaxe.gSystem.getParameterDescriptionList(list, jaxe.LIST_MAX, count);
         if (jaxe.lastResult != jaxe.FMOD.OK) return "";
         if (index < 0 || index >= (count.val | 0) || !list.val || !list.val[index]) {
             jaxe.lastResult = jaxe.ERR_INVALID_PARAM;
@@ -902,7 +907,10 @@ class jaxe {
     // `path` relative to the page origin, writes the bytes into MEMFS under
     // a unique flat name, then swaps the real bank into the slot. Poll
     // bank_get_loading_state: 2 (LOADING) while the fetch is pending,
-    // 4 (ERROR) if the fetch or load failed.
+    // 4 (ERROR) if the fetch or load failed or ASYNC_FETCH_TIMEOUT_MS
+    // elapsed. fmod_bank_unload on a still-pending placeholder cancels the
+    // fetch and frees the handle; the pendingBankCancelled flag makes sure
+    // a fetch that settles after that never reaches FMOD.
     static fmod_sys_load_bank_async(path) {
         if (!jaxe.sysReady()) return 0;
         var placeholder = { pendingBankPath: path };
@@ -911,11 +919,32 @@ class jaxe {
         jaxe.lastResult = jaxe.FMOD.OK;
         var idx = handle & 0xFFFF;
         var memfsName = "async_" + (++jaxe.asyncBankCounter) + ".bank";
+        // Abort support is optional (missing AbortController just means the
+        // fetch keeps running in the background); the timeout below flips
+        // the placeholder to ERROR either way.
+        var controller = (typeof AbortController != "undefined") ? new AbortController() : null;
+        placeholder.pendingBankController = controller;
+        placeholder.pendingBankTimer = setTimeout(function () {
+            placeholder.pendingBankTimer = null;
+            placeholder.pendingBankError = true;
+            if (controller) controller.abort();
+        }, jaxe.ASYNC_FETCH_TIMEOUT_MS);
+        // clears the timeout once the fetch settles (success, error, abort)
+        var settle = function () {
+            if (placeholder.pendingBankTimer != null) {
+                clearTimeout(placeholder.pendingBankTimer);
+                placeholder.pendingBankTimer = null;
+            }
+        };
         try {
-            fetch(path).then(function (response) {
+            fetch(path, controller ? { signal: controller.signal } : undefined).then(function (response) {
                 if (!response.ok) throw new Error("HTTP " + response.status);
                 return response.arrayBuffer();
             }).then(function (buffer) {
+                settle();
+                // dropped: cancelled by unload, or already timed out (a
+                // fetch that ignores the abort can still resolve late)
+                if (placeholder.pendingBankCancelled || placeholder.pendingBankError) return;
                 var s = jaxe.slots[idx];
                 // handle freed (or recycled) while the fetch was in flight
                 if (!s || !s.alive || s.ptr !== placeholder) return;
@@ -930,9 +959,11 @@ class jaxe {
                 s.ptr = bank.val;
                 s.raw = jaxe.rawPtr(bank.val);
             }).catch(function () {
+                settle();
                 placeholder.pendingBankError = true;
             });
         } catch (e) {
+            settle();
             placeholder.pendingBankError = true;
         }
         return handle;
@@ -1195,8 +1226,8 @@ class jaxe {
     // Resolves a bank handle for the fmod_bank_* functions, treating async
     // placeholders from fmod_sys_load_bank_async as not ready: sets
     // lastResult = 82 (ERR_NOTREADY) and returns null so callers never touch
-    // a placeholder. bank_get_loading_state and bank_is_valid special-case
-    // placeholders instead of using this helper.
+    // a placeholder. bank_get_loading_state, bank_is_valid and bank_unload
+    // special-case placeholders instead of using this helper.
     static resolveBankReady(handle) {
         var bank = jaxe.handleResolve(handle, jaxe.TYPE_BANK);
         if (!bank) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return null; }
@@ -1230,8 +1261,23 @@ class jaxe {
         return outval.val;
     }
 
-    // real unload; frees the bank handle on success
+    // real unload; frees the bank handle on success. An async placeholder
+    // (pending or errored) is cancelled instead: abort the fetch, clear the
+    // timeout, free the handle, FMOD_OK - the bank never reached FMOD, so
+    // there is nothing to unload there.
     static fmod_bank_unload(handle) {
+        var pending = jaxe.handleResolve(handle, jaxe.TYPE_BANK);
+        if (pending && pending.pendingBankPath) {
+            pending.pendingBankCancelled = true;
+            if (pending.pendingBankTimer != null) {
+                clearTimeout(pending.pendingBankTimer);
+                pending.pendingBankTimer = null;
+            }
+            if (pending.pendingBankController) pending.pendingBankController.abort();
+            jaxe.handleFree(handle);
+            jaxe.lastResult = jaxe.FMOD.OK;
+            return jaxe.lastResult;
+        }
         var bank = jaxe.resolveBankReady(handle);
         if (!bank) return jaxe.lastResult;
         // Unloading destroys the bank's event instances; uninstall their
@@ -1302,7 +1348,7 @@ class jaxe {
         if (!bank) return 0;
         var list = {};
         var count = {};
-        jaxe.lastResult = bank.getEventList(list, 64, count);
+        jaxe.lastResult = bank.getEventList(list, jaxe.LIST_MAX, count);
         if (jaxe.lastResult != jaxe.FMOD.OK || !list.val) return 0;
         return jaxe.writeHandleList(list.val, count.val, ibuf, jaxe.TYPE_EVD);
     }
@@ -1320,7 +1366,7 @@ class jaxe {
         if (!bank) return 0;
         var list = {};
         var count = {};
-        jaxe.lastResult = bank.getBusList(list, 64, count);
+        jaxe.lastResult = bank.getBusList(list, jaxe.LIST_MAX, count);
         if (jaxe.lastResult != jaxe.FMOD.OK || !list.val) return 0;
         return jaxe.writeHandleList(list.val, count.val, ibuf, jaxe.TYPE_BUS);
     }
@@ -1338,7 +1384,7 @@ class jaxe {
         if (!bank) return 0;
         var list = {};
         var count = {};
-        jaxe.lastResult = bank.getVCAList(list, 64, count);
+        jaxe.lastResult = bank.getVCAList(list, jaxe.LIST_MAX, count);
         if (jaxe.lastResult != jaxe.FMOD.OK || !list.val) return 0;
         return jaxe.writeHandleList(list.val, count.val, ibuf, jaxe.TYPE_VCA);
     }
@@ -1510,10 +1556,10 @@ class jaxe {
         if (!evd) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }
         var list = {};
         var count = {};
-        jaxe.lastResult = evd.getInstanceList(list, 64, count);
+        jaxe.lastResult = evd.getInstanceList(list, jaxe.LIST_MAX, count);
         if (jaxe.lastResult != jaxe.FMOD.OK || !list.val) return 0;
         var n = count.val | 0;
-        if (n > 64) n = 64;
+        if (n > jaxe.LIST_MAX) n = jaxe.LIST_MAX;
         if (list.val.length < n) n = list.val.length;
         for (var i = 0; i < n; i++) {
             var before = jaxe.liveCount;

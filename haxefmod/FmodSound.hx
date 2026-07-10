@@ -53,6 +53,24 @@ abstract FmodSound(EventInstance) from EventInstance to EventInstance {
         return this.setPaused(false);
     }
 
+    /** The volume as set on this sound (linear: 0.0 = silent, 1.0 = full). */
+    public inline function getVolume():Float {
+        return this.getVolume();
+    }
+
+    public inline function setVolume(volume:Float):FmodResult {
+        return this.setVolume(volume);
+    }
+
+    /** The pitch multiplier as set on this sound (1.0 = as authored). */
+    public inline function getPitch():Float {
+        return this.getPitch();
+    }
+
+    public inline function setPitch(pitch:Float):FmodResult {
+        return this.setPitch(pitch);
+    }
+
     public inline function getParameter(name:String):Float {
         return this.getParameter(name);
     }

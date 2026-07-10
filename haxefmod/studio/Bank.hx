@@ -69,6 +69,7 @@ abstract Bank(Int) from Int to Int {
     /** Event descriptions in the bank (up to Scratch.CAPACITY entries). */
     public function getEventList():Array<EventDescription> {
         var count = NativeStudio.bank_get_event_list(this);
+        warnTruncated("event", count, getEventCount());
         return [for (i in 0...count) (Scratch.readI(i) : EventDescription)];
     }
 
@@ -79,6 +80,7 @@ abstract Bank(Int) from Int to Int {
     /** Buses in the bank (up to Scratch.CAPACITY entries). */
     public function getBusList():Array<Bus> {
         var count = NativeStudio.bank_get_bus_list(this);
+        warnTruncated("bus", count, getBusCount());
         return [for (i in 0...count) (Scratch.readI(i) : Bus)];
     }
 
@@ -89,7 +91,14 @@ abstract Bank(Int) from Int to Int {
     /** VCAs in the bank (up to Scratch.CAPACITY entries). */
     public function getVCAList():Array<Vca> {
         var count = NativeStudio.bank_get_vca_list(this);
+        warnTruncated("VCA", count, getVCACount());
         return [for (i in 0...count) (Scratch.readI(i) : Vca)];
+    }
+
+    static function warnTruncated(kind:String, returned:Int, total:Int):Void {
+        if (total > returned) {
+            trace('Warn: FMOD - bank $kind list truncated ($returned of $total); raise FAXE_LIST_MAX/Scratch.CAPACITY');
+        }
     }
 
     /** Number of entries in the bank's string table (strings banks only). */
