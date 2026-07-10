@@ -2,7 +2,7 @@
 
 This script gives your code an always-up-to-date, autocompletable list of everything in your sound banks. Press `Ctrl+B` in FMOD Studio and it writes the Haxe constants files AND builds your banks in one step. Because it runs as part of every export, the constants can never drift from the project - this is the recommended workflow.
 
-![Haxe Constants Demo](https://raw.githubusercontent.com/Tanz0rz/haxe-fmod/34baff733a24e4301b6b8457066cae870fb22570/HaxeConstants.gif)
+![Haxe Constants Demo](../.github/HaxeConstants.gif)
 
 The demo above was recorded with the 1.x class names. Autocomplete works the same way in 2.0 with the class names shown below.
 
