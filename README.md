@@ -1,6 +1,6 @@
 # FMOD for Haxe on HTML5, HashLink, Windows, Linux, and macOS
 
-Having problems? Join the [Haxe Discord](https://discord.com/channels/162395145352904705/1472372604433076446/1472372604433076446) and ask for help!
+Having problems or want to chat? Join the [Haxe Discord](https://discord.com/channels/162395145352904705/1472372604433076446/1472372604433076446)!
 
 ## Table of Contents
 
