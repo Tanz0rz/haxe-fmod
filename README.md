@@ -24,7 +24,7 @@ Having problems or want to chat? [Join the Haxe Discord](https://discordapp.com/
 - HaxeFlixel components: one-call setup that routes the flixel sound tray and volume keys to FMOD, emitter and listener for positional audio, bank loader, and zone-based parameter triggers
 - Programmer sounds for dialogue and other runtime-selected audio
 - [Live Update](https://fmod.com/docs/2.03/studio/editing-during-live-update.html) for mixing sounds while playtesting (on by default in debug builds)
-- Constants that never drift: the FMOD Studio export script regenerates event/bus/VCA/parameter constants on every `Ctrl+B` bank build, and `haxelib run haxefmod generate` produces the identical files from a built bank
+- Constants that never drift: the FMOD Studio export script regenerates event/bus/VCA/parameter constants on every `Ctrl+B` bank build
 
 ## Supported Platforms
 
@@ -127,7 +127,7 @@ public function OnBeat():Void {
 }
 ```
 
-Call `FmodManager.Update()` once per frame. HaxeFlixel games (flixel 5.9.0 or newer) can call `haxefmod.flixel.FmodFlxSetup.init()` once in their first state instead: it initializes FMOD, adds the `FmodFlxUpdater` plugin (which handles the per-frame update), routes `FlxG.sound` volume and mute (the plus, minus, and zero keys and the sound tray) to the FMOD master bus, and silences the sound tray's own beep so all audio comes from FMOD. Generate the `FmodEvents` constants with `haxelib run haxefmod generate` (see [FMOD Studio Project Configuration](#fmod-studio-project-configuration)).
+Call `FmodManager.Update()` once per frame. HaxeFlixel games (flixel 5.9.0 or newer) can call `haxefmod.flixel.FmodFlxSetup.init()` once in their first state instead: it initializes FMOD, adds the `FmodFlxUpdater` plugin (which handles the per-frame update), routes `FlxG.sound` volume and mute (the plus, minus, and zero keys and the sound tray) to the FMOD master bus, and silences the sound tray's own beep so all audio comes from FMOD.
 
 **6. Build and run:**
 
@@ -229,6 +229,14 @@ For HTML5 builds to work, a dedicated scene must be run before the game starts t
 
 ## FMOD Studio Project Configuration
 
+### FMOD Studio Live Update
+
+One of the most powerful features of the FMOD ecosystem. Mix your sounds in real-time by binding FMOD Studio to a running instance of your game.
+
+Live Update **only works on C++ and HashLink builds**. HTML5 builds will not work. The FMOD team said this is a limitation caused by running games inside web browsers and they have no plans to support this.
+
+**Note**: On macOS and Windows, you may see a firewall dialog asking to allow incoming network connections when running your game with Live Update active. Live Update opens a local network socket (port 9264) so FMOD Studio can connect to your game for real-time audio mixing.
+
 ### Generating Constants From Your Banks
 
 The [export script](fmod-scripts/ExportHaxeConstants.js) gives your code an always-up-to-date, auto-completable list of everything in your sound banks. Press `Ctrl+B` in FMOD Studio and it writes the Haxe constants files **and** builds your banks in one step. Because it runs as part of every export, the constants can never drift from the project.
@@ -251,8 +259,6 @@ var engine = FmodManager.PlaySound(FmodEvents.SFXEngine);
 engine.setParameter("RPM", 0.5);
 ```
 
-`haxelib run haxefmod generate` emits byte-identical files from a built `Master.strings.bank`. Use the CLI when you want to generate without opening FMOD Studio. It parses `assets/fmod/Desktop/Master.strings.bank` (override with `--strings`) and writes the files into `source/` (override with `--out`, add a package with `--package`).
-
 #### Setup
 
 1. Copy [`fmod-scripts/ExportHaxeConstants.js`](fmod-scripts/ExportHaxeConstants.js) into your FMOD Studio scripts folder (`Scripts` next to your `.fspro`, or the global scripts directory from Preferences).
@@ -262,19 +268,7 @@ engine.setParameter("RPM", 0.5);
 From then on `Ctrl+B` regenerates the constants and builds banks in one keystroke.
 
 #### Event Enums
-
-`FmodEventEnum.hx` holds a plain `FmodEventEnum` enum with values named exactly like the `FmodEvents` constants, plus `FmodEventTools.path()` and `guid()` mappers back to the path and GUID strings.
-
-The constants are the cleanest way to use the library in code. Enums add a mapping call (`.path()`) on top, so they exist for the places a plain string cannot go: external tools that import Haxe enums, like binding levels to specific songs in LDtk, or exhaustive switch statements where the compiler should catch a missing case. Ignore the file if you never need that - unused mappers are stripped by dead code elimination.
-
-```haxe
-using FmodEventEnum.FmodEventTools;
-
-FmodManager.PlaySong(FmodEventEnum.MusicMainLevel.path());
-FmodManager.PlaySoundOneShot(FmodEventEnum.SFXCoin.path());
-```
-
-Without the `using` line, call the mappers directly: `FmodEventTools.path(FmodEventEnum.MusicMainLevel)`.
+If you are using a flow or tool that works better with enums, FmodEventEnum.hx holds enum representations of all sounds with additional helper functions that map them back to the path and GUID strings.
 
 #### Auto-imports
 
@@ -288,14 +282,6 @@ import FmodEvents;
 ```
 
 **Note:** for the generated files to stay up to date, you must run the export **every** time you build your sound bank (the script builds the banks for you, so `Ctrl+B` is the whole loop).
-
-### FMOD Studio Live Update
-
-One of the most powerful features of the FMOD ecosystem. Mix your sounds in real-time by binding FMOD Studio to a running instance of your game.
-
-Live Update **only works on C++ and HashLink builds**. HTML5 builds will not work. The FMOD team said this is a limitation caused by running games inside web browsers and they have no plans to support this.
-
-**Note**: On macOS and Windows, you may see a firewall dialog asking to allow incoming network connections when running your game with Live Update active. Live Update opens a local network socket (port 9264) so FMOD Studio can connect to your game for real-time audio mixing.
 
 ## Migrating From Previous haxe-fmod Versions?
 

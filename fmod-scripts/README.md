@@ -20,8 +20,6 @@ var engine = FmodManager.PlaySound(FmodEvents.SFXEngine);
 engine.setParameter("RPM", 0.5);
 ```
 
-`haxelib run haxefmod generate` emits byte-identical files from a built `Master.strings.bank`. Use the CLI when you want to generate without opening FMOD Studio.
-
 ### Event Enums
 
 If you are using a flow or tool that works better with enums, `FmodEventEnum.hx` holds enum representations of all sounds with additional helper functions that map them back to the path and GUID strings.
