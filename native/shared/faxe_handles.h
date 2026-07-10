@@ -116,6 +116,29 @@ static int faxe_handle_find_or_alloc(void* ptr, unsigned char type) {
     return faxe_handle_alloc(ptr, type);
 }
 
+/* Lookup handles (buses, VCAs, event descriptions) are cached for dedup and
+ * normally live for the whole session. A bank unload kills their FMOD
+ * objects while the slots stay alive, and FMOD may later hand a recycled
+ * address to a new object, which the pointer dedup would wrongly match.
+ * Sweeping right after an unload frees every lookup slot whose object the
+ * validator reports dead (FMOD IsValid is documented safe on destroyed
+ * objects, and address reuse cannot have happened yet inside the same
+ * call). Instances, banks, and sounds reclaim their slots through their
+ * own release and unload paths. */
+typedef int (*FaxeLookupValidator)(void* ptr, unsigned char type);
+static void faxe_handle_free(int handle);
+static void faxe_handles_sweep_lookups(FaxeLookupValidator is_valid) {
+    int i;
+    for (i = 0; i < gFaxeSlotCap; i++) {
+        FaxeSlot* s = &gFaxeSlots[i];
+        if (!s->alive) continue;
+        if (s->type != FAXE_TYPE_BUS && s->type != FAXE_TYPE_VCA && s->type != FAXE_TYPE_EVD) continue;
+        if (!is_valid(s->ptr, s->type)) {
+            faxe_handle_free(((int)s->gen << 16) | i);
+        }
+    }
+}
+
 /* Returns the stored pointer, or NULL if the handle is stale/invalid/mistyped. */
 static void* faxe_handle_resolve(int handle, unsigned char type) {
     int idx;

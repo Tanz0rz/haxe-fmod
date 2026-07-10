@@ -90,10 +90,42 @@ class jaxe {
             if (!s.alive || s.type != type) continue;
             if ((raw != 0 && s.raw === raw) || s.ptr === ptr
                 || (s.ptr.isAliasOf && s.ptr.isAliasOf(ptr))) {
+                // FMOD can hand a recycled address to a new object after an
+                // unload. A match on a dead cached wrapper must not alias it.
+                if (!jaxe.lookupSlotUsable(s)) {
+                    jaxe.handleFree((s.gen << 16) | i);
+                    continue;
+                }
                 return (s.gen << 16) | i;
             }
         }
         return jaxe.handleAlloc(ptr, type);
+    }
+
+    // A cached wrapper is usable when it has not been deleted and its FMOD
+    // object still reports valid (safe to ask of destroyed objects). Core
+    // sounds have no isValid and pass the deleted-wrapper check only.
+    static lookupSlotUsable(s) {
+        if (!s.ptr || !s.ptr.$$ || !s.ptr.$$.ptr) return false;
+        try {
+            return !s.ptr.isValid || s.ptr.isValid();
+        } catch (e) {
+            return false;
+        }
+    }
+
+    // After an unload destroys bank content, drop every cached lookup slot
+    // whose object died so a reload cannot alias a recycled address under a
+    // stale handle. Flushing first makes the async unload observable to
+    // isValid. Mirrors faxe_handles_sweep_lookups in the native shims.
+    static sweepDeadLookups() {
+        if (jaxe.gSystem) jaxe.gSystem.flushCommands();
+        for (var i = 0; i < jaxe.slots.length; i++) {
+            var s = jaxe.slots[i];
+            if (!s.alive) continue;
+            if (s.type != jaxe.TYPE_BUS && s.type != jaxe.TYPE_VCA && s.type != jaxe.TYPE_EVD) continue;
+            if (!jaxe.lookupSlotUsable(s)) jaxe.handleFree((s.gen << 16) | i);
+        }
     }
 
     static handleResolve(handle, type) {
@@ -975,6 +1007,7 @@ class jaxe {
         // the FMOD JS module is corrupted.
         jaxe.uninstallCallbacksFor(null);
         jaxe.lastResult = jaxe.gSystem.unloadAll();
+        if (jaxe.lastResult == jaxe.FMOD.OK) jaxe.sweepDeadLookups();
         return jaxe.lastResult;
     }
 
@@ -1293,7 +1326,10 @@ class jaxe {
             }
         }
         jaxe.lastResult = bank.unload();
-        if (jaxe.lastResult == jaxe.FMOD.OK) jaxe.handleFree(handle);
+        if (jaxe.lastResult == jaxe.FMOD.OK) {
+            jaxe.handleFree(handle);
+            jaxe.sweepDeadLookups();
+        }
         return jaxe.lastResult;
     }
 

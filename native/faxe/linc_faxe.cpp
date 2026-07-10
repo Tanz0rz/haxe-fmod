@@ -821,7 +821,7 @@ int fmod_sys_get_parameter_description_count() {
 const char* fmod_sys_get_parameter_description_by_index(int index, ::Array<Float> fbuf, ::Array<int> ibuf) {
     gStringBuf[0] = '\0';
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return gStringBuf; }
-    if (index < 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return gStringBuf; }
+    if (index < 0 || index >= FAXE_LIST_MAX) { gLastResult = FMOD_ERR_INVALID_PARAM; return gStringBuf; }
     FMOD_STUDIO_PARAMETER_DESCRIPTION* list =
         (FMOD_STUDIO_PARAMETER_DESCRIPTION*)malloc((size_t)(index + 1) * sizeof(FMOD_STUDIO_PARAMETER_DESCRIPTION));
     if (!list) { gLastResult = FMOD_ERR_MEMORY; return gStringBuf; }
@@ -914,9 +914,28 @@ int fmod_sys_load_bank_async(const ::String& path) {
     return faxe_handle_find_or_alloc(bank, FAXE_TYPE_BANK);
 }
 
+// Frees the cached lookup handles whose objects an unload just destroyed,
+// so a reload cannot alias a recycled address under a stale handle.
+static int lincLookupSlotValid(void* ptr, unsigned char type) {
+    switch (type) {
+        case FAXE_TYPE_BUS: return ((FMOD::Studio::Bus*)ptr)->isValid() ? 1 : 0;
+        case FAXE_TYPE_VCA: return ((FMOD::Studio::VCA*)ptr)->isValid() ? 1 : 0;
+        case FAXE_TYPE_EVD: return ((FMOD::Studio::EventDescription*)ptr)->isValid() ? 1 : 0;
+        default: return 1;
+    }
+}
+
+static void lincReclaimDeadLookups() {
+    // Unload runs on FMOD's async command queue. Flushing makes the dead
+    // objects observable to isValid before the sweep.
+    if (gStudioSystem) gStudioSystem->flushCommands();
+    faxe_handles_sweep_lookups(lincLookupSlotValid);
+}
+
 int fmod_sys_unload_all() {
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
     gLastResult = gStudioSystem->unloadAll();
+    if (gLastResult == FMOD_OK) lincReclaimDeadLookups();
     return (int)gLastResult;
 }
 
@@ -1195,7 +1214,10 @@ int fmod_bank_unload(int h) {
     FMOD::Studio::Bank* bank = resolveBank(h);
     if (!bank) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = bank->unload();
-    if (gLastResult == FMOD_OK) faxe_handle_free(h);
+    if (gLastResult == FMOD_OK) {
+        faxe_handle_free(h);
+        lincReclaimDeadLookups();
+    }
     return (int)gLastResult;
 }
 

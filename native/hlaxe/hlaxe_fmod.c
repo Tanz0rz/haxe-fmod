@@ -1035,9 +1035,28 @@ HL_PRIM int HL_NAME(sys_load_bank_async)(vbyte* path) {
 }
 DEFINE_PRIM(_I32, sys_load_bank_async, _BYTES);
 
+// Frees the cached lookup handles whose objects an unload just destroyed,
+// so a reload cannot alias a recycled address under a stale handle.
+static int hlaxe_lookup_slot_valid(void* ptr, unsigned char type) {
+    switch (type) {
+        case FAXE_TYPE_BUS: return FMOD_Studio_Bus_IsValid((FMOD_STUDIO_BUS*)ptr) ? 1 : 0;
+        case FAXE_TYPE_VCA: return FMOD_Studio_VCA_IsValid((FMOD_STUDIO_VCA*)ptr) ? 1 : 0;
+        case FAXE_TYPE_EVD: return FMOD_Studio_EventDescription_IsValid((FMOD_STUDIO_EVENTDESCRIPTION*)ptr) ? 1 : 0;
+        default: return 1;
+    }
+}
+
+static void hlaxe_reclaim_dead_lookups(void) {
+    // Unload runs on FMOD's async command queue. Flushing makes the dead
+    // objects observable to IsValid before the sweep.
+    if (gStudioSystem) FMOD_Studio_System_FlushCommands(gStudioSystem);
+    faxe_handles_sweep_lookups(hlaxe_lookup_slot_valid);
+}
+
 HL_PRIM int HL_NAME(sys_unload_all)() {
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
     gLastResult = FMOD_Studio_System_UnloadAll(gStudioSystem);
+    if (gLastResult == FMOD_OK) hlaxe_reclaim_dead_lookups();
     return (int)gLastResult;
 }
 DEFINE_PRIM(_I32, sys_unload_all, _NO_ARG);
@@ -1359,7 +1378,10 @@ HL_PRIM int HL_NAME(bank_unload)(int h) {
     FMOD_STUDIO_BANK* bank = resolve_bank(h);
     if (!bank) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = FMOD_Studio_Bank_Unload(bank);
-    if (gLastResult == FMOD_OK) faxe_handle_free(h);
+    if (gLastResult == FMOD_OK) {
+        faxe_handle_free(h);
+        hlaxe_reclaim_dead_lookups();
+    }
     return (int)gLastResult;
 }
 DEFINE_PRIM(_I32, bank_unload, _I32);

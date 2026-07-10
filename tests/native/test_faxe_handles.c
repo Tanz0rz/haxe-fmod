@@ -10,6 +10,16 @@
 #include <assert.h>
 #include "../../native/shared/faxe_handles.h"
 
+static int sweep_all_valid(void* ptr, unsigned char type) {
+    (void)ptr; (void)type;
+    return 1;
+}
+
+static int sweep_all_dead(void* ptr, unsigned char type) {
+    (void)ptr; (void)type;
+    return 0;
+}
+
 int main(void) {
     int dummy1 = 1, dummy2 = 2, dummy3 = 3;
 
@@ -79,6 +89,43 @@ int main(void) {
         assert(gen >= 1 && gen <= 0x7FFF);
     }
     assert(faxe_handle_resolve(h, FAXE_TYPE_EVI) == &dummy2);
+
+    /* sweep of dead lookup slots: only BUS/VCA/EVD slots the validator
+     * rejects are freed; other types are untouched even when "dead" */
+    {
+        static int busObj, vcaObj, evdObj, eviObj, bankObj;
+        int hb = faxe_handle_find_or_alloc(&busObj, FAXE_TYPE_BUS);
+        int hv = faxe_handle_find_or_alloc(&vcaObj, FAXE_TYPE_VCA);
+        int he = faxe_handle_find_or_alloc(&evdObj, FAXE_TYPE_EVD);
+        int hi = faxe_handle_alloc(&eviObj, FAXE_TYPE_EVI);
+        int hk = faxe_handle_alloc(&bankObj, FAXE_TYPE_BANK);
+        int liveBefore = gFaxeLiveCount;
+
+        /* everything valid: sweep frees nothing */
+        faxe_handles_sweep_lookups(sweep_all_valid);
+        assert(gFaxeLiveCount == liveBefore);
+        assert(faxe_handle_resolve(hb, FAXE_TYPE_BUS) == &busObj);
+
+        /* everything dead: sweep frees exactly the three lookup slots */
+        faxe_handles_sweep_lookups(sweep_all_dead);
+        assert(gFaxeLiveCount == liveBefore - 3);
+        assert(faxe_handle_resolve(hb, FAXE_TYPE_BUS) == NULL);
+        assert(faxe_handle_resolve(hv, FAXE_TYPE_VCA) == NULL);
+        assert(faxe_handle_resolve(he, FAXE_TYPE_EVD) == NULL);
+        assert(faxe_handle_resolve(hi, FAXE_TYPE_EVI) == &eviObj);
+        assert(faxe_handle_resolve(hk, FAXE_TYPE_BANK) == &bankObj);
+
+        /* the freed slot recycles under a new generation, so a fresh lookup
+         * for a reused address gets a NEW handle and the stale one stays dead */
+        int hb2 = faxe_handle_find_or_alloc(&busObj, FAXE_TYPE_BUS);
+        assert(hb2 > 0 && hb2 != hb);
+        assert(faxe_handle_resolve(hb, FAXE_TYPE_BUS) == NULL);
+        assert(faxe_handle_resolve(hb2, FAXE_TYPE_BUS) == &busObj);
+
+        faxe_handle_free(hb2);
+        faxe_handle_free(hi);
+        faxe_handle_free(hk);
+    }
 
     printf("faxe_handles: all assertions passed\n");
     return 0;
