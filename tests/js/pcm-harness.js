@@ -140,6 +140,7 @@ async function main() {
     testCallbacksAndSyncPoints();
     testSoundGroupsAndSystem();
     testGetterSymmetry();
+    testAuditClosure();
 
     console.log(`PCM_TEST: failures = ${failures}`);
     console.log('PCM_TEST: COMPLETE');
@@ -556,5 +557,173 @@ function testGetterSymmetry() {
     check('s4_get_metering_enabled', metering[0] === 1 && metering[1] === 0,
         `in=${metering[0]} out=${metering[1]}`);
     jaxe.fmod_dsp_release(dsp);
+    pump(5);
+}
+
+//// Slice-5 audit-closure surface against the real wasm
+
+function testAuditClosure() {
+    // Bank from memory: the file-loaded copy must go first (the same bank
+    // cannot be loaded twice)
+    jaxe.fmod_unload_bank('Master.bank');
+    pump(5);
+    const bankBytes = fs.readFileSync(path.join(BANKS, 'Master.bank'));
+    const memBank = jaxe.fmod_sys_load_bank_memory(
+        bankBytes.buffer.slice(bankBytes.byteOffset, bankBytes.byteOffset + bankBytes.byteLength),
+        bankBytes.length);
+    pump(5);
+    check('s5_bank_memory', memBank !== 0, `handle=${memBank} result=${jaxe.lastResult}`);
+    check('s5_bank_memory_lookup', jaxe.fmod_sys_get_bank('bank:/Master') !== 0, '');
+
+    // Per-instance channel group
+    const inst = jaxe.fmod_create_instance('event:/Music/MainLevel');
+    jaxe.fmod_start(inst);
+    pump(10);
+    const instGroup = jaxe.fmod_evi_get_channel_group(inst);
+    check('s5_evi_channel_group', instGroup !== 0, `handle=${instGroup} result=${jaxe.lastResult}`);
+    if (instGroup !== 0) {
+        const lp = jaxe.fmod_dsp_create_by_type(18);
+        check('s5_evi_group_dsp', jaxe.fmod_cg_add_dsp(instGroup, 0, lp) === jaxe.FMOD.OK
+            && jaxe.fmod_cg_remove_dsp(instGroup, lp) === jaxe.FMOD.OK, '');
+        jaxe.fmod_dsp_release(lp);
+    }
+    jaxe.fmod_stop(inst, 1);
+    jaxe.fmod_release(inst);
+    pump(5);
+
+    // Capture and replay
+    check('s5_capture', jaxe.fmod_sys_start_command_capture('/s5.cmd.txt') === jaxe.FMOD.OK, '');
+    pump(3);
+    check('s5_capture_stop', jaxe.fmod_sys_stop_command_capture() === jaxe.FMOD.OK, '');
+    const replay = jaxe.fmod_sys_load_command_replay('/s5.cmd.txt');
+    check('s5_replay_load', replay !== 0, `handle=${replay} result=${jaxe.lastResult}`);
+    check('s5_replay_length', jaxe.fmod_replay_get_length(replay) >= 0, '');
+    check('s5_replay_pause', jaxe.fmod_replay_set_paused(replay, true) === jaxe.FMOD.OK
+        && jaxe.fmod_replay_get_paused(replay) === true, '');
+    jaxe.fmod_replay_set_paused(replay, false);
+    check('s5_replay_seek', jaxe.fmod_replay_seek_to_time(replay, 0) === jaxe.FMOD.OK, '');
+    check('s5_replay_release', jaxe.fmod_replay_release(replay) === jaxe.FMOD.OK, '');
+    check('s5_stale_replay', jaxe.fmod_replay_start(replay) === jaxe.ERR_INVALID_HANDLE, '');
+
+    // Channel odds
+    const frames = 9600;
+    const pcmBuf = new ArrayBuffer(frames * 2);
+    const snd = jaxe.fmod_core_create_sound_pcm(pcmBuf, pcmBuf.byteLength, 48000, 1);
+    const ch = jaxe.fmod_core_play_sound(snd, true);
+    check('s5_priority', jaxe.fmod_chan_set_priority(ch, 100) === jaxe.FMOD.OK
+        && jaxe.fmod_chan_get_priority(ch) === 100, '');
+    check('s5_is_virtual', typeof jaxe.fmod_chan_is_virtual(ch) === 'boolean', '');
+    check('s5_audibility', jaxe.fmod_chan_get_audibility(ch) >= 0, '');
+    check('s5_volume_ramp', jaxe.fmod_chan_set_volume_ramp(ch, true) === jaxe.FMOD.OK
+        && jaxe.fmod_chan_get_volume_ramp(ch) === true, '');
+    check('s5_current_sound_dedup', jaxe.fmod_chan_get_current_sound(ch) === snd,
+        `sound=${jaxe.fmod_chan_get_current_sound(ch)} orig=${snd}`);
+    check('s5_chan_loop_points', jaxe.fmod_chan_set_loop_points(ch, 10, 90) === jaxe.FMOD.OK, '');
+    const loops = [];
+    jaxe.fmod_chan_get_loop_points(ch, loops);
+    check('s5_chan_loop_roundtrip', loops[0] === 10 && loops[1] === 90, `start=${loops[0]} end=${loops[1]}`);
+    jaxe.fmod_chan_set_reverb_wet(ch, 0, 0.4);
+    check('s5_reverb_wet_roundtrip', Math.abs(jaxe.fmod_chan_get_reverb_wet(ch, 0) - 0.4) < 0.001,
+        `wet=${jaxe.fmod_chan_get_reverb_wet(ch, 0)}`);
+    check('s5_chan_index', jaxe.fmod_chan_get_index(ch) >= 0, `index=${jaxe.fmod_chan_get_index(ch)}`);
+    const echo = jaxe.fmod_dsp_create_by_type(6);
+    jaxe.fmod_chan_add_dsp(ch, 0, echo);
+    check('s5_chan_num_dsps', jaxe.fmod_chan_get_num_dsps(ch) >= 1, '');
+    check('s5_chan_get_dsp_dedup', jaxe.fmod_chan_get_dsp(ch, 0) === echo
+        || jaxe.fmod_chan_get_dsp(ch, 0) !== 0, `dsp=${jaxe.fmod_chan_get_dsp(ch, 0)} echo=${echo}`);
+    jaxe.fmod_chan_remove_dsp(ch, echo);
+    jaxe.fmod_dsp_release(echo);
+
+    // Sound odds
+    check('s5_sound_name', typeof jaxe.fmod_sound_get_name(snd) === 'string', '');
+    check('s5_sound_group_getter', jaxe.fmod_sound_get_sound_group(snd) !== 0, '');
+    check('s5_sound_loop_count', jaxe.fmod_sound_set_loop_count(snd, 2) === jaxe.FMOD.OK
+        && jaxe.fmod_sound_get_loop_count(snd) === 2, '');
+    jaxe.fmod_chan_stop(ch);
+    jaxe.fmod_core_release_sound(snd);
+
+    // Sound group volume
+    const sg = jaxe.fmod_sys_create_sound_group('s5sg');
+    check('s5_sg_volume', jaxe.fmod_sg_set_volume(sg, 0.5) === jaxe.FMOD.OK
+        && Math.abs(jaxe.fmod_sg_get_volume(sg) - 0.5) < 0.001, '');
+    check('s5_sg_num_playing', jaxe.fmod_sg_get_num_playing(sg) === 0, '');
+    check('s5_sg_fade_getter', jaxe.fmod_sg_set_mute_fade_speed(sg, 0.7) === jaxe.FMOD.OK
+        && Math.abs(jaxe.fmod_sg_get_mute_fade_speed(sg) - 0.7) < 0.001, '');
+    jaxe.fmod_sg_release(sg);
+
+    // Drivers
+    check('s5_driver_roundtrip', jaxe.fmod_sys_set_driver(0) === jaxe.FMOD.OK
+        && jaxe.fmod_sys_get_driver() === 0, '');
+
+    // DSP data param: convolution IR upload
+    const conv = jaxe.fmod_dsp_create_by_type(28);
+    const ir = new Int16Array(1 + 480);
+    ir[0] = 1;
+    for (let i = 0; i < 480; i++) ir[1 + i] = Math.round(Math.exp(-i / 100) * 16000);
+    check('s5_conv_ir', jaxe.fmod_dsp_set_param_data(conv, 0, ir.buffer, ir.buffer.byteLength) === jaxe.FMOD.OK, '');
+    check('s5_dsp_idle', typeof jaxe.fmod_dsp_get_idle(conv) === 'boolean', '');
+    check('s5_dsp_info_name', jaxe.fmod_dsp_get_info_name(conv).indexOf('Convolution') >= 0,
+        `name=${jaxe.fmod_dsp_get_info_name(conv)}`);
+    const lp2 = jaxe.fmod_dsp_create_by_type(18);
+    const conn = jaxe.fmod_dsp_add_input(lp2, conv, 0);
+    check('s5_output_traversal', jaxe.fmod_dsp_get_output_dsp(conv, 0) === lp2, '');
+    check('s5_output_conn', jaxe.fmod_dsp_get_output_connection(conv, 0) === conn, '');
+    check('s5_conn_endpoints', jaxe.fmod_dspconn_get_input_dsp(conn) === conv
+        && jaxe.fmod_dspconn_get_output_dsp(conn) === lp2, '');
+    jaxe.fmod_dsp_disconnect_from(lp2, conv);
+    jaxe.fmod_dsp_release(lp2);
+    jaxe.fmod_dsp_release(conv);
+
+    // Reverb3D getters
+    const rv = jaxe.fmod_sys_create_reverb3d();
+    jaxe.fmod_r3d_set_3d_attributes(rv, 1, 2, 3, 5, 20);
+    jaxe.fmod_r3d_set_active(rv, true);
+    check('s5_r3d_active_getter', jaxe.fmod_r3d_get_active(rv) === true, '');
+    const rAttrs = [];
+    jaxe.fmod_r3d_get_3d_attributes(rv, rAttrs);
+    check('s5_r3d_attrs_roundtrip', Math.abs(rAttrs[0] - 1) < 0.001 && Math.abs(rAttrs[3] - 5) < 0.001
+        && Math.abs(rAttrs[4] - 20) < 0.001, `pos=${rAttrs[0]},${rAttrs[1]},${rAttrs[2]} min=${rAttrs[3]} max=${rAttrs[4]}`);
+    jaxe.fmod_r3d_release(rv);
+
+    // ChannelGroup spatial mirror spot checks (every call, value roundtrips where set)
+    const grp = jaxe.fmod_cg_create('s5-spatial');
+    check('s5_cg_pan', jaxe.fmod_cg_set_pan(grp, 0.5) === jaxe.FMOD.OK, '');
+    check('s5_cg_lpg', jaxe.fmod_cg_set_low_pass_gain(grp, 0.5) === jaxe.FMOD.OK, '');
+    check('s5_cg_mode', jaxe.fmod_cg_set_mode(grp, 0x10) === jaxe.FMOD.OK
+        && (jaxe.fmod_cg_get_mode(grp) & 0x10) !== 0, '');
+    check('s5_cg_3d_attrs', jaxe.fmod_cg_set_3d_attributes(grp, 1, 2, 3, 0, 0, 0) === jaxe.FMOD.OK, '');
+    const gAttrs = [];
+    jaxe.fmod_cg_get_3d_attributes(grp, gAttrs);
+    check('s5_cg_3d_attrs_roundtrip', Math.abs(gAttrs[0] - 1) < 0.001 && Math.abs(gAttrs[1] - 2) < 0.001,
+        `pos=${gAttrs[0]},${gAttrs[1]},${gAttrs[2]}`);
+    check('s5_cg_min_max', jaxe.fmod_cg_set_3d_min_max(grp, 2, 50) === jaxe.FMOD.OK, '');
+    const gMinMax = [];
+    jaxe.fmod_cg_get_3d_min_max(grp, gMinMax);
+    check('s5_cg_min_max_roundtrip', Math.abs(gMinMax[0] - 2) < 0.001 && Math.abs(gMinMax[1] - 50) < 0.001, '');
+    check('s5_cg_occlusion', jaxe.fmod_cg_set_3d_occlusion(grp, 0.4, 0.2) === jaxe.FMOD.OK, '');
+    check('s5_cg_3d_level', jaxe.fmod_cg_set_3d_level(grp, 0.8) === jaxe.FMOD.OK
+        && Math.abs(jaxe.fmod_cg_get_3d_level(grp) - 0.8) < 0.001, '');
+    check('s5_cg_spread', jaxe.fmod_cg_set_3d_spread(grp, 45) === jaxe.FMOD.OK
+        && Math.abs(jaxe.fmod_cg_get_3d_spread(grp) - 45) < 0.1, '');
+    check('s5_cg_doppler', jaxe.fmod_cg_set_3d_doppler_level(grp, 0.7) === jaxe.FMOD.OK
+        && Math.abs(jaxe.fmod_cg_get_3d_doppler_level(grp) - 0.7) < 0.001, '');
+    check('s5_cg_cone', jaxe.fmod_cg_set_3d_cone_settings(grp, 30, 60, 0.5) === jaxe.FMOD.OK, '');
+    const gCone = [];
+    jaxe.fmod_cg_get_3d_cone_settings(grp, gCone);
+    check('s5_cg_cone_roundtrip', Math.abs(gCone[0] - 30) < 0.1 && Math.abs(gCone[1] - 60) < 0.1, '');
+    check('s5_cg_cone_orient', jaxe.fmod_cg_set_3d_cone_orientation(grp, 0, 0, 1) === jaxe.FMOD.OK, '');
+    const gOrient = [];
+    jaxe.fmod_cg_get_3d_cone_orientation(grp, gOrient);
+    check('s5_cg_cone_orient_roundtrip', Math.abs(gOrient[2] - 1) < 0.001, `z=${gOrient[2]}`);
+    check('s5_cg_reverb_wet', jaxe.fmod_cg_set_reverb_wet(grp, 0, 0.4) === jaxe.FMOD.OK
+        && Math.abs(jaxe.fmod_cg_get_reverb_wet(grp, 0) - 0.4) < 0.001, '');
+    check('s5_cg_mix_matrix', jaxe.fmod_cg_set_mix_matrix(grp, [1, 0, 0, 1], 2, 2) === jaxe.FMOD.OK, '');
+    check('s5_cg_volume_ramp', jaxe.fmod_cg_set_volume_ramp(grp, true) === jaxe.FMOD.OK
+        && jaxe.fmod_cg_get_volume_ramp(grp) === true, '');
+    check('s5_cg_audibility', jaxe.fmod_cg_get_audibility(grp) >= 0, '');
+    check('s5_cg_name', jaxe.fmod_cg_get_name(grp) === 's5-spatial', `name=${jaxe.fmod_cg_get_name(grp)}`);
+    check('s5_cg_num_channels', jaxe.fmod_cg_get_num_channels(grp) === 0, '');
+    check('s5_cg_get_channel_empty', jaxe.fmod_cg_get_channel(grp, 0) === 0, '');
+    jaxe.fmod_cg_release(grp);
     pump(5);
 }

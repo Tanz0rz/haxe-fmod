@@ -11,7 +11,7 @@
 # Types are logical (exact FFI types differ per backend, e.g. f32 vs f64);
 # the checker verifies presence and arity, not exact types.
 #
-# abi-version: 6
+# abi-version: 7
 # The binding ABI version covers the shape of the native surface. Bump it in
 # lockstep with the "hlaxe_fmod_abi=" marker in hlaxe_fmod.c, the constants in
 # the other two shims, and FmodRuntime.BINDING_ABI whenever functions are
@@ -509,6 +509,110 @@ dsp_get_wet_dry_mix i32 fbuf -> i32
 dsp_get_active i32 -> bool
 # ibuf out: [0]=input enabled [1]=output enabled
 dsp_get_metering_enabled i32 ibuf -> i32
+
+## Bank loading from memory
+sys_load_bank_memory bytes i32 -> i32
+
+## Event instance core bridge
+evi_get_channel_group i32 -> i32
+
+## Command capture and replay
+sys_start_command_capture str -> i32
+sys_stop_command_capture -> i32
+sys_load_command_replay str -> i32
+replay_release i32 -> i32
+replay_start i32 -> i32
+replay_stop i32 -> i32
+replay_set_paused i32 bool -> i32
+replay_get_paused i32 -> bool
+replay_seek_to_time i32 i32 -> i32
+replay_get_length i32 -> f32
+
+## Channel priority, virtualization, and remaining getters
+chan_set_priority i32 i32 -> i32
+chan_get_priority i32 -> i32
+chan_is_virtual i32 -> bool
+chan_get_audibility i32 -> f32
+chan_set_volume_ramp i32 bool -> i32
+chan_get_volume_ramp i32 -> bool
+# borrowed reference: do not release a sound obtained this way
+chan_get_current_sound i32 -> i32
+chan_set_loop_points i32 i32 i32 -> i32
+# ibuf out: [0]=loop start ms [1]=loop end ms
+chan_get_loop_points i32 ibuf -> i32
+chan_get_reverb_wet i32 i32 -> f32
+chan_get_index i32 -> i32
+# fbuf out: [0..2]=direction xyz
+chan_get_3d_cone_orientation i32 fbuf -> i32
+chan_get_num_dsps i32 -> i32
+chan_get_dsp i32 i32 -> i32
+
+## Sound name, group getter, and loop count
+sound_get_name i32 -> str
+sound_get_sound_group i32 -> i32
+sound_get_loop_count i32 -> i32
+sound_set_loop_count i32 i32 -> i32
+
+## Sound group volume and counters
+sg_set_volume i32 f32 -> i32
+sg_get_volume i32 -> f32
+sg_get_num_playing i32 -> i32
+sg_get_mute_fade_speed i32 -> f32
+
+## Output device selection
+sys_set_driver i32 -> i32
+sys_get_driver -> i32
+
+## DSP data params, info, and output traversal
+# byte payload per the effect's data parameter contract (convolution IR:
+# 16-bit samples with [0]=channel count)
+dsp_set_param_data i32 i32 bytes i32 -> i32
+dsp_get_idle i32 -> bool
+dsp_get_info_name i32 -> str
+dsp_get_output_dsp i32 i32 -> i32
+dsp_get_output_connection i32 i32 -> i32
+dspconn_get_input_dsp i32 -> i32
+dspconn_get_output_dsp i32 -> i32
+
+## Reverb3D getters
+r3d_get_active i32 -> bool
+# fbuf out: [0..2]=position [3]=min distance [4]=max distance
+r3d_get_3d_attributes i32 fbuf -> i32
+
+## Channel group spatial mirror and remaining control surface
+cg_set_pan i32 f32 -> i32
+cg_set_low_pass_gain i32 f32 -> i32
+cg_set_mode i32 i32 -> i32
+cg_get_mode i32 -> i32
+cg_set_3d_attributes i32 f32 f32 f32 f32 f32 f32 -> i32
+# fbuf out: [0..2]=position [3..5]=velocity
+cg_get_3d_attributes i32 fbuf -> i32
+cg_set_3d_min_max i32 f32 f32 -> i32
+# fbuf out: [0]=min [1]=max
+cg_get_3d_min_max i32 fbuf -> i32
+cg_set_3d_occlusion i32 f32 f32 -> i32
+cg_set_3d_level i32 f32 -> i32
+cg_get_3d_level i32 -> f32
+cg_set_3d_spread i32 f32 -> i32
+cg_get_3d_spread i32 -> f32
+cg_set_3d_doppler_level i32 f32 -> i32
+cg_get_3d_doppler_level i32 -> f32
+cg_set_3d_cone_settings i32 f32 f32 f32 -> i32
+# fbuf out: [0]=inside [1]=outside [2]=outside volume
+cg_get_3d_cone_settings i32 fbuf -> i32
+cg_set_3d_cone_orientation i32 f32 f32 f32 -> i32
+# fbuf out: [0..2]=direction xyz
+cg_get_3d_cone_orientation i32 fbuf -> i32
+cg_set_reverb_wet i32 i32 f32 -> i32
+cg_get_reverb_wet i32 i32 -> f32
+# fbuf in: out*in gains row-major
+cg_set_mix_matrix i32 fbuf i32 i32 -> i32
+cg_set_volume_ramp i32 bool -> i32
+cg_get_volume_ramp i32 -> bool
+cg_get_audibility i32 -> f32
+cg_get_name i32 -> str
+cg_get_num_channels i32 -> i32
+cg_get_channel i32 i32 -> i32
 
 ## Debug
 debug_live_handle_count -> i32

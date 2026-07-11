@@ -42,6 +42,7 @@
 #define FAXE_TYPE_DSPCONN 11  /* Core DSPConnection */
 #define FAXE_TYPE_REVERB3D 12  /* Core Reverb3D zone */
 #define FAXE_TYPE_SOUNDGROUP 13  /* Core SoundGroup */
+#define FAXE_TYPE_REPLAY 14  /* Studio CommandReplay */
 
 #define FAXE_MAX_SLOTS 0x10000
 /* Max entries any list getter returns in one call. The Haxe-side scratch

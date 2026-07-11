@@ -45,7 +45,7 @@ static void* gListBuf[FAXE_LIST_MAX];
 // Binding ABI marker. PostBuild.hx scans compiled hdlls for this string to
 // reject stale pre-built hdlls before they become loader fatals. Keep the
 // number in lockstep with the manifest header "# abi-version:".
-static const char gAbiMarker[] = "hlaxe_fmod_abi=6";
+static const char gAbiMarker[] = "hlaxe_fmod_abi=7";
 
 // Auto-update thread state
 static volatile int gAutoUpdateRunning = 0;
@@ -2362,6 +2362,742 @@ HL_PRIM int HL_NAME(dsp_get_metering_enabled)(int h, vbyte* out) {
     return (int)gLastResult;
 }
 DEFINE_PRIM(_I32, dsp_get_metering_enabled, _I32 _BYTES);
+
+//// Bank loading from memory
+
+HL_PRIM int HL_NAME(sys_load_bank_memory)(vbyte* data, int len) {
+    FMOD_STUDIO_BANK* bank = NULL;
+    if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    if (!data || len <= 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
+    gLastResult = FMOD_Studio_System_LoadBankMemory(gStudioSystem, (const char*)data, len,
+        FMOD_STUDIO_LOAD_MEMORY, FMOD_STUDIO_LOAD_BANK_NORMAL, &bank);
+    if (gLastResult != FMOD_OK || !bank) return 0;
+    return faxe_handle_find_or_alloc(bank, FAXE_TYPE_BANK);
+}
+DEFINE_PRIM(_I32, sys_load_bank_memory, _BYTES _I32);
+
+//// Event instance core bridge
+
+HL_PRIM int HL_NAME(evi_get_channel_group)(int h) {
+    FMOD_STUDIO_EVENTINSTANCE* instance = resolve_instance(h);
+    FMOD_CHANNELGROUP* group = NULL;
+    if (!instance) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = FMOD_Studio_EventInstance_GetChannelGroup(instance, &group);
+    if (gLastResult != FMOD_OK || !group) return 0;
+    return faxe_handle_find_or_alloc(group, FAXE_TYPE_CHANGROUP);
+}
+DEFINE_PRIM(_I32, evi_get_channel_group, _I32);
+
+//// Command capture and replay
+
+static FMOD_STUDIO_COMMANDREPLAY* resolve_replay(int h) {
+    return (FMOD_STUDIO_COMMANDREPLAY*)faxe_handle_resolve(h, FAXE_TYPE_REPLAY);
+}
+
+HL_PRIM int HL_NAME(sys_start_command_capture)(vbyte* path) {
+    if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = FMOD_Studio_System_StartCommandCapture(gStudioSystem, (const char*)path,
+        FMOD_STUDIO_COMMANDCAPTURE_NORMAL);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, sys_start_command_capture, _BYTES);
+
+HL_PRIM int HL_NAME(sys_stop_command_capture)() {
+    if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = FMOD_Studio_System_StopCommandCapture(gStudioSystem);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, sys_stop_command_capture, _NO_ARG);
+
+HL_PRIM int HL_NAME(sys_load_command_replay)(vbyte* path) {
+    FMOD_STUDIO_COMMANDREPLAY* replay = NULL;
+    if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    gLastResult = FMOD_Studio_System_LoadCommandReplay(gStudioSystem, (const char*)path,
+        FMOD_STUDIO_COMMANDREPLAY_NORMAL, &replay);
+    if (gLastResult != FMOD_OK || !replay) return 0;
+    return faxe_handle_alloc(replay, FAXE_TYPE_REPLAY);
+}
+DEFINE_PRIM(_I32, sys_load_command_replay, _BYTES);
+
+HL_PRIM int HL_NAME(replay_release)(int h) {
+    FMOD_STUDIO_COMMANDREPLAY* replay = resolve_replay(h);
+    if (!replay) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_Studio_CommandReplay_Release(replay);
+    if (gLastResult == FMOD_OK) faxe_handle_free(h);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, replay_release, _I32);
+
+HL_PRIM int HL_NAME(replay_start)(int h) {
+    FMOD_STUDIO_COMMANDREPLAY* replay = resolve_replay(h);
+    if (!replay) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_Studio_CommandReplay_Start(replay);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, replay_start, _I32);
+
+HL_PRIM int HL_NAME(replay_stop)(int h) {
+    FMOD_STUDIO_COMMANDREPLAY* replay = resolve_replay(h);
+    if (!replay) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_Studio_CommandReplay_Stop(replay);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, replay_stop, _I32);
+
+HL_PRIM int HL_NAME(replay_set_paused)(int h, bool paused) {
+    FMOD_STUDIO_COMMANDREPLAY* replay = resolve_replay(h);
+    if (!replay) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_Studio_CommandReplay_SetPaused(replay, paused ? 1 : 0);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, replay_set_paused, _I32 _BOOL);
+
+HL_PRIM bool HL_NAME(replay_get_paused)(int h) {
+    FMOD_STUDIO_COMMANDREPLAY* replay = resolve_replay(h);
+    FMOD_BOOL paused = 0;
+    if (!replay) { gLastResult = FMOD_ERR_INVALID_HANDLE; return false; }
+    gLastResult = FMOD_Studio_CommandReplay_GetPaused(replay, &paused);
+    return paused ? true : false;
+}
+DEFINE_PRIM(_BOOL, replay_get_paused, _I32);
+
+HL_PRIM int HL_NAME(replay_seek_to_time)(int h, int timeMs) {
+    FMOD_STUDIO_COMMANDREPLAY* replay = resolve_replay(h);
+    if (!replay) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_Studio_CommandReplay_SeekToTime(replay, (float)timeMs / 1000.0f);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, replay_seek_to_time, _I32 _I32);
+
+HL_PRIM double HL_NAME(replay_get_length)(int h) {
+    FMOD_STUDIO_COMMANDREPLAY* replay = resolve_replay(h);
+    float length = 0.0f;
+    if (!replay) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0.0; }
+    gLastResult = FMOD_Studio_CommandReplay_GetLength(replay, &length);
+    return (double)length;
+}
+DEFINE_PRIM(_F64, replay_get_length, _I32);
+
+//// Channel priority, virtualization, and remaining getters
+
+HL_PRIM int HL_NAME(chan_set_priority)(int h, int priority) {
+    FMOD_CHANNEL* channel = resolve_channel(h);
+    if (!channel) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_Channel_SetPriority(channel, priority);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, chan_set_priority, _I32 _I32);
+
+HL_PRIM int HL_NAME(chan_get_priority)(int h) {
+    FMOD_CHANNEL* channel = resolve_channel(h);
+    int priority = 0;
+    if (!channel) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = FMOD_Channel_GetPriority(channel, &priority);
+    return priority;
+}
+DEFINE_PRIM(_I32, chan_get_priority, _I32);
+
+HL_PRIM bool HL_NAME(chan_is_virtual)(int h) {
+    FMOD_CHANNEL* channel = resolve_channel(h);
+    FMOD_BOOL isVirtual = 0;
+    if (!channel) { gLastResult = FMOD_ERR_INVALID_HANDLE; return false; }
+    gLastResult = FMOD_Channel_IsVirtual(channel, &isVirtual);
+    return isVirtual ? true : false;
+}
+DEFINE_PRIM(_BOOL, chan_is_virtual, _I32);
+
+HL_PRIM double HL_NAME(chan_get_audibility)(int h) {
+    FMOD_CHANNEL* channel = resolve_channel(h);
+    float audibility = 0.0f;
+    if (!channel) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0.0; }
+    gLastResult = FMOD_Channel_GetAudibility(channel, &audibility);
+    return (double)audibility;
+}
+DEFINE_PRIM(_F64, chan_get_audibility, _I32);
+
+HL_PRIM int HL_NAME(chan_set_volume_ramp)(int h, bool ramp) {
+    FMOD_CHANNEL* channel = resolve_channel(h);
+    if (!channel) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_Channel_SetVolumeRamp(channel, ramp ? 1 : 0);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, chan_set_volume_ramp, _I32 _BOOL);
+
+HL_PRIM bool HL_NAME(chan_get_volume_ramp)(int h) {
+    FMOD_CHANNEL* channel = resolve_channel(h);
+    FMOD_BOOL ramp = 0;
+    if (!channel) { gLastResult = FMOD_ERR_INVALID_HANDLE; return false; }
+    gLastResult = FMOD_Channel_GetVolumeRamp(channel, &ramp);
+    return ramp ? true : false;
+}
+DEFINE_PRIM(_BOOL, chan_get_volume_ramp, _I32);
+
+// The returned handle is a borrowed reference: do not release a sound
+// obtained this way
+HL_PRIM int HL_NAME(chan_get_current_sound)(int h) {
+    FMOD_CHANNEL* channel = resolve_channel(h);
+    FMOD_SOUND* sound = NULL;
+    if (!channel) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = FMOD_Channel_GetCurrentSound(channel, &sound);
+    if (gLastResult != FMOD_OK || !sound) return 0;
+    return faxe_handle_find_or_alloc(sound, FAXE_TYPE_SOUND);
+}
+DEFINE_PRIM(_I32, chan_get_current_sound, _I32);
+
+HL_PRIM int HL_NAME(chan_set_loop_points)(int h, int startMs, int endMs) {
+    FMOD_CHANNEL* channel = resolve_channel(h);
+    if (!channel) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_Channel_SetLoopPoints(channel, (unsigned int)startMs, FMOD_TIMEUNIT_MS,
+        (unsigned int)endMs, FMOD_TIMEUNIT_MS);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, chan_set_loop_points, _I32 _I32 _I32);
+
+// out = int[2]: loop start ms, loop end ms
+HL_PRIM int HL_NAME(chan_get_loop_points)(int h, vbyte* out) {
+    FMOD_CHANNEL* channel = resolve_channel(h);
+    unsigned int start = 0;
+    unsigned int end = 0;
+    int* outInts = (int*)out;
+    if (!channel) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_Channel_GetLoopPoints(channel, &start, FMOD_TIMEUNIT_MS, &end, FMOD_TIMEUNIT_MS);
+    outInts[0] = (int)start;
+    outInts[1] = (int)end;
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, chan_get_loop_points, _I32 _BYTES);
+
+HL_PRIM double HL_NAME(chan_get_reverb_wet)(int h, int instance) {
+    FMOD_CHANNEL* channel = resolve_channel(h);
+    float wet = 0.0f;
+    if (!channel) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0.0; }
+    gLastResult = FMOD_Channel_GetReverbProperties(channel, instance, &wet);
+    return (double)wet;
+}
+DEFINE_PRIM(_F64, chan_get_reverb_wet, _I32 _I32);
+
+HL_PRIM int HL_NAME(chan_get_index)(int h) {
+    FMOD_CHANNEL* channel = resolve_channel(h);
+    int index = -1;
+    if (!channel) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    gLastResult = FMOD_Channel_GetIndex(channel, &index);
+    return gLastResult == FMOD_OK ? index : -1;
+}
+DEFINE_PRIM(_I32, chan_get_index, _I32);
+
+// out = double[3]: direction xyz
+HL_PRIM int HL_NAME(chan_get_3d_cone_orientation)(int h, vbyte* out) {
+    FMOD_CHANNEL* channel = resolve_channel(h);
+    FMOD_VECTOR direction;
+    double* outFloats = (double*)out;
+    if (!channel) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    memset(&direction, 0, sizeof(direction));
+    gLastResult = FMOD_Channel_Get3DConeOrientation(channel, &direction);
+    outFloats[0] = (double)direction.x;
+    outFloats[1] = (double)direction.y;
+    outFloats[2] = (double)direction.z;
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, chan_get_3d_cone_orientation, _I32 _BYTES);
+
+HL_PRIM int HL_NAME(chan_get_num_dsps)(int h) {
+    FMOD_CHANNEL* channel = resolve_channel(h);
+    int count = 0;
+    if (!channel) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = FMOD_Channel_GetNumDSPs(channel, &count);
+    return count;
+}
+DEFINE_PRIM(_I32, chan_get_num_dsps, _I32);
+
+HL_PRIM int HL_NAME(chan_get_dsp)(int h, int index) {
+    FMOD_CHANNEL* channel = resolve_channel(h);
+    FMOD_DSP* dsp = NULL;
+    if (!channel) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = FMOD_Channel_GetDSP(channel, index, &dsp);
+    if (gLastResult != FMOD_OK || !dsp) return 0;
+    return faxe_handle_find_or_alloc(dsp, FAXE_TYPE_DSP);
+}
+DEFINE_PRIM(_I32, chan_get_dsp, _I32 _I32);
+
+//// Sound name, group getter, and loop count
+
+HL_PRIM vbyte* HL_NAME(sound_get_name)(int h) {
+    FMOD_SOUND* sound = resolve_core_sound(h);
+    gStringBuf[0] = '\0';
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (vbyte*)gStringBuf; }
+    gLastResult = FMOD_Sound_GetName(sound, gStringBuf, sizeof(gStringBuf));
+    if (gLastResult != FMOD_OK) gStringBuf[0] = '\0';
+    return (vbyte*)gStringBuf;
+}
+DEFINE_PRIM(_BYTES, sound_get_name, _I32);
+
+HL_PRIM int HL_NAME(sound_get_sound_group)(int h) {
+    FMOD_SOUND* sound = resolve_core_sound(h);
+    FMOD_SOUNDGROUP* group = NULL;
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = FMOD_Sound_GetSoundGroup(sound, &group);
+    if (gLastResult != FMOD_OK || !group) return 0;
+    return faxe_handle_find_or_alloc(group, FAXE_TYPE_SOUNDGROUP);
+}
+DEFINE_PRIM(_I32, sound_get_sound_group, _I32);
+
+HL_PRIM int HL_NAME(sound_get_loop_count)(int h) {
+    FMOD_SOUND* sound = resolve_core_sound(h);
+    int loopCount = 0;
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = FMOD_Sound_GetLoopCount(sound, &loopCount);
+    return loopCount;
+}
+DEFINE_PRIM(_I32, sound_get_loop_count, _I32);
+
+HL_PRIM int HL_NAME(sound_set_loop_count)(int h, int loopCount) {
+    FMOD_SOUND* sound = resolve_core_sound(h);
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_Sound_SetLoopCount(sound, loopCount);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, sound_set_loop_count, _I32 _I32);
+
+//// Sound group volume and counters
+
+HL_PRIM int HL_NAME(sg_set_volume)(int h, double volume) {
+    FMOD_SOUNDGROUP* group = resolve_soundgroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_SoundGroup_SetVolume(group, (float)volume);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, sg_set_volume, _I32 _F64);
+
+HL_PRIM double HL_NAME(sg_get_volume)(int h) {
+    FMOD_SOUNDGROUP* group = resolve_soundgroup(h);
+    float volume = 0.0f;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0.0; }
+    gLastResult = FMOD_SoundGroup_GetVolume(group, &volume);
+    return (double)volume;
+}
+DEFINE_PRIM(_F64, sg_get_volume, _I32);
+
+HL_PRIM int HL_NAME(sg_get_num_playing)(int h) {
+    FMOD_SOUNDGROUP* group = resolve_soundgroup(h);
+    int count = 0;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = FMOD_SoundGroup_GetNumPlaying(group, &count);
+    return count;
+}
+DEFINE_PRIM(_I32, sg_get_num_playing, _I32);
+
+HL_PRIM double HL_NAME(sg_get_mute_fade_speed)(int h) {
+    FMOD_SOUNDGROUP* group = resolve_soundgroup(h);
+    float speed = 0.0f;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0.0; }
+    gLastResult = FMOD_SoundGroup_GetMuteFadeSpeed(group, &speed);
+    return (double)speed;
+}
+DEFINE_PRIM(_F64, sg_get_mute_fade_speed, _I32);
+
+//// Output device selection
+
+HL_PRIM int HL_NAME(sys_set_driver)(int driver) {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = FMOD_System_SetDriver(gCoreSystem, driver);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, sys_set_driver, _I32);
+
+HL_PRIM int HL_NAME(sys_get_driver)() {
+    int driver = 0;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    gLastResult = FMOD_System_GetDriver(gCoreSystem, &driver);
+    return driver;
+}
+DEFINE_PRIM(_I32, sys_get_driver, _NO_ARG);
+
+//// DSP data params, info, and output traversal
+
+HL_PRIM int HL_NAME(dsp_set_param_data)(int h, int index, vbyte* data, int len) {
+    FMOD_DSP* dsp = resolve_dsp(h);
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    if (!data || len <= 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    gLastResult = FMOD_DSP_SetParameterData(dsp, index, data, (unsigned int)len);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, dsp_set_param_data, _I32 _I32 _BYTES _I32);
+
+HL_PRIM bool HL_NAME(dsp_get_idle)(int h) {
+    FMOD_DSP* dsp = resolve_dsp(h);
+    FMOD_BOOL idle = 0;
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return false; }
+    gLastResult = FMOD_DSP_GetIdle(dsp, &idle);
+    return idle ? true : false;
+}
+DEFINE_PRIM(_BOOL, dsp_get_idle, _I32);
+
+HL_PRIM vbyte* HL_NAME(dsp_get_info_name)(int h) {
+    FMOD_DSP* dsp = resolve_dsp(h);
+    gStringBuf[0] = '\0';
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (vbyte*)gStringBuf; }
+    gLastResult = FMOD_DSP_GetInfo(dsp, gStringBuf, NULL, NULL, NULL, NULL);
+    if (gLastResult != FMOD_OK) gStringBuf[0] = '\0';
+    return (vbyte*)gStringBuf;
+}
+DEFINE_PRIM(_BYTES, dsp_get_info_name, _I32);
+
+HL_PRIM int HL_NAME(dsp_get_output_dsp)(int h, int index) {
+    FMOD_DSP* dsp = resolve_dsp(h);
+    FMOD_DSP* output = NULL;
+    FMOD_DSPCONNECTION* conn = NULL;
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = FMOD_DSP_GetOutput(dsp, index, &output, &conn);
+    if (gLastResult != FMOD_OK || !output) return 0;
+    return faxe_handle_find_or_alloc(output, FAXE_TYPE_DSP);
+}
+DEFINE_PRIM(_I32, dsp_get_output_dsp, _I32 _I32);
+
+HL_PRIM int HL_NAME(dsp_get_output_connection)(int h, int index) {
+    FMOD_DSP* dsp = resolve_dsp(h);
+    FMOD_DSP* output = NULL;
+    FMOD_DSPCONNECTION* conn = NULL;
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = FMOD_DSP_GetOutput(dsp, index, &output, &conn);
+    if (gLastResult != FMOD_OK || !conn) return 0;
+    return faxe_handle_find_or_alloc(conn, FAXE_TYPE_DSPCONN);
+}
+DEFINE_PRIM(_I32, dsp_get_output_connection, _I32 _I32);
+
+HL_PRIM int HL_NAME(dspconn_get_input_dsp)(int h) {
+    FMOD_DSPCONNECTION* conn = resolve_dspconn(h);
+    FMOD_DSP* dsp = NULL;
+    if (!conn) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = FMOD_DSPConnection_GetInput(conn, &dsp);
+    if (gLastResult != FMOD_OK || !dsp) return 0;
+    return faxe_handle_find_or_alloc(dsp, FAXE_TYPE_DSP);
+}
+DEFINE_PRIM(_I32, dspconn_get_input_dsp, _I32);
+
+HL_PRIM int HL_NAME(dspconn_get_output_dsp)(int h) {
+    FMOD_DSPCONNECTION* conn = resolve_dspconn(h);
+    FMOD_DSP* dsp = NULL;
+    if (!conn) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = FMOD_DSPConnection_GetOutput(conn, &dsp);
+    if (gLastResult != FMOD_OK || !dsp) return 0;
+    return faxe_handle_find_or_alloc(dsp, FAXE_TYPE_DSP);
+}
+DEFINE_PRIM(_I32, dspconn_get_output_dsp, _I32);
+
+//// Reverb3D getters
+
+HL_PRIM bool HL_NAME(r3d_get_active)(int h) {
+    FMOD_REVERB3D* reverb = resolve_reverb3d(h);
+    FMOD_BOOL active = 0;
+    if (!reverb) { gLastResult = FMOD_ERR_INVALID_HANDLE; return false; }
+    gLastResult = FMOD_Reverb3D_GetActive(reverb, &active);
+    return active ? true : false;
+}
+DEFINE_PRIM(_BOOL, r3d_get_active, _I32);
+
+// out = double[5]: position xyz, min distance, max distance
+HL_PRIM int HL_NAME(r3d_get_3d_attributes)(int h, vbyte* out) {
+    FMOD_REVERB3D* reverb = resolve_reverb3d(h);
+    FMOD_VECTOR position;
+    float minDist = 0.0f;
+    float maxDist = 0.0f;
+    double* outFloats = (double*)out;
+    if (!reverb) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    memset(&position, 0, sizeof(position));
+    gLastResult = FMOD_Reverb3D_Get3DAttributes(reverb, &position, &minDist, &maxDist);
+    outFloats[0] = (double)position.x;
+    outFloats[1] = (double)position.y;
+    outFloats[2] = (double)position.z;
+    outFloats[3] = (double)minDist;
+    outFloats[4] = (double)maxDist;
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, r3d_get_3d_attributes, _I32 _BYTES);
+
+//// Channel group spatial mirror and remaining control surface
+
+HL_PRIM int HL_NAME(cg_set_pan)(int h, double pan) {
+    FMOD_CHANNELGROUP* group = resolve_changroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_ChannelGroup_SetPan(group, (float)pan);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, cg_set_pan, _I32 _F64);
+
+HL_PRIM int HL_NAME(cg_set_low_pass_gain)(int h, double gain) {
+    FMOD_CHANNELGROUP* group = resolve_changroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_ChannelGroup_SetLowPassGain(group, (float)gain);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, cg_set_low_pass_gain, _I32 _F64);
+
+HL_PRIM int HL_NAME(cg_set_mode)(int h, int mode) {
+    FMOD_CHANNELGROUP* group = resolve_changroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_ChannelGroup_SetMode(group, (FMOD_MODE)mode);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, cg_set_mode, _I32 _I32);
+
+HL_PRIM int HL_NAME(cg_get_mode)(int h) {
+    FMOD_CHANNELGROUP* group = resolve_changroup(h);
+    FMOD_MODE mode = 0;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = FMOD_ChannelGroup_GetMode(group, &mode);
+    return (int)mode;
+}
+DEFINE_PRIM(_I32, cg_get_mode, _I32);
+
+HL_PRIM int HL_NAME(cg_set_3d_attributes)(int h, double posX, double posY, double posZ, double velX, double velY, double velZ) {
+    FMOD_CHANNELGROUP* group = resolve_changroup(h);
+    FMOD_VECTOR position;
+    FMOD_VECTOR velocity;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    position.x = (float)posX; position.y = (float)posY; position.z = (float)posZ;
+    velocity.x = (float)velX; velocity.y = (float)velY; velocity.z = (float)velZ;
+    gLastResult = FMOD_ChannelGroup_Set3DAttributes(group, &position, &velocity);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, cg_set_3d_attributes, _I32 _F64 _F64 _F64 _F64 _F64 _F64);
+
+// out = double[6]: position xyz, velocity xyz
+HL_PRIM int HL_NAME(cg_get_3d_attributes)(int h, vbyte* out) {
+    FMOD_CHANNELGROUP* group = resolve_changroup(h);
+    FMOD_VECTOR position;
+    FMOD_VECTOR velocity;
+    double* outFloats = (double*)out;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    memset(&position, 0, sizeof(position));
+    memset(&velocity, 0, sizeof(velocity));
+    gLastResult = FMOD_ChannelGroup_Get3DAttributes(group, &position, &velocity);
+    outFloats[0] = (double)position.x;
+    outFloats[1] = (double)position.y;
+    outFloats[2] = (double)position.z;
+    outFloats[3] = (double)velocity.x;
+    outFloats[4] = (double)velocity.y;
+    outFloats[5] = (double)velocity.z;
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, cg_get_3d_attributes, _I32 _BYTES);
+
+HL_PRIM int HL_NAME(cg_set_3d_min_max)(int h, double minDist, double maxDist) {
+    FMOD_CHANNELGROUP* group = resolve_changroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_ChannelGroup_Set3DMinMaxDistance(group, (float)minDist, (float)maxDist);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, cg_set_3d_min_max, _I32 _F64 _F64);
+
+// out = double[2]: min, max
+HL_PRIM int HL_NAME(cg_get_3d_min_max)(int h, vbyte* out) {
+    FMOD_CHANNELGROUP* group = resolve_changroup(h);
+    float minDist = 0.0f;
+    float maxDist = 0.0f;
+    double* outFloats = (double*)out;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_ChannelGroup_Get3DMinMaxDistance(group, &minDist, &maxDist);
+    outFloats[0] = (double)minDist;
+    outFloats[1] = (double)maxDist;
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, cg_get_3d_min_max, _I32 _BYTES);
+
+HL_PRIM int HL_NAME(cg_set_3d_occlusion)(int h, double direct, double reverb) {
+    FMOD_CHANNELGROUP* group = resolve_changroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_ChannelGroup_Set3DOcclusion(group, (float)direct, (float)reverb);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, cg_set_3d_occlusion, _I32 _F64 _F64);
+
+HL_PRIM int HL_NAME(cg_set_3d_level)(int h, double level) {
+    FMOD_CHANNELGROUP* group = resolve_changroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_ChannelGroup_Set3DLevel(group, (float)level);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, cg_set_3d_level, _I32 _F64);
+
+HL_PRIM double HL_NAME(cg_get_3d_level)(int h) {
+    FMOD_CHANNELGROUP* group = resolve_changroup(h);
+    float level = 0.0f;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0.0; }
+    gLastResult = FMOD_ChannelGroup_Get3DLevel(group, &level);
+    return (double)level;
+}
+DEFINE_PRIM(_F64, cg_get_3d_level, _I32);
+
+HL_PRIM int HL_NAME(cg_set_3d_spread)(int h, double angle) {
+    FMOD_CHANNELGROUP* group = resolve_changroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_ChannelGroup_Set3DSpread(group, (float)angle);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, cg_set_3d_spread, _I32 _F64);
+
+HL_PRIM double HL_NAME(cg_get_3d_spread)(int h) {
+    FMOD_CHANNELGROUP* group = resolve_changroup(h);
+    float angle = 0.0f;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0.0; }
+    gLastResult = FMOD_ChannelGroup_Get3DSpread(group, &angle);
+    return (double)angle;
+}
+DEFINE_PRIM(_F64, cg_get_3d_spread, _I32);
+
+HL_PRIM int HL_NAME(cg_set_3d_doppler_level)(int h, double level) {
+    FMOD_CHANNELGROUP* group = resolve_changroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_ChannelGroup_Set3DDopplerLevel(group, (float)level);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, cg_set_3d_doppler_level, _I32 _F64);
+
+HL_PRIM double HL_NAME(cg_get_3d_doppler_level)(int h) {
+    FMOD_CHANNELGROUP* group = resolve_changroup(h);
+    float level = 0.0f;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0.0; }
+    gLastResult = FMOD_ChannelGroup_Get3DDopplerLevel(group, &level);
+    return (double)level;
+}
+DEFINE_PRIM(_F64, cg_get_3d_doppler_level, _I32);
+
+HL_PRIM int HL_NAME(cg_set_3d_cone_settings)(int h, double insideAngle, double outsideAngle, double outsideVolume) {
+    FMOD_CHANNELGROUP* group = resolve_changroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_ChannelGroup_Set3DConeSettings(group, (float)insideAngle,
+        (float)outsideAngle, (float)outsideVolume);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, cg_set_3d_cone_settings, _I32 _F64 _F64 _F64);
+
+// out = double[3]: inside angle, outside angle, outside volume
+HL_PRIM int HL_NAME(cg_get_3d_cone_settings)(int h, vbyte* out) {
+    FMOD_CHANNELGROUP* group = resolve_changroup(h);
+    float inside = 0.0f;
+    float outside = 0.0f;
+    float volume = 0.0f;
+    double* outFloats = (double*)out;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_ChannelGroup_Get3DConeSettings(group, &inside, &outside, &volume);
+    outFloats[0] = (double)inside;
+    outFloats[1] = (double)outside;
+    outFloats[2] = (double)volume;
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, cg_get_3d_cone_settings, _I32 _BYTES);
+
+HL_PRIM int HL_NAME(cg_set_3d_cone_orientation)(int h, double x, double y, double z) {
+    FMOD_CHANNELGROUP* group = resolve_changroup(h);
+    FMOD_VECTOR direction;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    direction.x = (float)x; direction.y = (float)y; direction.z = (float)z;
+    gLastResult = FMOD_ChannelGroup_Set3DConeOrientation(group, &direction);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, cg_set_3d_cone_orientation, _I32 _F64 _F64 _F64);
+
+// out = double[3]: direction xyz
+HL_PRIM int HL_NAME(cg_get_3d_cone_orientation)(int h, vbyte* out) {
+    FMOD_CHANNELGROUP* group = resolve_changroup(h);
+    FMOD_VECTOR direction;
+    double* outFloats = (double*)out;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    memset(&direction, 0, sizeof(direction));
+    gLastResult = FMOD_ChannelGroup_Get3DConeOrientation(group, &direction);
+    outFloats[0] = (double)direction.x;
+    outFloats[1] = (double)direction.y;
+    outFloats[2] = (double)direction.z;
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, cg_get_3d_cone_orientation, _I32 _BYTES);
+
+HL_PRIM int HL_NAME(cg_set_reverb_wet)(int h, int instance, double wet) {
+    FMOD_CHANNELGROUP* group = resolve_changroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_ChannelGroup_SetReverbProperties(group, instance, (float)wet);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, cg_set_reverb_wet, _I32 _I32 _F64);
+
+HL_PRIM double HL_NAME(cg_get_reverb_wet)(int h, int instance) {
+    FMOD_CHANNELGROUP* group = resolve_changroup(h);
+    float wet = 0.0f;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0.0; }
+    gLastResult = FMOD_ChannelGroup_GetReverbProperties(group, instance, &wet);
+    return (double)wet;
+}
+DEFINE_PRIM(_F64, cg_get_reverb_wet, _I32 _I32);
+
+// in = double[outChannels*inChannels] row-major gains
+HL_PRIM int HL_NAME(cg_set_mix_matrix)(int h, vbyte* in, int outChannels, int inChannels) {
+    FMOD_CHANNELGROUP* group = resolve_changroup(h);
+    double* inFloats = (double*)in;
+    float matrix[32 * 32];
+    int i;
+    int total = outChannels * inChannels;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    if (total < 0 || total > 32 * 32) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    for (i = 0; i < total; i++) matrix[i] = (float)inFloats[i];
+    gLastResult = FMOD_ChannelGroup_SetMixMatrix(group, matrix, outChannels, inChannels, 0);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, cg_set_mix_matrix, _I32 _BYTES _I32 _I32);
+
+HL_PRIM int HL_NAME(cg_set_volume_ramp)(int h, bool ramp) {
+    FMOD_CHANNELGROUP* group = resolve_changroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_ChannelGroup_SetVolumeRamp(group, ramp ? 1 : 0);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, cg_set_volume_ramp, _I32 _BOOL);
+
+HL_PRIM bool HL_NAME(cg_get_volume_ramp)(int h) {
+    FMOD_CHANNELGROUP* group = resolve_changroup(h);
+    FMOD_BOOL ramp = 0;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return false; }
+    gLastResult = FMOD_ChannelGroup_GetVolumeRamp(group, &ramp);
+    return ramp ? true : false;
+}
+DEFINE_PRIM(_BOOL, cg_get_volume_ramp, _I32);
+
+HL_PRIM double HL_NAME(cg_get_audibility)(int h) {
+    FMOD_CHANNELGROUP* group = resolve_changroup(h);
+    float audibility = 0.0f;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0.0; }
+    gLastResult = FMOD_ChannelGroup_GetAudibility(group, &audibility);
+    return (double)audibility;
+}
+DEFINE_PRIM(_F64, cg_get_audibility, _I32);
+
+HL_PRIM vbyte* HL_NAME(cg_get_name)(int h) {
+    FMOD_CHANNELGROUP* group = resolve_changroup(h);
+    gStringBuf[0] = '\0';
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (vbyte*)gStringBuf; }
+    gLastResult = FMOD_ChannelGroup_GetName(group, gStringBuf, sizeof(gStringBuf));
+    if (gLastResult != FMOD_OK) gStringBuf[0] = '\0';
+    return (vbyte*)gStringBuf;
+}
+DEFINE_PRIM(_BYTES, cg_get_name, _I32);
+
+HL_PRIM int HL_NAME(cg_get_num_channels)(int h) {
+    FMOD_CHANNELGROUP* group = resolve_changroup(h);
+    int count = 0;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = FMOD_ChannelGroup_GetNumChannels(group, &count);
+    return count;
+}
+DEFINE_PRIM(_I32, cg_get_num_channels, _I32);
+
+HL_PRIM int HL_NAME(cg_get_channel)(int h, int index) {
+    FMOD_CHANNELGROUP* group = resolve_changroup(h);
+    FMOD_CHANNEL* channel = NULL;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = FMOD_ChannelGroup_GetChannel(group, index, &channel);
+    if (gLastResult != FMOD_OK || !channel) return 0;
+    return faxe_handle_find_or_alloc(channel, FAXE_TYPE_CHAN);
+}
+DEFINE_PRIM(_I32, cg_get_channel, _I32 _I32);
 
 // Drain protocol: cb_next pops the oldest queued event into a static slot;
 // the accessors read fields from that slot. Haxe thread only.

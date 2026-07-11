@@ -416,5 +416,98 @@ extern int fmod_dsp_get_wet_dry_mix(int handle, ::Array<Float> fbuf);
 extern bool fmod_dsp_get_active(int handle);
 extern int fmod_dsp_get_metering_enabled(int handle, ::Array<int> ibuf);
 
+// Bank loading from memory
+extern int fmod_sys_load_bank_memory(::Array<unsigned char> data, int len);
+
+// Event instance core bridge
+extern int fmod_evi_get_channel_group(int handle);
+
+// Command capture and replay
+extern int fmod_sys_start_command_capture(const ::String& path);
+extern int fmod_sys_stop_command_capture();
+extern int fmod_sys_load_command_replay(const ::String& path);
+extern int fmod_replay_release(int handle);
+extern int fmod_replay_start(int handle);
+extern int fmod_replay_stop(int handle);
+extern int fmod_replay_set_paused(int handle, bool paused);
+extern bool fmod_replay_get_paused(int handle);
+extern int fmod_replay_seek_to_time(int handle, int timeMs);
+extern float fmod_replay_get_length(int handle);
+
+// Channel priority, virtualization, and remaining getters
+extern int fmod_chan_set_priority(int handle, int priority);
+extern int fmod_chan_get_priority(int handle);
+extern bool fmod_chan_is_virtual(int handle);
+extern float fmod_chan_get_audibility(int handle);
+extern int fmod_chan_set_volume_ramp(int handle, bool ramp);
+extern bool fmod_chan_get_volume_ramp(int handle);
+extern int fmod_chan_get_current_sound(int handle);
+extern int fmod_chan_set_loop_points(int handle, int startMs, int endMs);
+extern int fmod_chan_get_loop_points(int handle, ::Array<int> ibuf);
+extern float fmod_chan_get_reverb_wet(int handle, int instance);
+extern int fmod_chan_get_index(int handle);
+extern int fmod_chan_get_3d_cone_orientation(int handle, ::Array<Float> fbuf);
+extern int fmod_chan_get_num_dsps(int handle);
+extern int fmod_chan_get_dsp(int handle, int index);
+
+// Sound name, group getter, and loop count
+extern const char* fmod_sound_get_name(int handle);
+extern int fmod_sound_get_sound_group(int handle);
+extern int fmod_sound_get_loop_count(int handle);
+extern int fmod_sound_set_loop_count(int handle, int loopCount);
+
+// Sound group volume and counters
+extern int fmod_sg_set_volume(int handle, float volume);
+extern float fmod_sg_get_volume(int handle);
+extern int fmod_sg_get_num_playing(int handle);
+extern float fmod_sg_get_mute_fade_speed(int handle);
+
+// Output device selection
+extern int fmod_sys_set_driver(int id);
+extern int fmod_sys_get_driver();
+
+// DSP data params, info, and output traversal
+extern int fmod_dsp_set_param_data(int handle, int index, ::Array<unsigned char> data, int len);
+extern bool fmod_dsp_get_idle(int handle);
+extern const char* fmod_dsp_get_info_name(int handle);
+extern int fmod_dsp_get_output_dsp(int handle, int index);
+extern int fmod_dsp_get_output_connection(int handle, int index);
+extern int fmod_dspconn_get_input_dsp(int handle);
+extern int fmod_dspconn_get_output_dsp(int handle);
+
+// Reverb3D getters
+extern bool fmod_r3d_get_active(int handle);
+extern int fmod_r3d_get_3d_attributes(int handle, ::Array<Float> fbuf);
+
+// Channel group spatial mirror and remaining control surface
+extern int fmod_cg_set_pan(int handle, float pan);
+extern int fmod_cg_set_low_pass_gain(int handle, float gain);
+extern int fmod_cg_set_mode(int handle, int mode);
+extern int fmod_cg_get_mode(int handle);
+extern int fmod_cg_set_3d_attributes(int handle, float posX, float posY, float posZ, float velX, float velY, float velZ);
+extern int fmod_cg_get_3d_attributes(int handle, ::Array<Float> fbuf);
+extern int fmod_cg_set_3d_min_max(int handle, float minDist, float maxDist);
+extern int fmod_cg_get_3d_min_max(int handle, ::Array<Float> fbuf);
+extern int fmod_cg_set_3d_occlusion(int handle, float direct, float reverb);
+extern int fmod_cg_set_3d_level(int handle, float level);
+extern float fmod_cg_get_3d_level(int handle);
+extern int fmod_cg_set_3d_spread(int handle, float angle);
+extern float fmod_cg_get_3d_spread(int handle);
+extern int fmod_cg_set_3d_doppler_level(int handle, float level);
+extern float fmod_cg_get_3d_doppler_level(int handle);
+extern int fmod_cg_set_3d_cone_settings(int handle, float insideAngle, float outsideAngle, float outsideVolume);
+extern int fmod_cg_get_3d_cone_settings(int handle, ::Array<Float> fbuf);
+extern int fmod_cg_set_3d_cone_orientation(int handle, float x, float y, float z);
+extern int fmod_cg_get_3d_cone_orientation(int handle, ::Array<Float> fbuf);
+extern int fmod_cg_set_reverb_wet(int handle, int instance, float wet);
+extern float fmod_cg_get_reverb_wet(int handle, int instance);
+extern int fmod_cg_set_mix_matrix(int handle, ::Array<Float> fbuf, int outChannels, int inChannels);
+extern int fmod_cg_set_volume_ramp(int handle, bool ramp);
+extern bool fmod_cg_get_volume_ramp(int handle);
+extern float fmod_cg_get_audibility(int handle);
+extern const char* fmod_cg_get_name(int handle);
+extern int fmod_cg_get_num_channels(int handle);
+extern int fmod_cg_get_channel(int handle, int index);
+
 } // namespace faxe
 } // namespace linc

@@ -2092,6 +2092,650 @@ int fmod_dsp_get_metering_enabled(int h, ::Array<int> ibuf) {
     return (int)gLastResult;
 }
 
+//// Bank loading from memory
+
+int fmod_sys_load_bank_memory(::Array<unsigned char> data, int len) {
+    if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    if (data == null() || len <= 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
+    if (len > data->length) len = data->length;
+    FMOD::Studio::Bank* bank = NULL;
+    // FMOD_STUDIO_LOAD_MEMORY copies the buffer, so the caller's bytes are
+    // free as soon as this returns
+    gLastResult = gStudioSystem->loadBankMemory((const char*)&data[0], len,
+        FMOD_STUDIO_LOAD_MEMORY, FMOD_STUDIO_LOAD_BANK_NORMAL, &bank);
+    if (gLastResult != FMOD_OK || !bank) return 0;
+    return faxe_handle_find_or_alloc(bank, FAXE_TYPE_BANK);
+}
+
+//// Event instance core bridge
+
+int fmod_evi_get_channel_group(int h) {
+    FMOD::Studio::EventInstance* instance = resolveInstance(h);
+    if (!instance) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    FMOD::ChannelGroup* group = NULL;
+    gLastResult = instance->getChannelGroup(&group);
+    if (gLastResult != FMOD_OK || !group) return 0;
+    return faxe_handle_find_or_alloc(group, FAXE_TYPE_CHANGROUP);
+}
+
+//// Command capture and replay
+
+static inline FMOD::Studio::CommandReplay* resolveReplay(int h) {
+    return (FMOD::Studio::CommandReplay*)faxe_handle_resolve(h, FAXE_TYPE_REPLAY);
+}
+
+int fmod_sys_start_command_capture(const ::String& path) {
+    if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = gStudioSystem->startCommandCapture(path.c_str(), FMOD_STUDIO_COMMANDCAPTURE_NORMAL);
+    return (int)gLastResult;
+}
+
+int fmod_sys_stop_command_capture() {
+    if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = gStudioSystem->stopCommandCapture();
+    return (int)gLastResult;
+}
+
+int fmod_sys_load_command_replay(const ::String& path) {
+    if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    FMOD::Studio::CommandReplay* replay = NULL;
+    gLastResult = gStudioSystem->loadCommandReplay(path.c_str(), FMOD_STUDIO_COMMANDREPLAY_NORMAL, &replay);
+    if (gLastResult != FMOD_OK || !replay) return 0;
+    return faxe_handle_alloc(replay, FAXE_TYPE_REPLAY);
+}
+
+int fmod_replay_release(int h) {
+    FMOD::Studio::CommandReplay* replay = resolveReplay(h);
+    if (!replay) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = replay->release();
+    if (gLastResult == FMOD_OK) faxe_handle_free(h);
+    return (int)gLastResult;
+}
+
+int fmod_replay_start(int h) {
+    FMOD::Studio::CommandReplay* replay = resolveReplay(h);
+    if (!replay) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = replay->start();
+    return (int)gLastResult;
+}
+
+int fmod_replay_stop(int h) {
+    FMOD::Studio::CommandReplay* replay = resolveReplay(h);
+    if (!replay) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = replay->stop();
+    return (int)gLastResult;
+}
+
+int fmod_replay_set_paused(int h, bool paused) {
+    FMOD::Studio::CommandReplay* replay = resolveReplay(h);
+    if (!replay) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = replay->setPaused(paused);
+    return (int)gLastResult;
+}
+
+bool fmod_replay_get_paused(int h) {
+    FMOD::Studio::CommandReplay* replay = resolveReplay(h);
+    bool paused = false;
+    if (!replay) { gLastResult = FMOD_ERR_INVALID_HANDLE; return false; }
+    gLastResult = replay->getPaused(&paused);
+    return paused;
+}
+
+int fmod_replay_seek_to_time(int h, int timeMs) {
+    FMOD::Studio::CommandReplay* replay = resolveReplay(h);
+    if (!replay) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = replay->seekToTime((float)timeMs / 1000.0f);
+    return (int)gLastResult;
+}
+
+float fmod_replay_get_length(int h) {
+    FMOD::Studio::CommandReplay* replay = resolveReplay(h);
+    float seconds = 0.0f;
+    if (!replay) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0.0f; }
+    gLastResult = replay->getLength(&seconds);
+    return seconds;
+}
+
+//// Channel priority, virtualization, and remaining getters
+
+int fmod_chan_set_priority(int h, int priority) {
+    FMOD::Channel* ch = resolveChannel(h);
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = ch->setPriority(priority);
+    return (int)gLastResult;
+}
+
+int fmod_chan_get_priority(int h) {
+    FMOD::Channel* ch = resolveChannel(h);
+    int priority = 0;
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = ch->getPriority(&priority);
+    return priority;
+}
+
+bool fmod_chan_is_virtual(int h) {
+    FMOD::Channel* ch = resolveChannel(h);
+    bool isVirtual = false;
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return false; }
+    gLastResult = ch->isVirtual(&isVirtual);
+    return isVirtual;
+}
+
+float fmod_chan_get_audibility(int h) {
+    FMOD::Channel* ch = resolveChannel(h);
+    float audibility = 0.0f;
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0.0f; }
+    gLastResult = ch->getAudibility(&audibility);
+    return audibility;
+}
+
+int fmod_chan_set_volume_ramp(int h, bool ramp) {
+    FMOD::Channel* ch = resolveChannel(h);
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = ch->setVolumeRamp(ramp);
+    return (int)gLastResult;
+}
+
+bool fmod_chan_get_volume_ramp(int h) {
+    FMOD::Channel* ch = resolveChannel(h);
+    bool ramp = false;
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return false; }
+    gLastResult = ch->getVolumeRamp(&ramp);
+    return ramp;
+}
+
+// Borrowed reference: the returned sound belongs to whoever created it, so
+// releasing a handle obtained this way is a caller error
+int fmod_chan_get_current_sound(int h) {
+    FMOD::Channel* ch = resolveChannel(h);
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    FMOD::Sound* sound = NULL;
+    gLastResult = ch->getCurrentSound(&sound);
+    if (gLastResult != FMOD_OK || !sound) return 0;
+    return faxe_handle_find_or_alloc(sound, FAXE_TYPE_SOUND);
+}
+
+int fmod_chan_set_loop_points(int h, int startMs, int endMs) {
+    FMOD::Channel* ch = resolveChannel(h);
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = ch->setLoopPoints((unsigned int)startMs, FMOD_TIMEUNIT_MS, (unsigned int)endMs, FMOD_TIMEUNIT_MS);
+    return (int)gLastResult;
+}
+
+int fmod_chan_get_loop_points(int h, ::Array<int> ibuf) {
+    FMOD::Channel* ch = resolveChannel(h);
+    unsigned int start = 0;
+    unsigned int end = 0;
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = ch->getLoopPoints(&start, FMOD_TIMEUNIT_MS, &end, FMOD_TIMEUNIT_MS);
+    ibuf[0] = (int)start;
+    ibuf[1] = (int)end;
+    return (int)gLastResult;
+}
+
+float fmod_chan_get_reverb_wet(int h, int instance) {
+    FMOD::Channel* ch = resolveChannel(h);
+    float wet = 0.0f;
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0.0f; }
+    gLastResult = ch->getReverbProperties(instance, &wet);
+    return wet;
+}
+
+int fmod_chan_get_index(int h) {
+    FMOD::Channel* ch = resolveChannel(h);
+    int index = -1;
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    gLastResult = ch->getIndex(&index);
+    return gLastResult == FMOD_OK ? index : -1;
+}
+
+int fmod_chan_get_3d_cone_orientation(int h, ::Array<Float> fbuf) {
+    FMOD::Channel* ch = resolveChannel(h);
+    FMOD_VECTOR direction;
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    memset(&direction, 0, sizeof(direction));
+    gLastResult = ch->get3DConeOrientation(&direction);
+    fbuf[0] = (double)direction.x;
+    fbuf[1] = (double)direction.y;
+    fbuf[2] = (double)direction.z;
+    return (int)gLastResult;
+}
+
+int fmod_chan_get_num_dsps(int h) {
+    FMOD::Channel* ch = resolveChannel(h);
+    int count = 0;
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = ch->getNumDSPs(&count);
+    return count;
+}
+
+int fmod_chan_get_dsp(int h, int index) {
+    FMOD::Channel* ch = resolveChannel(h);
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    FMOD::DSP* dsp = NULL;
+    gLastResult = ch->getDSP(index, &dsp);
+    if (gLastResult != FMOD_OK || !dsp) return 0;
+    return faxe_handle_find_or_alloc(dsp, FAXE_TYPE_DSP);
+}
+
+//// Sound name, group getter, and loop count
+
+const char* fmod_sound_get_name(int h) {
+    gStringBuf[0] = '\0';
+    FMOD::Sound* snd = resolveSound(h);
+    if (!snd) { gLastResult = FMOD_ERR_INVALID_HANDLE; return gStringBuf; }
+    gLastResult = snd->getName(gStringBuf, sizeof(gStringBuf));
+    if (gLastResult != FMOD_OK) gStringBuf[0] = '\0';
+    return gStringBuf;
+}
+
+int fmod_sound_get_sound_group(int h) {
+    FMOD::Sound* snd = resolveSound(h);
+    if (!snd) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    FMOD::SoundGroup* group = NULL;
+    gLastResult = snd->getSoundGroup(&group);
+    if (gLastResult != FMOD_OK || !group) return 0;
+    return faxe_handle_find_or_alloc(group, FAXE_TYPE_SOUNDGROUP);
+}
+
+int fmod_sound_get_loop_count(int h) {
+    FMOD::Sound* snd = resolveSound(h);
+    int loopCount = 0;
+    if (!snd) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = snd->getLoopCount(&loopCount);
+    return loopCount;
+}
+
+int fmod_sound_set_loop_count(int h, int loopCount) {
+    FMOD::Sound* snd = resolveSound(h);
+    if (!snd) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = snd->setLoopCount(loopCount);
+    return (int)gLastResult;
+}
+
+//// Sound group volume and counters
+
+int fmod_sg_set_volume(int h, float volume) {
+    FMOD::SoundGroup* group = resolveSoundGroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = group->setVolume(volume);
+    return (int)gLastResult;
+}
+
+float fmod_sg_get_volume(int h) {
+    FMOD::SoundGroup* group = resolveSoundGroup(h);
+    float volume = 0.0f;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0.0f; }
+    gLastResult = group->getVolume(&volume);
+    return volume;
+}
+
+int fmod_sg_get_num_playing(int h) {
+    FMOD::SoundGroup* group = resolveSoundGroup(h);
+    int count = 0;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = group->getNumPlaying(&count);
+    return count;
+}
+
+float fmod_sg_get_mute_fade_speed(int h) {
+    FMOD::SoundGroup* group = resolveSoundGroup(h);
+    float speed = 0.0f;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0.0f; }
+    gLastResult = group->getMuteFadeSpeed(&speed);
+    return speed;
+}
+
+//// Output device selection
+
+int fmod_sys_set_driver(int id) {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = gCoreSystem->setDriver(id);
+    return (int)gLastResult;
+}
+
+int fmod_sys_get_driver() {
+    int id = 0;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    gLastResult = gCoreSystem->getDriver(&id);
+    return id;
+}
+
+//// DSP data params, info, and output traversal
+
+int fmod_dsp_set_param_data(int h, int index, ::Array<unsigned char> data, int len) {
+    FMOD::DSP* dsp = resolveDsp(h);
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    if (data == null() || len <= 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    if (len > data->length) len = data->length;
+    gLastResult = dsp->setParameterData(index, (void*)&data[0], (unsigned int)len);
+    return (int)gLastResult;
+}
+
+bool fmod_dsp_get_idle(int h) {
+    FMOD::DSP* dsp = resolveDsp(h);
+    bool idle = false;
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return false; }
+    gLastResult = dsp->getIdle(&idle);
+    return idle;
+}
+
+const char* fmod_dsp_get_info_name(int h) {
+    gStringBuf[0] = '\0';
+    FMOD::DSP* dsp = resolveDsp(h);
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return gStringBuf; }
+    gLastResult = dsp->getInfo(gStringBuf, 0, 0, 0, 0);
+    if (gLastResult != FMOD_OK) gStringBuf[0] = '\0';
+    return gStringBuf;
+}
+
+int fmod_dsp_get_output_dsp(int h, int index) {
+    FMOD::DSP* dsp = resolveDsp(h);
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    FMOD::DSP* output = NULL;
+    FMOD::DSPConnection* conn = NULL;
+    gLastResult = dsp->getOutput(index, &output, &conn);
+    if (gLastResult != FMOD_OK || !output) return 0;
+    return faxe_handle_find_or_alloc(output, FAXE_TYPE_DSP);
+}
+
+int fmod_dsp_get_output_connection(int h, int index) {
+    FMOD::DSP* dsp = resolveDsp(h);
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    FMOD::DSP* output = NULL;
+    FMOD::DSPConnection* conn = NULL;
+    gLastResult = dsp->getOutput(index, &output, &conn);
+    if (gLastResult != FMOD_OK || !conn) return 0;
+    return faxe_handle_find_or_alloc(conn, FAXE_TYPE_DSPCONN);
+}
+
+int fmod_dspconn_get_input_dsp(int h) {
+    FMOD::DSPConnection* conn = resolveDspConn(h);
+    if (!conn) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    FMOD::DSP* dsp = NULL;
+    gLastResult = conn->getInput(&dsp);
+    if (gLastResult != FMOD_OK || !dsp) return 0;
+    return faxe_handle_find_or_alloc(dsp, FAXE_TYPE_DSP);
+}
+
+int fmod_dspconn_get_output_dsp(int h) {
+    FMOD::DSPConnection* conn = resolveDspConn(h);
+    if (!conn) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    FMOD::DSP* dsp = NULL;
+    gLastResult = conn->getOutput(&dsp);
+    if (gLastResult != FMOD_OK || !dsp) return 0;
+    return faxe_handle_find_or_alloc(dsp, FAXE_TYPE_DSP);
+}
+
+//// Reverb3D getters
+
+bool fmod_r3d_get_active(int h) {
+    FMOD::Reverb3D* reverb = resolveReverb3d(h);
+    bool active = false;
+    if (!reverb) { gLastResult = FMOD_ERR_INVALID_HANDLE; return false; }
+    gLastResult = reverb->getActive(&active);
+    return active;
+}
+
+int fmod_r3d_get_3d_attributes(int h, ::Array<Float> fbuf) {
+    FMOD::Reverb3D* reverb = resolveReverb3d(h);
+    FMOD_VECTOR position;
+    float minDist = 0.0f;
+    float maxDist = 0.0f;
+    if (!reverb) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    memset(&position, 0, sizeof(position));
+    gLastResult = reverb->get3DAttributes(&position, &minDist, &maxDist);
+    fbuf[0] = (double)position.x;
+    fbuf[1] = (double)position.y;
+    fbuf[2] = (double)position.z;
+    fbuf[3] = (double)minDist;
+    fbuf[4] = (double)maxDist;
+    return (int)gLastResult;
+}
+
+//// Channel group spatial mirror and remaining control surface
+
+int fmod_cg_set_pan(int h, float pan) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = group->setPan(pan);
+    return (int)gLastResult;
+}
+
+int fmod_cg_set_low_pass_gain(int h, float gain) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = group->setLowPassGain(gain);
+    return (int)gLastResult;
+}
+
+int fmod_cg_set_mode(int h, int mode) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = group->setMode((FMOD_MODE)mode);
+    return (int)gLastResult;
+}
+
+int fmod_cg_get_mode(int h) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    FMOD_MODE mode = 0;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = group->getMode(&mode);
+    return (int)mode;
+}
+
+int fmod_cg_set_3d_attributes(int h, float posX, float posY, float posZ, float velX, float velY, float velZ) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    FMOD_VECTOR position = { posX, posY, posZ };
+    FMOD_VECTOR velocity = { velX, velY, velZ };
+    gLastResult = group->set3DAttributes(&position, &velocity);
+    return (int)gLastResult;
+}
+
+int fmod_cg_get_3d_attributes(int h, ::Array<Float> fbuf) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    FMOD_VECTOR position;
+    FMOD_VECTOR velocity;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    memset(&position, 0, sizeof(position));
+    memset(&velocity, 0, sizeof(velocity));
+    gLastResult = group->get3DAttributes(&position, &velocity);
+    fbuf[0] = (double)position.x;
+    fbuf[1] = (double)position.y;
+    fbuf[2] = (double)position.z;
+    fbuf[3] = (double)velocity.x;
+    fbuf[4] = (double)velocity.y;
+    fbuf[5] = (double)velocity.z;
+    return (int)gLastResult;
+}
+
+int fmod_cg_set_3d_min_max(int h, float minDist, float maxDist) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = group->set3DMinMaxDistance(minDist, maxDist);
+    return (int)gLastResult;
+}
+
+int fmod_cg_get_3d_min_max(int h, ::Array<Float> fbuf) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    float minDist = 0.0f;
+    float maxDist = 0.0f;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = group->get3DMinMaxDistance(&minDist, &maxDist);
+    fbuf[0] = (double)minDist;
+    fbuf[1] = (double)maxDist;
+    return (int)gLastResult;
+}
+
+int fmod_cg_set_3d_occlusion(int h, float direct, float reverb) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = group->set3DOcclusion(direct, reverb);
+    return (int)gLastResult;
+}
+
+int fmod_cg_set_3d_level(int h, float level) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = group->set3DLevel(level);
+    return (int)gLastResult;
+}
+
+float fmod_cg_get_3d_level(int h) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    float level = 0.0f;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0.0f; }
+    gLastResult = group->get3DLevel(&level);
+    return level;
+}
+
+int fmod_cg_set_3d_spread(int h, float angle) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = group->set3DSpread(angle);
+    return (int)gLastResult;
+}
+
+float fmod_cg_get_3d_spread(int h) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    float angle = 0.0f;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0.0f; }
+    gLastResult = group->get3DSpread(&angle);
+    return angle;
+}
+
+int fmod_cg_set_3d_doppler_level(int h, float level) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = group->set3DDopplerLevel(level);
+    return (int)gLastResult;
+}
+
+float fmod_cg_get_3d_doppler_level(int h) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    float level = 0.0f;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0.0f; }
+    gLastResult = group->get3DDopplerLevel(&level);
+    return level;
+}
+
+int fmod_cg_set_3d_cone_settings(int h, float insideAngle, float outsideAngle, float outsideVolume) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = group->set3DConeSettings(insideAngle, outsideAngle, outsideVolume);
+    return (int)gLastResult;
+}
+
+int fmod_cg_get_3d_cone_settings(int h, ::Array<Float> fbuf) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    float insideAngle = 0.0f;
+    float outsideAngle = 0.0f;
+    float outsideVolume = 0.0f;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = group->get3DConeSettings(&insideAngle, &outsideAngle, &outsideVolume);
+    fbuf[0] = (double)insideAngle;
+    fbuf[1] = (double)outsideAngle;
+    fbuf[2] = (double)outsideVolume;
+    return (int)gLastResult;
+}
+
+int fmod_cg_set_3d_cone_orientation(int h, float x, float y, float z) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    FMOD_VECTOR direction;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    direction.x = x; direction.y = y; direction.z = z;
+    gLastResult = group->set3DConeOrientation(&direction);
+    return (int)gLastResult;
+}
+
+int fmod_cg_get_3d_cone_orientation(int h, ::Array<Float> fbuf) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    FMOD_VECTOR direction;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    memset(&direction, 0, sizeof(direction));
+    gLastResult = group->get3DConeOrientation(&direction);
+    fbuf[0] = (double)direction.x;
+    fbuf[1] = (double)direction.y;
+    fbuf[2] = (double)direction.z;
+    return (int)gLastResult;
+}
+
+int fmod_cg_set_reverb_wet(int h, int instance, float wet) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = group->setReverbProperties(instance, wet);
+    return (int)gLastResult;
+}
+
+float fmod_cg_get_reverb_wet(int h, int instance) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    float wet = 0.0f;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0.0f; }
+    gLastResult = group->getReverbProperties(instance, &wet);
+    return wet;
+}
+
+int fmod_cg_set_mix_matrix(int h, ::Array<Float> fbuf, int outChannels, int inChannels) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    float matrix[32 * 32];
+    int total = outChannels * inChannels;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    if (total < 0 || total > 32 * 32) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    for (int i = 0; i < total; i++) matrix[i] = (float)fbuf[i];
+    gLastResult = group->setMixMatrix(matrix, outChannels, inChannels, 0);
+    return (int)gLastResult;
+}
+
+int fmod_cg_set_volume_ramp(int h, bool ramp) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = group->setVolumeRamp(ramp);
+    return (int)gLastResult;
+}
+
+bool fmod_cg_get_volume_ramp(int h) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    bool ramp = false;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return false; }
+    gLastResult = group->getVolumeRamp(&ramp);
+    return ramp;
+}
+
+float fmod_cg_get_audibility(int h) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    float audibility = 0.0f;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0.0f; }
+    gLastResult = group->getAudibility(&audibility);
+    return audibility;
+}
+
+const char* fmod_cg_get_name(int h) {
+    gStringBuf[0] = '\0';
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return gStringBuf; }
+    gLastResult = group->getName(gStringBuf, sizeof(gStringBuf));
+    if (gLastResult != FMOD_OK) gStringBuf[0] = '\0';
+    return gStringBuf;
+}
+
+int fmod_cg_get_num_channels(int h) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    int count = 0;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = group->getNumChannels(&count);
+    return count;
+}
+
+int fmod_cg_get_channel(int h, int index) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    FMOD::Channel* ch = NULL;
+    gLastResult = group->getChannel(index, &ch);
+    if (gLastResult != FMOD_OK || !ch) return 0;
+    return faxe_handle_find_or_alloc(ch, FAXE_TYPE_CHAN);
+}
+
 // Drain protocol: cb_next pops the oldest queued event into a static slot;
 // the accessors read fields from that slot. Haxe thread only.
 static FaxeCbEvent gCbCurrent;
@@ -3541,7 +4185,7 @@ int fmod_debug_live_handle_count() {
 
 int fmod_binding_abi_version() {
     // Keep in lockstep with the manifest header "# abi-version:"
-    return 6;
+    return 7;
 }
 
 } // namespace faxe
