@@ -60,6 +60,13 @@ jobs:
           g++ -x c++ -pthread -Wall -Wextra -Werror -o /tmp/test_cbq_cpp tests/native/test_faxe_cbqueue.c
           /tmp/test_cbq_cpp
 
+      - name: Test native PCM ring buffer (C99 and C++ modes)
+        run: |
+          gcc -std=c99 -pthread -Wall -Wextra -Werror -o /tmp/test_pcmring_c tests/native/test_faxe_pcmring.c
+          /tmp/test_pcmring_c
+          g++ -x c++ -pthread -Wall -Wextra -Werror -o /tmp/test_pcmring_cpp tests/native/test_faxe_pcmring.c
+          /tmp/test_pcmring_cpp
+
   # ===========================================================================
   # API docs (dox) - rendered from the haxefmod package, uploaded as artifact
   # ===========================================================================
