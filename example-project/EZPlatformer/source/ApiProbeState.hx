@@ -299,7 +299,7 @@ class ApiProbeState extends FlxState {
         // Command capture round-trip with replay lifecycle
         var capturePath = "probe-capture.cmd.txt";
         check("capture_start", StudioSystem.startCommandCapture(capturePath).isOk(), "");
-        StudioSystem.update();
+        FmodManager.Update();
         check("capture_stop", StudioSystem.stopCommandCapture().isOk(), "");
         var replay = StudioSystem.loadCommandReplay(capturePath);
         check("replay_load", !replay.isNull(), 'handle=${(replay : Int)}');
