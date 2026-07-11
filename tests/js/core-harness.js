@@ -59,6 +59,11 @@ function main() {
         testOpenUserPcmRead(studio);
         testChannelControl(studio);
         testDspEnumeration();
+        testDspParamsMeteringFft(studio);
+        testChannelGroupSurface(studio);
+        testChannelExtras(studio);
+        testReverbProperties();
+        testPlatformLimits();
 
         console.log(`CORE_TEST: failures = ${failures}`);
         console.log('CORE_TEST: COMPLETE');
@@ -267,4 +272,215 @@ function testDspEnumeration() {
     } else {
         check('dsp_param_roundtrip', false, 'lowpass_simple unavailable');
     }
+}
+
+//// Slice-2 facts frozen as assertions: FFT readback, metering shape,
+//// channel groups, channel extras, reverb struct convention, and the
+//// verified platform limits. A diff here means the FMOD web build moved.
+
+function makeSilentUserSound(mode3d) {
+    const exinfo = FMOD.CREATESOUNDEXINFO();
+    exinfo.numchannels = 1;
+    exinfo.defaultfrequency = 48000;
+    exinfo.format = FMOD.SOUND_FORMAT_PCM16;
+    exinfo.decodebuffersize = 4096;
+    exinfo.length = 48000 * 2;
+    exinfo.pcmreadcallback = function (sound, data, datalen) {
+        for (let i = 0; i < datalen >> 1; i++) FMOD.setValue(data + i * 2, 0, 'i16');
+        return FMOD.OK;
+    };
+    let mode = (FMOD.OPENUSER | FMOD.LOOP_NORMAL | FMOD.CREATESTREAM) >>> 0;
+    if (mode3d) mode = (mode | FMOD._3D) >>> 0;
+    const out = {};
+    const r = gCore.createSound('', mode, exinfo, out);
+    return r === FMOD.OK ? out.val : null;
+}
+
+function testDspParamsMeteringFft(studio) {
+    // Oscillator through playDSP gives the analyzers a real 1kHz signal
+    const oscOut = {};
+    gCore.createDSPByType(2 /* OSCILLATOR */, oscOut);
+    const osc = oscOut.val;
+    check('dsp_set_param_int', osc.setParameterInt(0, 0) === FMOD.OK);
+    check('dsp_set_param_float', osc.setParameterFloat(1, 1000.0) === FMOD.OK);
+    const iOut = {};
+    check('dsp_get_param_int', osc.getParameterInt(0, iOut, null) === FMOD.OK && iOut.val === 0,
+        `value=${iOut.val}`);
+    const chOut = {};
+    check('play_dsp', gCore.playDSP(osc, null, false, chOut) === FMOD.OK);
+
+    const fftOut = {};
+    gCore.createDSPByType(26 /* FFT */, fftOut);
+    const fft = fftOut.val;
+    const grpOut = {};
+    gCore.getMasterChannelGroup(grpOut);
+    const master = grpOut.val;
+    check('cg_add_dsp', master.addDSP(0, fft) === FMOD.OK);
+    check('dsp_set_metering', fft.setMeteringEnabled(true, true) === FMOD.OK);
+    pump(studio, 40);
+
+    // 2.03 moved the FFT param indices: SPECTRUMDATA is 4 (1.x-era 2 is
+    // BAND_START_FREQ, a float, and data-reading it must fail)
+    const bad = {};
+    let badResult;
+    try { badResult = fft.getParameterData(2, bad, null, null); }
+    catch (e) { badResult = `THREW ${e.constructor.name}`; }
+    check('fft_legacy_index_rejected', badResult !== FMOD.OK, `result=${badResult}`);
+
+    const d = {};
+    const dr = fft.getParameterData(4 /* SPECTRUMDATA */, d, null, null);
+    // The struct lands as flat keys on the out object, not on .val
+    check('fft_spectrumdata', dr === FMOD.OK && typeof d.length === 'number'
+        && d.spectrum && d.spectrum[0] && d.spectrum[0].length > 0,
+        `result=${dr} length=${d.length} ch=${d.numchannels}`);
+    if (d.spectrum && d.spectrum[0]) {
+        const spec = d.spectrum[0];
+        let maxI = 0;
+        for (let i = 1; i < spec.length; i++) if (spec[i] > spec[maxI]) maxI = i;
+        // 1kHz signal: the dominant bin must sit in the low band, well
+        // under 3kHz whatever the exact window math is
+        const approxHz = 24000 / spec.length * maxI;
+        check('fft_dominant_low_band', maxI > 0 && approxHz < 3000,
+            `bin=${maxI}/${spec.length} ~${Math.round(approxHz)}Hz`);
+    }
+
+    // Metering requires pre-shaped outs: plain objects throw
+    let plainThrew = false;
+    try { fft.getMeteringInfo({}, {}); } catch (e) { plainThrew = true; }
+    check('metering_plain_out_throws', plainThrew, '');
+    const inInfo = { peaklevel: [], rmslevel: [] };
+    const outInfo = { peaklevel: [], rmslevel: [] };
+    const mr = fft.getMeteringInfo(inInfo, outInfo);
+    check('metering_shaped_out', mr === FMOD.OK && outInfo.peaklevel.length > 0
+        && outInfo.peaklevel[0] > 0.01,
+        `result=${mr} peak0=${outInfo.peaklevel[0]} rms0=${outInfo.rmslevel[0]}`);
+
+    master.removeDSP(fft);
+    fft.release();
+    if (chOut.val) chOut.val.stop();
+    osc.release();
+    pump(studio, 5);
+}
+
+function testChannelGroupSurface(studio) {
+    const cgOut = {};
+    check('cg_create', gCore.createChannelGroup('harness-sub', cgOut) === FMOD.OK);
+    const group = cgOut.val;
+    const f = {};
+    check('cg_set_volume', group.setVolume(0.5) === FMOD.OK);
+    group.getVolume(f);
+    check('cg_get_volume', Math.abs(f.val - 0.5) < 0.001, `value=${f.val}`);
+    check('cg_set_pitch', group.setPitch(1.25) === FMOD.OK);
+    group.getPitch(f);
+    check('cg_get_pitch', Math.abs(f.val - 1.25) < 0.001, `value=${f.val}`);
+    const b = {};
+    check('cg_set_mute', group.setMute(true) === FMOD.OK);
+    group.getMute(b);
+    check('cg_get_mute', b.val === true, '');
+    group.setMute(false);
+    check('cg_set_paused', group.setPaused(true) === FMOD.OK);
+    group.getPaused(b);
+    check('cg_get_paused', b.val === true, '');
+    group.setPaused(false);
+
+    // A channel can be rerouted into the group
+    const sound = makeSilentUserSound(false);
+    const chOut = {};
+    gCore.playSound(sound, null, true, chOut);
+    check('chan_set_channel_group', chOut.val.setChannelGroup(group) === FMOD.OK);
+    chOut.val.stop();
+    sound.release();
+    pump(studio, 5);
+    check('cg_release', group.release() === FMOD.OK);
+}
+
+function testChannelExtras(studio) {
+    const sound = makeSilentUserSound(false);
+    const chOut = {};
+    gCore.playSound(sound, null, true, chOut);
+    const ch = chOut.val;
+    check('chan_set_pan', ch.setPan(0.5) === FMOD.OK);
+    const f = {};
+    check('chan_set_frequency', ch.setFrequency(24000) === FMOD.OK);
+    ch.getFrequency(f);
+    check('chan_get_frequency', Math.abs(f.val - 24000) < 1, `value=${f.val}`);
+    check('chan_set_loop_count', ch.setLoopCount(-1) === FMOD.OK);
+    const p = {};
+    check('chan_get_position', ch.getPosition(p, FMOD.TIMEUNIT_MS) === FMOD.OK, `ms=${p.val}`);
+    check('chan_set_position', ch.setPosition(0, FMOD.TIMEUNIT_MS) === FMOD.OK);
+    check('chan_set_reverb_wet', ch.setReverbProperties(0, 0.5) === FMOD.OK);
+    ch.stop();
+    sound.release();
+    pump(studio, 5);
+
+    // 3D on a raw OPENUSER channel
+    const sound3d = makeSilentUserSound(true);
+    check('sound_create_3d', sound3d !== null, '');
+    if (sound3d) {
+        const ch3Out = {};
+        gCore.playSound(sound3d, null, true, ch3Out);
+        const ch3 = ch3Out.val;
+        check('chan_set_3d_attributes',
+            ch3.set3DAttributes({ x: 1, y: 0, z: 0 }, { x: 0, y: 0, z: 0 }) === FMOD.OK);
+        check('chan_set_3d_min_max', ch3.set3DMinMaxDistance(1, 100) === FMOD.OK);
+        ch3.stop();
+        sound3d.release();
+        pump(studio, 5);
+    }
+}
+
+function testReverbProperties() {
+    // The reverb struct convention: out params land as FLAT KEYS on the
+    // out object itself, the same shape the studio 3D attributes use
+    const p = {};
+    check('reverb_get', gCore.getReverbProperties(0, p) === FMOD.OK
+        && typeof p.DecayTime === 'number', `DecayTime=${p.DecayTime}`);
+    p.DecayTime = 2900;
+    check('reverb_set', gCore.setReverbProperties(0, p) === FMOD.OK);
+    const q = {};
+    gCore.getReverbProperties(0, q);
+    check('reverb_roundtrip', Math.abs(q.DecayTime - 2900) < 1, `DecayTime=${q.DecayTime}`);
+    // Back to off (instance 0 default is generic; disable wet path)
+    q.WetLevel = -80;
+    gCore.setReverbProperties(0, q);
+}
+
+function testPlatformLimits() {
+    // Frozen platform limits: a change here means the web build gained or
+    // lost a capability and the parity docs must be revisited
+    const g = {};
+    let geoResult;
+    try { geoResult = gCore.createGeometry(4, 16, g); }
+    catch (e) { geoResult = `THREW ${e.constructor.name}`; }
+    check('geometry_unsupported', geoResult === 68 /* FMOD_ERR_UNSUPPORTED */,
+        `result=${geoResult}`);
+
+    // Raw PCM from memory works
+    const exinfo = FMOD.CREATESOUNDEXINFO();
+    exinfo.numchannels = 1;
+    exinfo.defaultfrequency = 48000;
+    exinfo.format = FMOD.SOUND_FORMAT_PCM16;
+    exinfo.length = 4800;
+    const rawOut = {};
+    const rawResult = gCore.createSound(new Uint8Array(4800),
+        (FMOD.OPENMEMORY | FMOD.OPENRAW) >>> 0, exinfo, rawOut);
+    check('openmemory_raw_pcm', rawResult === FMOD.OK, `result=${rawResult}`);
+    if (rawResult === FMOD.OK) rawOut.val.release();
+
+    // Encoded containers from memory do not (FSB-only codecs)
+    const dataLen = 4800 * 2;
+    const wav = new Uint8Array(44 + dataLen);
+    const dv = new DataView(wav.buffer);
+    const wr = (o, text) => { for (let i = 0; i < text.length; i++) wav[o + i] = text.charCodeAt(i); };
+    wr(0, 'RIFF'); dv.setUint32(4, 36 + dataLen, true); wr(8, 'WAVE');
+    wr(12, 'fmt '); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 1, true);
+    dv.setUint32(24, 48000, true); dv.setUint32(28, 96000, true); dv.setUint16(32, 2, true); dv.setUint16(34, 16, true);
+    wr(36, 'data'); dv.setUint32(40, dataLen, true);
+    const wavExinfo = FMOD.CREATESOUNDEXINFO();
+    wavExinfo.length = wav.length;
+    const wavOut = {};
+    const wavResult = gCore.createSound(wav, FMOD.OPENMEMORY >>> 0, wavExinfo, wavOut);
+    check('openmemory_encoded_rejected', wavResult === 19 /* FMOD_ERR_FORMAT */,
+        `result=${wavResult}`);
+    if (wavResult === FMOD.OK) wavOut.val.release();
 }
