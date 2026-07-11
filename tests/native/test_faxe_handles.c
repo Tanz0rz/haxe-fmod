@@ -127,6 +127,27 @@ int main(void) {
         faxe_handle_free(hk);
     }
 
+    /* free_type drops every slot of one type and only that type */
+    {
+        int obj1 = 1, obj2 = 2, obj3 = 3;
+        int hc1 = faxe_handle_alloc(&obj1, FAXE_TYPE_DSPCONN);
+        int hc2 = faxe_handle_alloc(&obj2, FAXE_TYPE_DSPCONN);
+        int hd = faxe_handle_alloc(&obj3, FAXE_TYPE_DSP);
+        assert(hc1 > 0 && hc2 > 0 && hd > 0);
+
+        faxe_handles_free_type(FAXE_TYPE_DSPCONN);
+        assert(faxe_handle_resolve(hc1, FAXE_TYPE_DSPCONN) == NULL);
+        assert(faxe_handle_resolve(hc2, FAXE_TYPE_DSPCONN) == NULL);
+        assert(faxe_handle_resolve(hd, FAXE_TYPE_DSP) == &obj3);
+
+        /* a recycled slot must not resolve through the freed handles */
+        int hc3 = faxe_handle_alloc(&obj1, FAXE_TYPE_DSPCONN);
+        assert(hc3 > 0);
+        assert(faxe_handle_resolve(hc1, FAXE_TYPE_DSPCONN) == NULL);
+        faxe_handle_free(hc3);
+        faxe_handle_free(hd);
+    }
+
     printf("faxe_handles: all assertions passed\n");
     return 0;
 }

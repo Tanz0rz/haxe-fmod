@@ -11,7 +11,7 @@
 # Types are logical (exact FFI types differ per backend, e.g. f32 vs f64);
 # the checker verifies presence and arity, not exact types.
 #
-# abi-version: 4
+# abi-version: 5
 # The binding ABI version covers the shape of the native surface. Bump it in
 # lockstep with the "hlaxe_fmod_abi=" marker in hlaxe_fmod.c, the constants in
 # the other two shims, and FmodRuntime.BINDING_ABI whenever functions are
@@ -376,6 +376,88 @@ sys_get_reverb_properties i32 fbuf -> i32
 
 ## Core PCM streams (3D)
 core_pcm_create_3d i32 i32 i32 -> i32
+
+## Core DSP connection graph
+# add_input returns a connection handle; traversal handles dedup to existing slots
+dsp_add_input i32 i32 i32 -> i32
+dsp_disconnect_from i32 i32 -> i32
+dsp_disconnect_all i32 bool bool -> i32
+dsp_get_num_inputs i32 -> i32
+dsp_get_num_outputs i32 -> i32
+dsp_get_input_dsp i32 i32 -> i32
+dsp_get_input_connection i32 i32 -> i32
+dspconn_set_mix i32 f32 -> i32
+dspconn_get_mix i32 -> f32
+dspconn_get_type i32 -> i32
+
+## Core channel group nesting
+cg_add_group i32 i32 -> i32
+cg_get_num_groups i32 -> i32
+cg_get_group i32 i32 -> i32
+cg_get_parent_group i32 -> i32
+
+## Core channel spatial and control extras
+chan_set_mute i32 bool -> i32
+chan_get_mute i32 -> bool
+chan_set_low_pass_gain i32 f32 -> i32
+chan_set_mode i32 i32 -> i32
+chan_set_3d_cone_settings i32 f32 f32 f32 -> i32
+chan_set_3d_cone_orientation i32 f32 f32 f32 -> i32
+chan_set_3d_occlusion i32 f32 f32 -> i32
+# fbuf out: [0]=direct [1]=reverb
+chan_get_3d_occlusion i32 fbuf -> i32
+chan_set_3d_spread i32 f32 -> i32
+chan_set_3d_level i32 f32 -> i32
+chan_set_3d_doppler_level i32 f32 -> i32
+# fbuf in: out*in gains row-major; args are (out channels, in channels)
+chan_set_mix_matrix i32 fbuf i32 i32 -> i32
+
+## Core scheduling (DSP clocks cross as doubles: exact to 2^53 samples)
+# fbuf out: [0]=channel clock [1]=parent group clock
+chan_get_dsp_clock i32 fbuf -> i32
+chan_set_delay i32 f64 f64 bool -> i32
+chan_add_fade_point i32 f64 f32 -> i32
+chan_set_fade_point_ramp i32 f64 f32 -> i32
+chan_remove_fade_points i32 f64 f64 -> i32
+cg_get_dsp_clock i32 fbuf -> i32
+cg_set_delay i32 f64 f64 bool -> i32
+cg_add_fade_point i32 f64 f32 -> i32
+cg_set_fade_point_ramp i32 f64 f32 -> i32
+cg_remove_fade_points i32 f64 f64 -> i32
+
+## Core reverb zones
+sys_create_reverb3d -> i32
+r3d_release i32 -> i32
+r3d_set_3d_attributes i32 f32 f32 f32 f32 f32 -> i32
+# fbuf: 12 reverb property floats, DecayTime..WetLevel in header order
+r3d_set_properties i32 fbuf -> i32
+r3d_get_properties i32 fbuf -> i32
+r3d_set_active i32 bool -> i32
+
+## Core sound surface
+core_create_sound_pcm bytes i32 i32 i32 -> i32
+core_play_sound i32 bool -> i32
+sound_set_defaults i32 f32 i32 -> i32
+# fbuf out: [0]=frequency [1]=priority
+sound_get_defaults i32 fbuf -> i32
+sound_set_loop_points i32 i32 i32 -> i32
+# ibuf out: [0]=loop start ms [1]=loop end ms
+sound_get_loop_points i32 ibuf -> i32
+sound_set_mode i32 i32 -> i32
+sound_get_mode i32 -> i32
+# ibuf out: [0]=channels [1]=bits
+sound_get_format i32 ibuf -> i32
+sound_get_open_state i32 -> i32
+
+## Core system extras (slice 3)
+# ibuf out: [0]=all channels [1]=real (audible) channels
+sys_get_channels_playing ibuf -> i32
+sys_mixer_suspend -> i32
+sys_mixer_resume -> i32
+# ibuf out: [0]=sample rate [1]=speaker mode [2]=raw speaker count
+sys_get_software_format ibuf -> i32
+# ibuf out: [0]=exclusive us [1]=inclusive us (needs profiling enabled)
+dsp_get_cpu_usage i32 ibuf -> i32
 
 ## Debug
 debug_live_handle_count -> i32

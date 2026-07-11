@@ -39,6 +39,8 @@
 #define FAXE_TYPE_CHAN  8  /* Core Channel */
 #define FAXE_TYPE_DSP   9  /* Core DSP effect */
 #define FAXE_TYPE_CHANGROUP 10  /* Core ChannelGroup */
+#define FAXE_TYPE_DSPCONN 11  /* Core DSPConnection */
+#define FAXE_TYPE_REVERB3D 12  /* Core Reverb3D zone */
 
 #define FAXE_MAX_SLOTS 0x10000
 /* Max entries any list getter returns in one call. The Haxe-side scratch
@@ -139,6 +141,21 @@ static void faxe_handles_sweep_lookups(FaxeLookupValidator is_valid) {
         if (s->type != FAXE_TYPE_BUS && s->type != FAXE_TYPE_VCA && s->type != FAXE_TYPE_EVD
             && s->type != FAXE_TYPE_CHANGROUP) continue;
         if (!is_valid(s->ptr, s->type)) {
+            faxe_handle_free(((int)s->gen << 16) | i);
+        }
+    }
+}
+
+/* Frees every live slot of one type. DSP connections use this: FMOD defers
+ * graph mutations to the mixer, so pointer validation after a disconnect is
+ * timing-dependent. Graph-changing calls instead invalidate every connection
+ * handle, matching FMOD's own rule that graph changes invalidate
+ * connections. */
+static void faxe_handles_free_type(unsigned char type) {
+    int i;
+    for (i = 0; i < gFaxeSlotCap; i++) {
+        FaxeSlot* s = &gFaxeSlots[i];
+        if (s->alive && s->type == type) {
             faxe_handle_free(((int)s->gen << 16) | i);
         }
     }

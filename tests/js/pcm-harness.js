@@ -134,6 +134,9 @@ async function main() {
     testChannelGroups();
     testBusBridge();
     testReverbAndExtras();
+    testConnectionGraph();
+    testNestingAndScheduling();
+    testReverb3dSoundsSystem();
 
     console.log(`PCM_TEST: failures = ${failures}`);
     console.log('PCM_TEST: COMPLETE');
@@ -284,3 +287,146 @@ function testReverbAndExtras() {
     pump(5);
 }
 main().catch(e => { console.error('FATAL', e); process.exit(1); });
+
+//// Slice-3 shim surface against the real wasm
+
+function testConnectionGraph() {
+    const osc = jaxe.fmod_dsp_create_by_type(2);
+    const lp = jaxe.fmod_dsp_create_by_type(18);
+    const conn = jaxe.fmod_dsp_add_input(lp, osc, 0);
+    check('s3_dsp_add_input', conn !== 0, `handle=${conn} result=${jaxe.lastResult}`);
+    check('s3_conn_set_mix', jaxe.fmod_dspconn_set_mix(conn, 0.5) === jaxe.FMOD.OK);
+    check('s3_conn_get_mix', Math.abs(jaxe.fmod_dspconn_get_mix(conn) - 0.5) < 0.001,
+        `value=${jaxe.fmod_dspconn_get_mix(conn)}`);
+    check('s3_conn_get_type', jaxe.fmod_dspconn_get_type(conn) === 0,
+        `value=${jaxe.fmod_dspconn_get_type(conn)}`);
+    check('s3_num_inputs', jaxe.fmod_dsp_get_num_inputs(lp) === 1);
+    check('s3_num_outputs', jaxe.fmod_dsp_get_num_outputs(osc) === 1);
+    const inputDsp = jaxe.fmod_dsp_get_input_dsp(lp, 0);
+    check('s3_input_dsp_dedup', inputDsp === osc, `input=${inputDsp} osc=${osc}`);
+    const inputConn = jaxe.fmod_dsp_get_input_connection(lp, 0);
+    check('s3_input_conn_dedup', inputConn === conn, `conn=${inputConn} orig=${conn}`);
+    check('s3_disconnect', jaxe.fmod_dsp_disconnect_from(lp, osc) === jaxe.FMOD.OK);
+    // The sweep after disconnect reclaims the dead connection handle
+    check('s3_stale_conn', jaxe.fmod_dspconn_set_mix(conn, 1.0) === jaxe.ERR_INVALID_HANDLE);
+    jaxe.fmod_dsp_release(lp);
+    jaxe.fmod_dsp_release(osc);
+}
+
+function testNestingAndScheduling() {
+    const parent = jaxe.fmod_cg_create('s3-parent');
+    const child = jaxe.fmod_cg_create('s3-child');
+    check('s3_cg_add_group', jaxe.fmod_cg_add_group(parent, child) === jaxe.FMOD.OK);
+    check('s3_cg_num_groups', jaxe.fmod_cg_get_num_groups(parent) === 1);
+    check('s3_cg_get_group_dedup', jaxe.fmod_cg_get_group(parent, 0) === child);
+    check('s3_cg_get_parent_dedup', jaxe.fmod_cg_get_parent_group(child) === parent);
+
+    const osc = jaxe.fmod_dsp_create_by_type(2);
+    const ch = jaxe.fmod_sys_play_dsp(osc, false);
+    pump(10);
+    const clocks = [];
+    check('s3_chan_dsp_clock', jaxe.fmod_chan_get_dsp_clock(ch, clocks) === jaxe.FMOD.OK
+        && clocks[1] > 0, `clock=${clocks[0]} parent=${clocks[1]}`);
+    const base = clocks[1];
+    check('s3_chan_set_delay', jaxe.fmod_chan_set_delay(ch, 0, base + 96000, false) === jaxe.FMOD.OK);
+    check('s3_chan_fade_points', jaxe.fmod_chan_add_fade_point(ch, base + 4800, 1.0) === jaxe.FMOD.OK
+        && jaxe.fmod_chan_add_fade_point(ch, base + 48000, 0.0) === jaxe.FMOD.OK);
+    check('s3_chan_fade_ramp', jaxe.fmod_chan_set_fade_point_ramp(ch, base + 9600, 0.5) === jaxe.FMOD.OK);
+    check('s3_chan_remove_fades', jaxe.fmod_chan_remove_fade_points(ch, 0, base + 96000) === jaxe.FMOD.OK);
+
+    const gclocks = [];
+    check('s3_cg_dsp_clock', jaxe.fmod_cg_get_dsp_clock(parent, gclocks) === jaxe.FMOD.OK);
+    check('s3_cg_fades', jaxe.fmod_cg_add_fade_point(parent, base + 4800, 0.5) === jaxe.FMOD.OK
+        && jaxe.fmod_cg_remove_fade_points(parent, 0, base + 96000) === jaxe.FMOD.OK
+        && jaxe.fmod_cg_set_delay(parent, 0, base + 96000, false) === jaxe.FMOD.OK
+        && jaxe.fmod_cg_set_fade_point_ramp(parent, base + 9600, 0.5) === jaxe.FMOD.OK);
+
+    // Channel extras
+    check('s3_chan_mute', jaxe.fmod_chan_set_mute(ch, true) === jaxe.FMOD.OK
+        && jaxe.fmod_chan_get_mute(ch) === true);
+    check('s3_chan_low_pass_gain', jaxe.fmod_chan_set_low_pass_gain(ch, 0.5) === jaxe.FMOD.OK);
+    check('s3_chan_mix_matrix', jaxe.fmod_chan_set_mix_matrix(ch, [1, 0, 0, 1], 2, 2) === jaxe.FMOD.OK);
+    jaxe.fmod_chan_stop(ch);
+    jaxe.fmod_dsp_release(osc);
+    jaxe.fmod_cg_release(child);
+    jaxe.fmod_cg_release(parent);
+
+    // 3D spatial extras on a positional stream
+    const ps = jaxe.fmod_core_pcm_create_3d(48000, 1, 9600);
+    const ch3 = jaxe.fmod_core_pcm_play(ps, true);
+    check('s3_cone_settings', jaxe.fmod_chan_set_3d_cone_settings(ch3, 30, 60, 0.5) === jaxe.FMOD.OK);
+    check('s3_cone_orientation', jaxe.fmod_chan_set_3d_cone_orientation(ch3, 0, 0, 1) === jaxe.FMOD.OK);
+    check('s3_occlusion', jaxe.fmod_chan_set_3d_occlusion(ch3, 0.5, 0.3) === jaxe.FMOD.OK);
+    const occ = [];
+    jaxe.fmod_chan_get_3d_occlusion(ch3, occ);
+    check('s3_occlusion_roundtrip', Math.abs(occ[0] - 0.5) < 0.001 && Math.abs(occ[1] - 0.3) < 0.001,
+        `direct=${occ[0]} reverb=${occ[1]}`);
+    check('s3_spread', jaxe.fmod_chan_set_3d_spread(ch3, 45) === jaxe.FMOD.OK);
+    check('s3_3d_level', jaxe.fmod_chan_set_3d_level(ch3, 0.8) === jaxe.FMOD.OK);
+    check('s3_doppler', jaxe.fmod_chan_set_3d_doppler_level(ch3, 1.0) === jaxe.FMOD.OK);
+    check('s3_set_mode', jaxe.fmod_chan_set_mode(ch3, (jaxe.FMOD._3D | jaxe.FMOD._3D_LINEARROLLOFF) >>> 0) === jaxe.FMOD.OK);
+    jaxe.fmod_chan_stop(ch3);
+    jaxe.fmod_core_pcm_release(ps);
+    pump(5);
+}
+
+function testReverb3dSoundsSystem() {
+    const rv = jaxe.fmod_sys_create_reverb3d();
+    check('s3_r3d_create', rv !== 0, `handle=${rv} result=${jaxe.lastResult}`);
+    check('s3_r3d_attributes', jaxe.fmod_r3d_set_3d_attributes(rv, 0, 0, 0, 5, 20) === jaxe.FMOD.OK);
+    const props = [];
+    jaxe.fmod_sys_get_reverb_properties(0, props);
+    check('s3_r3d_set_props', jaxe.fmod_r3d_set_properties(rv, props) === jaxe.FMOD.OK);
+    const back = [];
+    check('s3_r3d_get_props', jaxe.fmod_r3d_get_properties(rv, back) === jaxe.FMOD.OK
+        && typeof back[0] === 'number', `DecayTime=${back[0]}`);
+    check('s3_r3d_active', jaxe.fmod_r3d_set_active(rv, true) === jaxe.FMOD.OK);
+    check('s3_r3d_release', jaxe.fmod_r3d_release(rv) === jaxe.FMOD.OK);
+    check('s3_stale_r3d', jaxe.fmod_r3d_set_active(rv, false) === jaxe.ERR_INVALID_HANDLE);
+
+    // fromPcm: a raw memory sound plays through a channel
+    const frames = 4800;
+    const buf = new ArrayBuffer(frames * 2);
+    const view = new Int16Array(buf);
+    for (let i = 0; i < frames; i++) view[i] = Math.round(Math.sin(2 * Math.PI * 440 * i / 48000) * 0x3000);
+    const snd = jaxe.fmod_core_create_sound_pcm(buf, buf.byteLength, 48000, 1);
+    check('s3_sound_pcm_create', snd !== 0, `handle=${snd} result=${jaxe.lastResult}`);
+    check('s3_sound_defaults', jaxe.fmod_sound_set_defaults(snd, 24000, 128) === jaxe.FMOD.OK);
+    const defs = [];
+    jaxe.fmod_sound_get_defaults(snd, defs);
+    check('s3_sound_defaults_roundtrip', Math.abs(defs[0] - 24000) < 1 && defs[1] === 128,
+        `freq=${defs[0]} priority=${defs[1]}`);
+    check('s3_sound_mode', jaxe.fmod_sound_set_mode(snd, jaxe.FMOD.LOOP_NORMAL >>> 0) === jaxe.FMOD.OK
+        && (jaxe.fmod_sound_get_mode(snd) & jaxe.FMOD.LOOP_NORMAL) !== 0);
+    check('s3_sound_loop_points', jaxe.fmod_sound_set_loop_points(snd, 10, 90) === jaxe.FMOD.OK);
+    const loops = [];
+    jaxe.fmod_sound_get_loop_points(snd, loops);
+    check('s3_sound_loop_roundtrip', loops[0] === 10 && loops[1] === 90,
+        `start=${loops[0]} end=${loops[1]}`);
+    const format = [];
+    jaxe.fmod_sound_get_format(snd, format);
+    check('s3_sound_format', format[0] === 1 && format[1] === 16, `ch=${format[0]} bits=${format[1]}`);
+    check('s3_sound_open_state', jaxe.fmod_sound_get_open_state(snd) === 0,
+        `state=${jaxe.fmod_sound_get_open_state(snd)}`);
+    const playCh = jaxe.fmod_core_play_sound(snd, true);
+    check('s3_play_sound', playCh !== 0, `handle=${playCh} result=${jaxe.lastResult}`);
+    jaxe.fmod_chan_stop(playCh);
+    check('s3_sound_release', jaxe.fmod_core_release_sound(snd) === jaxe.FMOD.OK);
+
+    // System extras
+    const playing = [];
+    check('s3_channels_playing', jaxe.fmod_sys_get_channels_playing(playing) === jaxe.FMOD.OK,
+        `all=${playing[0]} real=${playing[1]}`);
+    check('s3_mixer_suspend_resume', jaxe.fmod_sys_mixer_suspend() === jaxe.FMOD.OK
+        && jaxe.fmod_sys_mixer_resume() === jaxe.FMOD.OK);
+    const swfmt = [];
+    check('s3_software_format', jaxe.fmod_sys_get_software_format(swfmt) === jaxe.FMOD.OK
+        && swfmt[0] > 0, `rate=${swfmt[0]}`);
+    const dsp = jaxe.fmod_dsp_create_by_type(18);
+    const cpu = [];
+    const cpuResult = jaxe.fmod_dsp_get_cpu_usage(dsp, cpu);
+    check('s3_dsp_cpu_usage_shape', cpuResult === jaxe.FMOD.OK || cpuResult === 1,
+        `result=${cpuResult} (BADCOMMAND without profiling init is legitimate)`);
+    jaxe.fmod_dsp_release(dsp);
+    pump(5);
+}

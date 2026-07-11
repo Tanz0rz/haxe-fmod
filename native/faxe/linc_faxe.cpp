@@ -747,7 +747,11 @@ int fmod_dsp_release(int h) {
     FMOD::DSP* dsp = resolveDsp(h);
     if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = dsp->release();
-    if (gLastResult == FMOD_OK) faxe_handle_free(h);
+    if (gLastResult == FMOD_OK) {
+        faxe_handle_free(h);
+        // Releasing a DSP tears down its connections
+        faxe_handles_free_type(FAXE_TYPE_DSPCONN);
+    }
     return (int)gLastResult;
 }
 
@@ -1170,6 +1174,556 @@ int fmod_sys_get_reverb_properties(int instance, ::Array<Float> fbuf) {
     fbuf[9] = (double)props.HighCut;
     fbuf[10] = (double)props.EarlyLateMix;
     fbuf[11] = (double)props.WetLevel;
+    return (int)gLastResult;
+}
+
+//// Core DSP connection graph
+
+static inline FMOD::DSPConnection* resolveDspConn(int h) {
+    return (FMOD::DSPConnection*)faxe_handle_resolve(h, FAXE_TYPE_DSPCONN);
+}
+
+static inline FMOD::Reverb3D* resolveReverb3d(int h) {
+    return (FMOD::Reverb3D*)faxe_handle_resolve(h, FAXE_TYPE_REVERB3D);
+}
+
+int fmod_dsp_add_input(int h, int inputHandle, int type) {
+    FMOD::DSP* dsp = resolveDsp(h);
+    FMOD::DSP* input = resolveDsp(inputHandle);
+    FMOD::DSPConnection* conn = NULL;
+    if (!dsp || !input) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = dsp->addInput(input, &conn, (FMOD_DSPCONNECTION_TYPE)type);
+    if (gLastResult != FMOD_OK || !conn) return 0;
+    return faxe_handle_find_or_alloc(conn, FAXE_TYPE_DSPCONN);
+}
+
+int fmod_dsp_disconnect_from(int h, int inputHandle) {
+    FMOD::DSP* dsp = resolveDsp(h);
+    FMOD::DSP* input = resolveDsp(inputHandle);
+    if (!dsp || !input) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = dsp->disconnectFrom(input, NULL);
+    // The connection object died: reclaim its cached handle before a
+    // recycled address can alias it
+    // Graph changes invalidate connection objects on the mixer's schedule,
+    // so every connection handle is dropped deterministically here
+    if (gLastResult == FMOD_OK) faxe_handles_free_type(FAXE_TYPE_DSPCONN);
+    return (int)gLastResult;
+}
+
+int fmod_dsp_disconnect_all(int h, bool inputs, bool outputs) {
+    FMOD::DSP* dsp = resolveDsp(h);
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = dsp->disconnectAll(inputs, outputs);
+    if (gLastResult == FMOD_OK) faxe_handles_free_type(FAXE_TYPE_DSPCONN);
+    return (int)gLastResult;
+}
+
+int fmod_dsp_get_num_inputs(int h) {
+    FMOD::DSP* dsp = resolveDsp(h);
+    int count = 0;
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = dsp->getNumInputs(&count);
+    return count;
+}
+
+int fmod_dsp_get_num_outputs(int h) {
+    FMOD::DSP* dsp = resolveDsp(h);
+    int count = 0;
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = dsp->getNumOutputs(&count);
+    return count;
+}
+
+int fmod_dsp_get_input_dsp(int h, int index) {
+    FMOD::DSP* dsp = resolveDsp(h);
+    FMOD::DSP* input = NULL;
+    FMOD::DSPConnection* conn = NULL;
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = dsp->getInput(index, &input, &conn);
+    if (gLastResult != FMOD_OK || !input) return 0;
+    return faxe_handle_find_or_alloc(input, FAXE_TYPE_DSP);
+}
+
+int fmod_dsp_get_input_connection(int h, int index) {
+    FMOD::DSP* dsp = resolveDsp(h);
+    FMOD::DSP* input = NULL;
+    FMOD::DSPConnection* conn = NULL;
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = dsp->getInput(index, &input, &conn);
+    if (gLastResult != FMOD_OK || !conn) return 0;
+    return faxe_handle_find_or_alloc(conn, FAXE_TYPE_DSPCONN);
+}
+
+int fmod_dspconn_set_mix(int h, float mix) {
+    FMOD::DSPConnection* conn = resolveDspConn(h);
+    if (!conn) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = conn->setMix(mix);
+    return (int)gLastResult;
+}
+
+float fmod_dspconn_get_mix(int h) {
+    FMOD::DSPConnection* conn = resolveDspConn(h);
+    float mix = 0.0f;
+    if (!conn) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0.0f; }
+    gLastResult = conn->getMix(&mix);
+    return mix;
+}
+
+int fmod_dspconn_get_type(int h) {
+    FMOD::DSPConnection* conn = resolveDspConn(h);
+    FMOD_DSPCONNECTION_TYPE type = FMOD_DSPCONNECTION_TYPE_STANDARD;
+    if (!conn) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = conn->getType(&type);
+    return (int)type;
+}
+
+//// Core channel group nesting
+
+int fmod_cg_add_group(int h, int childHandle) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    FMOD::ChannelGroup* child = resolveChanGroup(childHandle);
+    if (!group || !child) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = group->addGroup(child, true, NULL);
+    return (int)gLastResult;
+}
+
+int fmod_cg_get_num_groups(int h) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    int count = 0;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = group->getNumGroups(&count);
+    return count;
+}
+
+int fmod_cg_get_group(int h, int index) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    FMOD::ChannelGroup* child = NULL;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = group->getGroup(index, &child);
+    if (gLastResult != FMOD_OK || !child) return 0;
+    return faxe_handle_find_or_alloc(child, FAXE_TYPE_CHANGROUP);
+}
+
+int fmod_cg_get_parent_group(int h) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    FMOD::ChannelGroup* parent = NULL;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = group->getParentGroup(&parent);
+    if (gLastResult != FMOD_OK || !parent) return 0;
+    return faxe_handle_find_or_alloc(parent, FAXE_TYPE_CHANGROUP);
+}
+
+//// Core channel spatial and control extras
+
+int fmod_chan_set_mute(int h, bool mute) {
+    FMOD::Channel* ch = resolveChannel(h);
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = ch->setMute(mute);
+    return (int)gLastResult;
+}
+
+bool fmod_chan_get_mute(int h) {
+    FMOD::Channel* ch = resolveChannel(h);
+    bool mute = false;
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return false; }
+    gLastResult = ch->getMute(&mute);
+    return mute;
+}
+
+int fmod_chan_set_low_pass_gain(int h, float gain) {
+    FMOD::Channel* ch = resolveChannel(h);
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = ch->setLowPassGain(gain);
+    return (int)gLastResult;
+}
+
+int fmod_chan_set_mode(int h, int mode) {
+    FMOD::Channel* ch = resolveChannel(h);
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = ch->setMode((FMOD_MODE)mode);
+    return (int)gLastResult;
+}
+
+int fmod_chan_set_3d_cone_settings(int h, float insideAngle, float outsideAngle, float outsideVolume) {
+    FMOD::Channel* ch = resolveChannel(h);
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = ch->set3DConeSettings(insideAngle, outsideAngle, outsideVolume);
+    return (int)gLastResult;
+}
+
+int fmod_chan_set_3d_cone_orientation(int h, float x, float y, float z) {
+    FMOD::Channel* ch = resolveChannel(h);
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    FMOD_VECTOR direction = { x, y, z };
+    gLastResult = ch->set3DConeOrientation(&direction);
+    return (int)gLastResult;
+}
+
+int fmod_chan_set_3d_occlusion(int h, float direct, float reverb) {
+    FMOD::Channel* ch = resolveChannel(h);
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = ch->set3DOcclusion(direct, reverb);
+    return (int)gLastResult;
+}
+
+// fbuf out: [0]=direct [1]=reverb
+int fmod_chan_get_3d_occlusion(int h, ::Array<Float> fbuf) {
+    FMOD::Channel* ch = resolveChannel(h);
+    float direct = 0.0f;
+    float reverb = 0.0f;
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = ch->get3DOcclusion(&direct, &reverb);
+    fbuf[0] = (double)direct;
+    fbuf[1] = (double)reverb;
+    return (int)gLastResult;
+}
+
+int fmod_chan_set_3d_spread(int h, float angle) {
+    FMOD::Channel* ch = resolveChannel(h);
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = ch->set3DSpread(angle);
+    return (int)gLastResult;
+}
+
+int fmod_chan_set_3d_level(int h, float level) {
+    FMOD::Channel* ch = resolveChannel(h);
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = ch->set3DLevel(level);
+    return (int)gLastResult;
+}
+
+int fmod_chan_set_3d_doppler_level(int h, float level) {
+    FMOD::Channel* ch = resolveChannel(h);
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = ch->set3DDopplerLevel(level);
+    return (int)gLastResult;
+}
+
+// fbuf in: out*in gains row-major
+int fmod_chan_set_mix_matrix(int h, ::Array<Float> fbuf, int outChannels, int inChannels) {
+    FMOD::Channel* ch = resolveChannel(h);
+    float matrix[32 * 32];
+    int total = outChannels * inChannels;
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    if (total < 0 || total > 32 * 32) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    for (int i = 0; i < total; i++) matrix[i] = (float)fbuf[i];
+    gLastResult = ch->setMixMatrix(matrix, outChannels, inChannels, 0);
+    return (int)gLastResult;
+}
+
+//// Core scheduling (DSP clocks cross as doubles: exact to 2^53 samples)
+
+// fbuf out: [0]=channel clock [1]=parent group clock
+int fmod_chan_get_dsp_clock(int h, ::Array<Float> fbuf) {
+    FMOD::Channel* ch = resolveChannel(h);
+    unsigned long long clock = 0;
+    unsigned long long parent = 0;
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = ch->getDSPClock(&clock, &parent);
+    fbuf[0] = (double)clock;
+    fbuf[1] = (double)parent;
+    return (int)gLastResult;
+}
+
+int fmod_chan_set_delay(int h, double startClock, double endClock, bool stopChannels) {
+    FMOD::Channel* ch = resolveChannel(h);
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = ch->setDelay((unsigned long long)startClock, (unsigned long long)endClock, stopChannels);
+    return (int)gLastResult;
+}
+
+int fmod_chan_add_fade_point(int h, double clock, float volume) {
+    FMOD::Channel* ch = resolveChannel(h);
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = ch->addFadePoint((unsigned long long)clock, volume);
+    return (int)gLastResult;
+}
+
+int fmod_chan_set_fade_point_ramp(int h, double clock, float volume) {
+    FMOD::Channel* ch = resolveChannel(h);
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = ch->setFadePointRamp((unsigned long long)clock, volume);
+    return (int)gLastResult;
+}
+
+int fmod_chan_remove_fade_points(int h, double startClock, double endClock) {
+    FMOD::Channel* ch = resolveChannel(h);
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = ch->removeFadePoints((unsigned long long)startClock, (unsigned long long)endClock);
+    return (int)gLastResult;
+}
+
+int fmod_cg_get_dsp_clock(int h, ::Array<Float> fbuf) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    unsigned long long clock = 0;
+    unsigned long long parent = 0;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = group->getDSPClock(&clock, &parent);
+    fbuf[0] = (double)clock;
+    fbuf[1] = (double)parent;
+    return (int)gLastResult;
+}
+
+int fmod_cg_set_delay(int h, double startClock, double endClock, bool stopChannels) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = group->setDelay((unsigned long long)startClock, (unsigned long long)endClock, stopChannels);
+    return (int)gLastResult;
+}
+
+int fmod_cg_add_fade_point(int h, double clock, float volume) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = group->addFadePoint((unsigned long long)clock, volume);
+    return (int)gLastResult;
+}
+
+int fmod_cg_set_fade_point_ramp(int h, double clock, float volume) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = group->setFadePointRamp((unsigned long long)clock, volume);
+    return (int)gLastResult;
+}
+
+int fmod_cg_remove_fade_points(int h, double startClock, double endClock) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = group->removeFadePoints((unsigned long long)startClock, (unsigned long long)endClock);
+    return (int)gLastResult;
+}
+
+//// Core reverb zones
+
+int fmod_sys_create_reverb3d() {
+    FMOD::Reverb3D* reverb = NULL;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    gLastResult = gCoreSystem->createReverb3D(&reverb);
+    if (gLastResult != FMOD_OK || !reverb) return 0;
+    return faxe_handle_alloc(reverb, FAXE_TYPE_REVERB3D);
+}
+
+int fmod_r3d_release(int h) {
+    FMOD::Reverb3D* reverb = resolveReverb3d(h);
+    if (!reverb) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = reverb->release();
+    if (gLastResult == FMOD_OK) faxe_handle_free(h);
+    return (int)gLastResult;
+}
+
+int fmod_r3d_set_3d_attributes(int h, float x, float y, float z, float minDist, float maxDist) {
+    FMOD::Reverb3D* reverb = resolveReverb3d(h);
+    if (!reverb) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    FMOD_VECTOR position = { x, y, z };
+    gLastResult = reverb->set3DAttributes(&position, minDist, maxDist);
+    return (int)gLastResult;
+}
+
+// fbuf: 12 reverb property floats, DecayTime..WetLevel in header order
+int fmod_r3d_set_properties(int h, ::Array<Float> fbuf) {
+    FMOD::Reverb3D* reverb = resolveReverb3d(h);
+    if (!reverb) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    FMOD_REVERB_PROPERTIES props;
+    props.DecayTime = (float)fbuf[0];
+    props.EarlyDelay = (float)fbuf[1];
+    props.LateDelay = (float)fbuf[2];
+    props.HFReference = (float)fbuf[3];
+    props.HFDecayRatio = (float)fbuf[4];
+    props.Diffusion = (float)fbuf[5];
+    props.Density = (float)fbuf[6];
+    props.LowShelfFrequency = (float)fbuf[7];
+    props.LowShelfGain = (float)fbuf[8];
+    props.HighCut = (float)fbuf[9];
+    props.EarlyLateMix = (float)fbuf[10];
+    props.WetLevel = (float)fbuf[11];
+    gLastResult = reverb->setProperties(&props);
+    return (int)gLastResult;
+}
+
+int fmod_r3d_get_properties(int h, ::Array<Float> fbuf) {
+    FMOD::Reverb3D* reverb = resolveReverb3d(h);
+    if (!reverb) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    FMOD_REVERB_PROPERTIES props;
+    memset(&props, 0, sizeof(props));
+    gLastResult = reverb->getProperties(&props);
+    if (gLastResult != FMOD_OK) return (int)gLastResult;
+    fbuf[0] = (double)props.DecayTime;
+    fbuf[1] = (double)props.EarlyDelay;
+    fbuf[2] = (double)props.LateDelay;
+    fbuf[3] = (double)props.HFReference;
+    fbuf[4] = (double)props.HFDecayRatio;
+    fbuf[5] = (double)props.Diffusion;
+    fbuf[6] = (double)props.Density;
+    fbuf[7] = (double)props.LowShelfFrequency;
+    fbuf[8] = (double)props.LowShelfGain;
+    fbuf[9] = (double)props.HighCut;
+    fbuf[10] = (double)props.EarlyLateMix;
+    fbuf[11] = (double)props.WetLevel;
+    return (int)gLastResult;
+}
+
+int fmod_r3d_set_active(int h, bool active) {
+    FMOD::Reverb3D* reverb = resolveReverb3d(h);
+    if (!reverb) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = reverb->setActive(active);
+    return (int)gLastResult;
+}
+
+//// Core sound surface
+
+int fmod_core_create_sound_pcm(::Array<unsigned char> data, int len, int sampleRate, int channels) {
+    FMOD::Sound* sound = NULL;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    if (data == null() || len <= 0 || len > data->length || sampleRate <= 0 || channels < 1 || channels > 2) {
+        gLastResult = FMOD_ERR_INVALID_PARAM;
+        return 0;
+    }
+    FMOD_CREATESOUNDEXINFO exinfo;
+    memset(&exinfo, 0, sizeof(exinfo));
+    exinfo.cbsize = sizeof(exinfo);
+    exinfo.length = (unsigned int)len;
+    exinfo.numchannels = channels;
+    exinfo.defaultfrequency = sampleRate;
+    exinfo.format = FMOD_SOUND_FORMAT_PCM16;
+    gLastResult = gCoreSystem->createSound((const char*)&data[0], FMOD_OPENMEMORY | FMOD_OPENRAW, &exinfo, &sound);
+    if (gLastResult != FMOD_OK || !sound) return 0;
+    return faxe_handle_alloc(sound, FAXE_TYPE_SOUND);
+}
+
+int fmod_core_play_sound(int h, bool startPaused) {
+    FMOD::Sound* sound = resolveSound(h);
+    FMOD::Channel* channel = NULL;
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    gLastResult = gCoreSystem->playSound(sound, NULL, startPaused, &channel);
+    if (gLastResult != FMOD_OK || !channel) return 0;
+    return faxe_handle_alloc(channel, FAXE_TYPE_CHAN);
+}
+
+int fmod_sound_set_defaults(int h, float frequency, int priority) {
+    FMOD::Sound* sound = resolveSound(h);
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = sound->setDefaults(frequency, priority);
+    return (int)gLastResult;
+}
+
+// fbuf out: [0]=frequency [1]=priority
+int fmod_sound_get_defaults(int h, ::Array<Float> fbuf) {
+    FMOD::Sound* sound = resolveSound(h);
+    float frequency = 0.0f;
+    int priority = 0;
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = sound->getDefaults(&frequency, &priority);
+    fbuf[0] = (double)frequency;
+    fbuf[1] = (double)priority;
+    return (int)gLastResult;
+}
+
+int fmod_sound_set_loop_points(int h, int startMs, int endMs) {
+    FMOD::Sound* sound = resolveSound(h);
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = sound->setLoopPoints((unsigned int)startMs, FMOD_TIMEUNIT_MS, (unsigned int)endMs, FMOD_TIMEUNIT_MS);
+    return (int)gLastResult;
+}
+
+// ibuf out: [0]=loop start ms [1]=loop end ms
+int fmod_sound_get_loop_points(int h, ::Array<int> ibuf) {
+    FMOD::Sound* sound = resolveSound(h);
+    unsigned int start = 0;
+    unsigned int end = 0;
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = sound->getLoopPoints(&start, FMOD_TIMEUNIT_MS, &end, FMOD_TIMEUNIT_MS);
+    ibuf[0] = (int)start;
+    ibuf[1] = (int)end;
+    return (int)gLastResult;
+}
+
+int fmod_sound_set_mode(int h, int mode) {
+    FMOD::Sound* sound = resolveSound(h);
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = sound->setMode((FMOD_MODE)mode);
+    return (int)gLastResult;
+}
+
+int fmod_sound_get_mode(int h) {
+    FMOD::Sound* sound = resolveSound(h);
+    FMOD_MODE mode = 0;
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = sound->getMode(&mode);
+    return (int)mode;
+}
+
+// ibuf out: [0]=channels [1]=bits
+int fmod_sound_get_format(int h, ::Array<int> ibuf) {
+    FMOD::Sound* sound = resolveSound(h);
+    FMOD_SOUND_TYPE type = FMOD_SOUND_TYPE_UNKNOWN;
+    FMOD_SOUND_FORMAT format = FMOD_SOUND_FORMAT_NONE;
+    int channels = 0;
+    int bits = 0;
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = sound->getFormat(&type, &format, &channels, &bits);
+    ibuf[0] = channels;
+    ibuf[1] = bits;
+    return (int)gLastResult;
+}
+
+int fmod_sound_get_open_state(int h) {
+    FMOD::Sound* sound = resolveSound(h);
+    FMOD_OPENSTATE state = FMOD_OPENSTATE_READY;
+    unsigned int buffered = 0;
+    bool starving = false;
+    bool diskBusy = false;
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    gLastResult = sound->getOpenState(&state, &buffered, &starving, &diskBusy);
+    return gLastResult == FMOD_OK ? (int)state : -1;
+}
+
+//// Core system extras (slice 3)
+
+// ibuf out: [0]=all channels [1]=real (audible) channels
+int fmod_sys_get_channels_playing(::Array<int> ibuf) {
+    int all = 0;
+    int real = 0;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = gCoreSystem->getChannelsPlaying(&all, &real);
+    ibuf[0] = all;
+    ibuf[1] = real;
+    return (int)gLastResult;
+}
+
+int fmod_sys_mixer_suspend() {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = gCoreSystem->mixerSuspend();
+    return (int)gLastResult;
+}
+
+int fmod_sys_mixer_resume() {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = gCoreSystem->mixerResume();
+    return (int)gLastResult;
+}
+
+// ibuf out: [0]=sample rate [1]=speaker mode [2]=raw speaker count
+int fmod_sys_get_software_format(::Array<int> ibuf) {
+    int rate = 0;
+    FMOD_SPEAKERMODE mode = FMOD_SPEAKERMODE_DEFAULT;
+    int raw = 0;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = gCoreSystem->getSoftwareFormat(&rate, &mode, &raw);
+    ibuf[0] = rate;
+    ibuf[1] = (int)mode;
+    ibuf[2] = raw;
+    return (int)gLastResult;
+}
+
+// ibuf out: [0]=exclusive us [1]=inclusive us (needs profiling enabled)
+int fmod_dsp_get_cpu_usage(int h, ::Array<int> ibuf) {
+    FMOD::DSP* dsp = resolveDsp(h);
+    unsigned int exclusive = 0;
+    unsigned int inclusive = 0;
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = dsp->getCPUUsage(&exclusive, &inclusive);
+    ibuf[0] = (int)exclusive;
+    ibuf[1] = (int)inclusive;
     return (int)gLastResult;
 }
 
@@ -2622,7 +3176,7 @@ int fmod_debug_live_handle_count() {
 
 int fmod_binding_abi_version() {
     // Keep in lockstep with the manifest header "# abi-version:"
-    return 4;
+    return 5;
 }
 
 } // namespace faxe

@@ -299,6 +299,77 @@ extern int fmod_sys_set_reverb_properties(int instance, ::Array<Float> fbuf);
 extern int fmod_sys_get_reverb_properties(int instance, ::Array<Float> fbuf);
 extern int fmod_core_pcm_create_3d(int sampleRate, int channels, int ringBytes);
 
+// Core DSP connection graph
+extern int fmod_dsp_add_input(int handle, int inputHandle, int type);
+extern int fmod_dsp_disconnect_from(int handle, int inputHandle);
+extern int fmod_dsp_disconnect_all(int handle, bool inputs, bool outputs);
+extern int fmod_dsp_get_num_inputs(int handle);
+extern int fmod_dsp_get_num_outputs(int handle);
+extern int fmod_dsp_get_input_dsp(int handle, int index);
+extern int fmod_dsp_get_input_connection(int handle, int index);
+extern int fmod_dspconn_set_mix(int handle, float mix);
+extern float fmod_dspconn_get_mix(int handle);
+extern int fmod_dspconn_get_type(int handle);
+
+// Core channel group nesting
+extern int fmod_cg_add_group(int handle, int childHandle);
+extern int fmod_cg_get_num_groups(int handle);
+extern int fmod_cg_get_group(int handle, int index);
+extern int fmod_cg_get_parent_group(int handle);
+
+// Core channel spatial and control extras
+extern int fmod_chan_set_mute(int handle, bool mute);
+extern bool fmod_chan_get_mute(int handle);
+extern int fmod_chan_set_low_pass_gain(int handle, float gain);
+extern int fmod_chan_set_mode(int handle, int mode);
+extern int fmod_chan_set_3d_cone_settings(int handle, float insideAngle, float outsideAngle, float outsideVolume);
+extern int fmod_chan_set_3d_cone_orientation(int handle, float x, float y, float z);
+extern int fmod_chan_set_3d_occlusion(int handle, float direct, float reverb);
+extern int fmod_chan_get_3d_occlusion(int handle, ::Array<Float> fbuf);
+extern int fmod_chan_set_3d_spread(int handle, float angle);
+extern int fmod_chan_set_3d_level(int handle, float level);
+extern int fmod_chan_set_3d_doppler_level(int handle, float level);
+extern int fmod_chan_set_mix_matrix(int handle, ::Array<Float> fbuf, int outChannels, int inChannels);
+
+// Core scheduling
+extern int fmod_chan_get_dsp_clock(int handle, ::Array<Float> fbuf);
+extern int fmod_chan_set_delay(int handle, double startClock, double endClock, bool stopChannels);
+extern int fmod_chan_add_fade_point(int handle, double clock, float volume);
+extern int fmod_chan_set_fade_point_ramp(int handle, double clock, float volume);
+extern int fmod_chan_remove_fade_points(int handle, double startClock, double endClock);
+extern int fmod_cg_get_dsp_clock(int handle, ::Array<Float> fbuf);
+extern int fmod_cg_set_delay(int handle, double startClock, double endClock, bool stopChannels);
+extern int fmod_cg_add_fade_point(int handle, double clock, float volume);
+extern int fmod_cg_set_fade_point_ramp(int handle, double clock, float volume);
+extern int fmod_cg_remove_fade_points(int handle, double startClock, double endClock);
+
+// Core reverb zones
+extern int fmod_sys_create_reverb3d();
+extern int fmod_r3d_release(int handle);
+extern int fmod_r3d_set_3d_attributes(int handle, float x, float y, float z, float minDist, float maxDist);
+extern int fmod_r3d_set_properties(int handle, ::Array<Float> fbuf);
+extern int fmod_r3d_get_properties(int handle, ::Array<Float> fbuf);
+extern int fmod_r3d_set_active(int handle, bool active);
+
+// Core sound surface
+extern int fmod_core_create_sound_pcm(::Array<unsigned char> data, int len, int sampleRate, int channels);
+extern int fmod_core_play_sound(int handle, bool startPaused);
+extern int fmod_sound_set_defaults(int handle, float frequency, int priority);
+extern int fmod_sound_get_defaults(int handle, ::Array<Float> fbuf);
+extern int fmod_sound_set_loop_points(int handle, int startMs, int endMs);
+extern int fmod_sound_get_loop_points(int handle, ::Array<int> ibuf);
+extern int fmod_sound_set_mode(int handle, int mode);
+extern int fmod_sound_get_mode(int handle);
+extern int fmod_sound_get_format(int handle, ::Array<int> ibuf);
+extern int fmod_sound_get_open_state(int handle);
+
+// Core system extras (slice 3)
+extern int fmod_sys_get_channels_playing(::Array<int> ibuf);
+extern int fmod_sys_mixer_suspend();
+extern int fmod_sys_mixer_resume();
+extern int fmod_sys_get_software_format(::Array<int> ibuf);
+extern int fmod_dsp_get_cpu_usage(int handle, ::Array<int> ibuf);
+
 //// Debug
 extern int fmod_debug_live_handle_count();
 extern int fmod_binding_abi_version();
