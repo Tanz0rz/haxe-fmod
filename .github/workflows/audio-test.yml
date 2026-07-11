@@ -428,16 +428,12 @@ jobs:
           cd example-project/EZPlatformer
           haxelib run haxefmod check || true
 
-      # ABI 4 rollout bootstrap: the committed pre-built hdlls still carry
-      # ABI 3, so this build must stop with the binding mismatch error until
-      # update-hdlls regenerates them. The follow-up commit restores the
-      # normal pre-built assertion.
-      - name: Build HashLink target (expect binding ABI mismatch)
+      - name: Build HashLink target (pre-built hdll)
         run: |
           cd example-project/EZPlatformer
-          haxelib run lime build hl 2>&1 | tee /tmp/build-prebuilt.log || true
-          grep -q "ERROR: hlaxe_fmod.hdll binding version mismatch" /tmp/build-prebuilt.log
-          echo "Verified: pre-built hdll was rejected on binding ABI mismatch"
+          haxelib run lime build hl 2>&1 | tee /tmp/build-prebuilt.log
+          grep -q "(pre-built)" /tmp/build-prebuilt.log
+          echo "Verified: pre-built hdll was used"
 
       - name: Build custom hdll via build-hdll
         run: |
@@ -1548,16 +1544,12 @@ jobs:
           cd example-project/EZPlatformer
           haxelib run haxefmod check || true
 
-      # ABI 4 rollout bootstrap: the committed pre-built hdlls still carry
-      # ABI 3, so this build must stop with the binding mismatch error until
-      # update-hdlls regenerates them. The follow-up commit restores the
-      # normal pre-built assertion.
-      - name: Build HashLink target (expect binding ABI mismatch)
+      - name: Build HashLink target (pre-built hdll)
         run: |
           cd example-project/EZPlatformer
-          haxelib run lime build hl 2>&1 | tee /tmp/build-prebuilt.log || true
-          grep -q "ERROR: hlaxe_fmod.hdll binding version mismatch" /tmp/build-prebuilt.log
-          echo "Verified: pre-built hdll was rejected on binding ABI mismatch"
+          haxelib run lime build hl 2>&1 | tee /tmp/build-prebuilt.log
+          grep -q "(pre-built)" /tmp/build-prebuilt.log
+          echo "Verified: pre-built hdll was used"
 
       - name: Build custom hdll via build-hdll
         run: |
@@ -2125,16 +2117,12 @@ jobs:
           cd example-project/EZPlatformer
           haxelib run haxefmod check || true
 
-      # ABI 4 rollout bootstrap: the committed pre-built hdlls still carry
-      # ABI 3, so this build must stop with the binding mismatch error until
-      # update-hdlls regenerates them. The follow-up commit restores the
-      # normal pre-built assertion.
-      - name: Build HashLink target (expect binding ABI mismatch)
+      - name: Build HashLink target (pre-built hdll)
         run: |
           cd example-project/EZPlatformer
-          haxelib run lime build hl 2>&1 | tee /tmp/build-prebuilt.log || true
-          grep -q "ERROR: hlaxe_fmod.hdll binding version mismatch" /tmp/build-prebuilt.log
-          echo "Verified: pre-built hdll was rejected on binding ABI mismatch"
+          haxelib run lime build hl 2>&1 | tee /tmp/build-prebuilt.log
+          grep -q "(pre-built)" /tmp/build-prebuilt.log
+          echo "Verified: pre-built hdll was used"
 
       - name: Build custom hdll via build-hdll
         shell: cmd
@@ -2869,18 +2857,12 @@ jobs:
           sudo ldconfig
           hl --version || echo "HashLink installed"
 
-      # ABI 4 rollout bootstrap: same as the HL jobs, the packaged prebuilts
-      # are still ABI 3 until update-hdlls regenerates them.
       - name: Build HashLink target from the installed package
         run: |
           cd example-project/EZPlatformer
-          haxelib run lime build hl 2>&1 | tee /tmp/package-build.log || true
-          grep -q "ERROR: hlaxe_fmod.hdll binding version mismatch" /tmp/package-build.log
-          echo "Verified: packaged pre-built hdll was rejected on binding ABI mismatch"
-          haxelib run haxefmod build-hdll
-          haxelib run lime build hl 2>&1 | tee /tmp/package-build2.log
-          grep -q "(custom-compiled from .haxefmod/)" /tmp/package-build2.log
-          echo "Verified: hdll compiled from the installed package sources was used"
+          haxelib run lime build hl 2>&1 | tee /tmp/package-build.log
+          grep -q "(pre-built)" /tmp/package-build.log
+          echo "Verified: pre-built hdll resolved from the installed package"
 
       - name: Validate build output
         run: |
