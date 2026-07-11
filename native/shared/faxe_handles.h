@@ -35,6 +35,8 @@
 #define FAXE_TYPE_BUS   4  /* Studio Bus */
 #define FAXE_TYPE_VCA   5  /* Studio VCA */
 #define FAXE_TYPE_SOUND 6  /* Core Sound (programmer sounds only) */
+#define FAXE_TYPE_PCM   7  /* Core PCM stream (OPENUSER sound + ring) */
+#define FAXE_TYPE_CHAN  8  /* Core Channel */
 
 #define FAXE_MAX_SLOTS 0x10000
 /* Max entries any list getter returns in one call. The Haxe-side scratch

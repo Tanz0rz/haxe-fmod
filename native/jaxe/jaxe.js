@@ -31,6 +31,8 @@ class jaxe {
     static TYPE_BUS = 4;
     static TYPE_VCA = 5;
     static TYPE_SOUND = 6;
+    static TYPE_PCM = 7;
+    static TYPE_CHAN = 8;
     static LIST_MAX = 1024;
     static slots = [];       // {ptr, raw, gen, type, alive}
     static freeList = [];    // stack of free slot indices
@@ -2087,6 +2089,189 @@ class jaxe {
         return outval.val | 0;
     }
 
+    //// Core PCM streams (user-generated audio)
+
+    // The JS mirror of the native ring contract. Single-threaded, so plain
+    // fields need no locking. The pcmread callback drains it and pads a
+    // shortfall with silence, counting the underrun.
+    static pcmRingRead(ring, dataPtr, datalen) {
+        var have = ring.fill < datalen ? ring.fill : datalen;
+        var heap = jaxe.FMOD.HEAPU8;
+        var first = ring.buf.length - ring.readPos;
+        if (first > have) first = have;
+        heap.set(ring.buf.subarray(ring.readPos, ring.readPos + first), dataPtr);
+        if (have > first) heap.set(ring.buf.subarray(0, have - first), dataPtr + first);
+        ring.readPos = (ring.readPos + have) % ring.buf.length;
+        ring.fill -= have;
+        if (have < datalen) {
+            heap.fill(0, dataPtr + have, dataPtr + datalen);
+            ring.underruns++;
+        }
+        return have;
+    }
+
+    static fmod_core_pcm_create(sampleRate, channels, ringBytes) {
+        if (!jaxe.FmodIsInitialized) { jaxe.lastResult = jaxe.ERR_STUDIO_UNINITIALIZED; return 0; }
+        if (sampleRate <= 0 || channels < 1 || channels > 2 || ringBytes <= 0) {
+            jaxe.lastResult = jaxe.ERR_INVALID_PARAM;
+            return 0;
+        }
+        var ring = {
+            buf: new Uint8Array(ringBytes),
+            readPos: 0,
+            writePos: 0,
+            fill: 0,
+            underruns: 0,
+        };
+        var exinfo = jaxe.FMOD.CREATESOUNDEXINFO();
+        exinfo.numchannels = channels;
+        exinfo.defaultfrequency = sampleRate;
+        exinfo.format = jaxe.FMOD.SOUND_FORMAT_PCM16;
+        exinfo.decodebuffersize = 4096;
+        exinfo.length = sampleRate * channels * 2; // a one second window
+        exinfo.pcmreadcallback = function (sound, data, datalen) {
+            jaxe.pcmRingRead(ring, data, datalen);
+            return jaxe.FMOD.OK;
+        };
+        var soundOut = {};
+        jaxe.lastResult = jaxe.gSystemCore.createSound('',
+            (jaxe.FMOD.OPENUSER | jaxe.FMOD.LOOP_NORMAL | jaxe.FMOD.CREATESTREAM) >>> 0,
+            exinfo, soundOut);
+        if (jaxe.lastResult != jaxe.FMOD.OK || !soundOut.val) return 0;
+        var ps = { sound: soundOut.val, ring: ring };
+        var handle = jaxe.handleAlloc(ps, jaxe.TYPE_PCM);
+        if (handle == 0) {
+            soundOut.val.release();
+            return 0;
+        }
+        return handle;
+    }
+
+    static fmod_core_pcm_write(handle, data, len) {
+        var ps = jaxe.handleResolve(handle, jaxe.TYPE_PCM);
+        if (!ps) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }
+        if (!data || len <= 0) { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return 0; }
+        var src = new Uint8Array(data, 0, Math.min(len, data.byteLength));
+        var ring = ps.ring;
+        var space = ring.buf.length - ring.fill;
+        var n = src.length < space ? src.length : space;
+        var first = ring.buf.length - ring.writePos;
+        if (first > n) first = n;
+        ring.buf.set(src.subarray(0, first), ring.writePos);
+        if (n > first) ring.buf.set(src.subarray(first, n), 0);
+        ring.writePos = (ring.writePos + n) % ring.buf.length;
+        ring.fill += n;
+        jaxe.lastResult = jaxe.FMOD.OK;
+        return n;
+    }
+
+    static fmod_core_pcm_space(handle) {
+        var ps = jaxe.handleResolve(handle, jaxe.TYPE_PCM);
+        if (!ps) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }
+        return ps.ring.buf.length - ps.ring.fill;
+    }
+
+    static fmod_core_pcm_underruns(handle) {
+        var ps = jaxe.handleResolve(handle, jaxe.TYPE_PCM);
+        if (!ps) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }
+        var n = ps.ring.underruns;
+        ps.ring.underruns = 0;
+        return n;
+    }
+
+    static fmod_core_pcm_play(handle, paused) {
+        var ps = jaxe.handleResolve(handle, jaxe.TYPE_PCM);
+        if (!ps) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }
+        var chOut = {};
+        jaxe.lastResult = jaxe.gSystemCore.playSound(ps.sound, null, !!paused, chOut);
+        if (jaxe.lastResult != jaxe.FMOD.OK || !chOut.val) return 0;
+        var ch = jaxe.handleAlloc(chOut.val, jaxe.TYPE_CHAN);
+        if (ch == 0) {
+            chOut.val.stop();
+            return 0;
+        }
+        return ch;
+    }
+
+    static fmod_core_pcm_release(handle) {
+        var ps = jaxe.handleResolve(handle, jaxe.TYPE_PCM);
+        if (!ps) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = ps.sound.release();
+        if (jaxe.lastResult != jaxe.FMOD.OK) return jaxe.lastResult;
+        ps.ring = null;
+        jaxe.handleFree(handle);
+        return jaxe.lastResult;
+    }
+
+    //// Core channels
+
+    static resolveChan(handle) {
+        return jaxe.handleResolve(handle, jaxe.TYPE_CHAN);
+    }
+
+    static fmod_chan_set_volume(handle, volume) {
+        var ch = jaxe.resolveChan(handle);
+        if (!ch) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = ch.setVolume(volume);
+        return jaxe.lastResult;
+    }
+
+    static fmod_chan_get_volume(handle) {
+        var ch = jaxe.resolveChan(handle);
+        if (!ch) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0.0; }
+        var out = {};
+        jaxe.lastResult = ch.getVolume(out);
+        return jaxe.lastResult == jaxe.FMOD.OK ? out.val : 0.0;
+    }
+
+    static fmod_chan_set_pitch(handle, pitch) {
+        var ch = jaxe.resolveChan(handle);
+        if (!ch) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = ch.setPitch(pitch);
+        return jaxe.lastResult;
+    }
+
+    static fmod_chan_get_pitch(handle) {
+        var ch = jaxe.resolveChan(handle);
+        if (!ch) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0.0; }
+        var out = {};
+        jaxe.lastResult = ch.getPitch(out);
+        return jaxe.lastResult == jaxe.FMOD.OK ? out.val : 0.0;
+    }
+
+    static fmod_chan_set_paused(handle, paused) {
+        var ch = jaxe.resolveChan(handle);
+        if (!ch) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = ch.setPaused(!!paused);
+        return jaxe.lastResult;
+    }
+
+    static fmod_chan_get_paused(handle) {
+        var ch = jaxe.resolveChan(handle);
+        if (!ch) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return false; }
+        var out = {};
+        jaxe.lastResult = ch.getPaused(out);
+        return jaxe.lastResult == jaxe.FMOD.OK ? !!out.val : false;
+    }
+
+    static fmod_chan_is_playing(handle) {
+        var ch = jaxe.resolveChan(handle);
+        if (!ch) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return false; }
+        var out = {};
+        jaxe.lastResult = ch.isPlaying(out);
+        return jaxe.lastResult == jaxe.FMOD.OK ? !!out.val : false;
+    }
+
+    static fmod_chan_stop(handle) {
+        var ch = jaxe.resolveChan(handle);
+        if (!ch) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        // The channel is finished either way, so the slot is freed even
+        // when FMOD reports the channel already gone
+        jaxe.lastResult = ch.stop();
+        jaxe.handleFree(handle);
+        return jaxe.lastResult;
+    }
+
     //// Debug
 
     static fmod_debug_live_handle_count() {
@@ -2095,7 +2280,7 @@ class jaxe {
 
     static fmod_binding_abi_version() {
         // Keep in lockstep with the manifest header "# abi-version:"
-        return 2;
+        return 3;
     }
 
     //// Initialization (Emscripten-specific, must stay here)

@@ -220,6 +220,24 @@ extern int fmod_core_create_sound(const ::String& path, int mode);
 extern int fmod_core_release_sound(int handle);
 extern int fmod_core_get_sound_length(int handle);
 
+//// Core PCM streams
+extern int fmod_core_pcm_create(int sampleRate, int channels, int ringBytes);
+extern int fmod_core_pcm_write(int handle, ::Array<unsigned char> data, int len);
+extern int fmod_core_pcm_space(int handle);
+extern int fmod_core_pcm_underruns(int handle);
+extern int fmod_core_pcm_play(int handle, bool paused);
+extern int fmod_core_pcm_release(int handle);
+
+//// Core channels
+extern int fmod_chan_set_volume(int handle, float volume);
+extern float fmod_chan_get_volume(int handle);
+extern int fmod_chan_set_pitch(int handle, float pitch);
+extern float fmod_chan_get_pitch(int handle);
+extern int fmod_chan_set_paused(int handle, bool paused);
+extern bool fmod_chan_get_paused(int handle);
+extern bool fmod_chan_is_playing(int handle);
+extern int fmod_chan_stop(int handle);
+
 //// Debug
 extern int fmod_debug_live_handle_count();
 extern int fmod_binding_abi_version();

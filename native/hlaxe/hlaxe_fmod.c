@@ -12,6 +12,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include "../shared/faxe_handles.h"
+#include "../shared/faxe_pcmring.h"
 #include "../shared/faxe_guid.h"
 #include "../shared/faxe_cbqueue.h"
 #include "../shared/faxe_instctx.h"
@@ -44,7 +45,7 @@ static void* gListBuf[FAXE_LIST_MAX];
 // Binding ABI marker. PostBuild.hx scans compiled hdlls for this string to
 // reject stale pre-built hdlls before they become loader fatals. Keep the
 // number in lockstep with the manifest header "# abi-version:".
-static const char gAbiMarker[] = "hlaxe_fmod_abi=2";
+static const char gAbiMarker[] = "hlaxe_fmod_abi=3";
 
 // Auto-update thread state
 static volatile int gAutoUpdateRunning = 0;
@@ -565,6 +566,203 @@ HL_PRIM int HL_NAME(core_get_sound_length)(int h) {
     return (int)length;
 }
 DEFINE_PRIM(_I32, core_get_sound_length, _I32);
+
+//// Core PCM streams (user-generated audio)
+
+// An OPENUSER looping stream paired with the ring the game thread feeds
+typedef struct {
+    FMOD_SOUND* sound;
+    FaxePcmRing* ring;
+} HlaxePcmStream;
+
+// Mixer thread: plain C, drains the ring (silence-padded on underrun)
+static FMOD_RESULT F_CALLBACK hlaxe_pcmread(FMOD_SOUND* sound, void* data, unsigned int datalen) {
+    void* ud = NULL;
+    FMOD_Sound_GetUserData(sound, &ud);
+    if (ud) {
+        faxe_pcmring_read((FaxePcmRing*)ud, data, (int)datalen);
+    } else {
+        memset(data, 0, datalen);
+    }
+    return FMOD_OK;
+}
+
+static HlaxePcmStream* resolve_pcm(int h) {
+    return (HlaxePcmStream*)faxe_handle_resolve(h, FAXE_TYPE_PCM);
+}
+
+static FMOD_CHANNEL* resolve_channel(int h) {
+    return (FMOD_CHANNEL*)faxe_handle_resolve(h, FAXE_TYPE_CHAN);
+}
+
+HL_PRIM int HL_NAME(core_pcm_create)(int sampleRate, int channels, int ringBytes) {
+    FMOD_CREATESOUNDEXINFO exinfo;
+    HlaxePcmStream* ps;
+    int handle;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    if (sampleRate <= 0 || channels < 1 || channels > 2 || ringBytes <= 0) {
+        gLastResult = FMOD_ERR_INVALID_PARAM;
+        return 0;
+    }
+    ps = (HlaxePcmStream*)malloc(sizeof(HlaxePcmStream));
+    if (!ps) { gLastResult = FMOD_ERR_MEMORY; return 0; }
+    ps->ring = faxe_pcmring_create(ringBytes);
+    if (!ps->ring) { free(ps); gLastResult = FMOD_ERR_MEMORY; return 0; }
+
+    memset(&exinfo, 0, sizeof(exinfo));
+    exinfo.cbsize = sizeof(FMOD_CREATESOUNDEXINFO);
+    exinfo.numchannels = channels;
+    exinfo.defaultfrequency = sampleRate;
+    exinfo.format = FMOD_SOUND_FORMAT_PCM16;
+    exinfo.decodebuffersize = 4096;
+    exinfo.length = (unsigned int)(sampleRate * channels * 2); /* a one second window */
+    exinfo.pcmreadcallback = hlaxe_pcmread;
+    exinfo.userdata = ps->ring;
+
+    gLastResult = FMOD_System_CreateSound(gCoreSystem, NULL,
+        FMOD_OPENUSER | FMOD_LOOP_NORMAL | FMOD_CREATESTREAM, &exinfo, &ps->sound);
+    if (gLastResult != FMOD_OK || !ps->sound) {
+        faxe_pcmring_destroy(ps->ring);
+        free(ps);
+        return 0;
+    }
+    handle = faxe_handle_alloc(ps, FAXE_TYPE_PCM);
+    if (handle == 0) {
+        FMOD_Sound_Release(ps->sound);
+        faxe_pcmring_destroy(ps->ring);
+        free(ps);
+        return 0;
+    }
+    return handle;
+}
+DEFINE_PRIM(_I32, core_pcm_create, _I32 _I32 _I32);
+
+HL_PRIM int HL_NAME(core_pcm_write)(int h, vbyte* data, int len) {
+    HlaxePcmStream* ps = resolve_pcm(h);
+    if (!ps) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = FMOD_OK;
+    return faxe_pcmring_write(ps->ring, data, len);
+}
+DEFINE_PRIM(_I32, core_pcm_write, _I32 _BYTES _I32);
+
+HL_PRIM int HL_NAME(core_pcm_space)(int h) {
+    HlaxePcmStream* ps = resolve_pcm(h);
+    if (!ps) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    return faxe_pcmring_space(ps->ring);
+}
+DEFINE_PRIM(_I32, core_pcm_space, _I32);
+
+HL_PRIM int HL_NAME(core_pcm_underruns)(int h) {
+    HlaxePcmStream* ps = resolve_pcm(h);
+    if (!ps) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    return faxe_pcmring_take_underruns(ps->ring);
+}
+DEFINE_PRIM(_I32, core_pcm_underruns, _I32);
+
+HL_PRIM int HL_NAME(core_pcm_play)(int h, bool paused) {
+    HlaxePcmStream* ps = resolve_pcm(h);
+    FMOD_CHANNEL* channel = NULL;
+    int handle;
+    if (!ps) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = FMOD_System_PlaySound(gCoreSystem, ps->sound, NULL, paused ? 1 : 0, &channel);
+    if (gLastResult != FMOD_OK || !channel) return 0;
+    handle = faxe_handle_alloc(channel, FAXE_TYPE_CHAN);
+    if (handle == 0) {
+        FMOD_Channel_Stop(channel);
+        return 0;
+    }
+    return handle;
+}
+DEFINE_PRIM(_I32, core_pcm_play, _I32 _BOOL);
+
+HL_PRIM int HL_NAME(core_pcm_release)(int h) {
+    HlaxePcmStream* ps = resolve_pcm(h);
+    if (!ps) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    /* Releasing a stream blocks until the mixer is done with it, so the
+     * ring is safe to destroy afterward. Channels playing it stop with
+     * the release and their handles go stale, which resolves safely. */
+    gLastResult = FMOD_Sound_Release(ps->sound);
+    if (gLastResult != FMOD_OK) return (int)gLastResult;
+    faxe_pcmring_destroy(ps->ring);
+    free(ps);
+    faxe_handle_free(h);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, core_pcm_release, _I32);
+
+//// Core channels
+
+HL_PRIM int HL_NAME(chan_set_volume)(int h, double volume) {
+    FMOD_CHANNEL* ch = resolve_channel(h);
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_Channel_SetVolume(ch, (float)volume);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, chan_set_volume, _I32 _F64);
+
+HL_PRIM double HL_NAME(chan_get_volume)(int h) {
+    FMOD_CHANNEL* ch = resolve_channel(h);
+    float volume = 0.0f;
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0.0; }
+    gLastResult = FMOD_Channel_GetVolume(ch, &volume);
+    return (double)volume;
+}
+DEFINE_PRIM(_F64, chan_get_volume, _I32);
+
+HL_PRIM int HL_NAME(chan_set_pitch)(int h, double pitch) {
+    FMOD_CHANNEL* ch = resolve_channel(h);
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_Channel_SetPitch(ch, (float)pitch);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, chan_set_pitch, _I32 _F64);
+
+HL_PRIM double HL_NAME(chan_get_pitch)(int h) {
+    FMOD_CHANNEL* ch = resolve_channel(h);
+    float pitch = 0.0f;
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0.0; }
+    gLastResult = FMOD_Channel_GetPitch(ch, &pitch);
+    return (double)pitch;
+}
+DEFINE_PRIM(_F64, chan_get_pitch, _I32);
+
+HL_PRIM int HL_NAME(chan_set_paused)(int h, bool paused) {
+    FMOD_CHANNEL* ch = resolve_channel(h);
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_Channel_SetPaused(ch, paused ? 1 : 0);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, chan_set_paused, _I32 _BOOL);
+
+HL_PRIM bool HL_NAME(chan_get_paused)(int h) {
+    FMOD_CHANNEL* ch = resolve_channel(h);
+    FMOD_BOOL paused = 0;
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return false; }
+    gLastResult = FMOD_Channel_GetPaused(ch, &paused);
+    return paused != 0;
+}
+DEFINE_PRIM(_BOOL, chan_get_paused, _I32);
+
+HL_PRIM bool HL_NAME(chan_is_playing)(int h) {
+    FMOD_CHANNEL* ch = resolve_channel(h);
+    FMOD_BOOL playing = 0;
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return false; }
+    gLastResult = FMOD_Channel_IsPlaying(ch, &playing);
+    if (gLastResult != FMOD_OK) return false;
+    return playing != 0;
+}
+DEFINE_PRIM(_BOOL, chan_is_playing, _I32);
+
+HL_PRIM int HL_NAME(chan_stop)(int h) {
+    FMOD_CHANNEL* ch = resolve_channel(h);
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    /* The channel is finished either way, so the slot is freed even when
+     * FMOD reports the channel already gone */
+    gLastResult = FMOD_Channel_Stop(ch);
+    faxe_handle_free(h);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, chan_stop, _I32);
 
 // Drain protocol: cb_next pops the oldest queued event into a static slot;
 // the accessors read fields from that slot. Haxe thread only.

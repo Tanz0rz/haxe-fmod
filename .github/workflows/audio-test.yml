@@ -410,12 +410,16 @@ jobs:
           cd example-project/EZPlatformer
           haxelib run haxefmod check || true
 
-      - name: Build HashLink target (pre-built hdll)
+      # ABI 3 rollout bootstrap: the committed pre-built hdlls still carry
+      # ABI 2, so this build must stop with the binding mismatch error until
+      # update-hdlls regenerates them. The follow-up commit restores the
+      # normal pre-built assertion.
+      - name: Build HashLink target (expect binding ABI mismatch)
         run: |
           cd example-project/EZPlatformer
-          haxelib run lime build hl 2>&1 | tee /tmp/build-prebuilt.log
-          grep -q "(pre-built)" /tmp/build-prebuilt.log
-          echo "Verified: pre-built hdll was used"
+          haxelib run lime build hl 2>&1 | tee /tmp/build-prebuilt.log || true
+          grep -q "ERROR: hlaxe_fmod.hdll binding version mismatch" /tmp/build-prebuilt.log
+          echo "Verified: pre-built hdll was rejected on binding ABI mismatch"
 
       - name: Build custom hdll via build-hdll
         run: |
@@ -1462,12 +1466,16 @@ jobs:
           cd example-project/EZPlatformer
           haxelib run haxefmod check || true
 
-      - name: Build HashLink target (pre-built hdll)
+      # ABI 3 rollout bootstrap: the committed pre-built hdlls still carry
+      # ABI 2, so this build must stop with the binding mismatch error until
+      # update-hdlls regenerates them. The follow-up commit restores the
+      # normal pre-built assertion.
+      - name: Build HashLink target (expect binding ABI mismatch)
         run: |
           cd example-project/EZPlatformer
-          haxelib run lime build hl 2>&1 | tee /tmp/build-prebuilt.log
-          grep -q "(pre-built)" /tmp/build-prebuilt.log
-          echo "Verified: pre-built hdll was used"
+          haxelib run lime build hl 2>&1 | tee /tmp/build-prebuilt.log || true
+          grep -q "ERROR: hlaxe_fmod.hdll binding version mismatch" /tmp/build-prebuilt.log
+          echo "Verified: pre-built hdll was rejected on binding ABI mismatch"
 
       - name: Build custom hdll via build-hdll
         run: |
@@ -2020,12 +2028,16 @@ jobs:
           cd example-project/EZPlatformer
           haxelib run haxefmod check || true
 
-      - name: Build HashLink target (pre-built hdll)
+      # ABI 3 rollout bootstrap: the committed pre-built hdlls still carry
+      # ABI 2, so this build must stop with the binding mismatch error until
+      # update-hdlls regenerates them. The follow-up commit restores the
+      # normal pre-built assertion.
+      - name: Build HashLink target (expect binding ABI mismatch)
         run: |
           cd example-project/EZPlatformer
-          haxelib run lime build hl 2>&1 | tee /tmp/build-prebuilt.log
-          grep -q "(pre-built)" /tmp/build-prebuilt.log
-          echo "Verified: pre-built hdll was used"
+          haxelib run lime build hl 2>&1 | tee /tmp/build-prebuilt.log || true
+          grep -q "ERROR: hlaxe_fmod.hdll binding version mismatch" /tmp/build-prebuilt.log
+          echo "Verified: pre-built hdll was rejected on binding ABI mismatch"
 
       - name: Build custom hdll via build-hdll
         shell: cmd
@@ -2458,6 +2470,7 @@ jobs:
           node tests/js/jaxe-harness-full.js
           node tests/js/ps-test.js
           node tests/js/arity-audit.js
+          node tests/js/pcm-harness.js
 
       - name: Run Core dynamic-audio prototype against the real wasm
         env:

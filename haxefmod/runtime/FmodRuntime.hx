@@ -26,7 +26,7 @@ class FmodRuntime {
     static var initStarted:Bool = false;
 
     /** Expected native binding ABI - lockstep with the manifest "# abi-version:". */
-    public static inline var BINDING_ABI:Int = 2;
+    public static inline var BINDING_ABI:Int = 3;
 
     /**
      * Initializes FMOD with the given settings (see FmodSettings for the

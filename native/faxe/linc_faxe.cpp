@@ -12,6 +12,7 @@
 #include <fmod_studio.hpp>
 #include "linc_faxe.h"
 #include "../shared/faxe_handles.h"
+#include "../shared/faxe_pcmring.h"
 #include "../shared/faxe_cbqueue.h"
 #include "../shared/faxe_guid.h"
 #include "../shared/faxe_instctx.h"
@@ -497,6 +498,189 @@ int fmod_core_get_sound_length(int h) {
     gLastResult = sound->getLength(&length, FMOD_TIMEUNIT_MS);
     if (gLastResult != FMOD_OK) return -1;
     return (int)length;
+}
+
+//// Core PCM streams (user-generated audio)
+
+// An OPENUSER looping stream paired with the ring the game thread feeds
+struct LincPcmStream {
+    FMOD::Sound* sound;
+    FaxePcmRing* ring;
+};
+
+// Mixer thread: plain C++, drains the ring (silence-padded on underrun)
+static FMOD_RESULT F_CALLBACK lincPcmRead(FMOD_SOUND* sound, void* data, unsigned int datalen) {
+    void* ud = NULL;
+    ((FMOD::Sound*)sound)->getUserData(&ud);
+    if (ud) {
+        faxe_pcmring_read((FaxePcmRing*)ud, data, (int)datalen);
+    } else {
+        memset(data, 0, datalen);
+    }
+    return FMOD_OK;
+}
+
+static inline LincPcmStream* resolvePcm(int h) {
+    return (LincPcmStream*)faxe_handle_resolve(h, FAXE_TYPE_PCM);
+}
+
+static inline FMOD::Channel* resolveChannel(int h) {
+    return (FMOD::Channel*)faxe_handle_resolve(h, FAXE_TYPE_CHAN);
+}
+
+int fmod_core_pcm_create(int sampleRate, int channels, int ringBytes) {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    if (sampleRate <= 0 || channels < 1 || channels > 2 || ringBytes <= 0) {
+        gLastResult = FMOD_ERR_INVALID_PARAM;
+        return 0;
+    }
+    LincPcmStream* ps = (LincPcmStream*)malloc(sizeof(LincPcmStream));
+    if (!ps) { gLastResult = FMOD_ERR_MEMORY; return 0; }
+    ps->ring = faxe_pcmring_create(ringBytes);
+    if (!ps->ring) { free(ps); gLastResult = FMOD_ERR_MEMORY; return 0; }
+
+    FMOD_CREATESOUNDEXINFO exinfo;
+    memset(&exinfo, 0, sizeof(exinfo));
+    exinfo.cbsize = sizeof(FMOD_CREATESOUNDEXINFO);
+    exinfo.numchannels = channels;
+    exinfo.defaultfrequency = sampleRate;
+    exinfo.format = FMOD_SOUND_FORMAT_PCM16;
+    exinfo.decodebuffersize = 4096;
+    exinfo.length = (unsigned int)(sampleRate * channels * 2); // a one second window
+    exinfo.pcmreadcallback = lincPcmRead;
+    exinfo.userdata = ps->ring;
+
+    ps->sound = NULL;
+    gLastResult = gCoreSystem->createSound(NULL,
+        FMOD_OPENUSER | FMOD_LOOP_NORMAL | FMOD_CREATESTREAM, &exinfo, &ps->sound);
+    if (gLastResult != FMOD_OK || !ps->sound) {
+        faxe_pcmring_destroy(ps->ring);
+        free(ps);
+        return 0;
+    }
+    int handle = faxe_handle_alloc(ps, FAXE_TYPE_PCM);
+    if (handle == 0) {
+        ps->sound->release();
+        faxe_pcmring_destroy(ps->ring);
+        free(ps);
+        return 0;
+    }
+    return handle;
+}
+
+int fmod_core_pcm_write(int h, ::Array<unsigned char> data, int len) {
+    LincPcmStream* ps = resolvePcm(h);
+    if (!ps) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    if (data == null() || len <= 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
+    if (len > data->length) len = data->length;
+    gLastResult = FMOD_OK;
+    return faxe_pcmring_write(ps->ring, &data[0], len);
+}
+
+int fmod_core_pcm_space(int h) {
+    LincPcmStream* ps = resolvePcm(h);
+    if (!ps) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    return faxe_pcmring_space(ps->ring);
+}
+
+int fmod_core_pcm_underruns(int h) {
+    LincPcmStream* ps = resolvePcm(h);
+    if (!ps) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    return faxe_pcmring_take_underruns(ps->ring);
+}
+
+int fmod_core_pcm_play(int h, bool paused) {
+    LincPcmStream* ps = resolvePcm(h);
+    if (!ps) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    FMOD::Channel* channel = NULL;
+    gLastResult = gCoreSystem->playSound(ps->sound, NULL, paused, &channel);
+    if (gLastResult != FMOD_OK || !channel) return 0;
+    int handle = faxe_handle_alloc(channel, FAXE_TYPE_CHAN);
+    if (handle == 0) {
+        channel->stop();
+        return 0;
+    }
+    return handle;
+}
+
+int fmod_core_pcm_release(int h) {
+    LincPcmStream* ps = resolvePcm(h);
+    if (!ps) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    // Releasing a stream blocks until the mixer is done with it, so the
+    // ring is safe to destroy afterward. Channels playing it stop with
+    // the release and their handles go stale, which resolves safely.
+    gLastResult = ps->sound->release();
+    if (gLastResult != FMOD_OK) return (int)gLastResult;
+    faxe_pcmring_destroy(ps->ring);
+    free(ps);
+    faxe_handle_free(h);
+    return (int)gLastResult;
+}
+
+//// Core channels
+
+int fmod_chan_set_volume(int h, float volume) {
+    FMOD::Channel* ch = resolveChannel(h);
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = ch->setVolume(volume);
+    return (int)gLastResult;
+}
+
+float fmod_chan_get_volume(int h) {
+    FMOD::Channel* ch = resolveChannel(h);
+    float volume = 0.0f;
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0.0f; }
+    gLastResult = ch->getVolume(&volume);
+    return volume;
+}
+
+int fmod_chan_set_pitch(int h, float pitch) {
+    FMOD::Channel* ch = resolveChannel(h);
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = ch->setPitch(pitch);
+    return (int)gLastResult;
+}
+
+float fmod_chan_get_pitch(int h) {
+    FMOD::Channel* ch = resolveChannel(h);
+    float pitch = 0.0f;
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0.0f; }
+    gLastResult = ch->getPitch(&pitch);
+    return pitch;
+}
+
+int fmod_chan_set_paused(int h, bool paused) {
+    FMOD::Channel* ch = resolveChannel(h);
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = ch->setPaused(paused);
+    return (int)gLastResult;
+}
+
+bool fmod_chan_get_paused(int h) {
+    FMOD::Channel* ch = resolveChannel(h);
+    bool paused = false;
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return false; }
+    gLastResult = ch->getPaused(&paused);
+    return paused;
+}
+
+bool fmod_chan_is_playing(int h) {
+    FMOD::Channel* ch = resolveChannel(h);
+    bool playing = false;
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return false; }
+    gLastResult = ch->isPlaying(&playing);
+    if (gLastResult != FMOD_OK) return false;
+    return playing;
+}
+
+int fmod_chan_stop(int h) {
+    FMOD::Channel* ch = resolveChannel(h);
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    // The channel is finished either way, so the slot is freed even when
+    // FMOD reports the channel already gone
+    gLastResult = ch->stop();
+    faxe_handle_free(h);
+    return (int)gLastResult;
 }
 
 // Drain protocol: cb_next pops the oldest queued event into a static slot;
@@ -1941,7 +2125,7 @@ int fmod_debug_live_handle_count() {
 
 int fmod_binding_abi_version() {
     // Keep in lockstep with the manifest header "# abi-version:"
-    return 2;
+    return 3;
 }
 
 } // namespace faxe
