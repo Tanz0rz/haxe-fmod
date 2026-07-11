@@ -5,7 +5,11 @@ import flixel.FlxState;
 import flixel.text.FlxText;
 import flixel.util.FlxColor;
 import haxefmod.core.Channel;
+import haxefmod.core.ChannelGroup;
+import haxefmod.core.Dsp;
+import haxefmod.core.DspType;
 import haxefmod.core.PcmStream;
+import haxefmod.core.Reverb;
 import haxefmod.studio.Bus;
 import haxefmod.studio.EventInstance;
 import haxefmod.studio.FmodResult;
@@ -126,6 +130,7 @@ class ApiProbeState extends FlxState {
         probeM3Surface();
         probeHandleSafety();
         probeCoreSurface();
+        probeDspSurface();
         probeFlixelBridge();
 
         info("live_handle_count_after", Std.string(StudioSystem.liveHandleCount()));
@@ -405,6 +410,125 @@ class ApiProbeState extends FlxState {
 
         check("no_handle_leaks_core", StudioSystem.liveHandleCount() == baseline,
             'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
+    }
+
+    /**
+     * Exercises the DSP, channel group, bus bridge, and reverb surface
+     * through the real FFI, with the handle-safety promises extended to
+     * the new type tags.
+     */
+    function probeDspSurface():Void {
+        var baseline = StudioSystem.liveHandleCount();
+
+        var lowpass = Dsp.create(DspType.LOWPASS_SIMPLE);
+        check("dsp_create", !lowpass.isNull(), 'handle=${(lowpass : Int)}');
+        var setResult = lowpass.setParameter(0, 2000);
+        check("dsp_set_parameter", setResult.isOk(), 'result=${setResult.toString()}');
+        check("dsp_get_parameter", Math.abs(lowpass.getParameter(0) - 2000) < 1,
+            'value=${lowpass.getParameter(0)}');
+        check("dsp_get_type", lowpass.getType() == DspType.LOWPASS_SIMPLE,
+            'value=${(lowpass.getType() : Int)}');
+        check("dsp_get_parameter_count", lowpass.getParameterCount() > 0,
+            'value=${lowpass.getParameterCount()}');
+        check("dsp_bypass_roundtrip", lowpass.setBypass(true).isOk() && lowpass.getBypass()
+            && lowpass.setBypass(false).isOk() && !lowpass.getBypass(), "");
+
+        // Master group round-trips and effect attach
+        var master = ChannelGroup.master();
+        check("cg_get_master", !master.isNull(), 'handle=${(master : Int)}');
+        var again = ChannelGroup.master();
+        check("cg_master_dedup", (again : Int) == (master : Int), "");
+        var addResult = master.addDsp(0, lowpass);
+        check("cg_add_dsp", addResult.isOk(), 'result=${addResult.toString()}');
+        var removeResult = master.removeDsp(lowpass);
+        check("cg_remove_dsp", removeResult.isOk(), 'result=${removeResult.toString()}');
+
+        // Custom group lifecycle
+        var group = ChannelGroup.create("probe-group");
+        check("cg_create", !group.isNull(), 'handle=${(group : Int)}');
+        check("cg_volume_roundtrip", group.setVolume(0.5).isOk()
+            && Math.abs(group.getVolume() - 0.5) < 0.001, 'value=${group.getVolume()}');
+        check("cg_pitch_roundtrip", group.setPitch(1.25).isOk()
+            && Math.abs(group.getPitch() - 1.25) < 0.001, 'value=${group.getPitch()}');
+        check("cg_mute_roundtrip", group.setMute(true).isOk() && group.getMute()
+            && group.setMute(false).isOk() && !group.getMute(), "");
+        check("cg_paused_roundtrip", group.setPaused(true).isOk() && group.getPaused()
+            && group.setPaused(false).isOk() && !group.getPaused(), "");
+
+        // A stream channel reroutes into the group and gets a per-channel effect
+        var stream = PcmStream.create(48000, 1);
+        var channel = stream.play(true);
+        check("chan_set_channel_group", channel.setChannelGroup(group).isOk(), "");
+        var echo = Dsp.create(DspType.ECHO);
+        check("chan_add_dsp", channel.addDsp(0, echo).isOk(), "");
+        check("chan_remove_dsp", channel.removeDsp(echo).isOk(), "");
+        echo.release();
+        check("chan_set_pan", channel.setPan(0.5).isOk(), "");
+        check("chan_frequency_roundtrip", channel.setFrequency(24000).isOk()
+            && Math.abs(channel.getFrequency() - 24000) < 1, 'value=${channel.getFrequency()}');
+        check("chan_set_reverb_wet", channel.setReverbWet(0, 0.5).isOk(), "");
+        channel.stop();
+        stream.release();
+        check("cg_release", group.release().isOk(), "");
+
+        // Oscillator through playDSP proves DSPs as sound sources
+        var osc = Dsp.create(DspType.OSCILLATOR);
+        osc.setParameterInt(0, 0);
+        osc.setParameter(1, 440);
+        var oscChannel = osc.play(true);
+        check("sys_play_dsp", !oscChannel.isNull(), 'handle=${(oscChannel : Int)}');
+        oscChannel.stop();
+        osc.release();
+
+        // Studio bus bridge: effects attach to Studio-mixed audio
+        var bus = StudioSystem.getBus("bus:/");
+        var lockResult = bus.lockChannelGroup();
+        check("bus_lock_channel_group", lockResult.isOk(), 'result=${lockResult.toString()}');
+        var busGroup = bus.getChannelGroup();
+        check("bus_get_channel_group", !busGroup.isNull(), 'handle=${(busGroup : Int)}');
+        check("bus_group_add_dsp", busGroup.addDsp(0, lowpass).isOk(), "");
+        check("bus_group_remove_dsp", busGroup.removeDsp(lowpass).isOk(), "");
+        check("bus_unlock_channel_group", bus.unlockChannelGroup().isOk(), "");
+
+        // Reverb properties round-trip, then off
+        var props = Reverb.PRESET_CONCERTHALL;
+        check("reverb_set", Reverb.set(0, props).isOk(), "");
+        var back = Reverb.get(0);
+        check("reverb_get_roundtrip", back != null && Math.abs(back.decayTime - 3900) < 1,
+            'decayTime=${back == null ? -1 : back.decayTime}');
+        Reverb.off(0);
+
+        // 3D stream accepts positional control
+        var stream3d = PcmStream.create3d(48000, 1);
+        check("pcm_create_3d", !stream3d.isNull(), 'handle=${(stream3d : Int)}');
+        var channel3d = stream3d.play(true);
+        check("chan_set_3d_attributes", channel3d.set3DAttributes(1, 0, 0).isOk(), "");
+        check("chan_set_3d_min_max", channel3d.set3DMinMaxDistance(1, 100).isOk(), "");
+        channel3d.stop();
+        stream3d.release();
+
+        // Handle safety over the new tags
+        var staleDsp:FmodResult = lowpass.setParameter(0, 500);
+        check("dsp_live_before_release", staleDsp.isOk(), 'result=${staleDsp.toString()}');
+        lowpass.release();
+        staleDsp = lowpass.setParameter(0, 500);
+        check("stale_dsp_invalid_handle", staleDsp == FmodResult.FMOD_ERR_INVALID_HANDLE,
+            'result=${staleDsp.toString()}');
+        var wrongDsp:Dsp = cast (master : Int);
+        var crossResult:FmodResult = wrongDsp.setParameter(0, 500);
+        check("crosstype_cg_as_dsp", crossResult == FmodResult.FMOD_ERR_INVALID_HANDLE,
+            'result=${crossResult.toString()}');
+
+        // Two lookup handles may legitimately persist: the cached master
+        // group, and the bus group if FMOD kept it alive after the unlock.
+        // Everything owned (DSPs, streams, the custom group) must be gone.
+        var persistent = 1; // the master group handle cached above
+        busGroup.getVolume();
+        var busGroupAlive = StudioSystem.lastResult() != FmodResult.FMOD_ERR_INVALID_HANDLE;
+        if (busGroupAlive && (busGroup : Int) != (master : Int)) persistent++;
+        var now = StudioSystem.liveHandleCount();
+        check("no_handle_leaks_dsp", now == baseline + persistent,
+            'baseline=$baseline now=$now persistent=$persistent busGroupAlive=$busGroupAlive');
     }
 
     /**

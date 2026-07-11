@@ -51,6 +51,67 @@ abstract Channel(Int) from Int to Int {
         return NativeStudio.chan_is_playing(this);
     }
 
+    /** Constant-power stereo pan (-1.0 = full left, 0 = center, 1.0 = full right). */
+    public inline function setPan(pan:Float):FmodResult {
+        return NativeStudio.chan_set_pan(this, pan);
+    }
+
+    /** Playback rate in samples per second (resampling: also shifts pitch). */
+    public inline function getFrequency():Float {
+        return NativeStudio.chan_get_frequency(this);
+    }
+
+    public inline function setFrequency(frequency:Float):FmodResult {
+        return NativeStudio.chan_set_frequency(this, frequency);
+    }
+
+    /** Times to loop before stopping (-1 = forever, 0 = play once). */
+    public inline function setLoopCount(loopCount:Int):FmodResult {
+        return NativeStudio.chan_set_loop_count(this, loopCount);
+    }
+
+    /** Playback position in milliseconds, or -1 on failure. */
+    public inline function getPosition():Int {
+        return NativeStudio.chan_get_position(this);
+    }
+
+    public inline function setPosition(positionMs:Int):FmodResult {
+        return NativeStudio.chan_set_position(this, positionMs);
+    }
+
+    /** Reroutes this channel into a group. */
+    public inline function setChannelGroup(group:ChannelGroup):FmodResult {
+        return NativeStudio.chan_set_channel_group(this, group);
+    }
+
+    /** Inserts an effect on this channel (0 = head of the chain). */
+    public inline function addDsp(index:Int, dsp:Dsp):FmodResult {
+        return NativeStudio.chan_add_dsp(this, index, dsp);
+    }
+
+    public inline function removeDsp(dsp:Dsp):FmodResult {
+        return NativeStudio.chan_remove_dsp(this, dsp);
+    }
+
+    /**
+     * Positions the channel in 3D space. Only works on 3D sounds
+     * (PcmStream.create3d). Uses the Studio listener for distance and pan.
+     */
+    public inline function set3DAttributes(posX:Float, posY:Float, posZ:Float,
+            velX:Float = 0, velY:Float = 0, velZ:Float = 0):FmodResult {
+        return NativeStudio.chan_set_3d_attributes(this, posX, posY, posZ, velX, velY, velZ);
+    }
+
+    /** Distances where attenuation starts and stops (3D sounds). */
+    public inline function set3DMinMaxDistance(minDistance:Float, maxDistance:Float):FmodResult {
+        return NativeStudio.chan_set_3d_min_max(this, minDistance, maxDistance);
+    }
+
+    /** How much this channel feeds a reverb instance (0.0 = none, 1.0 = full). */
+    public inline function setReverbWet(instance:Int, wet:Float):FmodResult {
+        return NativeStudio.chan_set_reverb_wet(this, instance, wet);
+    }
+
     /** Stops playback and invalidates this handle. */
     public inline function stop():FmodResult {
         return NativeStudio.chan_stop(this);

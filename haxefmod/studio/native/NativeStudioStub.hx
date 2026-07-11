@@ -196,6 +196,67 @@ class NativeStudioStub {
     public static function chan_is_playing(handle:Int):Bool return false;
     public static function chan_stop(handle:Int):Int return ERR_UNSUPPORTED;
 
+    // Core DSP effects
+    public static function dsp_create_by_type(type:Int):Int return 0;
+    public static function dsp_release(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function dsp_set_param_float(handle:Int, index:Int, value:Float):Int return ERR_UNSUPPORTED;
+    public static function dsp_get_param_float(handle:Int, index:Int):Float return 0.0;
+    public static function dsp_set_param_int(handle:Int, index:Int, value:Int):Int return ERR_UNSUPPORTED;
+    public static function dsp_get_param_int(handle:Int, index:Int):Int return 0;
+    public static function dsp_set_param_bool(handle:Int, index:Int, value:Bool):Int return ERR_UNSUPPORTED;
+    public static function dsp_get_param_bool(handle:Int, index:Int):Bool return false;
+    public static function dsp_get_num_params(handle:Int):Int return 0;
+    public static function dsp_get_type(handle:Int):Int return 0;
+    public static function dsp_set_bypass(handle:Int, bypass:Bool):Int return ERR_UNSUPPORTED;
+    public static function dsp_get_bypass(handle:Int):Bool return false;
+    public static function dsp_set_wet_dry_mix(handle:Int, prewet:Float, postwet:Float, dry:Float):Int return ERR_UNSUPPORTED;
+    public static function dsp_set_active(handle:Int, active:Bool):Int return ERR_UNSUPPORTED;
+    public static function dsp_reset(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function dsp_set_metering_enabled(handle:Int, input:Bool, output:Bool):Int return ERR_UNSUPPORTED;
+    public static function dsp_get_metering(handle:Int):Int return 0;
+    public static function dsp_fft_get_spectrum(handle:Int, maxBins:Int):Int return 0;
+
+    // Core channel groups
+    public static function cg_get_master():Int return 0;
+    public static function cg_create(name:String):Int return 0;
+    public static function cg_release(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function cg_set_volume(handle:Int, volume:Float):Int return ERR_UNSUPPORTED;
+    public static function cg_get_volume(handle:Int):Float return 0.0;
+    public static function cg_set_pitch(handle:Int, pitch:Float):Int return ERR_UNSUPPORTED;
+    public static function cg_get_pitch(handle:Int):Float return 0.0;
+    public static function cg_set_mute(handle:Int, mute:Bool):Int return ERR_UNSUPPORTED;
+    public static function cg_get_mute(handle:Int):Bool return false;
+    public static function cg_set_paused(handle:Int, paused:Bool):Int return ERR_UNSUPPORTED;
+    public static function cg_get_paused(handle:Int):Bool return false;
+    public static function cg_add_dsp(handle:Int, index:Int, dspHandle:Int):Int return ERR_UNSUPPORTED;
+    public static function cg_remove_dsp(handle:Int, dspHandle:Int):Int return ERR_UNSUPPORTED;
+    public static function cg_stop(handle:Int):Int return ERR_UNSUPPORTED;
+
+    // Core channel routing and effects
+    public static function chan_set_pan(handle:Int, pan:Float):Int return ERR_UNSUPPORTED;
+    public static function chan_set_frequency(handle:Int, frequency:Float):Int return ERR_UNSUPPORTED;
+    public static function chan_get_frequency(handle:Int):Float return 0.0;
+    public static function chan_set_loop_count(handle:Int, loopCount:Int):Int return ERR_UNSUPPORTED;
+    public static function chan_get_position(handle:Int):Int return -1;
+    public static function chan_set_position(handle:Int, positionMs:Int):Int return ERR_UNSUPPORTED;
+    public static function chan_set_channel_group(handle:Int, groupHandle:Int):Int return ERR_UNSUPPORTED;
+    public static function chan_add_dsp(handle:Int, index:Int, dspHandle:Int):Int return ERR_UNSUPPORTED;
+    public static function chan_remove_dsp(handle:Int, dspHandle:Int):Int return ERR_UNSUPPORTED;
+    public static function chan_set_3d_attributes(handle:Int, posX:Float, posY:Float, posZ:Float, velX:Float, velY:Float, velZ:Float):Int return ERR_UNSUPPORTED;
+    public static function chan_set_3d_min_max(handle:Int, minDist:Float, maxDist:Float):Int return ERR_UNSUPPORTED;
+    public static function chan_set_reverb_wet(handle:Int, instance:Int, wet:Float):Int return ERR_UNSUPPORTED;
+
+    // Studio bus to core group bridge
+    public static function bus_lock_channel_group(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function bus_unlock_channel_group(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function bus_get_channel_group(handle:Int):Int return 0;
+
+    // Core system extras
+    public static function sys_play_dsp(dspHandle:Int, startPaused:Bool):Int return 0;
+    public static function sys_set_reverb_properties(instance:Int):Int return ERR_UNSUPPORTED;
+    public static function sys_get_reverb_properties(instance:Int):Int return ERR_UNSUPPORTED;
+    public static function core_pcm_create_3d(sampleRate:Int, channels:Int, ringBytes:Int):Int return 0;
+
     // Callbacks
     public static function evi_set_callback_mask(handle:Int, mask:Int):Int return ERR_UNSUPPORTED;
     public static function cb_next():Bool return false;

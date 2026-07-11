@@ -266,6 +266,73 @@ class NativeStudioCpp {
     public static inline function chan_is_playing(handle:Int):Bool return Raw.chan_is_playing(handle);
     public static inline function chan_stop(handle:Int):Int return Raw.chan_stop(handle);
 
+    // Core DSP effects
+    public static inline function dsp_create_by_type(type:Int):Int return Raw.dsp_create_by_type(type);
+    public static inline function dsp_release(handle:Int):Int return Raw.dsp_release(handle);
+    public static inline function dsp_set_param_float(handle:Int, index:Int, value:Float):Int return Raw.dsp_set_param_float(handle, index, value);
+    public static inline function dsp_get_param_float(handle:Int, index:Int):Float return Raw.dsp_get_param_float(handle, index);
+    public static inline function dsp_set_param_int(handle:Int, index:Int, value:Int):Int return Raw.dsp_set_param_int(handle, index, value);
+    public static inline function dsp_get_param_int(handle:Int, index:Int):Int return Raw.dsp_get_param_int(handle, index);
+    public static inline function dsp_set_param_bool(handle:Int, index:Int, value:Bool):Int return Raw.dsp_set_param_bool(handle, index, value);
+    public static inline function dsp_get_param_bool(handle:Int, index:Int):Bool return Raw.dsp_get_param_bool(handle, index);
+    public static inline function dsp_get_num_params(handle:Int):Int return Raw.dsp_get_num_params(handle);
+    public static inline function dsp_get_type(handle:Int):Int return Raw.dsp_get_type(handle);
+    public static inline function dsp_set_bypass(handle:Int, bypass:Bool):Int return Raw.dsp_set_bypass(handle, bypass);
+    public static inline function dsp_get_bypass(handle:Int):Bool return Raw.dsp_get_bypass(handle);
+    public static inline function dsp_set_wet_dry_mix(handle:Int, prewet:Float, postwet:Float, dry:Float):Int return Raw.dsp_set_wet_dry_mix(handle, prewet, postwet, dry);
+    public static inline function dsp_set_active(handle:Int, active:Bool):Int return Raw.dsp_set_active(handle, active);
+    public static inline function dsp_reset(handle:Int):Int return Raw.dsp_reset(handle);
+    public static inline function dsp_set_metering_enabled(handle:Int, input:Bool, output:Bool):Int return Raw.dsp_set_metering_enabled(handle, input, output);
+
+    /** Fills Scratch float buffer: [0..ch-1] peak, [ch..2ch-1] rms. Returns channel count. */
+    public static inline function dsp_get_metering(handle:Int):Int return Raw.dsp_get_metering(handle, Scratch.floatBuf());
+
+    /** Fills Scratch float buffer with spectrum magnitudes. Returns bins written. */
+    public static inline function dsp_fft_get_spectrum(handle:Int, maxBins:Int):Int return Raw.dsp_fft_get_spectrum(handle, Scratch.floatBuf(), maxBins);
+
+    // Core channel groups
+    public static inline function cg_get_master():Int return Raw.cg_get_master();
+    public static inline function cg_create(name:String):Int return Raw.cg_create(name);
+    public static inline function cg_release(handle:Int):Int return Raw.cg_release(handle);
+    public static inline function cg_set_volume(handle:Int, volume:Float):Int return Raw.cg_set_volume(handle, volume);
+    public static inline function cg_get_volume(handle:Int):Float return Raw.cg_get_volume(handle);
+    public static inline function cg_set_pitch(handle:Int, pitch:Float):Int return Raw.cg_set_pitch(handle, pitch);
+    public static inline function cg_get_pitch(handle:Int):Float return Raw.cg_get_pitch(handle);
+    public static inline function cg_set_mute(handle:Int, mute:Bool):Int return Raw.cg_set_mute(handle, mute);
+    public static inline function cg_get_mute(handle:Int):Bool return Raw.cg_get_mute(handle);
+    public static inline function cg_set_paused(handle:Int, paused:Bool):Int return Raw.cg_set_paused(handle, paused);
+    public static inline function cg_get_paused(handle:Int):Bool return Raw.cg_get_paused(handle);
+    public static inline function cg_add_dsp(handle:Int, index:Int, dspHandle:Int):Int return Raw.cg_add_dsp(handle, index, dspHandle);
+    public static inline function cg_remove_dsp(handle:Int, dspHandle:Int):Int return Raw.cg_remove_dsp(handle, dspHandle);
+    public static inline function cg_stop(handle:Int):Int return Raw.cg_stop(handle);
+
+    // Core channel routing and effects
+    public static inline function chan_set_pan(handle:Int, pan:Float):Int return Raw.chan_set_pan(handle, pan);
+    public static inline function chan_set_frequency(handle:Int, frequency:Float):Int return Raw.chan_set_frequency(handle, frequency);
+    public static inline function chan_get_frequency(handle:Int):Float return Raw.chan_get_frequency(handle);
+    public static inline function chan_set_loop_count(handle:Int, loopCount:Int):Int return Raw.chan_set_loop_count(handle, loopCount);
+    public static inline function chan_get_position(handle:Int):Int return Raw.chan_get_position(handle);
+    public static inline function chan_set_position(handle:Int, positionMs:Int):Int return Raw.chan_set_position(handle, positionMs);
+    public static inline function chan_set_channel_group(handle:Int, groupHandle:Int):Int return Raw.chan_set_channel_group(handle, groupHandle);
+    public static inline function chan_add_dsp(handle:Int, index:Int, dspHandle:Int):Int return Raw.chan_add_dsp(handle, index, dspHandle);
+    public static inline function chan_remove_dsp(handle:Int, dspHandle:Int):Int return Raw.chan_remove_dsp(handle, dspHandle);
+    public static inline function chan_set_3d_attributes(handle:Int, posX:Float, posY:Float, posZ:Float, velX:Float, velY:Float, velZ:Float):Int return Raw.chan_set_3d_attributes(handle, posX, posY, posZ, velX, velY, velZ);
+    public static inline function chan_set_3d_min_max(handle:Int, minDist:Float, maxDist:Float):Int return Raw.chan_set_3d_min_max(handle, minDist, maxDist);
+    public static inline function chan_set_reverb_wet(handle:Int, instance:Int, wet:Float):Int return Raw.chan_set_reverb_wet(handle, instance, wet);
+
+    // Studio bus to core group bridge
+    public static inline function bus_lock_channel_group(handle:Int):Int return Raw.bus_lock_channel_group(handle);
+    public static inline function bus_unlock_channel_group(handle:Int):Int return Raw.bus_unlock_channel_group(handle);
+    public static inline function bus_get_channel_group(handle:Int):Int return Raw.bus_get_channel_group(handle);
+
+    // Core system extras
+    public static inline function sys_play_dsp(dspHandle:Int, startPaused:Bool):Int return Raw.sys_play_dsp(dspHandle, startPaused);
+
+    /** 12 reverb property floats through the Scratch float buffer, DecayTime..WetLevel. */
+    public static inline function sys_set_reverb_properties(instance:Int):Int return Raw.sys_set_reverb_properties(instance, Scratch.floatBuf());
+    public static inline function sys_get_reverb_properties(instance:Int):Int return Raw.sys_get_reverb_properties(instance, Scratch.floatBuf());
+    public static inline function core_pcm_create_3d(sampleRate:Int, channels:Int, ringBytes:Int):Int return Raw.core_pcm_create_3d(sampleRate, channels, ringBytes);
+
     // Callbacks
     public static inline function evi_set_callback_mask(handle:Int, mask:Int):Int return Raw.evi_set_callback_mask(handle, mask);
     public static inline function cb_next():Bool return Raw.cb_next();
@@ -778,6 +845,160 @@ private extern class Raw {
 
     @:native("linc::faxe::fmod_chan_stop")
     static function chan_stop(handle:Int):Int;
+
+    @:native("linc::faxe::fmod_dsp_create_by_type")
+    static function dsp_create_by_type(type:Int):Int;
+
+    @:native("linc::faxe::fmod_dsp_release")
+    static function dsp_release(handle:Int):Int;
+
+    @:native("linc::faxe::fmod_dsp_set_param_float")
+    static function dsp_set_param_float(handle:Int, index:Int, value:Float):Int;
+
+    @:native("linc::faxe::fmod_dsp_get_param_float")
+    static function dsp_get_param_float(handle:Int, index:Int):Float;
+
+    @:native("linc::faxe::fmod_dsp_set_param_int")
+    static function dsp_set_param_int(handle:Int, index:Int, value:Int):Int;
+
+    @:native("linc::faxe::fmod_dsp_get_param_int")
+    static function dsp_get_param_int(handle:Int, index:Int):Int;
+
+    @:native("linc::faxe::fmod_dsp_set_param_bool")
+    static function dsp_set_param_bool(handle:Int, index:Int, value:Bool):Int;
+
+    @:native("linc::faxe::fmod_dsp_get_param_bool")
+    static function dsp_get_param_bool(handle:Int, index:Int):Bool;
+
+    @:native("linc::faxe::fmod_dsp_get_num_params")
+    static function dsp_get_num_params(handle:Int):Int;
+
+    @:native("linc::faxe::fmod_dsp_get_type")
+    static function dsp_get_type(handle:Int):Int;
+
+    @:native("linc::faxe::fmod_dsp_set_bypass")
+    static function dsp_set_bypass(handle:Int, bypass:Bool):Int;
+
+    @:native("linc::faxe::fmod_dsp_get_bypass")
+    static function dsp_get_bypass(handle:Int):Bool;
+
+    @:native("linc::faxe::fmod_dsp_set_wet_dry_mix")
+    static function dsp_set_wet_dry_mix(handle:Int, prewet:Float, postwet:Float, dry:Float):Int;
+
+    @:native("linc::faxe::fmod_dsp_set_active")
+    static function dsp_set_active(handle:Int, active:Bool):Int;
+
+    @:native("linc::faxe::fmod_dsp_reset")
+    static function dsp_reset(handle:Int):Int;
+
+    @:native("linc::faxe::fmod_dsp_set_metering_enabled")
+    static function dsp_set_metering_enabled(handle:Int, input:Bool, output:Bool):Int;
+
+    @:native("linc::faxe::fmod_dsp_get_metering")
+    static function dsp_get_metering(handle:Int, fbuf:Array<Float>):Int;
+
+    @:native("linc::faxe::fmod_dsp_fft_get_spectrum")
+    static function dsp_fft_get_spectrum(handle:Int, fbuf:Array<Float>, maxBins:Int):Int;
+
+    @:native("linc::faxe::fmod_cg_get_master")
+    static function cg_get_master():Int;
+
+    @:native("linc::faxe::fmod_cg_create")
+    static function cg_create(name:String):Int;
+
+    @:native("linc::faxe::fmod_cg_release")
+    static function cg_release(handle:Int):Int;
+
+    @:native("linc::faxe::fmod_cg_set_volume")
+    static function cg_set_volume(handle:Int, volume:Float):Int;
+
+    @:native("linc::faxe::fmod_cg_get_volume")
+    static function cg_get_volume(handle:Int):Float;
+
+    @:native("linc::faxe::fmod_cg_set_pitch")
+    static function cg_set_pitch(handle:Int, pitch:Float):Int;
+
+    @:native("linc::faxe::fmod_cg_get_pitch")
+    static function cg_get_pitch(handle:Int):Float;
+
+    @:native("linc::faxe::fmod_cg_set_mute")
+    static function cg_set_mute(handle:Int, mute:Bool):Int;
+
+    @:native("linc::faxe::fmod_cg_get_mute")
+    static function cg_get_mute(handle:Int):Bool;
+
+    @:native("linc::faxe::fmod_cg_set_paused")
+    static function cg_set_paused(handle:Int, paused:Bool):Int;
+
+    @:native("linc::faxe::fmod_cg_get_paused")
+    static function cg_get_paused(handle:Int):Bool;
+
+    @:native("linc::faxe::fmod_cg_add_dsp")
+    static function cg_add_dsp(handle:Int, index:Int, dspHandle:Int):Int;
+
+    @:native("linc::faxe::fmod_cg_remove_dsp")
+    static function cg_remove_dsp(handle:Int, dspHandle:Int):Int;
+
+    @:native("linc::faxe::fmod_cg_stop")
+    static function cg_stop(handle:Int):Int;
+
+    @:native("linc::faxe::fmod_chan_set_pan")
+    static function chan_set_pan(handle:Int, pan:Float):Int;
+
+    @:native("linc::faxe::fmod_chan_set_frequency")
+    static function chan_set_frequency(handle:Int, frequency:Float):Int;
+
+    @:native("linc::faxe::fmod_chan_get_frequency")
+    static function chan_get_frequency(handle:Int):Float;
+
+    @:native("linc::faxe::fmod_chan_set_loop_count")
+    static function chan_set_loop_count(handle:Int, loopCount:Int):Int;
+
+    @:native("linc::faxe::fmod_chan_get_position")
+    static function chan_get_position(handle:Int):Int;
+
+    @:native("linc::faxe::fmod_chan_set_position")
+    static function chan_set_position(handle:Int, positionMs:Int):Int;
+
+    @:native("linc::faxe::fmod_chan_set_channel_group")
+    static function chan_set_channel_group(handle:Int, groupHandle:Int):Int;
+
+    @:native("linc::faxe::fmod_chan_add_dsp")
+    static function chan_add_dsp(handle:Int, index:Int, dspHandle:Int):Int;
+
+    @:native("linc::faxe::fmod_chan_remove_dsp")
+    static function chan_remove_dsp(handle:Int, dspHandle:Int):Int;
+
+    @:native("linc::faxe::fmod_chan_set_3d_attributes")
+    static function chan_set_3d_attributes(handle:Int, posX:Float, posY:Float, posZ:Float, velX:Float, velY:Float, velZ:Float):Int;
+
+    @:native("linc::faxe::fmod_chan_set_3d_min_max")
+    static function chan_set_3d_min_max(handle:Int, minDist:Float, maxDist:Float):Int;
+
+    @:native("linc::faxe::fmod_chan_set_reverb_wet")
+    static function chan_set_reverb_wet(handle:Int, instance:Int, wet:Float):Int;
+
+    @:native("linc::faxe::fmod_bus_lock_channel_group")
+    static function bus_lock_channel_group(handle:Int):Int;
+
+    @:native("linc::faxe::fmod_bus_unlock_channel_group")
+    static function bus_unlock_channel_group(handle:Int):Int;
+
+    @:native("linc::faxe::fmod_bus_get_channel_group")
+    static function bus_get_channel_group(handle:Int):Int;
+
+    @:native("linc::faxe::fmod_sys_play_dsp")
+    static function sys_play_dsp(dspHandle:Int, startPaused:Bool):Int;
+
+    @:native("linc::faxe::fmod_sys_set_reverb_properties")
+    static function sys_set_reverb_properties(instance:Int, fbuf:Array<Float>):Int;
+
+    @:native("linc::faxe::fmod_sys_get_reverb_properties")
+    static function sys_get_reverb_properties(instance:Int, fbuf:Array<Float>):Int;
+
+    @:native("linc::faxe::fmod_core_pcm_create_3d")
+    static function core_pcm_create_3d(sampleRate:Int, channels:Int, ringBytes:Int):Int;
+
 
     @:native("linc::faxe::fmod_evi_set_callback_mask")
     static function evi_set_callback_mask(handle:Int, mask:Int):Int;

@@ -1,7 +1,11 @@
 package tests;
 
 import haxefmod.core.Channel;
+import haxefmod.core.ChannelGroup;
+import haxefmod.core.Dsp;
+import haxefmod.core.DspType;
 import haxefmod.core.PcmStream;
+import haxefmod.core.Reverb;
 import haxefmod.studio.Bank;
 import haxefmod.studio.Bus;
 import haxefmod.studio.CoreSound;
@@ -46,6 +50,9 @@ class TestStudioSurface {
 		assert(!bus.isValid(), "bus invalid");
 		assert(bus.getPath() == "", "bus path default");
 		assert(!bus.setVolume(1.0).isOk(), "bus setVolume result");
+		assert(!bus.lockChannelGroup().isOk(), "bus lockChannelGroup result");
+		assert(!bus.unlockChannelGroup().isOk(), "bus unlockChannelGroup result");
+		assert(bus.getChannelGroup().isNull(), "bus channelGroup default");
 
 		var vca:Vca = Vca.NULL;
 		assert(!vca.isValid(), "vca invalid");
@@ -156,6 +163,62 @@ class TestStudioSurface {
 		assert(!channel.setPaused(true).isOk(), "chan setPaused result");
 		assert(!channel.getPaused(), "chan paused default");
 		assert(!channel.isPlaying(), "chan playing default");
+		assert(!channel.setPan(0.5).isOk(), "chan setPan result");
+		assert(channel.getFrequency() == 0.0, "chan frequency default");
+		assert(!channel.setFrequency(48000).isOk(), "chan setFrequency result");
+		assert(!channel.setLoopCount(-1).isOk(), "chan setLoopCount result");
+		assert(channel.getPosition() == -1, "chan position default");
+		assert(!channel.setPosition(0).isOk(), "chan setPosition result");
+		assert(!channel.set3DAttributes(1, 2, 3).isOk(), "chan set3DAttributes result");
+		assert(!channel.set3DMinMaxDistance(1, 100).isOk(), "chan set3DMinMax result");
+		assert(!channel.setReverbWet(0, 0.5).isOk(), "chan setReverbWet result");
 		assert(!channel.stop().isOk(), "chan stop result");
+
+		var stream3d = PcmStream.create3d(48000, 1);
+		assert(stream3d.isNull(), "pcm stream 3d null");
+
+		var dsp = Dsp.create(DspType.LOWPASS_SIMPLE);
+		assert(dsp.isNull(), "dsp null");
+		assert(dsp.play().isNull(), "dsp play null");
+		assert(!dsp.setParameter(0, 2000).isOk(), "dsp setParameter result");
+		assert(dsp.getParameter(0) == 0.0, "dsp parameter default");
+		assert(!dsp.setParameterInt(0, 1).isOk(), "dsp setParameterInt result");
+		assert(dsp.getParameterInt(0) == 0, "dsp parameterInt default");
+		assert(!dsp.setParameterBool(0, true).isOk(), "dsp setParameterBool result");
+		assert(!dsp.getParameterBool(0), "dsp parameterBool default");
+		assert(dsp.getParameterCount() == 0, "dsp parameterCount default");
+		assert(dsp.getType() == DspType.UNKNOWN, "dsp type default");
+		assert(!dsp.setBypass(true).isOk(), "dsp setBypass result");
+		assert(!dsp.getBypass(), "dsp bypass default");
+		assert(!dsp.setWetDryMix(1, 1, 0).isOk(), "dsp setWetDryMix result");
+		assert(!dsp.setActive(true).isOk(), "dsp setActive result");
+		assert(!dsp.reset().isOk(), "dsp reset result");
+		assert(!dsp.setMeteringEnabled(true, true).isOk(), "dsp setMeteringEnabled result");
+		assert(dsp.getMetering() == null, "dsp metering default");
+		assert(dsp.getFftSpectrum() == null, "dsp spectrum default");
+		assert(!dsp.release().isOk(), "dsp release result");
+
+		var group = ChannelGroup.master();
+		assert(group.isNull(), "cg master null");
+		assert(ChannelGroup.create("test").isNull(), "cg create null");
+		assert(!group.setVolume(0.5).isOk(), "cg setVolume result");
+		assert(group.getVolume() == 0.0, "cg volume default");
+		assert(!group.setPitch(1.0).isOk(), "cg setPitch result");
+		assert(group.getPitch() == 0.0, "cg pitch default");
+		assert(!group.setMute(true).isOk(), "cg setMute result");
+		assert(!group.getMute(), "cg mute default");
+		assert(!group.setPaused(true).isOk(), "cg setPaused result");
+		assert(!group.getPaused(), "cg paused default");
+		assert(!group.addDsp(0, dsp).isOk(), "cg addDsp result");
+		assert(!group.removeDsp(dsp).isOk(), "cg removeDsp result");
+		assert(!group.stop().isOk(), "cg stop result");
+		assert(!group.release().isOk(), "cg release result");
+		assert(!channel.setChannelGroup(group).isOk(), "chan setChannelGroup result");
+		assert(!channel.addDsp(0, dsp).isOk(), "chan addDsp result");
+		assert(!channel.removeDsp(dsp).isOk(), "chan removeDsp result");
+
+		assert(!Reverb.set(0, Reverb.PRESET_CONCERTHALL).isOk(), "reverb set result");
+		assert(Reverb.get(0) == null, "reverb get default");
+		assert(Reverb.PRESET_CONCERTHALL.decayTime == 3900, "reverb preset values");
 	}
 }

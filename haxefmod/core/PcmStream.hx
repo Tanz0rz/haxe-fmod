@@ -30,6 +30,15 @@ abstract PcmStream(Int) from Int to Int {
             ringBytes > 0 ? ringBytes : sampleRate * channels);
     }
 
+    /**
+     * Like create() but positional: the channel from play() accepts
+     * set3DAttributes and attenuates with distance from the listener.
+     */
+    public static inline function create3d(sampleRate:Int, channels:Int, ringBytes:Int = 0):PcmStream {
+        return NativeStudio.core_pcm_create_3d(sampleRate, channels,
+            ringBytes > 0 ? ringBytes : sampleRate * channels);
+    }
+
     /** True if this is the invalid handle (create failed). */
     public inline function isNull():Bool {
         return this == 0;
