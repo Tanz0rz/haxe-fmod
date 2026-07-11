@@ -238,7 +238,9 @@ class StressTestState extends FlxState {
             if (!soundGroup.isNull() && !pcmSound.isNull()) {
                 soundGroup.setMaxAudible(1);
                 pcmSound.setSoundGroup(soundGroup);
-                pcmSound.setSoundGroup(SoundGroup.master());
+                // Releasing the sound leaves the group, so no reassignment
+                // to the master group (whose cached lookup handle would
+                // move the flat-count baseline)
                 pcmSound.release();
                 soundGroup.release();
             }
