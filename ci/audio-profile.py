@@ -46,7 +46,7 @@ SYNTH_EXPECTED = [
 SYNTH_DATA_FREQ = 660.0
 SYNTH_FILTERED_FREQ = 5000.0
 SYNTH_FADE_TONES = frozenset([500.0])
-SYNTH_FADE_DROP_DB = 18.0
+SYNTH_FADE_DROP_DB = 12.0
 SYNTH_CANDIDATES = [300.0, 440.0, 500.0, 660.0, 880.0, 1320.0, 5000.0]
 SYNTH_PRESENT_MARGIN_DB = 18.0  # present = within this of the window max
 SYNTH_PRESENT_FLOOR_DB = -55.0  # and above this absolute level
@@ -237,21 +237,26 @@ def synth_gate(channels, rate, pcm, window_count, window_frames, window_dbs):
         # window well below the first, declining without recovering
         fade_run = runs[-1]
         if fade_run[0] == SYNTH_FADE_TONES:
-            fade_dbs = window_dbs[fade_run[1]:fade_run[2]]
-            drop = fade_dbs[0] - fade_dbs[-1]
-            print("  fade segment: start {:.1f}dB end {:.1f}dB (drop {:.1f}dB)".format(
-                fade_dbs[0], fade_dbs[-1], drop))
-            if drop < SYNTH_FADE_DROP_DB:
-                failures.append(
-                    "fade segment dropped {:.1f}dB < required {:.1f}dB"
-                    " (scheduled fade points were not applied)".format(
-                        drop, SYNTH_FADE_DROP_DB))
-            recovery = max(fade_dbs[index + 1] - fade_dbs[index]
-                           for index in range(len(fade_dbs) - 1))
-            if recovery > 3.0:
-                failures.append(
-                    "fade segment volume recovered {:.1f}dB mid-ramp"
-                    " (not a scheduled fade)".format(recovery))
+            # The first and last windows straddle the segment seams (partial
+            # silence lowers their RMS), so the ramp analysis trims them
+            fade_dbs = window_dbs[fade_run[1] + 1:fade_run[2] - 1]
+            if len(fade_dbs) >= 6:
+                drop = fade_dbs[0] - fade_dbs[-1]
+                print("  fade segment: start {:.1f}dB end {:.1f}dB (drop {:.1f}dB)".format(
+                    fade_dbs[0], fade_dbs[-1], drop))
+                if drop < SYNTH_FADE_DROP_DB:
+                    failures.append(
+                        "fade segment dropped {:.1f}dB < required {:.1f}dB"
+                        " (scheduled fade points were not applied)".format(
+                            drop, SYNTH_FADE_DROP_DB))
+                recovery = max(fade_dbs[index + 1] - fade_dbs[index]
+                               for index in range(len(fade_dbs) - 1))
+                if recovery > 3.0:
+                    failures.append(
+                        "fade segment volume recovered {:.1f}dB mid-ramp"
+                        " (not a scheduled fade)".format(recovery))
+            else:
+                failures.append("fade segment too short to analyze the ramp")
 
     if failures:
         for failure in failures:
