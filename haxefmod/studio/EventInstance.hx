@@ -43,6 +43,15 @@ abstract EventInstance(Int) from Int to Int {
     }
 
     /**
+     * The core channel group carrying this instance's audio, for attaching
+     * DSP effects to a single event. The instance must be started. Never
+     * release the group (the instance owns it).
+     */
+    public inline function getChannelGroup():haxefmod.core.ChannelGroup {
+        return NativeStudio.evi_get_channel_group(this);
+    }
+
+    /**
      * Releases the instance. FMOD destroys it once it stops. The handle
      * becomes invalid immediately and any registered callback is removed
      * (the html5 backend cannot deliver events after release, so cleanup

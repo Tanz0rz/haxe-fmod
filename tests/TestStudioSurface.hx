@@ -14,6 +14,7 @@ import haxefmod.core.Reverb3D;
 import haxefmod.core.SoundGroup;
 import haxefmod.studio.Bank;
 import haxefmod.studio.Bus;
+import haxefmod.studio.CommandReplay;
 import haxefmod.studio.CoreSound;
 import haxefmod.studio.FmodResult;
 import haxefmod.studio.EventDescription;
@@ -334,6 +335,92 @@ class TestStudioSurface {
 		assert(dsp.getWetDryMix() == null, "dsp wetDryMix default");
 		assert(!dsp.getActive(), "dsp active default");
 		assert(dsp.getMeteringEnabled() == null, "dsp meteringEnabled default");
+
+		// Slice-5 surface on the stub
+		assert(StudioSystem.loadBankMemory(haxe.io.Bytes.alloc(16)).isNull(), "sys loadBankMemory null");
+		assert(!StudioSystem.startCommandCapture("x.cmd.txt").isOk(), "sys startCapture result");
+		assert(!StudioSystem.stopCommandCapture().isOk(), "sys stopCapture result");
+		var replay = StudioSystem.loadCommandReplay("x.cmd.txt");
+		assert(replay.isNull(), "sys loadReplay null");
+		assert(!replay.start().isOk(), "replay start result");
+		assert(!replay.stop().isOk(), "replay stop result");
+		assert(!replay.setPaused(true).isOk(), "replay setPaused result");
+		assert(!replay.getPaused(), "replay paused default");
+		assert(!replay.seekToTime(0).isOk(), "replay seek result");
+		assert(replay.getLength() == 0.0, "replay length default");
+		assert(!replay.release().isOk(), "replay release result");
+
+		var nullInstance:haxefmod.studio.EventInstance = haxefmod.studio.EventInstance.NULL;
+		assert(nullInstance.getChannelGroup().isNull(), "evi channelGroup default");
+
+		assert(!channel.setPriority(128).isOk(), "chan setPriority result");
+		assert(channel.getPriority() == 0, "chan priority default");
+		assert(!channel.isVirtual(), "chan virtual default");
+		assert(channel.getAudibility() == 0.0, "chan audibility default");
+		assert(!channel.setVolumeRamp(true).isOk(), "chan setVolumeRamp result");
+		assert(!channel.getVolumeRamp(), "chan volumeRamp default");
+		assert(channel.getCurrentSound().isNull(), "chan currentSound default");
+		assert(!channel.setLoopPoints(0, 100).isOk(), "chan setLoopPoints result");
+		assert(channel.getLoopPoints() == null, "chan loopPoints default");
+		assert(channel.getReverbWet(0) == 0.0, "chan reverbWet default");
+		assert(channel.getIndex() == -1, "chan index default");
+		assert(channel.get3DConeOrientation() == null, "chan coneOrientation default");
+		assert(channel.getDspCount() == 0, "chan dspCount default");
+		assert(channel.getDsp(0).isNull(), "chan getDsp default");
+
+		assert(pcmSound.getName() == "", "sound name default");
+		assert(pcmSound.getSoundGroup().isNull(), "sound group getter default");
+		assert(!pcmSound.setLoopCount(2).isOk(), "sound setLoopCount result");
+		assert(pcmSound.getLoopCount() == 0, "sound loopCount default");
+
+		assert(!soundGroup.setVolume(0.5).isOk(), "sg setVolume result");
+		assert(soundGroup.getVolume() == 0.0, "sg volume default");
+		assert(soundGroup.getPlayingCount() == 0, "sg playingCount default");
+		assert(soundGroup.getMuteFadeSpeed() == 0.0, "sg muteFade getter default");
+
+		assert(!CoreSystem.setDriver(0).isOk(), "sys setDriver result");
+		assert(CoreSystem.getDriver() == 0, "sys getDriver default");
+
+		assert(!dsp.setParameterData(0, haxe.io.Bytes.alloc(8)).isOk(), "dsp setParameterData result");
+		assert(!dsp.isIdle(), "dsp idle default");
+		assert(dsp.getName() == "", "dsp name default");
+		assert(dsp.getOutput(0).isNull(), "dsp output default");
+		assert(dsp.getOutputConnection(0).isNull(), "dsp outputConn default");
+		assert(conn.getInputDsp().isNull(), "conn inputDsp default");
+		assert(conn.getOutputDsp().isNull(), "conn outputDsp default");
+
+		assert(!zone.getActive(), "reverb3d active default");
+		assert(zone.get3DAttributes() == null, "reverb3d attributes default");
+
+		assert(!group.setPan(0.5).isOk(), "cg setPan result");
+		assert(!group.setLowPassGain(0.5).isOk(), "cg setLowPassGain result");
+		assert(!group.setMode(ChannelMode.MODE_3D).isOk(), "cg setMode result");
+		assert(group.getMode() == 0, "cg mode default");
+		assert(!group.set3DAttributes(1, 2, 3).isOk(), "cg set3DAttributes result");
+		assert(group.get3DAttributes() == null, "cg 3dAttributes default");
+		assert(!group.set3DMinMaxDistance(1, 100).isOk(), "cg minMax result");
+		assert(group.get3DMinMaxDistance() == null, "cg minMax default");
+		assert(!group.set3DOcclusion(0.5, 0.3).isOk(), "cg occlusion result");
+		assert(!group.set3DLevel(0.8).isOk(), "cg 3dLevel result");
+		assert(group.get3DLevel() == 0.0, "cg 3dLevel default");
+		assert(!group.set3DSpread(45).isOk(), "cg spread result");
+		assert(group.get3DSpread() == 0.0, "cg spread default");
+		assert(!group.set3DDopplerLevel(1).isOk(), "cg doppler result");
+		assert(group.get3DDopplerLevel() == 0.0, "cg doppler default");
+		assert(!group.set3DConeSettings(30, 60, 0.5).isOk(), "cg cone result");
+		assert(group.get3DConeSettings() == null, "cg cone default");
+		assert(!group.set3DConeOrientation(0, 0, 1).isOk(), "cg coneOrient result");
+		assert(group.get3DConeOrientation() == null, "cg coneOrient default");
+		assert(!group.setReverbWet(0, 0.5).isOk(), "cg setReverbWet result");
+		assert(group.getReverbWet(0) == 0.0, "cg reverbWet default");
+		assert(!group.setMixMatrix([1, 0, 0, 1], 2, 2).isOk(), "cg mixMatrix result");
+		assert(group.setMixMatrix([1], 2, 2) == FmodResult.FMOD_ERR_INVALID_PARAM, "cg mixMatrix bounds");
+		assert(!group.setVolumeRamp(true).isOk(), "cg setVolumeRamp result");
+		assert(!group.getVolumeRamp(), "cg volumeRamp default");
+		assert(group.getAudibility() == 0.0, "cg audibility default");
+		assert(group.getName() == "", "cg name default");
+		assert(group.getChannelCount() == 0, "cg channelCount default");
+		assert(group.getChannel(0).isNull(), "cg getChannel default");
 
 		// Channel event routing: namespaced records reach the channel map
 		// and End removes the registration

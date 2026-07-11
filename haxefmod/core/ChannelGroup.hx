@@ -131,6 +131,150 @@ abstract ChannelGroup(Int) from Int to Int {
         return NativeStudio.cg_remove_fade_points(this, startClock, endClock);
     }
 
+    /** Constant-power stereo pan over the whole group. */
+    public inline function setPan(pan:Float):FmodResult {
+        return NativeStudio.cg_set_pan(this, pan);
+    }
+
+    /**
+     * A built-in lowpass on the group (1.0 = open, 0.0 = closed). The
+     * matching getter is channel-only (its group binding misreads on
+     * HTML5, see the platform notes).
+     */
+    public inline function setLowPassGain(gain:Float):FmodResult {
+        return NativeStudio.cg_set_low_pass_gain(this, gain);
+    }
+
+    /** Combines ChannelMode flags (looping, 2D/3D, rolloff shape). */
+    public inline function setMode(mode:Int):FmodResult {
+        return NativeStudio.cg_set_mode(this, mode);
+    }
+
+    public inline function getMode():Int {
+        return NativeStudio.cg_get_mode(this);
+    }
+
+    /** Positions the whole group in 3D space (needs a 3D mode set). */
+    public inline function set3DAttributes(posX:Float, posY:Float, posZ:Float,
+            velX:Float = 0, velY:Float = 0, velZ:Float = 0):FmodResult {
+        return NativeStudio.cg_set_3d_attributes(this, posX, posY, posZ, velX, velY, velZ);
+    }
+
+    public function get3DAttributes():Null<{posX:Float, posY:Float, posZ:Float, velX:Float, velY:Float, velZ:Float}> {
+        var result:FmodResult = NativeStudio.cg_get_3d_attributes(this);
+        if (!result.isOk()) return null;
+        return {posX: Scratch.readF(0), posY: Scratch.readF(1), posZ: Scratch.readF(2),
+            velX: Scratch.readF(3), velY: Scratch.readF(4), velZ: Scratch.readF(5)};
+    }
+
+    public inline function set3DMinMaxDistance(minDistance:Float, maxDistance:Float):FmodResult {
+        return NativeStudio.cg_set_3d_min_max(this, minDistance, maxDistance);
+    }
+
+    public function get3DMinMaxDistance():Null<{minDistance:Float, maxDistance:Float}> {
+        var result:FmodResult = NativeStudio.cg_get_3d_min_max(this);
+        if (!result.isOk()) return null;
+        return {minDistance: Scratch.readF(0), maxDistance: Scratch.readF(1)};
+    }
+
+    /**
+     * Muffles the group as if behind an obstacle. The matching getter is
+     * channel-only (its group binding misreads on HTML5).
+     */
+    public inline function set3DOcclusion(direct:Float, reverb:Float):FmodResult {
+        return NativeStudio.cg_set_3d_occlusion(this, direct, reverb);
+    }
+
+    public inline function set3DLevel(level:Float):FmodResult {
+        return NativeStudio.cg_set_3d_level(this, level);
+    }
+
+    public inline function get3DLevel():Float {
+        return NativeStudio.cg_get_3d_level(this);
+    }
+
+    public inline function set3DSpread(angle:Float):FmodResult {
+        return NativeStudio.cg_set_3d_spread(this, angle);
+    }
+
+    public inline function get3DSpread():Float {
+        return NativeStudio.cg_get_3d_spread(this);
+    }
+
+    public inline function set3DDopplerLevel(level:Float):FmodResult {
+        return NativeStudio.cg_set_3d_doppler_level(this, level);
+    }
+
+    public inline function get3DDopplerLevel():Float {
+        return NativeStudio.cg_get_3d_doppler_level(this);
+    }
+
+    public inline function set3DConeSettings(insideAngle:Float, outsideAngle:Float, outsideVolume:Float):FmodResult {
+        return NativeStudio.cg_set_3d_cone_settings(this, insideAngle, outsideAngle, outsideVolume);
+    }
+
+    public function get3DConeSettings():Null<{insideAngle:Float, outsideAngle:Float, outsideVolume:Float}> {
+        var result:FmodResult = NativeStudio.cg_get_3d_cone_settings(this);
+        if (!result.isOk()) return null;
+        return {insideAngle: Scratch.readF(0), outsideAngle: Scratch.readF(1), outsideVolume: Scratch.readF(2)};
+    }
+
+    public inline function set3DConeOrientation(x:Float, y:Float, z:Float):FmodResult {
+        return NativeStudio.cg_set_3d_cone_orientation(this, x, y, z);
+    }
+
+    public function get3DConeOrientation():Null<{x:Float, y:Float, z:Float}> {
+        var result:FmodResult = NativeStudio.cg_get_3d_cone_orientation(this);
+        if (!result.isOk()) return null;
+        return {x: Scratch.readF(0), y: Scratch.readF(1), z: Scratch.readF(2)};
+    }
+
+    /** How much this group feeds a reverb instance (0.0 = none, 1.0 = full). */
+    public inline function setReverbWet(instance:Int, wet:Float):FmodResult {
+        return NativeStudio.cg_set_reverb_wet(this, instance, wet);
+    }
+
+    public inline function getReverbWet(instance:Int):Float {
+        return NativeStudio.cg_get_reverb_wet(this, instance);
+    }
+
+    /** Routes inputs to speakers with explicit gains (row-major, up to 32x32). */
+    public function setMixMatrix(matrix:Array<Float>, outChannels:Int, inChannels:Int):FmodResult {
+        var total = outChannels * inChannels;
+        if (total < 0 || total > matrix.length || total > Scratch.CAPACITY) {
+            return haxefmod.studio.FmodResult.FMOD_ERR_INVALID_PARAM;
+        }
+        for (i in 0...total) Scratch.writeF(i, matrix[i]);
+        return NativeStudio.cg_set_mix_matrix(this, outChannels, inChannels);
+    }
+
+    /** Short volume ramping on changes (on by default, prevents clicks). */
+    public inline function setVolumeRamp(ramp:Bool):FmodResult {
+        return NativeStudio.cg_set_volume_ramp(this, ramp);
+    }
+
+    public inline function getVolumeRamp():Bool {
+        return NativeStudio.cg_get_volume_ramp(this);
+    }
+
+    /** The final audible volume after parent groups and 3D scaling. */
+    public inline function getAudibility():Float {
+        return NativeStudio.cg_get_audibility(this);
+    }
+
+    public inline function getName():String {
+        return NativeStudio.cg_get_name(this);
+    }
+
+    public inline function getChannelCount():Int {
+        return NativeStudio.cg_get_num_channels(this);
+    }
+
+    /** A channel routed into this group by index (known channels dedup). */
+    public inline function getChannel(index:Int):Channel {
+        return NativeStudio.cg_get_channel(this, index);
+    }
+
     /**
      * Frees a group made with create() and invalidates this handle. Do not
      * release the master group or a Studio bus's group.

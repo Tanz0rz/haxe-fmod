@@ -54,8 +54,26 @@ abstract SoundGroup(Int) from Int to Int {
         return NativeStudio.sg_set_mute_fade_speed(this, seconds);
     }
 
+    /** Volume scale over every sound in the group (linear, 1.0 = full). */
+    public inline function setVolume(volume:Float):FmodResult {
+        return NativeStudio.sg_set_volume(this, volume);
+    }
+
+    public inline function getVolume():Float {
+        return NativeStudio.sg_get_volume(this);
+    }
+
+    public inline function getMuteFadeSpeed():Float {
+        return NativeStudio.sg_get_mute_fade_speed(this);
+    }
+
     public inline function getSoundCount():Int {
         return NativeStudio.sg_get_num_sounds(this);
+    }
+
+    /** Sounds from this group audible right now. */
+    public inline function getPlayingCount():Int {
+        return NativeStudio.sg_get_num_playing(this);
     }
 
     /** Stops every playing sound in the group. */

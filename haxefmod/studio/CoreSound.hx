@@ -103,6 +103,25 @@ abstract CoreSound(Int) from Int to Int {
         return NativeStudio.sound_get_sync_point_offset(this, index);
     }
 
+    /** The sound's name (raw memory sounds report an empty name). */
+    public inline function getName():String {
+        return NativeStudio.sound_get_name(this);
+    }
+
+    /** The group this sound belongs to (a known group returns its existing handle). */
+    public inline function getSoundGroup():haxefmod.core.SoundGroup {
+        return NativeStudio.sound_get_sound_group(this);
+    }
+
+    /** Times to loop before stopping (-1 = forever). New channels inherit it. */
+    public inline function setLoopCount(loopCount:Int):FmodResult {
+        return NativeStudio.sound_set_loop_count(this, loopCount);
+    }
+
+    public inline function getLoopCount():Int {
+        return NativeStudio.sound_get_loop_count(this);
+    }
+
     /** Moves this sound into a group (see haxefmod.core.SoundGroup). */
     public inline function setSoundGroup(group:haxefmod.core.SoundGroup):FmodResult {
         return NativeStudio.sound_set_sound_group(this, group);

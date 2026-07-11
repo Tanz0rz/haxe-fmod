@@ -269,6 +269,74 @@ abstract Channel(Int) from Int to Int {
         return {startClock: Scratch.readF(0), endClock: Scratch.readF(1), stopChannels: Scratch.readF(2) > 0.5};
     }
 
+    /** Voice priority for virtualization (0 = most important, 256 = least). */
+    public inline function setPriority(priority:Int):FmodResult {
+        return NativeStudio.chan_set_priority(this, priority);
+    }
+
+    public inline function getPriority():Int {
+        return NativeStudio.chan_get_priority(this);
+    }
+
+    /** True when FMOD virtualized the channel (inaudible, position still tracked). */
+    public inline function isVirtual():Bool {
+        return NativeStudio.chan_is_virtual(this);
+    }
+
+    /** The final audible volume after group, 3D, and occlusion scaling. */
+    public inline function getAudibility():Float {
+        return NativeStudio.chan_get_audibility(this);
+    }
+
+    /** Short volume ramping on changes (on by default, prevents clicks). */
+    public inline function setVolumeRamp(ramp:Bool):FmodResult {
+        return NativeStudio.chan_set_volume_ramp(this, ramp);
+    }
+
+    public inline function getVolumeRamp():Bool {
+        return NativeStudio.chan_get_volume_ramp(this);
+    }
+
+    /** The sound this channel plays (a borrowed reference: never release it). */
+    public inline function getCurrentSound():haxefmod.studio.CoreSound {
+        return NativeStudio.chan_get_current_sound(this);
+    }
+
+    /** Loop region in milliseconds for this channel (overrides the sound's). */
+    public inline function setLoopPoints(startMs:Int, endMs:Int):FmodResult {
+        return NativeStudio.chan_set_loop_points(this, startMs, endMs);
+    }
+
+    public function getLoopPoints():Null<{startMs:Int, endMs:Int}> {
+        var result:FmodResult = NativeStudio.chan_get_loop_points(this);
+        if (!result.isOk()) return null;
+        return {startMs: Scratch.readI(0), endMs: Scratch.readI(1)};
+    }
+
+    public inline function getReverbWet(instance:Int):Float {
+        return NativeStudio.chan_get_reverb_wet(this, instance);
+    }
+
+    /** The channel's index inside FMOD's channel pool, or -1 on failure. */
+    public inline function getIndex():Int {
+        return NativeStudio.chan_get_index(this);
+    }
+
+    public function get3DConeOrientation():Null<{x:Float, y:Float, z:Float}> {
+        var result:FmodResult = NativeStudio.chan_get_3d_cone_orientation(this);
+        if (!result.isOk()) return null;
+        return {x: Scratch.readF(0), y: Scratch.readF(1), z: Scratch.readF(2)};
+    }
+
+    public inline function getDspCount():Int {
+        return NativeStudio.chan_get_num_dsps(this);
+    }
+
+    /** The effect at chain position `index` (a known DSP returns its existing handle). */
+    public inline function getDsp(index:Int):Dsp {
+        return NativeStudio.chan_get_dsp(this, index);
+    }
+
     /** Stops playback, removes any callback handler, and invalidates this handle. */
     public function stop():FmodResult {
         haxefmod.core.ChannelCallbacks.remove(this);

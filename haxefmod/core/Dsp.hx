@@ -164,6 +164,34 @@ abstract Dsp(Int) from Int to Int {
         return {input: Scratch.readI(0) != 0, output: Scratch.readI(1) != 0};
     }
 
+    /**
+     * Uploads a data parameter payload (byte layout per the effect's
+     * contract, e.g. a convolution impulse response: 16-bit samples with
+     * the channel count as the first value).
+     */
+    public inline function setParameterData(index:Int, data:haxe.io.Bytes):FmodResult {
+        return NativeStudio.dsp_set_param_data(this, index, data, data.length);
+    }
+
+    /** True when no signal has flowed through the unit recently. */
+    public inline function isIdle():Bool {
+        return NativeStudio.dsp_get_idle(this);
+    }
+
+    /** The effect's display name (e.g. "FMOD Convolution Reverb"). */
+    public inline function getName():String {
+        return NativeStudio.dsp_get_info_name(this);
+    }
+
+    /** The DSP fed by output slot `index` (a known DSP returns its existing handle). */
+    public inline function getOutput(index:Int):Dsp {
+        return NativeStudio.dsp_get_output_dsp(this, index);
+    }
+
+    public inline function getOutputConnection(index:Int):DspConnection {
+        return NativeStudio.dsp_get_output_connection(this, index);
+    }
+
     /** Microseconds spent in this DSP per mix, or null (needs profiling enabled at init). */
     public function getCpuUsage():Null<{exclusive:Int, inclusive:Int}> {
         var result:FmodResult = NativeStudio.dsp_get_cpu_usage(this);

@@ -41,4 +41,13 @@ abstract DspConnection(Int) from Int to Int {
     public inline function getType():Int {
         return NativeStudio.dspconn_get_type(this);
     }
+
+    /** The DSP feeding this connection (a known DSP returns its existing handle). */
+    public inline function getInputDsp():Dsp {
+        return NativeStudio.dspconn_get_input_dsp(this);
+    }
+
+    public inline function getOutputDsp():Dsp {
+        return NativeStudio.dspconn_get_output_dsp(this);
+    }
 }

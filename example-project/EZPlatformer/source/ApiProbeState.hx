@@ -17,6 +17,7 @@ import haxefmod.core.ChannelEvent;
 import haxefmod.core.Reverb;
 import haxefmod.core.Reverb3D;
 import haxefmod.core.SoundGroup;
+import haxefmod.studio.CommandReplay;
 import haxefmod.studio.CoreSound;
 import haxefmod.studio.Bus;
 import haxefmod.studio.EventInstance;
@@ -141,12 +142,195 @@ class ApiProbeState extends FlxState {
         probeDspSurface();
         probeParityTail();
         probeSoundGroupsAndSystem();
+        probeAuditClosure();
         probeFlixelBridge();
         _statusLabel = label;
 
         // Channel event delivery is asynchronous: the probe finishes from
         // update() once the events arrive (or the wait times out)
         probeChannelEvents();
+    }
+
+    /** Exercises the audit-closure surface through the real FFI. */
+    function probeAuditClosure():Void {
+        // Per-instance channel group: effects on one event. Runs before the
+        // baseline snapshot because the group's cached lookup handle
+        // legitimately outlives the instance (reclaimed by the next unload
+        // sweep, like the bus group).
+        var desc = StudioSystem.getEvent(FmodEvents.MusicMainLevel);
+        var instance = desc.createInstance();
+        instance.start();
+        StudioSystem.flushCommands();
+        var instanceGroup = instance.getChannelGroup();
+        check("evi_channel_group", !instanceGroup.isNull(), 'handle=${(instanceGroup : Int)}');
+        if (!instanceGroup.isNull()) {
+            var lowpass = Dsp.create(DspType.LOWPASS_SIMPLE);
+            check("evi_group_effect", instanceGroup.addDsp(0, lowpass).isOk()
+                && instanceGroup.removeDsp(lowpass).isOk(), "");
+            lowpass.release();
+        }
+        instance.stop(FmodStopMode.IMMEDIATE);
+        instance.release();
+
+        var baseline = StudioSystem.liveHandleCount();
+
+        // Channel odds on a paused stream
+        var stream = PcmStream.create(48000, 1);
+        var channel = stream.play(true);
+        check("chan_priority_roundtrip", channel.setPriority(100).isOk()
+            && channel.getPriority() == 100, 'value=${channel.getPriority()}');
+        check("chan_volume_ramp_roundtrip", channel.setVolumeRamp(true).isOk()
+            && channel.getVolumeRamp(), "");
+        info("chan_is_virtual", Std.string(channel.isVirtual()));
+        info("chan_audibility", Std.string(channel.getAudibility()));
+        info("chan_index", Std.string(channel.getIndex()));
+        check("chan_loop_points_roundtrip", channel.setLoopPoints(10, 90).isOk()
+            && channel.getLoopPoints() != null && channel.getLoopPoints().startMs == 10, "");
+        channel.setReverbWet(0, 0.4);
+        check("chan_reverb_wet_roundtrip", Math.abs(channel.getReverbWet(0) - 0.4) < 0.001,
+            'value=${channel.getReverbWet(0)}');
+        channel.set3DConeOrientation(0, 0, 1);
+        var orientation = channel.get3DConeOrientation();
+        // Cone orientation reads back on 3D channels only, informational here
+        info("chan_cone_orientation", orientation == null ? "unavailable" : 'z=${orientation.z}');
+        var echo = Dsp.create(DspType.ECHO);
+        channel.addDsp(0, echo);
+        check("chan_dsp_introspection", channel.getDspCount() >= 1
+            && !channel.getDsp(0).isNull(), 'count=${channel.getDspCount()}');
+        channel.removeDsp(echo);
+        echo.release();
+        channel.stop();
+        stream.release();
+
+        // Memory sounds and their metadata
+        var pcm = haxe.io.Bytes.alloc(9600);
+        var sound = CoreSound.fromPcm(pcm, 48000, 1);
+        info("sound_name", '"${sound.getName()}"');
+        check("sound_group_getter", !sound.getSoundGroup().isNull(), "");
+        check("sound_loop_count_roundtrip", sound.setLoopCount(2).isOk()
+            && sound.getLoopCount() == 2, "");
+        var playChannel = sound.play(true);
+        check("chan_current_sound_dedup", (playChannel.getCurrentSound() : Int) == (sound : Int),
+            'current=${(playChannel.getCurrentSound() : Int)} sound=${(sound : Int)}');
+        playChannel.stop();
+        sound.release();
+
+        // Sound group volume and counters
+        var soundGroup = SoundGroup.create("probe-audit-sg");
+        check("sg_volume_roundtrip", soundGroup.setVolume(0.5).isOk()
+            && Math.abs(soundGroup.getVolume() - 0.5) < 0.001, "");
+        check("sg_fade_getter", soundGroup.setMuteFadeSpeed(0.7).isOk()
+            && Math.abs(soundGroup.getMuteFadeSpeed() - 0.7) < 0.001, "");
+        info("sg_playing_count", Std.string(soundGroup.getPlayingCount()));
+        soundGroup.release();
+
+        // Drivers
+        check("sys_driver_roundtrip", CoreSystem.setDriver(0).isOk()
+            && CoreSystem.getDriver() == 0, "");
+
+        // DSP data params, info, and traversal
+        var convolution = Dsp.create(DspType.CONVOLUTIONREVERB);
+        var ir = haxe.io.Bytes.alloc((1 + 480) * 2);
+        ir.setUInt16(0, 1);
+        for (i in 0...480) {
+            var v = Std.int(Math.exp(-i / 100) * 16000);
+            ir.setUInt16((1 + i) * 2, v & 0xFFFF);
+        }
+        check("dsp_data_param_ir", convolution.setParameterData(0, ir).isOk(), "");
+        check("dsp_info_name", convolution.getName().indexOf("Convolution") >= 0,
+            'name=${convolution.getName()}');
+        info("dsp_idle", Std.string(convolution.isIdle()));
+        var target = Dsp.create(DspType.LOWPASS_SIMPLE);
+        var connection = target.addInput(convolution);
+        check("dsp_output_traversal", (convolution.getOutput(0) : Int) == (target : Int)
+            && (convolution.getOutputConnection(0) : Int) == (connection : Int), "");
+        check("conn_endpoints", (connection.getInputDsp() : Int) == (convolution : Int)
+            && (connection.getOutputDsp() : Int) == (target : Int), "");
+        target.disconnectFrom(convolution);
+        target.release();
+        convolution.release();
+
+        // Reverb3D getters
+        var zone = Reverb3D.create();
+        zone.set3DAttributes(1, 2, 3, 5, 20);
+        zone.setActive(true);
+        check("r3d_active_getter", zone.getActive(), "");
+        var zoneAttrs = zone.get3DAttributes();
+        check("r3d_attrs_roundtrip", zoneAttrs != null && Math.abs(zoneAttrs.x - 1) < 0.001
+            && Math.abs(zoneAttrs.minDistance - 5) < 0.001, "");
+        zone.release();
+
+        // Group spatial mirror round-trips
+        var group = ChannelGroup.create("probe-audit-cg");
+        check("cg_mirror_setters", group.setPan(0.5).isOk()
+            && group.setLowPassGain(0.5).isOk()
+            && group.setMode(ChannelMode.MODE_3D).isOk()
+            && group.set3DAttributes(1, 2, 3).isOk()
+            && group.set3DMinMaxDistance(2, 50).isOk()
+            && group.set3DOcclusion(0.4, 0.2).isOk()
+            && group.setMixMatrix([1, 0, 0, 1], 2, 2).isOk(), "");
+        var groupAttrs = group.get3DAttributes();
+        check("cg_attrs_roundtrip", groupAttrs != null && Math.abs(groupAttrs.posX - 1) < 0.001, "");
+        var groupMinMax = group.get3DMinMaxDistance();
+        check("cg_min_max_roundtrip", groupMinMax != null
+            && Math.abs(groupMinMax.minDistance - 2) < 0.001, "");
+        check("cg_level_roundtrip", group.set3DLevel(0.8).isOk()
+            && Math.abs(group.get3DLevel() - 0.8) < 0.001, "");
+        check("cg_spread_roundtrip", group.set3DSpread(45).isOk()
+            && Math.abs(group.get3DSpread() - 45) < 0.1, "");
+        check("cg_doppler_roundtrip", group.set3DDopplerLevel(0.7).isOk()
+            && Math.abs(group.get3DDopplerLevel() - 0.7) < 0.001, "");
+        check("cg_cone_roundtrip", group.set3DConeSettings(30, 60, 0.5).isOk()
+            && group.get3DConeSettings() != null
+            && Math.abs(group.get3DConeSettings().insideAngle - 30) < 0.1, "");
+        check("cg_cone_orient_roundtrip", group.set3DConeOrientation(0, 0, 1).isOk()
+            && group.get3DConeOrientation() != null
+            && Math.abs(group.get3DConeOrientation().z - 1) < 0.001, "");
+        check("cg_reverb_wet_roundtrip", group.setReverbWet(0, 0.4).isOk()
+            && Math.abs(group.getReverbWet(0) - 0.4) < 0.001, "");
+        check("cg_volume_ramp_roundtrip", group.setVolumeRamp(true).isOk()
+            && group.getVolumeRamp(), "");
+        check("cg_name", group.getName() == "probe-audit-cg", 'name=${group.getName()}');
+        info("cg_audibility", Std.string(group.getAudibility()));
+        check("cg_channel_introspection", group.getChannelCount() == 0
+            && group.getChannel(0).isNull(), "");
+        group.release();
+
+        // Command capture round-trip with replay lifecycle
+        var capturePath = "probe-capture.cmd.txt";
+        check("capture_start", StudioSystem.startCommandCapture(capturePath).isOk(), "");
+        StudioSystem.update();
+        check("capture_stop", StudioSystem.stopCommandCapture().isOk(), "");
+        var replay = StudioSystem.loadCommandReplay(capturePath);
+        check("replay_load", !replay.isNull(), 'handle=${(replay : Int)}');
+        if (!replay.isNull()) {
+            info("replay_length", Std.string(replay.getLength()));
+            check("replay_pause_roundtrip", replay.setPaused(true).isOk() && replay.getPaused(), "");
+            replay.setPaused(false);
+            check("replay_release", replay.release().isOk(), "");
+        }
+
+        // Bank from memory: covered by the js harness on html5; native loads
+        // the real bank bytes here
+        #if sys
+        var bankBytes = try sys.io.File.getBytes("assets/fmod/Desktop/Master.bank") catch (e:Dynamic) null;
+        if (bankBytes == null) {
+            info("bank_memory", "bank file not reachable from cwd, skipped");
+        } else {
+            var memoryBank = StudioSystem.loadBankMemory(bankBytes);
+            // The example project has one bank, already loaded: ALREADY_LOADED
+            // proves the path reaches FMOD either way
+            var loaded = !memoryBank.isNull()
+                || StudioSystem.lastResult() == FmodResult.FMOD_ERR_EVENT_ALREADY_LOADED;
+            check("bank_memory", loaded, 'result=${StudioSystem.lastResult().toString()}');
+            if (!memoryBank.isNull()) memoryBank.unload();
+        }
+        #else
+        info("bank_memory", "verified by the js harness");
+        #end
+
+        check("no_handle_leaks_audit", StudioSystem.liveHandleCount() == baseline,
+            'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
     }
 
     var _statusLabel:FlxText;

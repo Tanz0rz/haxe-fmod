@@ -70,6 +70,17 @@ abstract Reverb3D(Int) from Int to Int {
         return NativeStudio.r3d_set_active(this, active);
     }
 
+    public inline function getActive():Bool {
+        return NativeStudio.r3d_get_active(this);
+    }
+
+    public function get3DAttributes():Null<{x:Float, y:Float, z:Float, minDistance:Float, maxDistance:Float}> {
+        var result:FmodResult = NativeStudio.r3d_get_3d_attributes(this);
+        if (!result.isOk()) return null;
+        return {x: Scratch.readF(0), y: Scratch.readF(1), z: Scratch.readF(2),
+            minDistance: Scratch.readF(3), maxDistance: Scratch.readF(4)};
+    }
+
     /** Frees the zone and invalidates this handle. */
     public inline function release():FmodResult {
         return NativeStudio.r3d_release(this);

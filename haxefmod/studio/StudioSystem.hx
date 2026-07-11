@@ -108,6 +108,32 @@ class StudioSystem {
         return NativeStudio.sys_unload_all();
     }
 
+    /**
+     * Loads a bank from bytes (embedded, downloaded, or packed banks).
+     * The data is copied, so the buffer is free after this returns.
+     * Returns Bank.NULL on failure.
+     */
+    public static function loadBankMemory(data:haxe.io.Bytes):Bank {
+        return NativeStudio.sys_load_bank_memory(data, data.length);
+    }
+
+    /**
+     * Records every API command to a file until stopCommandCapture, for
+     * FMOD's analysis tools or replay through loadCommandReplay.
+     */
+    public static function startCommandCapture(path:String):FmodResult {
+        return NativeStudio.sys_start_command_capture(path);
+    }
+
+    public static function stopCommandCapture():FmodResult {
+        return NativeStudio.sys_stop_command_capture();
+    }
+
+    /** Loads a capture file for playback. Returns CommandReplay.NULL on failure. */
+    public static function loadCommandReplay(path:String):CommandReplay {
+        return NativeStudio.sys_load_command_replay(path);
+    }
+
     /** Blocks until all pending commands have executed. */
     public static function flushCommands():FmodResult {
         return NativeStudio.sys_flush_commands();

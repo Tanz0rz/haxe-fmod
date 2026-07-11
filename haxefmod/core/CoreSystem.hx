@@ -58,4 +58,13 @@ class CoreSystem {
     public static inline function getDriverName(index:Int):String {
         return NativeStudio.sys_get_driver_name(index);
     }
+
+    /** Switches the output device (see getDriverCount/getDriverName). */
+    public static inline function setDriver(index:Int):FmodResult {
+        return NativeStudio.sys_set_driver(index);
+    }
+
+    public static inline function getDriver():Int {
+        return NativeStudio.sys_get_driver();
+    }
 }
