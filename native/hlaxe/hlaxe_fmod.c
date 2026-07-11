@@ -722,7 +722,10 @@ HL_PRIM int HL_NAME(core_pcm_release)(int h) {
     if (!ps) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     /* Releasing a stream blocks until the mixer is done with it, so the
      * ring is safe to destroy afterward. Channels playing it stop with
-     * the release and their handles go stale, which resolves safely. */
+     * the release and their handles go stale, which resolves safely.
+     * Clearing the user data first makes any straggling pcmread fall to
+     * its silence path instead of touching the ring. */
+    FMOD_Sound_SetUserData(ps->sound, NULL);
     gLastResult = FMOD_Sound_Release(ps->sound);
     if (gLastResult != FMOD_OK) return (int)gLastResult;
     faxe_pcmring_destroy(ps->ring);

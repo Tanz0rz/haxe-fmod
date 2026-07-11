@@ -273,6 +273,13 @@ scheduling (`channel.setDelay` and fade points on the mixer clock, e.g.
 spread), and raw PCM sounds from memory (`CoreSound.fromPcm`), all working
 identically on every supported platform.
 
+Channels deliver playback events: `channel.setCallback` receives `End`
+when playback finishes and `SyncPoint(index)` when it crosses markers
+placed with `sound.addSyncPoint` (rhythm hits, dialogue word timings).
+Sound groups (`haxefmod.core.SoundGroup`) cap polyphony across any set of
+sounds with steal behaviors, and every setter has a matching getter for
+reading state back.
+
 ## Selecting an FMOD Engine Version
 
 The officially supported FMOD Engine version is 2.03.12. Other versions **may work fine**, but I have not tested them.

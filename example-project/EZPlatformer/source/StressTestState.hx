@@ -6,10 +6,12 @@ import flixel.text.FlxText;
 import flixel.util.FlxColor;
 import haxefmod.core.ChannelGroup;
 import haxefmod.core.Dsp;
+import haxefmod.core.SoundGroup;
 import haxefmod.core.DspType;
 import haxefmod.core.PcmStream;
 import haxefmod.core.Reverb;
 import haxefmod.core.Reverb3D;
+import haxefmod.studio.CoreSound;
 import haxefmod.studio.Callbacks;
 import haxefmod.studio.EventInstance;
 import haxefmod.studio.StudioSystem;
@@ -29,10 +31,10 @@ import haxefmod.studio.Types;
  * a callback on one instance per batch to churn the dispatcher map under
  * sustained mutation - plus one full PcmStream lifecycle (create, write,
  * play, stop, release) with a DSP effect attached and detached mid-cycle,
- * a DSP-to-DSP connection made and broken, a reverb zone lifecycle, and a
- * nested group lifecycle, so the PCM, channel, DSP, connection, zone, and
- * group slots all recycle under the same pressure. Every heartbeat asserts
- * the live handle count stays flat.
+ * a DSP-to-DSP connection made and broken, a reverb zone lifecycle, a
+ * nested group lifecycle, a sound group lifecycle, and a channel callback
+ * registered and cleared, so every slot type recycles under the same
+ * pressure. Every heartbeat asserts the live handle count stays flat.
  *
  * Duration comes from the STRESS_SECONDS env var (default 60 seconds;
  * HTML5 always uses the default). Select via
@@ -231,10 +233,29 @@ class StressTestState extends FlxState {
                 child.release();
                 parent.release();
             }
+            var soundGroup = SoundGroup.create("churn-sg");
+            var pcmSound = CoreSound.fromPcm(_pcmChunk, 48000, 1);
+            if (!soundGroup.isNull() && !pcmSound.isNull()) {
+                soundGroup.setMaxAudible(1);
+                pcmSound.setSoundGroup(soundGroup);
+                pcmSound.setSoundGroup(SoundGroup.master());
+                pcmSound.release();
+                soundGroup.release();
+            }
             _graphCycles++;
         }
         target.release();
         osc.release();
+
+        // Callback registration churn: install and clear on a live channel
+        var cbStream = PcmStream.create(48000, 1, 4800);
+        if (!cbStream.isNull()) {
+            var cbChannel = cbStream.play(true);
+            cbChannel.setCallback(function(e) _callbackEvents++);
+            cbChannel.clearCallback();
+            cbChannel.stop();
+            cbStream.release();
+        }
         FmodManager.Update();
 
         _churnElapsed += elapsed;

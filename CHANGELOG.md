@@ -36,6 +36,13 @@
   platform, with defaults, loop points, mode, and format queries.
 - Core system queries: playing channel counts, mixer suspend/resume for
   app backgrounding, and the mixer's output format.
+- Channel playback events: `Channel.setCallback` delivers `End` and
+  `SyncPoint(index)` through the per-frame callback drain, with sync
+  points placed on sounds by offset and name (`CoreSound.addSyncPoint`).
+- Sound groups (`haxefmod.core.SoundGroup`): polyphony caps across any
+  set of sounds with fail, mute, or steal-lowest behaviors.
+- Global 3D scales (`CoreSystem.set3DSettings`), driver enumeration, and
+  a matching getter for every core routing and spatial setter.
 
 ## 2.0.0
 
