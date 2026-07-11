@@ -9,6 +9,7 @@ Having problems or want to chat? [Join the Haxe Discord](https://discordapp.com/
  - [Prerequisites](#prerequisites)
  - [How to Use This Library](#how-to-use-this-library)
  - [The API Layers](#the-api-layers)
+ - [Generated Audio](#generated-audio)
  - [Selecting an FMOD Engine Version](#selecting-an-fmod-engine-version)
  - [HTML5 Builds](#html5-builds)
  - [FMOD Studio Project Configuration](#fmod-studio-project-configuration)
@@ -23,6 +24,7 @@ Having problems or want to chat? [Join the Haxe Discord](https://discordapp.com/
 - Refcounted bank loading with real unload and async loading
 - HaxeFlixel components: one-call setup that routes the flixel sound tray and volume keys to FMOD, emitter and listener for positional audio, bank loader, and zone-based parameter triggers
 - Programmer sounds for dialogue and other runtime-selected audio
+- Generated audio: stream PCM produced at runtime (synths, voice chat, procedural sound) straight into the mixer with channel volume, pitch, and pause control
 - [Live Update](https://fmod.com/docs/2.03/studio/editing-during-live-update.html) for mixing sounds while playtesting (on by default in debug builds)
 - Constants generated straight from your banks: the FMOD Studio export script rewrites the event/bus/VCA/parameter constants every time you build banks with `Ctrl+B`, so they always match your project
 
@@ -151,6 +153,7 @@ lime test mac
 | `haxefmod.flixel.*` | HaxeFlixel components: `FmodFlxSetup`, `FmodFlxUpdater`, `FmodFlxUtilities`, `FmodFlxEmitter`, `FmodFlxListener`, `FmodFlxBankLoader`, `FmodFlxParameterTrigger` |
 | `haxefmod.runtime.FmodRuntime` | Init settings, refcounted banks, 3D attachment, listeners |
 | `haxefmod.studio.*` | The complete FMOD Studio API: `StudioSystem`, `EventDescription`, `EventInstance`, `Bus`, `Vca`, `Bank` |
+| `haxefmod.core.*` | Generated audio: `PcmStream` and `Channel` |
 
 ```haxe
 // Escape hatch example: everything FMOD Studio exposes is reachable
@@ -188,6 +191,37 @@ FmodManager.Initialize({
 Runtime settings passed to `FmodManager.Initialize(...)` override the defines.
 
 **HTML5 specifics**: initialization is asynchronous (see [HTML5 Builds](#html5-builds) for the loading-scene pattern). The FMOD web build ships FSB-only codecs, so loose wav/ogg loading and file-path programmer sounds are native-only (use audio table keys on HTML5). `Destroyed` callback events are not delivered on HTML5 (clean up in `release()`, which works on every target).
+
+## Generated Audio
+
+`haxefmod.core.PcmStream` plays audio your code produces at runtime. Create a
+stream, keep writing 16-bit PCM into it, and FMOD's mixer picks it up like
+any other sound:
+
+```haxe
+import haxefmod.core.PcmStream;
+
+// 48kHz mono. The stream buffers half a second by default.
+var stream = PcmStream.create(48000, 1);
+var channel = stream.play();
+
+// Every frame: top the buffer up with however many samples fit
+var bytes = haxe.io.Bytes.alloc(stream.space());
+for (i in 0...Std.int(bytes.length / 2)) {
+    bytes.setUInt16(i * 2, nextSample() & 0xFFFF);
+}
+stream.write(bytes);
+```
+
+`Channel` controls playback: `setVolume`, `setPitch`, `setPaused`, `stop`.
+When the buffer runs dry the mixer plays silence and counts an underrun.
+Poll `stream.takeUnderruns()` during development: a nonzero count means the
+game is not writing fast enough, so make the ring bigger (the third
+`create` argument) or write bigger chunks. Call `stream.release()` when
+done with the sound.
+
+Samples are 16-bit signed integers, interleaved left/right when the stream
+is stereo. Works on every supported platform.
 
 ## Selecting an FMOD Engine Version
 

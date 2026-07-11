@@ -4,6 +4,7 @@ import flixel.FlxG;
 import flixel.FlxState;
 import flixel.text.FlxText;
 import flixel.util.FlxColor;
+import haxefmod.core.PcmStream;
 import haxefmod.studio.Callbacks;
 import haxefmod.studio.EventInstance;
 import haxefmod.studio.StudioSystem;
@@ -21,8 +22,9 @@ import haxefmod.studio.Types;
  * Churn phase: for the configured duration, every frame creates, starts,
  * immediately stops, and releases a small batch of instances - registering
  * a callback on one instance per batch to churn the dispatcher map under
- * sustained mutation - and asserts at every heartbeat that the live handle
- * count stays flat.
+ * sustained mutation - plus one full PcmStream lifecycle (create, write,
+ * play, stop, release) so the PCM and channel slots recycle under the same
+ * pressure. Every heartbeat asserts the live handle count stays flat.
  *
  * Duration comes from the STRESS_SECONDS env var (default 60 seconds;
  * HTML5 always uses the default). Select via
@@ -48,6 +50,8 @@ class StressTestState extends FlxState {
     var _nextHeartbeat:Float = HEARTBEAT_SECONDS;
     var _heartbeats:Int = 0;
     var _iterations:Int = 0;
+    var _pcmCycles:Int = 0;
+    var _pcmChunk:haxe.io.Bytes;
     var _callbackEvents:Int = 0;
     var _status:FlxText;
 
@@ -168,6 +172,24 @@ class StressTestState extends FlxState {
             instance.release();
             _iterations++;
         }
+
+        // Core churn: one full PcmStream lifecycle per frame proves the PCM
+        // and channel slots recycle cleanly under sustained mutation
+        if (_pcmChunk == null) {
+            _pcmChunk = haxe.io.Bytes.alloc(2400);
+            for (i in 0...1200) {
+                var v = Std.int(Math.sin(2 * Math.PI * 440 * i / 48000) * 0x3000);
+                _pcmChunk.setUInt16(i * 2, v & 0xFFFF);
+            }
+        }
+        var stream = PcmStream.create(48000, 1, 4800);
+        if (!stream.isNull()) {
+            stream.write(_pcmChunk);
+            var channel = stream.play(true);
+            channel.stop();
+            stream.release();
+            _pcmCycles++;
+        }
         FmodManager.Update();
 
         _churnElapsed += elapsed;
@@ -187,6 +209,7 @@ class StressTestState extends FlxState {
         check("no_handle_leaks", StudioSystem.liveHandleCount() == _baseline,
             'baseline=$_baseline now=${StudioSystem.liveHandleCount()}');
         info("callback_events", Std.string(_callbackEvents));
+        info("pcm_cycles", Std.string(_pcmCycles));
         log('STRESS_TEST: COMPLETE passed=$_passCount failed=$_failCount iterations=$_iterations');
         _status.text = 'STRESS_TEST complete: $_passCount passed, $_failCount failed, $_iterations cycles';
         _done = true;

@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.1.0
+
+### Added
+- Generated audio (`haxefmod.core`): `PcmStream` streams 16-bit PCM
+  produced at runtime into the mixer through a ring buffer, with underrun
+  accounting for tuning. `Channel` controls playback: volume, pitch,
+  pause, and stop. Works on every supported platform.
+
 ## 2.0.0
 
 A clean-break rework: the full FMOD Studio API at runtime, typed handles,
