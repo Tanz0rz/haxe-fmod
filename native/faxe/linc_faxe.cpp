@@ -1727,6 +1727,368 @@ int fmod_dsp_get_cpu_usage(int h, ::Array<int> ibuf) {
     return (int)gLastResult;
 }
 
+//// Channel callbacks and sync points
+
+#define FAXE_CB_CHAN_END 0x40000001u
+#define FAXE_CB_CHAN_SYNCPOINT 0x40000002u
+
+// Runs on whichever thread pumps System::update. Pure C data handling:
+// reads the handle from the channel's user data and enqueues, never
+// touching the runtime.
+static FMOD_RESULT F_CALLBACK lincChannelCallback(FMOD_CHANNELCONTROL* channelcontrol, FMOD_CHANNELCONTROL_TYPE controltype, FMOD_CHANNELCONTROL_CALLBACK_TYPE callbacktype, void* commanddata1, void* commanddata2) {
+    void* userData = NULL;
+    int handle;
+    FaxeCbEvent event;
+    (void)commanddata2;
+    if (controltype != FMOD_CHANNELCONTROL_CHANNEL) return FMOD_OK;
+    ((FMOD::Channel*)channelcontrol)->getUserData(&userData);
+    handle = (int)(intptr_t)userData;
+    if (!handle) return FMOD_OK;
+    memset(&event, 0, sizeof(event));
+    event.handle = handle;
+    if (callbacktype == FMOD_CHANNELCONTROL_CALLBACK_END) {
+        event.type = FAXE_CB_CHAN_END;
+    } else if (callbacktype == FMOD_CHANNELCONTROL_CALLBACK_SYNCPOINT) {
+        event.type = FAXE_CB_CHAN_SYNCPOINT;
+        event.i1 = (int)(intptr_t)commanddata1;
+    } else {
+        return FMOD_OK;
+    }
+    faxe_cbq_push(&event);
+    return FMOD_OK;
+}
+
+int fmod_chan_set_callback(int h, bool enabled) {
+    FMOD::Channel* ch = resolveChannel(h);
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    if (enabled) {
+        ch->setUserData((void*)(intptr_t)h);
+        gLastResult = ch->setCallback(lincChannelCallback);
+    } else {
+        gLastResult = ch->setCallback(NULL);
+        ch->setUserData(NULL);
+    }
+    return (int)gLastResult;
+}
+
+int fmod_sound_add_sync_point(int h, int offsetMs, const ::String& name) {
+    FMOD::Sound* sound = resolveSound(h);
+    FMOD_SYNCPOINT* point = NULL;
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = sound->addSyncPoint((unsigned int)offsetMs, FMOD_TIMEUNIT_MS, name.c_str(), &point);
+    return (int)gLastResult;
+}
+
+int fmod_sound_delete_sync_point(int h, int index) {
+    FMOD::Sound* sound = resolveSound(h);
+    FMOD_SYNCPOINT* point = NULL;
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = sound->getSyncPoint(index, &point);
+    if (gLastResult != FMOD_OK) return (int)gLastResult;
+    gLastResult = sound->deleteSyncPoint(point);
+    return (int)gLastResult;
+}
+
+int fmod_sound_get_num_sync_points(int h) {
+    FMOD::Sound* sound = resolveSound(h);
+    int count = 0;
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = sound->getNumSyncPoints(&count);
+    return count;
+}
+
+const char* fmod_sound_get_sync_point_name(int h, int index) {
+    FMOD::Sound* sound = resolveSound(h);
+    FMOD_SYNCPOINT* point = NULL;
+    unsigned int offset = 0;
+    gStringBuf[0] = '\0';
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return gStringBuf; }
+    gLastResult = sound->getSyncPoint(index, &point);
+    if (gLastResult != FMOD_OK) return gStringBuf;
+    gLastResult = sound->getSyncPointInfo(point, gStringBuf, sizeof(gStringBuf), &offset, FMOD_TIMEUNIT_MS);
+    if (gLastResult != FMOD_OK) gStringBuf[0] = '\0';
+    return gStringBuf;
+}
+
+int fmod_sound_get_sync_point_offset(int h, int index) {
+    FMOD::Sound* sound = resolveSound(h);
+    FMOD_SYNCPOINT* point = NULL;
+    unsigned int offset = 0;
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    gLastResult = sound->getSyncPoint(index, &point);
+    if (gLastResult != FMOD_OK) return -1;
+    gLastResult = sound->getSyncPointInfo(point, NULL, 0, &offset, FMOD_TIMEUNIT_MS);
+    return gLastResult == FMOD_OK ? (int)offset : -1;
+}
+
+//// Sound groups
+
+static inline FMOD::SoundGroup* resolveSoundGroup(int h) {
+    return (FMOD::SoundGroup*)faxe_handle_resolve(h, FAXE_TYPE_SOUNDGROUP);
+}
+
+int fmod_sys_create_sound_group(const ::String& name) {
+    FMOD::SoundGroup* group = NULL;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    gLastResult = gCoreSystem->createSoundGroup(name.c_str(), &group);
+    if (gLastResult != FMOD_OK || !group) return 0;
+    return faxe_handle_alloc(group, FAXE_TYPE_SOUNDGROUP);
+}
+
+int fmod_sys_get_master_sound_group() {
+    FMOD::SoundGroup* group = NULL;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    gLastResult = gCoreSystem->getMasterSoundGroup(&group);
+    if (gLastResult != FMOD_OK || !group) return 0;
+    return faxe_handle_find_or_alloc(group, FAXE_TYPE_SOUNDGROUP);
+}
+
+int fmod_sg_release(int h) {
+    FMOD::SoundGroup* group = resolveSoundGroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = group->release();
+    if (gLastResult == FMOD_OK) faxe_handle_free(h);
+    return (int)gLastResult;
+}
+
+int fmod_sg_set_max_audible(int h, int maxAudible) {
+    FMOD::SoundGroup* group = resolveSoundGroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = group->setMaxAudible(maxAudible);
+    return (int)gLastResult;
+}
+
+int fmod_sg_get_max_audible(int h) {
+    FMOD::SoundGroup* group = resolveSoundGroup(h);
+    int maxAudible = 0;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = group->getMaxAudible(&maxAudible);
+    return maxAudible;
+}
+
+int fmod_sg_set_max_audible_behavior(int h, int behavior) {
+    FMOD::SoundGroup* group = resolveSoundGroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = group->setMaxAudibleBehavior((FMOD_SOUNDGROUP_BEHAVIOR)behavior);
+    return (int)gLastResult;
+}
+
+int fmod_sg_get_max_audible_behavior(int h) {
+    FMOD::SoundGroup* group = resolveSoundGroup(h);
+    FMOD_SOUNDGROUP_BEHAVIOR behavior = FMOD_SOUNDGROUP_BEHAVIOR_FAIL;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = group->getMaxAudibleBehavior(&behavior);
+    return (int)behavior;
+}
+
+int fmod_sg_set_mute_fade_speed(int h, float speed) {
+    FMOD::SoundGroup* group = resolveSoundGroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = group->setMuteFadeSpeed(speed);
+    return (int)gLastResult;
+}
+
+int fmod_sg_get_num_sounds(int h) {
+    FMOD::SoundGroup* group = resolveSoundGroup(h);
+    int count = 0;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = group->getNumSounds(&count);
+    return count;
+}
+
+int fmod_sg_stop(int h) {
+    FMOD::SoundGroup* group = resolveSoundGroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = group->stop();
+    return (int)gLastResult;
+}
+
+int fmod_sound_set_sound_group(int h, int groupHandle) {
+    FMOD::Sound* sound = resolveSound(h);
+    FMOD::SoundGroup* group = resolveSoundGroup(groupHandle);
+    if (!sound || !group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = sound->setSoundGroup(group);
+    return (int)gLastResult;
+}
+
+//// System 3D settings and drivers
+
+int fmod_sys_set_3d_settings(float doppler, float distanceFactor, float rolloffScale) {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = gCoreSystem->set3DSettings(doppler, distanceFactor, rolloffScale);
+    return (int)gLastResult;
+}
+
+// fbuf out: [0]=doppler [1]=distance factor [2]=rolloff scale
+int fmod_sys_get_3d_settings(::Array<Float> fbuf) {
+    float doppler = 0.0f;
+    float distanceFactor = 0.0f;
+    float rolloffScale = 0.0f;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = gCoreSystem->get3DSettings(&doppler, &distanceFactor, &rolloffScale);
+    fbuf[0] = (double)doppler;
+    fbuf[1] = (double)distanceFactor;
+    fbuf[2] = (double)rolloffScale;
+    return (int)gLastResult;
+}
+
+int fmod_sys_get_num_drivers() {
+    int count = 0;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    gLastResult = gCoreSystem->getNumDrivers(&count);
+    return count;
+}
+
+const char* fmod_sys_get_driver_name(int id) {
+    gStringBuf[0] = '\0';
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return gStringBuf; }
+    gLastResult = gCoreSystem->getDriverInfo(id, gStringBuf, sizeof(gStringBuf), NULL, NULL, NULL, NULL);
+    if (gLastResult != FMOD_OK) gStringBuf[0] = '\0';
+    return gStringBuf;
+}
+
+//// Getter symmetry for the routing and spatial setters
+
+int fmod_chan_get_loop_count(int h) {
+    FMOD::Channel* ch = resolveChannel(h);
+    int loopCount = 0;
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = ch->getLoopCount(&loopCount);
+    return loopCount;
+}
+
+float fmod_chan_get_low_pass_gain(int h) {
+    FMOD::Channel* ch = resolveChannel(h);
+    float gain = 0.0f;
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0.0f; }
+    gLastResult = ch->getLowPassGain(&gain);
+    return gain;
+}
+
+int fmod_chan_get_mode(int h) {
+    FMOD::Channel* ch = resolveChannel(h);
+    FMOD_MODE mode = 0;
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = ch->getMode(&mode);
+    return (int)mode;
+}
+
+// fbuf out: [0]=inside angle [1]=outside angle [2]=outside volume
+int fmod_chan_get_3d_cone_settings(int h, ::Array<Float> fbuf) {
+    FMOD::Channel* ch = resolveChannel(h);
+    float inside = 0.0f;
+    float outside = 0.0f;
+    float volume = 0.0f;
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = ch->get3DConeSettings(&inside, &outside, &volume);
+    fbuf[0] = (double)inside;
+    fbuf[1] = (double)outside;
+    fbuf[2] = (double)volume;
+    return (int)gLastResult;
+}
+
+float fmod_chan_get_3d_spread(int h) {
+    FMOD::Channel* ch = resolveChannel(h);
+    float angle = 0.0f;
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0.0f; }
+    gLastResult = ch->get3DSpread(&angle);
+    return angle;
+}
+
+float fmod_chan_get_3d_level(int h) {
+    FMOD::Channel* ch = resolveChannel(h);
+    float level = 0.0f;
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0.0f; }
+    gLastResult = ch->get3DLevel(&level);
+    return level;
+}
+
+float fmod_chan_get_3d_doppler_level(int h) {
+    FMOD::Channel* ch = resolveChannel(h);
+    float level = 0.0f;
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0.0f; }
+    gLastResult = ch->get3DDopplerLevel(&level);
+    return level;
+}
+
+// fbuf out: [0]=min [1]=max
+int fmod_chan_get_3d_min_max(int h, ::Array<Float> fbuf) {
+    FMOD::Channel* ch = resolveChannel(h);
+    float minDist = 0.0f;
+    float maxDist = 0.0f;
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = ch->get3DMinMaxDistance(&minDist, &maxDist);
+    fbuf[0] = (double)minDist;
+    fbuf[1] = (double)maxDist;
+    return (int)gLastResult;
+}
+
+// fbuf out: [0..2]=position [3..5]=velocity
+int fmod_chan_get_3d_attributes(int h, ::Array<Float> fbuf) {
+    FMOD::Channel* ch = resolveChannel(h);
+    FMOD_VECTOR position;
+    FMOD_VECTOR velocity;
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    memset(&position, 0, sizeof(position));
+    memset(&velocity, 0, sizeof(velocity));
+    gLastResult = ch->get3DAttributes(&position, &velocity);
+    fbuf[0] = (double)position.x;
+    fbuf[1] = (double)position.y;
+    fbuf[2] = (double)position.z;
+    fbuf[3] = (double)velocity.x;
+    fbuf[4] = (double)velocity.y;
+    fbuf[5] = (double)velocity.z;
+    return (int)gLastResult;
+}
+
+// fbuf out: [0]=start clock [1]=end clock [2]=stop channels (0/1)
+int fmod_chan_get_delay(int h, ::Array<Float> fbuf) {
+    FMOD::Channel* ch = resolveChannel(h);
+    unsigned long long startClock = 0;
+    unsigned long long endClock = 0;
+    bool stopChannels = false;
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = ch->getDelay(&startClock, &endClock, &stopChannels);
+    fbuf[0] = (double)startClock;
+    fbuf[1] = (double)endClock;
+    fbuf[2] = stopChannels ? 1.0 : 0.0;
+    return (int)gLastResult;
+}
+
+// fbuf out: [0]=prewet [1]=postwet [2]=dry
+int fmod_dsp_get_wet_dry_mix(int h, ::Array<Float> fbuf) {
+    FMOD::DSP* dsp = resolveDsp(h);
+    float prewet = 0.0f;
+    float postwet = 0.0f;
+    float dry = 0.0f;
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = dsp->getWetDryMix(&prewet, &postwet, &dry);
+    fbuf[0] = (double)prewet;
+    fbuf[1] = (double)postwet;
+    fbuf[2] = (double)dry;
+    return (int)gLastResult;
+}
+
+bool fmod_dsp_get_active(int h) {
+    FMOD::DSP* dsp = resolveDsp(h);
+    bool active = false;
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return false; }
+    gLastResult = dsp->getActive(&active);
+    return active;
+}
+
+// ibuf out: [0]=input enabled [1]=output enabled
+int fmod_dsp_get_metering_enabled(int h, ::Array<int> ibuf) {
+    FMOD::DSP* dsp = resolveDsp(h);
+    bool inputEnabled = false;
+    bool outputEnabled = false;
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = dsp->getMeteringEnabled(&inputEnabled, &outputEnabled);
+    ibuf[0] = inputEnabled ? 1 : 0;
+    ibuf[1] = outputEnabled ? 1 : 0;
+    return (int)gLastResult;
+}
+
 // Drain protocol: cb_next pops the oldest queued event into a static slot;
 // the accessors read fields from that slot. Haxe thread only.
 static FaxeCbEvent gCbCurrent;
@@ -3176,7 +3538,7 @@ int fmod_debug_live_handle_count() {
 
 int fmod_binding_abi_version() {
     // Keep in lockstep with the manifest header "# abi-version:"
-    return 5;
+    return 6;
 }
 
 } // namespace faxe

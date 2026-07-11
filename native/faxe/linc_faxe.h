@@ -374,5 +374,47 @@ extern int fmod_dsp_get_cpu_usage(int handle, ::Array<int> ibuf);
 extern int fmod_debug_live_handle_count();
 extern int fmod_binding_abi_version();
 
+// Channel callbacks and sync points
+extern int fmod_chan_set_callback(int handle, bool enabled);
+extern int fmod_sound_add_sync_point(int handle, int offsetMs, const ::String& name);
+extern int fmod_sound_delete_sync_point(int handle, int index);
+extern int fmod_sound_get_num_sync_points(int handle);
+extern const char* fmod_sound_get_sync_point_name(int handle, int index);
+extern int fmod_sound_get_sync_point_offset(int handle, int index);
+
+// Sound groups
+extern int fmod_sys_create_sound_group(const ::String& name);
+extern int fmod_sys_get_master_sound_group();
+extern int fmod_sg_release(int handle);
+extern int fmod_sg_set_max_audible(int handle, int maxAudible);
+extern int fmod_sg_get_max_audible(int handle);
+extern int fmod_sg_set_max_audible_behavior(int handle, int behavior);
+extern int fmod_sg_get_max_audible_behavior(int handle);
+extern int fmod_sg_set_mute_fade_speed(int handle, float speed);
+extern int fmod_sg_get_num_sounds(int handle);
+extern int fmod_sg_stop(int handle);
+extern int fmod_sound_set_sound_group(int handle, int groupHandle);
+
+// System 3D settings and drivers
+extern int fmod_sys_set_3d_settings(float doppler, float distanceFactor, float rolloffScale);
+extern int fmod_sys_get_3d_settings(::Array<Float> fbuf);
+extern int fmod_sys_get_num_drivers();
+extern const char* fmod_sys_get_driver_name(int id);
+
+// Getter symmetry for the routing and spatial setters
+extern int fmod_chan_get_loop_count(int handle);
+extern float fmod_chan_get_low_pass_gain(int handle);
+extern int fmod_chan_get_mode(int handle);
+extern int fmod_chan_get_3d_cone_settings(int handle, ::Array<Float> fbuf);
+extern float fmod_chan_get_3d_spread(int handle);
+extern float fmod_chan_get_3d_level(int handle);
+extern float fmod_chan_get_3d_doppler_level(int handle);
+extern int fmod_chan_get_3d_min_max(int handle, ::Array<Float> fbuf);
+extern int fmod_chan_get_3d_attributes(int handle, ::Array<Float> fbuf);
+extern int fmod_chan_get_delay(int handle, ::Array<Float> fbuf);
+extern int fmod_dsp_get_wet_dry_mix(int handle, ::Array<Float> fbuf);
+extern bool fmod_dsp_get_active(int handle);
+extern int fmod_dsp_get_metering_enabled(int handle, ::Array<int> ibuf);
+
 } // namespace faxe
 } // namespace linc

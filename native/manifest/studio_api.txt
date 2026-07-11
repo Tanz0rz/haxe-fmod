@@ -11,7 +11,7 @@
 # Types are logical (exact FFI types differ per backend, e.g. f32 vs f64);
 # the checker verifies presence and arity, not exact types.
 #
-# abi-version: 5
+# abi-version: 6
 # The binding ABI version covers the shape of the native surface. Bump it in
 # lockstep with the "hlaxe_fmod_abi=" marker in hlaxe_fmod.c, the constants in
 # the other two shims, and FmodRuntime.BINDING_ABI whenever functions are
@@ -458,6 +458,57 @@ sys_mixer_resume -> i32
 sys_get_software_format ibuf -> i32
 # ibuf out: [0]=exclusive us [1]=inclusive us (needs profiling enabled)
 dsp_get_cpu_usage i32 ibuf -> i32
+
+## Channel callbacks and sync points
+# channel events ride the callback queue under the 0x40000000 namespace:
+# 0x40000001 = channel end, 0x40000002 = sync point (i1 = point index)
+chan_set_callback i32 bool -> i32
+sound_add_sync_point i32 i32 str -> i32
+sound_delete_sync_point i32 i32 -> i32
+sound_get_num_sync_points i32 -> i32
+sound_get_sync_point_name i32 i32 -> str
+sound_get_sync_point_offset i32 i32 -> i32
+
+## Sound groups
+sys_create_sound_group str -> i32
+sys_get_master_sound_group -> i32
+sg_release i32 -> i32
+sg_set_max_audible i32 i32 -> i32
+sg_get_max_audible i32 -> i32
+sg_set_max_audible_behavior i32 i32 -> i32
+sg_get_max_audible_behavior i32 -> i32
+sg_set_mute_fade_speed i32 f32 -> i32
+sg_get_num_sounds i32 -> i32
+sg_stop i32 -> i32
+sound_set_sound_group i32 i32 -> i32
+
+## System 3D settings and drivers
+sys_set_3d_settings f32 f32 f32 -> i32
+# fbuf out: [0]=doppler [1]=distance factor [2]=rolloff scale
+sys_get_3d_settings fbuf -> i32
+sys_get_num_drivers -> i32
+sys_get_driver_name i32 -> str
+
+## Getter symmetry for the routing and spatial setters
+chan_get_loop_count i32 -> i32
+chan_get_low_pass_gain i32 -> f32
+chan_get_mode i32 -> i32
+# fbuf out: [0]=inside angle [1]=outside angle [2]=outside volume
+chan_get_3d_cone_settings i32 fbuf -> i32
+chan_get_3d_spread i32 -> f32
+chan_get_3d_level i32 -> f32
+chan_get_3d_doppler_level i32 -> f32
+# fbuf out: [0]=min [1]=max
+chan_get_3d_min_max i32 fbuf -> i32
+# fbuf out: [0..2]=position [3..5]=velocity
+chan_get_3d_attributes i32 fbuf -> i32
+# fbuf out: [0]=start clock [1]=end clock [2]=stop channels (0/1)
+chan_get_delay i32 fbuf -> i32
+# fbuf out: [0]=prewet [1]=postwet [2]=dry
+dsp_get_wet_dry_mix i32 fbuf -> i32
+dsp_get_active i32 -> bool
+# ibuf out: [0]=input enabled [1]=output enabled
+dsp_get_metering_enabled i32 ibuf -> i32
 
 ## Debug
 debug_live_handle_count -> i32

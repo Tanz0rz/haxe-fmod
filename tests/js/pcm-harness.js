@@ -137,6 +137,9 @@ async function main() {
     testConnectionGraph();
     testNestingAndScheduling();
     testReverb3dSoundsSystem();
+    testCallbacksAndSyncPoints();
+    testSoundGroupsAndSystem();
+    testGetterSymmetry();
 
     console.log(`PCM_TEST: failures = ${failures}`);
     console.log('PCM_TEST: COMPLETE');
@@ -427,6 +430,131 @@ function testReverb3dSoundsSystem() {
     const cpuResult = jaxe.fmod_dsp_get_cpu_usage(dsp, cpu);
     check('s3_dsp_cpu_usage_shape', cpuResult === jaxe.FMOD.OK || cpuResult === 1,
         `result=${cpuResult} (BADCOMMAND without profiling init is legitimate)`);
+    jaxe.fmod_dsp_release(dsp);
+    pump(5);
+}
+
+//// Slice-4 shim surface against the real wasm
+
+function testCallbacksAndSyncPoints() {
+    // A finite pcm memory sound so END fires
+    const frames = 4800;
+    const buf = new ArrayBuffer(frames * 2);
+    const snd = jaxe.fmod_core_create_sound_pcm(buf, buf.byteLength, 48000, 1);
+    check('s4_sync_add', jaxe.fmod_sound_add_sync_point(snd, 50, 'mid') === jaxe.FMOD.OK);
+    check('s4_sync_count', jaxe.fmod_sound_get_num_sync_points(snd) === 1);
+    check('s4_sync_name', jaxe.fmod_sound_get_sync_point_name(snd, 0) === 'mid',
+        `name=${jaxe.fmod_sound_get_sync_point_name(snd, 0)}`);
+    check('s4_sync_offset', jaxe.fmod_sound_get_sync_point_offset(snd, 0) === 50,
+        `offset=${jaxe.fmod_sound_get_sync_point_offset(snd, 0)}`);
+
+    const ch = jaxe.fmod_core_play_sound(snd, false);
+    check('s4_set_callback', jaxe.fmod_chan_set_callback(ch, true) === jaxe.FMOD.OK);
+    pump(40);
+    // Drain the queue: both channel events must arrive with the channel handle
+    let sawSync = false;
+    let sawEnd = false;
+    while (jaxe.fmod_cb_next()) {
+        const h = jaxe.fmod_cb_handle();
+        const t = jaxe.fmod_cb_type();
+        if (h === ch && t === jaxe.CB_CHAN_SYNCPOINT && jaxe.fmod_cb_int(0) === 0) sawSync = true;
+        if (h === ch && t === jaxe.CB_CHAN_END) sawEnd = true;
+    }
+    check('s4_callback_syncpoint', sawSync, '');
+    check('s4_callback_end', sawEnd, '');
+    check('s4_sync_delete', jaxe.fmod_sound_delete_sync_point(snd, 0) === jaxe.FMOD.OK
+        && jaxe.fmod_sound_get_num_sync_points(snd) === 0, '');
+    jaxe.fmod_chan_stop(ch);
+    jaxe.fmod_core_release_sound(snd);
+    pump(5);
+}
+
+function testSoundGroupsAndSystem() {
+    const sg = jaxe.fmod_sys_create_sound_group('pcm-harness-sg');
+    check('s4_sg_create', sg !== 0, `handle=${sg}`);
+    check('s4_sg_max_audible', jaxe.fmod_sg_set_max_audible(sg, 2) === jaxe.FMOD.OK
+        && jaxe.fmod_sg_get_max_audible(sg) === 2, '');
+    check('s4_sg_behavior', jaxe.fmod_sg_set_max_audible_behavior(sg, 2) === jaxe.FMOD.OK
+        && jaxe.fmod_sg_get_max_audible_behavior(sg) === 2, '');
+    check('s4_sg_mute_fade', jaxe.fmod_sg_set_mute_fade_speed(sg, 0.5) === jaxe.FMOD.OK);
+
+    const buf = new ArrayBuffer(9600);
+    const snd = jaxe.fmod_core_create_sound_pcm(buf, buf.byteLength, 48000, 1);
+    check('s4_sg_assign', jaxe.fmod_sound_set_sound_group(snd, sg) === jaxe.FMOD.OK);
+    check('s4_sg_num_sounds', jaxe.fmod_sg_get_num_sounds(sg) === 1);
+    check('s4_sg_stop', jaxe.fmod_sg_stop(sg) === jaxe.FMOD.OK);
+
+    const master = jaxe.fmod_sys_get_master_sound_group();
+    check('s4_sg_master_dedup', master !== 0 && master === jaxe.fmod_sys_get_master_sound_group(),
+        `handle=${master}`);
+    jaxe.fmod_sound_set_sound_group(snd, master);
+    check('s4_sg_release', jaxe.fmod_sg_release(sg) === jaxe.FMOD.OK);
+    check('s4_stale_sg', jaxe.fmod_sg_stop(sg) === jaxe.ERR_INVALID_HANDLE);
+    jaxe.fmod_core_release_sound(snd);
+
+    check('s4_3d_settings', jaxe.fmod_sys_set_3d_settings(1.5, 1.0, 1.0) === jaxe.FMOD.OK);
+    const settings = [];
+    jaxe.fmod_sys_get_3d_settings(settings);
+    check('s4_3d_settings_roundtrip', Math.abs(settings[0] - 1.5) < 0.001, `doppler=${settings[0]}`);
+    jaxe.fmod_sys_set_3d_settings(1.0, 1.0, 1.0);
+
+    check('s4_num_drivers', jaxe.fmod_sys_get_num_drivers() >= 1);
+    const driverName = jaxe.fmod_sys_get_driver_name(0);
+    check('s4_driver_name', typeof driverName === 'string' && driverName.length > 0,
+        `name=${driverName}`);
+}
+
+function testGetterSymmetry() {
+    const ps = jaxe.fmod_core_pcm_create_3d(48000, 1, 9600);
+    const ch = jaxe.fmod_core_pcm_play(ps, true);
+    jaxe.fmod_chan_set_loop_count(ch, -1);
+    check('s4_get_loop_count', jaxe.fmod_chan_get_loop_count(ch) === -1);
+    jaxe.fmod_chan_set_low_pass_gain(ch, 0.5);
+    check('s4_get_low_pass_gain', Math.abs(jaxe.fmod_chan_get_low_pass_gain(ch) - 0.5) < 0.001);
+    check('s4_get_mode', jaxe.fmod_chan_get_mode(ch) !== 0, `mode=${jaxe.fmod_chan_get_mode(ch)}`);
+    jaxe.fmod_chan_set_3d_cone_settings(ch, 30, 60, 0.5);
+    const cone = [];
+    jaxe.fmod_chan_get_3d_cone_settings(ch, cone);
+    check('s4_get_cone', Math.abs(cone[0] - 30) < 0.1 && Math.abs(cone[1] - 60) < 0.1,
+        `inside=${cone[0]} outside=${cone[1]}`);
+    jaxe.fmod_chan_set_3d_spread(ch, 45);
+    check('s4_get_spread', Math.abs(jaxe.fmod_chan_get_3d_spread(ch) - 45) < 0.1);
+    jaxe.fmod_chan_set_3d_level(ch, 0.8);
+    check('s4_get_3d_level', Math.abs(jaxe.fmod_chan_get_3d_level(ch) - 0.8) < 0.001);
+    jaxe.fmod_chan_set_3d_doppler_level(ch, 0.7);
+    check('s4_get_doppler', Math.abs(jaxe.fmod_chan_get_3d_doppler_level(ch) - 0.7) < 0.001);
+    jaxe.fmod_chan_set_3d_min_max(ch, 2, 50);
+    const minMax = [];
+    jaxe.fmod_chan_get_3d_min_max(ch, minMax);
+    check('s4_get_min_max', Math.abs(minMax[0] - 2) < 0.001 && Math.abs(minMax[1] - 50) < 0.001,
+        `min=${minMax[0]} max=${minMax[1]}`);
+    jaxe.fmod_chan_set_3d_attributes(ch, 1, 2, 3, 0, 0, 0);
+    const attrs = [];
+    jaxe.fmod_chan_get_3d_attributes(ch, attrs);
+    check('s4_get_3d_attributes', Math.abs(attrs[0] - 1) < 0.001 && Math.abs(attrs[1] - 2) < 0.001
+        && Math.abs(attrs[2] - 3) < 0.001, `pos=${attrs[0]},${attrs[1]},${attrs[2]}`);
+    const clocks = [];
+    jaxe.fmod_chan_get_dsp_clock(ch, clocks);
+    jaxe.fmod_chan_set_delay(ch, 0, clocks[1] + 96000, false);
+    const delay = [];
+    jaxe.fmod_chan_get_delay(ch, delay);
+    check('s4_get_delay', Math.abs(delay[1] - (clocks[1] + 96000)) < 1,
+        `end=${delay[1]} expected=${clocks[1] + 96000}`);
+    jaxe.fmod_chan_stop(ch);
+    jaxe.fmod_core_pcm_release(ps);
+
+    const dsp = jaxe.fmod_dsp_create_by_type(18);
+    jaxe.fmod_dsp_set_wet_dry_mix(dsp, 1, 0.8, 0.2);
+    const mix = [];
+    jaxe.fmod_dsp_get_wet_dry_mix(dsp, mix);
+    check('s4_get_wet_dry', Math.abs(mix[1] - 0.8) < 0.001, `post=${mix[1]}`);
+    jaxe.fmod_dsp_set_active(dsp, true);
+    check('s4_get_active', jaxe.fmod_dsp_get_active(dsp) === true);
+    jaxe.fmod_dsp_set_metering_enabled(dsp, true, false);
+    const metering = [];
+    jaxe.fmod_dsp_get_metering_enabled(dsp, metering);
+    check('s4_get_metering_enabled', metering[0] === 1 && metering[1] === 0,
+        `in=${metering[0]} out=${metering[1]}`);
     jaxe.fmod_dsp_release(dsp);
     pump(5);
 }
