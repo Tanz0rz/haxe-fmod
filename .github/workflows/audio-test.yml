@@ -2757,12 +2757,20 @@ jobs:
           sudo ldconfig
           hl --version || echo "HashLink installed"
 
+      # ABI 3 rollout bootstrap: the packaged pre-built hdlls still carry
+      # ABI 2, so the first build must stop with the binding mismatch error.
+      # build-hdll from the installed package then produces a matching hdll.
+      # The follow-up commit restores the normal pre-built assertion.
       - name: Build HashLink target from the installed package
         run: |
           cd example-project/EZPlatformer
-          haxelib run lime build hl 2>&1 | tee /tmp/package-build.log
-          grep -q "(pre-built)" /tmp/package-build.log
-          echo "Verified: pre-built hdll resolved from the installed package"
+          haxelib run lime build hl 2>&1 | tee /tmp/package-build.log || true
+          grep -q "ERROR: hlaxe_fmod.hdll binding version mismatch" /tmp/package-build.log
+          echo "Verified: packaged pre-built hdll was rejected on binding ABI mismatch"
+          haxelib run haxefmod build-hdll
+          haxelib run lime build hl 2>&1 | tee /tmp/package-build2.log
+          grep -q "(custom-compiled from .haxefmod/)" /tmp/package-build2.log
+          echo "Verified: hdll compiled from the installed package sources was used"
 
       - name: Validate build output
         run: |
