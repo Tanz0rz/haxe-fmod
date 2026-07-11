@@ -238,6 +238,67 @@ extern bool fmod_chan_get_paused(int handle);
 extern bool fmod_chan_is_playing(int handle);
 extern int fmod_chan_stop(int handle);
 
+// Core DSP effects
+extern int fmod_dsp_create_by_type(int type);
+extern int fmod_dsp_release(int handle);
+extern int fmod_dsp_set_param_float(int handle, int index, float value);
+extern float fmod_dsp_get_param_float(int handle, int index);
+extern int fmod_dsp_set_param_int(int handle, int index, int value);
+extern int fmod_dsp_get_param_int(int handle, int index);
+extern int fmod_dsp_set_param_bool(int handle, int index, bool value);
+extern bool fmod_dsp_get_param_bool(int handle, int index);
+extern int fmod_dsp_get_num_params(int handle);
+extern int fmod_dsp_get_type(int handle);
+extern int fmod_dsp_set_bypass(int handle, bool bypass);
+extern bool fmod_dsp_get_bypass(int handle);
+extern int fmod_dsp_set_wet_dry_mix(int handle, float prewet, float postwet, float dry);
+extern int fmod_dsp_set_active(int handle, bool active);
+extern int fmod_dsp_reset(int handle);
+extern int fmod_dsp_set_metering_enabled(int handle, bool input, bool output);
+extern int fmod_dsp_get_metering(int handle, ::Array<Float> fbuf);
+extern int fmod_dsp_fft_get_spectrum(int handle, ::Array<Float> fbuf, int maxBins);
+
+// Core channel groups
+extern int fmod_cg_get_master();
+extern int fmod_cg_create(const ::String& name);
+extern int fmod_cg_release(int handle);
+extern int fmod_cg_set_volume(int handle, float volume);
+extern float fmod_cg_get_volume(int handle);
+extern int fmod_cg_set_pitch(int handle, float pitch);
+extern float fmod_cg_get_pitch(int handle);
+extern int fmod_cg_set_mute(int handle, bool mute);
+extern bool fmod_cg_get_mute(int handle);
+extern int fmod_cg_set_paused(int handle, bool paused);
+extern bool fmod_cg_get_paused(int handle);
+extern int fmod_cg_add_dsp(int handle, int index, int dspHandle);
+extern int fmod_cg_remove_dsp(int handle, int dspHandle);
+extern int fmod_cg_stop(int handle);
+
+// Core channel routing and effects
+extern int fmod_chan_set_pan(int handle, float pan);
+extern int fmod_chan_set_frequency(int handle, float frequency);
+extern float fmod_chan_get_frequency(int handle);
+extern int fmod_chan_set_loop_count(int handle, int loopCount);
+extern int fmod_chan_get_position(int handle);
+extern int fmod_chan_set_position(int handle, int positionMs);
+extern int fmod_chan_set_channel_group(int handle, int groupHandle);
+extern int fmod_chan_add_dsp(int handle, int index, int dspHandle);
+extern int fmod_chan_remove_dsp(int handle, int dspHandle);
+extern int fmod_chan_set_3d_attributes(int handle, float posX, float posY, float posZ, float velX, float velY, float velZ);
+extern int fmod_chan_set_3d_min_max(int handle, float minDist, float maxDist);
+extern int fmod_chan_set_reverb_wet(int handle, int instance, float wet);
+
+// Studio bus to core group bridge
+extern int fmod_bus_lock_channel_group(int handle);
+extern int fmod_bus_unlock_channel_group(int handle);
+extern int fmod_bus_get_channel_group(int handle);
+
+// Core system extras
+extern int fmod_sys_play_dsp(int dspHandle, bool startPaused);
+extern int fmod_sys_set_reverb_properties(int instance, ::Array<Float> fbuf);
+extern int fmod_sys_get_reverb_properties(int instance, ::Array<Float> fbuf);
+extern int fmod_core_pcm_create_3d(int sampleRate, int channels, int ringBytes);
+
 //// Debug
 extern int fmod_debug_live_handle_count();
 extern int fmod_binding_abi_version();

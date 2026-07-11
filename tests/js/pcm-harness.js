@@ -19,13 +19,23 @@ global.document = { addEventListener: function () {} };
 global.FMODModule = require(path.join(SDK, 'fmodstudio.js'));
 eval(fs.readFileSync(JAXE, 'utf8') + '\nglobal.jaxe = jaxe;');
 
-// No banks needed: the Core PCM surface runs on the core system alone
+const BANKS = path.join(REPO, 'example-project', 'EZPlatformer', 'assets', 'fmod', 'Desktop');
+jaxe.preRun = function () {
+    for (const n of ['Master.bank', 'Master.strings.bank']) {
+        jaxe.FMOD.FS_createDataFile('/', n, fs.readFileSync(path.join(BANKS, n)), true, false, false);
+    }
+};
 jaxe.onRuntimeInitialized = function () {
     var o = {};
     jaxe.FMOD.Studio_System_Create(o); jaxe.gSystem = o.val;
     jaxe.gSystem.getCoreSystem(o); jaxe.gSystemCore = o.val;
     jaxe.gSystemCore.setOutput(jaxe.FMOD.OUTPUTTYPE_NOSOUND_NRT);
     jaxe.gSystem.initialize(256, jaxe.FMOD.STUDIO_INIT_NORMAL, jaxe.FMOD.INIT_NORMAL, null);
+    var b = {};
+    jaxe.gSystem.loadBankFile('/Master.bank', jaxe.FMOD.STUDIO_LOAD_BANK_NORMAL, b);
+    jaxe.loadedBanks['Master.bank'] = b.val;
+    jaxe.gSystem.loadBankFile('/Master.strings.bank', jaxe.FMOD.STUDIO_LOAD_BANK_NORMAL, b);
+    jaxe.loadedBanks['Master.strings.bank'] = b.val;
     jaxe.FmodIsInitialized = true;
     return jaxe.FMOD.OK;
 };
@@ -41,6 +51,7 @@ function pump(n) {
 }
 
 async function main() {
+    jaxe.FMOD['preRun'] = jaxe.preRun;
     jaxe.FMOD['onRuntimeInitialized'] = jaxe.onRuntimeInitialized;
     FMODModule(jaxe.FMOD).catch(e => { console.log('MODULE REJECTED', e); process.exit(1); });
     for (let i = 0; i < 300 && !jaxe.FmodIsInitialized; i++) await new Promise(r => setTimeout(r, 50));
@@ -119,8 +130,157 @@ async function main() {
         && jaxe.fmod_chan_is_playing(ch) === false
         && jaxe.fmod_chan_get_paused(ch) === false);
 
+    testDspSurface();
+    testChannelGroups();
+    testBusBridge();
+    testReverbAndExtras();
+
     console.log(`PCM_TEST: failures = ${failures}`);
     console.log('PCM_TEST: COMPLETE');
     process.exit(failures ? 1 : 0);
+}
+
+function testDspSurface() {
+    // Oscillator through sys_play_dsp feeds the analyzers a real 1kHz tone
+    const osc = jaxe.fmod_dsp_create_by_type(2 /* OSCILLATOR */);
+    check('dsp_create', osc !== 0, `handle=${osc} result=${jaxe.lastResult}`);
+    check('dsp_set_param_int', jaxe.fmod_dsp_set_param_int(osc, 0, 0) === jaxe.FMOD.OK);
+    check('dsp_get_param_int', jaxe.fmod_dsp_get_param_int(osc, 0) === 0);
+    check('dsp_set_param_float', jaxe.fmod_dsp_set_param_float(osc, 1, 1000.0) === jaxe.FMOD.OK);
+    check('dsp_get_param_float', Math.abs(jaxe.fmod_dsp_get_param_float(osc, 1) - 1000.0) < 0.01,
+        `value=${jaxe.fmod_dsp_get_param_float(osc, 1)}`);
+    check('dsp_get_type', jaxe.fmod_dsp_get_type(osc) === 2, `value=${jaxe.fmod_dsp_get_type(osc)}`);
+    check('dsp_get_num_params', jaxe.fmod_dsp_get_num_params(osc) > 0,
+        `value=${jaxe.fmod_dsp_get_num_params(osc)}`);
+    check('dsp_set_bypass', jaxe.fmod_dsp_set_bypass(osc, true) === jaxe.FMOD.OK);
+    check('dsp_get_bypass', jaxe.fmod_dsp_get_bypass(osc) === true);
+    jaxe.fmod_dsp_set_bypass(osc, false);
+    check('dsp_set_wet_dry_mix', jaxe.fmod_dsp_set_wet_dry_mix(osc, 1, 1, 0) === jaxe.FMOD.OK);
+    check('dsp_set_active', jaxe.fmod_dsp_set_active(osc, true) === jaxe.FMOD.OK);
+    check('dsp_reset', jaxe.fmod_dsp_reset(osc) === jaxe.FMOD.OK);
+
+    const ch = jaxe.fmod_sys_play_dsp(osc, false);
+    check('sys_play_dsp', ch !== 0, `handle=${ch} result=${jaxe.lastResult}`);
+
+    // FFT attached to the master group must see the tone
+    const fft = jaxe.fmod_dsp_create_by_type(26 /* FFT */);
+    const master = jaxe.fmod_cg_get_master();
+    check('cg_get_master', master !== 0, `handle=${master}`);
+    check('cg_add_dsp', jaxe.fmod_cg_add_dsp(master, 0, fft) === jaxe.FMOD.OK);
+    check('dsp_set_metering_enabled', jaxe.fmod_dsp_set_metering_enabled(fft, true, true) === jaxe.FMOD.OK);
+    pump(40);
+
+    const spectrum = [];
+    const bins = jaxe.fmod_dsp_fft_get_spectrum(fft, spectrum, 512);
+    let maxI = 0;
+    for (let i = 1; i < bins; i++) if (spectrum[i] > spectrum[maxI]) maxI = i;
+    check('dsp_fft_get_spectrum', bins > 0 && maxI > 0, `bins=${bins} peak_bin=${maxI}`);
+
+    const meters = [];
+    const channels = jaxe.fmod_dsp_get_metering(fft, meters);
+    check('dsp_get_metering', channels > 0 && meters[0] > 0.01,
+        `channels=${channels} peak0=${meters[0]}`);
+
+    check('cg_remove_dsp', jaxe.fmod_cg_remove_dsp(master, fft) === jaxe.FMOD.OK);
+    check('dsp_release', jaxe.fmod_dsp_release(fft) === jaxe.FMOD.OK);
+    jaxe.fmod_chan_stop(ch);
+    check('dsp_release_osc', jaxe.fmod_dsp_release(osc) === jaxe.FMOD.OK);
+    check('stale_dsp', jaxe.fmod_dsp_set_param_float(osc, 1, 500) === jaxe.ERR_INVALID_HANDLE);
+    pump(5);
+}
+
+function testChannelGroups() {
+    const group = jaxe.fmod_cg_create('pcm-harness-sub');
+    check('cg_create', group !== 0, `handle=${group}`);
+    check('cg_set_volume', jaxe.fmod_cg_set_volume(group, 0.5) === jaxe.FMOD.OK);
+    check('cg_get_volume', Math.abs(jaxe.fmod_cg_get_volume(group) - 0.5) < 0.001);
+    check('cg_set_pitch', jaxe.fmod_cg_set_pitch(group, 1.25) === jaxe.FMOD.OK);
+    check('cg_get_pitch', Math.abs(jaxe.fmod_cg_get_pitch(group) - 1.25) < 0.001);
+    check('cg_set_mute', jaxe.fmod_cg_set_mute(group, true) === jaxe.FMOD.OK);
+    check('cg_get_mute', jaxe.fmod_cg_get_mute(group) === true);
+    jaxe.fmod_cg_set_mute(group, false);
+    check('cg_set_paused', jaxe.fmod_cg_set_paused(group, true) === jaxe.FMOD.OK);
+    check('cg_get_paused', jaxe.fmod_cg_get_paused(group) === true);
+    jaxe.fmod_cg_set_paused(group, false);
+
+    // Route a PCM stream channel into the group, then stop everything in it
+    const ps = jaxe.fmod_core_pcm_create(48000, 1, 9600);
+    const ch = jaxe.fmod_core_pcm_play(ps, true);
+    check('chan_set_channel_group', jaxe.fmod_chan_set_channel_group(ch, group) === jaxe.FMOD.OK);
+    check('cg_stop', jaxe.fmod_cg_stop(group) === jaxe.FMOD.OK);
+    jaxe.fmod_chan_stop(ch);
+    jaxe.fmod_core_pcm_release(ps);
+
+    check('cg_release', jaxe.fmod_cg_release(group) === jaxe.FMOD.OK);
+    check('stale_cg', jaxe.fmod_cg_set_volume(group, 1.0) === jaxe.ERR_INVALID_HANDLE);
+
+    // The master group dedups to one handle and survives lookups
+    const m1 = jaxe.fmod_cg_get_master();
+    const m2 = jaxe.fmod_cg_get_master();
+    check('cg_master_dedup', m1 !== 0 && m1 === m2, `m1=${m1} m2=${m2}`);
+    pump(5);
+}
+
+function testBusBridge() {
+    const bus = jaxe.fmod_sys_get_bus('bus:/');
+    check('bridge_get_bus', bus !== 0, `handle=${bus}`);
+    check('bus_lock_channel_group', jaxe.fmod_bus_lock_channel_group(bus) === jaxe.FMOD.OK);
+    const group = jaxe.fmod_bus_get_channel_group(bus);
+    check('bus_get_channel_group', group !== 0, `handle=${group} result=${jaxe.lastResult}`);
+
+    const lowpass = jaxe.fmod_dsp_create_by_type(18 /* LOWPASS_SIMPLE */);
+    check('bus_group_add_dsp', jaxe.fmod_cg_add_dsp(group, 0, lowpass) === jaxe.FMOD.OK);
+    pump(5);
+    check('bus_group_remove_dsp', jaxe.fmod_cg_remove_dsp(group, lowpass) === jaxe.FMOD.OK);
+    jaxe.fmod_dsp_release(lowpass);
+
+    check('bus_unlock_channel_group', jaxe.fmod_bus_unlock_channel_group(bus) === jaxe.FMOD.OK);
+    pump(5);
+}
+
+function testReverbAndExtras() {
+    // Reverb properties round-trip through the 12-float buffer
+    const props = [];
+    check('sys_get_reverb', jaxe.fmod_sys_get_reverb_properties(0, props) === jaxe.FMOD.OK
+        && typeof props[0] === 'number', `DecayTime=${props[0]}`);
+    props[0] = 2900;
+    check('sys_set_reverb', jaxe.fmod_sys_set_reverb_properties(0, props) === jaxe.FMOD.OK);
+    const back = [];
+    jaxe.fmod_sys_get_reverb_properties(0, back);
+    check('sys_reverb_roundtrip', Math.abs(back[0] - 2900) < 1, `DecayTime=${back[0]}`);
+    back[11] = -80;
+    jaxe.fmod_sys_set_reverb_properties(0, back);
+
+    // Channel extras on a fresh paused stream
+    const ps = jaxe.fmod_core_pcm_create(48000, 1, 9600);
+    const ch = jaxe.fmod_core_pcm_play(ps, true);
+    check('chan_set_pan', jaxe.fmod_chan_set_pan(ch, 0.5) === jaxe.FMOD.OK);
+    check('chan_set_frequency', jaxe.fmod_chan_set_frequency(ch, 24000) === jaxe.FMOD.OK);
+    check('chan_get_frequency', Math.abs(jaxe.fmod_chan_get_frequency(ch) - 24000) < 1);
+    check('chan_set_loop_count', jaxe.fmod_chan_set_loop_count(ch, -1) === jaxe.FMOD.OK);
+    check('chan_get_position', jaxe.fmod_chan_get_position(ch) >= 0);
+    check('chan_set_position', jaxe.fmod_chan_set_position(ch, 0) === jaxe.FMOD.OK);
+    check('chan_set_reverb_wet', jaxe.fmod_chan_set_reverb_wet(ch, 0, 0.5) === jaxe.FMOD.OK);
+    check('chan_add_remove_dsp', (() => {
+        const echo = jaxe.fmod_dsp_create_by_type(6 /* ECHO */);
+        const added = jaxe.fmod_chan_add_dsp(ch, 0, echo) === jaxe.FMOD.OK;
+        pump(3);
+        const removed = jaxe.fmod_chan_remove_dsp(ch, echo) === jaxe.FMOD.OK;
+        jaxe.fmod_dsp_release(echo);
+        return added && removed;
+    })());
+    jaxe.fmod_chan_stop(ch);
+    jaxe.fmod_core_pcm_release(ps);
+
+    // 3D PCM stream accepts positional control
+    const ps3d = jaxe.fmod_core_pcm_create_3d(48000, 1, 9600);
+    check('pcm_create_3d', ps3d !== 0, `handle=${ps3d} result=${jaxe.lastResult}`);
+    const ch3d = jaxe.fmod_core_pcm_play(ps3d, true);
+    check('chan_set_3d_attributes',
+        jaxe.fmod_chan_set_3d_attributes(ch3d, 1, 0, 0, 0, 0, 0) === jaxe.FMOD.OK);
+    check('chan_set_3d_min_max', jaxe.fmod_chan_set_3d_min_max(ch3d, 1, 100) === jaxe.FMOD.OK);
+    jaxe.fmod_chan_stop(ch3d);
+    jaxe.fmod_core_pcm_release(ps3d);
+    pump(5);
 }
 main().catch(e => { console.error('FATAL', e); process.exit(1); });

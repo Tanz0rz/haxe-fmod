@@ -37,6 +37,8 @@
 #define FAXE_TYPE_SOUND 6  /* Core Sound (programmer sounds only) */
 #define FAXE_TYPE_PCM   7  /* Core PCM stream (OPENUSER sound + ring) */
 #define FAXE_TYPE_CHAN  8  /* Core Channel */
+#define FAXE_TYPE_DSP   9  /* Core DSP effect */
+#define FAXE_TYPE_CHANGROUP 10  /* Core ChannelGroup */
 
 #define FAXE_MAX_SLOTS 0x10000
 /* Max entries any list getter returns in one call. The Haxe-side scratch
@@ -134,7 +136,8 @@ static void faxe_handles_sweep_lookups(FaxeLookupValidator is_valid) {
     for (i = 0; i < gFaxeSlotCap; i++) {
         FaxeSlot* s = &gFaxeSlots[i];
         if (!s->alive) continue;
-        if (s->type != FAXE_TYPE_BUS && s->type != FAXE_TYPE_VCA && s->type != FAXE_TYPE_EVD) continue;
+        if (s->type != FAXE_TYPE_BUS && s->type != FAXE_TYPE_VCA && s->type != FAXE_TYPE_EVD
+            && s->type != FAXE_TYPE_CHANGROUP) continue;
         if (!is_valid(s->ptr, s->type)) {
             faxe_handle_free(((int)s->gen << 16) | i);
         }

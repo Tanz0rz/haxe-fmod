@@ -11,7 +11,7 @@
 # Types are logical (exact FFI types differ per backend, e.g. f32 vs f64);
 # the checker verifies presence and arity, not exact types.
 #
-# abi-version: 3
+# abi-version: 4
 # The binding ABI version covers the shape of the native surface. Bump it in
 # lockstep with the "hlaxe_fmod_abi=" marker in hlaxe_fmod.c, the constants in
 # the other two shims, and FmodRuntime.BINDING_ABI whenever functions are
@@ -310,6 +310,72 @@ chan_set_paused i32 bool -> i32
 chan_get_paused i32 -> bool
 chan_is_playing i32 -> bool
 chan_stop i32 -> i32
+
+## Core DSP effects
+dsp_create_by_type i32 -> i32
+dsp_release i32 -> i32
+dsp_set_param_float i32 i32 f32 -> i32
+dsp_get_param_float i32 i32 -> f32
+dsp_set_param_int i32 i32 i32 -> i32
+dsp_get_param_int i32 i32 -> i32
+dsp_set_param_bool i32 i32 bool -> i32
+dsp_get_param_bool i32 i32 -> bool
+dsp_get_num_params i32 -> i32
+dsp_get_type i32 -> i32
+dsp_set_bypass i32 bool -> i32
+dsp_get_bypass i32 -> bool
+dsp_set_wet_dry_mix i32 f32 f32 f32 -> i32
+dsp_set_active i32 bool -> i32
+dsp_reset i32 -> i32
+dsp_set_metering_enabled i32 bool bool -> i32
+# fbuf: [0..ch-1] output peak, [ch..2ch-1] output rms; returns channel count
+dsp_get_metering i32 fbuf -> i32
+# fbuf: channel-0 spectrum magnitudes capped at maxBins; returns bins written
+dsp_fft_get_spectrum i32 fbuf i32 -> i32
+
+## Core channel groups
+cg_get_master -> i32
+cg_create str -> i32
+cg_release i32 -> i32
+cg_set_volume i32 f32 -> i32
+cg_get_volume i32 -> f32
+cg_set_pitch i32 f32 -> i32
+cg_get_pitch i32 -> f32
+cg_set_mute i32 bool -> i32
+cg_get_mute i32 -> bool
+cg_set_paused i32 bool -> i32
+cg_get_paused i32 -> bool
+cg_add_dsp i32 i32 i32 -> i32
+cg_remove_dsp i32 i32 -> i32
+cg_stop i32 -> i32
+
+## Core channel routing and effects
+chan_set_pan i32 f32 -> i32
+chan_set_frequency i32 f32 -> i32
+chan_get_frequency i32 -> f32
+chan_set_loop_count i32 i32 -> i32
+chan_get_position i32 -> i32
+chan_set_position i32 i32 -> i32
+chan_set_channel_group i32 i32 -> i32
+chan_add_dsp i32 i32 i32 -> i32
+chan_remove_dsp i32 i32 -> i32
+chan_set_3d_attributes i32 f32 f32 f32 f32 f32 f32 -> i32
+chan_set_3d_min_max i32 f32 f32 -> i32
+chan_set_reverb_wet i32 i32 f32 -> i32
+
+## Studio bus to core group bridge
+bus_lock_channel_group i32 -> i32
+bus_unlock_channel_group i32 -> i32
+bus_get_channel_group i32 -> i32
+
+## Core system extras
+sys_play_dsp i32 bool -> i32
+# fbuf: 12 reverb property floats, DecayTime..WetLevel in header order
+sys_set_reverb_properties i32 fbuf -> i32
+sys_get_reverb_properties i32 fbuf -> i32
+
+## Core PCM streams (3D)
+core_pcm_create_3d i32 i32 i32 -> i32
 
 ## Debug
 debug_live_handle_count -> i32

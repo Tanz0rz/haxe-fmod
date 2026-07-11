@@ -568,6 +568,46 @@ int fmod_core_pcm_create(int sampleRate, int channels, int ringBytes) {
     return handle;
 }
 
+int fmod_core_pcm_create_3d(int sampleRate, int channels, int ringBytes) {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    if (sampleRate <= 0 || channels < 1 || channels > 2 || ringBytes <= 0) {
+        gLastResult = FMOD_ERR_INVALID_PARAM;
+        return 0;
+    }
+    LincPcmStream* ps = (LincPcmStream*)malloc(sizeof(LincPcmStream));
+    if (!ps) { gLastResult = FMOD_ERR_MEMORY; return 0; }
+    ps->ring = faxe_pcmring_create(ringBytes);
+    if (!ps->ring) { free(ps); gLastResult = FMOD_ERR_MEMORY; return 0; }
+
+    FMOD_CREATESOUNDEXINFO exinfo;
+    memset(&exinfo, 0, sizeof(exinfo));
+    exinfo.cbsize = sizeof(FMOD_CREATESOUNDEXINFO);
+    exinfo.numchannels = channels;
+    exinfo.defaultfrequency = sampleRate;
+    exinfo.format = FMOD_SOUND_FORMAT_PCM16;
+    exinfo.decodebuffersize = 4096;
+    exinfo.length = (unsigned int)(sampleRate * channels * 2); // a one second window
+    exinfo.pcmreadcallback = lincPcmRead;
+    exinfo.userdata = ps->ring;
+
+    ps->sound = NULL;
+    gLastResult = gCoreSystem->createSound(NULL,
+        FMOD_OPENUSER | FMOD_LOOP_NORMAL | FMOD_CREATESTREAM | FMOD_3D, &exinfo, &ps->sound);
+    if (gLastResult != FMOD_OK || !ps->sound) {
+        faxe_pcmring_destroy(ps->ring);
+        free(ps);
+        return 0;
+    }
+    int handle = faxe_handle_alloc(ps, FAXE_TYPE_PCM);
+    if (handle == 0) {
+        ps->sound->release();
+        faxe_pcmring_destroy(ps->ring);
+        free(ps);
+        return 0;
+    }
+    return handle;
+}
+
 int fmod_core_pcm_write(int h, ::Array<unsigned char> data, int len) {
     LincPcmStream* ps = resolvePcm(h);
     if (!ps) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
@@ -680,6 +720,456 @@ int fmod_chan_stop(int h) {
     // FMOD reports the channel already gone
     gLastResult = ch->stop();
     faxe_handle_free(h);
+    return (int)gLastResult;
+}
+
+//// Core DSP effects
+
+static void lincReclaimDeadLookups();
+
+static inline FMOD::DSP* resolveDsp(int h) {
+    return (FMOD::DSP*)faxe_handle_resolve(h, FAXE_TYPE_DSP);
+}
+
+static inline FMOD::ChannelGroup* resolveChanGroup(int h) {
+    return (FMOD::ChannelGroup*)faxe_handle_resolve(h, FAXE_TYPE_CHANGROUP);
+}
+
+int fmod_dsp_create_by_type(int type) {
+    FMOD::DSP* dsp = NULL;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    gLastResult = gCoreSystem->createDSPByType((FMOD_DSP_TYPE)type, &dsp);
+    if (gLastResult != FMOD_OK || !dsp) return 0;
+    return faxe_handle_alloc(dsp, FAXE_TYPE_DSP);
+}
+
+int fmod_dsp_release(int h) {
+    FMOD::DSP* dsp = resolveDsp(h);
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = dsp->release();
+    if (gLastResult == FMOD_OK) faxe_handle_free(h);
+    return (int)gLastResult;
+}
+
+int fmod_dsp_set_param_float(int h, int index, float value) {
+    FMOD::DSP* dsp = resolveDsp(h);
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = dsp->setParameterFloat(index, value);
+    return (int)gLastResult;
+}
+
+float fmod_dsp_get_param_float(int h, int index) {
+    FMOD::DSP* dsp = resolveDsp(h);
+    float value = 0.0f;
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0.0f; }
+    gLastResult = dsp->getParameterFloat(index, &value, NULL, 0);
+    return value;
+}
+
+int fmod_dsp_set_param_int(int h, int index, int value) {
+    FMOD::DSP* dsp = resolveDsp(h);
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = dsp->setParameterInt(index, value);
+    return (int)gLastResult;
+}
+
+int fmod_dsp_get_param_int(int h, int index) {
+    FMOD::DSP* dsp = resolveDsp(h);
+    int value = 0;
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = dsp->getParameterInt(index, &value, NULL, 0);
+    return value;
+}
+
+int fmod_dsp_set_param_bool(int h, int index, bool value) {
+    FMOD::DSP* dsp = resolveDsp(h);
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = dsp->setParameterBool(index, value);
+    return (int)gLastResult;
+}
+
+bool fmod_dsp_get_param_bool(int h, int index) {
+    FMOD::DSP* dsp = resolveDsp(h);
+    bool value = false;
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return false; }
+    gLastResult = dsp->getParameterBool(index, &value, NULL, 0);
+    return value;
+}
+
+int fmod_dsp_get_num_params(int h) {
+    FMOD::DSP* dsp = resolveDsp(h);
+    int count = 0;
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = dsp->getNumParameters(&count);
+    return count;
+}
+
+int fmod_dsp_get_type(int h) {
+    FMOD::DSP* dsp = resolveDsp(h);
+    FMOD_DSP_TYPE type = FMOD_DSP_TYPE_UNKNOWN;
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = dsp->getType(&type);
+    return (int)type;
+}
+
+int fmod_dsp_set_bypass(int h, bool bypass) {
+    FMOD::DSP* dsp = resolveDsp(h);
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = dsp->setBypass(bypass);
+    return (int)gLastResult;
+}
+
+bool fmod_dsp_get_bypass(int h) {
+    FMOD::DSP* dsp = resolveDsp(h);
+    bool bypass = false;
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return false; }
+    gLastResult = dsp->getBypass(&bypass);
+    return bypass;
+}
+
+int fmod_dsp_set_wet_dry_mix(int h, float prewet, float postwet, float dry) {
+    FMOD::DSP* dsp = resolveDsp(h);
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = dsp->setWetDryMix(prewet, postwet, dry);
+    return (int)gLastResult;
+}
+
+int fmod_dsp_set_active(int h, bool active) {
+    FMOD::DSP* dsp = resolveDsp(h);
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = dsp->setActive(active);
+    return (int)gLastResult;
+}
+
+int fmod_dsp_reset(int h) {
+    FMOD::DSP* dsp = resolveDsp(h);
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = dsp->reset();
+    return (int)gLastResult;
+}
+
+int fmod_dsp_set_metering_enabled(int h, bool input, bool output) {
+    FMOD::DSP* dsp = resolveDsp(h);
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = dsp->setMeteringEnabled(input, output);
+    return (int)gLastResult;
+}
+
+// fbuf = [0..ch-1] output peak, [ch..2ch-1] output rms. Returns channel count.
+int fmod_dsp_get_metering(int h, ::Array<Float> fbuf) {
+    FMOD::DSP* dsp = resolveDsp(h);
+    FMOD_DSP_METERING_INFO info;
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    memset(&info, 0, sizeof(info));
+    gLastResult = dsp->getMeteringInfo(NULL, &info);
+    if (gLastResult != FMOD_OK) return 0;
+    for (int i = 0; i < info.numchannels && i < 32; i++) {
+        fbuf[i] = (double)info.peaklevel[i];
+        fbuf[info.numchannels + i] = (double)info.rmslevel[i];
+    }
+    return (int)info.numchannels;
+}
+
+// fbuf = channel-0 spectrum magnitudes, capped at maxBins. Returns bins written.
+int fmod_dsp_fft_get_spectrum(int h, ::Array<Float> fbuf, int maxBins) {
+    FMOD::DSP* dsp = resolveDsp(h);
+    FMOD_DSP_PARAMETER_FFT* fft = NULL;
+    unsigned int len = 0;
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = dsp->getParameterData(FMOD_DSP_FFT_SPECTRUMDATA, (void**)&fft, &len, NULL, 0);
+    if (gLastResult != FMOD_OK || !fft || fft->numchannels < 1) return 0;
+    int count = fft->length < maxBins ? fft->length : maxBins;
+    for (int i = 0; i < count; i++) fbuf[i] = (double)fft->spectrum[0][i];
+    return count;
+}
+
+//// Core channel groups
+
+int fmod_cg_get_master() {
+    FMOD::ChannelGroup* group = NULL;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    gLastResult = gCoreSystem->getMasterChannelGroup(&group);
+    if (gLastResult != FMOD_OK || !group) return 0;
+    return faxe_handle_find_or_alloc(group, FAXE_TYPE_CHANGROUP);
+}
+
+int fmod_cg_create(const ::String& name) {
+    FMOD::ChannelGroup* group = NULL;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    gLastResult = gCoreSystem->createChannelGroup(name.c_str(), &group);
+    if (gLastResult != FMOD_OK || !group) return 0;
+    return faxe_handle_alloc(group, FAXE_TYPE_CHANGROUP);
+}
+
+int fmod_cg_release(int h) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = group->release();
+    if (gLastResult == FMOD_OK) faxe_handle_free(h);
+    return (int)gLastResult;
+}
+
+int fmod_cg_set_volume(int h, float volume) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = group->setVolume(volume);
+    return (int)gLastResult;
+}
+
+float fmod_cg_get_volume(int h) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    float volume = 0.0f;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0.0f; }
+    gLastResult = group->getVolume(&volume);
+    return volume;
+}
+
+int fmod_cg_set_pitch(int h, float pitch) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = group->setPitch(pitch);
+    return (int)gLastResult;
+}
+
+float fmod_cg_get_pitch(int h) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    float pitch = 0.0f;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0.0f; }
+    gLastResult = group->getPitch(&pitch);
+    return pitch;
+}
+
+int fmod_cg_set_mute(int h, bool mute) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = group->setMute(mute);
+    return (int)gLastResult;
+}
+
+bool fmod_cg_get_mute(int h) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    bool mute = false;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return false; }
+    gLastResult = group->getMute(&mute);
+    return mute;
+}
+
+int fmod_cg_set_paused(int h, bool paused) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = group->setPaused(paused);
+    return (int)gLastResult;
+}
+
+bool fmod_cg_get_paused(int h) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    bool paused = false;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return false; }
+    gLastResult = group->getPaused(&paused);
+    return paused;
+}
+
+int fmod_cg_add_dsp(int h, int index, int dspHandle) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    FMOD::DSP* dsp = resolveDsp(dspHandle);
+    if (!group || !dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = group->addDSP(index, dsp);
+    return (int)gLastResult;
+}
+
+int fmod_cg_remove_dsp(int h, int dspHandle) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    FMOD::DSP* dsp = resolveDsp(dspHandle);
+    if (!group || !dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = group->removeDSP(dsp);
+    return (int)gLastResult;
+}
+
+int fmod_cg_stop(int h) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = group->stop();
+    return (int)gLastResult;
+}
+
+//// Core channel routing and effects
+
+int fmod_chan_set_pan(int h, float pan) {
+    FMOD::Channel* ch = resolveChannel(h);
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = ch->setPan(pan);
+    return (int)gLastResult;
+}
+
+int fmod_chan_set_frequency(int h, float frequency) {
+    FMOD::Channel* ch = resolveChannel(h);
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = ch->setFrequency(frequency);
+    return (int)gLastResult;
+}
+
+float fmod_chan_get_frequency(int h) {
+    FMOD::Channel* ch = resolveChannel(h);
+    float frequency = 0.0f;
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0.0f; }
+    gLastResult = ch->getFrequency(&frequency);
+    return frequency;
+}
+
+int fmod_chan_set_loop_count(int h, int loopCount) {
+    FMOD::Channel* ch = resolveChannel(h);
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = ch->setLoopCount(loopCount);
+    return (int)gLastResult;
+}
+
+int fmod_chan_get_position(int h) {
+    FMOD::Channel* ch = resolveChannel(h);
+    unsigned int position = 0;
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    gLastResult = ch->getPosition(&position, FMOD_TIMEUNIT_MS);
+    return gLastResult == FMOD_OK ? (int)position : -1;
+}
+
+int fmod_chan_set_position(int h, int positionMs) {
+    FMOD::Channel* ch = resolveChannel(h);
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = ch->setPosition((unsigned int)positionMs, FMOD_TIMEUNIT_MS);
+    return (int)gLastResult;
+}
+
+int fmod_chan_set_channel_group(int h, int groupHandle) {
+    FMOD::Channel* ch = resolveChannel(h);
+    FMOD::ChannelGroup* group = resolveChanGroup(groupHandle);
+    if (!ch || !group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = ch->setChannelGroup(group);
+    return (int)gLastResult;
+}
+
+int fmod_chan_add_dsp(int h, int index, int dspHandle) {
+    FMOD::Channel* ch = resolveChannel(h);
+    FMOD::DSP* dsp = resolveDsp(dspHandle);
+    if (!ch || !dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = ch->addDSP(index, dsp);
+    return (int)gLastResult;
+}
+
+int fmod_chan_remove_dsp(int h, int dspHandle) {
+    FMOD::Channel* ch = resolveChannel(h);
+    FMOD::DSP* dsp = resolveDsp(dspHandle);
+    if (!ch || !dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = ch->removeDSP(dsp);
+    return (int)gLastResult;
+}
+
+int fmod_chan_set_3d_attributes(int h, float posX, float posY, float posZ, float velX, float velY, float velZ) {
+    FMOD::Channel* ch = resolveChannel(h);
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    FMOD_VECTOR position = { posX, posY, posZ };
+    FMOD_VECTOR velocity = { velX, velY, velZ };
+    gLastResult = ch->set3DAttributes(&position, &velocity);
+    return (int)gLastResult;
+}
+
+int fmod_chan_set_3d_min_max(int h, float minDist, float maxDist) {
+    FMOD::Channel* ch = resolveChannel(h);
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = ch->set3DMinMaxDistance(minDist, maxDist);
+    return (int)gLastResult;
+}
+
+int fmod_chan_set_reverb_wet(int h, int instance, float wet) {
+    FMOD::Channel* ch = resolveChannel(h);
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = ch->setReverbProperties(instance, wet);
+    return (int)gLastResult;
+}
+
+//// Studio bus to core group bridge
+
+int fmod_bus_lock_channel_group(int h) {
+    FMOD::Studio::Bus* bus = (FMOD::Studio::Bus*)faxe_handle_resolve(h, FAXE_TYPE_BUS);
+    if (!bus) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = bus->lockChannelGroup();
+    // The group is created on the async command queue. Flushing makes it
+    // resolvable before the matching bus_get_channel_group call.
+    if (gLastResult == FMOD_OK && gStudioSystem) {
+        gStudioSystem->flushCommands();
+    }
+    return (int)gLastResult;
+}
+
+int fmod_bus_unlock_channel_group(int h) {
+    FMOD::Studio::Bus* bus = (FMOD::Studio::Bus*)faxe_handle_resolve(h, FAXE_TYPE_BUS);
+    if (!bus) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = bus->unlockChannelGroup();
+    // The group may be destroyed once unlocked: reclaim its cached handle
+    // before a recycled address can alias it
+    if (gLastResult == FMOD_OK) lincReclaimDeadLookups();
+    return (int)gLastResult;
+}
+
+int fmod_bus_get_channel_group(int h) {
+    FMOD::Studio::Bus* bus = (FMOD::Studio::Bus*)faxe_handle_resolve(h, FAXE_TYPE_BUS);
+    FMOD::ChannelGroup* group = NULL;
+    if (!bus) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = bus->getChannelGroup(&group);
+    if (gLastResult != FMOD_OK || !group) return 0;
+    return faxe_handle_find_or_alloc(group, FAXE_TYPE_CHANGROUP);
+}
+
+//// Core system extras
+
+int fmod_sys_play_dsp(int dspHandle, bool startPaused) {
+    FMOD::DSP* dsp = resolveDsp(dspHandle);
+    FMOD::Channel* channel = NULL;
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    gLastResult = gCoreSystem->playDSP(dsp, NULL, startPaused, &channel);
+    if (gLastResult != FMOD_OK || !channel) return 0;
+    return faxe_handle_alloc(channel, FAXE_TYPE_CHAN);
+}
+
+// fbuf = 12 reverb property floats in fmod_common.h field order
+// (DecayTime, EarlyDelay, LateDelay, HFReference, HFDecayRatio, Diffusion,
+// Density, LowShelfFrequency, LowShelfGain, HighCut, EarlyLateMix, WetLevel)
+int fmod_sys_set_reverb_properties(int instance, ::Array<Float> fbuf) {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    FMOD_REVERB_PROPERTIES props;
+    props.DecayTime = (float)fbuf[0];
+    props.EarlyDelay = (float)fbuf[1];
+    props.LateDelay = (float)fbuf[2];
+    props.HFReference = (float)fbuf[3];
+    props.HFDecayRatio = (float)fbuf[4];
+    props.Diffusion = (float)fbuf[5];
+    props.Density = (float)fbuf[6];
+    props.LowShelfFrequency = (float)fbuf[7];
+    props.LowShelfGain = (float)fbuf[8];
+    props.HighCut = (float)fbuf[9];
+    props.EarlyLateMix = (float)fbuf[10];
+    props.WetLevel = (float)fbuf[11];
+    gLastResult = gCoreSystem->setReverbProperties(instance, &props);
+    return (int)gLastResult;
+}
+
+int fmod_sys_get_reverb_properties(int instance, ::Array<Float> fbuf) {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    FMOD_REVERB_PROPERTIES props;
+    memset(&props, 0, sizeof(props));
+    gLastResult = gCoreSystem->getReverbProperties(instance, &props);
+    if (gLastResult != FMOD_OK) return (int)gLastResult;
+    fbuf[0] = (double)props.DecayTime;
+    fbuf[1] = (double)props.EarlyDelay;
+    fbuf[2] = (double)props.LateDelay;
+    fbuf[3] = (double)props.HFReference;
+    fbuf[4] = (double)props.HFDecayRatio;
+    fbuf[5] = (double)props.Diffusion;
+    fbuf[6] = (double)props.Density;
+    fbuf[7] = (double)props.LowShelfFrequency;
+    fbuf[8] = (double)props.LowShelfGain;
+    fbuf[9] = (double)props.HighCut;
+    fbuf[10] = (double)props.EarlyLateMix;
+    fbuf[11] = (double)props.WetLevel;
     return (int)gLastResult;
 }
 
@@ -1102,6 +1592,13 @@ static int lincLookupSlotValid(void* ptr, unsigned char type) {
         case FAXE_TYPE_BUS: return ((FMOD::Studio::Bus*)ptr)->isValid() ? 1 : 0;
         case FAXE_TYPE_VCA: return ((FMOD::Studio::VCA*)ptr)->isValid() ? 1 : 0;
         case FAXE_TYPE_EVD: return ((FMOD::Studio::EventDescription*)ptr)->isValid() ? 1 : 0;
+        case FAXE_TYPE_CHANGROUP: {
+            // Core objects are handle-validated inside FMOD: a call on a
+            // destroyed group reports FMOD_ERR_INVALID_HANDLE safely
+            float volume = 0.0f;
+            return ((FMOD::ChannelGroup*)ptr)->getVolume(&volume)
+                != FMOD_ERR_INVALID_HANDLE ? 1 : 0;
+        }
         default: return 1;
     }
 }
@@ -2125,7 +2622,7 @@ int fmod_debug_live_handle_count() {
 
 int fmod_binding_abi_version() {
     // Keep in lockstep with the manifest header "# abi-version:"
-    return 3;
+    return 4;
 }
 
 } // namespace faxe

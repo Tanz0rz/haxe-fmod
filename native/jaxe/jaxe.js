@@ -33,6 +33,8 @@ class jaxe {
     static TYPE_SOUND = 6;
     static TYPE_PCM = 7;
     static TYPE_CHAN = 8;
+    static TYPE_DSP = 9;
+    static TYPE_CHANGROUP = 10;
     static LIST_MAX = 1024;
     static slots = [];       // {ptr, raw, gen, type, alive}
     static freeList = [];    // stack of free slot indices
@@ -107,7 +109,13 @@ class jaxe {
     static lookupSlotUsable(s) {
         if (!s.ptr || !s.ptr.$$ || !s.ptr.$$.ptr) return false;
         try {
-            return !s.ptr.isValid || s.ptr.isValid();
+            if (s.ptr.isValid) return s.ptr.isValid();
+            // Core objects have no isValid. FMOD validates its own handles,
+            // so a benign getter reports INVALID_HANDLE on a destroyed one.
+            if (s.type === jaxe.TYPE_CHANGROUP) {
+                return s.ptr.getVolume({}) != jaxe.ERR_INVALID_HANDLE;
+            }
+            return true;
         } catch (e) {
             return false;
         }
@@ -122,7 +130,8 @@ class jaxe {
         for (var i = 0; i < jaxe.slots.length; i++) {
             var s = jaxe.slots[i];
             if (!s.alive) continue;
-            if (s.type != jaxe.TYPE_BUS && s.type != jaxe.TYPE_VCA && s.type != jaxe.TYPE_EVD) continue;
+            if (s.type != jaxe.TYPE_BUS && s.type != jaxe.TYPE_VCA && s.type != jaxe.TYPE_EVD
+                && s.type != jaxe.TYPE_CHANGROUP) continue;
             if (!jaxe.lookupSlotUsable(s)) jaxe.handleFree((s.gen << 16) | i);
         }
     }
@@ -2147,6 +2156,43 @@ class jaxe {
         return handle;
     }
 
+    static fmod_core_pcm_create_3d(sampleRate, channels, ringBytes) {
+        if (!jaxe.FmodIsInitialized) { jaxe.lastResult = jaxe.ERR_STUDIO_UNINITIALIZED; return 0; }
+        if (sampleRate <= 0 || channels < 1 || channels > 2 || ringBytes <= 0) {
+            jaxe.lastResult = jaxe.ERR_INVALID_PARAM;
+            return 0;
+        }
+        var ring = {
+            buf: new Uint8Array(ringBytes),
+            readPos: 0,
+            writePos: 0,
+            fill: 0,
+            underruns: 0,
+        };
+        var exinfo = jaxe.FMOD.CREATESOUNDEXINFO();
+        exinfo.numchannels = channels;
+        exinfo.defaultfrequency = sampleRate;
+        exinfo.format = jaxe.FMOD.SOUND_FORMAT_PCM16;
+        exinfo.decodebuffersize = 4096;
+        exinfo.length = sampleRate * channels * 2; // a one second window
+        exinfo.pcmreadcallback = function (sound, data, datalen) {
+            jaxe.pcmRingRead(ring, data, datalen);
+            return jaxe.FMOD.OK;
+        };
+        var soundOut = {};
+        jaxe.lastResult = jaxe.gSystemCore.createSound('',
+            (jaxe.FMOD.OPENUSER | jaxe.FMOD.LOOP_NORMAL | jaxe.FMOD.CREATESTREAM | jaxe.FMOD._3D) >>> 0,
+            exinfo, soundOut);
+        if (jaxe.lastResult != jaxe.FMOD.OK || !soundOut.val) return 0;
+        var ps = { sound: soundOut.val, ring: ring };
+        var handle = jaxe.handleAlloc(ps, jaxe.TYPE_PCM);
+        if (handle == 0) {
+            soundOut.val.release();
+            return 0;
+        }
+        return handle;
+    }
+
     static fmod_core_pcm_write(handle, data, len) {
         var ps = jaxe.handleResolve(handle, jaxe.TYPE_PCM);
         if (!ps) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }
@@ -2272,6 +2318,452 @@ class jaxe {
         return jaxe.lastResult;
     }
 
+    //// Core DSP effects
+
+    static resolveDsp(handle) {
+        return jaxe.handleResolve(handle, jaxe.TYPE_DSP);
+    }
+
+    static resolveCg(handle) {
+        return jaxe.handleResolve(handle, jaxe.TYPE_CHANGROUP);
+    }
+
+    static fmod_dsp_create_by_type(type) {
+        if (!jaxe.FmodIsInitialized) { jaxe.lastResult = jaxe.ERR_STUDIO_UNINITIALIZED; return 0; }
+        var out = {};
+        jaxe.lastResult = jaxe.gSystemCore.createDSPByType(type, out);
+        if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
+        var handle = jaxe.handleAlloc(out.val, jaxe.TYPE_DSP);
+        if (handle == 0) {
+            out.val.release();
+            return 0;
+        }
+        return handle;
+    }
+
+    static fmod_dsp_release(handle) {
+        var dsp = jaxe.resolveDsp(handle);
+        if (!dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = dsp.release();
+        if (jaxe.lastResult == jaxe.FMOD.OK) jaxe.handleFree(handle);
+        return jaxe.lastResult;
+    }
+
+    static fmod_dsp_set_param_float(handle, index, value) {
+        var dsp = jaxe.resolveDsp(handle);
+        if (!dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = dsp.setParameterFloat(index, value);
+        return jaxe.lastResult;
+    }
+
+    static fmod_dsp_get_param_float(handle, index) {
+        var dsp = jaxe.resolveDsp(handle);
+        if (!dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0.0; }
+        var out = {};
+        // embind drops the valuestr length arg: (index, valueOut, valuestrOut)
+        jaxe.lastResult = dsp.getParameterFloat(index, out, null);
+        return jaxe.lastResult == jaxe.FMOD.OK ? out.val : 0.0;
+    }
+
+    static fmod_dsp_set_param_int(handle, index, value) {
+        var dsp = jaxe.resolveDsp(handle);
+        if (!dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = dsp.setParameterInt(index, value);
+        return jaxe.lastResult;
+    }
+
+    static fmod_dsp_get_param_int(handle, index) {
+        var dsp = jaxe.resolveDsp(handle);
+        if (!dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }
+        var out = {};
+        jaxe.lastResult = dsp.getParameterInt(index, out, null);
+        return jaxe.lastResult == jaxe.FMOD.OK ? out.val : 0;
+    }
+
+    static fmod_dsp_set_param_bool(handle, index, value) {
+        var dsp = jaxe.resolveDsp(handle);
+        if (!dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = dsp.setParameterBool(index, !!value);
+        return jaxe.lastResult;
+    }
+
+    static fmod_dsp_get_param_bool(handle, index) {
+        var dsp = jaxe.resolveDsp(handle);
+        if (!dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return false; }
+        var out = {};
+        jaxe.lastResult = dsp.getParameterBool(index, out, null);
+        return jaxe.lastResult == jaxe.FMOD.OK ? !!out.val : false;
+    }
+
+    static fmod_dsp_get_num_params(handle) {
+        var dsp = jaxe.resolveDsp(handle);
+        if (!dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }
+        var out = {};
+        jaxe.lastResult = dsp.getNumParameters(out);
+        return jaxe.lastResult == jaxe.FMOD.OK ? out.val : 0;
+    }
+
+    static fmod_dsp_get_type(handle) {
+        var dsp = jaxe.resolveDsp(handle);
+        if (!dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }
+        var out = {};
+        jaxe.lastResult = dsp.getType(out);
+        return jaxe.lastResult == jaxe.FMOD.OK ? out.val : 0;
+    }
+
+    static fmod_dsp_set_bypass(handle, bypass) {
+        var dsp = jaxe.resolveDsp(handle);
+        if (!dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = dsp.setBypass(!!bypass);
+        return jaxe.lastResult;
+    }
+
+    static fmod_dsp_get_bypass(handle) {
+        var dsp = jaxe.resolveDsp(handle);
+        if (!dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return false; }
+        var out = {};
+        jaxe.lastResult = dsp.getBypass(out);
+        return jaxe.lastResult == jaxe.FMOD.OK ? !!out.val : false;
+    }
+
+    static fmod_dsp_set_wet_dry_mix(handle, prewet, postwet, dry) {
+        var dsp = jaxe.resolveDsp(handle);
+        if (!dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = dsp.setWetDryMix(prewet, postwet, dry);
+        return jaxe.lastResult;
+    }
+
+    static fmod_dsp_set_active(handle, active) {
+        var dsp = jaxe.resolveDsp(handle);
+        if (!dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = dsp.setActive(!!active);
+        return jaxe.lastResult;
+    }
+
+    static fmod_dsp_reset(handle) {
+        var dsp = jaxe.resolveDsp(handle);
+        if (!dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = dsp.reset();
+        return jaxe.lastResult;
+    }
+
+    static fmod_dsp_set_metering_enabled(handle, input, output) {
+        var dsp = jaxe.resolveDsp(handle);
+        if (!dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = dsp.setMeteringEnabled(!!input, !!output);
+        return jaxe.lastResult;
+    }
+
+    // fbuf = [0..ch-1] output peak, [ch..2ch-1] output rms. Returns channel count.
+    static fmod_dsp_get_metering(handle, fbuf) {
+        var dsp = jaxe.resolveDsp(handle);
+        if (!dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }
+        // The embind binding writes into pre-shaped array fields only
+        var inInfo = { peaklevel: [], rmslevel: [] };
+        var outInfo = { peaklevel: [], rmslevel: [] };
+        jaxe.lastResult = dsp.getMeteringInfo(inInfo, outInfo);
+        if (jaxe.lastResult != jaxe.FMOD.OK) return 0;
+        var ch = outInfo.numchannels || outInfo.peaklevel.length;
+        if (ch > 32) ch = 32;
+        for (var i = 0; i < ch; i++) {
+            fbuf[i] = outInfo.peaklevel[i] || 0;
+            fbuf[ch + i] = outInfo.rmslevel[i] || 0;
+        }
+        return ch;
+    }
+
+    // fbuf = channel-0 spectrum magnitudes, capped at maxBins. Returns bins written.
+    static fmod_dsp_fft_get_spectrum(handle, fbuf, maxBins) {
+        var dsp = jaxe.resolveDsp(handle);
+        if (!dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }
+        // 2.03 SPECTRUMDATA index is 4. The struct lands as flat keys on
+        // the out object (length, numchannels, spectrum[]).
+        var out = {};
+        jaxe.lastResult = dsp.getParameterData(4, out, null, null);
+        if (jaxe.lastResult != jaxe.FMOD.OK || !out.spectrum || !out.spectrum[0]) return 0;
+        var spec = out.spectrum[0];
+        var count = spec.length < maxBins ? spec.length : maxBins;
+        for (var i = 0; i < count; i++) fbuf[i] = spec[i];
+        return count;
+    }
+
+    //// Core channel groups
+
+    static fmod_cg_get_master() {
+        if (!jaxe.FmodIsInitialized) { jaxe.lastResult = jaxe.ERR_STUDIO_UNINITIALIZED; return 0; }
+        var out = {};
+        jaxe.lastResult = jaxe.gSystemCore.getMasterChannelGroup(out);
+        if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
+        return jaxe.handleFindOrAlloc(out.val, jaxe.TYPE_CHANGROUP);
+    }
+
+    static fmod_cg_create(name) {
+        if (!jaxe.FmodIsInitialized) { jaxe.lastResult = jaxe.ERR_STUDIO_UNINITIALIZED; return 0; }
+        var out = {};
+        jaxe.lastResult = jaxe.gSystemCore.createChannelGroup(name, out);
+        if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
+        var handle = jaxe.handleAlloc(out.val, jaxe.TYPE_CHANGROUP);
+        if (handle == 0) {
+            out.val.release();
+            return 0;
+        }
+        return handle;
+    }
+
+    static fmod_cg_release(handle) {
+        var group = jaxe.resolveCg(handle);
+        if (!group) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = group.release();
+        if (jaxe.lastResult == jaxe.FMOD.OK) jaxe.handleFree(handle);
+        return jaxe.lastResult;
+    }
+
+    static fmod_cg_set_volume(handle, volume) {
+        var group = jaxe.resolveCg(handle);
+        if (!group) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = group.setVolume(volume);
+        return jaxe.lastResult;
+    }
+
+    static fmod_cg_get_volume(handle) {
+        var group = jaxe.resolveCg(handle);
+        if (!group) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0.0; }
+        var out = {};
+        jaxe.lastResult = group.getVolume(out);
+        return jaxe.lastResult == jaxe.FMOD.OK ? out.val : 0.0;
+    }
+
+    static fmod_cg_set_pitch(handle, pitch) {
+        var group = jaxe.resolveCg(handle);
+        if (!group) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = group.setPitch(pitch);
+        return jaxe.lastResult;
+    }
+
+    static fmod_cg_get_pitch(handle) {
+        var group = jaxe.resolveCg(handle);
+        if (!group) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0.0; }
+        var out = {};
+        jaxe.lastResult = group.getPitch(out);
+        return jaxe.lastResult == jaxe.FMOD.OK ? out.val : 0.0;
+    }
+
+    static fmod_cg_set_mute(handle, mute) {
+        var group = jaxe.resolveCg(handle);
+        if (!group) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = group.setMute(!!mute);
+        return jaxe.lastResult;
+    }
+
+    static fmod_cg_get_mute(handle) {
+        var group = jaxe.resolveCg(handle);
+        if (!group) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return false; }
+        var out = {};
+        jaxe.lastResult = group.getMute(out);
+        return jaxe.lastResult == jaxe.FMOD.OK ? !!out.val : false;
+    }
+
+    static fmod_cg_set_paused(handle, paused) {
+        var group = jaxe.resolveCg(handle);
+        if (!group) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = group.setPaused(!!paused);
+        return jaxe.lastResult;
+    }
+
+    static fmod_cg_get_paused(handle) {
+        var group = jaxe.resolveCg(handle);
+        if (!group) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return false; }
+        var out = {};
+        jaxe.lastResult = group.getPaused(out);
+        return jaxe.lastResult == jaxe.FMOD.OK ? !!out.val : false;
+    }
+
+    static fmod_cg_add_dsp(handle, index, dspHandle) {
+        var group = jaxe.resolveCg(handle);
+        var dsp = jaxe.resolveDsp(dspHandle);
+        if (!group || !dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = group.addDSP(index, dsp);
+        return jaxe.lastResult;
+    }
+
+    static fmod_cg_remove_dsp(handle, dspHandle) {
+        var group = jaxe.resolveCg(handle);
+        var dsp = jaxe.resolveDsp(dspHandle);
+        if (!group || !dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = group.removeDSP(dsp);
+        return jaxe.lastResult;
+    }
+
+    static fmod_cg_stop(handle) {
+        var group = jaxe.resolveCg(handle);
+        if (!group) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = group.stop();
+        return jaxe.lastResult;
+    }
+
+    //// Core channel routing and effects
+
+    static fmod_chan_set_pan(handle, pan) {
+        var ch = jaxe.resolveChan(handle);
+        if (!ch) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = ch.setPan(pan);
+        return jaxe.lastResult;
+    }
+
+    static fmod_chan_set_frequency(handle, frequency) {
+        var ch = jaxe.resolveChan(handle);
+        if (!ch) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = ch.setFrequency(frequency);
+        return jaxe.lastResult;
+    }
+
+    static fmod_chan_get_frequency(handle) {
+        var ch = jaxe.resolveChan(handle);
+        if (!ch) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0.0; }
+        var out = {};
+        jaxe.lastResult = ch.getFrequency(out);
+        return jaxe.lastResult == jaxe.FMOD.OK ? out.val : 0.0;
+    }
+
+    static fmod_chan_set_loop_count(handle, loopCount) {
+        var ch = jaxe.resolveChan(handle);
+        if (!ch) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = ch.setLoopCount(loopCount);
+        return jaxe.lastResult;
+    }
+
+    static fmod_chan_get_position(handle) {
+        var ch = jaxe.resolveChan(handle);
+        if (!ch) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return -1; }
+        var out = {};
+        jaxe.lastResult = ch.getPosition(out, jaxe.FMOD.TIMEUNIT_MS);
+        return jaxe.lastResult == jaxe.FMOD.OK ? out.val : -1;
+    }
+
+    static fmod_chan_set_position(handle, positionMs) {
+        var ch = jaxe.resolveChan(handle);
+        if (!ch) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = ch.setPosition(positionMs, jaxe.FMOD.TIMEUNIT_MS);
+        return jaxe.lastResult;
+    }
+
+    static fmod_chan_set_channel_group(handle, groupHandle) {
+        var ch = jaxe.resolveChan(handle);
+        var group = jaxe.resolveCg(groupHandle);
+        if (!ch || !group) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = ch.setChannelGroup(group);
+        return jaxe.lastResult;
+    }
+
+    static fmod_chan_add_dsp(handle, index, dspHandle) {
+        var ch = jaxe.resolveChan(handle);
+        var dsp = jaxe.resolveDsp(dspHandle);
+        if (!ch || !dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = ch.addDSP(index, dsp);
+        return jaxe.lastResult;
+    }
+
+    static fmod_chan_remove_dsp(handle, dspHandle) {
+        var ch = jaxe.resolveChan(handle);
+        var dsp = jaxe.resolveDsp(dspHandle);
+        if (!ch || !dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = ch.removeDSP(dsp);
+        return jaxe.lastResult;
+    }
+
+    static fmod_chan_set_3d_attributes(handle, posX, posY, posZ, velX, velY, velZ) {
+        var ch = jaxe.resolveChan(handle);
+        if (!ch) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = ch.set3DAttributes(
+            { x: posX, y: posY, z: posZ }, { x: velX, y: velY, z: velZ });
+        return jaxe.lastResult;
+    }
+
+    static fmod_chan_set_3d_min_max(handle, minDist, maxDist) {
+        var ch = jaxe.resolveChan(handle);
+        if (!ch) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = ch.set3DMinMaxDistance(minDist, maxDist);
+        return jaxe.lastResult;
+    }
+
+    static fmod_chan_set_reverb_wet(handle, instance, wet) {
+        var ch = jaxe.resolveChan(handle);
+        if (!ch) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = ch.setReverbProperties(instance, wet);
+        return jaxe.lastResult;
+    }
+
+    //// Studio bus to core group bridge
+
+    static fmod_bus_lock_channel_group(handle) {
+        var bus = jaxe.handleResolve(handle, jaxe.TYPE_BUS);
+        if (!bus) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = bus.lockChannelGroup();
+        // The group is created on the async command queue. Flushing makes
+        // it resolvable before the matching fmod_bus_get_channel_group.
+        if (jaxe.lastResult == jaxe.FMOD.OK && jaxe.gSystem) jaxe.gSystem.flushCommands();
+        return jaxe.lastResult;
+    }
+
+    static fmod_bus_unlock_channel_group(handle) {
+        var bus = jaxe.handleResolve(handle, jaxe.TYPE_BUS);
+        if (!bus) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = bus.unlockChannelGroup();
+        // The group may be destroyed once unlocked: reclaim its cached
+        // handle before a recycled address can alias it
+        if (jaxe.lastResult == jaxe.FMOD.OK) jaxe.sweepDeadLookups();
+        return jaxe.lastResult;
+    }
+
+    static fmod_bus_get_channel_group(handle) {
+        var bus = jaxe.handleResolve(handle, jaxe.TYPE_BUS);
+        if (!bus) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }
+        var out = {};
+        jaxe.lastResult = bus.getChannelGroup(out);
+        if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
+        return jaxe.handleFindOrAlloc(out.val, jaxe.TYPE_CHANGROUP);
+    }
+
+    //// Core system extras
+
+    static fmod_sys_play_dsp(dspHandle, startPaused) {
+        var dsp = jaxe.resolveDsp(dspHandle);
+        if (!dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }
+        var out = {};
+        jaxe.lastResult = jaxe.gSystemCore.playDSP(dsp, null, !!startPaused, out);
+        if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
+        var handle = jaxe.handleAlloc(out.val, jaxe.TYPE_CHAN);
+        if (handle == 0) {
+            out.val.stop();
+            return 0;
+        }
+        return handle;
+    }
+
+    // Reverb property structs cross the boundary as 12 floats in
+    // fmod_common.h field order (DecayTime .. WetLevel)
+    static REVERB_FIELDS = ['DecayTime', 'EarlyDelay', 'LateDelay', 'HFReference',
+        'HFDecayRatio', 'Diffusion', 'Density', 'LowShelfFrequency',
+        'LowShelfGain', 'HighCut', 'EarlyLateMix', 'WetLevel'];
+
+    static fmod_sys_set_reverb_properties(instance, fbuf) {
+        if (!jaxe.FmodIsInitialized) { jaxe.lastResult = jaxe.ERR_STUDIO_UNINITIALIZED; return jaxe.lastResult; }
+        var props = {};
+        for (var i = 0; i < jaxe.REVERB_FIELDS.length; i++) props[jaxe.REVERB_FIELDS[i]] = fbuf[i];
+        jaxe.lastResult = jaxe.gSystemCore.setReverbProperties(instance, props);
+        return jaxe.lastResult;
+    }
+
+    static fmod_sys_get_reverb_properties(instance, fbuf) {
+        if (!jaxe.FmodIsInitialized) { jaxe.lastResult = jaxe.ERR_STUDIO_UNINITIALIZED; return jaxe.lastResult; }
+        // The binding writes the fields flat onto the out object
+        var out = {};
+        jaxe.lastResult = jaxe.gSystemCore.getReverbProperties(instance, out);
+        if (jaxe.lastResult != jaxe.FMOD.OK) return jaxe.lastResult;
+        for (var i = 0; i < jaxe.REVERB_FIELDS.length; i++) fbuf[i] = out[jaxe.REVERB_FIELDS[i]] || 0;
+        return jaxe.lastResult;
+    }
+
     //// Debug
 
     static fmod_debug_live_handle_count() {
@@ -2280,7 +2772,7 @@ class jaxe {
 
     static fmod_binding_abi_version() {
         // Keep in lockstep with the manifest header "# abi-version:"
-        return 3;
+        return 4;
     }
 
     //// Initialization (Emscripten-specific, must stay here)
