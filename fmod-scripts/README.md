@@ -26,7 +26,7 @@ If you are using a flow or tool that works better with enums, `FmodEventEnum.hx`
 
 ## Setup
 
-1. Copy `ExportHaxeConstants.js` into your FMOD Studio scripts folder: a `Scripts` folder next to your `.fspro` (recommended), or the per-user scripts directory (`%LOCALAPPDATA%\FMOD Studio\Scripts` on Windows, `~/Library/Application Support/FMOD Studio/Scripts` on macOS — create the folder if it doesn't exist).
+1. Copy `ExportHaxeConstants.js` into your FMOD Studio scripts folder: a `Scripts` folder next to your `.fspro` (recommended), or FMOD Studio's global scripts folder (location varies by OS — see the FMOD Studio scripting docs).
 2. Reload scripts in FMOD Studio (Scripts menu) or restart Studio.
 3. Press `Ctrl+B` (or Scripts -> Export Haxe Constants and Build) and pick your Haxe project's `source` folder once. The choice is cached next to the project.
 
