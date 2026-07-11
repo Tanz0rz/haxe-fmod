@@ -265,6 +265,9 @@ class ApiProbeState extends FlxState {
         dsp.setWetDryMix(1, 0.8, 0.2);
         var mix = dsp.getWetDryMix();
         check("dsp_get_wet_dry", mix != null && Math.abs(mix.postwet - 0.8) < 0.001, "");
+        // A detached DSP's default active state varies by platform, so the
+        // round-trip sets it explicitly first
+        dsp.setActive(true);
         check("dsp_get_active", dsp.getActive(), "");
         dsp.setMeteringEnabled(true, false);
         var metering = dsp.getMeteringEnabled();
