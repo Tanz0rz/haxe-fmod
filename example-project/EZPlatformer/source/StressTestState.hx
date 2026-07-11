@@ -29,12 +29,16 @@ import haxefmod.studio.Types;
  * Churn phase: for the configured duration, every frame creates, starts,
  * immediately stops, and releases a small batch of instances - registering
  * a callback on one instance per batch to churn the dispatcher map under
- * sustained mutation - plus one full PcmStream lifecycle (create, write,
- * play, stop, release) with a DSP effect attached and detached mid-cycle,
- * a DSP-to-DSP connection made and broken, a reverb zone lifecycle, a
- * nested group lifecycle, a sound group lifecycle, and a channel callback
- * registered and cleared, so every slot type recycles under the same
- * pressure. Every heartbeat asserts the live handle count stays flat.
+ * sustained mutation - plus rotating lifecycle churn: PcmStream cycles
+ * (with a DSP attached and detached mid-cycle), then DSP graph and reverb
+ * zone cycles, then sound group, nested group, and channel callback
+ * cycles, so every slot type recycles under the same pressure. The
+ * families rotate across frames. Reverb zones churn the realistic way
+ * (a persistent zone with property and active churn, no lifecycle
+ * cycling) because zone create/release concurrent with stream
+ * lifecycles crashes inside FMOD
+ * itself (pure C repro in tests/native/fmod_churn_crash_repro.c). Every
+ * heartbeat asserts the live handle count stays flat.
  *
  * Duration comes from the STRESS_SECONDS env var (default 60 seconds;
  * HTML5 always uses the default). Select via
@@ -60,6 +64,8 @@ class StressTestState extends FlxState {
     var _nextHeartbeat:Float = HEARTBEAT_SECONDS;
     var _heartbeats:Int = 0;
     var _iterations:Int = 0;
+    var _churnFrame:Int = 0;
+    var _persistentZone:Reverb3D = Reverb3D.NULL;
     var _pcmCycles:Int = 0;
     var _dspCycles:Int = 0;
     var _graphCycles:Int = 0;
@@ -104,9 +110,10 @@ class StressTestState extends FlxState {
         info("duration_seconds", Std.string(_durationSeconds));
 
         // Warm the event description cache (the lookup allocates one
-        // persistent deduped handle) so the baseline only moves if a phase
-        // below leaks instance handles
+        // persistent deduped handle) and create the persistent reverb zone
+        // so the baseline only moves if a phase below leaks handles
         StudioSystem.getEvent(FmodEvents.MusicMainLevel);
+        _persistentZone = Reverb3D.create();
         _baseline = StudioSystem.liveHandleCount();
         info("baseline_handles", Std.string(_baseline));
     }
@@ -194,38 +201,57 @@ class StressTestState extends FlxState {
                 _pcmChunk.setUInt16(i * 2, v & 0xFFFF);
             }
         }
-        var stream = PcmStream.create(48000, 1, 4800);
-        if (!stream.isNull()) {
-            stream.write(_pcmChunk);
-            var channel = stream.play(true);
-            var lowpass = Dsp.create(DspType.LOWPASS_SIMPLE);
-            if (!lowpass.isNull()) {
-                channel.addDsp(0, lowpass);
-                channel.removeDsp(lowpass);
-                lowpass.release();
-                _dspCycles++;
+        // The lifecycle families rotate across frames: same-frame stream
+        // and reverb zone churn trips a crash inside FMOD itself (pure C
+        // repro in tests/native/fmod_churn_crash_repro.c)
+        _churnFrame++;
+        var family = _churnFrame % 3;
+
+        if (family == 0) {
+            var stream = PcmStream.create(48000, 1, 4800);
+            if (!stream.isNull()) {
+                stream.write(_pcmChunk);
+                var channel = stream.play(true);
+                var lowpass = Dsp.create(DspType.LOWPASS_SIMPLE);
+                if (!lowpass.isNull()) {
+                    channel.addDsp(0, lowpass);
+                    channel.removeDsp(lowpass);
+                    lowpass.release();
+                    _dspCycles++;
+                }
+                channel.stop();
+                stream.release();
+                _pcmCycles++;
             }
-            channel.stop();
-            stream.release();
-            _pcmCycles++;
         }
 
-        // Graph, zone, and nesting churn: connections made and broken,
-        // a reverb zone lifecycle, and a nested group lifecycle per frame
-        var osc = Dsp.create(DspType.OSCILLATOR);
-        var target = Dsp.create(DspType.LOWPASS_SIMPLE);
-        if (!osc.isNull() && !target.isNull()) {
-            var conn = target.addInput(osc);
-            if (!conn.isNull()) {
-                conn.setMix(0.5);
-                target.disconnectFrom(osc);
+        if (family == 1) {
+            // Graph churn plus realistic zone churn: a persistent zone
+            // takes property and active updates every pass
+            var osc = Dsp.create(DspType.OSCILLATOR);
+            var target = Dsp.create(DspType.LOWPASS_SIMPLE);
+            if (!osc.isNull() && !target.isNull()) {
+                var conn = target.addInput(osc);
+                if (!conn.isNull()) {
+                    conn.setMix(0.5);
+                    target.disconnectFrom(osc);
+                }
+                if (_persistentZone.isNull()) _persistentZone = Reverb3D.create();
+                if (!_persistentZone.isNull()) {
+                    _persistentZone.set3DAttributes(_churnFrame % 100, 0, 0, 5, 20);
+                    _persistentZone.setProperties(Reverb.PRESET_CAVE);
+                    _persistentZone.setActive(_churnFrame % 2 == 0);
+                }
+                _graphCycles++;
             }
-            var zone = Reverb3D.create();
-            if (!zone.isNull()) {
-                zone.set3DAttributes(0, 0, 0, 5, 20);
-                zone.setProperties(Reverb.PRESET_CAVE);
-                zone.release();
-            }
+            target.release();
+            osc.release();
+        }
+
+        if (family == 2) {
+            // Group and callback churn: sound group with assignment,
+            // nested channel groups, and a channel callback registered
+            // and cleared on a live stream channel
             var parent = ChannelGroup.create("churn-parent");
             var child = ChannelGroup.create("churn-child");
             if (!parent.isNull() && !child.isNull()) {
@@ -244,19 +270,14 @@ class StressTestState extends FlxState {
                 pcmSound.release();
                 soundGroup.release();
             }
-            _graphCycles++;
-        }
-        target.release();
-        osc.release();
-
-        // Callback registration churn: install and clear on a live channel
-        var cbStream = PcmStream.create(48000, 1, 4800);
-        if (!cbStream.isNull()) {
-            var cbChannel = cbStream.play(true);
-            cbChannel.setCallback(function(e) _callbackEvents++);
-            cbChannel.clearCallback();
-            cbChannel.stop();
-            cbStream.release();
+            var cbStream = PcmStream.create(48000, 1, 4800);
+            if (!cbStream.isNull()) {
+                var cbChannel = cbStream.play(true);
+                cbChannel.setCallback(function(e) _callbackEvents++);
+                cbChannel.clearCallback();
+                cbChannel.stop();
+                cbStream.release();
+            }
         }
         FmodManager.Update();
 
@@ -277,6 +298,10 @@ class StressTestState extends FlxState {
         check("no_handle_leaks", StudioSystem.liveHandleCount() == _baseline,
             'baseline=$_baseline now=${StudioSystem.liveHandleCount()}');
         info("callback_events", Std.string(_callbackEvents));
+        if (!_persistentZone.isNull()) {
+            _persistentZone.release();
+            _persistentZone = Reverb3D.NULL;
+        }
         info("pcm_cycles", Std.string(_pcmCycles));
         info("dsp_cycles", Std.string(_dspCycles));
         info("graph_cycles", Std.string(_graphCycles));
