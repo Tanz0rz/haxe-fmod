@@ -1,16 +1,7 @@
 package haxefmod.core;
 
+import haxefmod.core.ChannelEvent;
 import haxefmod.studio.native.NativeStudio;
-
-/**
- * A channel playback event delivered to a Channel.setCallback handler.
- */
-enum ChannelEvent {
-    /** The channel finished playing (also fires on stop). */
-    End;
-    /** Playback crossed a sync point (see CoreSound.addSyncPoint). */
-    SyncPoint(index:Int);
-}
 
 /**
  * Routing for channel events. Channel events ride the same native queue

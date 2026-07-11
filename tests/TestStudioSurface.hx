@@ -337,7 +337,7 @@ class TestStudioSurface {
 
 		// Channel event routing: namespaced records reach the channel map
 		// and End removes the registration
-		var received:Array<haxefmod.core.ChannelCallbacks.ChannelEvent> = [];
+		var received:Array<haxefmod.core.ChannelEvent> = [];
 		ChannelCallbacks.set(1234, function(e) received.push(e));
 		haxefmod.runtime.CallbackDispatcher.deliver(1234, ChannelCallbacks.TYPE_SYNCPOINT, 3, 0, 0, 0, "");
 		haxefmod.runtime.CallbackDispatcher.deliver(1234, ChannelCallbacks.TYPE_END, 0, 0, 0, 0, "");

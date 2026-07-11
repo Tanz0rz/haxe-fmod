@@ -13,6 +13,7 @@ import haxefmod.core.DspConnection;
 import haxefmod.core.DspType;
 import haxefmod.core.PcmStream;
 import haxefmod.core.ChannelCallbacks;
+import haxefmod.core.ChannelEvent;
 import haxefmod.core.Reverb;
 import haxefmod.core.Reverb3D;
 import haxefmod.core.SoundGroup;
@@ -149,7 +150,7 @@ class ApiProbeState extends FlxState {
     }
 
     var _statusLabel:FlxText;
-    var _chanEvents:Array<ChannelCallbacks.ChannelEvent> = [];
+    var _chanEvents:Array<ChannelEvent> = [];
     var _chanEventSound:CoreSound = CoreSound.NULL;
     var _chanEventChannel:Channel = Channel.NULL;
     var _chanEventBaseline:Int = 0;

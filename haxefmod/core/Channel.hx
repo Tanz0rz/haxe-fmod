@@ -212,7 +212,7 @@ abstract Channel(Int) from Int to Int {
      * Delivers End and SyncPoint events for this channel (drained once per
      * frame with the other callbacks). End also removes the handler.
      */
-    public inline function setCallback(handler:haxefmod.core.ChannelCallbacks.ChannelEvent->Void):Void {
+    public inline function setCallback(handler:haxefmod.core.ChannelEvent->Void):Void {
         haxefmod.core.ChannelCallbacks.set(this, handler);
     }
 
