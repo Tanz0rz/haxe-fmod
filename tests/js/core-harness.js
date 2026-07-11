@@ -64,6 +64,12 @@ function main() {
         testChannelExtras(studio);
         testReverbProperties();
         testPlatformLimits();
+        testDspConnections(studio);
+        testSchedulingClocks(studio);
+        testGroupNesting();
+        testChannelSpatialExtras(studio);
+        testSoundSurface();
+        testReverb3dAndSystem(studio);
 
         console.log(`CORE_TEST: failures = ${failures}`);
         console.log('CORE_TEST: COMPLETE');
@@ -483,4 +489,170 @@ function testPlatformLimits() {
     check('openmemory_encoded_rejected', wavResult === 19 /* FMOD_ERR_FORMAT */,
         `result=${wavResult}`);
     if (wavResult === FMOD.OK) wavOut.val.release();
+}
+
+//// Slice-3 facts frozen as assertions: connection graph, DSP clocks,
+//// group nesting, spatial extras, the sound surface, reverb zones, and
+//// the verified rejections (custom rolloff, readData).
+
+function testDspConnections(studio) {
+    const oscOut = {}, lpOut = {};
+    gCore.createDSPByType(2, oscOut);
+    gCore.createDSPByType(18, lpOut);
+    const osc = oscOut.val, lp = lpOut.val;
+    const connOut = {};
+    check('conn_add_input', lp.addInput(osc, connOut, 0) === FMOD.OK
+        && typeof connOut.val === 'object', '');
+    const conn = connOut.val;
+    check('conn_set_mix', conn.setMix(0.5) === FMOD.OK);
+    const f = {};
+    conn.getMix(f);
+    check('conn_get_mix', Math.abs(f.val - 0.5) < 0.001, `value=${f.val}`);
+    const n = {};
+    lp.getNumInputs(n);
+    check('conn_num_inputs', n.val === 1, `value=${n.val}`);
+    const dOut = {}, cOut = {};
+    check('conn_get_input', lp.getInput(0, dOut, cOut) === FMOD.OK
+        && typeof dOut.val === 'object', '');
+    check('conn_disconnect', lp.disconnectFrom(osc, null) === FMOD.OK);
+    lp.release();
+    osc.release();
+    pump(studio, 5);
+}
+
+function testSchedulingClocks(studio) {
+    const oscOut = {};
+    gCore.createDSPByType(2, oscOut);
+    const osc = oscOut.val;
+    const chOut = {};
+    gCore.playDSP(osc, null, false, chOut);
+    const ch = chOut.val;
+    pump(studio, 20);
+    const clk = {}, pclk = {};
+    const cr = ch.getDSPClock(clk, pclk);
+    // Clocks arrive as plain numbers (doubles): exact to 2^53 samples
+    check('clock_is_number', cr === FMOD.OK && typeof clk.val === 'number' && pclk.val > 0,
+        `clock=${clk.val} parent=${pclk.val}`);
+    const base = pclk.val;
+    check('chan_set_delay', ch.setDelay(0, base + 96000, false) === FMOD.OK);
+    check('chan_add_fade_point', ch.addFadePoint(base + 4800, 1.0) === FMOD.OK
+        && ch.addFadePoint(base + 48000, 0.0) === FMOD.OK);
+    check('chan_set_fade_point_ramp', ch.setFadePointRamp(base + 9600, 0.5) === FMOD.OK);
+    check('chan_remove_fade_points', ch.removeFadePoints(0, base + 96000) === FMOD.OK);
+    ch.stop();
+    osc.release();
+    pump(studio, 5);
+}
+
+function testGroupNesting() {
+    const aOut = {}, bOut = {};
+    gCore.createChannelGroup('nest-a', aOut);
+    gCore.createChannelGroup('nest-b', bOut);
+    const a = aOut.val, b = bOut.val;
+    const connOut = {};
+    check('cg_add_group', a.addGroup(b, true, connOut) === FMOD.OK, '');
+    const n = {};
+    a.getNumGroups(n);
+    check('cg_num_groups', n.val === 1, `value=${n.val}`);
+    const gOut = {};
+    check('cg_get_group', a.getGroup(0, gOut) === FMOD.OK && typeof gOut.val === 'object', '');
+    const pOut = {};
+    check('cg_get_parent_group', b.getParentGroup(pOut) === FMOD.OK, '');
+    b.release();
+    a.release();
+}
+
+function testChannelSpatialExtras(studio) {
+    const sound = makeSilentUserSound(true);
+    const chOut = {};
+    gCore.playSound(sound, null, true, chOut);
+    const ch = chOut.val;
+    check('chan_set_mute', ch.setMute(true) === FMOD.OK);
+    const b = {};
+    ch.getMute(b);
+    check('chan_get_mute', b.val === true, '');
+    check('chan_set_low_pass_gain', ch.setLowPassGain(0.5) === FMOD.OK);
+    check('chan_set_mode_rolloff', ch.setMode((FMOD._3D | FMOD._3D_LINEARROLLOFF) >>> 0) === FMOD.OK);
+    check('chan_cone_settings', ch.set3DConeSettings(30, 60, 0.5) === FMOD.OK);
+    check('chan_cone_orientation', ch.set3DConeOrientation({ x: 0, y: 0, z: 1 }) === FMOD.OK);
+    check('chan_occlusion', ch.set3DOcclusion(0.5, 0.3) === FMOD.OK);
+    const d = {}, r = {};
+    ch.get3DOcclusion(d, r);
+    check('chan_occlusion_roundtrip', Math.abs(d.val - 0.5) < 0.001 && Math.abs(r.val - 0.3) < 0.001,
+        `direct=${d.val} reverb=${r.val}`);
+    check('chan_spread', ch.set3DSpread(45) === FMOD.OK);
+    check('chan_3d_level', ch.set3DLevel(0.8) === FMOD.OK);
+    check('chan_doppler_level', ch.set3DDopplerLevel(1.0) === FMOD.OK);
+    check('chan_mix_matrix', ch.setMixMatrix([1, 0, 0, 1], 2, 2, 0) === FMOD.OK);
+
+    // Frozen rejection: embind cannot marshal the persistent rolloff array
+    let rolloffResult;
+    try { rolloffResult = ch.set3DCustomRolloff([{ x: 1, y: 1, z: 0 }], 1); }
+    catch (e) { rolloffResult = `THREW ${e.constructor.name}`; }
+    check('custom_rolloff_rejected', rolloffResult !== FMOD.OK, `result=${rolloffResult}`);
+
+    ch.stop();
+    sound.release();
+    pump(studio, 5);
+}
+
+function testSoundSurface() {
+    const exinfo = FMOD.CREATESOUNDEXINFO();
+    exinfo.numchannels = 1;
+    exinfo.defaultfrequency = 48000;
+    exinfo.format = FMOD.SOUND_FORMAT_PCM16;
+    exinfo.length = 9600;
+    const rawOut = {};
+    gCore.createSound(new Uint8Array(9600), (FMOD.OPENMEMORY | FMOD.OPENRAW) >>> 0, exinfo, rawOut);
+    const sound = rawOut.val;
+    check('sound_set_defaults', sound.setDefaults(24000, 128) === FMOD.OK);
+    const f = {}, p = {};
+    sound.getDefaults(f, p);
+    check('sound_get_defaults', Math.abs(f.val - 24000) < 1 && p.val === 128,
+        `freq=${f.val} priority=${p.val}`);
+    check('sound_set_mode', sound.setMode(FMOD.LOOP_NORMAL) === FMOD.OK);
+    const m = {};
+    sound.getMode(m);
+    check('sound_get_mode_loops', (m.val & FMOD.LOOP_NORMAL) !== 0, `mode=${m.val}`);
+    check('sound_set_loop_points', sound.setLoopPoints(10, FMOD.TIMEUNIT_MS, 90, FMOD.TIMEUNIT_MS) === FMOD.OK);
+    const ls = {}, le = {};
+    sound.getLoopPoints(ls, FMOD.TIMEUNIT_MS, le, FMOD.TIMEUNIT_MS);
+    check('sound_get_loop_points', ls.val === 10 && le.val === 90, `start=${ls.val} end=${le.val}`);
+    const t = {}, fmt = {}, chn = {}, bits = {};
+    sound.getFormat(t, fmt, chn, bits);
+    check('sound_get_format', chn.val === 1 && bits.val === 16, `ch=${chn.val} bits=${bits.val}`);
+    const st = {}, pc = {}, star = {}, bs = {};
+    check('sound_get_open_state', sound.getOpenState(st, pc, star, bs) === FMOD.OK, `state=${st.val}`);
+
+    // Frozen rejection: sample readback is unsupported on the web build
+    let readResult;
+    try { const buf = {}, read = {}; readResult = sound.readData(buf, 480, read); }
+    catch (e) { readResult = `THREW ${e.constructor.name}`; }
+    check('read_data_unsupported', readResult === 68, `result=${readResult}`);
+    sound.release();
+}
+
+function testReverb3dAndSystem(studio) {
+    const rvOut = {};
+    check('reverb3d_create', gCore.createReverb3D(rvOut) === FMOD.OK, '');
+    const rv = rvOut.val;
+    check('reverb3d_attributes', rv.set3DAttributes({ x: 0, y: 0, z: 0 }, 5, 20) === FMOD.OK);
+    const props = {};
+    gCore.getReverbProperties(0, props);
+    check('reverb3d_set_properties', rv.setProperties(props) === FMOD.OK);
+    const back = {};
+    check('reverb3d_get_properties', rv.getProperties(back) === FMOD.OK
+        && typeof back.DecayTime === 'number', `DecayTime=${back.DecayTime}`);
+    check('reverb3d_active', rv.setActive(true) === FMOD.OK);
+    check('reverb3d_release', rv.release() === FMOD.OK);
+
+    const all = {}, real = {};
+    check('sys_channels_playing', gCore.getChannelsPlaying(all, real) === FMOD.OK,
+        `all=${all.val} real=${real.val}`);
+    check('sys_mixer_suspend_resume', gCore.mixerSuspend() === FMOD.OK
+        && gCore.mixerResume() === FMOD.OK, '');
+    const rate = {}, mode = {}, raw = {};
+    check('sys_software_format', gCore.getSoftwareFormat(rate, mode, raw) === FMOD.OK
+        && rate.val > 0, `rate=${rate.val}`);
+    pump(studio, 5);
 }
