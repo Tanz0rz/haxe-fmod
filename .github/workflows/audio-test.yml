@@ -43,6 +43,18 @@ jobs:
           # The generated output must also compile
           haxe -cp /tmp/gen-cli --no-output FmodEvents FmodBuses FmodParameters FmodEventEnum
 
+      - name: Todo scanner end to end
+        run: |
+          # The example project carries one real marker. The scanner must
+          # find exactly it and nothing else (doc comments and usage
+          # strings mentioning the call must not count).
+          haxe -cp . --run haxefmod.tools.Todos example-project > /tmp/todos.out
+          cat /tmp/todos.out
+          grep -q "PlayState.hx:.*ambient wind loop behind the music" /tmp/todos.out
+          grep -q "1 sound TODO(s) remaining." /tmp/todos.out
+          # The facade must type-check with the placeholder beep enabled
+          haxe -cp . --no-output -js /tmp/todo-typing.js -D haxefmod_todo_beep --debug haxefmod.FmodManager
+
       - name: Verify native shims match the FFI manifest
         run: haxe -cp . --run haxefmod.tools.NativeManifestCheck
 

@@ -37,6 +37,8 @@ class Run {
 				Sys.exit(NativeManifestCheck.run(libRoot));
 			case "generate":
 				Generate.run(userArgs.slice(1), cwd);
+			case "todos":
+				Todos.run(userArgs.slice(1), cwd);
 			case "help":
 				printUsage();
 			case other:
@@ -81,6 +83,7 @@ class Run {
 		Sys.println("  build-hdll     Compile hlaxe_fmod.hdll from source against your FMOD SDK");
 		Sys.println("  verify-native  Verify the native shims are in lockstep with the FFI manifest");
 		Sys.println("  generate       Generate Haxe constant classes (FmodEvents, FmodBuses, ...) from Master.strings.bank");
+		Sys.println("  todos          List every FmodManager.Todo sound marker in the project");
 		Sys.println("  help           Show this message");
 	}
 
@@ -161,6 +164,12 @@ class Run {
 
 		// 11. Bank files check (if in a project directory)
 		checkBankFiles(cwd);
+
+		// 12. Sound TODO markers (informational only)
+		var todos = Todos.scanDirectory(cwd);
+		if (todos.length > 0) {
+			Sys.println('  Note: ${todos.length} sound TODO(s) in this project. List them with: haxelib run haxefmod todos');
+		}
 
 		Sys.println("");
 		printSummary();

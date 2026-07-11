@@ -13,6 +13,7 @@ Having problems or want to chat? [Join the Haxe Discord](https://discordapp.com/
  - [Selecting an FMOD Engine Version](#selecting-an-fmod-engine-version)
  - [HTML5 Builds](#html5-builds)
  - [FMOD Studio Project Configuration](#fmod-studio-project-configuration)
+ - [Tracking Sound Work With TODOs](#tracking-sound-work-with-todos)
  - [Migrating From Previous haxe-fmod Versions?](#migrating-from-previous-haxe-fmod-versions)
  - [License](#license)
  - [Special Thanks](#special-thanks)
@@ -381,6 +382,31 @@ import FmodEvents;
 ```
 
 **Note:** for the generated files to stay up to date, you must run the export **every** time you build your sound bank (the script builds the banks for you, so `Ctrl+B` does both in one press).
+
+## Tracking Sound Work With TODOs
+
+Audio usually lands after the gameplay it belongs to. Drop a marker wherever a sound should go and keep building:
+
+```haxe
+FmodManager.Todo("door creak when the vault opens");
+```
+
+When it is time to work on sounds, list every remaining marker from your project directory:
+
+```
+haxelib run haxefmod todos
+```
+
+```
+source/VaultDoor.hx:52: door creak when the vault opens
+source/PlayState.hx:40: ambient wind loop behind the music
+
+2 sound TODO(s) remaining.
+```
+
+The scanner skips commented-out calls and mentions inside strings, and `--json` emits machine-readable output for tooling. `haxelib run haxefmod check` also notes the count.
+
+The markers cost nothing in release builds (the call compiles away). Debug builds trace each call site once as it is hit. Build with `-D haxefmod_todo_beep` and every marker also plays a short placeholder blip, so you can hear the missing sounds during playtesting exactly where they belong.
 
 ## Migrating From Previous haxe-fmod Versions?
 

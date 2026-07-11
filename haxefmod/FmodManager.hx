@@ -337,6 +337,59 @@ class FmodManager {
         CallbackDispatcher.clearAll();
     }
 
+    /**
+     * Marks a spot that needs a sound so audio work can be scheduled
+     * later. List every remaining call site with:
+     *
+     *   haxelib run haxefmod todos
+     *
+     * Release builds compile the call away. Debug builds trace each call
+     * site once. Build with -D haxefmod_todo_beep to also play a short
+     * placeholder blip, which makes missing sounds audible during
+     * playtesting.
+     */
+    public static inline function Todo(description:String, ?pos:haxe.PosInfos):Void {
+        #if (debug || haxefmod_todo_beep)
+        todoImpl(description, pos);
+        #end
+    }
+
+    #if (debug || haxefmod_todo_beep)
+    static var todoSeen:Map<String, Bool> = new Map();
+    #if haxefmod_todo_beep
+    static var todoBeep:haxefmod.studio.CoreSound = haxefmod.studio.CoreSound.NULL;
+    #end
+
+    static function todoImpl(description:String, pos:haxe.PosInfos):Void {
+        var site = pos == null ? description : '${pos.fileName}:${pos.lineNumber}';
+        if (todoSeen.exists(site)) return;
+        todoSeen.set(site, true);
+        var location = pos == null ? "" : ' (${pos.fileName}:${pos.lineNumber})';
+        trace('FMOD TODO: $description$location');
+        #if haxefmod_todo_beep
+        playTodoBeep();
+        #end
+    }
+
+    #if haxefmod_todo_beep
+    static function playTodoBeep():Void {
+        if (!IsInitialized()) return;
+        if (todoBeep.isNull()) {
+            var rate = 32000;
+            var samples = Std.int(rate * 0.09);
+            var pcm = haxe.io.Bytes.alloc(samples * 2);
+            for (i in 0...samples) {
+                var envelope = 1.0 - i / samples;
+                var value = Std.int(12000.0 * envelope * Math.sin(i * 2.0 * Math.PI * 880.0 / rate));
+                pcm.setUInt16(i * 2, value & 0xFFFF);
+            }
+            todoBeep = haxefmod.studio.CoreSound.fromPcm(pcm, rate, 1);
+        }
+        if (!todoBeep.isNull()) todoBeep.play();
+    }
+    #end
+    #end
+
     //// Internals
 
     static inline function ensureInitialized():Void {

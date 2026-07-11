@@ -37,6 +37,7 @@ class PlayState extends FlxState {
         haxefmod.flixel.FmodFlxSetup.init();
         FmodManager.EnableDebugMessages();
         FmodManager.PlaySong(FmodEvents.MusicMainLevel);
+        FmodManager.Todo("ambient wind loop behind the music");
 
         FlxG.mouse.visible = false;
         FlxG.cameras.bgColor = 0xffaaaaaa;

@@ -56,6 +56,12 @@
   response upload (`Dsp.setParameterData`), DSP idle and name queries,
   output-side graph traversal, and the full spatial control surface
   mirrored on channel groups.
+- Sound TODO markers: `FmodManager.Todo("description")` tags spots that
+  need audio later. Release builds compile the call away, debug builds
+  trace each site once, and `-D haxefmod_todo_beep` plays a placeholder
+  blip so missing sounds are audible during playtesting. List every
+  remaining marker with `haxelib run haxefmod todos` (`--json` for
+  tooling). The environment check also notes the count.
 
 ## 2.0.0
 
