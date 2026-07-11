@@ -1,6 +1,7 @@
 package tests;
 
 import haxefmod.core.Channel;
+import haxefmod.core.ChannelCallbacks;
 import haxefmod.core.ChannelGroup;
 import haxefmod.core.ChannelMode;
 import haxefmod.core.CoreSystem;
@@ -10,6 +11,7 @@ import haxefmod.core.DspType;
 import haxefmod.core.PcmStream;
 import haxefmod.core.Reverb;
 import haxefmod.core.Reverb3D;
+import haxefmod.core.SoundGroup;
 import haxefmod.studio.Bank;
 import haxefmod.studio.Bus;
 import haxefmod.studio.CoreSound;
@@ -293,5 +295,56 @@ class TestStudioSurface {
 		assert(!CoreSystem.mixerSuspend().isOk(), "sys mixerSuspend result");
 		assert(!CoreSystem.mixerResume().isOk(), "sys mixerResume result");
 		assert(CoreSystem.getSoftwareFormat() == null, "sys softwareFormat default");
+
+		// Slice-4 surface on the stub
+		assert(!pcmSound.addSyncPoint(50, "mid").isOk(), "sound addSyncPoint result");
+		assert(!pcmSound.deleteSyncPoint(0).isOk(), "sound deleteSyncPoint result");
+		assert(pcmSound.getSyncPointCount() == 0, "sound syncPointCount default");
+		assert(pcmSound.getSyncPointName(0) == "", "sound syncPointName default");
+		assert(pcmSound.getSyncPointOffset(0) == -1, "sound syncPointOffset default");
+
+		var soundGroup = SoundGroup.create("test");
+		assert(soundGroup.isNull(), "sg create null");
+		assert(SoundGroup.master().isNull(), "sg master null");
+		assert(!soundGroup.setMaxAudible(2).isOk(), "sg setMaxAudible result");
+		assert(soundGroup.getMaxAudible() == 0, "sg maxAudible default");
+		assert(!soundGroup.setMaxAudibleBehavior(SoundGroup.BEHAVIOR_STEAL_LOWEST).isOk(), "sg behavior result");
+		assert(soundGroup.getMaxAudibleBehavior() == 0, "sg behavior default");
+		assert(!soundGroup.setMuteFadeSpeed(0.5).isOk(), "sg muteFade result");
+		assert(soundGroup.getSoundCount() == 0, "sg soundCount default");
+		assert(!soundGroup.stop().isOk(), "sg stop result");
+		assert(!soundGroup.release().isOk(), "sg release result");
+		assert(!pcmSound.setSoundGroup(soundGroup).isOk(), "sound setSoundGroup result");
+
+		assert(!CoreSystem.set3DSettings(1, 1, 1).isOk(), "sys set3DSettings result");
+		assert(CoreSystem.get3DSettings() == null, "sys get3DSettings default");
+		assert(CoreSystem.getDriverCount() == 0, "sys driverCount default");
+		assert(CoreSystem.getDriverName(0) == "", "sys driverName default");
+
+		assert(channel.getLoopCount() == 0, "chan loopCount default");
+		assert(channel.getLowPassGain() == 0.0, "chan lowPassGain default");
+		assert(channel.getMode() == 0, "chan mode default");
+		assert(channel.get3DConeSettings() == null, "chan coneSettings default");
+		assert(channel.get3DSpread() == 0.0, "chan spread default");
+		assert(channel.get3DLevel() == 0.0, "chan 3dLevel default");
+		assert(channel.get3DDopplerLevel() == 0.0, "chan doppler default");
+		assert(channel.get3DMinMaxDistance() == null, "chan minMax default");
+		assert(channel.get3DAttributes() == null, "chan 3dAttributes default");
+		assert(channel.getDelay() == null, "chan delay default");
+		assert(dsp.getWetDryMix() == null, "dsp wetDryMix default");
+		assert(!dsp.getActive(), "dsp active default");
+		assert(dsp.getMeteringEnabled() == null, "dsp meteringEnabled default");
+
+		// Channel event routing: namespaced records reach the channel map
+		// and End removes the registration
+		var received:Array<haxefmod.core.ChannelCallbacks.ChannelEvent> = [];
+		ChannelCallbacks.set(1234, function(e) received.push(e));
+		haxefmod.runtime.CallbackDispatcher.deliver(1234, ChannelCallbacks.TYPE_SYNCPOINT, 3, 0, 0, 0, "");
+		haxefmod.runtime.CallbackDispatcher.deliver(1234, ChannelCallbacks.TYPE_END, 0, 0, 0, 0, "");
+		haxefmod.runtime.CallbackDispatcher.deliver(1234, ChannelCallbacks.TYPE_END, 0, 0, 0, 0, "");
+		assert(received.length == 2, "chan events delivered");
+		assert(received[0].match(SyncPoint(3)), "chan syncpoint payload");
+		assert(received[1].match(End), "chan end payload");
+		ChannelCallbacks.clearAll();
 	}
 }

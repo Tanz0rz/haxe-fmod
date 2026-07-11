@@ -12,8 +12,10 @@ import haxefmod.core.Dsp;
 import haxefmod.core.DspConnection;
 import haxefmod.core.DspType;
 import haxefmod.core.PcmStream;
+import haxefmod.core.ChannelCallbacks;
 import haxefmod.core.Reverb;
 import haxefmod.core.Reverb3D;
+import haxefmod.core.SoundGroup;
 import haxefmod.studio.CoreSound;
 import haxefmod.studio.Bus;
 import haxefmod.studio.EventInstance;
@@ -137,13 +139,141 @@ class ApiProbeState extends FlxState {
         probeCoreSurface();
         probeDspSurface();
         probeParityTail();
+        probeSoundGroupsAndSystem();
         probeFlixelBridge();
+        _statusLabel = label;
+
+        // Channel event delivery is asynchronous: the probe finishes from
+        // update() once the events arrive (or the wait times out)
+        probeChannelEvents();
+    }
+
+    var _statusLabel:FlxText;
+    var _chanEvents:Array<ChannelCallbacks.ChannelEvent> = [];
+    var _chanEventSound:CoreSound = CoreSound.NULL;
+    var _chanEventChannel:Channel = Channel.NULL;
+    var _chanEventBaseline:Int = 0;
+    var _chanEventFrames:Int = 0;
+    var _waitingForChannelEvents:Bool = false;
+
+    /**
+     * Plays a tenth of a second of PCM with a sync point at its middle and
+     * a channel callback registered. Both events must arrive through the
+     * per-frame queue drain before the probe completes.
+     */
+    function probeChannelEvents():Void {
+        _chanEventBaseline = StudioSystem.liveHandleCount();
+        var samples = 4800;
+        var pcm = haxe.io.Bytes.alloc(samples * 2);
+        _chanEventSound = CoreSound.fromPcm(pcm, 48000, 1);
+        check("chanev_sound", !_chanEventSound.isNull(), 'handle=${(_chanEventSound : Int)}');
+        var syncResult = _chanEventSound.addSyncPoint(50, "mid");
+        check("chanev_sync_point", syncResult.isOk(), 'result=${syncResult.toString()}');
+        check("chanev_sync_info", _chanEventSound.getSyncPointCount() == 1
+            && _chanEventSound.getSyncPointName(0) == "mid"
+            && _chanEventSound.getSyncPointOffset(0) == 50, "");
+        _chanEventChannel = _chanEventSound.play(false);
+        check("chanev_play", !_chanEventChannel.isNull(), 'handle=${(_chanEventChannel : Int)}');
+        _chanEventChannel.setCallback(function(e) _chanEvents.push(e));
+        _waitingForChannelEvents = true;
+    }
+
+    function finishChannelEvents():Void {
+        var sawSync = false;
+        var sawEnd = false;
+        for (e in _chanEvents) {
+            switch (e) {
+                case SyncPoint(0): sawSync = true;
+                case End: sawEnd = true;
+                default:
+            }
+        }
+        check("chanev_syncpoint_delivered", sawSync, 'events=${_chanEvents.length} frames=$_chanEventFrames');
+        check("chanev_end_delivered", sawEnd, 'events=${_chanEvents.length} frames=$_chanEventFrames');
+        _chanEventChannel.stop();
+        _chanEventSound.release();
+        check("no_handle_leaks_chanev", StudioSystem.liveHandleCount() == _chanEventBaseline,
+            'baseline=$_chanEventBaseline now=${StudioSystem.liveHandleCount()}');
 
         info("live_handle_count_after", Std.string(StudioSystem.liveHandleCount()));
-
         log('API_PROBE: COMPLETE passed=$_passCount failed=$_failCount');
-        label.text = 'API_PROBE complete: $_passCount passed, $_failCount failed';
+        _statusLabel.text = 'API_PROBE complete: $_passCount passed, $_failCount failed';
         _done = true;
+    }
+
+    /** Exercises the sound group and remaining system surface through the real FFI. */
+    function probeSoundGroupsAndSystem():Void {
+        var baseline = StudioSystem.liveHandleCount();
+        var group = SoundGroup.create("probe-sg");
+        check("sg_create", !group.isNull(), 'handle=${(group : Int)}');
+        check("sg_max_audible_roundtrip", group.setMaxAudible(2).isOk()
+            && group.getMaxAudible() == 2, 'value=${group.getMaxAudible()}');
+        check("sg_behavior_roundtrip", group.setMaxAudibleBehavior(SoundGroup.BEHAVIOR_STEAL_LOWEST).isOk()
+            && group.getMaxAudibleBehavior() == SoundGroup.BEHAVIOR_STEAL_LOWEST, "");
+        check("sg_mute_fade", group.setMuteFadeSpeed(0.5).isOk(), "");
+
+        var pcm = haxe.io.Bytes.alloc(9600);
+        var sound = CoreSound.fromPcm(pcm, 48000, 1);
+        check("sg_assign", sound.setSoundGroup(group).isOk(), "");
+        check("sg_sound_count", group.getSoundCount() == 1, 'value=${group.getSoundCount()}');
+        check("sg_stop", group.stop().isOk(), "");
+        var master = SoundGroup.master();
+        check("sg_master", !master.isNull(), 'handle=${(master : Int)}');
+        sound.setSoundGroup(master);
+        check("sg_release", group.release().isOk(), "");
+        sound.release();
+
+        check("sys_3d_settings_roundtrip", CoreSystem.set3DSettings(1.5, 1.0, 1.0).isOk()
+            && CoreSystem.get3DSettings() != null
+            && Math.abs(CoreSystem.get3DSettings().dopplerScale - 1.5) < 0.001, "");
+        CoreSystem.set3DSettings(1.0, 1.0, 1.0);
+        check("sys_drivers", CoreSystem.getDriverCount() >= 1
+            && CoreSystem.getDriverName(0).length > 0, 'name=${CoreSystem.getDriverName(0)}');
+
+        // Getter symmetry through the real FFI
+        var stream = PcmStream.create3d(48000, 1);
+        var channel = stream.play(true);
+        channel.setLoopCount(-1);
+        check("chan_get_loop_count", channel.getLoopCount() == -1, "");
+        channel.setLowPassGain(0.5);
+        check("chan_get_low_pass_gain", Math.abs(channel.getLowPassGain() - 0.5) < 0.001, "");
+        check("chan_get_mode", channel.getMode() != 0, 'mode=${channel.getMode()}');
+        channel.set3DConeSettings(30, 60, 0.5);
+        var cone = channel.get3DConeSettings();
+        check("chan_get_cone", cone != null && Math.abs(cone.insideAngle - 30) < 0.1, "");
+        channel.set3DSpread(45);
+        check("chan_get_spread", Math.abs(channel.get3DSpread() - 45) < 0.1, "");
+        channel.set3DMinMaxDistance(2, 50);
+        var minMax = channel.get3DMinMaxDistance();
+        check("chan_get_min_max", minMax != null && Math.abs(minMax.minDistance - 2) < 0.001, "");
+        channel.set3DAttributes(1, 2, 3);
+        var attrs = channel.get3DAttributes();
+        check("chan_get_3d_attributes", attrs != null && Math.abs(attrs.posX - 1) < 0.001
+            && Math.abs(attrs.posY - 2) < 0.001, "");
+        var clocks = channel.getDspClock();
+        if (clocks != null) {
+            channel.setDelay(0, clocks.parent + 96000);
+            var delay = channel.getDelay();
+            check("chan_get_delay", delay != null
+                && Math.abs(delay.endClock - (clocks.parent + 96000)) < 1, "");
+        }
+        channel.stop();
+        stream.release();
+
+        var dsp = Dsp.create(DspType.LOWPASS_SIMPLE);
+        dsp.setWetDryMix(1, 0.8, 0.2);
+        var mix = dsp.getWetDryMix();
+        check("dsp_get_wet_dry", mix != null && Math.abs(mix.postwet - 0.8) < 0.001, "");
+        check("dsp_get_active", dsp.getActive(), "");
+        dsp.setMeteringEnabled(true, false);
+        var metering = dsp.getMeteringEnabled();
+        check("dsp_get_metering_enabled", metering != null && metering.input && !metering.output, "");
+        dsp.release();
+
+        // The master sound group handle persists like the other master lookups
+        var now = StudioSystem.liveHandleCount();
+        check("no_handle_leaks_sg", now == baseline + 1,
+            'baseline=$baseline now=$now');
     }
 
     /** Exercises the M3 mass-binding surface: events, instances, banks, VCAs, system. */
@@ -684,6 +814,17 @@ class ApiProbeState extends FlxState {
 
     override public function update(elapsed:Float):Void {
         super.update(elapsed);
+        if (_waitingForChannelEvents) {
+            _chanEventFrames++;
+            var sawEnd = false;
+            for (e in _chanEvents) if (e.match(End)) sawEnd = true;
+            // 0.1s of audio: events land within a few frames. The timeout
+            // makes a broken delivery path fail loudly instead of hanging.
+            if (sawEnd || _chanEventFrames > 300) {
+                _waitingForChannelEvents = false;
+                finishChannelEvents();
+            }
+        }
         if (!_done) return;
 
         // Give the renderer a few frames so the result text is visible, then exit

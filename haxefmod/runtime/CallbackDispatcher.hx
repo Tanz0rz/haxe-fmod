@@ -65,6 +65,10 @@ class CallbackDispatcher {
      * iterates the registration map. Public for unit tests.
      */
     public static function deliver(handle:Int, type:Int, i1:Int, i2:Int, i3:Int, f1:Float, str:String):Void {
+        if (haxefmod.core.ChannelCallbacks.isChannelType(type)) {
+            haxefmod.core.ChannelCallbacks.deliver(handle, type, i1);
+            return;
+        }
         var handler = handlers.get(handle);
         if (handler != null) {
             handler(decode(type, i1, i2, i3, f1, str));

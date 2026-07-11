@@ -36,4 +36,26 @@ class CoreSystem {
         if (!result.isOk()) return null;
         return {sampleRate: Scratch.readI(0), speakerMode: Scratch.readI(1), rawSpeakers: Scratch.readI(2)};
     }
+
+    /**
+     * Global 3D scale factors: doppler strength, world units per meter,
+     * and how aggressively sounds attenuate with distance.
+     */
+    public static inline function set3DSettings(dopplerScale:Float, distanceFactor:Float, rolloffScale:Float):FmodResult {
+        return NativeStudio.sys_set_3d_settings(dopplerScale, distanceFactor, rolloffScale);
+    }
+
+    public static function get3DSettings():Null<{dopplerScale:Float, distanceFactor:Float, rolloffScale:Float}> {
+        var result:FmodResult = NativeStudio.sys_get_3d_settings();
+        if (!result.isOk()) return null;
+        return {dopplerScale: Scratch.readF(0), distanceFactor: Scratch.readF(1), rolloffScale: Scratch.readF(2)};
+    }
+
+    public static inline function getDriverCount():Int {
+        return NativeStudio.sys_get_num_drivers();
+    }
+
+    public static inline function getDriverName(index:Int):String {
+        return NativeStudio.sys_get_driver_name(index);
+    }
 }

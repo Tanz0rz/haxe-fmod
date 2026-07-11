@@ -148,6 +148,22 @@ abstract Dsp(Int) from Int to Int {
         return NativeStudio.dsp_get_input_connection(this, index);
     }
 
+    public function getWetDryMix():Null<{prewet:Float, postwet:Float, dry:Float}> {
+        var result:FmodResult = NativeStudio.dsp_get_wet_dry_mix(this);
+        if (!result.isOk()) return null;
+        return {prewet: Scratch.readF(0), postwet: Scratch.readF(1), dry: Scratch.readF(2)};
+    }
+
+    public inline function getActive():Bool {
+        return NativeStudio.dsp_get_active(this);
+    }
+
+    public function getMeteringEnabled():Null<{input:Bool, output:Bool}> {
+        var result:FmodResult = NativeStudio.dsp_get_metering_enabled(this);
+        if (!result.isOk()) return null;
+        return {input: Scratch.readI(0) != 0, output: Scratch.readI(1) != 0};
+    }
+
     /** Microseconds spent in this DSP per mix, or null (needs profiling enabled at init). */
     public function getCpuUsage():Null<{exclusive:Int, inclusive:Int}> {
         var result:FmodResult = NativeStudio.dsp_get_cpu_usage(this);

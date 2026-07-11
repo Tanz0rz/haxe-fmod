@@ -316,6 +316,48 @@ class NativeStudioStub {
     public static function sys_get_software_format():Int return ERR_UNSUPPORTED;
     public static function dsp_get_cpu_usage(handle:Int):Int return ERR_UNSUPPORTED;
 
+    // Channel callbacks and sync points
+    public static function chan_set_callback(handle:Int, enabled:Bool):Int return ERR_UNSUPPORTED;
+    public static function sound_add_sync_point(handle:Int, offsetMs:Int, name:String):Int return ERR_UNSUPPORTED;
+    public static function sound_delete_sync_point(handle:Int, index:Int):Int return ERR_UNSUPPORTED;
+    public static function sound_get_num_sync_points(handle:Int):Int return 0;
+    public static function sound_get_sync_point_name(handle:Int, index:Int):String return "";
+    public static function sound_get_sync_point_offset(handle:Int, index:Int):Int return -1;
+
+    // Sound groups
+    public static function sys_create_sound_group(name:String):Int return 0;
+    public static function sys_get_master_sound_group():Int return 0;
+    public static function sg_release(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function sg_set_max_audible(handle:Int, maxAudible:Int):Int return ERR_UNSUPPORTED;
+    public static function sg_get_max_audible(handle:Int):Int return 0;
+    public static function sg_set_max_audible_behavior(handle:Int, behavior:Int):Int return ERR_UNSUPPORTED;
+    public static function sg_get_max_audible_behavior(handle:Int):Int return 0;
+    public static function sg_set_mute_fade_speed(handle:Int, speed:Float):Int return ERR_UNSUPPORTED;
+    public static function sg_get_num_sounds(handle:Int):Int return 0;
+    public static function sg_stop(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function sound_set_sound_group(handle:Int, groupHandle:Int):Int return ERR_UNSUPPORTED;
+
+    // System 3D settings and drivers
+    public static function sys_set_3d_settings(doppler:Float, distanceFactor:Float, rolloffScale:Float):Int return ERR_UNSUPPORTED;
+    public static function sys_get_3d_settings():Int return ERR_UNSUPPORTED;
+    public static function sys_get_num_drivers():Int return 0;
+    public static function sys_get_driver_name(id:Int):String return "";
+
+    // Getter symmetry for the routing and spatial setters
+    public static function chan_get_loop_count(handle:Int):Int return 0;
+    public static function chan_get_low_pass_gain(handle:Int):Float return 0.0;
+    public static function chan_get_mode(handle:Int):Int return 0;
+    public static function chan_get_3d_cone_settings(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function chan_get_3d_spread(handle:Int):Float return 0.0;
+    public static function chan_get_3d_level(handle:Int):Float return 0.0;
+    public static function chan_get_3d_doppler_level(handle:Int):Float return 0.0;
+    public static function chan_get_3d_min_max(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function chan_get_3d_attributes(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function chan_get_delay(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function dsp_get_wet_dry_mix(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function dsp_get_active(handle:Int):Bool return false;
+    public static function dsp_get_metering_enabled(handle:Int):Int return ERR_UNSUPPORTED;
+
     // Callbacks
     public static function evi_set_callback_mask(handle:Int, mask:Int):Int return ERR_UNSUPPORTED;
     public static function cb_next():Bool return false;

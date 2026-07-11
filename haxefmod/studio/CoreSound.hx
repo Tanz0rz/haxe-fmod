@@ -77,6 +77,37 @@ abstract CoreSound(Int) from Int to Int {
         return NativeStudio.sound_get_open_state(this);
     }
 
+    /**
+     * Marks a timeline position. Playback crossing it delivers
+     * ChannelEvent.SyncPoint (see Channel.setCallback) with the point's
+     * index in offset order.
+     */
+    public inline function addSyncPoint(offsetMs:Int, name:String):FmodResult {
+        return NativeStudio.sound_add_sync_point(this, offsetMs, name);
+    }
+
+    public inline function deleteSyncPoint(index:Int):FmodResult {
+        return NativeStudio.sound_delete_sync_point(this, index);
+    }
+
+    public inline function getSyncPointCount():Int {
+        return NativeStudio.sound_get_num_sync_points(this);
+    }
+
+    public inline function getSyncPointName(index:Int):String {
+        return NativeStudio.sound_get_sync_point_name(this, index);
+    }
+
+    /** The point's offset in milliseconds, or -1 on failure. */
+    public inline function getSyncPointOffset(index:Int):Int {
+        return NativeStudio.sound_get_sync_point_offset(this, index);
+    }
+
+    /** Moves this sound into a group (see haxefmod.core.SoundGroup). */
+    public inline function setSoundGroup(group:haxefmod.core.SoundGroup):FmodResult {
+        return NativeStudio.sound_set_sound_group(this, group);
+    }
+
     public inline function isNull():Bool {
         return this == 0;
     }

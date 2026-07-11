@@ -425,6 +425,65 @@ class NativeStudioHl {
     /** Fills Scratch int buffer: [0]=exclusive us [1]=inclusive us */
     public static inline function dsp_get_cpu_usage(handle:Int):Int return Raw.dsp_get_cpu_usage(handle, Scratch.intBuf());
 
+    // Channel callbacks and sync points
+    public static inline function chan_set_callback(handle:Int, enabled:Bool):Int return Raw.chan_set_callback(handle, enabled);
+    public static inline function sound_add_sync_point(handle:Int, offsetMs:Int, name:String):Int return Raw.sound_add_sync_point(handle, offsetMs, toBytes(name));
+    public static inline function sound_delete_sync_point(handle:Int, index:Int):Int return Raw.sound_delete_sync_point(handle, index);
+    public static inline function sound_get_num_sync_points(handle:Int):Int return Raw.sound_get_num_sync_points(handle);
+    public static inline function sound_get_sync_point_name(handle:Int, index:Int):String return fromBytes(Raw.sound_get_sync_point_name(handle, index));
+    public static inline function sound_get_sync_point_offset(handle:Int, index:Int):Int return Raw.sound_get_sync_point_offset(handle, index);
+
+    // Sound groups
+    public static inline function sys_create_sound_group(name:String):Int return Raw.sys_create_sound_group(toBytes(name));
+    public static inline function sys_get_master_sound_group():Int return Raw.sys_get_master_sound_group();
+    public static inline function sg_release(handle:Int):Int return Raw.sg_release(handle);
+    public static inline function sg_set_max_audible(handle:Int, maxAudible:Int):Int return Raw.sg_set_max_audible(handle, maxAudible);
+    public static inline function sg_get_max_audible(handle:Int):Int return Raw.sg_get_max_audible(handle);
+    public static inline function sg_set_max_audible_behavior(handle:Int, behavior:Int):Int return Raw.sg_set_max_audible_behavior(handle, behavior);
+    public static inline function sg_get_max_audible_behavior(handle:Int):Int return Raw.sg_get_max_audible_behavior(handle);
+    public static inline function sg_set_mute_fade_speed(handle:Int, speed:Float):Int return Raw.sg_set_mute_fade_speed(handle, speed);
+    public static inline function sg_get_num_sounds(handle:Int):Int return Raw.sg_get_num_sounds(handle);
+    public static inline function sg_stop(handle:Int):Int return Raw.sg_stop(handle);
+    public static inline function sound_set_sound_group(handle:Int, groupHandle:Int):Int return Raw.sound_set_sound_group(handle, groupHandle);
+
+    // System 3D settings and drivers
+    public static inline function sys_set_3d_settings(doppler:Float, distanceFactor:Float, rolloffScale:Float):Int return Raw.sys_set_3d_settings(doppler, distanceFactor, rolloffScale);
+
+    /** Fills Scratch float buffer: [0]=doppler [1]=distance factor [2]=rolloff scale */
+    public static inline function sys_get_3d_settings():Int return Raw.sys_get_3d_settings(Scratch.floatBuf());
+
+    public static inline function sys_get_num_drivers():Int return Raw.sys_get_num_drivers();
+    public static inline function sys_get_driver_name(id:Int):String return fromBytes(Raw.sys_get_driver_name(id));
+
+    // Getter symmetry for the routing and spatial setters
+    public static inline function chan_get_loop_count(handle:Int):Int return Raw.chan_get_loop_count(handle);
+    public static inline function chan_get_low_pass_gain(handle:Int):Float return Raw.chan_get_low_pass_gain(handle);
+    public static inline function chan_get_mode(handle:Int):Int return Raw.chan_get_mode(handle);
+
+    /** Fills Scratch float buffer: [0]=inside [1]=outside [2]=outside volume */
+    public static inline function chan_get_3d_cone_settings(handle:Int):Int return Raw.chan_get_3d_cone_settings(handle, Scratch.floatBuf());
+
+    public static inline function chan_get_3d_spread(handle:Int):Float return Raw.chan_get_3d_spread(handle);
+    public static inline function chan_get_3d_level(handle:Int):Float return Raw.chan_get_3d_level(handle);
+    public static inline function chan_get_3d_doppler_level(handle:Int):Float return Raw.chan_get_3d_doppler_level(handle);
+
+    /** Fills Scratch float buffer: [0]=min [1]=max */
+    public static inline function chan_get_3d_min_max(handle:Int):Int return Raw.chan_get_3d_min_max(handle, Scratch.floatBuf());
+
+    /** Fills Scratch float buffer: [0..2]=position [3..5]=velocity */
+    public static inline function chan_get_3d_attributes(handle:Int):Int return Raw.chan_get_3d_attributes(handle, Scratch.floatBuf());
+
+    /** Fills Scratch float buffer: [0]=start clock [1]=end clock [2]=stop channels */
+    public static inline function chan_get_delay(handle:Int):Int return Raw.chan_get_delay(handle, Scratch.floatBuf());
+
+    /** Fills Scratch float buffer: [0]=prewet [1]=postwet [2]=dry */
+    public static inline function dsp_get_wet_dry_mix(handle:Int):Int return Raw.dsp_get_wet_dry_mix(handle, Scratch.floatBuf());
+
+    public static inline function dsp_get_active(handle:Int):Bool return Raw.dsp_get_active(handle);
+
+    /** Fills Scratch int buffer: [0]=input enabled [1]=output enabled */
+    public static inline function dsp_get_metering_enabled(handle:Int):Int return Raw.dsp_get_metering_enabled(handle, Scratch.intBuf());
+
     // Callbacks
     public static inline function evi_set_callback_mask(handle:Int, mask:Int):Int return Raw.evi_set_callback_mask(handle, mask);
     public static inline function cb_next():Bool return Raw.cb_next();
@@ -715,6 +774,40 @@ private extern class Raw {
     static function sys_mixer_resume():Int;
     static function sys_get_software_format(ibuf:hl.Bytes):Int;
     static function dsp_get_cpu_usage(handle:Int, ibuf:hl.Bytes):Int;
+    static function chan_set_callback(handle:Int, enabled:Bool):Int;
+    static function sound_add_sync_point(handle:Int, offsetMs:Int, name:hl.Bytes):Int;
+    static function sound_delete_sync_point(handle:Int, index:Int):Int;
+    static function sound_get_num_sync_points(handle:Int):Int;
+    static function sound_get_sync_point_name(handle:Int, index:Int):hl.Bytes;
+    static function sound_get_sync_point_offset(handle:Int, index:Int):Int;
+    static function sys_create_sound_group(name:hl.Bytes):Int;
+    static function sys_get_master_sound_group():Int;
+    static function sg_release(handle:Int):Int;
+    static function sg_set_max_audible(handle:Int, maxAudible:Int):Int;
+    static function sg_get_max_audible(handle:Int):Int;
+    static function sg_set_max_audible_behavior(handle:Int, behavior:Int):Int;
+    static function sg_get_max_audible_behavior(handle:Int):Int;
+    static function sg_set_mute_fade_speed(handle:Int, speed:Float):Int;
+    static function sg_get_num_sounds(handle:Int):Int;
+    static function sg_stop(handle:Int):Int;
+    static function sound_set_sound_group(handle:Int, groupHandle:Int):Int;
+    static function sys_set_3d_settings(doppler:Float, distanceFactor:Float, rolloffScale:Float):Int;
+    static function sys_get_3d_settings(fbuf:hl.Bytes):Int;
+    static function sys_get_num_drivers():Int;
+    static function sys_get_driver_name(id:Int):hl.Bytes;
+    static function chan_get_loop_count(handle:Int):Int;
+    static function chan_get_low_pass_gain(handle:Int):Float;
+    static function chan_get_mode(handle:Int):Int;
+    static function chan_get_3d_cone_settings(handle:Int, fbuf:hl.Bytes):Int;
+    static function chan_get_3d_spread(handle:Int):Float;
+    static function chan_get_3d_level(handle:Int):Float;
+    static function chan_get_3d_doppler_level(handle:Int):Float;
+    static function chan_get_3d_min_max(handle:Int, fbuf:hl.Bytes):Int;
+    static function chan_get_3d_attributes(handle:Int, fbuf:hl.Bytes):Int;
+    static function chan_get_delay(handle:Int, fbuf:hl.Bytes):Int;
+    static function dsp_get_wet_dry_mix(handle:Int, fbuf:hl.Bytes):Int;
+    static function dsp_get_active(handle:Int):Bool;
+    static function dsp_get_metering_enabled(handle:Int, ibuf:hl.Bytes):Int;
     static function evi_set_callback_mask(handle:Int, mask:Int):Int;
     static function cb_next():Bool;
     static function cb_handle():Int;

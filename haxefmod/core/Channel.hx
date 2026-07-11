@@ -208,8 +208,70 @@ abstract Channel(Int) from Int to Int {
         return NativeStudio.chan_remove_fade_points(this, startClock, endClock);
     }
 
-    /** Stops playback and invalidates this handle. */
-    public inline function stop():FmodResult {
+    /**
+     * Delivers End and SyncPoint events for this channel (drained once per
+     * frame with the other callbacks). End also removes the handler.
+     */
+    public inline function setCallback(handler:haxefmod.core.ChannelCallbacks.ChannelEvent->Void):Void {
+        haxefmod.core.ChannelCallbacks.set(this, handler);
+    }
+
+    public inline function clearCallback():Void {
+        haxefmod.core.ChannelCallbacks.remove(this);
+    }
+
+    public inline function getLoopCount():Int {
+        return NativeStudio.chan_get_loop_count(this);
+    }
+
+    public inline function getLowPassGain():Float {
+        return NativeStudio.chan_get_low_pass_gain(this);
+    }
+
+    public inline function getMode():Int {
+        return NativeStudio.chan_get_mode(this);
+    }
+
+    public function get3DConeSettings():Null<{insideAngle:Float, outsideAngle:Float, outsideVolume:Float}> {
+        var result:FmodResult = NativeStudio.chan_get_3d_cone_settings(this);
+        if (!result.isOk()) return null;
+        return {insideAngle: Scratch.readF(0), outsideAngle: Scratch.readF(1), outsideVolume: Scratch.readF(2)};
+    }
+
+    public inline function get3DSpread():Float {
+        return NativeStudio.chan_get_3d_spread(this);
+    }
+
+    public inline function get3DLevel():Float {
+        return NativeStudio.chan_get_3d_level(this);
+    }
+
+    public inline function get3DDopplerLevel():Float {
+        return NativeStudio.chan_get_3d_doppler_level(this);
+    }
+
+    public function get3DMinMaxDistance():Null<{minDistance:Float, maxDistance:Float}> {
+        var result:FmodResult = NativeStudio.chan_get_3d_min_max(this);
+        if (!result.isOk()) return null;
+        return {minDistance: Scratch.readF(0), maxDistance: Scratch.readF(1)};
+    }
+
+    public function get3DAttributes():Null<{posX:Float, posY:Float, posZ:Float, velX:Float, velY:Float, velZ:Float}> {
+        var result:FmodResult = NativeStudio.chan_get_3d_attributes(this);
+        if (!result.isOk()) return null;
+        return {posX: Scratch.readF(0), posY: Scratch.readF(1), posZ: Scratch.readF(2),
+            velX: Scratch.readF(3), velY: Scratch.readF(4), velZ: Scratch.readF(5)};
+    }
+
+    public function getDelay():Null<{startClock:Float, endClock:Float, stopChannels:Bool}> {
+        var result:FmodResult = NativeStudio.chan_get_delay(this);
+        if (!result.isOk()) return null;
+        return {startClock: Scratch.readF(0), endClock: Scratch.readF(1), stopChannels: Scratch.readF(2) > 0.5};
+    }
+
+    /** Stops playback, removes any callback handler, and invalidates this handle. */
+    public function stop():FmodResult {
+        haxefmod.core.ChannelCallbacks.remove(this);
         return NativeStudio.chan_stop(this);
     }
 }
