@@ -2,13 +2,18 @@ package tests;
 
 import haxefmod.core.Channel;
 import haxefmod.core.ChannelGroup;
+import haxefmod.core.ChannelMode;
+import haxefmod.core.CoreSystem;
 import haxefmod.core.Dsp;
+import haxefmod.core.DspConnection;
 import haxefmod.core.DspType;
 import haxefmod.core.PcmStream;
 import haxefmod.core.Reverb;
+import haxefmod.core.Reverb3D;
 import haxefmod.studio.Bank;
 import haxefmod.studio.Bus;
 import haxefmod.studio.CoreSound;
+import haxefmod.studio.FmodResult;
 import haxefmod.studio.EventDescription;
 import haxefmod.studio.EventInstance;
 import haxefmod.studio.StudioSystem;
@@ -220,5 +225,73 @@ class TestStudioSurface {
 		assert(!Reverb.set(0, Reverb.PRESET_CONCERTHALL).isOk(), "reverb set result");
 		assert(Reverb.get(0) == null, "reverb get default");
 		assert(Reverb.PRESET_CONCERTHALL.decayTime == 3900, "reverb preset values");
+
+		// Slice-3 surface on the stub
+		var conn = dsp.addInput(dsp);
+		assert(conn.isNull(), "conn null");
+		assert(!conn.setMix(0.5).isOk(), "conn setMix result");
+		assert(conn.getMix() == 0.0, "conn mix default");
+		assert(conn.getType() == 0, "conn type default");
+		assert(!dsp.disconnectFrom(dsp).isOk(), "dsp disconnectFrom result");
+		assert(!dsp.disconnectAll().isOk(), "dsp disconnectAll result");
+		assert(dsp.getInputCount() == 0, "dsp inputCount default");
+		assert(dsp.getOutputCount() == 0, "dsp outputCount default");
+		assert(dsp.getInput(0).isNull(), "dsp input default");
+		assert(dsp.getInputConnection(0).isNull(), "dsp inputConn default");
+		assert(dsp.getCpuUsage() == null, "dsp cpu default");
+
+		assert(!group.addGroup(group).isOk(), "cg addGroup result");
+		assert(group.getGroupCount() == 0, "cg groupCount default");
+		assert(group.getGroup(0).isNull(), "cg getGroup default");
+		assert(group.getParentGroup().isNull(), "cg parent default");
+		assert(group.getDspClock() == null, "cg clock default");
+		assert(!group.setDelay(0, 100).isOk(), "cg setDelay result");
+		assert(!group.addFadePoint(0, 1).isOk(), "cg addFadePoint result");
+		assert(!group.setFadePointRamp(0, 1).isOk(), "cg fadeRamp result");
+		assert(!group.removeFadePoints(0, 100).isOk(), "cg removeFades result");
+
+		assert(!channel.setMute(true).isOk(), "chan setMute result");
+		assert(!channel.getMute(), "chan mute default");
+		assert(!channel.setLowPassGain(0.5).isOk(), "chan lowPassGain result");
+		assert(!channel.setMode(ChannelMode.LOOP_NORMAL | ChannelMode.MODE_3D).isOk(), "chan setMode result");
+		assert(!channel.set3DConeSettings(30, 60, 0.5).isOk(), "chan cone result");
+		assert(!channel.set3DConeOrientation(0, 0, 1).isOk(), "chan coneOrient result");
+		assert(!channel.set3DOcclusion(0.5, 0.3).isOk(), "chan occlusion result");
+		assert(channel.get3DOcclusion() == null, "chan occlusion default");
+		assert(!channel.set3DSpread(45).isOk(), "chan spread result");
+		assert(!channel.set3DLevel(0.8).isOk(), "chan 3dLevel result");
+		assert(!channel.set3DDopplerLevel(1).isOk(), "chan doppler result");
+		assert(!channel.setMixMatrix([1, 0, 0, 1], 2, 2).isOk(), "chan mixMatrix result");
+		assert(channel.setMixMatrix([1], 2, 2) == FmodResult.FMOD_ERR_INVALID_PARAM, "chan mixMatrix bounds");
+		assert(channel.getDspClock() == null, "chan clock default");
+		assert(!channel.setDelay(0, 100).isOk(), "chan setDelay result");
+		assert(!channel.addFadePoint(0, 1).isOk(), "chan addFadePoint result");
+		assert(!channel.setFadePointRamp(0, 1).isOk(), "chan fadeRamp result");
+		assert(!channel.removeFadePoints(0, 100).isOk(), "chan removeFades result");
+
+		var zone = Reverb3D.create();
+		assert(zone.isNull(), "reverb3d null");
+		assert(!zone.set3DAttributes(0, 0, 0, 5, 20).isOk(), "reverb3d attributes result");
+		assert(!zone.setProperties(Reverb.PRESET_CAVE).isOk(), "reverb3d setProps result");
+		assert(zone.getProperties() == null, "reverb3d getProps default");
+		assert(!zone.setActive(true).isOk(), "reverb3d active result");
+		assert(!zone.release().isOk(), "reverb3d release result");
+
+		var pcmSound = CoreSound.fromPcm(haxe.io.Bytes.alloc(64), 48000, 1);
+		assert(pcmSound.isNull(), "coresound fromPcm null");
+		assert(pcmSound.play().isNull(), "coresound play null");
+		assert(!pcmSound.setDefaults(24000, 128).isOk(), "coresound defaults result");
+		assert(pcmSound.getDefaults() == null, "coresound defaults default");
+		assert(!pcmSound.setLoopPoints(0, 100).isOk(), "coresound loopPoints result");
+		assert(pcmSound.getLoopPoints() == null, "coresound loopPoints default");
+		assert(!pcmSound.setMode(ChannelMode.LOOP_NORMAL).isOk(), "coresound setMode result");
+		assert(pcmSound.getMode() == 0, "coresound mode default");
+		assert(pcmSound.getFormat() == null, "coresound format default");
+		assert(pcmSound.getOpenState() == -1, "coresound openState default");
+
+		assert(CoreSystem.getChannelsPlaying() == null, "sys channelsPlaying default");
+		assert(!CoreSystem.mixerSuspend().isOk(), "sys mixerSuspend result");
+		assert(!CoreSystem.mixerResume().isOk(), "sys mixerResume result");
+		assert(CoreSystem.getSoftwareFormat() == null, "sys softwareFormat default");
 	}
 }

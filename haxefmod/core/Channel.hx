@@ -2,6 +2,7 @@ package haxefmod.core;
 
 import haxefmod.studio.FmodResult;
 import haxefmod.studio.native.NativeStudio;
+import haxefmod.studio.native.Scratch;
 
 /**
  * A handle to an FMOD Core channel - a playing instance of a sound.
@@ -110,6 +111,101 @@ abstract Channel(Int) from Int to Int {
     /** How much this channel feeds a reverb instance (0.0 = none, 1.0 = full). */
     public inline function setReverbWet(instance:Int, wet:Float):FmodResult {
         return NativeStudio.chan_set_reverb_wet(this, instance, wet);
+    }
+
+    public inline function getMute():Bool {
+        return NativeStudio.chan_get_mute(this);
+    }
+
+    public inline function setMute(mute:Bool):FmodResult {
+        return NativeStudio.chan_set_mute(this, mute);
+    }
+
+    /** A built-in lowpass on the channel (1.0 = open, 0.0 = fully closed). */
+    public inline function setLowPassGain(gain:Float):FmodResult {
+        return NativeStudio.chan_set_low_pass_gain(this, gain);
+    }
+
+    /** Combines ChannelMode flags (looping, 2D/3D, rolloff shape). */
+    public inline function setMode(mode:Int):FmodResult {
+        return NativeStudio.chan_set_mode(this, mode);
+    }
+
+    /** Directional sound: full volume inside the cone, outsideVolume behind it. */
+    public inline function set3DConeSettings(insideAngle:Float, outsideAngle:Float, outsideVolume:Float):FmodResult {
+        return NativeStudio.chan_set_3d_cone_settings(this, insideAngle, outsideAngle, outsideVolume);
+    }
+
+    public inline function set3DConeOrientation(x:Float, y:Float, z:Float):FmodResult {
+        return NativeStudio.chan_set_3d_cone_orientation(this, x, y, z);
+    }
+
+    /** Muffles the channel as if behind an obstacle (0.0 = clear, 1.0 = fully blocked). */
+    public inline function set3DOcclusion(direct:Float, reverb:Float):FmodResult {
+        return NativeStudio.chan_set_3d_occlusion(this, direct, reverb);
+    }
+
+    public function get3DOcclusion():Null<{direct:Float, reverb:Float}> {
+        var result:FmodResult = NativeStudio.chan_get_3d_occlusion(this);
+        if (!result.isOk()) return null;
+        return {direct: Scratch.readF(0), reverb: Scratch.readF(1)};
+    }
+
+    /** Speaker spread of a 3D sound in degrees (0 = point source). */
+    public inline function set3DSpread(angle:Float):FmodResult {
+        return NativeStudio.chan_set_3d_spread(this, angle);
+    }
+
+    /** Blend between 2D and full 3D positioning (0.0 = 2D, 1.0 = 3D). */
+    public inline function set3DLevel(level:Float):FmodResult {
+        return NativeStudio.chan_set_3d_level(this, level);
+    }
+
+    public inline function set3DDopplerLevel(level:Float):FmodResult {
+        return NativeStudio.chan_set_3d_doppler_level(this, level);
+    }
+
+    /**
+     * Routes input channels to output speakers with explicit gains
+     * (row-major, outChannels rows of inChannels gains, up to 32x32).
+     */
+    public function setMixMatrix(matrix:Array<Float>, outChannels:Int, inChannels:Int):FmodResult {
+        var total = outChannels * inChannels;
+        if (total < 0 || total > matrix.length || total > Scratch.CAPACITY) {
+            return FmodResult.FMOD_ERR_INVALID_PARAM;
+        }
+        for (i in 0...total) Scratch.writeF(i, matrix[i]);
+        return NativeStudio.chan_set_mix_matrix(this, outChannels, inChannels);
+    }
+
+    /**
+     * The channel's mixer clock in output samples, or null on failure.
+     * `parent` is the group clock that setDelay and fade points schedule
+     * against. Clocks are exact to 2^53 samples.
+     */
+    public function getDspClock():Null<{clock:Float, parent:Float}> {
+        var result:FmodResult = NativeStudio.chan_get_dsp_clock(this);
+        if (!result.isOk()) return null;
+        return {clock: Scratch.readF(0), parent: Scratch.readF(1)};
+    }
+
+    /** Sample-accurate start/stop window on the parent clock (0 = no bound). */
+    public inline function setDelay(startClock:Float, endClock:Float, stopChannels:Bool = false):FmodResult {
+        return NativeStudio.chan_set_delay(this, startClock, endClock, stopChannels);
+    }
+
+    /** Schedules a volume point at a parent-clock time. FMOD ramps between points. */
+    public inline function addFadePoint(clock:Float, volume:Float):FmodResult {
+        return NativeStudio.chan_add_fade_point(this, clock, volume);
+    }
+
+    /** A click-free ramp from the current volume to `volume`, ending at `clock`. */
+    public inline function setFadePointRamp(clock:Float, volume:Float):FmodResult {
+        return NativeStudio.chan_set_fade_point_ramp(this, clock, volume);
+    }
+
+    public inline function removeFadePoints(startClock:Float, endClock:Float):FmodResult {
+        return NativeStudio.chan_remove_fade_points(this, startClock, endClock);
     }
 
     /** Stops playback and invalidates this handle. */

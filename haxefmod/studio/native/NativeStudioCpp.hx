@@ -333,6 +333,101 @@ class NativeStudioCpp {
     public static inline function sys_get_reverb_properties(instance:Int):Int return Raw.sys_get_reverb_properties(instance, Scratch.floatBuf());
     public static inline function core_pcm_create_3d(sampleRate:Int, channels:Int, ringBytes:Int):Int return Raw.core_pcm_create_3d(sampleRate, channels, ringBytes);
 
+    // Core DSP connection graph
+    public static inline function dsp_add_input(handle:Int, inputHandle:Int, type:Int):Int return Raw.dsp_add_input(handle, inputHandle, type);
+    public static inline function dsp_disconnect_from(handle:Int, inputHandle:Int):Int return Raw.dsp_disconnect_from(handle, inputHandle);
+    public static inline function dsp_disconnect_all(handle:Int, inputs:Bool, outputs:Bool):Int return Raw.dsp_disconnect_all(handle, inputs, outputs);
+    public static inline function dsp_get_num_inputs(handle:Int):Int return Raw.dsp_get_num_inputs(handle);
+    public static inline function dsp_get_num_outputs(handle:Int):Int return Raw.dsp_get_num_outputs(handle);
+    public static inline function dsp_get_input_dsp(handle:Int, index:Int):Int return Raw.dsp_get_input_dsp(handle, index);
+    public static inline function dsp_get_input_connection(handle:Int, index:Int):Int return Raw.dsp_get_input_connection(handle, index);
+    public static inline function dspconn_set_mix(handle:Int, mix:Float):Int return Raw.dspconn_set_mix(handle, mix);
+    public static inline function dspconn_get_mix(handle:Int):Float return Raw.dspconn_get_mix(handle);
+    public static inline function dspconn_get_type(handle:Int):Int return Raw.dspconn_get_type(handle);
+
+    // Core channel group nesting
+    public static inline function cg_add_group(handle:Int, childHandle:Int):Int return Raw.cg_add_group(handle, childHandle);
+    public static inline function cg_get_num_groups(handle:Int):Int return Raw.cg_get_num_groups(handle);
+    public static inline function cg_get_group(handle:Int, index:Int):Int return Raw.cg_get_group(handle, index);
+    public static inline function cg_get_parent_group(handle:Int):Int return Raw.cg_get_parent_group(handle);
+
+    // Core channel spatial and control extras
+    public static inline function chan_set_mute(handle:Int, mute:Bool):Int return Raw.chan_set_mute(handle, mute);
+    public static inline function chan_get_mute(handle:Int):Bool return Raw.chan_get_mute(handle);
+    public static inline function chan_set_low_pass_gain(handle:Int, gain:Float):Int return Raw.chan_set_low_pass_gain(handle, gain);
+    public static inline function chan_set_mode(handle:Int, mode:Int):Int return Raw.chan_set_mode(handle, mode);
+    public static inline function chan_set_3d_cone_settings(handle:Int, insideAngle:Float, outsideAngle:Float, outsideVolume:Float):Int return Raw.chan_set_3d_cone_settings(handle, insideAngle, outsideAngle, outsideVolume);
+    public static inline function chan_set_3d_cone_orientation(handle:Int, x:Float, y:Float, z:Float):Int return Raw.chan_set_3d_cone_orientation(handle, x, y, z);
+    public static inline function chan_set_3d_occlusion(handle:Int, direct:Float, reverb:Float):Int return Raw.chan_set_3d_occlusion(handle, direct, reverb);
+
+    /** Fills Scratch float buffer: [0]=direct [1]=reverb */
+    public static inline function chan_get_3d_occlusion(handle:Int):Int return Raw.chan_get_3d_occlusion(handle, Scratch.floatBuf());
+
+    public static inline function chan_set_3d_spread(handle:Int, angle:Float):Int return Raw.chan_set_3d_spread(handle, angle);
+    public static inline function chan_set_3d_level(handle:Int, level:Float):Int return Raw.chan_set_3d_level(handle, level);
+    public static inline function chan_set_3d_doppler_level(handle:Int, level:Float):Int return Raw.chan_set_3d_doppler_level(handle, level);
+
+    /** Matrix rows go through the Scratch float buffer, out*in gains row-major. */
+    public static inline function chan_set_mix_matrix(handle:Int, outChannels:Int, inChannels:Int):Int return Raw.chan_set_mix_matrix(handle, Scratch.floatBuf(), outChannels, inChannels);
+
+    // Core scheduling (clocks as Float doubles, exact to 2^53 samples)
+    /** Fills Scratch float buffer: [0]=channel clock [1]=parent group clock */
+    public static inline function chan_get_dsp_clock(handle:Int):Int return Raw.chan_get_dsp_clock(handle, Scratch.floatBuf());
+    public static inline function chan_set_delay(handle:Int, startClock:Float, endClock:Float, stopChannels:Bool):Int return Raw.chan_set_delay(handle, startClock, endClock, stopChannels);
+    public static inline function chan_add_fade_point(handle:Int, clock:Float, volume:Float):Int return Raw.chan_add_fade_point(handle, clock, volume);
+    public static inline function chan_set_fade_point_ramp(handle:Int, clock:Float, volume:Float):Int return Raw.chan_set_fade_point_ramp(handle, clock, volume);
+    public static inline function chan_remove_fade_points(handle:Int, startClock:Float, endClock:Float):Int return Raw.chan_remove_fade_points(handle, startClock, endClock);
+    public static inline function cg_get_dsp_clock(handle:Int):Int return Raw.cg_get_dsp_clock(handle, Scratch.floatBuf());
+    public static inline function cg_set_delay(handle:Int, startClock:Float, endClock:Float, stopChannels:Bool):Int return Raw.cg_set_delay(handle, startClock, endClock, stopChannels);
+    public static inline function cg_add_fade_point(handle:Int, clock:Float, volume:Float):Int return Raw.cg_add_fade_point(handle, clock, volume);
+    public static inline function cg_set_fade_point_ramp(handle:Int, clock:Float, volume:Float):Int return Raw.cg_set_fade_point_ramp(handle, clock, volume);
+    public static inline function cg_remove_fade_points(handle:Int, startClock:Float, endClock:Float):Int return Raw.cg_remove_fade_points(handle, startClock, endClock);
+
+    // Core reverb zones
+    public static inline function sys_create_reverb3d():Int return Raw.sys_create_reverb3d();
+    public static inline function r3d_release(handle:Int):Int return Raw.r3d_release(handle);
+    public static inline function r3d_set_3d_attributes(handle:Int, x:Float, y:Float, z:Float, minDist:Float, maxDist:Float):Int return Raw.r3d_set_3d_attributes(handle, x, y, z, minDist, maxDist);
+
+    /** 12 reverb property floats through the Scratch float buffer. */
+    public static inline function r3d_set_properties(handle:Int):Int return Raw.r3d_set_properties(handle, Scratch.floatBuf());
+    public static inline function r3d_get_properties(handle:Int):Int return Raw.r3d_get_properties(handle, Scratch.floatBuf());
+
+    public static inline function r3d_set_active(handle:Int, active:Bool):Int return Raw.r3d_set_active(handle, active);
+
+    // Core sound surface
+    public static inline function core_create_sound_pcm(data:haxe.io.Bytes, len:Int, sampleRate:Int, channels:Int):Int return Raw.core_create_sound_pcm(data.getData(), len, sampleRate, channels);
+    public static inline function core_play_sound(handle:Int, startPaused:Bool):Int return Raw.core_play_sound(handle, startPaused);
+    public static inline function sound_set_defaults(handle:Int, frequency:Float, priority:Int):Int return Raw.sound_set_defaults(handle, frequency, priority);
+
+    /** Fills Scratch float buffer: [0]=frequency [1]=priority */
+    public static inline function sound_get_defaults(handle:Int):Int return Raw.sound_get_defaults(handle, Scratch.floatBuf());
+
+    public static inline function sound_set_loop_points(handle:Int, startMs:Int, endMs:Int):Int return Raw.sound_set_loop_points(handle, startMs, endMs);
+
+    /** Fills Scratch int buffer: [0]=loop start ms [1]=loop end ms */
+    public static inline function sound_get_loop_points(handle:Int):Int return Raw.sound_get_loop_points(handle, Scratch.intBuf());
+
+    public static inline function sound_set_mode(handle:Int, mode:Int):Int return Raw.sound_set_mode(handle, mode);
+    public static inline function sound_get_mode(handle:Int):Int return Raw.sound_get_mode(handle);
+
+    /** Fills Scratch int buffer: [0]=channels [1]=bits */
+    public static inline function sound_get_format(handle:Int):Int return Raw.sound_get_format(handle, Scratch.intBuf());
+
+    public static inline function sound_get_open_state(handle:Int):Int return Raw.sound_get_open_state(handle);
+
+    // Core system extras (slice 3)
+    /** Fills Scratch int buffer: [0]=all channels [1]=real channels */
+    public static inline function sys_get_channels_playing():Int return Raw.sys_get_channels_playing(Scratch.intBuf());
+
+    public static inline function sys_mixer_suspend():Int return Raw.sys_mixer_suspend();
+    public static inline function sys_mixer_resume():Int return Raw.sys_mixer_resume();
+
+    /** Fills Scratch int buffer: [0]=rate [1]=speaker mode [2]=raw count */
+    public static inline function sys_get_software_format():Int return Raw.sys_get_software_format(Scratch.intBuf());
+
+    /** Fills Scratch int buffer: [0]=exclusive us [1]=inclusive us */
+    public static inline function dsp_get_cpu_usage(handle:Int):Int return Raw.dsp_get_cpu_usage(handle, Scratch.intBuf());
+
     // Callbacks
     public static inline function evi_set_callback_mask(handle:Int, mask:Int):Int return Raw.evi_set_callback_mask(handle, mask);
     public static inline function cb_next():Bool return Raw.cb_next();
@@ -998,6 +1093,178 @@ private extern class Raw {
 
     @:native("linc::faxe::fmod_core_pcm_create_3d")
     static function core_pcm_create_3d(sampleRate:Int, channels:Int, ringBytes:Int):Int;
+
+    @:native("linc::faxe::fmod_dsp_add_input")
+    static function dsp_add_input(handle:Int, inputHandle:Int, type:Int):Int;
+
+    @:native("linc::faxe::fmod_dsp_disconnect_from")
+    static function dsp_disconnect_from(handle:Int, inputHandle:Int):Int;
+
+    @:native("linc::faxe::fmod_dsp_disconnect_all")
+    static function dsp_disconnect_all(handle:Int, inputs:Bool, outputs:Bool):Int;
+
+    @:native("linc::faxe::fmod_dsp_get_num_inputs")
+    static function dsp_get_num_inputs(handle:Int):Int;
+
+    @:native("linc::faxe::fmod_dsp_get_num_outputs")
+    static function dsp_get_num_outputs(handle:Int):Int;
+
+    @:native("linc::faxe::fmod_dsp_get_input_dsp")
+    static function dsp_get_input_dsp(handle:Int, index:Int):Int;
+
+    @:native("linc::faxe::fmod_dsp_get_input_connection")
+    static function dsp_get_input_connection(handle:Int, index:Int):Int;
+
+    @:native("linc::faxe::fmod_dspconn_set_mix")
+    static function dspconn_set_mix(handle:Int, mix:Float):Int;
+
+    @:native("linc::faxe::fmod_dspconn_get_mix")
+    static function dspconn_get_mix(handle:Int):Float;
+
+    @:native("linc::faxe::fmod_dspconn_get_type")
+    static function dspconn_get_type(handle:Int):Int;
+
+    @:native("linc::faxe::fmod_cg_add_group")
+    static function cg_add_group(handle:Int, childHandle:Int):Int;
+
+    @:native("linc::faxe::fmod_cg_get_num_groups")
+    static function cg_get_num_groups(handle:Int):Int;
+
+    @:native("linc::faxe::fmod_cg_get_group")
+    static function cg_get_group(handle:Int, index:Int):Int;
+
+    @:native("linc::faxe::fmod_cg_get_parent_group")
+    static function cg_get_parent_group(handle:Int):Int;
+
+    @:native("linc::faxe::fmod_chan_set_mute")
+    static function chan_set_mute(handle:Int, mute:Bool):Int;
+
+    @:native("linc::faxe::fmod_chan_get_mute")
+    static function chan_get_mute(handle:Int):Bool;
+
+    @:native("linc::faxe::fmod_chan_set_low_pass_gain")
+    static function chan_set_low_pass_gain(handle:Int, gain:Float):Int;
+
+    @:native("linc::faxe::fmod_chan_set_mode")
+    static function chan_set_mode(handle:Int, mode:Int):Int;
+
+    @:native("linc::faxe::fmod_chan_set_3d_cone_settings")
+    static function chan_set_3d_cone_settings(handle:Int, insideAngle:Float, outsideAngle:Float, outsideVolume:Float):Int;
+
+    @:native("linc::faxe::fmod_chan_set_3d_cone_orientation")
+    static function chan_set_3d_cone_orientation(handle:Int, x:Float, y:Float, z:Float):Int;
+
+    @:native("linc::faxe::fmod_chan_set_3d_occlusion")
+    static function chan_set_3d_occlusion(handle:Int, direct:Float, reverb:Float):Int;
+
+    @:native("linc::faxe::fmod_chan_get_3d_occlusion")
+    static function chan_get_3d_occlusion(handle:Int, fbuf:Array<Float>):Int;
+
+    @:native("linc::faxe::fmod_chan_set_3d_spread")
+    static function chan_set_3d_spread(handle:Int, angle:Float):Int;
+
+    @:native("linc::faxe::fmod_chan_set_3d_level")
+    static function chan_set_3d_level(handle:Int, level:Float):Int;
+
+    @:native("linc::faxe::fmod_chan_set_3d_doppler_level")
+    static function chan_set_3d_doppler_level(handle:Int, level:Float):Int;
+
+    @:native("linc::faxe::fmod_chan_set_mix_matrix")
+    static function chan_set_mix_matrix(handle:Int, fbuf:Array<Float>, outChannels:Int, inChannels:Int):Int;
+
+    @:native("linc::faxe::fmod_chan_get_dsp_clock")
+    static function chan_get_dsp_clock(handle:Int, fbuf:Array<Float>):Int;
+
+    @:native("linc::faxe::fmod_chan_set_delay")
+    static function chan_set_delay(handle:Int, startClock:Float, endClock:Float, stopChannels:Bool):Int;
+
+    @:native("linc::faxe::fmod_chan_add_fade_point")
+    static function chan_add_fade_point(handle:Int, clock:Float, volume:Float):Int;
+
+    @:native("linc::faxe::fmod_chan_set_fade_point_ramp")
+    static function chan_set_fade_point_ramp(handle:Int, clock:Float, volume:Float):Int;
+
+    @:native("linc::faxe::fmod_chan_remove_fade_points")
+    static function chan_remove_fade_points(handle:Int, startClock:Float, endClock:Float):Int;
+
+    @:native("linc::faxe::fmod_cg_get_dsp_clock")
+    static function cg_get_dsp_clock(handle:Int, fbuf:Array<Float>):Int;
+
+    @:native("linc::faxe::fmod_cg_set_delay")
+    static function cg_set_delay(handle:Int, startClock:Float, endClock:Float, stopChannels:Bool):Int;
+
+    @:native("linc::faxe::fmod_cg_add_fade_point")
+    static function cg_add_fade_point(handle:Int, clock:Float, volume:Float):Int;
+
+    @:native("linc::faxe::fmod_cg_set_fade_point_ramp")
+    static function cg_set_fade_point_ramp(handle:Int, clock:Float, volume:Float):Int;
+
+    @:native("linc::faxe::fmod_cg_remove_fade_points")
+    static function cg_remove_fade_points(handle:Int, startClock:Float, endClock:Float):Int;
+
+    @:native("linc::faxe::fmod_sys_create_reverb3d")
+    static function sys_create_reverb3d():Int;
+
+    @:native("linc::faxe::fmod_r3d_release")
+    static function r3d_release(handle:Int):Int;
+
+    @:native("linc::faxe::fmod_r3d_set_3d_attributes")
+    static function r3d_set_3d_attributes(handle:Int, x:Float, y:Float, z:Float, minDist:Float, maxDist:Float):Int;
+
+    @:native("linc::faxe::fmod_r3d_set_properties")
+    static function r3d_set_properties(handle:Int, fbuf:Array<Float>):Int;
+
+    @:native("linc::faxe::fmod_r3d_get_properties")
+    static function r3d_get_properties(handle:Int, fbuf:Array<Float>):Int;
+
+    @:native("linc::faxe::fmod_r3d_set_active")
+    static function r3d_set_active(handle:Int, active:Bool):Int;
+
+    @:native("linc::faxe::fmod_core_create_sound_pcm")
+    static function core_create_sound_pcm(data:haxe.io.BytesData, len:Int, sampleRate:Int, channels:Int):Int;
+
+    @:native("linc::faxe::fmod_core_play_sound")
+    static function core_play_sound(handle:Int, startPaused:Bool):Int;
+
+    @:native("linc::faxe::fmod_sound_set_defaults")
+    static function sound_set_defaults(handle:Int, frequency:Float, priority:Int):Int;
+
+    @:native("linc::faxe::fmod_sound_get_defaults")
+    static function sound_get_defaults(handle:Int, fbuf:Array<Float>):Int;
+
+    @:native("linc::faxe::fmod_sound_set_loop_points")
+    static function sound_set_loop_points(handle:Int, startMs:Int, endMs:Int):Int;
+
+    @:native("linc::faxe::fmod_sound_get_loop_points")
+    static function sound_get_loop_points(handle:Int, ibuf:Array<Int>):Int;
+
+    @:native("linc::faxe::fmod_sound_set_mode")
+    static function sound_set_mode(handle:Int, mode:Int):Int;
+
+    @:native("linc::faxe::fmod_sound_get_mode")
+    static function sound_get_mode(handle:Int):Int;
+
+    @:native("linc::faxe::fmod_sound_get_format")
+    static function sound_get_format(handle:Int, ibuf:Array<Int>):Int;
+
+    @:native("linc::faxe::fmod_sound_get_open_state")
+    static function sound_get_open_state(handle:Int):Int;
+
+    @:native("linc::faxe::fmod_sys_get_channels_playing")
+    static function sys_get_channels_playing(ibuf:Array<Int>):Int;
+
+    @:native("linc::faxe::fmod_sys_mixer_suspend")
+    static function sys_mixer_suspend():Int;
+
+    @:native("linc::faxe::fmod_sys_mixer_resume")
+    static function sys_mixer_resume():Int;
+
+    @:native("linc::faxe::fmod_sys_get_software_format")
+    static function sys_get_software_format(ibuf:Array<Int>):Int;
+
+    @:native("linc::faxe::fmod_dsp_get_cpu_usage")
+    static function dsp_get_cpu_usage(handle:Int, ibuf:Array<Int>):Int;
+
 
 
     @:native("linc::faxe::fmod_evi_set_callback_mask")

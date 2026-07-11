@@ -2,6 +2,7 @@ package haxefmod.core;
 
 import haxefmod.studio.FmodResult;
 import haxefmod.studio.native.NativeStudio;
+import haxefmod.studio.native.Scratch;
 
 /**
  * A handle to an FMOD channel group - a mixing bus for raw channels.
@@ -80,6 +81,54 @@ abstract ChannelGroup(Int) from Int to Int {
     /** Stops every channel in the group. */
     public inline function stop():FmodResult {
         return NativeStudio.cg_stop(this);
+    }
+
+    /** Routes a child group's output through this one (group hierarchies). */
+    public inline function addGroup(child:ChannelGroup):FmodResult {
+        return NativeStudio.cg_add_group(this, child);
+    }
+
+    public inline function getGroupCount():Int {
+        return NativeStudio.cg_get_num_groups(this);
+    }
+
+    /** A nested child group by index (a known group returns its existing handle). */
+    public inline function getGroup(index:Int):ChannelGroup {
+        return NativeStudio.cg_get_group(this, index);
+    }
+
+    public inline function getParentGroup():ChannelGroup {
+        return NativeStudio.cg_get_parent_group(this);
+    }
+
+    /**
+     * The group's mixer clock in output samples, or null on failure.
+     * `clock` is this group's own time, `parent` the enclosing group's,
+     * which is the timeline setDelay and fade points schedule against.
+     */
+    public function getDspClock():Null<{clock:Float, parent:Float}> {
+        var result:FmodResult = NativeStudio.cg_get_dsp_clock(this);
+        if (!result.isOk()) return null;
+        return {clock: Scratch.readF(0), parent: Scratch.readF(1)};
+    }
+
+    /** Sample-accurate start/stop window on the parent clock (0 = no bound). */
+    public inline function setDelay(startClock:Float, endClock:Float, stopChannels:Bool = false):FmodResult {
+        return NativeStudio.cg_set_delay(this, startClock, endClock, stopChannels);
+    }
+
+    /** Schedules a volume point at a parent-clock time. FMOD ramps between points. */
+    public inline function addFadePoint(clock:Float, volume:Float):FmodResult {
+        return NativeStudio.cg_add_fade_point(this, clock, volume);
+    }
+
+    /** A click-free ramp from the current volume to `volume`, ending at `clock`. */
+    public inline function setFadePointRamp(clock:Float, volume:Float):FmodResult {
+        return NativeStudio.cg_set_fade_point_ramp(this, clock, volume);
+    }
+
+    public inline function removeFadePoints(startClock:Float, endClock:Float):FmodResult {
+        return NativeStudio.cg_remove_fade_points(this, startClock, endClock);
     }
 
     /**

@@ -114,6 +114,47 @@ abstract Dsp(Int) from Int to Int {
         return [for (i in 0...bins) Scratch.readF(i)];
     }
 
+    /**
+     * Wires another DSP's output into this one, building custom mixer
+     * topologies. Returns the connection (DspConnection.NULL on failure).
+     * Any later graph change invalidates all connection handles.
+     */
+    public inline function addInput(input:Dsp, connectionType:Int = DspConnection.TYPE_STANDARD):DspConnection {
+        return NativeStudio.dsp_add_input(this, input, connectionType);
+    }
+
+    public inline function disconnectFrom(input:Dsp):FmodResult {
+        return NativeStudio.dsp_disconnect_from(this, input);
+    }
+
+    public inline function disconnectAll(inputs:Bool = true, outputs:Bool = true):FmodResult {
+        return NativeStudio.dsp_disconnect_all(this, inputs, outputs);
+    }
+
+    public inline function getInputCount():Int {
+        return NativeStudio.dsp_get_num_inputs(this);
+    }
+
+    public inline function getOutputCount():Int {
+        return NativeStudio.dsp_get_num_outputs(this);
+    }
+
+    /** The DSP feeding input slot `index` (a known DSP returns its existing handle). */
+    public inline function getInput(index:Int):Dsp {
+        return NativeStudio.dsp_get_input_dsp(this, index);
+    }
+
+    public inline function getInputConnection(index:Int):DspConnection {
+        return NativeStudio.dsp_get_input_connection(this, index);
+    }
+
+    /** Microseconds spent in this DSP per mix, or null (needs profiling enabled at init). */
+    public function getCpuUsage():Null<{exclusive:Int, inclusive:Int}> {
+        var result:FmodResult = NativeStudio.dsp_get_cpu_usage(this);
+        if (!result.isOk()) return null;
+        return {exclusive: Scratch.readI(0), inclusive: Scratch.readI(1)};
+    }
+
     /** Releases the effect and invalidates this handle. Detach it first. */
     public inline function release():FmodResult {
         return NativeStudio.dsp_release(this);

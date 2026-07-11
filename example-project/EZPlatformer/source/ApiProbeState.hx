@@ -6,10 +6,15 @@ import flixel.text.FlxText;
 import flixel.util.FlxColor;
 import haxefmod.core.Channel;
 import haxefmod.core.ChannelGroup;
+import haxefmod.core.ChannelMode;
+import haxefmod.core.CoreSystem;
 import haxefmod.core.Dsp;
+import haxefmod.core.DspConnection;
 import haxefmod.core.DspType;
 import haxefmod.core.PcmStream;
 import haxefmod.core.Reverb;
+import haxefmod.core.Reverb3D;
+import haxefmod.studio.CoreSound;
 import haxefmod.studio.Bus;
 import haxefmod.studio.EventInstance;
 import haxefmod.studio.FmodResult;
@@ -131,6 +136,7 @@ class ApiProbeState extends FlxState {
         probeHandleSafety();
         probeCoreSurface();
         probeDspSurface();
+        probeParityTail();
         probeFlixelBridge();
 
         info("live_handle_count_after", Std.string(StudioSystem.liveHandleCount()));
@@ -529,6 +535,131 @@ class ApiProbeState extends FlxState {
         var now = StudioSystem.liveHandleCount();
         check("no_handle_leaks_dsp", now == baseline + persistent,
             'baseline=$baseline now=$now persistent=$persistent busGroupAlive=$busGroupAlive');
+    }
+
+    /**
+     * Exercises the parity tail through the real FFI: the connection
+     * graph, group nesting, scheduling, spatial extras, reverb zones,
+     * memory sounds, and system queries, with handle safety over the
+     * new type tags.
+     */
+    function probeParityTail():Void {
+        var baseline = StudioSystem.liveHandleCount();
+
+        // Connection graph: an oscillator wired into a lowpass
+        var osc = Dsp.create(DspType.OSCILLATOR);
+        var lowpass = Dsp.create(DspType.LOWPASS_SIMPLE);
+        var conn = lowpass.addInput(osc);
+        check("dsp_add_input", !conn.isNull(), 'handle=${(conn : Int)}');
+        check("conn_mix_roundtrip", conn.setMix(0.5).isOk()
+            && Math.abs(conn.getMix() - 0.5) < 0.001, 'value=${conn.getMix()}');
+        check("dsp_input_count", lowpass.getInputCount() == 1,
+            'value=${lowpass.getInputCount()}');
+        check("dsp_input_dedup", (lowpass.getInput(0) : Int) == (osc : Int), "");
+        check("dsp_input_conn_dedup", (lowpass.getInputConnection(0) : Int) == (conn : Int), "");
+        var disconnect = lowpass.disconnectFrom(osc);
+        check("dsp_disconnect", disconnect.isOk(), 'result=${disconnect.toString()}');
+        // Graph changes invalidate every connection handle deterministically
+        var staleConn:FmodResult = conn.setMix(1.0);
+        check("stale_conn_invalid_handle", staleConn == FmodResult.FMOD_ERR_INVALID_HANDLE,
+            'result=${staleConn.toString()}');
+
+        // Nesting
+        var parent = ChannelGroup.create("probe-parent");
+        var child = ChannelGroup.create("probe-child");
+        check("cg_add_group", parent.addGroup(child).isOk(), "");
+        check("cg_group_count", parent.getGroupCount() == 1, 'value=${parent.getGroupCount()}');
+        check("cg_group_dedup", (parent.getGroup(0) : Int) == (child : Int), "");
+        check("cg_parent_dedup", (child.getParentGroup() : Int) == (parent : Int), "");
+
+        // Scheduling on a live channel
+        var oscChannel = osc.play(true);
+        var clocks = oscChannel.getDspClock();
+        check("chan_dsp_clock", clocks != null, clocks == null ? "" : 'parent=${clocks.parent}');
+        if (clocks != null) {
+            var base = clocks.parent;
+            check("chan_set_delay", oscChannel.setDelay(0, base + 96000).isOk(), "");
+            check("chan_fade_points", oscChannel.addFadePoint(base + 4800, 1.0).isOk()
+                && oscChannel.addFadePoint(base + 48000, 0.0).isOk(), "");
+            check("chan_fade_ramp", oscChannel.setFadePointRamp(base + 9600, 0.5).isOk(), "");
+            check("chan_remove_fades", oscChannel.removeFadePoints(0, base + 96000).isOk(), "");
+            check("cg_scheduling", parent.getDspClock() != null
+                && parent.addFadePoint(base + 4800, 0.5).isOk()
+                && parent.removeFadePoints(0, base + 96000).isOk()
+                && parent.setDelay(0, base + 96000).isOk(), "");
+        }
+        check("chan_mute_roundtrip", oscChannel.setMute(true).isOk() && oscChannel.getMute()
+            && oscChannel.setMute(false).isOk() && !oscChannel.getMute(), "");
+        check("chan_low_pass_gain", oscChannel.setLowPassGain(0.5).isOk(), "");
+        check("chan_mix_matrix", oscChannel.setMixMatrix([1, 0, 0, 1], 2, 2).isOk(), "");
+        oscChannel.stop();
+        osc.release();
+        lowpass.release();
+        child.release();
+        parent.release();
+
+        // Spatial extras on a positional stream
+        var stream3d = PcmStream.create3d(48000, 1);
+        var channel3d = stream3d.play(true);
+        check("chan_cone", channel3d.set3DConeSettings(30, 60, 0.5).isOk()
+            && channel3d.set3DConeOrientation(0, 0, 1).isOk(), "");
+        check("chan_occlusion_roundtrip", channel3d.set3DOcclusion(0.5, 0.3).isOk()
+            && channel3d.get3DOcclusion() != null
+            && Math.abs(channel3d.get3DOcclusion().direct - 0.5) < 0.001, "");
+        check("chan_spatial_extras", channel3d.set3DSpread(45).isOk()
+            && channel3d.set3DLevel(0.8).isOk()
+            && channel3d.set3DDopplerLevel(1.0).isOk(), "");
+        check("chan_set_mode", channel3d.setMode(ChannelMode.MODE_3D | ChannelMode.LINEAR_ROLLOFF_3D).isOk(), "");
+        channel3d.stop();
+        stream3d.release();
+
+        // Reverb zone lifecycle
+        var zone = Reverb3D.create();
+        check("reverb3d_create", !zone.isNull(), 'handle=${(zone : Int)}');
+        check("reverb3d_surface", zone.set3DAttributes(0, 0, 0, 5, 20).isOk()
+            && zone.setProperties(Reverb.PRESET_CAVE).isOk()
+            && zone.getProperties() != null
+            && zone.setActive(true).isOk(), "");
+        check("reverb3d_release", zone.release().isOk(), "");
+        var staleZone:FmodResult = zone.setActive(false);
+        check("stale_reverb3d", staleZone == FmodResult.FMOD_ERR_INVALID_HANDLE,
+            'result=${staleZone.toString()}');
+
+        // Memory sounds
+        var samples = 4800;
+        var pcm = haxe.io.Bytes.alloc(samples * 2);
+        for (i in 0...samples) {
+            var v = Std.int(Math.sin(2 * Math.PI * 440 * i / 48000) * 0x3000);
+            pcm.setUInt16(i * 2, v & 0xFFFF);
+        }
+        var sound = CoreSound.fromPcm(pcm, 48000, 1);
+        check("coresound_from_pcm", !sound.isNull(), 'handle=${(sound : Int)}');
+        check("coresound_defaults", sound.setDefaults(24000, 128).isOk()
+            && sound.getDefaults() != null
+            && Math.abs(sound.getDefaults().frequency - 24000) < 1, "");
+        check("coresound_mode", sound.setMode(ChannelMode.LOOP_NORMAL).isOk()
+            && (sound.getMode() & ChannelMode.LOOP_NORMAL) != 0, "");
+        check("coresound_loop_points", sound.setLoopPoints(10, 90).isOk()
+            && sound.getLoopPoints() != null && sound.getLoopPoints().startMs == 10, "");
+        check("coresound_format", sound.getFormat() != null
+            && sound.getFormat().channels == 1 && sound.getFormat().bits == 16, "");
+        check("coresound_open_state", sound.getOpenState() == 0,
+            'state=${sound.getOpenState()}');
+        var soundChannel = sound.play(true);
+        check("coresound_play", !soundChannel.isNull(), 'handle=${(soundChannel : Int)}');
+        soundChannel.stop();
+        check("coresound_release", sound.release().isOk(), "");
+
+        // System queries
+        check("sys_channels_playing", CoreSystem.getChannelsPlaying() != null, "");
+        check("sys_mixer_suspend_resume", CoreSystem.mixerSuspend().isOk()
+            && CoreSystem.mixerResume().isOk(), "");
+        var format = CoreSystem.getSoftwareFormat();
+        check("sys_software_format", format != null && format.sampleRate > 0,
+            format == null ? "" : 'rate=${format.sampleRate}');
+
+        check("no_handle_leaks_tail", StudioSystem.liveHandleCount() == baseline,
+            'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
     }
 
     /**
