@@ -4,9 +4,12 @@ import flixel.FlxG;
 import flixel.FlxState;
 import flixel.text.FlxText;
 import flixel.util.FlxColor;
+import haxefmod.core.ChannelGroup;
 import haxefmod.core.Dsp;
 import haxefmod.core.DspType;
 import haxefmod.core.PcmStream;
+import haxefmod.core.Reverb;
+import haxefmod.core.Reverb3D;
 import haxefmod.studio.Callbacks;
 import haxefmod.studio.EventInstance;
 import haxefmod.studio.StudioSystem;
@@ -26,8 +29,10 @@ import haxefmod.studio.Types;
  * a callback on one instance per batch to churn the dispatcher map under
  * sustained mutation - plus one full PcmStream lifecycle (create, write,
  * play, stop, release) with a DSP effect attached and detached mid-cycle,
- * so the PCM, channel, and DSP slots all recycle under the same pressure.
- * Every heartbeat asserts the live handle count stays flat.
+ * a DSP-to-DSP connection made and broken, a reverb zone lifecycle, and a
+ * nested group lifecycle, so the PCM, channel, DSP, connection, zone, and
+ * group slots all recycle under the same pressure. Every heartbeat asserts
+ * the live handle count stays flat.
  *
  * Duration comes from the STRESS_SECONDS env var (default 60 seconds;
  * HTML5 always uses the default). Select via
@@ -55,6 +60,7 @@ class StressTestState extends FlxState {
     var _iterations:Int = 0;
     var _pcmCycles:Int = 0;
     var _dspCycles:Int = 0;
+    var _graphCycles:Int = 0;
     var _pcmChunk:haxe.io.Bytes;
     var _callbackEvents:Int = 0;
     var _status:FlxText;
@@ -201,6 +207,34 @@ class StressTestState extends FlxState {
             stream.release();
             _pcmCycles++;
         }
+
+        // Graph, zone, and nesting churn: connections made and broken,
+        // a reverb zone lifecycle, and a nested group lifecycle per frame
+        var osc = Dsp.create(DspType.OSCILLATOR);
+        var target = Dsp.create(DspType.LOWPASS_SIMPLE);
+        if (!osc.isNull() && !target.isNull()) {
+            var conn = target.addInput(osc);
+            if (!conn.isNull()) {
+                conn.setMix(0.5);
+                target.disconnectFrom(osc);
+            }
+            var zone = Reverb3D.create();
+            if (!zone.isNull()) {
+                zone.set3DAttributes(0, 0, 0, 5, 20);
+                zone.setProperties(Reverb.PRESET_CAVE);
+                zone.release();
+            }
+            var parent = ChannelGroup.create("churn-parent");
+            var child = ChannelGroup.create("churn-child");
+            if (!parent.isNull() && !child.isNull()) {
+                parent.addGroup(child);
+                child.release();
+                parent.release();
+            }
+            _graphCycles++;
+        }
+        target.release();
+        osc.release();
         FmodManager.Update();
 
         _churnElapsed += elapsed;
@@ -222,6 +256,7 @@ class StressTestState extends FlxState {
         info("callback_events", Std.string(_callbackEvents));
         info("pcm_cycles", Std.string(_pcmCycles));
         info("dsp_cycles", Std.string(_dspCycles));
+        info("graph_cycles", Std.string(_graphCycles));
         log('STRESS_TEST: COMPLETE passed=$_passCount failed=$_failCount iterations=$_iterations');
         _status.text = 'STRESS_TEST complete: $_passCount passed, $_failCount failed, $_iterations cycles';
         _done = true;

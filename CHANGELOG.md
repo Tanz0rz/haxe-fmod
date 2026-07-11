@@ -22,6 +22,20 @@
 - Channel routing: pan, frequency, loop count, playback position, group
   rerouting, per-channel effects, and 3D position on positional streams
   from `PcmStream.create3d`.
+- Custom mixer routing: `Dsp.addInput` builds DSP-to-DSP topologies with
+  per-connection mix levels (`DspConnection`), and channel groups nest
+  (`ChannelGroup.addGroup`) for group hierarchies.
+- Sample-accurate scheduling: DSP clock reads, `setDelay`, and fade points
+  on channels and groups (`addFadePoint`, `setFadePointRamp`) for
+  click-free, mixer-clock-exact volume automation.
+- Positional reverb zones (`Reverb3D`): reverb that follows the listener
+  between areas, sharing the `Reverb` presets.
+- Spatial channel shaping: sound cones, occlusion, spread, 3D level,
+  doppler level, mix matrices, and rolloff selection via `ChannelMode`.
+- Memory sounds: `CoreSound.fromPcm` plays raw PCM from memory on every
+  platform, with defaults, loop points, mode, and format queries.
+- Core system queries: playing channel counts, mixer suspend/resume for
+  app backgrounding, and the mixer's output format.
 
 ## 2.0.0
 

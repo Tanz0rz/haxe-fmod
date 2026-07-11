@@ -265,6 +265,14 @@ listener.
 Parameter indices for each effect type are in the
 [FMOD DSP reference](https://www.fmod.com/docs/2.03/api/effects-reference.html).
 
+Beyond effects, the core surface covers custom routing (`dsp.addInput`
+with per-connection mix levels, nested channel groups), sample-accurate
+scheduling (`channel.setDelay` and fade points on the mixer clock, e.g.
+`channel.setFadePointRamp` for click-free fades), positional reverb zones
+(`Reverb3D`), directional and occluded 3D channels (cones, occlusion,
+spread), and raw PCM sounds from memory (`CoreSound.fromPcm`), all working
+identically on every supported platform.
+
 ## Selecting an FMOD Engine Version
 
 The officially supported FMOD Engine version is 2.03.12. Other versions **may work fine**, but I have not tested them.
