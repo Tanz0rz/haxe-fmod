@@ -70,6 +70,9 @@ function main() {
         testChannelSpatialExtras(studio);
         testSoundSurface();
         testReverb3dAndSystem(studio);
+        testChannelCallbacks(studio);
+        testSoundGroups();
+        testSystemSettingsAndGetters(studio);
 
         console.log(`CORE_TEST: failures = ${failures}`);
         console.log('CORE_TEST: COMPLETE');
@@ -654,5 +657,156 @@ function testReverb3dAndSystem(studio) {
     const rate = {}, mode = {}, raw = {};
     check('sys_software_format', gCore.getSoftwareFormat(rate, mode, raw) === FMOD.OK
         && rate.val > 0, `rate=${rate.val}`);
+    pump(studio, 5);
+}
+
+//// Slice-4 facts: channel callbacks, sync points, sound groups, system
+//// 3D settings, driver enumeration, and getter symmetry.
+
+function testChannelCallbacks(studio) {
+    // A finite raw memory sound so END fires; a sync point at its middle
+    const exinfo = FMOD.CREATESOUNDEXINFO();
+    exinfo.numchannels = 1;
+    exinfo.defaultfrequency = 48000;
+    exinfo.format = FMOD.SOUND_FORMAT_PCM16;
+    exinfo.length = 9600; // 0.1s
+    const sndOut = {};
+    gCore.createSound(new Uint8Array(9600), (FMOD.OPENMEMORY | FMOD.OPENRAW) >>> 0, exinfo, sndOut);
+    const sound = sndOut.val;
+
+    const pt = {};
+    check('sync_add', sound.addSyncPoint(50, FMOD.TIMEUNIT_MS, 'mid', pt) === FMOD.OK, '');
+    const n = {};
+    sound.getNumSyncPoints(n);
+    check('sync_count', n.val === 1, `value=${n.val}`);
+    const ptOut = {};
+    sound.getSyncPoint(0, ptOut);
+    const name = {}, offset = {};
+    check('sync_info', sound.getSyncPointInfo(ptOut.val, name, 32, offset, FMOD.TIMEUNIT_MS) === FMOD.OK
+        && name.val === 'mid' && offset.val === 50, `name=${name.val} offset=${offset.val}`);
+
+    const events = [];
+    const chOut = {};
+    gCore.playSound(sound, null, false, chOut);
+    const ch = chOut.val;
+    check('chan_set_callback', ch.setCallback(function (cc, controltype, cbtype, d1, d2) {
+        events.push({ cb: cbtype, d1: d1 });
+        return FMOD.OK;
+    }) === FMOD.OK, '');
+    pump(studio, 40);
+    // FMOD_CHANNELCONTROL_CALLBACK values: END=0, SYNCPOINT=2. d1 for
+    // SYNCPOINT is the point index.
+    const sawSync = events.some(e => e.cb === 2 && e.d1 === 0);
+    const sawEnd = events.some(e => e.cb === 0);
+    check('chan_callback_syncpoint', sawSync, JSON.stringify(events.slice(0, 4)));
+    check('chan_callback_end', sawEnd, `events=${events.length}`);
+    sound.release();
+    pump(studio, 5);
+}
+
+function testSoundGroups() {
+    const exinfo = FMOD.CREATESOUNDEXINFO();
+    exinfo.numchannels = 1;
+    exinfo.defaultfrequency = 48000;
+    exinfo.format = FMOD.SOUND_FORMAT_PCM16;
+    exinfo.length = 4800;
+    const sndOut = {};
+    gCore.createSound(new Uint8Array(4800), (FMOD.OPENMEMORY | FMOD.OPENRAW) >>> 0, exinfo, sndOut);
+    const sound = sndOut.val;
+
+    const sgOut = {};
+    check('sg_create', gCore.createSoundGroup('harness-sg', sgOut) === FMOD.OK, '');
+    const sg = sgOut.val;
+    check('sg_max_audible', sg.setMaxAudible(2) === FMOD.OK, '');
+    const n = {};
+    sg.getMaxAudible(n);
+    check('sg_max_audible_roundtrip', n.val === 2, `value=${n.val}`);
+    check('sg_behavior', sg.setMaxAudibleBehavior(2) === FMOD.OK, '');
+    check('sg_mute_fade', sg.setMuteFadeSpeed(0.5) === FMOD.OK, '');
+    check('sg_assign_sound', sound.setSoundGroup(sg) === FMOD.OK, '');
+    const count = {};
+    sg.getNumSounds(count);
+    check('sg_num_sounds', count.val === 1, `value=${count.val}`);
+    check('sg_stop', sg.stop() === FMOD.OK, '');
+    const masterOut = {};
+    check('sg_master', gCore.getMasterSoundGroup(masterOut) === FMOD.OK, '');
+    sound.setSoundGroup(masterOut.val);
+    check('sg_release', sg.release() === FMOD.OK, '');
+    sound.release();
+}
+
+function testSystemSettingsAndGetters(studio) {
+    check('sys_3d_settings', gCore.set3DSettings(1.5, 1.0, 1.0) === FMOD.OK, '');
+    const d = {}, df = {}, rs = {};
+    gCore.get3DSettings(d, df, rs);
+    check('sys_3d_settings_roundtrip', Math.abs(d.val - 1.5) < 0.001, `doppler=${d.val}`);
+    gCore.set3DSettings(1.0, 1.0, 1.0);
+
+    const n = {};
+    check('sys_num_drivers', gCore.getNumDrivers(n) === FMOD.OK && n.val >= 1, `value=${n.val}`);
+    // embind drops the name length arg: (id, nameOut, guidOut, rateOut, modeOut, channelsOut)
+    const name = {}, guid = {}, rate = {}, mode = {}, chans = {};
+    let driverResult;
+    try { driverResult = gCore.getDriverInfo(0, name, guid, rate, mode, chans); }
+    catch (e) { driverResult = `THREW ${e.constructor.name}`; }
+    check('sys_driver_info', driverResult === FMOD.OK && typeof name.val === 'string',
+        `result=${driverResult} name=${name.val}`);
+
+    // Getter symmetry over the slice 2-3 setters
+    const sound = makeSilentUserSound(true);
+    const chOut = {};
+    gCore.playSound(sound, null, true, chOut);
+    const ch = chOut.val;
+    ch.setLoopCount(-1);
+    const lc = {};
+    check('chan_get_loop_count', ch.getLoopCount(lc) === FMOD.OK && lc.val === -1, `value=${lc.val}`);
+    ch.setLowPassGain(0.5);
+    const lp = {};
+    check('chan_get_low_pass_gain', ch.getLowPassGain(lp) === FMOD.OK
+        && Math.abs(lp.val - 0.5) < 0.001, `value=${lp.val}`);
+    const m = {};
+    check('chan_get_mode', ch.getMode(m) === FMOD.OK, `mode=${m.val}`);
+    ch.set3DConeSettings(30, 60, 0.5);
+    const ia = {}, oa = {}, ov = {};
+    check('chan_get_cone', ch.get3DConeSettings(ia, oa, ov) === FMOD.OK && Math.abs(ia.val - 30) < 0.1,
+        `inside=${ia.val}`);
+    ch.set3DSpread(45);
+    const sp = {};
+    check('chan_get_spread', ch.get3DSpread(sp) === FMOD.OK && Math.abs(sp.val - 45) < 0.1,
+        `value=${sp.val}`);
+    ch.set3DLevel(0.8);
+    const lv = {};
+    check('chan_get_3d_level', ch.get3DLevel(lv) === FMOD.OK && Math.abs(lv.val - 0.8) < 0.001, '');
+    ch.set3DDopplerLevel(0.7);
+    const dl = {};
+    check('chan_get_doppler', ch.get3DDopplerLevel(dl) === FMOD.OK && Math.abs(dl.val - 0.7) < 0.001, '');
+    ch.set3DMinMaxDistance(2, 50);
+    const mn = {}, mx = {};
+    check('chan_get_min_max', ch.get3DMinMaxDistance(mn, mx) === FMOD.OK
+        && Math.abs(mn.val - 2) < 0.001 && Math.abs(mx.val - 50) < 0.001, `min=${mn.val} max=${mx.val}`);
+    ch.set3DAttributes({ x: 1, y: 2, z: 3 }, { x: 0, y: 0, z: 0 });
+    const pos = {}, vel = {};
+    const attrResult = ch.get3DAttributes(pos, vel);
+    // The struct convention: flat dotted keys land on the out object
+    check('chan_get_3d_attributes', attrResult === FMOD.OK, `result=${attrResult}`);
+    const ds = {}, de = {}, sc = {};
+    check('chan_get_delay', ch.getDelay(ds, de, sc) === FMOD.OK, '');
+    ch.stop();
+    sound.release();
+
+    const dspOut = {};
+    gCore.createDSPByType(18, dspOut);
+    const dsp = dspOut.val;
+    dsp.setWetDryMix(1, 0.8, 0.2);
+    const pw = {}, po = {}, dr = {};
+    check('dsp_get_wet_dry', dsp.getWetDryMix(pw, po, dr) === FMOD.OK
+        && Math.abs(po.val - 0.8) < 0.001, `post=${po.val}`);
+    const act = {};
+    check('dsp_get_active', dsp.getActive(act) === FMOD.OK, '');
+    dsp.setMeteringEnabled(true, false);
+    const mi = {}, mo = {};
+    check('dsp_get_metering_enabled', dsp.getMeteringEnabled(mi, mo) === FMOD.OK
+        && mi.val === true && mo.val === false, `in=${mi.val} out=${mo.val}`);
+    dsp.release();
     pump(studio, 5);
 }
