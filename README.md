@@ -280,6 +280,13 @@ Sound groups (`haxefmod.core.SoundGroup`) cap polyphony across any set of
 sounds with steal behaviors, and every setter has a matching getter for
 reading state back.
 
+Banks also load straight from bytes (`StudioSystem.loadBankMemory` for
+embedded or downloaded banks), single event instances take effects
+through `instance.getChannelGroup()`, convolution reverb accepts impulse
+responses through `dsp.setParameterData`, output devices enumerate and
+switch through `CoreSystem`, and API sessions record to files for FMOD's
+analysis tools (`StudioSystem.startCommandCapture`).
+
 ## Selecting an FMOD Engine Version
 
 The officially supported FMOD Engine version is 2.03.12. Other versions **may work fine**, but I have not tested them.

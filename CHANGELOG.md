@@ -41,8 +41,21 @@
   points placed on sounds by offset and name (`CoreSound.addSyncPoint`).
 - Sound groups (`haxefmod.core.SoundGroup`): polyphony caps across any
   set of sounds with fail, mute, or steal-lowest behaviors.
-- Global 3D scales (`CoreSystem.set3DSettings`), driver enumeration, and
-  a matching getter for every core routing and spatial setter.
+- Global 3D scales (`CoreSystem.set3DSettings`), driver enumeration and
+  selection, and a matching getter for every core routing and spatial
+  setter.
+- Banks from memory: `StudioSystem.loadBankMemory` loads embedded or
+  downloaded bank bytes into a normal `Bank` handle.
+- Per-instance effects: `EventInstance.getChannelGroup` bridges one event
+  to its core group for DSP attach.
+- Command capture and replay: record API sessions to files for FMOD's
+  tools and play them back through `CommandReplay`.
+- Channel priority, virtualization and audibility queries, volume ramp
+  control, current-sound access, loop points, and DSP chain
+  introspection. Sound names and group volume. Convolution impulse
+  response upload (`Dsp.setParameterData`), DSP idle and name queries,
+  output-side graph traversal, and the full spatial control surface
+  mirrored on channel groups.
 
 ## 2.0.0
 
