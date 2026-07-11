@@ -35,6 +35,8 @@ class LoadFmodState extends FlxState {
                     FlxG.switchState(EmitterPanTestState.new);
                 case "stress-test":
                     FlxG.switchState(StressTestState.new);
+                case "synth-test":
+                    FlxG.switchState(SynthTestState.new);
                 default:
                     FlxG.switchState(VolumeTestState.new);
             }

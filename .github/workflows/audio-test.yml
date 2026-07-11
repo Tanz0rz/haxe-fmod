@@ -60,6 +60,9 @@ jobs:
           g++ -x c++ -pthread -Wall -Wextra -Werror -o /tmp/test_cbq_cpp tests/native/test_faxe_cbqueue.c
           /tmp/test_cbq_cpp
 
+      - name: Negative-test the synth frequency gate
+        run: python3 ci/synth-gate-selftest.py
+
       - name: Test native PCM ring buffer (C99 and C++ modes)
         run: |
           gcc -std=c99 -pthread -Wall -Wextra -Werror -o /tmp/test_pcmring_c tests/native/test_faxe_pcmring.c
@@ -291,6 +294,21 @@ jobs:
           gate: API_PROBE
           bin-dir: example-project/EZPlatformer/export/linux*/bin
           log-file: /tmp/api-probe-linux-cpp.log
+
+      - name: Run synth-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: synth-test
+          gate: SYNTH_TEST
+          bin-dir: example-project/EZPlatformer/export/linux*/bin
+          log-file: /tmp/synth-test-linux-cpp.log
+          use-wavwriter: "true"
+          timeout: "60"
+
+      - name: Validate synth audio
+        if: ${{ !cancelled() }}
+        run: ./ci/validate-synth.sh "${RUNNER_TEMP}/state-synth-test.wav"
 
       - name: Run cb-test state
         if: ${{ !cancelled() }}
@@ -562,6 +580,21 @@ jobs:
           gate: API_PROBE
           bin-dir: example-project/EZPlatformer/export/hl/bin
           log-file: /tmp/api-probe-linux-hl.log
+
+      - name: Run synth-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: synth-test
+          gate: SYNTH_TEST
+          bin-dir: example-project/EZPlatformer/export/hl/bin
+          log-file: /tmp/synth-test-linux-hl.log
+          use-wavwriter: "true"
+          timeout: "60"
+
+      - name: Validate synth audio
+        if: ${{ !cancelled() }}
+        run: ./ci/validate-synth.sh "${RUNNER_TEMP}/state-synth-test.wav"
 
       - name: Run cb-test state
         if: ${{ !cancelled() }}
@@ -1097,6 +1130,55 @@ jobs:
           fi
           echo "API probe passed"
 
+      - name: Run synth test (generated PCM reaches the output)
+        if: ${{ !cancelled() }}
+        run: |
+          export DISPLAY=:99
+
+          cd example-project/EZPlatformer/export/html5/bin
+          python3 -m http.server 8086 &
+          HTTP_PID=$!
+          sleep 1
+
+          # Recording starts before the browser so the first tone segment
+          # cannot be clipped. The tones run in real time on html5: ~10s of
+          # audio after boot.
+          ffmpeg -f pulse -i virtual_speaker.monitor -t 30 -y /tmp/synth-test-html5.wav &
+          RECORD_PID=$!
+
+          chromium-browser \
+            --no-sandbox \
+            --disable-gpu \
+            --autoplay-policy=no-user-gesture-required \
+            --enable-logging=stderr --v=0 \
+            --window-size=640,480 \
+            --window-position=0,0 \
+            "http://localhost:8086/index.html?test=synth-test" > /tmp/synth-test-raw.log 2>&1 &
+          CHROME_PID=$!
+          sleep 3
+
+          xdotool mousemove 320 240 click 1
+
+          for i in $(seq 30); do
+            grep -q "SYNTH_TEST: COMPLETE" /tmp/synth-test-raw.log && break
+            sleep 1
+          done
+          wait $RECORD_PID || true
+
+          kill $CHROME_PID || true
+          kill $HTTP_PID || true
+
+          grep -o "SYNTH_TEST:.*" /tmp/synth-test-raw.log | sed 's/",.*$//' | tee /tmp/synth-test-html5.log
+          grep -q "SYNTH_TEST: COMPLETE" /tmp/synth-test-html5.log
+          if grep -q "pass=false" /tmp/synth-test-html5.log; then
+            echo "FAIL: synth test reported failing checks"
+            exit 1
+          fi
+
+      - name: Validate synth audio
+        if: ${{ !cancelled() }}
+        run: ./ci/validate-synth.sh /tmp/synth-test-html5.wav
+
       - name: Run callback test (JS payload delivery)
         if: ${{ !cancelled() }}
         run: |
@@ -1563,6 +1645,21 @@ jobs:
           bin-dir: ${{ env.APP_BUNDLE }}/Contents/MacOS
           log-file: /tmp/api-probe-mac-hl.log
           use-wavwriter: "true"
+
+      - name: Run synth-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: synth-test
+          gate: SYNTH_TEST
+          bin-dir: ${{ env.APP_BUNDLE }}/Contents/MacOS
+          log-file: /tmp/synth-test-mac-hl.log
+          use-wavwriter: "true"
+          timeout: "60"
+
+      - name: Validate synth audio
+        if: ${{ !cancelled() }}
+        run: ./ci/validate-synth.sh "${RUNNER_TEMP}/state-synth-test.wav"
 
       - name: Run cb-test state
         if: ${{ !cancelled() }}
@@ -2164,6 +2261,21 @@ jobs:
           bin-dir: example-project/EZPlatformer/export/hl/bin
           log-file: ${{ github.workspace }}/api-probe-windows-hl.log
           use-wavwriter: "true"
+
+      - name: Run synth-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: synth-test
+          gate: SYNTH_TEST
+          bin-dir: example-project/EZPlatformer/export/hl/bin
+          log-file: ${{ github.workspace }}/synth-test-windows-hl.log
+          use-wavwriter: "true"
+          timeout: "60"
+
+      - name: Validate synth audio
+        if: ${{ !cancelled() }}
+        run: ./ci/validate-synth.sh "${RUNNER_TEMP}/state-synth-test.wav"
 
       - name: Run cb-test state
         if: ${{ !cancelled() }}

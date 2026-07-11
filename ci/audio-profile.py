@@ -29,6 +29,15 @@ SILENCE_DB = -60.0
 CLIP_SAMPLE = 32700
 CLIP_WINDOWS = 3
 
+# The synth-test contract (SynthTestState.hx): tone segments in this order,
+# each at least this long in the recording. 1320Hz is 660Hz data played at
+# pitch 2.0, so 660Hz appearing as a segment means the pitch was not applied.
+SYNTH_EXPECTED = [(440.0, 3.0), (880.0, 3.0), (1320.0, 1.2)]
+SYNTH_DATA_FREQ = 660.0
+SYNTH_CANDIDATES = [440.0, 660.0, 880.0, 1320.0]
+SYNTH_DOMINANCE_DB = 10.0
+SYNTH_MIN_RUN = 2  # windows (0.5s) - shorter runs are boundary noise
+
 
 def parse_args(argv):
     options = {
@@ -37,6 +46,7 @@ def parse_args(argv):
         "max_lead": 20.0,
         "min_channels": 2,
         "gate": True,
+        "synth": False,
     }
     path = None
     i = 0
@@ -56,6 +66,8 @@ def parse_args(argv):
             options["min_channels"] = int(argv[i])
         elif arg == "--no-gate":
             options["gate"] = False
+        elif arg == "--synth":
+            options["synth"] = True
         elif path is None:
             path = arg
         else:
@@ -110,6 +122,106 @@ def rms_db(samples):
     if mean_square <= 0:
         return -120.0
     return 10.0 * math.log10(mean_square / (32768.0 * 32768.0))
+
+
+def goertzel_db(samples, rate, freq):
+    """Amplitude of one frequency in dBFS via the Goertzel algorithm."""
+    count = len(samples)
+    if count == 0:
+        return -120.0
+    coeff = 2.0 * math.cos(2.0 * math.pi * freq / rate)
+    s1 = 0.0
+    s2 = 0.0
+    for value in samples:
+        s0 = value + coeff * s1 - s2
+        s2 = s1
+        s1 = s0
+    power = s1 * s1 + s2 * s2 - coeff * s1 * s2
+    amplitude = 2.0 * math.sqrt(power if power > 0 else 0.0) / count
+    if amplitude <= 0:
+        return -120.0
+    return 20.0 * math.log10(amplitude / 32768.0)
+
+
+def synth_gate(channels, rate, pcm, window_count, window_frames, window_dbs):
+    """Gates the synth-test recording: windows are labeled by dominant tone
+    and the labeled runs must reproduce the SYNTH_EXPECTED sequence."""
+    block = channels * 2
+    window_seconds = WINDOW_MS / 1000.0
+    labels = []
+    for index in range(window_count):
+        if window_dbs[index] <= SILENCE_DB:
+            labels.append(None)
+            continue
+        start = index * window_frames * block
+        chunk = pcm[start:start + window_frames * block]
+        interleaved = struct.unpack("<{}h".format(len(chunk) // 2), chunk)
+        # Mono mix so channel layout does not matter
+        mono = [sum(interleaved[i * channels:(i + 1) * channels]) / channels
+                for i in range(len(interleaved) // channels)]
+        best = None
+        best_db = -120.0
+        second_db = -120.0
+        for freq in SYNTH_CANDIDATES:
+            # A small comb absorbs recorder resampling drift
+            db = max(goertzel_db(mono, rate, freq + offset) for offset in (-4.0, 0.0, 4.0))
+            if db > best_db:
+                second_db = best_db
+                best_db = db
+                best = freq
+            elif db > second_db:
+                second_db = db
+        labels.append(best if best_db >= second_db + SYNTH_DOMINANCE_DB else None)
+
+    # Collapse into runs, dropping sub-threshold runs as boundary noise
+    runs = []
+    for index, label in enumerate(labels):
+        if label is not None and runs and runs[-1][0] == label and index - runs[-1][2] <= SYNTH_MIN_RUN:
+            runs[-1][2] = index + 1
+        elif label is not None:
+            runs.append([label, index, index + 1])
+    runs = [run for run in runs if run[2] - run[1] >= SYNTH_MIN_RUN]
+    # Dropping a noise blip can leave the same tone split in two: merge
+    merged = []
+    for run in runs:
+        if merged and merged[-1][0] == run[0]:
+            merged[-1][2] = run[2]
+        else:
+            merged.append(run)
+    runs = merged
+
+    print("  tone segments detected:")
+    for freq, start, end in runs:
+        print("    {:.0f}Hz at {:.2f}s for {:.2f}s".format(
+            freq, start * window_seconds, (end - start) * window_seconds))
+    if not runs:
+        print("  FAIL: no tone segments found")
+        sys.exit(1)
+
+    failures = []
+    for freq, start, end in runs:
+        if freq == SYNTH_DATA_FREQ:
+            failures.append(
+                "{:.0f}Hz segment heard at the raw data frequency"
+                " (channel pitch was not applied)".format(freq))
+    sequence = [run[0] for run in runs]
+    expected = [freq for freq, _ in SYNTH_EXPECTED]
+    if sequence != expected:
+        failures.append("segment sequence {} does not match expected {}".format(
+            ["{:.0f}Hz".format(f) for f in sequence],
+            ["{:.0f}Hz".format(f) for f in expected]))
+    else:
+        for (freq, minimum), run in zip(SYNTH_EXPECTED, runs):
+            duration = (run[2] - run[1]) * window_seconds
+            if duration < minimum:
+                failures.append("{:.0f}Hz segment {:.2f}s < required {:.2f}s".format(
+                    freq, duration, minimum))
+
+    if failures:
+        for failure in failures:
+            print("  FAIL: " + failure)
+        sys.exit(1)
+    print("  synth frequency gate: OK")
 
 
 def main():
@@ -178,6 +290,10 @@ def main():
     print("  per-channel active: {}".format(
         " ".join("{:.2f}s".format(value) for value in channel_active)))
     print("  profile (1 char = 1s): {}".format("".join(strip)))
+
+    if options["synth"]:
+        synth_gate(channels, rate, pcm, window_count, window_frames, window_dbs)
+        return
 
     if not options["gate"]:
         print("  (profile only - no gating)")
