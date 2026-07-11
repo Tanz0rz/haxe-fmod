@@ -1,5 +1,7 @@
 package tests;
 
+import haxefmod.core.Channel;
+import haxefmod.core.PcmStream;
 import haxefmod.studio.Bank;
 import haxefmod.studio.Bus;
 import haxefmod.studio.CoreSound;
@@ -25,6 +27,7 @@ class TestStudioSurface {
 		testNullHandles();
 		testSystemSurface();
 		testStructReturns();
+		testCoreSurface();
 
 		Sys.println('  $passed passed, $failed failed');
 		return failed;
@@ -133,5 +136,26 @@ class TestStudioSurface {
 		assert(sound.isNull(), "core sound null");
 		assert(sound.getLength() == -1, "core sound length default");
 		assert(!sound.release().isOk(), "core sound release result");
+	}
+
+	static function testCoreSurface():Void {
+		var stream = PcmStream.create(48000, 1);
+		assert(stream.isNull(), "pcm stream null");
+		assert(stream.write(haxe.io.Bytes.alloc(16)) == 0, "pcm write default");
+		assert(stream.write(haxe.io.Bytes.alloc(16), 8) == 0, "pcm write with length");
+		assert(stream.space() == 0, "pcm space default");
+		assert(stream.takeUnderruns() == 0, "pcm underruns default");
+		assert(!stream.release().isOk(), "pcm release result");
+
+		var channel:Channel = stream.play();
+		assert(channel.isNull(), "channel null");
+		assert(!channel.setVolume(1.0).isOk(), "chan setVolume result");
+		assert(channel.getVolume() == 0.0, "chan volume default");
+		assert(!channel.setPitch(1.0).isOk(), "chan setPitch result");
+		assert(channel.getPitch() == 0.0, "chan pitch default");
+		assert(!channel.setPaused(true).isOk(), "chan setPaused result");
+		assert(!channel.getPaused(), "chan paused default");
+		assert(!channel.isPlaying(), "chan playing default");
+		assert(!channel.stop().isOk(), "chan stop result");
 	}
 }

@@ -178,6 +178,24 @@ class NativeStudioStub {
     public static function core_release_sound(handle:Int):Int return ERR_UNSUPPORTED;
     public static function core_get_sound_length(handle:Int):Int return -1;
 
+    // Core PCM streams
+    public static function core_pcm_create(sampleRate:Int, channels:Int, ringBytes:Int):Int return 0;
+    public static function core_pcm_write(handle:Int, data:haxe.io.Bytes, len:Int):Int return 0;
+    public static function core_pcm_space(handle:Int):Int return 0;
+    public static function core_pcm_underruns(handle:Int):Int return 0;
+    public static function core_pcm_play(handle:Int, startPaused:Bool):Int return 0;
+    public static function core_pcm_release(handle:Int):Int return ERR_UNSUPPORTED;
+
+    // Core channels
+    public static function chan_set_volume(handle:Int, volume:Float):Int return ERR_UNSUPPORTED;
+    public static function chan_get_volume(handle:Int):Float return 0.0;
+    public static function chan_set_pitch(handle:Int, pitch:Float):Int return ERR_UNSUPPORTED;
+    public static function chan_get_pitch(handle:Int):Float return 0.0;
+    public static function chan_set_paused(handle:Int, paused:Bool):Int return ERR_UNSUPPORTED;
+    public static function chan_get_paused(handle:Int):Bool return false;
+    public static function chan_is_playing(handle:Int):Bool return false;
+    public static function chan_stop(handle:Int):Int return ERR_UNSUPPORTED;
+
     // Callbacks
     public static function evi_set_callback_mask(handle:Int, mask:Int):Int return ERR_UNSUPPORTED;
     public static function cb_next():Bool return false;

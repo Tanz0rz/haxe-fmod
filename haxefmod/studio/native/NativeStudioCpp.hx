@@ -248,6 +248,24 @@ class NativeStudioCpp {
     public static inline function core_release_sound(handle:Int):Int return Raw.core_release_sound(handle);
     public static inline function core_get_sound_length(handle:Int):Int return Raw.core_get_sound_length(handle);
 
+    // Core PCM streams
+    public static inline function core_pcm_create(sampleRate:Int, channels:Int, ringBytes:Int):Int return Raw.core_pcm_create(sampleRate, channels, ringBytes);
+    public static inline function core_pcm_write(handle:Int, data:haxe.io.Bytes, len:Int):Int return Raw.core_pcm_write(handle, data.getData(), len);
+    public static inline function core_pcm_space(handle:Int):Int return Raw.core_pcm_space(handle);
+    public static inline function core_pcm_underruns(handle:Int):Int return Raw.core_pcm_underruns(handle);
+    public static inline function core_pcm_play(handle:Int, startPaused:Bool):Int return Raw.core_pcm_play(handle, startPaused);
+    public static inline function core_pcm_release(handle:Int):Int return Raw.core_pcm_release(handle);
+
+    // Core channels
+    public static inline function chan_set_volume(handle:Int, volume:Float):Int return Raw.chan_set_volume(handle, volume);
+    public static inline function chan_get_volume(handle:Int):Float return Raw.chan_get_volume(handle);
+    public static inline function chan_set_pitch(handle:Int, pitch:Float):Int return Raw.chan_set_pitch(handle, pitch);
+    public static inline function chan_get_pitch(handle:Int):Float return Raw.chan_get_pitch(handle);
+    public static inline function chan_set_paused(handle:Int, paused:Bool):Int return Raw.chan_set_paused(handle, paused);
+    public static inline function chan_get_paused(handle:Int):Bool return Raw.chan_get_paused(handle);
+    public static inline function chan_is_playing(handle:Int):Bool return Raw.chan_is_playing(handle);
+    public static inline function chan_stop(handle:Int):Int return Raw.chan_stop(handle);
+
     // Callbacks
     public static inline function evi_set_callback_mask(handle:Int, mask:Int):Int return Raw.evi_set_callback_mask(handle, mask);
     public static inline function cb_next():Bool return Raw.cb_next();
@@ -718,6 +736,48 @@ private extern class Raw {
 
     @:native("linc::faxe::fmod_core_get_sound_length")
     static function core_get_sound_length(handle:Int):Int;
+
+    @:native("linc::faxe::fmod_core_pcm_create")
+    static function core_pcm_create(sampleRate:Int, channels:Int, ringBytes:Int):Int;
+
+    @:native("linc::faxe::fmod_core_pcm_write")
+    static function core_pcm_write(handle:Int, data:haxe.io.BytesData, len:Int):Int;
+
+    @:native("linc::faxe::fmod_core_pcm_space")
+    static function core_pcm_space(handle:Int):Int;
+
+    @:native("linc::faxe::fmod_core_pcm_underruns")
+    static function core_pcm_underruns(handle:Int):Int;
+
+    @:native("linc::faxe::fmod_core_pcm_play")
+    static function core_pcm_play(handle:Int, startPaused:Bool):Int;
+
+    @:native("linc::faxe::fmod_core_pcm_release")
+    static function core_pcm_release(handle:Int):Int;
+
+    @:native("linc::faxe::fmod_chan_set_volume")
+    static function chan_set_volume(handle:Int, volume:Float):Int;
+
+    @:native("linc::faxe::fmod_chan_get_volume")
+    static function chan_get_volume(handle:Int):Float;
+
+    @:native("linc::faxe::fmod_chan_set_pitch")
+    static function chan_set_pitch(handle:Int, pitch:Float):Int;
+
+    @:native("linc::faxe::fmod_chan_get_pitch")
+    static function chan_get_pitch(handle:Int):Float;
+
+    @:native("linc::faxe::fmod_chan_set_paused")
+    static function chan_set_paused(handle:Int, paused:Bool):Int;
+
+    @:native("linc::faxe::fmod_chan_get_paused")
+    static function chan_get_paused(handle:Int):Bool;
+
+    @:native("linc::faxe::fmod_chan_is_playing")
+    static function chan_is_playing(handle:Int):Bool;
+
+    @:native("linc::faxe::fmod_chan_stop")
+    static function chan_stop(handle:Int):Int;
 
     @:native("linc::faxe::fmod_evi_set_callback_mask")
     static function evi_set_callback_mask(handle:Int, mask:Int):Int;

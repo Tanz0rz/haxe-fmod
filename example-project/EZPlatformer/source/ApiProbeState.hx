@@ -4,6 +4,8 @@ import flixel.FlxG;
 import flixel.FlxState;
 import flixel.text.FlxText;
 import flixel.util.FlxColor;
+import haxefmod.core.Channel;
+import haxefmod.core.PcmStream;
 import haxefmod.studio.Bus;
 import haxefmod.studio.EventInstance;
 import haxefmod.studio.FmodResult;
@@ -123,6 +125,7 @@ class ApiProbeState extends FlxState {
 
         probeM3Surface();
         probeHandleSafety();
+        probeCoreSurface();
         probeFlixelBridge();
 
         info("live_handle_count_after", Std.string(StudioSystem.liveHandleCount()));
@@ -332,6 +335,75 @@ class ApiProbeState extends FlxState {
         reused.release();
 
         check("no_handle_leaks_abuse", StudioSystem.liveHandleCount() == baseline,
+            'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
+    }
+
+    /**
+     * Exercises the Core PCM stream and channel surface through the real
+     * FFI: ring write accounting, channel control round-trips, and the
+     * handle-safety promises extended to the new type tags. The channel
+     * starts paused so the probe stays deterministic (drain timing is
+     * covered by the js harness and the synth test, which pump the mixer).
+     */
+    function probeCoreSurface():Void {
+        var baseline = StudioSystem.liveHandleCount();
+
+        var stream = PcmStream.create(48000, 1);
+        check("core_pcm_create", !stream.isNull(), 'handle=${(stream : Int)}');
+
+        // A quarter second of a 440Hz sine (16-bit mono, little-endian)
+        var samples = Std.int(48000 * 0.25);
+        var data = haxe.io.Bytes.alloc(samples * 2);
+        for (i in 0...samples) {
+            var v = Std.int(Math.sin(2 * Math.PI * 440 * i / 48000) * 0x3000);
+            data.setUInt16(i * 2, v & 0xFFFF);
+        }
+        var spaceBefore = stream.space();
+        check("core_pcm_space", spaceBefore > 0, 'value=$spaceBefore');
+        var wrote = stream.write(data);
+        var expected = data.length < spaceBefore ? data.length : spaceBefore;
+        check("core_pcm_write", wrote == expected, 'wrote=$wrote expected=$expected');
+        check("core_pcm_space_shrinks", stream.space() == spaceBefore - wrote,
+            'value=${stream.space()}');
+        info("core_pcm_underruns", Std.string(stream.takeUnderruns()));
+
+        var channel = stream.play(true);
+        check("core_pcm_play", !channel.isNull(), 'handle=${(channel : Int)}');
+        check("chan_starts_paused", channel.getPaused(), "");
+        // A paused channel is still live as far as FMOD is concerned
+        check("chan_is_playing", channel.isPlaying(), "");
+
+        var volResult:FmodResult = channel.setVolume(0.5);
+        check("chan_set_volume", volResult.isOk(), 'result=${volResult.toString()}');
+        check("chan_get_volume", Math.abs(channel.getVolume() - 0.5) < 0.001,
+            'value=${channel.getVolume()}');
+        var pitchResult:FmodResult = channel.setPitch(1.5);
+        check("chan_set_pitch", pitchResult.isOk(), 'result=${pitchResult.toString()}');
+        check("chan_get_pitch", Math.abs(channel.getPitch() - 1.5) < 0.001,
+            'value=${channel.getPitch()}');
+
+        // Stop always frees the channel slot
+        channel.stop();
+        var staleChanSet:FmodResult = channel.setVolume(1.0);
+        check("stale_chan_invalid_handle", staleChanSet == FmodResult.FMOD_ERR_INVALID_HANDLE,
+            'result=${staleChanSet.toString()}');
+        check("stale_chan_getter_defaults", channel.getVolume() == 0.0 && !channel.isPlaying(), "");
+
+        // Cross-type misuse across the new tags
+        var wrongChannel:Channel = cast (stream : Int);
+        var wrongSet:FmodResult = wrongChannel.setVolume(1.0);
+        check("crosstype_pcm_as_chan", wrongSet == FmodResult.FMOD_ERR_INVALID_HANDLE,
+            'result=${wrongSet.toString()}');
+
+        var releaseResult:FmodResult = stream.release();
+        check("core_pcm_release", releaseResult.isOk(), 'result=${releaseResult.toString()}');
+        var staleWrite = stream.write(data, 4);
+        check("stale_pcm_write", staleWrite == 0, 'wrote=$staleWrite');
+        var doubleRelease:FmodResult = stream.release();
+        check("pcm_double_release_invalid_handle", doubleRelease == FmodResult.FMOD_ERR_INVALID_HANDLE,
+            'result=${doubleRelease.toString()}');
+
+        check("no_handle_leaks_core", StudioSystem.liveHandleCount() == baseline,
             'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
     }
 
