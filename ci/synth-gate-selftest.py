@@ -17,16 +17,24 @@ AMPLITUDE = 0x5000
 PROFILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "audio-profile.py")
 
 
-def tone(freq, seconds):
+def tone(freq, seconds, freq2=0):
     frames = int(RATE * seconds)
-    return [int(math.sin(2 * math.pi * freq * i / RATE) * AMPLITUDE) if freq > 0 else 0
-            for i in range(frames)]
+    if freq <= 0:
+        return [0] * frames
+    amp = AMPLITUDE >> 1 if freq2 > 0 else AMPLITUDE
+    out = []
+    for i in range(frames):
+        sample = math.sin(2 * math.pi * freq * i / RATE)
+        if freq2 > 0:
+            sample += math.sin(2 * math.pi * freq2 * i / RATE)
+        out.append(int(sample * amp))
+    return out
 
 
 def write_wav(path, segments):
     samples = []
-    for freq, seconds in segments:
-        samples.extend(tone(freq, seconds))
+    for seg in segments:
+        samples.extend(tone(seg[0], seg[1], seg[2] if len(seg) > 2 else 0))
     frames = len(samples)
     data = struct.pack("<{}h".format(frames * CHANNELS),
                        *[s for s in samples for _ in range(CHANNELS)])
@@ -43,26 +51,42 @@ def run_gate(path):
     return result.returncode, result.stdout.decode("utf-8", "replace")
 
 
+# Shared tail: the pure-tone segments every case builds on
+LEAD = [(0, 1.0), (440, 4.0), (0, 0.3), (880, 4.0), (0, 0.3), (1320, 2.0), (0, 0.3)]
+DUAL_RAW = (300, 4.0, 5000)     # segment 4: the mix, unfiltered
+DUAL_FILTERED = (300, 4.0)      # segment 5: what the lowpass leaves audible
+
 CASES = [
-    # (name, segments as (freq, seconds) with 0 = silence, must_pass)
+    # (name, segments as (freq, seconds[, freq2]) with freq 0 = silence, must_pass)
     ("correct sequence",
-     [(0, 1.0), (440, 4.0), (0, 0.3), (880, 4.0), (0, 0.3), (1320, 2.0), (0, 0.5)], True),
+     LEAD + [DUAL_RAW, (0, 0.3), DUAL_FILTERED, (0, 0.5)], True),
     ("correct with boundary slack",
-     [(0, 3.0), (440, 3.5), (0, 1.5), (880, 3.5), (0, 1.5), (1320, 1.5), (0, 2.0)], True),
+     [(0, 3.0), (440, 3.5), (0, 1.5), (880, 3.5), (0, 1.5), (1320, 1.5), (0, 1.5),
+      DUAL_RAW, (0, 1.5), DUAL_FILTERED, (0, 2.0)], True),
     ("single flat tone",
-     [(0, 1.0), (440, 10.0)], False),
+     [(0, 1.0), (440, 18.0)], False),
     ("missing transition",
-     [(0, 1.0), (440, 8.0), (0, 0.3), (1320, 2.0)], False),
+     [(0, 1.0), (440, 8.0), (0, 0.3), (1320, 2.0), (0, 0.3), DUAL_RAW, (0, 0.3), DUAL_FILTERED], False),
     ("pitch not applied (660Hz heard raw)",
-     [(0, 1.0), (440, 4.0), (0, 0.3), (880, 4.0), (0, 0.3), (660, 4.0)], False),
+     [(0, 1.0), (440, 4.0), (0, 0.3), (880, 4.0), (0, 0.3), (660, 4.0), (0, 0.3),
+      DUAL_RAW, (0, 0.3), DUAL_FILTERED], False),
     ("wrong order",
-     [(0, 1.0), (880, 4.0), (0, 0.3), (440, 4.0), (0, 0.3), (1320, 2.0)], False),
+     [(0, 1.0), (880, 4.0), (0, 0.3), (440, 4.0), (0, 0.3), (1320, 2.0), (0, 0.3),
+      DUAL_RAW, (0, 0.3), DUAL_FILTERED], False),
     ("wrong frequency segment",
-     [(0, 1.0), (440, 4.0), (0, 0.3), (1000, 4.0), (0, 0.3), (1320, 2.0)], False),
+     [(0, 1.0), (440, 4.0), (0, 0.3), (1000, 4.0), (0, 0.3), (1320, 2.0), (0, 0.3),
+      DUAL_RAW, (0, 0.3), DUAL_FILTERED], False),
     ("segment too short",
-     [(0, 1.0), (440, 4.0), (0, 0.3), (880, 1.0), (0, 0.3), (1320, 2.0)], False),
+     [(0, 1.0), (440, 4.0), (0, 0.3), (880, 1.0), (0, 0.3), (1320, 2.0), (0, 0.3),
+      DUAL_RAW, (0, 0.3), DUAL_FILTERED], False),
     ("all silence",
-     [(0, 12.0)], False),
+     [(0, 20.0)], False),
+    ("lowpass not applied (5kHz survives the final segment)",
+     LEAD + [DUAL_RAW, (0, 0.3), DUAL_RAW], False),
+    ("filtered segment fully silent (DSP muted instead of filtering)",
+     LEAD + [DUAL_RAW, (0, 0.3), (0, 4.0)], False),
+    ("mix missing the low tone (only 5kHz in segment 4)",
+     LEAD + [(5000, 4.0), (0, 0.3), DUAL_FILTERED], False),
 ]
 
 

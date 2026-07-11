@@ -30,12 +30,23 @@ CLIP_SAMPLE = 32700
 CLIP_WINDOWS = 3
 
 # The synth-test contract (SynthTestState.hx): tone segments in this order,
-# each at least this long in the recording. 1320Hz is 660Hz data played at
-# pitch 2.0, so 660Hz appearing as a segment means the pitch was not applied.
-SYNTH_EXPECTED = [(440.0, 3.0), (880.0, 3.0), (1320.0, 1.2)]
+# each at least this long in the recording. Windows are labeled by the SET
+# of tones present. 1320Hz is 660Hz data played at pitch 2.0, so 660Hz
+# appearing anywhere means the pitch was not applied. The final segment is
+# the 300+5000 mix through a lowpass: 5000Hz appearing there means the DSP
+# effect was not applied.
+SYNTH_EXPECTED = [
+    (frozenset([440.0]), 3.0),
+    (frozenset([880.0]), 3.0),
+    (frozenset([1320.0]), 1.2),
+    (frozenset([300.0, 5000.0]), 3.0),
+    (frozenset([300.0]), 3.0),
+]
 SYNTH_DATA_FREQ = 660.0
-SYNTH_CANDIDATES = [440.0, 660.0, 880.0, 1320.0]
-SYNTH_DOMINANCE_DB = 10.0
+SYNTH_FILTERED_FREQ = 5000.0
+SYNTH_CANDIDATES = [300.0, 440.0, 660.0, 880.0, 1320.0, 5000.0]
+SYNTH_PRESENT_MARGIN_DB = 18.0  # present = within this of the window max
+SYNTH_PRESENT_FLOOR_DB = -55.0  # and above this absolute level
 SYNTH_MIN_RUN = 2  # windows (0.5s) - shorter runs are boundary noise
 
 
@@ -144,8 +155,8 @@ def goertzel_db(samples, rate, freq):
 
 
 def synth_gate(channels, rate, pcm, window_count, window_frames, window_dbs):
-    """Gates the synth-test recording: windows are labeled by dominant tone
-    and the labeled runs must reproduce the SYNTH_EXPECTED sequence."""
+    """Gates the synth-test recording: windows are labeled by the set of
+    tones present and the labeled runs must reproduce SYNTH_EXPECTED."""
     block = channels * 2
     window_seconds = WINDOW_MS / 1000.0
     labels = []
@@ -159,19 +170,16 @@ def synth_gate(channels, rate, pcm, window_count, window_frames, window_dbs):
         # Mono mix so channel layout does not matter
         mono = [sum(interleaved[i * channels:(i + 1) * channels]) / channels
                 for i in range(len(interleaved) // channels)]
-        best = None
-        best_db = -120.0
-        second_db = -120.0
+        levels = {}
         for freq in SYNTH_CANDIDATES:
             # A small comb absorbs recorder resampling drift
-            db = max(goertzel_db(mono, rate, freq + offset) for offset in (-4.0, 0.0, 4.0))
-            if db > best_db:
-                second_db = best_db
-                best_db = db
-                best = freq
-            elif db > second_db:
-                second_db = db
-        labels.append(best if best_db >= second_db + SYNTH_DOMINANCE_DB else None)
+            levels[freq] = max(goertzel_db(mono, rate, freq + offset)
+                               for offset in (-4.0, 0.0, 4.0))
+        strongest = max(levels.values())
+        present = frozenset(freq for freq, db in levels.items()
+                            if db >= strongest - SYNTH_PRESENT_MARGIN_DB
+                            and db >= SYNTH_PRESENT_FLOOR_DB)
+        labels.append(present if present else None)
 
     # Collapse into runs, dropping sub-threshold runs as boundary noise
     runs = []
@@ -190,32 +198,38 @@ def synth_gate(channels, rate, pcm, window_count, window_frames, window_dbs):
             merged.append(run)
     runs = merged
 
+    def label_name(tones):
+        return "+".join("{:.0f}Hz".format(f) for f in sorted(tones))
+
     print("  tone segments detected:")
-    for freq, start, end in runs:
-        print("    {:.0f}Hz at {:.2f}s for {:.2f}s".format(
-            freq, start * window_seconds, (end - start) * window_seconds))
+    for tones, start, end in runs:
+        print("    {} at {:.2f}s for {:.2f}s".format(
+            label_name(tones), start * window_seconds, (end - start) * window_seconds))
     if not runs:
         print("  FAIL: no tone segments found")
         sys.exit(1)
 
     failures = []
-    for freq, start, end in runs:
-        if freq == SYNTH_DATA_FREQ:
+    for tones, start, end in runs:
+        if SYNTH_DATA_FREQ in tones:
             failures.append(
-                "{:.0f}Hz segment heard at the raw data frequency"
-                " (channel pitch was not applied)".format(freq))
+                "{:.0f}Hz heard at the raw data frequency"
+                " (channel pitch was not applied)".format(SYNTH_DATA_FREQ))
     sequence = [run[0] for run in runs]
-    expected = [freq for freq, _ in SYNTH_EXPECTED]
+    expected = [tones for tones, _ in SYNTH_EXPECTED]
     if sequence != expected:
         failures.append("segment sequence {} does not match expected {}".format(
-            ["{:.0f}Hz".format(f) for f in sequence],
-            ["{:.0f}Hz".format(f) for f in expected]))
+            [label_name(t) for t in sequence], [label_name(t) for t in expected]))
+        # The most likely single culprit gets its own message
+        if len(sequence) >= 5 and SYNTH_FILTERED_FREQ in sequence[-1]:
+            failures.append("{:.0f}Hz survived the final segment"
+                            " (the lowpass DSP was not applied)".format(SYNTH_FILTERED_FREQ))
     else:
-        for (freq, minimum), run in zip(SYNTH_EXPECTED, runs):
+        for (tones, minimum), run in zip(SYNTH_EXPECTED, runs):
             duration = (run[2] - run[1]) * window_seconds
             if duration < minimum:
-                failures.append("{:.0f}Hz segment {:.2f}s < required {:.2f}s".format(
-                    freq, duration, minimum))
+                failures.append("{} segment {:.2f}s < required {:.2f}s".format(
+                    label_name(tones), duration, minimum))
 
     if failures:
         for failure in failures:
