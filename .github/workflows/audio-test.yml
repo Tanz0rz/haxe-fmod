@@ -1141,9 +1141,9 @@ jobs:
           sleep 1
 
           # Recording starts before the browser so the first tone segment
-          # cannot be clipped. The tones run in real time on html5: ~18s of
+          # cannot be clipped. The tones run in real time on html5: ~22s of
           # audio after boot.
-          ffmpeg -f pulse -i virtual_speaker.monitor -t 35 -y /tmp/synth-test-html5.wav &
+          ffmpeg -f pulse -i virtual_speaker.monitor -t 45 -y /tmp/synth-test-html5.wav &
           RECORD_PID=$!
 
           chromium-browser \
@@ -1159,7 +1159,7 @@ jobs:
 
           xdotool mousemove 320 240 click 1
 
-          for i in $(seq 40); do
+          for i in $(seq 50); do
             grep -q "SYNTH_TEST: COMPLETE" /tmp/synth-test-raw.log && break
             sleep 1
           done

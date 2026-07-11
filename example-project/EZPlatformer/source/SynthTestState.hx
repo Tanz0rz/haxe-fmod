@@ -23,6 +23,11 @@ import haxefmod.core.PcmStream;
  *   Segment 5: the same mix with a LOWPASS_SIMPLE at 800Hz on the channel.
  *              300Hz must still measure while 5kHz must be gone, proving a
  *              DSP effect audibly transforms the audio.
+ *   Segment 6: 500Hz with fade points scheduled on the mixer clock from
+ *              full volume down to near silence across the segment. The
+ *              recording must show the ramp, proving sample-accurate
+ *              scheduling end to end (fades ride the DSP clock, so this
+ *              holds at any mixing speed).
  *
  * Each segment is its own stream with a ring sized to hold the whole
  * segment, prefilled before playback starts. That keeps the recorded
@@ -38,12 +43,13 @@ class SynthTestState extends FlxState {
 
     // {data frequencies (freq2 = 0 for a pure tone), channel pitch,
     //  lowpass = attach LOWPASS_SIMPLE at 800Hz before playing} per segment
-    static var SEGMENTS:Array<{freq:Float, freq2:Float, pitch:Float, lowpass:Bool}> = [
-        {freq: 440.0, freq2: 0.0, pitch: 1.0, lowpass: false},
-        {freq: 880.0, freq2: 0.0, pitch: 1.0, lowpass: false},
-        {freq: 660.0, freq2: 0.0, pitch: 2.0, lowpass: false},
-        {freq: 300.0, freq2: 5000.0, pitch: 1.0, lowpass: false},
-        {freq: 300.0, freq2: 5000.0, pitch: 1.0, lowpass: true},
+    static var SEGMENTS:Array<{freq:Float, freq2:Float, pitch:Float, lowpass:Bool, fade:Bool}> = [
+        {freq: 440.0, freq2: 0.0, pitch: 1.0, lowpass: false, fade: false},
+        {freq: 880.0, freq2: 0.0, pitch: 1.0, lowpass: false, fade: false},
+        {freq: 660.0, freq2: 0.0, pitch: 2.0, lowpass: false, fade: false},
+        {freq: 300.0, freq2: 5000.0, pitch: 1.0, lowpass: false, fade: false},
+        {freq: 300.0, freq2: 5000.0, pitch: 1.0, lowpass: true, fade: false},
+        {freq: 500.0, freq2: 0.0, pitch: 1.0, lowpass: false, fade: true},
     ];
 
     var _segment:Int = -1;
@@ -123,6 +129,19 @@ class SynthTestState extends FlxState {
             check('segment${index + 1}_dsp_cutoff', cutoff.isOk(), 'result=${cutoff.toString()}');
             var attach = _channel.addDsp(0, _lowpass);
             check('segment${index + 1}_dsp_attach', attach.isOk(), 'result=${attach.toString()}');
+        }
+        if (seg.fade) {
+            // Fades schedule on the parent group clock in output samples,
+            // so the ramp spans exactly the segment's audio at any speed
+            var clocks = _channel.getDspClock();
+            check('segment${index + 1}_clock', clocks != null,
+                clocks == null ? "" : 'parent=${clocks.parent}');
+            if (clocks != null) {
+                var full = _channel.addFadePoint(clocks.parent, 1.0);
+                var faded = _channel.addFadePoint(clocks.parent + samples, 0.02);
+                check('segment${index + 1}_fade_points', full.isOk() && faded.isOk(),
+                    'full=${full.toString()} faded=${faded.toString()}');
+            }
         }
         _channel.setPaused(false);
 

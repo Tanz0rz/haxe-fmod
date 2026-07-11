@@ -41,10 +41,13 @@ SYNTH_EXPECTED = [
     (frozenset([1320.0]), 1.2),
     (frozenset([300.0, 5000.0]), 3.0),
     (frozenset([300.0]), 3.0),
+    (frozenset([500.0]), 3.0),
 ]
 SYNTH_DATA_FREQ = 660.0
 SYNTH_FILTERED_FREQ = 5000.0
-SYNTH_CANDIDATES = [300.0, 440.0, 660.0, 880.0, 1320.0, 5000.0]
+SYNTH_FADE_TONES = frozenset([500.0])
+SYNTH_FADE_DROP_DB = 18.0
+SYNTH_CANDIDATES = [300.0, 440.0, 500.0, 660.0, 880.0, 1320.0, 5000.0]
 SYNTH_PRESENT_MARGIN_DB = 18.0  # present = within this of the window max
 SYNTH_PRESENT_FLOOR_DB = -55.0  # and above this absolute level
 SYNTH_MIN_RUN = 2  # windows (0.5s) - shorter runs are boundary noise
@@ -230,6 +233,25 @@ def synth_gate(channels, rate, pcm, window_count, window_frames, window_dbs):
             if duration < minimum:
                 failures.append("{} segment {:.2f}s < required {:.2f}s".format(
                     label_name(tones), duration, minimum))
+        # The fade segment must show the scheduled volume ramp: the last
+        # window well below the first, declining without recovering
+        fade_run = runs[-1]
+        if fade_run[0] == SYNTH_FADE_TONES:
+            fade_dbs = window_dbs[fade_run[1]:fade_run[2]]
+            drop = fade_dbs[0] - fade_dbs[-1]
+            print("  fade segment: start {:.1f}dB end {:.1f}dB (drop {:.1f}dB)".format(
+                fade_dbs[0], fade_dbs[-1], drop))
+            if drop < SYNTH_FADE_DROP_DB:
+                failures.append(
+                    "fade segment dropped {:.1f}dB < required {:.1f}dB"
+                    " (scheduled fade points were not applied)".format(
+                        drop, SYNTH_FADE_DROP_DB))
+            recovery = max(fade_dbs[index + 1] - fade_dbs[index]
+                           for index in range(len(fade_dbs) - 1))
+            if recovery > 3.0:
+                failures.append(
+                    "fade segment volume recovered {:.1f}dB mid-ramp"
+                    " (not a scheduled fade)".format(recovery))
 
     if failures:
         for failure in failures:

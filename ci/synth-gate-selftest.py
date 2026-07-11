@@ -17,7 +17,7 @@ AMPLITUDE = 0x5000
 PROFILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "audio-profile.py")
 
 
-def tone(freq, seconds, freq2=0):
+def tone(freq, seconds, freq2=0, fade_to=None):
     frames = int(RATE * seconds)
     if freq <= 0:
         return [0] * frames
@@ -27,14 +27,18 @@ def tone(freq, seconds, freq2=0):
         sample = math.sin(2 * math.pi * freq * i / RATE)
         if freq2 > 0:
             sample += math.sin(2 * math.pi * freq2 * i / RATE)
-        out.append(int(sample * amp))
+        gain = 1.0
+        if fade_to is not None:
+            gain = 1.0 + (fade_to - 1.0) * (i / frames)
+        out.append(int(sample * amp * gain))
     return out
 
 
 def write_wav(path, segments):
     samples = []
     for seg in segments:
-        samples.extend(tone(seg[0], seg[1], seg[2] if len(seg) > 2 else 0))
+        samples.extend(tone(seg[0], seg[1], seg[2] if len(seg) > 2 else 0,
+                            seg[3] if len(seg) > 3 else None))
     frames = len(samples)
     data = struct.pack("<{}h".format(frames * CHANNELS),
                        *[s for s in samples for _ in range(CHANNELS)])
@@ -55,38 +59,43 @@ def run_gate(path):
 LEAD = [(0, 1.0), (440, 4.0), (0, 0.3), (880, 4.0), (0, 0.3), (1320, 2.0), (0, 0.3)]
 DUAL_RAW = (300, 4.0, 5000)     # segment 4: the mix, unfiltered
 DUAL_FILTERED = (300, 4.0)      # segment 5: what the lowpass leaves audible
+FADE = (500, 4.0, 0, 0.02)      # segment 6: the scheduled fade ramp
+FADE_MISSING = (500, 4.0)       # the same tone with no fade applied
+MID = [(0, 0.3), DUAL_RAW, (0, 0.3), DUAL_FILTERED, (0, 0.3)]
 
 CASES = [
-    # (name, segments as (freq, seconds[, freq2]) with freq 0 = silence, must_pass)
+    # (name, segments as (freq, seconds[, freq2[, fade_to]]) with freq 0 = silence, must_pass)
     ("correct sequence",
-     LEAD + [DUAL_RAW, (0, 0.3), DUAL_FILTERED, (0, 0.5)], True),
+     LEAD + MID + [FADE, (0, 0.5)], True),
     ("correct with boundary slack",
      [(0, 3.0), (440, 3.5), (0, 1.5), (880, 3.5), (0, 1.5), (1320, 1.5), (0, 1.5),
-      DUAL_RAW, (0, 1.5), DUAL_FILTERED, (0, 2.0)], True),
+      DUAL_RAW, (0, 1.5), DUAL_FILTERED, (0, 1.5), FADE, (0, 2.0)], True),
     ("single flat tone",
-     [(0, 1.0), (440, 18.0)], False),
+     [(0, 1.0), (440, 22.0)], False),
     ("missing transition",
-     [(0, 1.0), (440, 8.0), (0, 0.3), (1320, 2.0), (0, 0.3), DUAL_RAW, (0, 0.3), DUAL_FILTERED], False),
+     [(0, 1.0), (440, 8.0), (0, 0.3), (1320, 2.0)] + MID + [FADE], False),
     ("pitch not applied (660Hz heard raw)",
-     [(0, 1.0), (440, 4.0), (0, 0.3), (880, 4.0), (0, 0.3), (660, 4.0), (0, 0.3),
-      DUAL_RAW, (0, 0.3), DUAL_FILTERED], False),
+     [(0, 1.0), (440, 4.0), (0, 0.3), (880, 4.0), (0, 0.3), (660, 4.0)] + MID + [FADE], False),
     ("wrong order",
-     [(0, 1.0), (880, 4.0), (0, 0.3), (440, 4.0), (0, 0.3), (1320, 2.0), (0, 0.3),
-      DUAL_RAW, (0, 0.3), DUAL_FILTERED], False),
+     [(0, 1.0), (880, 4.0), (0, 0.3), (440, 4.0), (0, 0.3), (1320, 2.0)] + MID + [FADE], False),
     ("wrong frequency segment",
-     [(0, 1.0), (440, 4.0), (0, 0.3), (1000, 4.0), (0, 0.3), (1320, 2.0), (0, 0.3),
-      DUAL_RAW, (0, 0.3), DUAL_FILTERED], False),
+     [(0, 1.0), (440, 4.0), (0, 0.3), (1000, 4.0), (0, 0.3), (1320, 2.0)] + MID + [FADE], False),
     ("segment too short",
-     [(0, 1.0), (440, 4.0), (0, 0.3), (880, 1.0), (0, 0.3), (1320, 2.0), (0, 0.3),
-      DUAL_RAW, (0, 0.3), DUAL_FILTERED], False),
+     [(0, 1.0), (440, 4.0), (0, 0.3), (880, 1.0), (0, 0.3), (1320, 2.0)] + MID + [FADE], False),
     ("all silence",
-     [(0, 20.0)], False),
-    ("lowpass not applied (5kHz survives the final segment)",
-     LEAD + [DUAL_RAW, (0, 0.3), DUAL_RAW], False),
+     [(0, 24.0)], False),
+    ("lowpass not applied (5kHz survives segment 5)",
+     LEAD + [DUAL_RAW, (0, 0.3), DUAL_RAW, (0, 0.3), FADE], False),
     ("filtered segment fully silent (DSP muted instead of filtering)",
-     LEAD + [DUAL_RAW, (0, 0.3), (0, 4.0)], False),
+     LEAD + [DUAL_RAW, (0, 0.3), (0, 4.0), (0, 0.3), FADE], False),
     ("mix missing the low tone (only 5kHz in segment 4)",
-     LEAD + [(5000, 4.0), (0, 0.3), DUAL_FILTERED], False),
+     LEAD + [(5000, 4.0), (0, 0.3), DUAL_FILTERED, (0, 0.3), FADE], False),
+    ("fade not applied (final segment stays flat)",
+     LEAD + MID + [FADE_MISSING], False),
+    ("fade recovers mid-ramp (volume automation misfired)",
+     LEAD + MID + [(500, 2.0, 0, 0.05), (500, 2.0)], False),
+    ("fade cut instantly (silence instead of a ramp)",
+     LEAD + MID + [(500, 0.8), (0, 3.2)], False),
 ]
 
 
