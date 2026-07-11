@@ -2452,6 +2452,11 @@ jobs:
           node tests/js/ps-test.js
           node tests/js/arity-audit.js
 
+      - name: Run Core dynamic-audio prototype against the real wasm
+        env:
+          FMOD_SDK_WEB: /tmp/fmod-sdk-cache-2.03.12/html5
+        run: node tests/js/core-harness.js
+
   # ===========================================================================
   # Environment doctor: `haxelib run haxefmod check` must diagnose correctly
   # ===========================================================================
