@@ -9,7 +9,7 @@ import haxefmod.studio.native.NativeStudio;
 
 /**
  * The engine-agnostic FMOD runtime: settings-driven init, bank management,
- * 3D attachment, and per-frame servicing. FmodManager builds its friendly
+ * 3D attachment, and per-frame servicing. FmodManager builds its
  * facade on top of this. games that want more control use it directly:
  *
  *   FmodRuntime.init({liveUpdate: true});
@@ -43,7 +43,7 @@ class FmodRuntime {
         #if hl
         // A stale hdll usually dies at load with a missing-prim fatal (and
         // PostBuild refuses it even earlier), but lazy prim resolution can
-        // let a mismatched hdll limp along - fail it loudly here instead.
+        // let a mismatched hdll limp along - fail here instead.
         if (NativeStudio.binding_abi_version() != BINDING_ABI) {
             trace("Error: FMOD - hlaxe_fmod.hdll binding version "
                 + NativeStudio.binding_abi_version() + " does not match this haxefmod ("

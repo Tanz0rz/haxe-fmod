@@ -475,7 +475,7 @@ async function main() {
     // --- releaseAllInstances (legacy `evi` is the only one left) ---
     expect('evd_release_all_instances', () => jaxe.fmod_evd_release_all_instances(evd), r => r === 0);
     await pump(5);
-    // released-but-tracked handles must degrade cleanly, not crash
+    // released-but-tracked handles must still return safely, not throw
     check('evi_get_playback_state on released-out instance', () => jaxe.fmod_evi_get_playback_state(evi));
     check('legacy fmod_release to drop stale handle', () => { jaxe.fmod_release(evi); return 'ok'; });
 

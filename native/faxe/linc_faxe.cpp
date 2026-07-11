@@ -1,10 +1,7 @@
 /**
  * Faxe - C++ FMOD bindings - Minimal FFI layer
  *
- * DESIGN: This is the thinnest possible wrapper around FMOD.
- * - No logic, no error handling, no debug printing
- * - Just raw FMOD API calls
- * - All logic lives in Haxe (CppBackend.hx)
+ * Minimal FFI wrapper: raw FMOD calls only, all logic lives in CppBackend.hx.
  *
  * The MIT License (MIT)
  * Copyright (c) 2016 Aaron M. Shea

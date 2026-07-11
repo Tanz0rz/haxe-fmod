@@ -58,7 +58,7 @@ async function main() {
 
     // --- Core micro subset: the html5 Studio build ships FSB-only codecs,
     // so loose wav/ogg files fail with FMOD_ERR_FORMAT (19). The binding must
-    // fail cleanly (0 handle + lastResult), never crash. Native targets load
+    // return 0 + lastResult, not throw. Native targets load
     // these files fine. That path is CI-validated by ProgrammerSoundTestState.
     const snd = jaxe.fmod_core_create_sound('Jump.wav', 0);
     check('core_create_sound_format_limit', snd === 0 && jaxe.fmod_sys_last_result() === 19,
@@ -87,7 +87,7 @@ async function main() {
     // File fallback cannot decode loose wav on html5 (FSB-only codecs): the
     // handler must leave sound null and not throw. Audio-table keys are the
     // supported html5 route (untestable here - example bank has no table).
-    check('create_ps_graceful_on_format_limit', props.sound == null, '');
+    check('create_ps_rejects_unsupported_format', props.sound == null, '');
     const rd = jaxe.callbackHandler(0x100, inst, props);
     check('destroy_ps_returns_ok', rd === 0, `r=${rd}`);
 

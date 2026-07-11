@@ -84,8 +84,8 @@ var HaxefmodConstants = {
         }
         lines.push("}");
         lines.push("");
-        // GUIDs live in a companion class under the same identifiers, so
-        // autocomplete on the main class only shows the paths
+        // GUIDs go in a companion class so the main class autocompletes
+        // to paths only
         lines.push("class " + className + "Guids {");
         for (var k = 0; k < entries.length; k++) {
             lines.push("\tpublic static inline var " + names[k] + ':String = "' + entries[k].guid + '";');

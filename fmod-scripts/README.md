@@ -1,13 +1,13 @@
 # Connecting Bank Events to Your Code
 
-This script gives your code an always-up-to-date, auto-completable list of everything in your sound banks. Press `Ctrl+B` in FMOD Studio and it writes the Haxe constants files **and** builds your banks in one step. Because it runs as part of every export, the constants can never drift from the project.
+This script builds a list of everything in your sound banks that you can autocomplete in code. Press `Ctrl+B` in FMOD Studio and it writes the Haxe constants files **and** builds your banks in one step, so the constants always match your last export.
 
 ![Haxe Constants Demo](../.github/fmod_constants.gif)
 
 ## What gets generated
 
 - `FmodEvents.hx`, `FmodBuses.hx`, `FmodVCAs.hx`, `FmodSnapshots.hx`, and `FmodParameters.hx`
-- A `...Guids` companion class in each file holding the matching GUIDs under the same identifiers, kept separate so autocomplete on the main class only shows the paths
+- Each file also gets a `...Guids` class: the same constant names, but mapped to GUIDs
 - `FmodEventEnum.hx` - a plain enum covering every event, for tool integrations (see [Event Enums](#event-enums))
 
 Use the constants anywhere a path is expected:
@@ -43,7 +43,7 @@ import FmodEvents;
 #end
 ```
 
-**Note:** for the generated files to stay up to date, you must run the export **every** time you build your sound bank (the script builds the banks for you, so `Ctrl+B` is the whole loop).
+**Note:** for the generated files to stay up to date, you must run the export **every** time you build your sound bank (the script builds the banks for you, so `Ctrl+B` does both in one press).
 
 ## Migrating From Previous haxe-fmod Versions?
 

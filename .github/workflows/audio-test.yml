@@ -630,10 +630,8 @@ jobs:
           fi
           echo "Stress smoke passed"
 
-      # The literal command users type. Everything else in this job builds
-      # and launches the game with CI plumbing. This proves lime's own
-      # launcher (working directory, library resolution, postbuild hooks)
-      # delivers a working FMOD game from a single command.
+      # Runs the literal command users type. The other steps wrap builds in
+      # CI plumbing; this one proves a plain lime test works.
       - name: lime test end to end
         if: ${{ !cancelled() }}
         run: |
@@ -2570,7 +2568,7 @@ jobs:
           }
           echo "html5 build blocked with setup instructions"
 
-      # A set-but-wrong SDK path must fail as loudly as an unset one. It used
+      # A set-but-wrong SDK path must fail the same as an unset one. It used
       # to compile fine (HL needs no SDK at compile time), skip the postbuild
       # version gate with a soft warning, and copy nothing - producing builds
       # that only launched when stale libraries sat in export/ from earlier

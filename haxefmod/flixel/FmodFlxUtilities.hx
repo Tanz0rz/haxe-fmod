@@ -34,7 +34,7 @@ class FmodFlxUtilities {
     }
 
     /**
-        Convenience method that simply calls FlxG.switchState(state)
+        Convenience wrapper for FlxG.switchState(state)
 
         Any loaded music will continue to play even after loading the new state
         @param state the state to load

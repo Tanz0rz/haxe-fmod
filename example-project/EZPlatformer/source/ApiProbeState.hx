@@ -244,7 +244,7 @@ class ApiProbeState extends FlxState {
             check("bank_events_enumerated", foundEvents, "");
         }
 
-        // VCA (the example project has no VCAs - missing lookup must fail cleanly)
+        // VCA (the example project has no VCAs - a missing lookup must return null, not crash)
         var vca = StudioSystem.getVCA("vca:/DoesNotExist");
         check("sys_get_vca_missing", vca.isNull(), 'lastResult=${StudioSystem.lastResult().toString()}');
 
@@ -280,7 +280,7 @@ class ApiProbeState extends FlxState {
     /**
      * Runtime-verifies the generational handle table's safety promises
      * through the real FFI: stale handles, cross-type misuse, double
-     * release, and slot reuse must all fail cleanly with
+     * release, and slot reuse must all return
      * FMOD_ERR_INVALID_HANDLE (or default getter values) instead of
      * crashing or touching another object.
      */
@@ -318,7 +318,7 @@ class ApiProbeState extends FlxState {
             'result=${wrongSet.toString()}');
         live.release();
 
-        // Double release must fail cleanly, not crash
+        // Double release must report INVALID_HANDLE, not crash
         var doubleRelease:FmodResult = stale.release();
         check("double_release_invalid_handle", doubleRelease == FmodResult.FMOD_ERR_INVALID_HANDLE,
             'result=${doubleRelease.toString()}');

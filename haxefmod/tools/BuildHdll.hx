@@ -7,7 +7,7 @@ import haxe.io.Path;
 /**
  * Compiles hlaxe_fmod.hdll from source against the user's FMOD SDK.
  *
- * This allows users with a different FMOD version than the pre-built hdlls
+ * For users whose FMOD version differs from the pre-built hdlls
  * (which target 2.03.12) to compile a compatible hdll for HashLink builds.
  *
  * Usage: haxelib run haxefmod build-hdll

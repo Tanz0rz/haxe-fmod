@@ -120,8 +120,8 @@ Async loading: `FmodRuntime.banks.loadAsync(path)` then poll
 The FMOD Studio export script (`fmod-scripts`) remains the recommended
 workflow and now emits the 2.0 constants files on every `Ctrl+B` bank
 build: `FmodEvents.hx`, `FmodBuses.hx`, `FmodVCAs.hx`,
-`FmodSnapshots.hx`, and `FmodParameters.hx`, each with a `...Guids`
-companion class holding the matching GUIDs under the same identifiers.
+`FmodSnapshots.hx`, and `FmodParameters.hx`. Each comes with a
+`...Guids` class that maps the same constant names to GUIDs.
 
 The old single-file `FmodConstants.hx` output is gone. Rename references
 using the mangling rules (`FmodSongs.MainLevel` becomes

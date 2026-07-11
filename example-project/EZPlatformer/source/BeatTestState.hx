@@ -195,7 +195,7 @@ class BeatTestState extends FlxState {
     }
 
     function updateDone():Void {
-        // Keep draining so released instances finish destroying cleanly
+        // Keep draining so released instances finish destroying
         FmodManager.Update();
         // Give the renderer a few frames, then exit
         _framesSinceDone++;

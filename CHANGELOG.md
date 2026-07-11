@@ -27,8 +27,8 @@ top. See `MIGRATION.md` for the complete 1.x to 2.0 mapping.
   table keys (or file paths on native targets) on the FMOD thread.
 - Constants generation baked into the export: the FMOD Studio script
   regenerates `FmodEvents`/`FmodBuses`/`FmodVCAs`/`FmodSnapshots`/
-  `FmodParameters` (each with a `...Guids` companion class holding the
-  matching GUIDs) on every `Ctrl+B` bank build.
+  `FmodParameters` on every `Ctrl+B` bank build, plus a `...Guids` class
+  per file with the GUID for each constant.
 - Event enum generation: the export also emits `FmodEventEnum.hx`
   (a `FmodEventEnum` enum covering every event, named like the
   `FmodEvents` constants, with `path()` and `guid()` mappers) for

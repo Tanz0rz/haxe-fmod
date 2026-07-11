@@ -47,7 +47,7 @@ class BuildCheck {
                 + "  Verify your setup with: haxelib run haxefmod check");
         }
 
-        // A set-but-wrong path must fail just as loudly as an unset one:
+        // A set-but-wrong path must fail the same as an unset one:
         // the postbuild guards also catch it, but lime can bury their exit
         // code, so the compile-time check is the reliable block
         if (Context.defined("html5") || Context.defined("js")) {
@@ -81,7 +81,7 @@ class BuildCheck {
         }
     }
 
-    /** Prints the full instruction block cleanly (a multi-line
+    /** Prints the full instruction block (a multi-line
         Context.fatalError renders every line behind a position prefix,
         "(unknown) : ..." under --macro), then fails compilation with a
         one-line error anchored to the project file. */

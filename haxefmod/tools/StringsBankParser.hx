@@ -53,7 +53,7 @@ typedef StringsBankEntry = {
  * root and concatenating the fragments root-first (e.g. "b" + "ank:/Master"
  * + ".strings"). GUIDs are stored sorted by their formatted string form;
  * guid[i] pairs with path i. The parse is validated by requiring the STDT
- * payload to be consumed exactly, so layout drift fails loudly instead of
+ * payload to be consumed exactly, so layout drift errors out instead of
  * producing garbage.
  */
 class StringsBankParser {

@@ -11,7 +11,7 @@ import haxefmod.studio.Types;
 import haxefmod.studio.native.NativeStudio;
 
 /**
- * The friendly FMOD facade: one background song slot plus fire-and-forget
+ * High-level FMOD facade: one background song slot plus fire-and-forget
  * and handle-based sound effects. Built entirely on the public layers
  * underneath - use haxefmod.runtime.FmodRuntime for banks/3D/settings and
  * haxefmod.studio.* for the complete FMOD Studio API.

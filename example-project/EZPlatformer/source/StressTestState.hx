@@ -99,7 +99,7 @@ class StressTestState extends FlxState {
         super.update(elapsed);
 
         if (_done) {
-            // Keep draining so released instances finish destroying cleanly
+            // Keep draining so released instances finish destroying
             FmodManager.Update();
             _framesWaited++;
             if (_framesWaited > 30) {

@@ -1,10 +1,7 @@
 /**
  * Jaxe - JavaScript FMOD bindings - Minimal FFI layer
  *
- * DESIGN: This is the thinnest possible wrapper around FMOD.
- * - No logic, minimal error handling
- * - Just raw FMOD API calls
- * - All logic lives in Haxe (JsBackend.hx)
+ * Minimal FFI wrapper: raw FMOD calls only, all logic lives in JsBackend.hx.
  */
 
 class jaxe {

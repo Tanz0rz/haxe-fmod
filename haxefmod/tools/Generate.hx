@@ -25,7 +25,7 @@ import sys.io.File;
  *
  * Each file holds the path constants plus a companion class with the
  * matching GUIDs under the same identifiers, so autocomplete on the main
- * class only shows the paths:
+ * class autocompletes to paths only:
  *
  *   FmodEvents.MusicMainLevel        "event:/Music/MainLevel"
  *   FmodEventsGuids.MusicMainLevel   "{e5187c3f-...}"
@@ -191,8 +191,8 @@ class Generate {
 		}
 		lines.push("}");
 		lines.push("");
-		// GUIDs live in a companion class under the same identifiers, so
-		// autocomplete on the main class only shows the paths
+		// GUIDs go in a companion class so the main class autocompletes
+		// to paths only
 		lines.push('class ${className}Guids {');
 		for (i in 0...entries.length) {
 			lines.push('\tpublic static inline var ${names[i]}:String = "${entries[i].guid.toLowerCase()}";');

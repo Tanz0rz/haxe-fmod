@@ -1,10 +1,7 @@
 /**
  * HashLink FMOD bindings - Minimal FFI layer
  *
- * DESIGN: This is the thinnest possible wrapper around FMOD.
- * - No logic, no error handling, no debug printing
- * - Just raw FMOD API calls
- * - All logic lives in Haxe (HlBackend.hx)
+ * Minimal FFI wrapper: raw FMOD calls only, all logic lives in HlBackend.hx.
  */
 
 #define HL_NAME(n) hlaxe_fmod_##n

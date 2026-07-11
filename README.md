@@ -19,12 +19,12 @@ Having problems or want to chat? [Join the Haxe Discord](https://discordapp.com/
 
 ## Features
 - The full [FMOD Studio API](https://www.fmod.com/docs/2.03/api/studio-api.html) at runtime: events, buses, VCAs, snapshots, banks, global and labeled [parameters](https://www.fmod.com/docs/2.03/studio/parameters-reference.html), 3D/listeners, and profiling - with a friendly facade on top for the common cases
-- Typed, payload-carrying [callbacks](https://www.fmod.com/docs/2.03/api/studio-api-eventinstance.html#fmod_studio_event_callback_type): react to beats, timeline markers, and playback lifecycle events, each with its payload
+- Typed [callbacks](https://www.fmod.com/docs/2.03/api/studio-api-eventinstance.html#fmod_studio_event_callback_type) that carry their data: beats, timeline markers, and the playback lifecycle
 - Refcounted bank loading with real unload and async loading
 - HaxeFlixel components: one-call setup that routes the flixel sound tray and volume keys to FMOD, emitter and listener for positional audio, bank loader, and zone-based parameter triggers
 - Programmer sounds for dialogue and other runtime-selected audio
 - [Live Update](https://fmod.com/docs/2.03/studio/editing-during-live-update.html) for mixing sounds while playtesting (on by default in debug builds)
-- Constants that never drift: the FMOD Studio export script regenerates event/bus/VCA/parameter constants on every `Ctrl+B` bank build
+- Constants generated straight from your banks: the FMOD Studio export script rewrites the event/bus/VCA/parameter constants every time you build banks with `Ctrl+B`, so they always match your project
 
 ## Supported Platforms
 
@@ -127,7 +127,7 @@ public function OnBeat():Void {
 }
 ```
 
-Call `FmodManager.Update()` once per frame. HaxeFlixel games (flixel 5.9.0 or newer) can call `haxefmod.flixel.FmodFlxSetup.init()` once in their first state instead: it initializes FMOD, adds the `FmodFlxUpdater` plugin (which handles the per-frame update), routes `FlxG.sound` volume and mute (the plus, minus, and zero keys and the sound tray) to the FMOD master bus, and silences the sound tray's own beep so all audio comes from FMOD.
+Call `FmodManager.Update()` once per frame. HaxeFlixel games (flixel 5.9.0 or newer) can call `haxefmod.flixel.FmodFlxSetup.init()` once in their first state instead. It initializes FMOD, adds the `FmodFlxUpdater` plugin so Update runs every frame, and wires the flixel volume keys and sound tray to the FMOD master bus (with the tray's own beep silenced, since FMOD owns the audio now).
 
 **6. Build and run:**
 
@@ -239,14 +239,14 @@ Live Update **only works on C++ and HashLink builds**. HTML5 builds will not wor
 
 ### Generating Constants From Your Banks
 
-The [export script](fmod-scripts/ExportHaxeConstants.js) gives your code an always-up-to-date, auto-completable list of everything in your sound banks. Press `Ctrl+B` in FMOD Studio and it writes the Haxe constants files **and** builds your banks in one step. Because it runs as part of every export, the constants can never drift from the project.
+The [export script](fmod-scripts/ExportHaxeConstants.js) builds a list of everything in your banks that you can autocomplete in code. Press `Ctrl+B` in FMOD Studio and it writes the Haxe constants files **and** builds your banks in one step, so the constants always match what you just exported.
 
 ![Haxe Constants Demo](.github/fmod_constants.gif)
 
 #### What gets generated
 
 - `FmodEvents.hx`, `FmodBuses.hx`, `FmodVCAs.hx`, `FmodSnapshots.hx`, and `FmodParameters.hx`
-- A `...Guids` companion class in each file holding the matching GUIDs under the same identifiers, kept separate so autocomplete on the main class only shows the paths
+- A `...Guids` class in each file with the same names mapped to GUIDs (kept out of the main class so autocomplete stays clean)
 - `FmodEventEnum.hx` - a plain enum covering every event, for tool integrations (see [Event Enums](#event-enums))
 
 Use the constants anywhere a path is expected:
@@ -282,7 +282,7 @@ import FmodEvents;
 #end
 ```
 
-**Note:** for the generated files to stay up to date, you must run the export **every** time you build your sound bank (the script builds the banks for you, so `Ctrl+B` is the whole loop).
+**Note:** for the generated files to stay up to date, you must run the export **every** time you build your sound bank (the script builds the banks for you, so `Ctrl+B` does both in one press).
 
 ## Migrating From Previous haxe-fmod Versions?
 
