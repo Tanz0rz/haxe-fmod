@@ -223,6 +223,48 @@ done with the sound.
 Samples are 16-bit signed integers, interleaved left/right when the stream
 is stereo. Works on every supported platform.
 
+### Effects, Mixing, and Analysis
+
+`haxefmod.core` also covers FMOD's built-in DSP effects and core mixing.
+All 33 effect types work on every supported platform:
+
+```haxe
+import haxefmod.core.ChannelGroup;
+import haxefmod.core.Dsp;
+import haxefmod.core.DspType;
+
+// A lowpass on one channel (each effect lives in one chain at a time)
+var lowpass = Dsp.create(DspType.LOWPASS_SIMPLE);
+lowpass.setParameter(0, 800); // cutoff Hz
+channel.addDsp(0, lowpass);
+
+// An effect on everything: attach to the master group
+var reverb = Dsp.create(DspType.SFXREVERB);
+ChannelGroup.master().addDsp(0, reverb);
+
+// An effect on a Studio bus
+var bus = StudioSystem.getBus("bus:/Music");
+bus.lockChannelGroup();
+var busLowpass = Dsp.create(DspType.LOWPASS_SIMPLE);
+bus.getChannelGroup().addDsp(0, busLowpass);
+```
+
+Detach with `removeDsp` and free effects with `dsp.release()` when done.
+
+
+Channels can be rerouted into custom groups (`ChannelGroup.create`) for
+shared volume, pitch, and effects. For visualizers, attach a
+`DspType.FFT` effect and poll `dsp.getFftSpectrum()`, or read live
+peak/RMS levels with `dsp.getMetering()` after `setMeteringEnabled`. The
+built-in reverb sets up from presets (`Reverb.set(0,
+Reverb.PRESET_CAVE)`) and each channel controls its send with
+`setReverbWet`. Positional streams come from `PcmStream.create3d` with
+`channel.set3DAttributes` driving distance attenuation from the Studio
+listener.
+
+Parameter indices for each effect type are in the
+[FMOD DSP reference](https://www.fmod.com/docs/2.03/api/effects-reference.html).
+
 ## Selecting an FMOD Engine Version
 
 The officially supported FMOD Engine version is 2.03.12. Other versions **may work fine**, but I have not tested them.

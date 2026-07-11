@@ -7,6 +7,21 @@
   produced at runtime into the mixer through a ring buffer, with underrun
   accounting for tuning. `Channel` controls playback: volume, pitch,
   pause, and stop. Works on every supported platform.
+- DSP effects (`haxefmod.core.Dsp`): all 33 built-in FMOD effect types
+  with typed parameter access, attachable to channels, channel groups,
+  and Studio buses. FFT spectrum readback and live peak/RMS metering for
+  visualizers. `Dsp.play()` turns source effects like the oscillator into
+  sounds.
+- Core mixing (`haxefmod.core.ChannelGroup`): the master group and custom
+  groups with volume, pitch, mute, pause, and effect chains.
+  `Bus.lockChannelGroup`/`getChannelGroup` bridge Studio buses to their
+  core groups for effect attach.
+- Built-in reverb (`haxefmod.core.Reverb`): typed properties with the
+  standard FMOD preset environments, per-channel wet level via
+  `Channel.setReverbWet`.
+- Channel routing: pan, frequency, loop count, playback position, group
+  rerouting, per-channel effects, and 3D position on positional streams
+  from `PcmStream.create3d`.
 
 ## 2.0.0
 

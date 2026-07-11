@@ -4,6 +4,8 @@ import flixel.FlxG;
 import flixel.FlxState;
 import flixel.text.FlxText;
 import flixel.util.FlxColor;
+import haxefmod.core.Dsp;
+import haxefmod.core.DspType;
 import haxefmod.core.PcmStream;
 import haxefmod.studio.Callbacks;
 import haxefmod.studio.EventInstance;
@@ -23,8 +25,9 @@ import haxefmod.studio.Types;
  * immediately stops, and releases a small batch of instances - registering
  * a callback on one instance per batch to churn the dispatcher map under
  * sustained mutation - plus one full PcmStream lifecycle (create, write,
- * play, stop, release) so the PCM and channel slots recycle under the same
- * pressure. Every heartbeat asserts the live handle count stays flat.
+ * play, stop, release) with a DSP effect attached and detached mid-cycle,
+ * so the PCM, channel, and DSP slots all recycle under the same pressure.
+ * Every heartbeat asserts the live handle count stays flat.
  *
  * Duration comes from the STRESS_SECONDS env var (default 60 seconds;
  * HTML5 always uses the default). Select via
@@ -51,6 +54,7 @@ class StressTestState extends FlxState {
     var _heartbeats:Int = 0;
     var _iterations:Int = 0;
     var _pcmCycles:Int = 0;
+    var _dspCycles:Int = 0;
     var _pcmChunk:haxe.io.Bytes;
     var _callbackEvents:Int = 0;
     var _status:FlxText;
@@ -186,6 +190,13 @@ class StressTestState extends FlxState {
         if (!stream.isNull()) {
             stream.write(_pcmChunk);
             var channel = stream.play(true);
+            var lowpass = Dsp.create(DspType.LOWPASS_SIMPLE);
+            if (!lowpass.isNull()) {
+                channel.addDsp(0, lowpass);
+                channel.removeDsp(lowpass);
+                lowpass.release();
+                _dspCycles++;
+            }
             channel.stop();
             stream.release();
             _pcmCycles++;
@@ -210,6 +221,7 @@ class StressTestState extends FlxState {
             'baseline=$_baseline now=${StudioSystem.liveHandleCount()}');
         info("callback_events", Std.string(_callbackEvents));
         info("pcm_cycles", Std.string(_pcmCycles));
+        info("dsp_cycles", Std.string(_dspCycles));
         log('STRESS_TEST: COMPLETE passed=$_passCount failed=$_failCount iterations=$_iterations');
         _status.text = 'STRESS_TEST complete: $_passCount passed, $_failCount failed, $_iterations cycles';
         _done = true;
