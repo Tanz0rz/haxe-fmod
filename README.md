@@ -338,7 +338,7 @@ Live Update **only works on C++ and HashLink builds**. HTML5 builds will not wor
 
 ### Generating Constants From Your Banks
 
-The [export script](fmod-scripts/ExportHaxeConstants.js) builds a list of everything in your banks that you can autocomplete in code. Press `Ctrl+B` in FMOD Studio and it writes the Haxe constants files **and** builds your banks in one step, so the constants always match what you just exported.
+The [export script](fmod-scripts/ExportHaxeConstants.js) generates Haxe-native constants files to make referencing your sounds much easier. Once installed, pressing `Ctrl+B` in FMOD Studio writes the files to your project **and** builds your FMOD sound banks in one step. This flow has the added benefit of keeping your FMOD Studio project and your Haxe references to sounds perfectly synchronized.
 
 ![Haxe Constants Demo](.github/fmod_constants.gif)
 
@@ -360,11 +360,11 @@ engine.setParameter("RPM", 0.5);
 
 #### Setup
 
-1. Copy [`fmod-scripts/ExportHaxeConstants.js`](fmod-scripts/ExportHaxeConstants.js) into your FMOD Studio scripts folder (`Scripts` next to your `.fspro`, or the global scripts directory from Preferences).
+1. Copy [`fmod-scripts/ExportHaxeConstants.js`](fmod-scripts/ExportHaxeConstants.js) into your FMOD Studio scripts folder (`Scripts` next to your `.fspro`, or the FMOD Studio global scripts directory in the install directory).
 2. Reload scripts in FMOD Studio (Scripts menu) or restart Studio.
-3. Press `Ctrl+B` (or Scripts -> Export Haxe Constants and Build) and pick your Haxe project's `source` folder once. The choice is cached next to the project.
+3. Press `Ctrl+B` (or Scripts -> Export Haxe Constants and Build) and pick your Haxe project's `source` folder once. The choice is cached using a file titled `CachedHaxeConstantsOutputLocation` that is stored next to your `.fspro`.
 
-From then on `Ctrl+B` regenerates the constants and builds banks in one keystroke.
+From then on `Ctrl+B` regenerates the constants and builds banks as one step.
 
 #### Event Enums
 
@@ -381,7 +381,7 @@ import FmodEvents;
 #end
 ```
 
-**Note:** for the generated files to stay up to date, you must run the export **every** time you build your sound bank (the script builds the banks for you, so `Ctrl+B` does both in one press).
+**Note:** Remember, for the generated files to stay up to date, you must run the export script **every** time you build your sound bank.
 
 ## Tracking Sound Work With TODOs
 

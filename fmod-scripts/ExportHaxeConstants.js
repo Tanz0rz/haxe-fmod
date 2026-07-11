@@ -270,7 +270,7 @@ if (typeof studio !== "undefined") {
         console.log("Building banks...");
         studio.project.build();
 
-        alert("Haxe constants written to:\n\n" + outputPath + "\n\n(" + written.join(", ") + ")\n\nBanks built.");
+        alert("Haxe constants written to:\n\n" + outputPath + "\n\nBanks built.");
     }
 
     function readOutputPathFromFile() {
