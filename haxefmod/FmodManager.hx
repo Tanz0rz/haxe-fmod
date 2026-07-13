@@ -120,11 +120,22 @@ class FmodManager {
         StudioSystem.getBus("bus:/").stopAllEvents(IMMEDIATE);
     }
 
+    /**
+     * Pauses the master bus, freezing every sound routed through it at
+     * its current position. Pair with UnpauseAllSounds to resume.
+     *
+     * Intended for a full pause menu where the game's audio should
+     * completely, but temporily stopped. While this pause state is active,
+     * new sound events will be queued up and all played moment the
+     * unpause function is called.
+     *
+     */
     public static function PauseAllSounds():Void {
         ensureInitialized();
         FmodRuntime.pauseAll(true);
     }
 
+    /** Resumes the master bus paused by PauseAllSounds. */
     public static function UnpauseAllSounds():Void {
         ensureInitialized();
         FmodRuntime.pauseAll(false);
