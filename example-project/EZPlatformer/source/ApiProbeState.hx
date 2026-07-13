@@ -144,6 +144,7 @@ class ApiProbeState extends FlxState {
         probeSoundGroupsAndSystem();
         probeAuditClosure();
         probeFlixelBridge();
+        probeFocusMute();
         _statusLabel = label;
 
         // Channel event delivery is asynchronous: the probe finishes from
@@ -998,6 +999,50 @@ class ApiProbeState extends FlxState {
         FlxG.sound.volume = 1.0;
         check("flx_bridge_volume_restored", Math.abs(FmodManager.GetBusVolumeMaster() - 1.0) < 0.001,
             'value=${FmodManager.GetBusVolumeMaster()}');
+    }
+
+    /**
+     * Verifies focus-driven muting through the real FFI and the Flixel
+     * focus wiring installed by FmodFlxSetup in create(). Losing focus
+     * mutes the core master channel group, regaining it unmutes, and the
+     * opt-out keeps audio playing while unfocused. Restores focus at the
+     * end so the run never finishes muted.
+     */
+    function probeFocusMute():Void {
+        // The master group is cached by the DSP probe above, so this lookup
+        // allocates nothing and the live count must hold across the section.
+        var master = ChannelGroup.master();
+        var baseline = StudioSystem.liveHandleCount();
+
+        check("focus_starts_focused", FmodManager.IsWindowFocused(), "");
+        check("focus_master_unmuted", !master.getMute(), "");
+
+        // Losing and regaining focus mutes and unmutes the real master group
+        FmodManager.SetWindowFocused(false);
+        check("focus_lost_mutes_master", master.getMute(), "");
+        FmodManager.SetWindowFocused(true);
+        check("focus_gained_unmutes_master", !master.getMute(), "");
+
+        // The Flixel focus signals drive the same path end to end
+        FlxG.signals.focusLost.dispatch();
+        check("focus_flx_signal_mutes", master.getMute(), "");
+        FlxG.signals.focusGained.dispatch();
+        check("focus_flx_signal_unmutes", !master.getMute(), "");
+
+        // Opting out keeps the master group unmuted while unfocused
+        FmodManager.SetMuteWhenUnfocused(false);
+        FmodManager.SetWindowFocused(false);
+        check("focus_optout_keeps_playing", !master.getMute(), "");
+        // Re-enabling the policy while already unfocused mutes right away
+        FmodManager.SetMuteWhenUnfocused(true);
+        check("focus_reenable_mutes", master.getMute(), "");
+
+        // Restore defaults so the run never finishes muted or unfocused
+        FmodManager.SetWindowFocused(true);
+        check("focus_restored_unmuted", FmodManager.IsWindowFocused() && !master.getMute(), "");
+
+        check("no_handle_leaks_focus", StudioSystem.liveHandleCount() == baseline,
+            'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
     }
 
     override public function update(elapsed:Float):Void {

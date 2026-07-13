@@ -81,6 +81,38 @@ class FmodManager {
         NativeStudio.sys_set_auto_update(enabled);
     }
 
+    //// Window focus
+
+    /**
+     * Reports a window focus change to FMOD. While unfocused, the master
+     * output is muted so audio doesn't play to a window nobody is looking
+     * at - but FMOD keeps mixing, so sounds play out in real time instead of
+     * queuing up and blasting out the moment the window regains focus (see
+     * SetMuteWhenUnfocused to change that, or the muteWhenUnfocused setting).
+     *
+     * Call this from wherever your game observes window focus changes.
+     * Games that never lose focus can ignore it.
+     */
+    public static function SetWindowFocused(isFocused:Bool):Void {
+        ensureInitialized();
+        FmodRuntime.setWindowFocused(isFocused);
+    }
+
+    public static function IsWindowFocused():Bool {
+        ensureInitialized();
+        return FmodRuntime.isWindowFocused();
+    }
+
+    /**
+     * Chooses whether the master output is muted while the window is
+     * unfocused: true (the default) mutes it, false keeps audio playing in
+     * the background.
+     */
+    public static function SetMuteWhenUnfocused(enabled:Bool):Void {
+        ensureInitialized();
+        FmodRuntime.setMuteWhenUnfocused(enabled);
+    }
+
     //// Global controls
 
     public static function StopAllSounds():Void {

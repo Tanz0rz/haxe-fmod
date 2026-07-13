@@ -28,9 +28,21 @@ class FmodFlxSetup {
     static var volumeHandler:Float->Void = _ -> applyVolume();
     #end
 
+    static var focusGainedHandler:Void->Void = () -> FmodManager.SetWindowFocused(true);
+    static var focusLostHandler:Void->Void = () -> FmodManager.SetWindowFocused(false);
+
     public static function init(?settings:FmodSettings):Void {
         FmodManager.Initialize(settings);
         FmodFlxUpdater.init();
+
+        // Keep FMOD's focus state in sync so the master output mutes while
+        // the window is backgrounded (no audio to an unfocused window, and no
+        // burst on refocus). Remove-then-add keeps a single wiring across
+        // repeated init calls and a recreated FlxGame (fresh signals).
+        FlxG.signals.focusGained.remove(focusGainedHandler);
+        FlxG.signals.focusGained.add(focusGainedHandler);
+        FlxG.signals.focusLost.remove(focusLostHandler);
+        FlxG.signals.focusLost.add(focusLostHandler);
 
         #if FLX_SOUND_SYSTEM
         #if FLX_SOUND_TRAY

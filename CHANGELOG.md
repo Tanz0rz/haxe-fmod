@@ -62,6 +62,16 @@
   blip so missing sounds are audible during playtesting. List every
   remaining marker with `haxelib run haxefmod todos` (`--json` for
   tooling). The environment check also notes the count.
+- Focus-aware muting: the master output is now muted while the game window
+  is unfocused, so audio no longer plays to a window nobody is looking at -
+  and sounds fired in the background no longer pile up and blast out the
+  moment focus returns (FMOD keeps mixing, so they play out in real time).
+  The mute uses the core master channel group, independent of your own
+  `bus:/` mute. On by default. `FmodFlxSetup` wires Flixel's focus signals
+  automatically. Other engines forward focus with
+  `FmodManager.SetWindowFocused(isFocused)`. Opt out with the
+  `muteWhenUnfocused` setting, `FmodManager.SetMuteWhenUnfocused(false)`, or
+  `-D haxefmod_no_mute_when_unfocused`.
 
 ## 2.0.0
 

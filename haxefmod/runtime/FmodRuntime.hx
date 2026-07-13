@@ -1,5 +1,6 @@
 package haxefmod.runtime;
 
+import haxefmod.core.ChannelGroup;
 import haxefmod.runtime.FmodSettings;
 import haxefmod.studio.EventDescription;
 import haxefmod.studio.EventInstance;
@@ -25,6 +26,15 @@ class FmodRuntime {
     static var resolved:ResolvedFmodSettings = null;
     static var initStarted:Bool = false;
 
+    // Window focus tracking. Defaults to focused so games that never report
+    // focus (or run before init) are never muted.
+    static var focused:Bool = true;
+    static var muteWhenUnfocused:Bool = true;
+    // The focus mute we last pushed to the master group, so applyFocusMute
+    // only touches (and lazily allocates) the master channel group when the
+    // state actually changes - not on every focused startup.
+    static var focusMuteApplied:Bool = false;
+
     /** Expected native binding ABI - lockstep with the manifest "# abi-version:". */
     public static inline var BINDING_ABI:Int = 7;
 
@@ -39,6 +49,7 @@ class FmodRuntime {
         if (initStarted) return FmodResult.FMOD_OK;
         initStarted = true;
         resolved = FmodSettingsResolver.resolve(settings);
+        muteWhenUnfocused = resolved.muteWhenUnfocused;
 
         #if hl
         // A stale hdll usually dies at load with a missing-prim fatal (and
@@ -61,6 +72,8 @@ class FmodRuntime {
         if (!result.isOk()) return result;
         loadDefaultBanks();
         NativeStudio.sys_set_auto_update(resolved.autoUpdate);
+        // Honor a focus loss that was reported before init completed.
+        applyFocusMute();
         #end
         // html5: init completes asynchronously. The shim loads the default
         // banks and enables auto-update itself once the module is ready.
@@ -87,6 +100,59 @@ class FmodRuntime {
         #end
         attached.update();
         CallbackDispatcher.update();
+    }
+
+    //// Window focus
+
+    /**
+     * Tells the runtime whether the game window currently has focus.
+     *
+     * When it loses focus, the master output is muted (see
+     * setMuteWhenUnfocused) so audio doesn't play to a window nobody is
+     * looking at. FMOD keeps mixing, so sounds still play out in real time
+     * and end on schedule instead of piling up and blasting out the moment
+     * focus returns.
+     *
+     * Call this from wherever the game observes window focus changes.
+     * Idempotent. Games that never lose focus can ignore it entirely.
+     */
+    public static function setWindowFocused(isFocused:Bool):Void {
+        if (focused == isFocused) return;
+        focused = isFocused;
+        applyFocusMute();
+    }
+
+    public static function isWindowFocused():Bool {
+        return focused;
+    }
+
+    /**
+     * Controls whether the master output is muted while the window is
+     * unfocused: true (the default) mutes it, false keeps audio playing in
+     * the background. Also settable at init via FmodSettings.muteWhenUnfocused.
+     */
+    public static function setMuteWhenUnfocused(enabled:Bool):Void {
+        muteWhenUnfocused = enabled;
+        applyFocusMute();
+    }
+
+    /** True when the master output is currently muted because of lost focus. */
+    public static function isFocusMuted():Bool {
+        return muteWhenUnfocused && !focused;
+    }
+
+    // Applies the focus-driven mute to the core master channel group. That is
+    // a separate node from the Studio master bus, so it never clobbers a
+    // game's own bus:/ mute (or the Flixel volume wiring) - the two mutes
+    // compose. A no-op until FMOD is initialized, and until the mute state
+    // actually changes - so a game that never loses focus never allocates the
+    // master group handle at all.
+    static function applyFocusMute():Void {
+        if (!isInitialized()) return;
+        var shouldMute = isFocusMuted();
+        if (shouldMute == focusMuteApplied) return;
+        ChannelGroup.master().setMute(shouldMute);
+        focusMuteApplied = shouldMute;
     }
 
     /** Resolves a bank file name against the configured bank folder. */

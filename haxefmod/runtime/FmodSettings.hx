@@ -48,6 +48,19 @@ typedef FmodSettings = {
      * Typed callbacks are still only delivered from update().
      */
     @:optional var autoUpdate:Bool;
+
+    /**
+     * Mutes the master output while the game window is unfocused, so audio
+     * doesn't play to a window nobody is looking at. FMOD keeps mixing, so
+     * sounds play out in real time instead of queuing up and blasting out
+     * the instant focus returns. Default true.
+     *
+     * The game must report focus changes via FmodManager.SetWindowFocused
+     * (or FmodRuntime.setWindowFocused) for this to take effect. Set false
+     * (or -D haxefmod_no_mute_when_unfocused) to keep audio playing in the
+     * background.
+     */
+    @:optional var muteWhenUnfocused:Bool;
 }
 
 /** FmodSettings with every field resolved. */
@@ -60,6 +73,7 @@ typedef ResolvedFmodSettings = {
     var bankFolder:String;
     var autoLoadBanks:Array<String>;
     var autoUpdate:Bool;
+    var muteWhenUnfocused:Bool;
 }
 
 class FmodSettingsResolver {
@@ -70,6 +84,10 @@ class FmodSettingsResolver {
             #elseif haxefmod_live_update true
             #elseif debug true
             #else false #end;
+
+        var defaultMuteWhenUnfocused =
+            #if haxefmod_no_mute_when_unfocused false
+            #else true #end;
 
         var defaultChannels = Defines.getInt("haxefmod_num_channels", 128);
         var defaultSampleRate = Defines.getInt("haxefmod_sample_rate", 0);
@@ -87,6 +105,9 @@ class FmodSettingsResolver {
                 ? settings.autoLoadBanks
                 : ["Master.bank", "Master.strings.bank"],
             autoUpdate: settings != null && settings.autoUpdate != null ? settings.autoUpdate : true,
+            muteWhenUnfocused: settings != null && settings.muteWhenUnfocused != null
+                ? settings.muteWhenUnfocused
+                : defaultMuteWhenUnfocused,
         };
     }
 }

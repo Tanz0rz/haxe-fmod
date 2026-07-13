@@ -3,6 +3,7 @@ package tests;
 import haxefmod.runtime.AttachedInstances;
 import haxefmod.runtime.BankRegistry;
 import haxefmod.runtime.FmodSettings;
+import haxefmod.runtime.FmodRuntime;
 import haxefmod.runtime.IFmodPositionProvider;
 import haxefmod.studio.EventInstance;
 
@@ -20,6 +21,7 @@ class TestRuntime {
 
 		testSettingsDefaults();
 		testSettingsOverrides();
+		testFocusMute();
 		testBankRegistry();
 		testAttachedInstances();
 
@@ -45,6 +47,7 @@ class TestRuntime {
 		assert(resolved.autoLoadBanks[0] == "Master.bank", "default master bank");
 		assert(resolved.autoLoadBanks[1] == "Master.strings.bank", "default strings bank");
 		assert(resolved.autoUpdate == true, "default autoUpdate");
+		assert(resolved.muteWhenUnfocused == true, "default muteWhenUnfocused");
 		// Tests run without -debug, so live update defaults off
 		#if debug
 		assert(resolved.liveUpdate == true, "default liveUpdate (debug)");
@@ -62,6 +65,7 @@ class TestRuntime {
 			bankFolder: "sounds",
 			autoLoadBanks: [],
 			autoUpdate: false,
+			muteWhenUnfocused: false,
 		});
 		assert(resolved.numChannels == 64, "override numChannels");
 		assert(resolved.sampleRate == 48000, "override sampleRate");
@@ -70,11 +74,37 @@ class TestRuntime {
 		assert(resolved.bankFolder == "sounds", "override bankFolder");
 		assert(resolved.autoLoadBanks.length == 0, "override autoLoadBanks");
 		assert(resolved.autoUpdate == false, "override autoUpdate");
+		assert(resolved.muteWhenUnfocused == false, "override muteWhenUnfocused");
 
 		// Partial overrides keep other defaults
 		var partial = FmodSettingsResolver.resolve({liveUpdate: true});
 		assert(partial.liveUpdate == true, "partial liveUpdate");
 		assert(partial.numChannels == 128, "partial keeps numChannels");
+	}
+
+	static function testFocusMute():Void {
+		// Defaults: focused, so nothing is focus-muted
+		assert(FmodRuntime.isWindowFocused(), "starts focused");
+		assert(!FmodRuntime.isFocusMuted(), "focused is not muted");
+
+		// Losing focus mutes. Regaining it unmutes
+		FmodRuntime.setWindowFocused(false);
+		assert(!FmodRuntime.isWindowFocused(), "unfocused reported");
+		assert(FmodRuntime.isFocusMuted(), "unfocused mutes");
+		FmodRuntime.setWindowFocused(true);
+		assert(!FmodRuntime.isFocusMuted(), "refocus unmutes");
+
+		// Opting out keeps audio playing while unfocused
+		FmodRuntime.setMuteWhenUnfocused(false);
+		FmodRuntime.setWindowFocused(false);
+		assert(!FmodRuntime.isFocusMuted(), "opt-out plays while unfocused");
+		// Turning the feature back on while already unfocused mutes right away
+		FmodRuntime.setMuteWhenUnfocused(true);
+		assert(FmodRuntime.isFocusMuted(), "re-enabling mutes immediately");
+
+		// Restore defaults so later tests / shared state are unaffected
+		FmodRuntime.setWindowFocused(true);
+		FmodRuntime.setMuteWhenUnfocused(true);
 	}
 
 	static function testBankRegistry():Void {
