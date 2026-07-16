@@ -10,6 +10,12 @@ import haxefmod.studio.EventInstance;
 class AttachedInstances {
     var entries:Array<{instance:EventInstance, provider:IFmodPositionProvider}> = [];
 
+    /**
+     * Caps the velocity magnitude pushed to FMOD (game units per second).
+     * 0 disables the cap. Set from FmodSettings.maxAttachedVelocity at init.
+     */
+    public var maxVelocity:Float = 0;
+
     public function new() {}
 
     /** Attaches an instance. replaces the provider if already attached. */
@@ -52,8 +58,21 @@ class AttachedInstances {
         }
     }
 
-    static inline function push(instance:EventInstance, provider:IFmodPositionProvider):Void {
-        instance.setPosition2D(provider.fmodX(), provider.fmodY(),
-            provider.fmodVelocityX(), provider.fmodVelocityY());
+    function push(instance:EventInstance, provider:IFmodPositionProvider):Void {
+        var velX = provider.fmodVelocityX();
+        var velY = provider.fmodVelocityY();
+        var scale = velocityScale(velX, velY, maxVelocity);
+        instance.setPosition2D(provider.fmodX(), provider.fmodY(), velX * scale, velY * scale);
+    }
+
+    /**
+     * Multiplier that caps a velocity vector at maxMagnitude, preserving
+     * direction. Returns 1.0 when no cap applies (also used by the flixel
+     * listener, so listener and emitter velocities clamp identically).
+     */
+    public static function velocityScale(velX:Float, velY:Float, maxMagnitude:Float):Float {
+        if (maxMagnitude <= 0) return 1.0;
+        var mag = Math.sqrt(velX * velX + velY * velY);
+        return mag > maxMagnitude ? maxMagnitude / mag : 1.0;
     }
 }

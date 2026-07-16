@@ -6,6 +6,8 @@ import flixel.text.FlxText;
 import flixel.util.FlxColor;
 import haxefmod.core.Channel;
 import haxefmod.core.ChannelGroup;
+import haxefmod.runtime.FmodRuntime;
+import haxefmod.runtime.IFmodPositionProvider;
 import haxefmod.core.ChannelMode;
 import haxefmod.core.CoreSystem;
 import haxefmod.core.Dsp;
@@ -306,9 +308,11 @@ class ApiProbeState extends FlxState {
         check("replay_load", !replay.isNull(), 'handle=${(replay : Int)}');
         if (!replay.isNull()) {
             info("replay_length", Std.string(replay.getLength()));
+            check("replay_is_valid", replay.isValid(), "");
             check("replay_pause_roundtrip", replay.setPaused(true).isOk() && replay.getPaused(), "");
             replay.setPaused(false);
             check("replay_release", replay.release().isOk(), "");
+            check("replay_stale_invalid", !replay.isValid(), "");
         }
 
         // Bank from memory: covered by the js harness on html5; native loads
@@ -341,6 +345,10 @@ class ApiProbeState extends FlxState {
     var _chanEventBaseline:Int = 0;
     var _chanEventFrames:Int = 0;
     var _waitingForChannelEvents:Bool = false;
+    var _oneShotFrames:Int = 0;
+    var _waitingForOneShot:Bool = false;
+    var _oneShotBaseline:Int = 0;
+    var _oneShotAttachedBaseline:Int = 0;
 
     /**
      * Plays a tenth of a second of PCM with a sync point at its middle and
@@ -380,6 +388,33 @@ class ApiProbeState extends FlxState {
         _chanEventSound.release();
         check("no_handle_leaks_chanev", StudioSystem.liveHandleCount() == _chanEventBaseline,
             'baseline=$_chanEventBaseline now=${StudioSystem.liveHandleCount()}');
+
+        probeOneShotAttached();
+    }
+
+    /**
+     * A one-shot played attached must track its instance while playing,
+     * release it when the event stops, and prune the attachment. Async:
+     * finishes from update() once the attachment count drops back (or the
+     * wait times out).
+     */
+    function probeOneShotAttached():Void {
+        // Warm the description lookup so its persistent dedup handle is
+        // inside the baseline
+        StudioSystem.getEvent(FmodEvents.SFXJump);
+        _oneShotBaseline = StudioSystem.liveHandleCount();
+        _oneShotAttachedBaseline = FmodRuntime.attachedCount();
+        FmodRuntime.playOneShotAttached(FmodEvents.SFXJump, new ProbeMovingProvider());
+        check("oneshot_attached_tracked", FmodRuntime.attachedCount() == _oneShotAttachedBaseline + 1,
+            'count=${FmodRuntime.attachedCount()}');
+        _waitingForOneShot = true;
+    }
+
+    function finishOneShotAttached():Void {
+        check("oneshot_attached_pruned", FmodRuntime.attachedCount() == _oneShotAttachedBaseline,
+            'count=${FmodRuntime.attachedCount()} frames=$_oneShotFrames');
+        check("no_handle_leaks_oneshot", StudioSystem.liveHandleCount() == _oneShotBaseline,
+            'baseline=$_oneShotBaseline now=${StudioSystem.liveHandleCount()}');
 
         info("live_handle_count_after", Std.string(StudioSystem.liveHandleCount()));
         log('API_PROBE: COMPLETE passed=$_passCount failed=$_failCount');
@@ -498,6 +533,13 @@ class ApiProbeState extends FlxState {
             if (param != null) {
                 var byName = desc.getParameterDescriptionByName(param.name);
                 check("evd_get_parameter_description_by_name", byName != null && byName.name == param.name, "");
+                // The ID from the by-index fetch must resolve back to the
+                // same description through the by-ID lookup
+                var byId = desc.getParameterDescriptionByID(param.id);
+                check("evd_get_parameter_description_by_id", byId != null && byId.name == param.name,
+                    byId == null ? 'id=${param.id.data1}/${param.id.data2}' : 'name=${byId.name}');
+                var missing = desc.getParameterDescriptionByID({data1: 0x7FFFFFFF, data2: 0x7FFFFFFF});
+                check("evd_param_desc_by_id_miss", missing == null, "");
             }
         }
 
@@ -696,6 +738,19 @@ class ApiProbeState extends FlxState {
         check("core_pcm_space_shrinks", stream.space() == spaceBefore - wrote,
             'value=${stream.space()}');
         info("core_pcm_underruns", Std.string(stream.takeUnderruns()));
+
+        // Write validation: an oversized count clamps to the real buffer
+        // size (an unclamped count would read past the buffer), and a zero
+        // count is rejected with INVALID_PARAM on every backend
+        var spaceLeft = stream.space();
+        var oversized = stream.write(data, data.length * 4);
+        var clampExpected = data.length < spaceLeft ? data.length : spaceLeft;
+        check("core_pcm_write_oversized_clamped", oversized == clampExpected,
+            'wrote=$oversized expected=$clampExpected');
+        var zeroWrite = stream.write(data, 0);
+        check("core_pcm_write_zero_rejected", zeroWrite == 0
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_PARAM,
+            'wrote=$zeroWrite result=${StudioSystem.lastResult().toString()}');
 
         var channel = stream.play(true);
         check("core_pcm_play", !channel.isNull(), 'handle=${(channel : Int)}');
@@ -1058,6 +1113,15 @@ class ApiProbeState extends FlxState {
                 finishChannelEvents();
             }
         }
+        if (_waitingForOneShot) {
+            _oneShotFrames++;
+            // The jump blip is well under a second. The generous timeout
+            // makes a broken release path fail loudly instead of hanging
+            if (FmodRuntime.attachedCount() == _oneShotAttachedBaseline || _oneShotFrames > 600) {
+                _waitingForOneShot = false;
+                finishOneShotAttached();
+            }
+        }
         if (!_done) return;
 
         // Give the renderer a few frames so the result text is visible, then exit
@@ -1068,4 +1132,20 @@ class ApiProbeState extends FlxState {
             #end
         }
     }
+}
+
+/** A drifting position source for the one-shot attachment probe. */
+private class ProbeMovingProvider implements IFmodPositionProvider {
+    var x:Float = 10;
+
+    public function new() {}
+
+    public function fmodX():Float {
+        x += 1;
+        return x;
+    }
+
+    public function fmodY():Float return 5;
+    public function fmodVelocityX():Float return 60;
+    public function fmodVelocityY():Float return 0;
 }

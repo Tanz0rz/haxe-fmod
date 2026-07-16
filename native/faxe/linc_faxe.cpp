@@ -129,6 +129,8 @@ static FMOD_RESULT F_CALLBACK eventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type
                 ev.i1 = props->bar;
                 ev.i2 = props->beat;
                 ev.i3 = props->position;
+                ev.i4 = props->timesignatureupper;
+                ev.i5 = props->timesignaturelower;
                 ev.f1 = props->tempo;
             }
             break;
@@ -140,6 +142,8 @@ static FMOD_RESULT F_CALLBACK eventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type
                 ev.i1 = props->properties.bar;
                 ev.i2 = props->properties.beat;
                 ev.i3 = props->properties.position;
+                ev.i4 = props->properties.timesignatureupper;
+                ev.i5 = props->properties.timesignaturelower;
                 ev.f1 = props->properties.tempo;
             }
             break;
@@ -189,45 +193,15 @@ static void autoUpdateLoop() {
 
 //// System
 
-bool fmod_is_initialized() {
+bool fmod_sys_is_initialized() {
     return gStudioSystem != NULL;
 }
 
-int fmod_init(int numChannels) {
-    if (gStudioSystem != NULL) return FMOD_OK;
-    if (numChannels == 0) numChannels = 36;
-
-    FMOD_RESULT result = FMOD::Studio::System::create(&gStudioSystem);
-    if (result != FMOD_OK) return result;
-
-    // FMOD_WAVWRITER env var: write mixed audio to WAV file (for CI recording)
-    const char* wavWriterPath = std::getenv("FMOD_WAVWRITER");
-    void* extradriverdata = nullptr;
-    if (wavWriterPath && wavWriterPath[0] != '\0') {
-        gStudioSystem->getCoreSystem(&gCoreSystem);
-        gCoreSystem->setOutput(FMOD_OUTPUTTYPE_WAVWRITER);
-        // Explicit stereo format so WAV header has correct channel count (Windows needs this)
-        gCoreSystem->setSoftwareFormat(48000, FMOD_SPEAKERMODE_STEREO, 0);
-        extradriverdata = (void*)wavWriterPath;
-    }
-
-    result = gStudioSystem->initialize(numChannels, FMOD_STUDIO_INIT_LIVEUPDATE, FMOD_INIT_NORMAL, extradriverdata);
-    if (result != FMOD_OK) {
-        gStudioSystem->release();
-        gStudioSystem = NULL;
-        return result;
-    }
-
-    gStudioSystem->getCoreSystem(&gCoreSystem);
-    faxe_cbq_init();
-    return FMOD_OK;
-}
-
-void fmod_update() {
+void fmod_sys_update() {
     if (gStudioSystem) gStudioSystem->update();
 }
 
-void fmod_set_auto_update(bool enabled) {
+void fmod_sys_set_auto_update(bool enabled) {
     if (enabled && !gAutoUpdateRunning.load()) {
         // Start auto-update thread
         gAutoUpdateRunning.store(true);
@@ -241,172 +215,6 @@ void fmod_set_auto_update(bool enabled) {
             gUpdateThread = NULL;
         }
     }
-}
-
-//// Banks
-
-int fmod_load_bank(const ::String& path) {
-    if (!gStudioSystem) return FMOD_ERR_NOTREADY;
-    FMOD::Studio::Bank* bank;
-    return gStudioSystem->loadBankFile(path.c_str(), FMOD_STUDIO_LOAD_BANK_NORMAL, &bank);
-}
-
-void fmod_unload_bank(const ::String& path) {
-    // Note: Would need bank tracking to implement properly
-    // For now, this is a no-op matching HL behavior
-}
-
-//// Events - One shot
-
-int fmod_fire_one_shot(const ::String& eventPath) {
-    if (!gStudioSystem) return FMOD_ERR_NOTREADY;
-
-    FMOD::Studio::EventDescription* desc;
-    FMOD_RESULT result = gStudioSystem->getEvent(eventPath.c_str(), &desc);
-    if (result != FMOD_OK) return result;
-
-    FMOD::Studio::EventInstance* instance;
-    result = desc->createInstance(&instance);
-    if (result != FMOD_OK) return result;
-
-    instance->start();
-    instance->release();
-    return FMOD_OK;
-}
-
-//// Events - Managed instances
-
-int fmod_create_instance(const ::String& eventPath) {
-    if (!gStudioSystem) return -1;
-
-    FMOD::Studio::EventDescription* desc;
-    if (gStudioSystem->getEvent(eventPath.c_str(), &desc) != FMOD_OK) return -1;
-
-    FMOD::Studio::EventInstance* instance;
-    if (desc->createInstance(&instance) != FMOD_OK) return -1;
-
-    int handle = faxe_handle_alloc(instance, FAXE_TYPE_EVI);
-    if (handle == 0) {
-        instance->release();
-        return -1;
-    }
-
-    // Attach the per-instance context so FMOD-thread callbacks can find the
-    // handle (and programmer-sound key) without touching the handle table.
-    if (!attachInstanceCtx(instance, handle)) {
-        faxe_handle_free(handle);
-        instance->release();
-        return -1;
-    }
-    return handle;
-}
-
-void fmod_start(int h) {
-    FMOD::Studio::EventInstance* instance = resolveInstance(h);
-    if (instance) instance->start();
-}
-
-void fmod_stop(int h, int immediate) {
-    FMOD::Studio::EventInstance* instance = resolveInstance(h);
-    if (instance)
-        instance->stop(immediate ? FMOD_STUDIO_STOP_IMMEDIATE : FMOD_STUDIO_STOP_ALLOWFADEOUT);
-}
-
-void fmod_release(int h) {
-    FMOD::Studio::EventInstance* instance = resolveInstance(h);
-    if (instance) {
-        instance->stop(FMOD_STUDIO_STOP_IMMEDIATE);
-        instance->release();
-        faxe_handle_free(h);
-    }
-}
-
-void fmod_set_paused(int h, bool paused) {
-    FMOD::Studio::EventInstance* instance = resolveInstance(h);
-    if (instance) instance->setPaused(paused);
-}
-
-int fmod_get_playback_state(int h) {
-    FMOD::Studio::EventInstance* instance = resolveInstance(h);
-    if (!instance) return FMOD_STUDIO_PLAYBACK_STOPPED;
-    FMOD_STUDIO_PLAYBACK_STATE state;
-    instance->getPlaybackState(&state);
-    return (int)state;
-}
-
-int fmod_get_timeline_position(int h) {
-    FMOD::Studio::EventInstance* instance = resolveInstance(h);
-    if (!instance) return 0;
-    int position = 0;
-    instance->getTimelinePosition(&position);
-    return position;
-}
-
-//// Parameters
-
-float fmod_get_param(int h, const ::String& name) {
-    FMOD::Studio::EventInstance* instance = resolveInstance(h);
-    if (!instance) return 0.0f;
-    float value = 0.0f;
-    instance->getParameterByName(name.c_str(), &value);
-    return value;
-}
-
-void fmod_set_param(int h, const ::String& name, float value) {
-    FMOD::Studio::EventInstance* instance = resolveInstance(h);
-    if (instance) instance->setParameterByName(name.c_str(), value, false);
-}
-
-//// Bus
-
-void fmod_set_bus_paused(const ::String& path, bool paused) {
-    if (!gStudioSystem) return;
-    FMOD::Studio::Bus* bus;
-    if (gStudioSystem->getBus(path.c_str(), &bus) == FMOD_OK)
-        bus->setPaused(paused);
-}
-
-void fmod_stop_bus(const ::String& path) {
-    if (!gStudioSystem) return;
-    FMOD::Studio::Bus* bus;
-    if (gStudioSystem->getBus(path.c_str(), &bus) == FMOD_OK)
-        bus->stopAllEvents(FMOD_STUDIO_STOP_IMMEDIATE);
-}
-
-void fmod_set_bus_volume(const ::String& path, float volume) {
-    if (!gStudioSystem) return;
-    FMOD::Studio::Bus* bus;
-    if (gStudioSystem->getBus(path.c_str(), &bus) == FMOD_OK)
-        bus->setVolume(volume);
-}
-
-float fmod_get_bus_volume(const ::String& path) {
-    if (!gStudioSystem) return 0.0f;
-    FMOD::Studio::Bus* bus;
-    if (gStudioSystem->getBus(path.c_str(), &bus) == FMOD_OK) {
-        float volume = 0.0f;
-        bus->getVolume(&volume, NULL);
-        return volume;
-    }
-    return 0.0f;
-}
-
-void fmod_set_bus_mute(const ::String& path, bool mute) {
-    if (!gStudioSystem) return;
-    FMOD::Studio::Bus* bus;
-    if (gStudioSystem->getBus(path.c_str(), &bus) == FMOD_OK)
-        bus->setMute(mute);
-}
-
-bool fmod_get_bus_mute(const ::String& path) {
-    if (!gStudioSystem) return false;
-    FMOD::Studio::Bus* bus;
-    if (gStudioSystem->getBus(path.c_str(), &bus) == FMOD_OK) {
-        bool mute = false;
-        bus->getMute(&mute);
-        return mute;
-    }
-    return false;
 }
 
 //// Callbacks
@@ -743,7 +551,12 @@ int fmod_dsp_create_by_type(int type) {
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
     gLastResult = gCoreSystem->createDSPByType((FMOD_DSP_TYPE)type, &dsp);
     if (gLastResult != FMOD_OK || !dsp) return 0;
-    return faxe_handle_alloc(dsp, FAXE_TYPE_DSP);
+    int handle = faxe_handle_alloc(dsp, FAXE_TYPE_DSP);
+    if (handle == 0) {
+        dsp->release();
+        return 0;
+    }
+    return handle;
 }
 
 int fmod_dsp_release(int h) {
@@ -905,7 +718,12 @@ int fmod_cg_create(const ::String& name) {
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
     gLastResult = gCoreSystem->createChannelGroup(name.c_str(), &group);
     if (gLastResult != FMOD_OK || !group) return 0;
-    return faxe_handle_alloc(group, FAXE_TYPE_CHANGROUP);
+    int handle = faxe_handle_alloc(group, FAXE_TYPE_CHANGROUP);
+    if (handle == 0) {
+        group->release();
+        return 0;
+    }
+    return handle;
 }
 
 int fmod_cg_release(int h) {
@@ -1134,7 +952,12 @@ int fmod_sys_play_dsp(int dspHandle, bool startPaused) {
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
     gLastResult = gCoreSystem->playDSP(dsp, NULL, startPaused, &channel);
     if (gLastResult != FMOD_OK || !channel) return 0;
-    return faxe_handle_alloc(channel, FAXE_TYPE_CHAN);
+    int handle = faxe_handle_alloc(channel, FAXE_TYPE_CHAN);
+    if (handle == 0) {
+        channel->stop();
+        return 0;
+    }
+    return handle;
 }
 
 // fbuf = 12 reverb property floats in fmod_common.h field order
@@ -1502,7 +1325,12 @@ int fmod_sys_create_reverb3d() {
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
     gLastResult = gCoreSystem->createReverb3D(&reverb);
     if (gLastResult != FMOD_OK || !reverb) return 0;
-    return faxe_handle_alloc(reverb, FAXE_TYPE_REVERB3D);
+    int handle = faxe_handle_alloc(reverb, FAXE_TYPE_REVERB3D);
+    if (handle == 0) {
+        reverb->release();
+        return 0;
+    }
+    return handle;
 }
 
 int fmod_r3d_release(int h) {
@@ -1589,7 +1417,12 @@ int fmod_core_create_sound_pcm(::Array<unsigned char> data, int len, int sampleR
     exinfo.format = FMOD_SOUND_FORMAT_PCM16;
     gLastResult = gCoreSystem->createSound((const char*)&data[0], FMOD_OPENMEMORY | FMOD_OPENRAW, &exinfo, &sound);
     if (gLastResult != FMOD_OK || !sound) return 0;
-    return faxe_handle_alloc(sound, FAXE_TYPE_SOUND);
+    int handle = faxe_handle_alloc(sound, FAXE_TYPE_SOUND);
+    if (handle == 0) {
+        sound->release();
+        return 0;
+    }
+    return handle;
 }
 
 int fmod_core_play_sound(int h, bool startPaused) {
@@ -1599,7 +1432,12 @@ int fmod_core_play_sound(int h, bool startPaused) {
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
     gLastResult = gCoreSystem->playSound(sound, NULL, startPaused, &channel);
     if (gLastResult != FMOD_OK || !channel) return 0;
-    return faxe_handle_alloc(channel, FAXE_TYPE_CHAN);
+    int handle = faxe_handle_alloc(channel, FAXE_TYPE_CHAN);
+    if (handle == 0) {
+        channel->stop();
+        return 0;
+    }
+    return handle;
 }
 
 int fmod_sound_set_defaults(int h, float frequency, int priority) {
@@ -1835,7 +1673,12 @@ int fmod_sys_create_sound_group(const ::String& name) {
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
     gLastResult = gCoreSystem->createSoundGroup(name.c_str(), &group);
     if (gLastResult != FMOD_OK || !group) return 0;
-    return faxe_handle_alloc(group, FAXE_TYPE_SOUNDGROUP);
+    int handle = faxe_handle_alloc(group, FAXE_TYPE_SOUNDGROUP);
+    if (handle == 0) {
+        group->release();
+        return 0;
+    }
+    return handle;
 }
 
 int fmod_sys_get_master_sound_group() {
@@ -2141,7 +1984,12 @@ int fmod_sys_load_command_replay(const ::String& path) {
     FMOD::Studio::CommandReplay* replay = NULL;
     gLastResult = gStudioSystem->loadCommandReplay(path.c_str(), FMOD_STUDIO_COMMANDREPLAY_NORMAL, &replay);
     if (gLastResult != FMOD_OK || !replay) return 0;
-    return faxe_handle_alloc(replay, FAXE_TYPE_REPLAY);
+    int handle = faxe_handle_alloc(replay, FAXE_TYPE_REPLAY);
+    if (handle == 0) {
+        replay->release();
+        return 0;
+    }
+    return handle;
 }
 
 int fmod_replay_release(int h) {
@@ -2150,6 +1998,11 @@ int fmod_replay_release(int h) {
     gLastResult = replay->release();
     if (gLastResult == FMOD_OK) faxe_handle_free(h);
     return (int)gLastResult;
+}
+
+bool fmod_replay_is_valid(int h) {
+    FMOD::Studio::CommandReplay* replay = resolveReplay(h);
+    return replay != NULL && replay->isValid();
 }
 
 int fmod_replay_start(int h) {
@@ -2753,7 +2606,14 @@ int fmod_cb_type() {
 }
 
 int fmod_cb_int(int index) {
-    return index == 0 ? gCbCurrent.i1 : (index == 1 ? gCbCurrent.i2 : gCbCurrent.i3);
+    switch (index) {
+        case 0: return gCbCurrent.i1;
+        case 1: return gCbCurrent.i2;
+        case 2: return gCbCurrent.i3;
+        case 3: return gCbCurrent.i4;
+        case 4: return gCbCurrent.i5;
+        default: return 0;
+    }
 }
 
 double fmod_cb_float() {
@@ -4185,7 +4045,7 @@ int fmod_debug_live_handle_count() {
 
 int fmod_binding_abi_version() {
     // Keep in lockstep with the manifest header "# abi-version:"
-    return 7;
+    return 8;
 }
 
 } // namespace faxe

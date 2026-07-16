@@ -1,8 +1,10 @@
 package haxefmod.flixel;
 
 import flixel.FlxG;
+import flixel.FlxObject;
 import flixel.util.typeLimit.NextState;
 import haxefmod.FmodManager;
+import haxefmod.flixel.FmodFlxEmitter.FlxObjectPositionProvider;
 import haxefmod.studio.Callbacks;
 
 class FmodFlxUtilities {
@@ -41,5 +43,16 @@ class FmodFlxUtilities {
     **/
     public static function TransitionToState(state:NextState):Void {
         FlxG.switchState(state);
+    }
+
+    /**
+        Fire-and-forget playback that follows a FlxObject (midpoint and
+        velocity) until the event ends. Intended for one-shot (self-ending)
+        events - a looping event played this way never releases.
+        @param soundPath the full event path (e.g. "event:/SFX/Explosion")
+        @param target the object the sound follows
+    **/
+    public static function PlaySoundOneShotAttached(soundPath:String, target:FlxObject):Void {
+        FmodManager.PlaySoundOneShotAttached(soundPath, new FlxObjectPositionProvider(target));
     }
 }

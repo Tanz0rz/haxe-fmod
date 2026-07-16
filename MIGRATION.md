@@ -47,7 +47,8 @@ attributes, timeline control, labeled parameters, and more).
 | `RegisterEventListener(listener)` | `OnSongEvent` / `sound.onEvent` |
 | `FmodCallback` bitmask constants | `haxefmod.studio.Callbacks.EventCallbackType` |
 
-Callbacks now carry payloads: `TimelineBeat(bar, beat, positionMs, tempo)`,
+Callbacks now carry payloads:
+`TimelineBeat(bar, beat, positionMs, tempo, timeSigUpper, timeSigLower)`,
 `TimelineMarker(name, positionMs)`, `Stopped`, and the rest of the
 playback lifecycle. Handlers fire once per event (1.x coalesced repeats
 into one poll per frame) and replace the previous handler for the same

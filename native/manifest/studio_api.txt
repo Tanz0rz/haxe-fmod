@@ -11,7 +11,7 @@
 # Types are logical (exact FFI types differ per backend, e.g. f32 vs f64);
 # the checker verifies presence and arity, not exact types.
 #
-# abi-version: 7
+# abi-version: 8
 # The binding ABI version covers the shape of the native surface. Bump it in
 # lockstep with the "hlaxe_fmod_abi=" marker in hlaxe_fmod.c, the constants in
 # the other two shims, and FmodRuntime.BINDING_ABI whenever functions are
@@ -19,41 +19,11 @@
 # the marker and refuses mismatches before they become loader fatals.
 #
 # Naming domains: sys_, bank_, evd_, evi_, bus_, vca_, cb_, ps_, core_.
-# Functions without a domain prefix predate the domain naming and are kept as is.
 
 ## System
-is_initialized -> bool
-init i32 -> i32
-update -> void
-set_auto_update bool -> void
-
-## Banks
-load_bank str -> i32
-unload_bank str -> void
-
-## Events - one shot
-fire_one_shot str -> i32
-
-## Events - managed instances
-create_instance str -> i32
-start i32 -> void
-stop i32 i32 -> void
-release i32 -> void
-set_paused i32 bool -> void
-get_playback_state i32 -> i32
-get_timeline_position i32 -> i32
-
-## Parameters
-get_param i32 str -> f64
-set_param i32 str f64 -> void
-
-## Bus
-set_bus_paused str bool -> void
-stop_bus str -> void
-set_bus_volume str f64 -> void
-get_bus_volume str -> f64
-set_bus_mute str bool -> void
-get_bus_mute str -> bool
+sys_is_initialized -> bool
+sys_update -> void
+sys_set_auto_update bool -> void
 
 ## Callbacks (payload queue - see native/shared/faxe_cbqueue.h)
 evi_set_callback_mask i32 i32 -> i32
@@ -267,7 +237,7 @@ evi_get_memory_usage i32 ibuf -> i32
 # Settings-driven init: (numChannels, sampleRate, speakerMode, studioFlags).
 # sampleRate 0 = FMOD default; speakerMode 0 = default (FMOD_SPEAKERMODE);
 # studioFlags bit0 = live update. Keeps the FMOD_WAVWRITER env branch.
-# On js this stores settings and kicks off module init (poll is_initialized).
+# On js this stores settings and kicks off module init (poll sys_is_initialized).
 sys_init_ex i32 i32 i32 i32 -> i32
 # FMOD_Debug_Initialize level (0=none 1=error 2=warning 3=log); file logging
 # not exposed. ERR_UNSUPPORTED on js (logging is baked into the wasm build).
@@ -521,6 +491,7 @@ sys_start_command_capture str -> i32
 sys_stop_command_capture -> i32
 sys_load_command_replay str -> i32
 replay_release i32 -> i32
+replay_is_valid i32 -> bool
 replay_start i32 -> i32
 replay_stop i32 -> i32
 replay_set_paused i32 bool -> i32

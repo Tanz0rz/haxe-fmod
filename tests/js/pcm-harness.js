@@ -111,6 +111,20 @@ async function main() {
     check('underruns_counted', under > 0, `underruns=${under}`);
     check('underruns_cleared', jaxe.fmod_core_pcm_underruns(ps) === 0);
 
+    // Write validation: oversized counts clamp to the real buffer size,
+    // zero and negative counts are rejected before touching the ring
+    const spaceForClamp = jaxe.fmod_core_pcm_space(ps);
+    const clamped = jaxe.fmod_core_pcm_write(ps, buf, buf.byteLength * 4);
+    check('pcm_write_oversized_clamped',
+        clamped === Math.min(buf.byteLength, spaceForClamp),
+        `wrote=${clamped} space=${spaceForClamp} len=${buf.byteLength}`);
+    check('pcm_write_zero_rejected', jaxe.fmod_core_pcm_write(ps, buf, 0) === 0
+        && jaxe.lastResult === jaxe.ERR_INVALID_PARAM);
+    check('pcm_write_negative_rejected', jaxe.fmod_core_pcm_write(ps, buf, -8) === 0
+        && jaxe.lastResult === jaxe.ERR_INVALID_PARAM);
+    check('pcm_write_null_rejected', jaxe.fmod_core_pcm_write(ps, null, 16) === 0
+        && jaxe.lastResult === jaxe.ERR_INVALID_PARAM);
+
     // Stop frees the channel slot even when FMOD already dropped the channel
     const stopRes = jaxe.fmod_chan_stop(ch);
     check('chan_stop', typeof stopRes === 'number', `result=${stopRes}`);
@@ -565,7 +579,7 @@ function testGetterSymmetry() {
 function testAuditClosure() {
     // Bank from memory: the file-loaded copy must go first (the same bank
     // cannot be loaded twice)
-    jaxe.fmod_unload_bank('Master.bank');
+    jaxe.fmod_bank_unload(jaxe.fmod_sys_get_bank('bank:/Master'));
     pump(5);
     const bankBytes = fs.readFileSync(path.join(BANKS, 'Master.bank'));
     const memBank = jaxe.fmod_sys_load_bank_memory(
@@ -576,8 +590,8 @@ function testAuditClosure() {
     check('s5_bank_memory_lookup', jaxe.fmod_sys_get_bank('bank:/Master') !== 0, '');
 
     // Per-instance channel group
-    const inst = jaxe.fmod_create_instance('event:/Music/MainLevel');
-    jaxe.fmod_start(inst);
+    const inst = jaxe.fmod_evd_create_instance(jaxe.fmod_sys_get_event('event:/Music/MainLevel'));
+    jaxe.fmod_evi_start(inst);
     pump(10);
     const instGroup = jaxe.fmod_evi_get_channel_group(inst);
     check('s5_evi_channel_group', instGroup !== 0, `handle=${instGroup} result=${jaxe.lastResult}`);
@@ -587,8 +601,8 @@ function testAuditClosure() {
             && jaxe.fmod_cg_remove_dsp(instGroup, lp) === jaxe.FMOD.OK, '');
         jaxe.fmod_dsp_release(lp);
     }
-    jaxe.fmod_stop(inst, 1);
-    jaxe.fmod_release(inst);
+    jaxe.fmod_evi_stop(inst, 1);
+    jaxe.fmod_evi_release(inst);
     pump(5);
 
     // Capture and replay

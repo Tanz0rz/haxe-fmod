@@ -61,6 +61,14 @@ typedef FmodSettings = {
      * background.
      */
     @:optional var muteWhenUnfocused:Bool;
+
+    /**
+     * Clamps the velocity magnitude pushed for attached instances and the
+     * flixel listener, in game units per second. Fast-moving objects can
+     * produce audible doppler pitch flutter, and this caps the velocity
+     * FMOD sees without touching the position. Default 0 (no clamp).
+     */
+    @:optional var maxAttachedVelocity:Float;
 }
 
 /** FmodSettings with every field resolved. */
@@ -74,6 +82,7 @@ typedef ResolvedFmodSettings = {
     var autoLoadBanks:Array<String>;
     var autoUpdate:Bool;
     var muteWhenUnfocused:Bool;
+    var maxAttachedVelocity:Float;
 }
 
 class FmodSettingsResolver {
@@ -108,6 +117,9 @@ class FmodSettingsResolver {
             muteWhenUnfocused: settings != null && settings.muteWhenUnfocused != null
                 ? settings.muteWhenUnfocused
                 : defaultMuteWhenUnfocused,
+            maxAttachedVelocity: settings != null && settings.maxAttachedVelocity != null
+                ? settings.maxAttachedVelocity
+                : 0.0,
         };
     }
 }

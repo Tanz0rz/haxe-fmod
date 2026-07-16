@@ -344,8 +344,7 @@ class PostBuild {
 			// run.sh must never point at it
 			var exeName = findExecutableName(binDir, [".so", ".hdll", ".ndll", ".dat"]);
 			if (exeName != null) {
-				var content = '#!/bin/bash\ncd "$$(dirname "$$0")"\nexport LD_LIBRARY_PATH="$$(pwd):$$LD_LIBRARY_PATH"\n./${exeName} "$$@"\n';
-				File.saveContent(runSh, content);
+				File.saveContent(runSh, runShContent(exeName));
 				Sys.command("chmod", ["+x", runSh]);
 			}
 		}
@@ -556,6 +555,14 @@ class PostBuild {
 			if (!FileSystem.isDirectory(fullPath)) return fullPath;
 		}
 		return null;
+	}
+
+	/**
+	 * The generated Linux launcher script. The exe invocation is quoted so
+	 * a name with spaces still launches. Public for unit tests.
+	 */
+	public static function runShContent(exeName:String):String {
+		return '#!/bin/bash\ncd "$$(dirname "$$0")"\nexport LD_LIBRARY_PATH="$$(pwd):$$LD_LIBRARY_PATH"\n"./${exeName}" "$$@"\n';
 	}
 
 	/** Find just the filename of the executable in a directory. */

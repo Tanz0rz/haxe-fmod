@@ -32,6 +32,8 @@ int main(void) {
         ev.i1 = i;
         ev.i2 = i * 2;
         ev.i3 = i * 3;
+        ev.i4 = i * 4;
+        ev.i5 = i * 5;
         ev.f1 = (float)i * 0.5f;
         snprintf(ev.str, sizeof(ev.str), "marker-%d", i);
         faxe_cbq_push(&ev);
@@ -42,6 +44,7 @@ int main(void) {
         assert(out.handle == 100 + i);
         assert(out.type == (1u << i));
         assert(out.i1 == i && out.i2 == i * 2 && out.i3 == i * 3);
+        assert(out.i4 == i * 4 && out.i5 == i * 5);
         snprintf(expected, sizeof(expected), "marker-%d", i);
         assert(strcmp(out.str, expected) == 0);
     }

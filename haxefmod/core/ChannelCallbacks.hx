@@ -24,8 +24,24 @@ class ChannelCallbacks {
 
     public static function set(handle:Int, handler:ChannelEvent->Void):Void {
         if (handle == 0 || handler == null) return;
+        installRouter();
         handlers.set(handle, handler);
         NativeStudio.chan_set_callback(handle, true);
+    }
+
+    /**
+     * Hooks channel routing into the dispatcher drain. Installed lazily on
+     * first registration so the studio package never has to reference this
+     * class. Reassignment is idempotent.
+     */
+    static function installRouter():Void {
+        haxefmod.studio.CallbackDispatcher.channelRouter = route;
+    }
+
+    static function route(handle:Int, type:Int, i1:Int):Bool {
+        if (!isChannelType(type)) return false;
+        deliver(handle, type, i1);
+        return true;
     }
 
     public static function remove(handle:Int):Void {

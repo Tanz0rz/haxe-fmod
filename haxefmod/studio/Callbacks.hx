@@ -44,8 +44,8 @@ enum EventCallbackData {
     Stopped;
     StartFailed;
     TimelineMarker(name:String, positionMs:Int);
-    TimelineBeat(bar:Int, beat:Int, positionMs:Int, tempo:Float);
-    NestedTimelineBeat(bar:Int, beat:Int, positionMs:Int, tempo:Float);
+    TimelineBeat(bar:Int, beat:Int, positionMs:Int, tempo:Float, timeSigUpper:Int, timeSigLower:Int);
+    NestedTimelineBeat(bar:Int, beat:Int, positionMs:Int, tempo:Float, timeSigUpper:Int, timeSigLower:Int);
     SoundPlayed;
     SoundStopped;
     RealToVirtual;

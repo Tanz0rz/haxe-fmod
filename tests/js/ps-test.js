@@ -68,7 +68,7 @@ async function main() {
     check('core_invalid_handle_len', jaxe.fmod_core_get_sound_length(12345) === -1, '');
 
     // --- ps_assign / ps_clear mask plumbing on a real instance ---
-    const evi = jaxe.fmod_create_instance('event:/Music/MainLevel');
+    const evi = jaxe.fmod_evd_create_instance(jaxe.fmod_sys_get_event('event:/Music/MainLevel'));
     check('create_instance', evi > 0, `handle=${evi}`);
     check('ps_assign', jaxe.fmod_ps_assign(evi, 'Jump.wav') === 0, '');
     check('ps_key_stored', jaxe.psKeys[evi] === 'Jump.wav', '');
@@ -100,7 +100,7 @@ async function main() {
     jaxe.callbackHandler(0x02, inst, null);
     check('destroyed_cleans_state', jaxe.psKeys[evi] === undefined && jaxe.cbMasks[evi] === undefined, '');
 
-    jaxe.fmod_release(evi);
+    jaxe.fmod_evi_release(evi);
     console.log(fails ? `PS_TEST FAILED: ${fails}` : 'PS_TEST COMPLETE');
     process.exit(fails ? 1 : 0);
 }

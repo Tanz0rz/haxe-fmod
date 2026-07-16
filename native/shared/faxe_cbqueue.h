@@ -37,7 +37,8 @@
 
 /* One callback event. Which fields are meaningful depends on type:
  *   TIMELINE_MARKER: str = marker name, i1 = position (ms)
- *   TIMELINE_BEAT:   i1 = bar, i2 = beat, i3 = position (ms), f1 = tempo
+ *   TIMELINE_BEAT:   i1 = bar, i2 = beat, i3 = position (ms), f1 = tempo,
+ *                    i4 = time signature upper, i5 = time signature lower
  *   others:          only handle + type
  */
 typedef struct {
@@ -46,6 +47,8 @@ typedef struct {
     int32_t i1;
     int32_t i2;
     int32_t i3;
+    int32_t i4;
+    int32_t i5;
     float f1;
     char str[FAXE_CBQ_STR_MAX]; /* UTF-8, truncated, always NUL-terminated */
 } FaxeCbEvent;

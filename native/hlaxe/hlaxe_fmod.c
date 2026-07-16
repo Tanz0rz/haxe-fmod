@@ -45,7 +45,7 @@ static void* gListBuf[FAXE_LIST_MAX];
 // Binding ABI marker. PostBuild.hx scans compiled hdlls for this string to
 // reject stale pre-built hdlls before they become loader fatals. Keep the
 // number in lockstep with the manifest header "# abi-version:".
-static const char gAbiMarker[] = "hlaxe_fmod_abi=7";
+static const char gAbiMarker[] = "hlaxe_fmod_abi=8";
 
 // Auto-update thread state
 static volatile int gAutoUpdateRunning = 0;
@@ -139,6 +139,8 @@ static FMOD_RESULT F_CALLBACK eventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type
                 ev.i1 = props->bar;
                 ev.i2 = props->beat;
                 ev.i3 = props->position;
+                ev.i4 = props->timesignatureupper;
+                ev.i5 = props->timesignaturelower;
                 ev.f1 = props->tempo;
             }
             break;
@@ -150,6 +152,8 @@ static FMOD_RESULT F_CALLBACK eventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type
                 ev.i1 = props->properties.bar;
                 ev.i2 = props->properties.beat;
                 ev.i3 = props->properties.position;
+                ev.i4 = props->properties.timesignatureupper;
+                ev.i5 = props->properties.timesignaturelower;
                 ev.f1 = props->properties.tempo;
             }
             break;
@@ -203,46 +207,15 @@ static FMOD_STUDIO_EVENT_CALLBACK_TYPE effective_callback_mask(FaxeInstCtx* ctx)
 
 //// System
 
-HL_PRIM bool HL_NAME(is_initialized)() {
+HL_PRIM bool HL_NAME(sys_is_initialized)() {
     return gStudioSystem != NULL;
 }
-DEFINE_PRIM(_BOOL, is_initialized, _NO_ARG);
+DEFINE_PRIM(_BOOL, sys_is_initialized, _NO_ARG);
 
-HL_PRIM int HL_NAME(init)(int numChannels) {
-    if (gStudioSystem != NULL) return FMOD_OK;
-
-    FMOD_RESULT result = FMOD_Studio_System_Create(&gStudioSystem, FMOD_VERSION);
-    if (result != FMOD_OK) return result;
-
-    // FMOD_WAVWRITER env var: write mixed audio to WAV file (for CI recording)
-    const char* wavWriterPath = getenv("FMOD_WAVWRITER");
-    void* extradriverdata = NULL;
-    if (wavWriterPath && wavWriterPath[0] != '\0') {
-        FMOD_Studio_System_GetCoreSystem(gStudioSystem, &gCoreSystem);
-        FMOD_System_SetOutput(gCoreSystem, FMOD_OUTPUTTYPE_WAVWRITER);
-        // Explicit stereo format so WAV header has correct channel count (Windows needs this)
-        FMOD_System_SetSoftwareFormat(gCoreSystem, 48000, FMOD_SPEAKERMODE_STEREO, 0);
-        extradriverdata = (void*)wavWriterPath;
-    }
-
-    result = FMOD_Studio_System_Initialize(gStudioSystem, numChannels,
-        FMOD_STUDIO_INIT_LIVEUPDATE, FMOD_INIT_NORMAL, extradriverdata);
-    if (result != FMOD_OK) {
-        FMOD_Studio_System_Release(gStudioSystem);
-        gStudioSystem = NULL;
-        return result;
-    }
-
-    FMOD_Studio_System_GetCoreSystem(gStudioSystem, &gCoreSystem);
-    faxe_cbq_init();
-    return FMOD_OK;
-}
-DEFINE_PRIM(_I32, init, _I32);
-
-HL_PRIM void HL_NAME(update)() {
+HL_PRIM void HL_NAME(sys_update)() {
     if (gStudioSystem) FMOD_Studio_System_Update(gStudioSystem);
 }
-DEFINE_PRIM(_VOID, update, _NO_ARG);
+DEFINE_PRIM(_VOID, sys_update, _NO_ARG);
 
 // Auto-update thread function
 #ifdef _WIN32
@@ -263,7 +236,7 @@ static void* autoUpdateLoop(void* param) {
 }
 #endif
 
-HL_PRIM void HL_NAME(set_auto_update)(bool enabled) {
+HL_PRIM void HL_NAME(sys_set_auto_update)(bool enabled) {
     if (enabled && !gAutoUpdateRunning) {
         gAutoUpdateRunning = 1;
 #ifdef _WIN32
@@ -288,194 +261,7 @@ HL_PRIM void HL_NAME(set_auto_update)(bool enabled) {
 #endif
     }
 }
-DEFINE_PRIM(_VOID, set_auto_update, _BOOL);
-
-//// Banks
-
-HL_PRIM int HL_NAME(load_bank)(vbyte* path) {
-    if (!gStudioSystem) return FMOD_ERR_NOTREADY;
-    FMOD_STUDIO_BANK* bank;
-    return FMOD_Studio_System_LoadBankFile(gStudioSystem, (const char*)path,
-        FMOD_STUDIO_LOAD_BANK_NORMAL, &bank);
-}
-DEFINE_PRIM(_I32, load_bank, _BYTES);
-
-HL_PRIM void HL_NAME(unload_bank)(vbyte* path) {
-    // Note: Would need bank tracking to implement properly.
-    // No-op matching the C++ backend behavior (real unload lands in M5).
-}
-DEFINE_PRIM(_VOID, unload_bank, _BYTES);
-
-//// Events - One shot
-
-HL_PRIM int HL_NAME(fire_one_shot)(vbyte* eventPath) {
-    if (!gStudioSystem) return FMOD_ERR_NOTREADY;
-
-    FMOD_STUDIO_EVENTDESCRIPTION* desc;
-    FMOD_RESULT result = FMOD_Studio_System_GetEvent(gStudioSystem, (const char*)eventPath, &desc);
-    if (result != FMOD_OK) return result;
-
-    FMOD_STUDIO_EVENTINSTANCE* instance;
-    result = FMOD_Studio_EventDescription_CreateInstance(desc, &instance);
-    if (result != FMOD_OK) return result;
-
-    FMOD_Studio_EventInstance_Start(instance);
-    FMOD_Studio_EventInstance_Release(instance);
-    return FMOD_OK;
-}
-DEFINE_PRIM(_I32, fire_one_shot, _BYTES);
-
-//// Events - Managed instances
-
-HL_PRIM int HL_NAME(create_instance)(vbyte* eventPath) {
-    if (!gStudioSystem) return -1;
-
-    FMOD_STUDIO_EVENTDESCRIPTION* desc;
-    if (FMOD_Studio_System_GetEvent(gStudioSystem, (const char*)eventPath, &desc) != FMOD_OK) return -1;
-
-    FMOD_STUDIO_EVENTINSTANCE* instance;
-    if (FMOD_Studio_EventDescription_CreateInstance(desc, &instance) != FMOD_OK) return -1;
-
-    int handle = faxe_handle_alloc(instance, FAXE_TYPE_EVI);
-    if (handle == 0) {
-        FMOD_Studio_EventInstance_Release(instance);
-        return -1;
-    }
-
-    // Attach the per-instance context so FMOD-thread callbacks can find the
-    // handle (and programmer-sound key) without touching the handle table.
-    if (!attach_instance_ctx(instance, handle)) {
-        faxe_handle_free(handle);
-        FMOD_Studio_EventInstance_Release(instance);
-        return -1;
-    }
-    return handle;
-}
-DEFINE_PRIM(_I32, create_instance, _BYTES);
-
-HL_PRIM void HL_NAME(start)(int h) {
-    FMOD_STUDIO_EVENTINSTANCE* instance = resolve_instance(h);
-    if (instance) FMOD_Studio_EventInstance_Start(instance);
-}
-DEFINE_PRIM(_VOID, start, _I32);
-
-HL_PRIM void HL_NAME(stop)(int h, int immediate) {
-    FMOD_STUDIO_EVENTINSTANCE* instance = resolve_instance(h);
-    if (instance)
-        FMOD_Studio_EventInstance_Stop(instance,
-            immediate ? FMOD_STUDIO_STOP_IMMEDIATE : FMOD_STUDIO_STOP_ALLOWFADEOUT);
-}
-DEFINE_PRIM(_VOID, stop, _I32 _I32);
-
-HL_PRIM void HL_NAME(release)(int h) {
-    FMOD_STUDIO_EVENTINSTANCE* instance = resolve_instance(h);
-    if (instance) {
-        FMOD_Studio_EventInstance_Stop(instance, FMOD_STUDIO_STOP_IMMEDIATE);
-        FMOD_Studio_EventInstance_Release(instance);
-        faxe_handle_free(h);
-    }
-}
-DEFINE_PRIM(_VOID, release, _I32);
-
-HL_PRIM void HL_NAME(set_paused)(int h, bool paused) {
-    FMOD_STUDIO_EVENTINSTANCE* instance = resolve_instance(h);
-    if (instance) FMOD_Studio_EventInstance_SetPaused(instance, paused);
-}
-DEFINE_PRIM(_VOID, set_paused, _I32 _BOOL);
-
-HL_PRIM int HL_NAME(get_playback_state)(int h) {
-    FMOD_STUDIO_EVENTINSTANCE* instance = resolve_instance(h);
-    if (!instance) return FMOD_STUDIO_PLAYBACK_STOPPED;
-    FMOD_STUDIO_PLAYBACK_STATE state;
-    FMOD_Studio_EventInstance_GetPlaybackState(instance, &state);
-    return (int)state;
-}
-DEFINE_PRIM(_I32, get_playback_state, _I32);
-
-HL_PRIM int HL_NAME(get_timeline_position)(int h) {
-    FMOD_STUDIO_EVENTINSTANCE* instance = resolve_instance(h);
-    if (!instance) return 0;
-    int position = 0;
-    FMOD_Studio_EventInstance_GetTimelinePosition(instance, &position);
-    return position;
-}
-DEFINE_PRIM(_I32, get_timeline_position, _I32);
-
-//// Parameters
-
-HL_PRIM double HL_NAME(get_param)(int h, vbyte* name) {
-    FMOD_STUDIO_EVENTINSTANCE* instance = resolve_instance(h);
-    if (!instance) return 0.0;
-    float value = 0.0f;
-    FMOD_Studio_EventInstance_GetParameterByName(instance, (const char*)name, &value, NULL);
-    return (double)value;
-}
-DEFINE_PRIM(_F64, get_param, _I32 _BYTES);
-
-HL_PRIM void HL_NAME(set_param)(int h, vbyte* name, double value) {
-    FMOD_STUDIO_EVENTINSTANCE* instance = resolve_instance(h);
-    if (instance)
-        FMOD_Studio_EventInstance_SetParameterByName(instance, (const char*)name, (float)value, false);
-}
-DEFINE_PRIM(_VOID, set_param, _I32 _BYTES _F64);
-
-//// Bus
-
-HL_PRIM void HL_NAME(set_bus_paused)(vbyte* path, bool paused) {
-    if (!gStudioSystem) return;
-    FMOD_STUDIO_BUS* bus;
-    if (FMOD_Studio_System_GetBus(gStudioSystem, (const char*)path, &bus) == FMOD_OK)
-        FMOD_Studio_Bus_SetPaused(bus, paused);
-}
-DEFINE_PRIM(_VOID, set_bus_paused, _BYTES _BOOL);
-
-HL_PRIM void HL_NAME(stop_bus)(vbyte* path) {
-    if (!gStudioSystem) return;
-    FMOD_STUDIO_BUS* bus;
-    if (FMOD_Studio_System_GetBus(gStudioSystem, (const char*)path, &bus) == FMOD_OK)
-        FMOD_Studio_Bus_StopAllEvents(bus, FMOD_STUDIO_STOP_ALLOWFADEOUT);
-}
-DEFINE_PRIM(_VOID, stop_bus, _BYTES);
-
-HL_PRIM void HL_NAME(set_bus_volume)(vbyte* path, double volume) {
-    if (!gStudioSystem) return;
-    FMOD_STUDIO_BUS* bus;
-    if (FMOD_Studio_System_GetBus(gStudioSystem, (const char*)path, &bus) == FMOD_OK)
-        FMOD_Studio_Bus_SetVolume(bus, (float)volume);
-}
-DEFINE_PRIM(_VOID, set_bus_volume, _BYTES _F64);
-
-HL_PRIM double HL_NAME(get_bus_volume)(vbyte* path) {
-    if (!gStudioSystem) return 0.0;
-    FMOD_STUDIO_BUS* bus;
-    if (FMOD_Studio_System_GetBus(gStudioSystem, (const char*)path, &bus) == FMOD_OK) {
-        float volume = 0.0f;
-        FMOD_Studio_Bus_GetVolume(bus, &volume, NULL);
-        return (double)volume;
-    }
-    return 0.0;
-}
-DEFINE_PRIM(_F64, get_bus_volume, _BYTES);
-
-HL_PRIM void HL_NAME(set_bus_mute)(vbyte* path, bool mute) {
-    if (!gStudioSystem) return;
-    FMOD_STUDIO_BUS* bus;
-    if (FMOD_Studio_System_GetBus(gStudioSystem, (const char*)path, &bus) == FMOD_OK)
-        FMOD_Studio_Bus_SetMute(bus, mute);
-}
-DEFINE_PRIM(_VOID, set_bus_mute, _BYTES _BOOL);
-
-HL_PRIM bool HL_NAME(get_bus_mute)(vbyte* path) {
-    if (!gStudioSystem) return false;
-    FMOD_STUDIO_BUS* bus;
-    if (FMOD_Studio_System_GetBus(gStudioSystem, (const char*)path, &bus) == FMOD_OK) {
-        FMOD_BOOL mute = 0;
-        FMOD_Studio_Bus_GetMute(bus, &mute);
-        return mute != 0;
-    }
-    return false;
-}
-DEFINE_PRIM(_BOOL, get_bus_mute, _BYTES);
+DEFINE_PRIM(_VOID, sys_set_auto_update, _BOOL);
 
 //// Callbacks
 
@@ -682,6 +468,10 @@ DEFINE_PRIM(_I32, core_pcm_create_3d, _I32 _I32 _I32);
 HL_PRIM int HL_NAME(core_pcm_write)(int h, vbyte* data, int len) {
     HlaxePcmStream* ps = resolve_pcm(h);
     if (!ps) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    /* A bare byte pointer carries no length, so a bad count cannot be
+     * clamped here - reject it. The Haxe wrapper clamps against the real
+     * buffer size before the call. */
+    if (!data || len <= 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
     gLastResult = FMOD_OK;
     return faxe_pcmring_write(ps->ring, data, len);
 }
@@ -823,10 +613,16 @@ static FMOD_CHANNELGROUP* resolve_changroup(int h) {
 
 HL_PRIM int HL_NAME(dsp_create_by_type)(int type) {
     FMOD_DSP* dsp = NULL;
+    int handle;
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
     gLastResult = FMOD_System_CreateDSPByType(gCoreSystem, (FMOD_DSP_TYPE)type, &dsp);
     if (gLastResult != FMOD_OK || !dsp) return 0;
-    return faxe_handle_alloc(dsp, FAXE_TYPE_DSP);
+    handle = faxe_handle_alloc(dsp, FAXE_TYPE_DSP);
+    if (handle == 0) {
+        FMOD_DSP_Release(dsp);
+        return 0;
+    }
+    return handle;
 }
 DEFINE_PRIM(_I32, dsp_create_by_type, _I32);
 
@@ -1010,10 +806,16 @@ DEFINE_PRIM(_I32, cg_get_master, _NO_ARG);
 
 HL_PRIM int HL_NAME(cg_create)(vbyte* name) {
     FMOD_CHANNELGROUP* group = NULL;
+    int handle;
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
     gLastResult = FMOD_System_CreateChannelGroup(gCoreSystem, (const char*)name, &group);
     if (gLastResult != FMOD_OK || !group) return 0;
-    return faxe_handle_alloc(group, FAXE_TYPE_CHANGROUP);
+    handle = faxe_handle_alloc(group, FAXE_TYPE_CHANGROUP);
+    if (handle == 0) {
+        FMOD_ChannelGroup_Release(group);
+        return 0;
+    }
+    return handle;
 }
 DEFINE_PRIM(_I32, cg_create, _BYTES);
 
@@ -1269,11 +1071,17 @@ DEFINE_PRIM(_I32, bus_get_channel_group, _I32);
 HL_PRIM int HL_NAME(sys_play_dsp)(int dspHandle, bool startPaused) {
     FMOD_DSP* dsp = resolve_dsp(dspHandle);
     FMOD_CHANNEL* channel = NULL;
+    int handle;
     if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
     gLastResult = FMOD_System_PlayDSP(gCoreSystem, dsp, NULL, startPaused ? 1 : 0, &channel);
     if (gLastResult != FMOD_OK || !channel) return 0;
-    return faxe_handle_alloc(channel, FAXE_TYPE_CHAN);
+    handle = faxe_handle_alloc(channel, FAXE_TYPE_CHAN);
+    if (handle == 0) {
+        FMOD_Channel_Stop(channel);
+        return 0;
+    }
+    return handle;
 }
 DEFINE_PRIM(_I32, sys_play_dsp, _I32 _BOOL);
 
@@ -1688,10 +1496,16 @@ static FMOD_REVERB3D* resolve_reverb3d(int h) {
 
 HL_PRIM int HL_NAME(sys_create_reverb3d)() {
     FMOD_REVERB3D* reverb = NULL;
+    int handle;
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
     gLastResult = FMOD_System_CreateReverb3D(gCoreSystem, &reverb);
     if (gLastResult != FMOD_OK || !reverb) return 0;
-    return faxe_handle_alloc(reverb, FAXE_TYPE_REVERB3D);
+    handle = faxe_handle_alloc(reverb, FAXE_TYPE_REVERB3D);
+    if (handle == 0) {
+        FMOD_Reverb3D_Release(reverb);
+        return 0;
+    }
+    return handle;
 }
 DEFINE_PRIM(_I32, sys_create_reverb3d, _NO_ARG);
 
@@ -1778,6 +1592,7 @@ static FMOD_SOUND* resolve_core_sound(int h) {
 HL_PRIM int HL_NAME(core_create_sound_pcm)(vbyte* data, int len, int sampleRate, int channels) {
     FMOD_CREATESOUNDEXINFO exinfo;
     FMOD_SOUND* sound = NULL;
+    int handle;
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
     if (!data || len <= 0 || sampleRate <= 0 || channels < 1 || channels > 2) {
         gLastResult = FMOD_ERR_INVALID_PARAM;
@@ -1792,18 +1607,29 @@ HL_PRIM int HL_NAME(core_create_sound_pcm)(vbyte* data, int len, int sampleRate,
     gLastResult = FMOD_System_CreateSound(gCoreSystem, (const char*)data,
         FMOD_OPENMEMORY | FMOD_OPENRAW, &exinfo, &sound);
     if (gLastResult != FMOD_OK || !sound) return 0;
-    return faxe_handle_alloc(sound, FAXE_TYPE_SOUND);
+    handle = faxe_handle_alloc(sound, FAXE_TYPE_SOUND);
+    if (handle == 0) {
+        FMOD_Sound_Release(sound);
+        return 0;
+    }
+    return handle;
 }
 DEFINE_PRIM(_I32, core_create_sound_pcm, _BYTES _I32 _I32 _I32);
 
 HL_PRIM int HL_NAME(core_play_sound)(int h, bool startPaused) {
     FMOD_SOUND* sound = resolve_core_sound(h);
     FMOD_CHANNEL* channel = NULL;
+    int handle;
     if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
     gLastResult = FMOD_System_PlaySound(gCoreSystem, sound, NULL, startPaused ? 1 : 0, &channel);
     if (gLastResult != FMOD_OK || !channel) return 0;
-    return faxe_handle_alloc(channel, FAXE_TYPE_CHAN);
+    handle = faxe_handle_alloc(channel, FAXE_TYPE_CHAN);
+    if (handle == 0) {
+        FMOD_Channel_Stop(channel);
+        return 0;
+    }
+    return handle;
 }
 DEFINE_PRIM(_I32, core_play_sound, _I32 _BOOL);
 
@@ -2066,10 +1892,16 @@ static FMOD_SOUNDGROUP* resolve_soundgroup(int h) {
 
 HL_PRIM int HL_NAME(sys_create_sound_group)(vbyte* name) {
     FMOD_SOUNDGROUP* group = NULL;
+    int handle;
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
     gLastResult = FMOD_System_CreateSoundGroup(gCoreSystem, (const char*)name, &group);
     if (gLastResult != FMOD_OK || !group) return 0;
-    return faxe_handle_alloc(group, FAXE_TYPE_SOUNDGROUP);
+    handle = faxe_handle_alloc(group, FAXE_TYPE_SOUNDGROUP);
+    if (handle == 0) {
+        FMOD_SoundGroup_Release(group);
+        return 0;
+    }
+    return handle;
 }
 DEFINE_PRIM(_I32, sys_create_sound_group, _BYTES);
 
@@ -2411,11 +2243,17 @@ DEFINE_PRIM(_I32, sys_stop_command_capture, _NO_ARG);
 
 HL_PRIM int HL_NAME(sys_load_command_replay)(vbyte* path) {
     FMOD_STUDIO_COMMANDREPLAY* replay = NULL;
+    int handle;
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
     gLastResult = FMOD_Studio_System_LoadCommandReplay(gStudioSystem, (const char*)path,
         FMOD_STUDIO_COMMANDREPLAY_NORMAL, &replay);
     if (gLastResult != FMOD_OK || !replay) return 0;
-    return faxe_handle_alloc(replay, FAXE_TYPE_REPLAY);
+    handle = faxe_handle_alloc(replay, FAXE_TYPE_REPLAY);
+    if (handle == 0) {
+        FMOD_Studio_CommandReplay_Release(replay);
+        return 0;
+    }
+    return handle;
 }
 DEFINE_PRIM(_I32, sys_load_command_replay, _BYTES);
 
@@ -2427,6 +2265,12 @@ HL_PRIM int HL_NAME(replay_release)(int h) {
     return (int)gLastResult;
 }
 DEFINE_PRIM(_I32, replay_release, _I32);
+
+HL_PRIM bool HL_NAME(replay_is_valid)(int h) {
+    FMOD_STUDIO_COMMANDREPLAY* replay = resolve_replay(h);
+    return replay != NULL && FMOD_Studio_CommandReplay_IsValid(replay);
+}
+DEFINE_PRIM(_BOOL, replay_is_valid, _I32);
 
 HL_PRIM int HL_NAME(replay_start)(int h) {
     FMOD_STUDIO_COMMANDREPLAY* replay = resolve_replay(h);
@@ -3119,7 +2963,14 @@ HL_PRIM int HL_NAME(cb_type)() {
 DEFINE_PRIM(_I32, cb_type, _NO_ARG);
 
 HL_PRIM int HL_NAME(cb_int)(int index) {
-    return index == 0 ? gCbCurrent.i1 : (index == 1 ? gCbCurrent.i2 : gCbCurrent.i3);
+    switch (index) {
+        case 0: return gCbCurrent.i1;
+        case 1: return gCbCurrent.i2;
+        case 2: return gCbCurrent.i3;
+        case 3: return gCbCurrent.i4;
+        case 4: return gCbCurrent.i5;
+        default: return 0;
+    }
 }
 DEFINE_PRIM(_I32, cb_int, _I32);
 

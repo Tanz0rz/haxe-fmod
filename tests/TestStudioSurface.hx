@@ -29,6 +29,7 @@ import haxefmod.studio.Vca;
  * abstract method behaves safely on invalid handles (defaults returned,
  * no exceptions).
  */
+@:access(haxefmod.studio.StudioSystem)
 class TestStudioSurface {
 	static var passed = 0;
 	static var failed = 0;
@@ -38,6 +39,7 @@ class TestStudioSurface {
 
 		testNullHandles();
 		testSystemSurface();
+		testBusCache();
 		testStructReturns();
 		testCoreSurface();
 
@@ -50,6 +52,15 @@ class TestStudioSurface {
 			failed++;
 			Sys.println('  FAIL: $name');
 		}
+	}
+
+	static function testBusCache():Void {
+		// A cached bus handle can outlive its bank. getBus must re-validate
+		// cached entries instead of serving stale handles forever.
+		StudioSystem.busCache.set("bus:/stale", cast 123);
+		var got = StudioSystem.getBus("bus:/stale");
+		assert(got.isNull(), "stale cached bus not served");
+		assert(!StudioSystem.busCache.exists("bus:/stale"), "stale cache entry evicted");
 	}
 
 	static function testNullHandles():Void {
@@ -83,6 +94,9 @@ class TestStudioSurface {
 		assert(desc.getInstanceList().length == 0, "evd instance list empty");
 		assert(desc.getParameterDescriptionByIndex(0) == null, "evd param desc null");
 		assert(desc.getParameterLabel("x", 0) == "", "evd param label default");
+		assert(desc.getParameterDescriptionByID({data1: 1, data2: 2}) == null, "evd param desc by id null");
+		assert(desc.getParameterLabelByID({data1: 1, data2: 2}, 0) == "", "evd param label by id default");
+		assert(desc.getUserPropertyByName("x") == null, "evd user property by name null");
 
 		var instance:EventInstance = EventInstance.NULL;
 		assert(!instance.isValid(), "evi invalid");
@@ -122,6 +136,8 @@ class TestStudioSurface {
 		assert(!StudioSystem.setParameterByID({data1: 1, data2: 2}, 0.5).isOk(), "sys setParameterByID result");
 		assert(StudioSystem.getParameterDescriptionCount() == 0, "sys param count default");
 		assert(StudioSystem.getParameterDescriptionByIndex(0) == null, "sys param desc null");
+		assert(StudioSystem.getParameterDescriptionByID({data1: 1, data2: 2}) == null, "sys param desc by id null");
+		assert(StudioSystem.getParameterLabelByID({data1: 1, data2: 2}, 0) == "", "sys param label by id default");
 		assert(StudioSystem.getNumListeners() == 0, "sys listeners default");
 		assert(!StudioSystem.setListenerPosition2D(0, 1, 2).isOk(), "sys listener pos result");
 		assert(StudioSystem.getListenerAttributes(0) == null, "sys listener attrs null");
@@ -158,6 +174,9 @@ class TestStudioSurface {
 		assert(stream.isNull(), "pcm stream null");
 		assert(stream.write(haxe.io.Bytes.alloc(16)) == 0, "pcm write default");
 		assert(stream.write(haxe.io.Bytes.alloc(16), 8) == 0, "pcm write with length");
+		assert(stream.write(haxe.io.Bytes.alloc(16), 1 << 20) == 0, "pcm write oversized length clamped");
+		assert(stream.write(null) == 0, "pcm write null data");
+		assert(stream.write(haxe.io.Bytes.alloc(16), -8) == 0, "pcm write bad negative count");
 		assert(stream.space() == 0, "pcm space default");
 		assert(stream.takeUnderruns() == 0, "pcm underruns default");
 		assert(!stream.release().isOk(), "pcm release result");
@@ -342,6 +361,7 @@ class TestStudioSurface {
 		assert(!StudioSystem.stopCommandCapture().isOk(), "sys stopCapture result");
 		var replay = StudioSystem.loadCommandReplay("x.cmd.txt");
 		assert(replay.isNull(), "sys loadReplay null");
+		assert(!replay.isValid(), "replay invalid");
 		assert(!replay.start().isOk(), "replay start result");
 		assert(!replay.stop().isOk(), "replay stop result");
 		assert(!replay.setPaused(true).isOk(), "replay setPaused result");
@@ -426,12 +446,20 @@ class TestStudioSurface {
 		// and End removes the registration
 		var received:Array<haxefmod.core.ChannelEvent> = [];
 		ChannelCallbacks.set(1234, function(e) received.push(e));
-		haxefmod.runtime.CallbackDispatcher.deliver(1234, ChannelCallbacks.TYPE_SYNCPOINT, 3, 0, 0, 0, "");
-		haxefmod.runtime.CallbackDispatcher.deliver(1234, ChannelCallbacks.TYPE_END, 0, 0, 0, 0, "");
-		haxefmod.runtime.CallbackDispatcher.deliver(1234, ChannelCallbacks.TYPE_END, 0, 0, 0, 0, "");
+		assert(haxefmod.studio.CallbackDispatcher.channelRouter != null, "chan router self-installed");
+		haxefmod.studio.CallbackDispatcher.deliver(1234, ChannelCallbacks.TYPE_SYNCPOINT, 3, 0, 0, 0, 0, 0, "");
+		haxefmod.studio.CallbackDispatcher.deliver(1234, ChannelCallbacks.TYPE_END, 0, 0, 0, 0, 0, 0, "");
+		haxefmod.studio.CallbackDispatcher.deliver(1234, ChannelCallbacks.TYPE_END, 0, 0, 0, 0, 0, 0, "");
 		assert(received.length == 2, "chan events delivered");
 		assert(received[0].match(SyncPoint(3)), "chan syncpoint payload");
 		assert(received[1].match(End), "chan end payload");
+		// Event-instance records still dispatch normally with the router in
+		// place (the router must decline non-channel types)
+		var eviEvents = 0;
+		haxefmod.studio.CallbackDispatcher.setCallback(1235, function(_) eviEvents++, 0x20);
+		haxefmod.studio.CallbackDispatcher.deliver(1235, 0x20, 0, 0, 0, 0, 0, 0, "");
+		assert(eviEvents == 1, "event dispatch unaffected by chan router");
+		haxefmod.studio.CallbackDispatcher.remove(1235);
 		ChannelCallbacks.clearAll();
 	}
 }

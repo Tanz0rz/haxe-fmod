@@ -91,7 +91,7 @@ const GUID_RE = /^\{[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}
 const BAD = 999999; // never-allocated handle
 
 async function pump(n) {
-    for (let i = 0; i < n; i++) { jaxe.fmod_update(); await new Promise(r => setTimeout(r, 10)); }
+    for (let i = 0; i < n; i++) { jaxe.fmod_sys_update(); await new Promise(r => setTimeout(r, 10)); }
 }
 
 async function main() {
@@ -129,14 +129,14 @@ async function main() {
     check('debug_live_handle_count', () => jaxe.fmod_debug_live_handle_count());
 
     // --- Callback round trip (cb-test equivalent) ---
-    const evi = check('create_instance', () => jaxe.fmod_create_instance('event:/Music/MainLevel'));
+    const evi = check('create_instance', () => jaxe.fmod_evd_create_instance(jaxe.fmod_sys_get_event('event:/Music/MainLevel')));
     check('evi_set_callback_mask', () => jaxe.fmod_evi_set_callback_mask(evi, 0x7FFFF));
-    check('start', () => { jaxe.fmod_start(evi); return 'ok'; });
-    for (let i = 0; i < 30; i++) { jaxe.fmod_update(); await new Promise(r => setTimeout(r, 20)); }
-    check('stop allowfadeout', () => { jaxe.fmod_stop(evi, 0); return 'ok'; });
+    check('start', () => jaxe.fmod_evi_start(evi));
+    for (let i = 0; i < 30; i++) { jaxe.fmod_sys_update(); await new Promise(r => setTimeout(r, 20)); }
+    check('stop allowfadeout', () => jaxe.fmod_evi_stop(evi, 0));
     let sawStopped = false, events = 0;
     for (let i = 0; i < 400 && !sawStopped; i++) {
-        jaxe.fmod_update();
+        jaxe.fmod_sys_update();
         while (jaxe.fmod_cb_next()) {
             events++;
             const type = jaxe.fmod_cb_type();
@@ -144,7 +144,7 @@ async function main() {
             console.log(`JAXE_TEST: cb event type=0x${type.toString(16)} handle=${jaxe.fmod_cb_handle()}`);
         }
         if (i % 40 === 0) {
-            console.log(`JAXE_TEST: playbackState at i=${i}: ${jaxe.fmod_get_playback_state(evi)} timeline=${jaxe.fmod_get_timeline_position(evi)}`);
+            console.log(`JAXE_TEST: playbackState at i=${i}: ${jaxe.fmod_evi_get_playback_state(evi)} timeline=${jaxe.fmod_evi_get_timeline_position(evi)}`);
         }
         await new Promise(r => setTimeout(r, 10));
     }
@@ -203,6 +203,11 @@ async function main() {
     expect('sys_set_listener_attributes', () => jaxe.fmod_sys_set_listener_attributes(0, [1, 2, 3, 0, 0, 0, 0, 0, 1, 0, 1, 0]), r => r === 0);
     expect('sys_get_listener_attributes', () => jaxe.fmod_sys_get_listener_attributes(0, fbuf),
         r => r === 0 && near(fbuf[0], 1) && near(fbuf[1], 2) && near(fbuf[2], 3) && near(fbuf[8], 1) && near(fbuf[10], 1));
+    // A getter that fails after validation zero-fills the out buffer, the
+    // same as the C shims (index 7 passes the shim but fails inside FMOD)
+    fbuf.fill(-1);
+    expect('sys_get_listener_attributes error zero-fills', () => jaxe.fmod_sys_get_listener_attributes(7, fbuf),
+        r => r !== 0 && fbuf[0] === 0 && fbuf[5] === 0 && fbuf[11] === 0);
     expect('sys_get_listener_weight', () => jaxe.fmod_sys_get_listener_weight(0), r => near(r, 1));
     expect('sys_set_listener_weight', () => jaxe.fmod_sys_set_listener_weight(0, 0.5), r => r === 0);
     expect('sys_get_listener_weight after set', () => jaxe.fmod_sys_get_listener_weight(0), r => near(r, 0.5));
@@ -477,7 +482,7 @@ async function main() {
     await pump(5);
     // released-but-tracked handles must still return safely, not throw
     check('evi_get_playback_state on released-out instance', () => jaxe.fmod_evi_get_playback_state(evi));
-    check('legacy fmod_release to drop stale handle', () => { jaxe.fmod_release(evi); return 'ok'; });
+    check('evi_release to drop stale handle', () => { jaxe.fmod_evi_release(evi); return 'ok'; });
 
     // --- bank unload / reload via the domain-prefixed API ---
     expect('bank_unload', () => jaxe.fmod_bank_unload(bank), r => r === 0);
@@ -565,6 +570,16 @@ async function main() {
 
     jaxe.ASYNC_FETCH_TIMEOUT_MS = prevAsyncTimeout;
     global.fetch = prevFetch;
+
+    // --- command replay validity ---
+    expect('replay_is_valid stale', () => jaxe.fmod_replay_is_valid(0), r => r === false);
+    expect('capture_start', () => jaxe.fmod_sys_start_command_capture('/probe.cmd.txt'), r => r === 0);
+    jaxe.fmod_sys_update();
+    expect('capture_stop', () => jaxe.fmod_sys_stop_command_capture(), r => r === 0);
+    const replay = expect('replay_load', () => jaxe.fmod_sys_load_command_replay('/probe.cmd.txt'), r => r > 0);
+    expect('replay_is_valid live', () => jaxe.fmod_replay_is_valid(replay), r => r === true);
+    expect('replay_release', () => jaxe.fmod_replay_release(replay), r => r === 0);
+    expect('replay_is_valid after release', () => jaxe.fmod_replay_is_valid(replay), r => r === false);
 
     // --- sys_unload_all last (invalidates everything) ---
     expect('sys_unload_all', () => jaxe.fmod_sys_unload_all(), r => r === 0);

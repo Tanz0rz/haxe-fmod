@@ -14,6 +14,11 @@ abstract CommandReplay(Int) from Int to Int {
         return this == 0;
     }
 
+    /** True while the handle points at a live FMOD replay object. */
+    public inline function isValid():Bool {
+        return this != 0 && NativeStudio.replay_is_valid(this);
+    }
+
     public inline function start():FmodResult {
         return NativeStudio.replay_start(this);
     }

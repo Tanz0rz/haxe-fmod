@@ -1,4 +1,4 @@
-package haxefmod.runtime;
+package haxefmod.studio;
 
 import haxefmod.studio.Callbacks;
 import haxefmod.studio.native.NativeStudio;
@@ -15,7 +15,22 @@ import haxefmod.studio.native.NativeStudio;
  * Handlers are removed automatically when the instance reports Destroyed.
  */
 class CallbackDispatcher {
+    /**
+     * Queue records with this bit set belong to core channel callbacks,
+     * not event instances (the shims reserve the namespace when encoding).
+     */
+    public static inline var CHANNEL_TYPE_NAMESPACE:Int = 0x40000000;
+
     static var handlers:Map<Int, EventCallbackData->Void> = new Map();
+
+    /**
+     * Router consulted before event-instance dispatch. Queue records that
+     * belong to other subsystems (core channel callbacks) are claimed here.
+     * ChannelCallbacks installs itself when its first handler registers,
+     * which keeps this class free of any dependency outside the studio
+     * package. Returns true when the record was consumed.
+     */
+    public static var channelRouter:Null<(handle:Int, type:Int, i1:Int) -> Bool> = null;
 
     /**
      * Registers a handler for an event instance and tells FMOD which
@@ -51,6 +66,7 @@ class CallbackDispatcher {
         while (NativeStudio.cb_next()) {
             deliver(NativeStudio.cb_handle(), NativeStudio.cb_type(),
                 NativeStudio.cb_int(0), NativeStudio.cb_int(1), NativeStudio.cb_int(2),
+                NativeStudio.cb_int(3), NativeStudio.cb_int(4),
                 NativeStudio.cb_float(), NativeStudio.cb_string());
         }
         if (NativeStudio.cb_take_overflow()) {
@@ -64,14 +80,16 @@ class CallbackDispatcher {
      * release instances): delivery looks up the handler per event and never
      * iterates the registration map. Public for unit tests.
      */
-    public static function deliver(handle:Int, type:Int, i1:Int, i2:Int, i3:Int, f1:Float, str:String):Void {
-        if (haxefmod.core.ChannelCallbacks.isChannelType(type)) {
-            haxefmod.core.ChannelCallbacks.deliver(handle, type, i1);
+    public static function deliver(handle:Int, type:Int, i1:Int, i2:Int, i3:Int, i4:Int, i5:Int, f1:Float, str:String):Void {
+        // Channel-domain records never reach event dispatch: routed when a
+        // router is installed, dropped otherwise
+        if ((type & CHANNEL_TYPE_NAMESPACE) != 0) {
+            if (channelRouter != null) channelRouter(handle, type, i1);
             return;
         }
         var handler = handlers.get(handle);
         if (handler != null) {
-            handler(decode(type, i1, i2, i3, f1, str));
+            handler(decode(type, i1, i2, i3, i4, i5, f1, str));
         }
         if (type == (EventCallbackType.DESTROYED : Int)) {
             handlers.remove(handle);
@@ -79,7 +97,7 @@ class CallbackDispatcher {
     }
 
     /** Decodes a raw callback record into typed data. Public for unit tests. */
-    public static function decode(type:Int, i1:Int, i2:Int, i3:Int, f1:Float, str:String):EventCallbackData {
+    public static function decode(type:Int, i1:Int, i2:Int, i3:Int, i4:Int, i5:Int, f1:Float, str:String):EventCallbackData {
         return switch (type : EventCallbackType) {
             case CREATED: Created;
             case DESTROYED: Destroyed;
@@ -89,8 +107,8 @@ class CallbackDispatcher {
             case STOPPED: Stopped;
             case START_FAILED: StartFailed;
             case TIMELINE_MARKER: TimelineMarker(str, i1);
-            case TIMELINE_BEAT: TimelineBeat(i1, i2, i3, f1);
-            case NESTED_TIMELINE_BEAT: NestedTimelineBeat(i1, i2, i3, f1);
+            case TIMELINE_BEAT: TimelineBeat(i1, i2, i3, f1, i4, i5);
+            case NESTED_TIMELINE_BEAT: NestedTimelineBeat(i1, i2, i3, f1, i4, i5);
             case SOUND_PLAYED: SoundPlayed;
             case SOUND_STOPPED: SoundStopped;
             case REAL_TO_VIRTUAL: RealToVirtual;

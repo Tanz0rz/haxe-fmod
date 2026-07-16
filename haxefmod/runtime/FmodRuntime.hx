@@ -2,6 +2,8 @@ package haxefmod.runtime;
 
 import haxefmod.core.ChannelGroup;
 import haxefmod.runtime.FmodSettings;
+import haxefmod.studio.CallbackDispatcher;
+import haxefmod.studio.Callbacks;
 import haxefmod.studio.EventDescription;
 import haxefmod.studio.EventInstance;
 import haxefmod.studio.FmodResult;
@@ -36,7 +38,7 @@ class FmodRuntime {
     static var focusMuteApplied:Bool = false;
 
     /** Expected native binding ABI - lockstep with the manifest "# abi-version:". */
-    public static inline var BINDING_ABI:Int = 7;
+    public static inline var BINDING_ABI:Int = 8;
 
     /**
      * Initializes FMOD with the given settings (see FmodSettings for the
@@ -50,6 +52,7 @@ class FmodRuntime {
         initStarted = true;
         resolved = FmodSettingsResolver.resolve(settings);
         muteWhenUnfocused = resolved.muteWhenUnfocused;
+        attached.maxVelocity = resolved.maxAttachedVelocity;
 
         #if hl
         // A stale hdll usually dies at load with a missing-prim fatal (and
@@ -176,6 +179,28 @@ class FmodRuntime {
         if (x != null && y != null) instance.setPosition2D(x, y);
         instance.start();
         instance.release();
+    }
+
+    /**
+     * Fire-and-forget playback that follows a moving object until the event
+     * ends, then releases itself. Intended for one-shot (self-ending)
+     * events: a looping event played this way never stops on its own, so it
+     * never releases - use attach/detach with an instance you own instead.
+     */
+    public static function playOneShotAttached(eventPath:String, provider:IFmodPositionProvider):Void {
+        var instance = createInstance(eventPath);
+        if (instance.isNull()) return;
+        attach(instance, provider);
+        // release() cannot happen up front like playOneShot: it invalidates
+        // the handle immediately, which would end the position updates. The
+        // Stopped callback releases instead (detach happens by pruning).
+        instance.setCallback(data -> {
+            switch (data) {
+                case Stopped: instance.release();
+                default:
+            }
+        }, EventCallbackType.STOPPED);
+        instance.start();
     }
 
     /** Keeps an instance's 3D position synced to a moving object every update. */

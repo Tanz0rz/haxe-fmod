@@ -46,6 +46,8 @@ class BeatTestState extends FlxState {
     var _stopRequested:Bool = false;
     var _stoppedReceived:Bool = false;
     var _eventCount:Int = 0;
+    var _beatSeen:Bool = false;
+    var _beatTimeSigOk:Bool = false;
     var _failCount:Int = 0;
     var _passCount:Int = 0;
     var _status:FlxText;
@@ -89,15 +91,17 @@ class BeatTestState extends FlxState {
             switch (data) {
                 case TimelineMarker(name, positionMs):
                     log('CB_TEST: TimelineMarker name=$name position=$positionMs');
-                case TimelineBeat(bar, beat, positionMs, tempo):
-                    log('CB_TEST: TimelineBeat bar=$bar beat=$beat position=$positionMs tempo=$tempo');
-                case NestedTimelineBeat(bar, beat, positionMs, tempo):
-                    log('CB_TEST: NestedTimelineBeat bar=$bar beat=$beat position=$positionMs tempo=$tempo');
+                case TimelineBeat(bar, beat, positionMs, tempo, timeSigUpper, timeSigLower):
+                    log('CB_TEST: TimelineBeat bar=$bar beat=$beat position=$positionMs tempo=$tempo timeSig=$timeSigUpper/$timeSigLower');
+                    _beatSeen = true;
+                    if (timeSigUpper > 0 && timeSigLower > 0) _beatTimeSigOk = true;
+                case NestedTimelineBeat(bar, beat, positionMs, tempo, timeSigUpper, timeSigLower):
+                    log('CB_TEST: NestedTimelineBeat bar=$bar beat=$beat position=$positionMs tempo=$tempo timeSig=$timeSigUpper/$timeSigLower');
                 case Stopped:
                     log("CB_TEST: Stopped");
                     _stoppedReceived = true;
-                case other:
-                    log('CB_TEST: $other');
+                case unhandled:
+                    log('CB_TEST: $unhandled');
             }
         });
     }
@@ -126,6 +130,10 @@ class BeatTestState extends FlxState {
         }
 
         if (_stoppedReceived) {
+            // The song has a tempo track, so beats must arrive and every
+            // beat must carry the authored time signature
+            check("beat_time_signature", _beatSeen && _beatTimeSigOk,
+                'seen=$_beatSeen sigOk=$_beatTimeSigOk');
             log('CB_TEST: Song flow done events=$_eventCount');
             startOverflowPhase();
         }

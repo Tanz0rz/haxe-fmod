@@ -49,7 +49,7 @@ class jaxe {
     static CBQ_CAPACITY = 256;
     static cbQueue = [];
     static cbOverflow = false;
-    static cbCurrent = { handle: 0, type: 0, i1: 0, i2: 0, i3: 0, f1: 0.0, str: "" };
+    static cbCurrent = { handle: 0, type: 0, i1: 0, i2: 0, i3: 0, i4: 0, i5: 0, f1: 0.0, str: "" };
 
     // The FMOD JS bindings return a fresh wrapper object from every call, so
     // wrappers have no JS identity (=== and isAliasOf never match across
@@ -176,22 +176,15 @@ class jaxe {
 
     //// System
 
-    static fmod_is_initialized() {
+    static fmod_sys_is_initialized() {
         return jaxe.FmodIsInitialized;
     }
 
-    static fmod_init(numChannels) {
-        jaxe.FMOD['preRun'] = jaxe.preRun;
-        jaxe.FMOD['onRuntimeInitialized'] = jaxe.onRuntimeInitialized;
-        jaxe.FMOD['TOTAL_MEMORY'] = 64 * 1024 * 1024;
-        FMODModule(jaxe.FMOD);
-    }
-
-    static fmod_update() {
+    static fmod_sys_update() {
         jaxe.gSystem.update();
     }
 
-    static fmod_set_auto_update(enabled) {
+    static fmod_sys_set_auto_update(enabled) {
         if (enabled && !jaxe.autoUpdateIntervalId) {
             jaxe.autoUpdateIntervalId = window.setInterval(function() {
                 if (jaxe.gSystem && jaxe.gSystem.update) {
@@ -202,176 +195,6 @@ class jaxe {
             window.clearInterval(jaxe.autoUpdateIntervalId);
             jaxe.autoUpdateIntervalId = null;
         }
-    }
-
-    //// Banks
-
-    static fmod_load_bank(path) {
-        var outval = {};
-        var result = jaxe.gSystem.loadBankFile("/" + path, jaxe.FMOD.STUDIO_LOAD_BANK_NORMAL, outval);
-        if (result == jaxe.FMOD.OK) {
-            jaxe.loadedBanks[path] = outval.val;
-        }
-        return result;
-    }
-
-    static fmod_unload_bank(path) {
-        if (jaxe.loadedBanks[path]) {
-            jaxe.loadedBanks[path].unload();
-            jaxe.loadedBanks[path] = undefined;
-        }
-    }
-
-    //// Events - One shot
-
-    static fmod_fire_one_shot(eventPath) {
-        var desc = {};
-        var result = jaxe.gSystem.getEvent(eventPath, desc);
-        if (result != jaxe.FMOD.OK) return result;
-
-        var instance = {};
-        result = desc.val.createInstance(instance);
-        if (result != jaxe.FMOD.OK) return result;
-
-        instance.val.start();
-        instance.val.release();
-        return jaxe.FMOD.OK;
-    }
-
-    //// Events - Managed instances
-
-    static fmod_create_instance(eventPath) {
-        var desc = {};
-        var result = jaxe.gSystem.getEvent(eventPath, desc);
-        if (result != jaxe.FMOD.OK) return -1;
-
-        var instance = {};
-        result = desc.val.createInstance(instance);
-        if (result != jaxe.FMOD.OK) return -1;
-
-        var handle = jaxe.handleAlloc(instance.val, jaxe.TYPE_EVI);
-        if (handle == 0) {
-            instance.val.release();
-            return -1;
-        }
-        // Store the handle in FMOD userdata so callbacks can identify the
-        // instance. The wrapper object FMOD passes to callbacks is a fresh
-        // binding object each time, so JS identity (===) never matches the
-        // stored wrapper. userdata is the reliable channel (mirrors cpp/hl).
-        instance.val.setUserData(handle);
-        return handle;
-    }
-
-    static fmod_start(handle) {
-        var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
-        if (inst) inst.start();
-    }
-
-    static fmod_stop(handle, immediate) {
-        var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
-        if (inst) {
-            inst.stop(immediate ? jaxe.FMOD.STUDIO_STOP_IMMEDIATE : jaxe.FMOD.STUDIO_STOP_ALLOWFADEOUT);
-        }
-    }
-
-    static fmod_release(handle) {
-        var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
-        if (inst) {
-            // Uninstall the callback first: destroying an instance with a
-            // callback installed corrupts the FMOD JS module.
-            jaxe.uninstallCallback(handle);
-            inst.stop(jaxe.FMOD.STUDIO_STOP_IMMEDIATE);
-            inst.release();
-            jaxe.handleFree(handle);
-        }
-    }
-
-    static fmod_set_paused(handle, paused) {
-        var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
-        if (inst) inst.setPaused(paused);
-    }
-
-    static fmod_get_playback_state(handle) {
-        var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
-        if (!inst) return jaxe.FMOD.STUDIO_PLAYBACK_STOPPED;
-        var outval = {};
-        inst.getPlaybackState(outval);
-        return outval.val;
-    }
-
-    static fmod_get_timeline_position(handle) {
-        var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
-        if (!inst) return 0;
-        var outval = {};
-        inst.getTimelinePosition(outval);
-        return outval.val;
-    }
-
-    //// Parameters
-
-    static fmod_get_param(handle, name) {
-        var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
-        if (!inst) return 0.0;
-        var outval = {};
-        // (name, value, finalvalue) - unwanted outs must be explicit null
-        inst.getParameterByName(name, outval, null);
-        return outval.val;
-    }
-
-    static fmod_set_param(handle, name, value) {
-        var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
-        if (inst) inst.setParameterByName(name, value, false);
-    }
-
-    //// Bus
-
-    static fmod_set_bus_paused(path, paused) {
-        var bus = {};
-        if (jaxe.gSystem.getBus(path, bus) == jaxe.FMOD.OK) {
-            bus.val.setPaused(paused);
-        }
-    }
-
-    static fmod_stop_bus(path) {
-        var bus = {};
-        if (jaxe.gSystem.getBus(path, bus) == jaxe.FMOD.OK) {
-            bus.val.stopAllEvents(jaxe.FMOD.STUDIO_STOP_IMMEDIATE);
-        }
-    }
-
-    static fmod_set_bus_volume(path, volume) {
-        var bus = {};
-        if (jaxe.gSystem.getBus(path, bus) == jaxe.FMOD.OK) {
-            bus.val.setVolume(volume);
-        }
-    }
-
-    static fmod_get_bus_volume(path) {
-        var bus = {};
-        if (jaxe.gSystem.getBus(path, bus) == jaxe.FMOD.OK) {
-            var outval = {};
-            // (volume, finalvolume) - unwanted outs must be explicit null
-            bus.val.getVolume(outval, null);
-            return outval.val;
-        }
-        return 0.0;
-    }
-
-    static fmod_set_bus_mute(path, mute) {
-        var bus = {};
-        if (jaxe.gSystem.getBus(path, bus) == jaxe.FMOD.OK) {
-            bus.val.setMute(mute);
-        }
-    }
-
-    static fmod_get_bus_mute(path) {
-        var bus = {};
-        if (jaxe.gSystem.getBus(path, bus) == jaxe.FMOD.OK) {
-            var outval = {};
-            bus.val.getMute(outval);
-            return outval.val;
-        }
-        return false;
     }
 
     //// Callbacks
@@ -480,7 +303,7 @@ class jaxe {
             }
         }
 
-        var ev = { handle: handle, type: type, i1: 0, i2: 0, i3: 0, f1: 0.0, str: "" };
+        var ev = { handle: handle, type: type, i1: 0, i2: 0, i3: 0, i4: 0, i5: 0, f1: 0.0, str: "" };
 
         if (type == 0x00000800 /* TIMELINE_MARKER */ && parameters) {
             if (typeof parameters.name === "string") ev.str = parameters.name;
@@ -489,11 +312,15 @@ class jaxe {
             ev.i1 = parameters.bar | 0;
             ev.i2 = parameters.beat | 0;
             ev.i3 = parameters.position | 0;
+            ev.i4 = parameters.timesignatureupper | 0;
+            ev.i5 = parameters.timesignaturelower | 0;
             ev.f1 = parameters.tempo || 0.0;
         } else if (type == 0x00040000 /* NESTED_TIMELINE_BEAT */ && parameters && parameters.properties) {
             ev.i1 = parameters.properties.bar | 0;
             ev.i2 = parameters.properties.beat | 0;
             ev.i3 = parameters.properties.position | 0;
+            ev.i4 = parameters.properties.timesignatureupper | 0;
+            ev.i5 = parameters.properties.timesignaturelower | 0;
             ev.f1 = parameters.properties.tempo || 0.0;
         }
 
@@ -527,7 +354,14 @@ class jaxe {
     }
 
     static fmod_cb_int(index) {
-        return index == 0 ? jaxe.cbCurrent.i1 : (index == 1 ? jaxe.cbCurrent.i2 : jaxe.cbCurrent.i3);
+        switch (index) {
+            case 0: return jaxe.cbCurrent.i1;
+            case 1: return jaxe.cbCurrent.i2;
+            case 2: return jaxe.cbCurrent.i3;
+            case 3: return jaxe.cbCurrent.i4;
+            case 4: return jaxe.cbCurrent.i5;
+            default: return 0;
+        }
     }
 
     static fmod_cb_float() {
@@ -623,6 +457,13 @@ class jaxe {
     // FMOD JS writes 3D attribute getters as flat dotted keys directly on
     // the out object ("position.x" ... "up.z"). flatten into fbuf[0..11]
     // in pos/vel/forward/up order
+    // The C shims copy zero-initialized locals into the caller's buffer
+    // when the FMOD call fails after handle validation. Mirror that here so
+    // error paths leave the same buffer contents on every target.
+    static zeroFill(buf, count) {
+        for (var i = 0; i < count; i++) buf[i] = 0;
+    }
+
     static readAttributes3D(attr, fbuf) {
         var parts = ["position", "velocity", "forward", "up"];
         var axes = ["x", "y", "z"];
@@ -662,7 +503,7 @@ class jaxe {
 
     // Settings-driven init: stores the settings for onRuntimeInitialized and
     // kicks off module init exactly like fmod_init. Module startup is
-    // asynchronous - poll fmod_is_initialized for completion. Returns 0 (OK).
+    // asynchronous - poll fmod_sys_is_initialized for completion. Returns 0 (OK).
     static fmod_sys_init_ex(numChannels, sampleRate, speakerMode, studioFlags) {
         jaxe.pendingInit = {
             numChannels: numChannels,
@@ -918,6 +759,7 @@ class jaxe {
         // (index, attributes, attenuationposition) - attenuation not exposed
         jaxe.lastResult = jaxe.gSystem.getListenerAttributes(index, attr, null);
         if (jaxe.lastResult == jaxe.FMOD.OK) jaxe.readAttributes3D(attr, fbuf);
+        else jaxe.zeroFill(fbuf, 12);
         return jaxe.lastResult;
     }
 
@@ -1060,6 +902,8 @@ class jaxe {
             fbuf[4] = core.update || 0.0;
             fbuf[5] = core.convolution1 || 0.0;
             fbuf[6] = core.convolution2 || 0.0;
+        } else {
+            jaxe.zeroFill(fbuf, 7);
         }
         return jaxe.lastResult;
     }
@@ -1082,6 +926,9 @@ class jaxe {
             ibuf[7] = usage["studiohandle.stallcount"] | 0;
             fbuf[0] = usage["studiocommandqueue.stalltime"] || 0.0;
             fbuf[1] = usage["studiohandle.stalltime"] || 0.0;
+        } else {
+            jaxe.zeroFill(ibuf, 8);
+            jaxe.zeroFill(fbuf, 2);
         }
         return jaxe.lastResult;
     }
@@ -1103,6 +950,8 @@ class jaxe {
             ibuf[0] = outval.val.exclusive | 0;
             ibuf[1] = outval.val.inclusive | 0;
             ibuf[2] = outval.val.sampledata | 0;
+        } else {
+            jaxe.zeroFill(ibuf, 3);
         }
         return jaxe.lastResult;
     }
@@ -1521,6 +1370,8 @@ class jaxe {
         if (jaxe.lastResult == jaxe.FMOD.OK) {
             fbuf[0] = min.val || 0.0;
             fbuf[1] = max.val || 0.0;
+        } else {
+            jaxe.zeroFill(fbuf, 2);
         }
         return jaxe.lastResult;
     }
@@ -1899,6 +1750,8 @@ class jaxe {
         if (jaxe.lastResult == jaxe.FMOD.OK) {
             fbuf[0] = min.val || 0.0;
             fbuf[1] = max.val || 0.0;
+        } else {
+            jaxe.zeroFill(fbuf, 2);
         }
         return jaxe.lastResult;
     }
@@ -1910,6 +1763,7 @@ class jaxe {
         var attr = {};
         jaxe.lastResult = inst.get3DAttributes(attr);
         if (jaxe.lastResult == jaxe.FMOD.OK) jaxe.readAttributes3D(attr, fbuf);
+        else jaxe.zeroFill(fbuf, 12);
         return jaxe.lastResult;
     }
 
@@ -2055,6 +1909,8 @@ class jaxe {
             ibuf[0] = outval.val.exclusive | 0;
             ibuf[1] = outval.val.inclusive | 0;
             ibuf[2] = outval.val.sampledata | 0;
+        } else {
+            jaxe.zeroFill(ibuf, 3);
         }
         return jaxe.lastResult;
     }
@@ -3733,6 +3589,12 @@ class jaxe {
         return jaxe.lastResult;
     }
 
+    static fmod_replay_is_valid(handle) {
+        var replay = jaxe.resolveReplay(handle);
+        // isValid returns 1/0 from the wasm side, coerce to a real bool
+        return replay != null && (!replay.isValid || !!replay.isValid());
+    }
+
     static fmod_replay_start(handle) {
         var replay = jaxe.resolveReplay(handle);
         if (!replay) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
@@ -4320,7 +4182,7 @@ class jaxe {
 
     static fmod_binding_abi_version() {
         // Keep in lockstep with the manifest header "# abi-version:"
-        return 7;
+        return 8;
     }
 
     //// Initialization (Emscripten-specific, must stay here)
@@ -4374,7 +4236,7 @@ class jaxe {
         jaxe.gSystem.initialize(numChannels, studioInitFlags, jaxe.FMOD.INIT_NORMAL, null);
 
         // Enable auto-update by default
-        jaxe.fmod_set_auto_update(true);
+        jaxe.fmod_sys_set_auto_update(true);
 
         // Load default banks
         jaxe.gSystem.loadBankFile("/Master.bank", jaxe.FMOD.STUDIO_LOAD_BANK_NORMAL, outval);

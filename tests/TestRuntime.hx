@@ -12,6 +12,7 @@ import haxefmod.studio.EventInstance;
  * resolution precedence, bank registry refcounting behavior around failed
  * loads, and attached-instance bookkeeping.
  */
+@:access(haxefmod.runtime.BankRegistry)
 class TestRuntime {
 	static var passed = 0;
 	static var failed = 0;
@@ -48,6 +49,7 @@ class TestRuntime {
 		assert(resolved.autoLoadBanks[1] == "Master.strings.bank", "default strings bank");
 		assert(resolved.autoUpdate == true, "default autoUpdate");
 		assert(resolved.muteWhenUnfocused == true, "default muteWhenUnfocused");
+		assert(resolved.maxAttachedVelocity == 0.0, "default maxAttachedVelocity");
 		// Tests run without -debug, so live update defaults off
 		#if debug
 		assert(resolved.liveUpdate == true, "default liveUpdate (debug)");
@@ -66,6 +68,7 @@ class TestRuntime {
 			autoLoadBanks: [],
 			autoUpdate: false,
 			muteWhenUnfocused: false,
+			maxAttachedVelocity: 250,
 		});
 		assert(resolved.numChannels == 64, "override numChannels");
 		assert(resolved.sampleRate == 48000, "override sampleRate");
@@ -75,6 +78,7 @@ class TestRuntime {
 		assert(resolved.autoLoadBanks.length == 0, "override autoLoadBanks");
 		assert(resolved.autoUpdate == false, "override autoUpdate");
 		assert(resolved.muteWhenUnfocused == false, "override muteWhenUnfocused");
+		assert(resolved.maxAttachedVelocity == 250, "override maxAttachedVelocity");
 
 		// Partial overrides keep other defaults
 		var partial = FmodSettingsResolver.resolve({liveUpdate: true});
@@ -118,6 +122,13 @@ class TestRuntime {
 		assert(!registry.unload("missing.bank"), "unload of unknown bank");
 		assert(!registry.anyLoading(), "nothing loading");
 		assert(registry.get("missing.bank").isNull(), "get unknown bank");
+
+		// FMOD bank path derivation: only the trailing .bank extension is
+		// stripped, so the strings bank keeps its full dotted name
+		assert(BankRegistry.bankPathFor("assets/fmod/Desktop/Master.bank") == "bank:/Master", "bank path simple");
+		assert(BankRegistry.bankPathFor("assets/fmod/Desktop/Master.strings.bank") == "bank:/Master.strings", "bank path multi-dot");
+		assert(BankRegistry.bankPathFor("Solo.bank") == "bank:/Solo", "bank path bare file");
+		assert(BankRegistry.bankPathFor("dir/NoExtension") == "bank:/NoExtension", "bank path no extension");
 	}
 
 	static function testAttachedInstances():Void {
@@ -140,6 +151,13 @@ class TestRuntime {
 		attached.attach(fake, provider);
 		attached.detach(fake);
 		assert(attached.count() == 0, "detach removes");
+
+		// Velocity clamp: direction preserved, magnitude capped, disabled at 0
+		assert(AttachedInstances.velocityScale(3, 4, 0) == 1.0, "clamp disabled at 0");
+		assert(AttachedInstances.velocityScale(3, 4, 10) == 1.0, "clamp inactive under max");
+		var scale = AttachedInstances.velocityScale(30, 40, 10);
+		assert(Math.abs(30 * scale - 6.0) < 1e-9 && Math.abs(40 * scale - 8.0) < 1e-9, "clamp caps magnitude");
+		assert(AttachedInstances.velocityScale(0, 0, 10) == 1.0, "clamp safe on zero velocity");
 	}
 }
 

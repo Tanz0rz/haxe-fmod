@@ -7,6 +7,8 @@ class RunTests {
 
 		var totalFailed = 0;
 		totalFailed += TestCallbackDispatcher.run();
+		totalFailed += TestLayering.run();
+		totalFailed += TestPostBuild.run();
 		totalFailed += TestRuntime.run();
 		totalFailed += TestStringsBankParser.run();
 		totalFailed += TestStudioSurface.run();

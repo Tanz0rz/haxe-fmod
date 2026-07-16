@@ -50,7 +50,16 @@ abstract PcmStream(Int) from Int to Int {
      * unaccepted and resend it once space() opens up.
      */
     public inline function write(data:haxe.io.Bytes, length:Int = -1):Int {
-        return NativeStudio.core_pcm_write(this, data, length < 0 ? data.length : length);
+        if (data == null) return 0;
+        // Exactly -1 means the whole buffer. Any other non-positive count
+        // reaches the native layer and reports FMOD_ERR_INVALID_PARAM, so
+        // a miscomputed count surfaces instead of writing everything.
+        var len = length == -1 ? data.length : length;
+        // Clamp to the real buffer size. The HashLink shim receives a bare
+        // byte pointer with no length of its own, so an oversized count
+        // would read past the buffer without this guard.
+        if (len > data.length) len = data.length;
+        return NativeStudio.core_pcm_write(this, data, len);
     }
 
     /** Bytes that can be written right now. */

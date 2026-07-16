@@ -1,7 +1,7 @@
 package haxefmod;
 
 import haxefmod.FmodSound;
-import haxefmod.runtime.CallbackDispatcher;
+import haxefmod.studio.CallbackDispatcher;
 import haxefmod.runtime.FmodRuntime;
 import haxefmod.runtime.FmodSettings;
 import haxefmod.studio.Callbacks;
@@ -124,11 +124,10 @@ class FmodManager {
      * Pauses the master bus, freezing every sound routed through it at
      * its current position. Pair with UnpauseAllSounds to resume.
      *
-     * Intended for a full pause menu where the game's audio should
-     * completely, but temporily stopped. While this pause state is active,
-     * new sound events will be queued up and all played moment the
-     * unpause function is called.
-     *
+     * Intended for a full pause menu where the game's audio should stop
+     * completely but temporarily. While this pause state is active, new
+     * sound events are queued up and all play the moment the unpause
+     * function is called.
      */
     public static function PauseAllSounds():Void {
         ensureInitialized();
@@ -362,6 +361,17 @@ class FmodManager {
     }
 
     /**
+     * Fire-and-forget playback that follows a moving object until the event
+     * ends. Intended for one-shot (self-ending) events. Flixel games can
+     * pass a FlxObject through FmodFlxUtilities.PlaySoundOneShotAttached.
+     */
+    public static function PlaySoundOneShotAttached(soundPath:String, provider:haxefmod.runtime.IFmodPositionProvider):Void {
+        ensureInitialized();
+        log('PlaySoundOneShotAttached $soundPath');
+        FmodRuntime.playOneShotAttached(soundPath, provider);
+    }
+
+    /**
      * Plays a sound and returns a typed handle for further control
      * (parameters, callbacks, stop/pause). Call release() when done with
      * the handle.
@@ -375,9 +385,10 @@ class FmodManager {
         return instance;
     }
 
-    /** Removes every registered event callback (song and sounds). */
+    /** Removes every registered callback (song, sounds, and core channels). */
     public static function ClearAllCallbacks():Void {
         CallbackDispatcher.clearAll();
+        haxefmod.core.ChannelCallbacks.clearAll();
     }
 
     /**

@@ -58,7 +58,7 @@ abstract EventInstance(Int) from Int to Int {
      * happens here on every target for consistent behavior).
      */
     public inline function release():FmodResult {
-        haxefmod.runtime.CallbackDispatcher.remove(this);
+        CallbackDispatcher.remove(this);
         return NativeStudio.evi_release(this);
     }
 
@@ -212,7 +212,7 @@ abstract EventInstance(Int) from Int to Int {
      * destroyed). Delivered from FmodManager.Update / FmodRuntime.update.
      */
     public inline function setCallback(handler:EventCallbackData->Void, ?mask:Int):Void {
-        haxefmod.runtime.CallbackDispatcher.setCallback(this, handler, mask);
+        CallbackDispatcher.setCallback(this, handler, mask);
     }
 
     /**

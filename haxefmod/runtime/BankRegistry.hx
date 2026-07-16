@@ -110,9 +110,13 @@ class BankRegistry {
     }
 
     static inline function bankPathFor(filePath:String):String {
-        // FMOD bank paths look like "bank:/Master". Derive from the file name
+        // FMOD bank paths look like "bank:/Master". Derive from the file
+        // name, stripping only the trailing ".bank" extension so multi-dot
+        // names like Master.strings.bank map to "bank:/Master.strings"
         var file = filePath.split("/").pop();
-        var name = file.split(".")[0];
+        var name = StringTools.endsWith(file, ".bank")
+            ? file.substr(0, file.length - 5)
+            : file;
         return 'bank:/$name';
     }
 }

@@ -369,6 +369,7 @@ class NativeStudioStub {
     public static function sys_stop_command_capture():Int return ERR_UNSUPPORTED;
     public static function sys_load_command_replay(path:String):Int return 0;
     public static function replay_release(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function replay_is_valid(handle:Int):Bool return false;
     public static function replay_start(handle:Int):Int return ERR_UNSUPPORTED;
     public static function replay_stop(handle:Int):Int return ERR_UNSUPPORTED;
     public static function replay_set_paused(handle:Int, paused:Bool):Int return ERR_UNSUPPORTED;

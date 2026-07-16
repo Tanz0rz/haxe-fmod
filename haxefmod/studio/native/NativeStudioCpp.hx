@@ -85,9 +85,9 @@ class NativeStudioCpp {
     public static inline function sys_init_ex(numChannels:Int, sampleRate:Int, speakerMode:Int, studioFlags:Int):Int return Raw.sys_init_ex(numChannels, sampleRate, speakerMode, studioFlags);
     public static inline function sys_set_debug_level(level:Int):Int return Raw.sys_set_debug_level(level);
     public static inline function sys_load_bank_async(path:String):Int return Raw.sys_load_bank_async(path);
-    public static inline function sys_is_initialized():Bool return Raw.is_initialized();
-    public static inline function sys_update():Void Raw.update();
-    public static inline function sys_set_auto_update(enabled:Bool):Void Raw.set_auto_update(enabled);
+    public static inline function sys_is_initialized():Bool return Raw.sys_is_initialized();
+    public static inline function sys_update():Void Raw.sys_update();
+    public static inline function sys_set_auto_update(enabled:Bool):Void Raw.sys_set_auto_update(enabled);
 
     // Bus
     public static inline function bus_is_valid(handle:Int):Bool return Raw.bus_is_valid(handle);
@@ -498,6 +498,7 @@ class NativeStudioCpp {
     public static inline function sys_stop_command_capture():Int return Raw.sys_stop_command_capture();
     public static inline function sys_load_command_replay(path:String):Int return Raw.sys_load_command_replay(path);
     public static inline function replay_release(handle:Int):Int return Raw.replay_release(handle);
+    public static inline function replay_is_valid(handle:Int):Bool return Raw.replay_is_valid(handle);
     public static inline function replay_start(handle:Int):Int return Raw.replay_start(handle);
     public static inline function replay_stop(handle:Int):Int return Raw.replay_stop(handle);
     public static inline function replay_set_paused(handle:Int, paused:Bool):Int return Raw.replay_set_paused(handle, paused);
@@ -608,14 +609,14 @@ class NativeStudioCpp {
 @:keep
 @:include("linc_faxe.h")
 private extern class Raw {
-    @:native("linc::faxe::fmod_is_initialized")
-    static function is_initialized():Bool;
+    @:native("linc::faxe::fmod_sys_is_initialized")
+    static function sys_is_initialized():Bool;
 
-    @:native("linc::faxe::fmod_update")
-    static function update():Void;
+    @:native("linc::faxe::fmod_sys_update")
+    static function sys_update():Void;
 
-    @:native("linc::faxe::fmod_set_auto_update")
-    static function set_auto_update(enabled:Bool):Void;
+    @:native("linc::faxe::fmod_sys_set_auto_update")
+    static function sys_set_auto_update(enabled:Bool):Void;
 
     @:native("linc::faxe::fmod_sys_last_result")
     static function sys_last_result():Int;
@@ -1547,6 +1548,8 @@ private extern class Raw {
 
     @:native("linc::faxe::fmod_replay_release")
     static function replay_release(handle:Int):Int;
+    @:native("linc::faxe::fmod_replay_is_valid")
+    static function replay_is_valid(handle:Int):Bool;
 
     @:native("linc::faxe::fmod_replay_start")
     static function replay_start(handle:Int):Int;
