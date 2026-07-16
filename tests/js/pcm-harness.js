@@ -462,6 +462,13 @@ function testCallbacksAndSyncPoints() {
         `name=${jaxe.fmod_sound_get_sync_point_name(snd, 0)}`);
     check('s4_sync_offset', jaxe.fmod_sound_get_sync_point_offset(snd, 0) === 50,
         `offset=${jaxe.fmod_sound_get_sync_point_offset(snd, 0)}`);
+    // Long designer-authored names survive intact (the natives allow 511
+    // bytes, the shim buffer must not truncate shorter)
+    const longName = 'sync-'.repeat(20);
+    check('s4_sync_long_name_add', jaxe.fmod_sound_add_sync_point(snd, 75, longName) === jaxe.FMOD.OK);
+    check('s4_sync_long_name_roundtrip', jaxe.fmod_sound_get_sync_point_name(snd, 1) === longName,
+        `len=${jaxe.fmod_sound_get_sync_point_name(snd, 1).length}`);
+    check('s4_sync_long_name_delete', jaxe.fmod_sound_delete_sync_point(snd, 1) === jaxe.FMOD.OK);
 
     const ch = jaxe.fmod_core_play_sound(snd, false);
     check('s4_set_callback', jaxe.fmod_chan_set_callback(ch, true) === jaxe.FMOD.OK);

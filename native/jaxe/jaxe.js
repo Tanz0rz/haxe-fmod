@@ -385,7 +385,7 @@ class jaxe {
     static ERR_INVALID_PARAM = 31;
     static ERR_UNSUPPORTED = 68;
     static ERR_INVALID_GUID = 31;   // malformed GUID string -> FMOD_ERR_INVALID_PARAM (shared shim convention)
-    static ERR_NOTREADY = 82;
+    static ERR_NOTREADY = 46;
     static ERR_STUDIO_UNINITIALIZED = 75;
 
     static sysReady() {
@@ -1129,7 +1129,7 @@ class jaxe {
 
     // Resolves a bank handle for the fmod_bank_* functions, treating async
     // placeholders from fmod_sys_load_bank_async as not ready: sets
-    // lastResult = 82 (ERR_NOTREADY) and returns null so callers never touch
+    // lastResult = 46 (ERR_NOTREADY) and returns null so callers never touch
     // a placeholder. bank_get_loading_state, bank_is_valid and bank_unload
     // special-case placeholders instead of using this helper.
     static resolveBankReady(handle) {
@@ -3242,7 +3242,7 @@ class jaxe {
         if (jaxe.lastResult != jaxe.FMOD.OK) return "";
         var name = {};
         var offset = {};
-        jaxe.lastResult = sound.getSyncPointInfo(point.val, name, 64, offset, jaxe.FMOD.TIMEUNIT_MS);
+        jaxe.lastResult = sound.getSyncPointInfo(point.val, name, 512, offset, jaxe.FMOD.TIMEUNIT_MS);
         return jaxe.lastResult == jaxe.FMOD.OK ? (name.val || "") : "";
     }
 
@@ -3254,7 +3254,7 @@ class jaxe {
         if (jaxe.lastResult != jaxe.FMOD.OK) return -1;
         var name = {};
         var offset = {};
-        jaxe.lastResult = sound.getSyncPointInfo(point.val, name, 64, offset, jaxe.FMOD.TIMEUNIT_MS);
+        jaxe.lastResult = sound.getSyncPointInfo(point.val, name, 512, offset, jaxe.FMOD.TIMEUNIT_MS);
         return jaxe.lastResult == jaxe.FMOD.OK ? offset.val : -1;
     }
 
@@ -3979,6 +3979,9 @@ class jaxe {
     static fmod_cg_get_3d_attributes(handle, fbuf) {
         var group = jaxe.resolveCg(handle);
         if (!group) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        // The ChannelGroup binding writes plain x/y/z keys here, unlike the
+        // Channel binding which writes flat dotted keys (probed on the real
+        // 2.03.12 wasm). The asymmetry is the binding's, keep both as is.
         var pos = {};
         var vel = {};
         jaxe.lastResult = group.get3DAttributes(pos, vel);

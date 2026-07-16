@@ -81,7 +81,7 @@ class NativeManifestCheck {
         return entries;
     }
 
-    /** Matches single-line C++ definitions like: int fmod_load_bank(const ::String& path) { */
+    /** Matches single-line C++ definitions like: int fmod_bank_unload(int handle) { */
     static function scanCpp(path:String):Map<String, Int> {
         var found = new Map<String, Int>();
         var re = ~/^\s*[A-Za-z_][\w:&<>\* ]*\bfmod_(\w+)\s*\(([^)]*)\)\s*\{/;
@@ -93,7 +93,7 @@ class NativeManifestCheck {
         return found;
     }
 
-    /** Matches: DEFINE_PRIM(_I32, create_instance, _BYTES). */
+    /** Matches: DEFINE_PRIM(_I32, evd_create_instance, _I32). */
     static function scanHl(path:String):Map<String, Int> {
         var found = new Map<String, Int>();
         var re = ~/DEFINE_PRIM\s*\(\s*_\w+\s*,\s*(\w+)\s*,\s*([^)]*)\)/;

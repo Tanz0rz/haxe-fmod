@@ -550,6 +550,8 @@ async function main() {
     const liveBeforePending = jaxe.fmod_debug_live_handle_count();
     const pbank = expect('sys_load_bank_async pending', () => jaxe.fmod_sys_load_bank_async('Pending.bank'), r => r > 0);
     expect('live handle count while pending', () => jaxe.fmod_debug_live_handle_count(), r => r === liveBeforePending + 1);
+    // Placeholder-backed calls report the real FMOD_ERR_NOTREADY code (46)
+    expect('bank_get_id while pending', () => { jaxe.fmod_bank_get_id(pbank); return jaxe.lastResult; }, r => r === 46);
     expect('bank_unload while pending', () => jaxe.fmod_bank_unload(pbank), r => r === 0);
     expect('bank_is_valid after pending unload', () => jaxe.fmod_bank_is_valid(pbank), r => r === false);
     expect('handleResolve null after pending unload', () => jaxe.handleResolve(pbank, jaxe.TYPE_BANK), r => r === null);
