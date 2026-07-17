@@ -45,7 +45,11 @@ static void* gListBuf[FAXE_LIST_MAX];
 // Binding ABI marker. PostBuild.hx scans compiled hdlls for this string to
 // reject stale pre-built hdlls before they become loader fatals. Keep the
 // number in lockstep with the manifest header "# abi-version:".
-static const char gAbiMarker[] = "hlaxe_fmod_abi=8";
+// volatile: clang -O2 constant-folds a plain atoi(marker) and then strips
+// the unreferenced string from the binary, erasing the marker the scan
+// depends on. Volatile reads cannot be folded, so the string survives any
+// optimization level.
+static const volatile char gAbiMarker[] = "hlaxe_fmod_abi=8";
 
 // Auto-update thread state
 static volatile int gAutoUpdateRunning = 0;
@@ -4606,8 +4610,16 @@ HL_PRIM int HL_NAME(debug_live_handle_count)() {
 DEFINE_PRIM(_I32, debug_live_handle_count, _NO_ARG);
 
 // Reads the version out of the marker so the string is always retained in
-// the compiled hdll and the prim can never disagree with it.
+// the compiled hdll and the prim can never disagree with it. The digits are
+// copied through volatile reads before atoi (see the marker declaration).
 HL_PRIM int HL_NAME(binding_abi_version)() {
-    return atoi(gAbiMarker + 15);
+    char digits[8];
+    int i = 0;
+    while (i < 7 && gAbiMarker[15 + i] != '\0') {
+        digits[i] = gAbiMarker[15 + i];
+        i++;
+    }
+    digits[i] = '\0';
+    return atoi(digits);
 }
 DEFINE_PRIM(_I32, binding_abi_version, _NO_ARG);
