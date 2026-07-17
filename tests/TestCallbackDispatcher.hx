@@ -100,6 +100,11 @@ class TestCallbackDispatcher {
 		CallbackDispatcher.clearAll();
 		assert("clearAll removes handlers", !CallbackDispatcher.hasHandler(7));
 
+		// A null handler removes the registration
+		CallbackDispatcher.setCallback(8, _ -> {}, 0x20);
+		CallbackDispatcher.setCallback(8, null);
+		assert("null handler removes registration", !CallbackDispatcher.hasHandler(8));
+
 		// Channel-namespace records never reach event dispatch, even with
 		// no router installed and an event handler on the same int
 		var savedRouter = CallbackDispatcher.channelRouter;

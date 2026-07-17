@@ -2814,18 +2814,30 @@ jobs:
 
           # Files the package must contain: the manifest drives PostBuild's
           # ABI check, the shared headers drive build-hdll, MIGRATION.md is
-          # linked from the README
+          # linked from the README, linc_faxe.* is the whole C++ target,
+          # the html5 placeholders satisfy lime's parse-time checks, and
+          # fmod_expected_version drives the version gate. This job only
+          # builds hl and html5, so the C++ files are assert-only here.
           for required in \
             "haxelib.json" \
             "MIGRATION.md" \
+            "fmod_expected_version" \
             "native/manifest/studio_api.txt" \
             "native/shared/faxe_handles.h" \
             "native/shared/faxe_cbqueue.h" \
             "native/shared/faxe_guid.h" \
             "native/shared/faxe_instctx.h" \
+            "native/shared/faxe_pcmring.h" \
+            "native/faxe/linc_faxe.cpp" \
+            "native/faxe/linc_faxe.h" \
+            "native/faxe/linc_faxe.xml" \
             "native/hlaxe/hlaxe_fmod.c" \
             "native/jaxe/jaxe.js" \
+            "native/html5/fmodstudio.js" \
+            "native/html5/fmodstudio.wasm" \
             "templates/bin/hl/Linux64/hlaxe_fmod.hdll" \
+            "templates/bin/hl/Mac64/hlaxe_fmod.hdll" \
+            "templates/bin/hl/Windows64/hlaxe_fmod.hdll" \
             "include.xml"; do
             unzip -l haxefmod.zip | grep -q "$required" || {
               echo "MISSING from package: $required"

@@ -27,7 +27,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define FAXE_PS_KEY_MAX 256
+/* Matches the 512-byte native string buffer so keys and file paths
+ * truncate at the same point on every target. */
+#define FAXE_PS_KEY_MAX 512
 
 typedef struct {
     int handle;               /* handle-table handle for this instance */

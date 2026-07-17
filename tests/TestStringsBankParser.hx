@@ -27,6 +27,7 @@ class TestStringsBankParser {
 		testGoldenFixture();
 		testMissingFile();
 		testNotABank();
+		testHostileChunkSize();
 		testMangling();
 		testCollisionSuffixes();
 		testEmitClass();
@@ -93,6 +94,25 @@ class TestStringsBankParser {
 		} catch (e:haxe.Exception) {
 			assert("non-bank error names the file", e.message.indexOf(path) != -1);
 			assert("non-bank error mentions the expected format", e.message.indexOf("RIFF") != -1);
+		}
+	}
+
+	static function testHostileChunkSize() {
+		// A chunk whose size field reads as a negative signed int must stop
+		// the scan (the old scan looped forever because the pointer never
+		// advanced past such a chunk)
+		var bytes = haxe.io.Bytes.alloc(28);
+		bytes.blit(0, haxe.io.Bytes.ofString("RIFF"), 0, 4);
+		bytes.setInt32(4, 20); // riff size
+		bytes.blit(8, haxe.io.Bytes.ofString("FEV "), 0, 4);
+		bytes.blit(12, haxe.io.Bytes.ofString("XXXX"), 0, 4);
+		bytes.setInt32(16, 0xFFFFFFF8); // crafted size, -8 as signed
+		try {
+			StringsBankParser.parse(bytes, "hostile.bank");
+			failed++;
+			Sys.println("  FAIL: hostile chunk size did not throw");
+		} catch (e:haxe.Exception) {
+			assert("hostile chunk stops with the no-STDT error", e.message.indexOf("STDT") != -1);
 		}
 	}
 

@@ -36,6 +36,7 @@ class FmodRuntime {
     // only touches (and lazily allocates) the master channel group when the
     // state actually changes - not on every focused startup.
     static var focusMuteApplied:Bool = false;
+    static var focusMuteSynced:Bool = false;
 
     /** Expected native binding ABI - lockstep with the manifest "# abi-version:". */
     public static inline var BINDING_ABI:Int = 8;
@@ -98,6 +99,13 @@ class FmodRuntime {
      */
     public static function update():Void {
         if (!isInitialized()) return;
+        if (!focusMuteSynced) {
+            // html5 initialization completes asynchronously, so a focus
+            // loss reported during init is applied on the first serviced
+            // frame (native init applies it directly, this is a no-op there)
+            focusMuteSynced = true;
+            applyFocusMute();
+        }
         #if (cpp || hl)
         if (resolved == null || !resolved.autoUpdate) NativeStudio.sys_update();
         #end
@@ -190,16 +198,11 @@ class FmodRuntime {
     public static function playOneShotAttached(eventPath:String, provider:IFmodPositionProvider):Void {
         var instance = createInstance(eventPath);
         if (instance.isNull()) return;
-        attach(instance, provider);
         // release() cannot happen up front like playOneShot: it invalidates
         // the handle immediately, which would end the position updates. The
-        // Stopped callback releases instead (detach happens by pruning).
-        instance.setCallback(data -> {
-            switch (data) {
-                case Stopped: instance.release();
-                default:
-            }
-        }, EventCallbackType.STOPPED);
+        // attach loop releases once the event reports STOPPED instead (a
+        // callback registration would not survive ClearAllCallbacks).
+        attached.attach(instance, provider, true);
         instance.start();
     }
 

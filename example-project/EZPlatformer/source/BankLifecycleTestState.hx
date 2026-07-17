@@ -31,6 +31,7 @@ class BankLifecycleTestState extends FlxState {
     var _asyncFrames:Int = 0;
     var _asyncMissing:haxefmod.studio.Bank;
     var _asyncDuplicate:haxefmod.studio.Bank;
+    var _asyncConcurrent:haxefmod.studio.Bank;
     var _baseline:Int = 0;
 
     static inline function log(message:String):Void {
@@ -79,6 +80,15 @@ class BankLifecycleTestState extends FlxState {
         check("async_missing_handle", !_asyncMissing.isNull(), "");
         _asyncDuplicate = FmodRuntime.banks.loadAsync(masterPath);
         check("async_duplicate_handle", !_asyncDuplicate.isNull(), "");
+        // Two concurrent loads of the same path share one in-flight
+        // placeholder instead of racing a second fetch
+        var concurrentA = FmodRuntime.banks.loadAsync("assets/fmod/Desktop/AlsoMissing.bank");
+        var concurrentB = FmodRuntime.banks.loadAsync("assets/fmod/Desktop/AlsoMissing.bank");
+        check("async_concurrent_shared", (concurrentA : Int) == (concurrentB : Int),
+            'a=${(concurrentA : Int)} b=${(concurrentB : Int)}');
+        check("async_concurrent_refcount", FmodRuntime.banks.refCount("assets/fmod/Desktop/AlsoMissing.bank") == 2,
+            'refs=${FmodRuntime.banks.refCount("assets/fmod/Desktop/AlsoMissing.bank")}');
+        _asyncConcurrent = concurrentA;
         _awaitingAsync = true;
         label.text = "BANK_TEST waiting on async fetches";
         return;
@@ -155,7 +165,9 @@ class BankLifecycleTestState extends FlxState {
             _asyncFrames++;
             var missingState = _asyncMissing.getLoadingState();
             var duplicateState = _asyncDuplicate.getLoadingState();
-            var settled = missingState != FmodLoadingState.LOADING && duplicateState != FmodLoadingState.LOADING;
+            var concurrentState = _asyncConcurrent.getLoadingState();
+            var settled = missingState != FmodLoadingState.LOADING && duplicateState != FmodLoadingState.LOADING
+                && concurrentState != FmodLoadingState.LOADING;
             if (settled || _asyncFrames > 600) {
                 _awaitingAsync = false;
                 // A missing URL must surface as ERROR, never hang or crash
@@ -165,9 +177,13 @@ class BankLifecycleTestState extends FlxState {
                 // network, then the load itself reports the duplicate
                 check("async_duplicate_errors", duplicateState == FmodLoadingState.ERROR,
                     'state=${(duplicateState : Int)}');
-                // The two async placeholders persist by design (errored
-                // handles keep reporting ERROR instead of being freed)
-                check("no_handle_leaks", StudioSystem.liveHandleCount() == _baseline + 2,
+                // The shared concurrent load settles once for both holders
+                check("async_concurrent_errors", concurrentState == FmodLoadingState.ERROR,
+                    'state=${(concurrentState : Int)}');
+                // The three async placeholders persist by design (errored
+                // handles keep reporting ERROR instead of being freed). The
+                // deduped concurrent pair holds ONE placeholder, not two
+                check("no_handle_leaks", StudioSystem.liveHandleCount() == _baseline + 3,
                     'baseline=$_baseline now=${StudioSystem.liveHandleCount()}');
                 log('BANK_TEST: COMPLETE passed=$_passCount failed=$_failCount');
                 _done = true;

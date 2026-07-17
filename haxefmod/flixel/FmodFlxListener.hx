@@ -71,8 +71,11 @@ class FmodFlxListener extends FlxBasic {
         if (target != null) {
             x = target.x + target.width / 2;
             y = target.y + target.height / 2;
-            velX = target.velocity.x;
-            velY = target.velocity.y;
+            // A destroyed FlxObject nulls its velocity while position
+            // fields stay readable
+            var targetVelocity = target.velocity;
+            velX = targetVelocity == null ? 0 : targetVelocity.x;
+            velY = targetVelocity == null ? 0 : targetVelocity.y;
         } else {
             var camera = FlxG.camera;
             if (camera == null) return;

@@ -146,10 +146,15 @@ class FlxObjectPositionProvider implements IFmodPositionProvider {
     }
 
     public function fmodVelocityX():Float {
-        return target.velocity.x;
+        // A destroyed FlxObject nulls its velocity while position fields
+        // stay readable, so a stale target reports zero motion instead of
+        // crashing the per-frame push
+        var velocity = target.velocity;
+        return velocity == null ? 0 : velocity.x;
     }
 
     public function fmodVelocityY():Float {
-        return target.velocity.y;
+        var velocity = target.velocity;
+        return velocity == null ? 0 : velocity.y;
     }
 }

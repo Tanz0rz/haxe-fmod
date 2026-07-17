@@ -788,6 +788,9 @@ class jaxe {
     // filenames are resolved from the filesystem root like fmod_load_bank.
     static fmod_sys_load_bank_file(path, flags) {
         if (!jaxe.sysReady()) return 0;
+        // The C shims hand a null path to FMOD which rejects it - report
+        // the same INVALID_PARAM here instead of throwing
+        if (typeof path != "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return 0; }
         var fsPath = (path.charAt(0) == "/") ? path : "/" + path;
         var loadFlags = (flags & 1)
             ? jaxe.FMOD.STUDIO_LOAD_BANK_NONBLOCKING
@@ -809,6 +812,7 @@ class jaxe {
     // a fetch that settles after that never reaches FMOD.
     static fmod_sys_load_bank_async(path) {
         if (!jaxe.sysReady()) return 0;
+        if (typeof path != "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return 0; }
         var placeholder = { pendingBankPath: path };
         var handle = jaxe.handleAlloc(placeholder, jaxe.TYPE_BANK);
         if (handle == 0) return 0;

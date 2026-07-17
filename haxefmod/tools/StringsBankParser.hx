@@ -110,7 +110,9 @@ class StringsBankParser {
 			var size = readU32(bytes, p + 4);
 			var payloadStart = p + 8;
 			var payloadEnd = payloadStart + size;
-			if (payloadEnd > end) return null; // corrupt chunk, stop scanning
+			// A negative size (a crafted 32-bit value read as signed) would
+			// stall or rewind the scan pointer forever
+			if (size < 0 || payloadEnd > end) return null; // corrupt chunk, stop scanning
 			if (chunkTag == tag) return {start: payloadStart, end: payloadEnd};
 			if (chunkTag == "LIST" && size >= 4) {
 				// LIST payload: 4-byte list type, then child chunks

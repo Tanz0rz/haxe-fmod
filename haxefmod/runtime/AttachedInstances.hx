@@ -8,7 +8,7 @@ import haxefmod.studio.EventInstance;
  * stopped and destroyed, stale handles) are pruned automatically.
  */
 class AttachedInstances {
-    var entries:Array<{instance:EventInstance, provider:IFmodPositionProvider}> = [];
+    var entries:Array<{instance:EventInstance, provider:IFmodPositionProvider, autoRelease:Bool}> = [];
 
     /**
      * Caps the velocity magnitude pushed to FMOD (game units per second).
@@ -18,16 +18,22 @@ class AttachedInstances {
 
     public function new() {}
 
-    /** Attaches an instance. replaces the provider if already attached. */
-    public function attach(instance:EventInstance, provider:IFmodPositionProvider):Void {
+    /**
+     * Attaches an instance. Replaces the provider if already attached.
+     * With autoRelease the instance is released as soon as it reports
+     * STOPPED, which is how one-shots clean themselves up without relying
+     * on a callback registration that ClearAllCallbacks could remove.
+     */
+    public function attach(instance:EventInstance, provider:IFmodPositionProvider, autoRelease:Bool = false):Void {
         if (instance.isNull() || provider == null) return;
         for (entry in entries) {
             if ((entry.instance : Int) == (instance : Int)) {
                 entry.provider = provider;
+                entry.autoRelease = autoRelease;
                 return;
             }
         }
-        entries.push({instance: instance, provider: provider});
+        entries.push({instance: instance, provider: provider, autoRelease: autoRelease});
         push(instance, provider);
     }
 
@@ -51,6 +57,10 @@ class AttachedInstances {
             var entry = entries[i];
             if (!entry.instance.isValid()) {
                 entries.splice(i, 1);
+            } else if (entry.autoRelease
+                    && entry.instance.getPlaybackState() == haxefmod.studio.Types.FmodPlaybackState.STOPPED) {
+                entries.splice(i, 1);
+                entry.instance.release();
             } else {
                 push(entry.instance, entry.provider);
             }

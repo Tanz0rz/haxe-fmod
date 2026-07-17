@@ -407,6 +407,10 @@ class ApiProbeState extends FlxState {
         FmodRuntime.playOneShotAttached(FmodEvents.SFXJump, new ProbeMovingProvider());
         check("oneshot_attached_tracked", FmodRuntime.attachedCount() == _oneShotAttachedBaseline + 1,
             'count=${FmodRuntime.attachedCount()}');
+        // The one-shot must clean itself up even when every callback
+        // registration is wiped while it plays (release rides the attach
+        // loop's STOPPED check, not a callback)
+        FmodManager.ClearAllCallbacks();
         _waitingForOneShot = true;
     }
 

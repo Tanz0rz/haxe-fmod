@@ -34,10 +34,15 @@ class CallbackDispatcher {
 
     /**
      * Registers a handler for an event instance and tells FMOD which
-     * callback types to deliver. Replaces any existing handler.
+     * callback types to deliver. Replaces any existing handler. A null
+     * handler removes the current registration.
      */
     public static function setCallback(handle:Int, handler:EventCallbackData->Void, ?mask:Int):Void {
-        if (handle == 0 || handler == null) return;
+        if (handle == 0) return;
+        if (handler == null) {
+            handlers.remove(handle);
+            return;
+        }
         var callbackMask:Int = mask == null ? EventCallbackType.PLAYBACK_ALL : mask;
         // Always include DESTROYED so registrations clean themselves up.
         callbackMask |= EventCallbackType.DESTROYED;

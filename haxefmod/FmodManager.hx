@@ -206,7 +206,11 @@ class FmodManager {
 
         log('PlaySong $songPath');
         var instance = FmodRuntime.createInstance(songPath);
-        if (instance.isNull()) return;
+        if (instance.isNull()) {
+            trace('Warn: FMOD - PlaySong could not create "' + songPath
+                + '" (check the event path, that its bank is loaded, and that FMOD is initialized)');
+            return;
+        }
         instance.start();
         songInstance = instance;
         CurrentSong = songPath;
@@ -380,7 +384,11 @@ class FmodManager {
         ensureInitialized();
         log('PlaySound $soundPath');
         var instance = FmodRuntime.createInstance(soundPath);
-        if (instance.isNull()) return FmodSound.NULL;
+        if (instance.isNull()) {
+            trace('Warn: FMOD - PlaySound could not create "' + soundPath
+                + '" (check the event path, that its bank is loaded, and that FMOD is initialized)');
+            return FmodSound.NULL;
+        }
         instance.start();
         return instance;
     }

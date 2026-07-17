@@ -202,7 +202,12 @@ class Generate {
 		return lines.join("\n");
 	}
 
-	/** Mangles one path into a Haxe identifier (see class doc for the rules). */
+	/**
+		Mangles one path into a Haxe identifier (see class doc for the
+		rules). Only ASCII letters and digits survive: non-ASCII characters
+		are dropped, so a path named entirely in another script collapses to
+		"Root" and relies on the collision suffixes for uniqueness.
+	**/
 	public static function mangle(path:String, prefix:String):String {
 		var rest = StringTools.startsWith(path, prefix) ? path.substr(prefix.length) : path;
 		var out = new StringBuf();

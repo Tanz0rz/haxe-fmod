@@ -37,7 +37,12 @@ class BankRegistry {
 
     function doLoad(path:String, async:Bool):Bank {
         var entry = banks.get(path);
-        if (entry != null && entry.bank.isValid()) {
+        // An html5 async load holds a placeholder that reports LOADING but
+        // not valid until the fetch lands, so the in-flight state counts as
+        // registered too - a second load of the same path must share it
+        // instead of starting a competing fetch
+        if (entry != null && (entry.bank.isValid()
+                || entry.bank.getLoadingState() == FmodLoadingState.LOADING)) {
             entry.refs++;
             return entry.bank;
         }

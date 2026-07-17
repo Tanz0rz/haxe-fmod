@@ -251,7 +251,7 @@ class BuildHdll {
 				var coreLib = Path.join([fmodSdk, "api", "core", "lib", "x86_64"]);
 				var studioLib = Path.join([fmodSdk, "api", "studio", "lib", "x86_64"]);
 				[
-					"-shared", "-fPIC",
+					"-shared", "-fPIC", "-O2",
 					"-Wl,-rpath,$ORIGIN",
 					"-o", output,
 					source,
@@ -266,7 +266,7 @@ class BuildHdll {
 				var coreLib = Path.join([fmodSdk, "api", "core", "lib"]);
 				var studioLib = Path.join([fmodSdk, "api", "studio", "lib"]);
 				[
-					"-dynamiclib",
+					"-dynamiclib", "-O2",
 					"-arch", "x86_64",
 					"-install_name", "@executable_path/hlaxe_fmod.hdll",
 					"-o", output,
