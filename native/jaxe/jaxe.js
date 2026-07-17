@@ -1,7 +1,11 @@
 /**
  * Jaxe - JavaScript FMOD bindings - Minimal FFI layer
  *
- * Minimal FFI wrapper: raw FMOD calls only, all logic lives in JsBackend.hx.
+ * Raw FMOD calls only against the Emscripten Studio API. Typed wrappers
+ * live in haxefmod/studio and haxefmod/core. Numeric arguments pass
+ * through for FMOD to validate. This shim guards what the embind layer
+ * makes dangerous instead: argument arities, null out-params, wrapper
+ * identity, and callback teardown ordering.
  */
 
 class jaxe {

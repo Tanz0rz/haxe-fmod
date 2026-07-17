@@ -1,7 +1,11 @@
 /**
  * HashLink FMOD bindings - Minimal FFI layer
  *
- * Minimal FFI wrapper: raw FMOD calls only, all logic lives in HlBackend.hx.
+ * Raw FMOD calls only, mirrored line for line from linc_faxe.cpp. Typed
+ * wrappers live in haxefmod/studio and haxefmod/core. Numeric arguments
+ * pass through for FMOD to validate (it owns the rules and reports the
+ * result code). The shim itself guards only memory safety: buffer sizes,
+ * handle resolution, and byte counts a bare pointer cannot carry.
  */
 
 #define HL_NAME(n) hlaxe_fmod_##n

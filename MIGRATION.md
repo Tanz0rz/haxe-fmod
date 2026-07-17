@@ -63,6 +63,7 @@ The separate flixel-fmod library is fully absorbed by 2.0's
 |---|---|
 | `FlxFmod.Init()` | `haxefmod.flixel.FmodFlxSetup.init()` |
 | `FlxFmod.switchState(state)` | `haxefmod.flixel.FmodFlxUtilities.TransitionToState(state)` |
+| `FlxFmod.stopMusicAndSwitchState(state)` | `haxefmod.flixel.FmodFlxUtilities.TransitionToStateAndStopMusic(state)` |
 | Hand-rolled sound tray / volume wiring | Covered by `FmodFlxSetup.init()` |
 
 `FmodFlxSetup.init()` covers everything the old `Init()` did (FMOD

@@ -1,7 +1,12 @@
 /**
  * Faxe - C++ FMOD bindings - Minimal FFI layer
  *
- * Minimal FFI wrapper: raw FMOD calls only, all logic lives in CppBackend.hx.
+ * Raw FMOD calls only. The wrapper classes in haxefmod/studio and
+ * haxefmod/core carry the typed API on top. Argument validation policy:
+ * numeric arguments (indexes, counts, positions) pass through to FMOD,
+ * which validates them and reports the result code. The shim only guards
+ * what FMOD cannot: buffer lengths, handle resolution, and anything that
+ * would read or write out of bounds before FMOD sees it.
  *
  * The MIT License (MIT)
  * Copyright (c) 2016 Aaron M. Shea

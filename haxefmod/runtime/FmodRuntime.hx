@@ -18,7 +18,11 @@ import haxefmod.studio.native.NativeStudio;
  *   FmodRuntime.init({liveUpdate: true});
  *   var jump = FmodRuntime.createInstance("event:/SFX/Jump");
  *
- * Everything here is static - there is exactly one FMOD system per process.
+ * Everything here is static - there is exactly one FMOD system per
+ * process, created on the first init and alive until the process exits.
+ * There is deliberately no shutdown or re-init call: a teardown path
+ * would trade a capability games do not use for a whole class of
+ * use-after-shutdown bugs, and FMOD releases everything at exit.
  */
 class FmodRuntime {
     /** Refcounted bank loading (paths resolved against settings.bankFolder). */
