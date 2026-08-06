@@ -69,13 +69,18 @@ jobs:
 
   # ===========================================================================
   # HashLink master (unpinned)
-  # This job exists to detect when the pre-SDL3 HashLink pin used by the main
-  # workflow can be dropped: once master builds and runs here, the pinned
-  # commit in audio-test.yml is no longer needed.
+  # Tracks HashLink master so breakage against haxefmod surfaces weekly.
+  # HashLink master needs SDL3 since the SDL3 port (hashlink #830), and
+  # ubuntu-latest has no libsdl3-dev package yet, so SDL3 is built from
+  # source (cached) whenever apt cannot provide it. The apt check emits the
+  # signal for the pre-SDL3 HashLink pin in audio-test.yml: a notice means
+  # the pin can be dropped, a warning means keep it.
   # ===========================================================================
   hashlink-master:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      SDL3_VERSION: 3.4.14
     steps:
       - uses: actions/checkout@v5
 
@@ -107,9 +112,42 @@ jobs:
           sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg patchelf \
             libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
             libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev libz-dev
-          # HashLink master may need SDL3 after the SDL3 port (hashlink #830);
-          # keep SDL2 installed too and tolerate runners without libsdl3-dev
-          sudo apt-get install -y libsdl3-dev || echo "libsdl3-dev not available on this runner"
+
+      - name: Check apt for libsdl3-dev
+        id: sdl3-apt
+        run: |
+          if sudo apt-get install -y libsdl3-dev; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+            echo "::notice ::libsdl3-dev is now available on ubuntu-latest. The pre-SDL3 HashLink pin in audio-test.yml can be dropped."
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::warning ::libsdl3-dev is still unavailable on ubuntu-latest. SDL3 will be built from source. Keep the pre-SDL3 HashLink pin in audio-test.yml."
+          fi
+
+      - name: Restore SDL3 build cache
+        if: steps.sdl3-apt.outputs.available == 'false'
+        id: sdl3-cache
+        uses: actions/cache@v5
+        with:
+          path: /tmp/sdl3-install
+          key: sdl3-${{ env.SDL3_VERSION }}
+
+      - name: Build SDL3 from source
+        if: steps.sdl3-apt.outputs.available == 'false' && steps.sdl3-cache.outputs.cache-hit != 'true'
+        run: |
+          curl -fsSL -o /tmp/sdl3.tar.gz \
+            "https://github.com/libsdl-org/SDL/releases/download/release-${SDL3_VERSION}/SDL3-${SDL3_VERSION}.tar.gz"
+          tar -xzf /tmp/sdl3.tar.gz -C /tmp
+          cmake -S "/tmp/SDL3-${SDL3_VERSION}" -B /tmp/sdl3-build -DCMAKE_BUILD_TYPE=Release
+          cmake --build /tmp/sdl3-build -j"$(nproc)"
+          DESTDIR=/tmp/sdl3-install cmake --install /tmp/sdl3-build
+
+      - name: Install SDL3
+        if: steps.sdl3-apt.outputs.available == 'false'
+        run: |
+          sudo cp -a /tmp/sdl3-install/usr/local/. /usr/local/
+          sudo ldconfig
+          pkg-config --modversion sdl3
 
       - name: Build and install HashLink (master, unpinned)
         run: |
