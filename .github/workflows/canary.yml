@@ -347,3 +347,82 @@ jobs:
 
       - name: Validate game log
         run: ./ci/validate-game-log.sh /tmp/game-canary-fmod.log
+
+  # ===========================================================================
+  # Failure alert email (Resend)
+  # Emails the maintainer when any canary job fails. Configuration lives
+  # outside the workflow: the RESEND_API_KEY secret holds the Resend API key,
+  # the CANARY_ALERT_TO repository variable holds the recipient address, and
+  # the optional CANARY_ALERT_FROM variable overrides the sender address.
+  # When the secret or recipient is missing the step logs a notice and exits
+  # cleanly so the alert never turns a canary run red on its own.
+  # ===========================================================================
+  notify-failure:
+    runs-on: ubuntu-latest
+    needs: [latest-deps, hashlink-master, fmod-version]
+    if: ${{ !cancelled() && contains(needs.*.result, 'failure') }}
+    timeout-minutes: 5
+    steps:
+      - name: Send failure email
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          ALERT_TO: ${{ vars.CANARY_ALERT_TO }}
+          ALERT_FROM: ${{ vars.CANARY_ALERT_FROM || 'onboarding@resend.dev' }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          RESULT_LATEST_DEPS: ${{ needs.latest-deps.result }}
+          RESULT_HASHLINK_MASTER: ${{ needs.hashlink-master.result }}
+          RESULT_FMOD_VERSION: ${{ needs.fmod-version.result }}
+        run: |
+          if [ -z "$RESEND_API_KEY" ]; then
+            echo "RESEND_API_KEY secret is not set - skipping email alert"
+            exit 0
+          fi
+          if [ -z "$ALERT_TO" ]; then
+            echo "CANARY_ALERT_TO repository variable is not set - skipping email alert"
+            exit 0
+          fi
+
+          FAILED=""
+          if [ "$RESULT_LATEST_DEPS" = "failure" ]; then
+            FAILED="$FAILED latest-deps"
+          fi
+          if [ "$RESULT_HASHLINK_MASTER" = "failure" ]; then
+            FAILED="$FAILED hashlink-master"
+          fi
+          if [ "$RESULT_FMOD_VERSION" = "failure" ]; then
+            FAILED="$FAILED fmod-version"
+          fi
+          FAILED=$(echo "$FAILED" | xargs)
+
+          SUBJECT="haxe-fmod canary failed: $FAILED"
+          TEXT="The weekly canary workflow failed.
+
+          Failed jobs: $FAILED
+
+          Job results:
+            latest-deps: $RESULT_LATEST_DEPS
+            hashlink-master: $RESULT_HASHLINK_MASTER
+            fmod-version: $RESULT_FMOD_VERSION
+
+          Run: $RUN_URL
+
+          A canary failure is an early-warning signal about upstream changes (latest haxelibs, HashLink master, or a new FMOD SDK). It does not mean main is broken."
+
+          jq -n --arg from "$ALERT_FROM" --arg to "$ALERT_TO" \
+            --arg subject "$SUBJECT" --arg text "$TEXT" \
+            '{from: $from, to: [$to], subject: $subject, text: $text}' \
+            > /tmp/resend-payload.json
+
+          HTTP_CODE=$(curl -sS -o /tmp/resend-response.json -w "%{http_code}" \
+            -X POST https://api.resend.com/emails \
+            -H "Authorization: Bearer $RESEND_API_KEY" \
+            -H "Content-Type: application/json" \
+            --data @/tmp/resend-payload.json)
+
+          cat /tmp/resend-response.json
+          echo ""
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "Resend API returned HTTP $HTTP_CODE"
+            exit 1
+          fi
+          echo "Alert email sent to $ALERT_TO"
