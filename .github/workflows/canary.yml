@@ -135,6 +135,10 @@ jobs:
       - name: Build SDL3 from source
         if: steps.sdl3-apt.outputs.available == 'false' && steps.sdl3-cache.outputs.cache-hit != 'true'
         run: |
+          # SDL requires the dev package of every X11 component it detects,
+          # and the runner image does not ship all of them
+          sudo apt-get install -y libxext-dev libxrandr-dev libxcursor-dev \
+            libxfixes-dev libxi-dev libxss-dev libxtst-dev libxkbcommon-dev
           curl -fsSL -o /tmp/sdl3.tar.gz \
             "https://github.com/libsdl-org/SDL/releases/download/release-${SDL3_VERSION}/SDL3-${SDL3_VERSION}.tar.gz"
           tar -xzf /tmp/sdl3.tar.gz -C /tmp
