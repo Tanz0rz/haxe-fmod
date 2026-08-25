@@ -27,10 +27,7 @@ class Todos {
 
 	public static function run(args:Array<String>, cwd:String) {
 		var json = args.indexOf("--json") >= 0;
-		var root = cwd;
-		for (arg in args) {
-			if (arg != "--json" && FileSystem.exists(arg) && FileSystem.isDirectory(arg)) root = arg;
-		}
+		var root = resolveRoot(args, cwd);
 		var entries = scanDirectory(root);
 		if (json) {
 			Sys.println(haxe.Json.stringify(entries));
@@ -45,6 +42,21 @@ class Todos {
 		}
 		Sys.println("");
 		Sys.println('${entries.length} sound TODO(s) remaining.');
+	}
+
+	/**
+	 * Resolves the scan root from the arguments. A relative directory is
+	 * the caller's: under haxelib run the process cwd is the library root,
+	 * so resolving against it would scan the wrong tree (or silently fall
+	 * back when the name does not exist there). Exposed for tests.
+	 */
+	public static function resolveRoot(args:Array<String>, cwd:String):String {
+		for (arg in args) {
+			if (arg == "--json") continue;
+			var candidate = haxe.io.Path.isAbsolute(arg) ? arg : haxe.io.Path.join([cwd, arg]);
+			if (FileSystem.exists(candidate) && FileSystem.isDirectory(candidate)) return candidate;
+		}
+		return cwd;
 	}
 
 	/** Scans every .hx file under root, skipping build output and metadata directories. */
@@ -108,7 +120,15 @@ class Todos {
 				line = skipped.line;
 				continue;
 			}
-			if (c == "F".code && content.substr(i, needle.length) == needle && !isIdentChar(i > 0 ? content.charCodeAt(i - 1) : 0)) {
+			// Regex literal: a quote inside it would desync the string
+			// skipper and swallow real calls up to the next quote
+			if (c == "~".code && i + 1 < len && content.charCodeAt(i + 1) == "/".code) {
+				var skipped = skipRegex(content, i, line);
+				i = skipped.pos;
+				line = skipped.line;
+				continue;
+			}
+			if (c == "F".code && content.substr(i, needle.length) == needle && callPrefixOk(content, i)) {
 				var callLine = line;
 				var j = i + needle.length;
 				var jLine = line;
@@ -153,6 +173,41 @@ class Todos {
 			i++;
 		}
 		return entries;
+	}
+
+	// The call must not be a member access on some other value. A bare call
+	// and the package-qualified haxefmod.FmodManager.Todo both count; any
+	// other dotted or identifier prefix is a lookalike.
+	static function callPrefixOk(content:String, i:Int):Bool {
+		if (i == 0) return true;
+		var prev = content.charCodeAt(i - 1);
+		if (!isIdentChar(prev)) return true;
+		if (prev != ".".code) return false;
+		var pkg = "haxefmod";
+		var start = i - 1 - pkg.length;
+		if (start < 0 || content.substr(start, pkg.length) != pkg) return false;
+		return start == 0 || !isIdentChar(content.charCodeAt(start - 1));
+	}
+
+	static function skipRegex(content:String, start:Int, line:Int):{pos:Int, line:Int} {
+		var i = start + 2;
+		var len = content.length;
+		while (i < len) {
+			var c = content.charCodeAt(i);
+			if (c == "\\".code) {
+				i += 2;
+				continue;
+			}
+			if (c == "\n".code) line++;
+			if (c == "/".code) {
+				i++;
+				// trailing flags (g, i, m, s, u)
+				while (i < len && isIdentChar(content.charCodeAt(i))) i++;
+				break;
+			}
+			i++;
+		}
+		return {pos: i, line: line};
 	}
 
 	static function skipString(content:String, start:Int, line:Int):{pos:Int, line:Int} {

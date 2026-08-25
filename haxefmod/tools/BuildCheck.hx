@@ -55,6 +55,96 @@ class BuildCheck {
         } else if (Context.defined("hl") || Context.defined("cpp")) {
             requireSdkFile("FMOD_SDK", ["api", "core", "inc", "fmod_common.h"]);
         }
+
+        if (Context.defined("hl")) {
+            verifyHlHdllGate();
+        }
+    }
+
+    /**
+     * HL version and ABI gate at compile time. The postbuild step prints
+     * the same diagnosis, but lime DISCARDS postbuild exit codes
+     * (CommandHelper.executeCommands ignores the Sys.command result), so
+     * only failing compilation reliably stops `lime test` before a
+     * mismatched hdll crashes the game at startup.
+     */
+    static function verifyHlHdllGate():Void {
+        var sdkPath = Sys.getEnv("FMOD_SDK");
+        if (sdkPath == null || sdkPath == "") return; // requireEnv handled it
+        var sdkHeader = haxe.io.Path.join([sdkPath, "api", "core", "inc", "fmod_common.h"]);
+        if (!sys.FileSystem.exists(sdkHeader)) return; // requireSdkFile handled it
+        var libRoot = resolveLibRoot();
+        if (libRoot == null) return;
+        var versionFile = haxe.io.Path.join([libRoot, "fmod_expected_version"]);
+        if (!sys.FileSystem.exists(versionFile)) return; // packaging problem, postbuild warns
+        var expectedHex = StringTools.trim(sys.io.File.getContent(versionFile));
+        var sdkHex = PostBuild.parseFmodVersion(sdkHeader);
+        if (sdkHex == null) return;
+
+        var projectDir = Sys.getCwd();
+        var customHdll = haxe.io.Path.join([projectDir, ".haxefmod", "hlaxe_fmod.hdll"]);
+        var markerFile = haxe.io.Path.join([projectDir, ".haxefmod", "hlaxe_fmod.version"]);
+        var haveCustom = sys.FileSystem.exists(customHdll);
+        var markerHex = sys.FileSystem.exists(markerFile)
+            ? StringTools.trim(sys.io.File.getContent(markerFile)) : null;
+
+        if (expectedHex != sdkHex && !(haveCustom && markerHex == sdkHex)) {
+            var sdkVer = PostBuild.hexToVersion(sdkHex);
+            var expectedVer = PostBuild.hexToVersion(expectedHex);
+            fail('FMOD SDK version mismatch ($sdkVer, the pre-built hdll needs $expectedVer)',
+                'haxefmod: FMOD SDK version mismatch - the game would crash at startup.\n'
+                + "\n"
+                + '  Your FMOD SDK:   $sdkVer\n'
+                + '  Pre-built hdll:  $expectedVer\n'
+                + "\n"
+                + "  To compile an hdll matching your SDK, run:\n"
+                + "    haxelib run haxefmod build-hdll\n"
+                + "\n"
+                + '  Or download FMOD $expectedVer from https://www.fmod.com/download');
+        }
+
+        // ABI check on the hdll the build will use (the custom one when its
+        // marker matches the SDK, the shipped pre-built one otherwise)
+        var expectedAbi = PostBuild.expectedAbiVersion(libRoot);
+        if (expectedAbi <= 0) return;
+        var useCustom = haveCustom && (markerHex == null || markerHex == sdkHex);
+        var hdll = useCustom ? customHdll : haxe.io.Path.join(
+            [libRoot, "templates", "bin", "hl", prebuiltPlatformDir(), "hlaxe_fmod.hdll"]);
+        if (!sys.FileSystem.exists(hdll)) return; // postbuild reports the missing hdll
+        var found = PostBuild.scanHdllAbi(hdll);
+        if (found != expectedAbi) {
+            fail('hlaxe_fmod.hdll binding ABI mismatch (hdll has '
+                + (found == 0 ? "no marker" : Std.string(found)) + ', the library needs $expectedAbi)',
+                'haxefmod: hlaxe_fmod.hdll binding ABI mismatch - the game would fail to load.\n'
+                + "\n"
+                + '  hdll: $hdll\n'
+                + '  hdll binding ABI:     ' + (found == 0 ? "unknown (no ABI marker)" : Std.string(found)) + "\n"
+                + '  library expects ABI:  $expectedAbi\n'
+                + "\n"
+                + "  To compile a matching hdll, run:\n"
+                + "    haxelib run haxefmod build-hdll\n"
+                + "  from your project directory, then rebuild.");
+        }
+    }
+
+    static function prebuiltPlatformDir():String {
+        return switch (Sys.systemName()) {
+            case "Windows": "Windows64";
+            case "Mac": "Mac64";
+            default: "Linux64";
+        }
+    }
+
+    // The library root is the parent of the haxefmod/ classpath this macro
+    // was loaded from. Path-based, so it survives lime's space-splitting of
+    // postbuild arguments and needs no haxelib subprocess.
+    static function resolveLibRoot():Null<String> {
+        try {
+            var here = Context.resolvePath("haxefmod/tools/BuildCheck.hx");
+            return haxe.io.Path.directory(haxe.io.Path.directory(haxe.io.Path.directory(here)));
+        } catch (e:Dynamic) {
+            return null;
+        }
     }
 
     static function requireEnv(name:String, message:String):Void {

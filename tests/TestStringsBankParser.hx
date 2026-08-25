@@ -32,6 +32,7 @@ class TestStringsBankParser {
 		testCollisionSuffixes();
 		testEmitClass();
 		testEventEnums();
+		testGeneratedStringEscaping();
 
 		cleanup();
 		Sys.println('  $passed passed, $failed failed');
@@ -156,6 +157,18 @@ class TestStringsBankParser {
 		].join("\n");
 		var actual = @:privateAccess Generate.emitClass("FmodEvents", "event:/", entries, "");
 		assert("emitClass golden output (paths class + Guids companion, lowercased)", actual == expected);
+	}
+
+	static function testGeneratedStringEscaping() {
+		assert("quote escaped", Generate.quoteHx('He said "hi"') == 'He said \\"hi\\"');
+		assert("backslash escaped", Generate.quoteHx("a\\b") == "a\\\\b");
+		assert("clean path unchanged", Generate.quoteHx("event:/SFX/Jump") == "event:/SFX/Jump");
+
+		// An event path containing a quote must emit a compilable literal
+		var entries = [{path: 'event:/He said "hi"', guid: "{00000000-0000-0000-0000-000000000000}"}];
+		var text = Generate.emitEventEnums(entries, "");
+		assert("enum emit escapes quoted paths",
+			text != null && text.indexOf('"event:/He said \\"hi\\""') >= 0);
 	}
 
 	static function testEventEnums() {

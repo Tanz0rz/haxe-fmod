@@ -176,7 +176,7 @@ class PostBuild {
 	//// hdll resolution (HL target)
 
 	// Expected ABI version comes from the manifest header ("# abi-version: N").
-	static function expectedAbiVersion(libRoot:String):Int {
+	public static function expectedAbiVersion(libRoot:String):Int {
 		var manifestPath = Path.join([libRoot, "native", "manifest", "studio_api.txt"]);
 		if (!FileSystem.exists(manifestPath)) return -1;
 		for (line in File.getContent(manifestPath).split("\n")) {
@@ -191,7 +191,7 @@ class PostBuild {
 
 	// Scans the hdll binary for the embedded "hlaxe_fmod_abi=<N>" marker.
 	// Returns the version, or 0 when no marker exists (an hdll built before the ABI marker existed).
-	static function scanHdllAbi(hdllPath:String):Int {
+	public static function scanHdllAbi(hdllPath:String):Int {
 		var bytes = File.getBytes(hdllPath);
 		var marker = "hlaxe_fmod_abi=";
 		var limit = bytes.length - marker.length - 4;
@@ -221,6 +221,29 @@ class PostBuild {
 		return 0;
 	}
 
+	// A custom hdll is only preferred while its version marker matches the
+	// SDK in use. A leftover .haxefmod/ from an older SDK experiment would
+	// otherwise ship next to mismatched runtime libraries and fail at
+	// startup, even though the SDK matches the pre-built expectation.
+	// A missing or unreadable marker keeps the old trust-the-custom-hdll
+	// behavior (build-hdll always writes one).
+	static function customHdllMatchesSdk(projectDir:String):Bool {
+		var markerFile = Path.join([projectDir, ".haxefmod", "hlaxe_fmod.version"]);
+		if (!FileSystem.exists(markerFile)) return true;
+		var sdkPath = Sys.getEnv("FMOD_SDK");
+		if (sdkPath == null || sdkPath == "") return true;
+		var sdkHeader = Path.join([sdkPath, "api", "core", "inc", "fmod_common.h"]);
+		if (!FileSystem.exists(sdkHeader)) return true;
+		var sdkHex = parseFmodVersion(sdkHeader);
+		if (sdkHex == null) return true;
+		var markerHex = StringTools.trim(File.getContent(markerFile));
+		if (markerHex == sdkHex) return true;
+		log('Custom hdll in .haxefmod/ was built for FMOD ${hexToVersion(markerHex)},'
+			+ ' the SDK is ${hexToVersion(sdkHex)} - using the pre-built hdll.'
+			+ ' Run "haxelib run haxefmod build-hdll" to rebuild it, or delete .haxefmod/.');
+		return false;
+	}
+
 	// Tiered hdll resolution (project-local .haxefmod/ then pre-built) with a
 	// binding ABI check: an hdll compiled against an older native surface is
 	// missing prims and dies with a loader fatal at startup, so the build is
@@ -230,14 +253,22 @@ class PostBuild {
 		var prebuiltHdll = Path.join([libRoot, "templates", "bin", "hl", platformDir, "hlaxe_fmod.hdll"]);
 		var source:String = null;
 		var flavor:String = null;
-		if (FileSystem.exists(projectHdll)) {
+		if (FileSystem.exists(projectHdll) && customHdllMatchesSdk(projectDir)) {
 			source = projectHdll;
 			flavor = "custom-compiled from .haxefmod/";
 		} else if (FileSystem.exists(prebuiltHdll)) {
 			source = prebuiltHdll;
 			flavor = "pre-built";
 		}
-		if (source == null) return;
+		if (source == null) {
+			// An HL build with no hdll dies at runtime with a bare loader
+			// error, so failing loudly here is the only useful outcome
+			log('ERROR: no hlaxe_fmod.hdll found');
+			log('  Checked: $projectHdll');
+			log('  Checked: $prebuiltHdll');
+			log("  Reinstall haxefmod, or compile one with: haxelib run haxefmod build-hdll");
+			Sys.exit(1);
+		}
 
 		var expected = expectedAbiVersion(libRoot);
 		if (expected > 0) {

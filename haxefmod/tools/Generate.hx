@@ -157,7 +157,7 @@ class Generate {
 		lines.push("\tpublic static inline function path(event:FmodEventEnum):String {");
 		lines.push("\t\treturn switch (event) {");
 		for (i in 0...matched.length) {
-			lines.push('\t\t\tcase ${names[i]}: "${matched[i].path}";');
+			lines.push('\t\t\tcase ${names[i]}: "${quoteHx(matched[i].path)}";');
 		}
 		lines.push("\t\t};");
 		lines.push("\t}");
@@ -187,7 +187,7 @@ class Generate {
 		var names = identifiersFor(entries.map(e -> e.path), prefix);
 		lines.push('class $className {');
 		for (i in 0...entries.length) {
-			lines.push('\tpublic static inline var ${names[i]}:String = "${entries[i].path}";');
+			lines.push('\tpublic static inline var ${names[i]}:String = "${quoteHx(entries[i].path)}";');
 		}
 		lines.push("}");
 		lines.push("");
@@ -200,6 +200,16 @@ class Generate {
 		lines.push("}");
 		lines.push("");
 		return lines.join("\n");
+	}
+
+	/**
+		Escapes a value for a generated double-quoted Haxe string literal.
+		A backslash or quote in an event path would otherwise emit an
+		uncompilable file. Kept in lockstep with quoteHx in
+		fmod-scripts/ExportHaxeConstants.js.
+	**/
+	public static function quoteHx(s:String):String {
+		return StringTools.replace(StringTools.replace(s, "\\", "\\\\"), '"', '\\"');
 	}
 
 	/**

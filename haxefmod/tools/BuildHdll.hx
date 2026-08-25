@@ -286,6 +286,10 @@ class BuildHdll {
 				var args = [
 					"/LD", "/O2", "/DWIN32",
 					source,
+					// cl writes the .obj into the process cwd by default,
+					// which under haxelib run is the installed library
+					// directory (possibly read-only)
+					"/Fo" + Path.join([Path.directory(output), "hlaxe_fmod.obj"]),
 					'/I$hlInclude',
 					'/I$coreInc',
 					'/I$studioInc',

@@ -28,6 +28,9 @@ class TestTodoScanner {
 		testIgnoresFieldAccessPrefix();
 		testEmptyFile();
 		testCallAfterString();
+		testFindsFullyQualified();
+		testRegexLiteralWithQuote();
+		testRootResolution();
 
 		Sys.println('  $passed passed, $failed failed');
 		return failed;
@@ -104,6 +107,37 @@ class TestTodoScanner {
 	static function testCallAfterString() {
 		var found = scan('var s = "text"; FmodManager.Todo("after a string");');
 		assert("finds a call after a string on the same line", found.length == 1 && found[0].description == "after a string");
+	}
+
+	static function testFindsFullyQualified() {
+		var found = scan('haxefmod.FmodManager.Todo("fully qualified");');
+		assert("finds the package-qualified call", found.length == 1
+			&& found[0].description == "fully qualified");
+		var nested = scan('foo.haxefmod.FmodManager.Todo("not the real package");');
+		assert("skips a re-qualified lookalike package", nested.length == 0);
+	}
+
+	static function testRegexLiteralWithQuote() {
+		var found = scan('var r = ~/"/; FmodManager.Todo("after a regex");');
+		assert("a quote inside a regex literal does not hide calls",
+			found.length == 1 && found[0].description == "after a regex");
+		var cls = scan("var r = ~/[\"']+/g; FmodManager.Todo('after a class regex');");
+		assert("quotes in a regex class do not hide calls",
+			cls.length == 1 && cls[0].description == "after a class regex");
+	}
+
+	static function testRootResolution() {
+		// A relative directory argument is the caller's, not the process
+		// cwd (haxelib run leaves the process inside the library root)
+		var cwd = Sys.getCwd();
+		var resolved = Todos.resolveRoot(["tests"], cwd);
+		assert("relative arg resolves against the caller cwd",
+			StringTools.replace(resolved, "\\", "/") == StringTools.replace(haxe.io.Path.join([cwd, "tests"]), "\\", "/"));
+		assert("absolute arg kept", Todos.resolveRoot([cwd], "/somewhere/else") == cwd);
+		assert("missing arg falls back to the caller cwd",
+			Todos.resolveRoot(["no-such-dir-here"], cwd) == cwd);
+		assert("no arg falls back to the caller cwd", Todos.resolveRoot([], cwd) == cwd);
+		assert("json flag is not a directory", Todos.resolveRoot(["--json"], cwd) == cwd);
 	}
 
 	static function assert(name:String, condition:Bool) {

@@ -30,9 +30,12 @@ class Run {
 					Sys.println("Usage: haxelib run haxefmod postbuild <platform> <target> <libroot>");
 					Sys.exit(1);
 				}
-				// cwd from haxelib is the caller's working directory (project dir)
-				// libRoot is passed explicitly from include.xml via ${haxelib:haxefmod}
-				PostBuild.run(userArgs[1], userArgs[2], userArgs[3], cwd);
+				// cwd from haxelib is the caller's working directory (project
+				// dir). The libroot argument from include.xml is IGNORED:
+				// lime splits postbuild commands on spaces with no quote
+				// handling, so a haxelib path containing a space arrives
+				// shattered. The root is resolved from this process instead.
+				PostBuild.run(userArgs[1], userArgs[2], libRoot, cwd);
 			case "verify-native":
 				Sys.exit(NativeManifestCheck.run(libRoot));
 			case "generate":
@@ -218,20 +221,32 @@ class Run {
 	}
 
 	static function checkWindowsMsvc() {
-		// vswhere.exe is installed with Visual Studio 2017+ and is how hxcpp locates MSVC
+		// vswhere.exe is installed with Visual Studio 2017+ and is how hxcpp
+		// locates MSVC. Without -products * it skips the standalone Build
+		// Tools product, which is exactly what the remediation below tells
+		// the user to install.
 		var vswherePath = "C:\\Program Files (x86)\\Microsoft Visual Studio\\Installer\\vswhere.exe";
 		if (FileSystem.exists(vswherePath)) {
-			var result = runQuiet(vswherePath, ["-latest", "-property", "installationPath"]);
+			var result = runQuiet(vswherePath, ["-latest", "-products", "*", "-property", "installationPath"]);
 			if (result.exitCode == 0 && result.stdout != "") {
 				pass("Visual Studio C++ tools (for lime build windows)", result.stdout);
 				return;
 			}
 		}
 
-		// Fallback: check if cl.exe is in PATH
-		var result = runQuiet("cl", ["--version"]);
-		if (result.exitCode == 0) {
-			pass("Visual Studio C++ tools (for lime build windows)", "");
+		// Fallback: cl.exe reachable in PATH. cl has no version flag and
+		// exits non-zero when run bare, so the check is that it ran at all
+		// (matching BuildHdll.compilerAvailable).
+		var clRan = try {
+			var proc = new sys.io.Process("cl", []);
+			proc.stdout.readAll();
+			proc.stderr.readAll();
+			proc.exitCode();
+			proc.close();
+			true;
+		} catch (e:Dynamic) false;
+		if (clRan) {
+			pass("Visual Studio C++ tools (for lime build windows)", "cl.exe in PATH");
 		} else {
 			fail("Visual Studio C++ tools (needed for lime build windows, not needed for lime build hl)", "Not detected via vswhere or PATH");
 			Sys.println("         Install Build Tools for Visual Studio 2022:");
@@ -316,6 +331,12 @@ class Run {
 
 	static function checkHdllCompatibility(fmodSdk:String, platform:String, libRoot:String, projectDir:String) {
 		var commonHeader = '$fmodSdk/api/core/inc/fmod_common.h';
+		// A truncated SDK extract can pass the fmod.h gate while this header
+		// is missing. The doctor must report, not die on an unguarded read.
+		if (!FileSystem.exists(commonHeader)) {
+			warn("Pre-built hdll compatible with SDK", 'Cannot verify: missing $commonHeader');
+			return;
+		}
 		var sdkHex = PostBuild.parseFmodVersion(commonHeader);
 		if (sdkHex == null) return;
 
@@ -375,23 +396,33 @@ class Run {
 		}
 	}
 
+	// Lime accepts project.xml, Project.xml, and application.xml, so the
+	// diagnostics must find any of them on a case-sensitive filesystem
+	static function findProjectXml(cwd:String):Null<String> {
+		for (name in ["Project.xml", "project.xml", "application.xml"]) {
+			var path = '$cwd/$name';
+			if (FileSystem.exists(path)) return path;
+		}
+		return null;
+	}
+
 	static function checkProjectXml(cwd:String) {
-		var projectXml = '$cwd/Project.xml';
-		if (!FileSystem.exists(projectXml)) {
+		var projectXml = findProjectXml(cwd);
+		if (projectXml == null) {
 			// Not in a project directory, skip silently
 			return;
 		}
 		var content = File.getContent(projectXml);
 		if (content.indexOf("haxefmod") != -1) {
-			pass("Project.xml includes haxefmod", "");
+			pass("Project file includes haxefmod", projectXml);
 		} else {
-			fail("Project.xml includes haxefmod", 'Add <haxelib name="haxefmod" /> to your Project.xml');
+			fail("Project file includes haxefmod", 'Add <haxelib name="haxefmod" /> to $projectXml');
 		}
 	}
 
 	static function checkBankFiles(cwd:String) {
 		var bankPath = '$cwd/assets/fmod/Desktop/Master.bank';
-		if (!FileSystem.exists('$cwd/Project.xml')) {
+		if (findProjectXml(cwd) == null) {
 			return; // Not in a project directory
 		}
 		if (FileSystem.exists(bankPath)) {
