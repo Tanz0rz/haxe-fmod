@@ -50,6 +50,15 @@ int main(void) {
         assert(parsed.Data4[7] == 0xa2);
     }
 
+    /* surrounding whitespace is tolerated (matching the html5 shim's trim,
+     * and GUIDs read from files often keep a trailing newline) */
+    {
+        FMOD_GUID parsed;
+        assert(faxe_guid_parse("  {1f687138-e06c-40f5-9b9c-9d9e9fa0a1a2}\n", &parsed) == 1);
+        assert(parsed.Data1 == 0x1f687138u);
+        assert(faxe_guid_parse("1f687138-e06c-40f5-9b9c-9d9e9fa0a1a2\r\n", &parsed) == 1);
+    }
+
     /* malformed GUIDs are rejected instead of zero-padding wrong values */
     {
         FMOD_GUID parsed;

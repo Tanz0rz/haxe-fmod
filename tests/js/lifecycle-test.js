@@ -33,6 +33,9 @@ jaxe.onRuntimeInitialized = function () {
     jaxe.FMOD.Studio_System_Create(o); jaxe.gSystem = o.val;
     jaxe.gSystem.getCoreSystem(o); jaxe.gSystemCore = o.val;
     jaxe.gSystemCore.setOutput(jaxe.FMOD.OUTPUTTYPE_NOSOUND_NRT);
+    // A fixed mixer block makes NRT time-per-update deterministic, so the
+    // beat wait below cannot depend on the SDK's default block size
+    jaxe.gSystemCore.setDSPBufferSize(2048, 2);
     jaxe.gSystem.initialize(1024, jaxe.FMOD.STUDIO_INIT_NORMAL, jaxe.FMOD.INIT_NORMAL, null);
     var b = {};
     jaxe.gSystem.loadBankFile('/Master.bank', jaxe.FMOD.STUDIO_LOAD_BANK_NORMAL, b);
@@ -123,7 +126,7 @@ async function main() {
         `old=${inst4} new=${reminted}`);
     drainEvents();
     jaxe.fmod_evi_set_callback_mask(reminted, 0x1000 /* TIMELINE_BEAT */);
-    await pump(40);
+    await pump(100);
     const beatEvents = drainEvents().filter(ev => ev.type === 0x1000);
     check('beats_deliver_on_reminted_handle',
         beatEvents.length > 0 && beatEvents.every(ev => ev.handle === reminted),

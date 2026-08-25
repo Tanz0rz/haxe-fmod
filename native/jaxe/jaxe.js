@@ -897,7 +897,15 @@ class jaxe {
         // the FMOD JS module is corrupted.
         jaxe.uninstallCallbacksFor(null);
         jaxe.lastResult = jaxe.gSystem.unloadAll();
-        if (jaxe.lastResult == jaxe.FMOD.OK) jaxe.sweepDeadLookups();
+        if (jaxe.lastResult == jaxe.FMOD.OK) {
+            // Every async-loaded bank just died without passing through
+            // fmod_bank_unload, so their MEMFS copies are deleted here
+            for (const name of jaxe.asyncBankFiles.values()) {
+                jaxe.unlinkMemfsFile(name);
+            }
+            jaxe.asyncBankFiles.clear();
+            jaxe.sweepDeadLookups();
+        }
         return jaxe.lastResult;
     }
 

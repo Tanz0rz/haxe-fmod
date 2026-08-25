@@ -32,8 +32,13 @@ static int faxe_guid_is_hex(char c) {
     return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
 }
 
-/* Parses "{8-4-4-4-12}" (braces optional) into id. Returns 1 on success.
- * Group widths are enforced exactly and no trailing text is accepted, so a
+static int faxe_guid_is_space(char c) {
+    return c == ' ' || c == '\t' || c == '\r' || c == '\n';
+}
+
+/* Parses "{8-4-4-4-12}" (braces optional, surrounding whitespace allowed
+ * to match the html5 shim's trim) into id. Returns 1 on success. Group
+ * widths are enforced exactly and no trailing text is accepted, so a
  * malformed GUID fails here instead of resolving a zero-padded wrong GUID
  * (sscanf alone accepts short groups and ignores trailing garbage). */
 static int faxe_guid_parse(const char* text, FMOD_GUID* id) {
@@ -49,6 +54,7 @@ static int faxe_guid_parse(const char* text, FMOD_GUID* id) {
     const char* p;
 
     if (!text || !id) return 0;
+    while (faxe_guid_is_space(text[0])) text++;
     braced = text[0] == '{';
     if (braced) text++;
 
@@ -67,6 +73,7 @@ static int faxe_guid_parse(const char* text, FMOD_GUID* id) {
         if (*p != '}') return 0;
         p++;
     }
+    while (faxe_guid_is_space(*p)) p++;
     if (*p != '\0') return 0;
 
     matched = sscanf(text, "%8x-%4x-%4x-%2x%2x-%2x%2x%2x%2x%2x%2x",

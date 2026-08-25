@@ -243,7 +243,10 @@ class FmodManager {
 
         log('PlaySongTransition $songPath');
         NextSong = songPath;
-        songInstance.stop(ALLOWFADEOUT);
+        // The handler arms before the stop: a song already fading (the
+        // background update thread processes stops between any two calls
+        // here) could otherwise deliver its Stopped in the gap and never
+        // hand off
         songInstance.setCallback(data -> {
             switch (data) {
                 case Stopped:
@@ -257,6 +260,16 @@ class FmodManager {
                 default:
             }
         }, EventCallbackType.STOPPED);
+        songInstance.stop(ALLOWFADEOUT);
+        // The fade can also complete before the handler was installed: no
+        // Stopped will ever arrive for it, so hand off directly. NextSong
+        // is cleared first, which keeps a queued Stopped a no-op.
+        if (NextSong != null
+            && songInstance.getPlaybackState() == FmodPlaybackState.STOPPED) {
+            var next = NextSong;
+            NextSong = null;
+            PlaySong(next);
+        }
     }
 
     /** Fades the song out (as authored) and cancels any pending transition. */

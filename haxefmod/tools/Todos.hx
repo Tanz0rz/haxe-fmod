@@ -195,6 +195,7 @@ class Todos {
 		while (i < len) {
 			var c = content.charCodeAt(i);
 			if (c == "\\".code) {
+				if (i + 1 < len && content.charCodeAt(i + 1) == "\n".code) line++;
 				i += 2;
 				continue;
 			}
@@ -217,6 +218,7 @@ class Todos {
 		while (i < len) {
 			var c = content.charCodeAt(i);
 			if (c == "\\".code) {
+				if (i + 1 < len && content.charCodeAt(i + 1) == "\n".code) line++;
 				i += 2;
 				continue;
 			}

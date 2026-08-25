@@ -79,7 +79,6 @@ class BuildCheck {
         if (!sys.FileSystem.exists(versionFile)) return; // packaging problem, postbuild warns
         var expectedHex = StringTools.trim(sys.io.File.getContent(versionFile));
         var sdkHex = PostBuild.parseFmodVersion(sdkHeader);
-        if (sdkHex == null) return;
 
         var projectDir = Sys.getCwd();
         var customHdll = haxe.io.Path.join([projectDir, ".haxefmod", "hlaxe_fmod.hdll"]);
@@ -88,7 +87,9 @@ class BuildCheck {
         var markerHex = sys.FileSystem.exists(markerFile)
             ? StringTools.trim(sys.io.File.getContent(markerFile)) : null;
 
-        if (expectedHex != sdkHex && !(haveCustom && markerHex == sdkHex)) {
+        // An unparseable header skips the version gate (postbuild warns)
+        // but never the ABI gate below
+        if (sdkHex != null && expectedHex != sdkHex && !(haveCustom && markerHex == sdkHex)) {
             var sdkVer = PostBuild.hexToVersion(sdkHex);
             var expectedVer = PostBuild.hexToVersion(expectedHex);
             fail('FMOD SDK version mismatch ($sdkVer, the pre-built hdll needs $expectedVer)',
@@ -107,7 +108,8 @@ class BuildCheck {
         // marker matches the SDK, the shipped pre-built one otherwise)
         var expectedAbi = PostBuild.expectedAbiVersion(libRoot);
         if (expectedAbi <= 0) return;
-        var useCustom = haveCustom && (markerHex == null || markerHex == sdkHex);
+        var useCustom = haveCustom
+            && (markerHex == null || sdkHex == null || markerHex == sdkHex);
         var hdll = useCustom ? customHdll : haxe.io.Path.join(
             [libRoot, "templates", "bin", "hl", prebuiltPlatformDir(), "hlaxe_fmod.hdll"]);
         if (!sys.FileSystem.exists(hdll)) return; // postbuild reports the missing hdll

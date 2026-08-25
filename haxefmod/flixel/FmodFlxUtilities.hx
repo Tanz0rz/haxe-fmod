@@ -26,16 +26,29 @@ class FmodFlxUtilities {
 
         // Once-semantics matter here: a persistent handler would survive on
         // the retained song instance and yank the game into this state
-        // again the next time the same song stops
+        // again the next time the same song stops. RESTARTED is in the mask
+        // so a direct PlaySong of the same song during the fade consumes
+        // the registration instead of leaving it armed.
+        var consumed = false;
         FmodManager.OnceSongEvent(data -> {
             switch (data) {
                 case Stopped:
-                    FlxG.switchState(state);
+                    if (!consumed) {
+                        consumed = true;
+                        FlxG.switchState(state);
+                    }
                 default:
             }
-        }, EventCallbackType.STOPPED);
+        }, EventCallbackType.STOPPED | EventCallbackType.RESTARTED);
 
         FmodManager.StopSong();
+        // A fade already in flight can complete before the handler was
+        // installed: no Stopped will arrive, so switch directly
+        if (!FmodManager.IsSongPlaying() && !consumed) {
+            consumed = true;
+            FmodManager.OnSongEvent(null);
+            FlxG.switchState(state);
+        }
     }
 
     /**

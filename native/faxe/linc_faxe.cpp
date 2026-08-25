@@ -2004,9 +2004,16 @@ int fmod_evi_get_channel_group(int h) {
     int cgHandle = faxe_handle_find_or_alloc(group, FAXE_TYPE_CHANGROUP);
     // The group dies with the instance, outside every sweep trigger. Record
     // the handle on the context so the DESTROYED drain reclaims the slot
-    // before a recycled group address can alias it.
+    // before a recycled group address can alias it. A restarted instance
+    // gets a new group, so a differing previous handle is dead: reclaim it
+    // here for the same reason.
     FaxeInstCtx* ctx = instanceCtx(instance);
-    if (ctx) ctx->cgHandle = cgHandle;
+    if (ctx) {
+        if (ctx->cgHandle != 0 && ctx->cgHandle != cgHandle) {
+            faxe_handle_free(ctx->cgHandle);
+        }
+        ctx->cgHandle = cgHandle;
+    }
     return cgHandle;
 }
 
@@ -3681,20 +3688,36 @@ int fmod_evd_get_instance_list(int h, ::Array<int> out) {
     if (gLastResult != FMOD_OK) return 0;
     int written = 0;
     for (int i = 0; i < count; i++) {
-        int handle = faxe_handle_find_or_alloc(instances[i], FAXE_TYPE_EVI);
-        if (handle == 0) continue;
-        // A released-but-still-playing instance gets a fresh handle here.
-        // Its context must follow, or queued callbacks keep carrying the
-        // old freed handle and the dispatcher drops them.
+        // The instance's own context is the identity authority. Pointer
+        // dedup would be wrong here: a dead instance's slot keeps its
+        // dangling pointer until the DESTROYED drain, and FMOD can hand a
+        // new instance the same address inside that window.
         FaxeInstCtx* ctx = instanceCtx(instances[i]);
-        if (!ctx) {
-            attachInstanceCtx(instances[i], handle);
-        } else if (ctx->handle != handle) {
-            faxe_cbq_lock();
-            ctx->handle = handle;
-            faxe_cbq_unlock();
+        int handle;
+        if (ctx && faxe_handle_resolve(ctx->handle, FAXE_TYPE_EVI) == (void*)instances[i]) {
+            handle = ctx->handle;
+        } else {
+            // Released-but-still-playing (context holds a freed handle) or
+            // never managed: mint a fresh slot and point the context at it,
+            // or queued callbacks carry a dead handle and get dropped.
+            handle = faxe_handle_alloc(instances[i], FAXE_TYPE_EVI);
+            if (handle != 0) {
+                if (ctx) {
+                    faxe_cbq_lock();
+                    ctx->handle = handle;
+                    faxe_cbq_unlock();
+                } else if (!attachInstanceCtx(instances[i], handle)) {
+                    // No context means no DESTROYED hand-off would ever
+                    // reclaim the slot
+                    faxe_handle_free(handle);
+                    handle = 0;
+                    gLastResult = FMOD_ERR_INVALID_HANDLE;
+                }
+            } else {
+                gLastResult = FMOD_ERR_MEMORY;
+            }
         }
-        out[written++] = handle;
+        if (handle != 0) out[written++] = handle;
     }
     return written;
 }

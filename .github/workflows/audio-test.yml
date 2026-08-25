@@ -312,6 +312,7 @@ jobs:
         with:
           state: api-probe
           gate: API_PROBE
+          timeout: "60"
           bin-dir: example-project/EZPlatformer/export/linux*/bin
           log-file: /tmp/api-probe-linux-cpp.log
 
@@ -598,6 +599,7 @@ jobs:
         with:
           state: api-probe
           gate: API_PROBE
+          timeout: "60"
           bin-dir: example-project/EZPlatformer/export/hl/bin
           log-file: /tmp/api-probe-linux-hl.log
 
@@ -800,6 +802,7 @@ jobs:
       - name: Build HashLink target (expect version mismatch failure)
         run: |
           cd example-project/EZPlatformer
+          set -o pipefail
           if haxelib run lime build hl 2>&1 | tee /tmp/build-mismatch.log; then
             echo "ERROR: the build succeeded despite the SDK version mismatch"
             exit 1
@@ -929,6 +932,7 @@ jobs:
         with:
           state: api-probe
           gate: API_PROBE
+          timeout: "60"
           bin-dir: example-project/EZPlatformer/export/hl/bin
           log-file: /tmp/api-probe-linux-hl-compat.log
 
@@ -1527,6 +1531,7 @@ jobs:
         with:
           state: api-probe
           gate: API_PROBE
+          timeout: "60"
           bin-dir: ${{ env.APP_BUNDLE }}/Contents/MacOS
           log-file: /tmp/api-probe-mac-cpp.log
           use-wavwriter: "true"
@@ -1746,6 +1751,7 @@ jobs:
         with:
           state: api-probe
           gate: API_PROBE
+          timeout: "60"
           bin-dir: ${{ env.APP_BUNDLE }}/Contents/MacOS
           log-file: /tmp/api-probe-mac-hl.log
           use-wavwriter: "true"
@@ -1874,6 +1880,7 @@ jobs:
       - name: Build HashLink target (expect version mismatch failure)
         run: |
           cd example-project/EZPlatformer
+          set -o pipefail
           if haxelib run lime build hl 2>&1 | tee /tmp/build-mismatch.log; then
             echo "ERROR: the build succeeded despite the SDK version mismatch"
             exit 1
@@ -2150,6 +2157,7 @@ jobs:
         with:
           state: api-probe
           gate: API_PROBE
+          timeout: "60"
           bin-dir: example-project/EZPlatformer/export/windows*/bin
           log-file: ${{ github.workspace }}/api-probe-windows-cpp.log
           use-wavwriter: "true"
@@ -2435,6 +2443,7 @@ jobs:
         with:
           state: api-probe
           gate: API_PROBE
+          timeout: "60"
           bin-dir: example-project/EZPlatformer/export/hl/bin
           log-file: ${{ github.workspace }}/api-probe-windows-hl.log
           use-wavwriter: "true"
@@ -2586,6 +2595,7 @@ jobs:
       - name: Build HashLink target (expect version mismatch failure)
         run: |
           cd example-project/EZPlatformer
+          set -o pipefail
           if haxelib run lime build hl 2>&1 | tee /tmp/build-mismatch.log; then
             echo "ERROR: the build succeeded despite the SDK version mismatch"
             exit 1

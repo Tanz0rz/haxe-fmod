@@ -129,10 +129,13 @@ top. See `MIGRATION.md` for the complete 1.x to 2.0 mapping.
   attached instances and the flixel listener, taming doppler pitch flutter
   on very fast movers. Default 0 (no cap).
 - Distance culling on emitters: `FmodFlxEmitter.stopEventsOutsideMaxDistance`
-  stops a looping emitter with a fadeout beyond its authored max distance
+  stops a looping emitter with a fadeout beyond its max distance
   and restarts it when the listener comes back in range, saving voices.
-  Only an instance the emitter itself stopped is restarted, and
-  `cullCheckInterval` paces the distance checks (default every 6 frames).
+  One-shot events are exempt (a stopped and restarted one-shot would
+  replay long after it finished). Only an instance the emitter itself
+  stopped is restarted, `cullCheckInterval` paces the distance checks
+  (default every 6 frames), and `cullMaxDistance` overrides the authored
+  distance for events without one.
 
 ### Changed
 - Live Update defaults to on only in debug builds (`-D haxefmod_live_update`
@@ -163,6 +166,12 @@ top. See `MIGRATION.md` for the complete 1.x to 2.0 mapping.
 - HTML5 ships FSB-only codecs: loose wav/ogg loading and file-path
   programmer sounds are native-only. Audio table keys are the HTML5 route.
 - List getters return at most 1024 entries and warn when truncated.
+- HTML5 loads `Master.bank` and `Master.strings.bank` from
+  `assets/fmod/Desktop/` at startup and ignores the `bankFolder` and
+  `autoLoadBanks` settings. Additional banks load through the normal
+  bank API.
+- HTML5 nested timeline beat callbacks report zeroed fields when FMOD's
+  JS binding provides no data for them (top-level beats are unaffected).
 
 ## 1.1.2-beta and earlier
 

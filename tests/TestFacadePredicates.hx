@@ -42,6 +42,10 @@ class TestFacadePredicates {
 	}
 
 	static function testOnceReady() {
+		// The ready latch inside FmodRuntime never resets, so the queued
+		// path below is testable exactly once per process. This test must
+		// run before anything else services FmodRuntime.update while the
+		// stub reports initialized.
 		// Not ready: the handler queues and fires on the first serviced
 		// frame after initialization completes, exactly once
 		NativeStudioStub.testInitialized = false;
