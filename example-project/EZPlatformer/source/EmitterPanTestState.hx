@@ -128,6 +128,29 @@ class EmitterPanTestState extends FlxState {
         check("no_handle_leaks", StudioSystem.liveHandleCount() == baseline,
             'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
 
+        // The remaining flixel components, none reached by other states
+        var loaderFired = false;
+        var loader = new haxefmod.flixel.FmodFlxBankLoader([], () -> loaderFired = true);
+        add(loader);
+        loader.update(0);
+        check("bank_loader_empty_fires", loaderFired, "");
+        loader.update(0);
+        loader.destroy();
+
+        var triggerBaseline = StudioSystem.liveHandleCount();
+        var zone = flixel.math.FlxRect.get(0, 0, 200, 200);
+        var trigger = new haxefmod.flixel.FmodFlxParameterTrigger(sprite, zone, "Nope", 1, 0);
+        add(trigger);
+        // Outside the zone (the sprite sits at 300, 220): the outside value
+        // applies once through the global-parameter path
+        trigger.update(0);
+        check("parameter_trigger_applied", !StudioSystem.lastResult().isOk(),
+            'result=${StudioSystem.lastResult().toString()}');
+        trigger.destroy();
+        zone.put();
+        check("parameter_trigger_no_leak", StudioSystem.liveHandleCount() == triggerBaseline,
+            'baseline=$triggerBaseline now=${StudioSystem.liveHandleCount()}');
+
         // Distance culling continues asynchronously from update(): fades,
         // restarts, and one-shot playout all take real frames
         _label = label;
@@ -249,6 +272,14 @@ class EmitterPanTestState extends FlxState {
         FmodManager.Update();
         check("no_handle_leaks_cull", StudioSystem.liveHandleCount() == _cullBaseline,
             'baseline=$_cullBaseline now=${StudioSystem.liveHandleCount()}');
+
+        // Utilities wrapper: attach-and-forget playback through the facade
+        // (after the leak gate, since the one-shot outlives this state)
+        var utilBaseline = FmodRuntime.attachedCount();
+        haxefmod.flixel.FmodFlxUtilities.PlaySoundOneShotAttached(FmodEvents.SFXJump, _listenerSprite);
+        check("utilities_oneshot_attached", FmodRuntime.attachedCount() == utilBaseline + 1,
+            'count=${FmodRuntime.attachedCount()}');
+
         log('PAN_TEST: COMPLETE passed=$_passCount failed=$_failCount');
         _label.text = 'PAN_TEST complete: $_passCount passed, $_failCount failed';
         _done = true;

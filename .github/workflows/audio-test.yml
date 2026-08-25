@@ -921,6 +921,17 @@ jobs:
       - name: Validate volume/mute
         run: ./ci/validate-volume.sh /tmp/volume-test-linux-hl-compat.wav 15
 
+      # Validates the binding surface against FMOD 2.02.33, not just
+      # the music playback flow
+      - name: Run api-probe state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: api-probe
+          gate: API_PROBE
+          bin-dir: example-project/EZPlatformer/export/hl/bin
+          log-file: /tmp/api-probe-linux-hl-compat.log
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v6
         if: always()
@@ -1508,6 +1519,76 @@ jobs:
       - name: Validate volume/mute
         run: ./ci/validate-volume.sh /tmp/volume-test-mac-cpp.wav 15
 
+      # The volume rebuild above compiled with -Daudio_test, so the
+      # binary can select every test state at runtime
+      - name: Run api-probe state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: api-probe
+          gate: API_PROBE
+          bin-dir: ${{ env.APP_BUNDLE }}/Contents/MacOS
+          log-file: /tmp/api-probe-mac-cpp.log
+          use-wavwriter: "true"
+
+      - name: Run synth-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: synth-test
+          gate: SYNTH_TEST
+          bin-dir: ${{ env.APP_BUNDLE }}/Contents/MacOS
+          log-file: /tmp/synth-test-mac-cpp.log
+          use-wavwriter: "true"
+          timeout: "60"
+
+      - name: Validate synth audio
+        if: ${{ !cancelled() }}
+        run: ./ci/validate-synth.sh "${RUNNER_TEMP}/state-synth-test.wav"
+
+      - name: Run cb-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: cb-test
+          gate: CB_TEST
+          bin-dir: ${{ env.APP_BUNDLE }}/Contents/MacOS
+          log-file: /tmp/cb-test-mac-cpp.log
+          extra-gate: "CB_TEST: Stopped"
+          use-wavwriter: "true"
+
+      - name: Run ps-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: ps-test
+          gate: PS_TEST
+          bin-dir: ${{ env.APP_BUNDLE }}/Contents/MacOS
+          log-file: /tmp/ps-test-mac-cpp.log
+          copy-jump-wav: "true"
+          use-wavwriter: "true"
+
+      - name: Run bank-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: bank-test
+          gate: BANK_TEST
+          bin-dir: ${{ env.APP_BUNDLE }}/Contents/MacOS
+          log-file: /tmp/bank-test-mac-cpp.log
+          use-wavwriter: "true"
+
+      - name: Run pan-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: pan-test
+          gate: PAN_TEST
+          bin-dir: ${{ env.APP_BUNDLE }}/Contents/MacOS
+          log-file: /tmp/pan-test-mac-cpp.log
+          use-wavwriter: "true"
+          timeout: "60"
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v6
         if: always()
@@ -2060,6 +2141,76 @@ jobs:
 
       - name: Validate volume/mute
         run: ./ci/validate-volume.sh "$GITHUB_WORKSPACE/volume-test-windows-cpp.wav" 15
+
+      # The volume rebuild above compiled with -Daudio_test, so the
+      # binary can select every test state at runtime
+      - name: Run api-probe state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: api-probe
+          gate: API_PROBE
+          bin-dir: example-project/EZPlatformer/export/windows*/bin
+          log-file: ${{ github.workspace }}/api-probe-windows-cpp.log
+          use-wavwriter: "true"
+
+      - name: Run synth-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: synth-test
+          gate: SYNTH_TEST
+          bin-dir: example-project/EZPlatformer/export/windows*/bin
+          log-file: ${{ github.workspace }}/synth-test-windows-cpp.log
+          use-wavwriter: "true"
+          timeout: "60"
+
+      - name: Validate synth audio
+        if: ${{ !cancelled() }}
+        run: ./ci/validate-synth.sh "${RUNNER_TEMP}/state-synth-test.wav"
+
+      - name: Run cb-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: cb-test
+          gate: CB_TEST
+          bin-dir: example-project/EZPlatformer/export/windows*/bin
+          log-file: ${{ github.workspace }}/cb-test-windows-cpp.log
+          extra-gate: "CB_TEST: Stopped"
+          use-wavwriter: "true"
+
+      - name: Run ps-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: ps-test
+          gate: PS_TEST
+          bin-dir: example-project/EZPlatformer/export/windows*/bin
+          log-file: ${{ github.workspace }}/ps-test-windows-cpp.log
+          copy-jump-wav: "true"
+          use-wavwriter: "true"
+
+      - name: Run bank-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: bank-test
+          gate: BANK_TEST
+          bin-dir: example-project/EZPlatformer/export/windows*/bin
+          log-file: ${{ github.workspace }}/bank-test-windows-cpp.log
+          use-wavwriter: "true"
+
+      - name: Run pan-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: pan-test
+          gate: PAN_TEST
+          bin-dir: example-project/EZPlatformer/export/windows*/bin
+          log-file: ${{ github.workspace }}/pan-test-windows-cpp.log
+          use-wavwriter: "true"
+          timeout: "60"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v6

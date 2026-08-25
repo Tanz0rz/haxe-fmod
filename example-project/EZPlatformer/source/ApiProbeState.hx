@@ -142,6 +142,7 @@ class ApiProbeState extends FlxState {
 
         probeFacadeSong();
         probeM3Surface();
+        probeParityTail2();
         probeHandleSafety();
         probeCoreSurface();
         probeDspSurface();
@@ -315,6 +316,14 @@ class ApiProbeState extends FlxState {
             check("replay_is_valid", replay.isValid(), "");
             check("replay_pause_roundtrip", replay.setPaused(true).isOk() && replay.getPaused(), "");
             replay.setPaused(false);
+            // Playback controls on the loaded replay (the capture holds one
+            // frame of commands, so the replay is over almost immediately)
+            check("replay_seek", replay.seekToTime(0).isOk(),
+                'result=${StudioSystem.lastResult().toString()}');
+            check("replay_start", replay.start().isOk(),
+                'result=${StudioSystem.lastResult().toString()}');
+            check("replay_stop", replay.stop().isOk(),
+                'result=${StudioSystem.lastResult().toString()}');
             check("replay_release", replay.release().isOk(), "");
             check("replay_stale_invalid", !replay.isValid(), "");
         }
@@ -339,6 +348,159 @@ class ApiProbeState extends FlxState {
         #end
 
         check("no_handle_leaks_audit", StudioSystem.liveHandleCount() == baseline,
+            'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
+    }
+
+    /**
+     * The wrapper tail no other section reaches: by-ID lookups, user
+     * properties, listener configuration, bank enumeration and sample
+     * data, instance properties, and the DSP calls with no other caller.
+     * Exercising the marshaling against the real FFI is the point, so
+     * data-dependent values log as info while structure and error
+     * contracts are gating checks.
+     */
+    function probeParityTail2():Void {
+        var baseline = StudioSystem.liveHandleCount();
+
+        // By-ID lookups resolve to the same cached handles as by-path
+        var master = StudioSystem.getBus("bus:/");
+        var busById = StudioSystem.getBusByID(master.getID());
+        check("sys_get_bus_by_id", (busById : Int) == (master : Int), 'guid=${master.getID()}');
+        var eventById = StudioSystem.getEventByID(FmodEventsGuids.SFXJump);
+        check("sys_get_event_by_id",
+            (eventById : Int) == (StudioSystem.getEvent(FmodEvents.SFXJump) : Int), "");
+
+        // Malformed GUIDs are rejected up front on every target instead of
+        // resolving a zero-padded wrong GUID on native
+        var badGuid = StudioSystem.getEventByID("not-a-guid");
+        check("bad_guid_rejected", badGuid.isNull()
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_PARAM,
+            'result=${StudioSystem.lastResult().toString()}');
+        var shortGroups = StudioSystem.getBusByID("{12-34-56-7890-AABBCCDDEEFF}");
+        check("short_guid_groups_rejected", shortGroups.isNull()
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_PARAM,
+            'result=${StudioSystem.lastResult().toString()}');
+
+        // Path and ID string lookups agree with the generated constants
+        check("sys_lookup_id", StudioSystem.lookupID(FmodEvents.SFXJump).toLowerCase()
+            == FmodEventsGuids.SFXJump, 'value=${StudioSystem.lookupID(FmodEvents.SFXJump)}');
+        check("sys_lookup_path", StudioSystem.lookupPath(FmodEventsGuids.SFXJump)
+            == FmodEvents.SFXJump, 'value=${StudioSystem.lookupPath(FmodEventsGuids.SFXJump)}');
+
+        // VCA surface: nothing is authored, so the miss and the
+        // stale-handle contract are what can be proven
+        var missingVca = StudioSystem.getVCA("vca:/Nope");
+        check("sys_get_vca_missing", missingVca.isNull(),
+            'result=${StudioSystem.lastResult().toString()}');
+        check("null_vca_defaults", missingVca.getVolume() == 0.0 && !missingVca.setVolume(1.0).isOk()
+            && missingVca.getPath() == "" && !missingVca.isValid(), "");
+        var missingVcaById = StudioSystem.getVCAByID("{4562f533-1e6b-4ce9-a40a-814283edde66}");
+        check("sys_get_vca_by_id_missing", missingVcaById.isNull(), "");
+
+        // Bank enumeration: getID, counts, lists, and sample data
+        var bank = StudioSystem.getBank("bank:/Master");
+        if (bank.isNull()) bank = StudioSystem.getBank("Master.bank");
+        check("sys_get_bank", !bank.isNull(), 'result=${StudioSystem.lastResult().toString()}');
+        if (!bank.isNull()) {
+            var bankGuid = bank.getID();
+            check("bank_get_id", bankGuid.length == 38 && StringTools.startsWith(bankGuid, "{"),
+                'value=$bankGuid');
+            check("sys_get_bank_by_id", (StudioSystem.getBankByID(bankGuid) : Int) == (bank : Int), "");
+            var busCount = bank.getBusCount();
+            var vcaCount = bank.getVCACount();
+            check("bank_bus_list", bank.getBusList().length == busCount,
+                'count=$busCount listed=${bank.getBusList().length}');
+            check("bank_vca_list", bank.getVCAList().length == vcaCount,
+                'count=$vcaCount listed=${bank.getVCAList().length}');
+            info("bank_string_guid", bank.getStringGuid(0));
+            check("bank_load_sample_data", bank.loadSampleData().isOk(), "");
+            StudioSystem.flushSampleLoading();
+            check("bank_sample_state_loaded",
+                bank.getSampleLoadingState() == FmodLoadingState.LOADED,
+                'state=${(bank.getSampleLoadingState() : Int)}');
+            check("bank_unload_sample_data", bank.unloadSampleData().isOk(), "");
+        }
+        check("sys_reset_buffer_usage", StudioSystem.resetBufferUsage().isOk(), "");
+
+        // Listener configuration round trips
+        check("sys_set_num_listeners", StudioSystem.setNumListeners(2).isOk()
+            && StudioSystem.getNumListeners() == 2, 'count=${StudioSystem.getNumListeners()}');
+        check("sys_listener_weight", StudioSystem.setListenerWeight(0, 0.5).isOk()
+            && Math.abs(StudioSystem.getListenerWeight(0) - 0.5) < 0.001,
+            'value=${StudioSystem.getListenerWeight(0)}');
+        StudioSystem.setListenerWeight(0, 1.0);
+        StudioSystem.setNumListeners(1);
+
+        // Description metadata with nothing authored behind it
+        var desc = StudioSystem.getEvent(FmodEvents.SFXJump);
+        check("evd_sound_size", desc.getSoundSize() >= 0, 'value=${desc.getSoundSize()}');
+        check("evd_min_max_distance", desc.getMinMaxDistance() != null, "");
+        check("evd_doppler", !desc.isDopplerEnabled(), "");
+        check("evd_sustain", !desc.hasSustainPoint(), "");
+        check("evd_user_property_count", desc.getUserPropertyCount() == 0,
+            'count=${desc.getUserPropertyCount()}');
+        check("evd_user_property_miss", desc.getUserProperty(0) == null
+            && desc.getUserPropertyByName("nope") == null, "");
+        check("evd_parameter_label_miss", desc.getParameterLabel("Nope", 0) == ""
+            && !StudioSystem.lastResult().isOk(), 'result=${StudioSystem.lastResult().toString()}');
+
+        // Instance-level surface never touched elsewhere
+        var inst = desc.createInstance();
+        check("evi_listener_mask", inst.setListenerMask(1).isOk() && inst.getListenerMask() == 1,
+            'value=${inst.getListenerMask()}');
+        check("evi_set_property",
+            inst.setProperty(FmodEventProperty.CHANNELPRIORITY, 64).isOk(), "");
+        check("evi_reverb_level", inst.setReverbLevel(0, 0.25).isOk()
+            && Math.abs(inst.getReverbLevel(0) - 0.25) < 0.001, 'value=${inst.getReverbLevel(0)}');
+        inst.start();
+        check("evi_set_timeline_position", inst.setTimelinePosition(10).isOk(), "");
+        info("evi_timeline_position", Std.string(inst.getTimelinePosition()));
+        info("evi_key_off_no_sustain", inst.keyOff().toString());
+        info("evi_parameter_final_miss", Std.string(inst.getParameterFinal("Nope")));
+        check("evi_label_miss", !inst.setParameterWithLabel("Nope", "x").isOk(),
+            'result=${StudioSystem.lastResult().toString()}');
+        inst.stop(FmodStopMode.IMMEDIATE);
+        inst.release();
+        StudioSystem.flushCommands();
+        CallbackDispatcher.update();
+
+        // DSP calls with no other caller: bool parameters (compressor
+        // LINKED), reset, output counts, disconnectAll, FFT, metering
+        var compressor = Dsp.create(DspType.COMPRESSOR);
+        check("dsp_param_bool_roundtrip", compressor.setParameterBool(6, false).isOk()
+            && !compressor.getParameterBool(6)
+            && compressor.setParameterBool(6, true).isOk()
+            && compressor.getParameterBool(6), "");
+        check("dsp_reset", compressor.reset().isOk(), "");
+        var fft = Dsp.create(DspType.FFT);
+        var fftConn = fft.addInput(compressor);
+        check("dsp_output_count", compressor.getOutputCount() == 1 && !fftConn.isNull(),
+            'value=${compressor.getOutputCount()}');
+        check("dsp_disconnect_all", fft.disconnectAll().isOk(), "");
+        check("dsp_metering_toggle", fft.setMeteringEnabled(true, true).isOk(), "");
+        var metering = fft.getMetering();
+        check("dsp_metering_readable", metering != null,
+            metering == null ? 'result=${StudioSystem.lastResult().toString()}'
+                : 'peaks=${metering.peak.length}');
+        var spectrum = fft.getFftSpectrum(64);
+        info("dsp_fft_spectrum", spectrum == null
+            ? 'unavailable result=${StudioSystem.lastResult().toString()}'
+            : 'bins=${spectrum.length}');
+        fft.release();
+        compressor.release();
+
+        // Channel position on a paused in-memory sound
+        var pcm = haxe.io.Bytes.alloc(9600);
+        var posSound = CoreSound.fromPcm(pcm, 48000, 1);
+        var posChannel = posSound.play(true);
+        check("chan_set_position", posChannel.setPosition(50).isOk(),
+            'result=${StudioSystem.lastResult().toString()}');
+        check("chan_get_position", posChannel.getPosition() == 50,
+            'value=${posChannel.getPosition()}');
+        posChannel.stop();
+        posSound.release();
+
+        check("no_handle_leaks_tail2", StudioSystem.liveHandleCount() == baseline,
             'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
     }
 
@@ -467,6 +629,8 @@ class ApiProbeState extends FlxState {
     var _remintBeats:Int = 0;
     var _remintFrames:Int = 0;
     var _waitingForRemint:Bool = false;
+    var _transitionFrames:Int = 0;
+    var _waitingForTransition:Bool = false;
 
     /**
      * Plays a tenth of a second of PCM with a sync point at its middle and
@@ -552,6 +716,28 @@ class ApiProbeState extends FlxState {
         }
         check("no_handle_leaks_remint", StudioSystem.liveHandleCount() == _remintBaseline,
             'baseline=$_remintBaseline now=${StudioSystem.liveHandleCount()}');
+
+        probeSongTransition();
+    }
+
+    /**
+     * The facade's transition machinery end to end: the old song fades,
+     * its Stopped event arrives through the queue, and the once-only
+     * handler starts the next song. Async: finishes from update() when the
+     * next song owns the slot (or the wait times out).
+     */
+    function probeSongTransition():Void {
+        FmodManager.PlaySong(FmodEvents.MusicMainLevel);
+        check("transition_first_song", FmodManager.GetCurrentSongPath() == FmodEvents.MusicMainLevel, "");
+        FmodManager.PlaySongTransition(FmodEvents.SFXCoin);
+        _waitingForTransition = true;
+    }
+
+    function finishSongTransition():Void {
+        check("transition_next_song_took_slot",
+            FmodManager.GetCurrentSongPath() == FmodEvents.SFXCoin,
+            'path=${FmodManager.GetCurrentSongPath()} frames=$_transitionFrames');
+        FmodManager.StopSongImmediately();
 
         probeOneShotAttached();
     }
@@ -1288,6 +1474,16 @@ class ApiProbeState extends FlxState {
             if (_remintBeats > 0 || _remintFrames > 600) {
                 _waitingForRemint = false;
                 finishRemintCallbacks();
+            }
+        }
+        if (_waitingForTransition) {
+            _transitionFrames++;
+            // The fade is authored: give it ten seconds before calling the
+            // handoff broken
+            if ((FmodManager.GetCurrentSongPath() == FmodEvents.SFXCoin
+                    && FmodManager.IsSongPlaying()) || _transitionFrames > 600) {
+                _waitingForTransition = false;
+                finishSongTransition();
             }
         }
         if (_waitingForOneShot) {
