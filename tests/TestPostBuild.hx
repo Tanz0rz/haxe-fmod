@@ -14,9 +14,64 @@ class TestPostBuild {
 		Sys.println("--- PostBuild ---");
 
 		testRunShContent();
+		testCustomHdllMarkerCheck();
 
 		Sys.println('  $passed passed, $failed failed');
 		return failed;
+	}
+
+	/**
+	 * A project-local custom hdll is trusted only while its version marker
+	 * matches the SDK in use. A leftover build for a different FMOD version
+	 * must fall back to the pre-built hdll instead of shipping next to
+	 * mismatched runtime libraries.
+	 */
+	static function testCustomHdllMarkerCheck():Void {
+		var base = "tests/fixtures/tmp-hdll-marker";
+		var projectDir = '$base/project';
+		var sdkDir = '$base/sdk';
+		var savedSdk = Sys.getEnv("FMOD_SDK");
+
+		function write(path:String, content:String):Void {
+			var dir = haxe.io.Path.directory(path);
+			if (!sys.FileSystem.exists(dir)) sys.FileSystem.createDirectory(dir);
+			sys.io.File.saveContent(path, content);
+		}
+
+		write('$sdkDir/api/core/inc/fmod_common.h',
+			"#define FMOD_VERSION    0x00020312\n");
+		write('$projectDir/.haxefmod/hlaxe_fmod.version', "0x00020312\n");
+		Sys.putEnv("FMOD_SDK", sdkDir);
+
+		assert(PostBuild.customHdllMatchesSdk(projectDir),
+			"matching marker keeps the custom hdll");
+
+		write('$projectDir/.haxefmod/hlaxe_fmod.version', "0x00020233\n");
+		assert(!PostBuild.customHdllMatchesSdk(projectDir),
+			"stale marker rejects the custom hdll");
+
+		// Marker markers written by older build-hdll versions may be absent:
+		// the old trust-the-custom-hdll behavior applies then
+		sys.FileSystem.deleteFile('$projectDir/.haxefmod/hlaxe_fmod.version');
+		assert(PostBuild.customHdllMatchesSdk(projectDir),
+			"missing marker keeps the old trusting behavior");
+
+		// An unreadable SDK cannot veto the custom hdll
+		write('$projectDir/.haxefmod/hlaxe_fmod.version', "0x00020233\n");
+		Sys.putEnv("FMOD_SDK", '$base/nowhere');
+		assert(PostBuild.customHdllMatchesSdk(projectDir),
+			"missing SDK header keeps the custom hdll");
+
+		if (savedSdk != null) Sys.putEnv("FMOD_SDK", savedSdk);
+		function rmTree(path:String):Void {
+			if (!sys.FileSystem.exists(path)) return;
+			for (name in sys.FileSystem.readDirectory(path)) {
+				var child = '$path/$name';
+				if (sys.FileSystem.isDirectory(child)) rmTree(child) else sys.FileSystem.deleteFile(child);
+			}
+			sys.FileSystem.deleteDirectory(path);
+		}
+		rmTree(base);
 	}
 
 	static function assert(condition:Bool, name:String):Void {

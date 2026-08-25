@@ -15,16 +15,23 @@ class NativeStudioStub {
     // behavior that the uniform no-op defaults cannot express. The
     // defaults keep every hook inert.
     public static var testPlaybackState:Int = 2;
+    public static var testPlaybackStateQueue:Array<Int> = [];
     public static var testInitialized:Bool = false;
     public static var testCallbackMaskResult:Int = ERR_UNSUPPORTED;
     public static var testLastCallbackMask:Int = -1;
     public static var testLastCallbackMaskHandle:Int = 0;
+    // Synthetic handles let facade tests drive the song slot: lookups and
+    // creates return incrementing nonzero handles instead of 0
+    public static var testSyntheticHandles:Bool = false;
+    public static var testNextHandle:Int = 2000;
+    public static var testStartCalls:Int = 0;
 
     // System
     public static function sys_last_result():Int return ERR_UNSUPPORTED;
     public static function sys_get_bus(path:String):Int return 0;
     public static function sys_get_bus_by_id(guid:String):Int return 0;
-    public static function sys_get_event(path:String):Int return 0;
+    public static function sys_get_event(path:String):Int
+        return testSyntheticHandles ? ++testNextHandle : 0;
     public static function sys_get_event_by_id(guid:String):Int return 0;
     public static function sys_get_vca(path:String):Int return 0;
     public static function sys_get_vca_by_id(guid:String):Int return 0;
@@ -122,7 +129,8 @@ class NativeStudioStub {
     public static function evd_is_3d(handle:Int):Bool return false;
     public static function evd_is_doppler_enabled(handle:Int):Bool return false;
     public static function evd_has_sustain_point(handle:Int):Bool return false;
-    public static function evd_create_instance(handle:Int):Int return 0;
+    public static function evd_create_instance(handle:Int):Int
+        return testSyntheticHandles ? ++testNextHandle : 0;
     public static function evd_get_instance_count(handle:Int):Int return 0;
     public static function evd_get_instance_list(handle:Int):Int return 0;
     public static function evd_release_all_instances(handle:Int):Int return ERR_UNSUPPORTED;
@@ -142,11 +150,15 @@ class NativeStudioStub {
     // EventInstance
     public static function evi_is_valid(handle:Int):Bool return false;
     public static function evi_get_description(handle:Int):Int return 0;
-    public static function evi_start(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function evi_start(handle:Int):Int {
+        testStartCalls++;
+        return ERR_UNSUPPORTED;
+    }
     public static function evi_stop(handle:Int, stopMode:Int):Int return ERR_UNSUPPORTED;
     public static function evi_key_off(handle:Int):Int return ERR_UNSUPPORTED;
     public static function evi_release(handle:Int):Int return ERR_UNSUPPORTED;
-    public static function evi_get_playback_state(handle:Int):Int return testPlaybackState;
+    public static function evi_get_playback_state(handle:Int):Int
+        return testPlaybackStateQueue.length > 0 ? testPlaybackStateQueue.shift() : testPlaybackState;
     public static function evi_get_paused(handle:Int):Bool return false;
     public static function evi_set_paused(handle:Int, paused:Bool):Int return ERR_UNSUPPORTED;
     public static function evi_get_volume(handle:Int):Float return 0.0;

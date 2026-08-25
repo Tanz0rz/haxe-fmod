@@ -83,6 +83,9 @@ jobs:
       - name: Negative-test the synth frequency gate
         run: python3 ci/synth-gate-selftest.py
 
+      - name: Check workflow gating invariants
+        run: python3 ci/workflow-invariants.py
+
       - name: Test native PCM ring buffer (C99 and C++ modes)
         run: |
           gcc -std=c99 -pthread -Wall -Wextra -Werror -o /tmp/test_pcmring_c tests/native/test_faxe_pcmring.c
@@ -2973,6 +2976,20 @@ jobs:
         with:
           path: ~/haxelib
           key: haxelib-package-${{ runner.os }}-${{ env.HAXE_VERSION }}
+
+      - name: Refuse to package without the pre-built hdlls
+        run: |
+          # A zip missing an hdll breaks every HashLink install. The guard
+          # in package.sh must hard-fail, not ship a broken package.
+          STAGE=$(mktemp -d)
+          cp -r . "$STAGE/repo"
+          rm "$STAGE/repo/templates/bin/hl/Linux64/hlaxe_fmod.hdll"
+          if (cd "$STAGE/repo" && ./package.sh); then
+            echo "ERROR: package.sh built a zip without the Linux hdll"
+            exit 1
+          fi
+          echo "Verified: package.sh refuses to build without an hdll"
+          rm -rf "$STAGE"
 
       - name: Build the haxelib package
         run: |

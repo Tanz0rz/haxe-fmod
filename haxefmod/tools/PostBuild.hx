@@ -227,7 +227,7 @@ class PostBuild {
 	// startup, even though the SDK matches the pre-built expectation.
 	// A missing or unreadable marker keeps the old trust-the-custom-hdll
 	// behavior (build-hdll always writes one).
-	static function customHdllMatchesSdk(projectDir:String):Bool {
+	public static function customHdllMatchesSdk(projectDir:String):Bool {
 		var markerFile = Path.join([projectDir, ".haxefmod", "hlaxe_fmod.version"]);
 		if (!FileSystem.exists(markerFile)) return true;
 		var sdkPath = Sys.getEnv("FMOD_SDK");

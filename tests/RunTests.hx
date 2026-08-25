@@ -11,6 +11,7 @@ class RunTests {
 		totalFailed += TestLayering.run();
 		totalFailed += TestPostBuild.run();
 		totalFailed += TestRuntime.run();
+		totalFailed += TestSongMachine.run();
 		totalFailed += TestStringsBankParser.run();
 		totalFailed += TestStudioSurface.run();
 		totalFailed += TestTodoScanner.run();

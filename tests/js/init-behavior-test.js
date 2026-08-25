@@ -106,6 +106,44 @@ check('explicit_rate_and_mode',
     got.format && got.format[1] === 44100 && got.format[2] === 5,
     JSON.stringify(got.format));
 
+// --- callback marshaling for shapes the wasm harnesses cannot author:
+// FMOD's JS glue delivers timeline beats with flat keys and has no
+// marshaler for the nested-beat struct, so the nested branch must read
+// the flat keys instead of enqueueing zeros ---
+function drain() {
+    const events = [];
+    while (jaxe.fmod_cb_next()) {
+        events.push({
+            type: jaxe.fmod_cb_type(),
+            bar: jaxe.fmod_cb_int(0), beat: jaxe.fmod_cb_int(1),
+            position: jaxe.fmod_cb_int(2), sigUpper: jaxe.fmod_cb_int(3),
+            sigLower: jaxe.fmod_cb_int(4), tempo: jaxe.fmod_cb_float(),
+        });
+    }
+    return events;
+}
+const cbFakeEvent = { getUserData: function (out) { out.val = 4242; return 0; } };
+const flatBeat = { bar: 3, beat: 2, position: 4500, tempo: 128, timesignatureupper: 6, timesignaturelower: 8 };
+
+jaxe.callbackHandler(0x40000 /* NESTED_TIMELINE_BEAT */, cbFakeEvent, flatBeat);
+got = drain();
+check('nested_beat_reads_flat_keys',
+    got.length === 1 && got[0].bar === 3 && got[0].beat === 2 && got[0].position === 4500
+    && got[0].sigUpper === 6 && got[0].sigLower === 8 && Math.abs(got[0].tempo - 128) < 0.001,
+    JSON.stringify(got[0]));
+
+// the nested shape stays supported in case a future glue adds it
+jaxe.callbackHandler(0x40000, cbFakeEvent, { properties: flatBeat });
+got = drain();
+check('nested_beat_reads_nested_shape',
+    got.length === 1 && got[0].bar === 3 && got[0].sigLower === 8,
+    JSON.stringify(got[0]));
+
+// top-level beats keep the flat read they always had
+jaxe.callbackHandler(0x1000 /* TIMELINE_BEAT */, cbFakeEvent, flatBeat);
+got = drain();
+check('top_level_beat_flat_keys', got.length === 1 && got[0].bar === 3, JSON.stringify(got[0]));
+
 jaxe.fmod_sys_set_auto_update(false);
 console.log(`INIT_TEST: failures = ${fails}`);
 console.log(fails === 0 ? 'INIT_TEST: COMPLETE' : 'INIT_TEST: FAILED');
