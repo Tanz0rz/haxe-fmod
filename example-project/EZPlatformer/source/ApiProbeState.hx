@@ -361,6 +361,10 @@ class ApiProbeState extends FlxState {
      * contracts are gating checks.
      */
     function probeParityTail2():Void {
+        // Warm the bank lookup first: its dedup handle lives for the
+        // session, so it must sit inside the baseline
+        var bank = StudioSystem.getBank("bank:/Master");
+        if (bank.isNull()) bank = StudioSystem.getBank("Master.bank");
         var baseline = StudioSystem.liveHandleCount();
 
         // By-ID lookups resolve to the same cached handles as by-path
@@ -399,9 +403,8 @@ class ApiProbeState extends FlxState {
         var missingVcaById = StudioSystem.getVCAByID(FmodEvents.FmodEventsGuids.SFXJump);
         check("sys_get_vca_by_id_wrong_type", missingVcaById.isNull(), "");
 
-        // Bank enumeration: getID, counts, lists, and sample data
-        var bank = StudioSystem.getBank("bank:/Master");
-        if (bank.isNull()) bank = StudioSystem.getBank("Master.bank");
+        // Bank enumeration: getID, counts, lists, and sample data (the
+        // handle was warmed above, before the baseline)
         check("sys_get_bank", !bank.isNull(), 'result=${StudioSystem.lastResult().toString()}');
         if (!bank.isNull()) {
             var bankGuid = bank.getID();
@@ -535,6 +538,13 @@ class ApiProbeState extends FlxState {
      * explicitly to make each step deterministic.
      */
     function probeInstanceLifecycle():Void {
+        // Earlier sections leave DESTROYED events queued (the audit-closure
+        // section deliberately releases an instance whose channel-group
+        // handle the drain reclaims). Drain that backlog first so the
+        // baseline only moves with this section's own work.
+        StudioSystem.flushCommands();
+        CallbackDispatcher.update();
+
         var desc = StudioSystem.getEvent(FmodEvents.SFXJump);
         var baseline = StudioSystem.liveHandleCount();
 
