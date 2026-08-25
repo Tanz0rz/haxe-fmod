@@ -70,8 +70,13 @@ static FMOD_RESULT F_CALLBACK eventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type
     void* userData = NULL;
     instance->getUserData(&userData);
     FaxeInstCtx* ctx = (FaxeInstCtx*)userData;
-    if (!ctx || ctx->handle <= 0) return FMOD_OK;
+    if (!ctx) return FMOD_OK;
+    // handle can be rewritten from the game thread when a released instance
+    // is re-acquired through evd_get_instance_list, so read it under the lock
+    faxe_cbq_lock();
     int handle = ctx->handle;
+    faxe_cbq_unlock();
+    if (handle <= 0) return FMOD_OK;
 
     FaxeCbEvent ev;
     memset(&ev, 0, sizeof(ev));
@@ -157,14 +162,17 @@ static FMOD_RESULT F_CALLBACK eventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type
             break;
     }
 
-    faxe_cbq_push(&ev);
-
     // The context's lifetime ends with the instance. DESTROYED is always in
-    // the installed mask (see attachInstanceCtx), so cleanup is guaranteed.
+    // the installed mask (see attachInstanceCtx), so hand-off is guaranteed.
+    // The context rides the queue as the event's payload and the game-thread
+    // drain frees it: freeing here would race a game-thread caller that read
+    // the context pointer from userdata just before this callback ran.
     if (type == FMOD_STUDIO_EVENT_CALLBACK_DESTROYED) {
         instance->setUserData(NULL);
-        faxe_instctx_destroy(ctx);
+        ev.opaque = ctx;
     }
+
+    faxe_cbq_push(&ev);
     return FMOD_OK;
 }
 
@@ -175,7 +183,13 @@ static bool attachInstanceCtx(FMOD::Studio::EventInstance* instance, int handle)
     FaxeInstCtx* ctx = faxe_instctx_create(handle);
     if (!ctx) return false;
     instance->setUserData(ctx);
-    instance->setCallback(eventCallback, FMOD_STUDIO_EVENT_CALLBACK_DESTROYED);
+    // Without the callback the DESTROYED hand-off never happens and the
+    // context would leak with the instance, so a failed install aborts
+    if (instance->setCallback(eventCallback, FMOD_STUDIO_EVENT_CALLBACK_DESTROYED) != FMOD_OK) {
+        instance->setUserData(NULL);
+        faxe_instctx_destroy(ctx);
+        return false;
+    }
     return true;
 }
 
@@ -290,6 +304,7 @@ int fmod_core_create_sound(const ::String& path, int mode) {
     if (gLastResult != FMOD_OK || !sound) return 0;
     int handle = faxe_handle_alloc(sound, FAXE_TYPE_SOUND);
     if (handle == 0) {
+        gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
         sound->release();
         return 0;
     }
@@ -373,6 +388,7 @@ int fmod_core_pcm_create(int sampleRate, int channels, int ringBytes) {
     }
     int handle = faxe_handle_alloc(ps, FAXE_TYPE_PCM);
     if (handle == 0) {
+        gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
         ps->sound->release();
         faxe_pcmring_destroy(ps->ring);
         free(ps);
@@ -413,6 +429,7 @@ int fmod_core_pcm_create_3d(int sampleRate, int channels, int ringBytes) {
     }
     int handle = faxe_handle_alloc(ps, FAXE_TYPE_PCM);
     if (handle == 0) {
+        gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
         ps->sound->release();
         faxe_pcmring_destroy(ps->ring);
         free(ps);
@@ -450,6 +467,7 @@ int fmod_core_pcm_play(int h, bool paused) {
     if (gLastResult != FMOD_OK || !channel) return 0;
     int handle = faxe_handle_alloc(channel, FAXE_TYPE_CHAN);
     if (handle == 0) {
+        gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
         channel->stop();
         return 0;
     }
@@ -536,6 +554,9 @@ int fmod_chan_stop(int h) {
     // FMOD reports the channel already gone
     gLastResult = ch->stop();
     faxe_handle_free(h);
+    // Stopping tears down the channel's DSP chain, which destroys its
+    // connection objects
+    faxe_handles_free_type(FAXE_TYPE_DSPCONN);
     return (int)gLastResult;
 }
 
@@ -558,6 +579,7 @@ int fmod_dsp_create_by_type(int type) {
     if (gLastResult != FMOD_OK || !dsp) return 0;
     int handle = faxe_handle_alloc(dsp, FAXE_TYPE_DSP);
     if (handle == 0) {
+        gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
         dsp->release();
         return 0;
     }
@@ -725,6 +747,7 @@ int fmod_cg_create(const ::String& name) {
     if (gLastResult != FMOD_OK || !group) return 0;
     int handle = faxe_handle_alloc(group, FAXE_TYPE_CHANGROUP);
     if (handle == 0) {
+        gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
         group->release();
         return 0;
     }
@@ -735,7 +758,11 @@ int fmod_cg_release(int h) {
     FMOD::ChannelGroup* group = resolveChanGroup(h);
     if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = group->release();
-    if (gLastResult == FMOD_OK) faxe_handle_free(h);
+    if (gLastResult == FMOD_OK) {
+        faxe_handle_free(h);
+        // Releasing the group destroys the connections of every DSP in it
+        faxe_handles_free_type(FAXE_TYPE_DSPCONN);
+    }
     return (int)gLastResult;
 }
 
@@ -812,6 +839,9 @@ int fmod_cg_remove_dsp(int h, int dspHandle) {
     FMOD::DSP* dsp = resolveDsp(dspHandle);
     if (!group || !dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = group->removeDSP(dsp);
+    // Removing a DSP rebuilds that part of the graph and destroys the
+    // affected connection objects
+    if (gLastResult == FMOD_OK) faxe_handles_free_type(FAXE_TYPE_DSPCONN);
     return (int)gLastResult;
 }
 
@@ -889,6 +919,9 @@ int fmod_chan_remove_dsp(int h, int dspHandle) {
     FMOD::DSP* dsp = resolveDsp(dspHandle);
     if (!ch || !dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = ch->removeDSP(dsp);
+    // Removing a DSP rebuilds that part of the graph and destroys the
+    // affected connection objects
+    if (gLastResult == FMOD_OK) faxe_handles_free_type(FAXE_TYPE_DSPCONN);
     return (int)gLastResult;
 }
 
@@ -959,6 +992,7 @@ int fmod_sys_play_dsp(int dspHandle, bool startPaused) {
     if (gLastResult != FMOD_OK || !channel) return 0;
     int handle = faxe_handle_alloc(channel, FAXE_TYPE_CHAN);
     if (handle == 0) {
+        gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
         channel->stop();
         return 0;
     }
@@ -1332,6 +1366,7 @@ int fmod_sys_create_reverb3d() {
     if (gLastResult != FMOD_OK || !reverb) return 0;
     int handle = faxe_handle_alloc(reverb, FAXE_TYPE_REVERB3D);
     if (handle == 0) {
+        gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
         reverb->release();
         return 0;
     }
@@ -1424,6 +1459,7 @@ int fmod_core_create_sound_pcm(::Array<unsigned char> data, int len, int sampleR
     if (gLastResult != FMOD_OK || !sound) return 0;
     int handle = faxe_handle_alloc(sound, FAXE_TYPE_SOUND);
     if (handle == 0) {
+        gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
         sound->release();
         return 0;
     }
@@ -1439,6 +1475,7 @@ int fmod_core_play_sound(int h, bool startPaused) {
     if (gLastResult != FMOD_OK || !channel) return 0;
     int handle = faxe_handle_alloc(channel, FAXE_TYPE_CHAN);
     if (handle == 0) {
+        gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
         channel->stop();
         return 0;
     }
@@ -1680,6 +1717,7 @@ int fmod_sys_create_sound_group(const ::String& name) {
     if (gLastResult != FMOD_OK || !group) return 0;
     int handle = faxe_handle_alloc(group, FAXE_TYPE_SOUNDGROUP);
     if (handle == 0) {
+        gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
         group->release();
         return 0;
     }
@@ -1963,7 +2001,13 @@ int fmod_evi_get_channel_group(int h) {
     FMOD::ChannelGroup* group = NULL;
     gLastResult = instance->getChannelGroup(&group);
     if (gLastResult != FMOD_OK || !group) return 0;
-    return faxe_handle_find_or_alloc(group, FAXE_TYPE_CHANGROUP);
+    int cgHandle = faxe_handle_find_or_alloc(group, FAXE_TYPE_CHANGROUP);
+    // The group dies with the instance, outside every sweep trigger. Record
+    // the handle on the context so the DESTROYED drain reclaims the slot
+    // before a recycled group address can alias it.
+    FaxeInstCtx* ctx = instanceCtx(instance);
+    if (ctx) ctx->cgHandle = cgHandle;
+    return cgHandle;
 }
 
 //// Command capture and replay
@@ -1991,6 +2035,7 @@ int fmod_sys_load_command_replay(const ::String& path) {
     if (gLastResult != FMOD_OK || !replay) return 0;
     int handle = faxe_handle_alloc(replay, FAXE_TYPE_REPLAY);
     if (handle == 0) {
+        gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
         replay->release();
         return 0;
     }
@@ -2598,8 +2643,33 @@ int fmod_cg_get_channel(int h, int index) {
 // the accessors read fields from that slot. Haxe thread only.
 static FaxeCbEvent gCbCurrent;
 
+// Final cleanup for a destroyed instance, on the game thread: the handle
+// slot, the channel-group handle minted for it, and the context itself.
+// Both frees are generation-checked, so slots already reclaimed elsewhere
+// (release, or a recycled slot) are left alone.
+static void freeDestroyedCtx(FaxeInstCtx* ctx) {
+    if (ctx->cgHandle != 0) faxe_handle_free(ctx->cgHandle);
+    if (ctx->handle > 0) faxe_handle_free(ctx->handle);
+    faxe_instctx_destroy(ctx);
+}
+
 bool fmod_cb_next() {
-    return faxe_cbq_pop(&gCbCurrent) == 1;
+    if (faxe_cbq_pop(&gCbCurrent) != 1) {
+        // Drain end: dispose of contexts whose DESTROYED events were
+        // dropped by the ring's overflow policy.
+        FaxeInstCtx* orphan = (FaxeInstCtx*)faxe_cbq_take_orphans();
+        while (orphan) {
+            FaxeInstCtx* next = (FaxeInstCtx*)orphan->qnext;
+            freeDestroyedCtx(orphan);
+            orphan = next;
+        }
+        return false;
+    }
+    if (gCbCurrent.opaque) {
+        freeDestroyedCtx((FaxeInstCtx*)gCbCurrent.opaque);
+        gCbCurrent.opaque = NULL;
+    }
+    return true;
 }
 
 int fmod_cb_handle() {
@@ -2717,6 +2787,9 @@ int fmod_sys_init_ex(int numChannels, int sampleRate, int speakerMode, int studi
     if (gLastResult != FMOD_OK) {
         gStudioSystem->release();
         gStudioSystem = NULL;
+        // The wavwriter and format branches above may have cached the core
+        // system, which the release just destroyed
+        gCoreSystem = NULL;
         return (int)gLastResult;
     }
 
@@ -3575,6 +3648,7 @@ int fmod_evd_create_instance(int h) {
     if (gLastResult != FMOD_OK || !instance) return 0;
     int handle = faxe_handle_alloc(instance, FAXE_TYPE_EVI);
     if (handle == 0) {
+        gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
         instance->release();
         return 0;
     }
@@ -3608,7 +3682,19 @@ int fmod_evd_get_instance_list(int h, ::Array<int> out) {
     int written = 0;
     for (int i = 0; i < count; i++) {
         int handle = faxe_handle_find_or_alloc(instances[i], FAXE_TYPE_EVI);
-        if (handle != 0) out[written++] = handle;
+        if (handle == 0) continue;
+        // A released-but-still-playing instance gets a fresh handle here.
+        // Its context must follow, or queued callbacks keep carrying the
+        // old freed handle and the dispatcher drops them.
+        FaxeInstCtx* ctx = instanceCtx(instances[i]);
+        if (!ctx) {
+            attachInstanceCtx(instances[i], handle);
+        } else if (ctx->handle != handle) {
+            faxe_cbq_lock();
+            ctx->handle = handle;
+            faxe_cbq_unlock();
+        }
+        out[written++] = handle;
     }
     return written;
 }
@@ -3780,7 +3866,12 @@ int fmod_evi_release(int h) {
     FMOD::Studio::EventInstance* instance = resolveInstance(h);
     if (!instance) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = instance->release();
-    if (gLastResult == FMOD_OK) faxe_handle_free(h);
+    // INVALID_HANDLE means FMOD already destroyed the instance (bank unload,
+    // releaseAllInstances). The slot must still be reclaimed or it leaks for
+    // the rest of the process.
+    if (gLastResult == FMOD_OK || gLastResult == FMOD_ERR_INVALID_HANDLE) {
+        faxe_handle_free(h);
+    }
     return (int)gLastResult;
 }
 

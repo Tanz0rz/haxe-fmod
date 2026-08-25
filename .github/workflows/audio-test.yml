@@ -73,6 +73,13 @@ jobs:
           g++ -x c++ -pthread -Wall -Wextra -Werror -o /tmp/test_cbq_cpp tests/native/test_faxe_cbqueue.c
           /tmp/test_cbq_cpp
 
+      - name: Test native GUID helpers (C99 and C++ modes)
+        run: |
+          gcc -std=c99 -Wall -Wextra -Werror -o /tmp/test_guid_c tests/native/test_faxe_guid.c
+          /tmp/test_guid_c
+          g++ -x c++ -Wall -Wextra -Werror -o /tmp/test_guid_cpp tests/native/test_faxe_guid.c
+          /tmp/test_guid_cpp
+
       - name: Negative-test the synth frequency gate
         run: python3 ci/synth-gate-selftest.py
 
@@ -2584,6 +2591,8 @@ jobs:
           node tests/js/ps-test.js
           node tests/js/arity-audit.js
           node tests/js/pcm-harness.js
+          node tests/js/lifecycle-test.js
+          node tests/js/init-behavior-test.js
 
       - name: Run Core dynamic-audio prototype against the real wasm
         env:

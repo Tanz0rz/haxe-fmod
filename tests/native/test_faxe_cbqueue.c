@@ -10,6 +10,13 @@
 #include <assert.h>
 #include "../../native/shared/faxe_cbqueue.h"
 
+/* Stand-in for the opaque payloads the shims attach to DESTROYED events.
+ * The leading next pointer is the queue's orphan-list contract. */
+typedef struct {
+    void* qnext;
+    int tag;
+} TestPayload;
+
 int main(void) {
     FaxeCbEvent ev;
     FaxeCbEvent out;
@@ -17,6 +24,7 @@ int main(void) {
     /* pop before init is a safe no-op */
     assert(faxe_cbq_pop(&out) == 0);
     assert(faxe_cbq_take_overflow() == 0);
+    assert(faxe_cbq_take_orphans() == NULL);
 
     faxe_cbq_init();
     faxe_cbq_init(); /* double init is a safe no-op */
@@ -72,6 +80,52 @@ int main(void) {
     while (faxe_cbq_pop(&out)) drained++;
     assert(drained == FAXE_CBQ_CAPACITY);
     assert(out.handle == FAXE_CBQ_CAPACITY + 9); /* newest survived */
+
+    /* opaque payloads ride the queue and come back intact */
+    {
+        TestPayload payload;
+        payload.qnext = NULL;
+        payload.tag = 42;
+        memset(&ev, 0, sizeof(ev));
+        ev.handle = 7;
+        ev.opaque = &payload;
+        faxe_cbq_push(&ev);
+        assert(faxe_cbq_pop(&out) == 1);
+        assert(out.opaque == &payload);
+        assert(((TestPayload*)out.opaque)->tag == 42);
+        assert(faxe_cbq_take_orphans() == NULL); /* consumed, not orphaned */
+    }
+
+    /* payloads of dropped events land on the orphan list, oldest-dropped
+     * last (the list is a stack), and the list clears on take */
+    {
+        TestPayload first;
+        TestPayload second;
+        TestPayload* orphan;
+        first.qnext = NULL;
+        first.tag = 1;
+        second.qnext = NULL;
+        second.tag = 2;
+        memset(&ev, 0, sizeof(ev));
+        ev.opaque = &first;
+        faxe_cbq_push(&ev);
+        ev.opaque = &second;
+        faxe_cbq_push(&ev);
+        ev.opaque = NULL;
+        for (int i = 0; i < FAXE_CBQ_CAPACITY; i++) {
+            ev.handle = i;
+            faxe_cbq_push(&ev); /* pushes both payload events off the ring */
+        }
+        assert(faxe_cbq_take_overflow() == 1);
+        orphan = (TestPayload*)faxe_cbq_take_orphans();
+        assert(orphan == &second);
+        assert(((TestPayload*)orphan->qnext) == &first);
+        assert(((TestPayload*)orphan->qnext)->qnext == NULL);
+        assert(faxe_cbq_take_orphans() == NULL); /* cleared */
+        while (faxe_cbq_pop(&out)) {
+            assert(out.opaque == NULL); /* surviving events carry no payload */
+        }
+    }
 
     printf("faxe_cbqueue: all assertions passed\n");
     return 0;

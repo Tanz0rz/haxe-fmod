@@ -22,6 +22,8 @@ class jaxe {
     static pendingInit = null;
     // Counter for unique MEMFS names used by fmod_sys_load_bank_async.
     static asyncBankCounter = 0;
+    // bank rawPtr -> MEMFS file name, so unload can delete the copied bytes
+    static asyncBankFiles = new Map();
     // Async bank fetches are aborted after this many ms (tests shrink it);
     // the placeholder then reports loading state ERROR.
     static ASYNC_FETCH_TIMEOUT_MS = 30000;
@@ -132,14 +134,16 @@ class jaxe {
     // After an unload destroys bank content, drop every cached lookup slot
     // whose object died so a reload cannot alias a recycled address under a
     // stale handle. Flushing first makes the async unload observable to
-    // isValid. Mirrors faxe_handles_sweep_lookups in the native shims.
+    // isValid. Mirrors faxe_handles_sweep_lookups in the native shims, and
+    // additionally sweeps instance slots: the native shims reclaim those
+    // when the DESTROYED event drains, which this target never receives.
     static sweepDeadLookups() {
         if (jaxe.gSystem) jaxe.gSystem.flushCommands();
         for (var i = 0; i < jaxe.slots.length; i++) {
             var s = jaxe.slots[i];
             if (!s.alive) continue;
             if (s.type != jaxe.TYPE_BUS && s.type != jaxe.TYPE_VCA && s.type != jaxe.TYPE_EVD
-                && s.type != jaxe.TYPE_CHANGROUP) continue;
+                && s.type != jaxe.TYPE_CHANGROUP && s.type != jaxe.TYPE_EVI) continue;
             if (!jaxe.lookupSlotUsable(s)) jaxe.handleFree((s.gen << 16) | i);
         }
     }
@@ -185,7 +189,9 @@ class jaxe {
     }
 
     static fmod_sys_update() {
-        jaxe.gSystem.update();
+        // gSystem is a placeholder object until the async module load
+        // finishes, matching the native shims' not-yet-initialized no-op
+        if (jaxe.gSystem && jaxe.gSystem.update) jaxe.gSystem.update();
     }
 
     static fmod_sys_set_auto_update(enabled) {
@@ -319,13 +325,18 @@ class jaxe {
             ev.i4 = parameters.timesignatureupper | 0;
             ev.i5 = parameters.timesignaturelower | 0;
             ev.f1 = parameters.tempo || 0.0;
-        } else if (type == 0x00040000 /* NESTED_TIMELINE_BEAT */ && parameters && parameters.properties) {
-            ev.i1 = parameters.properties.bar | 0;
-            ev.i2 = parameters.properties.beat | 0;
-            ev.i3 = parameters.properties.position | 0;
-            ev.i4 = parameters.properties.timesignatureupper | 0;
-            ev.i5 = parameters.properties.timesignaturelower | 0;
-            ev.f1 = parameters.properties.tempo || 0.0;
+        } else if (type == 0x00040000 /* NESTED_TIMELINE_BEAT */ && parameters) {
+            // FMOD's JS glue has no marshaler for the nested-beat struct, so
+            // the C-side properties sub-object never appears. Read the flat
+            // beat keys when the glue provides them and fall back to the
+            // nested shape in case a future glue adds it.
+            var beatProps = parameters.properties ? parameters.properties : parameters;
+            ev.i1 = beatProps.bar | 0;
+            ev.i2 = beatProps.beat | 0;
+            ev.i3 = beatProps.position | 0;
+            ev.i4 = beatProps.timesignatureupper | 0;
+            ev.i5 = beatProps.timesignaturelower | 0;
+            ev.f1 = beatProps.tempo || 0.0;
         }
 
         jaxe.cbQueue.push(ev);
@@ -517,7 +528,10 @@ class jaxe {
         };
         jaxe.FMOD['preRun'] = jaxe.preRun;
         jaxe.FMOD['onRuntimeInitialized'] = jaxe.onRuntimeInitialized;
-        jaxe.FMOD['TOTAL_MEMORY'] = 64 * 1024 * 1024;
+        // The Emscripten build reads INITIAL_MEMORY (TOTAL_MEMORY is the
+        // pre-1.39 name and is ignored), so this pre-allocates 64MB up
+        // front instead of growing mid-gameplay
+        jaxe.FMOD['INITIAL_MEMORY'] = 64 * 1024 * 1024;
         FMODModule(jaxe.FMOD);
         return 0; // FMOD_OK
     }
@@ -857,11 +871,15 @@ class jaxe {
                 var result = jaxe.gSystem.loadBankFile("/" + memfsName, jaxe.FMOD.STUDIO_LOAD_BANK_NORMAL, bank);
                 if (result != jaxe.FMOD.OK || !bank.val) {
                     placeholder.pendingBankError = true;
+                    jaxe.unlinkMemfsFile(memfsName);
                     return;
                 }
                 // Swap the real bank into the slot. The handle stays valid.
                 s.ptr = bank.val;
                 s.raw = jaxe.rawPtr(bank.val);
+                // The MEMFS copy backs the loaded bank (streaming sample
+                // data reads from it), so it is deleted at unload, not here
+                jaxe.asyncBankFiles.set(s.raw, memfsName);
             }).catch(function () {
                 settle();
                 placeholder.pendingBankError = true;
@@ -951,7 +969,11 @@ class jaxe {
     // FMOD JS API, so this reports ERR_UNSUPPORTED
     static fmod_sys_get_memory_usage(ibuf) {
         if (!jaxe.sysReady()) return jaxe.lastResult;
-        if (!jaxe.gSystem.getMemoryUsage) { jaxe.lastResult = jaxe.ERR_UNSUPPORTED; return jaxe.lastResult; }
+        if (!jaxe.gSystem.getMemoryUsage) {
+            ibuf[0] = 0; ibuf[1] = 0; ibuf[2] = 0;
+            jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+            return jaxe.lastResult;
+        }
         var outval = {};
         jaxe.lastResult = jaxe.gSystem.getMemoryUsage(outval);
         if (jaxe.lastResult == jaxe.FMOD.OK && outval.val) {
@@ -1059,7 +1081,11 @@ class jaxe {
     static fmod_bus_get_cpu_usage(handle, out) {
         var bus = jaxe.handleResolve(handle, jaxe.TYPE_BUS);
         if (!bus) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
-        if (!bus.getCPUUsage) { jaxe.lastResult = jaxe.ERR_UNSUPPORTED; return jaxe.lastResult; }
+        if (!bus.getCPUUsage) {
+            out[0] = 0; out[1] = 0;
+            jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+            return jaxe.lastResult;
+        }
         var exclusive = {};
         var inclusive = {};
         jaxe.lastResult = bus.getCPUUsage(exclusive, inclusive);
@@ -1072,13 +1098,23 @@ class jaxe {
     static fmod_bus_get_memory_usage(handle, out) {
         var bus = jaxe.handleResolve(handle, jaxe.TYPE_BUS);
         if (!bus) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
-        if (!bus.getMemoryUsage) { jaxe.lastResult = jaxe.ERR_UNSUPPORTED; return jaxe.lastResult; }
+        if (!bus.getMemoryUsage) {
+            out[0] = 0; out[1] = 0; out[2] = 0;
+            jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+            return jaxe.lastResult;
+        }
         var outval = {};
         jaxe.lastResult = bus.getMemoryUsage(outval);
         if (jaxe.lastResult == jaxe.FMOD.OK && outval.val) {
             out[0] = outval.val.exclusive | 0;
             out[1] = outval.val.inclusive | 0;
             out[2] = outval.val.sampledata | 0;
+        } else {
+            // Error paths zero-fill on every target, so a wrapper reading
+            // the scratch buffer never sees a previous call's values
+            out[0] = 0;
+            out[1] = 0;
+            out[2] = 0;
         }
         return jaxe.lastResult;
     }
@@ -1204,12 +1240,29 @@ class jaxe {
                 jaxe.uninstallCallbacksFor(ptrs);
             }
         }
+        var raw = jaxe.rawPtr(bank);
         jaxe.lastResult = bank.unload();
         if (jaxe.lastResult == jaxe.FMOD.OK) {
+            // Async loads copied the bank into MEMFS. Delete the copy or
+            // every load/unload cycle retains a full bank in memory.
+            var memfsName = jaxe.asyncBankFiles.get(raw);
+            if (memfsName) {
+                jaxe.asyncBankFiles.delete(raw);
+                jaxe.unlinkMemfsFile(memfsName);
+            }
             jaxe.handleFree(handle);
             jaxe.sweepDeadLookups();
         }
         return jaxe.lastResult;
+    }
+
+    // Deleting is best-effort: a missing FS_unlink export or an already
+    // removed file must not fail the unload
+    static unlinkMemfsFile(name) {
+        try {
+            if (jaxe.FMOD.FS_unlink) jaxe.FMOD.FS_unlink('/' + name);
+        } catch (e) {
+        }
     }
 
     static fmod_bank_load_sample_data(handle) {
@@ -1479,9 +1532,17 @@ class jaxe {
         if (n > jaxe.LIST_MAX) n = jaxe.LIST_MAX;
         if (list.val.length < n) n = list.val.length;
         for (var i = 0; i < n; i++) {
-            var before = jaxe.liveCount;
             var eviHandle = jaxe.handleFindOrAlloc(list.val[i], jaxe.TYPE_EVI);
-            if (eviHandle != 0 && jaxe.liveCount != before) list.val[i].setUserData(eviHandle);
+            if (eviHandle != 0) {
+                // Stamp the handle whenever userdata disagrees, so re-minted
+                // and alias-recycled instances route callbacks to the live
+                // handle. (A liveCount delta cannot detect the alias path:
+                // its free and alloc cancel out.)
+                var ud = {};
+                if (list.val[i].getUserData(ud) != jaxe.FMOD.OK || ud.val !== eviHandle) {
+                    list.val[i].setUserData(eviHandle);
+                }
+            }
             ibuf[i] = eviHandle;
         }
         return n;
@@ -1494,6 +1555,9 @@ class jaxe {
         // instance with a callback installed corrupts the FMOD JS module.
         jaxe.uninstallCallbacksFor(new Set([jaxe.rawPtr(evd)]));
         jaxe.lastResult = evd.releaseAllInstances();
+        // With no DESTROYED events on this target, the sweep is what
+        // reclaims the destroyed instances' handle slots
+        if (jaxe.lastResult == jaxe.FMOD.OK) jaxe.sweepDeadLookups();
         return jaxe.lastResult;
     }
 
@@ -1649,7 +1713,12 @@ class jaxe {
         // callback installed corrupts the FMOD JS module.
         jaxe.uninstallCallback(handle);
         jaxe.lastResult = inst.release();
-        if (jaxe.lastResult == jaxe.FMOD.OK) jaxe.handleFree(handle);
+        // INVALID_HANDLE means FMOD already destroyed the instance (bank
+        // unload, releaseAllInstances). The slot must still be reclaimed or
+        // it leaks for the rest of the session.
+        if (jaxe.lastResult == jaxe.FMOD.OK || jaxe.lastResult == jaxe.ERR_INVALID_HANDLE) {
+            jaxe.handleFree(handle);
+        }
         return jaxe.lastResult;
     }
 
@@ -1896,7 +1965,11 @@ class jaxe {
     static fmod_evi_get_cpu_usage(handle, ibuf) {
         var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
         if (!inst) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
-        if (!inst.getCPUUsage) { jaxe.lastResult = jaxe.ERR_UNSUPPORTED; return jaxe.lastResult; }
+        if (!inst.getCPUUsage) {
+            ibuf[0] = 0; ibuf[1] = 0;
+            jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+            return jaxe.lastResult;
+        }
         var exclusive = {};
         var inclusive = {};
         jaxe.lastResult = inst.getCPUUsage(exclusive, inclusive);
@@ -1910,7 +1983,11 @@ class jaxe {
     static fmod_evi_get_memory_usage(handle, ibuf) {
         var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
         if (!inst) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
-        if (!inst.getMemoryUsage) { jaxe.lastResult = jaxe.ERR_UNSUPPORTED; return jaxe.lastResult; }
+        if (!inst.getMemoryUsage) {
+            ibuf[0] = 0; ibuf[1] = 0; ibuf[2] = 0;
+            jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+            return jaxe.lastResult;
+        }
         var outval = {};
         jaxe.lastResult = inst.getMemoryUsage(outval);
         if (jaxe.lastResult == jaxe.FMOD.OK && outval.val) {
@@ -2190,9 +2267,16 @@ class jaxe {
         var ch = jaxe.resolveChan(handle);
         if (!ch) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
         // The channel is finished either way, so the slot is freed even
-        // when FMOD reports the channel already gone
+        // when FMOD reports the channel already gone. The map entry goes
+        // first: the glue fires the END callback synchronously inside
+        // stop(), which would otherwise enqueue an event for the handle
+        // this call is about to free.
+        jaxe.chanCallbackHandles.delete(jaxe.rawPtr(ch));
         jaxe.lastResult = ch.stop();
         jaxe.handleFree(handle);
+        // Stopping tears down the channel's DSP chain, which destroys its
+        // connection objects
+        jaxe.freeAllOfType(jaxe.TYPE_DSPCONN);
         return jaxe.lastResult;
     }
 
@@ -2396,7 +2480,11 @@ class jaxe {
         var group = jaxe.resolveCg(handle);
         if (!group) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
         jaxe.lastResult = group.release();
-        if (jaxe.lastResult == jaxe.FMOD.OK) jaxe.handleFree(handle);
+        if (jaxe.lastResult == jaxe.FMOD.OK) {
+            jaxe.handleFree(handle);
+            // Releasing the group destroys the connections of every DSP in it
+            jaxe.freeAllOfType(jaxe.TYPE_DSPCONN);
+        }
         return jaxe.lastResult;
     }
 
@@ -2473,6 +2561,9 @@ class jaxe {
         var dsp = jaxe.resolveDsp(dspHandle);
         if (!group || !dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
         jaxe.lastResult = group.removeDSP(dsp);
+        // Removing a DSP rebuilds that part of the graph and destroys the
+        // affected connection objects
+        if (jaxe.lastResult == jaxe.FMOD.OK) jaxe.freeAllOfType(jaxe.TYPE_DSPCONN);
         return jaxe.lastResult;
     }
 
@@ -2550,6 +2641,9 @@ class jaxe {
         var dsp = jaxe.resolveDsp(dspHandle);
         if (!ch || !dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
         jaxe.lastResult = ch.removeDSP(dsp);
+        // Removing a DSP rebuilds that part of the graph and destroys the
+        // affected connection objects
+        if (jaxe.lastResult == jaxe.FMOD.OK) jaxe.freeAllOfType(jaxe.TYPE_DSPCONN);
         return jaxe.lastResult;
     }
 
@@ -3187,8 +3281,13 @@ class jaxe {
         if (controltype !== 0) return jaxe.FMOD.OK;
         var handle = jaxe.chanCallbackHandles.get(jaxe.rawPtr(channelcontrol)) || 0;
         if (!handle) return jaxe.FMOD.OK;
-        var ev = { handle: handle, type: 0, i1: 0, i2: 0, i3: 0, f1: 0.0, str: "" };
-        if (callbacktype === 0) ev.type = jaxe.CB_CHAN_END;
+        var ev = { handle: handle, type: 0, i1: 0, i2: 0, i3: 0, i4: 0, i5: 0, f1: 0.0, str: "" };
+        if (callbacktype === 0) {
+            ev.type = jaxe.CB_CHAN_END;
+            // The channel is done: without this the map entry outlives every
+            // naturally-ended channel for the rest of the session
+            jaxe.chanCallbackHandles.delete(jaxe.rawPtr(channelcontrol));
+        }
         else if (callbacktype === 2) { ev.type = jaxe.CB_CHAN_SYNCPOINT; ev.i1 = commanddata1 | 0; }
         else return jaxe.FMOD.OK;
         jaxe.cbQueue.push(ev);
@@ -4223,8 +4322,15 @@ class jaxe {
 
         jaxe.gSystemCore.setDSPBufferSize(2048, 2);
 
-        if (init && init.sampleRate > 0) {
-            jaxe.gSystemCore.setSoftwareFormat(init.sampleRate,
+        // Mirrors the native shims: a requested speaker mode is honored
+        // even when the sample rate is left at the driver default
+        if (init && (init.sampleRate > 0 || init.speakerMode > 0)) {
+            var initRate = init.sampleRate;
+            if (initRate <= 0) {
+                jaxe.gSystemCore.getDriverInfo(0, null, null, outval, null, null);
+                initRate = outval.val;
+            }
+            jaxe.gSystemCore.setSoftwareFormat(initRate,
                 init.speakerMode > 0 ? init.speakerMode : jaxe.FMOD.SPEAKERMODE_DEFAULT, 0);
         } else {
             jaxe.gSystemCore.getDriverInfo(0, null, null, outval, null, null);
@@ -4240,7 +4346,8 @@ class jaxe {
             }
         });
 
-        var numChannels = (init && init.numChannels > 0) ? init.numChannels : 1024;
+        // 128 matches the native shims' fallback for a missing channel count
+        var numChannels = (init && init.numChannels > 0) ? init.numChannels : 128;
         var studioInitFlags = (init && (init.studioFlags & 1))
             ? jaxe.FMOD.STUDIO_INIT_LIVEUPDATE
             : jaxe.FMOD.STUDIO_INIT_NORMAL;

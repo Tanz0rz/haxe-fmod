@@ -84,8 +84,13 @@ static FMOD_RESULT F_CALLBACK eventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type
 
     FMOD_Studio_EventInstance_GetUserData(event, &userData);
     ctx = (FaxeInstCtx*)userData;
-    if (!ctx || ctx->handle <= 0) return FMOD_OK;
+    if (!ctx) return FMOD_OK;
+    /* handle can be rewritten from the game thread when a released instance
+     * is re-acquired through evd_get_instance_list, so read it under the lock */
+    faxe_cbq_lock();
     handle = ctx->handle;
+    faxe_cbq_unlock();
+    if (handle <= 0) return FMOD_OK;
 
     memset(&ev, 0, sizeof(ev));
     ev.handle = handle;
@@ -170,14 +175,17 @@ static FMOD_RESULT F_CALLBACK eventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type
             break;
     }
 
-    faxe_cbq_push(&ev);
-
     // The context's lifetime ends with the instance. DESTROYED is always in
-    // the installed mask (see attach_instance_ctx), so cleanup is guaranteed.
+    // the installed mask (see attach_instance_ctx), so hand-off is guaranteed.
+    // The context rides the queue as the event's payload and the game-thread
+    // drain frees it: freeing here would race a game-thread caller that read
+    // the context pointer from userdata just before this callback ran.
     if (type == FMOD_STUDIO_EVENT_CALLBACK_DESTROYED) {
         FMOD_Studio_EventInstance_SetUserData(event, NULL);
-        faxe_instctx_destroy(ctx);
+        ev.opaque = ctx;
     }
+
+    faxe_cbq_push(&ev);
     return FMOD_OK;
 }
 
@@ -188,7 +196,14 @@ static int attach_instance_ctx(FMOD_STUDIO_EVENTINSTANCE* instance, int handle) 
     FaxeInstCtx* ctx = faxe_instctx_create(handle);
     if (!ctx) return 0;
     FMOD_Studio_EventInstance_SetUserData(instance, ctx);
-    FMOD_Studio_EventInstance_SetCallback(instance, eventCallback, FMOD_STUDIO_EVENT_CALLBACK_DESTROYED);
+    /* Without the callback the DESTROYED hand-off never happens and the
+     * context would leak with the instance, so a failed install aborts */
+    if (FMOD_Studio_EventInstance_SetCallback(instance, eventCallback,
+            FMOD_STUDIO_EVENT_CALLBACK_DESTROYED) != FMOD_OK) {
+        FMOD_Studio_EventInstance_SetUserData(instance, NULL);
+        faxe_instctx_destroy(ctx);
+        return 0;
+    }
     return 1;
 }
 
@@ -250,8 +265,13 @@ HL_PRIM void HL_NAME(sys_set_auto_update)(bool enabled) {
 #ifdef _WIN32
         gUpdateThread = CreateThread(NULL, 0, autoUpdateLoop, NULL, 0, NULL);
 #else
-        pthread_create(&gUpdateThread, NULL, autoUpdateLoop, NULL);
-        gThreadCreated = 1;
+        if (pthread_create(&gUpdateThread, NULL, autoUpdateLoop, NULL) == 0) {
+            gThreadCreated = 1;
+        } else {
+            /* No thread is running, and gUpdateThread is indeterminate:
+             * joining it later would be undefined behavior */
+            gAutoUpdateRunning = 0;
+        }
 #endif
     } else if (!enabled && gAutoUpdateRunning) {
         gAutoUpdateRunning = 0;
@@ -335,6 +355,7 @@ HL_PRIM int HL_NAME(core_create_sound)(vbyte* path, int mode) {
     if (gLastResult != FMOD_OK || !sound) return 0;
     handle = faxe_handle_alloc(sound, FAXE_TYPE_SOUND);
     if (handle == 0) {
+        gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
         FMOD_Sound_Release(sound);
         return 0;
     }
@@ -422,6 +443,7 @@ HL_PRIM int HL_NAME(core_pcm_create)(int sampleRate, int channels, int ringBytes
     }
     handle = faxe_handle_alloc(ps, FAXE_TYPE_PCM);
     if (handle == 0) {
+        gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
         FMOD_Sound_Release(ps->sound);
         faxe_pcmring_destroy(ps->ring);
         free(ps);
@@ -464,6 +486,7 @@ HL_PRIM int HL_NAME(core_pcm_create_3d)(int sampleRate, int channels, int ringBy
     }
     handle = faxe_handle_alloc(ps, FAXE_TYPE_PCM);
     if (handle == 0) {
+        gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
         FMOD_Sound_Release(ps->sound);
         faxe_pcmring_destroy(ps->ring);
         free(ps);
@@ -508,6 +531,7 @@ HL_PRIM int HL_NAME(core_pcm_play)(int h, bool paused) {
     if (gLastResult != FMOD_OK || !channel) return 0;
     handle = faxe_handle_alloc(channel, FAXE_TYPE_CHAN);
     if (handle == 0) {
+        gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
         FMOD_Channel_Stop(channel);
         return 0;
     }
@@ -603,6 +627,9 @@ HL_PRIM int HL_NAME(chan_stop)(int h) {
      * FMOD reports the channel already gone */
     gLastResult = FMOD_Channel_Stop(ch);
     faxe_handle_free(h);
+    /* Stopping tears down the channel's DSP chain, which destroys its
+     * connection objects */
+    faxe_handles_free_type(FAXE_TYPE_DSPCONN);
     return (int)gLastResult;
 }
 DEFINE_PRIM(_I32, chan_stop, _I32);
@@ -627,6 +654,7 @@ HL_PRIM int HL_NAME(dsp_create_by_type)(int type) {
     if (gLastResult != FMOD_OK || !dsp) return 0;
     handle = faxe_handle_alloc(dsp, FAXE_TYPE_DSP);
     if (handle == 0) {
+        gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
         FMOD_DSP_Release(dsp);
         return 0;
     }
@@ -820,6 +848,7 @@ HL_PRIM int HL_NAME(cg_create)(vbyte* name) {
     if (gLastResult != FMOD_OK || !group) return 0;
     handle = faxe_handle_alloc(group, FAXE_TYPE_CHANGROUP);
     if (handle == 0) {
+        gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
         FMOD_ChannelGroup_Release(group);
         return 0;
     }
@@ -831,7 +860,11 @@ HL_PRIM int HL_NAME(cg_release)(int h) {
     FMOD_CHANNELGROUP* group = resolve_changroup(h);
     if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = FMOD_ChannelGroup_Release(group);
-    if (gLastResult == FMOD_OK) faxe_handle_free(h);
+    if (gLastResult == FMOD_OK) {
+        faxe_handle_free(h);
+        /* Releasing the group destroys the connections of every DSP in it */
+        faxe_handles_free_type(FAXE_TYPE_DSPCONN);
+    }
     return (int)gLastResult;
 }
 DEFINE_PRIM(_I32, cg_release, _I32);
@@ -918,6 +951,9 @@ HL_PRIM int HL_NAME(cg_remove_dsp)(int h, int dspHandle) {
     FMOD_DSP* dsp = resolve_dsp(dspHandle);
     if (!group || !dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = FMOD_ChannelGroup_RemoveDSP(group, dsp);
+    /* Removing a DSP rebuilds that part of the graph and destroys the
+     * affected connection objects */
+    if (gLastResult == FMOD_OK) faxe_handles_free_type(FAXE_TYPE_DSPCONN);
     return (int)gLastResult;
 }
 DEFINE_PRIM(_I32, cg_remove_dsp, _I32 _I32);
@@ -1005,6 +1041,9 @@ HL_PRIM int HL_NAME(chan_remove_dsp)(int h, int dspHandle) {
     FMOD_DSP* dsp = resolve_dsp(dspHandle);
     if (!channel || !dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = FMOD_Channel_RemoveDSP(channel, dsp);
+    /* Removing a DSP rebuilds that part of the graph and destroys the
+     * affected connection objects */
+    if (gLastResult == FMOD_OK) faxe_handles_free_type(FAXE_TYPE_DSPCONN);
     return (int)gLastResult;
 }
 DEFINE_PRIM(_I32, chan_remove_dsp, _I32 _I32);
@@ -1086,6 +1125,7 @@ HL_PRIM int HL_NAME(sys_play_dsp)(int dspHandle, bool startPaused) {
     if (gLastResult != FMOD_OK || !channel) return 0;
     handle = faxe_handle_alloc(channel, FAXE_TYPE_CHAN);
     if (handle == 0) {
+        gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
         FMOD_Channel_Stop(channel);
         return 0;
     }
@@ -1510,6 +1550,7 @@ HL_PRIM int HL_NAME(sys_create_reverb3d)() {
     if (gLastResult != FMOD_OK || !reverb) return 0;
     handle = faxe_handle_alloc(reverb, FAXE_TYPE_REVERB3D);
     if (handle == 0) {
+        gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
         FMOD_Reverb3D_Release(reverb);
         return 0;
     }
@@ -1617,6 +1658,7 @@ HL_PRIM int HL_NAME(core_create_sound_pcm)(vbyte* data, int len, int sampleRate,
     if (gLastResult != FMOD_OK || !sound) return 0;
     handle = faxe_handle_alloc(sound, FAXE_TYPE_SOUND);
     if (handle == 0) {
+        gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
         FMOD_Sound_Release(sound);
         return 0;
     }
@@ -1634,6 +1676,7 @@ HL_PRIM int HL_NAME(core_play_sound)(int h, bool startPaused) {
     if (gLastResult != FMOD_OK || !channel) return 0;
     handle = faxe_handle_alloc(channel, FAXE_TYPE_CHAN);
     if (handle == 0) {
+        gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
         FMOD_Channel_Stop(channel);
         return 0;
     }
@@ -1906,6 +1949,7 @@ HL_PRIM int HL_NAME(sys_create_sound_group)(vbyte* name) {
     if (gLastResult != FMOD_OK || !group) return 0;
     handle = faxe_handle_alloc(group, FAXE_TYPE_SOUNDGROUP);
     if (handle == 0) {
+        gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
         FMOD_SoundGroup_Release(group);
         return 0;
     }
@@ -2221,10 +2265,18 @@ DEFINE_PRIM(_I32, sys_load_bank_memory, _BYTES _I32);
 HL_PRIM int HL_NAME(evi_get_channel_group)(int h) {
     FMOD_STUDIO_EVENTINSTANCE* instance = resolve_instance(h);
     FMOD_CHANNELGROUP* group = NULL;
+    FaxeInstCtx* ctx;
+    int cgHandle;
     if (!instance) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_Studio_EventInstance_GetChannelGroup(instance, &group);
     if (gLastResult != FMOD_OK || !group) return 0;
-    return faxe_handle_find_or_alloc(group, FAXE_TYPE_CHANGROUP);
+    cgHandle = faxe_handle_find_or_alloc(group, FAXE_TYPE_CHANGROUP);
+    /* The group dies with the instance, outside every sweep trigger. Record
+     * the handle on the context so the DESTROYED drain reclaims the slot
+     * before a recycled group address can alias it. */
+    ctx = instance_ctx(instance);
+    if (ctx) ctx->cgHandle = cgHandle;
+    return cgHandle;
 }
 DEFINE_PRIM(_I32, evi_get_channel_group, _I32);
 
@@ -2258,6 +2310,7 @@ HL_PRIM int HL_NAME(sys_load_command_replay)(vbyte* path) {
     if (gLastResult != FMOD_OK || !replay) return 0;
     handle = faxe_handle_alloc(replay, FAXE_TYPE_REPLAY);
     if (handle == 0) {
+        gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
         FMOD_Studio_CommandReplay_Release(replay);
         return 0;
     }
@@ -2955,8 +3008,33 @@ DEFINE_PRIM(_I32, cg_get_channel, _I32 _I32);
 // the accessors read fields from that slot. Haxe thread only.
 static FaxeCbEvent gCbCurrent;
 
+// Final cleanup for a destroyed instance, on the game thread: the handle
+// slot, the channel-group handle minted for it, and the context itself.
+// Both frees are generation-checked, so slots already reclaimed elsewhere
+// (release, or a recycled slot) are left alone.
+static void free_destroyed_ctx(FaxeInstCtx* ctx) {
+    if (ctx->cgHandle != 0) faxe_handle_free(ctx->cgHandle);
+    if (ctx->handle > 0) faxe_handle_free(ctx->handle);
+    faxe_instctx_destroy(ctx);
+}
+
 HL_PRIM bool HL_NAME(cb_next)() {
-    return faxe_cbq_pop(&gCbCurrent) == 1;
+    if (faxe_cbq_pop(&gCbCurrent) != 1) {
+        /* Drain end: dispose of contexts whose DESTROYED events were
+         * dropped by the ring's overflow policy. */
+        FaxeInstCtx* orphan = (FaxeInstCtx*)faxe_cbq_take_orphans();
+        while (orphan) {
+            FaxeInstCtx* next = (FaxeInstCtx*)orphan->qnext;
+            free_destroyed_ctx(orphan);
+            orphan = next;
+        }
+        return false;
+    }
+    if (gCbCurrent.opaque) {
+        free_destroyed_ctx((FaxeInstCtx*)gCbCurrent.opaque);
+        gCbCurrent.opaque = NULL;
+    }
+    return true;
 }
 DEFINE_PRIM(_BOOL, cb_next, _NO_ARG);
 
@@ -3072,6 +3150,9 @@ HL_PRIM int HL_NAME(sys_init_ex)(int numChannels, int sampleRate, int speakerMod
     if (gLastResult != FMOD_OK) {
         FMOD_Studio_System_Release(gStudioSystem);
         gStudioSystem = NULL;
+        /* The wavwriter and format branches above may have cached the core
+         * system, which the release just destroyed */
+        gCoreSystem = NULL;
         return (int)gLastResult;
     }
 
@@ -4062,6 +4143,7 @@ HL_PRIM int HL_NAME(evd_create_instance)(int h) {
     if (gLastResult != FMOD_OK || !instance) return 0;
     handle = faxe_handle_alloc(instance, FAXE_TYPE_EVI);
     if (handle == 0) {
+        gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
         FMOD_Studio_EventInstance_Release(instance);
         return 0;
     }
@@ -4096,7 +4178,22 @@ HL_PRIM int HL_NAME(evd_get_instance_list)(int h, vbyte* out) {
     if (gLastResult != FMOD_OK) return 0;
     if (count > FAXE_LIST_MAX) count = FAXE_LIST_MAX;
     for (i = 0; i < count; i++) {
-        outInts[i] = faxe_handle_find_or_alloc(list[i], FAXE_TYPE_EVI);
+        int handle = faxe_handle_find_or_alloc(list[i], FAXE_TYPE_EVI);
+        outInts[i] = handle;
+        if (handle == 0) continue;
+        /* A released-but-still-playing instance gets a fresh handle here.
+         * Its context must follow, or queued callbacks keep carrying the
+         * old freed handle and the dispatcher drops them. */
+        {
+            FaxeInstCtx* ctx = instance_ctx(list[i]);
+            if (!ctx) {
+                attach_instance_ctx(list[i], handle);
+            } else if (ctx->handle != handle) {
+                faxe_cbq_lock();
+                ctx->handle = handle;
+                faxe_cbq_unlock();
+            }
+        }
     }
     return count;
 }
@@ -4290,7 +4387,12 @@ HL_PRIM int HL_NAME(evi_release)(int h) {
     FMOD_STUDIO_EVENTINSTANCE* instance = resolve_instance(h);
     if (!instance) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = FMOD_Studio_EventInstance_Release(instance);
-    if (gLastResult == FMOD_OK) faxe_handle_free(h);
+    /* INVALID_HANDLE means FMOD already destroyed the instance (bank unload,
+     * releaseAllInstances). The slot must still be reclaimed or it leaks for
+     * the rest of the process. */
+    if (gLastResult == FMOD_OK || gLastResult == FMOD_ERR_INVALID_HANDLE) {
+        faxe_handle_free(h);
+    }
     return (int)gLastResult;
 }
 DEFINE_PRIM(_I32, evi_release, _I32);
