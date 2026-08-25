@@ -367,7 +367,7 @@ class ApiProbeState extends FlxState {
         var master = StudioSystem.getBus("bus:/");
         var busById = StudioSystem.getBusByID(master.getID());
         check("sys_get_bus_by_id", (busById : Int) == (master : Int), 'guid=${master.getID()}');
-        var eventById = StudioSystem.getEventByID(FmodEventsGuids.SFXJump);
+        var eventById = StudioSystem.getEventByID(FmodEvents.FmodEventsGuids.SFXJump);
         check("sys_get_event_by_id",
             (eventById : Int) == (StudioSystem.getEvent(FmodEvents.SFXJump) : Int), "");
 
@@ -384,9 +384,9 @@ class ApiProbeState extends FlxState {
 
         // Path and ID string lookups agree with the generated constants
         check("sys_lookup_id", StudioSystem.lookupID(FmodEvents.SFXJump).toLowerCase()
-            == FmodEventsGuids.SFXJump, 'value=${StudioSystem.lookupID(FmodEvents.SFXJump)}');
-        check("sys_lookup_path", StudioSystem.lookupPath(FmodEventsGuids.SFXJump)
-            == FmodEvents.SFXJump, 'value=${StudioSystem.lookupPath(FmodEventsGuids.SFXJump)}');
+            == FmodEvents.FmodEventsGuids.SFXJump, 'value=${StudioSystem.lookupID(FmodEvents.SFXJump)}');
+        check("sys_lookup_path", StudioSystem.lookupPath(FmodEvents.FmodEventsGuids.SFXJump)
+            == FmodEvents.SFXJump, 'value=${StudioSystem.lookupPath(FmodEvents.FmodEventsGuids.SFXJump)}');
 
         // VCA surface: nothing is authored, so the miss and the
         // stale-handle contract are what can be proven
@@ -396,7 +396,7 @@ class ApiProbeState extends FlxState {
         check("null_vca_defaults", missingVca.getVolume() == 0.0 && !missingVca.setVolume(1.0).isOk()
             && missingVca.getPath() == "" && !missingVca.isValid(), "");
         // A well-formed GUID that belongs to an event, not a VCA
-        var missingVcaById = StudioSystem.getVCAByID(FmodEventsGuids.SFXJump);
+        var missingVcaById = StudioSystem.getVCAByID(FmodEvents.FmodEventsGuids.SFXJump);
         check("sys_get_vca_by_id_wrong_type", missingVcaById.isNull(), "");
 
         // Bank enumeration: getID, counts, lists, and sample data
