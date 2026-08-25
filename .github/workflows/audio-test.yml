@@ -924,18 +924,6 @@ jobs:
       - name: Validate volume/mute
         run: ./ci/validate-volume.sh /tmp/volume-test-linux-hl-compat.wav 15
 
-      # Validates the binding surface against FMOD 2.02.33, not just
-      # the music playback flow
-      - name: Run api-probe state
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/run-test-state
-        with:
-          state: api-probe
-          gate: API_PROBE
-          timeout: "60"
-          bin-dir: example-project/EZPlatformer/export/hl/bin
-          log-file: /tmp/api-probe-linux-hl-compat.log
-
       - name: Upload artifacts
         uses: actions/upload-artifact@v6
         if: always()

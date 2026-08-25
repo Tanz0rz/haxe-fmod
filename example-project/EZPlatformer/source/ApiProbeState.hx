@@ -161,10 +161,11 @@ class ApiProbeState extends FlxState {
 
     /** Exercises the audit-closure surface through the real FFI. */
     function probeAuditClosure():Void {
-        // Per-instance channel group: effects on one event. Runs before the
-        // baseline snapshot because the group's cached lookup handle
-        // legitimately outlives the instance (reclaimed by the next unload
-        // sweep, like the bus group).
+        // Per-instance channel group: effects on one event. The group
+        // handle is reclaimed with the instance (the DESTROYED drain on
+        // native, the release-all sweep on html5), and the timing of that
+        // reclaim depends on the studio thread, so it happens
+        // deterministically here before the baseline snapshot.
         var desc = StudioSystem.getEvent(FmodEvents.MusicMainLevel);
         var instance = desc.createInstance();
         instance.start();
@@ -179,6 +180,9 @@ class ApiProbeState extends FlxState {
         }
         instance.stop(FmodStopMode.IMMEDIATE);
         instance.release();
+        desc.releaseAllInstances();
+        StudioSystem.flushCommands();
+        CallbackDispatcher.update();
 
         var baseline = StudioSystem.liveHandleCount();
 
