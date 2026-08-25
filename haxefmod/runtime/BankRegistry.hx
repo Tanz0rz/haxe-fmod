@@ -55,7 +55,10 @@ class BankRegistry {
             out.push(part);
         }
         var joined = out.join("/");
-        return StringTools.startsWith(path, "/") ? '/$joined' : joined;
+        var forward = StringTools.replace(path, "\\", "/");
+        // A UNC or protocol-like root keeps its double separator
+        if (StringTools.startsWith(forward, "//")) return '//$joined';
+        return StringTools.startsWith(forward, "/") ? '/$joined' : joined;
     }
 
     function doLoad(path:String, async:Bool):Bank {
@@ -63,9 +66,14 @@ class BankRegistry {
         // An html5 async load holds a placeholder that reports LOADING but
         // not valid until the fetch lands, so the in-flight state counts as
         // registered too - a second load of the same path must share it
-        // instead of starting a competing fetch
-        if (entry != null && (entry.bank.isValid()
-                || entry.bank.getLoadingState() == FmodLoadingState.LOADING)) {
+        // instead of starting a competing fetch. A bank that settled in
+        // ERROR never dedups, even where the backend keeps reporting it
+        // valid until unloaded (native NONBLOCKING failures): a retry must
+        // replace the dead load, not refcount onto it forever.
+        if (entry != null
+                && entry.bank.getLoadingState() != FmodLoadingState.ERROR
+                && (entry.bank.isValid()
+                    || entry.bank.getLoadingState() == FmodLoadingState.LOADING)) {
             entry.refs++;
             return entry.bank;
         }

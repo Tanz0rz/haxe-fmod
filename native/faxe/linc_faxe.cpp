@@ -98,16 +98,13 @@ static FMOD_RESULT F_CALLBACK eventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type
                 FMOD::Sound* sound = NULL;
                 if (gStudioSystem->getSoundInfo(key, &info) == FMOD_OK) {
                     // Audio table entry
-                    // NONBLOCKING keeps disk and decode work off the studio
-                    // update thread. Studio waits for the sound before the
-                    // instrument starts (the official integration's pattern).
                     if (gCoreSystem->createSound(info.name_or_data,
-                            FMOD_LOOP_NORMAL | FMOD_CREATECOMPRESSEDSAMPLE | FMOD_NONBLOCKING | info.mode,
+                            FMOD_LOOP_NORMAL | FMOD_CREATECOMPRESSEDSAMPLE | info.mode,
                             &info.exinfo, &sound) == FMOD_OK) {
                         props->sound = (FMOD_SOUND*)sound;
                         props->subsoundIndex = info.subsoundindex;
                     }
-                } else if (gCoreSystem->createSound(key, FMOD_DEFAULT | FMOD_NONBLOCKING, NULL, &sound) == FMOD_OK) {
+                } else if (gCoreSystem->createSound(key, FMOD_DEFAULT, NULL, &sound) == FMOD_OK) {
                     // Plain file path fallback
                     props->sound = (FMOD_SOUND*)sound;
                     props->subsoundIndex = -1;

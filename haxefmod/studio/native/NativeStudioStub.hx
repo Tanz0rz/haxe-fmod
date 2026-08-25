@@ -26,6 +26,7 @@ class NativeStudioStub {
     public static var testNextHandle:Int = 2000;
     public static var testStartCalls:Int = 0;
     public static var testBankLoadingState:Int = 3;
+    public static var testBankValid:Null<Bool> = null;
     public static var testBankUnloadCalls:Int = 0;
 
     // System
@@ -102,8 +103,10 @@ class NativeStudioStub {
     public static function vca_set_volume(handle:Int, volume:Float):Int return ERR_UNSUPPORTED;
 
     // Bank
-    public static function bank_is_valid(handle:Int):Bool
-        return testSyntheticHandles && handle > 0 && testBankLoadingState == 3;
+    public static function bank_is_valid(handle:Int):Bool {
+        if (!testSyntheticHandles || handle <= 0) return false;
+        return testBankValid != null ? testBankValid : testBankLoadingState == 3;
+    }
     public static function bank_get_id(handle:Int):String return "";
     public static function bank_get_path(handle:Int):String return "";
     public static function bank_unload(handle:Int):Int {

@@ -14,6 +14,9 @@ compat run goes wrong. This asserts the load-bearing properties:
   4. The compat jobs assert the mismatched build FAILS (not just that a
      banner appeared in a zero-exit build), with pipefail set explicitly
      because only the Windows jobs' shell declaration implies it.
+  5. linux-html5 asserts a build against a doctored (wrong-version) web
+     SDK FAILS with the mismatch banner, with pipefail, since html5 pins
+     the web SDK version instead of translating DSP types.
 
 Run: python3 ci/workflow-invariants.py [workflow-file]
 """
@@ -110,6 +113,23 @@ if text.count('grep -q "FMOD SDK version mismatch"') < 3:
     fail("compat jobs no longer grep for the mismatch banner")
 else:
     ok("compat jobs still verify the mismatch banner text")
+
+# 5. linux-html5 requires a FAILING build against a doctored web SDK,
+# with pipefail, and verifies the version-mismatch banner (paired to the
+# job so a copy of the block elsewhere cannot mask its removal here)
+html5_job = jobs.get("linux-html5", "")
+web_gate = re.search(
+    r'set -o pipefail[\s\S]*?'
+    r'if FMOD_SDK_WEB="\$DOCTORED" haxelib run lime build html5 2>&1 \| tee [^\n]*; then\n'
+    r'\s*echo "FAIL: build succeeded[^\n]*\n\s*exit 1\n\s*fi', html5_job)
+if not web_gate:
+    fail("linux-html5 lost the web-SDK mismatch build-must-fail gate (with pipefail)")
+else:
+    ok("linux-html5 requires the doctored web-SDK build to fail, with pipefail")
+if 'grep -q "FMOD web SDK version mismatch"' not in html5_job:
+    fail("linux-html5 no longer greps for the web mismatch banner")
+else:
+    ok("linux-html5 verifies the web mismatch banner text")
 
 print()
 if failures:

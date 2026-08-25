@@ -39,6 +39,9 @@ class BankLifecycleTestState extends FlxState {
     var _loaderLoaded:Bool = false;
     var _loaderErrored:Bool = false;
 
+    static inline var MISSING_PATH = "assets/fmod/Desktop/DoesNotExist.bank";
+    static inline var ALSO_MISSING_PATH = "assets/fmod/Desktop/AlsoMissing.bank";
+
     static inline function log(message:String):Void {
         #if js
         js.Browser.console.log(message);
@@ -150,9 +153,9 @@ class BankLifecycleTestState extends FlxState {
         // concurrent loads of one missing path share a placeholder, and
         // the flixel loader surfaces both outcomes through callbacks.
         _errBaseline = StudioSystem.liveHandleCount();
-        _asyncMissing = FmodRuntime.banks.loadAsync("assets/fmod/Desktop/DoesNotExist.bank");
-        var concurrentA = FmodRuntime.banks.loadAsync("assets/fmod/Desktop/AlsoMissing.bank");
-        var concurrentB = FmodRuntime.banks.loadAsync("assets/fmod/Desktop/AlsoMissing.bank");
+        _asyncMissing = FmodRuntime.banks.loadAsync(MISSING_PATH);
+        var concurrentA = FmodRuntime.banks.loadAsync(ALSO_MISSING_PATH);
+        var concurrentB = FmodRuntime.banks.loadAsync(ALSO_MISSING_PATH);
         _asyncConcurrent = concurrentA;
         if (_asyncMissing.isNull()) {
             // A backend may reject the missing file synchronously: that is
@@ -174,24 +177,24 @@ class BankLifecycleTestState extends FlxState {
     }
 
     function finishErrors():Void {
+        // The registry's CURRENT entry is the authority: a settled-ERROR
+        // placeholder can legitimately be replaced (and its old handle
+        // unloaded) by the loader's retry of the same path
         if (!_asyncMissing.isNull()) {
             check("async_missing_errors",
-                _asyncMissing.getLoadingState() == FmodLoadingState.ERROR,
-                'state=${(_asyncMissing.getLoadingState() : Int)}');
-            check("loader_error_surfaced", _loaderErrored, "");
-        } else {
-            // The synchronous-failure backend surfaced the loader error the
-            // same way
-            check("loader_error_surfaced", _loaderErrored, "");
+                FmodRuntime.banks.loadingState(MISSING_PATH) == FmodLoadingState.ERROR,
+                'state=${(FmodRuntime.banks.loadingState(MISSING_PATH) : Int)}');
         }
+        check("loader_error_surfaced", _loaderErrored, "");
         check("loader_loaded_fired", _loaderLoaded, "");
         if (!_asyncConcurrent.isNull()) {
             check("async_concurrent_errors",
-                _asyncConcurrent.getLoadingState() == FmodLoadingState.ERROR,
-                'state=${(_asyncConcurrent.getLoadingState() : Int)}');
-            // Errored placeholders persist by design (they keep reporting
-            // ERROR instead of being freed); the loader's missing bank
-            // deduped onto the first placeholder
+                FmodRuntime.banks.loadingState(ALSO_MISSING_PATH) == FmodLoadingState.ERROR,
+                'state=${(FmodRuntime.banks.loadingState(ALSO_MISSING_PATH) : Int)}');
+            // Errored entries persist by design (they keep reporting ERROR
+            // instead of being freed). One entry per missing path: the
+            // loader's retry either deduped onto the in-flight placeholder
+            // or replaced a settled one, releasing the old handle either way
             check("no_error_leg_leaks", StudioSystem.liveHandleCount() == _errBaseline + 2,
                 'baseline=$_errBaseline now=${StudioSystem.liveHandleCount()}');
         }
@@ -219,9 +222,9 @@ class BankLifecycleTestState extends FlxState {
         if (_phase == "errors") {
             _phaseFrames++;
             var missingSettled = _asyncMissing.isNull()
-                || _asyncMissing.getLoadingState() != FmodLoadingState.LOADING;
+                || FmodRuntime.banks.loadingState(MISSING_PATH) != FmodLoadingState.LOADING;
             var concurrentSettled = _asyncConcurrent.isNull()
-                || _asyncConcurrent.getLoadingState() != FmodLoadingState.LOADING;
+                || FmodRuntime.banks.loadingState(ALSO_MISSING_PATH) != FmodLoadingState.LOADING;
             var loaderSettled = _loaderErrored || _asyncMissing.isNull();
             if ((missingSettled && concurrentSettled && loaderSettled && _loaderLoaded)
                 || _phaseFrames > 600) {

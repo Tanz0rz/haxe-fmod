@@ -44,8 +44,10 @@ top. See `MIGRATION.md` for the complete 1.x to 2.0 mapping.
   `FMOD_ERR_INVALID_PARAM`.
 - Bank loading on HTML5 is settings-driven through the same refcounted
   registry as native: `bankFolder` and `autoLoadBanks` (including `[]`)
-  apply, a failed fetch surfaces as a bank `ERROR` state instead of
-  hanging startup, and `FmodFlxBankLoader` takes an `onError` callback.
+  apply, a failed fetch surfaces as a bank `ERROR` state with a traced
+  warning (a failed `autoLoadBanks` fetch still holds `IsInitialized()`
+  false, since the game's own banks are unusable), and
+  `FmodFlxBankLoader` takes an `onError` callback.
 - Binding ABI guard: stale pre-built hdlls are refused at build time with
   `build-hdll` instructions instead of crashing at game startup.
 - Generated audio (`haxefmod.core`): `PcmStream` streams 16-bit PCM

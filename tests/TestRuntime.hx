@@ -144,6 +144,10 @@ class TestRuntime {
 			== "assets/fmod/Master.bank", "duplicate slashes collapse");
 		assert(BankRegistry.normalizePath("assets/fmod/Master.bank")
 			== "assets/fmod/Master.bank", "clean path unchanged");
+		assert(BankRegistry.normalizePath("\\\\server\\share\\Master.bank")
+			== "//server/share/Master.bank", "UNC root preserved");
+		assert(BankRegistry.normalizePath("/abs/Master.bank")
+			== "/abs/Master.bank", "absolute root preserved");
 
 		var stub = haxefmod.studio.native.NativeStudioStub;
 		stub.testSyntheticHandles = true;
@@ -179,6 +183,18 @@ class TestRuntime {
 		assert(registry.anyError(), "errored bank surfaces through anyError");
 		stub.testBankLoadingState = 3;
 		assert(!registry.anyError(), "loaded banks report no error");
+
+		// Native semantics: an errored NONBLOCKING bank still reports
+		// valid until unloaded, and a retry must still replace it instead
+		// of refcounting onto the dead load forever
+		stub.testBankLoadingState = 4;
+		stub.testBankValid = true;
+		stub.testBankUnloadCalls = 0;
+		var nativeErr = registry.loadAsync("assets/fmod/NativeErr.bank");
+		var retried = registry.loadAsync("assets/fmod/NativeErr.bank");
+		assert((retried : Int) != (nativeErr : Int), "valid-but-errored bank is replaced on retry");
+		assert(stub.testBankUnloadCalls == 1, "valid-but-errored bank unloaded before the retry");
+		stub.testBankValid = null;
 		stub.testSyntheticHandles = false;
 		stub.testBankLoadingState = 3;
 		stub.testBankUnloadCalls = 0;

@@ -40,13 +40,25 @@ class FmodFlxBankLoader extends FlxBasic {
         super();
         this.onLoaded = onLoaded;
         this.onError = onError;
+        this.async = async;
         paths = [for (file in bankFiles) FmodRuntime.bankPath(file)];
+    }
+
+    var async:Bool;
+    var started:Bool = false;
+    // Only paths whose load this loader actually registered are unloaded
+    // by destroy(), so a rejected load can never steal a reference some
+    // other holder registered for the same path later
+    var owned:Array<String> = [];
+
+    // Loads start on the first serviced frame after FMOD is ready, so a
+    // loader constructed before (or during) initialization waits instead
+    // of failing outright
+    function startLoads():Void {
+        started = true;
         for (path in paths) {
-            if (async) {
-                FmodRuntime.banks.loadAsync(path);
-            } else {
-                FmodRuntime.banks.load(path);
-            }
+            var bank = async ? FmodRuntime.banks.loadAsync(path) : FmodRuntime.banks.load(path);
+            if (!bank.isNull()) owned.push(path);
         }
     }
 
@@ -55,6 +67,10 @@ class FmodFlxBankLoader extends FlxBasic {
         // A destroyed loader has an empty path list, which would read as
         // "all banks loaded" and fire onLoaded after the banks were released
         if (loaded || destroyed || errored) return;
+        if (!started) {
+            if (!FmodRuntime.isInitialized()) return;
+            startLoads();
+        }
         for (path in paths) {
             var state = FmodRuntime.banks.loadingState(path);
             // ERROR: an async load settled in failure. UNLOADED: the load
@@ -76,9 +92,10 @@ class FmodFlxBankLoader extends FlxBasic {
     /** Releases this loader's bank references (refcounted unload). **/
     override public function destroy():Void {
         destroyed = true;
-        for (path in paths) {
+        for (path in owned) {
             FmodRuntime.banks.unload(path);
         }
+        owned = [];
         paths = [];
         super.destroy();
     }

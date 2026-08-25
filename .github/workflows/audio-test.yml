@@ -1393,6 +1393,31 @@ jobs:
           fi
           echo "pan-test passed"
 
+      # The web-SDK version gate is load-bearing on this target (the JS
+      # shim's numeric tables are version-specific and the wasm exposes no
+      # version query): a build against a mismatched FMOD_SDK_WEB must FAIL
+      # at compile time with the mismatch banner, not limp through with a
+      # warning.
+      - name: Verify mismatched web SDK fails the build
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          DOCTORED=/tmp/doctored-web-sdk
+          rm -rf "$DOCTORED"
+          cp -r "$FMOD_SDK" "$DOCTORED"
+          sed -i 's/#define FMOD_VERSION    0x[0-9a-fA-F]*/#define FMOD_VERSION    0x00020221/'             "$DOCTORED/api/core/inc/fmod_common.h"
+          grep -q "0x00020221" "$DOCTORED/api/core/inc/fmod_common.h" || {
+            echo "FAIL: could not doctor the SDK header"; exit 1; }
+          cd example-project/EZPlatformer
+          haxelib run lime clean html5
+          if FMOD_SDK_WEB="$DOCTORED" haxelib run lime build html5 2>&1 | tee /tmp/web-mismatch-build.log; then
+            echo "FAIL: build succeeded against a mismatched web SDK"
+            exit 1
+          fi
+          grep -q "FMOD web SDK version mismatch" /tmp/web-mismatch-build.log || {
+            echo "FAIL: build failed without the version-mismatch banner"; exit 1; }
+          echo "OK: mismatched web SDK fails the build with the banner"
+
       - name: Upload audio artifact
         uses: actions/upload-artifact@v6
         if: always()

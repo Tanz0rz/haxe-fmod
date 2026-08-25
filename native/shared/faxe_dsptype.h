@@ -9,8 +9,10 @@
  * so the shims translate through the symbolic names, which the compiler
  * resolves to whatever the SDK at hand numbers them.
  *
- * Used by linc_faxe.cpp (C++) and hlaxe_fmod.c (C99). jaxe.js mirrors
- * the same translation against the JS glue's symbolic constants.
+ * Used by linc_faxe.cpp (C++) and hlaxe_fmod.c (C99). jaxe.js does NOT
+ * translate: the JS glue exports no symbolic type constants and no
+ * version query, so html5 instead pins the web SDK to the expected
+ * version at build time and keeps identity numbering.
  *
  * The MIT License (MIT)
  * Copyright (c) 2020 Tanner Moore
