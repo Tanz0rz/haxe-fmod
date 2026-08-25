@@ -595,6 +595,9 @@ class ApiProbeState extends FlxState {
             'result=${StudioSystem.lastResult().toString()}');
         d.stop(FmodStopMode.IMMEDIATE);
         d.release();
+        // The release-all triggers the html5 sweep that reclaims the dead
+        // group's slot there (native reclaims it through the drain below)
+        desc.releaseAllInstances();
         StudioSystem.flushCommands();
         CallbackDispatcher.update();
         check("no_slot_leak_instance_group", StudioSystem.liveHandleCount() == baseline,
