@@ -59,6 +59,42 @@ class BuildCheck {
         if (Context.defined("hl")) {
             verifyHlHdllGate();
         }
+        if (Context.defined("html5") || Context.defined("js")) {
+            verifyWebSdkVersionGate();
+        }
+    }
+
+    /**
+     * html5 supports exactly the expected FMOD web SDK version: the JS
+     * shim's numeric tables (DSP types among them) are that version's
+     * values, the wasm exposes no version query to adapt at runtime, and
+     * there is no custom-hdll escape hatch on this target. A mismatched
+     * web SDK previously built with only a postbuild warning and created
+     * WRONG DSP EFFECTS at runtime.
+     */
+    static function verifyWebSdkVersionGate():Void {
+        var sdkPath = Sys.getEnv("FMOD_SDK_WEB");
+        if (sdkPath == null || sdkPath == "") return; // requireEnv handled it
+        var sdkHeader = haxe.io.Path.join([sdkPath, "api", "core", "inc", "fmod_common.h"]);
+        if (!sys.FileSystem.exists(sdkHeader)) return; // header layout varies, postbuild warns
+        var libRoot = resolveLibRoot();
+        if (libRoot == null) return;
+        var versionFile = haxe.io.Path.join([libRoot, "fmod_expected_version"]);
+        if (!sys.FileSystem.exists(versionFile)) return;
+        var expectedHex = StringTools.trim(sys.io.File.getContent(versionFile));
+        var sdkHex = PostBuild.parseFmodVersion(sdkHeader);
+        if (sdkHex == null || sdkHex == expectedHex) return;
+
+        var sdkVer = PostBuild.hexToVersion(sdkHex);
+        var expectedVer = PostBuild.hexToVersion(expectedHex);
+        fail('FMOD web SDK version mismatch ($sdkVer, this release needs $expectedVer)',
+            'haxefmod: FMOD web SDK version mismatch - the game would create wrong DSP effects.\n'
+            + "\n"
+            + '  Your FMOD_SDK_WEB:  $sdkVer\n'
+            + '  This release needs: $expectedVer\n'
+            + "\n"
+            + '  Download FMOD Engine $expectedVer for HTML5 from https://www.fmod.com/download\n'
+            + "  and point FMOD_SDK_WEB at it.");
     }
 
     /**

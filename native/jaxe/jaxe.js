@@ -14,7 +14,6 @@ class jaxe {
     static gSystemCore = {};
     static gAudioResumed = false;
     static FmodIsInitialized = false;
-    static loadedBanks = {};
     static autoUpdateIntervalId = null;
 
     // Init settings stored by fmod_sys_init_ex and consumed by
@@ -806,8 +805,9 @@ class jaxe {
     }
 
     // bank loading (flags: bit0 = nonblocking). Returns bank handle or 0.
-    // Banks are preloaded into MEMFS at "/<name>" by preRun, so bare
-    // filenames are resolved from the filesystem root like fmod_load_bank.
+    // Resolves bare filenames from the MEMFS root; on this target files
+    // only exist there after an async load's fetch wrote them, so the
+    // registry routes html5 loads through fmod_sys_load_bank_async.
     static fmod_sys_load_bank_file(path, flags) {
         if (!jaxe.sysReady()) return 0;
         // The C shims hand a null path to FMOD which rejects it - report
@@ -4309,15 +4309,11 @@ class jaxe {
 
     //// Initialization (Emscripten-specific, must stay here)
 
+    // Bank loading belongs to the runtime's registry (settings-driven,
+    // through the async fetch pipeline), not the module bootstrap. The
+    // old preload here hardcoded the Master banks and turned any fetch
+    // failure into an unresolvable init hang.
     static preRun = function () {
-        var files = ["Master.bank", "Master.strings.bank"];
-        var appRoot = window.location.pathname;
-        var gameRoot = appRoot.substring(0, appRoot.lastIndexOf("/"));
-        var fileUrl = gameRoot + "/assets/fmod/Desktop/";
-
-        for (var i = 0; i < files.length; i++) {
-            jaxe.FMOD.FS_createPreloadedFile("/", files[i], fileUrl + files[i], true, false);
-        }
     }
 
     static onRuntimeInitialized = function () {
@@ -4365,14 +4361,9 @@ class jaxe {
             : jaxe.FMOD.STUDIO_INIT_NORMAL;
         jaxe.gSystem.initialize(numChannels, studioInitFlags, jaxe.FMOD.INIT_NORMAL, null);
 
-        // Enable auto-update by default
+        // Enable auto-update by default (the runtime applies the
+        // configured setting on its first serviced frame)
         jaxe.fmod_sys_set_auto_update(true);
-
-        // Load default banks
-        jaxe.gSystem.loadBankFile("/Master.bank", jaxe.FMOD.STUDIO_LOAD_BANK_NORMAL, outval);
-        jaxe.loadedBanks["Master.bank"] = outval.val;
-        jaxe.gSystem.loadBankFile("/Master.strings.bank", jaxe.FMOD.STUDIO_LOAD_BANK_NORMAL, outval);
-        jaxe.loadedBanks["Master.strings.bank"] = outval.val;
 
         jaxe.FmodIsInitialized = true;
         return jaxe.FMOD.OK;

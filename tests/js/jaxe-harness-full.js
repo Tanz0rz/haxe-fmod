@@ -52,9 +52,7 @@ jaxe.onRuntimeInitialized = function () {
         jaxe.gSystem.initialize(1024, jaxe.FMOD.STUDIO_INIT_NORMAL, jaxe.FMOD.INIT_NORMAL, null);
         var b = {};
         jaxe.gSystem.loadBankFile('/Master.bank', jaxe.FMOD.STUDIO_LOAD_BANK_NORMAL, b);
-        jaxe.loadedBanks['Master.bank'] = b.val;
         jaxe.gSystem.loadBankFile('/Master.strings.bank', jaxe.FMOD.STUDIO_LOAD_BANK_NORMAL, b);
-        jaxe.loadedBanks['Master.strings.bank'] = b.val;
         jaxe.FmodIsInitialized = true;
     } catch (e) {
         console.log('INIT THREW:', e.message);

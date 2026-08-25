@@ -24,6 +24,8 @@ class TestRuntime {
 		testSettingsOverrides();
 		testFocusMute();
 		testBankRegistry();
+		testBankRegistryNormalization();
+		testBankRegistryErroredRetry();
 		testAttachedInstances();
 
 		Sys.println('  $passed passed, $failed failed');
@@ -129,6 +131,57 @@ class TestRuntime {
 		assert(BankRegistry.bankPathFor("assets/fmod/Desktop/Master.strings.bank") == "bank:/Master.strings", "bank path multi-dot");
 		assert(BankRegistry.bankPathFor("Solo.bank") == "bank:/Solo", "bank path bare file");
 		assert(BankRegistry.bankPathFor("dir/NoExtension") == "bank:/NoExtension", "bank path no extension");
+	}
+
+	static function testBankRegistryNormalization():Void {
+		// Two spellings of one file must share one refcount, or unloading
+		// either entry to zero destroys the bank under the other's holders
+		assert(BankRegistry.normalizePath("assets\\fmod\\Master.bank")
+			== "assets/fmod/Master.bank", "backslashes normalize");
+		assert(BankRegistry.normalizePath("./assets/./fmod/Master.bank")
+			== "assets/fmod/Master.bank", "dot segments collapse");
+		assert(BankRegistry.normalizePath("assets//fmod///Master.bank")
+			== "assets/fmod/Master.bank", "duplicate slashes collapse");
+		assert(BankRegistry.normalizePath("assets/fmod/Master.bank")
+			== "assets/fmod/Master.bank", "clean path unchanged");
+
+		var stub = haxefmod.studio.native.NativeStudioStub;
+		stub.testSyntheticHandles = true;
+		stub.testBankLoadingState = 3;
+		var registry = new BankRegistry();
+		var first = registry.load("assets/fmod/Master.bank");
+		var second = registry.load("assets\\fmod\\.\\Master.bank");
+		assert(!first.isNull(), "synthetic load registers");
+		assert((first : Int) == (second : Int), "spellings share one entry");
+		assert(registry.refCount("assets/fmod/Master.bank") == 2, "spellings share the refcount");
+		assert(!registry.unload(".\\assets\\fmod\\Master.bank"), "first unload keeps the bank");
+		assert(registry.refCount("assets/fmod/Master.bank") == 1, "refcount through a third spelling");
+		assert(registry.unload("assets/fmod/Master.bank"), "last unload releases");
+		stub.testSyntheticHandles = false;
+	}
+
+	static function testBankRegistryErroredRetry():Void {
+		// A replacement load for an entry that settled in ERROR must unload
+		// the dead placeholder first, or its handle slot leaks per retry
+		var stub = haxefmod.studio.native.NativeStudioStub;
+		stub.testSyntheticHandles = true;
+		stub.testBankLoadingState = 4; // ERROR: invalid, not LOADING
+		stub.testBankUnloadCalls = 0;
+		var registry = new BankRegistry();
+		var first = registry.loadAsync("assets/fmod/Level.bank");
+		assert(!first.isNull(), "errored placeholder registered");
+		var unloadsBefore = stub.testBankUnloadCalls;
+		var second = registry.loadAsync("assets/fmod/Level.bank");
+		assert(!second.isNull(), "retry starts a replacement load");
+		assert((second : Int) != (first : Int), "replacement is a fresh handle");
+		assert(stub.testBankUnloadCalls == unloadsBefore + 1,
+			"errored placeholder unloaded before the retry");
+		assert(registry.anyError(), "errored bank surfaces through anyError");
+		stub.testBankLoadingState = 3;
+		assert(!registry.anyError(), "loaded banks report no error");
+		stub.testSyntheticHandles = false;
+		stub.testBankLoadingState = 3;
+		stub.testBankUnloadCalls = 0;
 	}
 
 	static function testAttachedInstances():Void {

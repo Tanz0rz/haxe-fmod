@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include "../shared/faxe_handles.h"
 #include "../shared/faxe_pcmring.h"
+#include "../shared/faxe_dsptype.h"
 #include "../shared/faxe_guid.h"
 #include "../shared/faxe_cbqueue.h"
 #include "../shared/faxe_instctx.h"
@@ -110,13 +111,16 @@ static FMOD_RESULT F_CALLBACK eventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type
             if (props && key[0] != '\0' && gCoreSystem && gStudioSystem) {
                 if (FMOD_Studio_System_GetSoundInfo(gStudioSystem, key, &info) == FMOD_OK) {
                     // Audio table entry
-                    if (FMOD_System_CreateSound(gCoreSystem, info.name_or_data,
-                            FMOD_LOOP_NORMAL | FMOD_CREATECOMPRESSEDSAMPLE | info.mode,
+                    /* NONBLOCKING keeps disk and decode work off the studio
+                     * update thread. Studio waits for the sound before the
+                     * instrument starts (the official integration's pattern). */
+                if (FMOD_System_CreateSound(gCoreSystem, info.name_or_data,
+                            FMOD_LOOP_NORMAL | FMOD_CREATECOMPRESSEDSAMPLE | FMOD_NONBLOCKING | info.mode,
                             &info.exinfo, &sound) == FMOD_OK) {
                         props->sound = sound;
                         props->subsoundIndex = info.subsoundindex;
                     }
-                } else if (FMOD_System_CreateSound(gCoreSystem, key, FMOD_DEFAULT, NULL, &sound) == FMOD_OK) {
+                } else if (FMOD_System_CreateSound(gCoreSystem, key, FMOD_DEFAULT | FMOD_NONBLOCKING, NULL, &sound) == FMOD_OK) {
                     // Plain file path fallback
                     props->sound = sound;
                     props->subsoundIndex = -1;
@@ -650,7 +654,11 @@ HL_PRIM int HL_NAME(dsp_create_by_type)(int type) {
     FMOD_DSP* dsp = NULL;
     int handle;
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
-    gLastResult = FMOD_System_CreateDSPByType(gCoreSystem, (FMOD_DSP_TYPE)type, &dsp);
+    /* Symbolic translation: FMOD renumbers this enum between releases,
+     * so a raw cast creates the wrong effect on any other SDK version */
+    FMOD_DSP_TYPE dspType = faxe_dsp_type_from_binding(type);
+    if (dspType == FAXE_DSP_TYPE_UNSUPPORTED) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
+    gLastResult = FMOD_System_CreateDSPByType(gCoreSystem, dspType, &dsp);
     if (gLastResult != FMOD_OK || !dsp) return 0;
     handle = faxe_handle_alloc(dsp, FAXE_TYPE_DSP);
     if (handle == 0) {
@@ -740,7 +748,7 @@ HL_PRIM int HL_NAME(dsp_get_type)(int h) {
     FMOD_DSP_TYPE type = FMOD_DSP_TYPE_UNKNOWN;
     if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_DSP_GetType(dsp, &type);
-    return (int)type;
+    return faxe_dsp_type_to_binding(type);
 }
 DEFINE_PRIM(_I32, dsp_get_type, _I32);
 

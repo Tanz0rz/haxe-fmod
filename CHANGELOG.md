@@ -35,8 +35,17 @@ top. See `MIGRATION.md` for the complete 1.x to 2.0 mapping.
   switch statements and enum-importing tools such as LDtk.
 - Build-time SDK validation: lime builds fail immediately with setup
   instructions when `FMOD_SDK` (or `FMOD_SDK_WEB` for HTML5) is missing,
-  set to a path that is not an FMOD SDK, or missing the platform's
-  runtime libraries.
+  set to a path that is not an FMOD SDK, missing the platform's
+  runtime libraries, or (for HL and HTML5) the wrong FMOD version.
+- Cross-version DSP effects: `DspType` values translate to the compiled
+  SDK's own enum symbolically, so an hdll built with `build-hdll`
+  against another FMOD version creates the correct effects (FMOD
+  renumbers that enum between releases). Types the SDK lacks report
+  `FMOD_ERR_INVALID_PARAM`.
+- Bank loading on HTML5 is settings-driven through the same refcounted
+  registry as native: `bankFolder` and `autoLoadBanks` (including `[]`)
+  apply, a failed fetch surfaces as a bank `ERROR` state instead of
+  hanging startup, and `FmodFlxBankLoader` takes an `onError` callback.
 - Binding ABI guard: stale pre-built hdlls are refused at build time with
   `build-hdll` instructions instead of crashing at game startup.
 - Generated audio (`haxefmod.core`): `PcmStream` streams 16-bit PCM
@@ -166,10 +175,14 @@ top. See `MIGRATION.md` for the complete 1.x to 2.0 mapping.
 - HTML5 ships FSB-only codecs: loose wav/ogg loading and file-path
   programmer sounds are native-only. Audio table keys are the HTML5 route.
 - List getters return at most 1024 entries and warn when truncated.
-- HTML5 loads `Master.bank` and `Master.strings.bank` from
-  `assets/fmod/Desktop/` at startup and ignores the `bankFolder` and
-  `autoLoadBanks` settings. Additional banks load through the normal
-  bank API.
+- HTML5 bank loads are always asynchronous (files reach the browser's
+  virtual filesystem through a fetch). `IsInitialized()` reports true
+  once the system is ready and the `autoLoadBanks` are usable, so games
+  that gate on it need no changes.
+- HTML5 supports exactly the expected FMOD web SDK version: a
+  mismatched `FMOD_SDK_WEB` fails the build with instructions (the JS
+  layer's numeric tables are that version's values and the wasm exposes
+  no version query to adapt at runtime).
 - HTML5 nested timeline beat callbacks report zeroed fields when FMOD's
   JS binding provides no data for them (top-level beats are unaffected).
 

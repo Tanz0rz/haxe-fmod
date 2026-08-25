@@ -25,6 +25,8 @@ class NativeStudioStub {
     public static var testSyntheticHandles:Bool = false;
     public static var testNextHandle:Int = 2000;
     public static var testStartCalls:Int = 0;
+    public static var testBankLoadingState:Int = 3;
+    public static var testBankUnloadCalls:Int = 0;
 
     // System
     public static function sys_last_result():Int return ERR_UNSUPPORTED;
@@ -59,7 +61,8 @@ class NativeStudioStub {
     public static function sys_set_listener_attributes(index:Int, px:Float, py:Float, pz:Float, vx:Float, vy:Float, vz:Float, fx:Float, fy:Float, fz:Float, ux:Float, uy:Float, uz:Float):Int return ERR_UNSUPPORTED;
     public static function sys_get_listener_weight(index:Int):Float return 0.0;
     public static function sys_set_listener_weight(index:Int, weight:Float):Int return ERR_UNSUPPORTED;
-    public static function sys_load_bank_file(path:String, flags:Int):Int return 0;
+    public static function sys_load_bank_file(path:String, flags:Int):Int
+        return testSyntheticHandles ? ++testNextHandle : 0;
     public static function sys_unload_all():Int return ERR_UNSUPPORTED;
     public static function sys_flush_commands():Int return ERR_UNSUPPORTED;
     public static function sys_flush_sample_loading():Int return ERR_UNSUPPORTED;
@@ -69,7 +72,8 @@ class NativeStudioStub {
     public static function sys_get_memory_usage():Int return ERR_UNSUPPORTED;
     public static function sys_init_ex(numChannels:Int, sampleRate:Int, speakerMode:Int, studioFlags:Int):Int return ERR_UNSUPPORTED;
     public static function sys_set_debug_level(level:Int):Int return ERR_UNSUPPORTED;
-    public static function sys_load_bank_async(path:String):Int return 0;
+    public static function sys_load_bank_async(path:String):Int
+        return testSyntheticHandles ? ++testNextHandle : 0;
     public static function sys_is_initialized():Bool return testInitialized;
     public static function sys_update():Void {}
     public static function sys_set_auto_update(enabled:Bool):Void {}
@@ -98,13 +102,18 @@ class NativeStudioStub {
     public static function vca_set_volume(handle:Int, volume:Float):Int return ERR_UNSUPPORTED;
 
     // Bank
-    public static function bank_is_valid(handle:Int):Bool return false;
+    public static function bank_is_valid(handle:Int):Bool
+        return testSyntheticHandles && handle > 0 && testBankLoadingState == 3;
     public static function bank_get_id(handle:Int):String return "";
     public static function bank_get_path(handle:Int):String return "";
-    public static function bank_unload(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function bank_unload(handle:Int):Int {
+        testBankUnloadCalls++;
+        return ERR_UNSUPPORTED;
+    }
     public static function bank_load_sample_data(handle:Int):Int return ERR_UNSUPPORTED;
     public static function bank_unload_sample_data(handle:Int):Int return ERR_UNSUPPORTED;
-    public static function bank_get_loading_state(handle:Int):Int return 1;
+    public static function bank_get_loading_state(handle:Int):Int
+        return testSyntheticHandles && handle > 0 ? testBankLoadingState : 1;
     public static function bank_get_sample_loading_state(handle:Int):Int return 1;
     public static function bank_get_event_count(handle:Int):Int return 0;
     public static function bank_get_event_list(handle:Int):Int return 0;

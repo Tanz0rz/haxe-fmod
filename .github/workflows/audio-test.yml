@@ -813,6 +813,12 @@ jobs:
           grep -q "FMOD SDK version mismatch" /tmp/build-mismatch.log
           echo "Verified: the build failed at compile time with the version mismatch error"
 
+      - name: Test DSP type translation against the 2.02.33 headers
+        run: |
+          gcc -std=c99 -Wall -Wextra -Werror -I "$FMOD_SDK/api/core/inc" \
+            -o /tmp/test_dsptype tests/native/test_faxe_dsptype.c
+          /tmp/test_dsptype
+
       - name: Build custom hdll via build-hdll
         run: |
           cd example-project/EZPlatformer
@@ -926,6 +932,20 @@ jobs:
 
       - name: Validate volume/mute
         run: ./ci/validate-volume.sh /tmp/volume-test-linux-hl-compat.wav 15
+
+      # Validates the binding surface against FMOD 2.02.33. The DSP
+      # type translation makes the effect surface version-correct, and
+      # the per-effect parameter indexes the probe uses are identical
+      # in both versions.
+      - name: Run api-probe state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: api-probe
+          gate: API_PROBE
+          timeout: "60"
+          bin-dir: example-project/EZPlatformer/export/hl/bin
+          log-file: /tmp/api-probe-linux-hl-compat.log
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v6
@@ -2754,6 +2774,7 @@ jobs:
           node tests/js/pcm-harness.js
           node tests/js/lifecycle-test.js
           node tests/js/init-behavior-test.js
+          node tests/js/bank-pipeline-test.js
 
       - name: Run Core dynamic-audio prototype against the real wasm
         env:
@@ -2976,6 +2997,12 @@ jobs:
         with:
           path: ~/haxelib
           key: haxelib-package-${{ runner.os }}-${{ env.HAXE_VERSION }}
+
+      - name: Test DSP type translation against this SDK's headers
+        run: |
+          gcc -std=c99 -Wall -Wextra -Werror -I "$FMOD_SDK/api/core/inc" \
+            -o /tmp/test_dsptype tests/native/test_faxe_dsptype.c
+          /tmp/test_dsptype
 
       - name: Refuse to package without the pre-built hdlls
         run: |

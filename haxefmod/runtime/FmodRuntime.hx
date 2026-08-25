@@ -7,6 +7,7 @@ import haxefmod.studio.Callbacks;
 import haxefmod.studio.EventDescription;
 import haxefmod.studio.EventInstance;
 import haxefmod.studio.FmodResult;
+import haxefmod.studio.Types;
 import haxefmod.studio.StudioSystem;
 import haxefmod.studio.native.NativeStudio;
 
@@ -84,13 +85,60 @@ class FmodRuntime {
         // Honor a focus loss that was reported before init completed.
         applyFocusMute();
         #end
-        // html5: init completes asynchronously. The shim loads the default
-        // banks and enables auto-update itself once the module is ready.
+        #if !js
+        // Native init loaded the default banks synchronously above (the
+        // stub backend has none to load)
+        defaultBanksLoaded = true;
+        #end
+        // html5: init completes asynchronously. The default banks load
+        // through the registry once the system is ready, and
+        // isInitialized() reports true only when they are usable.
         return result;
     }
 
+    /**
+     * True once FMOD is usable: the system is initialized AND the
+     * settings' autoLoadBanks are loaded. Native init does both
+     * synchronously. On html5 both are asynchronous, so games gate their
+     * first state on this exactly as before.
+     */
     public static function isInitialized():Bool {
-        return NativeStudio.sys_is_initialized();
+        if (!NativeStudio.sys_is_initialized()) return false;
+        // Direct NativeStudio users never went through init: no settings,
+        // nothing to wait for
+        if (resolved == null) return true;
+        return defaultBanksReady();
+    }
+
+    static var defaultBanksLoaded:Bool = false;
+    #if js
+    static var defaultBankPaths:Array<String> = null;
+    static var defaultBankErrorLogged:Bool = false;
+    #end
+
+    static function defaultBanksReady():Bool {
+        if (defaultBanksLoaded) return true;
+        #if js
+        // First moment the system is ready: start the async loads through
+        // the registry, so the banks are refcounted and observable exactly
+        // like every other bank
+        if (defaultBankPaths == null) {
+            defaultBankPaths = [for (fileName in resolved.autoLoadBanks) bankPath(fileName)];
+            for (path in defaultBankPaths) banks.loadAsync(path);
+        }
+        for (path in defaultBankPaths) {
+            if (banks.isLoaded(path)) continue;
+            if (banks.loadingState(path) == FmodLoadingState.ERROR && !defaultBankErrorLogged) {
+                defaultBankErrorLogged = true;
+                trace('Warn: FMOD - default bank failed to load: $path'
+                    + ' (check the file is deployed next to the game).'
+                    + ' Initialization cannot complete without it.');
+            }
+            return false;
+        }
+        defaultBanksLoaded = true;
+        #end
+        return defaultBanksLoaded;
     }
 
     /**

@@ -107,6 +107,23 @@ class PostBuild {
 		var expectedVer = hexToVersion(expectedHex);
 		var sdkVer = hexToVersion(sdkHex);
 
+		// html5: the JS shim's numeric tables are the expected version's
+		// values and the wasm has no version query, so any other web SDK
+		// creates wrong DSP effects. Hard error, like the HL gate.
+		if (sdkEnvName == "FMOD_SDK_WEB") {
+			Sys.println("");
+			Sys.println("============================================================");
+			Sys.println('  ERROR: FMOD web SDK version mismatch');
+			Sys.println("");
+			Sys.println('  Your FMOD_SDK_WEB:    $sdkVer');
+			Sys.println('  This release needs:   $expectedVer');
+			Sys.println("");
+			Sys.println('  Download FMOD Engine $expectedVer for HTML5 from https://www.fmod.com/download');
+			Sys.println("============================================================");
+			Sys.println("");
+			Sys.exit(1);
+		}
+
 		// HL builds: mismatched hdll/SDK will crash at runtime - hard error
 		if (target == "hl") {
 			Sys.println("");
