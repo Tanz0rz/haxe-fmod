@@ -19,6 +19,8 @@ import haxefmod.core.ChannelEvent;
 import haxefmod.core.Reverb;
 import haxefmod.core.Reverb3D;
 import haxefmod.core.SoundGroup;
+import haxefmod.studio.Callbacks;
+import haxefmod.studio.CallbackDispatcher;
 import haxefmod.studio.CommandReplay;
 import haxefmod.studio.CoreSound;
 import haxefmod.studio.Bus;
@@ -138,6 +140,7 @@ class ApiProbeState extends FlxState {
         var again = StudioSystem.getBus("bus:/");
         check("bus_lookup_cached", (again : Int) == (master : Int), "");
 
+        probeFacadeSong();
         probeM3Surface();
         probeHandleSafety();
         probeCoreSurface();
@@ -145,6 +148,7 @@ class ApiProbeState extends FlxState {
         probeParityTail();
         probeSoundGroupsAndSystem();
         probeAuditClosure();
+        probeInstanceLifecycle();
         probeFlixelBridge();
         probeFocusMute();
         _statusLabel = label;
@@ -338,6 +342,115 @@ class ApiProbeState extends FlxState {
             'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
     }
 
+    /**
+     * Facade predicates against real asynchronous playback states: a song
+     * or sound started this frame is still in the STARTING state, and must
+     * already report playing. The song slot keeps its stopped instance by
+     * design, so this runs before any section snapshots a leak baseline.
+     */
+    function probeFacadeSong():Void {
+        FmodManager.PlaySong(FmodEvents.MusicMainLevel);
+        check("facade_song_playing_at_once", FmodManager.IsSongPlaying(),
+            'path=${FmodManager.GetCurrentSongPath()}');
+        var sound = FmodManager.PlaySound(FmodEvents.SFXJump);
+        check("facade_sound_created", !sound.isNull(), "");
+        check("facade_sound_playing_at_once", sound.isPlaying(), "");
+        sound.stopImmediately();
+        sound.release();
+        FmodManager.StopSongImmediately();
+    }
+
+    /**
+     * Instances FMOD destroys asynchronously (releaseAllInstances, bank
+     * unload) must not leak handle slots, and every handle derived from a
+     * dead instance must go stale safely. Reclaiming happens when the
+     * DESTROYED events drain, so the probe flushes commands and drains
+     * explicitly to make each step deterministic.
+     */
+    function probeInstanceLifecycle():Void {
+        var desc = StudioSystem.getEvent(FmodEvents.SFXJump);
+        var baseline = StudioSystem.liveHandleCount();
+
+        // Bulk destruction reclaims every instance slot through the drain
+        var a = desc.createInstance();
+        var b = desc.createInstance();
+        check("lifecycle_two_instances", StudioSystem.liveHandleCount() == baseline + 2,
+            'now=${StudioSystem.liveHandleCount()}');
+        check("lifecycle_release_all", desc.releaseAllInstances().isOk(), "");
+        StudioSystem.flushCommands();
+        CallbackDispatcher.update();
+        check("no_slot_leak_release_all", StudioSystem.liveHandleCount() == baseline,
+            'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
+        var staleRelease = a.release();
+        check("lifecycle_stale_release_safe", !staleRelease.isOk(),
+            'result=${staleRelease.toString()}');
+        b.release();
+
+        // Release on a destroyed-but-not-yet-drained instance still
+        // reclaims the slot (FMOD reports INVALID_HANDLE for it)
+        var c = desc.createInstance();
+        desc.releaseAllInstances();
+        StudioSystem.flushCommands();
+        var lateRelease = c.release();
+        check("lifecycle_release_after_destroy", !lateRelease.isOk(),
+            'result=${lateRelease.toString()}');
+        CallbackDispatcher.update();
+        check("no_slot_leak_after_destroy", StudioSystem.liveHandleCount() == baseline,
+            'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
+
+        // An instance's channel group handle is reclaimed when the
+        // instance is destroyed, not left dangling for pointer dedup to
+        // alias onto a future group
+        var d = desc.createInstance();
+        d.start();
+        StudioSystem.flushCommands();
+        var group = d.getChannelGroup();
+        check("lifecycle_instance_group", !group.isNull(),
+            'result=${StudioSystem.lastResult().toString()}');
+        d.stop(FmodStopMode.IMMEDIATE);
+        d.release();
+        StudioSystem.flushCommands();
+        CallbackDispatcher.update();
+        check("no_slot_leak_instance_group", StudioSystem.liveHandleCount() == baseline,
+            'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
+        group.setVolume(1.0);
+        check("lifecycle_group_handle_stale",
+            StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_HANDLE,
+            'result=${StudioSystem.lastResult().toString()}');
+
+        // Graph-destroying calls invalidate every connection handle
+        var dspA = Dsp.create(DspType.ECHO);
+        var dspB = Dsp.create(DspType.OSCILLATOR);
+        var conn = dspA.addInput(dspB);
+        check("lifecycle_conn_created", !conn.isNull(),
+            'result=${StudioSystem.lastResult().toString()}');
+        var stream = PcmStream.create(48000, 1);
+        var channel = stream.play(true);
+        var echo = Dsp.create(DspType.ECHO);
+        channel.addDsp(0, echo);
+        check("lifecycle_conn_survives_add", !conn.isNull() && (conn : Int) != 0, "");
+        var removeResult = channel.removeDsp(echo);
+        check("lifecycle_remove_dsp", removeResult.isOk(), 'result=${removeResult.toString()}');
+        conn.getMix();
+        check("lifecycle_conn_dead_after_remove_dsp",
+            StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_HANDLE,
+            'result=${StudioSystem.lastResult().toString()}');
+        var conn2 = dspA.addInput(dspB);
+        check("lifecycle_conn2_created", !conn2.isNull(), "");
+        channel.stop();
+        conn2.getMix();
+        check("lifecycle_conn_dead_after_chan_stop",
+            StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_HANDLE,
+            'result=${StudioSystem.lastResult().toString()}');
+        dspA.disconnectAll();
+        echo.release();
+        dspB.release();
+        dspA.release();
+        stream.release();
+        check("no_slot_leak_lifecycle_section", StudioSystem.liveHandleCount() == baseline,
+            'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
+    }
+
     var _statusLabel:FlxText;
     var _chanEvents:Array<ChannelEvent> = [];
     var _chanEventSound:CoreSound = CoreSound.NULL;
@@ -349,6 +462,11 @@ class ApiProbeState extends FlxState {
     var _waitingForOneShot:Bool = false;
     var _oneShotBaseline:Int = 0;
     var _oneShotAttachedBaseline:Int = 0;
+    var _remintInstance:EventInstance = EventInstance.NULL;
+    var _remintBaseline:Int = 0;
+    var _remintBeats:Int = 0;
+    var _remintFrames:Int = 0;
+    var _waitingForRemint:Bool = false;
 
     /**
      * Plays a tenth of a second of PCM with a sync point at its middle and
@@ -388,6 +506,52 @@ class ApiProbeState extends FlxState {
         _chanEventSound.release();
         check("no_handle_leaks_chanev", StudioSystem.liveHandleCount() == _chanEventBaseline,
             'baseline=$_chanEventBaseline now=${StudioSystem.liveHandleCount()}');
+
+        probeRemintCallbacks();
+    }
+
+    /**
+     * An instance re-acquired through getInstanceList after its handle was
+     * released must deliver callbacks on the fresh handle. Async: finishes
+     * from update() once a beat lands (or the wait times out).
+     */
+    function probeRemintCallbacks():Void {
+        _remintBaseline = StudioSystem.liveHandleCount();
+        var desc = StudioSystem.getEvent(FmodEvents.MusicMainLevel);
+        var original = desc.createInstance();
+        original.start();
+        original.release(); // handle freed, the instance keeps playing
+
+        var relisted = desc.getInstanceList();
+        check("remint_relisted", relisted.length == 1, 'count=${relisted.length}');
+        if (relisted.length != 1) {
+            finishRemintCallbacks();
+            return;
+        }
+        _remintInstance = relisted[0];
+        check("remint_fresh_handle", (_remintInstance : Int) != (original : Int)
+            && !_remintInstance.isNull(),
+            'old=${(original : Int)} new=${(_remintInstance : Int)}');
+        _remintInstance.setCallback(function(data) {
+            switch (data) {
+                case TimelineBeat(_, _, _, _, _, _): _remintBeats++;
+                default:
+            }
+        });
+        _waitingForRemint = true;
+    }
+
+    function finishRemintCallbacks():Void {
+        check("remint_beats_delivered", _remintBeats > 0,
+            'beats=$_remintBeats frames=$_remintFrames');
+        if (!_remintInstance.isNull()) {
+            _remintInstance.stop(FmodStopMode.IMMEDIATE);
+            _remintInstance.release();
+            StudioSystem.flushCommands();
+            CallbackDispatcher.update();
+        }
+        check("no_handle_leaks_remint", StudioSystem.liveHandleCount() == _remintBaseline,
+            'baseline=$_remintBaseline now=${StudioSystem.liveHandleCount()}');
 
         probeOneShotAttached();
     }
@@ -1115,6 +1279,15 @@ class ApiProbeState extends FlxState {
             if (sawEnd || _chanEventFrames > 300) {
                 _waitingForChannelEvents = false;
                 finishChannelEvents();
+            }
+        }
+        if (_waitingForRemint) {
+            _remintFrames++;
+            // MainLevel runs around two beats per second. The timeout makes
+            // a broken re-mint routing path fail loudly instead of hanging
+            if (_remintBeats > 0 || _remintFrames > 600) {
+                _waitingForRemint = false;
+                finishRemintCallbacks();
             }
         }
         if (_waitingForOneShot) {

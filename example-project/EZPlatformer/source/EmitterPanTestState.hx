@@ -128,14 +128,136 @@ class EmitterPanTestState extends FlxState {
         check("no_handle_leaks", StudioSystem.liveHandleCount() == baseline,
             'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
 
+        // Distance culling continues asynchronously from update(): fades,
+        // restarts, and one-shot playout all take real frames
+        _label = label;
+        _listenerSprite = sprite;
+        startCullPhases();
+    }
+
+    var _label:FlxText;
+    var _listenerSprite:FlxSprite;
+    var _cullSprite:FlxSprite;
+    var _cullEmitter:FmodFlxEmitter;
+    var _phase:String = "";
+    var _phaseFrames:Int = 0;
+
+    static inline var FAR:Float = 100000;
+    static inline var PHASE_TIMEOUT:Int = 600;
+
+    /**
+     * Runs the culling flow against a looping event with an explicit cull
+     * distance (the example bank has no authored 3D distances): cull when
+     * far, restart when near, restart when culling is disabled mid-cull,
+     * and leave one-shots alone entirely.
+     */
+    var _cullBaseline:Int = 0;
+
+    function startCullPhases():Void {
+        // Warm the description lookups so their persistent dedup handles
+        // sit inside the baseline
+        StudioSystem.getEvent(FmodEvents.MusicMainLevel);
+        StudioSystem.getEvent(FmodEvents.SFXJump);
+        _cullBaseline = StudioSystem.liveHandleCount();
+        _cullSprite = new FlxSprite(FAR, 0);
+        _cullSprite.width = 16;
+        _cullSprite.height = 16;
+        _cullEmitter = FmodFlxEmitter.play(FmodEvents.MusicMainLevel, _cullSprite);
+        add(_cullEmitter);
+        _cullEmitter.stopEventsOutsideMaxDistance = true;
+        _cullEmitter.cullMaxDistance = 500;
+        _cullEmitter.cullCheckInterval = 1;
+        enterPhase("loop_culls_when_far");
+    }
+
+    function enterPhase(phase:String):Void {
+        _phase = phase;
+        _phaseFrames = 0;
+    }
+
+    function cullState():FmodPlaybackState {
+        return _cullEmitter.instance.getPlaybackState();
+    }
+
+    function stepCullPhases():Void {
+        _phaseFrames++;
+        var timedOut = _phaseFrames > PHASE_TIMEOUT;
+        switch (_phase) {
+            case "loop_culls_when_far":
+                if (cullState() == FmodPlaybackState.STOPPED || timedOut) {
+                    check("cull_loop_stopped_when_far", !timedOut, 'frames=$_phaseFrames');
+                    // Bring the emitter in range: the emitter restarts it
+                    _cullSprite.x = _listenerSprite.x;
+                    _cullSprite.y = _listenerSprite.y;
+                    enterPhase("loop_restarts_when_near");
+                }
+            case "loop_restarts_when_near":
+                var state = cullState();
+                var playing = state == FmodPlaybackState.PLAYING || state == FmodPlaybackState.STARTING;
+                if (playing || timedOut) {
+                    check("cull_loop_restarted_when_near", !timedOut, 'frames=$_phaseFrames');
+                    _cullSprite.x = FAR;
+                    enterPhase("loop_culls_again");
+                }
+            case "loop_culls_again":
+                if (cullState() == FmodPlaybackState.STOPPED || timedOut) {
+                    check("cull_loop_stopped_again", !timedOut, 'frames=$_phaseFrames');
+                    // Disabling culling while culled must restart the event
+                    // instead of leaving it stopped forever
+                    _cullEmitter.stopEventsOutsideMaxDistance = false;
+                    enterPhase("loop_restarts_when_disabled");
+                }
+            case "loop_restarts_when_disabled":
+                var state = cullState();
+                var playing = state == FmodPlaybackState.PLAYING || state == FmodPlaybackState.STARTING;
+                if (playing || timedOut) {
+                    check("cull_disable_restarts", !timedOut, 'frames=$_phaseFrames');
+                    _cullEmitter.destroy();
+                    // One-shot far outside the cull distance: it must play
+                    // to its natural end, never cull-stopped
+                    _cullSprite.x = FAR;
+                    _cullEmitter = FmodFlxEmitter.play(FmodEvents.SFXJump, _cullSprite);
+                    add(_cullEmitter);
+                    _cullEmitter.stopEventsOutsideMaxDistance = true;
+                    _cullEmitter.cullMaxDistance = 500;
+                    _cullEmitter.cullCheckInterval = 1;
+                    enterPhase("oneshot_plays_out");
+                }
+            case "oneshot_plays_out":
+                if (cullState() == FmodPlaybackState.STOPPED || timedOut) {
+                    check("cull_oneshot_played_out", !timedOut, 'frames=$_phaseFrames');
+                    // Re-entering range must not replay a finished one-shot
+                    _cullSprite.x = _listenerSprite.x;
+                    _cullSprite.y = _listenerSprite.y;
+                    enterPhase("oneshot_not_replayed");
+                }
+            case "oneshot_not_replayed":
+                if (_phaseFrames > 30) {
+                    check("cull_oneshot_not_replayed",
+                        cullState() == FmodPlaybackState.STOPPED, 'state=${cullState()}');
+                    _cullEmitter.destroy();
+                    enterPhase("");
+                    finishCullPhases();
+                }
+        }
+    }
+
+    function finishCullPhases():Void {
+        // Both cull emitters are destroyed: the DESTROYED drain reclaims
+        // their instance slots over the following frames, so flush first
+        StudioSystem.flushCommands();
+        FmodManager.Update();
+        check("no_handle_leaks_cull", StudioSystem.liveHandleCount() == _cullBaseline,
+            'baseline=$_cullBaseline now=${StudioSystem.liveHandleCount()}');
         log('PAN_TEST: COMPLETE passed=$_passCount failed=$_failCount');
-        label.text = 'PAN_TEST complete: $_passCount passed, $_failCount failed';
+        _label.text = 'PAN_TEST complete: $_passCount passed, $_failCount failed';
         _done = true;
     }
 
     override public function update(elapsed:Float):Void {
         super.update(elapsed);
         FmodManager.Update();
+        if (_phase != "") stepCullPhases();
         if (!_done) return;
 
         _framesWaited++;

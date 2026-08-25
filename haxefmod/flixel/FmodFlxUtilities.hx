@@ -24,7 +24,10 @@ class FmodFlxUtilities {
             return;
         }
 
-        FmodManager.OnSongEvent(data -> {
+        // Once-semantics matter here: a persistent handler would survive on
+        // the retained song instance and yank the game into this state
+        // again the next time the same song stops
+        FmodManager.OnceSongEvent(data -> {
             switch (data) {
                 case Stopped:
                     FlxG.switchState(state);

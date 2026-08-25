@@ -11,6 +11,15 @@ package haxefmod.studio.native;
 class NativeStudioStub {
     static inline var ERR_UNSUPPORTED = 68;
 
+    // Test hooks: unit tests set these to simulate specific backend
+    // behavior that the uniform no-op defaults cannot express. The
+    // defaults keep every hook inert.
+    public static var testPlaybackState:Int = 2;
+    public static var testInitialized:Bool = false;
+    public static var testCallbackMaskResult:Int = ERR_UNSUPPORTED;
+    public static var testLastCallbackMask:Int = -1;
+    public static var testLastCallbackMaskHandle:Int = 0;
+
     // System
     public static function sys_last_result():Int return ERR_UNSUPPORTED;
     public static function sys_get_bus(path:String):Int return 0;
@@ -54,7 +63,7 @@ class NativeStudioStub {
     public static function sys_init_ex(numChannels:Int, sampleRate:Int, speakerMode:Int, studioFlags:Int):Int return ERR_UNSUPPORTED;
     public static function sys_set_debug_level(level:Int):Int return ERR_UNSUPPORTED;
     public static function sys_load_bank_async(path:String):Int return 0;
-    public static function sys_is_initialized():Bool return false;
+    public static function sys_is_initialized():Bool return testInitialized;
     public static function sys_update():Void {}
     public static function sys_set_auto_update(enabled:Bool):Void {}
 
@@ -137,7 +146,7 @@ class NativeStudioStub {
     public static function evi_stop(handle:Int, stopMode:Int):Int return ERR_UNSUPPORTED;
     public static function evi_key_off(handle:Int):Int return ERR_UNSUPPORTED;
     public static function evi_release(handle:Int):Int return ERR_UNSUPPORTED;
-    public static function evi_get_playback_state(handle:Int):Int return 2;
+    public static function evi_get_playback_state(handle:Int):Int return testPlaybackState;
     public static function evi_get_paused(handle:Int):Bool return false;
     public static function evi_set_paused(handle:Int, paused:Bool):Int return ERR_UNSUPPORTED;
     public static function evi_get_volume(handle:Int):Float return 0.0;
@@ -453,7 +462,11 @@ class NativeStudioStub {
     public static function cg_get_channel(handle:Int, index:Int):Int return 0;
 
     // Callbacks
-    public static function evi_set_callback_mask(handle:Int, mask:Int):Int return ERR_UNSUPPORTED;
+    public static function evi_set_callback_mask(handle:Int, mask:Int):Int {
+        testLastCallbackMaskHandle = handle;
+        testLastCallbackMask = mask;
+        return testCallbackMaskResult;
+    }
     public static function cb_next():Bool return false;
     public static function cb_handle():Int return 0;
     public static function cb_type():Int return 0;

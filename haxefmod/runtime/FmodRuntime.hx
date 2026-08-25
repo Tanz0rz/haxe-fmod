@@ -41,6 +41,7 @@ class FmodRuntime {
     // state actually changes - not on every focused startup.
     static var focusMuteApplied:Bool = false;
     static var focusMuteSynced:Bool = false;
+    static var readyHandlers:Array<Void->Void> = [];
 
     /** Expected native binding ABI - lockstep with the manifest "# abi-version:". */
     public static inline var BINDING_ABI:Int = 8;
@@ -92,6 +93,21 @@ class FmodRuntime {
         return NativeStudio.sys_is_initialized();
     }
 
+    /**
+     * Runs the handler once FMOD is ready: immediately when initialization
+     * already completed, otherwise on the first serviced frame after the
+     * asynchronous html5 init finishes. Values pushed to FMOD before that
+     * point land on objects that do not exist yet, so wiring that applies
+     * state at setup time replays it through this hook.
+     */
+    public static function onceReady(handler:Void->Void):Void {
+        if (focusMuteSynced || isInitialized()) {
+            handler();
+            return;
+        }
+        readyHandlers.push(handler);
+    }
+
     /** The resolved settings init ran with (null before init). */
     public static function settings():ResolvedFmodSettings {
         return resolved;
@@ -104,11 +120,19 @@ class FmodRuntime {
     public static function update():Void {
         if (!isInitialized()) return;
         if (!focusMuteSynced) {
-            // html5 initialization completes asynchronously, so a focus
-            // loss reported during init is applied on the first serviced
-            // frame (native init applies it directly, this is a no-op there)
+            // html5 initialization completes asynchronously, so state
+            // reported during init is applied on the first serviced frame
+            // (native init applies it directly, so this is a no-op there)
             focusMuteSynced = true;
             applyFocusMute();
+            #if js
+            // The shim enables auto-update unconditionally when the module
+            // becomes ready, so an autoUpdate:false setting is applied here
+            if (resolved != null) NativeStudio.sys_set_auto_update(resolved.autoUpdate);
+            #end
+            var pending = readyHandlers;
+            readyHandlers = [];
+            for (handler in pending) handler();
         }
         #if (cpp || hl)
         if (resolved == null || !resolved.autoUpdate) NativeStudio.sys_update();

@@ -2,6 +2,7 @@ package tests;
 
 import haxefmod.studio.CallbackDispatcher;
 import haxefmod.studio.Callbacks;
+import haxefmod.studio.native.NativeStudioStub;
 
 class TestCallbackDispatcher {
 	static var passed = 0;
@@ -17,6 +18,8 @@ class TestCallbackDispatcher {
 		testDecodeUnknown();
 		testRegistration();
 		testReentrancy();
+		testFaultIsolation();
+		testStaleRegistrationGate();
 
 		Sys.println('  $passed passed, $failed failed');
 		return failed;
@@ -180,6 +183,56 @@ class TestCallbackDispatcher {
 		assert("destroyed delivered", destroyedSeen);
 		assert("destroyed handle auto-removed", !CallbackDispatcher.hasHandler(40));
 		assert("registration from destroyed handler survives", CallbackDispatcher.hasHandler(41));
+
+		CallbackDispatcher.clearAll();
+	}
+
+	static function testFaultIsolation() {
+		// A throwing handler must be contained: nothing may propagate out
+		// of delivery, and DESTROYED cleanup must still run (no second
+		// DESTROYED will ever come for that instance)
+		CallbackDispatcher.clearAll();
+		CallbackDispatcher.setCallback(90, _ -> throw new haxe.Exception("handler boom"), 0x20);
+		var threw = false;
+		try {
+			CallbackDispatcher.deliver(90, 0x20, 0, 0, 0, 0, 0, 0.0, "");
+		} catch (e:haxe.Exception) {
+			threw = true;
+		}
+		assert("throwing handler contained", !threw);
+		assert("registration survives a non-terminal throw", CallbackDispatcher.hasHandler(90));
+
+		var destroyedThrew = false;
+		try {
+			CallbackDispatcher.deliver(90, 0x2, 0, 0, 0, 0, 0, 0.0, "");
+		} catch (e:haxe.Exception) {
+			destroyedThrew = true;
+		}
+		assert("throwing DESTROYED handler contained", !destroyedThrew);
+		assert("destroyed cleanup despite throw", !CallbackDispatcher.hasHandler(90));
+	}
+
+	static function testStaleRegistrationGate() {
+		CallbackDispatcher.clearAll();
+
+		// A stale handle reports INVALID_HANDLE from the native mask call.
+		// No DESTROYED will ever arrive for it, so registering the handler
+		// anyway would leak the closure for the rest of the session.
+		NativeStudioStub.testCallbackMaskResult = 30;
+		CallbackDispatcher.setCallback(91, _ -> {}, 0x20);
+		assert("stale handle registration refused", !CallbackDispatcher.hasHandler(91));
+
+		NativeStudioStub.testCallbackMaskResult = 68;
+		CallbackDispatcher.setCallback(91, _ -> {}, 0x20);
+		assert("healthy registration accepted", CallbackDispatcher.hasHandler(91));
+
+		// Removing through the null-handler path shrinks the native mask so
+		// unconsumed records stop filling the queue
+		CallbackDispatcher.setCallback(91, null);
+		assert("null handler removed registration", !CallbackDispatcher.hasHandler(91));
+		assert("null handler cleared the native mask",
+			NativeStudioStub.testLastCallbackMask == 0
+			&& NativeStudioStub.testLastCallbackMaskHandle == 91);
 
 		CallbackDispatcher.clearAll();
 	}

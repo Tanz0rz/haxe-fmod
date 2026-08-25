@@ -191,7 +191,7 @@ class FmodManager {
         NextSong = null;
 
         if (songPath == CurrentSong && !songInstance.isNull()) {
-            if (!isInstancePlaying(songInstance)) {
+            if (needsRestart(songInstance)) {
                 songInstance.start();
             }
             return;
@@ -229,7 +229,7 @@ class FmodManager {
         ensureInitialized();
 
         if (songPath == CurrentSong && !songInstance.isNull()) {
-            if (!isInstancePlaying(songInstance)) {
+            if (needsRestart(songInstance)) {
                 songInstance.start();
             }
             return;
@@ -458,8 +458,19 @@ class FmodManager {
         if (!initialized) Initialize();
     }
 
+    // A song mid-start or holding at a sustain point counts as playing.
+    // Matching FMOD's own integration, only a fully stopped instance does
+    // not. PLAYING alone would misread the STARTING frames right after
+    // start() and adaptive-music sustain holds.
     static inline function isInstancePlaying(instance:EventInstance):Bool {
-        return instance.getPlaybackState() == FmodPlaybackState.PLAYING;
+        return instance.getPlaybackState() != FmodPlaybackState.STOPPED;
+    }
+
+    // The same-song fast path restarts a song that stopped or is fading
+    // out, and leaves one that is starting, playing, or sustaining alone
+    static inline function needsRestart(instance:EventInstance):Bool {
+        var state = instance.getPlaybackState();
+        return state == FmodPlaybackState.STOPPED || state == FmodPlaybackState.STOPPING;
     }
 
     static function log(message:String):Void {

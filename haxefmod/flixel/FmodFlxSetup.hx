@@ -26,6 +26,7 @@ import haxefmod.runtime.FmodSettings;
 class FmodFlxSetup {
     #if FLX_SOUND_SYSTEM
     static var volumeHandler:Float->Void = _ -> applyVolume();
+    static var readyHandler:Void->Void = () -> applyVolume();
     #end
 
     static var focusGainedHandler:Void->Void = () -> FmodManager.SetWindowFocused(true);
@@ -55,6 +56,10 @@ class FmodFlxSetup {
         FlxG.sound.onVolumeChange.remove(volumeHandler);
         FlxG.sound.onVolumeChange.add(volumeHandler);
         applyVolume();
+        // html5 initializes asynchronously, so the volume and mute applied
+        // above can land before the master bus exists. Replaying once ready
+        // makes a persisted volume (or mute) stick on every target.
+        haxefmod.runtime.FmodRuntime.onceReady(readyHandler);
         #end
     }
 

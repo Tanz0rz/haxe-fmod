@@ -32,8 +32,13 @@ abstract FmodSound(EventInstance) from EventInstance to EventInstance {
         return this.isValid();
     }
 
+    /**
+     * True until the sound fully stops: starting, playing, sustaining, and
+     * fading out all count. FMOD starts sounds asynchronously, so checking
+     * the PLAYING state alone would misread the first frames after play.
+     */
     public inline function isPlaying():Bool {
-        return this.getPlaybackState() == FmodPlaybackState.PLAYING;
+        return this.getPlaybackState() != FmodPlaybackState.STOPPED;
     }
 
     /** Stops with a fadeout (as authored in FMOD Studio). */

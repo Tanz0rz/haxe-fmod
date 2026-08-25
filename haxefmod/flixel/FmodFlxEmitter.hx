@@ -45,10 +45,17 @@ class FmodFlxEmitter extends FlxBasic {
     **/
     public var cullCheckInterval:Int = 6;
 
+    /**
+        Culling distance override in world units. The default -1 uses the
+        event's authored max distance. A 2D event has no authored distance,
+        so give it an explicit value here to cull it.
+    **/
+    public var cullMaxDistance:Float = -1;
+
     var provider:FlxObjectPositionProvider;
     var culled:Bool = false;
-    var cullMaxDistance:Float = -1;
     var cullFrameCounter:Int = 0;
+    var cullOneshot:Null<Bool> = null;
 
     /**
         Attaches an existing event instance to a FlxObject. The caller is
@@ -79,13 +86,28 @@ class FmodFlxEmitter extends FlxBasic {
 
     override public function update(elapsed:Float):Void {
         super.update(elapsed);
-        if (!stopEventsOutsideMaxDistance || instance.isNull()) return;
+        if (instance.isNull()) return;
+        if (!stopEventsOutsideMaxDistance) {
+            // Turning culling off while culled would otherwise leave the
+            // event stopped with nothing left to restart it
+            if (culled) {
+                culled = false;
+                instance.start();
+            }
+            return;
+        }
 
         // The check costs a native listener fetch, so it runs on an
         // interval rather than every frame
         cullFrameCounter++;
         if (cullFrameCounter < cullCheckInterval) return;
         cullFrameCounter = 0;
+
+        // One-shots are exempt, matching FMOD's own integration: stopping
+        // and restarting a self-ending event would replay it long after it
+        // would have finished
+        if (cullOneshot == null) cullOneshot = instance.getDescription().isOneshot();
+        if (cullOneshot) return;
 
         if (cullMaxDistance < 0) {
             var minMax = instance.getMinMaxDistance();

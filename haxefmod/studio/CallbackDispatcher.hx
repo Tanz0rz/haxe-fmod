@@ -1,6 +1,7 @@
 package haxefmod.studio;
 
 import haxefmod.studio.Callbacks;
+import haxefmod.studio.FmodResult;
 import haxefmod.studio.native.NativeStudio;
 
 /**
@@ -41,13 +42,20 @@ class CallbackDispatcher {
         if (handle == 0) return;
         if (handler == null) {
             handlers.remove(handle);
+            // Shrink the native mask back to the always-on DESTROYED bit so
+            // a beat-heavy instance stops filling the queue with records
+            // nobody consumes
+            NativeStudio.evi_set_callback_mask(handle, 0);
             return;
         }
         var callbackMask:Int = mask == null ? EventCallbackType.PLAYBACK_ALL : mask;
         // Always include DESTROYED so registrations clean themselves up.
         callbackMask |= EventCallbackType.DESTROYED;
+        var result:FmodResult = NativeStudio.evi_set_callback_mask(handle, callbackMask);
+        // A stale handle will never deliver DESTROYED, so registering the
+        // handler anyway would leak the closure for the rest of the session
+        if (result == FmodResult.FMOD_ERR_INVALID_HANDLE) return;
         handlers.set(handle, handler);
-        NativeStudio.evi_set_callback_mask(handle, callbackMask);
     }
 
     /** Removes the handler for an event instance. */
@@ -94,7 +102,14 @@ class CallbackDispatcher {
         }
         var handler = handlers.get(handle);
         if (handler != null) {
-            handler(decode(type, i1, i2, i3, i4, i5, f1, str));
+            // A throwing handler must not wedge the drain or skip the
+            // DESTROYED cleanup below - that registration would leak with
+            // no second DESTROYED ever coming
+            try {
+                handler(decode(type, i1, i2, i3, i4, i5, f1, str));
+            } catch (e:haxe.Exception) {
+                trace('Warn: FMOD - a callback handler threw: ${e.message}');
+            }
         }
         if (type == (EventCallbackType.DESTROYED : Int)) {
             handlers.remove(handle);
