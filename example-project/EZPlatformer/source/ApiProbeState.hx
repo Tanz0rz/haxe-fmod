@@ -361,10 +361,15 @@ class ApiProbeState extends FlxState {
      * contracts are gating checks.
      */
     function probeParityTail2():Void {
-        // Warm the bank lookup first: its dedup handle lives for the
-        // session, so it must sit inside the baseline
+        // Warm the persistent lookups first: the bank handle and the bus
+        // handles its enumeration mints (a bus nobody looked up yet gets a
+        // session-lived dedup handle) must all sit inside the baseline
         var bank = StudioSystem.getBank("bank:/Master");
         if (bank.isNull()) bank = StudioSystem.getBank("Master.bank");
+        if (!bank.isNull()) {
+            bank.getBusList();
+            bank.getVCAList();
+        }
         var baseline = StudioSystem.liveHandleCount();
 
         // By-ID lookups resolve to the same cached handles as by-path
