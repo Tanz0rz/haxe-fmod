@@ -165,8 +165,11 @@ class ApiProbeState extends FlxState {
         // handle is reclaimed with the instance (the DESTROYED drain on
         // native, the release-all sweep on html5), and the timing of that
         // reclaim depends on the studio thread, so it happens
-        // deterministically here before the baseline snapshot.
-        var desc = StudioSystem.getEvent(FmodEvents.MusicMainLevel);
+        // deterministically here before the baseline snapshot. SFXJump,
+        // not the music event: releaseAllInstances on the music event
+        // would destroy the facade song slot's retained instance behind
+        // FmodManager's back.
+        var desc = StudioSystem.getEvent(FmodEvents.SFXJump);
         var instance = desc.createInstance();
         instance.start();
         StudioSystem.flushCommands();

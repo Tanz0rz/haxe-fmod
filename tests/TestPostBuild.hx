@@ -62,7 +62,11 @@ class TestPostBuild {
 		assert(PostBuild.customHdllMatchesSdk(projectDir),
 			"missing SDK header keeps the custom hdll");
 
-		if (savedSdk != null) Sys.putEnv("FMOD_SDK", savedSdk);
+		if (savedSdk != null) {
+			Sys.putEnv("FMOD_SDK", savedSdk);
+		} else {
+			Sys.putEnv("FMOD_SDK", null);
+		}
 		function rmTree(path:String):Void {
 			if (!sys.FileSystem.exists(path)) return;
 			for (name in sys.FileSystem.readDirectory(path)) {

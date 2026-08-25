@@ -144,6 +144,17 @@ jaxe.callbackHandler(0x1000 /* TIMELINE_BEAT */, cbFakeEvent, flatBeat);
 got = drain();
 check('top_level_beat_flat_keys', got.length === 1 && got[0].bar === 3, JSON.stringify(got[0]));
 
+// DESTROYED records never reach the queue on this target (the documented
+// html5 limitation), even if a future glue starts delivering them. The
+// per-handle state cleanup still runs.
+jaxe.cbMasks[4242] = 0x22;
+jaxe.psKeys[4242] = 'key.wav';
+jaxe.callbackHandler(0x02 /* DESTROYED */, cbFakeEvent, null);
+got = drain();
+check('destroyed_never_enqueued', got.length === 0, JSON.stringify(got));
+check('destroyed_still_cleans_state',
+    jaxe.cbMasks[4242] === undefined && jaxe.psKeys[4242] === undefined, '');
+
 jaxe.fmod_sys_set_auto_update(false);
 console.log(`INIT_TEST: failures = ${fails}`);
 console.log(fails === 0 ? 'INIT_TEST: COMPLETE' : 'INIT_TEST: FAILED');

@@ -22,11 +22,22 @@ class TestSongMachine {
 
 		NativeStudioStub.testSyntheticHandles = true;
 
-		testSameSongRestartSemantics();
-		testTransitionCallbackHandoff();
-		testTransitionDirectHandoff();
-		testStopCancelsTransition();
-		testOnceConsumedByRestart();
+		// The hooks must be restored even when a test body throws, or one
+		// broken test cascades into every suite after this one. The facade
+		// statics this suite dirties (song slot, current path) are also
+		// stale after it: keep suites that read FmodManager song state
+		// ahead of this one in RunTests.
+		try {
+			testSameSongRestartSemantics();
+			testTransitionCallbackHandoff();
+			testTransitionDirectHandoff();
+			testStopCancelsTransition();
+			testSameSongTransitionSupersedes();
+			testOnceConsumedByRestart();
+		} catch (e:haxe.Exception) {
+			failed++;
+			Sys.println('  FAIL: unexpected exception: ${e.message}');
+		}
 
 		NativeStudioStub.testSyntheticHandles = false;
 		NativeStudioStub.testPlaybackStateQueue = [];
@@ -118,6 +129,20 @@ class TestSongMachine {
 		// must stay silent
 		CallbackDispatcher.deliver(handleA, 0x20, 0, 0, 0, 0, 0, 0.0, "");
 		assert("stop cancels the pending transition",
+			FmodManager.GetCurrentSongPath() == "event:/A");
+	}
+
+	static function testSameSongTransitionSupersedes() {
+		var handleA = playSong("event:/A");
+		NativeStudioStub.testPlaybackStateQueue = [0, 4];
+		FmodManager.PlaySongTransition("event:/B");
+		// Changing plans back to the current song supersedes the pending
+		// transition, exactly like a direct play does
+		NativeStudioStub.testPlaybackStateQueue = [0];
+		FmodManager.PlaySongTransition("event:/A");
+		// A's next stop must stay silent instead of starting B minutes late
+		CallbackDispatcher.deliver(handleA, 0x20, 0, 0, 0, 0, 0, 0.0, "");
+		assert("superseded transition never fires",
 			FmodManager.GetCurrentSongPath() == "event:/A");
 	}
 

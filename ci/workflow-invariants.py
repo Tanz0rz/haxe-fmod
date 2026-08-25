@@ -38,20 +38,41 @@ def ok(message):
 with open(PATH) as fh:
     text = fh.read()
 
-# 1. Tag override on every [skip-build]-gated job condition
-gated = [
-    line for line in text.splitlines()
-    if line.lstrip().startswith("if:") and "[skip-build]" in line
-]
-if len(gated) < 15:
-    fail(f"expected at least 15 skip-build gated job conditions, found {len(gated)}")
+# Per-job slices: everything below pairs assertions with their job
+jobs_text = text[text.index("\njobs:"):]
+job_matches = list(re.finditer(r"^  ([A-Za-z][\w-]*):\s*$", jobs_text, re.M))
+jobs = {}
+for i, m in enumerate(job_matches):
+    end = job_matches[i + 1].start() if i + 1 < len(job_matches) else len(jobs_text)
+    jobs[m.group(1)] = jobs_text[m.start():end]
+if len(jobs) < 16:
+    fail(f"expected at least 16 jobs, found {len(jobs)}")
 else:
-    ok(f"{len(gated)} skip-build gated job conditions found")
-missing = [line.strip()[:80] for line in gated if TAG_OVERRIDE not in line]
-if missing:
-    fail(f"{len(missing)} gated conditions lack the tag override: {missing[0]}...")
+    ok(f"{len(jobs)} jobs found")
+
+# 1. Tag override leads every [skip-build]-gated job condition. The
+# override must be the leading disjunct of the expression, so a negated
+# or buried occurrence of the substring does not satisfy the check.
+OVERRIDE_LEAD = re.compile(
+    r"if:\s*\$\{\{\s*startsWith\(github\.ref, 'refs/tags/'\)\s*\|\|")
+gated_jobs = 0
+for name, body in jobs.items():
+    if name == "update-hdlls":
+        continue
+    if "[skip-build]" not in body:
+        fail(f"job {name} has no skip-build gate at all")
+        continue
+    gated_jobs += 1
+    gate_lines = [l for l in body.splitlines()
+                  if l.lstrip().startswith("if:") and "[skip-build]" in l]
+    if not gate_lines:
+        fail(f"job {name}: skip-build gate is not a single-line if (unverifiable)")
+    elif not all(OVERRIDE_LEAD.search(l) for l in gate_lines):
+        fail(f"job {name}: gate does not lead with the tag override")
+if gated_jobs >= 15:
+    ok(f"{gated_jobs} gated jobs all lead with the tag override")
 else:
-    ok("every gated condition carries the tag override")
+    fail(f"only {gated_jobs} gated jobs found")
 
 # 2. update-hdlls guarded to branch refs
 match = re.search(r"update-hdlls:.*?(?=\n  \S|\Z)", text, re.S)
@@ -68,15 +89,14 @@ else:
     else:
         ok("update-hdlls has a timeout")
 
-# 3. Every job has a timeout (scan only below the jobs: key, so trigger
-# names under on: are not counted as jobs)
-jobs_section = text[text.index("\njobs:"):]
-job_names = re.findall(r"^  ([a-z][a-z0-9-]*):\s*$", jobs_section, re.M)
-timeouts = text.count("timeout-minutes:")
-if timeouts < len(job_names):
-    fail(f"{len(job_names)} jobs but only {timeouts} timeout-minutes declarations")
+# 3. Every job declares a job-level timeout (paired per job, so a
+# step-level timeout elsewhere cannot mask a job that lost its own)
+untimed = [name for name, body in jobs.items()
+           if not re.search(r"^    timeout-minutes:", body, re.M)]
+if untimed:
+    fail(f"jobs without a job-level timeout: {untimed}")
 else:
-    ok(f"all {len(job_names)} jobs declare timeouts")
+    ok(f"all {len(jobs)} jobs declare job-level timeouts")
 
 # 4. Compat jobs require a FAILING mismatch build, with pipefail
 mismatch_blocks = re.findall(

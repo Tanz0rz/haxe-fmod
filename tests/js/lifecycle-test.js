@@ -135,6 +135,39 @@ async function main() {
     jaxe.fmod_evi_release(reminted);
     await pump(5);
 
+    // --- canary: destroying a released-then-relisted instance with a
+    // callback installed. The uninstall-before-destroy invariant has no
+    // hook on this path, and the current glue survives it (verified here);
+    // this pins that survival so a glue regression turns the suite red ---
+    const inst5 = jaxe.fmod_evd_create_instance(evd);
+    jaxe.fmod_evi_start(inst5);
+    await pump(3);
+    jaxe.fmod_evi_release(inst5); // slot freed, instance keeps playing
+    const relist = [];
+    check('corruption_relist', jaxe.fmod_evd_get_instance_list(evd, relist) === 1, '');
+    const watched = relist[0];
+    // 0x22 = STOPPED|DESTROYED, the exact mask the Haxe dispatcher installs
+    check('corruption_mask_installed', jaxe.fmod_evi_set_callback_mask(watched, 0x22) === 0, '');
+    // Stopping without releasing triggers the deferred destroy at fade end,
+    // exactly the path a fire-and-forget user hits at natural event end
+    jaxe.fmod_evi_stop(watched, 1 /* immediate */);
+    await pump(10);
+    let survived = true;
+    let after = 0;
+    try {
+        after = jaxe.fmod_evd_create_instance(evd);
+        jaxe.fmod_evi_start(after);
+        await pump(3);
+        jaxe.fmod_evi_stop(after, 1);
+        jaxe.fmod_evi_release(after);
+        await pump(3);
+    } catch (e) {
+        survived = false;
+    }
+    check('module_survives_destroy_after_relist_callback', survived && after > 0,
+        `after=${after}`);
+    drainEvents();
+
     // --- channel-callback map cleanup on stop and on natural end ---
     const ps = jaxe.fmod_core_pcm_create(8000, 1, 8000);
     check('pcm_create', ps > 0, `handle=${ps}`);

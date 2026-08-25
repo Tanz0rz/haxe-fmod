@@ -2980,9 +2980,13 @@ jobs:
       - name: Refuse to package without the pre-built hdlls
         run: |
           # A zip missing an hdll breaks every HashLink install. The guard
-          # in package.sh must hard-fail, not ship a broken package.
+          # in package.sh must hard-fail, not ship a broken package. Only
+          # the script and the templates tree matter: the guard fires
+          # before the zip step ever needs the rest of the checkout.
           STAGE=$(mktemp -d)
-          cp -r . "$STAGE/repo"
+          mkdir -p "$STAGE/repo"
+          cp package.sh "$STAGE/repo/"
+          cp -r templates "$STAGE/repo/templates"
           rm "$STAGE/repo/templates/bin/hl/Linux64/hlaxe_fmod.hdll"
           if (cd "$STAGE/repo" && ./package.sh); then
             echo "ERROR: package.sh built a zip without the Linux hdll"

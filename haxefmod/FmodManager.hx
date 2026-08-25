@@ -227,6 +227,10 @@ class FmodManager {
      */
     public static function PlaySongTransition(songPath:String):Void {
         ensureInitialized();
+        // Asking for a song supersedes any transition already pending,
+        // including asking for the current song again while an earlier
+        // transition's fade is still armed
+        NextSong = null;
 
         if (songPath == CurrentSong && !songInstance.isNull()) {
             if (needsRestart(songInstance)) {
@@ -460,8 +464,16 @@ class FmodManager {
             }
             todoBeep = haxefmod.studio.CoreSound.fromPcm(pcm, rate, 1);
         }
-        if (!todoBeep.isNull()) todoBeep.play();
+        if (!todoBeep.isNull()) {
+            // The previous beep's channel is long finished (the blip is
+            // 90ms and beeps fire once per unique site). Stopping it here
+            // frees its handle slot, per the Channel contract.
+            todoBeepChannel.stop();
+            todoBeepChannel = todoBeep.play();
+        }
     }
+
+    static var todoBeepChannel:haxefmod.core.Channel = haxefmod.core.Channel.NULL;
     #end
     #end
 

@@ -339,17 +339,21 @@ class jaxe {
             ev.f1 = beatProps.tempo || 0.0;
         }
 
+        // Destroyed events are documented as never delivered on this
+        // target (the uninstall-before-destroy design normally prevents
+        // them entirely). If a glue ever fires one anyway, the per-handle
+        // state still ends with the instance, but the record stays out of
+        // the queue so the documented contract holds.
+        if (type == 0x02 /* DESTROYED */) {
+            delete jaxe.cbMasks[handle];
+            delete jaxe.psKeys[handle];
+            return jaxe.FMOD.OK;
+        }
+
         jaxe.cbQueue.push(ev);
         if (jaxe.cbQueue.length > jaxe.CBQ_CAPACITY) {
             jaxe.cbQueue.shift(); // drop oldest
             jaxe.cbOverflow = true;
-        }
-
-        // Per-handle state ends with the instance (DESTROYED is always in
-        // the installed mask).
-        if (type == 0x02 /* DESTROYED */) {
-            delete jaxe.cbMasks[handle];
-            delete jaxe.psKeys[handle];
         }
         return jaxe.FMOD.OK;
     }
