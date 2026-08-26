@@ -2899,6 +2899,12 @@ jobs:
           platform: none
           token: ${{ secrets.FMOD_SDK_TOKEN }}
 
+      # runtime-init-test.js compiles the Haxe runtime layer on the fly
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v2
+        with:
+          haxe-version: ${{ env.HAXE_VERSION }}
+
       - name: Run jaxe harnesses against the real wasm
         env:
           FMOD_SDK_WEB: /tmp/fmod-sdk-cache-2.03.12/html5
