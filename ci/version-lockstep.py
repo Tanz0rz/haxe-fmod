@@ -5,8 +5,8 @@ fmod_expected_version (BCD hex, e.g. 0x00020312 = 2.03.12) is the
 machine-read source of truth: PostBuild, BuildCheck, and build-hdll gate
 on it. But the doctor, the README, and the workflows carry the same
 version as dotted string literals. On an SDK bump those literals go
-stale silently: the doctor would demand the wrong version while builds
-gate on the file.
+stale: the doctor would demand the wrong version while builds gate on
+the file.
 
 This asserts every FMOD-version-shaped literal in the scanned files is
 either the expected version or the declared compat-test version. A bump

@@ -265,8 +265,8 @@ function testDspEnumeration() {
         + 'CHANNELMIX,TRANSCEIVER,OBJECTPAN,MULTIBAND_EQ,MULTIBAND_DYNAMICS';
     check('dsp_golden_list', supported.join(',') === GOLDEN, supported.join(','));
 
-    // Round-trip a lowpass cutoff to prove DSP parameters work. Note:
-    // getParameterInfo is NOT usable on html5 (embind has no binding for
+    // Round-trip a lowpass cutoff to prove DSP parameters work.
+    // getParameterInfo is not usable on html5 (embind has no binding for
     // FMOD_DSP_PARAMETER_DESC), so parameter metadata is native-only.
     const out = {};
     if (gCore.createDSPByType(DSP_TYPES.LOWPASS_SIMPLE, out) === FMOD.OK) {
@@ -449,7 +449,7 @@ function testReverbProperties() {
     const q = {};
     gCore.getReverbProperties(0, q);
     check('reverb_roundtrip', Math.abs(q.DecayTime - 2900) < 1, `DecayTime=${q.DecayTime}`);
-    // Back to off (instance 0 default is generic; disable wet path)
+    // Back to off (instance 0 default is generic, disable wet path)
     q.WetLevel = -80;
     gCore.setReverbProperties(0, q);
 }
@@ -664,7 +664,7 @@ function testReverb3dAndSystem(studio) {
 //// 3D settings, driver enumeration, and getter symmetry.
 
 function testChannelCallbacks(studio) {
-    // A finite raw memory sound so END fires; a sync point at its middle
+    // A finite raw memory sound so END fires, with a sync point at its middle
     const exinfo = FMOD.CREATESOUNDEXINFO();
     exinfo.numchannels = 1;
     exinfo.defaultfrequency = 48000;

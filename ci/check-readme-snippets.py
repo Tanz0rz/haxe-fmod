@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Compiles the README's ```haxe fences against the real library.
 
-The README ships in the haxelib package: a snippet that does not compile
-is a broken quickstart for every new user. Each fence is wrapped in a
+The README ships in the haxelib package, so its examples have to keep
+compiling as the API moves. Each fence is wrapped in a
 scaffold class with stub identifiers for the game-side names snippets
 reference (FmodEvents constants, flixel hooks, helper functions), then
 type-checked with `haxe --no-output` against the actual haxefmod source,

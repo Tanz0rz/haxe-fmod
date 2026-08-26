@@ -3,7 +3,7 @@ description: >
   Provides the FMOD SDK from the Tanz0rz/fmod-sdk-cache repo, restoring it
   from the GitHub Actions cache when possible and cloning the requested tag
   only on a cache miss. Optionally copies one platform subtree into a
-  destination directory; the raw clone stays at /tmp/fmod-sdk-cache-<version>
+  destination directory. The raw clone stays at /tmp/fmod-sdk-cache-<version>
   for jobs that reference it directly.
 
 inputs:
@@ -17,7 +17,7 @@ inputs:
     required: true
   dest:
     description: >
-      Directory to copy the platform subtree into; when omitted only the raw
+      Directory to copy the platform subtree into. When omitted only the raw
       clone at /tmp/fmod-sdk-cache-<version> is provided
     required: false
     default: ""

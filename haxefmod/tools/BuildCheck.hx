@@ -7,11 +7,11 @@ import haxe.macro.Context;
  * Compile-time environment check, wired by include.xml so it runs on every
  * lime build of a project using haxefmod.
  *
- * A missing FMOD SDK previously only surfaced through the postbuild step,
- * whose failure lime ignores: the game would compile, launch, and run with
- * no audio (or crash loading libraries) while the real error scrolled past
- * in the build output. Failing COMPILATION is the only reliable way to stop
- * `lime test` before the game window ever opens.
+ * The checks live in a macro because lime ignores postbuild failures: an
+ * error reported there scrolls past while the game still compiles, then
+ * launches with no audio or crashes loading libraries. Failing compilation
+ * is the only reliable way to stop `lime test` before the game window ever
+ * opens.
  */
 class BuildCheck {
     public static function verify():Void {
@@ -69,8 +69,8 @@ class BuildCheck {
      * shim's numeric tables (DSP types among them) are that version's
      * values, the wasm exposes no version query to adapt at runtime, and
      * there is no custom-hdll escape hatch on this target. A mismatched
-     * web SDK previously built with only a postbuild warning and created
-     * WRONG DSP EFFECTS at runtime.
+     * web SDK creates the wrong DSP effects at runtime, so the build
+     * stops here.
      */
     static function verifyWebSdkVersionGate():Void {
         var sdkPath = Sys.getEnv("FMOD_SDK_WEB");

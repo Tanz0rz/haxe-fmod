@@ -100,7 +100,7 @@ class FmodRuntime {
      * True once FMOD is usable: the system is initialized AND the
      * settings' autoLoadBanks are loaded. Native init does both
      * synchronously. On html5 both are asynchronous, so games gate their
-     * first state on this exactly as before.
+     * first state on this.
      */
     public static function isInitialized():Bool {
         if (!NativeStudio.sys_is_initialized()) return false;

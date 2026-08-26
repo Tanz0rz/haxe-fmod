@@ -3,7 +3,8 @@
 
 The release-path gating lives in workflow expressions that nothing
 compiles or type-checks, so regressions there are silent until a tag or
-compat run goes wrong. This asserts the load-bearing properties:
+compat run goes wrong. This asserts the properties everything else
+leans on:
 
   1. Every [skip-build]-gated job condition carries the tag override, so
      a release tag on an hdll auto-commit still runs the full suite.
@@ -17,12 +18,11 @@ compat run goes wrong. This asserts the load-bearing properties:
   5. linux-html5 asserts a build against a doctored (wrong-version) web
      SDK FAILS with the mismatch banner, with pipefail, since html5 pins
      the web SDK version instead of translating DSP types.
-  6. Every job still contains its load-bearing test steps by name, so a
-     deleted or renamed probe/validation step cannot pass silently as
-     "less coverage, still green".
+  6. Every job still contains its required test steps by name. Renaming
+     or deleting a probe step means updating the list here in the same
+     commit.
   7. Every Node harness in tests/js/ is invoked somewhere in the
-     workflow, so a new harness cannot land unwired and an existing one
-     cannot be dropped from CI unnoticed.
+     workflow.
 
 Run: python3 ci/workflow-invariants.py [workflow-file]
 """

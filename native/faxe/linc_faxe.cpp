@@ -44,7 +44,7 @@ static FMOD::System* gCoreSystem = NULL;
 // Result of the most recent studio binding call made from the Haxe thread.
 static FMOD_RESULT gLastResult = FMOD_OK;
 // Static buffer for string out-params. Contents are only valid until the
-// next binding call; the Haxe wrappers copy immediately.
+// next binding call. The Haxe wrappers copy immediately.
 static char gStringBuf[512];
 
 // Shared list buffer for the list getters (Haxe thread only, like gStringBuf)
@@ -60,7 +60,7 @@ static inline FMOD::Studio::EventInstance* resolveInstance(int h) {
 }
 
 // Callback handler - runs on an FMOD thread. Must not touch the handle table
-// or any Haxe values; it reads the per-instance context back from FMOD
+// or any Haxe values. It reads the per-instance context back from FMOD
 // userdata, copies payloads into a plain C record, and pushes it onto the
 // shared queue. The Haxe thread drains the queue during update().
 // Programmer sounds are resolved right here on the FMOD thread: the key was
@@ -2660,8 +2660,8 @@ int fmod_cg_get_channel(int h, int index) {
     return faxe_handle_find_or_alloc(ch, FAXE_TYPE_CHAN);
 }
 
-// Drain protocol: cb_next pops the oldest queued event into a static slot;
-// the accessors read fields from that slot. Haxe thread only.
+// Drain protocol: cb_next pops the oldest queued event into a static slot
+// and the accessors read fields from it. Haxe thread only.
 static FaxeCbEvent gCbCurrent;
 
 // Final cleanup for a destroyed instance, on the game thread: the handle
@@ -2777,8 +2777,8 @@ int fmod_sys_last_result() {
     return (int)gLastResult;
 }
 
-// Settings-driven init: numChannels <= 0 falls back to 128; sampleRate 0 =
-// FMOD default; speakerMode 0 = default speaker mode; studioFlags bit0 =
+// Settings-driven init: numChannels <= 0 falls back to 128, sampleRate 0 =
+// FMOD default, speakerMode 0 = default speaker mode, studioFlags bit0 =
 // live update. Keeps the FMOD_WAVWRITER env branch (CI recording), which
 // forces 48000/stereo and wins over the requested format. Idempotent:
 // returns FMOD_OK when already initialized.
@@ -2822,7 +2822,7 @@ int fmod_sys_init_ex(int numChannels, int sampleRate, int speakerMode, int studi
 
 // FMOD_Debug_Initialize level mapping (0=none 1=error 2=warning 3=log),
 // TTY mode, no file logging. The logging-stripped FMOD libs report
-// FMOD_ERR_UNSUPPORTED; that result is passed through.
+// FMOD_ERR_UNSUPPORTED, which is passed through.
 int fmod_sys_set_debug_level(int level) {
     FMOD_DEBUG_FLAGS flags = FMOD_DEBUG_LEVEL_NONE;
     if (level == 1) flags = FMOD_DEBUG_LEVEL_ERROR;
@@ -3097,7 +3097,7 @@ int fmod_sys_load_bank_file(const ::String& path, int flags) {
     return faxe_handle_find_or_alloc(bank, FAXE_TYPE_BANK);
 }
 
-// Async bank load: always FMOD_STUDIO_LOAD_BANK_NONBLOCKING; poll
+// Async bank load: always FMOD_STUDIO_LOAD_BANK_NONBLOCKING, polled via
 // bank_get_loading_state. Returns a bank handle or 0.
 int fmod_sys_load_bank_async(const ::String& path) {
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
@@ -3409,7 +3409,7 @@ const char* fmod_bank_get_path(int h) {
     return gStringBuf;
 }
 
-// Real unload; frees the bank handle on success.
+// Real unload. Frees the bank handle on success.
 int fmod_bank_unload(int h) {
     FMOD::Studio::Bank* bank = resolveBank(h);
     if (!bank) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }

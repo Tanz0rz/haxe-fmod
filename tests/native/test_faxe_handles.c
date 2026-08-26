@@ -187,7 +187,7 @@ int main(void) {
     assert(faxe_handle_resolve(h, FAXE_TYPE_EVI) == &dummy2);
 
     /* sweep of dead lookup slots: only BUS/VCA/EVD slots the validator
-     * rejects are freed; other types are untouched even when "dead" */
+     * rejects are freed, other types are untouched even when "dead" */
     {
         static int busObj, vcaObj, evdObj, eviObj, bankObj;
         int hb = faxe_handle_find_or_alloc(&busObj, FAXE_TYPE_BUS);

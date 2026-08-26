@@ -176,7 +176,7 @@ class Todos {
 	}
 
 	// The call must not be a member access on some other value. A bare call
-	// and the package-qualified haxefmod.FmodManager.Todo both count; any
+	// and the package-qualified haxefmod.FmodManager.Todo both count. Any
 	// other dotted or identifier prefix is a lookalike.
 	static function callPrefixOk(content:String, i:Int):Bool {
 		if (i == 0) return true;

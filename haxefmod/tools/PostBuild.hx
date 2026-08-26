@@ -52,9 +52,9 @@ class PostBuild {
 		var sdkHeader = Path.join([sdkPath, "api", "core", "inc", "fmod_common.h"]);
 
 		// A set-but-wrong SDK path is provably not an SDK: hard error, the
-		// same class of failure as an unset variable. A soft warning here
-		// used to let typo'd paths skip the version gate entirely and ship
-		// builds that only ran when stale libraries were still in export/.
+		// same class of failure as an unset variable. Anything softer lets
+		// a typo'd path skip the version gate and ship builds that only
+		// run while stale libraries remain in export/.
 		if (!FileSystem.exists(sdkHeader)) {
 			log('ERROR: $sdkEnvName is set but does not point at an FMOD SDK');
 			log('  $sdkEnvName = $sdkPath');
@@ -242,8 +242,8 @@ class PostBuild {
 	// SDK in use. A leftover .haxefmod/ from an older SDK experiment would
 	// otherwise ship next to mismatched runtime libraries and fail at
 	// startup, even though the SDK matches the pre-built expectation.
-	// A missing or unreadable marker keeps the old trust-the-custom-hdll
-	// behavior (build-hdll always writes one).
+	// A missing or unreadable marker means the custom hdll is trusted
+	// as-is (build-hdll always writes one).
 	public static function customHdllMatchesSdk(projectDir:String):Bool {
 		var markerFile = Path.join([projectDir, ".haxefmod", "hlaxe_fmod.version"]);
 		if (!FileSystem.exists(markerFile)) return true;

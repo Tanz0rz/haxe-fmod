@@ -44,7 +44,7 @@
  * opaque carries a native payload across the thread boundary (the DESTROYED
  * event uses it for the per-instance context). Ownership transfers to the
  * drain: whoever pops the event must dispose of the payload. A payload
- * MUST begin with a `void* qnext` field, which the queue uses to park
+ * MUST begin with a void* qnext field, which the queue uses to park
  * payloads whose events get dropped on overflow (see faxe_cbq_take_orphans).
  */
 typedef struct {

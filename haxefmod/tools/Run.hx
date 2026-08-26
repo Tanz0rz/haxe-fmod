@@ -332,7 +332,7 @@ class Run {
 	static function checkHdllCompatibility(fmodSdk:String, platform:String, libRoot:String, projectDir:String) {
 		var commonHeader = '$fmodSdk/api/core/inc/fmod_common.h';
 		// A truncated SDK extract can pass the fmod.h gate while this header
-		// is missing. The doctor must report, not die on an unguarded read.
+		// is missing. The doctor reports it and keeps going.
 		if (!FileSystem.exists(commonHeader)) {
 			warn("Pre-built hdll compatible with SDK", 'Cannot verify: missing $commonHeader');
 			return;

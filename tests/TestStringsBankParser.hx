@@ -124,7 +124,7 @@ class TestStringsBankParser {
 	// (bit flips, scrambled size fields, truncations) and pure noise.
 	// The parser's contract under hostile bytes is return-or-throw -
 	// never an uncaught error, never a hang (the old non-advancing scan
-	// hung; in CI the job timeout turns a regression into a failure).
+	// hung, and in CI the job timeout turns a regression into a failure).
 	static function testHostileCorpus() {
 		var fixtureBytes = File.getBytes(fixture);
 		var seed = 0x9E3779B9;

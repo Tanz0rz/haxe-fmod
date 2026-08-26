@@ -113,11 +113,10 @@ jobs:
           haxe tests/build-defines.hxml
           haxe tests/build-debug-defaults.hxml
 
-      # The shared headers own the cross-thread lifetime contracts, so a
-      # memory or threading defect there is the worst class of bug this
-      # library can ship. ASan/UBSan cover the single-threaded invariants
-      # (including the handle fuzz), TSan proves the locking on the two
-      # tests that drive a real producer thread.
+      # The shared headers own the cross-thread lifetime contracts.
+      # ASan/UBSan cover the single-threaded invariants (including the
+      # handle fuzz), TSan proves the locking on the two tests that drive
+      # a real producer thread.
       - name: Run native tests under AddressSanitizer and UBSan
         run: |
           for t in handles cbqueue guid pcmring; do
@@ -757,8 +756,8 @@ jobs:
           fi
           echo "Stress smoke passed"
 
-      # Runs the literal command users type. The other steps wrap builds in
-      # CI plumbing; this one proves a plain lime test works.
+      # Runs the literal command users type. The other steps wrap builds
+      # in CI plumbing, and this one proves a plain lime test works.
       - name: lime test end to end
         if: ${{ !cancelled() }}
         run: |
@@ -1455,11 +1454,10 @@ jobs:
           fi
           echo "pan-test passed"
 
-      # The web-SDK version gate is load-bearing on this target (the JS
-      # shim's numeric tables are version-specific and the wasm exposes no
-      # version query): a build against a mismatched FMOD_SDK_WEB must FAIL
-      # at compile time with the mismatch banner, not limp through with a
-      # warning.
+      # The web-SDK version gate carries this target (the JS shim's
+      # numeric tables are version-specific and the wasm exposes no
+      # version query): a build against a mismatched FMOD_SDK_WEB has to
+      # fail at compile time with the mismatch banner.
       # The FLX_SOUND_SYSTEM-off world of FmodFlxSetup has no other
       # compile coverage (every build keeps the sound system on)
       - name: Typecheck the flixel no-sound-system variant
@@ -3149,10 +3147,10 @@ jobs:
 
       - name: Refuse to package without the pre-built hdlls
         run: |
-          # A zip missing an hdll breaks every HashLink install. The guard
-          # in package.sh must hard-fail, not ship a broken package. Only
-          # the script and the templates tree matter: the guard fires
-          # before the zip step ever needs the rest of the checkout.
+          # A zip missing an hdll breaks every HashLink install, so the
+          # package.sh guard has to hard-fail. Only the script and the
+          # templates tree matter: the guard fires before the zip step
+          # ever needs the rest of the checkout.
           STAGE=$(mktemp -d)
           mkdir -p "$STAGE/repo"
           cp package.sh "$STAGE/repo/"
@@ -3221,9 +3219,9 @@ jobs:
           done
           echo "All packaged hdlls carry ABI marker $ABI"
 
-      # A tracked file the packager does not ship is a silent user-facing
-      # break waiting to happen: every tracked file must either be in the
-      # zip or sit under a path that is deliberately not shipped.
+      # Every tracked file must either be in the zip or sit under a path
+      # that is deliberately not shipped, or the packager quietly leaves
+      # something users need out of the release.
       - name: Reconcile the package against the tracked tree
         run: |
           set -o pipefail
@@ -3262,7 +3260,7 @@ jobs:
           haxelib install lime 8.3.0 --always --quiet
           haxelib install openfl 9.5.0 --always --quiet
           haxelib install flixel 6.1.2 --always --quiet
-          # The library under test comes from the zip, never from the checkout
+          # Install from the zip only, so no checkout copy can leak in
           haxelib remove haxefmod || true
           haxelib install haxefmod.zip --always --quiet
           haxelib path haxefmod
@@ -3333,7 +3331,7 @@ jobs:
           ls export/linux*/bin/ | head -5
           echo "C++ build from package OK"
 
-      # The CLI subcommands users actually run resolve their files from
+      # The check and generate subcommands resolve their files from
       # the installed package layout - exercise them from there, not from
       # the checkout the other jobs use via haxelib dev
       - name: Run CLI commands from the installed package

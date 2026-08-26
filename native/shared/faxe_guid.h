@@ -12,8 +12,8 @@
 #define FAXE_GUID_H
 
 #include <stdio.h>
-/* Both shims include the FMOD headers before this one. The conditional
- * allows the unit test to define its own FMOD_GUID when no FMOD SDK is
+/* Both shims include the FMOD headers before this one. The guard is for
+ * the unit test, which defines its own FMOD_GUID when no FMOD SDK is
  * installed. */
 #ifndef _FMOD_COMMON_H
 #include "fmod_common.h"

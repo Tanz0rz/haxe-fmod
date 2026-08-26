@@ -68,8 +68,8 @@ class BankRegistry {
         // registered too - a second load of the same path must share it
         // instead of starting a competing fetch. A bank that settled in
         // ERROR never dedups, even where the backend keeps reporting it
-        // valid until unloaded (native NONBLOCKING failures): a retry must
-        // replace the dead load, not refcount onto it forever.
+        // valid until unloaded (native NONBLOCKING failures). A retry
+        // replaces the dead load instead of refcounting onto it.
         if (entry != null
                 && entry.bank.getLoadingState() != FmodLoadingState.ERROR
                 && (entry.bank.isValid()

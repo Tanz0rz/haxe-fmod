@@ -136,8 +136,8 @@ class TestRuntime {
 	}
 
 	static function testBankRegistryNormalization():Void {
-		// Two spellings of one file must share one refcount, or unloading
-		// either entry to zero destroys the bank under the other's holders
+		// Every spelling of a path lands on the same registry entry, so
+		// refcounts cannot split across separators or dot segments
 		assert(BankRegistry.normalizePath("assets\\fmod\\Master.bank")
 			== "assets/fmod/Master.bank", "backslashes normalize");
 		assert(BankRegistry.normalizePath("./assets/./fmod/Master.bank")
@@ -187,8 +187,8 @@ class TestRuntime {
 		assert(!registry.anyError(), "loaded banks report no error");
 
 		// Native semantics: an errored NONBLOCKING bank still reports
-		// valid until unloaded, and a retry must still replace it instead
-		// of refcounting onto the dead load forever
+		// valid until unloaded. The dedup check has to look at the
+		// loading state or this retry would just bump the dead refcount
 		stub.testBankLoadingState = 4;
 		stub.testBankValid = true;
 		stub.testBankUnloadCalls = 0;

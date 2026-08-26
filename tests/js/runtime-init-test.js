@@ -1,4 +1,4 @@
-// Drives the REAL Haxe runtime layer (FmodRuntime + BankRegistry,
+// Drives the actual Haxe runtime layer (FmodRuntime + BankRegistry,
 // compiled to js) against the real wasm under Node: the html5 init
 // contract - isInitialized() gates on the default banks being usable,
 // and a failed autoLoadBanks fetch holds it false with one traced

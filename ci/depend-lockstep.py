@@ -4,9 +4,9 @@
 The cpp CI jobs cache compiled objects (HXCPP_COMPILE_CACHE), and the
 cache key hashes source contents plus declared <depend> files ONLY. A
 header linc_faxe.cpp includes without a matching <depend> in
-linc_faxe.xml reopens a stale-object hole: header-only edits reuse
-outdated cached objects and ship silently wrong binaries. This has
-happened before - now it fails the build instead.
+linc_faxe.xml reopens a stale-object hole where header-only edits
+reuse outdated cached objects. That bit us once already, so it fails
+the build here.
 
 Run: python3 ci/depend-lockstep.py
 """
@@ -27,7 +27,7 @@ with open(XML, encoding="utf-8") as fh:
 failures = []
 checked = 0
 for include in includes:
-    # Includes are relative to native/faxe/; depends to the library root
+    # Includes are relative to native/faxe/, depends to the library root
     normalized = os.path.normpath(os.path.join("native", "faxe", include))
     normalized = normalized.replace(os.sep, "/")
     checked += 1

@@ -281,8 +281,8 @@ class EmitterPanTestState extends FlxState {
             'baseline=$_cullBaseline now=${StudioSystem.liveHandleCount()}');
 
         // Utilities wrapper: attach-and-forget playback through the facade.
-        // The next phase waits for playout: the auto-release branch is the
-        // one instance-cleanup path the leak gates skipped before.
+        // The next phase waits for playout so the auto-release branch runs
+        // under the leak gate instead of outliving the state.
         _utilBaseline = FmodRuntime.attachedCount();
         haxefmod.flixel.FmodFlxUtilities.PlaySoundOneShotAttached(FmodEvents.SFXJump, _listenerSprite);
         check("utilities_oneshot_attached", FmodRuntime.attachedCount() == _utilBaseline + 1,

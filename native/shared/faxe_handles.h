@@ -46,8 +46,8 @@
 
 #define FAXE_MAX_SLOTS 0x10000
 /* Max entries any list getter returns in one call. The Haxe-side scratch
- * buffer (Scratch.CAPACITY) must match. Far beyond realistic FMOD projects;
- * the abstracts warn when a list is larger and gets truncated. */
+ * buffer (Scratch.CAPACITY) must match. Far beyond realistic FMOD projects,
+ * and the abstracts warn when a list is larger and gets truncated. */
 #define FAXE_LIST_MAX 1024
 #define FAXE_GEN_MAX   0x7FFF
 
@@ -151,8 +151,7 @@ static void faxe_handles_sweep_lookups(FaxeLookupValidator is_valid) {
 /* Frees every live slot of one type. DSP connections use this: FMOD defers
  * graph mutations to the mixer, so pointer validation after a disconnect is
  * timing-dependent. Graph-changing calls instead invalidate every connection
- * handle, matching FMOD's own rule that graph changes invalidate
- * connections. */
+ * handle, which is also FMOD's own documented contract for them. */
 static void faxe_handles_free_type(unsigned char type) {
     int i;
     for (i = 0; i < gFaxeSlotCap; i++) {

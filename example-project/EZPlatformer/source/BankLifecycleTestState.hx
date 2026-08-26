@@ -122,7 +122,7 @@ class BankLifecycleTestState extends FlxState {
         check("unload_reclaims_lookup_handles", StudioSystem.liveHandleCount() == _baseline - 3,
             'baseline=$_baseline now=${StudioSystem.liveHandleCount()}');
 
-        // Reload through the registry. Native loads synchronously; html5
+        // Reload through the registry. Native loads synchronously, html5
         // goes back through the fetch pipeline, so the checks continue
         // from update() once both banks report loaded.
         FmodRuntime.banks.load(_masterPath);
@@ -150,7 +150,7 @@ class BankLifecycleTestState extends FlxState {
             'baseline=$_baseline now=${StudioSystem.liveHandleCount()}');
 
         // Error legs: a missing bank must settle in ERROR on every target
-        // (html5: failed fetch; native: NONBLOCKING open failure), two
+        // (html5: failed fetch, native: NONBLOCKING open failure), two
         // concurrent loads of one missing path share a placeholder, and
         // the flixel loader surfaces both outcomes through callbacks.
         _errBaseline = StudioSystem.liveHandleCount();

@@ -8,8 +8,8 @@
 # Verified by: haxelib run haxefmod verify-native
 #
 # Format: <name> <argtype> <argtype> ... -> <rettype>
-# Types are logical (exact FFI types differ per backend, e.g. f32 vs f64);
-# the checker verifies presence and arity, not exact types.
+# Types are logical (exact FFI types differ per backend, e.g. f32 vs f64).
+# The checker verifies presence and arity rather than exact types.
 #
 # abi-version: 8
 # The binding ABI version covers the shape of the native surface. Bump it in

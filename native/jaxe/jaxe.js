@@ -848,13 +848,13 @@ class jaxe {
 
     // Async bank load over HTTP (the file is NOT in MEMFS): allocates a
     // handle backed by a {pendingBankPath} placeholder immediately, fetches
-    // `path` relative to the page origin, writes the bytes into MEMFS under
+    // path relative to the page origin, writes the bytes into MEMFS under
     // a unique flat name, then swaps the real bank into the slot. Poll
     // bank_get_loading_state: 2 (LOADING) while the fetch is pending,
     // 4 (ERROR) if the fetch or load failed or ASYNC_FETCH_TIMEOUT_MS
     // elapsed. fmod_bank_unload on a still-pending placeholder cancels the
-    // fetch and frees the handle. The pendingBankCancelled flag makes sure
-    // a fetch that settles after that never reaches FMOD.
+    // fetch and frees the handle. The pendingBankCancelled flag keeps
+    // a fetch that settles after that from ever reaching FMOD.
     static fmod_sys_load_bank_async(path) {
         if (typeof path !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return 0; }
         if (!jaxe.sysReady()) return 0;
@@ -2048,8 +2048,8 @@ class jaxe {
     static fmod_ps_assign(handle, key) {
         if (typeof key !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
         // Native stores keys in a 512-byte buffer (FAXE_PS_KEY_MAX) and
-        // now rejects longer ones instead of truncating. Reject here too,
-        // in UTF-8 bytes, so a key that works on html5 also works native.
+        // rejects longer ones. Reject here too, measured in UTF-8 bytes,
+        // so a key that works on html5 also works native.
         if (jaxe.utf8ByteLength(key) >= 512) { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
         var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
         if (!inst) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
@@ -4351,10 +4351,8 @@ class jaxe {
 
     //// Initialization (Emscripten-specific, must stay here)
 
-    // Bank loading belongs to the runtime's registry (settings-driven,
-    // through the async fetch pipeline), not the module bootstrap. The
-    // old preload here hardcoded the Master banks and turned any fetch
-    // failure into an unresolvable init hang.
+    // Nothing to preload. The runtime registry owns bank loading,
+    // driven by the game's settings through the async fetch pipeline.
     static preRun = function () {
     }
 

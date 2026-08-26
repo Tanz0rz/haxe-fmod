@@ -5,7 +5,7 @@ import haxefmod.studio.FmodResult;
 import haxefmod.studio.Types;
 
 /**
- * The html5 initialization contract, driven through the REAL Haxe
+ * The html5 initialization contract, driven through the shipped Haxe
  * runtime layer compiled to js against the real wasm (the tests/js
  * harnesses talk to jaxe.js directly and cannot see this layer).
  *

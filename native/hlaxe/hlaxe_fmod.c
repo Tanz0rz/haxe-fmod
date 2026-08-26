@@ -3025,8 +3025,8 @@ HL_PRIM int HL_NAME(cg_get_channel)(int h, int index) {
 }
 DEFINE_PRIM(_I32, cg_get_channel, _I32 _I32);
 
-// Drain protocol: cb_next pops the oldest queued event into a static slot;
-// the accessors read fields from that slot. Haxe thread only.
+// Drain protocol: cb_next pops the oldest queued event into a static slot
+// and the accessors read fields from it. Haxe thread only.
 static FaxeCbEvent gCbCurrent;
 
 // Final cleanup for a destroyed instance, on the game thread: the handle

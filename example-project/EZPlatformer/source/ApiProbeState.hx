@@ -161,11 +161,10 @@ class ApiProbeState extends FlxState {
     }
 
     /**
-     * Covers the surfaces the 2026-08-26 hardening research found
-     * untested: hostile inputs the shims must reject identically on
-     * every target, the facade's failure branch and thin delegations,
-     * and the by-ID parameter plumbing (a swapped id.data1/data2 in any
-     * wrapper would break exactly one of these round trips).
+     * Hostile inputs the shims reject identically on every target, the
+     * facade's failure branch and thin delegations, and the by-ID
+     * parameter plumbing (a swapped id.data1/data2 in any wrapper would
+     * break exactly one of these round trips).
      */
     function probeHardeningTail():Void {
         StudioSystem.flushCommands();
@@ -620,7 +619,7 @@ class ApiProbeState extends FlxState {
         check("dsp_disconnect_all", fft.disconnectAll().isOk(), "");
         check("dsp_metering_toggle", fft.setMeteringEnabled(true, true).isOk(), "");
         // Metering data needs processed blocks, which this DSP never gets
-        // (unattached, same frame). The read exercises the marshaling; the
+        // (unattached, same frame). The read exercises the marshaling, and the
         // js harnesses assert real values after attaching and pumping.
         var metering = fft.getMetering();
         info("dsp_metering_read", metering == null
@@ -1136,7 +1135,7 @@ class ApiProbeState extends FlxState {
             check("bank_events_enumerated", foundEvents, "");
         }
 
-        // VCA (the example project has no VCAs - a missing lookup must return null, not crash)
+        // VCA (the example project has no VCAs - a missing lookup returns null)
         var vca = StudioSystem.getVCA("vca:/DoesNotExist");
         check("sys_get_vca_missing", vca.isNull(), 'lastResult=${StudioSystem.lastResult().toString()}');
 
@@ -1210,7 +1209,7 @@ class ApiProbeState extends FlxState {
             'result=${wrongSet.toString()}');
         live.release();
 
-        // Double release must report INVALID_HANDLE, not crash
+        // Double release reports INVALID_HANDLE
         var doubleRelease:FmodResult = stale.release();
         check("double_release_invalid_handle", doubleRelease == FmodResult.FMOD_ERR_INVALID_HANDLE,
             'result=${doubleRelease.toString()}');
