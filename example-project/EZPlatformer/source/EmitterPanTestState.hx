@@ -111,6 +111,7 @@ class EmitterPanTestState extends FlxState {
 
         // Listener follows the sprite's midpoint
         var listener = new FmodFlxListener(sprite);
+        _targetListener = listener;
         add(listener);
         listener.update(0); // create() runs before the state update loop
         FmodManager.Update();
@@ -162,8 +163,14 @@ class EmitterPanTestState extends FlxState {
     var _listenerSprite:FlxSprite;
     var _cullSprite:FlxSprite;
     var _cullEmitter:FmodFlxEmitter;
+    var _targetListener:FmodFlxListener;
     var _phase:String = "";
     var _phaseFrames:Int = 0;
+    var _utilBaseline:Int = 0;
+
+    /** Final pass/fail counts survive the state switch the transition test performs. */
+    public static var finalPassCount:Int = 0;
+    public static var finalFailCount:Int = 0;
 
     static inline var FAR:Float = 100000;
     static inline var PHASE_TIMEOUT:Int = 600;
@@ -273,28 +280,217 @@ class EmitterPanTestState extends FlxState {
         check("no_handle_leaks_cull", StudioSystem.liveHandleCount() == _cullBaseline,
             'baseline=$_cullBaseline now=${StudioSystem.liveHandleCount()}');
 
-        // Utilities wrapper: attach-and-forget playback through the facade
-        // (after the leak gate, since the one-shot outlives this state)
-        var utilBaseline = FmodRuntime.attachedCount();
+        // Utilities wrapper: attach-and-forget playback through the facade.
+        // The next phase waits for playout: the auto-release branch is the
+        // one instance-cleanup path the leak gates skipped before.
+        _utilBaseline = FmodRuntime.attachedCount();
         haxefmod.flixel.FmodFlxUtilities.PlaySoundOneShotAttached(FmodEvents.SFXJump, _listenerSprite);
-        check("utilities_oneshot_attached", FmodRuntime.attachedCount() == utilBaseline + 1,
+        check("utilities_oneshot_attached", FmodRuntime.attachedCount() == _utilBaseline + 1,
             'count=${FmodRuntime.attachedCount()}');
+        enterPhase("util_oneshot_playout");
+    }
 
-        log('PAN_TEST: COMPLETE passed=$_passCount failed=$_failCount');
-        _label.text = 'PAN_TEST complete: $_passCount passed, $_failCount failed';
-        _done = true;
+    function stepHardeningPhases():Void {
+        _phaseFrames++;
+        var timedOut = _phaseFrames > PHASE_TIMEOUT;
+        switch (_phase) {
+            case "util_oneshot_playout":
+                if (FmodRuntime.attachedCount() == _utilBaseline || timedOut) {
+                    check("attached_oneshot_auto_released", !timedOut, 'frames=$_phaseFrames');
+                    // The auto-release freed the instance: after the drain
+                    // the handle table is back to the cull baseline
+                    StudioSystem.flushCommands();
+                    FmodManager.Update();
+                    check("no_handle_leaks_attached_oneshot",
+                        StudioSystem.liveHandleCount() == _cullBaseline,
+                        'baseline=$_cullBaseline now=${StudioSystem.liveHandleCount()}');
+                    // Authored-distance path: with no explicit cullMaxDistance
+                    // the emitter asks the event, and a 2D event reports max
+                    // distance 0 - culling must stay a no-op
+                    _cullSprite.x = FAR;
+                    _cullEmitter = FmodFlxEmitter.play(FmodEvents.MusicMainLevel, _cullSprite);
+                    add(_cullEmitter);
+                    _cullEmitter.stopEventsOutsideMaxDistance = true;
+                    _cullEmitter.cullCheckInterval = 1;
+                    enterPhase("authored_cull_noop");
+                }
+            case "authored_cull_noop":
+                if (_phaseFrames > 40) {
+                    var state = cullState();
+                    check("cull_authored_2d_event_never_culls",
+                        state == FmodPlaybackState.PLAYING || state == FmodPlaybackState.STARTING,
+                        'state=$state');
+                    _cullEmitter.destroy();
+                    runCameraListenerChecks();
+                    runParameterTriggerChecks();
+                    // The transition test ends the state: a playing song plus
+                    // TransitionToStateAndStopMusic must fade out and switch
+                    FmodManager.PlaySong(FmodEvents.MusicMainLevel);
+                    enterPhase("transition_switches");
+                }
+            case "transition_switches":
+                if (_phaseFrames == 2) {
+                    finalPassCount = _passCount;
+                    finalFailCount = _failCount;
+                    haxefmod.flixel.FmodFlxUtilities.TransitionToStateAndStopMusic(
+                        () -> new PanTestDoneState());
+                } else if (timedOut) {
+                    // The switch never happened: fail loudly from this state
+                    check("transition_switched_state", false, 'frames=$_phaseFrames');
+                    log('PAN_TEST: COMPLETE passed=$_passCount failed=${_failCount}');
+                    _done = true;
+                }
+        }
+    }
+
+    /**
+     * Camera-follow mode is the listener's default and its math-heaviest
+     * path: velocity derived from the camera center's per-frame movement,
+     * with jumps beyond teleportDistance treated as cuts. Driven manually
+     * with a fixed elapsed so the derived velocity is deterministic.
+     */
+    function runCameraListenerChecks():Void {
+        remove(_targetListener);
+        _targetListener.destroy();
+
+        var camera = FlxG.camera;
+        var savedX = camera.scroll.x;
+        var savedY = camera.scroll.y;
+        var cameraListener = new FmodFlxListener();
+        cameraListener.update(0.5); // seeds tracking, pushes zero velocity
+        camera.scroll.x = savedX + 30;
+        cameraListener.update(0.5);
+        var attributes = StudioSystem.getListenerAttributes(0);
+        check("camera_listener_attributes_readable", attributes != null, "");
+        if (attributes != null) {
+            check("camera_listener_position_is_center",
+                approx(attributes.position.x, camera.scroll.x + camera.width / 2)
+                && approx(attributes.position.y, camera.scroll.y + camera.height / 2),
+                'position=(${attributes.position.x}, ${attributes.position.y})');
+            check("camera_listener_velocity_from_movement",
+                approx(attributes.velocity.x, 60) && approx(attributes.velocity.y, 0),
+                'velocity=(${attributes.velocity.x}, ${attributes.velocity.y})');
+        }
+
+        // A jump beyond teleportDistance is a cut: zero velocity
+        cameraListener.teleportDistance = 100;
+        camera.scroll.x += 5000;
+        cameraListener.update(0.5);
+        attributes = StudioSystem.getListenerAttributes(0);
+        check("camera_listener_teleport_zeroes_velocity",
+            attributes != null && approx(attributes.velocity.x, 0) && approx(attributes.velocity.y, 0),
+            attributes == null ? "unreadable" : 'velocity=(${attributes.velocity.x}, ${attributes.velocity.y})');
+
+        // resetMotion: the next frame reads as a fresh seed, not movement
+        camera.scroll.x = savedX;
+        camera.scroll.y = savedY;
+        cameraListener.resetMotion();
+        cameraListener.update(0.5);
+        attributes = StudioSystem.getListenerAttributes(0);
+        check("camera_listener_reset_motion_seeds",
+            attributes != null && approx(attributes.velocity.x, 0),
+            attributes == null ? "unreadable" : 'velocity=(${attributes.velocity.x})');
+        cameraListener.destroy();
+    }
+
+    /**
+     * A real zone crossing driving a real event parameter through the
+     * trigger's instance variant, plus the contract that manual changes
+     * between crossings are not fought over. The project has no authored
+     * GLOBAL parameters (FadeArpIn/HighPass are event-local on the music
+     * event), so the global path keeps only its negative check above -
+     * positive global coverage is authoring-gated (GO-LIVE section 1).
+     */
+    function runParameterTriggerChecks():Void {
+        var sprite = _listenerSprite; // sits at (300, 220)
+        var desc = StudioSystem.getEvent(FmodEvents.MusicMainLevel);
+        check("trigger_event_has_parameters", desc.getParameterDescriptionCount() > 0,
+            'count=${desc.getParameterDescriptionCount()}');
+        if (desc.getParameterDescriptionCount() == 0) return;
+        var param = desc.getParameterDescriptionByIndex(0);
+        var inst = desc.createInstance();
+        var mid = (param.minimum + param.maximum) / 2;
+        var zone = flixel.math.FlxRect.get(250, 150, 200, 200);
+        var trigger = new haxefmod.flixel.FmodFlxParameterTrigger(
+            sprite, zone, param.name, param.maximum, param.minimum, inst);
+        trigger.update(0);
+        check("trigger_inside_value_applied",
+            Math.abs(inst.getParameter(param.name) - param.maximum) < 0.001,
+            'value=${inst.getParameter(param.name)}');
+        // Manual changes between crossings survive
+        inst.setParameter(param.name, mid);
+        trigger.update(0);
+        check("trigger_no_crossing_keeps_manual_value",
+            Math.abs(inst.getParameter(param.name) - mid) < 0.001,
+            'value=${inst.getParameter(param.name)}');
+        // Crossing out applies the outside value
+        sprite.x = 1000;
+        trigger.update(0);
+        check("trigger_outside_value_applied",
+            Math.abs(inst.getParameter(param.name) - param.minimum) < 0.001,
+            'value=${inst.getParameter(param.name)}');
+        sprite.x = 300;
+        trigger.destroy();
+        zone.put();
+        inst.release();
     }
 
     override public function update(elapsed:Float):Void {
         super.update(elapsed);
         FmodManager.Update();
-        if (_phase != "") stepCullPhases();
+        if (_phase != "") {
+            if (_phase == "util_oneshot_playout" || _phase == "authored_cull_noop"
+                || _phase == "transition_switches") {
+                stepHardeningPhases();
+            } else {
+                stepCullPhases();
+            }
+        }
         if (!_done) return;
 
         _framesWaited++;
         if (_framesWaited > 30) {
             #if sys
             Sys.exit(_failCount > 0 ? 1 : 0);
+            #end
+        }
+    }
+}
+
+/**
+ * Terminal state for the transition test: arriving here IS the check.
+ * Prints the suite's COMPLETE line so CI's log gate sees the full result.
+ */
+class PanTestDoneState extends FlxState {
+    var _framesWaited:Int = 0;
+
+    override public function create():Void {
+        super.create();
+        var passed = EmitterPanTestState.finalPassCount + 1;
+        var failed = EmitterPanTestState.finalFailCount;
+        log2('PAN_TEST: transition_switched_state pass=true ');
+        log2('PAN_TEST: COMPLETE passed=$passed failed=$failed');
+        var label = new FlxText(0, 0, FlxG.width, 'PAN_TEST complete: $passed passed, $failed failed');
+        label.setFormat(null, 16, FlxColor.WHITE, FlxTextAlign.CENTER, NONE, FlxColor.BLACK);
+        label.y = (FlxG.height / 2) - (label.height / 2);
+        add(label);
+    }
+
+    static inline function log2(message:String):Void {
+        #if js
+        js.Browser.console.log(message);
+        #else
+        trace(message);
+        #end
+    }
+
+    override public function update(elapsed:Float):Void {
+        super.update(elapsed);
+        FmodManager.Update();
+        _framesWaited++;
+        if (_framesWaited > 30) {
+            #if sys
+            Sys.exit(EmitterPanTestState.finalFailCount > 0 ? 1 : 0);
             #end
         }
     }

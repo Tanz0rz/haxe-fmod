@@ -17,6 +17,30 @@ for platform in Linux64 Mac64 Windows64; do
   fi
 done
 
+# zip -r packages whatever is on disk: a dirty or untracked file inside a
+# packaged directory would ship to lib.haxe.org exactly as it sits in the
+# working tree. Refuse to package anything git does not know about.
+if command -v git > /dev/null && git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
+  dirty=$(git status --porcelain -- haxefmod native templates fmod-scripts     fmod_expected_version include.xml haxelib.json README.md MIGRATION.md CHANGELOG.md LICENSE)
+  if [ -n "$dirty" ]; then
+    echo "ERROR: packaged paths have uncommitted or untracked changes:"
+    echo "$dirty"
+    echo "Commit or remove them before packaging."
+    exit 1
+  fi
+fi
+
+# The version being packaged must have its CHANGELOG section written
+version=$(grep -o '"version"[[:space:]]*:[[:space:]]*"[^"]*"' haxelib.json | grep -o '[0-9][^"]*')
+if [ -z "$version" ]; then
+  echo "ERROR: could not read the version from haxelib.json"
+  exit 1
+fi
+if ! grep -q "^## $version" CHANGELOG.md; then
+  echo "ERROR: CHANGELOG.md has no '## $version' section for haxelib.json version $version"
+  exit 1
+fi
+
 rm -f haxefmod.zip
 
 zip -r haxefmod.zip \

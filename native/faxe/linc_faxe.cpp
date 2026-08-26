@@ -270,6 +270,15 @@ int fmod_ps_assign(int h, const ::String& key) {
     if (!instance) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     FaxeInstCtx* ctx = instanceCtx(instance);
     if (!ctx) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    // The shim consumes this string itself (everywhere else strings go
+    // to FMOD, whose own validation rejects NULL). A null hxcpp String
+    // yields a NULL c_str, and a key at or past the buffer size would
+    // silently truncate - possibly mid-UTF-8 - and resolve the wrong
+    // sound, so both are rejected.
+    if (key == null() || strlen(key.c_str()) >= FAXE_PS_KEY_MAX) {
+        gLastResult = FMOD_ERR_INVALID_PARAM;
+        return (int)gLastResult;
+    }
     faxe_cbq_lock();
     strncpy(ctx->psKey, key.c_str(), FAXE_PS_KEY_MAX - 1);
     ctx->psKey[FAXE_PS_KEY_MAX - 1] = '\0';

@@ -152,11 +152,135 @@ class ApiProbeState extends FlxState {
         probeInstanceLifecycle();
         probeFlixelBridge();
         probeFocusMute();
+        probeHardeningTail();
         _statusLabel = label;
 
         // Channel event delivery is asynchronous: the probe finishes from
         // update() once the events arrive (or the wait times out)
         probeChannelEvents();
+    }
+
+    /**
+     * Covers the surfaces the 2026-08-26 hardening research found
+     * untested: hostile inputs the shims must reject identically on
+     * every target, the facade's failure branch and thin delegations,
+     * and the by-ID parameter plumbing (a swapped id.data1/data2 in any
+     * wrapper would break exactly one of these round trips).
+     */
+    function probeHardeningTail():Void {
+        StudioSystem.flushCommands();
+        CallbackDispatcher.update();
+        var baseline = StudioSystem.liveHandleCount();
+
+        // A lied fromPcm length must clamp, not over-read: the HashLink
+        // shim crashed inside FMOD's memcpy before the wrapper clamp
+        var pcm = haxe.io.Bytes.alloc(4800);
+        var lied = CoreSound.fromPcm(pcm, 48000, 1, 1024 * 1024);
+        check("hardening_frompcm_lied_length_clamps", !lied.isNull(),
+            'result=${StudioSystem.lastResult().toString()}');
+        // 4800 bytes of mono 16-bit at 48kHz = 2400 samples = 50ms: the
+        // length proves the clamp fed FMOD the real size, not the lie
+        var lengthMs = lied.getLength();
+        check("hardening_frompcm_clamped_size", lengthMs == 50, 'lengthMs=$lengthMs');
+        lied.release();
+        check("hardening_frompcm_null_bytes", CoreSound.fromPcm(null, 48000, 1).isNull(), "");
+
+        // Programmer-sound key contract: null and oversized keys reject
+        // instead of crashing (cpp strncpy) or silently truncating
+        var desc = StudioSystem.getEvent(FmodEvents.SFXJump);
+        var inst = desc.createInstance();
+        check("hardening_ps_null_key",
+            inst.assignProgrammerSound(null) == FmodResult.FMOD_ERR_INVALID_PARAM, "");
+        var longKey = StringTools.rpad("k", "k", 600);
+        check("hardening_ps_overlong_key", !inst.assignProgrammerSound(longKey).isOk(),
+            'result=${StudioSystem.lastResult().toString()}');
+
+        // By-ID parameter plumbing on the music event's local parameter:
+        // set by name, read by ID - the round trip only matches when each
+        // wrapper carries id.data1/data2 in the right order. (The project
+        // has no authored GLOBAL parameters, so the StudioSystem-level
+        // by-ID family stays authoring-gated - GO-LIVE section 1.)
+        var musicDesc = StudioSystem.getEvent(FmodEvents.MusicMainLevel);
+        check("hardening_music_has_parameters", musicDesc.getParameterDescriptionCount() > 0,
+            'count=${musicDesc.getParameterDescriptionCount()}');
+        if (musicDesc.getParameterDescriptionCount() > 0) {
+            var param = musicDesc.getParameterDescriptionByIndex(0);
+            var musicInst = musicDesc.createInstance();
+            musicInst.setParameter(param.name, param.maximum);
+            check("hardening_evi_get_param_by_id",
+                Math.abs(musicInst.getParameterByID(param.id) - param.maximum) < 0.001,
+                'value=${musicInst.getParameterByID(param.id)}');
+            var mid = (param.minimum + param.maximum) / 2;
+            musicInst.setParameterByID(param.id, mid);
+            check("hardening_evi_set_param_by_id",
+                Math.abs(musicInst.getParameter(param.name) - mid) < 0.001,
+                'value=${musicInst.getParameter(param.name)}');
+            info("hardening_evi_param_by_id_final",
+                Std.string(musicInst.getParameterByIDFinal(param.id)));
+            check("hardening_evi_by_id_label_miss",
+                !musicInst.setParameterByIDWithLabel(param.id, "NoSuchLabel").isOk(), "");
+            musicInst.release();
+        }
+        info("hardening_final_pitch", Std.string(inst.getFinalPitch()));
+        inst.release();
+
+        // Facade failure branch: a bad event path warns and returns
+        // without wedging the machine
+        var badSound = FmodManager.PlaySound("event:/DoesNotExist");
+        check("hardening_facade_bad_sound_null", badSound.isNull(), "");
+        FmodManager.PlaySong("event:/DoesNotExist");
+        check("hardening_facade_bad_song_not_playing", !FmodManager.IsSongPlaying(), "");
+        FmodManager.PlaySong(FmodEvents.MusicMainLevel);
+        check("hardening_facade_recovers_after_bad_song", FmodManager.IsSongPlaying(), "");
+        info("hardening_song_param_miss", Std.string(FmodManager.GetEventParameterOnSong("NoSuchParam")));
+        FmodManager.PauseSong();
+        FmodManager.UnpauseSong();
+        FmodManager.StopSongImmediately();
+
+        // Thin facade delegations, each exercised once against the real
+        // backend with state restored afterwards
+        var smoke = FmodManager.PlaySound(FmodEvents.SFXJump);
+        check("hardening_sound_handle", !smoke.isNull(), "");
+        smoke.pause();
+        smoke.unpause();
+        smoke.setVolume(0.7);
+        smoke.setPitch(1.2);
+        check("hardening_sound_pitch_roundtrip", Math.abs(smoke.getPitch() - 1.2) < 0.001,
+            'value=${smoke.getPitch()}');
+        smoke.stopImmediately();
+        smoke.release();
+        FmodManager.PlaySoundOneShotAt(FmodEvents.SFXJump, 3.0, 4.0);
+        FmodManager.PauseAllSounds();
+        FmodManager.UnpauseAllSounds();
+        FmodManager.StopAllSounds();
+        check("hardening_listener_position",
+            FmodRuntime.setListenerPosition(0, 0.0, 0.0).isOk(), "");
+        FmodManager.SetAutoUpdate(true);
+
+        #if audio_test_manual_update
+        // The manual-update build variant: the resolved settings must
+        // carry both the init argument and the -D haxefmod_num_channels
+        // override, and this whole suite having run proves the manual
+        // sys_update path drives the system
+        check("hardening_manual_update_setting",
+            FmodRuntime.settings() != null && !FmodRuntime.settings().autoUpdate, "");
+        check("hardening_define_channels_setting",
+            FmodRuntime.settings().numChannels == 100,
+            'channels=${FmodRuntime.settings().numChannels}');
+        #end
+
+        // FmodFlxSetup.init() re-entry keeps exactly one updater plugin
+        haxefmod.flixel.FmodFlxSetup.init();
+        var updaters = 0;
+        for (plugin in FlxG.plugins.list) {
+            if (Std.isOfType(plugin, haxefmod.flixel.FmodFlxUpdater)) updaters++;
+        }
+        check("hardening_setup_reinit_single_updater", updaters == 1, 'count=$updaters');
+
+        StudioSystem.flushCommands();
+        CallbackDispatcher.update();
+        check("no_handle_leaks_hardening", StudioSystem.liveHandleCount() == baseline,
+            'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
     }
 
     /** Exercises the audit-closure surface through the real FFI. */

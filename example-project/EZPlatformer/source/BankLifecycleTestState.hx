@@ -37,6 +37,7 @@ class BankLifecycleTestState extends FlxState {
     var _asyncMissing:haxefmod.studio.Bank;
     var _asyncConcurrent:haxefmod.studio.Bank;
     var _loaderLoaded:Bool = false;
+    var _syncLoaderLoaded:Bool = false;
     var _loaderErrored:Bool = false;
 
     static inline var MISSING_PATH = "assets/fmod/Desktop/DoesNotExist.bank";
@@ -170,6 +171,11 @@ class BankLifecycleTestState extends FlxState {
         var loader = new haxefmod.flixel.FmodFlxBankLoader(["Master.bank"],
             () -> _loaderLoaded = true);
         add(loader);
+        // The synchronous mode routes through banks.load (still async
+        // under the hood on html5) - the callback contract is identical
+        var syncLoader = new haxefmod.flixel.FmodFlxBankLoader(["Master.bank"],
+            () -> _syncLoaderLoaded = true, null, false);
+        add(syncLoader);
         var errLoader = new haxefmod.flixel.FmodFlxBankLoader(["DoesNotExist.bank"],
             null, () -> _loaderErrored = true);
         add(errLoader);
@@ -187,6 +193,7 @@ class BankLifecycleTestState extends FlxState {
         }
         check("loader_error_surfaced", _loaderErrored, "");
         check("loader_loaded_fired", _loaderLoaded, "");
+        check("sync_loader_loaded_fired", _syncLoaderLoaded, "");
         if (!_asyncConcurrent.isNull()) {
             check("async_concurrent_errors",
                 FmodRuntime.banks.loadingState(ALSO_MISSING_PATH) == FmodLoadingState.ERROR,
@@ -226,7 +233,8 @@ class BankLifecycleTestState extends FlxState {
             var concurrentSettled = _asyncConcurrent.isNull()
                 || FmodRuntime.banks.loadingState(ALSO_MISSING_PATH) != FmodLoadingState.LOADING;
             var loaderSettled = _loaderErrored || _asyncMissing.isNull();
-            if ((missingSettled && concurrentSettled && loaderSettled && _loaderLoaded)
+            var syncSettled = _syncLoaderLoaded;
+            if ((missingSettled && concurrentSettled && loaderSettled && _loaderLoaded && syncSettled)
                 || _phaseFrames > 600) {
                 finishErrors();
             }

@@ -315,6 +315,15 @@ HL_PRIM int HL_NAME(ps_assign)(int h, vbyte* key) {
     if (!instance) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     ctx = instance_ctx(instance);
     if (!ctx) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    /* The shim consumes this string itself (everywhere else strings go
+     * to FMOD, whose own validation rejects NULL). A null vbyte would
+     * crash the strncpy, and a key at or past the buffer size would
+     * silently truncate - possibly mid-UTF-8 - and resolve the wrong
+     * sound, so both are rejected. */
+    if (!key || strlen((const char*)key) >= FAXE_PS_KEY_MAX) {
+        gLastResult = FMOD_ERR_INVALID_PARAM;
+        return (int)gLastResult;
+    }
     faxe_cbq_lock();
     strncpy(ctx->psKey, (const char*)key, FAXE_PS_KEY_MAX - 1);
     ctx->psKey[FAXE_PS_KEY_MAX - 1] = '\0';

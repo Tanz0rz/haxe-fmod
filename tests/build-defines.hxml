@@ -1,0 +1,10 @@
+-cp .
+-cp tests
+-main tests.TestDefineOverrides
+-D haxefmod_num_channels=64
+-D haxefmod_sample_rate=44100
+-D haxefmod_log_level=3
+-D haxefmod_bank_folder=custom/banks
+-D haxefmod_live_update
+-D haxefmod_no_mute_when_unfocused
+--interp

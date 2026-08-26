@@ -214,6 +214,13 @@ class jaxe {
     static cbMasks = {};
     static psKeys = {};
 
+    // UTF-8 byte length without allocating an encoder per call
+    static utf8Encoder = null;
+    static utf8ByteLength(s) {
+        if (!jaxe.utf8Encoder) jaxe.utf8Encoder = new TextEncoder();
+        return jaxe.utf8Encoder.encode(s).length;
+    }
+
     // The programmer-sound bits are added while a key is assigned. Unlike
     // cpp/hl, DESTROYED is NOT forced in: FMOD's JS glue corrupts the wasm
     // module if an instance is destroyed while a callback is installed
@@ -558,6 +565,7 @@ class jaxe {
     }
 
     static fmod_sys_get_bus(path) {
+        if (typeof path !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return 0; }
         if (!jaxe.sysReady()) return 0;
         var bus = {};
         jaxe.lastResult = jaxe.gSystem.getBus(path, bus);
@@ -566,6 +574,7 @@ class jaxe {
     }
 
     static fmod_sys_get_bus_by_id(guid) {
+        if (typeof guid !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return 0; }
         if (!jaxe.sysReady()) return 0;
         var id = jaxe.parseGuid(guid);
         if (!id) { jaxe.lastResult = jaxe.ERR_INVALID_GUID; return 0; }
@@ -576,6 +585,7 @@ class jaxe {
     }
 
     static fmod_sys_get_event(path) {
+        if (typeof path !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return 0; }
         if (!jaxe.sysReady()) return 0;
         var desc = {};
         jaxe.lastResult = jaxe.gSystem.getEvent(path, desc);
@@ -584,6 +594,7 @@ class jaxe {
     }
 
     static fmod_sys_get_event_by_id(guid) {
+        if (typeof guid !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return 0; }
         if (!jaxe.sysReady()) return 0;
         var id = jaxe.parseGuid(guid);
         if (!id) { jaxe.lastResult = jaxe.ERR_INVALID_GUID; return 0; }
@@ -594,6 +605,7 @@ class jaxe {
     }
 
     static fmod_sys_get_vca(path) {
+        if (typeof path !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return 0; }
         if (!jaxe.sysReady()) return 0;
         var vca = {};
         jaxe.lastResult = jaxe.gSystem.getVCA(path, vca);
@@ -602,6 +614,7 @@ class jaxe {
     }
 
     static fmod_sys_get_vca_by_id(guid) {
+        if (typeof guid !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return 0; }
         if (!jaxe.sysReady()) return 0;
         var id = jaxe.parseGuid(guid);
         if (!id) { jaxe.lastResult = jaxe.ERR_INVALID_GUID; return 0; }
@@ -612,6 +625,7 @@ class jaxe {
     }
 
     static fmod_sys_get_bank(path) {
+        if (typeof path !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return 0; }
         if (!jaxe.sysReady()) return 0;
         var bank = {};
         jaxe.lastResult = jaxe.gSystem.getBank(path, bank);
@@ -620,6 +634,7 @@ class jaxe {
     }
 
     static fmod_sys_get_bank_by_id(guid) {
+        if (typeof guid !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return 0; }
         if (!jaxe.sysReady()) return 0;
         var id = jaxe.parseGuid(guid);
         if (!id) { jaxe.lastResult = jaxe.ERR_INVALID_GUID; return 0; }
@@ -647,6 +662,7 @@ class jaxe {
     }
 
     static fmod_sys_lookup_id(path) {
+        if (typeof path !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return ''; }
         if (!jaxe.sysReady()) return "";
         // lookupID writes the GUID fields directly into a pre-shaped out
         var id = jaxe.guidOut();
@@ -656,6 +672,7 @@ class jaxe {
     }
 
     static fmod_sys_lookup_path(guid) {
+        if (typeof guid !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return ''; }
         if (!jaxe.sysReady()) return "";
         var id = jaxe.parseGuid(guid);
         if (!id) { jaxe.lastResult = jaxe.ERR_INVALID_GUID; return ""; }
@@ -666,6 +683,7 @@ class jaxe {
     }
 
     static fmod_sys_get_param_by_name(name) {
+        if (typeof name !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
         if (!jaxe.sysReady()) return 0.0;
         var value = {};
         jaxe.lastResult = jaxe.gSystem.getParameterByName(name, value, null);
@@ -673,6 +691,7 @@ class jaxe {
     }
 
     static fmod_sys_get_param_by_name_final(name) {
+        if (typeof name !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
         if (!jaxe.sysReady()) return 0.0;
         var value = {};
         var finalValue = {};
@@ -681,12 +700,15 @@ class jaxe {
     }
 
     static fmod_sys_set_param_by_name(name, value, ignoreSeekSpeed) {
+        if (typeof name !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
         if (!jaxe.sysReady()) return jaxe.lastResult;
         jaxe.lastResult = jaxe.gSystem.setParameterByName(name, value, ignoreSeekSpeed);
         return jaxe.lastResult;
     }
 
     static fmod_sys_set_param_by_name_with_label(name, label, ignoreSeekSpeed) {
+        if (typeof name !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
+        if (typeof label !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
         if (!jaxe.sysReady()) return jaxe.lastResult;
         jaxe.lastResult = jaxe.gSystem.setParameterByNameWithLabel(name, label, ignoreSeekSpeed);
         return jaxe.lastResult;
@@ -714,6 +736,7 @@ class jaxe {
     }
 
     static fmod_sys_set_param_by_id_with_label(id1, id2, label, ignoreSeekSpeed) {
+        if (typeof label !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
         if (!jaxe.sysReady()) return jaxe.lastResult;
         jaxe.lastResult = jaxe.gSystem.setParameterByIDWithLabel(jaxe.paramId(id1, id2), label, ignoreSeekSpeed);
         return jaxe.lastResult;
@@ -743,6 +766,7 @@ class jaxe {
     }
 
     static fmod_sys_get_parameter_description_by_name(name, fbuf, ibuf) {
+        if (typeof name !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return ''; }
         if (!jaxe.sysReady()) return "";
         var outval = {};
         jaxe.lastResult = jaxe.gSystem.getParameterDescriptionByName(name, outval);
@@ -752,6 +776,7 @@ class jaxe {
 
     // global parameter labels (paramName, labelIndex)
     static fmod_sys_get_parameter_label(name, labelIndex) {
+        if (typeof name !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return ''; }
         if (!jaxe.sysReady()) return "";
         var outval = {};
         // (name, labelindex, label, size, retrieved)
@@ -809,10 +834,8 @@ class jaxe {
     // only exist there after an async load's fetch wrote them, so the
     // registry routes html5 loads through fmod_sys_load_bank_async.
     static fmod_sys_load_bank_file(path, flags) {
+        if (typeof path !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return 0; }
         if (!jaxe.sysReady()) return 0;
-        // The C shims hand a null path to FMOD which rejects it - report
-        // the same INVALID_PARAM here instead of throwing
-        if (typeof path != "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return 0; }
         var fsPath = (path.charAt(0) == "/") ? path : "/" + path;
         var loadFlags = (flags & 1)
             ? jaxe.FMOD.STUDIO_LOAD_BANK_NONBLOCKING
@@ -833,8 +856,8 @@ class jaxe {
     // fetch and frees the handle. The pendingBankCancelled flag makes sure
     // a fetch that settles after that never reaches FMOD.
     static fmod_sys_load_bank_async(path) {
+        if (typeof path !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return 0; }
         if (!jaxe.sysReady()) return 0;
-        if (typeof path != "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return 0; }
         var placeholder = { pendingBankPath: path };
         var handle = jaxe.handleAlloc(placeholder, jaxe.TYPE_BANK);
         if (handle == 0) return 0;
@@ -1614,6 +1637,7 @@ class jaxe {
     }
 
     static fmod_evd_get_parameter_description_by_name(handle, name, fbuf, ibuf) {
+        if (typeof name !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return ''; }
         var evd = jaxe.handleResolve(handle, jaxe.TYPE_EVD);
         if (!evd) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return ""; }
         var outval = {};
@@ -1624,6 +1648,7 @@ class jaxe {
 
     // (paramName, labelIndex) -> label
     static fmod_evd_get_parameter_label(handle, name, labelIndex) {
+        if (typeof name !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return ''; }
         var evd = jaxe.handleResolve(handle, jaxe.TYPE_EVD);
         if (!evd) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return ""; }
         var outval = {};
@@ -1911,6 +1936,7 @@ class jaxe {
     }
 
     static fmod_evi_get_param_by_name(handle, name) {
+        if (typeof name !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
         var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
         if (!inst) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0.0; }
         var value = {};
@@ -1919,6 +1945,7 @@ class jaxe {
     }
 
     static fmod_evi_get_param_by_name_final(handle, name) {
+        if (typeof name !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
         var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
         if (!inst) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0.0; }
         var value = {};
@@ -1928,6 +1955,7 @@ class jaxe {
     }
 
     static fmod_evi_set_param_by_name(handle, name, value, ignoreSeekSpeed) {
+        if (typeof name !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
         var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
         if (!inst) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
         jaxe.lastResult = inst.setParameterByName(name, value, ignoreSeekSpeed);
@@ -1935,6 +1963,8 @@ class jaxe {
     }
 
     static fmod_evi_set_param_by_name_with_label(handle, name, label, ignoreSeekSpeed) {
+        if (typeof name !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
+        if (typeof label !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
         var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
         if (!inst) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
         jaxe.lastResult = inst.setParameterByNameWithLabel(name, label, ignoreSeekSpeed);
@@ -1966,6 +1996,7 @@ class jaxe {
     }
 
     static fmod_evi_set_param_by_id_with_label(handle, id1, id2, label, ignoreSeekSpeed) {
+        if (typeof label !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
         var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
         if (!inst) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
         jaxe.lastResult = inst.setParameterByIDWithLabel(jaxe.paramId(id1, id2), label, ignoreSeekSpeed);
@@ -2015,6 +2046,11 @@ class jaxe {
     //// Programmer sounds
 
     static fmod_ps_assign(handle, key) {
+        if (typeof key !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
+        // Native stores keys in a 512-byte buffer (FAXE_PS_KEY_MAX) and
+        // now rejects longer ones instead of truncating. Reject here too,
+        // in UTF-8 bytes, so a key that works on html5 also works native.
+        if (jaxe.utf8ByteLength(key) >= 512) { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
         var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
         if (!inst) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
         jaxe.psKeys[handle] = key;
@@ -2033,6 +2069,7 @@ class jaxe {
     //// Core API micro subset (programmer sounds only)
 
     static fmod_core_create_sound(path, mode) {
+        if (typeof path !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return 0; }
         if (!jaxe.FmodIsInitialized) { jaxe.lastResult = jaxe.ERR_STUDIO_UNINITIALIZED; return 0; }
         var soundOut = {};
         var fmodMode = jaxe.FMOD.DEFAULT >>> 0;
@@ -2476,6 +2513,7 @@ class jaxe {
     }
 
     static fmod_cg_create(name) {
+        if (typeof name !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return 0; }
         if (!jaxe.FmodIsInitialized) { jaxe.lastResult = jaxe.ERR_STUDIO_UNINITIALIZED; return 0; }
         var out = {};
         jaxe.lastResult = jaxe.gSystemCore.createChannelGroup(name, out);
@@ -3124,11 +3162,11 @@ class jaxe {
 
     static fmod_core_create_sound_pcm(data, len, sampleRate, channels) {
         if (!jaxe.FmodIsInitialized) { jaxe.lastResult = jaxe.ERR_STUDIO_UNINITIALIZED; return 0; }
-        if (!data || len <= 0 || sampleRate <= 0 || channels < 1 || channels > 2) {
+        if (!data || len <= 0 || len > data.byteLength || sampleRate <= 0 || channels < 1 || channels > 2) {
             jaxe.lastResult = jaxe.ERR_INVALID_PARAM;
             return 0;
         }
-        var bytes = new Uint8Array(data, 0, Math.min(len, data.byteLength));
+        var bytes = new Uint8Array(data, 0, len);
         var exinfo = jaxe.FMOD.CREATESOUNDEXINFO();
         exinfo.length = bytes.length;
         exinfo.numchannels = channels;
@@ -3328,6 +3366,7 @@ class jaxe {
     }
 
     static fmod_sound_add_sync_point(handle, offsetMs, name) {
+        if (typeof name !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
         var sound = jaxe.resolveCoreSound(handle);
         if (!sound) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
         var point = {};
@@ -3384,6 +3423,7 @@ class jaxe {
     }
 
     static fmod_sys_create_sound_group(name) {
+        if (typeof name !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return 0; }
         if (!jaxe.FmodIsInitialized) { jaxe.lastResult = jaxe.ERR_STUDIO_UNINITIALIZED; return 0; }
         var out = {};
         jaxe.lastResult = jaxe.gSystemCore.createSoundGroup(name, out);
@@ -3676,6 +3716,7 @@ class jaxe {
     }
 
     static fmod_sys_start_command_capture(path) {
+        if (typeof path !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
         if (!jaxe.sysReady()) return jaxe.lastResult;
         jaxe.lastResult = jaxe.gSystem.startCommandCapture(path, 0);
         return jaxe.lastResult;
@@ -3688,6 +3729,7 @@ class jaxe {
     }
 
     static fmod_sys_load_command_replay(path) {
+        if (typeof path !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return 0; }
         if (!jaxe.sysReady()) return 0;
         var out = {};
         jaxe.lastResult = jaxe.gSystem.loadCommandReplay(path, 0, out);

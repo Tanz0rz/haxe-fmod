@@ -162,6 +162,10 @@ class TestStudioSurface {
 
 		// Programmer sounds + core micro subset
 		assert(!instance.assignProgrammerSound("key").isOk(), "evi assignProgrammerSound result");
+		// A null key crashed the C++ shim's strncpy before the wrapper
+		// guard existed (the one place a shim consumes a string itself)
+		assert(instance.assignProgrammerSound(null) == FmodResult.FMOD_ERR_INVALID_PARAM,
+			"evi assignProgrammerSound null key rejected in the wrapper");
 		assert(!instance.clearProgrammerSound().isOk(), "evi clearProgrammerSound result");
 		var sound = CoreSound.create("missing.wav");
 		assert(sound.isNull(), "core sound null");
@@ -301,6 +305,26 @@ class TestStudioSurface {
 
 		var pcmSound = CoreSound.fromPcm(haxe.io.Bytes.alloc(64), 48000, 1);
 		assert(pcmSound.isNull(), "coresound fromPcm null");
+
+		// The wrapper must never let a lied length reach a backend: the
+		// HashLink shim cannot see the buffer's real size, and an
+		// oversized count over-read the heap inside FMOD's memcpy
+		var stub = haxefmod.studio.native.NativeStudioStub;
+		stub.testPcmCreateLen = -999;
+		CoreSound.fromPcm(haxe.io.Bytes.alloc(64), 48000, 1, 1024);
+		assert(stub.testPcmCreateLen == 64, "fromPcm clamps a lied length to the buffer size");
+		stub.testPcmCreateLen = -999;
+		CoreSound.fromPcm(haxe.io.Bytes.alloc(64), 48000, 1, 32);
+		assert(stub.testPcmCreateLen == 32, "fromPcm passes an honest partial length through");
+		stub.testPcmCreateLen = -999;
+		CoreSound.fromPcm(haxe.io.Bytes.alloc(64), 48000, 1);
+		assert(stub.testPcmCreateLen == 64, "fromPcm sentinel means the whole buffer");
+		stub.testPcmCreateLen = -999;
+		CoreSound.fromPcm(haxe.io.Bytes.alloc(64), 48000, 1, -5);
+		assert(stub.testPcmCreateLen == -5, "fromPcm surfaces a negative non-sentinel to the backend");
+		stub.testPcmCreateLen = -999;
+		assert(CoreSound.fromPcm(null, 48000, 1).isNull(), "fromPcm null bytes rejected");
+		assert(stub.testPcmCreateLen == -999, "fromPcm null bytes never reach the backend");
 		assert(pcmSound.play().isNull(), "coresound play null");
 		assert(!pcmSound.setDefaults(24000, 128).isOk(), "coresound defaults result");
 		assert(pcmSound.getDefaults() == null, "coresound defaults default");

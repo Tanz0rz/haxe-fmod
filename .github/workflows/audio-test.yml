@@ -86,6 +86,15 @@ jobs:
       - name: Check workflow gating invariants
         run: python3 ci/workflow-invariants.py
 
+      - name: Check FMOD version literal lockstep
+        run: python3 ci/version-lockstep.py
+
+      - name: Check hxcpp depend lockstep
+        run: python3 ci/depend-lockstep.py
+
+      - name: Compile the README examples
+        run: python3 ci/check-readme-snippets.py
+
       - name: Test native PCM ring buffer (C99 and C++ modes)
         run: |
           gcc -std=c99 -pthread -Wall -Wextra -Werror -o /tmp/test_pcmring_c tests/native/test_faxe_pcmring.c
@@ -95,6 +104,14 @@ jobs:
 
       - name: Check binding coverage against the manifest
         run: python3 ci/binding-coverage.py
+
+      # The main suite only ever runs the define fallbacks: these two
+      # variants prove -D haxefmod_* values and the -debug defaults
+      # actually reach the settings resolver
+      - name: Test define-driven settings (haxefmod_* and -debug)
+        run: |
+          haxe tests/build-defines.hxml
+          haxe tests/build-debug-defaults.hxml
 
       # The shared headers own the cross-thread lifetime contracts, so a
       # memory or threading defect there is the worst class of bug this
@@ -395,6 +412,27 @@ jobs:
           gate: PAN_TEST
           bin-dir: example-project/EZPlatformer/export/linux*/bin
           log-file: /tmp/pan-test-linux-cpp.log
+
+      # The define-driven build variant: -D haxefmod_* overrides plus
+      # autoUpdate:false, so the full probe suite runs on FmodManager's
+      # manual sys_update pushes instead of the auto-update thread. The
+      # probe asserts both settings landed (hardening_manual_update /
+      # hardening_define_channels checks).
+      - name: Build manual-update variant
+        if: ${{ !cancelled() }}
+        run: |
+          cd example-project/EZPlatformer
+          haxelib run lime build linux -64 -Daudio_test -Daudio_test_manual_update -Dhaxefmod_num_channels=100
+
+      - name: Run api-probe state (manual update variant)
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: api-probe
+          gate: API_PROBE
+          timeout: "60"
+          bin-dir: example-project/EZPlatformer/export/linux*/bin
+          log-file: /tmp/api-probe-linux-cpp-manual.log
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v6
@@ -1422,6 +1460,15 @@ jobs:
       # version query): a build against a mismatched FMOD_SDK_WEB must FAIL
       # at compile time with the mismatch banner, not limp through with a
       # warning.
+      # The FLX_SOUND_SYSTEM-off world of FmodFlxSetup has no other
+      # compile coverage (every build keeps the sound system on)
+      - name: Typecheck the flixel no-sound-system variant
+        if: ${{ !cancelled() }}
+        run: |
+          haxe -cp . -lib flixel -lib openfl -lib lime \
+            -D FLX_NO_SOUND_SYSTEM -D FLX_STANDARD_ASSETS_DIRECTORY -D openfl-html5 \
+            --no-output -js /dev/null haxefmod.flixel.FmodFlxSetup
+
       - name: Verify mismatched web SDK fails the build
         if: ${{ !cancelled() }}
         run: |
@@ -2863,6 +2910,8 @@ jobs:
           node tests/js/lifecycle-test.js
           node tests/js/init-behavior-test.js
           node tests/js/bank-pipeline-test.js
+          node tests/js/hostile-input-test.js
+          node tests/js/runtime-init-test.js
 
       - name: Run Core dynamic-audio prototype against the real wasm
         env:
@@ -3142,13 +3191,64 @@ jobs:
             "templates/bin/hl/Linux64/hlaxe_fmod.hdll" \
             "templates/bin/hl/Mac64/hlaxe_fmod.hdll" \
             "templates/bin/hl/Windows64/hlaxe_fmod.hdll" \
+            "fmod-scripts/ExportHaxeConstants.js" \
+            "README.md" \
+            "CHANGELOG.md" \
+            "LICENSE" \
             "include.xml"; do
-            unzip -l haxefmod.zip | grep -q "$required" || {
+            unzip -Z1 haxefmod.zip | grep -qx "$required" || {
               echo "MISSING from package: $required"
               exit 1
             }
           done
           echo "All required files present"
+
+          # The zip's hdlls must all carry the current ABI marker, not just
+          # the Linux one the hl build below happens to scan
+          ABI=$(grep -o "abi-version: [0-9]*" native/manifest/studio_api.txt | grep -o "[0-9]*")
+          for platform in Linux64 Mac64 Windows64; do
+            unzip -p haxefmod.zip "templates/bin/hl/$platform/hlaxe_fmod.hdll" \
+              | grep -aq "hlaxe_fmod_abi=$ABI" || {
+              echo "FAIL: $platform hdll in the zip lacks the hlaxe_fmod_abi=$ABI marker"
+              exit 1
+            }
+          done
+          echo "All packaged hdlls carry ABI marker $ABI"
+
+      # A tracked file the packager does not ship is a silent user-facing
+      # break waiting to happen: every tracked file must either be in the
+      # zip or sit under a path that is deliberately not shipped.
+      - name: Reconcile the package against the tracked tree
+        run: |
+          set -o pipefail
+          git ls-files \
+            | grep -vE '^(\.github/|\.gitignore|\.vscode/|ci/|tests/|example-project/|package\.sh)' \
+            | sort > /tmp/tracked-shippable.txt
+          unzip -Z1 haxefmod.zip | grep -v '/$' | sort > /tmp/zip-contents.txt
+          MISSING=$(comm -23 /tmp/tracked-shippable.txt /tmp/zip-contents.txt)
+          if [ -n "$MISSING" ]; then
+            echo "Tracked files not in the package (add to package.sh or the exclusion list above):"
+            echo "$MISSING"
+            exit 1
+          fi
+          EXTRA=$(comm -13 /tmp/tracked-shippable.txt /tmp/zip-contents.txt)
+          if [ -n "$EXTRA" ]; then
+            echo "Package contains files git does not track:"
+            echo "$EXTRA"
+            exit 1
+          fi
+          echo "Package contents match the tracked tree exactly"
+
+      # The zip verified by every step here is the release artifact: on tag
+      # runs it is uploaded so `haxelib submit` ships EXACTLY these bytes
+      # instead of a locally rebuilt zip (see GO-LIVE step 7)
+      - name: Upload the release package
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: haxefmod-release-zip
+          path: haxefmod.zip
+          if-no-files-found: error
 
       - name: Install libraries with haxefmod from the package
         run: |
@@ -3216,6 +3316,31 @@ jobs:
             exit 1
           fi
           echo "OK: fmodstudio.wasm is $SIZE bytes (real SDK file)"
+
+      # The C++ target was previously assert-only from the package (the
+      # required-files comment above admitted it) - build it from the
+      # installed zip too
+      - name: Build C++ target from the installed package
+        run: |
+          cd example-project/EZPlatformer
+          haxelib run lime build linux -64
+          ls export/linux*/bin/ | head -5
+          echo "C++ build from package OK"
+
+      # The CLI subcommands users actually run resolve their files from
+      # the installed package layout - exercise them from there, not from
+      # the checkout the other jobs use via haxelib dev
+      - name: Run CLI commands from the installed package
+        run: |
+          set -o pipefail
+          haxelib run haxefmod check 2>&1 | tee /tmp/pkg-check.log || true
+          grep -qiE "haxefmod|fmod" /tmp/pkg-check.log || {
+            echo "FAIL: check produced no recognizable output"; exit 1; }
+          haxelib run haxefmod generate --strings tests/fixtures/Master.strings.bank \
+            --out /tmp/pkg-gen 2>&1 | tee /tmp/pkg-generate.log
+          test -f /tmp/pkg-gen/FmodEvents.hx || {
+            echo "FAIL: generate from the package produced no constants"; exit 1; }
+          echo "CLI commands work from the installed package"
 
   # ===========================================================================
   # Update Pre-built hdlls

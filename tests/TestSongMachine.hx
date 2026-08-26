@@ -34,6 +34,9 @@ class TestSongMachine {
 			testStopCancelsTransition();
 			testSameSongTransitionSupersedes();
 			testOnceConsumedByRestart();
+			testPauseUnpause();
+			testCreateFailureLeavesMachineUsable();
+			testOnceDestroyedUnwanted();
 		} catch (e:haxe.Exception) {
 			failed++;
 			Sys.println('  FAIL: unexpected exception: ${e.message}');
@@ -84,6 +87,55 @@ class TestSongMachine {
 		}
 		NativeStudioStub.testPlaybackStateQueue = [2];
 		assert("IsSongPlaying false for stopped", !FmodManager.IsSongPlaying());
+	}
+
+	static function testPauseUnpause() {
+		playSong("event:/Pause");
+		NativeStudioStub.testPausedState = null;
+		NativeStudioStub.testUpdateCalls = 0;
+		FmodManager.PauseSong();
+		assert("PauseSong pauses the song instance", NativeStudioStub.testPausedState == true);
+		// The suite's runtime resolved with autoUpdate on (native default),
+		// so the manual sys_update push must NOT fire
+		assert("PauseSong skips the manual update push under auto-update",
+			NativeStudioStub.testUpdateCalls == 0);
+		FmodManager.UnpauseSong();
+		assert("UnpauseSong unpauses the song instance", NativeStudioStub.testPausedState == false);
+	}
+
+	static function testCreateFailureLeavesMachineUsable() {
+		playSong("event:/Good");
+		var startsBefore = NativeStudioStub.testStartCalls;
+		// A bad event path: getEvent fails, so PlaySong warns and returns
+		// without starting anything or clobbering the current song slot
+		NativeStudioStub.testSyntheticHandles = false;
+		FmodManager.PlaySong("event:/Nope");
+		NativeStudioStub.testSyntheticHandles = true;
+		assert("failed PlaySong starts nothing", NativeStudioStub.testStartCalls == startsBefore);
+		// The machine still works afterwards
+		var handle = playSong("event:/Recovery");
+		assert("machine recovers after a failed play", handle != 0
+			&& NativeStudioStub.testStartCalls == startsBefore + 1);
+	}
+
+	static function testOnceDestroyedUnwanted() {
+		var handle = playSong("event:/OnceDestroyed");
+		var fired = 0;
+		// An explicit mask that excludes DESTROYED: the dispatcher still
+		// force-subscribes DESTROYED for cleanup, so the event arrives -
+		// the handler must not fire, but the registration must still end
+		FmodManager.OnceSongEvent(function(event) fired++, 0x20 /* STOPPED only */);
+		CallbackDispatcher.deliver(handle, 0x2 /* DESTROYED */, 0, 0, 0, 0, 0, 0.0, "");
+		assert("mask-excluded Destroyed does not fire the once handler", fired == 0);
+		assert("Destroyed still removes the once registration",
+			!CallbackDispatcher.hasHandler(handle));
+		// With no mask, every delivered event qualifies - including
+		// Destroyed - and consumes the single shot
+		var handle2 = playSong("event:/OnceDefault");
+		FmodManager.OnceSongEvent(function(event) fired++);
+		CallbackDispatcher.deliver(handle2, 0x2, 0, 0, 0, 0, 0, 0.0, "");
+		assert("maskless once fires on any event and consumes",
+			fired == 1 && !CallbackDispatcher.hasHandler(handle2));
 	}
 
 	static function testTransitionCallbackHandoff() {

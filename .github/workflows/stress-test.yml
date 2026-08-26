@@ -136,3 +136,106 @@ jobs:
           path: /tmp/stress-test.log
           if-no-files-found: warn
           overwrite: true
+
+  # The shared-header unit tests run under sanitizers every push, but the
+  # real shim translation unit (linc_faxe.cpp) only ever runs bare. This
+  # job runs the full api-probe suite through it under valgrind memcheck:
+  # invalid reads/writes and use-after-free in the shim or its FMOD calls
+  # fail the run. Leak checking stays off (the game exits via Sys.exit
+  # without teardown by design, so exit-time leak reports are all noise).
+  valgrind-linux-cpp:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download FMOD SDK
+        uses: ./.github/actions/fmod-sdk
+        with:
+          version: "2.03.12"
+          platform: linux
+          dest: ${{ env.FMOD_SDK }}
+          token: ${{ secrets.FMOD_SDK_TOKEN }}
+
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v2
+        with:
+          haxe-version: ${{ env.HAXE_VERSION }}
+
+      - name: Install Haxe libraries
+        run: |
+          haxelib setup ~/haxelib
+          haxelib install lime 8.3.0 --always --quiet
+          haxelib install openfl 9.5.0 --always --quiet
+          haxelib install flixel 6.1.2 --always --quiet
+          haxelib dev haxefmod $GITHUB_WORKSPACE
+          yes | haxelib run lime setup || true
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y valgrind xvfb patchelf \
+            libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
+            libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev libz-dev
+
+      - name: Build C++ target
+        run: |
+          cd example-project/EZPlatformer
+          haxelib run lime build linux -64 -Daudio_test
+
+      - name: Patch FMOD libraries
+        run: |
+          for lib in example-project/EZPlatformer/export/linux*/bin/*.so*; do
+            patchelf --clear-execstack "$lib" 2>/dev/null || true
+          done
+
+      - name: Run api-probe under valgrind
+        run: |
+          Xvfb :99 -screen 0 640x480x24 &
+          export DISPLAY=:99
+          sleep 1
+          BIN_DIR=$(ls -d example-project/EZPlatformer/export/linux*/bin | head -1)
+          cd "$BIN_DIR"
+          # Memory errors only: --error-exitcode makes any invalid
+          # read/write/UAF fail the run, wavwriter avoids needing audio,
+          # and the generous timeout covers valgrind's ~20x slowdown
+          HAXEFMOD_TEST_STATE=api-probe FMOD_WAVWRITER=/tmp/valgrind-probe.wav \
+            timeout 2400 valgrind --error-exitcode=42 --leak-check=no \
+            --track-origins=yes --log-file=/tmp/valgrind.log \
+            ./run.sh > /tmp/api-probe-valgrind.log 2>&1 &
+          PROBE_PID=$!
+          for i in $(seq 2400); do
+            kill -0 $PROBE_PID 2>/dev/null || break
+            grep -q "API_PROBE: COMPLETE" /tmp/api-probe-valgrind.log 2>/dev/null && break
+            sleep 1
+          done
+          kill $PROBE_PID 2>/dev/null || true
+          STATUS=0
+          wait $PROBE_PID || STATUS=$?
+          grep -oE "API_PROBE: .*" /tmp/api-probe-valgrind.log | tail -5 || true
+          grep -q "API_PROBE: COMPLETE" /tmp/api-probe-valgrind.log || {
+            echo "FAIL: probe never completed under valgrind"
+            tail -50 /tmp/valgrind.log
+            exit 1
+          }
+          if grep -q "pass=false" /tmp/api-probe-valgrind.log; then
+            echo "FAIL: probe reported failing checks under valgrind"
+            exit 1
+          fi
+          if [ "$STATUS" = "42" ]; then
+            echo "FAIL: valgrind detected memory errors"
+            grep -B2 -A10 "Invalid\|uninitialised" /tmp/valgrind.log | head -80
+            exit 1
+          fi
+          echo "Probe suite ran clean under valgrind memcheck"
+
+      - name: Upload valgrind log
+        uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: valgrind-log
+          path: |
+            /tmp/valgrind.log
+            /tmp/api-probe-valgrind.log
+          if-no-files-found: warn
+          overwrite: true

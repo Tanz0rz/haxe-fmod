@@ -28,6 +28,7 @@ class TestRuntime {
 		testBankRegistryErroredRetry();
 		testAttachedInstances();
 		testIsInitializedComposition();
+		testAttachedOneShotAutoRelease();
 
 		Sys.println('  $passed passed, $failed failed');
 		return failed;
@@ -217,6 +218,35 @@ class TestRuntime {
 		assert(FmodRuntime.isInitialized(), "system ready and default banks latched");
 		stub.testInitialized = false;
 		assert(!FmodRuntime.isInitialized(), "system gate still applies after init");
+	}
+
+	// Runs after the init-composition test (needs the initialized runtime).
+	// The attach-and-forget release path is the one instance-leak path the
+	// CI handle-leak gates skip: the pan test exits before playout.
+	static function testAttachedOneShotAutoRelease():Void {
+		var stub = haxefmod.studio.native.NativeStudioStub;
+		stub.testSyntheticHandles = true;
+		stub.testInitialized = true;
+		stub.testReleasedHandles = [];
+		stub.testPlaybackState = 0; // PLAYING
+
+		var baseline = FmodRuntime.attachedCount();
+		FmodRuntime.playOneShotAttached("event:/OneShot", new StaticProvider(1, 2));
+		assert(FmodRuntime.attachedCount() == baseline + 1, "one-shot attaches while playing");
+
+		FmodRuntime.update();
+		assert(FmodRuntime.attachedCount() == baseline + 1, "playing one-shot stays attached");
+		assert(stub.testReleasedHandles.length == 0, "playing one-shot is not released");
+
+		stub.testPlaybackState = 2; // STOPPED
+		FmodRuntime.update();
+		assert(FmodRuntime.attachedCount() == baseline, "stopped one-shot detaches itself");
+		assert(stub.testReleasedHandles.length == 1, "stopped one-shot releases its instance");
+
+		stub.testPlaybackState = 2; // restore the stub default
+		stub.testReleasedHandles = [];
+		stub.testInitialized = false;
+		stub.testSyntheticHandles = false;
 	}
 
 	static function testAttachedInstances():Void {

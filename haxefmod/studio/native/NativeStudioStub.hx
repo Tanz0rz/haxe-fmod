@@ -76,7 +76,8 @@ class NativeStudioStub {
     public static function sys_load_bank_async(path:String):Int
         return testSyntheticHandles ? ++testNextHandle : 0;
     public static function sys_is_initialized():Bool return testInitialized;
-    public static function sys_update():Void {}
+    public static var testUpdateCalls:Int = 0;
+    public static function sys_update():Void testUpdateCalls++;
     public static function sys_set_auto_update(enabled:Bool):Void {}
 
     // Bus
@@ -160,7 +161,8 @@ class NativeStudioStub {
     public static function evd_get_user_property_string(handle:Int, index:Int):String return "";
 
     // EventInstance
-    public static function evi_is_valid(handle:Int):Bool return false;
+    public static function evi_is_valid(handle:Int):Bool
+        return testSyntheticHandles && handle > 0 && !testReleasedHandles.contains(handle);
     public static function evi_get_description(handle:Int):Int return 0;
     public static function evi_start(handle:Int):Int {
         testStartCalls++;
@@ -168,11 +170,19 @@ class NativeStudioStub {
     }
     public static function evi_stop(handle:Int, stopMode:Int):Int return ERR_UNSUPPORTED;
     public static function evi_key_off(handle:Int):Int return ERR_UNSUPPORTED;
-    public static function evi_release(handle:Int):Int return ERR_UNSUPPORTED;
+    public static var testReleasedHandles:Array<Int> = [];
+    public static function evi_release(handle:Int):Int {
+        if (testSyntheticHandles) { testReleasedHandles.push(handle); return 0; }
+        return ERR_UNSUPPORTED;
+    }
     public static function evi_get_playback_state(handle:Int):Int
         return testPlaybackStateQueue.length > 0 ? testPlaybackStateQueue.shift() : testPlaybackState;
     public static function evi_get_paused(handle:Int):Bool return false;
-    public static function evi_set_paused(handle:Int, paused:Bool):Int return ERR_UNSUPPORTED;
+    public static var testPausedState:Null<Bool> = null;
+    public static function evi_set_paused(handle:Int, paused:Bool):Int {
+        if (testSyntheticHandles) { testPausedState = paused; return 0; }
+        return ERR_UNSUPPORTED;
+    }
     public static function evi_get_volume(handle:Int):Float return 0.0;
     public static function evi_get_volume_final(handle:Int):Float return 0.0;
     public static function evi_set_volume(handle:Int, volume:Float):Int return ERR_UNSUPPORTED;
@@ -333,7 +343,11 @@ class NativeStudioStub {
     public static function r3d_set_properties(handle:Int):Int return ERR_UNSUPPORTED;
     public static function r3d_get_properties(handle:Int):Int return ERR_UNSUPPORTED;
     public static function r3d_set_active(handle:Int, active:Bool):Int return ERR_UNSUPPORTED;
-    public static function core_create_sound_pcm(data:haxe.io.Bytes, len:Int, sampleRate:Int, channels:Int):Int return 0;
+    public static var testPcmCreateLen:Int = -999;
+    public static function core_create_sound_pcm(data:haxe.io.Bytes, len:Int, sampleRate:Int, channels:Int):Int {
+        testPcmCreateLen = len;
+        return 0;
+    }
     public static function core_play_sound(handle:Int, startPaused:Bool):Int return 0;
     public static function sound_set_defaults(handle:Int, frequency:Float, priority:Int):Int return ERR_UNSUPPORTED;
     public static function sound_get_defaults(handle:Int):Int return ERR_UNSUPPORTED;

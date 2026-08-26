@@ -221,6 +221,7 @@ abstract EventInstance(Int) from Int to Int {
      * FMOD thread when the instrument triggers. Assign BEFORE start().
      */
     public inline function assignProgrammerSound(key:String):FmodResult {
+        if (key == null) return FmodResult.FMOD_ERR_INVALID_PARAM;
         return NativeStudio.ps_assign(this, key);
     }
 
