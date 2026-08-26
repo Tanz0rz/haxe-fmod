@@ -28,6 +28,7 @@ class TestStringsBankParser {
 		testMissingFile();
 		testNotABank();
 		testHostileChunkSize();
+		testHostileCorpus();
 		testMangling();
 		testCollisionSuffixes();
 		testEmitClass();
@@ -118,6 +119,58 @@ class TestStringsBankParser {
 	}
 
 	//// identifier mangling
+
+	// Seeded pseudo-random corpus: mutated copies of the real fixture
+	// (bit flips, scrambled size fields, truncations) and pure noise.
+	// The parser's contract under hostile bytes is return-or-throw -
+	// never an uncaught error, never a hang (the old non-advancing scan
+	// hung; in CI the job timeout turns a regression into a failure).
+	static function testHostileCorpus() {
+		var fixtureBytes = File.getBytes(fixture);
+		var seed = 0x9E3779B9;
+		inline function nextRand():Int {
+			seed = (seed * 1103515245 + 12345) & 0x7FFFFFFF;
+			return seed;
+		}
+		var completed = 0;
+		for (i in 0...300) {
+			var mutated = haxe.io.Bytes.alloc(fixtureBytes.length);
+			mutated.blit(0, fixtureBytes, 0, fixtureBytes.length);
+			var mutations = 1 + nextRand() % 8;
+			for (_ in 0...mutations) {
+				switch (nextRand() % 3) {
+					case 0: // byte flip anywhere
+						mutated.set(nextRand() % mutated.length, nextRand() % 256);
+					case 1: // scrambled int32 - hits chunk size fields
+						var at = nextRand() % (mutated.length - 4);
+						mutated.setInt32(at, nextRand() * (nextRand() % 2 == 0 ? 1 : -1));
+					case 2: // truncation
+						var len = nextRand() % mutated.length;
+						var cut = haxe.io.Bytes.alloc(len);
+						cut.blit(0, mutated, 0, len);
+						mutated = cut;
+				}
+				if (mutated.length < 8) break;
+			}
+			try {
+				StringsBankParser.parse(mutated, 'fuzz-$i.bank');
+				completed++;
+			} catch (e:haxe.Exception) {
+				completed++;
+			}
+		}
+		for (i in 0...100) {
+			var noise = haxe.io.Bytes.alloc(nextRand() % 2048);
+			for (at in 0...noise.length) noise.set(at, nextRand() % 256);
+			try {
+				StringsBankParser.parse(noise, 'noise-$i.bank');
+				completed++;
+			} catch (e:haxe.Exception) {
+				completed++;
+			}
+		}
+		assert("hostile corpus: every input returned or threw", completed == 400);
+	}
 
 	static function testMangling() {
 		assert("basic path", Generate.mangle("event:/Music/MainLevel", "event:/") == "MusicMainLevel");

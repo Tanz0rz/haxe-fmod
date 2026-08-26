@@ -17,6 +17,12 @@ compat run goes wrong. This asserts the load-bearing properties:
   5. linux-html5 asserts a build against a doctored (wrong-version) web
      SDK FAILS with the mismatch banner, with pipefail, since html5 pins
      the web SDK version instead of translating DSP types.
+  6. Every job still contains its load-bearing test steps by name, so a
+     deleted or renamed probe/validation step cannot pass silently as
+     "less coverage, still green".
+  7. Every Node harness in tests/js/ is invoked somewhere in the
+     workflow, so a new harness cannot land unwired and an existing one
+     cannot be dropped from CI unnoticed.
 
 Run: python3 ci/workflow-invariants.py [workflow-file]
 """
@@ -130,6 +136,119 @@ if 'grep -q "FMOD web SDK version mismatch"' not in html5_job:
     fail("linux-html5 no longer greps for the web mismatch banner")
 else:
     ok("linux-html5 verifies the web mismatch banner text")
+
+# 6. Required test steps per job. Names must match the workflow's
+# `- name:` lines exactly. When a step is renamed on purpose, rename it
+# here in the same commit.
+NATIVE_SUITE = ["Run api-probe state", "Run synth-test state", "Run cb-test state",
+                "Run ps-test state", "Run bank-test state", "Run pan-test state",
+                "Validate audio", "Validate volume/mute", "Validate synth audio",
+                "Validate build output"]
+REQUIRED_STEPS = {
+    "unit-tests": [
+        "Run unit tests",
+        "Verify native shims match the FFI manifest",
+        "Check binding coverage against the manifest",
+        "Check workflow gating invariants",
+        "Test native handle table (C99 and C++ modes)",
+        "Test native callback queue (C99 and C++ modes)",
+        "Test native GUID helpers (C99 and C++ modes)",
+        "Test native PCM ring buffer (C99 and C++ modes)",
+        "Negative-test the synth frequency gate",
+        "Constants generator parity (CLI vs FMOD Studio script)",
+        "Todo scanner end to end",
+        "Run native tests under AddressSanitizer and UBSan",
+        "Run threaded native tests under ThreadSanitizer",
+    ],
+    "linux-cpp": NATIVE_SUITE + ["Validate game log"],
+    "linux-hl": NATIVE_SUITE + ["Validate game log",
+                                "Build HashLink target (pre-built hdll)",
+                                "Rebuild HashLink target (custom hdll)",
+                                "Run stress-test state (smoke)",
+                                "lime test end to end"],
+    "mac-cpp": NATIVE_SUITE + ["Validate game log",
+                               "Test native headers with Apple clang (sanitizers)"],
+    "mac-hl": NATIVE_SUITE + ["Validate game log"],
+    "windows-cpp": NATIVE_SUITE + ["Validate game log",
+                                   "Test native headers with MSVC (C and C++ modes)"],
+    "windows-hl": NATIVE_SUITE + ["Validate game log"],
+    "linux-html5": [
+        "Validate FMOD files replaced placeholders",
+        "Validate audio", "Validate volume/mute", "Validate synth audio",
+        "Run API probe (JS binding coverage)",
+        "Run synth test (generated PCM reaches the output)",
+        "Run callback test (JS payload delivery)",
+        "Run ps-test state (browser)", "Run bank-test state (browser)",
+        "Run pan-test state (browser)",
+        "Verify mismatched web SDK fails the build",
+    ],
+    "linux-hl-compat": [
+        "Build HashLink target (expect version mismatch failure)",
+        "Test DSP type translation against the 2.02.33 headers",
+        "Rebuild HashLink target (custom hdll)",
+        "Run api-probe state", "Validate audio", "Validate game log",
+    ],
+    "mac-hl-compat": [
+        "Build HashLink target (expect version mismatch failure)",
+        "Rebuild HashLink target (custom hdll)",
+        "Validate audio", "Validate game log",
+    ],
+    "windows-hl-compat": [
+        "Build HashLink target (expect version mismatch failure)",
+        "Rebuild HashLink target (custom hdll)",
+        "Validate audio", "Validate game log",
+    ],
+    "js-harness": [
+        "Run jaxe harnesses against the real wasm",
+        "Run Core dynamic-audio prototype against the real wasm",
+    ],
+    "env-doctor": [
+        "Doctor passes in a configured environment",
+        "Doctor rejects a missing FMOD_SDK (negative test)",
+        "Build blocks without FMOD_SDK (hl)",
+        "Build blocks without FMOD_SDK_WEB (html5)",
+        "Build blocks with a bogus FMOD_SDK (hl)",
+        "Postbuild rejects a bogus FMOD_SDK",
+        "Postbuild rejects an SDK missing platform libraries",
+    ],
+    "package-check": [
+        "Test DSP type translation against this SDK's headers",
+        "Refuse to package without the pre-built hdlls",
+        "Build the haxelib package",
+        "Build HashLink target from the installed package",
+        "Build HTML5 target from the installed package",
+    ],
+}
+missing_steps = []
+for job_name, required in REQUIRED_STEPS.items():
+    body = jobs.get(job_name, "")
+    if not body:
+        missing_steps.append(f"{job_name}: job not found")
+        continue
+    step_names = set(re.findall(r"^      - name: (.*)$", body, re.M))
+    for step in required:
+        if step not in step_names:
+            missing_steps.append(f"{job_name}: missing step '{step}'")
+if missing_steps:
+    for item in missing_steps:
+        fail(f"required step check: {item}")
+else:
+    total = sum(len(v) for v in REQUIRED_STEPS.values())
+    ok(f"all {total} required test steps present across {len(REQUIRED_STEPS)} jobs")
+
+# 7. Every Node harness in tests/js/ is wired into the workflow
+import os
+script_dir = os.path.dirname(os.path.abspath(__file__))
+js_dir = os.path.join(script_dir, "..", "tests", "js")
+unwired = []
+harnesses = sorted(f for f in os.listdir(js_dir) if f.endswith(".js"))
+for harness in harnesses:
+    if f"tests/js/{harness}" not in text:
+        unwired.append(harness)
+if unwired:
+    fail(f"harnesses in tests/js/ not invoked by the workflow: {unwired}")
+else:
+    ok(f"all {len(harnesses)} tests/js harnesses are wired into the workflow")
 
 print()
 if failures:

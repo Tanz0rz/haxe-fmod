@@ -27,6 +27,7 @@ class TestRuntime {
 		testBankRegistryNormalization();
 		testBankRegistryErroredRetry();
 		testAttachedInstances();
+		testIsInitializedComposition();
 
 		Sys.println('  $passed passed, $failed failed');
 		return failed;
@@ -198,6 +199,24 @@ class TestRuntime {
 		stub.testSyntheticHandles = false;
 		stub.testBankLoadingState = 3;
 		stub.testBankUnloadCalls = 0;
+	}
+
+	// Runs last: FmodRuntime.init is a one-shot process-wide latch
+	static function testIsInitializedComposition():Void {
+		var stub = haxefmod.studio.native.NativeStudioStub;
+		stub.testInitialized = false;
+		assert(!FmodRuntime.isInitialized(), "not initialized while the system is down");
+		// Direct NativeStudio users never call init: with no resolved
+		// settings there are no default banks to wait for
+		stub.testInitialized = true;
+		assert(FmodRuntime.isInitialized(), "system-ready fallback with no settings");
+		stub.testInitialized = false;
+		FmodRuntime.init({autoLoadBanks: []});
+		assert(!FmodRuntime.isInitialized(), "settings alone do not make it initialized");
+		stub.testInitialized = true;
+		assert(FmodRuntime.isInitialized(), "system ready and default banks latched");
+		stub.testInitialized = false;
+		assert(!FmodRuntime.isInitialized(), "system gate still applies after init");
 	}
 
 	static function testAttachedInstances():Void {

@@ -92,7 +92,6 @@ static void test_null_and_bad_args(void) {
 #define READ_BLOCK 512
 
 static FaxePcmRing* gRing;
-static volatile int gProducerDone = 0;
 
 #ifdef _WIN32
 static unsigned __stdcall producer_main(void* arg)
@@ -111,7 +110,6 @@ static void* producer_main(void* arg)
         wrote = faxe_pcmring_write(gRing, chunk, want);
         sent += wrote;
     }
-    gProducerDone = 1;
 #ifdef _WIN32
     return 0;
 #else
@@ -125,7 +123,6 @@ static void test_two_thread_stream(void) {
     int idleReads = 0;
 
     gRing = faxe_pcmring_create(4096);
-    gProducerDone = 0;
 
 #ifdef _WIN32
     HANDLE th = (HANDLE)_beginthreadex(NULL, 0, producer_main, NULL, 0, NULL);
@@ -147,8 +144,9 @@ static void test_two_thread_stream(void) {
             assert(idleReads < 10000000); /* the stream must make progress */
         }
     }
+    /* reaching STREAM_TOTAL proves the producer delivered everything -
+     * a done flag here would be an unsynchronized read (TSan flags it) */
     assert(expected == STREAM_TOTAL);
-    assert(gProducerDone);
 
 #ifdef _WIN32
     WaitForSingleObject(th, INFINITE);

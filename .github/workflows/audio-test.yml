@@ -93,6 +93,30 @@ jobs:
           g++ -x c++ -pthread -Wall -Wextra -Werror -o /tmp/test_pcmring_cpp tests/native/test_faxe_pcmring.c
           /tmp/test_pcmring_cpp
 
+      - name: Check binding coverage against the manifest
+        run: python3 ci/binding-coverage.py
+
+      # The shared headers own the cross-thread lifetime contracts, so a
+      # memory or threading defect there is the worst class of bug this
+      # library can ship. ASan/UBSan cover the single-threaded invariants
+      # (including the handle fuzz), TSan proves the locking on the two
+      # tests that drive a real producer thread.
+      - name: Run native tests under AddressSanitizer and UBSan
+        run: |
+          for t in handles cbqueue guid pcmring; do
+            gcc -std=c99 -pthread -fsanitize=address,undefined -fno-sanitize-recover=all \
+              -Wall -Wextra -Werror -o /tmp/asan_$t tests/native/test_faxe_$t.c
+            /tmp/asan_$t
+          done
+
+      - name: Run threaded native tests under ThreadSanitizer
+        run: |
+          for t in cbqueue pcmring; do
+            gcc -std=c99 -pthread -fsanitize=thread -Wall -Wextra -Werror \
+              -o /tmp/tsan_$t tests/native/test_faxe_$t.c
+            /tmp/tsan_$t
+          done
+
   # ===========================================================================
   # API docs (dox) - rendered from the haxefmod package, uploaded as artifact
   # ===========================================================================
@@ -1630,6 +1654,26 @@ jobs:
           use-wavwriter: "true"
           timeout: "60"
 
+      # Portability compile of the shared native headers with Apple
+      # clang, plus the same sanitizer passes the Linux unit-tests job
+      # runs (a second compiler catches what gcc tolerates)
+      - name: Test native headers with Apple clang (sanitizers)
+        if: ${{ !cancelled() }}
+        run: |
+          for t in handles cbqueue guid pcmring; do
+            clang -std=c99 -pthread -fsanitize=address,undefined -fno-sanitize-recover=all \
+              -Wall -Wextra -Werror -o /tmp/asan_$t tests/native/test_faxe_$t.c
+            /tmp/asan_$t
+          done
+          for t in cbqueue pcmring; do
+            clang -std=c99 -pthread -fsanitize=thread -Wall -Wextra -Werror \
+              -o /tmp/tsan_$t tests/native/test_faxe_$t.c
+            /tmp/tsan_$t
+          done
+          clang -std=c99 -Wall -Wextra -Werror -I "$FMOD_SDK/api/core/inc" \
+            -o /tmp/test_dsptype tests/native/test_faxe_dsptype.c
+          /tmp/test_dsptype
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v6
         if: always()
@@ -2255,6 +2299,25 @@ jobs:
           log-file: ${{ github.workspace }}/pan-test-windows-cpp.log
           use-wavwriter: "true"
           timeout: "60"
+
+      # Portability compile of the shared native headers with MSVC in C
+      # and C++ modes (the hdll ships MSVC-compiled, so the headers must
+      # stay warning-clean there too). vswhere locates VS the same way
+      # hxcpp and the doctor do.
+      - name: Test native headers with MSVC (C and C++ modes)
+        if: ${{ !cancelled() }}
+        shell: cmd
+        run: |
+          for /f "usebackq tokens=*" %%i in (`"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath`) do set VSPATH=%%i
+          call "%VSPATH%\VC\Auxiliary\Build\vcvars64.bat" || exit /b 1
+          for %%t in (handles cbqueue guid pcmring) do (
+            cl /nologo /W3 /std:c11 /TC /Fe:%TEMP%\msvc_c_%%t.exe tests\native\test_faxe_%%t.c || exit /b 1
+            %TEMP%\msvc_c_%%t.exe || exit /b 1
+            cl /nologo /W3 /TP /Fe:%TEMP%\msvc_cpp_%%t.exe tests\native\test_faxe_%%t.c || exit /b 1
+            %TEMP%\msvc_cpp_%%t.exe || exit /b 1
+          )
+          cl /nologo /W3 /std:c11 /TC /I "%FMOD_SDK%\api\core\inc" /Fe:%TEMP%\msvc_dsptype.exe tests\native\test_faxe_dsptype.c || exit /b 1
+          %TEMP%\msvc_dsptype.exe || exit /b 1
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v6
