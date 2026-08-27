@@ -69,7 +69,7 @@ class PlayState extends FlxState {
         _status.scrollFactor.set(0, 0);
         add(_status);
 
-        _prompt = new FlxText(0, FlxG.height / 2 - 4, FlxG.width, "Press enter to start the test");
+        _prompt = new FlxText(0, FlxG.height / 2 - 4, FlxG.width, "Press enter to start");
         _prompt.setFormat(null, 8, FlxColor.WHITE, CENTER, NONE, FlxColor.BLACK);
         _prompt.scrollFactor.set(0, 0);
         add(_prompt);

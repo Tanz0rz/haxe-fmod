@@ -64,8 +64,8 @@ class PostBuild {
 			Sys.exit(1);
 		}
 
-		// The lib-side expected-version file going missing is a packaging
-		// problem, not a user setup problem - warn and continue
+		// The lib-side expected-version file only goes missing when the
+		// package itself is broken - warn and continue
 		if (!FileSystem.exists(versionFile)) {
 			log("WARNING: Could not verify FMOD SDK version");
 			log('  Missing: $versionFile');

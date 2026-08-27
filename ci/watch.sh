@@ -1,6 +1,6 @@
 #!/bin/bash
 # Watch a GitHub Actions run until all jobs complete or one fails.
-# Usage: ./ci-watch.sh [run-id]
+# Usage: ./ci/watch.sh [run-id]
 # If no run-id given, uses the latest run.
 
 set -o noglob

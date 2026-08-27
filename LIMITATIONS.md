@@ -41,7 +41,7 @@ These FMOD features exist in the native engine but are not part of the haxefmod 
 - **Custom file systems and `loadBankCustom`.** User IO callbacks would run on FMOD threads, which no Haxe target can do safely. `loadBankFile` and `loadBankMemory` are the supported paths.
 - **System lifecycle calls.** The library owns init and the per-frame update. There is no shutdown or re-init. FMOD initializes once per process and lives until the process exits, and every use-after-shutdown bug goes away with the capability. Init-time engine settings are exposed through `FmodSettings` and compile-time defines.
 - **System diagnostic callbacks and CommandReplay tool hooks.** These are FMOD-tooling integration points. Command capture and basic replay playback are bound.
-- **Tag and subsound payload access.** Counts are bound. Payloads are container internals with no cross-platform story.
+- **Tag and subsound access.** Container internals with no cross-platform story.
 
 ## Fixed behaviors and caps
 

@@ -3486,7 +3486,7 @@ jobs:
 
       # The zip verified by every step here is the release artifact: on tag
       # runs it is uploaded so `haxelib submit` ships EXACTLY these bytes
-      # instead of a locally rebuilt zip (see GO-LIVE step 7)
+      # instead of a locally rebuilt zip
       - name: Upload the release package
         if: ${{ startsWith(github.ref, 'refs/tags/') }}
         uses: actions/upload-artifact@v6

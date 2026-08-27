@@ -24,7 +24,7 @@ Having problems or want to chat? [Join the Haxe Discord](https://discordapp.com/
 - Helper scripts to map FMOD Studio events to game code
 - Many, many more
 
-This is a faithful implementation of the entire FMOD stack. If this library doesn't support something you need, make an Issue and I will try to add it!
+This is a faithful implementation of the FMOD stack. If this library doesn't support something you need, make an Issue and I will try to add it!
 
 ## Supported Platforms
 
@@ -213,7 +213,7 @@ FmodManager.Initialize({liveUpdate: true});
 
 The [export script](fmod-scripts/ExportHaxeConstants.js) generates Haxe-native constants files to make referencing your sounds much easier. Once installed, pressing `Ctrl+B` in FMOD Studio writes the files to your project **and** builds your FMOD sound banks in one step. This flow has the added benefit of keeping your FMOD Studio project and your Haxe references to sounds perfectly synchronized.
 
-![Haxe Constants Demo](.github/fmod_constants.gif)
+![Haxe Constants Demo](https://raw.githubusercontent.com/Tanz0rz/haxe-fmod/master/.github/fmod_constants.gif)
 
 #### What gets generated
 

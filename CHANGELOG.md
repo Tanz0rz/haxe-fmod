@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.0
+## 2.0.0 (2026-08-27)
 
 A clean-break rework: the full FMOD Studio API at runtime, typed handles, payload-carrying callbacks, and a layered architecture with the facade on top. See `MIGRATION.md` for the complete 1.x to 2.0 mapping.
 
@@ -14,7 +14,7 @@ A clean-break rework: the full FMOD Studio API at runtime, typed handles, payloa
 - Programmer sounds on native targets: `instance.assignProgrammerSound(key)` resolving audio table keys or file paths on the FMOD thread (HTML5 reports `FMOD_ERR_UNSUPPORTED`, see `LIMITATIONS.md`).
 - Constants generation baked into the export: the FMOD Studio script regenerates `FmodEvents`/`FmodBuses`/`FmodVCAs`/`FmodSnapshots`/`FmodParameters` on every `Ctrl+B` bank build, plus a `...Guids` class per file with the GUID for each constant.
 - Event enum generation: the export also emits `FmodEventEnum.hx` (a `FmodEventEnum` enum covering every event, named like the `FmodEvents` constants, with `path()` and `guid()` mappers) for switch statements and enum-importing tools such as LDtk.
-- Build-time SDK validation: lime builds fail immediately with setup instructions when `FMOD_SDK` (or `FMOD_SDK_WEB` for HTML5) is missing, set to a path that is not an FMOD SDK, missing the platform's runtime libraries, or (for HL and HTML5) the wrong FMOD version.
+- Build-time SDK validation: lime builds fail immediately with setup instructions when `FMOD_SDK` (or `FMOD_SDK_WEB` for HTML5) is missing, set to a path that is not an FMOD SDK, or (for HL and HTML5) the wrong FMOD version.
 - Cross-version DSP effects: `DspType` values translate to the compiled SDK's own enum symbolically, so an hdll built with `build-hdll` against another FMOD version creates the correct effects (FMOD renumbers that enum between releases). Types the SDK lacks report `FMOD_ERR_INVALID_PARAM`.
 - Bank loading on HTML5 is settings-driven through the same refcounted registry as native: `bankFolder` and `autoLoadBanks` (including `[]`) apply, a failed fetch surfaces as a bank `ERROR` state with a traced warning (a failed `autoLoadBanks` fetch still holds `IsInitialized()` false, since the game's own banks are unusable), and `FmodFlxBankLoader` takes an `onError` callback.
 - Binding ABI guard: stale pre-built hdlls are refused at build time with `build-hdll` instructions instead of crashing at game startup.
@@ -41,7 +41,7 @@ A clean-break rework: the full FMOD Studio API at runtime, typed handles, payloa
 - Timeline beat callbacks carry the authored time signature: `TimelineBeat(bar, beat, positionMs, tempo, timeSigUpper, timeSigLower)` (and the nested variant), so beat-synced logic can react to meter changes.
 - Parameter lookups by ID: `getParameterDescriptionByID` and `getParameterLabelByID` on `StudioSystem` and `EventDescription`, plus `EventDescription.getUserPropertyByName`. `CommandReplay.isValid()` matches the other handle types.
 - Attached one-shots: `FmodManager.PlaySoundOneShotAttached(path, provider)` plays a self-ending event that follows a moving object and releases itself when it stops. Flixel games pass a FlxObject through `FmodFlxUtilities.PlaySoundOneShotAttached(path, target)`.
-- Listener doppler: `FmodFlxListener` pushes the target's velocity (or the camera center's movement) along with its position, and `StudioSystem.setListenerPosition2D` accepts optional velocity arguments. Camera jumps beyond `teleportDistance` (default one camera width) count as cuts and push zero velocity, and `resetMotion()` covers cuts the game performs itself.
+- Listener doppler: `FmodFlxListener` pushes the target's velocity (or the camera center's movement) along with its position, and `StudioSystem.setListenerPosition2D` accepts optional velocity arguments. Camera jumps larger than one camera width count as cuts and push zero velocity (`teleportDistance` overrides the threshold), and `resetMotion()` covers cuts the game performs itself.
 - `maxAttachedVelocity` setting: caps the velocity magnitude FMOD sees from attached instances and the flixel listener, taming doppler pitch flutter on very fast movers. Default 0 (no cap).
 - Distance culling on emitters: `FmodFlxEmitter.stopEventsOutsideMaxDistance` stops a looping emitter with a fadeout beyond its max distance and restarts it when the listener comes back in range, saving voices. One-shot events are exempt (a stopped and restarted one-shot would replay long after it finished). Only an instance the emitter itself stopped is restarted, `cullCheckInterval` paces the distance checks (default every 6 frames), and `cullMaxDistance` overrides the authored distance. Authored distances apply to 3D events only, so a 2D event is culled only when `cullMaxDistance` is set explicitly.
 

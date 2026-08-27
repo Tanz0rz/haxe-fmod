@@ -64,9 +64,14 @@ class PlayState2 extends FlxState {
             _jumped = true;
         }
 
-        // Quit when player hits the far right wall (native builds only)
+        // Exit at the far right wall so CI captures end with the demo.
+        // Normal builds keep the window open.
         #if sys
-        if (_player.x >= 38 * 8 && _player.isTouching(FlxDirectionFlags.RIGHT)) {
+        var ciExit = Sys.getEnv("FMOD_WAVWRITER") != null;
+        #if audio_test
+        ciExit = true;
+        #end
+        if (ciExit && _player.x >= 38 * 8 && _player.isTouching(FlxDirectionFlags.RIGHT)) {
             Sys.exit(0);
         }
         #end
