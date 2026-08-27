@@ -201,6 +201,15 @@ One of the most powerful features of the FMOD ecosystem. Mix your sounds in real
 
 Live Update **only works on C++ and HashLink builds**. HTML5 builds will not work. The FMOD team said this is a limitation caused by running games inside web browsers and they have no plans to support this.
 
+Live update can be activated in three ways:
+
+1. Adding it to the initilization config in Haxe: 
+```haxe
+FmodManager.Initialize({liveUpdate: true})
+```
+2. Adding the `haxefmod_live_update` flag to your build command
+3. Debug builds have this on by default
+
 **Note**: On macOS and Windows, you may see a firewall dialog asking to allow incoming network connections when running your game with Live Update active. Live Update opens a local network socket (port 9264) so FMOD Studio can connect to your game for real-time audio mixing.
 
 ### Generating Constants From Your Banks
@@ -212,17 +221,17 @@ The [export script](fmod-scripts/ExportHaxeConstants.js) generates Haxe-native c
 #### What gets generated
 
 - `FmodEvents.hx`, `FmodBuses.hx`, `FmodVCAs.hx`, `FmodSnapshots.hx`, and `FmodParameters.hx`
-- A `...Guids` class in each file with the same names mapped to GUIDs (kept out of the main class so autocomplete stays clean)
-- `FmodEventEnum.hx` - a plain enum covering every event, for tool integrations (see [Event Enums](#event-enums))
+- A `...Guids` companion classes in each file with the same names mapped to GUIDs (kept separate from the main class so autocomplete stays clean)
+- `FmodEventEnum.hx` - a plain enum mapping to every event, for tool integrations (see [Event Enums](#event-enums))
 
-Use the constants anywhere a path is expected:
+Use the constants as a clean substitution for full FMOD Studio event paths:
 
 ```haxe
 FmodManager.PlaySong(FmodEvents.MusicMainLevel);
-FmodManager.PlaySoundOneShot(FmodEvents.SFXCoin);
+FmodManager.PlaySong("event:/Music/MainLevel"); # non-constant variant
 
-var engine = FmodManager.PlaySound(FmodEvents.SFXEngine);
-engine.setParameter("RPM", 0.5);
+FmodManager.PlaySoundOneShot(FmodEvents.SFXCoin);
+FmodManager.PlaySoundOneShot("event:/SFX/Coin"); # non-constant variant
 ```
 
 #### Setup
@@ -249,31 +258,6 @@ import FmodEvents;
 ```
 
 **Note:** Remember, for the generated files to stay up to date, you must run the export script **every** time you build your sound bank.
-
-## Tracking Sound Work With TODOs
-
-Audio usually lands after the gameplay it belongs to. Drop a marker wherever a sound should go and keep building:
-
-```haxe
-FmodManager.Todo("door creak when the vault opens");
-```
-
-When it is time to work on sounds, list every remaining marker from your project directory:
-
-```
-haxelib run haxefmod todos
-```
-
-```
-source/VaultDoor.hx:52: door creak when the vault opens
-source/PlayState.hx:40: ambient wind loop behind the music
-
-2 sound TODO(s) remaining.
-```
-
-The scanner skips commented-out calls and mentions inside strings, and `--json` emits machine-readable output for tooling. `haxelib run haxefmod check` also notes the count.
-
-The markers cost nothing in release builds (the call compiles away). Debug builds trace each call site once as it is hit. Build with `-D haxefmod_todo_beep` and every marker also plays a short placeholder blip, so you can hear the missing sounds during playtesting exactly where they belong.
 
 ## Migrating From Previous haxe-fmod Versions?
 
