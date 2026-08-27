@@ -62,7 +62,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y xvfb patchelf \
+          sudo apt-get install -y xvfb \
             libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
             libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev libz-dev
 

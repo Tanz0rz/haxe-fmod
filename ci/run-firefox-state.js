@@ -1,7 +1,7 @@
 // Runs one html5 test state in Firefox through Playwright and gates on
 // its console output, mirroring the chromium browser steps. Firefox is
 // the second engine for the log-gated states: the FMOD JS glue defects
-// all surfaced on V8 first, and this lane gives SpiderMonkey the same
+// all surfaced on V8 first, and this job gives SpiderMonkey the same
 // chance to disagree.
 //
 // Usage: node ci/run-firefox-state.js <url> <gate> <log-file> [timeout-s]

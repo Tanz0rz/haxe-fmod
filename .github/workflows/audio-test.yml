@@ -220,7 +220,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg patchelf libgl1-mesa-dev
+          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg libgl1-mesa-dev
 
       - name: Cache hxcpp objects
         uses: actions/cache@v5
@@ -238,14 +238,27 @@ jobs:
           cd example-project/EZPlatformer
           haxelib run lime build linux -64
 
-      - name: Patch FMOD libraries
+      - name: Verify FMOD libraries have no executable stack
         run: |
           BIN_DIR="example-project/EZPlatformer/export/linux64/bin"
           if [ ! -d "$BIN_DIR" ]; then
             BIN_DIR="example-project/EZPlatformer/export/linux/bin"
           fi
-          patchelf --clear-execstack "$BIN_DIR"/libfmod.so* || true
-          patchelf --clear-execstack "$BIN_DIR"/libfmodstudio.so* || true
+          FOUND=0
+          for lib in "$BIN_DIR"/libfmod*.so*; do
+            [ -L "$lib" ] && continue
+            FOUND=1
+            LINE=$(readelf -lW "$lib" | grep GNU_STACK) || {
+              echo "FAIL: $lib has no GNU_STACK header"; exit 1; }
+            FLAGS=$(echo "$LINE" | awk '{print $7}')
+            echo "$lib: GNU_STACK $FLAGS"
+            case "$FLAGS" in *E*)
+              echo "FAIL: $lib still has an executable stack (PostBuild should have cleared it)"
+              exit 1;;
+            esac
+          done
+          [ "$FOUND" = "1" ] || { echo "FAIL: no FMOD libraries found in $BIN_DIR"; exit 1; }
+          echo "All FMOD libraries are loadable on modern kernels"
 
       - name: Validate build output
         run: |
@@ -491,7 +504,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg patchelf \
+          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg \
             libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
             libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev libz-dev
 
@@ -546,11 +559,24 @@ jobs:
           path: example-project/EZPlatformer/.haxefmod/hlaxe_fmod.hdll
           overwrite: true
 
-      - name: Patch FMOD libraries
+      - name: Verify FMOD libraries have no executable stack
         run: |
           BIN_DIR="example-project/EZPlatformer/export/hl/bin"
-          patchelf --clear-execstack "$BIN_DIR"/libfmod.so* || true
-          patchelf --clear-execstack "$BIN_DIR"/libfmodstudio.so* || true
+          FOUND=0
+          for lib in "$BIN_DIR"/libfmod*.so*; do
+            [ -L "$lib" ] && continue
+            FOUND=1
+            LINE=$(readelf -lW "$lib" | grep GNU_STACK) || {
+              echo "FAIL: $lib has no GNU_STACK header"; exit 1; }
+            FLAGS=$(echo "$LINE" | awk '{print $7}')
+            echo "$lib: GNU_STACK $FLAGS"
+            case "$FLAGS" in *E*)
+              echo "FAIL: $lib still has an executable stack (PostBuild should have cleared it)"
+              exit 1;;
+            esac
+          done
+          [ "$FOUND" = "1" ] || { echo "FAIL: no FMOD libraries found in $BIN_DIR"; exit 1; }
+          echo "All FMOD libraries are loadable on modern kernels"
 
       - name: Debug bin directory contents
         run: |
@@ -849,7 +875,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg patchelf \
+          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg \
             libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
             libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev libz-dev
 
@@ -907,11 +933,24 @@ jobs:
           grep -q "(custom-compiled from .haxefmod/)" /tmp/build-custom.log
           echo "Verified: custom-compiled hdll from .haxefmod/ was used"
 
-      - name: Patch FMOD libraries
+      - name: Verify FMOD libraries have no executable stack
         run: |
           BIN_DIR="example-project/EZPlatformer/export/hl/bin"
-          patchelf --clear-execstack "$BIN_DIR"/libfmod.so* || true
-          patchelf --clear-execstack "$BIN_DIR"/libfmodstudio.so* || true
+          FOUND=0
+          for lib in "$BIN_DIR"/libfmod*.so*; do
+            [ -L "$lib" ] && continue
+            FOUND=1
+            LINE=$(readelf -lW "$lib" | grep GNU_STACK) || {
+              echo "FAIL: $lib has no GNU_STACK header"; exit 1; }
+            FLAGS=$(echo "$LINE" | awk '{print $7}')
+            echo "$lib: GNU_STACK $FLAGS"
+            case "$FLAGS" in *E*)
+              echo "FAIL: $lib still has an executable stack (PostBuild should have cleared it)"
+              exit 1;;
+            esac
+          done
+          [ "$FOUND" = "1" ] || { echo "FAIL: no FMOD libraries found in $BIN_DIR"; exit 1; }
+          echo "All FMOD libraries are loadable on modern kernels"
 
       - name: Validate build output
         run: |
@@ -3471,7 +3510,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y xvfb patchelf \
+          sudo apt-get install -y xvfb \
             libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
             libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev libz-dev
 
@@ -3601,7 +3640,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y patchelf \
+          sudo apt-get install -y \
             libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
             libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev libz-dev
 

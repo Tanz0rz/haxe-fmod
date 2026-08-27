@@ -11,7 +11,6 @@ Having problems or want to chat? [Join the Haxe Discord](https://discordapp.com/
  - [Selecting an FMOD Engine Version](#selecting-an-fmod-engine-version)
  - [HTML5 Builds](#html5-builds)
  - [FMOD Studio Project Configuration](#fmod-studio-project-configuration)
- - [Tracking Sound Work With TODOs](#tracking-sound-work-with-todos)
  - [Migrating From Previous haxe-fmod Versions?](#migrating-from-previous-haxe-fmod-versions)
  - [License](#license)
  - [Special Thanks](#special-thanks)
@@ -19,11 +18,11 @@ Having problems or want to chat? [Join the Haxe Discord](https://discordapp.com/
 
 ## Features
 
-- The full [FMOD Studio API](https://www.fmod.com/docs/2.03/api/studio-api.html) at runtime: events, buses, VCAs, snapshots, banks, global and labeled [parameters](https://www.fmod.com/docs/2.03/studio/parameters-reference.html), 3D/listeners, and profiling
+- [FMOD Studio API](https://www.fmod.com/docs/2.03/api/studio-api.html) at runtime: events, buses, VCAs, snapshots, banks, global and labeled [parameters](https://www.fmod.com/docs/2.03/studio/parameters-reference.html), 3D/listeners, and profiling with some known [limitations](LIMITATIONS.md)
 - Typed [callbacks](https://www.fmod.com/docs/2.03/api/studio-api-eventinstance.html#fmod_studio_event_callback_type) that carry event data (beats, timeline markers, etc.)
 - [Live Update](https://fmod.com/docs/2.03/studio/editing-during-live-update.html) for mixing sounds while playtesting
 - Helper scripts to map FMOD Studio events to game code
-- Many, many  more
+- Many, many more
 
 This is a faithful implementation of the entire FMOD stack. If this library doesn't support something you need, make an Issue and I will try to add it!
 
@@ -40,7 +39,7 @@ This is a faithful implementation of the entire FMOD stack. If this library does
 
 **FMOD Engine SDK** - Download version 2.03.12 from [fmod.com/download](https://www.fmod.com/download). See [How to Use This Library](#how-to-use-this-library) for setup instructions.
 
-For projects that need C++ builds (so building via `lime build mac`, `lime build windows`, and/or `lime build linux`) require a C++ compiler. HashLink and HTML5 builds do not.
+Projects that need C++ builds (so building via `lime build mac`, `lime build windows`, and/or `lime build linux`) require a C++ compiler to be installed locally. HashLink and HTML5 builds do not.
 - **macOS**: Xcode Command Line Tools - install with `xcode-select --install`
 - **Windows**: Build Tools for Visual Studio 2022 with the "Desktop development with C++" workload selected during installation. [Direct download](https://aka.ms/vs/17/release.ltsc.17.4/vs_buildtools.exe), or find the Fall 2022 LTSC build tools link [here](https://learn.microsoft.com/en-us/visualstudio/releases/2022/release-history#release-dates-and-build-numbers).
 - **Linux**: `gcc` and `g++` (install via your package manager, e.g. `sudo apt install build-essential`)
@@ -187,8 +186,6 @@ At build time, `lime test hl` uses a tiered fallback to find the right hdll:
 
 The build log will tell you which one was used.
 
-C++ and HTML5 targets do not rely on the hdll and should work with any FMOD version (although they will warn if you use anything other than 2.03.12).
-
 ## HTML5 Builds
 
 For HTML5 builds to work, a dedicated scene must be run before the game starts to give the FMOD Engine a chance to fully load. See the [example project](https://github.com/Tanz0rz/haxe-fmod-test) for a demonstration of how to handle this. The `Main.hx` file loads the startup scene, the startup scene initializes FMOD and waits for it to report back as initialized, then the game is started.
@@ -201,9 +198,9 @@ One of the most powerful features of the FMOD ecosystem. Mix your sounds in real
 
 Live Update **only works on C++ and HashLink builds**. HTML5 builds will not work. The FMOD team said this is a limitation caused by running games inside web browsers and they have no plans to support this.
 
-Live update can be activated in three ways:
+Live Update can be activated in three ways:
 
-1. Adding it to the initilization config in Haxe: 
+1. Adding it to the initialization config in Haxe:
 ```haxe
 FmodManager.Initialize({liveUpdate: true});
 ```
@@ -221,7 +218,7 @@ The [export script](fmod-scripts/ExportHaxeConstants.js) generates Haxe-native c
 #### What gets generated
 
 - `FmodEvents.hx`, `FmodBuses.hx`, `FmodVCAs.hx`, `FmodSnapshots.hx`, and `FmodParameters.hx`
-- A `...Guids` companion classes in each file with the same names mapped to GUIDs (kept separate from the main class so autocomplete stays clean)
+- `...Guids` companion classes in each file with the same names mapped to GUIDs (kept separate from the main class so autocomplete stays clean)
 - `FmodEventEnum.hx` - a plain enum mapping to every event, for tool integrations (see [Event Enums](#event-enums))
 
 Use the constants as a clean substitution for full FMOD Studio event paths:

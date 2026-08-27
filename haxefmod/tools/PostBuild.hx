@@ -379,10 +379,9 @@ class PostBuild {
 		}
 
 		// Modern Linux kernels refuse to load libraries flagged with an
-		// executable stack, and FMOD ships its .so files that way. CI has
-		// always cleared the flag as a separate step. Do it here so plain
-		// `lime test linux` works on end-user machines too. Silently skipped
-		// when patchelf is not installed (older kernels do not need it).
+		// executable stack, and FMOD ships its .so files that way. The
+		// flag is one program header bit, so it is cleared right here and
+		// plain `lime test linux` works with no extra tooling installed.
 		clearExecstack(binDir);
 
 		// Create run.sh wrapper if it doesn't exist
@@ -400,22 +399,49 @@ class PostBuild {
 		log("Done - copied FMOD .so files");
 	}
 
+	/**
+	 * Clears the executable-stack flag inside one ELF shared library by
+	 * rewriting the PT_GNU_STACK program header's flags in place, the
+	 * same four byte edit patchelf performs. Returns true when the file
+	 * changed. Anything that does not parse as a little endian ELF64
+	 * with an executable stack entry comes back untouched, so a
+	 * malformed or foreign file can never be corrupted.
+	 */
+	public static function clearExecstackFile(path:String):Bool {
+		var bytes = try File.getBytes(path) catch (e:Dynamic) return false;
+		if (bytes.length < 64) return false;
+		if (bytes.get(0) != 0x7F || bytes.get(1) != 0x45
+			|| bytes.get(2) != 0x4C || bytes.get(3) != 0x46) return false;
+		// FMOD ships little endian ELF64 on the one supported Linux arch
+		if (bytes.get(4) != 2 || bytes.get(5) != 1) return false;
+		var phoff = bytes.getInt32(0x20);
+		var phoffHigh = bytes.getInt32(0x24);
+		if (phoffHigh != 0 || phoff <= 0) return false;
+		var phentsize = bytes.getUInt16(0x36);
+		var phnum = bytes.getUInt16(0x38);
+		if (phentsize < 56) return false;
+		var changed = false;
+		for (i in 0...phnum) {
+			var base = phoff + i * phentsize;
+			if (base + 8 > bytes.length) return false;
+			if (bytes.getInt32(base) != 0x6474E551) continue; // PT_GNU_STACK
+			var flags = bytes.getInt32(base + 4);
+			if (flags & 1 == 0) continue; // PF_X already clear
+			bytes.setInt32(base + 4, flags & ~1);
+			changed = true;
+		}
+		if (changed) File.saveBytes(path, bytes);
+		return changed;
+	}
+
 	/** Clears the executable-stack flag on every FMOD .so in the directory. */
 	static function clearExecstack(binDir:String):Void {
 		for (file in FileSystem.readDirectory(binDir)) {
 			if (file.indexOf("libfmod") != 0 || file.indexOf(".so") == -1) continue;
 			var path = Path.join([binDir, file]);
 			if (isSymlink(path)) continue;
-			try {
-				var proc = new sys.io.Process("patchelf", ["--clear-execstack", path]);
-				var code = proc.exitCode();
-				proc.close();
-				if (code == 0) {
-					log('Cleared executable-stack flag on $file');
-				}
-			} catch (e:Dynamic) {
-				log("patchelf not found - skipped execstack clearing (needed on modern kernels). Install patchelf if the game fails to load libfmod.");
-				return;
+			if (clearExecstackFile(path)) {
+				log('Cleared executable-stack flag on $file');
 			}
 		}
 	}

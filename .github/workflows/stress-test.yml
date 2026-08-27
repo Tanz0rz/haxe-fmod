@@ -52,7 +52,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y pulseaudio libasound2-plugins xvfb patchelf \
+          sudo apt-get install -y pulseaudio libasound2-plugins xvfb \
             libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
             libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev libz-dev
 
@@ -174,7 +174,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y valgrind xvfb patchelf \
+          sudo apt-get install -y valgrind xvfb \
             libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
             libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev libz-dev
 
@@ -186,7 +186,6 @@ jobs:
       - name: Patch FMOD libraries
         run: |
           for lib in example-project/EZPlatformer/export/linux*/bin/*.so*; do
-            patchelf --clear-execstack "$lib" 2>/dev/null || true
           done
 
       - name: Run api-probe under valgrind
