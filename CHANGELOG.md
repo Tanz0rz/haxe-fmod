@@ -175,8 +175,11 @@ top. See `MIGRATION.md` for the complete 1.x to 2.0 mapping.
 ### Known limitations
 - HTML5 never delivers `Destroyed` callback events (FMOD JS binding
   limitation). Handler cleanup happens in `release()` on all targets.
-- HTML5 ships FSB-only codecs: loose wav/ogg loading and file-path
-  programmer sounds are native-only. Audio table keys are the HTML5 route.
+- HTML5 ships FSB-only codecs: loose wav/ogg loading is native-only.
+- Programmer sounds are native-only. `assignProgrammerSound` returns
+  `FMOD_ERR_UNSUPPORTED` on HTML5 because FMOD's JS runtime cannot
+  complete the create flow (`tests/js/fmod_ps_glue_repro.html` reproduces
+  the defect with FMOD's own example pattern).
 - List getters return at most 1024 entries and warn when truncated.
 - HTML5 bank loads are always asynchronous (files reach the browser's
   virtual filesystem through a fetch). `IsInitialized()` reports true

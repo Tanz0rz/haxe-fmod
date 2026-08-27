@@ -25,7 +25,9 @@ import haxefmod.studio.Types;
  * the audio-table phase proves the full CREATE/DESTROY resolution from the
  * "hello" key, with channel-group metering as the evidence the key resolved
  * to audio. The music-event block below keeps the armed-but-never-fired
- * plumbing covered too.
+ * plumbing covered too. On html5 assignment reports UNSUPPORTED (an FMOD
+ * glue defect, pinned by tests/js/fmod_ps_glue_repro.html) and the
+ * playback phase is skipped.
  *
  * Select via HAXEFMOD_TEST_STATE=ps-test (native) or ?test=ps-test (HTML5).
  */
@@ -98,7 +100,15 @@ class ProgrammerSoundTestState extends FlxState {
         var instance:EventInstance = desc.createInstance();
         check("create_instance", !instance.isNull(), "");
         var assignResult = instance.assignProgrammerSound("assets/fmod/Jump.wav");
+        #if js
+        // Programmer sounds are unsupported on html5: the FMOD glue defect
+        // pinned by tests/js/fmod_ps_glue_repro.html makes the create flow
+        // stop the event and kill its callback delivery
+        check("ps_assign", assignResult == FmodResult.FMOD_ERR_UNSUPPORTED,
+            'result=${assignResult.toString()}');
+        #else
         check("ps_assign", assignResult.isOk(), 'result=${assignResult.toString()}');
+        #end
         check("evi_start_with_ps_armed", instance.start().isOk(), "");
         check("evi_stop_with_ps_armed", instance.stop(IMMEDIATE).isOk(), "");
         var clearResult = instance.clearProgrammerSound();
@@ -146,6 +156,19 @@ class ProgrammerSoundTestState extends FlxState {
         }
         _atInstance = desc.createInstance();
         check("at_create_instance", !_atInstance.isNull(), "");
+        #if js
+        // The full audio-table playback phase is native-only (see the
+        // ps_assign comment above). The refusal contract is what html5 pins.
+        check("at_assign_unsupported",
+            _atInstance.assignProgrammerSound("hello") == FmodResult.FMOD_ERR_UNSUPPORTED, "");
+        _atInstance.release();
+        StudioSystem.flushCommands();
+        FmodManager.Update();
+        check("no_at_leaks", StudioSystem.liveHandleCount() == _atBaseline,
+            'baseline=$_atBaseline now=${StudioSystem.liveHandleCount()}');
+        finishState();
+        return;
+        #end
         _atInstance.setCallback(data -> {
             switch (data) {
                 case Stopped: _atStopped = true;

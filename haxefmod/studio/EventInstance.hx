@@ -219,6 +219,11 @@ abstract EventInstance(Int) from Int to Int {
      * Assigns the audio-table key (or file path fallback) this instance's
      * programmer instrument should play. The native shim resolves it on the
      * FMOD thread when the instrument triggers. Assign BEFORE start().
+     *
+     * Returns FMOD_ERR_UNSUPPORTED on html5. FMOD's JS runtime cannot
+     * complete the programmer-sound flow (assigning the created sound
+     * stops the event and ends its callback delivery, reproduced with
+     * FMOD's own example pattern in tests/js/fmod_ps_glue_repro.html).
      */
     public inline function assignProgrammerSound(key:String):FmodResult {
         if (key == null) return FmodResult.FMOD_ERR_INVALID_PARAM;

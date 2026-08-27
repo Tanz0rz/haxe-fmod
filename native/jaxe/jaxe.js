@@ -310,7 +310,9 @@ class jaxe {
                     var masterSg = {};
                     jaxe.gSystemCore.getMasterSoundGroup(masterSg);
                     info.exinfo.initialsoundgroup = masterSg.val;
-                    // Audio table entry: decode the FSB slice the info describes
+                    // Audio table entry: decode the FSB slice the info
+                    // describes (blocking - the glue reports NONBLOCKING as
+                    // unsupported)
                     if (jaxe.gSystemCore.createSound(info.name_or_data,
                             (jaxe.FMOD.LOOP_NORMAL | jaxe.FMOD.CREATECOMPRESSEDSAMPLE | info.mode) >>> 0,
                             info.exinfo, soundOut) == jaxe.FMOD.OK) {
@@ -2064,8 +2066,14 @@ class jaxe {
         if (jaxe.utf8ByteLength(key) >= 512) { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
         var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
         if (!inst) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
-        jaxe.psKeys[handle] = key;
-        jaxe.lastResult = inst.setCallback(jaxe.callbackHandler, jaxe.effectiveCallbackMask(handle));
+        // The FMOD html5 glue cannot complete the programmer-sound flow:
+        // handing the created sound back from the create callback stops the
+        // event instantly and ends callback delivery for the instance.
+        // FMOD's own example pattern fails the same way with no haxefmod
+        // code involved (tests/js/fmod_ps_glue_repro.html). Refusing here
+        // keeps the failure visible instead of wedging the event, until an
+        // FMOD SDK fix lands.
+        jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
         return jaxe.lastResult;
     }
 
