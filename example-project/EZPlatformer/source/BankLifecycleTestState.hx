@@ -206,6 +206,80 @@ class BankLifecycleTestState extends FlxState {
                 'baseline=$_errBaseline now=${StudioSystem.liveHandleCount()}');
         }
 
+        startExtrasPhase();
+    }
+
+    var _extrasPath:String;
+    var _extrasBaseline:Int = 0;
+    var _bankCountBefore:Int = 0;
+
+    /**
+     * The second authored bank end to end: Spatial resolves only while
+     * Extras is loaded, the system enumeration reflects it, and unloading
+     * reclaims every handle it minted. Jump lives in BOTH banks, which
+     * also proves a multi-bank event survives one of its banks unloading.
+     */
+    function startExtrasPhase():Void {
+        _extrasPath = FmodRuntime.bankPath("Extras.bank");
+        check("extras_not_loaded_initially", !FmodRuntime.banks.isLoaded(_extrasPath), "");
+        check("spatial_missing_before_load", StudioSystem.getEvent(FmodEvents.SFXSpatial).isNull(),
+            'result=${StudioSystem.lastResult().toString()}');
+        // Jump's description handle survives the Extras unload (the event
+        // stays valid through Master), so warm it before the baseline
+        StudioSystem.getEvent(FmodEvents.SFXJump);
+        _bankCountBefore = StudioSystem.getBankCount();
+        _extrasBaseline = StudioSystem.liveHandleCount();
+        FmodRuntime.banks.load(_extrasPath);
+        enterPhase("extras");
+    }
+
+    function finishExtras(loaded:Bool):Void {
+        check("extras_loaded", loaded, 'frames=$_phaseFrames');
+        check("extras_bank_count_bumped", StudioSystem.getBankCount() == _bankCountBefore + 1,
+            'before=$_bankCountBefore now=${StudioSystem.getBankCount()}');
+        var bank = FmodRuntime.banks.get(_extrasPath);
+        check("extras_bank_valid", !bank.isNull() && bank.isValid(), "");
+        if (!bank.isNull()) {
+            check("extras_event_count", bank.getEventCount() == 2,
+                'count=${bank.getEventCount()}');
+            var events = bank.getEventList();
+            var sawSpatial = false;
+            for (e in events) if (e.getPath() == FmodEvents.SFXSpatial) sawSpatial = true;
+            check("extras_event_list", events.length == 2 && sawSpatial,
+                'count=${events.length} sawSpatial=$sawSpatial');
+        }
+
+        var desc = StudioSystem.getEvent(FmodEvents.SFXSpatial);
+        check("spatial_resolves_after_load", !desc.isNull(), "");
+        check("spatial_is_3d", desc.is3D(), "");
+        // The macro range, not the spatializer override (FMOD reports the
+        // event macros here)
+        var distances = desc.getMinMaxDistance();
+        check("spatial_distance_range", distances != null
+            && distances.min < distances.max && distances.max > 0,
+            distances == null ? "" : 'min=${distances.min} max=${distances.max}');
+
+        var instance = desc.createInstance();
+        check("spatial_instance_starts", !instance.isNull() && instance.start().isOk(), "");
+        check("spatial_instance_live",
+            instance.getPlaybackState() != FmodPlaybackState.STOPPED,
+            'state=${(instance.getPlaybackState() : Int)}');
+        instance.stop(IMMEDIATE);
+        instance.release();
+        StudioSystem.flushCommands();
+        FmodManager.Update();
+
+        check("extras_unload", FmodRuntime.banks.unload(_extrasPath), "");
+        StudioSystem.flushCommands();
+        check("spatial_missing_after_unload", StudioSystem.getEvent(FmodEvents.SFXSpatial).isNull(),
+            'result=${StudioSystem.lastResult().toString()}');
+        check("jump_survives_extras_unload", !StudioSystem.getEvent(FmodEvents.SFXJump).isNull(), "");
+        check("extras_bank_count_restored", StudioSystem.getBankCount() == _bankCountBefore,
+            'now=${StudioSystem.getBankCount()}');
+        FmodManager.Update();
+        check("no_extras_leaks", StudioSystem.liveHandleCount() == _extrasBaseline,
+            'baseline=$_extrasBaseline now=${StudioSystem.liveHandleCount()}');
+
         log('BANK_TEST: COMPLETE passed=$_passCount failed=$_failCount');
         _label.text = 'BANK_TEST complete: $_passCount passed, $_failCount failed';
         _done = true;
@@ -237,6 +311,14 @@ class BankLifecycleTestState extends FlxState {
             if ((missingSettled && concurrentSettled && loaderSettled && _loaderLoaded && syncSettled)
                 || _phaseFrames > 600) {
                 finishErrors();
+            }
+            return;
+        }
+        if (_phase == "extras") {
+            _phaseFrames++;
+            var ready = FmodRuntime.banks.isLoaded(_extrasPath);
+            if (ready || _phaseFrames > 600) {
+                finishExtras(ready);
             }
             return;
         }

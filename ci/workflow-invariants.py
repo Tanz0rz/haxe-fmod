@@ -190,17 +190,20 @@ REQUIRED_STEPS = {
         "Typecheck the flixel no-sound-system variant",
     ],
     "linux-hl-compat": [
+        "Use compat fixture banks",
         "Build HashLink target (expect version mismatch failure)",
         "Test DSP type translation against the 2.02.33 headers",
         "Rebuild HashLink target (custom hdll)",
         "Run api-probe state", "Validate audio", "Validate game log",
     ],
     "mac-hl-compat": [
+        "Use compat fixture banks",
         "Build HashLink target (expect version mismatch failure)",
         "Rebuild HashLink target (custom hdll)",
         "Validate audio", "Validate game log",
     ],
     "windows-hl-compat": [
+        "Use compat fixture banks",
         "Build HashLink target (expect version mismatch failure)",
         "Rebuild HashLink target (custom hdll)",
         "Validate audio", "Validate game log",

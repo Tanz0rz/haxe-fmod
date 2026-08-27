@@ -180,8 +180,8 @@ async function main() {
     expect('sys_get_bank_count', () => jaxe.fmod_sys_get_bank_count(), r => r === 2);
     expect('sys_get_bank_list', () => jaxe.fmod_sys_get_bank_list(ibuf), r => r === 2 && ibuf.slice(0, 2).includes(bank));
 
-    // --- global parameters (bank has none: error paths must be clean) ---
-    expect('sys_get_parameter_description_count', () => jaxe.fmod_sys_get_parameter_description_count(), r => r === 0);
+    // --- global parameters (Intensity and Weather are authored. missing names must still fail clean) ---
+    expect('sys_get_parameter_description_count', () => jaxe.fmod_sys_get_parameter_description_count(), r => r === 2);
     expect('sys_get_param_by_name missing', () => jaxe.fmod_sys_get_param_by_name('nope'), r => r === 0);
     expect('  lastResult nonzero', () => jaxe.fmod_sys_last_result(), r => r !== 0);
     expect('sys_get_param_by_name_final missing', () => jaxe.fmod_sys_get_param_by_name_final('nope'), r => r === 0);
@@ -191,7 +191,7 @@ async function main() {
     expect('sys_get_param_by_id_final missing', () => jaxe.fmod_sys_get_param_by_id_final(1, 2), r => r === 0);
     expect('sys_set_param_by_id missing', () => jaxe.fmod_sys_set_param_by_id(1, 2, 0.5, false), r => r !== 0);
     expect('sys_set_param_by_id_with_label missing', () => jaxe.fmod_sys_set_param_by_id_with_label(1, 2, 'x', false), r => r !== 0);
-    expect('sys_get_parameter_description_by_index bad', () => jaxe.fmod_sys_get_parameter_description_by_index(0, fbuf, ibuf), r => r === '');
+    expect('sys_get_parameter_description_by_index bad', () => jaxe.fmod_sys_get_parameter_description_by_index(99, fbuf, ibuf), r => r === '');
     expect('sys_get_parameter_description_by_name bad', () => jaxe.fmod_sys_get_parameter_description_by_name('nope', fbuf, ibuf), r => r === '');
     expect('sys_get_parameter_label bad', () => jaxe.fmod_sys_get_parameter_label('nope', 0), r => r === '');
 
@@ -246,8 +246,8 @@ async function main() {
     await pump(5);
     expect('bank_get_sample_loading_state', () => jaxe.fmod_bank_get_sample_loading_state(bank), r => r === 3);
     expect('bank_unload_sample_data', () => jaxe.fmod_bank_unload_sample_data(bank), r => r === 0);
-    expect('bank_get_event_count', () => jaxe.fmod_bank_get_event_count(bank), r => r === 3);
-    const nEvents = expect('bank_get_event_list', () => jaxe.fmod_bank_get_event_list(bank, ibuf), r => r === 3);
+    expect('bank_get_event_count', () => jaxe.fmod_bank_get_event_count(bank), r => r === 5);
+    const nEvents = expect('bank_get_event_list', () => jaxe.fmod_bank_get_event_list(bank, ibuf), r => r === 5);
     const eventHandles = ibuf.slice(0, nEvents);
     let sawMainLevel = false;
     for (const eh of eventHandles) {
@@ -261,8 +261,8 @@ async function main() {
     expect('bank_get_bus_count', () => jaxe.fmod_bank_get_bus_count(bank), r => r === 2);
     const nBuses = expect('bank_get_bus_list', () => jaxe.fmod_bank_get_bus_list(bank, ibuf), r => r === 2);
     expect('bus list dedupe vs sys_get_bus', () => ibuf.slice(0, nBuses).includes(h), r => r === true);
-    expect('bank_get_vca_count', () => jaxe.fmod_bank_get_vca_count(bank), r => r === 0);
-    expect('bank_get_vca_list', () => jaxe.fmod_bank_get_vca_list(bank, ibuf), r => r === 0);
+    expect('bank_get_vca_count', () => jaxe.fmod_bank_get_vca_count(bank), r => r === 1);
+    expect('bank_get_vca_list', () => jaxe.fmod_bank_get_vca_list(bank, ibuf), r => r === 1);
 
     const stringsBank = expect('sys_get_bank strings', () => jaxe.fmod_sys_get_bank('bank:/Master.strings'), r => r > 0);
     const nStrings = expect('bank_get_string_count', () => jaxe.fmod_bank_get_string_count(stringsBank), r => r > 0);
@@ -328,11 +328,15 @@ async function main() {
         r => r === pName && ibuf[2] === pid1 && ibuf[3] === pid2);
     expect('evd_get_parameter_description_by_index bad', () => jaxe.fmod_evd_get_parameter_description_by_index(evd, 99, fbuf, ibuf), r => r === '');
     expect('evd_get_parameter_label (param has none)', () => jaxe.fmod_evd_get_parameter_label(evd, pName, 0), r => r === '');
-    expect('evd_get_user_property_count', () => jaxe.fmod_evd_get_user_property_count(evd), r => r === 0);
-    expect('evd_get_user_property_name bad index', () => jaxe.fmod_evd_get_user_property_name(evd, 0), r => r === '');
-    expect('evd_get_user_property_type bad index', () => jaxe.fmod_evd_get_user_property_type(evd, 0), r => r === 0);
-    expect('evd_get_user_property_float bad index', () => jaxe.fmod_evd_get_user_property_float(evd, 0), r => r === 0);
-    expect('evd_get_user_property_string bad index', () => jaxe.fmod_evd_get_user_property_string(evd, 0), r => r === '');
+    expect('evd_get_user_property_count', () => jaxe.fmod_evd_get_user_property_count(evd), r => r === 1);
+    expect('evd_get_user_property_name', () => jaxe.fmod_evd_get_user_property_name(evd, 0), r => r === 'hi');
+    expect('evd_get_user_property_type', () => jaxe.fmod_evd_get_user_property_type(evd, 0), r => r === 3);
+    expect('evd_get_user_property_float string prop', () => jaxe.fmod_evd_get_user_property_float(evd, 0), r => r === 0);
+    expect('evd_get_user_property_string', () => jaxe.fmod_evd_get_user_property_string(evd, 0), r => r === 'this');
+    expect('evd_get_user_property_name bad index', () => jaxe.fmod_evd_get_user_property_name(evd, 9), r => r === '');
+    expect('evd_get_user_property_type bad index', () => jaxe.fmod_evd_get_user_property_type(evd, 9), r => r === 0);
+    expect('evd_get_user_property_float bad index', () => jaxe.fmod_evd_get_user_property_float(evd, 9), r => r === 0);
+    expect('evd_get_user_property_string bad index', () => jaxe.fmod_evd_get_user_property_string(evd, 9), r => r === '');
 
     // invalid evd handle sweep
     expect('evd_is_valid invalid', () => jaxe.fmod_evd_is_valid(BAD), r => r === false);
@@ -489,7 +493,7 @@ async function main() {
     expect('sys_get_bank after unload', () => jaxe.fmod_sys_get_bank('bank:/Master'), r => r === 0);
     const bank2 = expect('sys_load_bank_file blocking', () => jaxe.fmod_sys_load_bank_file('Master.bank', 0), r => r > 0);
     expect('loading state after blocking load', () => jaxe.fmod_bank_get_loading_state(bank2), r => r === 3);
-    expect('event count after reload', () => jaxe.fmod_bank_get_event_count(bank2), r => r === 3);
+    expect('event count after reload', () => jaxe.fmod_bank_get_event_count(bank2), r => r === 5);
     expect('bank_unload again', () => jaxe.fmod_bank_unload(bank2), r => r === 0);
     await pump(5);
     const bank3 = expect('sys_load_bank_file nonblocking', () => jaxe.fmod_sys_load_bank_file('Master.bank', 1), r => r > 0);
@@ -500,7 +504,7 @@ async function main() {
         await pump(2);
     }
     expect('nonblocking load reaches LOADED', () => state, r => r === 3);
-    expect('event count after nonblocking reload', () => jaxe.fmod_bank_get_event_count(bank3), r => r === 3);
+    expect('event count after nonblocking reload', () => jaxe.fmod_bank_get_event_count(bank3), r => r === 5);
     expect('sys_load_bank_file already loaded', () => jaxe.fmod_sys_load_bank_file('Master.bank', 0), r => r === 0);
     expect('  lastResult == 70 already loaded', () => jaxe.fmod_sys_last_result(), r => r === 70);
 
@@ -526,7 +530,7 @@ async function main() {
         await pump(2);
     }
     expect('async load reaches LOADED', () => astate, r => r === 3);
-    expect('event count after async load', () => jaxe.fmod_bank_get_event_count(abank), r => r === 3);
+    expect('event count after async load', () => jaxe.fmod_bank_get_event_count(abank), r => r === 5);
 
     // timeout: never-settling fetch (rejects on abort like the real one)
     // must flip the placeholder to ERROR once ASYNC_FETCH_TIMEOUT_MS passes

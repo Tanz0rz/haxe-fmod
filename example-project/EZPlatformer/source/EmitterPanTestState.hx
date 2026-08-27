@@ -5,6 +5,9 @@ import flixel.FlxSprite;
 import flixel.FlxState;
 import flixel.text.FlxText;
 import flixel.util.FlxColor;
+import haxefmod.core.ChannelGroup;
+import haxefmod.core.Dsp;
+import haxefmod.core.DspType;
 import haxefmod.flixel.FmodFlxEmitter;
 import haxefmod.flixel.FmodFlxListener;
 import haxefmod.runtime.FmodRuntime;
@@ -16,11 +19,12 @@ import haxefmod.studio.Types;
  * CI test state for the flixel attachment components. Logs one "PAN_TEST:"
  * line per check. CI gates on "PAN_TEST: COMPLETE" with no "pass=false".
  *
- * The example bank has no 3D events, so audible stereo panning cannot be
- * validated yet. This state validates the attachment machinery end to end
- * instead: FmodFlxEmitter follows a sprite's midpoint (2D events accept 3D
- * attributes, they just do not pan), detach/release on destroy, and
- * FmodFlxListener driving the listener position.
+ * Validates the attachment machinery end to end (FmodFlxEmitter follows a
+ * sprite's midpoint, detach/release on destroy, FmodFlxListener driving
+ * the listener position) and real spatialization: the 3D Spatial event
+ * from the Extras bank, metered on its channel group, must favor the left
+ * channel while the emitter sits left of the listener and flip when it
+ * moves right.
  *
  * Select via HAXEFMOD_TEST_STATE=pan-test (native) or ?test=pan-test (HTML5).
  */
@@ -321,12 +325,37 @@ class EmitterPanTestState extends FlxState {
                         state == FmodPlaybackState.PLAYING || state == FmodPlaybackState.STARTING,
                         'state=$state');
                     _cullEmitter.destroy();
-                    runCameraListenerChecks();
-                    runParameterTriggerChecks();
-                    // The transition test ends the state: a playing song plus
-                    // TransitionToStateAndStopMusic must fade out and switch
-                    FmodManager.PlaySong(FmodEvents.MusicMainLevel);
-                    enterPhase("transition_switches");
+                    // Reclaim the destroyed emitter's slots before the
+                    // spatial baseline snapshot
+                    StudioSystem.flushCommands();
+                    FmodManager.Update();
+                    _spatialBaseline = StudioSystem.liveHandleCount();
+                    _extrasPath = FmodRuntime.bankPath("Extras.bank");
+                    FmodRuntime.banks.load(_extrasPath);
+                    enterPhase("spatial_load");
+                }
+            case "spatial_load":
+                if (FmodRuntime.banks.isLoaded(_extrasPath) || timedOut) {
+                    check("spatial_extras_loaded", !timedOut, 'frames=$_phaseFrames');
+                    startSpatialEmitter();
+                    enterPhase("spatial_meter_left");
+                }
+            case "spatial_meter_left":
+                trackSpatialPeaks();
+                if (_phaseFrames > 90) {
+                    check("spatial_left_audible", _peakL > 0.01, 'left=$_peakL right=$_peakR');
+                    check("spatial_pans_left", _peakL > _peakR * 1.3, 'left=$_peakL right=$_peakR');
+                    _spatialSprite.x = 310;
+                    _peakL = 0;
+                    _peakR = 0;
+                    enterPhase("spatial_meter_right");
+                }
+            case "spatial_meter_right":
+                // Let the pan ramp settle before tracking fresh maxima
+                if (_phaseFrames > 30) trackSpatialPeaks();
+                if (_phaseFrames > 150) {
+                    check("spatial_pans_right", _peakR > _peakL * 1.3, 'left=$_peakL right=$_peakR');
+                    finishSpatial();
                 }
             case "transition_switches":
                 if (_phaseFrames == 2) {
@@ -341,6 +370,75 @@ class EmitterPanTestState extends FlxState {
                     _done = true;
                 }
         }
+    }
+
+    var _extrasPath:String;
+    var _spatialBaseline:Int = 0;
+    var _spatialSprite:FlxSprite;
+    var _spatialEmitter:FmodFlxEmitter;
+    var _spatialGroup:ChannelGroup = ChannelGroup.NULL;
+    var _spatialMeter:Dsp = Dsp.NULL;
+    var _peakL:Float = 0;
+    var _peakR:Float = 0;
+
+    /**
+     * Plays the looping 3D Spatial event 10 units left of the listener
+     * (which follows the listener sprite's midpoint at 308, 228) and
+     * meters the instance's channel group. The metering DSP sits at the
+     * head of the group's chain, after the spatializer, so its input peaks
+     * are the panned stereo image.
+     */
+    function startSpatialEmitter():Void {
+        _spatialSprite = new FlxSprite(290, 220);
+        _spatialSprite.width = 16;
+        _spatialSprite.height = 16;
+        _spatialEmitter = FmodFlxEmitter.play(FmodEvents.SFXSpatial, _spatialSprite);
+        add(_spatialEmitter);
+        check("spatial_emitter_created", !_spatialEmitter.instance.isNull(), "");
+        FmodManager.Update();
+        StudioSystem.flushCommands();
+        _spatialGroup = _spatialEmitter.instance.getChannelGroup();
+        check("spatial_channel_group", !_spatialGroup.isNull(),
+            'result=${StudioSystem.lastResult().toString()}');
+        _spatialMeter = Dsp.create(DspType.FFT);
+        if (!_spatialGroup.isNull()) {
+            _spatialGroup.addDsp(0, _spatialMeter);
+            // getMetering reads the output meter, so output metering must
+            // be on (the FFT passes audio through unchanged)
+            _spatialMeter.setMeteringEnabled(true, true);
+        }
+        _peakL = 0;
+        _peakR = 0;
+    }
+
+    function trackSpatialPeaks():Void {
+        var metering = _spatialMeter.getMetering();
+        if (metering == null || metering.peak.length < 2) return;
+        if (metering.peak[0] > _peakL) _peakL = metering.peak[0];
+        if (metering.peak[1] > _peakR) _peakR = metering.peak[1];
+    }
+
+    function finishSpatial():Void {
+        _spatialGroup.removeDsp(_spatialMeter);
+        _spatialMeter.release();
+        _spatialEmitter.destroy();
+        // The release-all sweep reclaims the dead group's slot on html5,
+        // and the drain does it on native
+        StudioSystem.getEvent(FmodEvents.SFXSpatial).releaseAllInstances();
+        StudioSystem.flushCommands();
+        FmodManager.Update();
+        FmodRuntime.banks.unload(_extrasPath);
+        StudioSystem.flushCommands();
+        FmodManager.Update();
+        check("no_spatial_leaks", StudioSystem.liveHandleCount() == _spatialBaseline,
+            'baseline=$_spatialBaseline now=${StudioSystem.liveHandleCount()}');
+
+        runCameraListenerChecks();
+        runParameterTriggerChecks();
+        // The transition test ends the state: a playing song plus
+        // TransitionToStateAndStopMusic must fade out and switch
+        FmodManager.PlaySong(FmodEvents.MusicMainLevel);
+        enterPhase("transition_switches");
     }
 
     /**
@@ -396,10 +494,9 @@ class EmitterPanTestState extends FlxState {
     /**
      * A real zone crossing driving a real event parameter through the
      * trigger's instance variant, plus the contract that manual changes
-     * between crossings are not fought over. The project has no authored
-     * GLOBAL parameters (FadeArpIn/HighPass are event-local on the music
-     * event), so the global path keeps only its negative check above -
-     * positive global coverage is authoring-gated (GO-LIVE section 1).
+     * between crossings are not fought over. The global path runs both
+     * ways: the missing-name negative in create(), and a real crossing on
+     * the authored Intensity parameter below.
      */
     function runParameterTriggerChecks():Void {
         var sprite = _listenerSprite; // sits at (300, 220)
@@ -433,6 +530,20 @@ class EmitterPanTestState extends FlxState {
         trigger.destroy();
         zone.put();
         inst.release();
+
+        // Global path with the authored Intensity parameter: a crossing
+        // applies the inside value through StudioSystem
+        var intensityBefore = StudioSystem.getParameter("Intensity");
+        var globalZone = flixel.math.FlxRect.get(250, 150, 200, 200);
+        var globalTrigger = new haxefmod.flixel.FmodFlxParameterTrigger(
+            sprite, globalZone, "Intensity", 1, 0);
+        globalTrigger.update(0); // the sprite sits at (300, 220), inside
+        check("trigger_global_inside_applied",
+            Math.abs(StudioSystem.getParameter("Intensity") - 1) < 0.001,
+            'value=${StudioSystem.getParameter("Intensity")}');
+        globalTrigger.destroy();
+        globalZone.put();
+        StudioSystem.setParameter("Intensity", intensityBefore, true);
     }
 
     override public function update(elapsed:Float):Void {
@@ -440,7 +551,8 @@ class EmitterPanTestState extends FlxState {
         FmodManager.Update();
         if (_phase != "") {
             if (_phase == "util_oneshot_playout" || _phase == "authored_cull_noop"
-                || _phase == "transition_switches") {
+                || _phase == "transition_switches" || _phase == "spatial_load"
+                || _phase == "spatial_meter_left" || _phase == "spatial_meter_right") {
                 stepHardeningPhases();
             } else {
                 stepCullPhases();

@@ -146,7 +146,8 @@ top. See `MIGRATION.md` for the complete 1.x to 2.0 mapping.
   replay long after it finished). Only an instance the emitter itself
   stopped is restarted, `cullCheckInterval` paces the distance checks
   (default every 6 frames), and `cullMaxDistance` overrides the authored
-  distance for events without one.
+  distance. Authored distances apply to 3D events only, so a 2D event is
+  culled only when `cullMaxDistance` is set explicitly.
 
 ### Changed
 - Live Update defaults to on only in debug builds (`-D haxefmod_live_update`

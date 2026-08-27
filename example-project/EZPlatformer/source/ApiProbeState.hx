@@ -55,6 +55,17 @@ class ApiProbeState extends FlxState {
         #end
     }
 
+    // The compat jobs run this probe against banks frozen before the
+    // authored-content round (newer banks do not load on FMOD 2.02.33),
+    // so they opt out of the sections that need that content.
+    static function skipAuthored():Bool {
+        #if sys
+        return Sys.getEnv("HAXEFMOD_PROBE_SKIP_AUTHORED") == "1";
+        #else
+        return false;
+        #end
+    }
+
     function check(name:String, pass:Bool, detail:String):Void {
         if (pass) _passCount++ else _failCount++;
         log('API_PROBE: $name pass=$pass $detail');
@@ -153,6 +164,11 @@ class ApiProbeState extends FlxState {
         probeFlixelBridge();
         probeFocusMute();
         probeHardeningTail();
+        if (skipAuthored()) {
+            info("authored_surface", "skipped (HAXEFMOD_PROBE_SKIP_AUTHORED)");
+        } else {
+            probeAuthoredSurface();
+        }
         _statusLabel = label;
 
         // Channel event delivery is asynchronous: the probe finishes from
@@ -196,9 +212,9 @@ class ApiProbeState extends FlxState {
 
         // By-ID parameter plumbing on the music event's local parameter:
         // set by name, read by ID - the round trip only matches when each
-        // wrapper carries id.data1/data2 in the right order. (The project
-        // has no authored GLOBAL parameters, so the StudioSystem-level
-        // by-ID family stays authoring-gated - GO-LIVE section 1.)
+        // wrapper carries id.data1/data2 in the right order. The
+        // StudioSystem-level by-ID family runs against the global
+        // parameters in probeAuthoredSurface.
         var musicDesc = StudioSystem.getEvent(FmodEvents.MusicMainLevel);
         check("hardening_music_has_parameters", musicDesc.getParameterDescriptionCount() > 0,
             'count=${musicDesc.getParameterDescriptionCount()}');
@@ -279,6 +295,123 @@ class ApiProbeState extends FlxState {
         StudioSystem.flushCommands();
         CallbackDispatcher.update();
         check("no_handle_leaks_hardening", StudioSystem.liveHandleCount() == baseline,
+            'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
+    }
+
+    /**
+     * The authored-content positive paths: the Main VCA, the global
+     * parameter family at StudioSystem level, labeled sets against real
+     * labels, and the user property on the music event. Each of these had
+     * only negative coverage before the project authored the content.
+     */
+    function probeAuthoredSurface():Void {
+        // The VCA lookup mints a persistent dedup handle, so warm it
+        // before the baseline like the bus and event lookups
+        var vca = StudioSystem.getVCA(FmodVCAs.Main);
+        var baseline = StudioSystem.liveHandleCount();
+
+        check("vca_lookup", !vca.isNull() && vca.isValid(),
+            'result=${StudioSystem.lastResult().toString()}');
+        check("vca_get_path", vca.getPath() == FmodVCAs.Main, 'value=${vca.getPath()}');
+        var vcaGuid = vca.getID();
+        check("vca_get_id", vcaGuid.length == 38 && StringTools.startsWith(vcaGuid, "{"),
+            'value=$vcaGuid');
+        check("sys_get_vca_by_id", (StudioSystem.getVCAByID(vcaGuid) : Int) == (vca : Int), "");
+        check("vca_lookup_id", StudioSystem.lookupID(FmodVCAs.Main).toLowerCase()
+            == FmodVCAs.FmodVCAsGuids.Main, 'value=${StudioSystem.lookupID(FmodVCAs.Main)}');
+        check("vca_set_volume", vca.setVolume(0.5).isOk(), "");
+        check("vca_get_volume", Math.abs(vca.getVolume() - 0.5) < 0.001, 'value=${vca.getVolume()}');
+        info("vca_get_final_volume", Std.string(vca.getFinalVolume()));
+        vca.setVolume(1.0);
+        check("vca_volume_restored", Math.abs(vca.getVolume() - 1.0) < 0.001,
+            'value=${vca.getVolume()}');
+
+        // System-level parameter descriptions cover both globals
+        var paramCount = StudioSystem.getParameterDescriptionCount();
+        check("sys_param_description_count", paramCount >= 2, 'count=$paramCount');
+        var sawIntensity = false;
+        var sawWeather = false;
+        for (i in 0...paramCount) {
+            var p = StudioSystem.getParameterDescriptionByIndex(i);
+            if (p == null) continue;
+            if (p.name == "Intensity") sawIntensity = (p.flags & FmodParameterFlags.GLOBAL) != 0;
+            if (p.name == "Weather") sawWeather = (p.flags & FmodParameterFlags.GLOBAL) != 0
+                && (p.flags & FmodParameterFlags.LABELED) != 0;
+        }
+        check("sys_param_enumeration_globals", sawIntensity && sawWeather,
+            'intensity=$sawIntensity weather=$sawWeather');
+
+        // Global continuous parameter round trips by name and by ID
+        var intensity = StudioSystem.getParameterDescriptionByName("Intensity");
+        check("sys_param_desc_by_name", intensity != null,
+            intensity == null ? "" : 'min=${intensity.minimum} max=${intensity.maximum}');
+        if (intensity != null) {
+            check("sys_set_param_by_name", StudioSystem.setParameter("Intensity", intensity.maximum, true).isOk(), "");
+            check("sys_get_param_by_name",
+                Math.abs(StudioSystem.getParameter("Intensity") - intensity.maximum) < 0.001,
+                'value=${StudioSystem.getParameter("Intensity")}');
+            info("sys_get_param_by_name_final", Std.string(StudioSystem.getParameterFinal("Intensity")));
+            var mid = (intensity.minimum + intensity.maximum) / 2;
+            check("sys_set_param_by_id", StudioSystem.setParameterByID(intensity.id, mid, true).isOk(), "");
+            check("sys_get_param_by_id",
+                Math.abs(StudioSystem.getParameterByID(intensity.id) - mid) < 0.001,
+                'value=${StudioSystem.getParameterByID(intensity.id)}');
+            info("sys_get_param_by_id_final", Std.string(StudioSystem.getParameterByIDFinal(intensity.id)));
+            StudioSystem.setParameter("Intensity", intensity.defaultValue, true);
+        }
+
+        // Global labeled parameter: real labels through both set paths
+        var weather = StudioSystem.getParameterDescriptionByName("Weather");
+        check("sys_labeled_param_desc", weather != null, "");
+        if (weather != null) {
+            check("sys_get_parameter_label", StudioSystem.getParameterLabel("Weather", 1) == "Rain",
+                'value=${StudioSystem.getParameterLabel("Weather", 1)}');
+            check("sys_get_parameter_label_by_id",
+                StudioSystem.getParameterLabelByID(weather.id, 2) == "Storm",
+                'value=${StudioSystem.getParameterLabelByID(weather.id, 2)}');
+            check("sys_set_param_with_label",
+                StudioSystem.setParameterWithLabel("Weather", "Rain", true).isOk()
+                && Math.abs(StudioSystem.getParameter("Weather") - 1) < 0.001,
+                'value=${StudioSystem.getParameter("Weather")}');
+            check("sys_set_param_by_id_with_label",
+                StudioSystem.setParameterByIDWithLabel(weather.id, "Storm", true).isOk()
+                && Math.abs(StudioSystem.getParameter("Weather") - 2) < 0.001,
+                'value=${StudioSystem.getParameter("Weather")}');
+            check("sys_label_miss", !StudioSystem.setParameterWithLabel("Weather", "NoSuchLabel").isOk(),
+                'result=${StudioSystem.lastResult().toString()}');
+            StudioSystem.setParameter("Weather", weather.defaultValue, true);
+        }
+
+        // Event-local labeled parameter on the jump event
+        var jumpDesc = StudioSystem.getEvent(FmodEvents.SFXJump);
+        var surface = jumpDesc.getParameterDescriptionByName("Surface");
+        check("evd_labeled_param_desc", surface != null
+            && (surface.flags & FmodParameterFlags.LABELED) != 0
+            && (surface.flags & FmodParameterFlags.GLOBAL) == 0,
+            surface == null ? "" : 'flags=${surface.flags}');
+        check("evd_get_parameter_label", jumpDesc.getParameterLabel("Surface", 2) == "Metal",
+            'value=${jumpDesc.getParameterLabel("Surface", 2)}');
+        var jumpInst = jumpDesc.createInstance();
+        check("evi_set_param_with_label", jumpInst.setParameterWithLabel("Surface", "Stone").isOk()
+            && Math.abs(jumpInst.getParameter("Surface") - 1) < 0.001,
+            'value=${jumpInst.getParameter("Surface")}');
+        jumpInst.release();
+
+        // The authored user property on the music event
+        var musicDesc = StudioSystem.getEvent(FmodEvents.MusicMainLevel);
+        check("evd_user_property_count_authored", musicDesc.getUserPropertyCount() == 1,
+            'count=${musicDesc.getUserPropertyCount()}');
+        var prop = musicDesc.getUserPropertyByName("hi");
+        check("evd_user_property_by_name", prop != null
+            && prop.type == FmodUserPropertyType.STRING && prop.stringValue == "this",
+            prop == null ? "" : 'type=${(prop.type : Int)} value=${prop.stringValue}');
+        var propByIndex = musicDesc.getUserProperty(0);
+        check("evd_user_property_by_index", propByIndex != null && propByIndex.name == "hi",
+            propByIndex == null ? "" : 'name=${propByIndex.name}');
+
+        StudioSystem.flushCommands();
+        CallbackDispatcher.update();
+        check("no_handle_leaks_authored", StudioSystem.liveHandleCount() == baseline,
             'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
     }
 
@@ -527,8 +660,8 @@ class ApiProbeState extends FlxState {
         check("sys_lookup_path", StudioSystem.lookupPath(FmodEvents.FmodEventsGuids.SFXJump)
             == FmodEvents.SFXJump, 'value=${StudioSystem.lookupPath(FmodEvents.FmodEventsGuids.SFXJump)}');
 
-        // VCA surface: nothing is authored, so the miss and the
-        // stale-handle contract are what can be proven
+        // VCA misses and the stale-handle contract. The authored vca:/Main
+        // happy path runs in probeAuthoredSurface.
         var missingVca = StudioSystem.getVCA("vca:/Nope");
         check("sys_get_vca_missing", missingVca.isNull(),
             'result=${StudioSystem.lastResult().toString()}');
@@ -901,6 +1034,68 @@ class ApiProbeState extends FlxState {
             'path=${FmodManager.GetCurrentSongPath()} frames=$_transitionFrames');
         FmodManager.StopSongImmediately();
 
+        if (skipAuthored()) {
+            info("snapshot_phase", "skipped (HAXEFMOD_PROBE_SKIP_AUTHORED)");
+            probeOneShotAttached();
+            return;
+        }
+        probeSnapshot();
+    }
+
+    var _snapshotInstance:EventInstance = EventInstance.NULL;
+    var _snapshotBaseline:Int = 0;
+    var _snapshotFrames:Int = 0;
+    var _snapshotPreVolume:Float = 1.0;
+    var _waitingForSnapshotActive:Bool = false;
+    var _waitingForSnapshotRecovery:Bool = false;
+
+    /**
+     * The Underwater snapshot as a live event instance. It scopes the
+     * master bus volume to -10 dB, so the bus final volume must drop to
+     * about 0.32 while the snapshot plays and recover after it stops.
+     * Async: the intensity ramp and the recovery both take real frames.
+     */
+    function probeSnapshot():Void {
+        // The description lookup mints a persistent dedup handle: warm it
+        // before the baseline
+        var desc = StudioSystem.getEvent(FmodSnapshots.Underwater);
+        _snapshotBaseline = StudioSystem.liveHandleCount();
+        check("snapshot_lookup", !desc.isNull(),
+            'result=${StudioSystem.lastResult().toString()}');
+        check("evd_is_snapshot", desc.isSnapshot(), "");
+        _snapshotPreVolume = StudioSystem.getBus("bus:/").getFinalVolume();
+        _snapshotInstance = desc.createInstance();
+        check("snapshot_create_instance", !_snapshotInstance.isNull(), "");
+        check("snapshot_start", _snapshotInstance.start().isOk(), "");
+        _snapshotFrames = 0;
+        _waitingForSnapshotActive = true;
+    }
+
+    function finishSnapshotActive():Void {
+        var active = StudioSystem.getBus("bus:/").getFinalVolume();
+        // -10 dB is a factor of about 0.316. The band pins the authored
+        // value while leaving room for the ramp's tail.
+        check("snapshot_ducks_master", active > 0.2 && active < 0.45,
+            'value=$active pre=$_snapshotPreVolume frames=$_snapshotFrames');
+        check("snapshot_playing",
+            _snapshotInstance.getPlaybackState() != FmodPlaybackState.STOPPED,
+            'state=${(_snapshotInstance.getPlaybackState() : Int)}');
+        _snapshotInstance.stop(IMMEDIATE);
+        _snapshotFrames = 0;
+        _waitingForSnapshotRecovery = true;
+    }
+
+    function finishSnapshotRecovery():Void {
+        var recovered = StudioSystem.getBus("bus:/").getFinalVolume();
+        check("snapshot_stop_recovers", Math.abs(recovered - _snapshotPreVolume) < 0.1,
+            'value=$recovered pre=$_snapshotPreVolume frames=$_snapshotFrames');
+        _snapshotInstance.release();
+        _snapshotInstance = EventInstance.NULL;
+        StudioSystem.flushCommands();
+        CallbackDispatcher.update();
+        check("no_handle_leaks_snapshot", StudioSystem.liveHandleCount() == _snapshotBaseline,
+            'baseline=$_snapshotBaseline now=${StudioSystem.liveHandleCount()}');
+
         probeOneShotAttached();
     }
 
@@ -1135,11 +1330,12 @@ class ApiProbeState extends FlxState {
             check("bank_events_enumerated", foundEvents, "");
         }
 
-        // VCA (the example project has no VCAs - a missing lookup returns null)
+        // A missing VCA lookup returns null (vca:/Main positives run in
+        // probeAuthoredSurface)
         var vca = StudioSystem.getVCA("vca:/DoesNotExist");
         check("sys_get_vca_missing", vca.isNull(), 'lastResult=${StudioSystem.lastResult().toString()}');
 
-        // Global parameters (none in the example project - count must not crash)
+        // Global parameter positives run in probeAuthoredSurface
         info("sys_parameter_description_count", Std.string(StudioSystem.getParameterDescriptionCount()));
 
         // Listeners
@@ -1646,6 +1842,25 @@ class ApiProbeState extends FlxState {
                     && FmodManager.IsSongPlaying()) || _transitionFrames > 600) {
                 _waitingForTransition = false;
                 finishSongTransition();
+            }
+        }
+        if (_waitingForSnapshotActive) {
+            _snapshotFrames++;
+            var ducked = StudioSystem.getBus("bus:/").getFinalVolume() < 0.45;
+            // The blending ramp is quick. The timeout makes a snapshot that
+            // never ducks fail loudly through the band check instead of
+            // hanging.
+            if (ducked || _snapshotFrames > 600) {
+                _waitingForSnapshotActive = false;
+                finishSnapshotActive();
+            }
+        }
+        if (_waitingForSnapshotRecovery) {
+            _snapshotFrames++;
+            var recovered = Math.abs(StudioSystem.getBus("bus:/").getFinalVolume() - _snapshotPreVolume) < 0.1;
+            if (recovered || _snapshotFrames > 600) {
+                _waitingForSnapshotRecovery = false;
+                finishSnapshotRecovery();
             }
         }
         if (_waitingForOneShot) {

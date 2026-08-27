@@ -47,8 +47,9 @@ class FmodFlxEmitter extends FlxBasic {
 
     /**
         Culling distance override in world units. The default -1 uses the
-        event's authored max distance. A 2D event has no authored distance,
-        so give it an explicit value here to cull it.
+        event's authored max distance and applies only to 3D events. A 2D
+        event is never culled by default, so give it an explicit value
+        here to cull it.
     **/
     public var cullMaxDistance:Float = -1;
 
@@ -56,6 +57,7 @@ class FmodFlxEmitter extends FlxBasic {
     var culled:Bool = false;
     var cullFrameCounter:Int = 0;
     var cullOneshot:Null<Bool> = null;
+    var cull3d:Null<Bool> = null;
 
     /**
         Attaches an existing event instance to a FlxObject. The caller is
@@ -110,11 +112,15 @@ class FmodFlxEmitter extends FlxBasic {
         if (cullOneshot) return;
 
         if (cullMaxDistance < 0) {
+            // Authored distances only gate 3D events. A 2D event still
+            // reports the default macro range from newer bank formats, so
+            // a nonzero max cannot be the test here.
+            if (cull3d == null) cull3d = instance.getDescription().is3D();
+            if (!cull3d) return;
             var minMax = instance.getMinMaxDistance();
             if (minMax == null) return;
             cullMaxDistance = minMax.max;
         }
-        // A 2D event reports max distance 0 - nothing sensible to cull on
         if (cullMaxDistance <= 0) return;
 
         var listener = StudioSystem.getListenerAttributes(listenerIndex);

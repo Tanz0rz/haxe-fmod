@@ -390,6 +390,7 @@ jobs:
         with:
           state: ps-test
           gate: PS_TEST
+          timeout: \"60\"
           bin-dir: example-project/EZPlatformer/export/linux*/bin
           log-file: /tmp/ps-test-linux-cpp.log
           copy-jump-wav: "true"
@@ -400,6 +401,7 @@ jobs:
         with:
           state: bank-test
           gate: BANK_TEST
+          timeout: \"60\"
           bin-dir: example-project/EZPlatformer/export/linux*/bin
           log-file: /tmp/bank-test-linux-cpp.log
 
@@ -409,6 +411,7 @@ jobs:
         with:
           state: pan-test
           gate: PAN_TEST
+          timeout: \"60\"
           bin-dir: example-project/EZPlatformer/export/linux*/bin
           log-file: /tmp/pan-test-linux-cpp.log
 
@@ -698,6 +701,7 @@ jobs:
         with:
           state: ps-test
           gate: PS_TEST
+          timeout: \"60\"
           bin-dir: example-project/EZPlatformer/export/hl/bin
           log-file: /tmp/ps-test-linux-hl.log
           copy-jump-wav: "true"
@@ -708,6 +712,7 @@ jobs:
         with:
           state: bank-test
           gate: BANK_TEST
+          timeout: \"60\"
           bin-dir: example-project/EZPlatformer/export/hl/bin
           log-file: /tmp/bank-test-linux-hl.log
 
@@ -717,6 +722,7 @@ jobs:
         with:
           state: pan-test
           gate: PAN_TEST
+          timeout: \"60\"
           bin-dir: example-project/EZPlatformer/export/hl/bin
           log-file: /tmp/pan-test-linux-hl.log
 
@@ -806,6 +812,11 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
+
+      - name: Use compat fixture banks
+        run: |
+          rm -f example-project/EZPlatformer/assets/fmod/Desktop/*.bank
+          cp tests/fixtures/compat-banks/*.bank example-project/EZPlatformer/assets/fmod/Desktop/
 
       - name: Download FMOD SDK
         uses: ./.github/actions/fmod-sdk
@@ -1001,6 +1012,8 @@ jobs:
       - name: Run api-probe state
         if: ${{ !cancelled() }}
         uses: ./.github/actions/run-test-state
+        env:
+          HAXEFMOD_PROBE_SKIP_AUTHORED: "1"
         with:
           state: api-probe
           gate: API_PROBE
@@ -1673,6 +1686,7 @@ jobs:
         with:
           state: ps-test
           gate: PS_TEST
+          timeout: \"60\"
           bin-dir: ${{ env.APP_BUNDLE }}/Contents/MacOS
           log-file: /tmp/ps-test-mac-cpp.log
           copy-jump-wav: "true"
@@ -1684,6 +1698,7 @@ jobs:
         with:
           state: bank-test
           gate: BANK_TEST
+          timeout: \"60\"
           bin-dir: ${{ env.APP_BUNDLE }}/Contents/MacOS
           log-file: /tmp/bank-test-mac-cpp.log
           use-wavwriter: "true"
@@ -1694,6 +1709,7 @@ jobs:
         with:
           state: pan-test
           gate: PAN_TEST
+          timeout: \"60\"
           bin-dir: ${{ env.APP_BUNDLE }}/Contents/MacOS
           log-file: /tmp/pan-test-mac-cpp.log
           use-wavwriter: "true"
@@ -1913,6 +1929,7 @@ jobs:
         with:
           state: ps-test
           gate: PS_TEST
+          timeout: \"60\"
           bin-dir: ${{ env.APP_BUNDLE }}/Contents/MacOS
           log-file: /tmp/ps-test-mac-hl.log
           copy-jump-wav: "true"
@@ -1924,6 +1941,7 @@ jobs:
         with:
           state: bank-test
           gate: BANK_TEST
+          timeout: \"60\"
           bin-dir: ${{ env.APP_BUNDLE }}/Contents/MacOS
           log-file: /tmp/bank-test-mac-hl.log
           use-wavwriter: "true"
@@ -1934,6 +1952,7 @@ jobs:
         with:
           state: pan-test
           gate: PAN_TEST
+          timeout: \"60\"
           bin-dir: ${{ env.APP_BUNDLE }}/Contents/MacOS
           log-file: /tmp/pan-test-mac-hl.log
           use-wavwriter: "true"
@@ -1964,6 +1983,11 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
+
+      - name: Use compat fixture banks
+        run: |
+          rm -f example-project/EZPlatformer/assets/fmod/Desktop/*.bank
+          cp tests/fixtures/compat-banks/*.bank example-project/EZPlatformer/assets/fmod/Desktop/
 
       - name: Download FMOD SDK
         uses: ./.github/actions/fmod-sdk
@@ -2319,6 +2343,7 @@ jobs:
         with:
           state: ps-test
           gate: PS_TEST
+          timeout: \"60\"
           bin-dir: example-project/EZPlatformer/export/windows*/bin
           log-file: ${{ github.workspace }}/ps-test-windows-cpp.log
           copy-jump-wav: "true"
@@ -2330,6 +2355,7 @@ jobs:
         with:
           state: bank-test
           gate: BANK_TEST
+          timeout: \"60\"
           bin-dir: example-project/EZPlatformer/export/windows*/bin
           log-file: ${{ github.workspace }}/bank-test-windows-cpp.log
           use-wavwriter: "true"
@@ -2340,6 +2366,7 @@ jobs:
         with:
           state: pan-test
           gate: PAN_TEST
+          timeout: \"60\"
           bin-dir: example-project/EZPlatformer/export/windows*/bin
           log-file: ${{ github.workspace }}/pan-test-windows-cpp.log
           use-wavwriter: "true"
@@ -2624,6 +2651,7 @@ jobs:
         with:
           state: ps-test
           gate: PS_TEST
+          timeout: \"60\"
           bin-dir: example-project/EZPlatformer/export/hl/bin
           log-file: ${{ github.workspace }}/ps-test-windows-hl.log
           copy-jump-wav: "true"
@@ -2635,6 +2663,7 @@ jobs:
         with:
           state: bank-test
           gate: BANK_TEST
+          timeout: \"60\"
           bin-dir: example-project/EZPlatformer/export/hl/bin
           log-file: ${{ github.workspace }}/bank-test-windows-hl.log
           use-wavwriter: "true"
@@ -2645,6 +2674,7 @@ jobs:
         with:
           state: pan-test
           gate: PAN_TEST
+          timeout: \"60\"
           bin-dir: example-project/EZPlatformer/export/hl/bin
           log-file: ${{ github.workspace }}/pan-test-windows-hl.log
           use-wavwriter: "true"
@@ -2678,6 +2708,11 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v5
+
+      - name: Use compat fixture banks
+        run: |
+          rm -f example-project/EZPlatformer/assets/fmod/Desktop/*.bank
+          cp tests/fixtures/compat-banks/*.bank example-project/EZPlatformer/assets/fmod/Desktop/
 
       - name: Download FMOD SDK
         uses: ./.github/actions/fmod-sdk
