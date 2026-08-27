@@ -1467,6 +1467,100 @@ jobs:
           fi
           echo "pan-test passed"
 
+      # Second engine for the log-gated states. The FMOD JS glue defects
+      # all surfaced on V8 first, so SpiderMonkey runs the same checks
+      # (Playwright build - stock Firefox lacks its automation hooks).
+      # The WAV audio-capture validation stays chromium-only.
+      - name: Install Playwright Firefox
+        if: ${{ !cancelled() }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/pw"
+          cd "$RUNNER_TEMP/pw"
+          npm init -y > /dev/null
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm install playwright > /dev/null
+          export PLAYWRIGHT_BROWSERS_PATH="$RUNNER_TEMP/pw-browsers"
+          npx playwright install --with-deps firefox
+
+      - name: Run api-probe state (firefox)
+        if: ${{ !cancelled() }}
+        run: |
+          export DISPLAY=:99
+          export NODE_PATH="$RUNNER_TEMP/pw/node_modules"
+          export PLAYWRIGHT_BROWSERS_PATH="$RUNNER_TEMP/pw-browsers"
+          cd example-project/EZPlatformer/export/html5/bin
+          python3 -m http.server 8091 &
+          HTTP_PID=$!
+          sleep 1
+          RC=0
+          node "$GITHUB_WORKSPACE/ci/run-firefox-state.js" \
+            "http://localhost:8091/index.html?test=api-probe" API_PROBE /tmp/api-probe-firefox.log 150 || RC=$?
+          kill $HTTP_PID || true
+          exit $RC
+
+      - name: Run cb-test state (firefox)
+        if: ${{ !cancelled() }}
+        run: |
+          export DISPLAY=:99
+          export NODE_PATH="$RUNNER_TEMP/pw/node_modules"
+          export PLAYWRIGHT_BROWSERS_PATH="$RUNNER_TEMP/pw-browsers"
+          cd example-project/EZPlatformer/export/html5/bin
+          python3 -m http.server 8092 &
+          HTTP_PID=$!
+          sleep 1
+          RC=0
+          node "$GITHUB_WORKSPACE/ci/run-firefox-state.js" \
+            "http://localhost:8092/index.html?test=cb-test" CB_TEST /tmp/cb-test-firefox.log 150 || RC=$?
+          kill $HTTP_PID || true
+          exit $RC
+
+      - name: Run ps-test state (firefox)
+        if: ${{ !cancelled() }}
+        run: |
+          export DISPLAY=:99
+          export NODE_PATH="$RUNNER_TEMP/pw/node_modules"
+          export PLAYWRIGHT_BROWSERS_PATH="$RUNNER_TEMP/pw-browsers"
+          cd example-project/EZPlatformer/export/html5/bin
+          python3 -m http.server 8093 &
+          HTTP_PID=$!
+          sleep 1
+          RC=0
+          node "$GITHUB_WORKSPACE/ci/run-firefox-state.js" \
+            "http://localhost:8093/index.html?test=ps-test" PS_TEST /tmp/ps-test-firefox.log 120 || RC=$?
+          kill $HTTP_PID || true
+          exit $RC
+
+      - name: Run bank-test state (firefox)
+        if: ${{ !cancelled() }}
+        run: |
+          export DISPLAY=:99
+          export NODE_PATH="$RUNNER_TEMP/pw/node_modules"
+          export PLAYWRIGHT_BROWSERS_PATH="$RUNNER_TEMP/pw-browsers"
+          cd example-project/EZPlatformer/export/html5/bin
+          python3 -m http.server 8094 &
+          HTTP_PID=$!
+          sleep 1
+          RC=0
+          node "$GITHUB_WORKSPACE/ci/run-firefox-state.js" \
+            "http://localhost:8094/index.html?test=bank-test" BANK_TEST /tmp/bank-test-firefox.log 120 || RC=$?
+          kill $HTTP_PID || true
+          exit $RC
+
+      - name: Run pan-test state (firefox)
+        if: ${{ !cancelled() }}
+        run: |
+          export DISPLAY=:99
+          export NODE_PATH="$RUNNER_TEMP/pw/node_modules"
+          export PLAYWRIGHT_BROWSERS_PATH="$RUNNER_TEMP/pw-browsers"
+          cd example-project/EZPlatformer/export/html5/bin
+          python3 -m http.server 8095 &
+          HTTP_PID=$!
+          sleep 1
+          RC=0
+          node "$GITHUB_WORKSPACE/ci/run-firefox-state.js" \
+            "http://localhost:8095/index.html?test=pan-test" PAN_TEST /tmp/pan-test-firefox.log 180 || RC=$?
+          kill $HTTP_PID || true
+          exit $RC
+
       # The web-SDK version gate carries this target (the JS shim's
       # numeric tables are version-specific and the wasm exposes no
       # version query): a build against a mismatched FMOD_SDK_WEB has to
@@ -1514,6 +1608,11 @@ jobs:
             /tmp/ps-test-html5.log
             /tmp/bank-test-html5.log
             /tmp/pan-test-html5.log
+            /tmp/api-probe-firefox.log
+            /tmp/cb-test-firefox.log
+            /tmp/ps-test-firefox.log
+            /tmp/bank-test-firefox.log
+            /tmp/pan-test-firefox.log
           if-no-files-found: warn
           overwrite: true
 
