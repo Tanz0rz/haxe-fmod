@@ -1566,7 +1566,7 @@ jobs:
           FMOD_SDK_WEB: ${{ env.FMOD_SDK }}
         run: |
           cd example-project/EZPlatformer
-          haxelib run lime build html5
+          haxelib run lime build html5 -Daudio_test
 
       - name: Start display and audio
         run: |
