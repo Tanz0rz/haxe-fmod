@@ -73,7 +73,7 @@ class FmodManager {
 
     /**
      * Toggles the background auto-update that keeps audio running when the
-     * game loop stalls. On by default. Typed callbacks still only arrive
+     * game loop stalls (on by default). Typed callbacks still only arrive
      * from Update.
      */
     public static function SetAutoUpdate(enabled:Bool):Void {
@@ -367,7 +367,7 @@ class FmodManager {
 
     //// Sound effects
 
-    /** Fire-and-forget playback. No handle to keep, FMOD reclaims the instance. */
+    /** Fire-and-forget playback. */
     public static function PlaySoundOneShot(soundPath:String):Void {
         ensureInitialized();
         log('PlaySoundOneShot $soundPath');
