@@ -3526,7 +3526,10 @@ jobs:
       # The C++ target was previously assert-only from the package (the
       # required-files comment above admitted it) - build it from the
       # installed zip too
+      # The C++ build compiles the whole hxcpp runtime and dominates the
+      # job. Solo-tag debug runs skip it, full builds and tag runs keep it.
       - name: Build C++ target from the installed package
+        if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]')) }}
         run: |
           cd example-project/EZPlatformer
           haxelib run lime build linux -64
