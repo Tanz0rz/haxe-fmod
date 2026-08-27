@@ -78,6 +78,8 @@ The separate flixel-fmod library is fully absorbed by 2.0's `haxefmod.flixel` pa
 1.x loaded the master banks behind the scenes and `unloadBank` was a no-op. 2.0 loads them through a refcounted registry with real unload:
 
 ```haxe
+import haxefmod.runtime.FmodRuntime;
+
 FmodRuntime.banks.load(FmodRuntime.bankPath("SFX.bank"));
 FmodRuntime.banks.unload(FmodRuntime.bankPath("SFX.bank")); // real unload at refcount 0
 ```

@@ -48,7 +48,7 @@ Projects that need C++ builds (so building via `lime build mac`, `lime build win
 
 This library has been tested on games built with the `lime` and `openfl` CLI tools, and should work on any Haxe framework that utilizes the `Project.xml` file for builds.
 
-See [haxe-fmod-test](https://github.com/Tanz0rz/haxe-fmod-test) for a working example of a HaxeFlixel game with this FMOD integration.
+See the [example project](https://github.com/Tanz0rz/haxe-fmod/tree/master/example-project/EZPlatformer) for a working HaxeFlixel game with this FMOD integration.
 
 **1. Add the library to your Haxe project:**
 
@@ -188,7 +188,7 @@ The build log will tell you which one was used.
 
 ## HTML5 Builds
 
-For HTML5 builds to work, a dedicated scene must be run before the game starts to give the FMOD Engine a chance to fully load. See the [example project](https://github.com/Tanz0rz/haxe-fmod-test) for a demonstration of how to handle this. The `Main.hx` file loads the startup scene, the startup scene initializes FMOD and waits for it to report back as initialized, then the game is started.
+For HTML5 builds to work, a dedicated scene must be run before the game starts to give the FMOD Engine a chance to fully load. See [`LoadFmodState.hx`](https://github.com/Tanz0rz/haxe-fmod/blob/master/example-project/EZPlatformer/source/LoadFmodState.hx) in the example project for a demonstration of how to handle this. The `Main.hx` file loads the startup scene, the startup scene initializes FMOD and waits for it to report back as initialized, then the game is started.
 
 ## FMOD Studio Project Configuration
 

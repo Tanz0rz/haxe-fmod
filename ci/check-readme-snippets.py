@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
-"""Compiles the README's ```haxe fences against the real library.
+"""Compiles the ```haxe fences in README.md and MIGRATION.md against the real library.
 
-The README ships in the haxelib package, so its examples have to keep
+Both docs ship in the haxelib package, so their examples have to keep
 compiling as the API moves. Each fence is wrapped in a
 scaffold class with stub identifiers for the game-side names snippets
 reference (FmodEvents constants, flixel hooks, helper functions), then
 type-checked with `haxe --no-output` against the actual haxefmod source,
 so an API change that breaks an example fails CI here.
 
-Run: python3 ci/check-readme-snippets.py
+Run: python3 ci/check-readme-snippets.py [file.md]
+With no argument both docs are checked.
 """
 
 import os
@@ -18,7 +19,8 @@ import sys
 import tempfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-README = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "README.md")
+DOCS = ([sys.argv[1]] if len(sys.argv) > 1
+        else [os.path.join(ROOT, "README.md"), os.path.join(ROOT, "MIGRATION.md")])
 
 SCAFFOLD = """{imports}
 import haxefmod.FmodManager;
@@ -91,18 +93,21 @@ def indent(code, depth):
 
 
 def main():
-    with open(README, encoding="utf-8") as fh:
-        fences = extract_fences(fh.read())
-    if not fences:
-        print("FAIL: no ```haxe fences found in README.md - extraction broken?")
-        return 1
+    fences = []
+    for doc in DOCS:
+        with open(doc, encoding="utf-8") as fh:
+            doc_fences = extract_fences(fh.read())
+        if not doc_fences:
+            print(f"FAIL: no ```haxe fences found in {os.path.basename(doc)} - extraction broken?")
+            return 1
+        fences += [(os.path.basename(doc), fence) for fence in doc_fences]
 
     failures = 0
     with tempfile.TemporaryDirectory(prefix="readme-snippets-") as workdir:
         for name, content in STUB_MODULES.items():
             with open(os.path.join(workdir, name), "w", encoding="utf-8") as out:
                 out.write(content)
-        for index, fence in enumerate(fences):
+        for index, (doc_name, fence) in enumerate(fences):
             header, members, statements = split_snippet(fence.strip())
             # Duplicate scaffold imports are legal in Haxe, keep them all
             source = SCAFFOLD.format(
@@ -118,7 +123,7 @@ def main():
                 capture_output=True, text=True)
             if result.returncode != 0:
                 failures += 1
-                print(f"FAIL: README snippet {index} does not compile:")
+                print(f"FAIL: {doc_name} snippet {index} does not compile:")
                 print("--- snippet ---")
                 print(fence.strip())
                 print("--- compiler ---")
@@ -127,7 +132,7 @@ def main():
     print(f"readme-snippets: {len(fences)} fences, {failures} failing")
     if failures:
         return 1
-    print("readme-snippets: every README example compiles")
+    print("readme-snippets: every doc example compiles")
     return 0
 
 
