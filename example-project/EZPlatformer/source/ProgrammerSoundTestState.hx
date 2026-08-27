@@ -135,13 +135,17 @@ class ProgrammerSoundTestState extends FlxState {
     var _atStopped:Bool = false;
     var _atMaxPeak:Float = 0;
     var _bogusInstance:EventInstance = EventInstance.NULL;
+    // Both audio-table keys run through the full flow. The table holds two
+    // entries, so the second key also exercises a nonzero subsound index.
+    static var AT_KEYS:Array<String> = ["hello", "goodbye"];
+    var _atKeyIndex:Int = 0;
 
     /**
      * The audio-table key route: Speak's async programmer instrument
-     * resolves the "hello" key through the Master bank's audio table. The
-     * create callback fires whether or not the key resolves, so metering
-     * on the instance's channel group is the proof it resolved to real
-     * audio. Async: the event plays its region out (about six seconds).
+     * resolves each key through the Master bank's audio table. The create
+     * callback fires whether or not the key resolves, so metering on the
+     * instance's channel group is the proof it resolved to real audio.
+     * Async: the event plays its region out per key (about six seconds).
      */
     function startAudioTable():Void {
         // The description lookup mints a persistent dedup handle: warm it
@@ -154,8 +158,18 @@ class ProgrammerSoundTestState extends FlxState {
             finishState();
             return;
         }
+        startAudioTableKey();
+    }
+
+    function startAudioTableKey():Void {
+        var desc = StudioSystem.getEvent(FmodEvents.DialogueSpeak);
+        var key = AT_KEYS[_atKeyIndex];
+        _atCreates = 0;
+        _atDestroys = 0;
+        _atStopped = false;
+        _atMaxPeak = 0;
         _atInstance = desc.createInstance();
-        check("at_create_instance", !_atInstance.isNull(), "");
+        check("at_create_instance", !_atInstance.isNull(), 'key=$key');
         #if js
         // The full audio-table playback phase is native-only (see the
         // ps_assign comment above). The refusal contract is what html5 pins.
@@ -179,8 +193,8 @@ class ProgrammerSoundTestState extends FlxState {
             }
         }, EventCallbackType.STOPPED | EventCallbackType.CREATE_PROGRAMMER_SOUND
             | EventCallbackType.DESTROY_PROGRAMMER_SOUND);
-        check("at_assign_key", _atInstance.assignProgrammerSound("hello").isOk(), "");
-        check("at_start", _atInstance.start().isOk(), "");
+        check("at_assign_key", _atInstance.assignProgrammerSound(key).isOk(), 'key=$key');
+        check("at_start", _atInstance.start().isOk(), 'key=$key');
         StudioSystem.flushCommands();
         _atGroup = _atInstance.getChannelGroup();
         check("at_channel_group", !_atGroup.isNull(),
@@ -197,10 +211,11 @@ class ProgrammerSoundTestState extends FlxState {
     }
 
     function finishAudioTable():Void {
-        check("at_stopped_naturally", _atStopped, 'frames=$_atFrames');
-        check("at_create_callback_delivered", _atCreates > 0, 'count=$_atCreates');
-        check("at_destroy_callback_delivered", _atDestroys > 0, 'count=$_atDestroys');
-        check("at_key_resolved_audibly", _atMaxPeak > 0.01, 'peak=$_atMaxPeak');
+        var key = AT_KEYS[_atKeyIndex];
+        check("at_stopped_naturally", _atStopped, 'key=$key frames=$_atFrames');
+        check("at_create_callback_delivered", _atCreates > 0, 'key=$key count=$_atCreates');
+        check("at_destroy_callback_delivered", _atDestroys > 0, 'key=$key count=$_atDestroys');
+        check("at_key_resolved_audibly", _atMaxPeak > 0.01, 'key=$key peak=$_atMaxPeak');
         _atGroup.removeDsp(_atMeter);
         _atMeter.release();
         _atInstance.release();
@@ -209,7 +224,13 @@ class ProgrammerSoundTestState extends FlxState {
         StudioSystem.flushCommands();
         FmodManager.Update();
         check("no_at_leaks", StudioSystem.liveHandleCount() == _atBaseline,
-            'baseline=$_atBaseline now=${StudioSystem.liveHandleCount()}');
+            'key=$key baseline=$_atBaseline now=${StudioSystem.liveHandleCount()}');
+
+        _atKeyIndex++;
+        if (_atKeyIndex < AT_KEYS.length) {
+            startAudioTableKey();
+            return;
+        }
 
         // A well-formed key that matches nothing: the instrument stays
         // silent and the event still plays its region out without wedging

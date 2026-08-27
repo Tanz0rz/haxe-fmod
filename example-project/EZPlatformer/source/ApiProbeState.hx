@@ -397,17 +397,36 @@ class ApiProbeState extends FlxState {
             'value=${jumpInst.getParameter("Surface")}');
         jumpInst.release();
 
-        // The authored user property on the music event
+        // The authored user properties on the music event. FMOD Studio
+        // stores property values untyped and the bank builder infers the
+        // type: numbers build as FLOAT and everything else as STRING, so
+        // both payload channels and the type tag are covered here.
         var musicDesc = StudioSystem.getEvent(FmodEvents.MusicMainLevel);
-        check("evd_user_property_count_authored", musicDesc.getUserPropertyCount() == 1,
+        check("evd_user_property_count_authored", musicDesc.getUserPropertyCount() == 3,
             'count=${musicDesc.getUserPropertyCount()}');
-        var prop = musicDesc.getUserPropertyByName("hi");
-        check("evd_user_property_by_name", prop != null
-            && prop.type == FmodUserPropertyType.STRING && prop.stringValue == "this",
-            prop == null ? "" : 'type=${(prop.type : Int)} value=${prop.stringValue}');
-        var propByIndex = musicDesc.getUserProperty(0);
-        check("evd_user_property_by_index", propByIndex != null && propByIndex.name == "hi",
-            propByIndex == null ? "" : 'name=${propByIndex.name}');
+        var intProp = musicDesc.getUserPropertyByName("probe_int");
+        check("evd_user_property_numeric", intProp != null
+            && intProp.type == FmodUserPropertyType.FLOAT && intProp.floatValue == 42,
+            intProp == null ? "" : 'type=${(intProp.type : Int)} value=${intProp.floatValue}');
+        var floatProp = musicDesc.getUserPropertyByName("probe_float");
+        check("evd_user_property_float", floatProp != null
+            && floatProp.type == FmodUserPropertyType.FLOAT
+            && Math.abs(floatProp.floatValue - 1.5) < 0.001,
+            floatProp == null ? "" : 'type=${(floatProp.type : Int)} value=${floatProp.floatValue}');
+        var boolProp = musicDesc.getUserPropertyByName("probe_bool");
+        check("evd_user_property_string", boolProp != null
+            && boolProp.type == FmodUserPropertyType.STRING && boolProp.stringValue == "true",
+            boolProp == null ? "" : 'type=${(boolProp.type : Int)} value=${boolProp.stringValue}');
+        // String values read as "" on every non-string property
+        check("evd_user_property_string_default", intProp != null && intProp.stringValue == "", "");
+        var sawNames = 0;
+        for (i in 0...musicDesc.getUserPropertyCount()) {
+            var p = musicDesc.getUserProperty(i);
+            if (p != null && (p.name == "probe_int" || p.name == "probe_float" || p.name == "probe_bool")) {
+                sawNames++;
+            }
+        }
+        check("evd_user_property_enumeration", sawNames == 3, 'found=$sawNames');
 
         StudioSystem.flushCommands();
         CallbackDispatcher.update();
@@ -1096,6 +1115,56 @@ class ApiProbeState extends FlxState {
         check("no_handle_leaks_snapshot", StudioSystem.liveHandleCount() == _snapshotBaseline,
             'baseline=$_snapshotBaseline now=${StudioSystem.liveHandleCount()}');
 
+        probeSustain();
+    }
+
+    var _sustainInstance:EventInstance = EventInstance.NULL;
+    var _sustainBaseline:Int = 0;
+    var _sustainFrames:Int = 0;
+    var _waitingForSustainHold:Bool = false;
+    var _waitingForSustainStop:Bool = false;
+
+    /**
+     * The Hold event carries a sustain point near its start: the instance
+     * must reach the SUSTAINING state, keyOff must advance it, and the
+     * event then plays out and stops. Async: both transitions take real
+     * frames.
+     */
+    function probeSustain():Void {
+        // Warm the description lookup before the baseline
+        var desc = StudioSystem.getEvent(FmodEvents.SFXHold);
+        _sustainBaseline = StudioSystem.liveHandleCount();
+        check("sustain_lookup", !desc.isNull(),
+            'result=${StudioSystem.lastResult().toString()}');
+        check("evd_has_sustain_point", desc.hasSustainPoint(), "");
+        _sustainInstance = desc.createInstance();
+        check("sustain_create_instance", !_sustainInstance.isNull(), "");
+        check("sustain_start", _sustainInstance.start().isOk(), "");
+        _sustainFrames = 0;
+        _waitingForSustainHold = true;
+    }
+
+    function finishSustainHold():Void {
+        var state = _sustainInstance.getPlaybackState();
+        check("sustain_holds", state == FmodPlaybackState.SUSTAINING,
+            'state=${(state : Int)} frames=$_sustainFrames');
+        check("evi_key_off", _sustainInstance.keyOff().isOk(),
+            'result=${StudioSystem.lastResult().toString()}');
+        _sustainFrames = 0;
+        _waitingForSustainStop = true;
+    }
+
+    function finishSustainStop():Void {
+        check("sustain_plays_out_after_key_off",
+            _sustainInstance.getPlaybackState() == FmodPlaybackState.STOPPED,
+            'state=${(_sustainInstance.getPlaybackState() : Int)} frames=$_sustainFrames');
+        _sustainInstance.release();
+        _sustainInstance = EventInstance.NULL;
+        StudioSystem.flushCommands();
+        CallbackDispatcher.update();
+        check("no_handle_leaks_sustain", StudioSystem.liveHandleCount() == _sustainBaseline,
+            'baseline=$_sustainBaseline now=${StudioSystem.liveHandleCount()}');
+
         probeOneShotAttached();
     }
 
@@ -1223,7 +1292,8 @@ class ApiProbeState extends FlxState {
         check("evd_get_length", desc.getLength() > 0, 'value=${desc.getLength()}');
         info("evd_is_snapshot", Std.string(desc.isSnapshot()));
         info("evd_is_oneshot", Std.string(desc.isOneshot()));
-        info("evd_is_stream", Std.string(desc.isStream()));
+        // The music asset is authored as streaming
+        check("evd_is_stream", desc.isStream(), "");
         info("evd_is_3d", Std.string(desc.is3D()));
 
         // GUID round trip: path -> GUID -> event -> same handle
@@ -1861,6 +1931,23 @@ class ApiProbeState extends FlxState {
             if (recovered || _snapshotFrames > 600) {
                 _waitingForSnapshotRecovery = false;
                 finishSnapshotRecovery();
+            }
+        }
+        if (_waitingForSustainHold) {
+            _sustainFrames++;
+            var holding = _sustainInstance.getPlaybackState() == FmodPlaybackState.SUSTAINING;
+            // The sustain point sits well under a second in
+            if (holding || _sustainFrames > 600) {
+                _waitingForSustainHold = false;
+                finishSustainHold();
+            }
+        }
+        if (_waitingForSustainStop) {
+            _sustainFrames++;
+            var stopped = _sustainInstance.getPlaybackState() == FmodPlaybackState.STOPPED;
+            if (stopped || _sustainFrames > 600) {
+                _waitingForSustainStop = false;
+                finishSustainStop();
             }
         }
         if (_waitingForOneShot) {

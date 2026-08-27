@@ -255,8 +255,8 @@ async function main() {
     await pump(5);
     expect('bank_get_sample_loading_state', () => jaxe.fmod_bank_get_sample_loading_state(bank), r => r === 3);
     expect('bank_unload_sample_data', () => jaxe.fmod_bank_unload_sample_data(bank), r => r === 0);
-    expect('bank_get_event_count', () => jaxe.fmod_bank_get_event_count(bank), r => r === 5);
-    const nEvents = expect('bank_get_event_list', () => jaxe.fmod_bank_get_event_list(bank, ibuf), r => r === 5);
+    expect('bank_get_event_count', () => jaxe.fmod_bank_get_event_count(bank), r => r === 7);
+    const nEvents = expect('bank_get_event_list', () => jaxe.fmod_bank_get_event_list(bank, ibuf), r => r === 7);
     const eventHandles = ibuf.slice(0, nEvents);
     let sawMainLevel = false;
     for (const eh of eventHandles) {
@@ -337,11 +337,22 @@ async function main() {
         r => r === pName && ibuf[2] === pid1 && ibuf[3] === pid2);
     expect('evd_get_parameter_description_by_index bad', () => jaxe.fmod_evd_get_parameter_description_by_index(evd, 99, fbuf, ibuf), r => r === '');
     expect('evd_get_parameter_label (param has none)', () => jaxe.fmod_evd_get_parameter_label(evd, pName, 0), r => r === '');
-    expect('evd_get_user_property_count', () => jaxe.fmod_evd_get_user_property_count(evd), r => r === 1);
-    expect('evd_get_user_property_name', () => jaxe.fmod_evd_get_user_property_name(evd, 0), r => r === 'hi');
-    expect('evd_get_user_property_type', () => jaxe.fmod_evd_get_user_property_type(evd, 0), r => r === 3);
-    expect('evd_get_user_property_float string prop', () => jaxe.fmod_evd_get_user_property_float(evd, 0), r => r === 0);
-    expect('evd_get_user_property_string', () => jaxe.fmod_evd_get_user_property_string(evd, 0), r => r === 'this');
+    expect('evd_get_user_property_count', () => jaxe.fmod_evd_get_user_property_count(evd), r => r === 3);
+    const props = {};
+    for (let pi = 0; pi < 3; pi++) {
+        const pn = check(`evd_get_user_property_name(${pi})`, () => jaxe.fmod_evd_get_user_property_name(evd, pi));
+        props[pn] = {
+            type: jaxe.fmod_evd_get_user_property_type(evd, pi),
+            float: jaxe.fmod_evd_get_user_property_float(evd, pi),
+            string: jaxe.fmod_evd_get_user_property_string(evd, pi),
+        };
+    }
+    // The bank builder types numeric values as FLOAT(2) and everything
+    // else as STRING(3)
+    expect('user property probe_int', () => props.probe_int, r => r && r.type === 2 && r.float === 42);
+    expect('user property probe_float', () => props.probe_float, r => r && r.type === 2 && r.float === 1.5);
+    expect('user property probe_bool', () => props.probe_bool, r => r && r.type === 3 && r.string === 'true');
+    expect('non-string property reads empty string', () => props.probe_int.string, r => r === '');
     expect('evd_get_user_property_name bad index', () => jaxe.fmod_evd_get_user_property_name(evd, 9), r => r === '');
     expect('evd_get_user_property_type bad index', () => jaxe.fmod_evd_get_user_property_type(evd, 9), r => r === 0);
     expect('evd_get_user_property_float bad index', () => jaxe.fmod_evd_get_user_property_float(evd, 9), r => r === 0);
@@ -502,7 +513,7 @@ async function main() {
     expect('sys_get_bank after unload', () => jaxe.fmod_sys_get_bank('bank:/Master'), r => r === 0);
     const bank2 = expect('sys_load_bank_file blocking', () => jaxe.fmod_sys_load_bank_file('Master.bank', 0), r => r > 0);
     expect('loading state after blocking load', () => jaxe.fmod_bank_get_loading_state(bank2), r => r === 3);
-    expect('event count after reload', () => jaxe.fmod_bank_get_event_count(bank2), r => r === 5);
+    expect('event count after reload', () => jaxe.fmod_bank_get_event_count(bank2), r => r === 7);
     expect('bank_unload again', () => jaxe.fmod_bank_unload(bank2), r => r === 0);
     await pump(5);
     const bank3 = expect('sys_load_bank_file nonblocking', () => jaxe.fmod_sys_load_bank_file('Master.bank', 1), r => r > 0);
@@ -513,7 +524,7 @@ async function main() {
         await pump(2);
     }
     expect('nonblocking load reaches LOADED', () => state, r => r === 3);
-    expect('event count after nonblocking reload', () => jaxe.fmod_bank_get_event_count(bank3), r => r === 5);
+    expect('event count after nonblocking reload', () => jaxe.fmod_bank_get_event_count(bank3), r => r === 7);
     expect('sys_load_bank_file already loaded', () => jaxe.fmod_sys_load_bank_file('Master.bank', 0), r => r === 0);
     expect('  lastResult == 70 already loaded', () => jaxe.fmod_sys_last_result(), r => r === 70);
 
@@ -539,7 +550,7 @@ async function main() {
         await pump(2);
     }
     expect('async load reaches LOADED', () => astate, r => r === 3);
-    expect('event count after async load', () => jaxe.fmod_bank_get_event_count(abank), r => r === 5);
+    expect('event count after async load', () => jaxe.fmod_bank_get_event_count(abank), r => r === 7);
 
     // timeout: never-settling fetch (rejects on abort like the real one)
     // must flip the placeholder to ERROR once ASYNC_FETCH_TIMEOUT_MS passes

@@ -355,6 +355,23 @@ class EmitterPanTestState extends FlxState {
                 if (_phaseFrames > 30) trackSpatialPeaks();
                 if (_phaseFrames > 150) {
                     check("spatial_pans_right", _peakR > _peakL * 1.3, 'left=$_peakL right=$_peakR');
+                    // Doppler is enabled on the event: move the emitter and
+                    // prove playback survives a real velocity
+                    _spatialSprite.velocity.x = 200;
+                    _peakL = 0;
+                    _peakR = 0;
+                    enterPhase("spatial_doppler_motion");
+                }
+            case "spatial_doppler_motion":
+                trackSpatialPeaks();
+                if (_phaseFrames > 60) {
+                    _spatialSprite.velocity.x = 0;
+                    var moving = _spatialEmitter.instance.getPlaybackState();
+                    check("spatial_doppler_motion_plays",
+                        moving == FmodPlaybackState.PLAYING || moving == FmodPlaybackState.STARTING,
+                        'state=$moving');
+                    check("spatial_doppler_motion_audible", _peakL > 0.005 || _peakR > 0.005,
+                        'left=$_peakL right=$_peakR');
                     finishSpatial();
                 }
             case "transition_switches":
@@ -552,7 +569,8 @@ class EmitterPanTestState extends FlxState {
         if (_phase != "") {
             if (_phase == "util_oneshot_playout" || _phase == "authored_cull_noop"
                 || _phase == "transition_switches" || _phase == "spatial_load"
-                || _phase == "spatial_meter_left" || _phase == "spatial_meter_right") {
+                || _phase == "spatial_meter_left" || _phase == "spatial_meter_right"
+                || _phase == "spatial_doppler_motion") {
                 stepHardeningPhases();
             } else {
                 stepCullPhases();

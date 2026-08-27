@@ -23,9 +23,12 @@ import haxefmod.studio.native.NativeStudio;
  * withheld, verifies the overflow flag trips, then proves delivery recovers
  * after a drain and that no instance handles leaked.
  *
+ * Nested flow: plays the Nested event, whose event instrument references
+ * the music event, and gates on NestedTimelineBeat payloads arriving from
+ * the referenced timeline.
+ *
  * CI gates on "CB_TEST: Stopped" and "CB_TEST: COMPLETE" with no
- * "pass=false". Beat and marker lines are informational (they only fire if
- * the FMOD project has tempo markers on the event timeline).
+ * "pass=false".
  *
  * Select via HAXEFMOD_TEST_STATE=cb-test (native) or ?test=cb-test (HTML5).
  */
@@ -48,6 +51,8 @@ class BeatTestState extends FlxState {
     var _eventCount:Int = 0;
     var _beatSeen:Bool = false;
     var _beatTimeSigOk:Bool = false;
+    var _markerSeen:Bool = false;
+    var _markerPosition:Int = -1;
     var _failCount:Int = 0;
     var _passCount:Int = 0;
     var _status:FlxText;
@@ -91,6 +96,10 @@ class BeatTestState extends FlxState {
             switch (data) {
                 case TimelineMarker(name, positionMs):
                     log('CB_TEST: TimelineMarker name=$name position=$positionMs');
+                    if (name == "ProbeMarker") {
+                        _markerSeen = true;
+                        _markerPosition = positionMs;
+                    }
                 case TimelineBeat(bar, beat, positionMs, tempo, timeSigUpper, timeSigLower):
                     log('CB_TEST: TimelineBeat bar=$bar beat=$beat position=$positionMs tempo=$tempo timeSig=$timeSigUpper/$timeSigLower');
                     _beatSeen = true;
@@ -111,6 +120,7 @@ class BeatTestState extends FlxState {
 
         switch (_phase) {
             case 0: updateSongFlow();
+            case 4: updateNestedWait();
             case 1: updateOverflowWait();
             case 2: updateRecoveryWait();
             default: updateDone();
@@ -134,9 +144,56 @@ class BeatTestState extends FlxState {
             // beat must carry the authored time signature
             check("beat_time_signature", _beatSeen && _beatTimeSigOk,
                 'seen=$_beatSeen sigOk=$_beatTimeSigOk');
+            // The song passes its ProbeMarker before the 3-second stop
+            check("marker_delivered", _markerSeen && _markerPosition > 0,
+                'seen=$_markerSeen position=$_markerPosition');
             log('CB_TEST: Song flow done events=$_eventCount');
-            startOverflowPhase();
+            startNestedPhase();
         }
+    }
+
+    var _nestedInstance:EventInstance = EventInstance.NULL;
+    var _nestedBeats:Int = 0;
+    var _nestedTempoOk:Bool = false;
+    var _nestedFrames:Int = 0;
+    var _nestedBaseline:Int = 0;
+
+    // The Nested event's instrument references the music event, so its
+    // tempo arrives through the nested beat payload on the parent instance
+    function startNestedPhase():Void {
+        _status.text = "CB_TEST nested phase";
+        var desc = StudioSystem.getEvent(FmodEvents.MusicNested);
+        _nestedBaseline = StudioSystem.liveHandleCount();
+        check("nested_event_lookup", !desc.isNull(),
+            'result=${StudioSystem.lastResult().toString()}');
+        _nestedInstance = desc.createInstance();
+        _nestedInstance.setCallback(data -> {
+            switch (data) {
+                case NestedTimelineBeat(bar, beat, positionMs, tempo, timeSigUpper, timeSigLower):
+                    log('CB_TEST: NestedTimelineBeat bar=$bar beat=$beat position=$positionMs tempo=$tempo timeSig=$timeSigUpper/$timeSigLower');
+                    _nestedBeats++;
+                    if (tempo > 0 && timeSigUpper > 0 && timeSigLower > 0) _nestedTempoOk = true;
+                default:
+            }
+        }, EventCallbackType.NESTED_TIMELINE_BEAT);
+        _nestedInstance.start();
+        _phase = 4;
+    }
+
+    function updateNestedWait():Void {
+        FmodManager.Update();
+        _nestedFrames++;
+        if (_nestedBeats < 2 && _nestedFrames <= RECOVERY_WAIT_FRAMES) return;
+
+        check("nested_beats_delivered", _nestedBeats >= 2 && _nestedTempoOk,
+            'beats=$_nestedBeats tempoOk=$_nestedTempoOk frames=$_nestedFrames');
+        _nestedInstance.stop(IMMEDIATE);
+        _nestedInstance.release();
+        StudioSystem.flushCommands();
+        FmodManager.Update();
+        check("no_nested_leaks", StudioSystem.liveHandleCount() == _nestedBaseline,
+            'baseline=$_nestedBaseline now=${StudioSystem.liveHandleCount()}');
+        startOverflowPhase();
     }
 
     function startOverflowPhase():Void {

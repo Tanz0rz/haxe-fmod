@@ -252,6 +252,7 @@ class BankLifecycleTestState extends FlxState {
         var desc = StudioSystem.getEvent(FmodEvents.SFXSpatial);
         check("spatial_resolves_after_load", !desc.isNull(), "");
         check("spatial_is_3d", desc.is3D(), "");
+        check("spatial_doppler_enabled", desc.isDopplerEnabled(), "");
         // The macro range, not the spatializer override (FMOD reports the
         // event macros here)
         var distances = desc.getMinMaxDistance();
