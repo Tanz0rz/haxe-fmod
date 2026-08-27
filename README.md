@@ -99,7 +99,7 @@ This allows you to have both your C++/HashLink SDK and HTML5 SDK configured simu
 
 **5. Use the library in code:**
 
-The `FmodManager` class is the friendly way to interact with FMOD in your game: a background song slot plus fire-and-forget and handle-based sound effects. The `FmodEvents` constants used below are generated from your banks (see [FMOD Studio Project Configuration](#fmod-studio-project-configuration)). You can look through all of the available function calls with descriptions [here](https://github.com/Tanz0rz/haxe-fmod/blob/master/haxefmod/FmodManager.hx).
+The FmodManager class is the primary way to interact with FMOD in your game. It abstracts away nearly all of the low-level details of the FMOD API. The `FmodEvents` constants used below are generated from your banks (see [FMOD Studio Project Configuration](#fmod-studio-project-configuration)). You can look through all of the available function calls with descriptions [here](https://github.com/Tanz0rz/haxe-fmod/blob/master/haxefmod/FmodManager.hx).
 
 ```haxe
 public function StartLevel():Void {
@@ -126,8 +126,20 @@ public function OnBeat():Void {
     });
 }
 ```
+The FmodManager class needs to be updated to support the full capabilities of this library, so if it does not allow some functionality you need, you can reach into the deeper FMOD libraries directly:
 
-Call `FmodManager.Update()` once per frame. HaxeFlixel games (flixel 5.9.0 or newer) can call `haxefmod.flixel.FmodFlxSetup.init()` once in their first state instead. It initializes FMOD, adds the `FmodFlxUpdater` plugin so Update runs every frame, and wires the flixel volume keys and sound tray to the FMOD master bus (with the tray's own beep silenced, since FMOD owns the audio now).
+```haxe
+// Escape hatch example: everything FMOD Studio exposes is reachable
+import haxefmod.studio.StudioSystem;
+
+var music = StudioSystem.getBus("bus:/Music");
+music.setVolume(0.5);
+
+var description = StudioSystem.getEvent("event:/Ambience/Forest");
+trace(description.getParameterDescriptionCount());
+```
+
+Make sure to call `FmodManager.Update()` once per frame. HaxeFlixel games (flixel 5.9.0 or newer) can call `haxefmod.flixel.FmodFlxSetup.init()` once in their first state instead. It initializes FMOD, adds the `FmodFlxUpdater` plugin so Update runs every frame, and wires the flixel volume keys and sound tray to the FMOD master bus (with the tray's own beep silenced, since FMOD owns the audio now).
 
 **6. Build and run:**
 
@@ -147,7 +159,7 @@ lime test mac
 
 The officially supported FMOD Engine version is 2.03.12. Other versions **may work fine**, but I have not tested them.
 
-Importantly, this library comes pre-bundled with HashLink binaries (hdlls) for FMOD Engine version 2.03.12.
+This library comes pre-bundled with HashLink binaries (hdlls) for FMOD Engine version 2.03.12.
 
 If you use a different FMOD Engine version and want HashLink builds, you **must** compile the hdll for your platform from source against your installed version of the FMOD Engine:
 
@@ -175,7 +187,7 @@ At build time, `lime test hl` uses a tiered fallback to find the right hdll:
 
 The build log will tell you which one was used.
 
-C++ and HTML5 targets do not rely on the hdll and will work with any FMOD version (although they will warn if you use anything other than 2.03.12).
+C++ and HTML5 targets do not rely on the hdll and should work with any FMOD version (although they will warn if you use anything other than 2.03.12).
 
 ## HTML5 Builds
 

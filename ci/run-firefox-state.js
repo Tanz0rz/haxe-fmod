@@ -28,9 +28,11 @@ async function main() {
     });
     const page = await browser.newPage({ viewport: { width: 640, height: 480 } });
     const lines = [];
+    const allMessages = [];
     let done = false;
     page.on('console', msg => {
         const text = msg.text();
+        if (allMessages.length < 2000) allMessages.push(text);
         if (text.startsWith(gate + ':')) {
             lines.push(text);
             console.log(text);
@@ -41,6 +43,10 @@ async function main() {
         lines.push(gate + ': PAGEERROR ' + String(err).slice(0, 200));
         console.log(lines[lines.length - 1]);
     });
+    page.on('crash', () => {
+        lines.push(gate + ': PAGEERROR page crashed');
+        console.log(lines[lines.length - 1]);
+    });
 
     await page.goto(url);
     // jaxe installs its audio resume handler when the FMOD module
@@ -48,8 +54,12 @@ async function main() {
     // that. Firefox keeps the AudioContext suspended until a real
     // gesture reaches the handler (the chromium steps sidestep this with
     // the autoplay flag).
-    await page.waitForFunction('window.jaxe && jaxe.FmodIsInitialized === true',
-        null, { timeout: 60000 }).catch(() => {});
+    let initSeen = true;
+    // jaxe is a top-level class declaration, so it is a bare global and
+    // never lands on window
+    await page.waitForFunction("typeof jaxe !== 'undefined' && jaxe.FmodIsInitialized === true",
+        null, { timeout: 60000 }).catch(() => { initSeen = false; });
+    console.log(`runner: init wait ${initSeen ? 'resolved' : 'TIMED OUT after 60s'}`);
     await page.mouse.click(320, 240);
     await new Promise(r => setTimeout(r, 1000));
     await page.mouse.click(320, 240);
@@ -57,6 +67,19 @@ async function main() {
     const start = Date.now();
     while (!done && Date.now() - start < timeoutMs) {
         await new Promise(r => setTimeout(r, 500));
+    }
+
+    // Diagnostics for runs that never produce gate lines
+    const pageState = await page.evaluate(`({
+        jaxe: typeof jaxe,
+        init: typeof jaxe !== 'undefined' && !!jaxe.FmodIsInitialized,
+        resumed: typeof jaxe !== 'undefined' && !!jaxe.gAudioResumed,
+    })`).catch(e => ({ evalError: String(e).slice(0, 120) }));
+    console.log('runner: page state ' + JSON.stringify(pageState));
+    console.log(`runner: captured ${allMessages.length} console messages, ${lines.length} gate messages`);
+    if (lines.length === 0 && allMessages.length > 0) {
+        console.log('runner: first console messages:');
+        for (const m of allMessages.slice(0, 10)) console.log('  | ' + m.slice(0, 160));
     }
     await browser.close();
 
