@@ -167,15 +167,19 @@ class BeatTestState extends FlxState {
         check("nested_event_lookup", !desc.isNull(),
             'result=${StudioSystem.lastResult().toString()}');
         _nestedInstance = desc.createInstance();
+        // The full mask, with every delivery logged: which type the
+        // parent's referenced-event beats arrive under is itself under
+        // test (a browser glue can misroute them)
         _nestedInstance.setCallback(data -> {
             switch (data) {
                 case NestedTimelineBeat(bar, beat, positionMs, tempo, timeSigUpper, timeSigLower):
-                    log('CB_TEST: NestedTimelineBeat bar=$bar beat=$beat position=$positionMs tempo=$tempo timeSig=$timeSigUpper/$timeSigLower');
+                    log('CB_TEST: nested-phase NestedTimelineBeat bar=$bar beat=$beat position=$positionMs tempo=$tempo timeSig=$timeSigUpper/$timeSigLower');
                     _nestedBeats++;
                     if (tempo > 0 && timeSigUpper > 0 && timeSigLower > 0) _nestedTempoOk = true;
-                default:
+                case other:
+                    log('CB_TEST: nested-phase $other');
             }
-        }, EventCallbackType.NESTED_TIMELINE_BEAT);
+        }, EventCallbackType.PLAYBACK_ALL);
         _nestedInstance.start();
         _phase = 4;
     }
