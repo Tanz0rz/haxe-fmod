@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<objects serializationModel="Studio.02.03.00">
+	<object class="ParameterPreset" id="{d00b24c2-fd90-4d10-9f67-22021857cbe9}">
+		<property name="name">
+			<value>Weather</value>
+		</property>
+		<relationship name="folder">
+			<destination>{4337d17c-d764-45e1-8f8d-caa81f6298a2}</destination>
+		</relationship>
+		<relationship name="parameter">
+			<destination>{f0259f0e-e5e1-49b8-9b8c-2b5d43c21dc7}</destination>
+		</relationship>
+	</object>
+	<object class="GameParameter" id="{f0259f0e-e5e1-49b8-9b8c-2b5d43c21dc7}">
+		<property name="parameterType">
+			<value>2</value>
+		</property>
+		<property name="maximum">
+			<value>3</value>
+		</property>
+		<property name="enumerationLabels">
+			<value>Clear</value>
+			<value>Rain</value>
+			<value>Storm</value>
+		</property>
+		<property name="isGlobal">
+			<value>true</value>
+		</property>
+		<property name="initialValue">
+			<value>0</value>
+		</property>
+		<property name="isExposedRecursively">
+			<value>false</value>
+		</property>
+	</object>
+</objects>

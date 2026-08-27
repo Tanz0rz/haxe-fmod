@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<objects serializationModel="Studio.02.00.00">
+<objects serializationModel="Studio.02.03.00">
 	<object class="ParameterPreset" id="{cc83f2a8-4f29-4a96-b6a4-3a9fd43f1f0f}">
 		<property name="name">
 			<value>FadeArpIn</value>
@@ -18,7 +18,18 @@
 		<property name="velocity">
 			<value>-0.15999999642372131</value>
 		</property>
-		<property name="seekSpeed">
+		<relationship name="modulators">
+			<destination>{3d100ea2-3fc1-4b4b-bbf7-85bf68f3b825}</destination>
+		</relationship>
+	</object>
+	<object class="SeekModulator" id="{3d100ea2-3fc1-4b4b-bbf7-85bf68f3b825}">
+		<property name="nameOfPropertyBeingModulated">
+			<value>cursorPosition</value>
+		</property>
+		<property name="clockSource">
+			<value>1</value>
+		</property>
+		<property name="speedAscending">
 			<value>0.97000008821487427</value>
 		</property>
 	</object>

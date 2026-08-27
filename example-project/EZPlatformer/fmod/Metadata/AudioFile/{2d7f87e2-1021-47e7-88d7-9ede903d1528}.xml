@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<objects serializationModel="Studio.02.00.00">
+<objects serializationModel="Studio.02.03.00">
 	<object class="AudioFile" id="{2d7f87e2-1021-47e7-88d7-9ede903d1528}">
 		<property name="assetPath">
 			<value>Arp.ogg</value>

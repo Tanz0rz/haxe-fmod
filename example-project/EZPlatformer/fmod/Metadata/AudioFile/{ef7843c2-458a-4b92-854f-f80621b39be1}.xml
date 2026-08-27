@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<objects serializationModel="Studio.02.00.00">
+<objects serializationModel="Studio.02.03.00">
 	<object class="AudioFile" id="{ef7843c2-458a-4b92-854f-f80621b39be1}">
 		<property name="assetPath">
 			<value>Coin3.wav</value>
