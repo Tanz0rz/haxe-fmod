@@ -71,7 +71,7 @@ The separate flixel-fmod library is fully absorbed by 2.0's `haxefmod.flixel` pa
 - `PlaySongTransition` with nothing playing now starts the song immediately (1.x silently did nothing until a song existed).
 - Switching songs with `PlaySong` now releases the previous song instance (1.x deliberately leaked it to work around an html5 issue that is fixed in 2.0).
 - Song/sound callbacks registered through the removed `Register*` APIs fired at most once per frame. Typed handlers fire once per event.
-- html5: `Destroyed` events are not delivered (an FMOD JS binding limitation). Handler cleanup happens in `release()` instead.
+- html5: `Destroyed` events are not delivered (an FMOD JS binding limitation). Handler cleanup happens in `release()` instead. The other platform differences that ship with 2.0 are documented in `LIMITATIONS.md`.
 
 ## Bank loading
 
