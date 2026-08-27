@@ -51,7 +51,7 @@ The separate flixel-fmod library is fully absorbed by 2.0's `haxefmod.flixel` pa
 | `FlxFmod.stopMusicAndSwitchState(state)` | `haxefmod.flixel.FmodFlxUtilities.TransitionToStateAndStopMusic(state)` |
 | Hand-rolled sound tray / volume wiring | Covered by `FmodFlxSetup.init()` |
 
-`FmodFlxSetup.init()` covers everything the old `Init()` did (FMOD initialization, per-frame update plugin, `FlxG.sound` volume routed to the FMOD master bus, silenced sound tray beep) and also routes mute to the master bus mute flag, which flixel-fmod never did. It is safe to combine with an earlier `FmodManager.Initialize()` call (for example in an html5 preloader): initialization is guarded and the second call is a no-op.
+`FmodFlxSetup.init()` covers everything the old `Init()` did (FMOD initialization, per-frame update plugin, `FlxG.sound` volume routed to the FMOD master bus, silenced sound tray beep) and also routes mute to the master bus mute flag, which flixel-fmod never did. It requires flixel 5.9.0 or newer. It is safe to combine with an earlier `FmodManager.Initialize()` call (for example in an html5 preloader): initialization is guarded and the second call is a no-op.
 
 ### Master volume aliases
 
@@ -92,10 +92,6 @@ The old single-file `FmodConstants.hx` output is gone. Rename references using t
 
 The export also emits `FmodEventEnum.hx`: a `FmodEventEnum` enum covering every event, with values named like the `FmodEvents` constants and `path()`/`guid()` mappers back to the strings. It suits switch statements and LDtk external enums. Ignore the file if you never need that.
 
-## New in 2.0 (no 1.x equivalent)
+## Everything else 2.0 adds
 
-- `haxefmod.flixel.FmodFlxSetup.init()`: one-call HaxeFlixel setup that initializes FMOD, adds the update plugin, routes `FlxG.sound` volume and mute (the volume keys and the sound tray) to the FMOD master bus, and silences the sound tray's own beep. Replaces the hand-rolled sound tray and volume wiring that flixel-fmod-era projects carried. Requires flixel 5.9.0 or newer.
-- Full Studio API: `StudioSystem.getEvent/getBus/getVCA/getBank`, GUID lookups, global parameters, labeled parameters, profiling.
-- 3D: `FmodFlxEmitter`, `FmodFlxListener`, `FmodRuntime.attach`, `EventInstance.setPosition2D`, multi-listener support.
-- Programmer sounds (native targets): `instance.assignProgrammerSound(key)` resolves audio-table keys or file paths on the FMOD thread. HTML5 reports `FMOD_ERR_UNSUPPORTED` (see `LIMITATIONS.md`).
-- `FmodFlxBankLoader`, `FmodFlxParameterTrigger` components.
+Features with no 1.x equivalent need no migration. The CHANGELOG's 2.0.0 section lists them all, and `LIMITATIONS.md` covers what the library deliberately leaves out.
