@@ -82,7 +82,7 @@ class PlayState extends FlxState {
             _startDelay += elapsed;
             if (_startDelay >= 1.0 || FlxG.keys.justPressed.ENTER) {
                 _started = true;
-                _prompt.text = "Song parameters";
+                _prompt.text = "Grab the coin to bring in the arp";
                 _player.velocity.x = 40;
             }
         }

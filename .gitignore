@@ -21,8 +21,8 @@ haxe-fmod.zip
 # Generated code
 *raw.js
 
-# C++
-/faxe/obj/
+# Python bytecode
+__pycache__/
 
 # FMOD SDK (users supply their own via $FMOD_SDK)
 /lib/

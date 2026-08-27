@@ -11,7 +11,7 @@ import haxefmod.studio.native.NativeStudio;
  * for the same bank. It is only unloaded when the last reference is
  * released. Async loads go through FMOD's NONBLOCKING flag (native) or a
  * fetch into the virtual filesystem (html5) - poll loadingState or check
- * isReady.
+ * isLoaded.
  */
 class BankRegistry {
     var banks:Map<String, {bank:Bank, refs:Int}> = new Map();

@@ -1,7 +1,7 @@
 package haxefmod.runtime;
 
 /**
- * Settings for FmodRuntime.init. Every field is optional. unset fields fall
+ * Settings for FmodRuntime.init. Every field is optional. Unset fields fall
  * back to compile-time defines, then to the built-in defaults.
  *
  * Compile-time defines (project.xml <haxedef/> or -D):
@@ -9,6 +9,7 @@ package haxefmod.runtime;
  *   -D haxefmod_sample_rate=48000
  *   -D haxefmod_live_update        (force live update ON in any build)
  *   -D haxefmod_no_live_update     (force live update OFF in any build)
+ *   -D haxefmod_no_mute_when_unfocused  (keep audio playing when unfocused)
  *   -D haxefmod_bank_folder=assets/fmod/Desktop
  *   -D haxefmod_log_level=2
  */

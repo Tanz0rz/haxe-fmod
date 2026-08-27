@@ -98,16 +98,16 @@ def main():
         with open(doc, encoding="utf-8") as fh:
             doc_fences = extract_fences(fh.read())
         if not doc_fences:
-            print(f"FAIL: no ```haxe fences found in {os.path.basename(doc)} - extraction broken?")
+            print(f"FAIL: no ```haxe fences found in {os.path.basename(doc)} - drop it from DOCS if the doc genuinely has no examples")
             return 1
-        fences += [(os.path.basename(doc), fence) for fence in doc_fences]
+        fences += [(os.path.basename(doc), i + 1, fence) for i, fence in enumerate(doc_fences)]
 
     failures = 0
     with tempfile.TemporaryDirectory(prefix="readme-snippets-") as workdir:
         for name, content in STUB_MODULES.items():
             with open(os.path.join(workdir, name), "w", encoding="utf-8") as out:
                 out.write(content)
-        for index, (doc_name, fence) in enumerate(fences):
+        for index, (doc_name, doc_index, fence) in enumerate(fences):
             header, members, statements = split_snippet(fence.strip())
             # Duplicate scaffold imports are legal in Haxe, keep them all
             source = SCAFFOLD.format(
@@ -123,7 +123,7 @@ def main():
                 capture_output=True, text=True)
             if result.returncode != 0:
                 failures += 1
-                print(f"FAIL: {doc_name} snippet {index} does not compile:")
+                print(f"FAIL: {doc_name} fence {doc_index} does not compile:")
                 print("--- snippet ---")
                 print(fence.strip())
                 print("--- compiler ---")

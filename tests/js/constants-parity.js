@@ -23,14 +23,24 @@ if (!cliDir) {
 // The fixture bank's full entry set (runtime-verified against FMOD's own
 // string table enumeration. Also asserted by TestStringsBankParser)
 const FIXTURE_ENTRIES = [
+    { path: 'event:/Music/Nested', guid: '{0225c47b-e69f-4785-b89c-fd321387934a}' },
     { path: 'bus:/Reverb', guid: '{1a13f11e-eecf-4c3c-b353-79423771ced9}' },
     { path: 'parameter:/FadeArpIn', guid: '{293aa1ce-c07e-4cc2-bc41-7a082a62b7fa}' },
+    { path: 'bank:/Extras', guid: '{2e34b84a-be93-4215-87db-9f769538a3a9}' },
+    { path: 'parameter:/Intensity', guid: '{32a683ae-bc3b-4276-9aa5-66bd02a9f726}' },
     { path: 'event:/SFX/Jump', guid: '{4562f533-1e6b-4ce9-a40a-814283edde66}' },
     { path: 'parameter:/HighPass', guid: '{4e75eb97-ff6c-459d-a75b-0576603fe118}' },
     { path: 'bank:/Master.strings', guid: '{66f6c0e2-d897-0a5b-0d20-44f9abca2481}' },
     { path: 'event:/SFX/Coin', guid: '{6c656399-97f5-432f-9817-c10c8c56939d}' },
+    { path: 'event:/SFX/Hold', guid: '{7017c63e-0e17-4e41-8580-0ec9681304b4}' },
     { path: 'bus:/', guid: '{7A6E2E04-9CA1-4DC4-9DF2-20F23D4A9D52}' },
+    { path: 'event:/SFX/Spatial', guid: '{82396b6b-8474-4dd9-8fd7-5f623ec827fa}' },
+    { path: 'parameter:/Surface', guid: '{a350f6cb-737b-4164-b688-240a6fcbbee8}' },
+    { path: 'vca:/Main', guid: '{c423b829-1850-408b-a341-f00553b5208e}' },
+    { path: 'event:/Dialogue/Speak', guid: '{d166c4dc-4c88-4f5d-a1e6-95aaf0d29747}' },
     { path: 'event:/Music/MainLevel', guid: '{e5187c3f-0517-463e-b458-de9ef1a9f750}' },
+    { path: 'snapshot:/Underwater', guid: '{e7147ce0-34fa-422f-b7b0-d9274b7d4d03}' },
+    { path: 'parameter:/Weather', guid: '{f0259f0e-e5e1-49b8-9b8c-2b5d43c21dc7}' },
     { path: 'bank:/Master', guid: '{feebe036-a9ec-4619-8b69-ce075a392219}' },
 ];
 

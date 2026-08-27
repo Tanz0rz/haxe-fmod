@@ -42,7 +42,7 @@ jobs:
             --strings tests/fixtures/Master.strings.bank --out /tmp/gen-cli
           node tests/js/constants-parity.js /tmp/gen-cli
           # The generated output must also compile
-          haxe -cp /tmp/gen-cli --no-output FmodEvents FmodBuses FmodParameters FmodEventEnum
+          haxe -cp /tmp/gen-cli --no-output FmodEvents FmodBuses FmodVCAs FmodSnapshots FmodParameters FmodEventEnum
 
       - name: Todo scanner end to end
         run: |
@@ -1470,7 +1470,7 @@ jobs:
           export DISPLAY=:99
 
           cd example-project/EZPlatformer/export/html5/bin
-          python3 -m http.server 8086 &
+          python3 -m http.server 8087 &
           HTTP_PID=$!
           sleep 1
 
@@ -1481,7 +1481,7 @@ jobs:
             --enable-logging=stderr --v=0 \
             --window-size=640,480 \
             --window-position=0,0 \
-            "http://localhost:8086/index.html?test=pan-test" > /tmp/pan-test-raw.log 2>&1 &
+            "http://localhost:8087/index.html?test=pan-test" > /tmp/pan-test-raw.log 2>&1 &
           CHROME_PID=$!
           sleep 3
 

@@ -20,8 +20,9 @@ import sys.io.File;
  * every event, with values named exactly like the FmodEvents constants,
  * plus FmodEventTools.path() and guid() mappers (usable as static
  * extensions). Projects that never touch the enums can ignore the file -
- * unused mappers are stripped by dead code elimination. Plain enums suit switch statements and
- * external tools that import Haxe enums (LDtk external enums, for example).
+ * unused mappers are stripped by dead code elimination. Plain enums suit
+ * switch statements and external tools that import Haxe enums (LDtk
+ * external enums, for example).
  *
  * Each file holds the path constants plus a companion class with the
  * matching GUIDs under the same identifiers, so autocomplete on the main

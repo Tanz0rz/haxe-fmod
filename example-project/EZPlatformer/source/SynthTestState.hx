@@ -12,7 +12,7 @@ import haxefmod.core.PcmStream;
 /**
  * CI test state proving Haxe-generated PCM reaches the audio output.
  *
- * Plays three tone segments through PcmStream so the recording can be
+ * Plays six tone segments through PcmStream so the recording can be
  * frequency-gated by ci/audio-profile.py --synth:
  *   Segment 1: 4s of a 440Hz sine
  *   Segment 2: 4s of an 880Hz sine

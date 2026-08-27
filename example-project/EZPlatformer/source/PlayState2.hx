@@ -64,14 +64,11 @@ class PlayState2 extends FlxState {
             _jumped = true;
         }
 
-        // Exit at the far right wall so CI captures end with the demo.
-        // Normal builds keep the window open.
+        // The wavwriter CI runs need the process to exit at the far right
+        // wall so the capture ends with the demo. Normal builds keep the
+        // window open.
         #if sys
-        var ciExit = Sys.getEnv("FMOD_WAVWRITER") != null;
-        #if audio_test
-        ciExit = true;
-        #end
-        if (ciExit && _player.x >= 38 * 8 && _player.isTouching(FlxDirectionFlags.RIGHT)) {
+        if (Sys.getEnv("FMOD_WAVWRITER") != null && _player.x >= 38 * 8 && _player.isTouching(FlxDirectionFlags.RIGHT)) {
             Sys.exit(0);
         }
         #end

@@ -16,7 +16,6 @@ class FmodFlxUtilities {
         FmodManager.Update() every frame to deliver the stop event.
         @param state the state to load after the music stops (either a
         constructor like PlayState.new or a FlxState instance)
-        @see https://tanneris.me/FMOD-AHDSR
     **/
     public static function TransitionToStateAndStopMusic(state:NextState):Void {
         if (!FmodManager.IsSongPlaying()) {
