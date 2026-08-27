@@ -205,7 +205,7 @@ Live update can be activated in three ways:
 
 1. Adding it to the initilization config in Haxe: 
 ```haxe
-FmodManager.Initialize({liveUpdate: true})
+FmodManager.Initialize({liveUpdate: true});
 ```
 2. Adding the `haxefmod_live_update` flag to your build command
 3. Debug builds have this on by default
@@ -228,10 +228,10 @@ Use the constants as a clean substitution for full FMOD Studio event paths:
 
 ```haxe
 FmodManager.PlaySong(FmodEvents.MusicMainLevel);
-FmodManager.PlaySong("event:/Music/MainLevel"); # non-constant variant
+FmodManager.PlaySong("event:/Music/MainLevel"); // non-constant variant
 
 FmodManager.PlaySoundOneShot(FmodEvents.SFXCoin);
-FmodManager.PlaySoundOneShot("event:/SFX/Coin"); # non-constant variant
+FmodManager.PlaySoundOneShot("event:/SFX/Coin"); // non-constant variant
 ```
 
 #### Setup
