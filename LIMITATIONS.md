@@ -49,6 +49,12 @@ differences from the native engine.
   path and `Destroyed` cannot be delivered. Handler cleanup happens in
   `release()` on every target, so code that cleans up there behaves
   identically everywhere.
+- **Numeric user properties are unreadable.** Reading an INTEGER,
+  BOOLEAN, or FLOAT typed user property crashes FMOD's JS runtime (the
+  repro is `tests/js/fmod_userprop_glue_repro.html`), so the binding
+  reports `FMOD_ERR_UNSUPPORTED` for them on HTML5. String properties
+  read correctly, and FMOD Studio builds every property value it cannot
+  parse as a number as a string anyway.
 - **Microphone recording reports zero drivers** until the browser's
   permission prompt is granted, and the recording API is not exposed
   (see the next section).
@@ -126,11 +132,14 @@ because they conflict with how the binding keeps every target stable.
 
 ## Known FMOD engine defects
 
-Both of these are defects in FMOD itself, kept here with standalone
-repros so they can be re-tested against new SDK releases.
+These are defects in FMOD itself, kept here with standalone repros so
+they can be re-tested against new SDK releases.
 
 - **HTML5 programmer-sound flow** (described above). Repro:
   `tests/js/fmod_ps_glue_repro.html`, verified against SDK 2.03.12.
+- **HTML5 numeric user property crash** (described above). Repro:
+  `tests/js/fmod_userprop_glue_repro.html`, verified against SDK
+  2.03.12.
 - **Linux stream and reverb zone churn crash.** High-frequency
   `Reverb3D` create/release while PCM streams churn segfaults inside
   the FMOD engine on Linux. Normal gameplay patterns do not hit it.

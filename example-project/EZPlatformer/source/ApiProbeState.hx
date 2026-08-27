@@ -405,20 +405,28 @@ class ApiProbeState extends FlxState {
         check("evd_user_property_count_authored", musicDesc.getUserPropertyCount() == 3,
             'count=${musicDesc.getUserPropertyCount()}');
         var intProp = musicDesc.getUserPropertyByName("probe_int");
+        var floatProp = musicDesc.getUserPropertyByName("probe_float");
+        var boolProp = musicDesc.getUserPropertyByName("probe_bool");
+        #if js
+        // Numeric user properties crash FMOD's JS glue (its string
+        // conversion of the value union dereferences the number bits as a
+        // pointer), so jaxe reports them unsupported and only string
+        // properties are readable on html5
+        check("evd_user_property_numeric_unsupported", intProp == null && floatProp == null, "");
+        #else
         check("evd_user_property_numeric", intProp != null
             && intProp.type == FmodUserPropertyType.FLOAT && intProp.floatValue == 42,
             intProp == null ? "" : 'type=${(intProp.type : Int)} value=${intProp.floatValue}');
-        var floatProp = musicDesc.getUserPropertyByName("probe_float");
         check("evd_user_property_float", floatProp != null
             && floatProp.type == FmodUserPropertyType.FLOAT
             && Math.abs(floatProp.floatValue - 1.5) < 0.001,
             floatProp == null ? "" : 'type=${(floatProp.type : Int)} value=${floatProp.floatValue}');
-        var boolProp = musicDesc.getUserPropertyByName("probe_bool");
+        // String values read as "" on every non-string property
+        check("evd_user_property_string_default", intProp.stringValue == "", "");
+        #end
         check("evd_user_property_string", boolProp != null
             && boolProp.type == FmodUserPropertyType.STRING && boolProp.stringValue == "true",
             boolProp == null ? "" : 'type=${(boolProp.type : Int)} value=${boolProp.stringValue}');
-        // String values read as "" on every non-string property
-        check("evd_user_property_string_default", intProp != null && intProp.stringValue == "", "");
         var sawNames = 0;
         for (i in 0...musicDesc.getUserPropertyCount()) {
             var p = musicDesc.getUserProperty(i);
@@ -426,7 +434,11 @@ class ApiProbeState extends FlxState {
                 sawNames++;
             }
         }
+        #if js
+        check("evd_user_property_enumeration", sawNames == 1, 'found=$sawNames');
+        #else
         check("evd_user_property_enumeration", sawNames == 3, 'found=$sawNames');
+        #end
 
         StudioSystem.flushCommands();
         CallbackDispatcher.update();

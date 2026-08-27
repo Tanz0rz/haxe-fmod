@@ -1679,12 +1679,22 @@ class jaxe {
     }
 
     // Shared user property fetch. struct fields land directly on the out
-    // object, with .val as a fallback in case a build wraps them
+    // object, with .val as a fallback in case a build wraps them.
+    // Numeric properties crash the glue: its string conversion of the
+    // value union dereferences the raw number bits as a pointer and traps
+    // (tests/js/fmod_userprop_glue_repro.html). The trap is catchable and
+    // the module keeps working, so those properties report UNSUPPORTED
+    // and only string properties are readable on html5.
     static evdUserProp(handle, index) {
         var evd = jaxe.handleResolve(handle, jaxe.TYPE_EVD);
         if (!evd) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return null; }
         var outval = {};
-        jaxe.lastResult = evd.getUserPropertyByIndex(index, outval);
+        try {
+            jaxe.lastResult = evd.getUserPropertyByIndex(index, outval);
+        } catch (e) {
+            jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+            return null;
+        }
         if (jaxe.lastResult != jaxe.FMOD.OK) return null;
         return (outval.val && typeof outval.val === "object") ? outval.val : outval;
     }
