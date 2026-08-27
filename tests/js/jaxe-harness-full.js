@@ -191,6 +191,15 @@ async function main() {
     expect('sys_get_param_by_id_final missing', () => jaxe.fmod_sys_get_param_by_id_final(1, 2), r => r === 0);
     expect('sys_set_param_by_id missing', () => jaxe.fmod_sys_set_param_by_id(1, 2, 0.5, false), r => r !== 0);
     expect('sys_set_param_by_id_with_label missing', () => jaxe.fmod_sys_set_param_by_id_with_label(1, 2, 'x', false), r => r !== 0);
+    let sawGlobalIntensity = false;
+    let sawGlobalWeather = false;
+    for (let gi = 0; gi < 2; gi++) {
+        fbuf.fill(-1); ibuf.fill(-1);
+        const gname = check(`sys_get_parameter_description_by_index(${gi})`, () => jaxe.fmod_sys_get_parameter_description_by_index(gi, fbuf, ibuf));
+        if (gname === 'Intensity' && (ibuf[1] & 4)) sawGlobalIntensity = true;
+        if (gname === 'Weather' && (ibuf[1] & 4)) sawGlobalWeather = true;
+    }
+    expect('sys enumeration finds both globals with GLOBAL flag', () => sawGlobalIntensity && sawGlobalWeather, r => r === true);
     expect('sys_get_parameter_description_by_index bad', () => jaxe.fmod_sys_get_parameter_description_by_index(99, fbuf, ibuf), r => r === '');
     expect('sys_get_parameter_description_by_name bad', () => jaxe.fmod_sys_get_parameter_description_by_name('nope', fbuf, ibuf), r => r === '');
     expect('sys_get_parameter_label bad', () => jaxe.fmod_sys_get_parameter_label('nope', 0), r => r === '');

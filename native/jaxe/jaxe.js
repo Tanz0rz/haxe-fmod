@@ -296,16 +296,26 @@ class jaxe {
         if (type == 0x80 /* CREATE_PROGRAMMER_SOUND */ && parameters) {
             var key = jaxe.psKeys[handle];
             if (key) {
-                var info = {};
+                // The JS glue fills the out object with flat properties
+                // (name_or_data, mode, subsoundindex) and writes exinfo
+                // fields onto a pre-existing exinfo object. Without one it
+                // throws mid-fill.
+                var info = { exinfo: {} };
                 var soundOut = {};
                 if (jaxe.gSystem.getSoundInfo(key, info) == jaxe.FMOD.OK) {
-                    // Audio table entry. The JS API takes the sound info object
-                    // directly in place of name/exinfo.
-                    if (jaxe.gSystemCore.createSound(info.val.name_or_data,
-                            (jaxe.FMOD.LOOP_NORMAL | jaxe.FMOD.CREATECOMPRESSEDSAMPLE | info.val.mode) >>> 0,
-                            info.val.exinfo, soundOut) == jaxe.FMOD.OK) {
+                    // createSound's exinfo conversion requires a real
+                    // SoundGroup instance (null and undefined both throw),
+                    // and getSoundInfo does not write the field. The master
+                    // group is where sounds land by default anyway.
+                    var masterSg = {};
+                    jaxe.gSystemCore.getMasterSoundGroup(masterSg);
+                    info.exinfo.initialsoundgroup = masterSg.val;
+                    // Audio table entry: decode the FSB slice the info describes
+                    if (jaxe.gSystemCore.createSound(info.name_or_data,
+                            (jaxe.FMOD.LOOP_NORMAL | jaxe.FMOD.CREATECOMPRESSEDSAMPLE | info.mode) >>> 0,
+                            info.exinfo, soundOut) == jaxe.FMOD.OK) {
                         parameters.sound = soundOut.val;
-                        parameters.subsoundIndex = info.val.subsoundindex;
+                        parameters.subsoundIndex = info.subsoundindex | 0;
                     }
                 } else if (jaxe.gSystemCore.createSound("/" + key, jaxe.FMOD.DEFAULT, null, soundOut) == jaxe.FMOD.OK) {
                     // Plain file path fallback (relative to the MEMFS root)
@@ -756,13 +766,14 @@ class jaxe {
         if (!jaxe.sysReady()) return "";
         var list = {};
         var count = {};
+        // The glue fills the list object as a flat array (list[0..n-1])
         jaxe.lastResult = jaxe.gSystem.getParameterDescriptionList(list, jaxe.LIST_MAX, count);
         if (jaxe.lastResult != jaxe.FMOD.OK) return "";
-        if (index < 0 || index >= (count.val | 0) || !list.val || !list.val[index]) {
+        if (index < 0 || index >= (count.val | 0) || !list[index]) {
             jaxe.lastResult = jaxe.ERR_INVALID_PARAM;
             return "";
         }
-        return jaxe.writeParamDesc(list.val[index], fbuf, ibuf);
+        return jaxe.writeParamDesc(list[index], fbuf, ibuf);
     }
 
     static fmod_sys_get_parameter_description_by_name(name, fbuf, ibuf) {

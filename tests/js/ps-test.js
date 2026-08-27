@@ -84,10 +84,32 @@ async function main() {
     check('create_ps_returns_ok', r === 0, `r=${r}`);
     // File fallback cannot decode loose wav on html5 (FSB-only codecs): the
     // handler must leave sound null and not throw. Audio-table keys are the
-    // supported html5 route (untestable here - example bank has no table).
+    // supported html5 route, pinned below against the real table.
     check('create_ps_rejects_unsupported_format', props.sound == null, '');
     const rd = jaxe.callbackHandler(0x100, inst, props);
     check('destroy_ps_returns_ok', rd === 0, `r=${rd}`);
+
+    // --- Audio-table key resolution (the html5-supported route) ---
+    // "hello" lives in the Master bank's audio table: getSoundInfo resolves
+    // it and createSound decodes the FSB entry
+    jaxe.fmod_ps_assign(evi, 'hello');
+    const tableProps = { name: '', sound: null, subsoundIndex: 0 };
+    let tableResult = null;
+    try {
+        tableResult = jaxe.callbackHandler(0x80, inst, tableProps);
+    } catch (e) {
+        check('create_ps_audio_table_no_throw', false, (e && e.message) || String(e));
+    }
+    if (tableResult !== null) {
+        check('create_ps_audio_table_no_throw', true, '');
+        check('create_ps_audio_table_returns_ok', tableResult === 0, `r=${tableResult}`);
+        check('create_ps_audio_table_resolves', tableProps.sound != null, '');
+        check('create_ps_audio_table_subsound',
+            typeof tableProps.subsoundIndex === 'number' && tableProps.subsoundIndex >= 0,
+            `idx=${tableProps.subsoundIndex}`);
+        const rdTable = jaxe.callbackHandler(0x100, inst, tableProps);
+        check('destroy_ps_audio_table', rdTable === 0, `r=${rdTable}`);
+    }
 
     // ps_clear removes bits
     check('ps_clear', jaxe.fmod_ps_clear(evi) === 0, '');
