@@ -11,7 +11,7 @@ A clean-break rework: the full FMOD Studio API at runtime, typed handles, payloa
 - `PlaySoundOneShotAt(path, x, y)` for positional one-shots.
 - `OnSongEvent`/`OnceSongEvent` typed payload callbacks (timeline beats, markers, playback lifecycle).
 - HaxeFlixel components: `FmodFlxSetup.init()` one-call setup (FMOD init, per-frame update plugin, `FlxG.sound` volume and mute routed to the FMOD master bus, silenced sound tray beep), `FmodFlxEmitter`, `FmodFlxListener`, `FmodFlxBankLoader`, `FmodFlxParameterTrigger`.
-- Programmer sounds on native targets: `instance.assignProgrammerSound(key)` resolving audio table keys or file paths on the FMOD thread (HTML5 reports `FMOD_ERR_UNSUPPORTED`, see Known limitations).
+- Programmer sounds on native targets: `instance.assignProgrammerSound(key)` resolving audio table keys or file paths on the FMOD thread (HTML5 reports `FMOD_ERR_UNSUPPORTED`, see `LIMITATIONS.md`).
 - Constants generation baked into the export: the FMOD Studio script regenerates `FmodEvents`/`FmodBuses`/`FmodVCAs`/`FmodSnapshots`/ `FmodParameters` on every `Ctrl+B` bank build, plus a `...Guids` class per file with the GUID for each constant.
 - Event enum generation: the export also emits `FmodEventEnum.hx` (a `FmodEventEnum` enum covering every event, named like the `FmodEvents` constants, with `path()` and `guid()` mappers) for switch statements and enum-importing tools such as LDtk.
 - Build-time SDK validation: lime builds fail immediately with setup instructions when `FMOD_SDK` (or `FMOD_SDK_WEB` for HTML5) is missing, set to a path that is not an FMOD SDK, missing the platform's runtime libraries, or (for HL and HTML5) the wrong FMOD version.
@@ -60,17 +60,9 @@ A clean-break rework: the full FMOD Studio API at runtime, typed handles, payloa
 - Bitmask polling callbacks (`RegisterCallbacksForSong/Sound`, `RegisterEventListener`) in favor of typed payload callbacks.
 - `Set/GetMasterVolume`, `Set/GetMasterMute` aliases (use the `Bus*Master` helpers) and `CheckIfUpdateIsBeingCalled`.
 
-### Known limitations
+### Limitations
 
-The full list, with the reasoning behind each, lives in `LIMITATIONS.md`. These are the ones most likely to surprise:
-- HTML5 never delivers `Destroyed` callback events (FMOD JS binding limitation). Handler cleanup happens in `release()` on all targets.
-- HTML5 ships FSB-only codecs: loose wav/ogg loading is native-only.
-- Programmer sounds are native-only. `assignProgrammerSound` returns `FMOD_ERR_UNSUPPORTED` on HTML5 because FMOD's JS runtime cannot complete the create flow (`tests/js/fmod_ps_glue_repro.html` reproduces the defect with FMOD's own example pattern).
-- List getters return at most 1024 entries and warn when truncated.
-- HTML5 bank loads are always asynchronous (files reach the browser's virtual filesystem through a fetch). `IsInitialized()` reports true once the system is ready and the `autoLoadBanks` are usable, so games that gate on it need no changes.
-- HTML5 supports exactly the expected FMOD web SDK version: a mismatched `FMOD_SDK_WEB` fails the build with instructions (the JS layer's numeric tables are that version's values and the wasm exposes no version query to adapt at runtime).
-- HTML5 numeric user properties (integer, boolean, float) read as `FMOD_ERR_UNSUPPORTED` because retrieving them crashes FMOD's JS runtime (`tests/js/fmod_userprop_glue_repro.html` reproduces it). String properties read fully.
-- Firefox never delivers nested timeline beat callbacks and fires an empty duplicate callback beside each timeline marker (FMOD JS runtime behavior). Chromium-based browsers deliver both correctly, and top-level beats work everywhere.
+Everything the library deliberately leaves out, and every platform difference that ships with this release, is documented in `LIMITATIONS.md` with the reasoning behind each.
 
 ## 1.1.2-beta and earlier
 
