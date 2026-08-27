@@ -6,13 +6,13 @@ A clean-break rework: the full FMOD Studio API at runtime, typed handles, payloa
 
 ### Added
 - Complete FMOD Studio runtime bindings (`haxefmod.studio`): events, buses, VCAs, snapshots, banks, global and labeled parameters, GUID lookups, 3D/listeners, and profiling, as typed handles safe on stale references.
-- Engine-agnostic runtime layer (`haxefmod.runtime.FmodRuntime`): settings- driven initialization, refcounted bank loading with real and async unload, 3D instance attachment, listener helpers.
+- Engine-agnostic runtime layer (`haxefmod.runtime.FmodRuntime`): settings-driven initialization, refcounted bank loading with real and async unload, 3D instance attachment, listener helpers.
 - `FmodManager.PlaySound(path)` returning a typed `FmodSound` handle with `stop`, `pause`, `setVolume`, `setPitch`, `setParameter`, `onEvent`, and `release`.
 - `PlaySoundOneShotAt(path, x, y)` for positional one-shots.
 - `OnSongEvent`/`OnceSongEvent` typed payload callbacks (timeline beats, markers, playback lifecycle).
 - HaxeFlixel components: `FmodFlxSetup.init()` one-call setup (FMOD init, per-frame update plugin, `FlxG.sound` volume and mute routed to the FMOD master bus, silenced sound tray beep), `FmodFlxEmitter`, `FmodFlxListener`, `FmodFlxBankLoader`, `FmodFlxParameterTrigger`.
 - Programmer sounds on native targets: `instance.assignProgrammerSound(key)` resolving audio table keys or file paths on the FMOD thread (HTML5 reports `FMOD_ERR_UNSUPPORTED`, see `LIMITATIONS.md`).
-- Constants generation baked into the export: the FMOD Studio script regenerates `FmodEvents`/`FmodBuses`/`FmodVCAs`/`FmodSnapshots`/ `FmodParameters` on every `Ctrl+B` bank build, plus a `...Guids` class per file with the GUID for each constant.
+- Constants generation baked into the export: the FMOD Studio script regenerates `FmodEvents`/`FmodBuses`/`FmodVCAs`/`FmodSnapshots`/`FmodParameters` on every `Ctrl+B` bank build, plus a `...Guids` class per file with the GUID for each constant.
 - Event enum generation: the export also emits `FmodEventEnum.hx` (a `FmodEventEnum` enum covering every event, named like the `FmodEvents` constants, with `path()` and `guid()` mappers) for switch statements and enum-importing tools such as LDtk.
 - Build-time SDK validation: lime builds fail immediately with setup instructions when `FMOD_SDK` (or `FMOD_SDK_WEB` for HTML5) is missing, set to a path that is not an FMOD SDK, missing the platform's runtime libraries, or (for HL and HTML5) the wrong FMOD version.
 - Cross-version DSP effects: `DspType` values translate to the compiled SDK's own enum symbolically, so an hdll built with `build-hdll` against another FMOD version creates the correct effects (FMOD renumbers that enum between releases). Types the SDK lacks report `FMOD_ERR_INVALID_PARAM`.
@@ -59,10 +59,6 @@ A clean-break rework: the full FMOD Studio API at runtime, typed handles, payloa
 - String sound IDs (`PlaySoundWithReference`, `PlaySoundAndAssignId`, and the per-ID control calls) in favor of `FmodSound` handles.
 - Bitmask polling callbacks (`RegisterCallbacksForSong/Sound`, `RegisterEventListener`) in favor of typed payload callbacks.
 - `Set/GetMasterVolume`, `Set/GetMasterMute` aliases (use the `Bus*Master` helpers) and `CheckIfUpdateIsBeingCalled`.
-
-### Limitations
-
-Everything the library deliberately leaves out, and every platform difference that ships with this release, is documented in `LIMITATIONS.md` with the reasoning behind each.
 
 ## 1.1.2-beta and earlier
 
