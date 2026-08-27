@@ -236,8 +236,12 @@ REQUIRED_STEPS = {
         "Reconcile the package against the tracked tree",
         "Build HashLink target from the installed package",
         "Build HTML5 target from the installed package",
-        "Build C++ target from the installed package",
         "Run CLI commands from the installed package",
+    ],
+    "package-check-cpp": [
+        "Build the haxelib package",
+        "Install libraries with haxefmod from the package",
+        "Build C++ target from the installed package",
     ],
 }
 missing_steps = []

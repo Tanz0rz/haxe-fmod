@@ -3526,16 +3526,6 @@ jobs:
       # The C++ target was previously assert-only from the package (the
       # required-files comment above admitted it) - build it from the
       # installed zip too
-      # The C++ build compiles the whole hxcpp runtime and dominates the
-      # job. Solo-tag debug runs skip it, full builds and tag runs keep it.
-      - name: Build C++ target from the installed package
-        if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]')) }}
-        run: |
-          cd example-project/EZPlatformer
-          haxelib run lime build linux -64
-          ls export/linux*/bin/ | head -5
-          echo "C++ build from package OK"
-
       # The check and generate subcommands resolve their files from
       # the installed package layout - exercise them from there, not from
       # the checkout the other jobs use via haxelib dev
@@ -3550,6 +3540,80 @@ jobs:
           test -f /tmp/pkg-gen/FmodEvents.hx || {
             echo "FAIL: generate from the package produced no constants"; exit 1; }
           echo "CLI commands work from the installed package"
+
+
+  # ===========================================================================
+  # Package Check: C++ target
+  # The hxcpp compile dominates package validation, so it runs as its own
+  # job on full builds and tag runs only. Solo-tag debug runs skip it.
+  # ===========================================================================
+  package-check-cpp:
+    runs-on: ubuntu-latest
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && !contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]')) }}
+    timeout-minutes: 30
+    env:
+      FMOD_SDK: ${{ github.workspace }}/fmod-sdk
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download FMOD SDK
+        uses: ./.github/actions/fmod-sdk
+        with:
+          version: "2.03.12"
+          platform: linux
+          dest: ${{ env.FMOD_SDK }}
+          token: ${{ secrets.FMOD_SDK_TOKEN }}
+
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v2
+        with:
+          haxe-version: ${{ env.HAXE_VERSION }}
+
+      - name: Cache haxelib
+        uses: actions/cache@v5
+        with:
+          path: ~/haxelib
+          key: haxelib-package-${{ runner.os }}-${{ env.HAXE_VERSION }}
+
+      - name: Cache hxcpp objects
+        uses: actions/cache@v5
+        with:
+          path: ${{ runner.temp }}/hxcpp-cache
+          key: hxcpp-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            hxcpp-${{ runner.os }}-
+
+      - name: Build the haxelib package
+        run: ./package.sh
+
+      - name: Install libraries with haxefmod from the package
+        run: |
+          haxelib setup ~/haxelib
+          haxelib install lime 8.3.0 --always --quiet
+          haxelib install openfl 9.5.0 --always --quiet
+          haxelib install flixel 6.1.2 --always --quiet
+          # Install from the zip only, so no checkout copy can leak in
+          haxelib remove haxefmod || true
+          haxelib install haxefmod.zip --always --quiet
+          haxelib path haxefmod
+          yes | haxelib run lime setup || true
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y patchelf \
+            libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
+            libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev libz-dev
+
+      - name: Build C++ target from the installed package
+        env:
+          HXCPP_COMPILE_CACHE: ${{ runner.temp }}/hxcpp-cache
+          HXCPP_CACHE_MB: "4000"
+        run: |
+          cd example-project/EZPlatformer
+          haxelib run lime build linux -64
+          ls export/linux*/bin/ | head -5
+          echo "C++ build from package OK"
 
   # ===========================================================================
   # Update Pre-built hdlls
