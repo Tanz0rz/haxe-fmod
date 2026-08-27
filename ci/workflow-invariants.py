@@ -15,7 +15,7 @@ leans on:
   4. The compat jobs assert the mismatched build FAILS (not just that a
      banner appeared in a zero-exit build), with pipefail set explicitly
      because only the Windows jobs' shell declaration implies it.
-  5. linux-html5 asserts a build against a doctored (wrong-version) web
+  5. linux-html5-chromium asserts a build against a doctored (wrong-version) web
      SDK FAILS with the mismatch banner, with pipefail, since html5 pins
      the web SDK version instead of translating DSP types.
   6. Every job still contains its required test steps by name. Renaming
@@ -120,22 +120,22 @@ if text.count('grep -q "FMOD SDK version mismatch"') < 3:
 else:
     ok("compat jobs still verify the mismatch banner text")
 
-# 5. linux-html5 requires a FAILING build against a doctored web SDK,
+# 5. linux-html5-chromium requires a FAILING build against a doctored web SDK,
 # with pipefail, and verifies the version-mismatch banner (paired to the
 # job so a copy of the block elsewhere cannot mask its removal here)
-html5_job = jobs.get("linux-html5", "")
+html5_job = jobs.get("linux-html5-chromium", "")
 web_gate = re.search(
     r'set -o pipefail[\s\S]*?'
     r'if FMOD_SDK_WEB="\$DOCTORED" haxelib run lime build html5 2>&1 \| tee [^\n]*; then\n'
     r'\s*echo "FAIL: build succeeded[^\n]*\n\s*exit 1\n\s*fi', html5_job)
 if not web_gate:
-    fail("linux-html5 lost the web-SDK mismatch build-must-fail gate (with pipefail)")
+    fail("linux-html5-chromium lost the web-SDK mismatch build-must-fail gate (with pipefail)")
 else:
-    ok("linux-html5 requires the doctored web-SDK build to fail, with pipefail")
+    ok("linux-html5-chromium requires the doctored web-SDK build to fail, with pipefail")
 if 'grep -q "FMOD web SDK version mismatch"' not in html5_job:
-    fail("linux-html5 no longer greps for the web mismatch banner")
+    fail("linux-html5-chromium no longer greps for the web mismatch banner")
 else:
-    ok("linux-html5 verifies the web mismatch banner text")
+    ok("linux-html5-chromium verifies the web mismatch banner text")
 
 # 6. Required test steps per job. Names must match the workflow's
 # `- name:` lines exactly. When a step is renamed on purpose, rename it
@@ -178,7 +178,7 @@ REQUIRED_STEPS = {
     "windows-cpp": NATIVE_SUITE + ["Validate game log",
                                    "Test native headers with MSVC (C and C++ modes)"],
     "windows-hl": NATIVE_SUITE + ["Validate game log"],
-    "linux-html5": [
+    "linux-html5-chromium": [
         "Validate FMOD files replaced placeholders",
         "Validate audio", "Validate volume/mute", "Validate synth audio",
         "Run API probe (JS binding coverage)",
@@ -186,12 +186,16 @@ REQUIRED_STEPS = {
         "Run callback test (JS payload delivery)",
         "Run ps-test state (browser)", "Run bank-test state (browser)",
         "Run pan-test state (browser)",
+        "Verify mismatched web SDK fails the build",
+        "Typecheck the flixel no-sound-system variant",
+    ],
+    "linux-html5-firefox": [
+        "Build HTML5 target",
+        "Start display and audio",
         "Install Playwright Firefox",
         "Run api-probe state (firefox)", "Run cb-test state (firefox)",
         "Run ps-test state (firefox)", "Run bank-test state (firefox)",
         "Run pan-test state (firefox)",
-        "Verify mismatched web SDK fails the build",
-        "Typecheck the flixel no-sound-system variant",
     ],
     "linux-hl-compat": [
         "Use compat fixture banks",

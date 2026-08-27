@@ -18,10 +18,14 @@ Having problems or want to chat? [Join the Haxe Discord](https://discordapp.com/
  - [Feature Requests and Contact](#feature-requests-and-contact)
 
 ## Features
-- The full [FMOD Studio API](https://www.fmod.com/docs/2.03/api/studio-api.html) at runtime: events, buses, VCAs, snapshots, banks, global and labeled [parameters](https://www.fmod.com/docs/2.03/studio/parameters-reference.html), 3D/listeners, and profiling - with a friendly facade on top for the common cases
-- Typed [callbacks](https://www.fmod.com/docs/2.03/api/studio-api-eventinstance.html#fmod_studio_event_callback_type) that carry their data: beats, timeline markers, and the playback lifecycle
+
+- The full [FMOD Studio API](https://www.fmod.com/docs/2.03/api/studio-api.html) at runtime: events, buses, VCAs, snapshots, banks, global and labeled [parameters](https://www.fmod.com/docs/2.03/studio/parameters-reference.html), 3D/listeners, and profiling
+- Typed [callbacks](https://www.fmod.com/docs/2.03/api/studio-api-eventinstance.html#fmod_studio_event_callback_type) that carry event data (beats, timeline markers, etc.)
 - [Live Update](https://fmod.com/docs/2.03/studio/editing-during-live-update.html) for mixing sounds while playtesting
-- Constants generated straight from your banks: the FMOD Studio export script rewrites the event/bus/VCA/parameter constants every time you build banks with `Ctrl+B`, so they always match your project
+- Helper scripts to map FMOD Studio events to game code
+- Many, many  more
+
+This is a faithful implementation of the entire FMOD stack. If this library doesn't support something you need, make an Issue and I will try to add it!
 
 ## Supported Platforms
 
@@ -36,8 +40,7 @@ Having problems or want to chat? [Join the Haxe Discord](https://discordapp.com/
 
 **FMOD Engine SDK** - Download version 2.03.12 from [fmod.com/download](https://www.fmod.com/download). See [How to Use This Library](#how-to-use-this-library) for setup instructions.
 
-**C++ compiler** (C++ builds only) - `lime build mac`, `lime build windows`, and `lime build linux` require a C++ compiler. HashLink and HTML5 builds do not.
-
+For projects that need C++ builds (so building via `lime build mac`, `lime build windows`, and/or `lime build linux`) require a C++ compiler. HashLink and HTML5 builds do not.
 - **macOS**: Xcode Command Line Tools - install with `xcode-select --install`
 - **Windows**: Build Tools for Visual Studio 2022 with the "Desktop development with C++" workload selected during installation. [Direct download](https://aka.ms/vs/17/release.ltsc.17.4/vs_buildtools.exe), or find the Fall 2022 LTSC build tools link [here](https://learn.microsoft.com/en-us/visualstudio/releases/2022/release-history#release-dates-and-build-numbers).
 - **Linux**: `gcc` and `g++` (install via your package manager, e.g. `sudo apt install build-essential`)

@@ -43,7 +43,15 @@ async function main() {
     });
 
     await page.goto(url);
-    // The same focus nudge the chromium steps give via xdotool
+    // jaxe installs its audio resume handler when the FMOD module
+    // finishes its async init, so the activation click has to land after
+    // that. Firefox keeps the AudioContext suspended until a real
+    // gesture reaches the handler (the chromium steps sidestep this with
+    // the autoplay flag).
+    await page.waitForFunction('window.jaxe && jaxe.FmodIsInitialized === true',
+        null, { timeout: 60000 }).catch(() => {});
+    await page.mouse.click(320, 240);
+    await new Promise(r => setTimeout(r, 1000));
     await page.mouse.click(320, 240);
 
     const start = Date.now();

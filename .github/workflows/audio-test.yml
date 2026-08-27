@@ -183,7 +183,7 @@ jobs:
   # ===========================================================================
   linux-cpp:
     runs-on: ubuntu-latest
-    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-cpp]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]')))) }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-cpp]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]')))) }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
@@ -455,7 +455,7 @@ jobs:
   # ===========================================================================
   linux-hl:
     runs-on: ubuntu-latest
-    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]')))) }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]')))) }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
@@ -808,7 +808,7 @@ jobs:
   # ===========================================================================
   linux-hl-compat:
     runs-on: ubuntu-latest
-    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-hl-compat]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]')))) }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-hl-compat]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]')))) }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
@@ -1036,9 +1036,9 @@ jobs:
   # ===========================================================================
   # Linux HTML5 Build + Audio Recording via Browser
   # ===========================================================================
-  linux-html5:
+  linux-html5-chromium:
     runs-on: ubuntu-latest
-    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-html5]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]')))) }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-html5-chromium]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]')))) }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
@@ -1467,6 +1467,117 @@ jobs:
           fi
           echo "pan-test passed"
 
+      # The web-SDK version gate carries this target (the JS shim's
+      # numeric tables are version-specific and the wasm exposes no
+      # version query): a build against a mismatched FMOD_SDK_WEB has to
+      # fail at compile time with the mismatch banner.
+      # The FLX_SOUND_SYSTEM-off world of FmodFlxSetup has no other
+      # compile coverage (every build keeps the sound system on)
+      - name: Typecheck the flixel no-sound-system variant
+        if: ${{ !cancelled() }}
+        run: |
+          haxe -cp . -lib flixel -lib openfl -lib lime \
+            -D FLX_NO_SOUND_SYSTEM -D FLX_STANDARD_ASSETS_DIRECTORY -D openfl-html5 \
+            --no-output -js /dev/null haxefmod.flixel.FmodFlxSetup
+
+      - name: Verify mismatched web SDK fails the build
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          DOCTORED=/tmp/doctored-web-sdk
+          rm -rf "$DOCTORED"
+          cp -r "$FMOD_SDK" "$DOCTORED"
+          sed -i 's/#define FMOD_VERSION    0x[0-9a-fA-F]*/#define FMOD_VERSION    0x00020221/'             "$DOCTORED/api/core/inc/fmod_common.h"
+          grep -q "0x00020221" "$DOCTORED/api/core/inc/fmod_common.h" || {
+            echo "FAIL: could not doctor the SDK header"; exit 1; }
+          cd example-project/EZPlatformer
+          haxelib run lime clean html5
+          if FMOD_SDK_WEB="$DOCTORED" haxelib run lime build html5 2>&1 | tee /tmp/web-mismatch-build.log; then
+            echo "FAIL: build succeeded against a mismatched web SDK"
+            exit 1
+          fi
+          grep -q "FMOD web SDK version mismatch" /tmp/web-mismatch-build.log || {
+            echo "FAIL: build failed without the version-mismatch banner"; exit 1; }
+          echo "OK: mismatched web SDK fails the build with the banner"
+
+      - name: Upload audio artifact
+        uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: audio-html5
+          path: |
+            /tmp/audio-html5.wav
+            /tmp/volume-test-html5.wav
+            /tmp/volume-test-html5-console.log
+            /tmp/api-probe-html5.log
+            /tmp/cb-test-html5.log
+            /tmp/ps-test-html5.log
+            /tmp/bank-test-html5.log
+            /tmp/pan-test-html5.log
+          if-no-files-found: warn
+          overwrite: true
+
+
+  # ===========================================================================
+  # HTML5 in Firefox: second engine for the log-gated states
+  # ===========================================================================
+  linux-html5-firefox:
+    runs-on: ubuntu-latest
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-html5-firefox]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]')))) }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download FMOD SDK
+        uses: ./.github/actions/fmod-sdk
+        with:
+          version: "2.03.12"
+          platform: html5
+          dest: ${{ env.FMOD_SDK }}
+          token: ${{ secrets.FMOD_SDK_TOKEN }}
+
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v2
+        with:
+          haxe-version: ${{ env.HAXE_VERSION }}
+
+      - name: Cache haxelib
+        uses: actions/cache@v5
+        with:
+          path: ~/haxelib
+          key: haxelib-html5-${{ runner.os }}-${{ env.HAXE_VERSION }}
+
+      - name: Install Haxe libraries
+        run: |
+          haxelib setup ~/haxelib
+          haxelib install lime 8.3.0 --always --quiet
+          haxelib install openfl 9.5.0 --always --quiet
+          haxelib install flixel 6.1.2 --always --quiet
+          haxelib dev haxefmod $GITHUB_WORKSPACE
+          yes | haxelib run lime setup || true
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pulseaudio xvfb
+
+      - name: Build HTML5 target
+        env:
+          FMOD_SDK_WEB: ${{ env.FMOD_SDK }}
+        run: |
+          cd example-project/EZPlatformer
+          haxelib run lime build html5
+
+      - name: Start display and audio
+        run: |
+          Xvfb :99 -screen 0 1024x768x24 &
+          sleep 1
+          # Firefox talks to PulseAudio directly, so the null sink is all
+          # the mixer needs to keep running
+          pulseaudio --start --exit-idle-time=-1 || true
+          pactl load-module module-null-sink sink_name=virtual_speaker sink_properties=device.description=VirtualSpeaker
+          pactl set-default-sink virtual_speaker
+
       # Second engine for the log-gated states. The FMOD JS glue defects
       # all surfaced on V8 first, so SpiderMonkey runs the same checks
       # (Playwright build - stock Firefox lacks its automation hooks).
@@ -1561,53 +1672,12 @@ jobs:
           kill $HTTP_PID || true
           exit $RC
 
-      # The web-SDK version gate carries this target (the JS shim's
-      # numeric tables are version-specific and the wasm exposes no
-      # version query): a build against a mismatched FMOD_SDK_WEB has to
-      # fail at compile time with the mismatch banner.
-      # The FLX_SOUND_SYSTEM-off world of FmodFlxSetup has no other
-      # compile coverage (every build keeps the sound system on)
-      - name: Typecheck the flixel no-sound-system variant
-        if: ${{ !cancelled() }}
-        run: |
-          haxe -cp . -lib flixel -lib openfl -lib lime \
-            -D FLX_NO_SOUND_SYSTEM -D FLX_STANDARD_ASSETS_DIRECTORY -D openfl-html5 \
-            --no-output -js /dev/null haxefmod.flixel.FmodFlxSetup
-
-      - name: Verify mismatched web SDK fails the build
-        if: ${{ !cancelled() }}
-        run: |
-          set -o pipefail
-          DOCTORED=/tmp/doctored-web-sdk
-          rm -rf "$DOCTORED"
-          cp -r "$FMOD_SDK" "$DOCTORED"
-          sed -i 's/#define FMOD_VERSION    0x[0-9a-fA-F]*/#define FMOD_VERSION    0x00020221/'             "$DOCTORED/api/core/inc/fmod_common.h"
-          grep -q "0x00020221" "$DOCTORED/api/core/inc/fmod_common.h" || {
-            echo "FAIL: could not doctor the SDK header"; exit 1; }
-          cd example-project/EZPlatformer
-          haxelib run lime clean html5
-          if FMOD_SDK_WEB="$DOCTORED" haxelib run lime build html5 2>&1 | tee /tmp/web-mismatch-build.log; then
-            echo "FAIL: build succeeded against a mismatched web SDK"
-            exit 1
-          fi
-          grep -q "FMOD web SDK version mismatch" /tmp/web-mismatch-build.log || {
-            echo "FAIL: build failed without the version-mismatch banner"; exit 1; }
-          echo "OK: mismatched web SDK fails the build with the banner"
-
-      - name: Upload audio artifact
+      - name: Upload logs
         uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: audio-html5
+          name: audio-linux-html5-firefox
           path: |
-            /tmp/audio-html5.wav
-            /tmp/volume-test-html5.wav
-            /tmp/volume-test-html5-console.log
-            /tmp/api-probe-html5.log
-            /tmp/cb-test-html5.log
-            /tmp/ps-test-html5.log
-            /tmp/bank-test-html5.log
-            /tmp/pan-test-html5.log
             /tmp/api-probe-firefox.log
             /tmp/cb-test-firefox.log
             /tmp/ps-test-firefox.log
@@ -1621,7 +1691,7 @@ jobs:
   # ===========================================================================
   mac-cpp:
     runs-on: macos-14
-    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[mac-cpp]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]')))) }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[mac-cpp]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]')))) }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
@@ -1850,7 +1920,7 @@ jobs:
   # ===========================================================================
   mac-hl:
     runs-on: macos-14
-    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[mac-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]')))) }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[mac-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]')))) }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
@@ -2077,7 +2147,7 @@ jobs:
   # ===========================================================================
   mac-hl-compat:
     runs-on: macos-14
-    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[mac-hl-compat]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]')))) }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[mac-hl-compat]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]')))) }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
@@ -2230,7 +2300,7 @@ jobs:
   # ===========================================================================
   windows-cpp:
     runs-on: windows-latest
-    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[windows-cpp]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]')))) }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[windows-cpp]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]')))) }}
     timeout-minutes: 30
     defaults:
       run:
@@ -2505,7 +2575,7 @@ jobs:
   # ===========================================================================
   windows-hl:
     runs-on: windows-latest
-    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[windows-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]')))) }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[windows-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]')))) }}
     timeout-minutes: 30
     defaults:
       run:
@@ -2798,7 +2868,7 @@ jobs:
   # ===========================================================================
   windows-hl-compat:
     runs-on: windows-latest
-    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[windows-hl-compat]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]')))) }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[windows-hl-compat]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]')))) }}
     timeout-minutes: 30
     defaults:
       run:
