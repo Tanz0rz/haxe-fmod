@@ -21,7 +21,7 @@ done
 # packaged directory would ship to lib.haxe.org exactly as it sits in the
 # working tree. Refuse to package anything git does not know about.
 if command -v git > /dev/null && git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
-  dirty=$(git status --porcelain -- haxefmod native templates fmod-scripts     fmod_expected_version include.xml haxelib.json README.md MIGRATION.md CHANGELOG.md LICENSE)
+  dirty=$(git status --porcelain -- haxefmod native templates fmod-scripts     fmod_expected_version include.xml haxelib.json README.md MIGRATION.md CHANGELOG.md LIMITATIONS.md LICENSE)
   if [ -n "$dirty" ]; then
     echo "ERROR: packaged paths have uncommitted or untracked changes:"
     echo "$dirty"
@@ -54,6 +54,7 @@ zip -r haxefmod.zip \
   README.md \
   MIGRATION.md \
   CHANGELOG.md \
+  LIMITATIONS.md \
   LICENSE \
   -x "*.DS_Store" -x "*/.haxefmod/*" -x "*.obj"
 
