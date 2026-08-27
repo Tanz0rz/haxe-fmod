@@ -71,7 +71,7 @@ The separate flixel-fmod library is fully absorbed by 2.0's `haxefmod.flixel` pa
 - `PlaySongTransition` with nothing playing now starts the song immediately (1.x silently did nothing until a song existed).
 - Switching songs with `PlaySong` now releases the previous song instance (1.x deliberately leaked it to work around an html5 issue that is fixed in 2.0).
 - Song/sound callbacks registered through the removed `Register*` APIs fired at most once per frame. Typed handlers fire once per event.
-- html5: `Destroyed` events are not delivered (an FMOD JS binding limitation). Handler cleanup happens in `release()` instead. The other platform differences that ship with 2.0 are documented in `LIMITATIONS.md`.
+- html5: `Destroyed` events are not delivered (an FMOD JS binding limitation). Handler cleanup happens in `release()` instead.
 
 ## Bank loading
 
@@ -91,5 +91,3 @@ The FMOD Studio export script (`fmod-scripts`) remains the recommended workflow 
 The old single-file `FmodConstants.hx` output is gone. Rename references using the mangling rules (`FmodSongs.MainLevel` becomes `FmodEvents.MusicMainLevel`, `FmodSFX.Jump` becomes `FmodEvents.SFXJump`), then delete `FmodConstants.hx`. Later 1.x exports named the songs class `FmodSong`, which maps the same way.
 
 The export also emits `FmodEventEnum.hx`: a `FmodEventEnum` enum covering every event, with values named like the `FmodEvents` constants and `path()`/`guid()` mappers back to the strings. It suits switch statements and LDtk external enums. Ignore the file if you never need that.
-
-
