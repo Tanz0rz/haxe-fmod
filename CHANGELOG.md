@@ -52,7 +52,7 @@ A clean-break rework: the full FMOD Studio API at runtime, typed handles, payloa
 - Song and sound callbacks fire once per event with typed payloads (1.x coalesced to one bitmask poll per frame).
 - `haxelib run haxefmod check` exits nonzero when any check fails.
 - Generated Linux `run.sh` no longer points at `hlboot.dat` on HashLink builds.
-- PostBuild clears the executable-stack flag on copied FMOD libraries so modern kernels load them.
+- PostBuild clears the executable-stack flag on copied FMOD libraries so modern kernels load them, with no external tools needed.
 
 ### Removed
 - The single-file `FmodConstants.hx` (`FmodSongs`/`FmodSFX`) output of the Studio export script, replaced by the categorized 2.0 constants files.
