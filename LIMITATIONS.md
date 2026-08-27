@@ -49,6 +49,14 @@ differences from the native engine.
   path and `Destroyed` cannot be delivered. Handler cleanup happens in
   `release()` on every target, so code that cleans up there behaves
   identically everywhere.
+- **Firefox never delivers nested timeline beats.** FMOD's JS runtime
+  does not invoke the `NestedTimelineBeat` callback on Firefox, so
+  beats from a referenced event's timeline reach the parent instance
+  only on Chromium-based browsers. The parent still receives the
+  referenced timeline's markers in both. Firefox also fires an extra
+  empty duplicate callback (blank name, position -1) alongside each
+  real marker. Both behaviors reproduce in the Firefox CI lane with no
+  library code in the delivery path.
 - **Numeric user properties are unreadable.** Reading an INTEGER,
   BOOLEAN, or FLOAT typed user property crashes FMOD's JS runtime (the
   repro is `tests/js/fmod_userprop_glue_repro.html`), so the binding
@@ -140,6 +148,9 @@ they can be re-tested against new SDK releases.
 - **HTML5 numeric user property crash** (described above). Repro:
   `tests/js/fmod_userprop_glue_repro.html`, verified against SDK
   2.03.12.
+- **Firefox nested-beat and duplicate-marker delivery** (described
+  above). Reproduced by the linux-html5-firefox CI lane against SDK
+  2.03.12 with Playwright Firefox.
 - **Linux stream and reverb zone churn crash.** High-frequency
   `Reverb3D` create/release while PCM streams churn segfaults inside
   the FMOD engine on Linux. Normal gameplay patterns do not hit it.
