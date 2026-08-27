@@ -5,7 +5,7 @@ enum FmodEventEnum {
 	MusicMainLevel;
 	SFXCoin;
 	SFXJump;
-	Spatial;
+	SFXSpatial;
 }
 
 // Static extension: `using FmodEventEnum.FmodEventTools;` enables
@@ -17,7 +17,7 @@ class FmodEventTools {
 			case MusicMainLevel: "event:/Music/MainLevel";
 			case SFXCoin: "event:/SFX/Coin";
 			case SFXJump: "event:/SFX/Jump";
-			case Spatial: "event:/Spatial";
+			case SFXSpatial: "event:/SFX/Spatial";
 		};
 	}
 
@@ -27,7 +27,7 @@ class FmodEventTools {
 			case MusicMainLevel: "{e5187c3f-0517-463e-b458-de9ef1a9f750}";
 			case SFXCoin: "{6c656399-97f5-432f-9817-c10c8c56939d}";
 			case SFXJump: "{4562f533-1e6b-4ce9-a40a-814283edde66}";
-			case Spatial: "{82396b6b-8474-4dd9-8fd7-5f623ec827fa}";
+			case SFXSpatial: "{82396b6b-8474-4dd9-8fd7-5f623ec827fa}";
 		};
 	}
 }
