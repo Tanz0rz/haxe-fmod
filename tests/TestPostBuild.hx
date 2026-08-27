@@ -46,7 +46,9 @@ class TestPostBuild {
 	}
 
 	static function writeTemp(name:String, bytes:haxe.io.Bytes):String {
-		var dir = "bin/test-postbuild";
+		// Gitignored scratch space: the runner's cwd is the repo root and
+		// nothing here may ever end up tracked
+		var dir = "tests/.tmp";
 		if (!sys.FileSystem.exists(dir)) sys.FileSystem.createDirectory(dir);
 		var path = dir + "/" + name;
 		sys.io.File.saveBytes(path, bytes);

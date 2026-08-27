@@ -7,6 +7,7 @@
 
 # Example project
 /example-project/EZPlatformer/export
+/example-project/EZPlatformer/.haxefmod
 /example-project/EZPlatformer/fmod/.cache
 /example-project/EZPlatformer/fmod/.user
 /example-project/EZPlatformer/fmod/.unsaved/
@@ -27,3 +28,6 @@ haxe-fmod.zip
 
 # CI artifacts
 /ci/artifacts/
+
+# Unit test scratch files
+/tests/.tmp/
