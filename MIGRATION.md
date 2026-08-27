@@ -92,6 +92,4 @@ The old single-file `FmodConstants.hx` output is gone. Rename references using t
 
 The export also emits `FmodEventEnum.hx`: a `FmodEventEnum` enum covering every event, with values named like the `FmodEvents` constants and `path()`/`guid()` mappers back to the strings. It suits switch statements and LDtk external enums. Ignore the file if you never need that.
 
-## Everything else 2.0 adds
 
-Features with no 1.x equivalent need no migration. The CHANGELOG's 2.0.0 section lists them all, and `LIMITATIONS.md` covers what the library deliberately leaves out.
