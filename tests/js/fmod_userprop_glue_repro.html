@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<!--
+Standalone repro for an FMOD html5 SDK defect (2.03.12): reading a
+numeric user property crashes the wasm module. No haxefmod code is
+involved - this drives the FMOD JS API directly.
+
+Observed: getUserPropertyByIndex and getUserProperty both trap with
+"RuntimeError: memory access out of bounds" for any INTEGER, BOOLEAN,
+or FLOAT typed property. The glue converts every field of the value
+union for the out object, and its string conversion dereferences the
+raw number bits as a pointer. String properties read correctly, and
+their floatvalue comes back as the string pointer bits read as a
+float, which shows the same union mishandling from the other side.
+
+To run: serve this file next to fmodstudio.js, fmodstudio.wasm, and a
+Master.bank/Master.strings.bank pair whose event:/Music/MainLevel
+carries at least one numeric user property, then open it in a browser
+and watch the console.
+-->
+<html><head><meta charset="utf-8"><title>fmod user property repro</title></head><body>
+<script src="fmodstudio.js"></script>
+<script>
+var gSystem, ready = false;
+var FMOD = {};
+var fetchedBanks = [];
+FMOD.preRun = function () {
+    fetchedBanks.forEach(function (b) {
+        FMOD.FS_createDataFile('/', b.name, b.data, true, false, false);
+    });
+};
+FMOD.onRuntimeInitialized = function () {
+    var o = {};
+    FMOD.Studio_System_Create(o); gSystem = o.val;
+    var core = {};
+    gSystem.getCoreSystem(core);
+    gSystem.initialize(1024, FMOD.STUDIO_INIT_NORMAL, FMOD.INIT_NORMAL, null);
+    var b = {};
+    gSystem.loadBankFile('/Master.bank', FMOD.STUDIO_LOAD_BANK_NORMAL, b);
+    gSystem.loadBankFile('/Master.strings.bank', FMOD.STUDIO_LOAD_BANK_NORMAL, b);
+    ready = true;
+    return FMOD.OK;
+};
+async function boot() {
+    for (const n of ['Master.bank', 'Master.strings.bank']) {
+        fetchedBanks.push({ name: n, data: new Uint8Array(await (await fetch(n)).arrayBuffer()) });
+    }
+    FMODModule(FMOD);
+    while (!ready) await new Promise(r => setTimeout(r, 50));
+    console.log('REPRO: initialized');
+
+    var d = {};
+    gSystem.getEvent('event:/Music/MainLevel', d);
+    var evd = d.val;
+    var c = {};
+    evd.getUserPropertyCount(c);
+    console.log('REPRO: property count ' + c.val);
+    for (var i = 0; i < c.val; i++) {
+        var out = {};
+        try {
+            var r = evd.getUserPropertyByIndex(i, out);
+            console.log('REPRO: index ' + i + ' result ' + r + ' name=' + out.name
+                + ' type=' + out.type + ' floatvalue=' + out.floatvalue
+                + ' stringvalue=' + out.stringvalue);
+        } catch (e) {
+            console.log('REPRO: index ' + i + ' THREW ' + e);
+        }
+    }
+    console.log('REPRO: done');
+}
+boot();
+</script></body></html>

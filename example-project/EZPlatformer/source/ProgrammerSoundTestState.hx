@@ -4,10 +4,15 @@ import flixel.FlxG;
 import flixel.FlxState;
 import flixel.text.FlxText;
 import flixel.util.FlxColor;
+import haxefmod.core.ChannelGroup;
+import haxefmod.core.Dsp;
+import haxefmod.core.DspType;
+import haxefmod.studio.Callbacks;
 import haxefmod.studio.CoreSound;
 import haxefmod.studio.EventInstance;
 import haxefmod.studio.FmodResult;
 import haxefmod.studio.StudioSystem;
+import haxefmod.studio.Types;
 
 /**
  * CI test state for the programmer-sound plumbing and the Core API micro
@@ -16,10 +21,13 @@ import haxefmod.studio.StudioSystem;
  *
  * The core subset is validated end to end against a real audio file (the CI
  * step copies fmod/Assets/Jump.wav into the game's assets before running).
- * The programmer-sound CREATE/DESTROY resolution can only fire once the FMOD
- * project contains a programmer instrument, so this state validates the
- * assignment plumbing (mask install, start/stop with the callback armed,
- * clear) and that nothing crashes with the machinery in place.
+ * The Dialogue/Speak event carries a real async programmer instrument, so
+ * the audio-table phase proves the full CREATE/DESTROY resolution from the
+ * "hello" key, with channel-group metering as the evidence the key resolved
+ * to audio. The music-event block below keeps the armed-but-never-fired
+ * plumbing covered too. On html5 assignment reports UNSUPPORTED (an FMOD
+ * glue defect, pinned by tests/js/fmod_ps_glue_repro.html) and the
+ * playback phase is skipped.
  *
  * Select via HAXEFMOD_TEST_STATE=ps-test (native) or ?test=ps-test (HTML5).
  */
@@ -82,8 +90,8 @@ class ProgrammerSoundTestState extends FlxState {
         #end
 
         // Programmer-sound assignment plumbing on a real instance. The
-        // example bank has no programmer instrument, so the callback never
-        // triggers. This proves assignment, playback with the callback
+        // music event has no programmer instrument, so the callback never
+        // triggers here. This proves assignment, playback with the callback
         // armed, and cleanup are all safe.
         var desc = StudioSystem.getEvent(FmodEvents.MusicMainLevel);
         // Leak baseline after the lookup (descriptions cache a persistent
@@ -92,7 +100,15 @@ class ProgrammerSoundTestState extends FlxState {
         var instance:EventInstance = desc.createInstance();
         check("create_instance", !instance.isNull(), "");
         var assignResult = instance.assignProgrammerSound("assets/fmod/Jump.wav");
+        #if js
+        // Programmer sounds are unsupported on html5: the FMOD glue defect
+        // pinned by tests/js/fmod_ps_glue_repro.html makes the create flow
+        // stop the event and kill its callback delivery
+        check("ps_assign", assignResult == FmodResult.FMOD_ERR_UNSUPPORTED,
+            'result=${assignResult.toString()}');
+        #else
         check("ps_assign", assignResult.isOk(), 'result=${assignResult.toString()}');
+        #end
         check("evi_start_with_ps_armed", instance.start().isOk(), "");
         check("evi_stop_with_ps_armed", instance.stop(IMMEDIATE).isOk(), "");
         var clearResult = instance.clearProgrammerSound();
@@ -103,14 +119,171 @@ class ProgrammerSoundTestState extends FlxState {
         check("no_handle_leaks", StudioSystem.liveHandleCount() == baseline,
             'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
 
+        _label = label;
+        startAudioTable();
+    }
+
+    var _label:FlxText;
+    var _phase:String = "";
+    var _atInstance:EventInstance = EventInstance.NULL;
+    var _atGroup:ChannelGroup = ChannelGroup.NULL;
+    var _atMeter:Dsp = Dsp.NULL;
+    var _atBaseline:Int = 0;
+    var _atFrames:Int = 0;
+    var _atCreates:Int = 0;
+    var _atDestroys:Int = 0;
+    var _atStopped:Bool = false;
+    var _atMaxPeak:Float = 0;
+    var _bogusInstance:EventInstance = EventInstance.NULL;
+    // Both audio-table keys run through the full flow. The table holds two
+    // entries, so the second key also exercises a nonzero subsound index.
+    static var AT_KEYS:Array<String> = ["hello", "goodbye"];
+    var _atKeyIndex:Int = 0;
+
+    /**
+     * The audio-table key route: Speak's async programmer instrument
+     * resolves each key through the Master bank's audio table. The create
+     * callback fires whether or not the key resolves, so metering on the
+     * instance's channel group is the proof it resolved to real audio.
+     * Async: the event plays its region out per key (about six seconds).
+     */
+    function startAudioTable():Void {
+        // The description lookup mints a persistent dedup handle: warm it
+        // before the baseline
+        var desc = StudioSystem.getEvent(FmodEvents.DialogueSpeak);
+        _atBaseline = StudioSystem.liveHandleCount();
+        check("at_event_lookup", !desc.isNull(),
+            'result=${StudioSystem.lastResult().toString()}');
+        if (desc.isNull()) {
+            finishState();
+            return;
+        }
+        startAudioTableKey();
+    }
+
+    function startAudioTableKey():Void {
+        var desc = StudioSystem.getEvent(FmodEvents.DialogueSpeak);
+        var key = AT_KEYS[_atKeyIndex];
+        _atCreates = 0;
+        _atDestroys = 0;
+        _atStopped = false;
+        _atMaxPeak = 0;
+        _atInstance = desc.createInstance();
+        check("at_create_instance", !_atInstance.isNull(), 'key=$key');
+        #if js
+        // The full audio-table playback phase is native-only (see the
+        // ps_assign comment above). The refusal contract is what html5 pins.
+        check("at_assign_unsupported",
+            _atInstance.assignProgrammerSound("hello") == FmodResult.FMOD_ERR_UNSUPPORTED, "");
+        _atInstance.release();
+        StudioSystem.flushCommands();
+        FmodManager.Update();
+        check("no_at_leaks", StudioSystem.liveHandleCount() == _atBaseline,
+            'baseline=$_atBaseline now=${StudioSystem.liveHandleCount()}');
+        finishState();
+        return;
+        #end
+        _atInstance.setCallback(data -> {
+            switch (data) {
+                case Stopped: _atStopped = true;
+                case Other(t):
+                    if (t == EventCallbackType.CREATE_PROGRAMMER_SOUND) _atCreates++;
+                    if (t == EventCallbackType.DESTROY_PROGRAMMER_SOUND) _atDestroys++;
+                default:
+            }
+        }, EventCallbackType.STOPPED | EventCallbackType.CREATE_PROGRAMMER_SOUND
+            | EventCallbackType.DESTROY_PROGRAMMER_SOUND);
+        check("at_assign_key", _atInstance.assignProgrammerSound(key).isOk(), 'key=$key');
+        check("at_start", _atInstance.start().isOk(), 'key=$key');
+        StudioSystem.flushCommands();
+        _atGroup = _atInstance.getChannelGroup();
+        check("at_channel_group", !_atGroup.isNull(),
+            'result=${StudioSystem.lastResult().toString()}');
+        _atMeter = Dsp.create(DspType.FFT);
+        if (!_atGroup.isNull()) {
+            _atGroup.addDsp(0, _atMeter);
+            // getMetering reads the output meter, so output metering must
+            // be on (the FFT passes audio through unchanged)
+            _atMeter.setMeteringEnabled(true, true);
+        }
+        _atFrames = 0;
+        _phase = "at-play";
+    }
+
+    function finishAudioTable():Void {
+        var key = AT_KEYS[_atKeyIndex];
+        check("at_stopped_naturally", _atStopped, 'key=$key frames=$_atFrames');
+        check("at_create_callback_delivered", _atCreates > 0, 'key=$key count=$_atCreates');
+        check("at_destroy_callback_delivered", _atDestroys > 0, 'key=$key count=$_atDestroys');
+        check("at_key_resolved_audibly", _atMaxPeak > 0.01, 'key=$key peak=$_atMaxPeak');
+        _atGroup.removeDsp(_atMeter);
+        _atMeter.release();
+        _atInstance.release();
+        var desc = StudioSystem.getEvent(FmodEvents.DialogueSpeak);
+        desc.releaseAllInstances();
+        StudioSystem.flushCommands();
+        FmodManager.Update();
+        check("no_at_leaks", StudioSystem.liveHandleCount() == _atBaseline,
+            'key=$key baseline=$_atBaseline now=${StudioSystem.liveHandleCount()}');
+
+        _atKeyIndex++;
+        if (_atKeyIndex < AT_KEYS.length) {
+            startAudioTableKey();
+            return;
+        }
+
+        // A well-formed key that matches nothing: the instrument stays
+        // silent and the event still plays its region out without wedging
+        _bogusInstance = desc.createInstance();
+        check("at_bogus_assign", _bogusInstance.assignProgrammerSound("no_such_key").isOk(), "");
+        check("at_bogus_start", _bogusInstance.start().isOk(), "");
+        _atFrames = 0;
+        _phase = "at-bogus";
+    }
+
+    function finishBogus(stopped:Bool):Void {
+        check("at_bogus_plays_out", stopped, 'frames=$_atFrames');
+        _bogusInstance.release();
+        var desc = StudioSystem.getEvent(FmodEvents.DialogueSpeak);
+        desc.releaseAllInstances();
+        StudioSystem.flushCommands();
+        FmodManager.Update();
+        check("no_bogus_leaks", StudioSystem.liveHandleCount() == _atBaseline,
+            'baseline=$_atBaseline now=${StudioSystem.liveHandleCount()}');
+        finishState();
+    }
+
+    function finishState():Void {
         log('PS_TEST: COMPLETE passed=$_passCount failed=$_failCount');
-        label.text = 'PS_TEST complete: $_passCount passed, $_failCount failed';
+        _label.text = 'PS_TEST complete: $_passCount passed, $_failCount failed';
         _done = true;
+        _phase = "";
     }
 
     override public function update(elapsed:Float):Void {
         super.update(elapsed);
         FmodManager.Update();
+        if (_phase == "at-play") {
+            _atFrames++;
+            var metering = _atMeter.getMetering();
+            if (metering != null) {
+                for (p in metering.peak) if (p > _atMaxPeak) _atMaxPeak = p;
+            }
+            // The destroy event can trail the stop by a drain or two, so
+            // wait for both before finishing
+            if ((_atStopped && _atDestroys > 0) || _atFrames > 600) {
+                finishAudioTable();
+            }
+            return;
+        }
+        if (_phase == "at-bogus") {
+            _atFrames++;
+            var stopped = _bogusInstance.getPlaybackState() == FmodPlaybackState.STOPPED;
+            if (stopped || _atFrames > 600) {
+                finishBogus(stopped);
+            }
+            return;
+        }
         if (!_done) return;
 
         _framesWaited++;

@@ -87,9 +87,8 @@ class TestVersionParsing {
 			"// #define FMOD_VERSION    0x00010000",
 			"#define FMOD_VERSION    0x00020312",
 		].join("\n");
-		// Both lines contain #define and FMOD_VERSION, but the parser finds the first match.
-		// The commented-out line still has both keywords, so parser picks it up.
-		// This tests the actual behavior (not ideal, but matches the implementation).
+		// The commented-out line still contains both keywords, so the parser
+		// matches it first. This documents that behavior.
 		var path = writeTempFile("commented.h", content);
 		var result = parseFmodVersion(path);
 		assert("picks first matching line (even comment)", result == "0x00010000");

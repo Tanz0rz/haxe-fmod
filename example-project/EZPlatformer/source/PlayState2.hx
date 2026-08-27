@@ -64,9 +64,11 @@ class PlayState2 extends FlxState {
             _jumped = true;
         }
 
-        // Quit when player hits the far right wall (native builds only)
+        // The wavwriter CI runs need the process to exit at the far right
+        // wall so the capture ends with the demo. Normal builds keep the
+        // window open.
         #if sys
-        if (_player.x >= 38 * 8 && _player.isTouching(FlxDirectionFlags.RIGHT)) {
+        if (Sys.getEnv("FMOD_WAVWRITER") != null && _player.x >= 38 * 8 && _player.isTouching(FlxDirectionFlags.RIGHT)) {
             Sys.exit(0);
         }
         #end

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<objects serializationModel="Studio.02.00.00">
+<objects serializationModel="Studio.02.03.00">
 	<object class="Bank" id="{feebe036-a9ec-4619-8b69-ce075a392219}">
 		<property name="name">
 			<value>Master</value>
@@ -10,5 +10,16 @@
 		<relationship name="folder">
 			<destination>{11ef0dc9-8400-4516-86c7-c4792b73c24a}</destination>
 		</relationship>
+		<relationship name="audioTable">
+			<destination>{d6f8557a-0264-4b8d-ace7-f77dd83f6a2a}</destination>
+		</relationship>
+	</object>
+	<object class="AudioTable" id="{d6f8557a-0264-4b8d-ace7-f77dd83f6a2a}">
+		<property name="name">
+			<value>Dialog_Noises</value>
+		</property>
+		<property name="sourceDirectory">
+			<value>audio_table</value>
+		</property>
 	</object>
 </objects>

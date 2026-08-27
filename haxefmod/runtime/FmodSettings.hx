@@ -1,7 +1,7 @@
 package haxefmod.runtime;
 
 /**
- * Settings for FmodRuntime.init. Every field is optional. unset fields fall
+ * Settings for FmodRuntime.init. Every field is optional. Unset fields fall
  * back to compile-time defines, then to the built-in defaults.
  *
  * Compile-time defines (project.xml <haxedef/> or -D):
@@ -9,6 +9,7 @@ package haxefmod.runtime;
  *   -D haxefmod_sample_rate=48000
  *   -D haxefmod_live_update        (force live update ON in any build)
  *   -D haxefmod_no_live_update     (force live update OFF in any build)
+ *   -D haxefmod_no_mute_when_unfocused  (keep audio playing when unfocused)
  *   -D haxefmod_bank_folder=assets/fmod/Desktop
  *   -D haxefmod_log_level=2
  */
@@ -48,6 +49,27 @@ typedef FmodSettings = {
      * Typed callbacks are still only delivered from update().
      */
     @:optional var autoUpdate:Bool;
+
+    /**
+     * Mutes the master output while the game window is unfocused, so audio
+     * doesn't play to a window nobody is looking at. FMOD keeps mixing, so
+     * sounds play out in real time instead of queuing up and blasting out
+     * the instant focus returns. Default true.
+     *
+     * The game must report focus changes via FmodManager.SetWindowFocused
+     * (or FmodRuntime.setWindowFocused) for this to take effect. Set false
+     * (or -D haxefmod_no_mute_when_unfocused) to keep audio playing in the
+     * background.
+     */
+    @:optional var muteWhenUnfocused:Bool;
+
+    /**
+     * Clamps the velocity magnitude pushed for attached instances and the
+     * flixel listener, in game units per second. Fast-moving objects can
+     * produce audible doppler pitch flutter, and this caps the velocity
+     * FMOD sees without touching the position. Default 0 (no clamp).
+     */
+    @:optional var maxAttachedVelocity:Float;
 }
 
 /** FmodSettings with every field resolved. */
@@ -60,6 +82,8 @@ typedef ResolvedFmodSettings = {
     var bankFolder:String;
     var autoLoadBanks:Array<String>;
     var autoUpdate:Bool;
+    var muteWhenUnfocused:Bool;
+    var maxAttachedVelocity:Float;
 }
 
 class FmodSettingsResolver {
@@ -70,6 +94,10 @@ class FmodSettingsResolver {
             #elseif haxefmod_live_update true
             #elseif debug true
             #else false #end;
+
+        var defaultMuteWhenUnfocused =
+            #if haxefmod_no_mute_when_unfocused false
+            #else true #end;
 
         var defaultChannels = Defines.getInt("haxefmod_num_channels", 128);
         var defaultSampleRate = Defines.getInt("haxefmod_sample_rate", 0);
@@ -87,6 +115,12 @@ class FmodSettingsResolver {
                 ? settings.autoLoadBanks
                 : ["Master.bank", "Master.strings.bank"],
             autoUpdate: settings != null && settings.autoUpdate != null ? settings.autoUpdate : true,
+            muteWhenUnfocused: settings != null && settings.muteWhenUnfocused != null
+                ? settings.muteWhenUnfocused
+                : defaultMuteWhenUnfocused,
+            maxAttachedVelocity: settings != null && settings.maxAttachedVelocity != null
+                ? settings.maxAttachedVelocity
+                : 0.0,
         };
     }
 }

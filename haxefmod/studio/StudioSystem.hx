@@ -30,7 +30,13 @@ class StudioSystem {
      */
     public static function getBus(path:String):Bus {
         if (busCache.exists(path)) {
-            return busCache.get(path);
+            // A cached handle can go stale when its bank is unloaded, so
+            // re-validate before serving it and refresh on a miss
+            var cached = busCache.get(path);
+            if (cached.isValid()) {
+                return cached;
+            }
+            busCache.remove(path);
         }
         var bus:Bus = NativeStudio.sys_get_bus(path);
         if (!bus.isNull()) {
@@ -108,6 +114,32 @@ class StudioSystem {
         return NativeStudio.sys_unload_all();
     }
 
+    /**
+     * Loads a bank from bytes (embedded, downloaded, or packed banks).
+     * The data is copied, so the buffer is free after this returns.
+     * Returns Bank.NULL on failure.
+     */
+    public static function loadBankMemory(data:haxe.io.Bytes):Bank {
+        return NativeStudio.sys_load_bank_memory(data, data.length);
+    }
+
+    /**
+     * Records every API command to a file until stopCommandCapture, for
+     * FMOD's analysis tools or replay through loadCommandReplay.
+     */
+    public static function startCommandCapture(path:String):FmodResult {
+        return NativeStudio.sys_start_command_capture(path);
+    }
+
+    public static function stopCommandCapture():FmodResult {
+        return NativeStudio.sys_stop_command_capture();
+    }
+
+    /** Loads a capture file for playback. Returns CommandReplay.NULL on failure. */
+    public static function loadCommandReplay(path:String):CommandReplay {
+        return NativeStudio.sys_load_command_replay(path);
+    }
+
     /** Blocks until all pending commands have executed. */
     public static function flushCommands():FmodResult {
         return NativeStudio.sys_flush_commands();
@@ -174,6 +206,35 @@ class StudioSystem {
         return NativeStudio.sys_get_parameter_label(parameterName, labelIndex);
     }
 
+    /**
+     * Global parameter description by parameter ID, or null when no global
+     * parameter carries that ID. Resolved by scanning the description list,
+     * so it covers the same indexes getParameterDescriptionByIndex does.
+     */
+    public static function getParameterDescriptionByID(id:FmodParameterId):Null<FmodParameterDescription> {
+        return scanDescriptionsByID(getParameterDescriptionCount(), getParameterDescriptionByIndex, id);
+    }
+
+    /** Shared ID scan over an indexed description getter (EventDescription
+        reuses it, like readParameterDescription). */
+    @:allow(haxefmod.studio.EventDescription)
+    static function scanDescriptionsByID(count:Int, byIndex:Int -> Null<FmodParameterDescription>,
+            id:FmodParameterId):Null<FmodParameterDescription> {
+        for (i in 0...count) {
+            var desc = byIndex(i);
+            if (desc != null && desc.id.data1 == id.data1 && desc.id.data2 == id.data2) {
+                return desc;
+            }
+        }
+        return null;
+    }
+
+    /** Label text for a labeled global parameter identified by ID. */
+    public static function getParameterLabelByID(id:FmodParameterId, labelIndex:Int):String {
+        var desc = getParameterDescriptionByID(id);
+        return desc == null ? "" : getParameterLabel(desc.name, labelIndex);
+    }
+
     //// Listeners
 
     public static function getNumListeners():Int {
@@ -205,8 +266,10 @@ class StudioSystem {
     }
 
     /** Convenience for 2D games: listener position only, unit forward/up. */
-    public static function setListenerPosition2D(index:Int, x:Float, y:Float):FmodResult {
-        return NativeStudio.sys_set_listener_attributes(index, x, y, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0);
+    public static function setListenerPosition2D(index:Int, x:Float, y:Float,
+            velocityX:Float = 0, velocityY:Float = 0):FmodResult {
+        return NativeStudio.sys_set_listener_attributes(index, x, y, 0,
+            velocityX, velocityY, 0, 0, 0, 1, 0, 1, 0);
     }
 
     public static function getListenerWeight(index:Int):Float {

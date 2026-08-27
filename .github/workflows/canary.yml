@@ -109,7 +109,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg patchelf \
+          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg \
             libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
             libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev libz-dev
 
@@ -179,8 +179,6 @@ jobs:
       - name: Patch FMOD libraries
         run: |
           BIN_DIR="example-project/EZPlatformer/export/hl/bin"
-          patchelf --clear-execstack "$BIN_DIR"/libfmod.so* || true
-          patchelf --clear-execstack "$BIN_DIR"/libfmodstudio.so* || true
 
       - name: Validate build output
         run: |
@@ -267,7 +265,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg patchelf \
+          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg \
             libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
             libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev libz-dev
 
@@ -298,8 +296,6 @@ jobs:
           if [ ! -d "$BIN_DIR" ]; then
             BIN_DIR="example-project/EZPlatformer/export/linux/bin"
           fi
-          patchelf --clear-execstack "$BIN_DIR"/libfmod.so* || true
-          patchelf --clear-execstack "$BIN_DIR"/libfmodstudio.so* || true
           ./ci/validate-build.sh "$BIN_DIR" cpp
 
       - name: Build HashLink target (mismatch expected against pre-built hdll)
@@ -331,8 +327,6 @@ jobs:
       - name: Patch FMOD libraries
         run: |
           BIN_DIR="example-project/EZPlatformer/export/hl/bin"
-          patchelf --clear-execstack "$BIN_DIR"/libfmod.so* || true
-          patchelf --clear-execstack "$BIN_DIR"/libfmodstudio.so* || true
 
       - name: Validate build output
         run: |

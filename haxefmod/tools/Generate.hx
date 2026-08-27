@@ -20,12 +20,13 @@ import sys.io.File;
  * every event, with values named exactly like the FmodEvents constants,
  * plus FmodEventTools.path() and guid() mappers (usable as static
  * extensions). Projects that never touch the enums can ignore the file -
- * unused mappers are stripped by dead code elimination. Plain enums suit switch statements and
- * external tools that import Haxe enums (LDtk external enums, for example).
+ * unused mappers are stripped by dead code elimination. Plain enums suit
+ * switch statements and external tools that import Haxe enums (LDtk
+ * external enums, for example).
  *
  * Each file holds the path constants plus a companion class with the
  * matching GUIDs under the same identifiers, so autocomplete on the main
- * class only shows the paths:
+ * class autocompletes to paths only:
  *
  *   FmodEvents.MusicMainLevel        "event:/Music/MainLevel"
  *   FmodEventsGuids.MusicMainLevel   "{e5187c3f-...}"
@@ -157,7 +158,7 @@ class Generate {
 		lines.push("\tpublic static inline function path(event:FmodEventEnum):String {");
 		lines.push("\t\treturn switch (event) {");
 		for (i in 0...matched.length) {
-			lines.push('\t\t\tcase ${names[i]}: "${matched[i].path}";');
+			lines.push('\t\t\tcase ${names[i]}: "${quoteHx(matched[i].path)}";');
 		}
 		lines.push("\t\t};");
 		lines.push("\t}");
@@ -187,12 +188,12 @@ class Generate {
 		var names = identifiersFor(entries.map(e -> e.path), prefix);
 		lines.push('class $className {');
 		for (i in 0...entries.length) {
-			lines.push('\tpublic static inline var ${names[i]}:String = "${entries[i].path}";');
+			lines.push('\tpublic static inline var ${names[i]}:String = "${quoteHx(entries[i].path)}";');
 		}
 		lines.push("}");
 		lines.push("");
-		// GUIDs live in a companion class under the same identifiers, so
-		// autocomplete on the main class only shows the paths
+		// GUIDs go in a companion class so the main class autocompletes
+		// to paths only
 		lines.push('class ${className}Guids {');
 		for (i in 0...entries.length) {
 			lines.push('\tpublic static inline var ${names[i]}:String = "${entries[i].guid.toLowerCase()}";');
@@ -202,7 +203,22 @@ class Generate {
 		return lines.join("\n");
 	}
 
-	/** Mangles one path into a Haxe identifier (see class doc for the rules). */
+	/**
+		Escapes a value for a generated double-quoted Haxe string literal.
+		A backslash or quote in an event path would otherwise emit an
+		uncompilable file. Kept in lockstep with quoteHx in
+		fmod-scripts/ExportHaxeConstants.js.
+	**/
+	public static function quoteHx(s:String):String {
+		return StringTools.replace(StringTools.replace(s, "\\", "\\\\"), '"', '\\"');
+	}
+
+	/**
+		Mangles one path into a Haxe identifier (see class doc for the
+		rules). Only ASCII letters and digits survive: non-ASCII characters
+		are dropped, so a path named entirely in another script collapses to
+		"Root" and relies on the collision suffixes for uniqueness.
+	**/
 	public static function mangle(path:String, prefix:String):String {
 		var rest = StringTools.startsWith(path, prefix) ? path.substr(prefix.length) : path;
 		var out = new StringBuf();

@@ -37,8 +37,15 @@
 
 /* One callback event. Which fields are meaningful depends on type:
  *   TIMELINE_MARKER: str = marker name, i1 = position (ms)
- *   TIMELINE_BEAT:   i1 = bar, i2 = beat, i3 = position (ms), f1 = tempo
+ *   TIMELINE_BEAT:   i1 = bar, i2 = beat, i3 = position (ms), f1 = tempo,
+ *                    i4 = time signature upper, i5 = time signature lower
  *   others:          only handle + type
+ *
+ * opaque carries a native payload across the thread boundary (the DESTROYED
+ * event uses it for the per-instance context). Ownership transfers to the
+ * drain: whoever pops the event must dispose of the payload. A payload
+ * MUST begin with a void* qnext field, which the queue uses to park
+ * payloads whose events get dropped on overflow (see faxe_cbq_take_orphans).
  */
 typedef struct {
     int32_t handle;             /* event instance handle (from FMOD userdata) */
@@ -46,7 +53,10 @@ typedef struct {
     int32_t i1;
     int32_t i2;
     int32_t i3;
+    int32_t i4;
+    int32_t i5;
     float f1;
+    void* opaque;               /* payload owned by the drain, or NULL */
     char str[FAXE_CBQ_STR_MAX]; /* UTF-8, truncated, always NUL-terminated */
 } FaxeCbEvent;
 
@@ -55,6 +65,7 @@ static int gCbqHead = 0;         /* next write position */
 static int gCbqCount = 0;        /* number of queued events */
 static int gCbqOverflow = 0;     /* set when an event was dropped */
 static int gCbqInitialized = 0;
+static void* gCbqOrphans = NULL; /* payloads of dropped events, linked by qnext */
 
 #ifdef _WIN32
 static CRITICAL_SECTION gCbqLock;
@@ -72,6 +83,7 @@ static void faxe_cbq_init(void) {
     gCbqHead = 0;
     gCbqCount = 0;
     gCbqOverflow = 0;
+    gCbqOrphans = NULL;
     gCbqInitialized = 1;
 }
 
@@ -92,10 +104,17 @@ static void faxe_cbq_unlock(void) {
 }
 
 /* Called from FMOD callback threads. Copies the event into the ring;
- * drops the oldest event when full. */
+ * drops the oldest event when full. A dropped event's payload is parked on
+ * the orphan list (freeing it here would race the game thread, which may
+ * still hold a pointer to it). */
 static void faxe_cbq_push(const FaxeCbEvent* event) {
     if (!gCbqInitialized) return;
     faxe_cbq_lock();
+    if (gCbqCount == FAXE_CBQ_CAPACITY && gCbqRing[gCbqHead].opaque) {
+        void* dropped = gCbqRing[gCbqHead].opaque;
+        *(void**)dropped = gCbqOrphans;
+        gCbqOrphans = dropped;
+    }
     gCbqRing[gCbqHead] = *event;
     gCbqRing[gCbqHead].str[FAXE_CBQ_STR_MAX - 1] = '\0';
     gCbqHead = (gCbqHead + 1) % FAXE_CBQ_CAPACITY;
@@ -122,6 +141,19 @@ static int faxe_cbq_pop(FaxeCbEvent* out) {
     gCbqCount--;
     faxe_cbq_unlock();
     return 1;
+}
+
+/* Returns the orphan list head (payloads of dropped events, linked through
+ * their leading qnext field) and clears the list. The caller owns every
+ * node and must dispose of each one. Haxe thread only. */
+static void* faxe_cbq_take_orphans(void) {
+    void* head;
+    if (!gCbqInitialized) return NULL;
+    faxe_cbq_lock();
+    head = gCbqOrphans;
+    gCbqOrphans = NULL;
+    faxe_cbq_unlock();
+    return head;
 }
 
 /* Returns and clears the overflow flag. Haxe thread only. */

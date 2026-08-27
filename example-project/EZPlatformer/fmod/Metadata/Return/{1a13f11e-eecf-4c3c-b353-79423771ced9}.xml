@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<objects serializationModel="Studio.02.00.00">
+<objects serializationModel="Studio.02.03.00">
 	<object class="MixerReturn" id="{1a13f11e-eecf-4c3c-b353-79423771ced9}">
 		<property name="overridingInputFormat">
 			<value>2</value>
 		</property>
-		<property name="inputFormatOverridden">
-			<value>true</value>
-		</property>
 		<property name="name">
 			<value>Reverb</value>
 		</property>
+		<relationship name="masters">
+			<destination>{c423b829-1850-408b-a341-f00553b5208e}</destination>
+		</relationship>
 		<relationship name="effectChain">
 			<destination>{b038a53f-57ec-4ef1-b628-f7cb4989beef}</destination>
 		</relationship>

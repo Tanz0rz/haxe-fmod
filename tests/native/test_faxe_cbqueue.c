@@ -10,6 +10,113 @@
 #include <assert.h>
 #include "../../native/shared/faxe_cbqueue.h"
 
+#ifdef _WIN32
+#include <process.h>
+#else
+#include <pthread.h>
+#endif
+
+/* Stand-in for the opaque payloads the shims attach to DESTROYED events.
+ * The leading next pointer is the queue's orphan-list contract. */
+typedef struct {
+    void* qnext;
+    int tag;
+} TestPayload;
+
+/* Concurrent producer/consumer stress modeling the real deployment: the
+ * FMOD studio thread pushes events (some carrying opaque DESTROYED-ctx
+ * payloads) while the game thread drains. The invariant is the lifetime
+ * contract the shims depend on: every payload is delivered EXACTLY once,
+ * through the queue or the orphan list, never lost and never twice. Run
+ * under TSan in CI to also prove the locking. */
+#define STRESS_TOTAL 20000
+
+typedef struct {
+    void* qnext;
+    int tag;
+} StressPayload;
+
+static StressPayload gPayloads[STRESS_TOTAL];
+static unsigned char gSeen[STRESS_TOTAL];
+
+#ifdef _WIN32
+static unsigned __stdcall stress_producer(void* arg)
+#else
+static void* stress_producer(void* arg)
+#endif
+{
+    FaxeCbEvent ev;
+    int i;
+    (void)arg;
+    memset(&ev, 0, sizeof(ev));
+    for (i = 0; i < STRESS_TOTAL; i++) {
+        ev.handle = i;
+        gPayloads[i].qnext = NULL;
+        gPayloads[i].tag = i;
+        ev.opaque = &gPayloads[i];
+        faxe_cbq_push(&ev);
+    }
+#ifdef _WIN32
+    return 0;
+#else
+    return NULL;
+#endif
+}
+
+static int stress_note_orphans(void) {
+    int noted = 0;
+    StressPayload* orphan = (StressPayload*)faxe_cbq_take_orphans();
+    while (orphan) {
+        gSeen[orphan->tag]++;
+        noted++;
+        orphan = (StressPayload*)orphan->qnext;
+    }
+    return noted;
+}
+
+static void test_concurrent_payload_delivery(void) {
+    FaxeCbEvent out;
+    int lastHandle = -1;
+    int seen = 0;
+    int i;
+#ifdef _WIN32
+    HANDLE th = (HANDLE)_beginthreadex(NULL, 0, stress_producer, NULL, 0, NULL);
+    assert(th != NULL);
+#else
+    pthread_t th;
+    assert(pthread_create(&th, NULL, stress_producer, NULL) == 0);
+#endif
+
+    /* Drain concurrently with the producer. Every payload must arrive
+     * exactly once - through a popped event or the orphan list - so the
+     * running count reaching the total IS the termination condition (a
+     * lost payload would hang here, which the CI job timeout turns into
+     * a failure). */
+    while (seen < STRESS_TOTAL) {
+        if (faxe_cbq_pop(&out)) {
+            assert(out.handle > lastHandle); /* FIFO order survives drops */
+            lastHandle = out.handle;
+            assert(out.opaque != NULL); /* every stress event carries one */
+            gSeen[((StressPayload*)out.opaque)->tag]++;
+            seen++;
+        }
+        seen += stress_note_orphans();
+    }
+    assert(faxe_cbq_pop(&out) == 0); /* nothing beyond the total */
+    faxe_cbq_take_overflow(); /* drops are legal, the flag just reports them */
+
+#ifdef _WIN32
+    WaitForSingleObject(th, INFINITE);
+    CloseHandle(th);
+#else
+    pthread_join(th, NULL);
+#endif
+
+    for (i = 0; i < STRESS_TOTAL; i++) {
+        assert(gSeen[i] == 1); /* delivered exactly once, queue or orphan */
+    }
+}
+
 int main(void) {
     FaxeCbEvent ev;
     FaxeCbEvent out;
@@ -17,6 +124,7 @@ int main(void) {
     /* pop before init is a safe no-op */
     assert(faxe_cbq_pop(&out) == 0);
     assert(faxe_cbq_take_overflow() == 0);
+    assert(faxe_cbq_take_orphans() == NULL);
 
     faxe_cbq_init();
     faxe_cbq_init(); /* double init is a safe no-op */
@@ -32,6 +140,8 @@ int main(void) {
         ev.i1 = i;
         ev.i2 = i * 2;
         ev.i3 = i * 3;
+        ev.i4 = i * 4;
+        ev.i5 = i * 5;
         ev.f1 = (float)i * 0.5f;
         snprintf(ev.str, sizeof(ev.str), "marker-%d", i);
         faxe_cbq_push(&ev);
@@ -42,6 +152,7 @@ int main(void) {
         assert(out.handle == 100 + i);
         assert(out.type == (1u << i));
         assert(out.i1 == i && out.i2 == i * 2 && out.i3 == i * 3);
+        assert(out.i4 == i * 4 && out.i5 == i * 5);
         snprintf(expected, sizeof(expected), "marker-%d", i);
         assert(strcmp(out.str, expected) == 0);
     }
@@ -69,6 +180,54 @@ int main(void) {
     while (faxe_cbq_pop(&out)) drained++;
     assert(drained == FAXE_CBQ_CAPACITY);
     assert(out.handle == FAXE_CBQ_CAPACITY + 9); /* newest survived */
+
+    /* opaque payloads ride the queue and come back intact */
+    {
+        TestPayload payload;
+        payload.qnext = NULL;
+        payload.tag = 42;
+        memset(&ev, 0, sizeof(ev));
+        ev.handle = 7;
+        ev.opaque = &payload;
+        faxe_cbq_push(&ev);
+        assert(faxe_cbq_pop(&out) == 1);
+        assert(out.opaque == &payload);
+        assert(((TestPayload*)out.opaque)->tag == 42);
+        assert(faxe_cbq_take_orphans() == NULL); /* consumed, not orphaned */
+    }
+
+    /* payloads of dropped events land on the orphan list, oldest-dropped
+     * last (the list is a stack), and the list clears on take */
+    {
+        TestPayload first;
+        TestPayload second;
+        TestPayload* orphan;
+        first.qnext = NULL;
+        first.tag = 1;
+        second.qnext = NULL;
+        second.tag = 2;
+        memset(&ev, 0, sizeof(ev));
+        ev.opaque = &first;
+        faxe_cbq_push(&ev);
+        ev.opaque = &second;
+        faxe_cbq_push(&ev);
+        ev.opaque = NULL;
+        for (int i = 0; i < FAXE_CBQ_CAPACITY; i++) {
+            ev.handle = i;
+            faxe_cbq_push(&ev); /* pushes both payload events off the ring */
+        }
+        assert(faxe_cbq_take_overflow() == 1);
+        orphan = (TestPayload*)faxe_cbq_take_orphans();
+        assert(orphan == &second);
+        assert(((TestPayload*)orphan->qnext) == &first);
+        assert(((TestPayload*)orphan->qnext)->qnext == NULL);
+        assert(faxe_cbq_take_orphans() == NULL); /* cleared */
+        while (faxe_cbq_pop(&out)) {
+            assert(out.opaque == NULL); /* surviving events carry no payload */
+        }
+    }
+
+    test_concurrent_payload_delivery();
 
     printf("faxe_cbqueue: all assertions passed\n");
     return 0;

@@ -7,7 +7,7 @@ import haxe.io.Path;
 /**
  * Compiles hlaxe_fmod.hdll from source against the user's FMOD SDK.
  *
- * This allows users with a different FMOD version than the pre-built hdlls
+ * For users whose FMOD version differs from the pre-built hdlls
  * (which target 2.03.12) to compile a compatible hdll for HashLink builds.
  *
  * Usage: haxelib run haxefmod build-hdll
@@ -251,7 +251,7 @@ class BuildHdll {
 				var coreLib = Path.join([fmodSdk, "api", "core", "lib", "x86_64"]);
 				var studioLib = Path.join([fmodSdk, "api", "studio", "lib", "x86_64"]);
 				[
-					"-shared", "-fPIC",
+					"-shared", "-fPIC", "-O2",
 					"-Wl,-rpath,$ORIGIN",
 					"-o", output,
 					source,
@@ -266,7 +266,7 @@ class BuildHdll {
 				var coreLib = Path.join([fmodSdk, "api", "core", "lib"]);
 				var studioLib = Path.join([fmodSdk, "api", "studio", "lib"]);
 				[
-					"-dynamiclib",
+					"-dynamiclib", "-O2",
 					"-arch", "x86_64",
 					"-install_name", "@executable_path/hlaxe_fmod.hdll",
 					"-o", output,
@@ -286,6 +286,10 @@ class BuildHdll {
 				var args = [
 					"/LD", "/O2", "/DWIN32",
 					source,
+					// cl writes the .obj into the process cwd by default,
+					// which under haxelib run is the installed library
+					// directory (possibly read-only)
+					"/Fo" + Path.join([Path.directory(output), "hlaxe_fmod.obj"]),
 					'/I$hlInclude',
 					'/I$coreInc',
 					'/I$studioInc',

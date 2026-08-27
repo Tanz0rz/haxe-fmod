@@ -11,7 +11,14 @@ import flixel.FlxState;
  */
 class LoadFmodState extends FlxState {
     override public function create():Void {
+        #if audio_test_manual_update
+        // The manual-update CI variant: every probe state then runs on
+        // FmodManager.Update's manual sys_update pushes instead of the
+        // native auto-update thread
+        FmodManager.Initialize({autoUpdate: false});
+        #else
         FmodManager.Initialize();
+        #end
 
         var loadingText = new FlxText(0, 0, "Loading...");
         loadingText.setFormat(null, 20, FlxColor.WHITE, FlxTextAlign.CENTER, NONE, FlxColor.BLACK);
@@ -35,6 +42,8 @@ class LoadFmodState extends FlxState {
                     FlxG.switchState(EmitterPanTestState.new);
                 case "stress-test":
                     FlxG.switchState(StressTestState.new);
+                case "synth-test":
+                    FlxG.switchState(SynthTestState.new);
                 default:
                     FlxG.switchState(VolumeTestState.new);
             }

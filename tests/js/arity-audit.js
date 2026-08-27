@@ -32,9 +32,7 @@ jaxe.onRuntimeInitialized = function () {
     jaxe.gSystem.initialize(1024, jaxe.FMOD.STUDIO_INIT_NORMAL, jaxe.FMOD.INIT_NORMAL, null);
     var b = {};
     jaxe.gSystem.loadBankFile('/Master.bank', jaxe.FMOD.STUDIO_LOAD_BANK_NORMAL, b);
-    jaxe.loadedBanks['Master.bank'] = b.val;
     jaxe.gSystem.loadBankFile('/Master.strings.bank', jaxe.FMOD.STUDIO_LOAD_BANK_NORMAL, b);
-    jaxe.loadedBanks['Master.strings.bank'] = b.val;
     jaxe.FmodIsInitialized = true;
     return jaxe.FMOD.OK;
 };
@@ -54,41 +52,31 @@ async function main() {
 
     const SONG = 'event:/Music/MainLevel';
 
-    // Legacy surface (every static fmod_* the old backends call)
-    check('fmod_is_initialized', () => jaxe.fmod_is_initialized());
-    check('fmod_update', () => { jaxe.fmod_update(); return 'ok'; });
-    check('fmod_load_bank (again)', () => jaxe.fmod_load_bank('Master.bank'));
-    check('fmod_fire_one_shot', () => jaxe.fmod_fire_one_shot('event:/SFX/Jump'));
-    const h = check('fmod_create_instance', () => jaxe.fmod_create_instance(SONG));
-    check('fmod_start', () => { jaxe.fmod_start(h); return 'ok'; });
-    for (let i = 0; i < 10; i++) { jaxe.fmod_update(); await new Promise(r => setTimeout(r, 10)); }
-    check('fmod_get_playback_state', () => jaxe.fmod_get_playback_state(h));
-    check('fmod_get_timeline_position', () => jaxe.fmod_get_timeline_position(h));
-    check('fmod_set_param', () => { jaxe.fmod_set_param(h, 'AreaOneUnderWater', 0.5); return 'ok'; });
-    check('fmod_get_param', () => jaxe.fmod_get_param(h, 'AreaOneUnderWater'));
-    check('fmod_set_paused(true)', () => { jaxe.fmod_set_paused(h, true); return 'ok'; });
-    check('fmod_set_paused(false)', () => { jaxe.fmod_set_paused(h, false); return 'ok'; });
-    // legacy path-based bus API
-    check('fmod_set_bus_volume', () => { jaxe.fmod_set_bus_volume('bus:/', 0.8); return 'ok'; });
-    check('fmod_get_bus_volume', () => jaxe.fmod_get_bus_volume('bus:/'));
-    check('fmod_set_bus_mute(true)', () => { jaxe.fmod_set_bus_mute('bus:/', true); return 'ok'; });
-    check('fmod_get_bus_mute', () => jaxe.fmod_get_bus_mute('bus:/'));
-    check('fmod_set_bus_mute(false)', () => { jaxe.fmod_set_bus_mute('bus:/', false); return 'ok'; });
-    check('fmod_stop_all_events_on_bus', () => { jaxe.fmod_stop_bus("bus:/"); return 'ok'; });
-    check('fmod_set_bus_paused t', () => { jaxe.fmod_set_bus_paused('bus:/', true); return 'ok'; });
-    check('fmod_set_bus_paused f', () => { jaxe.fmod_set_bus_paused('bus:/', false); return 'ok'; });
+    // System basics through the raw layer
+    check('fmod_sys_is_initialized', () => jaxe.fmod_sys_is_initialized());
+    check('fmod_sys_update', () => { jaxe.fmod_sys_update(); return 'ok'; });
+    // Instance lifecycle goes through the domain-prefixed API
+    const evd = check('fmod_sys_get_event', () => jaxe.fmod_sys_get_event(SONG));
+    const h = check('fmod_evd_create_instance', () => jaxe.fmod_evd_create_instance(evd));
+    check('fmod_evi_start', () => jaxe.fmod_evi_start(h));
+    for (let i = 0; i < 10; i++) { jaxe.fmod_sys_update(); await new Promise(r => setTimeout(r, 10)); }
+    check('fmod_evi_get_playback_state', () => jaxe.fmod_evi_get_playback_state(h));
+    check('fmod_evi_get_timeline_position', () => jaxe.fmod_evi_get_timeline_position(h));
+    check('fmod_evi_set_param_by_name', () => jaxe.fmod_evi_set_param_by_name(h, 'AreaOneUnderWater', 0.5, false));
+    check('fmod_evi_get_param_by_name', () => jaxe.fmod_evi_get_param_by_name(h, 'AreaOneUnderWater'));
+    check('fmod_evi_set_paused(true)', () => jaxe.fmod_evi_set_paused(h, true));
+    check('fmod_evi_set_paused(false)', () => jaxe.fmod_evi_set_paused(h, false));
     check('fmod_evi_set_callback_mask', () => jaxe.fmod_evi_set_callback_mask(h, 0x7FFFF));
-    check('fmod_stop soft', () => { jaxe.fmod_stop(h, 0); return 'ok'; });
+    check('fmod_evi_stop soft', () => jaxe.fmod_evi_stop(h, 0));
     let saw = false;
     for (let i = 0; i < 300 && !saw; i++) {
-        jaxe.fmod_update();
+        jaxe.fmod_sys_update();
         while (jaxe.fmod_cb_next()) if (jaxe.fmod_cb_type() === 0x20) saw = true;
         await new Promise(r => setTimeout(r, 5));
     }
     console.log('Stopped delivered:', saw);
     if (!saw) failures++;
-    check('fmod_release', () => { jaxe.fmod_release(h); return 'ok'; });
-    check('fmod_unload_bank', () => { jaxe.fmod_unload_bank('Master.bank'); return 'ok'; });
+    check('fmod_evi_release', () => jaxe.fmod_evi_release(h));
 
     console.log(failures ? `AUDIT FAILED: ${failures} failures` : 'AUDIT CLEAN');
     process.exit(failures ? 1 : 0);

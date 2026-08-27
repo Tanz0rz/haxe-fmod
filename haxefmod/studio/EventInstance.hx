@@ -43,13 +43,22 @@ abstract EventInstance(Int) from Int to Int {
     }
 
     /**
+     * The core channel group carrying this instance's audio, for attaching
+     * DSP effects to a single event. The instance must be started. Never
+     * release the group (the instance owns it).
+     */
+    public inline function getChannelGroup():haxefmod.core.ChannelGroup {
+        return NativeStudio.evi_get_channel_group(this);
+    }
+
+    /**
      * Releases the instance. FMOD destroys it once it stops. The handle
      * becomes invalid immediately and any registered callback is removed
      * (the html5 backend cannot deliver events after release, so cleanup
      * happens here on every target for consistent behavior).
      */
     public inline function release():FmodResult {
-        haxefmod.runtime.CallbackDispatcher.remove(this);
+        CallbackDispatcher.remove(this);
         return NativeStudio.evi_release(this);
     }
 
@@ -203,15 +212,21 @@ abstract EventInstance(Int) from Int to Int {
      * destroyed). Delivered from FmodManager.Update / FmodRuntime.update.
      */
     public inline function setCallback(handler:EventCallbackData->Void, ?mask:Int):Void {
-        haxefmod.runtime.CallbackDispatcher.setCallback(this, handler, mask);
+        CallbackDispatcher.setCallback(this, handler, mask);
     }
 
     /**
      * Assigns the audio-table key (or file path fallback) this instance's
      * programmer instrument should play. The native shim resolves it on the
      * FMOD thread when the instrument triggers. Assign BEFORE start().
+     *
+     * Returns FMOD_ERR_UNSUPPORTED on html5. FMOD's JS runtime cannot
+     * complete the programmer-sound flow (assigning the created sound
+     * stops the event and ends its callback delivery, reproduced with
+     * FMOD's own example pattern in tests/js/fmod_ps_glue_repro.html).
      */
     public inline function assignProgrammerSound(key:String):FmodResult {
+        if (key == null) return FmodResult.FMOD_ERR_INVALID_PARAM;
         return NativeStudio.ps_assign(this, key);
     }
 

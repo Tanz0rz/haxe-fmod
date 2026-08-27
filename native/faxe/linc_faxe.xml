@@ -13,6 +13,8 @@
 		<file name="${LINC_FAXE_PATH}/native/faxe/linc_faxe.cpp">
 			<depend name="${LINC_FAXE_PATH}/native/faxe/linc_faxe.h" />
 			<depend name="${LINC_FAXE_PATH}/native/shared/faxe_handles.h" />
+			<depend name="${LINC_FAXE_PATH}/native/shared/faxe_pcmring.h" />
+			<depend name="${LINC_FAXE_PATH}/native/shared/faxe_dsptype.h" />
 			<depend name="${LINC_FAXE_PATH}/native/shared/faxe_cbqueue.h" />
 			<depend name="${LINC_FAXE_PATH}/native/shared/faxe_guid.h" />
 			<depend name="${LINC_FAXE_PATH}/native/shared/faxe_instctx.h" />

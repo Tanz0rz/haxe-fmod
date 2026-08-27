@@ -8,7 +8,6 @@ Having problems or want to chat? [Join the Haxe Discord](https://discordapp.com/
  - [Supported Platforms](#supported-platforms)
  - [Prerequisites](#prerequisites)
  - [How to Use This Library](#how-to-use-this-library)
- - [The API Layers](#the-api-layers)
  - [Selecting an FMOD Engine Version](#selecting-an-fmod-engine-version)
  - [HTML5 Builds](#html5-builds)
  - [FMOD Studio Project Configuration](#fmod-studio-project-configuration)
@@ -18,13 +17,14 @@ Having problems or want to chat? [Join the Haxe Discord](https://discordapp.com/
  - [Feature Requests and Contact](#feature-requests-and-contact)
 
 ## Features
-- The full [FMOD Studio API](https://www.fmod.com/docs/2.03/api/studio-api.html) at runtime: events, buses, VCAs, snapshots, banks, global and labeled [parameters](https://www.fmod.com/docs/2.03/studio/parameters-reference.html), 3D/listeners, and profiling - with a friendly facade on top for the common cases
-- Typed, payload-carrying [callbacks](https://www.fmod.com/docs/2.03/api/studio-api-eventinstance.html#fmod_studio_event_callback_type): react to beats, timeline markers, and playback lifecycle events, each with its payload
-- Refcounted bank loading with real unload and async loading
-- HaxeFlixel components: one-call setup that routes the flixel sound tray and volume keys to FMOD, emitter and listener for positional audio, bank loader, and zone-based parameter triggers
-- Programmer sounds for dialogue and other runtime-selected audio
-- [Live Update](https://fmod.com/docs/2.03/studio/editing-during-live-update.html) for mixing sounds while playtesting (on by default in debug builds)
-- Constants that never drift: the FMOD Studio export script regenerates event/bus/VCA/parameter constants on every `Ctrl+B` bank build
+
+- [FMOD Studio API](https://www.fmod.com/docs/2.03/api/studio-api.html) at runtime: events, buses, VCAs, snapshots, banks, global and labeled [parameters](https://www.fmod.com/docs/2.03/studio/parameters-reference.html), 3D/listeners, and profiling with some known [limitations](LIMITATIONS.md)
+- Typed [callbacks](https://www.fmod.com/docs/2.03/api/studio-api-eventinstance.html#fmod_studio_event_callback_type) that carry event data (beats, timeline markers, etc.)
+- [Live Update](https://fmod.com/docs/2.03/studio/editing-during-live-update.html) for mixing sounds while playtesting
+- Helper scripts to map FMOD Studio events to game code
+- Many, many more
+
+This is a faithful implementation of the FMOD stack. If this library doesn't support something you need, make an Issue and I will try to add it!
 
 ## Supported Platforms
 
@@ -39,8 +39,7 @@ Having problems or want to chat? [Join the Haxe Discord](https://discordapp.com/
 
 **FMOD Engine SDK** - Download version 2.03.12 from [fmod.com/download](https://www.fmod.com/download). See [How to Use This Library](#how-to-use-this-library) for setup instructions.
 
-**C++ compiler** (C++ builds only) - `lime build mac`, `lime build windows`, and `lime build linux` require a C++ compiler. HashLink and HTML5 builds do not.
-
+Projects that need C++ builds (so building via `lime build mac`, `lime build windows`, and/or `lime build linux`) require a C++ compiler to be installed locally. HashLink and HTML5 builds do not.
 - **macOS**: Xcode Command Line Tools - install with `xcode-select --install`
 - **Windows**: Build Tools for Visual Studio 2022 with the "Desktop development with C++" workload selected during installation. [Direct download](https://aka.ms/vs/17/release.ltsc.17.4/vs_buildtools.exe), or find the Fall 2022 LTSC build tools link [here](https://learn.microsoft.com/en-us/visualstudio/releases/2022/release-history#release-dates-and-build-numbers).
 - **Linux**: `gcc` and `g++` (install via your package manager, e.g. `sudo apt install build-essential`)
@@ -49,7 +48,7 @@ Having problems or want to chat? [Join the Haxe Discord](https://discordapp.com/
 
 This library has been tested on games built with the `lime` and `openfl` CLI tools, and should work on any Haxe framework that utilizes the `Project.xml` file for builds.
 
-See [haxe-fmod-test](https://github.com/Tanz0rz/haxe-fmod-test) for a working example of a HaxeFlixel game with this FMOD integration.
+See the [example project](https://github.com/Tanz0rz/haxe-fmod/tree/master/example-project/EZPlatformer) for a working HaxeFlixel game with this FMOD integration.
 
 **1. Add the library to your Haxe project:**
 
@@ -99,7 +98,7 @@ This allows you to have both your C++/HashLink SDK and HTML5 SDK configured simu
 
 **5. Use the library in code:**
 
-The `FmodManager` class is the friendly way to interact with FMOD in your game: a background song slot plus fire-and-forget and handle-based sound effects. The `FmodEvents` constants used below are generated from your banks (see [FMOD Studio Project Configuration](#fmod-studio-project-configuration)). You can look through all of the available function calls with descriptions [here](https://github.com/Tanz0rz/haxe-fmod/blob/master/haxefmod/FmodManager.hx).
+The FmodManager class is the primary way to interact with FMOD in your game. It abstracts away nearly all of the low-level details of the FMOD API. The `FmodEvents` constants used below are generated from your banks (see [FMOD Studio Project Configuration](#fmod-studio-project-configuration)). You can look through all of the available function calls with descriptions [here](https://github.com/Tanz0rz/haxe-fmod/blob/master/haxefmod/FmodManager.hx).
 
 ```haxe
 public function StartLevel():Void {
@@ -121,13 +120,25 @@ public function StartEngine():Void {
 public function OnBeat():Void {
     // Typed callbacks with payloads
     FmodManager.OnSongEvent(data -> switch (data) {
-        case TimelineBeat(bar, beat, _, _): pulseUI(bar, beat);
+        case TimelineBeat(bar, beat, _, _, _, _): pulseUI(bar, beat);
         default:
     });
 }
 ```
+The FmodManager class needs to be updated to support the full capabilities of this library, so if it does not allow some functionality you need, you can reach into the deeper FMOD libraries directly:
 
-Call `FmodManager.Update()` once per frame. HaxeFlixel games (flixel 5.9.0 or newer) can call `haxefmod.flixel.FmodFlxSetup.init()` once in their first state instead: it initializes FMOD, adds the `FmodFlxUpdater` plugin (which handles the per-frame update), routes `FlxG.sound` volume and mute (the plus, minus, and zero keys and the sound tray) to the FMOD master bus, and silences the sound tray's own beep so all audio comes from FMOD.
+```haxe
+// Escape hatch example: everything FMOD Studio exposes is reachable
+import haxefmod.studio.StudioSystem;
+
+var music = StudioSystem.getBus("bus:/Music");
+music.setVolume(0.5);
+
+var description = StudioSystem.getEvent("event:/Ambience/Forest");
+trace(description.getParameterDescriptionCount());
+```
+
+Make sure to call `FmodManager.Update()` once per frame. HaxeFlixel games (flixel 5.9.0 or newer) can call `haxefmod.flixel.FmodFlxSetup.init()` once in their first state instead. It initializes FMOD, adds the `FmodFlxUpdater` plugin so Update runs every frame, and wires the flixel volume keys and sound tray to the FMOD master bus (with the tray's own beep silenced, since FMOD owns the audio now).
 
 **6. Build and run:**
 
@@ -143,57 +154,11 @@ lime test mac
 
 **macOS note**: SDK libraries downloaded through a browser carry the quarantine attribute. FMOD signs its libraries so builds normally run without issue, but if macOS blocks the dylibs, clear the flag with `xattr -dr com.apple.quarantine "$FMOD_SDK"`.
 
-## The API Layers
-
-| Layer | Use it for |
-|---|---|
-| `FmodManager` + `FmodSound` | The common cases: one song, sound effects, bus volume/mute |
-| `haxefmod.flixel.*` | HaxeFlixel components: `FmodFlxSetup`, `FmodFlxUpdater`, `FmodFlxUtilities`, `FmodFlxEmitter`, `FmodFlxListener`, `FmodFlxBankLoader`, `FmodFlxParameterTrigger` |
-| `haxefmod.runtime.FmodRuntime` | Init settings, refcounted banks, 3D attachment, listeners |
-| `haxefmod.studio.*` | The complete FMOD Studio API: `StudioSystem`, `EventDescription`, `EventInstance`, `Bus`, `Vca`, `Bank` |
-
-```haxe
-// Escape hatch example: everything FMOD Studio exposes is reachable
-import haxefmod.studio.StudioSystem;
-
-var music = StudioSystem.getBus("bus:/Music");
-music.setVolume(0.5);
-
-var description = StudioSystem.getEvent("event:/Ambience/Forest");
-trace(description.getParameterDescriptionCount());
-```
-
-Initialization is settings-driven when you need it to be:
-
-```haxe
-FmodManager.Initialize({
-    liveUpdate: true,        // defaults to true only in -debug builds
-    numChannels: 256,
-    bankFolder: "assets/audio",
-    autoLoadBanks: ["Master.bank", "Master.strings.bank", "SFX.bank"],
-});
-```
-
-**Compile-time defines** (set in `Project.xml` via `<haxedef name="..." value="..." />` or on the command line with `-D`):
-
-| Define | Effect | Default |
-|---|---|---|
-| `haxefmod_num_channels` | Max virtual voices | 128 |
-| `haxefmod_sample_rate` | Mixer sample rate | FMOD device default |
-| `haxefmod_live_update` | Force Live Update on in any build | debug builds only |
-| `haxefmod_no_live_update` | Force Live Update off in any build | |
-| `haxefmod_bank_folder` | Folder the auto-loaded banks live in | `assets/fmod/Desktop` |
-| `haxefmod_log_level` | FMOD debug logging: 0 none, 1 error, 2 warning, 3 log | 1 |
-
-Runtime settings passed to `FmodManager.Initialize(...)` override the defines.
-
-**HTML5 specifics**: initialization is asynchronous (see [HTML5 Builds](#html5-builds) for the loading-scene pattern). The FMOD web build ships FSB-only codecs, so loose wav/ogg loading and file-path programmer sounds are native-only (use audio table keys on HTML5). `Destroyed` callback events are not delivered on HTML5 (clean up in `release()`, which works on every target).
-
 ## Selecting an FMOD Engine Version
 
 The officially supported FMOD Engine version is 2.03.12. Other versions **may work fine**, but I have not tested them.
 
-Importantly, this library comes pre-bundled with HashLink binaries (hdlls) for FMOD Engine version 2.03.12.
+This library comes pre-bundled with HashLink binaries (hdlls) for FMOD Engine version 2.03.12.
 
 If you use a different FMOD Engine version and want HashLink builds, you **must** compile the hdll for your platform from source against your installed version of the FMOD Engine:
 
@@ -221,11 +186,9 @@ At build time, `lime test hl` uses a tiered fallback to find the right hdll:
 
 The build log will tell you which one was used.
 
-C++ and HTML5 targets do not rely on the hdll and will work with any FMOD version (although they will warn if you use anything other than 2.03.12).
-
 ## HTML5 Builds
 
-For HTML5 builds to work, a dedicated scene must be run before the game starts to give the FMOD Engine a chance to fully load. See the [example project](https://github.com/Tanz0rz/haxe-fmod-test) for a demonstration of how to handle this. The `Main.hx` file loads the startup scene, the startup scene initializes FMOD and waits for it to report back as initialized, then the game is started.
+For HTML5 builds to work, a dedicated scene must be run before the game starts to give the FMOD Engine a chance to fully load. See [`LoadFmodState.hx`](https://github.com/Tanz0rz/haxe-fmod/blob/master/example-project/EZPlatformer/source/LoadFmodState.hx) in the example project for a demonstration of how to handle this. The `Main.hx` file loads the startup scene, the startup scene initializes FMOD and waits for it to report back as initialized, then the game is started.
 
 ## FMOD Studio Project Configuration
 
@@ -235,37 +198,46 @@ One of the most powerful features of the FMOD ecosystem. Mix your sounds in real
 
 Live Update **only works on C++ and HashLink builds**. HTML5 builds will not work. The FMOD team said this is a limitation caused by running games inside web browsers and they have no plans to support this.
 
+Live Update can be activated in three ways:
+
+1. Adding it to the initialization config in Haxe:
+```haxe
+FmodManager.Initialize({liveUpdate: true});
+```
+2. Adding the `haxefmod_live_update` flag to your build command
+3. Debug builds have this on by default
+
 **Note**: On macOS and Windows, you may see a firewall dialog asking to allow incoming network connections when running your game with Live Update active. Live Update opens a local network socket (port 9264) so FMOD Studio can connect to your game for real-time audio mixing.
 
 ### Generating Constants From Your Banks
 
-The [export script](fmod-scripts/ExportHaxeConstants.js) gives your code an always-up-to-date, auto-completable list of everything in your sound banks. Press `Ctrl+B` in FMOD Studio and it writes the Haxe constants files **and** builds your banks in one step. Because it runs as part of every export, the constants can never drift from the project.
+The [export script](fmod-scripts/ExportHaxeConstants.js) generates Haxe-native constants files to make referencing your sounds much easier. Once installed, pressing `Ctrl+B` in FMOD Studio writes the files to your project **and** builds your FMOD sound banks in one step. This flow has the added benefit of keeping your FMOD Studio project and your Haxe references to sounds perfectly synchronized.
 
-![Haxe Constants Demo](.github/fmod_constants.gif)
+![Haxe Constants Demo](https://raw.githubusercontent.com/Tanz0rz/haxe-fmod/master/.github/fmod_constants.gif)
 
 #### What gets generated
 
 - `FmodEvents.hx`, `FmodBuses.hx`, `FmodVCAs.hx`, `FmodSnapshots.hx`, and `FmodParameters.hx`
-- A `...Guids` companion class in each file holding the matching GUIDs under the same identifiers, kept separate so autocomplete on the main class only shows the paths
-- `FmodEventEnum.hx` - a plain enum covering every event, for tool integrations (see [Event Enums](#event-enums))
+- `...Guids` companion classes in each file with the same names mapped to GUIDs (kept separate from the main class so autocomplete stays clean)
+- `FmodEventEnum.hx` - a plain enum mapping to every event, for tool integrations (see [Event Enums](#event-enums))
 
-Use the constants anywhere a path is expected:
+Use the constants as a clean substitution for full FMOD Studio event paths:
 
 ```haxe
 FmodManager.PlaySong(FmodEvents.MusicMainLevel);
-FmodManager.PlaySoundOneShot(FmodEvents.SFXCoin);
+FmodManager.PlaySong("event:/Music/MainLevel"); // non-constant variant
 
-var engine = FmodManager.PlaySound(FmodEvents.SFXEngine);
-engine.setParameter("RPM", 0.5);
+FmodManager.PlaySoundOneShot(FmodEvents.SFXCoin);
+FmodManager.PlaySoundOneShot("event:/SFX/Coin"); // non-constant variant
 ```
 
 #### Setup
 
-1. Copy [`fmod-scripts/ExportHaxeConstants.js`](fmod-scripts/ExportHaxeConstants.js) into your FMOD Studio scripts folder (`Scripts` next to your `.fspro`, or the global scripts directory from Preferences).
+1. Copy [`fmod-scripts/ExportHaxeConstants.js`](fmod-scripts/ExportHaxeConstants.js) into your FMOD Studio scripts folder (`Scripts` next to your `.fspro`, or the FMOD Studio global scripts directory in the install directory).
 2. Reload scripts in FMOD Studio (Scripts menu) or restart Studio.
-3. Press `Ctrl+B` (or Scripts -> Export Haxe Constants and Build) and pick your Haxe project's `source` folder once. The choice is cached next to the project.
+3. Press `Ctrl+B` (or Scripts -> Export Haxe Constants and Build) and pick your Haxe project's `source` folder once. The choice is cached using a file titled `CachedHaxeConstantsOutputLocation` that is stored next to your `.fspro`.
 
-From then on `Ctrl+B` regenerates the constants and builds banks in one keystroke.
+From then on `Ctrl+B` regenerates the constants and builds banks as one step.
 
 #### Event Enums
 
@@ -282,7 +254,7 @@ import FmodEvents;
 #end
 ```
 
-**Note:** for the generated files to stay up to date, you must run the export **every** time you build your sound bank (the script builds the banks for you, so `Ctrl+B` is the whole loop).
+**Note:** Remember, for the generated files to stay up to date, you must run the export script **every** time you build your sound bank.
 
 ## Migrating From Previous haxe-fmod Versions?
 

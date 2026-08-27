@@ -130,9 +130,36 @@ abstract EventDescription(Int) from Int to Int {
         return NativeStudio.evd_get_parameter_label(this, parameterName, labelIndex);
     }
 
+    /**
+     * Parameter description by parameter ID, or null when the event has no
+     * parameter with that ID. Resolved by scanning the description list,
+     * so it covers the same indexes getParameterDescriptionByIndex does.
+     */
+    public function getParameterDescriptionByID(id:FmodParameterId):Null<FmodParameterDescription> {
+        var handle:EventDescription = this;
+        return @:privateAccess StudioSystem.scanDescriptionsByID(
+            getParameterDescriptionCount(), i -> handle.getParameterDescriptionByIndex(i), id);
+    }
+
+    /** Label text for a labeled parameter identified by ID. */
+    public function getParameterLabelByID(id:FmodParameterId, labelIndex:Int):String {
+        var desc = getParameterDescriptionByID(id);
+        return desc == null ? "" : getParameterLabel(desc.name, labelIndex);
+    }
+
     /** Number of user properties authored on the event. */
     public inline function getUserPropertyCount():Int {
         return NativeStudio.evd_get_user_property_count(this);
+    }
+
+    /** User property by name, or null when the event has none with it. */
+    public function getUserPropertyByName(name:String):Null<FmodUserProperty> {
+        var count = getUserPropertyCount();
+        for (i in 0...count) {
+            var prop = getUserProperty(i);
+            if (prop != null && prop.name == name) return prop;
+        }
+        return null;
     }
 
     /** User property by index, or null on failure. */

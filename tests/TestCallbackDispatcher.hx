@@ -1,7 +1,8 @@
 package tests;
 
-import haxefmod.runtime.CallbackDispatcher;
+import haxefmod.studio.CallbackDispatcher;
 import haxefmod.studio.Callbacks;
+import haxefmod.studio.native.NativeStudioStub;
 
 class TestCallbackDispatcher {
 	static var passed = 0;
@@ -17,27 +18,29 @@ class TestCallbackDispatcher {
 		testDecodeUnknown();
 		testRegistration();
 		testReentrancy();
+		testFaultIsolation();
+		testStaleRegistrationGate();
 
 		Sys.println('  $passed passed, $failed failed');
 		return failed;
 	}
 
 	static function testDecodeLifecycle() {
-		assert("decode CREATED", CallbackDispatcher.decode(0x1, 0, 0, 0, 0, "") == Created);
-		assert("decode DESTROYED", CallbackDispatcher.decode(0x2, 0, 0, 0, 0, "") == Destroyed);
-		assert("decode STARTING", CallbackDispatcher.decode(0x4, 0, 0, 0, 0, "") == Starting);
-		assert("decode STARTED", CallbackDispatcher.decode(0x8, 0, 0, 0, 0, "") == Started);
-		assert("decode RESTARTED", CallbackDispatcher.decode(0x10, 0, 0, 0, 0, "") == Restarted);
-		assert("decode STOPPED", CallbackDispatcher.decode(0x20, 0, 0, 0, 0, "") == Stopped);
-		assert("decode START_FAILED", CallbackDispatcher.decode(0x40, 0, 0, 0, 0, "") == StartFailed);
-		assert("decode SOUND_PLAYED", CallbackDispatcher.decode(0x2000, 0, 0, 0, 0, "") == SoundPlayed);
-		assert("decode SOUND_STOPPED", CallbackDispatcher.decode(0x4000, 0, 0, 0, 0, "") == SoundStopped);
-		assert("decode REAL_TO_VIRTUAL", CallbackDispatcher.decode(0x8000, 0, 0, 0, 0, "") == RealToVirtual);
-		assert("decode VIRTUAL_TO_REAL", CallbackDispatcher.decode(0x10000, 0, 0, 0, 0, "") == VirtualToReal);
+		assert("decode CREATED", CallbackDispatcher.decode(0x1, 0, 0, 0, 0, 0, 0, "") == Created);
+		assert("decode DESTROYED", CallbackDispatcher.decode(0x2, 0, 0, 0, 0, 0, 0, "") == Destroyed);
+		assert("decode STARTING", CallbackDispatcher.decode(0x4, 0, 0, 0, 0, 0, 0, "") == Starting);
+		assert("decode STARTED", CallbackDispatcher.decode(0x8, 0, 0, 0, 0, 0, 0, "") == Started);
+		assert("decode RESTARTED", CallbackDispatcher.decode(0x10, 0, 0, 0, 0, 0, 0, "") == Restarted);
+		assert("decode STOPPED", CallbackDispatcher.decode(0x20, 0, 0, 0, 0, 0, 0, "") == Stopped);
+		assert("decode START_FAILED", CallbackDispatcher.decode(0x40, 0, 0, 0, 0, 0, 0, "") == StartFailed);
+		assert("decode SOUND_PLAYED", CallbackDispatcher.decode(0x2000, 0, 0, 0, 0, 0, 0, "") == SoundPlayed);
+		assert("decode SOUND_STOPPED", CallbackDispatcher.decode(0x4000, 0, 0, 0, 0, 0, 0, "") == SoundStopped);
+		assert("decode REAL_TO_VIRTUAL", CallbackDispatcher.decode(0x8000, 0, 0, 0, 0, 0, 0, "") == RealToVirtual);
+		assert("decode VIRTUAL_TO_REAL", CallbackDispatcher.decode(0x10000, 0, 0, 0, 0, 0, 0, "") == VirtualToReal);
 	}
 
 	static function testDecodeMarker() {
-		var data = CallbackDispatcher.decode(0x800, 1500, 0, 0, 0, "verse-1");
+		var data = CallbackDispatcher.decode(0x800, 1500, 0, 0, 0, 0, 0, "verse-1");
 		switch (data) {
 			case TimelineMarker(name, positionMs):
 				assert("marker name", name == "verse-1");
@@ -48,30 +51,32 @@ class TestCallbackDispatcher {
 	}
 
 	static function testDecodeBeat() {
-		var data = CallbackDispatcher.decode(0x1000, 4, 2, 8250, 120.5, "");
+		var data = CallbackDispatcher.decode(0x1000, 4, 2, 8250, 3, 8, 120.5, "");
 		switch (data) {
-			case TimelineBeat(bar, beat, positionMs, tempo):
+			case TimelineBeat(bar, beat, positionMs, tempo, timeSigUpper, timeSigLower):
 				assert("beat bar", bar == 4);
 				assert("beat beat", beat == 2);
 				assert("beat position", positionMs == 8250);
 				assert("beat tempo", Math.abs(tempo - 120.5) < 0.001);
+				assert("beat time signature", timeSigUpper == 3 && timeSigLower == 8);
 			default:
 				assert("beat decoded", false);
 		}
 	}
 
 	static function testDecodeNestedBeat() {
-		var data = CallbackDispatcher.decode(0x40000, 1, 3, 500, 90.0, "");
+		var data = CallbackDispatcher.decode(0x40000, 1, 3, 500, 6, 8, 90.0, "");
 		switch (data) {
-			case NestedTimelineBeat(bar, beat, positionMs, tempo):
+			case NestedTimelineBeat(bar, beat, positionMs, tempo, timeSigUpper, timeSigLower):
 				assert("nested beat fields", bar == 1 && beat == 3 && positionMs == 500 && tempo == 90.0);
+				assert("nested beat time signature", timeSigUpper == 6 && timeSigLower == 8);
 			default:
 				assert("nested beat decoded", false);
 		}
 	}
 
 	static function testDecodeUnknown() {
-		var data = CallbackDispatcher.decode(0x200, 0, 0, 0, 0, "");
+		var data = CallbackDispatcher.decode(0x200, 0, 0, 0, 0, 0, 0, "");
 		switch (data) {
 			case Other(type):
 				assert("unknown type preserved", (type : Int) == 0x200);
@@ -97,6 +102,31 @@ class TestCallbackDispatcher {
 		CallbackDispatcher.setCallback(7, _ -> {});
 		CallbackDispatcher.clearAll();
 		assert("clearAll removes handlers", !CallbackDispatcher.hasHandler(7));
+
+		// A null handler removes the registration
+		CallbackDispatcher.setCallback(8, _ -> {}, 0x20);
+		CallbackDispatcher.setCallback(8, null);
+		assert("null handler removes registration", !CallbackDispatcher.hasHandler(8));
+
+		// Channel-namespace records never reach event dispatch, even with
+		// no router installed and an event handler on the same int
+		var savedRouter = CallbackDispatcher.channelRouter;
+		CallbackDispatcher.channelRouter = null;
+		var wrongDeliveries = 0;
+		CallbackDispatcher.setCallback(70, _ -> wrongDeliveries++, 0x20);
+		CallbackDispatcher.deliver(70, 0x40000001, 0, 0, 0, 0, 0, 0.0, "");
+		assert("channel record dropped without router", wrongDeliveries == 0);
+		CallbackDispatcher.remove(70);
+		CallbackDispatcher.channelRouter = savedRouter;
+
+		// The facade clear covers both registries (events and channels)
+		CallbackDispatcher.setCallback(50, _ -> {}, 0x20);
+		var chanEvents = 0;
+		haxefmod.core.ChannelCallbacks.set(60, _ -> chanEvents++);
+		haxefmod.FmodManager.ClearAllCallbacks();
+		assert("facade clear removes event handlers", !CallbackDispatcher.hasHandler(50));
+		haxefmod.core.ChannelCallbacks.deliver(60, haxefmod.core.ChannelCallbacks.TYPE_END, 0);
+		assert("facade clear removes channel handlers", chanEvents == 0);
 	}
 
 	static function testReentrancy() {
@@ -111,10 +141,10 @@ class TestCallbackDispatcher {
 			selfRemoveCalls++;
 			CallbackDispatcher.remove(10);
 		}, 0x20);
-		CallbackDispatcher.deliver(10, 0x20, 0, 0, 0, 0.0, "");
+		CallbackDispatcher.deliver(10, 0x20, 0, 0, 0, 0, 0, 0.0, "");
 		assert("self-removing handler ran once", selfRemoveCalls == 1);
 		assert("self-removing handler gone", !CallbackDispatcher.hasHandler(10));
-		CallbackDispatcher.deliver(10, 0x20, 0, 0, 0, 0.0, "");
+		CallbackDispatcher.deliver(10, 0x20, 0, 0, 0, 0, 0, 0.0, "");
 		assert("removed handler not called again", selfRemoveCalls == 1);
 
 		// A handler that registers a DIFFERENT handle mid-delivery
@@ -122,9 +152,9 @@ class TestCallbackDispatcher {
 		CallbackDispatcher.setCallback(20, _ -> {
 			CallbackDispatcher.setCallback(21, _ -> secondCalls++, 0x20);
 		}, 0x20);
-		CallbackDispatcher.deliver(20, 0x20, 0, 0, 0, 0.0, "");
+		CallbackDispatcher.deliver(20, 0x20, 0, 0, 0, 0, 0, 0.0, "");
 		assert("handler registered during delivery exists", CallbackDispatcher.hasHandler(21));
-		CallbackDispatcher.deliver(21, 0x20, 0, 0, 0, 0.0, "");
+		CallbackDispatcher.deliver(21, 0x20, 0, 0, 0, 0, 0, 0.0, "");
 		assert("handler registered during delivery fires", secondCalls == 1);
 
 		// A handler that REPLACES itself mid-delivery
@@ -134,8 +164,8 @@ class TestCallbackDispatcher {
 			oldCalls++;
 			CallbackDispatcher.setCallback(30, _ -> newCalls++, 0x20);
 		}, 0x20);
-		CallbackDispatcher.deliver(30, 0x20, 0, 0, 0, 0.0, "");
-		CallbackDispatcher.deliver(30, 0x20, 0, 0, 0, 0.0, "");
+		CallbackDispatcher.deliver(30, 0x20, 0, 0, 0, 0, 0, 0.0, "");
+		CallbackDispatcher.deliver(30, 0x20, 0, 0, 0, 0, 0, 0.0, "");
 		assert("replaced handler ran once", oldCalls == 1);
 		assert("replacement handler took over", newCalls == 1);
 
@@ -149,10 +179,60 @@ class TestCallbackDispatcher {
 				default:
 			}
 		}, 0x02);
-		CallbackDispatcher.deliver(40, 0x02, 0, 0, 0, 0.0, "");
+		CallbackDispatcher.deliver(40, 0x02, 0, 0, 0, 0, 0, 0.0, "");
 		assert("destroyed delivered", destroyedSeen);
 		assert("destroyed handle auto-removed", !CallbackDispatcher.hasHandler(40));
 		assert("registration from destroyed handler survives", CallbackDispatcher.hasHandler(41));
+
+		CallbackDispatcher.clearAll();
+	}
+
+	static function testFaultIsolation() {
+		// A throwing handler must be contained: nothing may propagate out
+		// of delivery, and DESTROYED cleanup must still run (no second
+		// DESTROYED will ever come for that instance)
+		CallbackDispatcher.clearAll();
+		CallbackDispatcher.setCallback(90, _ -> throw new haxe.Exception("handler boom"), 0x20);
+		var threw = false;
+		try {
+			CallbackDispatcher.deliver(90, 0x20, 0, 0, 0, 0, 0, 0.0, "");
+		} catch (e:haxe.Exception) {
+			threw = true;
+		}
+		assert("throwing handler contained", !threw);
+		assert("registration survives a non-terminal throw", CallbackDispatcher.hasHandler(90));
+
+		var destroyedThrew = false;
+		try {
+			CallbackDispatcher.deliver(90, 0x2, 0, 0, 0, 0, 0, 0.0, "");
+		} catch (e:haxe.Exception) {
+			destroyedThrew = true;
+		}
+		assert("throwing DESTROYED handler contained", !destroyedThrew);
+		assert("destroyed cleanup despite throw", !CallbackDispatcher.hasHandler(90));
+	}
+
+	static function testStaleRegistrationGate() {
+		CallbackDispatcher.clearAll();
+
+		// A stale handle reports INVALID_HANDLE from the native mask call.
+		// No DESTROYED will ever arrive for it, so registering the handler
+		// anyway would leak the closure for the rest of the session.
+		NativeStudioStub.testCallbackMaskResult = 30;
+		CallbackDispatcher.setCallback(91, _ -> {}, 0x20);
+		assert("stale handle registration refused", !CallbackDispatcher.hasHandler(91));
+
+		NativeStudioStub.testCallbackMaskResult = 68;
+		CallbackDispatcher.setCallback(91, _ -> {}, 0x20);
+		assert("healthy registration accepted", CallbackDispatcher.hasHandler(91));
+
+		// Removing through the null-handler path shrinks the native mask so
+		// unconsumed records stop filling the queue
+		CallbackDispatcher.setCallback(91, null);
+		assert("null handler removed registration", !CallbackDispatcher.hasHandler(91));
+		assert("null handler cleared the native mask",
+			NativeStudioStub.testLastCallbackMask == 0
+			&& NativeStudioStub.testLastCallbackMaskHandle == 91);
 
 		CallbackDispatcher.clearAll();
 	}

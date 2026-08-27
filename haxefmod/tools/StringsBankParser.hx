@@ -53,7 +53,7 @@ typedef StringsBankEntry = {
  * root and concatenating the fragments root-first (e.g. "b" + "ank:/Master"
  * + ".strings"). GUIDs are stored sorted by their formatted string form;
  * guid[i] pairs with path i. The parse is validated by requiring the STDT
- * payload to be consumed exactly, so layout drift fails loudly instead of
+ * payload to be consumed exactly, so layout drift errors out instead of
  * producing garbage.
  */
 class StringsBankParser {
@@ -110,7 +110,9 @@ class StringsBankParser {
 			var size = readU32(bytes, p + 4);
 			var payloadStart = p + 8;
 			var payloadEnd = payloadStart + size;
-			if (payloadEnd > end) return null; // corrupt chunk, stop scanning
+			// A negative size (a crafted 32-bit value read as signed) would
+			// stall or rewind the scan pointer forever
+			if (size < 0 || payloadEnd > end) return null; // corrupt chunk, stop scanning
 			if (chunkTag == tag) return {start: payloadStart, end: payloadEnd};
 			if (chunkTag == "LIST" && size >= 4) {
 				// LIST payload: 4-byte list type, then child chunks

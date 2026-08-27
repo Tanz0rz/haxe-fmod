@@ -37,6 +37,7 @@ class PlayState extends FlxState {
         haxefmod.flixel.FmodFlxSetup.init();
         FmodManager.EnableDebugMessages();
         FmodManager.PlaySong(FmodEvents.MusicMainLevel);
+        FmodManager.Todo("ambient wind loop behind the music");
 
         FlxG.mouse.visible = false;
         FlxG.cameras.bgColor = 0xffaaaaaa;
@@ -68,7 +69,7 @@ class PlayState extends FlxState {
         _status.scrollFactor.set(0, 0);
         add(_status);
 
-        _prompt = new FlxText(0, FlxG.height / 2 - 4, FlxG.width, "Press enter to start the test");
+        _prompt = new FlxText(0, FlxG.height / 2 - 4, FlxG.width, "Press enter to start");
         _prompt.setFormat(null, 8, FlxColor.WHITE, CENTER, NONE, FlxColor.BLACK);
         _prompt.scrollFactor.set(0, 0);
         add(_prompt);
@@ -81,7 +82,7 @@ class PlayState extends FlxState {
             _startDelay += elapsed;
             if (_startDelay >= 1.0 || FlxG.keys.justPressed.ENTER) {
                 _started = true;
-                _prompt.text = "Song parameters";
+                _prompt.text = "Grab the coin to bring in the arp";
                 _player.velocity.x = 40;
             }
         }

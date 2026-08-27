@@ -70,6 +70,12 @@ var HaxefmodConstants = {
         return out;
     },
 
+    // Mirrors Generate.quoteHx: escapes a value for a generated
+    // double-quoted Haxe string literal
+    quoteHx: function (s) {
+        return String(s).split("\\").join("\\\\").split('"').join('\\"');
+    },
+
     // Mirrors Generate.emitClass byte for byte (LF line endings, tabs)
     emitClass: function (className, prefix, entries) {
         var lines = [];
@@ -80,12 +86,12 @@ var HaxefmodConstants = {
         var names = this.identifiersFor(paths, prefix);
         lines.push("class " + className + " {");
         for (var j = 0; j < entries.length; j++) {
-            lines.push("\tpublic static inline var " + names[j] + ':String = "' + entries[j].path + '";');
+            lines.push("\tpublic static inline var " + names[j] + ':String = "' + this.quoteHx(entries[j].path) + '";');
         }
         lines.push("}");
         lines.push("");
-        // GUIDs live in a companion class under the same identifiers, so
-        // autocomplete on the main class only shows the paths
+        // GUIDs go in a companion class so the main class autocompletes
+        // to paths only
         lines.push("class " + className + "Guids {");
         for (var k = 0; k < entries.length; k++) {
             lines.push("\tpublic static inline var " + names[k] + ':String = "' + entries[k].guid + '";');
@@ -127,7 +133,7 @@ var HaxefmodConstants = {
         lines.push("\tpublic static inline function path(event:FmodEventEnum):String {");
         lines.push("\t\treturn switch (event) {");
         for (var e = 0; e < matched.length; e++) {
-            lines.push("\t\t\tcase " + names[e] + ': "' + matched[e].path + '";');
+            lines.push("\t\t\tcase " + names[e] + ': "' + this.quoteHx(matched[e].path) + '";');
         }
         lines.push("\t\t};");
         lines.push("\t}");
@@ -270,7 +276,7 @@ if (typeof studio !== "undefined") {
         console.log("Building banks...");
         studio.project.build();
 
-        alert("Haxe constants written to:\n\n" + outputPath + "\n\n(" + written.join(", ") + ")\n\nBanks built.");
+        alert("Haxe constants written to:\n\n" + outputPath + "\n\nBanks built.");
     }
 
     function readOutputPathFromFile() {

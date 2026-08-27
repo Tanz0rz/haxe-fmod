@@ -11,11 +11,30 @@ package haxefmod.studio.native;
 class NativeStudioStub {
     static inline var ERR_UNSUPPORTED = 68;
 
+    // Test hooks: unit tests set these to simulate specific backend
+    // behavior that the uniform no-op defaults cannot express. The
+    // defaults keep every hook inert.
+    public static var testPlaybackState:Int = 2;
+    public static var testPlaybackStateQueue:Array<Int> = [];
+    public static var testInitialized:Bool = false;
+    public static var testCallbackMaskResult:Int = ERR_UNSUPPORTED;
+    public static var testLastCallbackMask:Int = -1;
+    public static var testLastCallbackMaskHandle:Int = 0;
+    // Synthetic handles let facade tests drive the song slot: lookups and
+    // creates return incrementing nonzero handles instead of 0
+    public static var testSyntheticHandles:Bool = false;
+    public static var testNextHandle:Int = 2000;
+    public static var testStartCalls:Int = 0;
+    public static var testBankLoadingState:Int = 3;
+    public static var testBankValid:Null<Bool> = null;
+    public static var testBankUnloadCalls:Int = 0;
+
     // System
     public static function sys_last_result():Int return ERR_UNSUPPORTED;
     public static function sys_get_bus(path:String):Int return 0;
     public static function sys_get_bus_by_id(guid:String):Int return 0;
-    public static function sys_get_event(path:String):Int return 0;
+    public static function sys_get_event(path:String):Int
+        return testSyntheticHandles ? ++testNextHandle : 0;
     public static function sys_get_event_by_id(guid:String):Int return 0;
     public static function sys_get_vca(path:String):Int return 0;
     public static function sys_get_vca_by_id(guid:String):Int return 0;
@@ -43,7 +62,8 @@ class NativeStudioStub {
     public static function sys_set_listener_attributes(index:Int, px:Float, py:Float, pz:Float, vx:Float, vy:Float, vz:Float, fx:Float, fy:Float, fz:Float, ux:Float, uy:Float, uz:Float):Int return ERR_UNSUPPORTED;
     public static function sys_get_listener_weight(index:Int):Float return 0.0;
     public static function sys_set_listener_weight(index:Int, weight:Float):Int return ERR_UNSUPPORTED;
-    public static function sys_load_bank_file(path:String, flags:Int):Int return 0;
+    public static function sys_load_bank_file(path:String, flags:Int):Int
+        return testSyntheticHandles ? ++testNextHandle : 0;
     public static function sys_unload_all():Int return ERR_UNSUPPORTED;
     public static function sys_flush_commands():Int return ERR_UNSUPPORTED;
     public static function sys_flush_sample_loading():Int return ERR_UNSUPPORTED;
@@ -53,9 +73,11 @@ class NativeStudioStub {
     public static function sys_get_memory_usage():Int return ERR_UNSUPPORTED;
     public static function sys_init_ex(numChannels:Int, sampleRate:Int, speakerMode:Int, studioFlags:Int):Int return ERR_UNSUPPORTED;
     public static function sys_set_debug_level(level:Int):Int return ERR_UNSUPPORTED;
-    public static function sys_load_bank_async(path:String):Int return 0;
-    public static function sys_is_initialized():Bool return false;
-    public static function sys_update():Void {}
+    public static function sys_load_bank_async(path:String):Int
+        return testSyntheticHandles ? ++testNextHandle : 0;
+    public static function sys_is_initialized():Bool return testInitialized;
+    public static var testUpdateCalls:Int = 0;
+    public static function sys_update():Void testUpdateCalls++;
     public static function sys_set_auto_update(enabled:Bool):Void {}
 
     // Bus
@@ -82,13 +104,20 @@ class NativeStudioStub {
     public static function vca_set_volume(handle:Int, volume:Float):Int return ERR_UNSUPPORTED;
 
     // Bank
-    public static function bank_is_valid(handle:Int):Bool return false;
+    public static function bank_is_valid(handle:Int):Bool {
+        if (!testSyntheticHandles || handle <= 0) return false;
+        return testBankValid != null ? testBankValid : testBankLoadingState == 3;
+    }
     public static function bank_get_id(handle:Int):String return "";
     public static function bank_get_path(handle:Int):String return "";
-    public static function bank_unload(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function bank_unload(handle:Int):Int {
+        testBankUnloadCalls++;
+        return ERR_UNSUPPORTED;
+    }
     public static function bank_load_sample_data(handle:Int):Int return ERR_UNSUPPORTED;
     public static function bank_unload_sample_data(handle:Int):Int return ERR_UNSUPPORTED;
-    public static function bank_get_loading_state(handle:Int):Int return 1;
+    public static function bank_get_loading_state(handle:Int):Int
+        return testSyntheticHandles && handle > 0 ? testBankLoadingState : 1;
     public static function bank_get_sample_loading_state(handle:Int):Int return 1;
     public static function bank_get_event_count(handle:Int):Int return 0;
     public static function bank_get_event_list(handle:Int):Int return 0;
@@ -113,7 +142,8 @@ class NativeStudioStub {
     public static function evd_is_3d(handle:Int):Bool return false;
     public static function evd_is_doppler_enabled(handle:Int):Bool return false;
     public static function evd_has_sustain_point(handle:Int):Bool return false;
-    public static function evd_create_instance(handle:Int):Int return 0;
+    public static function evd_create_instance(handle:Int):Int
+        return testSyntheticHandles ? ++testNextHandle : 0;
     public static function evd_get_instance_count(handle:Int):Int return 0;
     public static function evd_get_instance_list(handle:Int):Int return 0;
     public static function evd_release_all_instances(handle:Int):Int return ERR_UNSUPPORTED;
@@ -131,15 +161,28 @@ class NativeStudioStub {
     public static function evd_get_user_property_string(handle:Int, index:Int):String return "";
 
     // EventInstance
-    public static function evi_is_valid(handle:Int):Bool return false;
+    public static function evi_is_valid(handle:Int):Bool
+        return testSyntheticHandles && handle > 0 && !testReleasedHandles.contains(handle);
     public static function evi_get_description(handle:Int):Int return 0;
-    public static function evi_start(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function evi_start(handle:Int):Int {
+        testStartCalls++;
+        return ERR_UNSUPPORTED;
+    }
     public static function evi_stop(handle:Int, stopMode:Int):Int return ERR_UNSUPPORTED;
     public static function evi_key_off(handle:Int):Int return ERR_UNSUPPORTED;
-    public static function evi_release(handle:Int):Int return ERR_UNSUPPORTED;
-    public static function evi_get_playback_state(handle:Int):Int return 2;
+    public static var testReleasedHandles:Array<Int> = [];
+    public static function evi_release(handle:Int):Int {
+        if (testSyntheticHandles) { testReleasedHandles.push(handle); return 0; }
+        return ERR_UNSUPPORTED;
+    }
+    public static function evi_get_playback_state(handle:Int):Int
+        return testPlaybackStateQueue.length > 0 ? testPlaybackStateQueue.shift() : testPlaybackState;
     public static function evi_get_paused(handle:Int):Bool return false;
-    public static function evi_set_paused(handle:Int, paused:Bool):Int return ERR_UNSUPPORTED;
+    public static var testPausedState:Null<Bool> = null;
+    public static function evi_set_paused(handle:Int, paused:Bool):Int {
+        if (testSyntheticHandles) { testPausedState = paused; return 0; }
+        return ERR_UNSUPPORTED;
+    }
     public static function evi_get_volume(handle:Int):Float return 0.0;
     public static function evi_get_volume_final(handle:Int):Float return 0.0;
     public static function evi_set_volume(handle:Int, volume:Float):Int return ERR_UNSUPPORTED;
@@ -178,8 +221,290 @@ class NativeStudioStub {
     public static function core_release_sound(handle:Int):Int return ERR_UNSUPPORTED;
     public static function core_get_sound_length(handle:Int):Int return -1;
 
+    // Core PCM streams
+    public static function core_pcm_create(sampleRate:Int, channels:Int, ringBytes:Int):Int return 0;
+    public static function core_pcm_write(handle:Int, data:haxe.io.Bytes, len:Int):Int return 0;
+    public static function core_pcm_space(handle:Int):Int return 0;
+    public static function core_pcm_underruns(handle:Int):Int return 0;
+    public static function core_pcm_play(handle:Int, startPaused:Bool):Int return 0;
+    public static function core_pcm_release(handle:Int):Int return ERR_UNSUPPORTED;
+
+    // Core channels
+    public static function chan_set_volume(handle:Int, volume:Float):Int return ERR_UNSUPPORTED;
+    public static function chan_get_volume(handle:Int):Float return 0.0;
+    public static function chan_set_pitch(handle:Int, pitch:Float):Int return ERR_UNSUPPORTED;
+    public static function chan_get_pitch(handle:Int):Float return 0.0;
+    public static function chan_set_paused(handle:Int, paused:Bool):Int return ERR_UNSUPPORTED;
+    public static function chan_get_paused(handle:Int):Bool return false;
+    public static function chan_is_playing(handle:Int):Bool return false;
+    public static function chan_stop(handle:Int):Int return ERR_UNSUPPORTED;
+
+    // Core DSP effects
+    public static function dsp_create_by_type(type:Int):Int return 0;
+    public static function dsp_release(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function dsp_set_param_float(handle:Int, index:Int, value:Float):Int return ERR_UNSUPPORTED;
+    public static function dsp_get_param_float(handle:Int, index:Int):Float return 0.0;
+    public static function dsp_set_param_int(handle:Int, index:Int, value:Int):Int return ERR_UNSUPPORTED;
+    public static function dsp_get_param_int(handle:Int, index:Int):Int return 0;
+    public static function dsp_set_param_bool(handle:Int, index:Int, value:Bool):Int return ERR_UNSUPPORTED;
+    public static function dsp_get_param_bool(handle:Int, index:Int):Bool return false;
+    public static function dsp_get_num_params(handle:Int):Int return 0;
+    public static function dsp_get_type(handle:Int):Int return 0;
+    public static function dsp_set_bypass(handle:Int, bypass:Bool):Int return ERR_UNSUPPORTED;
+    public static function dsp_get_bypass(handle:Int):Bool return false;
+    public static function dsp_set_wet_dry_mix(handle:Int, prewet:Float, postwet:Float, dry:Float):Int return ERR_UNSUPPORTED;
+    public static function dsp_set_active(handle:Int, active:Bool):Int return ERR_UNSUPPORTED;
+    public static function dsp_reset(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function dsp_set_metering_enabled(handle:Int, input:Bool, output:Bool):Int return ERR_UNSUPPORTED;
+    public static function dsp_get_metering(handle:Int):Int return 0;
+    public static function dsp_fft_get_spectrum(handle:Int, maxBins:Int):Int return 0;
+
+    // Core channel groups
+    public static function cg_get_master():Int return 0;
+    public static function cg_create(name:String):Int return 0;
+    public static function cg_release(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function cg_set_volume(handle:Int, volume:Float):Int return ERR_UNSUPPORTED;
+    public static function cg_get_volume(handle:Int):Float return 0.0;
+    public static function cg_set_pitch(handle:Int, pitch:Float):Int return ERR_UNSUPPORTED;
+    public static function cg_get_pitch(handle:Int):Float return 0.0;
+    public static function cg_set_mute(handle:Int, mute:Bool):Int return ERR_UNSUPPORTED;
+    public static function cg_get_mute(handle:Int):Bool return false;
+    public static function cg_set_paused(handle:Int, paused:Bool):Int return ERR_UNSUPPORTED;
+    public static function cg_get_paused(handle:Int):Bool return false;
+    public static function cg_add_dsp(handle:Int, index:Int, dspHandle:Int):Int return ERR_UNSUPPORTED;
+    public static function cg_remove_dsp(handle:Int, dspHandle:Int):Int return ERR_UNSUPPORTED;
+    public static function cg_stop(handle:Int):Int return ERR_UNSUPPORTED;
+
+    // Core channel routing and effects
+    public static function chan_set_pan(handle:Int, pan:Float):Int return ERR_UNSUPPORTED;
+    public static function chan_set_frequency(handle:Int, frequency:Float):Int return ERR_UNSUPPORTED;
+    public static function chan_get_frequency(handle:Int):Float return 0.0;
+    public static function chan_set_loop_count(handle:Int, loopCount:Int):Int return ERR_UNSUPPORTED;
+    public static function chan_get_position(handle:Int):Int return -1;
+    public static function chan_set_position(handle:Int, positionMs:Int):Int return ERR_UNSUPPORTED;
+    public static function chan_set_channel_group(handle:Int, groupHandle:Int):Int return ERR_UNSUPPORTED;
+    public static function chan_add_dsp(handle:Int, index:Int, dspHandle:Int):Int return ERR_UNSUPPORTED;
+    public static function chan_remove_dsp(handle:Int, dspHandle:Int):Int return ERR_UNSUPPORTED;
+    public static function chan_set_3d_attributes(handle:Int, posX:Float, posY:Float, posZ:Float, velX:Float, velY:Float, velZ:Float):Int return ERR_UNSUPPORTED;
+    public static function chan_set_3d_min_max(handle:Int, minDist:Float, maxDist:Float):Int return ERR_UNSUPPORTED;
+    public static function chan_set_reverb_wet(handle:Int, instance:Int, wet:Float):Int return ERR_UNSUPPORTED;
+
+    // Studio bus to core group bridge
+    public static function bus_lock_channel_group(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function bus_unlock_channel_group(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function bus_get_channel_group(handle:Int):Int return 0;
+
+    // Core system extras
+    public static function sys_play_dsp(dspHandle:Int, startPaused:Bool):Int return 0;
+    public static function sys_set_reverb_properties(instance:Int):Int return ERR_UNSUPPORTED;
+    public static function sys_get_reverb_properties(instance:Int):Int return ERR_UNSUPPORTED;
+    public static function core_pcm_create_3d(sampleRate:Int, channels:Int, ringBytes:Int):Int return 0;
+
+    // Core parity tail (slice 3)
+    public static function dsp_add_input(handle:Int, inputHandle:Int, type:Int):Int return 0;
+    public static function dsp_disconnect_from(handle:Int, inputHandle:Int):Int return ERR_UNSUPPORTED;
+    public static function dsp_disconnect_all(handle:Int, inputs:Bool, outputs:Bool):Int return ERR_UNSUPPORTED;
+    public static function dsp_get_num_inputs(handle:Int):Int return 0;
+    public static function dsp_get_num_outputs(handle:Int):Int return 0;
+    public static function dsp_get_input_dsp(handle:Int, index:Int):Int return 0;
+    public static function dsp_get_input_connection(handle:Int, index:Int):Int return 0;
+    public static function dspconn_set_mix(handle:Int, mix:Float):Int return ERR_UNSUPPORTED;
+    public static function dspconn_get_mix(handle:Int):Float return 0.0;
+    public static function dspconn_get_type(handle:Int):Int return 0;
+    public static function cg_add_group(handle:Int, childHandle:Int):Int return ERR_UNSUPPORTED;
+    public static function cg_get_num_groups(handle:Int):Int return 0;
+    public static function cg_get_group(handle:Int, index:Int):Int return 0;
+    public static function cg_get_parent_group(handle:Int):Int return 0;
+    public static function chan_set_mute(handle:Int, mute:Bool):Int return ERR_UNSUPPORTED;
+    public static function chan_get_mute(handle:Int):Bool return false;
+    public static function chan_set_low_pass_gain(handle:Int, gain:Float):Int return ERR_UNSUPPORTED;
+    public static function chan_set_mode(handle:Int, mode:Int):Int return ERR_UNSUPPORTED;
+    public static function chan_set_3d_cone_settings(handle:Int, insideAngle:Float, outsideAngle:Float, outsideVolume:Float):Int return ERR_UNSUPPORTED;
+    public static function chan_set_3d_cone_orientation(handle:Int, x:Float, y:Float, z:Float):Int return ERR_UNSUPPORTED;
+    public static function chan_set_3d_occlusion(handle:Int, direct:Float, reverb:Float):Int return ERR_UNSUPPORTED;
+    public static function chan_get_3d_occlusion(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function chan_set_3d_spread(handle:Int, angle:Float):Int return ERR_UNSUPPORTED;
+    public static function chan_set_3d_level(handle:Int, level:Float):Int return ERR_UNSUPPORTED;
+    public static function chan_set_3d_doppler_level(handle:Int, level:Float):Int return ERR_UNSUPPORTED;
+    public static function chan_set_mix_matrix(handle:Int, outChannels:Int, inChannels:Int):Int return ERR_UNSUPPORTED;
+    public static function chan_get_dsp_clock(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function chan_set_delay(handle:Int, startClock:Float, endClock:Float, stopChannels:Bool):Int return ERR_UNSUPPORTED;
+    public static function chan_add_fade_point(handle:Int, clock:Float, volume:Float):Int return ERR_UNSUPPORTED;
+    public static function chan_set_fade_point_ramp(handle:Int, clock:Float, volume:Float):Int return ERR_UNSUPPORTED;
+    public static function chan_remove_fade_points(handle:Int, startClock:Float, endClock:Float):Int return ERR_UNSUPPORTED;
+    public static function cg_get_dsp_clock(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function cg_set_delay(handle:Int, startClock:Float, endClock:Float, stopChannels:Bool):Int return ERR_UNSUPPORTED;
+    public static function cg_add_fade_point(handle:Int, clock:Float, volume:Float):Int return ERR_UNSUPPORTED;
+    public static function cg_set_fade_point_ramp(handle:Int, clock:Float, volume:Float):Int return ERR_UNSUPPORTED;
+    public static function cg_remove_fade_points(handle:Int, startClock:Float, endClock:Float):Int return ERR_UNSUPPORTED;
+    public static function sys_create_reverb3d():Int return 0;
+    public static function r3d_release(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function r3d_set_3d_attributes(handle:Int, x:Float, y:Float, z:Float, minDist:Float, maxDist:Float):Int return ERR_UNSUPPORTED;
+    public static function r3d_set_properties(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function r3d_get_properties(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function r3d_set_active(handle:Int, active:Bool):Int return ERR_UNSUPPORTED;
+    public static var testPcmCreateLen:Int = -999;
+    public static function core_create_sound_pcm(data:haxe.io.Bytes, len:Int, sampleRate:Int, channels:Int):Int {
+        testPcmCreateLen = len;
+        return 0;
+    }
+    public static function core_play_sound(handle:Int, startPaused:Bool):Int return 0;
+    public static function sound_set_defaults(handle:Int, frequency:Float, priority:Int):Int return ERR_UNSUPPORTED;
+    public static function sound_get_defaults(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function sound_set_loop_points(handle:Int, startMs:Int, endMs:Int):Int return ERR_UNSUPPORTED;
+    public static function sound_get_loop_points(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function sound_set_mode(handle:Int, mode:Int):Int return ERR_UNSUPPORTED;
+    public static function sound_get_mode(handle:Int):Int return 0;
+    public static function sound_get_format(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function sound_get_open_state(handle:Int):Int return -1;
+    public static function sys_get_channels_playing():Int return ERR_UNSUPPORTED;
+    public static function sys_mixer_suspend():Int return ERR_UNSUPPORTED;
+    public static function sys_mixer_resume():Int return ERR_UNSUPPORTED;
+    public static function sys_get_software_format():Int return ERR_UNSUPPORTED;
+    public static function dsp_get_cpu_usage(handle:Int):Int return ERR_UNSUPPORTED;
+
+    // Channel callbacks and sync points
+    public static function chan_set_callback(handle:Int, enabled:Bool):Int return ERR_UNSUPPORTED;
+    public static function sound_add_sync_point(handle:Int, offsetMs:Int, name:String):Int return ERR_UNSUPPORTED;
+    public static function sound_delete_sync_point(handle:Int, index:Int):Int return ERR_UNSUPPORTED;
+    public static function sound_get_num_sync_points(handle:Int):Int return 0;
+    public static function sound_get_sync_point_name(handle:Int, index:Int):String return "";
+    public static function sound_get_sync_point_offset(handle:Int, index:Int):Int return -1;
+
+    // Sound groups
+    public static function sys_create_sound_group(name:String):Int return 0;
+    public static function sys_get_master_sound_group():Int return 0;
+    public static function sg_release(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function sg_set_max_audible(handle:Int, maxAudible:Int):Int return ERR_UNSUPPORTED;
+    public static function sg_get_max_audible(handle:Int):Int return 0;
+    public static function sg_set_max_audible_behavior(handle:Int, behavior:Int):Int return ERR_UNSUPPORTED;
+    public static function sg_get_max_audible_behavior(handle:Int):Int return 0;
+    public static function sg_set_mute_fade_speed(handle:Int, speed:Float):Int return ERR_UNSUPPORTED;
+    public static function sg_get_num_sounds(handle:Int):Int return 0;
+    public static function sg_stop(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function sound_set_sound_group(handle:Int, groupHandle:Int):Int return ERR_UNSUPPORTED;
+
+    // System 3D settings and drivers
+    public static function sys_set_3d_settings(doppler:Float, distanceFactor:Float, rolloffScale:Float):Int return ERR_UNSUPPORTED;
+    public static function sys_get_3d_settings():Int return ERR_UNSUPPORTED;
+    public static function sys_get_num_drivers():Int return 0;
+    public static function sys_get_driver_name(id:Int):String return "";
+
+    // Getter symmetry for the routing and spatial setters
+    public static function chan_get_loop_count(handle:Int):Int return 0;
+    public static function chan_get_low_pass_gain(handle:Int):Float return 0.0;
+    public static function chan_get_mode(handle:Int):Int return 0;
+    public static function chan_get_3d_cone_settings(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function chan_get_3d_spread(handle:Int):Float return 0.0;
+    public static function chan_get_3d_level(handle:Int):Float return 0.0;
+    public static function chan_get_3d_doppler_level(handle:Int):Float return 0.0;
+    public static function chan_get_3d_min_max(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function chan_get_3d_attributes(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function chan_get_delay(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function dsp_get_wet_dry_mix(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function dsp_get_active(handle:Int):Bool return false;
+    public static function dsp_get_metering_enabled(handle:Int):Int return ERR_UNSUPPORTED;
+
+    // Bank loading from memory
+    public static function sys_load_bank_memory(data:haxe.io.Bytes, len:Int):Int return 0;
+
+    // Event instance core bridge
+    public static function evi_get_channel_group(handle:Int):Int return 0;
+
+    // Command capture and replay
+    public static function sys_start_command_capture(path:String):Int return ERR_UNSUPPORTED;
+    public static function sys_stop_command_capture():Int return ERR_UNSUPPORTED;
+    public static function sys_load_command_replay(path:String):Int return 0;
+    public static function replay_release(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function replay_is_valid(handle:Int):Bool return false;
+    public static function replay_start(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function replay_stop(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function replay_set_paused(handle:Int, paused:Bool):Int return ERR_UNSUPPORTED;
+    public static function replay_get_paused(handle:Int):Bool return false;
+    public static function replay_seek_to_time(handle:Int, timeMs:Int):Int return ERR_UNSUPPORTED;
+    public static function replay_get_length(handle:Int):Float return 0.0;
+
+    // Channel priority, virtualization, and remaining getters
+    public static function chan_set_priority(handle:Int, priority:Int):Int return ERR_UNSUPPORTED;
+    public static function chan_get_priority(handle:Int):Int return 0;
+    public static function chan_is_virtual(handle:Int):Bool return false;
+    public static function chan_get_audibility(handle:Int):Float return 0.0;
+    public static function chan_set_volume_ramp(handle:Int, ramp:Bool):Int return ERR_UNSUPPORTED;
+    public static function chan_get_volume_ramp(handle:Int):Bool return false;
+    public static function chan_get_current_sound(handle:Int):Int return 0;
+    public static function chan_set_loop_points(handle:Int, startMs:Int, endMs:Int):Int return ERR_UNSUPPORTED;
+    public static function chan_get_loop_points(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function chan_get_reverb_wet(handle:Int, instance:Int):Float return 0.0;
+    public static function chan_get_index(handle:Int):Int return -1;
+    public static function chan_get_3d_cone_orientation(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function chan_get_num_dsps(handle:Int):Int return 0;
+    public static function chan_get_dsp(handle:Int, index:Int):Int return 0;
+
+    // Sound name, group getter, and loop count
+    public static function sound_get_name(handle:Int):String return "";
+    public static function sound_get_sound_group(handle:Int):Int return 0;
+    public static function sound_get_loop_count(handle:Int):Int return 0;
+    public static function sound_set_loop_count(handle:Int, loopCount:Int):Int return ERR_UNSUPPORTED;
+
+    // Sound group volume and counters
+    public static function sg_set_volume(handle:Int, volume:Float):Int return ERR_UNSUPPORTED;
+    public static function sg_get_volume(handle:Int):Float return 0.0;
+    public static function sg_get_num_playing(handle:Int):Int return 0;
+    public static function sg_get_mute_fade_speed(handle:Int):Float return 0.0;
+
+    // Output device selection
+    public static function sys_set_driver(id:Int):Int return ERR_UNSUPPORTED;
+    public static function sys_get_driver():Int return 0;
+
+    // DSP data params, info, and output traversal
+    public static function dsp_set_param_data(handle:Int, index:Int, data:haxe.io.Bytes, len:Int):Int return ERR_UNSUPPORTED;
+    public static function dsp_get_idle(handle:Int):Bool return false;
+    public static function dsp_get_info_name(handle:Int):String return "";
+    public static function dsp_get_output_dsp(handle:Int, index:Int):Int return 0;
+    public static function dsp_get_output_connection(handle:Int, index:Int):Int return 0;
+    public static function dspconn_get_input_dsp(handle:Int):Int return 0;
+    public static function dspconn_get_output_dsp(handle:Int):Int return 0;
+
+    // Reverb3D getters
+    public static function r3d_get_active(handle:Int):Bool return false;
+    public static function r3d_get_3d_attributes(handle:Int):Int return ERR_UNSUPPORTED;
+
+    // Channel group spatial mirror and remaining control surface
+    public static function cg_set_pan(handle:Int, pan:Float):Int return ERR_UNSUPPORTED;
+    public static function cg_set_low_pass_gain(handle:Int, gain:Float):Int return ERR_UNSUPPORTED;
+    public static function cg_set_mode(handle:Int, mode:Int):Int return ERR_UNSUPPORTED;
+    public static function cg_get_mode(handle:Int):Int return 0;
+    public static function cg_set_3d_attributes(handle:Int, posX:Float, posY:Float, posZ:Float, velX:Float, velY:Float, velZ:Float):Int return ERR_UNSUPPORTED;
+    public static function cg_get_3d_attributes(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function cg_set_3d_min_max(handle:Int, minDist:Float, maxDist:Float):Int return ERR_UNSUPPORTED;
+    public static function cg_get_3d_min_max(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function cg_set_3d_occlusion(handle:Int, direct:Float, reverb:Float):Int return ERR_UNSUPPORTED;
+    public static function cg_set_3d_level(handle:Int, level:Float):Int return ERR_UNSUPPORTED;
+    public static function cg_get_3d_level(handle:Int):Float return 0.0;
+    public static function cg_set_3d_spread(handle:Int, angle:Float):Int return ERR_UNSUPPORTED;
+    public static function cg_get_3d_spread(handle:Int):Float return 0.0;
+    public static function cg_set_3d_doppler_level(handle:Int, level:Float):Int return ERR_UNSUPPORTED;
+    public static function cg_get_3d_doppler_level(handle:Int):Float return 0.0;
+    public static function cg_set_3d_cone_settings(handle:Int, insideAngle:Float, outsideAngle:Float, outsideVolume:Float):Int return ERR_UNSUPPORTED;
+    public static function cg_get_3d_cone_settings(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function cg_set_3d_cone_orientation(handle:Int, x:Float, y:Float, z:Float):Int return ERR_UNSUPPORTED;
+    public static function cg_get_3d_cone_orientation(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function cg_set_reverb_wet(handle:Int, instance:Int, wet:Float):Int return ERR_UNSUPPORTED;
+    public static function cg_get_reverb_wet(handle:Int, instance:Int):Float return 0.0;
+    public static function cg_set_mix_matrix(handle:Int, outChannels:Int, inChannels:Int):Int return ERR_UNSUPPORTED;
+    public static function cg_set_volume_ramp(handle:Int, ramp:Bool):Int return ERR_UNSUPPORTED;
+    public static function cg_get_volume_ramp(handle:Int):Bool return false;
+    public static function cg_get_audibility(handle:Int):Float return 0.0;
+    public static function cg_get_name(handle:Int):String return "";
+    public static function cg_get_num_channels(handle:Int):Int return 0;
+    public static function cg_get_channel(handle:Int, index:Int):Int return 0;
+
     // Callbacks
-    public static function evi_set_callback_mask(handle:Int, mask:Int):Int return ERR_UNSUPPORTED;
+    public static function evi_set_callback_mask(handle:Int, mask:Int):Int {
+        testLastCallbackMaskHandle = handle;
+        testLastCallbackMask = mask;
+        return testCallbackMaskResult;
+    }
     public static function cb_next():Bool return false;
     public static function cb_handle():Int return 0;
     public static function cb_type():Int return 0;

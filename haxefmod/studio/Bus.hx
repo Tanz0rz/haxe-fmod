@@ -82,4 +82,25 @@ abstract Bus(Int) from Int to Int {
         if (!result.isOk()) return null;
         return {exclusive: Scratch.readI(0), inclusive: Scratch.readI(1), sampledata: Scratch.readI(2)};
     }
+
+    /**
+     * Forces the bus's core channel group to exist so effects can attach
+     * to it (see getChannelGroup). Call unlockChannelGroup when done.
+     */
+    public inline function lockChannelGroup():FmodResult {
+        return NativeStudio.bus_lock_channel_group(this);
+    }
+
+    public inline function unlockChannelGroup():FmodResult {
+        return NativeStudio.bus_unlock_channel_group(this);
+    }
+
+    /**
+     * The core channel group carrying this bus's audio, for attaching DSP
+     * effects to Studio-mixed sound. Lock it first, and never release it
+     * (the bus owns it). Returns ChannelGroup.NULL on failure.
+     */
+    public inline function getChannelGroup():haxefmod.core.ChannelGroup {
+        return NativeStudio.bus_get_channel_group(this);
+    }
 }

@@ -2,6 +2,7 @@ package haxefmod.flixel;
 
 import flixel.FlxBasic;
 import haxefmod.runtime.FmodRuntime;
+import haxefmod.studio.Types;
 
 /**
     Loads a set of banks and reports when they are all ready.
@@ -22,24 +23,42 @@ class FmodFlxBankLoader extends FlxBasic {
 
     var paths:Array<String>;
     var onLoaded:Void->Void;
+    var onError:Void->Void;
+    var errored:Bool = false;
 
     /**
         Starts loading immediately.
         @param bankFiles bank file names (resolved via FmodRuntime.bankPath)
         @param onLoaded called exactly once, when all banks are loaded
+        @param onError called exactly once, when any bank settles in an
+        error state (a missing file or a failed fetch on html5). Without
+        it a failed load is only visible through loadingState polling.
         @param async load in the background (default). Pass false to load
         synchronously on native targets
     **/
-    public function new(bankFiles:Array<String>, ?onLoaded:Void->Void, async:Bool = true) {
+    public function new(bankFiles:Array<String>, ?onLoaded:Void->Void, ?onError:Void->Void, async:Bool = true) {
         super();
         this.onLoaded = onLoaded;
+        this.onError = onError;
+        this.async = async;
         paths = [for (file in bankFiles) FmodRuntime.bankPath(file)];
+    }
+
+    var async:Bool;
+    var started:Bool = false;
+    // Only paths whose load this loader actually registered are unloaded
+    // by destroy(), so a rejected load can never steal a reference some
+    // other holder registered for the same path later
+    var owned:Array<String> = [];
+
+    // Loads start on the first serviced frame after FMOD is ready, so a
+    // loader constructed before (or during) initialization waits instead
+    // of failing outright
+    function startLoads():Void {
+        started = true;
         for (path in paths) {
-            if (async) {
-                FmodRuntime.banks.loadAsync(path);
-            } else {
-                FmodRuntime.banks.load(path);
-            }
+            var bank = async ? FmodRuntime.banks.loadAsync(path) : FmodRuntime.banks.load(path);
+            if (!bank.isNull()) owned.push(path);
         }
     }
 
@@ -47,7 +66,22 @@ class FmodFlxBankLoader extends FlxBasic {
         super.update(elapsed);
         // A destroyed loader has an empty path list, which would read as
         // "all banks loaded" and fire onLoaded after the banks were released
-        if (loaded || destroyed) return;
+        if (loaded || destroyed || errored) return;
+        if (!started) {
+            if (!FmodRuntime.isInitialized()) return;
+            startLoads();
+        }
+        for (path in paths) {
+            var state = FmodRuntime.banks.loadingState(path);
+            // ERROR: an async load settled in failure. UNLOADED: the load
+            // this constructor issued was rejected outright and never
+            // registered. Both are load failures.
+            if (state == ERROR || state == UNLOADED) {
+                errored = true;
+                if (onError != null) onError();
+                return;
+            }
+        }
         for (path in paths) {
             if (!FmodRuntime.banks.isLoaded(path)) return;
         }
@@ -58,9 +92,10 @@ class FmodFlxBankLoader extends FlxBasic {
     /** Releases this loader's bank references (refcounted unload). **/
     override public function destroy():Void {
         destroyed = true;
-        for (path in paths) {
+        for (path in owned) {
             FmodRuntime.banks.unload(path);
         }
+        owned = [];
         paths = [];
         super.destroy();
     }

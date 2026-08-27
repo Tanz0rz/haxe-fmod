@@ -27,10 +27,13 @@ class TestStringsBankParser {
 		testGoldenFixture();
 		testMissingFile();
 		testNotABank();
+		testHostileChunkSize();
+		testHostileCorpus();
 		testMangling();
 		testCollisionSuffixes();
 		testEmitClass();
 		testEventEnums();
+		testGeneratedStringEscaping();
 
 		cleanup();
 		Sys.println('  $passed passed, $failed failed');
@@ -41,21 +44,31 @@ class TestStringsBankParser {
 
 	static function testGoldenFixture() {
 		var expected = [
+			"{0225c47b-e69f-4785-b89c-fd321387934a} event:/Music/Nested",
 			"{1a13f11e-eecf-4c3c-b353-79423771ced9} bus:/Reverb",
 			"{293aa1ce-c07e-4cc2-bc41-7a082a62b7fa} parameter:/FadeArpIn",
+			"{2e34b84a-be93-4215-87db-9f769538a3a9} bank:/Extras",
+			"{32a683ae-bc3b-4276-9aa5-66bd02a9f726} parameter:/Intensity",
 			"{4562f533-1e6b-4ce9-a40a-814283edde66} event:/SFX/Jump",
 			"{4e75eb97-ff6c-459d-a75b-0576603fe118} parameter:/HighPass",
 			"{66f6c0e2-d897-0a5b-0d20-44f9abca2481} bank:/Master.strings",
 			"{6c656399-97f5-432f-9817-c10c8c56939d} event:/SFX/Coin",
+			"{7017c63e-0e17-4e41-8580-0ec9681304b4} event:/SFX/Hold",
 			"{7a6e2e04-9ca1-4dc4-9df2-20f23d4a9d52} bus:/",
+			"{82396b6b-8474-4dd9-8fd7-5f623ec827fa} event:/SFX/Spatial",
+			"{a350f6cb-737b-4164-b688-240a6fcbbee8} parameter:/Surface",
+			"{c423b829-1850-408b-a341-f00553b5208e} vca:/Main",
+			"{d166c4dc-4c88-4f5d-a1e6-95aaf0d29747} event:/Dialogue/Speak",
 			"{e5187c3f-0517-463e-b458-de9ef1a9f750} event:/Music/MainLevel",
+			"{e7147ce0-34fa-422f-b7b0-d9274b7d4d03} snapshot:/Underwater",
+			"{f0259f0e-e5e1-49b8-9b8c-2b5d43c21dc7} parameter:/Weather",
 			"{feebe036-a9ec-4619-8b69-ce075a392219} bank:/Master",
 		];
 		try {
 			var entries = StringsBankParser.parseFile(fixture);
 			var actual = entries.map(e -> '${e.guid} ${e.path}');
 			actual.sort(Reflect.compare);
-			assert("fixture has 9 entries", entries.length == 9);
+			assert("fixture has 19 entries", entries.length == 19);
 			assert("fixture entries match FMOD runtime output exactly", actual.join("\n") == expected.join("\n"));
 			if (actual.join("\n") != expected.join("\n")) {
 				Sys.println("  parsed:");
@@ -96,7 +109,78 @@ class TestStringsBankParser {
 		}
 	}
 
+	static function testHostileChunkSize() {
+		// A chunk whose size field reads as a negative signed int must stop
+		// the scan (the old scan looped forever because the pointer never
+		// advanced past such a chunk)
+		var bytes = haxe.io.Bytes.alloc(28);
+		bytes.blit(0, haxe.io.Bytes.ofString("RIFF"), 0, 4);
+		bytes.setInt32(4, 20); // riff size
+		bytes.blit(8, haxe.io.Bytes.ofString("FEV "), 0, 4);
+		bytes.blit(12, haxe.io.Bytes.ofString("XXXX"), 0, 4);
+		bytes.setInt32(16, 0xFFFFFFF8); // crafted size, -8 as signed
+		try {
+			StringsBankParser.parse(bytes, "hostile.bank");
+			failed++;
+			Sys.println("  FAIL: hostile chunk size did not throw");
+		} catch (e:haxe.Exception) {
+			assert("hostile chunk stops with the no-STDT error", e.message.indexOf("STDT") != -1);
+		}
+	}
+
 	//// identifier mangling
+
+	// Seeded pseudo-random corpus: mutated copies of the real fixture
+	// (bit flips, scrambled size fields, truncations) and pure noise.
+	// The parser's contract under hostile bytes is return-or-throw -
+	// never an uncaught error, never a hang (the old non-advancing scan
+	// hung, and in CI the job timeout turns a regression into a failure).
+	static function testHostileCorpus() {
+		var fixtureBytes = File.getBytes(fixture);
+		var seed = 0x9E3779B9;
+		inline function nextRand():Int {
+			seed = (seed * 1103515245 + 12345) & 0x7FFFFFFF;
+			return seed;
+		}
+		var completed = 0;
+		for (i in 0...300) {
+			var mutated = haxe.io.Bytes.alloc(fixtureBytes.length);
+			mutated.blit(0, fixtureBytes, 0, fixtureBytes.length);
+			var mutations = 1 + nextRand() % 8;
+			for (_ in 0...mutations) {
+				switch (nextRand() % 3) {
+					case 0: // byte flip anywhere
+						mutated.set(nextRand() % mutated.length, nextRand() % 256);
+					case 1: // scrambled int32 - hits chunk size fields
+						var at = nextRand() % (mutated.length - 4);
+						mutated.setInt32(at, nextRand() * (nextRand() % 2 == 0 ? 1 : -1));
+					case 2: // truncation
+						var len = nextRand() % mutated.length;
+						var cut = haxe.io.Bytes.alloc(len);
+						cut.blit(0, mutated, 0, len);
+						mutated = cut;
+				}
+				if (mutated.length < 8) break;
+			}
+			try {
+				StringsBankParser.parse(mutated, 'fuzz-$i.bank');
+				completed++;
+			} catch (e:haxe.Exception) {
+				completed++;
+			}
+		}
+		for (i in 0...100) {
+			var noise = haxe.io.Bytes.alloc(nextRand() % 2048);
+			for (at in 0...noise.length) noise.set(at, nextRand() % 256);
+			try {
+				StringsBankParser.parse(noise, 'noise-$i.bank');
+				completed++;
+			} catch (e:haxe.Exception) {
+				completed++;
+			}
+		}
+		assert("hostile corpus: every input returned or threw", completed == 400);
+	}
 
 	static function testMangling() {
 		assert("basic path", Generate.mangle("event:/Music/MainLevel", "event:/") == "MusicMainLevel");
@@ -136,6 +220,18 @@ class TestStringsBankParser {
 		].join("\n");
 		var actual = @:privateAccess Generate.emitClass("FmodEvents", "event:/", entries, "");
 		assert("emitClass golden output (paths class + Guids companion, lowercased)", actual == expected);
+	}
+
+	static function testGeneratedStringEscaping() {
+		assert("quote escaped", Generate.quoteHx('He said "hi"') == 'He said \\"hi\\"');
+		assert("backslash escaped", Generate.quoteHx("a\\b") == "a\\\\b");
+		assert("clean path unchanged", Generate.quoteHx("event:/SFX/Jump") == "event:/SFX/Jump");
+
+		// An event path containing a quote must emit a compilable literal
+		var entries = [{path: 'event:/He said "hi"', guid: "{00000000-0000-0000-0000-000000000000}"}];
+		var text = Generate.emitEventEnums(entries, "");
+		assert("enum emit escapes quoted paths",
+			text != null && text.indexOf('"event:/He said \\"hi\\""') >= 0);
 	}
 
 	static function testEventEnums() {

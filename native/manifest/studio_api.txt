@@ -8,10 +8,10 @@
 # Verified by: haxelib run haxefmod verify-native
 #
 # Format: <name> <argtype> <argtype> ... -> <rettype>
-# Types are logical (exact FFI types differ per backend, e.g. f32 vs f64);
-# the checker verifies presence and arity, not exact types.
+# Types are logical (exact FFI types differ per backend, e.g. f32 vs f64).
+# The checker verifies presence and arity rather than exact types.
 #
-# abi-version: 2
+# abi-version: 8
 # The binding ABI version covers the shape of the native surface. Bump it in
 # lockstep with the "hlaxe_fmod_abi=" marker in hlaxe_fmod.c, the constants in
 # the other two shims, and FmodRuntime.BINDING_ABI whenever functions are
@@ -19,41 +19,11 @@
 # the marker and refuses mismatches before they become loader fatals.
 #
 # Naming domains: sys_, bank_, evd_, evi_, bus_, vca_, cb_, ps_, core_.
-# Functions without a domain prefix predate the domain naming and are kept as is.
 
 ## System
-is_initialized -> bool
-init i32 -> i32
-update -> void
-set_auto_update bool -> void
-
-## Banks
-load_bank str -> i32
-unload_bank str -> void
-
-## Events - one shot
-fire_one_shot str -> i32
-
-## Events - managed instances
-create_instance str -> i32
-start i32 -> void
-stop i32 i32 -> void
-release i32 -> void
-set_paused i32 bool -> void
-get_playback_state i32 -> i32
-get_timeline_position i32 -> i32
-
-## Parameters
-get_param i32 str -> f64
-set_param i32 str f64 -> void
-
-## Bus
-set_bus_paused str bool -> void
-stop_bus str -> void
-set_bus_volume str f64 -> void
-get_bus_volume str -> f64
-set_bus_mute str bool -> void
-get_bus_mute str -> bool
+sys_is_initialized -> bool
+sys_update -> void
+sys_set_auto_update bool -> void
 
 ## Callbacks (payload queue - see native/shared/faxe_cbqueue.h)
 evi_set_callback_mask i32 i32 -> i32
@@ -267,7 +237,7 @@ evi_get_memory_usage i32 ibuf -> i32
 # Settings-driven init: (numChannels, sampleRate, speakerMode, studioFlags).
 # sampleRate 0 = FMOD default; speakerMode 0 = default (FMOD_SPEAKERMODE);
 # studioFlags bit0 = live update. Keeps the FMOD_WAVWRITER env branch.
-# On js this stores settings and kicks off module init (poll is_initialized).
+# On js this stores settings and kicks off module init (poll sys_is_initialized).
 sys_init_ex i32 i32 i32 i32 -> i32
 # FMOD_Debug_Initialize level (0=none 1=error 2=warning 3=log); file logging
 # not exposed. ERR_UNSUPPORTED on js (logging is baked into the wasm build).
@@ -292,6 +262,328 @@ core_create_sound str i32 -> i32
 core_release_sound i32 -> i32
 # length in milliseconds (-1 on failure)
 core_get_sound_length i32 -> i32
+
+## Core PCM streams (user-generated audio: game thread writes, mixer drains)
+core_pcm_create i32 i32 i32 -> i32
+core_pcm_write i32 bytes i32 -> i32
+core_pcm_space i32 -> i32
+core_pcm_underruns i32 -> i32
+core_pcm_play i32 bool -> i32
+core_pcm_release i32 -> i32
+
+## Core channels
+chan_set_volume i32 f32 -> i32
+chan_get_volume i32 -> f32
+chan_set_pitch i32 f32 -> i32
+chan_get_pitch i32 -> f32
+chan_set_paused i32 bool -> i32
+chan_get_paused i32 -> bool
+chan_is_playing i32 -> bool
+chan_stop i32 -> i32
+
+## Core DSP effects
+dsp_create_by_type i32 -> i32
+dsp_release i32 -> i32
+dsp_set_param_float i32 i32 f32 -> i32
+dsp_get_param_float i32 i32 -> f32
+dsp_set_param_int i32 i32 i32 -> i32
+dsp_get_param_int i32 i32 -> i32
+dsp_set_param_bool i32 i32 bool -> i32
+dsp_get_param_bool i32 i32 -> bool
+dsp_get_num_params i32 -> i32
+dsp_get_type i32 -> i32
+dsp_set_bypass i32 bool -> i32
+dsp_get_bypass i32 -> bool
+dsp_set_wet_dry_mix i32 f32 f32 f32 -> i32
+dsp_set_active i32 bool -> i32
+dsp_reset i32 -> i32
+dsp_set_metering_enabled i32 bool bool -> i32
+# fbuf: [0..ch-1] output peak, [ch..2ch-1] output rms; returns channel count
+dsp_get_metering i32 fbuf -> i32
+# fbuf: channel-0 spectrum magnitudes capped at maxBins; returns bins written
+dsp_fft_get_spectrum i32 fbuf i32 -> i32
+
+## Core channel groups
+cg_get_master -> i32
+cg_create str -> i32
+cg_release i32 -> i32
+cg_set_volume i32 f32 -> i32
+cg_get_volume i32 -> f32
+cg_set_pitch i32 f32 -> i32
+cg_get_pitch i32 -> f32
+cg_set_mute i32 bool -> i32
+cg_get_mute i32 -> bool
+cg_set_paused i32 bool -> i32
+cg_get_paused i32 -> bool
+cg_add_dsp i32 i32 i32 -> i32
+cg_remove_dsp i32 i32 -> i32
+cg_stop i32 -> i32
+
+## Core channel routing and effects
+chan_set_pan i32 f32 -> i32
+chan_set_frequency i32 f32 -> i32
+chan_get_frequency i32 -> f32
+chan_set_loop_count i32 i32 -> i32
+chan_get_position i32 -> i32
+chan_set_position i32 i32 -> i32
+chan_set_channel_group i32 i32 -> i32
+chan_add_dsp i32 i32 i32 -> i32
+chan_remove_dsp i32 i32 -> i32
+chan_set_3d_attributes i32 f32 f32 f32 f32 f32 f32 -> i32
+chan_set_3d_min_max i32 f32 f32 -> i32
+chan_set_reverb_wet i32 i32 f32 -> i32
+
+## Studio bus to core group bridge
+bus_lock_channel_group i32 -> i32
+bus_unlock_channel_group i32 -> i32
+bus_get_channel_group i32 -> i32
+
+## Core system extras
+sys_play_dsp i32 bool -> i32
+# fbuf: 12 reverb property floats, DecayTime..WetLevel in header order
+sys_set_reverb_properties i32 fbuf -> i32
+sys_get_reverb_properties i32 fbuf -> i32
+
+## Core PCM streams (3D)
+core_pcm_create_3d i32 i32 i32 -> i32
+
+## Core DSP connection graph
+# add_input returns a connection handle; traversal handles dedup to existing slots
+dsp_add_input i32 i32 i32 -> i32
+dsp_disconnect_from i32 i32 -> i32
+dsp_disconnect_all i32 bool bool -> i32
+dsp_get_num_inputs i32 -> i32
+dsp_get_num_outputs i32 -> i32
+dsp_get_input_dsp i32 i32 -> i32
+dsp_get_input_connection i32 i32 -> i32
+dspconn_set_mix i32 f32 -> i32
+dspconn_get_mix i32 -> f32
+dspconn_get_type i32 -> i32
+
+## Core channel group nesting
+cg_add_group i32 i32 -> i32
+cg_get_num_groups i32 -> i32
+cg_get_group i32 i32 -> i32
+cg_get_parent_group i32 -> i32
+
+## Core channel spatial and control extras
+chan_set_mute i32 bool -> i32
+chan_get_mute i32 -> bool
+chan_set_low_pass_gain i32 f32 -> i32
+chan_set_mode i32 i32 -> i32
+chan_set_3d_cone_settings i32 f32 f32 f32 -> i32
+chan_set_3d_cone_orientation i32 f32 f32 f32 -> i32
+chan_set_3d_occlusion i32 f32 f32 -> i32
+# fbuf out: [0]=direct [1]=reverb
+chan_get_3d_occlusion i32 fbuf -> i32
+chan_set_3d_spread i32 f32 -> i32
+chan_set_3d_level i32 f32 -> i32
+chan_set_3d_doppler_level i32 f32 -> i32
+# fbuf in: out*in gains row-major; args are (out channels, in channels)
+chan_set_mix_matrix i32 fbuf i32 i32 -> i32
+
+## Core scheduling (DSP clocks cross as doubles: exact to 2^53 samples)
+# fbuf out: [0]=channel clock [1]=parent group clock
+chan_get_dsp_clock i32 fbuf -> i32
+chan_set_delay i32 f64 f64 bool -> i32
+chan_add_fade_point i32 f64 f32 -> i32
+chan_set_fade_point_ramp i32 f64 f32 -> i32
+chan_remove_fade_points i32 f64 f64 -> i32
+cg_get_dsp_clock i32 fbuf -> i32
+cg_set_delay i32 f64 f64 bool -> i32
+cg_add_fade_point i32 f64 f32 -> i32
+cg_set_fade_point_ramp i32 f64 f32 -> i32
+cg_remove_fade_points i32 f64 f64 -> i32
+
+## Core reverb zones
+sys_create_reverb3d -> i32
+r3d_release i32 -> i32
+r3d_set_3d_attributes i32 f32 f32 f32 f32 f32 -> i32
+# fbuf: 12 reverb property floats, DecayTime..WetLevel in header order
+r3d_set_properties i32 fbuf -> i32
+r3d_get_properties i32 fbuf -> i32
+r3d_set_active i32 bool -> i32
+
+## Core sound surface
+core_create_sound_pcm bytes i32 i32 i32 -> i32
+core_play_sound i32 bool -> i32
+sound_set_defaults i32 f32 i32 -> i32
+# fbuf out: [0]=frequency [1]=priority
+sound_get_defaults i32 fbuf -> i32
+sound_set_loop_points i32 i32 i32 -> i32
+# ibuf out: [0]=loop start ms [1]=loop end ms
+sound_get_loop_points i32 ibuf -> i32
+sound_set_mode i32 i32 -> i32
+sound_get_mode i32 -> i32
+# ibuf out: [0]=channels [1]=bits
+sound_get_format i32 ibuf -> i32
+sound_get_open_state i32 -> i32
+
+## Core system extras (slice 3)
+# ibuf out: [0]=all channels [1]=real (audible) channels
+sys_get_channels_playing ibuf -> i32
+sys_mixer_suspend -> i32
+sys_mixer_resume -> i32
+# ibuf out: [0]=sample rate [1]=speaker mode [2]=raw speaker count
+sys_get_software_format ibuf -> i32
+# ibuf out: [0]=exclusive us [1]=inclusive us (needs profiling enabled)
+dsp_get_cpu_usage i32 ibuf -> i32
+
+## Channel callbacks and sync points
+# channel events ride the callback queue under the 0x40000000 namespace:
+# 0x40000001 = channel end, 0x40000002 = sync point (i1 = point index)
+chan_set_callback i32 bool -> i32
+sound_add_sync_point i32 i32 str -> i32
+sound_delete_sync_point i32 i32 -> i32
+sound_get_num_sync_points i32 -> i32
+sound_get_sync_point_name i32 i32 -> str
+sound_get_sync_point_offset i32 i32 -> i32
+
+## Sound groups
+sys_create_sound_group str -> i32
+sys_get_master_sound_group -> i32
+sg_release i32 -> i32
+sg_set_max_audible i32 i32 -> i32
+sg_get_max_audible i32 -> i32
+sg_set_max_audible_behavior i32 i32 -> i32
+sg_get_max_audible_behavior i32 -> i32
+sg_set_mute_fade_speed i32 f32 -> i32
+sg_get_num_sounds i32 -> i32
+sg_stop i32 -> i32
+sound_set_sound_group i32 i32 -> i32
+
+## System 3D settings and drivers
+sys_set_3d_settings f32 f32 f32 -> i32
+# fbuf out: [0]=doppler [1]=distance factor [2]=rolloff scale
+sys_get_3d_settings fbuf -> i32
+sys_get_num_drivers -> i32
+sys_get_driver_name i32 -> str
+
+## Getter symmetry for the routing and spatial setters
+chan_get_loop_count i32 -> i32
+chan_get_low_pass_gain i32 -> f32
+chan_get_mode i32 -> i32
+# fbuf out: [0]=inside angle [1]=outside angle [2]=outside volume
+chan_get_3d_cone_settings i32 fbuf -> i32
+chan_get_3d_spread i32 -> f32
+chan_get_3d_level i32 -> f32
+chan_get_3d_doppler_level i32 -> f32
+# fbuf out: [0]=min [1]=max
+chan_get_3d_min_max i32 fbuf -> i32
+# fbuf out: [0..2]=position [3..5]=velocity
+chan_get_3d_attributes i32 fbuf -> i32
+# fbuf out: [0]=start clock [1]=end clock [2]=stop channels (0/1)
+chan_get_delay i32 fbuf -> i32
+# fbuf out: [0]=prewet [1]=postwet [2]=dry
+dsp_get_wet_dry_mix i32 fbuf -> i32
+dsp_get_active i32 -> bool
+# ibuf out: [0]=input enabled [1]=output enabled
+dsp_get_metering_enabled i32 ibuf -> i32
+
+## Bank loading from memory
+sys_load_bank_memory bytes i32 -> i32
+
+## Event instance core bridge
+evi_get_channel_group i32 -> i32
+
+## Command capture and replay
+sys_start_command_capture str -> i32
+sys_stop_command_capture -> i32
+sys_load_command_replay str -> i32
+replay_release i32 -> i32
+replay_is_valid i32 -> bool
+replay_start i32 -> i32
+replay_stop i32 -> i32
+replay_set_paused i32 bool -> i32
+replay_get_paused i32 -> bool
+replay_seek_to_time i32 i32 -> i32
+replay_get_length i32 -> f32
+
+## Channel priority, virtualization, and remaining getters
+chan_set_priority i32 i32 -> i32
+chan_get_priority i32 -> i32
+chan_is_virtual i32 -> bool
+chan_get_audibility i32 -> f32
+chan_set_volume_ramp i32 bool -> i32
+chan_get_volume_ramp i32 -> bool
+# borrowed reference: do not release a sound obtained this way
+chan_get_current_sound i32 -> i32
+chan_set_loop_points i32 i32 i32 -> i32
+# ibuf out: [0]=loop start ms [1]=loop end ms
+chan_get_loop_points i32 ibuf -> i32
+chan_get_reverb_wet i32 i32 -> f32
+chan_get_index i32 -> i32
+# fbuf out: [0..2]=direction xyz
+chan_get_3d_cone_orientation i32 fbuf -> i32
+chan_get_num_dsps i32 -> i32
+chan_get_dsp i32 i32 -> i32
+
+## Sound name, group getter, and loop count
+sound_get_name i32 -> str
+sound_get_sound_group i32 -> i32
+sound_get_loop_count i32 -> i32
+sound_set_loop_count i32 i32 -> i32
+
+## Sound group volume and counters
+sg_set_volume i32 f32 -> i32
+sg_get_volume i32 -> f32
+sg_get_num_playing i32 -> i32
+sg_get_mute_fade_speed i32 -> f32
+
+## Output device selection
+sys_set_driver i32 -> i32
+sys_get_driver -> i32
+
+## DSP data params, info, and output traversal
+# byte payload per the effect's data parameter contract (convolution IR:
+# 16-bit samples with [0]=channel count)
+dsp_set_param_data i32 i32 bytes i32 -> i32
+dsp_get_idle i32 -> bool
+dsp_get_info_name i32 -> str
+dsp_get_output_dsp i32 i32 -> i32
+dsp_get_output_connection i32 i32 -> i32
+dspconn_get_input_dsp i32 -> i32
+dspconn_get_output_dsp i32 -> i32
+
+## Reverb3D getters
+r3d_get_active i32 -> bool
+# fbuf out: [0..2]=position [3]=min distance [4]=max distance
+r3d_get_3d_attributes i32 fbuf -> i32
+
+## Channel group spatial mirror and remaining control surface
+cg_set_pan i32 f32 -> i32
+cg_set_low_pass_gain i32 f32 -> i32
+cg_set_mode i32 i32 -> i32
+cg_get_mode i32 -> i32
+cg_set_3d_attributes i32 f32 f32 f32 f32 f32 f32 -> i32
+# fbuf out: [0..2]=position [3..5]=velocity
+cg_get_3d_attributes i32 fbuf -> i32
+cg_set_3d_min_max i32 f32 f32 -> i32
+# fbuf out: [0]=min [1]=max
+cg_get_3d_min_max i32 fbuf -> i32
+cg_set_3d_occlusion i32 f32 f32 -> i32
+cg_set_3d_level i32 f32 -> i32
+cg_get_3d_level i32 -> f32
+cg_set_3d_spread i32 f32 -> i32
+cg_get_3d_spread i32 -> f32
+cg_set_3d_doppler_level i32 f32 -> i32
+cg_get_3d_doppler_level i32 -> f32
+cg_set_3d_cone_settings i32 f32 f32 f32 -> i32
+# fbuf out: [0]=inside [1]=outside [2]=outside volume
+cg_get_3d_cone_settings i32 fbuf -> i32
+cg_set_3d_cone_orientation i32 f32 f32 f32 -> i32
+# fbuf out: [0..2]=direction xyz
+cg_get_3d_cone_orientation i32 fbuf -> i32
+cg_set_reverb_wet i32 i32 f32 -> i32
+cg_get_reverb_wet i32 i32 -> f32
+# fbuf in: out*in gains row-major
+cg_set_mix_matrix i32 fbuf i32 i32 -> i32
+cg_set_volume_ramp i32 bool -> i32
+cg_get_volume_ramp i32 -> bool
+cg_get_audibility i32 -> f32
+cg_get_name i32 -> str
+cg_get_num_channels i32 -> i32
+cg_get_channel i32 i32 -> i32
 
 ## Debug
 debug_live_handle_count -> i32

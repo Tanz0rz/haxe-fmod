@@ -1,0 +1,4 @@
+# Excused manifest functions for ci/binding-coverage.py.
+# Format: <name> <reason>. Every entry must name a manifest function
+# that genuinely has no exercise evidence - covered entries are stale
+# and fail the check.

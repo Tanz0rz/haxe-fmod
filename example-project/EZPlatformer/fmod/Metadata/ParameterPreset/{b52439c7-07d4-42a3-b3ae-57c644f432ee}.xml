@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<objects serializationModel="Studio.02.00.00">
+<objects serializationModel="Studio.02.03.00">
 	<object class="ParameterPreset" id="{b52439c7-07d4-42a3-b3ae-57c644f432ee}">
 		<property name="name">
 			<value>HighPass</value>

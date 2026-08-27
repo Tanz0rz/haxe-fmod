@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<!--
+Standalone repro for an FMOD html5 SDK defect (2.03.12): the documented
+programmer-sound pattern does not work in the browser. No haxefmod code
+is involved - this drives the FMOD JS API directly, following the
+programmer_sound example that ships with the SDK.
+
+Observed: the CREATE_PROGRAMMER_SOUND callback fires, getSoundInfo and
+createSound both succeed, and the sound and subsound index are written
+to the callback's properties object. The event then reports STOPPED on
+the next update without playing, and no further callbacks (STARTED,
+STOPPED, DESTROY_PROGRAMMER_SOUND) are ever delivered to this instance.
+Without the sound assignment the same event plays normally.
+
+To run: serve this file next to fmodstudio.js, fmodstudio.wasm, and a
+Master.bank/Master.strings.bank pair containing an event with an async
+programmer instrument at event:/Dialogue/Speak and an audio table entry
+keyed "hello", then open it in a browser and watch the console.
+
+Expected (native backends behave this way): STARTED, then the sound
+plays, then DESTROY_PROGRAMMER_SOUND and STOPPED at region end.
+Actual: only CREATE_PROGRAMMER_SOUND, state STOPPED within one update.
+-->
+<html><head><meta charset="utf-8"><title>fmod programmer sound repro</title></head><body>
+<script src="fmodstudio.js"></script>
+<script>
+var gSystem, gSystemCore, ready = false;
+var FMOD = {};
+var fetchedBanks = [];
+FMOD.preRun = function () {
+    fetchedBanks.forEach(function (b) {
+        FMOD.FS_createDataFile('/', b.name, b.data, true, false, false);
+    });
+};
+FMOD.onRuntimeInitialized = function () {
+    var o = {};
+    FMOD.Studio_System_Create(o); gSystem = o.val;
+    gSystem.getCoreSystem(o); gSystemCore = o.val;
+    gSystem.initialize(1024, FMOD.STUDIO_INIT_NORMAL, FMOD.INIT_NORMAL, null);
+    var b = {};
+    gSystem.loadBankFile('/Master.bank', FMOD.STUDIO_LOAD_BANK_NORMAL, b);
+    gSystem.loadBankFile('/Master.strings.bank', FMOD.STUDIO_LOAD_BANK_NORMAL, b);
+    ready = true;
+    return FMOD.OK;
+};
+async function boot() {
+    for (const n of ['Master.bank', 'Master.strings.bank']) {
+        fetchedBanks.push({ name: n, data: new Uint8Array(await (await fetch(n)).arrayBuffer()) });
+    }
+    FMODModule(FMOD);
+    while (!ready) await new Promise(r => setTimeout(r, 50));
+    console.log('REPRO: initialized');
+
+    function cb(type, event, parameters) {
+        console.log('REPRO: callback type=0x' + type.toString(16));
+        if (type === FMOD.STUDIO_EVENT_CALLBACK_CREATE_PROGRAMMER_SOUND) {
+            // The out object needs a pre-created exinfo or getSoundInfo
+            // throws while filling it, and createSound requires a real
+            // SoundGroup instance in exinfo.initialsoundgroup.
+            var info = { exinfo: {} };
+            var r1 = gSystem.getSoundInfo('hello', info);
+            var msg = {};
+            gSystemCore.getMasterSoundGroup(msg);
+            info.exinfo.initialsoundgroup = msg.val;
+            var sound = {};
+            var r2 = gSystemCore.createSound(info.name_or_data,
+                (FMOD.LOOP_NORMAL | FMOD.CREATECOMPRESSEDSAMPLE | info.mode) >>> 0,
+                info.exinfo, sound);
+            console.log('REPRO: getSoundInfo=' + r1 + ' createSound=' + r2);
+            if (r2 === FMOD.OK) {
+                parameters.sound = sound.val;
+                parameters.subsoundIndex = info.subsoundindex;
+                console.log('REPRO: sound assigned, subsound=' + info.subsoundindex);
+            }
+        } else if (type === FMOD.STUDIO_EVENT_CALLBACK_DESTROY_PROGRAMMER_SOUND) {
+            console.log('REPRO: destroy, releasing');
+            parameters.sound.release();
+        }
+        return FMOD.OK;
+    }
+
+    var d = {};
+    gSystem.getEvent('event:/Dialogue/Speak', d);
+    var inst = {};
+    d.val.createInstance(inst);
+    var ev = inst.val;
+    ev.setCallback(cb, FMOD.STUDIO_EVENT_CALLBACK_CREATE_PROGRAMMER_SOUND
+        | FMOD.STUDIO_EVENT_CALLBACK_DESTROY_PROGRAMMER_SOUND
+        | FMOD.STUDIO_EVENT_CALLBACK_STOPPED | FMOD.STUDIO_EVENT_CALLBACK_STARTED);
+    ev.start();
+    var t0 = performance.now();
+    var lastState = -1;
+    function tick() {
+        gSystem.update();
+        var so = {};
+        ev.getPlaybackState(so);
+        if (so.val !== lastState) {
+            lastState = so.val;
+            console.log('REPRO: state ' + so.val + ' at ' + ((performance.now() - t0) / 1000).toFixed(2) + 's');
+        }
+        if (performance.now() - t0 > 12000) {
+            console.log('REPRO: done, final state ' + so.val);
+            return;
+        }
+        requestAnimationFrame(tick);
+    }
+    tick();
+}
+boot();
+</script></body></html>

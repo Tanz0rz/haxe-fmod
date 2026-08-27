@@ -8,20 +8,32 @@ import haxefmod.studio.EventInstance;
  * stopped and destroyed, stale handles) are pruned automatically.
  */
 class AttachedInstances {
-    var entries:Array<{instance:EventInstance, provider:IFmodPositionProvider}> = [];
+    var entries:Array<{instance:EventInstance, provider:IFmodPositionProvider, autoRelease:Bool}> = [];
+
+    /**
+     * Caps the velocity magnitude pushed to FMOD (game units per second).
+     * 0 disables the cap. Set from FmodSettings.maxAttachedVelocity at init.
+     */
+    public var maxVelocity:Float = 0;
 
     public function new() {}
 
-    /** Attaches an instance. replaces the provider if already attached. */
-    public function attach(instance:EventInstance, provider:IFmodPositionProvider):Void {
+    /**
+     * Attaches an instance. Replaces the provider if already attached.
+     * With autoRelease the instance is released as soon as it reports
+     * STOPPED, which is how one-shots clean themselves up without relying
+     * on a callback registration that ClearAllCallbacks could remove.
+     */
+    public function attach(instance:EventInstance, provider:IFmodPositionProvider, autoRelease:Bool = false):Void {
         if (instance.isNull() || provider == null) return;
         for (entry in entries) {
             if ((entry.instance : Int) == (instance : Int)) {
                 entry.provider = provider;
+                entry.autoRelease = autoRelease;
                 return;
             }
         }
-        entries.push({instance: instance, provider: provider});
+        entries.push({instance: instance, provider: provider, autoRelease: autoRelease});
         push(instance, provider);
     }
 
@@ -45,6 +57,10 @@ class AttachedInstances {
             var entry = entries[i];
             if (!entry.instance.isValid()) {
                 entries.splice(i, 1);
+            } else if (entry.autoRelease
+                    && entry.instance.getPlaybackState() == haxefmod.studio.Types.FmodPlaybackState.STOPPED) {
+                entries.splice(i, 1);
+                entry.instance.release();
             } else {
                 push(entry.instance, entry.provider);
             }
@@ -52,8 +68,21 @@ class AttachedInstances {
         }
     }
 
-    static inline function push(instance:EventInstance, provider:IFmodPositionProvider):Void {
-        instance.setPosition2D(provider.fmodX(), provider.fmodY(),
-            provider.fmodVelocityX(), provider.fmodVelocityY());
+    function push(instance:EventInstance, provider:IFmodPositionProvider):Void {
+        var velX = provider.fmodVelocityX();
+        var velY = provider.fmodVelocityY();
+        var scale = velocityScale(velX, velY, maxVelocity);
+        instance.setPosition2D(provider.fmodX(), provider.fmodY(), velX * scale, velY * scale);
+    }
+
+    /**
+     * Multiplier that caps a velocity vector at maxMagnitude, preserving
+     * direction. Returns 1.0 when no cap applies (also used by the flixel
+     * listener, so listener and emitter velocities clamp identically).
+     */
+    public static function velocityScale(velX:Float, velY:Float, maxMagnitude:Float):Float {
+        if (maxMagnitude <= 0) return 1.0;
+        var mag = Math.sqrt(velX * velX + velY * velY);
+        return mag > maxMagnitude ? maxMagnitude / mag : 1.0;
     }
 }

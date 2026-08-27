@@ -11,6 +11,7 @@ concurrency:
 # Solo-build: include [job-name] in commit message to run only that job
 # e.g. "[linux-html5]" runs only the linux-html5 job
 # [skip-build] skips all jobs
+# Tag pushes always run the full suite and never run update-hdlls
 
 env:
   HAXE_VERSION: 4.3.6
@@ -22,7 +23,7 @@ jobs:
   # ===========================================================================
   unit-tests:
     runs-on: ubuntu-latest
-    if: ${{ !contains(github.event.head_commit.message, '[skip-build]') }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || !contains(github.event.head_commit.message, '[skip-build]') }}
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v5
@@ -41,7 +42,19 @@ jobs:
             --strings tests/fixtures/Master.strings.bank --out /tmp/gen-cli
           node tests/js/constants-parity.js /tmp/gen-cli
           # The generated output must also compile
-          haxe -cp /tmp/gen-cli --no-output FmodEvents FmodBuses FmodParameters FmodEventEnum
+          haxe -cp /tmp/gen-cli --no-output FmodEvents FmodBuses FmodVCAs FmodSnapshots FmodParameters FmodEventEnum
+
+      - name: Todo scanner end to end
+        run: |
+          # The example project carries one real marker. The scanner must
+          # find exactly it and nothing else (doc comments and usage
+          # strings mentioning the call must not count).
+          haxe -cp . --run haxefmod.tools.Todos example-project > /tmp/todos.out
+          cat /tmp/todos.out
+          grep -q "PlayState.hx:.*ambient wind loop behind the music" /tmp/todos.out
+          grep -q "1 sound TODO(s) remaining." /tmp/todos.out
+          # The facade must type-check with the placeholder beep enabled
+          haxe -cp . --no-output -js /tmp/todo-typing.js -D haxefmod_todo_beep --debug haxefmod.FmodManager
 
       - name: Verify native shims match the FFI manifest
         run: haxe -cp . --run haxefmod.tools.NativeManifestCheck
@@ -60,12 +73,72 @@ jobs:
           g++ -x c++ -pthread -Wall -Wextra -Werror -o /tmp/test_cbq_cpp tests/native/test_faxe_cbqueue.c
           /tmp/test_cbq_cpp
 
+      - name: Test native GUID helpers (C99 and C++ modes)
+        run: |
+          gcc -std=c99 -Wall -Wextra -Werror -o /tmp/test_guid_c tests/native/test_faxe_guid.c
+          /tmp/test_guid_c
+          g++ -x c++ -Wall -Wextra -Werror -o /tmp/test_guid_cpp tests/native/test_faxe_guid.c
+          /tmp/test_guid_cpp
+
+      - name: Negative-test the synth frequency gate
+        run: python3 ci/synth-gate-selftest.py
+
+      - name: Check workflow gating invariants
+        run: python3 ci/workflow-invariants.py
+
+      - name: Check FMOD version literal lockstep
+        run: python3 ci/version-lockstep.py
+
+      - name: Check hxcpp depend lockstep
+        run: python3 ci/depend-lockstep.py
+
+      - name: Compile the README examples
+        run: python3 ci/check-readme-snippets.py
+
+      - name: Test native PCM ring buffer (C99 and C++ modes)
+        run: |
+          gcc -std=c99 -pthread -Wall -Wextra -Werror -o /tmp/test_pcmring_c tests/native/test_faxe_pcmring.c
+          /tmp/test_pcmring_c
+          g++ -x c++ -pthread -Wall -Wextra -Werror -o /tmp/test_pcmring_cpp tests/native/test_faxe_pcmring.c
+          /tmp/test_pcmring_cpp
+
+      - name: Check binding coverage against the manifest
+        run: python3 ci/binding-coverage.py
+
+      # The main suite only ever runs the define fallbacks: these two
+      # variants prove -D haxefmod_* values and the -debug defaults
+      # actually reach the settings resolver
+      - name: Test define-driven settings (haxefmod_* and -debug)
+        run: |
+          haxe tests/build-defines.hxml
+          haxe tests/build-debug-defaults.hxml
+
+      # The shared headers own the cross-thread lifetime contracts.
+      # ASan/UBSan cover the single-threaded invariants (including the
+      # handle fuzz), TSan proves the locking on the two tests that drive
+      # a real producer thread.
+      - name: Run native tests under AddressSanitizer and UBSan
+        run: |
+          for t in handles cbqueue guid pcmring; do
+            gcc -std=c99 -pthread -fsanitize=address,undefined -fno-sanitize-recover=all \
+              -Wall -Wextra -Werror -o /tmp/asan_$t tests/native/test_faxe_$t.c
+            /tmp/asan_$t
+          done
+
+      - name: Run threaded native tests under ThreadSanitizer
+        run: |
+          for t in cbqueue pcmring; do
+            gcc -std=c99 -pthread -fsanitize=thread -Wall -Wextra -Werror \
+              -o /tmp/tsan_$t tests/native/test_faxe_$t.c
+            /tmp/tsan_$t
+          done
+
   # ===========================================================================
   # API docs (dox) - rendered from the haxefmod package, uploaded as artifact
   # ===========================================================================
   api-docs:
     runs-on: ubuntu-latest
-    if: ${{ !contains(github.event.head_commit.message, '[skip-build]') }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || !contains(github.event.head_commit.message, '[skip-build]') }}
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@v5
@@ -110,7 +183,7 @@ jobs:
   # ===========================================================================
   linux-cpp:
     runs-on: ubuntu-latest
-    if: ${{ !contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-cpp]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]'))) }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-cpp]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]')))) }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
@@ -147,7 +220,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg patchelf libgl1-mesa-dev
+          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg libgl1-mesa-dev
 
       - name: Cache hxcpp objects
         uses: actions/cache@v5
@@ -165,14 +238,27 @@ jobs:
           cd example-project/EZPlatformer
           haxelib run lime build linux -64
 
-      - name: Patch FMOD libraries
+      - name: Verify FMOD libraries have no executable stack
         run: |
           BIN_DIR="example-project/EZPlatformer/export/linux64/bin"
           if [ ! -d "$BIN_DIR" ]; then
             BIN_DIR="example-project/EZPlatformer/export/linux/bin"
           fi
-          patchelf --clear-execstack "$BIN_DIR"/libfmod.so* || true
-          patchelf --clear-execstack "$BIN_DIR"/libfmodstudio.so* || true
+          FOUND=0
+          for lib in "$BIN_DIR"/libfmod*.so*; do
+            [ -L "$lib" ] && continue
+            FOUND=1
+            LINE=$(readelf -lW "$lib" | grep GNU_STACK) || {
+              echo "FAIL: $lib has no GNU_STACK header"; exit 1; }
+            FLAGS=$(echo "$LINE" | awk '{print $7}')
+            echo "$lib: GNU_STACK $FLAGS"
+            case "$FLAGS" in *E*)
+              echo "FAIL: $lib still has an executable stack (PostBuild should have cleared it)"
+              exit 1;;
+            esac
+          done
+          [ "$FOUND" = "1" ] || { echo "FAIL: no FMOD libraries found in $BIN_DIR"; exit 1; }
+          echo "All FMOD libraries are loadable on modern kernels"
 
       - name: Validate build output
         run: |
@@ -282,8 +368,24 @@ jobs:
         with:
           state: api-probe
           gate: API_PROBE
+          timeout: "60"
           bin-dir: example-project/EZPlatformer/export/linux*/bin
           log-file: /tmp/api-probe-linux-cpp.log
+
+      - name: Run synth-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: synth-test
+          gate: SYNTH_TEST
+          bin-dir: example-project/EZPlatformer/export/linux*/bin
+          log-file: /tmp/synth-test-linux-cpp.log
+          use-wavwriter: "true"
+          timeout: "60"
+
+      - name: Validate synth audio
+        if: ${{ !cancelled() }}
+        run: ./ci/validate-synth.sh "${RUNNER_TEMP}/state-synth-test.wav"
 
       - name: Run cb-test state
         if: ${{ !cancelled() }}
@@ -301,6 +403,7 @@ jobs:
         with:
           state: ps-test
           gate: PS_TEST
+          timeout: "60"
           bin-dir: example-project/EZPlatformer/export/linux*/bin
           log-file: /tmp/ps-test-linux-cpp.log
           copy-jump-wav: "true"
@@ -311,6 +414,7 @@ jobs:
         with:
           state: bank-test
           gate: BANK_TEST
+          timeout: "60"
           bin-dir: example-project/EZPlatformer/export/linux*/bin
           log-file: /tmp/bank-test-linux-cpp.log
 
@@ -320,8 +424,30 @@ jobs:
         with:
           state: pan-test
           gate: PAN_TEST
+          timeout: "60"
           bin-dir: example-project/EZPlatformer/export/linux*/bin
           log-file: /tmp/pan-test-linux-cpp.log
+
+      # The define-driven build variant: -D haxefmod_* overrides plus
+      # autoUpdate:false, so the full probe suite runs on FmodManager's
+      # manual sys_update pushes instead of the auto-update thread. The
+      # probe asserts both settings landed (hardening_manual_update /
+      # hardening_define_channels checks).
+      - name: Build manual-update variant
+        if: ${{ !cancelled() }}
+        run: |
+          cd example-project/EZPlatformer
+          haxelib run lime build linux -64 -Daudio_test -Daudio_test_manual_update -Dhaxefmod_num_channels=100
+
+      - name: Run api-probe state (manual update variant)
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: api-probe
+          gate: API_PROBE
+          timeout: "60"
+          bin-dir: example-project/EZPlatformer/export/linux*/bin
+          log-file: /tmp/api-probe-linux-cpp-manual.log
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v6
@@ -342,7 +468,7 @@ jobs:
   # ===========================================================================
   linux-hl:
     runs-on: ubuntu-latest
-    if: ${{ !contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]'))) }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]')))) }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
@@ -378,7 +504,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg patchelf \
+          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg \
             libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
             libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev libz-dev
 
@@ -433,11 +559,24 @@ jobs:
           path: example-project/EZPlatformer/.haxefmod/hlaxe_fmod.hdll
           overwrite: true
 
-      - name: Patch FMOD libraries
+      - name: Verify FMOD libraries have no executable stack
         run: |
           BIN_DIR="example-project/EZPlatformer/export/hl/bin"
-          patchelf --clear-execstack "$BIN_DIR"/libfmod.so* || true
-          patchelf --clear-execstack "$BIN_DIR"/libfmodstudio.so* || true
+          FOUND=0
+          for lib in "$BIN_DIR"/libfmod*.so*; do
+            [ -L "$lib" ] && continue
+            FOUND=1
+            LINE=$(readelf -lW "$lib" | grep GNU_STACK) || {
+              echo "FAIL: $lib has no GNU_STACK header"; exit 1; }
+            FLAGS=$(echo "$LINE" | awk '{print $7}')
+            echo "$lib: GNU_STACK $FLAGS"
+            case "$FLAGS" in *E*)
+              echo "FAIL: $lib still has an executable stack (PostBuild should have cleared it)"
+              exit 1;;
+            esac
+          done
+          [ "$FOUND" = "1" ] || { echo "FAIL: no FMOD libraries found in $BIN_DIR"; exit 1; }
+          echo "All FMOD libraries are loadable on modern kernels"
 
       - name: Debug bin directory contents
         run: |
@@ -553,8 +692,24 @@ jobs:
         with:
           state: api-probe
           gate: API_PROBE
+          timeout: "60"
           bin-dir: example-project/EZPlatformer/export/hl/bin
           log-file: /tmp/api-probe-linux-hl.log
+
+      - name: Run synth-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: synth-test
+          gate: SYNTH_TEST
+          bin-dir: example-project/EZPlatformer/export/hl/bin
+          log-file: /tmp/synth-test-linux-hl.log
+          use-wavwriter: "true"
+          timeout: "60"
+
+      - name: Validate synth audio
+        if: ${{ !cancelled() }}
+        run: ./ci/validate-synth.sh "${RUNNER_TEMP}/state-synth-test.wav"
 
       - name: Run cb-test state
         if: ${{ !cancelled() }}
@@ -572,6 +727,7 @@ jobs:
         with:
           state: ps-test
           gate: PS_TEST
+          timeout: "60"
           bin-dir: example-project/EZPlatformer/export/hl/bin
           log-file: /tmp/ps-test-linux-hl.log
           copy-jump-wav: "true"
@@ -582,6 +738,7 @@ jobs:
         with:
           state: bank-test
           gate: BANK_TEST
+          timeout: "60"
           bin-dir: example-project/EZPlatformer/export/hl/bin
           log-file: /tmp/bank-test-linux-hl.log
 
@@ -591,6 +748,7 @@ jobs:
         with:
           state: pan-test
           gate: PAN_TEST
+          timeout: "60"
           bin-dir: example-project/EZPlatformer/export/hl/bin
           log-file: /tmp/pan-test-linux-hl.log
 
@@ -630,10 +788,8 @@ jobs:
           fi
           echo "Stress smoke passed"
 
-      # The literal command users type. Everything else in this job builds
-      # and launches the game with CI plumbing. This proves lime's own
-      # launcher (working directory, library resolution, postbuild hooks)
-      # delivers a working FMOD game from a single command.
+      # Runs the literal command users type. The other steps wrap builds
+      # in CI plumbing, and this one proves a plain lime test works.
       - name: lime test end to end
         if: ${{ !cancelled() }}
         run: |
@@ -678,10 +834,15 @@ jobs:
   # ===========================================================================
   linux-hl-compat:
     runs-on: ubuntu-latest
-    if: ${{ !contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-hl-compat]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]'))) }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-hl-compat]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]')))) }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
+
+      - name: Use compat fixture banks
+        run: |
+          rm -f example-project/EZPlatformer/assets/fmod/Desktop/*.bank
+          cp tests/fixtures/compat-banks/*.bank example-project/EZPlatformer/assets/fmod/Desktop/
 
       - name: Download FMOD SDK
         uses: ./.github/actions/fmod-sdk
@@ -714,7 +875,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg patchelf \
+          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg \
             libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
             libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev libz-dev
 
@@ -742,9 +903,19 @@ jobs:
       - name: Build HashLink target (expect version mismatch failure)
         run: |
           cd example-project/EZPlatformer
-          haxelib run lime build hl 2>&1 | tee /tmp/build-mismatch.log || true
-          grep -q "ERROR: FMOD SDK version mismatch" /tmp/build-mismatch.log
-          echo "Verified: build failed with version mismatch error"
+          set -o pipefail
+          if haxelib run lime build hl 2>&1 | tee /tmp/build-mismatch.log; then
+            echo "ERROR: the build succeeded despite the SDK version mismatch"
+            exit 1
+          fi
+          grep -q "FMOD SDK version mismatch" /tmp/build-mismatch.log
+          echo "Verified: the build failed at compile time with the version mismatch error"
+
+      - name: Test DSP type translation against the 2.02.33 headers
+        run: |
+          gcc -std=c99 -Wall -Wextra -Werror -I "$FMOD_SDK/api/core/inc" \
+            -o /tmp/test_dsptype tests/native/test_faxe_dsptype.c
+          /tmp/test_dsptype
 
       - name: Build custom hdll via build-hdll
         run: |
@@ -762,11 +933,24 @@ jobs:
           grep -q "(custom-compiled from .haxefmod/)" /tmp/build-custom.log
           echo "Verified: custom-compiled hdll from .haxefmod/ was used"
 
-      - name: Patch FMOD libraries
+      - name: Verify FMOD libraries have no executable stack
         run: |
           BIN_DIR="example-project/EZPlatformer/export/hl/bin"
-          patchelf --clear-execstack "$BIN_DIR"/libfmod.so* || true
-          patchelf --clear-execstack "$BIN_DIR"/libfmodstudio.so* || true
+          FOUND=0
+          for lib in "$BIN_DIR"/libfmod*.so*; do
+            [ -L "$lib" ] && continue
+            FOUND=1
+            LINE=$(readelf -lW "$lib" | grep GNU_STACK) || {
+              echo "FAIL: $lib has no GNU_STACK header"; exit 1; }
+            FLAGS=$(echo "$LINE" | awk '{print $7}')
+            echo "$lib: GNU_STACK $FLAGS"
+            case "$FLAGS" in *E*)
+              echo "FAIL: $lib still has an executable stack (PostBuild should have cleared it)"
+              exit 1;;
+            esac
+          done
+          [ "$FOUND" = "1" ] || { echo "FAIL: no FMOD libraries found in $BIN_DIR"; exit 1; }
+          echo "All FMOD libraries are loadable on modern kernels"
 
       - name: Validate build output
         run: |
@@ -860,6 +1044,22 @@ jobs:
       - name: Validate volume/mute
         run: ./ci/validate-volume.sh /tmp/volume-test-linux-hl-compat.wav 15
 
+      # Validates the binding surface against FMOD 2.02.33. The DSP
+      # type translation makes the effect surface version-correct, and
+      # the per-effect parameter indexes the probe uses are identical
+      # in both versions.
+      - name: Run api-probe state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        env:
+          HAXEFMOD_PROBE_SKIP_AUTHORED: "1"
+        with:
+          state: api-probe
+          gate: API_PROBE
+          timeout: "60"
+          bin-dir: example-project/EZPlatformer/export/hl/bin
+          log-file: /tmp/api-probe-linux-hl-compat.log
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v6
         if: always()
@@ -875,9 +1075,9 @@ jobs:
   # ===========================================================================
   # Linux HTML5 Build + Audio Recording via Browser
   # ===========================================================================
-  linux-html5:
+  linux-html5-chromium:
     runs-on: ubuntu-latest
-    if: ${{ !contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-html5]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]'))) }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-html5-chromium]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]')))) }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
@@ -1092,6 +1292,55 @@ jobs:
           fi
           echo "API probe passed"
 
+      - name: Run synth test (generated PCM reaches the output)
+        if: ${{ !cancelled() }}
+        run: |
+          export DISPLAY=:99
+
+          cd example-project/EZPlatformer/export/html5/bin
+          python3 -m http.server 8086 &
+          HTTP_PID=$!
+          sleep 1
+
+          # Recording starts before the browser so the first tone segment
+          # cannot be clipped. The tones run in real time on html5: ~22s of
+          # audio after boot.
+          ffmpeg -f pulse -i virtual_speaker.monitor -t 45 -y /tmp/synth-test-html5.wav &
+          RECORD_PID=$!
+
+          chromium-browser \
+            --no-sandbox \
+            --disable-gpu \
+            --autoplay-policy=no-user-gesture-required \
+            --enable-logging=stderr --v=0 \
+            --window-size=640,480 \
+            --window-position=0,0 \
+            "http://localhost:8086/index.html?test=synth-test" > /tmp/synth-test-raw.log 2>&1 &
+          CHROME_PID=$!
+          sleep 3
+
+          xdotool mousemove 320 240 click 1
+
+          for i in $(seq 50); do
+            grep -q "SYNTH_TEST: COMPLETE" /tmp/synth-test-raw.log && break
+            sleep 1
+          done
+          wait $RECORD_PID || true
+
+          kill $CHROME_PID || true
+          kill $HTTP_PID || true
+
+          grep -o "SYNTH_TEST:.*" /tmp/synth-test-raw.log | sed 's/",.*$//' | tee /tmp/synth-test-html5.log
+          grep -q "SYNTH_TEST: COMPLETE" /tmp/synth-test-html5.log
+          if grep -q "pass=false" /tmp/synth-test-html5.log; then
+            echo "FAIL: synth test reported failing checks"
+            exit 1
+          fi
+
+      - name: Validate synth audio
+        if: ${{ !cancelled() }}
+        run: ./ci/validate-synth.sh /tmp/synth-test-html5.wav
+
       - name: Run callback test (JS payload delivery)
         if: ${{ !cancelled() }}
         run: |
@@ -1221,7 +1470,7 @@ jobs:
           export DISPLAY=:99
 
           cd example-project/EZPlatformer/export/html5/bin
-          python3 -m http.server 8086 &
+          python3 -m http.server 8087 &
           HTTP_PID=$!
           sleep 1
 
@@ -1232,7 +1481,7 @@ jobs:
             --enable-logging=stderr --v=0 \
             --window-size=640,480 \
             --window-position=0,0 \
-            "http://localhost:8086/index.html?test=pan-test" > /tmp/pan-test-raw.log 2>&1 &
+            "http://localhost:8087/index.html?test=pan-test" > /tmp/pan-test-raw.log 2>&1 &
           CHROME_PID=$!
           sleep 3
 
@@ -1257,6 +1506,39 @@ jobs:
           fi
           echo "pan-test passed"
 
+      # The web-SDK version gate carries this target (the JS shim's
+      # numeric tables are version-specific and the wasm exposes no
+      # version query): a build against a mismatched FMOD_SDK_WEB has to
+      # fail at compile time with the mismatch banner.
+      # The FLX_SOUND_SYSTEM-off world of FmodFlxSetup has no other
+      # compile coverage (every build keeps the sound system on)
+      - name: Typecheck the flixel no-sound-system variant
+        if: ${{ !cancelled() }}
+        run: |
+          haxe -cp . -lib flixel -lib openfl -lib lime \
+            -D FLX_NO_SOUND_SYSTEM -D FLX_STANDARD_ASSETS_DIRECTORY -D openfl-html5 \
+            --no-output -js /dev/null haxefmod.flixel.FmodFlxSetup
+
+      - name: Verify mismatched web SDK fails the build
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          DOCTORED=/tmp/doctored-web-sdk
+          rm -rf "$DOCTORED"
+          cp -r "$FMOD_SDK" "$DOCTORED"
+          sed -i 's/#define FMOD_VERSION    0x[0-9a-fA-F]*/#define FMOD_VERSION    0x00020221/'             "$DOCTORED/api/core/inc/fmod_common.h"
+          grep -q "0x00020221" "$DOCTORED/api/core/inc/fmod_common.h" || {
+            echo "FAIL: could not doctor the SDK header"; exit 1; }
+          cd example-project/EZPlatformer
+          haxelib run lime clean html5
+          if FMOD_SDK_WEB="$DOCTORED" haxelib run lime build html5 2>&1 | tee /tmp/web-mismatch-build.log; then
+            echo "FAIL: build succeeded against a mismatched web SDK"
+            exit 1
+          fi
+          grep -q "FMOD web SDK version mismatch" /tmp/web-mismatch-build.log || {
+            echo "FAIL: build failed without the version-mismatch banner"; exit 1; }
+          echo "OK: mismatched web SDK fails the build with the banner"
+
       - name: Upload audio artifact
         uses: actions/upload-artifact@v6
         if: always()
@@ -1274,12 +1556,181 @@ jobs:
           if-no-files-found: warn
           overwrite: true
 
+
+  # ===========================================================================
+  # HTML5 in Firefox: second engine for the log-gated states
+  # ===========================================================================
+  linux-html5-firefox:
+    runs-on: ubuntu-latest
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-html5-firefox]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]')))) }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download FMOD SDK
+        uses: ./.github/actions/fmod-sdk
+        with:
+          version: "2.03.12"
+          platform: html5
+          dest: ${{ env.FMOD_SDK }}
+          token: ${{ secrets.FMOD_SDK_TOKEN }}
+
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v2
+        with:
+          haxe-version: ${{ env.HAXE_VERSION }}
+
+      - name: Cache haxelib
+        uses: actions/cache@v5
+        with:
+          path: ~/haxelib
+          key: haxelib-html5-${{ runner.os }}-${{ env.HAXE_VERSION }}
+
+      - name: Install Haxe libraries
+        run: |
+          haxelib setup ~/haxelib
+          haxelib install lime 8.3.0 --always --quiet
+          haxelib install openfl 9.5.0 --always --quiet
+          haxelib install flixel 6.1.2 --always --quiet
+          haxelib dev haxefmod $GITHUB_WORKSPACE
+          yes | haxelib run lime setup || true
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pulseaudio xvfb
+
+      - name: Build HTML5 target
+        env:
+          FMOD_SDK_WEB: ${{ env.FMOD_SDK }}
+        run: |
+          cd example-project/EZPlatformer
+          haxelib run lime build html5 -Daudio_test
+
+      - name: Start display and audio
+        run: |
+          Xvfb :99 -screen 0 1024x768x24 &
+          sleep 1
+          # Firefox talks to PulseAudio directly, so the null sink is all
+          # the mixer needs to keep running
+          pulseaudio --start --exit-idle-time=-1 || true
+          pactl load-module module-null-sink sink_name=virtual_speaker sink_properties=device.description=VirtualSpeaker
+          pactl set-default-sink virtual_speaker
+
+      # Second engine for the log-gated states. The FMOD JS glue defects
+      # all surfaced on V8 first, so SpiderMonkey runs the same checks
+      # (Playwright build - stock Firefox lacks its automation hooks).
+      # The WAV audio-capture validation stays chromium-only.
+      - name: Install Playwright Firefox
+        if: ${{ !cancelled() }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/pw"
+          cd "$RUNNER_TEMP/pw"
+          npm init -y > /dev/null
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm install playwright > /dev/null
+          export PLAYWRIGHT_BROWSERS_PATH="$RUNNER_TEMP/pw-browsers"
+          npx playwright install --with-deps firefox
+
+      - name: Run api-probe state (firefox)
+        if: ${{ !cancelled() }}
+        run: |
+          export DISPLAY=:99
+          export NODE_PATH="$RUNNER_TEMP/pw/node_modules"
+          export PLAYWRIGHT_BROWSERS_PATH="$RUNNER_TEMP/pw-browsers"
+          cd example-project/EZPlatformer/export/html5/bin
+          python3 -m http.server 8091 &
+          HTTP_PID=$!
+          sleep 1
+          RC=0
+          node "$GITHUB_WORKSPACE/ci/run-firefox-state.js" \
+            "http://localhost:8091/index.html?test=api-probe" API_PROBE /tmp/api-probe-firefox.log 150 || RC=$?
+          kill $HTTP_PID || true
+          exit $RC
+
+      - name: Run cb-test state (firefox)
+        if: ${{ !cancelled() }}
+        run: |
+          export DISPLAY=:99
+          export NODE_PATH="$RUNNER_TEMP/pw/node_modules"
+          export PLAYWRIGHT_BROWSERS_PATH="$RUNNER_TEMP/pw-browsers"
+          cd example-project/EZPlatformer/export/html5/bin
+          python3 -m http.server 8092 &
+          HTTP_PID=$!
+          sleep 1
+          RC=0
+          node "$GITHUB_WORKSPACE/ci/run-firefox-state.js" \
+            "http://localhost:8092/index.html?test=cb-test" CB_TEST /tmp/cb-test-firefox.log 150 || RC=$?
+          kill $HTTP_PID || true
+          exit $RC
+
+      - name: Run ps-test state (firefox)
+        if: ${{ !cancelled() }}
+        run: |
+          export DISPLAY=:99
+          export NODE_PATH="$RUNNER_TEMP/pw/node_modules"
+          export PLAYWRIGHT_BROWSERS_PATH="$RUNNER_TEMP/pw-browsers"
+          cd example-project/EZPlatformer/export/html5/bin
+          python3 -m http.server 8093 &
+          HTTP_PID=$!
+          sleep 1
+          RC=0
+          node "$GITHUB_WORKSPACE/ci/run-firefox-state.js" \
+            "http://localhost:8093/index.html?test=ps-test" PS_TEST /tmp/ps-test-firefox.log 120 || RC=$?
+          kill $HTTP_PID || true
+          exit $RC
+
+      - name: Run bank-test state (firefox)
+        if: ${{ !cancelled() }}
+        run: |
+          export DISPLAY=:99
+          export NODE_PATH="$RUNNER_TEMP/pw/node_modules"
+          export PLAYWRIGHT_BROWSERS_PATH="$RUNNER_TEMP/pw-browsers"
+          cd example-project/EZPlatformer/export/html5/bin
+          python3 -m http.server 8094 &
+          HTTP_PID=$!
+          sleep 1
+          RC=0
+          node "$GITHUB_WORKSPACE/ci/run-firefox-state.js" \
+            "http://localhost:8094/index.html?test=bank-test" BANK_TEST /tmp/bank-test-firefox.log 120 || RC=$?
+          kill $HTTP_PID || true
+          exit $RC
+
+      - name: Run pan-test state (firefox)
+        if: ${{ !cancelled() }}
+        run: |
+          export DISPLAY=:99
+          export NODE_PATH="$RUNNER_TEMP/pw/node_modules"
+          export PLAYWRIGHT_BROWSERS_PATH="$RUNNER_TEMP/pw-browsers"
+          cd example-project/EZPlatformer/export/html5/bin
+          python3 -m http.server 8095 &
+          HTTP_PID=$!
+          sleep 1
+          RC=0
+          node "$GITHUB_WORKSPACE/ci/run-firefox-state.js" \
+            "http://localhost:8095/index.html?test=pan-test" PAN_TEST /tmp/pan-test-firefox.log 180 || RC=$?
+          kill $HTTP_PID || true
+          exit $RC
+
+      - name: Upload logs
+        uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: audio-linux-html5-firefox
+          path: |
+            /tmp/api-probe-firefox.log
+            /tmp/cb-test-firefox.log
+            /tmp/ps-test-firefox.log
+            /tmp/bank-test-firefox.log
+            /tmp/pan-test-firefox.log
+          if-no-files-found: warn
+          overwrite: true
+
   # ===========================================================================
   # macOS C++ Build + Audio Recording
   # ===========================================================================
   mac-cpp:
     runs-on: macos-14
-    if: ${{ !contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[mac-cpp]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]'))) }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[mac-cpp]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]')))) }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
@@ -1398,6 +1849,99 @@ jobs:
       - name: Validate volume/mute
         run: ./ci/validate-volume.sh /tmp/volume-test-mac-cpp.wav 15
 
+      # The volume rebuild above compiled with -Daudio_test, so the
+      # binary can select every test state at runtime
+      - name: Run api-probe state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: api-probe
+          gate: API_PROBE
+          timeout: "60"
+          bin-dir: ${{ env.APP_BUNDLE }}/Contents/MacOS
+          log-file: /tmp/api-probe-mac-cpp.log
+          use-wavwriter: "true"
+
+      - name: Run synth-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: synth-test
+          gate: SYNTH_TEST
+          bin-dir: ${{ env.APP_BUNDLE }}/Contents/MacOS
+          log-file: /tmp/synth-test-mac-cpp.log
+          use-wavwriter: "true"
+          timeout: "60"
+
+      - name: Validate synth audio
+        if: ${{ !cancelled() }}
+        run: ./ci/validate-synth.sh "${RUNNER_TEMP}/state-synth-test.wav"
+
+      - name: Run cb-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: cb-test
+          gate: CB_TEST
+          bin-dir: ${{ env.APP_BUNDLE }}/Contents/MacOS
+          log-file: /tmp/cb-test-mac-cpp.log
+          extra-gate: "CB_TEST: Stopped"
+          use-wavwriter: "true"
+
+      - name: Run ps-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: ps-test
+          gate: PS_TEST
+          timeout: "60"
+          bin-dir: ${{ env.APP_BUNDLE }}/Contents/MacOS
+          log-file: /tmp/ps-test-mac-cpp.log
+          copy-jump-wav: "true"
+          use-wavwriter: "true"
+
+      - name: Run bank-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: bank-test
+          gate: BANK_TEST
+          timeout: "60"
+          bin-dir: ${{ env.APP_BUNDLE }}/Contents/MacOS
+          log-file: /tmp/bank-test-mac-cpp.log
+          use-wavwriter: "true"
+
+      - name: Run pan-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: pan-test
+          gate: PAN_TEST
+          bin-dir: ${{ env.APP_BUNDLE }}/Contents/MacOS
+          log-file: /tmp/pan-test-mac-cpp.log
+          use-wavwriter: "true"
+          timeout: "60"
+
+      # Portability compile of the shared native headers with Apple
+      # clang, plus the same sanitizer passes the Linux unit-tests job
+      # runs (a second compiler catches what gcc tolerates)
+      - name: Test native headers with Apple clang (sanitizers)
+        if: ${{ !cancelled() }}
+        run: |
+          for t in handles cbqueue guid pcmring; do
+            clang -std=c99 -pthread -fsanitize=address,undefined -fno-sanitize-recover=all \
+              -Wall -Wextra -Werror -o /tmp/asan_$t tests/native/test_faxe_$t.c
+            /tmp/asan_$t
+          done
+          for t in cbqueue pcmring; do
+            clang -std=c99 -pthread -fsanitize=thread -Wall -Wextra -Werror \
+              -o /tmp/tsan_$t tests/native/test_faxe_$t.c
+            /tmp/tsan_$t
+          done
+          clang -std=c99 -Wall -Wextra -Werror -I "$FMOD_SDK/api/core/inc" \
+            -o /tmp/test_dsptype tests/native/test_faxe_dsptype.c
+          /tmp/test_dsptype
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v6
         if: always()
@@ -1415,7 +1959,7 @@ jobs:
   # ===========================================================================
   mac-hl:
     runs-on: macos-14
-    if: ${{ !contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[mac-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]'))) }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[mac-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]')))) }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
@@ -1555,9 +2099,25 @@ jobs:
         with:
           state: api-probe
           gate: API_PROBE
+          timeout: "60"
           bin-dir: ${{ env.APP_BUNDLE }}/Contents/MacOS
           log-file: /tmp/api-probe-mac-hl.log
           use-wavwriter: "true"
+
+      - name: Run synth-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: synth-test
+          gate: SYNTH_TEST
+          bin-dir: ${{ env.APP_BUNDLE }}/Contents/MacOS
+          log-file: /tmp/synth-test-mac-hl.log
+          use-wavwriter: "true"
+          timeout: "60"
+
+      - name: Validate synth audio
+        if: ${{ !cancelled() }}
+        run: ./ci/validate-synth.sh "${RUNNER_TEMP}/state-synth-test.wav"
 
       - name: Run cb-test state
         if: ${{ !cancelled() }}
@@ -1576,6 +2136,7 @@ jobs:
         with:
           state: ps-test
           gate: PS_TEST
+          timeout: "60"
           bin-dir: ${{ env.APP_BUNDLE }}/Contents/MacOS
           log-file: /tmp/ps-test-mac-hl.log
           copy-jump-wav: "true"
@@ -1587,6 +2148,7 @@ jobs:
         with:
           state: bank-test
           gate: BANK_TEST
+          timeout: "60"
           bin-dir: ${{ env.APP_BUNDLE }}/Contents/MacOS
           log-file: /tmp/bank-test-mac-hl.log
           use-wavwriter: "true"
@@ -1597,6 +2159,7 @@ jobs:
         with:
           state: pan-test
           gate: PAN_TEST
+          timeout: "60"
           bin-dir: ${{ env.APP_BUNDLE }}/Contents/MacOS
           log-file: /tmp/pan-test-mac-hl.log
           use-wavwriter: "true"
@@ -1623,10 +2186,15 @@ jobs:
   # ===========================================================================
   mac-hl-compat:
     runs-on: macos-14
-    if: ${{ !contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[mac-hl-compat]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]'))) }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[mac-hl-compat]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]')))) }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
+
+      - name: Use compat fixture banks
+        run: |
+          rm -f example-project/EZPlatformer/assets/fmod/Desktop/*.bank
+          cp tests/fixtures/compat-banks/*.bank example-project/EZPlatformer/assets/fmod/Desktop/
 
       - name: Download FMOD SDK
         uses: ./.github/actions/fmod-sdk
@@ -1668,9 +2236,13 @@ jobs:
       - name: Build HashLink target (expect version mismatch failure)
         run: |
           cd example-project/EZPlatformer
-          haxelib run lime build hl 2>&1 | tee /tmp/build-mismatch.log || true
-          grep -q "ERROR: FMOD SDK version mismatch" /tmp/build-mismatch.log
-          echo "Verified: build failed with version mismatch error"
+          set -o pipefail
+          if haxelib run lime build hl 2>&1 | tee /tmp/build-mismatch.log; then
+            echo "ERROR: the build succeeded despite the SDK version mismatch"
+            exit 1
+          fi
+          grep -q "FMOD SDK version mismatch" /tmp/build-mismatch.log
+          echo "Verified: the build failed at compile time with the version mismatch error"
 
       - name: Build custom hdll via build-hdll
         run: |
@@ -1767,7 +2339,7 @@ jobs:
   # ===========================================================================
   windows-cpp:
     runs-on: windows-latest
-    if: ${{ !contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[windows-cpp]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]'))) }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[windows-cpp]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]')))) }}
     timeout-minutes: 30
     defaults:
       run:
@@ -1933,6 +2505,98 @@ jobs:
       - name: Validate volume/mute
         run: ./ci/validate-volume.sh "$GITHUB_WORKSPACE/volume-test-windows-cpp.wav" 15
 
+      # The volume rebuild above compiled with -Daudio_test, so the
+      # binary can select every test state at runtime
+      - name: Run api-probe state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: api-probe
+          gate: API_PROBE
+          timeout: "60"
+          bin-dir: example-project/EZPlatformer/export/windows*/bin
+          log-file: ${{ github.workspace }}/api-probe-windows-cpp.log
+          use-wavwriter: "true"
+
+      - name: Run synth-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: synth-test
+          gate: SYNTH_TEST
+          bin-dir: example-project/EZPlatformer/export/windows*/bin
+          log-file: ${{ github.workspace }}/synth-test-windows-cpp.log
+          use-wavwriter: "true"
+          timeout: "60"
+
+      - name: Validate synth audio
+        if: ${{ !cancelled() }}
+        run: ./ci/validate-synth.sh "${RUNNER_TEMP}/state-synth-test.wav"
+
+      - name: Run cb-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: cb-test
+          gate: CB_TEST
+          bin-dir: example-project/EZPlatformer/export/windows*/bin
+          log-file: ${{ github.workspace }}/cb-test-windows-cpp.log
+          extra-gate: "CB_TEST: Stopped"
+          use-wavwriter: "true"
+
+      - name: Run ps-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: ps-test
+          gate: PS_TEST
+          timeout: "60"
+          bin-dir: example-project/EZPlatformer/export/windows*/bin
+          log-file: ${{ github.workspace }}/ps-test-windows-cpp.log
+          copy-jump-wav: "true"
+          use-wavwriter: "true"
+
+      - name: Run bank-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: bank-test
+          gate: BANK_TEST
+          timeout: "60"
+          bin-dir: example-project/EZPlatformer/export/windows*/bin
+          log-file: ${{ github.workspace }}/bank-test-windows-cpp.log
+          use-wavwriter: "true"
+
+      - name: Run pan-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: pan-test
+          gate: PAN_TEST
+          bin-dir: example-project/EZPlatformer/export/windows*/bin
+          log-file: ${{ github.workspace }}/pan-test-windows-cpp.log
+          use-wavwriter: "true"
+          timeout: "60"
+
+      # Portability compile of the shared native headers with MSVC in C
+      # and C++ modes (the hdll ships MSVC-compiled, so the headers must
+      # stay warning-clean there too). vswhere locates VS the same way
+      # hxcpp and the doctor do.
+      - name: Test native headers with MSVC (C and C++ modes)
+        if: ${{ !cancelled() }}
+        shell: cmd
+        run: |
+          for /f "usebackq tokens=*" %%i in (`"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath`) do set VSPATH=%%i
+          call "%VSPATH%\VC\Auxiliary\Build\vcvars64.bat" || exit /b 1
+          for %%t in (handles cbqueue guid pcmring) do (
+            cl /nologo /W3 /std:c11 /TC /Fe:%TEMP%\msvc_c_%%t.exe tests\native\test_faxe_%%t.c || exit /b 1
+            %TEMP%\msvc_c_%%t.exe || exit /b 1
+            cl /nologo /W3 /TP /Fe:%TEMP%\msvc_cpp_%%t.exe tests\native\test_faxe_%%t.c || exit /b 1
+            %TEMP%\msvc_cpp_%%t.exe || exit /b 1
+          )
+          cl /nologo /W3 /std:c11 /TC /I "%FMOD_SDK%\api\core\inc" /Fe:%TEMP%\msvc_dsptype.exe tests\native\test_faxe_dsptype.c || exit /b 1
+          %TEMP%\msvc_dsptype.exe || exit /b 1
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v6
         if: always()
@@ -1950,7 +2614,7 @@ jobs:
   # ===========================================================================
   windows-hl:
     runs-on: windows-latest
-    if: ${{ !contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[windows-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]'))) }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[windows-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]')))) }}
     timeout-minutes: 30
     defaults:
       run:
@@ -2156,9 +2820,25 @@ jobs:
         with:
           state: api-probe
           gate: API_PROBE
+          timeout: "60"
           bin-dir: example-project/EZPlatformer/export/hl/bin
           log-file: ${{ github.workspace }}/api-probe-windows-hl.log
           use-wavwriter: "true"
+
+      - name: Run synth-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: synth-test
+          gate: SYNTH_TEST
+          bin-dir: example-project/EZPlatformer/export/hl/bin
+          log-file: ${{ github.workspace }}/synth-test-windows-hl.log
+          use-wavwriter: "true"
+          timeout: "60"
+
+      - name: Validate synth audio
+        if: ${{ !cancelled() }}
+        run: ./ci/validate-synth.sh "${RUNNER_TEMP}/state-synth-test.wav"
 
       - name: Run cb-test state
         if: ${{ !cancelled() }}
@@ -2177,6 +2857,7 @@ jobs:
         with:
           state: ps-test
           gate: PS_TEST
+          timeout: "60"
           bin-dir: example-project/EZPlatformer/export/hl/bin
           log-file: ${{ github.workspace }}/ps-test-windows-hl.log
           copy-jump-wav: "true"
@@ -2188,6 +2869,7 @@ jobs:
         with:
           state: bank-test
           gate: BANK_TEST
+          timeout: "60"
           bin-dir: example-project/EZPlatformer/export/hl/bin
           log-file: ${{ github.workspace }}/bank-test-windows-hl.log
           use-wavwriter: "true"
@@ -2198,6 +2880,7 @@ jobs:
         with:
           state: pan-test
           gate: PAN_TEST
+          timeout: "60"
           bin-dir: example-project/EZPlatformer/export/hl/bin
           log-file: ${{ github.workspace }}/pan-test-windows-hl.log
           use-wavwriter: "true"
@@ -2224,13 +2907,18 @@ jobs:
   # ===========================================================================
   windows-hl-compat:
     runs-on: windows-latest
-    if: ${{ !contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[windows-hl-compat]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]'))) }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[windows-hl-compat]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]')))) }}
     timeout-minutes: 30
     defaults:
       run:
         shell: bash
     steps:
       - uses: actions/checkout@v5
+
+      - name: Use compat fixture banks
+        run: |
+          rm -f example-project/EZPlatformer/assets/fmod/Desktop/*.bank
+          cp tests/fixtures/compat-banks/*.bank example-project/EZPlatformer/assets/fmod/Desktop/
 
       - name: Download FMOD SDK
         uses: ./.github/actions/fmod-sdk
@@ -2292,9 +2980,13 @@ jobs:
       - name: Build HashLink target (expect version mismatch failure)
         run: |
           cd example-project/EZPlatformer
-          haxelib run lime build hl 2>&1 | tee /tmp/build-mismatch.log || true
-          grep -q "ERROR: FMOD SDK version mismatch" /tmp/build-mismatch.log
-          echo "Verified: build failed with version mismatch error"
+          set -o pipefail
+          if haxelib run lime build hl 2>&1 | tee /tmp/build-mismatch.log; then
+            echo "ERROR: the build succeeded despite the SDK version mismatch"
+            exit 1
+          fi
+          grep -q "FMOD SDK version mismatch" /tmp/build-mismatch.log
+          echo "Verified: the build failed at compile time with the version mismatch error"
 
       - name: Build custom hdll via build-hdll
         shell: cmd
@@ -2434,7 +3126,7 @@ jobs:
   # ===========================================================================
   js-harness:
     runs-on: ubuntu-latest
-    if: ${{ !contains(github.event.head_commit.message, '[skip-build]') }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || !contains(github.event.head_commit.message, '[skip-build]') }}
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
@@ -2446,6 +3138,12 @@ jobs:
           platform: none
           token: ${{ secrets.FMOD_SDK_TOKEN }}
 
+      # runtime-init-test.js compiles the Haxe runtime layer on the fly
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v2
+        with:
+          haxe-version: ${{ env.HAXE_VERSION }}
+
       - name: Run jaxe harnesses against the real wasm
         env:
           FMOD_SDK_WEB: /tmp/fmod-sdk-cache-2.03.12/html5
@@ -2453,13 +3151,24 @@ jobs:
           node tests/js/jaxe-harness-full.js
           node tests/js/ps-test.js
           node tests/js/arity-audit.js
+          node tests/js/pcm-harness.js
+          node tests/js/lifecycle-test.js
+          node tests/js/init-behavior-test.js
+          node tests/js/bank-pipeline-test.js
+          node tests/js/hostile-input-test.js
+          node tests/js/runtime-init-test.js
+
+      - name: Run Core dynamic-audio prototype against the real wasm
+        env:
+          FMOD_SDK_WEB: /tmp/fmod-sdk-cache-2.03.12/html5
+        run: node tests/js/core-harness.js
 
   # ===========================================================================
   # Environment doctor: `haxelib run haxefmod check` must diagnose correctly
   # ===========================================================================
   env-doctor:
     runs-on: ubuntu-latest
-    if: ${{ !contains(github.event.head_commit.message, '[skip-build]') }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || !contains(github.event.head_commit.message, '[skip-build]') }}
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v5
@@ -2570,7 +3279,7 @@ jobs:
           }
           echo "html5 build blocked with setup instructions"
 
-      # A set-but-wrong SDK path must fail as loudly as an unset one. It used
+      # A set-but-wrong SDK path must fail the same as an unset one. It used
       # to compile fine (HL needs no SDK at compile time), skip the postbuild
       # version gate with a soft warning, and copy nothing - producing builds
       # that only launched when stale libraries sat in export/ from earlier
@@ -2634,7 +3343,7 @@ jobs:
   # ===========================================================================
   package-check:
     runs-on: ubuntu-latest
-    if: ${{ !contains(github.event.head_commit.message, '[skip-build]') }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || !contains(github.event.head_commit.message, '[skip-build]') }}
     timeout-minutes: 30
     env:
       FMOD_SDK: ${{ github.workspace }}/fmod-sdk
@@ -2671,6 +3380,30 @@ jobs:
           path: ~/haxelib
           key: haxelib-package-${{ runner.os }}-${{ env.HAXE_VERSION }}
 
+      - name: Test DSP type translation against this SDK's headers
+        run: |
+          gcc -std=c99 -Wall -Wextra -Werror -I "$FMOD_SDK/api/core/inc" \
+            -o /tmp/test_dsptype tests/native/test_faxe_dsptype.c
+          /tmp/test_dsptype
+
+      - name: Refuse to package without the pre-built hdlls
+        run: |
+          # A zip missing an hdll breaks every HashLink install, so the
+          # package.sh guard has to hard-fail. Only the script and the
+          # templates tree matter: the guard fires before the zip step
+          # ever needs the rest of the checkout.
+          STAGE=$(mktemp -d)
+          mkdir -p "$STAGE/repo"
+          cp package.sh "$STAGE/repo/"
+          cp -r templates "$STAGE/repo/templates"
+          rm "$STAGE/repo/templates/bin/hl/Linux64/hlaxe_fmod.hdll"
+          if (cd "$STAGE/repo" && ./package.sh); then
+            echo "ERROR: package.sh built a zip without the Linux hdll"
+            exit 1
+          fi
+          echo "Verified: package.sh refuses to build without an hdll"
+          rm -rf "$STAGE"
+
       - name: Build the haxelib package
         run: |
           ./package.sh
@@ -2679,25 +3412,88 @@ jobs:
 
           # Files the package must contain: the manifest drives PostBuild's
           # ABI check, the shared headers drive build-hdll, MIGRATION.md is
-          # linked from the README
+          # linked from the README, linc_faxe.* is the whole C++ target,
+          # the html5 placeholders satisfy lime's parse-time checks, and
+          # fmod_expected_version drives the version gate. This job only
+          # builds hl and html5, so the C++ files are assert-only here.
           for required in \
             "haxelib.json" \
             "MIGRATION.md" \
+            "fmod_expected_version" \
             "native/manifest/studio_api.txt" \
             "native/shared/faxe_handles.h" \
             "native/shared/faxe_cbqueue.h" \
             "native/shared/faxe_guid.h" \
             "native/shared/faxe_instctx.h" \
+            "native/shared/faxe_pcmring.h" \
+            "native/faxe/linc_faxe.cpp" \
+            "native/faxe/linc_faxe.h" \
+            "native/faxe/linc_faxe.xml" \
             "native/hlaxe/hlaxe_fmod.c" \
             "native/jaxe/jaxe.js" \
+            "native/html5/fmodstudio.js" \
+            "native/html5/fmodstudio.wasm" \
             "templates/bin/hl/Linux64/hlaxe_fmod.hdll" \
+            "templates/bin/hl/Mac64/hlaxe_fmod.hdll" \
+            "templates/bin/hl/Windows64/hlaxe_fmod.hdll" \
+            "fmod-scripts/ExportHaxeConstants.js" \
+            "README.md" \
+            "CHANGELOG.md" \
+            "LICENSE" \
             "include.xml"; do
-            unzip -l haxefmod.zip | grep -q "$required" || {
+            unzip -Z1 haxefmod.zip | grep -qx "$required" || {
               echo "MISSING from package: $required"
               exit 1
             }
           done
           echo "All required files present"
+
+          # The zip's hdlls must all carry the current ABI marker, not just
+          # the Linux one the hl build below happens to scan
+          ABI=$(grep -o "abi-version: [0-9]*" native/manifest/studio_api.txt | grep -o "[0-9]*")
+          for platform in Linux64 Mac64 Windows64; do
+            unzip -p haxefmod.zip "templates/bin/hl/$platform/hlaxe_fmod.hdll" \
+              | grep -aq "hlaxe_fmod_abi=$ABI" || {
+              echo "FAIL: $platform hdll in the zip lacks the hlaxe_fmod_abi=$ABI marker"
+              exit 1
+            }
+          done
+          echo "All packaged hdlls carry ABI marker $ABI"
+
+      # Every tracked file must either be in the zip or sit under a path
+      # that is deliberately not shipped, or the packager quietly leaves
+      # something users need out of the release.
+      - name: Reconcile the package against the tracked tree
+        run: |
+          set -o pipefail
+          git ls-files \
+            | grep -vE '^(\.github/|\.gitignore|\.vscode/|ci/|tests/|example-project/|package\.sh)' \
+            | sort > /tmp/tracked-shippable.txt
+          unzip -Z1 haxefmod.zip | grep -v '/$' | sort > /tmp/zip-contents.txt
+          MISSING=$(comm -23 /tmp/tracked-shippable.txt /tmp/zip-contents.txt)
+          if [ -n "$MISSING" ]; then
+            echo "Tracked files not in the package (add to package.sh or the exclusion list above):"
+            echo "$MISSING"
+            exit 1
+          fi
+          EXTRA=$(comm -13 /tmp/tracked-shippable.txt /tmp/zip-contents.txt)
+          if [ -n "$EXTRA" ]; then
+            echo "Package contains files git does not track:"
+            echo "$EXTRA"
+            exit 1
+          fi
+          echo "Package contents match the tracked tree exactly"
+
+      # The zip verified by every step here is the release artifact: on tag
+      # runs it is uploaded so `haxelib submit` ships EXACTLY these bytes
+      # instead of a locally rebuilt zip
+      - name: Upload the release package
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: haxefmod-release-zip
+          path: haxefmod.zip
+          if-no-files-found: error
 
       - name: Install libraries with haxefmod from the package
         run: |
@@ -2705,7 +3501,7 @@ jobs:
           haxelib install lime 8.3.0 --always --quiet
           haxelib install openfl 9.5.0 --always --quiet
           haxelib install flixel 6.1.2 --always --quiet
-          # The library under test comes from the zip, never from the checkout
+          # Install from the zip only, so no checkout copy can leak in
           haxelib remove haxefmod || true
           haxelib install haxefmod.zip --always --quiet
           haxelib path haxefmod
@@ -2714,7 +3510,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y xvfb patchelf \
+          sudo apt-get install -y xvfb \
             libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
             libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev libz-dev
 
@@ -2766,16 +3562,109 @@ jobs:
           fi
           echo "OK: fmodstudio.wasm is $SIZE bytes (real SDK file)"
 
+      # The C++ target was previously assert-only from the package (the
+      # required-files comment above admitted it) - build it from the
+      # installed zip too
+      # The check and generate subcommands resolve their files from
+      # the installed package layout - exercise them from there, not from
+      # the checkout the other jobs use via haxelib dev
+      - name: Run CLI commands from the installed package
+        run: |
+          set -o pipefail
+          haxelib run haxefmod check 2>&1 | tee /tmp/pkg-check.log || true
+          grep -qiE "haxefmod|fmod" /tmp/pkg-check.log || {
+            echo "FAIL: check produced no recognizable output"; exit 1; }
+          haxelib run haxefmod generate --strings tests/fixtures/Master.strings.bank \
+            --out /tmp/pkg-gen 2>&1 | tee /tmp/pkg-generate.log
+          test -f /tmp/pkg-gen/FmodEvents.hx || {
+            echo "FAIL: generate from the package produced no constants"; exit 1; }
+          echo "CLI commands work from the installed package"
+
+
+  # ===========================================================================
+  # Package Check: C++ target
+  # The hxcpp compile dominates package validation, so it runs as its own
+  # job on full builds and tag runs only. Solo-tag debug runs skip it.
+  # ===========================================================================
+  package-check-cpp:
+    runs-on: ubuntu-latest
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && !contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]')) }}
+    timeout-minutes: 30
+    env:
+      FMOD_SDK: ${{ github.workspace }}/fmod-sdk
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download FMOD SDK
+        uses: ./.github/actions/fmod-sdk
+        with:
+          version: "2.03.12"
+          platform: linux
+          dest: ${{ env.FMOD_SDK }}
+          token: ${{ secrets.FMOD_SDK_TOKEN }}
+
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v2
+        with:
+          haxe-version: ${{ env.HAXE_VERSION }}
+
+      - name: Cache haxelib
+        uses: actions/cache@v5
+        with:
+          path: ~/haxelib
+          key: haxelib-package-${{ runner.os }}-${{ env.HAXE_VERSION }}
+
+      - name: Cache hxcpp objects
+        uses: actions/cache@v5
+        with:
+          path: ${{ runner.temp }}/hxcpp-cache
+          key: hxcpp-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            hxcpp-${{ runner.os }}-
+
+      - name: Build the haxelib package
+        run: ./package.sh
+
+      - name: Install libraries with haxefmod from the package
+        run: |
+          haxelib setup ~/haxelib
+          haxelib install lime 8.3.0 --always --quiet
+          haxelib install openfl 9.5.0 --always --quiet
+          haxelib install flixel 6.1.2 --always --quiet
+          # Install from the zip only, so no checkout copy can leak in
+          haxelib remove haxefmod || true
+          haxelib install haxefmod.zip --always --quiet
+          haxelib path haxefmod
+          yes | haxelib run lime setup || true
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
+            libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev libz-dev
+
+      - name: Build C++ target from the installed package
+        env:
+          HXCPP_COMPILE_CACHE: ${{ runner.temp }}/hxcpp-cache
+          HXCPP_CACHE_MB: "4000"
+        run: |
+          cd example-project/EZPlatformer
+          haxelib run lime build linux -64
+          ls export/linux*/bin/ | head -5
+          echo "C++ build from package OK"
+
   # ===========================================================================
   # Update Pre-built hdlls
   # Commits freshly compiled hdlls back to repo if they changed
   # ===========================================================================
   update-hdlls:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: write
     needs: [linux-hl, mac-hl, windows-hl]
-    if: ${{ always() && !cancelled() && needs.linux-hl.result == 'success' && needs.mac-hl.result == 'success' && needs.windows-hl.result == 'success' }}
+    if: ${{ always() && !cancelled() && startsWith(github.ref, 'refs/heads/') && needs.linux-hl.result == 'success' && needs.mac-hl.result == 'success' && needs.windows-hl.result == 'success' }}
     steps:
       - uses: actions/checkout@v5
         with:

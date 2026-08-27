@@ -52,9 +52,9 @@ class PostBuild {
 		var sdkHeader = Path.join([sdkPath, "api", "core", "inc", "fmod_common.h"]);
 
 		// A set-but-wrong SDK path is provably not an SDK: hard error, the
-		// same class of failure as an unset variable. A soft warning here
-		// used to let typo'd paths skip the version gate entirely and ship
-		// builds that only ran when stale libraries were still in export/.
+		// same class of failure as an unset variable. Anything softer lets
+		// a typo'd path skip the version gate and ship builds that only
+		// run while stale libraries remain in export/.
 		if (!FileSystem.exists(sdkHeader)) {
 			log('ERROR: $sdkEnvName is set but does not point at an FMOD SDK');
 			log('  $sdkEnvName = $sdkPath');
@@ -64,8 +64,8 @@ class PostBuild {
 			Sys.exit(1);
 		}
 
-		// The lib-side expected-version file going missing is a packaging
-		// problem, not a user setup problem - warn and continue
+		// The lib-side expected-version file only goes missing when the
+		// package itself is broken - warn and continue
 		if (!FileSystem.exists(versionFile)) {
 			log("WARNING: Could not verify FMOD SDK version");
 			log('  Missing: $versionFile');
@@ -106,6 +106,23 @@ class PostBuild {
 
 		var expectedVer = hexToVersion(expectedHex);
 		var sdkVer = hexToVersion(sdkHex);
+
+		// html5: the JS shim's numeric tables are the expected version's
+		// values and the wasm has no version query, so any other web SDK
+		// creates wrong DSP effects. Hard error, like the HL gate.
+		if (sdkEnvName == "FMOD_SDK_WEB") {
+			Sys.println("");
+			Sys.println("============================================================");
+			Sys.println('  ERROR: FMOD web SDK version mismatch');
+			Sys.println("");
+			Sys.println('  Your FMOD_SDK_WEB:    $sdkVer');
+			Sys.println('  This release needs:   $expectedVer');
+			Sys.println("");
+			Sys.println('  Download FMOD Engine $expectedVer for HTML5 from https://www.fmod.com/download');
+			Sys.println("============================================================");
+			Sys.println("");
+			Sys.exit(1);
+		}
 
 		// HL builds: mismatched hdll/SDK will crash at runtime - hard error
 		if (target == "hl") {
@@ -176,7 +193,7 @@ class PostBuild {
 	//// hdll resolution (HL target)
 
 	// Expected ABI version comes from the manifest header ("# abi-version: N").
-	static function expectedAbiVersion(libRoot:String):Int {
+	public static function expectedAbiVersion(libRoot:String):Int {
 		var manifestPath = Path.join([libRoot, "native", "manifest", "studio_api.txt"]);
 		if (!FileSystem.exists(manifestPath)) return -1;
 		for (line in File.getContent(manifestPath).split("\n")) {
@@ -191,7 +208,7 @@ class PostBuild {
 
 	// Scans the hdll binary for the embedded "hlaxe_fmod_abi=<N>" marker.
 	// Returns the version, or 0 when no marker exists (an hdll built before the ABI marker existed).
-	static function scanHdllAbi(hdllPath:String):Int {
+	public static function scanHdllAbi(hdllPath:String):Int {
 		var bytes = File.getBytes(hdllPath);
 		var marker = "hlaxe_fmod_abi=";
 		var limit = bytes.length - marker.length - 4;
@@ -221,6 +238,29 @@ class PostBuild {
 		return 0;
 	}
 
+	// A custom hdll is only preferred while its version marker matches the
+	// SDK in use. A leftover .haxefmod/ from an older SDK experiment would
+	// otherwise ship next to mismatched runtime libraries and fail at
+	// startup, even though the SDK matches the pre-built expectation.
+	// A missing or unreadable marker means the custom hdll is trusted
+	// as-is (build-hdll always writes one).
+	public static function customHdllMatchesSdk(projectDir:String):Bool {
+		var markerFile = Path.join([projectDir, ".haxefmod", "hlaxe_fmod.version"]);
+		if (!FileSystem.exists(markerFile)) return true;
+		var sdkPath = Sys.getEnv("FMOD_SDK");
+		if (sdkPath == null || sdkPath == "") return true;
+		var sdkHeader = Path.join([sdkPath, "api", "core", "inc", "fmod_common.h"]);
+		if (!FileSystem.exists(sdkHeader)) return true;
+		var sdkHex = parseFmodVersion(sdkHeader);
+		if (sdkHex == null) return true;
+		var markerHex = StringTools.trim(File.getContent(markerFile));
+		if (markerHex == sdkHex) return true;
+		log('Custom hdll in .haxefmod/ was built for FMOD ${hexToVersion(markerHex)},'
+			+ ' the SDK is ${hexToVersion(sdkHex)} - using the pre-built hdll.'
+			+ ' Run "haxelib run haxefmod build-hdll" to rebuild it, or delete .haxefmod/.');
+		return false;
+	}
+
 	// Tiered hdll resolution (project-local .haxefmod/ then pre-built) with a
 	// binding ABI check: an hdll compiled against an older native surface is
 	// missing prims and dies with a loader fatal at startup, so the build is
@@ -230,14 +270,22 @@ class PostBuild {
 		var prebuiltHdll = Path.join([libRoot, "templates", "bin", "hl", platformDir, "hlaxe_fmod.hdll"]);
 		var source:String = null;
 		var flavor:String = null;
-		if (FileSystem.exists(projectHdll)) {
+		if (FileSystem.exists(projectHdll) && customHdllMatchesSdk(projectDir)) {
 			source = projectHdll;
 			flavor = "custom-compiled from .haxefmod/";
 		} else if (FileSystem.exists(prebuiltHdll)) {
 			source = prebuiltHdll;
 			flavor = "pre-built";
 		}
-		if (source == null) return;
+		if (source == null) {
+			// An HL build with no hdll dies at runtime with a bare loader
+			// error, so failing loudly here is the only useful outcome
+			log('ERROR: no hlaxe_fmod.hdll found');
+			log('  Checked: $projectHdll');
+			log('  Checked: $prebuiltHdll');
+			log("  Reinstall haxefmod, or compile one with: haxelib run haxefmod build-hdll");
+			Sys.exit(1);
+		}
 
 		var expected = expectedAbiVersion(libRoot);
 		if (expected > 0) {
@@ -331,10 +379,9 @@ class PostBuild {
 		}
 
 		// Modern Linux kernels refuse to load libraries flagged with an
-		// executable stack, and FMOD ships its .so files that way. CI has
-		// always cleared the flag as a separate step. Do it here so plain
-		// `lime test linux` works on end-user machines too. Silently skipped
-		// when patchelf is not installed (older kernels do not need it).
+		// executable stack, and FMOD ships its .so files that way. The
+		// flag is one program header bit, so it is cleared right here and
+		// plain `lime test linux` works with no extra tooling installed.
 		clearExecstack(binDir);
 
 		// Create run.sh wrapper if it doesn't exist
@@ -344,13 +391,47 @@ class PostBuild {
 			// run.sh must never point at it
 			var exeName = findExecutableName(binDir, [".so", ".hdll", ".ndll", ".dat"]);
 			if (exeName != null) {
-				var content = '#!/bin/bash\ncd "$$(dirname "$$0")"\nexport LD_LIBRARY_PATH="$$(pwd):$$LD_LIBRARY_PATH"\n./${exeName} "$$@"\n';
-				File.saveContent(runSh, content);
+				File.saveContent(runSh, runShContent(exeName));
 				Sys.command("chmod", ["+x", runSh]);
 			}
 		}
 
 		log("Done - copied FMOD .so files");
+	}
+
+	/**
+	 * Clears the executable-stack flag inside one ELF shared library by
+	 * rewriting the PT_GNU_STACK program header's flags in place, the
+	 * same four byte edit patchelf performs. Returns true when the file
+	 * changed. Anything that does not parse as a little endian ELF64
+	 * with an executable stack entry comes back untouched, so a
+	 * malformed or foreign file can never be corrupted.
+	 */
+	public static function clearExecstackFile(path:String):Bool {
+		var bytes = try File.getBytes(path) catch (e:Dynamic) return false;
+		if (bytes.length < 64) return false;
+		if (bytes.get(0) != 0x7F || bytes.get(1) != 0x45
+			|| bytes.get(2) != 0x4C || bytes.get(3) != 0x46) return false;
+		// FMOD ships little endian ELF64 on the one supported Linux arch
+		if (bytes.get(4) != 2 || bytes.get(5) != 1) return false;
+		var phoff = bytes.getInt32(0x20);
+		var phoffHigh = bytes.getInt32(0x24);
+		if (phoffHigh != 0 || phoff <= 0) return false;
+		var phentsize = bytes.getUInt16(0x36);
+		var phnum = bytes.getUInt16(0x38);
+		if (phentsize < 56) return false;
+		var changed = false;
+		for (i in 0...phnum) {
+			var base = phoff + i * phentsize;
+			if (base + 8 > bytes.length) return false;
+			if (bytes.getInt32(base) != 0x6474E551) continue; // PT_GNU_STACK
+			var flags = bytes.getInt32(base + 4);
+			if (flags & 1 == 0) continue; // PF_X already clear
+			bytes.setInt32(base + 4, flags & ~1);
+			changed = true;
+		}
+		if (changed) File.saveBytes(path, bytes);
+		return changed;
 	}
 
 	/** Clears the executable-stack flag on every FMOD .so in the directory. */
@@ -359,16 +440,8 @@ class PostBuild {
 			if (file.indexOf("libfmod") != 0 || file.indexOf(".so") == -1) continue;
 			var path = Path.join([binDir, file]);
 			if (isSymlink(path)) continue;
-			try {
-				var proc = new sys.io.Process("patchelf", ["--clear-execstack", path]);
-				var code = proc.exitCode();
-				proc.close();
-				if (code == 0) {
-					log('Cleared executable-stack flag on $file');
-				}
-			} catch (e:Dynamic) {
-				log("patchelf not found - skipped execstack clearing (needed on modern kernels). Install patchelf if the game fails to load libfmod.");
-				return;
+			if (clearExecstackFile(path)) {
+				log('Cleared executable-stack flag on $file');
 			}
 		}
 	}
@@ -556,6 +629,14 @@ class PostBuild {
 			if (!FileSystem.isDirectory(fullPath)) return fullPath;
 		}
 		return null;
+	}
+
+	/**
+	 * The generated Linux launcher script. The exe invocation is quoted so
+	 * a name with spaces still launches. Public for unit tests.
+	 */
+	public static function runShContent(exeName:String):String {
+		return '#!/bin/bash\ncd "$$(dirname "$$0")"\nexport LD_LIBRARY_PATH="$$(pwd):$$LD_LIBRARY_PATH"\n"./${exeName}" "$$@"\n';
 	}
 
 	/** Find just the filename of the executable in a directory. */
