@@ -545,7 +545,12 @@ class jaxe {
     // The DSP buffer arguments are accepted and ignored, the web build
     // fixes the buffer at 2048x2. softwareChannels and streamBufferSize
     // apply when nonzero. initFlags bit0 = profiling, bit1 = distance filter.
-    static fmod_sys_init_ex(numChannels, sampleRate, speakerMode, studioFlags, dspBufferLength, dspNumBuffers, softwareChannels, streamBufferSize, initFlags) {
+    // The arguments after initFlags are the advanced settings, zero for the
+    // FMOD default. They are applied by applyPendingAdvancedSettings once
+    // the module is up. The web build's studio struct has no
+    // streamingscheduledelay or encryptionkey, so those two are accepted
+    // and dropped.
+    static fmod_sys_init_ex(numChannels, sampleRate, speakerMode, studioFlags, dspBufferLength, dspNumBuffers, softwareChannels, streamBufferSize, initFlags, maxMPEGCodecs, maxVorbisCodecs, maxFADPCMCodecs, vol0VirtualVol, defaultDecodeBufferSize, profilePort, geometryMaxFadeTime, distanceFilterCenterFreq, randomSeed, commandQueueSize, handleInitialSize, studioUpdatePeriod, idleSampleDataPoolSize, streamingScheduleDelay, encryptionKey) {
         jaxe.pendingInit = {
             numChannels: numChannels,
             sampleRate: sampleRate,
@@ -553,7 +558,20 @@ class jaxe {
             studioFlags: studioFlags,
             softwareChannels: softwareChannels,
             streamBufferSize: streamBufferSize,
-            initFlags: initFlags
+            initFlags: initFlags,
+            maxMPEGCodecs: maxMPEGCodecs | 0,
+            maxVorbisCodecs: maxVorbisCodecs | 0,
+            maxFADPCMCodecs: maxFADPCMCodecs | 0,
+            vol0VirtualVol: +vol0VirtualVol || 0,
+            defaultDecodeBufferSize: defaultDecodeBufferSize | 0,
+            profilePort: profilePort | 0,
+            geometryMaxFadeTime: geometryMaxFadeTime | 0,
+            distanceFilterCenterFreq: +distanceFilterCenterFreq || 0,
+            randomSeed: randomSeed | 0,
+            commandQueueSize: commandQueueSize | 0,
+            handleInitialSize: handleInitialSize | 0,
+            studioUpdatePeriod: studioUpdatePeriod | 0,
+            idleSampleDataPoolSize: idleSampleDataPoolSize | 0
         };
         jaxe.FMOD['preRun'] = jaxe.preRun;
         jaxe.FMOD['onRuntimeInitialized'] = jaxe.onRuntimeInitialized;
@@ -2124,9 +2142,28 @@ class jaxe {
         return handle;
     }
 
+    // Releasing a parent sound destroys its subsounds, so every sound
+    // handle whose FMOD parent is this sound is dropped first. Otherwise
+    // those slots would keep a dead wrapper.
+    static releaseSubSoundHandles(parent) {
+        var raw = jaxe.rawPtr(parent);
+        for (var i = 0; i < jaxe.slots.length; i++) {
+            var s = jaxe.slots[i];
+            if (!s.alive || s.type != jaxe.TYPE_SOUND || s.ptr === parent || (raw != 0 && s.raw === raw)) continue;
+            var out = {};
+            try {
+                if (s.ptr.getSubSoundParent(out) != jaxe.FMOD.OK || !out.val) continue;
+            } catch (e) {
+                continue;
+            }
+            if (jaxe.rawPtr(out.val) === raw) jaxe.handleFree((s.gen << 16) | i);
+        }
+    }
+
     static fmod_core_release_sound(handle) {
         var sound = jaxe.handleResolve(handle, jaxe.TYPE_SOUND);
         if (!sound) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.releaseSubSoundHandles(sound);
         jaxe.lastResult = sound.release();
         if (jaxe.lastResult == jaxe.FMOD.OK) jaxe.handleFree(handle);
         return jaxe.lastResult;
@@ -4915,6 +4952,39 @@ class jaxe {
         if (init.streamBufferSize > 0) core.setStreamBufferSize(init.streamBufferSize, jaxe.FMOD.TIMEUNIT_RAWBYTES);
     }
 
+    // Advanced settings from fmod_sys_init_ex, pushed before initialize.
+    // Zero leaves the FMOD default in place. The harnesses call this
+    // against their own systems.
+    static applyPendingAdvancedSettings(core, studio, init) {
+        if (!init) return;
+        if ((init.maxMPEGCodecs > 0 || init.maxVorbisCodecs > 0 || init.maxFADPCMCodecs > 0
+            || init.vol0VirtualVol > 0 || init.defaultDecodeBufferSize > 0 || init.profilePort > 0
+            || init.geometryMaxFadeTime > 0 || init.distanceFilterCenterFreq > 0 || init.randomSeed != 0)
+            && jaxe.FMOD.ADVANCEDSETTINGS && core.setAdvancedSettings) {
+            var adv = jaxe.FMOD.ADVANCEDSETTINGS();
+            if (init.maxMPEGCodecs > 0) adv.maxMPEGCodecs = init.maxMPEGCodecs;
+            if (init.maxVorbisCodecs > 0) adv.maxVorbisCodecs = init.maxVorbisCodecs;
+            if (init.maxFADPCMCodecs > 0) adv.maxFADPCMCodecs = init.maxFADPCMCodecs;
+            if (init.vol0VirtualVol > 0) adv.vol0virtualvol = init.vol0VirtualVol;
+            if (init.defaultDecodeBufferSize > 0) adv.defaultDecodeBufferSize = init.defaultDecodeBufferSize;
+            if (init.profilePort > 0) adv.profilePort = init.profilePort;
+            if (init.geometryMaxFadeTime > 0) adv.geometryMaxFadeTime = init.geometryMaxFadeTime;
+            if (init.distanceFilterCenterFreq > 0) adv.distanceFilterCenterFreq = init.distanceFilterCenterFreq;
+            if (init.randomSeed != 0) adv.randomSeed = init.randomSeed >>> 0;
+            core.setAdvancedSettings(adv);
+        }
+        if ((init.commandQueueSize > 0 || init.handleInitialSize > 0 || init.studioUpdatePeriod > 0
+            || init.idleSampleDataPoolSize > 0)
+            && jaxe.FMOD.STUDIO_ADVANCEDSETTINGS && studio.setAdvancedSettings) {
+            var sadv = jaxe.FMOD.STUDIO_ADVANCEDSETTINGS();
+            if (init.commandQueueSize > 0) sadv.commandqueuesize = init.commandQueueSize;
+            if (init.handleInitialSize > 0) sadv.handleinitialsize = init.handleInitialSize;
+            if (init.studioUpdatePeriod > 0) sadv.studioupdateperiod = init.studioUpdatePeriod;
+            if (init.idleSampleDataPoolSize > 0) sadv.idlesampledatapoolsize = init.idleSampleDataPoolSize;
+            studio.setAdvancedSettings(sadv);
+        }
+    }
+
     // FMOD_INIT_PROFILE_ENABLE = 0x10000, FMOD_INIT_CHANNEL_DISTANCEFILTER = 0x200
     static coreInitFlags(init) {
         var flags = jaxe.FMOD.INIT_NORMAL;
@@ -4962,6 +5032,7 @@ class jaxe {
         });
 
         jaxe.applyPendingCoreSettings(jaxe.gSystemCore, init);
+        jaxe.applyPendingAdvancedSettings(jaxe.gSystemCore, jaxe.gSystem, init);
 
         // 128 matches the native shims' fallback for a missing channel count
         var numChannels = (init && init.numChannels > 0) ? init.numChannels : 128;
@@ -5163,4 +5234,121 @@ class jaxe {
         return jaxe.pluginUnsupported("");
     }
 
+
+    //// Sound extras: tracker music, subsounds, tags, and advanced settings readback
+
+    // The web build cannot load loose files, so no tracker module ever
+    // reaches these. They report 68 (ERR_UNSUPPORTED) on any live handle
+    // and keep the handle check first so a dead one still reports 30.
+    static fmod_core_sound_get_music_num_channels(handle) {
+        var sound = jaxe.resolveCoreSound(handle);
+        if (!sound) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return -1; }
+        jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        return -1;
+    }
+
+    static fmod_core_sound_set_music_channel_volume(handle, channel, volume) {
+        var sound = jaxe.resolveCoreSound(handle);
+        if (!sound) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        return jaxe.lastResult;
+    }
+
+    static fmod_core_sound_get_music_channel_volume(handle, channel) {
+        var sound = jaxe.resolveCoreSound(handle);
+        if (!sound) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0.0; }
+        jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        return 0.0;
+    }
+
+    static fmod_core_sound_set_music_speed(handle, speed) {
+        var sound = jaxe.resolveCoreSound(handle);
+        if (!sound) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        return jaxe.lastResult;
+    }
+
+    static fmod_core_sound_get_music_speed(handle) {
+        var sound = jaxe.resolveCoreSound(handle);
+        if (!sound) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0.0; }
+        jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        return 0.0;
+    }
+
+    static fmod_core_sound_get_num_sub_sounds(handle) {
+        var sound = jaxe.resolveCoreSound(handle);
+        if (!sound) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return -1; }
+        var out = {};
+        jaxe.lastResult = sound.getNumSubSounds(out);
+        return jaxe.lastResult == jaxe.FMOD.OK ? (out.val | 0) : -1;
+    }
+
+    // The subsound stays owned by its parent. The handle is looked up or
+    // allocated, never released from Haxe (see releaseSubSoundHandles).
+    static fmod_core_sound_get_sub_sound(handle, index) {
+        var sound = jaxe.resolveCoreSound(handle);
+        if (!sound) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }
+        var out = {};
+        jaxe.lastResult = sound.getSubSound(index, out);
+        if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
+        return jaxe.handleFindOrAlloc(out.val, jaxe.TYPE_SOUND);
+    }
+
+    static fmod_core_sound_get_sub_sound_parent(handle) {
+        var sound = jaxe.resolveCoreSound(handle);
+        if (!sound) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }
+        var out = {};
+        jaxe.lastResult = sound.getSubSoundParent(out);
+        // A top-level sound comes back as a wrapper around a null pointer
+        if (jaxe.lastResult != jaxe.FMOD.OK || !out.val || jaxe.rawPtr(out.val) == 0) return 0;
+        return jaxe.handleFindOrAlloc(out.val, jaxe.TYPE_SOUND);
+    }
+
+    // ibuf: [0]=numtagsupdated. Returns the tag count, -1 on failure
+    static fmod_core_sound_get_num_tags(handle, ibuf) {
+        ibuf[0] = 0;
+        var sound = jaxe.resolveCoreSound(handle);
+        if (!sound) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return -1; }
+        var count = {};
+        var updated = {};
+        jaxe.lastResult = sound.getNumTags(count, updated);
+        if (jaxe.lastResult != jaxe.FMOD.OK) return -1;
+        ibuf[0] = updated.val | 0;
+        return count.val | 0;
+    }
+
+    // embind cannot marshal the tag payload pointer (the call throws), so
+    // tag reads report 68 (ERR_UNSUPPORTED) on a live handle
+    static fmod_core_sound_get_tag(handle, name, index, ibuf, fbuf) {
+        jaxe.zeroFill(ibuf, 5);
+        fbuf[0] = 0.0;
+        var sound = jaxe.resolveCoreSound(handle);
+        if (!sound) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return ""; }
+        jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        return "";
+    }
+
+    static fmod_core_sound_get_tag_string(handle, name, index) {
+        var sound = jaxe.resolveCoreSound(handle);
+        if (!sound) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return ""; }
+        jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        return "";
+    }
+
+    // The web build's getAdvancedSettings rejects every argument shape
+    // with INVALID_PARAM (2.03.12), so the readback reports 68
+    static fmod_sys_get_advanced_settings(ibuf, fbuf) {
+        jaxe.zeroFill(ibuf, 7);
+        fbuf[0] = 0.0; fbuf[1] = 0.0;
+        if (!jaxe.sysReady()) return jaxe.lastResult;
+        jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        return jaxe.lastResult;
+    }
+
+    static fmod_sys_get_studio_advanced_settings(ibuf) {
+        jaxe.zeroFill(ibuf, 5);
+        if (!jaxe.sysReady()) return jaxe.lastResult;
+        jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        return jaxe.lastResult;
+    }
 }

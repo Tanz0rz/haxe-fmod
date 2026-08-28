@@ -157,6 +157,22 @@ GATED = [
      "var r = Dsp.createByPlugin(1);"),
     ("Dsp", "getPluginInfo", "haxefmod/core/Dsp.hx",
      "var r = Dsp.getPluginInfo(1);"),
+    ("StudioSystem", "getAdvancedSettings", "haxefmod/studio/StudioSystem.hx",
+     "var r = StudioSystem.getAdvancedSettings();"),
+    ("StudioSystem", "getStudioAdvancedSettings", "haxefmod/studio/StudioSystem.hx",
+     "var r = StudioSystem.getStudioAdvancedSettings();"),
+    ("CoreSound", "getMusicNumChannels", "haxefmod/studio/CoreSound.hx",
+     "var s:CoreSound = cast 1; var r = s.getMusicNumChannels();"),
+    ("CoreSound", "setMusicChannelVolume", "haxefmod/studio/CoreSound.hx",
+     "var s:CoreSound = cast 1; var r = s.setMusicChannelVolume(0, 0.5);"),
+    ("CoreSound", "getMusicChannelVolume", "haxefmod/studio/CoreSound.hx",
+     "var s:CoreSound = cast 1; var r = s.getMusicChannelVolume(0);"),
+    ("CoreSound", "setMusicSpeed", "haxefmod/studio/CoreSound.hx",
+     "var s:CoreSound = cast 1; var r = s.setMusicSpeed(1.5);"),
+    ("CoreSound", "getMusicSpeed", "haxefmod/studio/CoreSound.hx",
+     "var s:CoreSound = cast 1; var r = s.getMusicSpeed();"),
+    ("CoreSound", "getTag", "haxefmod/studio/CoreSound.hx",
+     "var s:CoreSound = cast 1; var r = s.getTag(null, 0);"),
 ]
 
 IMPORTS = "\n".join([

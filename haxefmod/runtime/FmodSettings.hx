@@ -108,6 +108,54 @@ typedef FmodSettings = {
      * FMOD sees without touching the position. Default 0 (no clamp).
      */
     @:optional var maxAttachedVelocity:Float;
+
+    /** Max MPEG codecs decoding at once (FMOD_ADVANCEDSETTINGS.maxMPEGCodecs). Default 0 (FMOD's default, 32). */
+    @:optional var maxMPEGCodecs:Int;
+
+    /** Max Vorbis codecs decoding at once (FMOD_ADVANCEDSETTINGS.maxVorbisCodecs). Default 0 (FMOD's default, 32). */
+    @:optional var maxVorbisCodecs:Int;
+
+    /** Max FADPCM codecs decoding at once (FMOD_ADVANCEDSETTINGS.maxFADPCMCodecs). Default 0 (FMOD's default, 32). */
+    @:optional var maxFADPCMCodecs:Int;
+
+    /**
+     * Linear volume under which a voice goes virtual when FMOD_INIT_VOL0_BECOMES_VIRTUAL
+     * is on (FMOD_ADVANCEDSETTINGS.vol0virtualvol). Default 0 (FMOD's default).
+     */
+    @:optional var vol0VirtualVol:Float;
+
+    /** Decode buffer size in milliseconds for streams (FMOD_ADVANCEDSETTINGS.defaultDecodeBufferSize). Default 0 (FMOD's default, 400). */
+    @:optional var defaultDecodeBufferSize:Int;
+
+    /** TCP port the FMOD profiler listens on (FMOD_ADVANCEDSETTINGS.profilePort). Default 0 (FMOD's default, 9264). */
+    @:optional var profilePort:Int;
+
+    /** Longest geometry occlusion fade in milliseconds (FMOD_ADVANCEDSETTINGS.geometryMaxFadeTime). Default 0 (FMOD's default, 500). */
+    @:optional var geometryMaxFadeTime:Int;
+
+    /** Center frequency in Hz of the distance filter (FMOD_ADVANCEDSETTINGS.distanceFilterCenterFreq). Default 0 (FMOD's default, 1500). */
+    @:optional var distanceFilterCenterFreq:Float;
+
+    /** Seed for FMOD's random number generator (FMOD_ADVANCEDSETTINGS.randomSeed). Default 0 (seeded from the clock). */
+    @:optional var randomSeed:Int;
+
+    /** Studio command queue size in bytes (FMOD_STUDIO_ADVANCEDSETTINGS.commandqueuesize). Default 0 (FMOD's default, 32768). */
+    @:optional var commandQueueSize:Int;
+
+    /** Initial size of the studio handle table in bytes (FMOD_STUDIO_ADVANCEDSETTINGS.handleinitialsize). Default 0 (FMOD's default). */
+    @:optional var handleInitialSize:Int;
+
+    /** Milliseconds between async studio updates (FMOD_STUDIO_ADVANCEDSETTINGS.studioupdateperiod). Default 0 (FMOD's default, 20). */
+    @:optional var studioUpdatePeriod:Int;
+
+    /** Bytes of idle sample data kept loaded (FMOD_STUDIO_ADVANCEDSETTINGS.idlesampledatapoolsize). Default 0 (FMOD's default, 256KB). */
+    @:optional var idleSampleDataPoolSize:Int;
+
+    /** DSP clocks ahead that streams are scheduled (FMOD_STUDIO_ADVANCEDSETTINGS.streamingscheduledelay). Default 0 (FMOD's default, 8192). Not available on HTML5. */
+    @:optional var streamingScheduleDelay:Int;
+
+    /** Key for banks built with encryption (FMOD_STUDIO_ADVANCEDSETTINGS.encryptionkey). Default null (no key). Not available on HTML5. */
+    @:optional var encryptionKey:String;
 }
 
 /** FmodSettings with every field resolved. */
@@ -128,6 +176,22 @@ typedef ResolvedFmodSettings = {
     var autoUpdate:Bool;
     var muteWhenUnfocused:Bool;
     var maxAttachedVelocity:Float;
+    var maxMPEGCodecs:Int;
+    var maxVorbisCodecs:Int;
+    var maxFADPCMCodecs:Int;
+    var vol0VirtualVol:Float;
+    var defaultDecodeBufferSize:Int;
+    var profilePort:Int;
+    var geometryMaxFadeTime:Int;
+    var distanceFilterCenterFreq:Float;
+    var randomSeed:Int;
+    var commandQueueSize:Int;
+    var handleInitialSize:Int;
+    var studioUpdatePeriod:Int;
+    var idleSampleDataPoolSize:Int;
+    var streamingScheduleDelay:Int;
+    /** "" when no key was given. */
+    var encryptionKey:String;
 }
 
 class FmodSettingsResolver {
@@ -175,6 +239,30 @@ class FmodSettingsResolver {
             maxAttachedVelocity: settings != null && settings.maxAttachedVelocity != null
                 ? settings.maxAttachedVelocity
                 : 0.0,
+            maxMPEGCodecs: settings != null && settings.maxMPEGCodecs != null ? settings.maxMPEGCodecs : 0,
+            maxVorbisCodecs: settings != null && settings.maxVorbisCodecs != null ? settings.maxVorbisCodecs : 0,
+            maxFADPCMCodecs: settings != null && settings.maxFADPCMCodecs != null ? settings.maxFADPCMCodecs : 0,
+            vol0VirtualVol: settings != null && settings.vol0VirtualVol != null ? settings.vol0VirtualVol : 0.0,
+            defaultDecodeBufferSize: settings != null && settings.defaultDecodeBufferSize != null
+                ? settings.defaultDecodeBufferSize
+                : 0,
+            profilePort: settings != null && settings.profilePort != null ? settings.profilePort : 0,
+            geometryMaxFadeTime: settings != null && settings.geometryMaxFadeTime != null ? settings.geometryMaxFadeTime : 0,
+            distanceFilterCenterFreq: settings != null && settings.distanceFilterCenterFreq != null
+                ? settings.distanceFilterCenterFreq
+                : 0.0,
+            randomSeed: settings != null && settings.randomSeed != null ? settings.randomSeed : 0,
+            commandQueueSize: settings != null && settings.commandQueueSize != null ? settings.commandQueueSize : 0,
+            handleInitialSize: settings != null && settings.handleInitialSize != null ? settings.handleInitialSize : 0,
+            studioUpdatePeriod: settings != null && settings.studioUpdatePeriod != null ? settings.studioUpdatePeriod : 0,
+            idleSampleDataPoolSize: settings != null && settings.idleSampleDataPoolSize != null
+                ? settings.idleSampleDataPoolSize
+                : 0,
+            streamingScheduleDelay: settings != null && settings.streamingScheduleDelay != null
+                ? settings.streamingScheduleDelay
+                : 0,
+            // The shims take a plain string, so no key travels as ""
+            encryptionKey: settings != null && settings.encryptionKey != null ? settings.encryptionKey : "",
         };
     }
 }

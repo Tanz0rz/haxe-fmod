@@ -30,7 +30,11 @@ extern bool fmod_cb_take_overflow();
 //// Studio System
 extern int fmod_sys_last_result();
 extern int fmod_sys_init_ex(int numChannels, int sampleRate, int speakerMode, int studioFlags,
-    int dspBufferLength, int dspNumBuffers, int softwareChannels, int streamBufferSize, int initFlags);
+    int dspBufferLength, int dspNumBuffers, int softwareChannels, int streamBufferSize, int initFlags,
+    int maxMPEGCodecs, int maxVorbisCodecs, int maxFADPCMCodecs, float vol0VirtualVol,
+    int defaultDecodeBufferSize, int profilePort, int geometryMaxFadeTime, float distanceFilterCenterFreq,
+    int randomSeed, int commandQueueSize, int handleInitialSize, int studioUpdatePeriod,
+    int idleSampleDataPoolSize, int streamingScheduleDelay, const ::String& encryptionKey);
 extern int fmod_sys_set_debug_level(int level);
 extern int fmod_sys_load_bank_async(const ::String& path);
 extern int fmod_sys_get_bus(const ::String& path);
@@ -589,6 +593,20 @@ extern int fmod_sys_get_num_nested_plugins(int handle);
 extern int fmod_sys_get_nested_plugin(int handle, int index);
 extern int fmod_dsp_create_by_plugin(int pluginHandle);
 extern const char* fmod_dsp_get_info_by_plugin(int handle, ::Array<int> ibuf);
+// Sound extras: tracker music, subsounds, tags, and advanced settings readback
+extern int fmod_core_sound_get_music_num_channels(int handle);
+extern int fmod_core_sound_set_music_channel_volume(int handle, int channel, float volume);
+extern float fmod_core_sound_get_music_channel_volume(int handle, int channel);
+extern int fmod_core_sound_set_music_speed(int handle, float speed);
+extern float fmod_core_sound_get_music_speed(int handle);
+extern int fmod_core_sound_get_num_sub_sounds(int handle);
+extern int fmod_core_sound_get_sub_sound(int handle, int index);
+extern int fmod_core_sound_get_sub_sound_parent(int handle);
+extern int fmod_core_sound_get_num_tags(int handle, ::Array<int> ibuf);
+extern const char* fmod_core_sound_get_tag(int handle, const ::String& name, int index, ::Array<int> ibuf, ::Array<Float> fbuf);
+extern const char* fmod_core_sound_get_tag_string(int handle, const ::String& name, int index);
+extern int fmod_sys_get_advanced_settings(::Array<int> ibuf, ::Array<Float> fbuf);
+extern int fmod_sys_get_studio_advanced_settings(::Array<int> ibuf);
 
 } // namespace faxe
 } // namespace linc

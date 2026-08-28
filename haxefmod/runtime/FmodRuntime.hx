@@ -79,7 +79,12 @@ class FmodRuntime {
             resolved.numChannels, resolved.sampleRate, resolved.speakerMode,
             resolved.liveUpdate ? 1 : 0,
             resolved.dspBufferSize, resolved.dspNumBuffers, resolved.softwareChannels,
-            resolved.streamBufferSize, initFlags);
+            resolved.streamBufferSize, initFlags,
+            resolved.maxMPEGCodecs, resolved.maxVorbisCodecs, resolved.maxFADPCMCodecs, resolved.vol0VirtualVol,
+            resolved.defaultDecodeBufferSize, resolved.profilePort, resolved.geometryMaxFadeTime,
+            resolved.distanceFilterCenterFreq, resolved.randomSeed,
+            resolved.commandQueueSize, resolved.handleInitialSize, resolved.studioUpdatePeriod,
+            resolved.idleSampleDataPoolSize, resolved.streamingScheduleDelay, resolved.encryptionKey);
 
         #if (cpp || hl)
         if (!result.isOk()) return result;

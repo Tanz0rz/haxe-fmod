@@ -698,4 +698,64 @@ class StudioSystem {
         return NativeStudio.sys_get_nested_plugin(handle, index);
     }
     #end
+
+    //// Advanced settings readback
+
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /**
+     * The core advanced settings FMOD is running with, or null on failure
+     * (unsupported in HTML5, null there). Set them through FmodSettings
+     * before init.
+     */
+    public static macro function getAdvancedSettings():haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("StudioSystem.getAdvancedSettings", "the web build's advanced settings getter rejects every call");
+    }
+    #else
+    /**
+     * The core advanced settings FMOD is running with, or null on failure
+     * (unsupported in HTML5, null there). Set them through FmodSettings
+     * before init.
+     */
+    public static function getAdvancedSettings():Null<FmodAdvancedSettings> {
+        var result:FmodResult = NativeStudio.sys_get_advanced_settings();
+        if (!result.isOk()) return null;
+        return {
+            maxMPEGCodecs: Scratch.readI(0),
+            maxVorbisCodecs: Scratch.readI(1),
+            maxFADPCMCodecs: Scratch.readI(2),
+            defaultDecodeBufferSize: Scratch.readI(3),
+            profilePort: Scratch.readI(4),
+            geometryMaxFadeTime: Scratch.readI(5),
+            randomSeed: Scratch.readI(6),
+            vol0VirtualVol: Scratch.readF(0),
+            distanceFilterCenterFreq: Scratch.readF(1),
+        };
+    }
+    #end
+
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /**
+     * The studio advanced settings FMOD is running with, or null on failure
+     * (unsupported in HTML5, null there). The encryption key is never read back.
+     */
+    public static macro function getStudioAdvancedSettings():haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("StudioSystem.getStudioAdvancedSettings", "the web build's advanced settings getter rejects every call");
+    }
+    #else
+    /**
+     * The studio advanced settings FMOD is running with, or null on failure
+     * (unsupported in HTML5, null there). The encryption key is never read back.
+     */
+    public static function getStudioAdvancedSettings():Null<FmodStudioAdvancedSettings> {
+        var result:FmodResult = NativeStudio.sys_get_studio_advanced_settings();
+        if (!result.isOk()) return null;
+        return {
+            commandQueueSize: Scratch.readI(0),
+            handleInitialSize: Scratch.readI(1),
+            studioUpdatePeriod: Scratch.readI(2),
+            idleSampleDataPoolSize: Scratch.readI(3),
+            streamingScheduleDelay: Scratch.readI(4),
+        };
+    }
+    #end
 }

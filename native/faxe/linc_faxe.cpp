@@ -322,9 +322,23 @@ int fmod_core_create_sound(const ::String& path, int mode, bool openOnly) {
     return handle;
 }
 
+// Releasing a parent sound destroys its subsounds, so every sound handle
+// whose FMOD parent is this sound is dropped first. Otherwise those slots
+// would keep pointing at freed memory.
+static void releaseSubsoundHandles(FMOD::Sound* parent) {
+    for (int i = 0; i < gFaxeSlotCap; i++) {
+        FMOD::Sound* owner = NULL;
+        if (!gFaxeSlots[i].alive || gFaxeSlots[i].type != FAXE_TYPE_SOUND) continue;
+        if (gFaxeSlots[i].ptr == (void*)parent) continue;
+        if (((FMOD::Sound*)gFaxeSlots[i].ptr)->getSubSoundParent(&owner) != FMOD_OK) continue;
+        if (owner == parent) faxe_handle_free(((int)gFaxeSlots[i].gen << 16) | i);
+    }
+}
+
 int fmod_core_release_sound(int h) {
     FMOD::Sound* sound = resolveSound(h);
     if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    releaseSubsoundHandles(sound);
     gLastResult = sound->release();
     if (gLastResult == FMOD_OK) faxe_handle_free(h);
     return (int)gLastResult;
@@ -2863,7 +2877,10 @@ int fmod_sys_last_result() {
 // dspBufferLength/dspNumBuffers, softwareChannels, and streamBufferSize
 // (bytes) are applied before initialize when nonzero. initFlags bit0 turns
 // on FMOD_INIT_PROFILE_ENABLE, bit1 FMOD_INIT_CHANNEL_DISTANCEFILTER.
-int fmod_sys_init_ex(int numChannels, int sampleRate, int speakerMode, int studioFlags, int dspBufferLength, int dspNumBuffers, int softwareChannels, int streamBufferSize, int initFlags) {
+// The arguments after initFlags are the advanced settings. Zero (or an
+// empty key) keeps FMOD's default for that field. Both structs are read
+// back first so untouched fields keep whatever FMOD put there.
+int fmod_sys_init_ex(int numChannels, int sampleRate, int speakerMode, int studioFlags, int dspBufferLength, int dspNumBuffers, int softwareChannels, int streamBufferSize, int initFlags, int maxMPEGCodecs, int maxVorbisCodecs, int maxFADPCMCodecs, float vol0VirtualVol, int defaultDecodeBufferSize, int profilePort, int geometryMaxFadeTime, float distanceFilterCenterFreq, int randomSeed, int commandQueueSize, int handleInitialSize, int studioUpdatePeriod, int idleSampleDataPoolSize, int streamingScheduleDelay, const ::String& encryptionKey) {
     if (gStudioSystem != NULL) { gLastResult = FMOD_OK; return (int)gLastResult; }
     if (numChannels <= 0) numChannels = 128;
 
@@ -2897,6 +2914,44 @@ int fmod_sys_init_ex(int numChannels, int sampleRate, int speakerMode, int studi
     FMOD_INITFLAGS coreInitFlags = FMOD_INIT_NORMAL;
     if (initFlags & 1) coreInitFlags |= FMOD_INIT_PROFILE_ENABLE;
     if (initFlags & 2) coreInitFlags |= FMOD_INIT_CHANNEL_DISTANCEFILTER;
+
+    if (maxMPEGCodecs > 0 || maxVorbisCodecs > 0 || maxFADPCMCodecs > 0 || vol0VirtualVol > 0
+        || defaultDecodeBufferSize > 0 || profilePort > 0 || geometryMaxFadeTime > 0
+        || distanceFilterCenterFreq > 0 || randomSeed != 0) {
+        gStudioSystem->getCoreSystem(&gCoreSystem);
+        FMOD_ADVANCEDSETTINGS adv;
+        memset(&adv, 0, sizeof(adv));
+        adv.cbSize = sizeof(adv);
+        gCoreSystem->getAdvancedSettings(&adv);
+        adv.cbSize = sizeof(adv);
+        if (maxMPEGCodecs > 0) adv.maxMPEGCodecs = maxMPEGCodecs;
+        if (maxVorbisCodecs > 0) adv.maxVorbisCodecs = maxVorbisCodecs;
+        if (maxFADPCMCodecs > 0) adv.maxFADPCMCodecs = maxFADPCMCodecs;
+        if (vol0VirtualVol > 0) adv.vol0virtualvol = vol0VirtualVol;
+        if (defaultDecodeBufferSize > 0) adv.defaultDecodeBufferSize = (unsigned int)defaultDecodeBufferSize;
+        if (profilePort > 0) adv.profilePort = (unsigned short)profilePort;
+        if (geometryMaxFadeTime > 0) adv.geometryMaxFadeTime = (unsigned int)geometryMaxFadeTime;
+        if (distanceFilterCenterFreq > 0) adv.distanceFilterCenterFreq = distanceFilterCenterFreq;
+        if (randomSeed != 0) adv.randomSeed = (unsigned int)randomSeed;
+        gCoreSystem->setAdvancedSettings(&adv);
+    }
+    const char* key = encryptionKey.c_str();
+    bool hasKey = key != NULL && key[0] != '\0';
+    if (commandQueueSize > 0 || handleInitialSize > 0 || studioUpdatePeriod > 0
+        || idleSampleDataPoolSize > 0 || streamingScheduleDelay > 0 || hasKey) {
+        FMOD_STUDIO_ADVANCEDSETTINGS sadv;
+        memset(&sadv, 0, sizeof(sadv));
+        sadv.cbsize = sizeof(sadv);
+        gStudioSystem->getAdvancedSettings(&sadv);
+        sadv.cbsize = sizeof(sadv);
+        if (commandQueueSize > 0) sadv.commandqueuesize = (unsigned int)commandQueueSize;
+        if (handleInitialSize > 0) sadv.handleinitialsize = (unsigned int)handleInitialSize;
+        if (studioUpdatePeriod > 0) sadv.studioupdateperiod = studioUpdatePeriod;
+        if (idleSampleDataPoolSize > 0) sadv.idlesampledatapoolsize = idleSampleDataPoolSize;
+        if (streamingScheduleDelay > 0) sadv.streamingscheduledelay = (unsigned int)streamingScheduleDelay;
+        if (hasKey) sadv.encryptionkey = key;
+        gStudioSystem->setAdvancedSettings(&sadv);
+    }
 
     FMOD_STUDIO_INITFLAGS studioInitFlags = (studioFlags & 1) ? FMOD_STUDIO_INIT_LIVEUPDATE : FMOD_STUDIO_INIT_NORMAL;
     gLastResult = gStudioSystem->initialize(numChannels, studioInitFlags, coreInitFlags, extradriverdata);
@@ -5098,6 +5153,168 @@ int fmod_conn_get_mix_matrix(int h, ::Array<Float> fbuf, ::Array<int> ibuf, int 
 
 int fmod_debug_live_handle_count() {
     return faxe_live_handle_count();
+}
+
+//// Sound extras: tracker music, subsounds, tags, and advanced settings readback
+
+int fmod_core_sound_get_music_num_channels(int h) {
+    FMOD::Sound* sound = resolveSound(h);
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    int count = 0;
+    gLastResult = sound->getMusicNumChannels(&count);
+    return gLastResult == FMOD_OK ? count : -1;
+}
+
+int fmod_core_sound_set_music_channel_volume(int h, int channel, float volume) {
+    FMOD::Sound* sound = resolveSound(h);
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = sound->setMusicChannelVolume(channel, volume);
+    return (int)gLastResult;
+}
+
+float fmod_core_sound_get_music_channel_volume(int h, int channel) {
+    FMOD::Sound* sound = resolveSound(h);
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0.0f; }
+    float volume = 0.0f;
+    gLastResult = sound->getMusicChannelVolume(channel, &volume);
+    return gLastResult == FMOD_OK ? volume : 0.0f;
+}
+
+int fmod_core_sound_set_music_speed(int h, float speed) {
+    FMOD::Sound* sound = resolveSound(h);
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = sound->setMusicSpeed(speed);
+    return (int)gLastResult;
+}
+
+float fmod_core_sound_get_music_speed(int h) {
+    FMOD::Sound* sound = resolveSound(h);
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0.0f; }
+    float speed = 0.0f;
+    gLastResult = sound->getMusicSpeed(&speed);
+    return gLastResult == FMOD_OK ? speed : 0.0f;
+}
+
+int fmod_core_sound_get_num_sub_sounds(int h) {
+    FMOD::Sound* sound = resolveSound(h);
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    int count = 0;
+    gLastResult = sound->getNumSubSounds(&count);
+    return gLastResult == FMOD_OK ? count : -1;
+}
+
+// The subsound stays owned by its parent. The handle is looked up or
+// allocated, never released from Haxe (see releaseSubsoundHandles).
+int fmod_core_sound_get_sub_sound(int h, int index) {
+    FMOD::Sound* sound = resolveSound(h);
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    FMOD::Sound* sub = NULL;
+    gLastResult = sound->getSubSound(index, &sub);
+    if (gLastResult != FMOD_OK || !sub) return 0;
+    return faxe_handle_find_or_alloc(sub, FAXE_TYPE_SOUND);
+}
+
+int fmod_core_sound_get_sub_sound_parent(int h) {
+    FMOD::Sound* sound = resolveSound(h);
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    FMOD::Sound* parent = NULL;
+    gLastResult = sound->getSubSoundParent(&parent);
+    if (gLastResult != FMOD_OK || !parent) return 0;
+    return faxe_handle_find_or_alloc(parent, FAXE_TYPE_SOUND);
+}
+
+int fmod_core_sound_get_num_tags(int h, ::Array<int> ibuf) {
+    ibuf[0] = 0;
+    FMOD::Sound* sound = resolveSound(h);
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    int count = 0;
+    int updated = 0;
+    gLastResult = sound->getNumTags(&count, &updated);
+    if (gLastResult != FMOD_OK) return -1;
+    ibuf[0] = updated;
+    return count;
+}
+
+// An empty name means any tag, which is FMOD's NULL name. The int and
+// float payloads are copied when they are exactly four bytes wide.
+const char* fmod_core_sound_get_tag(int h, const ::String& name, int index, ::Array<int> ibuf, ::Array<Float> fbuf) {
+    for (int i = 0; i < 5; i++) ibuf[i] = 0;
+    fbuf[0] = 0.0;
+    gStringBuf[0] = '\0';
+    FMOD::Sound* sound = resolveSound(h);
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return gStringBuf; }
+    const char* key = name.c_str();
+    FMOD_TAG tag;
+    memset(&tag, 0, sizeof(tag));
+    gLastResult = sound->getTag((key && key[0] != '\0') ? key : NULL, index, &tag);
+    if (gLastResult != FMOD_OK) return gStringBuf;
+    ibuf[0] = (int)tag.type;
+    ibuf[1] = (int)tag.datatype;
+    ibuf[2] = tag.updated ? 1 : 0;
+    ibuf[3] = (int)tag.datalen;
+    if (tag.datatype == FMOD_TAGDATATYPE_INT && tag.datalen == 4 && tag.data) ibuf[4] = *(int*)tag.data;
+    if (tag.datatype == FMOD_TAGDATATYPE_FLOAT && tag.datalen == 4 && tag.data) fbuf[0] = (Float)(*(float*)tag.data);
+    if (tag.name) {
+        strncpy(gStringBuf, tag.name, sizeof(gStringBuf) - 1);
+        gStringBuf[sizeof(gStringBuf) - 1] = '\0';
+    }
+    return gStringBuf;
+}
+
+const char* fmod_core_sound_get_tag_string(int h, const ::String& name, int index) {
+    gStringBuf[0] = '\0';
+    FMOD::Sound* sound = resolveSound(h);
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return gStringBuf; }
+    const char* key = name.c_str();
+    FMOD_TAG tag;
+    memset(&tag, 0, sizeof(tag));
+    gLastResult = sound->getTag((key && key[0] != '\0') ? key : NULL, index, &tag);
+    if (gLastResult != FMOD_OK) return gStringBuf;
+    if ((tag.datatype == FMOD_TAGDATATYPE_STRING || tag.datatype == FMOD_TAGDATATYPE_STRING_UTF8) && tag.data) {
+        // datalen usually counts the terminator, and the copy is capped so
+        // a payload that lies about its size cannot run past the buffer
+        size_t len = tag.datalen < sizeof(gStringBuf) - 1 ? tag.datalen : sizeof(gStringBuf) - 1;
+        memcpy(gStringBuf, tag.data, len);
+        gStringBuf[len] = '\0';
+    }
+    return gStringBuf;
+}
+
+int fmod_sys_get_advanced_settings(::Array<int> ibuf, ::Array<Float> fbuf) {
+    for (int i = 0; i < 7; i++) ibuf[i] = 0;
+    fbuf[0] = 0.0; fbuf[1] = 0.0;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    FMOD_ADVANCEDSETTINGS adv;
+    memset(&adv, 0, sizeof(adv));
+    adv.cbSize = sizeof(adv);
+    gLastResult = gCoreSystem->getAdvancedSettings(&adv);
+    if (gLastResult != FMOD_OK) return (int)gLastResult;
+    ibuf[0] = adv.maxMPEGCodecs;
+    ibuf[1] = adv.maxVorbisCodecs;
+    ibuf[2] = adv.maxFADPCMCodecs;
+    ibuf[3] = (int)adv.defaultDecodeBufferSize;
+    ibuf[4] = (int)adv.profilePort;
+    ibuf[5] = (int)adv.geometryMaxFadeTime;
+    ibuf[6] = (int)adv.randomSeed;
+    fbuf[0] = (Float)adv.vol0virtualvol;
+    fbuf[1] = (Float)adv.distanceFilterCenterFreq;
+    return (int)gLastResult;
+}
+
+int fmod_sys_get_studio_advanced_settings(::Array<int> ibuf) {
+    for (int i = 0; i < 5; i++) ibuf[i] = 0;
+    if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    FMOD_STUDIO_ADVANCEDSETTINGS sadv;
+    memset(&sadv, 0, sizeof(sadv));
+    sadv.cbsize = sizeof(sadv);
+    gLastResult = gStudioSystem->getAdvancedSettings(&sadv);
+    if (gLastResult != FMOD_OK) return (int)gLastResult;
+    ibuf[0] = (int)sadv.commandqueuesize;
+    ibuf[1] = (int)sadv.handleinitialsize;
+    ibuf[2] = sadv.studioupdateperiod;
+    ibuf[3] = sadv.idlesampledatapoolsize;
+    ibuf[4] = (int)sadv.streamingscheduledelay;
+    return (int)gLastResult;
 }
 
 int fmod_binding_abi_version() {

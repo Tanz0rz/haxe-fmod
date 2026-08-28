@@ -49,6 +49,7 @@ class TestStudioSurface {
 		testSystemCallbackStub();
 		testCompletenessTail();
 		testSysExtras();
+		testSoundExtrasStub();
 
 		Sys.println('  $passed passed, $failed failed');
 		return failed;
@@ -693,5 +694,36 @@ class TestStudioSurface {
 		assert(CoreSystem.getNetworkTimeout() == -1, "sys getNetworkTimeout default");
 		assert(!CoreSystem.setSpeakerPosition(0, -1, 1, true).isOk(), "sys setSpeakerPosition result");
 		assert(CoreSystem.getSpeakerPosition(0) == null, "sys getSpeakerPosition default");
+
+	static function testSoundExtrasStub() {
+		// The stub reports failure from every sound extra and the wrappers
+		// route to it, so the abstract methods surface -1, 0, NULL, or null
+		var sound:CoreSound = cast 1;
+		assert(sound.getMusicNumChannels() == -1, "getMusicNumChannels stub -1");
+		assert(sound.setMusicChannelVolume(0, 0.5) == FmodResult.FMOD_ERR_UNSUPPORTED, "setMusicChannelVolume stub unsupported");
+		assert(sound.getMusicChannelVolume(0) == 0.0, "getMusicChannelVolume stub 0");
+		assert(sound.setMusicSpeed(1.5) == FmodResult.FMOD_ERR_UNSUPPORTED, "setMusicSpeed stub unsupported");
+		assert(sound.getMusicSpeed() == 0.0, "getMusicSpeed stub 0");
+		assert(sound.getNumSubSounds() == -1, "getNumSubSounds stub -1");
+		assert(sound.getSubSound(0).isNull(), "getSubSound stub NULL");
+		assert(sound.getSubSoundParent().isNull(), "getSubSoundParent stub NULL");
+		assert(sound.getNumTags() == -1, "getNumTags stub -1");
+		assert(sound.getNumTagsUpdated() == -1, "getNumTagsUpdated stub -1");
+		assert(sound.getTag(null, 0) == null, "getTag stub null");
+		assert(sound.getTag("TITLE") == null, "getTag by name stub null");
+		assert(StudioSystem.getAdvancedSettings() == null, "getAdvancedSettings stub null");
+		assert(StudioSystem.getStudioAdvancedSettings() == null, "getStudioAdvancedSettings stub null");
+		assert(haxefmod.studio.native.NativeStudio.sys_get_advanced_settings() == FmodResult.FMOD_ERR_UNSUPPORTED,
+			"sys_get_advanced_settings stub unsupported");
+		assert(haxefmod.studio.native.NativeStudio.sys_get_studio_advanced_settings() == FmodResult.FMOD_ERR_UNSUPPORTED,
+			"sys_get_studio_advanced_settings stub unsupported");
+		assert(haxefmod.studio.native.NativeStudio.core_sound_get_tag_string(1, "", 0) == "", "core_sound_get_tag_string stub empty");
+		// The resolver turns a missing key into "" so no null reaches the shims
+		var resolved = haxefmod.runtime.FmodSettings.FmodSettingsResolver.resolve({numChannels: 32});
+		assert(resolved.encryptionKey == "", "encryptionKey resolves to empty");
+		assert(resolved.randomSeed == 0 && resolved.vol0VirtualVol == 0.0 && resolved.commandQueueSize == 0,
+			"advanced settings default to zero");
+		var keyed = haxefmod.runtime.FmodSettings.FmodSettingsResolver.resolve({encryptionKey: "k", studioUpdatePeriod: 10});
+		assert(keyed.encryptionKey == "k" && keyed.studioUpdatePeriod == 10, "advanced settings pass through");
 	}
 }

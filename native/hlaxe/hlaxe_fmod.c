@@ -374,9 +374,24 @@ HL_PRIM int HL_NAME(core_create_sound)(vbyte* path, int mode, bool openOnly) {
 }
 DEFINE_PRIM(_I32, core_create_sound, _BYTES _I32 _BOOL);
 
+// Releasing a parent sound destroys its subsounds, so every sound handle
+// whose FMOD parent is this sound is dropped first. Otherwise those slots
+// would keep pointing at freed memory.
+static void release_subsound_handles(FMOD_SOUND* parent) {
+    int i;
+    for (i = 0; i < gFaxeSlotCap; i++) {
+        FMOD_SOUND* owner = NULL;
+        if (!gFaxeSlots[i].alive || gFaxeSlots[i].type != FAXE_TYPE_SOUND) continue;
+        if (gFaxeSlots[i].ptr == (void*)parent) continue;
+        if (FMOD_Sound_GetSubSoundParent((FMOD_SOUND*)gFaxeSlots[i].ptr, &owner) != FMOD_OK) continue;
+        if (owner == parent) faxe_handle_free(((int)gFaxeSlots[i].gen << 16) | i);
+    }
+}
+
 HL_PRIM int HL_NAME(core_release_sound)(int h) {
     FMOD_SOUND* sound = resolve_sound(h);
     if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    release_subsound_handles(sound);
     gLastResult = FMOD_Sound_Release(sound);
     if (gLastResult == FMOD_OK) faxe_handle_free(h);
     return (int)gLastResult;
@@ -3229,8 +3244,17 @@ DEFINE_PRIM(_I32, sys_last_result, _NO_ARG);
 // dspBufferLength/dspNumBuffers, softwareChannels, and streamBufferSize
 // (bytes) are applied before initialize when nonzero. initFlags bit0 turns
 // on FMOD_INIT_PROFILE_ENABLE, bit1 FMOD_INIT_CHANNEL_DISTANCEFILTER.
+// The arguments after initFlags are the advanced settings. Zero (or an
+// empty key) keeps FMOD's default for that field. Both structs are read
+// back first so untouched fields keep whatever FMOD put there.
 HL_PRIM int HL_NAME(sys_init_ex)(int numChannels, int sampleRate, int speakerMode, int studioFlags,
-    int dspBufferLength, int dspNumBuffers, int softwareChannels, int streamBufferSize, int initFlags) {
+    int dspBufferLength, int dspNumBuffers, int softwareChannels, int streamBufferSize, int initFlags,
+    int maxMPEGCodecs, int maxVorbisCodecs, int maxFADPCMCodecs, double vol0VirtualVol,
+    int defaultDecodeBufferSize, int profilePort, int geometryMaxFadeTime, double distanceFilterCenterFreq,
+    int randomSeed, int commandQueueSize, int handleInitialSize, int studioUpdatePeriod,
+    int idleSampleDataPoolSize, int streamingScheduleDelay, vbyte* encryptionKey) {
+    FMOD_ADVANCEDSETTINGS adv;
+    FMOD_STUDIO_ADVANCEDSETTINGS sadv;
     const char* wavWriterPath;
     void* extradriverdata = NULL;
     FMOD_STUDIO_INITFLAGS studioInitFlags;
@@ -3269,6 +3293,41 @@ HL_PRIM int HL_NAME(sys_init_ex)(int numChannels, int sampleRate, int speakerMod
     if (initFlags & 1) coreInitFlags |= FMOD_INIT_PROFILE_ENABLE;
     if (initFlags & 2) coreInitFlags |= FMOD_INIT_CHANNEL_DISTANCEFILTER;
 
+    if (maxMPEGCodecs > 0 || maxVorbisCodecs > 0 || maxFADPCMCodecs > 0 || vol0VirtualVol > 0
+        || defaultDecodeBufferSize > 0 || profilePort > 0 || geometryMaxFadeTime > 0
+        || distanceFilterCenterFreq > 0 || randomSeed != 0) {
+        FMOD_Studio_System_GetCoreSystem(gStudioSystem, &gCoreSystem);
+        memset(&adv, 0, sizeof(adv));
+        adv.cbSize = sizeof(adv);
+        FMOD_System_GetAdvancedSettings(gCoreSystem, &adv);
+        adv.cbSize = sizeof(adv);
+        if (maxMPEGCodecs > 0) adv.maxMPEGCodecs = maxMPEGCodecs;
+        if (maxVorbisCodecs > 0) adv.maxVorbisCodecs = maxVorbisCodecs;
+        if (maxFADPCMCodecs > 0) adv.maxFADPCMCodecs = maxFADPCMCodecs;
+        if (vol0VirtualVol > 0) adv.vol0virtualvol = (float)vol0VirtualVol;
+        if (defaultDecodeBufferSize > 0) adv.defaultDecodeBufferSize = (unsigned int)defaultDecodeBufferSize;
+        if (profilePort > 0) adv.profilePort = (unsigned short)profilePort;
+        if (geometryMaxFadeTime > 0) adv.geometryMaxFadeTime = (unsigned int)geometryMaxFadeTime;
+        if (distanceFilterCenterFreq > 0) adv.distanceFilterCenterFreq = (float)distanceFilterCenterFreq;
+        if (randomSeed != 0) adv.randomSeed = (unsigned int)randomSeed;
+        FMOD_System_SetAdvancedSettings(gCoreSystem, &adv);
+    }
+    if (commandQueueSize > 0 || handleInitialSize > 0 || studioUpdatePeriod > 0
+        || idleSampleDataPoolSize > 0 || streamingScheduleDelay > 0
+        || (encryptionKey != NULL && encryptionKey[0] != '\0')) {
+        memset(&sadv, 0, sizeof(sadv));
+        sadv.cbsize = sizeof(sadv);
+        FMOD_Studio_System_GetAdvancedSettings(gStudioSystem, &sadv);
+        sadv.cbsize = sizeof(sadv);
+        if (commandQueueSize > 0) sadv.commandqueuesize = (unsigned int)commandQueueSize;
+        if (handleInitialSize > 0) sadv.handleinitialsize = (unsigned int)handleInitialSize;
+        if (studioUpdatePeriod > 0) sadv.studioupdateperiod = studioUpdatePeriod;
+        if (idleSampleDataPoolSize > 0) sadv.idlesampledatapoolsize = idleSampleDataPoolSize;
+        if (streamingScheduleDelay > 0) sadv.streamingscheduledelay = (unsigned int)streamingScheduleDelay;
+        if (encryptionKey != NULL && encryptionKey[0] != '\0') sadv.encryptionkey = (const char*)encryptionKey;
+        FMOD_Studio_System_SetAdvancedSettings(gStudioSystem, &sadv);
+    }
+
     studioInitFlags = (studioFlags & 1) ? FMOD_STUDIO_INIT_LIVEUPDATE : FMOD_STUDIO_INIT_NORMAL;
     gLastResult = FMOD_Studio_System_Initialize(gStudioSystem, numChannels,
         studioInitFlags, coreInitFlags, extradriverdata);
@@ -3286,7 +3345,7 @@ HL_PRIM int HL_NAME(sys_init_ex)(int numChannels, int sampleRate, int speakerMod
     gLastResult = FMOD_OK;
     return (int)gLastResult;
 }
-DEFINE_PRIM(_I32, sys_init_ex, _I32 _I32 _I32 _I32 _I32 _I32 _I32 _I32 _I32);
+DEFINE_PRIM(_I32, sys_init_ex, _I32 _I32 _I32 _I32 _I32 _I32 _I32 _I32 _I32 _I32 _I32 _I32 _F64 _I32 _I32 _I32 _F64 _I32 _I32 _I32 _I32 _I32 _I32 _BYTES);
 
 // FMOD_Debug_Initialize level mapping (0=none 1=error 2=warning 3=log),
 // TTY mode, no file logging. The logging-stripped FMOD libs report
@@ -6130,3 +6189,185 @@ HL_PRIM vbyte* HL_NAME(dsp_get_info_by_plugin)(int handle, vbyte* out) {
     return (vbyte*)gStringBuf;
 }
 DEFINE_PRIM(_BYTES, dsp_get_info_by_plugin, _I32 _BYTES);
+
+//// Sound extras: tracker music, subsounds, tags, and advanced settings readback
+
+HL_PRIM int HL_NAME(core_sound_get_music_num_channels)(int h) {
+    FMOD_SOUND* sound = resolve_core_sound(h);
+    int count = 0;
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    gLastResult = FMOD_Sound_GetMusicNumChannels(sound, &count);
+    return gLastResult == FMOD_OK ? count : -1;
+}
+DEFINE_PRIM(_I32, core_sound_get_music_num_channels, _I32);
+
+HL_PRIM int HL_NAME(core_sound_set_music_channel_volume)(int h, int channel, double volume) {
+    FMOD_SOUND* sound = resolve_core_sound(h);
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_Sound_SetMusicChannelVolume(sound, channel, (float)volume);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, core_sound_set_music_channel_volume, _I32 _I32 _F64);
+
+HL_PRIM double HL_NAME(core_sound_get_music_channel_volume)(int h, int channel) {
+    FMOD_SOUND* sound = resolve_core_sound(h);
+    float volume = 0.0f;
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0.0; }
+    gLastResult = FMOD_Sound_GetMusicChannelVolume(sound, channel, &volume);
+    return gLastResult == FMOD_OK ? (double)volume : 0.0;
+}
+DEFINE_PRIM(_F64, core_sound_get_music_channel_volume, _I32 _I32);
+
+HL_PRIM int HL_NAME(core_sound_set_music_speed)(int h, double speed) {
+    FMOD_SOUND* sound = resolve_core_sound(h);
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_Sound_SetMusicSpeed(sound, (float)speed);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, core_sound_set_music_speed, _I32 _F64);
+
+HL_PRIM double HL_NAME(core_sound_get_music_speed)(int h) {
+    FMOD_SOUND* sound = resolve_core_sound(h);
+    float speed = 0.0f;
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0.0; }
+    gLastResult = FMOD_Sound_GetMusicSpeed(sound, &speed);
+    return gLastResult == FMOD_OK ? (double)speed : 0.0;
+}
+DEFINE_PRIM(_F64, core_sound_get_music_speed, _I32);
+
+HL_PRIM int HL_NAME(core_sound_get_num_sub_sounds)(int h) {
+    FMOD_SOUND* sound = resolve_core_sound(h);
+    int count = 0;
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    gLastResult = FMOD_Sound_GetNumSubSounds(sound, &count);
+    return gLastResult == FMOD_OK ? count : -1;
+}
+DEFINE_PRIM(_I32, core_sound_get_num_sub_sounds, _I32);
+
+// The subsound stays owned by its parent. The handle is looked up or
+// allocated, never released from Haxe (see release_subsound_handles).
+HL_PRIM int HL_NAME(core_sound_get_sub_sound)(int h, int index) {
+    FMOD_SOUND* sound = resolve_core_sound(h);
+    FMOD_SOUND* sub = NULL;
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = FMOD_Sound_GetSubSound(sound, index, &sub);
+    if (gLastResult != FMOD_OK || !sub) return 0;
+    return faxe_handle_find_or_alloc(sub, FAXE_TYPE_SOUND);
+}
+DEFINE_PRIM(_I32, core_sound_get_sub_sound, _I32 _I32);
+
+HL_PRIM int HL_NAME(core_sound_get_sub_sound_parent)(int h) {
+    FMOD_SOUND* sound = resolve_core_sound(h);
+    FMOD_SOUND* parent = NULL;
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = FMOD_Sound_GetSubSoundParent(sound, &parent);
+    if (gLastResult != FMOD_OK || !parent) return 0;
+    return faxe_handle_find_or_alloc(parent, FAXE_TYPE_SOUND);
+}
+DEFINE_PRIM(_I32, core_sound_get_sub_sound_parent, _I32);
+
+HL_PRIM int HL_NAME(core_sound_get_num_tags)(int h, vbyte* ibuf) {
+    FMOD_SOUND* sound = resolve_core_sound(h);
+    int* outInts = (int*)ibuf;
+    int count = 0;
+    int updated = 0;
+    outInts[0] = 0;
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    gLastResult = FMOD_Sound_GetNumTags(sound, &count, &updated);
+    if (gLastResult != FMOD_OK) return -1;
+    outInts[0] = updated;
+    return count;
+}
+DEFINE_PRIM(_I32, core_sound_get_num_tags, _I32 _BYTES);
+
+// An empty name means any tag, which is FMOD's NULL name. The int and
+// float payloads are copied when they are exactly four bytes wide.
+HL_PRIM vbyte* HL_NAME(core_sound_get_tag)(int h, vbyte* name, int index, vbyte* ibuf, vbyte* fbuf) {
+    FMOD_SOUND* sound = resolve_core_sound(h);
+    int* outInts = (int*)ibuf;
+    double* outFloats = (double*)fbuf;
+    FMOD_TAG tag;
+    outInts[0] = 0; outInts[1] = 0; outInts[2] = 0; outInts[3] = 0; outInts[4] = 0;
+    outFloats[0] = 0.0;
+    gStringBuf[0] = '\0';
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (vbyte*)gStringBuf; }
+    memset(&tag, 0, sizeof(tag));
+    gLastResult = FMOD_Sound_GetTag(sound, (name && name[0] != '\0') ? (const char*)name : NULL, index, &tag);
+    if (gLastResult != FMOD_OK) return (vbyte*)gStringBuf;
+    outInts[0] = (int)tag.type;
+    outInts[1] = (int)tag.datatype;
+    outInts[2] = tag.updated ? 1 : 0;
+    outInts[3] = (int)tag.datalen;
+    if (tag.datatype == FMOD_TAGDATATYPE_INT && tag.datalen == 4 && tag.data) outInts[4] = *(int*)tag.data;
+    if (tag.datatype == FMOD_TAGDATATYPE_FLOAT && tag.datalen == 4 && tag.data) outFloats[0] = (double)(*(float*)tag.data);
+    if (tag.name) {
+        strncpy(gStringBuf, tag.name, sizeof(gStringBuf) - 1);
+        gStringBuf[sizeof(gStringBuf) - 1] = '\0';
+    }
+    return (vbyte*)gStringBuf;
+}
+DEFINE_PRIM(_BYTES, core_sound_get_tag, _I32 _BYTES _I32 _BYTES _BYTES);
+
+HL_PRIM vbyte* HL_NAME(core_sound_get_tag_string)(int h, vbyte* name, int index) {
+    FMOD_SOUND* sound = resolve_core_sound(h);
+    FMOD_TAG tag;
+    size_t len;
+    gStringBuf[0] = '\0';
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (vbyte*)gStringBuf; }
+    memset(&tag, 0, sizeof(tag));
+    gLastResult = FMOD_Sound_GetTag(sound, (name && name[0] != '\0') ? (const char*)name : NULL, index, &tag);
+    if (gLastResult != FMOD_OK) return (vbyte*)gStringBuf;
+    if ((tag.datatype == FMOD_TAGDATATYPE_STRING || tag.datatype == FMOD_TAGDATATYPE_STRING_UTF8) && tag.data) {
+        /* datalen usually counts the terminator, and the copy is capped so
+         * a payload that lies about its size cannot run past the buffer */
+        len = tag.datalen < sizeof(gStringBuf) - 1 ? tag.datalen : sizeof(gStringBuf) - 1;
+        memcpy(gStringBuf, tag.data, len);
+        gStringBuf[len] = '\0';
+    }
+    return (vbyte*)gStringBuf;
+}
+DEFINE_PRIM(_BYTES, core_sound_get_tag_string, _I32 _BYTES _I32);
+
+HL_PRIM int HL_NAME(sys_get_advanced_settings)(vbyte* ibuf, vbyte* fbuf) {
+    int* outInts = (int*)ibuf;
+    double* outFloats = (double*)fbuf;
+    FMOD_ADVANCEDSETTINGS adv;
+    int i;
+    for (i = 0; i < 7; i++) outInts[i] = 0;
+    outFloats[0] = 0.0; outFloats[1] = 0.0;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    memset(&adv, 0, sizeof(adv));
+    adv.cbSize = sizeof(adv);
+    gLastResult = FMOD_System_GetAdvancedSettings(gCoreSystem, &adv);
+    if (gLastResult != FMOD_OK) return (int)gLastResult;
+    outInts[0] = adv.maxMPEGCodecs;
+    outInts[1] = adv.maxVorbisCodecs;
+    outInts[2] = adv.maxFADPCMCodecs;
+    outInts[3] = (int)adv.defaultDecodeBufferSize;
+    outInts[4] = (int)adv.profilePort;
+    outInts[5] = (int)adv.geometryMaxFadeTime;
+    outInts[6] = (int)adv.randomSeed;
+    outFloats[0] = (double)adv.vol0virtualvol;
+    outFloats[1] = (double)adv.distanceFilterCenterFreq;
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, sys_get_advanced_settings, _BYTES _BYTES);
+
+HL_PRIM int HL_NAME(sys_get_studio_advanced_settings)(vbyte* ibuf) {
+    int* outInts = (int*)ibuf;
+    FMOD_STUDIO_ADVANCEDSETTINGS sadv;
+    int i;
+    for (i = 0; i < 5; i++) outInts[i] = 0;
+    if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    memset(&sadv, 0, sizeof(sadv));
+    sadv.cbsize = sizeof(sadv);
+    gLastResult = FMOD_Studio_System_GetAdvancedSettings(gStudioSystem, &sadv);
+    if (gLastResult != FMOD_OK) return (int)gLastResult;
+    outInts[0] = (int)sadv.commandqueuesize;
+    outInts[1] = (int)sadv.handleinitialsize;
+    outInts[2] = sadv.studioupdateperiod;
+    outInts[3] = sadv.idlesampledatapoolsize;
+    outInts[4] = (int)sadv.streamingscheduledelay;
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, sys_get_studio_advanced_settings, _BYTES);

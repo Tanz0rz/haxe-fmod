@@ -74,11 +74,19 @@ class NativeStudioStub {
     // Records the last init call so the runtime tests can see which
     // settings reach the native surface. Null until init runs.
     public static var testLastInit:Null<{numChannels:Int, sampleRate:Int, speakerMode:Int, studioFlags:Int,
-        dspBufferLength:Int, dspNumBuffers:Int, softwareChannels:Int, streamBufferSize:Int, initFlags:Int}> = null;
-    public static function sys_init_ex(numChannels:Int, sampleRate:Int, speakerMode:Int, studioFlags:Int, dspBufferLength:Int, dspNumBuffers:Int, softwareChannels:Int, streamBufferSize:Int, initFlags:Int):Int {
+        dspBufferLength:Int, dspNumBuffers:Int, softwareChannels:Int, streamBufferSize:Int, initFlags:Int,
+        maxMPEGCodecs:Int, maxVorbisCodecs:Int, maxFADPCMCodecs:Int, vol0VirtualVol:Float, defaultDecodeBufferSize:Int,
+        profilePort:Int, geometryMaxFadeTime:Int, distanceFilterCenterFreq:Float, randomSeed:Int, commandQueueSize:Int,
+        handleInitialSize:Int, studioUpdatePeriod:Int, idleSampleDataPoolSize:Int, streamingScheduleDelay:Int, encryptionKey:String}> = null;
+    public static function sys_init_ex(numChannels:Int, sampleRate:Int, speakerMode:Int, studioFlags:Int, dspBufferLength:Int, dspNumBuffers:Int, softwareChannels:Int, streamBufferSize:Int, initFlags:Int, maxMPEGCodecs:Int, maxVorbisCodecs:Int, maxFADPCMCodecs:Int, vol0VirtualVol:Float, defaultDecodeBufferSize:Int, profilePort:Int, geometryMaxFadeTime:Int, distanceFilterCenterFreq:Float, randomSeed:Int, commandQueueSize:Int, handleInitialSize:Int, studioUpdatePeriod:Int, idleSampleDataPoolSize:Int, streamingScheduleDelay:Int, encryptionKey:String):Int {
         testLastInit = {numChannels: numChannels, sampleRate: sampleRate, speakerMode: speakerMode, studioFlags: studioFlags,
             dspBufferLength: dspBufferLength, dspNumBuffers: dspNumBuffers, softwareChannels: softwareChannels,
-            streamBufferSize: streamBufferSize, initFlags: initFlags};
+            streamBufferSize: streamBufferSize, initFlags: initFlags,
+            maxMPEGCodecs: maxMPEGCodecs, maxVorbisCodecs: maxVorbisCodecs, maxFADPCMCodecs: maxFADPCMCodecs,
+            vol0VirtualVol: vol0VirtualVol, defaultDecodeBufferSize: defaultDecodeBufferSize, profilePort: profilePort,
+            geometryMaxFadeTime: geometryMaxFadeTime, distanceFilterCenterFreq: distanceFilterCenterFreq, randomSeed: randomSeed,
+            commandQueueSize: commandQueueSize, handleInitialSize: handleInitialSize, studioUpdatePeriod: studioUpdatePeriod,
+            idleSampleDataPoolSize: idleSampleDataPoolSize, streamingScheduleDelay: streamingScheduleDelay, encryptionKey: encryptionKey};
         return ERR_UNSUPPORTED;
     }
     public static function sys_set_debug_level(level:Int):Int return ERR_UNSUPPORTED;
@@ -641,4 +649,19 @@ class NativeStudioStub {
     public static function sys_get_nested_plugin(handle:Int, index:Int):Int return 0;
     public static function dsp_create_by_plugin(pluginHandle:Int):Int return 0;
     public static function dsp_get_info_by_plugin(handle:Int):String return "";
+    // Sound extras: tracker music, subsounds, tags, and advanced settings readback
+    public static function core_sound_get_music_num_channels(handle:Int):Int return -1;
+    public static function core_sound_set_music_channel_volume(handle:Int, channel:Int, volume:Float):Int return ERR_UNSUPPORTED;
+    public static function core_sound_get_music_channel_volume(handle:Int, channel:Int):Float return 0.0;
+    public static function core_sound_set_music_speed(handle:Int, speed:Float):Int return ERR_UNSUPPORTED;
+    public static function core_sound_get_music_speed(handle:Int):Float return 0.0;
+    public static function core_sound_get_num_sub_sounds(handle:Int):Int return -1;
+    public static function core_sound_get_sub_sound(handle:Int, index:Int):Int return 0;
+    public static function core_sound_get_sub_sound_parent(handle:Int):Int return 0;
+    public static function core_sound_get_num_tags(handle:Int):Int return -1;
+    public static function core_sound_get_tag(handle:Int, name:String, index:Int):String return "";
+    public static function core_sound_get_tag_string(handle:Int, name:String, index:Int):String return "";
+    public static function sys_get_advanced_settings():Int return ERR_UNSUPPORTED;
+    public static function sys_get_studio_advanced_settings():Int return ERR_UNSUPPORTED;
+
 }

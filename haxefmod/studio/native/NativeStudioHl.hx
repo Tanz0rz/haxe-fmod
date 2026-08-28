@@ -79,7 +79,7 @@ class NativeStudioHl {
     /** Fills Scratch int buffer: [0]=exclusive, [1]=inclusive, [2]=sampledata (bytes) */
     public static inline function sys_get_memory_usage():Int return Raw.sys_get_memory_usage(Scratch.intBuf());
 
-    public static inline function sys_init_ex(numChannels:Int, sampleRate:Int, speakerMode:Int, studioFlags:Int, dspBufferLength:Int, dspNumBuffers:Int, softwareChannels:Int, streamBufferSize:Int, initFlags:Int):Int return Raw.sys_init_ex(numChannels, sampleRate, speakerMode, studioFlags, dspBufferLength, dspNumBuffers, softwareChannels, streamBufferSize, initFlags);
+    public static inline function sys_init_ex(numChannels:Int, sampleRate:Int, speakerMode:Int, studioFlags:Int, dspBufferLength:Int, dspNumBuffers:Int, softwareChannels:Int, streamBufferSize:Int, initFlags:Int, maxMPEGCodecs:Int, maxVorbisCodecs:Int, maxFADPCMCodecs:Int, vol0VirtualVol:Float, defaultDecodeBufferSize:Int, profilePort:Int, geometryMaxFadeTime:Int, distanceFilterCenterFreq:Float, randomSeed:Int, commandQueueSize:Int, handleInitialSize:Int, studioUpdatePeriod:Int, idleSampleDataPoolSize:Int, streamingScheduleDelay:Int, encryptionKey:String):Int return Raw.sys_init_ex(numChannels, sampleRate, speakerMode, studioFlags, dspBufferLength, dspNumBuffers, softwareChannels, streamBufferSize, initFlags, maxMPEGCodecs, maxVorbisCodecs, maxFADPCMCodecs, vol0VirtualVol, defaultDecodeBufferSize, profilePort, geometryMaxFadeTime, distanceFilterCenterFreq, randomSeed, commandQueueSize, handleInitialSize, studioUpdatePeriod, idleSampleDataPoolSize, streamingScheduleDelay, toBytes(encryptionKey));
     public static inline function sys_set_debug_level(level:Int):Int return Raw.sys_set_debug_level(level);
     public static inline function sys_load_bank_async(path:String):Int return Raw.sys_load_bank_async(toBytes(path));
     public static inline function sys_is_initialized():Bool return Raw.sys_is_initialized();
@@ -709,6 +709,21 @@ class NativeStudioHl {
     public static inline function sys_get_nested_plugin(handle:Int, index:Int):Int return Raw.sys_get_nested_plugin(handle, index);
     public static inline function dsp_create_by_plugin(pluginHandle:Int):Int return Raw.dsp_create_by_plugin(pluginHandle);
     public static inline function dsp_get_info_by_plugin(handle:Int):String return fromBytes(Raw.dsp_get_info_by_plugin(handle, Scratch.intBuf()));
+    // Sound extras: tracker music, subsounds, tags, and advanced settings readback
+    public static inline function core_sound_get_music_num_channels(handle:Int):Int return Raw.core_sound_get_music_num_channels(handle);
+    public static inline function core_sound_set_music_channel_volume(handle:Int, channel:Int, volume:Float):Int return Raw.core_sound_set_music_channel_volume(handle, channel, volume);
+    public static inline function core_sound_get_music_channel_volume(handle:Int, channel:Int):Float return Raw.core_sound_get_music_channel_volume(handle, channel);
+    public static inline function core_sound_set_music_speed(handle:Int, speed:Float):Int return Raw.core_sound_set_music_speed(handle, speed);
+    public static inline function core_sound_get_music_speed(handle:Int):Float return Raw.core_sound_get_music_speed(handle);
+    public static inline function core_sound_get_num_sub_sounds(handle:Int):Int return Raw.core_sound_get_num_sub_sounds(handle);
+    public static inline function core_sound_get_sub_sound(handle:Int, index:Int):Int return Raw.core_sound_get_sub_sound(handle, index);
+    public static inline function core_sound_get_sub_sound_parent(handle:Int):Int return Raw.core_sound_get_sub_sound_parent(handle);
+    public static inline function core_sound_get_num_tags(handle:Int):Int return Raw.core_sound_get_num_tags(handle, Scratch.intBuf());
+    public static inline function core_sound_get_tag(handle:Int, name:String, index:Int):String return fromBytes(Raw.core_sound_get_tag(handle, toBytes(name), index, Scratch.intBuf(), Scratch.floatBuf()));
+    public static inline function core_sound_get_tag_string(handle:Int, name:String, index:Int):String return fromBytes(Raw.core_sound_get_tag_string(handle, toBytes(name), index));
+    public static inline function sys_get_advanced_settings():Int return Raw.sys_get_advanced_settings(Scratch.intBuf(), Scratch.floatBuf());
+    public static inline function sys_get_studio_advanced_settings():Int return Raw.sys_get_studio_advanced_settings(Scratch.intBuf());
+
 }
 
 @:hlNative("hlaxe_fmod")
@@ -755,7 +770,7 @@ private extern class Raw {
     static function sys_get_buffer_usage(iout:hl.Bytes, fout:hl.Bytes):Int;
     static function sys_reset_buffer_usage():Int;
     static function sys_get_memory_usage(out:hl.Bytes):Int;
-    static function sys_init_ex(numChannels:Int, sampleRate:Int, speakerMode:Int, studioFlags:Int, dspBufferLength:Int, dspNumBuffers:Int, softwareChannels:Int, streamBufferSize:Int, initFlags:Int):Int;
+    static function sys_init_ex(numChannels:Int, sampleRate:Int, speakerMode:Int, studioFlags:Int, dspBufferLength:Int, dspNumBuffers:Int, softwareChannels:Int, streamBufferSize:Int, initFlags:Int, maxMPEGCodecs:Int, maxVorbisCodecs:Int, maxFADPCMCodecs:Int, vol0VirtualVol:Float, defaultDecodeBufferSize:Int, profilePort:Int, geometryMaxFadeTime:Int, distanceFilterCenterFreq:Float, randomSeed:Int, commandQueueSize:Int, handleInitialSize:Int, studioUpdatePeriod:Int, idleSampleDataPoolSize:Int, streamingScheduleDelay:Int, encryptionKey:hl.Bytes):Int;
     static function sys_set_debug_level(level:Int):Int;
     static function sys_load_bank_async(path:hl.Bytes):Int;
     static function bus_is_valid(handle:Int):Bool;
@@ -1208,5 +1223,20 @@ private extern class Raw {
     static function sys_get_nested_plugin(handle:Int, index:Int):Int;
     static function dsp_create_by_plugin(pluginHandle:Int):Int;
     static function dsp_get_info_by_plugin(handle:Int, ibuf:hl.Bytes):hl.Bytes;
+    // Sound extras: tracker music, subsounds, tags, and advanced settings readback
+    static function core_sound_get_music_num_channels(handle:Int):Int;
+    static function core_sound_set_music_channel_volume(handle:Int, channel:Int, volume:Float):Int;
+    static function core_sound_get_music_channel_volume(handle:Int, channel:Int):Float;
+    static function core_sound_set_music_speed(handle:Int, speed:Float):Int;
+    static function core_sound_get_music_speed(handle:Int):Float;
+    static function core_sound_get_num_sub_sounds(handle:Int):Int;
+    static function core_sound_get_sub_sound(handle:Int, index:Int):Int;
+    static function core_sound_get_sub_sound_parent(handle:Int):Int;
+    static function core_sound_get_num_tags(handle:Int, ibuf:hl.Bytes):Int;
+    static function core_sound_get_tag(handle:Int, name:hl.Bytes, index:Int, ibuf:hl.Bytes, fbuf:hl.Bytes):hl.Bytes;
+    static function core_sound_get_tag_string(handle:Int, name:hl.Bytes, index:Int):hl.Bytes;
+    static function sys_get_advanced_settings(ibuf:hl.Bytes, fbuf:hl.Bytes):Int;
+    static function sys_get_studio_advanced_settings(ibuf:hl.Bytes):Int;
+
 }
 #end

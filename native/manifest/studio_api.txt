@@ -253,7 +253,12 @@ evi_get_memory_usage i32 ibuf -> i32
 # (FMOD_INIT_PROFILE_ENABLE), bit1 = distance filter
 # (FMOD_INIT_CHANNEL_DISTANCEFILTER). Keeps the FMOD_WAVWRITER env branch.
 # On js this stores settings and kicks off module init (poll sys_is_initialized).
-sys_init_ex i32 i32 i32 i32 i32 i32 i32 i32 i32 -> i32
+# Arguments after initFlags are the advanced settings, zero or "" for the
+# FMOD default: maxMPEGCodecs, maxVorbisCodecs, maxFADPCMCodecs, vol0VirtualVol,
+# defaultDecodeBufferSize, profilePort, geometryMaxFadeTime, distanceFilterCenterFreq,
+# randomSeed, then the studio ones: commandQueueSize, handleInitialSize,
+# studioUpdatePeriod, idleSampleDataPoolSize, streamingScheduleDelay, encryptionKey.
+sys_init_ex i32 i32 i32 i32 i32 i32 i32 i32 i32 i32 i32 i32 f32 i32 i32 i32 f32 i32 i32 i32 i32 i32 i32 str -> i32
 # FMOD_Debug_Initialize level (0=none 1=error 2=warning 3=log); file logging
 # not exposed. ERR_UNSUPPORTED on js (logging is baked into the wasm build).
 sys_set_debug_level i32 -> i32
@@ -780,3 +785,39 @@ sys_get_nested_plugin i32 i32 -> i32
 dsp_create_by_plugin i32 -> i32
 # ibuf out: [0]=version [1]=input buffers [2]=output buffers [3]=parameters
 dsp_get_info_by_plugin i32 ibuf -> str
+## Sound extras: tracker music, subsounds, tags, and advanced settings readback
+# The music calls only mean something on tracker formats (MOD, S3M, XM, IT).
+# FMOD reports FMOD_ERR_FORMAT on anything else. The web build cannot load
+# loose files at all, so the js shim reports ERR_UNSUPPORTED (68) for all five.
+# Failed scalar getters return -1 (count) or 0.0 (volume, speed).
+core_sound_get_music_num_channels i32 -> i32
+core_sound_set_music_channel_volume i32 i32 f32 -> i32
+core_sound_get_music_channel_volume i32 i32 -> f32
+core_sound_set_music_speed i32 f32 -> i32
+core_sound_get_music_speed i32 -> f32
+# Subsound handles are find-or-alloc'd as FAXE_TYPE_SOUND. A subsound belongs
+# to its parent: releasing the parent frees every subsound handle the table
+# holds for it, and Haxe never releases a subsound itself. Missing index
+# returns 0 with FMOD_ERR_INVALID_PARAM, a top-level sound has parent 0 with FMOD_OK.
+core_sound_get_num_sub_sounds i32 -> i32
+core_sound_get_sub_sound i32 i32 -> i32
+core_sound_get_sub_sound_parent i32 -> i32
+# Returns the tag count (-1 on failure). ibuf out: [0]=numtagsupdated
+core_sound_get_num_tags i32 ibuf -> i32
+# Returns the tag name ("" on failure). name "" means any tag (index counts
+# from the first), a nonempty name picks the index-th tag of that name.
+# ibuf out: [0]=type [1]=datatype [2]=updated [3]=datalen [4]=int payload
+# (INT tags only). fbuf out: [0]=float payload (FLOAT tags only). Binary and
+# UTF16 payloads are not copied, datalen still reports their size.
+# ERR_UNSUPPORTED (68) on js, embind cannot marshal the payload pointer.
+core_sound_get_tag i32 str i32 ibuf fbuf -> str
+# The payload of a STRING or STRING_UTF8 tag ("" otherwise). Same lookup as core_sound_get_tag.
+core_sound_get_tag_string i32 str i32 -> str
+# ibuf out: [0]=maxMPEGCodecs [1]=maxVorbisCodecs [2]=maxFADPCMCodecs
+# [3]=defaultDecodeBufferSize [4]=profilePort [5]=geometryMaxFadeTime
+# [6]=randomSeed. fbuf out: [0]=vol0VirtualVol [1]=distanceFilterCenterFreq.
+# ERR_UNSUPPORTED (68) on js, the web build's getter rejects every argument shape.
+sys_get_advanced_settings ibuf fbuf -> i32
+# ibuf out: [0]=commandQueueSize [1]=handleInitialSize [2]=studioUpdatePeriod
+# [3]=idleSampleDataPoolSize [4]=streamingScheduleDelay. ERR_UNSUPPORTED (68) on js.
+sys_get_studio_advanced_settings ibuf -> i32

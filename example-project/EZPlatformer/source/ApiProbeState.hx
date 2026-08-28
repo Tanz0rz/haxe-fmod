@@ -172,6 +172,7 @@ class ApiProbeState extends FlxState {
         ProbeUserData.run(this);
         ProbeSysExtras.run(this);
         ProbePlugins.run(this);
+        ProbeSoundExtras.run(this);
         if (skipAuthored()) {
             info("authored_surface", "skipped (HAXEFMOD_PROBE_SKIP_AUTHORED)");
         } else {

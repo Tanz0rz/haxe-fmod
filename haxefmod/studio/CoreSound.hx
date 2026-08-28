@@ -1,5 +1,6 @@
 package haxefmod.studio;
 
+import haxefmod.studio.Types;
 import haxefmod.studio.Types.FmodVector;
 import haxefmod.studio.UserData;
 import haxefmod.studio.native.NativeStudio;
@@ -306,4 +307,151 @@ abstract CoreSound(Int) from Int to Int {
     public inline function getUserData():Dynamic {
         return UserData.get(UserDataKind.CoreSound, this);
     }
+    //// Tracker music
+
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /**
+     * Channel count of a tracker module (MOD, S3M, XM, IT) (unsupported in
+     * HTML5, returns -1 there). -1 on failure, and any other format reports
+     * FMOD_ERR_FORMAT through StudioSystem.lastResult.
+     */
+    public macro function getMusicNumChannels(self:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("CoreSound.getMusicNumChannels", "the web build cannot load tracker modules");
+    }
+    #else
+    /**
+     * Channel count of a tracker module (MOD, S3M, XM, IT) (unsupported in
+     * HTML5, returns -1 there). -1 on failure, and any other format reports
+     * FMOD_ERR_FORMAT through StudioSystem.lastResult.
+     */
+    public inline function getMusicNumChannels():Int {
+        return NativeStudio.core_sound_get_music_num_channels(this);
+    }
+    #end
+
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /** Volume of one tracker channel, 0 to 1 (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED). */
+    public macro function setMusicChannelVolume(self:haxe.macro.Expr, channel:haxe.macro.Expr, volume:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("CoreSound.setMusicChannelVolume", "the web build cannot load tracker modules");
+    }
+    #else
+    /** Volume of one tracker channel, 0 to 1 (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED). */
+    public inline function setMusicChannelVolume(channel:Int, volume:Float):FmodResult {
+        return NativeStudio.core_sound_set_music_channel_volume(this, channel, volume);
+    }
+    #end
+
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /** Volume of one tracker channel (unsupported in HTML5, returns 0 there). 0 on failure. */
+    public macro function getMusicChannelVolume(self:haxe.macro.Expr, channel:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("CoreSound.getMusicChannelVolume", "the web build cannot load tracker modules");
+    }
+    #else
+    /** Volume of one tracker channel (unsupported in HTML5, returns 0 there). 0 on failure. */
+    public inline function getMusicChannelVolume(channel:Int):Float {
+        return NativeStudio.core_sound_get_music_channel_volume(this, channel);
+    }
+    #end
+
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /** Playback speed of a tracker module, 1 is normal, 0.01 to 100 (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED). */
+    public macro function setMusicSpeed(self:haxe.macro.Expr, speed:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("CoreSound.setMusicSpeed", "the web build cannot load tracker modules");
+    }
+    #else
+    /** Playback speed of a tracker module, 1 is normal, 0.01 to 100 (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED). */
+    public inline function setMusicSpeed(speed:Float):FmodResult {
+        return NativeStudio.core_sound_set_music_speed(this, speed);
+    }
+    #end
+
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /** Playback speed of a tracker module (unsupported in HTML5, returns 0 there). 0 on failure. */
+    public macro function getMusicSpeed(self:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("CoreSound.getMusicSpeed", "the web build cannot load tracker modules");
+    }
+    #else
+    /** Playback speed of a tracker module (unsupported in HTML5, returns 0 there). 0 on failure. */
+    public inline function getMusicSpeed():Float {
+        return NativeStudio.core_sound_get_music_speed(this);
+    }
+    #end
+
+    //// Subsounds and tags
+
+    /** Number of subsounds (FSB and multi-stream containers). 0 for plain sounds, -1 on failure. */
+    public inline function getNumSubSounds():Int {
+        return NativeStudio.core_sound_get_num_sub_sounds(this);
+    }
+
+    /**
+     * A subsound by index, or CoreSound.NULL when the index is out of
+     * range (StudioSystem.lastResult reports FMOD_ERR_INVALID_PARAM). The
+     * subsound belongs to its parent, so never call release() on it: FMOD
+     * frees it with the parent, and releasing the parent also drops every
+     * subsound handle taken from it.
+     */
+    public inline function getSubSound(index:Int):CoreSound {
+        return NativeStudio.core_sound_get_sub_sound(this, index);
+    }
+
+    /** The sound this one is a subsound of, or CoreSound.NULL for a top-level sound (lastResult stays FMOD_OK). */
+    public inline function getSubSoundParent():CoreSound {
+        return NativeStudio.core_sound_get_sub_sound_parent(this);
+    }
+
+    /** Number of metadata tags, -1 on failure. Streams grow this as they play. */
+    public inline function getNumTags():Int {
+        return NativeStudio.core_sound_get_num_tags(this);
+    }
+
+    /** Tags that changed since the last getTag pass, -1 on failure. Meant for stream metadata polling. */
+    public function getNumTagsUpdated():Int {
+        if (NativeStudio.core_sound_get_num_tags(this) < 0) return -1;
+        return Scratch.readI(0);
+    }
+
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /**
+     * Reads one metadata tag (unsupported in HTML5, returns null there).
+     * A null name walks every tag by index, a name picks the index-th tag
+     * of that name. Null when the tag does not exist
+     * (StudioSystem.lastResult reports FMOD_ERR_TAGNOTFOUND). String
+     * payloads come back in stringValue, INT and FLOAT payloads in their
+     * fields, binary and UTF16 payloads only report their length.
+     */
+    public macro function getTag(self:haxe.macro.Expr, name:haxe.macro.Expr, ?index:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("CoreSound.getTag", "the web build cannot hand the tag payload to JavaScript");
+    }
+    #else
+    /**
+     * Reads one metadata tag (unsupported in HTML5, returns null there).
+     * A null name walks every tag by index, a name picks the index-th tag
+     * of that name. Null when the tag does not exist
+     * (StudioSystem.lastResult reports FMOD_ERR_TAGNOTFOUND). String
+     * payloads come back in stringValue, INT and FLOAT payloads in their
+     * fields, binary and UTF16 payloads only report their length.
+     */
+    public function getTag(name:String, index:Int = 0):Null<FmodTag> {
+        var key = name == null ? "" : name;
+        var tagName = NativeStudio.core_sound_get_tag(this, key, index);
+        var result:FmodResult = StudioSystem.lastResult();
+        if (!result.isOk()) return null;
+        var dataType:FmodTagDataType = Scratch.readI(1);
+        var text = "";
+        if (dataType == FmodTagDataType.STRING || dataType == FmodTagDataType.STRING_UTF8) {
+            text = NativeStudio.core_sound_get_tag_string(this, key, index);
+        }
+        return {
+            name: tagName,
+            type: (Scratch.readI(0) : FmodTagType),
+            dataType: dataType,
+            updated: Scratch.readI(2) != 0,
+            length: Scratch.readI(3),
+            intValue: Scratch.readI(4),
+            floatValue: Scratch.readF(0),
+            stringValue: text,
+        };
+    }
+    #end
 }

@@ -232,7 +232,12 @@ class TestRuntime {
 		stub.testInitialized = false;
 		stub.testLastInit = null;
 		FmodRuntime.init({autoLoadBanks: [], dspBufferSize: 1024, dspNumBuffers: 3,
-			softwareChannels: 48, streamBufferSize: 32768, profiling: true, distanceFilter: true});
+			softwareChannels: 48, streamBufferSize: 32768, profiling: true, distanceFilter: true,
+			maxMPEGCodecs: 8, maxVorbisCodecs: 9, maxFADPCMCodecs: 10, vol0VirtualVol: 0.01,
+			defaultDecodeBufferSize: 800, profilePort: 9300, geometryMaxFadeTime: 250,
+			distanceFilterCenterFreq: 2000, randomSeed: 12345, commandQueueSize: 65536,
+			handleInitialSize: 16384, studioUpdatePeriod: 30, idleSampleDataPoolSize: 524288,
+			streamingScheduleDelay: 4096, encryptionKey: "secret"});
 		assert(!FmodRuntime.isInitialized(), "settings alone do not make it initialized");
 		// The one init call this suite gets also proves the settings reach
 		// the native call in the right slots
@@ -244,6 +249,17 @@ class TestRuntime {
 		assert(init != null && init.softwareChannels == 48, "init forwards softwareChannels");
 		assert(init != null && init.streamBufferSize == 32768, "init forwards streamBufferSize");
 		assert(init != null && init.initFlags == 3, "init packs profiling and distanceFilter into initFlags");
+		assert(init != null && init.maxMPEGCodecs == 8 && init.maxVorbisCodecs == 9 && init.maxFADPCMCodecs == 10,
+			"init forwards the codec limits");
+		assert(init != null && Math.abs(init.vol0VirtualVol - 0.01) < 0.0001, "init forwards vol0VirtualVol");
+		assert(init != null && init.defaultDecodeBufferSize == 800 && init.profilePort == 9300
+			&& init.geometryMaxFadeTime == 250, "init forwards decode buffer, profile port, and geometry fade");
+		assert(init != null && Math.abs(init.distanceFilterCenterFreq - 2000) < 0.001, "init forwards distanceFilterCenterFreq");
+		assert(init != null && init.randomSeed == 12345, "init forwards randomSeed");
+		assert(init != null && init.commandQueueSize == 65536 && init.handleInitialSize == 16384
+			&& init.studioUpdatePeriod == 30 && init.idleSampleDataPoolSize == 524288
+			&& init.streamingScheduleDelay == 4096, "init forwards the studio advanced settings");
+		assert(init != null && init.encryptionKey == "secret", "init forwards encryptionKey");
 		stub.testInitialized = true;
 		assert(FmodRuntime.isInitialized(), "system ready and default banks latched");
 		stub.testInitialized = false;

@@ -3182,6 +3182,7 @@ jobs:
           node tests/js/completeness-tail-harness.js
           node tests/js/sysextras-harness.js
           node tests/js/plugins-harness.js
+          node tests/js/soundextras-harness.js
 
       - name: Run Core dynamic-audio prototype against the real wasm
         env:

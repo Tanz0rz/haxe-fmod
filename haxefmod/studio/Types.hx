@@ -174,3 +174,68 @@ enum abstract FmodPluginType(Int) from Int to Int {
     var CODEC = 1;
     var DSP = 2;
 }
+
+/** Core advanced settings as FMOD holds them (FMOD_ADVANCEDSETTINGS, the fields haxefmod exposes). */
+typedef FmodAdvancedSettings = {
+    var maxMPEGCodecs:Int;
+    var maxVorbisCodecs:Int;
+    var maxFADPCMCodecs:Int;
+    var vol0VirtualVol:Float;
+    var defaultDecodeBufferSize:Int;
+    var profilePort:Int;
+    var geometryMaxFadeTime:Int;
+    var distanceFilterCenterFreq:Float;
+    var randomSeed:Int;
+}
+
+/** Studio advanced settings as FMOD holds them (FMOD_STUDIO_ADVANCEDSETTINGS without the key). */
+typedef FmodStudioAdvancedSettings = {
+    var commandQueueSize:Int;
+    var handleInitialSize:Int;
+    var studioUpdatePeriod:Int;
+    var idleSampleDataPoolSize:Int;
+    var streamingScheduleDelay:Int;
+}
+
+/** Where a tag came from (FMOD_TAGTYPE) */
+enum abstract FmodTagType(Int) from Int to Int {
+    var UNKNOWN = 0;
+    var ID3V1 = 1;
+    var ID3V2 = 2;
+    var VORBISCOMMENT = 3;
+    var SHOUTCAST = 4;
+    var ICECAST = 5;
+    var ASF = 6;
+    var MIDI = 7;
+    var PLAYLIST = 8;
+    var FMOD = 9;
+    var USER = 10;
+}
+
+/** What a tag's payload holds (FMOD_TAGDATATYPE) */
+enum abstract FmodTagDataType(Int) from Int to Int {
+    var BINARY = 0;
+    var INT = 1;
+    var FLOAT = 2;
+    var STRING = 3;
+    var STRING_UTF16 = 4;
+    var STRING_UTF16BE = 5;
+    var STRING_UTF8 = 6;
+}
+
+/** One metadata tag of a sound (FMOD_TAG) */
+typedef FmodTag = {
+    var name:String;
+    var type:FmodTagType;
+    var dataType:FmodTagDataType;
+    /** True until the tag has been read once through getTag. */
+    var updated:Bool;
+    /** Payload size in bytes, reported for every data type. */
+    var length:Int;
+    /** The payload of an INT tag. 0 otherwise. */
+    var intValue:Int;
+    /** The payload of a FLOAT tag. 0 otherwise. */
+    var floatValue:Float;
+    /** The payload of a STRING or STRING_UTF8 tag. "" otherwise, UTF16 and binary payloads are not copied. */
+    var stringValue:String;
+}
