@@ -39,6 +39,35 @@
         return type.split(".").pop();
     }
 
+    // Splits an argument list on the commas outside <>, {}, and ().
+    function splitArgs(text) {
+        var out = [];
+        var depth = 0;
+        var current = "";
+        for (var i = 0; i < text.length; i++) {
+            var c = text.charAt(i);
+            if (c === "<" || c === "{" || c === "(") depth++;
+            if (c === ">" || c === "}" || c === ")") depth--;
+            if (c === "," && depth === 0) { out.push(current.trim()); current = ""; continue; }
+            current += c;
+        }
+        if (current.trim()) out.push(current.trim());
+        return out;
+    }
+
+    // The site prints every signature as one line with no arguments or
+    // one argument, and one argument per line otherwise, ending with a
+    // semicolon. The Haxe tab follows that shape.
+    function formatSignature(prefix, signature) {
+        var open = signature.indexOf("(");
+        var close = signature.lastIndexOf(")");
+        var name = signature.slice(0, open);
+        var args = splitArgs(signature.slice(open + 1, close));
+        var ret = signature.slice(close + 1);
+        if (args.length < 2) return prefix + "." + name + "(" + args.join("") + ")" + ret + ";";
+        return prefix + "." + name + "(\n  " + args.join(",\n  ") + "\n)" + ret + ";";
+    }
+
     // Static methods are called on the type, instance methods on a value
     // of it, which the receiver name shows without a comment.
     function receiver(m) {
@@ -80,18 +109,15 @@
             var shown = direct.length ? direct : also;
             var rest = direct.length ? also : [];
             var lines = [];
-            var seenTypes = {};
-            shown.forEach(function (m) {
-                if (!seenTypes[m.type]) {
-                    seenTypes[m.type] = true;
-                    lines.push("import " + m.type + ";");
-                }
-            });
-            lines.push("");
-            shown.forEach(function (m) {
-                lines.push(receiver(m) + "." + m.signature);
+            shown.forEach(function (m, i) {
+                if (i > 0) lines.push("");
+                lines.push(formatSignature(receiver(m), m.signature));
             });
             pre.textContent = lines.join("\n");
+
+            var types = [];
+            shown.forEach(function (m) { if (types.indexOf(m.type) < 0) types.push(m.type); });
+            note.appendChild(el("p", "haxefmod-type", types.join(", ")));
 
             var doc = "";
             for (var i = 0; i < shown.length && !doc; i++) doc = shown[i].doc;

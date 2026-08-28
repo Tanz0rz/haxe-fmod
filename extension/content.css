@@ -15,6 +15,12 @@
     margin: 4px 0;
 }
 
+.haxefmod-block .haxefmod-type {
+    font-family: monospace;
+    font-size: 13px;
+    color: #555555;
+}
+
 .haxefmod-block .haxefmod-warn {
     color: #a40000;
 }

@@ -11998,7 +11998,7 @@ const HAXEFMOD_EXAMPLES = {
 
 (function () {
     var style = document.createElement("style");
-    style.textContent = "/* The site's .highlight box carries 6px of padding and a grey fill. The\n   note pulls back out to the box edge, draws a rule, and sits on white\n   so the code and the prose read as two things. */\n.haxefmod-block .haxefmod-note {\n    font-size: 14px;\n    line-height: 1.5;\n    margin: 10px -6px -6px -6px;\n    padding: 8px 12px 6px 12px;\n    border-top: 1px solid #b3b3b3;\n    background: #ffffff;\n    color: #333333;\n}\n\n.haxefmod-block .haxefmod-note p {\n    margin: 4px 0;\n}\n\n.haxefmod-block .haxefmod-warn {\n    color: #a40000;\n}\n\n.haxefmod-block .haxefmod-footer {\n    color: #666666;\n    font-size: 12px;\n}\n\n.haxefmod-block .haxefmod-footer a {\n    color: #666666;\n    text-decoration: underline;\n}\n\n/* The site sizes every tab for two or three characters (max-width 30px),\n   which pushes \"Haxe\" off center. Match the site's selector specificity\n   and give the word its room. */\n#Documentation div.documentation-content div.language-tab.haxefmod-tab,\n#Documentation div.searchresults div.language-tab.haxefmod-tab {\n    max-width: 40px;\n    text-align: center;\n}\n";
+    style.textContent = "/* The site's .highlight box carries 6px of padding and a grey fill. The\n   note pulls back out to the box edge, draws a rule, and sits on white\n   so the code and the prose read as two things. */\n.haxefmod-block .haxefmod-note {\n    font-size: 14px;\n    line-height: 1.5;\n    margin: 10px -6px -6px -6px;\n    padding: 8px 12px 6px 12px;\n    border-top: 1px solid #b3b3b3;\n    background: #ffffff;\n    color: #333333;\n}\n\n.haxefmod-block .haxefmod-note p {\n    margin: 4px 0;\n}\n\n.haxefmod-block .haxefmod-type {\n    font-family: monospace;\n    font-size: 13px;\n    color: #555555;\n}\n\n.haxefmod-block .haxefmod-warn {\n    color: #a40000;\n}\n\n.haxefmod-block .haxefmod-footer {\n    color: #666666;\n    font-size: 12px;\n}\n\n.haxefmod-block .haxefmod-footer a {\n    color: #666666;\n    text-decoration: underline;\n}\n\n/* The site sizes every tab for two or three characters (max-width 30px),\n   which pushes \"Haxe\" off center. Match the site's selector specificity\n   and give the word its room. */\n#Documentation div.documentation-content div.language-tab.haxefmod-tab,\n#Documentation div.searchresults div.language-tab.haxefmod-tab {\n    max-width: 40px;\n    text-align: center;\n}\n";
     document.documentElement.appendChild(style);
 })();
 
@@ -12043,6 +12043,35 @@ const HAXEFMOD_EXAMPLES = {
         return type.split(".").pop();
     }
 
+    // Splits an argument list on the commas outside <>, {}, and ().
+    function splitArgs(text) {
+        var out = [];
+        var depth = 0;
+        var current = "";
+        for (var i = 0; i < text.length; i++) {
+            var c = text.charAt(i);
+            if (c === "<" || c === "{" || c === "(") depth++;
+            if (c === ">" || c === "}" || c === ")") depth--;
+            if (c === "," && depth === 0) { out.push(current.trim()); current = ""; continue; }
+            current += c;
+        }
+        if (current.trim()) out.push(current.trim());
+        return out;
+    }
+
+    // The site prints every signature as one line with no arguments or
+    // one argument, and one argument per line otherwise, ending with a
+    // semicolon. The Haxe tab follows that shape.
+    function formatSignature(prefix, signature) {
+        var open = signature.indexOf("(");
+        var close = signature.lastIndexOf(")");
+        var name = signature.slice(0, open);
+        var args = splitArgs(signature.slice(open + 1, close));
+        var ret = signature.slice(close + 1);
+        if (args.length < 2) return prefix + "." + name + "(" + args.join("") + ")" + ret + ";";
+        return prefix + "." + name + "(\n  " + args.join(",\n  ") + "\n)" + ret + ";";
+    }
+
     // Static methods are called on the type, instance methods on a value
     // of it, which the receiver name shows without a comment.
     function receiver(m) {
@@ -12084,18 +12113,15 @@ const HAXEFMOD_EXAMPLES = {
             var shown = direct.length ? direct : also;
             var rest = direct.length ? also : [];
             var lines = [];
-            var seenTypes = {};
-            shown.forEach(function (m) {
-                if (!seenTypes[m.type]) {
-                    seenTypes[m.type] = true;
-                    lines.push("import " + m.type + ";");
-                }
-            });
-            lines.push("");
-            shown.forEach(function (m) {
-                lines.push(receiver(m) + "." + m.signature);
+            shown.forEach(function (m, i) {
+                if (i > 0) lines.push("");
+                lines.push(formatSignature(receiver(m), m.signature));
             });
             pre.textContent = lines.join("\n");
+
+            var types = [];
+            shown.forEach(function (m) { if (types.indexOf(m.type) < 0) types.push(m.type); });
+            note.appendChild(el("p", "haxefmod-type", types.join(", ")));
 
             var doc = "";
             for (var i = 0; i < shown.length && !doc; i++) doc = shown[i].doc;
