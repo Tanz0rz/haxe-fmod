@@ -32,3 +32,6 @@ __pycache__/
 
 # Unit test scratch files
 /tests/.tmp/
+
+# Documentation site build output
+/site/
