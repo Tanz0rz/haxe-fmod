@@ -16,6 +16,7 @@ class TestPostBuild {
 		testRunShContent();
 		testCustomHdllMarkerCheck();
 		testClearExecstack();
+		testSdkPackageDetection();
 
 		Sys.println('  $passed passed, $failed failed');
 		return failed;
@@ -183,5 +184,56 @@ class TestPostBuild {
 
 		var plain = PostBuild.runShContent("Game");
 		assert(plain.indexOf("\"./Game\" \"$@\"") >= 0, "run.sh plain name quoted too");
+	}
+
+	static function makeDir(path:String):Void {
+		if (!sys.FileSystem.exists(path)) sys.FileSystem.createDirectory(path);
+	}
+
+	static function touch(dir:String, name:String):Void {
+		var parts = dir.split("/");
+		var built = "";
+		for (part in parts) {
+			built = built == "" ? part : built + "/" + part;
+			makeDir(built);
+		}
+		sys.io.File.saveContent(dir + "/" + name, "");
+	}
+
+	/**
+	 * Telling the two FMOD packages apart. The HTML5 package ships the same
+	 * api/core/inc headers as the desktop one, so a header check passes on
+	 * both and a native build got as far as copying a library that was
+	 * never there. The core library is what actually separates them.
+	 */
+	static function testSdkPackageDetection():Void {
+		var root = "tests/.tmp/sdk";
+		var web = root + "/web";
+		var desktop = root + "/desktop";
+
+		// Both packages carry the headers, and only the web one carries the
+		// wasm build of the studio library
+		touch(web + "/api/core/inc", "fmod_common.h");
+		touch(web + "/api/studio/lib/wasm", "fmodstudio.js");
+		touch(web + "/api/core/lib/js", "fmod.js");
+		touch(desktop + "/api/core/inc", "fmod_common.h");
+		touch(desktop + "/api/core/lib", "libfmod.dylib");
+		touch(desktop + "/api/core/lib/x64", "fmod.dll");
+		touch(desktop + "/api/core/lib/x86_64", "libfmod.so");
+
+		assert(PostBuild.looksLikeWebSdk(web), "html5 package detected");
+		assert(!PostBuild.looksLikeWebSdk(desktop), "desktop package not mistaken for html5");
+		assert(!PostBuild.looksLikeWebSdk(root + "/missing"), "absent path is not the html5 package");
+
+		// The header both packages share cannot separate them
+		assert(sys.FileSystem.exists(web + "/api/core/inc/fmod_common.h"),
+			"html5 package ships the core headers too");
+
+		for (platform in ["mac", "windows", "linux"]) {
+			var marker = haxe.io.Path.join([desktop].concat(PostBuild.nativeCoreLib(platform)));
+			assert(sys.FileSystem.exists(marker), 'desktop package has the $platform core library');
+			var missing = haxe.io.Path.join([web].concat(PostBuild.nativeCoreLib(platform)));
+			assert(!sys.FileSystem.exists(missing), 'html5 package has no $platform core library');
+		}
 	}
 }

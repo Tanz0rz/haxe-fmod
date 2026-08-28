@@ -24,6 +24,11 @@ class PostBuild {
 			Sys.exit(1);
 		}
 
+		// Both FMOD packages ship api/core/inc, so a header check cannot
+		// tell the desktop SDK from the HTML5 one. Name the mix-up here
+		// rather than failing later on a library that was never there.
+		verifyPackage(platform, sdkPath, sdkEnvName);
+
 		// Version check
 		verifyVersion(libRoot, sdkPath, sdkEnvName, projectDir, target);
 
@@ -43,6 +48,50 @@ class PostBuild {
 				log('Unknown platform: $platform (expected mac, linux, windows, or html5)');
 				Sys.exit(1);
 		}
+	}
+
+	//// SDK package verification
+
+	/**
+	 * The core library every native build copies, relative to the SDK root.
+	 * This is what separates a desktop FMOD package from the HTML5 one:
+	 * both ship the same api/core/inc headers, but only the desktop
+	 * package has these.
+	 */
+	public static function nativeCoreLib(platform:String):Array<String> {
+		return switch (platform) {
+			case "mac": ["api", "core", "lib", "libfmod.dylib"];
+			case "windows": ["api", "core", "lib", "x64", "fmod.dll"];
+			default: ["api", "core", "lib", "x86_64", "libfmod.so"];
+		};
+	}
+
+	/** True when the path holds the HTML5 FMOD Engine package. */
+	public static function looksLikeWebSdk(sdkPath:String):Bool {
+		return FileSystem.exists(Path.join([sdkPath, "api", "studio", "lib", "wasm", "fmodstudio.js"]));
+	}
+
+	/** Stops the build when the two FMOD packages have been swapped. */
+	static function verifyPackage(platform:String, sdkPath:String, sdkEnvName:String):Void {
+		// A path that does not exist at all is a plain typo: the version
+		// check and the copy guards give a better message for that
+		if (!FileSystem.exists(sdkPath)) return;
+		var wantWeb = platform == "html5";
+		if (looksLikeWebSdk(sdkPath) == wantWeb) return;
+
+		if (wantWeb) {
+			log('ERROR: $sdkEnvName does not point at the HTML5 FMOD Engine package');
+			log('  $sdkEnvName = $sdkPath');
+			log("  HTML5 builds need the HTML5 package, not the desktop one.");
+		} else {
+			log('ERROR: $sdkEnvName points at the HTML5 FMOD Engine package');
+			log('  $sdkEnvName = $sdkPath');
+			log("  Native builds need the desktop FMOD Engine package. The HTML5");
+			log("  package is what FMOD_SDK_WEB is for.");
+		}
+		log("  Download the right package from https://www.fmod.com/download");
+		log("  Verify your setup with: haxelib run haxefmod check");
+		Sys.exit(1);
 	}
 
 	//// Version verification
@@ -333,8 +382,8 @@ class PostBuild {
 		var dest = Path.join([appDir, "Contents", "MacOS"]);
 		log('Copying FMOD dylibs to $dest');
 
-		copyFile(Path.join([sdkDir, "api", "core", "lib", "libfmod.dylib"]), Path.join([dest, "libfmod.dylib"]));
-		copyFile(Path.join([sdkDir, "api", "studio", "lib", "libfmodstudio.dylib"]), Path.join([dest, "libfmodstudio.dylib"]));
+		copyRequired(Path.join([sdkDir, "api", "core", "lib", "libfmod.dylib"]), Path.join([dest, "libfmod.dylib"]));
+		copyRequired(Path.join([sdkDir, "api", "studio", "lib", "libfmodstudio.dylib"]), Path.join([dest, "libfmodstudio.dylib"]));
 
 		// Copy hlaxe_fmod.hdll - tiered resolution with binding ABI check
 		if (target == "hl") {
@@ -470,8 +519,8 @@ class PostBuild {
 
 		log('Copying FMOD DLLs to $binDir');
 
-		copyFile(Path.join([sdkDir, "api", "core", "lib", "x64", "fmod.dll"]), Path.join([binDir, "fmod.dll"]));
-		copyFile(Path.join([sdkDir, "api", "studio", "lib", "x64", "fmodstudio.dll"]), Path.join([binDir, "fmodstudio.dll"]));
+		copyRequired(Path.join([sdkDir, "api", "core", "lib", "x64", "fmod.dll"]), Path.join([binDir, "fmod.dll"]));
+		copyRequired(Path.join([sdkDir, "api", "studio", "lib", "x64", "fmodstudio.dll"]), Path.join([binDir, "fmodstudio.dll"]));
 
 		// Copy hlaxe_fmod.hdll - tiered resolution with binding ABI check
 		if (target == "hl") {
@@ -589,6 +638,23 @@ class PostBuild {
 
 	static function copyFile(src:String, dst:String):Void {
 		File.copy(src, dst);
+	}
+
+	/**
+	 * Copies a library the build cannot run without. A missing one is a
+	 * setup problem and gets a setup message: File.copy on its own throws
+	 * an uncaught exception naming nothing but the path.
+	 */
+	static function copyRequired(src:String, dst:String):Void {
+		if (!FileSystem.exists(src)) {
+			log('ERROR: FMOD library not found: $src');
+			log("  FMOD_SDK has no libraries for this platform, so the build output");
+			log("  would fail to launch. Re-download the FMOD Engine or fix FMOD_SDK,");
+			log("  then rebuild.");
+			log("  Verify your setup with: haxelib run haxefmod check");
+			Sys.exit(1);
+		}
+		copyFile(src, dst);
 	}
 
 	/** Copy files matching a prefix from srcDir to destDir, preserving symlinks on Linux. */
