@@ -51,9 +51,15 @@ class BuildCheck {
         // the postbuild guards also catch it, but lime can bury their exit
         // code, so the compile-time check is the reliable block
         if (Context.defined("html5") || Context.defined("js")) {
+            requirePackage("FMOD_SDK_WEB", true);
             requireSdkFile("FMOD_SDK_WEB", ["api", "studio", "lib", "wasm", "fmodstudio.js"]);
         } else if (Context.defined("hl") || Context.defined("cpp")) {
+            requirePackage("FMOD_SDK", false);
             requireSdkFile("FMOD_SDK", ["api", "core", "inc", "fmod_common.h"]);
+            // The header above ships in every FMOD package, the HTML5 one
+            // included, so it cannot tell them apart. The platform's own
+            // core library can, and it is the file the postbuild copies.
+            requireSdkFile("FMOD_SDK", PostBuild.nativeCoreLib(targetPlatform()));
         }
 
         if (Context.defined("hl")) {
@@ -163,6 +169,56 @@ class BuildCheck {
                 + "    haxelib run haxefmod build-hdll\n"
                 + "  from your project directory, then rebuild.");
         }
+    }
+
+    /**
+     * Stops the build when the desktop and HTML5 FMOD packages have been
+     * swapped. Both ship api/core/inc, so this names the actual mistake
+     * instead of leaving a missing-library message to be puzzled over.
+     */
+    static function requirePackage(name:String, wantWeb:Bool):Void {
+        var value = Sys.getEnv(name);
+        if (value == null || value == "") return; // requireEnv handled it
+        // A path that does not exist at all is a plain typo, and
+        // requireSdkFile says so more clearly
+        if (!sys.FileSystem.exists(value)) return;
+        if (PostBuild.looksLikeWebSdk(value) == wantWeb) return;
+
+        if (wantWeb) {
+            fail('$name does not point at the HTML5 FMOD Engine package',
+                'haxefmod: $name does not point at the HTML5 FMOD Engine package.\n'
+                + "\n"
+                + '  $name = $value\n'
+                + "\n"
+                + "  HTML5 builds need the HTML5 package, not the desktop one.\n"
+                + "  Download it from https://www.fmod.com/download\n"
+                + "\n"
+                + "  Verify your setup with: haxelib run haxefmod check");
+        } else {
+            fail('$name points at the HTML5 FMOD Engine package',
+                'haxefmod: $name points at the HTML5 FMOD Engine package.\n'
+                + "\n"
+                + '  $name = $value\n'
+                + "\n"
+                + "  Native builds need the desktop FMOD Engine package, which has\n"
+                + "  the libraries this build has to ship. The HTML5 package is what\n"
+                + "  FMOD_SDK_WEB is for.\n"
+                + "  Download the desktop package from https://www.fmod.com/download\n"
+                + "\n"
+                + "  Verify your setup with: haxelib run haxefmod check");
+        }
+    }
+
+    /** The platform being built for, as PostBuild names them. */
+    static function targetPlatform():String {
+        if (Context.defined("mac")) return "mac";
+        if (Context.defined("windows")) return "windows";
+        if (Context.defined("linux")) return "linux";
+        return switch (Sys.systemName()) {
+            case "Windows": "windows";
+            case "Mac": "mac";
+            default: "linux";
+        };
     }
 
     static function prebuiltPlatformDir():String {

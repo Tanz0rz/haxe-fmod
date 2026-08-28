@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+- Pointing `FMOD_SDK` at the HTML5 FMOD Engine package (or `FMOD_SDK_WEB` at a desktop one) now fails the build with a message naming the swapped packages. Previously a native build got as far as copying libraries and died with an uncaught exception on macOS and Windows. Both packages ship the same `api/core/inc` headers, so the check is the platform's own core library rather than a header.
+- A desktop FMOD SDK missing the libraries for the platform being built now reports the missing file with setup instructions instead of an uncaught exception. Linux already did this; macOS and Windows now match.
+
 ## 2.0.0 (2026-08-27)
 
 A clean-break rework: the full FMOD Studio API at runtime, typed handles, payload-carrying callbacks, and a layered architecture with the facade on top. See `MIGRATION.md` for the complete 1.x to 2.0 mapping.

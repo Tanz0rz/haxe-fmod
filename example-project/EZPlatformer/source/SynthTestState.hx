@@ -8,11 +8,12 @@ import haxefmod.core.Channel;
 import haxefmod.core.Dsp;
 import haxefmod.core.DspType;
 import haxefmod.core.PcmStream;
+import haxefmod.studio.StudioSystem;
 
 /**
  * CI test state proving Haxe-generated PCM reaches the audio output.
  *
- * Plays six tone segments through PcmStream so the recording can be
+ * Plays eight tone segments through PcmStream so the recording can be
  * frequency-gated by ci/audio-profile.py --synth:
  *   Segment 1: 4s of a 440Hz sine
  *   Segment 2: 4s of an 880Hz sine
@@ -28,6 +29,17 @@ import haxefmod.core.PcmStream;
  *              recording must show the ramp, proving sample-accurate
  *              scheduling end to end (fades ride the DSP clock, so this
  *              holds at any mixing speed).
+ *   Segment 7: 2000Hz through PcmStream.create3d, placed NEAR_DISTANCE
+ *              from the listener. That is the channel's min distance, so
+ *              nothing is attenuated yet and this is the reference level.
+ *   Segment 8: 2400Hz through the same 3D path, placed FAR_DISTANCE out.
+ *              Under the default inverse rolloff that is min/distance of
+ *              the amplitude, so the recording must show segment 8 well
+ *              below segment 7. Equal levels mean create3d handed back a
+ *              non-positional sound, or the attributes never reached FMOD.
+ *              The two use different tones because the gate labels
+ *              segments by the tones in them and would otherwise merge
+ *              these into one.
  *
  * Each segment is its own stream with a ring sized to hold the whole
  * segment, prefilled before playback starts. That keeps the recorded
@@ -40,16 +52,24 @@ class SynthTestState extends FlxState {
     static inline var RATE:Int = 48000;
     static inline var SEGMENT_SECONDS:Int = 4;
     static inline var AMPLITUDE:Int = 0x5000;
+    // Segment 7 sits at the min distance (reference level) and segment 8
+    // eight times further out, which inverse rolloff makes 1/8 amplitude
+    static inline var NEAR_DISTANCE:Float = 1.0;
+    static inline var FAR_DISTANCE:Float = 8.0;
 
     // {data frequencies (freq2 = 0 for a pure tone), channel pitch,
-    //  lowpass = attach LOWPASS_SIMPLE at 800Hz before playing} per segment
-    static var SEGMENTS:Array<{freq:Float, freq2:Float, pitch:Float, lowpass:Bool, fade:Bool}> = [
-        {freq: 440.0, freq2: 0.0, pitch: 1.0, lowpass: false, fade: false},
-        {freq: 880.0, freq2: 0.0, pitch: 1.0, lowpass: false, fade: false},
-        {freq: 660.0, freq2: 0.0, pitch: 2.0, lowpass: false, fade: false},
-        {freq: 300.0, freq2: 5000.0, pitch: 1.0, lowpass: false, fade: false},
-        {freq: 300.0, freq2: 5000.0, pitch: 1.0, lowpass: true, fade: false},
-        {freq: 500.0, freq2: 0.0, pitch: 1.0, lowpass: false, fade: true},
+    //  lowpass = attach LOWPASS_SIMPLE at 800Hz before playing,
+    //  distance = play through create3d this far from the listener,
+    //  0 for the non-positional path} per segment
+    static var SEGMENTS:Array<{freq:Float, freq2:Float, pitch:Float, lowpass:Bool, fade:Bool, distance:Float}> = [
+        {freq: 440.0, freq2: 0.0, pitch: 1.0, lowpass: false, fade: false, distance: 0.0},
+        {freq: 880.0, freq2: 0.0, pitch: 1.0, lowpass: false, fade: false, distance: 0.0},
+        {freq: 660.0, freq2: 0.0, pitch: 2.0, lowpass: false, fade: false, distance: 0.0},
+        {freq: 300.0, freq2: 5000.0, pitch: 1.0, lowpass: false, fade: false, distance: 0.0},
+        {freq: 300.0, freq2: 5000.0, pitch: 1.0, lowpass: true, fade: false, distance: 0.0},
+        {freq: 500.0, freq2: 0.0, pitch: 1.0, lowpass: false, fade: true, distance: 0.0},
+        {freq: 2000.0, freq2: 0.0, pitch: 1.0, lowpass: false, fade: false, distance: NEAR_DISTANCE},
+        {freq: 2400.0, freq2: 0.0, pitch: 1.0, lowpass: false, fade: false, distance: FAR_DISTANCE},
     ];
 
     var _segment:Int = -1;
@@ -94,7 +114,10 @@ class SynthTestState extends FlxState {
         var seg = SEGMENTS[index];
         var samples = RATE * SEGMENT_SECONDS;
 
-        _stream = PcmStream.create(RATE, 1, samples * 2);
+        var positional = seg.distance > 0;
+        _stream = positional
+            ? PcmStream.create3d(RATE, 1, samples * 2)
+            : PcmStream.create(RATE, 1, samples * 2);
         check('segment${index + 1}_create', !_stream.isNull(), 'handle=${(_stream : Int)}');
         if (_stream.isNull()) {
             finish();
@@ -143,10 +166,24 @@ class SynthTestState extends FlxState {
                     'full=${full.toString()} faded=${faded.toString()}');
             }
         }
+        if (positional) {
+            // The listener sits at the origin facing +z, the convention
+            // setListenerPosition2D uses, so a source at (0, 0, distance)
+            // is straight ahead. Level then moves with distance alone and
+            // no panning muddies the comparison between the two segments.
+            var listener = StudioSystem.setListenerPosition2D(0, 0, 0);
+            check('segment${index + 1}_listener', listener.isOk(), 'result=${listener.toString()}');
+            var minMax = _channel.set3DMinMaxDistance(NEAR_DISTANCE, 10000);
+            check('segment${index + 1}_3d_minmax', minMax.isOk(), 'result=${minMax.toString()}');
+            // Set while still paused so the first mixed block is already
+            // at the right distance
+            var placed = _channel.set3DAttributes(0, 0, seg.distance);
+            check('segment${index + 1}_3d_attributes', placed.isOk(), 'result=${placed.toString()}');
+        }
         _channel.setPaused(false);
 
         _status.text = 'SYNTH_TEST segment ${index + 1}';
-        log('SYNTH_TEST: segment ${index + 1} freq=${seg.freq} pitch=${seg.pitch}');
+        log('SYNTH_TEST: segment ${index + 1} freq=${seg.freq} pitch=${seg.pitch} distance=${seg.distance}');
     }
 
     override public function update(elapsed:Float):Void {
