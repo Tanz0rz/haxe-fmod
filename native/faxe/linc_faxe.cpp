@@ -5277,3 +5277,117 @@ int fmod_sys_get_speaker_position(int speaker, ::Array<Float> fbuf) {
 
 } // namespace faxe
 } // namespace linc
+
+namespace linc {
+namespace faxe {
+
+//// Plugins
+
+// Plugin handles are FMOD's own unsigned ids. They never enter the handle
+// table, so a stale one comes back from FMOD as FMOD_ERR_INVALID_HANDLE.
+
+int fmod_sys_set_plugin_path(const ::String& path) {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = gCoreSystem->setPluginPath(path.c_str());
+    return (int)gLastResult;
+}
+
+int fmod_sys_load_plugin(const ::String& path, int priority) {
+    unsigned int handle = 0;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    gLastResult = gCoreSystem->loadPlugin(path.c_str(), &handle, (unsigned int)priority);
+    if (gLastResult != FMOD_OK) return 0;
+    return (int)handle;
+}
+
+int fmod_sys_unload_plugin(int handle) {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = gCoreSystem->unloadPlugin((unsigned int)handle);
+    return (int)gLastResult;
+}
+
+int fmod_sys_get_num_plugins(int type) {
+    int count = 0;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return -1; }
+    if (type < 0 || type >= (int)FMOD_PLUGINTYPE_MAX) { gLastResult = FMOD_ERR_INVALID_PARAM; return -1; }
+    gLastResult = gCoreSystem->getNumPlugins((FMOD_PLUGINTYPE)type, &count);
+    if (gLastResult != FMOD_OK) return -1;
+    return count;
+}
+
+int fmod_sys_get_plugin_handle(int type, int index) {
+    unsigned int handle = 0;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    if (type < 0 || type >= (int)FMOD_PLUGINTYPE_MAX) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
+    gLastResult = gCoreSystem->getPluginHandle((FMOD_PLUGINTYPE)type, index, &handle);
+    if (gLastResult != FMOD_OK) return 0;
+    return (int)handle;
+}
+
+// ibuf = int[2]: plugin type, version
+const char* fmod_sys_get_plugin_info(int handle, ::Array<int> ibuf) {
+    FMOD_PLUGINTYPE type = FMOD_PLUGINTYPE_OUTPUT;
+    unsigned int version = 0;
+    gStringBuf[0] = '\0';
+    ibuf[0] = 0;
+    ibuf[1] = 0;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return gStringBuf; }
+    gLastResult = gCoreSystem->getPluginInfo((unsigned int)handle, &type, gStringBuf, sizeof(gStringBuf), &version);
+    if (gLastResult != FMOD_OK) { gStringBuf[0] = '\0'; return gStringBuf; }
+    ibuf[0] = (int)type;
+    ibuf[1] = (int)version;
+    return gStringBuf;
+}
+
+int fmod_sys_get_num_nested_plugins(int handle) {
+    int count = 0;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return -1; }
+    gLastResult = gCoreSystem->getNumNestedPlugins((unsigned int)handle, &count);
+    if (gLastResult != FMOD_OK) return -1;
+    return count;
+}
+
+int fmod_sys_get_nested_plugin(int handle, int index) {
+    unsigned int nested = 0;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    gLastResult = gCoreSystem->getNestedPlugin((unsigned int)handle, index, &nested);
+    if (gLastResult != FMOD_OK) return 0;
+    return (int)nested;
+}
+
+int fmod_dsp_create_by_plugin(int pluginHandle) {
+    FMOD::DSP* dsp = NULL;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    gLastResult = gCoreSystem->createDSPByPlugin((unsigned int)pluginHandle, &dsp);
+    if (gLastResult != FMOD_OK || !dsp) return 0;
+    int handle = faxe_handle_alloc(dsp, FAXE_TYPE_DSP);
+    if (handle == 0) {
+        gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
+        dsp->release();
+        return 0;
+    }
+    return handle;
+}
+
+// ibuf = int[4]: version, input buffers, output buffers, parameter count
+const char* fmod_dsp_get_info_by_plugin(int handle, ::Array<int> ibuf) {
+    const FMOD_DSP_DESCRIPTION* desc = NULL;
+    gStringBuf[0] = '\0';
+    for (int i = 0; i < 4; i++) ibuf[i] = 0;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return gStringBuf; }
+    gLastResult = gCoreSystem->getDSPInfoByPlugin((unsigned int)handle, &desc);
+    if (gLastResult == FMOD_OK && !desc) gLastResult = FMOD_ERR_PLUGIN;
+    if (gLastResult != FMOD_OK) return gStringBuf;
+    // The description name is a fixed 32 byte field with no terminator guarantee
+    size_t i = 0;
+    for (; i < sizeof(desc->name) && desc->name[i] != '\0'; i++) gStringBuf[i] = desc->name[i];
+    gStringBuf[i] = '\0';
+    ibuf[0] = (int)desc->version;
+    ibuf[1] = desc->numinputbuffers;
+    ibuf[2] = desc->numoutputbuffers;
+    ibuf[3] = desc->numparameters;
+    return gStringBuf;
+}
+
+} // namespace faxe
+} // namespace linc

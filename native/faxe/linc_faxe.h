@@ -578,6 +578,17 @@ extern int fmod_sys_set_network_timeout(int timeoutMs);
 extern int fmod_sys_get_network_timeout();
 extern int fmod_sys_set_speaker_position(int speaker, float x, float y, bool active);
 extern int fmod_sys_get_speaker_position(int speaker, ::Array<Float> fbuf);
+// Plugins
+extern int fmod_sys_set_plugin_path(const ::String& path);
+extern int fmod_sys_load_plugin(const ::String& path, int priority);
+extern int fmod_sys_unload_plugin(int handle);
+extern int fmod_sys_get_num_plugins(int type);
+extern int fmod_sys_get_plugin_handle(int type, int index);
+extern const char* fmod_sys_get_plugin_info(int handle, ::Array<int> ibuf);
+extern int fmod_sys_get_num_nested_plugins(int handle);
+extern int fmod_sys_get_nested_plugin(int handle, int index);
+extern int fmod_dsp_create_by_plugin(int pluginHandle);
+extern const char* fmod_dsp_get_info_by_plugin(int handle, ::Array<int> ibuf);
 
 } // namespace faxe
 } // namespace linc

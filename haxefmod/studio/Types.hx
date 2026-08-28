@@ -167,3 +167,10 @@ typedef FmodCommandInfo = {
     var instanceHandle:Int;
     var outputHandle:Int;
 }
+
+/** FMOD_PLUGINTYPE, the plugin categories StudioSystem.getPluginCount enumerates */
+enum abstract FmodPluginType(Int) from Int to Int {
+    var OUTPUT = 0;
+    var CODEC = 1;
+    var DSP = 2;
+}

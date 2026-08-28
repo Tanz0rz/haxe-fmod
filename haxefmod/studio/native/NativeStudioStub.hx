@@ -630,4 +630,15 @@ class NativeStudioStub {
     public static function sys_get_network_timeout():Int return -1;
     public static function sys_set_speaker_position(speaker:Int, x:Float, y:Float, active:Bool):Int return ERR_UNSUPPORTED;
     public static function sys_get_speaker_position(speaker:Int):Int return ERR_UNSUPPORTED;
+    // Plugins
+    public static function sys_set_plugin_path(path:String):Int return ERR_UNSUPPORTED;
+    public static function sys_load_plugin(path:String, priority:Int):Int return 0;
+    public static function sys_unload_plugin(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function sys_get_num_plugins(type:Int):Int return -1;
+    public static function sys_get_plugin_handle(type:Int, index:Int):Int return 0;
+    public static function sys_get_plugin_info(handle:Int):String return "";
+    public static function sys_get_num_nested_plugins(handle:Int):Int return -1;
+    public static function sys_get_nested_plugin(handle:Int, index:Int):Int return 0;
+    public static function dsp_create_by_plugin(pluginHandle:Int):Int return 0;
+    public static function dsp_get_info_by_plugin(handle:Int):String return "";
 }

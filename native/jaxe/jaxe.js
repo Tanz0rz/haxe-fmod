@@ -5135,4 +5135,32 @@ class jaxe {
         fbuf[2] = active.val ? 1.0 : 0.0;
         return jaxe.lastResult;
     }
+
+    //// Plugins
+    // The wasm system object has no loadPlugin at all (probed under node),
+    // so the whole plugin surface reports UNSUPPORTED here.
+
+    static pluginUnsupported(value) {
+        jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        return value;
+    }
+
+    static fmod_sys_set_plugin_path(path) { return jaxe.pluginUnsupported(jaxe.ERR_UNSUPPORTED); }
+    static fmod_sys_load_plugin(path, priority) { return jaxe.pluginUnsupported(0); }
+    static fmod_sys_unload_plugin(handle) { return jaxe.pluginUnsupported(jaxe.ERR_UNSUPPORTED); }
+    static fmod_sys_get_num_plugins(type) { return jaxe.pluginUnsupported(-1); }
+    static fmod_sys_get_plugin_handle(type, index) { return jaxe.pluginUnsupported(0); }
+    static fmod_sys_get_plugin_info(handle, ibuf) {
+        ibuf[0] = 0;
+        ibuf[1] = 0;
+        return jaxe.pluginUnsupported("");
+    }
+    static fmod_sys_get_num_nested_plugins(handle) { return jaxe.pluginUnsupported(-1); }
+    static fmod_sys_get_nested_plugin(handle, index) { return jaxe.pluginUnsupported(0); }
+    static fmod_dsp_create_by_plugin(pluginHandle) { return jaxe.pluginUnsupported(0); }
+    static fmod_dsp_get_info_by_plugin(handle, ibuf) {
+        for (var i = 0; i < 4; i++) ibuf[i] = 0;
+        return jaxe.pluginUnsupported("");
+    }
+
 }

@@ -763,3 +763,20 @@ sys_get_network_timeout -> i32
 sys_set_speaker_position i32 f32 f32 bool -> i32
 # fbuf out: [0]=x [1]=y [2]=active (1.0 or 0.0)
 sys_get_speaker_position i32 fbuf -> i32
+## Plugins (native only, the web build has no plugin host)
+# Plugin handles are FMOD's own unsigned ids, not handle-table entries.
+sys_set_plugin_path str -> i32
+# 0 on failure
+sys_load_plugin str i32 -> i32
+sys_unload_plugin i32 -> i32
+# type: 0 output, 1 codec, 2 dsp. -1 on failure
+sys_get_num_plugins i32 -> i32
+sys_get_plugin_handle i32 i32 -> i32
+# ibuf out: [0]=type [1]=version
+sys_get_plugin_info i32 ibuf -> str
+# -1 on failure
+sys_get_num_nested_plugins i32 -> i32
+sys_get_nested_plugin i32 i32 -> i32
+dsp_create_by_plugin i32 -> i32
+# ibuf out: [0]=version [1]=input buffers [2]=output buffers [3]=parameters
+dsp_get_info_by_plugin i32 ibuf -> str

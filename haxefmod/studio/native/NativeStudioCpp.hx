@@ -701,6 +701,17 @@ class NativeStudioCpp {
     public static inline function sys_get_network_timeout():Int return Raw.sys_get_network_timeout();
     public static inline function sys_set_speaker_position(speaker:Int, x:Float, y:Float, active:Bool):Int return Raw.sys_set_speaker_position(speaker, x, y, active);
     public static inline function sys_get_speaker_position(speaker:Int):Int return Raw.sys_get_speaker_position(speaker, Scratch.floatBuf());
+    // Plugins
+    public static inline function sys_set_plugin_path(path:String):Int return Raw.sys_set_plugin_path(path);
+    public static inline function sys_load_plugin(path:String, priority:Int):Int return Raw.sys_load_plugin(path, priority);
+    public static inline function sys_unload_plugin(handle:Int):Int return Raw.sys_unload_plugin(handle);
+    public static inline function sys_get_num_plugins(type:Int):Int return Raw.sys_get_num_plugins(type);
+    public static inline function sys_get_plugin_handle(type:Int, index:Int):Int return Raw.sys_get_plugin_handle(type, index);
+    public static inline function sys_get_plugin_info(handle:Int):String return Raw.sys_get_plugin_info(handle, Scratch.intBuf()).toString();
+    public static inline function sys_get_num_nested_plugins(handle:Int):Int return Raw.sys_get_num_nested_plugins(handle);
+    public static inline function sys_get_nested_plugin(handle:Int, index:Int):Int return Raw.sys_get_nested_plugin(handle, index);
+    public static inline function dsp_create_by_plugin(pluginHandle:Int):Int return Raw.dsp_create_by_plugin(pluginHandle);
+    public static inline function dsp_get_info_by_plugin(handle:Int):String return Raw.dsp_get_info_by_plugin(handle, Scratch.intBuf()).toString();
 }
 
 @:keep
@@ -2149,5 +2160,34 @@ private extern class Raw {
 
     @:native("linc::faxe::fmod_sys_get_speaker_position")
     static function sys_get_speaker_position(speaker:Int, fbuf:Array<Float>):Int;
+    @:native("linc::faxe::fmod_sys_set_plugin_path")
+    static function sys_set_plugin_path(path:String):Int;
+
+    @:native("linc::faxe::fmod_sys_load_plugin")
+    static function sys_load_plugin(path:String, priority:Int):Int;
+
+    @:native("linc::faxe::fmod_sys_unload_plugin")
+    static function sys_unload_plugin(handle:Int):Int;
+
+    @:native("linc::faxe::fmod_sys_get_num_plugins")
+    static function sys_get_num_plugins(type:Int):Int;
+
+    @:native("linc::faxe::fmod_sys_get_plugin_handle")
+    static function sys_get_plugin_handle(type:Int, index:Int):Int;
+
+    @:native("linc::faxe::fmod_sys_get_plugin_info")
+    static function sys_get_plugin_info(handle:Int, ibuf:Array<Int>):cpp.ConstCharStar;
+
+    @:native("linc::faxe::fmod_sys_get_num_nested_plugins")
+    static function sys_get_num_nested_plugins(handle:Int):Int;
+
+    @:native("linc::faxe::fmod_sys_get_nested_plugin")
+    static function sys_get_nested_plugin(handle:Int, index:Int):Int;
+
+    @:native("linc::faxe::fmod_dsp_create_by_plugin")
+    static function dsp_create_by_plugin(pluginHandle:Int):Int;
+
+    @:native("linc::faxe::fmod_dsp_get_info_by_plugin")
+    static function dsp_get_info_by_plugin(handle:Int, ibuf:Array<Int>):cpp.ConstCharStar;
 }
 #end

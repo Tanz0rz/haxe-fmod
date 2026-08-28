@@ -691,6 +691,17 @@ class NativeStudioJs {
     public static inline function sys_get_network_timeout():Int return Raw.fmod_sys_get_network_timeout();
     public static inline function sys_set_speaker_position(speaker:Int, x:Float, y:Float, active:Bool):Int return Raw.fmod_sys_set_speaker_position(speaker, x, y, active);
     public static inline function sys_get_speaker_position(speaker:Int):Int return Raw.fmod_sys_get_speaker_position(speaker, Scratch.floatBuf());
+    // Plugins
+    public static inline function sys_set_plugin_path(path:String):Int return Raw.fmod_sys_set_plugin_path(path);
+    public static inline function sys_load_plugin(path:String, priority:Int):Int return Raw.fmod_sys_load_plugin(path, priority);
+    public static inline function sys_unload_plugin(handle:Int):Int return Raw.fmod_sys_unload_plugin(handle);
+    public static inline function sys_get_num_plugins(type:Int):Int return Raw.fmod_sys_get_num_plugins(type);
+    public static inline function sys_get_plugin_handle(type:Int, index:Int):Int return Raw.fmod_sys_get_plugin_handle(type, index);
+    public static inline function sys_get_plugin_info(handle:Int):String return Raw.fmod_sys_get_plugin_info(handle, Scratch.intBuf());
+    public static inline function sys_get_num_nested_plugins(handle:Int):Int return Raw.fmod_sys_get_num_nested_plugins(handle);
+    public static inline function sys_get_nested_plugin(handle:Int, index:Int):Int return Raw.fmod_sys_get_nested_plugin(handle, index);
+    public static inline function dsp_create_by_plugin(pluginHandle:Int):Int return Raw.fmod_dsp_create_by_plugin(pluginHandle);
+    public static inline function dsp_get_info_by_plugin(handle:Int):String return Raw.fmod_dsp_get_info_by_plugin(handle, Scratch.intBuf());
 }
 
 @:native("jaxe")
@@ -1180,5 +1191,15 @@ private extern class Raw {
     static function fmod_sys_get_network_timeout():Int;
     static function fmod_sys_set_speaker_position(speaker:Int, x:Float, y:Float, active:Bool):Int;
     static function fmod_sys_get_speaker_position(speaker:Int, fbuf:Array<Float>):Int;
+    static function fmod_sys_set_plugin_path(path:String):Int;
+    static function fmod_sys_load_plugin(path:String, priority:Int):Int;
+    static function fmod_sys_unload_plugin(handle:Int):Int;
+    static function fmod_sys_get_num_plugins(type:Int):Int;
+    static function fmod_sys_get_plugin_handle(type:Int, index:Int):Int;
+    static function fmod_sys_get_plugin_info(handle:Int, ibuf:Array<Int>):String;
+    static function fmod_sys_get_num_nested_plugins(handle:Int):Int;
+    static function fmod_sys_get_nested_plugin(handle:Int, index:Int):Int;
+    static function fmod_dsp_create_by_plugin(pluginHandle:Int):Int;
+    static function fmod_dsp_get_info_by_plugin(handle:Int, ibuf:Array<Int>):String;
 }
 #end

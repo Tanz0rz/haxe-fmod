@@ -9,6 +9,7 @@ class RunTests {
 		totalFailed += TestCallbackDispatcher.run();
 		totalFailed += TestFacadePredicates.run();
 		totalFailed += TestLayering.run();
+		totalFailed += TestPlugins.run();
 		totalFailed += TestPostBuild.run();
 		totalFailed += TestRuntime.run();
 		totalFailed += TestSongMachine.run();

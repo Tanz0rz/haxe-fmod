@@ -6009,3 +6009,124 @@ HL_PRIM int HL_NAME(sys_get_speaker_position)(int speaker, vbyte* fbuf) {
     return (int)gLastResult;
 }
 DEFINE_PRIM(_I32, sys_get_speaker_position, _I32 _BYTES);
+
+//// Plugins
+
+// Plugin handles are FMOD's own unsigned ids. They never enter the handle
+// table, so a stale one comes back from FMOD as FMOD_ERR_INVALID_HANDLE.
+
+HL_PRIM int HL_NAME(sys_set_plugin_path)(vbyte* path) {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = FMOD_System_SetPluginPath(gCoreSystem, (const char*)path);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, sys_set_plugin_path, _BYTES);
+
+HL_PRIM int HL_NAME(sys_load_plugin)(vbyte* path, int priority) {
+    unsigned int handle = 0;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    gLastResult = FMOD_System_LoadPlugin(gCoreSystem, (const char*)path, &handle, (unsigned int)priority);
+    if (gLastResult != FMOD_OK) return 0;
+    return (int)handle;
+}
+DEFINE_PRIM(_I32, sys_load_plugin, _BYTES _I32);
+
+HL_PRIM int HL_NAME(sys_unload_plugin)(int handle) {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = FMOD_System_UnloadPlugin(gCoreSystem, (unsigned int)handle);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, sys_unload_plugin, _I32);
+
+HL_PRIM int HL_NAME(sys_get_num_plugins)(int type) {
+    int count = 0;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return -1; }
+    if (type < 0 || type >= (int)FMOD_PLUGINTYPE_MAX) { gLastResult = FMOD_ERR_INVALID_PARAM; return -1; }
+    gLastResult = FMOD_System_GetNumPlugins(gCoreSystem, (FMOD_PLUGINTYPE)type, &count);
+    if (gLastResult != FMOD_OK) return -1;
+    return count;
+}
+DEFINE_PRIM(_I32, sys_get_num_plugins, _I32);
+
+HL_PRIM int HL_NAME(sys_get_plugin_handle)(int type, int index) {
+    unsigned int handle = 0;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    if (type < 0 || type >= (int)FMOD_PLUGINTYPE_MAX) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
+    gLastResult = FMOD_System_GetPluginHandle(gCoreSystem, (FMOD_PLUGINTYPE)type, index, &handle);
+    if (gLastResult != FMOD_OK) return 0;
+    return (int)handle;
+}
+DEFINE_PRIM(_I32, sys_get_plugin_handle, _I32 _I32);
+
+// out = int[2]: plugin type, version
+HL_PRIM vbyte* HL_NAME(sys_get_plugin_info)(int handle, vbyte* out) {
+    FMOD_PLUGINTYPE type = FMOD_PLUGINTYPE_OUTPUT;
+    unsigned int version = 0;
+    int* outInts = (int*)out;
+    gStringBuf[0] = '\0';
+    outInts[0] = 0;
+    outInts[1] = 0;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (vbyte*)gStringBuf; }
+    gLastResult = FMOD_System_GetPluginInfo(gCoreSystem, (unsigned int)handle, &type, gStringBuf, sizeof(gStringBuf), &version);
+    if (gLastResult != FMOD_OK) { gStringBuf[0] = '\0'; return (vbyte*)gStringBuf; }
+    outInts[0] = (int)type;
+    outInts[1] = (int)version;
+    return (vbyte*)gStringBuf;
+}
+DEFINE_PRIM(_BYTES, sys_get_plugin_info, _I32 _BYTES);
+
+HL_PRIM int HL_NAME(sys_get_num_nested_plugins)(int handle) {
+    int count = 0;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return -1; }
+    gLastResult = FMOD_System_GetNumNestedPlugins(gCoreSystem, (unsigned int)handle, &count);
+    if (gLastResult != FMOD_OK) return -1;
+    return count;
+}
+DEFINE_PRIM(_I32, sys_get_num_nested_plugins, _I32);
+
+HL_PRIM int HL_NAME(sys_get_nested_plugin)(int handle, int index) {
+    unsigned int nested = 0;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    gLastResult = FMOD_System_GetNestedPlugin(gCoreSystem, (unsigned int)handle, index, &nested);
+    if (gLastResult != FMOD_OK) return 0;
+    return (int)nested;
+}
+DEFINE_PRIM(_I32, sys_get_nested_plugin, _I32 _I32);
+
+HL_PRIM int HL_NAME(dsp_create_by_plugin)(int pluginHandle) {
+    FMOD_DSP* dsp = NULL;
+    int handle;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    gLastResult = FMOD_System_CreateDSPByPlugin(gCoreSystem, (unsigned int)pluginHandle, &dsp);
+    if (gLastResult != FMOD_OK || !dsp) return 0;
+    handle = faxe_handle_alloc(dsp, FAXE_TYPE_DSP);
+    if (handle == 0) {
+        gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
+        FMOD_DSP_Release(dsp);
+        return 0;
+    }
+    return handle;
+}
+DEFINE_PRIM(_I32, dsp_create_by_plugin, _I32);
+
+// out = int[4]: version, input buffers, output buffers, parameter count
+HL_PRIM vbyte* HL_NAME(dsp_get_info_by_plugin)(int handle, vbyte* out) {
+    const FMOD_DSP_DESCRIPTION* desc = NULL;
+    int* outInts = (int*)out;
+    size_t i;
+    gStringBuf[0] = '\0';
+    for (i = 0; i < 4; i++) outInts[i] = 0;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (vbyte*)gStringBuf; }
+    gLastResult = FMOD_System_GetDSPInfoByPlugin(gCoreSystem, (unsigned int)handle, &desc);
+    if (gLastResult == FMOD_OK && !desc) gLastResult = FMOD_ERR_PLUGIN;
+    if (gLastResult != FMOD_OK) return (vbyte*)gStringBuf;
+    /* The description name is a fixed 32 byte field with no terminator guarantee */
+    for (i = 0; i < sizeof(desc->name) && desc->name[i] != '\0'; i++) gStringBuf[i] = desc->name[i];
+    gStringBuf[i] = '\0';
+    outInts[0] = (int)desc->version;
+    outInts[1] = desc->numinputbuffers;
+    outInts[2] = desc->numoutputbuffers;
+    outInts[3] = desc->numparameters;
+    return (vbyte*)gStringBuf;
+}
+DEFINE_PRIM(_BYTES, dsp_get_info_by_plugin, _I32 _BYTES);

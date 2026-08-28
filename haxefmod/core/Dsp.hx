@@ -282,4 +282,49 @@ abstract Dsp(Int) from Int to Int {
     public inline function getUserData():Dynamic {
         return UserData.get(UserDataKind.Dsp, this);
     }
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /**
+     * Creates an effect unit from a plugin loaded with
+     * StudioSystem.loadPlugin (unsupported in HTML5, returns Dsp.NULL
+     * there). Returns Dsp.NULL on failure. Release it before unloading
+     * the plugin.
+     */
+    public static macro function createByPlugin(pluginHandle:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("Dsp.createByPlugin", "the web build has no plugin host");
+    }
+    #else
+    /**
+     * Creates an effect unit from a plugin loaded with
+     * StudioSystem.loadPlugin (unsupported in HTML5, returns Dsp.NULL
+     * there). Returns Dsp.NULL on failure. Release it before unloading
+     * the plugin.
+     */
+    public static inline function createByPlugin(pluginHandle:Int):Dsp {
+        return NativeStudio.dsp_create_by_plugin(pluginHandle);
+    }
+    #end
+
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /**
+     * The description a DSP plugin registered, its name, version, buffer
+     * counts and parameter count (unsupported in HTML5, null there). Null
+     * for a handle that is not a DSP plugin.
+     */
+    public static macro function getPluginInfo(pluginHandle:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("Dsp.getPluginInfo", "the web build has no plugin host");
+    }
+    #else
+    /**
+     * The description a DSP plugin registered, its name, version, buffer
+     * counts and parameter count (unsupported in HTML5, null there). Null
+     * for a handle that is not a DSP plugin.
+     */
+    public static function getPluginInfo(pluginHandle:Int):Null<{name:String, version:Int, inputBuffers:Int, outputBuffers:Int, parameterCount:Int}> {
+        var name = NativeStudio.dsp_get_info_by_plugin(pluginHandle);
+        var result:FmodResult = NativeStudio.sys_last_result();
+        if (!result.isOk()) return null;
+        return {name: name, version: Scratch.readI(0), inputBuffers: Scratch.readI(1),
+            outputBuffers: Scratch.readI(2), parameterCount: Scratch.readI(3)};
+    }
+    #end
 }

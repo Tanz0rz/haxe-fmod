@@ -137,6 +137,26 @@ GATED = [
      "var r = CoreSystem.getDefaultMixMatrix(3, 3);"),
     ("Dsp", "getParameterInfo", "haxefmod/core/Dsp.hx",
      "var d:Dsp = cast 1; var r = d.getParameterInfo(0);"),
+    ("StudioSystem", "setPluginPath", "haxefmod/studio/StudioSystem.hx",
+     "var r = StudioSystem.setPluginPath(\"plugins\");"),
+    ("StudioSystem", "loadPlugin", "haxefmod/studio/StudioSystem.hx",
+     "var r = StudioSystem.loadPlugin(\"gain.so\");"),
+    ("StudioSystem", "unloadPlugin", "haxefmod/studio/StudioSystem.hx",
+     "var r = StudioSystem.unloadPlugin(1);"),
+    ("StudioSystem", "getPluginCount", "haxefmod/studio/StudioSystem.hx",
+     "var r = StudioSystem.getPluginCount(FmodPluginType.DSP);"),
+    ("StudioSystem", "getPluginHandle", "haxefmod/studio/StudioSystem.hx",
+     "var r = StudioSystem.getPluginHandle(FmodPluginType.DSP, 0);"),
+    ("StudioSystem", "getPluginInfo", "haxefmod/studio/StudioSystem.hx",
+     "var r = StudioSystem.getPluginInfo(1);"),
+    ("StudioSystem", "getNestedPluginCount", "haxefmod/studio/StudioSystem.hx",
+     "var r = StudioSystem.getNestedPluginCount(1);"),
+    ("StudioSystem", "getNestedPlugin", "haxefmod/studio/StudioSystem.hx",
+     "var r = StudioSystem.getNestedPlugin(1, 0);"),
+    ("Dsp", "createByPlugin", "haxefmod/core/Dsp.hx",
+     "var r = Dsp.createByPlugin(1);"),
+    ("Dsp", "getPluginInfo", "haxefmod/core/Dsp.hx",
+     "var r = Dsp.getPluginInfo(1);"),
 ]
 
 IMPORTS = "\n".join([
@@ -150,6 +170,8 @@ IMPORTS = "\n".join([
     "import haxefmod.core.CoreSystem;",
     "import haxefmod.core.Dsp;",
     "import haxefmod.core.DspConnection;",
+    "import haxefmod.core.Dsp;",
+    "import haxefmod.studio.Types;",
 ])
 
 # (label, extra haxe args, must compile)

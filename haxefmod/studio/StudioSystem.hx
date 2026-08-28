@@ -575,4 +575,127 @@ class StudioSystem {
         if (!result.isOk()) return null;
         return {sampleBytesRead: Scratch.readF(0), streamBytesRead: Scratch.readF(1), otherBytesRead: Scratch.readF(2)};
     }
+    // Plugins. Plugin handles are FMOD's own ids, not haxefmod handles, so
+    // they never show up in liveHandleCount and a stale one is reported by
+    // FMOD as FMOD_ERR_INVALID_HANDLE.
+
+#if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /** Sets the directory FMOD searches for plugins given by file name (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED). */
+    public static macro function setPluginPath(path:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("StudioSystem.setPluginPath", "the web build has no plugin host");
+    }
+    #else
+    /** Sets the directory FMOD searches for plugins given by file name (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED). */
+    public static inline function setPluginPath(path:String):FmodResult {
+        return NativeStudio.sys_set_plugin_path(path == null ? "" : path);
+    }
+    #end
+
+#if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /**
+     * Loads a plugin shared library and returns FMOD's plugin handle
+     * (unsupported in HTML5, returns 0 there). 0 on failure with the reason
+     * in lastResult, FMOD_ERR_FILE_NOTFOUND for a missing file. A relative
+     * path is resolved against setPluginPath, not the working directory.
+     */
+    public static macro function loadPlugin(path:haxe.macro.Expr, ?priority:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("StudioSystem.loadPlugin", "the web build has no plugin host");
+    }
+    #else
+    /**
+     * Loads a plugin shared library and returns FMOD's plugin handle
+     * (unsupported in HTML5, returns 0 there). 0 on failure with the reason
+     * in lastResult, FMOD_ERR_FILE_NOTFOUND for a missing file. A relative
+     * path is resolved against setPluginPath, not the working directory.
+     */
+    public static inline function loadPlugin(path:String, priority:Int = 0):Int {
+        return NativeStudio.sys_load_plugin(path == null ? "" : path, priority);
+    }
+    #end
+
+#if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /**
+     * Unloads a plugin from loadPlugin (unsupported in HTML5, returns
+     * FMOD_ERR_UNSUPPORTED). Release every Dsp created from it first. FMOD
+     * frees a released unit from its mixer thread, so an unload that
+     * answers FMOD_ERR_DSP_INUSE right after the release succeeds when it
+     * is retried a few frames later.
+     */
+    public static macro function unloadPlugin(handle:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("StudioSystem.unloadPlugin", "the web build has no plugin host");
+    }
+    #else
+    /**
+     * Unloads a plugin from loadPlugin (unsupported in HTML5, returns
+     * FMOD_ERR_UNSUPPORTED). Release every Dsp created from it first. FMOD
+     * frees a released unit from its mixer thread, so an unload that
+     * answers FMOD_ERR_DSP_INUSE right after the release succeeds when it
+     * is retried a few frames later.
+     */
+    public static inline function unloadPlugin(handle:Int):FmodResult {
+        return NativeStudio.sys_unload_plugin(handle);
+    }
+    #end
+
+#if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /** The number of plugins of one type, built-in ones included (unsupported in HTML5, -1 there). -1 on failure. */
+    public static macro function getPluginCount(type:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("StudioSystem.getPluginCount", "the web build has no plugin host");
+    }
+    #else
+    /** The number of plugins of one type, built-in ones included (unsupported in HTML5, -1 there). -1 on failure. */
+    public static inline function getPluginCount(type:FmodPluginType):Int {
+        return NativeStudio.sys_get_num_plugins(type);
+    }
+    #end
+
+#if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /** The plugin handle at an index within one type (unsupported in HTML5, 0 there). 0 for an index out of range. */
+    public static macro function getPluginHandle(type:haxe.macro.Expr, index:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("StudioSystem.getPluginHandle", "the web build has no plugin host");
+    }
+    #else
+    /** The plugin handle at an index within one type (unsupported in HTML5, 0 there). 0 for an index out of range. */
+    public static inline function getPluginHandle(type:FmodPluginType, index:Int):Int {
+        return NativeStudio.sys_get_plugin_handle(type, index);
+    }
+    #end
+
+#if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /** The name, type and version a plugin registered (unsupported in HTML5, null there). Null for an unknown handle. */
+    public static macro function getPluginInfo(handle:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("StudioSystem.getPluginInfo", "the web build has no plugin host");
+    }
+    #else
+    /** The name, type and version a plugin registered (unsupported in HTML5, null there). Null for an unknown handle. */
+    public static function getPluginInfo(handle:Int):Null<{name:String, type:FmodPluginType, version:Int}> {
+        var name = NativeStudio.sys_get_plugin_info(handle);
+        if (!lastResult().isOk()) return null;
+        return {name: name, type: (Scratch.readI(0) : FmodPluginType), version: Scratch.readI(1)};
+    }
+    #end
+
+#if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /** The number of plugins a loaded library contains, 1 for a plain plugin (unsupported in HTML5, -1 there). -1 on failure. */
+    public static macro function getNestedPluginCount(handle:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("StudioSystem.getNestedPluginCount", "the web build has no plugin host");
+    }
+    #else
+    /** The number of plugins a loaded library contains, 1 for a plain plugin (unsupported in HTML5, -1 there). -1 on failure. */
+    public static inline function getNestedPluginCount(handle:Int):Int {
+        return NativeStudio.sys_get_num_nested_plugins(handle);
+    }
+    #end
+
+#if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /** The handle of one plugin inside a loaded library (unsupported in HTML5, 0 there). 0 for an index out of range. */
+    public static macro function getNestedPlugin(handle:haxe.macro.Expr, index:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("StudioSystem.getNestedPlugin", "the web build has no plugin host");
+    }
+    #else
+    /** The handle of one plugin inside a loaded library (unsupported in HTML5, 0 there). 0 for an index out of range. */
+    public static inline function getNestedPlugin(handle:Int, index:Int):Int {
+        return NativeStudio.sys_get_nested_plugin(handle, index);
+    }
+    #end
 }

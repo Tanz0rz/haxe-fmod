@@ -368,6 +368,14 @@ jobs:
       - name: Validate volume/mute
         run: ./ci/validate-volume.sh /tmp/volume-test-linux-cpp.wav 15
 
+      - name: Build the test DSP plugin next to the game
+        if: ${{ !cancelled() }}
+        run: |
+          for BIN_DIR in example-project/EZPlatformer/export/linux*/bin; do
+            gcc -shared -fPIC -o "$BIN_DIR/libtest_plugin_gain.so" \
+              -I "$FMOD_SDK/api/core/inc" tests/native/test_plugin_gain.c
+          done
+
       - name: Run api-probe state
         if: ${{ !cancelled() }}
         uses: ./.github/actions/run-test-state
@@ -691,6 +699,12 @@ jobs:
 
       - name: Validate volume/mute
         run: ./ci/validate-volume.sh /tmp/volume-test-linux-hl.wav 15
+
+      - name: Build the test DSP plugin next to the game
+        if: ${{ !cancelled() }}
+        run: |
+          gcc -shared -fPIC -o example-project/EZPlatformer/export/hl/bin/libtest_plugin_gain.so \
+            -I "$FMOD_SDK/api/core/inc" tests/native/test_plugin_gain.c
 
       - name: Run api-probe state
         if: ${{ !cancelled() }}
@@ -3167,6 +3181,7 @@ jobs:
           node tests/js/geometry-rolloff-harness.js
           node tests/js/completeness-tail-harness.js
           node tests/js/sysextras-harness.js
+          node tests/js/plugins-harness.js
 
       - name: Run Core dynamic-audio prototype against the real wasm
         env:

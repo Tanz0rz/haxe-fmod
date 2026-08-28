@@ -698,6 +698,17 @@ class NativeStudioHl {
     public static inline function sys_get_network_timeout():Int return Raw.sys_get_network_timeout();
     public static inline function sys_set_speaker_position(speaker:Int, x:Float, y:Float, active:Bool):Int return Raw.sys_set_speaker_position(speaker, x, y, active);
     public static inline function sys_get_speaker_position(speaker:Int):Int return Raw.sys_get_speaker_position(speaker, Scratch.floatBuf());
+    // Plugins
+    public static inline function sys_set_plugin_path(path:String):Int return Raw.sys_set_plugin_path(toBytes(path));
+    public static inline function sys_load_plugin(path:String, priority:Int):Int return Raw.sys_load_plugin(toBytes(path), priority);
+    public static inline function sys_unload_plugin(handle:Int):Int return Raw.sys_unload_plugin(handle);
+    public static inline function sys_get_num_plugins(type:Int):Int return Raw.sys_get_num_plugins(type);
+    public static inline function sys_get_plugin_handle(type:Int, index:Int):Int return Raw.sys_get_plugin_handle(type, index);
+    public static inline function sys_get_plugin_info(handle:Int):String return fromBytes(Raw.sys_get_plugin_info(handle, Scratch.intBuf()));
+    public static inline function sys_get_num_nested_plugins(handle:Int):Int return Raw.sys_get_num_nested_plugins(handle);
+    public static inline function sys_get_nested_plugin(handle:Int, index:Int):Int return Raw.sys_get_nested_plugin(handle, index);
+    public static inline function dsp_create_by_plugin(pluginHandle:Int):Int return Raw.dsp_create_by_plugin(pluginHandle);
+    public static inline function dsp_get_info_by_plugin(handle:Int):String return fromBytes(Raw.dsp_get_info_by_plugin(handle, Scratch.intBuf()));
 }
 
 @:hlNative("hlaxe_fmod")
@@ -1187,5 +1198,15 @@ private extern class Raw {
     static function sys_get_network_timeout():Int;
     static function sys_set_speaker_position(speaker:Int, x:Float, y:Float, active:Bool):Int;
     static function sys_get_speaker_position(speaker:Int, fbuf:hl.Bytes):Int;
+    static function sys_set_plugin_path(path:hl.Bytes):Int;
+    static function sys_load_plugin(path:hl.Bytes, priority:Int):Int;
+    static function sys_unload_plugin(handle:Int):Int;
+    static function sys_get_num_plugins(type:Int):Int;
+    static function sys_get_plugin_handle(type:Int, index:Int):Int;
+    static function sys_get_plugin_info(handle:Int, ibuf:hl.Bytes):hl.Bytes;
+    static function sys_get_num_nested_plugins(handle:Int):Int;
+    static function sys_get_nested_plugin(handle:Int, index:Int):Int;
+    static function dsp_create_by_plugin(pluginHandle:Int):Int;
+    static function dsp_get_info_by_plugin(handle:Int, ibuf:hl.Bytes):hl.Bytes;
 }
 #end
