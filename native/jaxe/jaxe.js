@@ -19,6 +19,9 @@ class jaxe {
     // Init settings stored by fmod_sys_init_ex and consumed by
     // onRuntimeInitialized. Legacy fmod_init leaves this null (defaults).
     static pendingInit = null;
+    // Output type, resampler, and raw speaker count from
+    // fmod_sys_set_init_format, folded into pendingInit by fmod_sys_init_ex
+    static pendingFormat = null;
     // Counter for unique MEMFS names used by fmod_sys_load_bank_async.
     static asyncBankCounter = 0;
     // bank rawPtr -> MEMFS file name, so unload can delete the copied bytes
@@ -425,6 +428,10 @@ class jaxe {
     static ERR_INVALID_GUID = 31;   // malformed GUID string -> FMOD_ERR_INVALID_PARAM (shared shim convention)
     static ERR_NOTREADY = 46;
     static ERR_STUDIO_UNINITIALIZED = 75;
+    static ERR_INITIALIZED = 27;
+    // FMOD_OUTPUTTYPE values the web build can select: AUTODETECT (the
+    // default), NOSOUND, NOSOUND_NRT, WEBAUDIO, AUDIOWORKLET
+    static WEB_OUTPUT_TYPES = [0, 2, 4, 15, 19];
 
     static sysReady() {
         if (jaxe.FmodIsInitialized) return true;
@@ -542,19 +549,22 @@ class jaxe {
     // Settings-driven init: stores the settings for onRuntimeInitialized and
     // kicks off module init exactly like fmod_init. Module startup is
     // asynchronous - poll fmod_sys_is_initialized for completion. Returns 0 (OK).
-    // The DSP buffer arguments are accepted and ignored, the web build
-    // fixes the buffer at 2048x2. softwareChannels and streamBufferSize
-    // apply when nonzero. initFlags bit0 = profiling, bit1 = distance filter.
+    // dspBufferLength and dspNumBuffers apply when nonzero, otherwise the
+    // web build runs at 2048x2. softwareChannels and streamBufferSize
+    // apply when nonzero. initFlags bit0 = profiling, bit1 = distance
+    // filter. studioFlags bit0 = live update, bit1 = memory tracking.
     // The arguments after initFlags are the advanced settings, zero for the
     // FMOD default. They are applied by applyPendingAdvancedSettings once
     // the module is up. The web build's studio struct has no
     // streamingscheduledelay or encryptionkey, so those two are accepted
-    // and dropped.
+    // and dropped. The output type, resampler, and raw speaker count come
+    // from the last fmod_sys_set_init_format call.
     static fmod_sys_init_ex(numChannels, sampleRate, speakerMode, studioFlags, dspBufferLength, dspNumBuffers, softwareChannels, streamBufferSize, initFlags, maxMPEGCodecs, maxVorbisCodecs, maxFADPCMCodecs, vol0VirtualVol, defaultDecodeBufferSize, profilePort, geometryMaxFadeTime, distanceFilterCenterFreq, randomSeed, commandQueueSize, handleInitialSize, studioUpdatePeriod, idleSampleDataPoolSize, streamingScheduleDelay, encryptionKey) {
         // Trailing settings may be omitted by direct callers and mean the
         // defaults. The key is "" for none, an explicit null is a caller bug.
         if (encryptionKey === undefined) encryptionKey = "";
         if (typeof encryptionKey !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
+        var format = jaxe.pendingFormat || { outputType: 0, resamplerMethod: 0, rawSpeakers: 0 };
         // Init once, like the native shims. A second call while the module
         // is loading or after it is ready would run FMODModule again over
         // a live system.
@@ -563,7 +573,12 @@ class jaxe {
             numChannels: numChannels,
             sampleRate: sampleRate,
             speakerMode: speakerMode,
+            rawSpeakers: format.rawSpeakers,
+            outputType: format.outputType,
+            resamplerMethod: format.resamplerMethod,
             studioFlags: studioFlags,
+            dspBufferLength: dspBufferLength | 0,
+            dspNumBuffers: dspNumBuffers | 0,
             softwareChannels: softwareChannels,
             streamBufferSize: streamBufferSize,
             initFlags: initFlags,
@@ -4967,7 +4982,8 @@ class jaxe {
         if (!init) return;
         if ((init.maxMPEGCodecs > 0 || init.maxVorbisCodecs > 0 || init.maxFADPCMCodecs > 0
             || init.vol0VirtualVol > 0 || init.defaultDecodeBufferSize > 0 || init.profilePort > 0
-            || init.geometryMaxFadeTime > 0 || init.distanceFilterCenterFreq > 0 || init.randomSeed != 0)
+            || init.geometryMaxFadeTime > 0 || init.distanceFilterCenterFreq > 0 || init.randomSeed != 0
+            || init.resamplerMethod > 0)
             && jaxe.FMOD.ADVANCEDSETTINGS && core.setAdvancedSettings) {
             var adv = jaxe.FMOD.ADVANCEDSETTINGS();
             if (init.maxMPEGCodecs > 0) adv.maxMPEGCodecs = init.maxMPEGCodecs;
@@ -4979,6 +4995,7 @@ class jaxe {
             if (init.geometryMaxFadeTime > 0) adv.geometryMaxFadeTime = init.geometryMaxFadeTime;
             if (init.distanceFilterCenterFreq > 0) adv.distanceFilterCenterFreq = init.distanceFilterCenterFreq;
             if (init.randomSeed != 0) adv.randomSeed = init.randomSeed >>> 0;
+            if (init.resamplerMethod > 0) adv.resamplerMethod = init.resamplerMethod;
             core.setAdvancedSettings(adv);
         }
         if ((init.commandQueueSize > 0 || init.handleInitialSize > 0 || init.studioUpdatePeriod > 0
@@ -4991,6 +5008,14 @@ class jaxe {
             if (init.idleSampleDataPoolSize > 0) sadv.idlesampledatapoolsize = init.idleSampleDataPoolSize;
             studio.setAdvancedSettings(sadv);
         }
+    }
+
+    // FMOD_STUDIO_INIT_LIVEUPDATE = 1, FMOD_STUDIO_INIT_MEMORY_TRACKING = 0x20
+    static studioInitFlags(init) {
+        var flags = jaxe.FMOD.STUDIO_INIT_NORMAL;
+        if (init && (init.studioFlags & 1)) flags |= jaxe.FMOD.STUDIO_INIT_LIVEUPDATE;
+        if (init && (init.studioFlags & 2)) flags |= (jaxe.FMOD.STUDIO_INIT_MEMORY_TRACKING || 0x20);
+        return flags;
     }
 
     // FMOD_INIT_PROFILE_ENABLE = 0x10000, FMOD_INIT_CHANNEL_DISTANCEFILTER = 0x200
@@ -5013,7 +5038,14 @@ class jaxe {
         jaxe.gSystem.getCoreSystem(outval);
         jaxe.gSystemCore = outval.val;
 
-        jaxe.gSystemCore.setDSPBufferSize(2048, 2);
+        if (init && init.outputType > 0) jaxe.gSystemCore.setOutput(init.outputType);
+
+        // 2048x2 unless the settings ask for another mixer block
+        if (init && init.dspBufferLength > 0) {
+            jaxe.gSystemCore.setDSPBufferSize(init.dspBufferLength, init.dspNumBuffers > 0 ? init.dspNumBuffers : 2);
+        } else {
+            jaxe.gSystemCore.setDSPBufferSize(2048, 2);
+        }
 
         // Mirrors the native shims: a requested speaker mode is honored
         // even when the sample rate is left at the driver default
@@ -5024,7 +5056,8 @@ class jaxe {
                 initRate = outval.val;
             }
             jaxe.gSystemCore.setSoftwareFormat(initRate,
-                init.speakerMode > 0 ? init.speakerMode : jaxe.FMOD.SPEAKERMODE_DEFAULT, 0);
+                init.speakerMode > 0 ? init.speakerMode : jaxe.FMOD.SPEAKERMODE_DEFAULT,
+                init.speakerMode == jaxe.FMOD.SPEAKERMODE_RAW ? init.rawSpeakers : 0);
         } else {
             jaxe.gSystemCore.getDriverInfo(0, null, null, outval, null, null);
             jaxe.gSystemCore.setSoftwareFormat(outval.val, jaxe.FMOD.SPEAKERMODE_DEFAULT, 0);
@@ -5044,10 +5077,7 @@ class jaxe {
 
         // 128 matches the native shims' fallback for a missing channel count
         var numChannels = (init && init.numChannels > 0) ? init.numChannels : 128;
-        var studioInitFlags = (init && (init.studioFlags & 1))
-            ? jaxe.FMOD.STUDIO_INIT_LIVEUPDATE
-            : jaxe.FMOD.STUDIO_INIT_NORMAL;
-        jaxe.gSystem.initialize(numChannels, studioInitFlags, jaxe.coreInitFlags(init), null);
+        jaxe.gSystem.initialize(numChannels, jaxe.studioInitFlags(init), jaxe.coreInitFlags(init), null);
 
         // Enable auto-update by default (the runtime applies the
         // configured setting on its first serviced frame)
@@ -5348,7 +5378,7 @@ class jaxe {
     // The web build's getAdvancedSettings rejects every argument shape
     // with INVALID_PARAM (2.03.12), so the readback reports 68
     static fmod_sys_get_advanced_settings(ibuf, fbuf) {
-        jaxe.zeroFill(ibuf, 7);
+        jaxe.zeroFill(ibuf, 8);
         fbuf[0] = 0.0; fbuf[1] = 0.0;
         if (!jaxe.sysReady()) return jaxe.lastResult;
         jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
@@ -5459,5 +5489,98 @@ class jaxe {
         jaxe.lastResult = group.getDSP(index, out);
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
         return jaxe.handleFindOrAlloc(out.val, jaxe.TYPE_DSP);
+    }
+
+    //// Init settings and system info: pre-create hooks, driver info, console ports
+
+    // outputType must be one of the outputs the web build has (WEBAUDIO,
+    // AUDIOWORKLET, NOSOUND, NOSOUND_NRT) or 0 for the default, anything
+    // else is refused with 68 (ERR_UNSUPPORTED) before the module starts.
+    // resamplerMethod goes to the advanced settings and rawSpeakers to
+    // setSoftwareFormat, both at init.
+    static fmod_sys_set_init_format(outputType, resamplerMethod, rawSpeakers) {
+        outputType = outputType | 0;
+        if (jaxe.pendingInit || jaxe.FmodIsInitialized) { jaxe.lastResult = jaxe.ERR_INITIALIZED; return jaxe.lastResult; }
+        if (!jaxe.WEB_OUTPUT_TYPES.includes(outputType)) {
+            console.warn("FMOD JS: output type " + outputType + " does not exist in the web build");
+            jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+            return jaxe.lastResult;
+        }
+        jaxe.pendingFormat = { outputType: outputType, resamplerMethod: resamplerMethod | 0, rawSpeakers: rawSpeakers | 0 };
+        jaxe.lastResult = 0;
+        return 0;
+    }
+
+    // The web build allocates from the wasm heap, there is no pool to hand over
+    static fmod_sys_memory_initialize(poolSize) {
+        jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        return jaxe.lastResult;
+    }
+
+    // The web build runs on the browser's audio thread, there are no FMOD threads to place
+    static fmod_sys_thread_set_attributes(type, priority, stackSize, affinity) {
+        jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        return jaxe.lastResult;
+    }
+
+    // TTY mode takes the same one-argument Debug_Initialize path as
+    // fmod_sys_set_debug_level. File mode has nowhere to write in the
+    // browser, 68 (ERR_UNSUPPORTED).
+    static fmod_sys_debug_initialize(flags, mode, filename) {
+        if (typeof filename !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
+        if (mode !== 0) { jaxe.lastResult = jaxe.ERR_UNSUPPORTED; return jaxe.lastResult; }
+        if (!jaxe.FMOD.Debug_Initialize) { jaxe.lastResult = jaxe.ERR_UNSUPPORTED; return jaxe.lastResult; }
+        try {
+            jaxe.lastResult = jaxe.FMOD.Debug_Initialize(flags | 0);
+        } catch (e) {
+            jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        }
+        return jaxe.lastResult;
+    }
+
+    // Name of an output driver plus rate, speaker mode, and channel count in
+    // ibuf. The GUID comes from fmod_sys_get_driver_guid.
+    static fmod_sys_get_driver_info(id, ibuf) {
+        ibuf[0] = 0; ibuf[1] = 0; ibuf[2] = 0;
+        if (!jaxe.FmodIsInitialized) { jaxe.lastResult = jaxe.ERR_STUDIO_UNINITIALIZED; return ""; }
+        var name = {};
+        var guid = {};
+        var rate = {};
+        var mode = {};
+        var channels = {};
+        jaxe.lastResult = jaxe.gSystemCore.getDriverInfo(id, name, guid, rate, mode, channels);
+        if (jaxe.lastResult != jaxe.FMOD.OK) return "";
+        ibuf[0] = rate.val | 0;
+        ibuf[1] = mode.val | 0;
+        ibuf[2] = channels.val | 0;
+        return name.val || "";
+    }
+
+    static fmod_sys_get_driver_guid(id) {
+        if (!jaxe.FmodIsInitialized) { jaxe.lastResult = jaxe.ERR_STUDIO_UNINITIALIZED; return ""; }
+        var name = {};
+        var guid = {};
+        var rate = {};
+        var mode = {};
+        var channels = {};
+        jaxe.lastResult = jaxe.gSystemCore.getDriverInfo(id, name, guid, rate, mode, channels);
+        if (jaxe.lastResult != jaxe.FMOD.OK || !guid.val) return "";
+        return jaxe.formatGuid(guid.val);
+    }
+
+    // Console ports do not exist in the web build, 68 (ERR_UNSUPPORTED).
+    // A dead group handle still reports 30 first.
+    static fmod_sys_attach_channel_group_to_port(portType, portIndex, groupHandle, passThru) {
+        var group = jaxe.resolveCg(groupHandle);
+        if (!group) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        return jaxe.lastResult;
+    }
+
+    static fmod_sys_detach_channel_group_from_port(groupHandle) {
+        var group = jaxe.resolveCg(groupHandle);
+        if (!group) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        return jaxe.lastResult;
     }
 }

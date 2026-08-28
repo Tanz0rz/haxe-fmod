@@ -363,9 +363,11 @@ def check_type_definition(entry, section, record, skips, problems, label):
     for member in members:
         if member.endswith("_FORCEINT") or member.endswith("_MAX") or member == own:
             continue
-        if normalize(member) in skipped:
-            continue
         short = normalize(member[len(prefix):] if member.startswith(prefix) else member)
+        # types.txt lists skips by their short name (the value without the
+        # family prefix), the full define name is accepted too
+        if normalize(member) in skipped or short in skipped:
+            continue
         if short in have or normalize(member) in have:
             continue
         if any(h.endswith(short) and short[0].isdigit() for h in have):

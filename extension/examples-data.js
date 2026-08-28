@@ -243,28 +243,28 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "library"
   },
   "FMOD_MAX_CHANNEL_WIDTH": {
-   "code": null,
+   "code": "/**\n * The FMOD_MAX_* limits from fmod_common.h and fmod_studio_common.h.\n * tests/native/test_faxe_enums.c pins each one to the header.\n */\nclass FmodLimits {\n    /** FMOD_MAX_CHANNEL_WIDTH, the widest mix matrix and channel format. */\n    public static inline var MAX_CHANNEL_WIDTH = 32;\n    /** FMOD_MAX_SYSTEMS, how many FMOD systems one process may create. haxefmod creates one. */\n    public static inline var MAX_SYSTEMS = 8;\n    /** FMOD_MAX_LISTENERS, the cap on StudioSystem.setNumListeners. */\n    public static inline var MAX_LISTENERS = 8;\n    /** FMOD_REVERB_MAXINSTANCES, the number of reverb instance slots. */\n    public static inline var REVERB_MAXINSTANCES = 4;\n    /** FMOD_STUDIO_LOAD_MEMORY_ALIGNMENT, the alignment loadBankMemory needs in point mode. */\n    public static inline var STUDIO_LOAD_MEMORY_ALIGNMENT = 32;\n}",
    "notes": [
-    "No Haxe declaration, the library owns this choice. the limit is not declared in Haxe, FMOD enforces it and a mix matrix wider than 32 passed to Channel.setMixMatrix or ChannelGroup.setMixMatrix comes back as FmodResult.FMOD_ERR_INVALID_PARAM"
+    "FmodLimits.MAX_CHANNEL_WIDTH. A wider mix matrix passed to Channel.setMixMatrix or ChannelGroup.setMixMatrix comes back as FmodResult.FMOD_ERR_INVALID_PARAM."
    ],
-   "type": null,
-   "verdict": "library"
+   "type": "haxefmod.studio.Types.FmodLimits",
+   "verdict": "bound"
   },
   "FMOD_MAX_LISTENERS": {
-   "code": null,
+   "code": "/**\n * The FMOD_MAX_* limits from fmod_common.h and fmod_studio_common.h.\n * tests/native/test_faxe_enums.c pins each one to the header.\n */\nclass FmodLimits {\n    /** FMOD_MAX_CHANNEL_WIDTH, the widest mix matrix and channel format. */\n    public static inline var MAX_CHANNEL_WIDTH = 32;\n    /** FMOD_MAX_SYSTEMS, how many FMOD systems one process may create. haxefmod creates one. */\n    public static inline var MAX_SYSTEMS = 8;\n    /** FMOD_MAX_LISTENERS, the cap on StudioSystem.setNumListeners. */\n    public static inline var MAX_LISTENERS = 8;\n    /** FMOD_REVERB_MAXINSTANCES, the number of reverb instance slots. */\n    public static inline var REVERB_MAXINSTANCES = 4;\n    /** FMOD_STUDIO_LOAD_MEMORY_ALIGNMENT, the alignment loadBankMemory needs in point mode. */\n    public static inline var STUDIO_LOAD_MEMORY_ALIGNMENT = 32;\n}",
    "notes": [
-    "No Haxe declaration, the library owns this choice. the limit is not declared in Haxe, StudioSystem.setNumListeners passes the count to FMOD, which rejects anything above 8"
+    "FmodLimits.MAX_LISTENERS, the cap StudioSystem.setNumListeners runs into."
    ],
-   "type": null,
-   "verdict": "library"
+   "type": "haxefmod.studio.Types.FmodLimits",
+   "verdict": "bound"
   },
   "FMOD_MAX_SYSTEMS": {
-   "code": null,
+   "code": "/**\n * The FMOD_MAX_* limits from fmod_common.h and fmod_studio_common.h.\n * tests/native/test_faxe_enums.c pins each one to the header.\n */\nclass FmodLimits {\n    /** FMOD_MAX_CHANNEL_WIDTH, the widest mix matrix and channel format. */\n    public static inline var MAX_CHANNEL_WIDTH = 32;\n    /** FMOD_MAX_SYSTEMS, how many FMOD systems one process may create. haxefmod creates one. */\n    public static inline var MAX_SYSTEMS = 8;\n    /** FMOD_MAX_LISTENERS, the cap on StudioSystem.setNumListeners. */\n    public static inline var MAX_LISTENERS = 8;\n    /** FMOD_REVERB_MAXINSTANCES, the number of reverb instance slots. */\n    public static inline var REVERB_MAXINSTANCES = 4;\n    /** FMOD_STUDIO_LOAD_MEMORY_ALIGNMENT, the alignment loadBankMemory needs in point mode. */\n    public static inline var STUDIO_LOAD_MEMORY_ALIGNMENT = 32;\n}",
    "notes": [
-    "No Haxe declaration, the library owns this choice. haxefmod creates exactly one FMOD system per process inside FmodManager.Initialize, so the limit never applies"
+    "FmodLimits.MAX_SYSTEMS. haxefmod creates exactly one FMOD system per process inside FmodManager.Initialize, so the limit never applies."
    ],
-   "type": null,
-   "verdict": "library"
+   "type": "haxefmod.studio.Types.FmodLimits",
+   "verdict": "bound"
   },
   "FMOD_MEMORY_ALLOC_CALLBACK": {
    "code": null,
@@ -337,33 +337,33 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "covered"
   },
   "FMOD_THREAD_AFFINITY": {
-   "code": null,
+   "code": "/**\n * FMOD_THREAD_AFFINITY as a 32-bit core mask, the affinity field of\n * FmodThreadAttributes. CORE_ALL lets the thread run anywhere, CORE_n bits\n * pin it, and any Int mask of bits 0 to 31 works. FMOD's 64-bit group\n * values (GROUP_DEFAULT, GROUP_A to GROUP_C) do not fit a Haxe Int, so an\n * unset affinity keeps FMOD's default group.\n */\nenum abstract FmodThreadAffinity(Int) from Int to Int {\n    var CORE_ALL = 0;\n    var CORE_0 = 0x00000001;\n    var CORE_1 = 0x00000002;\n    var CORE_2 = 0x00000004;\n    var CORE_3 = 0x00000008;\n    var CORE_4 = 0x00000010;\n    var CORE_5 = 0x00000020;\n    var CORE_6 = 0x00000040;\n    var CORE_7 = 0x00000080;\n    var CORE_8 = 0x00000100;\n    var CORE_9 = 0x00000200;\n    var CORE_10 = 0x00000400;\n    var CORE_11 = 0x00000800;\n    var CORE_12 = 0x00001000;\n    var CORE_13 = 0x00002000;\n    var CORE_14 = 0x00004000;\n    var CORE_15 = 0x00008000;\n}",
    "notes": [
-    "No Haxe declaration, the library owns this choice. thread placement is not exposed, FMOD keeps its default affinity on every native target and the web build has no threads to place. The 64-bit group values do not fit a Haxe Int."
+    "The affinity field of a FmodSettings.threadAttributes entry, a 32-bit core mask. The 64-bit group values do not fit a Haxe Int, so an unset affinity keeps FMOD's default group. Native only, the web build has no threads to place."
    ],
-   "type": null,
-   "verdict": "library"
+   "type": "haxefmod.studio.Types.FmodThreadAffinity",
+   "verdict": "bound"
   },
   "FMOD_THREAD_PRIORITY": {
-   "code": "/** FMOD_THREAD_PRIORITY, the priority of each worker thread. Thread settings are not exposed, FMOD uses these defaults on every target. */\nenum abstract FmodThreadPriority(Int) from Int to Int {\n    var PLATFORM_MIN = -32768;\n    var PLATFORM_MAX = 32768;\n    var DEFAULT = -32769;\n    var LOW = -32770;\n    var MEDIUM = -32771;\n    var HIGH = -32772;\n    var VERY_HIGH = -32773;\n    var EXTREME = -32774;\n    var CRITICAL = -32775;\n    var MIXER = -32774;\n    var FEEDER = -32775;\n    var STREAM = -32773;\n    var FILE = -32772;\n    var NONBLOCKING = -32772;\n    var RECORD = -32772;\n    var GEOMETRY = -32770;\n    var PROFILER = -32771;\n    var STUDIO_UPDATE = -32771;\n    var STUDIO_LOAD_BANK = -32771;\n    var STUDIO_LOAD_SAMPLE = -32771;\n    var CONVOLUTION1 = -32773;\n    var CONVOLUTION2 = -32773;\n}",
+   "code": "/** FMOD_THREAD_PRIORITY, the priority of a worker thread. The priority field of FmodThreadAttributes, DEFAULT keeps FMOD's own value for that thread. */\nenum abstract FmodThreadPriority(Int) from Int to Int {\n    var PLATFORM_MIN = -32768;\n    var PLATFORM_MAX = 32768;\n    var DEFAULT = -32769;\n    var LOW = -32770;\n    var MEDIUM = -32771;\n    var HIGH = -32772;\n    var VERY_HIGH = -32773;\n    var EXTREME = -32774;\n    var CRITICAL = -32775;\n    var MIXER = -32774;\n    var FEEDER = -32775;\n    var STREAM = -32773;\n    var FILE = -32772;\n    var NONBLOCKING = -32772;\n    var RECORD = -32772;\n    var GEOMETRY = -32770;\n    var PROFILER = -32771;\n    var STUDIO_UPDATE = -32771;\n    var STUDIO_LOAD_BANK = -32771;\n    var STUDIO_LOAD_SAMPLE = -32771;\n    var CONVOLUTION1 = -32773;\n    var CONVOLUTION2 = -32773;\n}",
    "notes": [
-    "FMOD uses these default priorities on every target, no call changes them."
+    "The priority field of a FmodSettings.threadAttributes entry. DEFAULT keeps FMOD's own value for that thread."
    ],
    "type": "haxefmod.studio.Types.FmodThreadPriority",
    "verdict": "bound"
   },
   "FMOD_THREAD_STACK_SIZE": {
-   "code": "/** FMOD_THREAD_STACK_SIZE, the stack of each worker thread in bytes. Thread settings are not exposed, FMOD uses these defaults on every target. */\nenum abstract FmodThreadStackSize(Int) from Int to Int {\n    var DEFAULT = 0;\n    var MIXER = 81920;\n    var FEEDER = 16384;\n    var STREAM = 98304;\n    var FILE = 65536;\n    var NONBLOCKING = 114688;\n    var RECORD = 16384;\n    var GEOMETRY = 49152;\n    var PROFILER = 131072;\n    var STUDIO_UPDATE = 98304;\n    var STUDIO_LOAD_BANK = 98304;\n    var STUDIO_LOAD_SAMPLE = 98304;\n    var CONVOLUTION1 = 16384;\n    var CONVOLUTION2 = 16384;\n}",
+   "code": "/** FMOD_THREAD_STACK_SIZE, the stack of a worker thread in bytes. The stackSize field of FmodThreadAttributes, DEFAULT keeps FMOD's own value for that thread. */\nenum abstract FmodThreadStackSize(Int) from Int to Int {\n    var DEFAULT = 0;\n    var MIXER = 81920;\n    var FEEDER = 16384;\n    var STREAM = 98304;\n    var FILE = 65536;\n    var NONBLOCKING = 114688;\n    var RECORD = 16384;\n    var GEOMETRY = 49152;\n    var PROFILER = 131072;\n    var STUDIO_UPDATE = 98304;\n    var STUDIO_LOAD_BANK = 98304;\n    var STUDIO_LOAD_SAMPLE = 98304;\n    var CONVOLUTION1 = 16384;\n    var CONVOLUTION2 = 16384;\n}",
    "notes": [
-    "FMOD uses these default stack sizes on every target, no call changes them."
+    "The stackSize field of a FmodSettings.threadAttributes entry. DEFAULT keeps FMOD's own value for that thread."
    ],
    "type": "haxefmod.studio.Types.FmodThreadStackSize",
    "verdict": "bound"
   },
   "FMOD_THREAD_TYPE": {
-   "code": "/** FMOD_THREAD_TYPE, FMOD's worker threads. Thread settings are not exposed, FMOD uses its defaults on every target. */\nenum abstract FmodThreadType(Int) from Int to Int {\n    var MIXER = 0;\n    var FEEDER = 1;\n    var STREAM = 2;\n    var FILE = 3;\n    var NONBLOCKING = 4;\n    var RECORD = 5;\n    var GEOMETRY = 6;\n    var PROFILER = 7;\n    var STUDIO_UPDATE = 8;\n    var STUDIO_LOAD_BANK = 9;\n    var STUDIO_LOAD_SAMPLE = 10;\n    var CONVOLUTION1 = 11;\n    var CONVOLUTION2 = 12;\n    var MAX = 13;\n}",
+   "code": "/** FMOD_THREAD_TYPE, FMOD's worker threads. The type field of FmodThreadAttributes in FmodSettings.threadAttributes. */\nenum abstract FmodThreadType(Int) from Int to Int {\n    var MIXER = 0;\n    var FEEDER = 1;\n    var STREAM = 2;\n    var FILE = 3;\n    var NONBLOCKING = 4;\n    var RECORD = 5;\n    var GEOMETRY = 6;\n    var PROFILER = 7;\n    var STUDIO_UPDATE = 8;\n    var STUDIO_LOAD_BANK = 9;\n    var STUDIO_LOAD_SAMPLE = 10;\n    var CONVOLUTION1 = 11;\n    var CONVOLUTION2 = 12;\n    var MAX = 13;\n}",
    "notes": [
-    "Thread settings are not exposed, so no call takes a thread type."
+    "The type field of a FmodSettings.threadAttributes entry, applied with Thread_SetAttributes before the system is created."
    ],
    "type": "haxefmod.studio.Types.FmodThreadType",
    "verdict": "bound"
@@ -1011,7 +1011,7 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "cannot"
   },
   "FMOD_ADVANCEDSETTINGS": {
-   "code": "/** Core advanced settings as FMOD holds them (FMOD_ADVANCEDSETTINGS, the fields haxefmod exposes). */\ntypedef FmodAdvancedSettings = {\n    var maxMPEGCodecs:Int;\n    var maxVorbisCodecs:Int;\n    var maxFADPCMCodecs:Int;\n    var vol0VirtualVol:Float;\n    var defaultDecodeBufferSize:Int;\n    var profilePort:Int;\n    var geometryMaxFadeTime:Int;\n    var distanceFilterCenterFreq:Float;\n    var randomSeed:Int;\n}",
+   "code": "/** Core advanced settings as FMOD holds them (FMOD_ADVANCEDSETTINGS, the fields haxefmod exposes). */\ntypedef FmodAdvancedSettings = {\n    var maxMPEGCodecs:Int;\n    var maxVorbisCodecs:Int;\n    var maxFADPCMCodecs:Int;\n    var vol0VirtualVol:Float;\n    var defaultDecodeBufferSize:Int;\n    var profilePort:Int;\n    var geometryMaxFadeTime:Int;\n    var distanceFilterCenterFreq:Float;\n    var randomSeed:Int;\n    var resamplerMethod:FmodDspResampler;\n}",
    "notes": [
     "Set at init through the FmodSettings fields of the same names and read back with StudioSystem.getAdvancedSettings. The fields not listed here keep FMOD's defaults."
    ],
@@ -1043,9 +1043,9 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "FMOD_DSP_RESAMPLER": {
-   "code": "/** FMOD_DSP_RESAMPLER, the interpolation FMOD's advanced settings pick. Not exposed, DEFAULT applies. */\nenum abstract FmodDspResampler(Int) from Int to Int {\n    var DEFAULT = 0;\n    var NOINTERP = 1;\n    var LINEAR = 2;\n    var CUBIC = 3;\n    var SPLINE = 4;\n    var MAX = 5;\n}",
+   "code": "/** FMOD_DSP_RESAMPLER, the interpolation the mixer uses when a sound plays at another rate. FmodSettings.resamplerMethod picks it. */\nenum abstract FmodDspResampler(Int) from Int to Int {\n    var DEFAULT = 0;\n    var NOINTERP = 1;\n    var LINEAR = 2;\n    var CUBIC = 3;\n    var SPLINE = 4;\n    var MAX = 5;\n}",
    "notes": [
-    "The resampler method is not among the FmodSettings fields, DEFAULT applies."
+    "Picked by the resamplerMethod field of FmodSettings, and read back by StudioSystem.getAdvancedSettings."
    ],
    "type": "haxefmod.studio.Types.FmodDspResampler",
    "verdict": "bound"
@@ -1131,7 +1131,7 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "FMOD_OUTPUTTYPE": {
-   "code": "/** FMOD_OUTPUTTYPE, the output backend CoreSystem.getOutput reports. */\nenum abstract FmodOutputType(Int) from Int to Int {\n    var AUTODETECT = 0;\n    var UNKNOWN = 1;\n    var NOSOUND = 2;\n    var WAVWRITER = 3;\n    var NOSOUND_NRT = 4;\n    var WAVWRITER_NRT = 5;\n    var WASAPI = 6;\n    var ASIO = 7;\n    var PULSEAUDIO = 8;\n    var ALSA = 9;\n    var COREAUDIO = 10;\n    var AUDIOTRACK = 11;\n    var OPENSL = 12;\n    var AUDIOOUT = 13;\n    var AUDIO3D = 14;\n    var WEBAUDIO = 15;\n    var NNAUDIO = 16;\n    var WINSONIC = 17;\n    var AAUDIO = 18;\n    var AUDIOWORKLET = 19;\n    var PHASE = 20;\n    var OHAUDIO = 21;\n    var MAX = 22;\n}",
+   "code": "/** FMOD_OUTPUTTYPE, the output backend FmodSettings.output picks and CoreSystem.getOutput reports. */\nenum abstract FmodOutputType(Int) from Int to Int {\n    var AUTODETECT = 0;\n    var UNKNOWN = 1;\n    var NOSOUND = 2;\n    var WAVWRITER = 3;\n    var NOSOUND_NRT = 4;\n    var WAVWRITER_NRT = 5;\n    var WASAPI = 6;\n    var ASIO = 7;\n    var PULSEAUDIO = 8;\n    var ALSA = 9;\n    var COREAUDIO = 10;\n    var AUDIOTRACK = 11;\n    var OPENSL = 12;\n    var AUDIOOUT = 13;\n    var AUDIO3D = 14;\n    var WEBAUDIO = 15;\n    var NNAUDIO = 16;\n    var WINSONIC = 17;\n    var AAUDIO = 18;\n    var AUDIOWORKLET = 19;\n    var PHASE = 20;\n    var OHAUDIO = 21;\n    var MAX = 22;\n}",
    "notes": [
     "Read with CoreSystem.getOutput. The library picks AUTODETECT at init."
    ],
@@ -1153,17 +1153,17 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "FMOD_PORT_INDEX": {
-   "code": null,
+   "code": "/**\n * FMOD_PORT_INDEX, the port slot CoreSystem.attachChannelGroupToPort\n * takes. FMOD's NONE is the 64-bit all-ones value, which crosses as -1.\n */\nenum abstract FmodPortIndex(Int) from Int to Int {\n    var NONE = -1;\n}",
    "notes": [
-    "Cannot be bound. Console port routing is not exposed. Desktop and web targets have no ports."
+    "The portIndex argument of CoreSystem.attachChannelGroupToPort. FMOD's NONE is the 64-bit all-ones value and crosses as -1."
    ],
-   "type": null,
-   "verdict": "cannot"
+   "type": "haxefmod.studio.Types.FmodPortIndex",
+   "verdict": "bound"
   },
   "FMOD_PORT_TYPE": {
-   "code": "/** FMOD_PORT_TYPE, console output ports. Port routing is not exposed, desktop and web targets have none. */\nenum abstract FmodPortType(Int) from Int to Int {\n    var MUSIC = 0;\n    var COPYRIGHT_MUSIC = 1;\n    var VOICE = 2;\n    var CONTROLLER = 3;\n    var PERSONAL = 4;\n    var VIBRATION = 5;\n    var AUX = 6;\n    var PASSTHROUGH = 7;\n    var VR_VIBRATION = 8;\n    var MAX = 9;\n}",
+   "code": "/** FMOD_PORT_TYPE, the port kinds CoreSystem.attachChannelGroupToPort takes. Desktop and web builds have no ports and report FMOD_ERR_UNSUPPORTED. */\nenum abstract FmodPortType(Int) from Int to Int {\n    var MUSIC = 0;\n    var COPYRIGHT_MUSIC = 1;\n    var VOICE = 2;\n    var CONTROLLER = 3;\n    var PERSONAL = 4;\n    var VIBRATION = 5;\n    var AUX = 6;\n    var PASSTHROUGH = 7;\n    var VR_VIBRATION = 8;\n    var MAX = 9;\n}",
    "notes": [
-    "Console port routing is not exposed. Desktop and web targets have no ports."
+    "The portType argument of CoreSystem.attachChannelGroupToPort. Desktop and web outputs have no ports and report FMOD_ERR_UNSUPPORTED."
    ],
    "type": "haxefmod.studio.Types.FmodPortType",
    "verdict": "bound"
@@ -1578,12 +1578,12 @@ const HAXEFMOD_EXAMPLES = {
  },
  "managing-resources-in-the-core-api": {
   "9.5.1 Use a Fixed-size Memory Pool.": {
-   "code": null,
+   "code": "FmodManager.Initialize({memoryPoolSize: 64 * 1024 * 1024});",
    "notes": [
-    "No Haxe declaration, the library owns this choice. Memory_Initialize must run before System_Create, which the library performs itself, so FMOD allocates from the process heap. StudioSystem.getMemoryStats and StudioSystem.getMemoryUsage report what it holds"
+    "The memoryPoolSize setting allocates the pool and hands it to FMOD before the system is created. StudioSystem.getMemoryStats reports how much of it is in use. Native only, the web build allocates from the wasm heap."
    ],
    "type": null,
-   "verdict": "library"
+   "verdict": "bound"
   }
  },
  "platforms-android": {
@@ -1630,12 +1630,12 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "library"
   },
   "Audio Stability (Stuttering)": {
-   "code": null,
+   "code": "FmodManager.Initialize({dspBufferSize: 4096, dspNumBuffers: 2});",
    "notes": [
-    "No Haxe declaration, the library owns this choice. jaxe.js calls setDSPBufferSize(2048, 2) at init, the dspBufferSize and dspNumBuffers fields of FmodSettings are ignored on HTML5"
+    "The dspBufferSize and dspNumBuffers fields of FmodSettings set the mixer block before the system initializes. Unset, the web build runs at 2048 samples by 2 buffers."
    ],
    "type": null,
-   "verdict": "library"
+   "verdict": "bound"
   },
   "CPU Overhead": {
    "code": null,
@@ -1864,28 +1864,28 @@ const HAXEFMOD_EXAMPLES = {
  },
  "platforms-win": {
   "ASIO and C#": {
-   "code": null,
+   "code": "FmodManager.Initialize({output: FmodOutputType.ASIO});",
    "notes": [
-    "No Haxe declaration, the library owns this choice. the library creates and initializes the system in FmodManager.Initialize with FMOD's default output type, there is no ASIO selection, CoreSystem.getOutput reports the type in use"
+    "The output setting picks ASIO before the system initializes, and CoreSystem.getOutput reports the type in use."
    ],
-   "type": null,
-   "verdict": "library"
+   "type": "haxefmod.studio.Types",
+   "verdict": "bound"
   },
   "Background Music": {
-   "code": null,
+   "code": "var music = ChannelGroup.create(\"music\");\nCoreSystem.attachChannelGroupToPort(FmodPortType.MUSIC, FmodPortIndex.NONE, music);\nvar bgm = Sound.create(\"assets/music/theme.ogg\");\nvar channel = bgm.play();\nchannel.setChannelGroup(music);",
    "notes": [
-    "Cannot be bound. attachChannelGroupToPort is not bound, ports are a console API and haxefmod targets desktop and web only, route music through a ChannelGroup or a Bus instead"
+    "Bound for builds against a console SDK. Desktop outputs have no ports and report that in the result."
    ],
-   "type": null,
-   "verdict": "cannot"
+   "type": "haxefmod.core.ChannelGroup, haxefmod.core.CoreSystem, haxefmod.core.Sound, haxefmod.studio.Types",
+   "verdict": "bound"
   },
   "Pass Through": {
-   "code": null,
+   "code": "var raw = ChannelGroup.create(\"passthrough\");\nCoreSystem.attachChannelGroupToPort(FmodPortType.PASSTHROUGH, FmodPortIndex.NONE, raw);\nvar voice = Sound.create(\"assets/voice/line.wav\");\nvar channel = voice.play();\nchannel.setChannelGroup(raw);",
    "notes": [
-    "Cannot be bound. attachChannelGroupToPort is not bound, ports are a console API and haxefmod targets desktop and web only, route the sound through a ChannelGroup or a Bus instead"
+    "Bound for builds against a console SDK. Desktop outputs have no ports and report that in the result."
    ],
-   "type": null,
-   "verdict": "cannot"
+   "type": "haxefmod.core.ChannelGroup, haxefmod.core.CoreSystem, haxefmod.core.Sound, haxefmod.studio.Types",
+   "verdict": "bound"
   }
  },
  "plugin-api-codec": {
@@ -3483,20 +3483,20 @@ const HAXEFMOD_EXAMPLES = {
  },
  "welcome-whats-new-201": {
   "Thread attributes": {
-   "code": null,
+   "code": "FmodManager.Initialize({threadAttributes: [\n    {type: FmodThreadType.STREAM, stackSize: 128 * 1024},\n    {type: FmodThreadType.NONBLOCKING, stackSize: 128 * 1024},\n    {type: FmodThreadType.MIXER, stackSize: 128 * 1024},\n]});",
    "notes": [
-    "No Haxe declaration, the library owns this choice. thread attributes are set before System_Create, which the library performs itself, so FMOD keeps its default priority, affinity, and stack size for every worker thread on each native target and the web build has no threads to configure"
+    "One threadAttributes entry per thread, applied before the system is created. An unset priority or affinity keeps FMOD's default. Native only, the web build has no threads to place."
    ],
-   "type": null,
-   "verdict": "library"
+   "type": "haxefmod.studio.Types",
+   "verdict": "bound"
   },
   "Thread attributes#2": {
-   "code": null,
+   "code": "FmodManager.Initialize({threadAttributes: [\n    {type: FmodThreadType.MIXER, affinity: FmodThreadAffinity.CORE_5},\n    {type: FmodThreadType.STREAM, affinity: FmodThreadAffinity.CORE_3},\n]});",
    "notes": [
-    "No Haxe declaration, the library owns this choice. thread attributes are set before System_Create, which the library performs itself, so FMOD keeps its default priority, affinity, and stack size for every worker thread on each native target and the web build has no threads to configure"
+    "The affinity is a 32-bit core mask. Native only, the web build has no threads to place."
    ],
-   "type": null,
-   "verdict": "library"
+   "type": "haxefmod.studio.Types",
+   "verdict": "bound"
   }
  }
 };

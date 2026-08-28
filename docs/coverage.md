@@ -2,7 +2,7 @@
 
 Every FMOD function the native layer calls, with the haxefmod methods that reach it. Generated from the sources by `ci/haxe-bindings.py` for haxefmod 2.0.0 against FMOD 2.03.12. Functions absent from this list are not exposed, see [Limitations](limitations.md).
 
-489 FMOD functions are reached.
+493 FMOD functions are reached.
 
 The same table powers the browser extension that adds a Haxe tab to the [fmod.com API reference](https://www.fmod.com/docs/2.03/api/welcome.html). In the HTML5 column, "compile error" marks a call a js build refuses unless the project sets `-D haxefmod_html5_allow_unsupported`, after which it returns `FMOD_ERR_UNSUPPORTED` at runtime, and "limited" marks a call the web build only partly supports.
 
@@ -239,6 +239,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | FMOD | haxefmod | HTML5 |
 |---|---|---|
 | `FMOD_Memory_GetStats` | `StudioSystem.getMemoryStats` |  |
+| `FMOD_Memory_Initialize` | `FmodManager.Initialize`<br>`FmodRuntime.init` | limited |
 
 ## Reverb3D
 
@@ -517,6 +518,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 
 | FMOD | haxefmod | HTML5 |
 |---|---|---|
+| `FMOD_System_AttachChannelGroupToPort` | `CoreSystem.attachChannelGroupToPort` | compile error |
 | `FMOD_System_CreateChannelGroup` | `ChannelGroup.create` |  |
 | `FMOD_System_CreateDSPByPlugin` | `Dsp.createByPlugin` | compile error |
 | `FMOD_System_CreateDSPByType` | `Dsp.create` |  |
@@ -524,6 +526,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_System_CreateReverb3D` | `Reverb3D.create` |  |
 | `FMOD_System_CreateSound` | `PcmStream.create`<br>`PcmStream.create3d`<br>`Sound.create`<br>`Sound.createRecordBuffer`<br>`Sound.fromPcm` | compile error |
 | `FMOD_System_CreateSoundGroup` | `SoundGroup.create` |  |
+| `FMOD_System_DetachChannelGroupFromPort` | `CoreSystem.detachChannelGroupFromPort` | compile error |
 | `FMOD_System_Get3DSettings` | `CoreSystem.get3DSettings` |  |
 | `FMOD_System_GetAdvancedSettings` | `StudioSystem.getAdvancedSettings`<br>`FmodManager.Initialize`<br>`FmodRuntime.init` | compile error |
 | `FMOD_System_GetChannel` | `CoreSystem.getChannel` |  |
@@ -532,7 +535,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_System_GetDSPInfoByType` | `CoreSystem.getDspInfoByType` | compile error |
 | `FMOD_System_GetDefaultMixMatrix` | `CoreSystem.getDefaultMixMatrix` | compile error |
 | `FMOD_System_GetDriver` | `CoreSystem.getDriver` |  |
-| `FMOD_System_GetDriverInfo` | `CoreSystem.getDriverName` |  |
+| `FMOD_System_GetDriverInfo` | `CoreSystem.getDriverInfo`<br>`CoreSystem.getDriverName` |  |
 | `FMOD_System_GetFileUsage` | `StudioSystem.getFileUsage` |  |
 | `FMOD_System_GetGeometryOcclusion` | `Geometry.getOcclusion` | compile error |
 | `FMOD_System_GetGeometrySettings` | `Geometry.getWorldSize` | compile error |
@@ -584,4 +587,10 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_System_SetStreamBufferSize` | `FmodManager.Initialize`<br>`FmodRuntime.init` |  |
 | `FMOD_System_UnloadPlugin` | `StudioSystem.unloadPlugin` | compile error |
 | `FMOD_System_UnlockDSP` | `StudioSystem.unlockDsp` |  |
+
+## Thread
+
+| FMOD | haxefmod | HTML5 |
+|---|---|---|
+| `FMOD_Thread_SetAttributes` | `FmodManager.Initialize`<br>`FmodRuntime.init` | limited |
 

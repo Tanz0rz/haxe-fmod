@@ -6,7 +6,7 @@ type must carry the same names and values) and by ci/haxe-catalog.py
 declaration). Four kinds of declaration are read:
 
   enum      typedef enum FMOD_X { A, B = 3, ... } FMOD_X;
-  flags     typedef unsigned int FMOD_X; followed by its #define block
+  flags     typedef unsigned int FMOD_X; (or int, long long) followed by its #define block
   struct    typedef struct FMOD_X { type field; ... } FMOD_X;
   callback  typedef RET (F_CALL *FMOD_X)(...);
 
@@ -58,8 +58,19 @@ def parse_value(expr, known):
 ENUM = re.compile(r"typedef\s+enum\s*(\w*)\s*\{(.*?)\}\s*(\w+)\s*;", re.S)
 STRUCT = re.compile(r"typedef\s+struct\s+(\w+)\s*\{(.*?)\}\s*(\w+)\s*;", re.S)
 CALLBACK = re.compile(r"typedef\s+[\w\s\*]+\(\s*F_CALL\s*\*\s*(\w+)\s*\)\s*\(", re.S)
-FLAG_TYPE = re.compile(r"typedef\s+unsigned\s+int\s+(\w+)\s*;")
+FLAG_TYPE = re.compile(r"typedef\s+(?:unsigned\s+)?(?:int|long\s+long)\s+(\w+)\s*;")
 DEFINE = re.compile(r"^\s*#define\s+(\w+)\s+(.+?)\s*$", re.M)
+
+
+def common_prefix(names):
+    """The shared leading part of the names, cut back to an underscore."""
+    prefix = names[0]
+    for other in names[1:]:
+        while not other.startswith(prefix):
+            prefix = prefix[:-1]
+    if "_" in prefix:
+        prefix = prefix[:prefix.rfind("_") + 1]
+    return prefix
 
 
 def read_types():
@@ -128,9 +139,17 @@ def read_types():
             name = flag.group(1)
             values = []
             j = index + 1
+            # The block ends at the first define from another family, so a
+            # typedef followed by unrelated defines (the reverb presets and
+            # limits after FMOD_THREAD_AFFINITY) does not absorb them
+            family = None
             while j < len(lines) and (DEFINE.match(lines[j]) or lines[j].strip() == ""):
                 define = DEFINE.match(lines[j])
                 if define:
+                    if family is None:
+                        family = common_prefix([name, define.group(1)])
+                    if not define.group(1).startswith(family):
+                        break
                     number = parse_value(define.group(2), known)
                     if number is not None:
                         known[define.group(1)] = number

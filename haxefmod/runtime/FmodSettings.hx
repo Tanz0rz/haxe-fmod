@@ -28,14 +28,83 @@ typedef FmodSettings = {
     @:optional var speakerMode:FmodSpeakerMode;
 
     /**
+     * Speaker count for speakerMode RAW (the numrawspeakers argument of
+     * System::setSoftwareFormat). Default 0. Ignored for every other mode.
+     */
+    @:optional var rawSpeakers:Int;
+
+    /**
+     * Output backend (System::setOutput before init). Default AUTODETECT,
+     * the platform's own output. NOSOUND and NOSOUND_NRT run the mixer
+     * without a device, WAVWRITER and WAVWRITER_NRT write the mix to
+     * fmodoutput.wav in the working directory, and the platform values
+     * (WASAPI, ASIO, PULSEAUDIO, ALSA, COREAUDIO) pick a driver on the
+     * platform that has it. The FMOD_WAVWRITER environment variable still
+     * wins when set: it forces WAVWRITER into the file it names. On HTML5
+     * only WEBAUDIO, AUDIOWORKLET, NOSOUND, and NOSOUND_NRT exist, and any
+     * other value makes init fail with FMOD_ERR_UNSUPPORTED.
+     */
+    @:optional var output:FmodOutputType;
+
+    /**
+     * Interpolation for sounds playing at another rate than the mixer
+     * (FMOD_ADVANCEDSETTINGS.resamplerMethod). Default DEFAULT (FMOD's
+     * choice, LINEAR).
+     */
+    @:optional var resamplerMethod:FmodDspResampler;
+
+    /**
      * Mixer block size in samples (System::setDSPBufferSize). Smaller
-     * buffers cut latency and cost CPU. Default 0 (FMOD's default). HTML5
-     * ignores this, the web build fixes the buffer at 2048 samples.
+     * buffers cut latency and cost CPU. Default 0 (FMOD's default, 1024 on
+     * desktop, 2048 on the web build).
      */
     @:optional var dspBufferSize:Int;
 
-    /** Number of mixer blocks queued ahead. Default 0 (FMOD's default, 2). Ignored on HTML5. */
+    /** Number of mixer blocks queued ahead. Default 0 (FMOD's default, 2). */
     @:optional var dspNumBuffers:Int;
+
+    /**
+     * Bytes of a fixed memory pool FMOD allocates from instead of the heap
+     * (FMOD_Memory_Initialize before System_Create). The pool is allocated
+     * once and never grows, so an exhausted pool fails later calls with
+     * FMOD_ERR_MEMORY. Rounded up to a multiple of 512. Default 0 (the heap).
+     * Not available on HTML5, where FMOD allocates from the wasm heap.
+     */
+    @:optional var memoryPoolSize:Int;
+
+    /**
+     * Tracks memory per object (FMOD_STUDIO_INIT_MEMORY_TRACKING) so
+     * getMemoryUsage on StudioSystem, Bank, Bus, and EventInstance reports
+     * real numbers. Only the logging FMOD libraries (libfmodstudioL) count,
+     * the release libraries report zero. Costs a little CPU per
+     * allocation. Default false.
+     */
+    @:optional var memoryTracking:Bool;
+
+    /**
+     * Priority, stack size, and core affinity per FMOD worker thread
+     * (FMOD_Thread_SetAttributes before the system is created). One entry
+     * per thread type, later entries for the same type win. An unset field
+     * keeps FMOD's default for that thread. Default []. Not available on
+     * HTML5, where the web build has no threads to place.
+     */
+    @:optional var threadAttributes:Array<FmodThreadAttributes>;
+
+    /**
+     * Path of a file FMOD writes its log to (FMOD_Debug_Initialize with
+     * FMOD_DEBUG_MODE_FILE) at logLevel, instead of the console. Default
+     * "" (console). Not available on HTML5. The logging-stripped FMOD
+     * libraries write nothing on any target.
+     */
+    @:optional var logFile:String;
+
+    /**
+     * Extra FmodDebugFlags bits on top of logLevel: the TYPE_ bits turn
+     * on memory, file, codec, trace, and virtual voice logging, and the
+     * DISPLAY_ bits add timestamps, line numbers, and thread ids to every
+     * line. Default 0. Not available on HTML5.
+     */
+    @:optional var logFlags:FmodDebugFlags;
 
     /**
      * Real (audible) voices the mixer runs at once (System::setSoftwareChannels).
@@ -165,8 +234,17 @@ typedef ResolvedFmodSettings = {
     var numChannels:Int;
     var sampleRate:Int;
     var speakerMode:FmodSpeakerMode;
+    var rawSpeakers:Int;
+    var output:FmodOutputType;
+    var resamplerMethod:FmodDspResampler;
     var dspBufferSize:Int;
     var dspNumBuffers:Int;
+    var memoryPoolSize:Int;
+    var memoryTracking:Bool;
+    var threadAttributes:Array<FmodThreadAttributes>;
+    /** "" when the log goes to the console. */
+    var logFile:String;
+    var logFlags:FmodDebugFlags;
     var softwareChannels:Int;
     var streamBufferSize:Int;
     var profiling:Bool;
@@ -220,8 +298,18 @@ class FmodSettingsResolver {
             numChannels: settings != null && settings.numChannels != null ? settings.numChannels : defaultChannels,
             sampleRate: settings != null && settings.sampleRate != null ? settings.sampleRate : defaultSampleRate,
             speakerMode: settings != null && settings.speakerMode != null ? settings.speakerMode : 0,
+            rawSpeakers: settings != null && settings.rawSpeakers != null ? settings.rawSpeakers : 0,
+            output: settings != null && settings.output != null ? settings.output : FmodOutputType.AUTODETECT,
+            resamplerMethod: settings != null && settings.resamplerMethod != null
+                ? settings.resamplerMethod
+                : FmodDspResampler.DEFAULT,
             dspBufferSize: settings != null && settings.dspBufferSize != null ? settings.dspBufferSize : defaultDspBufferSize,
             dspNumBuffers: settings != null && settings.dspNumBuffers != null ? settings.dspNumBuffers : 0,
+            memoryPoolSize: settings != null && settings.memoryPoolSize != null ? settings.memoryPoolSize : 0,
+            memoryTracking: settings != null && settings.memoryTracking != null ? settings.memoryTracking : false,
+            threadAttributes: settings != null && settings.threadAttributes != null ? settings.threadAttributes : [],
+            logFile: settings != null && settings.logFile != null ? settings.logFile : "",
+            logFlags: settings != null && settings.logFlags != null ? settings.logFlags : 0,
             softwareChannels: settings != null && settings.softwareChannels != null
                 ? settings.softwareChannels
                 : defaultSoftwareChannels,

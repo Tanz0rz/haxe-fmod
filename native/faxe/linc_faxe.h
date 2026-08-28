@@ -620,5 +620,15 @@ extern int fmod_replay_get_current_command(int handle, ::Array<Float> fbuf);
 extern int fmod_cg_get_num_dsps(int handle);
 extern int fmod_cg_get_dsp(int handle, int index);
 
+//// Init settings and system info
+extern int fmod_sys_set_init_format(int outputType, int resamplerMethod, int rawSpeakers);
+extern int fmod_sys_memory_initialize(int poolSize);
+extern int fmod_sys_thread_set_attributes(int type, int priority, int stackSize, int affinity);
+extern int fmod_sys_debug_initialize(int flags, int mode, const ::String& filename);
+extern const char* fmod_sys_get_driver_info(int id, ::Array<int> ibuf);
+extern const char* fmod_sys_get_driver_guid(int id);
+extern int fmod_sys_attach_channel_group_to_port(int portType, int portIndex, int groupHandle, bool passThru);
+extern int fmod_sys_detach_channel_group_from_port(int groupHandle);
+
 } // namespace faxe
 } // namespace linc

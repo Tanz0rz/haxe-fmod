@@ -22,7 +22,7 @@ The state field of StudioSystem.getRecordDriverInfo. Output drivers are listed b
 ## FMOD_DSP_RESAMPLER
 verdict: bound
 Type: haxefmod.studio.Types.FmodDspResampler
-The resampler method is not among the FmodSettings fields, DEFAULT applies.
+Picked by the resamplerMethod field of FmodSettings, and read back by StudioSystem.getAdvancedSettings.
 
 ## FMOD_ERRORCALLBACK_INFO
 verdict: library Error callbacks are not exposed. Every call returns its FmodResult and StudioSystem.lastResult() keeps the result of the last getter.
@@ -71,12 +71,14 @@ verdict: bound
 Type: haxefmod.studio.Types.FmodPluginType
 
 ## FMOD_PORT_INDEX
-verdict: cannot Console port routing is not exposed. Desktop and web targets have no ports.
+verdict: bound
+Type: haxefmod.studio.Types.FmodPortIndex
+The portIndex argument of CoreSystem.attachChannelGroupToPort. FMOD's NONE is the 64-bit all-ones value and crosses as -1.
 
 ## FMOD_PORT_TYPE
 verdict: bound
 Type: haxefmod.studio.Types.FmodPortType
-Console port routing is not exposed. Desktop and web targets have no ports.
+The portType argument of CoreSystem.attachChannelGroupToPort. Desktop and web outputs have no ports and report FMOD_ERR_UNSUPPORTED.
 
 ## FMOD_REVERB_MAXINSTANCES
 verdict: covered The four reverb instances are addressed by index 0 to 3 on Reverb.set, Reverb.get, and Reverb.off.

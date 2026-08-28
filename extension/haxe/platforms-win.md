@@ -1,10 +1,42 @@
 # platforms-win
 
 ## ASIO and C#
-verdict: library the library creates and initializes the system in FmodManager.Initialize with FMOD's default output type, there is no ASIO selection, CoreSystem.getOutput reports the type in use
+verdict: bound
+The output setting picks ASIO before the system initializes, and CoreSystem.getOutput reports the type in use.
+```haxe
+import haxefmod.studio.Types;
+
+FmodManager.Initialize({output: FmodOutputType.ASIO});
+```
 
 ## Background Music
-verdict: cannot attachChannelGroupToPort is not bound, ports are a console API and haxefmod targets desktop and web only, route music through a ChannelGroup or a Bus instead
+verdict: bound
+Bound for builds against a console SDK. Desktop outputs have no ports and report that in the result.
+```haxe
+import haxefmod.core.ChannelGroup;
+import haxefmod.core.CoreSystem;
+import haxefmod.core.Sound;
+import haxefmod.studio.Types;
+
+var music = ChannelGroup.create("music");
+CoreSystem.attachChannelGroupToPort(FmodPortType.MUSIC, FmodPortIndex.NONE, music);
+var bgm = Sound.create("assets/music/theme.ogg");
+var channel = bgm.play();
+channel.setChannelGroup(music);
+```
 
 ## Pass Through
-verdict: cannot attachChannelGroupToPort is not bound, ports are a console API and haxefmod targets desktop and web only, route the sound through a ChannelGroup or a Bus instead
+verdict: bound
+Bound for builds against a console SDK. Desktop outputs have no ports and report that in the result.
+```haxe
+import haxefmod.core.ChannelGroup;
+import haxefmod.core.CoreSystem;
+import haxefmod.core.Sound;
+import haxefmod.studio.Types;
+
+var raw = ChannelGroup.create("passthrough");
+CoreSystem.attachChannelGroupToPort(FmodPortType.PASSTHROUGH, FmodPortIndex.NONE, raw);
+var voice = Sound.create("assets/voice/line.wav");
+var channel = voice.play();
+channel.setChannelGroup(raw);
+```

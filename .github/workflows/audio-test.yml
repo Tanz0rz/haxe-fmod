@@ -3207,6 +3207,7 @@ jobs:
           node tests/js/plugins-harness.js
           node tests/js/soundextras-harness.js
           node tests/js/lastseven-harness.js
+          node tests/js/init-settings-harness.js
 
       - name: Run Core dynamic-audio prototype against the real wasm
         env:

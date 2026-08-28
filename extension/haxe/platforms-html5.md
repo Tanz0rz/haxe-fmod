@@ -83,4 +83,8 @@ verdict: cannot file callbacks run on FMOD's file threads and custom file system
 verdict: library jaxe.js does this at init, it reads the driver's rate with getDriverInfo and passes it to setSoftwareFormat when the sampleRate setting is 0 (the default), a game that wants another rate passes FmodManager.Initialize({sampleRate: 48000}) or sets -D haxefmod_sample_rate and reads the rate in use from CoreSystem.getSoftwareFormat()
 
 ## Audio Stability (Stuttering)
-verdict: library jaxe.js calls setDSPBufferSize(2048, 2) at init, the dspBufferSize and dspNumBuffers fields of FmodSettings are ignored on HTML5
+verdict: bound
+The dspBufferSize and dspNumBuffers fields of FmodSettings set the mixer block before the system initializes. Unset, the web build runs at 2048 samples by 2 buffers.
+```haxe
+FmodManager.Initialize({dspBufferSize: 4096, dspNumBuffers: 2});
+```

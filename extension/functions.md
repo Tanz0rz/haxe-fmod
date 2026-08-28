@@ -32,11 +32,44 @@ verdict: cannot The disk busy flag belongs to the custom file system callbacks, 
 
 ## memory_initialize
 <!-- Memory_Initialize -->
-verdict: cannot Custom allocators are callbacks that FMOD runs on every one of its threads, and no Haxe target can execute code there. FMOD uses its default allocator on every target, and StudioSystem.getMemoryStats reports what it holds.
+verdict: bound
+Covered by FmodSettings. The fixed pool form runs through memoryPoolSize, a byte count the library allocates and hands to FMOD before the system is created. The pool never grows, so an exhausted pool fails later calls with FMOD_ERR_MEMORY. The callback arguments are not exposed, an allocator would run on every FMOD thread. Native only, the web build allocates from the wasm heap.
+```haxe
+FmodManager.Initialize({memoryPoolSize: 64 * 1024 * 1024});
+```
 
 ## thread_setattributes
 <!-- Thread_SetAttributes -->
-verdict: cannot It must run before the system is created, and haxefmod creates the system inside FmodManager.Initialize() with no hook before it. FMOD keeps its default thread affinity and priority on every target, and the web build has no threads to configure.
+verdict: bound
+Covered by FmodSettings. Each threadAttributes entry names a thread type with the priority, stack size, and core affinity to give it, applied before the system is created. An unset field keeps FMOD's default. affinity is a 32-bit core mask, FMOD's 64-bit group values stay as they are. Native only, the web build has no threads to place.
+```haxe
+import haxefmod.studio.Types;
+
+FmodManager.Initialize({threadAttributes: [
+    {type: FmodThreadType.MIXER, affinity: FmodThreadAffinity.CORE_5},
+    {type: FmodThreadType.STREAM, priority: FmodThreadPriority.HIGH, stackSize: FmodThreadStackSize.STREAM},
+]});
+```
+
+## debug_initialize
+<!-- Debug_Initialize -->
+verdict: bound
+Covered by FmodSettings. logLevel picks the level bits and goes to the console on every target. logFile sends the log to a file instead, and logFlags adds the TYPE_ and DISPLAY_ bits (memory, file, codec, trace, and virtual voice lines, timestamps, line numbers, thread ids). The callback mode is not exposed, FMOD would call it from whichever thread logs. logFile and logFlags are native only. The logging-stripped FMOD libraries write nothing anywhere.
+```haxe
+import haxefmod.studio.Types;
+
+FmodManager.Initialize({logLevel: 3, logFile: "fmod.log", logFlags: FmodDebugFlags.TYPE_FILE | FmodDebugFlags.DISPLAY_TIMESTAMPS});
+```
+
+## system_setoutput
+<!-- System::setOutput -->
+verdict: bound
+Covered by FmodSettings. FMOD only takes the output type before init, so pass output to FmodManager.Initialize(). NOSOUND and NOSOUND_NRT mix without a device, WAVWRITER writes the mix to a file, and the platform values pick a driver on the platform that has it. The FMOD_WAVWRITER environment variable still wins when set. On HTML5 only WEBAUDIO, AUDIOWORKLET, NOSOUND, and NOSOUND_NRT exist and any other value fails init with FMOD_ERR_UNSUPPORTED. CoreSystem.getOutput reports the type in use.
+```haxe
+import haxefmod.studio.Types;
+
+FmodManager.Initialize({output: FmodOutputType.NOSOUND_NRT});
+```
 
 ## dsp_getsystemobject
 <!-- DSP::getSystemObject -->
@@ -304,7 +337,16 @@ var data = group.getUserData();
 
 ## system_attachchannelgrouptoport
 <!-- System::attachChannelGroupToPort -->
-verdict: cannot This is a console port API and haxefmod targets desktop and web only. Route audio through ChannelGroup and Bus instead.
+verdict: bound
+Bound for builds against a console SDK. Desktop outputs have no ports and FMOD reports that in the result. Unsupported in HTML5, where the call returns FMOD_ERR_UNSUPPORTED.
+```haxe
+import haxefmod.core.ChannelGroup;
+import haxefmod.core.CoreSystem;
+import haxefmod.studio.Types;
+
+var music = ChannelGroup.create("music");
+var attached = CoreSystem.attachChannelGroupToPort(FmodPortType.MUSIC, FmodPortIndex.NONE, music, true);
+```
 
 ## system_attachfilesystem
 <!-- System::attachFileSystem -->
@@ -361,7 +403,15 @@ var channel = stream.play();
 
 ## system_detachchannelgroupfromport
 <!-- System::detachChannelGroupFromPort -->
-verdict: cannot This is a console port API and haxefmod targets desktop and web only. Route audio through ChannelGroup and Bus instead.
+verdict: bound
+Bound for builds against a console SDK. Unsupported in HTML5, where the call returns FMOD_ERR_UNSUPPORTED.
+```haxe
+import haxefmod.core.ChannelGroup;
+import haxefmod.core.CoreSystem;
+
+var music = ChannelGroup.create("music");
+var detached = CoreSystem.detachChannelGroupFromPort(music);
+```
 
 ## system_get3dlistenerattributes
 <!-- System::get3DListenerAttributes -->
@@ -499,7 +549,7 @@ FmodManager.Initialize({vol0VirtualVol: 0.001, randomSeed: 42});
 ## system_setdspbuffersize
 <!-- System::setDSPBufferSize -->
 verdict: bound
-Covered by FmodSettings. FMOD only accepts the mixer buffer before init, so pass dspBufferSize (samples) and dspNumBuffers to FmodManager.Initialize(). Both are native only (unsupported in HTML5), where the web build fixes the mixer at 2048 samples by 2 buffers and ignores them.
+Covered by FmodSettings. FMOD only accepts the mixer buffer before init, so pass dspBufferSize (samples) and dspNumBuffers to FmodManager.Initialize(). Both apply on every target, the web build's default is 2048 samples by 2 buffers.
 ```haxe
 FmodManager.Initialize({dspBufferSize: 512, dspNumBuffers: 4});
 ```

@@ -4072,6 +4072,7 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "debug_initialize": {
+   "code": "import haxefmod.studio.Types;\n\nFmodManager.Initialize({logLevel: 3, logFile: \"fmod.log\", logFlags: FmodDebugFlags.TYPE_FILE | FmodDebugFlags.DISPLAY_TIMESTAMPS});",
    "fmod": "FMOD_Debug_Initialize",
    "gated": false,
    "haxe": [
@@ -4102,7 +4103,11 @@ const HAXEFMOD_BINDINGS = {
      "type": "haxefmod.runtime.FmodRuntime"
     }
    ],
-   "html5": true
+   "heading": "Debug_Initialize",
+   "html5": true,
+   "notes": [
+    "Covered by FmodSettings. logLevel picks the level bits and goes to the console on every target. logFile sends the log to a file instead, and logFlags adds the TYPE_ and DISPLAY_ bits (memory, file, codec, trace, and virtual voice lines, timestamps, line numbers, thread ids). The callback mode is not exposed, FMOD would call it from whichever thread logs. logFile and logFlags are native only. The logging-stripped FMOD libraries write nothing anywhere."
+   ]
   },
   "dsp_addinput": {
    "fmod": "FMOD_DSP_AddInput",
@@ -5003,6 +5008,87 @@ const HAXEFMOD_BINDINGS = {
     "haxefmod does this for you on HTML5. The banks named in FmodSettings.autoLoadBanks are fetched during init, and StudioSystem.loadBankFile() fetches any other bank and places it in the wasm file system before loading it."
    ]
   },
+  "fsbank_build": {
+   "fmod": "",
+   "haxe": [],
+   "heading": "FSBANK_RESULT",
+   "html5": false,
+   "notes": [
+    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
+   ]
+  },
+  "fsbank_buildcancel": {
+   "fmod": "",
+   "haxe": [],
+   "heading": "FSBANK_RESULT",
+   "html5": false,
+   "notes": [
+    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
+   ]
+  },
+  "fsbank_fetchfsbmemory": {
+   "fmod": "",
+   "haxe": [],
+   "heading": "FSBANK_RESULT",
+   "html5": false,
+   "notes": [
+    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
+   ]
+  },
+  "fsbank_fetchnextprogressitem": {
+   "fmod": "",
+   "haxe": [],
+   "heading": "FSBANK_RESULT",
+   "html5": false,
+   "notes": [
+    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
+   ]
+  },
+  "fsbank_init": {
+   "fmod": "",
+   "haxe": [],
+   "heading": "FSBANK_RESULT",
+   "html5": false,
+   "notes": [
+    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
+   ]
+  },
+  "fsbank_memorygetstats": {
+   "fmod": "",
+   "haxe": [],
+   "heading": "FSBANK_RESULT",
+   "html5": false,
+   "notes": [
+    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
+   ]
+  },
+  "fsbank_memoryinit": {
+   "fmod": "",
+   "haxe": [],
+   "heading": "FSBANK_RESULT",
+   "html5": false,
+   "notes": [
+    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
+   ]
+  },
+  "fsbank_release": {
+   "fmod": "",
+   "haxe": [],
+   "heading": "FSBANK_RESULT",
+   "html5": false,
+   "notes": [
+    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
+   ]
+  },
+  "fsbank_releaseprogressitem": {
+   "fmod": "",
+   "haxe": [],
+   "heading": "FSBANK_RESULT",
+   "html5": false,
+   "notes": [
+    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
+   ]
+  },
   "geometry_addpolygon": {
    "fmod": "FMOD_Geometry_AddPolygon",
    "gated": true,
@@ -5356,7 +5442,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Bytes FMOD currently has allocated and the most it has ever had.",
      "gated": false,
      "name": "getMemoryStats",
-     "signature": "getMemoryStats(blocking:Bool = false):Null<{current:Int, maximum:Int}>",
+     "signature": "getMemoryStats(blocking:Bool = true):Null<{current:Int, maximum:Int}>",
      "static": true,
      "type": "haxefmod.studio.StudioSystem"
     }
@@ -5364,12 +5450,32 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "memory_initialize": {
-   "fmod": "",
-   "haxe": [],
+   "code": "FmodManager.Initialize({memoryPoolSize: 64 * 1024 * 1024});",
+   "fmod": "FMOD_Memory_Initialize",
+   "gated": false,
+   "haxe": [
+    {
+     "direct": false,
+     "doc": "Initializes FMOD.",
+     "name": "Initialize",
+     "signature": "Initialize(?settings:FmodSettings):Void",
+     "static": true,
+     "type": "haxefmod.FmodManager"
+    },
+    {
+     "direct": false,
+     "doc": "Initializes FMOD with the given settings (see FmodSettings for the define-driven defaults).",
+     "gated": false,
+     "name": "init",
+     "signature": "init(?settings:FmodSettings):FmodResult",
+     "static": true,
+     "type": "haxefmod.runtime.FmodRuntime"
+    }
+   ],
    "heading": "Memory_Initialize",
-   "html5": false,
+   "html5": true,
    "notes": [
-    "Cannot be bound. Custom allocators are callbacks that FMOD runs on every one of its threads, and no Haxe target can execute code there. FMOD uses its default allocator on every target, and StudioSystem.getMemoryStats reports what it holds."
+    "Covered by FmodSettings. The fixed pool form runs through memoryPoolSize, a byte count the library allocates and hands to FMOD before the system is created. The pool never grows, so an exhausted pool fails later calls with FMOD_ERR_MEMORY. The callback arguments are not exposed, an allocator would run on every FMOD thread. Native only, the web build allocates from the wasm heap."
    ]
   },
   "readfile": {
@@ -9907,12 +10013,24 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "system_attachchannelgrouptoport": {
-   "fmod": "",
-   "haxe": [],
+   "code": "import haxefmod.core.ChannelGroup;\nimport haxefmod.core.CoreSystem;\nimport haxefmod.studio.Types;\n\nvar music = ChannelGroup.create(\"music\");\nvar attached = CoreSystem.attachChannelGroupToPort(FmodPortType.MUSIC, FmodPortIndex.NONE, music, true);",
+   "fmod": "FMOD_System_AttachChannelGroupToPort",
+   "gated": true,
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Routes a channel group to a console output port (unsupported in HTML5, FMOD_ERR_UNSUPPORTED there).",
+     "gated": true,
+     "name": "attachChannelGroupToPort",
+     "signature": "attachChannelGroupToPort(portType:FmodPortType, portIndex:FmodPortIndex, group:ChannelGroup, passThru:Bool = false):FmodResult",
+     "static": true,
+     "type": "haxefmod.core.CoreSystem"
+    }
+   ],
    "heading": "System::attachChannelGroupToPort",
-   "html5": false,
+   "html5": true,
    "notes": [
-    "Cannot be bound. This is a console port API and haxefmod targets desktop and web only. Route audio through ChannelGroup and Bus instead."
+    "Bound for builds against a console SDK. Desktop outputs have no ports and FMOD reports that in the result. Unsupported in HTML5, where the call returns FMOD_ERR_UNSUPPORTED."
    ]
   },
   "system_attachfilesystem": {
@@ -10122,12 +10240,24 @@ const HAXEFMOD_BINDINGS = {
    ]
   },
   "system_detachchannelgroupfromport": {
-   "fmod": "",
-   "haxe": [],
+   "code": "import haxefmod.core.ChannelGroup;\nimport haxefmod.core.CoreSystem;\n\nvar music = ChannelGroup.create(\"music\");\nvar detached = CoreSystem.detachChannelGroupFromPort(music);",
+   "fmod": "FMOD_System_DetachChannelGroupFromPort",
+   "gated": true,
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Takes a channel group off its output port again (unsupported in HTML5, FMOD_ERR_UNSUPPORTED there).",
+     "gated": true,
+     "name": "detachChannelGroupFromPort",
+     "signature": "detachChannelGroupFromPort(group:ChannelGroup):FmodResult",
+     "static": true,
+     "type": "haxefmod.core.CoreSystem"
+    }
+   ],
    "heading": "System::detachChannelGroupFromPort",
-   "html5": false,
+   "html5": true,
    "notes": [
-    "Cannot be bound. This is a console port API and haxefmod targets desktop and web only. Route audio through ChannelGroup and Bus instead."
+    "Bound for builds against a console SDK. Unsupported in HTML5, where the call returns FMOD_ERR_UNSUPPORTED."
    ]
   },
   "system_get3dlistenerattributes": {
@@ -10277,6 +10407,15 @@ const HAXEFMOD_BINDINGS = {
    "fmod": "FMOD_System_GetDriverInfo",
    "gated": false,
    "haxe": [
+    {
+     "direct": true,
+     "doc": "Name, GUID, native rate, speaker mode, and channel count of an output driver (see getDriverCount).",
+     "gated": false,
+     "name": "getDriverInfo",
+     "signature": "getDriverInfo(index:Int):Null<{name:String, guid:String, systemRate:Int, speakerMode:FmodSpeakerMode, speakerModeChannels:Int}>",
+     "static": true,
+     "type": "haxefmod.core.CoreSystem"
+    },
     {
      "direct": false,
      "doc": "",
@@ -11128,7 +11267,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "System::setDSPBufferSize",
    "html5": false,
    "notes": [
-    "Covered by FmodSettings. FMOD only accepts the mixer buffer before init, so pass dspBufferSize (samples) and dspNumBuffers to FmodManager.Initialize(). Both are native only (unsupported in HTML5), where the web build fixes the mixer at 2048 samples by 2 buffers and ignores them."
+    "Covered by FmodSettings. FMOD only accepts the mixer buffer before init, so pass dspBufferSize (samples) and dspNumBuffers to FmodManager.Initialize(). Both apply on every target, the web build's default is 2048 samples by 2 buffers."
    ]
   },
   "system_setfilesystem": {
@@ -11189,6 +11328,7 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "system_setoutput": {
+   "code": "import haxefmod.studio.Types;\n\nFmodManager.Initialize({output: FmodOutputType.NOSOUND_NRT});",
    "fmod": "FMOD_System_SetOutput",
    "gated": false,
    "haxe": [
@@ -11210,7 +11350,11 @@ const HAXEFMOD_BINDINGS = {
      "type": "haxefmod.runtime.FmodRuntime"
     }
    ],
-   "html5": false
+   "heading": "System::setOutput",
+   "html5": false,
+   "notes": [
+    "Covered by FmodSettings. FMOD only takes the output type before init, so pass output to FmodManager.Initialize(). NOSOUND and NOSOUND_NRT mix without a device, WAVWRITER writes the mix to a file, and the platform values pick a driver on the platform that has it. The FMOD_WAVWRITER environment variable still wins when set. On HTML5 only WEBAUDIO, AUDIOWORKLET, NOSOUND, and NOSOUND_NRT exist and any other value fails init with FMOD_ERR_UNSUPPORTED. CoreSystem.getOutput reports the type in use."
+   ]
   },
   "system_setoutputbyplugin": {
    "fmod": "FMOD_System_SetOutputByPlugin",
@@ -11411,12 +11555,32 @@ const HAXEFMOD_BINDINGS = {
    ]
   },
   "thread_setattributes": {
-   "fmod": "",
-   "haxe": [],
+   "code": "import haxefmod.studio.Types;\n\nFmodManager.Initialize({threadAttributes: [\n    {type: FmodThreadType.MIXER, affinity: FmodThreadAffinity.CORE_5},\n    {type: FmodThreadType.STREAM, priority: FmodThreadPriority.HIGH, stackSize: FmodThreadStackSize.STREAM},\n]});",
+   "fmod": "FMOD_Thread_SetAttributes",
+   "gated": false,
+   "haxe": [
+    {
+     "direct": false,
+     "doc": "Initializes FMOD.",
+     "name": "Initialize",
+     "signature": "Initialize(?settings:FmodSettings):Void",
+     "static": true,
+     "type": "haxefmod.FmodManager"
+    },
+    {
+     "direct": false,
+     "doc": "Initializes FMOD with the given settings (see FmodSettings for the define-driven defaults).",
+     "gated": false,
+     "name": "init",
+     "signature": "init(?settings:FmodSettings):FmodResult",
+     "static": true,
+     "type": "haxefmod.runtime.FmodRuntime"
+    }
+   ],
    "heading": "Thread_SetAttributes",
-   "html5": false,
+   "html5": true,
    "notes": [
-    "Cannot be bound. It must run before the system is created, and haxefmod creates the system inside FmodManager.Initialize() with no hook before it. FMOD keeps its default thread affinity and priority on every target, and the web build has no threads to configure."
+    "Covered by FmodSettings. Each threadAttributes entry names a thread type with the priority, stack size, and core affinity to give it, applied before the system is created. An unset field keeps FMOD's default. affinity is a 32-bit core mask, FMOD's 64-bit group values stay as they are. Native only, the web build has no threads to place."
    ]
   }
  },

@@ -78,6 +78,8 @@ class NativeStudioStub {
         maxMPEGCodecs:Int, maxVorbisCodecs:Int, maxFADPCMCodecs:Int, vol0VirtualVol:Float, defaultDecodeBufferSize:Int,
         profilePort:Int, geometryMaxFadeTime:Int, distanceFilterCenterFreq:Float, randomSeed:Int, commandQueueSize:Int,
         handleInitialSize:Int, studioUpdatePeriod:Int, idleSampleDataPoolSize:Int, streamingScheduleDelay:Int, encryptionKey:String}> = null;
+    /** Every pre-create call the runtime made before sys_init_ex, in order, for the unit tests. */
+    public static var testPreInitCalls:Array<String> = [];
     public static function sys_init_ex(numChannels:Int, sampleRate:Int, speakerMode:Int, studioFlags:Int, dspBufferLength:Int, dspNumBuffers:Int, softwareChannels:Int, streamBufferSize:Int, initFlags:Int, maxMPEGCodecs:Int, maxVorbisCodecs:Int, maxFADPCMCodecs:Int, vol0VirtualVol:Float, defaultDecodeBufferSize:Int, profilePort:Int, geometryMaxFadeTime:Int, distanceFilterCenterFreq:Float, randomSeed:Int, commandQueueSize:Int, handleInitialSize:Int, studioUpdatePeriod:Int, idleSampleDataPoolSize:Int, streamingScheduleDelay:Int, encryptionKey:String):Int {
         testLastInit = {numChannels: numChannels, sampleRate: sampleRate, speakerMode: speakerMode, studioFlags: studioFlags,
             dspBufferLength: dspBufferLength, dspNumBuffers: dspNumBuffers, softwareChannels: softwareChannels,
@@ -676,4 +678,26 @@ class NativeStudioStub {
 
     public static function cg_get_num_dsps(handle:Int):Int return 0;
     public static function cg_get_dsp(handle:Int, index:Int):Int return 0;
+
+    //// Init settings and system info
+    public static function sys_set_init_format(outputType:Int, resamplerMethod:Int, rawSpeakers:Int):Int {
+        testPreInitCalls.push('format:$outputType,$resamplerMethod,$rawSpeakers');
+        return 0;
+    }
+    public static function sys_memory_initialize(poolSize:Int):Int {
+        testPreInitCalls.push('memory:$poolSize');
+        return ERR_UNSUPPORTED;
+    }
+    public static function sys_thread_set_attributes(type:Int, priority:Int, stackSize:Int, affinity:Int):Int {
+        testPreInitCalls.push('thread:$type,$priority,$stackSize,$affinity');
+        return ERR_UNSUPPORTED;
+    }
+    public static function sys_debug_initialize(flags:Int, mode:Int, filename:String):Int {
+        testPreInitCalls.push('debug:$flags,$mode,$filename');
+        return ERR_UNSUPPORTED;
+    }
+    public static function sys_get_driver_info(id:Int):String return "";
+    public static function sys_get_driver_guid(id:Int):String return "";
+    public static function sys_attach_channel_group_to_port(portType:Int, portIndex:Int, group:Int, passThru:Bool):Int return ERR_UNSUPPORTED;
+    public static function sys_detach_channel_group_from_port(group:Int):Int return ERR_UNSUPPORTED;
 }

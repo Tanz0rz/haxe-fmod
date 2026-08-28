@@ -488,6 +488,17 @@ class TestStudioSurface {
 		assert(CoreSystem.get3DSettings() == null, "sys get3DSettings default");
 		assert(CoreSystem.getDriverCount() == 0, "sys driverCount default");
 		assert(CoreSystem.getDriverName(0) == "", "sys driverName default");
+		assert(CoreSystem.getDriverInfo(0) == null, "sys getDriverInfo default");
+		assert(CoreSystem.attachChannelGroupToPort(FmodPortType.MUSIC, FmodPortIndex.NONE, ChannelGroup.master()) == FmodResult.FMOD_ERR_UNSUPPORTED,
+			"sys attachChannelGroupToPort default");
+		assert(CoreSystem.attachChannelGroupToPort(FmodPortType.VOICE, 0, ChannelGroup.master(), true) == FmodResult.FMOD_ERR_UNSUPPORTED,
+			"sys attachChannelGroupToPort passthru default");
+		assert(CoreSystem.detachChannelGroupFromPort(ChannelGroup.master()) == FmodResult.FMOD_ERR_UNSUPPORTED,
+			"sys detachChannelGroupFromPort default");
+		assert(FmodLimits.MAX_CHANNEL_WIDTH == 32 && FmodLimits.MAX_LISTENERS == 8 && FmodLimits.MAX_SYSTEMS == 8
+			&& FmodLimits.REVERB_MAXINSTANCES == 4 && FmodLimits.STUDIO_LOAD_MEMORY_ALIGNMENT == 32, "FmodLimits values");
+		assert((FmodPortIndex.NONE : Int) == -1, "FmodPortIndex.NONE crosses as -1");
+		assert((FmodThreadAffinity.CORE_15 : Int) == 0x8000 && (FmodThreadAffinity.CORE_ALL : Int) == 0, "FmodThreadAffinity masks");
 
 		assert(channel.getLoopCount() == 0, "chan loopCount default");
 		assert(channel.getLowPassGain() == 0.0, "chan lowPassGain default");
