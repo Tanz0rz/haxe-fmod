@@ -183,7 +183,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_DSP_GetOutput` | `Dsp.getOutput`<br>`Dsp.getOutputConnection` |  |
 | `FMOD_DSP_GetOutputChannelFormat` | `Dsp.getOutputChannelFormat` |  |
 | `FMOD_DSP_GetParameterBool` | `Dsp.getParameterBool` |  |
-| `FMOD_DSP_GetParameterData` | `Dsp.getParameterData`<br>`Dsp.getFftSpectrum`<br>`Dsp.getFftSpectrumInfo` | limited |
+| `FMOD_DSP_GetParameterData` | `Dsp.getParameterData`<br>`Dsp.getFftSpectrum`<br>`Dsp.getFftSpectrumInfo`<br>`Dsp.getLoudnessMeterWeighting`<br>`Dsp.getParameterAttenuationRange`<br>`Dsp.getParameterDynamicResponse`<br>`Dsp.getParameterFiniteLength`<br>`Dsp.getParameterSidechain` | compile error |
 | `FMOD_DSP_GetParameterFloat` | `Dsp.getParameterFloat`<br>`Dsp.getParameter` |  |
 | `FMOD_DSP_GetParameterInfo` | `Dsp.getParameterInfo` | compile error |
 | `FMOD_DSP_GetParameterInt` | `Dsp.getParameterInt` |  |
@@ -197,7 +197,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_DSP_SetChannelFormat` | `Dsp.setChannelFormat` |  |
 | `FMOD_DSP_SetMeteringEnabled` | `Dsp.setMeteringEnabled` |  |
 | `FMOD_DSP_SetParameterBool` | `Dsp.setParameterBool` |  |
-| `FMOD_DSP_SetParameterData` | `Dsp.setParameterData`<br>`Dsp.setParameter3DAttributes`<br>`Dsp.setParameter3DAttributesMulti` |  |
+| `FMOD_DSP_SetParameterData` | `Dsp.setParameterData`<br>`Dsp.setLoudnessMeterWeighting`<br>`Dsp.setParameter3DAttributes`<br>`Dsp.setParameter3DAttributesMulti`<br>`Dsp.setParameterAttenuationRange`<br>`Dsp.setParameterFiniteLength`<br>`Dsp.setParameterSidechain` |  |
 | `FMOD_DSP_SetParameterFloat` | `Dsp.setParameterFloat`<br>`Dsp.setParameter` |  |
 | `FMOD_DSP_SetParameterInt` | `Dsp.setParameterInt` |  |
 | `FMOD_DSP_SetUserData` | `Dsp.setUserData` |  |
