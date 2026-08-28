@@ -1,5 +1,13 @@
 # studio-api-commandreplay
 
+## 25
+<!-- FMOD_STUDIO_COMMAND_INFO -->
+Type: haxefmod.studio.Types.FmodCommandInfo
+
+## 26
+<!-- FMOD_STUDIO_INSTANCETYPE -->
+No Haxe equivalent. FmodCommandInfo.instanceType and outputType carry the FMOD_STUDIO_INSTANCETYPE value as an Int.
+
 ## *
 <!-- page default -->
 Record with StudioSystem.startCommandCapture(path), load the file with StudioSystem.loadCommandReplay(path), and drive the CommandReplay handle with start, stop, setPaused, seekToTime, seekToCommand, getPlaybackState, and getLength. getCommandCount, getCommandInfo, getCommandString, and getCommandAtTime inspect the capture, and setBankPath redirects its bank loads.

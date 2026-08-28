@@ -15,6 +15,16 @@ each example is a section:
     var sound = ...
     ```
 
+A section may carry a `Shape: indices` line with its fence when the C
+enum it stands beside is a parameter index list (the DSP effect
+parameter enums), where a fence showing setParameter by index is the
+right Haxe form, or `Shape: usage` when the type has no Haxe
+declaration and the fence shows the call that plays its role. Either
+line declares on purpose that the fence is not a declaration. A section may carry a `Type: haxefmod.studio.FmodResult` line instead of
+a fence. The generator then copies that type's declaration out of the
+source file, so a page that shows a C struct or enum shows the real
+Haxe declaration beside it and cannot drift from the library.
+
 The number is the example's position among the page's example units
 (every language selector, and every single-language code block that has
 no selector) counted from zero in document order, function entries
@@ -41,6 +51,8 @@ SOURCE_DIR = os.path.join(ROOT, "extension", "examples")
 DATA_JS = os.path.join(ROOT, "extension", "examples-data.js")
 
 SECTION = re.compile(r"^## (\S+)\s*$", re.M)
+TYPE_LINE = re.compile(r"^Type:\s*([\w.]+)\s*$", re.M)
+SHAPE_LINE = re.compile(r"^Shape:\s*(\w+)\s*$", re.M)
 COMMENT = re.compile(r"<!--(.*?)-->", re.S)
 FENCE = re.compile(r"```haxe\n(.*?)```", re.S)
 
@@ -48,6 +60,44 @@ FENCE = re.compile(r"```haxe\n(.*?)```", re.S)
 def read(path):
     with open(path, encoding="utf-8") as fh:
         return fh.read()
+
+
+def declaration_of(path):
+    """The declaration of a Haxe type as written in its source file:
+    from the doc comment or the declaration keyword through the matching
+    closing brace (or the semicolon of a typedef alias)."""
+    parts = path.split(".")
+    name = parts[-1]
+    candidates = [os.path.join(ROOT, *parts) + ".hx"]
+    if len(parts) > 1:
+        candidates.append(os.path.join(ROOT, *parts[:-1]) + ".hx")
+    for file in candidates:
+        if not os.path.exists(file):
+            continue
+        text = read(file)
+        match = re.search(r"^(?:@:\w+(?:\([^)]*\))?\s*)*(?:enum\s+)?(?:abstract|class|typedef|enum|interface)\s+" + re.escape(name) + r"\b[^\n]*", text, re.M)
+        if not match:
+            continue
+        start = match.start()
+        # include a doc comment that sits right above
+        before = text[:start].rstrip()
+        if before.endswith("*/"):
+            doc_start = before.rfind("/**")
+            if doc_start >= 0:
+                start = doc_start
+        brace = text.find("{", match.end() - len(match.group(0)))
+        semicolon = text.find(";", match.start())
+        if brace < 0 or (0 <= semicolon < brace):
+            return text[start:semicolon + 1]
+        depth = 0
+        for i in range(brace, len(text)):
+            if text[i] == "{":
+                depth += 1
+            elif text[i] == "}":
+                depth -= 1
+                if depth == 0:
+                    return text[start:i + 1]
+    raise SystemExit(f"haxe-examples: type {path} not found in the sources")
 
 
 def parse_page(text):
@@ -68,8 +118,20 @@ def parse_page(text):
         code = fence.group(1).rstrip("\n") if fence else None
         if fence:
             body = body[:fence.start()] + body[fence.end():]
+        type_line = TYPE_LINE.search(body)
+        type_path = None
+        if type_line:
+            type_path = type_line.group(1)
+            body = body[:type_line.start()] + body[type_line.end():]
+            if code is None:
+                code = declaration_of(type_path)
+        shape_line = SHAPE_LINE.search(body)
+        shape = None
+        if shape_line:
+            shape = shape_line.group(1)
+            body = body[:shape_line.start()] + body[shape_line.end():]
         notes = [line.strip() for line in body.splitlines() if line.strip()]
-        examples[index] = {"heading": heading, "notes": notes, "code": code}
+        examples[index] = {"heading": heading, "notes": notes, "code": code, "type": type_path, "shape": shape}
     return examples
 
 

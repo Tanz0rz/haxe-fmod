@@ -2,7 +2,7 @@
 
 ## 0
 <!-- 13.9.1 Scripting Example -->
-No context struct is needed. The core and studio systems are global in haxefmod, and the programmer sound key is stored on the instance itself through EventInstance.assignProgrammerSound.
+No Haxe equivalent. The core and studio systems are global in haxefmod, and the programmer sound key is stored on the instance through EventInstance.assignProgrammerSound.
 
 ## 1
 <!-- 13.9.1 Scripting Example -->

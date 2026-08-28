@@ -79,6 +79,7 @@ jobs:
         run: |
           python3 ci/haxe-examples.py --check
           python3 ci/haxe-bindings.py --check
+          python3 ci/check-example-types.py
 
       - name: Compile the guide examples
         run: python3 ci/check-readme-snippets.py docs extension/examples

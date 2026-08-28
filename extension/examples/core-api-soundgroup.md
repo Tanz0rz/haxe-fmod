@@ -2,11 +2,4 @@
 
 ## 0
 <!-- FMOD_SOUNDGROUP_BEHAVIOR -->
-The behaviors are constants on SoundGroup.
-```haxe
-import haxefmod.core.SoundGroup;
-
-var footsteps = SoundGroup.create("footsteps");
-footsteps.setMaxAudible(3);
-footsteps.setMaxAudibleBehavior(SoundGroup.BEHAVIOR_STEAL_LOWEST);
-```
+No Haxe equivalent. The behaviors are the BEHAVIOR_FAIL, BEHAVIOR_MUTE, and BEHAVIOR_STEAL_LOWEST Int constants on SoundGroup, passed to setMaxAudibleBehavior.

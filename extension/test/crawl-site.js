@@ -79,19 +79,30 @@ async function crawl() {
                 while (h && !/^H[1-6]$/.test(h.tagName)) h = h.previousElementSibling;
                 let code = '';
                 if (tabbed) {
+                    // The C++ block, or the block the site shares between C
+                    // and C++ (language-c-cpp), or the C block as a last
+                    // resort on C-only pages.
                     let n = unit.nextElementSibling;
+                    let cCode = '';
                     while (n && (n.classList.contains('highlight') || (n.tagName === 'P' && n.textContent.trim() === ''))) {
-                        if (n.classList.contains('language-cpp')) code = n.textContent;
+                        if (n.classList.contains('language-cpp') || n.classList.contains('language-c-cpp')) code = n.textContent;
+                        else if (n.classList.contains('language-c')) cCode = n.textContent;
                         n = n.nextElementSibling;
                     }
+                    if (!code) code = cCode;
                 } else {
                     code = unit.textContent;
                 }
-                examples.push({ index, kind: tabbed ? 'tabbed' : 'lone', heading: h ? h.textContent.trim() : '', code });
+                // A type definition (struct, enum, define, callback typedef)
+                // is recorded by its first line so the examples check can
+                // require a matching Haxe declaration for it.
+                const first = code.trim().split('\n')[0].trim();
+                const decl = /^(typedef\s+(struct|enum)|enum\s|struct\s|#define\s|typedef\s+\w[\w\s*]*\(|FMOD_RESULT\s+\(F_CALL)/.test(first) ? first.slice(0, 80) : '';
+                examples.push({ index, kind: tabbed ? 'tabbed' : 'lone', heading: h ? h.textContent.trim() : '', code, decl });
             });
             return { functions, examples };
         });
-        data.examples = data.examples.map(e => ({ index: e.index, kind: e.kind, heading: e.heading, code: hash(e.code) }));
+        data.examples = data.examples.map(e => ({ index: e.index, kind: e.kind, heading: e.heading, code: hash(e.code), decl: e.decl }));
         if (data.functions.length || data.examples.length) pages[name.replace(/\.html$/, '')] = data;
         console.error(name + ': ' + data.functions.length + ' functions, ' + data.examples.length + ' examples');
     }

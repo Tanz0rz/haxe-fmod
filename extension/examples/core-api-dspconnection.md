@@ -2,17 +2,4 @@
 
 ## 9
 <!-- FMOD_DSPCONNECTION_TYPE -->
-The connection types are constants on DspConnection and are passed to Dsp.addInput. PREALLOCATED is internal and not exposed.
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspConnection;
-import haxefmod.core.DspType;
-
-var reverb = Dsp.create(DspType.SFXREVERB);
-var source = Dsp.create(DspType.OSCILLATOR);
-var send = reverb.addInput(source, DspConnection.TYPE_SEND);
-send.setMix(0.3);
-if (send.getType() == DspConnection.TYPE_SEND) {
-    trace("send routing in place");
-}
-```
+No Haxe equivalent. The connection types are the TYPE_STANDARD, TYPE_SIDECHAIN, TYPE_SEND, and TYPE_SEND_SIDECHAIN Int constants on DspConnection, passed to Dsp.addInput.

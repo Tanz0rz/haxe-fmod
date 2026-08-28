@@ -45,6 +45,7 @@ stream.write(buffer);
 ## 25
 <!-- FMOD_DSP_METERING_INFO -->
 The metering struct is filled by FMOD for any unit once metering is enabled. Read it through getMetering, which returns peak and RMS arrays per output channel.
+Shape: usage
 ```haxe
 import haxefmod.core.ChannelGroup;
 import haxefmod.core.Dsp;
@@ -62,6 +63,7 @@ if (meter != null) trace('peak L ${meter.peak[0]} rms L ${meter.rms[0]}');
 ## 43
 <!-- FMOD_DSP_PARAMETER_FFT -->
 The FFT data parameter belongs to the built-in FFT unit. Attach one where you want to listen and read the spectrum with getFftSpectrum instead of decoding the struct by hand.
+Shape: usage
 ```haxe
 import haxefmod.core.ChannelGroup;
 import haxefmod.core.Dsp;
@@ -75,23 +77,42 @@ var spectrum = fft.getFftSpectrum(64);
 if (spectrum != null) trace('bass ${spectrum[1]}');
 ```
 
-## 70
-<!-- FMOD_DSP_STATE -->
-A plug-in oscillator keeps its phase in plugindata on the mixer thread, which Haxe cannot do. FMOD ships an oscillator as a built-in unit, so create one and play it as a sound source.
+## 37
+<!-- FMOD_DSP_PARAMETER_DESC -->
+haxefmod does not expose the descriptor struct. getParameterInfo returns its name, type, and range as a plain structure (null in HTML5).
+Shape: usage
 ```haxe
 import haxefmod.core.Dsp;
 import haxefmod.core.DspType;
 
-var osc = Dsp.create(DspType.OSCILLATOR);
-osc.setParameterInt(0, 0); // waveform: 0 sine, 1 square, 2 saw up, 3 saw down, 4 triangle, 5 noise
-osc.setParameter(1, 440); // rate in Hz
-var tone = osc.play();
-tone.setVolume(0.5);
-
-// later
-tone.stop();
-osc.release();
+var eq = Dsp.create(DspType.THREE_EQ);
+for (i in 0...eq.getParameterCount()) {
+    var info = eq.getParameterInfo(i);
+    if (info != null) trace('${info.name} type ${info.type} ${info.min}..${info.max} default ${info.defaultValue}');
+}
 ```
+
+## 50
+<!-- FMOD_DSP_PARAMETER_TYPE -->
+The parameter type comes back as an Int from getParameterInfo and matches the Dsp.PARAMETER_* constants.
+Shape: usage
+```haxe
+import haxefmod.core.Dsp;
+import haxefmod.core.DspType;
+
+var eq = Dsp.create(DspType.THREE_EQ);
+var info = eq.getParameterInfo(0);
+if (info != null) switch (info.type) {
+    case Dsp.PARAMETER_FLOAT: eq.setParameter(0, info.defaultValue);
+    case Dsp.PARAMETER_INT: eq.setParameterInt(0, Std.int(info.defaultValue));
+    case Dsp.PARAMETER_BOOL: eq.setParameterBool(0, info.defaultValue != 0);
+    case Dsp.PARAMETER_DATA: trace('data parameter');
+}
+```
+
+## 70
+<!-- FMOD_DSP_STATE -->
+No Haxe equivalent. This is the C source of a plug-in oscillator, which keeps its phase in plugindata on the mixer thread. FMOD ships the same oscillator as a built-in unit, see the Haxe example under the next tab (Dsp.create(DspType.OSCILLATOR)).
 
 ## 71
 <!-- FMOD_DSP_STATE -->

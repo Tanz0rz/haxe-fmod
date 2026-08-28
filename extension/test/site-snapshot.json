@@ -6,13 +6,15 @@
     "index": 0,
     "kind": "lone",
     "heading": "Thread attributes",
-    "code": "3c351394c88e"
+    "code": "3c351394c88e",
+    "decl": ""
    },
    {
     "index": 1,
     "kind": "lone",
     "heading": "Thread attributes",
-    "code": "a90b3791abe3"
+    "code": "a90b3791abe3",
+    "decl": ""
    }
   ]
  },
@@ -23,7 +25,8 @@
     "index": 0,
     "kind": "lone",
     "heading": "3.1 Initializing the Core API",
-    "code": "52fd432c8f81"
+    "code": "52fd432c8f81",
+    "decl": ""
    }
   ]
  },
@@ -34,91 +37,106 @@
     "index": 0,
     "kind": "lone",
     "heading": "4.1.1 Non-blocking Sound Creation",
-    "code": "c237eeef21be"
+    "code": "c237eeef21be",
+    "decl": ""
    },
    {
     "index": 1,
     "kind": "lone",
     "heading": "4.1.1 Non-blocking Sound Creation",
-    "code": "46c2bf2f78af"
+    "code": "46c2bf2f78af",
+    "decl": ""
    },
    {
     "index": 2,
     "kind": "lone",
     "heading": "4.1.1 Non-blocking Sound Creation",
-    "code": "b59d7756a887"
+    "code": "b59d7756a887",
+    "decl": ""
    },
    {
     "index": 3,
     "kind": "tabbed",
     "heading": "4.2 Playing a sound",
-    "code": "49af1266a5e3"
+    "code": "49af1266a5e3",
+    "decl": ""
    },
    {
     "index": 4,
     "kind": "tabbed",
     "heading": "4.3.1 Creating a Sound from memory",
-    "code": "34181152527f"
+    "code": "34181152527f",
+    "decl": ""
    },
    {
     "index": 5,
     "kind": "tabbed",
     "heading": "4.3.1 Creating a Sound from memory",
-    "code": "112a603139d5"
+    "code": "112a603139d5",
+    "decl": ""
    },
    {
     "index": 6,
     "kind": "tabbed",
     "heading": "4.3.2 Creating a Sound from PCM data",
-    "code": "582a368b47bd"
+    "code": "582a368b47bd",
+    "decl": ""
    },
    {
     "index": 7,
     "kind": "tabbed",
     "heading": "4.3.3 Creating a Sound by manually providing sample data",
-    "code": "267ce3c58ca1"
+    "code": "267ce3c58ca1",
+    "decl": ""
    },
    {
     "index": 8,
     "kind": "lone",
     "heading": "4.3.4 Creating the Sound as a Streamed FSB File",
-    "code": "08b75c7e2616"
+    "code": "08b75c7e2616",
+    "decl": ""
    },
    {
     "index": 9,
     "kind": "lone",
     "heading": "4.5.1 Setup : Override FMOD's file system with callbacks",
-    "code": "41f5eac836ce"
+    "code": "41f5eac836ce",
+    "decl": ""
    },
    {
     "index": 10,
     "kind": "lone",
     "heading": "4.5.1 Setup : Override FMOD's file system with callbacks",
-    "code": "80657a95007a"
+    "code": "80657a95007a",
+    "decl": ""
    },
    {
     "index": 11,
     "kind": "lone",
     "heading": "4.5.2 Defining the basics - opening and closing the file handle.",
-    "code": "599008f5e36b"
+    "code": "599008f5e36b",
+    "decl": ""
    },
    {
     "index": 12,
     "kind": "lone",
     "heading": "4.5.3 Defining 'userasyncread'",
-    "code": "389a022e3dc7"
+    "code": "389a022e3dc7",
+    "decl": ""
    },
    {
     "index": 13,
     "kind": "lone",
     "heading": "4.5.4 Defining 'userasynccancel'",
-    "code": "e1532205cf10"
+    "code": "e1532205cf10",
+    "decl": ""
    },
    {
     "index": 14,
     "kind": "lone",
     "heading": "4.5.5 Filling out the FMOD_ASYNCREADINFO structure when performing a deferred read",
-    "code": "974efaa43d0b"
+    "code": "974efaa43d0b",
+    "decl": "typedef struct {"
    }
   ]
  },
@@ -129,37 +147,43 @@
     "index": 0,
     "kind": "lone",
     "heading": "5.0.2 Loading Sounds as 3D",
-    "code": "aea3745deeb7"
+    "code": "aea3745deeb7",
+    "decl": ""
    },
    {
     "index": 1,
     "kind": "lone",
     "heading": "5.1 Controlling a Spatializer DSP",
-    "code": "2206cba6f1cb"
+    "code": "2206cba6f1cb",
+    "decl": ""
    },
    {
     "index": 2,
     "kind": "lone",
     "heading": "5.1 Controlling a Spatializer DSP",
-    "code": "d8fdc52df3ec"
+    "code": "d8fdc52df3ec",
+    "decl": ""
    },
    {
     "index": 3,
     "kind": "lone",
     "heading": "5.1.1 Velocity",
-    "code": "91d49de82677"
+    "code": "91d49de82677",
+    "decl": ""
    },
    {
     "index": 4,
     "kind": "lone",
     "heading": "5.1.1 Velocity",
-    "code": "0c70a4978816"
+    "code": "0c70a4978816",
+    "decl": ""
    },
    {
     "index": 5,
     "kind": "lone",
     "heading": "5.1.1 Velocity",
-    "code": "aeb84b01aa0d"
+    "code": "aeb84b01aa0d",
+    "decl": ""
    }
   ]
  },
@@ -170,115 +194,134 @@
     "index": 0,
     "kind": "lone",
     "heading": "Add a DSP effect to a Channel",
-    "code": "5e4aff5fee3a"
+    "code": "5e4aff5fee3a",
+    "decl": ""
    },
    {
     "index": 1,
     "kind": "lone",
     "heading": "Add a DSP effect to a Channel",
-    "code": "e590cbde2deb"
+    "code": "e590cbde2deb",
+    "decl": ""
    },
    {
     "index": 2,
     "kind": "lone",
     "heading": "Add a DSP effect to a Channel",
-    "code": "568f8b54a61e"
+    "code": "568f8b54a61e",
+    "decl": ""
    },
    {
     "index": 3,
     "kind": "lone",
     "heading": "Add an effect to the ChannelGroup",
-    "code": "bbe6f233617a"
+    "code": "bbe6f233617a",
+    "decl": ""
    },
    {
     "index": 4,
     "kind": "lone",
     "heading": "Creating an effect and making all Channels send to it.",
-    "code": "5f3149177cc4"
+    "code": "5f3149177cc4",
+    "decl": ""
    },
    {
     "index": 5,
     "kind": "lone",
     "heading": "Creating an effect and making all Channels send to it.",
-    "code": "9ef5c90df5d3"
+    "code": "9ef5c90df5d3",
+    "decl": ""
    },
    {
     "index": 6,
     "kind": "lone",
     "heading": "Creating an effect and making all Channels send to it.",
-    "code": "7645db4c7cb9"
+    "code": "7645db4c7cb9",
+    "decl": ""
    },
    {
     "index": 7,
     "kind": "lone",
     "heading": "Controlling mix level and pan matrices for DSPConnections",
-    "code": "628a3cd845f1"
+    "code": "628a3cd845f1",
+    "decl": ""
    },
    {
     "index": 8,
     "kind": "lone",
     "heading": "Controlling mix level and pan matrices for DSPConnections",
-    "code": "f6157ca33b0e"
+    "code": "f6157ca33b0e",
+    "decl": ""
    },
    {
     "index": 9,
     "kind": "lone",
     "heading": "Set the output format of a DSP unit, and control the pan matrix for its output signal",
-    "code": "02e7a366404e"
+    "code": "02e7a366404e",
+    "decl": ""
    },
    {
     "index": 10,
     "kind": "lone",
     "heading": "Set the output format of a DSP unit, and control the pan matrix for its output signal",
-    "code": "e0fc1899d849"
+    "code": "e0fc1899d849",
+    "decl": ""
    },
    {
     "index": 11,
     "kind": "lone",
     "heading": "Bypass an effect / disable it.",
-    "code": "35e2f59bb030"
+    "code": "35e2f59bb030",
+    "decl": ""
    },
    {
     "index": 12,
     "kind": "lone",
     "heading": "7.2 Plug-in DSP Effects",
-    "code": "9f3f7da3da9d"
+    "code": "9f3f7da3da9d",
+    "decl": ""
    },
    {
     "index": 13,
     "kind": "lone",
     "heading": "7.2 Plug-in DSP Effects",
-    "code": "842f6772db2c"
+    "code": "842f6772db2c",
+    "decl": ""
    },
    {
     "index": 14,
     "kind": "lone",
     "heading": "7.2 Plug-in DSP Effects",
-    "code": "f7f5010f53d0"
+    "code": "f7f5010f53d0",
+    "decl": ""
    },
    {
     "index": 15,
     "kind": "lone",
     "heading": "7.2 Plug-in DSP Effects",
-    "code": "770770860fed"
+    "code": "770770860fed",
+    "decl": ""
    },
    {
     "index": 16,
     "kind": "lone",
     "heading": "7.2.1 The Plug-in Descriptor",
-    "code": "8d7ea898d0d3"
+    "code": "8d7ea898d0d3",
+    "decl": ""
    },
    {
     "index": 17,
     "kind": "lone",
     "heading": "7.2.4 Multiple plug-ins within one file",
-    "code": "e550d7c9500e"
+    "code": "e550d7c9500e",
+    "decl": ""
    },
    {
     "index": 18,
     "kind": "lone",
     "heading": "7.2.4 Multiple plug-ins within one file",
-    "code": "ebe883cabdc0"
+    "code": "ebe883cabdc0",
+    "decl": ""
    }
   ]
  },
@@ -289,7 +332,8 @@
     "index": 0,
     "kind": "lone",
     "heading": "9.5.1 Use a Fixed-size Memory Pool.",
-    "code": "d9c4e1170daf"
+    "code": "d9c4e1170daf",
+    "decl": ""
    }
   ]
  },
@@ -300,97 +344,113 @@
     "index": 0,
     "kind": "tabbed",
     "heading": "10.2 Extracting PCM Data from a Sound",
-    "code": "3edfab4da3bc"
+    "code": "3edfab4da3bc",
+    "decl": ""
    },
    {
     "index": 1,
     "kind": "tabbed",
     "heading": "Codec Example",
-    "code": "c6240804dd4c"
+    "code": "c6240804dd4c",
+    "decl": ""
    },
    {
     "index": 2,
     "kind": "tabbed",
     "heading": "Output Example",
-    "code": "8df9c9128cc8"
+    "code": "8df9c9128cc8",
+    "decl": ""
    },
    {
     "index": 3,
     "kind": "tabbed",
     "heading": "DSP Example",
-    "code": "547d35e43e18"
+    "code": "547d35e43e18",
+    "decl": ""
    },
    {
     "index": 4,
     "kind": "tabbed",
     "heading": "Codec Example",
-    "code": "3bdaf1b45dac"
+    "code": "3bdaf1b45dac",
+    "decl": ""
    },
    {
     "index": 5,
     "kind": "tabbed",
     "heading": "Output Example",
-    "code": "633f2f9d8fe6"
+    "code": "633f2f9d8fe6",
+    "decl": ""
    },
    {
     "index": 6,
     "kind": "tabbed",
     "heading": "DSP Example",
-    "code": "a33b8da0dc60"
+    "code": "a33b8da0dc60",
+    "decl": ""
    },
    {
     "index": 7,
     "kind": "lone",
     "heading": "10.7.1 3D Reverbs",
-    "code": "715f7f76059b"
+    "code": "715f7f76059b",
+    "decl": ""
    },
    {
     "index": 8,
     "kind": "lone",
     "heading": "10.7.1 3D Reverbs",
-    "code": "e7bc46f774ce"
+    "code": "e7bc46f774ce",
+    "decl": ""
    },
    {
     "index": 9,
     "kind": "lone",
     "heading": "10.7.1 3D Reverbs",
-    "code": "6efc5277069c"
+    "code": "6efc5277069c",
+    "decl": ""
    },
    {
     "index": 10,
     "kind": "lone",
     "heading": "10.7.2 Using Multiple Reverbs",
-    "code": "6645d1147be7"
+    "code": "6645d1147be7",
+    "decl": ""
    },
    {
     "index": 11,
     "kind": "lone",
     "heading": "10.7.2 Using Multiple Reverbs",
-    "code": "89f4f04f4958"
+    "code": "89f4f04f4958",
+    "decl": ""
    },
    {
     "index": 12,
     "kind": "lone",
     "heading": "10.7.2 Using Multiple Reverbs",
-    "code": "34c7d7539b23"
+    "code": "34c7d7539b23",
+    "decl": ""
    },
    {
     "index": 13,
     "kind": "lone",
     "heading": "10.7.2 Using Multiple Reverbs",
-    "code": "f13c56db6961"
+    "code": "f13c56db6961",
+    "decl": ""
    },
    {
     "index": 14,
     "kind": "lone",
     "heading": "10.7.2 Using Multiple Reverbs",
-    "code": "24bd9031b05e"
+    "code": "24bd9031b05e",
+    "decl": ""
    },
    {
     "index": 15,
     "kind": "lone",
     "heading": "Added new DSP effects",
-    "code": "7516e207aade"
+    "code": "7516e207aade",
+    "decl": ""
    }
   ]
  },
@@ -401,7 +461,8 @@
     "index": 0,
     "kind": "lone",
     "heading": "12.1.1 Studio API Initialization",
-    "code": "4129f2fc10c4"
+    "code": "4129f2fc10c4",
+    "decl": ""
    }
   ]
  },
@@ -412,37 +473,43 @@
     "index": 0,
     "kind": "lone",
     "heading": "13.9.1 Scripting Example",
-    "code": "893560925da2"
+    "code": "893560925da2",
+    "decl": "struct ProgrammerSoundContext"
    },
    {
     "index": 1,
     "kind": "lone",
     "heading": "13.9.1 Scripting Example",
-    "code": "dada2689ed6e"
+    "code": "dada2689ed6e",
+    "decl": ""
    },
    {
     "index": 2,
     "kind": "lone",
     "heading": "13.9.1 Scripting Example",
-    "code": "caf5598e272d"
+    "code": "caf5598e272d",
+    "decl": ""
    },
    {
     "index": 3,
     "kind": "lone",
     "heading": "13.9.1 Scripting Example",
-    "code": "f5301ee3c9b4"
+    "code": "f5301ee3c9b4",
+    "decl": ""
    },
    {
     "index": 4,
     "kind": "lone",
     "heading": "13.9.1 Scripting Example",
-    "code": "b83ddf095762"
+    "code": "b83ddf095762",
+    "decl": ""
    },
    {
     "index": 5,
     "kind": "lone",
     "heading": "13.9.1 Scripting Example",
-    "code": "fa7eaefc48fe"
+    "code": "fa7eaefc48fe",
+    "decl": ""
    }
   ]
  },
@@ -453,55 +520,64 @@
     "index": 0,
     "kind": "lone",
     "heading": "18.2.1 Building a Plug-in",
-    "code": "bdaf5d4ae703"
+    "code": "bdaf5d4ae703",
+    "decl": ""
    },
    {
     "index": 1,
     "kind": "lone",
     "heading": "18.2.1 Building a Plug-in",
-    "code": "a6e1796900fb"
+    "code": "a6e1796900fb",
+    "decl": ""
    },
    {
     "index": 2,
     "kind": "lone",
     "heading": "18.2.2 Loading the Plug-in in the Game",
-    "code": "9f3f7da3da9d"
+    "code": "9f3f7da3da9d",
+    "decl": ""
    },
    {
     "index": 3,
     "kind": "lone",
     "heading": "18.2.2 Loading the Plug-in in the Game",
-    "code": "842f6772db2c"
+    "code": "842f6772db2c",
+    "decl": ""
    },
    {
     "index": 4,
     "kind": "lone",
     "heading": "18.2.2 Loading the Plug-in in the Game",
-    "code": "f7f5010f53d0"
+    "code": "f7f5010f53d0",
+    "decl": ""
    },
    {
     "index": 5,
     "kind": "lone",
     "heading": "18.2.2 Loading the Plug-in in the Game",
-    "code": "770770860fed"
+    "code": "770770860fed",
+    "decl": ""
    },
    {
     "index": 6,
     "kind": "lone",
     "heading": "18.4 The Plug-in Descriptor",
-    "code": "8d7ea898d0d3"
+    "code": "8d7ea898d0d3",
+    "decl": ""
    },
    {
     "index": 7,
     "kind": "lone",
     "heading": "18.7 Multiple Plug-ins Within One File",
-    "code": "e550d7c9500e"
+    "code": "e550d7c9500e",
+    "decl": ""
    },
    {
     "index": 8,
     "kind": "lone",
     "heading": "18.7 Multiple Plug-ins Within One File",
-    "code": "ebe883cabdc0"
+    "code": "ebe883cabdc0",
+    "decl": ""
    }
   ]
  },
@@ -522,79 +598,92 @@
     "index": 9,
     "kind": "tabbed",
     "heading": "20.10 FSBANK_MEMORY_ALLOC_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "45c1dfb7fec0",
+    "decl": ""
    },
    {
     "index": 10,
     "kind": "tabbed",
     "heading": "20.11 FSBANK_MEMORY_FREE_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "9ec93901e7d0",
+    "decl": ""
    },
    {
     "index": 11,
     "kind": "tabbed",
     "heading": "20.12 FSBANK_MEMORY_REALLOC_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "271e9d5eca7f",
+    "decl": ""
    },
    {
     "index": 12,
     "kind": "tabbed",
     "heading": "20.13 FSBANK_INITFLAGS",
-    "code": "da39a3ee5e6b"
+    "code": "9c4cebe4af52",
+    "decl": "#define FSBANK_INIT_NORMAL                  0x00000000"
    },
    {
     "index": 13,
     "kind": "tabbed",
     "heading": "20.14 FSBANK_BUILDFLAGS",
-    "code": "da39a3ee5e6b"
+    "code": "fe2cca10eb1d",
+    "decl": "#define FSBANK_BUILD_DEFAULT                 0x00000000"
    },
    {
     "index": 14,
     "kind": "tabbed",
     "heading": "20.15 FSBANK_FORMAT",
-    "code": "da39a3ee5e6b"
+    "code": "b171450aa949",
+    "decl": "typedef enum FSBANK_FORMAT {"
    },
    {
     "index": 15,
     "kind": "tabbed",
     "heading": "20.16 FSBANK_FSBVERSION",
-    "code": "da39a3ee5e6b"
+    "code": "21fcf93562ee",
+    "decl": "typedef enum FSBANK_FSBVERSION {"
    },
    {
     "index": 16,
     "kind": "tabbed",
     "heading": "20.17 FSBANK_PROGRESSITEM",
-    "code": "da39a3ee5e6b"
+    "code": "14322cdfafc0",
+    "decl": "typedef struct FSBANK_PROGRESSITEM {"
    },
    {
     "index": 17,
     "kind": "tabbed",
     "heading": "20.18 FSBANK_RESULT",
-    "code": "da39a3ee5e6b"
+    "code": "860520e00d0c",
+    "decl": "typedef enum FSBANK_RESULT {"
    },
    {
     "index": 18,
     "kind": "tabbed",
     "heading": "20.19 FSBANK_STATE",
-    "code": "da39a3ee5e6b"
+    "code": "dac790eec56d",
+    "decl": "typedef enum FSBANK_STATE {"
    },
    {
     "index": 19,
     "kind": "tabbed",
     "heading": "20.20 FSBANK_STATEDATA_FAILED",
-    "code": "da39a3ee5e6b"
+    "code": "487124cd547b",
+    "decl": "typedef struct FSBANK_STATEDATA_FAILED {"
    },
    {
     "index": 20,
     "kind": "tabbed",
     "heading": "20.21 FSBANK_STATEDATA_WARNING",
-    "code": "da39a3ee5e6b"
+    "code": "c36af8575352",
+    "decl": "typedef struct FSBANK_STATEDATA_WARNING {"
    },
    {
     "index": 21,
     "kind": "tabbed",
     "heading": "20.22 FSBANK_SUBSOUND",
-    "code": "da39a3ee5e6b"
+    "code": "36e446cce302",
+    "decl": "typedef struct FSBANK_SUBSOUND {"
    }
   ]
  },
@@ -605,13 +694,15 @@
     "index": 0,
     "kind": "tabbed",
     "heading": "22.33 Reading Sound Data",
-    "code": "c6acb230324f"
+    "code": "c6acb230324f",
+    "decl": ""
    },
    {
     "index": 1,
     "kind": "tabbed",
     "heading": "22.49 User Data",
-    "code": "15df068d3bf9"
+    "code": "15df068d3bf9",
+    "decl": ""
    }
   ]
  },
@@ -622,325 +713,379 @@
     "index": 0,
     "kind": "tabbed",
     "heading": "FMOD_DSP_CHANNELMIX",
-    "code": "da39a3ee5e6b"
+    "code": "8e1d3fb1fc2b",
+    "decl": "typedef enum FMOD_DSP_CHANNELMIX {"
    },
    {
     "index": 1,
     "kind": "tabbed",
     "heading": "FMOD_DSP_CHANNELMIX_OUTPUT",
-    "code": "da39a3ee5e6b"
+    "code": "8d5fc13cd6ea",
+    "decl": "typedef enum FMOD_DSP_CHANNELMIX_OUTPUT {"
    },
    {
     "index": 2,
     "kind": "tabbed",
     "heading": "FMOD_DSP_CHORUS",
-    "code": "da39a3ee5e6b"
+    "code": "f938733e33d7",
+    "decl": "typedef enum FMOD_DSP_CHORUS {"
    },
    {
     "index": 3,
     "kind": "tabbed",
     "heading": "FMOD_DSP_COMPRESSOR",
-    "code": "da39a3ee5e6b"
+    "code": "882da1cdd0bc",
+    "decl": "typedef enum FMOD_DSP_COMPRESSOR {"
    },
    {
     "index": 4,
     "kind": "tabbed",
     "heading": "FMOD_DSP_CONVOLUTION_REVERB",
-    "code": "da39a3ee5e6b"
+    "code": "8e1759e739ec",
+    "decl": "typedef enum FMOD_DSP_CONVOLUTION_REVERB {"
    },
    {
     "index": 5,
     "kind": "tabbed",
     "heading": "FMOD_DSP_DELAY",
-    "code": "da39a3ee5e6b"
+    "code": "a737d087f45d",
+    "decl": "typedef enum FMOD_DSP_DELAY {"
    },
    {
     "index": 6,
     "kind": "tabbed",
     "heading": "FMOD_DSP_DISTORTION",
-    "code": "da39a3ee5e6b"
+    "code": "5b7868a30744",
+    "decl": "typedef enum FMOD_DSP_DISTORTION {"
    },
    {
     "index": 7,
     "kind": "tabbed",
     "heading": "FMOD_DSP_ECHO",
-    "code": "da39a3ee5e6b"
+    "code": "12d4e2fe8d98",
+    "decl": "typedef enum FMOD_DSP_ECHO {"
    },
    {
     "index": 8,
     "kind": "tabbed",
     "heading": "FMOD_DSP_ECHO_DELAYCHANGEMODE_TYPE",
-    "code": "da39a3ee5e6b"
+    "code": "772fd3ba5bdc",
+    "decl": "typedef enum FMOD_DSP_ECHO_DELAYCHANGEMODE_TYPE {"
    },
    {
     "index": 9,
     "kind": "tabbed",
     "heading": "FMOD_DSP_FADER",
-    "code": "da39a3ee5e6b"
+    "code": "8871129a8c0c",
+    "decl": "typedef enum FMOD_DSP_FADER {"
    },
    {
     "index": 10,
     "kind": "tabbed",
     "heading": "FMOD_DSP_FFT",
-    "code": "da39a3ee5e6b"
+    "code": "266b9a66eb18",
+    "decl": "typedef enum FMOD_DSP_FFT {"
    },
    {
     "index": 11,
     "kind": "tabbed",
     "heading": "FMOD_DSP_FFT_DOWNMIX_TYPE",
-    "code": "da39a3ee5e6b"
+    "code": "44bb692f019a",
+    "decl": "typedef enum FMOD_DSP_FFT_DOWNMIX_TYPE {"
    },
    {
     "index": 12,
     "kind": "tabbed",
     "heading": "FMOD_DSP_FFT_WINDOW_TYPE",
-    "code": "da39a3ee5e6b"
+    "code": "affa1805e347",
+    "decl": "typedef enum FMOD_DSP_FFT_WINDOW_TYPE {"
    },
    {
     "index": 13,
     "kind": "tabbed",
     "heading": "FMOD_DSP_FLANGE",
-    "code": "da39a3ee5e6b"
+    "code": "077889aa032a",
+    "decl": "typedef enum FMOD_DSP_FLANGE {"
    },
    {
     "index": 14,
     "kind": "tabbed",
     "heading": "FMOD_DSP_HIGHPASS",
-    "code": "da39a3ee5e6b"
+    "code": "9f8945e86067",
+    "decl": "typedef enum FMOD_DSP_HIGHPASS {"
    },
    {
     "index": 15,
     "kind": "lone",
     "heading": "FMOD_DSP_HIGHPASS",
-    "code": "bf10825079bf"
+    "code": "bf10825079bf",
+    "decl": ""
    },
    {
     "index": 16,
     "kind": "tabbed",
     "heading": "FMOD_DSP_HIGHPASS_SIMPLE",
-    "code": "da39a3ee5e6b"
+    "code": "0fbc5815cc29",
+    "decl": "typedef enum FMOD_DSP_HIGHPASS_SIMPLE {"
    },
    {
     "index": 17,
     "kind": "lone",
     "heading": "FMOD_DSP_HIGHPASS_SIMPLE",
-    "code": "3e40114e5821"
+    "code": "3e40114e5821",
+    "decl": ""
    },
    {
     "index": 18,
     "kind": "tabbed",
     "heading": "FMOD_DSP_ITECHO",
-    "code": "da39a3ee5e6b"
+    "code": "224abfbd5c4d",
+    "decl": "typedef enum FMOD_DSP_ITECHO {"
    },
    {
     "index": 19,
     "kind": "tabbed",
     "heading": "FMOD_DSP_ITLOWPASS",
-    "code": "da39a3ee5e6b"
+    "code": "9d8de41be767",
+    "decl": "typedef enum FMOD_DSP_ITLOWPASS {"
    },
    {
     "index": 20,
     "kind": "tabbed",
     "heading": "FMOD_DSP_LIMITER",
-    "code": "da39a3ee5e6b"
+    "code": "3d0f8d27409f",
+    "decl": "typedef enum FMOD_DSP_LIMITER {"
    },
    {
     "index": 21,
     "kind": "tabbed",
     "heading": "FMOD_DSP_LOUDNESS_METER",
-    "code": "da39a3ee5e6b"
+    "code": "2496f4791734",
+    "decl": "typedef enum FMOD_DSP_LOUDNESS_METER {"
    },
    {
     "index": 22,
     "kind": "tabbed",
     "heading": "FMOD_DSP_LOUDNESS_METER_INFO_TYPE",
-    "code": "da39a3ee5e6b"
+    "code": "9798c2142c6f",
+    "decl": "typedef struct FMOD_DSP_LOUDNESS_METER_INFO_TYPE"
    },
    {
     "index": 23,
     "kind": "tabbed",
     "heading": "FMOD_DSP_LOUDNESS_METER_STATE_TYPE",
-    "code": "da39a3ee5e6b"
+    "code": "0e49faadb87d",
+    "decl": "typedef enum FMOD_DSP_LOUDNESS_METER_STATE_TYPE {"
    },
    {
     "index": 24,
     "kind": "tabbed",
     "heading": "FMOD_DSP_LOUDNESS_METER_WEIGHTING_TYPE",
-    "code": "da39a3ee5e6b"
+    "code": "1446ac2621ac",
+    "decl": "typedef struct FMOD_DSP_LOUDNESS_METER_WEIGHTING_TYPE"
    },
    {
     "index": 25,
     "kind": "tabbed",
     "heading": "FMOD_DSP_LOWPASS",
-    "code": "da39a3ee5e6b"
+    "code": "c14b5b6a57fd",
+    "decl": "typedef enum FMOD_DSP_LOWPASS {"
    },
    {
     "index": 26,
     "kind": "lone",
     "heading": "FMOD_DSP_LOWPASS",
-    "code": "824c4924ec13"
+    "code": "824c4924ec13",
+    "decl": ""
    },
    {
     "index": 27,
     "kind": "tabbed",
     "heading": "FMOD_DSP_LOWPASS_SIMPLE",
-    "code": "da39a3ee5e6b"
+    "code": "3a2cc3c82fdd",
+    "decl": "typedef enum FMOD_DSP_LOWPASS_SIMPLE {"
    },
    {
     "index": 28,
     "kind": "lone",
     "heading": "FMOD_DSP_LOWPASS_SIMPLE",
-    "code": "2f24ddfe63b2"
+    "code": "2f24ddfe63b2",
+    "decl": ""
    },
    {
     "index": 29,
     "kind": "tabbed",
     "heading": "FMOD_DSP_MULTIBAND_DYNAMICS",
-    "code": "da39a3ee5e6b"
+    "code": "8fd6ec5b9c78",
+    "decl": "typedef enum FMOD_DSP_MULTIBAND_DYNAMICS"
    },
    {
     "index": 30,
     "kind": "tabbed",
     "heading": "FMOD_DSP_MULTIBAND_DYNAMICS_MODE_TYPE",
-    "code": "da39a3ee5e6b"
+    "code": "1e3da30b5ac2",
+    "decl": "typedef enum FMOD_DSP_MULTIBAND_DYNAMICS_MODE_TYPE {"
    },
    {
     "index": 31,
     "kind": "tabbed",
     "heading": "FMOD_DSP_MULTIBAND_EQ",
-    "code": "da39a3ee5e6b"
+    "code": "6eef3e9982d3",
+    "decl": "typedef enum FMOD_DSP_MULTIBAND_EQ {"
    },
    {
     "index": 32,
     "kind": "tabbed",
     "heading": "FMOD_DSP_MULTIBAND_EQ_FILTER_TYPE",
-    "code": "da39a3ee5e6b"
+    "code": "f085b240e1b1",
+    "decl": "typedef enum FMOD_DSP_MULTIBAND_EQ_FILTER_TYPE {"
    },
    {
     "index": 33,
     "kind": "tabbed",
     "heading": "FMOD_DSP_NORMALIZE",
-    "code": "da39a3ee5e6b"
+    "code": "9656a3a8ac60",
+    "decl": "typedef enum FMOD_DSP_NORMALIZE {"
    },
    {
     "index": 34,
     "kind": "tabbed",
     "heading": "FMOD_DSP_OBJECTPAN",
-    "code": "da39a3ee5e6b"
+    "code": "dbc6741cf431",
+    "decl": "typedef enum FMOD_DSP_OBJECTPAN {"
    },
    {
     "index": 35,
     "kind": "tabbed",
     "heading": "FMOD_DSP_OSCILLATOR",
-    "code": "da39a3ee5e6b"
+    "code": "9b74f9fef737",
+    "decl": "typedef enum FMOD_DSP_OSCILLATOR {"
    },
    {
     "index": 36,
     "kind": "tabbed",
     "heading": "FMOD_DSP_PAN",
-    "code": "da39a3ee5e6b"
+    "code": "ac1d69d148ac",
+    "decl": "typedef enum FMOD_DSP_PAN {"
    },
    {
     "index": 37,
     "kind": "lone",
     "heading": "FMOD_DSP_PAN",
-    "code": "836904aebfa2"
+    "code": "836904aebfa2",
+    "decl": ""
    },
    {
     "index": 38,
     "kind": "tabbed",
     "heading": "FMOD_DSP_PAN_2D_STEREO_MODE_TYPE",
-    "code": "da39a3ee5e6b"
+    "code": "1673daed0397",
+    "decl": "typedef enum FMOD_DSP_PAN_2D_STEREO_MODE_TYPE {"
    },
    {
     "index": 39,
     "kind": "tabbed",
     "heading": "FMOD_DSP_PAN_3D_EXTENT_MODE_TYPE",
-    "code": "da39a3ee5e6b"
+    "code": "531e332c7f7a",
+    "decl": "typedef enum FMOD_DSP_PAN_3D_EXTENT_MODE_TYPE {"
    },
    {
     "index": 40,
     "kind": "tabbed",
     "heading": "FMOD_DSP_PAN_3D_ROLLOFF_TYPE",
-    "code": "da39a3ee5e6b"
+    "code": "475d7d70b1c2",
+    "decl": "typedef enum FMOD_DSP_PAN_3D_ROLLOFF_TYPE {"
    },
    {
     "index": 41,
     "kind": "tabbed",
     "heading": "FMOD_DSP_PAN_MODE_TYPE",
-    "code": "da39a3ee5e6b"
+    "code": "d9af8e55f250",
+    "decl": "typedef enum FMOD_DSP_PAN_MODE_TYPE {"
    },
    {
     "index": 42,
     "kind": "tabbed",
     "heading": "FMOD_DSP_PARAMEQ",
-    "code": "da39a3ee5e6b"
+    "code": "8c33dd7bd40e",
+    "decl": "typedef enum FMOD_DSP_PARAMEQ {"
    },
    {
     "index": 43,
     "kind": "lone",
     "heading": "FMOD_DSP_PARAMEQ",
-    "code": "bc44c1d7d2d2"
+    "code": "bc44c1d7d2d2",
+    "decl": ""
    },
    {
     "index": 44,
     "kind": "tabbed",
     "heading": "FMOD_DSP_PITCHSHIFT",
-    "code": "da39a3ee5e6b"
+    "code": "c45ea61d26fd",
+    "decl": "typedef enum FMOD_DSP_PITCHSHIFT {"
    },
    {
     "index": 45,
     "kind": "tabbed",
     "heading": "FMOD_DSP_RETURN",
-    "code": "da39a3ee5e6b"
+    "code": "bc8d42652d35",
+    "decl": "typedef enum FMOD_DSP_RETURN {"
    },
    {
     "index": 46,
     "kind": "tabbed",
     "heading": "FMOD_DSP_SEND",
-    "code": "da39a3ee5e6b"
+    "code": "2c3b9300b157",
+    "decl": "typedef enum FMOD_DSP_SEND {"
    },
    {
     "index": 47,
     "kind": "tabbed",
     "heading": "FMOD_DSP_SFXREVERB",
-    "code": "da39a3ee5e6b"
+    "code": "d32ecca5603d",
+    "decl": "typedef enum FMOD_DSP_SFXREVERB {"
    },
    {
     "index": 48,
     "kind": "tabbed",
     "heading": "FMOD_DSP_THREE_EQ",
-    "code": "da39a3ee5e6b"
+    "code": "9e5a25ce1bbf",
+    "decl": "typedef enum FMOD_DSP_THREE_EQ {"
    },
    {
     "index": 49,
     "kind": "tabbed",
     "heading": "FMOD_DSP_THREE_EQ_CROSSOVERSLOPE_TYPE",
-    "code": "da39a3ee5e6b"
+    "code": "8856c9a94307",
+    "decl": "typedef enum FMOD_DSP_THREE_EQ_CROSSOVERSLOPE_TYPE {"
    },
    {
     "index": 50,
     "kind": "tabbed",
     "heading": "FMOD_DSP_TRANSCEIVER",
-    "code": "da39a3ee5e6b"
+    "code": "1a3f08d570aa",
+    "decl": "typedef enum FMOD_DSP_TRANSCEIVER {"
    },
    {
     "index": 51,
     "kind": "tabbed",
     "heading": "FMOD_DSP_TRANSCEIVER_SPEAKERMODE",
-    "code": "da39a3ee5e6b"
+    "code": "ddaac77b577a",
+    "decl": "typedef enum FMOD_DSP_TRANSCEIVER_SPEAKERMODE {"
    },
    {
     "index": 52,
     "kind": "tabbed",
     "heading": "FMOD_DSP_TREMOLO",
-    "code": "da39a3ee5e6b"
+    "code": "aaa7a17ad9ce",
+    "decl": "typedef enum FMOD_DSP_TREMOLO {"
    },
    {
     "index": 53,
     "kind": "tabbed",
     "heading": "FMOD_DSP_TYPE",
-    "code": "da39a3ee5e6b"
+    "code": "36fc793b6c12",
+    "decl": "typedef enum FMOD_DSP_TYPE {"
    }
   ]
  },
@@ -1046,187 +1191,218 @@
     "index": 0,
     "kind": "tabbed",
     "heading": "FMOD_3D_ROLLOFF_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "c4558d0b20f7",
+    "decl": ""
    },
    {
     "index": 1,
     "kind": "tabbed",
     "heading": "FMOD_ADVANCEDSETTINGS",
-    "code": "da39a3ee5e6b"
+    "code": "4ab1951f8a7f",
+    "decl": "typedef struct FMOD_ADVANCEDSETTINGS {"
    },
    {
     "index": 2,
     "kind": "tabbed",
     "heading": "FMOD_ASYNCREADINFO",
-    "code": "da39a3ee5e6b"
+    "code": "54653f306b1e",
+    "decl": "typedef struct FMOD_ASYNCREADINFO {"
    },
    {
     "index": 3,
     "kind": "tabbed",
     "heading": "FMOD_CREATESOUNDEXINFO",
-    "code": "da39a3ee5e6b"
+    "code": "6ea9f220e322",
+    "decl": "typedef struct FMOD_CREATESOUNDEXINFO {"
    },
    {
     "index": 4,
     "kind": "tabbed",
     "heading": "FMOD_DRIVER_STATE",
-    "code": "da39a3ee5e6b"
+    "code": "9606916962b0",
+    "decl": "#define FMOD_DRIVER_STATE_CONNECTED   0x00000001"
    },
    {
     "index": 5,
     "kind": "tabbed",
     "heading": "FMOD_DSP_RESAMPLER",
-    "code": "da39a3ee5e6b"
+    "code": "37ebe6a6377e",
+    "decl": "typedef enum FMOD_DSP_RESAMPLER {"
    },
    {
     "index": 6,
     "kind": "tabbed",
     "heading": "FMOD_ERRORCALLBACK_INFO",
-    "code": "da39a3ee5e6b"
+    "code": "4d8553ab77d7",
+    "decl": "typedef struct FMOD_ERRORCALLBACK_INFO {"
    },
    {
     "index": 7,
     "kind": "tabbed",
     "heading": "FMOD_ERRORCALLBACK_INSTANCETYPE",
-    "code": "da39a3ee5e6b"
+    "code": "0330e032c53e",
+    "decl": "typedef enum FMOD_ERRORCALLBACK_INSTANCETYPE {"
    },
    {
     "index": 8,
     "kind": "tabbed",
     "heading": "FMOD_FILE_ASYNCCANCEL_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "5cb0ad10cbd7",
+    "decl": ""
    },
    {
     "index": 9,
     "kind": "tabbed",
     "heading": "FMOD_FILE_ASYNCDONE_FUNC",
-    "code": "da39a3ee5e6b"
+    "code": "37e880debf88",
+    "decl": ""
    },
    {
     "index": 10,
     "kind": "tabbed",
     "heading": "FMOD_FILE_ASYNCREAD_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "e9e9dee52e47",
+    "decl": ""
    },
    {
     "index": 11,
     "kind": "tabbed",
     "heading": "FMOD_FILE_CLOSE_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "84118bb42e1e",
+    "decl": ""
    },
    {
     "index": 12,
     "kind": "tabbed",
     "heading": "FMOD_FILE_OPEN_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "187e6b737ccc",
+    "decl": ""
    },
    {
     "index": 13,
     "kind": "tabbed",
     "heading": "FMOD_FILE_READ_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "589b54d44789",
+    "decl": ""
    },
    {
     "index": 14,
     "kind": "tabbed",
     "heading": "FMOD_FILE_SEEK_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "5437170ada6d",
+    "decl": ""
    },
    {
     "index": 15,
     "kind": "tabbed",
     "heading": "FMOD_INITFLAGS",
-    "code": "da39a3ee5e6b"
+    "code": "864fbc0ac6e9",
+    "decl": "#define FMOD_INIT_NORMAL                     0x00000000"
    },
    {
     "index": 16,
     "kind": "tabbed",
     "heading": "FMOD_OUTPUTTYPE",
-    "code": "da39a3ee5e6b"
+    "code": "7d6a01934cf6",
+    "decl": "typedef enum FMOD_OUTPUTTYPE {"
    },
    {
     "index": 17,
     "kind": "tabbed",
     "heading": "FMOD_PLUGINLIST",
-    "code": "da39a3ee5e6b"
+    "code": "e8a6f06e6537",
+    "decl": "typedef struct FMOD_PLUGINLIST {"
    },
    {
     "index": 18,
     "kind": "tabbed",
     "heading": "FMOD_PLUGINTYPE",
-    "code": "da39a3ee5e6b"
+    "code": "4a6afdeb5764",
+    "decl": "typedef enum FMOD_PLUGINTYPE {"
    },
    {
     "index": 19,
     "kind": "tabbed",
     "heading": "FMOD_PORT_INDEX",
-    "code": "da39a3ee5e6b"
+    "code": "fa4d8748620a",
+    "decl": "#define FMOD_PORT_INDEX_NONE 0xFFFFFFFFFFFFFFFF"
    },
    {
     "index": 20,
     "kind": "tabbed",
     "heading": "FMOD_PORT_TYPE",
-    "code": "da39a3ee5e6b"
+    "code": "55097f3d67cf",
+    "decl": "typedef enum FMOD_PORT_TYPE"
    },
    {
     "index": 21,
     "kind": "tabbed",
     "heading": "FMOD_REVERB_MAXINSTANCES",
-    "code": "da39a3ee5e6b"
+    "code": "dc351959123a",
+    "decl": "#define FMOD_REVERB_MAXINSTANCES 4"
    },
    {
     "index": 22,
     "kind": "tabbed",
     "heading": "FMOD_REVERB_PRESETS",
-    "code": "da39a3ee5e6b"
+    "code": "2eef3db4c8ae",
+    "decl": "#define FMOD_PRESET_OFF                {  1000,    7,  11, 5000, 100, 100, 100, "
    },
    {
     "index": 23,
     "kind": "tabbed",
     "heading": "FMOD_REVERB_PROPERTIES",
-    "code": "da39a3ee5e6b"
+    "code": "56d8e0c76d86",
+    "decl": "typedef struct FMOD_REVERB_PROPERTIES {"
    },
    {
     "index": 26,
     "kind": "tabbed",
     "heading": "FMOD_SYSTEM_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "3b093628f38b",
+    "decl": ""
    },
    {
     "index": 27,
     "kind": "tabbed",
     "heading": "FMOD_SYSTEM_CALLBACK_TYPE",
-    "code": "da39a3ee5e6b"
+    "code": "906c770d7228",
+    "decl": "#define FMOD_SYSTEM_CALLBACK_DEVICELISTCHANGED        0x00000001"
    },
    {
     "index": 104,
     "kind": "lone",
     "heading": "System::setDSPBufferSize",
-    "code": "a51f1ce9bdd3"
+    "code": "a51f1ce9bdd3",
+    "decl": ""
    },
    {
     "index": 116,
     "kind": "lone",
     "heading": "System::setSpeakerPosition",
-    "code": "214c316327e3"
+    "code": "214c316327e3",
+    "decl": ""
    },
    {
     "index": 117,
     "kind": "lone",
     "heading": "System::setSpeakerPosition",
-    "code": "8661decc40c3"
+    "code": "8661decc40c3",
+    "decl": ""
    },
    {
     "index": 118,
     "kind": "lone",
     "heading": "System::setSpeakerPosition",
-    "code": "4a85349832dc"
+    "code": "4a85349832dc",
+    "decl": ""
    },
    {
     "index": 119,
     "kind": "lone",
     "heading": "System::setSpeakerPosition",
-    "code": "76e1592f9acd"
+    "code": "76e1592f9acd",
+    "decl": ""
    }
   ]
  },
@@ -1296,91 +1472,106 @@
     "index": 0,
     "kind": "tabbed",
     "heading": "FMOD_STUDIO_ADVANCEDSETTINGS",
-    "code": "da39a3ee5e6b"
+    "code": "601fd6337578",
+    "decl": "typedef struct FMOD_STUDIO_ADVANCEDSETTINGS {"
    },
    {
     "index": 1,
     "kind": "tabbed",
     "heading": "FMOD_STUDIO_BANK_INFO",
-    "code": "da39a3ee5e6b"
+    "code": "1b01b647651b",
+    "decl": "typedef struct FMOD_STUDIO_BANK_INFO {"
    },
    {
     "index": 2,
     "kind": "tabbed",
     "heading": "FMOD_STUDIO_BUFFER_INFO",
-    "code": "da39a3ee5e6b"
+    "code": "fa131312618a",
+    "decl": "typedef struct FMOD_STUDIO_BUFFER_INFO {"
    },
    {
     "index": 3,
     "kind": "tabbed",
     "heading": "FMOD_STUDIO_BUFFER_USAGE",
-    "code": "da39a3ee5e6b"
+    "code": "63cc784b856c",
+    "decl": "typedef struct FMOD_STUDIO_BUFFER_USAGE {"
    },
    {
     "index": 4,
     "kind": "tabbed",
     "heading": "FMOD_STUDIO_COMMANDCAPTURE_FLAGS",
-    "code": "da39a3ee5e6b"
+    "code": "9e49d68a7e33",
+    "decl": "#define FMOD_STUDIO_COMMANDCAPTURE_NORMAL             0x00000000"
    },
    {
     "index": 5,
     "kind": "tabbed",
     "heading": "FMOD_STUDIO_COMMANDREPLAY_FLAGS",
-    "code": "da39a3ee5e6b"
+    "code": "2f44b99db212",
+    "decl": "#define FMOD_STUDIO_COMMANDREPLAY_NORMAL         0x00000000"
    },
    {
     "index": 6,
     "kind": "tabbed",
     "heading": "FMOD_STUDIO_CPU_USAGE",
-    "code": "da39a3ee5e6b"
+    "code": "8b8929ff6ed4",
+    "decl": "typedef struct FMOD_STUDIO_CPU_USAGE {"
    },
    {
     "index": 7,
     "kind": "tabbed",
     "heading": "FMOD_STUDIO_INITFLAGS",
-    "code": "da39a3ee5e6b"
+    "code": "8dc9930193b3",
+    "decl": "#define FMOD_STUDIO_INIT_NORMAL                0x00000000"
    },
    {
     "index": 8,
     "kind": "tabbed",
     "heading": "FMOD_STUDIO_LOAD_BANK_FLAGS",
-    "code": "da39a3ee5e6b"
+    "code": "cde6e572942e",
+    "decl": "#define FMOD_STUDIO_LOAD_BANK_NORMAL             0x00000000"
    },
    {
     "index": 9,
     "kind": "tabbed",
     "heading": "FMOD_STUDIO_LOAD_MEMORY_ALIGNMENT",
-    "code": "da39a3ee5e6b"
+    "code": "bdcbda0aef9a",
+    "decl": "#define FMOD_STUDIO_LOAD_MEMORY_ALIGNMENT   32"
    },
    {
     "index": 10,
     "kind": "tabbed",
     "heading": "FMOD_STUDIO_LOAD_MEMORY_MODE",
-    "code": "da39a3ee5e6b"
+    "code": "16884d4ccd03",
+    "decl": "typedef enum FMOD_STUDIO_LOAD_MEMORY_MODE {"
    },
    {
     "index": 11,
     "kind": "lone",
     "heading": "FMOD_STUDIO_LOAD_MEMORY_MODE",
-    "code": "b5d07ab1176c"
+    "code": "b5d07ab1176c",
+    "decl": ""
    },
    {
     "index": 12,
     "kind": "tabbed",
     "heading": "FMOD_STUDIO_SOUND_INFO",
-    "code": "da39a3ee5e6b"
+    "code": "177daf9b5494",
+    "decl": "typedef struct FMOD_STUDIO_SOUND_INFO {"
    },
    {
     "index": 13,
     "kind": "tabbed",
     "heading": "FMOD_STUDIO_SYSTEM_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "c694bdebb1c7",
+    "decl": ""
    },
    {
     "index": 14,
     "kind": "tabbed",
     "heading": "FMOD_STUDIO_SYSTEM_CALLBACK_TYPE",
-    "code": "da39a3ee5e6b"
+    "code": "d79ca2b8e494",
+    "decl": "#define FMOD_STUDIO_SYSTEM_CALLBACK_PREUPDATE               0x00000001"
    }
   ]
  },
@@ -1453,55 +1644,64 @@
     "index": 39,
     "kind": "tabbed",
     "heading": "FMOD_STUDIO_EVENT_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "d2319267982f",
+    "decl": ""
    },
    {
     "index": 40,
     "kind": "tabbed",
     "heading": "FMOD_STUDIO_EVENT_CALLBACK_TYPE",
-    "code": "da39a3ee5e6b"
+    "code": "4de0a13a1cf1",
+    "decl": "#define FMOD_STUDIO_EVENT_CALLBACK_CREATED                  0x00000001"
    },
    {
     "index": 41,
     "kind": "tabbed",
     "heading": "FMOD_STUDIO_EVENT_PROPERTY",
-    "code": "da39a3ee5e6b"
+    "code": "59e3d07d6dd9",
+    "decl": "typedef enum FMOD_STUDIO_EVENT_PROPERTY {"
    },
    {
     "index": 42,
     "kind": "tabbed",
     "heading": "FMOD_STUDIO_PLUGIN_INSTANCE_PROPERTIES",
-    "code": "da39a3ee5e6b"
+    "code": "bbd146be2cd9",
+    "decl": "typedef struct FMOD_STUDIO_PLUGIN_INSTANCE_PROPERTIES {"
    },
    {
     "index": 43,
     "kind": "tabbed",
     "heading": "FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES",
-    "code": "da39a3ee5e6b"
+    "code": "d170b60bef14",
+    "decl": "typedef struct FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES {"
    },
    {
     "index": 44,
     "kind": "tabbed",
     "heading": "FMOD_STUDIO_STOP_MODE",
-    "code": "da39a3ee5e6b"
+    "code": "bafbc6a77961",
+    "decl": "typedef enum FMOD_STUDIO_STOP_MODE {"
    },
    {
     "index": 45,
     "kind": "tabbed",
     "heading": "FMOD_STUDIO_TIMELINE_BEAT_PROPERTIES",
-    "code": "da39a3ee5e6b"
+    "code": "b45115c2c466",
+    "decl": "typedef struct FMOD_STUDIO_TIMELINE_BEAT_PROPERTIES {"
    },
    {
     "index": 46,
     "kind": "tabbed",
     "heading": "FMOD_STUDIO_TIMELINE_MARKER_PROPERTIES",
-    "code": "da39a3ee5e6b"
+    "code": "5c9c3896a779",
+    "decl": "typedef struct FMOD_STUDIO_TIMELINE_MARKER_PROPERTIES {"
    },
    {
     "index": 47,
     "kind": "tabbed",
     "heading": "FMOD_STUDIO_TIMELINE_NESTED_BEAT_PROPERTIES",
-    "code": "da39a3ee5e6b"
+    "code": "06c8739a3122",
+    "decl": "typedef struct FMOD_STUDIO_TIMELINE_NESTED_BEAT_PROPERTIES {"
    }
   ]
  },
@@ -1514,43 +1714,50 @@
     "index": 0,
     "kind": "tabbed",
     "heading": "FMOD_STUDIO_LOADING_STATE",
-    "code": "da39a3ee5e6b"
+    "code": "91a42b7de2f9",
+    "decl": "typedef enum FMOD_STUDIO_LOADING_STATE {"
    },
    {
     "index": 1,
     "kind": "tabbed",
     "heading": "FMOD_STUDIO_MEMORY_USAGE",
-    "code": "da39a3ee5e6b"
+    "code": "c524ec943b02",
+    "decl": "typedef struct FMOD_STUDIO_MEMORY_USAGE {"
    },
    {
     "index": 2,
     "kind": "tabbed",
     "heading": "FMOD_STUDIO_PARAMETER_DESCRIPTION",
-    "code": "da39a3ee5e6b"
+    "code": "277d707cd30f",
+    "decl": "typedef struct FMOD_STUDIO_PARAMETER_DESCRIPTION {"
    },
    {
     "index": 3,
     "kind": "tabbed",
     "heading": "FMOD_STUDIO_PARAMETER_FLAGS",
-    "code": "da39a3ee5e6b"
+    "code": "a33dfe369bb3",
+    "decl": "#define FMOD_STUDIO_PARAMETER_READONLY              0x00000001"
    },
    {
     "index": 4,
     "kind": "tabbed",
     "heading": "FMOD_STUDIO_PARAMETER_ID",
-    "code": "da39a3ee5e6b"
+    "code": "860582257eab",
+    "decl": "typedef struct FMOD_STUDIO_PARAMETER_ID"
    },
    {
     "index": 5,
     "kind": "tabbed",
     "heading": "FMOD_STUDIO_PARAMETER_TYPE",
-    "code": "da39a3ee5e6b"
+    "code": "2821fbb1d063",
+    "decl": "typedef enum FMOD_STUDIO_PARAMETER_TYPE {"
    },
    {
     "index": 7,
     "kind": "tabbed",
     "heading": "FMOD_STUDIO_PLAYBACK_STATE",
-    "code": "da39a3ee5e6b"
+    "code": "60cef1c7295e",
+    "decl": "typedef enum FMOD_STUDIO_PLAYBACK_STATE {"
    }
   ]
  },
@@ -1604,19 +1811,22 @@
     "index": 2,
     "kind": "tabbed",
     "heading": "FMOD_DSP_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "8054b4e33c66",
+    "decl": ""
    },
    {
     "index": 3,
     "kind": "tabbed",
     "heading": "FMOD_DSP_CALLBACK_TYPE",
-    "code": "da39a3ee5e6b"
+    "code": "f802c8a2017a",
+    "decl": "typedef enum FMOD_DSP_CALLBACK_TYPE {"
    },
    {
     "index": 4,
     "kind": "tabbed",
     "heading": "FMOD_DSP_DATA_PARAMETER_INFO",
-    "code": "da39a3ee5e6b"
+    "code": "e13efbb1c296",
+    "decl": "typedef struct FMOD_DSP_DATA_PARAMETER_INFO {"
    }
   ]
  },
@@ -1660,13 +1870,15 @@
     "index": 32,
     "kind": "tabbed",
     "heading": "FMOD_STUDIO_USER_PROPERTY",
-    "code": "da39a3ee5e6b"
+    "code": "abeed69e1ee5",
+    "decl": "typedef struct FMOD_STUDIO_USER_PROPERTY {"
    },
    {
     "index": 33,
     "kind": "tabbed",
     "heading": "FMOD_STUDIO_USER_PROPERTY_TYPE",
-    "code": "da39a3ee5e6b"
+    "code": "9606a4c08dee",
+    "decl": "typedef enum FMOD_STUDIO_USER_PROPERTY_TYPE {"
    }
   ]
  },
@@ -1677,481 +1889,561 @@
     "index": 0,
     "kind": "tabbed",
     "heading": "FMOD_COMPLEX",
-    "code": "da39a3ee5e6b"
+    "code": "86dce02d6f6d",
+    "decl": "typedef struct FMOD_COMPLEX {"
    },
    {
     "index": 1,
     "kind": "tabbed",
     "heading": "FMOD_DSP_ALLOC_FUNC",
-    "code": "da39a3ee5e6b"
+    "code": "cc680a34b561",
+    "decl": ""
    },
    {
     "index": 2,
     "kind": "tabbed",
     "heading": "FMOD_DSP_BUFFER_ARRAY",
-    "code": "da39a3ee5e6b"
+    "code": "742426a16bb7",
+    "decl": "typedef struct FMOD_DSP_BUFFER_ARRAY {"
    },
    {
     "index": 3,
     "kind": "lone",
     "heading": "FMOD_DSP_BUFFER_ARRAY",
-    "code": "83d1782e68a2"
+    "code": "83d1782e68a2",
+    "decl": ""
    },
    {
     "index": 4,
     "kind": "lone",
     "heading": "FMOD_DSP_BUFFER_ARRAY",
-    "code": "3704a12b85cc"
+    "code": "3704a12b85cc",
+    "decl": ""
    },
    {
     "index": 5,
     "kind": "tabbed",
     "heading": "FMOD_DSP_CREATE_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "648c017069f2",
+    "decl": ""
    },
    {
     "index": 6,
     "kind": "tabbed",
     "heading": "FMOD_DSP_DESCRIPTION",
-    "code": "da39a3ee5e6b"
+    "code": "339c74852437",
+    "decl": "typedef struct FMOD_DSP_DESCRIPTION {"
    },
    {
     "index": 7,
     "kind": "lone",
     "heading": "FMOD_DSP_DESCRIPTION",
-    "code": "1db26841861e"
+    "code": "1db26841861e",
+    "decl": ""
    },
    {
     "index": 8,
     "kind": "lone",
     "heading": "FMOD_DSP_DESCRIPTION",
-    "code": "be72bd763ae7"
+    "code": "be72bd763ae7",
+    "decl": ""
    },
    {
     "index": 9,
     "kind": "lone",
     "heading": "FMOD_DSP_DESCRIPTION",
-    "code": "4aaabe8c5e09"
+    "code": "4aaabe8c5e09",
+    "decl": ""
    },
    {
     "index": 10,
     "kind": "tabbed",
     "heading": "FMOD_DSP_DFT_FFTREAL_FUNC",
-    "code": "da39a3ee5e6b"
+    "code": "6cf180ccff68",
+    "decl": ""
    },
    {
     "index": 11,
     "kind": "tabbed",
     "heading": "FMOD_DSP_DFT_IFFTREAL_FUNC",
-    "code": "da39a3ee5e6b"
+    "code": "ecdebc802865",
+    "decl": ""
    },
    {
     "index": 12,
     "kind": "tabbed",
     "heading": "FMOD_DSP_FREE_FUNC",
-    "code": "da39a3ee5e6b"
+    "code": "1ec784e3752a",
+    "decl": ""
    },
    {
     "index": 13,
     "kind": "tabbed",
     "heading": "FMOD_DSP_GETBLOCKSIZE_FUNC",
-    "code": "da39a3ee5e6b"
+    "code": "64382fe8b3a8",
+    "decl": ""
    },
    {
     "index": 14,
     "kind": "tabbed",
     "heading": "FMOD_DSP_GETCLOCK_FUNC",
-    "code": "da39a3ee5e6b"
+    "code": "eee7407882a7",
+    "decl": ""
    },
    {
     "index": 15,
     "kind": "tabbed",
     "heading": "FMOD_DSP_GETLISTENERATTRIBUTES_FUNC",
-    "code": "da39a3ee5e6b"
+    "code": "14aaa3c89cc6",
+    "decl": ""
    },
    {
     "index": 16,
     "kind": "tabbed",
     "heading": "FMOD_DSP_GETPARAM_BOOL_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "09e5d4237041",
+    "decl": ""
    },
    {
     "index": 17,
     "kind": "tabbed",
     "heading": "FMOD_DSP_GETPARAM_DATA_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "1a5589a7bb0a",
+    "decl": ""
    },
    {
     "index": 18,
     "kind": "tabbed",
     "heading": "FMOD_DSP_GETPARAM_FLOAT_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "7d4eceaae254",
+    "decl": ""
    },
    {
     "index": 19,
     "kind": "tabbed",
     "heading": "FMOD_DSP_GETPARAM_INT_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "e20f81288d86",
+    "decl": ""
    },
    {
     "index": 20,
     "kind": "tabbed",
     "heading": "FMOD_DSP_GETPARAM_VALUESTR_LENGTH",
-    "code": "da39a3ee5e6b"
+    "code": "dc931d7cdf1b",
+    "decl": "#define FMOD_DSP_GETPARAM_VALUESTR_LENGTH   32"
    },
    {
     "index": 21,
     "kind": "tabbed",
     "heading": "FMOD_DSP_GETSAMPLERATE_FUNC",
-    "code": "da39a3ee5e6b"
+    "code": "e467491532d5",
+    "decl": ""
    },
    {
     "index": 22,
     "kind": "tabbed",
     "heading": "FMOD_DSP_GETSPEAKERMODE_FUNC",
-    "code": "da39a3ee5e6b"
+    "code": "64e2a8348dc7",
+    "decl": ""
    },
    {
     "index": 23,
     "kind": "tabbed",
     "heading": "FMOD_DSP_GETUSERDATA_FUNC",
-    "code": "da39a3ee5e6b"
+    "code": "7c01771d283d",
+    "decl": ""
    },
    {
     "index": 24,
     "kind": "tabbed",
     "heading": "FMOD_DSP_LOG_FUNC",
-    "code": "da39a3ee5e6b"
+    "code": "70580b6391e0",
+    "decl": ""
    },
    {
     "index": 25,
     "kind": "tabbed",
     "heading": "FMOD_DSP_METERING_INFO",
-    "code": "da39a3ee5e6b"
+    "code": "a8aac49543de",
+    "decl": "typedef struct FMOD_DSP_METERING_INFO {"
    },
    {
     "index": 26,
     "kind": "tabbed",
     "heading": "FMOD_DSP_PAN_GETROLLOFFGAIN_FUNC",
-    "code": "da39a3ee5e6b"
+    "code": "e70042b09906",
+    "decl": ""
    },
    {
     "index": 27,
     "kind": "tabbed",
     "heading": "FMOD_DSP_PAN_SUMMONOMATRIX_FUNC",
-    "code": "da39a3ee5e6b"
+    "code": "6bf6ce47721d",
+    "decl": ""
    },
    {
     "index": 28,
     "kind": "tabbed",
     "heading": "FMOD_DSP_PAN_SUMMONOTOSURROUNDMATRIX_FUNC",
-    "code": "da39a3ee5e6b"
+    "code": "04a1f2c8c1ff",
+    "decl": ""
    },
    {
     "index": 29,
     "kind": "tabbed",
     "heading": "FMOD_DSP_PAN_SUMSTEREOMATRIX_FUNC",
-    "code": "da39a3ee5e6b"
+    "code": "9a1da26ea229",
+    "decl": ""
    },
    {
     "index": 30,
     "kind": "tabbed",
     "heading": "FMOD_DSP_PAN_SUMSTEREOTOSURROUNDMATRIX_FUNC",
-    "code": "da39a3ee5e6b"
+    "code": "5de13d1fe6e7",
+    "decl": ""
    },
    {
     "index": 31,
     "kind": "tabbed",
     "heading": "FMOD_DSP_PAN_SUMSURROUNDMATRIX_FUNC",
-    "code": "da39a3ee5e6b"
+    "code": "029201221c6d",
+    "decl": ""
    },
    {
     "index": 32,
     "kind": "tabbed",
     "heading": "FMOD_DSP_PAN_SURROUND_FLAGS",
-    "code": "da39a3ee5e6b"
+    "code": "219dc91d51fa",
+    "decl": "typedef enum FMOD_DSP_PAN_SURROUND_FLAGS {"
    },
    {
     "index": 33,
     "kind": "tabbed",
     "heading": "FMOD_DSP_PARAMETER_3DATTRIBUTES",
-    "code": "da39a3ee5e6b"
+    "code": "d852375f92b4",
+    "decl": "typedef struct FMOD_DSP_PARAMETER_3DATTRIBUTES {"
    },
    {
     "index": 34,
     "kind": "tabbed",
     "heading": "FMOD_DSP_PARAMETER_3DATTRIBUTES_MULTI",
-    "code": "da39a3ee5e6b"
+    "code": "b80864798ccb",
+    "decl": "typedef struct FMOD_DSP_PARAMETER_3DATTRIBUTES_MULTI {"
    },
    {
     "index": 35,
     "kind": "tabbed",
     "heading": "FMOD_DSP_PARAMETER_ATTENUATION_RANGE",
-    "code": "da39a3ee5e6b"
+    "code": "8053d42cbb91",
+    "decl": "typedef struct FMOD_DSP_PARAMETER_ATTENUATION_RANGE {"
    },
    {
     "index": 36,
     "kind": "tabbed",
     "heading": "FMOD_DSP_PARAMETER_DATA_TYPE",
-    "code": "da39a3ee5e6b"
+    "code": "aec2872a2f2f",
+    "decl": "typedef enum FMOD_DSP_PARAMETER_DATA_TYPE {"
    },
    {
     "index": 37,
     "kind": "tabbed",
     "heading": "FMOD_DSP_PARAMETER_DESC",
-    "code": "da39a3ee5e6b"
+    "code": "ddf8d2572555",
+    "decl": "typedef struct FMOD_DSP_PARAMETER_DESC {"
    },
    {
     "index": 38,
     "kind": "tabbed",
     "heading": "FMOD_DSP_PARAMETER_DESC_BOOL",
-    "code": "da39a3ee5e6b"
+    "code": "4acd66df61ad",
+    "decl": "typedef struct FMOD_DSP_PARAMETER_DESC_BOOL {"
    },
    {
     "index": 39,
     "kind": "tabbed",
     "heading": "FMOD_DSP_PARAMETER_DESC_DATA",
-    "code": "da39a3ee5e6b"
+    "code": "4ffde7fe17d5",
+    "decl": "typedef struct FMOD_DSP_PARAMETER_DESC_DATA {"
    },
    {
     "index": 40,
     "kind": "tabbed",
     "heading": "FMOD_DSP_PARAMETER_DESC_FLOAT",
-    "code": "da39a3ee5e6b"
+    "code": "73370cbd8601",
+    "decl": "typedef struct FMOD_DSP_PARAMETER_DESC_FLOAT {"
    },
    {
     "index": 41,
     "kind": "tabbed",
     "heading": "FMOD_DSP_PARAMETER_DESC_INT",
-    "code": "da39a3ee5e6b"
+    "code": "702087e6b841",
+    "decl": "typedef struct FMOD_DSP_PARAMETER_DESC_INT {"
    },
    {
     "index": 42,
     "kind": "tabbed",
     "heading": "FMOD_DSP_PARAMETER_DYNAMIC_RESPONSE",
-    "code": "da39a3ee5e6b"
+    "code": "a5469335033a",
+    "decl": "typedef struct FMOD_DSP_PARAMETER_DYNAMIC_RESPONSE {"
    },
    {
     "index": 43,
     "kind": "tabbed",
     "heading": "FMOD_DSP_PARAMETER_FFT",
-    "code": "da39a3ee5e6b"
+    "code": "ddd68b8b8641",
+    "decl": "typedef struct FMOD_DSP_PARAMETER_FFT {"
    },
    {
     "index": 44,
     "kind": "tabbed",
     "heading": "FMOD_DSP_PARAMETER_FINITE_LENGTH",
-    "code": "da39a3ee5e6b"
+    "code": "4e83968ce83a",
+    "decl": "typedef struct FMOD_DSP_PARAMETER_FINITE_LENGTH"
    },
    {
     "index": 45,
     "kind": "tabbed",
     "heading": "FMOD_DSP_PARAMETER_FLOAT_MAPPING",
-    "code": "da39a3ee5e6b"
+    "code": "36ed3f2995ef",
+    "decl": "typedef struct FMOD_DSP_PARAMETER_FLOAT_MAPPING {"
    },
    {
     "index": 46,
     "kind": "tabbed",
     "heading": "FMOD_DSP_PARAMETER_FLOAT_MAPPING_PIECEWISE_LINEAR",
-    "code": "da39a3ee5e6b"
+    "code": "3526d39cbd3a",
+    "decl": "typedef struct FMOD_DSP_PARAMETER_FLOAT_MAPPING_PIECEWISE_LINEAR {"
    },
    {
     "index": 47,
     "kind": "tabbed",
     "heading": "FMOD_DSP_PARAMETER_FLOAT_MAPPING_TYPE",
-    "code": "da39a3ee5e6b"
+    "code": "6f8f4901c0c3",
+    "decl": "typedef enum FMOD_DSP_PARAMETER_FLOAT_MAPPING_TYPE {"
    },
    {
     "index": 48,
     "kind": "tabbed",
     "heading": "FMOD_DSP_PARAMETER_OVERALLGAIN",
-    "code": "da39a3ee5e6b"
+    "code": "996a49ab4ba0",
+    "decl": "typedef struct FMOD_DSP_PARAMETER_OVERALLGAIN {"
    },
    {
     "index": 49,
     "kind": "tabbed",
     "heading": "FMOD_DSP_PARAMETER_SIDECHAIN",
-    "code": "da39a3ee5e6b"
+    "code": "2c20d3a4f6ae",
+    "decl": "typedef struct FMOD_DSP_PARAMETER_SIDECHAIN {"
    },
    {
     "index": 50,
     "kind": "tabbed",
     "heading": "FMOD_DSP_PARAMETER_TYPE",
-    "code": "da39a3ee5e6b"
+    "code": "374ea4a7f458",
+    "decl": "typedef enum FMOD_DSP_PARAMETER_TYPE {"
    },
    {
     "index": 51,
     "kind": "tabbed",
     "heading": "FMOD_DSP_PROCESS_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "ed30758daeea",
+    "decl": ""
    },
    {
     "index": 52,
     "kind": "lone",
     "heading": "FMOD_DSP_PROCESS_CALLBACK",
-    "code": "a6325be858ea"
+    "code": "a6325be858ea",
+    "decl": ""
    },
    {
     "index": 53,
     "kind": "lone",
     "heading": "FMOD_DSP_PROCESS_CALLBACK",
-    "code": "3bb2d5d07813"
+    "code": "3bb2d5d07813",
+    "decl": ""
    },
    {
     "index": 54,
     "kind": "tabbed",
     "heading": "FMOD_DSP_PROCESS_OPERATION",
-    "code": "da39a3ee5e6b"
+    "code": "a4779e96c40b",
+    "decl": "typedef enum FMOD_DSP_PROCESS_OPERATION {"
    },
    {
     "index": 55,
     "kind": "tabbed",
     "heading": "FMOD_DSP_READ_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "a44fd1d9a368",
+    "decl": ""
    },
    {
     "index": 56,
     "kind": "lone",
     "heading": "FMOD_DSP_READ_CALLBACK",
-    "code": "2ad1ab040d1f"
+    "code": "2ad1ab040d1f",
+    "decl": ""
    },
    {
     "index": 57,
     "kind": "lone",
     "heading": "FMOD_DSP_READ_CALLBACK",
-    "code": "47d105c0c3c5"
+    "code": "47d105c0c3c5",
+    "decl": ""
    },
    {
     "index": 58,
     "kind": "lone",
     "heading": "FMOD_DSP_READ_CALLBACK",
-    "code": "8e09cf300c25"
+    "code": "8e09cf300c25",
+    "decl": ""
    },
    {
     "index": 59,
     "kind": "tabbed",
     "heading": "FMOD_DSP_REALLOC_FUNC",
-    "code": "da39a3ee5e6b"
+    "code": "64a5e3377d77",
+    "decl": ""
    },
    {
     "index": 60,
     "kind": "tabbed",
     "heading": "FMOD_DSP_RELEASE_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "63efb1e31751",
+    "decl": ""
    },
    {
     "index": 61,
     "kind": "tabbed",
     "heading": "FMOD_DSP_RESET_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "01edd0e28588",
+    "decl": ""
    },
    {
     "index": 62,
     "kind": "tabbed",
     "heading": "FMOD_DSP_SETPARAM_BOOL_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "068ee0cad355",
+    "decl": ""
    },
    {
     "index": 63,
     "kind": "tabbed",
     "heading": "FMOD_DSP_SETPARAM_DATA_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "e1bbff50d74d",
+    "decl": ""
    },
    {
     "index": 64,
     "kind": "tabbed",
     "heading": "FMOD_DSP_SETPARAM_FLOAT_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "562affc40338",
+    "decl": ""
    },
    {
     "index": 65,
     "kind": "tabbed",
     "heading": "FMOD_DSP_SETPARAM_INT_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "1a79c4e66182",
+    "decl": ""
    },
    {
     "index": 66,
     "kind": "tabbed",
     "heading": "FMOD_DSP_SETPOSITION_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "ae280abd2365",
+    "decl": ""
    },
    {
     "index": 67,
     "kind": "tabbed",
     "heading": "FMOD_DSP_SHOULDIPROCESS_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "0fa6eb6039cf",
+    "decl": ""
    },
    {
     "index": 68,
     "kind": "lone",
     "heading": "FMOD_DSP_SHOULDIPROCESS_CALLBACK",
-    "code": "52a673112f0b"
+    "code": "52a673112f0b",
+    "decl": ""
    },
    {
     "index": 69,
     "kind": "tabbed",
     "heading": "FMOD_DSP_STATE",
-    "code": "da39a3ee5e6b"
+    "code": "a76af6e1d58c",
+    "decl": "typedef struct FMOD_DSP_STATE {"
    },
    {
     "index": 70,
     "kind": "lone",
     "heading": "FMOD_DSP_STATE",
-    "code": "615b4a5976be"
+    "code": "615b4a5976be",
+    "decl": "#define TWO_PI (2.0f * 3.14159265358979323846f)"
    },
    {
     "index": 71,
     "kind": "lone",
     "heading": "FMOD_DSP_STATE",
-    "code": "43b139aabacb"
+    "code": "43b139aabacb",
+    "decl": ""
    },
    {
     "index": 72,
     "kind": "lone",
     "heading": "FMOD_DSP_STATE",
-    "code": "9dee5413e495"
+    "code": "9dee5413e495",
+    "decl": ""
    },
    {
     "index": 73,
     "kind": "tabbed",
     "heading": "FMOD_DSP_STATE_DFT_FUNCTIONS",
-    "code": "da39a3ee5e6b"
+    "code": "fba50ac861c2",
+    "decl": "typedef struct FMOD_DSP_STATE_DFT_FUNCTIONS {"
    },
    {
     "index": 74,
     "kind": "tabbed",
     "heading": "FMOD_DSP_STATE_FUNCTIONS",
-    "code": "da39a3ee5e6b"
+    "code": "3de657160ced",
+    "decl": "typedef struct FMOD_DSP_STATE_FUNCTIONS {"
    },
    {
     "index": 75,
     "kind": "tabbed",
     "heading": "FMOD_DSP_STATE_PAN_FUNCTIONS",
-    "code": "da39a3ee5e6b"
+    "code": "0c0387ab2ce9",
+    "decl": "typedef struct FMOD_DSP_STATE_PAN_FUNCTIONS {"
    },
    {
     "index": 76,
     "kind": "tabbed",
     "heading": "FMOD_DSP_SYSTEM_DEREGISTER_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "b85325b0096f",
+    "decl": ""
    },
    {
     "index": 77,
     "kind": "tabbed",
     "heading": "FMOD_DSP_SYSTEM_MIX_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "088b15047521",
+    "decl": ""
    },
    {
     "index": 78,
     "kind": "tabbed",
     "heading": "FMOD_DSP_SYSTEM_REGISTER_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "923368cf2d7b",
+    "decl": ""
    },
    {
     "index": 79,
     "kind": "tabbed",
     "heading": "FMOD_PLUGIN_SDK_VERSION",
-    "code": "da39a3ee5e6b"
+    "code": "226399499939",
+    "decl": "#define FMOD_PLUGIN_SDK_VERSION   110"
    }
   ]
  },
@@ -2169,163 +2461,190 @@
     "index": 0,
     "kind": "tabbed",
     "heading": "FMOD_3D_ATTRIBUTES",
-    "code": "da39a3ee5e6b"
+    "code": "ee5d50ee196f",
+    "decl": "typedef struct FMOD_3D_ATTRIBUTES {"
    },
    {
     "index": 1,
     "kind": "tabbed",
     "heading": "FMOD_CHANNELMASK",
-    "code": "da39a3ee5e6b"
+    "code": "a3fa3757b136",
+    "decl": "#define FMOD_CHANNELMASK_FRONT_LEFT       0x00000001"
    },
    {
     "index": 2,
     "kind": "tabbed",
     "heading": "FMOD_CHANNELORDER",
-    "code": "da39a3ee5e6b"
+    "code": "85406cab705c",
+    "decl": "typedef enum FMOD_CHANNELORDER {"
    },
    {
     "index": 3,
     "kind": "tabbed",
     "heading": "FMOD_CPU_USAGE",
-    "code": "da39a3ee5e6b"
+    "code": "b6b378d46162",
+    "decl": "typedef struct FMOD_CPU_USAGE {"
    },
    {
     "index": 4,
     "kind": "tabbed",
     "heading": "FMOD_DEBUG_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "0e3b8c96e9f9",
+    "decl": ""
    },
    {
     "index": 5,
     "kind": "tabbed",
     "heading": "FMOD_DEBUG_FLAGS",
-    "code": "da39a3ee5e6b"
+    "code": "342cfea23770",
+    "decl": "#define FMOD_DEBUG_LEVEL_NONE            0x00000000"
    },
    {
     "index": 7,
     "kind": "tabbed",
     "heading": "FMOD_DEBUG_MODE",
-    "code": "da39a3ee5e6b"
+    "code": "2492b7ff25ea",
+    "decl": "typedef enum FMOD_DEBUG_MODE {"
    },
    {
     "index": 10,
     "kind": "tabbed",
     "heading": "FMOD_GUID",
-    "code": "da39a3ee5e6b"
+    "code": "f2a62f45828e",
+    "decl": "typedef struct FMOD_GUID {"
    },
    {
     "index": 11,
     "kind": "tabbed",
     "heading": "FMOD_MAX_CHANNEL_WIDTH",
-    "code": "da39a3ee5e6b"
+    "code": "d4cac98b8eaf",
+    "decl": "#define FMOD_MAX_CHANNEL_WIDTH 32"
    },
    {
     "index": 12,
     "kind": "tabbed",
     "heading": "FMOD_MAX_LISTENERS",
-    "code": "da39a3ee5e6b"
+    "code": "25e5542b7c04",
+    "decl": "#define FMOD_MAX_LISTENERS 8"
    },
    {
     "index": 13,
     "kind": "tabbed",
     "heading": "FMOD_MAX_SYSTEMS",
-    "code": "da39a3ee5e6b"
+    "code": "940d0150564d",
+    "decl": "#define FMOD_MAX_SYSTEMS 8"
    },
    {
     "index": 14,
     "kind": "tabbed",
     "heading": "FMOD_MEMORY_ALLOC_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "a0a55aaf1b1b",
+    "decl": ""
    },
    {
     "index": 15,
     "kind": "tabbed",
     "heading": "FMOD_MEMORY_FREE_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "38322886a0bc",
+    "decl": ""
    },
    {
     "index": 18,
     "kind": "tabbed",
     "heading": "FMOD_MEMORY_REALLOC_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "9b591e98a3da",
+    "decl": ""
    },
    {
     "index": 19,
     "kind": "tabbed",
     "heading": "FMOD_MEMORY_TYPE",
-    "code": "da39a3ee5e6b"
+    "code": "17d0e4c93c7a",
+    "decl": "#define FMOD_MEMORY_NORMAL             0x00000000"
    },
    {
     "index": 20,
     "kind": "tabbed",
     "heading": "FMOD_MODE",
-    "code": "da39a3ee5e6b"
+    "code": "4dd41599f7f1",
+    "decl": "#define FMOD_DEFAULT                    0x00000000"
    },
    {
     "index": 21,
     "kind": "tabbed",
     "heading": "FMOD_RESULT",
-    "code": "da39a3ee5e6b"
+    "code": "b454d6a5e8ce",
+    "decl": "typedef enum FMOD_RESULT {"
    },
    {
     "index": 22,
     "kind": "tabbed",
     "heading": "FMOD_SPEAKER",
-    "code": "da39a3ee5e6b"
+    "code": "6bfb55719975",
+    "decl": "typedef enum FMOD_SPEAKER {"
    },
    {
     "index": 23,
     "kind": "tabbed",
     "heading": "FMOD_SPEAKERMODE",
-    "code": "da39a3ee5e6b"
+    "code": "9c5a5daefa7d",
+    "decl": "typedef enum FMOD_SPEAKERMODE {"
    },
    {
     "index": 24,
     "kind": "tabbed",
     "heading": "FMOD_SYNCPOINT",
-    "code": "da39a3ee5e6b"
+    "code": "55abaef0eb3f",
+    "decl": "typedef struct FMOD_SYNCPOINT FMOD_SYNCPOINT;"
    },
    {
     "index": 25,
     "kind": "tabbed",
     "heading": "FMOD_THREAD_AFFINITY",
-    "code": "da39a3ee5e6b"
+    "code": "58b1b02d67fb",
+    "decl": "#define FMOD_THREAD_AFFINITY_GROUP_DEFAULT          0x4000000000000000"
    },
    {
     "index": 26,
     "kind": "tabbed",
     "heading": "FMOD_THREAD_PRIORITY",
-    "code": "da39a3ee5e6b"
+    "code": "d0feb9db20a9",
+    "decl": "#define FMOD_THREAD_PRIORITY_PLATFORM_MIN           (-32 * 1024)"
    },
    {
     "index": 28,
     "kind": "tabbed",
     "heading": "FMOD_THREAD_STACK_SIZE",
-    "code": "da39a3ee5e6b"
+    "code": "1173e7d3ffc3",
+    "decl": "#define FMOD_THREAD_STACK_SIZE_DEFAULT              0"
    },
    {
     "index": 29,
     "kind": "tabbed",
     "heading": "FMOD_THREAD_TYPE",
-    "code": "da39a3ee5e6b"
+    "code": "d46ecc1956fa",
+    "decl": "typedef enum FMOD_THREAD_TYPE {"
    },
    {
     "index": 30,
     "kind": "tabbed",
     "heading": "FMOD_TIMEUNIT",
-    "code": "da39a3ee5e6b"
+    "code": "07b49a15b372",
+    "decl": "#define FMOD_TIMEUNIT_MS            0x00000001"
    },
    {
     "index": 31,
     "kind": "tabbed",
     "heading": "FMOD_VECTOR",
-    "code": "da39a3ee5e6b"
+    "code": "354e297a60f9",
+    "decl": "typedef struct FMOD_VECTOR {"
    },
    {
     "index": 32,
     "kind": "tabbed",
     "heading": "FMOD_VERSION",
-    "code": "da39a3ee5e6b"
+    "code": "3e5d600d053a",
+    "decl": "#define FMOD_VERSION ..."
    }
   ]
  },
@@ -2336,169 +2655,197 @@
     "index": 0,
     "kind": "tabbed",
     "heading": "FMOD_OUTPUT_ALLOC_FUNC",
-    "code": "da39a3ee5e6b"
+    "code": "471a4012ab54",
+    "decl": ""
    },
    {
     "index": 1,
     "kind": "tabbed",
     "heading": "FMOD_OUTPUT_CLOSEPORT_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "f6fa4739c02d",
+    "decl": ""
    },
    {
     "index": 2,
     "kind": "tabbed",
     "heading": "FMOD_OUTPUT_CLOSE_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "217dfe413069",
+    "decl": ""
    },
    {
     "index": 3,
     "kind": "tabbed",
     "heading": "FMOD_OUTPUT_COPYPORT_FUNC",
-    "code": "da39a3ee5e6b"
+    "code": "5a55ad259d16",
+    "decl": ""
    },
    {
     "index": 4,
     "kind": "tabbed",
     "heading": "FMOD_OUTPUT_DESCRIPTION",
-    "code": "da39a3ee5e6b"
+    "code": "e8e4ba26fd69",
+    "decl": "typedef struct FMOD_OUTPUT_DESCRIPTION {"
    },
    {
     "index": 5,
     "kind": "lone",
     "heading": "FMOD_OUTPUT_DESCRIPTION",
-    "code": "5b356f783566"
+    "code": "5b356f783566",
+    "decl": ""
    },
    {
     "index": 6,
     "kind": "tabbed",
     "heading": "FMOD_OUTPUT_DEVICELISTCHANGED_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "5013de5c128d",
+    "decl": ""
    },
    {
     "index": 7,
     "kind": "tabbed",
     "heading": "FMOD_OUTPUT_FREE_FUNC",
-    "code": "da39a3ee5e6b"
+    "code": "934753204225",
+    "decl": ""
    },
    {
     "index": 8,
     "kind": "tabbed",
     "heading": "FMOD_OUTPUT_GETDRIVERINFO_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "ebcf46a12f5e",
+    "decl": ""
    },
    {
     "index": 9,
     "kind": "tabbed",
     "heading": "FMOD_OUTPUT_GETHANDLE_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "cd4c66527601",
+    "decl": ""
    },
    {
     "index": 10,
     "kind": "tabbed",
     "heading": "FMOD_OUTPUT_GETNUMDRIVERS_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "8f5f2a1f9c6e",
+    "decl": ""
    },
    {
     "index": 11,
     "kind": "tabbed",
     "heading": "FMOD_OUTPUT_INIT_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "98228c0f8d9d",
+    "decl": ""
    },
    {
     "index": 12,
     "kind": "tabbed",
     "heading": "FMOD_OUTPUT_LOG_FUNC",
-    "code": "da39a3ee5e6b"
+    "code": "74cb2e166f13",
+    "decl": ""
    },
    {
     "index": 13,
     "kind": "tabbed",
     "heading": "FMOD_OUTPUT_METHOD",
-    "code": "da39a3ee5e6b"
+    "code": "bdbdf584fe36",
+    "decl": "#define FMOD_OUTPUT_METHOD_MIX_DIRECT    0"
    },
    {
     "index": 14,
     "kind": "tabbed",
     "heading": "FMOD_OUTPUT_MIXER_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "25e98056bd26",
+    "decl": ""
    },
    {
     "index": 15,
     "kind": "tabbed",
     "heading": "FMOD_OUTPUT_OBJECT3DALLOC_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "8967c17e22d4",
+    "decl": ""
    },
    {
     "index": 16,
     "kind": "tabbed",
     "heading": "FMOD_OUTPUT_OBJECT3DFREE_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "5ca26b208482",
+    "decl": ""
    },
    {
     "index": 17,
     "kind": "tabbed",
     "heading": "FMOD_OUTPUT_OBJECT3DGETINFO_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "d2599c04472c",
+    "decl": ""
    },
    {
     "index": 18,
     "kind": "tabbed",
     "heading": "FMOD_OUTPUT_OBJECT3DINFO",
-    "code": "da39a3ee5e6b"
+    "code": "693273e3c850",
+    "decl": "typedef struct FMOD_OUTPUT_OBJECT3DINFO {"
    },
    {
     "index": 19,
     "kind": "tabbed",
     "heading": "FMOD_OUTPUT_OBJECT3DUPDATE_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "4b060e0e43d0",
+    "decl": ""
    },
    {
     "index": 20,
     "kind": "tabbed",
     "heading": "FMOD_OUTPUT_OPENPORT_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "7c2760f04e3d",
+    "decl": ""
    },
    {
     "index": 21,
     "kind": "tabbed",
     "heading": "FMOD_OUTPUT_PLUGIN_VERSION",
-    "code": "da39a3ee5e6b"
+    "code": "610341be80c9",
+    "decl": "#define FMOD_OUTPUT_PLUGIN_VERSION   5"
    },
    {
     "index": 22,
     "kind": "tabbed",
     "heading": "FMOD_OUTPUT_READFROMMIXER_FUNC",
-    "code": "da39a3ee5e6b"
+    "code": "4cd8efc1cbfc",
+    "decl": ""
    },
    {
     "index": 23,
     "kind": "tabbed",
     "heading": "FMOD_OUTPUT_REQUESTRESET_FUNC",
-    "code": "da39a3ee5e6b"
+    "code": "6d349c0a595d",
+    "decl": ""
    },
    {
     "index": 24,
     "kind": "tabbed",
     "heading": "FMOD_OUTPUT_START_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "e5ed86d00b9e",
+    "decl": ""
    },
    {
     "index": 25,
     "kind": "tabbed",
     "heading": "FMOD_OUTPUT_STATE",
-    "code": "da39a3ee5e6b"
+    "code": "21d9b3655417",
+    "decl": "typedef struct FMOD_OUTPUT_STATE {"
    },
    {
     "index": 26,
     "kind": "tabbed",
     "heading": "FMOD_OUTPUT_STOP_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "f3be3968663f",
+    "decl": ""
    },
    {
     "index": 27,
     "kind": "tabbed",
     "heading": "FMOD_OUTPUT_UPDATE_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "51a9150afc56",
+    "decl": ""
    }
   ]
  },
@@ -2509,133 +2856,155 @@
     "index": 0,
     "kind": "tabbed",
     "heading": "FMOD_CODEC_ALLOC_FUNC",
-    "code": "da39a3ee5e6b"
+    "code": "c4181ceb64d4",
+    "decl": ""
    },
    {
     "index": 1,
     "kind": "tabbed",
     "heading": "FMOD_CODEC_CLOSE_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "127d24e9bd2e",
+    "decl": ""
    },
    {
     "index": 2,
     "kind": "tabbed",
     "heading": "FMOD_CODEC_DESCRIPTION",
-    "code": "da39a3ee5e6b"
+    "code": "95eb2f7f2589",
+    "decl": "typedef struct FMOD_CODEC_DESCRIPTION {"
    },
    {
     "index": 3,
     "kind": "tabbed",
     "heading": "FMOD_CODEC_FILE_READ_FUNC",
-    "code": "da39a3ee5e6b"
+    "code": "d7acac9766e2",
+    "decl": ""
    },
    {
     "index": 4,
     "kind": "tabbed",
     "heading": "FMOD_CODEC_FILE_SEEK_FUNC",
-    "code": "da39a3ee5e6b"
+    "code": "c4219ed8038b",
+    "decl": ""
    },
    {
     "index": 5,
     "kind": "tabbed",
     "heading": "FMOD_CODEC_FILE_SIZE_FUNC",
-    "code": "da39a3ee5e6b"
+    "code": "29c70d479320",
+    "decl": ""
    },
    {
     "index": 6,
     "kind": "tabbed",
     "heading": "FMOD_CODEC_FILE_TELL_FUNC",
-    "code": "da39a3ee5e6b"
+    "code": "33efcf40ed49",
+    "decl": ""
    },
    {
     "index": 7,
     "kind": "tabbed",
     "heading": "FMOD_CODEC_FREE_FUNC",
-    "code": "da39a3ee5e6b"
+    "code": "139bf76663c8",
+    "decl": ""
    },
    {
     "index": 8,
     "kind": "tabbed",
     "heading": "FMOD_CODEC_GETLENGTH_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "763549caf4af",
+    "decl": ""
    },
    {
     "index": 9,
     "kind": "tabbed",
     "heading": "FMOD_CODEC_GETPOSITION_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "8eaf794fb5f8",
+    "decl": ""
    },
    {
     "index": 10,
     "kind": "tabbed",
     "heading": "FMOD_CODEC_GETWAVEFORMAT_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "98ab31ac5786",
+    "decl": ""
    },
    {
     "index": 11,
     "kind": "tabbed",
     "heading": "FMOD_CODEC_LOG_FUNC",
-    "code": "da39a3ee5e6b"
+    "code": "c59bcc1a8f16",
+    "decl": ""
    },
    {
     "index": 12,
     "kind": "tabbed",
     "heading": "FMOD_CODEC_METADATA_FUNC",
-    "code": "da39a3ee5e6b"
+    "code": "e76def7adafc",
+    "decl": ""
    },
    {
     "index": 13,
     "kind": "tabbed",
     "heading": "FMOD_CODEC_OPEN_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "dc0b5dc49cb9",
+    "decl": ""
    },
    {
     "index": 14,
     "kind": "tabbed",
     "heading": "FMOD_CODEC_PLUGIN_VERSION",
-    "code": "da39a3ee5e6b"
+    "code": "c6aa8b8026f3",
+    "decl": "#define FMOD_CODEC_PLUGIN_VERSION   1"
    },
    {
     "index": 15,
     "kind": "tabbed",
     "heading": "FMOD_CODEC_READ_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "11994f589f06",
+    "decl": ""
    },
    {
     "index": 16,
     "kind": "tabbed",
     "heading": "FMOD_CODEC_SEEK_METHOD",
-    "code": "da39a3ee5e6b"
+    "code": "54b1cfd13979",
+    "decl": "#define FMOD_CODEC_SEEK_METHOD_SET     0"
    },
    {
     "index": 17,
     "kind": "tabbed",
     "heading": "FMOD_CODEC_SETPOSITION_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "8877ae951af4",
+    "decl": ""
    },
    {
     "index": 18,
     "kind": "tabbed",
     "heading": "FMOD_CODEC_SOUNDCREATE_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "d09a2a3fd339",
+    "decl": ""
    },
    {
     "index": 19,
     "kind": "tabbed",
     "heading": "FMOD_CODEC_STATE",
-    "code": "da39a3ee5e6b"
+    "code": "ff6f3fe1e523",
+    "decl": "typedef struct FMOD_CODEC_STATE {"
    },
    {
     "index": 20,
     "kind": "tabbed",
     "heading": "FMOD_CODEC_STATE_FUNCTIONS",
-    "code": "da39a3ee5e6b"
+    "code": "8fe93c490d75",
+    "decl": "typedef struct FMOD_CODEC_STATE_FUNCTIONS {"
    },
    {
     "index": 21,
     "kind": "tabbed",
     "heading": "FMOD_CODEC_WAVEFORMAT",
-    "code": "da39a3ee5e6b"
+    "code": "a5cabd469f32",
+    "decl": "typedef struct FMOD_CODEC_WAVEFORMAT {"
    }
   ]
  },
@@ -2676,7 +3045,8 @@
     "index": 9,
     "kind": "tabbed",
     "heading": "FMOD_DSPCONNECTION_TYPE",
-    "code": "da39a3ee5e6b"
+    "code": "827e9a4493e6",
+    "decl": "typedef enum FMOD_DSPCONNECTION_TYPE {"
    }
   ]
  },
@@ -2749,43 +3119,50 @@
     "index": 2,
     "kind": "lone",
     "heading": "ChannelControl::addFadePoint",
-    "code": "65b95ea392f2"
+    "code": "65b95ea392f2",
+    "decl": ""
    },
    {
     "index": 3,
     "kind": "lone",
     "heading": "ChannelControl::addFadePoint",
-    "code": "bd8db0fd958e"
+    "code": "bd8db0fd958e",
+    "decl": ""
    },
    {
     "index": 4,
     "kind": "tabbed",
     "heading": "FMOD_CHANNELCONTROL_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "5594863a9a03",
+    "decl": ""
    },
    {
     "index": 5,
     "kind": "tabbed",
     "heading": "FMOD_CHANNELCONTROL_CALLBACK_TYPE",
-    "code": "da39a3ee5e6b"
+    "code": "7df69881d17c",
+    "decl": "typedef enum FMOD_CHANNELCONTROL_CALLBACK_TYPE {"
    },
    {
     "index": 6,
     "kind": "tabbed",
     "heading": "FMOD_CHANNELCONTROL_DSP_INDEX",
-    "code": "da39a3ee5e6b"
+    "code": "1208a48ecfa0",
+    "decl": "typedef enum FMOD_CHANNELCONTROL_DSP_INDEX {"
    },
    {
     "index": 42,
     "kind": "lone",
     "heading": "ChannelControl::set3DCustomRolloff",
-    "code": "0c449df34152"
+    "code": "0c449df34152",
+    "decl": ""
    },
    {
     "index": 67,
     "kind": "tabbed",
     "heading": "FMOD_CHANNELCONTROL_TYPE",
-    "code": "da39a3ee5e6b"
+    "code": "ebf493f1af2c",
+    "decl": "typedef enum FMOD_CHANNELCONTROL_TYPE {"
    }
   ]
  },
@@ -2840,97 +3217,113 @@
     "index": 0,
     "kind": "tabbed",
     "heading": "FMOD_OPENSTATE",
-    "code": "da39a3ee5e6b"
+    "code": "ca2e4de83e1b",
+    "decl": "typedef enum FMOD_OPENSTATE {"
    },
    {
     "index": 3,
     "kind": "tabbed",
     "heading": "FMOD_SOUND_FORMAT",
-    "code": "da39a3ee5e6b"
+    "code": "505addfd86bf",
+    "decl": "typedef enum FMOD_SOUND_FORMAT {"
    },
    {
     "index": 28,
     "kind": "lone",
     "heading": "Sound::getTag",
-    "code": "d1682cdb5a8b"
+    "code": "d1682cdb5a8b",
+    "decl": ""
    },
    {
     "index": 29,
     "kind": "lone",
     "heading": "Sound::getTag",
-    "code": "e63b340281df"
+    "code": "e63b340281df",
+    "decl": ""
    },
    {
     "index": 32,
     "kind": "tabbed",
     "heading": "FMOD_SOUND_NONBLOCK_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "fdfb33d5389f",
+    "decl": ""
    },
    {
     "index": 33,
     "kind": "tabbed",
     "heading": "FMOD_SOUND_PCMREAD_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "8b2e34e9e4e7",
+    "decl": ""
    },
    {
     "index": 34,
     "kind": "tabbed",
     "heading": "FMOD_SOUND_PCMSETPOS_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "0b2fcde368d0",
+    "decl": ""
    },
    {
     "index": 40,
     "kind": "lone",
     "heading": "Sound::set3DCustomRolloff",
-    "code": "0c449df34152"
+    "code": "0c449df34152",
+    "decl": ""
    },
    {
     "index": 43,
     "kind": "lone",
     "heading": "Sound::setDefaults",
-    "code": "0d49c47f323b"
+    "code": "0d49c47f323b",
+    "decl": ""
    },
    {
     "index": 44,
     "kind": "lone",
     "heading": "Sound::setDefaults",
-    "code": "d276e490fcc0"
+    "code": "d276e490fcc0",
+    "decl": ""
    },
    {
     "index": 45,
     "kind": "lone",
     "heading": "Sound::setDefaults",
-    "code": "faac6fca2412"
+    "code": "faac6fca2412",
+    "decl": ""
    },
    {
     "index": 46,
     "kind": "lone",
     "heading": "Sound::setDefaults",
-    "code": "dfa4250854d4"
+    "code": "dfa4250854d4",
+    "decl": ""
    },
    {
     "index": 54,
     "kind": "tabbed",
     "heading": "FMOD_SOUND_TYPE",
-    "code": "da39a3ee5e6b"
+    "code": "152eec0a1d95",
+    "decl": "typedef enum FMOD_SOUND_TYPE {"
    },
    {
     "index": 56,
     "kind": "tabbed",
     "heading": "FMOD_TAG",
-    "code": "da39a3ee5e6b"
+    "code": "8a1792022492",
+    "decl": "typedef struct FMOD_TAG {"
    },
    {
     "index": 57,
     "kind": "tabbed",
     "heading": "FMOD_TAGDATATYPE",
-    "code": "da39a3ee5e6b"
+    "code": "be6759a27b47",
+    "decl": "typedef enum FMOD_TAGDATATYPE {"
    },
    {
     "index": 58,
     "kind": "tabbed",
     "heading": "FMOD_TAGTYPE",
-    "code": "da39a3ee5e6b"
+    "code": "5dde82e579d4",
+    "decl": "typedef enum FMOD_TAGTYPE {"
    }
   ]
  },
@@ -2944,7 +3337,8 @@
     "index": 2,
     "kind": "lone",
     "heading": "FMOD_Android_JNI_Init",
-    "code": "4b02194dbcf5"
+    "code": "4b02194dbcf5",
+    "decl": ""
    }
   ]
  },
@@ -3001,31 +3395,36 @@
     "index": 0,
     "kind": "tabbed",
     "heading": "FMOD_STUDIO_COMMANDREPLAY_CREATE_INSTANCE_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "31223cb738fe",
+    "decl": ""
    },
    {
     "index": 1,
     "kind": "tabbed",
     "heading": "FMOD_STUDIO_COMMANDREPLAY_FRAME_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "adac21a18f7b",
+    "decl": ""
    },
    {
     "index": 13,
     "kind": "tabbed",
     "heading": "FMOD_STUDIO_COMMANDREPLAY_LOAD_BANK_CALLBACK",
-    "code": "da39a3ee5e6b"
+    "code": "e7c58dab95e7",
+    "decl": ""
    },
    {
     "index": 25,
     "kind": "tabbed",
     "heading": "FMOD_STUDIO_COMMAND_INFO",
-    "code": "da39a3ee5e6b"
+    "code": "6c0676ba0f42",
+    "decl": "typedef struct FMOD_STUDIO_COMMAND_INFO {"
    },
    {
     "index": 26,
     "kind": "tabbed",
     "heading": "FMOD_STUDIO_INSTANCETYPE",
-    "code": "da39a3ee5e6b"
+    "code": "fa3e0a5f7281",
+    "decl": "typedef enum FMOD_STUDIO_INSTANCETYPE {"
    }
   ]
  },
@@ -3116,7 +3515,8 @@
     "index": 0,
     "kind": "tabbed",
     "heading": "FMOD_SOUNDGROUP_BEHAVIOR",
-    "code": "da39a3ee5e6b"
+    "code": "159a529da835",
+    "decl": "typedef enum FMOD_SOUNDGROUP_BEHAVIOR {"
    }
   ]
  },
@@ -3127,7 +3527,8 @@
     "index": 0,
     "kind": "tabbed",
     "heading": "FMOD_AUDIOQUEUE_CODECPOLICY",
-    "code": "da39a3ee5e6b"
+    "code": "c7fef4a433d1",
+    "decl": "typedef enum FMOD_AUDIOQUEUE_CODECPOLICY {"
    }
   ]
  },
@@ -3149,25 +3550,29 @@
     "index": 1,
     "kind": "lone",
     "heading": "Example usage.",
-    "code": "b5b12571d9af"
+    "code": "b5b12571d9af",
+    "decl": ""
    },
    {
     "index": 3,
     "kind": "lone",
     "heading": "Example usage.",
-    "code": "6991778e1925"
+    "code": "6991778e1925",
+    "decl": ""
    },
    {
     "index": 10,
     "kind": "lone",
     "heading": "Example usage.",
-    "code": "319768ee2d44"
+    "code": "319768ee2d44",
+    "decl": ""
    },
    {
     "index": 12,
     "kind": "lone",
     "heading": "Example usage.",
-    "code": "319768ee2d44"
+    "code": "319768ee2d44",
+    "decl": ""
    }
   ]
  },
@@ -3178,19 +3583,22 @@
     "index": 0,
     "kind": "lone",
     "heading": "ASIO and C#",
-    "code": "771997e0eb4a"
+    "code": "771997e0eb4a",
+    "decl": ""
    },
    {
     "index": 1,
     "kind": "lone",
     "heading": "Background Music",
-    "code": "86d1aa960ce7"
+    "code": "86d1aa960ce7",
+    "decl": ""
    },
    {
     "index": 2,
     "kind": "lone",
     "heading": "Pass Through",
-    "code": "534dc88e6500"
+    "code": "534dc88e6500",
+    "decl": ""
    }
   ]
  },
@@ -3201,7 +3609,8 @@
     "index": 0,
     "kind": "lone",
     "heading": "Latency",
-    "code": "fe582cf167cc"
+    "code": "fe582cf167cc",
+    "decl": ""
    }
   ]
  },
@@ -3212,19 +3621,22 @@
     "index": 0,
     "kind": "lone",
     "heading": "Handling Interruptions",
-    "code": "24c6a64e513c"
+    "code": "24c6a64e513c",
+    "decl": ""
    },
    {
     "index": 1,
     "kind": "lone",
     "heading": "Latency",
-    "code": "97e2269ec148"
+    "code": "97e2269ec148",
+    "decl": ""
    },
    {
     "index": 2,
     "kind": "lone",
     "heading": "Multi-channel Output",
-    "code": "74cfeace6483"
+    "code": "74cfeace6483",
+    "decl": ""
    }
   ]
  },
@@ -3235,25 +3647,29 @@
     "index": 0,
     "kind": "lone",
     "heading": "Java",
-    "code": "b2772f22bdf1"
+    "code": "b2772f22bdf1",
+    "decl": ""
    },
    {
     "index": 1,
     "kind": "lone",
     "heading": "Java",
-    "code": "a87a8ac9acd7"
+    "code": "a87a8ac9acd7",
+    "decl": ""
    },
    {
     "index": 2,
     "kind": "lone",
     "heading": "Application Lifecycle Management",
-    "code": "54fb4995f9fd"
+    "code": "54fb4995f9fd",
+    "decl": ""
    },
    {
     "index": 3,
     "kind": "lone",
     "heading": "Application Lifecycle Management",
-    "code": "b9f3f2afb225"
+    "code": "b9f3f2afb225",
+    "decl": ""
    }
   ]
  },
@@ -3264,43 +3680,50 @@
     "index": 0,
     "kind": "lone",
     "heading": "JavaScript",
-    "code": "d8448e9485ed"
+    "code": "d8448e9485ed",
+    "decl": ""
    },
    {
     "index": 1,
     "kind": "lone",
     "heading": "JavaScript",
-    "code": "3a376f2c359c"
+    "code": "3a376f2c359c",
+    "decl": ""
    },
    {
     "index": 2,
     "kind": "lone",
     "heading": "JavaScript",
-    "code": "9c8812fc325c"
+    "code": "9c8812fc325c",
+    "decl": ""
    },
    {
     "index": 3,
     "kind": "lone",
     "heading": "JavaScript",
-    "code": "6373054bf56a"
+    "code": "6373054bf56a",
+    "decl": ""
    },
    {
     "index": 4,
     "kind": "lone",
     "heading": "JavaScript",
-    "code": "7fa08b6848fe"
+    "code": "7fa08b6848fe",
+    "decl": ""
    },
    {
     "index": 5,
     "kind": "lone",
     "heading": "JavaScript",
-    "code": "34c85f179090"
+    "code": "34c85f179090",
+    "decl": ""
    },
    {
     "index": 6,
     "kind": "lone",
     "heading": "JavaScript",
-    "code": "a26c37068106"
+    "code": "a26c37068106",
+    "decl": ""
    }
   ]
  },
@@ -3311,13 +3734,15 @@
     "index": 0,
     "kind": "lone",
     "heading": "Background Music",
-    "code": "86d1aa960ce7"
+    "code": "86d1aa960ce7",
+    "decl": ""
    },
    {
     "index": 1,
     "kind": "lone",
     "heading": "Pass Through",
-    "code": "534dc88e6500"
+    "code": "534dc88e6500",
+    "decl": ""
    }
   ]
  },
@@ -3328,97 +3753,113 @@
     "index": 0,
     "kind": "lone",
     "heading": "Libraries",
-    "code": "eec88c7de460"
+    "code": "eec88c7de460",
+    "decl": ""
    },
    {
     "index": 1,
     "kind": "lone",
     "heading": "Libraries",
-    "code": "c6eadfd8954b"
+    "code": "c6eadfd8954b",
+    "decl": ""
    },
    {
     "index": 2,
     "kind": "lone",
     "heading": "Using FMOD with C/C++",
-    "code": "fd728ef83dfc"
+    "code": "fd728ef83dfc",
+    "decl": ""
    },
    {
     "index": 3,
     "kind": "lone",
     "heading": "Flags using WASM pthread build",
-    "code": "a62ea6147d21"
+    "code": "a62ea6147d21",
+    "decl": ""
    },
    {
     "index": 4,
     "kind": "lone",
     "heading": "Overriding FMOD's 'window' handle.",
-    "code": "21fb3baf5a51"
+    "code": "21fb3baf5a51",
+    "decl": ""
    },
    {
     "index": 5,
     "kind": "lone",
     "heading": "Application setup",
-    "code": "17120d493997"
+    "code": "17120d493997",
+    "decl": ""
    },
    {
     "index": 6,
     "kind": "lone",
     "heading": "Setting and getting",
-    "code": "298ed4b8f269"
+    "code": "298ed4b8f269",
+    "decl": ""
    },
    {
     "index": 7,
     "kind": "lone",
     "heading": "Using structures",
-    "code": "075543e07e08"
+    "code": "075543e07e08",
+    "decl": ""
    },
    {
     "index": 8,
     "kind": "lone",
     "heading": "Direct from host, via FMOD's filesystem",
-    "code": "d51aeee3ebf2"
+    "code": "d51aeee3ebf2",
+    "decl": ""
    },
    {
     "index": 9,
     "kind": "lone",
     "heading": "Direct from host, via FMOD's filesystem",
-    "code": "075f67fcbc03"
+    "code": "075f67fcbc03",
+    "decl": ""
    },
    {
     "index": 10,
     "kind": "lone",
     "heading": "Via memory",
-    "code": "d8234b5e74d0"
+    "code": "d8234b5e74d0",
+    "decl": ""
    },
    {
     "index": 11,
     "kind": "lone",
     "heading": "Via callbacks",
-    "code": "fae495a539ec"
+    "code": "fae495a539ec",
+    "decl": ""
    },
    {
     "index": 12,
     "kind": "lone",
     "heading": "Via callbacks",
-    "code": "bbb035f23033"
+    "code": "bbb035f23033",
+    "decl": ""
    },
    {
     "index": 13,
     "kind": "lone",
     "heading": "Via callbacks",
-    "code": "7d9b1dbdbcd3"
+    "code": "7d9b1dbdbcd3",
+    "decl": ""
    },
    {
     "index": 14,
     "kind": "lone",
     "heading": "CPU Overhead",
-    "code": "c0cc0cf1d890"
+    "code": "c0cc0cf1d890",
+    "decl": ""
    },
    {
     "index": 15,
     "kind": "lone",
     "heading": "Audio Stability (Stuttering)",
-    "code": "0cc5d3e98a9a"
+    "code": "0cc5d3e98a9a",
+    "decl": ""
    }
   ]
  }

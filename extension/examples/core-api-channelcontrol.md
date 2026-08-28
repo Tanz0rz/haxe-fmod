@@ -39,31 +39,12 @@ channel.setCallback(event -> switch (event) {
 
 ## 5
 <!-- FMOD_CHANNELCONTROL_CALLBACK_TYPE -->
-ChannelEvent has End and SyncPoint(index) constructors. Virtual voice and occlusion callbacks are not delivered, isVirtual() reports the voice state on demand.
-```haxe
-import haxefmod.core.ChannelEvent;
-
-channel.setCallback(event -> switch (event) {
-    case End: trace("finished");
-    case SyncPoint(index): trace('sync point $index');
-    default:
-});
-if (channel.isVirtual()) trace("voice is virtual");
-```
+Virtual voice and occlusion callbacks are not delivered, Channel.isVirtual reports the voice state on demand.
+Type: haxefmod.core.ChannelEvent
 
 ## 6
 <!-- FMOD_CHANNELCONTROL_DSP_INDEX -->
-The three built-in positions are constants on ChannelGroup and work for both channels and groups.
-```haxe
-import haxefmod.core.ChannelGroup;
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-var lowpass = Dsp.create(DspType.LOWPASS);
-channel.addDsp(ChannelGroup.DSP_HEAD, lowpass);
-var fft = Dsp.create(DspType.FFT);
-ChannelGroup.master().addDsp(ChannelGroup.DSP_TAIL, fft);
-```
+No Haxe equivalent. The three positions are the DSP_HEAD, DSP_FADER, and DSP_TAIL Int constants on ChannelGroup, accepted by addDsp on channels and groups.
 
 ## 42
 <!-- ChannelControl::set3DCustomRolloff -->
@@ -78,4 +59,4 @@ var points = channel.get3DCustomRolloff();
 
 ## 67
 <!-- FMOD_CHANNELCONTROL_TYPE -->
-Channel and ChannelGroup are separate handle types, so a callback handler already knows which one it was registered on.
+No Haxe equivalent. Channel and ChannelGroup are separate handle types, so a callback handler already knows which one it was registered on.

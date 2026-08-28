@@ -160,18 +160,23 @@
 
     // A guide example: hand-written Haxe for the C++ sample above it, or
     // a note when haxefmod has no equivalent.
+    // A guide example shows code only, like the other tabs. A note that
+    // explains a difference rides along as comment lines above the code,
+    // and an example with no Haxe equivalent is a comment on its own.
     function renderExample(example) {
         var block = el("div", "highlight " + LANG + " haxefmod-block");
         block.style.display = "none";
-        var note = el("div", "haxefmod-note");
+        var lines = [];
+        example.notes.forEach(function (text) { lines.push("// " + text); });
         if (example.code != null) {
-            var pre = el("pre");
-            pre.textContent = example.code;
-            block.appendChild(pre);
+            if (lines.length) lines.push("");
+            lines.push(example.code);
         }
-        example.notes.forEach(function (text) {
-            note.appendChild(el("p", example.code == null ? "haxefmod-warn" : null, text));
-        });
+        var pre = el("pre");
+        pre.textContent = lines.join("\n");
+        block.appendChild(pre);
+        var note = el("div", "haxefmod-note");
+        if (example.type) note.appendChild(el("p", "haxefmod-type", example.type));
         note.appendChild(footer());
         block.appendChild(note);
         return block;

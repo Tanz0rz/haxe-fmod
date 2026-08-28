@@ -2,26 +2,11 @@
 
 ## 0
 <!-- FMOD_OPENSTATE -->
-getOpenState returns the FMOD_OPENSTATE value as an int, 0 once the sound is ready.
-```haxe
-import haxefmod.core.Sound;
-var sound = Sound.create("assets/music/intro.ogg");
-if (sound.getOpenState() == 0) {
-    var channel = sound.play();
-}
-```
+No Haxe equivalent. Sound.getOpenState reports the FMOD_OPENSTATE value as an Int, 0 once the sound is ready.
 
 ## 3
 <!-- FMOD_SOUND_FORMAT -->
-Sounds built from raw data are always 16-bit signed PCM. getFormat reports the channel count and bit depth of any loaded sound.
-```haxe
-import haxefmod.core.Sound;
-var sound = Sound.create("assets/sfx/hit.wav");
-var format = sound.getFormat();
-if (format != null) {
-    trace('${format.channels} channels, ${format.bits} bits');
-}
-```
+No Haxe equivalent. Sound.fromPcm always builds 16-bit signed PCM, and Sound.getFormat reports the channel count and bit depth.
 
 ## 28
 <!-- Sound::getTag -->
@@ -129,23 +114,17 @@ if (defaults != null) {
 
 ## 54
 <!-- FMOD_SOUND_TYPE -->
-The sound type is not queryable. Sound.create accepts any format FMOD decodes on the target, and on HTML5 only FSB and raw PCM decode, so a loose .wav or .ogg path leaves FMOD_ERR_FORMAT in lastResult.
-```haxe
-import haxefmod.core.Sound;
-var sound = Sound.create("assets/sfx/hit.ogg");
-if (sound.isNull() && StudioSystem.lastResult() == FMOD_ERR_FORMAT) {
-    trace("this target cannot decode loose files");
-}
-```
+No Haxe equivalent. The sound type is not queryable, Sound.create accepts any format FMOD decodes on the target.
 
 ## 56
 <!-- FMOD_TAG -->
-Tag and metadata access is not exposed. Keep track metadata in your game's own data files.
+The data pointer is flattened into intValue, floatValue, and stringValue, read with Sound.getTag (unsupported in HTML5).
+Type: haxefmod.studio.Types.FmodTag
 
 ## 57
 <!-- FMOD_TAGDATATYPE -->
-Tag and metadata access is not exposed. Keep track metadata in your game's own data files.
+Type: haxefmod.studio.Types.FmodTagDataType
 
 ## 58
 <!-- FMOD_TAGTYPE -->
-Tag and metadata access is not exposed. Keep track metadata in your game's own data files.
+Type: haxefmod.studio.Types.FmodTagType
