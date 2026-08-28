@@ -1237,7 +1237,7 @@ class ApiProbeState extends FlxState {
         var metering = fft.getMetering();
         info("dsp_metering_read", metering == null
             ? 'no data result=${StudioSystem.lastResult().toString()}'
-            : 'peaks=${metering.peak.length}');
+            : 'peaks=${metering.peakLevel.length}');
         var spectrum = fft.getFftSpectrum(64);
         info("dsp_fft_spectrum", spectrum == null
             ? 'unavailable result=${StudioSystem.lastResult().toString()}'
@@ -2622,10 +2622,11 @@ class ApiProbeState extends FlxState {
         // DSP descriptors and channel formats
         var info = lowpass.getParameterInfo(0);
         check("dsp_parameter_info_cutoff", info != null && info.name.toLowerCase().indexOf("cutoff") >= 0
-            && info.type == Dsp.PARAMETER_FLOAT && info.max > info.min && info.defaultValue >= info.min
-            && info.defaultValue <= info.max,
+            && info.type == Dsp.PARAMETER_FLOAT && info.floatDesc != null && info.floatDesc.max > info.floatDesc.min
+            && info.floatDesc.defaultVal >= info.floatDesc.min && info.floatDesc.defaultVal <= info.floatDesc.max,
             info == null ? 'result=${StudioSystem.lastResult().toString()}'
-            : 'name=${info.name} type=${info.type} min=${info.min} max=${info.max} default=${info.defaultValue}');
+            : info.floatDesc == null ? 'name=${info.name} type=${info.type} floatDesc=null'
+            : 'name=${info.name} type=${info.type} min=${info.floatDesc.min} max=${info.floatDesc.max} default=${info.floatDesc.defaultVal}');
         check("dsp_parameter_info_bad_index", lowpass.getParameterInfo(99) == null, "");
         var fft = Dsp.create(DspType.FFT);
         check("dsp_data_parameter_index", fft.getDataParameterIndex(-4) >= 0,

@@ -5877,6 +5877,75 @@ class jaxe {
         return "";
     }
 
+    // The byte image of a typed data parameter (the faxe_dspdata.h kinds:
+    // 1 sidechain, 2 finite length, 3 attenuation range, 4 dynamic
+    // response, 5 loudness meter weighting) from the flat image in f and
+    // i, or null for an unknown kind. FMOD_BOOL is a 4 byte int.
+    static typedParamImage(kind, f, i) {
+        var image, view, n;
+        if (kind === 1 || kind === 2) {
+            image = new ArrayBuffer(4);
+            new DataView(image).setInt32(0, f[0] ? 1 : 0, true);
+        } else if (kind === 3) {
+            image = new ArrayBuffer(8);
+            view = new DataView(image);
+            view.setFloat32(0, f[0], true);
+            view.setFloat32(4, f[1], true);
+        } else if (kind === 4) {
+            n = Math.max(0, Math.min(32, i[0] | 0));
+            image = new ArrayBuffer(4 + 32 * 4);
+            view = new DataView(image);
+            view.setInt32(0, n, true);
+            for (var k = 0; k < n; k++) view.setFloat32(4 + k * 4, f[k], true);
+        } else if (kind === 5) {
+            image = new ArrayBuffer(32 * 4);
+            view = new DataView(image);
+            for (var w = 0; w < 32; w++) view.setFloat32(w * 4, f[w], true);
+        } else {
+            return null;
+        }
+        return image;
+    }
+
+    static fmod_dsp_set_param_typed(handle, index, kind, f, i) {
+        var dsp = jaxe.resolveDsp(handle);
+        if (!dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        var image = jaxe.typedParamImage(kind, f, i);
+        if (!image) { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
+        jaxe.lastResult = dsp.setParameterData(index, new Uint8Array(image), image.byteLength);
+        return jaxe.lastResult;
+    }
+
+    // The glue types the block, so the kinds it knows (sidechain, finite
+    // length, attenuation range, dynamic response) read back from the
+    // object's fields and the loudness weighting reports UNSUPPORTED.
+    static fmod_dsp_get_param_typed(handle, index, kind, f, i) {
+        var dsp = jaxe.resolveDsp(handle);
+        if (!dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        for (var z = 0; z < 32; z++) f[z] = 0;
+        i[0] = 0;
+        var value = {};
+        jaxe.lastResult = dsp.getParameterData(index, value, null, null);
+        if (jaxe.lastResult != jaxe.FMOD.OK) return jaxe.lastResult;
+        if (kind === 1 && value.sidechainenable !== undefined) {
+            f[0] = value.sidechainenable ? 1 : 0;
+        } else if (kind === 2 && value.finite !== undefined) {
+            f[0] = value.finite ? 1 : 0;
+        } else if (kind === 3 && typeof value.min === "number" && typeof value.max === "number") {
+            f[0] = value.min;
+            f[1] = value.max;
+        } else if (kind === 4 && typeof value.numchannels === "number" && value.rms) {
+            var n = Math.max(0, Math.min(32, value.numchannels | 0));
+            i[0] = n;
+            for (var k = 0; k < n; k++) f[k] = value.rms[k] || 0;
+        } else if (kind === 5) {
+            jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        } else {
+            jaxe.lastResult = jaxe.ERR_INVALID_PARAM;
+        }
+        return jaxe.lastResult;
+    }
+
     static fmod_cg_get_num_dsps(handle) {
         var group = jaxe.resolveCg(handle);
         if (!group) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }

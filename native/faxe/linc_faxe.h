@@ -638,6 +638,8 @@ extern int fmod_dsp_set_param_3d_attributes_multi(int handle, int index, int num
 extern int fmod_dsp_get_metering_info(int handle, bool input, ::Array<Float> fbuf, ::Array<int> ibuf);
 extern int fmod_dsp_fft_get_spectrum_channel(int handle, int channel, ::Array<Float> fbuf, int maxBins, ::Array<int> ibuf);
 extern const char* fmod_dsp_get_parameter_text(int handle, int index, int kind);
+extern int fmod_dsp_set_param_typed(int handle, int index, int kind, ::Array<Float> fbuf, ::Array<int> ibuf);
+extern int fmod_dsp_get_param_typed(int handle, int index, int kind, ::Array<Float> fbuf, ::Array<int> ibuf);
 //// Init settings and system info
 extern int fmod_sys_set_init_format(int outputType, int resamplerMethod, int rawSpeakers);
 extern int fmod_sys_memory_initialize(int poolSize);

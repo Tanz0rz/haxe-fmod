@@ -2,7 +2,8 @@
  * Unit tests for native/shared/faxe_dspdata.h against a real FMOD SDK's
  * headers: the flat double layouts land in the right struct fields, the
  * listener count is range checked, the metering unpack mirrors the
- * struct, and the descriptor unpack and texts cover every parameter type.
+ * struct, the descriptor unpack and texts cover every parameter type, and
+ * the typed data parameter pack and unpack agree with the structs.
  *
  *   gcc -std=c99 -Wall -Wextra -Werror -I<sdk>/api/core/inc \
  *       -o t tests/native/test_faxe_dspdata.c && ./t
@@ -184,11 +185,76 @@ static void test_desc(void) {
     assert(faxe_dspdata_desc_text(&desc, 1, buf, 0) == 0);
 }
 
+static void test_typed(void) {
+    faxe_dspdata_typed out;
+    double f[FAXE_DSPDATA_TYPED_DOUBLES];
+    int ints[FAXE_DSPDATA_TYPED_INTS];
+    double back[FAXE_DSPDATA_TYPED_DOUBLES];
+    int backInts[FAXE_DSPDATA_TYPED_INTS];
+    int n;
+    for (n = 0; n < FAXE_DSPDATA_TYPED_DOUBLES; n++) f[n] = 0.0;
+    ints[0] = 0;
+
+    /* sidechain and finite length are one FMOD_BOOL each */
+    f[0] = 1.0;
+    assert(faxe_dspdata_pack_typed(FAXE_DSPDATA_KIND_SIDECHAIN, &out, f, ints) == sizeof(FMOD_DSP_PARAMETER_SIDECHAIN));
+    assert(out.sidechain.sidechainenable == 1);
+    assert(faxe_dspdata_unpack_typed(FAXE_DSPDATA_KIND_SIDECHAIN, &out, sizeof(out.sidechain), back, backInts) == 1);
+    assert(back[0] == 1.0);
+    f[0] = 0.0;
+    assert(faxe_dspdata_pack_typed(FAXE_DSPDATA_KIND_FINITE_LENGTH, &out, f, ints) == sizeof(out.finiteLength));
+    assert(sizeof(out.finiteLength) == sizeof(FMOD_BOOL));
+    assert(out.finiteLength.finite == 0);
+    out.finiteLength.finite = 1;
+    assert(faxe_dspdata_unpack_typed(FAXE_DSPDATA_KIND_FINITE_LENGTH, &out, sizeof(out.finiteLength), back, backInts) == 1);
+    assert(back[0] == 1.0);
+
+    /* attenuation range is two floats */
+    f[0] = 1.5; f[1] = 250.0;
+    assert(faxe_dspdata_pack_typed(FAXE_DSPDATA_KIND_ATTENUATION_RANGE, &out, f, ints) == sizeof(FMOD_DSP_PARAMETER_ATTENUATION_RANGE));
+    assert(out.attenuationRange.min == 1.5f && out.attenuationRange.max == 250.0f);
+    assert(faxe_dspdata_unpack_typed(FAXE_DSPDATA_KIND_ATTENUATION_RANGE, &out, sizeof(out.attenuationRange), back, backInts) == 1);
+    assert(back[0] == 1.5 && back[1] == 250.0);
+
+    /* dynamic response carries a channel count and 32 rms slots */
+    ints[0] = 3;
+    f[0] = 0.1; f[1] = 0.2; f[2] = 0.3; f[3] = 9.0;
+    assert(faxe_dspdata_pack_typed(FAXE_DSPDATA_KIND_DYNAMIC_RESPONSE, &out, f, ints) == sizeof(out.dynamicResponse));
+    assert(sizeof(out.dynamicResponse) == sizeof(int) + 32 * sizeof(float));
+    assert(out.dynamicResponse.numchannels == 3);
+    assert(out.dynamicResponse.rms[2] == 0.3f && out.dynamicResponse.rms[3] == 0.0f);
+    assert(faxe_dspdata_unpack_typed(FAXE_DSPDATA_KIND_DYNAMIC_RESPONSE, &out, sizeof(out.dynamicResponse), back, backInts) == 1);
+    assert(backInts[0] == 3 && back[0] == (double)0.1f && back[2] == (double)0.3f && back[3] == 0.0);
+    ints[0] = 40; /* clamps to the 32 slots */
+    assert(faxe_dspdata_pack_typed(FAXE_DSPDATA_KIND_DYNAMIC_RESPONSE, &out, f, ints) > 0);
+    assert(out.dynamicResponse.numchannels == 32);
+    out.dynamicResponse.numchannels = -4;
+    assert(faxe_dspdata_unpack_typed(FAXE_DSPDATA_KIND_DYNAMIC_RESPONSE, &out, sizeof(out.dynamicResponse), back, backInts) == 1);
+    assert(backInts[0] == 0);
+
+    /* loudness weighting is 32 floats */
+    for (n = 0; n < 32; n++) f[n] = n * 0.5;
+    ints[0] = 0;
+    assert(faxe_dspdata_pack_typed(FAXE_DSPDATA_KIND_LOUDNESS_WEIGHTING, &out, f, ints) == sizeof(FMOD_DSP_LOUDNESS_METER_WEIGHTING_TYPE));
+    assert(out.loudnessWeighting.channelweight[0] == 0.0f && out.loudnessWeighting.channelweight[31] == 15.5f);
+    assert(faxe_dspdata_unpack_typed(FAXE_DSPDATA_KIND_LOUDNESS_WEIGHTING, &out, sizeof(out.loudnessWeighting), back, backInts) == 1);
+    assert(back[31] == 15.5 && back[1] == 0.5);
+
+    /* an unknown kind packs nothing, a short block unpacks nothing and clears the image */
+    assert(faxe_dspdata_pack_typed(0, &out, f, ints) == 0);
+    assert(faxe_dspdata_pack_typed(99, &out, f, ints) == 0);
+    assert(faxe_dspdata_unpack_typed(99, &out, sizeof(out), back, backInts) == 0);
+    assert(faxe_dspdata_unpack_typed(FAXE_DSPDATA_KIND_LOUDNESS_WEIGHTING, &out, sizeof(out.loudnessWeighting) - 1, back, backInts) == 0);
+    assert(back[31] == 0.0);
+    assert(faxe_dspdata_unpack_typed(FAXE_DSPDATA_KIND_SIDECHAIN, 0, sizeof(out.sidechain), back, backInts) == 0);
+}
+
 int main(void) {
     test_single();
     test_multi();
     test_metering();
     test_desc();
+    test_typed();
     printf("test_faxe_dspdata: all assertions passed\n");
     return 0;
 }

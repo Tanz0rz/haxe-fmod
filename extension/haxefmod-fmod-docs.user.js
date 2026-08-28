@@ -4585,16 +4585,16 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "dsp_getmeteringinfo": {
-   "code": "import haxefmod.core.Dsp;\nimport haxefmod.core.DspType;\n\nvar unit = Dsp.create(DspType.FADER);\nunit.setMeteringEnabled(true, true);\nvar output = unit.getMetering();\nvar input = unit.getInputMetering();",
+   "code": "import haxefmod.core.Dsp;\nimport haxefmod.core.DspType;\n\nvar unit = Dsp.create(DspType.FADER);\nunit.setMeteringEnabled(true, true);\nvar output = unit.getMetering();\nvar input = unit.getInputMetering();\nif (output != null) {\n    var peak = output.peakLevel[0];\n    var rms = output.rmsLevel[0];\n}",
    "fmod": "FMOD_DSP_GetMeteringInfo",
    "gated": false,
    "haxe": [
     {
      "direct": false,
-     "doc": "Peak and RMS levels per channel (linear 0..1) on the output side, or on the input side with input set, plus the channel count and the number of samples the meter averaged.",
+     "doc": "The FMOD_DSP_METERING_INFO of the output side, or of the input side with input set: peakLevel and rmsLevel per channel (linear 0..1), numChannels, and numSamples, the sample count the meter averaged.",
      "gated": false,
      "name": "getMetering",
-     "signature": "getMetering(input:Bool = false):Null<{peak:Array<Float>, rms:Array<Float>, numChannels:Int, numSamples:Int}>",
+     "signature": "getMetering(input:Bool = false):Null<FmodDspMeteringInfo>",
      "static": false,
      "type": "haxefmod.core.Dsp"
     }
@@ -4602,7 +4602,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "DSP::getMeteringInfo",
    "html5": false,
    "notes": [
-    "One side per call. Dsp.getMetering() reads the output side, getMetering(true) or getInputMetering() the input side. The result carries peak, rms, numChannels, and numSamples."
+    "One side per call. Dsp.getMetering() returns the FmodDspMeteringInfo of the output side, getMetering(true) or getInputMetering() the input side."
    ]
   },
   "dsp_getnuminputs": {
@@ -4711,9 +4711,9 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "dsp_getparameterdata": {
-   "code": "import haxefmod.core.Dsp;\nimport haxefmod.core.DspType;\nimport haxefmod.studio.Types;\n\nvar fader = Dsp.create(DspType.FADER);\nvar gain = fader.getOverallGain();\nvar index = fader.getDataParameterIndex(FmodDspParameterDataType.OVERALLGAIN);\nvar raw = fader.getParameterData(index);\nif (raw != null) {\n    var linearGain = raw.getFloat(0);\n}",
+   "code": "import haxefmod.core.Dsp;\nimport haxefmod.core.DspType;\nimport haxefmod.core.DspParameters.DspCompressor;\nimport haxefmod.studio.Types;\n\nvar fader = Dsp.create(DspType.FADER);\nvar gain = fader.getOverallGain();\nvar index = fader.getDataParameterIndex(FmodDspParameterDataType.OVERALLGAIN);\nvar raw = fader.getParameterData(index);\nif (raw != null) {\n    var linearGain = raw.getFloat(0);\n}\nvar compressor = Dsp.create(DspType.COMPRESSOR);\nvar sidechain = compressor.getParameterSidechain(DspCompressor.USESIDECHAIN);",
    "fmod": "FMOD_DSP_GetParameterData",
-   "gated": false,
+   "gated": true,
    "haxe": [
     {
      "direct": true,
@@ -4741,12 +4741,57 @@ const HAXEFMOD_BINDINGS = {
      "signature": "getFftSpectrumInfo(maxBins:Int = 512):Null<FmodDspParameterFft>",
      "static": false,
      "type": "haxefmod.core.Dsp"
+    },
+    {
+     "direct": false,
+     "doc": "Reads the FMOD_DSP_LOUDNESS_METER_WEIGHTING_TYPE of a DspType.LOUDNESS_METER unit back, all MAX_CHANNEL_SLOTS weights (unsupported in HTML5, null there).",
+     "gated": true,
+     "name": "getLoudnessMeterWeighting",
+     "signature": "getLoudnessMeterWeighting():Null<FmodDspLoudnessMeterWeightingType>",
+     "static": false,
+     "type": "haxefmod.core.Dsp"
+    },
+    {
+     "direct": false,
+     "doc": "Reads a FmodDspParameterDataType.ATTENUATION_RANGE data parameter back.",
+     "gated": false,
+     "name": "getParameterAttenuationRange",
+     "signature": "getParameterAttenuationRange(index:Int):Null<FmodDspParameterAttenuationRange>",
+     "static": false,
+     "type": "haxefmod.core.Dsp"
+    },
+    {
+     "direct": false,
+     "doc": "Reads a FmodDspParameterDataType.DYNAMIC_RESPONSE data parameter (FMOD_DSP_PARAMETER_DYNAMIC_RESPONSE), the RMS level per channel a dynamics plugin reports.",
+     "gated": false,
+     "name": "getParameterDynamicResponse",
+     "signature": "getParameterDynamicResponse(index:Int):Null<FmodDspParameterDynamicResponse>",
+     "static": false,
+     "type": "haxefmod.core.Dsp"
+    },
+    {
+     "direct": false,
+     "doc": "Reads a FmodDspParameterDataType.FINITE_LENGTH data parameter back.",
+     "gated": false,
+     "name": "getParameterFiniteLength",
+     "signature": "getParameterFiniteLength(index:Int):Null<FmodDspParameterFiniteLength>",
+     "static": false,
+     "type": "haxefmod.core.Dsp"
+    },
+    {
+     "direct": false,
+     "doc": "Reads a FmodDspParameterDataType.SIDECHAIN data parameter back.",
+     "gated": false,
+     "name": "getParameterSidechain",
+     "signature": "getParameterSidechain(index:Int):Null<FmodDspParameterSidechain>",
+     "static": false,
+     "type": "haxefmod.core.Dsp"
     }
    ],
    "heading": "DSP::getParameterData",
    "html5": true,
    "notes": [
-    "Dsp.getParameterData(index) returns a copy of the block as bytes in the effect's C layout, and the typed readers decode the common formats: getFftSpectrumInfo() for FMOD_DSP_PARAMETER_FFT, getOverallGain() for FMOD_DSP_PARAMETER_OVERALLGAIN, getLoudnessMeterInfo() for FMOD_DSP_LOUDNESS_METER_INFO_TYPE. On HTML5 the web glue types the block instead of exposing its bytes, so only the overall gain, FFT, dynamic response, and attenuation range payloads come back and getLoudnessMeterInfo is a compile error."
+    "Dsp.getParameterData(index) returns a copy of the block as bytes in the effect's C layout, and the typed readers return the FMOD structs: getFftSpectrumInfo() for FMOD_DSP_PARAMETER_FFT, getOverallGain() for FMOD_DSP_PARAMETER_OVERALLGAIN, getLoudnessMeterInfo() for FMOD_DSP_LOUDNESS_METER_INFO_TYPE, getLoudnessMeterWeighting() for FMOD_DSP_LOUDNESS_METER_WEIGHTING_TYPE, getParameterSidechain(index), getParameterFiniteLength(index), getParameterAttenuationRange(index), and getParameterDynamicResponse(index) for the matching FMOD_DSP_PARAMETER_ structs. On HTML5 the web glue types the block instead of exposing its bytes, so the raw bytes come back for the overall gain, FFT, dynamic response, and attenuation range only, the loudness readers are compile errors, and the other typed readers work."
    ]
   },
   "dsp_getparameterfloat": {
@@ -4766,20 +4811,25 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "dsp_getparameterinfo": {
+   "code": "import haxefmod.core.Dsp;\nimport haxefmod.core.DspType;\nimport haxefmod.studio.Types;\n\nvar eq = Dsp.create(DspType.THREE_EQ);\nfor (index in 0...eq.getParameterCount()) {\n    var desc = eq.getParameterInfo(index);\n    if (desc == null) continue;\n    switch (desc.type) {\n        case FmodDspParameterType.FLOAT:\n            trace('${desc.name} ${desc.floatDesc.min}..${desc.floatDesc.max} ${desc.label}');\n        case FmodDspParameterType.INT:\n            trace('${desc.name} ${desc.intDesc.valueNames}');\n        default:\n    }\n}",
    "fmod": "FMOD_DSP_GetParameterInfo",
    "gated": true,
    "haxe": [
     {
      "direct": true,
-     "doc": "The descriptor of the parameter at index (unsupported in HTML5, null there).",
+     "doc": "The FMOD_DSP_PARAMETER_DESC of the parameter at index (unsupported in HTML5, null there): type, name, label, description, and the union member matching type.",
      "gated": true,
      "name": "getParameterInfo",
-     "signature": "getParameterInfo(index:Int):Null<{name:String, label:String, description:String, type:FmodDspParameterType,\n            min:Float, max:Float, defaultValue:Float, mappingType:FmodDspParameterFloatMappingType,\n            mappingPoints:Null<{values:Array<Float>, positions:Array<Float>}>, goesToInfinity:Bool,\n            dataType:FmodDspParameterDataType, valueNames:Null<Array<String>>}>",
+     "signature": "getParameterInfo(index:Int):Null<FmodDspParameterDesc>",
      "static": false,
      "type": "haxefmod.core.Dsp"
     }
    ],
-   "html5": true
+   "heading": "DSP::getParameterInfo",
+   "html5": true,
+   "notes": [
+    "Dsp.getParameterInfo(index) returns the FmodDspParameterDesc, native only (unsupported in HTML5). The union member matching type is set and the other three are null: floatDesc holds min, max, defaultVal, and mapping, intDesc min, max, defaultVal, goesToInf, and valueNames, boolDesc defaultVal and valueNames, dataDesc dataType."
+   ]
   },
   "dsp_getparameterint": {
    "fmod": "FMOD_DSP_GetParameterInt",
@@ -4991,6 +5041,15 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
+     "doc": "Sets the FMOD_DSP_LOUDNESS_METER_WEIGHTING_TYPE of a DspType.LOUDNESS_METER unit, its DspLoudnessMeter.WEIGHTING data parameter.",
+     "gated": false,
+     "name": "setLoudnessMeterWeighting",
+     "signature": "setLoudnessMeterWeighting(weighting:FmodDspLoudnessMeterWeightingType):FmodResult",
+     "static": false,
+     "type": "haxefmod.core.Dsp"
+    },
+    {
+     "direct": false,
      "doc": "Sets a data parameter of type FmodDspParameterDataType._3DATTRIBUTES (FMOD_DSP_PARAMETER_3DATTRIBUTES).",
      "gated": false,
      "name": "setParameter3DAttributes",
@@ -5004,6 +5063,33 @@ const HAXEFMOD_BINDINGS = {
      "gated": false,
      "name": "setParameter3DAttributesMulti",
      "signature": "setParameter3DAttributesMulti(index:Int, absolute:Fmod3DAttributes, relative:Array<Fmod3DAttributes>, ?weights:Array<Float>):FmodResult",
+     "static": false,
+     "type": "haxefmod.core.Dsp"
+    },
+    {
+     "direct": false,
+     "doc": "Sets a data parameter of type FmodDspParameterDataType.ATTENUATION_RANGE (FMOD_DSP_PARAMETER_ATTENUATION_RANGE), the distance range of a pan or object pan unit.",
+     "gated": false,
+     "name": "setParameterAttenuationRange",
+     "signature": "setParameterAttenuationRange(index:Int, props:FmodDspParameterAttenuationRange):FmodResult",
+     "static": false,
+     "type": "haxefmod.core.Dsp"
+    },
+    {
+     "direct": false,
+     "doc": "Sets a data parameter of type FmodDspParameterDataType.FINITE_LENGTH (FMOD_DSP_PARAMETER_FINITE_LENGTH).",
+     "gated": false,
+     "name": "setParameterFiniteLength",
+     "signature": "setParameterFiniteLength(index:Int, props:FmodDspParameterFiniteLength):FmodResult",
+     "static": false,
+     "type": "haxefmod.core.Dsp"
+    },
+    {
+     "direct": false,
+     "doc": "Sets a data parameter of type FmodDspParameterDataType.SIDECHAIN (FMOD_DSP_PARAMETER_SIDECHAIN), for example DspCompressor.USESIDECHAIN.",
+     "gated": false,
+     "name": "setParameterSidechain",
+     "signature": "setParameterSidechain(index:Int, props:FmodDspParameterSidechain):FmodResult",
      "static": false,
      "type": "haxefmod.core.Dsp"
     }
@@ -12375,7 +12461,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_LOUDNESS_METER": {
    "code": "/** FMOD_DSP_LOUDNESS_METER, parameter indices of the loudness meter. */\nenum abstract DspLoudnessMeter(Int) from Int to Int {\n    var STATE = 0;\n    var WEIGHTING = 1;\n    var INFO = 2;\n}",
    "notes": [
-    "STATE is set with setParameterInt and WEIGHTING with setParameterData. INFO is read with Dsp.getLoudnessMeterInfo (unsupported in HTML5, where the web glue hands the block back without its fields)."
+    "STATE is set with setParameterInt and WEIGHTING with Dsp.setLoudnessMeterWeighting. INFO is read with Dsp.getLoudnessMeterInfo (unsupported in HTML5, where the web glue hands the block back without its fields)."
    ],
    "type": "haxefmod.core.DspParameters.DspLoudnessMeter",
    "verdict": "bound"
@@ -12397,11 +12483,11 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "FMOD_DSP_LOUDNESS_METER_WEIGHTING_TYPE": {
-   "code": "var meter = Dsp.create(DspType.LOUDNESS_METER);\nvar weighting = haxe.io.Bytes.alloc(32 * 4);\nfor (channel in 0...32) {\n    weighting.setFloat(channel * 4, 1.0);\n}\nmeter.setParameterData(DspLoudnessMeter.WEIGHTING, weighting);",
+   "code": "/** FMOD_DSP_LOUDNESS_METER_WEIGHTING_TYPE, the weight of each of the 32 channels a loudness meter sums. Dsp.setLoudnessMeterWeighting writes it. */\ntypedef FmodDspLoudnessMeterWeightingType = {\n    var channelWeight:Array<Float>;\n}",
    "notes": [
-    "The struct is 32 floats, written as bytes through setParameterData on DspLoudnessMeter.WEIGHTING."
+    "Set with Dsp.setLoudnessMeterWeighting(weighting) on a LOUDNESS_METER unit and read back with getLoudnessMeterWeighting() (unsupported in HTML5), the shim packs the struct."
    ],
-   "type": "haxefmod.core.Dsp, haxefmod.core.DspType, haxefmod.core.DspParameters.DspLoudnessMeter",
+   "type": "haxefmod.studio.Types.FmodDspLoudnessMeterWeightingType",
    "verdict": "bound"
   },
   "FMOD_DSP_LOWPASS": {
@@ -13912,7 +13998,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_COMPLEX": {
    "code": null,
    "notes": [
-    "Cannot be bound. the sample type of the plugin DFT helpers, which run on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only"
+    "Cannot be bound. the sample type of the plugin DFT helpers, received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host"
    ],
    "type": null,
    "verdict": "cannot"
@@ -13920,7 +14006,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_ALLOC_FUNC": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units"
+    "Cannot be bound. received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin"
    ],
    "type": null,
    "verdict": "cannot"
@@ -13928,7 +14014,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_BUFFER_ARRAY": {
    "code": null,
    "notes": [
-    "Cannot be bound. the mixer buffers a plugin's process callback fills on FMOD's mixer thread, plugin authoring is C only, Dsp.create gives the built-in units"
+    "Cannot be bound. the mixer buffers received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units"
    ],
    "type": null,
    "verdict": "cannot"
@@ -13952,7 +14038,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_CREATE_CALLBACK": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units"
+    "Cannot be bound. received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin"
    ],
    "type": null,
    "verdict": "cannot"
@@ -13960,7 +14046,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_DESCRIPTION": {
    "code": null,
    "notes": [
-    "Cannot be bound. DSP plugins are written in C, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin"
+    "Cannot be bound. received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin"
    ],
    "type": null,
    "verdict": "cannot"
@@ -13968,7 +14054,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_DESCRIPTION#2": {
    "code": null,
    "notes": [
-    "Cannot be bound. a plugin names itself in its C description, Dsp.getName reads the name of a created unit"
+    "Cannot be bound. a plugin names itself in its description, received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.getName reads the name of a created unit"
    ],
    "type": null,
    "verdict": "cannot"
@@ -13976,7 +14062,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_DESCRIPTION#3": {
    "code": null,
    "notes": [
-    "Cannot be bound. a plugin names itself in its C description, Dsp.getName reads the name of a created unit"
+    "Cannot be bound. a plugin names itself in its description, received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.getName reads the name of a created unit"
    ],
    "type": null,
    "verdict": "cannot"
@@ -13984,7 +14070,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_DESCRIPTION#4": {
    "code": null,
    "notes": [
-    "Cannot be bound. a plugin names itself in its C description, Dsp.getName reads the name of a created unit"
+    "Cannot be bound. a plugin names itself in its description, received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.getName reads the name of a created unit"
    ],
    "type": null,
    "verdict": "cannot"
@@ -13992,7 +14078,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_DFT_FFTREAL_FUNC": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units"
+    "Cannot be bound. received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin"
    ],
    "type": null,
    "verdict": "cannot"
@@ -14000,7 +14086,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_DFT_IFFTREAL_FUNC": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units"
+    "Cannot be bound. received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin"
    ],
    "type": null,
    "verdict": "cannot"
@@ -14008,7 +14094,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_FREE_FUNC": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units"
+    "Cannot be bound. received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin"
    ],
    "type": null,
    "verdict": "cannot"
@@ -14016,7 +14102,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_GETBLOCKSIZE_FUNC": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units"
+    "Cannot be bound. received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin"
    ],
    "type": null,
    "verdict": "cannot"
@@ -14024,7 +14110,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_GETCLOCK_FUNC": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units"
+    "Cannot be bound. received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin"
    ],
    "type": null,
    "verdict": "cannot"
@@ -14032,7 +14118,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_GETLISTENERATTRIBUTES_FUNC": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units"
+    "Cannot be bound. received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin"
    ],
    "type": null,
    "verdict": "cannot"
@@ -14040,7 +14126,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_GETPARAM_BOOL_CALLBACK": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units"
+    "Cannot be bound. received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin"
    ],
    "type": null,
    "verdict": "cannot"
@@ -14048,7 +14134,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_GETPARAM_DATA_CALLBACK": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units"
+    "Cannot be bound. received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin"
    ],
    "type": null,
    "verdict": "cannot"
@@ -14056,7 +14142,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_GETPARAM_FLOAT_CALLBACK": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units"
+    "Cannot be bound. received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin"
    ],
    "type": null,
    "verdict": "cannot"
@@ -14064,7 +14150,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_GETPARAM_INT_CALLBACK": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units"
+    "Cannot be bound. received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin"
    ],
    "type": null,
    "verdict": "cannot"
@@ -14072,7 +14158,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_GETPARAM_VALUESTR_LENGTH": {
    "code": null,
    "notes": [
-    "Cannot be bound. the size of the value string a plugin's getparameter callback fills on FMOD's mixer thread, plugin authoring is C only"
+    "Cannot be bound. the size of the value string received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host"
    ],
    "type": null,
    "verdict": "cannot"
@@ -14080,7 +14166,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_GETSAMPLERATE_FUNC": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units"
+    "Cannot be bound. received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin"
    ],
    "type": null,
    "verdict": "cannot"
@@ -14088,7 +14174,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_GETSPEAKERMODE_FUNC": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units"
+    "Cannot be bound. received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin"
    ],
    "type": null,
    "verdict": "cannot"
@@ -14096,7 +14182,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_GETUSERDATA_FUNC": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units"
+    "Cannot be bound. received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin"
    ],
    "type": null,
    "verdict": "cannot"
@@ -14104,23 +14190,23 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_LOG_FUNC": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units"
+    "Cannot be bound. received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin"
    ],
    "type": null,
    "verdict": "cannot"
   },
   "FMOD_DSP_METERING_INFO": {
-   "code": "var fader = Dsp.create(DspType.FADER);\nChannelGroup.master().addDsp(ChannelGroup.DSP_TAIL, fader);\nfader.setMeteringEnabled(true, true);\n\n// each frame\nvar meter = fader.getMetering();\nif (meter != null) {\n    var numsamples = meter.numSamples;\n    var numchannels = meter.numChannels;\n    var peaklevel = meter.peak;\n    var rmslevel = meter.rms;\n}\nvar inputMeter = fader.getInputMetering();",
+   "code": "/** FMOD_DSP_METERING_INFO, one side of a unit's meter: the sample count the meter averaged, the peak and RMS level per channel (linear 0..1), and the channel count. Dsp.getMetering and getInputMetering return it. */\ntypedef FmodDspMeteringInfo = {\n    var numSamples:Int;\n    var peakLevel:Array<Float>;\n    var rmsLevel:Array<Float>;\n    var numChannels:Int;\n}",
    "notes": [
-    "getMetering reads the output side, getMetering(true) or getInputMetering the input side. numchannels and numsamples are fields of the result."
+    "Dsp.getMetering() returns the output side, getMetering(true) or getInputMetering() the input side, once setMeteringEnabled is on."
    ],
-   "type": "haxefmod.core.ChannelGroup, haxefmod.core.Dsp, haxefmod.core.DspType",
+   "type": "haxefmod.studio.Types.FmodDspMeteringInfo",
    "verdict": "bound"
   },
   "FMOD_DSP_PAN_GETROLLOFFGAIN_FUNC": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units"
+    "Cannot be bound. received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin"
    ],
    "type": null,
    "verdict": "cannot"
@@ -14128,7 +14214,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_PAN_SUMMONOMATRIX_FUNC": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units"
+    "Cannot be bound. received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin"
    ],
    "type": null,
    "verdict": "cannot"
@@ -14136,7 +14222,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_PAN_SUMMONOTOSURROUNDMATRIX_FUNC": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units"
+    "Cannot be bound. received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin"
    ],
    "type": null,
    "verdict": "cannot"
@@ -14144,7 +14230,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_PAN_SUMSTEREOMATRIX_FUNC": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units"
+    "Cannot be bound. received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin"
    ],
    "type": null,
    "verdict": "cannot"
@@ -14152,7 +14238,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_PAN_SUMSTEREOTOSURROUNDMATRIX_FUNC": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units"
+    "Cannot be bound. received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin"
    ],
    "type": null,
    "verdict": "cannot"
@@ -14160,7 +14246,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_PAN_SUMSURROUNDMATRIX_FUNC": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units"
+    "Cannot be bound. received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin"
    ],
    "type": null,
    "verdict": "cannot"
@@ -14188,12 +14274,12 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_ATTENUATION_RANGE": {
-   "code": null,
+   "code": "/** FMOD_DSP_PARAMETER_ATTENUATION_RANGE, the distance range a spatializer attenuates over. Dsp.setParameterAttenuationRange and getParameterAttenuationRange carry it. */\ntypedef FmodDspParameterAttenuationRange = {\n    var min:Float;\n    var max:Float;\n}",
    "notes": [
-    "No Haxe declaration, another call plays this role. a data parameter format the unit reads, Dsp.setParameterData hands it over as raw bytes, Dsp.getParameterData reads it back, and Dsp.getDataParameterIndex finds its index"
+    "Set with Dsp.setParameterAttenuationRange(index, props) and read with getParameterAttenuationRange(index), the shim packs the struct. Dsp.getDataParameterIndex(ATTENUATION_RANGE) finds the index."
    ],
-   "type": null,
-   "verdict": "covered"
+   "type": "haxefmod.studio.Types.FmodDspParameterAttenuationRange",
+   "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_DATA_TYPE": {
    "code": "/** FMOD_DSP_PARAMETER_DATA_TYPE, the data parameter kinds Dsp.getDataParameterIndex looks up. USER and above are the plugin's own formats. */\nenum abstract FmodDspParameterDataType(Int) from Int to Int {\n    var USER = 0;\n    var OVERALLGAIN = -1;\n    var _3DATTRIBUTES = -2;\n    var SIDECHAIN = -3;\n    var FFT = -4;\n    var _3DATTRIBUTES_MULTI = -5;\n    var ATTENUATION_RANGE = -6;\n    var DYNAMIC_RESPONSE = -7;\n    var FINITE_LENGTH = -8;\n}",
@@ -14202,52 +14288,52 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_DESC": {
-   "code": "var eq = Dsp.create(DspType.THREE_EQ);\nfor (index in 0...eq.getParameterCount()) {\n    var desc = eq.getParameterInfo(index);\n    if (desc == null) continue;\n    var type = desc.type;\n    var name = desc.name;\n    var label = desc.label;\n    var description = desc.description;\n    var min = desc.min;\n    var max = desc.max;\n    var defaultval = desc.defaultValue;\n    var mapping = desc.mappingType;\n    var valuenames = desc.valueNames;\n    var datatype = desc.dataType;\n}",
+   "code": "/** FMOD_DSP_PARAMETER_DESC, what Dsp.getParameterInfo reports. The union member matching type is set, the other three are null. */\ntypedef FmodDspParameterDesc = {\n    var type:FmodDspParameterType;\n    var name:String;\n    var label:String;\n    var description:String;\n    var floatDesc:Null<FmodDspParameterDescFloat>;\n    var intDesc:Null<FmodDspParameterDescInt>;\n    var boolDesc:Null<FmodDspParameterDescBool>;\n    var dataDesc:Null<FmodDspParameterDescData>;\n}",
    "notes": [
-    "Native only (unsupported in HTML5). The union members are fields of the result: min, max, defaultValue, mappingType and mappingPoints for a float, goesToInfinity and valueNames for an int, valueNames for a bool, dataType for data."
+    "Dsp.getParameterInfo(index) returns it, native only (unsupported in HTML5). The union member matching type is set (floatDesc, intDesc, boolDesc, or dataDesc), the other three are null."
    ],
-   "type": "haxefmod.core.Dsp, haxefmod.core.DspType",
+   "type": "haxefmod.studio.Types.FmodDspParameterDesc",
    "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_DESC_BOOL": {
-   "code": null,
+   "code": "/** FMOD_DSP_PARAMETER_DESC_BOOL, the default of a bool parameter. valueNames is null when the unit names none, otherwise the false and true names. */\ntypedef FmodDspParameterDescBool = {\n    var defaultVal:Bool;\n    var valueNames:Null<Array<String>>;\n}",
    "notes": [
-    "Cannot be bound. a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, label, description, type, range, float mapping, int and bool value names, and data type"
+    "The boolDesc member of FmodDspParameterDesc."
    ],
-   "type": null,
-   "verdict": "cannot"
+   "type": "haxefmod.studio.Types.FmodDspParameterDescBool",
+   "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_DESC_DATA": {
-   "code": null,
+   "code": "/** FMOD_DSP_PARAMETER_DESC_DATA, the FmodDspParameterDataType of a data parameter. */\ntypedef FmodDspParameterDescData = {\n    var dataType:FmodDspParameterDataType;\n}",
    "notes": [
-    "Cannot be bound. a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, label, description, type, range, float mapping, int and bool value names, and data type"
+    "The dataDesc member of FmodDspParameterDesc."
    ],
-   "type": null,
-   "verdict": "cannot"
+   "type": "haxefmod.studio.Types.FmodDspParameterDescData",
+   "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_DESC_FLOAT": {
-   "code": null,
+   "code": "/** FMOD_DSP_PARAMETER_DESC_FLOAT, the range, default, and mapping of a float parameter. */\ntypedef FmodDspParameterDescFloat = {\n    var min:Float;\n    var max:Float;\n    var defaultVal:Float;\n    var mapping:FmodDspParameterFloatMapping;\n}",
    "notes": [
-    "Cannot be bound. a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, label, description, type, range, float mapping, int and bool value names, and data type"
+    "The floatDesc member of FmodDspParameterDesc."
    ],
-   "type": null,
-   "verdict": "cannot"
+   "type": "haxefmod.studio.Types.FmodDspParameterDescFloat",
+   "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_DESC_INT": {
-   "code": null,
+   "code": "/** FMOD_DSP_PARAMETER_DESC_INT, the range and default of an int parameter. valueNames is null when the unit names none, otherwise one name per value from min to max. */\ntypedef FmodDspParameterDescInt = {\n    var min:Int;\n    var max:Int;\n    var defaultVal:Int;\n    var goesToInf:Bool;\n    var valueNames:Null<Array<String>>;\n}",
    "notes": [
-    "Cannot be bound. a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, label, description, type, range, float mapping, int and bool value names, and data type"
+    "The intDesc member of FmodDspParameterDesc."
    ],
-   "type": null,
-   "verdict": "cannot"
+   "type": "haxefmod.studio.Types.FmodDspParameterDescInt",
+   "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_DYNAMIC_RESPONSE": {
-   "code": null,
+   "code": "/** FMOD_DSP_PARAMETER_DYNAMIC_RESPONSE, the RMS level per channel a dynamics unit reports. Dsp.getParameterDynamicResponse reads it. */\ntypedef FmodDspParameterDynamicResponse = {\n    var numChannels:Int;\n    var rms:Array<Float>;\n}",
    "notes": [
-    "No Haxe declaration, another call plays this role. a data parameter format the unit reads, Dsp.setParameterData hands it over as raw bytes, Dsp.getParameterData reads it back, and Dsp.getDataParameterIndex finds its index"
+    "Read with Dsp.getParameterDynamicResponse(index), the shim unpacks the struct. Dsp.getDataParameterIndex(DYNAMIC_RESPONSE) finds the index."
    ],
-   "type": null,
-   "verdict": "covered"
+   "type": "haxefmod.studio.Types.FmodDspParameterDynamicResponse",
+   "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_FFT": {
    "code": "/** FMOD_DSP_PARAMETER_FFT, the spectrum of an FFT unit with one magnitude array per channel. */\ntypedef FmodDspParameterFft = {\n    var length:Int;\n    var numChannels:Int;\n    var spectrum:Array<Array<Float>>;\n}",
@@ -14258,31 +14344,31 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_FINITE_LENGTH": {
-   "code": null,
+   "code": "/** FMOD_DSP_PARAMETER_FINITE_LENGTH, whether a unit's output ends. Dsp.setParameterFiniteLength and getParameterFiniteLength carry it. */\ntypedef FmodDspParameterFiniteLength = {\n    var finite:Bool;\n}",
    "notes": [
-    "No Haxe declaration, another call plays this role. a data parameter format the unit reads, Dsp.setParameterData hands it over as raw bytes, Dsp.getParameterData reads it back, and Dsp.getDataParameterIndex finds its index"
+    "Set with Dsp.setParameterFiniteLength(index, props) and read with getParameterFiniteLength(index), the shim packs the struct."
    ],
-   "type": null,
-   "verdict": "covered"
+   "type": "haxefmod.studio.Types.FmodDspParameterFiniteLength",
+   "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_FLOAT_MAPPING": {
-   "code": null,
+   "code": "/** FMOD_DSP_PARAMETER_FLOAT_MAPPING, how a float parameter's range maps onto a control. The points are empty unless type is PIECEWISE_LINEAR. */\ntypedef FmodDspParameterFloatMapping = {\n    var type:FmodDspParameterFloatMappingType;\n    var piecewiseLinearMapping:FmodDspParameterFloatMappingPiecewiseLinear;\n}",
    "notes": [
-    "Cannot be bound. a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, label, description, type, range, float mapping, int and bool value names, and data type"
+    "The mapping field of FmodDspParameterDescFloat."
    ],
-   "type": null,
-   "verdict": "cannot"
+   "type": "haxefmod.studio.Types.FmodDspParameterFloatMapping",
+   "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_FLOAT_MAPPING_PIECEWISE_LINEAR": {
-   "code": null,
+   "code": "/** FMOD_DSP_PARAMETER_FLOAT_MAPPING_PIECEWISE_LINEAR, the points of a piecewise linear float mapping: numPoints parameter values and the 0..1 control positions they sit at. */\ntypedef FmodDspParameterFloatMappingPiecewiseLinear = {\n    var numPoints:Int;\n    var pointParamValues:Array<Float>;\n    var pointPositions:Array<Float>;\n}",
    "notes": [
-    "Cannot be bound. a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, label, description, type, range, float mapping, int and bool value names, and data type"
+    "The piecewiseLinearMapping field of FmodDspParameterFloatMapping, empty unless the mapping type is PIECEWISE_LINEAR."
    ],
-   "type": null,
-   "verdict": "cannot"
+   "type": "haxefmod.studio.Types.FmodDspParameterFloatMappingPiecewiseLinear",
+   "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_FLOAT_MAPPING_TYPE": {
-   "code": "/** FMOD_DSP_PARAMETER_FLOAT_MAPPING_TYPE, how a plugin maps a float parameter's range. Plugin authoring is C, declared for reference. */\nenum abstract FmodDspParameterFloatMappingType(Int) from Int to Int {\n    var LINEAR = 0;\n    var AUTO = 1;\n    var PIECEWISE_LINEAR = 2;\n}",
+   "code": "/** FMOD_DSP_PARAMETER_FLOAT_MAPPING_TYPE, the type field of FmodDspParameterFloatMapping. */\nenum abstract FmodDspParameterFloatMappingType(Int) from Int to Int {\n    var LINEAR = 0;\n    var AUTO = 1;\n    var PIECEWISE_LINEAR = 2;\n}",
    "notes": [],
    "type": "haxefmod.studio.Types.FmodDspParameterFloatMappingType",
    "verdict": "bound"
@@ -14296,12 +14382,12 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_SIDECHAIN": {
-   "code": null,
+   "code": "/** FMOD_DSP_PARAMETER_SIDECHAIN, whether a unit analyses its sidechain input instead of its signal. Dsp.setParameterSidechain and getParameterSidechain carry it. */\ntypedef FmodDspParameterSidechain = {\n    var sidechainEnable:Bool;\n}",
    "notes": [
-    "No Haxe declaration, another call plays this role. a data parameter format the unit reads, Dsp.setParameterData hands it over as raw bytes, Dsp.getParameterData reads it back, and Dsp.getDataParameterIndex finds its index"
+    "Set with Dsp.setParameterSidechain(index, props) and read with getParameterSidechain(index), the shim packs the struct. DspCompressor.USESIDECHAIN is one such parameter."
    ],
-   "type": null,
-   "verdict": "covered"
+   "type": "haxefmod.studio.Types.FmodDspParameterSidechain",
+   "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_TYPE": {
    "code": "/** FMOD_DSP_PARAMETER_TYPE, the type field of Dsp.getParameterInfo. Dsp.PARAMETER_* are the same values. */\nenum abstract FmodDspParameterType(Int) from Int to Int {\n    var FLOAT = 0;\n    var INT = 1;\n    var BOOL = 2;\n    var DATA = 3;\n    var MAX = 4;\n}",
@@ -14314,7 +14400,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_PROCESS_CALLBACK": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units"
+    "Cannot be bound. received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin"
    ],
    "type": null,
    "verdict": "cannot"
@@ -14344,7 +14430,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_READ_CALLBACK": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units"
+    "Cannot be bound. received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin"
    ],
    "type": null,
    "verdict": "cannot"
@@ -14376,7 +14462,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_REALLOC_FUNC": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units"
+    "Cannot be bound. received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin"
    ],
    "type": null,
    "verdict": "cannot"
@@ -14384,7 +14470,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_RELEASE_CALLBACK": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units"
+    "Cannot be bound. received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin"
    ],
    "type": null,
    "verdict": "cannot"
@@ -14392,7 +14478,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_RESET_CALLBACK": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units"
+    "Cannot be bound. received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin"
    ],
    "type": null,
    "verdict": "cannot"
@@ -14400,7 +14486,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_SETPARAM_BOOL_CALLBACK": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units"
+    "Cannot be bound. received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin"
    ],
    "type": null,
    "verdict": "cannot"
@@ -14408,7 +14494,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_SETPARAM_DATA_CALLBACK": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units"
+    "Cannot be bound. received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin"
    ],
    "type": null,
    "verdict": "cannot"
@@ -14416,7 +14502,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_SETPARAM_FLOAT_CALLBACK": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units"
+    "Cannot be bound. received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin"
    ],
    "type": null,
    "verdict": "cannot"
@@ -14424,7 +14510,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_SETPARAM_INT_CALLBACK": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units"
+    "Cannot be bound. received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin"
    ],
    "type": null,
    "verdict": "cannot"
@@ -14432,7 +14518,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_SETPOSITION_CALLBACK": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units"
+    "Cannot be bound. received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin"
    ],
    "type": null,
    "verdict": "cannot"
@@ -14440,7 +14526,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_SHOULDIPROCESS_CALLBACK": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units"
+    "Cannot be bound. received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin"
    ],
    "type": null,
    "verdict": "cannot"
@@ -14448,7 +14534,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_SHOULDIPROCESS_CALLBACK#2": {
    "code": null,
    "notes": [
-    "Cannot be bound. the mixer asks this on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.isIdle reports from game code whether a unit's inputs went idle"
+    "Cannot be bound. the question is received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.isIdle reports from game code whether a unit's inputs went idle"
    ],
    "type": null,
    "verdict": "cannot"
@@ -14456,18 +14542,18 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_STATE": {
    "code": null,
    "notes": [
-    "Cannot be bound. the per instance state a plugin's callbacks receive on FMOD's mixer thread, plugin authoring is C only, Dsp.create gives the built-in units"
+    "Cannot be bound. the per instance state received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units"
    ],
    "type": null,
    "verdict": "cannot"
   },
   "FMOD_DSP_STATE#2": {
-   "code": "var osc = Dsp.create(DspType.OSCILLATOR);\nosc.setParameterInt(DspOscillator.TYPE, 0); // 0 sine, 1 square, 2 saw up, 3 saw down, 4 triangle, 5 noise\nosc.setParameter(DspOscillator.RATE, 440.0);\nvar tone = osc.play();\nif (tone.isNull()) trace(\"play failed\");\n\n// later\ntone.stop();\nvar result = osc.release();\nif (!result.isOk()) trace(result.toString());",
+   "code": null,
    "notes": [
-    "A plugin oscillator keeps its phase in plugindata on the mixer thread, the built-in oscillator unit plays the same 440 Hz sine from game code."
+    "Cannot be bound. a plugin read callback keeping its phase in plugindata, received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, the built-in oscillator unit (Dsp.create(DspType.OSCILLATOR)) plays the same tone from game code"
    ],
-   "type": "haxefmod.core.Dsp, haxefmod.core.DspParameters.DspOscillator, haxefmod.core.DspType",
-   "verdict": "bound"
+   "type": null,
+   "verdict": "cannot"
   },
   "FMOD_DSP_STATE#3": {
    "code": "var osc = Dsp.create(DspType.OSCILLATOR);\nosc.setParameterInt(DspOscillator.TYPE, 0); // 0 sine, 1 square, 2 saw up, 3 saw down, 4 triangle, 5 noise\nosc.setParameter(DspOscillator.RATE, 440.0);\nvar tone = osc.play();\nif (tone.isNull()) trace(\"play failed\");\n\n// later\ntone.stop();\nvar result = osc.release();\nif (!result.isOk()) trace(result.toString());",
@@ -14488,7 +14574,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_STATE_DFT_FUNCTIONS": {
    "code": null,
    "notes": [
-    "Cannot be bound. DSP plugins are written in C, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin"
+    "Cannot be bound. received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin"
    ],
    "type": null,
    "verdict": "cannot"
@@ -14496,7 +14582,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_STATE_FUNCTIONS": {
    "code": null,
    "notes": [
-    "Cannot be bound. DSP plugins are written in C, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin"
+    "Cannot be bound. received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin"
    ],
    "type": null,
    "verdict": "cannot"
@@ -14504,7 +14590,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_STATE_PAN_FUNCTIONS": {
    "code": null,
    "notes": [
-    "Cannot be bound. DSP plugins are written in C, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin"
+    "Cannot be bound. received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin"
    ],
    "type": null,
    "verdict": "cannot"
@@ -14512,7 +14598,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_SYSTEM_DEREGISTER_CALLBACK": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units"
+    "Cannot be bound. received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin"
    ],
    "type": null,
    "verdict": "cannot"
@@ -14520,7 +14606,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_SYSTEM_MIX_CALLBACK": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units"
+    "Cannot be bound. received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin"
    ],
    "type": null,
    "verdict": "cannot"
@@ -14528,7 +14614,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_SYSTEM_REGISTER_CALLBACK": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units"
+    "Cannot be bound. received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin"
    ],
    "type": null,
    "verdict": "cannot"
@@ -14536,7 +14622,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_PLUGIN_SDK_VERSION": {
    "code": null,
    "notes": [
-    "Cannot be bound. the SDK version a compiled plugin is built against, plugin authoring is C only, StudioSystem.getPluginInfo reports a loaded plugin's version"
+    "Cannot be bound. the SDK version a compiled plugin is built against, received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, StudioSystem.getPluginInfo reports a loaded plugin's version"
    ],
    "type": null,
    "verdict": "cannot"

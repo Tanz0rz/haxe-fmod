@@ -97,21 +97,22 @@ abstract Dsp(Int) from Int to Int {
     }
 
     /**
-     * Peak and RMS levels per channel (linear 0..1) on the output side, or
-     * on the input side with input set, plus the channel count and the
-     * number of samples the meter averaged. Null when unavailable
-     * (metering disabled for that side, no signal yet, or a stale handle).
+     * The FMOD_DSP_METERING_INFO of the output side, or of the input side
+     * with input set: peakLevel and rmsLevel per channel (linear 0..1),
+     * numChannels, and numSamples, the sample count the meter averaged.
+     * Null when unavailable (metering disabled for that side, no signal
+     * yet, or a stale handle).
      */
-    public function getMetering(input:Bool = false):Null<{peak:Array<Float>, rms:Array<Float>, numChannels:Int, numSamples:Int}> {
+    public function getMetering(input:Bool = false):Null<FmodDspMeteringInfo> {
         var channels = NativeStudio.dsp_get_metering_info(this, input);
         if (channels <= 0) return null;
         var peak = [for (i in 0...channels) Scratch.readF(i)];
         var rms = [for (i in 0...channels) Scratch.readF(channels + i)];
-        return {peak: peak, rms: rms, numChannels: Scratch.readI(1), numSamples: Scratch.readI(0)};
+        return {numSamples: Scratch.readI(0), peakLevel: peak, rmsLevel: rms, numChannels: Scratch.readI(1)};
     }
 
     /** The input side of the meter, the signal before this unit processes it. */
-    public inline function getInputMetering():Null<{peak:Array<Float>, rms:Array<Float>, numChannels:Int, numSamples:Int}> {
+    public inline function getInputMetering():Null<FmodDspMeteringInfo> {
         return getMetering(true);
     }
 
@@ -246,51 +247,43 @@ abstract Dsp(Int) from Int to Int {
 
     #if (macro || (js && !haxefmod_html5_allow_unsupported))
     /**
-     * The descriptor of the parameter at index (unsupported in HTML5,
-     * null there). min, max, and defaultValue are filled for float and
-     * int parameters, bool fills defaultValue only, data leaves them 0.
-     * A float parameter also reports its mappingType and, for a
-     * piecewise linear mapping, the mappingPoints. An int parameter
-     * reports goesToInfinity, an int or bool parameter its valueNames
-     * when the effect names its values, and a data parameter its
-     * dataType. Null on failure.
+     * The FMOD_DSP_PARAMETER_DESC of the parameter at index (unsupported
+     * in HTML5, null there): type, name, label, description, and the
+     * union member matching type. floatDesc carries the range, default,
+     * and mapping of a float parameter, intDesc the range, default,
+     * goesToInf, and valueNames of an int parameter, boolDesc the
+     * default and valueNames of a bool parameter, dataDesc the dataType
+     * of a data parameter. The other three members are null. valueNames
+     * is null when the unit names no values. Null on failure.
      */
     public macro function getParameterInfo(self:haxe.macro.Expr, index:haxe.macro.Expr):haxe.macro.Expr {
         return haxefmod.studio.native.Html5Gate.block("Dsp.getParameterInfo", "FMOD's web glue cannot marshal the parameter descriptor");
     }
     #else
     /**
-     * The descriptor of the parameter at index (unsupported in HTML5,
-     * null there). min, max, and defaultValue are filled for float and
-     * int parameters, bool fills defaultValue only, data leaves them 0.
-     * A float parameter also reports its mappingType and, for a
-     * piecewise linear mapping, the mappingPoints. An int parameter
-     * reports goesToInfinity, an int or bool parameter its valueNames
-     * when the effect names its values, and a data parameter its
-     * dataType. Null on failure.
+     * The FMOD_DSP_PARAMETER_DESC of the parameter at index (unsupported
+     * in HTML5, null there): type, name, label, description, and the
+     * union member matching type. floatDesc carries the range, default,
+     * and mapping of a float parameter, intDesc the range, default,
+     * goesToInf, and valueNames of an int parameter, boolDesc the
+     * default and valueNames of a bool parameter, dataDesc the dataType
+     * of a data parameter. The other three members are null. valueNames
+     * is null when the unit names no values. Null on failure.
      */
-    public function getParameterInfo(index:Int):Null<{name:String, label:String, description:String, type:FmodDspParameterType,
-            min:Float, max:Float, defaultValue:Float, mappingType:FmodDspParameterFloatMappingType,
-            mappingPoints:Null<{values:Array<Float>, positions:Array<Float>}>, goesToInfinity:Bool,
-            dataType:FmodDspParameterDataType, valueNames:Null<Array<String>>}> {
+    public function getParameterInfo(index:Int):Null<FmodDspParameterDesc> {
         var name = NativeStudio.dsp_get_parameter_info(this, index);
         var result:FmodResult = haxefmod.studio.StudioSystem.lastResult();
         if (!result.isOk()) return null;
         var type:FmodDspParameterType = Scratch.readI(0);
         var mappingType:FmodDspParameterFloatMappingType = Scratch.readI(1);
-        var goesToInfinity = Scratch.readI(2) != 0;
+        var goesToInf = Scratch.readI(2) != 0;
         var dataType:FmodDspParameterDataType = Scratch.readI(3);
         var points = Scratch.readI(4);
         var min = Scratch.readF(0);
         var max = Scratch.readF(1);
-        var defaultValue = Scratch.readF(2);
-        var mappingPoints = null;
-        if (points > 0) {
-            mappingPoints = {
-                values: [for (i in 0...points) Scratch.readF(3 + i)],
-                positions: [for (i in 0...points) Scratch.readF(3 + points + i)]
-            };
-        }
+        var defaultVal = Scratch.readF(2);
+        var pointParamValues = [for (i in 0...points) Scratch.readF(3 + i)];
+        var pointPositions = [for (i in 0...points) Scratch.readF(3 + points + i)];
         var label = NativeStudio.dsp_get_parameter_text(this, index, 0);
         var description = NativeStudio.dsp_get_parameter_text(this, index, 1);
         var valueNames = null;
@@ -302,9 +295,21 @@ abstract Dsp(Int) from Int to Int {
                 for (i in 1...nameCount) valueNames.push(NativeStudio.dsp_get_parameter_text(this, index, 2 + i));
             }
         }
-        return {name: name, label: label, description: description, type: type, min: min, max: max,
-            defaultValue: defaultValue, mappingType: mappingType, mappingPoints: mappingPoints,
-            goesToInfinity: goesToInfinity, dataType: dataType, valueNames: valueNames};
+        var desc:FmodDspParameterDesc = {type: type, name: name, label: label, description: description,
+            floatDesc: null, intDesc: null, boolDesc: null, dataDesc: null};
+        switch (type) {
+            case FmodDspParameterType.FLOAT:
+                desc.floatDesc = {min: min, max: max, defaultVal: defaultVal, mapping: {type: mappingType,
+                    piecewiseLinearMapping: {numPoints: points, pointParamValues: pointParamValues, pointPositions: pointPositions}}};
+            case FmodDspParameterType.INT:
+                desc.intDesc = {min: Std.int(min), max: Std.int(max), defaultVal: Std.int(defaultVal), goesToInf: goesToInf, valueNames: valueNames};
+            case FmodDspParameterType.BOOL:
+                desc.boolDesc = {defaultVal: defaultVal != 0, valueNames: valueNames};
+            case FmodDspParameterType.DATA:
+                desc.dataDesc = {dataType: dataType};
+            default:
+        }
+        return desc;
     }
     #end
 
@@ -560,4 +565,123 @@ abstract Dsp(Int) from Int to Int {
         writeAttributes(MAX_LISTENERS * 12 + MAX_LISTENERS, absolute);
         return NativeStudio.dsp_set_param_3d_attributes_multi(this, index, relative.length);
     }
+
+    /** The kinds dsp_set_param_typed and dsp_get_param_typed pack, the same numbers as native/shared/faxe_dspdata.h. */
+    static inline var KIND_SIDECHAIN:Int = 1;
+    static inline var KIND_FINITE_LENGTH:Int = 2;
+    static inline var KIND_ATTENUATION_RANGE:Int = 3;
+    static inline var KIND_DYNAMIC_RESPONSE:Int = 4;
+    static inline var KIND_LOUDNESS_WEIGHTING:Int = 5;
+
+    /** The channel slots FMOD_DSP_PARAMETER_DYNAMIC_RESPONSE and FMOD_DSP_LOUDNESS_METER_WEIGHTING_TYPE hold. */
+    public static inline var MAX_CHANNEL_SLOTS:Int = 32;
+
+    /**
+     * Sets a data parameter of type FmodDspParameterDataType.SIDECHAIN
+     * (FMOD_DSP_PARAMETER_SIDECHAIN), for example
+     * DspCompressor.USESIDECHAIN. The shim packs the struct.
+     */
+    public function setParameterSidechain(index:Int, props:FmodDspParameterSidechain):FmodResult {
+        if (props == null) return FmodResult.FMOD_ERR_INVALID_PARAM;
+        Scratch.writeF(0, props.sidechainEnable ? 1 : 0);
+        return NativeStudio.dsp_set_param_typed(this, index, KIND_SIDECHAIN);
+    }
+
+    /** Reads a FmodDspParameterDataType.SIDECHAIN data parameter back. Null on failure. */
+    public function getParameterSidechain(index:Int):Null<FmodDspParameterSidechain> {
+        var result:FmodResult = NativeStudio.dsp_get_param_typed(this, index, KIND_SIDECHAIN);
+        if (!result.isOk()) return null;
+        return {sidechainEnable: Scratch.readF(0) != 0};
+    }
+
+    /**
+     * Sets a data parameter of type FmodDspParameterDataType.FINITE_LENGTH
+     * (FMOD_DSP_PARAMETER_FINITE_LENGTH). The shim packs the struct.
+     */
+    public function setParameterFiniteLength(index:Int, props:FmodDspParameterFiniteLength):FmodResult {
+        if (props == null) return FmodResult.FMOD_ERR_INVALID_PARAM;
+        Scratch.writeF(0, props.finite ? 1 : 0);
+        return NativeStudio.dsp_set_param_typed(this, index, KIND_FINITE_LENGTH);
+    }
+
+    /** Reads a FmodDspParameterDataType.FINITE_LENGTH data parameter back. Null on failure. */
+    public function getParameterFiniteLength(index:Int):Null<FmodDspParameterFiniteLength> {
+        var result:FmodResult = NativeStudio.dsp_get_param_typed(this, index, KIND_FINITE_LENGTH);
+        if (!result.isOk()) return null;
+        return {finite: Scratch.readF(0) != 0};
+    }
+
+    /**
+     * Sets a data parameter of type
+     * FmodDspParameterDataType.ATTENUATION_RANGE
+     * (FMOD_DSP_PARAMETER_ATTENUATION_RANGE), the distance range of a
+     * pan or object pan unit. The shim packs the struct.
+     */
+    public function setParameterAttenuationRange(index:Int, props:FmodDspParameterAttenuationRange):FmodResult {
+        if (props == null) return FmodResult.FMOD_ERR_INVALID_PARAM;
+        Scratch.writeF(0, props.min);
+        Scratch.writeF(1, props.max);
+        return NativeStudio.dsp_set_param_typed(this, index, KIND_ATTENUATION_RANGE);
+    }
+
+    /**
+     * Reads a FmodDspParameterDataType.ATTENUATION_RANGE data parameter
+     * back. Null on failure, which the built-in pan units report because
+     * they only take the range.
+     */
+    public function getParameterAttenuationRange(index:Int):Null<FmodDspParameterAttenuationRange> {
+        var result:FmodResult = NativeStudio.dsp_get_param_typed(this, index, KIND_ATTENUATION_RANGE);
+        if (!result.isOk()) return null;
+        return {min: Scratch.readF(0), max: Scratch.readF(1)};
+    }
+
+    /**
+     * Reads a FmodDspParameterDataType.DYNAMIC_RESPONSE data parameter
+     * (FMOD_DSP_PARAMETER_DYNAMIC_RESPONSE), the RMS level per channel a
+     * dynamics plugin reports. Null on failure.
+     */
+    public function getParameterDynamicResponse(index:Int):Null<FmodDspParameterDynamicResponse> {
+        var result:FmodResult = NativeStudio.dsp_get_param_typed(this, index, KIND_DYNAMIC_RESPONSE);
+        if (!result.isOk()) return null;
+        var channels = Scratch.readI(0);
+        if (channels < 0) channels = 0;
+        if (channels > MAX_CHANNEL_SLOTS) channels = MAX_CHANNEL_SLOTS;
+        return {numChannels: channels, rms: [for (i in 0...channels) Scratch.readF(i)]};
+    }
+
+    /**
+     * Sets the FMOD_DSP_LOUDNESS_METER_WEIGHTING_TYPE of a
+     * DspType.LOUDNESS_METER unit, its DspLoudnessMeter.WEIGHTING data
+     * parameter. channelWeight holds up to MAX_CHANNEL_SLOTS weights,
+     * the rest are 0. The shim packs the struct.
+     */
+    public function setLoudnessMeterWeighting(weighting:FmodDspLoudnessMeterWeightingType):FmodResult {
+        if (weighting == null || weighting.channelWeight == null || weighting.channelWeight.length > MAX_CHANNEL_SLOTS) {
+            return FmodResult.FMOD_ERR_INVALID_PARAM;
+        }
+        for (i in 0...MAX_CHANNEL_SLOTS) Scratch.writeF(i, i < weighting.channelWeight.length ? weighting.channelWeight[i] : 0);
+        return NativeStudio.dsp_set_param_typed(this, haxefmod.core.DspParameters.DspLoudnessMeter.WEIGHTING, KIND_LOUDNESS_WEIGHTING);
+    }
+
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /**
+     * Reads the FMOD_DSP_LOUDNESS_METER_WEIGHTING_TYPE of a
+     * DspType.LOUDNESS_METER unit back, all MAX_CHANNEL_SLOTS weights
+     * (unsupported in HTML5, null there). Null on failure.
+     */
+    public macro function getLoudnessMeterWeighting(self:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("Dsp.getLoudnessMeterWeighting", "FMOD's web glue returns the weighting payload without its fields");
+    }
+    #else
+    /**
+     * Reads the FMOD_DSP_LOUDNESS_METER_WEIGHTING_TYPE of a
+     * DspType.LOUDNESS_METER unit back, all MAX_CHANNEL_SLOTS weights
+     * (unsupported in HTML5, null there). Null on failure.
+     */
+    public function getLoudnessMeterWeighting():Null<FmodDspLoudnessMeterWeightingType> {
+        var result:FmodResult = NativeStudio.dsp_get_param_typed(this, haxefmod.core.DspParameters.DspLoudnessMeter.WEIGHTING, KIND_LOUDNESS_WEIGHTING);
+        if (!result.isOk()) return null;
+        return {channelWeight: [for (i in 0...MAX_CHANNEL_SLOTS) Scratch.readF(i)]};
+    }
+    #end
 }

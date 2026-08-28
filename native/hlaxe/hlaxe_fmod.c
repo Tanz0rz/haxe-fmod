@@ -6955,6 +6955,34 @@ HL_PRIM vbyte* HL_NAME(dsp_get_parameter_text)(int h, int index, int kind) {
     return (vbyte*)gStringBuf;
 }
 DEFINE_PRIM(_BYTES, dsp_get_parameter_text, _I32 _I32 _I32);
+
+// A typed data parameter (faxe_dspdata.h kinds): fbuf and ibuf hold the
+// flat image, the helper builds the FMOD struct.
+HL_PRIM int HL_NAME(dsp_set_param_typed)(int h, int index, int kind, vbyte* f, vbyte* i) {
+    FMOD_DSP* dsp = resolve_dsp(h);
+    faxe_dspdata_typed data;
+    unsigned int size;
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    size = faxe_dspdata_pack_typed(kind, &data, (const double*)f, (const int*)i);
+    if (!size) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    gLastResult = FMOD_DSP_SetParameterData(dsp, index, &data, size);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, dsp_set_param_typed, _I32 _I32 _I32 _BYTES _BYTES);
+
+// Reads the block back as the kind into fbuf and ibuf. FMOD_ERR_INVALID_PARAM
+// for an unknown kind or a block shorter than the struct.
+HL_PRIM int HL_NAME(dsp_get_param_typed)(int h, int index, int kind, vbyte* f, vbyte* i) {
+    FMOD_DSP* dsp = resolve_dsp(h);
+    void* data = NULL;
+    unsigned int len = 0;
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_DSP_GetParameterData(dsp, index, &data, &len, NULL, 0);
+    if (gLastResult != FMOD_OK) return (int)gLastResult;
+    if (!faxe_dspdata_unpack_typed(kind, data, len, (double*)f, (int*)i)) gLastResult = FMOD_ERR_INVALID_PARAM;
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, dsp_get_param_typed, _I32 _I32 _I32 _BYTES _BYTES);
 //// Init settings and system info: pre-create hooks, driver info, console ports
 
 // A fixed pool FMOD allocates from instead of the heap, handed over with

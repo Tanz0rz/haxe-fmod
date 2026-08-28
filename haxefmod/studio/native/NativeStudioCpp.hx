@@ -698,6 +698,10 @@ class NativeStudioCpp {
     /** Fills Scratch float buffer with one channel's bins, int buffer [0] numchannels, [1] length. Returns the bins written. */
     public static inline function dsp_fft_get_spectrum_channel(handle:Int, channel:Int, maxBins:Int):Int return Raw.dsp_fft_get_spectrum_channel(handle, channel, Scratch.floatBuf(), maxBins, Scratch.intBuf());
     public static inline function dsp_get_parameter_text(handle:Int, index:Int, kind:Int):String return Raw.dsp_get_parameter_text(handle, index, kind).toString();
+    /** A typed data parameter of the faxe_dspdata.h kind from the Scratch float and int buffers. Returns the FMOD result. */
+    public static inline function dsp_set_param_typed(handle:Int, index:Int, kind:Int):Int return Raw.dsp_set_param_typed(handle, index, kind, Scratch.floatBuf(), Scratch.intBuf());
+    /** Reads a data parameter back as the faxe_dspdata.h kind into the Scratch float and int buffers. Returns the FMOD result. */
+    public static inline function dsp_get_param_typed(handle:Int, index:Int, kind:Int):Int return Raw.dsp_get_param_typed(handle, index, kind, Scratch.floatBuf(), Scratch.intBuf());
     public static inline function dsp_get_data_parameter_index(handle:Int, dataType:Int):Int return Raw.dsp_get_data_parameter_index(handle, dataType);
     public static inline function dsp_set_channel_format(handle:Int, mask:Int, channels:Int, speakerMode:Int):Int return Raw.dsp_set_channel_format(handle, mask, channels, speakerMode);
     public static inline function dsp_get_channel_format(handle:Int):Int return Raw.dsp_get_channel_format(handle, Scratch.intBuf());
@@ -2185,6 +2189,10 @@ private extern class Raw {
     static function dsp_fft_get_spectrum_channel(handle:Int, channel:Int, fbuf:Array<Float>, maxBins:Int, ibuf:Array<Int>):Int;
     @:native("linc::faxe::fmod_dsp_get_parameter_text")
     static function dsp_get_parameter_text(handle:Int, index:Int, kind:Int):cpp.ConstCharStar;
+    @:native("linc::faxe::fmod_dsp_set_param_typed")
+    static function dsp_set_param_typed(handle:Int, index:Int, kind:Int, fbuf:Array<Float>, ibuf:Array<Int>):Int;
+    @:native("linc::faxe::fmod_dsp_get_param_typed")
+    static function dsp_get_param_typed(handle:Int, index:Int, kind:Int, fbuf:Array<Float>, ibuf:Array<Int>):Int;
 
     @:native("linc::faxe::fmod_dsp_get_data_parameter_index")
     static function dsp_get_data_parameter_index(handle:Int, dataType:Int):Int;

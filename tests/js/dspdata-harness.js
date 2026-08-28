@@ -4,7 +4,8 @@
 // images the glue can type (overall gain, FFT) and the ones it cannot
 // (loudness meter info), the packed 3D attribute setters, and the
 // parameter descriptor texts, which embind cannot marshal and so report
-// 68 (ERR_UNSUPPORTED).
+// 68 (ERR_UNSUPPORTED), and the typed data parameter structs (sidechain,
+// finite length, attenuation range, dynamic response, loudness weighting).
 // Usage: node dspdata-harness.js  (needs FMOD_SDK_WEB)
 
 const path = require('path');
@@ -163,6 +164,48 @@ async function main() {
     check('dsp_set_param_3d_attributes_wrong_size', single !== 0, `result=${single}`);
     check('dsp_set_param_3d_attributes_stale', jaxe.fmod_dsp_set_param_3d_attributes(999999, 0, fbuf) === 30, '');
 
+    // typed data parameters: the compressor's sidechain switch round trips
+    const compressor = jaxe.fmod_dsp_create_by_type(16 /* COMPRESSOR */);
+    const sidechainIndex = jaxe.fmod_dsp_get_data_parameter_index(compressor, -3);
+    check('dsp_get_data_parameter_index_sidechain', sidechainIndex === 5, `index=${sidechainIndex}`);
+    fbuf.fill(0);
+    fbuf[0] = 1;
+    check('dsp_set_param_typed_sidechain', jaxe.fmod_dsp_set_param_typed(compressor, sidechainIndex, 1, fbuf, ibuf) === 0,
+        `result=${jaxe.fmod_sys_last_result()}`);
+    fbuf.fill(9);
+    check('dsp_get_param_typed_sidechain', jaxe.fmod_dsp_get_param_typed(compressor, sidechainIndex, 1, fbuf, ibuf) === 0 && fbuf[0] === 1,
+        `result=${jaxe.fmod_sys_last_result()} enable=${fbuf[0]}`);
+    fbuf.fill(0);
+    check('dsp_set_param_typed_sidechain_off', jaxe.fmod_dsp_set_param_typed(compressor, sidechainIndex, 1, fbuf, ibuf) === 0
+        && jaxe.fmod_dsp_get_param_typed(compressor, sidechainIndex, 1, fbuf, ibuf) === 0 && fbuf[0] === 0, `enable=${fbuf[0]}`);
+    // the pan units take an attenuation range but do not hand it back
+    const rangeIndex = jaxe.fmod_dsp_get_data_parameter_index(pan, -6);
+    fbuf[0] = 1.5;
+    fbuf[1] = 250;
+    check('dsp_set_param_typed_attenuation_range', rangeIndex >= 0 && jaxe.fmod_dsp_set_param_typed(pan, rangeIndex, 3, fbuf, ibuf) === 0,
+        `index=${rangeIndex} result=${jaxe.fmod_sys_last_result()}`);
+    const rangeBack = jaxe.fmod_dsp_get_param_typed(pan, rangeIndex, 3, fbuf, ibuf);
+    check('dsp_get_param_typed_attenuation_range_refused', rangeBack !== 0 && fbuf[0] === 0, `result=${rangeBack}`);
+    // the glue does not type the loudness weighting, the setter still writes it
+    fbuf.fill(0);
+    fbuf[0] = 0.5;
+    check('dsp_set_param_typed_loudness_weighting', jaxe.fmod_dsp_set_param_typed(loud, 1, 5, fbuf, ibuf) === 0,
+        `result=${jaxe.fmod_sys_last_result()}`);
+    check('dsp_get_param_typed_loudness_weighting_unsupported', jaxe.fmod_dsp_get_param_typed(loud, 1, 5, fbuf, ibuf) === 68, '');
+    // a finite length struct is the same four byte FMOD_BOOL block, it lands on the sidechain
+    // switch, which the glue types as a sidechain and so refuses to read back as anything else
+    fbuf[0] = 1;
+    check('dsp_set_param_typed_finite_length', jaxe.fmod_dsp_set_param_typed(compressor, sidechainIndex, 2, fbuf, ibuf) === 0
+        && jaxe.fmod_dsp_get_param_typed(compressor, sidechainIndex, 1, fbuf, ibuf) === 0 && fbuf[0] === 1, `enable=${fbuf[0]}`);
+    check('dsp_get_param_typed_finite_length_typed_by_glue', jaxe.fmod_dsp_get_param_typed(compressor, sidechainIndex, 2, fbuf, ibuf) === 31, '');
+    // the overall gain block is too short for a dynamic response
+    check('dsp_get_param_typed_dynamic_response_wrong_block', jaxe.fmod_dsp_get_param_typed(fader, gainIndex, 4, fbuf, ibuf) === 31
+        && ibuf[0] === 0, `result=${jaxe.fmod_sys_last_result()}`);
+    check('dsp_set_param_typed_unknown_kind', jaxe.fmod_dsp_set_param_typed(compressor, sidechainIndex, 99, fbuf, ibuf) === 31, '');
+    check('dsp_get_param_typed_unknown_kind', jaxe.fmod_dsp_get_param_typed(compressor, sidechainIndex, 99, fbuf, ibuf) === 31, '');
+    check('dsp_set_param_typed_stale', jaxe.fmod_dsp_set_param_typed(999999, 0, 1, fbuf, ibuf) === 30, '');
+    check('dsp_get_param_typed_stale', jaxe.fmod_dsp_get_param_typed(999999, 0, 1, fbuf, ibuf) === 30, '');
+
     // the descriptor never comes back on the web
     ibuf.fill(7);
     check('dsp_get_parameter_text_unsupported', jaxe.fmod_dsp_get_parameter_text(fft, 0, 0) === ''
@@ -178,6 +221,7 @@ async function main() {
     jaxe.fmod_dsp_release(fader);
     jaxe.fmod_dsp_release(pan);
     jaxe.fmod_dsp_release(osc);
+    jaxe.fmod_dsp_release(compressor);
     pump(5);
 
     check('no_handle_leaks_dspdata', jaxe.fmod_debug_live_handle_count() === baseline,
