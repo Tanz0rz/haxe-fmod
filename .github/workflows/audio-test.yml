@@ -3355,8 +3355,8 @@ jobs:
         run: |
           VERSION=$(grep '"version"' haxelib.json | sed 's/.*: *"\([^"]*\)".*/\1/')
           TAG="${GITHUB_REF#refs/tags/}"
-          if [ "v$VERSION" != "$TAG" ]; then
-            echo "FAIL: tag $TAG does not match haxelib.json version v$VERSION"
+          if [ "$VERSION" != "$TAG" ]; then
+            echo "FAIL: tag $TAG does not match haxelib.json version $VERSION"
             exit 1
           fi
           echo "OK: tag $TAG matches haxelib.json version $VERSION"
