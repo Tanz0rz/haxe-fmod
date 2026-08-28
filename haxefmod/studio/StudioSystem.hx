@@ -3,6 +3,7 @@ package haxefmod.studio;
 import haxefmod.studio.Types;
 import haxefmod.studio.native.NativeStudio;
 import haxefmod.studio.native.Scratch;
+import haxefmod.studio.SystemCallbacks;
 
 /**
  * Entry point for the FMOD Studio bindings.
@@ -323,12 +324,19 @@ class StudioSystem {
         return NativeStudio.sys_reset_buffer_usage();
     }
 
-    /** System-wide memory usage, or null on failure (unsupported on html5). */
+#if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /** System-wide memory usage, or null on failure (unsupported in HTML5, null there). */
+    public static macro function getMemoryUsage():haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("StudioSystem.getMemoryUsage", "FMOD's JavaScript API does not expose memory usage");
+    }
+    #else
+    /** System-wide memory usage, or null on failure (unsupported in HTML5, null there). */
     public static function getMemoryUsage():Null<FmodMemoryUsage> {
         var result:FmodResult = NativeStudio.sys_get_memory_usage();
         if (!result.isOk()) return null;
         return {exclusive: Scratch.readI(0), inclusive: Scratch.readI(1), sampledata: Scratch.readI(2)};
     }
+    #end
 
     //// Version and recording
 
@@ -337,6 +345,16 @@ class StudioSystem {
         return NativeStudio.sys_get_version();
     }
 
+#if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /**
+     * Record drivers FMOD can see (unsupported in HTML5, returns null
+     * there). drivers counts every known device, connected the ones
+     * plugged in right now. Machines without a microphone report 0 and 0.
+     */
+    public static macro function getRecordDriverCount():haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("StudioSystem.getRecordDriverCount", "the web build has no microphone recording");
+    }
+    #else
     /**
      * Record drivers FMOD can see (unsupported in HTML5, returns null
      * there). drivers counts every known device, connected the ones
@@ -347,7 +365,18 @@ class StudioSystem {
         if (drivers < 0) return null;
         return {drivers: drivers, connected: Scratch.readI(0)};
     }
+    #end
 
+#if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /**
+     * Name and native format of a record driver (unsupported in HTML5,
+     * returns null there). state is an FMOD_DRIVER_STATE bitmask (1 =
+     * connected, 2 = default). Null for an id out of range.
+     */
+    public static macro function getRecordDriverInfo(id:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("StudioSystem.getRecordDriverInfo", "the web build has no microphone recording");
+    }
+    #else
     /**
      * Name and native format of a record driver (unsupported in HTML5,
      * returns null there). state is an FMOD_DRIVER_STATE bitmask (1 =
@@ -359,7 +388,19 @@ class StudioSystem {
         return {name: name, systemRate: Scratch.readI(0), speakerMode: Scratch.readI(1),
             channels: Scratch.readI(2), state: Scratch.readI(3)};
     }
+    #end
 
+#if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /**
+     * Starts recording a driver into a sound from CoreSound.createRecordBuffer
+     * (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED). With loop on
+     * the buffer wraps and keeps recording, otherwise recording stops at
+     * the end.
+     */
+    public static macro function recordStart(id:haxe.macro.Expr, sound:haxe.macro.Expr, ?loop:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("StudioSystem.recordStart", "the web build has no microphone recording");
+    }
+    #else
     /**
      * Starts recording a driver into a sound from CoreSound.createRecordBuffer
      * (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED). With loop on
@@ -369,20 +410,71 @@ class StudioSystem {
     public static inline function recordStart(id:Int, sound:CoreSound, loop:Bool = false):FmodResult {
         return NativeStudio.sys_record_start(id, sound, loop);
     }
+    #end
 
+#if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /** Stops recording on a driver (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED). */
+    public static macro function recordStop(id:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("StudioSystem.recordStop", "the web build has no microphone recording");
+    }
+    #else
     /** Stops recording on a driver (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED). */
     public static inline function recordStop(id:Int):FmodResult {
         return NativeStudio.sys_record_stop(id);
     }
+    #end
 
+#if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /** True while a driver is recording (unsupported in HTML5, always false there). */
+    public static macro function isRecording(id:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("StudioSystem.isRecording", "the web build has no microphone recording");
+    }
+    #else
     /** True while a driver is recording (unsupported in HTML5, always false there). */
     public static inline function isRecording(id:Int):Bool {
         return NativeStudio.sys_is_recording(id);
     }
+    #end
 
+#if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /** The record cursor in PCM samples, or -1 on failure (unsupported in HTML5, always -1 there). */
+    public static macro function getRecordPosition(id:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("StudioSystem.getRecordPosition", "the web build has no microphone recording");
+    }
+    #else
     /** The record cursor in PCM samples, or -1 on failure (unsupported in HTML5, always -1 there). */
     public static inline function getRecordPosition(id:Int):Int {
         return NativeStudio.sys_get_record_position(id);
+    }
+    #end
+
+    //// System callbacks
+
+    /**
+     * Installs a handler for system events (device changes from the core
+     * system, bank unloads and Live Update connections from Studio).
+     * Events are delivered from the callback drain on the game thread,
+     * one handler at a time, registering again replaces it.
+     *
+     * coreMask defaults to DEVICELISTCHANGED | DEVICELOST and studioMask
+     * to BANK_UNLOAD | LIVEUPDATE_CONNECTED | LIVEUPDATE_DISCONNECTED (the
+     * SystemCallbacks constants). PreUpdate and PostUpdate fire on every
+     * update, so add STUDIO_PREUPDATE or STUDIO_POSTUPDATE to studioMask
+     * only when needed.
+     *
+     * BankUnload carries the path when the bank went through Bank.unload
+     * or unloadAll (FMOD refuses reads on the bank inside the callback, so
+     * the bindings read the path ahead of the unload). A bank that FMOD
+     * drops on its own arrives with an empty path. On HTML5 the core
+     * device events never fire under the browser output.
+     */
+    public static function setSystemCallback(handler:SystemEvent->Void, ?coreMask:Int, ?studioMask:Int):Void {
+        SystemCallbacks.set(handler, coreMask, studioMask);
+    }
+
+    /** Removes the system callback handler and both native callbacks. */
+    public static function clearSystemCallback():Void {
+        SystemCallbacks.clear();
     }
 
     //// Diagnostics

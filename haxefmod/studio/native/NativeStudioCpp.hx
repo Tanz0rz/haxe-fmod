@@ -430,6 +430,8 @@ class NativeStudioCpp {
 
     // Channel callbacks and sync points
     public static inline function chan_set_callback(handle:Int, enabled:Bool):Int return Raw.chan_set_callback(handle, enabled);
+    public static inline function sys_set_callback_mask(mask:Int):Int return Raw.sys_set_callback_mask(mask);
+    public static inline function sys_set_studio_callback_mask(mask:Int):Int return Raw.sys_set_studio_callback_mask(mask);
     public static inline function sound_add_sync_point(handle:Int, offsetMs:Int, name:String):Int return Raw.sound_add_sync_point(handle, offsetMs, name);
     public static inline function sound_delete_sync_point(handle:Int, index:Int):Int return Raw.sound_delete_sync_point(handle, index);
     public static inline function sound_get_num_sync_points(handle:Int):Int return Raw.sound_get_num_sync_points(handle);
@@ -1477,6 +1479,12 @@ private extern class Raw {
 
     @:native("linc::faxe::fmod_chan_set_callback")
     static function chan_set_callback(handle:Int, enabled:Bool):Int;
+
+    @:native("linc::faxe::fmod_sys_set_callback_mask")
+    static function sys_set_callback_mask(mask:Int):Int;
+
+    @:native("linc::faxe::fmod_sys_set_studio_callback_mask")
+    static function sys_set_studio_callback_mask(mask:Int):Int;
 
     @:native("linc::faxe::fmod_sound_add_sync_point")
     static function sound_add_sync_point(handle:Int, offsetMs:Int, name:String):Int;

@@ -414,6 +414,7 @@ class FmodManager {
     public static function ClearAllCallbacks():Void {
         CallbackDispatcher.clearAll();
         haxefmod.core.ChannelCallbacks.clearAll();
+        haxefmod.studio.SystemCallbacks.clear();
     }
 
     /**

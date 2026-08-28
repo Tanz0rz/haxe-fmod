@@ -46,6 +46,7 @@ class TestStudioSurface {
 		testCoreSurface();
 		testVersionDataAndRecording();
 		testRolloffAndGeometry();
+		testSystemCallbackStub();
 
 		Sys.println('  $passed passed, $failed failed');
 		return failed;
@@ -597,5 +598,20 @@ class TestStudioSurface {
 		assert(eviEvents == 1, "event dispatch unaffected by chan router");
 		haxefmod.studio.CallbackDispatcher.remove(1235);
 		ChannelCallbacks.clearAll();
+	}
+
+	static function testSystemCallbackStub() {
+		// The stub backend reports UNSUPPORTED from both mask setters, and
+		// the wrappers route to them
+		assert(haxefmod.studio.native.NativeStudio.sys_set_callback_mask(0x3) == FmodResult.FMOD_ERR_UNSUPPORTED,
+			"sys_set_callback_mask stub unsupported");
+		assert(haxefmod.studio.native.NativeStudio.sys_set_studio_callback_mask(0x1f) == FmodResult.FMOD_ERR_UNSUPPORTED,
+			"sys_set_studio_callback_mask stub unsupported");
+		assert(haxefmod.studio.SystemCallbacks.DEFAULT_CORE_MASK == 0x3, "default core mask");
+		assert(haxefmod.studio.SystemCallbacks.DEFAULT_STUDIO_MASK == 0x1c, "default studio mask leaves pre/post update out");
+		assert(haxefmod.studio.SystemCallbacks.decode(0x20000104, "bank:/X").match(BankUnload("bank:/X")), "decode bank unload");
+		assert(haxefmod.studio.SystemCallbacks.decode(0x20000001, "") == DeviceListChanged, "decode core type");
+		assert(haxefmod.studio.SystemCallbacks.decode(0x20000101, "") == PreUpdate, "decode studio type");
+		assert(haxefmod.studio.SystemCallbacks.decode(0x20000040, "") == null, "decode unknown type");
 	}
 }

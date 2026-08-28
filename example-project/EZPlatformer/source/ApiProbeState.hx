@@ -167,6 +167,7 @@ class ApiProbeState extends FlxState {
         probeHardeningTail();
         probeVersionDataAndRecording();
         probeRolloffAndGeometry();
+        probeSystemCallbacks();
         if (skipAuthored()) {
             info("authored_surface", "skipped (HAXEFMOD_PROBE_SKIP_AUTHORED)");
         } else {
@@ -392,6 +393,66 @@ class ApiProbeState extends FlxState {
     // Custom rolloff round trips on a channel, a group, and a sound, then
     // a geometry quad occluding a listener from a source. Every created
     // object is released and the handle count must come back to baseline.
+    /**
+     * System callbacks through the queue: PreUpdate and PostUpdate with
+     * the studio mask opted in, BankUnload carrying the bank path, and a
+     * clean silence after clearCallback.
+     */
+    function probeSystemCallbacks():Void {
+        var baseline = StudioSystem.liveHandleCount();
+        var events:Array<haxefmod.studio.SystemCallbacks.SystemEvent> = [];
+        StudioSystem.setSystemCallback(function(e) events.push(e),
+            haxefmod.studio.SystemCallbacks.DEFAULT_CORE_MASK,
+            haxefmod.studio.SystemCallbacks.DEFAULT_STUDIO_MASK
+                | haxefmod.studio.SystemCallbacks.STUDIO_PREUPDATE
+                | haxefmod.studio.SystemCallbacks.STUDIO_POSTUPDATE);
+        check("sys_set_callback_mask", StudioSystem.lastResult().isOk(),
+            'result=${StudioSystem.lastResult().toString()}');
+        var pump = function() {
+            for (i in 0...3) {
+                haxefmod.studio.native.NativeStudio.sys_update();
+                StudioSystem.flushCommands();
+            }
+            CallbackDispatcher.update();
+        };
+        pump();
+        var pre = 0, post = 0;
+        for (e in events) switch (e) {
+            case PreUpdate: pre++;
+            case PostUpdate: post++;
+            default:
+        }
+        check("syscb_preupdate_delivered", pre > 0, 'pre=$pre post=$post events=${events.length}');
+        check("syscb_postupdate_delivered", post > 0, 'pre=$pre post=$post events=${events.length}');
+
+        var extras = StudioSystem.loadBankFile(FmodRuntime.bankPath("Extras.bank"));
+        if (extras.isNull()) {
+            info("syscb_bank_unload", 'Extras bank not loadable here, skipped (result=${StudioSystem.lastResult().toString()})');
+        } else {
+            var path = extras.getPath();
+            check("syscb_bank_path", path != "", 'path=$path');
+            events = [];
+            check("syscb_bank_unload_call", extras.unload().isOk(), '');
+            pump();
+            var unloadPath:String = null;
+            for (e in events) switch (e) {
+                case BankUnload(p): unloadPath = p;
+                default:
+            }
+            check("syscb_bank_unload_delivered", unloadPath != null, 'events=${events.length}');
+            check("syscb_bank_unload_path", unloadPath == path, 'expected=$path got=$unloadPath');
+        }
+
+        StudioSystem.clearSystemCallback();
+        check("sys_set_studio_callback_mask_clear", StudioSystem.lastResult().isOk(),
+            'result=${StudioSystem.lastResult().toString()}');
+        events = [];
+        pump();
+        check("syscb_silent_after_clear", events.length == 0, 'events=${events.length}');
+        check("no_handle_leaks_syscb", StudioSystem.liveHandleCount() == baseline,
+            'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
+    }
+
     function probeRolloffAndGeometry():Void {
         var baseline = StudioSystem.liveHandleCount();
         var points:Array<FmodVector> = [{x: 0, y: 1, z: 0}, {x: 10, y: 0.5, z: 0}, {x: 20, y: 0, z: 0}];

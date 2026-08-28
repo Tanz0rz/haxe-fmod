@@ -69,19 +69,33 @@ abstract Bus(Int) from Int to Int {
         return NativeStudio.bus_stop_all_events(this, stopMode);
     }
 
-    /** CPU usage of this bus, or null on failure. Requires profiling enabled. */
+#if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /** CPU usage of this bus, or null on failure. Needs the profiling setting on at init (unsupported in HTML5, null there). */
+    public macro function getCpuUsage(self:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("Bus.getCpuUsage", "FMOD's JavaScript API does not expose per-object CPU usage");
+    }
+    #else
+    /** CPU usage of this bus, or null on failure. Needs the profiling setting on at init (unsupported in HTML5, null there). */
     public function getCpuUsage():Null<FmodCpuUsage> {
         var result:FmodResult = NativeStudio.bus_get_cpu_usage(this);
         if (!result.isOk()) return null;
         return {exclusive: Scratch.readI(0), inclusive: Scratch.readI(1)};
     }
+    #end
 
-    /** Memory usage of this bus, or null on failure. */
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /** Memory usage of this bus, or null on failure (unsupported in HTML5, null there). */
+    public macro function getMemoryUsage(self:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("Bus.getMemoryUsage", "FMOD's JavaScript API does not expose memory usage");
+    }
+    #else
+    /** Memory usage of this bus, or null on failure (unsupported in HTML5, null there). */
     public function getMemoryUsage():Null<FmodMemoryUsage> {
         var result:FmodResult = NativeStudio.bus_get_memory_usage(this);
         if (!result.isOk()) return null;
         return {exclusive: Scratch.readI(0), inclusive: Scratch.readI(1), sampledata: Scratch.readI(2)};
     }
+    #end
 
     /**
      * Forces the bus's core channel group to exist so effects can attach

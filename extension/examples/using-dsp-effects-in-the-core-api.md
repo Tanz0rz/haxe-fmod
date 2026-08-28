@@ -179,4 +179,4 @@ if (!result.isOk()) {
 
 ## *
 <!-- page default -->
-Plug-in DSP effects are not exposed. Haxe code cannot run on FMOD's mixer thread on any target and the web build has no plug-in host, so plug-in authoring and loading stay in C. All 33 built-in effect types are available through Dsp.create.
+Plug-in DSP authoring stays in C, because Haxe code cannot run on FMOD's mixer thread on any target. Loading a prebuilt plug-in binary is deferred until CI has one to test against, so Studio projects that use plug-in effects cannot load them from haxefmod yet, and the web build has no plug-in host (unsupported in HTML5). All 33 built-in effect types are available through Dsp.create.

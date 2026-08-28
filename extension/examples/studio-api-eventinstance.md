@@ -43,7 +43,7 @@ Third-party plugins are not available from haxefmod because Haxe code cannot run
 
 ## 43
 <!-- FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES -->
-The create and destroy programmer sound callbacks are handled natively. Call EventInstance.assignProgrammerSound(key) before start(), and the native side creates the sound from the audio table entry or file path when the instrument triggers and releases it when the instrument ends. The call returns FMOD_ERR_UNSUPPORTED on HTML5 because of a defect in FMOD's JavaScript runtime.
+The create and destroy programmer sound callbacks are handled natively. Call EventInstance.assignProgrammerSound(key) before start(), and the native side creates the sound from the audio table entry or file path when the instrument triggers and releases it when the instrument ends. Programmer sounds are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED because of a defect in FMOD's JavaScript runtime.
 ```haxe
 var instance = StudioSystem.getEvent("event:/Dialogue/Line").createInstance();
 if (instance.assignProgrammerSound("welcome").isOk()) {

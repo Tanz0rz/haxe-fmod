@@ -427,6 +427,8 @@ class NativeStudioHl {
 
     // Channel callbacks and sync points
     public static inline function chan_set_callback(handle:Int, enabled:Bool):Int return Raw.chan_set_callback(handle, enabled);
+    public static inline function sys_set_callback_mask(mask:Int):Int return Raw.sys_set_callback_mask(mask);
+    public static inline function sys_set_studio_callback_mask(mask:Int):Int return Raw.sys_set_studio_callback_mask(mask);
     public static inline function sound_add_sync_point(handle:Int, offsetMs:Int, name:String):Int return Raw.sound_add_sync_point(handle, offsetMs, toBytes(name));
     public static inline function sound_delete_sync_point(handle:Int, index:Int):Int return Raw.sound_delete_sync_point(handle, index);
     public static inline function sound_get_num_sync_points(handle:Int):Int return Raw.sound_get_num_sync_points(handle);
@@ -926,6 +928,8 @@ private extern class Raw {
     static function sys_get_software_format(ibuf:hl.Bytes):Int;
     static function dsp_get_cpu_usage(handle:Int, ibuf:hl.Bytes):Int;
     static function chan_set_callback(handle:Int, enabled:Bool):Int;
+    static function sys_set_callback_mask(mask:Int):Int;
+    static function sys_set_studio_callback_mask(mask:Int):Int;
     static function sound_add_sync_point(handle:Int, offsetMs:Int, name:hl.Bytes):Int;
     static function sound_delete_sync_point(handle:Int, index:Int):Int;
     static function sound_get_num_sync_points(handle:Int):Int;

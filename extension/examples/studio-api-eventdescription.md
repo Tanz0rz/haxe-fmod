@@ -13,7 +13,7 @@ if (property != null) {
 
 ## 33
 <!-- FMOD_STUDIO_USER_PROPERTY_TYPE -->
-FmodUserPropertyType carries the same values. Numeric properties are readable on native targets only. FMOD's HTML5 runtime crashes on them, so the binding reports FMOD_ERR_UNSUPPORTED there.
+FmodUserPropertyType carries the same values. Numeric properties are native only (unsupported in HTML5), where FMOD's runtime crashes on them, so the call returns FMOD_ERR_UNSUPPORTED there.
 ```haxe
 import haxefmod.studio.Types;
 

@@ -215,10 +215,27 @@ abstract EventInstance(Int) from Int to Int {
         CallbackDispatcher.setCallback(this, handler, mask);
     }
 
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
     /**
      * Assigns the audio-table key (or file path fallback) this instance's
-     * programmer instrument should play. The native shim resolves it on the
-     * FMOD thread when the instrument triggers. Assign BEFORE start().
+     * programmer instrument should play (unsupported in HTML5). The native
+     * shim resolves it on the FMOD thread when the instrument triggers.
+     * Assign BEFORE start().
+     *
+     * Returns FMOD_ERR_UNSUPPORTED on html5. FMOD's JS runtime cannot
+     * complete the programmer-sound flow (assigning the created sound
+     * stops the event and ends its callback delivery, reproduced with
+     * FMOD's own example pattern in tests/js/fmod_ps_glue_repro.html).
+     */
+    public macro function assignProgrammerSound(self:haxe.macro.Expr, key:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("EventInstance.assignProgrammerSound", "programmer sounds fail inside FMOD's JavaScript runtime");
+    }
+    #else
+    /**
+     * Assigns the audio-table key (or file path fallback) this instance's
+     * programmer instrument should play (unsupported in HTML5). The native
+     * shim resolves it on the FMOD thread when the instrument triggers.
+     * Assign BEFORE start().
      *
      * Returns FMOD_ERR_UNSUPPORTED on html5. FMOD's JS runtime cannot
      * complete the programmer-sound flow (assigning the created sound
@@ -229,23 +246,45 @@ abstract EventInstance(Int) from Int to Int {
         if (key == null) return FmodResult.FMOD_ERR_INVALID_PARAM;
         return NativeStudio.ps_assign(this, key);
     }
+    #end
 
-    /** Removes the programmer-sound assignment. */
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /** Removes the programmer-sound assignment (unsupported in HTML5, where nothing can be assigned). */
+    public macro function clearProgrammerSound(self:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("EventInstance.clearProgrammerSound", "programmer sounds fail inside FMOD's JavaScript runtime, so there is no assignment to clear");
+    }
+    #else
+    /** Removes the programmer-sound assignment (unsupported in HTML5, where nothing can be assigned). */
     public inline function clearProgrammerSound():FmodResult {
         return NativeStudio.ps_clear(this);
     }
+    #end
 
-    /** CPU usage of this instance, or null on failure (unsupported on html5). */
+#if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /** CPU usage of this instance, or null on failure. Needs the profiling setting on at init (unsupported in HTML5, null there). */
+    public macro function getCpuUsage(self:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("EventInstance.getCpuUsage", "FMOD's JavaScript API does not expose per-object CPU usage");
+    }
+    #else
+    /** CPU usage of this instance, or null on failure. Needs the profiling setting on at init (unsupported in HTML5, null there). */
     public function getCpuUsage():Null<FmodCpuUsage> {
         var result:FmodResult = NativeStudio.evi_get_cpu_usage(this);
         if (!result.isOk()) return null;
         return {exclusive: Scratch.readI(0), inclusive: Scratch.readI(1)};
     }
+    #end
 
-    /** Memory usage of this instance, or null on failure (unsupported on html5). */
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /** Memory usage of this instance, or null on failure (unsupported in HTML5, null there). */
+    public macro function getMemoryUsage(self:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("EventInstance.getMemoryUsage", "FMOD's JavaScript API does not expose memory usage");
+    }
+    #else
+    /** Memory usage of this instance, or null on failure (unsupported in HTML5, null there). */
     public function getMemoryUsage():Null<FmodMemoryUsage> {
         var result:FmodResult = NativeStudio.evi_get_memory_usage(this);
         if (!result.isOk()) return null;
         return {exclusive: Scratch.readI(0), inclusive: Scratch.readI(1), sampledata: Scratch.readI(2)};
     }
+    #end
 }

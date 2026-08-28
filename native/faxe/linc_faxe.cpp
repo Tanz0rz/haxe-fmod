@@ -1669,6 +1669,83 @@ int fmod_chan_set_callback(int h, bool enabled) {
     return (int)gLastResult;
 }
 
+//// System callbacks (core and studio)
+
+// System events ride the queue with handle 0 under the 0x20000000
+// namespace. Core types sit at 0x20000000 | type, studio types at
+// 0x20000100 | type so the two sets cannot collide.
+#define FAXE_CB_SYS_NAMESPACE 0x20000000u
+#define FAXE_CB_SYS_STUDIO_BIT 0x00000100u
+
+// The studio mask in force. Zero means no stash work on the unload paths.
+static unsigned int gSystemCallbackMask = 0;
+
+// Runs on whichever FMOD thread raised the event. Plain C data handling only.
+static FMOD_RESULT F_CALLBACK lincSystemCallback(FMOD_SYSTEM* system, FMOD_SYSTEM_CALLBACK_TYPE type, void* commanddata1, void* commanddata2, void* userdata) {
+    FaxeCbEvent event;
+    (void)system; (void)commanddata1; (void)commanddata2; (void)userdata;
+    memset(&event, 0, sizeof(event));
+    event.type = FAXE_CB_SYS_NAMESPACE | (uint32_t)type;
+    faxe_cbq_push(&event);
+    return FMOD_OK;
+}
+
+// Runs on the Studio thread. BANK_UNLOAD carries the bank as commanddata.
+// FMOD answers reads on that bank with NOTREADY here (verified on
+// 2.03.12), so the path comes from the stash the unload paths filled.
+static FMOD_RESULT F_CALLBACK lincStudioSystemCallback(FMOD_STUDIO_SYSTEM* system, FMOD_STUDIO_SYSTEM_CALLBACK_TYPE type, void* commanddata, void* userdata) {
+    FaxeCbEvent event;
+    (void)system; (void)userdata;
+    memset(&event, 0, sizeof(event));
+    event.type = FAXE_CB_SYS_NAMESPACE | FAXE_CB_SYS_STUDIO_BIT | (uint32_t)type;
+    if (type == FMOD_STUDIO_SYSTEM_CALLBACK_BANK_UNLOAD && commanddata) {
+        faxe_bankpath_take(commanddata, event.str);
+    }
+    faxe_cbq_push(&event);
+    return FMOD_OK;
+}
+
+// Reads a bank's path while the bank can still answer and stashes it for
+// the BANK_UNLOAD record. Haxe thread only.
+static void lincStashBankPath(FMOD::Studio::Bank* bank) {
+    char path[FAXE_CBQ_STR_MAX];
+    int retrieved = 0;
+    if (!gSystemCallbackMask) return;
+    if (bank->getPath(path, FAXE_CBQ_STR_MAX, &retrieved) == FMOD_OK) {
+        faxe_bankpath_put(bank, path);
+    }
+}
+
+static void lincStashAllBankPaths() {
+    FMOD::Studio::Bank* banks[FAXE_BANKPATH_CAPACITY];
+    int count = 0;
+    if (!gSystemCallbackMask || !gStudioSystem) return;
+    if (gStudioSystem->getBankList(banks, FAXE_BANKPATH_CAPACITY, &count) != FMOD_OK) return;
+    for (int i = 0; i < count; i++) lincStashBankPath(banks[i]);
+}
+
+int fmod_sys_set_callback_mask(int mask) {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    if (mask == 0) {
+        gLastResult = gCoreSystem->setCallback(NULL, 0);
+    } else {
+        gLastResult = gCoreSystem->setCallback(lincSystemCallback, (FMOD_SYSTEM_CALLBACK_TYPE)mask);
+    }
+    return (int)gLastResult;
+}
+
+int fmod_sys_set_studio_callback_mask(int mask) {
+    if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    if (mask == 0) {
+        gLastResult = gStudioSystem->setCallback(NULL, 0);
+        faxe_bankpath_clear();
+    } else {
+        gLastResult = gStudioSystem->setCallback(lincStudioSystemCallback, (FMOD_STUDIO_SYSTEM_CALLBACK_TYPE)mask);
+    }
+    gSystemCallbackMask = (gLastResult == FMOD_OK) ? (unsigned int)mask : 0u;
+    return (int)gLastResult;
+}
+
 int fmod_sound_add_sync_point(int h, int offsetMs, const ::String& name) {
     FMOD::Sound* sound = resolveSound(h);
     FMOD_SYNCPOINT* point = NULL;
@@ -3152,6 +3229,7 @@ static void lincReclaimDeadLookups() {
 
 int fmod_sys_unload_all() {
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    lincStashAllBankPaths();
     gLastResult = gStudioSystem->unloadAll();
     if (gLastResult == FMOD_OK) lincReclaimDeadLookups();
     return (int)gLastResult;
@@ -3431,6 +3509,7 @@ const char* fmod_bank_get_path(int h) {
 int fmod_bank_unload(int h) {
     FMOD::Studio::Bank* bank = resolveBank(h);
     if (!bank) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    lincStashBankPath(bank);
     gLastResult = bank->unload();
     if (gLastResult == FMOD_OK) {
         faxe_handle_free(h);
@@ -4702,7 +4781,7 @@ int fmod_debug_live_handle_count() {
 
 int fmod_binding_abi_version() {
     // Keep in lockstep with the manifest header "# abi-version:"
-    return 8;
+    return 9;
 }
 
 } // namespace faxe

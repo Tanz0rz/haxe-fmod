@@ -2,7 +2,7 @@
 
 Every FMOD function the native layer calls, with the haxefmod methods that reach it. Generated from the sources by `ci/haxe-bindings.py` for haxefmod 2.0.0 against FMOD 2.03.12. Functions absent from this list are not exposed, see [Limitations](limitations.md).
 
-363 FMOD functions are reached.
+410 FMOD functions are reached.
 
 The same table powers the browser extension that adds a Haxe tab to the [fmod.com API reference](https://www.fmod.com/docs/2.03/api/welcome.html).
 
@@ -15,6 +15,8 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_Channel_Get3DAttributes` | `Channel.get3DAttributes` |  |
 | `FMOD_Channel_Get3DConeOrientation` | `Channel.get3DConeOrientation` |  |
 | `FMOD_Channel_Get3DConeSettings` | `Channel.get3DConeSettings` |  |
+| `FMOD_Channel_Get3DCustomRolloff` | `Channel.get3DCustomRolloff` | limited |
+| `FMOD_Channel_Get3DDistanceFilter` | `Channel.get3DDistanceFilter` |  |
 | `FMOD_Channel_Get3DDopplerLevel` | `Channel.get3DDopplerLevel` |  |
 | `FMOD_Channel_Get3DLevel` | `Channel.get3DLevel` |  |
 | `FMOD_Channel_Get3DMinMaxDistance` | `Channel.get3DMinMaxDistance` |  |
@@ -47,6 +49,8 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_Channel_Set3DAttributes` | `Channel.set3DAttributes` |  |
 | `FMOD_Channel_Set3DConeOrientation` | `Channel.set3DConeOrientation` |  |
 | `FMOD_Channel_Set3DConeSettings` | `Channel.set3DConeSettings` |  |
+| `FMOD_Channel_Set3DCustomRolloff` | `Channel.set3DCustomRolloff` | limited |
+| `FMOD_Channel_Set3DDistanceFilter` | `Channel.set3DDistanceFilter` |  |
 | `FMOD_Channel_Set3DDopplerLevel` | `Channel.set3DDopplerLevel` |  |
 | `FMOD_Channel_Set3DLevel` | `Channel.set3DLevel` |  |
 | `FMOD_Channel_Set3DMinMaxDistance` | `Channel.set3DMinMaxDistance` |  |
@@ -84,6 +88,8 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_ChannelGroup_Get3DAttributes` | `ChannelGroup.get3DAttributes` |  |
 | `FMOD_ChannelGroup_Get3DConeOrientation` | `ChannelGroup.get3DConeOrientation` |  |
 | `FMOD_ChannelGroup_Get3DConeSettings` | `ChannelGroup.get3DConeSettings` |  |
+| `FMOD_ChannelGroup_Get3DCustomRolloff` | `ChannelGroup.get3DCustomRolloff` | limited |
+| `FMOD_ChannelGroup_Get3DDistanceFilter` | `ChannelGroup.get3DDistanceFilter` |  |
 | `FMOD_ChannelGroup_Get3DDopplerLevel` | `ChannelGroup.get3DDopplerLevel` |  |
 | `FMOD_ChannelGroup_Get3DLevel` | `ChannelGroup.get3DLevel` |  |
 | `FMOD_ChannelGroup_Get3DMinMaxDistance` | `ChannelGroup.get3DMinMaxDistance` |  |
@@ -109,6 +115,8 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_ChannelGroup_Set3DAttributes` | `ChannelGroup.set3DAttributes` |  |
 | `FMOD_ChannelGroup_Set3DConeOrientation` | `ChannelGroup.set3DConeOrientation` |  |
 | `FMOD_ChannelGroup_Set3DConeSettings` | `ChannelGroup.set3DConeSettings` |  |
+| `FMOD_ChannelGroup_Set3DCustomRolloff` | `ChannelGroup.set3DCustomRolloff` | limited |
+| `FMOD_ChannelGroup_Set3DDistanceFilter` | `ChannelGroup.set3DDistanceFilter` |  |
 | `FMOD_ChannelGroup_Set3DDopplerLevel` | `ChannelGroup.set3DDopplerLevel` |  |
 | `FMOD_ChannelGroup_Set3DLevel` | `ChannelGroup.set3DLevel` |  |
 | `FMOD_ChannelGroup_Set3DMinMaxDistance` | `ChannelGroup.set3DMinMaxDistance` |  |
@@ -180,6 +188,29 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 |---|---|---|
 | `FMOD_Debug_Initialize` | `FmodManager.Initialize`<br>`FmodManager.EnableDebugMessages`<br>`FmodRuntime.init` | limited |
 
+## Geometry
+
+| FMOD | haxefmod | HTML5 |
+|---|---|---|
+| `FMOD_Geometry_AddPolygon` | `Geometry.addPolygon` |  |
+| `FMOD_Geometry_GetActive` | `Geometry.getActive` |  |
+| `FMOD_Geometry_GetMaxPolygons` | `Geometry.getMaxPolygons` | limited |
+| `FMOD_Geometry_GetNumPolygons` | `Geometry.getNumPolygons` |  |
+| `FMOD_Geometry_GetPolygonAttributes` | `Geometry.getPolygonAttributes` | limited |
+| `FMOD_Geometry_GetPolygonNumVertices` | `Geometry.getPolygonNumVertices` |  |
+| `FMOD_Geometry_GetPolygonVertex` | `Geometry.getPolygonVertex` | limited |
+| `FMOD_Geometry_GetPosition` | `Geometry.getPosition` | limited |
+| `FMOD_Geometry_GetRotation` | `Geometry.getRotation` | limited |
+| `FMOD_Geometry_GetScale` | `Geometry.getScale` | limited |
+| `FMOD_Geometry_Release` | `Geometry.release`<br>`Geometry.create`<br>`Geometry.load` | limited |
+| `FMOD_Geometry_Save` | `Geometry.save` |  |
+| `FMOD_Geometry_SetActive` | `Geometry.setActive` | limited |
+| `FMOD_Geometry_SetPolygonAttributes` | `Geometry.setPolygonAttributes` | limited |
+| `FMOD_Geometry_SetPolygonVertex` | `Geometry.setPolygonVertex` | limited |
+| `FMOD_Geometry_SetPosition` | `Geometry.setPosition` | limited |
+| `FMOD_Geometry_SetRotation` | `Geometry.setRotation` | limited |
+| `FMOD_Geometry_SetScale` | `Geometry.setScale` | limited |
+
 ## Reverb3D
 
 | FMOD | haxefmod | HTML5 |
@@ -198,6 +229,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 |---|---|---|
 | `FMOD_Sound_AddSyncPoint` | `CoreSound.addSyncPoint` |  |
 | `FMOD_Sound_DeleteSyncPoint` | `CoreSound.deleteSyncPoint` |  |
+| `FMOD_Sound_Get3DCustomRolloff` | `CoreSound.get3DCustomRolloff` | limited |
 | `FMOD_Sound_GetDefaults` | `CoreSound.getDefaults` |  |
 | `FMOD_Sound_GetFormat` | `CoreSound.getFormat` |  |
 | `FMOD_Sound_GetLength` | `CoreSound.getLength` |  |
@@ -210,7 +242,10 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_Sound_GetSoundGroup` | `CoreSound.getSoundGroup` |  |
 | `FMOD_Sound_GetSyncPoint` | `CoreSound.deleteSyncPoint`<br>`CoreSound.getSyncPointName`<br>`CoreSound.getSyncPointOffset` |  |
 | `FMOD_Sound_GetSyncPointInfo` | `CoreSound.getSyncPointName`<br>`CoreSound.getSyncPointOffset` |  |
-| `FMOD_Sound_Release` | `PcmStream.release`<br>`CoreSound.release`<br>`PcmStream.create`<br>`PcmStream.create3d`<br>`CoreSound.create`<br>`CoreSound.fromPcm` |  |
+| `FMOD_Sound_ReadData` | `CoreSound.readData` | limited |
+| `FMOD_Sound_Release` | `PcmStream.release`<br>`CoreSound.release`<br>`PcmStream.create`<br>`PcmStream.create3d`<br>`CoreSound.create`<br>`CoreSound.createRecordBuffer`<br>`CoreSound.fromPcm` |  |
+| `FMOD_Sound_SeekData` | `CoreSound.seekData` | limited |
+| `FMOD_Sound_Set3DCustomRolloff` | `CoreSound.set3DCustomRolloff` | limited |
 | `FMOD_Sound_SetDefaults` | `CoreSound.setDefaults` |  |
 | `FMOD_Sound_SetLoopCount` | `CoreSound.setLoopCount` |  |
 | `FMOD_Sound_SetLoopPoints` | `CoreSound.setLoopPoints` |  |
@@ -245,7 +280,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_Studio_Bank_GetEventList` | `Bank.getEventList` |  |
 | `FMOD_Studio_Bank_GetID` | `Bank.getID` | limited |
 | `FMOD_Studio_Bank_GetLoadingState` | `Bank.getLoadingState` |  |
-| `FMOD_Studio_Bank_GetPath` | `Bank.getPath` |  |
+| `FMOD_Studio_Bank_GetPath` | `Bank.getPath`<br>`Bank.unload`<br>`StudioSystem.unloadAll` |  |
 | `FMOD_Studio_Bank_GetSampleLoadingState` | `Bank.getSampleLoadingState` |  |
 | `FMOD_Studio_Bank_GetStringCount` | `Bank.getStringCount` |  |
 | `FMOD_Studio_Bank_GetStringInfo` | `Bank.getStringGuid`<br>`Bank.getStringPath` |  |
@@ -371,7 +406,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_Studio_System_GetBank` | `StudioSystem.getBank` |  |
 | `FMOD_Studio_System_GetBankByID` | `StudioSystem.getBankByID` |  |
 | `FMOD_Studio_System_GetBankCount` | `StudioSystem.getBankCount` |  |
-| `FMOD_Studio_System_GetBankList` | `StudioSystem.getBankList` |  |
+| `FMOD_Studio_System_GetBankList` | `StudioSystem.getBankList`<br>`StudioSystem.unloadAll` |  |
 | `FMOD_Studio_System_GetBufferUsage` | `StudioSystem.getBufferUsage` |  |
 | `FMOD_Studio_System_GetBus` | `StudioSystem.getBus`<br>`FmodManager.GetBusMute`<br>`FmodManager.GetBusVolume`<br>`FmodManager.SetBusMute`<br>`FmodManager.SetBusVolume`<br>`FmodManager.StopAllSounds`<br>`FmodRuntime.muteAll`<br>`FmodRuntime.pauseAll` |  |
 | `FMOD_Studio_System_GetBusByID` | `StudioSystem.getBusByID` |  |
@@ -399,6 +434,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_Studio_System_LookupPath` | `StudioSystem.lookupPath` |  |
 | `FMOD_Studio_System_Release` | `FmodManager.Initialize`<br>`FmodRuntime.init` |  |
 | `FMOD_Studio_System_ResetBufferUsage` | `StudioSystem.resetBufferUsage` |  |
+| `FMOD_Studio_System_SetCallback` | `StudioSystem.clearSystemCallback`<br>`StudioSystem.setSystemCallback`<br>`SystemCallbacks.clear`<br>`SystemCallbacks.set`<br>`FmodManager.ClearAllCallbacks` |  |
 | `FMOD_Studio_System_SetListenerAttributes` | `StudioSystem.setListenerAttributes`<br>`StudioSystem.setListenerPosition2D`<br>`FmodFlxListener.update`<br>`FmodRuntime.setListenerPosition` |  |
 | `FMOD_Studio_System_SetListenerWeight` | `StudioSystem.setListenerWeight` |  |
 | `FMOD_Studio_System_SetNumListeners` | `StudioSystem.setNumListeners` |  |
@@ -427,25 +463,41 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 |---|---|---|
 | `FMOD_System_CreateChannelGroup` | `ChannelGroup.create` |  |
 | `FMOD_System_CreateDSPByType` | `Dsp.create` |  |
+| `FMOD_System_CreateGeometry` | `Geometry.create` |  |
 | `FMOD_System_CreateReverb3D` | `Reverb3D.create` |  |
-| `FMOD_System_CreateSound` | `PcmStream.create`<br>`PcmStream.create3d`<br>`CoreSound.create`<br>`CoreSound.fromPcm` |  |
+| `FMOD_System_CreateSound` | `PcmStream.create`<br>`PcmStream.create3d`<br>`CoreSound.create`<br>`CoreSound.createRecordBuffer`<br>`CoreSound.fromPcm` |  |
 | `FMOD_System_CreateSoundGroup` | `SoundGroup.create` |  |
 | `FMOD_System_Get3DSettings` | `CoreSystem.get3DSettings` |  |
 | `FMOD_System_GetChannelsPlaying` | `CoreSystem.getChannelsPlaying` |  |
 | `FMOD_System_GetDriver` | `CoreSystem.getDriver` |  |
 | `FMOD_System_GetDriverInfo` | `CoreSystem.getDriverName` |  |
+| `FMOD_System_GetGeometryOcclusion` | `Geometry.getOcclusion` | limited |
+| `FMOD_System_GetGeometrySettings` | `Geometry.getWorldSize` |  |
 | `FMOD_System_GetMasterChannelGroup` | `ChannelGroup.master` |  |
 | `FMOD_System_GetMasterSoundGroup` | `SoundGroup.master` |  |
 | `FMOD_System_GetNumDrivers` | `CoreSystem.getDriverCount` |  |
+| `FMOD_System_GetRecordDriverInfo` | `StudioSystem.getRecordDriverInfo` | limited |
+| `FMOD_System_GetRecordNumDrivers` | `StudioSystem.getRecordDriverCount` | limited |
+| `FMOD_System_GetRecordPosition` | `StudioSystem.getRecordPosition` | limited |
 | `FMOD_System_GetReverbProperties` | `Reverb.get` |  |
 | `FMOD_System_GetSoftwareFormat` | `CoreSystem.getSoftwareFormat` |  |
+| `FMOD_System_GetVersion` | `StudioSystem.getVersion` | limited |
+| `FMOD_System_IsRecording` | `StudioSystem.isRecording` | limited |
+| `FMOD_System_LoadGeometry` | `Geometry.load` |  |
 | `FMOD_System_MixerResume` | `CoreSystem.mixerResume` |  |
 | `FMOD_System_MixerSuspend` | `CoreSystem.mixerSuspend` |  |
 | `FMOD_System_PlayDSP` | `Dsp.play` |  |
 | `FMOD_System_PlaySound` | `PcmStream.play`<br>`CoreSound.play` |  |
+| `FMOD_System_RecordStart` | `StudioSystem.recordStart` | limited |
+| `FMOD_System_RecordStop` | `StudioSystem.recordStop` | limited |
 | `FMOD_System_Set3DSettings` | `CoreSystem.set3DSettings` |  |
+| `FMOD_System_SetCallback` | `StudioSystem.clearSystemCallback`<br>`StudioSystem.setSystemCallback`<br>`SystemCallbacks.clear`<br>`SystemCallbacks.set`<br>`FmodManager.ClearAllCallbacks` |  |
+| `FMOD_System_SetDSPBufferSize` | `FmodManager.Initialize`<br>`FmodRuntime.init` |  |
 | `FMOD_System_SetDriver` | `CoreSystem.setDriver` |  |
+| `FMOD_System_SetGeometrySettings` | `Geometry.setWorldSize` | limited |
 | `FMOD_System_SetOutput` | `FmodManager.Initialize`<br>`FmodRuntime.init` |  |
 | `FMOD_System_SetReverbProperties` | `Reverb.set` |  |
+| `FMOD_System_SetSoftwareChannels` | `FmodManager.Initialize`<br>`FmodRuntime.init` |  |
 | `FMOD_System_SetSoftwareFormat` | `FmodManager.Initialize`<br>`FmodRuntime.init` |  |
+| `FMOD_System_SetStreamBufferSize` | `FmodManager.Initialize`<br>`FmodRuntime.init` |  |
 

@@ -25,6 +25,16 @@ abstract CoreSound(Int) from Int to Int {
         return NativeStudio.core_create_sound(path, loop ? 1 : 0, openOnly);
     }
 
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /**
+     * An empty PCM16 sound of the given length for StudioSystem.recordStart
+     * to fill (unsupported in HTML5). Returns CoreSound.NULL there and on
+     * bad arguments. Release it like any other sound.
+     */
+    public static macro function createRecordBuffer(sampleRate:haxe.macro.Expr, channels:haxe.macro.Expr, seconds:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("CoreSound.createRecordBuffer", "the web build has no microphone recording");
+    }
+    #else
     /**
      * An empty PCM16 sound of the given length for StudioSystem.recordStart
      * to fill (unsupported in HTML5). Returns CoreSound.NULL there and on
@@ -33,7 +43,20 @@ abstract CoreSound(Int) from Int to Int {
     public static inline function createRecordBuffer(sampleRate:Int, channels:Int, seconds:Int):CoreSound {
         return NativeStudio.core_create_record_sound(sampleRate, channels, seconds);
     }
+    #end
 
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /**
+     * Reads decoded PCM from a sound created with openOnly into buffer
+     * (unsupported in HTML5). Returns the bytes read, 0 at the end of the
+     * file (StudioSystem.lastResult reports FMOD_ERR_FILE_EOF), or a
+     * negated FMOD error code. HTML5 returns -68. length defaults to the
+     * whole buffer and is clamped to it.
+     */
+    public macro function readData(self:haxe.macro.Expr, buffer:haxe.macro.Expr, ?length:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("CoreSound.readData", "FMOD's web build cannot read sample data");
+    }
+    #else
     /**
      * Reads decoded PCM from a sound created with openOnly into buffer
      * (unsupported in HTML5). Returns the bytes read, 0 at the end of the
@@ -48,11 +71,19 @@ abstract CoreSound(Int) from Int to Int {
         var count = length == -1 || length > buffer.length ? buffer.length : length;
         return NativeStudio.core_sound_read_data(this, buffer, count);
     }
+    #end
 
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /** Moves the readData cursor to a PCM sample offset (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED). */
+    public macro function seekData(self:haxe.macro.Expr, pcm:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("CoreSound.seekData", "FMOD's web build cannot seek sample data");
+    }
+    #else
     /** Moves the readData cursor to a PCM sample offset (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED). */
     public inline function seekData(pcm:Int):FmodResult {
         return NativeStudio.core_sound_seek_data(this, pcm);
     }
+    #end
 
     /**
      * A sound from raw 16-bit PCM in memory (interleaved when stereo).
@@ -180,6 +211,19 @@ abstract CoreSound(Int) from Int to Int {
         return NativeStudio.core_get_sound_length(this);
     }
 
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /**
+     * Replaces the distance rolloff curve with the given points. Each
+     * point's x is the distance and y the volume (0 to 1), sorted by
+     * distance. An empty array restores the mode-driven rolloff
+     * (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED). The
+     * binding keeps its own copy of the points for the sound's
+     * lifetime.
+     */
+    public macro function set3DCustomRolloff(self:haxe.macro.Expr, points:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("CoreSound.set3DCustomRolloff", "the web boundary rejects custom rolloff points");
+    }
+    #else
     /**
      * Replaces the distance rolloff curve with the given points. Each
      * point's x is the distance and y the volume (0 to 1), sorted by
@@ -192,17 +236,29 @@ abstract CoreSound(Int) from Int to Int {
         var packed = Scratch.packVectors(points);
         return NativeStudio.core_sound_set_3d_custom_rolloff(this, packed, packed == null ? 0 : points.length);
     }
+    #end
 
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
     /**
-     * The custom rolloff points, empty when none are set or on failure
-     * (see StudioSystem.lastResult). Unsupported in HTML5, always empty
-     * there. Capped at Scratch.VECTOR_CAPACITY points.
+     * The custom rolloff points (unsupported in HTML5, always empty
+     * there), empty when none are set or on failure (see
+     * StudioSystem.lastResult). Capped at Scratch.VECTOR_CAPACITY points.
+     */
+    public macro function get3DCustomRolloff(self:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("CoreSound.get3DCustomRolloff", "custom rolloff points cannot be set in the web build, so there is nothing to read");
+    }
+    #else
+    /**
+     * The custom rolloff points (unsupported in HTML5, always empty
+     * there), empty when none are set or on failure (see
+     * StudioSystem.lastResult). Capped at Scratch.VECTOR_CAPACITY points.
      */
     public function get3DCustomRolloff():Array<FmodVector> {
         var count = NativeStudio.core_sound_get_3d_custom_rolloff(this);
         if (count <= 0) return [];
         return Scratch.readVectors(count);
     }
+    #end
 
     /** Releases the sound and invalidates this handle. */
     public inline function release():FmodResult {

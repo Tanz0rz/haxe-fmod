@@ -104,7 +104,7 @@ StudioSystem.loadBankMemory copies the bytes, which matches the memory mode of t
 
 ## 12
 <!-- FMOD_STUDIO_SOUND_INFO -->
-Audio table lookups happen natively. Pass the key to EventInstance.assignProgrammerSound before start(), and the native side calls getSoundInfo and creates the sound when the programmer instrument triggers. The key can also be a file path. Unsupported on HTML5.
+Audio table lookups happen natively. Pass the key to EventInstance.assignProgrammerSound before start(), and the native side calls getSoundInfo and creates the sound when the programmer instrument triggers. The key can also be a file path. Programmer sounds are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED.
 ```haxe
 var instance = StudioSystem.getEvent("event:/Dialogue/Line").createInstance();
 instance.assignProgrammerSound("welcome");

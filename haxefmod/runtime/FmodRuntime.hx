@@ -45,7 +45,7 @@ class FmodRuntime {
     static var readyHandlers:Array<Void->Void> = [];
 
     /** Expected native binding ABI - lockstep with the manifest "# abi-version:". */
-    public static inline var BINDING_ABI:Int = 8;
+    public static inline var BINDING_ABI:Int = 9;
 
     /**
      * Initializes FMOD with the given settings (see FmodSettings for the

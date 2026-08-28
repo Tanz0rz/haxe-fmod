@@ -186,6 +186,19 @@ abstract ChannelGroup(Int) from Int to Int {
         return NativeStudio.cg_set_3d_occlusion(this, direct, reverb);
     }
 
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /**
+     * Replaces the distance rolloff curve with the given points. Each
+     * point's x is the distance and y the volume (0 to 1), sorted by
+     * distance. An empty array restores the mode-driven rolloff
+     * (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED). The
+     * binding keeps its own copy of the points for the group's
+     * lifetime.
+     */
+    public macro function set3DCustomRolloff(self:haxe.macro.Expr, points:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("ChannelGroup.set3DCustomRolloff", "the web boundary rejects custom rolloff points");
+    }
+    #else
     /**
      * Replaces the distance rolloff curve with the given points. Each
      * point's x is the distance and y the volume (0 to 1), sorted by
@@ -198,17 +211,29 @@ abstract ChannelGroup(Int) from Int to Int {
         var packed = Scratch.packVectors(points);
         return NativeStudio.cg_set_3d_custom_rolloff(this, packed, packed == null ? 0 : points.length);
     }
+    #end
 
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
     /**
-     * The custom rolloff points, empty when none are set or on failure
-     * (see StudioSystem.lastResult). Unsupported in HTML5, always empty
-     * there. Capped at Scratch.VECTOR_CAPACITY points.
+     * The custom rolloff points (unsupported in HTML5, always empty
+     * there), empty when none are set or on failure (see
+     * StudioSystem.lastResult). Capped at Scratch.VECTOR_CAPACITY points.
+     */
+    public macro function get3DCustomRolloff(self:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("ChannelGroup.get3DCustomRolloff", "custom rolloff points cannot be set in the web build, so there is nothing to read");
+    }
+    #else
+    /**
+     * The custom rolloff points (unsupported in HTML5, always empty
+     * there), empty when none are set or on failure (see
+     * StudioSystem.lastResult). Capped at Scratch.VECTOR_CAPACITY points.
      */
     public function get3DCustomRolloff():Array<FmodVector> {
         var count = NativeStudio.cg_get_3d_custom_rolloff(this);
         if (count <= 0) return [];
         return Scratch.readVectors(count);
     }
+    #end
 
     /**
      * Overrides the distance lowpass on this group's 3D channels. With

@@ -27,6 +27,8 @@ FmodRuntime.onceReady(() -> {
 
 `onceReady` runs the handler immediately when initialization already completed, otherwise on the first serviced frame after it does. Values pushed to FMOD before that point land on objects that do not exist yet, so setup code that applies state belongs inside it.
 
+`StudioSystem.getVersion()` returns the FMOD Engine version the running build loaded, as a string like `"2.03.12"`, or an empty string on failure. It is the quickest way to confirm which SDK or hdll a build picked up.
+
 `FmodRuntime.update()` services the runtime. It drains the callback queue, pushes attached-instance positions, and calls FMOD's update when the background auto-update is off. `FmodManager.Update()` calls it, so a game only needs one of the two.
 
 ## Settings
@@ -38,6 +40,12 @@ FmodRuntime.onceReady(() -> {
 | `numChannels` | `haxefmod_num_channels` | 128 | Maximum virtual voices. |
 | `sampleRate` | `haxefmod_sample_rate` | 0 | Mixer sample rate. 0 uses the device default. |
 | `speakerMode` | | 0 | `FMOD_SPEAKERMODE` value. 0 uses the device default. |
+| `dspBufferSize` | `haxefmod_dsp_buffer_size` | 0 | Mixer block size in samples. Smaller buffers cut latency and cost CPU. 0 uses FMOD's default. Native only, the web build fixes its buffer at 2048 samples. |
+| `dspNumBuffers` | | 0 | Mixer blocks queued ahead. 0 uses FMOD's default of 2. Native only. |
+| `softwareChannels` | `haxefmod_software_channels` | 0 | Real (audible) voices the mixer runs at once. Voices past the cap go virtual. 0 uses FMOD's default of 64. |
+| `streamBufferSize` | | 0 | File buffer size in bytes for streamed sounds. 0 uses FMOD's default of 16384. |
+| `profiling` | | false | Turns on FMOD profiling. `Bus`, `EventInstance`, and `Dsp` report `getCpuUsage()` only with this on, and the FMOD Profiler can connect to the game. |
+| `distanceFilter` | | false | Turns on the per-channel distance lowpass. 3D core channels then muffle with distance, and `Channel.set3DDistanceFilter` tunes it. See [Core API](core-api.md#channels). |
 | `liveUpdate` | `haxefmod_live_update`, `haxefmod_no_live_update` | true in `-debug` builds | Opens the Live Update connection on TCP port 9264. Native only. |
 | `logLevel` | `haxefmod_log_level` | 1 | FMOD debug logging. 0 none, 1 errors, 2 warnings, 3 everything. |
 | `bankFolder` | `haxefmod_bank_folder` | `assets/fmod/Desktop` | Folder bank file names resolve against. |

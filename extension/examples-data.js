@@ -6,14 +6,14 @@ const HAXEFMOD_EXAMPLES = {
    "code": null,
    "heading": "page default",
    "notes": [
-    "Codec, output, and DSP plug-ins are not exposed. Haxe code cannot run on FMOD's mixer thread on any target and the web build has no plug-in host, so plug-in registration and loading stay in C. Built-in codecs, outputs, and all 33 built-in effect types are available."
+    "Codec, output, and DSP plug-in authoring stays in C, because Haxe code cannot run on FMOD's mixer thread on any target. Loading a prebuilt plug-in binary is deferred until CI has one to test against, so Studio projects that use plug-in effects cannot load them from haxefmod yet, and the web build has no plug-in host (unsupported in HTML5). Built-in codecs, outputs, and all 33 built-in effect types are available."
    ]
   },
   "0": {
-   "code": null,
+   "code": "import haxefmod.studio.CoreSound;\n\nvar sound = CoreSound.create(\"assets/sfx/engine.wav\", false, true);\nvar buffer = haxe.io.Bytes.alloc(4096);\nvar read = sound.readData(buffer);\nwhile (read > 0) {\n    // the first read bytes of buffer hold decoded PCM\n    read = sound.readData(buffer);\n}\nsound.release();",
    "heading": "10.2 Extracting PCM Data from a Sound",
    "notes": [
-    "Sample readback (readData, lock) is not exposed because the web build cannot support it. Keep your own copy of the PCM you feed through CoreSound.fromPcm or PcmStream when the game needs waveform data."
+    "CoreSound.readData reads decoded PCM out of a sound opened with the openOnly flag of CoreSound.create, and seekData moves the read cursor. Both are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED, so a web build keeps its own copy of the PCM it feeds through CoreSound.fromPcm or PcmStream."
    ]
   },
   "10": {
@@ -87,10 +87,10 @@ const HAXEFMOD_EXAMPLES = {
    ]
   },
   "42": {
-   "code": "import haxefmod.core.ChannelMode;\n\nchannel.setMode(ChannelMode.MODE_3D | ChannelMode.LINEAR_SQUARE_ROLLOFF_3D);\nchannel.set3DMinMaxDistance(1, 20);",
+   "code": "import haxefmod.core.ChannelMode;\n\nchannel.setMode(ChannelMode.MODE_3D);\nchannel.set3DCustomRolloff([{x: 1, y: 1, z: 0}, {x: 10, y: 0.5, z: 0}, {x: 50, y: 0, z: 0}]);\nvar points = channel.get3DCustomRolloff();",
    "heading": "ChannelControl::set3DCustomRolloff",
    "notes": [
-    "Custom rolloff curves are not exposed because FMOD needs the point array to outlive the channel. Pick a built-in rolloff mode instead."
+    "Custom rolloff curves are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED. Each point is an FmodVector with x as the distance and y as the volume, and the copy FMOD needs lives with the channel until it is released."
    ]
   },
   "5": {
@@ -556,7 +556,7 @@ const HAXEFMOD_EXAMPLES = {
    "code": "import haxefmod.core.Dsp;\nimport haxefmod.core.DspType;\n\nvar pan = Dsp.create(DspType.PAN);\npan.setParameterInt(11, 1); // _3D_ROLLOFF = LINEAR",
    "heading": "FMOD_DSP_PAN_3D_ROLLOFF_TYPE",
    "notes": [
-    "The rolloff is an int with these enum values, set through setParameterInt on index 11 (_3D_ROLLOFF). CUSTOM needs a rolloff curve, which is not exposed."
+    "The rolloff is an int with these enum values, set through setParameterInt on index 11 (_3D_ROLLOFF). CUSTOM needs a curve handed to the pan unit through a data parameter, which is not exposed, so a custom curve goes on the channel instead with Channel.set3DCustomRolloff (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED."
    ]
   },
   "41": {
@@ -824,10 +824,10 @@ const HAXEFMOD_EXAMPLES = {
    ]
   },
   "40": {
-   "code": "import haxefmod.studio.CoreSound;\nimport haxefmod.core.ChannelMode;\n\nvar sound = CoreSound.create(\"assets/sfx/engine.wav\");\nsound.setMode(ChannelMode.MODE_3D | ChannelMode.LINEAR_SQUARE_ROLLOFF_3D);",
+   "code": "import haxefmod.studio.CoreSound;\nimport haxefmod.core.ChannelMode;\n\nvar sound = CoreSound.create(\"assets/sfx/engine.wav\");\nsound.setMode(ChannelMode.MODE_3D);\nsound.set3DCustomRolloff([{x: 1, y: 1, z: 0}, {x: 10, y: 0.5, z: 0}, {x: 50, y: 0, z: 0}]);",
    "heading": "Sound::set3DCustomRolloff",
    "notes": [
-    "Custom rolloff curves are not exposed because FMOD needs the point array to outlive the sound. Pick a built-in rolloff mode instead."
+    "Custom rolloff curves are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED. Each point is an FmodVector with x as the distance and y as the volume, and the copy FMOD needs lives with the sound until it is released."
    ]
   },
   "43": {
@@ -898,10 +898,10 @@ const HAXEFMOD_EXAMPLES = {
  },
  "core-api-system": {
   "0": {
-   "code": "import haxefmod.studio.CoreSound;\nimport haxefmod.core.ChannelMode;\n\nvar sound = CoreSound.create(\"assets/sfx/engine.wav\");\nsound.setMode(ChannelMode.MODE_3D | ChannelMode.LINEAR_ROLLOFF_3D);\nvar channel = sound.play();\nchannel.set3DMinMaxDistance(1, 50);",
+   "code": "import haxefmod.studio.CoreSound;\nimport haxefmod.core.ChannelMode;\n\nvar sound = CoreSound.create(\"assets/sfx/engine.wav\");\nsound.setMode(ChannelMode.MODE_3D);\nsound.set3DCustomRolloff([{x: 1, y: 1, z: 0}, {x: 10, y: 0.5, z: 0}, {x: 50, y: 0, z: 0}]);\nvar channel = sound.play();",
    "heading": "FMOD_3D_ROLLOFF_CALLBACK",
    "notes": [
-    "Custom rolloff callbacks cannot run on FMOD's threads from Haxe, so they are not exposed. Pick one of the built-in rolloff modes through the mode flags instead."
+    "Rolloff callbacks cannot run on FMOD's threads from Haxe, so they are not exposed. A curve of FmodVector points does the same job without a callback through set3DCustomRolloff on the sound, channel, or group, native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED. The built-in rolloff modes work on every target through the mode flags."
    ]
   },
   "1": {
@@ -999,14 +999,14 @@ const HAXEFMOD_EXAMPLES = {
    "code": null,
    "heading": "FMOD_PLUGINLIST",
    "notes": [
-    "Plugins are not exposed. Haxe code cannot run on FMOD's mixer thread, so plugin authoring and loading stay in C."
+    "Plugin authoring stays in C because Haxe code cannot run on FMOD's mixer thread. Loading a prebuilt plugin binary is deferred until CI has one to test against, so Studio projects that use plugin effects cannot load them from haxefmod yet."
    ]
   },
   "18": {
    "code": null,
    "heading": "FMOD_PLUGINTYPE",
    "notes": [
-    "Plugins are not exposed. Haxe code cannot run on FMOD's mixer thread, so plugin authoring and loading stay in C."
+    "Plugin authoring stays in C because Haxe code cannot run on FMOD's mixer thread. Loading a prebuilt plugin binary is deferred until CI has one to test against, so Studio projects that use plugin effects cannot load them from haxefmod yet."
    ]
   },
   "19": {
@@ -1120,7 +1120,7 @@ const HAXEFMOD_EXAMPLES = {
    "code": null,
    "heading": "page default",
    "notes": [
-    "This guide walks through writing, building, and loading a DSP plug-in library. haxefmod does not bind loadPlugin, registerDSP, or setPluginPath, because the plug-in itself would have to run on FMOD's mixer thread and Haxe code cannot do that on any target.",
+    "This guide walks through writing, building, and loading a DSP plug-in library. haxefmod does not bind registerDSP, because a description carries callbacks that would run on FMOD's mixer thread and Haxe code cannot do that on any target. loadPlugin and setPluginPath only load a prebuilt binary with no Haxe involved, so they are deferred until CI has a plug-in binary to test against, and Studio projects that use plug-in effects cannot load them from haxefmod yet.",
     "The built-in effects cover most game needs and are all available through haxefmod.core.Dsp, with the parameter indices listed in FMOD's effects reference. Sounds your code synthesizes can be played through haxefmod.core.PcmStream. See docs/guides/core-api.md."
    ]
   }
@@ -1137,10 +1137,10 @@ const HAXEFMOD_EXAMPLES = {
  },
  "glossary": {
   "0": {
-   "code": null,
+   "code": "import haxefmod.studio.CoreSound;\n\nvar sound = CoreSound.create(\"assets/sfx/engine.wav\", false, true);\nvar buffer = haxe.io.Bytes.alloc(4096);\nvar read = sound.readData(buffer);\nwhile (read > 0) {\n    // the first read bytes of buffer hold decoded PCM\n    read = sound.readData(buffer);\n}\nsound.release();",
    "heading": "22.33 Reading Sound Data",
    "notes": [
-    "Sound sample readback (readData, lock) is not exposed, since FMOD's web build does not support it. Keep your own copy of the PCM you feed through PcmStream or CoreSound.fromPcm when the game needs waveform data."
+    "CoreSound.readData reads decoded PCM out of a sound opened with the openOnly flag of CoreSound.create, and seekData moves the read cursor. Both are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED, so a web build keeps its own copy of the PCM it feeds through CoreSound.fromPcm or PcmStream."
    ]
   },
   "1": {
@@ -1490,7 +1490,7 @@ const HAXEFMOD_EXAMPLES = {
    "code": "var usage = StudioSystem.getMemoryUsage();\nif (usage != null) {\n    trace('exclusive ${usage.exclusive} inclusive ${usage.inclusive} sample data ${usage.sampledata}');\n}",
    "heading": "FMOD_STUDIO_MEMORY_USAGE",
    "notes": [
-    "FmodMemoryUsage has the same three fields in bytes. StudioSystem.getMemoryUsage, Bus.getMemoryUsage, and EventInstance.getMemoryUsage return it, or null on HTML5 where FMOD does not report memory."
+    "FmodMemoryUsage has the same three fields in bytes. StudioSystem.getMemoryUsage, Bus.getMemoryUsage, and EventInstance.getMemoryUsage return it. Memory usage is native only (unsupported in HTML5), where FMOD does not report memory, so the call returns FMOD_ERR_UNSUPPORTED there and the getter null."
    ]
   },
   "2": {
@@ -1541,7 +1541,7 @@ const HAXEFMOD_EXAMPLES = {
    "code": "import haxefmod.studio.Types;\n\nvar description = StudioSystem.getEvent(\"event:/SFX/Coin\");\nfor (i in 0...description.getUserPropertyCount()) {\n    var property = description.getUserProperty(i);\n    if (property == null) continue;\n    switch (property.type) {\n        case INTEGER: trace('${property.name}: ${Std.int(property.floatValue)}');\n        case BOOLEAN: trace('${property.name}: ${property.floatValue != 0}');\n        case FLOAT: trace('${property.name}: ${property.floatValue}');\n        case STRING: trace('${property.name}: ${property.stringValue}');\n    }\n}",
    "heading": "FMOD_STUDIO_USER_PROPERTY_TYPE",
    "notes": [
-    "FmodUserPropertyType carries the same values. Numeric properties are readable on native targets only. FMOD's HTML5 runtime crashes on them, so the binding reports FMOD_ERR_UNSUPPORTED there."
+    "FmodUserPropertyType carries the same values. Numeric properties are native only (unsupported in HTML5), where FMOD's runtime crashes on them, so the call returns FMOD_ERR_UNSUPPORTED there."
    ]
   }
  },
@@ -1578,7 +1578,7 @@ const HAXEFMOD_EXAMPLES = {
    "code": "var instance = StudioSystem.getEvent(\"event:/Dialogue/Line\").createInstance();\nif (instance.assignProgrammerSound(\"welcome\").isOk()) {\n    instance.start();\n}",
    "heading": "FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES",
    "notes": [
-    "The create and destroy programmer sound callbacks are handled natively. Call EventInstance.assignProgrammerSound(key) before start(), and the native side creates the sound from the audio table entry or file path when the instrument triggers and releases it when the instrument ends. The call returns FMOD_ERR_UNSUPPORTED on HTML5 because of a defect in FMOD's JavaScript runtime."
+    "The create and destroy programmer sound callbacks are handled natively. Call EventInstance.assignProgrammerSound(key) before start(), and the native side creates the sound from the audio table entry or file path when the instrument triggers and releases it when the instrument ends. Programmer sounds are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED because of a defect in FMOD's JavaScript runtime."
    ]
   },
   "44": {
@@ -1652,7 +1652,7 @@ const HAXEFMOD_EXAMPLES = {
    "code": "var instance = StudioSystem.getEvent(\"event:/Dialogue/Line\").createInstance();\ninstance.assignProgrammerSound(\"welcome\");\ninstance.start();",
    "heading": "FMOD_STUDIO_SOUND_INFO",
    "notes": [
-    "Audio table lookups happen natively. Pass the key to EventInstance.assignProgrammerSound before start(), and the native side calls getSoundInfo and creates the sound when the programmer instrument triggers. The key can also be a file path. Unsupported on HTML5."
+    "Audio table lookups happen natively. Pass the key to EventInstance.assignProgrammerSound before start(), and the native side calls getSoundInfo and creates the sound when the programmer instrument triggers. The key can also be a file path. Programmer sounds are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED."
    ]
   },
   "13": {
@@ -1775,7 +1775,7 @@ const HAXEFMOD_EXAMPLES = {
    "code": null,
    "heading": "page default",
    "notes": [
-    "Plug-in DSP effects are not exposed. Haxe code cannot run on FMOD's mixer thread on any target and the web build has no plug-in host, so plug-in authoring and loading stay in C. All 33 built-in effect types are available through Dsp.create."
+    "Plug-in DSP authoring stays in C, because Haxe code cannot run on FMOD's mixer thread on any target. Loading a prebuilt plug-in binary is deferred until CI has one to test against, so Studio projects that use plug-in effects cannot load them from haxefmod yet, and the web build has no plug-in host (unsupported in HTML5). All 33 built-in effect types are available through Dsp.create."
    ]
   },
   "0": {

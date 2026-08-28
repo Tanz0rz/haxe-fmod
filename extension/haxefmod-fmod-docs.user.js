@@ -83,6 +83,34 @@ const HAXEFMOD_BINDINGS = {
    ],
    "html5": false
   },
+  "channel_get3dcustomrolloff": {
+   "fmod": "FMOD_Channel_Get3DCustomRolloff",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "The custom rolloff points (unsupported in HTML5, always empty there), empty when none are set or on failure (see StudioSystem.lastResult).",
+     "name": "get3DCustomRolloff",
+     "signature": "get3DCustomRolloff():Array<FmodVector>",
+     "static": false,
+     "type": "haxefmod.core.Channel"
+    }
+   ],
+   "html5": true
+  },
+  "channel_get3ddistancefilter": {
+   "fmod": "FMOD_Channel_Get3DDistanceFilter",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "",
+     "name": "get3DDistanceFilter",
+     "signature": "get3DDistanceFilter():Null<{custom:Bool, customLevel:Float, centerFreq:Float}>",
+     "static": false,
+     "type": "haxefmod.core.Channel"
+    }
+   ],
+   "html5": false
+  },
   "channel_get3ddopplerlevel": {
    "fmod": "FMOD_Channel_Get3DDopplerLevel",
    "haxe": [
@@ -534,6 +562,34 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Directional sound: full volume inside the cone, outsideVolume behind it.",
      "name": "set3DConeSettings",
      "signature": "set3DConeSettings(insideAngle:Float, outsideAngle:Float, outsideVolume:Float):FmodResult",
+     "static": false,
+     "type": "haxefmod.core.Channel"
+    }
+   ],
+   "html5": false
+  },
+  "channel_set3dcustomrolloff": {
+   "fmod": "FMOD_Channel_Set3DCustomRolloff",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Replaces the distance rolloff curve with the given points.",
+     "name": "set3DCustomRolloff",
+     "signature": "set3DCustomRolloff(points:Array<FmodVector>):FmodResult",
+     "static": false,
+     "type": "haxefmod.core.Channel"
+    }
+   ],
+   "html5": true
+  },
+  "channel_set3ddistancefilter": {
+   "fmod": "FMOD_Channel_Set3DDistanceFilter",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Overrides the distance lowpass on this 3D channel.",
+     "name": "set3DDistanceFilter",
+     "signature": "set3DDistanceFilter(custom:Bool, customLevel:Float, centerFreq:Float):FmodResult",
      "static": false,
      "type": "haxefmod.core.Channel"
     }
@@ -1069,22 +1125,48 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "channelcontrol_get3dcustomrolloff": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "ChannelControl::get3DCustomRolloff",
-   "html5": false,
-   "notes": [
-    "Not exposed. Custom 3D rolloff curves are left out because FMOD needs the point array to stay allocated for the object's lifetime, which a marshaled copy cannot guarantee. The built-in rolloff modes are selected through setMode on the channel or group."
-   ]
+   "fmod": "FMOD_ChannelGroup_Get3DCustomRolloff, FMOD_Channel_Get3DCustomRolloff",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "The custom rolloff points (unsupported in HTML5, always empty there), empty when none are set or on failure (see StudioSystem.lastResult).",
+     "name": "get3DCustomRolloff",
+     "signature": "get3DCustomRolloff():Array<FmodVector>",
+     "static": false,
+     "type": "haxefmod.core.ChannelGroup"
+    },
+    {
+     "direct": true,
+     "doc": "The custom rolloff points (unsupported in HTML5, always empty there), empty when none are set or on failure (see StudioSystem.lastResult).",
+     "name": "get3DCustomRolloff",
+     "signature": "get3DCustomRolloff():Array<FmodVector>",
+     "static": false,
+     "type": "haxefmod.core.Channel"
+    }
+   ],
+   "html5": true
   },
   "channelcontrol_get3ddistancefilter": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "ChannelControl::get3DDistanceFilter",
-   "html5": false,
-   "notes": [
-    "Not exposed. The distance filter is left out with the other 3D curve overrides. Channel.getLowPassGain reads the filter gain you applied directly."
-   ]
+   "fmod": "FMOD_ChannelGroup_Get3DDistanceFilter, FMOD_Channel_Get3DDistanceFilter",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "",
+     "name": "get3DDistanceFilter",
+     "signature": "get3DDistanceFilter():Null<{custom:Bool, customLevel:Float, centerFreq:Float}>",
+     "static": false,
+     "type": "haxefmod.core.ChannelGroup"
+    },
+    {
+     "direct": true,
+     "doc": "",
+     "name": "get3DDistanceFilter",
+     "signature": "get3DDistanceFilter():Null<{custom:Bool, customLevel:Float, centerFreq:Float}>",
+     "static": false,
+     "type": "haxefmod.core.Channel"
+    }
+   ],
+   "html5": false
   },
   "channelcontrol_get3ddopplerlevel": {
    "fmod": "FMOD_ChannelGroup_Get3DDopplerLevel, FMOD_Channel_Get3DDopplerLevel",
@@ -1831,22 +1913,48 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "channelcontrol_set3dcustomrolloff": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "ChannelControl::set3DCustomRolloff",
-   "html5": false,
-   "notes": [
-    "Not exposed. Custom 3D rolloff curves are left out because FMOD needs the point array to stay allocated for the object's lifetime, which a marshaled copy cannot guarantee. The built-in rolloff modes are selected through setMode on the channel or group."
-   ]
+   "fmod": "FMOD_ChannelGroup_Set3DCustomRolloff, FMOD_Channel_Set3DCustomRolloff",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Replaces the distance rolloff curve with the given points.",
+     "name": "set3DCustomRolloff",
+     "signature": "set3DCustomRolloff(points:Array<FmodVector>):FmodResult",
+     "static": false,
+     "type": "haxefmod.core.ChannelGroup"
+    },
+    {
+     "direct": true,
+     "doc": "Replaces the distance rolloff curve with the given points.",
+     "name": "set3DCustomRolloff",
+     "signature": "set3DCustomRolloff(points:Array<FmodVector>):FmodResult",
+     "static": false,
+     "type": "haxefmod.core.Channel"
+    }
+   ],
+   "html5": true
   },
   "channelcontrol_set3ddistancefilter": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "ChannelControl::set3DDistanceFilter",
-   "html5": false,
-   "notes": [
-    "Not exposed. The distance filter is left out with the other 3D curve overrides. Channel.setLowPassGain and ChannelGroup.setLowPassGain apply a filter directly, and Studio events can author distance-driven filters."
-   ]
+   "fmod": "FMOD_ChannelGroup_Set3DDistanceFilter, FMOD_Channel_Set3DDistanceFilter",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Overrides the distance lowpass on this group's 3D channels.",
+     "name": "set3DDistanceFilter",
+     "signature": "set3DDistanceFilter(custom:Bool, customLevel:Float, centerFreq:Float):FmodResult",
+     "static": false,
+     "type": "haxefmod.core.ChannelGroup"
+    },
+    {
+     "direct": true,
+     "doc": "Overrides the distance lowpass on this 3D channel.",
+     "name": "set3DDistanceFilter",
+     "signature": "set3DDistanceFilter(custom:Bool, customLevel:Float, centerFreq:Float):FmodResult",
+     "static": false,
+     "type": "haxefmod.core.Channel"
+    }
+   ],
+   "html5": false
   },
   "channelcontrol_set3ddopplerlevel": {
    "fmod": "FMOD_ChannelGroup_Set3DDopplerLevel, FMOD_Channel_Set3DDopplerLevel",
@@ -2507,6 +2615,34 @@ const HAXEFMOD_BINDINGS = {
    ],
    "html5": false
   },
+  "channelgroup_get3dcustomrolloff": {
+   "fmod": "FMOD_ChannelGroup_Get3DCustomRolloff",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "The custom rolloff points (unsupported in HTML5, always empty there), empty when none are set or on failure (see StudioSystem.lastResult).",
+     "name": "get3DCustomRolloff",
+     "signature": "get3DCustomRolloff():Array<FmodVector>",
+     "static": false,
+     "type": "haxefmod.core.ChannelGroup"
+    }
+   ],
+   "html5": true
+  },
+  "channelgroup_get3ddistancefilter": {
+   "fmod": "FMOD_ChannelGroup_Get3DDistanceFilter",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "",
+     "name": "get3DDistanceFilter",
+     "signature": "get3DDistanceFilter():Null<{custom:Bool, customLevel:Float, centerFreq:Float}>",
+     "static": false,
+     "type": "haxefmod.core.ChannelGroup"
+    }
+   ],
+   "html5": false
+  },
   "channelgroup_get3ddopplerlevel": {
    "fmod": "FMOD_ChannelGroup_Get3DDopplerLevel",
    "haxe": [
@@ -2859,6 +2995,34 @@ const HAXEFMOD_BINDINGS = {
      "doc": "",
      "name": "set3DConeSettings",
      "signature": "set3DConeSettings(insideAngle:Float, outsideAngle:Float, outsideVolume:Float):FmodResult",
+     "static": false,
+     "type": "haxefmod.core.ChannelGroup"
+    }
+   ],
+   "html5": false
+  },
+  "channelgroup_set3dcustomrolloff": {
+   "fmod": "FMOD_ChannelGroup_Set3DCustomRolloff",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Replaces the distance rolloff curve with the given points.",
+     "name": "set3DCustomRolloff",
+     "signature": "set3DCustomRolloff(points:Array<FmodVector>):FmodResult",
+     "static": false,
+     "type": "haxefmod.core.ChannelGroup"
+    }
+   ],
+   "html5": true
+  },
+  "channelgroup_set3ddistancefilter": {
+   "fmod": "FMOD_ChannelGroup_Set3DDistanceFilter",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Overrides the distance lowpass on this group's 3D channels.",
+     "name": "set3DDistanceFilter",
+     "signature": "set3DDistanceFilter(custom:Bool, customLevel:Float, centerFreq:Float):FmodResult",
      "static": false,
      "type": "haxefmod.core.ChannelGroup"
     }
@@ -3903,94 +4067,144 @@ const HAXEFMOD_BINDINGS = {
    ]
   },
   "geometry_addpolygon": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "Geometry::addPolygon",
-   "html5": false,
-   "notes": [
-    "Not exposed. Geometry-based occlusion is left out because the web build reports it unsupported. Drive an event parameter from a game-side raycast instead, or set manual occlusion with Channel.set3DOcclusion and ChannelGroup.set3DOcclusion."
-   ]
+   "fmod": "FMOD_Geometry_AddPolygon",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Adds a convex polygon from at least three vertices in object space and returns its index, -1 on failure (unsupported in HTML5, -1 there).",
+     "name": "addPolygon",
+     "signature": "addPolygon(direct:Float, reverb:Float, doubleSided:Bool, vertices:Array<FmodVector>):Int",
+     "static": false,
+     "type": "haxefmod.core.Geometry"
+    }
+   ],
+   "html5": false
   },
   "geometry_getactive": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "Geometry::getActive",
-   "html5": false,
-   "notes": [
-    "Not exposed. Geometry-based occlusion is left out because the web build reports it unsupported. Drive an event parameter from a game-side raycast instead, or set manual occlusion with Channel.set3DOcclusion and ChannelGroup.set3DOcclusion."
-   ]
+   "fmod": "FMOD_Geometry_GetActive",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Whether the geometry occludes, false on failure (unsupported in HTML5, false there).",
+     "name": "getActive",
+     "signature": "getActive():Bool",
+     "static": false,
+     "type": "haxefmod.core.Geometry"
+    }
+   ],
+   "html5": false
   },
   "geometry_getmaxpolygons": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "Geometry::getMaxPolygons",
-   "html5": false,
-   "notes": [
-    "Not exposed. Geometry-based occlusion is left out because the web build reports it unsupported. Drive an event parameter from a game-side raycast instead, or set manual occlusion with Channel.set3DOcclusion and ChannelGroup.set3DOcclusion."
-   ]
+   "fmod": "FMOD_Geometry_GetMaxPolygons",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "The capacities given at creation, null on failure (unsupported in HTML5, null there).",
+     "name": "getMaxPolygons",
+     "signature": "getMaxPolygons():Null<{polygons:Int, vertices:Int}>",
+     "static": false,
+     "type": "haxefmod.core.Geometry"
+    }
+   ],
+   "html5": true
   },
   "geometry_getnumpolygons": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "Geometry::getNumPolygons",
-   "html5": false,
-   "notes": [
-    "Not exposed. Geometry-based occlusion is left out because the web build reports it unsupported. Drive an event parameter from a game-side raycast instead, or set manual occlusion with Channel.set3DOcclusion and ChannelGroup.set3DOcclusion."
-   ]
+   "fmod": "FMOD_Geometry_GetNumPolygons",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Polygons added so far, -1 on failure (unsupported in HTML5, -1 there).",
+     "name": "getNumPolygons",
+     "signature": "getNumPolygons():Int",
+     "static": false,
+     "type": "haxefmod.core.Geometry"
+    }
+   ],
+   "html5": false
   },
   "geometry_getpolygonattributes": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "Geometry::getPolygonAttributes",
-   "html5": false,
-   "notes": [
-    "Not exposed. Geometry-based occlusion is left out because the web build reports it unsupported. Drive an event parameter from a game-side raycast instead, or set manual occlusion with Channel.set3DOcclusion and ChannelGroup.set3DOcclusion."
-   ]
+   "fmod": "FMOD_Geometry_GetPolygonAttributes",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "A polygon's occlusion amounts and sidedness, null on failure (unsupported in HTML5, null there).",
+     "name": "getPolygonAttributes",
+     "signature": "getPolygonAttributes(index:Int):Null<{direct:Float, reverb:Float, doubleSided:Bool}>",
+     "static": false,
+     "type": "haxefmod.core.Geometry"
+    }
+   ],
+   "html5": true
   },
   "geometry_getpolygonnumvertices": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "Geometry::getPolygonNumVertices",
-   "html5": false,
-   "notes": [
-    "Not exposed. Geometry-based occlusion is left out because the web build reports it unsupported. Drive an event parameter from a game-side raycast instead, or set manual occlusion with Channel.set3DOcclusion and ChannelGroup.set3DOcclusion."
-   ]
+   "fmod": "FMOD_Geometry_GetPolygonNumVertices",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Vertex count of one polygon, -1 on failure (unsupported in HTML5, -1 there).",
+     "name": "getPolygonNumVertices",
+     "signature": "getPolygonNumVertices(index:Int):Int",
+     "static": false,
+     "type": "haxefmod.core.Geometry"
+    }
+   ],
+   "html5": false
   },
   "geometry_getpolygonvertex": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "Geometry::getPolygonVertex",
-   "html5": false,
-   "notes": [
-    "Not exposed. Geometry-based occlusion is left out because the web build reports it unsupported. Drive an event parameter from a game-side raycast instead, or set manual occlusion with Channel.set3DOcclusion and ChannelGroup.set3DOcclusion."
-   ]
+   "fmod": "FMOD_Geometry_GetPolygonVertex",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "One vertex of a polygon, null on failure (unsupported in HTML5, null there).",
+     "name": "getPolygonVertex",
+     "signature": "getPolygonVertex(index:Int, vertexIndex:Int):Null<FmodVector>",
+     "static": false,
+     "type": "haxefmod.core.Geometry"
+    }
+   ],
+   "html5": true
   },
   "geometry_getposition": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "Geometry::getPosition",
-   "html5": false,
-   "notes": [
-    "Not exposed. Geometry-based occlusion is left out because the web build reports it unsupported. Drive an event parameter from a game-side raycast instead, or set manual occlusion with Channel.set3DOcclusion and ChannelGroup.set3DOcclusion."
-   ]
+   "fmod": "FMOD_Geometry_GetPosition",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "The world position, null on failure (unsupported in HTML5, null there).",
+     "name": "getPosition",
+     "signature": "getPosition():Null<FmodVector>",
+     "static": false,
+     "type": "haxefmod.core.Geometry"
+    }
+   ],
+   "html5": true
   },
   "geometry_getrotation": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "Geometry::getRotation",
-   "html5": false,
-   "notes": [
-    "Not exposed. Geometry-based occlusion is left out because the web build reports it unsupported. Drive an event parameter from a game-side raycast instead, or set manual occlusion with Channel.set3DOcclusion and ChannelGroup.set3DOcclusion."
-   ]
+   "fmod": "FMOD_Geometry_GetRotation",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "The forward and up vectors, null on failure (unsupported in HTML5, null there).",
+     "name": "getRotation",
+     "signature": "getRotation():Null<{forward:FmodVector, up:FmodVector}>",
+     "static": false,
+     "type": "haxefmod.core.Geometry"
+    }
+   ],
+   "html5": true
   },
   "geometry_getscale": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "Geometry::getScale",
-   "html5": false,
-   "notes": [
-    "Not exposed. Geometry-based occlusion is left out because the web build reports it unsupported. Drive an event parameter from a game-side raycast instead, or set manual occlusion with Channel.set3DOcclusion and ChannelGroup.set3DOcclusion."
-   ]
+   "fmod": "FMOD_Geometry_GetScale",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "The per-axis scale, null on failure (unsupported in HTML5, null there).",
+     "name": "getScale",
+     "signature": "getScale():Null<FmodVector>",
+     "static": false,
+     "type": "haxefmod.core.Geometry"
+    }
+   ],
+   "html5": true
   },
   "geometry_getuserdata": {
    "fmod": "",
@@ -4002,76 +4216,132 @@ const HAXEFMOD_BINDINGS = {
    ]
   },
   "geometry_release": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "Geometry::release",
-   "html5": false,
-   "notes": [
-    "Not exposed. Geometry-based occlusion is left out because the web build reports it unsupported. Drive an event parameter from a game-side raycast instead, or set manual occlusion with Channel.set3DOcclusion and ChannelGroup.set3DOcclusion."
-   ]
+   "fmod": "FMOD_Geometry_Release",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Frees the geometry and invalidates this handle (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED).",
+     "name": "release",
+     "signature": "release():FmodResult",
+     "static": false,
+     "type": "haxefmod.core.Geometry"
+    },
+    {
+     "direct": false,
+     "doc": "Creates an empty geometry with room for the given polygon and vertex counts (unsupported in HTML5).",
+     "name": "create",
+     "signature": "create(maxPolygons:Int, maxVertices:Int):Geometry",
+     "static": true,
+     "type": "haxefmod.core.Geometry"
+    },
+    {
+     "direct": false,
+     "doc": "Rebuilds a geometry from the bytes save() produced (unsupported in HTML5).",
+     "name": "load",
+     "signature": "load(data:haxe.io.Bytes):Geometry",
+     "static": true,
+     "type": "haxefmod.core.Geometry"
+    }
+   ],
+   "html5": true
   },
   "geometry_save": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "Geometry::save",
-   "html5": false,
-   "notes": [
-    "Not exposed. Geometry-based occlusion is left out because the web build reports it unsupported. Drive an event parameter from a game-side raycast instead, or set manual occlusion with Channel.set3DOcclusion and ChannelGroup.set3DOcclusion."
-   ]
+   "fmod": "FMOD_Geometry_Save",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Serializes the geometry for Geometry.load, null on failure (unsupported in HTML5, null there).",
+     "name": "save",
+     "signature": "save():Null<haxe.io.Bytes>",
+     "static": false,
+     "type": "haxefmod.core.Geometry"
+    }
+   ],
+   "html5": false
   },
   "geometry_setactive": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "Geometry::setActive",
-   "html5": false,
-   "notes": [
-    "Not exposed. Geometry-based occlusion is left out because the web build reports it unsupported. Drive an event parameter from a game-side raycast instead, or set manual occlusion with Channel.set3DOcclusion and ChannelGroup.set3DOcclusion."
-   ]
+   "fmod": "FMOD_Geometry_SetActive",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Turns the whole geometry's occlusion on or off (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED).",
+     "name": "setActive",
+     "signature": "setActive(active:Bool):FmodResult",
+     "static": false,
+     "type": "haxefmod.core.Geometry"
+    }
+   ],
+   "html5": true
   },
   "geometry_setpolygonattributes": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "Geometry::setPolygonAttributes",
-   "html5": false,
-   "notes": [
-    "Not exposed. Geometry-based occlusion is left out because the web build reports it unsupported. Drive an event parameter from a game-side raycast instead, or set manual occlusion with Channel.set3DOcclusion and ChannelGroup.set3DOcclusion."
-   ]
+   "fmod": "FMOD_Geometry_SetPolygonAttributes",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Changes a polygon's occlusion amounts and sidedness (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED).",
+     "name": "setPolygonAttributes",
+     "signature": "setPolygonAttributes(index:Int, direct:Float, reverb:Float, doubleSided:Bool):FmodResult",
+     "static": false,
+     "type": "haxefmod.core.Geometry"
+    }
+   ],
+   "html5": true
   },
   "geometry_setpolygonvertex": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "Geometry::setPolygonVertex",
-   "html5": false,
-   "notes": [
-    "Not exposed. Geometry-based occlusion is left out because the web build reports it unsupported. Drive an event parameter from a game-side raycast instead, or set manual occlusion with Channel.set3DOcclusion and ChannelGroup.set3DOcclusion."
-   ]
+   "fmod": "FMOD_Geometry_SetPolygonVertex",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Moves one vertex of a polygon (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED).",
+     "name": "setPolygonVertex",
+     "signature": "setPolygonVertex(index:Int, vertexIndex:Int, vertex:FmodVector):FmodResult",
+     "static": false,
+     "type": "haxefmod.core.Geometry"
+    }
+   ],
+   "html5": true
   },
   "geometry_setposition": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "Geometry::setPosition",
-   "html5": false,
-   "notes": [
-    "Not exposed. Geometry-based occlusion is left out because the web build reports it unsupported. Drive an event parameter from a game-side raycast instead, or set manual occlusion with Channel.set3DOcclusion and ChannelGroup.set3DOcclusion."
-   ]
+   "fmod": "FMOD_Geometry_SetPosition",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Places the geometry in world space (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED).",
+     "name": "setPosition",
+     "signature": "setPosition(position:FmodVector):FmodResult",
+     "static": false,
+     "type": "haxefmod.core.Geometry"
+    }
+   ],
+   "html5": true
   },
   "geometry_setrotation": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "Geometry::setRotation",
-   "html5": false,
-   "notes": [
-    "Not exposed. Geometry-based occlusion is left out because the web build reports it unsupported. Drive an event parameter from a game-side raycast instead, or set manual occlusion with Channel.set3DOcclusion and ChannelGroup.set3DOcclusion."
-   ]
+   "fmod": "FMOD_Geometry_SetRotation",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Orients the geometry with forward and up unit vectors (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED).",
+     "name": "setRotation",
+     "signature": "setRotation(forward:FmodVector, up:FmodVector):FmodResult",
+     "static": false,
+     "type": "haxefmod.core.Geometry"
+    }
+   ],
+   "html5": true
   },
   "geometry_setscale": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "Geometry::setScale",
-   "html5": false,
-   "notes": [
-    "Not exposed. Geometry-based occlusion is left out because the web build reports it unsupported. Drive an event parameter from a game-side raycast instead, or set manual occlusion with Channel.set3DOcclusion and ChannelGroup.set3DOcclusion."
-   ]
+   "fmod": "FMOD_Geometry_SetScale",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Scales the geometry per axis (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED).",
+     "name": "setScale",
+     "signature": "setScale(scale:FmodVector):FmodResult",
+     "static": false,
+     "type": "haxefmod.core.Geometry"
+    }
+   ],
+   "html5": true
   },
   "geometry_setuserdata": {
    "fmod": "",
@@ -4298,13 +4568,18 @@ const HAXEFMOD_BINDINGS = {
    ]
   },
   "sound_get3dcustomrolloff": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "Sound::get3DCustomRolloff",
-   "html5": false,
-   "notes": [
-    "Not exposed. Custom 3D rolloff curves are left out because FMOD needs the point array to stay allocated for the object's lifetime, which a marshaled copy cannot guarantee. The built-in rolloff modes are selected through setMode on the channel or group."
-   ]
+   "fmod": "FMOD_Sound_Get3DCustomRolloff",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "The custom rolloff points (unsupported in HTML5, always empty there), empty when none are set or on failure (see StudioSystem.lastResult).",
+     "name": "get3DCustomRolloff",
+     "signature": "get3DCustomRolloff():Array<FmodVector>",
+     "static": false,
+     "type": "haxefmod.studio.CoreSound"
+    }
+   ],
+   "html5": true
   },
   "sound_get3dminmaxdistance": {
    "fmod": "",
@@ -4599,22 +4874,28 @@ const HAXEFMOD_BINDINGS = {
    ]
   },
   "sound_lock": {
+   "code": "import haxefmod.studio.CoreSound;\n\nvar sound = CoreSound.create(\"assets/sfx/engine.wav\", false, true);\nvar buffer = haxe.io.Bytes.alloc(4096);\nvar read = sound.readData(buffer);\nwhile (read > 0) {\n    // the first read bytes of buffer hold decoded PCM\n    read = sound.readData(buffer);\n}\nsound.release();",
    "fmod": "",
    "haxe": [],
    "heading": "Sound::lock",
    "html5": false,
    "notes": [
-    "Not exposed. Sample readback is unsupported on the web build, so lock, unlock, readData, and seekData are left out. Games that need waveform data keep their own copy of the PCM they feed through PcmStream or CoreSound.fromPcm."
+    "Not exposed. lock and unlock hand out raw pointers into the sample buffer, which Haxe code never holds. CoreSound.readData reads decoded PCM out of a sound opened with the openOnly flag of CoreSound.create, and seekData moves the read cursor. Both are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED."
    ]
   },
   "sound_readdata": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "Sound::readData",
-   "html5": false,
-   "notes": [
-    "Not exposed. Sample readback is unsupported on the web build, so lock, unlock, readData, and seekData are left out. Games that need waveform data keep their own copy of the PCM they feed through PcmStream or CoreSound.fromPcm."
-   ]
+   "fmod": "FMOD_Sound_ReadData",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Reads decoded PCM from a sound created with openOnly into buffer (unsupported in HTML5).",
+     "name": "readData",
+     "signature": "readData(buffer:haxe.io.Bytes, length:Int = -1):Int",
+     "static": false,
+     "type": "haxefmod.studio.CoreSound"
+    }
+   ],
+   "html5": true
   },
   "sound_release": {
    "fmod": "FMOD_Sound_Release",
@@ -4655,7 +4936,15 @@ const HAXEFMOD_BINDINGS = {
      "direct": false,
      "doc": "Loads a sound file.",
      "name": "create",
-     "signature": "create(path:String, loop:Bool = false):CoreSound",
+     "signature": "create(path:String, loop:Bool = false, openOnly:Bool = false):CoreSound",
+     "static": true,
+     "type": "haxefmod.studio.CoreSound"
+    },
+    {
+     "direct": false,
+     "doc": "An empty PCM16 sound of the given length for StudioSystem.recordStart to fill (unsupported in HTML5).",
+     "name": "createRecordBuffer",
+     "signature": "createRecordBuffer(sampleRate:Int, channels:Int, seconds:Int):CoreSound",
      "static": true,
      "type": "haxefmod.studio.CoreSound"
     },
@@ -4671,13 +4960,18 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "sound_seekdata": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "Sound::seekData",
-   "html5": false,
-   "notes": [
-    "Not exposed. Sample readback is unsupported on the web build, so lock, unlock, readData, and seekData are left out. Games that need waveform data keep their own copy of the PCM they feed through PcmStream or CoreSound.fromPcm."
-   ]
+   "fmod": "FMOD_Sound_SeekData",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Moves the readData cursor to a PCM sample offset (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED).",
+     "name": "seekData",
+     "signature": "seekData(pcm:Int):FmodResult",
+     "static": false,
+     "type": "haxefmod.studio.CoreSound"
+    }
+   ],
+   "html5": true
   },
   "sound_set3dconesettings": {
    "fmod": "",
@@ -4689,13 +4983,18 @@ const HAXEFMOD_BINDINGS = {
    ]
   },
   "sound_set3dcustomrolloff": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "Sound::set3DCustomRolloff",
-   "html5": false,
-   "notes": [
-    "Not exposed. Custom 3D rolloff curves are left out because FMOD needs the point array to stay allocated for the object's lifetime, which a marshaled copy cannot guarantee. The built-in rolloff modes are selected through setMode on the channel or group."
-   ]
+   "fmod": "FMOD_Sound_Set3DCustomRolloff",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Replaces the distance rolloff curve with the given points.",
+     "name": "set3DCustomRolloff",
+     "signature": "set3DCustomRolloff(points:Array<FmodVector>):FmodResult",
+     "static": false,
+     "type": "haxefmod.studio.CoreSound"
+    }
+   ],
+   "html5": true
   },
   "sound_set3dminmaxdistance": {
    "fmod": "",
@@ -4809,12 +5108,13 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "sound_unlock": {
+   "code": "import haxefmod.studio.CoreSound;\n\nvar sound = CoreSound.create(\"assets/sfx/engine.wav\", false, true);\nvar buffer = haxe.io.Bytes.alloc(4096);\nvar read = sound.readData(buffer);\nwhile (read > 0) {\n    // the first read bytes of buffer hold decoded PCM\n    read = sound.readData(buffer);\n}\nsound.release();",
    "fmod": "",
    "haxe": [],
    "heading": "Sound::unlock",
    "html5": false,
    "notes": [
-    "Not exposed. Sample readback is unsupported on the web build, so lock, unlock, readData, and seekData are left out. Games that need waveform data keep their own copy of the PCM they feed through PcmStream or CoreSound.fromPcm."
+    "Not exposed. lock and unlock hand out raw pointers into the sample buffer, which Haxe code never holds. CoreSound.readData reads decoded PCM out of a sound opened with the openOnly flag of CoreSound.create, and seekData moves the read cursor. Both are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED."
    ]
   },
   "soundgroup_getmaxaudible": {
@@ -5133,6 +5433,22 @@ const HAXEFMOD_BINDINGS = {
      "signature": "getPath():String",
      "static": false,
      "type": "haxefmod.studio.Bank"
+    },
+    {
+     "direct": false,
+     "doc": "Unloads the bank and invalidates this handle (and every event description/instance handle that came from it).",
+     "name": "unload",
+     "signature": "unload():FmodResult",
+     "static": false,
+     "type": "haxefmod.studio.Bank"
+    },
+    {
+     "direct": true,
+     "doc": "Unloads all banks.",
+     "name": "unloadAll",
+     "signature": "unloadAll():FmodResult",
+     "static": true,
+     "type": "haxefmod.studio.StudioSystem"
     }
    ],
    "html5": false
@@ -5336,7 +5652,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Memory usage of this bus, or null on failure.",
+     "doc": "Memory usage of this bus, or null on failure (unsupported in HTML5, null there).",
      "name": "getMemoryUsage",
      "signature": "getMemoryUsage():Null<FmodMemoryUsage>",
      "static": false,
@@ -6000,7 +6316,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "Studio::EventDescription::getUserProperty",
    "html5": false,
    "notes": [
-    "haxefmod covers this with EventDescription.getUserPropertyByName(). On HTML5 only string typed properties are readable, numeric ones report FMOD_ERR_UNSUPPORTED because of a defect in FMOD's JS runtime."
+    "haxefmod covers this with EventDescription.getUserPropertyByName(). Numeric typed properties are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED because of a defect in FMOD's JS runtime, and string typed properties read on every target."
    ]
   },
   "studio_eventdescription_getuserpropertybyindex": {
@@ -6222,7 +6538,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "CPU usage of this instance, or null on failure (unsupported on html5).",
+     "doc": "CPU usage of this instance, or null on failure.",
      "name": "getCpuUsage",
      "signature": "getCpuUsage():Null<FmodCpuUsage>",
      "static": false,
@@ -6264,7 +6580,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Memory usage of this instance, or null on failure (unsupported on html5).",
+     "doc": "Memory usage of this instance, or null on failure (unsupported in HTML5, null there).",
      "name": "getMemoryUsage",
      "signature": "getMemoryUsage():Null<FmodMemoryUsage>",
      "static": false,
@@ -6446,7 +6762,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "Assigns the audio-table key (or file path fallback) this instance's programmer instrument should play.",
+     "doc": "Assigns the audio-table key (or file path fallback) this instance's programmer instrument should play (unsupported in HTML5).",
      "name": "assignProgrammerSound",
      "signature": "assignProgrammerSound(key:String):FmodResult",
      "static": false,
@@ -6454,7 +6770,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "Removes the programmer-sound assignment.",
+     "doc": "Removes the programmer-sound assignment (unsupported in HTML5, where nothing can be assigned).",
      "name": "clearProgrammerSound",
      "signature": "clearProgrammerSound():FmodResult",
      "static": false,
@@ -6616,7 +6932,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "Assigns the audio-table key (or file path fallback) this instance's programmer instrument should play.",
+     "doc": "Assigns the audio-table key (or file path fallback) this instance's programmer instrument should play (unsupported in HTML5).",
      "name": "assignProgrammerSound",
      "signature": "assignProgrammerSound(key:String):FmodResult",
      "static": false,
@@ -6624,7 +6940,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "Removes the programmer-sound assignment.",
+     "doc": "Removes the programmer-sound assignment (unsupported in HTML5, where nothing can be assigned).",
      "name": "clearProgrammerSound",
      "signature": "clearProgrammerSound():FmodResult",
      "static": false,
@@ -7000,6 +7316,14 @@ const HAXEFMOD_BINDINGS = {
      "signature": "getBankList():Array<Bank>",
      "static": true,
      "type": "haxefmod.studio.StudioSystem"
+    },
+    {
+     "direct": true,
+     "doc": "Unloads all banks.",
+     "name": "unloadAll",
+     "signature": "unloadAll():FmodResult",
+     "static": true,
+     "type": "haxefmod.studio.StudioSystem"
     }
    ],
    "html5": false
@@ -7215,7 +7539,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "System-wide memory usage, or null on failure (unsupported on html5).",
+     "doc": "System-wide memory usage, or null on failure (unsupported in HTML5, null there).",
      "name": "getMemoryUsage",
      "signature": "getMemoryUsage():Null<FmodMemoryUsage>",
      "static": true,
@@ -7364,7 +7688,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "Studio::System::getSoundInfo",
    "html5": false,
    "notes": [
-    "Not exposed. Audio table lookup is left out because the programmer sound flow hands the key to FMOD instead. EventInstance.assignProgrammerSound(key) names the audio table entry or file to play, and the binding resolves it. Unsupported on HTML5, where assignProgrammerSound returns FMOD_ERR_UNSUPPORTED."
+    "Not exposed. Audio table lookup is left out because the programmer sound flow hands the key to FMOD instead. EventInstance.assignProgrammerSound(key) names the audio table entry or file to play, and the binding resolves it. Programmer sounds are native only (unsupported in HTML5), where assignProgrammerSound returns FMOD_ERR_UNSUPPORTED."
    ]
   },
   "studio_system_getuserdata": {
@@ -7521,7 +7845,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "Studio::System::registerPlugin",
    "html5": false,
    "notes": [
-    "Not exposed. Third-party plugins and custom codecs, DSPs, and outputs run code on FMOD threads, which no Haxe target can do, and the web build has no plugin host at all. The 33 built-in DSP types are bound through Dsp.create."
+    "Not bound yet. Loading a prebuilt plugin binary runs the plugin's own code on FMOD's threads with no Haxe involved, so nothing rules it out, it is deferred until CI has a plugin binary to test against. Until then a Studio project that uses plugin effects cannot load them from haxefmod. The 33 built-in DSP types are bound through Dsp.create. HTML5 has no plugin host (unsupported in HTML5), so the call will return FMOD_ERR_UNSUPPORTED there once it lands."
    ]
   },
   "studio_system_release": {
@@ -7570,12 +7894,55 @@ const HAXEFMOD_BINDINGS = {
    ]
   },
   "studio_system_setcallback": {
-   "fmod": "",
-   "haxe": [],
+   "code": "StudioSystem.setSystemCallback(event -> switch (event) {\n    case DeviceListChanged: trace(\"devices changed\");\n    default:\n});",
+   "fmod": "FMOD_Studio_System_SetCallback",
+   "haxe": [
+    {
+     "direct": false,
+     "doc": "Removes the system callback handler and both native callbacks.",
+     "name": "clearSystemCallback",
+     "signature": "clearSystemCallback():Void",
+     "static": true,
+     "type": "haxefmod.studio.StudioSystem"
+    },
+    {
+     "direct": false,
+     "doc": "Installs a handler for system events (device changes from the core system, bank unloads and Live Update connections from Studio).",
+     "name": "setSystemCallback",
+     "signature": "setSystemCallback(handler:SystemEvent->Void, ?coreMask:Int, ?studioMask:Int):Void",
+     "static": true,
+     "type": "haxefmod.studio.StudioSystem"
+    },
+    {
+     "direct": false,
+     "doc": "Removes the handler and both native callbacks.",
+     "name": "clear",
+     "signature": "clear():Void",
+     "static": true,
+     "type": "haxefmod.studio.SystemCallbacks"
+    },
+    {
+     "direct": false,
+     "doc": "Installs the handler and tells FMOD which events to raise.",
+     "name": "set",
+     "signature": "set(handler:SystemEvent->Void, ?coreMask:Int, ?studioMask:Int):Void",
+     "static": true,
+     "type": "haxefmod.studio.SystemCallbacks"
+    },
+    {
+     "direct": false,
+     "doc": "Removes every registered callback (song, sounds, and core channels).",
+     "name": "ClearAllCallbacks",
+     "signature": "ClearAllCallbacks():Void",
+     "static": true,
+     "type": "haxefmod.FmodManager"
+    }
+   ],
    "heading": "Studio::System::setCallback",
    "html5": false,
    "notes": [
-    "Not exposed. Studio system callbacks would run on FMOD threads, which no Haxe target can do safely. Bank loading is synchronous through StudioSystem.loadBankFile, and Bank.getLoadingState reports the state."
+    "StudioSystem.setSystemCallback takes one handler and delivers the events from FmodManager.Update() on the game thread: device list changed, device lost, bank unload with the bank's path, live update connected and disconnected, and pre and post update. Bank loading stays synchronous through StudioSystem.loadBankFile, and Bank.getLoadingState reports the state.",
+    "The handler is a function that takes the event and switches on it, so a game that only cares about device changes matches the device list changed case and leaves the default branch empty."
    ]
   },
   "studio_system_setlistenerattributes": {
@@ -7767,7 +8134,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "Studio::System::unregisterPlugin",
    "html5": false,
    "notes": [
-    "Not exposed. Third-party plugins and custom codecs, DSPs, and outputs run code on FMOD threads, which no Haxe target can do, and the web build has no plugin host at all. The 33 built-in DSP types are bound through Dsp.create."
+    "Not bound yet. Loading a prebuilt plugin binary runs the plugin's own code on FMOD's threads with no Haxe involved, so nothing rules it out, it is deferred until CI has a plugin binary to test against. Until then a Studio project that uses plugin effects cannot load them from haxefmod. The 33 built-in DSP types are bound through Dsp.create. HTML5 has no plugin host (unsupported in HTML5), so the call will return FMOD_ERR_UNSUPPORTED there once it lands."
    ]
   },
   "studio_system_update": {
@@ -7936,7 +8303,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "System::createDSP",
    "html5": false,
    "notes": [
-    "Not exposed. A DSP description carries callbacks that would run on FMOD's mixer thread, which no Haxe target can do. All 33 built-in DSP types are created with Dsp.create(type)."
+    "Not exposed. A DSP description carries callbacks that would run on FMOD's mixer thread, which no Haxe target can do, so creating a unit from a description stays out for good. All 33 built-in DSP types are created with Dsp.create(type)."
    ]
   },
   "system_createdspbyplugin": {
@@ -7945,7 +8312,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "System::createDSPByPlugin",
    "html5": false,
    "notes": [
-    "Not exposed. Third-party plugins and custom codecs, DSPs, and outputs run code on FMOD threads, which no Haxe target can do, and the web build has no plugin host at all. The 33 built-in DSP types are bound through Dsp.create."
+    "Not bound yet. Loading a prebuilt plugin binary runs the plugin's own code on FMOD's threads with no Haxe involved, so nothing rules it out, it is deferred until CI has a plugin binary to test against. Until then a Studio project that uses plugin effects cannot load them from haxefmod. The 33 built-in DSP types are bound through Dsp.create. HTML5 has no plugin host (unsupported in HTML5), so the call will return FMOD_ERR_UNSUPPORTED there once it lands."
    ]
   },
   "system_createdspbytype": {
@@ -7973,13 +8340,18 @@ const HAXEFMOD_BINDINGS = {
    ]
   },
   "system_creategeometry": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "System::createGeometry",
-   "html5": false,
-   "notes": [
-    "Not exposed. Geometry-based occlusion is left out because the web build reports it unsupported. Drive an event parameter from a game-side raycast instead, or set manual occlusion with Channel.set3DOcclusion and ChannelGroup.set3DOcclusion."
-   ]
+   "fmod": "FMOD_System_CreateGeometry",
+   "haxe": [
+    {
+     "direct": false,
+     "doc": "Creates an empty geometry with room for the given polygon and vertex counts (unsupported in HTML5).",
+     "name": "create",
+     "signature": "create(maxPolygons:Int, maxVertices:Int):Geometry",
+     "static": true,
+     "type": "haxefmod.core.Geometry"
+    }
+   ],
+   "html5": false
   },
   "system_createreverb3d": {
    "fmod": "FMOD_System_CreateReverb3D",
@@ -8018,7 +8390,15 @@ const HAXEFMOD_BINDINGS = {
      "direct": false,
      "doc": "Loads a sound file.",
      "name": "create",
-     "signature": "create(path:String, loop:Bool = false):CoreSound",
+     "signature": "create(path:String, loop:Bool = false, openOnly:Bool = false):CoreSound",
+     "static": true,
+     "type": "haxefmod.studio.CoreSound"
+    },
+    {
+     "direct": false,
+     "doc": "An empty PCM16 sound of the given length for StudioSystem.recordStart to fill (unsupported in HTML5).",
+     "name": "createRecordBuffer",
+     "signature": "createRecordBuffer(sampleRate:Int, channels:Int, seconds:Int):CoreSound",
      "static": true,
      "type": "haxefmod.studio.CoreSound"
     },
@@ -8180,12 +8560,13 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "system_getdspbuffersize": {
+   "code": "import haxefmod.runtime.FmodRuntime;\n\nFmodManager.Initialize({dspBufferSize: 512, dspNumBuffers: 4});\nvar settings = FmodRuntime.settings();\ntrace('mixer ${settings.dspBufferSize} x ${settings.dspNumBuffers}');",
    "fmod": "",
    "haxe": [],
    "heading": "System::getDSPBufferSize",
    "html5": false,
    "notes": [
-    "Not exposed. The library owns init, and the mixer buffer stays at FMOD's default on native targets and 2048 samples by 2 buffers on HTML5."
+    "Covered by FmodSettings. The mixer buffer is set once at init through dspBufferSize and dspNumBuffers, and FmodRuntime.settings() reports the values the engine started with, 0 when FMOD's default was kept. Both are native only (unsupported in HTML5), where the web build fixes the mixer at 2048 samples by 2 buffers."
    ]
   },
   "system_getdspinfobyplugin": {
@@ -8194,7 +8575,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "System::getDSPInfoByPlugin",
    "html5": false,
    "notes": [
-    "Not exposed. Third-party plugins and custom codecs, DSPs, and outputs run code on FMOD threads, which no Haxe target can do, and the web build has no plugin host at all. The 33 built-in DSP types are bound through Dsp.create."
+    "Not bound yet. Loading a prebuilt plugin binary runs the plugin's own code on FMOD's threads with no Haxe involved, so nothing rules it out, it is deferred until CI has a plugin binary to test against. Until then a Studio project that uses plugin effects cannot load them from haxefmod. The 33 built-in DSP types are bound through Dsp.create. HTML5 has no plugin host (unsupported in HTML5), so the call will return FMOD_ERR_UNSUPPORTED there once it lands."
    ]
   },
   "system_getdspinfobytype": {
@@ -8216,22 +8597,32 @@ const HAXEFMOD_BINDINGS = {
    ]
   },
   "system_getgeometryocclusion": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "System::getGeometryOcclusion",
-   "html5": false,
-   "notes": [
-    "Not exposed. Geometry-based occlusion is left out because the web build reports it unsupported. Drive an event parameter from a game-side raycast instead, or set manual occlusion with Channel.set3DOcclusion and ChannelGroup.set3DOcclusion."
-   ]
+   "fmod": "FMOD_System_GetGeometryOcclusion",
+   "haxe": [
+    {
+     "direct": false,
+     "doc": "The occlusion every active geometry applies between a listener and a source position (unsupported in HTML5, null there).",
+     "name": "getOcclusion",
+     "signature": "getOcclusion(listener:FmodVector, source:FmodVector):Null<{direct:Float, reverb:Float}>",
+     "static": true,
+     "type": "haxefmod.core.Geometry"
+    }
+   ],
+   "html5": true
   },
   "system_getgeometrysettings": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "System::getGeometrySettings",
-   "html5": false,
-   "notes": [
-    "Not exposed. Geometry-based occlusion is left out because the web build reports it unsupported. Drive an event parameter from a game-side raycast instead, or set manual occlusion with Channel.set3DOcclusion and ChannelGroup.set3DOcclusion."
-   ]
+   "fmod": "FMOD_System_GetGeometrySettings",
+   "haxe": [
+    {
+     "direct": false,
+     "doc": "The current world size, 0 on failure (unsupported in HTML5, 0 there).",
+     "name": "getWorldSize",
+     "signature": "getWorldSize():Float",
+     "static": true,
+     "type": "haxefmod.core.Geometry"
+    }
+   ],
+   "html5": false
   },
   "system_getmasterchannelgroup": {
    "fmod": "FMOD_System_GetMasterChannelGroup",
@@ -8267,7 +8658,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "System::getNestedPlugin",
    "html5": false,
    "notes": [
-    "Not exposed. Third-party plugins and custom codecs, DSPs, and outputs run code on FMOD threads, which no Haxe target can do, and the web build has no plugin host at all. The 33 built-in DSP types are bound through Dsp.create."
+    "Not bound yet. Loading a prebuilt plugin binary runs the plugin's own code on FMOD's threads with no Haxe involved, so nothing rules it out, it is deferred until CI has a plugin binary to test against. Until then a Studio project that uses plugin effects cannot load them from haxefmod. The 33 built-in DSP types are bound through Dsp.create. HTML5 has no plugin host (unsupported in HTML5), so the call will return FMOD_ERR_UNSUPPORTED there once it lands."
    ]
   },
   "system_getnetworkproxy": {
@@ -8308,7 +8699,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "System::getNumNestedPlugins",
    "html5": false,
    "notes": [
-    "Not exposed. Third-party plugins and custom codecs, DSPs, and outputs run code on FMOD threads, which no Haxe target can do, and the web build has no plugin host at all. The 33 built-in DSP types are bound through Dsp.create."
+    "Not bound yet. Loading a prebuilt plugin binary runs the plugin's own code on FMOD's threads with no Haxe involved, so nothing rules it out, it is deferred until CI has a plugin binary to test against. Until then a Studio project that uses plugin effects cannot load them from haxefmod. The 33 built-in DSP types are bound through Dsp.create. HTML5 has no plugin host (unsupported in HTML5), so the call will return FMOD_ERR_UNSUPPORTED there once it lands."
    ]
   },
   "system_getnumplugins": {
@@ -8317,7 +8708,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "System::getNumPlugins",
    "html5": false,
    "notes": [
-    "Not exposed. Third-party plugins and custom codecs, DSPs, and outputs run code on FMOD threads, which no Haxe target can do, and the web build has no plugin host at all. The 33 built-in DSP types are bound through Dsp.create."
+    "Not bound yet. Loading a prebuilt plugin binary runs the plugin's own code on FMOD's threads with no Haxe involved, so nothing rules it out, it is deferred until CI has a plugin binary to test against. Until then a Studio project that uses plugin effects cannot load them from haxefmod. The 33 built-in DSP types are bound through Dsp.create. HTML5 has no plugin host (unsupported in HTML5), so the call will return FMOD_ERR_UNSUPPORTED there once it lands."
    ]
   },
   "system_getoutput": {
@@ -8353,7 +8744,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "System::getPluginHandle",
    "html5": false,
    "notes": [
-    "Not exposed. Third-party plugins and custom codecs, DSPs, and outputs run code on FMOD threads, which no Haxe target can do, and the web build has no plugin host at all. The 33 built-in DSP types are bound through Dsp.create."
+    "Not bound yet. Loading a prebuilt plugin binary runs the plugin's own code on FMOD's threads with no Haxe involved, so nothing rules it out, it is deferred until CI has a plugin binary to test against. Until then a Studio project that uses plugin effects cannot load them from haxefmod. The 33 built-in DSP types are bound through Dsp.create. HTML5 has no plugin host (unsupported in HTML5), so the call will return FMOD_ERR_UNSUPPORTED there once it lands."
    ]
   },
   "system_getplugininfo": {
@@ -8362,35 +8753,50 @@ const HAXEFMOD_BINDINGS = {
    "heading": "System::getPluginInfo",
    "html5": false,
    "notes": [
-    "Not exposed. Third-party plugins and custom codecs, DSPs, and outputs run code on FMOD threads, which no Haxe target can do, and the web build has no plugin host at all. The 33 built-in DSP types are bound through Dsp.create."
+    "Not bound yet. Loading a prebuilt plugin binary runs the plugin's own code on FMOD's threads with no Haxe involved, so nothing rules it out, it is deferred until CI has a plugin binary to test against. Until then a Studio project that uses plugin effects cannot load them from haxefmod. The 33 built-in DSP types are bound through Dsp.create. HTML5 has no plugin host (unsupported in HTML5), so the call will return FMOD_ERR_UNSUPPORTED there once it lands."
    ]
   },
   "system_getrecorddriverinfo": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "System::getRecordDriverInfo",
-   "html5": false,
-   "notes": [
-    "Not exposed. Microphone recording is left out because browser permission flows make its behavior environment-dependent and untestable in CI. Feed captured audio you obtain elsewhere through PcmStream or CoreSound.fromPcm."
-   ]
+   "fmod": "FMOD_System_GetRecordDriverInfo",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Name and native format of a record driver (unsupported in HTML5, returns null there).",
+     "name": "getRecordDriverInfo",
+     "signature": "getRecordDriverInfo(id:Int):Null<{name:String, systemRate:Int, speakerMode:Int, channels:Int, state:Int}>",
+     "static": true,
+     "type": "haxefmod.studio.StudioSystem"
+    }
+   ],
+   "html5": true
   },
   "system_getrecordnumdrivers": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "System::getRecordNumDrivers",
-   "html5": false,
-   "notes": [
-    "Not exposed. Microphone recording is left out because browser permission flows make its behavior environment-dependent and untestable in CI. Feed captured audio you obtain elsewhere through PcmStream or CoreSound.fromPcm."
-   ]
+   "fmod": "FMOD_System_GetRecordNumDrivers",
+   "haxe": [
+    {
+     "direct": false,
+     "doc": "Record drivers FMOD can see (unsupported in HTML5, returns null there).",
+     "name": "getRecordDriverCount",
+     "signature": "getRecordDriverCount():Null<{drivers:Int, connected:Int}>",
+     "static": true,
+     "type": "haxefmod.studio.StudioSystem"
+    }
+   ],
+   "html5": true
   },
   "system_getrecordposition": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "System::getRecordPosition",
-   "html5": false,
-   "notes": [
-    "Not exposed. Microphone recording is left out because browser permission flows make its behavior environment-dependent and untestable in CI. Feed captured audio you obtain elsewhere through PcmStream or CoreSound.fromPcm."
-   ]
+   "fmod": "FMOD_System_GetRecordPosition",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "The record cursor in PCM samples, or -1 on failure (unsupported in HTML5, always -1 there).",
+     "name": "getRecordPosition",
+     "signature": "getRecordPosition(id:Int):Int",
+     "static": true,
+     "type": "haxefmod.studio.StudioSystem"
+    }
+   ],
+   "html5": true
   },
   "system_getreverbproperties": {
    "fmod": "FMOD_System_GetReverbProperties",
@@ -8407,12 +8813,13 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "system_getsoftwarechannels": {
+   "code": "import haxefmod.runtime.FmodRuntime;\n\nFmodManager.Initialize({softwareChannels: 128});\nvar voices = FmodRuntime.settings().softwareChannels;",
    "fmod": "",
    "haxe": [],
    "heading": "System::getSoftwareChannels",
    "html5": false,
    "notes": [
-    "Not exposed. The library owns init, and the software channel count stays at FMOD's default. FmodRuntime.settings().numChannels reports the virtual voice count the engine started with."
+    "Covered by FmodSettings. The audible voice cap is set once at init through softwareChannels, and FmodRuntime.settings().softwareChannels reports the value the engine started with, 0 when FMOD's default of 64 was kept."
    ]
   },
   "system_getsoftwareformat": {
@@ -8448,12 +8855,13 @@ const HAXEFMOD_BINDINGS = {
    ]
   },
   "system_getstreambuffersize": {
+   "code": "import haxefmod.runtime.FmodRuntime;\n\nFmodManager.Initialize({streamBufferSize: 65536});\nvar bytes = FmodRuntime.settings().streamBufferSize;",
    "fmod": "",
    "haxe": [],
    "heading": "System::getStreamBufferSize",
    "html5": false,
    "notes": [
-    "Not exposed. The library owns init and keeps FMOD's default file stream buffer. PcmStream.space() reports how much room a stream you feed yourself has left."
+    "Covered by FmodSettings. The file stream buffer is set once at init through streamBufferSize, and FmodRuntime.settings().streamBufferSize reports the value the engine started with, 0 when FMOD's default of 16384 bytes was kept. PcmStream.space() reports how much room a stream you feed yourself has left."
    ]
   },
   "system_getuserdata": {
@@ -8466,13 +8874,18 @@ const HAXEFMOD_BINDINGS = {
    ]
   },
   "system_getversion": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "System::getVersion",
-   "html5": false,
-   "notes": [
-    "Not exposed. haxefmod ships against one FMOD version (2.03.12 for this release) and the native binding checks its own ABI at init, so there is nothing to query at runtime. docs/coverage.md names the FMOD version each release is built against."
-   ]
+   "fmod": "FMOD_System_GetVersion",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "The linked FMOD version as \"2.03.12\", or \"\" on failure.",
+     "name": "getVersion",
+     "signature": "getVersion():String",
+     "static": true,
+     "type": "haxefmod.studio.StudioSystem"
+    }
+   ],
+   "html5": true
   },
   "system_init": {
    "code": "FmodManager.Initialize({numChannels: 256, sampleRate: 48000});",
@@ -8485,22 +8898,32 @@ const HAXEFMOD_BINDINGS = {
    ]
   },
   "system_isrecording": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "System::isRecording",
-   "html5": false,
-   "notes": [
-    "Not exposed. Microphone recording is left out because browser permission flows make its behavior environment-dependent and untestable in CI. Feed captured audio you obtain elsewhere through PcmStream or CoreSound.fromPcm."
-   ]
+   "fmod": "FMOD_System_IsRecording",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "True while a driver is recording (unsupported in HTML5, always false there).",
+     "name": "isRecording",
+     "signature": "isRecording(id:Int):Bool",
+     "static": true,
+     "type": "haxefmod.studio.StudioSystem"
+    }
+   ],
+   "html5": true
   },
   "system_loadgeometry": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "System::loadGeometry",
-   "html5": false,
-   "notes": [
-    "Not exposed. Geometry-based occlusion is left out because the web build reports it unsupported. Drive an event parameter from a game-side raycast instead, or set manual occlusion with Channel.set3DOcclusion and ChannelGroup.set3DOcclusion."
-   ]
+   "fmod": "FMOD_System_LoadGeometry",
+   "haxe": [
+    {
+     "direct": false,
+     "doc": "Rebuilds a geometry from the bytes save() produced (unsupported in HTML5).",
+     "name": "load",
+     "signature": "load(data:haxe.io.Bytes):Geometry",
+     "static": true,
+     "type": "haxefmod.core.Geometry"
+    }
+   ],
+   "html5": false
   },
   "system_loadplugin": {
    "fmod": "",
@@ -8508,7 +8931,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "System::loadPlugin",
    "html5": false,
    "notes": [
-    "Not exposed. Third-party plugins and custom codecs, DSPs, and outputs run code on FMOD threads, which no Haxe target can do, and the web build has no plugin host at all. The 33 built-in DSP types are bound through Dsp.create."
+    "Not bound yet. Loading a prebuilt plugin binary runs the plugin's own code on FMOD's threads with no Haxe involved, so nothing rules it out, it is deferred until CI has a plugin binary to test against. Until then a Studio project that uses plugin effects cannot load them from haxefmod. The 33 built-in DSP types are bound through Dsp.create. HTML5 has no plugin host (unsupported in HTML5), so the call will return FMOD_ERR_UNSUPPORTED there once it lands."
    ]
   },
   "system_lockdsp": {
@@ -8585,22 +9008,32 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "system_recordstart": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "System::recordStart",
-   "html5": false,
-   "notes": [
-    "Not exposed. Microphone recording is left out because browser permission flows make its behavior environment-dependent and untestable in CI. Feed captured audio you obtain elsewhere through PcmStream or CoreSound.fromPcm."
-   ]
+   "fmod": "FMOD_System_RecordStart",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Starts recording a driver into a sound from CoreSound.createRecordBuffer (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED).",
+     "name": "recordStart",
+     "signature": "recordStart(id:Int, sound:CoreSound, loop:Bool = false):FmodResult",
+     "static": true,
+     "type": "haxefmod.studio.StudioSystem"
+    }
+   ],
+   "html5": true
   },
   "system_recordstop": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "System::recordStop",
-   "html5": false,
-   "notes": [
-    "Not exposed. Microphone recording is left out because browser permission flows make its behavior environment-dependent and untestable in CI. Feed captured audio you obtain elsewhere through PcmStream or CoreSound.fromPcm."
-   ]
+   "fmod": "FMOD_System_RecordStop",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Stops recording on a driver (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED).",
+     "name": "recordStop",
+     "signature": "recordStop(id:Int):FmodResult",
+     "static": true,
+     "type": "haxefmod.studio.StudioSystem"
+    }
+   ],
+   "html5": true
   },
   "system_registercodec": {
    "fmod": "",
@@ -8608,7 +9041,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "System::registerCodec",
    "html5": false,
    "notes": [
-    "Not exposed. Third-party plugins and custom codecs, DSPs, and outputs run code on FMOD threads, which no Haxe target can do, and the web build has no plugin host at all. The 33 built-in DSP types are bound through Dsp.create."
+    "Not exposed. Registering a plugin from a description hands FMOD callbacks that would run on its mixer and streaming threads, which no Haxe target can do, so this stays out for good. Loading a prebuilt plugin binary with System::loadPlugin is a separate case that is deferred rather than impossible. The 33 built-in DSP types are bound through Dsp.create."
    ]
   },
   "system_registerdsp": {
@@ -8617,7 +9050,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "System::registerDSP",
    "html5": false,
    "notes": [
-    "Not exposed. Third-party plugins and custom codecs, DSPs, and outputs run code on FMOD threads, which no Haxe target can do, and the web build has no plugin host at all. The 33 built-in DSP types are bound through Dsp.create."
+    "Not exposed. Registering a plugin from a description hands FMOD callbacks that would run on its mixer and streaming threads, which no Haxe target can do, so this stays out for good. Loading a prebuilt plugin binary with System::loadPlugin is a separate case that is deferred rather than impossible. The 33 built-in DSP types are bound through Dsp.create."
    ]
   },
   "system_registeroutput": {
@@ -8626,7 +9059,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "System::registerOutput",
    "html5": false,
    "notes": [
-    "Not exposed. Third-party plugins and custom codecs, DSPs, and outputs run code on FMOD threads, which no Haxe target can do, and the web build has no plugin host at all. The 33 built-in DSP types are bound through Dsp.create."
+    "Not exposed. Registering a plugin from a description hands FMOD callbacks that would run on its mixer and streaming threads, which no Haxe target can do, so this stays out for good. Loading a prebuilt plugin binary with System::loadPlugin is a separate case that is deferred rather than impossible. The 33 built-in DSP types are bound through Dsp.create."
    ]
   },
   "system_release": {
@@ -8692,12 +9125,55 @@ const HAXEFMOD_BINDINGS = {
    ]
   },
   "system_setcallback": {
-   "fmod": "",
-   "haxe": [],
+   "code": "StudioSystem.setSystemCallback(event -> switch (event) {\n    case DeviceListChanged: trace(\"devices changed\");\n    default:\n});",
+   "fmod": "FMOD_System_SetCallback",
+   "haxe": [
+    {
+     "direct": false,
+     "doc": "Removes the system callback handler and both native callbacks.",
+     "name": "clearSystemCallback",
+     "signature": "clearSystemCallback():Void",
+     "static": true,
+     "type": "haxefmod.studio.StudioSystem"
+    },
+    {
+     "direct": false,
+     "doc": "Installs a handler for system events (device changes from the core system, bank unloads and Live Update connections from Studio).",
+     "name": "setSystemCallback",
+     "signature": "setSystemCallback(handler:SystemEvent->Void, ?coreMask:Int, ?studioMask:Int):Void",
+     "static": true,
+     "type": "haxefmod.studio.StudioSystem"
+    },
+    {
+     "direct": false,
+     "doc": "Removes the handler and both native callbacks.",
+     "name": "clear",
+     "signature": "clear():Void",
+     "static": true,
+     "type": "haxefmod.studio.SystemCallbacks"
+    },
+    {
+     "direct": false,
+     "doc": "Installs the handler and tells FMOD which events to raise.",
+     "name": "set",
+     "signature": "set(handler:SystemEvent->Void, ?coreMask:Int, ?studioMask:Int):Void",
+     "static": true,
+     "type": "haxefmod.studio.SystemCallbacks"
+    },
+    {
+     "direct": false,
+     "doc": "Removes every registered callback (song, sounds, and core channels).",
+     "name": "ClearAllCallbacks",
+     "signature": "ClearAllCallbacks():Void",
+     "static": true,
+     "type": "haxefmod.FmodManager"
+    }
+   ],
    "heading": "System::setCallback",
    "html5": false,
    "notes": [
-    "Not exposed. System diagnostic callbacks are FMOD tooling hooks that would run on FMOD threads, which no Haxe target can do safely. Set FmodSettings.logLevel or call FmodManager.EnableDebugMessages() to see engine errors in the log."
+    "StudioSystem.setSystemCallback delivers the core system events (device list changed, device lost) from FmodManager.Update() on the game thread, next to the Studio system events on the same handler. Engine errors are not among them, set FmodSettings.logLevel or call FmodManager.EnableDebugMessages() to see those in the log.",
+    "The handler is a function that takes the event and switches on it, so a game that only cares about device changes matches the device list changed case and leaves the default branch empty."
    ]
   },
   "system_setdriver": {
@@ -8715,12 +9191,30 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "system_setdspbuffersize": {
-   "fmod": "",
-   "haxe": [],
+   "code": "FmodManager.Initialize({dspBufferSize: 512, dspNumBuffers: 4});",
+   "fmod": "FMOD_System_SetDSPBufferSize",
+   "haxe": [
+    {
+     "direct": false,
+     "doc": "Initializes FMOD.",
+     "name": "Initialize",
+     "signature": "Initialize(?settings:FmodSettings):Void",
+     "static": true,
+     "type": "haxefmod.FmodManager"
+    },
+    {
+     "direct": false,
+     "doc": "Initializes FMOD with the given settings (see FmodSettings for the define-driven defaults).",
+     "name": "init",
+     "signature": "init(?settings:FmodSettings):FmodResult",
+     "static": true,
+     "type": "haxefmod.runtime.FmodRuntime"
+    }
+   ],
    "heading": "System::setDSPBufferSize",
    "html5": false,
    "notes": [
-    "Not exposed. The library owns init, and the mixer buffer stays at FMOD's default on native targets and 2048 samples by 2 buffers on HTML5."
+    "Covered by FmodSettings. FMOD only accepts the mixer buffer before init, so pass dspBufferSize (samples) and dspNumBuffers to FmodManager.Initialize(). Both are native only (unsupported in HTML5), where the web build fixes the mixer at 2048 samples by 2 buffers and ignores them."
    ]
   },
   "system_setfilesystem": {
@@ -8733,13 +9227,18 @@ const HAXEFMOD_BINDINGS = {
    ]
   },
   "system_setgeometrysettings": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "System::setGeometrySettings",
-   "html5": false,
-   "notes": [
-    "Not exposed. Geometry-based occlusion is left out because the web build reports it unsupported. Drive an event parameter from a game-side raycast instead, or set manual occlusion with Channel.set3DOcclusion and ChannelGroup.set3DOcclusion."
-   ]
+   "fmod": "FMOD_System_SetGeometrySettings",
+   "haxe": [
+    {
+     "direct": false,
+     "doc": "The largest world size the occlusion calculation handles (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED).",
+     "name": "setWorldSize",
+     "signature": "setWorldSize(maxWorldSize:Float):FmodResult",
+     "static": true,
+     "type": "haxefmod.core.Geometry"
+    }
+   ],
+   "html5": true
   },
   "system_setnetworkproxy": {
    "fmod": "",
@@ -8796,7 +9295,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "System::setPluginPath",
    "html5": false,
    "notes": [
-    "Not exposed. Third-party plugins and custom codecs, DSPs, and outputs run code on FMOD threads, which no Haxe target can do, and the web build has no plugin host at all. The 33 built-in DSP types are bound through Dsp.create."
+    "Not bound yet. Loading a prebuilt plugin binary runs the plugin's own code on FMOD's threads with no Haxe involved, so nothing rules it out, it is deferred until CI has a plugin binary to test against. Until then a Studio project that uses plugin effects cannot load them from haxefmod. The 33 built-in DSP types are bound through Dsp.create. HTML5 has no plugin host (unsupported in HTML5), so the call will return FMOD_ERR_UNSUPPORTED there once it lands."
    ]
   },
   "system_setreverbproperties": {
@@ -8814,12 +9313,30 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "system_setsoftwarechannels": {
-   "fmod": "",
-   "haxe": [],
+   "code": "FmodManager.Initialize({numChannels: 256, softwareChannels: 128});",
+   "fmod": "FMOD_System_SetSoftwareChannels",
+   "haxe": [
+    {
+     "direct": false,
+     "doc": "Initializes FMOD.",
+     "name": "Initialize",
+     "signature": "Initialize(?settings:FmodSettings):Void",
+     "static": true,
+     "type": "haxefmod.FmodManager"
+    },
+    {
+     "direct": false,
+     "doc": "Initializes FMOD with the given settings (see FmodSettings for the define-driven defaults).",
+     "name": "init",
+     "signature": "init(?settings:FmodSettings):FmodResult",
+     "static": true,
+     "type": "haxefmod.runtime.FmodRuntime"
+    }
+   ],
    "heading": "System::setSoftwareChannels",
    "html5": false,
    "notes": [
-    "Not exposed. The library owns init, and the software channel count stays at FMOD's default. FmodSettings.numChannels sets the virtual voice count that Studio initializes with."
+    "Covered by FmodSettings. FMOD only accepts the audible voice cap before init, so pass softwareChannels to FmodManager.Initialize(). It is separate from numChannels, which is the virtual voice count Studio initializes with."
    ]
   },
   "system_setsoftwareformat": {
@@ -8854,12 +9371,30 @@ const HAXEFMOD_BINDINGS = {
    ]
   },
   "system_setstreambuffersize": {
-   "fmod": "",
-   "haxe": [],
+   "code": "FmodManager.Initialize({streamBufferSize: 65536});",
+   "fmod": "FMOD_System_SetStreamBufferSize",
+   "haxe": [
+    {
+     "direct": false,
+     "doc": "Initializes FMOD.",
+     "name": "Initialize",
+     "signature": "Initialize(?settings:FmodSettings):Void",
+     "static": true,
+     "type": "haxefmod.FmodManager"
+    },
+    {
+     "direct": false,
+     "doc": "Initializes FMOD with the given settings (see FmodSettings for the define-driven defaults).",
+     "name": "init",
+     "signature": "init(?settings:FmodSettings):FmodResult",
+     "static": true,
+     "type": "haxefmod.runtime.FmodRuntime"
+    }
+   ],
    "heading": "System::setStreamBufferSize",
    "html5": false,
    "notes": [
-    "Not exposed. The library owns init and keeps FMOD's default file stream buffer. The ringBytes argument of PcmStream.create sizes the buffer of a stream you feed yourself."
+    "Covered by FmodSettings. FMOD only accepts the file stream buffer before init, so pass streamBufferSize (bytes) to FmodManager.Initialize(). The ringBytes argument of PcmStream.create sizes the buffer of a stream you feed yourself."
    ]
   },
   "system_setuserdata": {
@@ -8877,7 +9412,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "System::unloadPlugin",
    "html5": false,
    "notes": [
-    "Not exposed. Third-party plugins and custom codecs, DSPs, and outputs run code on FMOD threads, which no Haxe target can do, and the web build has no plugin host at all. The 33 built-in DSP types are bound through Dsp.create."
+    "Not bound yet. Loading a prebuilt plugin binary runs the plugin's own code on FMOD's threads with no Haxe involved, so nothing rules it out, it is deferred until CI has a plugin binary to test against. Until then a Studio project that uses plugin effects cannot load them from haxefmod. The 33 built-in DSP types are bound through Dsp.create. HTML5 has no plugin host (unsupported in HTML5), so the call will return FMOD_ERR_UNSUPPORTED there once it lands."
    ]
   },
   "system_unlockdsp": {
@@ -8921,14 +9456,14 @@ const HAXEFMOD_EXAMPLES = {
    "code": null,
    "heading": "page default",
    "notes": [
-    "Codec, output, and DSP plug-ins are not exposed. Haxe code cannot run on FMOD's mixer thread on any target and the web build has no plug-in host, so plug-in registration and loading stay in C. Built-in codecs, outputs, and all 33 built-in effect types are available."
+    "Codec, output, and DSP plug-in authoring stays in C, because Haxe code cannot run on FMOD's mixer thread on any target. Loading a prebuilt plug-in binary is deferred until CI has one to test against, so Studio projects that use plug-in effects cannot load them from haxefmod yet, and the web build has no plug-in host (unsupported in HTML5). Built-in codecs, outputs, and all 33 built-in effect types are available."
    ]
   },
   "0": {
-   "code": null,
+   "code": "import haxefmod.studio.CoreSound;\n\nvar sound = CoreSound.create(\"assets/sfx/engine.wav\", false, true);\nvar buffer = haxe.io.Bytes.alloc(4096);\nvar read = sound.readData(buffer);\nwhile (read > 0) {\n    // the first read bytes of buffer hold decoded PCM\n    read = sound.readData(buffer);\n}\nsound.release();",
    "heading": "10.2 Extracting PCM Data from a Sound",
    "notes": [
-    "Sample readback (readData, lock) is not exposed because the web build cannot support it. Keep your own copy of the PCM you feed through CoreSound.fromPcm or PcmStream when the game needs waveform data."
+    "CoreSound.readData reads decoded PCM out of a sound opened with the openOnly flag of CoreSound.create, and seekData moves the read cursor. Both are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED, so a web build keeps its own copy of the PCM it feeds through CoreSound.fromPcm or PcmStream."
    ]
   },
   "10": {
@@ -9002,10 +9537,10 @@ const HAXEFMOD_EXAMPLES = {
    ]
   },
   "42": {
-   "code": "import haxefmod.core.ChannelMode;\n\nchannel.setMode(ChannelMode.MODE_3D | ChannelMode.LINEAR_SQUARE_ROLLOFF_3D);\nchannel.set3DMinMaxDistance(1, 20);",
+   "code": "import haxefmod.core.ChannelMode;\n\nchannel.setMode(ChannelMode.MODE_3D);\nchannel.set3DCustomRolloff([{x: 1, y: 1, z: 0}, {x: 10, y: 0.5, z: 0}, {x: 50, y: 0, z: 0}]);\nvar points = channel.get3DCustomRolloff();",
    "heading": "ChannelControl::set3DCustomRolloff",
    "notes": [
-    "Custom rolloff curves are not exposed because FMOD needs the point array to outlive the channel. Pick a built-in rolloff mode instead."
+    "Custom rolloff curves are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED. Each point is an FmodVector with x as the distance and y as the volume, and the copy FMOD needs lives with the channel until it is released."
    ]
   },
   "5": {
@@ -9471,7 +10006,7 @@ const HAXEFMOD_EXAMPLES = {
    "code": "import haxefmod.core.Dsp;\nimport haxefmod.core.DspType;\n\nvar pan = Dsp.create(DspType.PAN);\npan.setParameterInt(11, 1); // _3D_ROLLOFF = LINEAR",
    "heading": "FMOD_DSP_PAN_3D_ROLLOFF_TYPE",
    "notes": [
-    "The rolloff is an int with these enum values, set through setParameterInt on index 11 (_3D_ROLLOFF). CUSTOM needs a rolloff curve, which is not exposed."
+    "The rolloff is an int with these enum values, set through setParameterInt on index 11 (_3D_ROLLOFF). CUSTOM needs a curve handed to the pan unit through a data parameter, which is not exposed, so a custom curve goes on the channel instead with Channel.set3DCustomRolloff (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED."
    ]
   },
   "41": {
@@ -9739,10 +10274,10 @@ const HAXEFMOD_EXAMPLES = {
    ]
   },
   "40": {
-   "code": "import haxefmod.studio.CoreSound;\nimport haxefmod.core.ChannelMode;\n\nvar sound = CoreSound.create(\"assets/sfx/engine.wav\");\nsound.setMode(ChannelMode.MODE_3D | ChannelMode.LINEAR_SQUARE_ROLLOFF_3D);",
+   "code": "import haxefmod.studio.CoreSound;\nimport haxefmod.core.ChannelMode;\n\nvar sound = CoreSound.create(\"assets/sfx/engine.wav\");\nsound.setMode(ChannelMode.MODE_3D);\nsound.set3DCustomRolloff([{x: 1, y: 1, z: 0}, {x: 10, y: 0.5, z: 0}, {x: 50, y: 0, z: 0}]);",
    "heading": "Sound::set3DCustomRolloff",
    "notes": [
-    "Custom rolloff curves are not exposed because FMOD needs the point array to outlive the sound. Pick a built-in rolloff mode instead."
+    "Custom rolloff curves are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED. Each point is an FmodVector with x as the distance and y as the volume, and the copy FMOD needs lives with the sound until it is released."
    ]
   },
   "43": {
@@ -9813,10 +10348,10 @@ const HAXEFMOD_EXAMPLES = {
  },
  "core-api-system": {
   "0": {
-   "code": "import haxefmod.studio.CoreSound;\nimport haxefmod.core.ChannelMode;\n\nvar sound = CoreSound.create(\"assets/sfx/engine.wav\");\nsound.setMode(ChannelMode.MODE_3D | ChannelMode.LINEAR_ROLLOFF_3D);\nvar channel = sound.play();\nchannel.set3DMinMaxDistance(1, 50);",
+   "code": "import haxefmod.studio.CoreSound;\nimport haxefmod.core.ChannelMode;\n\nvar sound = CoreSound.create(\"assets/sfx/engine.wav\");\nsound.setMode(ChannelMode.MODE_3D);\nsound.set3DCustomRolloff([{x: 1, y: 1, z: 0}, {x: 10, y: 0.5, z: 0}, {x: 50, y: 0, z: 0}]);\nvar channel = sound.play();",
    "heading": "FMOD_3D_ROLLOFF_CALLBACK",
    "notes": [
-    "Custom rolloff callbacks cannot run on FMOD's threads from Haxe, so they are not exposed. Pick one of the built-in rolloff modes through the mode flags instead."
+    "Rolloff callbacks cannot run on FMOD's threads from Haxe, so they are not exposed. A curve of FmodVector points does the same job without a callback through set3DCustomRolloff on the sound, channel, or group, native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED. The built-in rolloff modes work on every target through the mode flags."
    ]
   },
   "1": {
@@ -9914,14 +10449,14 @@ const HAXEFMOD_EXAMPLES = {
    "code": null,
    "heading": "FMOD_PLUGINLIST",
    "notes": [
-    "Plugins are not exposed. Haxe code cannot run on FMOD's mixer thread, so plugin authoring and loading stay in C."
+    "Plugin authoring stays in C because Haxe code cannot run on FMOD's mixer thread. Loading a prebuilt plugin binary is deferred until CI has one to test against, so Studio projects that use plugin effects cannot load them from haxefmod yet."
    ]
   },
   "18": {
    "code": null,
    "heading": "FMOD_PLUGINTYPE",
    "notes": [
-    "Plugins are not exposed. Haxe code cannot run on FMOD's mixer thread, so plugin authoring and loading stay in C."
+    "Plugin authoring stays in C because Haxe code cannot run on FMOD's mixer thread. Loading a prebuilt plugin binary is deferred until CI has one to test against, so Studio projects that use plugin effects cannot load them from haxefmod yet."
    ]
   },
   "19": {
@@ -10035,7 +10570,7 @@ const HAXEFMOD_EXAMPLES = {
    "code": null,
    "heading": "page default",
    "notes": [
-    "This guide walks through writing, building, and loading a DSP plug-in library. haxefmod does not bind loadPlugin, registerDSP, or setPluginPath, because the plug-in itself would have to run on FMOD's mixer thread and Haxe code cannot do that on any target.",
+    "This guide walks through writing, building, and loading a DSP plug-in library. haxefmod does not bind registerDSP, because a description carries callbacks that would run on FMOD's mixer thread and Haxe code cannot do that on any target. loadPlugin and setPluginPath only load a prebuilt binary with no Haxe involved, so they are deferred until CI has a plug-in binary to test against, and Studio projects that use plug-in effects cannot load them from haxefmod yet.",
     "The built-in effects cover most game needs and are all available through haxefmod.core.Dsp, with the parameter indices listed in FMOD's effects reference. Sounds your code synthesizes can be played through haxefmod.core.PcmStream. See docs/guides/core-api.md."
    ]
   }
@@ -10052,10 +10587,10 @@ const HAXEFMOD_EXAMPLES = {
  },
  "glossary": {
   "0": {
-   "code": null,
+   "code": "import haxefmod.studio.CoreSound;\n\nvar sound = CoreSound.create(\"assets/sfx/engine.wav\", false, true);\nvar buffer = haxe.io.Bytes.alloc(4096);\nvar read = sound.readData(buffer);\nwhile (read > 0) {\n    // the first read bytes of buffer hold decoded PCM\n    read = sound.readData(buffer);\n}\nsound.release();",
    "heading": "22.33 Reading Sound Data",
    "notes": [
-    "Sound sample readback (readData, lock) is not exposed, since FMOD's web build does not support it. Keep your own copy of the PCM you feed through PcmStream or CoreSound.fromPcm when the game needs waveform data."
+    "CoreSound.readData reads decoded PCM out of a sound opened with the openOnly flag of CoreSound.create, and seekData moves the read cursor. Both are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED, so a web build keeps its own copy of the PCM it feeds through CoreSound.fromPcm or PcmStream."
    ]
   },
   "1": {
@@ -10405,7 +10940,7 @@ const HAXEFMOD_EXAMPLES = {
    "code": "var usage = StudioSystem.getMemoryUsage();\nif (usage != null) {\n    trace('exclusive ${usage.exclusive} inclusive ${usage.inclusive} sample data ${usage.sampledata}');\n}",
    "heading": "FMOD_STUDIO_MEMORY_USAGE",
    "notes": [
-    "FmodMemoryUsage has the same three fields in bytes. StudioSystem.getMemoryUsage, Bus.getMemoryUsage, and EventInstance.getMemoryUsage return it, or null on HTML5 where FMOD does not report memory."
+    "FmodMemoryUsage has the same three fields in bytes. StudioSystem.getMemoryUsage, Bus.getMemoryUsage, and EventInstance.getMemoryUsage return it. Memory usage is native only (unsupported in HTML5), where FMOD does not report memory, so the call returns FMOD_ERR_UNSUPPORTED there and the getter null."
    ]
   },
   "2": {
@@ -10456,7 +10991,7 @@ const HAXEFMOD_EXAMPLES = {
    "code": "import haxefmod.studio.Types;\n\nvar description = StudioSystem.getEvent(\"event:/SFX/Coin\");\nfor (i in 0...description.getUserPropertyCount()) {\n    var property = description.getUserProperty(i);\n    if (property == null) continue;\n    switch (property.type) {\n        case INTEGER: trace('${property.name}: ${Std.int(property.floatValue)}');\n        case BOOLEAN: trace('${property.name}: ${property.floatValue != 0}');\n        case FLOAT: trace('${property.name}: ${property.floatValue}');\n        case STRING: trace('${property.name}: ${property.stringValue}');\n    }\n}",
    "heading": "FMOD_STUDIO_USER_PROPERTY_TYPE",
    "notes": [
-    "FmodUserPropertyType carries the same values. Numeric properties are readable on native targets only. FMOD's HTML5 runtime crashes on them, so the binding reports FMOD_ERR_UNSUPPORTED there."
+    "FmodUserPropertyType carries the same values. Numeric properties are native only (unsupported in HTML5), where FMOD's runtime crashes on them, so the call returns FMOD_ERR_UNSUPPORTED there."
    ]
   }
  },
@@ -10493,7 +11028,7 @@ const HAXEFMOD_EXAMPLES = {
    "code": "var instance = StudioSystem.getEvent(\"event:/Dialogue/Line\").createInstance();\nif (instance.assignProgrammerSound(\"welcome\").isOk()) {\n    instance.start();\n}",
    "heading": "FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES",
    "notes": [
-    "The create and destroy programmer sound callbacks are handled natively. Call EventInstance.assignProgrammerSound(key) before start(), and the native side creates the sound from the audio table entry or file path when the instrument triggers and releases it when the instrument ends. The call returns FMOD_ERR_UNSUPPORTED on HTML5 because of a defect in FMOD's JavaScript runtime."
+    "The create and destroy programmer sound callbacks are handled natively. Call EventInstance.assignProgrammerSound(key) before start(), and the native side creates the sound from the audio table entry or file path when the instrument triggers and releases it when the instrument ends. Programmer sounds are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED because of a defect in FMOD's JavaScript runtime."
    ]
   },
   "44": {
@@ -10567,7 +11102,7 @@ const HAXEFMOD_EXAMPLES = {
    "code": "var instance = StudioSystem.getEvent(\"event:/Dialogue/Line\").createInstance();\ninstance.assignProgrammerSound(\"welcome\");\ninstance.start();",
    "heading": "FMOD_STUDIO_SOUND_INFO",
    "notes": [
-    "Audio table lookups happen natively. Pass the key to EventInstance.assignProgrammerSound before start(), and the native side calls getSoundInfo and creates the sound when the programmer instrument triggers. The key can also be a file path. Unsupported on HTML5."
+    "Audio table lookups happen natively. Pass the key to EventInstance.assignProgrammerSound before start(), and the native side calls getSoundInfo and creates the sound when the programmer instrument triggers. The key can also be a file path. Programmer sounds are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED."
    ]
   },
   "13": {
@@ -10690,7 +11225,7 @@ const HAXEFMOD_EXAMPLES = {
    "code": null,
    "heading": "page default",
    "notes": [
-    "Plug-in DSP effects are not exposed. Haxe code cannot run on FMOD's mixer thread on any target and the web build has no plug-in host, so plug-in authoring and loading stay in C. All 33 built-in effect types are available through Dsp.create."
+    "Plug-in DSP authoring stays in C, because Haxe code cannot run on FMOD's mixer thread on any target. Loading a prebuilt plug-in binary is deferred until CI has one to test against, so Studio projects that use plug-in effects cannot load them from haxefmod yet, and the web build has no plug-in host (unsupported in HTML5). All 33 built-in effect types are available through Dsp.create."
    ]
   },
   "0": {

@@ -378,6 +378,8 @@ class NativeStudioStub {
 
     // Channel callbacks and sync points
     public static function chan_set_callback(handle:Int, enabled:Bool):Int return ERR_UNSUPPORTED;
+    public static function sys_set_callback_mask(mask:Int):Int return ERR_UNSUPPORTED;
+    public static function sys_set_studio_callback_mask(mask:Int):Int return ERR_UNSUPPORTED;
     public static function sound_add_sync_point(handle:Int, offsetMs:Int, name:String):Int return ERR_UNSUPPORTED;
     public static function sound_delete_sync_point(handle:Int, index:Int):Int return ERR_UNSUPPORTED;
     public static function sound_get_num_sync_points(handle:Int):Int return 0;

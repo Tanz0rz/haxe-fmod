@@ -2,15 +2,15 @@
 
 ## 0
 <!-- FMOD_3D_ROLLOFF_CALLBACK -->
-Custom rolloff callbacks cannot run on FMOD's threads from Haxe, so they are not exposed. Pick one of the built-in rolloff modes through the mode flags instead.
+Rolloff callbacks cannot run on FMOD's threads from Haxe, so they are not exposed. A curve of FmodVector points does the same job without a callback through set3DCustomRolloff on the sound, channel, or group, native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED. The built-in rolloff modes work on every target through the mode flags.
 ```haxe
 import haxefmod.studio.CoreSound;
 import haxefmod.core.ChannelMode;
 
 var sound = CoreSound.create("assets/sfx/engine.wav");
-sound.setMode(ChannelMode.MODE_3D | ChannelMode.LINEAR_ROLLOFF_3D);
+sound.setMode(ChannelMode.MODE_3D);
+sound.set3DCustomRolloff([{x: 1, y: 1, z: 0}, {x: 10, y: 0.5, z: 0}, {x: 50, y: 0, z: 0}]);
 var channel = sound.play();
-channel.set3DMinMaxDistance(1, 50);
 ```
 
 ## 1
@@ -121,11 +121,11 @@ if (CoreSystem.getDriverCount() > 1) {
 
 ## 17
 <!-- FMOD_PLUGINLIST -->
-Plugins are not exposed. Haxe code cannot run on FMOD's mixer thread, so plugin authoring and loading stay in C.
+Plugin authoring stays in C because Haxe code cannot run on FMOD's mixer thread. Loading a prebuilt plugin binary is deferred until CI has one to test against, so Studio projects that use plugin effects cannot load them from haxefmod yet.
 
 ## 18
 <!-- FMOD_PLUGINTYPE -->
-Plugins are not exposed. Haxe code cannot run on FMOD's mixer thread, so plugin authoring and loading stay in C.
+Plugin authoring stays in C because Haxe code cannot run on FMOD's mixer thread. Loading a prebuilt plugin binary is deferred until CI has one to test against, so Studio projects that use plugin effects cannot load them from haxefmod yet.
 
 ## 19
 <!-- FMOD_PORT_INDEX -->

@@ -28,6 +28,28 @@ if (stream.takeUnderruns() > 0) trace("ring ran dry");
 
 `CoreSound.fromPcm(bytes, sampleRate, channels)` is the static counterpart for a sample that is fully known ahead of time. Both work on every target because they take raw PCM.
 
+## Reading samples
+
+`CoreSound.create(path, loop, openOnly)` with `openOnly` true opens a file without decoding it up front. A sound opened that way cannot be played, it exists to be read. `readData(buffer, ?length)` decodes PCM from it into the buffer (unsupported in HTML5). It returns `-68` there, the negated `FMOD_ERR_UNSUPPORTED` code. On native targets it returns the bytes read, `0` at the end of the file with `StudioSystem.lastResult()` reporting `FMOD_ERR_FILE_EOF`, or a negated FMOD error code. `length` defaults to the whole buffer and is clamped to it. `seekData(pcm)` moves the read cursor to a sample offset, and `getFormat()` reports the channel count and bits per sample the bytes are laid out in.
+
+```haxe
+import haxefmod.studio.CoreSound;
+
+var sound = CoreSound.create("assets/voice/line01.ogg", false, true);
+var format = sound.getFormat();
+var chunk = haxe.io.Bytes.alloc(4096);
+var total = 0;
+while (true) {
+    var read = sound.readData(chunk);
+    if (read <= 0) break;
+    total += read;
+}
+trace('$total bytes of ${format.channels} channel ${format.bits} bit PCM');
+sound.release();
+```
+
+Games that also ship to the browser and need waveform data keep their own copy of the PCM they feed through `PcmStream` or `CoreSound.fromPcm`.
+
 ## Channels
 
 A `Channel` is a playing instance of a core sound, returned by `PcmStream.play`, `CoreSound.play`, and `Dsp.play`. It carries volume, pitch, pan, pause, frequency, loop count, position, mute, a built-in lowpass, 3D attributes and cone settings, occlusion, a mix matrix, and sample-accurate scheduling through `getDspClock` and `setDelay`.
@@ -42,6 +64,21 @@ channel.setLoopCount(-1);
 ```
 
 Channels end on their own when playback stops, so a handle can go stale before you call `stop()`. Call `stop()` when you are done with it either way, since that always frees the handle slot.
+
+With `distanceFilter` on in the init settings (see [Banks and settings](banks-and-settings.md#settings)), every 3D channel also passes through a lowpass that closes with distance. `set3DDistanceFilter(custom, customLevel, centerFreq)` tunes it per channel. With `custom` true, `customLevel` (0 to 1) replaces the distance-derived amount and `centerFreq` sets the filter's center in Hz. `get3DDistanceFilter()` reads the three back, and `ChannelGroup` carries the same pair.
+
+`set3DCustomRolloff(points)` replaces the mode-driven distance attenuation with a curve of your own (unsupported in HTML5). It returns `FMOD_ERR_UNSUPPORTED` there. Each point is an `FmodVector` with `x` the distance and `y` the volume from 0 to 1, sorted by distance, and `z` unused. An empty array restores the mode-driven rolloff. `get3DCustomRolloff()` returns the points, empty when none are set. `ChannelGroup` has the same pair, and `CoreSound.set3DCustomRolloff` sets the curve new channels of that sound start with.
+
+```haxe
+import haxefmod.studio.Types;
+
+var curve:Array<FmodVector> = [
+    {x: 0, y: 1, z: 0},
+    {x: 200, y: 0.5, z: 0},
+    {x: 800, y: 0, z: 0}
+];
+channel.set3DCustomRolloff(curve);
+```
 
 `Channel.setCallback` delivers `ChannelEvent` values (`End`, `SyncPoint(index)`) on the game thread through the same per-frame drain as studio callbacks. Sync points are set on the sound with `CoreSound.addSyncPoint`.
 
@@ -126,12 +163,85 @@ footsteps.setMaxAudible(3);
 footsteps.setMaxAudibleBehavior(SoundGroup.BEHAVIOR_STEAL_LOWEST);
 ```
 
+## Geometry occlusion
+
+`Geometry` is FMOD's polygon occlusion. With geometry in the world, FMOD attenuates a 3D sound that has a polygon between it and the listener by that polygon's direct and reverb occlusion amounts. `Geometry.create(maxPolygons, maxVertices)` makes an empty mesh with room for that many polygons and vertices (unsupported in HTML5). It returns `Geometry.NULL` there, and every other geometry call returns `FMOD_ERR_UNSUPPORTED`, `-1`, `0`, `false`, or `null` on that target.
+
+```haxe
+import haxefmod.core.Geometry;
+import haxefmod.studio.Types;
+
+var wall = Geometry.create(1, 4);
+var corners:Array<FmodVector> = [
+    {x: 0, y: 0, z: -50},
+    {x: 0, y: 0, z: 50},
+    {x: 0, y: 100, z: 50},
+    {x: 0, y: 100, z: -50}
+];
+var polygon = wall.addPolygon(1.0, 0.5, true, corners);
+wall.setPosition({x: 400, y: 0, z: 0});
+wall.setActive(true);
+
+var occlusion = Geometry.getOcclusion({x: 0, y: 50, z: 0}, {x: 800, y: 50, z: 0});
+if (occlusion != null) trace('direct ${occlusion.direct} reverb ${occlusion.reverb}');
+
+// when the level unloads
+wall.release();
+```
+
+`addPolygon(direct, reverb, doubleSided, vertices)` takes a convex polygon of at least three vertices in object space and returns its index. `direct` and `reverb` run from 0 (open) to 1 (blocked), and a double sided polygon occludes from both faces. `setPosition`, `setRotation(forward, up)`, and `setScale` place the mesh in the world, and `setPolygonVertex`, `setPolygonAttributes`, and their getters edit a polygon after the fact. `setActive(false)` switches a mesh off without releasing it. `save()` returns the mesh as bytes and `Geometry.load(bytes)` rebuilds it, so a level can ship its geometry prebuilt. `Geometry.setWorldSize` sets the largest world extent the occlusion calculation handles, 1000 units by default, and `Geometry.getOcclusion(listener, source)` reports what every active mesh adds up to between two points. A geometry is a created handle, so `release()` frees it.
+
+Geometry exists on native targets only. A game that also ships to the browser keeps the parameter-driven pattern that works everywhere: a game-side raycast decides how blocked a source is and drives an event parameter that the sound designer hooks to a filter in FMOD Studio. That pattern also gives the designer control over what occlusion sounds like. Geometry suits native-only games with real 3D levels, where FMOD does the ray test itself against the level mesh. Manual occlusion on core channels needs no geometry at all, `Channel.set3DOcclusion` and `ChannelGroup.set3DOcclusion` set the direct and reverb amounts directly on every target.
+
 ## Mixer and 3D settings
 
 `CoreSystem` holds the calls that belong to no single object. `getChannelsPlaying()` reports total and real (audible) channel counts, `getSoftwareFormat()` the mixer's sample rate and speaker mode, and `mixerSuspend` and `mixerResume` stop and restart the mixer for platforms that demand silence in the background. `set3DSettings(dopplerScale, distanceFactor, rolloffScale)` rescales doppler, world units per meter, and distance attenuation for every 3D sound, Studio events included. Output device selection goes through `getDriverCount`, `getDriverName`, `setDriver`, and `getDriver`.
 
 ## Profiling
 
-`StudioSystem.getCpuUsage()` breaks mixer time down per subsystem, `getMemoryUsage()` reports bytes (native only), and `getBufferUsage()` shows the Studio command queue and handle buffer with their stall counts. `Bus`, `EventInstance`, and `Dsp` have `getCpuUsage()` as well, but FMOD only fills those in when the system was initialized with its profiling flag, which the library does not set, so they return `null`.
+`StudioSystem.getCpuUsage()` breaks mixer time down per subsystem, `getMemoryUsage()` reports bytes (native only), and `getBufferUsage()` shows the Studio command queue and handle buffer with their stall counts. `Bus`, `EventInstance`, and `Dsp` have `getCpuUsage()` as well. FMOD fills those in only when the system was initialized with `profiling: true` in the settings, and they return `null` otherwise. The same setting lets the FMOD Profiler connect to the running game.
 
 `StudioSystem.startCommandCapture(path)` records every Studio API call to a file that FMOD's tools can analyze, `stopCommandCapture()` ends it, and `loadCommandReplay(path)` plays a capture back through the live system as a `CommandReplay` handle.
+
+## Recording
+
+FMOD records a microphone into a sound the game supplies. `StudioSystem.getRecordDriverCount()` reports how many record drivers FMOD knows about and how many are connected right now (unsupported in HTML5). It returns `null` there, as does `getRecordDriverInfo`, `recordStart` and `recordStop` return `FMOD_ERR_UNSUPPORTED`, `isRecording` is always false, `getRecordPosition` is always `-1`, and `CoreSound.createRecordBuffer` returns `CoreSound.NULL`. A machine without a microphone reports 0 drivers and 0 connected.
+
+`getRecordDriverInfo(id)` gives a driver's name, native sample rate, speaker mode, channel count, and an `FMOD_DRIVER_STATE` bitmask (1 connected, 2 default). `CoreSound.createRecordBuffer(sampleRate, channels, seconds)` makes an empty 16-bit PCM sound of that length, and `recordStart(id, sound, ?loop)` fills it. With `loop` off, recording stops when the buffer is full. With it on, the buffer wraps and keeps recording. `isRecording(id)` and `getRecordPosition(id)` (the cursor in PCM samples) report progress, and `recordStop(id)` ends it. The buffer is an ordinary sound afterwards, so `play()` monitors it and `readData` pulls the samples out.
+
+```haxe
+import haxefmod.studio.CoreSound;
+
+var drivers = StudioSystem.getRecordDriverCount();
+if (drivers == null || drivers.connected == 0) {
+    trace("no microphone");
+} else {
+    for (id in 0...drivers.drivers) {
+        var info = StudioSystem.getRecordDriverInfo(id);
+        if (info != null) trace('$id: ${info.name} ${info.systemRate} Hz, ${info.channels} channels');
+    }
+    var seconds = 3;
+    var rate = StudioSystem.getRecordDriverInfo(0).systemRate;
+    var buffer = CoreSound.createRecordBuffer(rate, 1, seconds);
+    StudioSystem.recordStart(0, buffer);
+}
+```
+
+The buffer fills in real time, so the read happens a few seconds later, once `getRecordPosition(0)` reaches the buffer's length in samples or `isRecording(0)` turns false.
+
+```haxe
+import haxefmod.studio.CoreSound;
+
+var seconds = 3;
+var buffer = CoreSound.createRecordBuffer(48000, 1, seconds);
+StudioSystem.recordStart(0, buffer);
+// a few seconds later, from update
+StudioSystem.recordStop(0);
+var pcm = haxe.io.Bytes.alloc(48000 * 2 * seconds);
+buffer.seekData(0);
+var read = buffer.readData(pcm);
+trace('$read bytes recorded');
+buffer.release();
+```
+
+The byte count is the sample rate times two bytes per 16-bit sample times the channel count times the seconds recorded.

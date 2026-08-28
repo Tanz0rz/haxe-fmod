@@ -95,6 +95,9 @@ jobs:
       - name: Compile the README examples
         run: python3 ci/check-readme-snippets.py
 
+      - name: Check the HTML5 compile gate
+        run: python3 ci/check-html5-gate.py
+
       - name: Test native PCM ring buffer (C99 and C++ modes)
         run: |
           gcc -std=c99 -pthread -Wall -Wextra -Werror -o /tmp/test_pcmring_c tests/native/test_faxe_pcmring.c

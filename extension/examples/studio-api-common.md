@@ -17,7 +17,7 @@ switch (bank.getLoadingState()) {
 
 ## 1
 <!-- FMOD_STUDIO_MEMORY_USAGE -->
-FmodMemoryUsage has the same three fields in bytes. StudioSystem.getMemoryUsage, Bus.getMemoryUsage, and EventInstance.getMemoryUsage return it, or null on HTML5 where FMOD does not report memory.
+FmodMemoryUsage has the same three fields in bytes. StudioSystem.getMemoryUsage, Bus.getMemoryUsage, and EventInstance.getMemoryUsage return it. Memory usage is native only (unsupported in HTML5), where FMOD does not report memory, so the call returns FMOD_ERR_UNSUPPORTED there and the getter null.
 ```haxe
 var usage = StudioSystem.getMemoryUsage();
 if (usage != null) {

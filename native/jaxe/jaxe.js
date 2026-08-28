@@ -943,6 +943,7 @@ class jaxe {
         // All bank content is going away. Uninstall every callback first or
         // the FMOD JS module is corrupted.
         jaxe.uninstallCallbacksFor(null);
+        jaxe.cacheAllBankPaths();
         jaxe.lastResult = jaxe.gSystem.unloadAll();
         if (jaxe.lastResult == jaxe.FMOD.OK) {
             // Every async-loaded bank just died without passing through
@@ -1283,6 +1284,7 @@ class jaxe {
         }
         var bank = jaxe.resolveBankReady(handle);
         if (!bank) return jaxe.lastResult;
+        jaxe.cacheBankPath(bank);
         // Unloading destroys the bank's event instances. Uninstall their
         // callbacks first or the FMOD JS module is corrupted.
         var cnt = {};
@@ -3402,6 +3404,86 @@ class jaxe {
         return jaxe.lastResult;
     }
 
+    //// System callbacks (core and studio)
+
+    // System events ride the queue with handle 0 under the 0x20000000
+    // namespace. Core types sit at 0x20000000 | type, studio types at
+    // 0x20000100 | type so the two sets cannot collide.
+    static CB_SYS_NAMESPACE = 0x20000000;
+    static CB_SYS_STUDIO_BIT = 0x00000100;
+
+    static pushSystemEvent(type, str) {
+        jaxe.cbQueue.push({ handle: 0, type: type, i1: 0, i2: 0, i3: 0, i4: 0, i5: 0, f1: 0.0, str: str || "" });
+        if (jaxe.cbQueue.length > jaxe.CBQ_CAPACITY) {
+            jaxe.cbQueue.shift();
+            jaxe.cbOverflow = true;
+        }
+    }
+
+    static systemCallback(system, type, commanddata1, commanddata2, userdata) {
+        jaxe.pushSystemEvent(jaxe.CB_SYS_NAMESPACE | type, "");
+        return jaxe.FMOD.OK;
+    }
+
+    // The web build answers every read on the bank inside BANK_UNLOAD with
+    // NOTREADY (verified on 2.03.12), and the record lands on the update
+    // after the unload call. The path comes from the copy cacheBankPath
+    // stored before the unload, keyed by the bank's raw pointer.
+    static bankPathByRaw = new Map();
+
+    static studioSystemCallback(system, type, commanddata, userdata) {
+        var str = "";
+        if (type === 4 /* BANK_UNLOAD */ && commanddata) {
+            var raw = jaxe.rawPtr(commanddata);
+            if (raw != 0 && jaxe.bankPathByRaw.has(raw)) {
+                str = jaxe.bankPathByRaw.get(raw);
+                jaxe.bankPathByRaw.delete(raw);
+            }
+        }
+        jaxe.pushSystemEvent(jaxe.CB_SYS_NAMESPACE | jaxe.CB_SYS_STUDIO_BIT | type, str);
+        return jaxe.FMOD.OK;
+    }
+
+    // Reads the bank's path while the bank can still answer. Called from
+    // the unload paths right before the unload.
+    static cacheBankPath(bank) {
+        if (!bank || bank.pendingBankPath) return;
+        var raw = jaxe.rawPtr(bank);
+        if (raw == 0) return;
+        var outval = {};
+        try {
+            if (bank.getPath(outval, 512, null) === jaxe.FMOD.OK) jaxe.bankPathByRaw.set(raw, outval.val);
+        } catch (e) {}
+    }
+
+    static cacheAllBankPaths() {
+        for (var i = 0; i < jaxe.slots.length; i++) {
+            var s = jaxe.slots[i];
+            if (s.alive && s.type === jaxe.TYPE_BANK) jaxe.cacheBankPath(s.ptr);
+        }
+    }
+
+    static fmod_sys_set_callback_mask(mask) {
+        if (!jaxe.sysReady()) return jaxe.lastResult;
+        if (mask === 0) {
+            jaxe.lastResult = jaxe.gSystemCore.setCallback(null, 0);
+        } else {
+            jaxe.lastResult = jaxe.gSystemCore.setCallback(jaxe.systemCallback, mask >>> 0);
+        }
+        return jaxe.lastResult;
+    }
+
+    static fmod_sys_set_studio_callback_mask(mask) {
+        if (!jaxe.sysReady()) return jaxe.lastResult;
+        if (mask === 0) {
+            jaxe.bankPathByRaw.clear();
+            jaxe.lastResult = jaxe.gSystem.setCallback(null, 0);
+        } else {
+            jaxe.lastResult = jaxe.gSystem.setCallback(jaxe.studioSystemCallback, mask >>> 0);
+        }
+        return jaxe.lastResult;
+    }
+
     static fmod_sound_add_sync_point(handle, offsetMs, name) {
         if (typeof name !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
         var sound = jaxe.resolveCoreSound(handle);
@@ -4577,7 +4659,7 @@ class jaxe {
 
     static fmod_binding_abi_version() {
         // Keep in lockstep with the manifest header "# abi-version:"
-        return 8;
+        return 9;
     }
 
     //// Initialization (Emscripten-specific, must stay here)

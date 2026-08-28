@@ -25,8 +25,11 @@ global.FMODModule = require(path.join(SDK, 'fmodstudio.js'));
 const src = fs.readFileSync(JAXE, 'utf8');
 eval(src + '\nglobal.jaxe = jaxe;');
 
+const BANKS = path.join(REPO, 'example-project', 'EZPlatformer', 'assets', 'fmod', 'Desktop');
 jaxe.preRun = function () {
     jaxe.FMOD.FS_createDataFile('/', 'Jump.wav', fs.readFileSync(WAV), true, false, false);
+    jaxe.FMOD.FS_createDataFile('/', 'Master.strings.bank', fs.readFileSync(path.join(BANKS, 'Master.strings.bank')), true, false, false);
+    jaxe.FMOD.FS_createDataFile('/', 'Extras.bank', fs.readFileSync(path.join(BANKS, 'Extras.bank')), true, false, false);
 };
 
 // Node-safe init: NOSOUND output, no driver query, but the same pre-init
@@ -158,6 +161,47 @@ async function main() {
         && jaxe.fmod_sys_last_result() === 68, '');
     check('sys_get_record_position_unsupported', jaxe.fmod_sys_get_record_position(0) === -1
         && jaxe.fmod_sys_last_result() === 68, '');
+
+    // --- system callbacks: both setCallback entry points exist on the web
+    // build and the studio one fires inside update. Records ride the queue
+    // with handle 0 under the 0x20000000 namespace. ---
+    function drainSystem() {
+        const out = [];
+        while (jaxe.fmod_cb_next()) {
+            if (jaxe.fmod_cb_handle() === 0 && (jaxe.fmod_cb_type() & 0x20000000) !== 0) {
+                out.push({ type: jaxe.fmod_cb_type(), str: jaxe.fmod_cb_string() });
+            }
+        }
+        return out;
+    }
+    check('sys_set_callback_mask', jaxe.fmod_sys_set_callback_mask(0x3) === 0, '');
+    check('sys_set_studio_callback_mask', jaxe.fmod_sys_set_studio_callback_mask(0x1f) === 0, '');
+    await pump(3);
+    let sys = drainSystem();
+    const pre = sys.filter(r => r.type === 0x20000101).length;
+    const post = sys.filter(r => r.type === 0x20000102).length;
+    check('syscb_preupdate_delivered', pre > 0, `pre=${pre}`);
+    check('syscb_postupdate_delivered', post > 0, `post=${post}`);
+    const strings = jaxe.fmod_sys_load_bank_file('/Master.strings.bank', 0);
+    const extras = jaxe.fmod_sys_load_bank_file('/Extras.bank', 0);
+    check('syscb_extras_loaded', extras > 0 && strings > 0, `handle=${extras} result=${jaxe.fmod_sys_last_result()}`);
+    const extrasPath = jaxe.fmod_bank_get_path(extras);
+    check('syscb_bank_path', extrasPath === 'bank:/Extras', `path=${extrasPath}`);
+    drainSystem();
+    check('syscb_bank_unload_call', jaxe.fmod_bank_unload(extras) === 0, '');
+    await pump(3);
+    sys = drainSystem();
+    const unload = sys.filter(r => r.type === 0x20000104);
+    check('syscb_bank_unload_delivered', unload.length === 1, `count=${unload.length}`);
+    check('syscb_bank_unload_path', unload.length === 1 && unload[0].str === extrasPath,
+        `got=${unload.length ? unload[0].str : ''}`);
+    jaxe.fmod_bank_unload(strings);
+    await pump(2);
+    drainSystem();
+    check('sys_set_callback_mask_clear', jaxe.fmod_sys_set_callback_mask(0) === 0, '');
+    check('sys_set_studio_callback_mask_clear', jaxe.fmod_sys_set_studio_callback_mask(0) === 0, '');
+    await pump(3);
+    check('syscb_silent_after_clear', drainSystem().length === 0, '');
 
     await pump(3);
     check('no_handle_leaks_extras', jaxe.fmod_debug_live_handle_count() === baseline,

@@ -54,6 +54,8 @@ StudioSystem.setListenerPosition2D(0, cameraX, cameraY);
 
 Distance units are whatever your game uses. Authored min and max distances in FMOD Studio are in those same units, so a pixel-based game authors its falloff in pixels. `CoreSystem.set3DSettings(dopplerScale, distanceFactor, rolloffScale)` rescales globally.
 
+Studio events attenuate by the curve authored on their spatializer. Core channels attenuate by their 3D mode, and `set3DCustomRolloff(points)` on a `Channel`, `ChannelGroup`, or `CoreSound` replaces that with a curve of `FmodVector` points, `x` the distance and `y` the volume (unsupported in HTML5). It returns `FMOD_ERR_UNSUPPORTED` there. With `distanceFilter` on in the settings, 3D core channels also pass through a lowpass that closes with distance, and `Channel.set3DDistanceFilter` overrides it per channel. Both are described in [Core API](core-api.md#channels), and polygon occlusion between listener and source is in [Geometry occlusion](core-api.md#geometry-occlusion).
+
 ## Positioned events
 
 Any instance of a 3D event takes a position through `setPosition2D(x, y, ?velocityX, ?velocityY)` or `set3DAttributes`. Events authored without a spatializer ignore it. `EventDescription.is3D()` tells you which kind you have.

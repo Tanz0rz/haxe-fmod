@@ -11,7 +11,7 @@
 # Types are logical (exact FFI types differ per backend, e.g. f32 vs f64).
 # The checker verifies presence and arity rather than exact types.
 #
-# abi-version: 8
+# abi-version: 9
 # The binding ABI version covers the shape of the native surface. Bump it in
 # lockstep with the "hlaxe_fmod_abi=" marker in hlaxe_fmod.c, the constants in
 # the other two shims, and FmodRuntime.BINDING_ABI whenever functions are
@@ -34,6 +34,16 @@ cb_int i32 -> i32
 cb_float -> f64
 cb_string -> str
 cb_take_overflow -> bool
+# System callbacks ride the queue with handle 0 under the 0x20000000
+# namespace: core types as 0x20000000 | type, studio types as 0x20000100 | type.
+# BANK_UNLOAD carries the bank path in str (read ahead of bank_unload and
+# sys_unload_all, FMOD refuses bank reads inside the callback). Mask 0
+# removes the callback.
+# Core mask bits: DEVICELISTCHANGED 0x1, DEVICELOST 0x2. Studio mask bits:
+# PREUPDATE 0x1, POSTUPDATE 0x2, BANK_UNLOAD 0x4, LIVEUPDATE_CONNECTED 0x8,
+# LIVEUPDATE_DISCONNECTED 0x10.
+sys_set_callback_mask i32 -> i32
+sys_set_studio_callback_mask i32 -> i32
 
 # Conventions for the domain-prefixed surface:
 # - GUIDs cross the boundary as formatted strings "{8-4-4-4-12}" both ways.

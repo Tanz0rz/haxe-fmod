@@ -69,13 +69,14 @@ PCM position callbacks are not exposed since Haxe code cannot run on FMOD's thre
 
 ## 40
 <!-- Sound::set3DCustomRolloff -->
-Custom rolloff curves are not exposed because FMOD needs the point array to outlive the sound. Pick a built-in rolloff mode instead.
+Custom rolloff curves are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED. Each point is an FmodVector with x as the distance and y as the volume, and the copy FMOD needs lives with the sound until it is released.
 ```haxe
 import haxefmod.studio.CoreSound;
 import haxefmod.core.ChannelMode;
 
 var sound = CoreSound.create("assets/sfx/engine.wav");
-sound.setMode(ChannelMode.MODE_3D | ChannelMode.LINEAR_SQUARE_ROLLOFF_3D);
+sound.setMode(ChannelMode.MODE_3D);
+sound.set3DCustomRolloff([{x: 1, y: 1, z: 0}, {x: 10, y: 0.5, z: 0}, {x: 50, y: 0, z: 0}]);
 ```
 
 ## 43

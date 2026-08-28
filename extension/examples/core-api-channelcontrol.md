@@ -67,12 +67,13 @@ ChannelGroup.master().addDsp(ChannelGroup.DSP_TAIL, fft);
 
 ## 42
 <!-- ChannelControl::set3DCustomRolloff -->
-Custom rolloff curves are not exposed because FMOD needs the point array to outlive the channel. Pick a built-in rolloff mode instead.
+Custom rolloff curves are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED. Each point is an FmodVector with x as the distance and y as the volume, and the copy FMOD needs lives with the channel until it is released.
 ```haxe
 import haxefmod.core.ChannelMode;
 
-channel.setMode(ChannelMode.MODE_3D | ChannelMode.LINEAR_SQUARE_ROLLOFF_3D);
-channel.set3DMinMaxDistance(1, 20);
+channel.setMode(ChannelMode.MODE_3D);
+channel.set3DCustomRolloff([{x: 1, y: 1, z: 0}, {x: 10, y: 0.5, z: 0}, {x: 50, y: 0, z: 0}]);
+var points = channel.get3DCustomRolloff();
 ```
 
 ## 67

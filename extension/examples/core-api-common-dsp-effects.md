@@ -489,7 +489,7 @@ pan.setParameter(15, 2); // _3D_SOUND_SIZE
 
 ## 40
 <!-- FMOD_DSP_PAN_3D_ROLLOFF_TYPE -->
-The rolloff is an int with these enum values, set through setParameterInt on index 11 (_3D_ROLLOFF). CUSTOM needs a rolloff curve, which is not exposed.
+The rolloff is an int with these enum values, set through setParameterInt on index 11 (_3D_ROLLOFF). CUSTOM needs a curve handed to the pan unit through a data parameter, which is not exposed, so a custom curve goes on the channel instead with Channel.set3DCustomRolloff (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED.
 ```haxe
 import haxefmod.core.Dsp;
 import haxefmod.core.DspType;

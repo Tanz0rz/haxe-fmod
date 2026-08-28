@@ -34,6 +34,9 @@ Browsers refuse to start audio before the user interacts with the page. The libr
 - Numeric user properties. Reading an integer, boolean, or float user property crashes FMOD's runtime, so those reads return `FMOD_ERR_UNSUPPORTED`. String properties work.
 - Live Update. FMOD does not support it in browsers.
 - Firefox never delivers `NestedTimelineBeat`, and fires an extra empty callback alongside each real marker. Chromium-based browsers deliver both correctly.
+- Geometry occlusion, microphone recording, custom 3D rolloff curves, and sample readback. These are native only, and [Limitations](limitations.md#html5) lists what each call returns on HTML5.
+
+A call from that native-only group is a compile error in a js build. The compiler stops at the call site, names the method and the reason, and points at the opt-out, so a web build cannot ship a call that silently does nothing. Projects that share code across targets and branch at runtime set `-D haxefmod_html5_allow_unsupported`. The calls then compile, return `FMOD_ERR_UNSUPPORTED` at runtime in the browser, and the library prints one warning per build saying so.
 
 ## HashLink
 
@@ -72,6 +75,8 @@ lime test hl
 ```
 
 Bank files require an engine at least as new as the FMOD Studio that built them, so the Studio version and the engine version move together.
+
+`StudioSystem.getVersion()` reports the engine version the running build actually loaded, as a string like `"2.03.12"`. Log it at startup to confirm that `FMOD_SDK`, `FMOD_SDK_WEB`, or the hdll points where you expect.
 
 ## Live Update
 

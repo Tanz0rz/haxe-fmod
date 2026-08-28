@@ -396,6 +396,8 @@ extern int fmod_binding_abi_version();
 
 // Channel callbacks and sync points
 extern int fmod_chan_set_callback(int handle, bool enabled);
+extern int fmod_sys_set_callback_mask(int mask);
+extern int fmod_sys_set_studio_callback_mask(int mask);
 extern int fmod_sound_add_sync_point(int handle, int offsetMs, const ::String& name);
 extern int fmod_sound_delete_sync_point(int handle, int index);
 extern int fmod_sound_get_num_sync_points(int handle);

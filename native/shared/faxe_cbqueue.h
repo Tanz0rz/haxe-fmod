@@ -167,4 +167,68 @@ static int faxe_cbq_take_overflow(void) {
     return overflowed;
 }
 
+/* Bank paths for the Studio BANK_UNLOAD callback. FMOD refuses reads on
+ * the bank inside that callback (NOTREADY), so the unload paths stash the
+ * path here first, keyed by the bank pointer, and the callback takes it.
+ * Guarded by the queue lock: written on the Haxe thread, read on the
+ * Studio thread. A full table overwrites the oldest entry. */
+#define FAXE_BANKPATH_CAPACITY 32
+
+typedef struct {
+    const void* bank;
+    char path[FAXE_CBQ_STR_MAX];
+} FaxeBankPathEntry;
+
+static FaxeBankPathEntry gBankPaths[FAXE_BANKPATH_CAPACITY];
+static int gBankPathHead = 0;
+
+static void faxe_bankpath_put(const void* bank, const char* path) {
+    int i;
+    if (!gCbqInitialized || !bank || !path || !path[0]) return;
+    faxe_cbq_lock();
+    for (i = 0; i < FAXE_BANKPATH_CAPACITY; i++) {
+        if (gBankPaths[i].bank == bank) break;
+    }
+    if (i == FAXE_BANKPATH_CAPACITY) {
+        i = gBankPathHead;
+        gBankPathHead = (gBankPathHead + 1) % FAXE_BANKPATH_CAPACITY;
+    }
+    gBankPaths[i].bank = bank;
+    strncpy(gBankPaths[i].path, path, FAXE_CBQ_STR_MAX - 1);
+    gBankPaths[i].path[FAXE_CBQ_STR_MAX - 1] = '\0';
+    faxe_cbq_unlock();
+}
+
+/* Copies the stashed path into out (FAXE_CBQ_STR_MAX bytes) and frees
+ * the entry. Returns 1 when found, 0 otherwise (out is then empty). */
+static int faxe_bankpath_take(const void* bank, char* out) {
+    int i;
+    int found = 0;
+    out[0] = '\0';
+    if (!gCbqInitialized || !bank) return 0;
+    faxe_cbq_lock();
+    for (i = 0; i < FAXE_BANKPATH_CAPACITY; i++) {
+        if (gBankPaths[i].bank == bank) {
+            memcpy(out, gBankPaths[i].path, FAXE_CBQ_STR_MAX);
+            gBankPaths[i].bank = NULL;
+            gBankPaths[i].path[0] = '\0';
+            found = 1;
+            break;
+        }
+    }
+    faxe_cbq_unlock();
+    return found;
+}
+
+static void faxe_bankpath_clear(void) {
+    int i;
+    if (!gCbqInitialized) return;
+    faxe_cbq_lock();
+    for (i = 0; i < FAXE_BANKPATH_CAPACITY; i++) {
+        gBankPaths[i].bank = NULL;
+        gBankPaths[i].path[0] = '\0';
+    }
+    faxe_cbq_unlock();
+}
+
 #endif /* FAXE_CBQUEUE_H */

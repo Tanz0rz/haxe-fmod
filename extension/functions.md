@@ -4,14 +4,6 @@
 <!-- Channel::getChannelGroup -->
 Not exposed. The group a channel plays in is the one you passed to Channel.setChannelGroup, or the master group by default, so keep that reference on the game side.
 
-## channelcontrol_get3dcustomrolloff
-<!-- ChannelControl::get3DCustomRolloff -->
-Not exposed. Custom 3D rolloff curves are left out because FMOD needs the point array to stay allocated for the object's lifetime, which a marshaled copy cannot guarantee. The built-in rolloff modes are selected through setMode on the channel or group.
-
-## channelcontrol_get3ddistancefilter
-<!-- ChannelControl::get3DDistanceFilter -->
-Not exposed. The distance filter is left out with the other 3D curve overrides. Channel.getLowPassGain reads the filter gain you applied directly.
-
 ## channelcontrol_getdspindex
 <!-- ChannelControl::getDSPIndex -->
 Not exposed. Channel.getDspCount() and Channel.getDsp(index) walk the chain in order, so the index of a unit is the position where getDsp returns it.
@@ -36,14 +28,6 @@ var format = CoreSystem.getSoftwareFormat();
 ## channelcontrol_getuserdata
 <!-- ChannelControl::getUserData -->
 Not exposed. Userdata on FMOD objects is left out because the binding's handle table already carries object identity. Keep your own map from the handle to your data, handles are ints and work as keys.
-
-## channelcontrol_set3dcustomrolloff
-<!-- ChannelControl::set3DCustomRolloff -->
-Not exposed. Custom 3D rolloff curves are left out because FMOD needs the point array to stay allocated for the object's lifetime, which a marshaled copy cannot guarantee. The built-in rolloff modes are selected through setMode on the channel or group.
-
-## channelcontrol_set3ddistancefilter
-<!-- ChannelControl::set3DDistanceFilter -->
-Not exposed. The distance filter is left out with the other 3D curve overrides. Channel.setLowPassGain and ChannelGroup.setLowPassGain apply a filter directly, and Studio events can author distance-driven filters.
 
 ## channelcontrol_setdspindex
 <!-- ChannelControl::setDSPIndex -->
@@ -142,81 +126,9 @@ Not exposed. Per-connection mix matrices are left out. DspConnection.setMix sets
 <!-- DSPConnection::setUserData -->
 Not exposed. Userdata on FMOD objects is left out because the binding's handle table already carries object identity. Keep your own map from the handle to your data, handles are ints and work as keys.
 
-## geometry_addpolygon
-<!-- Geometry::addPolygon -->
-Not exposed. Geometry-based occlusion is left out because the web build reports it unsupported. Drive an event parameter from a game-side raycast instead, or set manual occlusion with Channel.set3DOcclusion and ChannelGroup.set3DOcclusion.
-
-## geometry_getactive
-<!-- Geometry::getActive -->
-Not exposed. Geometry-based occlusion is left out because the web build reports it unsupported. Drive an event parameter from a game-side raycast instead, or set manual occlusion with Channel.set3DOcclusion and ChannelGroup.set3DOcclusion.
-
-## geometry_getmaxpolygons
-<!-- Geometry::getMaxPolygons -->
-Not exposed. Geometry-based occlusion is left out because the web build reports it unsupported. Drive an event parameter from a game-side raycast instead, or set manual occlusion with Channel.set3DOcclusion and ChannelGroup.set3DOcclusion.
-
-## geometry_getnumpolygons
-<!-- Geometry::getNumPolygons -->
-Not exposed. Geometry-based occlusion is left out because the web build reports it unsupported. Drive an event parameter from a game-side raycast instead, or set manual occlusion with Channel.set3DOcclusion and ChannelGroup.set3DOcclusion.
-
-## geometry_getpolygonattributes
-<!-- Geometry::getPolygonAttributes -->
-Not exposed. Geometry-based occlusion is left out because the web build reports it unsupported. Drive an event parameter from a game-side raycast instead, or set manual occlusion with Channel.set3DOcclusion and ChannelGroup.set3DOcclusion.
-
-## geometry_getpolygonnumvertices
-<!-- Geometry::getPolygonNumVertices -->
-Not exposed. Geometry-based occlusion is left out because the web build reports it unsupported. Drive an event parameter from a game-side raycast instead, or set manual occlusion with Channel.set3DOcclusion and ChannelGroup.set3DOcclusion.
-
-## geometry_getpolygonvertex
-<!-- Geometry::getPolygonVertex -->
-Not exposed. Geometry-based occlusion is left out because the web build reports it unsupported. Drive an event parameter from a game-side raycast instead, or set manual occlusion with Channel.set3DOcclusion and ChannelGroup.set3DOcclusion.
-
-## geometry_getposition
-<!-- Geometry::getPosition -->
-Not exposed. Geometry-based occlusion is left out because the web build reports it unsupported. Drive an event parameter from a game-side raycast instead, or set manual occlusion with Channel.set3DOcclusion and ChannelGroup.set3DOcclusion.
-
-## geometry_getrotation
-<!-- Geometry::getRotation -->
-Not exposed. Geometry-based occlusion is left out because the web build reports it unsupported. Drive an event parameter from a game-side raycast instead, or set manual occlusion with Channel.set3DOcclusion and ChannelGroup.set3DOcclusion.
-
-## geometry_getscale
-<!-- Geometry::getScale -->
-Not exposed. Geometry-based occlusion is left out because the web build reports it unsupported. Drive an event parameter from a game-side raycast instead, or set manual occlusion with Channel.set3DOcclusion and ChannelGroup.set3DOcclusion.
-
 ## geometry_getuserdata
 <!-- Geometry::getUserData -->
 Not exposed. Userdata on FMOD objects is left out because the binding's handle table already carries object identity. Keep your own map from the handle to your data, handles are ints and work as keys.
-
-## geometry_release
-<!-- Geometry::release -->
-Not exposed. Geometry-based occlusion is left out because the web build reports it unsupported. Drive an event parameter from a game-side raycast instead, or set manual occlusion with Channel.set3DOcclusion and ChannelGroup.set3DOcclusion.
-
-## geometry_save
-<!-- Geometry::save -->
-Not exposed. Geometry-based occlusion is left out because the web build reports it unsupported. Drive an event parameter from a game-side raycast instead, or set manual occlusion with Channel.set3DOcclusion and ChannelGroup.set3DOcclusion.
-
-## geometry_setactive
-<!-- Geometry::setActive -->
-Not exposed. Geometry-based occlusion is left out because the web build reports it unsupported. Drive an event parameter from a game-side raycast instead, or set manual occlusion with Channel.set3DOcclusion and ChannelGroup.set3DOcclusion.
-
-## geometry_setpolygonattributes
-<!-- Geometry::setPolygonAttributes -->
-Not exposed. Geometry-based occlusion is left out because the web build reports it unsupported. Drive an event parameter from a game-side raycast instead, or set manual occlusion with Channel.set3DOcclusion and ChannelGroup.set3DOcclusion.
-
-## geometry_setpolygonvertex
-<!-- Geometry::setPolygonVertex -->
-Not exposed. Geometry-based occlusion is left out because the web build reports it unsupported. Drive an event parameter from a game-side raycast instead, or set manual occlusion with Channel.set3DOcclusion and ChannelGroup.set3DOcclusion.
-
-## geometry_setposition
-<!-- Geometry::setPosition -->
-Not exposed. Geometry-based occlusion is left out because the web build reports it unsupported. Drive an event parameter from a game-side raycast instead, or set manual occlusion with Channel.set3DOcclusion and ChannelGroup.set3DOcclusion.
-
-## geometry_setrotation
-<!-- Geometry::setRotation -->
-Not exposed. Geometry-based occlusion is left out because the web build reports it unsupported. Drive an event parameter from a game-side raycast instead, or set manual occlusion with Channel.set3DOcclusion and ChannelGroup.set3DOcclusion.
-
-## geometry_setscale
-<!-- Geometry::setScale -->
-Not exposed. Geometry-based occlusion is left out because the web build reports it unsupported. Drive an event parameter from a game-side raycast instead, or set manual occlusion with Channel.set3DOcclusion and ChannelGroup.set3DOcclusion.
 
 ## geometry_setuserdata
 <!-- Geometry::setUserData -->
@@ -287,10 +199,6 @@ Not exposed. Userdata on FMOD objects is left out because the binding's handle t
 <!-- Sound::get3DConeSettings -->
 Not exposed on the sound. Cone settings are bound on the channel and the group, so read them with Channel.get3DConeSettings or ChannelGroup.get3DConeSettings.
 
-## sound_get3dcustomrolloff
-<!-- Sound::get3DCustomRolloff -->
-Not exposed. Custom 3D rolloff curves are left out because FMOD needs the point array to stay allocated for the object's lifetime, which a marshaled copy cannot guarantee. The built-in rolloff modes are selected through setMode on the channel or group.
-
 ## sound_get3dminmaxdistance
 <!-- Sound::get3DMinMaxDistance -->
 Not exposed on the sound. Min and max distance are bound on the channel and the group, so read them with Channel.get3DMinMaxDistance or ChannelGroup.get3DMinMaxDistance.
@@ -342,23 +250,23 @@ Not exposed. Userdata on FMOD objects is left out because the binding's handle t
 
 ## sound_lock
 <!-- Sound::lock -->
-Not exposed. Sample readback is unsupported on the web build, so lock, unlock, readData, and seekData are left out. Games that need waveform data keep their own copy of the PCM they feed through PcmStream or CoreSound.fromPcm.
+Not exposed. lock and unlock hand out raw pointers into the sample buffer, which Haxe code never holds. CoreSound.readData reads decoded PCM out of a sound opened with the openOnly flag of CoreSound.create, and seekData moves the read cursor. Both are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED.
+```haxe
+import haxefmod.studio.CoreSound;
 
-## sound_readdata
-<!-- Sound::readData -->
-Not exposed. Sample readback is unsupported on the web build, so lock, unlock, readData, and seekData are left out. Games that need waveform data keep their own copy of the PCM they feed through PcmStream or CoreSound.fromPcm.
-
-## sound_seekdata
-<!-- Sound::seekData -->
-Not exposed. Sample readback is unsupported on the web build, so lock, unlock, readData, and seekData are left out. Games that need waveform data keep their own copy of the PCM they feed through PcmStream or CoreSound.fromPcm.
+var sound = CoreSound.create("assets/sfx/engine.wav", false, true);
+var buffer = haxe.io.Bytes.alloc(4096);
+var read = sound.readData(buffer);
+while (read > 0) {
+    // the first read bytes of buffer hold decoded PCM
+    read = sound.readData(buffer);
+}
+sound.release();
+```
 
 ## sound_set3dconesettings
 <!-- Sound::set3DConeSettings -->
 Not exposed on the sound. Cone settings are bound on the channel and the group, so set them with Channel.set3DConeSettings after play or with ChannelGroup.set3DConeSettings for a whole group.
-
-## sound_set3dcustomrolloff
-<!-- Sound::set3DCustomRolloff -->
-Not exposed. Custom 3D rolloff curves are left out because FMOD needs the point array to stay allocated for the object's lifetime, which a marshaled copy cannot guarantee. The built-in rolloff modes are selected through setMode on the channel or group.
 
 ## sound_set3dminmaxdistance
 <!-- Sound::set3DMinMaxDistance -->
@@ -374,7 +282,19 @@ Not exposed. Tracker music channel control (MOD, S3M, XM per-channel access) is 
 
 ## sound_unlock
 <!-- Sound::unlock -->
-Not exposed. Sample readback is unsupported on the web build, so lock, unlock, readData, and seekData are left out. Games that need waveform data keep their own copy of the PCM they feed through PcmStream or CoreSound.fromPcm.
+Not exposed. lock and unlock hand out raw pointers into the sample buffer, which Haxe code never holds. CoreSound.readData reads decoded PCM out of a sound opened with the openOnly flag of CoreSound.create, and seekData moves the read cursor. Both are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED.
+```haxe
+import haxefmod.studio.CoreSound;
+
+var sound = CoreSound.create("assets/sfx/engine.wav", false, true);
+var buffer = haxe.io.Bytes.alloc(4096);
+var read = sound.readData(buffer);
+while (read > 0) {
+    // the first read bytes of buffer hold decoded PCM
+    read = sound.readData(buffer);
+}
+sound.release();
+```
 
 ## soundgroup_getname
 <!-- SoundGroup::getName -->
@@ -429,11 +349,11 @@ FmodManager.Initialize({numChannels: 256, sampleRate: 48000});
 
 ## system_createdsp
 <!-- System::createDSP -->
-Not exposed. A DSP description carries callbacks that would run on FMOD's mixer thread, which no Haxe target can do. All 33 built-in DSP types are created with Dsp.create(type).
+Not exposed. A DSP description carries callbacks that would run on FMOD's mixer thread, which no Haxe target can do, so creating a unit from a description stays out for good. All 33 built-in DSP types are created with Dsp.create(type).
 
 ## system_createdspbyplugin
 <!-- System::createDSPByPlugin -->
-Not exposed. Third-party plugins and custom codecs, DSPs, and outputs run code on FMOD threads, which no Haxe target can do, and the web build has no plugin host at all. The 33 built-in DSP types are bound through Dsp.create.
+Not bound yet. Loading a prebuilt plugin binary runs the plugin's own code on FMOD's threads with no Haxe involved, so nothing rules it out, it is deferred until CI has a plugin binary to test against. Until then a Studio project that uses plugin effects cannot load them from haxefmod. The 33 built-in DSP types are bound through Dsp.create. HTML5 has no plugin host (unsupported in HTML5), so the call will return FMOD_ERR_UNSUPPORTED there once it lands.
 
 ## system_createdspconnection
 <!-- System::createDSPConnection -->
@@ -447,10 +367,6 @@ var fft = Dsp.create(DspType.FFT);
 var connection = fft.addInput(reverb);
 connection.setMix(0.5);
 ```
-
-## system_creategeometry
-<!-- System::createGeometry -->
-Not exposed. Geometry-based occlusion is left out because the web build reports it unsupported. Drive an event parameter from a game-side raycast instead, or set manual occlusion with Channel.set3DOcclusion and ChannelGroup.set3DOcclusion.
 
 ## system_createstream
 <!-- System::createStream -->
@@ -507,11 +423,18 @@ Not exposed. Speaker geometry and mix matrix readback are left out. Channel.setM
 
 ## system_getdspbuffersize
 <!-- System::getDSPBufferSize -->
-Not exposed. The library owns init, and the mixer buffer stays at FMOD's default on native targets and 2048 samples by 2 buffers on HTML5.
+Covered by FmodSettings. The mixer buffer is set once at init through dspBufferSize and dspNumBuffers, and FmodRuntime.settings() reports the values the engine started with, 0 when FMOD's default was kept. Both are native only (unsupported in HTML5), where the web build fixes the mixer at 2048 samples by 2 buffers.
+```haxe
+import haxefmod.runtime.FmodRuntime;
+
+FmodManager.Initialize({dspBufferSize: 512, dspNumBuffers: 4});
+var settings = FmodRuntime.settings();
+trace('mixer ${settings.dspBufferSize} x ${settings.dspNumBuffers}');
+```
 
 ## system_getdspinfobyplugin
 <!-- System::getDSPInfoByPlugin -->
-Not exposed. Third-party plugins and custom codecs, DSPs, and outputs run code on FMOD threads, which no Haxe target can do, and the web build has no plugin host at all. The 33 built-in DSP types are bound through Dsp.create.
+Not bound yet. Loading a prebuilt plugin binary runs the plugin's own code on FMOD's threads with no Haxe involved, so nothing rules it out, it is deferred until CI has a plugin binary to test against. Until then a Studio project that uses plugin effects cannot load them from haxefmod. The 33 built-in DSP types are bound through Dsp.create. HTML5 has no plugin host (unsupported in HTML5), so the call will return FMOD_ERR_UNSUPPORTED there once it lands.
 
 ## system_getdspinfobytype
 <!-- System::getDSPInfoByType -->
@@ -521,17 +444,9 @@ Not exposed. DSP metadata lookup is left out with the plugin APIs. Dsp.getName()
 <!-- System::getFileUsage -->
 Not exposed. File IO statistics are a tooling diagnostic with no cross-platform story, and the web build has no file system to count. StudioSystem.getBufferUsage() reports the Studio command and handle buffer usage.
 
-## system_getgeometryocclusion
-<!-- System::getGeometryOcclusion -->
-Not exposed. Geometry-based occlusion is left out because the web build reports it unsupported. Drive an event parameter from a game-side raycast instead, or set manual occlusion with Channel.set3DOcclusion and ChannelGroup.set3DOcclusion.
-
-## system_getgeometrysettings
-<!-- System::getGeometrySettings -->
-Not exposed. Geometry-based occlusion is left out because the web build reports it unsupported. Drive an event parameter from a game-side raycast instead, or set manual occlusion with Channel.set3DOcclusion and ChannelGroup.set3DOcclusion.
-
 ## system_getnestedplugin
 <!-- System::getNestedPlugin -->
-Not exposed. Third-party plugins and custom codecs, DSPs, and outputs run code on FMOD threads, which no Haxe target can do, and the web build has no plugin host at all. The 33 built-in DSP types are bound through Dsp.create.
+Not bound yet. Loading a prebuilt plugin binary runs the plugin's own code on FMOD's threads with no Haxe involved, so nothing rules it out, it is deferred until CI has a plugin binary to test against. Until then a Studio project that uses plugin effects cannot load them from haxefmod. The 33 built-in DSP types are bound through Dsp.create. HTML5 has no plugin host (unsupported in HTML5), so the call will return FMOD_ERR_UNSUPPORTED there once it lands.
 
 ## system_getnetworkproxy
 <!-- System::getNetworkProxy -->
@@ -543,11 +458,11 @@ Not exposed. Network streaming is left out, the library keeps FMOD's default net
 
 ## system_getnumnestedplugins
 <!-- System::getNumNestedPlugins -->
-Not exposed. Third-party plugins and custom codecs, DSPs, and outputs run code on FMOD threads, which no Haxe target can do, and the web build has no plugin host at all. The 33 built-in DSP types are bound through Dsp.create.
+Not bound yet. Loading a prebuilt plugin binary runs the plugin's own code on FMOD's threads with no Haxe involved, so nothing rules it out, it is deferred until CI has a plugin binary to test against. Until then a Studio project that uses plugin effects cannot load them from haxefmod. The 33 built-in DSP types are bound through Dsp.create. HTML5 has no plugin host (unsupported in HTML5), so the call will return FMOD_ERR_UNSUPPORTED there once it lands.
 
 ## system_getnumplugins
 <!-- System::getNumPlugins -->
-Not exposed. Third-party plugins and custom codecs, DSPs, and outputs run code on FMOD threads, which no Haxe target can do, and the web build has no plugin host at all. The 33 built-in DSP types are bound through Dsp.create.
+Not bound yet. Loading a prebuilt plugin binary runs the plugin's own code on FMOD's threads with no Haxe involved, so nothing rules it out, it is deferred until CI has a plugin binary to test against. Until then a Studio project that uses plugin effects cannot load them from haxefmod. The 33 built-in DSP types are bound through Dsp.create. HTML5 has no plugin host (unsupported in HTML5), so the call will return FMOD_ERR_UNSUPPORTED there once it lands.
 
 ## system_getoutput
 <!-- System::getOutput -->
@@ -563,27 +478,21 @@ Not exposed. Haxe code never holds a raw pointer, and the library keeps FMOD's d
 
 ## system_getpluginhandle
 <!-- System::getPluginHandle -->
-Not exposed. Third-party plugins and custom codecs, DSPs, and outputs run code on FMOD threads, which no Haxe target can do, and the web build has no plugin host at all. The 33 built-in DSP types are bound through Dsp.create.
+Not bound yet. Loading a prebuilt plugin binary runs the plugin's own code on FMOD's threads with no Haxe involved, so nothing rules it out, it is deferred until CI has a plugin binary to test against. Until then a Studio project that uses plugin effects cannot load them from haxefmod. The 33 built-in DSP types are bound through Dsp.create. HTML5 has no plugin host (unsupported in HTML5), so the call will return FMOD_ERR_UNSUPPORTED there once it lands.
 
 ## system_getplugininfo
 <!-- System::getPluginInfo -->
-Not exposed. Third-party plugins and custom codecs, DSPs, and outputs run code on FMOD threads, which no Haxe target can do, and the web build has no plugin host at all. The 33 built-in DSP types are bound through Dsp.create.
-
-## system_getrecorddriverinfo
-<!-- System::getRecordDriverInfo -->
-Not exposed. Microphone recording is left out because browser permission flows make its behavior environment-dependent and untestable in CI. Feed captured audio you obtain elsewhere through PcmStream or CoreSound.fromPcm.
-
-## system_getrecordnumdrivers
-<!-- System::getRecordNumDrivers -->
-Not exposed. Microphone recording is left out because browser permission flows make its behavior environment-dependent and untestable in CI. Feed captured audio you obtain elsewhere through PcmStream or CoreSound.fromPcm.
-
-## system_getrecordposition
-<!-- System::getRecordPosition -->
-Not exposed. Microphone recording is left out because browser permission flows make its behavior environment-dependent and untestable in CI. Feed captured audio you obtain elsewhere through PcmStream or CoreSound.fromPcm.
+Not bound yet. Loading a prebuilt plugin binary runs the plugin's own code on FMOD's threads with no Haxe involved, so nothing rules it out, it is deferred until CI has a plugin binary to test against. Until then a Studio project that uses plugin effects cannot load them from haxefmod. The 33 built-in DSP types are bound through Dsp.create. HTML5 has no plugin host (unsupported in HTML5), so the call will return FMOD_ERR_UNSUPPORTED there once it lands.
 
 ## system_getsoftwarechannels
 <!-- System::getSoftwareChannels -->
-Not exposed. The library owns init, and the software channel count stays at FMOD's default. FmodRuntime.settings().numChannels reports the virtual voice count the engine started with.
+Covered by FmodSettings. The audible voice cap is set once at init through softwareChannels, and FmodRuntime.settings().softwareChannels reports the value the engine started with, 0 when FMOD's default of 64 was kept.
+```haxe
+import haxefmod.runtime.FmodRuntime;
+
+FmodManager.Initialize({softwareChannels: 128});
+var voices = FmodRuntime.settings().softwareChannels;
+```
 
 ## system_getspeakermodechannels
 <!-- System::getSpeakerModeChannels -->
@@ -595,15 +504,17 @@ Not exposed. Speaker geometry APIs are left out, and the mixer runs with FMOD's 
 
 ## system_getstreambuffersize
 <!-- System::getStreamBufferSize -->
-Not exposed. The library owns init and keeps FMOD's default file stream buffer. PcmStream.space() reports how much room a stream you feed yourself has left.
+Covered by FmodSettings. The file stream buffer is set once at init through streamBufferSize, and FmodRuntime.settings().streamBufferSize reports the value the engine started with, 0 when FMOD's default of 16384 bytes was kept. PcmStream.space() reports how much room a stream you feed yourself has left.
+```haxe
+import haxefmod.runtime.FmodRuntime;
+
+FmodManager.Initialize({streamBufferSize: 65536});
+var bytes = FmodRuntime.settings().streamBufferSize;
+```
 
 ## system_getuserdata
 <!-- System::getUserData -->
 Not exposed. Userdata on FMOD objects is left out because the binding's handle table already carries object identity. Keep your own map from the handle to your data, handles are ints and work as keys.
-
-## system_getversion
-<!-- System::getVersion -->
-Not exposed. haxefmod ships against one FMOD version (2.03.12 for this release) and the native binding checks its own ABI at init, so there is nothing to query at runtime. docs/coverage.md names the FMOD version each release is built against.
 
 ## system_init
 <!-- System::init -->
@@ -612,41 +523,25 @@ haxefmod calls this for you. FmodManager.Initialize() (or FmodRuntime.init()) cr
 FmodManager.Initialize({numChannels: 256, sampleRate: 48000});
 ```
 
-## system_isrecording
-<!-- System::isRecording -->
-Not exposed. Microphone recording is left out because browser permission flows make its behavior environment-dependent and untestable in CI. Feed captured audio you obtain elsewhere through PcmStream or CoreSound.fromPcm.
-
-## system_loadgeometry
-<!-- System::loadGeometry -->
-Not exposed. Geometry-based occlusion is left out because the web build reports it unsupported. Drive an event parameter from a game-side raycast instead, or set manual occlusion with Channel.set3DOcclusion and ChannelGroup.set3DOcclusion.
-
 ## system_loadplugin
 <!-- System::loadPlugin -->
-Not exposed. Third-party plugins and custom codecs, DSPs, and outputs run code on FMOD threads, which no Haxe target can do, and the web build has no plugin host at all. The 33 built-in DSP types are bound through Dsp.create.
+Not bound yet. Loading a prebuilt plugin binary runs the plugin's own code on FMOD's threads with no Haxe involved, so nothing rules it out, it is deferred until CI has a plugin binary to test against. Until then a Studio project that uses plugin effects cannot load them from haxefmod. The 33 built-in DSP types are bound through Dsp.create. HTML5 has no plugin host (unsupported in HTML5), so the call will return FMOD_ERR_UNSUPPORTED there once it lands.
 
 ## system_lockdsp
 <!-- System::lockDSP -->
 Not exposed. Haxe code cannot run on FMOD's mixer thread, so there is nothing to lock the DSP graph against. Effects are added and removed with Dsp, Channel.addDsp, and ChannelGroup.addDsp without locking.
 
-## system_recordstart
-<!-- System::recordStart -->
-Not exposed. Microphone recording is left out because browser permission flows make its behavior environment-dependent and untestable in CI. Feed captured audio you obtain elsewhere through PcmStream or CoreSound.fromPcm.
-
-## system_recordstop
-<!-- System::recordStop -->
-Not exposed. Microphone recording is left out because browser permission flows make its behavior environment-dependent and untestable in CI. Feed captured audio you obtain elsewhere through PcmStream or CoreSound.fromPcm.
-
 ## system_registercodec
 <!-- System::registerCodec -->
-Not exposed. Third-party plugins and custom codecs, DSPs, and outputs run code on FMOD threads, which no Haxe target can do, and the web build has no plugin host at all. The 33 built-in DSP types are bound through Dsp.create.
+Not exposed. Registering a plugin from a description hands FMOD callbacks that would run on its mixer and streaming threads, which no Haxe target can do, so this stays out for good. Loading a prebuilt plugin binary with System::loadPlugin is a separate case that is deferred rather than impossible. The 33 built-in DSP types are bound through Dsp.create.
 
 ## system_registerdsp
 <!-- System::registerDSP -->
-Not exposed. Third-party plugins and custom codecs, DSPs, and outputs run code on FMOD threads, which no Haxe target can do, and the web build has no plugin host at all. The 33 built-in DSP types are bound through Dsp.create.
+Not exposed. Registering a plugin from a description hands FMOD callbacks that would run on its mixer and streaming threads, which no Haxe target can do, so this stays out for good. Loading a prebuilt plugin binary with System::loadPlugin is a separate case that is deferred rather than impossible. The 33 built-in DSP types are bound through Dsp.create.
 
 ## system_registeroutput
 <!-- System::registerOutput -->
-Not exposed. Third-party plugins and custom codecs, DSPs, and outputs run code on FMOD threads, which no Haxe target can do, and the web build has no plugin host at all. The 33 built-in DSP types are bound through Dsp.create.
+Not exposed. Registering a plugin from a description hands FMOD callbacks that would run on its mixer and streaming threads, which no Haxe target can do, so this stays out for good. Loading a prebuilt plugin binary with System::loadPlugin is a separate case that is deferred rather than impossible. The 33 built-in DSP types are bound through Dsp.create.
 
 ## system_release
 <!-- System::release -->
@@ -679,19 +574,25 @@ Not exposed. The library owns init, and FMOD_ADVANCEDSETTINGS is left at its def
 
 ## system_setcallback
 <!-- System::setCallback -->
-Not exposed. System diagnostic callbacks are FMOD tooling hooks that would run on FMOD threads, which no Haxe target can do safely. Set FmodSettings.logLevel or call FmodManager.EnableDebugMessages() to see engine errors in the log.
+StudioSystem.setSystemCallback delivers the core system events (device list changed, device lost) from FmodManager.Update() on the game thread, next to the Studio system events on the same handler. Engine errors are not among them, set FmodSettings.logLevel or call FmodManager.EnableDebugMessages() to see those in the log.
+The handler is a function that takes the event and switches on it, so a game that only cares about device changes matches the device list changed case and leaves the default branch empty.
+```haxe
+StudioSystem.setSystemCallback(event -> switch (event) {
+    case DeviceListChanged: trace("devices changed");
+    default:
+});
+```
 
 ## system_setdspbuffersize
 <!-- System::setDSPBufferSize -->
-Not exposed. The library owns init, and the mixer buffer stays at FMOD's default on native targets and 2048 samples by 2 buffers on HTML5.
+Covered by FmodSettings. FMOD only accepts the mixer buffer before init, so pass dspBufferSize (samples) and dspNumBuffers to FmodManager.Initialize(). Both are native only (unsupported in HTML5), where the web build fixes the mixer at 2048 samples by 2 buffers and ignores them.
+```haxe
+FmodManager.Initialize({dspBufferSize: 512, dspNumBuffers: 4});
+```
 
 ## system_setfilesystem
 <!-- System::setFileSystem -->
 Not exposed. Custom file systems need IO callbacks that run on FMOD threads, which no Haxe target can do safely. StudioSystem.loadBankFile and loadBankMemory are the supported bank paths, and CoreSound.create and CoreSound.fromPcm are the sound paths.
-
-## system_setgeometrysettings
-<!-- System::setGeometrySettings -->
-Not exposed. Geometry-based occlusion is left out because the web build reports it unsupported. Drive an event parameter from a game-side raycast instead, or set manual occlusion with Channel.set3DOcclusion and ChannelGroup.set3DOcclusion.
 
 ## system_setnetworkproxy
 <!-- System::setNetworkProxy -->
@@ -707,11 +608,14 @@ Not exposed. Output plugins are third-party code that would run on FMOD threads,
 
 ## system_setpluginpath
 <!-- System::setPluginPath -->
-Not exposed. Third-party plugins and custom codecs, DSPs, and outputs run code on FMOD threads, which no Haxe target can do, and the web build has no plugin host at all. The 33 built-in DSP types are bound through Dsp.create.
+Not bound yet. Loading a prebuilt plugin binary runs the plugin's own code on FMOD's threads with no Haxe involved, so nothing rules it out, it is deferred until CI has a plugin binary to test against. Until then a Studio project that uses plugin effects cannot load them from haxefmod. The 33 built-in DSP types are bound through Dsp.create. HTML5 has no plugin host (unsupported in HTML5), so the call will return FMOD_ERR_UNSUPPORTED there once it lands.
 
 ## system_setsoftwarechannels
 <!-- System::setSoftwareChannels -->
-Not exposed. The library owns init, and the software channel count stays at FMOD's default. FmodSettings.numChannels sets the virtual voice count that Studio initializes with.
+Covered by FmodSettings. FMOD only accepts the audible voice cap before init, so pass softwareChannels to FmodManager.Initialize(). It is separate from numChannels, which is the virtual voice count Studio initializes with.
+```haxe
+FmodManager.Initialize({numChannels: 256, softwareChannels: 128});
+```
 
 ## system_setspeakerposition
 <!-- System::setSpeakerPosition -->
@@ -719,7 +623,10 @@ Not exposed. Speaker geometry APIs are left out, and the mixer runs with FMOD's 
 
 ## system_setstreambuffersize
 <!-- System::setStreamBufferSize -->
-Not exposed. The library owns init and keeps FMOD's default file stream buffer. The ringBytes argument of PcmStream.create sizes the buffer of a stream you feed yourself.
+Covered by FmodSettings. FMOD only accepts the file stream buffer before init, so pass streamBufferSize (bytes) to FmodManager.Initialize(). The ringBytes argument of PcmStream.create sizes the buffer of a stream you feed yourself.
+```haxe
+FmodManager.Initialize({streamBufferSize: 65536});
+```
 
 ## system_setuserdata
 <!-- System::setUserData -->
@@ -727,7 +634,7 @@ Not exposed. Userdata on FMOD objects is left out because the binding's handle t
 
 ## system_unloadplugin
 <!-- System::unloadPlugin -->
-Not exposed. Third-party plugins and custom codecs, DSPs, and outputs run code on FMOD threads, which no Haxe target can do, and the web build has no plugin host at all. The 33 built-in DSP types are bound through Dsp.create.
+Not bound yet. Loading a prebuilt plugin binary runs the plugin's own code on FMOD's threads with no Haxe involved, so nothing rules it out, it is deferred until CI has a plugin binary to test against. Until then a Studio project that uses plugin effects cannot load them from haxefmod. The 33 built-in DSP types are bound through Dsp.create. HTML5 has no plugin host (unsupported in HTML5), so the call will return FMOD_ERR_UNSUPPORTED there once it lands.
 
 ## system_unlockdsp
 <!-- System::unlockDSP -->
@@ -863,7 +770,7 @@ Not exposed. Userdata on FMOD objects is left out because the binding's handle t
 
 ## studio_eventdescription_getuserproperty
 <!-- Studio::EventDescription::getUserProperty -->
-haxefmod covers this with EventDescription.getUserPropertyByName(). On HTML5 only string typed properties are readable, numeric ones report FMOD_ERR_UNSUPPORTED because of a defect in FMOD's JS runtime.
+haxefmod covers this with EventDescription.getUserPropertyByName(). Numeric typed properties are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED because of a defect in FMOD's JS runtime, and string typed properties read on every target.
 ```haxe
 var description = StudioSystem.getEvent(FmodEvents.MusicMainLevel);
 var property = description.getUserPropertyByName("Author");
@@ -926,7 +833,7 @@ if (weather != null) {
 
 ## studio_system_getsoundinfo
 <!-- Studio::System::getSoundInfo -->
-Not exposed. Audio table lookup is left out because the programmer sound flow hands the key to FMOD instead. EventInstance.assignProgrammerSound(key) names the audio table entry or file to play, and the binding resolves it. Unsupported on HTML5, where assignProgrammerSound returns FMOD_ERR_UNSUPPORTED.
+Not exposed. Audio table lookup is left out because the programmer sound flow hands the key to FMOD instead. EventInstance.assignProgrammerSound(key) names the audio table entry or file to play, and the binding resolves it. Programmer sounds are native only (unsupported in HTML5), where assignProgrammerSound returns FMOD_ERR_UNSUPPORTED.
 
 ## studio_system_getuserdata
 <!-- Studio::System::getUserData -->
@@ -947,7 +854,7 @@ Not exposed. Custom file systems need IO callbacks that run on FMOD threads, whi
 
 ## studio_system_registerplugin
 <!-- Studio::System::registerPlugin -->
-Not exposed. Third-party plugins and custom codecs, DSPs, and outputs run code on FMOD threads, which no Haxe target can do, and the web build has no plugin host at all. The 33 built-in DSP types are bound through Dsp.create.
+Not bound yet. Loading a prebuilt plugin binary runs the plugin's own code on FMOD's threads with no Haxe involved, so nothing rules it out, it is deferred until CI has a plugin binary to test against. Until then a Studio project that uses plugin effects cannot load them from haxefmod. The 33 built-in DSP types are bound through Dsp.create. HTML5 has no plugin host (unsupported in HTML5), so the call will return FMOD_ERR_UNSUPPORTED there once it lands.
 
 ## studio_system_setadvancedsettings
 <!-- Studio::System::setAdvancedSettings -->
@@ -955,7 +862,14 @@ Not exposed. The library owns init, and FMOD_STUDIO_ADVANCEDSETTINGS is left at 
 
 ## studio_system_setcallback
 <!-- Studio::System::setCallback -->
-Not exposed. Studio system callbacks would run on FMOD threads, which no Haxe target can do safely. Bank loading is synchronous through StudioSystem.loadBankFile, and Bank.getLoadingState reports the state.
+StudioSystem.setSystemCallback takes one handler and delivers the events from FmodManager.Update() on the game thread: device list changed, device lost, bank unload with the bank's path, live update connected and disconnected, and pre and post update. Bank loading stays synchronous through StudioSystem.loadBankFile, and Bank.getLoadingState reports the state.
+The handler is a function that takes the event and switches on it, so a game that only cares about device changes matches the device list changed case and leaves the default branch empty.
+```haxe
+StudioSystem.setSystemCallback(event -> switch (event) {
+    case DeviceListChanged: trace("devices changed");
+    default:
+});
+```
 
 ## studio_system_setparametersbyids
 <!-- Studio::System::setParametersByIDs -->
@@ -976,4 +890,4 @@ Not exposed. Userdata on FMOD objects is left out because the binding's handle t
 
 ## studio_system_unregisterplugin
 <!-- Studio::System::unregisterPlugin -->
-Not exposed. Third-party plugins and custom codecs, DSPs, and outputs run code on FMOD threads, which no Haxe target can do, and the web build has no plugin host at all. The 33 built-in DSP types are bound through Dsp.create.
+Not bound yet. Loading a prebuilt plugin binary runs the plugin's own code on FMOD's threads with no Haxe involved, so nothing rules it out, it is deferred until CI has a plugin binary to test against. Until then a Studio project that uses plugin effects cannot load them from haxefmod. The 33 built-in DSP types are bound through Dsp.create. HTML5 has no plugin host (unsupported in HTML5), so the call will return FMOD_ERR_UNSUPPORTED there once it lands.

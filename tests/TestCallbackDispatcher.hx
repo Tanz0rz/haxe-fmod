@@ -20,6 +20,7 @@ class TestCallbackDispatcher {
 		testReentrancy();
 		testFaultIsolation();
 		testStaleRegistrationGate();
+		testSystemRouting();
 
 		Sys.println('  $passed passed, $failed failed');
 		return failed;
@@ -210,6 +211,54 @@ class TestCallbackDispatcher {
 		}
 		assert("throwing DESTROYED handler contained", !destroyedThrew);
 		assert("destroyed cleanup despite throw", !CallbackDispatcher.hasHandler(90));
+	}
+
+	static function testSystemRouting() {
+		var SC = haxefmod.studio.SystemCallbacks;
+		var received:Array<haxefmod.studio.SystemCallbacks.SystemEvent> = [];
+		haxefmod.studio.StudioSystem.setSystemCallback(function(e) received.push(e));
+		assert("system router self-installed", CallbackDispatcher.systemRouter != null);
+		assert("system handler installed", SC.isSet());
+		CallbackDispatcher.deliver(0, SC.TYPE_DEVICELISTCHANGED, 0, 0, 0, 0, 0, 0.0, "");
+		CallbackDispatcher.deliver(0, SC.TYPE_DEVICELOST, 0, 0, 0, 0, 0, 0.0, "");
+		CallbackDispatcher.deliver(0, SC.TYPE_PREUPDATE, 0, 0, 0, 0, 0, 0.0, "");
+		CallbackDispatcher.deliver(0, SC.TYPE_POSTUPDATE, 0, 0, 0, 0, 0, 0.0, "");
+		CallbackDispatcher.deliver(0, SC.TYPE_BANK_UNLOAD, 0, 0, 0, 0, 0, 0.0, "bank:/Master");
+		CallbackDispatcher.deliver(0, SC.TYPE_LIVEUPDATE_CONNECTED, 0, 0, 0, 0, 0, 0.0, "");
+		CallbackDispatcher.deliver(0, SC.TYPE_LIVEUPDATE_DISCONNECTED, 0, 0, 0, 0, 0, 0.0, "");
+		// An unknown type inside the namespace is dropped, never delivered
+		CallbackDispatcher.deliver(0, SC.TYPE_NAMESPACE | 0x80, 0, 0, 0, 0, 0, 0.0, "");
+		assert("system events delivered", received.length == 7);
+		if (received.length == 7) {
+			assert("system DeviceListChanged", received[0].match(DeviceListChanged));
+			assert("system DeviceLost", received[1].match(DeviceLost));
+			assert("system PreUpdate", received[2].match(PreUpdate));
+			assert("system PostUpdate", received[3].match(PostUpdate));
+			assert("system BankUnload path", received[4].match(BankUnload("bank:/Master")));
+			assert("system LiveUpdateConnected", received[5].match(LiveUpdateConnected));
+			assert("system LiveUpdateDisconnected", received[6].match(LiveUpdateDisconnected));
+		}
+		// A system record never reaches an event handler registered on
+		// handle 0, and studio types cannot alias core types
+		assert("system types disjoint", SC.TYPE_PREUPDATE != SC.TYPE_DEVICELISTCHANGED
+			&& SC.TYPE_POSTUPDATE != SC.TYPE_DEVICELOST);
+		// A throwing handler is contained
+		haxefmod.studio.StudioSystem.setSystemCallback(function(e) throw "boom");
+		CallbackDispatcher.deliver(0, SC.TYPE_PREUPDATE, 0, 0, 0, 0, 0, 0.0, "");
+		assert("system handler fault contained", true);
+		// The facade clear removes the system handler as well
+		var after = 0;
+		haxefmod.studio.StudioSystem.setSystemCallback(function(e) after++);
+		haxefmod.FmodManager.ClearAllCallbacks();
+		assert("facade clear removes system handler", !SC.isSet());
+		CallbackDispatcher.deliver(0, SC.TYPE_PREUPDATE, 0, 0, 0, 0, 0, 0.0, "");
+		assert("cleared system handler silent", after == 0);
+		// Explicit clear after a set, and a null handler equals clear
+		haxefmod.studio.StudioSystem.setSystemCallback(function(e) after++);
+		haxefmod.studio.StudioSystem.clearSystemCallback();
+		assert("clearSystemCallback removes handler", !SC.isSet());
+		haxefmod.studio.StudioSystem.setSystemCallback(null);
+		assert("null system handler clears", !SC.isSet());
 	}
 
 	static function testStaleRegistrationGate() {

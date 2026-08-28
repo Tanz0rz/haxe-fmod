@@ -22,6 +22,12 @@ class CallbackDispatcher {
      */
     public static inline var CHANNEL_TYPE_NAMESPACE:Int = 0x40000000;
 
+    /**
+     * Queue records with this bit set belong to the system callbacks
+     * (core and studio), carried with handle 0.
+     */
+    public static inline var SYSTEM_TYPE_NAMESPACE:Int = 0x20000000;
+
     static var handlers:Map<Int, EventCallbackData->Void> = new Map();
 
     /**
@@ -32,6 +38,12 @@ class CallbackDispatcher {
      * package. Returns true when the record was consumed.
      */
     public static var channelRouter:Null<(handle:Int, type:Int, i1:Int) -> Bool> = null;
+
+    /**
+     * Router for system records, installed by SystemCallbacks when its
+     * handler registers. Returns true when the record was consumed.
+     */
+    public static var systemRouter:Null<(type:Int, str:String) -> Bool> = null;
 
     /**
      * Registers a handler for an event instance and tells FMOD which
@@ -98,6 +110,11 @@ class CallbackDispatcher {
         // router is installed, dropped otherwise
         if ((type & CHANNEL_TYPE_NAMESPACE) != 0) {
             if (channelRouter != null) channelRouter(handle, type, i1);
+            return;
+        }
+        // Same for system records
+        if ((type & SYSTEM_TYPE_NAMESPACE) != 0) {
+            if (systemRouter != null) systemRouter(type, str);
             return;
         }
         var handler = handlers.get(handle);
