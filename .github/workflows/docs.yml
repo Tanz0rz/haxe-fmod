@@ -14,6 +14,9 @@ on:
       - "haxefmod/**"
       - "ci/check-readme-snippets.py"
       - "ci/docs-root-pages.py"
+      - "ci/haxe-bindings.py"
+      - "extension/**"
+      - "native/**"
       - "LIMITATIONS.md"
       - "MIGRATION.md"
       - "CHANGELOG.md"
@@ -25,6 +28,9 @@ on:
       - "haxefmod/**"
       - "ci/check-readme-snippets.py"
       - "ci/docs-root-pages.py"
+      - "ci/haxe-bindings.py"
+      - "extension/**"
+      - "native/**"
       - "LIMITATIONS.md"
       - "MIGRATION.md"
       - "CHANGELOG.md"
@@ -68,6 +74,9 @@ jobs:
           haxelib install lime 8.3.0 --always --quiet
           haxelib install openfl 9.5.0 --always --quiet
           haxelib install flixel 6.1.2 --always --quiet
+
+      - name: Check the generated bindings table
+        run: python3 ci/haxe-bindings.py --check
 
       - name: Compile the guide examples
         run: python3 ci/check-readme-snippets.py docs

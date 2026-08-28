@@ -1,0 +1,82 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Studio::EventInstance fixture</title>
+<style>
+.language-selector { display: flex; gap: 4px; }
+.language-tab { padding: 2px 8px; border: 1px solid #999; cursor: pointer; }
+.language-tab.selected { background: #333; color: #fff; }
+.highlight { border: 1px solid #b3b3b3; background: #f1f1f1; padding: 6px; }
+</style>
+</head>
+<body class="specificity">
+<div id="app"></div>
+<script>
+// Mirrors the shape of fmod.com/docs: the page shell renders first, the
+// content arrives later and is injected as HTML, then the site's own
+// language selector wires the tabs. The selector logic reproduces the
+// site's: it knows four language classes, toggles inline display on
+// every block of the page, marks tabs selected, and persists the pick.
+var CONTENT = [
+  '<div id="Documentation"><div class="documentation-content"><div class="manual-content api">',
+  '<h1>16. Studio API Reference | Studio::EventInstance</h1>',
+  functionBlock('studio_eventinstance_start', 'Studio::EventInstance::start', 'Starts playback.'),
+  functionBlock('studio_eventinstance_set3dattributes', 'Studio::EventInstance::set3DAttributes', 'Sets the 3D attributes.'),
+  functionBlock('studio_system_getadvancedsettings', 'Studio::System::getAdvancedSettings', 'Retrieves advanced settings.'),
+  '</div></div></div>'
+].join('\n');
+
+function functionBlock(id, name, summary) {
+  return [
+    '<h2 api="function" id="' + id + '"><a href="#' + id + '">' + name + '</a></h2>',
+    '<p>' + summary + '</p>',
+    '<p>',
+    '</p><div class="language-selector">',
+    '<div class="language-tab" data-language="language-c">C</div>',
+    '<div class="language-tab selected" data-language="language-cpp">C++</div>',
+    '<div class="language-tab" data-language="language-csharp">C#</div>',
+    '<div class="language-tab" data-language="language-javascript">JS</div>',
+    '</div>',
+    '<p></p>',
+    '<div class="highlight language-cpp" style="display: block;"><pre>FMOD_RESULT ' + name + '();</pre></div>',
+    '<div class="highlight language-c" style="display: none;"><pre>FMOD_RESULT FMOD_' + name.replace(/::/g, '_') + '();</pre></div>',
+    '<div class="highlight language-csharp" style="display: none;"><pre>RESULT ' + name.replace(/::/g, '.') + '();</pre></div>',
+    '<div class="highlight language-javascript" style="display: none;"><pre>' + name.replace(/::/g, '.') + '();</pre></div>',
+    '<p>Prose after the signature.</p>'
+  ].join('\n');
+}
+
+var KNOWN = ['language-c', 'language-cpp', 'language-c-cpp', 'language-csharp', 'language-javascript'];
+
+function selectLanguage(lang) {
+  var root = document.querySelector('div.manual-content.api');
+  var tabs = root.getElementsByClassName('language-tab');
+  for (var i = 0; i < tabs.length; i++) {
+    tabs[i].classList.toggle('selected', tabs[i].getAttribute('data-language') === lang);
+  }
+  var blocks = root.querySelectorAll(KNOWN.map(function (k) { return '.' + k; }).join(', '));
+  for (var j = 0; j < blocks.length; j++) {
+    blocks[j].style.display = blocks[j].classList.contains(lang) ? 'block' : 'none';
+  }
+  window.localStorage.setItem('FMOD.Documents.selected-language', lang);
+}
+
+function initLanguageSelector() {
+  var root = document.querySelector('div.manual-content.api');
+  var tabs = root.getElementsByClassName('language-tab');
+  for (var i = 0; i < tabs.length; i++) {
+    tabs[i].onclick = function () { selectLanguage(this.getAttribute('data-language')); };
+  }
+  var saved = window.localStorage.getItem('FMOD.Documents.selected-language');
+  if (saved == null) saved = 'language-cpp';
+  selectLanguage(saved);
+}
+
+window.setTimeout(function () {
+  document.getElementById('app').innerHTML = CONTENT;
+  initLanguageSelector();
+}, 200);
+</script>
+</body>
+</html>

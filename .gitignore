@@ -35,3 +35,6 @@ __pycache__/
 
 # Documentation site build output
 /site/
+
+# Extension test output
+/extension/test/last-run.png

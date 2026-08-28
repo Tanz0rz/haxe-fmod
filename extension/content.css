@@ -1,0 +1,24 @@
+.haxefmod-block .haxefmod-note {
+    font-size: 14px;
+    line-height: 1.5;
+    padding: 4px 6px 0 6px;
+    color: #333333;
+}
+
+.haxefmod-block .haxefmod-note p {
+    margin: 4px 0;
+}
+
+.haxefmod-block .haxefmod-warn {
+    color: #a40000;
+}
+
+.haxefmod-block .haxefmod-footer {
+    color: #666666;
+    font-size: 12px;
+}
+
+.haxefmod-block .haxefmod-footer a {
+    color: #666666;
+    text-decoration: underline;
+}

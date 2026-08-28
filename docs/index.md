@@ -28,6 +28,11 @@ Pick the lowest tier that does what you need. They compose, so a game can start 
 - The command line (`check`, `generate`, `todos`, `build-hdll`): [Tools CLI](guides/tools-cli.md).
 - Per-target behavior: [Platforms](platforms.md).
 - Every class and method: [API reference](/haxe-fmod/api/).
+- Which FMOD functions are bound, and by what: [Coverage](coverage.md).
+
+## The Haxe tab on fmod.com
+
+The [haxefmod for FMOD docs](https://github.com/Tanz0rz/haxe-fmod/tree/master/extension) browser extension adds a Haxe tab beside C, C++, C#, and JS on every function of the FMOD API reference, showing the haxefmod method that wraps it. It is the fastest way to go from an FMOD function to the Haxe call.
 
 ## Getting help
 

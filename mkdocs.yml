@@ -57,6 +57,7 @@ nav:
       - Flixel components: guides/flixel.md
       - Tools CLI: guides/tools-cli.md
   - Platforms: platforms.md
+  - Coverage: coverage.md
   - Limitations: limitations.md
   - Migration: migration.md
   - Changelog: changelog.md
