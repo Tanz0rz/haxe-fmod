@@ -98,11 +98,29 @@ async function crawl() {
                 // require a matching Haxe declaration for it.
                 const first = code.trim().split('\n')[0].trim();
                 const decl = /^(typedef\s+(struct|enum)|enum\s|struct\s|#define\s|typedef\s+\w[\w\s*]*\(|FMOD_RESULT\s+\(F_CALL)/.test(first) ? first.slice(0, 80) : '';
-                examples.push({ index, kind: tabbed ? 'tabbed' : 'lone', heading: h ? h.textContent.trim() : '', code, decl });
+                // The facts of the snippet the Haxe side is checked against:
+                // the members a type declares, or the API calls an example
+                // makes (Object::method, object->method, object.method).
+                let members = [];
+                let calls = [];
+                if (decl) {
+                    const body = code.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+                    if (/^(typedef\s+struct|struct\s)/.test(first)) {
+                        members = Array.from(body.matchAll(/\b([A-Za-z_]\w*)\s*(?:\[[^\]]*\])?\s*;/g)).map(m => m[1]);
+                    } else {
+                        members = Array.from(body.matchAll(/\b((?:FMOD|FSBANK)_[A-Z0-9_]+)\b/g)).map(m => m[1]);
+                        members = members.filter((m, i) => members.indexOf(m) === i && !first.includes(m));
+                    }
+                } else {
+                    const body = code.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+                    calls = Array.from(body.matchAll(/(?:::|->|\.)\s*([a-z]\w*)\s*\(/g)).map(m => m[1]);
+                    calls = calls.filter((c, i) => calls.indexOf(c) === i);
+                }
+                examples.push({ index, kind: tabbed ? 'tabbed' : 'lone', heading: h ? h.textContent.trim() : '', code, decl, members, calls });
             });
             return { functions, examples };
         });
-        data.examples = data.examples.map(e => ({ index: e.index, kind: e.kind, heading: e.heading, code: hash(e.code), decl: e.decl }));
+        data.examples = data.examples.map(e => ({ index: e.index, kind: e.kind, heading: e.heading, code: hash(e.code), decl: e.decl, members: e.members, calls: e.calls }));
         if (data.functions.length || data.examples.length) pages[name.replace(/\.html$/, '')] = data;
         console.error(name + ': ' + data.functions.length + ' functions, ' + data.examples.length + ' examples');
     }

@@ -59,16 +59,21 @@ if (!result.isOk()) {
 
 ## 4
 <!-- Creating an effect and making all Channels send to it. -->
-The tail unit of a group is not handed out directly. Adding the reverb at ChannelGroup.DSP_TAIL connects it as an input of the master group's last unit.
 ```haxe
 import haxefmod.core.ChannelGroup;
 import haxefmod.core.Dsp;
 import haxefmod.core.DspType;
+import haxefmod.studio.StudioSystem;
 
 var reverb = Dsp.create(DspType.SFXREVERB);
-var result = ChannelGroup.master().addDsp(ChannelGroup.DSP_TAIL, reverb);
-if (!result.isOk()) {
-    trace('addDsp failed: $result');
+var master = ChannelGroup.master();
+
+// the fader is always the tail unit of a group, so every channel routed
+// through the master group reaches this one
+var masterFader = master.getDsp(ChannelGroup.DSP_TAIL);
+var connection = reverb.addInput(masterFader);
+if (connection.isNull()) {
+    trace('addInput failed: ${StudioSystem.lastResult()}');
 }
 ```
 
@@ -155,8 +160,15 @@ reverb.setChannelFormat(0, 2, 2); // FMOD_SPEAKERMODE_STEREO
 
 ## 10
 <!-- Set the output format of a DSP unit, and control the pan matrix for its output signal -->
-Mix matrices are set on channels and channel groups rather than on a connection. The matrix is one flat array, rows are output channels and columns are input channels.
+Dsp.getOutputConnection returns the connection on an output slot, and DspConnection.setMixMatrix sets the matrix on it. The matrix is one flat array, rows are output channels and columns are input channels.
 ```haxe
+import haxefmod.core.ChannelGroup;
+import haxefmod.core.Dsp;
+import haxefmod.core.DspType;
+
+var reverb = Dsp.create(DspType.SFXREVERB);
+ChannelGroup.master().addDsp(ChannelGroup.DSP_HEAD, reverb);
+var connection = reverb.getOutputConnection(0);
 var matrix:Array<Float> = [
     // FL FR SL SR  <- input signal (columns)
     0, 0, 0, 0, // front left out
@@ -164,9 +176,11 @@ var matrix:Array<Float> = [
     1, 0, 0, 0, // surround left out
     0, 1, 0, 0 // surround right out
 ];
-var result = channel.setMixMatrix(matrix, 4, 4);
-if (!result.isOk()) {
-    trace('setMixMatrix failed: $result');
+if (!connection.isNull()) {
+    var result = connection.setMixMatrix(matrix, 4, 4);
+    if (!result.isOk()) {
+        trace('setMixMatrix failed: $result');
+    }
 }
 ```
 
@@ -180,6 +194,43 @@ var reverb = Dsp.create(DspType.SFXREVERB);
 var result = reverb.setBypass(true);
 if (!result.isOk()) {
     trace('setBypass failed: $result');
+}
+```
+
+## 15
+<!-- 7.2 Plug-in DSP Effects -->
+A plug-in built from a description loads with StudioSystem.loadPlugin after StudioSystem.setPluginPath names its folder, native only (unsupported in HTML5). Release every unit created from it before StudioSystem.unloadPlugin, which answers FMOD_ERR_DSP_INUSE until the mixer has freed them and succeeds when retried a few frames later.
+```haxe
+import haxefmod.core.Dsp;
+import haxefmod.core.ChannelGroup;
+
+StudioSystem.setPluginPath("plugins");
+var plugin = StudioSystem.loadPlugin("fmod_gain.dll");
+var gain = Dsp.createByPlugin(plugin);
+ChannelGroup.master().addDsp(ChannelGroup.DSP_HEAD, gain);
+
+// at shutdown
+ChannelGroup.master().removeDsp(gain);
+gain.release();
+var result = StudioSystem.unloadPlugin(plugin);
+if (!result.isOk()) {
+    trace('unloadPlugin failed: $result');
+}
+```
+
+## 18
+<!-- 7.2.4 Multiple plug-ins within one file -->
+A file that exports a plug-in list loads as one handle. StudioSystem.getNestedPluginCount counts the plug-ins inside it, getNestedPlugin returns each one's handle, and getPluginInfo reports its name, type, and version, native only (unsupported in HTML5).
+```haxe
+StudioSystem.setPluginPath("plugins");
+var plugin = StudioSystem.loadPlugin("fmod_effects.dll");
+var count = StudioSystem.getNestedPluginCount(plugin);
+for (i in 0...count) {
+    var nestedPlugin = StudioSystem.getNestedPlugin(plugin, i);
+    var info = StudioSystem.getPluginInfo(nestedPlugin);
+    if (info != null) {
+        trace(info.name + " type " + info.type + " version " + info.version);
+    }
 }
 ```
 

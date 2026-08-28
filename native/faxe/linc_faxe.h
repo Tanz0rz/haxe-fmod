@@ -617,5 +617,8 @@ extern int fmod_sys_get_output_by_plugin();
 extern int fmod_sys_set_output_by_plugin(int handle);
 extern int fmod_replay_get_current_command(int handle, ::Array<Float> fbuf);
 
+extern int fmod_cg_get_num_dsps(int handle);
+extern int fmod_cg_get_dsp(int handle, int index);
+
 } // namespace faxe
 } // namespace linc

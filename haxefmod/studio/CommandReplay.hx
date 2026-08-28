@@ -82,8 +82,8 @@ abstract CommandReplay(Int) from Int to Int {
             parentCommandIndex: Scratch.readI(5),
             frameNumber: Scratch.readI(4),
             frameTime: Scratch.readF(0),
-            instanceType: Scratch.readI(0),
-            outputType: Scratch.readI(1),
+            instanceType: (Scratch.readI(0) : FmodStudioInstanceType),
+            outputType: (Scratch.readI(1) : FmodStudioInstanceType),
             instanceHandle: Scratch.readI(2),
             outputHandle: Scratch.readI(3),
         };

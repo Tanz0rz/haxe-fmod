@@ -2,11 +2,12 @@
 
 ## 0
 <!-- 10.2 Extracting PCM Data from a Sound -->
-Sound.readData reads decoded PCM out of a sound opened with the openOnly flag of Sound.create, and seekData moves the read cursor. Both are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED, so a web build keeps its own copy of the PCM it feeds through Sound.fromPcm or PcmStream.
+Sound.readData reads decoded PCM out of a sound opened with the openOnly flag of Sound.create, and seekData moves the read cursor. Sound.getLength reports milliseconds rather than a byte count, so the buffer is read in fixed chunks until readData returns 0. Both are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED, so a web build keeps its own copy of the PCM it feeds through Sound.fromPcm or PcmStream.
 ```haxe
 import haxefmod.core.Sound;
 
 var sound = Sound.create("assets/sfx/engine.wav", false, true);
+var lengthMs = sound.getLength(); // milliseconds, the PCM byte count is not reported
 var buffer = haxe.io.Bytes.alloc(4096);
 var read = sound.readData(buffer);
 while (read > 0) {
@@ -122,6 +123,72 @@ var channelMix = Dsp.create(DspType.CHANNELMIX);
 var transceiver = Dsp.create(DspType.TRANSCEIVER);
 var objectPan = Dsp.create(DspType.OBJECTPAN);
 var multibandEq = Dsp.create(DspType.MULTIBAND_EQ);
+```
+
+## 2
+<!-- Output Example -->
+registerOutput takes a description of callbacks that run on FMOD's threads, so an output plug-in is written in C and built as a shared library. The built library loads with StudioSystem.loadPlugin and CoreSystem.setOutputByPlugin selects it, native only (unsupported in HTML5). The library owns initialization, so on a running native system the call re-selects the output device on the spot.
+```haxe
+import haxefmod.core.CoreSystem;
+
+StudioSystem.setPluginPath("plugins");
+var plugin = StudioSystem.loadPlugin("example_output.dll");
+if (plugin != 0) {
+    var result = CoreSystem.setOutputByPlugin(plugin);
+    if (!result.isOk()) {
+        trace('setOutputByPlugin failed: $result');
+    }
+}
+```
+
+## 3
+<!-- DSP Example -->
+registerDSP takes a description of callbacks that run on FMOD's mixer thread, so a DSP plug-in is written in C and built as a shared library. The built library loads with StudioSystem.loadPlugin, Dsp.createByPlugin makes a unit from it, and the unit goes on a channel like any built-in effect, native only (unsupported in HTML5).
+```haxe
+import haxefmod.core.Dsp;
+import haxefmod.core.Sound;
+
+StudioSystem.setPluginPath("plugins");
+var plugin = StudioSystem.loadPlugin("example_dsp.dll");
+var sound = Sound.create("assets/sfx/engine.wav");
+var channel = sound.play();
+if (plugin != 0) {
+    var dsp = Dsp.createByPlugin(plugin);
+    channel.addDsp(0, dsp);
+}
+```
+
+## 5
+<!-- Output Example -->
+StudioSystem.loadPlugin loads the built output plug-in and CoreSystem.setOutputByPlugin selects it, native only (unsupported in HTML5). The library owns initialization, so on a running native system the call re-selects the output device on the spot.
+```haxe
+import haxefmod.core.CoreSystem;
+
+StudioSystem.setPluginPath("plugins");
+var plugin = StudioSystem.loadPlugin("example_output.dll");
+if (plugin != 0) {
+    var result = CoreSystem.setOutputByPlugin(plugin);
+    if (!result.isOk()) {
+        trace('setOutputByPlugin failed: $result');
+    }
+}
+```
+
+## 6
+<!-- DSP Example -->
+StudioSystem.loadPlugin loads the built DSP plug-in, Dsp.createByPlugin makes a unit from it, and the unit goes on a channel like any built-in effect, native only (unsupported in HTML5).
+```haxe
+import haxefmod.core.Dsp;
+import haxefmod.core.Sound;
+
+StudioSystem.setPluginPath("plugins");
+var plugin = StudioSystem.loadPlugin("example_dsp.dll");
+var sound = Sound.create("assets/sfx/engine.wav");
+var channel = sound.play();
+if (plugin != 0) {
+    var dsp = Dsp.createByPlugin(plugin);
+    channel.addDsp(0, dsp);
+}
 ```
 
 ## *

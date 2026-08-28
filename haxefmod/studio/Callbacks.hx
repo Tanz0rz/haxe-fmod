@@ -24,6 +24,7 @@ enum abstract EventCallbackType(Int) from Int to Int {
     var VIRTUAL_TO_REAL = 0x00010000;
     var START_EVENT_COMMAND = 0x00020000;
     var NESTED_TIMELINE_BEAT = 0x00040000;
+    var ALL = 0xFFFFFFFF;
 
     /** All playback lifecycle events (no programmer sound / plugin / command hooks). */
     public static inline var PLAYBACK_ALL:Int = CREATED | DESTROYED | STARTING | STARTED | RESTARTED

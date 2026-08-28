@@ -736,6 +736,8 @@ class NativeStudioCpp {
     public static inline function sys_set_output_by_plugin(handle:Int):Int return Raw.sys_set_output_by_plugin(handle);
     public static inline function replay_get_current_command(handle:Int):Int return Raw.replay_get_current_command(handle, Scratch.floatBuf());
 
+    public static inline function cg_get_num_dsps(handle:Int):Int return Raw.cg_get_num_dsps(handle);
+    public static inline function cg_get_dsp(handle:Int, index:Int):Int return Raw.cg_get_dsp(handle, index);
 }
 
 @:keep
@@ -2259,5 +2261,10 @@ private extern class Raw {
     @:native("linc::faxe::fmod_replay_get_current_command")
     static function replay_get_current_command(handle:Int, fbuf:Array<Float>):Int;
 
+    @:native("linc::faxe::fmod_cg_get_num_dsps")
+    static function cg_get_num_dsps(handle:Int):Int;
+
+    @:native("linc::faxe::fmod_cg_get_dsp")
+    static function cg_get_dsp(handle:Int, index:Int):Int;
 }
 #end

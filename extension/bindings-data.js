@@ -1624,9 +1624,18 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "channelcontrol_getdsp": {
-   "fmod": "FMOD_Channel_GetDSP",
+   "fmod": "FMOD_ChannelGroup_GetDSP, FMOD_Channel_GetDSP",
    "gated": false,
    "haxe": [
+    {
+     "direct": true,
+     "doc": "The effect at chain position index.",
+     "gated": false,
+     "name": "getDsp",
+     "signature": "getDsp(index:Int):Dsp",
+     "static": false,
+     "type": "haxefmod.core.ChannelGroup"
+    },
     {
      "direct": true,
      "doc": "The effect at chain position index (a known DSP returns its existing handle).",
@@ -1918,9 +1927,18 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "channelcontrol_getnumdsps": {
-   "fmod": "FMOD_Channel_GetNumDSPs",
+   "fmod": "FMOD_ChannelGroup_GetNumDSPs, FMOD_Channel_GetNumDSPs",
    "gated": false,
    "haxe": [
+    {
+     "direct": false,
+     "doc": "How many DSP units sit in this group's chain (the fader counts, so a fresh group reports 1).",
+     "gated": false,
+     "name": "getDspCount",
+     "signature": "getDspCount():Int",
+     "static": false,
+     "type": "haxefmod.core.ChannelGroup"
+    },
     {
      "direct": false,
      "doc": "",
@@ -3292,6 +3310,22 @@ const HAXEFMOD_BINDINGS = {
    ],
    "html5": false
   },
+  "channelgroup_getdsp": {
+   "fmod": "FMOD_ChannelGroup_GetDSP",
+   "gated": false,
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "The effect at chain position index.",
+     "gated": false,
+     "name": "getDsp",
+     "signature": "getDsp(index:Int):Dsp",
+     "static": false,
+     "type": "haxefmod.core.ChannelGroup"
+    }
+   ],
+   "html5": false
+  },
   "channelgroup_getdspclock": {
    "fmod": "FMOD_ChannelGroup_GetDSPClock",
    "gated": false,
@@ -3430,6 +3464,22 @@ const HAXEFMOD_BINDINGS = {
      "gated": false,
      "name": "getChannelCount",
      "signature": "getChannelCount():Int",
+     "static": false,
+     "type": "haxefmod.core.ChannelGroup"
+    }
+   ],
+   "html5": false
+  },
+  "channelgroup_getnumdsps": {
+   "fmod": "FMOD_ChannelGroup_GetNumDSPs",
+   "gated": false,
+   "haxe": [
+    {
+     "direct": false,
+     "doc": "How many DSP units sit in this group's chain (the fader counts, so a fresh group reports 1).",
+     "gated": false,
+     "name": "getDspCount",
+     "signature": "getDspCount():Int",
      "static": false,
      "type": "haxefmod.core.ChannelGroup"
     }
@@ -4063,7 +4113,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Wires another DSP's output into this one, building custom mixer topologies.",
      "gated": false,
      "name": "addInput",
-     "signature": "addInput(input:Dsp, connectionType:Int = DspConnection.TYPE_STANDARD):DspConnection",
+     "signature": "addInput(input:Dsp, connectionType:DspConnectionType = DspConnectionType.STANDARD):DspConnection",
      "static": false,
      "type": "haxefmod.core.Dsp"
     }
@@ -4159,7 +4209,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "",
      "gated": false,
      "name": "getChannelFormat",
-     "signature": "getChannelFormat():Null<{channelMask:Int, channels:Int, speakerMode:Int}>",
+     "signature": "getChannelFormat():Null<{channelMask:FmodChannelMask, channels:Int, speakerMode:FmodSpeakerMode}>",
      "static": false,
      "type": "haxefmod.core.Dsp"
     }
@@ -4188,10 +4238,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "The index of the data parameter carrying an FMOD_DSP_PARAMETER_DATA_TYPE (negative values are FMOD's own types, 0 and up are user data), -1 when the effect has none or on failure.",
+     "doc": "The index of the data parameter carrying the given FmodDspParameterDataType (negative values are FMOD's own types, 0 and up are user data), -1 when the effect has none or on failure.",
      "gated": false,
      "name": "getDataParameterIndex",
-     "signature": "getDataParameterIndex(dataType:Int):Int",
+     "signature": "getDataParameterIndex(dataType:FmodDspParameterDataType):Int",
      "static": false,
      "type": "haxefmod.core.Dsp"
     }
@@ -4369,7 +4419,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "The format the unit would emit when fed the given input format, or null on failure.",
      "gated": false,
      "name": "getOutputChannelFormat",
-     "signature": "getOutputChannelFormat(inMask:Int, inChannels:Int, inSpeakerMode:Int):Null<{channelMask:Int, channels:Int, speakerMode:Int}>",
+     "signature": "getOutputChannelFormat(inMask:FmodChannelMask, inChannels:Int, inSpeakerMode:FmodSpeakerMode):Null<{channelMask:FmodChannelMask, channels:Int, speakerMode:FmodSpeakerMode}>",
      "static": false,
      "type": "haxefmod.core.Dsp"
     }
@@ -4433,7 +4483,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Name, type, and range of the parameter at index (unsupported in HTML5, null there).",
      "gated": true,
      "name": "getParameterInfo",
-     "signature": "getParameterInfo(index:Int):Null<{name:String, type:Int, min:Float, max:Float, defaultValue:Float}>",
+     "signature": "getParameterInfo(index:Int):Null<{name:String, type:FmodDspParameterType, min:Float, max:Float, defaultValue:Float}>",
      "static": false,
      "type": "haxefmod.core.Dsp"
     }
@@ -4605,10 +4655,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Fixes the unit's input format to the given FMOD_CHANNELMASK, channel count, and FMOD_SPEAKERMODE.",
+     "doc": "Fixes the unit's input format to the given channel mask, channel count, and speaker mode.",
      "gated": false,
      "name": "setChannelFormat",
-     "signature": "setChannelFormat(channelMask:Int, channels:Int, speakerMode:Int):FmodResult",
+     "signature": "setChannelFormat(channelMask:FmodChannelMask, channels:Int, speakerMode:FmodSpeakerMode):FmodResult",
      "static": false,
      "type": "haxefmod.core.Dsp"
     }
@@ -4800,10 +4850,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "One of the TYPE_* values.",
+     "doc": "The connection's type, STANDARD on failure.",
      "gated": false,
      "name": "getType",
-     "signature": "getType():Int",
+     "signature": "getType():DspConnectionType",
      "static": false,
      "type": "haxefmod.core.DspConnection"
     }
@@ -5784,10 +5834,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "FMOD_OPENSTATE value (0 = ready), or -1 on failure.",
+     "doc": "The sound's open state, READY once it can play.",
      "gated": false,
      "name": "getOpenState",
-     "signature": "getOpenState():Int",
+     "signature": "getOpenState():FmodOpenState",
      "static": false,
      "type": "haxefmod.core.Sound"
     }
@@ -6266,10 +6316,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "The current behavior, FAIL on failure.",
      "gated": false,
      "name": "getMaxAudibleBehavior",
-     "signature": "getMaxAudibleBehavior():Int",
+     "signature": "getMaxAudibleBehavior():SoundGroupBehavior",
      "static": false,
      "type": "haxefmod.core.SoundGroup"
     }
@@ -6439,10 +6489,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "One of the BEHAVIOR_* values.",
+     "doc": "What happens to a new sound once the group is at maxAudible.",
      "gated": false,
      "name": "setMaxAudibleBehavior",
-     "signature": "setMaxAudibleBehavior(behavior:Int):FmodResult",
+     "signature": "setMaxAudibleBehavior(behavior:SoundGroupBehavior):FmodResult",
      "static": false,
      "type": "haxefmod.core.SoundGroup"
     }
@@ -10200,7 +10250,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "FMOD's default upmix or downmix matrix between two FMOD_SPEAKERMODE values, row-major with one row per target channel (unsupported in HTML5, null there).",
      "gated": true,
      "name": "getDefaultMixMatrix",
-     "signature": "getDefaultMixMatrix(sourceSpeakerMode:Int, targetSpeakerMode:Int, matrixHop:Int = 0):Null<Array<Float>>",
+     "signature": "getDefaultMixMatrix(sourceSpeakerMode:FmodSpeakerMode, targetSpeakerMode:FmodSpeakerMode, matrixHop:Int = 0):Null<Array<Float>>",
      "static": true,
      "type": "haxefmod.core.CoreSystem"
     }
@@ -10463,10 +10513,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "The active output type as an FMOD_OUTPUTTYPE value, -1 on failure.",
+     "doc": "The active output type (FMOD_OUTPUTTYPE), -1 on failure.",
      "gated": false,
      "name": "getOutput",
-     "signature": "getOutput():Int",
+     "signature": "getOutput():FmodOutputType",
      "static": true,
      "type": "haxefmod.core.CoreSystem"
     }
@@ -10539,7 +10589,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Name and native format of a record driver (unsupported in HTML5, returns null there).",
      "gated": true,
      "name": "getRecordDriverInfo",
-     "signature": "getRecordDriverInfo(id:Int):Null<{name:String, systemRate:Int, speakerMode:Int, channels:Int, state:Int}>",
+     "signature": "getRecordDriverInfo(id:Int):Null<{name:String, systemRate:Int, speakerMode:FmodSpeakerMode, channels:Int, state:FmodDriverState}>",
      "static": true,
      "type": "haxefmod.studio.StudioSystem"
     }
@@ -10613,7 +10663,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "The mixer's output format, or null on failure.",
      "gated": false,
      "name": "getSoftwareFormat",
-     "signature": "getSoftwareFormat():Null<{sampleRate:Int, speakerMode:Int, rawSpeakers:Int}>",
+     "signature": "getSoftwareFormat():Null<{sampleRate:Int, speakerMode:FmodSpeakerMode, rawSpeakers:Int}>",
      "static": true,
      "type": "haxefmod.core.CoreSystem"
     }
@@ -10626,10 +10676,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Speaker count of an FMOD_SPEAKERMODE value, 0 on failure.",
+     "doc": "Speaker count of a speaker mode, 0 on failure.",
      "gated": false,
      "name": "getSpeakerModeChannels",
-     "signature": "getSpeakerModeChannels(speakerMode:Int):Int",
+     "signature": "getSpeakerModeChannels(speakerMode:FmodSpeakerMode):Int",
      "static": true,
      "type": "haxefmod.core.CoreSystem"
     },
@@ -10638,7 +10688,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "FMOD's default upmix or downmix matrix between two FMOD_SPEAKERMODE values, row-major with one row per target channel (unsupported in HTML5, null there).",
      "gated": true,
      "name": "getDefaultMixMatrix",
-     "signature": "getDefaultMixMatrix(sourceSpeakerMode:Int, targetSpeakerMode:Int, matrixHop:Int = 0):Null<Array<Float>>",
+     "signature": "getDefaultMixMatrix(sourceSpeakerMode:FmodSpeakerMode, targetSpeakerMode:FmodSpeakerMode, matrixHop:Int = 0):Null<Array<Float>>",
      "static": true,
      "type": "haxefmod.core.CoreSystem"
     }
@@ -10654,7 +10704,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "The position set for one speaker (see setSpeakerPosition), or null on failure.",
      "gated": false,
      "name": "getSpeakerPosition",
-     "signature": "getSpeakerPosition(speaker:Int):Null<{x:Float, y:Float, active:Bool}>",
+     "signature": "getSpeakerPosition(speaker:FmodSpeaker):Null<{x:Float, y:Float, active:Bool}>",
      "static": true,
      "type": "haxefmod.core.CoreSystem"
     }
@@ -11272,7 +11322,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Where one output speaker sits for panning, as x (left -1 to right 1) and y (back -1 to front 1), and whether it is fed at all.",
      "gated": false,
      "name": "setSpeakerPosition",
-     "signature": "setSpeakerPosition(speaker:Int, x:Float, y:Float, active:Bool):FmodResult",
+     "signature": "setSpeakerPosition(speaker:FmodSpeaker, x:Float, y:Float, active:Bool):FmodResult",
      "static": true,
      "type": "haxefmod.core.CoreSystem"
     }

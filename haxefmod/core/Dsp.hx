@@ -1,5 +1,6 @@
 package haxefmod.core;
 
+import haxefmod.studio.Types;
 import haxefmod.studio.FmodResult;
 import haxefmod.studio.UserData;
 import haxefmod.studio.native.NativeStudio;
@@ -120,7 +121,7 @@ abstract Dsp(Int) from Int to Int {
      * topologies. Returns the connection (DspConnection.NULL on failure).
      * Any later graph change invalidates all connection handles.
      */
-    public inline function addInput(input:Dsp, connectionType:Int = DspConnection.TYPE_STANDARD):DspConnection {
+    public inline function addInput(input:Dsp, connectionType:DspConnectionType = DspConnectionType.STANDARD):DspConnection {
         return NativeStudio.dsp_add_input(this, input, connectionType);
     }
 
@@ -200,11 +201,11 @@ abstract Dsp(Int) from Int to Int {
         return {exclusive: Scratch.readI(0), inclusive: Scratch.readI(1)};
     }
 
-    /** FMOD_DSP_PARAMETER_TYPE values reported by getParameterInfo. */
-    public static inline var PARAMETER_FLOAT:Int = 0;
-    public static inline var PARAMETER_INT:Int = 1;
-    public static inline var PARAMETER_BOOL:Int = 2;
-    public static inline var PARAMETER_DATA:Int = 3;
+    /** The parameter types getParameterInfo reports, the same values as FmodDspParameterType. */
+    public static inline var PARAMETER_FLOAT:FmodDspParameterType = FmodDspParameterType.FLOAT;
+    public static inline var PARAMETER_INT:FmodDspParameterType = FmodDspParameterType.INT;
+    public static inline var PARAMETER_BOOL:FmodDspParameterType = FmodDspParameterType.BOOL;
+    public static inline var PARAMETER_DATA:FmodDspParameterType = FmodDspParameterType.DATA;
 
     #if (macro || (js && !haxefmod_html5_allow_unsupported))
     /**
@@ -223,40 +224,40 @@ abstract Dsp(Int) from Int to Int {
      * and int parameters, bool fills defaultValue only, data leaves them
      * 0. Null on failure.
      */
-    public function getParameterInfo(index:Int):Null<{name:String, type:Int, min:Float, max:Float, defaultValue:Float}> {
+    public function getParameterInfo(index:Int):Null<{name:String, type:FmodDspParameterType, min:Float, max:Float, defaultValue:Float}> {
         var name = NativeStudio.dsp_get_parameter_info(this, index);
         var result:FmodResult = haxefmod.studio.StudioSystem.lastResult();
         if (!result.isOk()) return null;
-        return {name: name, type: Scratch.readI(0), min: Scratch.readF(0), max: Scratch.readF(1), defaultValue: Scratch.readF(2)};
+        return {name: name, type: (Scratch.readI(0) : FmodDspParameterType), min: Scratch.readF(0), max: Scratch.readF(1), defaultValue: Scratch.readF(2)};
     }
     #end
 
     /**
-     * The index of the data parameter carrying an FMOD_DSP_PARAMETER_DATA_TYPE
-     * (negative values are FMOD's own types, 0 and up are user data), -1
-     * when the effect has none or on failure.
+     * The index of the data parameter carrying the given
+     * FmodDspParameterDataType (negative values are FMOD's own types, 0
+     * and up are user data), -1 when the effect has none or on failure.
      */
-    public inline function getDataParameterIndex(dataType:Int):Int {
+    public inline function getDataParameterIndex(dataType:FmodDspParameterDataType):Int {
         return NativeStudio.dsp_get_data_parameter_index(this, dataType);
     }
 
     /**
-     * Fixes the unit's input format to the given FMOD_CHANNELMASK, channel
-     * count, and FMOD_SPEAKERMODE. 0 channels goes back to inheriting the
+     * Fixes the unit's input format to the given channel mask, channel
+     * count, and speaker mode. 0 channels goes back to inheriting the
      * format from the input.
      */
-    public inline function setChannelFormat(channelMask:Int, channels:Int, speakerMode:Int):FmodResult {
+    public inline function setChannelFormat(channelMask:FmodChannelMask, channels:Int, speakerMode:FmodSpeakerMode):FmodResult {
         return NativeStudio.dsp_set_channel_format(this, channelMask, channels, speakerMode);
     }
 
-    public function getChannelFormat():Null<{channelMask:Int, channels:Int, speakerMode:Int}> {
+    public function getChannelFormat():Null<{channelMask:FmodChannelMask, channels:Int, speakerMode:FmodSpeakerMode}> {
         var result:FmodResult = NativeStudio.dsp_get_channel_format(this);
         if (!result.isOk()) return null;
         return {channelMask: Scratch.readI(0), channels: Scratch.readI(1), speakerMode: Scratch.readI(2)};
     }
 
     /** The format the unit would emit when fed the given input format, or null on failure. */
-    public function getOutputChannelFormat(inMask:Int, inChannels:Int, inSpeakerMode:Int):Null<{channelMask:Int, channels:Int, speakerMode:Int}> {
+    public function getOutputChannelFormat(inMask:FmodChannelMask, inChannels:Int, inSpeakerMode:FmodSpeakerMode):Null<{channelMask:FmodChannelMask, channels:Int, speakerMode:FmodSpeakerMode}> {
         var result:FmodResult = NativeStudio.dsp_get_output_channel_format(this, inMask, inChannels, inSpeakerMode);
         if (!result.isOk()) return null;
         return {channelMask: Scratch.readI(0), channels: Scratch.readI(1), speakerMode: Scratch.readI(2)};

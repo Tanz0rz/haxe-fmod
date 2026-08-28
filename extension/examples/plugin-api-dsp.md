@@ -94,21 +94,7 @@ for (i in 0...eq.getParameterCount()) {
 
 ## 50
 <!-- FMOD_DSP_PARAMETER_TYPE -->
-The parameter type comes back as an Int from getParameterInfo and matches the Dsp.PARAMETER_* constants.
-Shape: usage
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-var eq = Dsp.create(DspType.THREE_EQ);
-var info = eq.getParameterInfo(0);
-if (info != null) switch (info.type) {
-    case Dsp.PARAMETER_FLOAT: eq.setParameter(0, info.defaultValue);
-    case Dsp.PARAMETER_INT: eq.setParameterInt(0, Std.int(info.defaultValue));
-    case Dsp.PARAMETER_BOOL: eq.setParameterBool(0, info.defaultValue != 0);
-    case Dsp.PARAMETER_DATA: trace('data parameter');
-}
-```
+Reported in the type field of Dsp.getParameterInfo. Dsp.PARAMETER_* are the same values.
 
 ## 70
 <!-- FMOD_DSP_STATE -->

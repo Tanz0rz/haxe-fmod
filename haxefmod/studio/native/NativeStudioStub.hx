@@ -673,4 +673,7 @@ class NativeStudioStub {
     public static function sys_set_output_by_plugin(handle:Int):Int return ERR_UNSUPPORTED;
     public static function replay_get_current_command(handle:Int):Int return -1;
 
+
+    public static function cg_get_num_dsps(handle:Int):Int return 0;
+    public static function cg_get_dsp(handle:Int, index:Int):Int return 0;
 }

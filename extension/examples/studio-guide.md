@@ -33,10 +33,15 @@ There is no programmer sound callback to write in Haxe. The native side implemen
 
 ## 4
 <!-- 13.9.1 Scripting Example -->
-The create callback body (getSoundInfo, createSound, filling the properties) runs natively when the instrument triggers. The key is looked up in the loaded audio tables first, and a key that matches no entry is treated as a file path, so a loose file can be injected the same way.
+The create callback body (getSoundInfo, createSound, filling the properties) runs natively when the instrument triggers. StudioSystem.getSoundInfo shows what a key resolves to. The key is looked up in the loaded audio tables first, and a key that matches no entry is treated as a file path, so a loose file can be injected the same way.
 ```haxe
+var key = "welcome";
+var info = StudioSystem.getSoundInfo(key);
+if (info != null) {
+    trace("key " + key + " plays " + info.name + " subsound " + info.subSoundIndex);
+}
 var instance = StudioSystem.getEvent("event:/Character/Dialogue").createInstance();
-instance.assignProgrammerSound("assets/dialogue/welcome_extra.ogg");
+instance.assignProgrammerSound(key);
 instance.start();
 ```
 

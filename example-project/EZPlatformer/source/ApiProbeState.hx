@@ -174,6 +174,9 @@ class ApiProbeState extends FlxState {
         ProbePlugins.run(this);
         ProbeSoundExtras.run(this);
         ProbeLastSeven.run(this);
+        ProbeDspParameters.run(this);
+        ProbeEnums.run(this);
+        ProbeGroupDsp.run(this);
         if (skipAuthored()) {
             info("authored_surface", "skipped (HAXEFMOD_PROBE_SKIP_AUTHORED)");
         } else {
@@ -2361,7 +2364,7 @@ class ApiProbeState extends FlxState {
         check("sg_get_sound_past_end", soundGroup.getSound(5).isNull(), "");
 
         // System queries
-        check("sys_get_output", CoreSystem.getOutput() >= 0, 'value=${CoreSystem.getOutput()}');
+        check("sys_get_output", (CoreSystem.getOutput() : Int) >= 0, 'value=${CoreSystem.getOutput()}');
         check("sys_speaker_mode_channels", CoreSystem.getSpeakerModeChannels(3) == 2,
             'value=${CoreSystem.getSpeakerModeChannels(3)}');
         var identity = CoreSystem.getDefaultMixMatrix(3, 3);

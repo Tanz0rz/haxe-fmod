@@ -1,6 +1,7 @@
 package haxefmod.core;
 
 import haxefmod.studio.FmodResult;
+import haxefmod.studio.Types.DspConnectionType;
 import haxefmod.studio.UserData;
 import haxefmod.studio.native.NativeStudio;
 import haxefmod.studio.native.Scratch;
@@ -20,11 +21,11 @@ import haxefmod.studio.native.Scratch;
 abstract DspConnection(Int) from Int to Int {
     public static inline var NULL:DspConnection = cast 0;
 
-    /** Standard connection types (FMOD_DSPCONNECTION_TYPE values). */
-    public static inline var TYPE_STANDARD:Int = 0;
-    public static inline var TYPE_SIDECHAIN:Int = 1;
-    public static inline var TYPE_SEND:Int = 2;
-    public static inline var TYPE_SEND_SIDECHAIN:Int = 3;
+    /** The connection types Dsp.addInput takes, the same values as DspConnectionType. */
+    public static inline var TYPE_STANDARD:DspConnectionType = DspConnectionType.STANDARD;
+    public static inline var TYPE_SIDECHAIN:DspConnectionType = DspConnectionType.SIDECHAIN;
+    public static inline var TYPE_SEND:DspConnectionType = DspConnectionType.SEND;
+    public static inline var TYPE_SEND_SIDECHAIN:DspConnectionType = DspConnectionType.SEND_SIDECHAIN;
 
     public inline function isNull():Bool {
         return this == 0;
@@ -39,8 +40,8 @@ abstract DspConnection(Int) from Int to Int {
         return NativeStudio.dspconn_set_mix(this, mix);
     }
 
-    /** One of the TYPE_* values. */
-    public inline function getType():Int {
+    /** The connection's type, STANDARD on failure. */
+    public inline function getType():DspConnectionType {
         return NativeStudio.dspconn_get_type(this);
     }
 

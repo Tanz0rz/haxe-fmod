@@ -6480,3 +6480,24 @@ HL_PRIM int HL_NAME(replay_get_current_command)(int h, vbyte* out) {
     return index;
 }
 DEFINE_PRIM(_I32, replay_get_current_command, _I32 _BYTES);
+
+//// Channel group DSP chain walk
+
+HL_PRIM int HL_NAME(cg_get_num_dsps)(int h) {
+    FMOD_CHANNELGROUP* group = resolve_changroup(h);
+    int count = 0;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = FMOD_ChannelGroup_GetNumDSPs(group, &count);
+    return count;
+}
+DEFINE_PRIM(_I32, cg_get_num_dsps, _I32);
+
+HL_PRIM int HL_NAME(cg_get_dsp)(int h, int index) {
+    FMOD_CHANNELGROUP* group = resolve_changroup(h);
+    FMOD_DSP* dsp = NULL;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = FMOD_ChannelGroup_GetDSP(group, index, &dsp);
+    if (gLastResult != FMOD_OK || !dsp) return 0;
+    return faxe_handle_find_or_alloc(dsp, FAXE_TYPE_DSP);
+}
+DEFINE_PRIM(_I32, cg_get_dsp, _I32 _I32);

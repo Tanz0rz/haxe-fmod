@@ -1,12 +1,8 @@
 # studio-api-commandreplay
 
-## 25
-<!-- FMOD_STUDIO_COMMAND_INFO -->
-Type: haxefmod.studio.Types.FmodCommandInfo
-
 ## 26
 <!-- FMOD_STUDIO_INSTANCETYPE -->
-No Haxe equivalent. FmodCommandInfo.instanceType and outputType carry the FMOD_STUDIO_INSTANCETYPE value as an Int.
+Carried by FmodCommandInfo.instanceType and outputType.
 
 ## *
 <!-- page default -->

@@ -846,3 +846,9 @@ sys_get_output_by_plugin -> i32
 sys_set_output_by_plugin i32 -> i32
 # Returns the index of the command the replay is on (-1 on failure). fbuf out: [0]=current time in seconds.
 replay_get_current_command i32 fbuf -> i32
+
+## Channel group DSP chain walk
+# Mirrors the Channel pair. The fader sits at the tail, so getDsp(DSP_TAIL) is the unit a
+# group-wide send effect takes its input from.
+cg_get_num_dsps i32 -> i32
+cg_get_dsp i32 i32 -> i32

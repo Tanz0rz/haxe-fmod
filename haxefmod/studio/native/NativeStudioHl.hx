@@ -733,6 +733,8 @@ class NativeStudioHl {
     public static inline function sys_set_output_by_plugin(handle:Int):Int return Raw.sys_set_output_by_plugin(handle);
     public static inline function replay_get_current_command(handle:Int):Int return Raw.replay_get_current_command(handle, Scratch.floatBuf());
 
+    public static inline function cg_get_num_dsps(handle:Int):Int return Raw.cg_get_num_dsps(handle);
+    public static inline function cg_get_dsp(handle:Int, index:Int):Int return Raw.cg_get_dsp(handle, index);
 }
 
 @:hlNative("hlaxe_fmod")
@@ -1256,5 +1258,7 @@ private extern class Raw {
     static function sys_set_output_by_plugin(handle:Int):Int;
     static function replay_get_current_command(handle:Int, fbuf:hl.Bytes):Int;
 
+    static function cg_get_num_dsps(handle:Int):Int;
+    static function cg_get_dsp(handle:Int, index:Int):Int;
 }
 #end

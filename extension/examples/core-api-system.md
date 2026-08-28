@@ -15,32 +15,23 @@ var channel = sound.play();
 
 ## 1
 <!-- FMOD_ADVANCEDSETTINGS -->
-Set through the FmodSettings fields of the same names at init, read back with StudioSystem.getAdvancedSettings.
-Type: haxefmod.studio.Types.FmodAdvancedSettings
+Set through the FmodSettings fields of the same names at init, read back with StudioSystem.getAdvancedSettings. The fields that stay at FMOD's defaults are not carried.
 
 ## 2
 <!-- FMOD_ASYNCREADINFO -->
 No Haxe equivalent. Custom file systems are not exposed, since user IO callbacks run on FMOD's threads.
 
-## 3
-<!-- FMOD_CREATESOUNDEXINFO -->
-No Haxe equivalent. Sound.create takes a path and an optional loop flag, and Sound.fromPcm describes raw PCM through its arguments.
-
 ## 4
 <!-- FMOD_DRIVER_STATE -->
-No Haxe equivalent. Driver state flags are not exposed, the driver list is reachable through CoreSystem.getDriverCount, getDriverName, and getDriver.
+Returned in the state field of StudioSystem.getRecordDriverInfo. Output drivers are listed through CoreSystem.getDriverCount, getDriverName, and getDriver without a state.
 
 ## 5
 <!-- FMOD_DSP_RESAMPLER -->
-No Haxe equivalent. The resampler method is not exposed, FMOD's default interpolation applies.
-
-## 6
-<!-- FMOD_ERRORCALLBACK_INFO -->
-No Haxe equivalent. Error callbacks are not exposed, setters return an FmodResult and StudioSystem.lastResult() holds the last getter or factory error.
+The resampler method is not exposed, DEFAULT applies.
 
 ## 7
 <!-- FMOD_ERRORCALLBACK_INSTANCETYPE -->
-No Haxe equivalent. Error callbacks are not exposed, check the FmodResult each call returns instead.
+Error callbacks are not exposed, check the FmodResult each call returns instead.
 
 ## 8
 <!-- FMOD_FILE_ASYNCCANCEL_CALLBACK -->
@@ -72,19 +63,11 @@ File callbacks are not exposed since Haxe code cannot run on FMOD's threads. Loa
 
 ## 15
 <!-- FMOD_INITFLAGS -->
-No Haxe equivalent. The library chooses the init flags, the liveUpdate, profiling, and distanceFilter fields of FmodSettings control the ones a game can change.
+The library composes the flags from FmodSettings at init. The liveUpdate, profiling, and distanceFilter fields control the ones a game can change.
 
 ## 16
 <!-- FMOD_OUTPUTTYPE -->
-No Haxe equivalent. CoreSystem.getOutput reports the FMOD_OUTPUTTYPE value as an Int.
-
-## 17
-<!-- FMOD_PLUGINLIST -->
-No Haxe equivalent. Plugin authoring stays in C, a prebuilt plugin loads with StudioSystem.loadPlugin, native only (unsupported in HTML5).
-
-## 18
-<!-- FMOD_PLUGINTYPE -->
-Type: haxefmod.studio.Types.FmodPluginType
+Returned by CoreSystem.getOutput.
 
 ## 19
 <!-- FMOD_PORT_INDEX -->
@@ -92,7 +75,7 @@ No Haxe equivalent. Console port routing is not exposed, desktop and web targets
 
 ## 20
 <!-- FMOD_PORT_TYPE -->
-No Haxe equivalent. Console port routing is not exposed, desktop and web targets have no ports.
+Console port routing is not exposed, desktop and web targets have no ports.
 
 ## 21
 <!-- FMOD_REVERB_MAXINSTANCES -->
@@ -101,10 +84,6 @@ No Haxe equivalent. The four global reverb instances are addressed by index 0 to
 ## 22
 <!-- FMOD_REVERB_PRESETS -->
 No Haxe equivalent. Every preset is a ReverbProperties static on Reverb with the same name, for example Reverb.PRESET_CAVE.
-
-## 23
-<!-- FMOD_REVERB_PROPERTIES -->
-Type: haxefmod.core.Reverb.ReverbProperties
 
 ## 26
 <!-- FMOD_SYSTEM_CALLBACK -->
@@ -118,8 +97,7 @@ StudioSystem.setSystemCallback(event -> switch (event) {
 
 ## 27
 <!-- FMOD_SYSTEM_CALLBACK_TYPE -->
-The mask bits are the CORE_* Int constants on SystemCallbacks, the events arrive as this enum through StudioSystem.setSystemCallback.
-Type: haxefmod.studio.SystemCallbacks.SystemEvent
+The mask bits are also the CORE_* Int constants on SystemCallbacks. StudioSystem.setSystemCallback delivers DEVICELISTCHANGED and DEVICELOST as SystemEvent.
 
 ## 104
 <!-- System::setDSPBufferSize -->

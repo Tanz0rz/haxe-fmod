@@ -446,4 +446,18 @@ abstract ChannelGroup(Int) from Int to Int {
             surroundLeft, surroundRight, backLeft, backRight);
     }
 
+    /** How many DSP units sit in this group's chain (the fader counts, so a fresh group reports 1). */
+    public inline function getDspCount():Int {
+        return NativeStudio.cg_get_num_dsps(this);
+    }
+
+    /**
+     * The effect at chain position `index`. DSP_HEAD, DSP_FADER and DSP_TAIL
+     * work here too, and the fader is always the tail unit, so
+     * `getDsp(DSP_TAIL)` is the unit a group-wide send takes its input from.
+     * A known DSP returns its existing handle. Null when the index is out of range.
+     */
+    public inline function getDsp(index:Int):Dsp {
+        return NativeStudio.cg_get_dsp(this, index);
+    }
 }

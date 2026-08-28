@@ -151,9 +151,14 @@ abstract Sound(Int) from Int to Int {
             bits: haxefmod.studio.native.Scratch.readI(1)};
     }
 
-    /** FMOD_OPENSTATE value (0 = ready), or -1 on failure. Async loads report progress here. */
-    public inline function getOpenState():Int {
-        return NativeStudio.sound_get_open_state(this);
+    /**
+     * The sound's open state, READY once it can play. Async loads report
+     * their progress here. A failed query also comes back as ERROR, with
+     * the reason in StudioSystem.lastResult().
+     */
+    public function getOpenState():FmodOpenState {
+        var state = NativeStudio.sound_get_open_state(this);
+        return state < 0 ? FmodOpenState.ERROR : (state : FmodOpenState);
     }
 
     /**

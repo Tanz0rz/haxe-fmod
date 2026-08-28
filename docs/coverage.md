@@ -2,7 +2,7 @@
 
 Every FMOD function the native layer calls, with the haxefmod methods that reach it. Generated from the sources by `ci/haxe-bindings.py` for haxefmod 2.0.0 against FMOD 2.03.12. Functions absent from this list are not exposed, see [Limitations](limitations.md).
 
-487 FMOD functions are reached.
+489 FMOD functions are reached.
 
 The same table powers the browser extension that adds a Haxe tab to the [fmod.com API reference](https://www.fmod.com/docs/2.03/api/welcome.html). In the HTML5 column, "compile error" marks a call a js build refuses unless the project sets `-D haxefmod_html5_allow_unsupported`, after which it returns `FMOD_ERR_UNSUPPORTED` at runtime, and "limited" marks a call the web build only partly supports.
 
@@ -103,6 +103,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_ChannelGroup_Get3DSpread` | `ChannelGroup.get3DSpread` |  |
 | `FMOD_ChannelGroup_GetAudibility` | `ChannelGroup.getAudibility` |  |
 | `FMOD_ChannelGroup_GetChannel` | `ChannelGroup.getChannel` |  |
+| `FMOD_ChannelGroup_GetDSP` | `ChannelGroup.getDsp` |  |
 | `FMOD_ChannelGroup_GetDSPClock` | `ChannelGroup.getDspClock` |  |
 | `FMOD_ChannelGroup_GetDSPIndex` | `ChannelGroup.getDspIndex` |  |
 | `FMOD_ChannelGroup_GetFadePoints` | `ChannelGroup.getFadePoints` | compile error |
@@ -112,6 +113,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_ChannelGroup_GetMute` | `ChannelGroup.getMute` |  |
 | `FMOD_ChannelGroup_GetName` | `ChannelGroup.getName` |  |
 | `FMOD_ChannelGroup_GetNumChannels` | `ChannelGroup.getChannelCount` |  |
+| `FMOD_ChannelGroup_GetNumDSPs` | `ChannelGroup.getDspCount` |  |
 | `FMOD_ChannelGroup_GetNumGroups` | `ChannelGroup.getGroupCount` |  |
 | `FMOD_ChannelGroup_GetParentGroup` | `ChannelGroup.getParentGroup` |  |
 | `FMOD_ChannelGroup_GetPaused` | `ChannelGroup.getPaused` |  |

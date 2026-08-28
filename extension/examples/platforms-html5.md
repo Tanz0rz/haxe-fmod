@@ -48,11 +48,13 @@ Custom file callbacks are not exposed because they would run on FMOD threads, wh
 
 ## 14
 <!-- CPU Overhead -->
-The mixer sample rate is an init-time setting. Pass it to FmodManager.Initialize, or set -D haxefmod_sample_rate in project.xml. CoreSystem.getSoftwareFormat reports the rate in use.
+The mixer sample rate is an init-time setting. Pass it to FmodManager.Initialize, or set -D haxefmod_sample_rate in project.xml. CoreSystem.getDriverName names the output device, its native rate is not reported, and CoreSystem.getSoftwareFormat reports the rate in use.
 ```haxe
 import haxefmod.core.CoreSystem;
 
 FmodManager.Initialize({sampleRate: 44100});
+
+trace("output device " + CoreSystem.getDriverName(0));
 
 var format = CoreSystem.getSoftwareFormat();
 if (format != null) {

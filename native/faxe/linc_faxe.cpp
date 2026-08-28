@@ -5700,5 +5700,24 @@ int fmod_replay_get_current_command(int h, ::Array<Float> fbuf) {
     return index;
 }
 
+//// Channel group DSP chain walk
+
+int fmod_cg_get_num_dsps(int h) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    int count = 0;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = group->getNumDSPs(&count);
+    return count;
+}
+
+int fmod_cg_get_dsp(int h, int index) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    FMOD::DSP* dsp = NULL;
+    gLastResult = group->getDSP(index, &dsp);
+    if (gLastResult != FMOD_OK || !dsp) return 0;
+    return faxe_handle_find_or_alloc(dsp, FAXE_TYPE_DSP);
+}
+
 } // namespace faxe
 } // namespace linc

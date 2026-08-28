@@ -1,5 +1,7 @@
 package haxefmod.runtime;
 
+import haxefmod.studio.Types;
+
 /**
  * Settings for FmodRuntime.init. Every field is optional. Unset fields fall
  * back to compile-time defines, then to the built-in defaults.
@@ -22,8 +24,8 @@ typedef FmodSettings = {
     /** Mixer sample rate. Default 0 (FMOD's device default). */
     @:optional var sampleRate:Int;
 
-    /** FMOD_SPEAKERMODE value. Default 0 (device default). */
-    @:optional var speakerMode:Int;
+    /** Speaker layout of the mixer. Default DEFAULT (the device's layout). */
+    @:optional var speakerMode:FmodSpeakerMode;
 
     /**
      * Mixer block size in samples (System::setDSPBufferSize). Smaller
@@ -162,7 +164,7 @@ typedef FmodSettings = {
 typedef ResolvedFmodSettings = {
     var numChannels:Int;
     var sampleRate:Int;
-    var speakerMode:Int;
+    var speakerMode:FmodSpeakerMode;
     var dspBufferSize:Int;
     var dspNumBuffers:Int;
     var softwareChannels:Int;

@@ -15,6 +15,12 @@ each example is a section:
     var sound = ...
     ```
 
+Type definitions on a page (the snapshot records their FMOD name from
+the heading) need no section at all: the generator looks the FMOD name
+up in native/manifest/types.txt and emits the Haxe declaration, or a
+comment carrying the category and reason. A section for such an example
+is only needed to add a comment line above the declaration.
+
 A section may carry a `Shape: indices` line with its fence when the C
 enum it stands beside is a parameter index list (the DSP effect
 parameter enums), where a fence showing setParameter by index is the
@@ -135,6 +141,68 @@ def parse_page(text):
     return examples
 
 
+SNAPSHOT = os.path.join(ROOT, "extension", "test", "site-snapshot.json")
+TYPES_TABLE = os.path.join(ROOT, "native", "manifest", "types.txt")
+
+
+def read_types_table():
+    table = {}
+    if not os.path.exists(TYPES_TABLE):
+        return table
+    for raw in read(TYPES_TABLE).splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        parts = line.split(None, 2)
+        reason = parts[2] if len(parts) > 2 else ""
+        reason = re.sub(r"\s*skip:.*$", "", reason).strip()
+        table[parts[0]] = (parts[1] if len(parts) > 1 else "", reason)
+    return table
+
+
+CATEGORY_TEXT = {
+    "cannot": "Cannot be bound from Haxe.",
+    "library": "No Haxe declaration, the library owns this choice.",
+    "covered": "No Haxe declaration, another call plays this role.",
+}
+
+
+def fill_type_definitions(pages):
+    """Every type definition the snapshot records gets its content from
+    the types table, unless the page's section already carries a fence
+    or a Type: line of its own."""
+    if not os.path.exists(SNAPSHOT):
+        return pages
+    snapshot = json.loads(read(SNAPSHOT))
+    table = read_types_table()
+    for page, data in snapshot.items():
+        for example in data.get("examples", []):
+            if not example.get("decl"):
+                continue
+            match = re.search(r"\b((?:FMOD|FSBANK)_[A-Z0-9_]+)\b", example.get("heading", ""))
+            if not match:
+                continue
+            fmod_name = match.group(1)
+            target, reason = table.get(fmod_name, ("", ""))
+            if not target or target == "TODO":
+                continue
+            sections = pages.setdefault(page, {})
+            key = str(example["index"])
+            section = sections.get(key)
+            if section and (section.get("code") is not None or section.get("type")):
+                continue
+            notes = list(section["notes"]) if section else []
+            # A note written when no declaration existed is stale once the
+            # table resolves one
+            notes = [n for n in notes if not n.startswith("No Haxe equivalent")]
+            if target in CATEGORY_TEXT:
+                notes = [CATEGORY_TEXT[target] + " " + reason] + notes
+                sections[key] = {"heading": example["heading"], "notes": notes, "code": None, "type": None, "shape": None, "category": target}
+            else:
+                sections[key] = {"heading": example["heading"], "notes": notes, "code": declaration_of(target), "type": target, "shape": None, "category": None}
+    return pages
+
+
 def build():
     pages = {}
     if not os.path.isdir(SOURCE_DIR):
@@ -144,7 +212,7 @@ def build():
             continue
         page = name[:-3]
         pages[page] = parse_page(read(os.path.join(SOURCE_DIR, name)))
-    return pages
+    return fill_type_definitions(pages)
 
 
 def render(pages):

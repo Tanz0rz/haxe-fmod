@@ -1,6 +1,7 @@
 package haxefmod.core;
 
 import haxefmod.studio.FmodResult;
+import haxefmod.studio.Types.SoundGroupBehavior;
 import haxefmod.studio.UserData;
 import haxefmod.studio.native.NativeStudio;
 
@@ -13,10 +14,10 @@ import haxefmod.studio.native.NativeStudio;
 abstract SoundGroup(Int) from Int to Int {
     public static inline var NULL:SoundGroup = cast 0;
 
-    /** Behaviors when a group is past maxAudible (FMOD_SOUNDGROUP_BEHAVIOR). */
-    public static inline var BEHAVIOR_FAIL:Int = 0;
-    public static inline var BEHAVIOR_MUTE:Int = 1;
-    public static inline var BEHAVIOR_STEAL_LOWEST:Int = 2;
+    /** Behaviors when a group is past maxAudible, the same values as SoundGroupBehavior. */
+    public static inline var BEHAVIOR_FAIL:SoundGroupBehavior = SoundGroupBehavior.FAIL;
+    public static inline var BEHAVIOR_MUTE:SoundGroupBehavior = SoundGroupBehavior.MUTE;
+    public static inline var BEHAVIOR_STEAL_LOWEST:SoundGroupBehavior = SoundGroupBehavior.STEALLOWEST;
 
     /** Creates a group. Returns SoundGroup.NULL on failure. */
     public static inline function create(name:String):SoundGroup {
@@ -41,12 +42,13 @@ abstract SoundGroup(Int) from Int to Int {
         return NativeStudio.sg_get_max_audible(this);
     }
 
-    /** One of the BEHAVIOR_* values. */
-    public inline function setMaxAudibleBehavior(behavior:Int):FmodResult {
+    /** What happens to a new sound once the group is at maxAudible. */
+    public inline function setMaxAudibleBehavior(behavior:SoundGroupBehavior):FmodResult {
         return NativeStudio.sg_set_max_audible_behavior(this, behavior);
     }
 
-    public inline function getMaxAudibleBehavior():Int {
+    /** The current behavior, FAIL on failure. */
+    public inline function getMaxAudibleBehavior():SoundGroupBehavior {
         return NativeStudio.sg_get_max_audible_behavior(this);
     }
 

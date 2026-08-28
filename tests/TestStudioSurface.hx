@@ -7,7 +7,9 @@ import haxefmod.core.ChannelMode;
 import haxefmod.core.CoreSystem;
 import haxefmod.core.Dsp;
 import haxefmod.core.DspConnection;
+import haxefmod.core.DspParameters;
 import haxefmod.core.DspType;
+import haxefmod.core.DspEnums;
 import haxefmod.core.Geometry;
 import haxefmod.core.PcmStream;
 import haxefmod.core.Reverb;
@@ -15,6 +17,7 @@ import haxefmod.core.Reverb3D;
 import haxefmod.core.SoundGroup;
 import haxefmod.studio.Bank;
 import haxefmod.studio.Bus;
+import haxefmod.studio.Callbacks;
 import haxefmod.studio.CommandReplay;
 import haxefmod.core.Sound;
 import haxefmod.studio.FmodResult;
@@ -51,6 +54,10 @@ class TestStudioSurface {
 		testSysExtras();
 		testSoundExtrasStub();
 		testLastSevenStub();
+		testDspParameters();
+		testGroupDspChain();
+		testValueEnums();
+		testTypedSignatures();
 
 		Sys.println('  $passed passed, $failed failed');
 		return failed;
@@ -374,7 +381,7 @@ class TestStudioSurface {
 		assert(conn.isNull(), "conn null");
 		assert(!conn.setMix(0.5).isOk(), "conn setMix result");
 		assert(conn.getMix() == 0.0, "conn mix default");
-		assert(conn.getType() == 0, "conn type default");
+		assert(conn.getType() == DspConnectionType.STANDARD, "conn type default");
 		assert(!dsp.disconnectFrom(dsp).isOk(), "dsp disconnectFrom result");
 		assert(!dsp.disconnectAll().isOk(), "dsp disconnectAll result");
 		assert(dsp.getInputCount() == 0, "dsp inputCount default");
@@ -450,7 +457,7 @@ class TestStudioSurface {
 		assert(!pcmSound.setMode(ChannelMode.LOOP_NORMAL).isOk(), "coresound setMode result");
 		assert(pcmSound.getMode() == 0, "coresound mode default");
 		assert(pcmSound.getFormat() == null, "coresound format default");
-		assert(pcmSound.getOpenState() == -1, "coresound openState default");
+		assert(pcmSound.getOpenState() == FmodOpenState.ERROR, "coresound openState default");
 
 		assert(CoreSystem.getChannelsPlaying() == null, "sys channelsPlaying default");
 		assert(!CoreSystem.mixerSuspend().isOk(), "sys mixerSuspend result");
@@ -753,5 +760,129 @@ class TestStudioSurface {
 		var replay:CommandReplay = cast 1;
 		assert(replay.getCurrentCommand() == null, "getCurrentCommand stub null");
 		assert(haxefmod.studio.native.NativeStudio.replay_get_current_command(1) == -1, "replay_get_current_command stub -1");
+	}
+
+	static function testValueEnums():Void {
+		// The retyped signatures take the enum abstracts and every value
+		// matches the FMOD header number
+		assert(CoreSystem.setSpeakerPosition(FmodSpeaker.FRONT_LEFT, -1, 1, true) == FmodResult.FMOD_ERR_UNSUPPORTED, "setSpeakerPosition takes FmodSpeaker");
+		assert(CoreSystem.getSpeakerPosition(FmodSpeaker.NONE) == null, "getSpeakerPosition takes FmodSpeaker");
+		assert(CoreSystem.getSpeakerModeChannels(FmodSpeakerMode.STEREO) == 0, "getSpeakerModeChannels takes FmodSpeakerMode");
+		assert(CoreSystem.getDefaultMixMatrix(FmodSpeakerMode.MONO, FmodSpeakerMode._5POINT1) == null, "getDefaultMixMatrix takes FmodSpeakerMode");
+		var output:FmodOutputType = CoreSystem.getOutput();
+		assert((output : Int) == -1 || output == FmodOutputType.AUTODETECT, "getOutput returns FmodOutputType");
+		var format = CoreSystem.getSoftwareFormat();
+		assert(format == null, "getSoftwareFormat stub null");
+		var dsp:Dsp = cast 1;
+		assert(dsp.setChannelFormat(FmodChannelMask.STEREO, 2, FmodSpeakerMode.STEREO) == FmodResult.FMOD_ERR_UNSUPPORTED, "setChannelFormat takes the mask and mode enums");
+		assert(dsp.getOutputChannelFormat(FmodChannelMask._5POINT1, 6, FmodSpeakerMode._5POINT1) == null, "getOutputChannelFormat takes the mask and mode enums");
+		assert(StudioSystem.getRecordDriverInfo(0) == null, "getRecordDriverInfo stub null");
+		var settings:haxefmod.runtime.FmodSettings = {speakerMode: FmodSpeakerMode.QUAD};
+		assert(settings.speakerMode == FmodSpeakerMode.QUAD, "FmodSettings.speakerMode takes FmodSpeakerMode");
+		var speaker:FmodSpeaker = 3;
+		assert(speaker == FmodSpeaker.LOW_FREQUENCY, "FmodSpeaker converts from Int");
+		assert((FmodSpeaker.NONE : Int) == -1, "FMOD_SPEAKER_NONE");
+		assert((FmodSpeaker.MAX : Int) == 12, "FMOD_SPEAKER_MAX");
+		assert((FmodSpeakerMode._7POINT1POINT4 : Int) == 8, "FMOD_SPEAKERMODE_7POINT1POINT4");
+		assert((FmodOutputType.WAVWRITER : Int) == 3, "FMOD_OUTPUTTYPE_WAVWRITER");
+		assert((FmodOutputType.OHAUDIO : Int) == 21, "FMOD_OUTPUTTYPE_OHAUDIO");
+		assert((FmodDriverState.DEFAULT : Int) == 2, "FMOD_DRIVER_STATE_DEFAULT");
+		assert((FmodChannelMask._7POINT1 : Int) == 0xFF, "FMOD_CHANNELMASK_7POINT1");
+		assert((FmodChannelMask.BACK_CENTER : Int) == 0x100, "FMOD_CHANNELMASK_BACK_CENTER");
+		assert((FmodTimeUnit.RAWBYTES : Int) == 8, "FMOD_TIMEUNIT_RAWBYTES");
+		assert((FmodTimeUnit.MODPATTERN : Int) == 0x400, "FMOD_TIMEUNIT_MODPATTERN");
+		assert((DspChannelMixOutput.ALL7POINT1POINT4 : Int) == 7, "FMOD_DSP_CHANNELMIX_OUTPUT_ALL7POINT1POINT4");
+		assert((DspEchoDelayChangeMode.NONE : Int) == 2, "FMOD_DSP_ECHO_DELAYCHANGEMODE_NONE");
+		assert((DspFftDownmix.MONO : Int) == 1, "FMOD_DSP_FFT_DOWNMIX_MONO");
+		assert((DspFftWindow.BLACKMANHARRIS : Int) == 5, "FMOD_DSP_FFT_WINDOW_BLACKMANHARRIS");
+		assert((DspLoudnessMeterState.RESET_INTEGRATED : Int) == -3, "FMOD_DSP_LOUDNESS_METER_STATE_RESET_INTEGRATED");
+		assert((DspMultibandDynamicsMode.EXPAND_DOWN : Int) == 4, "FMOD_DSP_MULTIBAND_DYNAMICS_MODE_EXPAND_DOWN");
+		assert((DspMultibandEqFilter.HIGHPASS_6DB : Int) == 14, "FMOD_DSP_MULTIBAND_EQ_FILTER_HIGHPASS_6DB");
+		assert((DspPanModeType.SURROUND : Int) == 2, "FMOD_DSP_PAN_MODE_SURROUND");
+		assert((DspPan2DStereoModeType.DISCRETE : Int) == 1, "FMOD_DSP_PAN_2D_STEREO_MODE_DISCRETE");
+		assert((DspPan3DRolloffType.CUSTOM : Int) == 4, "FMOD_DSP_PAN_3D_ROLLOFF_CUSTOM");
+		assert((DspPan3DExtentModeType.OFF : Int) == 2, "FMOD_DSP_PAN_3D_EXTENT_MODE_OFF");
+		assert((DspThreeEqCrossoverSlope._48DB : Int) == 2, "FMOD_DSP_THREE_EQ_CROSSOVERSLOPE_48DB");
+		assert((DspTransceiverSpeakerMode.AUTO : Int) == -1, "FMOD_DSP_TRANSCEIVER_SPEAKERMODE_AUTO");
+		// setParameterInt still takes a plain Int, the value enums convert to it
+		assert(dsp.setParameterInt(1, DspFftWindow.HANNING) == FmodResult.FMOD_ERR_UNSUPPORTED, "setParameterInt takes a value enum through Int");
+	}
+
+	static function testDspParameters():Void {
+		// The parameter index enums are plain ints in header order, and the
+		// Dsp setters and getters take them without a cast
+		assert((DspChannelMix.OUTPUTGROUPING : Int) == 0, "DspChannelMix.OUTPUTGROUPING is 0");
+		assert((DspChannelMix.GAIN_CH0 : Int) == 1, "DspChannelMix.GAIN_CH0 is 1");
+		assert((DspChannelMix.OUTPUT_CH31 : Int) == 64, "DspChannelMix.OUTPUT_CH31 is 64");
+		assert((DspLowpass.CUTOFF : Int) == 0 && (DspLowpass.RESONANCE : Int) == 1, "DspLowpass indices");
+		assert((DspOscillator.RATE : Int) == 1, "DspOscillator.RATE is 1");
+		assert((DspEcho.DELAYCHANGEMODE : Int) == 4, "DspEcho.DELAYCHANGEMODE is 4");
+		assert((DspPan.MODE : Int) == 0 && (DspPan._2D_STEREO_MODE : Int) == 6, "DspPan indices keep the leading underscore");
+		assert((DspFft.WINDOW : Int) == 1 && (DspFft.SPECTRUMDATA : Int) == 4, "DspFft indices");
+		assert((DspSfxReverb.DECAYTIME : Int) == 0, "DspSfxReverb.DECAYTIME is 0");
+		assert((DspObjectPan.OVERRIDE_RANGE : Int) == 10, "DspObjectPan.OVERRIDE_RANGE is 10");
+		assert((DspMultibandDynamics.C_RESPONSE_DATA : Int) == 27, "DspMultibandDynamics.C_RESPONSE_DATA is 27");
+		var dsp:Dsp = cast 1;
+		assert(dsp.setParameter(DspChannelMix.GAIN_CH0, -6) == FmodResult.FMOD_ERR_UNSUPPORTED, "setParameter accepts DspChannelMix");
+		assert(dsp.setParameterInt(DspChannelMix.OUTPUTGROUPING, 1) == FmodResult.FMOD_ERR_UNSUPPORTED, "setParameterInt accepts DspChannelMix");
+		assert(dsp.setParameterBool(DspFft.IMMEDIATE_MODE, true) == FmodResult.FMOD_ERR_UNSUPPORTED, "setParameterBool accepts DspFft");
+		assert(dsp.getParameter(DspLowpass.CUTOFF) == 0, "getParameter accepts DspLowpass");
+		assert(dsp.getParameterInt(DspPan.MODE) == 0, "getParameterInt accepts DspPan");
+		var index:Int = DspLowpass.RESONANCE;
+		assert(index == 1, "DspLowpass converts to Int implicitly");
+	}
+
+	static function testGroupDspChain():Void {
+		// The stub reports an empty chain and a null unit for every position
+		var group:ChannelGroup = cast 1;
+		assert(group.getDspCount() == 0, "cg dspCount default");
+		assert(group.getDsp(0).isNull(), "cg getDsp default");
+		assert(group.getDsp(ChannelGroup.DSP_TAIL).isNull(), "cg getDsp tail default");
+		assert(group.getDsp(ChannelGroup.DSP_FADER).isNull(), "cg getDsp fader default");
+		assert(group.getDsp(ChannelGroup.DSP_HEAD).isNull(), "cg getDsp head default");
+		assert(ChannelGroup.master().getDspCount() == 0, "cg master dspCount default");
+	}
+
+	/**
+	 * The signatures retyped from Int to the header enums route through
+	 * the stub with the enum values, the old Int constants stay usable as
+	 * aliases, and the typedef fields carry the new types.
+	 */
+	static function testTypedSignatures():Void {
+		var sound = Sound.fromPcm(haxe.io.Bytes.alloc(4), 48000, 1);
+		assert(sound.getOpenState() == FmodOpenState.ERROR, "typed open state on stub is ERROR");
+		assert((FmodOpenState.READY : Int) == 0 && (FmodOpenState.MAX : Int) == 8, "open state values");
+
+		var group = SoundGroup.create("typed");
+		assert(!group.setMaxAudibleBehavior(SoundGroupBehavior.STEALLOWEST).isOk(), "typed behavior set routes");
+		assert(!group.setMaxAudibleBehavior(SoundGroup.BEHAVIOR_MUTE).isOk(), "behavior alias still accepted");
+		assert(group.getMaxAudibleBehavior() == SoundGroupBehavior.FAIL, "typed behavior get default");
+		assert(SoundGroup.BEHAVIOR_STEAL_LOWEST == SoundGroupBehavior.STEALLOWEST, "behavior alias value");
+
+		var dsp = Dsp.create(DspType.FADER);
+		assert(dsp.addInput(dsp, DspConnectionType.SIDECHAIN).isNull(), "typed addInput routes");
+		assert(dsp.addInput(dsp, DspConnection.TYPE_SEND).isNull(), "addInput alias still accepted");
+		assert(dsp.addInput(dsp).getType() == DspConnectionType.STANDARD, "typed connection type default");
+		assert(DspConnection.TYPE_SEND_SIDECHAIN == DspConnectionType.SEND_SIDECHAIN, "connection alias value");
+		assert(dsp.getDataParameterIndex(FmodDspParameterDataType.FFT) == -1, "typed data parameter index routes");
+		assert(Dsp.PARAMETER_DATA == FmodDspParameterType.DATA, "parameter type alias value");
+
+		assert(ChannelGroup.DSP_HEAD == (ChannelControlDspIndex.HEAD : Int)
+			&& ChannelGroup.DSP_FADER == (ChannelControlDspIndex.FADER : Int)
+			&& ChannelGroup.DSP_TAIL == (ChannelControlDspIndex.TAIL : Int), "dsp index aliases");
+
+		var info:FmodCommandInfo = {commandName: "", parentCommandIndex: 0, frameNumber: 0, frameTime: 0,
+			instanceType: FmodStudioInstanceType.EVENTINSTANCE, outputType: FmodStudioInstanceType.NONE,
+			instanceHandle: 0, outputHandle: 0};
+		assert((info.instanceType : Int) == 3 && info.outputType == FmodStudioInstanceType.NONE, "command info typed");
+		var desc:FmodParameterDescription = {name: "p", id: {data1: 0, data2: 0}, minimum: 0, maximum: 1, defaultValue: 0,
+			type: FmodParameterType.GAME_CONTROLLED, flags: 0, guid: ""};
+		assert(desc.guid == "", "parameter description carries guid");
+
+		assert(ChannelMode.MODE_3D_LINEARROLLOFF == ChannelMode.LINEAR_ROLLOFF_3D
+			&& ChannelMode.MODE_3D_HEADRELATIVE == 0x00040000
+			&& ChannelMode.VIRTUAL_PLAYFROMSTART == 0x80000000
+			&& ChannelMode.DEFAULT == 0, "channel mode header names and aliases");
+		assert((FmodLoadBankFlags.UNENCRYPTED : Int) == 4 && (EventCallbackType.ALL : Int) == -1, "flag additions");
 	}
 }

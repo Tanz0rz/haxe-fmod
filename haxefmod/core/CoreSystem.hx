@@ -1,5 +1,6 @@
 package haxefmod.core;
 
+import haxefmod.studio.Types;
 import haxefmod.studio.FmodResult;
 import haxefmod.studio.native.NativeStudio;
 import haxefmod.studio.native.Scratch;
@@ -31,7 +32,7 @@ class CoreSystem {
     }
 
     /** The mixer's output format, or null on failure. */
-    public static function getSoftwareFormat():Null<{sampleRate:Int, speakerMode:Int, rawSpeakers:Int}> {
+    public static function getSoftwareFormat():Null<{sampleRate:Int, speakerMode:FmodSpeakerMode, rawSpeakers:Int}> {
         var result:FmodResult = NativeStudio.sys_get_software_format();
         if (!result.isOk()) return null;
         return {sampleRate: Scratch.readI(0), speakerMode: Scratch.readI(1), rawSpeakers: Scratch.readI(2)};
@@ -81,13 +82,13 @@ class CoreSystem {
         return NativeStudio.sys_get_channel(index);
     }
 
-    /** The active output type as an FMOD_OUTPUTTYPE value, -1 on failure. */
-    public static inline function getOutput():Int {
+    /** The active output type (FMOD_OUTPUTTYPE), -1 on failure. */
+    public static inline function getOutput():FmodOutputType {
         return NativeStudio.sys_get_output();
     }
 
-    /** Speaker count of an FMOD_SPEAKERMODE value, 0 on failure. */
-    public static inline function getSpeakerModeChannels(speakerMode:Int):Int {
+    /** Speaker count of a speaker mode, 0 on failure. */
+    public static inline function getSpeakerModeChannels(speakerMode:FmodSpeakerMode):Int {
         return NativeStudio.sys_get_speaker_mode_channels(speakerMode);
     }
 
@@ -108,7 +109,7 @@ class CoreSystem {
      * HTML5, null there). matrixHop widens each row past the source
      * channel count, 0 keeps rows at that count. Null on failure.
      */
-    public static function getDefaultMixMatrix(sourceSpeakerMode:Int, targetSpeakerMode:Int, matrixHop:Int = 0):Null<Array<Float>> {
+    public static function getDefaultMixMatrix(sourceSpeakerMode:FmodSpeakerMode, targetSpeakerMode:FmodSpeakerMode, matrixHop:Int = 0):Null<Array<Float>> {
         var total = NativeStudio.sys_get_default_mix_matrix(sourceSpeakerMode, targetSpeakerMode, matrixHop);
         if (total <= 0) return null;
         return [for (i in 0...total) Scratch.readF(i)];
@@ -136,15 +137,14 @@ class CoreSystem {
 
     /**
      * Where one output speaker sits for panning, as x (left -1 to right 1)
-     * and y (back -1 to front 1), and whether it is fed at all. speaker is
-     * an FMOD_SPEAKER index (0 is front left).
+     * and y (back -1 to front 1), and whether it is fed at all.
      */
-    public static inline function setSpeakerPosition(speaker:Int, x:Float, y:Float, active:Bool):FmodResult {
+    public static inline function setSpeakerPosition(speaker:FmodSpeaker, x:Float, y:Float, active:Bool):FmodResult {
         return NativeStudio.sys_set_speaker_position(speaker, x, y, active);
     }
 
     /** The position set for one speaker (see setSpeakerPosition), or null on failure. */
-    public static function getSpeakerPosition(speaker:Int):Null<{x:Float, y:Float, active:Bool}> {
+    public static function getSpeakerPosition(speaker:FmodSpeaker):Null<{x:Float, y:Float, active:Bool}> {
         var result:FmodResult = NativeStudio.sys_get_speaker_position(speaker);
         if (!result.isOk()) return null;
         return {x: Scratch.readF(0), y: Scratch.readF(1), active: Scratch.readF(2) != 0};

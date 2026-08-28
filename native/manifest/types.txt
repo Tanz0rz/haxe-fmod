@@ -1,0 +1,251 @@
+# FMOD type -> haxefmod declaration, or a category (cannot | library | covered) with a reason.
+# Checked against the SDK headers by ci/check-type-parity.py and used by ci/haxe-examples.py.
+# Optional trailing `skip: A,B` names header values or fields Haxe leaves out on purpose.
+
+FMOD_3D_ATTRIBUTES                                  haxefmod.studio.Types.Fmod3DAttributes
+FMOD_3D_ROLLOFF_CALLBACK                            cannot   runs on FMOD's mixer thread, the rolloff flags of ChannelMode and set3DCustomRolloff on Sound, Channel, and ChannelGroup shape the curve instead
+FMOD_ADVANCEDSETTINGS                               haxefmod.studio.Types.FmodAdvancedSettings   the fields FmodSettings sets and StudioSystem.getAdvancedSettings reads back, the rest keep FMOD's defaults skip: cbSize,maxADPCMCodecs,maxXMACodecs,maxAT9Codecs,maxOpusCodecs,ASIONumChannels,ASIOChannelList,ASIOSpeakerList,reverb3Dinstance,DSPBufferPoolSize,resamplerMethod,maxConvolutionThreads,maxSpatialObjects
+FMOD_CHANNELCONTROL_CALLBACK                        cannot   runs on FMOD's threads, Channel.setCallback delivers ChannelEvent on the game thread instead
+FMOD_CHANNELCONTROL_CALLBACK_TYPE                   haxefmod.studio.Types.FmodChannelControlCallbackType
+FMOD_CHANNELCONTROL_DSP_INDEX                       haxefmod.studio.Types.ChannelControlDspIndex
+FMOD_CHANNELCONTROL_TYPE                            haxefmod.studio.Types.FmodChannelControlType
+FMOD_CHANNELMASK                                    haxefmod.studio.Types.FmodChannelMask
+FMOD_CHANNELORDER                                   haxefmod.studio.Types.FmodChannelOrder
+FMOD_CODEC_ALLOC_FUNC                               cannot   runs on FMOD's threads inside a codec plugin, plugin authoring is C only
+FMOD_CODEC_CLOSE_CALLBACK                           cannot   runs on FMOD's threads inside a codec plugin, plugin authoring is C only
+FMOD_CODEC_DESCRIPTION                              cannot   codec plugins are written in C, Sound.create loads every format FMOD decodes and PcmStream feeds decoded audio
+FMOD_CODEC_FILE_READ_FUNC                           cannot   runs on FMOD's threads inside a codec plugin, plugin authoring is C only
+FMOD_CODEC_FILE_SEEK_FUNC                           cannot   runs on FMOD's threads inside a codec plugin, plugin authoring is C only
+FMOD_CODEC_FILE_SIZE_FUNC                           cannot   runs on FMOD's threads inside a codec plugin, plugin authoring is C only
+FMOD_CODEC_FILE_TELL_FUNC                           cannot   runs on FMOD's threads inside a codec plugin, plugin authoring is C only
+FMOD_CODEC_FREE_FUNC                                cannot   runs on FMOD's threads inside a codec plugin, plugin authoring is C only
+FMOD_CODEC_GETLENGTH_CALLBACK                       cannot   runs on FMOD's threads inside a codec plugin, plugin authoring is C only
+FMOD_CODEC_GETPOSITION_CALLBACK                     cannot   runs on FMOD's threads inside a codec plugin, plugin authoring is C only
+FMOD_CODEC_GETWAVEFORMAT_CALLBACK                   cannot   runs on FMOD's threads inside a codec plugin, plugin authoring is C only
+FMOD_CODEC_LOG_FUNC                                 cannot   runs on FMOD's threads inside a codec plugin, plugin authoring is C only
+FMOD_CODEC_METADATA_FUNC                            cannot   runs on FMOD's threads inside a codec plugin, plugin authoring is C only
+FMOD_CODEC_OPEN_CALLBACK                            cannot   runs on FMOD's threads inside a codec plugin, plugin authoring is C only
+FMOD_CODEC_READ_CALLBACK                            cannot   runs on FMOD's threads inside a codec plugin, plugin authoring is C only
+FMOD_CODEC_SETPOSITION_CALLBACK                     cannot   runs on FMOD's threads inside a codec plugin, plugin authoring is C only
+FMOD_CODEC_SOUNDCREATE_CALLBACK                     cannot   runs on FMOD's threads inside a codec plugin, plugin authoring is C only
+FMOD_CODEC_STATE_FUNCTIONS                          cannot   codec plugins are written in C, Sound.create loads every format FMOD decodes and PcmStream feeds decoded audio
+FMOD_CPU_USAGE                                      haxefmod.studio.Types.FmodSystemCpuUsage
+FMOD_CREATESOUNDEXINFO                              library   Sound.create and Sound.fromPcm take its fields as arguments
+FMOD_DEBUG_CALLBACK                                 cannot   runs on FMOD's threads, the log goes to the platform output at FmodSettings.logLevel instead
+FMOD_DEBUG_FLAGS                                    haxefmod.studio.Types.FmodDebugFlags
+FMOD_DEBUG_MODE                                     haxefmod.studio.Types.FmodDebugMode
+FMOD_DRIVER_STATE                                   haxefmod.studio.Types.FmodDriverState
+FMOD_DSPCONNECTION_TYPE                             haxefmod.studio.Types.DspConnectionType
+FMOD_DSP_ALLOC_FUNC                                 cannot   runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
+FMOD_DSP_CALLBACK                                   cannot   runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
+FMOD_DSP_CALLBACK_TYPE                              haxefmod.studio.Types.FmodDspCallbackType
+FMOD_DSP_CHANNELMIX                                 haxefmod.core.DspParameters.DspChannelMix
+FMOD_DSP_CHANNELMIX_OUTPUT                          haxefmod.core.DspEnums.DspChannelMixOutput
+FMOD_DSP_CHORUS                                     haxefmod.core.DspParameters.DspChorus
+FMOD_DSP_COMPRESSOR                                 haxefmod.core.DspParameters.DspCompressor
+FMOD_DSP_CONVOLUTION_REVERB                         haxefmod.core.DspParameters.DspConvolutionReverb
+FMOD_DSP_CREATE_CALLBACK                            cannot   runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
+FMOD_DSP_DATA_PARAMETER_INFO                        cannot   the payload of a DSP callback, which runs on the mixer thread, Dsp.setParameterData copies its bytes so nothing needs releasing
+FMOD_DSP_DELAY                                      haxefmod.core.DspParameters.DspDelay
+FMOD_DSP_DESCRIPTION                                cannot   DSP plugins are written in C, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin
+FMOD_DSP_DFT_FFTREAL_FUNC                           cannot   runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
+FMOD_DSP_DFT_IFFTREAL_FUNC                          cannot   runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
+FMOD_DSP_DISTORTION                                 haxefmod.core.DspParameters.DspDistortion
+FMOD_DSP_ECHO                                       haxefmod.core.DspParameters.DspEcho
+FMOD_DSP_ECHO_DELAYCHANGEMODE_TYPE                  haxefmod.core.DspEnums.DspEchoDelayChangeMode
+FMOD_DSP_FADER                                      haxefmod.core.DspParameters.DspFader
+FMOD_DSP_FFT                                        haxefmod.core.DspParameters.DspFft
+FMOD_DSP_FFT_DOWNMIX_TYPE                           haxefmod.core.DspEnums.DspFftDownmix
+FMOD_DSP_FFT_WINDOW_TYPE                            haxefmod.core.DspEnums.DspFftWindow
+FMOD_DSP_FLANGE                                     haxefmod.core.DspParameters.DspFlange
+FMOD_DSP_FREE_FUNC                                  cannot   runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
+FMOD_DSP_GETBLOCKSIZE_FUNC                          cannot   runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
+FMOD_DSP_GETCLOCK_FUNC                              cannot   runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
+FMOD_DSP_GETLISTENERATTRIBUTES_FUNC                 cannot   runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
+FMOD_DSP_GETPARAM_BOOL_CALLBACK                     cannot   runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
+FMOD_DSP_GETPARAM_DATA_CALLBACK                     cannot   runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
+FMOD_DSP_GETPARAM_FLOAT_CALLBACK                    cannot   runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
+FMOD_DSP_GETPARAM_INT_CALLBACK                      cannot   runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
+FMOD_DSP_GETSAMPLERATE_FUNC                         cannot   runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
+FMOD_DSP_GETSPEAKERMODE_FUNC                        cannot   runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
+FMOD_DSP_GETUSERDATA_FUNC                           cannot   runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
+FMOD_DSP_HIGHPASS                                   haxefmod.core.DspParameters.DspHighpass
+FMOD_DSP_HIGHPASS_SIMPLE                            haxefmod.core.DspParameters.DspHighpassSimple
+FMOD_DSP_ITECHO                                     haxefmod.core.DspParameters.DspItEcho
+FMOD_DSP_ITLOWPASS                                  haxefmod.core.DspParameters.DspItLowpass
+FMOD_DSP_LIMITER                                    haxefmod.core.DspParameters.DspLimiter
+FMOD_DSP_LOG_FUNC                                   cannot   runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
+FMOD_DSP_LOUDNESS_METER                             haxefmod.core.DspParameters.DspLoudnessMeter
+FMOD_DSP_LOUDNESS_METER_INFO_TYPE                   library   the loudness readback is not exposed since the HTML5 build returns zeroes from it, Dsp.getMetering gives peak and RMS on every target
+FMOD_DSP_LOUDNESS_METER_STATE_TYPE                  haxefmod.core.DspEnums.DspLoudnessMeterState
+FMOD_DSP_LOUDNESS_METER_WEIGHTING_TYPE              library   channel weighting is a data parameter of the loudness meter, whose readback is not exposed, so the meter keeps FMOD's default weighting
+FMOD_DSP_LOWPASS                                    haxefmod.core.DspParameters.DspLowpass
+FMOD_DSP_LOWPASS_SIMPLE                             haxefmod.core.DspParameters.DspLowpassSimple
+FMOD_DSP_METERING_INFO                              covered   Dsp.getMetering returns the peak and RMS arrays it holds
+FMOD_DSP_MULTIBAND_DYNAMICS                         haxefmod.core.DspParameters.DspMultibandDynamics
+FMOD_DSP_MULTIBAND_DYNAMICS_MODE_TYPE               haxefmod.core.DspEnums.DspMultibandDynamicsMode
+FMOD_DSP_MULTIBAND_EQ                               haxefmod.core.DspParameters.DspMultibandEq
+FMOD_DSP_MULTIBAND_EQ_FILTER_TYPE                   haxefmod.core.DspEnums.DspMultibandEqFilter
+FMOD_DSP_NORMALIZE                                  haxefmod.core.DspParameters.DspNormalize
+FMOD_DSP_OBJECTPAN                                  haxefmod.core.DspParameters.DspObjectPan
+FMOD_DSP_OSCILLATOR                                 haxefmod.core.DspParameters.DspOscillator
+FMOD_DSP_PAN                                        haxefmod.core.DspParameters.DspPan
+FMOD_DSP_PAN_2D_STEREO_MODE_TYPE                    haxefmod.core.DspEnums.DspPan2DStereoModeType
+FMOD_DSP_PAN_3D_EXTENT_MODE_TYPE                    haxefmod.core.DspEnums.DspPan3DExtentModeType
+FMOD_DSP_PAN_3D_ROLLOFF_TYPE                        haxefmod.core.DspEnums.DspPan3DRolloffType
+FMOD_DSP_PAN_GETROLLOFFGAIN_FUNC                    cannot   runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
+FMOD_DSP_PAN_MODE_TYPE                              haxefmod.core.DspEnums.DspPanModeType
+FMOD_DSP_PAN_SUMMONOMATRIX_FUNC                     cannot   runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
+FMOD_DSP_PAN_SUMMONOTOSURROUNDMATRIX_FUNC           cannot   runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
+FMOD_DSP_PAN_SUMSTEREOMATRIX_FUNC                   cannot   runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
+FMOD_DSP_PAN_SUMSTEREOTOSURROUNDMATRIX_FUNC         cannot   runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
+FMOD_DSP_PAN_SUMSURROUNDMATRIX_FUNC                 cannot   runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
+FMOD_DSP_PAN_SURROUND_FLAGS                         haxefmod.studio.Types.FmodDspPanSurroundFlags
+FMOD_DSP_PARAMEQ                                    haxefmod.core.DspParameters.DspParamEq
+FMOD_DSP_PARAMETER_3DATTRIBUTES                     library   the 3D position of a pan unit is not set by parameter, play the source through a 3D channel and call Channel.set3DAttributes
+FMOD_DSP_PARAMETER_3DATTRIBUTES_MULTI               library   the 3D position of a pan unit is not set by parameter, play the source through a 3D channel and call Channel.set3DAttributes
+FMOD_DSP_PARAMETER_ATTENUATION_RANGE                covered   a data parameter format the unit reads, Dsp.setParameterData hands it over as raw bytes and Dsp.getDataParameterIndex finds its index
+FMOD_DSP_PARAMETER_DATA_TYPE                        haxefmod.studio.Types.FmodDspParameterDataType
+FMOD_DSP_PARAMETER_DESC                             cannot   a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, type, and range
+FMOD_DSP_PARAMETER_DESC_BOOL                        cannot   a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, type, and range
+FMOD_DSP_PARAMETER_DESC_DATA                        cannot   a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, type, and range
+FMOD_DSP_PARAMETER_DESC_FLOAT                       cannot   a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, type, and range
+FMOD_DSP_PARAMETER_DESC_INT                         cannot   a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, type, and range
+FMOD_DSP_PARAMETER_DYNAMIC_RESPONSE                 covered   a data parameter format the unit reads, Dsp.setParameterData hands it over as raw bytes and Dsp.getDataParameterIndex finds its index
+FMOD_DSP_PARAMETER_FFT                              covered   Dsp.getFftSpectrum reads the spectrum of an FFT unit
+FMOD_DSP_PARAMETER_FINITE_LENGTH                    covered   a data parameter format the unit reads, Dsp.setParameterData hands it over as raw bytes and Dsp.getDataParameterIndex finds its index
+FMOD_DSP_PARAMETER_FLOAT_MAPPING                    cannot   a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, type, and range
+FMOD_DSP_PARAMETER_FLOAT_MAPPING_PIECEWISE_LINEAR   cannot   a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, type, and range
+FMOD_DSP_PARAMETER_FLOAT_MAPPING_TYPE               haxefmod.studio.Types.FmodDspParameterFloatMappingType
+FMOD_DSP_PARAMETER_OVERALLGAIN                      covered   a data parameter format the unit reads, Dsp.setParameterData hands it over as raw bytes and Dsp.getDataParameterIndex finds its index
+FMOD_DSP_PARAMETER_SIDECHAIN                        covered   a data parameter format the unit reads, Dsp.setParameterData hands it over as raw bytes and Dsp.getDataParameterIndex finds its index
+FMOD_DSP_PARAMETER_TYPE                             haxefmod.studio.Types.FmodDspParameterType
+FMOD_DSP_PITCHSHIFT                                 haxefmod.core.DspParameters.DspPitchShift
+FMOD_DSP_PROCESS_CALLBACK                           cannot   runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
+FMOD_DSP_PROCESS_OPERATION                          haxefmod.studio.Types.FmodDspProcessOperation
+FMOD_DSP_READ_CALLBACK                              cannot   runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
+FMOD_DSP_REALLOC_FUNC                               cannot   runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
+FMOD_DSP_RELEASE_CALLBACK                           cannot   runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
+FMOD_DSP_RESAMPLER                                  haxefmod.studio.Types.FmodDspResampler
+FMOD_DSP_RESET_CALLBACK                             cannot   runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
+FMOD_DSP_RETURN                                     haxefmod.core.DspParameters.DspReturn
+FMOD_DSP_SEND                                       haxefmod.core.DspParameters.DspSend
+FMOD_DSP_SETPARAM_BOOL_CALLBACK                     cannot   runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
+FMOD_DSP_SETPARAM_DATA_CALLBACK                     cannot   runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
+FMOD_DSP_SETPARAM_FLOAT_CALLBACK                    cannot   runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
+FMOD_DSP_SETPARAM_INT_CALLBACK                      cannot   runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
+FMOD_DSP_SETPOSITION_CALLBACK                       cannot   runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
+FMOD_DSP_SFXREVERB                                  haxefmod.core.DspParameters.DspSfxReverb
+FMOD_DSP_SHOULDIPROCESS_CALLBACK                    cannot   runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
+FMOD_DSP_STATE_DFT_FUNCTIONS                        cannot   DSP plugins are written in C, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin
+FMOD_DSP_STATE_FUNCTIONS                            cannot   DSP plugins are written in C, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin
+FMOD_DSP_STATE_PAN_FUNCTIONS                        cannot   DSP plugins are written in C, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin
+FMOD_DSP_SYSTEM_DEREGISTER_CALLBACK                 cannot   runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
+FMOD_DSP_SYSTEM_MIX_CALLBACK                        cannot   runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
+FMOD_DSP_SYSTEM_REGISTER_CALLBACK                   cannot   runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
+FMOD_DSP_THREE_EQ                                   haxefmod.core.DspParameters.DspThreeEq
+FMOD_DSP_THREE_EQ_CROSSOVERSLOPE_TYPE               haxefmod.core.DspEnums.DspThreeEqCrossoverSlope
+FMOD_DSP_TRANSCEIVER                                haxefmod.core.DspParameters.DspTransceiver
+FMOD_DSP_TRANSCEIVER_SPEAKERMODE                    haxefmod.core.DspEnums.DspTransceiverSpeakerMode
+FMOD_DSP_TREMOLO                                    haxefmod.core.DspParameters.DspTremolo
+FMOD_DSP_TYPE                                       haxefmod.core.DspType   the built-in unit kinds Dsp.create takes skip: MAX
+FMOD_ERRORCALLBACK_INFO                             library   error callbacks are not exposed, every call returns its FmodResult and StudioSystem.lastResult() keeps the last getter error
+FMOD_ERRORCALLBACK_INSTANCETYPE                     haxefmod.studio.Types.FmodErrorCallbackInstanceType
+FMOD_FILE_ASYNCCANCEL_CALLBACK                      cannot   runs on FMOD's file threads, custom file systems are not exposed, Sound.create reads the platform file system and StudioSystem.loadBankMemory takes bytes
+FMOD_FILE_ASYNCDONE_FUNC                            cannot   runs on FMOD's file threads, custom file systems are not exposed, Sound.create reads the platform file system and StudioSystem.loadBankMemory takes bytes
+FMOD_FILE_ASYNCREAD_CALLBACK                        cannot   runs on FMOD's file threads, custom file systems are not exposed, Sound.create reads the platform file system and StudioSystem.loadBankMemory takes bytes
+FMOD_FILE_CLOSE_CALLBACK                            cannot   runs on FMOD's file threads, custom file systems are not exposed, Sound.create reads the platform file system and StudioSystem.loadBankMemory takes bytes
+FMOD_FILE_OPEN_CALLBACK                             cannot   runs on FMOD's file threads, custom file systems are not exposed, Sound.create reads the platform file system and StudioSystem.loadBankMemory takes bytes
+FMOD_FILE_READ_CALLBACK                             cannot   runs on FMOD's file threads, custom file systems are not exposed, Sound.create reads the platform file system and StudioSystem.loadBankMemory takes bytes
+FMOD_FILE_SEEK_CALLBACK                             cannot   runs on FMOD's file threads, custom file systems are not exposed, Sound.create reads the platform file system and StudioSystem.loadBankMemory takes bytes
+FMOD_GUID                                           library   GUIDs are strings in the text form FMOD Studio shows, taken by StudioSystem.getEventByID and returned by EventDescription.getID
+FMOD_INITFLAGS                                      haxefmod.studio.Types.FmodInitFlags
+FMOD_MEMORY_ALLOC_CALLBACK                          cannot   runs on FMOD's threads, custom allocators are not exposed, StudioSystem.getMemoryStats reports what FMOD allocated
+FMOD_MEMORY_FREE_CALLBACK                           cannot   runs on FMOD's threads, custom allocators are not exposed, StudioSystem.getMemoryStats reports what FMOD allocated
+FMOD_MEMORY_REALLOC_CALLBACK                        cannot   runs on FMOD's threads, custom allocators are not exposed, StudioSystem.getMemoryStats reports what FMOD allocated
+FMOD_MEMORY_TYPE                                    haxefmod.studio.Types.FmodMemoryType
+FMOD_MODE                                           haxefmod.core.ChannelMode
+FMOD_OPENSTATE                                      haxefmod.studio.Types.FmodOpenState
+FMOD_OUTPUTTYPE                                     haxefmod.studio.Types.FmodOutputType
+FMOD_OUTPUT_ALLOC_FUNC                              cannot   runs on FMOD's mixer thread inside an output plugin, plugin authoring is C only
+FMOD_OUTPUT_CLOSEPORT_CALLBACK                      cannot   runs on FMOD's mixer thread inside an output plugin, plugin authoring is C only
+FMOD_OUTPUT_CLOSE_CALLBACK                          cannot   runs on FMOD's mixer thread inside an output plugin, plugin authoring is C only
+FMOD_OUTPUT_COPYPORT_FUNC                           cannot   runs on FMOD's mixer thread inside an output plugin, plugin authoring is C only
+FMOD_OUTPUT_DESCRIPTION                             cannot   output plugins are written in C, FMOD initializes the platform's default output
+FMOD_OUTPUT_DEVICELISTCHANGED_CALLBACK              cannot   runs on FMOD's mixer thread inside an output plugin, plugin authoring is C only
+FMOD_OUTPUT_FREE_FUNC                               cannot   runs on FMOD's mixer thread inside an output plugin, plugin authoring is C only
+FMOD_OUTPUT_GETDRIVERINFO_CALLBACK                  cannot   runs on FMOD's mixer thread inside an output plugin, plugin authoring is C only
+FMOD_OUTPUT_GETHANDLE_CALLBACK                      cannot   runs on FMOD's mixer thread inside an output plugin, plugin authoring is C only
+FMOD_OUTPUT_GETNUMDRIVERS_CALLBACK                  cannot   runs on FMOD's mixer thread inside an output plugin, plugin authoring is C only
+FMOD_OUTPUT_INIT_CALLBACK                           cannot   runs on FMOD's mixer thread inside an output plugin, plugin authoring is C only
+FMOD_OUTPUT_LOG_FUNC                                cannot   runs on FMOD's mixer thread inside an output plugin, plugin authoring is C only
+FMOD_OUTPUT_METHOD                                  haxefmod.studio.Types.FmodOutputMethod
+FMOD_OUTPUT_MIXER_CALLBACK                          cannot   runs on FMOD's mixer thread inside an output plugin, plugin authoring is C only
+FMOD_OUTPUT_OBJECT3DALLOC_CALLBACK                  cannot   runs on FMOD's mixer thread inside an output plugin, plugin authoring is C only
+FMOD_OUTPUT_OBJECT3DFREE_CALLBACK                   cannot   runs on FMOD's mixer thread inside an output plugin, plugin authoring is C only
+FMOD_OUTPUT_OBJECT3DGETINFO_CALLBACK                cannot   runs on FMOD's mixer thread inside an output plugin, plugin authoring is C only
+FMOD_OUTPUT_OBJECT3DUPDATE_CALLBACK                 cannot   runs on FMOD's mixer thread inside an output plugin, plugin authoring is C only
+FMOD_OUTPUT_OPENPORT_CALLBACK                       cannot   runs on FMOD's mixer thread inside an output plugin, plugin authoring is C only
+FMOD_OUTPUT_READFROMMIXER_FUNC                      cannot   runs on FMOD's mixer thread inside an output plugin, plugin authoring is C only
+FMOD_OUTPUT_REQUESTRESET_FUNC                       cannot   runs on FMOD's mixer thread inside an output plugin, plugin authoring is C only
+FMOD_OUTPUT_START_CALLBACK                          cannot   runs on FMOD's mixer thread inside an output plugin, plugin authoring is C only
+FMOD_OUTPUT_STOP_CALLBACK                           cannot   runs on FMOD's mixer thread inside an output plugin, plugin authoring is C only
+FMOD_OUTPUT_UPDATE_CALLBACK                         cannot   runs on FMOD's mixer thread inside an output plugin, plugin authoring is C only
+FMOD_PLUGINLIST                                     library   static plugin lists are C, a compiled plugin loads with StudioSystem.loadPlugin
+FMOD_PLUGINTYPE                                     haxefmod.studio.Types.FmodPluginType
+FMOD_PORT_TYPE                                      haxefmod.studio.Types.FmodPortType
+FMOD_RESULT                                         haxefmod.studio.FmodResult
+FMOD_REVERB_PROPERTIES                              haxefmod.core.Reverb.ReverbProperties
+FMOD_SOUNDGROUP_BEHAVIOR                            haxefmod.studio.Types.SoundGroupBehavior
+FMOD_SOUND_FORMAT                                   haxefmod.studio.Types.FmodSoundFormat
+FMOD_SOUND_NONBLOCK_CALLBACK                        cannot   runs on FMOD's threads, poll Sound.getOpenState until it reports READY
+FMOD_SOUND_PCMREAD_CALLBACK                         cannot   runs on FMOD's mixer thread, PcmStream feeds PCM from the game thread instead
+FMOD_SOUND_PCMSETPOS_CALLBACK                       cannot   runs on FMOD's mixer thread, PcmStream feeds PCM from the game thread instead
+FMOD_SOUND_TYPE                                     haxefmod.studio.Types.FmodSoundType
+FMOD_SPEAKER                                        haxefmod.studio.Types.FmodSpeaker
+FMOD_SPEAKERMODE                                    haxefmod.studio.Types.FmodSpeakerMode
+FMOD_STUDIO_ADVANCEDSETTINGS                        haxefmod.studio.Types.FmodStudioAdvancedSettings   cbsize and the encryption key are init-time only skip: cbsize,encryptionkey
+FMOD_STUDIO_BANK_INFO                               library   user file callbacks are not exposed, StudioSystem.loadBankFile and loadBankMemory load banks
+FMOD_STUDIO_BUFFER_INFO                             haxefmod.studio.Types.FmodBufferInfo
+FMOD_STUDIO_BUFFER_USAGE                            haxefmod.studio.Types.FmodBufferUsage
+FMOD_STUDIO_COMMANDCAPTURE_FLAGS                    haxefmod.studio.Types.FmodCommandCaptureFlags
+FMOD_STUDIO_COMMANDREPLAY_CREATE_INSTANCE_CALLBACK  cannot   runs on FMOD's threads, CommandReplay plays back without hooks
+FMOD_STUDIO_COMMANDREPLAY_FLAGS                     haxefmod.studio.Types.FmodCommandReplayFlags
+FMOD_STUDIO_COMMANDREPLAY_FRAME_CALLBACK            cannot   runs on FMOD's threads, CommandReplay plays back without hooks
+FMOD_STUDIO_COMMANDREPLAY_LOAD_BANK_CALLBACK        cannot   runs on FMOD's threads, CommandReplay plays back without hooks
+FMOD_STUDIO_COMMAND_INFO                            haxefmod.studio.Types.FmodCommandInfo
+FMOD_STUDIO_CPU_USAGE                               haxefmod.studio.Types.FmodSystemCpuUsage
+FMOD_STUDIO_EVENT_CALLBACK                          cannot   runs on FMOD's threads, EventInstance.setCallback delivers EventCallbackData on the game thread instead
+FMOD_STUDIO_EVENT_CALLBACK_TYPE                     haxefmod.studio.Callbacks.EventCallbackType
+FMOD_STUDIO_EVENT_PROPERTY                          haxefmod.studio.Types.FmodEventProperty
+FMOD_STUDIO_INITFLAGS                               haxefmod.studio.Types.FmodStudioInitFlags
+FMOD_STUDIO_INSTANCETYPE                            haxefmod.studio.Types.FmodStudioInstanceType
+FMOD_STUDIO_LOADING_STATE                           haxefmod.studio.Types.FmodLoadingState
+FMOD_STUDIO_LOAD_BANK_FLAGS                         haxefmod.studio.Types.FmodLoadBankFlags
+FMOD_STUDIO_LOAD_MEMORY_MODE                        haxefmod.studio.Types.FmodLoadMemoryMode
+FMOD_STUDIO_MEMORY_USAGE                            haxefmod.studio.Types.FmodMemoryUsage
+FMOD_STUDIO_PARAMETER_DESCRIPTION                   haxefmod.studio.Types.FmodParameterDescription
+FMOD_STUDIO_PARAMETER_FLAGS                         haxefmod.studio.Types.FmodParameterFlags
+FMOD_STUDIO_PARAMETER_ID                            haxefmod.studio.Types.FmodParameterId
+FMOD_STUDIO_PARAMETER_TYPE                          haxefmod.studio.Types.FmodParameterType
+FMOD_STUDIO_PLAYBACK_STATE                          haxefmod.studio.Types.FmodPlaybackState
+FMOD_STUDIO_PLUGIN_INSTANCE_PROPERTIES              library   the payload of the plugin callbacks, delivered as EventCallbackData.Other(PLUGIN_CREATED) without it since a DSP pointer has no meaning in Haxe
+FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES             library   the programmer sound callbacks are handled natively, EventInstance.assignProgrammerSound(key) before start() picks the sound
+FMOD_STUDIO_SOUND_INFO                              library   the native side of programmer sounds, StudioSystem.getSoundInfo returns the name and subsound index
+FMOD_STUDIO_STOP_MODE                               haxefmod.studio.Types.FmodStopMode
+FMOD_STUDIO_SYSTEM_CALLBACK                         cannot   runs on FMOD's threads, StudioSystem.setSystemCallback delivers SystemEvent on the game thread instead
+FMOD_STUDIO_SYSTEM_CALLBACK_TYPE                    haxefmod.studio.Types.FmodStudioSystemCallbackType
+FMOD_STUDIO_TIMELINE_BEAT_PROPERTIES                covered   the arguments of haxefmod.studio.Callbacks.EventCallbackData.TimelineBeat
+FMOD_STUDIO_TIMELINE_MARKER_PROPERTIES              covered   the arguments of haxefmod.studio.Callbacks.EventCallbackData.TimelineMarker
+FMOD_STUDIO_TIMELINE_NESTED_BEAT_PROPERTIES         covered   the arguments of haxefmod.studio.Callbacks.EventCallbackData.NestedTimelineBeat, the referenced event's GUID is not carried
+FMOD_STUDIO_USER_PROPERTY                           haxefmod.studio.Types.FmodUserProperty   the union is folded, floatValue carries integer and boolean properties too skip: intvalue,boolvalue
+FMOD_STUDIO_USER_PROPERTY_TYPE                      haxefmod.studio.Types.FmodUserPropertyType
+FMOD_SYSTEM_CALLBACK                                cannot   runs on FMOD's threads, StudioSystem.setSystemCallback delivers SystemEvent on the game thread instead
+FMOD_SYSTEM_CALLBACK_TYPE                           haxefmod.studio.Types.FmodSystemCallbackType
+FMOD_TAG                                            haxefmod.studio.Types.FmodTag   data and datalen are folded into intValue, floatValue, stringValue, and length skip: data,datalen
+FMOD_TAGDATATYPE                                    haxefmod.studio.Types.FmodTagDataType
+FMOD_TAGTYPE                                        haxefmod.studio.Types.FmodTagType
+FMOD_THREAD_STACK_SIZE                              haxefmod.studio.Types.FmodThreadStackSize
+FMOD_THREAD_TYPE                                    haxefmod.studio.Types.FmodThreadType
+FMOD_TIMEUNIT                                       haxefmod.studio.Types.FmodTimeUnit
+FMOD_VECTOR                                         haxefmod.studio.Types.FmodVector

@@ -1,441 +1,84 @@
 # core-api-common-dsp-effects
 
-## 0
-<!-- FMOD_DSP_CHANNELMIX -->
-Parameters are set by index, and the index is the position of the value in this enum.
-Shape: indices
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-var mix = Dsp.create(DspType.CHANNELMIX);
-mix.setParameterInt(0, 2); // OUTPUTGROUPING, 2 = ALLSTEREO
-mix.setParameter(1, -6.0); // GAIN_CH0 in dB
-mix.setParameter(2, -6.0); // GAIN_CH1 in dB
-```
-
 ## 1
 <!-- FMOD_DSP_CHANNELMIX_OUTPUT -->
-No Haxe equivalent. Pass the value as an Int through setParameterInt on index 0 (OUTPUTGROUPING).
-
-## 2
-<!-- FMOD_DSP_CHORUS -->
-Parameters are set by index, and the index is the position of the value in this enum.
-Shape: indices
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-var chorus = Dsp.create(DspType.CHORUS);
-chorus.setParameter(0, 50); // MIX percent
-chorus.setParameter(1, 0.8); // RATE in Hz
-chorus.setParameter(2, 3); // DEPTH percent
-```
-
-## 3
-<!-- FMOD_DSP_COMPRESSOR -->
-Parameters are set by index, and the index is the position of the value in this enum.
-Shape: indices
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-var compressor = Dsp.create(DspType.COMPRESSOR);
-compressor.setParameter(0, -12); // THRESHOLD in dB
-compressor.setParameter(1, 4); // RATIO
-compressor.setParameter(2, 20); // ATTACK in ms
-compressor.setParameter(3, 100); // RELEASE in ms
-compressor.setParameterBool(5, false); // USESIDECHAIN
-```
+Passed through setParameterInt on DspChannelMix.OUTPUTGROUPING.
 
 ## 4
 <!-- FMOD_DSP_CONVOLUTION_REVERB -->
-Parameters are set by index, and the index is the position of the value in this enum. The impulse response is 16-bit PCM handed over through setParameterData, with the channel count in the first two bytes as FMOD's format describes.
-Shape: indices
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-var reverb = Dsp.create(DspType.CONVOLUTIONREVERB);
-var impulse = haxe.io.Bytes.alloc(2 + 48000 * 2);
-impulse.setUInt16(0, 1); // one channel, then the samples
-reverb.setParameterData(0, impulse); // IR
-reverb.setParameter(1, -6); // WET in dB
-reverb.setParameter(2, 0); // DRY in dB
-```
+The impulse response is 16-bit PCM handed over through setParameterData on PARAM_IR, with the channel count in the first two bytes as FMOD's format describes.
 
 ## 5
 <!-- FMOD_DSP_DELAY -->
-Parameters are set by index, and the index is the position of the value in this enum. CH0 through CH15 are indices 0 to 15 and MAXDELAY is 16.
-Shape: indices
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-var delay = Dsp.create(DspType.DELAY);
-delay.setParameter(16, 500); // MAXDELAY in ms, set before the per-channel delays
-delay.setParameter(0, 120); // CH0 delay in ms
-delay.setParameter(1, 240); // CH1 delay in ms
-```
-
-## 6
-<!-- FMOD_DSP_DISTORTION -->
-Parameters are set by index, and the index is the position of the value in this enum.
-Shape: indices
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-var distortion = Dsp.create(DspType.DISTORTION);
-distortion.setParameter(0, 0.7); // LEVEL
-```
-
-## 7
-<!-- FMOD_DSP_ECHO -->
-Parameters are set by index, and the index is the position of the value in this enum.
-Shape: indices
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-var echo = Dsp.create(DspType.ECHO);
-echo.setParameter(0, 350); // DELAY in ms
-echo.setParameter(1, 40); // FEEDBACK percent
-echo.setParameter(3, -3); // WETLEVEL in dB
-```
+MAXDELAY is set before the per-channel delays.
 
 ## 8
 <!-- FMOD_DSP_ECHO_DELAYCHANGEMODE_TYPE -->
-No Haxe equivalent. Pass the value as an Int through setParameterInt on index 4 (DELAYCHANGEMODE).
-
-## 9
-<!-- FMOD_DSP_FADER -->
-Parameters are set by index, and the index is the position of the value in this enum.
-Shape: indices
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-var fader = Dsp.create(DspType.FADER);
-fader.setParameter(0, -6); // GAIN in dB
-```
+Passed through setParameterInt on DspEcho.DELAYCHANGEMODE.
 
 ## 10
 <!-- FMOD_DSP_FFT -->
-Parameters are set by index, and the index is the position of the value in this enum. The SPECTRUMDATA parameter is read through getFftSpectrum instead of getParameterData.
-Shape: indices
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-var fft = Dsp.create(DspType.FFT);
-fft.setParameterInt(0, 1024); // WINDOWSIZE
-fft.setParameterInt(1, 3); // WINDOW = HANNING
-var spectrum = fft.getFftSpectrum(64); // SPECTRUMDATA, averaged across channels
-if (spectrum != null) trace('bin 1: ${spectrum[1]}');
-```
+The SPECTRUMDATA parameter is read through getFftSpectrum instead of getParameterData.
 
 ## 11
 <!-- FMOD_DSP_FFT_DOWNMIX_TYPE -->
-No Haxe equivalent. Pass the value as an Int through setParameterInt on index 8 (DOWNMIX).
+Passed through setParameterInt on DspFft.DOWNMIX.
 
 ## 12
 <!-- FMOD_DSP_FFT_WINDOW_TYPE -->
-No Haxe equivalent. Pass the value as an Int through setParameterInt on index 1 (WINDOW).
-
-## 13
-<!-- FMOD_DSP_FLANGE -->
-Parameters are set by index, and the index is the position of the value in this enum.
-Shape: indices
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-var flange = Dsp.create(DspType.FLANGE);
-flange.setParameter(0, 50); // MIX percent
-flange.setParameter(1, 1); // DEPTH
-flange.setParameter(2, 0.1); // RATE in Hz
-```
-
-## 14
-<!-- FMOD_DSP_HIGHPASS -->
-Parameters are set by index, and the index is the position of the value in this enum.
-Shape: indices
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-var highpass = Dsp.create(DspType.HIGHPASS);
-highpass.setParameter(0, 500); // CUTOFF in Hz
-highpass.setParameter(1, 1); // RESONANCE
-```
+Passed through setParameterInt on DspFft.WINDOW.
 
 ## 15
 <!-- FMOD_DSP_HIGHPASS -->
-The same emulation on a MULTIBAND_EQ unit. Band A's filter is index 0, its frequency index 1, and its Q index 2. Filter types follow FMOD_DSP_MULTIBAND_EQ_FILTER_TYPE, where HIGHPASS_12DB is 4.
-Shape: indices
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-var frequency = 500.0;
-var resonance = 1.0;
-var multiband = Dsp.create(DspType.MULTIBAND_EQ);
-multiband.setParameterInt(0, 4); // A_FILTER = HIGHPASS_12DB
-multiband.setParameter(1, frequency); // A_FREQUENCY
-multiband.setParameter(2, resonance); // A_Q
-```
-
-## 16
-<!-- FMOD_DSP_HIGHPASS_SIMPLE -->
-Parameters are set by index, and the index is the position of the value in this enum.
-Shape: indices
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-var highpass = Dsp.create(DspType.HIGHPASS_SIMPLE);
-highpass.setParameter(0, 500); // CUTOFF in Hz
-```
+The same emulation on a MULTIBAND_EQ unit. Band A's filter is DspMultibandEq.A_FILTER, its frequency A_FREQUENCY, and its Q A_Q, with the filter set to DspMultibandEqFilter.HIGHPASS_12DB.
 
 ## 17
 <!-- FMOD_DSP_HIGHPASS_SIMPLE -->
-The same emulation on a MULTIBAND_EQ unit. Band A's filter is index 0 and its frequency index 1. HIGHPASS_12DB is 4 in FMOD_DSP_MULTIBAND_EQ_FILTER_TYPE, and Q stays at its default.
-Shape: indices
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-var frequency = 500.0;
-var multiband = Dsp.create(DspType.MULTIBAND_EQ);
-multiband.setParameterInt(0, 4); // A_FILTER = HIGHPASS_12DB
-multiband.setParameter(1, frequency); // A_FREQUENCY
-```
-
-## 18
-<!-- FMOD_DSP_ITECHO -->
-Parameters are set by index, and the index is the position of the value in this enum.
-Shape: indices
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-var echo = Dsp.create(DspType.ITECHO);
-echo.setParameter(0, 50); // WETDRYMIX percent
-echo.setParameter(1, 50); // FEEDBACK percent
-echo.setParameter(2, 300); // LEFTDELAY in ms
-echo.setParameter(3, 300); // RIGHTDELAY in ms
-```
-
-## 19
-<!-- FMOD_DSP_ITLOWPASS -->
-Parameters are set by index, and the index is the position of the value in this enum.
-Shape: indices
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-var lowpass = Dsp.create(DspType.ITLOWPASS);
-lowpass.setParameter(0, 2000); // CUTOFF in Hz
-lowpass.setParameter(1, 1); // RESONANCE
-```
-
-## 20
-<!-- FMOD_DSP_LIMITER -->
-Parameters are set by index, and the index is the position of the value in this enum.
-Shape: indices
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-var limiter = Dsp.create(DspType.LIMITER);
-limiter.setParameter(0, 10); // RELEASETIME in ms
-limiter.setParameter(1, -1); // CEILING in dB
-limiter.setParameter(2, 0); // MAXIMIZERGAIN in dB
-limiter.setParameterBool(3, false); // MODE, true links channels
-```
+The same emulation on a MULTIBAND_EQ unit. Band A's filter is DspMultibandEq.A_FILTER and its frequency A_FREQUENCY, with the filter set to DspMultibandEqFilter.HIGHPASS_12DB and Q left at its default.
 
 ## 21
 <!-- FMOD_DSP_LOUDNESS_METER -->
-Parameters are set by index, and the index is the position of the value in this enum. The meter runs on every target, but the INFO readback is not exposed because the HTML5 build returns zeroes from it. Use Dsp.getMetering for peak and RMS levels that work everywhere.
-Shape: indices
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-var meter = Dsp.create(DspType.LOUDNESS_METER);
-meter.setParameterInt(0, 1); // STATE = ANALYZING
-meter.setMeteringEnabled(false, true);
-var levels = meter.getMetering();
-if (levels != null) trace('rms ${levels.rms[0]}');
-```
-
-## 22
-<!-- FMOD_DSP_LOUDNESS_METER_INFO_TYPE -->
-No Haxe equivalent. Loudness readback is not exposed because the HTML5 build returns zeroes from it, and Dsp.getMetering gives peak and RMS per channel on every target.
+The meter runs on every target, but the INFO readback is not exposed because the HTML5 build returns zeroes from it. Use Dsp.getMetering for peak and RMS levels that work everywhere.
 
 ## 23
 <!-- FMOD_DSP_LOUDNESS_METER_STATE_TYPE -->
-No Haxe equivalent. Pass the value as an Int through setParameterInt on index 0 (STATE), where negative values reset the meter.
-
-## 24
-<!-- FMOD_DSP_LOUDNESS_METER_WEIGHTING_TYPE -->
-No Haxe equivalent. Channel weighting is a data parameter of the loudness meter, whose readback is not exposed, so the meter keeps FMOD's default weighting.
-
-## 25
-<!-- FMOD_DSP_LOWPASS -->
-Parameters are set by index, and the index is the position of the value in this enum.
-Shape: indices
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-var lowpass = Dsp.create(DspType.LOWPASS);
-lowpass.setParameter(0, 800); // CUTOFF in Hz
-lowpass.setParameter(1, 1); // RESONANCE
-```
+Passed through setParameterInt on DspLoudnessMeter.STATE, where negative values reset the meter.
 
 ## 26
 <!-- FMOD_DSP_LOWPASS -->
-The same emulation on a MULTIBAND_EQ unit. Band A's filter is index 0, its frequency index 1, and its Q index 2. LOWPASS_24DB is 2 in FMOD_DSP_MULTIBAND_EQ_FILTER_TYPE.
-Shape: indices
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-var frequency = 800.0;
-var resonance = 1.0;
-var multiband = Dsp.create(DspType.MULTIBAND_EQ);
-multiband.setParameterInt(0, 2); // A_FILTER = LOWPASS_24DB
-multiband.setParameter(1, frequency); // A_FREQUENCY
-multiband.setParameter(2, resonance); // A_Q
-```
-
-## 27
-<!-- FMOD_DSP_LOWPASS_SIMPLE -->
-Parameters are set by index, and the index is the position of the value in this enum.
-Shape: indices
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-var lowpass = Dsp.create(DspType.LOWPASS_SIMPLE);
-lowpass.setParameter(0, 800); // CUTOFF in Hz
-```
+The same emulation on a MULTIBAND_EQ unit. Band A's filter is DspMultibandEq.A_FILTER, its frequency A_FREQUENCY, and its Q A_Q, with the filter set to DspMultibandEqFilter.LOWPASS_24DB.
 
 ## 28
 <!-- FMOD_DSP_LOWPASS_SIMPLE -->
-The same emulation on a MULTIBAND_EQ unit. Band A's filter is index 0 and its frequency index 1. LOWPASS_12DB is 1 in FMOD_DSP_MULTIBAND_EQ_FILTER_TYPE, and Q stays at its default.
-Shape: indices
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-var frequency = 800.0;
-var multiband = Dsp.create(DspType.MULTIBAND_EQ);
-multiband.setParameterInt(0, 1); // A_FILTER = LOWPASS_12DB
-multiband.setParameter(1, frequency); // A_FREQUENCY
-```
+The same emulation on a MULTIBAND_EQ unit. Band A's filter is DspMultibandEq.A_FILTER and its frequency A_FREQUENCY, with the filter set to DspMultibandEqFilter.LOWPASS_12DB and Q left at its default.
 
 ## 29
 <!-- FMOD_DSP_MULTIBAND_DYNAMICS -->
-Parameters are set by index, and the index is the position of the value in this enum. Each band takes eight consecutive indices starting at 4 for A, 12 for B, and 20 for C.
-Shape: indices
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-var dynamics = Dsp.create(DspType.MULTIBAND_DYNAMICS);
-dynamics.setParameter(0, 200); // LOWER_FREQUENCY in Hz
-dynamics.setParameter(1, 4000); // UPPER_FREQUENCY in Hz
-dynamics.setParameterInt(4, 2); // A_MODE = COMPRESS_DOWN
-dynamics.setParameter(6, -18); // A_THRESHOLD in dB
-dynamics.setParameter(7, 3); // A_RATIO
-```
+Each band takes eight consecutive indices starting at A_MODE, B_MODE, and C_MODE.
 
 ## 30
 <!-- FMOD_DSP_MULTIBAND_DYNAMICS_MODE_TYPE -->
-No Haxe equivalent. Pass the value as an Int through setParameterInt on the band's MODE index (4 for A, 12 for B, 20 for C).
+Passed through setParameterInt on the band's MODE index (DspMultibandDynamics.A_MODE, B_MODE, C_MODE).
 
 ## 31
 <!-- FMOD_DSP_MULTIBAND_EQ -->
-Parameters are set by index, and the index is the position of the value in this enum. Each band takes four consecutive indices: filter, frequency, Q, gain.
-Shape: indices
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-var eq = Dsp.create(DspType.MULTIBAND_EQ);
-eq.setParameterInt(0, 7); // A_FILTER = LOWSHELF
-eq.setParameter(1, 120); // A_FREQUENCY in Hz
-eq.setParameter(3, 3); // A_GAIN in dB
-eq.setParameterInt(4, 9); // B_FILTER = PEAKING
-eq.setParameter(5, 2500); // B_FREQUENCY in Hz
-eq.setParameter(6, 1.5); // B_Q
-eq.setParameter(7, -4); // B_GAIN in dB
-```
+Each band takes four consecutive indices: filter, frequency, Q, gain.
 
 ## 32
 <!-- FMOD_DSP_MULTIBAND_EQ_FILTER_TYPE -->
-No Haxe equivalent. Pass the value as an Int through setParameterInt on the band's FILTER index (0, 4, 8, 12, 16).
-
-## 33
-<!-- FMOD_DSP_NORMALIZE -->
-Parameters are set by index, and the index is the position of the value in this enum.
-Shape: indices
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-var normalize = Dsp.create(DspType.NORMALIZE);
-normalize.setParameter(0, 5000); // FADETIME in ms
-normalize.setParameter(1, 0.1); // THRESHOLD
-normalize.setParameter(2, 20); // MAXAMP
-```
+Passed through setParameterInt on the band's FILTER index (DspMultibandEq.A_FILTER through E_FILTER).
 
 ## 34
 <!-- FMOD_DSP_OBJECTPAN -->
-Parameters are set by index, and the index is the position of the value in this enum. The 3D position parameter takes the FMOD_DSP_PARAMETER_3DATTRIBUTES_MULTI struct, which is not exposed, so position an object panner by playing its source through a 3D channel and driving that channel's set3DAttributes instead.
-Shape: indices
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-var panner = Dsp.create(DspType.OBJECTPAN);
-panner.setParameterInt(1, 2); // _3D_ROLLOFF = INVERSE
-panner.setParameter(2, 1); // _3D_MIN_DISTANCE
-panner.setParameter(3, 50); // _3D_MAX_DISTANCE
-panner.setParameter(7, -3); // OVERALL_GAIN in dB
-```
+The 3D position parameter takes the FMOD_DSP_PARAMETER_3DATTRIBUTES_MULTI struct, which is not exposed, so position an object panner by playing its source through a 3D channel and driving that channel's set3DAttributes instead.
 
 ## 35
 <!-- FMOD_DSP_OSCILLATOR -->
-Parameters are set by index, and the index is the position of the value in this enum. A generator unit plays as a sound source through Dsp.play.
-Shape: indices
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-var oscillator = Dsp.create(DspType.OSCILLATOR);
-oscillator.setParameterInt(0, 0); // TYPE, 0 = sine
-oscillator.setParameter(1, 440); // RATE in Hz
-var channel = oscillator.play();
-channel.setVolume(0.2);
-```
+A generator unit plays as a sound source through Dsp.play.
 
 ## 36
 <!-- FMOD_DSP_PAN -->
-Parameters are set by index, and the index is the position of the value in this enum. The 3D position parameter takes a struct that is not exposed, so 3D panning goes through a 3D channel's set3DAttributes instead. The 2D parameters work by index.
-Shape: indices
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-var pan = Dsp.create(DspType.PAN);
-pan.setParameterInt(0, 1); // MODE = STEREO
-pan.setParameter(1, -50); // _2D_STEREO_POSITION, percent left to right
-pan.setParameter(3, 90); // _2D_EXTENT in degrees
-```
+The 3D position parameter takes a struct that is not exposed, so 3D panning goes through a 3D channel's set3DAttributes instead. The 2D parameters work by index.
 
 ## 37
 <!-- FMOD_DSP_PAN -->
@@ -443,177 +86,48 @@ FMOD_DSP_PARAMETER_3DATTRIBUTES_MULTI is not exposed, so a pan unit cannot be po
 
 ## 38
 <!-- FMOD_DSP_PAN_2D_STEREO_MODE_TYPE -->
-No Haxe equivalent. Pass the value as an Int through setParameterInt on index 6 (_2D_STEREO_MODE).
+Passed through setParameterInt on DspPan._2D_STEREO_MODE.
 
 ## 39
 <!-- FMOD_DSP_PAN_3D_EXTENT_MODE_TYPE -->
-No Haxe equivalent. Pass the value as an Int through setParameterInt on index 14 (_3D_EXTENT_MODE).
+Passed through setParameterInt on DspPan._3D_EXTENT_MODE.
 
 ## 40
 <!-- FMOD_DSP_PAN_3D_ROLLOFF_TYPE -->
-No Haxe equivalent. Pass the value as an Int through setParameterInt on index 11 (_3D_ROLLOFF), and a CUSTOM curve goes on the channel through Channel.set3DCustomRolloff instead (unsupported in HTML5).
+Passed through setParameterInt on DspPan._3D_ROLLOFF. A CUSTOM curve goes on the channel through Channel.set3DCustomRolloff (unsupported in HTML5).
 
 ## 41
 <!-- FMOD_DSP_PAN_MODE_TYPE -->
-No Haxe equivalent. Pass the value as an Int through setParameterInt on index 0 (MODE).
-
-## 42
-<!-- FMOD_DSP_PARAMEQ -->
-Parameters are set by index, and the index is the position of the value in this enum.
-Shape: indices
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-var eq = Dsp.create(DspType.PARAMEQ);
-eq.setParameter(0, 1000); // CENTER in Hz
-eq.setParameter(1, 1); // BANDWIDTH in octaves
-eq.setParameter(2, -6); // GAIN in dB
-```
+Passed through setParameterInt on DspPan.MODE.
 
 ## 43
 <!-- FMOD_DSP_PARAMEQ -->
-The same emulation on a MULTIBAND_EQ unit. Band A's filter is index 0, frequency 1, Q 2, and gain 3. PEAKING is 9 in FMOD_DSP_MULTIBAND_EQ_FILTER_TYPE.
-Shape: indices
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-var center = 1000.0;
-var bandwidth = 1.0;
-var gain = -6.0;
-var multiband = Dsp.create(DspType.MULTIBAND_EQ);
-multiband.setParameterInt(0, 9); // A_FILTER = PEAKING
-multiband.setParameter(1, center); // A_FREQUENCY
-multiband.setParameter(2, bandwidth); // A_Q
-multiband.setParameter(3, gain); // A_GAIN
-```
-
-## 44
-<!-- FMOD_DSP_PITCHSHIFT -->
-Parameters are set by index, and the index is the position of the value in this enum.
-Shape: indices
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-var pitch = Dsp.create(DspType.PITCHSHIFT);
-pitch.setParameter(0, 0.5); // PITCH, 0.5 is one octave down
-pitch.setParameter(1, 1024); // FFTSIZE
-```
+The same emulation on a MULTIBAND_EQ unit. Band A's filter is DspMultibandEq.A_FILTER, frequency A_FREQUENCY, Q A_Q, and gain A_GAIN, with the filter set to DspMultibandEqFilter.PEAKING.
 
 ## 45
 <!-- FMOD_DSP_RETURN -->
-Parameters are set by index, and the index is the position of the value in this enum. The return's ID (index 0) is read with getParameterInt and given to a send's RETURNID.
-Shape: indices
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-import haxefmod.core.ChannelGroup;
-
-var ret = Dsp.create(DspType.RETURN);
-ChannelGroup.master().addDsp(ChannelGroup.DSP_TAIL, ret);
-var returnId = ret.getParameterInt(0); // ID
-ret.setParameterInt(1, 3); // INPUT_SPEAKER_MODE = FMOD_SPEAKERMODE_STEREO
-trace('return id $returnId');
-```
+The return's ID is read with getParameterInt and given to a send's RETURNID.
 
 ## 46
 <!-- FMOD_DSP_SEND -->
-Parameters are set by index, and the index is the position of the value in this enum.
-Shape: indices
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-import haxefmod.core.ChannelGroup;
-
-var ret = Dsp.create(DspType.RETURN);
-ChannelGroup.master().addDsp(ChannelGroup.DSP_TAIL, ret);
-var send = Dsp.create(DspType.SEND);
-send.setParameterInt(0, ret.getParameterInt(0)); // RETURNID
-send.setParameter(1, -6); // LEVEL in dB
-StudioSystem.getBus("bus:/SFX").getChannelGroup().addDsp(ChannelGroup.DSP_HEAD, send);
-```
+RETURNID takes the ID read from a RETURN unit's DspReturn.ID parameter.
 
 ## 47
 <!-- FMOD_DSP_SFXREVERB -->
-Parameters are set by index, and the index is the position of the value in this enum. The first twelve indices match the fields of ReverbProperties in order. For a global reverb, Reverb.set with a preset is simpler than an SFXREVERB unit.
-Shape: indices
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-var reverb = Dsp.create(DspType.SFXREVERB);
-reverb.setParameter(0, 2900); // DECAYTIME in ms
-reverb.setParameter(9, 20000); // HIGHCUT in Hz
-reverb.setParameter(11, -11.3); // WETLEVEL in dB
-reverb.setParameter(12, 0); // DRYLEVEL in dB
-```
-
-## 48
-<!-- FMOD_DSP_THREE_EQ -->
-Parameters are set by index, and the index is the position of the value in this enum.
-Shape: indices
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-var eq = Dsp.create(DspType.THREE_EQ);
-eq.setParameter(0, 3); // LOWGAIN in dB
-eq.setParameter(1, 0); // MIDGAIN in dB
-eq.setParameter(2, -2); // HIGHGAIN in dB
-eq.setParameter(3, 400); // LOWCROSSOVER in Hz
-eq.setParameter(4, 4000); // HIGHCROSSOVER in Hz
-```
+The first twelve indices match the fields of ReverbProperties in order. For a global reverb, Reverb.set with a preset is simpler than an SFXREVERB unit.
 
 ## 49
 <!-- FMOD_DSP_THREE_EQ_CROSSOVERSLOPE_TYPE -->
-No Haxe equivalent. Pass the value as an Int through setParameterInt on index 5 (CROSSOVERSLOPE).
+Passed through setParameterInt on DspThreeEq.CROSSOVERSLOPE.
 
 ## 50
 <!-- FMOD_DSP_TRANSCEIVER -->
-Parameters are set by index, and the index is the position of the value in this enum. One unit transmits on a channel and another receives it anywhere in the graph.
-Shape: indices
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-import haxefmod.core.ChannelGroup;
-
-var transmitter = Dsp.create(DspType.TRANSCEIVER);
-transmitter.setParameterBool(0, true); // TRANSMIT
-transmitter.setParameterInt(2, 3); // CHANNEL
-StudioSystem.getBus("bus:/Music").getChannelGroup().addDsp(ChannelGroup.DSP_TAIL, transmitter);
-
-var receiver = Dsp.create(DspType.TRANSCEIVER);
-receiver.setParameterBool(0, false); // TRANSMIT off, so it receives
-receiver.setParameterInt(2, 3); // CHANNEL
-receiver.setParameter(1, -6); // GAIN in dB
-ChannelGroup.master().addDsp(ChannelGroup.DSP_TAIL, receiver);
-```
+One unit transmits on a channel and another receives it anywhere in the graph.
 
 ## 51
 <!-- FMOD_DSP_TRANSCEIVER_SPEAKERMODE -->
-No Haxe equivalent. Pass the value as an Int through setParameterInt on index 3 (TRANSMITSPEAKERMODE).
-
-## 52
-<!-- FMOD_DSP_TREMOLO -->
-Parameters are set by index, and the index is the position of the value in this enum.
-Shape: indices
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-var tremolo = Dsp.create(DspType.TREMOLO);
-tremolo.setParameter(0, 5); // FREQUENCY in Hz
-tremolo.setParameter(1, 1); // DEPTH
-tremolo.setParameter(2, 0.5); // SHAPE
-tremolo.setParameter(7, 0.3); // SPREAD
-```
+Passed through setParameterInt on DspTransceiver.TRANSMITSPEAKERMODE.
 
 ## 53
 <!-- FMOD_DSP_TYPE -->
 Third-party plugin units come from StudioSystem.loadPlugin and Dsp.createByPlugin, native only.
-Type: haxefmod.core.DspType
