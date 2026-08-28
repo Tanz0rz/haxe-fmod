@@ -4977,4 +4977,162 @@ class jaxe {
         jaxe.FmodIsInitialized = true;
         return jaxe.FMOD.OK;
     }
+    //// System extras (replay inspection, DSP lock, sound info, memory and file stats, network, speaker positions)
+
+    static fmod_replay_get_command_count(handle) {
+        var replay = jaxe.resolveReplay(handle);
+        if (!replay) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return -1; }
+        var out = {};
+        jaxe.lastResult = replay.getCommandCount(out);
+        return jaxe.lastResult == jaxe.FMOD.OK ? (out.val | 0) : -1;
+    }
+
+    static fmod_replay_get_command_info(handle, index, ibuf, fbuf) {
+        var replay = jaxe.resolveReplay(handle);
+        if (!replay) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return ""; }
+        // The glue fills the out object with the struct's fields flat
+        var info = {};
+        jaxe.lastResult = replay.getCommandInfo(index, info);
+        if (jaxe.lastResult != jaxe.FMOD.OK) return "";
+        ibuf[0] = info.instancetype | 0;
+        ibuf[1] = info.outputtype | 0;
+        ibuf[2] = info.instancehandle | 0;
+        ibuf[3] = info.outputhandle | 0;
+        ibuf[4] = info.framenumber | 0;
+        ibuf[5] = info.parentcommandindex | 0;
+        fbuf[0] = info.frametime || 0;
+        return typeof info.commandname === "string" ? info.commandname : "";
+    }
+
+    static fmod_replay_get_command_string(handle, index) {
+        var replay = jaxe.resolveReplay(handle);
+        if (!replay) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return ""; }
+        // The glue sizes the buffer itself, there is no length argument here
+        var out = {};
+        jaxe.lastResult = replay.getCommandString(index, out);
+        return jaxe.lastResult == jaxe.FMOD.OK && typeof out.val === "string" ? out.val : "";
+    }
+
+    static fmod_replay_get_command_at_time(handle, seconds) {
+        var replay = jaxe.resolveReplay(handle);
+        if (!replay) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return -1; }
+        var out = {};
+        jaxe.lastResult = replay.getCommandAtTime(seconds, out);
+        return jaxe.lastResult == jaxe.FMOD.OK ? (out.val | 0) : -1;
+    }
+
+    static fmod_replay_seek_to_command(handle, index) {
+        var replay = jaxe.resolveReplay(handle);
+        if (!replay) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = replay.seekToCommand(index);
+        return jaxe.lastResult;
+    }
+
+    static fmod_replay_get_playback_state(handle) {
+        var replay = jaxe.resolveReplay(handle);
+        if (!replay) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 2; }
+        var out = {};
+        jaxe.lastResult = replay.getPlaybackState(out);
+        return jaxe.lastResult == jaxe.FMOD.OK ? (out.val | 0) : 2;
+    }
+
+    static fmod_replay_set_bank_path(handle, path) {
+        if (typeof path !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
+        var replay = jaxe.resolveReplay(handle);
+        if (!replay) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = replay.setBankPath(path);
+        return jaxe.lastResult;
+    }
+
+    static fmod_sys_lock_dsp() {
+        if (!jaxe.sysReady()) return jaxe.lastResult;
+        jaxe.lastResult = jaxe.gSystemCore.lockDSP();
+        return jaxe.lastResult;
+    }
+
+    static fmod_sys_unlock_dsp() {
+        if (!jaxe.sysReady()) return jaxe.lastResult;
+        jaxe.lastResult = jaxe.gSystemCore.unlockDSP();
+        return jaxe.lastResult;
+    }
+
+    static fmod_sys_get_sound_info(key, ibuf) {
+        ibuf[0] = -1;
+        if (typeof key !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return ""; }
+        if (!jaxe.sysReady()) return "";
+        // The glue writes exinfo fields onto a pre-existing object and throws without one
+        var info = { exinfo: {} };
+        jaxe.lastResult = jaxe.gSystem.getSoundInfo(key, info);
+        if (jaxe.lastResult != jaxe.FMOD.OK) return "";
+        ibuf[0] = info.subsoundindex | 0;
+        return typeof info.name_or_data === "string" ? info.name_or_data : "";
+    }
+
+    static fmod_sys_get_memory_stats(blocking, ibuf) {
+        if (!jaxe.sysReady()) return jaxe.lastResult;
+        var current = {};
+        var maximum = {};
+        jaxe.lastResult = jaxe.FMOD.Memory_GetStats(current, maximum, !!blocking);
+        ibuf[0] = current.val | 0;
+        ibuf[1] = maximum.val | 0;
+        return jaxe.lastResult;
+    }
+
+    static fmod_sys_get_file_usage(fbuf) {
+        if (!jaxe.sysReady()) return jaxe.lastResult;
+        var sample = {};
+        var stream = {};
+        var other = {};
+        jaxe.lastResult = jaxe.gSystemCore.getFileUsage(sample, stream, other);
+        fbuf[0] = sample.val || 0;
+        fbuf[1] = stream.val || 0;
+        fbuf[2] = other.val || 0;
+        return jaxe.lastResult;
+    }
+
+    static fmod_sys_set_network_proxy(proxy) {
+        if (typeof proxy !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
+        if (!jaxe.sysReady()) return jaxe.lastResult;
+        jaxe.lastResult = jaxe.gSystemCore.setNetworkProxy(proxy);
+        return jaxe.lastResult;
+    }
+
+    static fmod_sys_get_network_proxy() {
+        if (!jaxe.sysReady()) return "";
+        // The glue sizes the buffer itself, there is no length argument here
+        var out = {};
+        jaxe.lastResult = jaxe.gSystemCore.getNetworkProxy(out);
+        return jaxe.lastResult == jaxe.FMOD.OK && typeof out.val === "string" ? out.val : "";
+    }
+
+    static fmod_sys_set_network_timeout(timeoutMs) {
+        if (!jaxe.sysReady()) return jaxe.lastResult;
+        jaxe.lastResult = jaxe.gSystemCore.setNetworkTimeout(timeoutMs | 0);
+        return jaxe.lastResult;
+    }
+
+    static fmod_sys_get_network_timeout() {
+        if (!jaxe.sysReady()) return -1;
+        var out = {};
+        jaxe.lastResult = jaxe.gSystemCore.getNetworkTimeout(out);
+        return jaxe.lastResult == jaxe.FMOD.OK ? (out.val | 0) : -1;
+    }
+
+    static fmod_sys_set_speaker_position(speaker, x, y, active) {
+        if (!jaxe.sysReady()) return jaxe.lastResult;
+        jaxe.lastResult = jaxe.gSystemCore.setSpeakerPosition(speaker | 0, x, y, !!active);
+        return jaxe.lastResult;
+    }
+
+    static fmod_sys_get_speaker_position(speaker, fbuf) {
+        if (!jaxe.sysReady()) return jaxe.lastResult;
+        var x = {};
+        var y = {};
+        var active = {};
+        jaxe.lastResult = jaxe.gSystemCore.getSpeakerPosition(speaker | 0, x, y, active);
+        fbuf[0] = x.val || 0;
+        fbuf[1] = y.val || 0;
+        fbuf[2] = active.val ? 1.0 : 0.0;
+        return jaxe.lastResult;
+    }
 }

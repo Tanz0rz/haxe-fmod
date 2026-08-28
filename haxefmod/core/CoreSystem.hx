@@ -114,4 +114,39 @@ class CoreSystem {
         return [for (i in 0...total) Scratch.readF(i)];
     }
     #end
+    /** Proxy for FMOD's own network streams, as "host:port" ("user:pass@host:port" with credentials). */
+    public static inline function setNetworkProxy(proxy:String):FmodResult {
+        return NativeStudio.sys_set_network_proxy(proxy);
+    }
+
+    /** The proxy set by setNetworkProxy, "" when none is set or on failure. */
+    public static inline function getNetworkProxy():String {
+        return NativeStudio.sys_get_network_proxy();
+    }
+
+    /** Timeout in milliseconds for FMOD's own network streams. */
+    public static inline function setNetworkTimeout(ms:Int):FmodResult {
+        return NativeStudio.sys_set_network_timeout(ms);
+    }
+
+    /** The network timeout in milliseconds, -1 on failure. */
+    public static inline function getNetworkTimeout():Int {
+        return NativeStudio.sys_get_network_timeout();
+    }
+
+    /**
+     * Where one output speaker sits for panning, as x (left -1 to right 1)
+     * and y (back -1 to front 1), and whether it is fed at all. speaker is
+     * an FMOD_SPEAKER index (0 is front left).
+     */
+    public static inline function setSpeakerPosition(speaker:Int, x:Float, y:Float, active:Bool):FmodResult {
+        return NativeStudio.sys_set_speaker_position(speaker, x, y, active);
+    }
+
+    /** The position set for one speaker (see setSpeakerPosition), or null on failure. */
+    public static function getSpeakerPosition(speaker:Int):Null<{x:Float, y:Float, active:Bool}> {
+        var result:FmodResult = NativeStudio.sys_get_speaker_position(speaker);
+        if (!result.isOk()) return null;
+        return {x: Scratch.readF(0), y: Scratch.readF(1), active: Scratch.readF(2) != 0};
+    }
 }

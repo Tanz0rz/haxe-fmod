@@ -5105,5 +5105,175 @@ int fmod_binding_abi_version() {
     return 9;
 }
 
+//// System extras (replay inspection, DSP lock, sound info, memory and file stats, network, speaker positions)
+
+// Command strings can run past gStringBuf, so they get the 1024 bytes FMOD's own example uses.
+static char gCommandBuf[1024];
+
+int fmod_replay_get_command_count(int h) {
+    FMOD::Studio::CommandReplay* replay = resolveReplay(h);
+    int count = 0;
+    if (!replay) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    gLastResult = replay->getCommandCount(&count);
+    return gLastResult == FMOD_OK ? count : -1;
+}
+
+const char* fmod_replay_get_command_info(int h, int index, ::Array<int> ibuf, ::Array<Float> fbuf) {
+    gStringBuf[0] = '\0';
+    FMOD::Studio::CommandReplay* replay = resolveReplay(h);
+    if (!replay) { gLastResult = FMOD_ERR_INVALID_HANDLE; return gStringBuf; }
+    FMOD_STUDIO_COMMAND_INFO info;
+    memset(&info, 0, sizeof(info));
+    gLastResult = replay->getCommandInfo(index, &info);
+    if (gLastResult != FMOD_OK) return gStringBuf;
+    ibuf[0] = (int)info.instancetype;
+    ibuf[1] = (int)info.outputtype;
+    ibuf[2] = (int)info.instancehandle;
+    ibuf[3] = (int)info.outputhandle;
+    ibuf[4] = info.framenumber;
+    ibuf[5] = info.parentcommandindex;
+    fbuf[0] = (Float)info.frametime;
+    // The name points into the replay's own memory, so it is copied out while the handle is still live.
+    if (info.commandname) {
+        strncpy(gStringBuf, info.commandname, sizeof(gStringBuf) - 1);
+        gStringBuf[sizeof(gStringBuf) - 1] = '\0';
+    }
+    return gStringBuf;
+}
+
+const char* fmod_replay_get_command_string(int h, int index) {
+    gCommandBuf[0] = '\0';
+    FMOD::Studio::CommandReplay* replay = resolveReplay(h);
+    if (!replay) { gLastResult = FMOD_ERR_INVALID_HANDLE; return gCommandBuf; }
+    gLastResult = replay->getCommandString(index, gCommandBuf, (int)sizeof(gCommandBuf));
+    if (gLastResult != FMOD_OK) gCommandBuf[0] = '\0';
+    return gCommandBuf;
+}
+
+int fmod_replay_get_command_at_time(int h, float seconds) {
+    FMOD::Studio::CommandReplay* replay = resolveReplay(h);
+    int index = -1;
+    if (!replay) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    gLastResult = replay->getCommandAtTime(seconds, &index);
+    return gLastResult == FMOD_OK ? index : -1;
+}
+
+int fmod_replay_seek_to_command(int h, int index) {
+    FMOD::Studio::CommandReplay* replay = resolveReplay(h);
+    if (!replay) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = replay->seekToCommand(index);
+    return (int)gLastResult;
+}
+
+int fmod_replay_get_playback_state(int h) {
+    FMOD::Studio::CommandReplay* replay = resolveReplay(h);
+    FMOD_STUDIO_PLAYBACK_STATE state = FMOD_STUDIO_PLAYBACK_STOPPED;
+    if (!replay) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)FMOD_STUDIO_PLAYBACK_STOPPED; }
+    gLastResult = replay->getPlaybackState(&state);
+    return gLastResult == FMOD_OK ? (int)state : (int)FMOD_STUDIO_PLAYBACK_STOPPED;
+}
+
+int fmod_replay_set_bank_path(int h, const ::String& path) {
+    FMOD::Studio::CommandReplay* replay = resolveReplay(h);
+    if (!replay) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = replay->setBankPath(path.c_str());
+    return (int)gLastResult;
+}
+
+int fmod_sys_lock_dsp() {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = gCoreSystem->lockDSP();
+    return (int)gLastResult;
+}
+
+int fmod_sys_unlock_dsp() {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = gCoreSystem->unlockDSP();
+    return (int)gLastResult;
+}
+
+const char* fmod_sys_get_sound_info(const ::String& key, ::Array<int> ibuf) {
+    gStringBuf[0] = '\0';
+    ibuf[0] = -1;
+    if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return gStringBuf; }
+    FMOD_STUDIO_SOUND_INFO info;
+    memset(&info, 0, sizeof(info));
+    gLastResult = gStudioSystem->getSoundInfo(key.c_str(), &info);
+    if (gLastResult != FMOD_OK) return gStringBuf;
+    ibuf[0] = info.subsoundindex;
+    // For a bank loaded from memory name_or_data is the sample bytes themselves, which are no string.
+    if (info.name_or_data && !(info.mode & (FMOD_OPENMEMORY | FMOD_OPENMEMORY_POINT))) {
+        strncpy(gStringBuf, info.name_or_data, sizeof(gStringBuf) - 1);
+        gStringBuf[sizeof(gStringBuf) - 1] = '\0';
+    }
+    return gStringBuf;
+}
+
+int fmod_sys_get_memory_stats(bool blocking, ::Array<int> ibuf) {
+    int current = 0;
+    int maximum = 0;
+    gLastResult = FMOD::Memory_GetStats(&current, &maximum, blocking);
+    ibuf[0] = current;
+    ibuf[1] = maximum;
+    return (int)gLastResult;
+}
+
+int fmod_sys_get_file_usage(::Array<Float> fbuf) {
+    long long sample = 0;
+    long long stream = 0;
+    long long other = 0;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = gCoreSystem->getFileUsage(&sample, &stream, &other);
+    fbuf[0] = (Float)sample;
+    fbuf[1] = (Float)stream;
+    fbuf[2] = (Float)other;
+    return (int)gLastResult;
+}
+
+int fmod_sys_set_network_proxy(const ::String& proxy) {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = gCoreSystem->setNetworkProxy(proxy.c_str());
+    return (int)gLastResult;
+}
+
+const char* fmod_sys_get_network_proxy() {
+    gStringBuf[0] = '\0';
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return gStringBuf; }
+    gLastResult = gCoreSystem->getNetworkProxy(gStringBuf, (int)sizeof(gStringBuf));
+    if (gLastResult != FMOD_OK) gStringBuf[0] = '\0';
+    return gStringBuf;
+}
+
+int fmod_sys_set_network_timeout(int timeoutMs) {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = gCoreSystem->setNetworkTimeout(timeoutMs);
+    return (int)gLastResult;
+}
+
+int fmod_sys_get_network_timeout() {
+    int timeoutMs = -1;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return -1; }
+    gLastResult = gCoreSystem->getNetworkTimeout(&timeoutMs);
+    return gLastResult == FMOD_OK ? timeoutMs : -1;
+}
+
+int fmod_sys_set_speaker_position(int speaker, float x, float y, bool active) {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = gCoreSystem->setSpeakerPosition((FMOD_SPEAKER)speaker, x, y, active);
+    return (int)gLastResult;
+}
+
+int fmod_sys_get_speaker_position(int speaker, ::Array<Float> fbuf) {
+    float x = 0.0f;
+    float y = 0.0f;
+    bool active = false;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = gCoreSystem->getSpeakerPosition((FMOD_SPEAKER)speaker, &x, &y, &active);
+    fbuf[0] = (Float)x;
+    fbuf[1] = (Float)y;
+    fbuf[2] = active ? 1.0 : 0.0;
+    return (int)gLastResult;
+}
+
 } // namespace faxe
 } // namespace linc

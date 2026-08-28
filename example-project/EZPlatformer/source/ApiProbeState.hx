@@ -170,6 +170,7 @@ class ApiProbeState extends FlxState {
         probeRolloffAndGeometry();
         probeSystemCallbacks();
         ProbeUserData.run(this);
+        ProbeSysExtras.run(this);
         if (skipAuthored()) {
             info("authored_surface", "skipped (HAXEFMOD_PROBE_SKIP_AUTHORED)");
         } else {

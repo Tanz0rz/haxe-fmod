@@ -559,6 +559,25 @@ extern int fmod_dsp_get_channel_format(int handle, ::Array<int> ibuf);
 extern int fmod_dsp_get_output_channel_format(int handle, int inMask, int inChannels, int inMode, ::Array<int> ibuf);
 extern int fmod_conn_set_mix_matrix(int handle, ::Array<Float> fbuf, int outChannels, int inChannels);
 extern int fmod_conn_get_mix_matrix(int handle, ::Array<Float> fbuf, ::Array<int> ibuf, int outChannels, int inChannels);
+// System extras (replay inspection, DSP lock, sound info, memory and file stats, network, speaker positions)
+extern int fmod_replay_get_command_count(int handle);
+extern const char* fmod_replay_get_command_info(int handle, int index, ::Array<int> ibuf, ::Array<Float> fbuf);
+extern const char* fmod_replay_get_command_string(int handle, int index);
+extern int fmod_replay_get_command_at_time(int handle, float seconds);
+extern int fmod_replay_seek_to_command(int handle, int index);
+extern int fmod_replay_get_playback_state(int handle);
+extern int fmod_replay_set_bank_path(int handle, const ::String& path);
+extern int fmod_sys_lock_dsp();
+extern int fmod_sys_unlock_dsp();
+extern const char* fmod_sys_get_sound_info(const ::String& key, ::Array<int> ibuf);
+extern int fmod_sys_get_memory_stats(bool blocking, ::Array<int> ibuf);
+extern int fmod_sys_get_file_usage(::Array<Float> fbuf);
+extern int fmod_sys_set_network_proxy(const ::String& proxy);
+extern const char* fmod_sys_get_network_proxy();
+extern int fmod_sys_set_network_timeout(int timeoutMs);
+extern int fmod_sys_get_network_timeout();
+extern int fmod_sys_set_speaker_position(int speaker, float x, float y, bool active);
+extern int fmod_sys_get_speaker_position(int speaker, ::Array<Float> fbuf);
 
 } // namespace faxe
 } // namespace linc

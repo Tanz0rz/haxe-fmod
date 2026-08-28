@@ -524,4 +524,55 @@ class StudioSystem {
             flags: Scratch.readI(1),
         };
     }
+
+    //// System extras
+
+    /**
+     * Holds the mixer until unlockDsp so several graph edits (adding,
+     * removing, or reconnecting DSPs) land in one mixer update instead
+     * of being heard one at a time. Keep the section short, the mixer
+     * waits for it.
+     */
+    public static inline function lockDsp():FmodResult {
+        return NativeStudio.sys_lock_dsp();
+    }
+
+    /** Releases the mixer held by lockDsp. */
+    public static inline function unlockDsp():FmodResult {
+        return NativeStudio.sys_unlock_dsp();
+    }
+
+    /**
+     * What FMOD would load for an audio table key: the name or file path
+     * it reports (empty for a bank held in memory) and the subsound
+     * index inside it. Null when the key is not in any loaded audio table
+     * (lastResult says why).
+     */
+    public static function getSoundInfo(key:String):Null<{name:String, subSoundIndex:Int}> {
+        var name = NativeStudio.sys_get_sound_info(key);
+        if (!lastResult().isOk()) return null;
+        return {name: name, subSoundIndex: Scratch.readI(0)};
+    }
+
+    /**
+     * Bytes FMOD currently has allocated and the most it has ever had.
+     * blocking makes FMOD flush pending commands first so the numbers are
+     * exact. Null on failure.
+     */
+    public static function getMemoryStats(blocking:Bool = false):Null<{current:Int, maximum:Int}> {
+        var result:FmodResult = NativeStudio.sys_get_memory_stats(blocking);
+        if (!result.isOk()) return null;
+        return {current: Scratch.readI(0), maximum: Scratch.readI(1)};
+    }
+
+    /**
+     * Bytes FMOD has read from disk since init, split by sample loads,
+     * streams, and everything else (banks, plugins). The counts are 64-bit
+     * so they come back as Floats. Null on failure.
+     */
+    public static function getFileUsage():Null<{sampleBytesRead:Float, streamBytesRead:Float, otherBytesRead:Float}> {
+        var result:FmodResult = NativeStudio.sys_get_file_usage();
+        if (!result.isOk()) return null;
+        return {sampleBytesRead: Scratch.readF(0), streamBytesRead: Scratch.readF(1), otherBytesRead: Scratch.readF(2)};
+    }
 }

@@ -678,6 +678,26 @@ class NativeStudioHl {
     // Debug
     public static inline function debug_live_handle_count():Int return Raw.debug_live_handle_count();
     public static inline function binding_abi_version():Int return Raw.binding_abi_version();
+
+    // System extras
+    public static inline function replay_get_command_count(handle:Int):Int return Raw.replay_get_command_count(handle);
+    public static inline function replay_get_command_info(handle:Int, index:Int):String return fromBytes(Raw.replay_get_command_info(handle, index, Scratch.intBuf(), Scratch.floatBuf()));
+    public static inline function replay_get_command_string(handle:Int, index:Int):String return fromBytes(Raw.replay_get_command_string(handle, index));
+    public static inline function replay_get_command_at_time(handle:Int, seconds:Float):Int return Raw.replay_get_command_at_time(handle, seconds);
+    public static inline function replay_seek_to_command(handle:Int, index:Int):Int return Raw.replay_seek_to_command(handle, index);
+    public static inline function replay_get_playback_state(handle:Int):Int return Raw.replay_get_playback_state(handle);
+    public static inline function replay_set_bank_path(handle:Int, path:String):Int return Raw.replay_set_bank_path(handle, toBytes(path));
+    public static inline function sys_lock_dsp():Int return Raw.sys_lock_dsp();
+    public static inline function sys_unlock_dsp():Int return Raw.sys_unlock_dsp();
+    public static inline function sys_get_sound_info(key:String):String return fromBytes(Raw.sys_get_sound_info(toBytes(key), Scratch.intBuf()));
+    public static inline function sys_get_memory_stats(blocking:Bool):Int return Raw.sys_get_memory_stats(blocking, Scratch.intBuf());
+    public static inline function sys_get_file_usage():Int return Raw.sys_get_file_usage(Scratch.floatBuf());
+    public static inline function sys_set_network_proxy(proxy:String):Int return Raw.sys_set_network_proxy(toBytes(proxy));
+    public static inline function sys_get_network_proxy():String return fromBytes(Raw.sys_get_network_proxy());
+    public static inline function sys_set_network_timeout(timeoutMs:Int):Int return Raw.sys_set_network_timeout(timeoutMs);
+    public static inline function sys_get_network_timeout():Int return Raw.sys_get_network_timeout();
+    public static inline function sys_set_speaker_position(speaker:Int, x:Float, y:Float, active:Bool):Int return Raw.sys_set_speaker_position(speaker, x, y, active);
+    public static inline function sys_get_speaker_position(speaker:Int):Int return Raw.sys_get_speaker_position(speaker, Scratch.floatBuf());
 }
 
 @:hlNative("hlaxe_fmod")
@@ -1148,5 +1168,24 @@ private extern class Raw {
 
     static function debug_live_handle_count():Int;
     static function binding_abi_version():Int;
+
+    static function replay_get_command_count(handle:Int):Int;
+    static function replay_get_command_info(handle:Int, index:Int, ibuf:hl.Bytes, fbuf:hl.Bytes):hl.Bytes;
+    static function replay_get_command_string(handle:Int, index:Int):hl.Bytes;
+    static function replay_get_command_at_time(handle:Int, seconds:Float):Int;
+    static function replay_seek_to_command(handle:Int, index:Int):Int;
+    static function replay_get_playback_state(handle:Int):Int;
+    static function replay_set_bank_path(handle:Int, path:hl.Bytes):Int;
+    static function sys_lock_dsp():Int;
+    static function sys_unlock_dsp():Int;
+    static function sys_get_sound_info(key:hl.Bytes, ibuf:hl.Bytes):hl.Bytes;
+    static function sys_get_memory_stats(blocking:Bool, ibuf:hl.Bytes):Int;
+    static function sys_get_file_usage(fbuf:hl.Bytes):Int;
+    static function sys_set_network_proxy(proxy:hl.Bytes):Int;
+    static function sys_get_network_proxy():hl.Bytes;
+    static function sys_set_network_timeout(timeoutMs:Int):Int;
+    static function sys_get_network_timeout():Int;
+    static function sys_set_speaker_position(speaker:Int, x:Float, y:Float, active:Bool):Int;
+    static function sys_get_speaker_position(speaker:Int, fbuf:hl.Bytes):Int;
 }
 #end

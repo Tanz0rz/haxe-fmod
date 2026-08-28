@@ -156,3 +156,14 @@ enum abstract FmodLoadBankFlags(Int) from Int to Int {
     var NORMAL = 0;
     var NONBLOCKING = 1;
 }
+/** One command in a loaded capture (FMOD_STUDIO_COMMAND_INFO) */
+typedef FmodCommandInfo = {
+    var commandName:String;
+    var parentCommandIndex:Int;
+    var frameNumber:Int;
+    var frameTime:Float;
+    var instanceType:Int;
+    var outputType:Int;
+    var instanceHandle:Int;
+    var outputHandle:Int;
+}

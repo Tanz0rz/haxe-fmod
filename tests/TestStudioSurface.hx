@@ -48,6 +48,7 @@ class TestStudioSurface {
 		testRolloffAndGeometry();
 		testSystemCallbackStub();
 		testCompletenessTail();
+		testSysExtras();
 
 		Sys.println('  $passed passed, $failed failed');
 		return failed;
@@ -664,5 +665,33 @@ class TestStudioSurface {
 		assert(conn.setMixMatrix([1], 2, 2) == FmodResult.FMOD_ERR_INVALID_PARAM, "conn mixMatrix bounds");
 		assert(conn.setMixMatrix([], 40, 40) == FmodResult.FMOD_ERR_INVALID_PARAM, "conn mixMatrix capacity");
 		assert(conn.getMixMatrix(2, 2) == null, "conn mixMatrix getter default");
+	}
+
+	// Replay inspection, the DSP lock, sound info, memory and file stats,
+	// the network settings, and speaker positions all route through the
+	// stub like everything else, so the checks are the failure defaults.
+	static function testSysExtras():Void {
+		var replay:CommandReplay = cast 0;
+		assert(replay.getCommandCount() == -1, "replay getCommandCount default");
+		assert(replay.getCommandInfo(0) == null, "replay getCommandInfo default");
+		assert(replay.getCommandString(0) == "", "replay getCommandString default");
+		assert(replay.getCommandAtTime(0) == -1, "replay getCommandAtTime default");
+		assert(!replay.seekToCommand(0).isOk(), "replay seekToCommand result");
+		assert(replay.getPlaybackState() == FmodPlaybackState.STOPPED, "replay getPlaybackState default");
+		assert(!replay.setBankPath("banks").isOk(), "replay setBankPath result");
+
+		assert(!StudioSystem.lockDsp().isOk(), "sys lockDsp result");
+		assert(!StudioSystem.unlockDsp().isOk(), "sys unlockDsp result");
+		assert(StudioSystem.getSoundInfo("missing") == null, "sys getSoundInfo default");
+		assert(StudioSystem.getMemoryStats() == null, "sys getMemoryStats default");
+		assert(StudioSystem.getMemoryStats(true) == null, "sys getMemoryStats blocking default");
+		assert(StudioSystem.getFileUsage() == null, "sys getFileUsage default");
+
+		assert(!CoreSystem.setNetworkProxy("proxy:8080").isOk(), "sys setNetworkProxy result");
+		assert(CoreSystem.getNetworkProxy() == "", "sys getNetworkProxy default");
+		assert(!CoreSystem.setNetworkTimeout(1000).isOk(), "sys setNetworkTimeout result");
+		assert(CoreSystem.getNetworkTimeout() == -1, "sys getNetworkTimeout default");
+		assert(!CoreSystem.setSpeakerPosition(0, -1, 1, true).isOk(), "sys setSpeakerPosition result");
+		assert(CoreSystem.getSpeakerPosition(0) == null, "sys getSpeakerPosition default");
 	}
 }

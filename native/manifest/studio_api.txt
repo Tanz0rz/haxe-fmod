@@ -732,3 +732,34 @@ conn_get_mix_matrix i32 fbuf ibuf i32 i32 -> i32
 ## Debug
 debug_live_handle_count -> i32
 binding_abi_version -> i32
+
+## System extras (replay inspection, DSP lock, sound info, memory and file stats, network, speaker positions)
+# Commands in the capture, -1 on failure
+replay_get_command_count i32 -> i32
+# (index). ibuf out: [0]=instancetype [1]=outputtype [2]=instancehandle [3]=outputhandle [4]=framenumber [5]=parentcommandindex. fbuf out: [0]=frametime. Returns the command name, "" on failure
+replay_get_command_info i32 i32 ibuf fbuf -> str
+# The formatted command text (up to 1023 bytes), "" on failure
+replay_get_command_string i32 i32 -> str
+# (seconds). The index of the command at that time, -1 on failure
+replay_get_command_at_time i32 f32 -> i32
+replay_seek_to_command i32 i32 -> i32
+# FMOD_STUDIO_PLAYBACK_STATE, STOPPED (2) on failure
+replay_get_playback_state i32 -> i32
+replay_set_bank_path i32 str -> i32
+sys_lock_dsp -> i32
+sys_unlock_dsp -> i32
+# (audio table key). ibuf out: [0]=subsoundindex. Returns the name or file path FMOD reports, "" on failure or for a bank held in memory
+sys_get_sound_info str ibuf -> str
+# (blocking). ibuf out: [0]=current [1]=max
+sys_get_memory_stats bool ibuf -> i32
+# fbuf out: [0]=sampleBytesRead [1]=streamBytesRead [2]=otherBytesRead (64-bit counts carried as doubles)
+sys_get_file_usage fbuf -> i32
+sys_set_network_proxy str -> i32
+sys_get_network_proxy -> str
+sys_set_network_timeout i32 -> i32
+# Timeout in milliseconds, -1 on failure
+sys_get_network_timeout -> i32
+# (FMOD_SPEAKER index, x, y, active)
+sys_set_speaker_position i32 f32 f32 bool -> i32
+# fbuf out: [0]=x [1]=y [2]=active (1.0 or 0.0)
+sys_get_speaker_position i32 fbuf -> i32

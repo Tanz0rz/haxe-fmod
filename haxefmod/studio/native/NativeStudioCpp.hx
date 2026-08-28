@@ -681,6 +681,26 @@ class NativeStudioCpp {
     // Debug
     public static inline function debug_live_handle_count():Int return Raw.debug_live_handle_count();
     public static inline function binding_abi_version():Int return Raw.binding_abi_version();
+
+    // System extras
+    public static inline function replay_get_command_count(handle:Int):Int return Raw.replay_get_command_count(handle);
+    public static inline function replay_get_command_info(handle:Int, index:Int):String return Raw.replay_get_command_info(handle, index, Scratch.intBuf(), Scratch.floatBuf()).toString();
+    public static inline function replay_get_command_string(handle:Int, index:Int):String return Raw.replay_get_command_string(handle, index).toString();
+    public static inline function replay_get_command_at_time(handle:Int, seconds:Float):Int return Raw.replay_get_command_at_time(handle, seconds);
+    public static inline function replay_seek_to_command(handle:Int, index:Int):Int return Raw.replay_seek_to_command(handle, index);
+    public static inline function replay_get_playback_state(handle:Int):Int return Raw.replay_get_playback_state(handle);
+    public static inline function replay_set_bank_path(handle:Int, path:String):Int return Raw.replay_set_bank_path(handle, path);
+    public static inline function sys_lock_dsp():Int return Raw.sys_lock_dsp();
+    public static inline function sys_unlock_dsp():Int return Raw.sys_unlock_dsp();
+    public static inline function sys_get_sound_info(key:String):String return Raw.sys_get_sound_info(key, Scratch.intBuf()).toString();
+    public static inline function sys_get_memory_stats(blocking:Bool):Int return Raw.sys_get_memory_stats(blocking, Scratch.intBuf());
+    public static inline function sys_get_file_usage():Int return Raw.sys_get_file_usage(Scratch.floatBuf());
+    public static inline function sys_set_network_proxy(proxy:String):Int return Raw.sys_set_network_proxy(proxy);
+    public static inline function sys_get_network_proxy():String return Raw.sys_get_network_proxy().toString();
+    public static inline function sys_set_network_timeout(timeoutMs:Int):Int return Raw.sys_set_network_timeout(timeoutMs);
+    public static inline function sys_get_network_timeout():Int return Raw.sys_get_network_timeout();
+    public static inline function sys_set_speaker_position(speaker:Int, x:Float, y:Float, active:Bool):Int return Raw.sys_set_speaker_position(speaker, x, y, active);
+    public static inline function sys_get_speaker_position(speaker:Int):Int return Raw.sys_get_speaker_position(speaker, Scratch.floatBuf());
 }
 
 @:keep
@@ -2075,5 +2095,59 @@ private extern class Raw {
 
     @:native("linc::faxe::fmod_binding_abi_version")
     static function binding_abi_version():Int;
+
+    @:native("linc::faxe::fmod_replay_get_command_count")
+    static function replay_get_command_count(handle:Int):Int;
+
+    @:native("linc::faxe::fmod_replay_get_command_info")
+    static function replay_get_command_info(handle:Int, index:Int, ibuf:Array<Int>, fbuf:Array<Float>):cpp.ConstCharStar;
+
+    @:native("linc::faxe::fmod_replay_get_command_string")
+    static function replay_get_command_string(handle:Int, index:Int):cpp.ConstCharStar;
+
+    @:native("linc::faxe::fmod_replay_get_command_at_time")
+    static function replay_get_command_at_time(handle:Int, seconds:Float):Int;
+
+    @:native("linc::faxe::fmod_replay_seek_to_command")
+    static function replay_seek_to_command(handle:Int, index:Int):Int;
+
+    @:native("linc::faxe::fmod_replay_get_playback_state")
+    static function replay_get_playback_state(handle:Int):Int;
+
+    @:native("linc::faxe::fmod_replay_set_bank_path")
+    static function replay_set_bank_path(handle:Int, path:String):Int;
+
+    @:native("linc::faxe::fmod_sys_lock_dsp")
+    static function sys_lock_dsp():Int;
+
+    @:native("linc::faxe::fmod_sys_unlock_dsp")
+    static function sys_unlock_dsp():Int;
+
+    @:native("linc::faxe::fmod_sys_get_sound_info")
+    static function sys_get_sound_info(key:String, ibuf:Array<Int>):cpp.ConstCharStar;
+
+    @:native("linc::faxe::fmod_sys_get_memory_stats")
+    static function sys_get_memory_stats(blocking:Bool, ibuf:Array<Int>):Int;
+
+    @:native("linc::faxe::fmod_sys_get_file_usage")
+    static function sys_get_file_usage(fbuf:Array<Float>):Int;
+
+    @:native("linc::faxe::fmod_sys_set_network_proxy")
+    static function sys_set_network_proxy(proxy:String):Int;
+
+    @:native("linc::faxe::fmod_sys_get_network_proxy")
+    static function sys_get_network_proxy():cpp.ConstCharStar;
+
+    @:native("linc::faxe::fmod_sys_set_network_timeout")
+    static function sys_set_network_timeout(timeoutMs:Int):Int;
+
+    @:native("linc::faxe::fmod_sys_get_network_timeout")
+    static function sys_get_network_timeout():Int;
+
+    @:native("linc::faxe::fmod_sys_set_speaker_position")
+    static function sys_set_speaker_position(speaker:Int, x:Float, y:Float, active:Bool):Int;
+
+    @:native("linc::faxe::fmod_sys_get_speaker_position")
+    static function sys_get_speaker_position(speaker:Int, fbuf:Array<Float>):Int;
 }
 #end

@@ -610,4 +610,24 @@ class NativeStudioStub {
     // Debug
     public static function debug_live_handle_count():Int return 0;
     public static function binding_abi_version():Int return 0;
+
+    // System extras
+    public static function replay_get_command_count(handle:Int):Int return -1;
+    public static function replay_get_command_info(handle:Int, index:Int):String return "";
+    public static function replay_get_command_string(handle:Int, index:Int):String return "";
+    public static function replay_get_command_at_time(handle:Int, seconds:Float):Int return -1;
+    public static function replay_seek_to_command(handle:Int, index:Int):Int return ERR_UNSUPPORTED;
+    public static function replay_get_playback_state(handle:Int):Int return 2;
+    public static function replay_set_bank_path(handle:Int, path:String):Int return ERR_UNSUPPORTED;
+    public static function sys_lock_dsp():Int return ERR_UNSUPPORTED;
+    public static function sys_unlock_dsp():Int return ERR_UNSUPPORTED;
+    public static function sys_get_sound_info(key:String):String return "";
+    public static function sys_get_memory_stats(blocking:Bool):Int return ERR_UNSUPPORTED;
+    public static function sys_get_file_usage():Int return ERR_UNSUPPORTED;
+    public static function sys_set_network_proxy(proxy:String):Int return ERR_UNSUPPORTED;
+    public static function sys_get_network_proxy():String return "";
+    public static function sys_set_network_timeout(timeoutMs:Int):Int return ERR_UNSUPPORTED;
+    public static function sys_get_network_timeout():Int return -1;
+    public static function sys_set_speaker_position(speaker:Int, x:Float, y:Float, active:Bool):Int return ERR_UNSUPPORTED;
+    public static function sys_get_speaker_position(speaker:Int):Int return ERR_UNSUPPORTED;
 }

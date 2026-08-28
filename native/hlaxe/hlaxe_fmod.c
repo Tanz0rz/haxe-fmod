@@ -5816,3 +5816,196 @@ HL_PRIM int HL_NAME(binding_abi_version)() {
     return atoi(digits);
 }
 DEFINE_PRIM(_I32, binding_abi_version, _NO_ARG);
+//// System extras (replay inspection, DSP lock, sound info, memory and file stats, network, speaker positions)
+
+/* Command strings can run past gStringBuf, so they get the 1024 bytes FMOD's own example uses. */
+static char gCommandBuf[1024];
+
+HL_PRIM int HL_NAME(replay_get_command_count)(int h) {
+    FMOD_STUDIO_COMMANDREPLAY* replay = resolve_replay(h);
+    int count = 0;
+    if (!replay) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    gLastResult = FMOD_Studio_CommandReplay_GetCommandCount(replay, &count);
+    return gLastResult == FMOD_OK ? count : -1;
+}
+DEFINE_PRIM(_I32, replay_get_command_count, _I32);
+
+HL_PRIM vbyte* HL_NAME(replay_get_command_info)(int h, int index, vbyte* ibuf, vbyte* fbuf) {
+    FMOD_STUDIO_COMMANDREPLAY* replay = resolve_replay(h);
+    FMOD_STUDIO_COMMAND_INFO info;
+    int* outInts = (int*)ibuf;
+    double* outFloats = (double*)fbuf;
+    gStringBuf[0] = '\0';
+    if (!replay) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (vbyte*)gStringBuf; }
+    memset(&info, 0, sizeof(info));
+    gLastResult = FMOD_Studio_CommandReplay_GetCommandInfo(replay, index, &info);
+    if (gLastResult != FMOD_OK) return (vbyte*)gStringBuf;
+    outInts[0] = (int)info.instancetype;
+    outInts[1] = (int)info.outputtype;
+    outInts[2] = (int)info.instancehandle;
+    outInts[3] = (int)info.outputhandle;
+    outInts[4] = info.framenumber;
+    outInts[5] = info.parentcommandindex;
+    outFloats[0] = (double)info.frametime;
+    /* The name points into the replay's own memory, so it is copied out while the handle is still live. */
+    if (info.commandname) {
+        strncpy(gStringBuf, info.commandname, sizeof(gStringBuf) - 1);
+        gStringBuf[sizeof(gStringBuf) - 1] = '\0';
+    }
+    return (vbyte*)gStringBuf;
+}
+DEFINE_PRIM(_BYTES, replay_get_command_info, _I32 _I32 _BYTES _BYTES);
+
+HL_PRIM vbyte* HL_NAME(replay_get_command_string)(int h, int index) {
+    FMOD_STUDIO_COMMANDREPLAY* replay = resolve_replay(h);
+    gCommandBuf[0] = '\0';
+    if (!replay) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (vbyte*)gCommandBuf; }
+    gLastResult = FMOD_Studio_CommandReplay_GetCommandString(replay, index, gCommandBuf, (int)sizeof(gCommandBuf));
+    if (gLastResult != FMOD_OK) gCommandBuf[0] = '\0';
+    return (vbyte*)gCommandBuf;
+}
+DEFINE_PRIM(_BYTES, replay_get_command_string, _I32 _I32);
+
+HL_PRIM int HL_NAME(replay_get_command_at_time)(int h, double seconds) {
+    FMOD_STUDIO_COMMANDREPLAY* replay = resolve_replay(h);
+    int index = -1;
+    if (!replay) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    gLastResult = FMOD_Studio_CommandReplay_GetCommandAtTime(replay, (float)seconds, &index);
+    return gLastResult == FMOD_OK ? index : -1;
+}
+DEFINE_PRIM(_I32, replay_get_command_at_time, _I32 _F64);
+
+HL_PRIM int HL_NAME(replay_seek_to_command)(int h, int index) {
+    FMOD_STUDIO_COMMANDREPLAY* replay = resolve_replay(h);
+    if (!replay) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_Studio_CommandReplay_SeekToCommand(replay, index);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, replay_seek_to_command, _I32 _I32);
+
+HL_PRIM int HL_NAME(replay_get_playback_state)(int h) {
+    FMOD_STUDIO_COMMANDREPLAY* replay = resolve_replay(h);
+    FMOD_STUDIO_PLAYBACK_STATE state = FMOD_STUDIO_PLAYBACK_STOPPED;
+    if (!replay) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)FMOD_STUDIO_PLAYBACK_STOPPED; }
+    gLastResult = FMOD_Studio_CommandReplay_GetPlaybackState(replay, &state);
+    return gLastResult == FMOD_OK ? (int)state : (int)FMOD_STUDIO_PLAYBACK_STOPPED;
+}
+DEFINE_PRIM(_I32, replay_get_playback_state, _I32);
+
+HL_PRIM int HL_NAME(replay_set_bank_path)(int h, vbyte* path) {
+    FMOD_STUDIO_COMMANDREPLAY* replay = resolve_replay(h);
+    if (!replay) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_Studio_CommandReplay_SetBankPath(replay, (const char*)path);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, replay_set_bank_path, _I32 _BYTES);
+
+HL_PRIM int HL_NAME(sys_lock_dsp)() {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = FMOD_System_LockDSP(gCoreSystem);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, sys_lock_dsp, _NO_ARG);
+
+HL_PRIM int HL_NAME(sys_unlock_dsp)() {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = FMOD_System_UnlockDSP(gCoreSystem);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, sys_unlock_dsp, _NO_ARG);
+
+HL_PRIM vbyte* HL_NAME(sys_get_sound_info)(vbyte* key, vbyte* ibuf) {
+    FMOD_STUDIO_SOUND_INFO info;
+    int* outInts = (int*)ibuf;
+    gStringBuf[0] = '\0';
+    outInts[0] = -1;
+    if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (vbyte*)gStringBuf; }
+    memset(&info, 0, sizeof(info));
+    gLastResult = FMOD_Studio_System_GetSoundInfo(gStudioSystem, (const char*)key, &info);
+    if (gLastResult != FMOD_OK) return (vbyte*)gStringBuf;
+    outInts[0] = info.subsoundindex;
+    /* For a bank loaded from memory name_or_data is the sample bytes themselves, which are no string. */
+    if (info.name_or_data && !(info.mode & (FMOD_OPENMEMORY | FMOD_OPENMEMORY_POINT))) {
+        strncpy(gStringBuf, info.name_or_data, sizeof(gStringBuf) - 1);
+        gStringBuf[sizeof(gStringBuf) - 1] = '\0';
+    }
+    return (vbyte*)gStringBuf;
+}
+DEFINE_PRIM(_BYTES, sys_get_sound_info, _BYTES _BYTES);
+
+HL_PRIM int HL_NAME(sys_get_memory_stats)(bool blocking, vbyte* ibuf) {
+    int current = 0;
+    int maximum = 0;
+    int* outInts = (int*)ibuf;
+    gLastResult = FMOD_Memory_GetStats(&current, &maximum, blocking ? 1 : 0);
+    outInts[0] = current;
+    outInts[1] = maximum;
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, sys_get_memory_stats, _BOOL _BYTES);
+
+HL_PRIM int HL_NAME(sys_get_file_usage)(vbyte* fbuf) {
+    long long sample = 0;
+    long long stream = 0;
+    long long other = 0;
+    double* outFloats = (double*)fbuf;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = FMOD_System_GetFileUsage(gCoreSystem, &sample, &stream, &other);
+    outFloats[0] = (double)sample;
+    outFloats[1] = (double)stream;
+    outFloats[2] = (double)other;
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, sys_get_file_usage, _BYTES);
+
+HL_PRIM int HL_NAME(sys_set_network_proxy)(vbyte* proxy) {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = FMOD_System_SetNetworkProxy(gCoreSystem, (const char*)proxy);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, sys_set_network_proxy, _BYTES);
+
+HL_PRIM vbyte* HL_NAME(sys_get_network_proxy)() {
+    gStringBuf[0] = '\0';
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (vbyte*)gStringBuf; }
+    gLastResult = FMOD_System_GetNetworkProxy(gCoreSystem, gStringBuf, (int)sizeof(gStringBuf));
+    if (gLastResult != FMOD_OK) gStringBuf[0] = '\0';
+    return (vbyte*)gStringBuf;
+}
+DEFINE_PRIM(_BYTES, sys_get_network_proxy, _NO_ARG);
+
+HL_PRIM int HL_NAME(sys_set_network_timeout)(int timeoutMs) {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = FMOD_System_SetNetworkTimeout(gCoreSystem, timeoutMs);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, sys_set_network_timeout, _I32);
+
+HL_PRIM int HL_NAME(sys_get_network_timeout)() {
+    int timeoutMs = -1;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return -1; }
+    gLastResult = FMOD_System_GetNetworkTimeout(gCoreSystem, &timeoutMs);
+    return gLastResult == FMOD_OK ? timeoutMs : -1;
+}
+DEFINE_PRIM(_I32, sys_get_network_timeout, _NO_ARG);
+
+HL_PRIM int HL_NAME(sys_set_speaker_position)(int speaker, double x, double y, bool active) {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = FMOD_System_SetSpeakerPosition(gCoreSystem, (FMOD_SPEAKER)speaker, (float)x, (float)y, active ? 1 : 0);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, sys_set_speaker_position, _I32 _F64 _F64 _BOOL);
+
+HL_PRIM int HL_NAME(sys_get_speaker_position)(int speaker, vbyte* fbuf) {
+    float x = 0.0f;
+    float y = 0.0f;
+    FMOD_BOOL active = 0;
+    double* outFloats = (double*)fbuf;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = FMOD_System_GetSpeakerPosition(gCoreSystem, (FMOD_SPEAKER)speaker, &x, &y, &active);
+    outFloats[0] = (double)x;
+    outFloats[1] = (double)y;
+    outFloats[2] = active ? 1.0 : 0.0;
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, sys_get_speaker_position, _I32 _BYTES);
