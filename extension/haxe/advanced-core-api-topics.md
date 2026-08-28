@@ -3,23 +3,16 @@
 ## 10.2 Extracting PCM Data from a Sound
 verdict: bound
 Native only (unsupported in HTML5).
-Sound.getLength takes the time unit as its parameter, PCMBYTES here for the byte count.
+Sound.getLength takes the time unit as its parameter. readData returns the bytes read and defaults to the whole buffer, so the length is not passed again.
 ```haxe
 import haxefmod.core.Sound;
 import haxefmod.studio.Types;
 
 var sound = Sound.create("drumloop.wav", false, true); // openOnly, like FMOD_OPENONLY
-var length = sound.getLength(FmodTimeUnit.PCMBYTES);
+var length = sound.getLength(FmodTimeUnit.RAWBYTES);
 
-var buffer = haxe.io.Bytes.alloc(4096);
-var total = 0;
-var read = sound.readData(buffer, buffer.length);
-while (read > 0) {
-    // the first read bytes of buffer hold decoded PCM
-    total += read;
-    read = sound.readData(buffer, buffer.length);
-}
-// total == length once the whole sound is read
+var buffer = haxe.io.Bytes.alloc(length);
+var read = sound.readData(buffer);
 ```
 
 ## Codec Example

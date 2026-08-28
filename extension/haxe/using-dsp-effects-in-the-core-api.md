@@ -93,6 +93,7 @@ var result = channel.setPaused(false);                                          
 verdict: bound
 addInput returns the DspConnection directly, DspConnection.NULL on failure with the reason in StudioSystem.lastResult().
 ```haxe
+import haxefmod.core.Channel;
 import haxefmod.core.Sound;
 import haxefmod.core.ChannelGroup;
 import haxefmod.core.Dsp;
@@ -102,9 +103,8 @@ var sound = Sound.create("drumloop.wav");
 var channelgroup = ChannelGroup.create("my channelgroup");
 var dsp_reverb = Dsp.create(DspType.SFXREVERB);
 
-var channel = sound.play(true);                                                     /* Play the sound.  Play it paused so we dont hear the sound play before it is connected to the reverb. */
-channel.setChannelGroup(channelgroup);
-var channel_dsp_head = channel.getDsp(ChannelGroup.DSP_HEAD);                       /* Grab the 'head' unit for the Channel */
+var channel = sound.play(true, channelgroup);                                       /* Play the sound.  Play it paused so we dont hear the sound play before it is connected to the reverb. */
+var channel_dsp_head = channel.getDsp(Channel.DSP_HEAD);                            /* Grab the 'head' unit for the Channel */
 var dsp_connection = dsp_reverb.addInput(channel_dsp_head);                         /* Manually add a connection from the Channel DSP head to the reverb. */
 var result = channel.setPaused(false);                                              /* Unpause the channel and let it be audible. */
 ```
@@ -112,23 +112,23 @@ var result = channel.setPaused(false);                                          
 ## Controlling mix level and pan matrices for DSPConnections#2
 verdict: bound
 ```haxe
-import haxefmod.core.ChannelGroup;
+import haxefmod.core.Channel;
 import haxefmod.core.Dsp;
 import haxefmod.core.DspType;
 
 var dsp_reverb = Dsp.create(DspType.SFXREVERB);
-var dsp_connection = dsp_reverb.addInput(channel.getDsp(ChannelGroup.DSP_HEAD));
+var dsp_connection = dsp_reverb.addInput(channel.getDsp(Channel.DSP_HEAD));
 var result = dsp_connection.setMix(0.0);
 ```
 
 ## Set the output format of a DSP unit, and control the pan matrix for its output signal
 verdict: bound
 ```haxe
-import haxefmod.core.ChannelGroup;
+import haxefmod.core.Channel;
 import haxefmod.core.Dsp;
 import haxefmod.studio.Types.FmodSpeakerMode;
 
-var channel_dsp_head = channel.getDsp(ChannelGroup.DSP_HEAD);
+var channel_dsp_head = channel.getDsp(Channel.DSP_HEAD);
 var result = channel_dsp_head.setChannelFormat(0, 0, FmodSpeakerMode.QUAD);
 ```
 
@@ -137,10 +137,10 @@ verdict: bound
 Dsp.getOutputConnection(index) returns the connection on an output slot, the target unit itself comes from Dsp.getOutput(index).
 The matrix is one flat row-major array, one row per output channel with one column per input channel.
 ```haxe
-import haxefmod.core.ChannelGroup;
+import haxefmod.core.Channel;
 import haxefmod.core.Dsp;
 
-var channel_dsp_head = channel.getDsp(ChannelGroup.DSP_HEAD);
+var channel_dsp_head = channel.getDsp(Channel.DSP_HEAD);
 var matrix:Array<Float> =
 [   /*                                    FL FR SL SR <- Input signal (columns) */
     /* row 0 = front left  out    <- */    0, 0, 0, 0,

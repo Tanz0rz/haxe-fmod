@@ -3,7 +3,8 @@
 ## 22.33 Reading Sound Data
 verdict: bound
 Native only (unsupported in HTML5).
-getLength takes the time unit as its parameter, PCMBYTES for the byte count the page reads.
+getLength takes the time unit as its parameter, RAWBYTES as on the page.
+readData returns the number of bytes read.
 ```haxe
 import haxefmod.core.Sound;
 import haxefmod.studio.Types;
@@ -13,15 +14,12 @@ var length:Int;
 var buffer:haxe.io.Bytes;
 
 sound = Sound.create("drumloop.wav", false, true); // openOnly is FMOD_OPENONLY
-length = sound.getLength(FmodTimeUnit.PCMBYTES);
+length = sound.getLength(FmodTimeUnit.RAWBYTES);
 
-buffer = haxe.io.Bytes.alloc(4096);
-var read = sound.readData(buffer, buffer.length);
-while (read > 0) {
-    read = sound.readData(buffer, buffer.length);
-}
+buffer = haxe.io.Bytes.alloc(length);
+var read = sound.readData(buffer, length);
 
-sound.release();
+buffer = null;
 ```
 
 ## 22.49 User Data

@@ -62,7 +62,7 @@ var result = connection.setMixMatrix([0.5, 0, 0, 0.5], 2, 2);
 
 ## file_getdiskbusy
 <!-- File_GetDiskBusy -->
-verdict: cannot The disk busy flag belongs to the custom file system callbacks, which FMOD runs on its streaming thread, and no Haxe target can execute code there.
+verdict: covered The global disk busy flag is not bound. Sound.getOpenStateInfo() reports diskBusy per sound, which is the value a game polls while a stream fills.
 
 ## file_setdiskbusy
 <!-- File_SetDiskBusy -->
@@ -71,7 +71,7 @@ verdict: cannot The disk busy flag belongs to the custom file system callbacks, 
 ## memory_initialize
 <!-- Memory_Initialize -->
 verdict: bound
-Covered by FmodSettings. The fixed pool form runs through memoryPoolSize, a byte count the library allocates and hands to FMOD before the system is created. The pool never grows, so an exhausted pool fails later calls with FMOD_ERR_MEMORY. The callback arguments are not exposed, an allocator would run on every FMOD thread. Native only, the web build allocates from the wasm heap.
+Covered by FmodSettings. The fixed pool form runs through memoryPoolSize, a byte count the library allocates and hands to FMOD before the system is created. The pool never grows, so an exhausted pool fails later calls with FMOD_ERR_MEMORY. The callback arguments are not exposed, an allocator would run on every FMOD thread, and memtypeflags stays at FMOD_MEMORY_ALL, so the pool serves every allocation type. Native only, the web build allocates from the wasm heap.
 ```haxe
 FmodManager.Initialize({memoryPoolSize: 64 * 1024 * 1024});
 ```
@@ -185,11 +185,11 @@ verdict: cannot This is an Android JNI entry point and haxefmod targets desktop 
 ## fs_createpreloadedfile
 <!-- FS_createPreloadedFile -->
 verdict: bound
-haxefmod does this for you on HTML5. The banks named in FmodSettings.autoLoadBanks are fetched during init, and StudioSystem.loadBankFile() fetches any other bank and places it in the wasm file system before loading it.
+haxefmod does this for you on HTML5. The banks named in FmodSettings.autoLoadBanks are fetched during init and placed in the wasm file system, and FmodRuntime.banks.loadAsync(path) fetches any other bank the same way. StudioSystem.loadBankFile() reads a file that is already there.
 ```haxe
-import haxefmod.studio.Bank;
+import haxefmod.runtime.FmodRuntime;
 
-var bank:Bank = StudioSystem.loadBankFile("assets/fmod/Desktop/Level1.bank");
+FmodRuntime.banks.loadAsync("assets/fmod/Desktop/Level1.bank");
 ```
 
 ## readfile
@@ -394,7 +394,7 @@ if (usage != null) {
 ## system_getdspbuffersize
 <!-- System::getDSPBufferSize -->
 verdict: bound
-Covered by FmodSettings. The mixer buffer is set once at init through dspBufferSize and dspNumBuffers, and FmodRuntime.settings() reports the values the engine started with, 0 when FMOD's default was kept. Both are native only (unsupported in HTML5), where the web build fixes the mixer at 2048 samples by 2 buffers.
+Covered by FmodSettings. The mixer buffer is set once at init through dspBufferSize and dspNumBuffers, and FmodRuntime.settings() reports the values the engine started with, 0 when FMOD's default was kept. On HTML5 the web build starts at 2048 samples by 2 buffers and takes the values as well.
 ```haxe
 import haxefmod.runtime.FmodRuntime;
 
@@ -480,7 +480,7 @@ verdict: cannot FMOD runs the callback on its mixer thread, and no Haxe target c
 ## system_setadvancedsettings
 <!-- System::setAdvancedSettings -->
 verdict: bound
-haxefmod applies these before init from FmodSettings, which carries maxMPEGCodecs, maxVorbisCodecs, maxFADPCMCodecs, vol0VirtualVol, defaultDecodeBufferSize, profilePort, geometryMaxFadeTime, distanceFilterCenterFreq, and randomSeed. Zero or null keeps FMOD's default for a field. Read them back with StudioSystem.getAdvancedSettings() (unsupported in HTML5, returns null there).
+haxefmod applies these before init from FmodSettings, which carries maxMPEGCodecs, maxVorbisCodecs, maxFADPCMCodecs, vol0VirtualVol, defaultDecodeBufferSize, profilePort, geometryMaxFadeTime, distanceFilterCenterFreq, resamplerMethod, and randomSeed. Zero or null keeps FMOD's default for a field. Read them back with StudioSystem.getAdvancedSettings() (unsupported in HTML5, returns null there).
 ```haxe
 FmodManager.Initialize({vol0VirtualVol: 0.001, randomSeed: 42});
 ```
@@ -523,11 +523,11 @@ FmodManager.Update();
 
 ## studio_bus_getportindex
 <!-- Studio::Bus::getPortIndex -->
-verdict: cannot This is a console port API and haxefmod targets desktop and web only. Route audio through ChannelGroup and Bus instead.
+verdict: covered Bus port indices are a console feature and are not bound. On desktop, CoreSystem.attachChannelGroupToPort(portType, portIndex, group) routes a group to a port, and Bus.getChannelGroup() gives the group behind a bus.
 
 ## studio_bus_setportindex
 <!-- Studio::Bus::setPortIndex -->
-verdict: cannot This is a console port API and haxefmod targets desktop and web only. Route audio through ChannelGroup and Bus instead.
+verdict: covered Bus port indices are a console feature and are not bound. On desktop, CoreSystem.attachChannelGroupToPort(portType, portIndex, group) routes a group to a port, and Bus.getChannelGroup() gives the group behind a bus.
 
 ## studio_commandreplay_getsystem
 <!-- Studio::CommandReplay::getSystem -->
@@ -610,7 +610,7 @@ if (property != null) {
 ## studio_eventdescription_setcallback
 <!-- Studio::EventDescription::setCallback -->
 verdict: bound
-haxefmod covers this with EventDescription.setCallback(handler, ?mask), which remembers a handler that createInstance installs on every instance made from the description from then on. The events are queued on FMOD's thread and delivered as typed EventCallbackData from FmodManager.Update() on the game thread.
+haxefmod covers this with EventDescription.setCallback(handler, ?mask), which remembers a handler that createInstance installs on every instance made from the description from then on. The mask is an EventCallbackType bit set and defaults to PLAYBACK_ALL plus DESTROYED, where FMOD defaults to every type, so pass EventCallbackType.ALL to receive everything. The events are queued on FMOD's thread and delivered as typed EventCallbackData from FmodManager.Update() on the game thread.
 ```haxe
 var description = StudioSystem.getEvent(FmodEvents.SFXEngine);
 description.setCallback(data -> switch (data) {
@@ -793,4 +793,108 @@ var sound = Sound.create("assets/music/track.wav");
 var name = sound.getSyncPointName(0);
 var ms = sound.getSyncPointOffset(0);
 var samples = sound.getSyncPointOffset(0, FmodTimeUnit.PCM);
+```
+
+## sound_setlooppoints
+<!-- Sound::setLoopPoints -->
+verdict: bound
+One time unit applies to both the start and the end point, given as the last parameter and milliseconds when left out, where FMOD takes a unit per point. The startMs and endMs names keep the millisecond default in view, the values are in the unit given.
+```haxe
+import haxefmod.studio.Types;
+import haxefmod.core.Sound;
+
+var sound = Sound.create("assets/music/track.wav", true);
+sound.setLoopPoints(48000, 96000, FmodTimeUnit.PCM);
+```
+
+## sound_getlooppoints
+<!-- Sound::getLoopPoints -->
+verdict: bound
+One time unit applies to both the start and the end point, given as the last parameter and milliseconds when left out, where FMOD takes a unit per point. The startMs and endMs names keep the millisecond default in view, the values are in the unit given.
+```haxe
+import haxefmod.studio.Types;
+import haxefmod.core.Sound;
+
+var sound = Sound.create("assets/music/track.wav", true);
+var points = sound.getLoopPoints(FmodTimeUnit.PCM);
+trace(points.startMs, points.endMs); // samples here
+```
+
+## channel_setlooppoints
+<!-- Channel::setLoopPoints -->
+verdict: bound
+One time unit applies to both the start and the end point, given as the last parameter and milliseconds when left out, where FMOD takes a unit per point. The startMs and endMs names keep the millisecond default in view, the values are in the unit given.
+```haxe
+import haxefmod.studio.Types;
+import haxefmod.core.Sound;
+
+var engineSound = Sound.create("assets/sfx/engine.wav", true);
+
+var channel = engineSound.play();
+channel.setLoopPoints(48000, 96000, FmodTimeUnit.PCM);
+```
+
+## channel_getlooppoints
+<!-- Channel::getLoopPoints -->
+verdict: bound
+One time unit applies to both the start and the end point, given as the last parameter and milliseconds when left out, where FMOD takes a unit per point. The startMs and endMs names keep the millisecond default in view, the values are in the unit given.
+```haxe
+import haxefmod.studio.Types;
+import haxefmod.core.Sound;
+
+var engineSound = Sound.create("assets/sfx/engine.wav", true);
+
+var channel = engineSound.play();
+var points = channel.getLoopPoints(FmodTimeUnit.PCM);
+trace(points.startMs, points.endMs); // samples here
+```
+
+## sound_getnumsyncpoints
+<!-- Sound::getNumSyncPoints -->
+verdict: bound
+Named getSyncPointCount in Haxe.
+```haxe
+import haxefmod.core.Sound;
+
+var sound = Sound.create("assets/music/track.wav");
+var count = sound.getSyncPointCount();
+```
+
+## system_getversion
+<!-- System::getVersion -->
+verdict: bound
+StudioSystem.getVersion() formats the version number as a string like 2.03.12. The build number is not read.
+```haxe
+trace(StudioSystem.getVersion());
+```
+
+## studio_bank_getbuslist
+<!-- Studio::Bank::getBusList -->
+verdict: bound
+Bank.getBusList() returns every bus in one array, so there is no capacity or count argument. The list is read through a 1024 entry buffer and a longer list is cut at that length with a warning. getEventList and getVCAList work the same way.
+```haxe
+var bank = StudioSystem.getBank("bank:/Master");
+for (bus in bank.getBusList()) trace(bus.getPath());
+```
+
+## studio_system_loadbankmemory
+<!-- Studio::System::loadBankMemory -->
+verdict: bound
+The mode is always FMOD_STUDIO_LOAD_MEMORY, FMOD copies the bytes, so the Haxe Bytes can be dropped after the call. The flags parameter takes the same FmodLoadBankFlags as loadBankFile.
+```haxe
+import haxefmod.studio.Types;
+
+var bytes = sys.io.File.getBytes("assets/fmod/Desktop/Level1.bank");
+var bank = StudioSystem.loadBankMemory(bytes, FmodLoadBankFlags.NONBLOCKING);
+```
+
+## studio_system_release
+<!-- Studio::System::release -->
+verdict: library There is no shutdown call. FmodManager.Initialize() creates the system once and FMOD is released when the process exits, so banks, instances, and handles need no teardown order at quit.
+
+## studio_system_initialize
+<!-- Studio::System::initialize -->
+verdict: library FmodManager.Initialize(settings) makes this call. maxchannels is FmodSettings.numChannels, studioflags come from liveUpdate and memoryTracking, flags come from the core fields (for example rightHanded3D and profiling), and extradriverdata is never passed.
+```haxe
+FmodManager.Initialize({numChannels: 256, liveUpdate: true, memoryTracking: true});
 ```

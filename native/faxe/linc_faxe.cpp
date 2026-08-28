@@ -4726,6 +4726,16 @@ const char* fmod_sys_get_record_driver_info(int id, ::Array<int> ibuf) {
     return gStringBuf;
 }
 
+const char* fmod_sys_get_record_driver_guid(int id) {
+    FMOD_GUID guid;
+    gStringBuf[0] = '\0';
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return gStringBuf; }
+    memset(&guid, 0, sizeof(guid));
+    gLastResult = gCoreSystem->getRecordDriverInfo(id, NULL, 0, &guid, NULL, NULL, NULL, NULL);
+    if (gLastResult == FMOD_OK) faxe_guid_format(&guid, gStringBuf, sizeof(gStringBuf));
+    return gStringBuf;
+}
+
 // An empty OPENUSER PCM16 sound of the given length for recordStart to
 // fill. No callbacks, FMOD writes straight into the sample buffer.
 int fmod_core_create_record_sound(int sampleRate, int channels, int seconds) {

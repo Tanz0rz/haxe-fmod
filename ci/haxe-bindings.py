@@ -147,6 +147,41 @@ def shim_functions():
     return {native: reach(native, {native}) for native in natives}
 
 
+# Shim name prefixes that name the owning object, not the operation
+NATIVE_OBJECT_PREFIXES = {
+    "sys", "core", "cg", "chan", "cc", "geo", "dsp", "conn", "snd", "sg", "rev",
+    "bank", "ed", "ei", "bus", "vca", "cr", "ps", "pcm", "studio",
+}
+
+
+def primary_functions(native, fmod_names):
+    """The FMOD functions a native shim function exists to call.
+
+    A shim body often reaches more than one FMOD function: cg_create
+    releases the group it made when a later step fails, bank_unload reads
+    the bank path before unloading, core_play_sound stops the channel it
+    started. The wrapper that calls the shim is about one of them, the
+    one the shim is named after. The operation words of the native name
+    (create, unload, play) are matched against each FMOD function's
+    method name and the best match wins. Ties keep every tied function,
+    and when nothing matches every function is kept."""
+    if len(fmod_names) < 2:
+        return set(fmod_names)
+    words = [w for w in native.lower().split("_") if w and w not in NATIVE_OBJECT_PREFIXES]
+    if not words:
+        return set(fmod_names)
+    scored = []
+    for fmod_name in fmod_names:
+        method = fmod_name.rsplit("_", 1)[-1].lower()
+        hits = [w for w in words if w in method]
+        score = (len(hits), sum(len(w) for w in hits) / len(method))
+        scored.append((score, fmod_name))
+    best = max(score for score, _ in scored)
+    if best[0] == 0:
+        return set(fmod_names)
+    return {fmod_name for score, fmod_name in scored if score == best}
+
+
 # --- html5 shim ----------------------------------------------------------
 
 def html5_limited():
@@ -349,6 +384,7 @@ def build_table():
         entries[fmod_name] = {"fmod": fmod_name, "natives": set(), "haxe": list(methods), "html5": False}
     for native, fmod_names in shim.items():
         methods = wrappers.get(native, [])
+        primary = primary_functions(native, fmod_names)
         for fmod_name in fmod_names:
             entry = entries.setdefault(fmod_name, {"fmod": fmod_name, "natives": set(), "haxe": [], "html5": False})
             entry["natives"].add(native)
@@ -357,7 +393,18 @@ def build_table():
             # assignment touches SetCallback) says nothing about them.
             if native in limited and len(fmod_names) == 1:
                 entry["html5"] = True
+            # A wrapper is listed under the function its shim is named
+            # after. The other functions the shim reaches on the way are
+            # remembered so one nobody binds directly still gets a method.
+            if fmod_name not in primary:
+                entry.setdefault("also", []).extend(methods)
+                continue
             for method in methods:
+                if method not in entry["haxe"]:
+                    entry["haxe"].append(method)
+    for entry in entries.values():
+        if not entry["haxe"]:
+            for method in entry.pop("also", []):
                 if method not in entry["haxe"]:
                     entry["haxe"].append(method)
 

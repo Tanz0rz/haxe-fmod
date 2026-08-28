@@ -80,7 +80,7 @@ FMOD_DSP_LOG_FUNC                                   cannot   runs on FMOD's mixe
 FMOD_DSP_LOUDNESS_METER                             haxefmod.core.DspParameters.DspLoudnessMeter
 FMOD_DSP_LOUDNESS_METER_INFO_TYPE                   haxefmod.studio.Types.FmodDspLoudnessMeterInfo
 FMOD_DSP_LOUDNESS_METER_STATE_TYPE                  haxefmod.core.DspEnums.DspLoudnessMeterState
-FMOD_DSP_LOUDNESS_METER_WEIGHTING_TYPE              library   channel weighting is a data parameter of the loudness meter, whose readback is not exposed, so the meter keeps FMOD's default weighting
+FMOD_DSP_LOUDNESS_METER_WEIGHTING_TYPE              library   the channel weighting is the DspLoudnessMeter.WEIGHTING data parameter, Dsp.getParameterData returns its raw bytes and Dsp.getLoudnessMeterInfo reads the meter, no typed Haxe declaration wraps the weighting struct
 FMOD_DSP_LOWPASS                                    haxefmod.core.DspParameters.DspLowpass
 FMOD_DSP_LOWPASS_SIMPLE                             haxefmod.core.DspParameters.DspLowpassSimple
 FMOD_DSP_METERING_INFO                              covered   Dsp.getMetering returns its peak and RMS arrays with numChannels and numSamples, for the input or the output side
@@ -233,7 +233,7 @@ FMOD_STUDIO_PARAMETER_ID                            haxefmod.studio.Types.FmodPa
 FMOD_STUDIO_PARAMETER_TYPE                          haxefmod.studio.Types.FmodParameterType
 FMOD_STUDIO_PLAYBACK_STATE                          haxefmod.studio.Types.FmodPlaybackState
 FMOD_STUDIO_PLUGIN_INSTANCE_PROPERTIES              covered   the arguments of haxefmod.studio.Callbacks.EventCallbackData.PluginCreated(name, dsp) and PluginDestroyed(name, dsp), the dsp is a haxefmod.core.Dsp handle
-FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES             library   the programmer sound callbacks are handled natively, EventInstance.assignProgrammerSound(key) before start() picks the sound
+FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES             library   the struct is filled natively, EventInstance.assignProgrammerSound(key), assignProgrammerSoundForName, or assignProgrammerSoundFrom(sound) before start() picks the sound, and setCallback reports ProgrammerSoundCreated(name) and ProgrammerSoundDestroyed(name)
 FMOD_STUDIO_SOUND_INFO                              haxefmod.studio.Types.FmodSoundInfo   name carries name_or_data and the exinfo fields FMOD fills are flattened into length, fileOffset, initialSubsound, and numSubsounds skip: name_or_data,exinfo
 FMOD_STUDIO_STOP_MODE                               haxefmod.studio.Types.FmodStopMode
 FMOD_STUDIO_SYSTEM_CALLBACK                         cannot   runs on FMOD's threads, StudioSystem.setSystemCallback delivers SystemEvent on the game thread instead

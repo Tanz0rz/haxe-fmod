@@ -638,6 +638,7 @@ core_sound_seek_data i32 i32 -> i32
 sys_get_record_num_drivers ibuf -> i32
 # ibuf out: [0]=system rate [1]=speaker mode [2]=channels [3]=driver state
 sys_get_record_driver_info i32 ibuf -> str
+sys_get_record_driver_guid i32 -> str
 # (rate, channels, seconds): an OPENUSER PCM16 sound sized for the recording
 core_create_record_sound i32 i32 i32 -> i32
 sys_record_start i32 i32 bool -> i32

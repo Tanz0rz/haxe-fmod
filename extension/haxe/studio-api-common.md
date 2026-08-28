@@ -7,7 +7,7 @@ Type: haxefmod.studio.Types.FmodLoadingState
 ## FMOD_STUDIO_MEMORY_USAGE
 verdict: bound
 Type: haxefmod.studio.Types.FmodMemoryUsage
-Memory usage is native only (unsupported in HTML5), where the getters return null.
+Memory usage is native only. A js build rejects the getMemoryUsage calls at compile time unless -D haxefmod_html5_allow_unsupported is set, and then they return null in the browser. The counts are real with the logging FMOD libraries and the memoryTracking setting, the release libraries report zero.
 
 ## FMOD_STUDIO_PARAMETER_DESCRIPTION
 verdict: bound

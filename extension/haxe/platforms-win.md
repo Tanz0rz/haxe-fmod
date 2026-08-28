@@ -2,11 +2,11 @@
 
 ## ASIO and C#
 verdict: bound
-The output setting picks ASIO before the system initializes, and CoreSystem.getOutput reports the type in use.
+The output setting picks ASIO before the system initializes. The library creates and initializes the system itself.
 ```haxe
 import haxefmod.studio.Types;
 
-FmodManager.Initialize({output: FmodOutputType.ASIO});
+FmodManager.Initialize({output: FmodOutputType.ASIO, numChannels: 32});
 ```
 
 ## Background Music
@@ -21,8 +21,7 @@ import haxefmod.studio.Types;
 var music = ChannelGroup.create("music");
 CoreSystem.attachChannelGroupToPort(FmodPortType.MUSIC, FmodPortIndex.NONE, music);
 var bgm = Sound.create("assets/music/theme.ogg");
-var channel = bgm.play();
-channel.setChannelGroup(music);
+var channel = bgm.play(false, music);
 ```
 
 ## Pass Through
@@ -37,6 +36,5 @@ import haxefmod.studio.Types;
 var raw = ChannelGroup.create("passthrough");
 CoreSystem.attachChannelGroupToPort(FmodPortType.PASSTHROUGH, FmodPortIndex.NONE, raw);
 var voice = Sound.create("assets/voice/line.wav");
-var channel = voice.play();
-channel.setChannelGroup(raw);
+var channel = voice.play(false, raw);
 ```

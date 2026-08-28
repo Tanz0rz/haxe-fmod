@@ -414,24 +414,26 @@ class StudioSystem {
 
 #if (macro || (js && !haxefmod_html5_allow_unsupported))
     /**
-     * Name and native format of a record driver (unsupported in HTML5,
-     * returns null there). state is a FmodDriverState bitmask. Null for an
-     * id out of range.
+     * Name, GUID, and native format of a record driver (unsupported in
+     * HTML5, returns null there). state is a FmodDriverState bitmask. Null
+     * for an id out of range.
      */
     public static macro function getRecordDriverInfo(id:haxe.macro.Expr):haxe.macro.Expr {
         return haxefmod.studio.native.Html5Gate.block("StudioSystem.getRecordDriverInfo", "the web build has no microphone recording");
     }
     #else
     /**
-     * Name and native format of a record driver (unsupported in HTML5,
-     * returns null there). state is a FmodDriverState bitmask. Null for an
-     * id out of range.
+     * Name, GUID, and native format of a record driver (unsupported in
+     * HTML5, returns null there). state is a FmodDriverState bitmask. Null
+     * for an id out of range.
      */
-    public static function getRecordDriverInfo(id:Int):Null<{name:String, systemRate:Int, speakerMode:FmodSpeakerMode, channels:Int, state:FmodDriverState}> {
+    public static function getRecordDriverInfo(id:Int):Null<{name:String, guid:String, systemRate:Int, speakerMode:FmodSpeakerMode, channels:Int, state:FmodDriverState}> {
         var name = NativeStudio.sys_get_record_driver_info(id);
         if (!lastResult().isOk()) return null;
-        return {name: name, systemRate: Scratch.readI(0), speakerMode: Scratch.readI(1),
-            channels: Scratch.readI(2), state: Scratch.readI(3)};
+        var info = {name: name, guid: "", systemRate: Scratch.readI(0), speakerMode: (Scratch.readI(1) : FmodSpeakerMode),
+            channels: Scratch.readI(2), state: (Scratch.readI(3) : FmodDriverState)};
+        info.guid = NativeStudio.sys_get_record_driver_guid(id);
+        return info;
     }
     #end
 

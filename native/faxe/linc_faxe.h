@@ -394,6 +394,7 @@ extern int fmod_core_sound_read_data(int handle, ::Array<unsigned char> data, in
 extern int fmod_core_sound_seek_data(int handle, int pcm);
 extern int fmod_sys_get_record_num_drivers(::Array<int> ibuf);
 extern const char* fmod_sys_get_record_driver_info(int id, ::Array<int> ibuf);
+extern const char* fmod_sys_get_record_driver_guid(int id);
 extern int fmod_core_create_record_sound(int sampleRate, int channels, int seconds);
 extern int fmod_sys_record_start(int id, int soundHandle, bool loop);
 extern int fmod_sys_record_stop(int id);

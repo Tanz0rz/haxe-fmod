@@ -34,6 +34,7 @@ if (!result.isOk()) {
 ## 18.2.2 Loading the Plug-in in the Game#4
 verdict: bound
 Native only (unsupported in HTML5).
+unregisterPlugin has no Haxe form because registerPlugin has none, unloadPlugin is the one that applies.
 Release every Dsp created from the plug-in first. FMOD frees them from its mixer thread, so an unload that answers FMOD_ERR_DSP_INUSE succeeds when retried a few frames later.
 ```haxe
 var handle = StudioSystem.loadPlugin("fmod_gain.dll");

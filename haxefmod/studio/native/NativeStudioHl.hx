@@ -622,6 +622,7 @@ class NativeStudioHl {
     public static inline function core_sound_seek_data(handle:Int, pcm:Int):Int return Raw.core_sound_seek_data(handle, pcm);
     public static inline function sys_get_record_num_drivers():Int return Raw.sys_get_record_num_drivers(Scratch.intBuf());
     public static inline function sys_get_record_driver_info(id:Int):String return fromBytes(Raw.sys_get_record_driver_info(id, Scratch.intBuf()));
+    public static inline function sys_get_record_driver_guid(id:Int):String return fromBytes(Raw.sys_get_record_driver_guid(id));
     public static inline function core_create_record_sound(sampleRate:Int, channels:Int, seconds:Int):Int return Raw.core_create_record_sound(sampleRate, channels, seconds);
     public static inline function sys_record_start(id:Int, soundHandle:Int, loop:Bool):Int return Raw.sys_record_start(id, soundHandle, loop);
     public static inline function sys_record_stop(id:Int):Int return Raw.sys_record_stop(id);
@@ -1186,6 +1187,7 @@ private extern class Raw {
     static function core_sound_seek_data(handle:Int, pcm:Int):Int;
     static function sys_get_record_num_drivers(ibuf:hl.Bytes):Int;
     static function sys_get_record_driver_info(id:Int, ibuf:hl.Bytes):hl.Bytes;
+    static function sys_get_record_driver_guid(id:Int):hl.Bytes;
     static function core_create_record_sound(sampleRate:Int, channels:Int, seconds:Int):Int;
     static function sys_record_start(id:Int, soundHandle:Int, loop:Bool):Int;
     static function sys_record_stop(id:Int):Int;

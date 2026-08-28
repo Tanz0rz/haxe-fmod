@@ -16,7 +16,7 @@ If one of these blocks a real use case, open an issue describing it. A workaroun
 | Function | Why |
 |---|---|
 | `file_close` | Cannot be bound. FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, Sound.create, and Sound.fromPcm are the loading paths. |
-| `File_GetDiskBusy` | Cannot be bound. The disk busy flag belongs to the custom file system callbacks, which FMOD runs on its streaming thread, and no Haxe target can execute code there. |
+| `File_GetDiskBusy` | No Haxe declaration, another call plays this role. The global disk busy flag is not bound. Sound.getOpenStateInfo() reports diskBusy per sound, which is the value a game polls while a stream fills. |
 | `file_open` | Cannot be bound. FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, Sound.create, and Sound.fromPcm are the loading paths. |
 | `file_read` | Cannot be bound. FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, Sound.create, and Sound.fromPcm are the loading paths. |
 | `file_seek` | Cannot be bound. FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, Sound.create, and Sound.fromPcm are the loading paths. |
@@ -42,8 +42,8 @@ If one of these blocks a real use case, open an issue describing it. A workaroun
 
 | Function | Why |
 |---|---|
-| `Studio::Bus::getPortIndex` | Cannot be bound. This is a console port API and haxefmod targets desktop and web only. Route audio through ChannelGroup and Bus instead. |
-| `Studio::Bus::setPortIndex` | Cannot be bound. This is a console port API and haxefmod targets desktop and web only. Route audio through ChannelGroup and Bus instead. |
+| `Studio::Bus::getPortIndex` | No Haxe declaration, another call plays this role. Bus port indices are a console feature and are not bound. On desktop, CoreSystem.attachChannelGroupToPort(portType, portIndex, group) routes a group to a port, and Bus.getChannelGroup() gives the group behind a bus. |
+| `Studio::Bus::setPortIndex` | No Haxe declaration, another call plays this role. Bus port indices are a console feature and are not bound. On desktop, CoreSystem.attachChannelGroupToPort(portType, portIndex, group) routes a group to a port, and Bus.getChannelGroup() gives the group behind a bus. |
 
 ## Studio::CommandReplay
 

@@ -19,7 +19,7 @@ if (sound.isNull()) {
 
 ## 5.1 Controlling a Spatializer DSP
 verdict: bound
-The relative attributes are the emitter transformed into the listener's space, the absolute attributes are the emitter itself. Dsp.setParameter3DAttributesMulti packs both into the pan unit's 3D position parameter.
+The relative attributes are the emitter transformed into the listener's space, the absolute attributes are the emitter itself. Dsp.setParameter3DAttributes packs both into the pan unit's 3D position parameter.
 ```haxe
 import haxefmod.core.Dsp;
 import haxefmod.core.DspParameters.DspPan;
@@ -54,7 +54,7 @@ function calculatePannerAttributes(listener:Fmod3DAttributes, emitter:Fmod3DAttr
 
 function updatePanner(panner:Dsp, listener:Fmod3DAttributes, emitter:Fmod3DAttributes):Void {
     var attributes = calculatePannerAttributes(listener, emitter);
-    panner.setParameter3DAttributesMulti(DspPan._3D_POSITION, attributes.absolute, [attributes.relative]);
+    panner.setParameter3DAttributes(DspPan._3D_POSITION, attributes.absolute, attributes.relative);
 }
 ```
 

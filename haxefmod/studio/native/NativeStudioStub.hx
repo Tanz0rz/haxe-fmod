@@ -590,6 +590,7 @@ class NativeStudioStub {
     public static function core_sound_seek_data(handle:Int, pcm:Int):Int return ERR_UNSUPPORTED;
     public static function sys_get_record_num_drivers():Int return -1;
     public static function sys_get_record_driver_info(id:Int):String return "";
+    public static function sys_get_record_driver_guid(id:Int):String return "";
     public static function core_create_record_sound(sampleRate:Int, channels:Int, seconds:Int):Int return 0;
     public static function sys_record_start(id:Int, soundHandle:Int, loop:Bool):Int return ERR_UNSUPPORTED;
     public static function sys_record_stop(id:Int):Int return ERR_UNSUPPORTED;

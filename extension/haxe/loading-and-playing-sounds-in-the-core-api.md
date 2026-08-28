@@ -2,12 +2,12 @@
 
 ## 4.1.1 Non-blocking Sound Creation
 verdict: bound
-The mode argument of Sound.create takes FMOD_NONBLOCKING. The load runs on FMOD's thread and getOpenState reports LOADING until the sound is READY. The web build loads synchronously, the sound is READY when create returns.
+CREATESTREAM in the mode argument of Sound.create is the createStream form, and NONBLOCKING next to it is FMOD_NONBLOCKING. The load runs on FMOD's thread and getOpenState reports LOADING until the sound is READY. The web build loads synchronously, the sound is READY when create returns.
 ```haxe
 import haxefmod.core.ChannelMode;
 import haxefmod.core.Sound;
 
-var sound = Sound.create("../media/wave.mp3", false, false, ChannelMode.NONBLOCKING); // Returns at once, the file decodes on FMOD's thread.
+var sound = Sound.create("../media/wave.mp3", false, false, ChannelMode.CREATESTREAM | ChannelMode.NONBLOCKING); // Returns at once, the stream opens on FMOD's thread.
 if (sound.isNull()) {
     trace('load failed: ${StudioSystem.lastResult()}');
 }

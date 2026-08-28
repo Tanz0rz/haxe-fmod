@@ -231,7 +231,7 @@ A generator unit plays as a sound source through Dsp.play.
 ## FMOD_DSP_PAN
 verdict: bound
 Type: haxefmod.core.DspParameters.DspPan
-The 3D position parameter takes a struct that is not exposed, so 3D panning goes through a 3D channel's set3DAttributes instead. The 2D parameters work by index.
+The 3D position parameter takes the FMOD_DSP_PARAMETER_3DATTRIBUTES struct, set with Dsp.setParameter3DAttributes on DspPan._3D_POSITION. A source played through a 3D channel gets the same from Channel.set3DAttributes.
 
 ## FMOD_DSP_PAN#2
 verdict: covered this block is prose about how a rotating 3D source is panned, in Haxe the source is positioned through Channel.set3DAttributes and the same panning applies

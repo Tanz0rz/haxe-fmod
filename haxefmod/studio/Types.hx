@@ -542,7 +542,7 @@ enum abstract FmodChannelOrder(Int) from Int to Int {
     var MAX = 6;
 }
 
-/** FMOD_DEBUG_FLAGS bits. The library composes them from FmodSettings.logLevel, no call takes them. */
+/** FMOD_DEBUG_FLAGS bits. The library composes the LEVEL_ bits from FmodSettings.logLevel, and FmodSettings.logFlags adds the TYPE_ and DISPLAY_ bits on native targets. */
 enum abstract FmodDebugFlags(Int) from Int to Int {
     var LEVEL_NONE = 0x00000000;
     var LEVEL_ERROR = 0x00000001;
@@ -558,7 +558,7 @@ enum abstract FmodDebugFlags(Int) from Int to Int {
     var DISPLAY_THREAD = 0x00040000;
 }
 
-/** FMOD_DEBUG_MODE, where FMOD's log goes. The library keeps TTY and takes the level from FmodSettings.logLevel. */
+/** FMOD_DEBUG_MODE, where FMOD's log goes. The library uses TTY, or FILE when FmodSettings.logFile names a path on a native target, and takes the level from FmodSettings.logLevel. */
 enum abstract FmodDebugMode(Int) from Int to Int {
     var TTY = 0;
     var FILE = 1;
@@ -583,7 +583,7 @@ enum abstract FmodInitFlags(Int) from Int to Int {
     var MEMORY_TRACKING = 0x00400000;
 }
 
-/** FMOD_STUDIO_INITFLAGS bits. The library composes them from FmodSettings at init (liveUpdate sets LIVEUPDATE), no call takes them. */
+/** FMOD_STUDIO_INITFLAGS bits. The library composes them from FmodSettings at init (liveUpdate sets LIVEUPDATE, memoryTracking sets MEMORY_TRACKING), no call takes them. */
 enum abstract FmodStudioInitFlags(Int) from Int to Int {
     var NORMAL = 0x00000000;
     var LIVEUPDATE = 0x00000001;

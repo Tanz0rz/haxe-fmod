@@ -4846,6 +4846,11 @@ class jaxe {
         return "";
     }
 
+    static fmod_sys_get_record_driver_guid(id) {
+        jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        return "";
+    }
+
     static fmod_core_create_record_sound(sampleRate, channels, seconds) {
         jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
         return 0;

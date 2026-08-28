@@ -17,7 +17,7 @@ verdict: library Sound.create, Sound.fromMemory, and Sound.fromPcm take its fiel
 ## FMOD_DRIVER_STATE
 verdict: bound
 Type: haxefmod.studio.Types.FmodDriverState
-The state field of StudioSystem.getRecordDriverInfo. Output drivers are listed by CoreSystem.getDriverCount and getDriverName without a state.
+The state field of StudioSystem.getRecordDriverInfo. Output drivers are listed by CoreSystem.getDriverCount, getDriverName, and getDriverInfo without a state.
 
 ## FMOD_DSP_RESAMPLER
 verdict: bound
@@ -61,7 +61,7 @@ The library composes the flags at init. FmodSettings.profiling sets PROFILE_ENAB
 ## FMOD_OUTPUTTYPE
 verdict: bound
 Type: haxefmod.studio.Types.FmodOutputType
-Read with CoreSystem.getOutput. The library picks AUTODETECT at init.
+Picked by FmodSettings.output at init (AUTODETECT when unset, the FMOD_WAVWRITER environment variable still forces WAVWRITER) and read back with CoreSystem.getOutput. HTML5 has WEBAUDIO, AUDIOWORKLET, NOSOUND, and NOSOUND_NRT only.
 
 ## FMOD_PLUGINLIST
 verdict: cannot A static plugin list holds pointers to plugin descriptions written in C. A compiled plugin loads with StudioSystem.loadPlugin.
@@ -81,7 +81,9 @@ Type: haxefmod.studio.Types.FmodPortType
 The portType argument of CoreSystem.attachChannelGroupToPort. Desktop and web outputs have no ports and report FMOD_ERR_UNSUPPORTED.
 
 ## FMOD_REVERB_MAXINSTANCES
-verdict: covered The four reverb instances are addressed by index 0 to 3 on Reverb.set, Reverb.get, and Reverb.off.
+verdict: bound
+Type: haxefmod.studio.Types.FmodLimits
+FmodLimits.REVERB_MAXINSTANCES. The instance argument of Reverb.set, Reverb.get, and Reverb.off runs from 0 to one below it.
 
 ## FMOD_REVERB_PRESETS
 verdict: covered Every preset is a ReverbProperties static on Reverb with the same name, Reverb.PRESET_OFF through Reverb.PRESET_UNDERWATER, for Reverb.set.
@@ -110,8 +112,7 @@ StudioSystem.setSystemCallback delivers DEVICELISTCHANGED and DEVICELOST, its co
 
 ## System::setDSPBufferSize
 verdict: bound
-Native only (unsupported in HTML5).
-FmodRuntime.settings() reports the values init ran with, 0 for a buffer left at FMOD's default.
+FmodRuntime.settings() reports the values init ran with, 0 for a buffer left at FMOD's default (1024 samples by 2 on desktop, 2048 by 2 on HTML5).
 ```haxe
 import haxefmod.core.CoreSystem;
 import haxefmod.runtime.FmodRuntime;

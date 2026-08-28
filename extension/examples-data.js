@@ -3,10 +3,10 @@
 const HAXEFMOD_EXAMPLES = {
  "advanced-core-api-topics": {
   "10.2 Extracting PCM Data from a Sound": {
-   "code": "var sound = Sound.create(\"drumloop.wav\", false, true); // openOnly, like FMOD_OPENONLY\nvar length = sound.getLength(FmodTimeUnit.PCMBYTES);\n\nvar buffer = haxe.io.Bytes.alloc(4096);\nvar total = 0;\nvar read = sound.readData(buffer, buffer.length);\nwhile (read > 0) {\n    // the first read bytes of buffer hold decoded PCM\n    total += read;\n    read = sound.readData(buffer, buffer.length);\n}\n// total == length once the whole sound is read",
+   "code": "var sound = Sound.create(\"drumloop.wav\", false, true); // openOnly, like FMOD_OPENONLY\nvar length = sound.getLength(FmodTimeUnit.RAWBYTES);\n\nvar buffer = haxe.io.Bytes.alloc(length);\nvar read = sound.readData(buffer);",
    "notes": [
     "Native only (unsupported in HTML5).",
-    "Sound.getLength takes the time unit as its parameter, PCMBYTES here for the byte count."
+    "Sound.getLength takes the time unit as its parameter. readData returns the bytes read and defaults to the whole buffer, so the length is not passed again."
    ],
    "type": "haxefmod.core.Sound, haxefmod.studio.Types",
    "verdict": "bound"
@@ -124,7 +124,7 @@ const HAXEFMOD_EXAMPLES = {
   "ChannelControl::addFadePoint": {
    "code": "// Example. Ramp from full volume to half volume over the next 4096 samples\nvar clocks = channel.getDspClock();\nif (clocks != null) {\n    var parentclock = clocks.parent;\n    channel.addFadePoint(parentclock,        1.0);\n    channel.addFadePoint(parentclock + 4096, 0.5);\n}",
    "notes": [
-    "getDspClock returns both clocks in one struct, or null when the handle is invalid. Clock values are Floats, which hold sample counts exactly."
+    "getDspClock returns both clocks in one struct, or null on failure. Clock values are Floats, exact to 2^53 samples."
    ],
    "type": null,
    "verdict": "bound"
@@ -132,7 +132,7 @@ const HAXEFMOD_EXAMPLES = {
   "ChannelControl::addFadePoint#2": {
    "code": "// Example. Ramp from full volume to half volume over the next 4096 samples\nvar clocks = channel.getDspClock();\nif (clocks != null) {\n    var parentclock = clocks.parent;\n    channel.addFadePoint(parentclock,        1.0);\n    channel.addFadePoint(parentclock + 4096, 0.5);\n}",
    "notes": [
-    "getDspClock returns both clocks in one struct, or null when the handle is invalid. Clock values are Floats, which hold sample counts exactly."
+    "getDspClock returns both clocks in one struct, or null on failure. Clock values are Floats, exact to 2^53 samples."
    ],
    "type": null,
    "verdict": "bound"
@@ -165,7 +165,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_CHANNELCONTROL_DSP_INDEX": {
    "code": "/** FMOD_CHANNELCONTROL_DSP_INDEX, the named chain positions addDsp and getDsp accept next to a plain index. ChannelGroup.DSP_* are the same values. */\nenum abstract ChannelControlDspIndex(Int) from Int to Int {\n    var HEAD = -1;\n    var FADER = -2;\n    var TAIL = -3;\n}",
    "notes": [
-    "addDsp, getDsp, and setDspIndex on Channel and ChannelGroup accept these values as the index."
+    "addDsp, getDsp, and setDspIndex on Channel and ChannelGroup accept these values as the index. Channel.DSP_HEAD, DSP_FADER, and DSP_TAIL hold the same values as plain Int constants."
    ],
    "type": "haxefmod.studio.Types.ChannelControlDspIndex",
    "verdict": "bound"
@@ -213,23 +213,23 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DEBUG_CALLBACK": {
    "code": null,
    "notes": [
-    "Cannot be bound. FMOD calls it on whichever of its threads logs, no Haxe target can run code there. The log goes to the platform's standard output at the level set by FmodSettings.logLevel."
+    "Cannot be bound. FMOD calls it on whichever of its threads logs, no Haxe target can run code there. The log goes to the platform's standard output at the level set by FmodSettings.logLevel, or to the file named by FmodSettings.logFile on native targets."
    ],
    "type": null,
    "verdict": "cannot"
   },
   "FMOD_DEBUG_FLAGS": {
-   "code": "/** FMOD_DEBUG_FLAGS bits. The library composes them from FmodSettings.logLevel, no call takes them. */\nenum abstract FmodDebugFlags(Int) from Int to Int {\n    var LEVEL_NONE = 0x00000000;\n    var LEVEL_ERROR = 0x00000001;\n    var LEVEL_WARNING = 0x00000002;\n    var LEVEL_LOG = 0x00000004;\n    var TYPE_MEMORY = 0x00000100;\n    var TYPE_FILE = 0x00000200;\n    var TYPE_CODEC = 0x00000400;\n    var TYPE_TRACE = 0x00000800;\n    var TYPE_VIRTUAL = 0x00001000;\n    var DISPLAY_TIMESTAMPS = 0x00010000;\n    var DISPLAY_LINENUMBERS = 0x00020000;\n    var DISPLAY_THREAD = 0x00040000;\n}",
+   "code": "/** FMOD_DEBUG_FLAGS bits. The library composes the LEVEL_ bits from FmodSettings.logLevel, and FmodSettings.logFlags adds the TYPE_ and DISPLAY_ bits on native targets. */\nenum abstract FmodDebugFlags(Int) from Int to Int {\n    var LEVEL_NONE = 0x00000000;\n    var LEVEL_ERROR = 0x00000001;\n    var LEVEL_WARNING = 0x00000002;\n    var LEVEL_LOG = 0x00000004;\n    var TYPE_MEMORY = 0x00000100;\n    var TYPE_FILE = 0x00000200;\n    var TYPE_CODEC = 0x00000400;\n    var TYPE_TRACE = 0x00000800;\n    var TYPE_VIRTUAL = 0x00001000;\n    var DISPLAY_TIMESTAMPS = 0x00010000;\n    var DISPLAY_LINENUMBERS = 0x00020000;\n    var DISPLAY_THREAD = 0x00040000;\n}",
    "notes": [
-    "The library composes these from FmodSettings.logLevel (0 none, 1 error, 2 warning, 3 log), and FmodManager.EnableDebugMessages logs everything."
+    "The LEVEL_ bits come from FmodSettings.logLevel (0 none, 1 error, 2 warning, 3 log) and FmodManager.EnableDebugMessages logs everything. FmodSettings.logFlags adds the TYPE_ and DISPLAY_ bits, native only."
    ],
    "type": "haxefmod.studio.Types.FmodDebugFlags",
    "verdict": "bound"
   },
   "FMOD_DEBUG_MODE": {
-   "code": "/** FMOD_DEBUG_MODE, where FMOD's log goes. The library keeps TTY and takes the level from FmodSettings.logLevel. */\nenum abstract FmodDebugMode(Int) from Int to Int {\n    var TTY = 0;\n    var FILE = 1;\n    var CALLBACK = 2;\n}",
+   "code": "/** FMOD_DEBUG_MODE, where FMOD's log goes. The library uses TTY, or FILE when FmodSettings.logFile names a path on a native target, and takes the level from FmodSettings.logLevel. */\nenum abstract FmodDebugMode(Int) from Int to Int {\n    var TTY = 0;\n    var FILE = 1;\n    var CALLBACK = 2;\n}",
    "notes": [
-    "The library keeps TTY, and the level comes from FmodSettings.logLevel."
+    "TTY unless FmodSettings.logFile names a file, which picks FILE on native targets. CALLBACK is not exposed, FMOD would call it from whichever thread logs."
    ],
    "type": "haxefmod.studio.Types.FmodDebugMode",
    "verdict": "bound"
@@ -237,7 +237,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_GUID": {
    "code": null,
    "notes": [
-    "No Haxe declaration, the library owns this choice. GUIDs are strings in the text form FMOD Studio shows, taken by StudioSystem.getEventByID and returned by EventDescription.getID"
+    "No Haxe declaration, the library owns this choice. GUIDs are strings in the text form FMOD Studio shows, taken by StudioSystem.getEventByID and returned by getID on EventDescription, Bank, Bus, and Vca, by FmodParameterDescription.guid, and by the guid field of CoreSystem.getDriverInfo"
    ],
    "type": null,
    "verdict": "library"
@@ -323,7 +323,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_SPEAKERMODE": {
    "code": "/** FMOD_SPEAKERMODE, the mixer's speaker layout (FmodSettings.speakerMode, CoreSystem.getSoftwareFormat). */\nenum abstract FmodSpeakerMode(Int) from Int to Int {\n    var DEFAULT = 0;\n    var RAW = 1;\n    var MONO = 2;\n    var STEREO = 3;\n    var QUAD = 4;\n    var SURROUND = 5;\n    var _5POINT1 = 6;\n    var _7POINT1 = 7;\n    var _7POINT1POINT4 = 8;\n    var MAX = 9;\n}",
    "notes": [
-    "Requested through FmodSettings.speakerMode and read from CoreSystem.getSoftwareFormat."
+    "Requested through FmodSettings.speakerMode and read from CoreSystem.getSoftwareFormat, CoreSystem.getDriverInfo, and StudioSystem.getRecordDriverInfo. Dsp.setChannelFormat takes one with the channel mask."
    ],
    "type": "haxefmod.studio.Types.FmodSpeakerMode",
    "verdict": "bound"
@@ -385,7 +385,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_VERSION": {
    "code": null,
    "notes": [
-    "No Haxe declaration, another call plays this role. haxefmod links one FMOD version per release, and StudioSystem.getVersion returns it as the string \"2.03.12\""
+    "No Haxe declaration, another call plays this role. haxefmod links one FMOD version per release, and StudioSystem.getVersion returns the version the running build loaded as a string formatted like \"2.03.12\""
    ],
    "type": null,
    "verdict": "covered"
@@ -645,7 +645,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_PAN": {
    "code": "/** FMOD_DSP_PAN, parameter indices of the pan effect. Names that start with a digit keep a leading underscore, since a Haxe identifier cannot start with one. */\nenum abstract DspPan(Int) from Int to Int {\n    var MODE = 0;\n    var _2D_STEREO_POSITION = 1;\n    var _2D_DIRECTION = 2;\n    var _2D_EXTENT = 3;\n    var _2D_ROTATION = 4;\n    var _2D_LFE_LEVEL = 5;\n    var _2D_STEREO_MODE = 6;\n    var _2D_STEREO_SEPARATION = 7;\n    var _2D_STEREO_AXIS = 8;\n    var ENABLED_SPEAKERS = 9;\n    var _3D_POSITION = 10;\n    var _3D_ROLLOFF = 11;\n    var _3D_MIN_DISTANCE = 12;\n    var _3D_MAX_DISTANCE = 13;\n    var _3D_EXTENT_MODE = 14;\n    var _3D_SOUND_SIZE = 15;\n    var _3D_MIN_EXTENT = 16;\n    var _3D_PAN_BLEND = 17;\n    var LFE_UPMIX_ENABLED = 18;\n    var OVERALL_GAIN = 19;\n    var SURROUND_SPEAKER_MODE = 20;\n    var _2D_HEIGHT_BLEND = 21;\n    var ATTENUATION_RANGE = 22;\n    var OVERRIDE_RANGE = 23;\n}",
    "notes": [
-    "The 3D position parameter takes a struct that is not exposed, so 3D panning goes through a 3D channel's set3DAttributes instead. The 2D parameters work by index."
+    "The 3D position parameter takes the FMOD_DSP_PARAMETER_3DATTRIBUTES struct, set with Dsp.setParameter3DAttributes on DspPan._3D_POSITION. A source played through a 3D channel gets the same from Channel.set3DAttributes."
    ],
    "type": "haxefmod.core.DspParameters.DspPan",
    "verdict": "bound"
@@ -831,12 +831,12 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "library"
   },
   "Example usage.#2": {
-   "code": null,
+   "code": "var bytes = haxe.io.Bytes.alloc(0); // the bank file fetched by the game\nvar bank:Bank = StudioSystem.loadBankMemory(bytes, FmodLoadBankFlags.NONBLOCKING);",
    "notes": [
-    "No Haxe declaration, another call plays this role. StudioSystem.loadBankMemory(bytes) plays this role. It takes haxe.io.Bytes the game fetched itself and copies them into FMOD's heap, so there is no file read through FMOD and no pointer to free."
+    "There is no ReadFile. The game fetches the bank bytes itself, loadBankMemory copies them into FMOD's heap, and there is no pointer to free."
    ],
-   "type": null,
-   "verdict": "covered"
+   "type": "haxefmod.studio.Bank, haxefmod.studio.Types",
+   "verdict": "bound"
   },
   "Example usage.#3": {
    "code": null,
@@ -1037,7 +1037,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DRIVER_STATE": {
    "code": "/** FMOD_DRIVER_STATE bits, the state field of StudioSystem.getRecordDriverInfo. */\nenum abstract FmodDriverState(Int) from Int to Int {\n    var CONNECTED = 0x00000001;\n    var DEFAULT = 0x00000002;\n}",
    "notes": [
-    "The state field of StudioSystem.getRecordDriverInfo. Output drivers are listed by CoreSystem.getDriverCount and getDriverName without a state."
+    "The state field of StudioSystem.getRecordDriverInfo. Output drivers are listed by CoreSystem.getDriverCount, getDriverName, and getDriverInfo without a state."
    ],
    "type": "haxefmod.studio.Types.FmodDriverState",
    "verdict": "bound"
@@ -1133,7 +1133,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_OUTPUTTYPE": {
    "code": "/** FMOD_OUTPUTTYPE, the output backend FmodSettings.output picks and CoreSystem.getOutput reports. */\nenum abstract FmodOutputType(Int) from Int to Int {\n    var AUTODETECT = 0;\n    var UNKNOWN = 1;\n    var NOSOUND = 2;\n    var WAVWRITER = 3;\n    var NOSOUND_NRT = 4;\n    var WAVWRITER_NRT = 5;\n    var WASAPI = 6;\n    var ASIO = 7;\n    var PULSEAUDIO = 8;\n    var ALSA = 9;\n    var COREAUDIO = 10;\n    var AUDIOTRACK = 11;\n    var OPENSL = 12;\n    var AUDIOOUT = 13;\n    var AUDIO3D = 14;\n    var WEBAUDIO = 15;\n    var NNAUDIO = 16;\n    var WINSONIC = 17;\n    var AAUDIO = 18;\n    var AUDIOWORKLET = 19;\n    var PHASE = 20;\n    var OHAUDIO = 21;\n    var MAX = 22;\n}",
    "notes": [
-    "Read with CoreSystem.getOutput. The library picks AUTODETECT at init."
+    "Picked by FmodSettings.output at init (AUTODETECT when unset, the FMOD_WAVWRITER environment variable still forces WAVWRITER) and read back with CoreSystem.getOutput. HTML5 has WEBAUDIO, AUDIOWORKLET, NOSOUND, and NOSOUND_NRT only."
    ],
    "type": "haxefmod.studio.Types.FmodOutputType",
    "verdict": "bound"
@@ -1169,12 +1169,12 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "FMOD_REVERB_MAXINSTANCES": {
-   "code": null,
+   "code": "/**\n * The FMOD_MAX_* limits from fmod_common.h and fmod_studio_common.h.\n * tests/native/test_faxe_enums.c pins each one to the header.\n */\nclass FmodLimits {\n    /** FMOD_MAX_CHANNEL_WIDTH, the widest mix matrix and channel format. */\n    public static inline var MAX_CHANNEL_WIDTH = 32;\n    /** FMOD_MAX_SYSTEMS, how many FMOD systems one process may create. haxefmod creates one. */\n    public static inline var MAX_SYSTEMS = 8;\n    /** FMOD_MAX_LISTENERS, the cap on StudioSystem.setNumListeners. */\n    public static inline var MAX_LISTENERS = 8;\n    /** FMOD_REVERB_MAXINSTANCES, the number of reverb instance slots. */\n    public static inline var REVERB_MAXINSTANCES = 4;\n    /** FMOD_STUDIO_LOAD_MEMORY_ALIGNMENT, the alignment loadBankMemory needs in point mode. */\n    public static inline var STUDIO_LOAD_MEMORY_ALIGNMENT = 32;\n}",
    "notes": [
-    "No Haxe declaration, another call plays this role. The four reverb instances are addressed by index 0 to 3 on Reverb.set, Reverb.get, and Reverb.off."
+    "FmodLimits.REVERB_MAXINSTANCES. The instance argument of Reverb.set, Reverb.get, and Reverb.off runs from 0 to one below it."
    ],
-   "type": null,
-   "verdict": "covered"
+   "type": "haxefmod.studio.Types.FmodLimits",
+   "verdict": "bound"
   },
   "FMOD_REVERB_PRESETS": {
    "code": null,
@@ -1210,8 +1210,7 @@ const HAXEFMOD_EXAMPLES = {
   "System::setDSPBufferSize": {
    "code": "var blocksize = FmodRuntime.settings().dspBufferSize;\nvar numblocks = FmodRuntime.settings().dspNumBuffers;\nvar frequency = CoreSystem.getSoftwareFormat().sampleRate;\n\nvar ms = blocksize * 1000.0 / frequency;\n\ntrace('Mixer blocksize        = $ms ms');\ntrace('Mixer Total buffersize = ${ms * numblocks} ms');\ntrace('Mixer Average Latency  = ${ms * (numblocks - 1.5)} ms');",
    "notes": [
-    "Native only (unsupported in HTML5).",
-    "FmodRuntime.settings() reports the values init ran with, 0 for a buffer left at FMOD's default."
+    "FmodRuntime.settings() reports the values init ran with, 0 for a buffer left at FMOD's default (1024 samples by 2 on desktop, 2048 by 2 on HTML5)."
    ],
    "type": "haxefmod.core.CoreSystem, haxefmod.runtime.FmodRuntime",
    "verdict": "bound"
@@ -1287,6 +1286,7 @@ const HAXEFMOD_EXAMPLES = {
    "code": "var handle = StudioSystem.loadPlugin(\"fmod_gain.dll\");\nvar result = StudioSystem.unloadPlugin(handle);\nif (!result.isOk()) {\n    trace('unloadPlugin failed: $result');\n}",
    "notes": [
     "Native only (unsupported in HTML5).",
+    "unregisterPlugin has no Haxe form because registerPlugin has none, unloadPlugin is the one that applies.",
     "Release every Dsp created from the plug-in first. FMOD frees them from its mixer thread, so an unload that answers FMOD_ERR_DSP_INUSE succeeds when retried a few frames later."
    ],
    "type": null,
@@ -1323,7 +1323,7 @@ const HAXEFMOD_EXAMPLES = {
    "code": null,
    "notes": [
     "Cannot be bound. an allocator hook for the FSBank offline encoder, which is a separate tool library outside the FMOD runtime and is not bound",
-    "Build banks in FMOD Studio and load them with StudioSystem.loadBank. An existing FSB file loads with Sound.create."
+    "Build banks in FMOD Studio and load them with StudioSystem.loadBankFile. An existing FSB file loads with Sound.create."
    ],
    "type": null,
    "verdict": "cannot"
@@ -1332,7 +1332,7 @@ const HAXEFMOD_EXAMPLES = {
    "code": null,
    "notes": [
     "Cannot be bound. an allocator hook for the FSBank offline encoder, which is a separate tool library outside the FMOD runtime and is not bound",
-    "Build banks in FMOD Studio and load them with StudioSystem.loadBank. An existing FSB file loads with Sound.create."
+    "Build banks in FMOD Studio and load them with StudioSystem.loadBankFile. An existing FSB file loads with Sound.create."
    ],
    "type": null,
    "verdict": "cannot"
@@ -1341,7 +1341,7 @@ const HAXEFMOD_EXAMPLES = {
    "code": null,
    "notes": [
     "Cannot be bound. an allocator hook for the FSBank offline encoder, which is a separate tool library outside the FMOD runtime and is not bound",
-    "Build banks in FMOD Studio and load them with StudioSystem.loadBank. An existing FSB file loads with Sound.create."
+    "Build banks in FMOD Studio and load them with StudioSystem.loadBankFile. An existing FSB file loads with Sound.create."
    ],
    "type": null,
    "verdict": "cannot"
@@ -1350,7 +1350,7 @@ const HAXEFMOD_EXAMPLES = {
    "code": null,
    "notes": [
     "Cannot be bound. init flags of the FSBank offline encoder, a separate tool library outside the FMOD runtime that is not bound",
-    "Build banks in FMOD Studio and load them with StudioSystem.loadBank. An existing FSB file loads with Sound.create."
+    "Build banks in FMOD Studio and load them with StudioSystem.loadBankFile. An existing FSB file loads with Sound.create."
    ],
    "type": null,
    "verdict": "cannot"
@@ -1359,7 +1359,7 @@ const HAXEFMOD_EXAMPLES = {
    "code": null,
    "notes": [
     "Cannot be bound. build flags of the FSBank offline encoder, a separate tool library outside the FMOD runtime that is not bound",
-    "Build banks in FMOD Studio and load them with StudioSystem.loadBank. An existing FSB file loads with Sound.create."
+    "Build banks in FMOD Studio and load them with StudioSystem.loadBankFile. An existing FSB file loads with Sound.create."
    ],
    "type": null,
    "verdict": "cannot"
@@ -1368,7 +1368,7 @@ const HAXEFMOD_EXAMPLES = {
    "code": null,
    "notes": [
     "Cannot be bound. the encoding formats of the FSBank offline encoder, a separate tool library outside the FMOD runtime that is not bound",
-    "Build banks in FMOD Studio and load them with StudioSystem.loadBank. An existing FSB file loads with Sound.create."
+    "Build banks in FMOD Studio and load them with StudioSystem.loadBankFile. An existing FSB file loads with Sound.create."
    ],
    "type": null,
    "verdict": "cannot"
@@ -1377,7 +1377,7 @@ const HAXEFMOD_EXAMPLES = {
    "code": null,
    "notes": [
     "Cannot be bound. the output version of the FSBank offline encoder, a separate tool library outside the FMOD runtime that is not bound",
-    "Build banks in FMOD Studio and load them with StudioSystem.loadBank. An existing FSB file loads with Sound.create."
+    "Build banks in FMOD Studio and load them with StudioSystem.loadBankFile. An existing FSB file loads with Sound.create."
    ],
    "type": null,
    "verdict": "cannot"
@@ -1386,7 +1386,7 @@ const HAXEFMOD_EXAMPLES = {
    "code": null,
    "notes": [
     "Cannot be bound. a build progress record of the FSBank offline encoder, a separate tool library outside the FMOD runtime that is not bound",
-    "Build banks in FMOD Studio and load them with StudioSystem.loadBank. An existing FSB file loads with Sound.create."
+    "Build banks in FMOD Studio and load them with StudioSystem.loadBankFile. An existing FSB file loads with Sound.create."
    ],
    "type": null,
    "verdict": "cannot"
@@ -1395,7 +1395,7 @@ const HAXEFMOD_EXAMPLES = {
    "code": null,
    "notes": [
     "Cannot be bound. the result codes of the FSBank offline encoder, a separate tool library outside the FMOD runtime that is not bound",
-    "Build banks in FMOD Studio and load them with StudioSystem.loadBank. An existing FSB file loads with Sound.create."
+    "Build banks in FMOD Studio and load them with StudioSystem.loadBankFile. An existing FSB file loads with Sound.create."
    ],
    "type": null,
    "verdict": "cannot"
@@ -1404,7 +1404,7 @@ const HAXEFMOD_EXAMPLES = {
    "code": null,
    "notes": [
     "Cannot be bound. the build states of the FSBank offline encoder, a separate tool library outside the FMOD runtime that is not bound",
-    "Build banks in FMOD Studio and load them with StudioSystem.loadBank. An existing FSB file loads with Sound.create."
+    "Build banks in FMOD Studio and load them with StudioSystem.loadBankFile. An existing FSB file loads with Sound.create."
    ],
    "type": null,
    "verdict": "cannot"
@@ -1413,7 +1413,7 @@ const HAXEFMOD_EXAMPLES = {
    "code": null,
    "notes": [
     "Cannot be bound. a build failure record of the FSBank offline encoder, a separate tool library outside the FMOD runtime that is not bound",
-    "Build banks in FMOD Studio and load them with StudioSystem.loadBank. An existing FSB file loads with Sound.create."
+    "Build banks in FMOD Studio and load them with StudioSystem.loadBankFile. An existing FSB file loads with Sound.create."
    ],
    "type": null,
    "verdict": "cannot"
@@ -1422,7 +1422,7 @@ const HAXEFMOD_EXAMPLES = {
    "code": null,
    "notes": [
     "Cannot be bound. a build warning record of the FSBank offline encoder, a separate tool library outside the FMOD runtime that is not bound",
-    "Build banks in FMOD Studio and load them with StudioSystem.loadBank. An existing FSB file loads with Sound.create."
+    "Build banks in FMOD Studio and load them with StudioSystem.loadBankFile. An existing FSB file loads with Sound.create."
    ],
    "type": null,
    "verdict": "cannot"
@@ -1431,7 +1431,7 @@ const HAXEFMOD_EXAMPLES = {
    "code": null,
    "notes": [
     "Cannot be bound. the input description for the FSBank offline encoder, a separate tool library outside the FMOD runtime that is not bound",
-    "Build banks in FMOD Studio and load them with StudioSystem.loadBank. An existing FSB file loads with Sound.create."
+    "Build banks in FMOD Studio and load them with StudioSystem.loadBankFile. An existing FSB file loads with Sound.create."
    ],
    "type": null,
    "verdict": "cannot"
@@ -1439,10 +1439,11 @@ const HAXEFMOD_EXAMPLES = {
  },
  "glossary": {
   "22.33 Reading Sound Data": {
-   "code": "var sound:Sound;\nvar length:Int;\nvar buffer:haxe.io.Bytes;\n\nsound = Sound.create(\"drumloop.wav\", false, true); // openOnly is FMOD_OPENONLY\nlength = sound.getLength(FmodTimeUnit.PCMBYTES);\n\nbuffer = haxe.io.Bytes.alloc(4096);\nvar read = sound.readData(buffer, buffer.length);\nwhile (read > 0) {\n    read = sound.readData(buffer, buffer.length);\n}\n\nsound.release();",
+   "code": "var sound:Sound;\nvar length:Int;\nvar buffer:haxe.io.Bytes;\n\nsound = Sound.create(\"drumloop.wav\", false, true); // openOnly is FMOD_OPENONLY\nlength = sound.getLength(FmodTimeUnit.RAWBYTES);\n\nbuffer = haxe.io.Bytes.alloc(length);\nvar read = sound.readData(buffer, length);\n\nbuffer = null;",
    "notes": [
     "Native only (unsupported in HTML5).",
-    "getLength takes the time unit as its parameter, PCMBYTES for the byte count the page reads."
+    "getLength takes the time unit as its parameter, RAWBYTES as on the page.",
+    "readData returns the number of bytes read."
    ],
    "type": "haxefmod.core.Sound, haxefmod.studio.Types",
    "verdict": "bound"
@@ -1458,9 +1459,9 @@ const HAXEFMOD_EXAMPLES = {
  },
  "loading-and-playing-sounds-in-the-core-api": {
   "4.1.1 Non-blocking Sound Creation": {
-   "code": "var sound = Sound.create(\"../media/wave.mp3\", false, false, ChannelMode.NONBLOCKING); // Returns at once, the file decodes on FMOD's thread.\nif (sound.isNull()) {\n    trace('load failed: ${StudioSystem.lastResult()}');\n}",
+   "code": "var sound = Sound.create(\"../media/wave.mp3\", false, false, ChannelMode.CREATESTREAM | ChannelMode.NONBLOCKING); // Returns at once, the stream opens on FMOD's thread.\nif (sound.isNull()) {\n    trace('load failed: ${StudioSystem.lastResult()}');\n}",
    "notes": [
-    "The mode argument of Sound.create takes FMOD_NONBLOCKING. The load runs on FMOD's thread and getOpenState reports LOADING until the sound is READY. The web build loads synchronously, the sound is READY when create returns."
+    "CREATESTREAM in the mode argument of Sound.create is the createStream form, and NONBLOCKING next to it is FMOD_NONBLOCKING. The load runs on FMOD's thread and getOpenState reports LOADING until the sound is READY. The web build loads synchronously, the sound is READY when create returns."
    ],
    "type": "haxefmod.core.ChannelMode, haxefmod.core.Sound",
    "verdict": "bound"
@@ -1578,7 +1579,7 @@ const HAXEFMOD_EXAMPLES = {
  },
  "managing-resources-in-the-core-api": {
   "9.5.1 Use a Fixed-size Memory Pool.": {
-   "code": "FmodManager.Initialize({memoryPoolSize: 64 * 1024 * 1024});",
+   "code": "FmodManager.Initialize({memoryPoolSize: 4 * 1024 * 1024}); // allocate 4mb and pass it to the FMOD Engine to use.",
    "notes": [
     "The memoryPoolSize setting allocates the pool and hands it to FMOD before the system is created. StudioSystem.getMemoryStats reports how much of it is in use. Native only, the web build allocates from the wasm heap."
    ],
@@ -1630,7 +1631,7 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "library"
   },
   "Audio Stability (Stuttering)": {
-   "code": "FmodManager.Initialize({dspBufferSize: 4096, dspNumBuffers: 2});",
+   "code": "FmodManager.Initialize({dspBufferSize: 2048, dspNumBuffers: 2});",
    "notes": [
     "The dspBufferSize and dspNumBuffers fields of FmodSettings set the mixer block before the system initializes. Unset, the web build runs at 2048 samples by 2 buffers."
    ],
@@ -1654,9 +1655,9 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "library"
   },
   "Direct from host, via FMOD's filesystem#2": {
-   "code": "var sound = Sound.create(\"lion.wav\");\nif (sound.isNull()) {\n    trace(\"createSound failed: \" + StudioSystem.lastResult());\n}",
+   "code": "var sound = Sound.create(\"lion.wav\", false);\nif (sound.isNull()) {\n    trace(\"createSound failed: \" + StudioSystem.lastResult());\n}",
    "notes": [
-    "The web build decodes FSB only, so on HTML5 this returns Sound.NULL with FMOD_ERR_FORMAT. Play bank content, load an FSB with Sound.create or Sound.fromMemory, or feed raw PCM through Sound.fromPcm."
+    "Sound.create reads the path from FMOD's virtual filesystem, where the library preloads banks only, and the web build decodes FSB only. On HTML5 a loose wav returns Sound.NULL, with FMOD_ERR_FILE_NOTFOUND when nothing put the file there or FMOD_ERR_FORMAT for a file that is not an FSB. Play bank content, load an FSB with Sound.fromMemory, or feed raw PCM through Sound.fromPcm. The second argument is loop, false stands for FMOD_LOOP_OFF."
    ],
    "type": "haxefmod.core.Sound",
    "verdict": "bound"
@@ -1742,11 +1743,11 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "cannot"
   },
   "Via memory": {
-   "code": "var image = haxe.io.Bytes.alloc(0); // an FSB file image fetched by the game\n\nvar sound = Sound.fromMemory(image);\nif (sound.isNull()) {\n    trace(\"fromMemory failed: \" + StudioSystem.lastResult());\n}\n\nvar bytes = haxe.io.Bytes.alloc(48000 * 2 * 2);\n\nvar pcmSound = Sound.fromPcm(bytes, 48000, 2);\nif (pcmSound.isNull()) {\n    trace(\"fromPcm failed: \" + StudioSystem.lastResult());\n}\n\nvar bankBytes = haxe.io.Bytes.alloc(0);\nvar bank = StudioSystem.loadBankMemory(bankBytes);\nif (bank.isNull()) {\n    trace(\"loadBankMemory failed: \" + StudioSystem.lastResult());\n}",
+   "code": "var image = haxe.io.Bytes.alloc(0); // an FSB file image fetched by the game\n\nvar sound = Sound.fromMemory(image, ChannelMode.LOOP_OFF | ChannelMode.CREATESTREAM, image.length);\nif (sound.isNull()) {\n    trace(\"fromMemory failed: \" + StudioSystem.lastResult());\n}\n\nvar bytes = haxe.io.Bytes.alloc(48000 * 2 * 2);\n\nvar pcmSound = Sound.fromPcm(bytes, 48000, 2);\nif (pcmSound.isNull()) {\n    trace(\"fromPcm failed: \" + StudioSystem.lastResult());\n}\n\nvar bankBytes = haxe.io.Bytes.alloc(0);\nvar bank = StudioSystem.loadBankMemory(bankBytes);\nif (bank.isNull()) {\n    trace(\"loadBankMemory failed: \" + StudioSystem.lastResult());\n}",
    "notes": [
-    "Data already in memory goes in as haxe.io.Bytes and is copied into FMOD's heap. Sound.fromMemory takes an encoded file image and length is taken from the bytes. The web build decodes FSB images only, so a wav or ogg image returns Sound.NULL with FMOD_ERR_FORMAT there. Sound.fromPcm takes raw PCM, its sampleRate and channels arguments stand in for the CREATESOUNDEXINFO fields. Bank data in memory goes through StudioSystem.loadBankMemory."
+    "Data already in memory goes in as haxe.io.Bytes and is copied into FMOD's heap. Sound.fromMemory takes an encoded file image, the ChannelMode flags to open it with (OPENMEMORY is added by the library, CREATESTREAM stands for createStream), and the length that fills CREATESOUNDEXINFO.length, which defaults to the size of the bytes. The web build decodes FSB images only, so a wav or ogg image returns Sound.NULL with FMOD_ERR_FORMAT there. Sound.fromPcm takes raw PCM, its sampleRate and channels arguments stand in for the CREATESOUNDEXINFO fields. Bank data in memory goes through StudioSystem.loadBankMemory."
    ],
-   "type": "haxefmod.core.Sound",
+   "type": "haxefmod.core.Sound, haxefmod.core.ChannelMode",
    "verdict": "bound"
   }
  },
@@ -1846,33 +1847,33 @@ const HAXEFMOD_EXAMPLES = {
  },
  "platforms-uwp": {
   "Background Music": {
-   "code": null,
+   "code": "var music = ChannelGroup.create(\"music\");\nCoreSystem.attachChannelGroupToPort(FmodPortType.MUSIC, FmodPortIndex.NONE, music);\nvar bgm = Sound.create(\"assets/music/theme.ogg\");\nvar channel = bgm.play(false, music);",
    "notes": [
-    "Cannot be bound. UWP is not a haxefmod target and output ports exist only on consoles. On the desktop and web targets ChannelGroup.create makes the group and Sound.play followed by Channel.setChannelGroup routes the sound through it"
+    "UWP is not a haxefmod target. The port call is bound for builds against a console SDK, desktop outputs have no ports and report that in the result."
    ],
-   "type": null,
-   "verdict": "cannot"
+   "type": "haxefmod.core.ChannelGroup, haxefmod.core.CoreSystem, haxefmod.core.Sound, haxefmod.studio.Types",
+   "verdict": "bound"
   },
   "Pass Through": {
-   "code": null,
+   "code": "var raw = ChannelGroup.create(\"passthrough\");\nCoreSystem.attachChannelGroupToPort(FmodPortType.PASSTHROUGH, FmodPortIndex.NONE, raw);\nvar voice = Sound.create(\"assets/voice/line.wav\");\nvar channel = voice.play(false, raw);",
    "notes": [
-    "Cannot be bound. UWP is not a haxefmod target and output ports exist only on consoles. On the desktop and web targets ChannelGroup.create makes the group and Sound.play followed by Channel.setChannelGroup routes the sound through it"
+    "UWP is not a haxefmod target. The port call is bound for builds against a console SDK, desktop outputs have no ports and report that in the result."
    ],
-   "type": null,
-   "verdict": "cannot"
+   "type": "haxefmod.core.ChannelGroup, haxefmod.core.CoreSystem, haxefmod.core.Sound, haxefmod.studio.Types",
+   "verdict": "bound"
   }
  },
  "platforms-win": {
   "ASIO and C#": {
-   "code": "FmodManager.Initialize({output: FmodOutputType.ASIO});",
+   "code": "FmodManager.Initialize({output: FmodOutputType.ASIO, numChannels: 32});",
    "notes": [
-    "The output setting picks ASIO before the system initializes, and CoreSystem.getOutput reports the type in use."
+    "The output setting picks ASIO before the system initializes. The library creates and initializes the system itself."
    ],
    "type": "haxefmod.studio.Types",
    "verdict": "bound"
   },
   "Background Music": {
-   "code": "var music = ChannelGroup.create(\"music\");\nCoreSystem.attachChannelGroupToPort(FmodPortType.MUSIC, FmodPortIndex.NONE, music);\nvar bgm = Sound.create(\"assets/music/theme.ogg\");\nvar channel = bgm.play();\nchannel.setChannelGroup(music);",
+   "code": "var music = ChannelGroup.create(\"music\");\nCoreSystem.attachChannelGroupToPort(FmodPortType.MUSIC, FmodPortIndex.NONE, music);\nvar bgm = Sound.create(\"assets/music/theme.ogg\");\nvar channel = bgm.play(false, music);",
    "notes": [
     "Bound for builds against a console SDK. Desktop outputs have no ports and report that in the result."
    ],
@@ -1880,7 +1881,7 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "Pass Through": {
-   "code": "var raw = ChannelGroup.create(\"passthrough\");\nCoreSystem.attachChannelGroupToPort(FmodPortType.PASSTHROUGH, FmodPortIndex.NONE, raw);\nvar voice = Sound.create(\"assets/voice/line.wav\");\nvar channel = voice.play();\nchannel.setChannelGroup(raw);",
+   "code": "var raw = ChannelGroup.create(\"passthrough\");\nCoreSystem.attachChannelGroupToPort(FmodPortType.PASSTHROUGH, FmodPortIndex.NONE, raw);\nvar voice = Sound.create(\"assets/voice/line.wav\");\nvar channel = voice.play(false, raw);",
    "notes": [
     "Bound for builds against a console SDK. Desktop outputs have no ports and report that in the result."
    ],
@@ -2949,9 +2950,9 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "5.1 Controlling a Spatializer DSP": {
-   "code": "function dot(a:FmodVector, b:FmodVector):Float {\n    return a.x * b.x + a.y * b.y + a.z * b.z;\n}\n\nfunction cross(a:FmodVector, b:FmodVector):FmodVector {\n    return {x: a.y * b.z - a.z * b.y, y: a.z * b.x - a.x * b.z, z: a.x * b.y - a.y * b.x};\n}\n\nfunction toListenerSpace(v:FmodVector, listener:Fmod3DAttributes):FmodVector {\n    var right = cross(listener.up, listener.forward);\n    return {x: dot(v, right), y: dot(v, listener.up), z: dot(v, listener.forward)};\n}\n\nfunction calculatePannerAttributes(listener:Fmod3DAttributes, emitter:Fmod3DAttributes):FmodDspParameter3DAttributes {\n    var offset = {x: emitter.position.x - listener.position.x, y: emitter.position.y - listener.position.y, z: emitter.position.z - listener.position.z};\n    var motion = {x: emitter.velocity.x - listener.velocity.x, y: emitter.velocity.y - listener.velocity.y, z: emitter.velocity.z - listener.velocity.z};\n    return {\n        relative: {\n            position: toListenerSpace(offset, listener),\n            velocity: toListenerSpace(motion, listener),\n            forward: toListenerSpace(emitter.forward, listener),\n            up: toListenerSpace(emitter.up, listener)\n        },\n        absolute: emitter\n    };\n}\n\nfunction updatePanner(panner:Dsp, listener:Fmod3DAttributes, emitter:Fmod3DAttributes):Void {\n    var attributes = calculatePannerAttributes(listener, emitter);\n    panner.setParameter3DAttributesMulti(DspPan._3D_POSITION, attributes.absolute, [attributes.relative]);\n}",
+   "code": "function dot(a:FmodVector, b:FmodVector):Float {\n    return a.x * b.x + a.y * b.y + a.z * b.z;\n}\n\nfunction cross(a:FmodVector, b:FmodVector):FmodVector {\n    return {x: a.y * b.z - a.z * b.y, y: a.z * b.x - a.x * b.z, z: a.x * b.y - a.y * b.x};\n}\n\nfunction toListenerSpace(v:FmodVector, listener:Fmod3DAttributes):FmodVector {\n    var right = cross(listener.up, listener.forward);\n    return {x: dot(v, right), y: dot(v, listener.up), z: dot(v, listener.forward)};\n}\n\nfunction calculatePannerAttributes(listener:Fmod3DAttributes, emitter:Fmod3DAttributes):FmodDspParameter3DAttributes {\n    var offset = {x: emitter.position.x - listener.position.x, y: emitter.position.y - listener.position.y, z: emitter.position.z - listener.position.z};\n    var motion = {x: emitter.velocity.x - listener.velocity.x, y: emitter.velocity.y - listener.velocity.y, z: emitter.velocity.z - listener.velocity.z};\n    return {\n        relative: {\n            position: toListenerSpace(offset, listener),\n            velocity: toListenerSpace(motion, listener),\n            forward: toListenerSpace(emitter.forward, listener),\n            up: toListenerSpace(emitter.up, listener)\n        },\n        absolute: emitter\n    };\n}\n\nfunction updatePanner(panner:Dsp, listener:Fmod3DAttributes, emitter:Fmod3DAttributes):Void {\n    var attributes = calculatePannerAttributes(listener, emitter);\n    panner.setParameter3DAttributes(DspPan._3D_POSITION, attributes.absolute, attributes.relative);\n}",
    "notes": [
-    "The relative attributes are the emitter transformed into the listener's space, the absolute attributes are the emitter itself. Dsp.setParameter3DAttributesMulti packs both into the pan unit's 3D position parameter."
+    "The relative attributes are the emitter transformed into the listener's space, the absolute attributes are the emitter itself. Dsp.setParameter3DAttributes packs both into the pan unit's 3D position parameter."
    ],
    "type": "haxefmod.core.Dsp, haxefmod.core.DspParameters.DspPan, haxefmod.studio.Types",
    "verdict": "bound"
@@ -3032,7 +3033,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_STUDIO_MEMORY_USAGE": {
    "code": "/** Memory usage in bytes (FMOD_STUDIO_MEMORY_USAGE) */\ntypedef FmodMemoryUsage = {\n    var exclusive:Int;\n    var inclusive:Int;\n    var sampledata:Int;\n}",
    "notes": [
-    "Memory usage is native only (unsupported in HTML5), where the getters return null."
+    "Memory usage is native only. A js build rejects the getMemoryUsage calls at compile time unless -D haxefmod_html5_allow_unsupported is set, and then they return null in the browser. The counts are real with the logging FMOD libraries and the memoryTracking setting, the release libraries report zero."
    ],
    "type": "haxefmod.studio.Types.FmodMemoryUsage",
    "verdict": "bound"
@@ -3093,7 +3094,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_STUDIO_EVENT_CALLBACK": {
    "code": "instance.setCallback(function(data:EventCallbackData) {\n    switch (data) {\n        case Started: trace(\"started\");\n        case Stopped: trace(\"stopped\");\n        case TimelineMarker(name, positionMs): trace(\"marker \" + name + \" at \" + positionMs);\n        case TimelineBeat(bar, beat, positionMs, tempo, timeSigUpper, timeSigLower): trace(\"beat \" + bar + \":\" + beat);\n        default:\n    }\n}, EventCallbackType.STARTED | EventCallbackType.STOPPED | EventCallbackType.TIMELINE_MARKER | EventCallbackType.TIMELINE_BEAT);\ninstance.start();",
    "notes": [
-    "The handler is a Haxe function that receives an EventCallbackData value. The mask defaults to ALL.",
+    "The handler is a Haxe function that receives an EventCallbackData value. Without a mask it receives EventCallbackType.PLAYBACK_ALL, the lifecycle, timeline, sound, and virtual types, so programmer sound, plugin, and command types need an explicit mask. DESTROYED is always added so the registration cleans itself up.",
     "FMOD raises the callback on its own thread. haxefmod queues it and delivers it on the game thread from FmodManager.Update, so the handler may touch game state.",
     "No return value and no userdata. The handle itself identifies the instance, and the payload comes as constructor arguments."
    ],
@@ -3121,12 +3122,13 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "covered"
   },
   "FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES": {
-   "code": null,
+   "code": "var sound = Sound.create(\"assets/voice/line01.ogg\");\ninstance.assignProgrammerSoundFrom(sound, -1);\ninstance.setCallback(function(data:EventCallbackData) {\n    switch (data) {\n        case ProgrammerSoundCreated(name): trace(\"instrument \" + name + \" took the sound\");\n        case ProgrammerSoundDestroyed(name): sound.release();\n        default:\n    }\n}, EventCallbackType.CREATE_PROGRAMMER_SOUND | EventCallbackType.DESTROY_PROGRAMMER_SOUND);\ninstance.start();",
    "notes": [
-    "No Haxe declaration, the library owns this choice. the programmer sound callbacks are handled natively, EventInstance.assignProgrammerSound(key) before start() picks the sound"
+    "The native shim fills the struct on FMOD's thread from what the game assigned before start(). sound and subsoundIndex come from assignProgrammerSoundFrom, or from the audio table key given to assignProgrammerSound or assignProgrammerSoundForName(name, key). name reaches the game as the argument of ProgrammerSoundCreated and ProgrammerSoundDestroyed.",
+    "The game keeps ownership of a sound it hands over and releases it after ProgrammerSoundDestroyed. Unsupported in HTML5."
    ],
-   "type": null,
-   "verdict": "library"
+   "type": "haxefmod.core.Sound, haxefmod.studio.Callbacks",
+   "verdict": "bound"
   },
   "FMOD_STUDIO_STOP_MODE": {
    "code": "/** FMOD_STUDIO_STOP_MODE */\nenum abstract FmodStopMode(Int) from Int to Int {\n    var ALLOWFADEOUT = 0;\n    var IMMEDIATE = 1;\n}",
@@ -3174,7 +3176,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_STUDIO_ADVANCEDSETTINGS": {
    "code": "/** Studio advanced settings as FMOD holds them (FMOD_STUDIO_ADVANCEDSETTINGS without the key). */\ntypedef FmodStudioAdvancedSettings = {\n    var commandQueueSize:Int;\n    var handleInitialSize:Int;\n    var studioUpdatePeriod:Int;\n    var idleSampleDataPoolSize:Int;\n    var streamingScheduleDelay:Int;\n}",
    "notes": [
-    "Set through the FmodSettings fields of the same names before init, encryptionKey included. StudioSystem.getStudioAdvancedSettings reads them back, native only (unsupported in HTML5)."
+    "Set through the FmodSettings fields of the same names before init, encryptionKey included. StudioSystem.getStudioAdvancedSettings reads the five sizes back, native only (unsupported in HTML5). The key is never read back."
    ],
    "type": "haxefmod.studio.Types.FmodStudioAdvancedSettings",
    "verdict": "bound"
@@ -3224,9 +3226,9 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "FMOD_STUDIO_INITFLAGS": {
-   "code": "/** FMOD_STUDIO_INITFLAGS bits. The library composes them from FmodSettings at init (liveUpdate sets LIVEUPDATE), no call takes them. */\nenum abstract FmodStudioInitFlags(Int) from Int to Int {\n    var NORMAL = 0x00000000;\n    var LIVEUPDATE = 0x00000001;\n    var ALLOW_MISSING_PLUGINS = 0x00000002;\n    var SYNCHRONOUS_UPDATE = 0x00000004;\n    var DEFERRED_CALLBACKS = 0x00000008;\n    var LOAD_FROM_UPDATE = 0x00000010;\n    var MEMORY_TRACKING = 0x00000020;\n}",
+   "code": "/** FMOD_STUDIO_INITFLAGS bits. The library composes them from FmodSettings at init (liveUpdate sets LIVEUPDATE, memoryTracking sets MEMORY_TRACKING), no call takes them. */\nenum abstract FmodStudioInitFlags(Int) from Int to Int {\n    var NORMAL = 0x00000000;\n    var LIVEUPDATE = 0x00000001;\n    var ALLOW_MISSING_PLUGINS = 0x00000002;\n    var SYNCHRONOUS_UPDATE = 0x00000004;\n    var DEFERRED_CALLBACKS = 0x00000008;\n    var LOAD_FROM_UPDATE = 0x00000010;\n    var MEMORY_TRACKING = 0x00000020;\n}",
    "notes": [
-    "The library passes LIVEUPDATE when FmodSettings.liveUpdate is true and NORMAL otherwise. The other flags are never set."
+    "The library passes LIVEUPDATE when FmodSettings.liveUpdate is true and MEMORY_TRACKING when FmodSettings.memoryTracking is true, NORMAL otherwise. The other flags are never set."
    ],
    "type": "haxefmod.studio.Types.FmodStudioInitFlags",
    "verdict": "bound"
@@ -3240,12 +3242,12 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "FMOD_STUDIO_LOAD_MEMORY_ALIGNMENT": {
-   "code": null,
+   "code": "/**\n * The FMOD_MAX_* limits from fmod_common.h and fmod_studio_common.h.\n * tests/native/test_faxe_enums.c pins each one to the header.\n */\nclass FmodLimits {\n    /** FMOD_MAX_CHANNEL_WIDTH, the widest mix matrix and channel format. */\n    public static inline var MAX_CHANNEL_WIDTH = 32;\n    /** FMOD_MAX_SYSTEMS, how many FMOD systems one process may create. haxefmod creates one. */\n    public static inline var MAX_SYSTEMS = 8;\n    /** FMOD_MAX_LISTENERS, the cap on StudioSystem.setNumListeners. */\n    public static inline var MAX_LISTENERS = 8;\n    /** FMOD_REVERB_MAXINSTANCES, the number of reverb instance slots. */\n    public static inline var REVERB_MAXINSTANCES = 4;\n    /** FMOD_STUDIO_LOAD_MEMORY_ALIGNMENT, the alignment loadBankMemory needs in point mode. */\n    public static inline var STUDIO_LOAD_MEMORY_ALIGNMENT = 32;\n}",
    "notes": [
-    "No Haxe declaration, the library owns this choice. StudioSystem.loadBankMemory copies the bytes into memory FMOD allocates, so game code never aligns a bank buffer"
+    "FmodLimits.STUDIO_LOAD_MEMORY_ALIGNMENT. StudioSystem.loadBankMemory copies the bytes into memory FMOD allocates, so game code never aligns a bank buffer."
    ],
-   "type": null,
-   "verdict": "library"
+   "type": "haxefmod.studio.Types.FmodLimits",
+   "verdict": "bound"
   },
   "FMOD_STUDIO_LOAD_MEMORY_MODE": {
    "code": "/** FMOD_STUDIO_LOAD_MEMORY_MODE. StudioSystem.loadBankMemory always copies (MEMORY), a Haxe buffer cannot be pinned for the bank's lifetime. */\nenum abstract FmodLoadMemoryMode(Int) from Int to Int {\n    var MEMORY = 0;\n    var MEMORY_POINT = 1;\n}",
@@ -3301,7 +3303,8 @@ const HAXEFMOD_EXAMPLES = {
    "code": "var eventInstance = StudioSystem.getEvent(\"event:/Character/Dialogue\").createInstance();\nvar result = eventInstance.assignProgrammerSound(\"welcome\");\nif (result != FmodResult.FMOD_OK) trace(\"assignProgrammerSound failed: \" + result);",
    "notes": [
     "Native only (unsupported in HTML5).",
-    "The create and destroy programmer sound callbacks are implemented natively. Assigning a key to the instance replaces the user data and the callback registration."
+    "The create and destroy programmer sound callbacks are implemented natively. Assigning a key to the instance stands in for both the user data and the callback registration, the native side keeps the key itself.",
+    "EventInstance.setUserData and getUserData stay free for the game's own values, and setCallback still delivers ProgrammerSoundCreated(name) and ProgrammerSoundDestroyed(name)."
    ],
    "type": "haxefmod.studio.FmodResult",
    "verdict": "bound"
@@ -3431,17 +3434,17 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "Controlling mix level and pan matrices for DSPConnections": {
-   "code": "var sound = Sound.create(\"drumloop.wav\");\nvar channelgroup = ChannelGroup.create(\"my channelgroup\");\nvar dsp_reverb = Dsp.create(DspType.SFXREVERB);\n\nvar channel = sound.play(true);                                                     /* Play the sound.  Play it paused so we dont hear the sound play before it is connected to the reverb. */\nchannel.setChannelGroup(channelgroup);\nvar channel_dsp_head = channel.getDsp(ChannelGroup.DSP_HEAD);                       /* Grab the 'head' unit for the Channel */\nvar dsp_connection = dsp_reverb.addInput(channel_dsp_head);                         /* Manually add a connection from the Channel DSP head to the reverb. */\nvar result = channel.setPaused(false);                                              /* Unpause the channel and let it be audible. */",
+   "code": "var sound = Sound.create(\"drumloop.wav\");\nvar channelgroup = ChannelGroup.create(\"my channelgroup\");\nvar dsp_reverb = Dsp.create(DspType.SFXREVERB);\n\nvar channel = sound.play(true, channelgroup);                                       /* Play the sound.  Play it paused so we dont hear the sound play before it is connected to the reverb. */\nvar channel_dsp_head = channel.getDsp(Channel.DSP_HEAD);                            /* Grab the 'head' unit for the Channel */\nvar dsp_connection = dsp_reverb.addInput(channel_dsp_head);                         /* Manually add a connection from the Channel DSP head to the reverb. */\nvar result = channel.setPaused(false);                                              /* Unpause the channel and let it be audible. */",
    "notes": [
     "addInput returns the DspConnection directly, DspConnection.NULL on failure with the reason in StudioSystem.lastResult()."
    ],
-   "type": "haxefmod.core.Sound, haxefmod.core.ChannelGroup, haxefmod.core.Dsp, haxefmod.core.DspType",
+   "type": "haxefmod.core.Channel, haxefmod.core.Sound, haxefmod.core.ChannelGroup, haxefmod.core.Dsp, haxefmod.core.DspType",
    "verdict": "bound"
   },
   "Controlling mix level and pan matrices for DSPConnections#2": {
-   "code": "var dsp_reverb = Dsp.create(DspType.SFXREVERB);\nvar dsp_connection = dsp_reverb.addInput(channel.getDsp(ChannelGroup.DSP_HEAD));\nvar result = dsp_connection.setMix(0.0);",
+   "code": "var dsp_reverb = Dsp.create(DspType.SFXREVERB);\nvar dsp_connection = dsp_reverb.addInput(channel.getDsp(Channel.DSP_HEAD));\nvar result = dsp_connection.setMix(0.0);",
    "notes": [],
-   "type": "haxefmod.core.ChannelGroup, haxefmod.core.Dsp, haxefmod.core.DspType",
+   "type": "haxefmod.core.Channel, haxefmod.core.Dsp, haxefmod.core.DspType",
    "verdict": "bound"
   },
   "Creating an effect and making all Channels send to it.": {
@@ -3467,18 +3470,18 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "Set the output format of a DSP unit, and control the pan matrix for its output signal": {
-   "code": "var channel_dsp_head = channel.getDsp(ChannelGroup.DSP_HEAD);\nvar result = channel_dsp_head.setChannelFormat(0, 0, FmodSpeakerMode.QUAD);",
+   "code": "var channel_dsp_head = channel.getDsp(Channel.DSP_HEAD);\nvar result = channel_dsp_head.setChannelFormat(0, 0, FmodSpeakerMode.QUAD);",
    "notes": [],
-   "type": "haxefmod.core.ChannelGroup, haxefmod.core.Dsp, haxefmod.studio.Types.FmodSpeakerMode",
+   "type": "haxefmod.core.Channel, haxefmod.core.Dsp, haxefmod.studio.Types.FmodSpeakerMode",
    "verdict": "bound"
   },
   "Set the output format of a DSP unit, and control the pan matrix for its output signal#2": {
-   "code": "var channel_dsp_head = channel.getDsp(ChannelGroup.DSP_HEAD);\nvar matrix:Array<Float> =\n[   /*                                    FL FR SL SR <- Input signal (columns) */\n    /* row 0 = front left  out    <- */    0, 0, 0, 0,\n    /* row 1 = front right out    <- */    0, 0, 0, 0,\n    /* row 2 = surround left out  <- */    1, 0, 0, 0,\n    /* row 3 = surround right out <- */    0, 1, 0, 0\n];\nvar channel_dsp_head_output_connection = channel_dsp_head.getOutputConnection(0);\nvar result = channel_dsp_head_output_connection.setMixMatrix(matrix, 4, 4);",
+   "code": "var channel_dsp_head = channel.getDsp(Channel.DSP_HEAD);\nvar matrix:Array<Float> =\n[   /*                                    FL FR SL SR <- Input signal (columns) */\n    /* row 0 = front left  out    <- */    0, 0, 0, 0,\n    /* row 1 = front right out    <- */    0, 0, 0, 0,\n    /* row 2 = surround left out  <- */    1, 0, 0, 0,\n    /* row 3 = surround right out <- */    0, 1, 0, 0\n];\nvar channel_dsp_head_output_connection = channel_dsp_head.getOutputConnection(0);\nvar result = channel_dsp_head_output_connection.setMixMatrix(matrix, 4, 4);",
    "notes": [
     "Dsp.getOutputConnection(index) returns the connection on an output slot, the target unit itself comes from Dsp.getOutput(index).",
     "The matrix is one flat row-major array, one row per output channel with one column per input channel."
    ],
-   "type": "haxefmod.core.ChannelGroup, haxefmod.core.Dsp",
+   "type": "haxefmod.core.Channel, haxefmod.core.Dsp",
    "verdict": "bound"
   }
  },

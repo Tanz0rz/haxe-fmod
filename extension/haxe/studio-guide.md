@@ -6,7 +6,8 @@ verdict: covered No context struct is needed. The core and studio systems are gl
 ## 13.9.1 Scripting Example#2
 verdict: bound
 Native only (unsupported in HTML5).
-The create and destroy programmer sound callbacks are implemented natively. Assigning a key to the instance replaces the user data and the callback registration.
+The create and destroy programmer sound callbacks are implemented natively. Assigning a key to the instance stands in for both the user data and the callback registration, the native side keeps the key itself.
+EventInstance.setUserData and getUserData stay free for the game's own values, and setCallback still delivers ProgrammerSoundCreated(name) and ProgrammerSoundDestroyed(name).
 ```haxe
 import haxefmod.studio.FmodResult;
 

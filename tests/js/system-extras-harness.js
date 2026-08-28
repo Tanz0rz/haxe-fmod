@@ -152,6 +152,9 @@ async function main() {
     const name = jaxe.fmod_sys_get_record_driver_info(0, ibuf);
     check('sys_get_record_driver_info_unsupported', name === '' && jaxe.fmod_sys_last_result() === 68,
         `result=${jaxe.fmod_sys_last_result()}`);
+    const recGuid = jaxe.fmod_sys_get_record_driver_guid(0);
+    check('sys_get_record_driver_guid_unsupported', recGuid === '' && jaxe.fmod_sys_last_result() === 68,
+        `result=${jaxe.fmod_sys_last_result()}`);
     const recSound = jaxe.fmod_core_create_record_sound(48000, 1, 1);
     check('core_create_record_sound_unsupported', recSound === 0 && jaxe.fmod_sys_last_result() === 68,
         `handle=${recSound} result=${jaxe.fmod_sys_last_result()}`);

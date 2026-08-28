@@ -5349,6 +5349,17 @@ HL_PRIM vbyte* HL_NAME(sys_get_record_driver_info)(int id, vbyte* out) {
 }
 DEFINE_PRIM(_BYTES, sys_get_record_driver_info, _I32 _BYTES);
 
+HL_PRIM vbyte* HL_NAME(sys_get_record_driver_guid)(int id) {
+    FMOD_GUID guid;
+    gStringBuf[0] = '\0';
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (vbyte*)gStringBuf; }
+    memset(&guid, 0, sizeof(guid));
+    gLastResult = FMOD_System_GetRecordDriverInfo(gCoreSystem, id, NULL, 0, &guid, NULL, NULL, NULL, NULL);
+    if (gLastResult == FMOD_OK) faxe_guid_format(&guid, gStringBuf, sizeof(gStringBuf));
+    return (vbyte*)gStringBuf;
+}
+DEFINE_PRIM(_BYTES, sys_get_record_driver_guid, _I32);
+
 // An empty OPENUSER PCM16 sound of the given length for RecordStart to
 // fill. No callbacks, FMOD writes straight into the sample buffer.
 HL_PRIM int HL_NAME(core_create_record_sound)(int sampleRate, int channels, int seconds) {

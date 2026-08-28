@@ -2,7 +2,7 @@
 
 ## ChannelControl::addFadePoint
 verdict: bound
-getDspClock returns both clocks in one struct, or null when the handle is invalid. Clock values are Floats, which hold sample counts exactly.
+getDspClock returns both clocks in one struct, or null on failure. Clock values are Floats, exact to 2^53 samples.
 ```haxe
 // Example. Ramp from full volume to half volume over the next 4096 samples
 var clocks = channel.getDspClock();
@@ -15,7 +15,7 @@ if (clocks != null) {
 
 ## ChannelControl::addFadePoint#2
 verdict: bound
-getDspClock returns both clocks in one struct, or null when the handle is invalid. Clock values are Floats, which hold sample counts exactly.
+getDspClock returns both clocks in one struct, or null on failure. Clock values are Floats, exact to 2^53 samples.
 ```haxe
 // Example. Ramp from full volume to half volume over the next 4096 samples
 var clocks = channel.getDspClock();
@@ -51,7 +51,7 @@ Channel.setCallback delivers all four as ChannelEvent values (End, SyncPoint, Vi
 ## FMOD_CHANNELCONTROL_DSP_INDEX
 verdict: bound
 Type: haxefmod.studio.Types.ChannelControlDspIndex
-addDsp, getDsp, and setDspIndex on Channel and ChannelGroup accept these values as the index.
+addDsp, getDsp, and setDspIndex on Channel and ChannelGroup accept these values as the index. Channel.DSP_HEAD, DSP_FADER, and DSP_TAIL hold the same values as plain Int constants.
 
 ## ChannelControl::set3DCustomRolloff
 verdict: bound

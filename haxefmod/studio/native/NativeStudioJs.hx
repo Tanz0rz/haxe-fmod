@@ -615,6 +615,7 @@ class NativeStudioJs {
     public static inline function core_sound_seek_data(handle:Int, pcm:Int):Int return Raw.fmod_core_sound_seek_data(handle, pcm);
     public static inline function sys_get_record_num_drivers():Int return Raw.fmod_sys_get_record_num_drivers(Scratch.intBuf());
     public static inline function sys_get_record_driver_info(id:Int):String return Raw.fmod_sys_get_record_driver_info(id, Scratch.intBuf());
+    public static inline function sys_get_record_driver_guid(id:Int):String return Raw.fmod_sys_get_record_driver_guid(id);
     public static inline function core_create_record_sound(sampleRate:Int, channels:Int, seconds:Int):Int return Raw.fmod_core_create_record_sound(sampleRate, channels, seconds);
     public static inline function sys_record_start(id:Int, soundHandle:Int, loop:Bool):Int return Raw.fmod_sys_record_start(id, soundHandle, loop);
     public static inline function sys_record_stop(id:Int):Int return Raw.fmod_sys_record_stop(id);
@@ -1179,6 +1180,7 @@ private extern class Raw {
     static function fmod_core_sound_seek_data(handle:Int, pcm:Int):Int;
     static function fmod_sys_get_record_num_drivers(ibuf:Array<Int>):Int;
     static function fmod_sys_get_record_driver_info(id:Int, ibuf:Array<Int>):String;
+    static function fmod_sys_get_record_driver_guid(id:Int):String;
     static function fmod_core_create_record_sound(sampleRate:Int, channels:Int, seconds:Int):Int;
     static function fmod_sys_record_start(id:Int, soundHandle:Int, loop:Bool):Int;
     static function fmod_sys_record_stop(id:Int):Int;

@@ -20,20 +20,20 @@ Type: haxefmod.studio.Types.FmodSystemCpuUsage
 FMOD_CPU_USAGE and the studio update field are merged into one record, returned by StudioSystem.getCpuUsage.
 
 ## FMOD_DEBUG_CALLBACK
-verdict: cannot FMOD calls it on whichever of its threads logs, no Haxe target can run code there. The log goes to the platform's standard output at the level set by FmodSettings.logLevel.
+verdict: cannot FMOD calls it on whichever of its threads logs, no Haxe target can run code there. The log goes to the platform's standard output at the level set by FmodSettings.logLevel, or to the file named by FmodSettings.logFile on native targets.
 
 ## FMOD_DEBUG_FLAGS
 verdict: bound
 Type: haxefmod.studio.Types.FmodDebugFlags
-The library composes these from FmodSettings.logLevel (0 none, 1 error, 2 warning, 3 log), and FmodManager.EnableDebugMessages logs everything.
+The LEVEL_ bits come from FmodSettings.logLevel (0 none, 1 error, 2 warning, 3 log) and FmodManager.EnableDebugMessages logs everything. FmodSettings.logFlags adds the TYPE_ and DISPLAY_ bits, native only.
 
 ## FMOD_DEBUG_MODE
 verdict: bound
 Type: haxefmod.studio.Types.FmodDebugMode
-The library keeps TTY, and the level comes from FmodSettings.logLevel.
+TTY unless FmodSettings.logFile names a file, which picks FILE on native targets. CALLBACK is not exposed, FMOD would call it from whichever thread logs.
 
 ## FMOD_GUID
-verdict: library GUIDs are strings in the text form FMOD Studio shows, taken by StudioSystem.getEventByID and returned by EventDescription.getID
+verdict: library GUIDs are strings in the text form FMOD Studio shows, taken by StudioSystem.getEventByID and returned by getID on EventDescription, Bank, Bus, and Vca, by FmodParameterDescription.guid, and by the guid field of CoreSystem.getDriverInfo
 
 ## FMOD_MAX_CHANNEL_WIDTH
 verdict: bound
@@ -81,7 +81,7 @@ Taken by CoreSystem.setSpeakerPosition and getSpeakerPosition. The same values a
 ## FMOD_SPEAKERMODE
 verdict: bound
 Type: haxefmod.studio.Types.FmodSpeakerMode
-Requested through FmodSettings.speakerMode and read from CoreSystem.getSoftwareFormat.
+Requested through FmodSettings.speakerMode and read from CoreSystem.getSoftwareFormat, CoreSystem.getDriverInfo, and StudioSystem.getRecordDriverInfo. Dsp.setChannelFormat takes one with the channel mask.
 
 ## FMOD_SYNCPOINT
 verdict: covered sync points are addressed by index on the Sound (Sound.addSyncPoint, Sound.getSyncPointName, Sound.getSyncPointOffset, Sound.deleteSyncPoint), and a crossing arrives as ChannelEvent.SyncPoint(index) through Channel.setCallback
@@ -116,4 +116,4 @@ verdict: bound
 Type: haxefmod.studio.Types.FmodVector
 
 ## FMOD_VERSION
-verdict: covered haxefmod links one FMOD version per release, and StudioSystem.getVersion returns it as the string "2.03.12"
+verdict: covered haxefmod links one FMOD version per release, and StudioSystem.getVersion returns the version the running build loaded as a string formatted like "2.03.12"
