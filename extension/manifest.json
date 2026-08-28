@@ -10,6 +10,15 @@
     "48": "icon48.png",
     "128": "icon128.png"
   },
+  "action": {
+    "default_title": "Open the FMOD API reference"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "scripts": [
+      "background.js"
+    ]
+  },
   "content_scripts": [
     {
       "matches": [

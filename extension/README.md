@@ -39,7 +39,7 @@ python3 ci/check-readme-snippets.py extension/examples
 
 Lone C++ blocks have no language selector on fmod.com, so the extension adds one with a C++ tab and the Haxe tab. The format of the example files is documented at the top of `ci/haxe-examples.py`.
 
-The extension asks for no permissions beyond running on fmod.com documentation pages and makes no network requests. The data ships inside the package.
+Clicking the toolbar icon opens the FMOD API reference. The extension asks for no permissions beyond running on fmod.com documentation pages and makes no network requests. The data ships inside the package.
 
 ## Test
 
@@ -69,7 +69,7 @@ Functions haxefmod does not expose are listed with their reasons on the document
 ## Package for the stores
 
 ```bash
-cd extension && zip -r ../haxefmod-fmod-docs.zip manifest.json content.js content.css bindings-data.js examples-data.js icon16.png icon32.png icon48.png icon128.png
+cd extension && zip -r ../haxefmod-fmod-docs.zip manifest.json background.js content.js content.css bindings-data.js examples-data.js icon16.png icon32.png icon48.png icon128.png
 ```
 
 The same zip uploads to both the Chrome Web Store and addons.mozilla.org.
