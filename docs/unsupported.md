@@ -1,6 +1,6 @@
 # Unsupported functions
 
-The 44 functions of the FMOD API that haxefmod 2.0.0 cannot bind, with the reason for each. Nearly all of them hand FMOD a callback to run on its own threads, which no Haxe target can host, and the rest belong to platforms the library does not ship for or return raw pointers. Generated from `extension/functions.md` by `ci/haxe-bindings.py`, so this page and the Haxe tab of the browser extension always agree. [Coverage](coverage.md) lists everything that is bound.
+The 40 functions of the FMOD API that haxefmod 2.0.0 cannot bind, with the reason for each. Nearly all of them hand FMOD a callback to run on its own threads, which no Haxe target can host, and the rest belong to platforms the library does not ship for or return raw pointers. Generated from `extension/functions.md` by `ci/haxe-bindings.py`, so this page and the Haxe tab of the browser extension always agree. [Coverage](coverage.md) lists everything that is bound.
 
 If one of these blocks a real use case, open an issue describing it. A workaround at the library level is sometimes possible even when the function itself is not.
 
@@ -8,7 +8,7 @@ If one of these blocks a real use case, open an issue describing it. A workaroun
 
 | Function | Why |
 |---|---|
-| `DSP::setCallback` | Cannot be bound. FMOD runs the callback on its mixer thread, and no Haxe target can execute code there. Poll the unit from the game loop with Dsp.getMetering(), Dsp.getFftSpectrumInfo(), or Dsp.getParameterData() instead. |
+| `DSP::setCallback` | Cannot be bound. FMOD runs the callback on its mixer thread, and no Haxe target can execute code there. Poll the unit from the game loop with Dsp.getMetering() or Dsp.getFftSpectrum() instead. |
 | `DSP::showConfigDialog` | Cannot be bound. It takes a raw operating system window handle, which has no meaning in Haxe. Plugin and built-in DSP parameters are set through Dsp.setParameter. |
 
 ## Global functions
@@ -35,10 +35,8 @@ If one of these blocks a real use case, open an issue describing it. A workaroun
 | `FSBANK_RESULT` | Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio. |
 | `getValue` | Cannot be bound. This reads and writes the wasm heap through a raw address, which has no meaning in Haxe. Values cross into FMOD through the typed haxefmod methods, and getters return values directly. |
 | `Memory_Free` | Cannot be bound. It frees a raw pointer from FMOD's heap, which has no meaning in Haxe, and Haxe code never receives one. Release handles with the release() method of the object that created them. |
-| `Memory_Initialize` | Cannot be bound. Custom allocators are callbacks that FMOD runs on every one of its threads, and no Haxe target can execute code there. FMOD uses its default allocator on every target, and StudioSystem.getMemoryStats reports what it holds. |
 | `ReadFile` | Cannot be bound. It returns a raw wasm heap address, which has no meaning in Haxe. StudioSystem.loadBankMemory() loads a bank from bytes you already hold, and Sound.fromPcm() plays raw PCM you already hold. |
 | `setValue` | Cannot be bound. This reads and writes the wasm heap through a raw address, which has no meaning in Haxe. Values cross into FMOD through the typed haxefmod methods, and getters return values directly. |
-| `Thread_SetAttributes` | Cannot be bound. It must run before the system is created, and haxefmod creates the system inside FmodManager.Initialize() with no hook before it. FMOD keeps its default thread affinity and priority on every target, and the web build has no threads to configure. |
 
 ## Studio::Bus
 
@@ -67,10 +65,8 @@ If one of these blocks a real use case, open an issue describing it. A workaroun
 
 | Function | Why |
 |---|---|
-| `System::attachChannelGroupToPort` | Cannot be bound. This is a console port API and haxefmod targets desktop and web only. Route audio through ChannelGroup and Bus instead. |
 | `System::attachFileSystem` | Cannot be bound. A custom file system is a set of callbacks that FMOD runs on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile and loadBankMemory are the bank paths, and Sound.create and Sound.fromPcm are the sound paths. |
 | `System::createDSP` | Cannot be bound. A DSP description is a struct of callbacks that FMOD runs on its mixer thread, and no Haxe target can execute code there. All 33 built-in DSP types are created with Dsp.create(type), and a unit from a loaded plugin with Dsp.createByPlugin(handle). |
-| `System::detachChannelGroupFromPort` | Cannot be bound. This is a console port API and haxefmod targets desktop and web only. Route audio through ChannelGroup and Bus instead. |
 | `System::getOutputHandle` | Cannot be bound. It returns a raw operating system pointer, which has no meaning in Haxe. Output device selection goes through CoreSystem.getDriverCount, getDriverName, and setDriver. |
 | `System::registerCodec` | Cannot be bound. A plugin description is a struct of callbacks that FMOD runs on its mixer and streaming threads, and no Haxe target can execute code there. A prebuilt plugin binary loads with StudioSystem.loadPlugin, and the built-in DSP types are created with Dsp.create. |
 | `System::registerDSP` | Cannot be bound. A plugin description is a struct of callbacks that FMOD runs on its mixer and streaming threads, and no Haxe target can execute code there. A prebuilt plugin binary loads with StudioSystem.loadPlugin, and the built-in DSP types are created with Dsp.create. |

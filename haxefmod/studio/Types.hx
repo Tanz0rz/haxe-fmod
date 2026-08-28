@@ -262,6 +262,7 @@ typedef FmodAdvancedSettings = {
     var geometryMaxFadeTime:Int;
     var distanceFilterCenterFreq:Float;
     var randomSeed:Int;
+    var resamplerMethod:FmodDspResampler;
 }
 
 /** Studio advanced settings as FMOD holds them (FMOD_STUDIO_ADVANCEDSETTINGS without the key). */
@@ -350,7 +351,7 @@ enum abstract FmodSpeakerMode(Int) from Int to Int {
     var MAX = 9;
 }
 
-/** FMOD_OUTPUTTYPE, the output backend CoreSystem.getOutput reports. */
+/** FMOD_OUTPUTTYPE, the output backend FmodSettings.output picks and CoreSystem.getOutput reports. */
 enum abstract FmodOutputType(Int) from Int to Int {
     var AUTODETECT = 0;
     var UNKNOWN = 1;
@@ -626,7 +627,7 @@ enum abstract FmodMemoryType(Int) from Int to Int {
     var ALL = 0xFFFFFFFF;
 }
 
-/** FMOD_THREAD_TYPE, FMOD's worker threads. Thread settings are not exposed, FMOD uses its defaults on every target. */
+/** FMOD_THREAD_TYPE, FMOD's worker threads. The type field of FmodThreadAttributes in FmodSettings.threadAttributes. */
 enum abstract FmodThreadType(Int) from Int to Int {
     var MIXER = 0;
     var FEEDER = 1;
@@ -644,7 +645,7 @@ enum abstract FmodThreadType(Int) from Int to Int {
     var MAX = 13;
 }
 
-/** FMOD_THREAD_PRIORITY, the priority of each worker thread. Thread settings are not exposed, FMOD uses these defaults on every target. */
+/** FMOD_THREAD_PRIORITY, the priority of a worker thread. The priority field of FmodThreadAttributes, DEFAULT keeps FMOD's own value for that thread. */
 enum abstract FmodThreadPriority(Int) from Int to Int {
     var PLATFORM_MIN = -32768;
     var PLATFORM_MAX = 32768;
@@ -670,7 +671,7 @@ enum abstract FmodThreadPriority(Int) from Int to Int {
     var CONVOLUTION2 = -32773;
 }
 
-/** FMOD_THREAD_STACK_SIZE, the stack of each worker thread in bytes. Thread settings are not exposed, FMOD uses these defaults on every target. */
+/** FMOD_THREAD_STACK_SIZE, the stack of a worker thread in bytes. The stackSize field of FmodThreadAttributes, DEFAULT keeps FMOD's own value for that thread. */
 enum abstract FmodThreadStackSize(Int) from Int to Int {
     var DEFAULT = 0;
     var MIXER = 81920;
@@ -688,7 +689,71 @@ enum abstract FmodThreadStackSize(Int) from Int to Int {
     var CONVOLUTION2 = 16384;
 }
 
-/** FMOD_DSP_RESAMPLER, the interpolation FMOD's advanced settings pick. Not exposed, DEFAULT applies. */
+/**
+ * FMOD_THREAD_AFFINITY as a 32-bit core mask, the affinity field of
+ * FmodThreadAttributes. CORE_ALL lets the thread run anywhere, CORE_n bits
+ * pin it, and any Int mask of bits 0 to 31 works. FMOD's 64-bit group
+ * values (GROUP_DEFAULT, GROUP_A to GROUP_C) do not fit a Haxe Int, so an
+ * unset affinity keeps FMOD's default group.
+ */
+enum abstract FmodThreadAffinity(Int) from Int to Int {
+    var CORE_ALL = 0;
+    var CORE_0 = 0x00000001;
+    var CORE_1 = 0x00000002;
+    var CORE_2 = 0x00000004;
+    var CORE_3 = 0x00000008;
+    var CORE_4 = 0x00000010;
+    var CORE_5 = 0x00000020;
+    var CORE_6 = 0x00000040;
+    var CORE_7 = 0x00000080;
+    var CORE_8 = 0x00000100;
+    var CORE_9 = 0x00000200;
+    var CORE_10 = 0x00000400;
+    var CORE_11 = 0x00000800;
+    var CORE_12 = 0x00001000;
+    var CORE_13 = 0x00002000;
+    var CORE_14 = 0x00004000;
+    var CORE_15 = 0x00008000;
+}
+
+/**
+ * One entry of FmodSettings.threadAttributes, applied with
+ * FMOD_Thread_SetAttributes before the system is created. An unset
+ * priority, stackSize, or affinity keeps FMOD's default for that thread.
+ */
+typedef FmodThreadAttributes = {
+    var type:FmodThreadType;
+    @:optional var priority:FmodThreadPriority;
+    @:optional var stackSize:FmodThreadStackSize;
+    @:optional var affinity:FmodThreadAffinity;
+}
+
+/**
+ * FMOD_PORT_INDEX, the port slot CoreSystem.attachChannelGroupToPort
+ * takes. FMOD's NONE is the 64-bit all-ones value, which crosses as -1.
+ */
+enum abstract FmodPortIndex(Int) from Int to Int {
+    var NONE = -1;
+}
+
+/**
+ * The FMOD_MAX_* limits from fmod_common.h and fmod_studio_common.h.
+ * tests/native/test_faxe_enums.c pins each one to the header.
+ */
+class FmodLimits {
+    /** FMOD_MAX_CHANNEL_WIDTH, the widest mix matrix and channel format. */
+    public static inline var MAX_CHANNEL_WIDTH = 32;
+    /** FMOD_MAX_SYSTEMS, how many FMOD systems one process may create. haxefmod creates one. */
+    public static inline var MAX_SYSTEMS = 8;
+    /** FMOD_MAX_LISTENERS, the cap on StudioSystem.setNumListeners. */
+    public static inline var MAX_LISTENERS = 8;
+    /** FMOD_REVERB_MAXINSTANCES, the number of reverb instance slots. */
+    public static inline var REVERB_MAXINSTANCES = 4;
+    /** FMOD_STUDIO_LOAD_MEMORY_ALIGNMENT, the alignment loadBankMemory needs in point mode. */
+    public static inline var STUDIO_LOAD_MEMORY_ALIGNMENT = 32;
+}
+
+/** FMOD_DSP_RESAMPLER, the interpolation the mixer uses when a sound plays at another rate. FmodSettings.resamplerMethod picks it. */
 enum abstract FmodDspResampler(Int) from Int to Int {
     var DEFAULT = 0;
     var NOINTERP = 1;
@@ -768,7 +833,7 @@ enum abstract FmodErrorCallbackInstanceType(Int) from Int to Int {
     var STUDIO_COMMANDREPLAY = 18;
 }
 
-/** FMOD_PORT_TYPE, console output ports. Port routing is not exposed, desktop and web targets have none. */
+/** FMOD_PORT_TYPE, the port kinds CoreSystem.attachChannelGroupToPort takes. Desktop and web builds have no ports and report FMOD_ERR_UNSUPPORTED. */
 enum abstract FmodPortType(Int) from Int to Int {
     var MUSIC = 0;
     var COPYRIGHT_MUSIC = 1;

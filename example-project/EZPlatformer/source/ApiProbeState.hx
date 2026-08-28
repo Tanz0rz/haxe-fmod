@@ -176,6 +176,7 @@ class ApiProbeState extends FlxState {
         ProbePlugins.run(this);
         ProbeSoundExtras.run(this);
         ProbeDspData.run(this);
+        ProbeInitSettings.run(this);
         ProbeLastSeven.run(this);
         ProbeDspParameters.run(this);
         ProbeEnums.run(this);

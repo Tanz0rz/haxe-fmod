@@ -35,6 +35,10 @@ V = "{x: 0.0, y: 0.0, z: 0.0}"
 GATED = [
     ("StudioSystem", "getMemoryUsage", "haxefmod/studio/StudioSystem.hx",
      "var r = StudioSystem.getMemoryUsage();"),
+    ("CoreSystem", "attachChannelGroupToPort", "haxefmod/core/CoreSystem.hx",
+     "var g:ChannelGroup = cast 1; var r = CoreSystem.attachChannelGroupToPort(FmodPortType.MUSIC, FmodPortIndex.NONE, g, false);"),
+    ("CoreSystem", "detachChannelGroupFromPort", "haxefmod/core/CoreSystem.hx",
+     "var g:ChannelGroup = cast 1; var r = CoreSystem.detachChannelGroupFromPort(g);"),
     ("StudioSystem", "getRecordDriverCount", "haxefmod/studio/StudioSystem.hx",
      "var r = StudioSystem.getRecordDriverCount();"),
     ("StudioSystem", "getRecordDriverInfo", "haxefmod/studio/StudioSystem.hx",

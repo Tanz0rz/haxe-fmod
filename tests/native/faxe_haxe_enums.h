@@ -442,6 +442,30 @@
 #define FAXE_HX_FmodThreadStackSize_CONVOLUTION2 (16384)
 #define FAXE_HX_FmodThreadStackSize_COUNT 14
 
+/* FmodThreadAffinity mirrors FMOD_THREAD_AFFINITY */
+#define FAXE_HX_FmodThreadAffinity_CORE_ALL (0)
+#define FAXE_HX_FmodThreadAffinity_CORE_0 (0x00000001)
+#define FAXE_HX_FmodThreadAffinity_CORE_1 (0x00000002)
+#define FAXE_HX_FmodThreadAffinity_CORE_2 (0x00000004)
+#define FAXE_HX_FmodThreadAffinity_CORE_3 (0x00000008)
+#define FAXE_HX_FmodThreadAffinity_CORE_4 (0x00000010)
+#define FAXE_HX_FmodThreadAffinity_CORE_5 (0x00000020)
+#define FAXE_HX_FmodThreadAffinity_CORE_6 (0x00000040)
+#define FAXE_HX_FmodThreadAffinity_CORE_7 (0x00000080)
+#define FAXE_HX_FmodThreadAffinity_CORE_8 (0x00000100)
+#define FAXE_HX_FmodThreadAffinity_CORE_9 (0x00000200)
+#define FAXE_HX_FmodThreadAffinity_CORE_10 (0x00000400)
+#define FAXE_HX_FmodThreadAffinity_CORE_11 (0x00000800)
+#define FAXE_HX_FmodThreadAffinity_CORE_12 (0x00001000)
+#define FAXE_HX_FmodThreadAffinity_CORE_13 (0x00002000)
+#define FAXE_HX_FmodThreadAffinity_CORE_14 (0x00004000)
+#define FAXE_HX_FmodThreadAffinity_CORE_15 (0x00008000)
+#define FAXE_HX_FmodThreadAffinity_COUNT 17
+
+/* FmodPortIndex mirrors FMOD_PORT_INDEX */
+#define FAXE_HX_FmodPortIndex_NONE (-1)
+#define FAXE_HX_FmodPortIndex_COUNT 1
+
 /* FmodDspResampler mirrors FMOD_DSP_RESAMPLER */
 #define FAXE_HX_FmodDspResampler_DEFAULT (0)
 #define FAXE_HX_FmodDspResampler_NOINTERP (1)
@@ -560,6 +584,14 @@
 #define FAXE_HX_FmodStudioSystemCallbackType_LIVEUPDATE_DISCONNECTED (0x00000010)
 #define FAXE_HX_FmodStudioSystemCallbackType_ALL (0xFFFFFFFF)
 #define FAXE_HX_FmodStudioSystemCallbackType_COUNT 6
+
+/* FmodLimits mirrors the FMOD_MAX_ defines */
+#define FAXE_HX_FmodLimits_MAX_CHANNEL_WIDTH (32)
+#define FAXE_HX_FmodLimits_MAX_SYSTEMS (8)
+#define FAXE_HX_FmodLimits_MAX_LISTENERS (8)
+#define FAXE_HX_FmodLimits_REVERB_MAXINSTANCES (4)
+#define FAXE_HX_FmodLimits_STUDIO_LOAD_MEMORY_ALIGNMENT (32)
+#define FAXE_HX_FmodLimits_COUNT 5
 
 /* DspChannelMixOutput mirrors FMOD_DSP_CHANNELMIX_OUTPUT */
 #define FAXE_HX_DspChannelMixOutput_DEFAULT (0)

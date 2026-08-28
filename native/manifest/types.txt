@@ -4,7 +4,8 @@
 
 FMOD_3D_ATTRIBUTES                                  haxefmod.studio.Types.Fmod3DAttributes
 FMOD_3D_ROLLOFF_CALLBACK                            cannot   runs on FMOD's mixer thread, the rolloff flags of ChannelMode and set3DCustomRolloff on Sound, Channel, and ChannelGroup shape the curve instead
-FMOD_ADVANCEDSETTINGS                               haxefmod.studio.Types.FmodAdvancedSettings   the fields FmodSettings sets and StudioSystem.getAdvancedSettings reads back, the rest keep FMOD's defaults skip: cbSize,maxADPCMCodecs,maxXMACodecs,maxAT9Codecs,maxOpusCodecs,ASIONumChannels,ASIOChannelList,ASIOSpeakerList,reverb3Dinstance,DSPBufferPoolSize,resamplerMethod,maxConvolutionThreads,maxSpatialObjects
+FMOD_ADVANCEDSETTINGS                               haxefmod.studio.Types.FmodAdvancedSettings   the fields FmodSettings sets and StudioSystem.getAdvancedSettings reads back, the rest keep FMOD's defaults skip: cbSize,maxADPCMCodecs,maxXMACodecs,maxAT9Codecs,maxOpusCodecs,ASIONumChannels,ASIOChannelList,ASIOSpeakerList,reverb3Dinstance,DSPBufferPoolSize,maxConvolutionThreads,maxSpatialObjects
+FMOD_BOOL                                           library   Haxe Bool crosses the boundary as 0 or 1
 FMOD_CHANNELCONTROL_CALLBACK                        cannot   runs on FMOD's threads, Channel.setCallback delivers ChannelEvent on the game thread instead
 FMOD_CHANNELCONTROL_CALLBACK_TYPE                   haxefmod.studio.Types.FmodChannelControlCallbackType
 FMOD_CHANNELCONTROL_DSP_INDEX                       haxefmod.studio.Types.ChannelControlDspIndex
@@ -28,6 +29,7 @@ FMOD_CODEC_OPEN_CALLBACK                            cannot   runs on FMOD's thre
 FMOD_CODEC_READ_CALLBACK                            cannot   runs on FMOD's threads inside a codec plugin, plugin authoring is C only
 FMOD_CODEC_SETPOSITION_CALLBACK                     cannot   runs on FMOD's threads inside a codec plugin, plugin authoring is C only
 FMOD_CODEC_SOUNDCREATE_CALLBACK                     cannot   runs on FMOD's threads inside a codec plugin, plugin authoring is C only
+FMOD_CODEC_SEEK_METHOD                              cannot   the seek origin of a codec plugin file callback, plugin authoring is C only
 FMOD_CODEC_STATE_FUNCTIONS                          cannot   codec plugins are written in C, Sound.create loads every format FMOD decodes and PcmStream feeds decoded audio
 FMOD_CPU_USAGE                                      haxefmod.studio.Types.FmodSystemCpuUsage
 FMOD_CREATESOUNDEXINFO                              library   Sound.create and Sound.fromPcm take its fields as arguments
@@ -193,6 +195,7 @@ FMOD_OUTPUT_STOP_CALLBACK                           cannot   runs on FMOD's mixe
 FMOD_OUTPUT_UPDATE_CALLBACK                         cannot   runs on FMOD's mixer thread inside an output plugin, plugin authoring is C only
 FMOD_PLUGINLIST                                     library   static plugin lists are C, a compiled plugin loads with StudioSystem.loadPlugin
 FMOD_PLUGINTYPE                                     haxefmod.studio.Types.FmodPluginType
+FMOD_PORT_INDEX                                     haxefmod.studio.Types.FmodPortIndex   NONE crosses as -1, the 64-bit all-ones value does not fit an Int skip: NONE
 FMOD_PORT_TYPE                                      haxefmod.studio.Types.FmodPortType
 FMOD_RESULT                                         haxefmod.studio.FmodResult
 FMOD_REVERB_PROPERTIES                              haxefmod.core.Reverb.ReverbProperties
@@ -245,6 +248,8 @@ FMOD_SYSTEM_CALLBACK_TYPE                           haxefmod.studio.Types.FmodSy
 FMOD_TAG                                            haxefmod.studio.Types.FmodTag   data and datalen are folded into intValue, floatValue, stringValue, and length skip: data,datalen
 FMOD_TAGDATATYPE                                    haxefmod.studio.Types.FmodTagDataType
 FMOD_TAGTYPE                                        haxefmod.studio.Types.FmodTagType
+FMOD_THREAD_AFFINITY                                haxefmod.studio.Types.FmodThreadAffinity   a 32-bit core mask, the 64-bit group values are left out skip: GROUP_DEFAULT,GROUP_A,GROUP_B,GROUP_C,MIXER,FEEDER,STREAM,FILE,NONBLOCKING,RECORD,GEOMETRY,PROFILER,STUDIO_UPDATE,STUDIO_LOAD_BANK,STUDIO_LOAD_SAMPLE,CONVOLUTION1,CONVOLUTION2
+FMOD_THREAD_PRIORITY                                haxefmod.studio.Types.FmodThreadPriority
 FMOD_THREAD_STACK_SIZE                              haxefmod.studio.Types.FmodThreadStackSize
 FMOD_THREAD_TYPE                                    haxefmod.studio.Types.FmodThreadType
 FMOD_TIMEUNIT                                       haxefmod.studio.Types.FmodTimeUnit

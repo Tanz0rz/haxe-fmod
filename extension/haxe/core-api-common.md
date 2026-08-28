@@ -36,13 +36,19 @@ The library keeps TTY, and the level comes from FmodSettings.logLevel.
 verdict: library GUIDs are strings in the text form FMOD Studio shows, taken by StudioSystem.getEventByID and returned by EventDescription.getID
 
 ## FMOD_MAX_CHANNEL_WIDTH
-verdict: library the limit is not declared in Haxe, FMOD enforces it and a mix matrix wider than 32 passed to Channel.setMixMatrix or ChannelGroup.setMixMatrix comes back as FmodResult.FMOD_ERR_INVALID_PARAM
+verdict: bound
+Type: haxefmod.studio.Types.FmodLimits
+FmodLimits.MAX_CHANNEL_WIDTH. A wider mix matrix passed to Channel.setMixMatrix or ChannelGroup.setMixMatrix comes back as FmodResult.FMOD_ERR_INVALID_PARAM.
 
 ## FMOD_MAX_LISTENERS
-verdict: library the limit is not declared in Haxe, StudioSystem.setNumListeners passes the count to FMOD, which rejects anything above 8
+verdict: bound
+Type: haxefmod.studio.Types.FmodLimits
+FmodLimits.MAX_LISTENERS, the cap StudioSystem.setNumListeners runs into.
 
 ## FMOD_MAX_SYSTEMS
-verdict: library haxefmod creates exactly one FMOD system per process inside FmodManager.Initialize, so the limit never applies
+verdict: bound
+Type: haxefmod.studio.Types.FmodLimits
+FmodLimits.MAX_SYSTEMS. haxefmod creates exactly one FMOD system per process inside FmodManager.Initialize, so the limit never applies.
 
 ## FMOD_MEMORY_ALLOC_CALLBACK
 verdict: cannot FMOD calls its allocator on every one of its threads, no Haxe target can run code there. FMOD keeps its default allocator, and StudioSystem.getMemoryStats reports what it has allocated.
@@ -81,22 +87,24 @@ Requested through FmodSettings.speakerMode and read from CoreSystem.getSoftwareF
 verdict: covered sync points are addressed by index on the Sound (Sound.addSyncPoint, Sound.getSyncPointName, Sound.getSyncPointOffset, Sound.deleteSyncPoint), and a crossing arrives as ChannelEvent.SyncPoint(index) through Channel.setCallback
 
 ## FMOD_THREAD_AFFINITY
-verdict: library thread placement is not exposed, FMOD keeps its default affinity on every native target and the web build has no threads to place. The 64-bit group values do not fit a Haxe Int.
+verdict: bound
+Type: haxefmod.studio.Types.FmodThreadAffinity
+The affinity field of a FmodSettings.threadAttributes entry, a 32-bit core mask. The 64-bit group values do not fit a Haxe Int, so an unset affinity keeps FMOD's default group. Native only, the web build has no threads to place.
 
 ## FMOD_THREAD_PRIORITY
 verdict: bound
 Type: haxefmod.studio.Types.FmodThreadPriority
-FMOD uses these default priorities on every target, no call changes them.
+The priority field of a FmodSettings.threadAttributes entry. DEFAULT keeps FMOD's own value for that thread.
 
 ## FMOD_THREAD_STACK_SIZE
 verdict: bound
 Type: haxefmod.studio.Types.FmodThreadStackSize
-FMOD uses these default stack sizes on every target, no call changes them.
+The stackSize field of a FmodSettings.threadAttributes entry. DEFAULT keeps FMOD's own value for that thread.
 
 ## FMOD_THREAD_TYPE
 verdict: bound
 Type: haxefmod.studio.Types.FmodThreadType
-Thread settings are not exposed, so no call takes a thread type.
+The type field of a FmodSettings.threadAttributes entry, applied with Thread_SetAttributes before the system is created.
 
 ## FMOD_TIMEUNIT
 verdict: bound

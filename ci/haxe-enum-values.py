@@ -5,7 +5,8 @@ can compare every value against the FMOD headers.
 Every `enum abstract X(Int)` in haxefmod/studio/Types.hx and
 haxefmod/core/DspEnums.hx whose doc comment names an FMOD type becomes
 one FAXE_HX_<X>_<NAME> macro per value plus FAXE_HX_<X>_COUNT, written
-to tests/native/faxe_haxe_enums.h. tests/native/test_faxe_enums.c
+to tests/native/faxe_haxe_enums.h. A class of inline constants whose doc
+comment names an FMOD_ define family (FmodLimits) is written the same way. tests/native/test_faxe_enums.c
 includes that header and asserts each macro against the FMOD constant.
 
 Run: python3 ci/haxe-enum-values.py          rewrite the header
@@ -25,6 +26,10 @@ HEADER = os.path.join(ROOT, "tests", "native", "faxe_haxe_enums.h")
 
 ENUM = re.compile(r"/\*\*\s*\*?\s*(FMOD_\w+)(?:(?!\*/).)*?\*/\s*\nenum abstract (\w+)\(Int\)[^{]*\{(.*?)\n\}", re.S)
 VALUE = re.compile(r"^\s*var (\w+) = (-?(?:0x[0-9A-Fa-f]+|\d+));", re.M)
+# A class of inline constants whose doc comment names an FMOD_ define family
+# (FmodLimits) is pinned the same way, one macro per constant
+LIMITS = re.compile(r"/\*\*\s*\*?\s*(?:The )?(FMOD_\w+)(?:(?!\*/).)*?\*/\s*\nclass (\w+)\s*\{(.*?)\n\}", re.S)
+CONSTANT = re.compile(r"^\s*public static inline var (\w+) = (-?(?:0x[0-9A-Fa-f]+|\d+));", re.M)
 
 
 def build():
@@ -42,6 +47,14 @@ def build():
             fmod_name, name, body = match.groups()
             values = VALUE.findall(body)
             lines.append(f"/* {name} mirrors {fmod_name} */")
+            for value_name, value in values:
+                lines.append(f"#define FAXE_HX_{name}_{value_name} ({value})")
+            lines.append(f"#define FAXE_HX_{name}_COUNT {len(values)}")
+            lines.append("")
+        for match in LIMITS.finditer(text):
+            fmod_name, name, body = match.groups()
+            values = CONSTANT.findall(body)
+            lines.append(f"/* {name} mirrors the {fmod_name} defines */")
             for value_name, value in values:
                 lines.append(f"#define FAXE_HX_{name}_{value_name} ({value})")
             lines.append(f"#define FAXE_HX_{name}_COUNT {len(values)}")

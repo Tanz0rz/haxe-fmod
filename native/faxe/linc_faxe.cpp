@@ -3117,9 +3117,28 @@ int fmod_sys_last_result() {
 
 // Settings-driven init: numChannels <= 0 falls back to 128, sampleRate 0 =
 // FMOD default, speakerMode 0 = default speaker mode, studioFlags bit0 =
-// live update. Keeps the FMOD_WAVWRITER env branch (CI recording), which
-// forces 48000/stereo and wins over the requested format. Idempotent:
-// returns FMOD_OK when already initialized.
+// live update, bit1 = FMOD_STUDIO_INIT_MEMORY_TRACKING. Keeps the
+// FMOD_WAVWRITER env branch (CI recording), which forces the wavwriter
+// output and 48000/stereo and wins over the requested output and format.
+// Idempotent: returns FMOD_OK when already initialized. The output type,
+// resampler, and raw speaker count come from the last
+// fmod_sys_set_init_format call (hxcpp caps a function at 26 arguments).
+static int gInitOutputType = 0;
+static int gInitResamplerMethod = 0;
+static int gInitRawSpeakers = 0;
+
+// outputType is an FMOD_OUTPUTTYPE applied with setOutput when nonzero,
+// resamplerMethod an FMOD_DSP_RESAMPLER for the advanced settings, and
+// rawSpeakers the speaker count for FMOD_SPEAKERMODE_RAW.
+int fmod_sys_set_init_format(int outputType, int resamplerMethod, int rawSpeakers) {
+    if (gStudioSystem != NULL) { gLastResult = FMOD_ERR_INITIALIZED; return (int)gLastResult; }
+    gInitOutputType = outputType;
+    gInitResamplerMethod = resamplerMethod;
+    gInitRawSpeakers = rawSpeakers;
+    gLastResult = FMOD_OK;
+    return (int)gLastResult;
+}
+
 // dspBufferLength/dspNumBuffers, softwareChannels, and streamBufferSize
 // (bytes) are applied before initialize when nonzero. initFlags bit0 turns
 // on FMOD_INIT_PROFILE_ENABLE, bit1 FMOD_INIT_CHANNEL_DISTANCEFILTER.
@@ -3128,6 +3147,9 @@ int fmod_sys_last_result() {
 // back first so untouched fields keep whatever FMOD put there.
 int fmod_sys_init_ex(int numChannels, int sampleRate, int speakerMode, int studioFlags, int dspBufferLength, int dspNumBuffers, int softwareChannels, int streamBufferSize, int initFlags, int maxMPEGCodecs, int maxVorbisCodecs, int maxFADPCMCodecs, float vol0VirtualVol, int defaultDecodeBufferSize, int profilePort, int geometryMaxFadeTime, float distanceFilterCenterFreq, int randomSeed, int commandQueueSize, int handleInitialSize, int studioUpdatePeriod, int idleSampleDataPoolSize, int streamingScheduleDelay, const ::String& encryptionKey) {
     if (gStudioSystem != NULL) { gLastResult = FMOD_OK; return (int)gLastResult; }
+    int outputType = gInitOutputType;
+    int resamplerMethod = gInitResamplerMethod;
+    int rawSpeakers = gInitRawSpeakers;
     if (numChannels <= 0) numChannels = 128;
 
     gLastResult = FMOD::Studio::System::create(&gStudioSystem);
@@ -3137,14 +3159,27 @@ int fmod_sys_init_ex(int numChannels, int sampleRate, int speakerMode, int studi
     const char* wavWriterPath = std::getenv("FMOD_WAVWRITER");
     void* extradriverdata = nullptr;
     if (wavWriterPath && wavWriterPath[0] != '\0') {
-        gStudioSystem->getCoreSystem(&gCoreSystem);
-        gCoreSystem->setOutput(FMOD_OUTPUTTYPE_WAVWRITER);
-        // Explicit stereo format so WAV header has correct channel count (Windows needs this)
-        gCoreSystem->setSoftwareFormat(48000, FMOD_SPEAKERMODE_STEREO, 0);
+        outputType = (int)FMOD_OUTPUTTYPE_WAVWRITER;
         extradriverdata = (void*)wavWriterPath;
-    } else if (sampleRate > 0 || speakerMode > 0) {
+        // Explicit stereo format so WAV header has correct channel count (Windows needs this)
+        sampleRate = 48000;
+        speakerMode = (int)FMOD_SPEAKERMODE_STEREO;
+        rawSpeakers = 0;
+    }
+    if (outputType > 0) {
         gStudioSystem->getCoreSystem(&gCoreSystem);
-        gCoreSystem->setSoftwareFormat(sampleRate, (FMOD_SPEAKERMODE)speakerMode, 0);
+        gLastResult = gCoreSystem->setOutput((FMOD_OUTPUTTYPE)outputType);
+        if (gLastResult != FMOD_OK) {
+            gStudioSystem->release();
+            gStudioSystem = NULL;
+            gCoreSystem = NULL;
+            return (int)gLastResult;
+        }
+    }
+    if (sampleRate > 0 || speakerMode > 0) {
+        gStudioSystem->getCoreSystem(&gCoreSystem);
+        gCoreSystem->setSoftwareFormat(sampleRate, (FMOD_SPEAKERMODE)speakerMode,
+            speakerMode == (int)FMOD_SPEAKERMODE_RAW ? rawSpeakers : 0);
     }
 
     if (dspBufferLength > 0 || softwareChannels > 0 || streamBufferSize > 0) {
@@ -3163,7 +3198,7 @@ int fmod_sys_init_ex(int numChannels, int sampleRate, int speakerMode, int studi
 
     if (maxMPEGCodecs > 0 || maxVorbisCodecs > 0 || maxFADPCMCodecs > 0 || vol0VirtualVol > 0
         || defaultDecodeBufferSize > 0 || profilePort > 0 || geometryMaxFadeTime > 0
-        || distanceFilterCenterFreq > 0 || randomSeed != 0) {
+        || distanceFilterCenterFreq > 0 || randomSeed != 0 || resamplerMethod > 0) {
         gStudioSystem->getCoreSystem(&gCoreSystem);
         FMOD_ADVANCEDSETTINGS adv;
         memset(&adv, 0, sizeof(adv));
@@ -3179,6 +3214,7 @@ int fmod_sys_init_ex(int numChannels, int sampleRate, int speakerMode, int studi
         if (geometryMaxFadeTime > 0) adv.geometryMaxFadeTime = (unsigned int)geometryMaxFadeTime;
         if (distanceFilterCenterFreq > 0) adv.distanceFilterCenterFreq = distanceFilterCenterFreq;
         if (randomSeed != 0) adv.randomSeed = (unsigned int)randomSeed;
+        if (resamplerMethod > 0) adv.resamplerMethod = (FMOD_DSP_RESAMPLER)resamplerMethod;
         gCoreSystem->setAdvancedSettings(&adv);
     }
     const char* key = encryptionKey.c_str();
@@ -3199,7 +3235,9 @@ int fmod_sys_init_ex(int numChannels, int sampleRate, int speakerMode, int studi
         gStudioSystem->setAdvancedSettings(&sadv);
     }
 
-    FMOD_STUDIO_INITFLAGS studioInitFlags = (studioFlags & 1) ? FMOD_STUDIO_INIT_LIVEUPDATE : FMOD_STUDIO_INIT_NORMAL;
+    FMOD_STUDIO_INITFLAGS studioInitFlags = FMOD_STUDIO_INIT_NORMAL;
+    if (studioFlags & 1) studioInitFlags |= FMOD_STUDIO_INIT_LIVEUPDATE;
+    if (studioFlags & 2) studioInitFlags |= FMOD_STUDIO_INIT_MEMORY_TRACKING;
     gLastResult = gStudioSystem->initialize(numChannels, studioInitFlags, coreInitFlags, extradriverdata);
     if (gLastResult != FMOD_OK) {
         gStudioSystem->release();
@@ -5539,7 +5577,7 @@ const char* fmod_core_sound_get_tag_string(int h, const ::String& name, int inde
 }
 
 int fmod_sys_get_advanced_settings(::Array<int> ibuf, ::Array<Float> fbuf) {
-    for (int i = 0; i < 7; i++) ibuf[i] = 0;
+    for (int i = 0; i < 8; i++) ibuf[i] = 0;
     fbuf[0] = 0.0; fbuf[1] = 0.0;
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
     FMOD_ADVANCEDSETTINGS adv;
@@ -5554,6 +5592,7 @@ int fmod_sys_get_advanced_settings(::Array<int> ibuf, ::Array<Float> fbuf) {
     ibuf[4] = (int)adv.profilePort;
     ibuf[5] = (int)adv.geometryMaxFadeTime;
     ibuf[6] = (int)adv.randomSeed;
+    ibuf[7] = (int)adv.resamplerMethod;
     fbuf[0] = (Float)adv.vol0virtualvol;
     fbuf[1] = (Float)adv.distanceFilterCenterFreq;
     return (int)gLastResult;
@@ -6099,6 +6138,102 @@ const char* fmod_dsp_get_parameter_text(int h, int index, int kind) {
     if (gLastResult != FMOD_OK || !desc) return gStringBuf;
     faxe_dspdata_desc_text(desc, kind, gStringBuf, sizeof(gStringBuf));
     return gStringBuf;
+}
+
+//// Init settings and system info: pre-create hooks, driver info, console ports
+
+// A fixed pool FMOD allocates from instead of the heap, handed over with
+// Memory_Initialize. Only valid before the system exists. The pool lives
+// for the rest of the process. Size rounds up to the multiple of 512 FMOD
+// requires.
+static void* gMemoryPool = NULL;
+
+int fmod_sys_memory_initialize(int poolSize) {
+    if (gStudioSystem != NULL || gMemoryPool != NULL) { gLastResult = FMOD_ERR_INITIALIZED; return (int)gLastResult; }
+    if (poolSize <= 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    poolSize = (poolSize + 511) & ~511;
+    gMemoryPool = std::malloc((size_t)poolSize);
+    if (!gMemoryPool) { gLastResult = FMOD_ERR_MEMORY; return (int)gLastResult; }
+    gLastResult = FMOD::Memory_Initialize(gMemoryPool, poolSize, NULL, NULL, NULL, FMOD_MEMORY_ALL);
+    if (gLastResult != FMOD_OK) {
+        std::free(gMemoryPool);
+        gMemoryPool = NULL;
+    }
+    return (int)gLastResult;
+}
+
+// affinity is a 32-bit core mask, or -1 for FMOD's default group (the
+// 64-bit group values never cross the boundary).
+int fmod_sys_thread_set_attributes(int type, int priority, int stackSize, int affinity) {
+    FMOD_THREAD_AFFINITY mask = affinity < 0
+        ? (FMOD_THREAD_AFFINITY)FMOD_THREAD_AFFINITY_GROUP_DEFAULT
+        : (FMOD_THREAD_AFFINITY)(unsigned int)affinity;
+    if (gStudioSystem != NULL) { gLastResult = FMOD_ERR_INITIALIZED; return (int)gLastResult; }
+    gLastResult = FMOD::Thread_SetAttributes((FMOD_THREAD_TYPE)type, mask,
+        (FMOD_THREAD_PRIORITY)priority, (FMOD_THREAD_STACK_SIZE)stackSize);
+    return (int)gLastResult;
+}
+
+// flags are FMOD_DEBUG_FLAGS bits, mode FMOD_DEBUG_MODE_TTY or _FILE with
+// the file path. The callback mode is refused, it would run on FMOD's
+// threads. The logging-stripped libraries report FMOD_ERR_UNSUPPORTED,
+// passed through like fmod_sys_set_debug_level does.
+int fmod_sys_debug_initialize(int flags, int mode, const ::String& filename) {
+    const char* path = filename.c_str();
+    if (mode == (int)FMOD_DEBUG_MODE_CALLBACK) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    if (mode == (int)FMOD_DEBUG_MODE_FILE && (path == NULL || path[0] == '\0')) {
+        gLastResult = FMOD_ERR_INVALID_PARAM;
+        return (int)gLastResult;
+    }
+    gLastResult = FMOD::Debug_Initialize((FMOD_DEBUG_FLAGS)flags, (FMOD_DEBUG_MODE)mode, NULL,
+        mode == (int)FMOD_DEBUG_MODE_FILE ? path : NULL);
+    return (int)gLastResult;
+}
+
+// Name of an output driver plus rate, speaker mode, and channel count in
+// ibuf. The GUID comes from fmod_sys_get_driver_guid.
+const char* fmod_sys_get_driver_info(int id, ::Array<int> ibuf) {
+    int rate = 0;
+    FMOD_SPEAKERMODE mode = FMOD_SPEAKERMODE_DEFAULT;
+    int channels = 0;
+    gStringBuf[0] = '\0';
+    ibuf[0] = 0; ibuf[1] = 0; ibuf[2] = 0;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return gStringBuf; }
+    gLastResult = gCoreSystem->getDriverInfo(id, gStringBuf, sizeof(gStringBuf), NULL, &rate, &mode, &channels);
+    if (gLastResult != FMOD_OK) gStringBuf[0] = '\0';
+    ibuf[0] = rate;
+    ibuf[1] = (int)mode;
+    ibuf[2] = channels;
+    return gStringBuf;
+}
+
+const char* fmod_sys_get_driver_guid(int id) {
+    FMOD_GUID guid;
+    gStringBuf[0] = '\0';
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return gStringBuf; }
+    memset(&guid, 0, sizeof(guid));
+    gLastResult = gCoreSystem->getDriverInfo(id, NULL, 0, &guid, NULL, NULL, NULL);
+    if (gLastResult == FMOD_OK) faxe_guid_format(&guid, gStringBuf, sizeof(gStringBuf));
+    return gStringBuf;
+}
+
+// Console port routing. portIndex -1 is FMOD_PORT_INDEX_NONE. Desktop
+// outputs have no ports and FMOD reports that itself.
+int fmod_sys_attach_channel_group_to_port(int portType, int portIndex, int groupHandle, bool passThru) {
+    FMOD::ChannelGroup* group = resolveChanGroup(groupHandle);
+    FMOD_PORT_INDEX index = portIndex < 0 ? FMOD_PORT_INDEX_NONE : (FMOD_PORT_INDEX)(unsigned int)portIndex;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = gCoreSystem->attachChannelGroupToPort((FMOD_PORT_TYPE)portType, index, group, passThru);
+    return (int)gLastResult;
+}
+
+int fmod_sys_detach_channel_group_from_port(int groupHandle) {
+    FMOD::ChannelGroup* group = resolveChanGroup(groupHandle);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = gCoreSystem->detachChannelGroupFromPort(group);
+    return (int)gLastResult;
 }
 
 } // namespace faxe

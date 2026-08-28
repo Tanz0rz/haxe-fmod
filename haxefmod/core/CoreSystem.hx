@@ -60,6 +60,55 @@ class CoreSystem {
         return NativeStudio.sys_get_driver_name(index);
     }
 
+    /**
+     * Name, GUID, native rate, speaker mode, and channel count of an
+     * output driver (see getDriverCount). Null for an index out of range.
+     */
+    public static function getDriverInfo(index:Int):Null<{name:String, guid:String, systemRate:Int, speakerMode:FmodSpeakerMode, speakerModeChannels:Int}> {
+        var name = NativeStudio.sys_get_driver_info(index);
+        if (!(NativeStudio.sys_last_result() : FmodResult).isOk()) return null;
+        var info = {name: name, guid: "", systemRate: Scratch.readI(0), speakerMode: (Scratch.readI(1) : FmodSpeakerMode),
+            speakerModeChannels: Scratch.readI(2)};
+        info.guid = NativeStudio.sys_get_driver_guid(index);
+        return info;
+    }
+
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /**
+     * Routes a channel group to a console output port (unsupported in
+     * HTML5, FMOD_ERR_UNSUPPORTED there). Desktop outputs have no ports
+     * either and FMOD reports that in the result. portIndex is
+     * FmodPortIndex.NONE for ports without slots, passThru keeps the group
+     * in the main mix as well.
+     */
+    public static macro function attachChannelGroupToPort(portType:haxe.macro.Expr, portIndex:haxe.macro.Expr, group:haxe.macro.Expr, ?passThru:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("CoreSystem.attachChannelGroupToPort", "the web build has no output ports");
+    }
+    #else
+    /**
+     * Routes a channel group to a console output port (unsupported in
+     * HTML5, FMOD_ERR_UNSUPPORTED there). Desktop outputs have no ports
+     * either and FMOD reports that in the result. portIndex is
+     * FmodPortIndex.NONE for ports without slots, passThru keeps the group
+     * in the main mix as well.
+     */
+    public static inline function attachChannelGroupToPort(portType:FmodPortType, portIndex:FmodPortIndex, group:ChannelGroup, passThru:Bool = false):FmodResult {
+        return NativeStudio.sys_attach_channel_group_to_port(portType, portIndex, group, passThru);
+    }
+    #end
+
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /** Takes a channel group off its output port again (unsupported in HTML5, FMOD_ERR_UNSUPPORTED there). */
+    public static macro function detachChannelGroupFromPort(group:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("CoreSystem.detachChannelGroupFromPort", "the web build has no output ports");
+    }
+    #else
+    /** Takes a channel group off its output port again (unsupported in HTML5, FMOD_ERR_UNSUPPORTED there). */
+    public static inline function detachChannelGroupFromPort(group:ChannelGroup):FmodResult {
+        return NativeStudio.sys_detach_channel_group_from_port(group);
+    }
+    #end
+
     /** Switches the output device (see getDriverCount/getDriverName). */
     public static inline function setDriver(index:Int):FmodResult {
         return NativeStudio.sys_set_driver(index);

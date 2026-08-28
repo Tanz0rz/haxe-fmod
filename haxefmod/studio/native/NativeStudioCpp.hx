@@ -764,6 +764,16 @@ class NativeStudioCpp {
 
     public static inline function cg_get_num_dsps(handle:Int):Int return Raw.cg_get_num_dsps(handle);
     public static inline function cg_get_dsp(handle:Int, index:Int):Int return Raw.cg_get_dsp(handle, index);
+
+    //// Init settings and system info
+    public static inline function sys_set_init_format(outputType:Int, resamplerMethod:Int, rawSpeakers:Int):Int return Raw.sys_set_init_format(outputType, resamplerMethod, rawSpeakers);
+    public static inline function sys_memory_initialize(poolSize:Int):Int return Raw.sys_memory_initialize(poolSize);
+    public static inline function sys_thread_set_attributes(type:Int, priority:Int, stackSize:Int, affinity:Int):Int return Raw.sys_thread_set_attributes(type, priority, stackSize, affinity);
+    public static inline function sys_debug_initialize(flags:Int, mode:Int, filename:String):Int return Raw.sys_debug_initialize(flags, mode, filename);
+    public static inline function sys_get_driver_info(id:Int):String return Raw.sys_get_driver_info(id, Scratch.intBuf()).toString();
+    public static inline function sys_get_driver_guid(id:Int):String return Raw.sys_get_driver_guid(id).toString();
+    public static inline function sys_attach_channel_group_to_port(portType:Int, portIndex:Int, group:Int, passThru:Bool):Int return Raw.sys_attach_channel_group_to_port(portType, portIndex, group, passThru);
+    public static inline function sys_detach_channel_group_from_port(group:Int):Int return Raw.sys_detach_channel_group_from_port(group);
 }
 
 @:keep
@@ -2330,5 +2340,22 @@ private extern class Raw {
 
     @:native("linc::faxe::fmod_cg_get_dsp")
     static function cg_get_dsp(handle:Int, index:Int):Int;
+
+    @:native("linc::faxe::fmod_sys_set_init_format")
+    static function sys_set_init_format(outputType:Int, resamplerMethod:Int, rawSpeakers:Int):Int;
+    @:native("linc::faxe::fmod_sys_memory_initialize")
+    static function sys_memory_initialize(poolSize:Int):Int;
+    @:native("linc::faxe::fmod_sys_thread_set_attributes")
+    static function sys_thread_set_attributes(type:Int, priority:Int, stackSize:Int, affinity:Int):Int;
+    @:native("linc::faxe::fmod_sys_debug_initialize")
+    static function sys_debug_initialize(flags:Int, mode:Int, filename:String):Int;
+    @:native("linc::faxe::fmod_sys_get_driver_info")
+    static function sys_get_driver_info(id:Int, ibuf:Array<Int>):cpp.ConstCharStar;
+    @:native("linc::faxe::fmod_sys_get_driver_guid")
+    static function sys_get_driver_guid(id:Int):cpp.ConstCharStar;
+    @:native("linc::faxe::fmod_sys_attach_channel_group_to_port")
+    static function sys_attach_channel_group_to_port(portType:Int, portIndex:Int, group:Int, passThru:Bool):Int;
+    @:native("linc::faxe::fmod_sys_detach_channel_group_from_port")
+    static function sys_detach_channel_group_from_port(group:Int):Int;
 }
 #end

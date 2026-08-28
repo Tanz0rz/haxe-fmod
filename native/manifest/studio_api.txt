@@ -886,3 +886,14 @@ cg_get_delay i32 fbuf -> i32
 cg_get_low_pass_gain i32 -> f32
 cg_is_playing i32 -> bool
 cg_set_callback i32 bool -> i32
+## Init settings and system info: pre-create hooks, driver info, console ports
+# sys_set_init_format stores the output type, resampler, and raw speaker
+# count for the next sys_init_ex (hxcpp caps a function at 26 arguments).
+sys_set_init_format i32 i32 i32 -> i32
+sys_memory_initialize i32 -> i32
+sys_thread_set_attributes i32 i32 i32 i32 -> i32
+sys_debug_initialize i32 i32 str -> i32
+sys_get_driver_info i32 ibuf -> str
+sys_get_driver_guid i32 -> str
+sys_attach_channel_group_to_port i32 i32 i32 bool -> i32
+sys_detach_channel_group_from_port i32 -> i32

@@ -1,4 +1,8 @@
 # managing-resources-in-the-core-api
 
 ## 9.5.1 Use a Fixed-size Memory Pool.
-verdict: library Memory_Initialize must run before System_Create, which the library performs itself, so FMOD allocates from the process heap. StudioSystem.getMemoryStats and StudioSystem.getMemoryUsage report what it holds
+verdict: bound
+The memoryPoolSize setting allocates the pool and hands it to FMOD before the system is created. StudioSystem.getMemoryStats reports how much of it is in use. Native only, the web build allocates from the wasm heap.
+```haxe
+FmodManager.Initialize({memoryPoolSize: 64 * 1024 * 1024});
+```

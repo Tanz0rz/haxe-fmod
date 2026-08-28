@@ -590,10 +590,10 @@ class StudioSystem {
 
     /**
      * Bytes FMOD currently has allocated and the most it has ever had.
-     * blocking makes FMOD flush pending commands first so the numbers are
-     * exact. Null on failure.
+     * blocking (the default, matching FMOD) makes FMOD flush pending
+     * commands first so the numbers are exact. Null on failure.
      */
-    public static function getMemoryStats(blocking:Bool = false):Null<{current:Int, maximum:Int}> {
+    public static function getMemoryStats(blocking:Bool = true):Null<{current:Int, maximum:Int}> {
         var result:FmodResult = NativeStudio.sys_get_memory_stats(blocking);
         if (!result.isOk()) return null;
         return {current: Scratch.readI(0), maximum: Scratch.readI(1)};
@@ -761,6 +761,7 @@ class StudioSystem {
             profilePort: Scratch.readI(4),
             geometryMaxFadeTime: Scratch.readI(5),
             randomSeed: Scratch.readI(6),
+            resamplerMethod: Scratch.readI(7),
             vol0VirtualVol: Scratch.readF(0),
             distanceFilterCenterFreq: Scratch.readF(1),
         };

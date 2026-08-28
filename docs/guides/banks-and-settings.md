@@ -40,8 +40,16 @@ FmodRuntime.onceReady(() -> {
 | `numChannels` | `haxefmod_num_channels` | 128 | Maximum virtual voices. |
 | `sampleRate` | `haxefmod_sample_rate` | 0 | Mixer sample rate. 0 uses the device default. |
 | `speakerMode` | | 0 | `FMOD_SPEAKERMODE` value. 0 uses the device default. |
-| `dspBufferSize` | `haxefmod_dsp_buffer_size` | 0 | Mixer block size in samples. Smaller buffers cut latency and cost CPU. 0 uses FMOD's default. Native only, the web build fixes its buffer at 2048 samples. |
-| `dspNumBuffers` | | 0 | Mixer blocks queued ahead. 0 uses FMOD's default of 2. Native only. |
+| `rawSpeakers` | | 0 | Speaker count for `speakerMode` `RAW`. Ignored for every other mode. |
+| `output` | | `AUTODETECT` | `FmodOutputType` applied before init: `NOSOUND` and `NOSOUND_NRT` mix without a device, `WAVWRITER` writes the mix to a file, and the platform values pick a driver. The `FMOD_WAVWRITER` environment variable still forces `WAVWRITER` into the file it names. On HTML5 only `WEBAUDIO`, `AUDIOWORKLET`, `NOSOUND`, and `NOSOUND_NRT` exist, and any other value makes init fail with `FMOD_ERR_UNSUPPORTED`. |
+| `resamplerMethod` | | `DEFAULT` | `FmodDspResampler` for sounds playing at another rate than the mixer. `DEFAULT` is FMOD's choice, `LINEAR`. |
+| `dspBufferSize` | `haxefmod_dsp_buffer_size` | 0 | Mixer block size in samples. Smaller buffers cut latency and cost CPU. 0 uses FMOD's default, 1024 on desktop and 2048 on the web build. |
+| `dspNumBuffers` | | 0 | Mixer blocks queued ahead. 0 uses FMOD's default of 2. |
+| `memoryPoolSize` | | 0 | Bytes of a fixed pool FMOD allocates from instead of the heap. The pool never grows, so an exhausted pool fails later calls with `FMOD_ERR_MEMORY`. Rounded up to a multiple of 512. Native only, the web build allocates from the wasm heap. |
+| `memoryTracking` | | false | Tracks memory per object so `getMemoryUsage` on `StudioSystem`, `Bank`, `Bus`, and `EventInstance` reports real numbers. Only the logging FMOD libraries (`libfmodstudioL`) count, the release libraries report zero. Costs a little CPU per allocation. |
+| `threadAttributes` | | `[]` | One `{type, priority, stackSize, affinity}` per FMOD worker thread to change, applied before the system is created. An unset field keeps FMOD's default for that thread. `affinity` is a 32-bit core mask (`FmodThreadAffinity`), the 64-bit group values stay FMOD's. Native only, the web build has no threads to place. |
+| `logFile` | | none | File FMOD writes its log to at `logLevel` instead of the console. Native only. |
+| `logFlags` | | 0 | Extra `FmodDebugFlags` bits: the `TYPE_` bits add memory, file, codec, trace, and virtual voice lines, the `DISPLAY_` bits add timestamps, line numbers, and thread ids. Native only. |
 | `softwareChannels` | `haxefmod_software_channels` | 0 | Real (audible) voices the mixer runs at once. Voices past the cap go virtual. 0 uses FMOD's default of 64. |
 | `streamBufferSize` | | 0 | File buffer size in bytes for streamed sounds. 0 uses FMOD's default of 16384. |
 | `profiling` | | false | Turns on FMOD profiling. `Bus`, `EventInstance`, and `Dsp` report `getCpuUsage()` only with this on, and the FMOD Profiler can connect to the game. |
