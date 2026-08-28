@@ -2,52 +2,59 @@
 
 ## 5.0.2 Loading Sounds as 3D
 verdict: bound
-Sound.create takes no mode flags. Switch the sound to 3D with setMode after loading, or call setMode on the channel that plays it.
+Sound.create takes no mode flags, so the 3D flag is set with setMode after loading.
+Sound.create returns Sound.NULL on failure and StudioSystem.lastResult() holds the FMOD_RESULT.
 ```haxe
 import haxefmod.core.Sound;
 import haxefmod.core.ChannelMode;
+import haxefmod.studio.FmodResult;
 
-var sound = Sound.create("assets/drumloop.wav");
-if (sound.isNull()) {
-    trace('load failed: ${StudioSystem.lastResult()}');
+var result:FmodResult;
+function handleError(result:FmodResult):Void {
+    trace(result);
 }
-var result = sound.setMode(ChannelMode.MODE_3D);
+
+var sound = Sound.create("../media/drumloop.wav");
+if (sound.isNull()) {
+    handleError(StudioSystem.lastResult());
+}
+result = sound.setMode(ChannelMode.MODE_3D);
 if (!result.isOk()) {
-    trace('setMode failed: $result');
+    handleError(result);
 }
 ```
 
 ## 5.1 Controlling a Spatializer DSP
-verdict: bound
-Spatializer parameters of the FMOD_DSP_PARAMETER_3DATTRIBUTES kind are not settable from Haxe. Give the channel its world-space position with Channel.set3DAttributes and let FMOD compute the listener-relative part itself.
-```haxe
-import haxefmod.core.Sound;
-import haxefmod.core.ChannelMode;
-
-var sound = Sound.create("assets/drumloop.wav");
-sound.setMode(ChannelMode.MODE_3D);
-var channel = sound.play();
-channel.set3DAttributes(carX, carY, 0, 0, 0, 0);
-```
+verdict: covered The relative and absolute 3D attributes of a spatializer are not computed in Haxe. A source played through a 3D channel is positioned in world space with Channel.set3DAttributes and FMOD derives the listener-relative attributes from the listener set with StudioSystem.setListenerAttributes. A pan DSP created by hand can only take its 3D attributes as a raw byte payload through Dsp.setParameterData.
 
 ## 5.1 Controlling a Spatializer DSP#2
 verdict: bound
-The library calls System::update once per frame on its own. The game loop only moves the sources and the listener.
+The library calls System::update once per frame on its own, so the loop does not call it.
+The listener is set through the Studio system, which drives the Core listener.
 ```haxe
 import haxefmod.studio.Types;
 
+var listenerPos:FmodVector = {x: cameraX, y: cameraY, z: 0};
+var listenerVel:FmodVector = {x: 0, y: 0, z: 0};
+var listenerForward:FmodVector = {x: 0, y: 0, z: 1};
+var listenerUp:FmodVector = {x: 0, y: 1, z: 0};
+var gameRunning = true;
 function updateGame():Void {
-    // move sources here with channel.set3DAttributes
     channel.set3DAttributes(carX, carY, 0);
-
-    // update 'ears'
-    StudioSystem.setListenerAttributes(0, {
-        position: {x: cameraX, y: cameraY, z: 0},
-        velocity: {x: 0, y: 0, z: 0},
-        forward: {x: 0, y: 0, z: 1},
-        up: {x: 0, y: 1, z: 0}
-    });
 }
+
+do
+{
+    updateGame();       // here the game is updated and the sources would be moved with channel.set3DAttributes.
+
+    StudioSystem.setListenerAttributes(0, {
+        position: listenerPos,
+        velocity: listenerVel,
+        forward: listenerForward,
+        up: listenerUp
+    });     // update 'ears'
+
+} while (gameRunning);
 ```
 
 ## 5.1.1 Velocity

@@ -2,29 +2,39 @@
 
 ## 22.33 Reading Sound Data
 verdict: bound
-Sound.readData reads decoded PCM out of a sound opened with the openOnly flag of Sound.create, and seekData moves the read cursor. Sound.getLength reports milliseconds rather than a byte count, so the buffer is read in fixed chunks until readData returns 0. Both are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED, so a web build keeps its own copy of the PCM it feeds through Sound.fromPcm or PcmStream.
+Native only (unsupported in HTML5).
+getLength reports milliseconds, not a byte count, so the PCM is read in fixed chunks until readData returns 0.
 ```haxe
 import haxefmod.core.Sound;
 
-var sound = Sound.create("assets/sfx/engine.wav", false, true);
-var lengthMs = sound.getLength(); // milliseconds, the PCM byte count is not reported
-var buffer = haxe.io.Bytes.alloc(4096);
-var read = sound.readData(buffer);
+var sound:Sound;
+var length:Int;
+var buffer:haxe.io.Bytes;
+
+sound = Sound.create("drumloop.wav", false, true); // openOnly is FMOD_OPENONLY
+length = sound.getLength();
+
+buffer = haxe.io.Bytes.alloc(4096);
+var read = sound.readData(buffer, buffer.length);
 while (read > 0) {
-    // the first read bytes of buffer hold decoded PCM
-    read = sound.readData(buffer);
+    read = sound.readData(buffer, buffer.length);
 }
+
 sound.release();
 ```
 
 ## 22.49 User Data
 verdict: bound
-Every handle has setUserData and getUserData. The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
+The value is any Haxe value. It stays on the Haxe side keyed by the handle and is dropped when the handle is released.
 ```haxe
 import haxefmod.core.Sound;
 
 var sound = Sound.create("drumloop.wav");
-sound.setUserData("Hello User Data!");
-
-trace(sound.getUserData());
+{
+    var userData = "Hello User Data!";
+    sound.setUserData(userData);
+}
+{
+    var userData:String = sound.getUserData();
+}
 ```

@@ -3,62 +3,80 @@
 ## FMOD_OPENSTATE
 verdict: bound
 Type: haxefmod.studio.Types.FmodOpenState
-Returned by Sound.getOpenState, READY once the sound can play.
+Sound.getOpenState reports only the state. A failed query also comes back as ERROR, with the reason in StudioSystem.lastResult().
 
 ## FMOD_SOUND_FORMAT
 verdict: bound
 Type: haxefmod.studio.Types.FmodSoundFormat
-Sound.fromPcm always builds PCM16, and Sound.getFormat reports the channel count and bit depth.
+Sound.getFormat reports the bit depth as a number instead of this enum. Sound.fromPcm always builds PCM16.
 
 ## Sound::getTag
 verdict: bound
-Sound.getTag reads one tag by name as an FmodTag, with a FLOAT payload in floatValue (unsupported in HTML5, returns null there). Netstreams are not part of the supported sound sources, so the tag is read once after the sound opens.
+Native only (unsupported in HTML5).
+A null name with index -1 walks the tags updated since the last pass, and a FLOAT payload is read from floatValue.
 ```haxe
 import haxefmod.core.Sound;
 import haxefmod.studio.Types;
 
-var sound = Sound.create("assets/music/track.ogg");
+var sound = Sound.create("assets/music/track.mp3");
 var channel = sound.play();
-var tag = sound.getTag("Sample Rate Change");
-if (tag != null && tag.type == FmodTagType.FMOD) {
-    var result = channel.setFrequency(tag.floatValue);
-    if (!result.isOk()) {
-        trace('setFrequency failed: $result');
+var tag = sound.getTag(null, -1);
+while (tag != null) {
+    if (tag.type == FmodTagType.FMOD) {
+        /* When a song changes, the sample rate may also change, so compensate here. */
+        if (tag.name == "Sample Rate Change" && !channel.isNull()) {
+            var frequency = tag.floatValue;
+
+            var result = channel.setFrequency(frequency);
+            if (!result.isOk()) {
+                trace('setFrequency failed: $result');
+            }
+        }
     }
+    tag = sound.getTag(null, -1);
 }
 ```
 
 ## Sound::getTag#2
 verdict: bound
-Sound.getTag reads one tag by name as an FmodTag, with a FLOAT payload in floatValue (unsupported in HTML5, returns null there). Netstreams are not part of the supported sound sources, so the tag is read once after the sound opens.
+Native only (unsupported in HTML5).
+A null name with index -1 walks the tags updated since the last pass, and a FLOAT payload is read from floatValue.
 ```haxe
 import haxefmod.core.Sound;
 import haxefmod.studio.Types;
 
-var sound = Sound.create("assets/music/track.ogg");
+var sound = Sound.create("assets/music/track.mp3");
 var channel = sound.play();
-var tag = sound.getTag("Sample Rate Change");
-if (tag != null && tag.type == FmodTagType.FMOD) {
-    var result = channel.setFrequency(tag.floatValue);
-    if (!result.isOk()) {
-        trace('setFrequency failed: $result');
+var tag = sound.getTag(null, -1);
+while (tag != null) {
+    if (tag.type == FmodTagType.FMOD) {
+        /* When a song changes, the sample rate may also change, so compensate here. */
+        if (tag.name == "Sample Rate Change" && !channel.isNull()) {
+            var frequency = tag.floatValue;
+
+            var result = channel.setFrequency(frequency);
+            if (!result.isOk()) {
+                trace('setFrequency failed: $result');
+            }
+        }
     }
+    tag = sound.getTag(null, -1);
 }
 ```
 
 ## FMOD_SOUND_NONBLOCK_CALLBACK
-verdict: review note only, decide bound or a category
-Sound callbacks are not exposed since Haxe code cannot run on FMOD's threads. Poll getOpenState until it reports FmodOpenState.READY.
+verdict: cannot It runs on FMOD's file thread, where no Haxe code can run. Sound.create opens synchronously, and Sound.getOpenState reports the state of a sound at any time.
 
 ## FMOD_SOUND_PCMREAD_CALLBACK
 verdict: bound
-PCM read callbacks are not exposed since Haxe code cannot run on FMOD's threads. PcmStream fills the same role from the game thread, the game writes PCM into a ring buffer and the mixer drains it.
+Shape: usage
+The callback runs on FMOD's mixer thread, where no Haxe code can run. PcmStream plays the same role from the game thread. The game writes PCM16 into a ring buffer and the mixer drains it.
 ```haxe
 import haxefmod.core.PcmStream;
 
 var stream = PcmStream.create(48000, 1);
 var channel = stream.play();
-// each frame
+// each frame, fill whatever room the ring has
 var buffer = haxe.io.Bytes.alloc(stream.space());
 for (i in 0...Std.int(buffer.length / 2)) {
     buffer.setUInt16(i * 2, nextSample() & 0xFFFF);
@@ -67,78 +85,86 @@ stream.write(buffer);
 ```
 
 ## FMOD_SOUND_PCMSETPOS_CALLBACK
-verdict: review note only, decide bound or a category
-PCM position callbacks are not exposed since Haxe code cannot run on FMOD's threads. A PcmStream has no seekable position, so a game that needs to jump restarts what it writes into the ring.
+verdict: cannot It runs on FMOD's mixer thread, where no Haxe code can run. A PcmStream has no seekable position, so a game that needs to jump changes what it writes into the ring.
 
 ## Sound::set3DCustomRolloff
 verdict: bound
-Custom rolloff curves are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED. Each point is an FmodVector with x as the distance and y as the volume, and the copy FMOD needs lives with the sound until it is released.
 ```haxe
-import haxefmod.core.Sound;
-import haxefmod.core.ChannelMode;
+import haxefmod.studio.Types.FmodVector;
 
-var sound = Sound.create("assets/sfx/engine.wav");
-sound.setMode(ChannelMode.MODE_3D);
-sound.set3DCustomRolloff([{x: 1, y: 1, z: 0}, {x: 10, y: 0.5, z: 0}, {x: 50, y: 0, z: 0}]);
+// Defining a custom array of points
+var curve:Array<FmodVector> = [
+    {x: 0.0, y: 1.0, z: 0.0},
+    {x: 2.0, y: 0.2, z: 0.0},
+    {x: 20.0, y: 0.0, z: 0.0}
+];
 ```
 
 ## Sound::setDefaults
 verdict: bound
-getDefaults returns both values in one struct.
+getDefaults returns both values in one struct, null on failure.
 ```haxe
 import haxefmod.core.Sound;
+
 var sound = Sound.create("assets/sfx/hit.wav");
 var defaults = sound.getDefaults();
 if (defaults != null) {
-    sound.setDefaults(48000, defaults.priority);
+    var priority = defaults.priority;
+    sound.setDefaults(48000, priority);
 }
 ```
 
 ## Sound::setDefaults#2
 verdict: bound
-getDefaults returns both values in one struct.
+getDefaults returns both values in one struct, null on failure.
 ```haxe
 import haxefmod.core.Sound;
+
 var sound = Sound.create("assets/sfx/hit.wav");
 var defaults = sound.getDefaults();
 if (defaults != null) {
-    sound.setDefaults(48000, defaults.priority);
+    var priority = defaults.priority;
+    sound.setDefaults(48000, priority);
 }
 ```
 
 ## Sound::setDefaults#3
 verdict: bound
-getDefaults returns both values in one struct.
+getDefaults returns both values in one struct, null on failure.
 ```haxe
 import haxefmod.core.Sound;
+
 var sound = Sound.create("assets/sfx/hit.wav");
 var defaults = sound.getDefaults();
 if (defaults != null) {
-    sound.setDefaults(48000, defaults.priority);
+    var priority = defaults.priority;
+    sound.setDefaults(48000, priority);
 }
 ```
 
 ## Sound::setDefaults#4
 verdict: bound
-getDefaults returns both values in one struct.
+getDefaults returns both values in one struct, null on failure.
 ```haxe
 import haxefmod.core.Sound;
+
 var sound = Sound.create("assets/sfx/hit.wav");
 var defaults = sound.getDefaults();
 if (defaults != null) {
-    sound.setDefaults(48000, defaults.priority);
+    var priority = defaults.priority;
+    sound.setDefaults(48000, priority);
 }
 ```
 
 ## FMOD_SOUND_TYPE
 verdict: bound
 Type: haxefmod.studio.Types.FmodSoundType
-Sound.create accepts any format FMOD decodes on the target, the type of a loaded sound is not queried.
+Sound.create accepts any format FMOD decodes on the target. The type of a loaded sound is not queried, Sound.getFormat reports only channels and bits.
 
 ## FMOD_TAG
 verdict: bound
 Type: haxefmod.studio.Types.FmodTag
-Returned by Sound.getTag (unsupported in HTML5, null there). The data pointer and datalen are folded into intValue, floatValue, stringValue, and length, and updated is true until the tag has been read once.
+Returned by Sound.getTag (unsupported in HTML5, null there). data and datalen are folded into intValue, floatValue, stringValue, and length.
 
 ## FMOD_TAGDATATYPE
 verdict: bound

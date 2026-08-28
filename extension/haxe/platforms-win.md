@@ -1,13 +1,10 @@
 # platforms-win
 
 ## ASIO and C#
-verdict: review note only, decide bound or a category
-On Windows the library's build integration compiles the binding, links against the FMOD libraries in FMOD_SDK, and copies the DLLs next to the executable after the build. The binding initializes FMOD with the default output type, so there is no ASIO selection, and the port attachment API for background music and pass-through is not exposed. Route music through an ordinary bus or channel group instead.
+verdict: library the library creates and initializes the system in FmodManager.Initialize with FMOD's default output type, there is no ASIO selection, CoreSystem.getOutput reports the type in use
 
 ## Background Music
-verdict: review note only, decide bound or a category
-On Windows the library's build integration compiles the binding, links against the FMOD libraries in FMOD_SDK, and copies the DLLs next to the executable after the build. The binding initializes FMOD with the default output type, so there is no ASIO selection, and the port attachment API for background music and pass-through is not exposed. Route music through an ordinary bus or channel group instead.
+verdict: cannot attachChannelGroupToPort is not bound, ports are a console API and haxefmod targets desktop and web only, route music through a ChannelGroup or a Bus instead
 
 ## Pass Through
-verdict: review note only, decide bound or a category
-On Windows the library's build integration compiles the binding, links against the FMOD libraries in FMOD_SDK, and copies the DLLs next to the executable after the build. The binding initializes FMOD with the default output type, so there is no ASIO selection, and the port attachment API for background music and pass-through is not exposed. Route music through an ordinary bus or channel group instead.
+verdict: cannot attachChannelGroupToPort is not bound, ports are a console API and haxefmod targets desktop and web only, route the sound through a ChannelGroup or a Bus instead

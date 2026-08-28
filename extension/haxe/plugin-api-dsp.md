@@ -1,164 +1,106 @@
 # plugin-api-dsp
 
 ## FMOD_COMPLEX
-verdict: review note only, decide bound or a category
-This page describes the C structures and callbacks a DSP plug-in implements, and every one of them runs on FMOD's mixer thread inside the FMOD process. Haxe code cannot run there on any target, so custom DSP units stay in C or C++.
-From Haxe, use the 33 built-in effects through haxefmod.core.Dsp (create, setParameter, addDsp, getMetering, getFftSpectrum) or generate audio yourself with haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: cannot the sample type of the plugin DFT helpers, which run on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only
 
 ## FMOD_DSP_ALLOC_FUNC
-verdict: review note only, decide bound or a category
-This page describes the C structures and callbacks a DSP plug-in implements, and every one of them runs on FMOD's mixer thread inside the FMOD process. Haxe code cannot run there on any target, so custom DSP units stay in C or C++.
-From Haxe, use the 33 built-in effects through haxefmod.core.Dsp (create, setParameter, addDsp, getMetering, getFftSpectrum) or generate audio yourself with haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: cannot runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
 
 ## FMOD_DSP_BUFFER_ARRAY
-verdict: review note only, decide bound or a category
-This page describes the C structures and callbacks a DSP plug-in implements, and every one of them runs on FMOD's mixer thread inside the FMOD process. Haxe code cannot run there on any target, so custom DSP units stay in C or C++.
-From Haxe, use the 33 built-in effects through haxefmod.core.Dsp (create, setParameter, addDsp, getMetering, getFftSpectrum) or generate audio yourself with haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: cannot the mixer buffers a plugin's process callback fills on FMOD's mixer thread, plugin authoring is C only, Dsp.create gives the built-in units
 
 ## FMOD_DSP_BUFFER_ARRAY#2
 verdict: bound
-Haxe cannot fill a mixer buffer array from inside a DSP callback. To generate a square wave from game code, push samples into a PcmStream and let FMOD's mixer drain the ring buffer.
+A plugin process callback cannot run in Haxe, the built-in oscillator unit plays the same square wave from game code.
 ```haxe
-import haxefmod.core.PcmStream;
+import haxefmod.core.Dsp;
+import haxefmod.core.DspParameters.DspOscillator;
+import haxefmod.core.DspType;
 
-var stream = PcmStream.create(48000, 1);
-var channel = stream.play();
-
-// 440 Hz square wave, 16-bit mono, topped up each frame
-var period = Std.int(48000 / 440);
-var phase = 0;
-var buffer = haxe.io.Bytes.alloc(stream.space());
-for (i in 0...Std.int(buffer.length / 2)) {
-    var sample = phase < period / 2 ? 16000 : -16000;
-    buffer.setUInt16(i * 2, sample & 0xFFFF);
-    phase = (phase + 1) % period;
-}
-stream.write(buffer);
+var osc = Dsp.create(DspType.OSCILLATOR);
+osc.setParameterInt(DspOscillator.TYPE, 1); // square
+osc.setParameter(DspOscillator.RATE, 750.0); // one flip every 32 samples at 48 kHz
+var tone = osc.play();
 ```
 
 ## FMOD_DSP_BUFFER_ARRAY#3
 verdict: bound
-Haxe cannot fill a mixer buffer array from inside a DSP callback. To generate a square wave from game code, push samples into a PcmStream and let FMOD's mixer drain the ring buffer.
+A plugin process callback cannot run in Haxe, the built-in oscillator unit plays the same square wave from game code.
 ```haxe
-import haxefmod.core.PcmStream;
+import haxefmod.core.Dsp;
+import haxefmod.core.DspParameters.DspOscillator;
+import haxefmod.core.DspType;
 
-var stream = PcmStream.create(48000, 1);
-var channel = stream.play();
-
-// 440 Hz square wave, 16-bit mono, topped up each frame
-var period = Std.int(48000 / 440);
-var phase = 0;
-var buffer = haxe.io.Bytes.alloc(stream.space());
-for (i in 0...Std.int(buffer.length / 2)) {
-    var sample = phase < period / 2 ? 16000 : -16000;
-    buffer.setUInt16(i * 2, sample & 0xFFFF);
-    phase = (phase + 1) % period;
-}
-stream.write(buffer);
+var osc = Dsp.create(DspType.OSCILLATOR);
+osc.setParameterInt(DspOscillator.TYPE, 1); // square
+osc.setParameter(DspOscillator.RATE, 750.0); // one flip every 32 samples at 48 kHz
+var tone = osc.play();
 ```
 
 ## FMOD_DSP_CREATE_CALLBACK
-verdict: review note only, decide bound or a category
-This page describes the C structures and callbacks a DSP plug-in implements, and every one of them runs on FMOD's mixer thread inside the FMOD process. Haxe code cannot run there on any target, so custom DSP units stay in C or C++.
-From Haxe, use the 33 built-in effects through haxefmod.core.Dsp (create, setParameter, addDsp, getMetering, getFftSpectrum) or generate audio yourself with haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: cannot runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
 
 ## FMOD_DSP_DESCRIPTION
 verdict: cannot DSP plugins are written in C, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin
 
 ## FMOD_DSP_DESCRIPTION#2
-verdict: review note only, decide bound or a category
-This page describes the C structures and callbacks a DSP plug-in implements, and every one of them runs on FMOD's mixer thread inside the FMOD process. Haxe code cannot run there on any target, so custom DSP units stay in C or C++.
-From Haxe, use the 33 built-in effects through haxefmod.core.Dsp (create, setParameter, addDsp, getMetering, getFftSpectrum) or generate audio yourself with haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: cannot a plugin names itself in its C description, Dsp.getName reads the name of a created unit
 
 ## FMOD_DSP_DESCRIPTION#3
-verdict: review note only, decide bound or a category
-This page describes the C structures and callbacks a DSP plug-in implements, and every one of them runs on FMOD's mixer thread inside the FMOD process. Haxe code cannot run there on any target, so custom DSP units stay in C or C++.
-From Haxe, use the 33 built-in effects through haxefmod.core.Dsp (create, setParameter, addDsp, getMetering, getFftSpectrum) or generate audio yourself with haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: cannot a plugin names itself in its C description, Dsp.getName reads the name of a created unit
 
 ## FMOD_DSP_DESCRIPTION#4
-verdict: review note only, decide bound or a category
-This page describes the C structures and callbacks a DSP plug-in implements, and every one of them runs on FMOD's mixer thread inside the FMOD process. Haxe code cannot run there on any target, so custom DSP units stay in C or C++.
-From Haxe, use the 33 built-in effects through haxefmod.core.Dsp (create, setParameter, addDsp, getMetering, getFftSpectrum) or generate audio yourself with haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: cannot a plugin names itself in its C description, Dsp.getName reads the name of a created unit
 
 ## FMOD_DSP_DFT_FFTREAL_FUNC
-verdict: review note only, decide bound or a category
-This page describes the C structures and callbacks a DSP plug-in implements, and every one of them runs on FMOD's mixer thread inside the FMOD process. Haxe code cannot run there on any target, so custom DSP units stay in C or C++.
-From Haxe, use the 33 built-in effects through haxefmod.core.Dsp (create, setParameter, addDsp, getMetering, getFftSpectrum) or generate audio yourself with haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: cannot runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
 
 ## FMOD_DSP_DFT_IFFTREAL_FUNC
-verdict: review note only, decide bound or a category
-This page describes the C structures and callbacks a DSP plug-in implements, and every one of them runs on FMOD's mixer thread inside the FMOD process. Haxe code cannot run there on any target, so custom DSP units stay in C or C++.
-From Haxe, use the 33 built-in effects through haxefmod.core.Dsp (create, setParameter, addDsp, getMetering, getFftSpectrum) or generate audio yourself with haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: cannot runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
 
 ## FMOD_DSP_FREE_FUNC
-verdict: review note only, decide bound or a category
-This page describes the C structures and callbacks a DSP plug-in implements, and every one of them runs on FMOD's mixer thread inside the FMOD process. Haxe code cannot run there on any target, so custom DSP units stay in C or C++.
-From Haxe, use the 33 built-in effects through haxefmod.core.Dsp (create, setParameter, addDsp, getMetering, getFftSpectrum) or generate audio yourself with haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: cannot runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
 
 ## FMOD_DSP_GETBLOCKSIZE_FUNC
-verdict: review note only, decide bound or a category
-This page describes the C structures and callbacks a DSP plug-in implements, and every one of them runs on FMOD's mixer thread inside the FMOD process. Haxe code cannot run there on any target, so custom DSP units stay in C or C++.
-From Haxe, use the 33 built-in effects through haxefmod.core.Dsp (create, setParameter, addDsp, getMetering, getFftSpectrum) or generate audio yourself with haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: cannot runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
 
 ## FMOD_DSP_GETCLOCK_FUNC
-verdict: review note only, decide bound or a category
-This page describes the C structures and callbacks a DSP plug-in implements, and every one of them runs on FMOD's mixer thread inside the FMOD process. Haxe code cannot run there on any target, so custom DSP units stay in C or C++.
-From Haxe, use the 33 built-in effects through haxefmod.core.Dsp (create, setParameter, addDsp, getMetering, getFftSpectrum) or generate audio yourself with haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: cannot runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
 
 ## FMOD_DSP_GETLISTENERATTRIBUTES_FUNC
-verdict: review note only, decide bound or a category
-This page describes the C structures and callbacks a DSP plug-in implements, and every one of them runs on FMOD's mixer thread inside the FMOD process. Haxe code cannot run there on any target, so custom DSP units stay in C or C++.
-From Haxe, use the 33 built-in effects through haxefmod.core.Dsp (create, setParameter, addDsp, getMetering, getFftSpectrum) or generate audio yourself with haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: cannot runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
 
 ## FMOD_DSP_GETPARAM_BOOL_CALLBACK
-verdict: review note only, decide bound or a category
-This page describes the C structures and callbacks a DSP plug-in implements, and every one of them runs on FMOD's mixer thread inside the FMOD process. Haxe code cannot run there on any target, so custom DSP units stay in C or C++.
-From Haxe, use the 33 built-in effects through haxefmod.core.Dsp (create, setParameter, addDsp, getMetering, getFftSpectrum) or generate audio yourself with haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: cannot runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
 
 ## FMOD_DSP_GETPARAM_DATA_CALLBACK
-verdict: review note only, decide bound or a category
-This page describes the C structures and callbacks a DSP plug-in implements, and every one of them runs on FMOD's mixer thread inside the FMOD process. Haxe code cannot run there on any target, so custom DSP units stay in C or C++.
-From Haxe, use the 33 built-in effects through haxefmod.core.Dsp (create, setParameter, addDsp, getMetering, getFftSpectrum) or generate audio yourself with haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: cannot runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
 
 ## FMOD_DSP_GETPARAM_FLOAT_CALLBACK
-verdict: review note only, decide bound or a category
-This page describes the C structures and callbacks a DSP plug-in implements, and every one of them runs on FMOD's mixer thread inside the FMOD process. Haxe code cannot run there on any target, so custom DSP units stay in C or C++.
-From Haxe, use the 33 built-in effects through haxefmod.core.Dsp (create, setParameter, addDsp, getMetering, getFftSpectrum) or generate audio yourself with haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: cannot runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
 
 ## FMOD_DSP_GETPARAM_INT_CALLBACK
-verdict: review note only, decide bound or a category
-This page describes the C structures and callbacks a DSP plug-in implements, and every one of them runs on FMOD's mixer thread inside the FMOD process. Haxe code cannot run there on any target, so custom DSP units stay in C or C++.
-From Haxe, use the 33 built-in effects through haxefmod.core.Dsp (create, setParameter, addDsp, getMetering, getFftSpectrum) or generate audio yourself with haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: cannot runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
 
 ## FMOD_DSP_GETPARAM_VALUESTR_LENGTH
-verdict: review note only, decide bound or a category
-This page describes the C structures and callbacks a DSP plug-in implements, and every one of them runs on FMOD's mixer thread inside the FMOD process. Haxe code cannot run there on any target, so custom DSP units stay in C or C++.
-From Haxe, use the 33 built-in effects through haxefmod.core.Dsp (create, setParameter, addDsp, getMetering, getFftSpectrum) or generate audio yourself with haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: cannot the size of the value string a plugin's getparameter callback fills on FMOD's mixer thread, plugin authoring is C only
 
 ## FMOD_DSP_GETSAMPLERATE_FUNC
-verdict: review note only, decide bound or a category
-This page describes the C structures and callbacks a DSP plug-in implements, and every one of them runs on FMOD's mixer thread inside the FMOD process. Haxe code cannot run there on any target, so custom DSP units stay in C or C++.
-From Haxe, use the 33 built-in effects through haxefmod.core.Dsp (create, setParameter, addDsp, getMetering, getFftSpectrum) or generate audio yourself with haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: cannot runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
 
 ## FMOD_DSP_GETSPEAKERMODE_FUNC
-verdict: review note only, decide bound or a category
-This page describes the C structures and callbacks a DSP plug-in implements, and every one of them runs on FMOD's mixer thread inside the FMOD process. Haxe code cannot run there on any target, so custom DSP units stay in C or C++.
-From Haxe, use the 33 built-in effects through haxefmod.core.Dsp (create, setParameter, addDsp, getMetering, getFftSpectrum) or generate audio yourself with haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: cannot runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
 
 ## FMOD_DSP_GETUSERDATA_FUNC
-verdict: review note only, decide bound or a category
-This page describes the C structures and callbacks a DSP plug-in implements, and every one of them runs on FMOD's mixer thread inside the FMOD process. Haxe code cannot run there on any target, so custom DSP units stay in C or C++.
-From Haxe, use the 33 built-in effects through haxefmod.core.Dsp (create, setParameter, addDsp, getMetering, getFftSpectrum) or generate audio yourself with haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: cannot runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
 
 ## FMOD_DSP_LOG_FUNC
-verdict: review note only, decide bound or a category
-This page describes the C structures and callbacks a DSP plug-in implements, and every one of them runs on FMOD's mixer thread inside the FMOD process. Haxe code cannot run there on any target, so custom DSP units stay in C or C++.
-From Haxe, use the 33 built-in effects through haxefmod.core.Dsp (create, setParameter, addDsp, getMetering, getFftSpectrum) or generate audio yourself with haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: cannot runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
 
 ## FMOD_DSP_METERING_INFO
 verdict: bound
 Shape: usage
-The metering struct is filled by FMOD for any unit once metering is enabled. Read it through getMetering, which returns peak and RMS arrays per output channel.
+numsamples is not reported, numchannels is the length of the peak and rms arrays.
 ```haxe
 import haxefmod.core.ChannelGroup;
 import haxefmod.core.Dsp;
@@ -170,38 +112,30 @@ fader.setMeteringEnabled(false, true);
 
 // each frame
 var meter = fader.getMetering();
-if (meter != null) trace('peak L ${meter.peak[0]} rms L ${meter.rms[0]}');
+if (meter != null) {
+    var numchannels = meter.peak.length;
+    var peaklevel = meter.peak;
+    var rmslevel = meter.rms;
+}
 ```
 
 ## FMOD_DSP_PAN_GETROLLOFFGAIN_FUNC
-verdict: review note only, decide bound or a category
-This page describes the C structures and callbacks a DSP plug-in implements, and every one of them runs on FMOD's mixer thread inside the FMOD process. Haxe code cannot run there on any target, so custom DSP units stay in C or C++.
-From Haxe, use the 33 built-in effects through haxefmod.core.Dsp (create, setParameter, addDsp, getMetering, getFftSpectrum) or generate audio yourself with haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: cannot runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
 
 ## FMOD_DSP_PAN_SUMMONOMATRIX_FUNC
-verdict: review note only, decide bound or a category
-This page describes the C structures and callbacks a DSP plug-in implements, and every one of them runs on FMOD's mixer thread inside the FMOD process. Haxe code cannot run there on any target, so custom DSP units stay in C or C++.
-From Haxe, use the 33 built-in effects through haxefmod.core.Dsp (create, setParameter, addDsp, getMetering, getFftSpectrum) or generate audio yourself with haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: cannot runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
 
 ## FMOD_DSP_PAN_SUMMONOTOSURROUNDMATRIX_FUNC
-verdict: review note only, decide bound or a category
-This page describes the C structures and callbacks a DSP plug-in implements, and every one of them runs on FMOD's mixer thread inside the FMOD process. Haxe code cannot run there on any target, so custom DSP units stay in C or C++.
-From Haxe, use the 33 built-in effects through haxefmod.core.Dsp (create, setParameter, addDsp, getMetering, getFftSpectrum) or generate audio yourself with haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: cannot runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
 
 ## FMOD_DSP_PAN_SUMSTEREOMATRIX_FUNC
-verdict: review note only, decide bound or a category
-This page describes the C structures and callbacks a DSP plug-in implements, and every one of them runs on FMOD's mixer thread inside the FMOD process. Haxe code cannot run there on any target, so custom DSP units stay in C or C++.
-From Haxe, use the 33 built-in effects through haxefmod.core.Dsp (create, setParameter, addDsp, getMetering, getFftSpectrum) or generate audio yourself with haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: cannot runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
 
 ## FMOD_DSP_PAN_SUMSTEREOTOSURROUNDMATRIX_FUNC
-verdict: review note only, decide bound or a category
-This page describes the C structures and callbacks a DSP plug-in implements, and every one of them runs on FMOD's mixer thread inside the FMOD process. Haxe code cannot run there on any target, so custom DSP units stay in C or C++.
-From Haxe, use the 33 built-in effects through haxefmod.core.Dsp (create, setParameter, addDsp, getMetering, getFftSpectrum) or generate audio yourself with haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: cannot runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
 
 ## FMOD_DSP_PAN_SUMSURROUNDMATRIX_FUNC
-verdict: review note only, decide bound or a category
-This page describes the C structures and callbacks a DSP plug-in implements, and every one of them runs on FMOD's mixer thread inside the FMOD process. Haxe code cannot run there on any target, so custom DSP units stay in C or C++.
-From Haxe, use the 33 built-in effects through haxefmod.core.Dsp (create, setParameter, addDsp, getMetering, getFftSpectrum) or generate audio yourself with haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: cannot runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
 
 ## FMOD_DSP_PAN_SURROUND_FLAGS
 verdict: bound
@@ -223,15 +157,20 @@ Type: haxefmod.studio.Types.FmodDspParameterDataType
 ## FMOD_DSP_PARAMETER_DESC
 verdict: bound
 Shape: usage
-haxefmod does not expose the descriptor struct. getParameterInfo returns its name, type, and range as a plain structure (null in HTML5).
+Native only (unsupported in HTML5).
 ```haxe
 import haxefmod.core.Dsp;
 import haxefmod.core.DspType;
 
 var eq = Dsp.create(DspType.THREE_EQ);
-for (i in 0...eq.getParameterCount()) {
-    var info = eq.getParameterInfo(i);
-    if (info != null) trace('${info.name} type ${info.type} ${info.min}..${info.max} default ${info.defaultValue}');
+for (index in 0...eq.getParameterCount()) {
+    var desc = eq.getParameterInfo(index);
+    if (desc == null) continue;
+    var name = desc.name;
+    var type = desc.type;
+    var min = desc.min;
+    var max = desc.max;
+    var defaultval = desc.defaultValue;
 }
 ```
 
@@ -253,7 +192,7 @@ verdict: covered a data parameter format the unit reads, Dsp.setParameterData ha
 ## FMOD_DSP_PARAMETER_FFT
 verdict: bound
 Shape: usage
-The FFT data parameter belongs to the built-in FFT unit. Attach one where you want to listen and read the spectrum with getFftSpectrum instead of decoding the struct by hand.
+getFftSpectrum returns the first channel's bins, length is the array length.
 ```haxe
 import haxefmod.core.ChannelGroup;
 import haxefmod.core.Dsp;
@@ -263,8 +202,10 @@ var fft = Dsp.create(DspType.FFT);
 ChannelGroup.master().addDsp(ChannelGroup.DSP_TAIL, fft);
 
 // each frame
-var spectrum = fft.getFftSpectrum(64);
-if (spectrum != null) trace('bass ${spectrum[1]}');
+var spectrum = fft.getFftSpectrum(512);
+if (spectrum != null) {
+    var length = spectrum.length;
+}
 ```
 
 ## FMOD_DSP_PARAMETER_FINITE_LENGTH
@@ -289,140 +230,180 @@ verdict: covered a data parameter format the unit reads, Dsp.setParameterData ha
 ## FMOD_DSP_PARAMETER_TYPE
 verdict: bound
 Type: haxefmod.studio.Types.FmodDspParameterType
-Reported in the type field of Dsp.getParameterInfo. Dsp.PARAMETER_* are the same values.
+Reported in the type field of Dsp.getParameterInfo.
 
 ## FMOD_DSP_PROCESS_CALLBACK
-verdict: review note only, decide bound or a category
-This page describes the C structures and callbacks a DSP plug-in implements, and every one of them runs on FMOD's mixer thread inside the FMOD process. Haxe code cannot run there on any target, so custom DSP units stay in C or C++.
-From Haxe, use the 33 built-in effects through haxefmod.core.Dsp (create, setParameter, addDsp, getMetering, getFftSpectrum) or generate audio yourself with haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: cannot runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
 
 ## FMOD_DSP_PROCESS_CALLBACK#2
-verdict: review note only, decide bound or a category
-This page describes the C structures and callbacks a DSP plug-in implements, and every one of them runs on FMOD's mixer thread inside the FMOD process. Haxe code cannot run there on any target, so custom DSP units stay in C or C++.
-From Haxe, use the 33 built-in effects through haxefmod.core.Dsp (create, setParameter, addDsp, getMetering, getFftSpectrum) or generate audio yourself with haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: bound
+A plugin process callback cannot run in Haxe, the built-in fader unit halves the signal in the same place of the chain.
+```haxe
+import haxefmod.core.ChannelGroup;
+import haxefmod.core.Dsp;
+import haxefmod.core.DspParameters.DspFader;
+import haxefmod.core.DspType;
+
+var fader = Dsp.create(DspType.FADER);
+fader.setParameter(DspFader.GAIN, -6.02); // dB, half amplitude
+ChannelGroup.master().addDsp(ChannelGroup.DSP_TAIL, fader);
+```
 
 ## FMOD_DSP_PROCESS_CALLBACK#3
-verdict: review note only, decide bound or a category
-This page describes the C structures and callbacks a DSP plug-in implements, and every one of them runs on FMOD's mixer thread inside the FMOD process. Haxe code cannot run there on any target, so custom DSP units stay in C or C++.
-From Haxe, use the 33 built-in effects through haxefmod.core.Dsp (create, setParameter, addDsp, getMetering, getFftSpectrum) or generate audio yourself with haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: bound
+A plugin process callback cannot run in Haxe, the built-in fader unit halves the signal in the same place of the chain.
+```haxe
+import haxefmod.core.ChannelGroup;
+import haxefmod.core.Dsp;
+import haxefmod.core.DspParameters.DspFader;
+import haxefmod.core.DspType;
+
+var fader = Dsp.create(DspType.FADER);
+fader.setParameter(DspFader.GAIN, -6.02); // dB, half amplitude
+ChannelGroup.master().addDsp(ChannelGroup.DSP_TAIL, fader);
+```
 
 ## FMOD_DSP_PROCESS_OPERATION
 verdict: bound
 Type: haxefmod.studio.Types.FmodDspProcessOperation
 
 ## FMOD_DSP_READ_CALLBACK
-verdict: review note only, decide bound or a category
-This page describes the C structures and callbacks a DSP plug-in implements, and every one of them runs on FMOD's mixer thread inside the FMOD process. Haxe code cannot run there on any target, so custom DSP units stay in C or C++.
-From Haxe, use the 33 built-in effects through haxefmod.core.Dsp (create, setParameter, addDsp, getMetering, getFftSpectrum) or generate audio yourself with haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: cannot runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
 
 ## FMOD_DSP_READ_CALLBACK#2
-verdict: review note only, decide bound or a category
-This page describes the C structures and callbacks a DSP plug-in implements, and every one of them runs on FMOD's mixer thread inside the FMOD process. Haxe code cannot run there on any target, so custom DSP units stay in C or C++.
-From Haxe, use the 33 built-in effects through haxefmod.core.Dsp (create, setParameter, addDsp, getMetering, getFftSpectrum) or generate audio yourself with haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: bound
+A plugin read callback cannot run in Haxe, the built-in fader unit halves the signal in the same place of the chain.
+```haxe
+import haxefmod.core.ChannelGroup;
+import haxefmod.core.Dsp;
+import haxefmod.core.DspParameters.DspFader;
+import haxefmod.core.DspType;
+
+var fader = Dsp.create(DspType.FADER);
+fader.setParameter(DspFader.GAIN, -6.02); // dB, half amplitude
+ChannelGroup.master().addDsp(ChannelGroup.DSP_TAIL, fader);
+```
 
 ## FMOD_DSP_READ_CALLBACK#3
-verdict: review note only, decide bound or a category
-This page describes the C structures and callbacks a DSP plug-in implements, and every one of them runs on FMOD's mixer thread inside the FMOD process. Haxe code cannot run there on any target, so custom DSP units stay in C or C++.
-From Haxe, use the 33 built-in effects through haxefmod.core.Dsp (create, setParameter, addDsp, getMetering, getFftSpectrum) or generate audio yourself with haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: bound
+A plugin read callback cannot run in Haxe, the built-in fader unit halves the signal in the same place of the chain.
+```haxe
+import haxefmod.core.ChannelGroup;
+import haxefmod.core.Dsp;
+import haxefmod.core.DspParameters.DspFader;
+import haxefmod.core.DspType;
+
+var fader = Dsp.create(DspType.FADER);
+fader.setParameter(DspFader.GAIN, -6.02); // dB, half amplitude
+ChannelGroup.master().addDsp(ChannelGroup.DSP_TAIL, fader);
+```
 
 ## FMOD_DSP_READ_CALLBACK#4
-verdict: review note only, decide bound or a category
-This page describes the C structures and callbacks a DSP plug-in implements, and every one of them runs on FMOD's mixer thread inside the FMOD process. Haxe code cannot run there on any target, so custom DSP units stay in C or C++.
-From Haxe, use the 33 built-in effects through haxefmod.core.Dsp (create, setParameter, addDsp, getMetering, getFftSpectrum) or generate audio yourself with haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: bound
+A plugin read callback cannot run in Haxe, the built-in fader unit halves the signal in the same place of the chain.
+```haxe
+import haxefmod.core.ChannelGroup;
+import haxefmod.core.Dsp;
+import haxefmod.core.DspParameters.DspFader;
+import haxefmod.core.DspType;
+
+var fader = Dsp.create(DspType.FADER);
+fader.setParameter(DspFader.GAIN, -6.02); // dB, half amplitude
+ChannelGroup.master().addDsp(ChannelGroup.DSP_TAIL, fader);
+```
 
 ## FMOD_DSP_REALLOC_FUNC
-verdict: review note only, decide bound or a category
-This page describes the C structures and callbacks a DSP plug-in implements, and every one of them runs on FMOD's mixer thread inside the FMOD process. Haxe code cannot run there on any target, so custom DSP units stay in C or C++.
-From Haxe, use the 33 built-in effects through haxefmod.core.Dsp (create, setParameter, addDsp, getMetering, getFftSpectrum) or generate audio yourself with haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: cannot runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
 
 ## FMOD_DSP_RELEASE_CALLBACK
-verdict: review note only, decide bound or a category
-This page describes the C structures and callbacks a DSP plug-in implements, and every one of them runs on FMOD's mixer thread inside the FMOD process. Haxe code cannot run there on any target, so custom DSP units stay in C or C++.
-From Haxe, use the 33 built-in effects through haxefmod.core.Dsp (create, setParameter, addDsp, getMetering, getFftSpectrum) or generate audio yourself with haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: cannot runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
 
 ## FMOD_DSP_RESET_CALLBACK
-verdict: review note only, decide bound or a category
-This page describes the C structures and callbacks a DSP plug-in implements, and every one of them runs on FMOD's mixer thread inside the FMOD process. Haxe code cannot run there on any target, so custom DSP units stay in C or C++.
-From Haxe, use the 33 built-in effects through haxefmod.core.Dsp (create, setParameter, addDsp, getMetering, getFftSpectrum) or generate audio yourself with haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: cannot runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
 
 ## FMOD_DSP_SETPARAM_BOOL_CALLBACK
-verdict: review note only, decide bound or a category
-This page describes the C structures and callbacks a DSP plug-in implements, and every one of them runs on FMOD's mixer thread inside the FMOD process. Haxe code cannot run there on any target, so custom DSP units stay in C or C++.
-From Haxe, use the 33 built-in effects through haxefmod.core.Dsp (create, setParameter, addDsp, getMetering, getFftSpectrum) or generate audio yourself with haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: cannot runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
 
 ## FMOD_DSP_SETPARAM_DATA_CALLBACK
-verdict: review note only, decide bound or a category
-This page describes the C structures and callbacks a DSP plug-in implements, and every one of them runs on FMOD's mixer thread inside the FMOD process. Haxe code cannot run there on any target, so custom DSP units stay in C or C++.
-From Haxe, use the 33 built-in effects through haxefmod.core.Dsp (create, setParameter, addDsp, getMetering, getFftSpectrum) or generate audio yourself with haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: cannot runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
 
 ## FMOD_DSP_SETPARAM_FLOAT_CALLBACK
-verdict: review note only, decide bound or a category
-This page describes the C structures and callbacks a DSP plug-in implements, and every one of them runs on FMOD's mixer thread inside the FMOD process. Haxe code cannot run there on any target, so custom DSP units stay in C or C++.
-From Haxe, use the 33 built-in effects through haxefmod.core.Dsp (create, setParameter, addDsp, getMetering, getFftSpectrum) or generate audio yourself with haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: cannot runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
 
 ## FMOD_DSP_SETPARAM_INT_CALLBACK
-verdict: review note only, decide bound or a category
-This page describes the C structures and callbacks a DSP plug-in implements, and every one of them runs on FMOD's mixer thread inside the FMOD process. Haxe code cannot run there on any target, so custom DSP units stay in C or C++.
-From Haxe, use the 33 built-in effects through haxefmod.core.Dsp (create, setParameter, addDsp, getMetering, getFftSpectrum) or generate audio yourself with haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: cannot runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
 
 ## FMOD_DSP_SETPOSITION_CALLBACK
-verdict: review note only, decide bound or a category
-This page describes the C structures and callbacks a DSP plug-in implements, and every one of them runs on FMOD's mixer thread inside the FMOD process. Haxe code cannot run there on any target, so custom DSP units stay in C or C++.
-From Haxe, use the 33 built-in effects through haxefmod.core.Dsp (create, setParameter, addDsp, getMetering, getFftSpectrum) or generate audio yourself with haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: cannot runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
 
 ## FMOD_DSP_SHOULDIPROCESS_CALLBACK
-verdict: review note only, decide bound or a category
-This page describes the C structures and callbacks a DSP plug-in implements, and every one of them runs on FMOD's mixer thread inside the FMOD process. Haxe code cannot run there on any target, so custom DSP units stay in C or C++.
-From Haxe, use the 33 built-in effects through haxefmod.core.Dsp (create, setParameter, addDsp, getMetering, getFftSpectrum) or generate audio yourself with haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: cannot runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
 
 ## FMOD_DSP_SHOULDIPROCESS_CALLBACK#2
-verdict: review note only, decide bound or a category
-This page describes the C structures and callbacks a DSP plug-in implements, and every one of them runs on FMOD's mixer thread inside the FMOD process. Haxe code cannot run there on any target, so custom DSP units stay in C or C++.
-From Haxe, use the 33 built-in effects through haxefmod.core.Dsp (create, setParameter, addDsp, getMetering, getFftSpectrum) or generate audio yourself with haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: cannot the mixer asks this on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.isIdle reports from game code whether a unit's inputs went idle
 
 ## FMOD_DSP_STATE
-verdict: review note only, decide bound or a category
-This page describes the C structures and callbacks a DSP plug-in implements, and every one of them runs on FMOD's mixer thread inside the FMOD process. Haxe code cannot run there on any target, so custom DSP units stay in C or C++.
-From Haxe, use the 33 built-in effects through haxefmod.core.Dsp (create, setParameter, addDsp, getMetering, getFftSpectrum) or generate audio yourself with haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: cannot the per instance state a plugin's callbacks receive on FMOD's mixer thread, plugin authoring is C only, Dsp.create gives the built-in units
 
 ## FMOD_DSP_STATE#2
-verdict: review note only, decide bound or a category
-No Haxe equivalent. This is the C source of a plug-in oscillator, which keeps its phase in plugindata on the mixer thread. FMOD ships the same oscillator as a built-in unit, see the Haxe example under the next tab (Dsp.create(DspType.OSCILLATOR)).
-
-## FMOD_DSP_STATE#3
 verdict: bound
-A plug-in oscillator keeps its phase in plugindata on the mixer thread, which Haxe cannot do. FMOD ships an oscillator as a built-in unit, so create one and play it as a sound source.
+Shape: usage
+A plugin oscillator keeps its phase in plugindata on the mixer thread, the built-in oscillator unit plays the same 440 Hz sine from game code.
 ```haxe
 import haxefmod.core.Dsp;
+import haxefmod.core.DspParameters.DspOscillator;
 import haxefmod.core.DspType;
 
 var osc = Dsp.create(DspType.OSCILLATOR);
-osc.setParameterInt(0, 0); // waveform: 0 sine, 1 square, 2 saw up, 3 saw down, 4 triangle, 5 noise
-osc.setParameter(1, 440); // rate in Hz
+osc.setParameterInt(DspOscillator.TYPE, 0); // 0 sine, 1 square, 2 saw up, 3 saw down, 4 triangle, 5 noise
+osc.setParameter(DspOscillator.RATE, 440.0);
 var tone = osc.play();
-tone.setVolume(0.5);
+if (tone.isNull()) trace("play failed");
 
 // later
 tone.stop();
-osc.release();
+var result = osc.release();
+if (!result.isOk()) trace(result.toString());
+```
+
+## FMOD_DSP_STATE#3
+verdict: bound
+A plugin oscillator keeps its phase in plugindata on the mixer thread, the built-in oscillator unit plays the same 440 Hz sine from game code.
+```haxe
+import haxefmod.core.Dsp;
+import haxefmod.core.DspParameters.DspOscillator;
+import haxefmod.core.DspType;
+
+var osc = Dsp.create(DspType.OSCILLATOR);
+osc.setParameterInt(DspOscillator.TYPE, 0); // 0 sine, 1 square, 2 saw up, 3 saw down, 4 triangle, 5 noise
+osc.setParameter(DspOscillator.RATE, 440.0);
+var tone = osc.play();
+if (tone.isNull()) trace("play failed");
+
+// later
+tone.stop();
+var result = osc.release();
+if (!result.isOk()) trace(result.toString());
 ```
 
 ## FMOD_DSP_STATE#4
 verdict: bound
-A plug-in oscillator keeps its phase in plugindata on the mixer thread, which Haxe cannot do. FMOD ships an oscillator as a built-in unit, so create one and play it as a sound source.
+A plugin oscillator keeps its phase in plugindata on the mixer thread, the built-in oscillator unit plays the same 440 Hz sine from game code.
 ```haxe
 import haxefmod.core.Dsp;
+import haxefmod.core.DspParameters.DspOscillator;
 import haxefmod.core.DspType;
 
 var osc = Dsp.create(DspType.OSCILLATOR);
-osc.setParameterInt(0, 0); // waveform: 0 sine, 1 square, 2 saw up, 3 saw down, 4 triangle, 5 noise
-osc.setParameter(1, 440); // rate in Hz
+osc.setParameterInt(DspOscillator.TYPE, 0); // 0 sine, 1 square, 2 saw up, 3 saw down, 4 triangle, 5 noise
+osc.setParameter(DspOscillator.RATE, 440.0);
 var tone = osc.play();
-tone.setVolume(0.5);
+if (tone.isNull()) trace("play failed");
 
 // later
 tone.stop();
-osc.release();
+var result = osc.release();
+if (!result.isOk()) trace(result.toString());
 ```
 
 ## FMOD_DSP_STATE_DFT_FUNCTIONS
@@ -435,21 +416,13 @@ verdict: cannot DSP plugins are written in C, Dsp.create gives the built-in unit
 verdict: cannot DSP plugins are written in C, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin
 
 ## FMOD_DSP_SYSTEM_DEREGISTER_CALLBACK
-verdict: review note only, decide bound or a category
-This page describes the C structures and callbacks a DSP plug-in implements, and every one of them runs on FMOD's mixer thread inside the FMOD process. Haxe code cannot run there on any target, so custom DSP units stay in C or C++.
-From Haxe, use the 33 built-in effects through haxefmod.core.Dsp (create, setParameter, addDsp, getMetering, getFftSpectrum) or generate audio yourself with haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: cannot runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
 
 ## FMOD_DSP_SYSTEM_MIX_CALLBACK
-verdict: review note only, decide bound or a category
-This page describes the C structures and callbacks a DSP plug-in implements, and every one of them runs on FMOD's mixer thread inside the FMOD process. Haxe code cannot run there on any target, so custom DSP units stay in C or C++.
-From Haxe, use the 33 built-in effects through haxefmod.core.Dsp (create, setParameter, addDsp, getMetering, getFftSpectrum) or generate audio yourself with haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: cannot runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
 
 ## FMOD_DSP_SYSTEM_REGISTER_CALLBACK
-verdict: review note only, decide bound or a category
-This page describes the C structures and callbacks a DSP plug-in implements, and every one of them runs on FMOD's mixer thread inside the FMOD process. Haxe code cannot run there on any target, so custom DSP units stay in C or C++.
-From Haxe, use the 33 built-in effects through haxefmod.core.Dsp (create, setParameter, addDsp, getMetering, getFftSpectrum) or generate audio yourself with haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: cannot runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
 
 ## FMOD_PLUGIN_SDK_VERSION
-verdict: review note only, decide bound or a category
-This page describes the C structures and callbacks a DSP plug-in implements, and every one of them runs on FMOD's mixer thread inside the FMOD process. Haxe code cannot run there on any target, so custom DSP units stay in C or C++.
-From Haxe, use the 33 built-in effects through haxefmod.core.Dsp (create, setParameter, addDsp, getMetering, getFftSpectrum) or generate audio yourself with haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: cannot the SDK version a compiled plugin is built against, plugin authoring is C only, StudioSystem.getPluginInfo reports a loaded plugin's version

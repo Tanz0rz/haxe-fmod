@@ -1,103 +1,86 @@
 # platforms-html5
 
 ## Libraries
-verdict: review note only, decide bound or a category
-The library's post-build step copies fmodstudio.js and fmodstudio.wasm from FMOD_SDK_WEB next to the output, loads the module, and wires up the FMOD object, so there is no script tag, Emscripten flag, or out-value plumbing to write. The Haxe API is the same on every target. FmodManager.IsInitialized() reports true once the wasm module and the default banks are usable, and the library resumes FMOD's mixer on the first click in the page. CoreSystem.mixerSuspend and CoreSystem.mixerResume are available when a game wants to stop and restart the mixer itself.
+verdict: library the post-build step (haxefmod.tools.PostBuild) copies fmodstudio.js and fmodstudio.wasm from FMOD_SDK_WEB into the output's lib folder and jaxe.js loads them, a Haxe project adds no script tag
 
 ## Libraries#2
-verdict: review note only, decide bound or a category
-The library's post-build step copies fmodstudio.js and fmodstudio.wasm from FMOD_SDK_WEB next to the output, loads the module, and wires up the FMOD object, so there is no script tag, Emscripten flag, or out-value plumbing to write. The Haxe API is the same on every target. FmodManager.IsInitialized() reports true once the wasm module and the default banks are usable, and the library resumes FMOD's mixer on the first click in the page. CoreSystem.mixerSuspend and CoreSystem.mixerResume are available when a game wants to stop and restart the mixer itself.
+verdict: library the post-build step (haxefmod.tools.PostBuild) copies fmodstudio.js and fmodstudio.wasm from FMOD_SDK_WEB into the output's lib folder and jaxe.js loads them, a Haxe project adds no script tag
 
 ## Using FMOD with C/C++
-verdict: review note only, decide bound or a category
-The library's post-build step copies fmodstudio.js and fmodstudio.wasm from FMOD_SDK_WEB next to the output, loads the module, and wires up the FMOD object, so there is no script tag, Emscripten flag, or out-value plumbing to write. The Haxe API is the same on every target. FmodManager.IsInitialized() reports true once the wasm module and the default banks are usable, and the library resumes FMOD's mixer on the first click in the page. CoreSystem.mixerSuspend and CoreSystem.mixerResume are available when a game wants to stop and restart the mixer itself.
+verdict: cannot Emscripten link flags for a C or C++ program compiled against FMOD, a Haxe HTML5 build compiles to JavaScript and runs FMOD's prebuilt fmodstudio.js, there is nothing to link
 
 ## Flags using WASM pthread build
-verdict: review note only, decide bound or a category
-The library's post-build step copies fmodstudio.js and fmodstudio.wasm from FMOD_SDK_WEB next to the output, loads the module, and wires up the FMOD object, so there is no script tag, Emscripten flag, or out-value plumbing to write. The Haxe API is the same on every target. FmodManager.IsInitialized() reports true once the wasm module and the default banks are usable, and the library resumes FMOD's mixer on the first click in the page. CoreSystem.mixerSuspend and CoreSystem.mixerResume are available when a game wants to stop and restart the mixer itself.
+verdict: cannot Emscripten link flags for a C or C++ program compiled against FMOD, a Haxe HTML5 build compiles to JavaScript and runs FMOD's prebuilt fmodstudio.js, there is nothing to link
 
 ## Overriding FMOD's 'window' handle.
-verdict: review note only, decide bound or a category
-The library's post-build step copies fmodstudio.js and fmodstudio.wasm from FMOD_SDK_WEB next to the output, loads the module, and wires up the FMOD object, so there is no script tag, Emscripten flag, or out-value plumbing to write. The Haxe API is the same on every target. FmodManager.IsInitialized() reports true once the wasm module and the default banks are usable, and the library resumes FMOD's mixer on the first click in the page. CoreSystem.mixerSuspend and CoreSystem.mixerResume are available when a game wants to stop and restart the mixer itself.
+verdict: library jaxe.js runs in the page's own window and calls FMODModule from it, so the module sees the right window and nothing is overridden
 
 ## Application setup
-verdict: review note only, decide bound or a category
-The library's post-build step copies fmodstudio.js and fmodstudio.wasm from FMOD_SDK_WEB next to the output, loads the module, and wires up the FMOD object, so there is no script tag, Emscripten flag, or out-value plumbing to write. The Haxe API is the same on every target. FmodManager.IsInitialized() reports true once the wasm module and the default banks are usable, and the library resumes FMOD's mixer on the first click in the page. CoreSystem.mixerSuspend and CoreSystem.mixerResume are available when a game wants to stop and restart the mixer itself.
+verdict: library FmodManager.Initialize does this through jaxe.js, which sets preRun, onRuntimeInitialized, and a 64 MB INITIAL_MEMORY on the FMOD object and calls FMODModule, the game's main becomes FmodManager.IsInitialized() polled from a loading scene or a handler passed to FmodRuntime.onceReady
 
 ## Setting and getting
-verdict: review note only, decide bound or a category
-The library's post-build step copies fmodstudio.js and fmodstudio.wasm from FMOD_SDK_WEB next to the output, loads the module, and wires up the FMOD object, so there is no script tag, Emscripten flag, or out-value plumbing to write. The Haxe API is the same on every target. FmodManager.IsInitialized() reports true once the wasm module and the default banks are usable, and the library resumes FMOD's mixer on the first click in the page. CoreSystem.mixerSuspend and CoreSystem.mixerResume are available when a game wants to stop and restart the mixer itself.
-
-## Using structures
-verdict: review note only, decide bound or a category
-The library's post-build step copies fmodstudio.js and fmodstudio.wasm from FMOD_SDK_WEB next to the output, loads the module, and wires up the FMOD object, so there is no script tag, Emscripten flag, or out-value plumbing to write. The Haxe API is the same on every target. FmodManager.IsInitialized() reports true once the wasm module and the default banks are usable, and the library resumes FMOD's mixer on the first click in the page. CoreSystem.mixerSuspend and CoreSystem.mixerResume are available when a game wants to stop and restart the mixer itself.
-
-## Direct from host, via FMOD's filesystem
-verdict: review note only, decide bound or a category
-The library's post-build step copies fmodstudio.js and fmodstudio.wasm from FMOD_SDK_WEB next to the output, loads the module, and wires up the FMOD object, so there is no script tag, Emscripten flag, or out-value plumbing to write. The Haxe API is the same on every target. FmodManager.IsInitialized() reports true once the wasm module and the default banks are usable, and the library resumes FMOD's mixer on the first click in the page. CoreSystem.mixerSuspend and CoreSystem.mixerResume are available when a game wants to stop and restart the mixer itself.
-
-## Direct from host, via FMOD's filesystem#2
 verdict: bound
-The web build decodes FSB only, so Sound.create on a loose .wav path returns FMOD_ERR_FORMAT on HTML5. Load a bank instead, or feed raw PCM through Sound.fromPcm. Banks are fetched into the browser's virtual filesystem for you, and StudioSystem.lastResult() holds the error when a load fails.
+Getters return the value directly, there is no out object. A failed getter returns its default and StudioSystem.lastResult() holds the error.
 ```haxe
 import haxefmod.core.Sound;
 
-var bank = StudioSystem.loadBankFile("SFX.bank");
-if (bank.isNull()) {
-    trace("bank load failed: " + StudioSystem.lastResult());
-}
+var sound = Sound.create("lion.wav");
+var name:String; // to store name of sound.
 
-var pcm = haxe.io.Bytes.alloc(48000 * 2 * 2);
-var sound = Sound.fromPcm(pcm, 48000, 2);
-if (!sound.isNull()) {
-    var ch = sound.play();
+name = sound.getName();
+
+trace(name);
+```
+
+## Using structures
+verdict: covered FMOD_GUID is a String in the text form FMOD Studio shows, returned by EventDescription.getID and taken by StudioSystem.getEventByID, and FMOD_STUDIO_BANK_INFO is not exposed because StudioSystem.loadBankFile and StudioSystem.loadBankMemory load banks without file callbacks
+
+## Direct from host, via FMOD's filesystem
+verdict: library the library fetches banks itself, FmodRuntime.banks.load (and the autoLoadBanks list in FmodSettings, resolved against bankFolder) fetches the path relative to the page and writes it into FMOD's virtual filesystem before calling loadBankFile, and loose audio files are not preloaded because the web build decodes FSB only
+
+## Direct from host, via FMOD's filesystem#2
+verdict: bound
+The web build decodes FSB only, so on HTML5 this returns Sound.NULL with FMOD_ERR_FORMAT. Play bank content instead, or feed raw PCM through Sound.fromPcm.
+```haxe
+import haxefmod.core.Sound;
+
+var sound = Sound.create("lion.wav");
+if (sound.isNull()) {
+    trace("createSound failed: " + StudioSystem.lastResult());
 }
 ```
 
 ## Via memory
 verdict: bound
-Data already in memory goes in as haxe.io.Bytes. The binding copies it into FMOD's heap, so there is no pointer to manage.
+Data already in memory goes in as haxe.io.Bytes and is copied into FMOD's heap. Sound.fromPcm takes raw PCM only, its sampleRate and channels arguments stand in for the CREATESOUNDEXINFO fields and length is taken from the bytes. Encoded data in memory goes in as a bank through StudioSystem.loadBankMemory.
 ```haxe
 import haxefmod.core.Sound;
+
+var bytes = haxe.io.Bytes.alloc(48000 * 2 * 2);
+
+var sound = Sound.fromPcm(bytes, 48000, 2);
+if (sound.isNull()) {
+    trace("fromPcm failed: " + StudioSystem.lastResult());
+}
 
 var bankBytes = haxe.io.Bytes.alloc(0);
 var bank = StudioSystem.loadBankMemory(bankBytes);
 if (bank.isNull()) {
-    trace("bank load failed: " + StudioSystem.lastResult());
+    trace("loadBankMemory failed: " + StudioSystem.lastResult());
 }
-
-var pcm = haxe.io.Bytes.alloc(48000 * 2 * 2);
-var sound = Sound.fromPcm(pcm, 48000, 2);
 ```
 
 ## Via callbacks
-verdict: review note only, decide bound or a category
-Custom file callbacks are not exposed because they would run on FMOD threads, which Haxe code cannot do. Fetch the data yourself and hand it to StudioSystem.loadBankMemory.
+verdict: cannot file callbacks run on FMOD's file threads and custom file systems are not exposed, fetch the bytes yourself and hand them to StudioSystem.loadBankMemory
 
 ## Via callbacks#2
-verdict: review note only, decide bound or a category
-Custom file callbacks are not exposed because they would run on FMOD threads, which Haxe code cannot do. Fetch the data yourself and hand it to StudioSystem.loadBankMemory.
+verdict: cannot file callbacks run on FMOD's file threads and custom file systems are not exposed, fetch the bytes yourself and hand them to StudioSystem.loadBankMemory
 
 ## Via callbacks#3
-verdict: review note only, decide bound or a category
-Custom file callbacks are not exposed because they would run on FMOD threads, which Haxe code cannot do. Fetch the data yourself and hand it to StudioSystem.loadBankMemory.
+verdict: cannot file callbacks run on FMOD's file threads and custom file systems are not exposed, fetch the bytes yourself and hand them to StudioSystem.loadBankMemory
 
 ## CPU Overhead
-verdict: bound
-The mixer sample rate is an init-time setting. Pass it to FmodManager.Initialize, or set -D haxefmod_sample_rate in project.xml. CoreSystem.getDriverName names the output device, its native rate is not reported, and CoreSystem.getSoftwareFormat reports the rate in use.
-```haxe
-import haxefmod.core.CoreSystem;
-
-FmodManager.Initialize({sampleRate: 44100});
-
-trace("output device " + CoreSystem.getDriverName(0));
-
-var format = CoreSystem.getSoftwareFormat();
-if (format != null) {
-    trace("mixing at " + format.sampleRate + " Hz");
-}
-```
+verdict: library jaxe.js does this at init, it reads the driver's rate with getDriverInfo and passes it to setSoftwareFormat when the sampleRate setting is 0 (the default), a game that wants another rate passes FmodManager.Initialize({sampleRate: 48000}) or sets -D haxefmod_sample_rate and reads the rate in use from CoreSystem.getSoftwareFormat()
 
 ## Audio Stability (Stuttering)
-verdict: review note only, decide bound or a category
-The dspBufferSize and dspNumBuffers fields of FmodSettings are native only (unsupported in HTML5). The web build fixes the mixer at 2048 samples by 2 buffers and ignores them.
+verdict: library jaxe.js calls setDSPBufferSize(2048, 2) at init, the dspBufferSize and dspNumBuffers fields of FmodSettings are ignored on HTML5

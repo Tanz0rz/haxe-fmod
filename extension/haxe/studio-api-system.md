@@ -3,10 +3,10 @@
 ## FMOD_STUDIO_ADVANCEDSETTINGS
 verdict: bound
 Type: haxefmod.studio.Types.FmodStudioAdvancedSettings
-Set through the FmodSettings fields of the same names at init, read back with StudioSystem.getStudioAdvancedSettings.
+Set through the FmodSettings fields of the same names before init, encryptionKey included. StudioSystem.getStudioAdvancedSettings reads them back, native only (unsupported in HTML5).
 
 ## FMOD_STUDIO_BANK_INFO
-verdict: library user file callbacks are not exposed, StudioSystem.loadBankFile and loadBankMemory load banks
+verdict: library the file callbacks it carries would run on FMOD's loading threads, StudioSystem.loadBankFile and loadBankMemory are the bank loading paths
 
 ## FMOD_STUDIO_BUFFER_INFO
 verdict: bound
@@ -19,55 +19,61 @@ Type: haxefmod.studio.Types.FmodBufferUsage
 ## FMOD_STUDIO_COMMANDCAPTURE_FLAGS
 verdict: bound
 Type: haxefmod.studio.Types.FmodCommandCaptureFlags
-StudioSystem.startCommandCapture(path) always captures with NORMAL.
+StudioSystem.startCommandCapture(path) takes no flags and captures with NORMAL.
 
 ## FMOD_STUDIO_COMMANDREPLAY_FLAGS
 verdict: bound
 Type: haxefmod.studio.Types.FmodCommandReplayFlags
-StudioSystem.loadCommandReplay(path) always loads with NORMAL.
+StudioSystem.loadCommandReplay(path) takes no flags and loads with NORMAL.
 
 ## FMOD_STUDIO_CPU_USAGE
 verdict: bound
 Type: haxefmod.studio.Types.FmodSystemCpuUsage
-The Studio update time is merged with the core FMOD_CPU_USAGE breakdown into one structure.
+StudioSystem.getCpuUsage returns one structure for both systems. The Studio update time is studioUpdate, and update is the core update time from FMOD_CPU_USAGE.
 
 ## FMOD_STUDIO_INITFLAGS
 verdict: bound
 Type: haxefmod.studio.Types.FmodStudioInitFlags
-The library composes the flags from FmodSettings at init, live update is the liveUpdate field.
+The library passes LIVEUPDATE when FmodSettings.liveUpdate is true and NORMAL otherwise. The other flags are never set.
 
 ## FMOD_STUDIO_LOAD_BANK_FLAGS
 verdict: bound
 Type: haxefmod.studio.Types.FmodLoadBankFlags
 
 ## FMOD_STUDIO_LOAD_MEMORY_ALIGNMENT
-verdict: review note only, decide bound or a category
-No Haxe equivalent. StudioSystem.loadBankMemory copies the bytes into memory FMOD owns, so alignment is handled for you.
+verdict: library StudioSystem.loadBankMemory copies the bytes into memory FMOD allocates, so game code never aligns a bank buffer
 
 ## FMOD_STUDIO_LOAD_MEMORY_MODE
 verdict: bound
 Type: haxefmod.studio.Types.FmodLoadMemoryMode
-StudioSystem.loadBankMemory always uses MEMORY, since the binding cannot pin a Haxe buffer for the bank's lifetime.
+StudioSystem.loadBankMemory always loads with MEMORY. A Haxe buffer cannot be pinned for the bank's lifetime, so MEMORY_POINT is never used.
 
 ## FMOD_STUDIO_LOAD_MEMORY_MODE#2
-verdict: review note only, decide bound or a category
-StudioSystem.loadBankMemory copies the bytes, which matches the memory mode of this example. The point mode is not exposed.
+verdict: bound
+Type: haxefmod.studio.Types.FmodLoadMemoryMode
+StudioSystem.loadBankMemory always loads with MEMORY. A Haxe buffer cannot be pinned for the bank's lifetime, so MEMORY_POINT is never used.
 
 ## FMOD_STUDIO_SOUND_INFO
-verdict: library the native side of programmer sounds, StudioSystem.getSoundInfo returns the name and subsound index
+verdict: library the native side of programmer sounds resolves it, StudioSystem.getSoundInfo(key) returns the name and subsound index, and EventInstance.assignProgrammerSound(key) picks the sound
 
 ## FMOD_STUDIO_SYSTEM_CALLBACK
 verdict: bound
-StudioSystem.setSystemCallback takes one handler and delivers the events from FmodManager.Update() on the game thread: device list changed, device lost, bank unload with the bank's path, live update connected and disconnected, and pre and post update.
+Shape: usage
+The handler is a SystemEvent->Void function. FmodManager.Update() delivers the events on the game thread, so there is no system, commanddata, or userdata argument and nothing to return.
 ```haxe
+import haxefmod.studio.SystemCallbacks;
+
 StudioSystem.setSystemCallback(event -> switch (event) {
+    case PreUpdate: trace("before update");
+    case PostUpdate: trace("after update");
     case BankUnload(path): trace('unloaded $path');
     case LiveUpdateConnected: trace("live update connected");
+    case LiveUpdateDisconnected: trace("live update disconnected");
     default:
-});
+}, null, SystemCallbacks.STUDIO_PREUPDATE | SystemCallbacks.STUDIO_POSTUPDATE | SystemCallbacks.DEFAULT_STUDIO_MASK);
 ```
 
 ## FMOD_STUDIO_SYSTEM_CALLBACK_TYPE
 verdict: bound
 Type: haxefmod.studio.Types.FmodStudioSystemCallbackType
-The mask bits are also the STUDIO_* Int constants on SystemCallbacks. StudioSystem.setSystemCallback delivers every one of them as SystemEvent.
+The same bits are the STUDIO_* Int constants on SystemCallbacks, which is what the studioMask argument of StudioSystem.setSystemCallback takes. PREUPDATE and POSTUPDATE are off by default.

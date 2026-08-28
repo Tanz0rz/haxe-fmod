@@ -20,8 +20,7 @@ Type: haxefmod.studio.Types.FmodSystemCpuUsage
 FMOD_CPU_USAGE and the studio update field are merged into one record, returned by StudioSystem.getCpuUsage.
 
 ## FMOD_DEBUG_CALLBACK
-verdict: review note only, decide bound or a category
-Debug callbacks are not exposed, since they run on FMOD threads. FMOD's log goes to the platform's standard output at the level set by FmodSettings.logLevel.
+verdict: cannot FMOD calls it on whichever of its threads logs, no Haxe target can run code there. The log goes to the platform's standard output at the level set by FmodSettings.logLevel.
 
 ## FMOD_DEBUG_FLAGS
 verdict: bound
@@ -37,34 +36,22 @@ The library keeps TTY, and the level comes from FmodSettings.logLevel.
 verdict: library GUIDs are strings in the text form FMOD Studio shows, taken by StudioSystem.getEventByID and returned by EventDescription.getID
 
 ## FMOD_MAX_CHANNEL_WIDTH
-verdict: review note only, decide bound or a category
-No Haxe equivalent. FMOD validates mix matrices passed to setMixMatrix, and an oversized one comes back as FMOD_ERR_INVALID_PARAM.
+verdict: library the limit is not declared in Haxe, FMOD enforces it and a mix matrix wider than 32 passed to Channel.setMixMatrix or ChannelGroup.setMixMatrix comes back as FmodResult.FMOD_ERR_INVALID_PARAM
 
 ## FMOD_MAX_LISTENERS
-verdict: review note only, decide bound or a category
-No Haxe equivalent. StudioSystem.setNumListeners passes the count through to FMOD, which rejects anything above eight.
+verdict: library the limit is not declared in Haxe, StudioSystem.setNumListeners passes the count to FMOD, which rejects anything above 8
 
 ## FMOD_MAX_SYSTEMS
-verdict: review note only, decide bound or a category
-No Haxe equivalent. haxefmod creates exactly one FMOD system per process, so the limit never applies.
+verdict: library haxefmod creates exactly one FMOD system per process inside FmodManager.Initialize, so the limit never applies
 
 ## FMOD_MEMORY_ALLOC_CALLBACK
-verdict: bound
-Custom allocators are not exposed. FMOD uses its own allocator, and StudioSystem.getMemoryStats reports what it has allocated.
-```haxe
-var stats = StudioSystem.getMemoryStats();
-if (stats != null) {
-    trace('current ${stats.current} bytes, peak ${stats.maximum} bytes');
-}
-```
+verdict: cannot FMOD calls its allocator on every one of its threads, no Haxe target can run code there. FMOD keeps its default allocator, and StudioSystem.getMemoryStats reports what it has allocated.
 
 ## FMOD_MEMORY_FREE_CALLBACK
-verdict: review note only, decide bound or a category
-Custom allocators are not exposed. FMOD uses its own allocator.
+verdict: cannot FMOD calls its allocator on every one of its threads, no Haxe target can run code there. FMOD keeps its default allocator, and StudioSystem.getMemoryStats reports what it has allocated.
 
 ## FMOD_MEMORY_REALLOC_CALLBACK
-verdict: review note only, decide bound or a category
-Custom allocators are not exposed. FMOD uses its own allocator.
+verdict: cannot FMOD calls its allocator on every one of its threads, no Haxe target can run code there. FMOD keeps its default allocator, and StudioSystem.getMemoryStats reports what it has allocated.
 
 ## FMOD_MEMORY_TYPE
 verdict: bound
@@ -91,13 +78,10 @@ Type: haxefmod.studio.Types.FmodSpeakerMode
 Requested through FmodSettings.speakerMode and read from CoreSystem.getSoftwareFormat.
 
 ## FMOD_SYNCPOINT
-verdict: bound
-Type: haxefmod.core.ChannelEvent
-Sync points are addressed by index on the Sound, and crossings arrive as ChannelEvent.SyncPoint through Channel.setCallback.
+verdict: covered sync points are addressed by index on the Sound (Sound.addSyncPoint, Sound.getSyncPointName, Sound.getSyncPointOffset, Sound.deleteSyncPoint), and a crossing arrives as ChannelEvent.SyncPoint(index) through Channel.setCallback
 
 ## FMOD_THREAD_AFFINITY
-verdict: review note only, decide bound or a category
-No Haxe equivalent. FMOD chooses its thread placement on every target, and there is no thread to place on HTML5.
+verdict: library thread placement is not exposed, FMOD keeps its default affinity on every native target and the web build has no threads to place. The 64-bit group values do not fit a Haxe Int.
 
 ## FMOD_THREAD_PRIORITY
 verdict: bound
@@ -124,5 +108,4 @@ verdict: bound
 Type: haxefmod.studio.Types.FmodVector
 
 ## FMOD_VERSION
-verdict: review note only, decide bound or a category
-No Haxe equivalent. haxefmod links one FMOD version per release, and StudioSystem.getVersion reports it as a string.
+verdict: covered haxefmod links one FMOD version per release, and StudioSystem.getVersion returns it as the string "2.03.12"

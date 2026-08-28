@@ -1,150 +1,70 @@
 # dsp-plugin-api-guide
 
 ## 18.2.1 Building a Plug-in
-verdict: review carried over from the page default
-This guide walks through writing, building, and loading a DSP plug-in library. haxefmod does not bind registerDSP, because a description carries callbacks that would run on FMOD's mixer thread and Haxe code cannot do that on any target. The built library loads with StudioSystem.loadPlugin after StudioSystem.setPluginPath names its folder, native only (unsupported in HTML5), and a Studio project that uses the effect finds it once the plug-in is loaded before its banks.
-The built-in effects cover most game needs and are all available through haxefmod.core.Dsp, with the parameter indices listed in FMOD's effects reference. Sounds your code synthesizes can be played through haxefmod.core.PcmStream. See docs/guides/core-api.md.
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.ChannelGroup;
-
-StudioSystem.setPluginPath("plugins");
-var plugin = StudioSystem.loadPlugin("fmod_gain.dll");
-if (plugin != 0) {
-    var gain = Dsp.createByPlugin(plugin);
-    ChannelGroup.master().addDsp(ChannelGroup.DSP_HEAD, gain);
-}
-```
+verdict: cannot The exported description function is part of a plug-in library written in C, and its callbacks run on FMOD's mixer thread where no Haxe target can run code. The built library loads with StudioSystem.loadPlugin.
 
 ## 18.2.1 Building a Plug-in#2
-verdict: review carried over from the page default
-This guide walks through writing, building, and loading a DSP plug-in library. haxefmod does not bind registerDSP, because a description carries callbacks that would run on FMOD's mixer thread and Haxe code cannot do that on any target. The built library loads with StudioSystem.loadPlugin after StudioSystem.setPluginPath names its folder, native only (unsupported in HTML5), and a Studio project that uses the effect finds it once the plug-in is loaded before its banks.
-The built-in effects cover most game needs and are all available through haxefmod.core.Dsp, with the parameter indices listed in FMOD's effects reference. Sounds your code synthesizes can be played through haxefmod.core.PcmStream. See docs/guides/core-api.md.
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.ChannelGroup;
-
-StudioSystem.setPluginPath("plugins");
-var plugin = StudioSystem.loadPlugin("fmod_gain.dll");
-if (plugin != 0) {
-    var gain = Dsp.createByPlugin(plugin);
-    ChannelGroup.master().addDsp(ChannelGroup.DSP_HEAD, gain);
-}
-```
+verdict: cannot The exported description function is part of a plug-in library written in C, and its callbacks run on FMOD's mixer thread where no Haxe target can run code. The built library loads with StudioSystem.loadPlugin.
 
 ## 18.2.2 Loading the Plug-in in the Game
-verdict: review carried over from the page default
-This guide walks through writing, building, and loading a DSP plug-in library. haxefmod does not bind registerDSP, because a description carries callbacks that would run on FMOD's mixer thread and Haxe code cannot do that on any target. The built library loads with StudioSystem.loadPlugin after StudioSystem.setPluginPath names its folder, native only (unsupported in HTML5), and a Studio project that uses the effect finds it once the plug-in is loaded before its banks.
-The built-in effects cover most game needs and are all available through haxefmod.core.Dsp, with the parameter indices listed in FMOD's effects reference. Sounds your code synthesizes can be played through haxefmod.core.PcmStream. See docs/guides/core-api.md.
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.ChannelGroup;
-
-StudioSystem.setPluginPath("plugins");
-var plugin = StudioSystem.loadPlugin("fmod_gain.dll");
-if (plugin != 0) {
-    var gain = Dsp.createByPlugin(plugin);
-    ChannelGroup.master().addDsp(ChannelGroup.DSP_HEAD, gain);
-}
-```
+verdict: cannot Registering from a description struct cannot be bound, because the struct carries callbacks that FMOD runs on its mixer thread and no Haxe target can run code there. A plug-in built into a shared library loads with StudioSystem.loadPlugin, which makes its effects available to Studio events and to Dsp.createByPlugin.
 
 ## 18.2.2 Loading the Plug-in in the Game#2
-verdict: review carried over from the page default
-This guide walks through writing, building, and loading a DSP plug-in library. haxefmod does not bind registerDSP, because a description carries callbacks that would run on FMOD's mixer thread and Haxe code cannot do that on any target. The built library loads with StudioSystem.loadPlugin after StudioSystem.setPluginPath names its folder, native only (unsupported in HTML5), and a Studio project that uses the effect finds it once the plug-in is loaded before its banks.
-The built-in effects cover most game needs and are all available through haxefmod.core.Dsp, with the parameter indices listed in FMOD's effects reference. Sounds your code synthesizes can be played through haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: bound
+Native only (unsupported in HTML5).
+Returns FMOD's plugin handle, or 0 on failure with the reason in StudioSystem.lastResult().
 ```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.ChannelGroup;
-
-StudioSystem.setPluginPath("plugins");
-var plugin = StudioSystem.loadPlugin("fmod_gain.dll");
-if (plugin != 0) {
-    var gain = Dsp.createByPlugin(plugin);
-    ChannelGroup.master().addDsp(ChannelGroup.DSP_HEAD, gain);
+var priority = 0;
+var handle = StudioSystem.loadPlugin("fmod_gain.dll", priority);
+if (handle == 0) {
+    trace('loadPlugin failed: ${StudioSystem.lastResult()}');
 }
 ```
 
 ## 18.2.2 Loading the Plug-in in the Game#3
-verdict: review carried over from the page default
-This guide walks through writing, building, and loading a DSP plug-in library. haxefmod does not bind registerDSP, because a description carries callbacks that would run on FMOD's mixer thread and Haxe code cannot do that on any target. The built library loads with StudioSystem.loadPlugin after StudioSystem.setPluginPath names its folder, native only (unsupported in HTML5), and a Studio project that uses the effect finds it once the plug-in is loaded before its banks.
-The built-in effects cover most game needs and are all available through haxefmod.core.Dsp, with the parameter indices listed in FMOD's effects reference. Sounds your code synthesizes can be played through haxefmod.core.PcmStream. See docs/guides/core-api.md.
+verdict: bound
+Native only (unsupported in HTML5).
 ```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.ChannelGroup;
-
-StudioSystem.setPluginPath("plugins");
-var plugin = StudioSystem.loadPlugin("fmod_gain.dll");
-if (plugin != 0) {
-    var gain = Dsp.createByPlugin(plugin);
-    ChannelGroup.master().addDsp(ChannelGroup.DSP_HEAD, gain);
+var result = StudioSystem.setPluginPath("plugins");
+if (!result.isOk()) {
+    trace('setPluginPath failed: $result');
 }
 ```
 
 ## 18.2.2 Loading the Plug-in in the Game#4
 verdict: bound
-A plug-in built from a description loads with StudioSystem.loadPlugin after StudioSystem.setPluginPath names its folder, native only (unsupported in HTML5). Release every unit created from it before StudioSystem.unloadPlugin, which answers FMOD_ERR_DSP_INUSE until the mixer has freed them and succeeds when retried a few frames later.
+Native only (unsupported in HTML5).
+Release every Dsp created from the plug-in first. FMOD frees them from its mixer thread, so an unload that answers FMOD_ERR_DSP_INUSE succeeds when retried a few frames later.
 ```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.ChannelGroup;
-
-StudioSystem.setPluginPath("plugins");
-var plugin = StudioSystem.loadPlugin("fmod_gain.dll");
-var gain = Dsp.createByPlugin(plugin);
-ChannelGroup.master().addDsp(ChannelGroup.DSP_HEAD, gain);
-
-// at shutdown
-ChannelGroup.master().removeDsp(gain);
-gain.release();
-var result = StudioSystem.unloadPlugin(plugin);
+var handle = StudioSystem.loadPlugin("fmod_gain.dll");
+var result = StudioSystem.unloadPlugin(handle);
 if (!result.isOk()) {
     trace('unloadPlugin failed: $result');
 }
 ```
 
 ## 18.4 The Plug-in Descriptor
-verdict: review carried over from the page default
-This guide walks through writing, building, and loading a DSP plug-in library. haxefmod does not bind registerDSP, because a description carries callbacks that would run on FMOD's mixer thread and Haxe code cannot do that on any target. The built library loads with StudioSystem.loadPlugin after StudioSystem.setPluginPath names its folder, native only (unsupported in HTML5), and a Studio project that uses the effect finds it once the plug-in is loaded before its banks.
-The built-in effects cover most game needs and are all available through haxefmod.core.Dsp, with the parameter indices listed in FMOD's effects reference. Sounds your code synthesizes can be played through haxefmod.core.PcmStream. See docs/guides/core-api.md.
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.ChannelGroup;
-
-StudioSystem.setPluginPath("plugins");
-var plugin = StudioSystem.loadPlugin("fmod_gain.dll");
-if (plugin != 0) {
-    var gain = Dsp.createByPlugin(plugin);
-    ChannelGroup.master().addDsp(ChannelGroup.DSP_HEAD, gain);
-}
-```
+verdict: cannot The descriptor is a C struct of callbacks that FMOD runs on its mixer thread, and no Haxe target can run code there. A compiled plug-in loads with StudioSystem.loadPlugin and Dsp.getPluginInfo reads the name, version, and buffer counts it registered.
 
 ## 18.7 Multiple Plug-ins Within One File
-verdict: review carried over from the page default
-This guide walks through writing, building, and loading a DSP plug-in library. haxefmod does not bind registerDSP, because a description carries callbacks that would run on FMOD's mixer thread and Haxe code cannot do that on any target. The built library loads with StudioSystem.loadPlugin after StudioSystem.setPluginPath names its folder, native only (unsupported in HTML5), and a Studio project that uses the effect finds it once the plug-in is loaded before its banks.
-The built-in effects cover most game needs and are all available through haxefmod.core.Dsp, with the parameter indices listed in FMOD's effects reference. Sounds your code synthesizes can be played through haxefmod.core.PcmStream. See docs/guides/core-api.md.
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.ChannelGroup;
-
-StudioSystem.setPluginPath("plugins");
-var plugin = StudioSystem.loadPlugin("fmod_gain.dll");
-if (plugin != 0) {
-    var gain = Dsp.createByPlugin(plugin);
-    ChannelGroup.master().addDsp(ChannelGroup.DSP_HEAD, gain);
-}
-```
+verdict: cannot The plug-in list and the descriptors it points to are C code inside the plug-in library. A library that exports a list loads as one handle with StudioSystem.loadPlugin, and getNestedPluginCount and getNestedPlugin reach the plug-ins inside it.
 
 ## 18.7 Multiple Plug-ins Within One File#2
 verdict: bound
-A file that exports a plug-in list loads as one handle. StudioSystem.getNestedPluginCount counts the plug-ins inside it, getNestedPlugin returns each one's handle, and getPluginInfo reports its name, type, and version, native only (unsupported in HTML5).
+Native only (unsupported in HTML5).
+loadPlugin returns 0 on failure and getNestedPluginCount returns -1, with the reason in StudioSystem.lastResult(). getPluginInfo returns the type together with the name and version.
 ```haxe
-StudioSystem.setPluginPath("plugins");
-var plugin = StudioSystem.loadPlugin("fmod_effects.dll");
-var count = StudioSystem.getNestedPluginCount(plugin);
-for (i in 0...count) {
-    var nestedPlugin = StudioSystem.getNestedPlugin(plugin, i);
-    var info = StudioSystem.getPluginInfo(nestedPlugin);
+var baseHandle = StudioSystem.loadPlugin("plugin_name.dll");
+if (baseHandle == 0) {
+    trace('loadPlugin failed: ${StudioSystem.lastResult()}');
+}
+var count = StudioSystem.getNestedPluginCount(baseHandle);
+for (index in 0...count) {
+    var handle = StudioSystem.getNestedPlugin(baseHandle, index);
+    var info = StudioSystem.getPluginInfo(handle);
     if (info != null) {
-        trace(info.name + " type " + info.type + " version " + info.version);
+        var type = info.type;
+        // We have an output plug-in, a DSP plug-in, or a codec plug-in here.
     }
 }
 ```

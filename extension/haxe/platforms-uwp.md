@@ -1,9 +1,7 @@
 # platforms-uwp
 
 ## Background Music
-verdict: review note only, decide bound or a category
-haxefmod supports Windows, Linux, and macOS (C++ and HashLink) and HTML5 (WebAssembly), so UWP is not a target and there is no Haxe equivalent for this page.
+verdict: cannot UWP is not a haxefmod target and output ports exist only on consoles. On the desktop and web targets ChannelGroup.create makes the group and Sound.play followed by Channel.setChannelGroup routes the sound through it
 
 ## Pass Through
-verdict: review note only, decide bound or a category
-haxefmod supports Windows, Linux, and macOS (C++ and HashLink) and HTML5 (WebAssembly), so UWP is not a target and there is no Haxe equivalent for this page.
+verdict: cannot UWP is not a haxefmod target and output ports exist only on consoles. On the desktop and web targets ChannelGroup.create makes the group and Sound.play followed by Channel.setChannelGroup routes the sound through it

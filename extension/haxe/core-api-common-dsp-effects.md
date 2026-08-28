@@ -68,16 +68,44 @@ verdict: bound
 Type: haxefmod.core.DspParameters.DspHighpass
 
 ## FMOD_DSP_HIGHPASS#2
-verdict: review note only, decide bound or a category
-The same emulation on a MULTIBAND_EQ unit. Band A's filter is DspMultibandEq.A_FILTER, its frequency A_FREQUENCY, and its Q A_Q, with the filter set to DspMultibandEqFilter.HIGHPASS_12DB.
+verdict: bound
+```haxe
+import haxefmod.core.Dsp;
+import haxefmod.core.DspType;
+import haxefmod.core.DspParameters.DspMultibandEq;
+import haxefmod.core.DspEnums.DspMultibandEqFilter;
+var multiband = Dsp.create(DspType.MULTIBAND_EQ);
+var frequency = 5000.0;
+var resonance = 1.0;
+// Configure a single band (band A) as a highpass (all other bands default to off).
+// 12dB roll-off to approximate the old effect curve.
+// Cutoff frequency can be used the same as with the old effect.
+// Resonance can be applied by setting the 'Q' value of the new effect.
+multiband.setParameterInt(DspMultibandEq.A_FILTER, DspMultibandEqFilter.HIGHPASS_12DB);
+multiband.setParameter(DspMultibandEq.A_FREQUENCY, frequency);
+multiband.setParameter(DspMultibandEq.A_Q, resonance);
+```
 
 ## FMOD_DSP_HIGHPASS_SIMPLE
 verdict: bound
 Type: haxefmod.core.DspParameters.DspHighpassSimple
 
 ## FMOD_DSP_HIGHPASS_SIMPLE#2
-verdict: review note only, decide bound or a category
-The same emulation on a MULTIBAND_EQ unit. Band A's filter is DspMultibandEq.A_FILTER and its frequency A_FREQUENCY, with the filter set to DspMultibandEqFilter.HIGHPASS_12DB and Q left at its default.
+verdict: bound
+```haxe
+import haxefmod.core.Dsp;
+import haxefmod.core.DspType;
+import haxefmod.core.DspParameters.DspMultibandEq;
+import haxefmod.core.DspEnums.DspMultibandEqFilter;
+var multiband = Dsp.create(DspType.MULTIBAND_EQ);
+var frequency = 1000.0;
+// Configure a single band (band A) as a highpass (all other bands default to off).
+// 12dB roll-off to approximate the old effect curve.
+// Cutoff frequency can be used the same as with the old effect.
+// Resonance / 'Q' should remain at default 0.707.
+multiband.setParameterInt(DspMultibandEq.A_FILTER, DspMultibandEqFilter.HIGHPASS_12DB);
+multiband.setParameter(DspMultibandEq.A_FREQUENCY, frequency);
+```
 
 ## FMOD_DSP_ITECHO
 verdict: bound
@@ -94,10 +122,10 @@ Type: haxefmod.core.DspParameters.DspLimiter
 ## FMOD_DSP_LOUDNESS_METER
 verdict: bound
 Type: haxefmod.core.DspParameters.DspLoudnessMeter
-The meter runs on every target, but the INFO readback is not exposed because the HTML5 build returns zeroes from it. Use Dsp.getMetering for peak and RMS levels that work everywhere.
+STATE is set with setParameterInt and WEIGHTING with setParameterData. The INFO readback has no Haxe getter, Dsp.getMetering gives peak and RMS levels on every target.
 
 ## FMOD_DSP_LOUDNESS_METER_INFO_TYPE
-verdict: library the loudness readback is not exposed since the HTML5 build returns zeroes from it, Dsp.getMetering gives peak and RMS on every target
+verdict: library the library has no data parameter getter, so the loudness readback is not exposed and Dsp.getMetering gives peak and RMS levels instead
 
 ## FMOD_DSP_LOUDNESS_METER_STATE_TYPE
 verdict: bound
@@ -105,23 +133,64 @@ Type: haxefmod.core.DspEnums.DspLoudnessMeterState
 Passed through setParameterInt on DspLoudnessMeter.STATE, where negative values reset the meter.
 
 ## FMOD_DSP_LOUDNESS_METER_WEIGHTING_TYPE
-verdict: library channel weighting is a data parameter of the loudness meter, whose readback is not exposed, so the meter keeps FMOD's default weighting
+verdict: bound
+Shape: usage
+The struct is 32 floats, written as bytes through setParameterData on DspLoudnessMeter.WEIGHTING.
+```haxe
+import haxefmod.core.Dsp;
+import haxefmod.core.DspType;
+import haxefmod.core.DspParameters.DspLoudnessMeter;
+var meter = Dsp.create(DspType.LOUDNESS_METER);
+var weighting = haxe.io.Bytes.alloc(32 * 4);
+for (channel in 0...32) {
+    weighting.setFloat(channel * 4, 1.0);
+}
+meter.setParameterData(DspLoudnessMeter.WEIGHTING, weighting);
+```
 
 ## FMOD_DSP_LOWPASS
 verdict: bound
 Type: haxefmod.core.DspParameters.DspLowpass
 
 ## FMOD_DSP_LOWPASS#2
-verdict: review note only, decide bound or a category
-The same emulation on a MULTIBAND_EQ unit. Band A's filter is DspMultibandEq.A_FILTER, its frequency A_FREQUENCY, and its Q A_Q, with the filter set to DspMultibandEqFilter.LOWPASS_24DB.
+verdict: bound
+```haxe
+import haxefmod.core.Dsp;
+import haxefmod.core.DspType;
+import haxefmod.core.DspParameters.DspMultibandEq;
+import haxefmod.core.DspEnums.DspMultibandEqFilter;
+var multiband = Dsp.create(DspType.MULTIBAND_EQ);
+var frequency = 5000.0;
+var resonance = 1.0;
+// Configure a single band (band A) as a lowpass (all other bands default to off).
+// 24dB roll-off to approximate the old effect curve.
+// Cutoff frequency can be used the same as with the old effect.
+// Resonance can be applied by setting the 'Q' value of the new effect.
+multiband.setParameterInt(DspMultibandEq.A_FILTER, DspMultibandEqFilter.LOWPASS_24DB);
+multiband.setParameter(DspMultibandEq.A_FREQUENCY, frequency);
+multiband.setParameter(DspMultibandEq.A_Q, resonance);
+```
 
 ## FMOD_DSP_LOWPASS_SIMPLE
 verdict: bound
 Type: haxefmod.core.DspParameters.DspLowpassSimple
 
 ## FMOD_DSP_LOWPASS_SIMPLE#2
-verdict: review note only, decide bound or a category
-The same emulation on a MULTIBAND_EQ unit. Band A's filter is DspMultibandEq.A_FILTER and its frequency A_FREQUENCY, with the filter set to DspMultibandEqFilter.LOWPASS_12DB and Q left at its default.
+verdict: bound
+```haxe
+import haxefmod.core.Dsp;
+import haxefmod.core.DspType;
+import haxefmod.core.DspParameters.DspMultibandEq;
+import haxefmod.core.DspEnums.DspMultibandEqFilter;
+var multiband = Dsp.create(DspType.MULTIBAND_EQ);
+var frequency = 5000.0;
+// Configure a single band (band A) as a lowpass (all other bands default to off).
+// 12dB roll-off to approximate the old effect curve.
+// Cutoff frequency can be used the same as with the old effect.
+// Resonance / 'Q' should remain at default 0.707.
+multiband.setParameterInt(DspMultibandEq.A_FILTER, DspMultibandEqFilter.LOWPASS_12DB);
+multiband.setParameter(DspMultibandEq.A_FREQUENCY, frequency);
+```
 
 ## FMOD_DSP_MULTIBAND_DYNAMICS
 verdict: bound
@@ -163,8 +232,7 @@ Type: haxefmod.core.DspParameters.DspPan
 The 3D position parameter takes a struct that is not exposed, so 3D panning goes through a 3D channel's set3DAttributes instead. The 2D parameters work by index.
 
 ## FMOD_DSP_PAN#2
-verdict: review note only, decide bound or a category
-FMOD_DSP_PARAMETER_3DATTRIBUTES_MULTI is not exposed, so a pan unit cannot be positioned by parameter from Haxe. Play the source through a 3D channel and call Channel.set3DAttributes, which feeds the same panner with the Studio listeners.
+verdict: covered this block is prose about how a rotating 3D source is panned, in Haxe the source is positioned through Channel.set3DAttributes and the same panning applies
 
 ## FMOD_DSP_PAN_2D_STEREO_MODE_TYPE
 verdict: bound
@@ -191,8 +259,25 @@ verdict: bound
 Type: haxefmod.core.DspParameters.DspParamEq
 
 ## FMOD_DSP_PARAMEQ#2
-verdict: review note only, decide bound or a category
-The same emulation on a MULTIBAND_EQ unit. Band A's filter is DspMultibandEq.A_FILTER, frequency A_FREQUENCY, Q A_Q, and gain A_GAIN, with the filter set to DspMultibandEqFilter.PEAKING.
+verdict: bound
+```haxe
+import haxefmod.core.Dsp;
+import haxefmod.core.DspType;
+import haxefmod.core.DspParameters.DspMultibandEq;
+import haxefmod.core.DspEnums.DspMultibandEqFilter;
+var multiband = Dsp.create(DspType.MULTIBAND_EQ);
+var center = 8000.0;
+var bandwidth = 1.0;
+var gain = 0.0;
+// Configure a single band (band A) as a peaking EQ (all other bands default to off).
+// Center frequency can be used as with the old effect.
+// Bandwidth can be applied by setting the 'Q' value of the new effect.
+// Gain at the center frequency can be used the same as with the old effect.
+multiband.setParameterInt(DspMultibandEq.A_FILTER, DspMultibandEqFilter.PEAKING);
+multiband.setParameter(DspMultibandEq.A_FREQUENCY, center);
+multiband.setParameter(DspMultibandEq.A_Q, bandwidth);
+multiband.setParameter(DspMultibandEq.A_GAIN, gain);
+```
 
 ## FMOD_DSP_PITCHSHIFT
 verdict: bound

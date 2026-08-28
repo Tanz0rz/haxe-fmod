@@ -1,29 +1,22 @@
 # platforms-openharmony
 
 ## JavaScript
-verdict: review note only, decide bound or a category
-haxefmod supports Windows, Linux, and macOS (C++ and HashLink) and HTML5 (WebAssembly), so OpenHarmony is not a target and there is no Haxe equivalent for this page.
+verdict: cannot OpenHarmony is not a haxefmod target, this declares the ArkTS types of the platform's native module.
 
 ## JavaScript#2
-verdict: review note only, decide bound or a category
-haxefmod supports Windows, Linux, and macOS (C++ and HashLink) and HTML5 (WebAssembly), so OpenHarmony is not a target and there is no Haxe equivalent for this page.
+verdict: cannot OpenHarmony is not a haxefmod target, this is the platform module's package manifest.
 
 ## JavaScript#3
-verdict: review note only, decide bound or a category
-haxefmod supports Windows, Linux, and macOS (C++ and HashLink) and HTML5 (WebAssembly), so OpenHarmony is not a target and there is no Haxe equivalent for this page.
+verdict: cannot OpenHarmony is not a haxefmod target, this is an OpenHarmony project dependency entry.
 
 ## JavaScript#4
-verdict: review note only, decide bound or a category
-haxefmod supports Windows, Linux, and macOS (C++ and HashLink) and HTML5 (WebAssembly), so OpenHarmony is not a target and there is no Haxe equivalent for this page.
+verdict: cannot OpenHarmony is not a haxefmod target, this imports the platform's native module.
 
 ## JavaScript#5
-verdict: review note only, decide bound or a category
-haxefmod supports Windows, Linux, and macOS (C++ and HashLink) and HTML5 (WebAssembly), so OpenHarmony is not a target and there is no Haxe equivalent for this page.
+verdict: cannot OpenHarmony is not a haxefmod target, fmod.init here is the platform module's ability hook, not FMOD's System init.
 
 ## JavaScript#6
-verdict: review note only, decide bound or a category
-haxefmod supports Windows, Linux, and macOS (C++ and HashLink) and HTML5 (WebAssembly), so OpenHarmony is not a target and there is no Haxe equivalent for this page.
+verdict: cannot OpenHarmony is not a haxefmod target, fmod.close here is the platform module's ability hook, not FMOD's System release.
 
 ## JavaScript#7
-verdict: review note only, decide bound or a category
-haxefmod supports Windows, Linux, and macOS (C++ and HashLink) and HTML5 (WebAssembly), so OpenHarmony is not a target and there is no Haxe equivalent for this page.
+verdict: cannot OpenHarmony is not a haxefmod target, this is the OpenHarmony window stage lifecycle callback.

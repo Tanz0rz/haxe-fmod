@@ -322,6 +322,23 @@ def resolve(section, problems, label):
     return {"verdict": "bound", "notes": section["notes"], "code": code, "type": section["type"]}
 
 
+def strip_imports(record):
+    """The fence keeps its import lines so it compiles, the tab shows the
+    imported type paths under the code the way function entries do."""
+    if record["code"] is None:
+        return record
+    lines = record["code"].split("\n")
+    types = [record["type"]] if record["type"] else []
+    while lines and (lines[0].startswith("import ") or lines[0].strip() == ""):
+        line = lines.pop(0).strip()
+        if line.startswith("import "):
+            types.append(line[len("import "):].rstrip(";").strip())
+    shown = dict(record)
+    shown["code"] = "\n".join(lines)
+    shown["type"] = ", ".join(types) if types else None
+    return shown
+
+
 def check_type_definition(entry, section, record, skips, problems, label):
     if section["shape"]:
         return 0
@@ -415,7 +432,7 @@ def build():
             record = resolve(section, problems, label)
             if record is None:
                 continue
-            output.setdefault(page, {})[key] = record
+            output.setdefault(page, {})[key] = strip_imports(record)
             if record["verdict"] != "bound":
                 stats["categorized"] += 1
                 continue

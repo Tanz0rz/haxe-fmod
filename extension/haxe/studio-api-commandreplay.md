@@ -1,64 +1,13 @@
 # studio-api-commandreplay
 
 ## FMOD_STUDIO_COMMANDREPLAY_CREATE_INSTANCE_CALLBACK
-verdict: review carried over from the page default
-Record with StudioSystem.startCommandCapture(path), load the file with StudioSystem.loadCommandReplay(path), and drive the CommandReplay handle with start, stop, setPaused, seekToTime, seekToCommand, getPlaybackState, and getLength. getCommandCount, getCommandInfo, getCommandString, and getCommandAtTime inspect the capture, and setBankPath redirects its bank loads.
-The per-command callbacks (create instance, frame, load bank) cannot be bound, FMOD runs them on its update thread while the replay plays and no Haxe target can execute code there.
-```haxe
-if (StudioSystem.startCommandCapture("capture.cmd.txt").isOk()) {
-    // play the game for a while
-    StudioSystem.stopCommandCapture();
-}
-
-var replay = StudioSystem.loadCommandReplay("capture.cmd.txt");
-if (!replay.isNull()) {
-    replay.start();
-    trace('replay length ${replay.getLength()} seconds');
-    // when finished
-    replay.stop();
-    replay.release();
-}
-```
+verdict: cannot FMOD invokes it from its Studio update thread while the replay plays, and no Haxe target can run code there. The replay creates the instances itself, and CommandReplay.getCommandInfo reads each command from the game thread.
 
 ## FMOD_STUDIO_COMMANDREPLAY_FRAME_CALLBACK
-verdict: review carried over from the page default
-Record with StudioSystem.startCommandCapture(path), load the file with StudioSystem.loadCommandReplay(path), and drive the CommandReplay handle with start, stop, setPaused, seekToTime, seekToCommand, getPlaybackState, and getLength. getCommandCount, getCommandInfo, getCommandString, and getCommandAtTime inspect the capture, and setBankPath redirects its bank loads.
-The per-command callbacks (create instance, frame, load bank) cannot be bound, FMOD runs them on its update thread while the replay plays and no Haxe target can execute code there.
-```haxe
-if (StudioSystem.startCommandCapture("capture.cmd.txt").isOk()) {
-    // play the game for a while
-    StudioSystem.stopCommandCapture();
-}
-
-var replay = StudioSystem.loadCommandReplay("capture.cmd.txt");
-if (!replay.isNull()) {
-    replay.start();
-    trace('replay length ${replay.getLength()} seconds');
-    // when finished
-    replay.stop();
-    replay.release();
-}
-```
+verdict: cannot FMOD invokes it from its Studio update thread while the replay plays, and no Haxe target can run code there. Poll CommandReplay.getCurrentCommand from the game thread for the index and time the replay is on.
 
 ## FMOD_STUDIO_COMMANDREPLAY_LOAD_BANK_CALLBACK
-verdict: review carried over from the page default
-Record with StudioSystem.startCommandCapture(path), load the file with StudioSystem.loadCommandReplay(path), and drive the CommandReplay handle with start, stop, setPaused, seekToTime, seekToCommand, getPlaybackState, and getLength. getCommandCount, getCommandInfo, getCommandString, and getCommandAtTime inspect the capture, and setBankPath redirects its bank loads.
-The per-command callbacks (create instance, frame, load bank) cannot be bound, FMOD runs them on its update thread while the replay plays and no Haxe target can execute code there.
-```haxe
-if (StudioSystem.startCommandCapture("capture.cmd.txt").isOk()) {
-    // play the game for a while
-    StudioSystem.stopCommandCapture();
-}
-
-var replay = StudioSystem.loadCommandReplay("capture.cmd.txt");
-if (!replay.isNull()) {
-    replay.start();
-    trace('replay length ${replay.getLength()} seconds');
-    // when finished
-    replay.stop();
-    replay.release();
-}
-```
+verdict: cannot FMOD invokes it from its Studio update thread while the replay plays, and no Haxe target can run code there. The replay loads the captured banks itself, and CommandReplay.setBankPath redirects where it reads them from.
 
 ## FMOD_STUDIO_COMMAND_INFO
 verdict: bound
@@ -67,4 +16,3 @@ Type: haxefmod.studio.Types.FmodCommandInfo
 ## FMOD_STUDIO_INSTANCETYPE
 verdict: bound
 Type: haxefmod.studio.Types.FmodStudioInstanceType
-Carried by FmodCommandInfo.instanceType and outputType.

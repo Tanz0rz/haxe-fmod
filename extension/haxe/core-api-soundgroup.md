@@ -3,4 +3,4 @@
 ## FMOD_SOUNDGROUP_BEHAVIOR
 verdict: bound
 Type: haxefmod.studio.Types.SoundGroupBehavior
-Taken by SoundGroup.setMaxAudibleBehavior. SoundGroup.BEHAVIOR_* are the same values.
+SoundGroup.BEHAVIOR_FAIL, BEHAVIOR_MUTE, and BEHAVIOR_STEAL_LOWEST are the same values.

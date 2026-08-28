@@ -1,11 +1,4 @@
 # managing-resources-in-the-core-api
 
 ## 9.5.1 Use a Fixed-size Memory Pool.
-verdict: bound
-Memory_Initialize is not exposed. The library owns system creation and FMOD allocates from the process heap. StudioSystem.getMemoryUsage reports what the engine holds on native targets.
-```haxe
-var usage = StudioSystem.getMemoryUsage();
-if (usage != null) {
-    trace('FMOD memory: $usage');
-}
-```
+verdict: library Memory_Initialize must run before System_Create, which the library performs itself, so FMOD allocates from the process heap. StudioSystem.getMemoryStats and StudioSystem.getMemoryUsage report what it holds

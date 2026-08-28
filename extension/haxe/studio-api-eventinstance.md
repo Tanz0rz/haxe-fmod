@@ -2,7 +2,10 @@
 
 ## FMOD_STUDIO_EVENT_CALLBACK
 verdict: bound
-EventInstance.setCallback(handler, ?mask) takes a Haxe function that receives an EventCallbackData value. Callbacks are queued on FMOD's thread and delivered on the game thread from FmodManager.Update, so the handler can touch game state freely. There is no return value and no userdata, the handle itself identifies the instance.
+Shape: usage
+The handler is a Haxe function that receives an EventCallbackData value. The mask defaults to ALL.
+FMOD raises the callback on its own thread. haxefmod queues it and delivers it on the game thread from FmodManager.Update, so the handler may touch game state.
+No return value and no userdata. The handle itself identifies the instance, and the payload comes as constructor arguments.
 ```haxe
 import haxefmod.studio.Callbacks;
 
@@ -10,10 +13,11 @@ instance.setCallback(function(data:EventCallbackData) {
     switch (data) {
         case Started: trace("started");
         case Stopped: trace("stopped");
-        case TimelineMarker(name, positionMs): trace('marker $name at $positionMs');
+        case TimelineMarker(name, positionMs): trace("marker " + name + " at " + positionMs);
+        case TimelineBeat(bar, beat, positionMs, tempo, timeSigUpper, timeSigLower): trace("beat " + bar + ":" + beat);
         default:
     }
-});
+}, EventCallbackType.STARTED | EventCallbackType.STOPPED | EventCallbackType.TIMELINE_MARKER | EventCallbackType.TIMELINE_BEAT);
 instance.start();
 ```
 
@@ -36,13 +40,10 @@ verdict: bound
 Type: haxefmod.studio.Types.FmodStopMode
 
 ## FMOD_STUDIO_TIMELINE_BEAT_PROPERTIES
-verdict: covered the arguments of haxefmod.studio.Callbacks.EventCallbackData.TimelineBeat
-The beat properties are the arguments of the TimelineBeat constructor of haxefmod.studio.Callbacks.EventCallbackData.
+verdict: covered the arguments of haxefmod.studio.Callbacks.EventCallbackData.TimelineBeat(bar, beat, positionMs, tempo, timeSigUpper, timeSigLower)
 
 ## FMOD_STUDIO_TIMELINE_MARKER_PROPERTIES
-verdict: covered the arguments of haxefmod.studio.Callbacks.EventCallbackData.TimelineMarker
-The marker properties are the arguments of the TimelineMarker constructor of haxefmod.studio.Callbacks.EventCallbackData.
+verdict: covered the arguments of haxefmod.studio.Callbacks.EventCallbackData.TimelineMarker(name, positionMs)
 
 ## FMOD_STUDIO_TIMELINE_NESTED_BEAT_PROPERTIES
-verdict: covered the arguments of haxefmod.studio.Callbacks.EventCallbackData.NestedTimelineBeat, the referenced event's GUID is not carried
-The nested beat properties are the arguments of the NestedTimelineBeat constructor of haxefmod.studio.Callbacks.EventCallbackData, the referenced event's GUID is not carried.
+verdict: covered the arguments of haxefmod.studio.Callbacks.EventCallbackData.NestedTimelineBeat(bar, beat, positionMs, tempo, timeSigUpper, timeSigLower), the referenced event's GUID is not carried

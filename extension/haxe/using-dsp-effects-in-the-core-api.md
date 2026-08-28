@@ -7,27 +7,21 @@ import haxefmod.core.Sound;
 import haxefmod.core.Dsp;
 import haxefmod.core.DspType;
 
-var sound = Sound.create("assets/drumloop.wav");
+var sound = Sound.create("drumloop.wav");
 var channel = sound.play();
-var echo = Dsp.create(DspType.ECHO);
-var result = channel.addDsp(0, echo);
-if (!result.isOk()) {
-    trace('addDsp failed: $result');
-}
+var dsp_echo = Dsp.create(DspType.ECHO);
+var result = channel.addDsp(0, dsp_echo);
 ```
 
 ## Add a DSP effect to a Channel#2
 verdict: bound
-Channel.setDspIndex moves a unit that is already in the chain, and getDspIndex reads its position.
 ```haxe
 import haxefmod.core.Dsp;
 import haxefmod.core.DspType;
 
-var echo = Dsp.create(DspType.ECHO);
-channel.addDsp(0, echo);
-
-// move it to position 1
-channel.setDspIndex(echo, 1);
+var dsp_echo = Dsp.create(DspType.ECHO);
+channel.addDsp(0, dsp_echo);
+var result = channel.setDspIndex(dsp_echo, 1);
 ```
 
 ## Add a DSP effect to a Channel#3
@@ -35,11 +29,8 @@ verdict: bound
 ```haxe
 import haxefmod.core.ChannelGroup;
 
-var group = ChannelGroup.create("my channelgroup");
-var result = channel.setChannelGroup(group);
-if (!result.isOk()) {
-    trace('setChannelGroup failed: $result');
-}
+var channelgroup = ChannelGroup.create("my channelgroup");
+var result = channel.setChannelGroup(channelgroup);
 ```
 
 ## Add an effect to the ChannelGroup
@@ -49,32 +40,23 @@ import haxefmod.core.ChannelGroup;
 import haxefmod.core.Dsp;
 import haxefmod.core.DspType;
 
-var group = ChannelGroup.create("my channelgroup");
-var lowpass = Dsp.create(DspType.LOWPASS);
-var result = group.addDsp(1, lowpass);
-if (!result.isOk()) {
-    trace('addDsp failed: $result');
-}
+var channelgroup = ChannelGroup.create("my channelgroup");
+var dsp_lowpass = Dsp.create(DspType.LOWPASS);
+var result = channelgroup.addDsp(1, dsp_lowpass);
 ```
 
 ## Creating an effect and making all Channels send to it.
 verdict: bound
+addInput returns the DspConnection, DspConnection.NULL on failure with the reason in StudioSystem.lastResult().
 ```haxe
 import haxefmod.core.ChannelGroup;
 import haxefmod.core.Dsp;
 import haxefmod.core.DspType;
-import haxefmod.studio.StudioSystem;
 
-var reverb = Dsp.create(DspType.SFXREVERB);
-var master = ChannelGroup.master();
-
-// the fader is always the tail unit of a group, so every channel routed
-// through the master group reaches this one
-var masterFader = master.getDsp(ChannelGroup.DSP_TAIL);
-var connection = reverb.addInput(masterFader);
-if (connection.isNull()) {
-    trace('addInput failed: ${StudioSystem.lastResult()}');
-}
+var dsp_reverb = Dsp.create(DspType.SFXREVERB);                                     /* Create the reverb DSP */
+var channelgroup_master = ChannelGroup.master();                                    /* Grab the master ChannelGroup / master bus */
+var dsp_tail = channelgroup_master.getDsp(ChannelGroup.DSP_TAIL);                  /* Grab the 'tail' unit for the master ChannelGroup.  This is the last DSP unit for the ChannelGroup, in case it has other effects already in it. */
+var connection = dsp_tail.addInput(dsp_reverb);
 ```
 
 ## Creating an effect and making all Channels send to it.#2
@@ -83,105 +65,92 @@ verdict: bound
 import haxefmod.core.Dsp;
 import haxefmod.core.DspType;
 
-var reverb = Dsp.create(DspType.SFXREVERB);
-var result = reverb.setActive(true);
-if (!result.isOk()) {
-    trace('setActive failed: $result');
-}
+var dsp_reverb = Dsp.create(DspType.SFXREVERB);
+var result = dsp_reverb.setActive(true);
 ```
 
 ## Creating an effect and making all Channels send to it.#3
 verdict: bound
+Sound.play takes no ChannelGroup, the channel is routed with setChannelGroup while it is still paused.
+The head, fader, and tail slots are the ChannelGroup.DSP_HEAD, DSP_FADER, and DSP_TAIL constants, Channel.getDsp accepts them too.
 ```haxe
 import haxefmod.core.Sound;
 import haxefmod.core.ChannelGroup;
 import haxefmod.core.Dsp;
 import haxefmod.core.DspType;
 
-var reverb = Dsp.create(DspType.SFXREVERB);
-var group = ChannelGroup.create("my channelgroup");
-var sound = Sound.create("assets/drumloop.wav");
+var sound = Sound.create("drumloop.wav");
+var channelgroup = ChannelGroup.create("my channelgroup");
+var dsp_reverb = Dsp.create(DspType.SFXREVERB);
 
-// play paused so nothing is heard before the connection exists
-var channel = sound.play(true);
-channel.setChannelGroup(group);
-var head = channel.getDsp(ChannelGroup.DSP_HEAD);
-var connection = reverb.addInput(head);
-if (connection.isNull()) {
-    trace('addInput failed: ${StudioSystem.lastResult()}');
-}
-channel.setPaused(false);
+var channel = sound.play(true);                                                     /* Play the sound.  Play it paused so we dont hear the sound play before it is connected to the reverb. */
+channel.setChannelGroup(channelgroup);
+var channel_dsp_head = channel.getDsp(ChannelGroup.DSP_HEAD);                       /* Grab the 'head' unit for the Channel */
+var connection = dsp_reverb.addInput(channel_dsp_head);                             /* Manually add a connection from the Channel DSP head to the reverb. */
+var result = channel.setPaused(false);                                              /* Unpause the channel and let it be audible. */
 ```
 
 ## Controlling mix level and pan matrices for DSPConnections
 verdict: bound
-addInput returns the DspConnection handle directly.
+addInput returns the DspConnection directly, DspConnection.NULL on failure with the reason in StudioSystem.lastResult().
 ```haxe
 import haxefmod.core.Sound;
 import haxefmod.core.ChannelGroup;
 import haxefmod.core.Dsp;
 import haxefmod.core.DspType;
 
-var reverb = Dsp.create(DspType.SFXREVERB);
-var group = ChannelGroup.create("my channelgroup");
-var sound = Sound.create("assets/drumloop.wav");
+var sound = Sound.create("drumloop.wav");
+var channelgroup = ChannelGroup.create("my channelgroup");
+var dsp_reverb = Dsp.create(DspType.SFXREVERB);
 
-var channel = sound.play(true);
-channel.setChannelGroup(group);
-var head = channel.getDsp(ChannelGroup.DSP_HEAD);
-var connection = reverb.addInput(head);
-channel.setPaused(false);
+var channel = sound.play(true);                                                     /* Play the sound.  Play it paused so we dont hear the sound play before it is connected to the reverb. */
+channel.setChannelGroup(channelgroup);
+var channel_dsp_head = channel.getDsp(ChannelGroup.DSP_HEAD);                       /* Grab the 'head' unit for the Channel */
+var dsp_connection = dsp_reverb.addInput(channel_dsp_head);                         /* Manually add a connection from the Channel DSP head to the reverb. */
+var result = channel.setPaused(false);                                              /* Unpause the channel and let it be audible. */
 ```
 
 ## Controlling mix level and pan matrices for DSPConnections#2
 verdict: bound
 ```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-var reverb = Dsp.create(DspType.SFXREVERB);
-var connection = reverb.addInput(channel.getDsp(0));
-var result = connection.setMix(0.0);
-if (!result.isOk()) {
-    trace('setMix failed: $result');
-}
-```
-
-## Set the output format of a DSP unit, and control the pan matrix for its output signal
-verdict: bound
-Dsp.setChannelFormat sets the format a unit outputs, and getChannelFormat reads it back. The channel mask, channel count, and speaker mode take FMOD's numeric values.
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-var reverb = Dsp.create(DspType.SFXREVERB);
-reverb.setChannelFormat(0, 2, 2); // FMOD_SPEAKERMODE_STEREO
-```
-
-## Set the output format of a DSP unit, and control the pan matrix for its output signal#2
-verdict: bound
-Dsp.getOutputConnection returns the connection on an output slot, and DspConnection.setMixMatrix sets the matrix on it. The matrix is one flat array, rows are output channels and columns are input channels.
-```haxe
 import haxefmod.core.ChannelGroup;
 import haxefmod.core.Dsp;
 import haxefmod.core.DspType;
 
-var reverb = Dsp.create(DspType.SFXREVERB);
-ChannelGroup.master().addDsp(ChannelGroup.DSP_HEAD, reverb);
-var connection = reverb.getOutputConnection(0);
-var matrix:Array<Float> = [
-    // FL FR SL SR  <- input signal (columns)
-    0, 0, 0, 0, // front left out
-    0, 0, 0, 0, // front right out
-    1, 0, 0, 0, // surround left out
-    0, 1, 0, 0 // surround right out
+var dsp_reverb = Dsp.create(DspType.SFXREVERB);
+var dsp_connection = dsp_reverb.addInput(channel.getDsp(ChannelGroup.DSP_HEAD));
+var result = dsp_connection.setMix(0.0);
+```
+
+## Set the output format of a DSP unit, and control the pan matrix for its output signal
+verdict: bound
+```haxe
+import haxefmod.core.ChannelGroup;
+import haxefmod.core.Dsp;
+import haxefmod.studio.Types.FmodSpeakerMode;
+
+var channel_dsp_head = channel.getDsp(ChannelGroup.DSP_HEAD);
+var result = channel_dsp_head.setChannelFormat(0, 0, FmodSpeakerMode.QUAD);
+```
+
+## Set the output format of a DSP unit, and control the pan matrix for its output signal#2
+verdict: bound
+Dsp.getOutputConnection(index) returns the connection on an output slot, the target unit itself comes from Dsp.getOutput(index).
+The matrix is one flat row-major array, one row per output channel with one column per input channel.
+```haxe
+import haxefmod.core.ChannelGroup;
+import haxefmod.core.Dsp;
+
+var channel_dsp_head = channel.getDsp(ChannelGroup.DSP_HEAD);
+var matrix:Array<Float> =
+[   /*                                    FL FR SL SR <- Input signal (columns) */
+    /* row 0 = front left  out    <- */    0, 0, 0, 0,
+    /* row 1 = front right out    <- */    0, 0, 0, 0,
+    /* row 2 = surround left out  <- */    1, 0, 0, 0,
+    /* row 3 = surround right out <- */    0, 1, 0, 0
 ];
-if (!connection.isNull()) {
-    var result = connection.setMixMatrix(matrix, 4, 4);
-    if (!result.isOk()) {
-        trace('setMixMatrix failed: $result');
-    }
-}
+var channel_dsp_head_output_connection = channel_dsp_head.getOutputConnection(0);
+var result = channel_dsp_head_output_connection.setMixMatrix(matrix, 4, 4);
 ```
 
 ## Bypass an effect / disable it.
@@ -190,121 +159,61 @@ verdict: bound
 import haxefmod.core.Dsp;
 import haxefmod.core.DspType;
 
-var reverb = Dsp.create(DspType.SFXREVERB);
-var result = reverb.setBypass(true);
-if (!result.isOk()) {
-    trace('setBypass failed: $result');
-}
+var dsp_reverb = Dsp.create(DspType.SFXREVERB);
+var result = dsp_reverb.setBypass(true);
 ```
 
 ## 7.2 Plug-in DSP Effects
-verdict: review carried over from the page default
-Plug-in DSP authoring stays in C, because Haxe code cannot run on FMOD's mixer thread on any target. A prebuilt plug-in binary loads with StudioSystem.loadPlugin, and Dsp.createByPlugin creates a unit from it, native only (unsupported in HTML5) because the web build has no plug-in host. All 33 built-in effect types are available through Dsp.create on every target.
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.ChannelGroup;
-
-StudioSystem.setPluginPath("plugins");
-var plugin = StudioSystem.loadPlugin("fmod_gain.dll");
-if (plugin != 0) {
-    var gain = Dsp.createByPlugin(plugin);
-    ChannelGroup.master().addDsp(ChannelGroup.DSP_HEAD, gain);
-}
-```
+verdict: cannot registerPlugin and registerDSP take a DSP description whose callbacks FMOD runs on its mixer thread, and no Haxe target can execute code there. A plug-in compiled from C loads with StudioSystem.loadPlugin, which registers its effects for Studio events and Dsp.createByPlugin.
 
 ## 7.2 Plug-in DSP Effects#2
-verdict: review carried over from the page default
-Plug-in DSP authoring stays in C, because Haxe code cannot run on FMOD's mixer thread on any target. A prebuilt plug-in binary loads with StudioSystem.loadPlugin, and Dsp.createByPlugin creates a unit from it, native only (unsupported in HTML5) because the web build has no plug-in host. All 33 built-in effect types are available through Dsp.create on every target.
+verdict: bound
+Native only (unsupported in HTML5).
+loadPlugin returns FMOD's plug-in handle, 0 on failure with the reason in StudioSystem.lastResult().
 ```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.ChannelGroup;
-
-StudioSystem.setPluginPath("plugins");
-var plugin = StudioSystem.loadPlugin("fmod_gain.dll");
-if (plugin != 0) {
-    var gain = Dsp.createByPlugin(plugin);
-    ChannelGroup.master().addDsp(ChannelGroup.DSP_HEAD, gain);
-}
+var handle = StudioSystem.loadPlugin("plugin_name.dll", 0);
 ```
 
 ## 7.2 Plug-in DSP Effects#3
-verdict: review carried over from the page default
-Plug-in DSP authoring stays in C, because Haxe code cannot run on FMOD's mixer thread on any target. A prebuilt plug-in binary loads with StudioSystem.loadPlugin, and Dsp.createByPlugin creates a unit from it, native only (unsupported in HTML5) because the web build has no plug-in host. All 33 built-in effect types are available through Dsp.create on every target.
+verdict: bound
+Native only (unsupported in HTML5).
 ```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.ChannelGroup;
-
-StudioSystem.setPluginPath("plugins");
-var plugin = StudioSystem.loadPlugin("fmod_gain.dll");
-if (plugin != 0) {
-    var gain = Dsp.createByPlugin(plugin);
-    ChannelGroup.master().addDsp(ChannelGroup.DSP_HEAD, gain);
-}
+var result = StudioSystem.setPluginPath("plugins");
 ```
 
 ## 7.2 Plug-in DSP Effects#4
 verdict: bound
-A plug-in built from a description loads with StudioSystem.loadPlugin after StudioSystem.setPluginPath names its folder, native only (unsupported in HTML5). Release every unit created from it before StudioSystem.unloadPlugin, which answers FMOD_ERR_DSP_INUSE until the mixer has freed them and succeeds when retried a few frames later.
+Native only (unsupported in HTML5).
+unregisterPlugin cannot be bound because registerPlugin cannot. A plug-in loaded with StudioSystem.loadPlugin is unloaded with StudioSystem.unloadPlugin after every Dsp created from it is released.
 ```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.ChannelGroup;
-
-StudioSystem.setPluginPath("plugins");
-var plugin = StudioSystem.loadPlugin("fmod_gain.dll");
-var gain = Dsp.createByPlugin(plugin);
-ChannelGroup.master().addDsp(ChannelGroup.DSP_HEAD, gain);
-
-// at shutdown
-ChannelGroup.master().removeDsp(gain);
-gain.release();
-var result = StudioSystem.unloadPlugin(plugin);
-if (!result.isOk()) {
-    trace('unloadPlugin failed: $result');
-}
+var handle = StudioSystem.loadPlugin("plugin_name.dll");
+var result = StudioSystem.unloadPlugin(handle);
 ```
 
 ## 7.2.1 The Plug-in Descriptor
-verdict: review carried over from the page default
-Plug-in DSP authoring stays in C, because Haxe code cannot run on FMOD's mixer thread on any target. A prebuilt plug-in binary loads with StudioSystem.loadPlugin, and Dsp.createByPlugin creates a unit from it, native only (unsupported in HTML5) because the web build has no plug-in host. All 33 built-in effect types are available through Dsp.create on every target.
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.ChannelGroup;
-
-StudioSystem.setPluginPath("plugins");
-var plugin = StudioSystem.loadPlugin("fmod_gain.dll");
-if (plugin != 0) {
-    var gain = Dsp.createByPlugin(plugin);
-    ChannelGroup.master().addDsp(ChannelGroup.DSP_HEAD, gain);
-}
-```
+verdict: cannot the descriptor is the C struct a plug-in author fills in, and its callbacks run on FMOD's mixer thread where no Haxe target can execute code. A compiled plug-in loads with StudioSystem.loadPlugin and Dsp.getPluginInfo reads back the name, version, and buffer counts it declared.
 
 ## 7.2.4 Multiple plug-ins within one file
-verdict: review carried over from the page default
-Plug-in DSP authoring stays in C, because Haxe code cannot run on FMOD's mixer thread on any target. A prebuilt plug-in binary loads with StudioSystem.loadPlugin, and Dsp.createByPlugin creates a unit from it, native only (unsupported in HTML5) because the web build has no plug-in host. All 33 built-in effect types are available through Dsp.create on every target.
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.ChannelGroup;
-
-StudioSystem.setPluginPath("plugins");
-var plugin = StudioSystem.loadPlugin("fmod_gain.dll");
-if (plugin != 0) {
-    var gain = Dsp.createByPlugin(plugin);
-    ChannelGroup.master().addDsp(ChannelGroup.DSP_HEAD, gain);
-}
-```
+verdict: cannot the plug-in list and its exported FMODGetPluginDescriptionList are C code compiled into the plug-in binary. A file that exports a list loads as one handle with StudioSystem.loadPlugin, and StudioSystem.getNestedPlugin walks the plug-ins inside it.
 
 ## 7.2.4 Multiple plug-ins within one file#2
 verdict: bound
-A file that exports a plug-in list loads as one handle. StudioSystem.getNestedPluginCount counts the plug-ins inside it, getNestedPlugin returns each one's handle, and getPluginInfo reports its name, type, and version, native only (unsupported in HTML5).
+Native only (unsupported in HTML5).
+loadPlugin returns 0 on failure and getNestedPluginCount returns -1, the reason is in StudioSystem.lastResult().
 ```haxe
-StudioSystem.setPluginPath("plugins");
-var plugin = StudioSystem.loadPlugin("fmod_effects.dll");
-var count = StudioSystem.getNestedPluginCount(plugin);
-for (i in 0...count) {
-    var nestedPlugin = StudioSystem.getNestedPlugin(plugin, i);
-    var info = StudioSystem.getPluginInfo(nestedPlugin);
-    if (info != null) {
-        trace(info.name + " type " + info.type + " version " + info.version);
+var baseHandle = StudioSystem.loadPlugin("plugin_name.dll");
+if (baseHandle == 0) {
+    trace('loadPlugin failed: ${StudioSystem.lastResult()}');
+}
+var count = StudioSystem.getNestedPluginCount(baseHandle);
+for (index in 0...count) {
+    var handle = StudioSystem.getNestedPlugin(baseHandle, index);
+    var info = StudioSystem.getPluginInfo(handle);
+    if (info == null) {
+        trace('getPluginInfo failed: ${StudioSystem.lastResult()}');
+        continue;
     }
+    var type = info.type;
+    // We have an output plug-in, a DSP plug-in, or a codec plug-in here.
 }
 ```
