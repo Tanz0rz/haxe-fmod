@@ -5,14 +5,25 @@
   "description": "Adds a Haxe tab to the FMOD API reference showing the haxefmod method for every function.",
   "homepage_url": "https://github.com/Tanz0rz/haxe-fmod",
   "icons": {
+    "16": "icon16.png",
+    "32": "icon32.png",
     "48": "icon48.png",
     "128": "icon128.png"
   },
   "content_scripts": [
     {
-      "matches": ["https://www.fmod.com/docs/*", "https://fmod.com/docs/*"],
-      "js": ["bindings-data.js", "examples-data.js", "content.js"],
-      "css": ["content.css"],
+      "matches": [
+        "https://www.fmod.com/docs/*",
+        "https://fmod.com/docs/*"
+      ],
+      "js": [
+        "bindings-data.js",
+        "examples-data.js",
+        "content.js"
+      ],
+      "css": [
+        "content.css"
+      ],
       "run_at": "document_idle"
     }
   ],

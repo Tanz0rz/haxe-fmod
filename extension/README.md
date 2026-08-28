@@ -69,7 +69,7 @@ Functions haxefmod does not expose are listed with their reasons on the document
 ## Package for the stores
 
 ```bash
-cd extension && zip -r ../haxefmod-fmod-docs.zip manifest.json content.js content.css bindings-data.js examples-data.js icon48.png icon128.png
+cd extension && zip -r ../haxefmod-fmod-docs.zip manifest.json content.js content.css bindings-data.js examples-data.js icon16.png icon32.png icon48.png icon128.png
 ```
 
 The same zip uploads to both the Chrome Web Store and addons.mozilla.org.
