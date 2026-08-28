@@ -13249,7 +13249,7 @@ const HAXEFMOD_EXAMPLES = {
 
 (function () {
     var style = document.createElement("style");
-    style.textContent = "/* The site's .highlight box carries 6px of padding and a grey fill. The\n   note pulls back out to the box edge, draws a rule, and sits on white\n   so the code and the prose read as two things. */\n.haxefmod-block .haxefmod-note {\n    font-size: 14px;\n    line-height: 1.5;\n    margin: 10px -6px -6px -6px;\n    padding: 8px 12px 6px 12px;\n    border-top: 1px solid #b3b3b3;\n    background: #ffffff;\n    color: #333333;\n}\n\n.haxefmod-block .haxefmod-note p {\n    margin: 4px 0;\n}\n\n.haxefmod-block .haxefmod-type {\n    font-family: monospace;\n    font-size: 13px;\n    color: #555555;\n}\n\n.haxefmod-block .haxefmod-warn {\n    color: #a40000;\n}\n\n.haxefmod-block .haxefmod-footer {\n    color: #666666;\n    font-size: 12px;\n}\n\n.haxefmod-block .haxefmod-footer a {\n    color: #666666;\n    text-decoration: underline;\n}\n\n/* The site sizes every tab for two or three characters (max-width 30px),\n   which pushes \"Haxe\" off center. Match the site's selector specificity\n   and give the word its room. */\n#Documentation div.documentation-content div.language-tab.haxefmod-tab,\n#Documentation div.searchresults div.language-tab.haxefmod-tab {\n    max-width: 40px;\n    text-align: center;\n}\n";
+    style.textContent = "/* The site's .highlight box carries 6px of padding and a grey fill. The\n   note pulls back out to the box edge, draws a rule, and sits on white\n   so the code and the prose read as two things. */\n.haxefmod-block .haxefmod-note {\n    font-size: 14px;\n    line-height: 1.5;\n    margin: 10px -6px -6px -6px;\n    padding: 8px 12px 6px 12px;\n    border-top: 1px solid #b3b3b3;\n    background: #ffffff;\n    color: #333333;\n}\n\n.haxefmod-block .haxefmod-note p {\n    margin: 4px 0;\n}\n\n.haxefmod-block .haxefmod-type {\n    font-family: monospace;\n    font-size: 13px;\n    color: #555555;\n}\n\n.haxefmod-block .haxefmod-warn {\n    color: #a40000;\n}\n\n.haxefmod-block .haxefmod-warn-title {\n    font-weight: bold;\n}\n\n.haxefmod-block .haxefmod-warn ul {\n    margin: 2px 0 6px 0;\n    padding-left: 20px;\n}\n\n.haxefmod-block .haxefmod-warn li {\n    margin: 2px 0;\n}\n\n.haxefmod-block .haxefmod-footer {\n    color: #666666;\n    font-size: 12px;\n}\n\n.haxefmod-block .haxefmod-footer a {\n    color: #666666;\n    text-decoration: underline;\n}\n\n/* The site sizes every tab for two or three characters (max-width 30px),\n   which pushes \"Haxe\" off center. Match the site's selector specificity\n   and give the word its room. */\n#Documentation div.documentation-content div.language-tab.haxefmod-tab,\n#Documentation div.searchresults div.language-tab.haxefmod-tab {\n    max-width: 40px;\n    text-align: center;\n}\n";
     document.documentElement.appendChild(style);
 })();
 
@@ -13383,7 +13383,13 @@ const HAXEFMOD_EXAMPLES = {
                 note.appendChild(el("p", null, "Also reaches this function: " + names.join(", ")));
             }
             if (entry.gated) {
-                note.appendChild(el("p", "haxefmod-warn", "HTML5: this call does not compile in a js build, because FMOD's web build cannot do it. Building with -D haxefmod_html5_allow_unsupported compiles it anyway, and it then returns FMOD_ERR_UNSUPPORTED at runtime."));
+                var warn = el("div", "haxefmod-warn");
+                warn.appendChild(el("p", "haxefmod-warn-title", "HTML5 UNSUPPORTED"));
+                var list = el("ul");
+                list.appendChild(el("li", null, "FMOD's web build does not support this feature, so the call does not compile in a js build."));
+                list.appendChild(el("li", null, "The build flag haxefmod_html5_allow_unsupported compiles it anyway, and it then returns FMOD_ERR_UNSUPPORTED at runtime."));
+                warn.appendChild(list);
+                note.appendChild(warn);
             } else if (entry.html5) {
                 note.appendChild(el("p", "haxefmod-warn", "HTML5: FMOD's web build does not support this call, haxefmod reports FMOD_ERR_UNSUPPORTED there."));
             }

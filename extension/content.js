@@ -128,7 +128,13 @@
                 note.appendChild(el("p", null, "Also reaches this function: " + names.join(", ")));
             }
             if (entry.gated) {
-                note.appendChild(el("p", "haxefmod-warn", "HTML5: this call does not compile in a js build, because FMOD's web build cannot do it. Building with -D haxefmod_html5_allow_unsupported compiles it anyway, and it then returns FMOD_ERR_UNSUPPORTED at runtime."));
+                var warn = el("div", "haxefmod-warn");
+                warn.appendChild(el("p", "haxefmod-warn-title", "HTML5 UNSUPPORTED"));
+                var list = el("ul");
+                list.appendChild(el("li", null, "FMOD's web build does not support this feature, so the call does not compile in a js build."));
+                list.appendChild(el("li", null, "The build flag haxefmod_html5_allow_unsupported compiles it anyway, and it then returns FMOD_ERR_UNSUPPORTED at runtime."));
+                warn.appendChild(list);
+                note.appendChild(warn);
             } else if (entry.html5) {
                 note.appendChild(el("p", "haxefmod-warn", "HTML5: FMOD's web build does not support this call, haxefmod reports FMOD_ERR_UNSUPPORTED there."));
             }
