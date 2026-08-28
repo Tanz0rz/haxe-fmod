@@ -23,6 +23,7 @@ import haxefmod.core.Sound;
 import haxefmod.studio.FmodResult;
 import haxefmod.studio.EventDescription;
 import haxefmod.studio.EventInstance;
+import haxefmod.studio.CallbackDispatcher;
 import haxefmod.studio.StudioSystem;
 import haxefmod.studio.Types;
 import haxefmod.studio.Types.FmodVector;
@@ -48,6 +49,7 @@ class TestStudioSurface {
 		testStructReturns();
 		testCoreSurface();
 		testVersionDataAndRecording();
+		testSoundCreationAndRouting();
 		testRolloffAndGeometry();
 		testSystemCallbackStub();
 		testCompletenessTail();
@@ -189,6 +191,92 @@ class TestStudioSurface {
 		assert(!sound.release().isOk(), "core sound release result");
 	}
 
+	// Sound creation flags, memory images, play routing, and the
+	// programmer sound forms. The mode composition and the null guards are
+	// the logic here, the rest routes through the stub.
+	static function testSoundCreationAndRouting():Void {
+		var stub = haxefmod.studio.native.NativeStudioStub;
+
+		stub.testLastCreateSoundMode = -1;
+		stub.testLastCreateSoundSubsound = -99;
+		Sound.create("x.fsb", true, false, ChannelMode.MODE_3D | ChannelMode.CREATESTREAM, 2);
+		assert(stub.testLastCreateSoundMode == (ChannelMode.LOOP_NORMAL | ChannelMode.MODE_3D | ChannelMode.CREATESTREAM),
+			"create composes loop with the mode flags");
+		assert(stub.testLastCreateSoundSubsound == 2, "create passes the initial subsound through");
+		Sound.create("x.wav", false, true, ChannelMode.NONBLOCKING);
+		assert(stub.testLastCreateSoundMode == (ChannelMode.OPENONLY | ChannelMode.NONBLOCKING),
+			"create composes openOnly with NONBLOCKING");
+		assert(stub.testLastCreateSoundSubsound == -1, "create defaults the subsound to -1");
+
+		assert(Sound.fromMemory(null).isNull(), "fromMemory null bytes");
+		stub.testLastMemoryLen = -1;
+		stub.testLastMemoryMode = -1;
+		assert(Sound.fromMemory(haxe.io.Bytes.alloc(64), ChannelMode.CREATESAMPLE).isNull(), "fromMemory stub null");
+		assert(stub.testLastMemoryLen == 64 && stub.testLastMemoryMode == ChannelMode.CREATESAMPLE,
+			"fromMemory passes the whole buffer and the mode");
+		Sound.fromMemory(haxe.io.Bytes.alloc(64), 0, 1024);
+		assert(stub.testLastMemoryLen == 64, "fromMemory clamps a lied length");
+		Sound.fromMemory(haxe.io.Bytes.alloc(64), 0, 16);
+		assert(stub.testLastMemoryLen == 16, "fromMemory passes a partial length");
+
+		var sound:Sound = cast 0;
+		var group:ChannelGroup = cast 7;
+		stub.testLastPlayGroup = -1;
+		assert(sound.play().isNull(), "sound play null");
+		assert(stub.testLastPlayGroup == 0, "sound play defaults to the master group");
+		sound.play(true, group);
+		assert(stub.testLastPlayGroup == 7, "sound play routes into the group");
+		var dsp:Dsp = cast 0;
+		stub.testLastPlayGroup = -1;
+		dsp.play(false, group);
+		assert(stub.testLastPlayGroup == 7, "dsp play routes into the group");
+		dsp.play();
+		assert(stub.testLastPlayGroup == 0, "dsp play defaults to the master group");
+		var stream:PcmStream = cast 0;
+		stub.testLastPlayGroup = -1;
+		stream.play(false, group);
+		assert(stub.testLastPlayGroup == 7, "pcm play routes into the group");
+		stream.play();
+		assert(stub.testLastPlayGroup == 0, "pcm play defaults to the master group");
+
+		assert(Channel.DSP_HEAD == ChannelGroup.DSP_HEAD && Channel.DSP_FADER == ChannelGroup.DSP_FADER
+			&& Channel.DSP_TAIL == ChannelGroup.DSP_TAIL, "channel chain positions match the group's");
+
+		var instance:EventInstance = EventInstance.NULL;
+		assert(instance.assignProgrammerSoundFrom(Sound.NULL) == FmodResult.FMOD_ERR_INVALID_PARAM,
+			"assignProgrammerSoundFrom rejects a null sound in the wrapper");
+		stub.testLastPsSound = -1;
+		assert(!instance.assignProgrammerSoundFrom(cast 5, 3).isOk(), "assignProgrammerSoundFrom result");
+		assert(stub.testLastPsSound == 5 && stub.testLastPsSubsound == 3, "assignProgrammerSoundFrom passes sound and subsound");
+		instance.assignProgrammerSoundFrom(cast 5);
+		assert(stub.testLastPsSubsound == -1, "assignProgrammerSoundFrom defaults the subsound to -1");
+		assert(instance.assignProgrammerSoundForName(null, "k") == FmodResult.FMOD_ERR_INVALID_PARAM,
+			"assignProgrammerSoundForName rejects a null name");
+		assert(instance.assignProgrammerSoundForName("n", null) == FmodResult.FMOD_ERR_INVALID_PARAM,
+			"assignProgrammerSoundForName rejects a null key");
+		stub.testLastPsNamed = null;
+		assert(!instance.assignProgrammerSoundForName("Line", "hello").isOk(), "assignProgrammerSoundForName result");
+		assert(stub.testLastPsNamed != null && stub.testLastPsNamed[0] == "Line" && stub.testLastPsNamed[1] == "hello",
+			"assignProgrammerSoundForName passes name and key");
+		assert(instance.assignProgrammerSounds(null) == FmodResult.FMOD_ERR_INVALID_PARAM,
+			"assignProgrammerSounds rejects a null map");
+		assert(instance.assignProgrammerSounds(new Map()) == FmodResult.FMOD_OK,
+			"assignProgrammerSounds with no entries is a no-op");
+		stub.testLastPsNamed = null;
+		assert(!instance.assignProgrammerSounds(["A" => "x"]).isOk(), "assignProgrammerSounds stops at the stub's failure");
+		assert(stub.testLastPsNamed != null && stub.testLastPsNamed[0] == "A", "assignProgrammerSounds visits the entry");
+
+		// The programmer sound callbacks decode with the instrument name
+		switch (CallbackDispatcher.decode(EventCallbackType.CREATE_PROGRAMMER_SOUND, 0, 0, 0, 0, 0, 0, "Line")) {
+			case ProgrammerSoundCreated(name): assert(name == "Line", "create decodes the instrument name");
+			default: assert(false, "create decodes to ProgrammerSoundCreated");
+		}
+		switch (CallbackDispatcher.decode(EventCallbackType.DESTROY_PROGRAMMER_SOUND, 0, 0, 0, 0, 0, 0, "Line")) {
+			case ProgrammerSoundDestroyed(name): assert(name == "Line", "destroy decodes the instrument name");
+			default: assert(false, "destroy decodes to ProgrammerSoundDestroyed");
+		}
+	}
+
 	// The distance filter, version, sound data, and recording surface
 	// routes through the stub like everything else. The readData clamp is
 	// the one piece of real logic here (the HashLink shim cannot see the
@@ -204,11 +292,11 @@ class TestStudioSurface {
 
 		assert(StudioSystem.getVersion() == "", "sys getVersion default");
 
-		stub.testLastCreateSoundOpenOnly = null;
+		stub.testLastCreateSoundMode = -1;
 		assert(Sound.create("x.wav").isNull(), "coresound create null");
-		assert(stub.testLastCreateSoundOpenOnly == false, "create defaults openOnly off");
+		assert(stub.testLastCreateSoundMode == 0, "create defaults openOnly off");
 		Sound.create("x.wav", false, true);
-		assert(stub.testLastCreateSoundOpenOnly == true, "create passes openOnly through");
+		assert(stub.testLastCreateSoundMode == ChannelMode.OPENONLY, "create passes openOnly through");
 
 		var sound:Sound = cast 0;
 		stub.testReadDataLen = -999;

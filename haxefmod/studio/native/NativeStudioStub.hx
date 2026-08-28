@@ -231,14 +231,36 @@ class NativeStudioStub {
 
     // Programmer sounds
     public static function ps_assign(handle:Int, key:String):Int return ERR_UNSUPPORTED;
+    public static var testLastPsSound:Int = -1;
+    public static var testLastPsSubsound:Int = -99;
+    public static function ps_assign_sound(handle:Int, sound:Int, subsoundIndex:Int):Int {
+        testLastPsSound = sound;
+        testLastPsSubsound = subsoundIndex;
+        return ERR_UNSUPPORTED;
+    }
+    public static var testLastPsNamed:Array<String> = null;
+    public static function ps_assign_named(handle:Int, name:String, key:String):Int {
+        testLastPsNamed = [name, key];
+        return ERR_UNSUPPORTED;
+    }
     public static function ps_clear(handle:Int):Int return ERR_UNSUPPORTED;
 
     // Core API micro subset
-    public static var testLastCreateSoundOpenOnly:Null<Bool> = null;
-    public static function core_create_sound(path:String, mode:Int, openOnly:Bool):Int {
-        testLastCreateSoundOpenOnly = openOnly;
+    public static var testLastCreateSoundMode:Int = -1;
+    public static var testLastCreateSoundSubsound:Int = -99;
+    public static function core_create_sound(path:String, mode:Int, initialSubsound:Int):Int {
+        testLastCreateSoundMode = mode;
+        testLastCreateSoundSubsound = initialSubsound;
         return 0;
     }
+    public static var testLastMemoryLen:Int = -1;
+    public static var testLastMemoryMode:Int = -1;
+    public static function core_create_sound_memory(data:haxe.io.Bytes, len:Int, mode:Int):Int {
+        testLastMemoryLen = len;
+        testLastMemoryMode = mode;
+        return 0;
+    }
+    public static var testLastPlayGroup:Int = -1;
     public static function core_release_sound(handle:Int):Int return ERR_UNSUPPORTED;
     public static function core_get_sound_length(handle:Int):Int return -1;
 
@@ -247,7 +269,10 @@ class NativeStudioStub {
     public static function core_pcm_write(handle:Int, data:haxe.io.Bytes, len:Int):Int return 0;
     public static function core_pcm_space(handle:Int):Int return 0;
     public static function core_pcm_underruns(handle:Int):Int return 0;
-    public static function core_pcm_play(handle:Int, startPaused:Bool):Int return 0;
+    public static function core_pcm_play(handle:Int, group:Int, startPaused:Bool):Int {
+        testLastPlayGroup = group;
+        return 0;
+    }
     public static function core_pcm_release(handle:Int):Int return ERR_UNSUPPORTED;
 
     // Core channels
@@ -316,7 +341,10 @@ class NativeStudioStub {
     public static function bus_get_channel_group(handle:Int):Int return 0;
 
     // Core system extras
-    public static function sys_play_dsp(dspHandle:Int, startPaused:Bool):Int return 0;
+    public static function sys_play_dsp(dspHandle:Int, group:Int, startPaused:Bool):Int {
+        testLastPlayGroup = group;
+        return 0;
+    }
     public static function sys_set_reverb_properties(instance:Int):Int return ERR_UNSUPPORTED;
     public static function sys_get_reverb_properties(instance:Int):Int return ERR_UNSUPPORTED;
     public static function core_pcm_create_3d(sampleRate:Int, channels:Int, ringBytes:Int):Int return 0;
@@ -369,7 +397,10 @@ class NativeStudioStub {
         testPcmCreateLen = len;
         return 0;
     }
-    public static function core_play_sound(handle:Int, startPaused:Bool):Int return 0;
+    public static function core_play_sound(handle:Int, group:Int, startPaused:Bool):Int {
+        testLastPlayGroup = group;
+        return 0;
+    }
     public static function sound_set_defaults(handle:Int, frequency:Float, priority:Int):Int return ERR_UNSUPPORTED;
     public static function sound_get_defaults(handle:Int):Int return ERR_UNSUPPORTED;
     public static function sound_set_loop_points(handle:Int, startMs:Int, endMs:Int):Int return ERR_UNSUPPORTED;

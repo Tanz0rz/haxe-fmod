@@ -282,7 +282,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_Sound_GetSyncPointInfo` | `Sound.getSyncPointName`<br>`Sound.getSyncPointOffset` |  |
 | `FMOD_Sound_GetTag` | `Sound.getTag` | compile error |
 | `FMOD_Sound_ReadData` | `Sound.readData` | compile error |
-| `FMOD_Sound_Release` | `PcmStream.release`<br>`Sound.release`<br>`PcmStream.create`<br>`PcmStream.create3d`<br>`Sound.create`<br>`Sound.createRecordBuffer`<br>`Sound.fromPcm` | compile error |
+| `FMOD_Sound_Release` | `PcmStream.release`<br>`Sound.release`<br>`PcmStream.create`<br>`PcmStream.create3d`<br>`Sound.create`<br>`Sound.createRecordBuffer`<br>`Sound.fromMemory`<br>`Sound.fromPcm` | compile error |
 | `FMOD_Sound_SeekData` | `Sound.seekData` | compile error |
 | `FMOD_Sound_Set3DConeSettings` | `Sound.set3DConeSettings` |  |
 | `FMOD_Sound_Set3DCustomRolloff` | `Sound.set3DCustomRolloff` | compile error |
@@ -426,14 +426,14 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_Studio_EventInstance_GetProperty` | `EventInstance.getProperty` |  |
 | `FMOD_Studio_EventInstance_GetReverbLevel` | `EventInstance.getReverbLevel` |  |
 | `FMOD_Studio_EventInstance_GetTimelinePosition` | `EventInstance.getTimelinePosition` |  |
-| `FMOD_Studio_EventInstance_GetUserData` | `EventDescription.getInstanceList`<br>`EventInstance.assignProgrammerSound`<br>`EventInstance.clearProgrammerSound`<br>`EventInstance.getChannelGroup`<br>`EventInstance.setCallback` | compile error |
+| `FMOD_Studio_EventInstance_GetUserData` | `EventDescription.getInstanceList`<br>`EventInstance.assignProgrammerSound`<br>`EventInstance.assignProgrammerSoundForName`<br>`EventInstance.assignProgrammerSoundFrom`<br>`EventInstance.clearProgrammerSound`<br>`EventInstance.getChannelGroup`<br>`EventInstance.setCallback` | compile error |
 | `FMOD_Studio_EventInstance_GetVolume` | `EventInstance.getVolume`<br>`EventInstance.getFinalVolume` |  |
 | `FMOD_Studio_EventInstance_IsValid` | `EventInstance.isValid` |  |
 | `FMOD_Studio_EventInstance_IsVirtual` | `EventInstance.isVirtual` |  |
 | `FMOD_Studio_EventInstance_KeyOff` | `EventInstance.keyOff` |  |
 | `FMOD_Studio_EventInstance_Release` | `EventInstance.release`<br>`EventDescription.createInstance` |  |
 | `FMOD_Studio_EventInstance_Set3DAttributes` | `EventInstance.set3DAttributes`<br>`EventInstance.setPosition2D` |  |
-| `FMOD_Studio_EventInstance_SetCallback` | `EventInstance.setCallback`<br>`EventDescription.createInstance`<br>`EventDescription.getInstanceList`<br>`EventInstance.assignProgrammerSound`<br>`EventInstance.clearProgrammerSound` | compile error |
+| `FMOD_Studio_EventInstance_SetCallback` | `EventInstance.setCallback`<br>`EventDescription.createInstance`<br>`EventDescription.getInstanceList`<br>`EventInstance.assignProgrammerSound`<br>`EventInstance.assignProgrammerSoundForName`<br>`EventInstance.assignProgrammerSoundFrom`<br>`EventInstance.clearProgrammerSound` | compile error |
 | `FMOD_Studio_EventInstance_SetListenerMask` | `EventInstance.setListenerMask` |  |
 | `FMOD_Studio_EventInstance_SetParameterByID` | `EventInstance.setParameterByID` |  |
 | `FMOD_Studio_EventInstance_SetParameterByIDWithLabel` | `EventInstance.setParameterByIDWithLabel` |  |
@@ -522,7 +522,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_System_CreateDSPByType` | `Dsp.create` |  |
 | `FMOD_System_CreateGeometry` | `Geometry.create` | compile error |
 | `FMOD_System_CreateReverb3D` | `Reverb3D.create` |  |
-| `FMOD_System_CreateSound` | `PcmStream.create`<br>`PcmStream.create3d`<br>`Sound.create`<br>`Sound.createRecordBuffer`<br>`Sound.fromPcm` | compile error |
+| `FMOD_System_CreateSound` | `PcmStream.create`<br>`PcmStream.create3d`<br>`Sound.create`<br>`Sound.createRecordBuffer`<br>`Sound.fromMemory`<br>`Sound.fromPcm` | compile error |
 | `FMOD_System_CreateSoundGroup` | `SoundGroup.create` |  |
 | `FMOD_System_Get3DSettings` | `CoreSystem.get3DSettings` |  |
 | `FMOD_System_GetAdvancedSettings` | `StudioSystem.getAdvancedSettings`<br>`FmodManager.Initialize`<br>`FmodRuntime.init` | compile error |

@@ -24,9 +24,33 @@ abstract Sound(Int) from Int to Int {
      * StudioSystem.lastResult). openOnly keeps the file open without
      * decoding it up front (FMOD_OPENONLY), which readData needs. A sound
      * opened that way cannot be played.
+     *
+     * mode is any combination of ChannelMode flags added to what loop and
+     * openOnly set, for example MODE_3D, CREATESTREAM, CREATESAMPLE,
+     * CREATECOMPRESSEDSAMPLE, LOOP_BIDI, or NONBLOCKING. A NONBLOCKING
+     * load returns at once and getOpenState reports LOADING until the
+     * sound is READY (or ERROR). initialSubsound picks the subsound an
+     * FSB stream starts on, -1 keeps FMOD's default.
      */
-    public static inline function create(path:String, loop:Bool = false, openOnly:Bool = false):Sound {
-        return NativeStudio.core_create_sound(path, loop ? 1 : 0, openOnly);
+    public static inline function create(path:String, loop:Bool = false, openOnly:Bool = false, mode:Int = 0, initialSubsound:Int = -1):Sound {
+        return NativeStudio.core_create_sound(path,
+            mode | (loop ? ChannelMode.LOOP_NORMAL : 0) | (openOnly ? ChannelMode.OPENONLY : 0),
+            initialSubsound);
+    }
+
+    /**
+     * A sound from an encoded file image in memory (wav, ogg, mp3, fsb,
+     * anything Sound.create would load from disk). FMOD copies the bytes,
+     * so the buffer is free after this returns. mode takes the same
+     * ChannelMode flags as create. Returns Sound.NULL on failure. The
+     * web build decodes FSB only, so a wav or ogg image reports
+     * FMOD_ERR_FORMAT there. Use fromPcm for raw sample data.
+     */
+    public static function fromMemory(data:haxe.io.Bytes, mode:Int = 0, length:Int = -1):Sound {
+        if (data == null) return NULL;
+        // Same clamp as fromPcm, the HashLink shim cannot see the real size
+        var count = length == -1 || length > data.length ? data.length : length;
+        return NativeStudio.core_create_sound_memory(data, count, mode);
     }
 
     #if (macro || (js && !haxefmod_html5_allow_unsupported))
@@ -106,9 +130,13 @@ abstract Sound(Int) from Int to Int {
         return NativeStudio.core_create_sound_pcm(data, count, sampleRate, channels);
     }
 
-    /** Starts playback. Returns Channel.NULL on failure. */
-    public inline function play(startPaused:Bool = false):haxefmod.core.Channel {
-        return NativeStudio.core_play_sound(this, startPaused);
+    /**
+     * Starts playback. Returns Channel.NULL on failure. group routes the
+     * new channel into a ChannelGroup from the first sample, null means
+     * the master group.
+     */
+    public inline function play(startPaused:Bool = false, ?group:haxefmod.core.ChannelGroup):haxefmod.core.Channel {
+        return NativeStudio.core_play_sound(this, group == null ? 0 : (group : Int), startPaused);
     }
 
     /** Default playback rate (samples per second) and priority (0 = highest, 256 = lowest). */

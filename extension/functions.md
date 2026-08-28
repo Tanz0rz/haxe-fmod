@@ -351,10 +351,13 @@ connection.setMix(0.5);
 ## system_createstream
 <!-- System::createStream -->
 verdict: bound
-haxefmod covers streams two ways. Sound.create() opens a file for playback, and PcmStream.create() opens a stream that Haxe code feeds with raw PCM, which is the one path that works on HTML5 as well.
+haxefmod covers streams two ways. Sound.create() with ChannelMode.CREATESTREAM opens a file as a stream, and PcmStream.create() opens a stream that Haxe code feeds with raw PCM, which is the one path that works on HTML5 as well.
 ```haxe
+import haxefmod.core.ChannelMode;
 import haxefmod.core.PcmStream;
+import haxefmod.core.Sound;
 
+var music = Sound.create("assets/music/level1.ogg", true, false, ChannelMode.CREATESTREAM);
 var stream = PcmStream.create(44100, 2);
 var channel = stream.play();
 ```

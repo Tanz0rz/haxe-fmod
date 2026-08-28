@@ -97,7 +97,7 @@ async function main() {
     // --- distance filter on a 3D channel and a group (the init flag is on) ---
     const stream = jaxe.fmod_core_pcm_create_3d(48000, 1, 48000);
     check('pcm_create_3d', stream > 0, `handle=${stream}`);
-    const chan = jaxe.fmod_core_pcm_play(stream, true);
+    const chan = jaxe.fmod_core_pcm_play(stream, 0, true);
     check('pcm_play', chan > 0, `handle=${chan}`);
     const setDf = jaxe.fmod_chan_set_3d_distance_filter(chan, true, 0.5, 1200);
     check('chan_set_3d_distance_filter', setDf === 0, `result=${setDf}`);

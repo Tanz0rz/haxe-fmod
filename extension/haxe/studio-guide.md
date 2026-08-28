@@ -32,10 +32,10 @@ eventInstance.start();
 ```
 
 ## 13.9.1 Scripting Example#4
-verdict: library The programmer sound callback runs on FMOD's thread and is implemented once natively for every instance that has a key assigned. EventInstance.setCallback delivers the CREATE_PROGRAMMER_SOUND and DESTROY_PROGRAMMER_SOUND types on the game thread as Other(type) for observation only.
+verdict: library The programmer sound callback runs on FMOD's thread and is implemented once natively for every instance that has an assignment. EventInstance.setCallback delivers ProgrammerSoundCreated(name) and ProgrammerSoundDestroyed(name) on the game thread with the instrument's name, for observation and cleanup. An event with several programmer instruments assigns one key per instrument name with assignProgrammerSoundForName or assignProgrammerSounds.
 
 ## 13.9.1 Scripting Example#5
-verdict: library The create callback body runs natively when the instrument triggers. It calls getSoundInfo with the assigned key, creates the sound with FMOD_LOOP_NORMAL and FMOD_CREATECOMPRESSEDSAMPLE plus the mode getSoundInfo reports, and fills the properties. The native side does not pass FMOD_NONBLOCKING, so the create is synchronous. A key that matches no audio table entry is opened as a plain file path with FMOD_DEFAULT. StudioSystem.getSoundInfo(key) shows the name and subsound index a key resolves to.
+verdict: library The create callback body runs natively when the instrument triggers. It looks the instrument name up in the name map, falls back to the single key, calls getSoundInfo, creates the sound with FMOD_LOOP_NORMAL, FMOD_CREATECOMPRESSEDSAMPLE, and FMOD_NONBLOCKING plus the mode getSoundInfo reports, and fills the properties. A key that matches no audio table entry is opened as a plain file path. A sound assigned with assignProgrammerSoundFrom is handed over as is, with its subsound index. StudioSystem.getSoundInfo(key) shows the name and subsound index a key resolves to.
 
 ## 13.9.1 Scripting Example#6
-verdict: library The destroy callback runs natively and releases the sound when the instrument ends. EventInstance.clearProgrammerSound drops the key assignment when an instance is reused for a different line.
+verdict: library The destroy callback runs natively and releases the sound it created when the instrument ends. A sound assigned with assignProgrammerSoundFrom stays with the game. EventInstance.clearProgrammerSound drops every assignment when an instance is reused for a different line.

@@ -158,6 +158,7 @@ class ApiProbeState extends FlxState {
         probeHandleSafety();
         probeCoreSurface();
         probeDspSurface();
+        probeSoundRouting();
         probeParityTail();
         probeCompletenessTail();
         probeSoundGroupsAndSystem();
@@ -367,8 +368,9 @@ class ApiProbeState extends FlxState {
     static inline var PROBE_WAV_BYTES:Int = 16000;
     static inline var PROBE_WAV_SECOND_SAMPLE:Int = 1;
 
-    #if sys
-    static function writeProbeWav():String {
+    // A one second 8 kHz 16-bit mono WAV image, the same one writeProbeWav
+    // saves, for the from-memory path
+    static function probeWavBytes():haxe.io.Bytes {
         var data = haxe.io.Bytes.alloc(44 + PROBE_WAV_BYTES);
         data.blit(0, haxe.io.Bytes.ofString("RIFF"), 0, 4);
         data.setInt32(4, 36 + PROBE_WAV_BYTES);
@@ -384,6 +386,12 @@ class ApiProbeState extends FlxState {
         data.blit(36, haxe.io.Bytes.ofString("data"), 0, 4);
         data.setInt32(40, PROBE_WAV_BYTES);
         for (i in 0...Std.int(PROBE_WAV_BYTES / 2)) data.setUInt16(44 + i * 2, i & 0x7FFF);
+        return data;
+    }
+
+    #if sys
+    static function writeProbeWav():String {
+        var data = probeWavBytes();
         var dir = Sys.getEnv("TMPDIR");
         if (dir == null || dir == "") dir = Sys.getEnv("TEMP");
         if (dir == null || dir == "") dir = Sys.systemName() == "Windows" ? "." : "/tmp";
@@ -2019,6 +2027,165 @@ class ApiProbeState extends FlxState {
 
         check("no_handle_leaks_core", StudioSystem.liveHandleCount() == baseline,
             'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
+    }
+
+    /**
+     * Sound creation with FMOD_MODE flags and from a file image in memory,
+     * play calls routed into a channel group at start, the Channel chain
+     * position constants, and the game-sound and instrument-name
+     * programmer sound forms. The audible proof of the programmer sound
+     * forms lives in ProgrammerSoundTestState, this covers the contracts.
+     */
+    function probeSoundRouting():Void {
+        // The description lookup and the master group mint persistent
+        // handles: warm both before the baseline
+        StudioSystem.getEvent(FmodEvents.SFXJump);
+        ChannelGroup.master();
+        var baseline = StudioSystem.liveHandleCount();
+        var group = ChannelGroup.create("probe-routing");
+        check("routing_group", !group.isNull(), 'result=${StudioSystem.lastResult().toString()}');
+
+        var pcm = haxe.io.Bytes.alloc(4096);
+        var stream = PcmStream.create(48000, 1);
+        var pcmChannel = stream.play(true, group);
+        check("core_pcm_play_into_group", !pcmChannel.isNull() && pcmChannel.getChannelGroup() == group,
+            'channel=${(pcmChannel : Int)} group=${(pcmChannel.getChannelGroup() : Int)} want=${(group : Int)}');
+        pcmChannel.stop();
+        stream.release();
+
+        var osc = Dsp.create(DspType.OSCILLATOR);
+        var oscChannel = osc.play(true, group);
+        check("sys_play_dsp_into_group", !oscChannel.isNull() && oscChannel.getChannelGroup() == group,
+            'channel=${(oscChannel : Int)} group=${(oscChannel.getChannelGroup() : Int)}');
+        oscChannel.stop();
+        osc.release();
+
+        var sound = Sound.fromPcm(pcm, 48000, 1);
+        var routed = sound.play(true, group);
+        check("core_play_sound_into_group", !routed.isNull() && routed.getChannelGroup() == group,
+            'channel=${(routed : Int)} group=${(routed.getChannelGroup() : Int)}');
+        // The head lookup mints a handle for FMOD's pooled channel DSP,
+        // which outlives the channel like the group lookups in
+        // ProbeGroupDsp. It is allowed for in the leak check below.
+        var beforeHead = StudioSystem.liveHandleCount();
+        check("channel_dsp_head_constant", !routed.getDsp(Channel.DSP_HEAD).isNull(),
+            'result=${StudioSystem.lastResult().toString()}');
+        var headLookup = StudioSystem.liveHandleCount() - beforeHead;
+        check("channel_dsp_constants_match_group", Channel.DSP_HEAD == ChannelGroup.DSP_HEAD
+            && Channel.DSP_FADER == ChannelGroup.DSP_FADER && Channel.DSP_TAIL == ChannelGroup.DSP_TAIL, "");
+        routed.stop();
+        var unrouted = sound.play(true);
+        check("core_play_sound_default_master", !unrouted.isNull() && unrouted.getChannelGroup() == ChannelGroup.master(),
+            'group=${(unrouted.getChannelGroup() : Int)} master=${(ChannelGroup.master() : Int)}');
+        unrouted.stop();
+        var dead = ChannelGroup.create("probe-dead");
+        dead.release();
+        check("core_play_sound_stale_group_refused", sound.play(true, dead).isNull()
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_HANDLE,
+            'result=${StudioSystem.lastResult().toString()}');
+        sound.release();
+
+        // A wav image straight from memory
+        var image = probeWavBytes();
+        var memory = Sound.fromMemory(image, ChannelMode.MODE_3D);
+        #if sys
+        check("core_create_sound_memory", !memory.isNull() && memory.getLength() == 1000,
+            'handle=${(memory : Int)} length=${memory.getLength()} result=${StudioSystem.lastResult().toString()}');
+        check("core_create_sound_memory_mode", (memory.getMode() & ChannelMode.MODE_3D) != 0, 'mode=${memory.getMode()}');
+        var memoryChannel = memory.play(true);
+        check("core_create_sound_memory_plays", !memoryChannel.isNull(), 'result=${StudioSystem.lastResult().toString()}');
+        memoryChannel.stop();
+        memory.release();
+        #else
+        // The web build decodes FSB only
+        check("core_create_sound_memory_format_limit", memory.isNull()
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_FORMAT,
+            'handle=${(memory : Int)} result=${StudioSystem.lastResult().toString()}');
+        #end
+        check("core_create_sound_memory_null", Sound.fromMemory(null).isNull(), "");
+        check("core_create_sound_memory_empty", Sound.fromMemory(haxe.io.Bytes.alloc(0)).isNull()
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_PARAM,
+            'result=${StudioSystem.lastResult().toString()}');
+
+        #if sys
+        var wavPath = writeProbeWav();
+        var flagged = Sound.create(wavPath, true, false, ChannelMode.MODE_3D | ChannelMode.CREATESTREAM);
+        var flaggedMode = flagged.getMode();
+        check("core_create_sound_mode_flags", !flagged.isNull()
+            && (flaggedMode & ChannelMode.MODE_3D) != 0 && (flaggedMode & ChannelMode.CREATESTREAM) != 0
+            && (flaggedMode & ChannelMode.LOOP_NORMAL) != 0,
+            'handle=${(flagged : Int)} mode=$flaggedMode result=${StudioSystem.lastResult().toString()}');
+        flagged.release();
+        var async = Sound.create(wavPath, false, false, ChannelMode.NONBLOCKING);
+        check("core_create_sound_nonblocking", !async.isNull(), 'result=${StudioSystem.lastResult().toString()}');
+        var state = async.getOpenState();
+        var polls = 0;
+        while (state != FmodOpenState.READY && state != FmodOpenState.ERROR && polls++ < 500) {
+            Sys.sleep(0.005);
+            state = async.getOpenState();
+        }
+        check("core_sound_nonblocking_becomes_ready", state == FmodOpenState.READY, 'state=${(state : Int)} polls=$polls');
+        var asyncChannel = async.play(true);
+        check("core_sound_nonblocking_plays", !asyncChannel.isNull(), 'result=${StudioSystem.lastResult().toString()}');
+        asyncChannel.stop();
+        async.release();
+        var indexed = Sound.create(wavPath, false, false, 0, 0);
+        check("core_create_sound_initial_subsound_accepted", !indexed.isNull(),
+            'result=${StudioSystem.lastResult().toString()}');
+        indexed.release();
+        try sys.FileSystem.deleteFile(wavPath) catch (e:Dynamic) {}
+        #end
+
+        // The programmer sound forms on a live instance (the audible run is
+        // in ProgrammerSoundTestState)
+        var desc = StudioSystem.getEvent(FmodEvents.SFXJump);
+        var psBaseline = StudioSystem.liveHandleCount();
+        var inst = desc.createInstance();
+        var owned = Sound.fromPcm(pcm, 48000, 1);
+        #if js
+        check("ps_assign_sound_unsupported", inst.assignProgrammerSoundFrom(owned) == FmodResult.FMOD_ERR_UNSUPPORTED,
+            'result=${StudioSystem.lastResult().toString()}');
+        check("ps_assign_named_unsupported",
+            inst.assignProgrammerSoundForName("Line", "hello") == FmodResult.FMOD_ERR_UNSUPPORTED, "");
+        check("ps_assign_sounds_unsupported",
+            inst.assignProgrammerSounds(["Line" => "hello"]) == FmodResult.FMOD_ERR_UNSUPPORTED, "");
+        #else
+        check("ps_assign_sound", inst.assignProgrammerSoundFrom(owned, 0).isOk(),
+            'result=${StudioSystem.lastResult().toString()}');
+        check("ps_assign_sound_null_refused", inst.assignProgrammerSoundFrom(Sound.NULL) == FmodResult.FMOD_ERR_INVALID_PARAM, "");
+        check("ps_assign_sound_bad_subsound_refused", inst.assignProgrammerSoundFrom(owned, -2) == FmodResult.FMOD_ERR_INVALID_PARAM, "");
+        var deadSound = Sound.fromPcm(pcm, 48000, 1);
+        deadSound.release();
+        check("ps_assign_sound_stale_refused", inst.assignProgrammerSoundFrom(deadSound) == FmodResult.FMOD_ERR_INVALID_HANDLE, "");
+        check("ps_assign_named", inst.assignProgrammerSoundForName("Line", "hello").isOk(),
+            'result=${StudioSystem.lastResult().toString()}');
+        check("ps_assign_named_replace", inst.assignProgrammerSoundForName("Line", "goodbye").isOk(), "");
+        check("ps_assign_named_overlong_name_refused",
+            inst.assignProgrammerSoundForName(StringTools.rpad("n", "n", 100), "k") == FmodResult.FMOD_ERR_INVALID_PARAM, "");
+        var filled = true;
+        for (i in 0...7) filled = filled && inst.assignProgrammerSoundForName('Line$i', "hello").isOk();
+        check("ps_assign_named_eight_entries", filled, "");
+        check("ps_assign_named_ninth_refused", inst.assignProgrammerSoundForName("Overflow", "hello") == FmodResult.FMOD_ERR_MEMORY,
+            'result=${StudioSystem.lastResult().toString()}');
+        check("ps_assign_sounds_map", inst.assignProgrammerSounds(["Line" => "hello", "Line0" => "goodbye"]).isOk(), "");
+        check("ps_start_with_forms_armed", inst.start().isOk(), "");
+        inst.stop(IMMEDIATE);
+        check("ps_clear_all_forms", inst.clearProgrammerSound().isOk(), "");
+        check("ps_named_table_free_after_clear", inst.assignProgrammerSoundForName("Overflow", "hello").isOk(), "");
+        #end
+        inst.release();
+        owned.release();
+        StudioSystem.flushCommands();
+        CallbackDispatcher.update();
+        check("no_handle_leaks_ps_forms", StudioSystem.liveHandleCount() == psBaseline,
+            'baseline=$psBaseline now=${StudioSystem.liveHandleCount()}');
+
+        group.release();
+        StudioSystem.flushCommands();
+        CallbackDispatcher.update();
+        check("no_handle_leaks_sound_routing", StudioSystem.liveHandleCount() == baseline + headLookup
+            && headLookup <= 1,
+            'baseline=$baseline headLookup=$headLookup now=${StudioSystem.liveHandleCount()}');
     }
 
     /**

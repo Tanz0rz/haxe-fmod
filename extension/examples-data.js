@@ -885,7 +885,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_SOUND_NONBLOCK_CALLBACK": {
    "code": null,
    "notes": [
-    "Cannot be bound. It runs on FMOD's file thread, where no Haxe code can run. Sound.create opens synchronously, and Sound.getOpenState reports the state of a sound at any time."
+    "Cannot be bound. It runs on FMOD's file thread, where no Haxe code can run. Sound.create with ChannelMode.NONBLOCKING starts the load and Sound.getOpenState reports READY or ERROR when it finishes."
    ],
    "type": null,
    "verdict": "cannot"
@@ -1029,7 +1029,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_CREATESOUNDEXINFO": {
    "code": null,
    "notes": [
-    "No Haxe declaration, the library owns this choice. Sound.create and Sound.fromPcm take its fields as arguments."
+    "No Haxe declaration, the library owns this choice. Sound.create, Sound.fromMemory, and Sound.fromPcm take its fields as arguments: the length of a memory image, the initial subsound of an FSB, and the format, rate, and channel count of raw PCM."
    ],
    "type": null,
    "verdict": "library"
@@ -1458,28 +1458,28 @@ const HAXEFMOD_EXAMPLES = {
  },
  "loading-and-playing-sounds-in-the-core-api": {
   "4.1.1 Non-blocking Sound Creation": {
-   "code": "var sound = Sound.create(\"../media/wave.mp3\"); // Loads the file on the calling thread and returns once it is ready.\nif (sound.isNull()) {\n    trace('load failed: ${StudioSystem.lastResult()}');\n}",
+   "code": "var sound = Sound.create(\"../media/wave.mp3\", false, false, ChannelMode.NONBLOCKING); // Returns at once, the file decodes on FMOD's thread.\nif (sound.isNull()) {\n    trace('load failed: ${StudioSystem.lastResult()}');\n}",
    "notes": [
-    "Sound.create has no NONBLOCKING mode. It loads on the calling thread and returns a ready handle, so load loose files at level start or from a loading screen."
+    "The mode argument of Sound.create takes FMOD_NONBLOCKING. The load runs on FMOD's thread and getOpenState reports LOADING until the sound is READY. The web build loads synchronously, the sound is READY when create returns."
    ],
-   "type": "haxefmod.core.Sound",
+   "type": "haxefmod.core.ChannelMode, haxefmod.core.Sound",
    "verdict": "bound"
   },
   "4.1.1 Non-blocking Sound Creation#2": {
    "code": null,
    "notes": [
-    "Cannot be bound. FMOD calls the callback on its async loader thread, no Haxe target can run code there. Sound.create returns a ready handle, and Sound.getOpenState reports READY for a usable sound."
+    "Cannot be bound. FMOD calls the callback on its async loader thread, no Haxe target can run code there. Poll Sound.getOpenState each frame instead, it reports READY once the sound can play and ERROR when the load failed."
    ],
    "type": null,
    "verdict": "cannot"
   },
   "4.1.1 Non-blocking Sound Creation#3": {
-   "code": null,
+   "code": "var sound = Sound.create(\"../media/wave.mp3\", false, false, ChannelMode.CREATESTREAM | ChannelMode.NONBLOCKING);\nif (sound.isNull()) {\n    trace('load failed: ${StudioSystem.lastResult()}');\n}\n\n// Each frame until it is ready\nif (sound.getOpenState() == FmodOpenState.READY) {\n    trace(\"Sound loaded!\");\n}",
    "notes": [
-    "Cannot be bound. FMOD_CREATESOUNDEXINFO is not exposed and the callback runs on FMOD's async loader thread. Sound.create takes the path and a loop flag and returns a ready handle, or Sound.NULL with the reason in StudioSystem.lastResult."
+    "No completion callback, the game polls getOpenState. CREATESTREAM in the mode argument is the createStream form."
    ],
-   "type": null,
-   "verdict": "cannot"
+   "type": "haxefmod.core.ChannelMode, haxefmod.core.Sound, haxefmod.studio.Types.FmodOpenState",
+   "verdict": "bound"
   },
   "4.2 Playing a sound": {
    "code": "var sound:Sound;\nvar channel:Channel;\n\nsound = Sound.create(\"../media/wave.mp3\");\nif (sound.isNull()) {\n    trace('load failed: ${StudioSystem.lastResult()}');\n}\n\nchannel = sound.play();\nif (channel.isNull()) {\n    trace('play failed: ${StudioSystem.lastResult()}');\n}",
@@ -1488,9 +1488,9 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "4.3.1 Creating a Sound from memory": {
-   "code": "var sound:Sound;\nvar buffer:haxe.io.Bytes = null;\n\n//\n// Load your interleaved 16-bit PCM data to the \"buffer\" bytes here\n//\n\nsound = Sound.fromPcm(buffer, 44100, 2); // The buffer's length is the length of the sound in bytes\n// The audio data stored in \"buffer\" has been duplicated into FMOD's buffers, and can now be freed",
+   "code": "var sound:Sound;\nvar buffer:haxe.io.Bytes = null;\n\n//\n// Load your file image (wav, ogg, mp3, fsb) into the \"buffer\" bytes here\n//\n\nsound = Sound.fromMemory(buffer); // The buffer's length is the length of the file image in bytes\n// The audio data stored in \"buffer\" has been duplicated into FMOD's buffers, and can now be freed",
    "notes": [
-    "Encoded files cannot be opened from memory. Sound.fromPcm takes raw 16-bit PCM and the sample rate and channel count stand in for the exinfo fields."
+    "Sound.fromMemory takes an encoded file image, the length is the bytes' own. Raw PCM goes through Sound.fromPcm, whose sample rate and channel count stand in for the exinfo fields."
    ],
    "type": "haxefmod.core.Sound",
    "verdict": "bound"
@@ -1498,7 +1498,7 @@ const HAXEFMOD_EXAMPLES = {
   "4.3.1 Creating a Sound from memory#2": {
    "code": null,
    "notes": [
-    "No Haxe declaration, another call plays this role. there is no point-to-memory mode. Sound.fromPcm always copies the bytes, so nothing stays pinned and the buffer is free after the call."
+    "No Haxe declaration, another call plays this role. there is no point-to-memory mode. Sound.fromMemory and Sound.fromPcm always copy the bytes, so nothing stays pinned and the buffer is free after the call."
    ],
    "type": null,
    "verdict": "covered"
@@ -1520,11 +1520,11 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "4.3.4 Creating the Sound as a Streamed FSB File": {
-   "code": "var sound:Sound;\n\nsound = Sound.create(\"../media/sounds.fsb\");\nif (sound.isNull()) {\n    trace('load failed: ${StudioSystem.lastResult()}');\n}\n\nvar subsound = sound.getSubSound(1);",
+   "code": "var sound:Sound;\n\nsound = Sound.create(\"../media/sounds.fsb\", false, false, ChannelMode.CREATESTREAM | ChannelMode.NONBLOCKING, 1);\nif (sound.isNull()) {\n    trace('load failed: ${StudioSystem.lastResult()}');\n}",
    "notes": [
-    "Sound.create has no NONBLOCKING mode and no initial subsound field. The FSB loads on the calling thread and getSubSound picks the subsound to play."
+    "The mode argument carries CREATESTREAM and NONBLOCKING, and the initialSubsound argument is exinfo.initialsubsound."
    ],
-   "type": "haxefmod.core.Sound",
+   "type": "haxefmod.core.ChannelMode, haxefmod.core.Sound",
    "verdict": "bound"
   },
   "4.5.1 Setup : Override FMOD's file system with callbacks": {
@@ -1656,7 +1656,7 @@ const HAXEFMOD_EXAMPLES = {
   "Direct from host, via FMOD's filesystem#2": {
    "code": "var sound = Sound.create(\"lion.wav\");\nif (sound.isNull()) {\n    trace(\"createSound failed: \" + StudioSystem.lastResult());\n}",
    "notes": [
-    "The web build decodes FSB only, so on HTML5 this returns Sound.NULL with FMOD_ERR_FORMAT. Play bank content instead, or feed raw PCM through Sound.fromPcm."
+    "The web build decodes FSB only, so on HTML5 this returns Sound.NULL with FMOD_ERR_FORMAT. Play bank content, load an FSB with Sound.create or Sound.fromMemory, or feed raw PCM through Sound.fromPcm."
    ],
    "type": "haxefmod.core.Sound",
    "verdict": "bound"
@@ -1742,9 +1742,9 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "cannot"
   },
   "Via memory": {
-   "code": "var bytes = haxe.io.Bytes.alloc(48000 * 2 * 2);\n\nvar sound = Sound.fromPcm(bytes, 48000, 2);\nif (sound.isNull()) {\n    trace(\"fromPcm failed: \" + StudioSystem.lastResult());\n}\n\nvar bankBytes = haxe.io.Bytes.alloc(0);\nvar bank = StudioSystem.loadBankMemory(bankBytes);\nif (bank.isNull()) {\n    trace(\"loadBankMemory failed: \" + StudioSystem.lastResult());\n}",
+   "code": "var image = haxe.io.Bytes.alloc(0); // an FSB file image fetched by the game\n\nvar sound = Sound.fromMemory(image);\nif (sound.isNull()) {\n    trace(\"fromMemory failed: \" + StudioSystem.lastResult());\n}\n\nvar bytes = haxe.io.Bytes.alloc(48000 * 2 * 2);\n\nvar pcmSound = Sound.fromPcm(bytes, 48000, 2);\nif (pcmSound.isNull()) {\n    trace(\"fromPcm failed: \" + StudioSystem.lastResult());\n}\n\nvar bankBytes = haxe.io.Bytes.alloc(0);\nvar bank = StudioSystem.loadBankMemory(bankBytes);\nif (bank.isNull()) {\n    trace(\"loadBankMemory failed: \" + StudioSystem.lastResult());\n}",
    "notes": [
-    "Data already in memory goes in as haxe.io.Bytes and is copied into FMOD's heap. Sound.fromPcm takes raw PCM only, its sampleRate and channels arguments stand in for the CREATESOUNDEXINFO fields and length is taken from the bytes. Encoded data in memory goes in as a bank through StudioSystem.loadBankMemory."
+    "Data already in memory goes in as haxe.io.Bytes and is copied into FMOD's heap. Sound.fromMemory takes an encoded file image and length is taken from the bytes. The web build decodes FSB images only, so a wav or ogg image returns Sound.NULL with FMOD_ERR_FORMAT there. Sound.fromPcm takes raw PCM, its sampleRate and channels arguments stand in for the CREATESOUNDEXINFO fields. Bank data in memory goes through StudioSystem.loadBankMemory."
    ],
    "type": "haxefmod.core.Sound",
    "verdict": "bound"
@@ -2940,9 +2940,9 @@ const HAXEFMOD_EXAMPLES = {
  },
  "spatializing-sounds-in-the-core-api": {
   "5.0.2 Loading Sounds as 3D": {
-   "code": "var result:FmodResult;\nfunction handleError(result:FmodResult):Void {\n    trace(result);\n}\n\nvar sound = Sound.create(\"../media/drumloop.wav\");\nif (sound.isNull()) {\n    handleError(StudioSystem.lastResult());\n}\nresult = sound.setMode(ChannelMode.MODE_3D);\nif (!result.isOk()) {\n    handleError(result);\n}",
+   "code": "var handleError = (result:FmodResult) -> trace(result);\n\nvar sound = Sound.create(\"../media/drumloop.wav\", false, false, ChannelMode.MODE_3D);\nif (sound.isNull()) {\n    handleError(StudioSystem.lastResult());\n}",
    "notes": [
-    "Sound.create takes no mode flags, so the 3D flag is set with setMode after loading.",
+    "The mode argument of Sound.create takes the 3D flag at load time.",
     "Sound.create returns Sound.NULL on failure and StudioSystem.lastResult() holds the FMOD_RESULT."
    ],
    "type": "haxefmod.core.Sound, haxefmod.core.ChannelMode, haxefmod.studio.FmodResult",
@@ -3316,7 +3316,7 @@ const HAXEFMOD_EXAMPLES = {
   "13.9.1 Scripting Example#4": {
    "code": null,
    "notes": [
-    "No Haxe declaration, the library owns this choice. The programmer sound callback runs on FMOD's thread and is implemented once natively for every instance that has a key assigned. EventInstance.setCallback delivers the CREATE_PROGRAMMER_SOUND and DESTROY_PROGRAMMER_SOUND types on the game thread as Other(type) for observation only."
+    "No Haxe declaration, the library owns this choice. The programmer sound callback runs on FMOD's thread and is implemented once natively for every instance that has an assignment. EventInstance.setCallback delivers ProgrammerSoundCreated(name) and ProgrammerSoundDestroyed(name) on the game thread with the instrument's name, for observation and cleanup. An event with several programmer instruments assigns one key per instrument name with assignProgrammerSoundForName or assignProgrammerSounds."
    ],
    "type": null,
    "verdict": "library"
@@ -3324,7 +3324,7 @@ const HAXEFMOD_EXAMPLES = {
   "13.9.1 Scripting Example#5": {
    "code": null,
    "notes": [
-    "No Haxe declaration, the library owns this choice. The create callback body runs natively when the instrument triggers. It calls getSoundInfo with the assigned key, creates the sound with FMOD_LOOP_NORMAL and FMOD_CREATECOMPRESSEDSAMPLE plus the mode getSoundInfo reports, and fills the properties. The native side does not pass FMOD_NONBLOCKING, so the create is synchronous. A key that matches no audio table entry is opened as a plain file path with FMOD_DEFAULT. StudioSystem.getSoundInfo(key) shows the name and subsound index a key resolves to."
+    "No Haxe declaration, the library owns this choice. The create callback body runs natively when the instrument triggers. It looks the instrument name up in the name map, falls back to the single key, calls getSoundInfo, creates the sound with FMOD_LOOP_NORMAL, FMOD_CREATECOMPRESSEDSAMPLE, and FMOD_NONBLOCKING plus the mode getSoundInfo reports, and fills the properties. A key that matches no audio table entry is opened as a plain file path. A sound assigned with assignProgrammerSoundFrom is handed over as is, with its subsound index. StudioSystem.getSoundInfo(key) shows the name and subsound index a key resolves to."
    ],
    "type": null,
    "verdict": "library"
@@ -3332,7 +3332,7 @@ const HAXEFMOD_EXAMPLES = {
   "13.9.1 Scripting Example#6": {
    "code": null,
    "notes": [
-    "No Haxe declaration, the library owns this choice. The destroy callback runs natively and releases the sound when the instrument ends. EventInstance.clearProgrammerSound drops the key assignment when an instance is reused for a different line."
+    "No Haxe declaration, the library owns this choice. The destroy callback runs natively and releases the sound it created when the instrument ends. A sound assigned with assignProgrammerSoundFrom stays with the game. EventInstance.clearProgrammerSound drops every assignment when an instance is reused for a different line."
    ],
    "type": null,
    "verdict": "library"
@@ -3457,12 +3457,11 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "Creating an effect and making all Channels send to it.#3": {
-   "code": "var sound = Sound.create(\"drumloop.wav\");\nvar channelgroup = ChannelGroup.create(\"my channelgroup\");\nvar dsp_reverb = Dsp.create(DspType.SFXREVERB);\n\nvar channel = sound.play(true);                                                     /* Play the sound.  Play it paused so we dont hear the sound play before it is connected to the reverb. */\nchannel.setChannelGroup(channelgroup);\nvar channel_dsp_head = channel.getDsp(ChannelGroup.DSP_HEAD);                       /* Grab the 'head' unit for the Channel */\nvar connection = dsp_reverb.addInput(channel_dsp_head);                             /* Manually add a connection from the Channel DSP head to the reverb. */\nvar result = channel.setPaused(false);                                              /* Unpause the channel and let it be audible. */",
+   "code": "var sound = Sound.create(\"drumloop.wav\");\nvar channelgroup = ChannelGroup.create(\"my channelgroup\");\nvar dsp_reverb = Dsp.create(DspType.SFXREVERB);\n\nvar channel = sound.play(true, channelgroup);                                       /* Play the sound.  Play it paused so we dont hear the sound play before it is connected to the reverb. */\nvar channel_dsp_head = channel.getDsp(Channel.DSP_HEAD);                            /* Grab the 'head' unit for the Channel */\nvar connection = dsp_reverb.addInput(channel_dsp_head);                             /* Manually add a connection from the Channel DSP head to the reverb. */\nvar result = channel.setPaused(false);                                              /* Unpause the channel and let it be audible. */",
    "notes": [
-    "Sound.play takes no ChannelGroup, the channel is routed with setChannelGroup while it is still paused.",
-    "The head, fader, and tail slots are the ChannelGroup.DSP_HEAD, DSP_FADER, and DSP_TAIL constants, Channel.getDsp accepts them too."
+    "The head, fader, and tail slots are the Channel.DSP_HEAD, DSP_FADER, and DSP_TAIL constants."
    ],
-   "type": "haxefmod.core.Sound, haxefmod.core.ChannelGroup, haxefmod.core.Dsp, haxefmod.core.DspType",
+   "type": "haxefmod.core.Channel, haxefmod.core.Sound, haxefmod.core.ChannelGroup, haxefmod.core.Dsp, haxefmod.core.DspType",
    "verdict": "bound"
   },
   "Set the output format of a DSP unit, and control the pan matrix for its output signal": {

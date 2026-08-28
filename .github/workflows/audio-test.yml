@@ -80,6 +80,13 @@ jobs:
           g++ -x c++ -Wall -Wextra -Werror -o /tmp/test_guid_cpp tests/native/test_faxe_guid.c
           /tmp/test_guid_cpp
 
+      - name: Test native instance context (C99 and C++ modes)
+        run: |
+          gcc -std=c99 -Wall -Wextra -Werror -o /tmp/test_instctx_c tests/native/test_faxe_instctx.c
+          /tmp/test_instctx_c
+          g++ -x c++ -Wall -Wextra -Werror -o /tmp/test_instctx_cpp tests/native/test_faxe_instctx.c
+          /tmp/test_instctx_cpp
+
       - name: Negative-test the synth frequency gate
         run: python3 ci/synth-gate-selftest.py
 
@@ -3207,6 +3214,7 @@ jobs:
           node tests/js/plugins-harness.js
           node tests/js/soundextras-harness.js
           node tests/js/lastseven-harness.js
+          node tests/js/sound-routing-harness.js
 
       - name: Run Core dynamic-audio prototype against the real wasm
         env:

@@ -89,7 +89,7 @@ async function main() {
 
     // Mix levels on a playing stream channel and on the master group
     const ps = jaxe.fmod_core_pcm_create(48000, 2, 9600);
-    const ch = jaxe.fmod_core_pcm_play(ps, true);
+    const ch = jaxe.fmod_core_pcm_play(ps, 0, true);
     check('pcm_play', ch !== 0, `handle=${ch}`);
     fbuf[0] = 0.5; fbuf[1] = 0.5;
     check('chan_set_mix_levels_input', jaxe.fmod_chan_set_mix_levels_input(ch, fbuf, 2) === 0, '');

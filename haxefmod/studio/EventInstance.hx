@@ -251,12 +251,91 @@ abstract EventInstance(Int) from Int to Int {
     #end
 
     #if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /**
+     * Hands a sound the game owns to this instance's programmer
+     * instrument (unsupported in HTML5). subsoundIndex picks a subsound of
+     * an FSB or other container, -1 plays the sound itself. The instrument
+     * never releases it, the game does once the instrument is finished
+     * (ProgrammerSoundDestroyed in setCallback, or after the event stops).
+     * A sound still loading (NONBLOCKING) is fine, FMOD waits for it.
+     * Assign BEFORE start(). Wins over a key or name assignment.
+     */
+    public macro function assignProgrammerSoundFrom(self:haxe.macro.Expr, sound:haxe.macro.Expr, ?subsoundIndex:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("EventInstance.assignProgrammerSoundFrom", "programmer sounds fail inside FMOD's JavaScript runtime");
+    }
+    #else
+    /**
+     * Hands a sound the game owns to this instance's programmer
+     * instrument (unsupported in HTML5). subsoundIndex picks a subsound of
+     * an FSB or other container, -1 plays the sound itself. The instrument
+     * never releases it, the game does once the instrument is finished
+     * (ProgrammerSoundDestroyed in setCallback, or after the event stops).
+     * A sound still loading (NONBLOCKING) is fine, FMOD waits for it.
+     * Assign BEFORE start(). Wins over a key or name assignment.
+     */
+    public inline function assignProgrammerSoundFrom(sound:haxefmod.core.Sound, subsoundIndex:Int = -1):FmodResult {
+        if (sound.isNull()) return FmodResult.FMOD_ERR_INVALID_PARAM;
+        return NativeStudio.ps_assign_sound(this, sound, subsoundIndex);
+    }
+    #end
+
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /**
+     * Maps one programmer instrument name to the audio table key or file
+     * path it should play (unsupported in HTML5). An event with several
+     * programmer instruments gets one entry per instrument name, up to
+     * eight per instance. A name with no entry falls back to the single
+     * assignProgrammerSound key. Names must be under 64 UTF-8 bytes and
+     * keys under 512. Assign BEFORE start().
+     */
+    public macro function assignProgrammerSoundForName(self:haxe.macro.Expr, name:haxe.macro.Expr, key:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("EventInstance.assignProgrammerSoundForName", "programmer sounds fail inside FMOD's JavaScript runtime");
+    }
+    #else
+    /**
+     * Maps one programmer instrument name to the audio table key or file
+     * path it should play (unsupported in HTML5). An event with several
+     * programmer instruments gets one entry per instrument name, up to
+     * eight per instance. A name with no entry falls back to the single
+     * assignProgrammerSound key. Names must be under 64 UTF-8 bytes and
+     * keys under 512. Assign BEFORE start().
+     */
+    public inline function assignProgrammerSoundForName(name:String, key:String):FmodResult {
+        if (name == null || key == null) return FmodResult.FMOD_ERR_INVALID_PARAM;
+        return NativeStudio.ps_assign_named(this, name, key);
+    }
+    #end
+
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /**
+     * assignProgrammerSoundForName for every entry of a name to key map
+     * (unsupported in HTML5). Stops at the first failure and returns it.
+     */
+    public macro function assignProgrammerSounds(self:haxe.macro.Expr, names:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("EventInstance.assignProgrammerSounds", "programmer sounds fail inside FMOD's JavaScript runtime");
+    }
+    #else
+    /**
+     * assignProgrammerSoundForName for every entry of a name to key map
+     * (unsupported in HTML5). Stops at the first failure and returns it.
+     */
+    public function assignProgrammerSounds(names:Map<String, String>):FmodResult {
+        if (names == null) return FmodResult.FMOD_ERR_INVALID_PARAM;
+        for (name => key in names) {
+            var result = assignProgrammerSoundForName(name, key);
+            if (!result.isOk()) return result;
+        }
+        return FmodResult.FMOD_OK;
+    }
+    #end
+
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
     /** Removes the programmer-sound assignment (unsupported in HTML5, where nothing can be assigned). */
     public macro function clearProgrammerSound(self:haxe.macro.Expr):haxe.macro.Expr {
         return haxefmod.studio.native.Html5Gate.block("EventInstance.clearProgrammerSound", "programmer sounds fail inside FMOD's JavaScript runtime, so there is no assignment to clear");
     }
     #else
-    /** Removes the programmer-sound assignment (unsupported in HTML5, where nothing can be assigned). */
+    /** Removes every programmer-sound assignment, key, game sound, and names (unsupported in HTML5, where nothing can be assigned). */
     public inline function clearProgrammerSound():FmodResult {
         return NativeStudio.ps_clear(this);
     }

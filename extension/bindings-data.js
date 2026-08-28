@@ -1202,7 +1202,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Plays this DSP as a sound source (e.g.",
      "gated": false,
      "name": "play",
-     "signature": "play(startPaused:Bool = false):Channel",
+     "signature": "play(startPaused:Bool = false, ?group:ChannelGroup):Channel",
      "static": false,
      "type": "haxefmod.core.Dsp"
     },
@@ -1211,7 +1211,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Starts playback.",
      "gated": false,
      "name": "play",
-     "signature": "play(startPaused:Bool = false):Channel",
+     "signature": "play(startPaused:Bool = false, ?group:ChannelGroup):Channel",
      "static": false,
      "type": "haxefmod.core.PcmStream"
     },
@@ -1220,7 +1220,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Starts playback.",
      "gated": false,
      "name": "play",
-     "signature": "play(startPaused:Bool = false):haxefmod.core.Channel",
+     "signature": "play(startPaused:Bool = false, ?group:haxefmod.core.ChannelGroup):haxefmod.core.Channel",
      "static": false,
      "type": "haxefmod.core.Sound"
     }
@@ -3061,7 +3061,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Plays this DSP as a sound source (e.g.",
      "gated": false,
      "name": "play",
-     "signature": "play(startPaused:Bool = false):Channel",
+     "signature": "play(startPaused:Bool = false, ?group:ChannelGroup):Channel",
      "static": false,
      "type": "haxefmod.core.Dsp"
     },
@@ -3070,7 +3070,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Starts playback.",
      "gated": false,
      "name": "play",
-     "signature": "play(startPaused:Bool = false):Channel",
+     "signature": "play(startPaused:Bool = false, ?group:ChannelGroup):Channel",
      "static": false,
      "type": "haxefmod.core.PcmStream"
     },
@@ -3079,7 +3079,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Starts playback.",
      "gated": false,
      "name": "play",
-     "signature": "play(startPaused:Bool = false):haxefmod.core.Channel",
+     "signature": "play(startPaused:Bool = false, ?group:haxefmod.core.ChannelGroup):haxefmod.core.Channel",
      "static": false,
      "type": "haxefmod.core.Sound"
     }
@@ -5003,6 +5003,87 @@ const HAXEFMOD_BINDINGS = {
     "haxefmod does this for you on HTML5. The banks named in FmodSettings.autoLoadBanks are fetched during init, and StudioSystem.loadBankFile() fetches any other bank and places it in the wasm file system before loading it."
    ]
   },
+  "fsbank_build": {
+   "fmod": "",
+   "haxe": [],
+   "heading": "FSBANK_RESULT",
+   "html5": false,
+   "notes": [
+    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
+   ]
+  },
+  "fsbank_buildcancel": {
+   "fmod": "",
+   "haxe": [],
+   "heading": "FSBANK_RESULT",
+   "html5": false,
+   "notes": [
+    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
+   ]
+  },
+  "fsbank_fetchfsbmemory": {
+   "fmod": "",
+   "haxe": [],
+   "heading": "FSBANK_RESULT",
+   "html5": false,
+   "notes": [
+    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
+   ]
+  },
+  "fsbank_fetchnextprogressitem": {
+   "fmod": "",
+   "haxe": [],
+   "heading": "FSBANK_RESULT",
+   "html5": false,
+   "notes": [
+    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
+   ]
+  },
+  "fsbank_init": {
+   "fmod": "",
+   "haxe": [],
+   "heading": "FSBANK_RESULT",
+   "html5": false,
+   "notes": [
+    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
+   ]
+  },
+  "fsbank_memorygetstats": {
+   "fmod": "",
+   "haxe": [],
+   "heading": "FSBANK_RESULT",
+   "html5": false,
+   "notes": [
+    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
+   ]
+  },
+  "fsbank_memoryinit": {
+   "fmod": "",
+   "haxe": [],
+   "heading": "FSBANK_RESULT",
+   "html5": false,
+   "notes": [
+    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
+   ]
+  },
+  "fsbank_release": {
+   "fmod": "",
+   "haxe": [],
+   "heading": "FSBANK_RESULT",
+   "html5": false,
+   "notes": [
+    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
+   ]
+  },
+  "fsbank_releaseprogressitem": {
+   "fmod": "",
+   "haxe": [],
+   "heading": "FSBANK_RESULT",
+   "html5": false,
+   "notes": [
+    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
+   ]
+  },
   "geometry_addpolygon": {
    "fmod": "FMOD_Geometry_AddPolygon",
    "gated": true,
@@ -6067,7 +6148,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Loads a sound file.",
      "gated": false,
      "name": "create",
-     "signature": "create(path:String, loop:Bool = false, openOnly:Bool = false):Sound",
+     "signature": "create(path:String, loop:Bool = false, openOnly:Bool = false, mode:Int = 0, initialSubsound:Int = -1):Sound",
      "static": true,
      "type": "haxefmod.core.Sound"
     },
@@ -6077,6 +6158,15 @@ const HAXEFMOD_BINDINGS = {
      "gated": true,
      "name": "createRecordBuffer",
      "signature": "createRecordBuffer(sampleRate:Int, channels:Int, seconds:Int):Sound",
+     "static": true,
+     "type": "haxefmod.core.Sound"
+    },
+    {
+     "direct": false,
+     "doc": "A sound from an encoded file image in memory (wav, ogg, mp3, fsb, anything Sound.create would load from disk).",
+     "gated": false,
+     "name": "fromMemory",
+     "signature": "fromMemory(data:haxe.io.Bytes, mode:Int = 0, length:Int = -1):Sound",
      "static": true,
      "type": "haxefmod.core.Sound"
     },
@@ -8220,7 +8310,25 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "Removes the programmer-sound assignment (unsupported in HTML5, where nothing can be assigned).",
+     "doc": "Maps one programmer instrument name to the audio table key or file path it should play (unsupported in HTML5).",
+     "gated": true,
+     "name": "assignProgrammerSoundForName",
+     "signature": "assignProgrammerSoundForName(name:String, key:String):FmodResult",
+     "static": false,
+     "type": "haxefmod.studio.EventInstance"
+    },
+    {
+     "direct": false,
+     "doc": "Hands a sound the game owns to this instance's programmer instrument (unsupported in HTML5).",
+     "gated": true,
+     "name": "assignProgrammerSoundFrom",
+     "signature": "assignProgrammerSoundFrom(sound:haxefmod.core.Sound, subsoundIndex:Int = -1):FmodResult",
+     "static": false,
+     "type": "haxefmod.studio.EventInstance"
+    },
+    {
+     "direct": false,
+     "doc": "Removes every programmer-sound assignment, key, game sound, and names (unsupported in HTML5, where nothing can be assigned).",
      "gated": true,
      "name": "clearProgrammerSound",
      "signature": "clearProgrammerSound():FmodResult",
@@ -8411,7 +8519,25 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "Removes the programmer-sound assignment (unsupported in HTML5, where nothing can be assigned).",
+     "doc": "Maps one programmer instrument name to the audio table key or file path it should play (unsupported in HTML5).",
+     "gated": true,
+     "name": "assignProgrammerSoundForName",
+     "signature": "assignProgrammerSoundForName(name:String, key:String):FmodResult",
+     "static": false,
+     "type": "haxefmod.studio.EventInstance"
+    },
+    {
+     "direct": false,
+     "doc": "Hands a sound the game owns to this instance's programmer instrument (unsupported in HTML5).",
+     "gated": true,
+     "name": "assignProgrammerSoundFrom",
+     "signature": "assignProgrammerSoundFrom(sound:haxefmod.core.Sound, subsoundIndex:Int = -1):FmodResult",
+     "static": false,
+     "type": "haxefmod.studio.EventInstance"
+    },
+    {
+     "direct": false,
+     "doc": "Removes every programmer-sound assignment, key, game sound, and names (unsupported in HTML5, where nothing can be assigned).",
      "gated": true,
      "name": "clearProgrammerSound",
      "signature": "clearProgrammerSound():FmodResult",
@@ -10070,7 +10196,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Loads a sound file.",
      "gated": false,
      "name": "create",
-     "signature": "create(path:String, loop:Bool = false, openOnly:Bool = false):Sound",
+     "signature": "create(path:String, loop:Bool = false, openOnly:Bool = false, mode:Int = 0, initialSubsound:Int = -1):Sound",
      "static": true,
      "type": "haxefmod.core.Sound"
     },
@@ -10080,6 +10206,15 @@ const HAXEFMOD_BINDINGS = {
      "gated": true,
      "name": "createRecordBuffer",
      "signature": "createRecordBuffer(sampleRate:Int, channels:Int, seconds:Int):Sound",
+     "static": true,
+     "type": "haxefmod.core.Sound"
+    },
+    {
+     "direct": false,
+     "doc": "A sound from an encoded file image in memory (wav, ogg, mp3, fsb, anything Sound.create would load from disk).",
+     "gated": false,
+     "name": "fromMemory",
+     "signature": "fromMemory(data:haxe.io.Bytes, mode:Int = 0, length:Int = -1):Sound",
      "static": true,
      "type": "haxefmod.core.Sound"
     },
@@ -10112,13 +10247,13 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "system_createstream": {
-   "code": "import haxefmod.core.PcmStream;\n\nvar stream = PcmStream.create(44100, 2);\nvar channel = stream.play();",
+   "code": "import haxefmod.core.ChannelMode;\nimport haxefmod.core.PcmStream;\nimport haxefmod.core.Sound;\n\nvar music = Sound.create(\"assets/music/level1.ogg\", true, false, ChannelMode.CREATESTREAM);\nvar stream = PcmStream.create(44100, 2);\nvar channel = stream.play();",
    "fmod": "",
    "haxe": [],
    "heading": "System::createStream",
    "html5": false,
    "notes": [
-    "haxefmod covers streams two ways. Sound.create() opens a file for playback, and PcmStream.create() opens a stream that Haxe code feeds with raw PCM, which is the one path that works on HTML5 as well."
+    "haxefmod covers streams two ways. Sound.create() with ChannelMode.CREATESTREAM opens a file as a stream, and PcmStream.create() opens a stream that Haxe code feeds with raw PCM, which is the one path that works on HTML5 as well."
    ]
   },
   "system_detachchannelgroupfromport": {
@@ -10862,7 +10997,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Plays this DSP as a sound source (e.g.",
      "gated": false,
      "name": "play",
-     "signature": "play(startPaused:Bool = false):Channel",
+     "signature": "play(startPaused:Bool = false, ?group:ChannelGroup):Channel",
      "static": false,
      "type": "haxefmod.core.Dsp"
     }
@@ -10878,7 +11013,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Starts playback.",
      "gated": false,
      "name": "play",
-     "signature": "play(startPaused:Bool = false):Channel",
+     "signature": "play(startPaused:Bool = false, ?group:ChannelGroup):Channel",
      "static": false,
      "type": "haxefmod.core.PcmStream"
     },
@@ -10887,7 +11022,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Starts playback.",
      "gated": false,
      "name": "play",
-     "signature": "play(startPaused:Bool = false):haxefmod.core.Channel",
+     "signature": "play(startPaused:Bool = false, ?group:haxefmod.core.ChannelGroup):haxefmod.core.Channel",
      "static": false,
      "type": "haxefmod.core.Sound"
     }

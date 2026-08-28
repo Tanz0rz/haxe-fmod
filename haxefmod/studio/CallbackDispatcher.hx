@@ -154,6 +154,8 @@ class CallbackDispatcher {
             case SOUND_STOPPED: SoundStopped;
             case REAL_TO_VIRTUAL: RealToVirtual;
             case VIRTUAL_TO_REAL: VirtualToReal;
+            case CREATE_PROGRAMMER_SOUND: ProgrammerSoundCreated(str);
+            case DESTROY_PROGRAMMER_SOUND: ProgrammerSoundDestroyed(str);
             default: Other(type);
         }
     }

@@ -2,21 +2,38 @@
 
 ## 4.1.1 Non-blocking Sound Creation
 verdict: bound
-Sound.create has no NONBLOCKING mode. It loads on the calling thread and returns a ready handle, so load loose files at level start or from a loading screen.
+The mode argument of Sound.create takes FMOD_NONBLOCKING. The load runs on FMOD's thread and getOpenState reports LOADING until the sound is READY. The web build loads synchronously, the sound is READY when create returns.
 ```haxe
+import haxefmod.core.ChannelMode;
 import haxefmod.core.Sound;
 
-var sound = Sound.create("../media/wave.mp3"); // Loads the file on the calling thread and returns once it is ready.
+var sound = Sound.create("../media/wave.mp3", false, false, ChannelMode.NONBLOCKING); // Returns at once, the file decodes on FMOD's thread.
 if (sound.isNull()) {
     trace('load failed: ${StudioSystem.lastResult()}');
 }
 ```
 
 ## 4.1.1 Non-blocking Sound Creation#2
-verdict: cannot FMOD calls the callback on its async loader thread, no Haxe target can run code there. Sound.create returns a ready handle, and Sound.getOpenState reports READY for a usable sound.
+verdict: cannot FMOD calls the callback on its async loader thread, no Haxe target can run code there. Poll Sound.getOpenState each frame instead, it reports READY once the sound can play and ERROR when the load failed.
 
 ## 4.1.1 Non-blocking Sound Creation#3
-verdict: cannot FMOD_CREATESOUNDEXINFO is not exposed and the callback runs on FMOD's async loader thread. Sound.create takes the path and a loop flag and returns a ready handle, or Sound.NULL with the reason in StudioSystem.lastResult.
+verdict: bound
+No completion callback, the game polls getOpenState. CREATESTREAM in the mode argument is the createStream form.
+```haxe
+import haxefmod.core.ChannelMode;
+import haxefmod.core.Sound;
+import haxefmod.studio.Types.FmodOpenState;
+
+var sound = Sound.create("../media/wave.mp3", false, false, ChannelMode.CREATESTREAM | ChannelMode.NONBLOCKING);
+if (sound.isNull()) {
+    trace('load failed: ${StudioSystem.lastResult()}');
+}
+
+// Each frame until it is ready
+if (sound.getOpenState() == FmodOpenState.READY) {
+    trace("Sound loaded!");
+}
+```
 
 ## 4.2 Playing a sound
 verdict: bound
@@ -40,7 +57,7 @@ if (channel.isNull()) {
 
 ## 4.3.1 Creating a Sound from memory
 verdict: bound
-Encoded files cannot be opened from memory. Sound.fromPcm takes raw 16-bit PCM and the sample rate and channel count stand in for the exinfo fields.
+Sound.fromMemory takes an encoded file image, the length is the bytes' own. Raw PCM goes through Sound.fromPcm, whose sample rate and channel count stand in for the exinfo fields.
 ```haxe
 import haxefmod.core.Sound;
 
@@ -48,15 +65,15 @@ var sound:Sound;
 var buffer:haxe.io.Bytes = null;
 
 //
-// Load your interleaved 16-bit PCM data to the "buffer" bytes here
+// Load your file image (wav, ogg, mp3, fsb) into the "buffer" bytes here
 //
 
-sound = Sound.fromPcm(buffer, 44100, 2); // The buffer's length is the length of the sound in bytes
+sound = Sound.fromMemory(buffer); // The buffer's length is the length of the file image in bytes
 // The audio data stored in "buffer" has been duplicated into FMOD's buffers, and can now be freed
 ```
 
 ## 4.3.1 Creating a Sound from memory#2
-verdict: covered there is no point-to-memory mode. Sound.fromPcm always copies the bytes, so nothing stays pinned and the buffer is free after the call.
+verdict: covered there is no point-to-memory mode. Sound.fromMemory and Sound.fromPcm always copy the bytes, so nothing stays pinned and the buffer is free after the call.
 
 ## 4.3.2 Creating a Sound from PCM data
 verdict: bound
@@ -94,18 +111,17 @@ stream.write(buffer);
 
 ## 4.3.4 Creating the Sound as a Streamed FSB File
 verdict: bound
-Sound.create has no NONBLOCKING mode and no initial subsound field. The FSB loads on the calling thread and getSubSound picks the subsound to play.
+The mode argument carries CREATESTREAM and NONBLOCKING, and the initialSubsound argument is exinfo.initialsubsound.
 ```haxe
+import haxefmod.core.ChannelMode;
 import haxefmod.core.Sound;
 
 var sound:Sound;
 
-sound = Sound.create("../media/sounds.fsb");
+sound = Sound.create("../media/sounds.fsb", false, false, ChannelMode.CREATESTREAM | ChannelMode.NONBLOCKING, 1);
 if (sound.isNull()) {
     trace('load failed: ${StudioSystem.lastResult()}');
 }
-
-var subsound = sound.getSubSound(1);
 ```
 
 ## 4.5.1 Setup : Override FMOD's file system with callbacks

@@ -1,6 +1,6 @@
 # Unsupported functions
 
-The 35 functions of the FMOD API that haxefmod 2.0.0 cannot bind, with the reason for each. Nearly all of them hand FMOD a callback to run on its own threads, which no Haxe target can host, and the rest belong to platforms the library does not ship for or return raw pointers. Generated from `extension/functions.md` by `ci/haxe-bindings.py`, so this page and the Haxe tab of the browser extension always agree. [Coverage](coverage.md) lists everything that is bound.
+The 44 functions of the FMOD API that haxefmod 2.0.0 cannot bind, with the reason for each. Nearly all of them hand FMOD a callback to run on its own threads, which no Haxe target can host, and the rest belong to platforms the library does not ship for or return raw pointers. Generated from `extension/functions.md` by `ci/haxe-bindings.py`, so this page and the Haxe tab of the browser extension always agree. [Coverage](coverage.md) lists everything that is bound.
 
 If one of these blocks a real use case, open an issue describing it. A workaround at the library level is sometimes possible even when the function itself is not.
 
@@ -24,6 +24,15 @@ If one of these blocks a real use case, open an issue describing it. A workaroun
 | `File_SetDiskBusy` | Cannot be bound. The disk busy flag belongs to the custom file system callbacks, which FMOD runs on its streaming thread, and no Haxe target can execute code there. |
 | `FMOD_Android_JNI_Close` | Cannot be bound. This is an Android JNI entry point and haxefmod targets desktop and web only. |
 | `FMOD_Android_JNI_Init` | Cannot be bound. This is an Android JNI entry point and haxefmod targets desktop and web only. |
+| `FSBANK_RESULT` | Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio. |
+| `FSBANK_RESULT` | Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio. |
+| `FSBANK_RESULT` | Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio. |
+| `FSBANK_RESULT` | Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio. |
+| `FSBANK_RESULT` | Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio. |
+| `FSBANK_RESULT` | Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio. |
+| `FSBANK_RESULT` | Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio. |
+| `FSBANK_RESULT` | Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio. |
+| `FSBANK_RESULT` | Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio. |
 | `getValue` | Cannot be bound. This reads and writes the wasm heap through a raw address, which has no meaning in Haxe. Values cross into FMOD through the typed haxefmod methods, and getters return values directly. |
 | `Memory_Free` | Cannot be bound. It frees a raw pointer from FMOD's heap, which has no meaning in Haxe, and Haxe code never receives one. Release handles with the release() method of the object that created them. |
 | `Memory_Initialize` | Cannot be bound. Custom allocators are callbacks that FMOD runs on every one of its threads, and no Haxe target can execute code there. FMOD uses its default allocator on every target, and StudioSystem.getMemoryStats reports what it holds. |

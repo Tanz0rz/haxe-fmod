@@ -2,25 +2,18 @@
 
 ## 5.0.2 Loading Sounds as 3D
 verdict: bound
-Sound.create takes no mode flags, so the 3D flag is set with setMode after loading.
+The mode argument of Sound.create takes the 3D flag at load time.
 Sound.create returns Sound.NULL on failure and StudioSystem.lastResult() holds the FMOD_RESULT.
 ```haxe
 import haxefmod.core.Sound;
 import haxefmod.core.ChannelMode;
 import haxefmod.studio.FmodResult;
 
-var result:FmodResult;
-function handleError(result:FmodResult):Void {
-    trace(result);
-}
+var handleError = (result:FmodResult) -> trace(result);
 
-var sound = Sound.create("../media/drumloop.wav");
+var sound = Sound.create("../media/drumloop.wav", false, false, ChannelMode.MODE_3D);
 if (sound.isNull()) {
     handleError(StudioSystem.lastResult());
-}
-result = sound.setMode(ChannelMode.MODE_3D);
-if (!result.isOk()) {
-    handleError(result);
 }
 ```
 

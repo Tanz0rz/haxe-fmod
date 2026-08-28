@@ -58,10 +58,10 @@ async function main() {
     // so loose wav/ogg files fail with FMOD_ERR_FORMAT (19). The binding must
     // return 0 + lastResult, not throw. Native targets load
     // these files fine. That path is CI-validated by ProgrammerSoundTestState.
-    const snd = jaxe.fmod_core_create_sound('Jump.wav', 0);
+    const snd = jaxe.fmod_core_create_sound('Jump.wav', 0, -1);
     check('core_create_sound_format_limit', snd === 0 && jaxe.fmod_sys_last_result() === 19,
         `handle=${snd} lastResult=${jaxe.fmod_sys_last_result()}`);
-    check('core_missing_file', jaxe.fmod_core_create_sound('Nope.wav', 0) === 0
+    check('core_missing_file', jaxe.fmod_core_create_sound('Nope.wav', 0, -1) === 0
         && jaxe.fmod_sys_last_result() === 18, `lastResult=${jaxe.fmod_sys_last_result()}`);
     check('core_invalid_handle_len', jaxe.fmod_core_get_sound_length(12345) === -1, '');
 

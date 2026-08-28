@@ -189,10 +189,13 @@ extern int fmod_evi_get_memory_usage(int handle, ::Array<int> out);
 
 //// Programmer sounds
 extern int fmod_ps_assign(int handle, const ::String& key);
+extern int fmod_ps_assign_sound(int handle, int soundHandle, int subsoundIndex);
+extern int fmod_ps_assign_named(int handle, const ::String& name, const ::String& key);
 extern int fmod_ps_clear(int handle);
 
 //// Core API micro subset (programmer sounds only)
-extern int fmod_core_create_sound(const ::String& path, int mode, bool openOnly);
+extern int fmod_core_create_sound(const ::String& path, int mode, int initialSubsound);
+extern int fmod_core_create_sound_memory(::Array<unsigned char> data, int len, int mode);
 extern int fmod_core_release_sound(int handle);
 extern int fmod_core_get_sound_length(int handle);
 
@@ -201,7 +204,7 @@ extern int fmod_core_pcm_create(int sampleRate, int channels, int ringBytes);
 extern int fmod_core_pcm_write(int handle, ::Array<unsigned char> data, int len);
 extern int fmod_core_pcm_space(int handle);
 extern int fmod_core_pcm_underruns(int handle);
-extern int fmod_core_pcm_play(int handle, bool paused);
+extern int fmod_core_pcm_play(int handle, int group, bool paused);
 extern int fmod_core_pcm_release(int handle);
 
 //// Core channels
@@ -270,7 +273,7 @@ extern int fmod_bus_unlock_channel_group(int handle);
 extern int fmod_bus_get_channel_group(int handle);
 
 // Core system extras
-extern int fmod_sys_play_dsp(int dspHandle, bool startPaused);
+extern int fmod_sys_play_dsp(int dspHandle, int group, bool startPaused);
 extern int fmod_sys_set_reverb_properties(int instance, ::Array<Float> fbuf);
 extern int fmod_sys_get_reverb_properties(int instance, ::Array<Float> fbuf);
 extern int fmod_core_pcm_create_3d(int sampleRate, int channels, int ringBytes);
@@ -329,7 +332,7 @@ extern int fmod_r3d_set_active(int handle, bool active);
 
 // Core sound surface
 extern int fmod_core_create_sound_pcm(::Array<unsigned char> data, int len, int sampleRate, int channels);
-extern int fmod_core_play_sound(int handle, bool startPaused);
+extern int fmod_core_play_sound(int handle, int group, bool startPaused);
 extern int fmod_sound_set_defaults(int handle, float frequency, int priority);
 extern int fmod_sound_get_defaults(int handle, ::Array<Float> fbuf);
 extern int fmod_sound_set_loop_points(int handle, int startMs, int endMs);

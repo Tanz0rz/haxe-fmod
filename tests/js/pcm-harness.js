@@ -82,7 +82,7 @@ async function main() {
         `wrote=${wrote} space=${spaceBefore}`);
     check('pcm_space_shrinks', jaxe.fmod_core_pcm_space(ps) === spaceBefore - wrote);
 
-    const ch = jaxe.fmod_core_pcm_play(ps, false);
+    const ch = jaxe.fmod_core_pcm_play(ps, 0, false);
     check('pcm_play', ch !== 0, `handle=${ch} result=${jaxe.lastResult}`);
 
     // NRT updates make the mixer drain the ring through pcmread
@@ -136,7 +136,7 @@ async function main() {
     // Stale handles across the whole new surface return the handle error
     check('stale_pcm_write', jaxe.fmod_core_pcm_write(ps, buf, 4) === 0
         && jaxe.lastResult === jaxe.ERR_INVALID_HANDLE);
-    check('stale_pcm_play', jaxe.fmod_core_pcm_play(ps, false) === 0
+    check('stale_pcm_play', jaxe.fmod_core_pcm_play(ps, 0, false) === 0
         && jaxe.lastResult === jaxe.ERR_INVALID_HANDLE);
     check('stale_chan_getters', jaxe.fmod_chan_get_volume(ch) === 0.0
         && jaxe.fmod_chan_is_playing(ch) === false
@@ -178,7 +178,7 @@ function testDspSurface() {
     check('dsp_set_active', jaxe.fmod_dsp_set_active(osc, true) === jaxe.FMOD.OK);
     check('dsp_reset', jaxe.fmod_dsp_reset(osc) === jaxe.FMOD.OK);
 
-    const ch = jaxe.fmod_sys_play_dsp(osc, false);
+    const ch = jaxe.fmod_sys_play_dsp(osc, 0, false);
     check('sys_play_dsp', ch !== 0, `handle=${ch} result=${jaxe.lastResult}`);
 
     // FFT attached to the master group must see the tone
@@ -224,7 +224,7 @@ function testChannelGroups() {
 
     // Route a PCM stream channel into the group, then stop everything in it
     const ps = jaxe.fmod_core_pcm_create(48000, 1, 9600);
-    const ch = jaxe.fmod_core_pcm_play(ps, true);
+    const ch = jaxe.fmod_core_pcm_play(ps, 0, true);
     check('chan_set_channel_group', jaxe.fmod_chan_set_channel_group(ch, group) === jaxe.FMOD.OK);
     check('cg_stop', jaxe.fmod_cg_stop(group) === jaxe.FMOD.OK);
     jaxe.fmod_chan_stop(ch);
@@ -272,7 +272,7 @@ function testReverbAndExtras() {
 
     // Channel extras on a fresh paused stream
     const ps = jaxe.fmod_core_pcm_create(48000, 1, 9600);
-    const ch = jaxe.fmod_core_pcm_play(ps, true);
+    const ch = jaxe.fmod_core_pcm_play(ps, 0, true);
     check('chan_set_pan', jaxe.fmod_chan_set_pan(ch, 0.5) === jaxe.FMOD.OK);
     check('chan_set_frequency', jaxe.fmod_chan_set_frequency(ch, 24000) === jaxe.FMOD.OK);
     check('chan_get_frequency', Math.abs(jaxe.fmod_chan_get_frequency(ch) - 24000) < 1);
@@ -294,7 +294,7 @@ function testReverbAndExtras() {
     // 3D PCM stream accepts positional control
     const ps3d = jaxe.fmod_core_pcm_create_3d(48000, 1, 9600);
     check('pcm_create_3d', ps3d !== 0, `handle=${ps3d} result=${jaxe.lastResult}`);
-    const ch3d = jaxe.fmod_core_pcm_play(ps3d, true);
+    const ch3d = jaxe.fmod_core_pcm_play(ps3d, 0, true);
     check('chan_set_3d_attributes',
         jaxe.fmod_chan_set_3d_attributes(ch3d, 1, 0, 0, 0, 0, 0) === jaxe.FMOD.OK);
     check('chan_set_3d_min_max', jaxe.fmod_chan_set_3d_min_max(ch3d, 1, 100) === jaxe.FMOD.OK);
@@ -338,7 +338,7 @@ function testNestingAndScheduling() {
     check('s3_cg_get_parent_dedup', jaxe.fmod_cg_get_parent_group(child) === parent);
 
     const osc = jaxe.fmod_dsp_create_by_type(2);
-    const ch = jaxe.fmod_sys_play_dsp(osc, false);
+    const ch = jaxe.fmod_sys_play_dsp(osc, 0, false);
     pump(10);
     const clocks = [];
     check('s3_chan_dsp_clock', jaxe.fmod_chan_get_dsp_clock(ch, clocks) === jaxe.FMOD.OK
@@ -369,7 +369,7 @@ function testNestingAndScheduling() {
 
     // 3D spatial extras on a positional stream
     const ps = jaxe.fmod_core_pcm_create_3d(48000, 1, 9600);
-    const ch3 = jaxe.fmod_core_pcm_play(ps, true);
+    const ch3 = jaxe.fmod_core_pcm_play(ps, 0, true);
     check('s3_cone_settings', jaxe.fmod_chan_set_3d_cone_settings(ch3, 30, 60, 0.5) === jaxe.FMOD.OK);
     check('s3_cone_orientation', jaxe.fmod_chan_set_3d_cone_orientation(ch3, 0, 0, 1) === jaxe.FMOD.OK);
     check('s3_occlusion', jaxe.fmod_chan_set_3d_occlusion(ch3, 0.5, 0.3) === jaxe.FMOD.OK);
@@ -424,7 +424,7 @@ function testReverb3dSoundsSystem() {
     check('s3_sound_format', format[0] === 1 && format[1] === 16, `ch=${format[0]} bits=${format[1]}`);
     check('s3_sound_open_state', jaxe.fmod_sound_get_open_state(snd) === 0,
         `state=${jaxe.fmod_sound_get_open_state(snd)}`);
-    const playCh = jaxe.fmod_core_play_sound(snd, true);
+    const playCh = jaxe.fmod_core_play_sound(snd, 0, true);
     check('s3_play_sound', playCh !== 0, `handle=${playCh} result=${jaxe.lastResult}`);
     jaxe.fmod_chan_stop(playCh);
     check('s3_sound_release', jaxe.fmod_core_release_sound(snd) === jaxe.FMOD.OK);
@@ -468,7 +468,7 @@ function testCallbacksAndSyncPoints() {
         `len=${jaxe.fmod_sound_get_sync_point_name(snd, 1).length}`);
     check('s4_sync_long_name_delete', jaxe.fmod_sound_delete_sync_point(snd, 1) === jaxe.FMOD.OK);
 
-    const ch = jaxe.fmod_core_play_sound(snd, false);
+    const ch = jaxe.fmod_core_play_sound(snd, 0, false);
     check('s4_set_callback', jaxe.fmod_chan_set_callback(ch, true) === jaxe.FMOD.OK);
     pump(40);
     // Drain the queue: both channel events must arrive with the channel handle
@@ -526,7 +526,7 @@ function testSoundGroupsAndSystem() {
 
 function testGetterSymmetry() {
     const ps = jaxe.fmod_core_pcm_create_3d(48000, 1, 9600);
-    const ch = jaxe.fmod_core_pcm_play(ps, true);
+    const ch = jaxe.fmod_core_pcm_play(ps, 0, true);
     jaxe.fmod_chan_set_loop_count(ch, -1);
     check('s4_get_loop_count', jaxe.fmod_chan_get_loop_count(ch) === -1);
     jaxe.fmod_chan_set_low_pass_gain(ch, 0.5);
@@ -628,7 +628,7 @@ function testAuditClosure() {
     const frames = 9600;
     const pcmBuf = new ArrayBuffer(frames * 2);
     const snd = jaxe.fmod_core_create_sound_pcm(pcmBuf, pcmBuf.byteLength, 48000, 1);
-    const ch = jaxe.fmod_core_play_sound(snd, true);
+    const ch = jaxe.fmod_core_play_sound(snd, 0, true);
     check('s5_priority', jaxe.fmod_chan_set_priority(ch, 100) === jaxe.FMOD.OK
         && jaxe.fmod_chan_get_priority(ch) === 100, '');
     check('s5_is_virtual', typeof jaxe.fmod_chan_is_virtual(ch) === 'boolean', '');

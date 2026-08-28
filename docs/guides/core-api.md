@@ -28,6 +28,29 @@ if (stream.takeUnderruns() > 0) trace("ring ran dry");
 
 `Sound.fromPcm(bytes, sampleRate, channels)` is the static counterpart for a sample that is fully known ahead of time. Both work on every target because they take raw PCM.
 
+## Loading files
+
+`Sound.create(path, ?loop, ?openOnly, ?mode, ?initialSubsound)` loads a file from disk. `mode` takes any combination of `ChannelMode` flags on top of what `loop` and `openOnly` set, so a sound can be 3D, streamed, decoded up front, or kept compressed from the moment it loads. `NONBLOCKING` returns at once with the load running on FMOD's thread, and `getOpenState()` reports `LOADING` until it is `READY` or `ERROR`. `initialSubsound` picks the subsound an FSB stream starts on.
+
+```haxe
+import haxefmod.core.ChannelMode;
+import haxefmod.core.Sound;
+
+var music = Sound.create("assets/music/level1.ogg", true, false, ChannelMode.CREATESTREAM | ChannelMode.MODE_3D);
+var pending = Sound.create("assets/voice/line01.ogg", false, false, ChannelMode.NONBLOCKING);
+// Later, once pending.getOpenState() == FmodOpenState.READY
+var channel = pending.play();
+```
+
+`Sound.fromMemory(bytes, ?mode, ?length)` takes an encoded file image the game already holds in memory, anything `create` would load from a path. FMOD copies the bytes, so the buffer can go once the call returns. On HTML5 only FSB images decode, a wav or ogg image returns `Sound.NULL` with `FMOD_ERR_FORMAT`, and a `NONBLOCKING` request loads synchronously.
+
+```haxe
+import haxefmod.core.Sound;
+
+var image = sys.io.File.getBytes("assets/voice/line01.ogg");
+var sound = Sound.fromMemory(image);
+```
+
 ## Reading samples
 
 `Sound.create(path, loop, openOnly)` with `openOnly` true opens a file without decoding it up front. A sound opened that way cannot be played, it exists to be read. `readData(buffer, ?length)` decodes PCM from it into the buffer (unsupported in HTML5). It returns `-68` there, the negated `FMOD_ERR_UNSUPPORTED` code. On native targets it returns the bytes read, `0` at the end of the file with `StudioSystem.lastResult()` reporting `FMOD_ERR_FILE_EOF`, or a negated FMOD error code. `length` defaults to the whole buffer and is clamped to it. `seekData(pcm)` moves the read cursor to a sample offset, and `getFormat()` reports the channel count and bits per sample the bytes are laid out in.
@@ -52,7 +75,7 @@ Games that also ship to the browser and need waveform data keep their own copy o
 
 ## Channels
 
-A `Channel` is a playing instance of a core sound, returned by `PcmStream.play`, `Sound.play`, and `Dsp.play`. It carries volume, pitch, pan, pause, frequency, loop count, position, mute, a built-in lowpass, 3D attributes and cone settings, occlusion, a mix matrix, and sample-accurate scheduling through `getDspClock` and `setDelay`.
+A `Channel` is a playing instance of a core sound, returned by `PcmStream.play`, `Sound.play`, and `Dsp.play`. Each `play` takes an optional `ChannelGroup` as its second argument, so the channel starts inside the group instead of moving there with `setChannelGroup` while paused. `Channel.DSP_HEAD`, `DSP_FADER`, and `DSP_TAIL` name the chain positions for `getDsp` and `addDsp`, the same values as on `ChannelGroup`. A channel carries volume, pitch, pan, pause, frequency, loop count, position, mute, a built-in lowpass, 3D attributes and cone settings, occlusion, a mix matrix, and sample-accurate scheduling through `getDspClock` and `setDelay`.
 
 ```haxe
 var sound = haxefmod.core.Sound.create("assets/voice/line01.ogg");

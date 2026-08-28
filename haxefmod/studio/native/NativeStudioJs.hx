@@ -231,10 +231,13 @@ class NativeStudioJs {
 
     // Programmer sounds
     public static inline function ps_assign(handle:Int, key:String):Int return Raw.fmod_ps_assign(handle, key);
+    public static inline function ps_assign_sound(handle:Int, sound:Int, subsoundIndex:Int):Int return Raw.fmod_ps_assign_sound(handle, sound, subsoundIndex);
+    public static inline function ps_assign_named(handle:Int, name:String, key:String):Int return Raw.fmod_ps_assign_named(handle, name, key);
     public static inline function ps_clear(handle:Int):Int return Raw.fmod_ps_clear(handle);
 
     // Core API micro subset
-    public static inline function core_create_sound(path:String, mode:Int, openOnly:Bool):Int return Raw.fmod_core_create_sound(path, mode, openOnly);
+    public static inline function core_create_sound(path:String, mode:Int, initialSubsound:Int):Int return Raw.fmod_core_create_sound(path, mode, initialSubsound);
+    public static inline function core_create_sound_memory(data:haxe.io.Bytes, len:Int, mode:Int):Int return Raw.fmod_core_create_sound_memory(data.getData(), len, mode);
     public static inline function core_release_sound(handle:Int):Int return Raw.fmod_core_release_sound(handle);
     public static inline function core_get_sound_length(handle:Int):Int return Raw.fmod_core_get_sound_length(handle);
 
@@ -243,7 +246,7 @@ class NativeStudioJs {
     public static inline function core_pcm_write(handle:Int, data:haxe.io.Bytes, len:Int):Int return Raw.fmod_core_pcm_write(handle, data.getData(), len);
     public static inline function core_pcm_space(handle:Int):Int return Raw.fmod_core_pcm_space(handle);
     public static inline function core_pcm_underruns(handle:Int):Int return Raw.fmod_core_pcm_underruns(handle);
-    public static inline function core_pcm_play(handle:Int, startPaused:Bool):Int return Raw.fmod_core_pcm_play(handle, startPaused);
+    public static inline function core_pcm_play(handle:Int, group:Int, startPaused:Bool):Int return Raw.fmod_core_pcm_play(handle, group, startPaused);
     public static inline function core_pcm_release(handle:Int):Int return Raw.fmod_core_pcm_release(handle);
 
     // Core channels
@@ -316,7 +319,7 @@ class NativeStudioJs {
     public static inline function bus_get_channel_group(handle:Int):Int return Raw.fmod_bus_get_channel_group(handle);
 
     // Core system extras
-    public static inline function sys_play_dsp(dspHandle:Int, startPaused:Bool):Int return Raw.fmod_sys_play_dsp(dspHandle, startPaused);
+    public static inline function sys_play_dsp(dspHandle:Int, group:Int, startPaused:Bool):Int return Raw.fmod_sys_play_dsp(dspHandle, group, startPaused);
 
     /** 12 reverb property floats through the Scratch float buffer, DecayTime..WetLevel. */
     public static inline function sys_set_reverb_properties(instance:Int):Int return Raw.fmod_sys_set_reverb_properties(instance, Scratch.floatBuf());
@@ -386,7 +389,7 @@ class NativeStudioJs {
 
     // Core sound surface
     public static inline function core_create_sound_pcm(data:haxe.io.Bytes, len:Int, sampleRate:Int, channels:Int):Int return Raw.fmod_core_create_sound_pcm(data.getData(), len, sampleRate, channels);
-    public static inline function core_play_sound(handle:Int, startPaused:Bool):Int return Raw.fmod_core_play_sound(handle, startPaused);
+    public static inline function core_play_sound(handle:Int, group:Int, startPaused:Bool):Int return Raw.fmod_core_play_sound(handle, group, startPaused);
     public static inline function sound_set_defaults(handle:Int, frequency:Float, priority:Int):Int return Raw.fmod_sound_set_defaults(handle, frequency, priority);
 
     /** Fills Scratch float buffer: [0]=frequency [1]=priority */
@@ -879,15 +882,18 @@ private extern class Raw {
     static function fmod_evi_get_cpu_usage(handle:Int, out:Array<Int>):Int;
     static function fmod_evi_get_memory_usage(handle:Int, out:Array<Int>):Int;
     static function fmod_ps_assign(handle:Int, key:String):Int;
+    static function fmod_ps_assign_sound(handle:Int, sound:Int, subsoundIndex:Int):Int;
+    static function fmod_ps_assign_named(handle:Int, name:String, key:String):Int;
     static function fmod_ps_clear(handle:Int):Int;
-    static function fmod_core_create_sound(path:String, mode:Int, openOnly:Bool):Int;
+    static function fmod_core_create_sound(path:String, mode:Int, initialSubsound:Int):Int;
+    static function fmod_core_create_sound_memory(data:haxe.io.BytesData, len:Int, mode:Int):Int;
     static function fmod_core_release_sound(handle:Int):Int;
     static function fmod_core_get_sound_length(handle:Int):Int;
     static function fmod_core_pcm_create(sampleRate:Int, channels:Int, ringBytes:Int):Int;
     static function fmod_core_pcm_write(handle:Int, data:haxe.io.BytesData, len:Int):Int;
     static function fmod_core_pcm_space(handle:Int):Int;
     static function fmod_core_pcm_underruns(handle:Int):Int;
-    static function fmod_core_pcm_play(handle:Int, startPaused:Bool):Int;
+    static function fmod_core_pcm_play(handle:Int, group:Int, startPaused:Bool):Int;
     static function fmod_core_pcm_release(handle:Int):Int;
     static function fmod_chan_set_volume(handle:Int, volume:Float):Int;
     static function fmod_chan_get_volume(handle:Int):Float;
@@ -944,7 +950,7 @@ private extern class Raw {
     static function fmod_bus_lock_channel_group(handle:Int):Int;
     static function fmod_bus_unlock_channel_group(handle:Int):Int;
     static function fmod_bus_get_channel_group(handle:Int):Int;
-    static function fmod_sys_play_dsp(dspHandle:Int, startPaused:Bool):Int;
+    static function fmod_sys_play_dsp(dspHandle:Int, group:Int, startPaused:Bool):Int;
     static function fmod_sys_set_reverb_properties(instance:Int, fbuf:Array<Float>):Int;
     static function fmod_sys_get_reverb_properties(instance:Int, fbuf:Array<Float>):Int;
     static function fmod_core_pcm_create_3d(sampleRate:Int, channels:Int, ringBytes:Int):Int;
@@ -991,7 +997,7 @@ private extern class Raw {
     static function fmod_r3d_get_properties(handle:Int, fbuf:Array<Float>):Int;
     static function fmod_r3d_set_active(handle:Int, active:Bool):Int;
     static function fmod_core_create_sound_pcm(data:haxe.io.BytesData, len:Int, sampleRate:Int, channels:Int):Int;
-    static function fmod_core_play_sound(handle:Int, startPaused:Bool):Int;
+    static function fmod_core_play_sound(handle:Int, group:Int, startPaused:Bool):Int;
     static function fmod_sound_set_defaults(handle:Int, frequency:Float, priority:Int):Int;
     static function fmod_sound_get_defaults(handle:Int, fbuf:Array<Float>):Int;
     static function fmod_sound_set_loop_points(handle:Int, startMs:Int, endMs:Int):Int;

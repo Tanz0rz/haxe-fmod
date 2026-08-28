@@ -5,6 +5,7 @@ import flixel.FlxState;
 import flixel.text.FlxText;
 import flixel.util.FlxColor;
 import haxefmod.core.ChannelGroup;
+import haxefmod.core.ChannelMode;
 import haxefmod.core.Dsp;
 import haxefmod.core.DspType;
 import haxefmod.studio.Callbacks;
@@ -137,8 +138,15 @@ class ProgrammerSoundTestState extends FlxState {
     var _bogusInstance:EventInstance = EventInstance.NULL;
     // Both audio-table keys run through the full flow. The table holds two
     // entries, so the second key also exercises a nonzero subsound index.
+    // The key runs are followed by a game-owned sound run and an
+    // instrument-name run, each through the same metering.
     static var AT_KEYS:Array<String> = ["hello", "goodbye"];
     var _atKeyIndex:Int = 0;
+    // "key", "game", or "named"
+    var _atMode:String = "key";
+    var _atGameSound:Sound = Sound.NULL;
+    var _atName:String = null;
+    var _atNameSeen:Bool = false;
 
     /**
      * The audio-table key route: Speak's async programmer instrument
@@ -186,15 +194,32 @@ class ProgrammerSoundTestState extends FlxState {
         _atInstance.setCallback(data -> {
             switch (data) {
                 case Stopped: _atStopped = true;
-                case Other(t):
-                    if (t == EventCallbackType.CREATE_PROGRAMMER_SOUND) _atCreates++;
-                    if (t == EventCallbackType.DESTROY_PROGRAMMER_SOUND) _atDestroys++;
+                case ProgrammerSoundCreated(name):
+                    _atCreates++;
+                    _atNameSeen = true;
+                    _atName = name;
+                case ProgrammerSoundDestroyed(_): _atDestroys++;
                 default:
             }
         }, EventCallbackType.STOPPED | EventCallbackType.CREATE_PROGRAMMER_SOUND
             | EventCallbackType.DESTROY_PROGRAMMER_SOUND);
-        check("at_assign_key", _atInstance.assignProgrammerSound(key).isOk(), 'key=$key');
-        check("at_start", _atInstance.start().isOk(), 'key=$key');
+        switch (_atMode) {
+            case "game":
+                // The game loads the file itself and keeps the sound. The
+                // instrument must play it and must not release it.
+                _atGameSound = Sound.create("assets/fmod/Jump.wav", false, false, ChannelMode.NONBLOCKING);
+                check("at_game_sound_created", !_atGameSound.isNull(),
+                    'result=${StudioSystem.lastResult().toString()}');
+                check("at_assign_game_sound", _atInstance.assignProgrammerSoundFrom(_atGameSound).isOk(),
+                    'result=${StudioSystem.lastResult().toString()}');
+            case "named":
+                // No single key at all: only the name map can resolve it
+                check("at_assign_named", _atInstance.assignProgrammerSounds([_atName => key]).isOk(),
+                    'name=$_atName key=$key result=${StudioSystem.lastResult().toString()}');
+            default:
+                check("at_assign_key", _atInstance.assignProgrammerSound(key).isOk(), 'key=$key');
+        }
+        check("at_start", _atInstance.start().isOk(), 'key=$key mode=$_atMode');
         StudioSystem.flushCommands();
         _atGroup = _atInstance.getChannelGroup();
         check("at_channel_group", !_atGroup.isNull(),
@@ -212,10 +237,19 @@ class ProgrammerSoundTestState extends FlxState {
 
     function finishAudioTable():Void {
         var key = AT_KEYS[_atKeyIndex];
-        check("at_stopped_naturally", _atStopped, 'key=$key frames=$_atFrames');
-        check("at_create_callback_delivered", _atCreates > 0, 'key=$key count=$_atCreates');
-        check("at_destroy_callback_delivered", _atDestroys > 0, 'key=$key count=$_atDestroys');
-        check("at_key_resolved_audibly", _atMaxPeak > 0.01, 'key=$key peak=$_atMaxPeak');
+        var tag = 'key=$key mode=$_atMode';
+        check("at_stopped_naturally", _atStopped, '$tag frames=$_atFrames');
+        check("at_create_callback_delivered", _atCreates > 0, '$tag count=$_atCreates');
+        check("at_destroy_callback_delivered", _atDestroys > 0, '$tag count=$_atDestroys');
+        check("at_key_resolved_audibly", _atMaxPeak > 0.01, '$tag peak=$_atMaxPeak');
+        check("at_create_carries_instrument_name", _atNameSeen && _atName != null, '$tag name=$_atName');
+        if (_atMode == "game") {
+            // Still a live sound after the instrument destroyed its copy
+            check("at_game_sound_not_released", _atGameSound.getLength() > 0,
+                'length=${_atGameSound.getLength()} result=${StudioSystem.lastResult().toString()}');
+            _atGameSound.release();
+            _atGameSound = Sound.NULL;
+        }
         _atGroup.removeDsp(_atMeter);
         _atMeter.release();
         _atInstance.release();
@@ -224,10 +258,22 @@ class ProgrammerSoundTestState extends FlxState {
         StudioSystem.flushCommands();
         FmodManager.Update();
         check("no_at_leaks", StudioSystem.liveHandleCount() == _atBaseline,
-            'key=$key baseline=$_atBaseline now=${StudioSystem.liveHandleCount()}');
+            '$tag baseline=$_atBaseline now=${StudioSystem.liveHandleCount()}');
 
-        _atKeyIndex++;
-        if (_atKeyIndex < AT_KEYS.length) {
+        if (_atMode == "key") {
+            _atKeyIndex++;
+            if (_atKeyIndex < AT_KEYS.length) {
+                startAudioTableKey();
+                return;
+            }
+            _atKeyIndex = 0;
+            _atMode = "game";
+            startAudioTableKey();
+            return;
+        }
+        if (_atMode == "game") {
+            _atKeyIndex = 1;
+            _atMode = "named";
             startAudioTableKey();
             return;
         }

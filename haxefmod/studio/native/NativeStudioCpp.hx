@@ -241,10 +241,13 @@ class NativeStudioCpp {
 
     // Programmer sounds
     public static inline function ps_assign(handle:Int, key:String):Int return Raw.ps_assign(handle, key);
+    public static inline function ps_assign_sound(handle:Int, sound:Int, subsoundIndex:Int):Int return Raw.ps_assign_sound(handle, sound, subsoundIndex);
+    public static inline function ps_assign_named(handle:Int, name:String, key:String):Int return Raw.ps_assign_named(handle, name, key);
     public static inline function ps_clear(handle:Int):Int return Raw.ps_clear(handle);
 
     // Core API micro subset
-    public static inline function core_create_sound(path:String, mode:Int, openOnly:Bool):Int return Raw.core_create_sound(path, mode, openOnly);
+    public static inline function core_create_sound(path:String, mode:Int, initialSubsound:Int):Int return Raw.core_create_sound(path, mode, initialSubsound);
+    public static inline function core_create_sound_memory(data:haxe.io.Bytes, len:Int, mode:Int):Int return Raw.core_create_sound_memory(data.getData(), len, mode);
     public static inline function core_release_sound(handle:Int):Int return Raw.core_release_sound(handle);
     public static inline function core_get_sound_length(handle:Int):Int return Raw.core_get_sound_length(handle);
 
@@ -253,7 +256,7 @@ class NativeStudioCpp {
     public static inline function core_pcm_write(handle:Int, data:haxe.io.Bytes, len:Int):Int return Raw.core_pcm_write(handle, data.getData(), len);
     public static inline function core_pcm_space(handle:Int):Int return Raw.core_pcm_space(handle);
     public static inline function core_pcm_underruns(handle:Int):Int return Raw.core_pcm_underruns(handle);
-    public static inline function core_pcm_play(handle:Int, startPaused:Bool):Int return Raw.core_pcm_play(handle, startPaused);
+    public static inline function core_pcm_play(handle:Int, group:Int, startPaused:Bool):Int return Raw.core_pcm_play(handle, group, startPaused);
     public static inline function core_pcm_release(handle:Int):Int return Raw.core_pcm_release(handle);
 
     // Core channels
@@ -326,7 +329,7 @@ class NativeStudioCpp {
     public static inline function bus_get_channel_group(handle:Int):Int return Raw.bus_get_channel_group(handle);
 
     // Core system extras
-    public static inline function sys_play_dsp(dspHandle:Int, startPaused:Bool):Int return Raw.sys_play_dsp(dspHandle, startPaused);
+    public static inline function sys_play_dsp(dspHandle:Int, group:Int, startPaused:Bool):Int return Raw.sys_play_dsp(dspHandle, group, startPaused);
 
     /** 12 reverb property floats through the Scratch float buffer, DecayTime..WetLevel. */
     public static inline function sys_set_reverb_properties(instance:Int):Int return Raw.sys_set_reverb_properties(instance, Scratch.floatBuf());
@@ -396,7 +399,7 @@ class NativeStudioCpp {
 
     // Core sound surface
     public static inline function core_create_sound_pcm(data:haxe.io.Bytes, len:Int, sampleRate:Int, channels:Int):Int return Raw.core_create_sound_pcm(data.getData(), len, sampleRate, channels);
-    public static inline function core_play_sound(handle:Int, startPaused:Bool):Int return Raw.core_play_sound(handle, startPaused);
+    public static inline function core_play_sound(handle:Int, group:Int, startPaused:Bool):Int return Raw.core_play_sound(handle, group, startPaused);
     public static inline function sound_set_defaults(handle:Int, frequency:Float, priority:Int):Int return Raw.sound_set_defaults(handle, frequency, priority);
 
     /** Fills Scratch float buffer: [0]=frequency [1]=priority */
@@ -1184,11 +1187,20 @@ private extern class Raw {
     @:native("linc::faxe::fmod_ps_assign")
     static function ps_assign(handle:Int, key:String):Int;
 
+    @:native("linc::faxe::fmod_ps_assign_sound")
+    static function ps_assign_sound(handle:Int, sound:Int, subsoundIndex:Int):Int;
+
+    @:native("linc::faxe::fmod_ps_assign_named")
+    static function ps_assign_named(handle:Int, name:String, key:String):Int;
+
     @:native("linc::faxe::fmod_ps_clear")
     static function ps_clear(handle:Int):Int;
 
     @:native("linc::faxe::fmod_core_create_sound")
-    static function core_create_sound(path:String, mode:Int, openOnly:Bool):Int;
+    static function core_create_sound(path:String, mode:Int, initialSubsound:Int):Int;
+
+    @:native("linc::faxe::fmod_core_create_sound_memory")
+    static function core_create_sound_memory(data:haxe.io.BytesData, len:Int, mode:Int):Int;
 
     @:native("linc::faxe::fmod_core_release_sound")
     static function core_release_sound(handle:Int):Int;
@@ -1209,7 +1221,7 @@ private extern class Raw {
     static function core_pcm_underruns(handle:Int):Int;
 
     @:native("linc::faxe::fmod_core_pcm_play")
-    static function core_pcm_play(handle:Int, startPaused:Bool):Int;
+    static function core_pcm_play(handle:Int, group:Int, startPaused:Bool):Int;
 
     @:native("linc::faxe::fmod_core_pcm_release")
     static function core_pcm_release(handle:Int):Int;
@@ -1380,7 +1392,7 @@ private extern class Raw {
     static function bus_get_channel_group(handle:Int):Int;
 
     @:native("linc::faxe::fmod_sys_play_dsp")
-    static function sys_play_dsp(dspHandle:Int, startPaused:Bool):Int;
+    static function sys_play_dsp(dspHandle:Int, group:Int, startPaused:Bool):Int;
 
     @:native("linc::faxe::fmod_sys_set_reverb_properties")
     static function sys_set_reverb_properties(instance:Int, fbuf:Array<Float>):Int;
@@ -1521,7 +1533,7 @@ private extern class Raw {
     static function core_create_sound_pcm(data:haxe.io.BytesData, len:Int, sampleRate:Int, channels:Int):Int;
 
     @:native("linc::faxe::fmod_core_play_sound")
-    static function core_play_sound(handle:Int, startPaused:Bool):Int;
+    static function core_play_sound(handle:Int, group:Int, startPaused:Bool):Int;
 
     @:native("linc::faxe::fmod_sound_set_defaults")
     static function sound_set_defaults(handle:Int, frequency:Float, priority:Int):Int;

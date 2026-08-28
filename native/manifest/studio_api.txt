@@ -274,12 +274,21 @@ sys_load_bank_async str -> i32
 # FMOD thread via getSoundInfo/createSound - no FFI happens in callbacks.
 # Assign BEFORE starting the instance.
 ps_assign i32 str -> i32
+# A game-owned sound (FAXE_TYPE_SOUND handle) plus a subsound index (-1 for
+# the sound itself). The destroy callback leaves it alone.
+ps_assign_sound i32 i32 i32 -> i32
+# One programmer instrument name mapped to a key or path, up to
+# FAXE_PS_NAMED_MAX entries per instance.
+ps_assign_named i32 str str -> i32
 ps_clear i32 -> i32
 
 ## Core API micro subset (programmer sounds only)
 # mode bit0 = loop normal. openOnly adds FMOD_OPENONLY (the file stays open
 # for core_sound_read_data). Returns a FAXE_TYPE_SOUND handle or 0.
-core_create_sound str i32 bool -> i32
+# path, full FMOD_MODE, initial subsound (-1 = default)
+core_create_sound str i32 i32 -> i32
+# An encoded file image in memory (FMOD_OPENMEMORY with exinfo.length).
+core_create_sound_memory bytes i32 i32 -> i32
 core_release_sound i32 -> i32
 # length in milliseconds (-1 on failure)
 core_get_sound_length i32 -> i32
@@ -289,7 +298,7 @@ core_pcm_create i32 i32 i32 -> i32
 core_pcm_write i32 bytes i32 -> i32
 core_pcm_space i32 -> i32
 core_pcm_underruns i32 -> i32
-core_pcm_play i32 bool -> i32
+core_pcm_play i32 i32 bool -> i32
 core_pcm_release i32 -> i32
 
 ## Core channels
@@ -360,7 +369,7 @@ bus_unlock_channel_group i32 -> i32
 bus_get_channel_group i32 -> i32
 
 ## Core system extras
-sys_play_dsp i32 bool -> i32
+sys_play_dsp i32 i32 bool -> i32
 # fbuf: 12 reverb property floats, DecayTime..WetLevel in header order
 sys_set_reverb_properties i32 fbuf -> i32
 sys_get_reverb_properties i32 fbuf -> i32
@@ -427,7 +436,7 @@ r3d_set_active i32 bool -> i32
 
 ## Core sound surface
 core_create_sound_pcm bytes i32 i32 i32 -> i32
-core_play_sound i32 bool -> i32
+core_play_sound i32 i32 bool -> i32
 sound_set_defaults i32 f32 i32 -> i32
 # fbuf out: [0]=frequency [1]=priority
 sound_get_defaults i32 fbuf -> i32
