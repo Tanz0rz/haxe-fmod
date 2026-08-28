@@ -23,6 +23,7 @@ Pick the lowest tier that does what you need. They compose, so a game can start 
 - How handles, null handles, and return codes behave: [Handles and results](guides/handles-and-results.md).
 - Loading banks and configuring the engine: [Banks and settings](guides/banks-and-settings.md).
 - Beats, markers, listeners, and moving emitters: [Callbacks and 3D](guides/callbacks-and-3d.md).
+- Generated audio, effects, reverb, and sound groups: [Core API](guides/core-api.md).
 - HaxeFlixel: [Flixel components](guides/flixel.md).
 - The command line (`check`, `generate`, `todos`, `build-hdll`): [Tools CLI](guides/tools-cli.md).
 - Per-target behavior: [Platforms](platforms.md).

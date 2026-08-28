@@ -53,6 +53,7 @@ nav:
       - Handles and results: guides/handles-and-results.md
       - Banks and settings: guides/banks-and-settings.md
       - Callbacks and 3D: guides/callbacks-and-3d.md
+      - Core API: guides/core-api.md
       - Flixel components: guides/flixel.md
       - Tools CLI: guides/tools-cli.md
   - Platforms: platforms.md
