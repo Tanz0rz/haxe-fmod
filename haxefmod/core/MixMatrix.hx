@@ -31,7 +31,7 @@ class MixMatrix {
      * the reported output count rows of stride floats. outChannels and
      * inChannels above 0 keep only that many rows and columns.
      */
-    public static function read(total:Int, outChannels:Int, inChannels:Int, inChannelHop:Int):{matrix:Array<Float>, outChannels:Int, inChannels:Int} {
+    public static function read(total:Int, outChannels:Int, inChannels:Int, inChannelHop:Int):haxefmod.studio.Types.FmodMixMatrix {
         var outActual = Scratch.readI(0);
         var inActual = Scratch.readI(1);
         var stride = inChannelHop > 0 ? inChannelHop : inActual;

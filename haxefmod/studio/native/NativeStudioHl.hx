@@ -776,6 +776,19 @@ class NativeStudioHl {
     public static inline function sys_get_driver_guid(id:Int):String return fromBytes(Raw.sys_get_driver_guid(id));
     public static inline function sys_attach_channel_group_to_port(portType:Int, portIndex:Int, group:Int, passThru:Bool):Int return Raw.sys_attach_channel_group_to_port(portType, portIndex, group, passThru);
     public static inline function sys_detach_channel_group_from_port(group:Int):Int return Raw.sys_detach_channel_group_from_port(group);
+
+    //// Audit against FMOD's C# integration
+    public static inline function bus_get_port_index(handle:Int):Int return Raw.bus_get_port_index(handle);
+    public static inline function bus_set_port_index(handle:Int, index:Int):Int return Raw.bus_set_port_index(handle, index);
+    public static inline function evd_get_parameter_label_by_index(handle:Int, index:Int, labelIndex:Int):String return fromBytes(Raw.evd_get_parameter_label_by_index(handle, index, labelIndex));
+    /** Reads id pairs from the Scratch int buffer and values from the float buffer. */
+    public static inline function sys_set_parameters_by_ids(count:Int, ignoreSeekSpeed:Bool):Int return Raw.sys_set_parameters_by_ids(Scratch.intBuf(), Scratch.floatBuf(), count, ignoreSeekSpeed);
+    public static inline function evi_set_parameters_by_ids(handle:Int, count:Int, ignoreSeekSpeed:Bool):Int return Raw.evi_set_parameters_by_ids(handle, Scratch.intBuf(), Scratch.floatBuf(), count, ignoreSeekSpeed);
+    public static inline function sys_get_software_channels():Int return Raw.sys_get_software_channels();
+    /** Fills Scratch int buffer: [0]=buffer length in samples, [1]=buffer count */
+    public static inline function sys_get_dsp_buffer_size():Int return Raw.sys_get_dsp_buffer_size(Scratch.intBuf());
+    /** Fills Scratch int buffer: [0]=file buffer size, [1]=its time unit */
+    public static inline function sys_get_stream_buffer_size():Int return Raw.sys_get_stream_buffer_size(Scratch.intBuf());
 }
 
 @:hlNative("hlaxe_fmod")
@@ -1330,5 +1343,13 @@ private extern class Raw {
     static function sys_get_driver_guid(id:Int):hl.Bytes;
     static function sys_attach_channel_group_to_port(portType:Int, portIndex:Int, group:Int, passThru:Bool):Int;
     static function sys_detach_channel_group_from_port(group:Int):Int;
+    static function bus_get_port_index(handle:Int):Int;
+    static function bus_set_port_index(handle:Int, index:Int):Int;
+    static function evd_get_parameter_label_by_index(handle:Int, index:Int, labelIndex:Int):hl.Bytes;
+    static function sys_set_parameters_by_ids(ibuf:hl.Bytes, fbuf:hl.Bytes, count:Int, ignoreSeekSpeed:Bool):Int;
+    static function evi_set_parameters_by_ids(handle:Int, ibuf:hl.Bytes, fbuf:hl.Bytes, count:Int, ignoreSeekSpeed:Bool):Int;
+    static function sys_get_software_channels():Int;
+    static function sys_get_dsp_buffer_size(ibuf:hl.Bytes):Int;
+    static function sys_get_stream_buffer_size(ibuf:hl.Bytes):Int;
 }
 #end

@@ -112,6 +112,13 @@ abstract Bank(Int) from Int to Int {
         return NativeStudio.bank_get_string_guid(this, index);
     }
 
+    /** A string table entry's GUID and path together, null for an index out of range. */
+    public function getStringInfo(index:Int):Null<FmodBankStringInfo> {
+        var path = NativeStudio.bank_get_string_info(this, index);
+        if (!StudioSystem.lastResult().isOk()) return null;
+        return {id: NativeStudio.bank_get_string_guid(this, index), path: path};
+    }
+
     /**
      * Attaches a Haxe value to this handle. The value lives on the Haxe
      * side keyed by the handle and is dropped when the handle is released.

@@ -1,6 +1,6 @@
 # Unsupported functions
 
-The 40 functions of the FMOD API that haxefmod 2.0.0 cannot bind, with the reason for each. Nearly all of them hand FMOD a callback to run on its own threads, which no Haxe target can host, and the rest belong to platforms the library does not ship for or return raw pointers. Generated from `extension/functions.md` by `ci/haxe-bindings.py`, so this page and the Haxe tab of the browser extension always agree. [Coverage](coverage.md) lists everything that is bound.
+The 38 functions of the FMOD API that haxefmod 2.0.0 cannot bind, with the reason for each. Nearly all of them hand FMOD a callback to run on its own threads, which no Haxe target can host, and the rest belong to platforms the library does not ship for or return raw pointers. Generated from `extension/functions.md` by `ci/haxe-bindings.py`, so this page and the Haxe tab of the browser extension always agree. [Coverage](coverage.md) lists everything that is bound.
 
 If one of these blocks a real use case, open an issue describing it. A workaround at the library level is sometimes possible even when the function itself is not.
 
@@ -37,13 +37,6 @@ If one of these blocks a real use case, open an issue describing it. A workaroun
 | `Memory_Free` | Cannot be bound. It frees a raw pointer from FMOD's heap, which has no meaning in Haxe, and Haxe code never receives one. Release handles with the release() method of the object that created them. |
 | `ReadFile` | Cannot be bound. It returns a raw wasm heap address, which has no meaning in Haxe. StudioSystem.loadBankMemory() loads a bank from bytes you already hold, and Sound.fromPcm() plays raw PCM you already hold. |
 | `setValue` | Cannot be bound. This reads and writes the wasm heap through a raw address, which has no meaning in Haxe. Values cross into FMOD through the typed haxefmod methods, and getters return values directly. |
-
-## Studio::Bus
-
-| Function | Why |
-|---|---|
-| `Studio::Bus::getPortIndex` | No Haxe declaration, another call plays this role. Bus port indices are a console feature and are not bound. On desktop, CoreSystem.attachChannelGroupToPort(portType, portIndex, group) routes a group to a port, and Bus.getChannelGroup() gives the group behind a bus. |
-| `Studio::Bus::setPortIndex` | No Haxe declaration, another call plays this role. Bus port indices are a console feature and are not bound. On desktop, CoreSystem.attachChannelGroupToPort(portType, portIndex, group) routes a group to a port, and Bus.getChannelGroup() gives the group behind a bus. |
 
 ## Studio::CommandReplay
 

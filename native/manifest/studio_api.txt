@@ -905,3 +905,16 @@ sys_get_driver_info i32 ibuf -> str
 sys_get_driver_guid i32 -> str
 sys_attach_channel_group_to_port i32 i32 i32 bool -> i32
 sys_detach_channel_group_from_port i32 -> i32
+## Audit against FMOD's C# integration: bus ports, labels by index, parameter batches, init readback
+# bus port indices: FMOD_PORT_INDEX_NONE crosses as -1, other values as the low 32 bits
+bus_get_port_index i32 -> i32
+bus_set_port_index i32 i32 -> i32
+evd_get_parameter_label_by_index i32 i32 i32 -> str
+# ibuf in: id pairs [2n]=data1 [2n+1]=data2, fbuf in: values, count pairs
+sys_set_parameters_by_ids ibuf fbuf i32 bool -> i32
+evi_set_parameters_by_ids i32 ibuf fbuf i32 bool -> i32
+sys_get_software_channels -> i32
+# ibuf out: [0]=buffer length in samples [1]=buffer count
+sys_get_dsp_buffer_size ibuf -> i32
+# ibuf out: [0]=file buffer size [1]=its FMOD_TIMEUNIT
+sys_get_stream_buffer_size ibuf -> i32

@@ -93,6 +93,16 @@ abstract SoundGroup(Int) from Int to Int {
         return NativeStudio.sg_get_num_playing(this);
     }
 
+    /** The same count as getSoundCount under FMOD's name. */
+    public inline function getNumSounds():Int {
+        return NativeStudio.sg_get_num_sounds(this);
+    }
+
+    /** The same count as getPlayingCount under FMOD's name. */
+    public inline function getNumPlaying():Int {
+        return NativeStudio.sg_get_num_playing(this);
+    }
+
     /** Stops every playing sound in the group. */
     public inline function stop():FmodResult {
         return NativeStudio.sg_stop(this);

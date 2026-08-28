@@ -779,6 +779,19 @@ class NativeStudioCpp {
     public static inline function sys_get_driver_guid(id:Int):String return Raw.sys_get_driver_guid(id).toString();
     public static inline function sys_attach_channel_group_to_port(portType:Int, portIndex:Int, group:Int, passThru:Bool):Int return Raw.sys_attach_channel_group_to_port(portType, portIndex, group, passThru);
     public static inline function sys_detach_channel_group_from_port(group:Int):Int return Raw.sys_detach_channel_group_from_port(group);
+
+    //// Audit against FMOD's C# integration
+    public static inline function bus_get_port_index(handle:Int):Int return Raw.bus_get_port_index(handle);
+    public static inline function bus_set_port_index(handle:Int, index:Int):Int return Raw.bus_set_port_index(handle, index);
+    public static inline function evd_get_parameter_label_by_index(handle:Int, index:Int, labelIndex:Int):String return Raw.evd_get_parameter_label_by_index(handle, index, labelIndex).toString();
+    /** Reads id pairs from the Scratch int buffer and values from the float buffer. */
+    public static inline function sys_set_parameters_by_ids(count:Int, ignoreSeekSpeed:Bool):Int return Raw.sys_set_parameters_by_ids(Scratch.intBuf(), Scratch.floatBuf(), count, ignoreSeekSpeed);
+    public static inline function evi_set_parameters_by_ids(handle:Int, count:Int, ignoreSeekSpeed:Bool):Int return Raw.evi_set_parameters_by_ids(handle, Scratch.intBuf(), Scratch.floatBuf(), count, ignoreSeekSpeed);
+    public static inline function sys_get_software_channels():Int return Raw.sys_get_software_channels();
+    /** Fills Scratch int buffer: [0]=buffer length in samples, [1]=buffer count */
+    public static inline function sys_get_dsp_buffer_size():Int return Raw.sys_get_dsp_buffer_size(Scratch.intBuf());
+    /** Fills Scratch int buffer: [0]=file buffer size, [1]=its time unit */
+    public static inline function sys_get_stream_buffer_size():Int return Raw.sys_get_stream_buffer_size(Scratch.intBuf());
 }
 
 @:keep
@@ -2368,5 +2381,28 @@ private extern class Raw {
     static function sys_attach_channel_group_to_port(portType:Int, portIndex:Int, group:Int, passThru:Bool):Int;
     @:native("linc::faxe::fmod_sys_detach_channel_group_from_port")
     static function sys_detach_channel_group_from_port(group:Int):Int;
+    @:native("linc::faxe::fmod_bus_get_port_index")
+    static function bus_get_port_index(handle:Int):Int;
+
+    @:native("linc::faxe::fmod_bus_set_port_index")
+    static function bus_set_port_index(handle:Int, index:Int):Int;
+
+    @:native("linc::faxe::fmod_evd_get_parameter_label_by_index")
+    static function evd_get_parameter_label_by_index(handle:Int, index:Int, labelIndex:Int):cpp.ConstCharStar;
+
+    @:native("linc::faxe::fmod_sys_set_parameters_by_ids")
+    static function sys_set_parameters_by_ids(ibuf:Array<Int>, fbuf:Array<Float>, count:Int, ignoreSeekSpeed:Bool):Int;
+
+    @:native("linc::faxe::fmod_evi_set_parameters_by_ids")
+    static function evi_set_parameters_by_ids(handle:Int, ibuf:Array<Int>, fbuf:Array<Float>, count:Int, ignoreSeekSpeed:Bool):Int;
+
+    @:native("linc::faxe::fmod_sys_get_software_channels")
+    static function sys_get_software_channels():Int;
+
+    @:native("linc::faxe::fmod_sys_get_dsp_buffer_size")
+    static function sys_get_dsp_buffer_size(ibuf:Array<Int>):Int;
+
+    @:native("linc::faxe::fmod_sys_get_stream_buffer_size")
+    static function sys_get_stream_buffer_size(ibuf:Array<Int>):Int;
 }
 #end

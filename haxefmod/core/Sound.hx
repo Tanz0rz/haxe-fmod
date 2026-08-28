@@ -144,7 +144,7 @@ abstract Sound(Int) from Int to Int {
         return NativeStudio.sound_set_defaults(this, frequency, priority);
     }
 
-    public function getDefaults():Null<{frequency:Float, priority:Int}> {
+    public function getDefaults():Null<FmodSoundDefaults> {
         var result:FmodResult = NativeStudio.sound_get_defaults(this);
         if (!result.isOk()) return null;
         return {frequency: haxefmod.studio.native.Scratch.readF(0),
@@ -177,7 +177,7 @@ abstract Sound(Int) from Int to Int {
     }
 
     /** Container type, sample format, channel count, and bits per sample, or null on failure. */
-    public function getFormat():Null<{type:FmodSoundType, format:FmodSoundFormat, channels:Int, bits:Int}> {
+    public function getFormat():Null<FmodSoundFormatInfo> {
         var result:FmodResult = NativeStudio.sound_get_format(this);
         if (!result.isOk()) return null;
         return {type: (haxefmod.studio.native.Scratch.readI(0) : FmodSoundType),
@@ -202,7 +202,7 @@ abstract Sound(Int) from Int to Int {
      * means the stream ran out of data, diskBusy means the file thread is
      * reading. Null on failure, with the reason in StudioSystem.lastResult().
      */
-    public function getOpenStateInfo():Null<{state:FmodOpenState, percentBuffered:Int, starving:Bool, diskBusy:Bool}> {
+    public function getOpenStateInfo():Null<FmodOpenStateInfo> {
         var result:FmodResult = NativeStudio.sound_get_open_state_info(this);
         if (!result.isOk()) return null;
         return {state: (Scratch.readI(0) : FmodOpenState), percentBuffered: Scratch.readI(1),
@@ -272,7 +272,7 @@ abstract Sound(Int) from Int to Int {
         return NativeStudio.core_sound_set_3d_cone_settings(this, insideAngle, outsideAngle, outsideVolume);
     }
 
-    public function get3DConeSettings():Null<{insideAngle:Float, outsideAngle:Float, outsideVolume:Float}> {
+    public function get3DConeSettings():Null<FmodConeSettings> {
         var result:FmodResult = NativeStudio.core_sound_get_3d_cone_settings(this);
         if (!result.isOk()) return null;
         return {insideAngle: Scratch.readF(0), outsideAngle: Scratch.readF(1), outsideVolume: Scratch.readF(2)};
@@ -283,7 +283,7 @@ abstract Sound(Int) from Int to Int {
         return NativeStudio.core_sound_set_3d_min_max(this, minDistance, maxDistance);
     }
 
-    public function get3DMinMaxDistance():Null<{minDistance:Float, maxDistance:Float}> {
+    public function get3DMinMaxDistance():Null<FmodMinMaxDistance> {
         var result:FmodResult = NativeStudio.core_sound_get_3d_min_max(this);
         if (!result.isOk()) return null;
         return {minDistance: Scratch.readF(0), maxDistance: Scratch.readF(1)};

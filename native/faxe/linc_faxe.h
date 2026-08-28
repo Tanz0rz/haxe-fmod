@@ -650,5 +650,15 @@ extern const char* fmod_sys_get_driver_guid(int id);
 extern int fmod_sys_attach_channel_group_to_port(int portType, int portIndex, int groupHandle, bool passThru);
 extern int fmod_sys_detach_channel_group_from_port(int groupHandle);
 
+// Audit against FMOD's C# integration
+extern int fmod_bus_get_port_index(int handle);
+extern int fmod_bus_set_port_index(int handle, int index);
+extern const char* fmod_evd_get_parameter_label_by_index(int handle, int index, int labelIndex);
+extern int fmod_sys_set_parameters_by_ids(::Array<int> ibuf, ::Array<Float> fbuf, int count, bool ignoreSeekSpeed);
+extern int fmod_evi_set_parameters_by_ids(int handle, ::Array<int> ibuf, ::Array<Float> fbuf, int count, bool ignoreSeekSpeed);
+extern int fmod_sys_get_software_channels();
+extern int fmod_sys_get_dsp_buffer_size(::Array<int> ibuf);
+extern int fmod_sys_get_stream_buffer_size(::Array<int> ibuf);
+
 } // namespace faxe
 } // namespace linc

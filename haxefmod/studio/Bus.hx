@@ -110,6 +110,48 @@ abstract Bus(Int) from Int to Int {
         return NativeStudio.bus_unlock_channel_group(this);
     }
 
+#if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /**
+     * The output port this bus is assigned to, FmodPortIndex.NONE when it
+     * plays through the main mix (unsupported in HTML5, NONE there). FMOD
+     * routes buses to ports on consoles only, desktop reports NONE.
+     */
+    public macro function getPortIndex(self:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("Bus.getPortIndex", "the web build has no bus port index");
+    }
+    #else
+    /**
+     * The output port this bus is assigned to, FmodPortIndex.NONE when it
+     * plays through the main mix (unsupported in HTML5, NONE there). FMOD
+     * routes buses to ports on consoles only, desktop reports NONE.
+     */
+    public inline function getPortIndex():FmodPortIndex {
+        return NativeStudio.bus_get_port_index(this);
+    }
+    #end
+
+#if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /**
+     * Assigns this bus to an output port, FmodPortIndex.NONE for the main
+     * mix (unsupported in HTML5). FMOD routes buses to ports on consoles
+     * only, desktop returns FMOD_ERR_UNSUPPORTED. The bus's channel group
+     * is recreated on the port, so effects attached to it are dropped.
+     */
+    public macro function setPortIndex(self:haxe.macro.Expr, index:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("Bus.setPortIndex", "the web build has no bus port index");
+    }
+    #else
+    /**
+     * Assigns this bus to an output port, FmodPortIndex.NONE for the main
+     * mix (unsupported in HTML5). FMOD routes buses to ports on consoles
+     * only, desktop returns FMOD_ERR_UNSUPPORTED. The bus's channel group
+     * is recreated on the port, so effects attached to it are dropped.
+     */
+    public inline function setPortIndex(index:FmodPortIndex):FmodResult {
+        return NativeStudio.bus_set_port_index(this, index);
+    }
+    #end
+
     /**
      * The core channel group carrying this bus's audio, for attaching DSP
      * effects to Studio-mixed sound. Lock it first, and never release it

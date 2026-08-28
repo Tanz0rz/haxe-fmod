@@ -40,7 +40,7 @@ abstract EventDescription(Int) from Int to Int {
     }
 
     /** Minimum and maximum attenuation distances, or null on failure. */
-    public function getMinMaxDistance():Null<{min:Float, max:Float}> {
+    public function getMinMaxDistance():Null<FmodEventMinMaxDistance> {
         var result:FmodResult = NativeStudio.evd_get_min_max_distance(this);
         if (!result.isOk()) return null;
         return {min: Scratch.readF(0), max: Scratch.readF(1)};
@@ -173,6 +173,16 @@ abstract EventDescription(Int) from Int to Int {
         return NativeStudio.evd_get_parameter_label(this, parameterName, labelIndex);
     }
 
+    /** Label text for a labeled parameter named by name, the same call as getParameterLabel under FMOD's name. */
+    public inline function getParameterLabelByName(name:String, labelIndex:Int):String {
+        return NativeStudio.evd_get_parameter_label(this, name, labelIndex);
+    }
+
+    /** Label text for a labeled parameter at a description index, "" when the index or the label is out of range. */
+    public inline function getParameterLabelByIndex(index:Int, labelIndex:Int):String {
+        return NativeStudio.evd_get_parameter_label_by_index(this, index, labelIndex);
+    }
+
     /**
      * Parameter description by parameter ID, or null when the event has no
      * parameter with that ID. Resolved by scanning the description list,
@@ -196,17 +206,22 @@ abstract EventDescription(Int) from Int to Int {
     }
 
     /** User property by name, or null when the event has none with it. */
-    public function getUserPropertyByName(name:String):Null<FmodUserProperty> {
+    public function getUserProperty(name:String):Null<FmodUserProperty> {
         var count = getUserPropertyCount();
         for (i in 0...count) {
-            var prop = getUserProperty(i);
+            var prop = getUserPropertyByIndex(i);
             if (prop != null && prop.name == name) return prop;
         }
         return null;
     }
 
+    /** User property by name, the same lookup as getUserProperty. */
+    public inline function getUserPropertyByName(name:String):Null<FmodUserProperty> {
+        return getUserProperty(name);
+    }
+
     /** User property by index, or null on failure. */
-    public function getUserProperty(index:Int):Null<FmodUserProperty> {
+    public function getUserPropertyByIndex(index:Int):Null<FmodUserProperty> {
         var name = NativeStudio.evd_get_user_property_name(this, index);
         if (name == "" && !StudioSystem.lastResult().isOk()) return null;
         return {

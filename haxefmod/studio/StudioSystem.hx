@@ -265,6 +265,66 @@ class StudioSystem {
         return desc == null ? "" : getParameterLabel(desc.name, labelIndex);
     }
 
+    /** Label text for a labeled global parameter named by name, the same call as getParameterLabel under FMOD's name. */
+    public static inline function getParameterLabelByName(name:String, labelIndex:Int):String {
+        return NativeStudio.sys_get_parameter_label(name, labelIndex);
+    }
+
+    /** Every global parameter description, in index order. Empty when there are none or the system is down. */
+    public static function getParameterDescriptionList():Array<FmodParameterDescription> {
+        var list = [];
+        for (i in 0...getParameterDescriptionCount()) {
+            var desc = getParameterDescriptionByIndex(i);
+            if (desc != null) list.push(desc);
+        }
+        return list;
+    }
+
+    /** The same global parameter read as getParameter, under FMOD's name. */
+    public static inline function getParameterByName(name:String):Float {
+        return NativeStudio.sys_get_param_by_name(name);
+    }
+
+    /** The final value of a global parameter after automation and seek speed, by name. */
+    public static inline function getParameterByNameFinal(name:String):Float {
+        return NativeStudio.sys_get_param_by_name_final(name);
+    }
+
+    /** The same global parameter write as setParameter, under FMOD's name. */
+    public static inline function setParameterByName(name:String, value:Float, ignoreSeekSpeed:Bool = false):FmodResult {
+        return NativeStudio.sys_set_param_by_name(name, value, ignoreSeekSpeed);
+    }
+
+    /** The same labeled write as setParameterWithLabel, under FMOD's name. */
+    public static inline function setParameterByNameWithLabel(name:String, label:String, ignoreSeekSpeed:Bool = false):FmodResult {
+        return NativeStudio.sys_set_param_by_name_with_label(name, label, ignoreSeekSpeed);
+    }
+
+    /**
+     * Sets several global parameters in one call. ids and values pair up
+     * by index, the shorter list sets the count. At most Scratch.CAPACITY / 2
+     * pairs, more returns FMOD_ERR_INVALID_PARAM.
+     */
+    public static function setParametersByIDs(ids:Array<FmodParameterId>, values:Array<Float>, ignoreSeekSpeed:Bool = false):FmodResult {
+        var count = packParameterBatch(ids, values);
+        if (count < 0) return FmodResult.FMOD_ERR_INVALID_PARAM;
+        return NativeStudio.sys_set_parameters_by_ids(count, ignoreSeekSpeed);
+    }
+
+    /** Writes id pairs to the Scratch int buffer and values to the float buffer, returns the pair count or -1 when the batch does not fit. */
+    @:allow(haxefmod.studio.EventInstance)
+    static function packParameterBatch(ids:Array<FmodParameterId>, values:Array<Float>):Int {
+        if (ids == null || values == null) return -1;
+        var count = ids.length < values.length ? ids.length : values.length;
+        if (count > Std.int(Scratch.CAPACITY / 2)) return -1;
+        for (i in 0...count) {
+            Scratch.writeI(i * 2, ids[i].data1);
+            Scratch.writeI(i * 2 + 1, ids[i].data2);
+            Scratch.writeF(i, values[i]);
+        }
+        return count;
+    }
+
     //// Listeners
 
     public static function getNumListeners():Int {
@@ -405,10 +465,22 @@ class StudioSystem {
      * there). drivers counts every known device, connected the ones
      * plugged in right now. Machines without a microphone report 0 and 0.
      */
-    public static function getRecordDriverCount():Null<{drivers:Int, connected:Int}> {
+    public static function getRecordDriverCount():Null<FmodRecordDriverCount> {
         var drivers = NativeStudio.sys_get_record_num_drivers();
         if (drivers < 0) return null;
         return {drivers: drivers, connected: Scratch.readI(0)};
+    }
+    #end
+
+#if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /** The same count as getRecordDriverCount under FMOD's name (unsupported in HTML5, returns null there). */
+    public static macro function getRecordNumDrivers():haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("StudioSystem.getRecordNumDrivers", "the web build has no microphone recording");
+    }
+    #else
+    /** The same count as getRecordDriverCount under FMOD's name (unsupported in HTML5, returns null there). */
+    public static inline function getRecordNumDrivers():Null<FmodRecordDriverCount> {
+        return getRecordDriverCount();
     }
     #end
 
@@ -427,7 +499,7 @@ class StudioSystem {
      * HTML5, returns null there). state is a FmodDriverState bitmask. Null
      * for an id out of range.
      */
-    public static function getRecordDriverInfo(id:Int):Null<{name:String, guid:String, systemRate:Int, speakerMode:FmodSpeakerMode, channels:Int, state:FmodDriverState}> {
+    public static function getRecordDriverInfo(id:Int):Null<FmodRecordDriverInfo> {
         var name = NativeStudio.sys_get_record_driver_info(id);
         if (!lastResult().isOk()) return null;
         var info = {name: name, guid: "", systemRate: Scratch.readI(0), speakerMode: (Scratch.readI(1) : FmodSpeakerMode),
@@ -595,7 +667,7 @@ class StudioSystem {
      * blocking (the default, matching FMOD) makes FMOD flush pending
      * commands first so the numbers are exact. Null on failure.
      */
-    public static function getMemoryStats(blocking:Bool = true):Null<{current:Int, maximum:Int}> {
+    public static function getMemoryStats(blocking:Bool = true):Null<FmodMemoryStats> {
         var result:FmodResult = NativeStudio.sys_get_memory_stats(blocking);
         if (!result.isOk()) return null;
         return {current: Scratch.readI(0), maximum: Scratch.readI(1)};
@@ -606,7 +678,7 @@ class StudioSystem {
      * streams, and everything else (banks, plugins). The counts are 64-bit
      * so they come back as Floats. Null on failure.
      */
-    public static function getFileUsage():Null<{sampleBytesRead:Float, streamBytesRead:Float, otherBytesRead:Float}> {
+    public static function getFileUsage():Null<FmodFileUsage> {
         var result:FmodResult = NativeStudio.sys_get_file_usage();
         if (!result.isOk()) return null;
         return {sampleBytesRead: Scratch.readF(0), streamBytesRead: Scratch.readF(1), otherBytesRead: Scratch.readF(2)};
@@ -686,6 +758,18 @@ class StudioSystem {
     #end
 
 #if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /** The same count as getPluginCount under FMOD's name (unsupported in HTML5, -1 there). */
+    public static macro function getNumPlugins(type:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("StudioSystem.getNumPlugins", "the web build has no plugin host");
+    }
+    #else
+    /** The same count as getPluginCount under FMOD's name (unsupported in HTML5, -1 there). */
+    public static inline function getNumPlugins(type:FmodPluginType):Int {
+        return NativeStudio.sys_get_num_plugins(type);
+    }
+    #end
+
+#if (macro || (js && !haxefmod_html5_allow_unsupported))
     /** The plugin handle at an index within one type (unsupported in HTML5, 0 there). 0 for an index out of range. */
     public static macro function getPluginHandle(type:haxe.macro.Expr, index:haxe.macro.Expr):haxe.macro.Expr {
         return haxefmod.studio.native.Html5Gate.block("StudioSystem.getPluginHandle", "the web build has no plugin host");
@@ -704,7 +788,7 @@ class StudioSystem {
     }
     #else
     /** The name, type and version a plugin registered (unsupported in HTML5, null there). Null for an unknown handle. */
-    public static function getPluginInfo(handle:Int):Null<{name:String, type:FmodPluginType, version:Int}> {
+    public static function getPluginInfo(handle:Int):Null<FmodPluginInfo> {
         var name = NativeStudio.sys_get_plugin_info(handle);
         if (!lastResult().isOk()) return null;
         return {name: name, type: (Scratch.readI(0) : FmodPluginType), version: Scratch.readI(1)};
@@ -719,6 +803,18 @@ class StudioSystem {
     #else
     /** The number of plugins a loaded library contains, 1 for a plain plugin (unsupported in HTML5, -1 there). -1 on failure. */
     public static inline function getNestedPluginCount(handle:Int):Int {
+        return NativeStudio.sys_get_num_nested_plugins(handle);
+    }
+    #end
+
+#if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /** The same count as getNestedPluginCount under FMOD's name (unsupported in HTML5, -1 there). */
+    public static macro function getNumNestedPlugins(handle:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("StudioSystem.getNumNestedPlugins", "the web build has no plugin host");
+    }
+    #else
+    /** The same count as getNestedPluginCount under FMOD's name (unsupported in HTML5, -1 there). */
+    public static inline function getNumNestedPlugins(handle:Int):Int {
         return NativeStudio.sys_get_num_nested_plugins(handle);
     }
     #end

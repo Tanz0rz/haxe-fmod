@@ -112,13 +112,13 @@ StudioSystem.setSystemCallback delivers DEVICELISTCHANGED and DEVICELOST, its co
 
 ## System::setDSPBufferSize
 verdict: bound
-FmodRuntime.settings() reports the values init ran with, 0 for a buffer left at FMOD's default (1024 samples by 2 on desktop, 2048 by 2 on HTML5).
+The buffer is set once at init through FmodSettings.dspBufferSize and dspNumBuffers, and CoreSystem.getDSPBufferSize() reads back what the engine runs with (1024 samples by 2 on desktop, 2048 by 2 on HTML5 when left at FMOD's default).
 ```haxe
 import haxefmod.core.CoreSystem;
-import haxefmod.runtime.FmodRuntime;
 
-var blocksize = FmodRuntime.settings().dspBufferSize;
-var numblocks = FmodRuntime.settings().dspNumBuffers;
+var mixer = CoreSystem.getDSPBufferSize();
+var blocksize = mixer.bufferLength;
+var numblocks = mixer.numBuffers;
 var frequency = CoreSystem.getSoftwareFormat().sampleRate;
 
 var ms = blocksize * 1000.0 / frequency;

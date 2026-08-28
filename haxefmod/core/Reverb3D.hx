@@ -2,6 +2,7 @@ package haxefmod.core;
 
 import haxefmod.core.Reverb;
 import haxefmod.studio.FmodResult;
+import haxefmod.studio.Types;
 import haxefmod.studio.UserData;
 import haxefmod.studio.native.NativeStudio;
 import haxefmod.studio.native.Scratch;
@@ -75,7 +76,7 @@ abstract Reverb3D(Int) from Int to Int {
         return NativeStudio.r3d_get_active(this);
     }
 
-    public function get3DAttributes():Null<{x:Float, y:Float, z:Float, minDistance:Float, maxDistance:Float}> {
+    public function get3DAttributes():Null<FmodReverb3DAttributes> {
         var result:FmodResult = NativeStudio.r3d_get_3d_attributes(this);
         if (!result.isOk()) return null;
         return {x: Scratch.readF(0), y: Scratch.readF(1), z: Scratch.readF(2),

@@ -183,6 +183,7 @@ class ApiProbeState extends FlxState {
         ProbeGroupDsp.run(this);
         ProbeChannelControl.run(this);
         ProbeStudioParity.run(this);
+        ProbeCsharpAudit.run(this);
         if (skipAuthored()) {
             info("authored_surface", "skipped (HAXEFMOD_PROBE_SKIP_AUTHORED)");
         } else {
@@ -878,7 +879,7 @@ class ApiProbeState extends FlxState {
             boolProp == null ? "" : 'type=${(boolProp.type : Int)} value=${boolProp.stringValue}');
         var sawNames = 0;
         for (i in 0...musicDesc.getUserPropertyCount()) {
-            var p = musicDesc.getUserProperty(i);
+            var p = musicDesc.getUserPropertyByIndex(i);
             if (p != null && (p.name == "probe_int" || p.name == "probe_float" || p.name == "probe_bool")) {
                 sawNames++;
             }
@@ -1192,7 +1193,7 @@ class ApiProbeState extends FlxState {
         check("evd_sustain", !desc.hasSustainPoint(), "");
         check("evd_user_property_count", desc.getUserPropertyCount() == 0,
             'count=${desc.getUserPropertyCount()}');
-        check("evd_user_property_miss", desc.getUserProperty(0) == null
+        check("evd_user_property_miss", desc.getUserPropertyByIndex(0) == null
             && desc.getUserPropertyByName("nope") == null, "");
         check("evd_parameter_label_miss", desc.getParameterLabel("Nope", 0) == ""
             && !StudioSystem.lastResult().isOk(), 'result=${StudioSystem.lastResult().toString()}');

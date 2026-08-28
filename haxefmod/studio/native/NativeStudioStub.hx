@@ -748,4 +748,14 @@ class NativeStudioStub {
     public static function sys_get_driver_guid(id:Int):String return "";
     public static function sys_attach_channel_group_to_port(portType:Int, portIndex:Int, group:Int, passThru:Bool):Int return ERR_UNSUPPORTED;
     public static function sys_detach_channel_group_from_port(group:Int):Int return ERR_UNSUPPORTED;
+
+    //// Audit against FMOD's C# integration
+    public static function bus_get_port_index(handle:Int):Int return -1;
+    public static function bus_set_port_index(handle:Int, index:Int):Int return ERR_UNSUPPORTED;
+    public static function evd_get_parameter_label_by_index(handle:Int, index:Int, labelIndex:Int):String return "";
+    public static function sys_set_parameters_by_ids(count:Int, ignoreSeekSpeed:Bool):Int return ERR_UNSUPPORTED;
+    public static function evi_set_parameters_by_ids(handle:Int, count:Int, ignoreSeekSpeed:Bool):Int return ERR_UNSUPPORTED;
+    public static function sys_get_software_channels():Int return 0;
+    public static function sys_get_dsp_buffer_size():Int return ERR_UNSUPPORTED;
+    public static function sys_get_stream_buffer_size():Int return ERR_UNSUPPORTED;
 }

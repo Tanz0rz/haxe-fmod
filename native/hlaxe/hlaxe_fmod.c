@@ -7112,3 +7112,110 @@ HL_PRIM int HL_NAME(sys_detach_channel_group_from_port)(int groupHandle) {
     return (int)gLastResult;
 }
 DEFINE_PRIM(_I32, sys_detach_channel_group_from_port, _I32);
+
+//// Audit against FMOD's C# integration: bus ports, labels by index,
+//// parameter batches, init readback
+
+// FMOD_PORT_INDEX_NONE (all ones) crosses as -1, other values as their low 32 bits
+HL_PRIM int HL_NAME(bus_get_port_index)(int h) {
+    FMOD_STUDIO_BUS* bus = resolve_bus(h);
+    FMOD_PORT_INDEX index = FMOD_PORT_INDEX_NONE;
+    if (!bus) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    gLastResult = FMOD_Studio_Bus_GetPortIndex(bus, &index);
+    if (gLastResult != FMOD_OK) return -1;
+    return index == FMOD_PORT_INDEX_NONE ? -1 : (int)(index & 0xffffffffu);
+}
+DEFINE_PRIM(_I32, bus_get_port_index, _I32);
+
+HL_PRIM int HL_NAME(bus_set_port_index)(int h, int index) {
+    FMOD_STUDIO_BUS* bus = resolve_bus(h);
+    if (!bus) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_Studio_Bus_SetPortIndex(bus, index < 0 ? FMOD_PORT_INDEX_NONE : (FMOD_PORT_INDEX)(unsigned int)index);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, bus_set_port_index, _I32 _I32);
+
+HL_PRIM vbyte* HL_NAME(evd_get_parameter_label_by_index)(int h, int index, int labelIndex) {
+    FMOD_STUDIO_EVENTDESCRIPTION* desc = resolve_evd(h);
+    int retrieved = 0;
+    gStringBuf[0] = '\0';
+    if (!desc) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (vbyte*)gStringBuf; }
+    gLastResult = FMOD_Studio_EventDescription_GetParameterLabelByIndex(desc, index,
+        labelIndex, gStringBuf, sizeof(gStringBuf), &retrieved);
+    if (gLastResult != FMOD_OK) gStringBuf[0] = '\0';
+    return (vbyte*)gStringBuf;
+}
+DEFINE_PRIM(_BYTES, evd_get_parameter_label_by_index, _I32 _I32 _I32);
+
+// ibuf: id pairs, fbuf: doubles, count pairs. Packed on the stack, so the
+// batch is capped at FAXE_LIST_MAX / 2 pairs like the scratch buffers.
+static int pack_parameter_batch(const int* ids, const double* values, int count,
+        FMOD_STUDIO_PARAMETER_ID* outIds, float* outValues) {
+    int i;
+    if (count < 0 || count > FAXE_LIST_MAX / 2) return 0;
+    for (i = 0; i < count; i++) {
+        outIds[i].data1 = (unsigned int)ids[i * 2];
+        outIds[i].data2 = (unsigned int)ids[i * 2 + 1];
+        outValues[i] = (float)values[i];
+    }
+    return 1;
+}
+
+HL_PRIM int HL_NAME(sys_set_parameters_by_ids)(vbyte* ibuf, vbyte* fbuf, int count, bool ignoreSeekSpeed) {
+    FMOD_STUDIO_PARAMETER_ID ids[FAXE_LIST_MAX / 2];
+    float values[FAXE_LIST_MAX / 2];
+    if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    if (!pack_parameter_batch((const int*)ibuf, (const double*)fbuf, count, ids, values)) {
+        gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult;
+    }
+    gLastResult = FMOD_Studio_System_SetParametersByIDs(gStudioSystem, ids, values, count, ignoreSeekSpeed);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, sys_set_parameters_by_ids, _BYTES _BYTES _I32 _BOOL);
+
+HL_PRIM int HL_NAME(evi_set_parameters_by_ids)(int h, vbyte* ibuf, vbyte* fbuf, int count, bool ignoreSeekSpeed) {
+    FMOD_STUDIO_EVENTINSTANCE* instance = resolve_instance(h);
+    FMOD_STUDIO_PARAMETER_ID ids[FAXE_LIST_MAX / 2];
+    float values[FAXE_LIST_MAX / 2];
+    if (!instance) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    if (!pack_parameter_batch((const int*)ibuf, (const double*)fbuf, count, ids, values)) {
+        gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult;
+    }
+    gLastResult = FMOD_Studio_EventInstance_SetParametersByIDs(instance, ids, values, count, ignoreSeekSpeed);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, evi_set_parameters_by_ids, _I32 _BYTES _BYTES _I32 _BOOL);
+
+HL_PRIM int HL_NAME(sys_get_software_channels)(void) {
+    int channels = 0;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    gLastResult = FMOD_System_GetSoftwareChannels(gCoreSystem, &channels);
+    return gLastResult == FMOD_OK ? channels : 0;
+}
+DEFINE_PRIM(_I32, sys_get_software_channels, _NO_ARG);
+
+// out = int[2]: buffer length in samples, buffer count
+HL_PRIM int HL_NAME(sys_get_dsp_buffer_size)(vbyte* out) {
+    unsigned int length = 0;
+    int buffers = 0;
+    int* outInts = (int*)out;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = FMOD_System_GetDSPBufferSize(gCoreSystem, &length, &buffers);
+    outInts[0] = (int)length;
+    outInts[1] = buffers;
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, sys_get_dsp_buffer_size, _BYTES);
+
+// out = int[2]: file buffer size, its FMOD_TIMEUNIT
+HL_PRIM int HL_NAME(sys_get_stream_buffer_size)(vbyte* out) {
+    unsigned int size = 0;
+    FMOD_TIMEUNIT unit = FMOD_TIMEUNIT_RAWBYTES;
+    int* outInts = (int*)out;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = FMOD_System_GetStreamBufferSize(gCoreSystem, &size, &unit);
+    outInts[0] = (int)size;
+    outInts[1] = (int)unit;
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, sys_get_stream_buffer_size, _BYTES);

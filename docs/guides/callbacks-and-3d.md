@@ -153,4 +153,6 @@ StudioSystem.setParameter("TimeOfDay", 0.25);
 
 `setParameter(name, value, ?ignoreSeekSpeed)` and `setParameterWithLabel(name, label, ?ignoreSeekSpeed)` exist on both, alongside `getParameter` and `getParameterFinal` (the value after seek speed and automation). `getParameterDescriptionByName`, `getParameterDescriptionByIndex`, `getParameterDescriptionByID`, and `getParameterLabel` expose the authored range, default, type, and flags for building settings UIs or validating values. The `...ByID` variants take the `FmodParameterId` from a description and skip the name lookup.
 
+FMOD's own names work too: `setParameterByName`, `getParameterByName`, `getParameterByNameFinal`, `setParameterByNameWithLabel`, and `getParameterLabelByName` are the same calls. `setParametersByIDs(ids, values, ?ignoreSeekSpeed)` sets a batch of parameters in one call on either, `StudioSystem.getParameterDescriptionList()` returns every global parameter description, and `EventDescription.getParameterLabelByIndex(index, labelIndex)` reads a label without the name.
+
 Parameter names are bare names, for example `"RPM"`. The generated `FmodParameters` constants hold full `parameter:/` paths for the global parameters, which the lookup functions accept as well.

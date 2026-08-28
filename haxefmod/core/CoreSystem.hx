@@ -13,7 +13,7 @@ class CoreSystem {
      * Playing channel counts, or null on failure. `all` includes virtual
      * (inaudible) channels, `real` is what the mixer actually processes.
      */
-    public static function getChannelsPlaying():Null<{all:Int, real:Int}> {
+    public static function getChannelsPlaying():Null<FmodChannelsPlaying> {
         var result:FmodResult = NativeStudio.sys_get_channels_playing();
         if (!result.isOk()) return null;
         return {all: Scratch.readI(0), real: Scratch.readI(1)};
@@ -32,7 +32,7 @@ class CoreSystem {
     }
 
     /** The mixer's output format, or null on failure. */
-    public static function getSoftwareFormat():Null<{sampleRate:Int, speakerMode:FmodSpeakerMode, rawSpeakers:Int}> {
+    public static function getSoftwareFormat():Null<FmodSoftwareFormat> {
         var result:FmodResult = NativeStudio.sys_get_software_format();
         if (!result.isOk()) return null;
         return {sampleRate: Scratch.readI(0), speakerMode: Scratch.readI(1), rawSpeakers: Scratch.readI(2)};
@@ -46,7 +46,7 @@ class CoreSystem {
         return NativeStudio.sys_set_3d_settings(dopplerScale, distanceFactor, rolloffScale);
     }
 
-    public static function get3DSettings():Null<{dopplerScale:Float, distanceFactor:Float, rolloffScale:Float}> {
+    public static function get3DSettings():Null<Fmod3DSettings> {
         var result:FmodResult = NativeStudio.sys_get_3d_settings();
         if (!result.isOk()) return null;
         return {dopplerScale: Scratch.readF(0), distanceFactor: Scratch.readF(1), rolloffScale: Scratch.readF(2)};
@@ -54,6 +54,30 @@ class CoreSystem {
 
     public static inline function getDriverCount():Int {
         return NativeStudio.sys_get_num_drivers();
+    }
+
+    /** The same count as getDriverCount under FMOD's name. */
+    public static inline function getNumDrivers():Int {
+        return NativeStudio.sys_get_num_drivers();
+    }
+
+    /** The audible voice cap FMOD runs with, 0 before init. FmodSettings.softwareChannels sets it. */
+    public static inline function getSoftwareChannels():Int {
+        return NativeStudio.sys_get_software_channels();
+    }
+
+    /** The mixer buffer FMOD runs with, samples per buffer and buffer count, or null before init. FmodSettings.dspBufferSize sets it. */
+    public static function getDSPBufferSize():Null<FmodDspBufferSize> {
+        var result:FmodResult = NativeStudio.sys_get_dsp_buffer_size();
+        if (!result.isOk()) return null;
+        return {bufferLength: Scratch.readI(0), numBuffers: Scratch.readI(1)};
+    }
+
+    /** The file stream buffer FMOD runs with and the unit it is in, or null before init. FmodSettings.streamBufferSize sets it. */
+    public static function getStreamBufferSize():Null<FmodStreamBufferSize> {
+        var result:FmodResult = NativeStudio.sys_get_stream_buffer_size();
+        if (!result.isOk()) return null;
+        return {fileBufferSize: Scratch.readI(0), fileBufferSizeType: (Scratch.readI(1) : FmodTimeUnit)};
     }
 
     public static inline function getDriverName(index:Int):String {
@@ -64,7 +88,7 @@ class CoreSystem {
      * Name, GUID, native rate, speaker mode, and channel count of an
      * output driver (see getDriverCount). Null for an index out of range.
      */
-    public static function getDriverInfo(index:Int):Null<{name:String, guid:String, systemRate:Int, speakerMode:FmodSpeakerMode, speakerModeChannels:Int}> {
+    public static function getDriverInfo(index:Int):Null<FmodDriverInfo> {
         var name = NativeStudio.sys_get_driver_info(index);
         if (!(NativeStudio.sys_last_result() : FmodResult).isOk()) return null;
         var info = {name: name, guid: "", systemRate: Scratch.readI(0), speakerMode: (Scratch.readI(1) : FmodSpeakerMode),
@@ -193,7 +217,7 @@ class CoreSystem {
     }
 
     /** The position set for one speaker (see setSpeakerPosition), or null on failure. */
-    public static function getSpeakerPosition(speaker:FmodSpeaker):Null<{x:Float, y:Float, active:Bool}> {
+    public static function getSpeakerPosition(speaker:FmodSpeaker):Null<FmodSpeakerPosition> {
         var result:FmodResult = NativeStudio.sys_get_speaker_position(speaker);
         if (!result.isOk()) return null;
         return {x: Scratch.readF(0), y: Scratch.readF(1), active: Scratch.readF(2) != 0};
@@ -213,7 +237,7 @@ class CoreSystem {
      * name, version, buffer counts and parameter count (unsupported in
      * HTML5, null there). Null for a type FMOD does not know.
      */
-    public static function getDspInfoByType(type:DspType):Null<{name:String, version:Int, inputBuffers:Int, outputBuffers:Int, parameterCount:Int}> {
+    public static function getDspInfoByType(type:DspType):Null<FmodDspDescriptionInfo> {
         var name = NativeStudio.sys_get_dsp_info_by_type(type);
         var result:FmodResult = NativeStudio.sys_last_result();
         if (!result.isOk()) return null;
