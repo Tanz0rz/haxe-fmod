@@ -23,7 +23,16 @@
 - Advanced settings as init-time `FmodSettings` fields: `maxMPEGCodecs`, `maxVorbisCodecs`, `maxFADPCMCodecs`, `vol0VirtualVol`, `defaultDecodeBufferSize`, `profilePort`, `geometryMaxFadeTime`, `distanceFilterCenterFreq`, `randomSeed`, `commandQueueSize`, `handleInitialSize`, `studioUpdatePeriod`, `idleSampleDataPoolSize`, `streamingScheduleDelay`, and `encryptionKey`, with `StudioSystem.getAdvancedSettings()` and `getStudioAdvancedSettings()` to read them back (the readers are unsupported in HTML5).
 - Every FMOD type the headers declare now has a Haxe declaration or a documented reason it cannot: value enums for speakers, speaker modes, output types, driver states, channel masks, time units, open states, sound types and formats, connection types, sound group behaviors, DSP chain positions, and the rest, one enum abstract per DSP effect's parameter list (`haxefmod.core.DspParameters`, so `dsp.setParameter(DspLowpass.CUTOFF, 800)` replaces a magic index), and the DSP value enums (`haxefmod.core.DspEnums`). `ChannelMode` carries all 29 `FMOD_MODE` flags. `native/manifest/types.txt` maps every header type and CI checks each declaration's names and values against the SDK headers.
 - `ChannelGroup.getDspCount()` and `getDsp(index)` walk a group's effect chain like `Channel` does.
+- `ChannelGroup` parity with `Channel`: `get3DOcclusion()`, `getDelay()`, `getLowPassGain()`, `isPlaying()`, and `setCallback(handler)` with `clearCallback()`. FMOD 2.03.12 reports OK from a group's occlusion and lowpass readers but leaves the values at zero on every target.
+- `ChannelEvent` gained `VirtualVoice(isVirtual)` and `Occlusion(direct, reverb)`. Channel handlers receive all four events, group handlers receive `Occlusion` for 3D groups when geometry is in use.
+- `ChannelGroup.addGroup(child, ?propagateDspClock)` and `addGroupConnection(child, ?propagateDspClock)`, which returns the `DspConnection` FMOD makes between the two groups.
+- `Dsp.disconnectFrom(input, ?connection)` narrows the disconnect to one connection.
+- An optional `inChannelHop` row stride on `setMixMatrix` and `getMixMatrix` of `Channel`, `ChannelGroup`, and `DspConnection`. `getMixMatrix()` no longer needs the shape: every argument is optional and the struct carries the channel counts FMOD reports.
+- The coverage table and the Haxe docs tab map every `setUserData` and `getUserData` function to the Haxe methods of the owning type.
 - HTML5 compile gate: calling a native-only method in a js build is a compile error at the call site naming the method and the reason. `-D haxefmod_html5_allow_unsupported` compiles the call anyway, prints one warning per build, and the call returns `FMOD_ERR_UNSUPPORTED` at runtime in the browser. Applies to sample readback, recording, custom rolloff, geometry, programmer sounds, and memory usage queries.
+
+### Changed
+- `setDelay` on `Channel` and `ChannelGroup` defaults `stopChannels` to `true`, matching FMOD. Pass `false` to keep the earlier pause-at-end behaviour.
 
 ### Deprecated
 - `haxefmod.studio.CoreSound` is now `haxefmod.core.Sound`, the core `Sound` object next to `Channel`, `ChannelGroup`, `Dsp`, and `SoundGroup`. The old name remains as a deprecated alias for this release and the compiler warns at every use.

@@ -323,7 +323,7 @@ class NativeStudioStub {
 
     // Core parity tail (slice 3)
     public static function dsp_add_input(handle:Int, inputHandle:Int, type:Int):Int return 0;
-    public static function dsp_disconnect_from(handle:Int, inputHandle:Int):Int return ERR_UNSUPPORTED;
+    public static function dsp_disconnect_from(handle:Int, inputHandle:Int, connHandle:Int):Int return ERR_UNSUPPORTED;
     public static function dsp_disconnect_all(handle:Int, inputs:Bool, outputs:Bool):Int return ERR_UNSUPPORTED;
     public static function dsp_get_num_inputs(handle:Int):Int return 0;
     public static function dsp_get_num_outputs(handle:Int):Int return 0;
@@ -332,7 +332,7 @@ class NativeStudioStub {
     public static function dspconn_set_mix(handle:Int, mix:Float):Int return ERR_UNSUPPORTED;
     public static function dspconn_get_mix(handle:Int):Float return 0.0;
     public static function dspconn_get_type(handle:Int):Int return 0;
-    public static function cg_add_group(handle:Int, childHandle:Int):Int return ERR_UNSUPPORTED;
+    public static function cg_add_group(handle:Int, childHandle:Int, propagateDspClock:Bool):Int return 0;
     public static function cg_get_num_groups(handle:Int):Int return 0;
     public static function cg_get_group(handle:Int, index:Int):Int return 0;
     public static function cg_get_parent_group(handle:Int):Int return 0;
@@ -347,7 +347,7 @@ class NativeStudioStub {
     public static function chan_set_3d_spread(handle:Int, angle:Float):Int return ERR_UNSUPPORTED;
     public static function chan_set_3d_level(handle:Int, level:Float):Int return ERR_UNSUPPORTED;
     public static function chan_set_3d_doppler_level(handle:Int, level:Float):Int return ERR_UNSUPPORTED;
-    public static function chan_set_mix_matrix(handle:Int, outChannels:Int, inChannels:Int):Int return ERR_UNSUPPORTED;
+    public static function chan_set_mix_matrix(handle:Int, outChannels:Int, inChannels:Int, inChannelHop:Int):Int return ERR_UNSUPPORTED;
     public static function chan_get_dsp_clock(handle:Int):Int return ERR_UNSUPPORTED;
     public static function chan_set_delay(handle:Int, startClock:Float, endClock:Float, stopChannels:Bool):Int return ERR_UNSUPPORTED;
     public static function chan_add_fade_point(handle:Int, clock:Float, volume:Float):Int return ERR_UNSUPPORTED;
@@ -502,6 +502,11 @@ class NativeStudioStub {
     public static function cg_set_3d_min_max(handle:Int, minDist:Float, maxDist:Float):Int return ERR_UNSUPPORTED;
     public static function cg_get_3d_min_max(handle:Int):Int return ERR_UNSUPPORTED;
     public static function cg_set_3d_occlusion(handle:Int, direct:Float, reverb:Float):Int return ERR_UNSUPPORTED;
+    public static function cg_get_3d_occlusion(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function cg_get_delay(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function cg_get_low_pass_gain(handle:Int):Float return 0.0;
+    public static function cg_is_playing(handle:Int):Bool return false;
+    public static function cg_set_callback(handle:Int, enabled:Bool):Int return ERR_UNSUPPORTED;
     public static function cg_set_3d_level(handle:Int, level:Float):Int return ERR_UNSUPPORTED;
     public static function cg_get_3d_level(handle:Int):Float return 0.0;
     public static function cg_set_3d_spread(handle:Int, angle:Float):Int return ERR_UNSUPPORTED;
@@ -514,7 +519,7 @@ class NativeStudioStub {
     public static function cg_get_3d_cone_orientation(handle:Int):Int return ERR_UNSUPPORTED;
     public static function cg_set_reverb_wet(handle:Int, instance:Int, wet:Float):Int return ERR_UNSUPPORTED;
     public static function cg_get_reverb_wet(handle:Int, instance:Int):Float return 0.0;
-    public static function cg_set_mix_matrix(handle:Int, outChannels:Int, inChannels:Int):Int return ERR_UNSUPPORTED;
+    public static function cg_set_mix_matrix(handle:Int, outChannels:Int, inChannels:Int, inChannelHop:Int):Int return ERR_UNSUPPORTED;
     public static function cg_set_volume_ramp(handle:Int, ramp:Bool):Int return ERR_UNSUPPORTED;
     public static function cg_get_volume_ramp(handle:Int):Bool return false;
     public static function cg_get_audibility(handle:Int):Float return 0.0;
@@ -595,12 +600,12 @@ class NativeStudioStub {
     public static function chan_set_dsp_index(handle:Int, dsp:Int, index:Int):Int return ERR_UNSUPPORTED;
     public static function chan_get_dsp_index(handle:Int, dsp:Int):Int return -1;
     public static function chan_get_fade_points(handle:Int):Int return 0;
-    public static function chan_get_mix_matrix(handle:Int, outChannels:Int, inChannels:Int):Int return 0;
+    public static function chan_get_mix_matrix(handle:Int, inChannelHop:Int):Int return 0;
     public static function chan_get_channel_group(handle:Int):Int return 0;
     public static function cg_set_dsp_index(handle:Int, dsp:Int, index:Int):Int return ERR_UNSUPPORTED;
     public static function cg_get_dsp_index(handle:Int, dsp:Int):Int return -1;
     public static function cg_get_fade_points(handle:Int):Int return 0;
-    public static function cg_get_mix_matrix(handle:Int, outChannels:Int, inChannels:Int):Int return 0;
+    public static function cg_get_mix_matrix(handle:Int, inChannelHop:Int):Int return 0;
     public static function sg_get_name(handle:Int):String return "";
     public static function sg_get_sound(handle:Int, index:Int):Int return 0;
     public static function sys_get_channel(index:Int):Int return 0;
@@ -612,8 +617,8 @@ class NativeStudioStub {
     public static function dsp_set_channel_format(handle:Int, mask:Int, channels:Int, speakerMode:Int):Int return ERR_UNSUPPORTED;
     public static function dsp_get_channel_format(handle:Int):Int return ERR_UNSUPPORTED;
     public static function dsp_get_output_channel_format(handle:Int, inMask:Int, inChannels:Int, inMode:Int):Int return ERR_UNSUPPORTED;
-    public static function conn_set_mix_matrix(handle:Int, outChannels:Int, inChannels:Int):Int return ERR_UNSUPPORTED;
-    public static function conn_get_mix_matrix(handle:Int, outChannels:Int, inChannels:Int):Int return 0;
+    public static function conn_set_mix_matrix(handle:Int, outChannels:Int, inChannels:Int, inChannelHop:Int):Int return ERR_UNSUPPORTED;
+    public static function conn_get_mix_matrix(handle:Int, inChannelHop:Int):Int return 0;
 
     // Debug
     public static function debug_live_handle_count():Int return 0;

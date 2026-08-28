@@ -38,7 +38,7 @@ class CallbackDispatcher {
      * which keeps this class free of any dependency outside the studio
      * package. Returns true when the record was consumed.
      */
-    public static var channelRouter:Null<(handle:Int, type:Int, i1:Int) -> Bool> = null;
+    public static var channelRouter:Null<(handle:Int, type:Int, i1:Int, f1:Float) -> Bool> = null;
 
     /**
      * Router for system records, installed by SystemCallbacks when its
@@ -110,7 +110,7 @@ class CallbackDispatcher {
         // Channel-domain records never reach event dispatch: routed when a
         // router is installed, dropped otherwise
         if ((type & CHANNEL_TYPE_NAMESPACE) != 0) {
-            if (channelRouter != null) channelRouter(handle, type, i1);
+            if (channelRouter != null) channelRouter(handle, type, i1, f1);
             return;
         }
         // Same for system records

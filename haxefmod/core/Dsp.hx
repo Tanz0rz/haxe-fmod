@@ -125,8 +125,15 @@ abstract Dsp(Int) from Int to Int {
         return NativeStudio.dsp_add_input(this, input, connectionType);
     }
 
-    public inline function disconnectFrom(input:Dsp):FmodResult {
-        return NativeStudio.dsp_disconnect_from(this, input);
+    /**
+     * Removes the link from `input` into this unit. With no connection
+     * given, every connection between the two goes. A connection narrows
+     * it to that one link, and a stale connection handle reports
+     * FMOD_ERR_INVALID_HANDLE. Any graph change invalidates every
+     * connection handle.
+     */
+    public inline function disconnectFrom(input:Dsp, connection:DspConnection = DspConnection.NULL):FmodResult {
+        return NativeStudio.dsp_disconnect_from(this, input, connection);
     }
 
     public inline function disconnectAll(inputs:Bool = true, outputs:Bool = true):FmodResult {

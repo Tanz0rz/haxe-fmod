@@ -56,6 +56,7 @@ class TestStudioSurface {
 		testLastSevenStub();
 		testDspParameters();
 		testGroupDspChain();
+		testChannelControlParity();
 		testValueEnums();
 		testTypedSignatures();
 
@@ -608,6 +609,77 @@ class TestStudioSurface {
 		haxefmod.studio.CallbackDispatcher.deliver(1235, 0x20, 0, 0, 0, 0, 0, 0, "");
 		assert(eviEvents == 1, "event dispatch unaffected by chan router");
 		haxefmod.studio.CallbackDispatcher.remove(1235);
+		ChannelCallbacks.clearAll();
+	}
+
+	// The ChannelGroup half of the ChannelControl surface on the stub, the
+	// setDelay default, the mix matrix hop bounds (pure Haxe checks that
+	// never reach the backend), the connection from addGroup, and the
+	// connection-narrowed disconnect.
+	static function testChannelControlParity() {
+		var group = ChannelGroup.create("parity");
+		var stale:ChannelGroup = cast 0x7fff0001;
+		assert(group.get3DOcclusion() == null, "cg occlusion getter default");
+		assert(group.getDelay() == null, "cg delay getter default");
+		assert(group.getLowPassGain() == 0.0, "cg lowPassGain getter default");
+		assert(!group.isPlaying(), "cg isPlaying default");
+		assert(!stale.isPlaying(), "cg isPlaying stale");
+		assert(group.addGroupConnection(group).isNull(), "cg addGroupConnection default");
+		assert(!group.addGroup(group, false).isOk(), "cg addGroup no propagate result");
+
+		var dsp = Dsp.create(DspType.LOWPASS);
+		var conn:DspConnection = cast 0;
+		assert(!dsp.disconnectFrom(dsp, conn).isOk(), "dsp disconnectFrom connection result");
+
+		// The hop widens each row, and a hop below the input count or above 32 is refused before the backend
+		var channel:Channel = cast 0;
+		var wide:Array<Float> = [1, 0, 0, 0, 0, 1, 0, 0];
+		assert(channel.setMixMatrix(wide, 2, 2, 4) == FmodResult.FMOD_ERR_UNSUPPORTED, "chan mixMatrix hop reaches backend");
+		assert(channel.setMixMatrix(wide, 2, 2, 1) == FmodResult.FMOD_ERR_INVALID_PARAM, "chan mixMatrix hop too narrow");
+		assert(channel.setMixMatrix(wide, 2, 2, 33) == FmodResult.FMOD_ERR_INVALID_PARAM, "chan mixMatrix hop too wide");
+		assert(channel.setMixMatrix([1, 0, 0, 1], 2, 2, 4) == FmodResult.FMOD_ERR_INVALID_PARAM, "chan mixMatrix hop needs the wide array");
+		assert(channel.setMixMatrix(wide, 0, 2) == FmodResult.FMOD_ERR_INVALID_PARAM, "chan mixMatrix zero rows");
+		assert(channel.setMixMatrix(wide, 33, 1) == FmodResult.FMOD_ERR_INVALID_PARAM, "chan mixMatrix too many rows");
+		assert(channel.getMixMatrix() == null, "chan mixMatrix getter no dims default");
+		assert(channel.getMixMatrix(0, 0, 4) == null, "chan mixMatrix getter hop default");
+		assert(group.setMixMatrix(wide, 2, 2, 4) == FmodResult.FMOD_ERR_UNSUPPORTED, "cg mixMatrix hop reaches backend");
+		assert(group.setMixMatrix(wide, 2, 2, 1) == FmodResult.FMOD_ERR_INVALID_PARAM, "cg mixMatrix hop too narrow");
+		assert(group.getMixMatrix() == null, "cg mixMatrix getter no dims default");
+		assert(conn.setMixMatrix(wide, 2, 2, 4) == FmodResult.FMOD_ERR_UNSUPPORTED, "conn mixMatrix hop reaches backend");
+		assert(conn.setMixMatrix(wide, 2, 2, 33) == FmodResult.FMOD_ERR_INVALID_PARAM, "conn mixMatrix hop too wide");
+		assert(conn.getMixMatrix() == null, "conn mixMatrix getter no dims default");
+
+		// The read side unpacks the scratch layout: two rows of four with a 2 by 2 region kept
+		haxefmod.studio.native.Scratch.writeI(0, 2);
+		haxefmod.studio.native.Scratch.writeI(1, 2);
+		for (i in 0...8) haxefmod.studio.native.Scratch.writeF(i, wide[i]);
+		var hopped = haxefmod.core.MixMatrix.read(8, 0, 0, 4);
+		assert(hopped.matrix.length == 8 && hopped.matrix[5] == 1 && hopped.outChannels == 2 && hopped.inChannels == 2, "mixMatrix read hop");
+		var trimmed = haxefmod.core.MixMatrix.read(8, 2, 2, 4);
+		assert(trimmed.matrix.length == 4 && trimmed.matrix[0] == 1 && trimmed.matrix[3] == 1, "mixMatrix read region");
+		var packed = haxefmod.core.MixMatrix.read(4, 0, 0, 0);
+		assert(packed.matrix.length == 4 && packed.matrix[1] == 0, "mixMatrix read packed");
+		var oneRow = haxefmod.core.MixMatrix.read(4, 1, 0, 0);
+		assert(oneRow.matrix.length == 2 && oneRow.outChannels == 2, "mixMatrix read row cap keeps reported counts");
+
+		// Group callbacks share the channel map and clear through the group
+		// native. The stub creates no groups, so a fake handle stands in.
+		var received:Array<haxefmod.core.ChannelEvent> = [];
+		group = cast 4321;
+		group.setCallback(function(e) received.push(e));
+		assert(StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED, "cg setCallback reaches the stub");
+		haxefmod.studio.CallbackDispatcher.deliver((group : Int), ChannelCallbacks.TYPE_OCCLUSION, haxe.io.FPHelper.floatToI32(0.25), 0, 0, 0, 0, 0.5, "");
+		haxefmod.studio.CallbackDispatcher.deliver((group : Int), ChannelCallbacks.TYPE_VIRTUALVOICE, 1, 0, 0, 0, 0, 0, "");
+		assert(received.length == 2, "cg events delivered");
+		assert(received[0].match(Occlusion(0.5, 0.25)), "cg occlusion payload");
+		assert(received[1].match(VirtualVoice(true)), "cg virtual voice payload");
+		group.clearCallback();
+		haxefmod.studio.CallbackDispatcher.deliver((group : Int), ChannelCallbacks.TYPE_OCCLUSION, 0, 0, 0, 0, 0, 0.5, "");
+		assert(received.length == 2, "cg clearCallback stops delivery");
+		group.setCallback(function(e) received.push(e));
+		group.release();
+		haxefmod.studio.CallbackDispatcher.deliver((group : Int), ChannelCallbacks.TYPE_OCCLUSION, 0, 0, 0, 0, 0, 0.5, "");
+		assert(received.length == 2, "cg release removes the handler");
 		ChannelCallbacks.clearAll();
 	}
 

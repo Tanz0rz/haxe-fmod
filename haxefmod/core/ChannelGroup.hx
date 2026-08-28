@@ -85,9 +85,25 @@ abstract ChannelGroup(Int) from Int to Int {
         return NativeStudio.cg_stop(this);
     }
 
-    /** Routes a child group's output through this one (group hierarchies). */
-    public inline function addGroup(child:ChannelGroup):FmodResult {
-        return NativeStudio.cg_add_group(this, child);
+    /**
+     * Routes a child group's output through this one (group hierarchies).
+     * propagateDspClock keeps the child's mixer clock in step with this
+     * group's, which sample-accurate scheduling across the tree needs.
+     * addGroupConnection does the same and hands back the connection.
+     */
+    public function addGroup(child:ChannelGroup, propagateDspClock:Bool = true):FmodResult {
+        NativeStudio.cg_add_group(this, child, propagateDspClock);
+        return haxefmod.studio.StudioSystem.lastResult();
+    }
+
+    /**
+     * Routes a child group's output through this one and returns the
+     * connection between the two, DspConnection.NULL on failure with the
+     * reason in StudioSystem.lastResult(). Any later graph change
+     * invalidates the connection handle.
+     */
+    public inline function addGroupConnection(child:ChannelGroup, propagateDspClock:Bool = true):DspConnection {
+        return NativeStudio.cg_add_group(this, child, propagateDspClock);
     }
 
     public inline function getGroupCount():Int {
@@ -114,9 +130,38 @@ abstract ChannelGroup(Int) from Int to Int {
         return {clock: Scratch.readF(0), parent: Scratch.readF(1)};
     }
 
-    /** Sample-accurate start/stop window on the parent clock (0 = no bound). */
-    public inline function setDelay(startClock:Float, endClock:Float, stopChannels:Bool = false):FmodResult {
+    /**
+     * Sample-accurate start/stop window on the parent clock (0 = no
+     * bound). With stopChannels on, the group's channels stop at
+     * endClock, off they pause there and can be resumed.
+     */
+    public inline function setDelay(startClock:Float, endClock:Float, stopChannels:Bool = true):FmodResult {
         return NativeStudio.cg_set_delay(this, startClock, endClock, stopChannels);
+    }
+
+    public function getDelay():Null<{startClock:Float, endClock:Float, stopChannels:Bool}> {
+        var result:FmodResult = NativeStudio.cg_get_delay(this);
+        if (!result.isOk()) return null;
+        return {startClock: Scratch.readF(0), endClock: Scratch.readF(1), stopChannels: Scratch.readF(2) > 0.5};
+    }
+
+    /** True while any channel in the group or a nested group is playing. */
+    public inline function isPlaying():Bool {
+        return NativeStudio.cg_is_playing(this);
+    }
+
+    /**
+     * Delivers ChannelEvent values for this group (drained once per frame
+     * with the other callbacks). FMOD raises only Occlusion on a group,
+     * for 3D groups when geometry is in use. release() removes the
+     * handler.
+     */
+    public inline function setCallback(handler:haxefmod.core.ChannelEvent->Void):Void {
+        haxefmod.core.ChannelCallbacks.setGroup(this, handler);
+    }
+
+    public inline function clearCallback():Void {
+        haxefmod.core.ChannelCallbacks.removeGroup(this);
     }
 
     /** Schedules a volume point at a parent-clock time. FMOD ramps between points. */
@@ -138,13 +183,18 @@ abstract ChannelGroup(Int) from Int to Int {
         return NativeStudio.cg_set_pan(this, pan);
     }
 
-    /**
-     * A built-in lowpass on the group (1.0 = open, 0.0 = closed). The
-     * matching getter is channel-only (its group binding misreads on
-     * HTML5, see the platform notes).
-     */
+    /** A built-in lowpass on the group (1.0 = open, 0.0 = closed). */
     public inline function setLowPassGain(gain:Float):FmodResult {
         return NativeStudio.cg_set_low_pass_gain(this, gain);
+    }
+
+    /**
+     * The group's lowpass gain, 0.0 on failure. FMOD 2.03.12 reports OK
+     * for a group but leaves the value at zero on every target, so keep
+     * the gain you set if you need it back.
+     */
+    public inline function getLowPassGain():Float {
+        return NativeStudio.cg_get_low_pass_gain(this);
     }
 
     /** Combines ChannelMode flags (looping, 2D/3D, rolloff shape). */
@@ -179,12 +229,20 @@ abstract ChannelGroup(Int) from Int to Int {
         return {minDistance: Scratch.readF(0), maxDistance: Scratch.readF(1)};
     }
 
-    /**
-     * Muffles the group as if behind an obstacle. The matching getter is
-     * channel-only (its group binding misreads on HTML5).
-     */
+    /** Muffles the group as if behind an obstacle (0.0 = clear, 1.0 = fully blocked). */
     public inline function set3DOcclusion(direct:Float, reverb:Float):FmodResult {
         return NativeStudio.cg_set_3d_occlusion(this, direct, reverb);
+    }
+
+    /**
+     * The group's occlusion levels, null on failure. FMOD 2.03.12 reports
+     * OK for a group but leaves both values at zero on every target, so
+     * keep the levels you set if you need them back.
+     */
+    public function get3DOcclusion():Null<{direct:Float, reverb:Float}> {
+        var result:FmodResult = NativeStudio.cg_get_3d_occlusion(this);
+        if (!result.isOk()) return null;
+        return {direct: Scratch.readF(0), reverb: Scratch.readF(1)};
     }
 
     #if (macro || (js && !haxefmod_html5_allow_unsupported))
@@ -306,14 +364,16 @@ abstract ChannelGroup(Int) from Int to Int {
         return NativeStudio.cg_get_reverb_wet(this, instance);
     }
 
-    /** Routes inputs to speakers with explicit gains (row-major, up to 32x32). */
-    public function setMixMatrix(matrix:Array<Float>, outChannels:Int, inChannels:Int):FmodResult {
-        var total = outChannels * inChannels;
-        if (total < 0 || total > matrix.length || total > Scratch.CAPACITY) {
-            return haxefmod.studio.FmodResult.FMOD_ERR_INVALID_PARAM;
-        }
-        for (i in 0...total) Scratch.writeF(i, matrix[i]);
-        return NativeStudio.cg_set_mix_matrix(this, outChannels, inChannels);
+    /**
+     * Routes input channels to output speakers with explicit gains. The
+     * matrix is one flat row-major array, one row per output channel,
+     * with inChannelHop floats per row (0 = packed to inChannels). FMOD
+     * mixes at most 32 channels, so larger shapes are refused with
+     * FMOD_ERR_INVALID_PARAM.
+     */
+    public function setMixMatrix(matrix:Array<Float>, outChannels:Int, inChannels:Int, inChannelHop:Int = 0):FmodResult {
+        if (!MixMatrix.pack(matrix, outChannels, inChannels, inChannelHop)) return FmodResult.FMOD_ERR_INVALID_PARAM;
+        return NativeStudio.cg_set_mix_matrix(this, outChannels, inChannels, inChannelHop);
     }
 
     /** Short volume ramping on changes (on by default, prevents clicks). */
@@ -365,25 +425,27 @@ abstract ChannelGroup(Int) from Int to Int {
 
     #if (macro || (js && !haxefmod_html5_allow_unsupported))
     /**
-     * Reads back the mix matrix region of outChannels rows by inChannels
-     * gains, row-major (unsupported in HTML5, null there). The returned
-     * outChannels and inChannels are the counts FMOD reports for the
-     * group. Null on failure or for sizes outside 1..32.
+     * Reads the mix matrix back as one flat row-major array with
+     * inChannelHop floats per row (0 = packed to the input count), and
+     * the output and input channel counts FMOD reports (unsupported in
+     * HTML5, null there). outChannels and inChannels above 0 keep only
+     * that many rows and columns. Null on failure, at most 32 by 32.
      */
-    public macro function getMixMatrix(self:haxe.macro.Expr, outChannels:haxe.macro.Expr, inChannels:haxe.macro.Expr):haxe.macro.Expr {
+    public macro function getMixMatrix(self:haxe.macro.Expr, ?outChannels:haxe.macro.Expr, ?inChannels:haxe.macro.Expr, ?inChannelHop:haxe.macro.Expr):haxe.macro.Expr {
         return haxefmod.studio.native.Html5Gate.block("ChannelGroup.getMixMatrix", "FMOD's web glue binds the matrix as a single float");
     }
     #else
     /**
-     * Reads back the mix matrix region of outChannels rows by inChannels
-     * gains, row-major (unsupported in HTML5, null there). The returned
-     * outChannels and inChannels are the counts FMOD reports for the
-     * group. Null on failure or for sizes outside 1..32.
+     * Reads the mix matrix back as one flat row-major array with
+     * inChannelHop floats per row (0 = packed to the input count), and
+     * the output and input channel counts FMOD reports (unsupported in
+     * HTML5, null there). outChannels and inChannels above 0 keep only
+     * that many rows and columns. Null on failure, at most 32 by 32.
      */
-    public function getMixMatrix(outChannels:Int, inChannels:Int):Null<{matrix:Array<Float>, outChannels:Int, inChannels:Int}> {
-        var total = NativeStudio.cg_get_mix_matrix(this, outChannels, inChannels);
+    public function getMixMatrix(outChannels:Int = 0, inChannels:Int = 0, inChannelHop:Int = 0):Null<{matrix:Array<Float>, outChannels:Int, inChannels:Int}> {
+        var total = NativeStudio.cg_get_mix_matrix(this, inChannelHop);
         if (total <= 0) return null;
-        return {matrix: [for (i in 0...total) Scratch.readF(i)], outChannels: Scratch.readI(0), inChannels: Scratch.readI(1)};
+        return MixMatrix.read(total, outChannels, inChannels, inChannelHop);
     }
     #end
 
@@ -405,6 +467,7 @@ abstract ChannelGroup(Int) from Int to Int {
      * release the master group or a Studio bus's group.
      */
     public inline function release():FmodResult {
+        haxefmod.core.ChannelCallbacks.removeGroup(this);
         UserData.clear(UserDataKind.ChannelGroup, this);
         return NativeStudio.cg_release(this);
     }

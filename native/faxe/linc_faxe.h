@@ -277,7 +277,7 @@ extern int fmod_core_pcm_create_3d(int sampleRate, int channels, int ringBytes);
 
 // Core DSP connection graph
 extern int fmod_dsp_add_input(int handle, int inputHandle, int type);
-extern int fmod_dsp_disconnect_from(int handle, int inputHandle);
+extern int fmod_dsp_disconnect_from(int handle, int inputHandle, int connHandle);
 extern int fmod_dsp_disconnect_all(int handle, bool inputs, bool outputs);
 extern int fmod_dsp_get_num_inputs(int handle);
 extern int fmod_dsp_get_num_outputs(int handle);
@@ -288,7 +288,7 @@ extern float fmod_dspconn_get_mix(int handle);
 extern int fmod_dspconn_get_type(int handle);
 
 // Core channel group nesting
-extern int fmod_cg_add_group(int handle, int childHandle);
+extern int fmod_cg_add_group(int handle, int childHandle, bool propagateDspClock);
 extern int fmod_cg_get_num_groups(int handle);
 extern int fmod_cg_get_group(int handle, int index);
 extern int fmod_cg_get_parent_group(int handle);
@@ -305,7 +305,7 @@ extern int fmod_chan_get_3d_occlusion(int handle, ::Array<Float> fbuf);
 extern int fmod_chan_set_3d_spread(int handle, float angle);
 extern int fmod_chan_set_3d_level(int handle, float level);
 extern int fmod_chan_set_3d_doppler_level(int handle, float level);
-extern int fmod_chan_set_mix_matrix(int handle, ::Array<Float> fbuf, int outChannels, int inChannels);
+extern int fmod_chan_set_mix_matrix(int handle, ::Array<Float> fbuf, int outChannels, int inChannels, int inChannelHop);
 
 // Core scheduling
 extern int fmod_chan_get_dsp_clock(int handle, ::Array<Float> fbuf);
@@ -400,6 +400,7 @@ extern int fmod_binding_abi_version();
 
 // Channel callbacks and sync points
 extern int fmod_chan_set_callback(int handle, bool enabled);
+extern int fmod_cg_set_callback(int handle, bool enabled);
 extern int fmod_sys_set_callback_mask(int mask);
 extern int fmod_sys_set_studio_callback_mask(int mask);
 extern int fmod_sound_add_sync_point(int handle, int offsetMs, const ::String& name);
@@ -516,6 +517,10 @@ extern int fmod_cg_get_3d_attributes(int handle, ::Array<Float> fbuf);
 extern int fmod_cg_set_3d_min_max(int handle, float minDist, float maxDist);
 extern int fmod_cg_get_3d_min_max(int handle, ::Array<Float> fbuf);
 extern int fmod_cg_set_3d_occlusion(int handle, float direct, float reverb);
+extern int fmod_cg_get_3d_occlusion(int handle, ::Array<Float> fbuf);
+extern int fmod_cg_get_delay(int handle, ::Array<Float> fbuf);
+extern float fmod_cg_get_low_pass_gain(int handle);
+extern bool fmod_cg_is_playing(int handle);
 extern int fmod_cg_set_3d_level(int handle, float level);
 extern float fmod_cg_get_3d_level(int handle);
 extern int fmod_cg_set_3d_spread(int handle, float angle);
@@ -528,7 +533,7 @@ extern int fmod_cg_set_3d_cone_orientation(int handle, float x, float y, float z
 extern int fmod_cg_get_3d_cone_orientation(int handle, ::Array<Float> fbuf);
 extern int fmod_cg_set_reverb_wet(int handle, int instance, float wet);
 extern float fmod_cg_get_reverb_wet(int handle, int instance);
-extern int fmod_cg_set_mix_matrix(int handle, ::Array<Float> fbuf, int outChannels, int inChannels);
+extern int fmod_cg_set_mix_matrix(int handle, ::Array<Float> fbuf, int outChannels, int inChannels, int inChannelHop);
 extern int fmod_cg_set_volume_ramp(int handle, bool ramp);
 extern bool fmod_cg_get_volume_ramp(int handle);
 extern float fmod_cg_get_audibility(int handle);
@@ -544,12 +549,12 @@ extern int fmod_core_sound_get_3d_min_max(int handle, ::Array<Float> fbuf);
 extern int fmod_chan_set_dsp_index(int handle, int dspHandle, int index);
 extern int fmod_chan_get_dsp_index(int handle, int dspHandle);
 extern int fmod_chan_get_fade_points(int handle, ::Array<Float> fbuf);
-extern int fmod_chan_get_mix_matrix(int handle, ::Array<Float> fbuf, ::Array<int> ibuf, int outChannels, int inChannels);
+extern int fmod_chan_get_mix_matrix(int handle, ::Array<Float> fbuf, ::Array<int> ibuf, int inChannelHop);
 extern int fmod_chan_get_channel_group(int handle);
 extern int fmod_cg_set_dsp_index(int handle, int dspHandle, int index);
 extern int fmod_cg_get_dsp_index(int handle, int dspHandle);
 extern int fmod_cg_get_fade_points(int handle, ::Array<Float> fbuf);
-extern int fmod_cg_get_mix_matrix(int handle, ::Array<Float> fbuf, ::Array<int> ibuf, int outChannels, int inChannels);
+extern int fmod_cg_get_mix_matrix(int handle, ::Array<Float> fbuf, ::Array<int> ibuf, int inChannelHop);
 extern const char* fmod_sg_get_name(int handle);
 extern int fmod_sg_get_sound(int handle, int index);
 extern int fmod_sys_get_channel(int index);
@@ -561,8 +566,8 @@ extern int fmod_dsp_get_data_parameter_index(int handle, int dataType);
 extern int fmod_dsp_set_channel_format(int handle, int mask, int channels, int speakerMode);
 extern int fmod_dsp_get_channel_format(int handle, ::Array<int> ibuf);
 extern int fmod_dsp_get_output_channel_format(int handle, int inMask, int inChannels, int inMode, ::Array<int> ibuf);
-extern int fmod_conn_set_mix_matrix(int handle, ::Array<Float> fbuf, int outChannels, int inChannels);
-extern int fmod_conn_get_mix_matrix(int handle, ::Array<Float> fbuf, ::Array<int> ibuf, int outChannels, int inChannels);
+extern int fmod_conn_set_mix_matrix(int handle, ::Array<Float> fbuf, int outChannels, int inChannels, int inChannelHop);
+extern int fmod_conn_get_mix_matrix(int handle, ::Array<Float> fbuf, ::Array<int> ibuf, int inChannelHop);
 // System extras (replay inspection, DSP lock, sound info, memory and file stats, network, speaker positions)
 extern int fmod_replay_get_command_count(int handle);
 extern const char* fmod_replay_get_command_info(int handle, int index, ::Array<int> ibuf, ::Array<Float> fbuf);

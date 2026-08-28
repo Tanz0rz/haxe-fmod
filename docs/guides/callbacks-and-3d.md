@@ -75,7 +75,7 @@ The default masks deliver the device and Studio events above. `PreUpdate` and `P
 
 ## Core channel callbacks
 
-Channels from `Sound.play` and `PcmStream.play` support `Channel.setCallback` with `ChannelEvent` values (end of playback, sync points). They ride the same queue and the same per-frame drain.
+Channels from `Sound.play` and `PcmStream.play` support `Channel.setCallback` with `ChannelEvent` values (end of playback, sync points, virtual voice changes, occlusion), and `ChannelGroup.setCallback` delivers the occlusion event for 3D groups. They ride the same queue and the same per-frame drain.
 
 ## Listeners
 

@@ -29,7 +29,7 @@ if (clocks != null) {
 ## FMOD_CHANNELCONTROL_CALLBACK
 verdict: bound
 Shape: usage
-Raw channel callbacks run on FMOD's threads and cannot reach Haxe. Channel.setCallback delivers End and SyncPoint as ChannelEvent values on the game thread during FmodManager.Update().
+Raw channel callbacks run on FMOD's threads and cannot reach Haxe. Channel.setCallback and ChannelGroup.setCallback deliver ChannelEvent values on the game thread during FmodManager.Update(). A group only ever sees Occlusion, the other three are channel events.
 ```haxe
 import haxefmod.core.ChannelEvent;
 
@@ -37,6 +37,8 @@ channel.setCallback(function(event:ChannelEvent) {
     switch (event) {
         case End: trace("channel finished");
         case SyncPoint(index): trace('sync point $index');
+        case VirtualVoice(isVirtual): trace('virtual $isVirtual');
+        case Occlusion(direct, reverb): trace('occluded $direct $reverb');
     }
 });
 ```
@@ -44,7 +46,7 @@ channel.setCallback(function(event:ChannelEvent) {
 ## FMOD_CHANNELCONTROL_CALLBACK_TYPE
 verdict: bound
 Type: haxefmod.studio.Types.FmodChannelControlCallbackType
-Channel.setCallback delivers END and SYNCPOINT as ChannelEvent values. VIRTUALVOICE and OCCLUSION are not delivered, Channel.isVirtual reports the voice state on demand.
+Channel.setCallback delivers all four as ChannelEvent values (End, SyncPoint, VirtualVoice, Occlusion). ChannelGroup.setCallback delivers Occlusion, the only one FMOD raises on a group.
 
 ## FMOD_CHANNELCONTROL_DSP_INDEX
 verdict: bound

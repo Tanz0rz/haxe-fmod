@@ -147,17 +147,17 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "FMOD_CHANNELCONTROL_CALLBACK": {
-   "code": "channel.setCallback(function(event:ChannelEvent) {\n    switch (event) {\n        case End: trace(\"channel finished\");\n        case SyncPoint(index): trace('sync point $index');\n    }\n});",
+   "code": "channel.setCallback(function(event:ChannelEvent) {\n    switch (event) {\n        case End: trace(\"channel finished\");\n        case SyncPoint(index): trace('sync point $index');\n        case VirtualVoice(isVirtual): trace('virtual $isVirtual');\n        case Occlusion(direct, reverb): trace('occluded $direct $reverb');\n    }\n});",
    "notes": [
-    "Raw channel callbacks run on FMOD's threads and cannot reach Haxe. Channel.setCallback delivers End and SyncPoint as ChannelEvent values on the game thread during FmodManager.Update()."
+    "Raw channel callbacks run on FMOD's threads and cannot reach Haxe. Channel.setCallback and ChannelGroup.setCallback deliver ChannelEvent values on the game thread during FmodManager.Update(). A group only ever sees Occlusion, the other three are channel events."
    ],
    "type": "haxefmod.core.ChannelEvent",
    "verdict": "bound"
   },
   "FMOD_CHANNELCONTROL_CALLBACK_TYPE": {
-   "code": "/** FMOD_CHANNELCONTROL_CALLBACK_TYPE, the channel callback kinds. Channel.setCallback delivers END and SYNCPOINT as ChannelEvent, the other two are not delivered. */\nenum abstract FmodChannelControlCallbackType(Int) from Int to Int {\n    var END = 0;\n    var VIRTUALVOICE = 1;\n    var SYNCPOINT = 2;\n    var OCCLUSION = 3;\n    var MAX = 4;\n}",
+   "code": "/** FMOD_CHANNELCONTROL_CALLBACK_TYPE, the channel callback kinds. Channel.setCallback delivers all four as ChannelEvent values, ChannelGroup.setCallback delivers OCCLUSION. */\nenum abstract FmodChannelControlCallbackType(Int) from Int to Int {\n    var END = 0;\n    var VIRTUALVOICE = 1;\n    var SYNCPOINT = 2;\n    var OCCLUSION = 3;\n    var MAX = 4;\n}",
    "notes": [
-    "Channel.setCallback delivers END and SYNCPOINT as ChannelEvent values. VIRTUALVOICE and OCCLUSION are not delivered, Channel.isVirtual reports the voice state on demand."
+    "Channel.setCallback delivers all four as ChannelEvent values (End, SyncPoint, VirtualVoice, Occlusion). ChannelGroup.setCallback delivers Occlusion, the only one FMOD raises on a group."
    ],
    "type": "haxefmod.studio.Types.FmodChannelControlCallbackType",
    "verdict": "bound"

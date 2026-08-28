@@ -75,6 +75,10 @@ class Scratch {
     public static inline function writeF(index:Int, value:Float):Void {
         floatBuf().setF64(index * 8, value);
     }
+
+    public static inline function writeI(index:Int, value:Int):Void {
+        intBuf().setI32(index * 4, value);
+    }
     #else
     static var ints:Array<Int> = [for (_ in 0...CAPACITY) 0];
     static var floats:Array<Float> = [for (_ in 0...CAPACITY) 0.0];
@@ -97,6 +101,10 @@ class Scratch {
 
     public static inline function writeF(index:Int, value:Float):Void {
         floats[index] = value;
+    }
+
+    public static inline function writeI(index:Int, value:Int):Void {
+        ints[index] = value;
     }
     #end
 }
