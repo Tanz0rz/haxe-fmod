@@ -2,7 +2,7 @@
 
 Every FMOD function the native layer calls, with the haxefmod methods that reach it. Generated from the sources by `ci/haxe-bindings.py` for haxefmod 2.0.0 against FMOD 2.03.12. Functions absent from this list are not exposed, see [Limitations](limitations.md).
 
-522 FMOD functions are reached.
+530 FMOD functions are reached.
 
 The same table powers the browser extension that adds a Haxe tab to the [fmod.com API reference](https://www.fmod.com/docs/2.03/api/welcome.html). In the HTML5 column, "compile error" marks a call a js build refuses unless the project sets `-D haxefmod_html5_allow_unsupported`, after which it returns `FMOD_ERR_UNSUPPORTED` at runtime, and "limited" marks a call the web build only partly supports.
 
@@ -38,12 +38,12 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_Channel_GetMixMatrix` | `Channel.getMixMatrix` | compile error |
 | `FMOD_Channel_GetMode` | `Channel.getMode` |  |
 | `FMOD_Channel_GetMute` | `Channel.getMute` |  |
-| `FMOD_Channel_GetNumDSPs` | `Channel.getDspCount` |  |
+| `FMOD_Channel_GetNumDSPs` | `Channel.getNumDSPs`<br>`Channel.getDspCount` |  |
 | `FMOD_Channel_GetPaused` | `Channel.getPaused` |  |
 | `FMOD_Channel_GetPitch` | `Channel.getPitch` |  |
 | `FMOD_Channel_GetPosition` | `Channel.getPosition` |  |
 | `FMOD_Channel_GetPriority` | `Channel.getPriority` |  |
-| `FMOD_Channel_GetReverbProperties` | `Channel.getReverbWet` |  |
+| `FMOD_Channel_GetReverbProperties` | `Channel.getReverbProperties`<br>`Channel.getReverbWet` |  |
 | `FMOD_Channel_GetUserData` | `Channel.getUserData` |  |
 | `FMOD_Channel_GetVolume` | `Channel.getVolume` |  |
 | `FMOD_Channel_GetVolumeRamp` | `Channel.getVolumeRamp` |  |
@@ -80,7 +80,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_Channel_SetPitch` | `Channel.setPitch` |  |
 | `FMOD_Channel_SetPosition` | `Channel.setPosition` |  |
 | `FMOD_Channel_SetPriority` | `Channel.setPriority` |  |
-| `FMOD_Channel_SetReverbProperties` | `Channel.setReverbWet` |  |
+| `FMOD_Channel_SetReverbProperties` | `Channel.setReverbProperties`<br>`Channel.setReverbWet` |  |
 | `FMOD_Channel_SetUserData` | `Channel.setUserData` |  |
 | `FMOD_Channel_SetVolume` | `Channel.setVolume` |  |
 | `FMOD_Channel_SetVolumeRamp` | `Channel.setVolumeRamp` |  |
@@ -116,13 +116,13 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_ChannelGroup_GetMode` | `ChannelGroup.getMode` |  |
 | `FMOD_ChannelGroup_GetMute` | `ChannelGroup.getMute` |  |
 | `FMOD_ChannelGroup_GetName` | `ChannelGroup.getName` |  |
-| `FMOD_ChannelGroup_GetNumChannels` | `ChannelGroup.getChannelCount` |  |
-| `FMOD_ChannelGroup_GetNumDSPs` | `ChannelGroup.getDspCount` |  |
-| `FMOD_ChannelGroup_GetNumGroups` | `ChannelGroup.getGroupCount` |  |
+| `FMOD_ChannelGroup_GetNumChannels` | `ChannelGroup.getNumChannels`<br>`ChannelGroup.getChannelCount` |  |
+| `FMOD_ChannelGroup_GetNumDSPs` | `ChannelGroup.getNumDSPs`<br>`ChannelGroup.getDspCount` |  |
+| `FMOD_ChannelGroup_GetNumGroups` | `ChannelGroup.getNumGroups`<br>`ChannelGroup.getGroupCount` |  |
 | `FMOD_ChannelGroup_GetParentGroup` | `ChannelGroup.getParentGroup` |  |
 | `FMOD_ChannelGroup_GetPaused` | `ChannelGroup.getPaused` |  |
 | `FMOD_ChannelGroup_GetPitch` | `ChannelGroup.getPitch` |  |
-| `FMOD_ChannelGroup_GetReverbProperties` | `ChannelGroup.getReverbWet` |  |
+| `FMOD_ChannelGroup_GetReverbProperties` | `ChannelGroup.getReverbProperties`<br>`ChannelGroup.getReverbWet` |  |
 | `FMOD_ChannelGroup_GetUserData` | `ChannelGroup.getUserData` |  |
 | `FMOD_ChannelGroup_GetVolume` | `ChannelGroup.getVolume` |  |
 | `FMOD_ChannelGroup_GetVolumeRamp` | `ChannelGroup.getVolumeRamp` |  |
@@ -153,7 +153,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_ChannelGroup_SetPan` | `ChannelGroup.setPan` |  |
 | `FMOD_ChannelGroup_SetPaused` | `ChannelGroup.setPaused` |  |
 | `FMOD_ChannelGroup_SetPitch` | `ChannelGroup.setPitch` |  |
-| `FMOD_ChannelGroup_SetReverbProperties` | `ChannelGroup.setReverbWet` |  |
+| `FMOD_ChannelGroup_SetReverbProperties` | `ChannelGroup.setReverbProperties`<br>`ChannelGroup.setReverbWet` |  |
 | `FMOD_ChannelGroup_SetUserData` | `ChannelGroup.setUserData` |  |
 | `FMOD_ChannelGroup_SetVolume` | `ChannelGroup.setVolume` |  |
 | `FMOD_ChannelGroup_SetVolumeRamp` | `ChannelGroup.setVolumeRamp` |  |
@@ -177,14 +177,14 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_DSP_GetInput` | `Dsp.getInput`<br>`Dsp.getInputConnection` |  |
 | `FMOD_DSP_GetMeteringEnabled` | `Dsp.getMeteringEnabled` |  |
 | `FMOD_DSP_GetMeteringInfo` | `Dsp.getMetering` |  |
-| `FMOD_DSP_GetNumInputs` | `Dsp.getInputCount` |  |
-| `FMOD_DSP_GetNumOutputs` | `Dsp.getOutputCount` |  |
-| `FMOD_DSP_GetNumParameters` | `Dsp.getParameterCount` |  |
+| `FMOD_DSP_GetNumInputs` | `Dsp.getNumInputs`<br>`Dsp.getInputCount` |  |
+| `FMOD_DSP_GetNumOutputs` | `Dsp.getNumOutputs`<br>`Dsp.getOutputCount` |  |
+| `FMOD_DSP_GetNumParameters` | `Dsp.getNumParameters`<br>`Dsp.getParameterCount` |  |
 | `FMOD_DSP_GetOutput` | `Dsp.getOutput`<br>`Dsp.getOutputConnection` |  |
 | `FMOD_DSP_GetOutputChannelFormat` | `Dsp.getOutputChannelFormat` |  |
 | `FMOD_DSP_GetParameterBool` | `Dsp.getParameterBool` |  |
 | `FMOD_DSP_GetParameterData` | `Dsp.getParameterData`<br>`Dsp.getFftSpectrum`<br>`Dsp.getFftSpectrumInfo` | limited |
-| `FMOD_DSP_GetParameterFloat` | `Dsp.getParameter` |  |
+| `FMOD_DSP_GetParameterFloat` | `Dsp.getParameterFloat`<br>`Dsp.getParameter` |  |
 | `FMOD_DSP_GetParameterInfo` | `Dsp.getParameterInfo` | compile error |
 | `FMOD_DSP_GetParameterInt` | `Dsp.getParameterInt` |  |
 | `FMOD_DSP_GetType` | `Dsp.getType` |  |
@@ -198,7 +198,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_DSP_SetMeteringEnabled` | `Dsp.setMeteringEnabled` |  |
 | `FMOD_DSP_SetParameterBool` | `Dsp.setParameterBool` |  |
 | `FMOD_DSP_SetParameterData` | `Dsp.setParameterData`<br>`Dsp.setParameter3DAttributes`<br>`Dsp.setParameter3DAttributesMulti` |  |
-| `FMOD_DSP_SetParameterFloat` | `Dsp.setParameter` |  |
+| `FMOD_DSP_SetParameterFloat` | `Dsp.setParameterFloat`<br>`Dsp.setParameter` |  |
 | `FMOD_DSP_SetParameterInt` | `Dsp.setParameterInt` |  |
 | `FMOD_DSP_SetUserData` | `Dsp.setUserData` |  |
 | `FMOD_DSP_SetWetDryMix` | `Dsp.setWetDryMix` |  |
@@ -322,8 +322,8 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_SoundGroup_GetMaxAudibleBehavior` | `SoundGroup.getMaxAudibleBehavior` |  |
 | `FMOD_SoundGroup_GetMuteFadeSpeed` | `SoundGroup.getMuteFadeSpeed` |  |
 | `FMOD_SoundGroup_GetName` | `SoundGroup.getName` |  |
-| `FMOD_SoundGroup_GetNumPlaying` | `SoundGroup.getPlayingCount` |  |
-| `FMOD_SoundGroup_GetNumSounds` | `SoundGroup.getSoundCount` |  |
+| `FMOD_SoundGroup_GetNumPlaying` | `SoundGroup.getNumPlaying`<br>`SoundGroup.getPlayingCount` |  |
+| `FMOD_SoundGroup_GetNumSounds` | `SoundGroup.getNumSounds`<br>`SoundGroup.getSoundCount` |  |
 | `FMOD_SoundGroup_GetSound` | `SoundGroup.getSound` |  |
 | `FMOD_SoundGroup_GetUserData` | `SoundGroup.getUserData` |  |
 | `FMOD_SoundGroup_GetVolume` | `SoundGroup.getVolume` |  |
@@ -348,7 +348,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_Studio_Bank_GetPath` | `Bank.getPath` |  |
 | `FMOD_Studio_Bank_GetSampleLoadingState` | `Bank.getSampleLoadingState` |  |
 | `FMOD_Studio_Bank_GetStringCount` | `Bank.getStringCount` |  |
-| `FMOD_Studio_Bank_GetStringInfo` | `Bank.getStringGuid`<br>`Bank.getStringPath` |  |
+| `FMOD_Studio_Bank_GetStringInfo` | `Bank.getStringInfo`<br>`Bank.getStringGuid`<br>`Bank.getStringPath` |  |
 | `FMOD_Studio_Bank_GetUserData` | `Bank.getUserData` |  |
 | `FMOD_Studio_Bank_GetVCACount` | `Bank.getVCACount` |  |
 | `FMOD_Studio_Bank_GetVCAList` | `Bank.getVCAList` |  |
@@ -369,11 +369,13 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_Studio_Bus_GetMute` | `Bus.getMute` |  |
 | `FMOD_Studio_Bus_GetPath` | `Bus.getPath` |  |
 | `FMOD_Studio_Bus_GetPaused` | `Bus.getPaused` |  |
+| `FMOD_Studio_Bus_GetPortIndex` | `Bus.getPortIndex` | compile error |
 | `FMOD_Studio_Bus_GetVolume` | `Bus.getVolume`<br>`Bus.getFinalVolume` |  |
 | `FMOD_Studio_Bus_IsValid` | `Bus.isValid` |  |
 | `FMOD_Studio_Bus_LockChannelGroup` | `Bus.lockChannelGroup` |  |
 | `FMOD_Studio_Bus_SetMute` | `Bus.setMute` |  |
 | `FMOD_Studio_Bus_SetPaused` | `Bus.setPaused` |  |
+| `FMOD_Studio_Bus_SetPortIndex` | `Bus.setPortIndex` | compile error |
 | `FMOD_Studio_Bus_SetVolume` | `Bus.setVolume` |  |
 | `FMOD_Studio_Bus_StopAllEvents` | `Bus.stopAllEvents` |  |
 | `FMOD_Studio_Bus_UnlockChannelGroup` | `Bus.unlockChannelGroup` |  |
@@ -414,12 +416,13 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_Studio_EventDescription_GetParameterDescriptionByIndex` | `EventDescription.getParameterDescriptionByIndex` |  |
 | `FMOD_Studio_EventDescription_GetParameterDescriptionByName` | `EventDescription.getParameterDescriptionByName` |  |
 | `FMOD_Studio_EventDescription_GetParameterDescriptionCount` | `EventDescription.getParameterDescriptionCount` |  |
-| `FMOD_Studio_EventDescription_GetParameterLabelByName` | `EventDescription.getParameterLabel` |  |
+| `FMOD_Studio_EventDescription_GetParameterLabelByIndex` | `EventDescription.getParameterLabelByIndex` |  |
+| `FMOD_Studio_EventDescription_GetParameterLabelByName` | `EventDescription.getParameterLabelByName`<br>`EventDescription.getParameterLabel` |  |
 | `FMOD_Studio_EventDescription_GetPath` | `EventDescription.getPath` |  |
 | `FMOD_Studio_EventDescription_GetSampleLoadingState` | `EventDescription.getSampleLoadingState` |  |
 | `FMOD_Studio_EventDescription_GetSoundSize` | `EventDescription.getSoundSize` |  |
 | `FMOD_Studio_EventDescription_GetUserData` | `EventDescription.getUserData` |  |
-| `FMOD_Studio_EventDescription_GetUserPropertyByIndex` | `EventDescription.getUserProperty` |  |
+| `FMOD_Studio_EventDescription_GetUserPropertyByIndex` | `EventDescription.getUserPropertyByIndex` |  |
 | `FMOD_Studio_EventDescription_GetUserPropertyCount` | `EventDescription.getUserPropertyCount` |  |
 | `FMOD_Studio_EventDescription_HasSustainPoint` | `EventDescription.hasSustainPoint` |  |
 | `FMOD_Studio_EventDescription_Is3D` | `EventDescription.is3D` |  |
@@ -445,7 +448,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_Studio_EventInstance_GetMemoryUsage` | `EventInstance.getMemoryUsage` | compile error |
 | `FMOD_Studio_EventInstance_GetMinMaxDistance` | `EventInstance.getMinMaxDistance` |  |
 | `FMOD_Studio_EventInstance_GetParameterByID` | `EventInstance.getParameterByID`<br>`EventInstance.getParameterByIDFinal` |  |
-| `FMOD_Studio_EventInstance_GetParameterByName` | `EventInstance.getParameter`<br>`EventInstance.getParameterFinal` |  |
+| `FMOD_Studio_EventInstance_GetParameterByName` | `EventInstance.getParameterByName`<br>`EventInstance.getParameter`<br>`EventInstance.getParameterByNameFinal`<br>`EventInstance.getParameterFinal` |  |
 | `FMOD_Studio_EventInstance_GetPaused` | `EventInstance.getPaused` |  |
 | `FMOD_Studio_EventInstance_GetPitch` | `EventInstance.getPitch`<br>`EventInstance.getFinalPitch` |  |
 | `FMOD_Studio_EventInstance_GetPlaybackState` | `EventInstance.getPlaybackState` |  |
@@ -463,8 +466,9 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_Studio_EventInstance_SetListenerMask` | `EventInstance.setListenerMask` |  |
 | `FMOD_Studio_EventInstance_SetParameterByID` | `EventInstance.setParameterByID` |  |
 | `FMOD_Studio_EventInstance_SetParameterByIDWithLabel` | `EventInstance.setParameterByIDWithLabel` |  |
-| `FMOD_Studio_EventInstance_SetParameterByName` | `EventInstance.setParameter` |  |
-| `FMOD_Studio_EventInstance_SetParameterByNameWithLabel` | `EventInstance.setParameterWithLabel` |  |
+| `FMOD_Studio_EventInstance_SetParameterByName` | `EventInstance.setParameterByName`<br>`EventInstance.setParameter` |  |
+| `FMOD_Studio_EventInstance_SetParameterByNameWithLabel` | `EventInstance.setParameterByNameWithLabel`<br>`EventInstance.setParameterWithLabel` |  |
+| `FMOD_Studio_EventInstance_SetParametersByIDs` | `EventInstance.setParametersByIDs` |  |
 | `FMOD_Studio_EventInstance_SetPaused` | `EventInstance.setPaused` |  |
 | `FMOD_Studio_EventInstance_SetPitch` | `EventInstance.setPitch` |  |
 | `FMOD_Studio_EventInstance_SetProperty` | `EventInstance.setProperty` |  |
@@ -499,11 +503,11 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_Studio_System_GetMemoryUsage` | `StudioSystem.getMemoryUsage` | compile error |
 | `FMOD_Studio_System_GetNumListeners` | `StudioSystem.getNumListeners` |  |
 | `FMOD_Studio_System_GetParameterByID` | `StudioSystem.getParameterByID`<br>`StudioSystem.getParameterByIDFinal` |  |
-| `FMOD_Studio_System_GetParameterByName` | `StudioSystem.getParameter`<br>`StudioSystem.getParameterFinal` |  |
+| `FMOD_Studio_System_GetParameterByName` | `StudioSystem.getParameterByName`<br>`StudioSystem.getParameter`<br>`StudioSystem.getParameterByNameFinal`<br>`StudioSystem.getParameterFinal` |  |
 | `FMOD_Studio_System_GetParameterDescriptionByName` | `StudioSystem.getParameterDescriptionByName` |  |
 | `FMOD_Studio_System_GetParameterDescriptionCount` | `StudioSystem.getParameterDescriptionCount` |  |
 | `FMOD_Studio_System_GetParameterDescriptionList` | `StudioSystem.getParameterDescriptionByIndex` |  |
-| `FMOD_Studio_System_GetParameterLabelByName` | `StudioSystem.getParameterLabel` |  |
+| `FMOD_Studio_System_GetParameterLabelByName` | `StudioSystem.getParameterLabelByName`<br>`StudioSystem.getParameterLabel` |  |
 | `FMOD_Studio_System_GetSoundInfo` | `StudioSystem.getSoundInfo` |  |
 | `FMOD_Studio_System_GetUserData` | `StudioSystem.getUserData` |  |
 | `FMOD_Studio_System_GetVCA` | `StudioSystem.getVCA` |  |
@@ -523,8 +527,9 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_Studio_System_SetNumListeners` | `StudioSystem.setNumListeners` |  |
 | `FMOD_Studio_System_SetParameterByID` | `StudioSystem.setParameterByID` |  |
 | `FMOD_Studio_System_SetParameterByIDWithLabel` | `StudioSystem.setParameterByIDWithLabel` |  |
-| `FMOD_Studio_System_SetParameterByName` | `StudioSystem.setParameter` |  |
-| `FMOD_Studio_System_SetParameterByNameWithLabel` | `StudioSystem.setParameterWithLabel` |  |
+| `FMOD_Studio_System_SetParameterByName` | `StudioSystem.setParameterByName`<br>`StudioSystem.setParameter` |  |
+| `FMOD_Studio_System_SetParameterByNameWithLabel` | `StudioSystem.setParameterByNameWithLabel`<br>`StudioSystem.setParameterWithLabel` |  |
+| `FMOD_Studio_System_SetParametersByIDs` | `StudioSystem.setParametersByIDs` |  |
 | `FMOD_Studio_System_SetUserData` | `StudioSystem.setUserData` |  |
 | `FMOD_Studio_System_StartCommandCapture` | `StudioSystem.startCommandCapture` |  |
 | `FMOD_Studio_System_StopCommandCapture` | `StudioSystem.stopCommandCapture` |  |
@@ -558,6 +563,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_System_GetAdvancedSettings` | `StudioSystem.getAdvancedSettings` | compile error |
 | `FMOD_System_GetChannel` | `CoreSystem.getChannel` |  |
 | `FMOD_System_GetChannelsPlaying` | `CoreSystem.getChannelsPlaying` |  |
+| `FMOD_System_GetDSPBufferSize` | `CoreSystem.getDSPBufferSize` |  |
 | `FMOD_System_GetDSPInfoByPlugin` | `Dsp.getPluginInfo` | compile error |
 | `FMOD_System_GetDSPInfoByType` | `CoreSystem.getDspInfoByType` | compile error |
 | `FMOD_System_GetDefaultMixMatrix` | `CoreSystem.getDefaultMixMatrix` | compile error |
@@ -571,9 +577,9 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_System_GetNestedPlugin` | `StudioSystem.getNestedPlugin` | compile error |
 | `FMOD_System_GetNetworkProxy` | `CoreSystem.getNetworkProxy` |  |
 | `FMOD_System_GetNetworkTimeout` | `CoreSystem.getNetworkTimeout` |  |
-| `FMOD_System_GetNumDrivers` | `CoreSystem.getDriverCount` |  |
-| `FMOD_System_GetNumNestedPlugins` | `StudioSystem.getNestedPluginCount` | compile error |
-| `FMOD_System_GetNumPlugins` | `StudioSystem.getPluginCount` | compile error |
+| `FMOD_System_GetNumDrivers` | `CoreSystem.getNumDrivers`<br>`CoreSystem.getDriverCount` |  |
+| `FMOD_System_GetNumNestedPlugins` | `StudioSystem.getNumNestedPlugins`<br>`StudioSystem.getNestedPluginCount` | compile error |
+| `FMOD_System_GetNumPlugins` | `StudioSystem.getNumPlugins`<br>`StudioSystem.getPluginCount` | compile error |
 | `FMOD_System_GetOutput` | `CoreSystem.getOutput` |  |
 | `FMOD_System_GetOutputByPlugin` | `CoreSystem.getOutputByPlugin` |  |
 | `FMOD_System_GetPluginHandle` | `StudioSystem.getPluginHandle` | compile error |
@@ -582,9 +588,11 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_System_GetRecordNumDrivers` | `StudioSystem.getRecordDriverCount` | compile error |
 | `FMOD_System_GetRecordPosition` | `StudioSystem.getRecordPosition` | compile error |
 | `FMOD_System_GetReverbProperties` | `Reverb.get` |  |
+| `FMOD_System_GetSoftwareChannels` | `CoreSystem.getSoftwareChannels` |  |
 | `FMOD_System_GetSoftwareFormat` | `CoreSystem.getSoftwareFormat` |  |
 | `FMOD_System_GetSpeakerModeChannels` | `CoreSystem.getSpeakerModeChannels` |  |
 | `FMOD_System_GetSpeakerPosition` | `CoreSystem.getSpeakerPosition` |  |
+| `FMOD_System_GetStreamBufferSize` | `CoreSystem.getStreamBufferSize` |  |
 | `FMOD_System_GetUserData` | `StudioSystem.getUserData` |  |
 | `FMOD_System_GetVersion` | `StudioSystem.getVersion` | limited |
 | `FMOD_System_IsRecording` | `StudioSystem.isRecording` | compile error |

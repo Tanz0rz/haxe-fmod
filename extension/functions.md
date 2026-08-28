@@ -391,43 +391,9 @@ if (usage != null) {
 }
 ```
 
-## system_getdspbuffersize
-<!-- System::getDSPBufferSize -->
-verdict: bound
-Covered by FmodSettings. The mixer buffer is set once at init through dspBufferSize and dspNumBuffers, and FmodRuntime.settings() reports the values the engine started with, 0 when FMOD's default was kept. On HTML5 the web build starts at 2048 samples by 2 buffers and takes the values as well.
-```haxe
-import haxefmod.runtime.FmodRuntime;
-
-FmodManager.Initialize({dspBufferSize: 512, dspNumBuffers: 4});
-var settings = FmodRuntime.settings();
-trace('mixer ${settings.dspBufferSize} x ${settings.dspNumBuffers}');
-```
-
 ## system_getoutputhandle
 <!-- System::getOutputHandle -->
 verdict: cannot It returns a raw operating system pointer, which has no meaning in Haxe. Output device selection goes through CoreSystem.getDriverCount, getDriverName, and setDriver.
-
-## system_getsoftwarechannels
-<!-- System::getSoftwareChannels -->
-verdict: bound
-Covered by FmodSettings. The audible voice cap is set once at init through softwareChannels, and FmodRuntime.settings().softwareChannels reports the value the engine started with, 0 when FMOD's default of 64 was kept.
-```haxe
-import haxefmod.runtime.FmodRuntime;
-
-FmodManager.Initialize({softwareChannels: 128});
-var voices = FmodRuntime.settings().softwareChannels;
-```
-
-## system_getstreambuffersize
-<!-- System::getStreamBufferSize -->
-verdict: bound
-Covered by FmodSettings. The file stream buffer is set once at init through streamBufferSize, and FmodRuntime.settings().streamBufferSize reports the value the engine started with, 0 when FMOD's default of 16384 bytes was kept. PcmStream.space() reports how much room a stream you feed yourself has left.
-```haxe
-import haxefmod.runtime.FmodRuntime;
-
-FmodManager.Initialize({streamBufferSize: 65536});
-var bytes = FmodRuntime.settings().streamBufferSize;
-```
 
 ## system_init
 <!-- System::init -->
@@ -521,14 +487,6 @@ haxefmod calls this for you. FmodManager.Update() (or FmodRuntime.update()) serv
 FmodManager.Update();
 ```
 
-## studio_bus_getportindex
-<!-- Studio::Bus::getPortIndex -->
-verdict: covered Bus port indices are a console feature and are not bound. On desktop, CoreSystem.attachChannelGroupToPort(portType, portIndex, group) routes a group to a port, and Bus.getChannelGroup() gives the group behind a bus.
-
-## studio_bus_setportindex
-<!-- Studio::Bus::setPortIndex -->
-verdict: covered Bus port indices are a console feature and are not bound. On desktop, CoreSystem.attachChannelGroupToPort(portType, portIndex, group) routes a group to a port, and Bus.getChannelGroup() gives the group behind a bus.
-
 ## studio_commandreplay_getsystem
 <!-- Studio::CommandReplay::getSystem -->
 verdict: bound
@@ -583,25 +541,13 @@ if (surface != null) {
 }
 ```
 
-## studio_eventdescription_getparameterlabelbyindex
-<!-- Studio::EventDescription::getParameterLabelByIndex -->
-verdict: bound
-haxefmod covers this with EventDescription.getParameterDescriptionByIndex() followed by getParameterLabel() with the parameter's name, or getParameterLabelByID() with its id.
-```haxe
-var description = StudioSystem.getEvent(FmodEvents.SFXEngine);
-var parameter = description.getParameterDescriptionByIndex(0);
-if (parameter != null) {
-    var label = description.getParameterLabel(parameter.name, 0);
-}
-```
-
 ## studio_eventdescription_getuserproperty
 <!-- Studio::EventDescription::getUserProperty -->
 verdict: bound
-haxefmod covers this with EventDescription.getUserPropertyByName(). Numeric typed properties are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED because of a defect in FMOD's JS runtime, and string typed properties read on every target.
+EventDescription.getUserProperty(name) walks the properties FMOD reports by index and returns the one with that name, so the same FmodUserProperty comes back as from FMOD's lookup by name. Numeric typed properties are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED because of a defect in FMOD's JS runtime, and string typed properties read on every target.
 ```haxe
 var description = StudioSystem.getEvent(FmodEvents.MusicMainLevel);
-var property = description.getUserPropertyByName("Author");
+var property = description.getUserProperty("Author");
 if (property != null) {
     trace(property.name);
 }
@@ -626,20 +572,6 @@ verdict: bound
 haxefmod has one Studio system, and StudioSystem reaches it directly, so an instance never needs to hand it back.
 ```haxe
 var bus = StudioSystem.getBus(FmodBuses.Music);
-```
-
-## studio_eventinstance_setparametersbyids
-<!-- Studio::EventInstance::setParametersByIDs -->
-verdict: bound
-haxefmod covers this with one EventInstance.setParameterByID() call per parameter. The call is cheap, and FMOD applies the values on the next update either way.
-```haxe
-import haxefmod.studio.Types;
-
-var ids:Array<FmodParameterId> = [{data1: 0, data2: 0}];
-var values = [0.5];
-for (i in 0...ids.length) {
-    instance.setParameterByID(ids[i], values[i]);
-}
 ```
 
 ## studio_system_getparameterdescriptionbyid
@@ -688,20 +620,6 @@ verdict: bound
 haxefmod applies these before init from FmodSettings, which carries commandQueueSize, handleInitialSize, studioUpdatePeriod, idleSampleDataPoolSize, streamingScheduleDelay, and encryptionKey. Zero or null keeps FMOD's default for a field. Read them back with StudioSystem.getStudioAdvancedSettings() (unsupported in HTML5, returns null there).
 ```haxe
 FmodManager.Initialize({commandQueueSize: 65536});
-```
-
-## studio_system_setparametersbyids
-<!-- Studio::System::setParametersByIDs -->
-verdict: bound
-haxefmod covers this with one StudioSystem.setParameterByID() call per global parameter. The call is cheap, and FMOD applies the values on the next update either way.
-```haxe
-import haxefmod.studio.Types;
-
-var ids:Array<FmodParameterId> = [{data1: 0, data2: 0}];
-var values = [0.5];
-for (i in 0...ids.length) {
-    StudioSystem.setParameterByID(ids[i], values[i]);
-}
 ```
 
 ## studio_system_unregisterplugin

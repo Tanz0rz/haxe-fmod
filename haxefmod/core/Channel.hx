@@ -1,6 +1,7 @@
 package haxefmod.core;
 
 import haxefmod.studio.FmodResult;
+import haxefmod.studio.Types;
 import haxefmod.studio.Types.FmodTimeUnit;
 import haxefmod.studio.Types.FmodVector;
 import haxefmod.studio.UserData;
@@ -122,6 +123,16 @@ abstract Channel(Int) from Int to Int {
         return NativeStudio.chan_set_reverb_wet(this, instance, wet);
     }
 
+    /** The same reverb send as setReverbWet under FMOD's name (ChannelControl::setReverbProperties). */
+    public inline function setReverbProperties(instance:Int, wet:Float):FmodResult {
+        return NativeStudio.chan_set_reverb_wet(this, instance, wet);
+    }
+
+    /** The wet level of a reverb send, the same read as getReverbWet under FMOD's name. */
+    public inline function getReverbProperties(instance:Int):Float {
+        return NativeStudio.chan_get_reverb_wet(this, instance);
+    }
+
     public inline function getMute():Bool {
         return NativeStudio.chan_get_mute(this);
     }
@@ -154,7 +165,7 @@ abstract Channel(Int) from Int to Int {
         return NativeStudio.chan_set_3d_occlusion(this, direct, reverb);
     }
 
-    public function get3DOcclusion():Null<{direct:Float, reverb:Float}> {
+    public function get3DOcclusion():Null<FmodOcclusion> {
         var result:FmodResult = NativeStudio.chan_get_3d_occlusion(this);
         if (!result.isOk()) return null;
         return {direct: Scratch.readF(0), reverb: Scratch.readF(1)};
@@ -170,7 +181,7 @@ abstract Channel(Int) from Int to Int {
         return NativeStudio.chan_set_3d_distance_filter(this, custom, customLevel, centerFreq);
     }
 
-    public function get3DDistanceFilter():Null<{custom:Bool, customLevel:Float, centerFreq:Float}> {
+    public function get3DDistanceFilter():Null<FmodDistanceFilter> {
         var result:FmodResult = NativeStudio.chan_get_3d_distance_filter(this);
         if (!result.isOk()) return null;
         return {custom: Scratch.readF(0) != 0, customLevel: Scratch.readF(1), centerFreq: Scratch.readF(2)};
@@ -256,7 +267,7 @@ abstract Channel(Int) from Int to Int {
      * `parent` is the group clock that setDelay and fade points schedule
      * against. Clocks are exact to 2^53 samples.
      */
-    public function getDspClock():Null<{clock:Float, parent:Float}> {
+    public function getDspClock():Null<FmodDspClock> {
         var result:FmodResult = NativeStudio.chan_get_dsp_clock(this);
         if (!result.isOk()) return null;
         return {clock: Scratch.readF(0), parent: Scratch.readF(1)};
@@ -310,7 +321,7 @@ abstract Channel(Int) from Int to Int {
         return NativeStudio.chan_get_mode(this);
     }
 
-    public function get3DConeSettings():Null<{insideAngle:Float, outsideAngle:Float, outsideVolume:Float}> {
+    public function get3DConeSettings():Null<FmodConeSettings> {
         var result:FmodResult = NativeStudio.chan_get_3d_cone_settings(this);
         if (!result.isOk()) return null;
         return {insideAngle: Scratch.readF(0), outsideAngle: Scratch.readF(1), outsideVolume: Scratch.readF(2)};
@@ -328,20 +339,20 @@ abstract Channel(Int) from Int to Int {
         return NativeStudio.chan_get_3d_doppler_level(this);
     }
 
-    public function get3DMinMaxDistance():Null<{minDistance:Float, maxDistance:Float}> {
+    public function get3DMinMaxDistance():Null<FmodMinMaxDistance> {
         var result:FmodResult = NativeStudio.chan_get_3d_min_max(this);
         if (!result.isOk()) return null;
         return {minDistance: Scratch.readF(0), maxDistance: Scratch.readF(1)};
     }
 
-    public function get3DAttributes():Null<{posX:Float, posY:Float, posZ:Float, velX:Float, velY:Float, velZ:Float}> {
+    public function get3DAttributes():Null<FmodChannel3DAttributes> {
         var result:FmodResult = NativeStudio.chan_get_3d_attributes(this);
         if (!result.isOk()) return null;
         return {posX: Scratch.readF(0), posY: Scratch.readF(1), posZ: Scratch.readF(2),
             velX: Scratch.readF(3), velY: Scratch.readF(4), velZ: Scratch.readF(5)};
     }
 
-    public function getDelay():Null<{startClock:Float, endClock:Float, stopChannels:Bool}> {
+    public function getDelay():Null<FmodDelay> {
         var result:FmodResult = NativeStudio.chan_get_delay(this);
         if (!result.isOk()) return null;
         return {startClock: Scratch.readF(0), endClock: Scratch.readF(1), stopChannels: Scratch.readF(2) > 0.5};
@@ -404,13 +415,18 @@ abstract Channel(Int) from Int to Int {
         return NativeStudio.chan_get_index(this);
     }
 
-    public function get3DConeOrientation():Null<{x:Float, y:Float, z:Float}> {
+    public function get3DConeOrientation():Null<FmodVector> {
         var result:FmodResult = NativeStudio.chan_get_3d_cone_orientation(this);
         if (!result.isOk()) return null;
         return {x: Scratch.readF(0), y: Scratch.readF(1), z: Scratch.readF(2)};
     }
 
     public inline function getDspCount():Int {
+        return NativeStudio.chan_get_num_dsps(this);
+    }
+
+    /** The same count as getDspCount under FMOD's name. */
+    public inline function getNumDSPs():Int {
         return NativeStudio.chan_get_num_dsps(this);
     }
 
@@ -449,7 +465,7 @@ abstract Channel(Int) from Int to Int {
      * (unsupported in HTML5, null there). Null on failure, at most
      * Scratch.CAPACITY / 2 points.
      */
-    public function getFadePoints():Null<Array<{clock:Float, volume:Float}>> {
+    public function getFadePoints():Null<Array<FmodFadePoint>> {
         var count = NativeStudio.chan_get_fade_points(this);
         var result:FmodResult = haxefmod.studio.StudioSystem.lastResult();
         if (!result.isOk()) return null;
@@ -476,7 +492,7 @@ abstract Channel(Int) from Int to Int {
      * HTML5, null there). outChannels and inChannels above 0 keep only
      * that many rows and columns. Null on failure, at most 32 by 32.
      */
-    public function getMixMatrix(outChannels:Int = 0, inChannels:Int = 0, inChannelHop:Int = 0):Null<{matrix:Array<Float>, outChannels:Int, inChannels:Int}> {
+    public function getMixMatrix(outChannels:Int = 0, inChannels:Int = 0, inChannelHop:Int = 0):Null<FmodMixMatrix> {
         var total = NativeStudio.chan_get_mix_matrix(this, inChannelHop);
         if (total <= 0) return null;
         return MixMatrix.read(total, outChannels, inChannels, inChannelHop);

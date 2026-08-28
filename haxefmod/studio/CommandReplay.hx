@@ -127,7 +127,7 @@ abstract CommandReplay(Int) from Int to Int {
      * The index of the command the replay is on and the playback time in
      * seconds, or null on failure.
      */
-    public function getCurrentCommand():Null<{index:Int, time:Float}> {
+    public function getCurrentCommand():Null<FmodReplayCommand> {
         var index = NativeStudio.replay_get_current_command(this);
         if (!StudioSystem.lastResult().isOk()) return null;
         return {index: index, time: Scratch.readF(0)};

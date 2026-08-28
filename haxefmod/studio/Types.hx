@@ -728,6 +728,261 @@ typedef FmodThreadAttributes = {
     @:optional var affinity:FmodThreadAffinity;
 }
 
+//// Named return shapes for the getters that hand back more than one value.
+//// FMOD's C# integration returns them as out parameters, Haxe returns one
+//// struct with the same words. These are not FMOD header types.
+
+/** What CoreSystem.getChannelsPlaying returns (System::getChannelsPlaying): channels playing including virtual ones, and real voices */
+typedef FmodChannelsPlaying = {
+    var all:Int;
+    var real:Int;
+}
+
+/** What CoreSystem.getSoftwareFormat returns (System::getSoftwareFormat) */
+typedef FmodSoftwareFormat = {
+    var sampleRate:Int;
+    var speakerMode:FmodSpeakerMode;
+    var rawSpeakers:Int;
+}
+
+/** What CoreSystem.get3DSettings returns (System::get3DSettings) */
+typedef Fmod3DSettings = {
+    var dopplerScale:Float;
+    var distanceFactor:Float;
+    var rolloffScale:Float;
+}
+
+/** What CoreSystem.getDriverInfo returns (System::getDriverInfo), guid in the braced text form */
+typedef FmodDriverInfo = {
+    var name:String;
+    var guid:String;
+    var systemRate:Int;
+    var speakerMode:FmodSpeakerMode;
+    var speakerModeChannels:Int;
+}
+
+/** What StudioSystem.getRecordDriverInfo returns (System::getRecordDriverInfo) */
+typedef FmodRecordDriverInfo = {
+    var name:String;
+    var guid:String;
+    var systemRate:Int;
+    var speakerMode:FmodSpeakerMode;
+    var channels:Int;
+    var state:FmodDriverState;
+}
+
+/** What StudioSystem.getRecordDriverCount returns (System::getRecordNumDrivers): drivers present and drivers connected */
+typedef FmodRecordDriverCount = {
+    var drivers:Int;
+    var connected:Int;
+}
+
+/** What CoreSystem.getSpeakerPosition returns (System::getSpeakerPosition) */
+typedef FmodSpeakerPosition = {
+    var x:Float;
+    var y:Float;
+    var active:Bool;
+}
+
+/** The FMOD_DSP_DESCRIPTION fields CoreSystem.getDspInfoByType and Dsp.getPluginInfo read out of a unit description */
+typedef FmodDspDescriptionInfo = {
+    var name:String;
+    var version:Int;
+    var inputBuffers:Int;
+    var outputBuffers:Int;
+    var parameterCount:Int;
+}
+
+/** What Dsp.getInfo returns (DSP::getInfo) */
+typedef FmodDspInfo = {
+    var name:String;
+    var version:Int;
+    var channels:Int;
+    var configWidth:Int;
+    var configHeight:Int;
+}
+
+/** What StudioSystem.getPluginInfo returns (System::getPluginInfo) */
+typedef FmodPluginInfo = {
+    var name:String;
+    var type:FmodPluginType;
+    var version:Int;
+}
+
+/** What StudioSystem.getMemoryStats returns (Memory_GetStats): bytes allocated now and the high water mark */
+typedef FmodMemoryStats = {
+    var current:Int;
+    var maximum:Int;
+}
+
+/** What StudioSystem.getFileUsage returns (System::getFileUsage), byte counts as Float since they pass 2^31 */
+typedef FmodFileUsage = {
+    var sampleBytesRead:Float;
+    var streamBytesRead:Float;
+    var otherBytesRead:Float;
+}
+
+/** What CoreSystem.getDSPBufferSize returns (System::getDSPBufferSize): samples per mixer buffer and buffer count */
+typedef FmodDspBufferSize = {
+    var bufferLength:Int;
+    var numBuffers:Int;
+}
+
+/** What CoreSystem.getStreamBufferSize returns (System::getStreamBufferSize): the file buffer size and the unit it is in */
+typedef FmodStreamBufferSize = {
+    var fileBufferSize:Int;
+    var fileBufferSizeType:FmodTimeUnit;
+}
+
+/** What Channel.getDspClock and ChannelGroup.getDspClock return (ChannelControl::getDSPClock): own clock and parent clock in samples */
+typedef FmodDspClock = {
+    var clock:Float;
+    var parent:Float;
+}
+
+/** What Channel.getDelay and ChannelGroup.getDelay return (ChannelControl::getDelay) */
+typedef FmodDelay = {
+    var startClock:Float;
+    var endClock:Float;
+    var stopChannels:Bool;
+}
+
+/** What Channel.get3DAttributes and ChannelGroup.get3DAttributes return (ChannelControl::get3DAttributes): position and velocity */
+typedef FmodChannel3DAttributes = {
+    var posX:Float;
+    var posY:Float;
+    var posZ:Float;
+    var velX:Float;
+    var velY:Float;
+    var velZ:Float;
+}
+
+/** What get3DMinMaxDistance returns on Sound, Channel, and ChannelGroup */
+typedef FmodMinMaxDistance = {
+    var minDistance:Float;
+    var maxDistance:Float;
+}
+
+/** What EventDescription.getMinMaxDistance and EventInstance.getMinMaxDistance return */
+typedef FmodEventMinMaxDistance = {
+    var min:Float;
+    var max:Float;
+}
+
+/** Direct and reverb occlusion, what get3DOcclusion, Geometry.getOcclusion, and Geometry.getPolygonAttributes report */
+typedef FmodOcclusion = {
+    var direct:Float;
+    var reverb:Float;
+}
+
+/** What get3DDistanceFilter returns on Channel and ChannelGroup (ChannelControl::get3DDistanceFilter) */
+typedef FmodDistanceFilter = {
+    var custom:Bool;
+    var customLevel:Float;
+    var centerFreq:Float;
+}
+
+/** What get3DConeSettings returns on Sound, Channel, and ChannelGroup */
+typedef FmodConeSettings = {
+    var insideAngle:Float;
+    var outsideAngle:Float;
+    var outsideVolume:Float;
+}
+
+/** What getMixMatrix returns on Channel, ChannelGroup, and DspConnection: the flat row-major matrix with the channel counts FMOD reports */
+typedef FmodMixMatrix = {
+    var matrix:Array<Float>;
+    var outChannels:Int;
+    var inChannels:Int;
+}
+
+/** One scheduled fade point, what getFadePoints lists (ChannelControl::getFadePoints) */
+typedef FmodFadePoint = {
+    var clock:Float;
+    var volume:Float;
+}
+
+/** What Dsp.getWetDryMix returns (DSP::getWetDryMix) */
+typedef FmodWetDryMix = {
+    var prewet:Float;
+    var postwet:Float;
+    var dry:Float;
+}
+
+/** What Dsp.getMeteringEnabled returns (DSP::getMeteringEnabled) */
+typedef FmodMeteringEnabled = {
+    var input:Bool;
+    var output:Bool;
+}
+
+/** What Dsp.getChannelFormat and getOutputChannelFormat return (DSP::getChannelFormat) */
+typedef FmodChannelFormat = {
+    var channelMask:FmodChannelMask;
+    var channels:Int;
+    var speakerMode:FmodSpeakerMode;
+}
+
+/** What Sound.getDefaults returns (Sound::getDefaults) */
+typedef FmodSoundDefaults = {
+    var frequency:Float;
+    var priority:Int;
+}
+
+/** What Sound.getFormat returns (Sound::getFormat) */
+typedef FmodSoundFormatInfo = {
+    var type:FmodSoundType;
+    var format:FmodSoundFormat;
+    var channels:Int;
+    var bits:Int;
+}
+
+/** What Sound.getOpenStateInfo returns (Sound::getOpenState) */
+typedef FmodOpenStateInfo = {
+    var state:FmodOpenState;
+    var percentBuffered:Int;
+    var starving:Bool;
+    var diskBusy:Bool;
+}
+
+/** What Reverb3D.get3DAttributes returns (Reverb3D::get3DAttributes): the zone position and its distance range */
+typedef FmodReverb3DAttributes = {
+    var x:Float;
+    var y:Float;
+    var z:Float;
+    var minDistance:Float;
+    var maxDistance:Float;
+}
+
+/** What Geometry.getMaxPolygons returns (Geometry::getMaxPolygons) */
+typedef FmodGeometryMaxPolygons = {
+    var polygons:Int;
+    var vertices:Int;
+}
+
+/** What Geometry.getPolygonAttributes returns (Geometry::getPolygonAttributes) */
+typedef FmodPolygonAttributes = {
+    > FmodOcclusion,
+    var doubleSided:Bool;
+}
+
+/** What Geometry.getRotation returns (Geometry::getRotation) */
+typedef FmodGeometryRotation = {
+    var forward:FmodVector;
+    var up:FmodVector;
+}
+
+/** What CommandReplay.getCurrentCommand returns (Studio::CommandReplay::getCurrentCommand): the command index and the time in seconds */
+typedef FmodReplayCommand = {
+    var index:Int;
+    var time:Float;
+}
+
+/** What Bank.getStringInfo returns (Studio::Bank::getStringInfo): a string table entry's GUID in the braced text form and its path */
+typedef FmodBankStringInfo = {
+    var id:String;
+    var path:String;
+}
+
 /**
  * FMOD_PORT_INDEX, the port slot CoreSystem.attachChannelGroupToPort
  * takes. FMOD's NONE is the 64-bit all-ones value, which crosses as -1.

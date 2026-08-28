@@ -14,7 +14,7 @@ FMOD_CHANNELMASK                                    haxefmod.studio.Types.FmodCh
 FMOD_CHANNELORDER                                   haxefmod.studio.Types.FmodChannelOrder
 FMOD_CODEC_ALLOC_FUNC                               cannot   runs on FMOD's threads inside a codec plugin, plugin authoring is C only
 FMOD_CODEC_CLOSE_CALLBACK                           cannot   runs on FMOD's threads inside a codec plugin, plugin authoring is C only
-FMOD_CODEC_DESCRIPTION                              cannot   codec plugins are written in C, Sound.create loads every format FMOD decodes and PcmStream feeds decoded audio
+FMOD_CODEC_DESCRIPTION                              cannot   a codec plugin's callback table, which FMOD calls on its streaming and loading threads, plugin authoring is C only, Sound.create loads every format FMOD decodes and PcmStream feeds decoded audio
 FMOD_CODEC_FILE_READ_FUNC                           cannot   runs on FMOD's threads inside a codec plugin, plugin authoring is C only
 FMOD_CODEC_FILE_SEEK_FUNC                           cannot   runs on FMOD's threads inside a codec plugin, plugin authoring is C only
 FMOD_CODEC_FILE_SIZE_FUNC                           cannot   runs on FMOD's threads inside a codec plugin, plugin authoring is C only
@@ -29,8 +29,8 @@ FMOD_CODEC_OPEN_CALLBACK                            cannot   runs on FMOD's thre
 FMOD_CODEC_READ_CALLBACK                            cannot   runs on FMOD's threads inside a codec plugin, plugin authoring is C only
 FMOD_CODEC_SETPOSITION_CALLBACK                     cannot   runs on FMOD's threads inside a codec plugin, plugin authoring is C only
 FMOD_CODEC_SOUNDCREATE_CALLBACK                     cannot   runs on FMOD's threads inside a codec plugin, plugin authoring is C only
-FMOD_CODEC_SEEK_METHOD                              cannot   the seek origin of a codec plugin file callback, plugin authoring is C only
-FMOD_CODEC_STATE_FUNCTIONS                          cannot   codec plugins are written in C, Sound.create loads every format FMOD decodes and PcmStream feeds decoded audio
+FMOD_CODEC_SEEK_METHOD                              cannot   the seek origin of a codec plugin file callback, which runs on FMOD's streaming thread, plugin authoring is C only
+FMOD_CODEC_STATE_FUNCTIONS                          cannot   the function table FMOD hands a codec plugin on its streaming and loading threads, plugin authoring is C only
 FMOD_CPU_USAGE                                      haxefmod.studio.Types.FmodSystemCpuUsage
 FMOD_CREATESOUNDEXINFO                              library   Sound.create and Sound.fromPcm take its fields as arguments
 FMOD_DEBUG_CALLBACK                                 cannot   runs on FMOD's threads, the log goes to the platform output at FmodSettings.logLevel instead
@@ -47,9 +47,9 @@ FMOD_DSP_CHORUS                                     haxefmod.core.DspParameters.
 FMOD_DSP_COMPRESSOR                                 haxefmod.core.DspParameters.DspCompressor
 FMOD_DSP_CONVOLUTION_REVERB                         haxefmod.core.DspParameters.DspConvolutionReverb
 FMOD_DSP_CREATE_CALLBACK                            cannot   runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
-FMOD_DSP_DATA_PARAMETER_INFO                        cannot   the payload of a DSP callback, which runs on the mixer thread, Dsp.setParameterData copies its bytes so nothing needs releasing
+FMOD_DSP_DATA_PARAMETER_INFO                        cannot   the payload FMOD hands a DSP plugin's data parameter callback on its mixer thread, Dsp.setParameterData copies the bytes so nothing needs releasing
 FMOD_DSP_DELAY                                      haxefmod.core.DspParameters.DspDelay
-FMOD_DSP_DESCRIPTION                                cannot   DSP plugins are written in C, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin
+FMOD_DSP_DESCRIPTION                                cannot   a DSP plugin's callback table, which FMOD calls on its mixer thread, plugin authoring is C only, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin
 FMOD_DSP_DFT_FFTREAL_FUNC                           cannot   runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
 FMOD_DSP_DFT_IFFTREAL_FUNC                          cannot   runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
 FMOD_DSP_DISTORTION                                 haxefmod.core.DspParameters.DspDistortion
@@ -139,9 +139,9 @@ FMOD_DSP_SETPARAM_INT_CALLBACK                      cannot   runs on FMOD's mixe
 FMOD_DSP_SETPOSITION_CALLBACK                       cannot   runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
 FMOD_DSP_SFXREVERB                                  haxefmod.core.DspParameters.DspSfxReverb
 FMOD_DSP_SHOULDIPROCESS_CALLBACK                    cannot   runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
-FMOD_DSP_STATE_DFT_FUNCTIONS                        cannot   DSP plugins are written in C, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin
-FMOD_DSP_STATE_FUNCTIONS                            cannot   DSP plugins are written in C, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin
-FMOD_DSP_STATE_PAN_FUNCTIONS                        cannot   DSP plugins are written in C, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin
+FMOD_DSP_STATE_DFT_FUNCTIONS                        cannot   the function table FMOD hands a DSP plugin on its mixer thread, plugin authoring is C only, Dsp.create gives the built-in units
+FMOD_DSP_STATE_FUNCTIONS                            cannot   the function table FMOD hands a DSP plugin on its mixer thread, plugin authoring is C only, Dsp.create gives the built-in units
+FMOD_DSP_STATE_PAN_FUNCTIONS                        cannot   the function table FMOD hands a DSP plugin on its mixer thread, plugin authoring is C only, Dsp.create gives the built-in units
 FMOD_DSP_SYSTEM_DEREGISTER_CALLBACK                 cannot   runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
 FMOD_DSP_SYSTEM_MIX_CALLBACK                        cannot   runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
 FMOD_DSP_SYSTEM_REGISTER_CALLBACK                   cannot   runs on FMOD's mixer thread inside a DSP plugin, plugin authoring is C only, Dsp.create gives the built-in units
@@ -173,7 +173,7 @@ FMOD_OUTPUT_ALLOC_FUNC                              cannot   runs on FMOD's mixe
 FMOD_OUTPUT_CLOSEPORT_CALLBACK                      cannot   runs on FMOD's mixer thread inside an output plugin, plugin authoring is C only
 FMOD_OUTPUT_CLOSE_CALLBACK                          cannot   runs on FMOD's mixer thread inside an output plugin, plugin authoring is C only
 FMOD_OUTPUT_COPYPORT_FUNC                           cannot   runs on FMOD's mixer thread inside an output plugin, plugin authoring is C only
-FMOD_OUTPUT_DESCRIPTION                             cannot   output plugins are written in C, FMOD initializes the platform's default output
+FMOD_OUTPUT_DESCRIPTION                             cannot   an output plugin's callback table, which FMOD calls on its mixer thread, plugin authoring is C only, FmodSettings.output picks one of FMOD's own outputs
 FMOD_OUTPUT_DEVICELISTCHANGED_CALLBACK              cannot   runs on FMOD's mixer thread inside an output plugin, plugin authoring is C only
 FMOD_OUTPUT_FREE_FUNC                               cannot   runs on FMOD's mixer thread inside an output plugin, plugin authoring is C only
 FMOD_OUTPUT_GETDRIVERINFO_CALLBACK                  cannot   runs on FMOD's mixer thread inside an output plugin, plugin authoring is C only

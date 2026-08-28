@@ -6246,5 +6246,97 @@ int fmod_sys_detach_channel_group_from_port(int groupHandle) {
     return (int)gLastResult;
 }
 
+//// Audit against FMOD's C# integration: bus ports, labels by index,
+//// parameter batches, init readback
+
+// FMOD_PORT_INDEX_NONE (all ones) crosses as -1, other values as their low 32 bits
+int fmod_bus_get_port_index(int h) {
+    FMOD::Studio::Bus* bus = resolveBus(h);
+    if (!bus) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    FMOD_PORT_INDEX index = FMOD_PORT_INDEX_NONE;
+    gLastResult = bus->getPortIndex(&index);
+    if (gLastResult != FMOD_OK) return -1;
+    return index == FMOD_PORT_INDEX_NONE ? -1 : (int)(index & 0xffffffffu);
+}
+
+int fmod_bus_set_port_index(int h, int index) {
+    FMOD::Studio::Bus* bus = resolveBus(h);
+    if (!bus) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = bus->setPortIndex(index < 0 ? FMOD_PORT_INDEX_NONE : (FMOD_PORT_INDEX)(unsigned int)index);
+    return (int)gLastResult;
+}
+
+const char* fmod_evd_get_parameter_label_by_index(int h, int index, int labelIndex) {
+    gStringBuf[0] = '\0';
+    FMOD::Studio::EventDescription* desc = resolveDescription(h);
+    if (!desc) { gLastResult = FMOD_ERR_INVALID_HANDLE; return gStringBuf; }
+    int retrieved = 0;
+    gLastResult = desc->getParameterLabelByIndex(index, labelIndex, gStringBuf, sizeof(gStringBuf), &retrieved);
+    if (gLastResult != FMOD_OK) gStringBuf[0] = '\0';
+    return gStringBuf;
+}
+
+// ibuf: id pairs, fbuf: values, count pairs. Packed on the stack, so the
+// batch is capped at FAXE_LIST_MAX / 2 pairs like the scratch buffers.
+static bool packParameterBatch(::Array<int> ibuf, ::Array<Float> fbuf, int count,
+        FMOD_STUDIO_PARAMETER_ID* outIds, float* outValues) {
+    if (count < 0 || count > FAXE_LIST_MAX / 2) return false;
+    if (ibuf == null() || fbuf == null()) return false;
+    if (ibuf->length < count * 2 || fbuf->length < count) return false;
+    for (int i = 0; i < count; i++) {
+        outIds[i] = makeParamId(ibuf[i * 2], ibuf[i * 2 + 1]);
+        outValues[i] = (float)fbuf[i];
+    }
+    return true;
+}
+
+int fmod_sys_set_parameters_by_ids(::Array<int> ibuf, ::Array<Float> fbuf, int count, bool ignoreSeekSpeed) {
+    if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    FMOD_STUDIO_PARAMETER_ID ids[FAXE_LIST_MAX / 2];
+    float values[FAXE_LIST_MAX / 2];
+    if (!packParameterBatch(ibuf, fbuf, count, ids, values)) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    gLastResult = gStudioSystem->setParametersByIDs(ids, values, count, ignoreSeekSpeed);
+    return (int)gLastResult;
+}
+
+int fmod_evi_set_parameters_by_ids(int h, ::Array<int> ibuf, ::Array<Float> fbuf, int count, bool ignoreSeekSpeed) {
+    FMOD::Studio::EventInstance* instance = resolveInstance(h);
+    if (!instance) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    FMOD_STUDIO_PARAMETER_ID ids[FAXE_LIST_MAX / 2];
+    float values[FAXE_LIST_MAX / 2];
+    if (!packParameterBatch(ibuf, fbuf, count, ids, values)) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    gLastResult = instance->setParametersByIDs(ids, values, count, ignoreSeekSpeed);
+    return (int)gLastResult;
+}
+
+int fmod_sys_get_software_channels() {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    int channels = 0;
+    gLastResult = gCoreSystem->getSoftwareChannels(&channels);
+    return gLastResult == FMOD_OK ? channels : 0;
+}
+
+// ibuf out: [0]=buffer length in samples [1]=buffer count
+int fmod_sys_get_dsp_buffer_size(::Array<int> ibuf) {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    unsigned int length = 0;
+    int buffers = 0;
+    gLastResult = gCoreSystem->getDSPBufferSize(&length, &buffers);
+    ibuf[0] = (int)length;
+    ibuf[1] = buffers;
+    return (int)gLastResult;
+}
+
+// ibuf out: [0]=file buffer size [1]=its FMOD_TIMEUNIT
+int fmod_sys_get_stream_buffer_size(::Array<int> ibuf) {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    unsigned int size = 0;
+    FMOD_TIMEUNIT unit = FMOD_TIMEUNIT_RAWBYTES;
+    gLastResult = gCoreSystem->getStreamBufferSize(&size, &unit);
+    ibuf[0] = (int)size;
+    ibuf[1] = (int)unit;
+    return (int)gLastResult;
+}
+
 } // namespace faxe
 } // namespace linc

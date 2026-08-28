@@ -1,6 +1,7 @@
 package haxefmod.core;
 
 import haxefmod.studio.FmodResult;
+import haxefmod.studio.Types;
 import haxefmod.studio.Types.DspConnectionType;
 import haxefmod.studio.UserData;
 import haxefmod.studio.native.NativeStudio;
@@ -85,7 +86,7 @@ abstract DspConnection(Int) from Int to Int {
      * HTML5, null there). outChannels and inChannels above 0 keep only
      * that many rows and columns. Null on failure, at most 32 by 32.
      */
-    public function getMixMatrix(outChannels:Int = 0, inChannels:Int = 0, inChannelHop:Int = 0):Null<{matrix:Array<Float>, outChannels:Int, inChannels:Int}> {
+    public function getMixMatrix(outChannels:Int = 0, inChannels:Int = 0, inChannelHop:Int = 0):Null<FmodMixMatrix> {
         var total = NativeStudio.conn_get_mix_matrix(this, inChannelHop);
         if (total <= 0) return null;
         return MixMatrix.read(total, outChannels, inChannels, inChannelHop);

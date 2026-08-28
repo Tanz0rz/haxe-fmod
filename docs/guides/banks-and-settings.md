@@ -35,6 +35,8 @@ FmodRuntime.onceReady(() -> {
 
 `FmodSettings` is a typedef with every field optional. An unset field falls back to a compile-time define, then to the built-in default.
 
+The engine reports what it runs with after init: `CoreSystem.getSoftwareFormat()`, `getSoftwareChannels()`, `getDSPBufferSize()`, and `getStreamBufferSize()` read the values FMOD settled on, defaults included.
+
 | Field | Define | Default | Meaning |
 |---|---|---|---|
 | `numChannels` | `haxefmod_num_channels` | 128 | Maximum virtual voices. |

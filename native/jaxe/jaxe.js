@@ -5986,4 +5986,92 @@ class jaxe {
         jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
         return jaxe.lastResult;
     }
+
+    //// Audit against FMOD's C# integration: bus ports, labels by index,
+    //// parameter batches, init readback
+
+    // The web build has no bus port index calls (console ports only)
+    static fmod_bus_get_port_index(handle) {
+        var bus = jaxe.handleResolve(handle, jaxe.TYPE_BUS);
+        if (!bus) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return -1; }
+        jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        return -1;
+    }
+
+    static fmod_bus_set_port_index(handle, index) {
+        var bus = jaxe.handleResolve(handle, jaxe.TYPE_BUS);
+        if (!bus) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        return jaxe.lastResult;
+    }
+
+    static fmod_evd_get_parameter_label_by_index(handle, index, labelIndex) {
+        var evd = jaxe.handleResolve(handle, jaxe.TYPE_EVD);
+        if (!evd) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return ""; }
+        var outval = {};
+        jaxe.lastResult = evd.getParameterLabelByIndex(index, labelIndex, outval, 512, null);
+        if (jaxe.lastResult != jaxe.FMOD.OK) return "";
+        return outval.val;
+    }
+
+    // ibuf: id pairs, fbuf: values, count pairs. The glue cannot marshal an
+    // array of FMOD_STUDIO_PARAMETER_ID structs, so the batch is applied
+    // one id at a time, which FMOD folds into the same update either way.
+    static parameterBatchOk(ibuf, fbuf, count) {
+        if (count < 0 || count > 512 || !ibuf || !fbuf || ibuf.length < count * 2 || fbuf.length < count) {
+            jaxe.lastResult = jaxe.ERR_INVALID_PARAM;
+            return false;
+        }
+        return true;
+    }
+
+    static fmod_sys_set_parameters_by_ids(ibuf, fbuf, count, ignoreSeekSpeed) {
+        if (!jaxe.sysReady()) return jaxe.lastResult;
+        if (!jaxe.parameterBatchOk(ibuf, fbuf, count)) return jaxe.lastResult;
+        jaxe.lastResult = jaxe.FMOD.OK;
+        for (var i = 0; i < count; i++) {
+            var r = jaxe.gSystem.setParameterByID(jaxe.paramId(ibuf[i * 2], ibuf[i * 2 + 1]), fbuf[i], ignoreSeekSpeed);
+            if (r != jaxe.FMOD.OK) { jaxe.lastResult = r; break; }
+        }
+        return jaxe.lastResult;
+    }
+
+    static fmod_evi_set_parameters_by_ids(handle, ibuf, fbuf, count, ignoreSeekSpeed) {
+        var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
+        if (!inst) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        if (!jaxe.parameterBatchOk(ibuf, fbuf, count)) return jaxe.lastResult;
+        jaxe.lastResult = jaxe.FMOD.OK;
+        for (var i = 0; i < count; i++) {
+            var r = inst.setParameterByID(jaxe.paramId(ibuf[i * 2], ibuf[i * 2 + 1]), fbuf[i], ignoreSeekSpeed);
+            if (r != jaxe.FMOD.OK) { jaxe.lastResult = r; break; }
+        }
+        return jaxe.lastResult;
+    }
+
+    static fmod_sys_get_software_channels() {
+        if (!jaxe.FmodIsInitialized) { jaxe.lastResult = jaxe.ERR_STUDIO_UNINITIALIZED; return 0; }
+        var outval = {};
+        jaxe.lastResult = jaxe.gSystemCore.getSoftwareChannels(outval);
+        return jaxe.lastResult == jaxe.FMOD.OK ? outval.val | 0 : 0;
+    }
+
+    static fmod_sys_get_dsp_buffer_size(ibuf) {
+        if (!jaxe.FmodIsInitialized) { jaxe.lastResult = jaxe.ERR_STUDIO_UNINITIALIZED; return jaxe.lastResult; }
+        var length = {};
+        var buffers = {};
+        jaxe.lastResult = jaxe.gSystemCore.getDSPBufferSize(length, buffers);
+        ibuf[0] = length.val || 0;
+        ibuf[1] = buffers.val || 0;
+        return jaxe.lastResult;
+    }
+
+    static fmod_sys_get_stream_buffer_size(ibuf) {
+        if (!jaxe.FmodIsInitialized) { jaxe.lastResult = jaxe.ERR_STUDIO_UNINITIALIZED; return jaxe.lastResult; }
+        var size = {};
+        var unit = {};
+        jaxe.lastResult = jaxe.gSystemCore.getStreamBufferSize(size, unit);
+        ibuf[0] = size.val || 0;
+        ibuf[1] = unit.val || 0;
+        return jaxe.lastResult;
+    }
 }

@@ -1,6 +1,7 @@
 package haxefmod.core;
 
 import haxefmod.studio.FmodResult;
+import haxefmod.studio.Types;
 import haxefmod.studio.Types.FmodVector;
 import haxefmod.studio.native.NativeStudio;
 import haxefmod.studio.native.Scratch;
@@ -103,7 +104,7 @@ abstract Geometry(Int) from Int to Int {
      * a source position (unsupported in HTML5, null there). Null on
      * failure.
      */
-    public static function getOcclusion(listener:FmodVector, source:FmodVector):Null<{direct:Float, reverb:Float}> {
+    public static function getOcclusion(listener:FmodVector, source:FmodVector):Null<FmodOcclusion> {
         if (listener == null || source == null) return null;
         var result:FmodResult = NativeStudio.sys_get_geometry_occlusion(listener.x, listener.y, listener.z,
             source.x, source.y, source.z);
@@ -172,7 +173,7 @@ abstract Geometry(Int) from Int to Int {
     }
     #else
     /** The capacities given at creation, null on failure (unsupported in HTML5, null there). */
-    public function getMaxPolygons():Null<{polygons:Int, vertices:Int}> {
+    public function getMaxPolygons():Null<FmodGeometryMaxPolygons> {
         var result:FmodResult = NativeStudio.geo_get_max_polygons(this);
         if (!result.isOk()) return null;
         return {polygons: Scratch.readI(0), vertices: Scratch.readI(1)};
@@ -237,7 +238,7 @@ abstract Geometry(Int) from Int to Int {
     }
     #else
     /** A polygon's occlusion amounts and sidedness, null on failure (unsupported in HTML5, null there). */
-    public function getPolygonAttributes(index:Int):Null<{direct:Float, reverb:Float, doubleSided:Bool}> {
+    public function getPolygonAttributes(index:Int):Null<FmodPolygonAttributes> {
         var result:FmodResult = NativeStudio.geo_get_polygon_attributes(this, index);
         if (!result.isOk()) return null;
         return {direct: Scratch.readF(0), reverb: Scratch.readF(1), doubleSided: Scratch.readF(2) != 0};
@@ -288,7 +289,7 @@ abstract Geometry(Int) from Int to Int {
     }
     #else
     /** The forward and up vectors, null on failure (unsupported in HTML5, null there). */
-    public function getRotation():Null<{forward:FmodVector, up:FmodVector}> {
+    public function getRotation():Null<FmodGeometryRotation> {
         var result:FmodResult = NativeStudio.geo_get_rotation(this);
         if (!result.isOk()) return null;
         return {

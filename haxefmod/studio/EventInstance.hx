@@ -116,7 +116,7 @@ abstract EventInstance(Int) from Int to Int {
     }
 
     /** Minimum and maximum attenuation distances, or null on failure. */
-    public function getMinMaxDistance():Null<{min:Float, max:Float}> {
+    public function getMinMaxDistance():Null<FmodEventMinMaxDistance> {
         var result:FmodResult = NativeStudio.evi_get_min_max_distance(this);
         if (!result.isOk()) return null;
         return {min: Scratch.readF(0), max: Scratch.readF(1)};
@@ -206,6 +206,37 @@ abstract EventInstance(Int) from Int to Int {
 
     public inline function setParameterByIDWithLabel(id:FmodParameterId, label:String, ignoreSeekSpeed:Bool = false):FmodResult {
         return NativeStudio.evi_set_param_by_id_with_label(this, id.data1, id.data2, label, ignoreSeekSpeed);
+    }
+
+    /** The same parameter read as getParameter, under FMOD's name. */
+    public inline function getParameterByName(name:String):Float {
+        return NativeStudio.evi_get_param_by_name(this, name);
+    }
+
+    /** The final value of a parameter after automation and seek speed, by name. */
+    public inline function getParameterByNameFinal(name:String):Float {
+        return NativeStudio.evi_get_param_by_name_final(this, name);
+    }
+
+    /** The same parameter write as setParameter, under FMOD's name. */
+    public inline function setParameterByName(name:String, value:Float, ignoreSeekSpeed:Bool = false):FmodResult {
+        return NativeStudio.evi_set_param_by_name(this, name, value, ignoreSeekSpeed);
+    }
+
+    /** The same labeled write as setParameterWithLabel, under FMOD's name. */
+    public inline function setParameterByNameWithLabel(name:String, label:String, ignoreSeekSpeed:Bool = false):FmodResult {
+        return NativeStudio.evi_set_param_by_name_with_label(this, name, label, ignoreSeekSpeed);
+    }
+
+    /**
+     * Sets several parameters on this instance in one call. ids and values
+     * pair up by index, the shorter list sets the count. At most
+     * Scratch.CAPACITY / 2 pairs, more returns FMOD_ERR_INVALID_PARAM.
+     */
+    public function setParametersByIDs(ids:Array<FmodParameterId>, values:Array<Float>, ignoreSeekSpeed:Bool = false):FmodResult {
+        var count = @:privateAccess StudioSystem.packParameterBatch(ids, values);
+        if (count < 0) return FmodResult.FMOD_ERR_INVALID_PARAM;
+        return NativeStudio.evi_set_parameters_by_ids(this, count, ignoreSeekSpeed);
     }
 
     /**

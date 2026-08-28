@@ -44,6 +44,16 @@ abstract Dsp(Int) from Int to Int {
         return NativeStudio.dsp_get_param_float(this, index);
     }
 
+    /** The same float write as setParameter under FMOD's name. */
+    public inline function setParameterFloat(index:Int, value:Float):FmodResult {
+        return NativeStudio.dsp_set_param_float(this, index, value);
+    }
+
+    /** The same float read as getParameter under FMOD's name. */
+    public inline function getParameterFloat(index:Int):Float {
+        return NativeStudio.dsp_get_param_float(this, index);
+    }
+
     public inline function setParameterInt(index:Int, value:Int):FmodResult {
         return NativeStudio.dsp_set_param_int(this, index, value);
     }
@@ -61,6 +71,11 @@ abstract Dsp(Int) from Int to Int {
     }
 
     public inline function getParameterCount():Int {
+        return NativeStudio.dsp_get_num_params(this);
+    }
+
+    /** The same count as getParameterCount under FMOD's name. */
+    public inline function getNumParameters():Int {
         return NativeStudio.dsp_get_num_params(this);
     }
 
@@ -178,6 +193,16 @@ abstract Dsp(Int) from Int to Int {
         return NativeStudio.dsp_get_num_outputs(this);
     }
 
+    /** The same count as getInputCount under FMOD's name. */
+    public inline function getNumInputs():Int {
+        return NativeStudio.dsp_get_num_inputs(this);
+    }
+
+    /** The same count as getOutputCount under FMOD's name. */
+    public inline function getNumOutputs():Int {
+        return NativeStudio.dsp_get_num_outputs(this);
+    }
+
     /** The DSP feeding input slot `index` (a known DSP returns its existing handle). */
     public inline function getInput(index:Int):Dsp {
         return NativeStudio.dsp_get_input_dsp(this, index);
@@ -187,7 +212,7 @@ abstract Dsp(Int) from Int to Int {
         return NativeStudio.dsp_get_input_connection(this, index);
     }
 
-    public function getWetDryMix():Null<{prewet:Float, postwet:Float, dry:Float}> {
+    public function getWetDryMix():Null<FmodWetDryMix> {
         var result:FmodResult = NativeStudio.dsp_get_wet_dry_mix(this);
         if (!result.isOk()) return null;
         return {prewet: Scratch.readF(0), postwet: Scratch.readF(1), dry: Scratch.readF(2)};
@@ -197,7 +222,7 @@ abstract Dsp(Int) from Int to Int {
         return NativeStudio.dsp_get_active(this);
     }
 
-    public function getMeteringEnabled():Null<{input:Bool, output:Bool}> {
+    public function getMeteringEnabled():Null<FmodMeteringEnabled> {
         var result:FmodResult = NativeStudio.dsp_get_metering_enabled(this);
         if (!result.isOk()) return null;
         return {input: Scratch.readI(0) != 0, output: Scratch.readI(1) != 0};
@@ -232,7 +257,7 @@ abstract Dsp(Int) from Int to Int {
     }
 
     /** Microseconds spent in this DSP per mix, or null (needs profiling enabled at init). */
-    public function getCpuUsage():Null<{exclusive:Int, inclusive:Int}> {
+    public function getCpuUsage():Null<FmodCpuUsage> {
         var result:FmodResult = NativeStudio.dsp_get_cpu_usage(this);
         if (!result.isOk()) return null;
         return {exclusive: Scratch.readI(0), inclusive: Scratch.readI(1)};
@@ -326,14 +351,14 @@ abstract Dsp(Int) from Int to Int {
         return NativeStudio.dsp_set_channel_format(this, channelMask, channels, speakerMode);
     }
 
-    public function getChannelFormat():Null<{channelMask:FmodChannelMask, channels:Int, speakerMode:FmodSpeakerMode}> {
+    public function getChannelFormat():Null<FmodChannelFormat> {
         var result:FmodResult = NativeStudio.dsp_get_channel_format(this);
         if (!result.isOk()) return null;
         return {channelMask: Scratch.readI(0), channels: Scratch.readI(1), speakerMode: Scratch.readI(2)};
     }
 
     /** The format the unit would emit when fed the given input format, or null on failure. */
-    public function getOutputChannelFormat(inMask:FmodChannelMask, inChannels:Int, inSpeakerMode:FmodSpeakerMode):Null<{channelMask:FmodChannelMask, channels:Int, speakerMode:FmodSpeakerMode}> {
+    public function getOutputChannelFormat(inMask:FmodChannelMask, inChannels:Int, inSpeakerMode:FmodSpeakerMode):Null<FmodChannelFormat> {
         var result:FmodResult = NativeStudio.dsp_get_output_channel_format(this, inMask, inChannels, inSpeakerMode);
         if (!result.isOk()) return null;
         return {channelMask: Scratch.readI(0), channels: Scratch.readI(1), speakerMode: Scratch.readI(2)};
@@ -396,7 +421,7 @@ abstract Dsp(Int) from Int to Int {
      * counts and parameter count (unsupported in HTML5, null there). Null
      * for a handle that is not a DSP plugin.
      */
-    public static function getPluginInfo(pluginHandle:Int):Null<{name:String, version:Int, inputBuffers:Int, outputBuffers:Int, parameterCount:Int}> {
+    public static function getPluginInfo(pluginHandle:Int):Null<FmodDspDescriptionInfo> {
         var name = NativeStudio.dsp_get_info_by_plugin(pluginHandle);
         var result:FmodResult = NativeStudio.sys_last_result();
         if (!result.isOk()) return null;
@@ -437,7 +462,7 @@ abstract Dsp(Int) from Int to Int {
      * is 1.0), channel count (0 when the unit takes any), and the config
      * dialog size a plugin declares. Null on failure.
      */
-    public function getInfo():Null<{name:String, version:Int, channels:Int, configWidth:Int, configHeight:Int}> {
+    public function getInfo():Null<FmodDspInfo> {
         var name = NativeStudio.dsp_get_info(this);
         var result:FmodResult = haxefmod.studio.StudioSystem.lastResult();
         if (!result.isOk()) return null;

@@ -48,6 +48,7 @@ class TestStudioSurface {
 		testBusCache();
 		testStructReturns();
 		testCoreSurface();
+		testCsharpAudit();
 		testVersionDataAndRecording();
 		testSoundCreationAndRouting();
 		testRolloffAndGeometry();
@@ -1099,5 +1100,94 @@ class TestStudioSurface {
 			&& ChannelMode.VIRTUAL_PLAYFROMSTART == 0x80000000
 			&& ChannelMode.DEFAULT == 0, "channel mode header names and aliases");
 		assert((FmodLoadBankFlags.UNENCRYPTED : Int) == 4 && (EventCallbackType.ALL : Int) == -1, "flag additions");
+	}
+
+	/** The members added by the audit against FMOD's C# integration, on the stub backend. */
+	static function testCsharpAudit():Void {
+		var bus:Bus = Bus.NULL;
+		assert(bus.getPortIndex() == FmodPortIndex.NONE, "bus port index default");
+		assert(!bus.setPortIndex(FmodPortIndex.NONE).isOk(), "bus setPortIndex result");
+
+		var desc:EventDescription = EventDescription.NULL;
+		assert(desc.getParameterLabelByIndex(0, 0) == "", "evd label by index default");
+		assert(desc.getParameterLabelByName("x", 0) == "", "evd label by name default");
+		assert(desc.getUserProperty("x") == null, "evd user property by name null");
+		assert(desc.getUserPropertyByIndex(0) == null, "evd user property by index null");
+		assert(desc.getMinMaxDistance() == null, "evd min max typed null");
+
+		var ids:Array<FmodParameterId> = [{data1: 1, data2: 2}];
+		assert(!StudioSystem.setParametersByIDs(ids, [0.5]).isOk(), "sys setParametersByIDs result");
+		assert(StudioSystem.setParametersByIDs(ids, []) == FmodResult.FMOD_ERR_INVALID_PARAM || !StudioSystem.setParametersByIDs(ids, []).isOk(), "sys setParametersByIDs empty");
+		assert(StudioSystem.setParametersByIDs(null, [1.0]) == FmodResult.FMOD_ERR_INVALID_PARAM, "sys setParametersByIDs null");
+		var tooMany = [for (_ in 0...513) ({data1: 0, data2: 0} : FmodParameterId)];
+		var tooManyValues = [for (_ in 0...513) 0.0];
+		assert(StudioSystem.setParametersByIDs(tooMany, tooManyValues) == FmodResult.FMOD_ERR_INVALID_PARAM, "sys setParametersByIDs capacity");
+		assert(StudioSystem.getParameterDescriptionList().length == 0, "sys description list empty");
+		assert(StudioSystem.getParameterByName("x") == 0.0, "sys getParameterByName default");
+		assert(StudioSystem.getParameterByNameFinal("x") == 0.0, "sys getParameterByNameFinal default");
+		assert(!StudioSystem.setParameterByName("x", 1.0).isOk(), "sys setParameterByName result");
+		assert(!StudioSystem.setParameterByNameWithLabel("x", "y").isOk(), "sys setParameterByNameWithLabel result");
+		assert(StudioSystem.getParameterLabelByName("x", 0) == "", "sys label by name default");
+		assert(StudioSystem.getNumPlugins(FmodPluginType.DSP) == -1 || StudioSystem.getNumPlugins(FmodPluginType.DSP) == StudioSystem.getPluginCount(FmodPluginType.DSP), "sys getNumPlugins alias");
+		assert(StudioSystem.getNumNestedPlugins(0) == StudioSystem.getNestedPluginCount(0), "sys getNumNestedPlugins alias");
+		assert(StudioSystem.getRecordNumDrivers() == null, "sys getRecordNumDrivers default");
+		assert(StudioSystem.getMemoryStats() == null, "sys memory stats typed null");
+		assert(StudioSystem.getFileUsage() == null, "sys file usage typed null");
+
+		var instance:EventInstance = EventInstance.NULL;
+		assert(!instance.setParametersByIDs(ids, [0.5]).isOk(), "evi setParametersByIDs result");
+		assert(instance.setParametersByIDs(ids, null) == FmodResult.FMOD_ERR_INVALID_PARAM, "evi setParametersByIDs null");
+		assert(instance.getParameterByName("x") == 0.0, "evi getParameterByName default");
+		assert(instance.getParameterByNameFinal("x") == 0.0, "evi getParameterByNameFinal default");
+		assert(!instance.setParameterByName("x", 1.0).isOk(), "evi setParameterByName result");
+		assert(!instance.setParameterByNameWithLabel("x", "y").isOk(), "evi setParameterByNameWithLabel result");
+		assert(instance.getMinMaxDistance() == null, "evi min max typed null");
+
+		var bank:Bank = Bank.NULL;
+		assert(bank.getStringInfo(0) == null, "bank string info null");
+
+		assert(CoreSystem.getNumDrivers() == CoreSystem.getDriverCount(), "core getNumDrivers alias");
+		assert(CoreSystem.getSoftwareChannels() == 0, "core software channels default");
+		assert(CoreSystem.getDSPBufferSize() == null, "core dsp buffer size null");
+		assert(CoreSystem.getStreamBufferSize() == null, "core stream buffer size null");
+		assert(CoreSystem.getChannelsPlaying() == null, "core channels playing typed null");
+		assert(CoreSystem.getSoftwareFormat() == null, "core software format typed null");
+
+		var channel:Channel = Channel.NULL;
+		assert(!channel.setReverbProperties(0, 0.5).isOk(), "chan setReverbProperties result");
+		assert(channel.getReverbProperties(0) == 0.0, "chan getReverbProperties default");
+		assert(channel.getNumDSPs() == channel.getDspCount(), "chan getNumDSPs alias");
+		assert(channel.getDspClock() == null, "chan dsp clock typed null");
+		assert(channel.getDelay() == null, "chan delay typed null");
+
+		var group:ChannelGroup = ChannelGroup.NULL;
+		assert(!group.setReverbProperties(0, 0.5).isOk(), "cg setReverbProperties result");
+		assert(group.getReverbProperties(0) == 0.0, "cg getReverbProperties default");
+		assert(group.getNumDSPs() == group.getDspCount(), "cg getNumDSPs alias");
+		assert(group.getNumChannels() == group.getChannelCount(), "cg getNumChannels alias");
+		assert(group.getNumGroups() == group.getGroupCount(), "cg getNumGroups alias");
+
+		var dsp:Dsp = Dsp.NULL;
+		assert(!dsp.setParameterFloat(0, 1.0).isOk(), "dsp setParameterFloat result");
+		assert(dsp.getParameterFloat(0) == 0.0, "dsp getParameterFloat default");
+		assert(dsp.getNumParameters() == dsp.getParameterCount(), "dsp getNumParameters alias");
+		assert(dsp.getNumInputs() == dsp.getInputCount(), "dsp getNumInputs alias");
+		assert(dsp.getNumOutputs() == dsp.getOutputCount(), "dsp getNumOutputs alias");
+		assert(dsp.getWetDryMix() == null, "dsp wet dry typed null");
+		assert(dsp.getCpuUsage() == null, "dsp cpu usage typed null");
+
+		var soundGroup:SoundGroup = SoundGroup.NULL;
+		assert(soundGroup.getNumSounds() == soundGroup.getSoundCount(), "sg getNumSounds alias");
+		assert(soundGroup.getNumPlaying() == soundGroup.getPlayingCount(), "sg getNumPlaying alias");
+
+		var replay:CommandReplay = CommandReplay.NULL;
+		var current:Null<FmodReplayCommand> = replay.getCurrentCommand();
+		assert(current == null, "replay current command typed null");
+		var zone:Reverb3D = Reverb3D.NULL;
+		var attributes:Null<FmodReverb3DAttributes> = zone.get3DAttributes();
+		assert(attributes == null, "reverb3d attributes typed null");
+		var geometry:Geometry = Geometry.NULL;
+		var rotation:Null<FmodGeometryRotation> = geometry.getRotation();
+		assert(rotation == null, "geometry rotation typed null");
 	}
 }

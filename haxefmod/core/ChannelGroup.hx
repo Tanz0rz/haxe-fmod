@@ -1,6 +1,7 @@
 package haxefmod.core;
 
 import haxefmod.studio.FmodResult;
+import haxefmod.studio.Types;
 import haxefmod.studio.Types.FmodVector;
 import haxefmod.studio.UserData;
 import haxefmod.studio.native.NativeStudio;
@@ -110,6 +111,11 @@ abstract ChannelGroup(Int) from Int to Int {
         return NativeStudio.cg_get_num_groups(this);
     }
 
+    /** The same count as getGroupCount under FMOD's name. */
+    public inline function getNumGroups():Int {
+        return NativeStudio.cg_get_num_groups(this);
+    }
+
     /** A nested child group by index (a known group returns its existing handle). */
     public inline function getGroup(index:Int):ChannelGroup {
         return NativeStudio.cg_get_group(this, index);
@@ -124,7 +130,7 @@ abstract ChannelGroup(Int) from Int to Int {
      * `clock` is this group's own time, `parent` the enclosing group's,
      * which is the timeline setDelay and fade points schedule against.
      */
-    public function getDspClock():Null<{clock:Float, parent:Float}> {
+    public function getDspClock():Null<FmodDspClock> {
         var result:FmodResult = NativeStudio.cg_get_dsp_clock(this);
         if (!result.isOk()) return null;
         return {clock: Scratch.readF(0), parent: Scratch.readF(1)};
@@ -139,7 +145,7 @@ abstract ChannelGroup(Int) from Int to Int {
         return NativeStudio.cg_set_delay(this, startClock, endClock, stopChannels);
     }
 
-    public function getDelay():Null<{startClock:Float, endClock:Float, stopChannels:Bool}> {
+    public function getDelay():Null<FmodDelay> {
         var result:FmodResult = NativeStudio.cg_get_delay(this);
         if (!result.isOk()) return null;
         return {startClock: Scratch.readF(0), endClock: Scratch.readF(1), stopChannels: Scratch.readF(2) > 0.5};
@@ -212,7 +218,7 @@ abstract ChannelGroup(Int) from Int to Int {
         return NativeStudio.cg_set_3d_attributes(this, posX, posY, posZ, velX, velY, velZ);
     }
 
-    public function get3DAttributes():Null<{posX:Float, posY:Float, posZ:Float, velX:Float, velY:Float, velZ:Float}> {
+    public function get3DAttributes():Null<FmodChannel3DAttributes> {
         var result:FmodResult = NativeStudio.cg_get_3d_attributes(this);
         if (!result.isOk()) return null;
         return {posX: Scratch.readF(0), posY: Scratch.readF(1), posZ: Scratch.readF(2),
@@ -223,7 +229,7 @@ abstract ChannelGroup(Int) from Int to Int {
         return NativeStudio.cg_set_3d_min_max(this, minDistance, maxDistance);
     }
 
-    public function get3DMinMaxDistance():Null<{minDistance:Float, maxDistance:Float}> {
+    public function get3DMinMaxDistance():Null<FmodMinMaxDistance> {
         var result:FmodResult = NativeStudio.cg_get_3d_min_max(this);
         if (!result.isOk()) return null;
         return {minDistance: Scratch.readF(0), maxDistance: Scratch.readF(1)};
@@ -239,7 +245,7 @@ abstract ChannelGroup(Int) from Int to Int {
      * OK for a group but leaves both values at zero on every target, so
      * keep the levels you set if you need them back.
      */
-    public function get3DOcclusion():Null<{direct:Float, reverb:Float}> {
+    public function get3DOcclusion():Null<FmodOcclusion> {
         var result:FmodResult = NativeStudio.cg_get_3d_occlusion(this);
         if (!result.isOk()) return null;
         return {direct: Scratch.readF(0), reverb: Scratch.readF(1)};
@@ -305,7 +311,7 @@ abstract ChannelGroup(Int) from Int to Int {
         return NativeStudio.cg_set_3d_distance_filter(this, custom, customLevel, centerFreq);
     }
 
-    public function get3DDistanceFilter():Null<{custom:Bool, customLevel:Float, centerFreq:Float}> {
+    public function get3DDistanceFilter():Null<FmodDistanceFilter> {
         var result:FmodResult = NativeStudio.cg_get_3d_distance_filter(this);
         if (!result.isOk()) return null;
         return {custom: Scratch.readF(0) != 0, customLevel: Scratch.readF(1), centerFreq: Scratch.readF(2)};
@@ -339,7 +345,7 @@ abstract ChannelGroup(Int) from Int to Int {
         return NativeStudio.cg_set_3d_cone_settings(this, insideAngle, outsideAngle, outsideVolume);
     }
 
-    public function get3DConeSettings():Null<{insideAngle:Float, outsideAngle:Float, outsideVolume:Float}> {
+    public function get3DConeSettings():Null<FmodConeSettings> {
         var result:FmodResult = NativeStudio.cg_get_3d_cone_settings(this);
         if (!result.isOk()) return null;
         return {insideAngle: Scratch.readF(0), outsideAngle: Scratch.readF(1), outsideVolume: Scratch.readF(2)};
@@ -349,7 +355,7 @@ abstract ChannelGroup(Int) from Int to Int {
         return NativeStudio.cg_set_3d_cone_orientation(this, x, y, z);
     }
 
-    public function get3DConeOrientation():Null<{x:Float, y:Float, z:Float}> {
+    public function get3DConeOrientation():Null<FmodVector> {
         var result:FmodResult = NativeStudio.cg_get_3d_cone_orientation(this);
         if (!result.isOk()) return null;
         return {x: Scratch.readF(0), y: Scratch.readF(1), z: Scratch.readF(2)};
@@ -358,6 +364,16 @@ abstract ChannelGroup(Int) from Int to Int {
     /** How much this group feeds a reverb instance (0.0 = none, 1.0 = full). */
     public inline function setReverbWet(instance:Int, wet:Float):FmodResult {
         return NativeStudio.cg_set_reverb_wet(this, instance, wet);
+    }
+
+    /** The same reverb send as setReverbWet under FMOD's name (ChannelControl::setReverbProperties). */
+    public inline function setReverbProperties(instance:Int, wet:Float):FmodResult {
+        return NativeStudio.cg_set_reverb_wet(this, instance, wet);
+    }
+
+    /** The wet level of a reverb send, the same read as getReverbWet under FMOD's name. */
+    public inline function getReverbProperties(instance:Int):Float {
+        return NativeStudio.cg_get_reverb_wet(this, instance);
     }
 
     public inline function getReverbWet(instance:Int):Float {
@@ -415,7 +431,7 @@ abstract ChannelGroup(Int) from Int to Int {
      * (unsupported in HTML5, null there). Null on failure, at most
      * Scratch.CAPACITY / 2 points.
      */
-    public function getFadePoints():Null<Array<{clock:Float, volume:Float}>> {
+    public function getFadePoints():Null<Array<FmodFadePoint>> {
         var count = NativeStudio.cg_get_fade_points(this);
         var result:haxefmod.studio.FmodResult = haxefmod.studio.StudioSystem.lastResult();
         if (!result.isOk()) return null;
@@ -442,7 +458,7 @@ abstract ChannelGroup(Int) from Int to Int {
      * HTML5, null there). outChannels and inChannels above 0 keep only
      * that many rows and columns. Null on failure, at most 32 by 32.
      */
-    public function getMixMatrix(outChannels:Int = 0, inChannels:Int = 0, inChannelHop:Int = 0):Null<{matrix:Array<Float>, outChannels:Int, inChannels:Int}> {
+    public function getMixMatrix(outChannels:Int = 0, inChannels:Int = 0, inChannelHop:Int = 0):Null<FmodMixMatrix> {
         var total = NativeStudio.cg_get_mix_matrix(this, inChannelHop);
         if (total <= 0) return null;
         return MixMatrix.read(total, outChannels, inChannels, inChannelHop);
@@ -454,6 +470,11 @@ abstract ChannelGroup(Int) from Int to Int {
     }
 
     public inline function getChannelCount():Int {
+        return NativeStudio.cg_get_num_channels(this);
+    }
+
+    /** The same count as getChannelCount under FMOD's name. */
+    public inline function getNumChannels():Int {
         return NativeStudio.cg_get_num_channels(this);
     }
 
@@ -511,6 +532,11 @@ abstract ChannelGroup(Int) from Int to Int {
 
     /** How many DSP units sit in this group's chain (the fader counts, so a fresh group reports 1). */
     public inline function getDspCount():Int {
+        return NativeStudio.cg_get_num_dsps(this);
+    }
+
+    /** The same count as getDspCount under FMOD's name. */
+    public inline function getNumDSPs():Int {
         return NativeStudio.cg_get_num_dsps(this);
     }
 

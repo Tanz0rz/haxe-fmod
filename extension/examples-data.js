@@ -1208,11 +1208,11 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "System::setDSPBufferSize": {
-   "code": "var blocksize = FmodRuntime.settings().dspBufferSize;\nvar numblocks = FmodRuntime.settings().dspNumBuffers;\nvar frequency = CoreSystem.getSoftwareFormat().sampleRate;\n\nvar ms = blocksize * 1000.0 / frequency;\n\ntrace('Mixer blocksize        = $ms ms');\ntrace('Mixer Total buffersize = ${ms * numblocks} ms');\ntrace('Mixer Average Latency  = ${ms * (numblocks - 1.5)} ms');",
+   "code": "var mixer = CoreSystem.getDSPBufferSize();\nvar blocksize = mixer.bufferLength;\nvar numblocks = mixer.numBuffers;\nvar frequency = CoreSystem.getSoftwareFormat().sampleRate;\n\nvar ms = blocksize * 1000.0 / frequency;\n\ntrace('Mixer blocksize        = $ms ms');\ntrace('Mixer Total buffersize = ${ms * numblocks} ms');\ntrace('Mixer Average Latency  = ${ms * (numblocks - 1.5)} ms');",
    "notes": [
-    "FmodRuntime.settings() reports the values init ran with, 0 for a buffer left at FMOD's default (1024 samples by 2 on desktop, 2048 by 2 on HTML5)."
+    "The buffer is set once at init through FmodSettings.dspBufferSize and dspNumBuffers, and CoreSystem.getDSPBufferSize() reads back what the engine runs with (1024 samples by 2 on desktop, 2048 by 2 on HTML5 when left at FMOD's default)."
    ],
-   "type": "haxefmod.core.CoreSystem, haxefmod.runtime.FmodRuntime",
+   "type": "haxefmod.core.CoreSystem",
    "verdict": "bound"
   },
   "System::setSpeakerPosition": {
