@@ -380,7 +380,7 @@ core_pcm_create_3d i32 i32 i32 -> i32
 ## Core DSP connection graph
 # add_input returns a connection handle; traversal handles dedup to existing slots
 dsp_add_input i32 i32 i32 -> i32
-dsp_disconnect_from i32 i32 -> i32
+dsp_disconnect_from i32 i32 i32 -> i32
 dsp_disconnect_all i32 bool bool -> i32
 dsp_get_num_inputs i32 -> i32
 dsp_get_num_outputs i32 -> i32
@@ -391,7 +391,7 @@ dspconn_get_mix i32 -> f32
 dspconn_get_type i32 -> i32
 
 ## Core channel group nesting
-cg_add_group i32 i32 -> i32
+cg_add_group i32 i32 bool -> i32
 cg_get_num_groups i32 -> i32
 cg_get_group i32 i32 -> i32
 cg_get_parent_group i32 -> i32
@@ -410,7 +410,7 @@ chan_set_3d_spread i32 f32 -> i32
 chan_set_3d_level i32 f32 -> i32
 chan_set_3d_doppler_level i32 f32 -> i32
 # fbuf in: out*in gains row-major; args are (out channels, in channels)
-chan_set_mix_matrix i32 fbuf i32 i32 -> i32
+chan_set_mix_matrix i32 fbuf i32 i32 i32 -> i32
 
 ## Core scheduling (DSP clocks cross as doubles: exact to 2^53 samples)
 # fbuf out: [0]=channel clock [1]=parent group clock
@@ -608,7 +608,7 @@ cg_get_3d_cone_orientation i32 fbuf -> i32
 cg_set_reverb_wet i32 i32 f32 -> i32
 cg_get_reverb_wet i32 i32 -> f32
 # fbuf in: out*in gains row-major
-cg_set_mix_matrix i32 fbuf i32 i32 -> i32
+cg_set_mix_matrix i32 fbuf i32 i32 i32 -> i32
 cg_set_volume_ramp i32 bool -> i32
 cg_get_volume_ramp i32 -> bool
 cg_get_audibility i32 -> f32
@@ -711,12 +711,12 @@ chan_get_fade_points i32 fbuf -> i32
 # (handle, out channels, in channels). fbuf out: out*in gains row-major,
 # ibuf out: [0]=actual out [1]=actual in. Returns out*in, 0 on failure.
 # ERR_UNSUPPORTED (68) on js, the glue passes a single float.
-chan_get_mix_matrix i32 fbuf ibuf i32 i32 -> i32
+chan_get_mix_matrix i32 fbuf ibuf i32 -> i32
 chan_get_channel_group i32 -> i32
 cg_set_dsp_index i32 i32 i32 -> i32
 cg_get_dsp_index i32 i32 -> i32
 cg_get_fade_points i32 fbuf -> i32
-cg_get_mix_matrix i32 fbuf ibuf i32 i32 -> i32
+cg_get_mix_matrix i32 fbuf ibuf i32 -> i32
 sg_get_name i32 -> str
 sg_get_sound i32 i32 -> i32
 # Pool channel by index, possibly idle
@@ -741,8 +741,8 @@ dsp_get_channel_format i32 ibuf -> i32
 # (dsp, in mask, in channels, in speaker mode). ibuf out: [0]=mask [1]=channels [2]=speaker mode
 dsp_get_output_channel_format i32 i32 i32 i32 ibuf -> i32
 # fbuf in: out*in gains row-major
-conn_set_mix_matrix i32 fbuf i32 i32 -> i32
-conn_get_mix_matrix i32 fbuf ibuf i32 i32 -> i32
+conn_set_mix_matrix i32 fbuf i32 i32 i32 -> i32
+conn_get_mix_matrix i32 fbuf ibuf i32 -> i32
 
 ## Debug
 debug_live_handle_count -> i32
@@ -879,3 +879,8 @@ dsp_set_param_3d_attributes_multi i32 i32 i32 fbuf -> i32
 dsp_get_metering_info i32 bool fbuf ibuf -> i32
 dsp_fft_get_spectrum_channel i32 i32 fbuf i32 ibuf -> i32
 dsp_get_parameter_text i32 i32 i32 -> str
+cg_get_3d_occlusion i32 fbuf -> i32
+cg_get_delay i32 fbuf -> i32
+cg_get_low_pass_gain i32 -> f32
+cg_is_playing i32 -> bool
+cg_set_callback i32 bool -> i32

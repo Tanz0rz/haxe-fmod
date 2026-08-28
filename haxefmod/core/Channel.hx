@@ -240,16 +240,15 @@ abstract Channel(Int) from Int to Int {
     }
 
     /**
-     * Routes input channels to output speakers with explicit gains
-     * (row-major, outChannels rows of inChannels gains, up to 32x32).
+     * Routes input channels to output speakers with explicit gains. The
+     * matrix is one flat row-major array, one row per output channel,
+     * with inChannelHop floats per row (0 = packed to inChannels). FMOD
+     * mixes at most 32 channels, so larger shapes are refused with
+     * FMOD_ERR_INVALID_PARAM.
      */
-    public function setMixMatrix(matrix:Array<Float>, outChannels:Int, inChannels:Int):FmodResult {
-        var total = outChannels * inChannels;
-        if (total < 0 || total > matrix.length || total > Scratch.CAPACITY) {
-            return FmodResult.FMOD_ERR_INVALID_PARAM;
-        }
-        for (i in 0...total) Scratch.writeF(i, matrix[i]);
-        return NativeStudio.chan_set_mix_matrix(this, outChannels, inChannels);
+    public function setMixMatrix(matrix:Array<Float>, outChannels:Int, inChannels:Int, inChannelHop:Int = 0):FmodResult {
+        if (!MixMatrix.pack(matrix, outChannels, inChannels, inChannelHop)) return FmodResult.FMOD_ERR_INVALID_PARAM;
+        return NativeStudio.chan_set_mix_matrix(this, outChannels, inChannels, inChannelHop);
     }
 
     /**
@@ -263,8 +262,12 @@ abstract Channel(Int) from Int to Int {
         return {clock: Scratch.readF(0), parent: Scratch.readF(1)};
     }
 
-    /** Sample-accurate start/stop window on the parent clock (0 = no bound). */
-    public inline function setDelay(startClock:Float, endClock:Float, stopChannels:Bool = false):FmodResult {
+    /**
+     * Sample-accurate start/stop window on the parent clock (0 = no
+     * bound). With stopChannels on, the channel stops at endClock, off
+     * it pauses there and can be resumed.
+     */
+    public inline function setDelay(startClock:Float, endClock:Float, stopChannels:Bool = true):FmodResult {
         return NativeStudio.chan_set_delay(this, startClock, endClock, stopChannels);
     }
 
@@ -283,8 +286,9 @@ abstract Channel(Int) from Int to Int {
     }
 
     /**
-     * Delivers End and SyncPoint events for this channel (drained once per
-     * frame with the other callbacks). End also removes the handler.
+     * Delivers ChannelEvent values for this channel (drained once per
+     * frame with the other callbacks): End, SyncPoint, VirtualVoice, and
+     * Occlusion. End also removes the handler.
      */
     public inline function setCallback(handler:haxefmod.core.ChannelEvent->Void):Void {
         haxefmod.core.ChannelCallbacks.set(this, handler);
@@ -455,25 +459,27 @@ abstract Channel(Int) from Int to Int {
 
     #if (macro || (js && !haxefmod_html5_allow_unsupported))
     /**
-     * Reads back the mix matrix region of outChannels rows by inChannels
-     * gains, row-major (unsupported in HTML5, null there). The returned
-     * outChannels and inChannels are the counts FMOD reports for the
-     * channel. Null on failure or for sizes outside 1..32.
+     * Reads the mix matrix back as one flat row-major array with
+     * inChannelHop floats per row (0 = packed to the input count), and
+     * the output and input channel counts FMOD reports (unsupported in
+     * HTML5, null there). outChannels and inChannels above 0 keep only
+     * that many rows and columns. Null on failure, at most 32 by 32.
      */
-    public macro function getMixMatrix(self:haxe.macro.Expr, outChannels:haxe.macro.Expr, inChannels:haxe.macro.Expr):haxe.macro.Expr {
+    public macro function getMixMatrix(self:haxe.macro.Expr, ?outChannels:haxe.macro.Expr, ?inChannels:haxe.macro.Expr, ?inChannelHop:haxe.macro.Expr):haxe.macro.Expr {
         return haxefmod.studio.native.Html5Gate.block("Channel.getMixMatrix", "FMOD's web glue binds the matrix as a single float");
     }
     #else
     /**
-     * Reads back the mix matrix region of outChannels rows by inChannels
-     * gains, row-major (unsupported in HTML5, null there). The returned
-     * outChannels and inChannels are the counts FMOD reports for the
-     * channel. Null on failure or for sizes outside 1..32.
+     * Reads the mix matrix back as one flat row-major array with
+     * inChannelHop floats per row (0 = packed to the input count), and
+     * the output and input channel counts FMOD reports (unsupported in
+     * HTML5, null there). outChannels and inChannels above 0 keep only
+     * that many rows and columns. Null on failure, at most 32 by 32.
      */
-    public function getMixMatrix(outChannels:Int, inChannels:Int):Null<{matrix:Array<Float>, outChannels:Int, inChannels:Int}> {
-        var total = NativeStudio.chan_get_mix_matrix(this, outChannels, inChannels);
+    public function getMixMatrix(outChannels:Int = 0, inChannels:Int = 0, inChannelHop:Int = 0):Null<{matrix:Array<Float>, outChannels:Int, inChannels:Int}> {
+        var total = NativeStudio.chan_get_mix_matrix(this, inChannelHop);
         if (total <= 0) return null;
-        return {matrix: [for (i in 0...total) Scratch.readF(i)], outChannels: Scratch.readI(0), inChannels: Scratch.readI(1)};
+        return MixMatrix.read(total, outChannels, inChannels, inChannelHop);
     }
     #end
 

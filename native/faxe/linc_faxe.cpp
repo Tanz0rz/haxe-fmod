@@ -1197,13 +1197,17 @@ int fmod_dsp_add_input(int h, int inputHandle, int type) {
     return faxe_handle_find_or_alloc(conn, FAXE_TYPE_DSPCONN);
 }
 
-int fmod_dsp_disconnect_from(int h, int inputHandle) {
+// connHandle 0 means any connection between the two units
+int fmod_dsp_disconnect_from(int h, int inputHandle, int connHandle) {
     FMOD::DSP* dsp = resolveDsp(h);
     FMOD::DSP* input = resolveDsp(inputHandle);
+    FMOD::DSPConnection* conn = NULL;
     if (!dsp || !input) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
-    gLastResult = dsp->disconnectFrom(input, NULL);
-    // The connection object died: reclaim its cached handle before a
-    // recycled address can alias it
+    if (connHandle != 0) {
+        conn = resolveDspConn(connHandle);
+        if (!conn) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    }
+    gLastResult = dsp->disconnectFrom(input, conn);
     // Graph changes invalidate connection objects on the mixer's schedule,
     // so every connection handle is dropped deterministically here
     if (gLastResult == FMOD_OK) faxe_handles_free_type(FAXE_TYPE_DSPCONN);
@@ -1279,12 +1283,15 @@ int fmod_dspconn_get_type(int h) {
 
 //// Core channel group nesting
 
-int fmod_cg_add_group(int h, int childHandle) {
+// Returns the connection handle, 0 on failure with the reason in gLastResult
+int fmod_cg_add_group(int h, int childHandle, bool propagateDspClock) {
     FMOD::ChannelGroup* group = resolveChanGroup(h);
     FMOD::ChannelGroup* child = resolveChanGroup(childHandle);
-    if (!group || !child) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
-    gLastResult = group->addGroup(child, true, NULL);
-    return (int)gLastResult;
+    FMOD::DSPConnection* conn = NULL;
+    if (!group || !child) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = group->addGroup(child, propagateDspClock, &conn);
+    if (gLastResult != FMOD_OK || !conn) return 0;
+    return faxe_handle_find_or_alloc(conn, FAXE_TYPE_DSPCONN);
 }
 
 int fmod_cg_get_num_groups(int h) {
@@ -1400,14 +1407,26 @@ int fmod_chan_set_3d_doppler_level(int h, float level) {
 }
 
 // fbuf in: out*in gains row-major
-int fmod_chan_set_mix_matrix(int h, ::Array<Float> fbuf, int outChannels, int inChannels) {
+// Rows of outChannels by inChannels gains, laid out with inChannelHop
+// floats per row (0 = packed). Everything stays inside the 32x32 buffer.
+static bool matrixArgsOk(int outChannels, int inChannels, int inChannelHop) {
+    int stride = inChannelHop > 0 ? inChannelHop : inChannels;
+    if (outChannels < 1 || inChannels < 1 || outChannels > 32 || inChannels > 32
+            || inChannelHop < 0 || inChannelHop > 32 || stride < inChannels) {
+        gLastResult = FMOD_ERR_INVALID_PARAM;
+        return false;
+    }
+    return true;
+}
+
+int fmod_chan_set_mix_matrix(int h, ::Array<Float> fbuf, int outChannels, int inChannels, int inChannelHop) {
     FMOD::Channel* ch = resolveChannel(h);
     float matrix[32 * 32];
-    int total = outChannels * inChannels;
     if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
-    if (total < 0 || total > 32 * 32) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    if (!matrixArgsOk(outChannels, inChannels, inChannelHop)) return (int)gLastResult;
+    int total = outChannels * (inChannelHop > 0 ? inChannelHop : inChannels);
     for (int i = 0; i < total; i++) matrix[i] = (float)fbuf[i];
-    gLastResult = ch->setMixMatrix(matrix, outChannels, inChannels, 0);
+    gLastResult = ch->setMixMatrix(matrix, outChannels, inChannels, inChannelHop);
     return (int)gLastResult;
 }
 
@@ -1770,17 +1789,23 @@ int fmod_dsp_get_cpu_usage(int h, ::Array<int> ibuf) {
 
 #define FAXE_CB_CHAN_END 0x40000001u
 #define FAXE_CB_CHAN_SYNCPOINT 0x40000002u
+#define FAXE_CB_CHAN_VIRTUALVOICE 0x40000003u
+#define FAXE_CB_CHAN_OCCLUSION 0x40000004u
 
-// Runs on whichever thread pumps System::update. Pure C data handling:
-// reads the handle from the channel's user data and enqueues, never
-// touching the runtime.
+// Runs on whichever thread pumps System::update. Pure C: reads the handle
+// from the channel or group user data and enqueues, never touching the
+// runtime. Occlusion carries two floats, the second rides in i1 as raw bits.
 static FMOD_RESULT F_CALLBACK lincChannelCallback(FMOD_CHANNELCONTROL* channelcontrol, FMOD_CHANNELCONTROL_TYPE controltype, FMOD_CHANNELCONTROL_CALLBACK_TYPE callbacktype, void* commanddata1, void* commanddata2) {
     void* userData = NULL;
     int handle;
     FaxeCbEvent event;
-    (void)commanddata2;
-    if (controltype != FMOD_CHANNELCONTROL_CHANNEL) return FMOD_OK;
-    ((FMOD::Channel*)channelcontrol)->getUserData(&userData);
+    if (controltype == FMOD_CHANNELCONTROL_CHANNEL) {
+        ((FMOD::Channel*)channelcontrol)->getUserData(&userData);
+    } else if (controltype == FMOD_CHANNELCONTROL_CHANNELGROUP) {
+        ((FMOD::ChannelGroup*)channelcontrol)->getUserData(&userData);
+    } else {
+        return FMOD_OK;
+    }
     handle = (int)(intptr_t)userData;
     if (!handle) return FMOD_OK;
     memset(&event, 0, sizeof(event));
@@ -1790,6 +1815,13 @@ static FMOD_RESULT F_CALLBACK lincChannelCallback(FMOD_CHANNELCONTROL* channelco
     } else if (callbacktype == FMOD_CHANNELCONTROL_CALLBACK_SYNCPOINT) {
         event.type = FAXE_CB_CHAN_SYNCPOINT;
         event.i1 = (int)(intptr_t)commanddata1;
+    } else if (callbacktype == FMOD_CHANNELCONTROL_CALLBACK_VIRTUALVOICE) {
+        event.type = FAXE_CB_CHAN_VIRTUALVOICE;
+        event.i1 = (int)(intptr_t)commanddata1;
+    } else if (callbacktype == FMOD_CHANNELCONTROL_CALLBACK_OCCLUSION) {
+        event.type = FAXE_CB_CHAN_OCCLUSION;
+        if (commanddata1) event.f1 = *(float*)commanddata1;
+        if (commanddata2) memcpy(&event.i1, commanddata2, sizeof(int32_t));
     } else {
         return FMOD_OK;
     }
@@ -1806,6 +1838,19 @@ int fmod_chan_set_callback(int h, bool enabled) {
     } else {
         gLastResult = ch->setCallback(NULL);
         ch->setUserData(NULL);
+    }
+    return (int)gLastResult;
+}
+
+int fmod_cg_set_callback(int h, bool enabled) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    if (enabled) {
+        group->setUserData((void*)(intptr_t)h);
+        gLastResult = group->setCallback(lincChannelCallback);
+    } else {
+        gLastResult = group->setCallback(NULL);
+        group->setUserData(NULL);
     }
     return (int)gLastResult;
 }
@@ -2719,6 +2764,47 @@ int fmod_cg_set_3d_occlusion(int h, float direct, float reverb) {
     return (int)gLastResult;
 }
 
+int fmod_cg_get_3d_occlusion(int h, ::Array<Float> fbuf) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    float direct = 0.0f;
+    float reverb = 0.0f;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = group->get3DOcclusion(&direct, &reverb);
+    fbuf[0] = (double)direct;
+    fbuf[1] = (double)reverb;
+    return (int)gLastResult;
+}
+
+int fmod_cg_get_delay(int h, ::Array<Float> fbuf) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    unsigned long long startClock = 0;
+    unsigned long long endClock = 0;
+    bool stopChannels = false;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = group->getDelay(&startClock, &endClock, &stopChannels);
+    fbuf[0] = (double)startClock;
+    fbuf[1] = (double)endClock;
+    fbuf[2] = stopChannels ? 1.0 : 0.0;
+    return (int)gLastResult;
+}
+
+float fmod_cg_get_low_pass_gain(int h) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    float gain = 0.0f;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0.0f; }
+    gLastResult = group->getLowPassGain(&gain);
+    return gain;
+}
+
+bool fmod_cg_is_playing(int h) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    bool playing = false;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return false; }
+    gLastResult = group->isPlaying(&playing);
+    if (gLastResult != FMOD_OK) return false;
+    return playing;
+}
+
 int fmod_cg_set_3d_level(int h, float level) {
     FMOD::ChannelGroup* group = resolveChanGroup(h);
     if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
@@ -2820,14 +2906,14 @@ float fmod_cg_get_reverb_wet(int h, int instance) {
     return wet;
 }
 
-int fmod_cg_set_mix_matrix(int h, ::Array<Float> fbuf, int outChannels, int inChannels) {
+int fmod_cg_set_mix_matrix(int h, ::Array<Float> fbuf, int outChannels, int inChannels, int inChannelHop) {
     FMOD::ChannelGroup* group = resolveChanGroup(h);
     float matrix[32 * 32];
-    int total = outChannels * inChannels;
     if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
-    if (total < 0 || total > 32 * 32) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    if (!matrixArgsOk(outChannels, inChannels, inChannelHop)) return (int)gLastResult;
+    int total = outChannels * (inChannelHop > 0 ? inChannelHop : inChannels);
     for (int i = 0; i < total; i++) matrix[i] = (float)fbuf[i];
-    gLastResult = group->setMixMatrix(matrix, outChannels, inChannels, 0);
+    gLastResult = group->setMixMatrix(matrix, outChannels, inChannels, inChannelHop);
     return (int)gLastResult;
 }
 
@@ -5049,32 +5135,37 @@ int fmod_chan_get_fade_points(int h, ::Array<Float> fbuf) {
 // valid after it returns.
 static float gMatrixBuf[32 * 32];
 
-static bool matrixRegionOk(int outChannels, int inChannels) {
-    if (outChannels < 1 || inChannels < 1 || outChannels > 32 || inChannels > 32) {
+// A read hop of 0 means packed rows. 32 is the widest matrix FMOD mixes.
+static bool matrixHopOk(int inChannelHop) {
+    if (inChannelHop < 0 || inChannelHop > 32) {
         gLastResult = FMOD_ERR_INVALID_PARAM;
         return false;
     }
     return true;
 }
 
-static int writeMixMatrix(FMOD_RESULT result, int outActual, int inActual, int outChannels, int inChannels, ::Array<Float> fbuf, ::Array<int> ibuf) {
-    int total = outChannels * inChannels;
+// Copies outActual rows of stride floats (the hop, or inActual when the
+// hop is 0) out of gMatrixBuf and returns that count, 0 on failure.
+static int writeMixMatrix(FMOD_RESULT result, int outActual, int inActual, int inChannelHop, ::Array<Float> fbuf, ::Array<int> ibuf) {
+    int stride = inChannelHop > 0 ? inChannelHop : inActual;
+    int total = outActual * stride;
     gLastResult = result;
     if (result != FMOD_OK) return 0;
+    if (total < 0 || total > 32 * 32) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
     for (int i = 0; i < total; i++) fbuf[i] = (double)gMatrixBuf[i];
     ibuf[0] = outActual;
     ibuf[1] = inActual;
     return total;
 }
 
-int fmod_chan_get_mix_matrix(int h, ::Array<Float> fbuf, ::Array<int> ibuf, int outChannels, int inChannels) {
+int fmod_chan_get_mix_matrix(int h, ::Array<Float> fbuf, ::Array<int> ibuf, int inChannelHop) {
     FMOD::Channel* ch = resolveChannel(h);
     int outActual = 0;
     int inActual = 0;
     if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
-    if (!matrixRegionOk(outChannels, inChannels)) return 0;
-    FMOD_RESULT result = ch->getMixMatrix(gMatrixBuf, &outActual, &inActual, inChannels);
-    return writeMixMatrix(result, outActual, inActual, outChannels, inChannels, fbuf, ibuf);
+    if (!matrixHopOk(inChannelHop)) return 0;
+    FMOD_RESULT result = ch->getMixMatrix(gMatrixBuf, &outActual, &inActual, inChannelHop);
+    return writeMixMatrix(result, outActual, inActual, inChannelHop, fbuf, ibuf);
 }
 
 int fmod_chan_get_channel_group(int h) {
@@ -5112,14 +5203,14 @@ int fmod_cg_get_fade_points(int h, ::Array<Float> fbuf) {
     return writeFadePoints(count, fbuf);
 }
 
-int fmod_cg_get_mix_matrix(int h, ::Array<Float> fbuf, ::Array<int> ibuf, int outChannels, int inChannels) {
+int fmod_cg_get_mix_matrix(int h, ::Array<Float> fbuf, ::Array<int> ibuf, int inChannelHop) {
     FMOD::ChannelGroup* group = resolveChanGroup(h);
     int outActual = 0;
     int inActual = 0;
     if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
-    if (!matrixRegionOk(outChannels, inChannels)) return 0;
-    FMOD_RESULT result = group->getMixMatrix(gMatrixBuf, &outActual, &inActual, inChannels);
-    return writeMixMatrix(result, outActual, inActual, outChannels, inChannels, fbuf, ibuf);
+    if (!matrixHopOk(inChannelHop)) return 0;
+    FMOD_RESULT result = group->getMixMatrix(gMatrixBuf, &outActual, &inActual, inChannelHop);
+    return writeMixMatrix(result, outActual, inActual, inChannelHop, fbuf, ibuf);
 }
 
 const char* fmod_sg_get_name(int h) {
@@ -5254,24 +5345,24 @@ int fmod_dsp_get_output_channel_format(int h, int inMask, int inChannels, int in
 }
 
 // fbuf in: out*in gains row-major
-int fmod_conn_set_mix_matrix(int h, ::Array<Float> fbuf, int outChannels, int inChannels) {
+int fmod_conn_set_mix_matrix(int h, ::Array<Float> fbuf, int outChannels, int inChannels, int inChannelHop) {
     FMOD::DSPConnection* conn = resolveDspConn(h);
-    int total = outChannels * inChannels;
     if (!conn) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
-    if (total < 0 || total > 32 * 32) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    if (!matrixArgsOk(outChannels, inChannels, inChannelHop)) return (int)gLastResult;
+    int total = outChannels * (inChannelHop > 0 ? inChannelHop : inChannels);
     for (int i = 0; i < total; i++) gMatrixBuf[i] = (float)fbuf[i];
-    gLastResult = conn->setMixMatrix(gMatrixBuf, outChannels, inChannels, 0);
+    gLastResult = conn->setMixMatrix(gMatrixBuf, outChannels, inChannels, inChannelHop);
     return (int)gLastResult;
 }
 
-int fmod_conn_get_mix_matrix(int h, ::Array<Float> fbuf, ::Array<int> ibuf, int outChannels, int inChannels) {
+int fmod_conn_get_mix_matrix(int h, ::Array<Float> fbuf, ::Array<int> ibuf, int inChannelHop) {
     FMOD::DSPConnection* conn = resolveDspConn(h);
     int outActual = 0;
     int inActual = 0;
     if (!conn) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
-    if (!matrixRegionOk(outChannels, inChannels)) return 0;
-    FMOD_RESULT result = conn->getMixMatrix(gMatrixBuf, &outActual, &inActual, inChannels);
-    return writeMixMatrix(result, outActual, inActual, outChannels, inChannels, fbuf, ibuf);
+    if (!matrixHopOk(inChannelHop)) return 0;
+    FMOD_RESULT result = conn->getMixMatrix(gMatrixBuf, &outActual, &inActual, inChannelHop);
+    return writeMixMatrix(result, outActual, inActual, inChannelHop, fbuf, ibuf);
 }
 
 int fmod_debug_live_handle_count() {

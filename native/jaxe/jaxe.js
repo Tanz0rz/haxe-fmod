@@ -2686,6 +2686,7 @@ class jaxe {
     static fmod_cg_release(handle) {
         var group = jaxe.resolveCg(handle);
         if (!group) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.chanCallbackHandles.delete(jaxe.rawPtr(group));
         jaxe.lastResult = group.release();
         if (jaxe.lastResult == jaxe.FMOD.OK) {
             jaxe.handleFree(handle);
@@ -2965,11 +2966,17 @@ class jaxe {
         return jaxe.handleFindOrAlloc(out.val, jaxe.TYPE_DSPCONN);
     }
 
-    static fmod_dsp_disconnect_from(handle, inputHandle) {
+    // connHandle 0 means any connection between the two units
+    static fmod_dsp_disconnect_from(handle, inputHandle, connHandle) {
         var dsp = jaxe.resolveDsp(handle);
         var input = jaxe.resolveDsp(inputHandle);
         if (!dsp || !input) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
-        jaxe.lastResult = dsp.disconnectFrom(input, null);
+        var conn = null;
+        if (connHandle) {
+            conn = jaxe.resolveDspConn(connHandle);
+            if (!conn) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        }
+        jaxe.lastResult = dsp.disconnectFrom(input, conn);
         if (jaxe.lastResult == jaxe.FMOD.OK) jaxe.freeAllOfType(jaxe.TYPE_DSPCONN);
         return jaxe.lastResult;
     }
@@ -3043,12 +3050,15 @@ class jaxe {
 
     //// Core channel group nesting
 
-    static fmod_cg_add_group(handle, childHandle) {
+    // Returns the connection handle, 0 on failure with the reason in lastResult
+    static fmod_cg_add_group(handle, childHandle, propagateDspClock) {
         var group = jaxe.resolveCg(handle);
         var child = jaxe.resolveCg(childHandle);
-        if (!group || !child) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
-        jaxe.lastResult = group.addGroup(child, true, {});
-        return jaxe.lastResult;
+        if (!group || !child) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }
+        var out = {};
+        jaxe.lastResult = group.addGroup(child, !!propagateDspClock, out);
+        if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
+        return jaxe.handleFindOrAlloc(out.val, jaxe.TYPE_DSPCONN);
     }
 
     static fmod_cg_get_num_groups(handle) {
@@ -3161,14 +3171,26 @@ class jaxe {
         return jaxe.lastResult;
     }
 
-    static fmod_chan_set_mix_matrix(handle, fbuf, outChannels, inChannels) {
+    // Rows of outChannels by inChannels gains, laid out with inChannelHop
+    // floats per row (0 = packed). Everything stays inside the 32x32 cap.
+    static matrixArgsOk(outChannels, inChannels, inChannelHop) {
+        var stride = inChannelHop > 0 ? inChannelHop : inChannels;
+        if (outChannels < 1 || inChannels < 1 || outChannels > 32 || inChannels > 32
+                || inChannelHop < 0 || inChannelHop > 32 || stride < inChannels) {
+            jaxe.lastResult = jaxe.ERR_INVALID_PARAM;
+            return false;
+        }
+        return true;
+    }
+
+    static fmod_chan_set_mix_matrix(handle, fbuf, outChannels, inChannels, inChannelHop) {
         var ch = jaxe.resolveChan(handle);
         if (!ch) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
-        var total = outChannels * inChannels;
-        if (total < 0 || total > 32 * 32) { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
+        if (!jaxe.matrixArgsOk(outChannels, inChannels, inChannelHop)) return jaxe.lastResult;
+        var total = outChannels * (inChannelHop > 0 ? inChannelHop : inChannels);
         var matrix = [];
         for (var i = 0; i < total; i++) matrix.push(fbuf[i] || 0);
-        jaxe.lastResult = ch.setMixMatrix(matrix, outChannels, inChannels, 0);
+        jaxe.lastResult = ch.setMixMatrix(matrix, outChannels, inChannels, inChannelHop);
         return jaxe.lastResult;
     }
 
@@ -3502,13 +3524,20 @@ class jaxe {
 
     //// Channel callbacks and sync points
 
-    // Channel events ride the callback queue under the 0x40000000 namespace
+    // Channel and group events ride the callback queue under the 0x40000000 namespace
     static CB_CHAN_END = 0x40000001;
     static CB_CHAN_SYNCPOINT = 0x40000002;
+    static CB_CHAN_VIRTUALVOICE = 0x40000003;
+    static CB_CHAN_OCCLUSION = 0x40000004;
+
+    // Occlusion carries two floats, the second rides in i1 as raw bits
+    static floatBits = new Float32Array(1);
+    static floatBitsInt = new Int32Array(jaxe.floatBits.buffer);
 
     static channelCallback(channelcontrol, controltype, callbacktype, commanddata1, commanddata2) {
-        // controltype 0 = channel. The handle rides in the channel userdata.
-        if (controltype !== 0) return jaxe.FMOD.OK;
+        // controltype 0 = channel, 1 = channel group. The handle sits in the
+        // map keyed by the object's raw pointer.
+        if (controltype !== 0 && controltype !== 1) return jaxe.FMOD.OK;
         var handle = jaxe.chanCallbackHandles.get(jaxe.rawPtr(channelcontrol)) || 0;
         if (!handle) return jaxe.FMOD.OK;
         var ev = { handle: handle, type: 0, i1: 0, i2: 0, i3: 0, i4: 0, i5: 0, f1: 0.0, str: "" };
@@ -3518,7 +3547,14 @@ class jaxe {
             // naturally-ended channel for the rest of the session
             jaxe.chanCallbackHandles.delete(jaxe.rawPtr(channelcontrol));
         }
+        else if (callbacktype === 1) { ev.type = jaxe.CB_CHAN_VIRTUALVOICE; ev.i1 = commanddata1 ? 1 : 0; }
         else if (callbacktype === 2) { ev.type = jaxe.CB_CHAN_SYNCPOINT; ev.i1 = commanddata1 | 0; }
+        else if (callbacktype === 3) {
+            ev.type = jaxe.CB_CHAN_OCCLUSION;
+            ev.f1 = typeof commanddata1 === "number" ? commanddata1 : 0.0;
+            jaxe.floatBits[0] = typeof commanddata2 === "number" ? commanddata2 : 0.0;
+            ev.i1 = jaxe.floatBitsInt[0];
+        }
         else return jaxe.FMOD.OK;
         jaxe.cbQueue.push(ev);
         if (jaxe.cbQueue.length > jaxe.CBQ_CAPACITY) {
@@ -3541,6 +3577,19 @@ class jaxe {
         } else {
             jaxe.lastResult = ch.setCallback(null);
             jaxe.chanCallbackHandles.delete(jaxe.rawPtr(ch));
+        }
+        return jaxe.lastResult;
+    }
+
+    static fmod_cg_set_callback(handle, enabled) {
+        var group = jaxe.resolveCg(handle);
+        if (!group) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        if (enabled) {
+            jaxe.chanCallbackHandles.set(jaxe.rawPtr(group), handle);
+            jaxe.lastResult = group.setCallback(jaxe.channelCallback);
+        } else {
+            jaxe.lastResult = group.setCallback(null);
+            jaxe.chanCallbackHandles.delete(jaxe.rawPtr(group));
         }
         return jaxe.lastResult;
     }
@@ -4440,6 +4489,48 @@ class jaxe {
         return jaxe.lastResult;
     }
 
+    // FMOD 2.03.12 reports OK from both group readers and leaves the
+    // values at zero on every target, so they read back zeros here too
+    static fmod_cg_get_3d_occlusion(handle, fbuf) {
+        var group = jaxe.resolveCg(handle);
+        if (!group) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        var direct = {};
+        var reverb = {};
+        jaxe.lastResult = group.get3DOcclusion(direct, reverb);
+        fbuf[0] = direct.val || 0;
+        fbuf[1] = reverb.val || 0;
+        return jaxe.lastResult;
+    }
+
+    static fmod_cg_get_low_pass_gain(handle) {
+        var group = jaxe.resolveCg(handle);
+        if (!group) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0.0; }
+        var out = {};
+        jaxe.lastResult = group.getLowPassGain(out);
+        return jaxe.lastResult == jaxe.FMOD.OK ? (out.val || 0) : 0.0;
+    }
+
+    static fmod_cg_get_delay(handle, fbuf) {
+        var group = jaxe.resolveCg(handle);
+        if (!group) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        var startClock = {};
+        var endClock = {};
+        var stopChannels = {};
+        jaxe.lastResult = group.getDelay(startClock, endClock, stopChannels);
+        fbuf[0] = startClock.val || 0;
+        fbuf[1] = endClock.val || 0;
+        fbuf[2] = stopChannels.val ? 1 : 0;
+        return jaxe.lastResult;
+    }
+
+    static fmod_cg_is_playing(handle) {
+        var group = jaxe.resolveCg(handle);
+        if (!group) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return false; }
+        var out = {};
+        jaxe.lastResult = group.isPlaying(out);
+        return jaxe.lastResult == jaxe.FMOD.OK ? !!out.val : false;
+    }
+
     static fmod_cg_set_3d_level(handle, level) {
         var group = jaxe.resolveCg(handle);
         if (!group) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
@@ -4538,14 +4629,14 @@ class jaxe {
         return jaxe.lastResult == jaxe.FMOD.OK ? (out.val || 0) : 0.0;
     }
 
-    static fmod_cg_set_mix_matrix(handle, fbuf, outChannels, inChannels) {
+    static fmod_cg_set_mix_matrix(handle, fbuf, outChannels, inChannels, inChannelHop) {
         var group = jaxe.resolveCg(handle);
         if (!group) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
-        var total = outChannels * inChannels;
-        if (total < 0 || total > 32 * 32) { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
+        if (!jaxe.matrixArgsOk(outChannels, inChannels, inChannelHop)) return jaxe.lastResult;
+        var total = outChannels * (inChannelHop > 0 ? inChannelHop : inChannels);
         var matrix = [];
         for (var i = 0; i < total; i++) matrix.push(fbuf[i] || 0);
-        jaxe.lastResult = group.setMixMatrix(matrix, outChannels, inChannels, 0);
+        jaxe.lastResult = group.setMixMatrix(matrix, outChannels, inChannels, inChannelHop);
         return jaxe.lastResult;
     }
 
@@ -4862,7 +4953,7 @@ class jaxe {
 
     // The glue binds the matrix pointer of every getMixMatrix as one float
     // and FMOD rejects the call, so the matrix never comes back. Unsupported here.
-    static fmod_chan_get_mix_matrix(handle, fbuf, ibuf, outChannels, inChannels) {
+    static fmod_chan_get_mix_matrix(handle, fbuf, ibuf, inChannelHop) {
         var ch = jaxe.resolveChan(handle);
         if (!ch) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }
         jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
@@ -4902,7 +4993,7 @@ class jaxe {
         return 0;
     }
 
-    static fmod_cg_get_mix_matrix(handle, fbuf, ibuf, outChannels, inChannels) {
+    static fmod_cg_get_mix_matrix(handle, fbuf, ibuf, inChannelHop) {
         var group = jaxe.resolveCg(handle);
         if (!group) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }
         jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
@@ -5012,18 +5103,18 @@ class jaxe {
         return jaxe.lastResult;
     }
 
-    static fmod_conn_set_mix_matrix(handle, fbuf, outChannels, inChannels) {
+    static fmod_conn_set_mix_matrix(handle, fbuf, outChannels, inChannels, inChannelHop) {
         var conn = jaxe.resolveDspConn(handle);
         if (!conn) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
-        var total = outChannels * inChannels;
-        if (total < 0 || total > 32 * 32) { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
+        if (!jaxe.matrixArgsOk(outChannels, inChannels, inChannelHop)) return jaxe.lastResult;
+        var total = outChannels * (inChannelHop > 0 ? inChannelHop : inChannels);
         var matrix = [];
         for (var i = 0; i < total; i++) matrix.push(fbuf[i] || 0);
-        jaxe.lastResult = conn.setMixMatrix(matrix, outChannels, inChannels, 0);
+        jaxe.lastResult = conn.setMixMatrix(matrix, outChannels, inChannels, inChannelHop);
         return jaxe.lastResult;
     }
 
-    static fmod_conn_get_mix_matrix(handle, fbuf, ibuf, outChannels, inChannels) {
+    static fmod_conn_get_mix_matrix(handle, fbuf, ibuf, inChannelHop) {
         var conn = jaxe.resolveDspConn(handle);
         if (!conn) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }
         jaxe.lastResult = jaxe.ERR_UNSUPPORTED;

@@ -113,8 +113,8 @@ async function main() {
     check('chan_get_fade_points_bad_handle', jaxe.fmod_chan_get_fade_points(999999, fbuf) === 0
         && jaxe.fmod_sys_last_result() === INVALID_HANDLE, '');
     fbuf[0] = 1; fbuf[1] = 0; fbuf[2] = 0; fbuf[3] = 1;
-    check('chan_set_mix_matrix', jaxe.fmod_chan_set_mix_matrix(channel, fbuf, 2, 2) === 0, '');
-    check('chan_get_mix_matrix (expect 68 unsupported)', jaxe.fmod_chan_get_mix_matrix(channel, fbuf, ibuf, 2, 2) === 0
+    check('chan_set_mix_matrix', jaxe.fmod_chan_set_mix_matrix(channel, fbuf, 2, 2, 0) === 0, '');
+    check('chan_get_mix_matrix (expect 68 unsupported)', jaxe.fmod_chan_get_mix_matrix(channel, fbuf, ibuf, 0) === 0
         && jaxe.fmod_sys_last_result() === UNSUPPORTED, `result=${jaxe.fmod_sys_last_result()}`);
 
     // Group getter, group chain position, group readbacks
@@ -129,7 +129,7 @@ async function main() {
     check('cg_set_dsp_index', jaxe.fmod_cg_set_dsp_index(group, lowpass, 0) === 0, '');
     check('cg_get_fade_points (expect 68 unsupported)', jaxe.fmod_cg_get_fade_points(group, fbuf) === 0
         && jaxe.fmod_sys_last_result() === UNSUPPORTED, `result=${jaxe.fmod_sys_last_result()}`);
-    check('cg_get_mix_matrix (expect 68 unsupported)', jaxe.fmod_cg_get_mix_matrix(group, fbuf, ibuf, 2, 2) === 0
+    check('cg_get_mix_matrix (expect 68 unsupported)', jaxe.fmod_cg_get_mix_matrix(group, fbuf, ibuf, 0) === 0
         && jaxe.fmod_sys_last_result() === UNSUPPORTED, `result=${jaxe.fmod_sys_last_result()}`);
 
     // Pool channel by index
@@ -179,14 +179,14 @@ async function main() {
     const conn = jaxe.fmod_dsp_add_input(fft, osc, 0);
     check('dsp_add_input', conn > 0, `handle=${conn}`);
     fbuf[0] = 0.5; fbuf[1] = 0; fbuf[2] = 0; fbuf[3] = 0.5;
-    check('conn_set_mix_matrix', jaxe.fmod_conn_set_mix_matrix(conn, fbuf, 2, 2) === 0, '');
-    check('conn_set_mix_matrix_bad_size', jaxe.fmod_conn_set_mix_matrix(conn, fbuf, 40, 40) === INVALID_PARAM, '');
-    check('conn_get_mix_matrix (expect 68 unsupported)', jaxe.fmod_conn_get_mix_matrix(conn, fbuf, ibuf, 2, 2) === 0
+    check('conn_set_mix_matrix', jaxe.fmod_conn_set_mix_matrix(conn, fbuf, 2, 2, 0) === 0, '');
+    check('conn_set_mix_matrix_bad_size', jaxe.fmod_conn_set_mix_matrix(conn, fbuf, 40, 40, 0) === INVALID_PARAM, '');
+    check('conn_get_mix_matrix (expect 68 unsupported)', jaxe.fmod_conn_get_mix_matrix(conn, fbuf, ibuf, 0) === 0
         && jaxe.fmod_sys_last_result() === UNSUPPORTED, `result=${jaxe.fmod_sys_last_result()}`);
-    check('conn_get_mix_matrix_bad_handle', jaxe.fmod_conn_get_mix_matrix(999999, fbuf, ibuf, 2, 2) === 0
+    check('conn_get_mix_matrix_bad_handle', jaxe.fmod_conn_get_mix_matrix(999999, fbuf, ibuf, 0) === 0
         && jaxe.fmod_sys_last_result() === INVALID_HANDLE, '');
 
-    jaxe.fmod_dsp_disconnect_from(fft, osc);
+    jaxe.fmod_dsp_disconnect_from(fft, osc, 0);
     jaxe.fmod_chan_stop(channel);
     jaxe.fmod_chan_stop(pooled);
     jaxe.fmod_dsp_release(osc);

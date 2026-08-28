@@ -322,7 +322,7 @@ function testConnectionGraph() {
     check('s3_input_dsp_dedup', inputDsp === osc, `input=${inputDsp} osc=${osc}`);
     const inputConn = jaxe.fmod_dsp_get_input_connection(lp, 0);
     check('s3_input_conn_dedup', inputConn === conn, `conn=${inputConn} orig=${conn}`);
-    check('s3_disconnect', jaxe.fmod_dsp_disconnect_from(lp, osc) === jaxe.FMOD.OK);
+    check('s3_disconnect', jaxe.fmod_dsp_disconnect_from(lp, osc, 0) === jaxe.FMOD.OK);
     // The sweep after disconnect reclaims the dead connection handle
     check('s3_stale_conn', jaxe.fmod_dspconn_set_mix(conn, 1.0) === jaxe.ERR_INVALID_HANDLE);
     jaxe.fmod_dsp_release(lp);
@@ -332,7 +332,7 @@ function testConnectionGraph() {
 function testNestingAndScheduling() {
     const parent = jaxe.fmod_cg_create('s3-parent');
     const child = jaxe.fmod_cg_create('s3-child');
-    check('s3_cg_add_group', jaxe.fmod_cg_add_group(parent, child) === jaxe.FMOD.OK);
+    check('s3_cg_add_group', jaxe.fmod_cg_add_group(parent, child, true) !== 0 && jaxe.lastResult === jaxe.FMOD.OK);
     check('s3_cg_num_groups', jaxe.fmod_cg_get_num_groups(parent) === 1);
     check('s3_cg_get_group_dedup', jaxe.fmod_cg_get_group(parent, 0) === child);
     check('s3_cg_get_parent_dedup', jaxe.fmod_cg_get_parent_group(child) === parent);
@@ -361,7 +361,7 @@ function testNestingAndScheduling() {
     check('s3_chan_mute', jaxe.fmod_chan_set_mute(ch, true) === jaxe.FMOD.OK
         && jaxe.fmod_chan_get_mute(ch) === true);
     check('s3_chan_low_pass_gain', jaxe.fmod_chan_set_low_pass_gain(ch, 0.5) === jaxe.FMOD.OK);
-    check('s3_chan_mix_matrix', jaxe.fmod_chan_set_mix_matrix(ch, [1, 0, 0, 1], 2, 2) === jaxe.FMOD.OK);
+    check('s3_chan_mix_matrix', jaxe.fmod_chan_set_mix_matrix(ch, [1, 0, 0, 1], 2, 2, 0) === jaxe.FMOD.OK);
     jaxe.fmod_chan_stop(ch);
     jaxe.fmod_dsp_release(osc);
     jaxe.fmod_cg_release(child);
@@ -689,7 +689,7 @@ function testAuditClosure() {
     check('s5_output_conn', jaxe.fmod_dsp_get_output_connection(conv, 0) === conn, '');
     check('s5_conn_endpoints', jaxe.fmod_dspconn_get_input_dsp(conn) === conv
         && jaxe.fmod_dspconn_get_output_dsp(conn) === lp2, '');
-    jaxe.fmod_dsp_disconnect_from(lp2, conv);
+    jaxe.fmod_dsp_disconnect_from(lp2, conv, 0);
     jaxe.fmod_dsp_release(lp2);
     jaxe.fmod_dsp_release(conv);
 
@@ -736,7 +736,7 @@ function testAuditClosure() {
     check('s5_cg_cone_orient_roundtrip', Math.abs(gOrient[2] - 1) < 0.001, `z=${gOrient[2]}`);
     check('s5_cg_reverb_wet', jaxe.fmod_cg_set_reverb_wet(grp, 0, 0.4) === jaxe.FMOD.OK
         && Math.abs(jaxe.fmod_cg_get_reverb_wet(grp, 0) - 0.4) < 0.001, '');
-    check('s5_cg_mix_matrix', jaxe.fmod_cg_set_mix_matrix(grp, [1, 0, 0, 1], 2, 2) === jaxe.FMOD.OK, '');
+    check('s5_cg_mix_matrix', jaxe.fmod_cg_set_mix_matrix(grp, [1, 0, 0, 1], 2, 2, 0) === jaxe.FMOD.OK, '');
     check('s5_cg_volume_ramp', jaxe.fmod_cg_set_volume_ramp(grp, true) === jaxe.FMOD.OK
         && jaxe.fmod_cg_get_volume_ramp(grp) === true, '');
     check('s5_cg_audibility', jaxe.fmod_cg_get_audibility(grp) >= 0, '');

@@ -491,7 +491,7 @@ enum abstract FmodChannelControlType(Int) from Int to Int {
     var MAX = 2;
 }
 
-/** FMOD_CHANNELCONTROL_CALLBACK_TYPE, the channel callback kinds. Channel.setCallback delivers END and SYNCPOINT as ChannelEvent, the other two are not delivered. */
+/** FMOD_CHANNELCONTROL_CALLBACK_TYPE, the channel callback kinds. Channel.setCallback delivers all four as ChannelEvent values, ChannelGroup.setCallback delivers OCCLUSION. */
 enum abstract FmodChannelControlCallbackType(Int) from Int to Int {
     var END = 0;
     var VIRTUALVOICE = 1;

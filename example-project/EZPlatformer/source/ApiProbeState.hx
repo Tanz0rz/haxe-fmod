@@ -180,6 +180,7 @@ class ApiProbeState extends FlxState {
         ProbeDspParameters.run(this);
         ProbeEnums.run(this);
         ProbeGroupDsp.run(this);
+        ProbeChannelControl.run(this);
         if (skipAuthored()) {
             info("authored_surface", "skipped (HAXEFMOD_PROBE_SKIP_AUTHORED)");
         } else {
@@ -2561,7 +2562,7 @@ class ApiProbeState extends FlxState {
             && Math.abs(matrix.matrix[3] - 0.5) < 0.001 && matrix.outChannels == 2 && matrix.inChannels == 2,
             matrix == null ? 'result=${StudioSystem.lastResult().toString()}'
             : 'out=${matrix.outChannels} in=${matrix.inChannels} m0=${matrix.matrix[0]}');
-        check("chan_mix_matrix_bad_size", channel.getMixMatrix(0, 2) == null
+        check("chan_mix_matrix_bad_size", channel.getMixMatrix(0, 0, 33) == null
             && StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_PARAM, "");
 
         // The group getter hands back the handle the setter took
@@ -2728,6 +2729,7 @@ class ApiProbeState extends FlxState {
 
     override public function update(elapsed:Float):Void {
         super.update(elapsed);
+        if (!_waitingForChannelEvents) ProbeChannelControl.tick(this);
         if (_waitingForChannelEvents) {
             _chanEventFrames++;
             var sawEnd = false;

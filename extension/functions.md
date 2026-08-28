@@ -10,16 +10,54 @@ import haxefmod.core.CoreSystem;
 var format = CoreSystem.getSoftwareFormat();
 ```
 
-## channelcontrol_getuserdata
-<!-- ChannelControl::getUserData -->
+## channelcontrol_getmixmatrix
+<!-- ChannelControl::getMixMatrix -->
 verdict: bound
-haxefmod covers this with Channel and ChannelGroup.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
+The matrix comes back as a struct instead of three out parameters: one flat row-major Array<Float> with inChannelHop floats per row (0 = packed to the input count), and the output and input channel counts FMOD reports. Every argument is optional. outChannels and inChannels above 0 keep only that many rows and columns. Native only, the web glue binds the matrix as a single float.
 ```haxe
-import haxefmod.core.ChannelGroup;
+var read = channel.getMixMatrix();
+if (read != null) {
+    var gains = read.matrix; // read.outChannels rows of read.inChannels floats
+}
+var hopped = channel.getMixMatrix(0, 0, 8); // rows padded to 8 floats
+```
 
-var group = ChannelGroup.master();
-group.setUserData({label: "cave"});
-var data = group.getUserData();
+## channelcontrol_setmixmatrix
+<!-- ChannelControl::setMixMatrix -->
+verdict: bound
+The matrix is one flat row-major Array<Float>, one row per output channel, with inChannelHop floats per row (0 = packed to inChannels). FMOD mixes at most 32 channels, so a shape outside 32 by 32 or a hop below inChannels is refused with FMOD_ERR_INVALID_PARAM before the call reaches FMOD.
+```haxe
+var result = channel.setMixMatrix([1, 0, 0, 1], 2, 2);
+var padded = channel.setMixMatrix([1, 0, 0, 0, 0, 1, 0, 0], 2, 2, 4);
+```
+
+## dspconnection_getmixmatrix
+<!-- DSPConnection::getMixMatrix -->
+verdict: bound
+The matrix comes back as a struct instead of three out parameters: one flat row-major Array<Float> with inChannelHop floats per row (0 = packed to the input count), and the output and input channel counts FMOD reports. Every argument is optional. Native only, the web glue binds the matrix as a single float.
+```haxe
+import haxefmod.core.Dsp;
+import haxefmod.core.DspType;
+
+var fft = Dsp.create(DspType.FFT);
+var connection = fft.addInput(Dsp.create(DspType.OSCILLATOR));
+var read = connection.getMixMatrix();
+if (read != null) {
+    var gains = read.matrix; // read.outChannels rows of read.inChannels floats
+}
+```
+
+## dspconnection_setmixmatrix
+<!-- DSPConnection::setMixMatrix -->
+verdict: bound
+The matrix is one flat row-major Array<Float>, one row per output channel, with inChannelHop floats per row (0 = packed to inChannels). FMOD mixes at most 32 channels, so a shape outside 32 by 32 or a hop below inChannels is refused with FMOD_ERR_INVALID_PARAM before the call reaches FMOD.
+```haxe
+import haxefmod.core.Dsp;
+import haxefmod.core.DspType;
+
+var fft = Dsp.create(DspType.FFT);
+var connection = fft.addInput(Dsp.create(DspType.OSCILLATOR));
+var result = connection.setMixMatrix([0.5, 0, 0, 0.5], 2, 2);
 ```
 
 ## file_getdiskbusy
@@ -95,93 +133,13 @@ import haxefmod.core.CoreSystem;
 var format = CoreSystem.getSoftwareFormat();
 ```
 
-## dsp_getuserdata
-<!-- DSP::getUserData -->
-verdict: bound
-haxefmod covers this with Dsp.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-var reverb = Dsp.create(DspType.SFXREVERB);
-reverb.setUserData({label: "cave"});
-var data = reverb.getUserData();
-```
-
 ## dsp_setcallback
 <!-- DSP::setCallback -->
 verdict: cannot FMOD runs the callback on its mixer thread, and no Haxe target can execute code there. Poll the unit from the game loop with Dsp.getMetering(), Dsp.getFftSpectrumInfo(), or Dsp.getParameterData() instead.
 
-## dsp_setuserdata
-<!-- DSP::setUserData -->
-verdict: bound
-haxefmod covers this with Dsp.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-var reverb = Dsp.create(DspType.SFXREVERB);
-reverb.setUserData({label: "cave"});
-var data = reverb.getUserData();
-```
-
 ## dsp_showconfigdialog
 <!-- DSP::showConfigDialog -->
 verdict: cannot It takes a raw operating system window handle, which has no meaning in Haxe. Plugin and built-in DSP parameters are set through Dsp.setParameter.
-
-## dspconnection_getuserdata
-<!-- DSPConnection::getUserData -->
-verdict: bound
-haxefmod covers this with DspConnection.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-var reverb = Dsp.create(DspType.SFXREVERB);
-var fft = Dsp.create(DspType.FFT);
-var connection = fft.addInput(reverb);
-connection.setUserData({label: "cave"});
-var data = connection.getUserData();
-```
-
-## dspconnection_setuserdata
-<!-- DSPConnection::setUserData -->
-verdict: bound
-haxefmod covers this with DspConnection.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-var reverb = Dsp.create(DspType.SFXREVERB);
-var fft = Dsp.create(DspType.FFT);
-var connection = fft.addInput(reverb);
-connection.setUserData({label: "cave"});
-var data = connection.getUserData();
-```
-
-## geometry_getuserdata
-<!-- Geometry::getUserData -->
-verdict: bound
-haxefmod covers this with Geometry.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
-```haxe
-import haxefmod.core.Geometry;
-
-var geometry = Geometry.create(8, 32);
-geometry.setUserData({label: "cave"});
-var data = geometry.getUserData();
-```
-
-## geometry_setuserdata
-<!-- Geometry::setUserData -->
-verdict: bound
-haxefmod covers this with Geometry.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
-```haxe
-import haxefmod.core.Geometry;
-
-var geometry = Geometry.create(8, 32);
-geometry.setUserData({label: "cave"});
-var data = geometry.getUserData();
-```
 
 ## fmod_android_jni_close
 <!-- FMOD_Android_JNI_Close -->
@@ -237,30 +195,6 @@ verdict: cannot This reads and writes the wasm heap through a raw address, which
 <!-- file_seek -->
 verdict: cannot FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, Sound.create, and Sound.fromPcm are the loading paths.
 
-## reverb3d_getuserdata
-<!-- Reverb3D::getUserData -->
-verdict: bound
-haxefmod covers this with Reverb3D.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
-```haxe
-import haxefmod.core.Reverb3D;
-
-var reverb = Reverb3D.create();
-reverb.setUserData({label: "cave"});
-var data = reverb.getUserData();
-```
-
-## reverb3d_setuserdata
-<!-- Reverb3D::setUserData -->
-verdict: bound
-haxefmod covers this with Reverb3D.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
-```haxe
-import haxefmod.core.Reverb3D;
-
-var reverb = Reverb3D.create();
-reverb.setUserData({label: "cave"});
-var data = reverb.getUserData();
-```
-
 ## sound_getsystemobject
 <!-- Sound::getSystemObject -->
 verdict: bound
@@ -269,18 +203,6 @@ haxefmod has one core system, and haxefmod.core.CoreSystem reaches it directly, 
 import haxefmod.core.CoreSystem;
 
 var format = CoreSystem.getSoftwareFormat();
-```
-
-## sound_getuserdata
-<!-- Sound::getUserData -->
-verdict: bound
-haxefmod covers this with Sound.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
-```haxe
-import haxefmod.core.Sound;
-
-var sound = Sound.create("assets/sfx/engine.wav");
-sound.setUserData({label: "cave"});
-var data = sound.getUserData();
 ```
 
 ## sound_lock
@@ -323,30 +245,6 @@ haxefmod has one core system, and haxefmod.core.CoreSystem reaches it directly, 
 import haxefmod.core.CoreSystem;
 
 var format = CoreSystem.getSoftwareFormat();
-```
-
-## soundgroup_getuserdata
-<!-- SoundGroup::getUserData -->
-verdict: bound
-haxefmod covers this with SoundGroup.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
-```haxe
-import haxefmod.core.SoundGroup;
-
-var group = SoundGroup.create("ambience");
-group.setUserData({label: "cave"});
-var data = group.getUserData();
-```
-
-## soundgroup_setuserdata
-<!-- SoundGroup::setUserData -->
-verdict: bound
-haxefmod covers this with SoundGroup.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
-```haxe
-import haxefmod.core.SoundGroup;
-
-var group = SoundGroup.create("ambience");
-group.setUserData({label: "cave"});
-var data = group.getUserData();
 ```
 
 ## system_attachchannelgrouptoport
@@ -481,15 +379,6 @@ FmodManager.Initialize({streamBufferSize: 65536});
 var bytes = FmodRuntime.settings().streamBufferSize;
 ```
 
-## system_getuserdata
-<!-- System::getUserData -->
-verdict: bound
-haxefmod covers this with StudioSystem.setUserData() and getUserData(). haxefmod has one system, so the value lives on StudioSystem and the core system shares it.
-```haxe
-StudioSystem.setUserData({label: "main"});
-var data = StudioSystem.getUserData();
-```
-
 ## system_init
 <!-- System::init -->
 verdict: bound
@@ -574,45 +463,12 @@ Covered by FmodSettings. FMOD only accepts the file stream buffer before init, s
 FmodManager.Initialize({streamBufferSize: 65536});
 ```
 
-## system_setuserdata
-<!-- System::setUserData -->
-verdict: bound
-haxefmod covers this with StudioSystem.setUserData() and getUserData(). haxefmod has one system, so the value lives on StudioSystem and the core system shares it.
-```haxe
-StudioSystem.setUserData({label: "main"});
-var data = StudioSystem.getUserData();
-```
-
 ## system_update
 <!-- System::update -->
 verdict: bound
 haxefmod calls this for you. FmodManager.Update() (or FmodRuntime.update()) services the Studio system once per frame, which updates the core system as well, and a background thread keeps audio running between frames.
 ```haxe
 FmodManager.Update();
-```
-
-## studio_bank_getuserdata
-<!-- Studio::Bank::getUserData -->
-verdict: bound
-haxefmod covers this with Bank.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
-```haxe
-import haxefmod.studio.Bank;
-
-var bank:Bank = StudioSystem.loadBankFile("assets/fmod/Desktop/Level1.bank");
-bank.setUserData({label: "cave"});
-var data = bank.getUserData();
-```
-
-## studio_bank_setuserdata
-<!-- Studio::Bank::setUserData -->
-verdict: bound
-haxefmod covers this with Bank.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
-```haxe
-import haxefmod.studio.Bank;
-
-var bank:Bank = StudioSystem.loadBankFile("assets/fmod/Desktop/Level1.bank");
-bank.setUserData({label: "cave"});
-var data = bank.getUserData();
 ```
 
 ## studio_bus_getportindex
@@ -632,16 +488,6 @@ var replay = StudioSystem.loadCommandReplay("capture.cmd.txt");
 replay.start();
 ```
 
-## studio_commandreplay_getuserdata
-<!-- Studio::CommandReplay::getUserData -->
-verdict: bound
-haxefmod covers this with CommandReplay.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
-```haxe
-var replay = StudioSystem.loadCommandReplay("capture.cmd.txt");
-replay.setUserData({label: "cave"});
-var data = replay.getUserData();
-```
-
 ## studio_commandreplay_setcreateinstancecallback
 <!-- Studio::CommandReplay::setCreateInstanceCallback -->
 verdict: cannot FMOD runs the callback on its update thread while the replay plays, and no Haxe target can execute code there. CommandReplay.getCommandInfo, getCommandString, and getCommandAtTime read the same commands from the game thread.
@@ -653,16 +499,6 @@ verdict: cannot FMOD runs the callback on its update thread while the replay pla
 ## studio_commandreplay_setloadbankcallback
 <!-- Studio::CommandReplay::setLoadBankCallback -->
 verdict: cannot FMOD runs the callback on its update thread while the replay plays, and no Haxe target can execute code there. CommandReplay.getCommandInfo, getCommandString, and getCommandAtTime read the same commands from the game thread.
-
-## studio_commandreplay_setuserdata
-<!-- Studio::CommandReplay::setUserData -->
-verdict: bound
-haxefmod covers this with CommandReplay.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
-```haxe
-var replay = StudioSystem.loadCommandReplay("capture.cmd.txt");
-replay.setUserData({label: "cave"});
-var data = replay.getUserData();
-```
 
 ## studio_parseid
 <!-- Studio::parseID -->
@@ -709,16 +545,6 @@ if (parameter != null) {
 }
 ```
 
-## studio_eventdescription_getuserdata
-<!-- Studio::EventDescription::getUserData -->
-verdict: bound
-haxefmod covers this with EventDescription.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
-```haxe
-var description = StudioSystem.getEvent(FmodEvents.SFXEngine);
-description.setUserData({label: "cave"});
-var data = description.getUserData();
-```
-
 ## studio_eventdescription_getuserproperty
 <!-- Studio::EventDescription::getUserProperty -->
 verdict: bound
@@ -742,16 +568,6 @@ description.setCallback(data -> switch (data) {
     default:
 });
 var instance = description.createInstance();
-```
-
-## studio_eventdescription_setuserdata
-<!-- Studio::EventDescription::setUserData -->
-verdict: bound
-haxefmod covers this with EventDescription.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
-```haxe
-var description = StudioSystem.getEvent(FmodEvents.SFXEngine);
-description.setUserData({label: "cave"});
-var data = description.getUserData();
 ```
 
 ## studio_eventinstance_getsystem
@@ -798,15 +614,6 @@ if (weather != null) {
 }
 ```
 
-## studio_system_getuserdata
-<!-- Studio::System::getUserData -->
-verdict: bound
-haxefmod covers this with StudioSystem.setUserData() and getUserData(). The value is any Haxe value and lives on the Haxe side.
-```haxe
-StudioSystem.setUserData({label: "main"});
-var data = StudioSystem.getUserData();
-```
-
 ## studio_system_isvalid
 <!-- Studio::System::isValid -->
 verdict: bound
@@ -845,15 +652,6 @@ var values = [0.5];
 for (i in 0...ids.length) {
     StudioSystem.setParameterByID(ids[i], values[i]);
 }
-```
-
-## studio_system_setuserdata
-<!-- Studio::System::setUserData -->
-verdict: bound
-haxefmod covers this with StudioSystem.setUserData() and getUserData(). The value is any Haxe value and lives on the Haxe side.
-```haxe
-StudioSystem.setUserData({label: "main"});
-var data = StudioSystem.getUserData();
 ```
 
 ## studio_system_unregisterplugin

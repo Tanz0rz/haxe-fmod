@@ -59,6 +59,26 @@ INTERNAL_TYPES = {"CallbackDispatcher", "ChannelCallbacks", "FmodSettingsResolve
 FMOD_CALL = re.compile(r"\b(FMOD_(?:Studio_)?[A-Z][A-Za-z0-9]*_[A-Z][A-Za-z0-9]*)\s*\(")
 # Types and macros that look like calls but are not API functions
 NOT_FUNCTIONS = {"FMOD_Studio_ParseID"}
+# The shims park a handle in FMOD's userdata slot to route callbacks. Those
+# calls are plumbing, the user-facing userdata lives in Haxe maps and is
+# mapped by type below.
+USERDATA_CALL = re.compile(r"_(Set|Get)UserData$")
+USERDATA_OWNERS = {
+    "Channel": ["FMOD_Channel"],
+    "ChannelGroup": ["FMOD_ChannelGroup"],
+    "Dsp": ["FMOD_DSP"],
+    "DspConnection": ["FMOD_DSPConnection"],
+    "Geometry": ["FMOD_Geometry"],
+    "Reverb3D": ["FMOD_Reverb3D"],
+    "Sound": ["FMOD_Sound"],
+    "PcmStream": ["FMOD_Sound"],
+    "SoundGroup": ["FMOD_SoundGroup"],
+    "Bank": ["FMOD_Studio_Bank"],
+    "CommandReplay": ["FMOD_Studio_CommandReplay"],
+    "EventDescription": ["FMOD_Studio_EventDescription"],
+    "EventInstance": ["FMOD_Studio_EventInstance"],
+    "StudioSystem": ["FMOD_Studio_System", "FMOD_System"],
+}
 
 
 def read(path):
@@ -116,7 +136,7 @@ def shim_functions():
         found = set()
         body = bodies.get(name, "")
         for call in FMOD_CALL.findall(body):
-            if call not in NOT_FUNCTIONS:
+            if call not in NOT_FUNCTIONS and not USERDATA_CALL.search(call):
                 found.add(call)
         for helper in re.findall(r"\b([a-z][A-Za-z0-9_]*)\s*\(", body):
             if helper in bodies and helper not in seen and helper != name:
@@ -225,8 +245,10 @@ def first_sentence(doc):
 
 
 def haxe_methods():
-    """native name -> list of wrapper entries."""
+    """native name -> list of wrapper entries, and FMOD userdata function
+    -> the Haxe setUserData and getUserData methods of the owning type."""
     wrappers = {}
+    userdata = {}
     # Public methods with no NativeStudio call of their own. They inherit
     # the natives of a static wrapper they call (one hop), which is how
     # EventInstance.setCallback reaches the dispatcher's registration.
@@ -256,6 +278,19 @@ def haxe_methods():
                     continue
                 natives = sorted(set(NATIVE_CALL.findall(body)))
                 args = re.sub(r"\s+", " ", match.group("args").strip())
+                if match.group("name") in ("setUserData", "getUserData") and type_name in USERDATA_OWNERS:
+                    verb = "Set" if match.group("name") == "setUserData" else "Get"
+                    entry = {
+                        "type": f"{package}.{type_name}",
+                        "name": match.group("name"),
+                        "static": bool(match.group("static")),
+                        "signature": f"{match.group('name')}({args}):{ret}",
+                        "doc": first_sentence(match.group("doc")),
+                        "gated": False,
+                    }
+                    for owner in USERDATA_OWNERS[type_name]:
+                        userdata.setdefault(f"{owner}_{verb}UserData", []).append(entry)
+                    continue
                 if not natives:
                     indirect.append((package, type_name, match, args, ret, body))
                     continue
@@ -292,7 +327,7 @@ def haxe_methods():
         }
         for native in sorted(natives):
             wrappers.setdefault(native, []).append(entry)
-    return wrappers
+    return wrappers, userdata
 
 
 # --- table ---------------------------------------------------------------
@@ -303,10 +338,12 @@ def page_key(fmod_name):
 
 def build_table():
     shim = shim_functions()
-    wrappers = haxe_methods()
+    wrappers, userdata = haxe_methods()
     limited = html5_limited()
 
     entries = {}
+    for fmod_name, methods in userdata.items():
+        entries[fmod_name] = {"fmod": fmod_name, "natives": set(), "haxe": list(methods), "html5": False}
     for native, fmod_names in shim.items():
         methods = wrappers.get(native, [])
         for fmod_name in fmod_names:

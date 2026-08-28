@@ -40,6 +40,16 @@
 ### Changed
 - The native programmer sound callback creates its sound with `FMOD_NONBLOCKING`, the same as FMOD's own example, so audio table entries and files decode off the Studio thread. FMOD waits for the sound before the instrument plays it.
 - `EventInstance.setCallback` handlers receive `ProgrammerSoundCreated(name)` and `ProgrammerSoundDestroyed(name)` for the programmer sound callback types instead of `Other(type)`.
+- `ChannelGroup` parity with `Channel`: `get3DOcclusion()`, `getDelay()`, `getLowPassGain()`, `isPlaying()`, and `setCallback(handler)` with `clearCallback()`. FMOD 2.03.12 reports OK from a group's occlusion and lowpass readers but leaves the values at zero on every target.
+- `ChannelEvent` gained `VirtualVoice(isVirtual)` and `Occlusion(direct, reverb)`. Channel handlers receive all four events, group handlers receive `Occlusion` for 3D groups when geometry is in use.
+- `ChannelGroup.addGroup(child, ?propagateDspClock)` and `addGroupConnection(child, ?propagateDspClock)`, which returns the `DspConnection` FMOD makes between the two groups.
+- `Dsp.disconnectFrom(input, ?connection)` narrows the disconnect to one connection.
+- An optional `inChannelHop` row stride on `setMixMatrix` and `getMixMatrix` of `Channel`, `ChannelGroup`, and `DspConnection`. `getMixMatrix()` no longer needs the shape: every argument is optional and the struct carries the channel counts FMOD reports.
+- The coverage table and the Haxe docs tab map every `setUserData` and `getUserData` function to the Haxe methods of the owning type.
+- HTML5 compile gate: calling a native-only method in a js build is a compile error at the call site naming the method and the reason. `-D haxefmod_html5_allow_unsupported` compiles the call anyway, prints one warning per build, and the call returns `FMOD_ERR_UNSUPPORTED` at runtime in the browser. Applies to sample readback, recording, custom rolloff, geometry, programmer sounds, and memory usage queries.
+
+### Changed
+- `setDelay` on `Channel` and `ChannelGroup` defaults `stopChannels` to `true`, matching FMOD. Pass `false` to keep the earlier pause-at-end behaviour.
 
 ### Deprecated
 - `haxefmod.studio.CoreSound` is now `haxefmod.core.Sound`, the core `Sound` object next to `Channel`, `ChannelGroup`, `Dsp`, and `SoundGroup`. The old name remains as a deprecated alias for this release and the compiler warns at every use.
