@@ -12074,15 +12074,11 @@ const HAXEFMOD_EXAMPLES = {
 
     // Static methods are called on the type, instance methods on a value
     // of it, which the receiver name shows without a comment.
-    // CoreSound is only called that to keep clear of the studio package,
-    // so its receiver reads "sound" like the other language tabs.
-    var RECEIVER_ALIASES = { CoreSound: "sound" };
-
+    // The site prints every language as a type-qualified declaration
+    // (Sound::set3DConeSettings, Studio.EventInstance.start), so the Haxe
+    // tab qualifies with the Haxe type the same way, static or not.
     function receiver(m) {
-        var name = shortType(m.type);
-        if (m.static) return name;
-        if (RECEIVER_ALIASES[name]) return RECEIVER_ALIASES[name];
-        return name.charAt(0).toLowerCase() + name.slice(1);
+        return shortType(m.type);
     }
 
     function renderBlock(entry) {
