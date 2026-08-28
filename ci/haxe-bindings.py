@@ -184,6 +184,34 @@ def return_type_and_body(text, index):
         i += 1
     return None, None
 NATIVE_CALL = re.compile(r"\bNativeStudio\.(\w+)\s*\(")
+GATE_OPEN = "#if (macro || (js && !haxefmod_html5_allow_unsupported))"
+
+
+def gated_ranges(text):
+    """Character ranges of the real (#else) branches of the HTML5 gate, so
+    a method declared inside one is known to be a compile error on js."""
+    ranges = []
+    depth = 0
+    gate_depth = -1
+    start = None
+    pos = 0
+    for line in text.splitlines(keepends=True):
+        stripped = line.strip()
+        if stripped.startswith("#if"):
+            depth += 1
+            if stripped == GATE_OPEN:
+                gate_depth = depth
+        elif stripped.startswith("#else") and depth == gate_depth:
+            start = pos
+        elif stripped.startswith("#end"):
+            if depth == gate_depth:
+                if start is not None:
+                    ranges.append((start, pos))
+                start = None
+                gate_depth = -1
+            depth -= 1
+        pos += len(line)
+    return ranges
 
 
 def first_sentence(doc):
@@ -215,6 +243,7 @@ def haxe_methods():
             text = read(path)
             package = rel.replace("/", ".")
             type_starts = [(m.start(), m.group(2)) for m in TYPE_DECL.finditer(text)]
+            gates = gated_ranges(text)
             for match in FUNCTION.finditer(text):
                 type_name = None
                 for start, name in type_starts:
@@ -242,6 +271,7 @@ def haxe_methods():
                     "static": bool(match.group("static")),
                     "signature": f"{match.group('name')}({args}):{ret}",
                     "doc": first_sentence(match.group("doc")),
+                    "gated": any(a <= match.start() < b for a, b in gates),
                 }
                 for native in natives:
                     wrappers.setdefault(native, []).append(entry)
@@ -308,19 +338,21 @@ def build_table():
             "fmod": fmod_name,
             "haxe": entry["haxe"],
             "html5": entry["html5"],
+            "gated": any(m.get("gated") for m in entry["haxe"]),
         }
         table[page_key(fmod_name)] = record
         # Channel and ChannelGroup share the ChannelControl reference page
         for prefix in ("FMOD_Channel_", "FMOD_ChannelGroup_"):
             if fmod_name.startswith(prefix):
                 alias = "channelcontrol_" + fmod_name[len(prefix):].lower()
-                merged = table.setdefault(alias, {"fmod": [], "haxe": [], "html5": False})
+                merged = table.setdefault(alias, {"fmod": [], "haxe": [], "html5": False, "gated": False})
                 if isinstance(merged["fmod"], list):
                     merged["fmod"].append(fmod_name)
                     for method in entry["haxe"]:
                         if method not in merged["haxe"]:
                             merged["haxe"].append(method)
                     merged["html5"] = merged["html5"] or entry["html5"]
+                    merged["gated"] = merged["gated"] or any(m.get("gated") for m in entry["haxe"])
     for record in table.values():
         if isinstance(record["fmod"], list):
             record["fmod"] = ", ".join(record["fmod"])
@@ -401,7 +433,7 @@ def render_coverage_md(table):
         "",
         f"Every FMOD function the native layer calls, with the haxefmod methods that reach it. Generated from the sources by `ci/haxe-bindings.py` for haxefmod {haxelib_version()} against FMOD {fmod_version()}. Functions absent from this list are not exposed, see [Limitations](limitations.md).",
         "",
-        "The same table powers the browser extension that adds a Haxe tab to the [fmod.com API reference](https://www.fmod.com/docs/2.03/api/welcome.html).",
+        "The same table powers the browser extension that adds a Haxe tab to the [fmod.com API reference](https://www.fmod.com/docs/2.03/api/welcome.html). In the HTML5 column, \"compile error\" marks a call a js build refuses unless the project sets `-D haxefmod_html5_allow_unsupported`, after which it returns `FMOD_ERR_UNSUPPORTED` at runtime, and \"limited\" marks a call the web build only partly supports.",
         "",
     ]
     total = 0
@@ -416,7 +448,7 @@ def render_coverage_md(table):
                     f"`{m['type'].split('.')[-1]}.{m['name']}`" for m in methods)
             else:
                 cell = "internal"
-            html5 = "limited" if record["html5"] else ""
+            html5 = "compile error" if record.get("gated") else ("limited" if record["html5"] else "")
             lines.append(f"| `{record['fmod']}` | {cell} | {html5} |")
         lines.append("")
     lines.insert(4, f"{total} FMOD functions are reached.")

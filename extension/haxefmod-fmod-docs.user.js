@@ -15,10 +15,12 @@ const HAXEFMOD_BINDINGS = {
  "entries": {
   "channel_adddsp": {
    "fmod": "FMOD_Channel_AddDSP",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Inserts an effect on this channel (0 = head of the chain).",
+     "gated": false,
      "name": "addDsp",
      "signature": "addDsp(index:Int, dsp:Dsp):FmodResult",
      "static": false,
@@ -29,10 +31,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_addfadepoint": {
    "fmod": "FMOD_Channel_AddFadePoint",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Schedules a volume point at a parent-clock time.",
+     "gated": false,
      "name": "addFadePoint",
      "signature": "addFadePoint(clock:Float, volume:Float):FmodResult",
      "static": false,
@@ -43,10 +47,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_get3dattributes": {
    "fmod": "FMOD_Channel_Get3DAttributes",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "get3DAttributes",
      "signature": "get3DAttributes():Null<{posX:Float, posY:Float, posZ:Float, velX:Float, velY:Float, velZ:Float}>",
      "static": false,
@@ -57,10 +63,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_get3dconeorientation": {
    "fmod": "FMOD_Channel_Get3DConeOrientation",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "get3DConeOrientation",
      "signature": "get3DConeOrientation():Null<{x:Float, y:Float, z:Float}>",
      "static": false,
@@ -71,10 +79,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_get3dconesettings": {
    "fmod": "FMOD_Channel_Get3DConeSettings",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "get3DConeSettings",
      "signature": "get3DConeSettings():Null<{insideAngle:Float, outsideAngle:Float, outsideVolume:Float}>",
      "static": false,
@@ -85,10 +95,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_get3dcustomrolloff": {
    "fmod": "FMOD_Channel_Get3DCustomRolloff",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "The custom rolloff points (unsupported in HTML5, always empty there), empty when none are set or on failure (see StudioSystem.lastResult).",
+     "gated": true,
      "name": "get3DCustomRolloff",
      "signature": "get3DCustomRolloff():Array<FmodVector>",
      "static": false,
@@ -99,10 +111,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_get3ddistancefilter": {
    "fmod": "FMOD_Channel_Get3DDistanceFilter",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "get3DDistanceFilter",
      "signature": "get3DDistanceFilter():Null<{custom:Bool, customLevel:Float, centerFreq:Float}>",
      "static": false,
@@ -113,10 +127,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_get3ddopplerlevel": {
    "fmod": "FMOD_Channel_Get3DDopplerLevel",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "get3DDopplerLevel",
      "signature": "get3DDopplerLevel():Float",
      "static": false,
@@ -127,10 +143,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_get3dlevel": {
    "fmod": "FMOD_Channel_Get3DLevel",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "get3DLevel",
      "signature": "get3DLevel():Float",
      "static": false,
@@ -141,10 +159,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_get3dminmaxdistance": {
    "fmod": "FMOD_Channel_Get3DMinMaxDistance",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "get3DMinMaxDistance",
      "signature": "get3DMinMaxDistance():Null<{minDistance:Float, maxDistance:Float}>",
      "static": false,
@@ -155,10 +175,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_get3docclusion": {
    "fmod": "FMOD_Channel_Get3DOcclusion",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "get3DOcclusion",
      "signature": "get3DOcclusion():Null<{direct:Float, reverb:Float}>",
      "static": false,
@@ -169,10 +191,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_get3dspread": {
    "fmod": "FMOD_Channel_Get3DSpread",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "get3DSpread",
      "signature": "get3DSpread():Float",
      "static": false,
@@ -183,10 +207,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_getaudibility": {
    "fmod": "FMOD_Channel_GetAudibility",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The final audible volume after group, 3D, and occlusion scaling.",
+     "gated": false,
      "name": "getAudibility",
      "signature": "getAudibility():Float",
      "static": false,
@@ -197,10 +223,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_getchannelgroup": {
    "fmod": "FMOD_Channel_GetChannelGroup",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The group this channel is routed into (a known group returns its existing handle).",
+     "gated": false,
      "name": "getChannelGroup",
      "signature": "getChannelGroup():ChannelGroup",
      "static": false,
@@ -211,10 +239,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_getcurrentsound": {
    "fmod": "FMOD_Channel_GetCurrentSound",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The sound this channel plays (a borrowed reference: never release it).",
+     "gated": false,
      "name": "getCurrentSound",
      "signature": "getCurrentSound():haxefmod.core.Sound",
      "static": false,
@@ -225,10 +255,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_getdelay": {
    "fmod": "FMOD_Channel_GetDelay",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getDelay",
      "signature": "getDelay():Null<{startClock:Float, endClock:Float, stopChannels:Bool}>",
      "static": false,
@@ -239,10 +271,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_getdsp": {
    "fmod": "FMOD_Channel_GetDSP",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The effect at chain position index (a known DSP returns its existing handle).",
+     "gated": false,
      "name": "getDsp",
      "signature": "getDsp(index:Int):Dsp",
      "static": false,
@@ -253,10 +287,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_getdspclock": {
    "fmod": "FMOD_Channel_GetDSPClock",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The channel's mixer clock in output samples, or null on failure.",
+     "gated": false,
      "name": "getDspClock",
      "signature": "getDspClock():Null<{clock:Float, parent:Float}>",
      "static": false,
@@ -267,10 +303,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_getdspindex": {
    "fmod": "FMOD_Channel_GetDSPIndex",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The chain position of an attached effect, -1 when it is not attached or on failure.",
+     "gated": false,
      "name": "getDspIndex",
      "signature": "getDspIndex(dsp:Dsp):Int",
      "static": false,
@@ -281,10 +319,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_getfadepoints": {
    "fmod": "FMOD_Channel_GetFadePoints",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "The scheduled fade points as parent-clock and volume pairs (unsupported in HTML5, null there).",
+     "gated": true,
      "name": "getFadePoints",
      "signature": "getFadePoints():Null<Array<{clock:Float, volume:Float}>>",
      "static": false,
@@ -295,10 +335,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_getfrequency": {
    "fmod": "FMOD_Channel_GetFrequency",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Playback rate in samples per second (resampling: also shifts pitch).",
+     "gated": false,
      "name": "getFrequency",
      "signature": "getFrequency():Float",
      "static": false,
@@ -309,10 +351,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_getindex": {
    "fmod": "FMOD_Channel_GetIndex",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The channel's index inside FMOD's channel pool, or -1 on failure.",
+     "gated": false,
      "name": "getIndex",
      "signature": "getIndex():Int",
      "static": false,
@@ -323,10 +367,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_getloopcount": {
    "fmod": "FMOD_Channel_GetLoopCount",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getLoopCount",
      "signature": "getLoopCount():Int",
      "static": false,
@@ -337,10 +383,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_getlooppoints": {
    "fmod": "FMOD_Channel_GetLoopPoints",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getLoopPoints",
      "signature": "getLoopPoints():Null<{startMs:Int, endMs:Int}>",
      "static": false,
@@ -351,10 +399,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_getlowpassgain": {
    "fmod": "FMOD_Channel_GetLowPassGain",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getLowPassGain",
      "signature": "getLowPassGain():Float",
      "static": false,
@@ -365,10 +415,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_getmixmatrix": {
    "fmod": "FMOD_Channel_GetMixMatrix",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "Reads back the mix matrix region of outChannels rows by inChannels gains, row-major (unsupported in HTML5, null there).",
+     "gated": true,
      "name": "getMixMatrix",
      "signature": "getMixMatrix(outChannels:Int, inChannels:Int):Null<{matrix:Array<Float>, outChannels:Int, inChannels:Int}>",
      "static": false,
@@ -379,10 +431,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_getmode": {
    "fmod": "FMOD_Channel_GetMode",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getMode",
      "signature": "getMode():Int",
      "static": false,
@@ -393,10 +447,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_getmute": {
    "fmod": "FMOD_Channel_GetMute",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getMute",
      "signature": "getMute():Bool",
      "static": false,
@@ -407,10 +463,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_getnumdsps": {
    "fmod": "FMOD_Channel_GetNumDSPs",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "",
+     "gated": false,
      "name": "getDspCount",
      "signature": "getDspCount():Int",
      "static": false,
@@ -421,10 +479,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_getpaused": {
    "fmod": "FMOD_Channel_GetPaused",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getPaused",
      "signature": "getPaused():Bool",
      "static": false,
@@ -435,10 +495,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_getpitch": {
    "fmod": "FMOD_Channel_GetPitch",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The pitch multiplier (1.0 = as recorded, 2.0 = one octave up).",
+     "gated": false,
      "name": "getPitch",
      "signature": "getPitch():Float",
      "static": false,
@@ -449,10 +511,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_getposition": {
    "fmod": "FMOD_Channel_GetPosition",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Playback position in milliseconds, or -1 on failure.",
+     "gated": false,
      "name": "getPosition",
      "signature": "getPosition():Int",
      "static": false,
@@ -463,10 +527,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_getpriority": {
    "fmod": "FMOD_Channel_GetPriority",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getPriority",
      "signature": "getPriority():Int",
      "static": false,
@@ -477,10 +543,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_getreverbproperties": {
    "fmod": "FMOD_Channel_GetReverbProperties",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "",
+     "gated": false,
      "name": "getReverbWet",
      "signature": "getReverbWet(instance:Int):Float",
      "static": false,
@@ -491,10 +559,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_getvolume": {
    "fmod": "FMOD_Channel_GetVolume",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The volume as set by the API (linear: 0.0 = silent, 1.0 = full).",
+     "gated": false,
      "name": "getVolume",
      "signature": "getVolume():Float",
      "static": false,
@@ -505,10 +575,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_getvolumeramp": {
    "fmod": "FMOD_Channel_GetVolumeRamp",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getVolumeRamp",
      "signature": "getVolumeRamp():Bool",
      "static": false,
@@ -519,10 +591,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_isplaying": {
    "fmod": "FMOD_Channel_IsPlaying",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "isPlaying",
      "signature": "isPlaying():Bool",
      "static": false,
@@ -533,10 +607,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_isvirtual": {
    "fmod": "FMOD_Channel_IsVirtual",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "True when FMOD virtualized the channel (inaudible, position still tracked).",
+     "gated": false,
      "name": "isVirtual",
      "signature": "isVirtual():Bool",
      "static": false,
@@ -547,10 +623,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_removedsp": {
    "fmod": "FMOD_Channel_RemoveDSP",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "removeDsp",
      "signature": "removeDsp(dsp:Dsp):FmodResult",
      "static": false,
@@ -561,10 +639,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_removefadepoints": {
    "fmod": "FMOD_Channel_RemoveFadePoints",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "removeFadePoints",
      "signature": "removeFadePoints(startClock:Float, endClock:Float):FmodResult",
      "static": false,
@@ -575,10 +655,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_set3dattributes": {
    "fmod": "FMOD_Channel_Set3DAttributes",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Positions the channel in 3D space.",
+     "gated": false,
      "name": "set3DAttributes",
      "signature": "set3DAttributes(posX:Float, posY:Float, posZ:Float, velX:Float = 0, velY:Float = 0, velZ:Float = 0):FmodResult",
      "static": false,
@@ -589,10 +671,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_set3dconeorientation": {
    "fmod": "FMOD_Channel_Set3DConeOrientation",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "set3DConeOrientation",
      "signature": "set3DConeOrientation(x:Float, y:Float, z:Float):FmodResult",
      "static": false,
@@ -603,10 +687,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_set3dconesettings": {
    "fmod": "FMOD_Channel_Set3DConeSettings",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Directional sound: full volume inside the cone, outsideVolume behind it.",
+     "gated": false,
      "name": "set3DConeSettings",
      "signature": "set3DConeSettings(insideAngle:Float, outsideAngle:Float, outsideVolume:Float):FmodResult",
      "static": false,
@@ -617,10 +703,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_set3dcustomrolloff": {
    "fmod": "FMOD_Channel_Set3DCustomRolloff",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "Replaces the distance rolloff curve with the given points.",
+     "gated": true,
      "name": "set3DCustomRolloff",
      "signature": "set3DCustomRolloff(points:Array<FmodVector>):FmodResult",
      "static": false,
@@ -631,10 +719,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_set3ddistancefilter": {
    "fmod": "FMOD_Channel_Set3DDistanceFilter",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Overrides the distance lowpass on this 3D channel.",
+     "gated": false,
      "name": "set3DDistanceFilter",
      "signature": "set3DDistanceFilter(custom:Bool, customLevel:Float, centerFreq:Float):FmodResult",
      "static": false,
@@ -645,10 +735,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_set3ddopplerlevel": {
    "fmod": "FMOD_Channel_Set3DDopplerLevel",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "set3DDopplerLevel",
      "signature": "set3DDopplerLevel(level:Float):FmodResult",
      "static": false,
@@ -659,10 +751,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_set3dlevel": {
    "fmod": "FMOD_Channel_Set3DLevel",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Blend between 2D and full 3D positioning (0.0 = 2D, 1.0 = 3D).",
+     "gated": false,
      "name": "set3DLevel",
      "signature": "set3DLevel(level:Float):FmodResult",
      "static": false,
@@ -673,10 +767,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_set3dminmaxdistance": {
    "fmod": "FMOD_Channel_Set3DMinMaxDistance",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Distances where attenuation starts and stops (3D sounds).",
+     "gated": false,
      "name": "set3DMinMaxDistance",
      "signature": "set3DMinMaxDistance(minDistance:Float, maxDistance:Float):FmodResult",
      "static": false,
@@ -687,10 +783,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_set3docclusion": {
    "fmod": "FMOD_Channel_Set3DOcclusion",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Muffles the channel as if behind an obstacle (0.0 = clear, 1.0 = fully blocked).",
+     "gated": false,
      "name": "set3DOcclusion",
      "signature": "set3DOcclusion(direct:Float, reverb:Float):FmodResult",
      "static": false,
@@ -701,10 +799,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_set3dspread": {
    "fmod": "FMOD_Channel_Set3DSpread",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Speaker spread of a 3D sound in degrees (0 = point source).",
+     "gated": false,
      "name": "set3DSpread",
      "signature": "set3DSpread(angle:Float):FmodResult",
      "static": false,
@@ -715,6 +815,7 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_setcallback": {
    "fmod": "FMOD_Channel_SetCallback",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
@@ -737,10 +838,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_setchannelgroup": {
    "fmod": "FMOD_Channel_SetChannelGroup",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Reroutes this channel into a group.",
+     "gated": false,
      "name": "setChannelGroup",
      "signature": "setChannelGroup(group:ChannelGroup):FmodResult",
      "static": false,
@@ -751,10 +854,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_setdelay": {
    "fmod": "FMOD_Channel_SetDelay",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Sample-accurate start/stop window on the parent clock (0 = no bound).",
+     "gated": false,
      "name": "setDelay",
      "signature": "setDelay(startClock:Float, endClock:Float, stopChannels:Bool = false):FmodResult",
      "static": false,
@@ -765,10 +870,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_setdspindex": {
    "fmod": "FMOD_Channel_SetDSPIndex",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Moves an attached effect to another chain position (0 = head).",
+     "gated": false,
      "name": "setDspIndex",
      "signature": "setDspIndex(dsp:Dsp, index:Int):FmodResult",
      "static": false,
@@ -779,10 +886,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_setfadepointramp": {
    "fmod": "FMOD_Channel_SetFadePointRamp",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "A click-free ramp from the current volume to volume, ending at clock.",
+     "gated": false,
      "name": "setFadePointRamp",
      "signature": "setFadePointRamp(clock:Float, volume:Float):FmodResult",
      "static": false,
@@ -793,10 +902,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_setfrequency": {
    "fmod": "FMOD_Channel_SetFrequency",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "setFrequency",
      "signature": "setFrequency(frequency:Float):FmodResult",
      "static": false,
@@ -807,10 +918,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_setloopcount": {
    "fmod": "FMOD_Channel_SetLoopCount",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Times to loop before stopping (-1 = forever, 0 = play once).",
+     "gated": false,
      "name": "setLoopCount",
      "signature": "setLoopCount(loopCount:Int):FmodResult",
      "static": false,
@@ -821,10 +934,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_setlooppoints": {
    "fmod": "FMOD_Channel_SetLoopPoints",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Loop region in milliseconds for this channel (overrides the sound's).",
+     "gated": false,
      "name": "setLoopPoints",
      "signature": "setLoopPoints(startMs:Int, endMs:Int):FmodResult",
      "static": false,
@@ -835,10 +950,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_setlowpassgain": {
    "fmod": "FMOD_Channel_SetLowPassGain",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "A built-in lowpass on the channel (1.0 = open, 0.0 = fully closed).",
+     "gated": false,
      "name": "setLowPassGain",
      "signature": "setLowPassGain(gain:Float):FmodResult",
      "static": false,
@@ -849,10 +966,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_setmixlevelsinput": {
    "fmod": "FMOD_Channel_SetMixLevelsInput",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Sets the gain of each incoming signal channel before the mix matrix, one level per input channel (1 to 32, an empty list is rejected with FMOD_ERR_INVALID_PARAM).",
+     "gated": false,
      "name": "setMixLevelsInput",
      "signature": "setMixLevelsInput(levels:Array<Float>):FmodResult",
      "static": false,
@@ -863,10 +982,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_setmixlevelsoutput": {
    "fmod": "FMOD_Channel_SetMixLevelsOutput",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Sets the gain of each output speaker directly, which replaces the mix matrix with a standard speaker layout.",
+     "gated": false,
      "name": "setMixLevelsOutput",
      "signature": "setMixLevelsOutput(frontLeft:Float, frontRight:Float, center:Float, lowFrequency:Float, surroundLeft:Float, surroundRight:Float, backLeft:Float, backRight:Float):FmodResult",
      "static": false,
@@ -877,10 +998,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_setmixmatrix": {
    "fmod": "FMOD_Channel_SetMixMatrix",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Routes input channels to output speakers with explicit gains (row-major, outChannels rows of inChannels gains, up to 32x32).",
+     "gated": false,
      "name": "setMixMatrix",
      "signature": "setMixMatrix(matrix:Array<Float>, outChannels:Int, inChannels:Int):FmodResult",
      "static": false,
@@ -891,10 +1014,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_setmode": {
    "fmod": "FMOD_Channel_SetMode",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Combines ChannelMode flags (looping, 2D/3D, rolloff shape).",
+     "gated": false,
      "name": "setMode",
      "signature": "setMode(mode:Int):FmodResult",
      "static": false,
@@ -905,10 +1030,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_setmute": {
    "fmod": "FMOD_Channel_SetMute",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "setMute",
      "signature": "setMute(mute:Bool):FmodResult",
      "static": false,
@@ -919,10 +1046,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_setpan": {
    "fmod": "FMOD_Channel_SetPan",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Constant-power stereo pan (-1.0 = full left, 0 = center, 1.0 = full right).",
+     "gated": false,
      "name": "setPan",
      "signature": "setPan(pan:Float):FmodResult",
      "static": false,
@@ -933,10 +1062,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_setpaused": {
    "fmod": "FMOD_Channel_SetPaused",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "setPaused",
      "signature": "setPaused(paused:Bool):FmodResult",
      "static": false,
@@ -947,10 +1078,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_setpitch": {
    "fmod": "FMOD_Channel_SetPitch",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "setPitch",
      "signature": "setPitch(pitch:Float):FmodResult",
      "static": false,
@@ -961,10 +1094,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_setposition": {
    "fmod": "FMOD_Channel_SetPosition",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "setPosition",
      "signature": "setPosition(positionMs:Int):FmodResult",
      "static": false,
@@ -975,10 +1110,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_setpriority": {
    "fmod": "FMOD_Channel_SetPriority",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Voice priority for virtualization (0 = most important, 256 = least).",
+     "gated": false,
      "name": "setPriority",
      "signature": "setPriority(priority:Int):FmodResult",
      "static": false,
@@ -989,10 +1126,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_setreverbproperties": {
    "fmod": "FMOD_Channel_SetReverbProperties",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "How much this channel feeds a reverb instance (0.0 = none, 1.0 = full).",
+     "gated": false,
      "name": "setReverbWet",
      "signature": "setReverbWet(instance:Int, wet:Float):FmodResult",
      "static": false,
@@ -1003,6 +1142,7 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_setuserdata": {
    "fmod": "FMOD_Channel_SetUserData",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
@@ -1025,10 +1165,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_setvolume": {
    "fmod": "FMOD_Channel_SetVolume",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "setVolume",
      "signature": "setVolume(volume:Float):FmodResult",
      "static": false,
@@ -1039,10 +1181,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_setvolumeramp": {
    "fmod": "FMOD_Channel_SetVolumeRamp",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Short volume ramping on changes (on by default, prevents clicks).",
+     "gated": false,
      "name": "setVolumeRamp",
      "signature": "setVolumeRamp(ramp:Bool):FmodResult",
      "static": false,
@@ -1053,10 +1197,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channel_stop": {
    "fmod": "FMOD_Channel_Stop",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Stops playback, removes any callback handler, and invalidates this handle.",
+     "gated": false,
      "name": "stop",
      "signature": "stop():FmodResult",
      "static": false,
@@ -1065,6 +1211,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Plays this DSP as a sound source (e.g.",
+     "gated": false,
      "name": "play",
      "signature": "play(startPaused:Bool = false):Channel",
      "static": false,
@@ -1073,6 +1220,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Starts playback.",
+     "gated": false,
      "name": "play",
      "signature": "play(startPaused:Bool = false):Channel",
      "static": false,
@@ -1081,6 +1229,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Starts playback.",
+     "gated": false,
      "name": "play",
      "signature": "play(startPaused:Bool = false):haxefmod.core.Channel",
      "static": false,
@@ -1091,10 +1240,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_adddsp": {
    "fmod": "FMOD_ChannelGroup_AddDSP, FMOD_Channel_AddDSP",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Inserts an effect at index (0 = head of the chain, or a DSP_* position).",
+     "gated": false,
      "name": "addDsp",
      "signature": "addDsp(index:Int, dsp:Dsp):FmodResult",
      "static": false,
@@ -1103,6 +1254,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "Inserts an effect on this channel (0 = head of the chain).",
+     "gated": false,
      "name": "addDsp",
      "signature": "addDsp(index:Int, dsp:Dsp):FmodResult",
      "static": false,
@@ -1113,10 +1265,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_addfadepoint": {
    "fmod": "FMOD_ChannelGroup_AddFadePoint, FMOD_Channel_AddFadePoint",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Schedules a volume point at a parent-clock time.",
+     "gated": false,
      "name": "addFadePoint",
      "signature": "addFadePoint(clock:Float, volume:Float):FmodResult",
      "static": false,
@@ -1125,6 +1279,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "Schedules a volume point at a parent-clock time.",
+     "gated": false,
      "name": "addFadePoint",
      "signature": "addFadePoint(clock:Float, volume:Float):FmodResult",
      "static": false,
@@ -1135,10 +1290,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_addgroup": {
    "fmod": "FMOD_ChannelGroup_AddGroup",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Routes a child group's output through this one (group hierarchies).",
+     "gated": false,
      "name": "addGroup",
      "signature": "addGroup(child:ChannelGroup):FmodResult",
      "static": false,
@@ -1149,10 +1306,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_get3dattributes": {
    "fmod": "FMOD_ChannelGroup_Get3DAttributes, FMOD_Channel_Get3DAttributes",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "get3DAttributes",
      "signature": "get3DAttributes():Null<{posX:Float, posY:Float, posZ:Float, velX:Float, velY:Float, velZ:Float}>",
      "static": false,
@@ -1161,6 +1320,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "get3DAttributes",
      "signature": "get3DAttributes():Null<{posX:Float, posY:Float, posZ:Float, velX:Float, velY:Float, velZ:Float}>",
      "static": false,
@@ -1171,10 +1331,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_get3dconeorientation": {
    "fmod": "FMOD_ChannelGroup_Get3DConeOrientation, FMOD_Channel_Get3DConeOrientation",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "get3DConeOrientation",
      "signature": "get3DConeOrientation():Null<{x:Float, y:Float, z:Float}>",
      "static": false,
@@ -1183,6 +1345,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "get3DConeOrientation",
      "signature": "get3DConeOrientation():Null<{x:Float, y:Float, z:Float}>",
      "static": false,
@@ -1193,10 +1356,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_get3dconesettings": {
    "fmod": "FMOD_ChannelGroup_Get3DConeSettings, FMOD_Channel_Get3DConeSettings",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "get3DConeSettings",
      "signature": "get3DConeSettings():Null<{insideAngle:Float, outsideAngle:Float, outsideVolume:Float}>",
      "static": false,
@@ -1205,6 +1370,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "get3DConeSettings",
      "signature": "get3DConeSettings():Null<{insideAngle:Float, outsideAngle:Float, outsideVolume:Float}>",
      "static": false,
@@ -1215,10 +1381,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_get3dcustomrolloff": {
    "fmod": "FMOD_ChannelGroup_Get3DCustomRolloff, FMOD_Channel_Get3DCustomRolloff",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "The custom rolloff points (unsupported in HTML5, always empty there), empty when none are set or on failure (see StudioSystem.lastResult).",
+     "gated": true,
      "name": "get3DCustomRolloff",
      "signature": "get3DCustomRolloff():Array<FmodVector>",
      "static": false,
@@ -1227,6 +1395,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "The custom rolloff points (unsupported in HTML5, always empty there), empty when none are set or on failure (see StudioSystem.lastResult).",
+     "gated": true,
      "name": "get3DCustomRolloff",
      "signature": "get3DCustomRolloff():Array<FmodVector>",
      "static": false,
@@ -1237,10 +1406,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_get3ddistancefilter": {
    "fmod": "FMOD_ChannelGroup_Get3DDistanceFilter, FMOD_Channel_Get3DDistanceFilter",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "get3DDistanceFilter",
      "signature": "get3DDistanceFilter():Null<{custom:Bool, customLevel:Float, centerFreq:Float}>",
      "static": false,
@@ -1249,6 +1420,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "get3DDistanceFilter",
      "signature": "get3DDistanceFilter():Null<{custom:Bool, customLevel:Float, centerFreq:Float}>",
      "static": false,
@@ -1259,10 +1431,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_get3ddopplerlevel": {
    "fmod": "FMOD_ChannelGroup_Get3DDopplerLevel, FMOD_Channel_Get3DDopplerLevel",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "get3DDopplerLevel",
      "signature": "get3DDopplerLevel():Float",
      "static": false,
@@ -1271,6 +1445,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "get3DDopplerLevel",
      "signature": "get3DDopplerLevel():Float",
      "static": false,
@@ -1281,10 +1456,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_get3dlevel": {
    "fmod": "FMOD_ChannelGroup_Get3DLevel, FMOD_Channel_Get3DLevel",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "get3DLevel",
      "signature": "get3DLevel():Float",
      "static": false,
@@ -1293,6 +1470,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "get3DLevel",
      "signature": "get3DLevel():Float",
      "static": false,
@@ -1303,10 +1481,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_get3dminmaxdistance": {
    "fmod": "FMOD_ChannelGroup_Get3DMinMaxDistance, FMOD_Channel_Get3DMinMaxDistance",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "get3DMinMaxDistance",
      "signature": "get3DMinMaxDistance():Null<{minDistance:Float, maxDistance:Float}>",
      "static": false,
@@ -1315,6 +1495,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "get3DMinMaxDistance",
      "signature": "get3DMinMaxDistance():Null<{minDistance:Float, maxDistance:Float}>",
      "static": false,
@@ -1325,10 +1506,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_get3docclusion": {
    "fmod": "FMOD_Channel_Get3DOcclusion",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "get3DOcclusion",
      "signature": "get3DOcclusion():Null<{direct:Float, reverb:Float}>",
      "static": false,
@@ -1339,10 +1522,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_get3dspread": {
    "fmod": "FMOD_ChannelGroup_Get3DSpread, FMOD_Channel_Get3DSpread",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "get3DSpread",
      "signature": "get3DSpread():Float",
      "static": false,
@@ -1351,6 +1536,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "get3DSpread",
      "signature": "get3DSpread():Float",
      "static": false,
@@ -1361,10 +1547,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_getaudibility": {
    "fmod": "FMOD_ChannelGroup_GetAudibility, FMOD_Channel_GetAudibility",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The final audible volume after parent groups and 3D scaling.",
+     "gated": false,
      "name": "getAudibility",
      "signature": "getAudibility():Float",
      "static": false,
@@ -1373,6 +1561,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "The final audible volume after group, 3D, and occlusion scaling.",
+     "gated": false,
      "name": "getAudibility",
      "signature": "getAudibility():Float",
      "static": false,
@@ -1383,10 +1572,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_getchannel": {
    "fmod": "FMOD_ChannelGroup_GetChannel",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "A channel routed into this group by index (known channels dedup).",
+     "gated": false,
      "name": "getChannel",
      "signature": "getChannel(index:Int):Channel",
      "static": false,
@@ -1397,10 +1588,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_getchannelgroup": {
    "fmod": "FMOD_Channel_GetChannelGroup",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The group this channel is routed into (a known group returns its existing handle).",
+     "gated": false,
      "name": "getChannelGroup",
      "signature": "getChannelGroup():ChannelGroup",
      "static": false,
@@ -1411,10 +1604,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_getcurrentsound": {
    "fmod": "FMOD_Channel_GetCurrentSound",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The sound this channel plays (a borrowed reference: never release it).",
+     "gated": false,
      "name": "getCurrentSound",
      "signature": "getCurrentSound():haxefmod.core.Sound",
      "static": false,
@@ -1425,10 +1620,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_getdelay": {
    "fmod": "FMOD_Channel_GetDelay",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getDelay",
      "signature": "getDelay():Null<{startClock:Float, endClock:Float, stopChannels:Bool}>",
      "static": false,
@@ -1439,10 +1636,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_getdsp": {
    "fmod": "FMOD_Channel_GetDSP",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The effect at chain position index (a known DSP returns its existing handle).",
+     "gated": false,
      "name": "getDsp",
      "signature": "getDsp(index:Int):Dsp",
      "static": false,
@@ -1453,10 +1652,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_getdspclock": {
    "fmod": "FMOD_ChannelGroup_GetDSPClock, FMOD_Channel_GetDSPClock",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The group's mixer clock in output samples, or null on failure.",
+     "gated": false,
      "name": "getDspClock",
      "signature": "getDspClock():Null<{clock:Float, parent:Float}>",
      "static": false,
@@ -1465,6 +1666,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "The channel's mixer clock in output samples, or null on failure.",
+     "gated": false,
      "name": "getDspClock",
      "signature": "getDspClock():Null<{clock:Float, parent:Float}>",
      "static": false,
@@ -1475,10 +1677,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_getdspindex": {
    "fmod": "FMOD_ChannelGroup_GetDSPIndex, FMOD_Channel_GetDSPIndex",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The chain position of an attached effect, -1 when it is not attached or on failure.",
+     "gated": false,
      "name": "getDspIndex",
      "signature": "getDspIndex(dsp:Dsp):Int",
      "static": false,
@@ -1487,6 +1691,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "The chain position of an attached effect, -1 when it is not attached or on failure.",
+     "gated": false,
      "name": "getDspIndex",
      "signature": "getDspIndex(dsp:Dsp):Int",
      "static": false,
@@ -1497,10 +1702,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_getfadepoints": {
    "fmod": "FMOD_ChannelGroup_GetFadePoints, FMOD_Channel_GetFadePoints",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "The scheduled fade points as parent-clock and volume pairs (unsupported in HTML5, null there).",
+     "gated": true,
      "name": "getFadePoints",
      "signature": "getFadePoints():Null<Array<{clock:Float, volume:Float}>>",
      "static": false,
@@ -1509,6 +1716,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "The scheduled fade points as parent-clock and volume pairs (unsupported in HTML5, null there).",
+     "gated": true,
      "name": "getFadePoints",
      "signature": "getFadePoints():Null<Array<{clock:Float, volume:Float}>>",
      "static": false,
@@ -1519,10 +1727,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_getfrequency": {
    "fmod": "FMOD_Channel_GetFrequency",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Playback rate in samples per second (resampling: also shifts pitch).",
+     "gated": false,
      "name": "getFrequency",
      "signature": "getFrequency():Float",
      "static": false,
@@ -1533,10 +1743,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_getgroup": {
    "fmod": "FMOD_ChannelGroup_GetGroup",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "A nested child group by index (a known group returns its existing handle).",
+     "gated": false,
      "name": "getGroup",
      "signature": "getGroup(index:Int):ChannelGroup",
      "static": false,
@@ -1547,10 +1759,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_getindex": {
    "fmod": "FMOD_Channel_GetIndex",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The channel's index inside FMOD's channel pool, or -1 on failure.",
+     "gated": false,
      "name": "getIndex",
      "signature": "getIndex():Int",
      "static": false,
@@ -1561,10 +1775,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_getloopcount": {
    "fmod": "FMOD_Channel_GetLoopCount",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getLoopCount",
      "signature": "getLoopCount():Int",
      "static": false,
@@ -1575,10 +1791,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_getlooppoints": {
    "fmod": "FMOD_Channel_GetLoopPoints",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getLoopPoints",
      "signature": "getLoopPoints():Null<{startMs:Int, endMs:Int}>",
      "static": false,
@@ -1589,10 +1807,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_getlowpassgain": {
    "fmod": "FMOD_Channel_GetLowPassGain",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getLowPassGain",
      "signature": "getLowPassGain():Float",
      "static": false,
@@ -1603,10 +1823,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_getmixmatrix": {
    "fmod": "FMOD_ChannelGroup_GetMixMatrix, FMOD_Channel_GetMixMatrix",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "Reads back the mix matrix region of outChannels rows by inChannels gains, row-major (unsupported in HTML5, null there).",
+     "gated": true,
      "name": "getMixMatrix",
      "signature": "getMixMatrix(outChannels:Int, inChannels:Int):Null<{matrix:Array<Float>, outChannels:Int, inChannels:Int}>",
      "static": false,
@@ -1615,6 +1837,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "Reads back the mix matrix region of outChannels rows by inChannels gains, row-major (unsupported in HTML5, null there).",
+     "gated": true,
      "name": "getMixMatrix",
      "signature": "getMixMatrix(outChannels:Int, inChannels:Int):Null<{matrix:Array<Float>, outChannels:Int, inChannels:Int}>",
      "static": false,
@@ -1625,10 +1848,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_getmode": {
    "fmod": "FMOD_ChannelGroup_GetMode, FMOD_Channel_GetMode",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getMode",
      "signature": "getMode():Int",
      "static": false,
@@ -1637,6 +1862,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getMode",
      "signature": "getMode():Int",
      "static": false,
@@ -1647,10 +1873,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_getmute": {
    "fmod": "FMOD_ChannelGroup_GetMute, FMOD_Channel_GetMute",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getMute",
      "signature": "getMute():Bool",
      "static": false,
@@ -1659,6 +1887,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getMute",
      "signature": "getMute():Bool",
      "static": false,
@@ -1669,10 +1898,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_getname": {
    "fmod": "FMOD_ChannelGroup_GetName",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getName",
      "signature": "getName():String",
      "static": false,
@@ -1683,10 +1914,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_getnumchannels": {
    "fmod": "FMOD_ChannelGroup_GetNumChannels",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "",
+     "gated": false,
      "name": "getChannelCount",
      "signature": "getChannelCount():Int",
      "static": false,
@@ -1697,10 +1930,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_getnumdsps": {
    "fmod": "FMOD_Channel_GetNumDSPs",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "",
+     "gated": false,
      "name": "getDspCount",
      "signature": "getDspCount():Int",
      "static": false,
@@ -1711,10 +1946,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_getnumgroups": {
    "fmod": "FMOD_ChannelGroup_GetNumGroups",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "",
+     "gated": false,
      "name": "getGroupCount",
      "signature": "getGroupCount():Int",
      "static": false,
@@ -1725,10 +1962,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_getparentgroup": {
    "fmod": "FMOD_ChannelGroup_GetParentGroup",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getParentGroup",
      "signature": "getParentGroup():ChannelGroup",
      "static": false,
@@ -1739,10 +1978,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_getpaused": {
    "fmod": "FMOD_ChannelGroup_GetPaused, FMOD_Channel_GetPaused",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getPaused",
      "signature": "getPaused():Bool",
      "static": false,
@@ -1751,6 +1992,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getPaused",
      "signature": "getPaused():Bool",
      "static": false,
@@ -1761,10 +2003,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_getpitch": {
    "fmod": "FMOD_ChannelGroup_GetPitch, FMOD_Channel_GetPitch",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getPitch",
      "signature": "getPitch():Float",
      "static": false,
@@ -1773,6 +2017,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "The pitch multiplier (1.0 = as recorded, 2.0 = one octave up).",
+     "gated": false,
      "name": "getPitch",
      "signature": "getPitch():Float",
      "static": false,
@@ -1783,10 +2028,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_getposition": {
    "fmod": "FMOD_Channel_GetPosition",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Playback position in milliseconds, or -1 on failure.",
+     "gated": false,
      "name": "getPosition",
      "signature": "getPosition():Int",
      "static": false,
@@ -1797,10 +2044,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_getpriority": {
    "fmod": "FMOD_Channel_GetPriority",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getPriority",
      "signature": "getPriority():Int",
      "static": false,
@@ -1811,10 +2060,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_getreverbproperties": {
    "fmod": "FMOD_ChannelGroup_GetReverbProperties, FMOD_Channel_GetReverbProperties",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "",
+     "gated": false,
      "name": "getReverbWet",
      "signature": "getReverbWet(instance:Int):Float",
      "static": false,
@@ -1823,6 +2074,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "",
+     "gated": false,
      "name": "getReverbWet",
      "signature": "getReverbWet(instance:Int):Float",
      "static": false,
@@ -1853,10 +2105,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_getvolume": {
    "fmod": "FMOD_ChannelGroup_GetVolume, FMOD_Channel_GetVolume",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getVolume",
      "signature": "getVolume():Float",
      "static": false,
@@ -1865,6 +2119,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "The volume as set by the API (linear: 0.0 = silent, 1.0 = full).",
+     "gated": false,
      "name": "getVolume",
      "signature": "getVolume():Float",
      "static": false,
@@ -1875,10 +2130,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_getvolumeramp": {
    "fmod": "FMOD_ChannelGroup_GetVolumeRamp, FMOD_Channel_GetVolumeRamp",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getVolumeRamp",
      "signature": "getVolumeRamp():Bool",
      "static": false,
@@ -1887,6 +2144,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getVolumeRamp",
      "signature": "getVolumeRamp():Bool",
      "static": false,
@@ -1897,10 +2155,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_isplaying": {
    "fmod": "FMOD_Channel_IsPlaying",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "isPlaying",
      "signature": "isPlaying():Bool",
      "static": false,
@@ -1911,10 +2171,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_isvirtual": {
    "fmod": "FMOD_Channel_IsVirtual",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "True when FMOD virtualized the channel (inaudible, position still tracked).",
+     "gated": false,
      "name": "isVirtual",
      "signature": "isVirtual():Bool",
      "static": false,
@@ -1925,10 +2187,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_release": {
    "fmod": "FMOD_ChannelGroup_Release",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Frees a group made with create() and invalidates this handle.",
+     "gated": false,
      "name": "release",
      "signature": "release():FmodResult",
      "static": false,
@@ -1937,6 +2201,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Creates a custom group.",
+     "gated": false,
      "name": "create",
      "signature": "create(name:String):ChannelGroup",
      "static": true,
@@ -1947,10 +2212,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_removedsp": {
    "fmod": "FMOD_ChannelGroup_RemoveDSP, FMOD_Channel_RemoveDSP",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "removeDsp",
      "signature": "removeDsp(dsp:Dsp):FmodResult",
      "static": false,
@@ -1959,6 +2226,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "removeDsp",
      "signature": "removeDsp(dsp:Dsp):FmodResult",
      "static": false,
@@ -1969,10 +2237,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_removefadepoints": {
    "fmod": "FMOD_ChannelGroup_RemoveFadePoints, FMOD_Channel_RemoveFadePoints",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "removeFadePoints",
      "signature": "removeFadePoints(startClock:Float, endClock:Float):FmodResult",
      "static": false,
@@ -1981,6 +2251,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "removeFadePoints",
      "signature": "removeFadePoints(startClock:Float, endClock:Float):FmodResult",
      "static": false,
@@ -1991,10 +2262,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_set3dattributes": {
    "fmod": "FMOD_ChannelGroup_Set3DAttributes, FMOD_Channel_Set3DAttributes",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Positions the whole group in 3D space (needs a 3D mode set).",
+     "gated": false,
      "name": "set3DAttributes",
      "signature": "set3DAttributes(posX:Float, posY:Float, posZ:Float, velX:Float = 0, velY:Float = 0, velZ:Float = 0):FmodResult",
      "static": false,
@@ -2003,6 +2276,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "Positions the channel in 3D space.",
+     "gated": false,
      "name": "set3DAttributes",
      "signature": "set3DAttributes(posX:Float, posY:Float, posZ:Float, velX:Float = 0, velY:Float = 0, velZ:Float = 0):FmodResult",
      "static": false,
@@ -2013,10 +2287,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_set3dconeorientation": {
    "fmod": "FMOD_ChannelGroup_Set3DConeOrientation, FMOD_Channel_Set3DConeOrientation",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "set3DConeOrientation",
      "signature": "set3DConeOrientation(x:Float, y:Float, z:Float):FmodResult",
      "static": false,
@@ -2025,6 +2301,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "set3DConeOrientation",
      "signature": "set3DConeOrientation(x:Float, y:Float, z:Float):FmodResult",
      "static": false,
@@ -2035,10 +2312,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_set3dconesettings": {
    "fmod": "FMOD_ChannelGroup_Set3DConeSettings, FMOD_Channel_Set3DConeSettings",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "set3DConeSettings",
      "signature": "set3DConeSettings(insideAngle:Float, outsideAngle:Float, outsideVolume:Float):FmodResult",
      "static": false,
@@ -2047,6 +2326,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "Directional sound: full volume inside the cone, outsideVolume behind it.",
+     "gated": false,
      "name": "set3DConeSettings",
      "signature": "set3DConeSettings(insideAngle:Float, outsideAngle:Float, outsideVolume:Float):FmodResult",
      "static": false,
@@ -2057,10 +2337,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_set3dcustomrolloff": {
    "fmod": "FMOD_ChannelGroup_Set3DCustomRolloff, FMOD_Channel_Set3DCustomRolloff",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "Replaces the distance rolloff curve with the given points.",
+     "gated": true,
      "name": "set3DCustomRolloff",
      "signature": "set3DCustomRolloff(points:Array<FmodVector>):FmodResult",
      "static": false,
@@ -2069,6 +2351,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "Replaces the distance rolloff curve with the given points.",
+     "gated": true,
      "name": "set3DCustomRolloff",
      "signature": "set3DCustomRolloff(points:Array<FmodVector>):FmodResult",
      "static": false,
@@ -2079,10 +2362,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_set3ddistancefilter": {
    "fmod": "FMOD_ChannelGroup_Set3DDistanceFilter, FMOD_Channel_Set3DDistanceFilter",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Overrides the distance lowpass on this group's 3D channels.",
+     "gated": false,
      "name": "set3DDistanceFilter",
      "signature": "set3DDistanceFilter(custom:Bool, customLevel:Float, centerFreq:Float):FmodResult",
      "static": false,
@@ -2091,6 +2376,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "Overrides the distance lowpass on this 3D channel.",
+     "gated": false,
      "name": "set3DDistanceFilter",
      "signature": "set3DDistanceFilter(custom:Bool, customLevel:Float, centerFreq:Float):FmodResult",
      "static": false,
@@ -2101,10 +2387,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_set3ddopplerlevel": {
    "fmod": "FMOD_ChannelGroup_Set3DDopplerLevel, FMOD_Channel_Set3DDopplerLevel",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "set3DDopplerLevel",
      "signature": "set3DDopplerLevel(level:Float):FmodResult",
      "static": false,
@@ -2113,6 +2401,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "set3DDopplerLevel",
      "signature": "set3DDopplerLevel(level:Float):FmodResult",
      "static": false,
@@ -2123,10 +2412,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_set3dlevel": {
    "fmod": "FMOD_ChannelGroup_Set3DLevel, FMOD_Channel_Set3DLevel",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "set3DLevel",
      "signature": "set3DLevel(level:Float):FmodResult",
      "static": false,
@@ -2135,6 +2426,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "Blend between 2D and full 3D positioning (0.0 = 2D, 1.0 = 3D).",
+     "gated": false,
      "name": "set3DLevel",
      "signature": "set3DLevel(level:Float):FmodResult",
      "static": false,
@@ -2145,10 +2437,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_set3dminmaxdistance": {
    "fmod": "FMOD_ChannelGroup_Set3DMinMaxDistance, FMOD_Channel_Set3DMinMaxDistance",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "set3DMinMaxDistance",
      "signature": "set3DMinMaxDistance(minDistance:Float, maxDistance:Float):FmodResult",
      "static": false,
@@ -2157,6 +2451,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "Distances where attenuation starts and stops (3D sounds).",
+     "gated": false,
      "name": "set3DMinMaxDistance",
      "signature": "set3DMinMaxDistance(minDistance:Float, maxDistance:Float):FmodResult",
      "static": false,
@@ -2167,10 +2462,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_set3docclusion": {
    "fmod": "FMOD_ChannelGroup_Set3DOcclusion, FMOD_Channel_Set3DOcclusion",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Muffles the group as if behind an obstacle.",
+     "gated": false,
      "name": "set3DOcclusion",
      "signature": "set3DOcclusion(direct:Float, reverb:Float):FmodResult",
      "static": false,
@@ -2179,6 +2476,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "Muffles the channel as if behind an obstacle (0.0 = clear, 1.0 = fully blocked).",
+     "gated": false,
      "name": "set3DOcclusion",
      "signature": "set3DOcclusion(direct:Float, reverb:Float):FmodResult",
      "static": false,
@@ -2189,10 +2487,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_set3dspread": {
    "fmod": "FMOD_ChannelGroup_Set3DSpread, FMOD_Channel_Set3DSpread",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "set3DSpread",
      "signature": "set3DSpread(angle:Float):FmodResult",
      "static": false,
@@ -2201,6 +2501,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "Speaker spread of a 3D sound in degrees (0 = point source).",
+     "gated": false,
      "name": "set3DSpread",
      "signature": "set3DSpread(angle:Float):FmodResult",
      "static": false,
@@ -2211,6 +2512,7 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_setcallback": {
    "fmod": "FMOD_Channel_SetCallback",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
@@ -2233,10 +2535,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_setchannelgroup": {
    "fmod": "FMOD_Channel_SetChannelGroup",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Reroutes this channel into a group.",
+     "gated": false,
      "name": "setChannelGroup",
      "signature": "setChannelGroup(group:ChannelGroup):FmodResult",
      "static": false,
@@ -2247,10 +2551,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_setdelay": {
    "fmod": "FMOD_ChannelGroup_SetDelay, FMOD_Channel_SetDelay",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Sample-accurate start/stop window on the parent clock (0 = no bound).",
+     "gated": false,
      "name": "setDelay",
      "signature": "setDelay(startClock:Float, endClock:Float, stopChannels:Bool = false):FmodResult",
      "static": false,
@@ -2259,6 +2565,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "Sample-accurate start/stop window on the parent clock (0 = no bound).",
+     "gated": false,
      "name": "setDelay",
      "signature": "setDelay(startClock:Float, endClock:Float, stopChannels:Bool = false):FmodResult",
      "static": false,
@@ -2269,10 +2576,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_setdspindex": {
    "fmod": "FMOD_ChannelGroup_SetDSPIndex, FMOD_Channel_SetDSPIndex",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Moves an attached effect to another chain position (0 = head).",
+     "gated": false,
      "name": "setDspIndex",
      "signature": "setDspIndex(dsp:Dsp, index:Int):haxefmod.studio.FmodResult",
      "static": false,
@@ -2281,6 +2590,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "Moves an attached effect to another chain position (0 = head).",
+     "gated": false,
      "name": "setDspIndex",
      "signature": "setDspIndex(dsp:Dsp, index:Int):FmodResult",
      "static": false,
@@ -2291,10 +2601,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_setfadepointramp": {
    "fmod": "FMOD_ChannelGroup_SetFadePointRamp, FMOD_Channel_SetFadePointRamp",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "A click-free ramp from the current volume to volume, ending at clock.",
+     "gated": false,
      "name": "setFadePointRamp",
      "signature": "setFadePointRamp(clock:Float, volume:Float):FmodResult",
      "static": false,
@@ -2303,6 +2615,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "A click-free ramp from the current volume to volume, ending at clock.",
+     "gated": false,
      "name": "setFadePointRamp",
      "signature": "setFadePointRamp(clock:Float, volume:Float):FmodResult",
      "static": false,
@@ -2313,10 +2626,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_setfrequency": {
    "fmod": "FMOD_Channel_SetFrequency",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "setFrequency",
      "signature": "setFrequency(frequency:Float):FmodResult",
      "static": false,
@@ -2327,10 +2642,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_setloopcount": {
    "fmod": "FMOD_Channel_SetLoopCount",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Times to loop before stopping (-1 = forever, 0 = play once).",
+     "gated": false,
      "name": "setLoopCount",
      "signature": "setLoopCount(loopCount:Int):FmodResult",
      "static": false,
@@ -2341,10 +2658,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_setlooppoints": {
    "fmod": "FMOD_Channel_SetLoopPoints",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Loop region in milliseconds for this channel (overrides the sound's).",
+     "gated": false,
      "name": "setLoopPoints",
      "signature": "setLoopPoints(startMs:Int, endMs:Int):FmodResult",
      "static": false,
@@ -2355,10 +2674,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_setlowpassgain": {
    "fmod": "FMOD_ChannelGroup_SetLowPassGain, FMOD_Channel_SetLowPassGain",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "A built-in lowpass on the group (1.0 = open, 0.0 = closed).",
+     "gated": false,
      "name": "setLowPassGain",
      "signature": "setLowPassGain(gain:Float):FmodResult",
      "static": false,
@@ -2367,6 +2688,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "A built-in lowpass on the channel (1.0 = open, 0.0 = fully closed).",
+     "gated": false,
      "name": "setLowPassGain",
      "signature": "setLowPassGain(gain:Float):FmodResult",
      "static": false,
@@ -2377,10 +2699,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_setmixlevelsinput": {
    "fmod": "FMOD_ChannelGroup_SetMixLevelsInput, FMOD_Channel_SetMixLevelsInput",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Sets the gain of each incoming signal channel before the mix matrix, one level per input channel (1 to 32, an empty list is rejected with FMOD_ERR_INVALID_PARAM).",
+     "gated": false,
      "name": "setMixLevelsInput",
      "signature": "setMixLevelsInput(levels:Array<Float>):FmodResult",
      "static": false,
@@ -2389,6 +2713,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "Sets the gain of each incoming signal channel before the mix matrix, one level per input channel (1 to 32, an empty list is rejected with FMOD_ERR_INVALID_PARAM).",
+     "gated": false,
      "name": "setMixLevelsInput",
      "signature": "setMixLevelsInput(levels:Array<Float>):FmodResult",
      "static": false,
@@ -2399,10 +2724,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_setmixlevelsoutput": {
    "fmod": "FMOD_ChannelGroup_SetMixLevelsOutput, FMOD_Channel_SetMixLevelsOutput",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Sets the gain of each output speaker directly, which replaces the mix matrix with a standard speaker layout.",
+     "gated": false,
      "name": "setMixLevelsOutput",
      "signature": "setMixLevelsOutput(frontLeft:Float, frontRight:Float, center:Float, lowFrequency:Float, surroundLeft:Float, surroundRight:Float, backLeft:Float, backRight:Float):FmodResult",
      "static": false,
@@ -2411,6 +2738,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "Sets the gain of each output speaker directly, which replaces the mix matrix with a standard speaker layout.",
+     "gated": false,
      "name": "setMixLevelsOutput",
      "signature": "setMixLevelsOutput(frontLeft:Float, frontRight:Float, center:Float, lowFrequency:Float, surroundLeft:Float, surroundRight:Float, backLeft:Float, backRight:Float):FmodResult",
      "static": false,
@@ -2421,10 +2749,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_setmixmatrix": {
    "fmod": "FMOD_ChannelGroup_SetMixMatrix, FMOD_Channel_SetMixMatrix",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Routes inputs to speakers with explicit gains (row-major, up to 32x32).",
+     "gated": false,
      "name": "setMixMatrix",
      "signature": "setMixMatrix(matrix:Array<Float>, outChannels:Int, inChannels:Int):FmodResult",
      "static": false,
@@ -2433,6 +2763,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "Routes input channels to output speakers with explicit gains (row-major, outChannels rows of inChannels gains, up to 32x32).",
+     "gated": false,
      "name": "setMixMatrix",
      "signature": "setMixMatrix(matrix:Array<Float>, outChannels:Int, inChannels:Int):FmodResult",
      "static": false,
@@ -2443,10 +2774,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_setmode": {
    "fmod": "FMOD_ChannelGroup_SetMode, FMOD_Channel_SetMode",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Combines ChannelMode flags (looping, 2D/3D, rolloff shape).",
+     "gated": false,
      "name": "setMode",
      "signature": "setMode(mode:Int):FmodResult",
      "static": false,
@@ -2455,6 +2788,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "Combines ChannelMode flags (looping, 2D/3D, rolloff shape).",
+     "gated": false,
      "name": "setMode",
      "signature": "setMode(mode:Int):FmodResult",
      "static": false,
@@ -2465,10 +2799,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_setmute": {
    "fmod": "FMOD_ChannelGroup_SetMute, FMOD_Channel_SetMute",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "setMute",
      "signature": "setMute(mute:Bool):FmodResult",
      "static": false,
@@ -2477,6 +2813,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "setMute",
      "signature": "setMute(mute:Bool):FmodResult",
      "static": false,
@@ -2487,10 +2824,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_setpan": {
    "fmod": "FMOD_ChannelGroup_SetPan, FMOD_Channel_SetPan",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Constant-power stereo pan over the whole group.",
+     "gated": false,
      "name": "setPan",
      "signature": "setPan(pan:Float):FmodResult",
      "static": false,
@@ -2499,6 +2838,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "Constant-power stereo pan (-1.0 = full left, 0 = center, 1.0 = full right).",
+     "gated": false,
      "name": "setPan",
      "signature": "setPan(pan:Float):FmodResult",
      "static": false,
@@ -2509,10 +2849,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_setpaused": {
    "fmod": "FMOD_ChannelGroup_SetPaused, FMOD_Channel_SetPaused",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "setPaused",
      "signature": "setPaused(paused:Bool):FmodResult",
      "static": false,
@@ -2521,6 +2863,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "setPaused",
      "signature": "setPaused(paused:Bool):FmodResult",
      "static": false,
@@ -2531,10 +2874,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_setpitch": {
    "fmod": "FMOD_ChannelGroup_SetPitch, FMOD_Channel_SetPitch",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "setPitch",
      "signature": "setPitch(pitch:Float):FmodResult",
      "static": false,
@@ -2543,6 +2888,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "setPitch",
      "signature": "setPitch(pitch:Float):FmodResult",
      "static": false,
@@ -2553,10 +2899,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_setposition": {
    "fmod": "FMOD_Channel_SetPosition",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "setPosition",
      "signature": "setPosition(positionMs:Int):FmodResult",
      "static": false,
@@ -2567,10 +2915,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_setpriority": {
    "fmod": "FMOD_Channel_SetPriority",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Voice priority for virtualization (0 = most important, 256 = least).",
+     "gated": false,
      "name": "setPriority",
      "signature": "setPriority(priority:Int):FmodResult",
      "static": false,
@@ -2581,10 +2931,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_setreverbproperties": {
    "fmod": "FMOD_ChannelGroup_SetReverbProperties, FMOD_Channel_SetReverbProperties",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "How much this group feeds a reverb instance (0.0 = none, 1.0 = full).",
+     "gated": false,
      "name": "setReverbWet",
      "signature": "setReverbWet(instance:Int, wet:Float):FmodResult",
      "static": false,
@@ -2593,6 +2945,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "How much this channel feeds a reverb instance (0.0 = none, 1.0 = full).",
+     "gated": false,
      "name": "setReverbWet",
      "signature": "setReverbWet(instance:Int, wet:Float):FmodResult",
      "static": false,
@@ -2603,6 +2956,7 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_setuserdata": {
    "fmod": "FMOD_Channel_SetUserData",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
@@ -2625,10 +2979,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_setvolume": {
    "fmod": "FMOD_ChannelGroup_SetVolume, FMOD_Channel_SetVolume",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "setVolume",
      "signature": "setVolume(volume:Float):FmodResult",
      "static": false,
@@ -2637,6 +2993,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "setVolume",
      "signature": "setVolume(volume:Float):FmodResult",
      "static": false,
@@ -2647,10 +3004,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_setvolumeramp": {
    "fmod": "FMOD_ChannelGroup_SetVolumeRamp, FMOD_Channel_SetVolumeRamp",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Short volume ramping on changes (on by default, prevents clicks).",
+     "gated": false,
      "name": "setVolumeRamp",
      "signature": "setVolumeRamp(ramp:Bool):FmodResult",
      "static": false,
@@ -2659,6 +3018,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "Short volume ramping on changes (on by default, prevents clicks).",
+     "gated": false,
      "name": "setVolumeRamp",
      "signature": "setVolumeRamp(ramp:Bool):FmodResult",
      "static": false,
@@ -2669,10 +3029,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelcontrol_stop": {
    "fmod": "FMOD_ChannelGroup_Stop, FMOD_Channel_Stop",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Stops every channel in the group.",
+     "gated": false,
      "name": "stop",
      "signature": "stop():FmodResult",
      "static": false,
@@ -2681,6 +3043,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "Stops playback, removes any callback handler, and invalidates this handle.",
+     "gated": false,
      "name": "stop",
      "signature": "stop():FmodResult",
      "static": false,
@@ -2689,6 +3052,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Plays this DSP as a sound source (e.g.",
+     "gated": false,
      "name": "play",
      "signature": "play(startPaused:Bool = false):Channel",
      "static": false,
@@ -2697,6 +3061,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Starts playback.",
+     "gated": false,
      "name": "play",
      "signature": "play(startPaused:Bool = false):Channel",
      "static": false,
@@ -2705,6 +3070,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Starts playback.",
+     "gated": false,
      "name": "play",
      "signature": "play(startPaused:Bool = false):haxefmod.core.Channel",
      "static": false,
@@ -2715,10 +3081,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_adddsp": {
    "fmod": "FMOD_ChannelGroup_AddDSP",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Inserts an effect at index (0 = head of the chain, or a DSP_* position).",
+     "gated": false,
      "name": "addDsp",
      "signature": "addDsp(index:Int, dsp:Dsp):FmodResult",
      "static": false,
@@ -2729,10 +3097,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_addfadepoint": {
    "fmod": "FMOD_ChannelGroup_AddFadePoint",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Schedules a volume point at a parent-clock time.",
+     "gated": false,
      "name": "addFadePoint",
      "signature": "addFadePoint(clock:Float, volume:Float):FmodResult",
      "static": false,
@@ -2743,10 +3113,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_addgroup": {
    "fmod": "FMOD_ChannelGroup_AddGroup",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Routes a child group's output through this one (group hierarchies).",
+     "gated": false,
      "name": "addGroup",
      "signature": "addGroup(child:ChannelGroup):FmodResult",
      "static": false,
@@ -2757,10 +3129,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_get3dattributes": {
    "fmod": "FMOD_ChannelGroup_Get3DAttributes",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "get3DAttributes",
      "signature": "get3DAttributes():Null<{posX:Float, posY:Float, posZ:Float, velX:Float, velY:Float, velZ:Float}>",
      "static": false,
@@ -2771,10 +3145,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_get3dconeorientation": {
    "fmod": "FMOD_ChannelGroup_Get3DConeOrientation",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "get3DConeOrientation",
      "signature": "get3DConeOrientation():Null<{x:Float, y:Float, z:Float}>",
      "static": false,
@@ -2785,10 +3161,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_get3dconesettings": {
    "fmod": "FMOD_ChannelGroup_Get3DConeSettings",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "get3DConeSettings",
      "signature": "get3DConeSettings():Null<{insideAngle:Float, outsideAngle:Float, outsideVolume:Float}>",
      "static": false,
@@ -2799,10 +3177,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_get3dcustomrolloff": {
    "fmod": "FMOD_ChannelGroup_Get3DCustomRolloff",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "The custom rolloff points (unsupported in HTML5, always empty there), empty when none are set or on failure (see StudioSystem.lastResult).",
+     "gated": true,
      "name": "get3DCustomRolloff",
      "signature": "get3DCustomRolloff():Array<FmodVector>",
      "static": false,
@@ -2813,10 +3193,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_get3ddistancefilter": {
    "fmod": "FMOD_ChannelGroup_Get3DDistanceFilter",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "get3DDistanceFilter",
      "signature": "get3DDistanceFilter():Null<{custom:Bool, customLevel:Float, centerFreq:Float}>",
      "static": false,
@@ -2827,10 +3209,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_get3ddopplerlevel": {
    "fmod": "FMOD_ChannelGroup_Get3DDopplerLevel",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "get3DDopplerLevel",
      "signature": "get3DDopplerLevel():Float",
      "static": false,
@@ -2841,10 +3225,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_get3dlevel": {
    "fmod": "FMOD_ChannelGroup_Get3DLevel",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "get3DLevel",
      "signature": "get3DLevel():Float",
      "static": false,
@@ -2855,10 +3241,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_get3dminmaxdistance": {
    "fmod": "FMOD_ChannelGroup_Get3DMinMaxDistance",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "get3DMinMaxDistance",
      "signature": "get3DMinMaxDistance():Null<{minDistance:Float, maxDistance:Float}>",
      "static": false,
@@ -2869,10 +3257,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_get3dspread": {
    "fmod": "FMOD_ChannelGroup_Get3DSpread",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "get3DSpread",
      "signature": "get3DSpread():Float",
      "static": false,
@@ -2883,10 +3273,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_getaudibility": {
    "fmod": "FMOD_ChannelGroup_GetAudibility",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The final audible volume after parent groups and 3D scaling.",
+     "gated": false,
      "name": "getAudibility",
      "signature": "getAudibility():Float",
      "static": false,
@@ -2897,10 +3289,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_getchannel": {
    "fmod": "FMOD_ChannelGroup_GetChannel",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "A channel routed into this group by index (known channels dedup).",
+     "gated": false,
      "name": "getChannel",
      "signature": "getChannel(index:Int):Channel",
      "static": false,
@@ -2911,10 +3305,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_getdspclock": {
    "fmod": "FMOD_ChannelGroup_GetDSPClock",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The group's mixer clock in output samples, or null on failure.",
+     "gated": false,
      "name": "getDspClock",
      "signature": "getDspClock():Null<{clock:Float, parent:Float}>",
      "static": false,
@@ -2925,10 +3321,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_getdspindex": {
    "fmod": "FMOD_ChannelGroup_GetDSPIndex",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The chain position of an attached effect, -1 when it is not attached or on failure.",
+     "gated": false,
      "name": "getDspIndex",
      "signature": "getDspIndex(dsp:Dsp):Int",
      "static": false,
@@ -2939,10 +3337,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_getfadepoints": {
    "fmod": "FMOD_ChannelGroup_GetFadePoints",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "The scheduled fade points as parent-clock and volume pairs (unsupported in HTML5, null there).",
+     "gated": true,
      "name": "getFadePoints",
      "signature": "getFadePoints():Null<Array<{clock:Float, volume:Float}>>",
      "static": false,
@@ -2953,10 +3353,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_getgroup": {
    "fmod": "FMOD_ChannelGroup_GetGroup",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "A nested child group by index (a known group returns its existing handle).",
+     "gated": false,
      "name": "getGroup",
      "signature": "getGroup(index:Int):ChannelGroup",
      "static": false,
@@ -2967,10 +3369,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_getmixmatrix": {
    "fmod": "FMOD_ChannelGroup_GetMixMatrix",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "Reads back the mix matrix region of outChannels rows by inChannels gains, row-major (unsupported in HTML5, null there).",
+     "gated": true,
      "name": "getMixMatrix",
      "signature": "getMixMatrix(outChannels:Int, inChannels:Int):Null<{matrix:Array<Float>, outChannels:Int, inChannels:Int}>",
      "static": false,
@@ -2981,10 +3385,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_getmode": {
    "fmod": "FMOD_ChannelGroup_GetMode",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getMode",
      "signature": "getMode():Int",
      "static": false,
@@ -2995,10 +3401,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_getmute": {
    "fmod": "FMOD_ChannelGroup_GetMute",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getMute",
      "signature": "getMute():Bool",
      "static": false,
@@ -3009,10 +3417,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_getname": {
    "fmod": "FMOD_ChannelGroup_GetName",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getName",
      "signature": "getName():String",
      "static": false,
@@ -3023,10 +3433,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_getnumchannels": {
    "fmod": "FMOD_ChannelGroup_GetNumChannels",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "",
+     "gated": false,
      "name": "getChannelCount",
      "signature": "getChannelCount():Int",
      "static": false,
@@ -3037,10 +3449,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_getnumgroups": {
    "fmod": "FMOD_ChannelGroup_GetNumGroups",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "",
+     "gated": false,
      "name": "getGroupCount",
      "signature": "getGroupCount():Int",
      "static": false,
@@ -3051,10 +3465,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_getparentgroup": {
    "fmod": "FMOD_ChannelGroup_GetParentGroup",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getParentGroup",
      "signature": "getParentGroup():ChannelGroup",
      "static": false,
@@ -3065,10 +3481,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_getpaused": {
    "fmod": "FMOD_ChannelGroup_GetPaused",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getPaused",
      "signature": "getPaused():Bool",
      "static": false,
@@ -3079,10 +3497,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_getpitch": {
    "fmod": "FMOD_ChannelGroup_GetPitch",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getPitch",
      "signature": "getPitch():Float",
      "static": false,
@@ -3093,10 +3513,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_getreverbproperties": {
    "fmod": "FMOD_ChannelGroup_GetReverbProperties",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "",
+     "gated": false,
      "name": "getReverbWet",
      "signature": "getReverbWet(instance:Int):Float",
      "static": false,
@@ -3107,10 +3529,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_getvolume": {
    "fmod": "FMOD_ChannelGroup_GetVolume",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getVolume",
      "signature": "getVolume():Float",
      "static": false,
@@ -3121,10 +3545,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_getvolumeramp": {
    "fmod": "FMOD_ChannelGroup_GetVolumeRamp",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getVolumeRamp",
      "signature": "getVolumeRamp():Bool",
      "static": false,
@@ -3135,10 +3561,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_release": {
    "fmod": "FMOD_ChannelGroup_Release",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Frees a group made with create() and invalidates this handle.",
+     "gated": false,
      "name": "release",
      "signature": "release():FmodResult",
      "static": false,
@@ -3147,6 +3575,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Creates a custom group.",
+     "gated": false,
      "name": "create",
      "signature": "create(name:String):ChannelGroup",
      "static": true,
@@ -3157,10 +3586,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_removedsp": {
    "fmod": "FMOD_ChannelGroup_RemoveDSP",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "removeDsp",
      "signature": "removeDsp(dsp:Dsp):FmodResult",
      "static": false,
@@ -3171,10 +3602,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_removefadepoints": {
    "fmod": "FMOD_ChannelGroup_RemoveFadePoints",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "removeFadePoints",
      "signature": "removeFadePoints(startClock:Float, endClock:Float):FmodResult",
      "static": false,
@@ -3185,10 +3618,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_set3dattributes": {
    "fmod": "FMOD_ChannelGroup_Set3DAttributes",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Positions the whole group in 3D space (needs a 3D mode set).",
+     "gated": false,
      "name": "set3DAttributes",
      "signature": "set3DAttributes(posX:Float, posY:Float, posZ:Float, velX:Float = 0, velY:Float = 0, velZ:Float = 0):FmodResult",
      "static": false,
@@ -3199,10 +3634,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_set3dconeorientation": {
    "fmod": "FMOD_ChannelGroup_Set3DConeOrientation",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "set3DConeOrientation",
      "signature": "set3DConeOrientation(x:Float, y:Float, z:Float):FmodResult",
      "static": false,
@@ -3213,10 +3650,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_set3dconesettings": {
    "fmod": "FMOD_ChannelGroup_Set3DConeSettings",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "set3DConeSettings",
      "signature": "set3DConeSettings(insideAngle:Float, outsideAngle:Float, outsideVolume:Float):FmodResult",
      "static": false,
@@ -3227,10 +3666,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_set3dcustomrolloff": {
    "fmod": "FMOD_ChannelGroup_Set3DCustomRolloff",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "Replaces the distance rolloff curve with the given points.",
+     "gated": true,
      "name": "set3DCustomRolloff",
      "signature": "set3DCustomRolloff(points:Array<FmodVector>):FmodResult",
      "static": false,
@@ -3241,10 +3682,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_set3ddistancefilter": {
    "fmod": "FMOD_ChannelGroup_Set3DDistanceFilter",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Overrides the distance lowpass on this group's 3D channels.",
+     "gated": false,
      "name": "set3DDistanceFilter",
      "signature": "set3DDistanceFilter(custom:Bool, customLevel:Float, centerFreq:Float):FmodResult",
      "static": false,
@@ -3255,10 +3698,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_set3ddopplerlevel": {
    "fmod": "FMOD_ChannelGroup_Set3DDopplerLevel",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "set3DDopplerLevel",
      "signature": "set3DDopplerLevel(level:Float):FmodResult",
      "static": false,
@@ -3269,10 +3714,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_set3dlevel": {
    "fmod": "FMOD_ChannelGroup_Set3DLevel",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "set3DLevel",
      "signature": "set3DLevel(level:Float):FmodResult",
      "static": false,
@@ -3283,10 +3730,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_set3dminmaxdistance": {
    "fmod": "FMOD_ChannelGroup_Set3DMinMaxDistance",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "set3DMinMaxDistance",
      "signature": "set3DMinMaxDistance(minDistance:Float, maxDistance:Float):FmodResult",
      "static": false,
@@ -3297,10 +3746,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_set3docclusion": {
    "fmod": "FMOD_ChannelGroup_Set3DOcclusion",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Muffles the group as if behind an obstacle.",
+     "gated": false,
      "name": "set3DOcclusion",
      "signature": "set3DOcclusion(direct:Float, reverb:Float):FmodResult",
      "static": false,
@@ -3311,10 +3762,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_set3dspread": {
    "fmod": "FMOD_ChannelGroup_Set3DSpread",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "set3DSpread",
      "signature": "set3DSpread(angle:Float):FmodResult",
      "static": false,
@@ -3325,10 +3778,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_setdelay": {
    "fmod": "FMOD_ChannelGroup_SetDelay",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Sample-accurate start/stop window on the parent clock (0 = no bound).",
+     "gated": false,
      "name": "setDelay",
      "signature": "setDelay(startClock:Float, endClock:Float, stopChannels:Bool = false):FmodResult",
      "static": false,
@@ -3339,10 +3794,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_setdspindex": {
    "fmod": "FMOD_ChannelGroup_SetDSPIndex",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Moves an attached effect to another chain position (0 = head).",
+     "gated": false,
      "name": "setDspIndex",
      "signature": "setDspIndex(dsp:Dsp, index:Int):haxefmod.studio.FmodResult",
      "static": false,
@@ -3353,10 +3810,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_setfadepointramp": {
    "fmod": "FMOD_ChannelGroup_SetFadePointRamp",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "A click-free ramp from the current volume to volume, ending at clock.",
+     "gated": false,
      "name": "setFadePointRamp",
      "signature": "setFadePointRamp(clock:Float, volume:Float):FmodResult",
      "static": false,
@@ -3367,10 +3826,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_setlowpassgain": {
    "fmod": "FMOD_ChannelGroup_SetLowPassGain",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "A built-in lowpass on the group (1.0 = open, 0.0 = closed).",
+     "gated": false,
      "name": "setLowPassGain",
      "signature": "setLowPassGain(gain:Float):FmodResult",
      "static": false,
@@ -3381,10 +3842,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_setmixlevelsinput": {
    "fmod": "FMOD_ChannelGroup_SetMixLevelsInput",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Sets the gain of each incoming signal channel before the mix matrix, one level per input channel (1 to 32, an empty list is rejected with FMOD_ERR_INVALID_PARAM).",
+     "gated": false,
      "name": "setMixLevelsInput",
      "signature": "setMixLevelsInput(levels:Array<Float>):FmodResult",
      "static": false,
@@ -3395,10 +3858,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_setmixlevelsoutput": {
    "fmod": "FMOD_ChannelGroup_SetMixLevelsOutput",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Sets the gain of each output speaker directly, which replaces the mix matrix with a standard speaker layout.",
+     "gated": false,
      "name": "setMixLevelsOutput",
      "signature": "setMixLevelsOutput(frontLeft:Float, frontRight:Float, center:Float, lowFrequency:Float, surroundLeft:Float, surroundRight:Float, backLeft:Float, backRight:Float):FmodResult",
      "static": false,
@@ -3409,10 +3874,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_setmixmatrix": {
    "fmod": "FMOD_ChannelGroup_SetMixMatrix",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Routes inputs to speakers with explicit gains (row-major, up to 32x32).",
+     "gated": false,
      "name": "setMixMatrix",
      "signature": "setMixMatrix(matrix:Array<Float>, outChannels:Int, inChannels:Int):FmodResult",
      "static": false,
@@ -3423,10 +3890,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_setmode": {
    "fmod": "FMOD_ChannelGroup_SetMode",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Combines ChannelMode flags (looping, 2D/3D, rolloff shape).",
+     "gated": false,
      "name": "setMode",
      "signature": "setMode(mode:Int):FmodResult",
      "static": false,
@@ -3437,10 +3906,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_setmute": {
    "fmod": "FMOD_ChannelGroup_SetMute",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "setMute",
      "signature": "setMute(mute:Bool):FmodResult",
      "static": false,
@@ -3451,10 +3922,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_setpan": {
    "fmod": "FMOD_ChannelGroup_SetPan",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Constant-power stereo pan over the whole group.",
+     "gated": false,
      "name": "setPan",
      "signature": "setPan(pan:Float):FmodResult",
      "static": false,
@@ -3465,10 +3938,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_setpaused": {
    "fmod": "FMOD_ChannelGroup_SetPaused",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "setPaused",
      "signature": "setPaused(paused:Bool):FmodResult",
      "static": false,
@@ -3479,10 +3954,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_setpitch": {
    "fmod": "FMOD_ChannelGroup_SetPitch",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "setPitch",
      "signature": "setPitch(pitch:Float):FmodResult",
      "static": false,
@@ -3493,10 +3970,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_setreverbproperties": {
    "fmod": "FMOD_ChannelGroup_SetReverbProperties",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "How much this group feeds a reverb instance (0.0 = none, 1.0 = full).",
+     "gated": false,
      "name": "setReverbWet",
      "signature": "setReverbWet(instance:Int, wet:Float):FmodResult",
      "static": false,
@@ -3507,10 +3986,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_setvolume": {
    "fmod": "FMOD_ChannelGroup_SetVolume",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "setVolume",
      "signature": "setVolume(volume:Float):FmodResult",
      "static": false,
@@ -3521,10 +4002,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_setvolumeramp": {
    "fmod": "FMOD_ChannelGroup_SetVolumeRamp",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Short volume ramping on changes (on by default, prevents clicks).",
+     "gated": false,
      "name": "setVolumeRamp",
      "signature": "setVolumeRamp(ramp:Bool):FmodResult",
      "static": false,
@@ -3535,10 +4018,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "channelgroup_stop": {
    "fmod": "FMOD_ChannelGroup_Stop",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Stops every channel in the group.",
+     "gated": false,
      "name": "stop",
      "signature": "stop():FmodResult",
      "static": false,
@@ -3549,6 +4034,7 @@ const HAXEFMOD_BINDINGS = {
   },
   "debug_initialize": {
    "fmod": "FMOD_Debug_Initialize",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
@@ -3561,6 +4047,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Turns on FMOD debug logging and facade operation traces.",
+     "gated": false,
      "name": "EnableDebugMessages",
      "signature": "EnableDebugMessages():Void",
      "static": true,
@@ -3569,6 +4056,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Initializes FMOD with the given settings (see FmodSettings for the define-driven defaults).",
+     "gated": false,
      "name": "init",
      "signature": "init(?settings:FmodSettings):FmodResult",
      "static": true,
@@ -3579,10 +4067,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "dsp_addinput": {
    "fmod": "FMOD_DSP_AddInput",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Wires another DSP's output into this one, building custom mixer topologies.",
+     "gated": false,
      "name": "addInput",
      "signature": "addInput(input:Dsp, connectionType:Int = DspConnection.TYPE_STANDARD):DspConnection",
      "static": false,
@@ -3593,10 +4083,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "dsp_addinputpreallocated": {
    "fmod": "FMOD_DSP_AddInputPreallocated",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "Wires another DSP's output into this one through a connection FMOD reserved ahead of time, so the mixer allocates nothing on the way in (unsupported in HTML5, returns DspConnection.NULL there).",
+     "gated": true,
      "name": "addInputPreallocated",
      "signature": "addInputPreallocated(input:Dsp, connection:DspConnection):DspConnection",
      "static": false,
@@ -3607,10 +4099,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "dsp_disconnectall": {
    "fmod": "FMOD_DSP_DisconnectAll",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "disconnectAll",
      "signature": "disconnectAll(inputs:Bool = true, outputs:Bool = true):FmodResult",
      "static": false,
@@ -3621,10 +4115,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "dsp_disconnectfrom": {
    "fmod": "FMOD_DSP_DisconnectFrom",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "disconnectFrom",
      "signature": "disconnectFrom(input:Dsp):FmodResult",
      "static": false,
@@ -3635,10 +4131,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "dsp_getactive": {
    "fmod": "FMOD_DSP_GetActive",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getActive",
      "signature": "getActive():Bool",
      "static": false,
@@ -3649,10 +4147,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "dsp_getbypass": {
    "fmod": "FMOD_DSP_GetBypass",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getBypass",
      "signature": "getBypass():Bool",
      "static": false,
@@ -3663,10 +4163,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "dsp_getchannelformat": {
    "fmod": "FMOD_DSP_GetChannelFormat",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getChannelFormat",
      "signature": "getChannelFormat():Null<{channelMask:Int, channels:Int, speakerMode:Int}>",
      "static": false,
@@ -3677,10 +4179,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "dsp_getcpuusage": {
    "fmod": "FMOD_DSP_GetCPUUsage",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Microseconds spent in this DSP per mix, or null (needs profiling enabled at init).",
+     "gated": false,
      "name": "getCpuUsage",
      "signature": "getCpuUsage():Null<{exclusive:Int, inclusive:Int}>",
      "static": false,
@@ -3691,10 +4195,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "dsp_getdataparameterindex": {
    "fmod": "FMOD_DSP_GetDataParameterIndex",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The index of the data parameter carrying an FMOD_DSP_PARAMETER_DATA_TYPE (negative values are FMOD's own types, 0 and up are user data), -1 when the effect has none or on failure.",
+     "gated": false,
      "name": "getDataParameterIndex",
      "signature": "getDataParameterIndex(dataType:Int):Int",
      "static": false,
@@ -3705,10 +4211,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "dsp_getidle": {
    "fmod": "FMOD_DSP_GetIdle",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "True when no signal has flowed through the unit recently.",
+     "gated": false,
      "name": "isIdle",
      "signature": "isIdle():Bool",
      "static": false,
@@ -3719,10 +4227,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "dsp_getinfo": {
    "fmod": "FMOD_DSP_GetInfo",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "The effect's display name (e.g.",
+     "gated": false,
      "name": "getName",
      "signature": "getName():String",
      "static": false,
@@ -3733,10 +4243,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "dsp_getinput": {
    "fmod": "FMOD_DSP_GetInput",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The DSP feeding input slot index (a known DSP returns its existing handle).",
+     "gated": false,
      "name": "getInput",
      "signature": "getInput(index:Int):Dsp",
      "static": false,
@@ -3745,6 +4257,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "",
+     "gated": false,
      "name": "getInputConnection",
      "signature": "getInputConnection(index:Int):DspConnection",
      "static": false,
@@ -3755,10 +4268,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "dsp_getmeteringenabled": {
    "fmod": "FMOD_DSP_GetMeteringEnabled",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getMeteringEnabled",
      "signature": "getMeteringEnabled():Null<{input:Bool, output:Bool}>",
      "static": false,
@@ -3769,10 +4284,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "dsp_getmeteringinfo": {
    "fmod": "FMOD_DSP_GetMeteringInfo",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "Peak and RMS levels per output channel (linear 0..1), or null when unavailable (metering disabled, no signal yet, or a stale handle).",
+     "gated": false,
      "name": "getMetering",
      "signature": "getMetering():Null<{peak:Array<Float>, rms:Array<Float>}>",
      "static": false,
@@ -3783,10 +4300,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "dsp_getnuminputs": {
    "fmod": "FMOD_DSP_GetNumInputs",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "",
+     "gated": false,
      "name": "getInputCount",
      "signature": "getInputCount():Int",
      "static": false,
@@ -3797,10 +4316,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "dsp_getnumoutputs": {
    "fmod": "FMOD_DSP_GetNumOutputs",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "",
+     "gated": false,
      "name": "getOutputCount",
      "signature": "getOutputCount():Int",
      "static": false,
@@ -3811,10 +4332,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "dsp_getnumparameters": {
    "fmod": "FMOD_DSP_GetNumParameters",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "",
+     "gated": false,
      "name": "getParameterCount",
      "signature": "getParameterCount():Int",
      "static": false,
@@ -3825,10 +4348,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "dsp_getoutput": {
    "fmod": "FMOD_DSP_GetOutput",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The DSP fed by output slot index (a known DSP returns its existing handle).",
+     "gated": false,
      "name": "getOutput",
      "signature": "getOutput(index:Int):Dsp",
      "static": false,
@@ -3837,6 +4362,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "",
+     "gated": false,
      "name": "getOutputConnection",
      "signature": "getOutputConnection(index:Int):DspConnection",
      "static": false,
@@ -3847,10 +4373,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "dsp_getoutputchannelformat": {
    "fmod": "FMOD_DSP_GetOutputChannelFormat",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The format the unit would emit when fed the given input format, or null on failure.",
+     "gated": false,
      "name": "getOutputChannelFormat",
      "signature": "getOutputChannelFormat(inMask:Int, inChannels:Int, inSpeakerMode:Int):Null<{channelMask:Int, channels:Int, speakerMode:Int}>",
      "static": false,
@@ -3861,10 +4389,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "dsp_getparameterbool": {
    "fmod": "FMOD_DSP_GetParameterBool",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getParameterBool",
      "signature": "getParameterBool(index:Int):Bool",
      "static": false,
@@ -3875,10 +4405,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "dsp_getparameterdata": {
    "fmod": "FMOD_DSP_GetParameterData",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "Spectrum magnitudes from an FFT effect (create with DspType.FFT and attach where you want to analyze).",
+     "gated": false,
      "name": "getFftSpectrum",
      "signature": "getFftSpectrum(maxBins:Int = 512):Null<Array<Float>>",
      "static": false,
@@ -3889,10 +4421,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "dsp_getparameterfloat": {
    "fmod": "FMOD_DSP_GetParameterFloat",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "",
+     "gated": false,
      "name": "getParameter",
      "signature": "getParameter(index:Int):Float",
      "static": false,
@@ -3903,10 +4437,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "dsp_getparameterinfo": {
    "fmod": "FMOD_DSP_GetParameterInfo",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "Name, type, and range of the parameter at index (unsupported in HTML5, null there).",
+     "gated": true,
      "name": "getParameterInfo",
      "signature": "getParameterInfo(index:Int):Null<{name:String, type:Int, min:Float, max:Float, defaultValue:Float}>",
      "static": false,
@@ -3917,10 +4453,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "dsp_getparameterint": {
    "fmod": "FMOD_DSP_GetParameterInt",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getParameterInt",
      "signature": "getParameterInt(index:Int):Int",
      "static": false,
@@ -3941,10 +4479,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "dsp_gettype": {
    "fmod": "FMOD_DSP_GetType",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getType",
      "signature": "getType():DspType",
      "static": false,
@@ -3965,10 +4505,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "dsp_getwetdrymix": {
    "fmod": "FMOD_DSP_GetWetDryMix",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getWetDryMix",
      "signature": "getWetDryMix():Null<{prewet:Float, postwet:Float, dry:Float}>",
      "static": false,
@@ -3979,10 +4521,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "dsp_release": {
    "fmod": "FMOD_DSP_Release",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "Releases the effect and invalidates this handle.",
+     "gated": false,
      "name": "release",
      "signature": "release():FmodResult",
      "static": false,
@@ -3991,6 +4535,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Creates an effect unit.",
+     "gated": false,
      "name": "create",
      "signature": "create(type:DspType):Dsp",
      "static": true,
@@ -3999,6 +4544,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Creates an effect unit from a plugin loaded with StudioSystem.loadPlugin (unsupported in HTML5, returns Dsp.NULL there).",
+     "gated": true,
      "name": "createByPlugin",
      "signature": "createByPlugin(pluginHandle:Int):Dsp",
      "static": true,
@@ -4009,10 +4555,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "dsp_reset": {
    "fmod": "FMOD_DSP_Reset",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Clears the effect's internal state (delay lines, envelopes).",
+     "gated": false,
      "name": "reset",
      "signature": "reset():FmodResult",
      "static": false,
@@ -4023,10 +4571,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "dsp_setactive": {
    "fmod": "FMOD_DSP_SetActive",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "setActive",
      "signature": "setActive(active:Bool):FmodResult",
      "static": false,
@@ -4037,10 +4587,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "dsp_setbypass": {
    "fmod": "FMOD_DSP_SetBypass",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "A bypassed effect passes audio through unprocessed.",
+     "gated": false,
      "name": "setBypass",
      "signature": "setBypass(bypass:Bool):FmodResult",
      "static": false,
@@ -4060,10 +4612,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "dsp_setchannelformat": {
    "fmod": "FMOD_DSP_SetChannelFormat",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Fixes the unit's input format to the given FMOD_CHANNELMASK, channel count, and FMOD_SPEAKERMODE.",
+     "gated": false,
      "name": "setChannelFormat",
      "signature": "setChannelFormat(channelMask:Int, channels:Int, speakerMode:Int):FmodResult",
      "static": false,
@@ -4074,10 +4628,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "dsp_setmeteringenabled": {
    "fmod": "FMOD_DSP_SetMeteringEnabled",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Metering must be enabled before getMetering returns data.",
+     "gated": false,
      "name": "setMeteringEnabled",
      "signature": "setMeteringEnabled(input:Bool, output:Bool):FmodResult",
      "static": false,
@@ -4088,10 +4644,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "dsp_setparameterbool": {
    "fmod": "FMOD_DSP_SetParameterBool",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "setParameterBool",
      "signature": "setParameterBool(index:Int, value:Bool):FmodResult",
      "static": false,
@@ -4102,10 +4660,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "dsp_setparameterdata": {
    "fmod": "FMOD_DSP_SetParameterData",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Uploads a data parameter payload (byte layout per the effect's contract, e.g.",
+     "gated": false,
      "name": "setParameterData",
      "signature": "setParameterData(index:Int, data:haxe.io.Bytes):FmodResult",
      "static": false,
@@ -4116,10 +4676,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "dsp_setparameterfloat": {
    "fmod": "FMOD_DSP_SetParameterFloat",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "",
+     "gated": false,
      "name": "setParameter",
      "signature": "setParameter(index:Int, value:Float):FmodResult",
      "static": false,
@@ -4130,10 +4692,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "dsp_setparameterint": {
    "fmod": "FMOD_DSP_SetParameterInt",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "setParameterInt",
      "signature": "setParameterInt(index:Int, value:Int):FmodResult",
      "static": false,
@@ -4154,10 +4718,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "dsp_setwetdrymix": {
    "fmod": "FMOD_DSP_SetWetDryMix",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Scales the pre-effect signal, the processed signal, and the dry signal (each 0..1).",
+     "gated": false,
      "name": "setWetDryMix",
      "signature": "setWetDryMix(prewet:Float, postwet:Float, dry:Float):FmodResult",
      "static": false,
@@ -4177,10 +4743,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "dspconnection_getinput": {
    "fmod": "FMOD_DSPConnection_GetInput",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "The DSP feeding this connection (a known DSP returns its existing handle).",
+     "gated": false,
      "name": "getInputDsp",
      "signature": "getInputDsp():Dsp",
      "static": false,
@@ -4191,10 +4759,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "dspconnection_getmix": {
    "fmod": "FMOD_DSPConnection_GetMix",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Signal scale through this connection (linear, 0.0 = silent, 1.0 = full).",
+     "gated": false,
      "name": "getMix",
      "signature": "getMix():Float",
      "static": false,
@@ -4205,10 +4775,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "dspconnection_getmixmatrix": {
    "fmod": "FMOD_DSPConnection_GetMixMatrix",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "Reads back the mix matrix region of outChannels rows by inChannels gains, row-major (unsupported in HTML5, null there).",
+     "gated": true,
      "name": "getMixMatrix",
      "signature": "getMixMatrix(outChannels:Int, inChannels:Int):Null<{matrix:Array<Float>, outChannels:Int, inChannels:Int}>",
      "static": false,
@@ -4219,10 +4791,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "dspconnection_getoutput": {
    "fmod": "FMOD_DSPConnection_GetOutput",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "",
+     "gated": false,
      "name": "getOutputDsp",
      "signature": "getOutputDsp():Dsp",
      "static": false,
@@ -4233,10 +4807,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "dspconnection_gettype": {
    "fmod": "FMOD_DSPConnection_GetType",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "One of the TYPE_* values.",
+     "gated": false,
      "name": "getType",
      "signature": "getType():Int",
      "static": false,
@@ -4257,10 +4833,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "dspconnection_setmix": {
    "fmod": "FMOD_DSPConnection_SetMix",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "setMix",
      "signature": "setMix(mix:Float):FmodResult",
      "static": false,
@@ -4271,10 +4849,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "dspconnection_setmixmatrix": {
    "fmod": "FMOD_DSPConnection_SetMixMatrix",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Routes the input's channels to the output's with explicit gains (row-major, outChannels rows of inChannels gains, up to 32x32).",
+     "gated": false,
      "name": "setMixMatrix",
      "signature": "setMixMatrix(matrix:Array<Float>, outChannels:Int, inChannels:Int):FmodResult",
      "static": false,
@@ -4386,10 +4966,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "geometry_addpolygon": {
    "fmod": "FMOD_Geometry_AddPolygon",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "Adds a convex polygon from at least three vertices in object space and returns its index, -1 on failure (unsupported in HTML5, -1 there).",
+     "gated": true,
      "name": "addPolygon",
      "signature": "addPolygon(direct:Float, reverb:Float, doubleSided:Bool, vertices:Array<FmodVector>):Int",
      "static": false,
@@ -4400,10 +4982,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "geometry_getactive": {
    "fmod": "FMOD_Geometry_GetActive",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "Whether the geometry occludes, false on failure (unsupported in HTML5, false there).",
+     "gated": true,
      "name": "getActive",
      "signature": "getActive():Bool",
      "static": false,
@@ -4414,10 +4998,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "geometry_getmaxpolygons": {
    "fmod": "FMOD_Geometry_GetMaxPolygons",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "The capacities given at creation, null on failure (unsupported in HTML5, null there).",
+     "gated": true,
      "name": "getMaxPolygons",
      "signature": "getMaxPolygons():Null<{polygons:Int, vertices:Int}>",
      "static": false,
@@ -4428,10 +5014,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "geometry_getnumpolygons": {
    "fmod": "FMOD_Geometry_GetNumPolygons",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "Polygons added so far, -1 on failure (unsupported in HTML5, -1 there).",
+     "gated": true,
      "name": "getNumPolygons",
      "signature": "getNumPolygons():Int",
      "static": false,
@@ -4442,10 +5030,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "geometry_getpolygonattributes": {
    "fmod": "FMOD_Geometry_GetPolygonAttributes",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "A polygon's occlusion amounts and sidedness, null on failure (unsupported in HTML5, null there).",
+     "gated": true,
      "name": "getPolygonAttributes",
      "signature": "getPolygonAttributes(index:Int):Null<{direct:Float, reverb:Float, doubleSided:Bool}>",
      "static": false,
@@ -4456,10 +5046,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "geometry_getpolygonnumvertices": {
    "fmod": "FMOD_Geometry_GetPolygonNumVertices",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "Vertex count of one polygon, -1 on failure (unsupported in HTML5, -1 there).",
+     "gated": true,
      "name": "getPolygonNumVertices",
      "signature": "getPolygonNumVertices(index:Int):Int",
      "static": false,
@@ -4470,10 +5062,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "geometry_getpolygonvertex": {
    "fmod": "FMOD_Geometry_GetPolygonVertex",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "One vertex of a polygon, null on failure (unsupported in HTML5, null there).",
+     "gated": true,
      "name": "getPolygonVertex",
      "signature": "getPolygonVertex(index:Int, vertexIndex:Int):Null<FmodVector>",
      "static": false,
@@ -4484,10 +5078,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "geometry_getposition": {
    "fmod": "FMOD_Geometry_GetPosition",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "The world position, null on failure (unsupported in HTML5, null there).",
+     "gated": true,
      "name": "getPosition",
      "signature": "getPosition():Null<FmodVector>",
      "static": false,
@@ -4498,10 +5094,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "geometry_getrotation": {
    "fmod": "FMOD_Geometry_GetRotation",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "The forward and up vectors, null on failure (unsupported in HTML5, null there).",
+     "gated": true,
      "name": "getRotation",
      "signature": "getRotation():Null<{forward:FmodVector, up:FmodVector}>",
      "static": false,
@@ -4512,10 +5110,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "geometry_getscale": {
    "fmod": "FMOD_Geometry_GetScale",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "The per-axis scale, null on failure (unsupported in HTML5, null there).",
+     "gated": true,
      "name": "getScale",
      "signature": "getScale():Null<FmodVector>",
      "static": false,
@@ -4536,10 +5136,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "geometry_release": {
    "fmod": "FMOD_Geometry_Release",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "Frees the geometry and invalidates this handle (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED).",
+     "gated": true,
      "name": "release",
      "signature": "release():FmodResult",
      "static": false,
@@ -4548,6 +5150,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Creates an empty geometry with room for the given polygon and vertex counts (unsupported in HTML5).",
+     "gated": true,
      "name": "create",
      "signature": "create(maxPolygons:Int, maxVertices:Int):Geometry",
      "static": true,
@@ -4556,6 +5159,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Rebuilds a geometry from the bytes save() produced (unsupported in HTML5).",
+     "gated": true,
      "name": "load",
      "signature": "load(data:haxe.io.Bytes):Geometry",
      "static": true,
@@ -4566,10 +5170,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "geometry_save": {
    "fmod": "FMOD_Geometry_Save",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "Serializes the geometry for Geometry.load, null on failure (unsupported in HTML5, null there).",
+     "gated": true,
      "name": "save",
      "signature": "save():Null<haxe.io.Bytes>",
      "static": false,
@@ -4580,10 +5186,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "geometry_setactive": {
    "fmod": "FMOD_Geometry_SetActive",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "Turns the whole geometry's occlusion on or off (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED).",
+     "gated": true,
      "name": "setActive",
      "signature": "setActive(active:Bool):FmodResult",
      "static": false,
@@ -4594,10 +5202,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "geometry_setpolygonattributes": {
    "fmod": "FMOD_Geometry_SetPolygonAttributes",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "Changes a polygon's occlusion amounts and sidedness (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED).",
+     "gated": true,
      "name": "setPolygonAttributes",
      "signature": "setPolygonAttributes(index:Int, direct:Float, reverb:Float, doubleSided:Bool):FmodResult",
      "static": false,
@@ -4608,10 +5218,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "geometry_setpolygonvertex": {
    "fmod": "FMOD_Geometry_SetPolygonVertex",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "Moves one vertex of a polygon (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED).",
+     "gated": true,
      "name": "setPolygonVertex",
      "signature": "setPolygonVertex(index:Int, vertexIndex:Int, vertex:FmodVector):FmodResult",
      "static": false,
@@ -4622,10 +5234,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "geometry_setposition": {
    "fmod": "FMOD_Geometry_SetPosition",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "Places the geometry in world space (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED).",
+     "gated": true,
      "name": "setPosition",
      "signature": "setPosition(position:FmodVector):FmodResult",
      "static": false,
@@ -4636,10 +5250,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "geometry_setrotation": {
    "fmod": "FMOD_Geometry_SetRotation",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "Orients the geometry with forward and up unit vectors (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED).",
+     "gated": true,
      "name": "setRotation",
      "signature": "setRotation(forward:FmodVector, up:FmodVector):FmodResult",
      "static": false,
@@ -4650,10 +5266,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "geometry_setscale": {
    "fmod": "FMOD_Geometry_SetScale",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "Scales the geometry per axis (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED).",
+     "gated": true,
      "name": "setScale",
      "signature": "setScale(scale:FmodVector):FmodResult",
      "static": false,
@@ -4692,10 +5310,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "memory_getstats": {
    "fmod": "FMOD_Memory_GetStats",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "Bytes FMOD currently has allocated and the most it has ever had.",
+     "gated": false,
      "name": "getMemoryStats",
      "signature": "getMemoryStats(blocking:Bool = false):Null<{current:Int, maximum:Int}>",
      "static": true,
@@ -4724,10 +5344,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "reverb3d_get3dattributes": {
    "fmod": "FMOD_Reverb3D_Get3DAttributes",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "get3DAttributes",
      "signature": "get3DAttributes():Null<{x:Float, y:Float, z:Float, minDistance:Float, maxDistance:Float}>",
      "static": false,
@@ -4738,10 +5360,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "reverb3d_getactive": {
    "fmod": "FMOD_Reverb3D_GetActive",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getActive",
      "signature": "getActive():Bool",
      "static": false,
@@ -4752,10 +5376,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "reverb3d_getproperties": {
    "fmod": "FMOD_Reverb3D_GetProperties",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getProperties",
      "signature": "getProperties():Null<ReverbProperties>",
      "static": false,
@@ -4776,10 +5402,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "reverb3d_release": {
    "fmod": "FMOD_Reverb3D_Release",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Frees the zone and invalidates this handle.",
+     "gated": false,
      "name": "release",
      "signature": "release():FmodResult",
      "static": false,
@@ -4788,6 +5416,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Creates a zone.",
+     "gated": false,
      "name": "create",
      "signature": "create():Reverb3D",
      "static": true,
@@ -4798,10 +5427,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "reverb3d_set3dattributes": {
    "fmod": "FMOD_Reverb3D_Set3DAttributes",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Places the zone: full strength inside minDistance, silent past maxDistance.",
+     "gated": false,
      "name": "set3DAttributes",
      "signature": "set3DAttributes(x:Float, y:Float, z:Float, minDistance:Float, maxDistance:Float):FmodResult",
      "static": false,
@@ -4812,10 +5443,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "reverb3d_setactive": {
    "fmod": "FMOD_Reverb3D_SetActive",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "setActive",
      "signature": "setActive(active:Bool):FmodResult",
      "static": false,
@@ -4826,10 +5459,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "reverb3d_setproperties": {
    "fmod": "FMOD_Reverb3D_SetProperties",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "setProperties",
      "signature": "setProperties(properties:ReverbProperties):FmodResult",
      "static": false,
@@ -4859,10 +5494,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "sound_addsyncpoint": {
    "fmod": "FMOD_Sound_AddSyncPoint",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Marks a timeline position.",
+     "gated": false,
      "name": "addSyncPoint",
      "signature": "addSyncPoint(offsetMs:Int, name:String):FmodResult",
      "static": false,
@@ -4873,10 +5510,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "sound_deletesyncpoint": {
    "fmod": "FMOD_Sound_DeleteSyncPoint",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "",
+     "gated": false,
      "name": "deleteSyncPoint",
      "signature": "deleteSyncPoint(index:Int):FmodResult",
      "static": false,
@@ -4887,10 +5526,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "sound_get3dconesettings": {
    "fmod": "FMOD_Sound_Get3DConeSettings",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "get3DConeSettings",
      "signature": "get3DConeSettings():Null<{insideAngle:Float, outsideAngle:Float, outsideVolume:Float}>",
      "static": false,
@@ -4901,10 +5542,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "sound_get3dcustomrolloff": {
    "fmod": "FMOD_Sound_Get3DCustomRolloff",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "The custom rolloff points (unsupported in HTML5, always empty there), empty when none are set or on failure (see StudioSystem.lastResult).",
+     "gated": true,
      "name": "get3DCustomRolloff",
      "signature": "get3DCustomRolloff():Array<FmodVector>",
      "static": false,
@@ -4915,10 +5558,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "sound_get3dminmaxdistance": {
    "fmod": "FMOD_Sound_Get3DMinMaxDistance",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "get3DMinMaxDistance",
      "signature": "get3DMinMaxDistance():Null<{minDistance:Float, maxDistance:Float}>",
      "static": false,
@@ -4929,10 +5574,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "sound_getdefaults": {
    "fmod": "FMOD_Sound_GetDefaults",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getDefaults",
      "signature": "getDefaults():Null<{frequency:Float, priority:Int}>",
      "static": false,
@@ -4943,10 +5590,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "sound_getformat": {
    "fmod": "FMOD_Sound_GetFormat",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getFormat",
      "signature": "getFormat():Null<{channels:Int, bits:Int}>",
      "static": false,
@@ -4957,10 +5606,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "sound_getlength": {
    "fmod": "FMOD_Sound_GetLength",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Length in milliseconds, or -1 on failure.",
+     "gated": false,
      "name": "getLength",
      "signature": "getLength():Int",
      "static": false,
@@ -4971,10 +5622,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "sound_getloopcount": {
    "fmod": "FMOD_Sound_GetLoopCount",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getLoopCount",
      "signature": "getLoopCount():Int",
      "static": false,
@@ -4985,10 +5638,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "sound_getlooppoints": {
    "fmod": "FMOD_Sound_GetLoopPoints",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getLoopPoints",
      "signature": "getLoopPoints():Null<{startMs:Int, endMs:Int}>",
      "static": false,
@@ -4999,10 +5654,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "sound_getmode": {
    "fmod": "FMOD_Sound_GetMode",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getMode",
      "signature": "getMode():Int",
      "static": false,
@@ -5013,10 +5670,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "sound_getmusicchannelvolume": {
    "fmod": "FMOD_Sound_GetMusicChannelVolume",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "Volume of one tracker channel (unsupported in HTML5, returns 0 there).",
+     "gated": true,
      "name": "getMusicChannelVolume",
      "signature": "getMusicChannelVolume(channel:Int):Float",
      "static": false,
@@ -5027,10 +5686,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "sound_getmusicnumchannels": {
    "fmod": "FMOD_Sound_GetMusicNumChannels",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "Channel count of a tracker module (MOD, S3M, XM, IT) (unsupported in HTML5, returns -1 there).",
+     "gated": true,
      "name": "getMusicNumChannels",
      "signature": "getMusicNumChannels():Int",
      "static": false,
@@ -5041,10 +5702,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "sound_getmusicspeed": {
    "fmod": "FMOD_Sound_GetMusicSpeed",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "Playback speed of a tracker module (unsupported in HTML5, returns 0 there).",
+     "gated": true,
      "name": "getMusicSpeed",
      "signature": "getMusicSpeed():Float",
      "static": false,
@@ -5055,10 +5718,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "sound_getname": {
    "fmod": "FMOD_Sound_GetName",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The sound's name (raw memory sounds report an empty name).",
+     "gated": false,
      "name": "getName",
      "signature": "getName():String",
      "static": false,
@@ -5069,10 +5734,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "sound_getnumsubsounds": {
    "fmod": "FMOD_Sound_GetNumSubSounds",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Number of subsounds (FSB and multi-stream containers).",
+     "gated": false,
      "name": "getNumSubSounds",
      "signature": "getNumSubSounds():Int",
      "static": false,
@@ -5083,10 +5750,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "sound_getnumsyncpoints": {
    "fmod": "FMOD_Sound_GetNumSyncPoints",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "",
+     "gated": false,
      "name": "getSyncPointCount",
      "signature": "getSyncPointCount():Int",
      "static": false,
@@ -5097,10 +5766,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "sound_getnumtags": {
    "fmod": "FMOD_Sound_GetNumTags",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Number of metadata tags, -1 on failure.",
+     "gated": false,
      "name": "getNumTags",
      "signature": "getNumTags():Int",
      "static": false,
@@ -5109,6 +5780,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Tags that changed since the last getTag pass, -1 on failure.",
+     "gated": false,
      "name": "getNumTagsUpdated",
      "signature": "getNumTagsUpdated():Int",
      "static": false,
@@ -5119,10 +5791,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "sound_getopenstate": {
    "fmod": "FMOD_Sound_GetOpenState",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "FMOD_OPENSTATE value (0 = ready), or -1 on failure.",
+     "gated": false,
      "name": "getOpenState",
      "signature": "getOpenState():Int",
      "static": false,
@@ -5133,10 +5807,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "sound_getsoundgroup": {
    "fmod": "FMOD_Sound_GetSoundGroup",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The group this sound belongs to (a known group returns its existing handle).",
+     "gated": false,
      "name": "getSoundGroup",
      "signature": "getSoundGroup():haxefmod.core.SoundGroup",
      "static": false,
@@ -5147,10 +5823,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "sound_getsubsound": {
    "fmod": "FMOD_Sound_GetSubSound",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "A subsound by index, or Sound.NULL when the index is out of range (StudioSystem.lastResult reports FMOD_ERR_INVALID_PARAM).",
+     "gated": false,
      "name": "getSubSound",
      "signature": "getSubSound(index:Int):Sound",
      "static": false,
@@ -5161,10 +5839,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "sound_getsubsoundparent": {
    "fmod": "FMOD_Sound_GetSubSoundParent",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The sound this one is a subsound of, or Sound.NULL for a top-level sound (lastResult stays FMOD_OK).",
+     "gated": false,
      "name": "getSubSoundParent",
      "signature": "getSubSoundParent():Sound",
      "static": false,
@@ -5173,6 +5853,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "Releases the sound and invalidates this handle.",
+     "gated": false,
      "name": "release",
      "signature": "release():FmodResult",
      "static": false,
@@ -5183,10 +5864,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "sound_getsyncpoint": {
    "fmod": "FMOD_Sound_GetSyncPoint",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "",
+     "gated": false,
      "name": "deleteSyncPoint",
      "signature": "deleteSyncPoint(index:Int):FmodResult",
      "static": false,
@@ -5195,6 +5878,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "",
+     "gated": false,
      "name": "getSyncPointName",
      "signature": "getSyncPointName(index:Int):String",
      "static": false,
@@ -5203,6 +5887,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "The point's offset in milliseconds, or -1 on failure.",
+     "gated": false,
      "name": "getSyncPointOffset",
      "signature": "getSyncPointOffset(index:Int):Int",
      "static": false,
@@ -5213,10 +5898,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "sound_getsyncpointinfo": {
    "fmod": "FMOD_Sound_GetSyncPointInfo",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "",
+     "gated": false,
      "name": "getSyncPointName",
      "signature": "getSyncPointName(index:Int):String",
      "static": false,
@@ -5225,6 +5912,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "The point's offset in milliseconds, or -1 on failure.",
+     "gated": false,
      "name": "getSyncPointOffset",
      "signature": "getSyncPointOffset(index:Int):Int",
      "static": false,
@@ -5245,10 +5933,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "sound_gettag": {
    "fmod": "FMOD_Sound_GetTag",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "Reads one metadata tag (unsupported in HTML5, returns null there).",
+     "gated": true,
      "name": "getTag",
      "signature": "getTag(name:String, index:Int = 0):Null<FmodTag>",
      "static": false,
@@ -5279,10 +5969,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "sound_readdata": {
    "fmod": "FMOD_Sound_ReadData",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "Reads decoded PCM from a sound created with openOnly into buffer (unsupported in HTML5).",
+     "gated": true,
      "name": "readData",
      "signature": "readData(buffer:haxe.io.Bytes, length:Int = -1):Int",
      "static": false,
@@ -5293,10 +5985,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "sound_release": {
    "fmod": "FMOD_Sound_Release",
+   "gated": true,
    "haxe": [
     {
      "direct": false,
      "doc": "Stops playback, frees the stream, and invalidates this handle.",
+     "gated": false,
      "name": "release",
      "signature": "release():FmodResult",
      "static": false,
@@ -5305,6 +5999,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "Releases the sound and invalidates this handle.",
+     "gated": false,
      "name": "release",
      "signature": "release():FmodResult",
      "static": false,
@@ -5313,6 +6008,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Creates a stream.",
+     "gated": false,
      "name": "create",
      "signature": "create(sampleRate:Int, channels:Int, ringBytes:Int = 0):PcmStream",
      "static": true,
@@ -5321,6 +6017,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Like create() but positional: the channel from play() accepts set3DAttributes and attenuates with distance from the listener.",
+     "gated": false,
      "name": "create3d",
      "signature": "create3d(sampleRate:Int, channels:Int, ringBytes:Int = 0):PcmStream",
      "static": true,
@@ -5329,6 +6026,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Loads a sound file.",
+     "gated": false,
      "name": "create",
      "signature": "create(path:String, loop:Bool = false, openOnly:Bool = false):Sound",
      "static": true,
@@ -5337,6 +6035,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "An empty PCM16 sound of the given length for StudioSystem.recordStart to fill (unsupported in HTML5).",
+     "gated": true,
      "name": "createRecordBuffer",
      "signature": "createRecordBuffer(sampleRate:Int, channels:Int, seconds:Int):Sound",
      "static": true,
@@ -5345,6 +6044,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "A sound from raw 16-bit PCM in memory (interleaved when stereo).",
+     "gated": false,
      "name": "fromPcm",
      "signature": "fromPcm(data:haxe.io.Bytes, sampleRate:Int, channels:Int, length:Int = -1):Sound",
      "static": true,
@@ -5355,10 +6055,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "sound_seekdata": {
    "fmod": "FMOD_Sound_SeekData",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "Moves the readData cursor to a PCM sample offset (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED).",
+     "gated": true,
      "name": "seekData",
      "signature": "seekData(pcm:Int):FmodResult",
      "static": false,
@@ -5369,10 +6071,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "sound_set3dconesettings": {
    "fmod": "FMOD_Sound_Set3DConeSettings",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Default 3D cone for channels played from this sound: full volume inside insideAngle, fading to outsideVolume past outsideAngle.",
+     "gated": false,
      "name": "set3DConeSettings",
      "signature": "set3DConeSettings(insideAngle:Float, outsideAngle:Float, outsideVolume:Float):FmodResult",
      "static": false,
@@ -5383,10 +6087,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "sound_set3dcustomrolloff": {
    "fmod": "FMOD_Sound_Set3DCustomRolloff",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "Replaces the distance rolloff curve with the given points.",
+     "gated": true,
      "name": "set3DCustomRolloff",
      "signature": "set3DCustomRolloff(points:Array<FmodVector>):FmodResult",
      "static": false,
@@ -5397,10 +6103,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "sound_set3dminmaxdistance": {
    "fmod": "FMOD_Sound_Set3DMinMaxDistance",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Default rolloff distances for channels played from this sound.",
+     "gated": false,
      "name": "set3DMinMaxDistance",
      "signature": "set3DMinMaxDistance(minDistance:Float, maxDistance:Float):FmodResult",
      "static": false,
@@ -5411,10 +6119,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "sound_setdefaults": {
    "fmod": "FMOD_Sound_SetDefaults",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Default playback rate (samples per second) and priority (0 = highest, 256 = lowest).",
+     "gated": false,
      "name": "setDefaults",
      "signature": "setDefaults(frequency:Float, priority:Int):FmodResult",
      "static": false,
@@ -5425,10 +6135,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "sound_setloopcount": {
    "fmod": "FMOD_Sound_SetLoopCount",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Times to loop before stopping (-1 = forever).",
+     "gated": false,
      "name": "setLoopCount",
      "signature": "setLoopCount(loopCount:Int):FmodResult",
      "static": false,
@@ -5439,10 +6151,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "sound_setlooppoints": {
    "fmod": "FMOD_Sound_SetLoopPoints",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Loop region in milliseconds (needs a looping mode set).",
+     "gated": false,
      "name": "setLoopPoints",
      "signature": "setLoopPoints(startMs:Int, endMs:Int):FmodResult",
      "static": false,
@@ -5453,10 +6167,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "sound_setmode": {
    "fmod": "FMOD_Sound_SetMode",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Combines ChannelMode flags.",
+     "gated": false,
      "name": "setMode",
      "signature": "setMode(mode:Int):FmodResult",
      "static": false,
@@ -5467,10 +6183,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "sound_setmusicchannelvolume": {
    "fmod": "FMOD_Sound_SetMusicChannelVolume",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "Volume of one tracker channel, 0 to 1 (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED).",
+     "gated": true,
      "name": "setMusicChannelVolume",
      "signature": "setMusicChannelVolume(channel:Int, volume:Float):FmodResult",
      "static": false,
@@ -5481,10 +6199,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "sound_setmusicspeed": {
    "fmod": "FMOD_Sound_SetMusicSpeed",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "Playback speed of a tracker module, 1 is normal, 0.01 to 100 (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED).",
+     "gated": true,
      "name": "setMusicSpeed",
      "signature": "setMusicSpeed(speed:Float):FmodResult",
      "static": false,
@@ -5495,10 +6215,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "sound_setsoundgroup": {
    "fmod": "FMOD_Sound_SetSoundGroup",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Moves this sound into a group (see haxefmod.core.SoundGroup).",
+     "gated": false,
      "name": "setSoundGroup",
      "signature": "setSoundGroup(group:haxefmod.core.SoundGroup):FmodResult",
      "static": false,
@@ -5509,10 +6231,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "sound_setuserdata": {
    "fmod": "FMOD_Sound_SetUserData",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "Stops playback, frees the stream, and invalidates this handle.",
+     "gated": false,
      "name": "release",
      "signature": "release():FmodResult",
      "static": false,
@@ -5533,10 +6257,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "soundgroup_getmaxaudible": {
    "fmod": "FMOD_SoundGroup_GetMaxAudible",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getMaxAudible",
      "signature": "getMaxAudible():Int",
      "static": false,
@@ -5547,10 +6273,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "soundgroup_getmaxaudiblebehavior": {
    "fmod": "FMOD_SoundGroup_GetMaxAudibleBehavior",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getMaxAudibleBehavior",
      "signature": "getMaxAudibleBehavior():Int",
      "static": false,
@@ -5561,10 +6289,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "soundgroup_getmutefadespeed": {
    "fmod": "FMOD_SoundGroup_GetMuteFadeSpeed",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getMuteFadeSpeed",
      "signature": "getMuteFadeSpeed():Float",
      "static": false,
@@ -5575,10 +6305,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "soundgroup_getname": {
    "fmod": "FMOD_SoundGroup_GetName",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The name given at create(), \"FMOD master\" for the master group.",
+     "gated": false,
      "name": "getName",
      "signature": "getName():String",
      "static": false,
@@ -5589,10 +6321,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "soundgroup_getnumplaying": {
    "fmod": "FMOD_SoundGroup_GetNumPlaying",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "Sounds from this group audible right now.",
+     "gated": false,
      "name": "getPlayingCount",
      "signature": "getPlayingCount():Int",
      "static": false,
@@ -5603,10 +6337,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "soundgroup_getnumsounds": {
    "fmod": "FMOD_SoundGroup_GetNumSounds",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "",
+     "gated": false,
      "name": "getSoundCount",
      "signature": "getSoundCount():Int",
      "static": false,
@@ -5617,10 +6353,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "soundgroup_getsound": {
    "fmod": "FMOD_SoundGroup_GetSound",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The sound at position index in this group (a known sound returns its existing handle).",
+     "gated": false,
      "name": "getSound",
      "signature": "getSound(index:Int):haxefmod.core.Sound",
      "static": false,
@@ -5651,10 +6389,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "soundgroup_getvolume": {
    "fmod": "FMOD_SoundGroup_GetVolume",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getVolume",
      "signature": "getVolume():Float",
      "static": false,
@@ -5665,10 +6405,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "soundgroup_release": {
    "fmod": "FMOD_SoundGroup_Release",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Frees a group made with create() and invalidates this handle.",
+     "gated": false,
      "name": "release",
      "signature": "release():FmodResult",
      "static": false,
@@ -5677,6 +6419,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Creates a group.",
+     "gated": false,
      "name": "create",
      "signature": "create(name:String):SoundGroup",
      "static": true,
@@ -5687,10 +6430,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "soundgroup_setmaxaudible": {
    "fmod": "FMOD_SoundGroup_SetMaxAudible",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Most sounds from this group audible at once (-1 = unlimited).",
+     "gated": false,
      "name": "setMaxAudible",
      "signature": "setMaxAudible(maxAudible:Int):FmodResult",
      "static": false,
@@ -5701,10 +6446,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "soundgroup_setmaxaudiblebehavior": {
    "fmod": "FMOD_SoundGroup_SetMaxAudibleBehavior",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "One of the BEHAVIOR_* values.",
+     "gated": false,
      "name": "setMaxAudibleBehavior",
      "signature": "setMaxAudibleBehavior(behavior:Int):FmodResult",
      "static": false,
@@ -5715,10 +6462,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "soundgroup_setmutefadespeed": {
    "fmod": "FMOD_SoundGroup_SetMuteFadeSpeed",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Fade time in seconds when BEHAVIOR_MUTE kicks in (0 = instant).",
+     "gated": false,
      "name": "setMuteFadeSpeed",
      "signature": "setMuteFadeSpeed(seconds:Float):FmodResult",
      "static": false,
@@ -5739,10 +6488,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "soundgroup_setvolume": {
    "fmod": "FMOD_SoundGroup_SetVolume",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Volume scale over every sound in the group (linear, 1.0 = full).",
+     "gated": false,
      "name": "setVolume",
      "signature": "setVolume(volume:Float):FmodResult",
      "static": false,
@@ -5753,10 +6504,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "soundgroup_stop": {
    "fmod": "FMOD_SoundGroup_Stop",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Stops every playing sound in the group.",
+     "gated": false,
      "name": "stop",
      "signature": "stop():FmodResult",
      "static": false,
@@ -5767,10 +6520,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_bank_getbuscount": {
    "fmod": "FMOD_Studio_Bank_GetBusCount",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getBusCount",
      "signature": "getBusCount():Int",
      "static": false,
@@ -5781,10 +6536,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_bank_getbuslist": {
    "fmod": "FMOD_Studio_Bank_GetBusList",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Buses in the bank (up to Scratch.CAPACITY entries).",
+     "gated": false,
      "name": "getBusList",
      "signature": "getBusList():Array<Bus>",
      "static": false,
@@ -5795,10 +6552,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_bank_geteventcount": {
    "fmod": "FMOD_Studio_Bank_GetEventCount",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Number of event descriptions in the bank.",
+     "gated": false,
      "name": "getEventCount",
      "signature": "getEventCount():Int",
      "static": false,
@@ -5809,10 +6568,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_bank_geteventlist": {
    "fmod": "FMOD_Studio_Bank_GetEventList",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Event descriptions in the bank (up to Scratch.CAPACITY entries).",
+     "gated": false,
      "name": "getEventList",
      "signature": "getEventList():Array<EventDescription>",
      "static": false,
@@ -5823,10 +6584,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_bank_getid": {
    "fmod": "FMOD_Studio_Bank_GetID",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The bank GUID as a string.",
+     "gated": false,
      "name": "getID",
      "signature": "getID():String",
      "static": false,
@@ -5837,10 +6600,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_bank_getloadingstate": {
    "fmod": "FMOD_Studio_Bank_GetLoadingState",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Loading state of the bank metadata (poll after NONBLOCKING loads).",
+     "gated": false,
      "name": "getLoadingState",
      "signature": "getLoadingState():FmodLoadingState",
      "static": false,
@@ -5851,10 +6616,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_bank_getpath": {
    "fmod": "FMOD_Studio_Bank_GetPath",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The full bank path, e.g.",
+     "gated": false,
      "name": "getPath",
      "signature": "getPath():String",
      "static": false,
@@ -5863,6 +6630,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Unloads the bank and invalidates this handle (and every event description/instance handle that came from it).",
+     "gated": false,
      "name": "unload",
      "signature": "unload():FmodResult",
      "static": false,
@@ -5871,6 +6639,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "Unloads all banks.",
+     "gated": false,
      "name": "unloadAll",
      "signature": "unloadAll():FmodResult",
      "static": true,
@@ -5881,10 +6650,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_bank_getsampleloadingstate": {
    "fmod": "FMOD_Studio_Bank_GetSampleLoadingState",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Loading state of the bank's sample data.",
+     "gated": false,
      "name": "getSampleLoadingState",
      "signature": "getSampleLoadingState():FmodLoadingState",
      "static": false,
@@ -5895,10 +6666,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_bank_getstringcount": {
    "fmod": "FMOD_Studio_Bank_GetStringCount",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Number of entries in the bank's string table (strings banks only).",
+     "gated": false,
      "name": "getStringCount",
      "signature": "getStringCount():Int",
      "static": false,
@@ -5909,10 +6682,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_bank_getstringinfo": {
    "fmod": "FMOD_Studio_Bank_GetStringInfo",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "String table GUID by index, formatted \"{8-4-4-4-12}\".",
+     "gated": false,
      "name": "getStringGuid",
      "signature": "getStringGuid(index:Int):String",
      "static": false,
@@ -5921,6 +6696,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "String table path by index (e.g.",
+     "gated": false,
      "name": "getStringPath",
      "signature": "getStringPath(index:Int):String",
      "static": false,
@@ -5941,10 +6717,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_bank_getvcacount": {
    "fmod": "FMOD_Studio_Bank_GetVCACount",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getVCACount",
      "signature": "getVCACount():Int",
      "static": false,
@@ -5955,10 +6733,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_bank_getvcalist": {
    "fmod": "FMOD_Studio_Bank_GetVCAList",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "VCAs in the bank (up to Scratch.CAPACITY entries).",
+     "gated": false,
      "name": "getVCAList",
      "signature": "getVCAList():Array<Vca>",
      "static": false,
@@ -5969,10 +6749,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_bank_isvalid": {
    "fmod": "FMOD_Studio_Bank_IsValid",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "True if the handle resolves to a live FMOD bank.",
+     "gated": false,
      "name": "isValid",
      "signature": "isValid():Bool",
      "static": false,
@@ -5983,10 +6765,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_bank_loadsampledata": {
    "fmod": "FMOD_Studio_Bank_LoadSampleData",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Loads all non-streaming sample data for the bank's events.",
+     "gated": false,
      "name": "loadSampleData",
      "signature": "loadSampleData():FmodResult",
      "static": false,
@@ -6007,10 +6791,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_bank_unload": {
    "fmod": "FMOD_Studio_Bank_Unload",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "Unloads the bank and invalidates this handle (and every event description/instance handle that came from it).",
+     "gated": false,
      "name": "unload",
      "signature": "unload():FmodResult",
      "static": false,
@@ -6021,10 +6807,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_bank_unloadsampledata": {
    "fmod": "FMOD_Studio_Bank_UnloadSampleData",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "unloadSampleData",
      "signature": "unloadSampleData():FmodResult",
      "static": false,
@@ -6035,10 +6823,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_bus_getchannelgroup": {
    "fmod": "FMOD_Studio_Bus_GetChannelGroup",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The core channel group carrying this bus's audio, for attaching DSP effects to Studio-mixed sound.",
+     "gated": false,
      "name": "getChannelGroup",
      "signature": "getChannelGroup():haxefmod.core.ChannelGroup",
      "static": false,
@@ -6049,10 +6839,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_bus_getcpuusage": {
    "fmod": "FMOD_Studio_Bus_GetCPUUsage",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "CPU usage of this bus, or null on failure.",
+     "gated": true,
      "name": "getCpuUsage",
      "signature": "getCpuUsage():Null<FmodCpuUsage>",
      "static": false,
@@ -6063,10 +6855,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_bus_getid": {
    "fmod": "FMOD_Studio_Bus_GetID",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The bus GUID as a string, e.g.",
+     "gated": false,
      "name": "getID",
      "signature": "getID():String",
      "static": false,
@@ -6077,10 +6871,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_bus_getmemoryusage": {
    "fmod": "FMOD_Studio_Bus_GetMemoryUsage",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "Memory usage of this bus, or null on failure (unsupported in HTML5, null there).",
+     "gated": true,
      "name": "getMemoryUsage",
      "signature": "getMemoryUsage():Null<FmodMemoryUsage>",
      "static": false,
@@ -6091,10 +6887,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_bus_getmute": {
    "fmod": "FMOD_Studio_Bus_GetMute",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getMute",
      "signature": "getMute():Bool",
      "static": false,
@@ -6105,10 +6903,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_bus_getpath": {
    "fmod": "FMOD_Studio_Bus_GetPath",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The full bus path, e.g.",
+     "gated": false,
      "name": "getPath",
      "signature": "getPath():String",
      "static": false,
@@ -6119,10 +6919,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_bus_getpaused": {
    "fmod": "FMOD_Studio_Bus_GetPaused",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getPaused",
      "signature": "getPaused():Bool",
      "static": false,
@@ -6142,10 +6944,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_bus_getvolume": {
    "fmod": "FMOD_Studio_Bus_GetVolume",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The volume as set by the API (linear: 0.0 = silent, 1.0 = full).",
+     "gated": false,
      "name": "getVolume",
      "signature": "getVolume():Float",
      "static": false,
@@ -6154,6 +6958,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "The final combined volume (set volume x snapshots/automation).",
+     "gated": false,
      "name": "getFinalVolume",
      "signature": "getFinalVolume():Float",
      "static": false,
@@ -6164,10 +6969,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_bus_isvalid": {
    "fmod": "FMOD_Studio_Bus_IsValid",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "True if the handle resolves to a live FMOD bus.",
+     "gated": false,
      "name": "isValid",
      "signature": "isValid():Bool",
      "static": false,
@@ -6178,10 +6985,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_bus_lockchannelgroup": {
    "fmod": "FMOD_Studio_Bus_LockChannelGroup",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "Forces the bus's core channel group to exist so effects can attach to it (see getChannelGroup).",
+     "gated": false,
      "name": "lockChannelGroup",
      "signature": "lockChannelGroup():FmodResult",
      "static": false,
@@ -6192,10 +7001,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_bus_setmute": {
    "fmod": "FMOD_Studio_Bus_SetMute",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "setMute",
      "signature": "setMute(mute:Bool):FmodResult",
      "static": false,
@@ -6206,10 +7017,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_bus_setpaused": {
    "fmod": "FMOD_Studio_Bus_SetPaused",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "setPaused",
      "signature": "setPaused(paused:Bool):FmodResult",
      "static": false,
@@ -6229,10 +7042,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_bus_setvolume": {
    "fmod": "FMOD_Studio_Bus_SetVolume",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "setVolume",
      "signature": "setVolume(volume:Float):FmodResult",
      "static": false,
@@ -6243,10 +7058,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_bus_stopallevents": {
    "fmod": "FMOD_Studio_Bus_StopAllEvents",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Stops all events routed through this bus.",
+     "gated": false,
      "name": "stopAllEvents",
      "signature": "stopAllEvents(stopMode:FmodStopMode = ALLOWFADEOUT):FmodResult",
      "static": false,
@@ -6257,10 +7074,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_bus_unlockchannelgroup": {
    "fmod": "FMOD_Studio_Bus_UnlockChannelGroup",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "",
+     "gated": false,
      "name": "unlockChannelGroup",
      "signature": "unlockChannelGroup():FmodResult",
      "static": false,
@@ -6271,10 +7090,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_commandreplay_getcommandattime": {
    "fmod": "FMOD_Studio_CommandReplay_GetCommandAtTime",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Index of the command playing at timeMs into the capture, -1 on failure.",
+     "gated": false,
      "name": "getCommandAtTime",
      "signature": "getCommandAtTime(timeMs:Int):Int",
      "static": false,
@@ -6285,10 +7106,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_commandreplay_getcommandcount": {
    "fmod": "FMOD_Studio_CommandReplay_GetCommandCount",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Number of commands in the capture, -1 on failure.",
+     "gated": false,
      "name": "getCommandCount",
      "signature": "getCommandCount():Int",
      "static": false,
@@ -6299,10 +7122,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_commandreplay_getcommandinfo": {
    "fmod": "FMOD_Studio_CommandReplay_GetCommandInfo",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Details of the command at index, or null on failure.",
+     "gated": false,
      "name": "getCommandInfo",
      "signature": "getCommandInfo(index:Int):Null<FmodCommandInfo>",
      "static": false,
@@ -6313,10 +7138,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_commandreplay_getcommandstring": {
    "fmod": "FMOD_Studio_CommandReplay_GetCommandString",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The command at index formatted the way FMOD's tools print it, or \"\" on failure.",
+     "gated": false,
      "name": "getCommandString",
      "signature": "getCommandString(index:Int):String",
      "static": false,
@@ -6327,10 +7154,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_commandreplay_getcurrentcommand": {
    "fmod": "FMOD_Studio_CommandReplay_GetCurrentCommand",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The index of the command the replay is on and the playback time in seconds, or null on failure.",
+     "gated": false,
      "name": "getCurrentCommand",
      "signature": "getCurrentCommand():Null<{index:Int, time:Float}>",
      "static": false,
@@ -6341,10 +7170,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_commandreplay_getlength": {
    "fmod": "FMOD_Studio_CommandReplay_GetLength",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Total capture length in seconds.",
+     "gated": false,
      "name": "getLength",
      "signature": "getLength():Float",
      "static": false,
@@ -6355,10 +7186,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_commandreplay_getpaused": {
    "fmod": "FMOD_Studio_CommandReplay_GetPaused",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getPaused",
      "signature": "getPaused():Bool",
      "static": false,
@@ -6369,10 +7202,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_commandreplay_getplaybackstate": {
    "fmod": "FMOD_Studio_CommandReplay_GetPlaybackState",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Playback state of the replay, STOPPED on failure.",
+     "gated": false,
      "name": "getPlaybackState",
      "signature": "getPlaybackState():FmodPlaybackState",
      "static": false,
@@ -6403,10 +7238,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_commandreplay_isvalid": {
    "fmod": "FMOD_Studio_CommandReplay_IsValid",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "True while the handle points at a live FMOD replay object.",
+     "gated": false,
      "name": "isValid",
      "signature": "isValid():Bool",
      "static": false,
@@ -6417,10 +7254,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_commandreplay_release": {
    "fmod": "FMOD_Studio_CommandReplay_Release",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Frees the replay and invalidates this handle.",
+     "gated": false,
      "name": "release",
      "signature": "release():FmodResult",
      "static": false,
@@ -6429,6 +7268,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "Loads a capture file for playback.",
+     "gated": false,
      "name": "loadCommandReplay",
      "signature": "loadCommandReplay(path:String):CommandReplay",
      "static": true,
@@ -6439,10 +7279,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_commandreplay_seektocommand": {
    "fmod": "FMOD_Studio_CommandReplay_SeekToCommand",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "seekToCommand",
      "signature": "seekToCommand(index:Int):FmodResult",
      "static": false,
@@ -6453,10 +7295,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_commandreplay_seektotime": {
    "fmod": "FMOD_Studio_CommandReplay_SeekToTime",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "seekToTime",
      "signature": "seekToTime(timeMs:Int):FmodResult",
      "static": false,
@@ -6467,10 +7311,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_commandreplay_setbankpath": {
    "fmod": "FMOD_Studio_CommandReplay_SetBankPath",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Directory the replay loads banks from when the captured paths no longer apply.",
+     "gated": false,
      "name": "setBankPath",
      "signature": "setBankPath(path:String):FmodResult",
      "static": false,
@@ -6508,10 +7354,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_commandreplay_setpaused": {
    "fmod": "FMOD_Studio_CommandReplay_SetPaused",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "setPaused",
      "signature": "setPaused(paused:Bool):FmodResult",
      "static": false,
@@ -6532,10 +7380,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_commandreplay_start": {
    "fmod": "FMOD_Studio_CommandReplay_Start",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "start",
      "signature": "start():FmodResult",
      "static": false,
@@ -6546,10 +7396,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_commandreplay_stop": {
    "fmod": "FMOD_Studio_CommandReplay_Stop",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "stop",
      "signature": "stop():FmodResult",
      "static": false,
@@ -6560,10 +7412,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventdescription_createinstance": {
    "fmod": "FMOD_Studio_EventDescription_CreateInstance",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "Creates a playable instance of this event.",
+     "gated": false,
      "name": "createInstance",
      "signature": "createInstance():EventInstance",
      "static": false,
@@ -6574,10 +7428,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventdescription_getid": {
    "fmod": "FMOD_Studio_EventDescription_GetID",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The event GUID as a string.",
+     "gated": false,
      "name": "getID",
      "signature": "getID():String",
      "static": false,
@@ -6588,10 +7444,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventdescription_getinstancecount": {
    "fmod": "FMOD_Studio_EventDescription_GetInstanceCount",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Number of live instances of this event.",
+     "gated": false,
      "name": "getInstanceCount",
      "signature": "getInstanceCount():Int",
      "static": false,
@@ -6602,10 +7460,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventdescription_getinstancelist": {
    "fmod": "FMOD_Studio_EventDescription_GetInstanceList",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "Live instances of this event (up to Scratch.CAPACITY entries).",
+     "gated": false,
      "name": "getInstanceList",
      "signature": "getInstanceList():Array<EventInstance>",
      "static": false,
@@ -6616,10 +7476,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventdescription_getlength": {
    "fmod": "FMOD_Studio_EventDescription_GetLength",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Timeline length in milliseconds.",
+     "gated": false,
      "name": "getLength",
      "signature": "getLength():Int",
      "static": false,
@@ -6630,10 +7492,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventdescription_getminmaxdistance": {
    "fmod": "FMOD_Studio_EventDescription_GetMinMaxDistance",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Minimum and maximum attenuation distances, or null on failure.",
+     "gated": false,
      "name": "getMinMaxDistance",
      "signature": "getMinMaxDistance():Null<{min:Float, max:Float}>",
      "static": false,
@@ -6654,10 +7518,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventdescription_getparameterdescriptionbyindex": {
    "fmod": "FMOD_Studio_EventDescription_GetParameterDescriptionByIndex",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Parameter description by index, or null on failure.",
+     "gated": false,
      "name": "getParameterDescriptionByIndex",
      "signature": "getParameterDescriptionByIndex(index:Int):Null<FmodParameterDescription>",
      "static": false,
@@ -6668,10 +7534,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventdescription_getparameterdescriptionbyname": {
    "fmod": "FMOD_Studio_EventDescription_GetParameterDescriptionByName",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Parameter description by name, or null on failure.",
+     "gated": false,
      "name": "getParameterDescriptionByName",
      "signature": "getParameterDescriptionByName(name:String):Null<FmodParameterDescription>",
      "static": false,
@@ -6682,10 +7550,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventdescription_getparameterdescriptioncount": {
    "fmod": "FMOD_Studio_EventDescription_GetParameterDescriptionCount",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Number of parameters on this event.",
+     "gated": false,
      "name": "getParameterDescriptionCount",
      "signature": "getParameterDescriptionCount():Int",
      "static": false,
@@ -6716,10 +7586,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventdescription_getparameterlabelbyname": {
    "fmod": "FMOD_Studio_EventDescription_GetParameterLabelByName",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "Label text for a labeled parameter's value index (e.g.",
+     "gated": false,
      "name": "getParameterLabel",
      "signature": "getParameterLabel(parameterName:String, labelIndex:Int):String",
      "static": false,
@@ -6730,10 +7602,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventdescription_getpath": {
    "fmod": "FMOD_Studio_EventDescription_GetPath",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The full event path, e.g.",
+     "gated": false,
      "name": "getPath",
      "signature": "getPath():String",
      "static": false,
@@ -6744,10 +7618,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventdescription_getsampleloadingstate": {
    "fmod": "FMOD_Studio_EventDescription_GetSampleLoadingState",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getSampleLoadingState",
      "signature": "getSampleLoadingState():FmodLoadingState",
      "static": false,
@@ -6758,10 +7634,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventdescription_getsoundsize": {
    "fmod": "FMOD_Studio_EventDescription_GetSoundSize",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Estimated non-streaming sample data size in bytes.",
+     "gated": false,
      "name": "getSoundSize",
      "signature": "getSoundSize():Float",
      "static": false,
@@ -6792,10 +7670,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventdescription_getuserpropertybyindex": {
    "fmod": "FMOD_Studio_EventDescription_GetUserPropertyByIndex",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "User property by index, or null on failure.",
+     "gated": false,
      "name": "getUserProperty",
      "signature": "getUserProperty(index:Int):Null<FmodUserProperty>",
      "static": false,
@@ -6806,10 +7686,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventdescription_getuserpropertycount": {
    "fmod": "FMOD_Studio_EventDescription_GetUserPropertyCount",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Number of user properties authored on the event.",
+     "gated": false,
      "name": "getUserPropertyCount",
      "signature": "getUserPropertyCount():Int",
      "static": false,
@@ -6820,10 +7702,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventdescription_hassustainpoint": {
    "fmod": "FMOD_Studio_EventDescription_HasSustainPoint",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "hasSustainPoint",
      "signature": "hasSustainPoint():Bool",
      "static": false,
@@ -6834,10 +7718,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventdescription_is3d": {
    "fmod": "FMOD_Studio_EventDescription_Is3D",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "is3D",
      "signature": "is3D():Bool",
      "static": false,
@@ -6848,10 +7734,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventdescription_isdopplerenabled": {
    "fmod": "FMOD_Studio_EventDescription_IsDopplerEnabled",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "isDopplerEnabled",
      "signature": "isDopplerEnabled():Bool",
      "static": false,
@@ -6862,10 +7750,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventdescription_isoneshot": {
    "fmod": "FMOD_Studio_EventDescription_IsOneshot",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "isOneshot",
      "signature": "isOneshot():Bool",
      "static": false,
@@ -6876,10 +7766,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventdescription_issnapshot": {
    "fmod": "FMOD_Studio_EventDescription_IsSnapshot",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "isSnapshot",
      "signature": "isSnapshot():Bool",
      "static": false,
@@ -6890,10 +7782,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventdescription_isstream": {
    "fmod": "FMOD_Studio_EventDescription_IsStream",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "isStream",
      "signature": "isStream():Bool",
      "static": false,
@@ -6904,10 +7798,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventdescription_isvalid": {
    "fmod": "FMOD_Studio_EventDescription_IsValid",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "isValid",
      "signature": "isValid():Bool",
      "static": false,
@@ -6918,10 +7814,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventdescription_loadsampledata": {
    "fmod": "FMOD_Studio_EventDescription_LoadSampleData",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Loads non-streaming sample data ahead of time (refcounted by FMOD).",
+     "gated": false,
      "name": "loadSampleData",
      "signature": "loadSampleData():FmodResult",
      "static": false,
@@ -6932,10 +7830,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventdescription_releaseallinstances": {
    "fmod": "FMOD_Studio_EventDescription_ReleaseAllInstances",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Stops and releases all instances of this event.",
+     "gated": false,
      "name": "releaseAllInstances",
      "signature": "releaseAllInstances():FmodResult",
      "static": false,
@@ -6966,10 +7866,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventdescription_unloadsampledata": {
    "fmod": "FMOD_Studio_EventDescription_UnloadSampleData",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "unloadSampleData",
      "signature": "unloadSampleData():FmodResult",
      "static": false,
@@ -6980,10 +7882,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventinstance_get3dattributes": {
    "fmod": "FMOD_Studio_EventInstance_Get3DAttributes",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The instance's 3D attributes, or null on failure.",
+     "gated": false,
      "name": "get3DAttributes",
      "signature": "get3DAttributes():Null<Fmod3DAttributes>",
      "static": false,
@@ -6994,10 +7898,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventinstance_getchannelgroup": {
    "fmod": "FMOD_Studio_EventInstance_GetChannelGroup",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "The core channel group carrying this instance's audio, for attaching DSP effects to a single event.",
+     "gated": false,
      "name": "getChannelGroup",
      "signature": "getChannelGroup():haxefmod.core.ChannelGroup",
      "static": false,
@@ -7008,10 +7914,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventinstance_getcpuusage": {
    "fmod": "FMOD_Studio_EventInstance_GetCPUUsage",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "CPU usage of this instance, or null on failure.",
+     "gated": true,
      "name": "getCpuUsage",
      "signature": "getCpuUsage():Null<FmodCpuUsage>",
      "static": false,
@@ -7022,10 +7930,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventinstance_getdescription": {
    "fmod": "FMOD_Studio_EventInstance_GetDescription",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The description this instance was created from.",
+     "gated": false,
      "name": "getDescription",
      "signature": "getDescription():EventDescription",
      "static": false,
@@ -7036,10 +7946,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventinstance_getlistenermask": {
    "fmod": "FMOD_Studio_EventInstance_GetListenerMask",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Bitmask of listeners this instance is audible to.",
+     "gated": false,
      "name": "getListenerMask",
      "signature": "getListenerMask():Int",
      "static": false,
@@ -7050,10 +7962,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventinstance_getmemoryusage": {
    "fmod": "FMOD_Studio_EventInstance_GetMemoryUsage",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "Memory usage of this instance, or null on failure (unsupported in HTML5, null there).",
+     "gated": true,
      "name": "getMemoryUsage",
      "signature": "getMemoryUsage():Null<FmodMemoryUsage>",
      "static": false,
@@ -7064,10 +7978,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventinstance_getminmaxdistance": {
    "fmod": "FMOD_Studio_EventInstance_GetMinMaxDistance",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Minimum and maximum attenuation distances, or null on failure.",
+     "gated": false,
      "name": "getMinMaxDistance",
      "signature": "getMinMaxDistance():Null<{min:Float, max:Float}>",
      "static": false,
@@ -7078,10 +7994,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventinstance_getparameterbyid": {
    "fmod": "FMOD_Studio_EventInstance_GetParameterByID",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getParameterByID",
      "signature": "getParameterByID(id:FmodParameterId):Float",
      "static": false,
@@ -7090,6 +8008,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "",
+     "gated": false,
      "name": "getParameterByIDFinal",
      "signature": "getParameterByIDFinal(id:FmodParameterId):Float",
      "static": false,
@@ -7100,10 +8019,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventinstance_getparameterbyname": {
    "fmod": "FMOD_Studio_EventInstance_GetParameterByName",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "",
+     "gated": false,
      "name": "getParameter",
      "signature": "getParameter(name:String):Float",
      "static": false,
@@ -7112,6 +8033,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "The final parameter value after automation/seek speed.",
+     "gated": false,
      "name": "getParameterFinal",
      "signature": "getParameterFinal(name:String):Float",
      "static": false,
@@ -7122,10 +8044,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventinstance_getpaused": {
    "fmod": "FMOD_Studio_EventInstance_GetPaused",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getPaused",
      "signature": "getPaused():Bool",
      "static": false,
@@ -7136,10 +8060,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventinstance_getpitch": {
    "fmod": "FMOD_Studio_EventInstance_GetPitch",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getPitch",
      "signature": "getPitch():Float",
      "static": false,
@@ -7148,6 +8074,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "",
+     "gated": false,
      "name": "getFinalPitch",
      "signature": "getFinalPitch():Float",
      "static": false,
@@ -7158,10 +8085,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventinstance_getplaybackstate": {
    "fmod": "FMOD_Studio_EventInstance_GetPlaybackState",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getPlaybackState",
      "signature": "getPlaybackState():FmodPlaybackState",
      "static": false,
@@ -7172,10 +8101,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventinstance_getproperty": {
    "fmod": "FMOD_Studio_EventInstance_GetProperty",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "An overridable instance property (see FmodEventProperty).",
+     "gated": false,
      "name": "getProperty",
      "signature": "getProperty(property:FmodEventProperty):Float",
      "static": false,
@@ -7186,10 +8117,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventinstance_getreverblevel": {
    "fmod": "FMOD_Studio_EventInstance_GetReverbLevel",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Core reverb send level for reverb instance 0-3.",
+     "gated": false,
      "name": "getReverbLevel",
      "signature": "getReverbLevel(index:Int):Float",
      "static": false,
@@ -7210,10 +8143,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventinstance_gettimelineposition": {
    "fmod": "FMOD_Studio_EventInstance_GetTimelinePosition",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Timeline position in milliseconds.",
+     "gated": false,
      "name": "getTimelinePosition",
      "signature": "getTimelinePosition():Int",
      "static": false,
@@ -7224,10 +8159,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventinstance_getuserdata": {
    "fmod": "FMOD_Studio_EventInstance_GetUserData",
+   "gated": true,
    "haxe": [
     {
      "direct": false,
      "doc": "Live instances of this event (up to Scratch.CAPACITY entries).",
+     "gated": false,
      "name": "getInstanceList",
      "signature": "getInstanceList():Array<EventInstance>",
      "static": false,
@@ -7236,6 +8173,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Assigns the audio-table key (or file path fallback) this instance's programmer instrument should play (unsupported in HTML5).",
+     "gated": true,
      "name": "assignProgrammerSound",
      "signature": "assignProgrammerSound(key:String):FmodResult",
      "static": false,
@@ -7244,6 +8182,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Removes the programmer-sound assignment (unsupported in HTML5, where nothing can be assigned).",
+     "gated": true,
      "name": "clearProgrammerSound",
      "signature": "clearProgrammerSound():FmodResult",
      "static": false,
@@ -7252,6 +8191,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "The core channel group carrying this instance's audio, for attaching DSP effects to a single event.",
+     "gated": false,
      "name": "getChannelGroup",
      "signature": "getChannelGroup():haxefmod.core.ChannelGroup",
      "static": false,
@@ -7270,10 +8210,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventinstance_getvolume": {
    "fmod": "FMOD_Studio_EventInstance_GetVolume",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getVolume",
      "signature": "getVolume():Float",
      "static": false,
@@ -7282,6 +8224,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "The final combined volume (set volume x event/snapshot automation).",
+     "gated": false,
      "name": "getFinalVolume",
      "signature": "getFinalVolume():Float",
      "static": false,
@@ -7292,10 +8235,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventinstance_isvalid": {
    "fmod": "FMOD_Studio_EventInstance_IsValid",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "isValid",
      "signature": "isValid():Bool",
      "static": false,
@@ -7306,10 +8251,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventinstance_isvirtual": {
    "fmod": "FMOD_Studio_EventInstance_IsVirtual",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "True if the instance has been virtualized (inaudible, not mixed).",
+     "gated": false,
      "name": "isVirtual",
      "signature": "isVirtual():Bool",
      "static": false,
@@ -7320,10 +8267,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventinstance_keyoff": {
    "fmod": "FMOD_Studio_EventInstance_KeyOff",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Advances past the current sustain point.",
+     "gated": false,
      "name": "keyOff",
      "signature": "keyOff():FmodResult",
      "static": false,
@@ -7334,10 +8283,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventinstance_release": {
    "fmod": "FMOD_Studio_EventInstance_Release",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Releases the instance.",
+     "gated": false,
      "name": "release",
      "signature": "release():FmodResult",
      "static": false,
@@ -7346,6 +8297,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Creates a playable instance of this event.",
+     "gated": false,
      "name": "createInstance",
      "signature": "createInstance():EventInstance",
      "static": false,
@@ -7356,10 +8308,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventinstance_set3dattributes": {
    "fmod": "FMOD_Studio_EventInstance_Set3DAttributes",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "set3DAttributes",
      "signature": "set3DAttributes(attributes:Fmod3DAttributes):FmodResult",
      "static": false,
@@ -7368,6 +8322,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Convenience for 2D games: position only, unit forward/up.",
+     "gated": false,
      "name": "setPosition2D",
      "signature": "setPosition2D(x:Float, y:Float, ?velocityX:Float = 0, ?velocityY:Float = 0):FmodResult",
      "static": false,
@@ -7378,6 +8333,7 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventinstance_setcallback": {
    "fmod": "FMOD_Studio_EventInstance_SetCallback",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
@@ -7390,6 +8346,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Creates a playable instance of this event.",
+     "gated": false,
      "name": "createInstance",
      "signature": "createInstance():EventInstance",
      "static": false,
@@ -7398,6 +8355,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Live instances of this event (up to Scratch.CAPACITY entries).",
+     "gated": false,
      "name": "getInstanceList",
      "signature": "getInstanceList():Array<EventInstance>",
      "static": false,
@@ -7406,6 +8364,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Assigns the audio-table key (or file path fallback) this instance's programmer instrument should play (unsupported in HTML5).",
+     "gated": true,
      "name": "assignProgrammerSound",
      "signature": "assignProgrammerSound(key:String):FmodResult",
      "static": false,
@@ -7414,6 +8373,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Removes the programmer-sound assignment (unsupported in HTML5, where nothing can be assigned).",
+     "gated": true,
      "name": "clearProgrammerSound",
      "signature": "clearProgrammerSound():FmodResult",
      "static": false,
@@ -7424,10 +8384,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventinstance_setlistenermask": {
    "fmod": "FMOD_Studio_EventInstance_SetListenerMask",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "setListenerMask",
      "signature": "setListenerMask(mask:Int):FmodResult",
      "static": false,
@@ -7438,10 +8400,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventinstance_setparameterbyid": {
    "fmod": "FMOD_Studio_EventInstance_SetParameterByID",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "setParameterByID",
      "signature": "setParameterByID(id:FmodParameterId, value:Float, ignoreSeekSpeed:Bool = false):FmodResult",
      "static": false,
@@ -7452,10 +8416,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventinstance_setparameterbyidwithlabel": {
    "fmod": "FMOD_Studio_EventInstance_SetParameterByIDWithLabel",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "setParameterByIDWithLabel",
      "signature": "setParameterByIDWithLabel(id:FmodParameterId, label:String, ignoreSeekSpeed:Bool = false):FmodResult",
      "static": false,
@@ -7466,10 +8432,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventinstance_setparameterbyname": {
    "fmod": "FMOD_Studio_EventInstance_SetParameterByName",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "",
+     "gated": false,
      "name": "setParameter",
      "signature": "setParameter(name:String, value:Float, ignoreSeekSpeed:Bool = false):FmodResult",
      "static": false,
@@ -7480,10 +8448,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventinstance_setparameterbynamewithlabel": {
    "fmod": "FMOD_Studio_EventInstance_SetParameterByNameWithLabel",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "Sets a labeled parameter by label text (e.g.",
+     "gated": false,
      "name": "setParameterWithLabel",
      "signature": "setParameterWithLabel(name:String, label:String, ignoreSeekSpeed:Bool = false):FmodResult",
      "static": false,
@@ -7504,10 +8474,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventinstance_setpaused": {
    "fmod": "FMOD_Studio_EventInstance_SetPaused",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "setPaused",
      "signature": "setPaused(paused:Bool):FmodResult",
      "static": false,
@@ -7518,10 +8490,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventinstance_setpitch": {
    "fmod": "FMOD_Studio_EventInstance_SetPitch",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "setPitch",
      "signature": "setPitch(pitch:Float):FmodResult",
      "static": false,
@@ -7532,10 +8506,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventinstance_setproperty": {
    "fmod": "FMOD_Studio_EventInstance_SetProperty",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "setProperty",
      "signature": "setProperty(property:FmodEventProperty, value:Float):FmodResult",
      "static": false,
@@ -7546,10 +8522,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventinstance_setreverblevel": {
    "fmod": "FMOD_Studio_EventInstance_SetReverbLevel",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "setReverbLevel",
      "signature": "setReverbLevel(index:Int, level:Float):FmodResult",
      "static": false,
@@ -7560,10 +8538,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventinstance_settimelineposition": {
    "fmod": "FMOD_Studio_EventInstance_SetTimelinePosition",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "setTimelinePosition",
      "signature": "setTimelinePosition(positionMs:Int):FmodResult",
      "static": false,
@@ -7574,10 +8554,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventinstance_setuserdata": {
    "fmod": "FMOD_Studio_EventInstance_SetUserData",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "Creates a playable instance of this event.",
+     "gated": false,
      "name": "createInstance",
      "signature": "createInstance():EventInstance",
      "static": false,
@@ -7586,6 +8568,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Live instances of this event (up to Scratch.CAPACITY entries).",
+     "gated": false,
      "name": "getInstanceList",
      "signature": "getInstanceList():Array<EventInstance>",
      "static": false,
@@ -7596,10 +8579,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventinstance_setvolume": {
    "fmod": "FMOD_Studio_EventInstance_SetVolume",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "setVolume",
      "signature": "setVolume(volume:Float):FmodResult",
      "static": false,
@@ -7610,10 +8595,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventinstance_start": {
    "fmod": "FMOD_Studio_EventInstance_Start",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "start",
      "signature": "start():FmodResult",
      "static": false,
@@ -7624,10 +8611,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventinstance_stop": {
    "fmod": "FMOD_Studio_EventInstance_Stop",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "stop",
      "signature": "stop(stopMode:FmodStopMode = ALLOWFADEOUT):FmodResult",
      "static": false,
@@ -7648,6 +8637,7 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_system_create": {
    "fmod": "FMOD_Studio_System_Create",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
@@ -7660,6 +8650,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Initializes FMOD with the given settings (see FmodSettings for the define-driven defaults).",
+     "gated": false,
      "name": "init",
      "signature": "init(?settings:FmodSettings):FmodResult",
      "static": true,
@@ -7670,10 +8661,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_system_flushcommands": {
    "fmod": "FMOD_Studio_System_FlushCommands",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Blocks until all pending commands have executed.",
+     "gated": false,
      "name": "flushCommands",
      "signature": "flushCommands():FmodResult",
      "static": true,
@@ -7682,6 +8675,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Unloads the bank and invalidates this handle (and every event description/instance handle that came from it).",
+     "gated": false,
      "name": "unload",
      "signature": "unload():FmodResult",
      "static": false,
@@ -7690,6 +8684,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Forces the bus's core channel group to exist so effects can attach to it (see getChannelGroup).",
+     "gated": false,
      "name": "lockChannelGroup",
      "signature": "lockChannelGroup():FmodResult",
      "static": false,
@@ -7698,6 +8693,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "",
+     "gated": false,
      "name": "unlockChannelGroup",
      "signature": "unlockChannelGroup():FmodResult",
      "static": false,
@@ -7706,6 +8702,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "Unloads all banks.",
+     "gated": false,
      "name": "unloadAll",
      "signature": "unloadAll():FmodResult",
      "static": true,
@@ -7716,10 +8713,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_system_flushsampleloading": {
    "fmod": "FMOD_Studio_System_FlushSampleLoading",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Blocks until all sample loading/unloading has completed.",
+     "gated": false,
      "name": "flushSampleLoading",
      "signature": "flushSampleLoading():FmodResult",
      "static": true,
@@ -7730,10 +8729,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_system_getadvancedsettings": {
    "fmod": "FMOD_Studio_System_GetAdvancedSettings",
+   "gated": true,
    "haxe": [
     {
      "direct": false,
      "doc": "The studio advanced settings FMOD is running with, or null on failure (unsupported in HTML5, null there).",
+     "gated": true,
      "name": "getStudioAdvancedSettings",
      "signature": "getStudioAdvancedSettings():Null<FmodStudioAdvancedSettings>",
      "static": true,
@@ -7750,6 +8751,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Initializes FMOD with the given settings (see FmodSettings for the define-driven defaults).",
+     "gated": false,
      "name": "init",
      "signature": "init(?settings:FmodSettings):FmodResult",
      "static": true,
@@ -7760,10 +8762,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_system_getbank": {
    "fmod": "FMOD_Studio_System_GetBank",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Looks up a loaded bank by path (e.g.",
+     "gated": false,
      "name": "getBank",
      "signature": "getBank(path:String):Bank",
      "static": true,
@@ -7774,10 +8778,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_system_getbankbyid": {
    "fmod": "FMOD_Studio_System_GetBankByID",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getBankByID",
      "signature": "getBankByID(guid:String):Bank",
      "static": true,
@@ -7788,10 +8794,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_system_getbankcount": {
    "fmod": "FMOD_Studio_System_GetBankCount",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Number of loaded banks.",
+     "gated": false,
      "name": "getBankCount",
      "signature": "getBankCount():Int",
      "static": true,
@@ -7802,10 +8810,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_system_getbanklist": {
    "fmod": "FMOD_Studio_System_GetBankList",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Loaded banks (up to Scratch.CAPACITY entries).",
+     "gated": false,
      "name": "getBankList",
      "signature": "getBankList():Array<Bank>",
      "static": true,
@@ -7814,6 +8824,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "Unloads all banks.",
+     "gated": false,
      "name": "unloadAll",
      "signature": "unloadAll():FmodResult",
      "static": true,
@@ -7824,10 +8835,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_system_getbufferusage": {
    "fmod": "FMOD_Studio_System_GetBufferUsage",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Studio internal buffer usage, or null on failure.",
+     "gated": false,
      "name": "getBufferUsage",
      "signature": "getBufferUsage():Null<FmodBufferUsage>",
      "static": true,
@@ -7838,10 +8851,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_system_getbus": {
    "fmod": "FMOD_Studio_System_GetBus",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Looks up a bus by path (e.g.",
+     "gated": false,
      "name": "getBus",
      "signature": "getBus(path:String):Bus",
      "static": true,
@@ -7908,10 +8923,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_system_getbusbyid": {
    "fmod": "FMOD_Studio_System_GetBusByID",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Looks up a bus by GUID string.",
+     "gated": false,
      "name": "getBusByID",
      "signature": "getBusByID(guid:String):Bus",
      "static": true,
@@ -7922,6 +8939,7 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_system_getcoresystem": {
    "fmod": "FMOD_Studio_System_GetCoreSystem",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
@@ -7934,6 +8952,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Initializes FMOD with the given settings (see FmodSettings for the define-driven defaults).",
+     "gated": false,
      "name": "init",
      "signature": "init(?settings:FmodSettings):FmodResult",
      "static": true,
@@ -7944,10 +8963,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_system_getcpuusage": {
    "fmod": "FMOD_Studio_System_GetCPUUsage",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "System-wide CPU usage, or null on failure.",
+     "gated": false,
      "name": "getCpuUsage",
      "signature": "getCpuUsage():Null<FmodSystemCpuUsage>",
      "static": true,
@@ -7958,10 +8979,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_system_getevent": {
    "fmod": "FMOD_Studio_System_GetEvent",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Looks up an event description by path (e.g.",
+     "gated": false,
      "name": "getEvent",
      "signature": "getEvent(path:String):EventDescription",
      "static": true,
@@ -7980,10 +9003,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_system_geteventbyid": {
    "fmod": "FMOD_Studio_System_GetEventByID",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Looks up an event description by GUID string.",
+     "gated": false,
      "name": "getEventByID",
      "signature": "getEventByID(guid:String):EventDescription",
      "static": true,
@@ -7994,10 +9019,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_system_getlistenerattributes": {
    "fmod": "FMOD_Studio_System_GetListenerAttributes",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "A listener's 3D attributes, or null on failure.",
+     "gated": false,
      "name": "getListenerAttributes",
      "signature": "getListenerAttributes(index:Int):Null<Fmod3DAttributes>",
      "static": true,
@@ -8016,10 +9043,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_system_getlistenerweight": {
    "fmod": "FMOD_Studio_System_GetListenerWeight",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getListenerWeight",
      "signature": "getListenerWeight(index:Int):Float",
      "static": true,
@@ -8030,10 +9059,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_system_getmemoryusage": {
    "fmod": "FMOD_Studio_System_GetMemoryUsage",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "System-wide memory usage, or null on failure (unsupported in HTML5, null there).",
+     "gated": true,
      "name": "getMemoryUsage",
      "signature": "getMemoryUsage():Null<FmodMemoryUsage>",
      "static": true,
@@ -8044,10 +9075,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_system_getnumlisteners": {
    "fmod": "FMOD_Studio_System_GetNumListeners",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getNumListeners",
      "signature": "getNumListeners():Int",
      "static": true,
@@ -8058,10 +9091,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_system_getparameterbyid": {
    "fmod": "FMOD_Studio_System_GetParameterByID",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getParameterByID",
      "signature": "getParameterByID(id:FmodParameterId):Float",
      "static": true,
@@ -8070,6 +9105,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "",
+     "gated": false,
      "name": "getParameterByIDFinal",
      "signature": "getParameterByIDFinal(id:FmodParameterId):Float",
      "static": true,
@@ -8080,10 +9116,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_system_getparameterbyname": {
    "fmod": "FMOD_Studio_System_GetParameterByName",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "",
+     "gated": false,
      "name": "getParameter",
      "signature": "getParameter(name:String):Float",
      "static": true,
@@ -8092,6 +9130,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "",
+     "gated": false,
      "name": "getParameterFinal",
      "signature": "getParameterFinal(name:String):Float",
      "static": true,
@@ -8112,10 +9151,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_system_getparameterdescriptionbyname": {
    "fmod": "FMOD_Studio_System_GetParameterDescriptionByName",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Global parameter description by name, or null on failure.",
+     "gated": false,
      "name": "getParameterDescriptionByName",
      "signature": "getParameterDescriptionByName(name:String):Null<FmodParameterDescription>",
      "static": true,
@@ -8126,10 +9167,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_system_getparameterdescriptioncount": {
    "fmod": "FMOD_Studio_System_GetParameterDescriptionCount",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Number of global parameters.",
+     "gated": false,
      "name": "getParameterDescriptionCount",
      "signature": "getParameterDescriptionCount():Int",
      "static": true,
@@ -8140,10 +9183,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_system_getparameterdescriptionlist": {
    "fmod": "FMOD_Studio_System_GetParameterDescriptionList",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "Global parameter description by index, or null on failure.",
+     "gated": false,
      "name": "getParameterDescriptionByIndex",
      "signature": "getParameterDescriptionByIndex(index:Int):Null<FmodParameterDescription>",
      "static": true,
@@ -8164,10 +9209,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_system_getparameterlabelbyname": {
    "fmod": "FMOD_Studio_System_GetParameterLabelByName",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "Label text for a labeled global parameter's value index.",
+     "gated": false,
      "name": "getParameterLabel",
      "signature": "getParameterLabel(parameterName:String, labelIndex:Int):String",
      "static": true,
@@ -8178,10 +9225,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_system_getsoundinfo": {
    "fmod": "FMOD_Studio_System_GetSoundInfo",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "What FMOD would load for an audio table key: the name or file path it reports (empty for a bank held in memory) and the subsound index inside it.",
+     "gated": false,
      "name": "getSoundInfo",
      "signature": "getSoundInfo(key:String):Null<{name:String, subSoundIndex:Int}>",
      "static": true,
@@ -8202,10 +9251,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_system_getvca": {
    "fmod": "FMOD_Studio_System_GetVCA",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Looks up a VCA by path (e.g.",
+     "gated": false,
      "name": "getVCA",
      "signature": "getVCA(path:String):Vca",
      "static": true,
@@ -8216,10 +9267,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_system_getvcabyid": {
    "fmod": "FMOD_Studio_System_GetVCAByID",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getVCAByID",
      "signature": "getVCAByID(guid:String):Vca",
      "static": true,
@@ -8230,6 +9283,7 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_system_initialize": {
    "fmod": "FMOD_Studio_System_Initialize",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
@@ -8242,6 +9296,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Initializes FMOD with the given settings (see FmodSettings for the define-driven defaults).",
+     "gated": false,
      "name": "init",
      "signature": "init(?settings:FmodSettings):FmodResult",
      "static": true,
@@ -8271,10 +9326,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_system_loadbankfile": {
    "fmod": "FMOD_Studio_System_LoadBankFile",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Loads a bank file.",
+     "gated": false,
      "name": "loadBankFile",
      "signature": "loadBankFile(path:String, flags:FmodLoadBankFlags = NORMAL):Bank",
      "static": true,
@@ -8285,10 +9342,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_system_loadbankmemory": {
    "fmod": "FMOD_Studio_System_LoadBankMemory",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Loads a bank from bytes (embedded, downloaded, or packed banks).",
+     "gated": false,
      "name": "loadBankMemory",
      "signature": "loadBankMemory(data:haxe.io.Bytes):Bank",
      "static": true,
@@ -8299,10 +9358,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_system_loadcommandreplay": {
    "fmod": "FMOD_Studio_System_LoadCommandReplay",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Loads a capture file for playback.",
+     "gated": false,
      "name": "loadCommandReplay",
      "signature": "loadCommandReplay(path:String):CommandReplay",
      "static": true,
@@ -8313,10 +9374,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_system_lookupid": {
    "fmod": "FMOD_Studio_System_LookupID",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Resolves a path to its GUID string (\"\" on failure.",
+     "gated": false,
      "name": "lookupID",
      "signature": "lookupID(path:String):String",
      "static": true,
@@ -8327,10 +9390,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_system_lookuppath": {
    "fmod": "FMOD_Studio_System_LookupPath",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Resolves a GUID string to its path (\"\" on failure.",
+     "gated": false,
      "name": "lookupPath",
      "signature": "lookupPath(guid:String):String",
      "static": true,
@@ -8350,6 +9415,7 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_system_release": {
    "fmod": "FMOD_Studio_System_Release",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
@@ -8362,6 +9428,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Initializes FMOD with the given settings (see FmodSettings for the define-driven defaults).",
+     "gated": false,
      "name": "init",
      "signature": "init(?settings:FmodSettings):FmodResult",
      "static": true,
@@ -8372,10 +9439,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_system_resetbufferusage": {
    "fmod": "FMOD_Studio_System_ResetBufferUsage",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "resetBufferUsage",
      "signature": "resetBufferUsage():FmodResult",
      "static": true,
@@ -8387,6 +9456,7 @@ const HAXEFMOD_BINDINGS = {
   "studio_system_setadvancedsettings": {
    "code": "FmodManager.Initialize({commandQueueSize: 65536});",
    "fmod": "FMOD_Studio_System_SetAdvancedSettings",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
@@ -8399,6 +9469,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Initializes FMOD with the given settings (see FmodSettings for the define-driven defaults).",
+     "gated": false,
      "name": "init",
      "signature": "init(?settings:FmodSettings):FmodResult",
      "static": true,
@@ -8413,6 +9484,7 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_system_setcallback": {
    "fmod": "FMOD_Studio_System_SetCallback",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
@@ -8433,6 +9505,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Removes the handler and both native callbacks.",
+     "gated": false,
      "name": "clear",
      "signature": "clear():Void",
      "static": true,
@@ -8441,6 +9514,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Installs the handler and tells FMOD which events to raise.",
+     "gated": false,
      "name": "set",
      "signature": "set(handler:SystemEvent->Void, ?coreMask:Int, ?studioMask:Int):Void",
      "static": true,
@@ -8459,10 +9533,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_system_setlistenerattributes": {
    "fmod": "FMOD_Studio_System_SetListenerAttributes",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "setListenerAttributes",
      "signature": "setListenerAttributes(index:Int, attributes:Fmod3DAttributes):FmodResult",
      "static": true,
@@ -8471,6 +9547,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Convenience for 2D games: listener position only, unit forward/up.",
+     "gated": false,
      "name": "setListenerPosition2D",
      "signature": "setListenerPosition2D(index:Int, x:Float, y:Float, velocityX:Float = 0, velocityY:Float = 0):FmodResult",
      "static": true,
@@ -8497,10 +9574,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_system_setlistenerweight": {
    "fmod": "FMOD_Studio_System_SetListenerWeight",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "setListenerWeight",
      "signature": "setListenerWeight(index:Int, weight:Float):FmodResult",
      "static": true,
@@ -8511,10 +9590,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_system_setnumlisteners": {
    "fmod": "FMOD_Studio_System_SetNumListeners",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "setNumListeners",
      "signature": "setNumListeners(count:Int):FmodResult",
      "static": true,
@@ -8525,10 +9606,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_system_setparameterbyid": {
    "fmod": "FMOD_Studio_System_SetParameterByID",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "setParameterByID",
      "signature": "setParameterByID(id:FmodParameterId, value:Float, ignoreSeekSpeed:Bool = false):FmodResult",
      "static": true,
@@ -8539,10 +9622,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_system_setparameterbyidwithlabel": {
    "fmod": "FMOD_Studio_System_SetParameterByIDWithLabel",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "setParameterByIDWithLabel",
      "signature": "setParameterByIDWithLabel(id:FmodParameterId, label:String, ignoreSeekSpeed:Bool = false):FmodResult",
      "static": true,
@@ -8553,10 +9638,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_system_setparameterbyname": {
    "fmod": "FMOD_Studio_System_SetParameterByName",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "",
+     "gated": false,
      "name": "setParameter",
      "signature": "setParameter(name:String, value:Float, ignoreSeekSpeed:Bool = false):FmodResult",
      "static": true,
@@ -8567,10 +9654,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_system_setparameterbynamewithlabel": {
    "fmod": "FMOD_Studio_System_SetParameterByNameWithLabel",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "",
+     "gated": false,
      "name": "setParameterWithLabel",
      "signature": "setParameterWithLabel(name:String, label:String, ignoreSeekSpeed:Bool = false):FmodResult",
      "static": true,
@@ -8601,10 +9690,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_system_startcommandcapture": {
    "fmod": "FMOD_Studio_System_StartCommandCapture",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Records every API command to a file until stopCommandCapture, for FMOD's analysis tools or replay through loadCommandReplay.",
+     "gated": false,
      "name": "startCommandCapture",
      "signature": "startCommandCapture(path:String):FmodResult",
      "static": true,
@@ -8615,10 +9706,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_system_stopcommandcapture": {
    "fmod": "FMOD_Studio_System_StopCommandCapture",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "stopCommandCapture",
      "signature": "stopCommandCapture():FmodResult",
      "static": true,
@@ -8629,10 +9722,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_system_unloadall": {
    "fmod": "FMOD_Studio_System_UnloadAll",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Unloads all banks.",
+     "gated": false,
      "name": "unloadAll",
      "signature": "unloadAll():FmodResult",
      "static": true,
@@ -8652,6 +9747,7 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_system_update": {
    "fmod": "FMOD_Studio_System_Update",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
@@ -8664,6 +9760,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": true,
      "doc": "Services FMOD: drains the callback queue and pushes attached-instance positions.",
+     "gated": false,
      "name": "update",
      "signature": "update():Void",
      "static": true,
@@ -8672,6 +9769,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "",
+     "gated": false,
      "name": "PauseSong",
      "signature": "PauseSong():Void",
      "static": true,
@@ -8682,10 +9780,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_vca_getid": {
    "fmod": "FMOD_Studio_VCA_GetID",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The VCA GUID as a string, e.g.",
+     "gated": false,
      "name": "getID",
      "signature": "getID():String",
      "static": false,
@@ -8696,10 +9796,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_vca_getpath": {
    "fmod": "FMOD_Studio_VCA_GetPath",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The full VCA path, e.g.",
+     "gated": false,
      "name": "getPath",
      "signature": "getPath():String",
      "static": false,
@@ -8710,10 +9812,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_vca_getvolume": {
    "fmod": "FMOD_Studio_VCA_GetVolume",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The volume as set by the API (linear: 0.0 = silent, 1.0 = full).",
+     "gated": false,
      "name": "getVolume",
      "signature": "getVolume():Float",
      "static": false,
@@ -8722,6 +9826,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "The final combined volume (set volume x snapshots/automation).",
+     "gated": false,
      "name": "getFinalVolume",
      "signature": "getFinalVolume():Float",
      "static": false,
@@ -8732,10 +9837,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_vca_isvalid": {
    "fmod": "FMOD_Studio_VCA_IsValid",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "True if the handle resolves to a live FMOD VCA.",
+     "gated": false,
      "name": "isValid",
      "signature": "isValid():Bool",
      "static": false,
@@ -8746,10 +9853,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_vca_setvolume": {
    "fmod": "FMOD_Studio_VCA_SetVolume",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "setVolume",
      "signature": "setVolume(volume:Float):FmodResult",
      "static": false,
@@ -8798,10 +9907,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_createchannelgroup": {
    "fmod": "FMOD_System_CreateChannelGroup",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "Creates a custom group.",
+     "gated": false,
      "name": "create",
      "signature": "create(name:String):ChannelGroup",
      "static": true,
@@ -8821,10 +9932,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_createdspbyplugin": {
    "fmod": "FMOD_System_CreateDSPByPlugin",
+   "gated": true,
    "haxe": [
     {
      "direct": false,
      "doc": "Creates an effect unit from a plugin loaded with StudioSystem.loadPlugin (unsupported in HTML5, returns Dsp.NULL there).",
+     "gated": true,
      "name": "createByPlugin",
      "signature": "createByPlugin(pluginHandle:Int):Dsp",
      "static": true,
@@ -8835,10 +9948,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_createdspbytype": {
    "fmod": "FMOD_System_CreateDSPByType",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "Creates an effect unit.",
+     "gated": false,
      "name": "create",
      "signature": "create(type:DspType):Dsp",
      "static": true,
@@ -8859,10 +9974,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_creategeometry": {
    "fmod": "FMOD_System_CreateGeometry",
+   "gated": true,
    "haxe": [
     {
      "direct": false,
      "doc": "Creates an empty geometry with room for the given polygon and vertex counts (unsupported in HTML5).",
+     "gated": true,
      "name": "create",
      "signature": "create(maxPolygons:Int, maxVertices:Int):Geometry",
      "static": true,
@@ -8873,10 +9990,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_createreverb3d": {
    "fmod": "FMOD_System_CreateReverb3D",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "Creates a zone.",
+     "gated": false,
      "name": "create",
      "signature": "create():Reverb3D",
      "static": true,
@@ -8887,10 +10006,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_createsound": {
    "fmod": "FMOD_System_CreateSound",
+   "gated": true,
    "haxe": [
     {
      "direct": false,
      "doc": "Creates a stream.",
+     "gated": false,
      "name": "create",
      "signature": "create(sampleRate:Int, channels:Int, ringBytes:Int = 0):PcmStream",
      "static": true,
@@ -8899,6 +10020,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Like create() but positional: the channel from play() accepts set3DAttributes and attenuates with distance from the listener.",
+     "gated": false,
      "name": "create3d",
      "signature": "create3d(sampleRate:Int, channels:Int, ringBytes:Int = 0):PcmStream",
      "static": true,
@@ -8907,6 +10029,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Loads a sound file.",
+     "gated": false,
      "name": "create",
      "signature": "create(path:String, loop:Bool = false, openOnly:Bool = false):Sound",
      "static": true,
@@ -8915,6 +10038,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "An empty PCM16 sound of the given length for StudioSystem.recordStart to fill (unsupported in HTML5).",
+     "gated": true,
      "name": "createRecordBuffer",
      "signature": "createRecordBuffer(sampleRate:Int, channels:Int, seconds:Int):Sound",
      "static": true,
@@ -8923,6 +10047,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "A sound from raw 16-bit PCM in memory (interleaved when stereo).",
+     "gated": false,
      "name": "fromPcm",
      "signature": "fromPcm(data:haxe.io.Bytes, sampleRate:Int, channels:Int, length:Int = -1):Sound",
      "static": true,
@@ -8933,10 +10058,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_createsoundgroup": {
    "fmod": "FMOD_System_CreateSoundGroup",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "Creates a group.",
+     "gated": false,
      "name": "create",
      "signature": "create(name:String):SoundGroup",
      "static": true,
@@ -8986,10 +10113,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_get3dsettings": {
    "fmod": "FMOD_System_Get3DSettings",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "get3DSettings",
      "signature": "get3DSettings():Null<{dopplerScale:Float, distanceFactor:Float, rolloffScale:Float}>",
      "static": true,
@@ -9000,10 +10129,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_getadvancedsettings": {
    "fmod": "FMOD_System_GetAdvancedSettings",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "The core advanced settings FMOD is running with, or null on failure (unsupported in HTML5, null there).",
+     "gated": true,
      "name": "getAdvancedSettings",
      "signature": "getAdvancedSettings():Null<FmodAdvancedSettings>",
      "static": true,
@@ -9020,6 +10151,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Initializes FMOD with the given settings (see FmodSettings for the define-driven defaults).",
+     "gated": false,
      "name": "init",
      "signature": "init(?settings:FmodSettings):FmodResult",
      "static": true,
@@ -9030,10 +10162,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_getchannel": {
    "fmod": "FMOD_System_GetChannel",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The pool channel at index (see Channel.getIndex).",
+     "gated": false,
      "name": "getChannel",
      "signature": "getChannel(index:Int):Channel",
      "static": true,
@@ -9044,10 +10178,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_getchannelsplaying": {
    "fmod": "FMOD_System_GetChannelsPlaying",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Playing channel counts, or null on failure.",
+     "gated": false,
      "name": "getChannelsPlaying",
      "signature": "getChannelsPlaying():Null<{all:Int, real:Int}>",
      "static": true,
@@ -9068,10 +10204,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_getdefaultmixmatrix": {
    "fmod": "FMOD_System_GetDefaultMixMatrix",
+   "gated": true,
    "haxe": [
     {
      "direct": false,
      "doc": "FMOD's default upmix or downmix matrix between two FMOD_SPEAKERMODE values, row-major with one row per target channel (unsupported in HTML5, null there).",
+     "gated": true,
      "name": "getDefaultMixMatrix",
      "signature": "getDefaultMixMatrix(sourceSpeakerMode:Int, targetSpeakerMode:Int, matrixHop:Int = 0):Null<Array<Float>>",
      "static": true,
@@ -9082,10 +10220,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_getdriver": {
    "fmod": "FMOD_System_GetDriver",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "getDriver",
      "signature": "getDriver():Int",
      "static": true,
@@ -9096,10 +10236,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_getdriverinfo": {
    "fmod": "FMOD_System_GetDriverInfo",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "",
+     "gated": false,
      "name": "getDriverName",
      "signature": "getDriverName(index:Int):String",
      "static": true,
@@ -9120,10 +10262,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_getdspinfobyplugin": {
    "fmod": "FMOD_System_GetDSPInfoByPlugin",
+   "gated": true,
    "haxe": [
     {
      "direct": false,
      "doc": "The description a DSP plugin registered, its name, version, buffer counts and parameter count (unsupported in HTML5, null there).",
+     "gated": true,
      "name": "getPluginInfo",
      "signature": "getPluginInfo(pluginHandle:Int):Null<{name:String, version:Int, inputBuffers:Int, outputBuffers:Int, parameterCount:Int}>",
      "static": true,
@@ -9134,10 +10278,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_getdspinfobytype": {
    "fmod": "FMOD_System_GetDSPInfoByType",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "The description FMOD registered for a built-in effect type, its name, version, buffer counts and parameter count (unsupported in HTML5, null there).",
+     "gated": true,
      "name": "getDspInfoByType",
      "signature": "getDspInfoByType(type:DspType):Null<{name:String, version:Int, inputBuffers:Int, outputBuffers:Int, parameterCount:Int}>",
      "static": true,
@@ -9148,10 +10294,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_getfileusage": {
    "fmod": "FMOD_System_GetFileUsage",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Bytes FMOD has read from disk since init, split by sample loads, streams, and everything else (banks, plugins).",
+     "gated": false,
      "name": "getFileUsage",
      "signature": "getFileUsage():Null<{sampleBytesRead:Float, streamBytesRead:Float, otherBytesRead:Float}>",
      "static": true,
@@ -9162,10 +10310,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_getgeometryocclusion": {
    "fmod": "FMOD_System_GetGeometryOcclusion",
+   "gated": true,
    "haxe": [
     {
      "direct": false,
      "doc": "The occlusion every active geometry applies between a listener and a source position (unsupported in HTML5, null there).",
+     "gated": true,
      "name": "getOcclusion",
      "signature": "getOcclusion(listener:FmodVector, source:FmodVector):Null<{direct:Float, reverb:Float}>",
      "static": true,
@@ -9176,10 +10326,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_getgeometrysettings": {
    "fmod": "FMOD_System_GetGeometrySettings",
+   "gated": true,
    "haxe": [
     {
      "direct": false,
      "doc": "The current world size, 0 on failure (unsupported in HTML5, 0 there).",
+     "gated": true,
      "name": "getWorldSize",
      "signature": "getWorldSize():Float",
      "static": true,
@@ -9190,10 +10342,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_getmasterchannelgroup": {
    "fmod": "FMOD_System_GetMasterChannelGroup",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "The master group (the final mix).",
+     "gated": false,
      "name": "master",
      "signature": "master():ChannelGroup",
      "static": true,
@@ -9204,10 +10358,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_getmastersoundgroup": {
    "fmod": "FMOD_System_GetMasterSoundGroup",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "The master group every sound starts in.",
+     "gated": false,
      "name": "master",
      "signature": "master():SoundGroup",
      "static": true,
@@ -9218,10 +10374,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_getnestedplugin": {
    "fmod": "FMOD_System_GetNestedPlugin",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "The handle of one plugin inside a loaded library (unsupported in HTML5, 0 there).",
+     "gated": true,
      "name": "getNestedPlugin",
      "signature": "getNestedPlugin(handle:Int, index:Int):Int",
      "static": true,
@@ -9232,10 +10390,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_getnetworkproxy": {
    "fmod": "FMOD_System_GetNetworkProxy",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The proxy set by setNetworkProxy, \"\" when none is set or on failure.",
+     "gated": false,
      "name": "getNetworkProxy",
      "signature": "getNetworkProxy():String",
      "static": true,
@@ -9246,10 +10406,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_getnetworktimeout": {
    "fmod": "FMOD_System_GetNetworkTimeout",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The network timeout in milliseconds, -1 on failure.",
+     "gated": false,
      "name": "getNetworkTimeout",
      "signature": "getNetworkTimeout():Int",
      "static": true,
@@ -9260,10 +10422,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_getnumdrivers": {
    "fmod": "FMOD_System_GetNumDrivers",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "",
+     "gated": false,
      "name": "getDriverCount",
      "signature": "getDriverCount():Int",
      "static": true,
@@ -9274,10 +10438,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_getnumnestedplugins": {
    "fmod": "FMOD_System_GetNumNestedPlugins",
+   "gated": true,
    "haxe": [
     {
      "direct": false,
      "doc": "The number of plugins a loaded library contains, 1 for a plain plugin (unsupported in HTML5, -1 there).",
+     "gated": true,
      "name": "getNestedPluginCount",
      "signature": "getNestedPluginCount(handle:Int):Int",
      "static": true,
@@ -9288,10 +10454,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_getnumplugins": {
    "fmod": "FMOD_System_GetNumPlugins",
+   "gated": true,
    "haxe": [
     {
      "direct": false,
      "doc": "The number of plugins of one type, built-in ones included (unsupported in HTML5, -1 there).",
+     "gated": true,
      "name": "getPluginCount",
      "signature": "getPluginCount(type:FmodPluginType):Int",
      "static": true,
@@ -9302,10 +10470,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_getoutput": {
    "fmod": "FMOD_System_GetOutput",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The active output type as an FMOD_OUTPUTTYPE value, -1 on failure.",
+     "gated": false,
      "name": "getOutput",
      "signature": "getOutput():Int",
      "static": true,
@@ -9316,10 +10486,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_getoutputbyplugin": {
    "fmod": "FMOD_System_GetOutputByPlugin",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The plugin handle of the output mode in use, 0 on failure.",
+     "gated": false,
      "name": "getOutputByPlugin",
      "signature": "getOutputByPlugin():Int",
      "static": true,
@@ -9339,10 +10511,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_getpluginhandle": {
    "fmod": "FMOD_System_GetPluginHandle",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "The plugin handle at an index within one type (unsupported in HTML5, 0 there).",
+     "gated": true,
      "name": "getPluginHandle",
      "signature": "getPluginHandle(type:FmodPluginType, index:Int):Int",
      "static": true,
@@ -9353,10 +10527,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_getplugininfo": {
    "fmod": "FMOD_System_GetPluginInfo",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "The name, type and version a plugin registered (unsupported in HTML5, null there).",
+     "gated": true,
      "name": "getPluginInfo",
      "signature": "getPluginInfo(handle:Int):Null<{name:String, type:FmodPluginType, version:Int}>",
      "static": true,
@@ -9367,10 +10543,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_getrecorddriverinfo": {
    "fmod": "FMOD_System_GetRecordDriverInfo",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "Name and native format of a record driver (unsupported in HTML5, returns null there).",
+     "gated": true,
      "name": "getRecordDriverInfo",
      "signature": "getRecordDriverInfo(id:Int):Null<{name:String, systemRate:Int, speakerMode:Int, channels:Int, state:Int}>",
      "static": true,
@@ -9381,10 +10559,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_getrecordnumdrivers": {
    "fmod": "FMOD_System_GetRecordNumDrivers",
+   "gated": true,
    "haxe": [
     {
      "direct": false,
      "doc": "Record drivers FMOD can see (unsupported in HTML5, returns null there).",
+     "gated": true,
      "name": "getRecordDriverCount",
      "signature": "getRecordDriverCount():Null<{drivers:Int, connected:Int}>",
      "static": true,
@@ -9395,10 +10575,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_getrecordposition": {
    "fmod": "FMOD_System_GetRecordPosition",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "The record cursor in PCM samples, or -1 on failure (unsupported in HTML5, always -1 there).",
+     "gated": true,
      "name": "getRecordPosition",
      "signature": "getRecordPosition(id:Int):Int",
      "static": true,
@@ -9409,10 +10591,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_getreverbproperties": {
    "fmod": "FMOD_System_GetReverbProperties",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "",
+     "gated": false,
      "name": "get",
      "signature": "get(instance:Int):Null<ReverbProperties>",
      "static": true,
@@ -9433,10 +10617,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_getsoftwareformat": {
    "fmod": "FMOD_System_GetSoftwareFormat",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The mixer's output format, or null on failure.",
+     "gated": false,
      "name": "getSoftwareFormat",
      "signature": "getSoftwareFormat():Null<{sampleRate:Int, speakerMode:Int, rawSpeakers:Int}>",
      "static": true,
@@ -9447,10 +10633,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_getspeakermodechannels": {
    "fmod": "FMOD_System_GetSpeakerModeChannels",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "Speaker count of an FMOD_SPEAKERMODE value, 0 on failure.",
+     "gated": false,
      "name": "getSpeakerModeChannels",
      "signature": "getSpeakerModeChannels(speakerMode:Int):Int",
      "static": true,
@@ -9459,6 +10647,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "FMOD's default upmix or downmix matrix between two FMOD_SPEAKERMODE values, row-major with one row per target channel (unsupported in HTML5, null there).",
+     "gated": true,
      "name": "getDefaultMixMatrix",
      "signature": "getDefaultMixMatrix(sourceSpeakerMode:Int, targetSpeakerMode:Int, matrixHop:Int = 0):Null<Array<Float>>",
      "static": true,
@@ -9469,10 +10658,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_getspeakerposition": {
    "fmod": "FMOD_System_GetSpeakerPosition",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The position set for one speaker (see setSpeakerPosition), or null on failure.",
+     "gated": false,
      "name": "getSpeakerPosition",
      "signature": "getSpeakerPosition(speaker:Int):Null<{x:Float, y:Float, active:Bool}>",
      "static": true,
@@ -9503,10 +10694,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_getversion": {
    "fmod": "FMOD_System_GetVersion",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "The linked FMOD version as \"2.03.12\", or \"\" on failure.",
+     "gated": false,
      "name": "getVersion",
      "signature": "getVersion():String",
      "static": true,
@@ -9527,10 +10720,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_isrecording": {
    "fmod": "FMOD_System_IsRecording",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "True while a driver is recording (unsupported in HTML5, always false there).",
+     "gated": true,
      "name": "isRecording",
      "signature": "isRecording(id:Int):Bool",
      "static": true,
@@ -9541,10 +10736,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_loadgeometry": {
    "fmod": "FMOD_System_LoadGeometry",
+   "gated": true,
    "haxe": [
     {
      "direct": false,
      "doc": "Rebuilds a geometry from the bytes save() produced (unsupported in HTML5).",
+     "gated": true,
      "name": "load",
      "signature": "load(data:haxe.io.Bytes):Geometry",
      "static": true,
@@ -9555,10 +10752,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_loadplugin": {
    "fmod": "FMOD_System_LoadPlugin",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "Loads a plugin shared library and returns FMOD's plugin handle (unsupported in HTML5, returns 0 there).",
+     "gated": true,
      "name": "loadPlugin",
      "signature": "loadPlugin(path:String, priority:Int = 0):Int",
      "static": true,
@@ -9569,10 +10768,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_lockdsp": {
    "fmod": "FMOD_System_LockDSP",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Holds the mixer until unlockDsp so several graph edits (adding, removing, or reconnecting DSPs) land in one mixer update instead of being heard one at a time.",
+     "gated": false,
      "name": "lockDsp",
      "signature": "lockDsp():FmodResult",
      "static": true,
@@ -9583,10 +10784,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_mixerresume": {
    "fmod": "FMOD_System_MixerResume",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "",
+     "gated": false,
      "name": "mixerResume",
      "signature": "mixerResume():FmodResult",
      "static": true,
@@ -9597,10 +10800,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_mixersuspend": {
    "fmod": "FMOD_System_MixerSuspend",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Stops the mixer entirely (for app backgrounding on platforms that demand silence).",
+     "gated": false,
      "name": "mixerSuspend",
      "signature": "mixerSuspend():FmodResult",
      "static": true,
@@ -9611,10 +10816,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_playdsp": {
    "fmod": "FMOD_System_PlayDSP",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "Plays this DSP as a sound source (e.g.",
+     "gated": false,
      "name": "play",
      "signature": "play(startPaused:Bool = false):Channel",
      "static": false,
@@ -9625,10 +10832,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_playsound": {
    "fmod": "FMOD_System_PlaySound",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "Starts playback.",
+     "gated": false,
      "name": "play",
      "signature": "play(startPaused:Bool = false):Channel",
      "static": false,
@@ -9637,6 +10846,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Starts playback.",
+     "gated": false,
      "name": "play",
      "signature": "play(startPaused:Bool = false):haxefmod.core.Channel",
      "static": false,
@@ -9647,10 +10857,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_recordstart": {
    "fmod": "FMOD_System_RecordStart",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "Starts recording a driver into a sound from Sound.createRecordBuffer (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED).",
+     "gated": true,
      "name": "recordStart",
      "signature": "recordStart(id:Int, sound:Sound, loop:Bool = false):FmodResult",
      "static": true,
@@ -9661,10 +10873,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_recordstop": {
    "fmod": "FMOD_System_RecordStop",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "Stops recording on a driver (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED).",
+     "gated": true,
      "name": "recordStop",
      "signature": "recordStop(id:Int):FmodResult",
      "static": true,
@@ -9741,10 +10955,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_set3dsettings": {
    "fmod": "FMOD_System_Set3DSettings",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Global 3D scale factors: doppler strength, world units per meter, and how aggressively sounds attenuate with distance.",
+     "gated": false,
      "name": "set3DSettings",
      "signature": "set3DSettings(dopplerScale:Float, distanceFactor:Float, rolloffScale:Float):FmodResult",
      "static": true,
@@ -9756,6 +10972,7 @@ const HAXEFMOD_BINDINGS = {
   "system_setadvancedsettings": {
    "code": "FmodManager.Initialize({vol0VirtualVol: 0.001, randomSeed: 42});",
    "fmod": "FMOD_System_SetAdvancedSettings",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
@@ -9768,6 +10985,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Initializes FMOD with the given settings (see FmodSettings for the define-driven defaults).",
+     "gated": false,
      "name": "init",
      "signature": "init(?settings:FmodSettings):FmodResult",
      "static": true,
@@ -9782,6 +11000,7 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_setcallback": {
    "fmod": "FMOD_System_SetCallback",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
@@ -9802,6 +11021,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Removes the handler and both native callbacks.",
+     "gated": false,
      "name": "clear",
      "signature": "clear():Void",
      "static": true,
@@ -9810,6 +11030,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Installs the handler and tells FMOD which events to raise.",
+     "gated": false,
      "name": "set",
      "signature": "set(handler:SystemEvent->Void, ?coreMask:Int, ?studioMask:Int):Void",
      "static": true,
@@ -9828,10 +11049,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_setdriver": {
    "fmod": "FMOD_System_SetDriver",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Switches the output device (see getDriverCount/getDriverName).",
+     "gated": false,
      "name": "setDriver",
      "signature": "setDriver(index:Int):FmodResult",
      "static": true,
@@ -9843,6 +11066,7 @@ const HAXEFMOD_BINDINGS = {
   "system_setdspbuffersize": {
    "code": "FmodManager.Initialize({dspBufferSize: 512, dspNumBuffers: 4});",
    "fmod": "FMOD_System_SetDSPBufferSize",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
@@ -9855,6 +11079,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Initializes FMOD with the given settings (see FmodSettings for the define-driven defaults).",
+     "gated": false,
      "name": "init",
      "signature": "init(?settings:FmodSettings):FmodResult",
      "static": true,
@@ -9878,10 +11103,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_setgeometrysettings": {
    "fmod": "FMOD_System_SetGeometrySettings",
+   "gated": true,
    "haxe": [
     {
      "direct": false,
      "doc": "The largest world size the occlusion calculation handles (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED).",
+     "gated": true,
      "name": "setWorldSize",
      "signature": "setWorldSize(maxWorldSize:Float):FmodResult",
      "static": true,
@@ -9892,10 +11119,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_setnetworkproxy": {
    "fmod": "FMOD_System_SetNetworkProxy",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Proxy for FMOD's own network streams, as \"host:port\" (\"user:pass@host:port\" with credentials).",
+     "gated": false,
      "name": "setNetworkProxy",
      "signature": "setNetworkProxy(proxy:String):FmodResult",
      "static": true,
@@ -9906,10 +11135,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_setnetworktimeout": {
    "fmod": "FMOD_System_SetNetworkTimeout",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Timeout in milliseconds for FMOD's own network streams.",
+     "gated": false,
      "name": "setNetworkTimeout",
      "signature": "setNetworkTimeout(ms:Int):FmodResult",
      "static": true,
@@ -9920,6 +11151,7 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_setoutput": {
    "fmod": "FMOD_System_SetOutput",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
@@ -9932,6 +11164,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Initializes FMOD with the given settings (see FmodSettings for the define-driven defaults).",
+     "gated": false,
      "name": "init",
      "signature": "init(?settings:FmodSettings):FmodResult",
      "static": true,
@@ -9942,10 +11175,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_setoutputbyplugin": {
    "fmod": "FMOD_System_SetOutputByPlugin",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Selects the output mode by plugin handle.",
+     "gated": false,
      "name": "setOutputByPlugin",
      "signature": "setOutputByPlugin(handle:Int):FmodResult",
      "static": true,
@@ -9956,10 +11191,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_setpluginpath": {
    "fmod": "FMOD_System_SetPluginPath",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "Sets the directory FMOD searches for plugins given by file name (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED).",
+     "gated": true,
      "name": "setPluginPath",
      "signature": "setPluginPath(path:String):FmodResult",
      "static": true,
@@ -9970,10 +11207,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_setreverbproperties": {
    "fmod": "FMOD_System_SetReverbProperties",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
      "doc": "",
+     "gated": false,
      "name": "set",
      "signature": "set(instance:Int, properties:ReverbProperties):FmodResult",
      "static": true,
@@ -9985,6 +11224,7 @@ const HAXEFMOD_BINDINGS = {
   "system_setsoftwarechannels": {
    "code": "FmodManager.Initialize({numChannels: 256, softwareChannels: 128});",
    "fmod": "FMOD_System_SetSoftwareChannels",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
@@ -9997,6 +11237,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Initializes FMOD with the given settings (see FmodSettings for the define-driven defaults).",
+     "gated": false,
      "name": "init",
      "signature": "init(?settings:FmodSettings):FmodResult",
      "static": true,
@@ -10011,6 +11252,7 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_setsoftwareformat": {
    "fmod": "FMOD_System_SetSoftwareFormat",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
@@ -10023,6 +11265,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Initializes FMOD with the given settings (see FmodSettings for the define-driven defaults).",
+     "gated": false,
      "name": "init",
      "signature": "init(?settings:FmodSettings):FmodResult",
      "static": true,
@@ -10033,10 +11276,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_setspeakerposition": {
    "fmod": "FMOD_System_SetSpeakerPosition",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Where one output speaker sits for panning, as x (left -1 to right 1) and y (back -1 to front 1), and whether it is fed at all.",
+     "gated": false,
      "name": "setSpeakerPosition",
      "signature": "setSpeakerPosition(speaker:Int, x:Float, y:Float, active:Bool):FmodResult",
      "static": true,
@@ -10048,6 +11293,7 @@ const HAXEFMOD_BINDINGS = {
   "system_setstreambuffersize": {
    "code": "FmodManager.Initialize({streamBufferSize: 65536});",
    "fmod": "FMOD_System_SetStreamBufferSize",
+   "gated": false,
    "haxe": [
     {
      "direct": false,
@@ -10060,6 +11306,7 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Initializes FMOD with the given settings (see FmodSettings for the define-driven defaults).",
+     "gated": false,
      "name": "init",
      "signature": "init(?settings:FmodSettings):FmodResult",
      "static": true,
@@ -10084,10 +11331,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_unloadplugin": {
    "fmod": "FMOD_System_UnloadPlugin",
+   "gated": true,
    "haxe": [
     {
      "direct": true,
      "doc": "Unloads a plugin from loadPlugin (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED).",
+     "gated": true,
      "name": "unloadPlugin",
      "signature": "unloadPlugin(handle:Int):FmodResult",
      "static": true,
@@ -10098,10 +11347,12 @@ const HAXEFMOD_BINDINGS = {
   },
   "system_unlockdsp": {
    "fmod": "FMOD_System_UnlockDSP",
+   "gated": false,
    "haxe": [
     {
      "direct": true,
      "doc": "Releases the mixer held by lockDsp.",
+     "gated": false,
      "name": "unlockDsp",
      "signature": "unlockDsp():FmodResult",
      "static": true,
@@ -12131,7 +13382,9 @@ const HAXEFMOD_EXAMPLES = {
                 var names = rest.map(function (m) { return shortType(m.type) + "." + m.name; });
                 note.appendChild(el("p", null, "Also reaches this function: " + names.join(", ")));
             }
-            if (entry.html5) {
+            if (entry.gated) {
+                note.appendChild(el("p", "haxefmod-warn", "HTML5: this call does not compile in a js build, because FMOD's web build cannot do it. Building with -D haxefmod_html5_allow_unsupported compiles it anyway, and it then returns FMOD_ERR_UNSUPPORTED at runtime."));
+            } else if (entry.html5) {
                 note.appendChild(el("p", "haxefmod-warn", "HTML5: FMOD's web build does not support this call, haxefmod reports FMOD_ERR_UNSUPPORTED there."));
             }
             notes.forEach(function (text) { note.appendChild(el("p", null, text)); });

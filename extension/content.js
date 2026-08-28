@@ -127,7 +127,9 @@
                 var names = rest.map(function (m) { return shortType(m.type) + "." + m.name; });
                 note.appendChild(el("p", null, "Also reaches this function: " + names.join(", ")));
             }
-            if (entry.html5) {
+            if (entry.gated) {
+                note.appendChild(el("p", "haxefmod-warn", "HTML5: this call does not compile in a js build, because FMOD's web build cannot do it. Building with -D haxefmod_html5_allow_unsupported compiles it anyway, and it then returns FMOD_ERR_UNSUPPORTED at runtime."));
+            } else if (entry.html5) {
                 note.appendChild(el("p", "haxefmod-warn", "HTML5: FMOD's web build does not support this call, haxefmod reports FMOD_ERR_UNSUPPORTED there."));
             }
             notes.forEach(function (text) { note.appendChild(el("p", null, text)); });
