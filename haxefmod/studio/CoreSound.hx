@@ -1,6 +1,7 @@
 package haxefmod.studio;
 
 import haxefmod.studio.Types.FmodVector;
+import haxefmod.studio.UserData;
 import haxefmod.studio.native.NativeStudio;
 import haxefmod.studio.native.Scratch;
 
@@ -287,6 +288,22 @@ abstract CoreSound(Int) from Int to Int {
 
     /** Releases the sound and invalidates this handle. */
     public inline function release():FmodResult {
+        UserData.clear(UserDataKind.CoreSound, this);
         return NativeStudio.core_release_sound(this);
+    }
+
+    /**
+     * Attaches a Haxe value to this handle. The value lives on the Haxe
+     * side keyed by the handle and is dropped when the handle is released.
+     * A recycled native slot gets a new generation and therefore a new
+     * handle int, so a stale entry never shows up on a later handle.
+     */
+    public inline function setUserData(value:Dynamic):Void {
+        UserData.set(UserDataKind.CoreSound, this, value);
+    }
+
+    /** The value attached with setUserData, or null. */
+    public inline function getUserData():Dynamic {
+        return UserData.get(UserDataKind.CoreSound, this);
     }
 }

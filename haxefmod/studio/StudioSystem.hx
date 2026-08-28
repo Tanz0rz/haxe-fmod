@@ -1,6 +1,7 @@
 package haxefmod.studio;
 
 import haxefmod.studio.Types;
+import haxefmod.studio.UserData;
 import haxefmod.studio.native.NativeStudio;
 import haxefmod.studio.native.Scratch;
 import haxefmod.studio.SystemCallbacks;
@@ -110,9 +111,28 @@ class StudioSystem {
         return NativeStudio.sys_load_bank_file(path, flags);
     }
 
-    /** Unloads all banks. */
+    /**
+     * Unloads all banks. Every handle that came from a bank dies with it,
+     * so every userdata entry and every description-level callback is
+     * dropped here too.
+     */
     public static function unloadAll():FmodResult {
+        UserData.clearAll();
+        EventDescription.clearAllCallbacks();
         return NativeStudio.sys_unload_all();
+    }
+
+    /**
+     * Attaches a Haxe value to the studio system. The value lives on the
+     * Haxe side and is dropped by unloadAll.
+     */
+    public static function setUserData(value:Dynamic):Void {
+        UserData.systemValue = value;
+    }
+
+    /** The value attached with setUserData, or null. */
+    public static function getUserData():Dynamic {
+        return UserData.systemValue;
     }
 
     /**

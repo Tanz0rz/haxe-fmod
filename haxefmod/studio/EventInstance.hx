@@ -2,6 +2,7 @@ package haxefmod.studio;
 
 import haxefmod.studio.Callbacks;
 import haxefmod.studio.Types;
+import haxefmod.studio.UserData;
 import haxefmod.studio.native.NativeStudio;
 import haxefmod.studio.native.Scratch;
 
@@ -59,6 +60,7 @@ abstract EventInstance(Int) from Int to Int {
      */
     public inline function release():FmodResult {
         CallbackDispatcher.remove(this);
+        UserData.clear(UserDataKind.EventInstance, this);
         return NativeStudio.evi_release(this);
     }
 
@@ -287,4 +289,19 @@ abstract EventInstance(Int) from Int to Int {
         return {exclusive: Scratch.readI(0), inclusive: Scratch.readI(1), sampledata: Scratch.readI(2)};
     }
     #end
+
+    /**
+     * Attaches a Haxe value to this handle. The value lives on the Haxe
+     * side keyed by the handle and is dropped when the handle is released.
+     * A recycled native slot gets a new generation and therefore a new
+     * handle int, so a stale entry never shows up on a later handle.
+     */
+    public inline function setUserData(value:Dynamic):Void {
+        UserData.set(UserDataKind.EventInstance, this, value);
+    }
+
+    /** The value attached with setUserData, or null. */
+    public inline function getUserData():Dynamic {
+        return UserData.get(UserDataKind.EventInstance, this);
+    }
 }

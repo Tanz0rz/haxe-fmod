@@ -1,6 +1,7 @@
 package haxefmod.studio;
 
 import haxefmod.studio.Types;
+import haxefmod.studio.UserData;
 import haxefmod.studio.native.NativeStudio;
 import haxefmod.studio.native.Scratch;
 
@@ -39,6 +40,7 @@ abstract Bank(Int) from Int to Int {
      * description/instance handle that came from it).
      */
     public inline function unload():FmodResult {
+        UserData.clear(UserDataKind.Bank, this);
         return NativeStudio.bank_unload(this);
     }
 
@@ -108,5 +110,20 @@ abstract Bank(Int) from Int to Int {
     /** String table GUID by index, formatted "{8-4-4-4-12}". */
     public inline function getStringGuid(index:Int):String {
         return NativeStudio.bank_get_string_guid(this, index);
+    }
+
+    /**
+     * Attaches a Haxe value to this handle. The value lives on the Haxe
+     * side keyed by the handle and is dropped when the handle is released.
+     * A recycled native slot gets a new generation and therefore a new
+     * handle int, so a stale entry never shows up on a later handle.
+     */
+    public inline function setUserData(value:Dynamic):Void {
+        UserData.set(UserDataKind.Bank, this, value);
+    }
+
+    /** The value attached with setUserData, or null. */
+    public inline function getUserData():Dynamic {
+        return UserData.get(UserDataKind.Bank, this);
     }
 }

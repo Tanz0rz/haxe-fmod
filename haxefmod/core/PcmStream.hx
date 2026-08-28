@@ -1,6 +1,7 @@
 package haxefmod.core;
 
 import haxefmod.studio.FmodResult;
+import haxefmod.studio.UserData;
 import haxefmod.studio.native.NativeStudio;
 
 /**
@@ -82,6 +83,22 @@ abstract PcmStream(Int) from Int to Int {
 
     /** Stops playback, frees the stream, and invalidates this handle. */
     public inline function release():FmodResult {
+        UserData.clear(UserDataKind.PcmStream, this);
         return NativeStudio.core_pcm_release(this);
+    }
+
+    /**
+     * Attaches a Haxe value to this handle. The value lives on the Haxe
+     * side keyed by the handle and is dropped when the handle is released.
+     * A recycled native slot gets a new generation and therefore a new
+     * handle int, so a stale entry never shows up on a later handle.
+     */
+    public inline function setUserData(value:Dynamic):Void {
+        UserData.set(UserDataKind.PcmStream, this, value);
+    }
+
+    /** The value attached with setUserData, or null. */
+    public inline function getUserData():Dynamic {
+        return UserData.get(UserDataKind.PcmStream, this);
     }
 }

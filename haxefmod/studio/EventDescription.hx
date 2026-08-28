@@ -1,6 +1,8 @@
 package haxefmod.studio;
 
+import haxefmod.studio.Callbacks;
 import haxefmod.studio.Types;
+import haxefmod.studio.UserData;
 import haxefmod.studio.native.NativeStudio;
 import haxefmod.studio.native.Scratch;
 
@@ -73,9 +75,50 @@ abstract EventDescription(Int) from Int to Int {
         return NativeStudio.evd_has_sustain_point(this);
     }
 
-    /** Creates a playable instance of this event. Returns EventInstance.NULL on failure. */
-    public inline function createInstance():EventInstance {
-        return NativeStudio.evd_create_instance(this);
+    /**
+     * Creates a playable instance of this event. Returns EventInstance.NULL
+     * on failure. A handler registered with setCallback is installed on
+     * the new instance before it is returned.
+     */
+    public function createInstance():EventInstance {
+        var instance:EventInstance = NativeStudio.evd_create_instance(this);
+        if (instance.isNull()) return instance;
+        var entry = descriptionCallbacks.get(this);
+        if (entry != null) instance.setCallback(entry.handler, entry.mask);
+        return instance;
+    }
+
+    static var descriptionCallbacks:Map<Int, {handler:EventCallbackData->Void, mask:Null<Int>}> = new Map();
+
+    /**
+     * Remembers a handler that createInstance installs on every instance
+     * made from this description from now on, the way
+     * Studio::EventDescription::setCallback does. Instances created before
+     * this call keep whatever handler they already had. The mask defaults
+     * to the playback types, as on EventInstance.setCallback. Calling again
+     * replaces the remembered handler for future instances only.
+     */
+    public function setCallback(handler:EventCallbackData->Void, ?mask:Int):Void {
+        if (this == 0) return;
+        if (handler == null) {
+            descriptionCallbacks.remove(this);
+            return;
+        }
+        descriptionCallbacks.set(this, {handler: handler, mask: mask});
+    }
+
+    /** Forgets the handler set with setCallback. Existing instances keep theirs. */
+    public inline function clearCallback():Void {
+        descriptionCallbacks.remove(this);
+    }
+
+    public inline function hasCallback():Bool {
+        return descriptionCallbacks.exists(this);
+    }
+
+    /** Forgets every description-level handler. */
+    public static function clearAllCallbacks():Void {
+        descriptionCallbacks = new Map();
     }
 
     /** Number of live instances of this event. */
@@ -176,5 +219,20 @@ abstract EventDescription(Int) from Int to Int {
 
     static function readParameterDescription(name:String):Null<FmodParameterDescription> {
         return @:privateAccess StudioSystem.readParameterDescription(name);
+    }
+
+    /**
+     * Attaches a Haxe value to this handle. The value lives on the Haxe
+     * side keyed by the handle and is dropped when the handle is released.
+     * A recycled native slot gets a new generation and therefore a new
+     * handle int, so a stale entry never shows up on a later handle.
+     */
+    public inline function setUserData(value:Dynamic):Void {
+        UserData.set(UserDataKind.EventDescription, this, value);
+    }
+
+    /** The value attached with setUserData, or null. */
+    public inline function getUserData():Dynamic {
+        return UserData.get(UserDataKind.EventDescription, this);
     }
 }

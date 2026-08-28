@@ -2,6 +2,7 @@ package haxefmod.studio;
 
 import haxefmod.studio.Callbacks;
 import haxefmod.studio.FmodResult;
+import haxefmod.studio.UserData;
 import haxefmod.studio.native.NativeStudio;
 
 /**
@@ -130,6 +131,9 @@ class CallbackDispatcher {
         }
         if (type == (EventCallbackType.DESTROYED : Int)) {
             handlers.remove(handle);
+            // FMOD tore the instance down on its own, so release() never
+            // ran and its userdata entry would otherwise outlive it
+            UserData.clear(UserDataKind.EventInstance, handle);
         }
     }
 

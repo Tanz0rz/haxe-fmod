@@ -124,6 +124,7 @@ abstract Geometry(Int) from Int to Int {
     #else
     /** Frees the geometry and invalidates this handle (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED). */
     public inline function release():FmodResult {
+        haxefmod.studio.UserData.clear(haxefmod.studio.UserData.UserDataKind.Geometry, this);
         return NativeStudio.geo_release(this);
     }
     #end
@@ -375,4 +376,18 @@ abstract Geometry(Int) from Int to Int {
         return data;
     }
     #end
+
+    /**
+     * Attaches a Haxe value to this handle. The value lives on the Haxe
+     * side keyed by the handle and is dropped when the handle is released.
+     * A recycled native slot gets a new generation and therefore a new
+     * handle int, so a stale entry never shows up on a later handle.
+     */
+    public inline function setUserData(value:Dynamic):Void {
+        haxefmod.studio.UserData.set(haxefmod.studio.UserData.UserDataKind.Geometry, this, value);
+    }
+
+    public inline function getUserData():Dynamic {
+        return haxefmod.studio.UserData.get(haxefmod.studio.UserData.UserDataKind.Geometry, this);
+    }
 }

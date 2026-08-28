@@ -15,6 +15,7 @@ class RunTests {
 		totalFailed += TestStringsBankParser.run();
 		totalFailed += TestStudioSurface.run();
 		totalFailed += TestTodoScanner.run();
+		totalFailed += TestUserData.run();
 		totalFailed += TestVersionParsing.run();
 
 		Sys.println("");

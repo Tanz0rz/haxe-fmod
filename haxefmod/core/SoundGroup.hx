@@ -1,6 +1,7 @@
 package haxefmod.core;
 
 import haxefmod.studio.FmodResult;
+import haxefmod.studio.UserData;
 import haxefmod.studio.native.NativeStudio;
 
 /**
@@ -100,6 +101,22 @@ abstract SoundGroup(Int) from Int to Int {
      * sounds move back to the master group. Do not release the master.
      */
     public inline function release():FmodResult {
+        UserData.clear(UserDataKind.SoundGroup, this);
         return NativeStudio.sg_release(this);
+    }
+
+    /**
+     * Attaches a Haxe value to this handle. The value lives on the Haxe
+     * side keyed by the handle and is dropped when the handle is released.
+     * A recycled native slot gets a new generation and therefore a new
+     * handle int, so a stale entry never shows up on a later handle.
+     */
+    public inline function setUserData(value:Dynamic):Void {
+        UserData.set(UserDataKind.SoundGroup, this, value);
+    }
+
+    /** The value attached with setUserData, or null. */
+    public inline function getUserData():Dynamic {
+        return UserData.get(UserDataKind.SoundGroup, this);
     }
 }

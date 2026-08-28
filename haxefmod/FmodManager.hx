@@ -410,9 +410,10 @@ class FmodManager {
         return instance;
     }
 
-    /** Removes every registered callback (song, sounds, and core channels). */
+    /** Removes every registered callback (song, sounds, descriptions, and core channels). Userdata is left alone. */
     public static function ClearAllCallbacks():Void {
         CallbackDispatcher.clearAll();
+        haxefmod.studio.EventDescription.clearAllCallbacks();
         haxefmod.core.ChannelCallbacks.clearAll();
         haxefmod.studio.SystemCallbacks.clear();
     }
