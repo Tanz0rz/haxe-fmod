@@ -5,13 +5,13 @@ native/manifest/types.txt maps each FMOD type name to what haxefmod
 declares for it:
 
     FMOD_SPEAKER            haxefmod.studio.Types.FmodSpeaker
-    FMOD_CREATESOUNDEXINFO  library   Sound.create and Sound.fromPcm take its fields as arguments
     FMOD_SYSTEM_CALLBACK    cannot    runs on FMOD's threads, delivered through StudioSystem.setSystemCallback instead
 
-A line is the FMOD name, a Haxe type path or a category (`cannot`, the
-type cannot be bound from Haxe; `library`, the library owns the choice
-the type expresses; `covered`, another Haxe call or type plays its
-role), and for a category a reason. The examples generator turns a type
+A line is the FMOD name and a Haxe type path, or the FMOD name, the
+word `cannot`, and the reason the type cannot exist on the Haxe side
+(it is only ever touched on FMOD's threads, or it belongs to a platform
+the library does not ship for). Every other FMOD type has a Haxe
+declaration, the same fields and values under the same names. The examples generator turns a type
 definition on fmod.com into the Haxe declaration or a comment with the
 reason through this table, so the table is the single place that says
 how an FMOD type appears on the Haxe side.
@@ -44,7 +44,7 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TABLE = os.path.join(ROOT, "native", "manifest", "types.txt")
-CATEGORIES = ("cannot", "library", "covered")
+CATEGORIES = ("cannot",)
 
 
 def load_headers():

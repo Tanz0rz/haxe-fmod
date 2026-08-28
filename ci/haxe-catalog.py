@@ -26,10 +26,12 @@ the Haxe equivalent (a `Type:` line copies the declaration out of the
 sources, so a struct or enum shown on the page cannot drift from the
 library). `cannot`, `library`, and `covered` carry a reason and mean no
 Haxe code stands for the block, the reason is shown as a comment. A
-bound section may add `Shape: indices` (a parameter index enum shown as
-setParameter by index) or `Shape: usage` (a type with no declaration
-shown as the call that plays its role) to say on purpose that its fence
-is not a declaration.
+type definition (struct, enum, define block, callback typedef) accepts
+only `bound` with a `Type:` line or `cannot` with the reason it cannot
+exist on the Haxe side: every FMOD type the game can touch has a Haxe
+declaration with the same members. `library` and `covered` are for
+examples where the library performs the step or another call is the
+Haxe form of it.
 
 Function entries take their Haxe side from bindings-data.js and their
 notes from extension/functions.md, whose sections use the same format
@@ -42,7 +44,7 @@ The checks fail when:
   - a bound section has neither a fence nor a Type: line, or a Type:
     line names a type missing from the sources,
   - a type definition on the site (struct, enum, define, callback) has a
-    hand-written fence without a Shape: line,
+    hand-written fence, a Shape: line, or a library or covered verdict,
   - a bound Haxe declaration lacks a member the site's snippet declares
     (unless native/manifest/types.txt lists it after skip:),
   - a bound Haxe fence uses none of the Haxe methods that reach an FMOD
@@ -294,7 +296,7 @@ def declaration_members(code):
 
 # ---------------------------------------------------------------- output
 
-def resolve(section, problems, label):
+def resolve(section, problems, label, type_definition=False):
     """The record the extension shows for a section."""
     verdict = section["verdict"]
     if verdict is None or verdict == "":
@@ -303,6 +305,8 @@ def resolve(section, problems, label):
     if verdict in CATEGORIES:
         if not section["reason"]:
             problems.append(f"{label}: verdict {verdict} needs a reason")
+        if type_definition and verdict != "cannot":
+            problems.append(f"{label}: a type definition is declared in Haxe or cannot be, verdict {verdict} is not an answer")
         notes = [CATEGORY_TEXT[verdict] + " " + section["reason"]] + section["notes"]
         return {"verdict": verdict, "notes": notes, "code": None, "type": None}
     if verdict != "bound":
@@ -341,9 +345,10 @@ def strip_imports(record):
 
 def check_type_definition(entry, section, record, skips, problems, label):
     if section["shape"]:
+        problems.append(f"{label}: Shape: lines are not accepted, a type definition shows its Haxe declaration through a Type: line")
         return 0
     if section["type"] is None:
-        problems.append(f"{label}: a type definition on the site needs a Type: line, not a hand-written fence (or a Shape: line saying why)")
+        problems.append(f"{label}: a type definition on the site needs a Type: line, not a hand-written fence")
         return 0
     members = snippet_members(native_snippet(entry))
     if not members:
@@ -431,7 +436,7 @@ def build():
             if section is None:
                 problems.append(f"{label}: no section in extension/haxe/{page}.md")
                 continue
-            record = resolve(section, problems, label)
+            record = resolve(section, problems, label, is_type_definition(native_snippet(entry)))
             if record is None:
                 continue
             output.setdefault(page, {})[key] = strip_imports(record)
