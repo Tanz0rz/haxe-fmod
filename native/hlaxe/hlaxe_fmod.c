@@ -154,6 +154,15 @@ static FMOD_RESULT F_CALLBACK eventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type
                 }
                 ctx->psSound = sound;
             }
+            // The record carries the sound the instrument got, so the drain
+            // can hand it to the game as a handle: ptr is the FMOD_SOUND, i2
+            // the subsound index, i3 set when this shim created the sound
+            // (its handle is freed again when the destroy record drains)
+            if (props) {
+                ev.ptr = props->sound;
+                ev.i2 = props->subsoundIndex;
+                ev.i3 = (props->sound && props->sound == (FMOD_SOUND*)ctx->psSound) ? 1 : 0;
+            }
             break;
         }
         case FMOD_STUDIO_EVENT_CALLBACK_DESTROY_PROGRAMMER_SOUND: {
@@ -162,8 +171,14 @@ static FMOD_RESULT F_CALLBACK eventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type
             if (props && props->name) {
                 strncpy(ev.str, props->name, FAXE_CBQ_STR_MAX - 1);
             }
+            if (props) {
+                ev.ptr = props->sound;
+                ev.i2 = props->subsoundIndex;
+                ev.i3 = (props->sound && props->sound == (FMOD_SOUND*)ctx->psSound) ? 1 : 0;
+            }
             // Only a sound this shim created is released. A game-owned one
-            // stays with the game.
+            // stays with the game. The address in ev.ptr is only a lookup
+            // key for the drain, which never dereferences it.
             if (props && props->sound && props->sound == (FMOD_SOUND*)ctx->psSound) {
                 FMOD_Sound_Release(props->sound);
             }
@@ -3412,6 +3427,15 @@ HL_PRIM bool HL_NAME(cb_next)() {
     } else if (gCbCurrent.type == FMOD_STUDIO_EVENT_CALLBACK_PLUGIN_DESTROYED) {
         gCbCurrent.i1 = faxe_handle_find(gCbCurrent.ptr, FAXE_TYPE_DSP);
         if (gCbCurrent.i1) faxe_handle_free(gCbCurrent.i1);
+    } else if (gCbCurrent.type == FMOD_STUDIO_EVENT_CALLBACK_CREATE_PROGRAMMER_SOUND) {
+        /* Same for the programmer sound: a sound the game handed over finds
+         * its existing handle, one this shim created gets a fresh one */
+        gCbCurrent.i1 = faxe_handle_find_or_alloc(gCbCurrent.ptr, FAXE_TYPE_SOUND);
+    } else if (gCbCurrent.type == FMOD_STUDIO_EVENT_CALLBACK_DESTROY_PROGRAMMER_SOUND) {
+        gCbCurrent.i1 = faxe_handle_find(gCbCurrent.ptr, FAXE_TYPE_SOUND);
+        /* i3 marks a shim-created sound, released in the callback, whose
+         * handle ends here. A game-owned sound keeps its handle. */
+        if (gCbCurrent.i1 && gCbCurrent.i3) faxe_handle_free(gCbCurrent.i1);
     }
     gCbCurrent.ptr = NULL;
     return true;

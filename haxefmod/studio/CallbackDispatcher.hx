@@ -1,6 +1,7 @@
 package haxefmod.studio;
 
 import haxefmod.studio.Callbacks;
+import haxefmod.studio.Types;
 import haxefmod.studio.FmodResult;
 import haxefmod.studio.UserData;
 import haxefmod.studio.native.NativeStudio;
@@ -147,18 +148,23 @@ class CallbackDispatcher {
             case RESTARTED: Restarted;
             case STOPPED: Stopped;
             case START_FAILED: StartFailed;
-            case TIMELINE_MARKER: TimelineMarker(str, i1);
-            case TIMELINE_BEAT: TimelineBeat(i1, i2, i3, f1, i4, i5);
-            case NESTED_TIMELINE_BEAT: NestedTimelineBeat(i1, i2, i3, f1, i4, i5, str);
-            case PLUGIN_CREATED: PluginCreated(str, (i1 : haxefmod.core.Dsp));
-            case PLUGIN_DESTROYED: PluginDestroyed(str, (i1 : haxefmod.core.Dsp));
+            case TIMELINE_MARKER: TimelineMarker({name: str, position: i1});
+            case TIMELINE_BEAT: TimelineBeat(beatProperties(i1, i2, i3, i4, i5, f1));
+            case NESTED_TIMELINE_BEAT: NestedTimelineBeat({eventId: str, properties: beatProperties(i1, i2, i3, i4, i5, f1)});
+            case PLUGIN_CREATED: PluginCreated({name: str, dsp: (i1 : haxefmod.core.Dsp)});
+            case PLUGIN_DESTROYED: PluginDestroyed({name: str, dsp: (i1 : haxefmod.core.Dsp)});
             case SOUND_PLAYED: SoundPlayed;
             case SOUND_STOPPED: SoundStopped;
             case REAL_TO_VIRTUAL: RealToVirtual;
             case VIRTUAL_TO_REAL: VirtualToReal;
-            case CREATE_PROGRAMMER_SOUND: ProgrammerSoundCreated(str);
-            case DESTROY_PROGRAMMER_SOUND: ProgrammerSoundDestroyed(str);
+            // The drain writes the sound handle into i1 and the subsound index into i2
+            case CREATE_PROGRAMMER_SOUND: ProgrammerSoundCreated({name: str, sound: (i1 : haxefmod.core.Sound), subsoundIndex: i2});
+            case DESTROY_PROGRAMMER_SOUND: ProgrammerSoundDestroyed({name: str, sound: (i1 : haxefmod.core.Sound), subsoundIndex: i2});
             default: Other(type);
         }
+    }
+
+    static function beatProperties(bar:Int, beat:Int, position:Int, upper:Int, lower:Int, tempo:Float):FmodTimelineBeatProperties {
+        return {bar: bar, beat: beat, position: position, tempo: tempo, timeSignatureUpper: upper, timeSignatureLower: lower};
     }
 }

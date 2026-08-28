@@ -208,7 +208,7 @@ FMOD_SOUND_TYPE                                     haxefmod.studio.Types.FmodSo
 FMOD_SPEAKER                                        haxefmod.studio.Types.FmodSpeaker
 FMOD_SPEAKERMODE                                    haxefmod.studio.Types.FmodSpeakerMode
 FMOD_STUDIO_ADVANCEDSETTINGS                        haxefmod.studio.Types.FmodStudioAdvancedSettings   cbsize and the encryption key are init-time only skip: cbsize,encryptionkey
-FMOD_STUDIO_BANK_INFO                               library   user file callbacks are not exposed, StudioSystem.loadBankFile and loadBankMemory load banks
+FMOD_STUDIO_BANK_INFO                               haxefmod.studio.Types.FmodStudioBankInfo   the file callbacks run on FMOD's loading threads, no Haxe target can execute code there, so loadBankCustom cannot be bound skip: opencallback,closecallback,readcallback,seekcallback
 FMOD_STUDIO_BUFFER_INFO                             haxefmod.studio.Types.FmodBufferInfo
 FMOD_STUDIO_BUFFER_USAGE                            haxefmod.studio.Types.FmodBufferUsage
 FMOD_STUDIO_COMMANDCAPTURE_FLAGS                    haxefmod.studio.Types.FmodCommandCaptureFlags
@@ -232,15 +232,15 @@ FMOD_STUDIO_PARAMETER_FLAGS                         haxefmod.studio.Types.FmodPa
 FMOD_STUDIO_PARAMETER_ID                            haxefmod.studio.Types.FmodParameterId
 FMOD_STUDIO_PARAMETER_TYPE                          haxefmod.studio.Types.FmodParameterType
 FMOD_STUDIO_PLAYBACK_STATE                          haxefmod.studio.Types.FmodPlaybackState
-FMOD_STUDIO_PLUGIN_INSTANCE_PROPERTIES              covered   the arguments of haxefmod.studio.Callbacks.EventCallbackData.PluginCreated(name, dsp) and PluginDestroyed(name, dsp), the dsp is a haxefmod.core.Dsp handle
-FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES             library   the struct is filled natively, EventInstance.assignProgrammerSound(key), assignProgrammerSoundForName, or assignProgrammerSoundFrom(sound) before start() picks the sound, and setCallback reports ProgrammerSoundCreated(name) and ProgrammerSoundDestroyed(name)
+FMOD_STUDIO_PLUGIN_INSTANCE_PROPERTIES              haxefmod.studio.Types.FmodPluginInstanceProperties
+FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES             haxefmod.studio.Types.FmodProgrammerSoundProperties
 FMOD_STUDIO_SOUND_INFO                              haxefmod.studio.Types.FmodSoundInfo   name carries name_or_data and the exinfo fields FMOD fills are flattened into length, fileOffset, initialSubsound, and numSubsounds skip: name_or_data,exinfo
 FMOD_STUDIO_STOP_MODE                               haxefmod.studio.Types.FmodStopMode
 FMOD_STUDIO_SYSTEM_CALLBACK                         cannot   runs on FMOD's threads, StudioSystem.setSystemCallback delivers SystemEvent on the game thread instead
 FMOD_STUDIO_SYSTEM_CALLBACK_TYPE                    haxefmod.studio.Types.FmodStudioSystemCallbackType
-FMOD_STUDIO_TIMELINE_BEAT_PROPERTIES                covered   the arguments of haxefmod.studio.Callbacks.EventCallbackData.TimelineBeat
-FMOD_STUDIO_TIMELINE_MARKER_PROPERTIES              covered   the arguments of haxefmod.studio.Callbacks.EventCallbackData.TimelineMarker
-FMOD_STUDIO_TIMELINE_NESTED_BEAT_PROPERTIES         covered   the arguments of haxefmod.studio.Callbacks.EventCallbackData.NestedTimelineBeat, eventId is the GUID FMOD reports for the referenced timeline
+FMOD_STUDIO_TIMELINE_BEAT_PROPERTIES                haxefmod.studio.Types.FmodTimelineBeatProperties
+FMOD_STUDIO_TIMELINE_MARKER_PROPERTIES              haxefmod.studio.Types.FmodTimelineMarkerProperties
+FMOD_STUDIO_TIMELINE_NESTED_BEAT_PROPERTIES         haxefmod.studio.Types.FmodTimelineNestedBeatProperties
 FMOD_STUDIO_USER_PROPERTY                           haxefmod.studio.Types.FmodUserProperty   the union is folded, floatValue carries integer and boolean properties too skip: intvalue,boolvalue
 FMOD_STUDIO_USER_PROPERTY_TYPE                      haxefmod.studio.Types.FmodUserPropertyType
 FMOD_SYSTEM_CALLBACK                                cannot   runs on FMOD's threads, StudioSystem.setSystemCallback delivers SystemEvent on the game thread instead

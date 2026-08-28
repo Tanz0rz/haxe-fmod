@@ -1393,6 +1393,7 @@ class ApiProbeState extends FlxState {
     var _remintInstance:EventInstance = EventInstance.NULL;
     var _remintBaseline:Int = 0;
     var _remintBeats:Int = 0;
+    var _remintBeatPropertiesOk:Bool = false;
     var _remintFrames:Int = 0;
     var _waitingForRemint:Bool = false;
     var _transitionFrames:Int = 0;
@@ -1473,7 +1474,10 @@ class ApiProbeState extends FlxState {
             'old=${(original : Int)} new=${(_remintInstance : Int)}');
         _remintInstance.setCallback(function(data) {
             switch (data) {
-                case TimelineBeat(_, _, _, _, _, _): _remintBeats++;
+                case TimelineBeat(properties):
+                    _remintBeats++;
+                    if (properties.tempo > 0 && properties.timeSignatureUpper > 0
+                        && properties.timeSignatureLower > 0 && properties.bar > 0) _remintBeatPropertiesOk = true;
                 default:
             }
         });
@@ -1483,6 +1487,7 @@ class ApiProbeState extends FlxState {
     function finishRemintCallbacks():Void {
         check("remint_beats_delivered", _remintBeats > 0,
             'beats=$_remintBeats frames=$_remintFrames');
+        check("remint_beat_properties_filled", _remintBeatPropertiesOk, 'beats=$_remintBeats');
         if (!_remintInstance.isNull()) {
             _remintInstance.stop(FmodStopMode.IMMEDIATE);
             _remintInstance.release();

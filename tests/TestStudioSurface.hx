@@ -272,14 +272,26 @@ class TestStudioSurface {
 		assert(!instance.assignProgrammerSounds(["A" => "x"]).isOk(), "assignProgrammerSounds stops at the stub's failure");
 		assert(stub.testLastPsNamed != null && stub.testLastPsNamed[0] == "A", "assignProgrammerSounds visits the entry");
 
-		// The programmer sound callbacks decode with the instrument name
-		switch (CallbackDispatcher.decode(EventCallbackType.CREATE_PROGRAMMER_SOUND, 0, 0, 0, 0, 0, 0, "Line")) {
-			case ProgrammerSoundCreated(name): assert(name == "Line", "create decodes the instrument name");
+		// The programmer sound callbacks decode into the properties struct:
+		// the drain writes the sound handle into i1 and the subsound into i2
+		switch (CallbackDispatcher.decode(EventCallbackType.CREATE_PROGRAMMER_SOUND, 0x20003, 4, 0, 0, 0, 0, "Line")) {
+			case ProgrammerSoundCreated(properties):
+				assert(properties.name == "Line", "create decodes the instrument name");
+				assert((properties.sound : Int) == 0x20003, "create decodes the sound handle");
+				assert(properties.subsoundIndex == 4, "create decodes the subsound index");
 			default: assert(false, "create decodes to ProgrammerSoundCreated");
 		}
-		switch (CallbackDispatcher.decode(EventCallbackType.DESTROY_PROGRAMMER_SOUND, 0, 0, 0, 0, 0, 0, "Line")) {
-			case ProgrammerSoundDestroyed(name): assert(name == "Line", "destroy decodes the instrument name");
+		switch (CallbackDispatcher.decode(EventCallbackType.DESTROY_PROGRAMMER_SOUND, 0x20003, -1, 0, 0, 0, 0, "Line")) {
+			case ProgrammerSoundDestroyed(properties):
+				assert(properties.name == "Line", "destroy decodes the instrument name");
+				assert((properties.sound : Int) == 0x20003, "destroy decodes the same sound handle");
+				assert(properties.subsoundIndex == -1, "destroy decodes the subsound index");
 			default: assert(false, "destroy decodes to ProgrammerSoundDestroyed");
+		}
+		// No assignment matched: the sound is null and the game sees that
+		switch (CallbackDispatcher.decode(EventCallbackType.CREATE_PROGRAMMER_SOUND, 0, -1, 0, 0, 0, 0, "Line")) {
+			case ProgrammerSoundCreated(properties): assert(properties.sound.isNull(), "an unresolved sound decodes as null");
+			default: assert(false, "unresolved create decodes to ProgrammerSoundCreated");
 		}
 	}
 

@@ -120,7 +120,7 @@ public function StartEngine():Void {
 public function OnBeat():Void {
     // Typed callbacks with payloads
     FmodManager.OnSongEvent(data -> switch (data) {
-        case TimelineBeat(bar, beat, _, _, _, _): pulseUI(bar, beat);
+        case TimelineBeat(beat): pulseUI(beat.bar, beat.beat);
         default:
     });
 }

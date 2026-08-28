@@ -9701,7 +9701,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "Studio::System::loadBankCustom",
    "html5": false,
    "notes": [
-    "Cannot be bound. A custom file system is a set of callbacks that FMOD runs on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile and loadBankMemory are the bank paths, and Sound.create and Sound.fromPcm are the sound paths."
+    "Cannot be bound. FMOD_STUDIO_BANK_INFO is declared as haxefmod.studio.Types.FmodStudioBankInfo (size, userData, userDataLength), but the load itself needs the four file callbacks the struct carries, and FMOD runs those on its streaming and loading threads, where no Haxe target can execute code. StudioSystem.loadBankFile and loadBankMemory are the bank paths, and Sound.create and Sound.fromPcm are the sound paths."
    ]
   },
   "studio_system_loadbankfile": {
@@ -14932,11 +14932,11 @@ const HAXEFMOD_EXAMPLES = {
  },
  "studio-api-eventinstance": {
   "FMOD_STUDIO_EVENT_CALLBACK": {
-   "code": "instance.setCallback(function(data:EventCallbackData) {\n    switch (data) {\n        case Started: trace(\"started\");\n        case Stopped: trace(\"stopped\");\n        case TimelineMarker(name, positionMs): trace(\"marker \" + name + \" at \" + positionMs);\n        case TimelineBeat(bar, beat, positionMs, tempo, timeSigUpper, timeSigLower): trace(\"beat \" + bar + \":\" + beat);\n        default:\n    }\n}, EventCallbackType.STARTED | EventCallbackType.STOPPED | EventCallbackType.TIMELINE_MARKER | EventCallbackType.TIMELINE_BEAT);\ninstance.start();",
+   "code": "instance.setCallback(function(data:EventCallbackData) {\n    switch (data) {\n        case Started: trace(\"started\");\n        case Stopped: trace(\"stopped\");\n        case TimelineMarker(marker): trace(\"marker \" + marker.name + \" at \" + marker.position);\n        case TimelineBeat(beat): trace(\"beat \" + beat.bar + \":\" + beat.beat);\n        default:\n    }\n}, EventCallbackType.STARTED | EventCallbackType.STOPPED | EventCallbackType.TIMELINE_MARKER | EventCallbackType.TIMELINE_BEAT);\ninstance.start();",
    "notes": [
     "The handler is a Haxe function that receives an EventCallbackData value. Without a mask it receives EventCallbackType.PLAYBACK_ALL, the lifecycle, timeline, sound, and virtual types, so programmer sound, plugin, and command types need an explicit mask. DESTROYED is always added so the registration cleans itself up.",
     "FMOD raises the callback on its own thread. haxefmod queues it and delivers it on the game thread from FmodManager.Update, so the handler may touch game state.",
-    "No return value and no userdata. The handle itself identifies the instance, and the payload comes as constructor arguments."
+    "No return value and no userdata. The handle itself identifies the instance, and the payload is the FMOD struct of the callback type as the constructor's argument."
    ],
    "type": "haxefmod.studio.Callbacks",
    "verdict": "bound"
@@ -14954,20 +14954,15 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "FMOD_STUDIO_PLUGIN_INSTANCE_PROPERTIES": {
-   "code": null,
-   "notes": [
-    "No Haxe declaration, another call plays this role. the arguments of haxefmod.studio.Callbacks.EventCallbackData.PluginCreated(name, dsp) and PluginDestroyed(name, dsp). dsp is a haxefmod.core.Dsp handle, live until the destroyed callback delivers it again for matching"
-   ],
-   "type": null,
-   "verdict": "covered"
+   "code": "/**\n * FMOD_STUDIO_PLUGIN_INSTANCE_PROPERTIES, the payload of\n * EventCallbackData.PluginCreated and PluginDestroyed. dsp is the plugin\n * effect, live until PluginDestroyed delivers it again for matching.\n */\ntypedef FmodPluginInstanceProperties = {\n    var name:String;\n    var dsp:haxefmod.core.Dsp;\n}",
+   "notes": [],
+   "type": "haxefmod.studio.Types.FmodPluginInstanceProperties",
+   "verdict": "bound"
   },
   "FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES": {
-   "code": "var sound = Sound.create(\"assets/voice/line01.ogg\");\ninstance.assignProgrammerSoundFrom(sound, -1);\ninstance.setCallback(function(data:EventCallbackData) {\n    switch (data) {\n        case ProgrammerSoundCreated(name): trace(\"instrument \" + name + \" took the sound\");\n        case ProgrammerSoundDestroyed(name): sound.release();\n        default:\n    }\n}, EventCallbackType.CREATE_PROGRAMMER_SOUND | EventCallbackType.DESTROY_PROGRAMMER_SOUND);\ninstance.start();",
-   "notes": [
-    "The native shim fills the struct on FMOD's thread from what the game assigned before start(). sound and subsoundIndex come from assignProgrammerSoundFrom, or from the audio table key given to assignProgrammerSound or assignProgrammerSoundForName(name, key). name reaches the game as the argument of ProgrammerSoundCreated and ProgrammerSoundDestroyed.",
-    "The game keeps ownership of a sound it hands over and releases it after ProgrammerSoundDestroyed. Unsupported in HTML5."
-   ],
-   "type": "haxefmod.core.Sound, haxefmod.studio.Callbacks",
+   "code": "/**\n * FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES, the payload of\n * EventCallbackData.ProgrammerSoundCreated and ProgrammerSoundDestroyed.\n * name is the instrument's name in FMOD Studio, sound the Sound the\n * instrument plays (the one the game handed to assignProgrammerSoundFrom,\n * or the one the library created for the assigned key, released after\n * ProgrammerSoundDestroyed), and subsoundIndex the subsound inside it, -1\n * for the whole sound. sound is null when no assignment matched.\n */\ntypedef FmodProgrammerSoundProperties = {\n    var name:String;\n    var sound:haxefmod.core.Sound;\n    var subsoundIndex:Int;\n}",
+   "notes": [],
+   "type": "haxefmod.studio.Types.FmodProgrammerSoundProperties",
    "verdict": "bound"
   },
   "FMOD_STUDIO_STOP_MODE": {
@@ -14977,28 +14972,22 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "FMOD_STUDIO_TIMELINE_BEAT_PROPERTIES": {
-   "code": null,
-   "notes": [
-    "No Haxe declaration, another call plays this role. the arguments of haxefmod.studio.Callbacks.EventCallbackData.TimelineBeat(bar, beat, positionMs, tempo, timeSigUpper, timeSigLower)"
-   ],
-   "type": null,
-   "verdict": "covered"
+   "code": "/**\n * FMOD_STUDIO_TIMELINE_BEAT_PROPERTIES, the payload of\n * EventCallbackData.TimelineBeat. position is in milliseconds.\n */\ntypedef FmodTimelineBeatProperties = {\n    var bar:Int;\n    var beat:Int;\n    var position:Int;\n    var tempo:Float;\n    var timeSignatureUpper:Int;\n    var timeSignatureLower:Int;\n}",
+   "notes": [],
+   "type": "haxefmod.studio.Types.FmodTimelineBeatProperties",
+   "verdict": "bound"
   },
   "FMOD_STUDIO_TIMELINE_MARKER_PROPERTIES": {
-   "code": null,
-   "notes": [
-    "No Haxe declaration, another call plays this role. the arguments of haxefmod.studio.Callbacks.EventCallbackData.TimelineMarker(name, positionMs)"
-   ],
-   "type": null,
-   "verdict": "covered"
+   "code": "/**\n * FMOD_STUDIO_TIMELINE_MARKER_PROPERTIES, the payload of\n * EventCallbackData.TimelineMarker. position is in milliseconds.\n */\ntypedef FmodTimelineMarkerProperties = {\n    var name:String;\n    var position:Int;\n}",
+   "notes": [],
+   "type": "haxefmod.studio.Types.FmodTimelineMarkerProperties",
+   "verdict": "bound"
   },
   "FMOD_STUDIO_TIMELINE_NESTED_BEAT_PROPERTIES": {
-   "code": null,
-   "notes": [
-    "No Haxe declaration, another call plays this role. the arguments of haxefmod.studio.Callbacks.EventCallbackData.NestedTimelineBeat(bar, beat, positionMs, tempo, timeSigUpper, timeSigLower, eventId), eventId is the GUID FMOD reports for the referenced timeline, in FMOD's text form (empty in HTML5, the web runtime hands the beat over without it)"
-   ],
-   "type": null,
-   "verdict": "covered"
+   "code": "/**\n * FMOD_STUDIO_TIMELINE_NESTED_BEAT_PROPERTIES, the payload of\n * EventCallbackData.NestedTimelineBeat. eventId is the GUID of the\n * referenced event in FMOD's text form, empty in HTML5 where the web\n * runtime hands the beat over without it.\n */\ntypedef FmodTimelineNestedBeatProperties = {\n    var eventId:String;\n    var properties:FmodTimelineBeatProperties;\n}",
+   "notes": [],
+   "type": "haxefmod.studio.Types.FmodTimelineNestedBeatProperties",
+   "verdict": "bound"
   }
  },
  "studio-api-getting-started": {
@@ -15022,12 +15011,10 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "FMOD_STUDIO_BANK_INFO": {
-   "code": null,
-   "notes": [
-    "No Haxe declaration, the library owns this choice. the file callbacks it carries would run on FMOD's loading threads, StudioSystem.loadBankFile and loadBankMemory are the bank loading paths"
-   ],
-   "type": null,
-   "verdict": "library"
+   "code": "/**\n * FMOD_STUDIO_BANK_INFO, the description a custom bank load takes. size is\n * the struct size FMOD checks, userData and userDataLength the bytes FMOD\n * hands to the file callbacks. The four file callbacks (open, close, read,\n * seek) are left out because FMOD runs them on its loading threads, where\n * no Haxe target can execute code, so StudioSystem.loadBankCustom cannot\n * be bound and loadBankFile and loadBankMemory are the bank loading paths.\n */\ntypedef FmodStudioBankInfo = {\n    var size:Int;\n    var userData:haxe.io.Bytes;\n    var userDataLength:Int;\n}",
+   "notes": [],
+   "type": "haxefmod.studio.Types.FmodStudioBankInfo",
+   "verdict": "bound"
   },
   "FMOD_STUDIO_BUFFER_INFO": {
    "code": "/** One internal buffer's usage (FMOD_STUDIO_BUFFER_INFO) */\ntypedef FmodBufferInfo = {\n    var currentUsage:Int;\n    var peakUsage:Int;\n    var capacity:Int;\n    var stallCount:Int;\n    var stallTime:Float;\n}",
@@ -15132,19 +15119,19 @@ const HAXEFMOD_EXAMPLES = {
  },
  "studio-guide": {
   "13.9.1 Scripting Example": {
-   "code": null,
+   "code": "class ProgrammerSoundContext {\n    public var coreSystem:Class<CoreSystem>;\n    public var system:Class<StudioSystem>;\n    public var dialogueString:String;\n    public function new() {}\n}\n\nvar programmerSoundContext = new ProgrammerSoundContext();\nprogrammerSoundContext.system = StudioSystem;\nprogrammerSoundContext.coreSystem = CoreSystem;",
    "notes": [
-    "No Haxe declaration, another call plays this role. No context struct is needed. The core and studio systems are global (CoreSystem, StudioSystem) and the dialogue key is stored on the instance by EventInstance.assignProgrammerSound."
+    "The core and studio systems are the static classes CoreSystem and StudioSystem in haxefmod, so the context carries them as the classes themselves next to the dialogue string. The string is what assignProgrammerSound stores on the instance in the next block."
    ],
-   "type": null,
-   "verdict": "covered"
+   "type": "haxefmod.core.CoreSystem, haxefmod.studio.StudioSystem",
+   "verdict": "bound"
   },
   "13.9.1 Scripting Example#2": {
    "code": "var eventInstance = StudioSystem.getEvent(\"event:/Character/Dialogue\").createInstance();\nvar result = eventInstance.assignProgrammerSound(\"welcome\");\nif (result != FmodResult.FMOD_OK) trace(\"assignProgrammerSound failed: \" + result);",
    "notes": [
     "Native only (unsupported in HTML5).",
     "The create and destroy programmer sound callbacks are implemented natively. Assigning a key to the instance stands in for both the user data and the callback registration, the native side keeps the key itself.",
-    "EventInstance.setUserData and getUserData stay free for the game's own values, and setCallback still delivers ProgrammerSoundCreated(name) and ProgrammerSoundDestroyed(name)."
+    "EventInstance.setUserData and getUserData stay free for the game's own values, and setCallback still delivers ProgrammerSoundCreated(properties) and ProgrammerSoundDestroyed(properties) with the instrument name, the sound, and the subsound index."
    ],
    "type": "haxefmod.studio.FmodResult",
    "verdict": "bound"
@@ -15161,7 +15148,7 @@ const HAXEFMOD_EXAMPLES = {
   "13.9.1 Scripting Example#4": {
    "code": null,
    "notes": [
-    "No Haxe declaration, the library owns this choice. The programmer sound callback runs on FMOD's thread and is implemented once natively for every instance that has an assignment. EventInstance.setCallback delivers ProgrammerSoundCreated(name) and ProgrammerSoundDestroyed(name) on the game thread with the instrument's name, for observation and cleanup. An event with several programmer instruments assigns one key per instrument name with assignProgrammerSoundForName or assignProgrammerSounds."
+    "No Haxe declaration, the library owns this choice. The programmer sound callback runs on FMOD's thread and is implemented once natively for every instance that has an assignment. EventInstance.setCallback delivers ProgrammerSoundCreated(properties) and ProgrammerSoundDestroyed(properties) on the game thread with the FmodProgrammerSoundProperties FMOD filled (instrument name, sound, subsound index), for observation and cleanup. An event with several programmer instruments assigns one key per instrument name with assignProgrammerSoundForName or assignProgrammerSounds."
    ],
    "type": null,
    "verdict": "library"

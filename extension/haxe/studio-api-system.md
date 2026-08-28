@@ -6,7 +6,8 @@ Type: haxefmod.studio.Types.FmodStudioAdvancedSettings
 Set through the FmodSettings fields of the same names before init, encryptionKey included. StudioSystem.getStudioAdvancedSettings reads the five sizes back, native only (unsupported in HTML5). The key is never read back.
 
 ## FMOD_STUDIO_BANK_INFO
-verdict: library the file callbacks it carries would run on FMOD's loading threads, StudioSystem.loadBankFile and loadBankMemory are the bank loading paths
+verdict: bound
+Type: haxefmod.studio.Types.FmodStudioBankInfo
 
 ## FMOD_STUDIO_BUFFER_INFO
 verdict: bound

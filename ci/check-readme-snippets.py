@@ -52,6 +52,7 @@ class Snippet{index} {{
 {body}
     }}
 }}
+{types}
 """
 
 FLIXEL_MEMBERS = """    static var car:flixel.FlxObject;
@@ -95,12 +96,15 @@ def extract_fences(text):
 
 def split_snippet(code):
     """The leading run of imports (comments, blanks, and #if guards
-    included) moves to the file header. A body that starts with a
-    function definition compiles as class members, everything else as
+    included) moves to the file header. Class and typedef declarations at
+    column zero become extra types of the module. A body that starts with
+    a function definition compiles as class members, everything else as
     statements (local functions are legal inside them)."""
     header = []
     rest = []
+    types = []
     in_header = True
+    in_type = False
     for line in code.splitlines():
         stripped = line.strip()
         header_shaped = (stripped == "" or stripped.startswith("//")
@@ -109,13 +113,22 @@ def split_snippet(code):
         if in_header and header_shaped:
             if not stripped.startswith("//"):
                 header.append(stripped)
+            continue
+        in_header = False
+        if not in_type and re.match(r"(class|typedef|enum|interface)\s", line):
+            in_type = True
+        if in_type:
+            types.append(line)
+            # a declaration ends at its closing brace on column zero
+            if line == "}" or (line.startswith("typedef") and line.rstrip().endswith(";")):
+                in_type = False
         else:
-            in_header = False
             rest.append(line)
     body = "\n".join(rest).strip("\n")
+    types = "\n".join(types)
     if re.match(r"\s*(public\s+|override\s+)*function\s", body):
-        return header, body, ""
-    return header, "", body
+        return header, body, "", types
+    return header, "", body, types
 
 
 def indent(code, depth):
@@ -160,7 +173,7 @@ def main():
             with open(os.path.join(flixel_dir, name), "w", encoding="utf-8") as out:
                 out.write(content)
         for index, (doc_name, doc_index, fence) in enumerate(fences):
-            header, members, statements = split_snippet(fence.strip())
+            header, members, statements, types = split_snippet(fence.strip())
             uses_flixel = "flixel" in fence
             # Duplicate scaffold imports are legal in Haxe, keep them all
             source = SCAFFOLD.format(
@@ -168,7 +181,8 @@ def main():
                 imports="\n".join(header),
                 flixel_members=FLIXEL_MEMBERS if uses_flixel else "",
                 members=indent(members, 4),
-                body=indent(statements, 8))
+                body=indent(statements, 8),
+                types=types)
             path = os.path.join(workdir, f"Snippet{index}.hx")
             with open(path, "w", encoding="utf-8") as out:
                 out.write(source)

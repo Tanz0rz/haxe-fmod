@@ -94,18 +94,19 @@ class BeatTestState extends FlxState {
         FmodManager.OnSongEvent(data -> {
             _eventCount++;
             switch (data) {
-                case TimelineMarker(name, positionMs):
-                    log('CB_TEST: TimelineMarker name=$name position=$positionMs');
-                    if (name == "ProbeMarker") {
+                case TimelineMarker(marker):
+                    log('CB_TEST: TimelineMarker name=${marker.name} position=${marker.position}');
+                    if (marker.name == "ProbeMarker") {
                         _markerSeen = true;
-                        _markerPosition = positionMs;
+                        _markerPosition = marker.position;
                     }
-                case TimelineBeat(bar, beat, positionMs, tempo, timeSigUpper, timeSigLower):
-                    log('CB_TEST: TimelineBeat bar=$bar beat=$beat position=$positionMs tempo=$tempo timeSig=$timeSigUpper/$timeSigLower');
+                case TimelineBeat(beat):
+                    log('CB_TEST: TimelineBeat bar=${beat.bar} beat=${beat.beat} position=${beat.position} tempo=${beat.tempo} timeSig=${beat.timeSignatureUpper}/${beat.timeSignatureLower}');
                     _beatSeen = true;
-                    if (timeSigUpper > 0 && timeSigLower > 0) _beatTimeSigOk = true;
-                case NestedTimelineBeat(bar, beat, positionMs, tempo, timeSigUpper, timeSigLower, eventId):
-                    log('CB_TEST: NestedTimelineBeat bar=$bar beat=$beat position=$positionMs tempo=$tempo timeSig=$timeSigUpper/$timeSigLower eventId=$eventId');
+                    if (beat.timeSignatureUpper > 0 && beat.timeSignatureLower > 0) _beatTimeSigOk = true;
+                case NestedTimelineBeat(nested):
+                    var beat = nested.properties;
+                    log('CB_TEST: NestedTimelineBeat bar=${beat.bar} beat=${beat.beat} position=${beat.position} tempo=${beat.tempo} timeSig=${beat.timeSignatureUpper}/${beat.timeSignatureLower} eventId=${nested.eventId}');
                 case Stopped:
                     log("CB_TEST: Stopped");
                     _stoppedReceived = true;
@@ -175,11 +176,12 @@ class BeatTestState extends FlxState {
         // test (a browser glue can misroute them)
         _nestedInstance.setCallback(data -> {
             switch (data) {
-                case NestedTimelineBeat(bar, beat, positionMs, tempo, timeSigUpper, timeSigLower, eventId):
-                    log('CB_TEST: nested-phase NestedTimelineBeat bar=$bar beat=$beat position=$positionMs tempo=$tempo timeSig=$timeSigUpper/$timeSigLower eventId=$eventId');
+                case NestedTimelineBeat(nested):
+                    var beat = nested.properties;
+                    log('CB_TEST: nested-phase NestedTimelineBeat bar=${beat.bar} beat=${beat.beat} position=${beat.position} tempo=${beat.tempo} timeSig=${beat.timeSignatureUpper}/${beat.timeSignatureLower} eventId=${nested.eventId}');
                     _nestedBeats++;
-                    if (tempo > 0 && timeSigUpper > 0 && timeSigLower > 0) _nestedTempoOk = true;
-                    _nestedEventId = eventId;
+                    if (beat.tempo > 0 && beat.timeSignatureUpper > 0 && beat.timeSignatureLower > 0) _nestedTempoOk = true;
+                    _nestedEventId = nested.eventId;
                 case other:
                     log('CB_TEST: nested-phase $other');
             }

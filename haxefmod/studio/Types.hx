@@ -224,6 +224,78 @@ typedef FmodUserProperty = {
     var stringValue:String;
 }
 
+/**
+ * FMOD_STUDIO_TIMELINE_BEAT_PROPERTIES, the payload of
+ * EventCallbackData.TimelineBeat. position is in milliseconds.
+ */
+typedef FmodTimelineBeatProperties = {
+    var bar:Int;
+    var beat:Int;
+    var position:Int;
+    var tempo:Float;
+    var timeSignatureUpper:Int;
+    var timeSignatureLower:Int;
+}
+
+/**
+ * FMOD_STUDIO_TIMELINE_MARKER_PROPERTIES, the payload of
+ * EventCallbackData.TimelineMarker. position is in milliseconds.
+ */
+typedef FmodTimelineMarkerProperties = {
+    var name:String;
+    var position:Int;
+}
+
+/**
+ * FMOD_STUDIO_TIMELINE_NESTED_BEAT_PROPERTIES, the payload of
+ * EventCallbackData.NestedTimelineBeat. eventId is the GUID of the
+ * referenced event in FMOD's text form, empty in HTML5 where the web
+ * runtime hands the beat over without it.
+ */
+typedef FmodTimelineNestedBeatProperties = {
+    var eventId:String;
+    var properties:FmodTimelineBeatProperties;
+}
+
+/**
+ * FMOD_STUDIO_PLUGIN_INSTANCE_PROPERTIES, the payload of
+ * EventCallbackData.PluginCreated and PluginDestroyed. dsp is the plugin
+ * effect, live until PluginDestroyed delivers it again for matching.
+ */
+typedef FmodPluginInstanceProperties = {
+    var name:String;
+    var dsp:haxefmod.core.Dsp;
+}
+
+/**
+ * FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES, the payload of
+ * EventCallbackData.ProgrammerSoundCreated and ProgrammerSoundDestroyed.
+ * name is the instrument's name in FMOD Studio, sound the Sound the
+ * instrument plays (the one the game handed to assignProgrammerSoundFrom,
+ * or the one the library created for the assigned key, released after
+ * ProgrammerSoundDestroyed), and subsoundIndex the subsound inside it, -1
+ * for the whole sound. sound is null when no assignment matched.
+ */
+typedef FmodProgrammerSoundProperties = {
+    var name:String;
+    var sound:haxefmod.core.Sound;
+    var subsoundIndex:Int;
+}
+
+/**
+ * FMOD_STUDIO_BANK_INFO, the description a custom bank load takes. size is
+ * the struct size FMOD checks, userData and userDataLength the bytes FMOD
+ * hands to the file callbacks. The four file callbacks (open, close, read,
+ * seek) are left out because FMOD runs them on its loading threads, where
+ * no Haxe target can execute code, so StudioSystem.loadBankCustom cannot
+ * be bound and loadBankFile and loadBankMemory are the bank loading paths.
+ */
+typedef FmodStudioBankInfo = {
+    var size:Int;
+    var userData:haxe.io.Bytes;
+    var userDataLength:Int;
+}
+
 /** FMOD_STUDIO_LOAD_BANK_FLAGS bits, the flags StudioSystem.loadBankFile and loadBankMemory take. */
 enum abstract FmodLoadBankFlags(Int) from Int to Int {
     var NORMAL = 0;

@@ -43,6 +43,10 @@
  *                    event in FMOD's text form
  *   PLUGIN_CREATED / PLUGIN_DESTROYED: str = plugin name, ptr = the FMOD_DSP
  *                    (the drain turns it into a handle, see below)
+ *   CREATE_PROGRAMMER_SOUND / DESTROY_PROGRAMMER_SOUND: str = instrument
+ *                    name, ptr = the FMOD_SOUND the instrument plays,
+ *                    i2 = subsound index, i3 = 1 when the shim created the
+ *                    sound (the drain frees its handle on destroy)
  *   others:          only handle + type
  *
  * opaque carries a native payload across the thread boundary (the DESTROYED

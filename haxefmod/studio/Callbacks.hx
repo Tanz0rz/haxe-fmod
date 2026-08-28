@@ -1,5 +1,7 @@
 package haxefmod.studio;
 
+import haxefmod.studio.Types;
+
 /**
  * FMOD_STUDIO_EVENT_CALLBACK_* bits, pinned to FMOD 2.03.12.
  * Combine with | to build masks for callback registration.
@@ -44,28 +46,42 @@ enum EventCallbackData {
     Restarted;
     Stopped;
     StartFailed;
-    TimelineMarker(name:String, positionMs:Int);
-    TimelineBeat(bar:Int, beat:Int, positionMs:Int, tempo:Float, timeSigUpper:Int, timeSigLower:Int);
-    /** A beat on a referenced event's timeline. eventId is the GUID FMOD reports for that timeline, in FMOD's text form. */
-    NestedTimelineBeat(bar:Int, beat:Int, positionMs:Int, tempo:Float, timeSigUpper:Int, timeSigLower:Int, eventId:String);
+    /** A marker on the timeline, with its name and position (FMOD_STUDIO_TIMELINE_MARKER_PROPERTIES). */
+    TimelineMarker(properties:FmodTimelineMarkerProperties);
+    /** A beat on the timeline (FMOD_STUDIO_TIMELINE_BEAT_PROPERTIES). */
+    TimelineBeat(properties:FmodTimelineBeatProperties);
+    /**
+     * A beat on a referenced event's timeline (FMOD_STUDIO_TIMELINE_NESTED_BEAT_PROPERTIES).
+     * properties.eventId is the GUID FMOD reports for that timeline, in FMOD's text form.
+     */
+    NestedTimelineBeat(properties:FmodTimelineNestedBeatProperties);
     SoundPlayed;
     SoundStopped;
     RealToVirtual;
     VirtualToReal;
-    /** A programmer instrument asked for its sound. name is the instrument's name in FMOD Studio. */
-    ProgrammerSoundCreated(name:String);
-    /** A programmer instrument finished with its sound. */
-    ProgrammerSoundDestroyed(name:String);
     /**
-     * A plugin effect on the instance was created. dsp is the effect unit,
-     * valid until PluginDestroyed arrives for it.
+     * A programmer instrument received its sound (FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES).
+     * properties.name is the instrument's name in FMOD Studio, properties.sound
+     * the Sound it plays and properties.subsoundIndex the subsound inside it.
      */
-    PluginCreated(name:String, dsp:haxefmod.core.Dsp);
+    ProgrammerSoundCreated(properties:FmodProgrammerSoundProperties);
     /**
-     * A plugin effect on the instance is gone. dsp carries the same handle
-     * PluginCreated delivered, for matching, and no longer resolves.
+     * A programmer instrument finished with its sound. properties.sound
+     * carries the same handle ProgrammerSoundCreated delivered, for
+     * matching. A sound the library created no longer resolves after this,
+     * one the game handed over stays the game's.
      */
-    PluginDestroyed(name:String, dsp:haxefmod.core.Dsp);
+    ProgrammerSoundDestroyed(properties:FmodProgrammerSoundProperties);
+    /**
+     * A plugin effect on the instance was created (FMOD_STUDIO_PLUGIN_INSTANCE_PROPERTIES).
+     * properties.dsp is the effect unit, valid until PluginDestroyed arrives for it.
+     */
+    PluginCreated(properties:FmodPluginInstanceProperties);
+    /**
+     * A plugin effect on the instance is gone. properties.dsp carries the
+     * same handle PluginCreated delivered, for matching, and no longer resolves.
+     */
+    PluginDestroyed(properties:FmodPluginInstanceProperties);
     /** A callback type without a dedicated constructor. */
     Other(type:EventCallbackType);
 }

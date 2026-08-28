@@ -40,8 +40,8 @@ Parameters on the song use `SetEventParameterOnSong(name, value)` and `GetEventP
 
 ```haxe
 FmodManager.OnSongEvent(data -> switch (data) {
-    case TimelineBeat(bar, beat, _, _, _, _): pulseUI(bar, beat);
-    case TimelineMarker(name, _): trace('marker $name');
+    case TimelineBeat(beat): pulseUI(beat.bar, beat.beat);
+    case TimelineMarker(marker): trace('marker ${marker.name}');
     default:
 });
 ```

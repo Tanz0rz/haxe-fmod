@@ -38,7 +38,7 @@ haxefmod 2.0 is a clean break: the string-based sound IDs and bitmask polling ca
 | `RegisterEventListener(listener)` | `OnSongEvent` / `sound.onEvent` |
 | `FmodCallback` bitmask constants | `haxefmod.studio.Callbacks.EventCallbackType` |
 
-Callbacks now carry payloads: `TimelineBeat(bar, beat, positionMs, tempo, timeSigUpper, timeSigLower)`, `TimelineMarker(name, positionMs)`, `Stopped`, and the rest of the playback lifecycle. Handlers fire once per event (1.x coalesced repeats into one poll per frame) and replace the previous handler for the same instance when registered again.
+Callbacks now carry payloads: `TimelineBeat(properties)` with an `FmodTimelineBeatProperties` (`bar`, `beat`, `position`, `tempo`, `timeSignatureUpper`, `timeSignatureLower`), `TimelineMarker(properties)` with an `FmodTimelineMarkerProperties` (`name`, `position`), `Stopped`, and the rest of the playback lifecycle. Handlers fire once per event (1.x coalesced repeats into one poll per frame) and replace the previous handler for the same instance when registered again.
 
 ### Coming from flixel-fmod
 

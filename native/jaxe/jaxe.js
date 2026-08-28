@@ -353,8 +353,15 @@ class jaxe {
 
         var ev = { handle: handle, type: type, i1: 0, i2: 0, i3: 0, i4: 0, i5: 0, f1: 0.0, str: "", ptr: null };
 
-        if ((type == 0x80 || type == 0x100) && parameters && typeof parameters.name === "string") {
-            ev.str = parameters.name;
+        if ((type == 0x80 || type == 0x100) && parameters) {
+            if (typeof parameters.name === "string") ev.str = parameters.name;
+            // The sound the instrument got becomes a handle when the record
+            // drains. Every sound on this target is one this shim created
+            // (assignProgrammerSoundFrom is native only), so i3 marks it for
+            // release of the handle on the destroy record.
+            if (parameters.sound) ev.ptr = parameters.sound;
+            ev.i2 = typeof parameters.subsoundIndex === "number" ? parameters.subsoundIndex | 0 : -1;
+            ev.i3 = parameters.sound ? 1 : 0;
         }
 
         if (type == 0x00000800 /* TIMELINE_MARKER */ && parameters) {
@@ -419,6 +426,11 @@ class jaxe {
         } else if (cur.type == 0x00000400 /* PLUGIN_DESTROYED */) {
             cur.i1 = jaxe.handleFind(cur.ptr, jaxe.TYPE_DSP);
             if (cur.i1) jaxe.handleFree(cur.i1);
+        } else if (cur.type == 0x80 /* CREATE_PROGRAMMER_SOUND */) {
+            cur.i1 = jaxe.handleFindOrAlloc(cur.ptr, jaxe.TYPE_SOUND);
+        } else if (cur.type == 0x100 /* DESTROY_PROGRAMMER_SOUND */) {
+            cur.i1 = jaxe.handleFind(cur.ptr, jaxe.TYPE_SOUND);
+            if (cur.i1 && cur.i3) jaxe.handleFree(cur.i1);
         }
         cur.ptr = null;
         return true;

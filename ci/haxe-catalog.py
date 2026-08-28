@@ -9,7 +9,7 @@ are not function entries, one section per key:
 
     ## FMOD_STUDIO_TIMELINE_BEAT_PROPERTIES
     verdict: bound
-    Type: haxefmod.studio.Types.TimelineBeatProperties
+    Type: haxefmod.studio.Types.FmodTimelineBeatProperties
 
     ## 10.2 Extracting PCM Data from a Sound
     verdict: bound
@@ -31,7 +31,9 @@ only `bound` with a `Type:` line or `cannot` with the reason it cannot
 exist on the Haxe side: every FMOD type the game can touch has a Haxe
 declaration with the same members. `library` and `covered` are for
 examples where the library performs the step or another call is the
-Haxe form of it.
+Haxe form of it. A type definition is one shown under an FMOD_ heading
+of the API reference, a guide example that opens with a helper struct
+of its own is an example and takes a fence.
 
 Function entries take their Haxe side from bindings-data.js and their
 notes from extension/functions.md, whose sections use the same format
@@ -141,6 +143,15 @@ def native_snippet(entry):
 def is_type_definition(code):
     first = code.strip().split("\n")[0].strip() if code.strip() else ""
     return bool(DECL.match(first))
+
+
+def is_fmod_type_definition(entry):
+    """An FMOD type shown under its own heading on an API reference page.
+    A guide example that opens with a helper struct of its own (a context
+    the sample threads through a callback) is an example, not a type."""
+    if not re.search(r"\b(?:FMOD|FSBANK)_[A-Z0-9_]+\b", entry["heading"]):
+        return False
+    return is_type_definition(native_snippet(entry))
 
 
 def snippet_members(code):
@@ -436,7 +447,7 @@ def build():
             if section is None:
                 problems.append(f"{label}: no section in extension/haxe/{page}.md")
                 continue
-            record = resolve(section, problems, label, is_type_definition(native_snippet(entry)))
+            record = resolve(section, problems, label, is_fmod_type_definition(entry))
             if record is None:
                 continue
             output.setdefault(page, {})[key] = strip_imports(record)
@@ -444,7 +455,7 @@ def build():
                 stats["categorized"] += 1
                 continue
             stats["bound"] += 1
-            if is_type_definition(native_snippet(entry)):
+            if is_fmod_type_definition(entry):
                 stats["types"] += check_type_definition(entry, section, record, skips, problems, label)
             else:
                 stats["calls"] += check_calls(entry, record, methods, problems, label)

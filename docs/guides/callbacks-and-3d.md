@@ -9,10 +9,10 @@ import haxefmod.studio.Callbacks;
 
 var instance = StudioSystem.getEvent("event:/Music/MainLevel").createInstance();
 instance.setCallback(data -> switch (data) {
-    case TimelineBeat(bar, beat, positionMs, tempo, timeSigUpper, timeSigLower):
-        pulseUI(bar, beat);
-    case TimelineMarker(name, positionMs):
-        trace('$name at $positionMs ms');
+    case TimelineBeat(beat):
+        pulseUI(beat.bar, beat.beat);
+    case TimelineMarker(marker):
+        trace('${marker.name} at ${marker.position} ms');
     case Stopped:
         trace("stopped");
     default:
@@ -20,7 +20,7 @@ instance.setCallback(data -> switch (data) {
 instance.start();
 ```
 
-The constructors are `Created`, `Destroyed`, `Starting`, `Started`, `Restarted`, `Stopped`, `StartFailed`, `TimelineMarker(name, positionMs)`, `TimelineBeat(bar, beat, positionMs, tempo, timeSigUpper, timeSigLower)`, `NestedTimelineBeat` with the same payload plus `eventId`, the GUID FMOD reports for the referenced timeline the beat comes from (empty in HTML5, where FMOD's JavaScript runtime hands the beat over without it), `SoundPlayed`, `SoundStopped`, `RealToVirtual`, `VirtualToReal`, `PluginCreated(name, dsp)` and `PluginDestroyed(name, dsp)` for the plugin effects on the instance (`dsp` is a `haxefmod.core.Dsp` handle, live until the destroyed callback), and `Other(type)` for the callback types without a dedicated constructor. A pattern names every argument, so write `case TimelineBeat(bar, beat, _, _, _, _)` to ignore the trailing ones.
+The constructors are `Created`, `Destroyed`, `Starting`, `Started`, `Restarted`, `Stopped`, `StartFailed`, `TimelineMarker(properties)`, `TimelineBeat(properties)`, `NestedTimelineBeat(properties)`, `SoundPlayed`, `SoundStopped`, `RealToVirtual`, `VirtualToReal`, `PluginCreated(properties)` and `PluginDestroyed(properties)` for the plugin effects on the instance, `ProgrammerSoundCreated(properties)` and `ProgrammerSoundDestroyed(properties)` for programmer instruments, and `Other(type)` for the callback types without a dedicated constructor. Each payload is the FMOD struct of the callback as a typedef in `haxefmod.studio.Types`, with FMOD's field names: `FmodTimelineMarkerProperties` (`name`, `position` in milliseconds), `FmodTimelineBeatProperties` (`bar`, `beat`, `position`, `tempo`, `timeSignatureUpper`, `timeSignatureLower`), `FmodTimelineNestedBeatProperties` (`eventId`, the GUID FMOD reports for the referenced timeline the beat comes from, empty in HTML5 where FMOD's JavaScript runtime hands the beat over without it, and `properties`, the beat), `FmodPluginInstanceProperties` (`name` and `dsp`, a `haxefmod.core.Dsp` handle live until the destroyed callback), and `FmodProgrammerSoundProperties` (see below).
 
 `setCallback(handler, ?mask)` takes an optional mask of `EventCallbackType` bits. Without a mask every playback event is delivered (`EventCallbackType.PLAYBACK_ALL`). A mask limits delivery to the events you care about, which matters for busy events like beat tracking on a fast tempo.
 
@@ -55,13 +55,14 @@ step.release();
 
 `assignProgrammerSoundFrom(sound, ?subsoundIndex)` hands the instrument a `Sound` the game created itself, from a file, from memory, or from PCM, with an optional subsound of an FSB. The instrument plays it and never releases it. Keep the sound alive until the instrument is done with it and release it yourself afterwards. A sound still loading with `NONBLOCKING` is fine, FMOD waits for it.
 
-An event with several programmer instruments tells them apart by name. `assignProgrammerSoundForName(name, key)` maps one instrument name to a key or path, and `assignProgrammerSounds(map)` sets several at once, up to eight per instance. A name with no entry falls back to the single key. The handler passed to `setCallback` receives `ProgrammerSoundCreated(name)` when an instrument asks for its sound and `ProgrammerSoundDestroyed(name)` when it is done, so the game learns the instrument names its events use. `clearProgrammerSound()` drops every assignment.
+An event with several programmer instruments tells them apart by name. `assignProgrammerSoundForName(name, key)` maps one instrument name to a key or path, and `assignProgrammerSounds(map)` sets several at once, up to eight per instance. A name with no entry falls back to the single key. The handler passed to `setCallback` receives `ProgrammerSoundCreated(properties)` when an instrument received its sound and `ProgrammerSoundDestroyed(properties)` when it is done. `properties` is an `FmodProgrammerSoundProperties`: `name` is the instrument's name in FMOD Studio, `sound` the `Sound` it plays (the one the game handed to `assignProgrammerSoundFrom`, or the one the library created for the key, which stops resolving after the destroyed callback), and `subsoundIndex` the subsound inside it, `-1` for the whole sound. `sound` is null when no assignment matched. `clearProgrammerSound()` drops every assignment.
 
 ```haxe
 var line = StudioSystem.getEvent("event:/Dialogue/Conversation").createInstance();
 line.assignProgrammerSounds(["Question" => "npc_question_03", "Answer" => "player_answer_03"]);
 line.setCallback(data -> switch (data) {
-    case ProgrammerSoundDestroyed(name): trace('$name finished');
+    case ProgrammerSoundCreated(properties): trace('${properties.name} plays subsound ${properties.subsoundIndex} of ${properties.sound.getLength()} ms');
+    case ProgrammerSoundDestroyed(properties): trace('${properties.name} finished');
     default:
 });
 line.start();

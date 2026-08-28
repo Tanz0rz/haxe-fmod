@@ -147,6 +147,9 @@ class ProgrammerSoundTestState extends FlxState {
     var _atGameSound:Sound = Sound.NULL;
     var _atName:String = null;
     var _atNameSeen:Bool = false;
+    var _atCreateSound:Sound = Sound.NULL;
+    var _atCreateSubsound:Int = -2;
+    var _atDestroySound:Sound = Sound.NULL;
 
     /**
      * The audio-table key route: Speak's async programmer instrument
@@ -174,6 +177,9 @@ class ProgrammerSoundTestState extends FlxState {
         var key = AT_KEYS[_atKeyIndex];
         _atCreates = 0;
         _atDestroys = 0;
+        _atCreateSound = Sound.NULL;
+        _atCreateSubsound = -2;
+        _atDestroySound = Sound.NULL;
         _atStopped = false;
         _atMaxPeak = 0;
         _atInstance = desc.createInstance();
@@ -194,11 +200,15 @@ class ProgrammerSoundTestState extends FlxState {
         _atInstance.setCallback(data -> {
             switch (data) {
                 case Stopped: _atStopped = true;
-                case ProgrammerSoundCreated(name):
+                case ProgrammerSoundCreated(properties):
                     _atCreates++;
                     _atNameSeen = true;
-                    _atName = name;
-                case ProgrammerSoundDestroyed(_): _atDestroys++;
+                    _atName = properties.name;
+                    _atCreateSound = properties.sound;
+                    _atCreateSubsound = properties.subsoundIndex;
+                case ProgrammerSoundDestroyed(properties):
+                    _atDestroys++;
+                    _atDestroySound = properties.sound;
                 default:
             }
         }, EventCallbackType.STOPPED | EventCallbackType.CREATE_PROGRAMMER_SOUND
@@ -243,6 +253,24 @@ class ProgrammerSoundTestState extends FlxState {
         check("at_destroy_callback_delivered", _atDestroys > 0, '$tag count=$_atDestroys');
         check("at_key_resolved_audibly", _atMaxPeak > 0.01, '$tag peak=$_atMaxPeak');
         check("at_create_carries_instrument_name", _atNameSeen && _atName != null, '$tag name=$_atName');
+        // The create record delivers the sound the instrument plays as a
+        // handle, and the destroy record carries the same one for matching
+        check("at_create_carries_sound", !_atCreateSound.isNull(), '$tag sound=${(_atCreateSound : Int)}');
+        check("at_destroy_carries_same_sound", (_atDestroySound : Int) == (_atCreateSound : Int),
+            '$tag create=${(_atCreateSound : Int)} destroy=${(_atDestroySound : Int)}');
+        if (_atMode == "game") {
+            // A sound the game handed over arrives under the game's own handle
+            check("at_create_sound_is_game_sound", (_atCreateSound : Int) == (_atGameSound : Int),
+                'delivered=${(_atCreateSound : Int)} game=${(_atGameSound : Int)}');
+            check("at_create_subsound_is_whole_sound", _atCreateSubsound == -1, 'subsound=$_atCreateSubsound');
+        } else {
+            // An audio table key resolves to a subsound of the table's FSB.
+            // The library released its sound after the destroy callback,
+            // so the handle no longer resolves (no_at_leaks below counts it)
+            check("at_create_subsound_from_table", _atCreateSubsound >= 0, '$tag subsound=$_atCreateSubsound');
+            check("at_library_sound_released", _atCreateSound.getLength() < 0,
+                '$tag result=${StudioSystem.lastResult().toString()}');
+        }
         if (_atMode == "game") {
             // Still a live sound after the instrument destroyed its copy
             check("at_game_sound_not_released", _atGameSound.getLength() > 0,

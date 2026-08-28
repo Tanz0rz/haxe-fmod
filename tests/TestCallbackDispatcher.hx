@@ -44,9 +44,9 @@ class TestCallbackDispatcher {
 	static function testDecodeMarker() {
 		var data = CallbackDispatcher.decode(0x800, 1500, 0, 0, 0, 0, 0, "verse-1");
 		switch (data) {
-			case TimelineMarker(name, positionMs):
-				assert("marker name", name == "verse-1");
-				assert("marker position", positionMs == 1500);
+			case TimelineMarker(properties):
+				assert("marker name", properties.name == "verse-1");
+				assert("marker position", properties.position == 1500);
 			default:
 				assert("marker decoded", false);
 		}
@@ -55,12 +55,12 @@ class TestCallbackDispatcher {
 	static function testDecodeBeat() {
 		var data = CallbackDispatcher.decode(0x1000, 4, 2, 8250, 3, 8, 120.5, "");
 		switch (data) {
-			case TimelineBeat(bar, beat, positionMs, tempo, timeSigUpper, timeSigLower):
-				assert("beat bar", bar == 4);
-				assert("beat beat", beat == 2);
-				assert("beat position", positionMs == 8250);
-				assert("beat tempo", Math.abs(tempo - 120.5) < 0.001);
-				assert("beat time signature", timeSigUpper == 3 && timeSigLower == 8);
+			case TimelineBeat(properties):
+				assert("beat bar", properties.bar == 4);
+				assert("beat beat", properties.beat == 2);
+				assert("beat position", properties.position == 8250);
+				assert("beat tempo", Math.abs(properties.tempo - 120.5) < 0.001);
+				assert("beat time signature", properties.timeSignatureUpper == 3 && properties.timeSignatureLower == 8);
 			default:
 				assert("beat decoded", false);
 		}
@@ -70,10 +70,11 @@ class TestCallbackDispatcher {
 		var guid = "{0225c47b-e69f-4785-b89c-fd321387934a}";
 		var data = CallbackDispatcher.decode(0x40000, 1, 3, 500, 6, 8, 90.0, guid);
 		switch (data) {
-			case NestedTimelineBeat(bar, beat, positionMs, tempo, timeSigUpper, timeSigLower, eventId):
-				assert("nested beat fields", bar == 1 && beat == 3 && positionMs == 500 && tempo == 90.0);
-				assert("nested beat time signature", timeSigUpper == 6 && timeSigLower == 8);
-				assert("nested beat event id", eventId == guid);
+			case NestedTimelineBeat(nested):
+				var beat = nested.properties;
+				assert("nested beat fields", beat.bar == 1 && beat.beat == 3 && beat.position == 500 && beat.tempo == 90.0);
+				assert("nested beat time signature", beat.timeSignatureUpper == 6 && beat.timeSignatureLower == 8);
+				assert("nested beat event id", nested.eventId == guid);
 			default:
 				assert("nested beat decoded", false);
 		}
@@ -84,17 +85,17 @@ class TestCallbackDispatcher {
 	static function testDecodePlugin() {
 		var created = CallbackDispatcher.decode(0x200, 0x10007, 0, 0, 0, 0, 0, "fmod_gain");
 		switch (created) {
-			case PluginCreated(name, dsp):
-				assert("plugin created name", name == "fmod_gain");
-				assert("plugin created dsp handle", (dsp : Int) == 0x10007);
+			case PluginCreated(properties):
+				assert("plugin created name", properties.name == "fmod_gain");
+				assert("plugin created dsp handle", (properties.dsp : Int) == 0x10007);
 			default:
 				assert("plugin created decoded", false);
 		}
 		var destroyed = CallbackDispatcher.decode(0x400, 0x10007, 0, 0, 0, 0, 0, "fmod_gain");
 		switch (destroyed) {
-			case PluginDestroyed(name, dsp):
-				assert("plugin destroyed name", name == "fmod_gain");
-				assert("plugin destroyed dsp handle", (dsp : Int) == 0x10007);
+			case PluginDestroyed(properties):
+				assert("plugin destroyed name", properties.name == "fmod_gain");
+				assert("plugin destroyed dsp handle", (properties.dsp : Int) == 0x10007);
 			default:
 				assert("plugin destroyed decoded", false);
 		}
