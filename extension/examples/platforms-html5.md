@@ -62,7 +62,7 @@ if (format != null) {
 
 ## 15
 <!-- Audio Stability (Stuttering) -->
-The DSP buffer size is not exposed. The binding initializes FMOD with its default buffer settings on every target.
+The dspBufferSize and dspNumBuffers fields of FmodSettings are native only (unsupported in HTML5). The web build fixes the mixer at 2048 samples by 2 buffers and ignores them.
 
 ## *
 <!-- page default -->

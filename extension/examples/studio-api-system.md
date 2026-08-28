@@ -113,7 +113,14 @@ instance.start();
 
 ## 13
 <!-- FMOD_STUDIO_SYSTEM_CALLBACK -->
-System callbacks are FMOD tooling hooks that would run Haxe code on FMOD's update thread, so they are not exposed. Poll what you need after FmodManager.Update: Bank.getLoadingState for unloads and FmodManager.IsInitialized for readiness.
+StudioSystem.setSystemCallback takes one handler and delivers the events from FmodManager.Update() on the game thread: device list changed, device lost, bank unload with the bank's path, live update connected and disconnected, and pre and post update.
+```haxe
+StudioSystem.setSystemCallback(event -> switch (event) {
+    case BankUnload(path): trace('unloaded $path');
+    case LiveUpdateConnected: trace("live update connected");
+    default:
+});
+```
 
 ## 14
 <!-- FMOD_STUDIO_SYSTEM_CALLBACK_TYPE -->

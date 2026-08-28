@@ -185,13 +185,18 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "channel_getchannelgroup": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "Channel::getChannelGroup",
-   "html5": false,
-   "notes": [
-    "Not exposed. The group a channel plays in is the one you passed to Channel.setChannelGroup, or the master group by default, so keep that reference on the game side."
-   ]
+   "fmod": "FMOD_Channel_GetChannelGroup",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "The group this channel is routed into (a known group returns its existing handle).",
+     "name": "getChannelGroup",
+     "signature": "getChannelGroup():ChannelGroup",
+     "static": false,
+     "type": "haxefmod.core.Channel"
+    }
+   ],
+   "html5": false
   },
   "channel_getcurrentsound": {
    "fmod": "FMOD_Channel_GetCurrentSound",
@@ -248,6 +253,34 @@ const HAXEFMOD_BINDINGS = {
     }
    ],
    "html5": false
+  },
+  "channel_getdspindex": {
+   "fmod": "FMOD_Channel_GetDSPIndex",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "The chain position of an attached effect, -1 when it is not attached or on failure.",
+     "name": "getDspIndex",
+     "signature": "getDspIndex(dsp:Dsp):Int",
+     "static": false,
+     "type": "haxefmod.core.Channel"
+    }
+   ],
+   "html5": false
+  },
+  "channel_getfadepoints": {
+   "fmod": "FMOD_Channel_GetFadePoints",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "The scheduled fade points as parent-clock and volume pairs (unsupported in HTML5, null there).",
+     "name": "getFadePoints",
+     "signature": "getFadePoints():Null<Array<{clock:Float, volume:Float}>>",
+     "static": false,
+     "type": "haxefmod.core.Channel"
+    }
+   ],
+   "html5": true
   },
   "channel_getfrequency": {
    "fmod": "FMOD_Channel_GetFrequency",
@@ -318,6 +351,20 @@ const HAXEFMOD_BINDINGS = {
     }
    ],
    "html5": false
+  },
+  "channel_getmixmatrix": {
+   "fmod": "FMOD_Channel_GetMixMatrix",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Reads back the mix matrix region of outChannels rows by inChannels gains, row-major (unsupported in HTML5, null there).",
+     "name": "getMixMatrix",
+     "signature": "getMixMatrix(outChannels:Int, inChannels:Int):Null<{matrix:Array<Float>, outChannels:Int, inChannels:Int}>",
+     "static": false,
+     "type": "haxefmod.core.Channel"
+    }
+   ],
+   "html5": true
   },
   "channel_getmode": {
    "fmod": "FMOD_Channel_GetMode",
@@ -705,6 +752,20 @@ const HAXEFMOD_BINDINGS = {
    ],
    "html5": false
   },
+  "channel_setdspindex": {
+   "fmod": "FMOD_Channel_SetDSPIndex",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Moves an attached effect to another chain position (0 = head).",
+     "name": "setDspIndex",
+     "signature": "setDspIndex(dsp:Dsp, index:Int):FmodResult",
+     "static": false,
+     "type": "haxefmod.core.Channel"
+    }
+   ],
+   "html5": false
+  },
   "channel_setfadepointramp": {
    "fmod": "FMOD_Channel_SetFadePointRamp",
    "haxe": [
@@ -769,6 +830,34 @@ const HAXEFMOD_BINDINGS = {
      "doc": "A built-in lowpass on the channel (1.0 = open, 0.0 = fully closed).",
      "name": "setLowPassGain",
      "signature": "setLowPassGain(gain:Float):FmodResult",
+     "static": false,
+     "type": "haxefmod.core.Channel"
+    }
+   ],
+   "html5": false
+  },
+  "channel_setmixlevelsinput": {
+   "fmod": "FMOD_Channel_SetMixLevelsInput",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Sets the gain of each incoming signal channel before the mix matrix, one level per input channel (1 to 32, an empty list is rejected with FMOD_ERR_INVALID_PARAM).",
+     "name": "setMixLevelsInput",
+     "signature": "setMixLevelsInput(levels:Array<Float>):FmodResult",
+     "static": false,
+     "type": "haxefmod.core.Channel"
+    }
+   ],
+   "html5": false
+  },
+  "channel_setmixlevelsoutput": {
+   "fmod": "FMOD_Channel_SetMixLevelsOutput",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Sets the gain of each output speaker directly, which replaces the mix matrix with a standard speaker layout.",
+     "name": "setMixLevelsOutput",
+     "signature": "setMixLevelsOutput(frontLeft:Float, frontRight:Float, center:Float, lowFrequency:Float, surroundLeft:Float, surroundRight:Float, backLeft:Float, backRight:Float):FmodResult",
      "static": false,
      "type": "haxefmod.core.Channel"
     }
@@ -1295,6 +1384,20 @@ const HAXEFMOD_BINDINGS = {
    ],
    "html5": false
   },
+  "channelcontrol_getchannelgroup": {
+   "fmod": "FMOD_Channel_GetChannelGroup",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "The group this channel is routed into (a known group returns its existing handle).",
+     "name": "getChannelGroup",
+     "signature": "getChannelGroup():ChannelGroup",
+     "static": false,
+     "type": "haxefmod.core.Channel"
+    }
+   ],
+   "html5": false
+  },
   "channelcontrol_getcurrentsound": {
    "fmod": "FMOD_Channel_GetCurrentSound",
    "haxe": [
@@ -1360,22 +1463,48 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "channelcontrol_getdspindex": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "ChannelControl::getDSPIndex",
-   "html5": false,
-   "notes": [
-    "Not exposed. Channel.getDspCount() and Channel.getDsp(index) walk the chain in order, so the index of a unit is the position where getDsp returns it."
-   ]
+   "fmod": "FMOD_ChannelGroup_GetDSPIndex, FMOD_Channel_GetDSPIndex",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "The chain position of an attached effect, -1 when it is not attached or on failure.",
+     "name": "getDspIndex",
+     "signature": "getDspIndex(dsp:Dsp):Int",
+     "static": false,
+     "type": "haxefmod.core.ChannelGroup"
+    },
+    {
+     "direct": true,
+     "doc": "The chain position of an attached effect, -1 when it is not attached or on failure.",
+     "name": "getDspIndex",
+     "signature": "getDspIndex(dsp:Dsp):Int",
+     "static": false,
+     "type": "haxefmod.core.Channel"
+    }
+   ],
+   "html5": false
   },
   "channelcontrol_getfadepoints": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "ChannelControl::getFadePoints",
-   "html5": false,
-   "notes": [
-    "Not exposed. Fade point readback is left out. Channel.addFadePoint, setFadePointRamp, and removeFadePoints are bound, and the game keeps its own list of the points it added."
-   ]
+   "fmod": "FMOD_ChannelGroup_GetFadePoints, FMOD_Channel_GetFadePoints",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "The scheduled fade points as parent-clock and volume pairs (unsupported in HTML5, null there).",
+     "name": "getFadePoints",
+     "signature": "getFadePoints():Null<Array<{clock:Float, volume:Float}>>",
+     "static": false,
+     "type": "haxefmod.core.ChannelGroup"
+    },
+    {
+     "direct": true,
+     "doc": "The scheduled fade points as parent-clock and volume pairs (unsupported in HTML5, null there).",
+     "name": "getFadePoints",
+     "signature": "getFadePoints():Null<Array<{clock:Float, volume:Float}>>",
+     "static": false,
+     "type": "haxefmod.core.Channel"
+    }
+   ],
+   "html5": true
   },
   "channelcontrol_getfrequency": {
    "fmod": "FMOD_Channel_GetFrequency",
@@ -1462,13 +1591,26 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "channelcontrol_getmixmatrix": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "ChannelControl::getMixMatrix",
-   "html5": false,
-   "notes": [
-    "Not exposed. Mix matrix readback is left out. Channel.setMixMatrix and ChannelGroup.setMixMatrix are bound, and the game keeps the matrix it set."
-   ]
+   "fmod": "FMOD_ChannelGroup_GetMixMatrix, FMOD_Channel_GetMixMatrix",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Reads back the mix matrix region of outChannels rows by inChannels gains, row-major (unsupported in HTML5, null there).",
+     "name": "getMixMatrix",
+     "signature": "getMixMatrix(outChannels:Int, inChannels:Int):Null<{matrix:Array<Float>, outChannels:Int, inChannels:Int}>",
+     "static": false,
+     "type": "haxefmod.core.ChannelGroup"
+    },
+    {
+     "direct": true,
+     "doc": "Reads back the mix matrix region of outChannels rows by inChannels gains, row-major (unsupported in HTML5, null there).",
+     "name": "getMixMatrix",
+     "signature": "getMixMatrix(outChannels:Int, inChannels:Int):Null<{matrix:Array<Float>, outChannels:Int, inChannels:Int}>",
+     "static": false,
+     "type": "haxefmod.core.Channel"
+    }
+   ],
+   "html5": true
   },
   "channelcontrol_getmode": {
    "fmod": "FMOD_ChannelGroup_GetMode, FMOD_Channel_GetMode",
@@ -1689,12 +1831,13 @@ const HAXEFMOD_BINDINGS = {
    ]
   },
   "channelcontrol_getuserdata": {
+   "code": "import haxefmod.core.ChannelGroup;\n\nvar group = ChannelGroup.master();\ngroup.setUserData({label: \"cave\"});\nvar data = group.getUserData();",
    "fmod": "",
    "haxe": [],
    "heading": "ChannelControl::getUserData",
    "html5": false,
    "notes": [
-    "Not exposed. Userdata on FMOD objects is left out because the binding's handle table already carries object identity. Keep your own map from the handle to your data, handles are ints and work as keys."
+    "haxefmod covers this with Channel and ChannelGroup.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released."
    ]
   },
   "channelcontrol_getvolume": {
@@ -2114,13 +2257,26 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "channelcontrol_setdspindex": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "ChannelControl::setDSPIndex",
-   "html5": false,
-   "notes": [
-    "Not exposed. Reordering the chain after the fact is left out. Channel.addDsp(index, dsp) and ChannelGroup.addDsp(index, dsp) take the position when the unit is inserted, and removeDsp followed by addDsp moves it."
-   ]
+   "fmod": "FMOD_ChannelGroup_SetDSPIndex, FMOD_Channel_SetDSPIndex",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Moves an attached effect to another chain position (0 = head).",
+     "name": "setDspIndex",
+     "signature": "setDspIndex(dsp:Dsp, index:Int):haxefmod.studio.FmodResult",
+     "static": false,
+     "type": "haxefmod.core.ChannelGroup"
+    },
+    {
+     "direct": true,
+     "doc": "Moves an attached effect to another chain position (0 = head).",
+     "name": "setDspIndex",
+     "signature": "setDspIndex(dsp:Dsp, index:Int):FmodResult",
+     "static": false,
+     "type": "haxefmod.core.Channel"
+    }
+   ],
+   "html5": false
   },
   "channelcontrol_setfadepointramp": {
    "fmod": "FMOD_ChannelGroup_SetFadePointRamp, FMOD_Channel_SetFadePointRamp",
@@ -2209,22 +2365,48 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "channelcontrol_setmixlevelsinput": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "ChannelControl::setMixLevelsInput",
-   "html5": false,
-   "notes": [
-    "Not exposed. Per-speaker input mix levels are left out with the speaker geometry APIs. Channel.setMixMatrix and ChannelGroup.setMixMatrix accept an explicit matrix, and setPan covers the common case."
-   ]
+   "fmod": "FMOD_ChannelGroup_SetMixLevelsInput, FMOD_Channel_SetMixLevelsInput",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Sets the gain of each incoming signal channel before the mix matrix, one level per input channel (1 to 32, an empty list is rejected with FMOD_ERR_INVALID_PARAM).",
+     "name": "setMixLevelsInput",
+     "signature": "setMixLevelsInput(levels:Array<Float>):FmodResult",
+     "static": false,
+     "type": "haxefmod.core.ChannelGroup"
+    },
+    {
+     "direct": true,
+     "doc": "Sets the gain of each incoming signal channel before the mix matrix, one level per input channel (1 to 32, an empty list is rejected with FMOD_ERR_INVALID_PARAM).",
+     "name": "setMixLevelsInput",
+     "signature": "setMixLevelsInput(levels:Array<Float>):FmodResult",
+     "static": false,
+     "type": "haxefmod.core.Channel"
+    }
+   ],
+   "html5": false
   },
   "channelcontrol_setmixlevelsoutput": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "ChannelControl::setMixLevelsOutput",
-   "html5": false,
-   "notes": [
-    "Not exposed. Per-speaker output mix levels are left out with the speaker geometry APIs. Channel.setMixMatrix and ChannelGroup.setMixMatrix accept an explicit matrix, and setPan covers the common case."
-   ]
+   "fmod": "FMOD_ChannelGroup_SetMixLevelsOutput, FMOD_Channel_SetMixLevelsOutput",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Sets the gain of each output speaker directly, which replaces the mix matrix with a standard speaker layout.",
+     "name": "setMixLevelsOutput",
+     "signature": "setMixLevelsOutput(frontLeft:Float, frontRight:Float, center:Float, lowFrequency:Float, surroundLeft:Float, surroundRight:Float, backLeft:Float, backRight:Float):FmodResult",
+     "static": false,
+     "type": "haxefmod.core.ChannelGroup"
+    },
+    {
+     "direct": true,
+     "doc": "Sets the gain of each output speaker directly, which replaces the mix matrix with a standard speaker layout.",
+     "name": "setMixLevelsOutput",
+     "signature": "setMixLevelsOutput(frontLeft:Float, frontRight:Float, center:Float, lowFrequency:Float, surroundLeft:Float, surroundRight:Float, backLeft:Float, backRight:Float):FmodResult",
+     "static": false,
+     "type": "haxefmod.core.Channel"
+    }
+   ],
+   "html5": false
   },
   "channelcontrol_setmixmatrix": {
    "fmod": "FMOD_ChannelGroup_SetMixMatrix, FMOD_Channel_SetMixMatrix",
@@ -2730,6 +2912,34 @@ const HAXEFMOD_BINDINGS = {
    ],
    "html5": false
   },
+  "channelgroup_getdspindex": {
+   "fmod": "FMOD_ChannelGroup_GetDSPIndex",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "The chain position of an attached effect, -1 when it is not attached or on failure.",
+     "name": "getDspIndex",
+     "signature": "getDspIndex(dsp:Dsp):Int",
+     "static": false,
+     "type": "haxefmod.core.ChannelGroup"
+    }
+   ],
+   "html5": false
+  },
+  "channelgroup_getfadepoints": {
+   "fmod": "FMOD_ChannelGroup_GetFadePoints",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "The scheduled fade points as parent-clock and volume pairs (unsupported in HTML5, null there).",
+     "name": "getFadePoints",
+     "signature": "getFadePoints():Null<Array<{clock:Float, volume:Float}>>",
+     "static": false,
+     "type": "haxefmod.core.ChannelGroup"
+    }
+   ],
+   "html5": true
+  },
   "channelgroup_getgroup": {
    "fmod": "FMOD_ChannelGroup_GetGroup",
    "haxe": [
@@ -2743,6 +2953,20 @@ const HAXEFMOD_BINDINGS = {
     }
    ],
    "html5": false
+  },
+  "channelgroup_getmixmatrix": {
+   "fmod": "FMOD_ChannelGroup_GetMixMatrix",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Reads back the mix matrix region of outChannels rows by inChannels gains, row-major (unsupported in HTML5, null there).",
+     "name": "getMixMatrix",
+     "signature": "getMixMatrix(outChannels:Int, inChannels:Int):Null<{matrix:Array<Float>, outChannels:Int, inChannels:Int}>",
+     "static": false,
+     "type": "haxefmod.core.ChannelGroup"
+    }
+   ],
+   "html5": true
   },
   "channelgroup_getmode": {
    "fmod": "FMOD_ChannelGroup_GetMode",
@@ -3102,6 +3326,20 @@ const HAXEFMOD_BINDINGS = {
    ],
    "html5": false
   },
+  "channelgroup_setdspindex": {
+   "fmod": "FMOD_ChannelGroup_SetDSPIndex",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Moves an attached effect to another chain position (0 = head).",
+     "name": "setDspIndex",
+     "signature": "setDspIndex(dsp:Dsp, index:Int):haxefmod.studio.FmodResult",
+     "static": false,
+     "type": "haxefmod.core.ChannelGroup"
+    }
+   ],
+   "html5": false
+  },
   "channelgroup_setfadepointramp": {
    "fmod": "FMOD_ChannelGroup_SetFadePointRamp",
    "haxe": [
@@ -3124,6 +3362,34 @@ const HAXEFMOD_BINDINGS = {
      "doc": "A built-in lowpass on the group (1.0 = open, 0.0 = closed).",
      "name": "setLowPassGain",
      "signature": "setLowPassGain(gain:Float):FmodResult",
+     "static": false,
+     "type": "haxefmod.core.ChannelGroup"
+    }
+   ],
+   "html5": false
+  },
+  "channelgroup_setmixlevelsinput": {
+   "fmod": "FMOD_ChannelGroup_SetMixLevelsInput",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Sets the gain of each incoming signal channel before the mix matrix, one level per input channel (1 to 32, an empty list is rejected with FMOD_ERR_INVALID_PARAM).",
+     "name": "setMixLevelsInput",
+     "signature": "setMixLevelsInput(levels:Array<Float>):FmodResult",
+     "static": false,
+     "type": "haxefmod.core.ChannelGroup"
+    }
+   ],
+   "html5": false
+  },
+  "channelgroup_setmixlevelsoutput": {
+   "fmod": "FMOD_ChannelGroup_SetMixLevelsOutput",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Sets the gain of each output speaker directly, which replaces the mix matrix with a standard speaker layout.",
+     "name": "setMixLevelsOutput",
+     "signature": "setMixLevelsOutput(frontLeft:Float, frontRight:Float, center:Float, lowFrequency:Float, surroundLeft:Float, surroundRight:Float, backLeft:Float, backRight:Float):FmodResult",
      "static": false,
      "type": "haxefmod.core.ChannelGroup"
     }
@@ -3315,13 +3581,18 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "dsp_addinputpreallocated": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "DSP::addInputPreallocated",
-   "html5": false,
-   "notes": [
-    "Not exposed. Preallocated connections are left out. Dsp.addInput() connects two units and returns the DspConnection, and FMOD allocates it on its own thread."
-   ]
+   "fmod": "FMOD_DSP_AddInputPreallocated",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Wires another DSP's output into this one through a connection FMOD reserved ahead of time, so the mixer allocates nothing on the way in (unsupported in HTML5, returns DspConnection.NULL there).",
+     "name": "addInputPreallocated",
+     "signature": "addInputPreallocated(input:Dsp, connection:DspConnection):DspConnection",
+     "static": false,
+     "type": "haxefmod.core.Dsp"
+    }
+   ],
+   "html5": true
   },
   "dsp_disconnectall": {
    "fmod": "FMOD_DSP_DisconnectAll",
@@ -3380,13 +3651,18 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "dsp_getchannelformat": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "DSP::getChannelFormat",
-   "html5": false,
-   "notes": [
-    "Not exposed. Channel format control on individual units is left out, and every unit runs in the mixer's format from FmodSettings.speakerMode."
-   ]
+   "fmod": "FMOD_DSP_GetChannelFormat",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "",
+     "name": "getChannelFormat",
+     "signature": "getChannelFormat():Null<{channelMask:Int, channels:Int, speakerMode:Int}>",
+     "static": false,
+     "type": "haxefmod.core.Dsp"
+    }
+   ],
+   "html5": false
   },
   "dsp_getcpuusage": {
    "fmod": "FMOD_DSP_GetCPUUsage",
@@ -3403,13 +3679,18 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "dsp_getdataparameterindex": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "DSP::getDataParameterIndex",
-   "html5": false,
-   "notes": [
-    "Not exposed. Data parameter lookup is left out with the DSP parameter metadata. Dsp.getFftSpectrum() reads the FFT unit's spectrum data directly, and Dsp.setParameterData(index, bytes) writes a data parameter by index."
-   ]
+   "fmod": "FMOD_DSP_GetDataParameterIndex",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "The index of the data parameter carrying an FMOD_DSP_PARAMETER_DATA_TYPE (negative values are FMOD's own types, 0 and up are user data), -1 when the effect has none or on failure.",
+     "name": "getDataParameterIndex",
+     "signature": "getDataParameterIndex(dataType:Int):Int",
+     "static": false,
+     "type": "haxefmod.core.Dsp"
+    }
+   ],
+   "html5": false
   },
   "dsp_getidle": {
    "fmod": "FMOD_DSP_GetIdle",
@@ -3554,13 +3835,18 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "dsp_getoutputchannelformat": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "DSP::getOutputChannelFormat",
-   "html5": false,
-   "notes": [
-    "Not exposed. Channel format control on individual units is left out, and every unit runs in the mixer's format from FmodSettings.speakerMode."
-   ]
+   "fmod": "FMOD_DSP_GetOutputChannelFormat",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "The format the unit would emit when fed the given input format, or null on failure.",
+     "name": "getOutputChannelFormat",
+     "signature": "getOutputChannelFormat(inMask:Int, inChannels:Int, inSpeakerMode:Int):Null<{channelMask:Int, channels:Int, speakerMode:Int}>",
+     "static": false,
+     "type": "haxefmod.core.Dsp"
+    }
+   ],
+   "html5": false
   },
   "dsp_getparameterbool": {
    "fmod": "FMOD_DSP_GetParameterBool",
@@ -3605,13 +3891,18 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "dsp_getparameterinfo": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "DSP::getParameterInfo",
-   "html5": false,
-   "notes": [
-    "Not exposed. The web build has no binding for the parameter description struct, so DSP parameter metadata is left out. Parameter values round-trip by index through Dsp.getParameter, setParameter, and their Int and Bool variants on every target."
-   ]
+   "fmod": "FMOD_DSP_GetParameterInfo",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Name, type, and range of the parameter at index (unsupported in HTML5, null there).",
+     "name": "getParameterInfo",
+     "signature": "getParameterInfo(index:Int):Null<{name:String, type:Int, min:Float, max:Float, defaultValue:Float}>",
+     "static": false,
+     "type": "haxefmod.core.Dsp"
+    }
+   ],
+   "html5": true
   },
   "dsp_getparameterint": {
    "fmod": "FMOD_DSP_GetParameterInt",
@@ -3652,12 +3943,13 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "dsp_getuserdata": {
+   "code": "import haxefmod.core.Dsp;\nimport haxefmod.core.DspType;\n\nvar reverb = Dsp.create(DspType.SFXREVERB);\nreverb.setUserData({label: \"cave\"});\nvar data = reverb.getUserData();",
    "fmod": "",
    "haxe": [],
    "heading": "DSP::getUserData",
    "html5": false,
    "notes": [
-    "Not exposed. Userdata on FMOD objects is left out because the binding's handle table already carries object identity. Keep your own map from the handle to your data, handles are ints and work as keys."
+    "haxefmod covers this with Dsp.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released."
    ]
   },
   "dsp_getwetdrymix": {
@@ -3690,6 +3982,14 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Creates an effect unit.",
      "name": "create",
      "signature": "create(type:DspType):Dsp",
+     "static": true,
+     "type": "haxefmod.core.Dsp"
+    },
+    {
+     "direct": false,
+     "doc": "Creates an effect unit from a plugin loaded with StudioSystem.loadPlugin (unsupported in HTML5, returns Dsp.NULL there).",
+     "name": "createByPlugin",
+     "signature": "createByPlugin(pluginHandle:Int):Dsp",
      "static": true,
      "type": "haxefmod.core.Dsp"
     }
@@ -3744,17 +4044,22 @@ const HAXEFMOD_BINDINGS = {
    "heading": "DSP::setCallback",
    "html5": false,
    "notes": [
-    "Not exposed. Haxe code cannot run on FMOD's mixer thread, so DSP callbacks cannot be delivered. Poll the unit from the game loop with Dsp.getMetering() or Dsp.getFftSpectrum() instead."
+    "Cannot be bound. FMOD runs the callback on its mixer thread, and no Haxe target can execute code there. Poll the unit from the game loop with Dsp.getMetering() or Dsp.getFftSpectrum() instead."
    ]
   },
   "dsp_setchannelformat": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "DSP::setChannelFormat",
-   "html5": false,
-   "notes": [
-    "Not exposed. Channel format control on individual units is left out, and every unit runs in the mixer's format from FmodSettings.speakerMode."
-   ]
+   "fmod": "FMOD_DSP_SetChannelFormat",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Fixes the unit's input format to the given FMOD_CHANNELMASK, channel count, and FMOD_SPEAKERMODE.",
+     "name": "setChannelFormat",
+     "signature": "setChannelFormat(channelMask:Int, channels:Int, speakerMode:Int):FmodResult",
+     "static": false,
+     "type": "haxefmod.core.Dsp"
+    }
+   ],
+   "html5": false
   },
   "dsp_setmeteringenabled": {
    "fmod": "FMOD_DSP_SetMeteringEnabled",
@@ -3827,12 +4132,13 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "dsp_setuserdata": {
+   "code": "import haxefmod.core.Dsp;\nimport haxefmod.core.DspType;\n\nvar reverb = Dsp.create(DspType.SFXREVERB);\nreverb.setUserData({label: \"cave\"});\nvar data = reverb.getUserData();",
    "fmod": "",
    "haxe": [],
    "heading": "DSP::setUserData",
    "html5": false,
    "notes": [
-    "Not exposed. Userdata on FMOD objects is left out because the binding's handle table already carries object identity. Keep your own map from the handle to your data, handles are ints and work as keys."
+    "haxefmod covers this with Dsp.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released."
    ]
   },
   "dsp_setwetdrymix": {
@@ -3855,7 +4161,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "DSP::showConfigDialog",
    "html5": false,
    "notes": [
-    "Not exposed. Plugin configuration dialogs belong to third-party plugins, which haxefmod does not load. Built-in DSP parameters are set through Dsp.setParameter."
+    "Cannot be bound. It takes a raw operating system window handle, which has no meaning in Haxe. Plugin and built-in DSP parameters are set through Dsp.setParameter."
    ]
   },
   "dspconnection_getinput": {
@@ -3887,13 +4193,18 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "dspconnection_getmixmatrix": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "DSPConnection::getMixMatrix",
-   "html5": false,
-   "notes": [
-    "Not exposed. Per-connection mix matrices are left out. DspConnection.getMix reads the connection volume."
-   ]
+   "fmod": "FMOD_DSPConnection_GetMixMatrix",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Reads back the mix matrix region of outChannels rows by inChannels gains, row-major (unsupported in HTML5, null there).",
+     "name": "getMixMatrix",
+     "signature": "getMixMatrix(outChannels:Int, inChannels:Int):Null<{matrix:Array<Float>, outChannels:Int, inChannels:Int}>",
+     "static": false,
+     "type": "haxefmod.core.DspConnection"
+    }
+   ],
+   "html5": true
   },
   "dspconnection_getoutput": {
    "fmod": "FMOD_DSPConnection_GetOutput",
@@ -3924,12 +4235,13 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "dspconnection_getuserdata": {
+   "code": "import haxefmod.core.Dsp;\nimport haxefmod.core.DspType;\n\nvar reverb = Dsp.create(DspType.SFXREVERB);\nvar fft = Dsp.create(DspType.FFT);\nvar connection = fft.addInput(reverb);\nconnection.setUserData({label: \"cave\"});\nvar data = connection.getUserData();",
    "fmod": "",
    "haxe": [],
    "heading": "DSPConnection::getUserData",
    "html5": false,
    "notes": [
-    "Not exposed. Userdata on FMOD objects is left out because the binding's handle table already carries object identity. Keep your own map from the handle to your data, handles are ints and work as keys."
+    "haxefmod covers this with DspConnection.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released."
    ]
   },
   "dspconnection_setmix": {
@@ -3947,21 +4259,27 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "dspconnection_setmixmatrix": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "DSPConnection::setMixMatrix",
-   "html5": false,
-   "notes": [
-    "Not exposed. Per-connection mix matrices are left out. DspConnection.setMix sets the connection volume, and Channel.setMixMatrix or ChannelGroup.setMixMatrix shape the speaker mix."
-   ]
+   "fmod": "FMOD_DSPConnection_SetMixMatrix",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Routes the input's channels to the output's with explicit gains (row-major, outChannels rows of inChannels gains, up to 32x32).",
+     "name": "setMixMatrix",
+     "signature": "setMixMatrix(matrix:Array<Float>, outChannels:Int, inChannels:Int):FmodResult",
+     "static": false,
+     "type": "haxefmod.core.DspConnection"
+    }
+   ],
+   "html5": false
   },
   "dspconnection_setuserdata": {
+   "code": "import haxefmod.core.Dsp;\nimport haxefmod.core.DspType;\n\nvar reverb = Dsp.create(DspType.SFXREVERB);\nvar fft = Dsp.create(DspType.FFT);\nvar connection = fft.addInput(reverb);\nconnection.setUserData({label: \"cave\"});\nvar data = connection.getUserData();",
    "fmod": "",
    "haxe": [],
    "heading": "DSPConnection::setUserData",
    "html5": false,
    "notes": [
-    "Not exposed. Userdata on FMOD objects is left out because the binding's handle table already carries object identity. Keep your own map from the handle to your data, handles are ints and work as keys."
+    "haxefmod covers this with DspConnection.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released."
    ]
   },
   "file_close": {
@@ -3970,7 +4288,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "file_close",
    "html5": false,
    "notes": [
-    "Not exposed. File callbacks belong to the custom file system integration, which is left out because they would run on FMOD threads. StudioSystem.loadBankFile, loadBankMemory, CoreSound.create, and CoreSound.fromPcm are the supported loading paths."
+    "Cannot be bound. FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, CoreSound.create, and CoreSound.fromPcm are the loading paths."
    ]
   },
   "file_getdiskbusy": {
@@ -3979,7 +4297,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "File_GetDiskBusy",
    "html5": false,
    "notes": [
-    "Not exposed. Disk busy flags belong to the custom file system integration, which is left out because IO callbacks would run on FMOD threads."
+    "Cannot be bound. The disk busy flag belongs to the custom file system callbacks, which FMOD runs on its streaming thread, and no Haxe target can execute code there."
    ]
   },
   "file_open": {
@@ -3988,7 +4306,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "file_open",
    "html5": false,
    "notes": [
-    "Not exposed. File callbacks belong to the custom file system integration, which is left out because they would run on FMOD threads. StudioSystem.loadBankFile, loadBankMemory, CoreSound.create, and CoreSound.fromPcm are the supported loading paths."
+    "Cannot be bound. FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, CoreSound.create, and CoreSound.fromPcm are the loading paths."
    ]
   },
   "file_read": {
@@ -3997,7 +4315,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "file_read",
    "html5": false,
    "notes": [
-    "Not exposed. File callbacks belong to the custom file system integration, which is left out because they would run on FMOD threads. StudioSystem.loadBankFile, loadBankMemory, CoreSound.create, and CoreSound.fromPcm are the supported loading paths."
+    "Cannot be bound. FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, CoreSound.create, and CoreSound.fromPcm are the loading paths."
    ]
   },
   "file_seek": {
@@ -4006,7 +4324,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "file_seek",
    "html5": false,
    "notes": [
-    "Not exposed. File callbacks belong to the custom file system integration, which is left out because they would run on FMOD threads. StudioSystem.loadBankFile, loadBankMemory, CoreSound.create, and CoreSound.fromPcm are the supported loading paths."
+    "Cannot be bound. FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, CoreSound.create, and CoreSound.fromPcm are the loading paths."
    ]
   },
   "file_seek_1": {
@@ -4015,7 +4333,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "file_seek",
    "html5": false,
    "notes": [
-    "Not exposed. File callbacks belong to the custom file system integration, which is left out because they would run on FMOD threads. StudioSystem.loadBankFile, loadBankMemory, CoreSound.create, and CoreSound.fromPcm are the supported loading paths."
+    "Cannot be bound. FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, CoreSound.create, and CoreSound.fromPcm are the loading paths."
    ]
   },
   "file_setdiskbusy": {
@@ -4024,7 +4342,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "File_SetDiskBusy",
    "html5": false,
    "notes": [
-    "Not exposed. Disk busy flags belong to the custom file system integration, which is left out because IO callbacks would run on FMOD threads."
+    "Cannot be bound. The disk busy flag belongs to the custom file system callbacks, which FMOD runs on its streaming thread, and no Haxe target can execute code there."
    ]
   },
   "fmod_android_jni_close": {
@@ -4033,7 +4351,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "FMOD_Android_JNI_Close",
    "html5": false,
    "notes": [
-    "Not exposed. Android is not a supported platform, haxefmod targets desktop and web only."
+    "Cannot be bound. This is an Android JNI entry point and haxefmod targets desktop and web only."
    ]
   },
   "fmod_android_jni_init": {
@@ -4042,7 +4360,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "FMOD_Android_JNI_Init",
    "html5": false,
    "notes": [
-    "Not exposed. Android is not a supported platform, haxefmod targets desktop and web only."
+    "Cannot be bound. This is an Android JNI entry point and haxefmod targets desktop and web only."
    ]
   },
   "fs_createpreloadedfile": {
@@ -4196,12 +4514,13 @@ const HAXEFMOD_BINDINGS = {
    "html5": true
   },
   "geometry_getuserdata": {
+   "code": "import haxefmod.core.Geometry;\n\nvar geometry = Geometry.create(8, 32);\ngeometry.setUserData({label: \"cave\"});\nvar data = geometry.getUserData();",
    "fmod": "",
    "haxe": [],
    "heading": "Geometry::getUserData",
    "html5": false,
    "notes": [
-    "Not exposed. Userdata on FMOD objects is left out because the binding's handle table already carries object identity. Keep your own map from the handle to your data, handles are ints and work as keys."
+    "haxefmod covers this with Geometry.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released."
    ]
   },
   "geometry_release": {
@@ -4333,12 +4652,13 @@ const HAXEFMOD_BINDINGS = {
    "html5": true
   },
   "geometry_setuserdata": {
+   "code": "import haxefmod.core.Geometry;\n\nvar geometry = Geometry.create(8, 32);\ngeometry.setUserData({label: \"cave\"});\nvar data = geometry.getUserData();",
    "fmod": "",
    "haxe": [],
    "heading": "Geometry::setUserData",
    "html5": false,
    "notes": [
-    "Not exposed. Userdata on FMOD objects is left out because the binding's handle table already carries object identity. Keep your own map from the handle to your data, handles are ints and work as keys."
+    "haxefmod covers this with Geometry.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released."
    ]
   },
   "getvalue": {
@@ -4347,7 +4667,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "getValue",
    "html5": false,
    "notes": [
-    "Not exposed. Direct wasm heap access belongs to hand-written JS glue, which the haxefmod web runtime keeps inside the binding. Getters return values directly, and struct getters return typedefs."
+    "Cannot be bound. This reads and writes the wasm heap through a raw address, which has no meaning in Haxe. Values cross into FMOD through the typed haxefmod methods, and getters return values directly."
    ]
   },
   "memory_free": {
@@ -4356,17 +4676,22 @@ const HAXEFMOD_BINDINGS = {
    "heading": "Memory_Free",
    "html5": false,
    "notes": [
-    "Not exposed. Haxe code never allocates on the FMOD heap, so there is nothing to free. Release handles with the release() method of the object that created them."
+    "Cannot be bound. It frees a raw pointer from FMOD's heap, which has no meaning in Haxe, and Haxe code never receives one. Release handles with the release() method of the object that created them."
    ]
   },
   "memory_getstats": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "Memory_GetStats",
-   "html5": false,
-   "notes": [
-    "Not exposed. Global allocator statistics are left out with the custom allocator hooks. StudioSystem.getMemoryUsage() reports the memory held by Studio objects."
-   ]
+   "fmod": "FMOD_Memory_GetStats",
+   "haxe": [
+    {
+     "direct": false,
+     "doc": "Bytes FMOD currently has allocated and the most it has ever had.",
+     "name": "getMemoryStats",
+     "signature": "getMemoryStats(blocking:Bool = false):Null<{current:Int, maximum:Int}>",
+     "static": true,
+     "type": "haxefmod.studio.StudioSystem"
+    }
+   ],
+   "html5": false
   },
   "memory_initialize": {
    "fmod": "",
@@ -4374,7 +4699,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "Memory_Initialize",
    "html5": false,
    "notes": [
-    "Not exposed. Custom allocators would be called from FMOD threads, which no Haxe target can do safely, and the library owns init. FMOD uses its default allocator on every target."
+    "Cannot be bound. Custom allocators are callbacks that FMOD runs on every one of its threads, and no Haxe target can execute code there. FMOD uses its default allocator on every target, and StudioSystem.getMemoryStats reports what it holds."
    ]
   },
   "readfile": {
@@ -4383,7 +4708,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "ReadFile",
    "html5": false,
    "notes": [
-    "Not exposed. Reading files from the wasm file system is left out with the custom file system integration. StudioSystem.loadBankMemory() loads a bank from bytes you already hold, and CoreSound.fromPcm() plays raw PCM you already hold."
+    "Cannot be bound. It returns a raw wasm heap address, which has no meaning in Haxe. StudioSystem.loadBankMemory() loads a bank from bytes you already hold, and CoreSound.fromPcm() plays raw PCM you already hold."
    ]
   },
   "reverb3d_get3dattributes": {
@@ -4429,12 +4754,13 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "reverb3d_getuserdata": {
+   "code": "import haxefmod.core.Reverb3D;\n\nvar reverb = Reverb3D.create();\nreverb.setUserData({label: \"cave\"});\nvar data = reverb.getUserData();",
    "fmod": "",
    "haxe": [],
    "heading": "Reverb3D::getUserData",
    "html5": false,
    "notes": [
-    "Not exposed. Userdata on FMOD objects is left out because the binding's handle table already carries object identity. Keep your own map from the handle to your data, handles are ints and work as keys."
+    "haxefmod covers this with Reverb3D.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released."
    ]
   },
   "reverb3d_release": {
@@ -4502,12 +4828,13 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "reverb3d_setuserdata": {
+   "code": "import haxefmod.core.Reverb3D;\n\nvar reverb = Reverb3D.create();\nreverb.setUserData({label: \"cave\"});\nvar data = reverb.getUserData();",
    "fmod": "",
    "haxe": [],
    "heading": "Reverb3D::setUserData",
    "html5": false,
    "notes": [
-    "Not exposed. Userdata on FMOD objects is left out because the binding's handle table already carries object identity. Keep your own map from the handle to your data, handles are ints and work as keys."
+    "haxefmod covers this with Reverb3D.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released."
    ]
   },
   "setvalue": {
@@ -4516,7 +4843,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "setValue",
    "html5": false,
    "notes": [
-    "Not exposed. Direct wasm heap access belongs to hand-written JS glue, which the haxefmod web runtime keeps inside the binding. Values cross into FMOD through the typed haxefmod methods."
+    "Cannot be bound. This reads and writes the wasm heap through a raw address, which has no meaning in Haxe. Values cross into FMOD through the typed haxefmod methods, and getters return values directly."
    ]
   },
   "sound_addsyncpoint": {
@@ -4548,13 +4875,18 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "sound_get3dconesettings": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "Sound::get3DConeSettings",
-   "html5": false,
-   "notes": [
-    "Not exposed on the sound. Cone settings are bound on the channel and the group, so read them with Channel.get3DConeSettings or ChannelGroup.get3DConeSettings."
-   ]
+   "fmod": "FMOD_Sound_Get3DConeSettings",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "",
+     "name": "get3DConeSettings",
+     "signature": "get3DConeSettings():Null<{insideAngle:Float, outsideAngle:Float, outsideVolume:Float}>",
+     "static": false,
+     "type": "haxefmod.studio.CoreSound"
+    }
+   ],
+   "html5": false
   },
   "sound_get3dcustomrolloff": {
    "fmod": "FMOD_Sound_Get3DCustomRolloff",
@@ -4571,13 +4903,18 @@ const HAXEFMOD_BINDINGS = {
    "html5": true
   },
   "sound_get3dminmaxdistance": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "Sound::get3DMinMaxDistance",
-   "html5": false,
-   "notes": [
-    "Not exposed on the sound. Min and max distance are bound on the channel and the group, so read them with Channel.get3DMinMaxDistance or ChannelGroup.get3DMinMaxDistance."
-   ]
+   "fmod": "FMOD_Sound_Get3DMinMaxDistance",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "",
+     "name": "get3DMinMaxDistance",
+     "signature": "get3DMinMaxDistance():Null<{minDistance:Float, maxDistance:Float}>",
+     "static": false,
+     "type": "haxefmod.studio.CoreSound"
+    }
+   ],
+   "html5": false
   },
   "sound_getdefaults": {
    "fmod": "FMOD_Sound_GetDefaults",
@@ -4664,31 +5001,46 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "sound_getmusicchannelvolume": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "Sound::getMusicChannelVolume",
-   "html5": false,
-   "notes": [
-    "Not exposed. Tracker music channel control (MOD, S3M, XM per-channel access) is left out. Volume and pitch of the whole sound are set on its Channel."
-   ]
+   "fmod": "FMOD_Sound_GetMusicChannelVolume",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Volume of one tracker channel (unsupported in HTML5, returns 0 there).",
+     "name": "getMusicChannelVolume",
+     "signature": "getMusicChannelVolume(channel:Int):Float",
+     "static": false,
+     "type": "haxefmod.studio.CoreSound"
+    }
+   ],
+   "html5": true
   },
   "sound_getmusicnumchannels": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "Sound::getMusicNumChannels",
-   "html5": false,
-   "notes": [
-    "Not exposed. Tracker music channel control (MOD, S3M, XM per-channel access) is left out. Volume and pitch of the whole sound are set on its Channel."
-   ]
+   "fmod": "FMOD_Sound_GetMusicNumChannels",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Channel count of a tracker module (MOD, S3M, XM, IT) (unsupported in HTML5, returns -1 there).",
+     "name": "getMusicNumChannels",
+     "signature": "getMusicNumChannels():Int",
+     "static": false,
+     "type": "haxefmod.studio.CoreSound"
+    }
+   ],
+   "html5": true
   },
   "sound_getmusicspeed": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "Sound::getMusicSpeed",
-   "html5": false,
-   "notes": [
-    "Not exposed. Tracker music channel control (MOD, S3M, XM per-channel access) is left out. Volume and pitch of the whole sound are set on its Channel."
-   ]
+   "fmod": "FMOD_Sound_GetMusicSpeed",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Playback speed of a tracker module (unsupported in HTML5, returns 0 there).",
+     "name": "getMusicSpeed",
+     "signature": "getMusicSpeed():Float",
+     "static": false,
+     "type": "haxefmod.studio.CoreSound"
+    }
+   ],
+   "html5": true
   },
   "sound_getname": {
    "fmod": "FMOD_Sound_GetName",
@@ -4705,13 +5057,18 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "sound_getnumsubsounds": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "Sound::getNumSubSounds",
-   "html5": false,
-   "notes": [
-    "Not exposed. Subsound and tag access are container internals with no cross-platform story. Load each file as its own CoreSound, or play authored content from banks."
-   ]
+   "fmod": "FMOD_Sound_GetNumSubSounds",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Number of subsounds (FSB and multi-stream containers).",
+     "name": "getNumSubSounds",
+     "signature": "getNumSubSounds():Int",
+     "static": false,
+     "type": "haxefmod.studio.CoreSound"
+    }
+   ],
+   "html5": false
   },
   "sound_getnumsyncpoints": {
    "fmod": "FMOD_Sound_GetNumSyncPoints",
@@ -4728,13 +5085,26 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "sound_getnumtags": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "Sound::getNumTags",
-   "html5": false,
-   "notes": [
-    "Not exposed. Subsound and tag access are container internals with no cross-platform story. Load each file as its own CoreSound, or play authored content from banks."
-   ]
+   "fmod": "FMOD_Sound_GetNumTags",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Number of metadata tags, -1 on failure.",
+     "name": "getNumTags",
+     "signature": "getNumTags():Int",
+     "static": false,
+     "type": "haxefmod.studio.CoreSound"
+    },
+    {
+     "direct": false,
+     "doc": "Tags that changed since the last getTag pass, -1 on failure.",
+     "name": "getNumTagsUpdated",
+     "signature": "getNumTagsUpdated():Int",
+     "static": false,
+     "type": "haxefmod.studio.CoreSound"
+    }
+   ],
+   "html5": false
   },
   "sound_getopenstate": {
    "fmod": "FMOD_Sound_GetOpenState",
@@ -4765,22 +5135,40 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "sound_getsubsound": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "Sound::getSubSound",
-   "html5": false,
-   "notes": [
-    "Not exposed. Subsound and tag access are container internals with no cross-platform story. Load each file as its own CoreSound, or play authored content from banks."
-   ]
+   "fmod": "FMOD_Sound_GetSubSound",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "A subsound by index, or CoreSound.NULL when the index is out of range (StudioSystem.lastResult reports FMOD_ERR_INVALID_PARAM).",
+     "name": "getSubSound",
+     "signature": "getSubSound(index:Int):CoreSound",
+     "static": false,
+     "type": "haxefmod.studio.CoreSound"
+    }
+   ],
+   "html5": false
   },
   "sound_getsubsoundparent": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "Sound::getSubSoundParent",
-   "html5": false,
-   "notes": [
-    "Not exposed. Subsound and tag access are container internals with no cross-platform story. Load each file as its own CoreSound, or play authored content from banks."
-   ]
+   "fmod": "FMOD_Sound_GetSubSoundParent",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "The sound this one is a subsound of, or CoreSound.NULL for a top-level sound (lastResult stays FMOD_OK).",
+     "name": "getSubSoundParent",
+     "signature": "getSubSoundParent():CoreSound",
+     "static": false,
+     "type": "haxefmod.studio.CoreSound"
+    },
+    {
+     "direct": true,
+     "doc": "Releases the sound and invalidates this handle.",
+     "name": "release",
+     "signature": "release():FmodResult",
+     "static": false,
+     "type": "haxefmod.studio.CoreSound"
+    }
+   ],
+   "html5": false
   },
   "sound_getsyncpoint": {
    "fmod": "FMOD_Sound_GetSyncPoint",
@@ -4845,21 +5233,27 @@ const HAXEFMOD_BINDINGS = {
    ]
   },
   "sound_gettag": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "Sound::getTag",
-   "html5": false,
-   "notes": [
-    "Not exposed. Subsound and tag access are container internals with no cross-platform story. Load each file as its own CoreSound, or play authored content from banks."
-   ]
+   "fmod": "FMOD_Sound_GetTag",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Reads one metadata tag (unsupported in HTML5, returns null there).",
+     "name": "getTag",
+     "signature": "getTag(name:String, index:Int = 0):Null<FmodTag>",
+     "static": false,
+     "type": "haxefmod.studio.CoreSound"
+    }
+   ],
+   "html5": true
   },
   "sound_getuserdata": {
+   "code": "import haxefmod.studio.CoreSound;\n\nvar sound = CoreSound.create(\"assets/sfx/engine.wav\");\nsound.setUserData({label: \"cave\"});\nvar data = sound.getUserData();",
    "fmod": "",
    "haxe": [],
    "heading": "Sound::getUserData",
    "html5": false,
    "notes": [
-    "Not exposed. Userdata on FMOD objects is left out because the binding's handle table already carries object identity. Keep your own map from the handle to your data, handles are ints and work as keys."
+    "haxefmod covers this with CoreSound.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released."
    ]
   },
   "sound_lock": {
@@ -4869,7 +5263,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "Sound::lock",
    "html5": false,
    "notes": [
-    "Not exposed. lock and unlock hand out raw pointers into the sample buffer, which Haxe code never holds. CoreSound.readData reads decoded PCM out of a sound opened with the openOnly flag of CoreSound.create, and seekData moves the read cursor. Both are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED."
+    "Cannot be bound. It returns a raw pointer into the sample buffer, which has no meaning in Haxe. CoreSound.readData covers reading, it copies decoded PCM out of a sound opened with the openOnly flag of CoreSound.create, and seekData moves the read cursor. Both are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED."
    ]
   },
   "sound_readdata": {
@@ -4963,13 +5357,18 @@ const HAXEFMOD_BINDINGS = {
    "html5": true
   },
   "sound_set3dconesettings": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "Sound::set3DConeSettings",
-   "html5": false,
-   "notes": [
-    "Not exposed on the sound. Cone settings are bound on the channel and the group, so set them with Channel.set3DConeSettings after play or with ChannelGroup.set3DConeSettings for a whole group."
-   ]
+   "fmod": "FMOD_Sound_Set3DConeSettings",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Default 3D cone for channels played from this sound: full volume inside insideAngle, fading to outsideVolume past outsideAngle.",
+     "name": "set3DConeSettings",
+     "signature": "set3DConeSettings(insideAngle:Float, outsideAngle:Float, outsideVolume:Float):FmodResult",
+     "static": false,
+     "type": "haxefmod.studio.CoreSound"
+    }
+   ],
+   "html5": false
   },
   "sound_set3dcustomrolloff": {
    "fmod": "FMOD_Sound_Set3DCustomRolloff",
@@ -4986,13 +5385,18 @@ const HAXEFMOD_BINDINGS = {
    "html5": true
   },
   "sound_set3dminmaxdistance": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "Sound::set3DMinMaxDistance",
-   "html5": false,
-   "notes": [
-    "Not exposed on the sound. Min and max distance are bound on the channel and the group, so set them with Channel.set3DMinMaxDistance after play or with ChannelGroup.set3DMinMaxDistance for a whole group."
-   ]
+   "fmod": "FMOD_Sound_Set3DMinMaxDistance",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Default rolloff distances for channels played from this sound.",
+     "name": "set3DMinMaxDistance",
+     "signature": "set3DMinMaxDistance(minDistance:Float, maxDistance:Float):FmodResult",
+     "static": false,
+     "type": "haxefmod.studio.CoreSound"
+    }
+   ],
+   "html5": false
   },
   "sound_setdefaults": {
    "fmod": "FMOD_Sound_SetDefaults",
@@ -5051,22 +5455,32 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "sound_setmusicchannelvolume": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "Sound::setMusicChannelVolume",
-   "html5": false,
-   "notes": [
-    "Not exposed. Tracker music channel control (MOD, S3M, XM per-channel access) is left out. Volume and pitch of the whole sound are set on its Channel."
-   ]
+   "fmod": "FMOD_Sound_SetMusicChannelVolume",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Volume of one tracker channel, 0 to 1 (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED).",
+     "name": "setMusicChannelVolume",
+     "signature": "setMusicChannelVolume(channel:Int, volume:Float):FmodResult",
+     "static": false,
+     "type": "haxefmod.studio.CoreSound"
+    }
+   ],
+   "html5": true
   },
   "sound_setmusicspeed": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "Sound::setMusicSpeed",
-   "html5": false,
-   "notes": [
-    "Not exposed. Tracker music channel control (MOD, S3M, XM per-channel access) is left out. Volume and pitch of the whole sound are set on its Channel."
-   ]
+   "fmod": "FMOD_Sound_SetMusicSpeed",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Playback speed of a tracker module, 1 is normal, 0.01 to 100 (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED).",
+     "name": "setMusicSpeed",
+     "signature": "setMusicSpeed(speed:Float):FmodResult",
+     "static": false,
+     "type": "haxefmod.studio.CoreSound"
+    }
+   ],
+   "html5": true
   },
   "sound_setsoundgroup": {
    "fmod": "FMOD_Sound_SetSoundGroup",
@@ -5103,7 +5517,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "Sound::unlock",
    "html5": false,
    "notes": [
-    "Not exposed. lock and unlock hand out raw pointers into the sample buffer, which Haxe code never holds. CoreSound.readData reads decoded PCM out of a sound opened with the openOnly flag of CoreSound.create, and seekData moves the read cursor. Both are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED."
+    "Cannot be bound. It returns a raw pointer into the sample buffer, which has no meaning in Haxe. CoreSound.readData covers reading, it copies decoded PCM out of a sound opened with the openOnly flag of CoreSound.create, and seekData moves the read cursor. Both are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED."
    ]
   },
   "soundgroup_getmaxaudible": {
@@ -5149,13 +5563,18 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "soundgroup_getname": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "SoundGroup::getName",
-   "html5": false,
-   "notes": [
-    "Not exposed. The name is the one you passed to SoundGroup.create, so keep it on the game side. SoundGroup.master() is the default group."
-   ]
+   "fmod": "FMOD_SoundGroup_GetName",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "The name given at create(), \"FMOD master\" for the master group.",
+     "name": "getName",
+     "signature": "getName():String",
+     "static": false,
+     "type": "haxefmod.core.SoundGroup"
+    }
+   ],
+   "html5": false
   },
   "soundgroup_getnumplaying": {
    "fmod": "FMOD_SoundGroup_GetNumPlaying",
@@ -5186,13 +5605,18 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "soundgroup_getsound": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "SoundGroup::getSound",
-   "html5": false,
-   "notes": [
-    "Not exposed. Enumerating a group's sounds is left out. SoundGroup.getSoundCount() and getPlayingCount() report the totals, and the game keeps the CoreSound handles it assigned with CoreSound.setSoundGroup."
-   ]
+   "fmod": "FMOD_SoundGroup_GetSound",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "The sound at position index in this group (a known sound returns its existing handle).",
+     "name": "getSound",
+     "signature": "getSound(index:Int):haxefmod.studio.CoreSound",
+     "static": false,
+     "type": "haxefmod.core.SoundGroup"
+    }
+   ],
+   "html5": false
   },
   "soundgroup_getsystemobject": {
    "code": "import haxefmod.core.CoreSystem;\n\nvar format = CoreSystem.getSoftwareFormat();",
@@ -5205,12 +5629,13 @@ const HAXEFMOD_BINDINGS = {
    ]
   },
   "soundgroup_getuserdata": {
+   "code": "import haxefmod.core.SoundGroup;\n\nvar group = SoundGroup.create(\"ambience\");\ngroup.setUserData({label: \"cave\"});\nvar data = group.getUserData();",
    "fmod": "",
    "haxe": [],
    "heading": "SoundGroup::getUserData",
    "html5": false,
    "notes": [
-    "Not exposed. Userdata on FMOD objects is left out because the binding's handle table already carries object identity. Keep your own map from the handle to your data, handles are ints and work as keys."
+    "haxefmod covers this with SoundGroup.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released."
    ]
   },
   "soundgroup_getvolume": {
@@ -5292,12 +5717,13 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "soundgroup_setuserdata": {
+   "code": "import haxefmod.core.SoundGroup;\n\nvar group = SoundGroup.create(\"ambience\");\ngroup.setUserData({label: \"cave\"});\nvar data = group.getUserData();",
    "fmod": "",
    "haxe": [],
    "heading": "SoundGroup::setUserData",
    "html5": false,
    "notes": [
-    "Not exposed. Userdata on FMOD objects is left out because the binding's handle table already carries object identity. Keep your own map from the handle to your data, handles are ints and work as keys."
+    "haxefmod covers this with SoundGroup.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released."
    ]
   },
   "soundgroup_setvolume": {
@@ -5493,12 +5919,13 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "studio_bank_getuserdata": {
+   "code": "import haxefmod.studio.Bank;\n\nvar bank:Bank = StudioSystem.loadBankFile(\"assets/fmod/Desktop/Level1.bank\");\nbank.setUserData({label: \"cave\"});\nvar data = bank.getUserData();",
    "fmod": "",
    "haxe": [],
    "heading": "Studio::Bank::getUserData",
    "html5": false,
    "notes": [
-    "Not exposed. Userdata on FMOD objects is left out because the binding's handle table already carries object identity. Keep your own map from the handle to your data, handles are ints and work as keys."
+    "haxefmod covers this with Bank.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released."
    ]
   },
   "studio_bank_getvcacount": {
@@ -5558,12 +5985,13 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "studio_bank_setuserdata": {
+   "code": "import haxefmod.studio.Bank;\n\nvar bank:Bank = StudioSystem.loadBankFile(\"assets/fmod/Desktop/Level1.bank\");\nbank.setUserData({label: \"cave\"});\nvar data = bank.getUserData();",
    "fmod": "",
    "haxe": [],
    "heading": "Studio::Bank::setUserData",
    "html5": false,
    "notes": [
-    "Not exposed. Userdata on FMOD objects is left out because the binding's handle table already carries object identity. Keep your own map from the handle to your data, handles are ints and work as keys."
+    "haxefmod covers this with Bank.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released."
    ]
   },
   "studio_bank_unload": {
@@ -5698,7 +6126,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "Studio::Bus::getPortIndex",
    "html5": false,
    "notes": [
-    "Not exposed. Console port APIs are left out because haxefmod supports desktop and web only. Route audio through ChannelGroup and Bus instead."
+    "Cannot be bound. This is a console port API and haxefmod targets desktop and web only. Route audio through ChannelGroup and Bus instead."
    ]
   },
   "studio_bus_getvolume": {
@@ -5785,7 +6213,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "Studio::Bus::setPortIndex",
    "html5": false,
    "notes": [
-    "Not exposed. Console port APIs are left out because haxefmod supports desktop and web only. Route audio through ChannelGroup and Bus instead."
+    "Cannot be bound. This is a console port API and haxefmod targets desktop and web only. Route audio through ChannelGroup and Bus instead."
    ]
   },
   "studio_bus_setvolume": {
@@ -5831,49 +6259,74 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "studio_commandreplay_getcommandattime": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "Studio::CommandReplay::getCommandAtTime",
-   "html5": false,
-   "notes": [
-    "Not exposed. Command replay inspection and tool hooks are FMOD tooling integration points. Command capture and basic playback are bound through StudioSystem.startCommandCapture, stopCommandCapture, loadCommandReplay, and CommandReplay.start, stop, setPaused, seekToTime, and getLength."
-   ]
+   "fmod": "FMOD_Studio_CommandReplay_GetCommandAtTime",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Index of the command playing at timeMs into the capture, -1 on failure.",
+     "name": "getCommandAtTime",
+     "signature": "getCommandAtTime(timeMs:Int):Int",
+     "static": false,
+     "type": "haxefmod.studio.CommandReplay"
+    }
+   ],
+   "html5": false
   },
   "studio_commandreplay_getcommandcount": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "Studio::CommandReplay::getCommandCount",
-   "html5": false,
-   "notes": [
-    "Not exposed. Command replay inspection and tool hooks are FMOD tooling integration points. Command capture and basic playback are bound through StudioSystem.startCommandCapture, stopCommandCapture, loadCommandReplay, and CommandReplay.start, stop, setPaused, seekToTime, and getLength."
-   ]
+   "fmod": "FMOD_Studio_CommandReplay_GetCommandCount",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Number of commands in the capture, -1 on failure.",
+     "name": "getCommandCount",
+     "signature": "getCommandCount():Int",
+     "static": false,
+     "type": "haxefmod.studio.CommandReplay"
+    }
+   ],
+   "html5": false
   },
   "studio_commandreplay_getcommandinfo": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "Studio::CommandReplay::getCommandInfo",
-   "html5": false,
-   "notes": [
-    "Not exposed. Command replay inspection and tool hooks are FMOD tooling integration points. Command capture and basic playback are bound through StudioSystem.startCommandCapture, stopCommandCapture, loadCommandReplay, and CommandReplay.start, stop, setPaused, seekToTime, and getLength."
-   ]
+   "fmod": "FMOD_Studio_CommandReplay_GetCommandInfo",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Details of the command at index, or null on failure.",
+     "name": "getCommandInfo",
+     "signature": "getCommandInfo(index:Int):Null<FmodCommandInfo>",
+     "static": false,
+     "type": "haxefmod.studio.CommandReplay"
+    }
+   ],
+   "html5": false
   },
   "studio_commandreplay_getcommandstring": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "Studio::CommandReplay::getCommandString",
-   "html5": false,
-   "notes": [
-    "Not exposed. Command replay inspection and tool hooks are FMOD tooling integration points. Command capture and basic playback are bound through StudioSystem.startCommandCapture, stopCommandCapture, loadCommandReplay, and CommandReplay.start, stop, setPaused, seekToTime, and getLength."
-   ]
+   "fmod": "FMOD_Studio_CommandReplay_GetCommandString",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "The command at index formatted the way FMOD's tools print it, or \"\" on failure.",
+     "name": "getCommandString",
+     "signature": "getCommandString(index:Int):String",
+     "static": false,
+     "type": "haxefmod.studio.CommandReplay"
+    }
+   ],
+   "html5": false
   },
   "studio_commandreplay_getcurrentcommand": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "Studio::CommandReplay::getCurrentCommand",
-   "html5": false,
-   "notes": [
-    "Not exposed. Command replay inspection and tool hooks are FMOD tooling integration points. Command capture and basic playback are bound through StudioSystem.startCommandCapture, stopCommandCapture, loadCommandReplay, and CommandReplay.start, stop, setPaused, seekToTime, and getLength."
-   ]
+   "fmod": "FMOD_Studio_CommandReplay_GetCurrentCommand",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "The index of the command the replay is on and the playback time in seconds, or null on failure.",
+     "name": "getCurrentCommand",
+     "signature": "getCurrentCommand():Null<{index:Int, time:Float}>",
+     "static": false,
+     "type": "haxefmod.studio.CommandReplay"
+    }
+   ],
+   "html5": false
   },
   "studio_commandreplay_getlength": {
    "fmod": "FMOD_Studio_CommandReplay_GetLength",
@@ -5904,13 +6357,18 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "studio_commandreplay_getplaybackstate": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "Studio::CommandReplay::getPlaybackState",
-   "html5": false,
-   "notes": [
-    "Not exposed. Command replay inspection and tool hooks are FMOD tooling integration points. Command capture and basic playback are bound through StudioSystem.startCommandCapture, stopCommandCapture, loadCommandReplay, and CommandReplay.start, stop, setPaused, seekToTime, and getLength."
-   ]
+   "fmod": "FMOD_Studio_CommandReplay_GetPlaybackState",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Playback state of the replay, STOPPED on failure.",
+     "name": "getPlaybackState",
+     "signature": "getPlaybackState():FmodPlaybackState",
+     "static": false,
+     "type": "haxefmod.studio.CommandReplay"
+    }
+   ],
+   "html5": false
   },
   "studio_commandreplay_getsystem": {
    "code": "var replay = StudioSystem.loadCommandReplay(\"capture.cmd.txt\");\nreplay.start();",
@@ -5923,12 +6381,13 @@ const HAXEFMOD_BINDINGS = {
    ]
   },
   "studio_commandreplay_getuserdata": {
+   "code": "var replay = StudioSystem.loadCommandReplay(\"capture.cmd.txt\");\nreplay.setUserData({label: \"cave\"});\nvar data = replay.getUserData();",
    "fmod": "",
    "haxe": [],
    "heading": "Studio::CommandReplay::getUserData",
    "html5": false,
    "notes": [
-    "Not exposed. Userdata on FMOD objects is left out because the binding's handle table already carries object identity. Keep your own map from the handle to your data, handles are ints and work as keys."
+    "haxefmod covers this with CommandReplay.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released."
    ]
   },
   "studio_commandreplay_isvalid": {
@@ -5968,13 +6427,18 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "studio_commandreplay_seektocommand": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "Studio::CommandReplay::seekToCommand",
-   "html5": false,
-   "notes": [
-    "Not exposed. Command replay inspection and tool hooks are FMOD tooling integration points. Command capture and basic playback are bound through StudioSystem.startCommandCapture, stopCommandCapture, loadCommandReplay, and CommandReplay.start, stop, setPaused, seekToTime, and getLength."
-   ]
+   "fmod": "FMOD_Studio_CommandReplay_SeekToCommand",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "",
+     "name": "seekToCommand",
+     "signature": "seekToCommand(index:Int):FmodResult",
+     "static": false,
+     "type": "haxefmod.studio.CommandReplay"
+    }
+   ],
+   "html5": false
   },
   "studio_commandreplay_seektotime": {
    "fmod": "FMOD_Studio_CommandReplay_SeekToTime",
@@ -5991,13 +6455,18 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "studio_commandreplay_setbankpath": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "Studio::CommandReplay::setBankPath",
-   "html5": false,
-   "notes": [
-    "Not exposed. Command replay inspection and tool hooks are FMOD tooling integration points. Command capture and basic playback are bound through StudioSystem.startCommandCapture, stopCommandCapture, loadCommandReplay, and CommandReplay.start, stop, setPaused, seekToTime, and getLength."
-   ]
+   "fmod": "FMOD_Studio_CommandReplay_SetBankPath",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Directory the replay loads banks from when the captured paths no longer apply.",
+     "name": "setBankPath",
+     "signature": "setBankPath(path:String):FmodResult",
+     "static": false,
+     "type": "haxefmod.studio.CommandReplay"
+    }
+   ],
+   "html5": false
   },
   "studio_commandreplay_setcreateinstancecallback": {
    "fmod": "",
@@ -6005,7 +6474,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "Studio::CommandReplay::setCreateInstanceCallback",
    "html5": false,
    "notes": [
-    "Not exposed. Command replay inspection and tool hooks are FMOD tooling integration points. Command capture and basic playback are bound through StudioSystem.startCommandCapture, stopCommandCapture, loadCommandReplay, and CommandReplay.start, stop, setPaused, seekToTime, and getLength."
+    "Cannot be bound. FMOD runs the callback on its update thread while the replay plays, and no Haxe target can execute code there. CommandReplay.getCommandInfo, getCommandString, and getCommandAtTime read the same commands from the game thread."
    ]
   },
   "studio_commandreplay_setframecallback": {
@@ -6014,7 +6483,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "Studio::CommandReplay::setFrameCallback",
    "html5": false,
    "notes": [
-    "Not exposed. Command replay inspection and tool hooks are FMOD tooling integration points. Command capture and basic playback are bound through StudioSystem.startCommandCapture, stopCommandCapture, loadCommandReplay, and CommandReplay.start, stop, setPaused, seekToTime, and getLength."
+    "Cannot be bound. FMOD runs the callback on its update thread while the replay plays, and no Haxe target can execute code there. CommandReplay.getCommandInfo, getCommandString, and getCommandAtTime read the same commands from the game thread."
    ]
   },
   "studio_commandreplay_setloadbankcallback": {
@@ -6023,7 +6492,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "Studio::CommandReplay::setLoadBankCallback",
    "html5": false,
    "notes": [
-    "Not exposed. Command replay inspection and tool hooks are FMOD tooling integration points. Command capture and basic playback are bound through StudioSystem.startCommandCapture, stopCommandCapture, loadCommandReplay, and CommandReplay.start, stop, setPaused, seekToTime, and getLength."
+    "Cannot be bound. FMOD runs the callback on its update thread while the replay plays, and no Haxe target can execute code there. CommandReplay.getCommandInfo, getCommandString, and getCommandAtTime read the same commands from the game thread."
    ]
   },
   "studio_commandreplay_setpaused": {
@@ -6041,12 +6510,13 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "studio_commandreplay_setuserdata": {
+   "code": "var replay = StudioSystem.loadCommandReplay(\"capture.cmd.txt\");\nreplay.setUserData({label: \"cave\"});\nvar data = replay.getUserData();",
    "fmod": "",
    "haxe": [],
    "heading": "Studio::CommandReplay::setUserData",
    "html5": false,
    "notes": [
-    "Not exposed. Userdata on FMOD objects is left out because the binding's handle table already carries object identity. Keep your own map from the handle to your data, handles are ints and work as keys."
+    "haxefmod covers this with CommandReplay.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released."
    ]
   },
   "studio_commandreplay_start": {
@@ -6290,12 +6760,13 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "studio_eventdescription_getuserdata": {
+   "code": "var description = StudioSystem.getEvent(FmodEvents.SFXEngine);\ndescription.setUserData({label: \"cave\"});\nvar data = description.getUserData();",
    "fmod": "",
    "haxe": [],
    "heading": "Studio::EventDescription::getUserData",
    "html5": false,
    "notes": [
-    "Not exposed. Userdata on FMOD objects is left out because the binding's handle table already carries object identity. Keep your own map from the handle to your data, handles are ints and work as keys."
+    "haxefmod covers this with EventDescription.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released."
    ]
   },
   "studio_eventdescription_getuserproperty": {
@@ -6463,21 +6934,23 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "studio_eventdescription_setcallback": {
+   "code": "var description = StudioSystem.getEvent(FmodEvents.SFXEngine);\ndescription.setCallback(data -> switch (data) {\n    case Stopped: trace(\"engine stopped\");\n    default:\n});\nvar instance = description.createInstance();",
    "fmod": "",
    "haxe": [],
    "heading": "Studio::EventDescription::setCallback",
    "html5": false,
    "notes": [
-    "Not exposed on the description. Callbacks are registered per instance with EventInstance.setCallback (or FmodSound.onEvent), which delivers typed EventCallbackData from FmodManager.Update() instead of from an FMOD thread."
+    "haxefmod covers this with EventDescription.setCallback(handler, ?mask), which remembers a handler that createInstance installs on every instance made from the description from then on. The events are queued on FMOD's thread and delivered as typed EventCallbackData from FmodManager.Update() on the game thread."
    ]
   },
   "studio_eventdescription_setuserdata": {
+   "code": "var description = StudioSystem.getEvent(FmodEvents.SFXEngine);\ndescription.setUserData({label: \"cave\"});\nvar data = description.getUserData();",
    "fmod": "",
    "haxe": [],
    "heading": "Studio::EventDescription::setUserData",
    "html5": false,
    "notes": [
-    "Not exposed. Userdata on FMOD objects is left out because the binding's handle table already carries object identity. Keep your own map from the handle to your data, handles are ints and work as keys."
+    "haxefmod covers this with EventDescription.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released."
    ]
   },
   "studio_eventdescription_unloadsampledata": {
@@ -7245,13 +7718,34 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "studio_system_getadvancedsettings": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "Studio::System::getAdvancedSettings",
-   "html5": false,
-   "notes": [
-    "Not exposed. FMOD_STUDIO_ADVANCEDSETTINGS is left at its defaults on every target. FmodRuntime.settings() returns the resolved FmodSettings the engine started with."
-   ]
+   "fmod": "FMOD_Studio_System_GetAdvancedSettings",
+   "haxe": [
+    {
+     "direct": false,
+     "doc": "The studio advanced settings FMOD is running with, or null on failure (unsupported in HTML5, null there).",
+     "name": "getStudioAdvancedSettings",
+     "signature": "getStudioAdvancedSettings():Null<FmodStudioAdvancedSettings>",
+     "static": true,
+     "type": "haxefmod.studio.StudioSystem"
+    },
+    {
+     "direct": false,
+     "doc": "Initializes FMOD.",
+     "name": "Initialize",
+     "signature": "Initialize(?settings:FmodSettings):Void",
+     "static": true,
+     "type": "haxefmod.FmodManager"
+    },
+    {
+     "direct": false,
+     "doc": "Initializes FMOD with the given settings (see FmodSettings for the define-driven defaults).",
+     "name": "init",
+     "signature": "init(?settings:FmodSettings):FmodResult",
+     "static": true,
+     "type": "haxefmod.runtime.FmodRuntime"
+    }
+   ],
+   "html5": true
   },
   "studio_system_getbank": {
    "fmod": "FMOD_Studio_System_GetBank",
@@ -7672,21 +8166,27 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "studio_system_getsoundinfo": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "Studio::System::getSoundInfo",
-   "html5": false,
-   "notes": [
-    "Not exposed. Audio table lookup is left out because the programmer sound flow hands the key to FMOD instead. EventInstance.assignProgrammerSound(key) names the audio table entry or file to play, and the binding resolves it. Programmer sounds are native only (unsupported in HTML5), where assignProgrammerSound returns FMOD_ERR_UNSUPPORTED."
-   ]
+   "fmod": "FMOD_Studio_System_GetSoundInfo",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "What FMOD would load for an audio table key: the name or file path it reports (empty for a bank held in memory) and the subsound index inside it.",
+     "name": "getSoundInfo",
+     "signature": "getSoundInfo(key:String):Null<{name:String, subSoundIndex:Int}>",
+     "static": true,
+     "type": "haxefmod.studio.StudioSystem"
+    }
+   ],
+   "html5": false
   },
   "studio_system_getuserdata": {
+   "code": "StudioSystem.setUserData({label: \"main\"});\nvar data = StudioSystem.getUserData();",
    "fmod": "",
    "haxe": [],
    "heading": "Studio::System::getUserData",
    "html5": false,
    "notes": [
-    "Not exposed. Userdata on FMOD objects is left out because the binding's handle table already carries object identity. Keep your own map from the handle to your data, handles are ints and work as keys."
+    "haxefmod covers this with StudioSystem.setUserData() and getUserData(). The value is any Haxe value and lives on the Haxe side."
    ]
   },
   "studio_system_getvca": {
@@ -7755,7 +8255,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "Studio::System::loadBankCustom",
    "html5": false,
    "notes": [
-    "Not exposed. Custom file systems need IO callbacks that run on FMOD threads, which no Haxe target can do safely. StudioSystem.loadBankFile and loadBankMemory are the supported bank paths, and CoreSound.create and CoreSound.fromPcm are the sound paths."
+    "Cannot be bound. A custom file system is a set of callbacks that FMOD runs on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile and loadBankMemory are the bank paths, and CoreSound.create and CoreSound.fromPcm are the sound paths."
    ]
   },
   "studio_system_loadbankfile": {
@@ -7834,7 +8334,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "Studio::System::registerPlugin",
    "html5": false,
    "notes": [
-    "Not bound yet. Loading a prebuilt plugin binary runs the plugin's own code on FMOD's threads with no Haxe involved, so nothing rules it out, it is deferred until CI has a plugin binary to test against. Until then a Studio project that uses plugin effects cannot load them from haxefmod. The 33 built-in DSP types are bound through Dsp.create. HTML5 has no plugin host (unsupported in HTML5), so the call will return FMOD_ERR_UNSUPPORTED there once it lands."
+    "Cannot be bound. It takes a DSP description struct whose callbacks FMOD runs on its mixer thread, and no Haxe target can execute code there. A prebuilt plugin binary loads with StudioSystem.loadPlugin, which makes its effects available to Studio events."
    ]
   },
   "studio_system_release": {
@@ -7874,16 +8374,33 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "studio_system_setadvancedsettings": {
-   "fmod": "",
-   "haxe": [],
+   "code": "FmodManager.Initialize({commandQueueSize: 65536});",
+   "fmod": "FMOD_Studio_System_SetAdvancedSettings",
+   "haxe": [
+    {
+     "direct": false,
+     "doc": "Initializes FMOD.",
+     "name": "Initialize",
+     "signature": "Initialize(?settings:FmodSettings):Void",
+     "static": true,
+     "type": "haxefmod.FmodManager"
+    },
+    {
+     "direct": false,
+     "doc": "Initializes FMOD with the given settings (see FmodSettings for the define-driven defaults).",
+     "name": "init",
+     "signature": "init(?settings:FmodSettings):FmodResult",
+     "static": true,
+     "type": "haxefmod.runtime.FmodRuntime"
+    }
+   ],
    "heading": "Studio::System::setAdvancedSettings",
    "html5": false,
    "notes": [
-    "Not exposed. The library owns init, and FMOD_STUDIO_ADVANCEDSETTINGS is left at its defaults on every target. The init-time options haxefmod supports are the FmodSettings fields and the haxefmod_* compile-time defines."
+    "haxefmod applies these before init from FmodSettings, which carries commandQueueSize, handleInitialSize, studioUpdatePeriod, idleSampleDataPoolSize, streamingScheduleDelay, and encryptionKey. Zero or null keeps FMOD's default for a field. Read them back with StudioSystem.getStudioAdvancedSettings() (unsupported in HTML5, returns null there)."
    ]
   },
   "studio_system_setcallback": {
-   "code": "StudioSystem.setSystemCallback(event -> switch (event) {\n    case DeviceListChanged: trace(\"devices changed\");\n    default:\n});",
    "fmod": "FMOD_Studio_System_SetCallback",
    "haxe": [
     {
@@ -7920,19 +8437,14 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "Removes every registered callback (song, sounds, and core channels).",
+     "doc": "Removes every registered callback (song, sounds, descriptions, and core channels).",
      "name": "ClearAllCallbacks",
      "signature": "ClearAllCallbacks():Void",
      "static": true,
      "type": "haxefmod.FmodManager"
     }
    ],
-   "heading": "Studio::System::setCallback",
-   "html5": false,
-   "notes": [
-    "StudioSystem.setSystemCallback takes one handler and delivers the events from FmodManager.Update() on the game thread: device list changed, device lost, bank unload with the bank's path, live update connected and disconnected, and pre and post update. Bank loading stays synchronous through StudioSystem.loadBankFile, and Bank.getLoadingState reports the state.",
-    "The handler is a function that takes the event and switches on it, so a game that only cares about device changes matches the device list changed case and leaves the default branch empty."
-   ]
+   "html5": false
   },
   "studio_system_setlistenerattributes": {
    "fmod": "FMOD_Studio_System_SetListenerAttributes",
@@ -8067,12 +8579,13 @@ const HAXEFMOD_BINDINGS = {
    ]
   },
   "studio_system_setuserdata": {
+   "code": "StudioSystem.setUserData({label: \"main\"});\nvar data = StudioSystem.getUserData();",
    "fmod": "",
    "haxe": [],
    "heading": "Studio::System::setUserData",
    "html5": false,
    "notes": [
-    "Not exposed. Userdata on FMOD objects is left out because the binding's handle table already carries object identity. Keep your own map from the handle to your data, handles are ints and work as keys."
+    "haxefmod covers this with StudioSystem.setUserData() and getUserData(). The value is any Haxe value and lives on the Haxe side."
    ]
   },
   "studio_system_startcommandcapture": {
@@ -8123,7 +8636,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "Studio::System::unregisterPlugin",
    "html5": false,
    "notes": [
-    "Not bound yet. Loading a prebuilt plugin binary runs the plugin's own code on FMOD's threads with no Haxe involved, so nothing rules it out, it is deferred until CI has a plugin binary to test against. Until then a Studio project that uses plugin effects cannot load them from haxefmod. The 33 built-in DSP types are bound through Dsp.create. HTML5 has no plugin host (unsupported in HTML5), so the call will return FMOD_ERR_UNSUPPORTED there once it lands."
+    "Cannot be bound. It names a plugin registered from a description struct, and that registration cannot be bound because its callbacks would run on FMOD's mixer thread. A plugin loaded with StudioSystem.loadPlugin is unloaded with StudioSystem.unloadPlugin."
    ]
   },
   "studio_system_update": {
@@ -8240,7 +8753,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "System::attachChannelGroupToPort",
    "html5": false,
    "notes": [
-    "Not exposed. Console port APIs are left out because haxefmod supports desktop and web only. Route audio through ChannelGroup and Bus instead."
+    "Cannot be bound. This is a console port API and haxefmod targets desktop and web only. Route audio through ChannelGroup and Bus instead."
    ]
   },
   "system_attachfilesystem": {
@@ -8249,7 +8762,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "System::attachFileSystem",
    "html5": false,
    "notes": [
-    "Not exposed. Custom file systems need IO callbacks that run on FMOD threads, which no Haxe target can do safely. StudioSystem.loadBankFile and loadBankMemory are the supported bank paths, and CoreSound.create and CoreSound.fromPcm are the sound paths."
+    "Cannot be bound. A custom file system is a set of callbacks that FMOD runs on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile and loadBankMemory are the bank paths, and CoreSound.create and CoreSound.fromPcm are the sound paths."
    ]
   },
   "system_close": {
@@ -8292,17 +8805,22 @@ const HAXEFMOD_BINDINGS = {
    "heading": "System::createDSP",
    "html5": false,
    "notes": [
-    "Not exposed. A DSP description carries callbacks that would run on FMOD's mixer thread, which no Haxe target can do, so creating a unit from a description stays out for good. All 33 built-in DSP types are created with Dsp.create(type)."
+    "Cannot be bound. A DSP description is a struct of callbacks that FMOD runs on its mixer thread, and no Haxe target can execute code there. All 33 built-in DSP types are created with Dsp.create(type), and a unit from a loaded plugin with Dsp.createByPlugin(handle)."
    ]
   },
   "system_createdspbyplugin": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "System::createDSPByPlugin",
-   "html5": false,
-   "notes": [
-    "Not bound yet. Loading a prebuilt plugin binary runs the plugin's own code on FMOD's threads with no Haxe involved, so nothing rules it out, it is deferred until CI has a plugin binary to test against. Until then a Studio project that uses plugin effects cannot load them from haxefmod. The 33 built-in DSP types are bound through Dsp.create. HTML5 has no plugin host (unsupported in HTML5), so the call will return FMOD_ERR_UNSUPPORTED there once it lands."
-   ]
+   "fmod": "FMOD_System_CreateDSPByPlugin",
+   "haxe": [
+    {
+     "direct": false,
+     "doc": "Creates an effect unit from a plugin loaded with StudioSystem.loadPlugin (unsupported in HTML5, returns Dsp.NULL there).",
+     "name": "createByPlugin",
+     "signature": "createByPlugin(pluginHandle:Int):Dsp",
+     "static": true,
+     "type": "haxefmod.core.Dsp"
+    }
+   ],
+   "html5": false
   },
   "system_createdspbytype": {
    "fmod": "FMOD_System_CreateDSPByType",
@@ -8432,7 +8950,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "System::detachChannelGroupFromPort",
    "html5": false,
    "notes": [
-    "Not exposed. Console port APIs are left out because haxefmod supports desktop and web only. Route audio through ChannelGroup and Bus instead."
+    "Cannot be bound. This is a console port API and haxefmod targets desktop and web only. Route audio through ChannelGroup and Bus instead."
    ]
   },
   "system_get3dlistenerattributes": {
@@ -8470,22 +8988,48 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "system_getadvancedsettings": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "System::getAdvancedSettings",
-   "html5": false,
-   "notes": [
-    "Not exposed. FMOD_ADVANCEDSETTINGS is left at its defaults on every target. FmodRuntime.settings() returns the resolved FmodSettings the engine started with."
-   ]
+   "fmod": "FMOD_System_GetAdvancedSettings",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "The core advanced settings FMOD is running with, or null on failure (unsupported in HTML5, null there).",
+     "name": "getAdvancedSettings",
+     "signature": "getAdvancedSettings():Null<FmodAdvancedSettings>",
+     "static": true,
+     "type": "haxefmod.studio.StudioSystem"
+    },
+    {
+     "direct": false,
+     "doc": "Initializes FMOD.",
+     "name": "Initialize",
+     "signature": "Initialize(?settings:FmodSettings):Void",
+     "static": true,
+     "type": "haxefmod.FmodManager"
+    },
+    {
+     "direct": false,
+     "doc": "Initializes FMOD with the given settings (see FmodSettings for the define-driven defaults).",
+     "name": "init",
+     "signature": "init(?settings:FmodSettings):FmodResult",
+     "static": true,
+     "type": "haxefmod.runtime.FmodRuntime"
+    }
+   ],
+   "html5": true
   },
   "system_getchannel": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "System::getChannel",
-   "html5": false,
-   "notes": [
-    "Not exposed. Channels are reached through the handle returned by CoreSound.play, PcmStream.play, or Dsp.play rather than by pool index, and ChannelGroup.getChannel(index) enumerates the channels in a group."
-   ]
+   "fmod": "FMOD_System_GetChannel",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "The pool channel at index (see Channel.getIndex).",
+     "name": "getChannel",
+     "signature": "getChannel(index:Int):Channel",
+     "static": true,
+     "type": "haxefmod.core.CoreSystem"
+    }
+   ],
+   "html5": false
   },
   "system_getchannelsplaying": {
    "fmod": "FMOD_System_GetChannelsPlaying",
@@ -8512,13 +9056,18 @@ const HAXEFMOD_BINDINGS = {
    ]
   },
   "system_getdefaultmixmatrix": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "System::getDefaultMixMatrix",
-   "html5": false,
-   "notes": [
-    "Not exposed. Speaker geometry and mix matrix readback are left out. Channel.setMixMatrix and ChannelGroup.setMixMatrix accept the matrix you build yourself."
-   ]
+   "fmod": "FMOD_System_GetDefaultMixMatrix",
+   "haxe": [
+    {
+     "direct": false,
+     "doc": "FMOD's default upmix or downmix matrix between two FMOD_SPEAKERMODE values, row-major with one row per target channel (unsupported in HTML5, null there).",
+     "name": "getDefaultMixMatrix",
+     "signature": "getDefaultMixMatrix(sourceSpeakerMode:Int, targetSpeakerMode:Int, matrixHop:Int = 0):Null<Array<Float>>",
+     "static": true,
+     "type": "haxefmod.core.CoreSystem"
+    }
+   ],
+   "html5": false
   },
   "system_getdriver": {
    "fmod": "FMOD_System_GetDriver",
@@ -8559,31 +9108,46 @@ const HAXEFMOD_BINDINGS = {
    ]
   },
   "system_getdspinfobyplugin": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "System::getDSPInfoByPlugin",
-   "html5": false,
-   "notes": [
-    "Not bound yet. Loading a prebuilt plugin binary runs the plugin's own code on FMOD's threads with no Haxe involved, so nothing rules it out, it is deferred until CI has a plugin binary to test against. Until then a Studio project that uses plugin effects cannot load them from haxefmod. The 33 built-in DSP types are bound through Dsp.create. HTML5 has no plugin host (unsupported in HTML5), so the call will return FMOD_ERR_UNSUPPORTED there once it lands."
-   ]
+   "fmod": "FMOD_System_GetDSPInfoByPlugin",
+   "haxe": [
+    {
+     "direct": false,
+     "doc": "The description a DSP plugin registered, its name, version, buffer counts and parameter count (unsupported in HTML5, null there).",
+     "name": "getPluginInfo",
+     "signature": "getPluginInfo(pluginHandle:Int):Null<{name:String, version:Int, inputBuffers:Int, outputBuffers:Int, parameterCount:Int}>",
+     "static": true,
+     "type": "haxefmod.core.Dsp"
+    }
+   ],
+   "html5": false
   },
   "system_getdspinfobytype": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "System::getDSPInfoByType",
-   "html5": false,
-   "notes": [
-    "Not exposed. DSP metadata lookup is left out with the plugin APIs. Dsp.getName() and Dsp.getType() report what a created unit is, and Dsp.getParameterCount() reports how many parameters it has."
-   ]
+   "fmod": "FMOD_System_GetDSPInfoByType",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "The description FMOD registered for a built-in effect type, its name, version, buffer counts and parameter count (unsupported in HTML5, null there).",
+     "name": "getDspInfoByType",
+     "signature": "getDspInfoByType(type:DspType):Null<{name:String, version:Int, inputBuffers:Int, outputBuffers:Int, parameterCount:Int}>",
+     "static": true,
+     "type": "haxefmod.core.CoreSystem"
+    }
+   ],
+   "html5": true
   },
   "system_getfileusage": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "System::getFileUsage",
-   "html5": false,
-   "notes": [
-    "Not exposed. File IO statistics are a tooling diagnostic with no cross-platform story, and the web build has no file system to count. StudioSystem.getBufferUsage() reports the Studio command and handle buffer usage."
-   ]
+   "fmod": "FMOD_System_GetFileUsage",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Bytes FMOD has read from disk since init, split by sample loads, streams, and everything else (banks, plugins).",
+     "name": "getFileUsage",
+     "signature": "getFileUsage():Null<{sampleBytesRead:Float, streamBytesRead:Float, otherBytesRead:Float}>",
+     "static": true,
+     "type": "haxefmod.studio.StudioSystem"
+    }
+   ],
+   "html5": false
   },
   "system_getgeometryocclusion": {
    "fmod": "FMOD_System_GetGeometryOcclusion",
@@ -8642,31 +9206,46 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "system_getnestedplugin": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "System::getNestedPlugin",
-   "html5": false,
-   "notes": [
-    "Not bound yet. Loading a prebuilt plugin binary runs the plugin's own code on FMOD's threads with no Haxe involved, so nothing rules it out, it is deferred until CI has a plugin binary to test against. Until then a Studio project that uses plugin effects cannot load them from haxefmod. The 33 built-in DSP types are bound through Dsp.create. HTML5 has no plugin host (unsupported in HTML5), so the call will return FMOD_ERR_UNSUPPORTED there once it lands."
-   ]
+   "fmod": "FMOD_System_GetNestedPlugin",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "The handle of one plugin inside a loaded library (unsupported in HTML5, 0 there).",
+     "name": "getNestedPlugin",
+     "signature": "getNestedPlugin(handle:Int, index:Int):Int",
+     "static": true,
+     "type": "haxefmod.studio.StudioSystem"
+    }
+   ],
+   "html5": false
   },
   "system_getnetworkproxy": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "System::getNetworkProxy",
-   "html5": false,
-   "notes": [
-    "Not exposed. Network streaming is left out, the library keeps FMOD's default network settings, and CoreSound.create opens local files only."
-   ]
+   "fmod": "FMOD_System_GetNetworkProxy",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "The proxy set by setNetworkProxy, \"\" when none is set or on failure.",
+     "name": "getNetworkProxy",
+     "signature": "getNetworkProxy():String",
+     "static": true,
+     "type": "haxefmod.core.CoreSystem"
+    }
+   ],
+   "html5": false
   },
   "system_getnetworktimeout": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "System::getNetworkTimeout",
-   "html5": false,
-   "notes": [
-    "Not exposed. Network streaming is left out, the library keeps FMOD's default network settings, and CoreSound.create opens local files only."
-   ]
+   "fmod": "FMOD_System_GetNetworkTimeout",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "The network timeout in milliseconds, -1 on failure.",
+     "name": "getNetworkTimeout",
+     "signature": "getNetworkTimeout():Int",
+     "static": true,
+     "type": "haxefmod.core.CoreSystem"
+    }
+   ],
+   "html5": false
   },
   "system_getnumdrivers": {
    "fmod": "FMOD_System_GetNumDrivers",
@@ -8683,40 +9262,60 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "system_getnumnestedplugins": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "System::getNumNestedPlugins",
-   "html5": false,
-   "notes": [
-    "Not bound yet. Loading a prebuilt plugin binary runs the plugin's own code on FMOD's threads with no Haxe involved, so nothing rules it out, it is deferred until CI has a plugin binary to test against. Until then a Studio project that uses plugin effects cannot load them from haxefmod. The 33 built-in DSP types are bound through Dsp.create. HTML5 has no plugin host (unsupported in HTML5), so the call will return FMOD_ERR_UNSUPPORTED there once it lands."
-   ]
+   "fmod": "FMOD_System_GetNumNestedPlugins",
+   "haxe": [
+    {
+     "direct": false,
+     "doc": "The number of plugins a loaded library contains, 1 for a plain plugin (unsupported in HTML5, -1 there).",
+     "name": "getNestedPluginCount",
+     "signature": "getNestedPluginCount(handle:Int):Int",
+     "static": true,
+     "type": "haxefmod.studio.StudioSystem"
+    }
+   ],
+   "html5": false
   },
   "system_getnumplugins": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "System::getNumPlugins",
-   "html5": false,
-   "notes": [
-    "Not bound yet. Loading a prebuilt plugin binary runs the plugin's own code on FMOD's threads with no Haxe involved, so nothing rules it out, it is deferred until CI has a plugin binary to test against. Until then a Studio project that uses plugin effects cannot load them from haxefmod. The 33 built-in DSP types are bound through Dsp.create. HTML5 has no plugin host (unsupported in HTML5), so the call will return FMOD_ERR_UNSUPPORTED there once it lands."
-   ]
+   "fmod": "FMOD_System_GetNumPlugins",
+   "haxe": [
+    {
+     "direct": false,
+     "doc": "The number of plugins of one type, built-in ones included (unsupported in HTML5, -1 there).",
+     "name": "getPluginCount",
+     "signature": "getPluginCount(type:FmodPluginType):Int",
+     "static": true,
+     "type": "haxefmod.studio.StudioSystem"
+    }
+   ],
+   "html5": false
   },
   "system_getoutput": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "System::getOutput",
-   "html5": false,
-   "notes": [
-    "Not exposed. The library owns init and keeps FMOD's default output type for the platform. Output device selection is bound through CoreSystem.getDriverCount, getDriverName, and setDriver."
-   ]
+   "fmod": "FMOD_System_GetOutput",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "The active output type as an FMOD_OUTPUTTYPE value, -1 on failure.",
+     "name": "getOutput",
+     "signature": "getOutput():Int",
+     "static": true,
+     "type": "haxefmod.core.CoreSystem"
+    }
+   ],
+   "html5": false
   },
   "system_getoutputbyplugin": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "System::getOutputByPlugin",
-   "html5": false,
-   "notes": [
-    "Not exposed. Output plugins are not loadable from haxefmod, and the library keeps FMOD's default output type for the platform."
-   ]
+   "fmod": "FMOD_System_GetOutputByPlugin",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "The plugin handle of the output mode in use, 0 on failure.",
+     "name": "getOutputByPlugin",
+     "signature": "getOutputByPlugin():Int",
+     "static": true,
+     "type": "haxefmod.core.CoreSystem"
+    }
+   ],
+   "html5": false
   },
   "system_getoutputhandle": {
    "fmod": "",
@@ -8724,26 +9323,36 @@ const HAXEFMOD_BINDINGS = {
    "heading": "System::getOutputHandle",
    "html5": false,
    "notes": [
-    "Not exposed. Haxe code never holds a raw pointer, and the library keeps FMOD's default output type, so there is no platform handle to hand back."
+    "Cannot be bound. It returns a raw operating system pointer, which has no meaning in Haxe. Output device selection goes through CoreSystem.getDriverCount, getDriverName, and setDriver."
    ]
   },
   "system_getpluginhandle": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "System::getPluginHandle",
-   "html5": false,
-   "notes": [
-    "Not bound yet. Loading a prebuilt plugin binary runs the plugin's own code on FMOD's threads with no Haxe involved, so nothing rules it out, it is deferred until CI has a plugin binary to test against. Until then a Studio project that uses plugin effects cannot load them from haxefmod. The 33 built-in DSP types are bound through Dsp.create. HTML5 has no plugin host (unsupported in HTML5), so the call will return FMOD_ERR_UNSUPPORTED there once it lands."
-   ]
+   "fmod": "FMOD_System_GetPluginHandle",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "The plugin handle at an index within one type (unsupported in HTML5, 0 there).",
+     "name": "getPluginHandle",
+     "signature": "getPluginHandle(type:FmodPluginType, index:Int):Int",
+     "static": true,
+     "type": "haxefmod.studio.StudioSystem"
+    }
+   ],
+   "html5": false
   },
   "system_getplugininfo": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "System::getPluginInfo",
-   "html5": false,
-   "notes": [
-    "Not bound yet. Loading a prebuilt plugin binary runs the plugin's own code on FMOD's threads with no Haxe involved, so nothing rules it out, it is deferred until CI has a plugin binary to test against. Until then a Studio project that uses plugin effects cannot load them from haxefmod. The 33 built-in DSP types are bound through Dsp.create. HTML5 has no plugin host (unsupported in HTML5), so the call will return FMOD_ERR_UNSUPPORTED there once it lands."
-   ]
+   "fmod": "FMOD_System_GetPluginInfo",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "The name, type and version a plugin registered (unsupported in HTML5, null there).",
+     "name": "getPluginInfo",
+     "signature": "getPluginInfo(handle:Int):Null<{name:String, type:FmodPluginType, version:Int}>",
+     "static": true,
+     "type": "haxefmod.studio.StudioSystem"
+    }
+   ],
+   "html5": false
   },
   "system_getrecorddriverinfo": {
    "fmod": "FMOD_System_GetRecordDriverInfo",
@@ -8826,22 +9435,40 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "system_getspeakermodechannels": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "System::getSpeakerModeChannels",
-   "html5": false,
-   "notes": [
-    "Not exposed. Speaker geometry APIs are left out. CoreSystem.getSoftwareFormat() reports the speaker mode and raw speaker count the mixer runs with."
-   ]
+   "fmod": "FMOD_System_GetSpeakerModeChannels",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Speaker count of an FMOD_SPEAKERMODE value, 0 on failure.",
+     "name": "getSpeakerModeChannels",
+     "signature": "getSpeakerModeChannels(speakerMode:Int):Int",
+     "static": true,
+     "type": "haxefmod.core.CoreSystem"
+    },
+    {
+     "direct": false,
+     "doc": "FMOD's default upmix or downmix matrix between two FMOD_SPEAKERMODE values, row-major with one row per target channel (unsupported in HTML5, null there).",
+     "name": "getDefaultMixMatrix",
+     "signature": "getDefaultMixMatrix(sourceSpeakerMode:Int, targetSpeakerMode:Int, matrixHop:Int = 0):Null<Array<Float>>",
+     "static": true,
+     "type": "haxefmod.core.CoreSystem"
+    }
+   ],
+   "html5": false
   },
   "system_getspeakerposition": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "System::getSpeakerPosition",
-   "html5": false,
-   "notes": [
-    "Not exposed. Speaker geometry APIs are left out, and the mixer runs with FMOD's default speaker positions for the speaker mode in FmodSettings.speakerMode."
-   ]
+   "fmod": "FMOD_System_GetSpeakerPosition",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "The position set for one speaker (see setSpeakerPosition), or null on failure.",
+     "name": "getSpeakerPosition",
+     "signature": "getSpeakerPosition(speaker:Int):Null<{x:Float, y:Float, active:Bool}>",
+     "static": true,
+     "type": "haxefmod.core.CoreSystem"
+    }
+   ],
+   "html5": false
   },
   "system_getstreambuffersize": {
    "code": "import haxefmod.runtime.FmodRuntime;\n\nFmodManager.Initialize({streamBufferSize: 65536});\nvar bytes = FmodRuntime.settings().streamBufferSize;",
@@ -8854,12 +9481,13 @@ const HAXEFMOD_BINDINGS = {
    ]
   },
   "system_getuserdata": {
+   "code": "StudioSystem.setUserData({label: \"main\"});\nvar data = StudioSystem.getUserData();",
    "fmod": "",
    "haxe": [],
    "heading": "System::getUserData",
    "html5": false,
    "notes": [
-    "Not exposed. Userdata on FMOD objects is left out because the binding's handle table already carries object identity. Keep your own map from the handle to your data, handles are ints and work as keys."
+    "haxefmod covers this with StudioSystem.setUserData() and getUserData(). haxefmod has one system, so the value lives on StudioSystem and the core system shares it."
    ]
   },
   "system_getversion": {
@@ -8915,22 +9543,32 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "system_loadplugin": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "System::loadPlugin",
-   "html5": false,
-   "notes": [
-    "Not bound yet. Loading a prebuilt plugin binary runs the plugin's own code on FMOD's threads with no Haxe involved, so nothing rules it out, it is deferred until CI has a plugin binary to test against. Until then a Studio project that uses plugin effects cannot load them from haxefmod. The 33 built-in DSP types are bound through Dsp.create. HTML5 has no plugin host (unsupported in HTML5), so the call will return FMOD_ERR_UNSUPPORTED there once it lands."
-   ]
+   "fmod": "FMOD_System_LoadPlugin",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Loads a plugin shared library and returns FMOD's plugin handle (unsupported in HTML5, returns 0 there).",
+     "name": "loadPlugin",
+     "signature": "loadPlugin(path:String, priority:Int = 0):Int",
+     "static": true,
+     "type": "haxefmod.studio.StudioSystem"
+    }
+   ],
+   "html5": false
   },
   "system_lockdsp": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "System::lockDSP",
-   "html5": false,
-   "notes": [
-    "Not exposed. Haxe code cannot run on FMOD's mixer thread, so there is nothing to lock the DSP graph against. Effects are added and removed with Dsp, Channel.addDsp, and ChannelGroup.addDsp without locking."
-   ]
+   "fmod": "FMOD_System_LockDSP",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Holds the mixer until unlockDsp so several graph edits (adding, removing, or reconnecting DSPs) land in one mixer update instead of being heard one at a time.",
+     "name": "lockDsp",
+     "signature": "lockDsp():FmodResult",
+     "static": true,
+     "type": "haxefmod.studio.StudioSystem"
+    }
+   ],
+   "html5": false
   },
   "system_mixerresume": {
    "fmod": "FMOD_System_MixerResume",
@@ -9030,7 +9668,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "System::registerCodec",
    "html5": false,
    "notes": [
-    "Not exposed. Registering a plugin from a description hands FMOD callbacks that would run on its mixer and streaming threads, which no Haxe target can do, so this stays out for good. Loading a prebuilt plugin binary with System::loadPlugin is a separate case that is deferred rather than impossible. The 33 built-in DSP types are bound through Dsp.create."
+    "Cannot be bound. A plugin description is a struct of callbacks that FMOD runs on its mixer and streaming threads, and no Haxe target can execute code there. A prebuilt plugin binary loads with StudioSystem.loadPlugin, and the built-in DSP types are created with Dsp.create."
    ]
   },
   "system_registerdsp": {
@@ -9039,7 +9677,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "System::registerDSP",
    "html5": false,
    "notes": [
-    "Not exposed. Registering a plugin from a description hands FMOD callbacks that would run on its mixer and streaming threads, which no Haxe target can do, so this stays out for good. Loading a prebuilt plugin binary with System::loadPlugin is a separate case that is deferred rather than impossible. The 33 built-in DSP types are bound through Dsp.create."
+    "Cannot be bound. A plugin description is a struct of callbacks that FMOD runs on its mixer and streaming threads, and no Haxe target can execute code there. A prebuilt plugin binary loads with StudioSystem.loadPlugin, and the built-in DSP types are created with Dsp.create."
    ]
   },
   "system_registeroutput": {
@@ -9048,7 +9686,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "System::registerOutput",
    "html5": false,
    "notes": [
-    "Not exposed. Registering a plugin from a description hands FMOD callbacks that would run on its mixer and streaming threads, which no Haxe target can do, so this stays out for good. Loading a prebuilt plugin binary with System::loadPlugin is a separate case that is deferred rather than impossible. The 33 built-in DSP types are bound through Dsp.create."
+    "Cannot be bound. A plugin description is a struct of callbacks that FMOD runs on its mixer and streaming threads, and no Haxe target can execute code there. A prebuilt plugin binary loads with StudioSystem.loadPlugin, and the built-in DSP types are created with Dsp.create."
    ]
   },
   "system_release": {
@@ -9087,7 +9725,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "System::set3DRolloffCallback",
    "html5": false,
    "notes": [
-    "Not exposed. Haxe code cannot run on FMOD's mixer thread, so a rolloff callback cannot be delivered. The built-in rolloff modes are set through Channel.setMode and ChannelGroup.setMode."
+    "Cannot be bound. FMOD runs the callback on its mixer thread, and no Haxe target can execute code there. Channel.set3DCustomRolloff takes a curve of points instead, and the built-in rolloff modes are set through Channel.setMode and ChannelGroup.setMode."
    ]
   },
   "system_set3dsettings": {
@@ -9105,16 +9743,33 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "system_setadvancedsettings": {
-   "fmod": "",
-   "haxe": [],
+   "code": "FmodManager.Initialize({vol0VirtualVol: 0.001, randomSeed: 42});",
+   "fmod": "FMOD_System_SetAdvancedSettings",
+   "haxe": [
+    {
+     "direct": false,
+     "doc": "Initializes FMOD.",
+     "name": "Initialize",
+     "signature": "Initialize(?settings:FmodSettings):Void",
+     "static": true,
+     "type": "haxefmod.FmodManager"
+    },
+    {
+     "direct": false,
+     "doc": "Initializes FMOD with the given settings (see FmodSettings for the define-driven defaults).",
+     "name": "init",
+     "signature": "init(?settings:FmodSettings):FmodResult",
+     "static": true,
+     "type": "haxefmod.runtime.FmodRuntime"
+    }
+   ],
    "heading": "System::setAdvancedSettings",
    "html5": false,
    "notes": [
-    "Not exposed. The library owns init, and FMOD_ADVANCEDSETTINGS is left at its defaults on every target. The init-time options haxefmod supports are the FmodSettings fields and the haxefmod_* compile-time defines."
+    "haxefmod applies these before init from FmodSettings, which carries maxMPEGCodecs, maxVorbisCodecs, maxFADPCMCodecs, vol0VirtualVol, defaultDecodeBufferSize, profilePort, geometryMaxFadeTime, distanceFilterCenterFreq, and randomSeed. Zero or null keeps FMOD's default for a field. Read them back with StudioSystem.getAdvancedSettings() (unsupported in HTML5, returns null there)."
    ]
   },
   "system_setcallback": {
-   "code": "StudioSystem.setSystemCallback(event -> switch (event) {\n    case DeviceListChanged: trace(\"devices changed\");\n    default:\n});",
    "fmod": "FMOD_System_SetCallback",
    "haxe": [
     {
@@ -9151,19 +9806,14 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "Removes every registered callback (song, sounds, and core channels).",
+     "doc": "Removes every registered callback (song, sounds, descriptions, and core channels).",
      "name": "ClearAllCallbacks",
      "signature": "ClearAllCallbacks():Void",
      "static": true,
      "type": "haxefmod.FmodManager"
     }
    ],
-   "heading": "System::setCallback",
-   "html5": false,
-   "notes": [
-    "StudioSystem.setSystemCallback delivers the core system events (device list changed, device lost) from FmodManager.Update() on the game thread, next to the Studio system events on the same handler. Engine errors are not among them, set FmodSettings.logLevel or call FmodManager.EnableDebugMessages() to see those in the log.",
-    "The handler is a function that takes the event and switches on it, so a game that only cares about device changes matches the device list changed case and leaves the default branch empty."
-   ]
+   "html5": false
   },
   "system_setdriver": {
    "fmod": "FMOD_System_SetDriver",
@@ -9212,7 +9862,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "System::setFileSystem",
    "html5": false,
    "notes": [
-    "Not exposed. Custom file systems need IO callbacks that run on FMOD threads, which no Haxe target can do safely. StudioSystem.loadBankFile and loadBankMemory are the supported bank paths, and CoreSound.create and CoreSound.fromPcm are the sound paths."
+    "Cannot be bound. A custom file system is a set of callbacks that FMOD runs on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile and loadBankMemory are the bank paths, and CoreSound.create and CoreSound.fromPcm are the sound paths."
    ]
   },
   "system_setgeometrysettings": {
@@ -9230,22 +9880,32 @@ const HAXEFMOD_BINDINGS = {
    "html5": true
   },
   "system_setnetworkproxy": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "System::setNetworkProxy",
-   "html5": false,
-   "notes": [
-    "Not exposed. Network streaming is left out, the library keeps FMOD's default network settings, and CoreSound.create opens local files only."
-   ]
+   "fmod": "FMOD_System_SetNetworkProxy",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Proxy for FMOD's own network streams, as \"host:port\" (\"user:pass@host:port\" with credentials).",
+     "name": "setNetworkProxy",
+     "signature": "setNetworkProxy(proxy:String):FmodResult",
+     "static": true,
+     "type": "haxefmod.core.CoreSystem"
+    }
+   ],
+   "html5": false
   },
   "system_setnetworktimeout": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "System::setNetworkTimeout",
-   "html5": false,
-   "notes": [
-    "Not exposed. Network streaming is left out, the library keeps FMOD's default network settings, and CoreSound.create opens local files only."
-   ]
+   "fmod": "FMOD_System_SetNetworkTimeout",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Timeout in milliseconds for FMOD's own network streams.",
+     "name": "setNetworkTimeout",
+     "signature": "setNetworkTimeout(ms:Int):FmodResult",
+     "static": true,
+     "type": "haxefmod.core.CoreSystem"
+    }
+   ],
+   "html5": false
   },
   "system_setoutput": {
    "fmod": "FMOD_System_SetOutput",
@@ -9270,22 +9930,32 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "system_setoutputbyplugin": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "System::setOutputByPlugin",
-   "html5": false,
-   "notes": [
-    "Not exposed. Output plugins are third-party code that would run on FMOD threads, which no Haxe target can do safely. The library keeps FMOD's default output type for the platform."
-   ]
+   "fmod": "FMOD_System_SetOutputByPlugin",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Selects the output mode by plugin handle.",
+     "name": "setOutputByPlugin",
+     "signature": "setOutputByPlugin(handle:Int):FmodResult",
+     "static": true,
+     "type": "haxefmod.core.CoreSystem"
+    }
+   ],
+   "html5": false
   },
   "system_setpluginpath": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "System::setPluginPath",
-   "html5": false,
-   "notes": [
-    "Not bound yet. Loading a prebuilt plugin binary runs the plugin's own code on FMOD's threads with no Haxe involved, so nothing rules it out, it is deferred until CI has a plugin binary to test against. Until then a Studio project that uses plugin effects cannot load them from haxefmod. The 33 built-in DSP types are bound through Dsp.create. HTML5 has no plugin host (unsupported in HTML5), so the call will return FMOD_ERR_UNSUPPORTED there once it lands."
-   ]
+   "fmod": "FMOD_System_SetPluginPath",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Sets the directory FMOD searches for plugins given by file name (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED).",
+     "name": "setPluginPath",
+     "signature": "setPluginPath(path:String):FmodResult",
+     "static": true,
+     "type": "haxefmod.studio.StudioSystem"
+    }
+   ],
+   "html5": true
   },
   "system_setreverbproperties": {
    "fmod": "FMOD_System_SetReverbProperties",
@@ -9351,13 +10021,18 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "system_setspeakerposition": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "System::setSpeakerPosition",
-   "html5": false,
-   "notes": [
-    "Not exposed. Speaker geometry APIs are left out, and the mixer runs with FMOD's default speaker positions for the speaker mode in FmodSettings.speakerMode."
-   ]
+   "fmod": "FMOD_System_SetSpeakerPosition",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Where one output speaker sits for panning, as x (left -1 to right 1) and y (back -1 to front 1), and whether it is fed at all.",
+     "name": "setSpeakerPosition",
+     "signature": "setSpeakerPosition(speaker:Int, x:Float, y:Float, active:Bool):FmodResult",
+     "static": true,
+     "type": "haxefmod.core.CoreSystem"
+    }
+   ],
+   "html5": false
   },
   "system_setstreambuffersize": {
    "code": "FmodManager.Initialize({streamBufferSize: 65536});",
@@ -9387,31 +10062,42 @@ const HAXEFMOD_BINDINGS = {
    ]
   },
   "system_setuserdata": {
+   "code": "StudioSystem.setUserData({label: \"main\"});\nvar data = StudioSystem.getUserData();",
    "fmod": "",
    "haxe": [],
    "heading": "System::setUserData",
    "html5": false,
    "notes": [
-    "Not exposed. Userdata on FMOD objects is left out because the binding's handle table already carries object identity. Keep your own map from the handle to your data, handles are ints and work as keys."
+    "haxefmod covers this with StudioSystem.setUserData() and getUserData(). haxefmod has one system, so the value lives on StudioSystem and the core system shares it."
    ]
   },
   "system_unloadplugin": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "System::unloadPlugin",
-   "html5": false,
-   "notes": [
-    "Not bound yet. Loading a prebuilt plugin binary runs the plugin's own code on FMOD's threads with no Haxe involved, so nothing rules it out, it is deferred until CI has a plugin binary to test against. Until then a Studio project that uses plugin effects cannot load them from haxefmod. The 33 built-in DSP types are bound through Dsp.create. HTML5 has no plugin host (unsupported in HTML5), so the call will return FMOD_ERR_UNSUPPORTED there once it lands."
-   ]
+   "fmod": "FMOD_System_UnloadPlugin",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Unloads a plugin from loadPlugin (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED).",
+     "name": "unloadPlugin",
+     "signature": "unloadPlugin(handle:Int):FmodResult",
+     "static": true,
+     "type": "haxefmod.studio.StudioSystem"
+    }
+   ],
+   "html5": true
   },
   "system_unlockdsp": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "System::unlockDSP",
-   "html5": false,
-   "notes": [
-    "Not exposed. Haxe code cannot run on FMOD's mixer thread, so the DSP graph is never locked from Haxe. Effects are added and removed with Dsp, Channel.addDsp, and ChannelGroup.addDsp without locking."
-   ]
+   "fmod": "FMOD_System_UnlockDSP",
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Releases the mixer held by lockDsp.",
+     "name": "unlockDsp",
+     "signature": "unlockDsp():FmodResult",
+     "static": true,
+     "type": "haxefmod.studio.StudioSystem"
+    }
+   ],
+   "html5": false
   },
   "system_update": {
    "code": "FmodManager.Update();",
@@ -9429,7 +10115,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "Thread_SetAttributes",
    "html5": false,
    "notes": [
-    "Not exposed. Thread affinity and priority are init-time engine settings the library keeps at FMOD's defaults, and the web build has no threads to configure."
+    "Cannot be bound. It must run before the system is created, and haxefmod creates the system inside FmodManager.Initialize() with no hook before it. FMOD keeps its default thread affinity and priority on every target, and the web build has no threads to configure."
    ]
   }
  },

@@ -12,7 +12,7 @@ Pick the lowest tier that does what you need. They compose, so a game can start 
 |---|---|---|
 | Facade | `haxefmod.FmodManager`, `haxefmod.FmodSound` | One background song slot, fire-and-forget and handle-based sound effects, bus volume helpers, window focus handling. Enough for most games. |
 | Runtime | `haxefmod.runtime` | Settings-driven initialization, the bank registry, 3D attachment, and the per-frame update that everything else rides on. |
-| Studio and Core | `haxefmod.studio`, `haxefmod.core` | Typed handles for every FMOD Studio and Core object. This is the complete API. |
+| Studio and Core | `haxefmod.studio`, `haxefmod.core` | Typed handles for every FMOD Studio and Core object. The binding is complete except for the callback-driven APIs no Haxe target can host, listed in [Limitations](limitations.md). |
 
 `haxefmod.flixel` sits beside these with drop-in HaxeFlixel components, and `haxefmod.tools` is the `haxelib run haxefmod` command line.
 

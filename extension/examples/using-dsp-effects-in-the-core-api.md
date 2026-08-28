@@ -18,7 +18,7 @@ if (!result.isOk()) {
 
 ## 1
 <!-- Add a DSP effect to a Channel -->
-Reordering a unit in place is not exposed. Remove the effect and add it back at the wanted index.
+Channel.setDspIndex moves a unit that is already in the chain, and getDspIndex reads its position.
 ```haxe
 import haxefmod.core.Dsp;
 import haxefmod.core.DspType;
@@ -27,8 +27,7 @@ var echo = Dsp.create(DspType.ECHO);
 channel.addDsp(0, echo);
 
 // move it to position 1
-channel.removeDsp(echo);
-channel.addDsp(1, echo);
+channel.setDspIndex(echo, 1);
 ```
 
 ## 2
@@ -145,7 +144,14 @@ if (!result.isOk()) {
 
 ## 9
 <!-- Set the output format of a DSP unit, and control the pan matrix for its output signal -->
-DSP::setChannelFormat is not exposed. The mixer runs at the speaker mode chosen in FmodSettings, and a channel's output layout is shaped with Channel.setMixMatrix instead.
+Dsp.setChannelFormat sets the format a unit outputs, and getChannelFormat reads it back. The channel mask, channel count, and speaker mode take FMOD's numeric values.
+```haxe
+import haxefmod.core.Dsp;
+import haxefmod.core.DspType;
+
+var reverb = Dsp.create(DspType.SFXREVERB);
+reverb.setChannelFormat(0, 2, 2); // FMOD_SPEAKERMODE_STEREO
+```
 
 ## 10
 <!-- Set the output format of a DSP unit, and control the pan matrix for its output signal -->
@@ -179,4 +185,15 @@ if (!result.isOk()) {
 
 ## *
 <!-- page default -->
-Plug-in DSP authoring stays in C, because Haxe code cannot run on FMOD's mixer thread on any target. Loading a prebuilt plug-in binary is deferred until CI has one to test against, so Studio projects that use plug-in effects cannot load them from haxefmod yet, and the web build has no plug-in host (unsupported in HTML5). All 33 built-in effect types are available through Dsp.create.
+Plug-in DSP authoring stays in C, because Haxe code cannot run on FMOD's mixer thread on any target. A prebuilt plug-in binary loads with StudioSystem.loadPlugin, and Dsp.createByPlugin creates a unit from it, native only (unsupported in HTML5) because the web build has no plug-in host. All 33 built-in effect types are available through Dsp.create on every target.
+```haxe
+import haxefmod.core.Dsp;
+import haxefmod.core.ChannelGroup;
+
+StudioSystem.setPluginPath("plugins");
+var plugin = StudioSystem.loadPlugin("fmod_gain.dll");
+if (plugin != 0) {
+    var gain = Dsp.createByPlugin(plugin);
+    ChannelGroup.master().addDsp(ChannelGroup.DSP_HEAD, gain);
+}
+```

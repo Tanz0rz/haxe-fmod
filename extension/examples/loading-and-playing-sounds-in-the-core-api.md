@@ -81,7 +81,7 @@ if (sound.isNull()) {
 
 ## 7
 <!-- 4.3.3 Creating a Sound by manually providing sample data -->
-PCM read callbacks and Sound::lock are not exposed. PcmStream is the user-sound equivalent, a ring buffer the game writes 16-bit PCM into from the game thread while the mixer drains it.
+PCM read callbacks and Sound::lock cannot be bound, the callbacks run on FMOD's threads and lock hands out a raw pointer. PcmStream is the user-sound equivalent, a ring buffer the game writes 16-bit PCM into from the game thread while the mixer drains it, and CoreSound.readData covers reading PCM back out of a sound.
 ```haxe
 import haxefmod.core.PcmStream;
 

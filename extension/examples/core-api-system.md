@@ -110,7 +110,7 @@ FmodManager.Initialize({liveUpdate: true, numChannels: 256, autoUpdate: true});
 
 ## 16
 <!-- FMOD_OUTPUTTYPE -->
-The output type is chosen automatically for each platform and is not exposed. Output device selection within that type goes through the driver calls.
+The output type is chosen by FMOD for each platform, and CoreSystem.getOutput reports it as the FMOD_OUTPUTTYPE value. Output device selection within that type goes through the driver calls.
 ```haxe
 import haxefmod.core.CoreSystem;
 
@@ -121,11 +121,33 @@ if (CoreSystem.getDriverCount() > 1) {
 
 ## 17
 <!-- FMOD_PLUGINLIST -->
-Plugin authoring stays in C because Haxe code cannot run on FMOD's mixer thread. Loading a prebuilt plugin binary is deferred until CI has one to test against, so Studio projects that use plugin effects cannot load them from haxefmod yet.
+Plugin authoring stays in C because Haxe code cannot run on FMOD's mixer thread. A prebuilt plugin binary loads with StudioSystem.loadPlugin, native only (unsupported in HTML5), and StudioSystem.getPluginCount, getPluginHandle, and getPluginInfo enumerate what is loaded by FmodPluginType.
+```haxe
+import haxefmod.core.Dsp;
+import haxefmod.core.ChannelGroup;
+
+StudioSystem.setPluginPath("plugins");
+var plugin = StudioSystem.loadPlugin("fmod_gain.dll");
+if (plugin != 0) {
+    var gain = Dsp.createByPlugin(plugin);
+    ChannelGroup.master().addDsp(ChannelGroup.DSP_HEAD, gain);
+}
+```
 
 ## 18
 <!-- FMOD_PLUGINTYPE -->
-Plugin authoring stays in C because Haxe code cannot run on FMOD's mixer thread. Loading a prebuilt plugin binary is deferred until CI has one to test against, so Studio projects that use plugin effects cannot load them from haxefmod yet.
+Plugin authoring stays in C because Haxe code cannot run on FMOD's mixer thread. A prebuilt plugin binary loads with StudioSystem.loadPlugin, native only (unsupported in HTML5), and StudioSystem.getPluginCount, getPluginHandle, and getPluginInfo enumerate what is loaded by FmodPluginType.
+```haxe
+import haxefmod.core.Dsp;
+import haxefmod.core.ChannelGroup;
+
+StudioSystem.setPluginPath("plugins");
+var plugin = StudioSystem.loadPlugin("fmod_gain.dll");
+if (plugin != 0) {
+    var gain = Dsp.createByPlugin(plugin);
+    ChannelGroup.master().addDsp(ChannelGroup.DSP_HEAD, gain);
+}
+```
 
 ## 19
 <!-- FMOD_PORT_INDEX -->
@@ -173,15 +195,27 @@ Reverb.set(0, custom);
 
 ## 26
 <!-- FMOD_SYSTEM_CALLBACK -->
-System callbacks are not exposed since Haxe code cannot run on FMOD's threads.
+StudioSystem.setSystemCallback takes one handler and delivers the device list changed and device lost events from FmodManager.Update() on the game thread, next to the Studio system events. Engine errors are not among them, set FmodSettings.logLevel to see those in the log.
+```haxe
+StudioSystem.setSystemCallback(event -> switch (event) {
+    case DeviceListChanged: trace("devices changed");
+    default:
+});
+```
 
 ## 27
 <!-- FMOD_SYSTEM_CALLBACK_TYPE -->
-System callbacks are not exposed since Haxe code cannot run on FMOD's threads.
+StudioSystem.setSystemCallback takes one handler and delivers the device list changed and device lost events from FmodManager.Update() on the game thread, next to the Studio system events. Engine errors are not among them, set FmodSettings.logLevel to see those in the log.
+```haxe
+StudioSystem.setSystemCallback(event -> switch (event) {
+    case DeviceListChanged: trace("devices changed");
+    default:
+});
+```
 
 ## 104
 <!-- System::setDSPBufferSize -->
-The DSP buffer size is chosen by the library and is not exposed. The mixer sample rate is readable from getSoftwareFormat.
+FMOD only accepts the mixer buffer before init, so it is set through the dspBufferSize and dspNumBuffers fields of FmodSettings, native only (unsupported in HTML5). The mixer sample rate is readable from getSoftwareFormat.
 ```haxe
 import haxefmod.core.CoreSystem;
 
@@ -193,28 +227,42 @@ if (format != null) {
 
 ## 116
 <!-- System::setSpeakerPosition -->
-Speaker geometry is not exposed. Set a speaker mode at initialization and FMOD uses the standard layout for it.
+CoreSystem.setSpeakerPosition places one speaker of the mode chosen at initialization, and getSpeakerPosition reads it back.
 ```haxe
+import haxefmod.core.CoreSystem;
+
 FmodManager.Initialize({speakerMode: 2}); // FMOD_SPEAKERMODE_STEREO
+CoreSystem.setSpeakerPosition(0, -1, 0, true); // FMOD_SPEAKER_FRONT_LEFT
+CoreSystem.setSpeakerPosition(1, 1, 0, true); // FMOD_SPEAKER_FRONT_RIGHT
 ```
 
 ## 117
 <!-- System::setSpeakerPosition -->
-Speaker geometry is not exposed. Set a speaker mode at initialization and FMOD uses the standard layout for it.
+CoreSystem.setSpeakerPosition places one speaker of the mode chosen at initialization, and getSpeakerPosition reads it back.
 ```haxe
+import haxefmod.core.CoreSystem;
+
 FmodManager.Initialize({speakerMode: 2}); // FMOD_SPEAKERMODE_STEREO
+CoreSystem.setSpeakerPosition(0, -1, 0, true); // FMOD_SPEAKER_FRONT_LEFT
+CoreSystem.setSpeakerPosition(1, 1, 0, true); // FMOD_SPEAKER_FRONT_RIGHT
 ```
 
 ## 118
 <!-- System::setSpeakerPosition -->
-Speaker geometry is not exposed. Set a speaker mode at initialization and FMOD uses the standard layout for it.
+CoreSystem.setSpeakerPosition places one speaker of the mode chosen at initialization, and a speaker set inactive is left out of the mix.
 ```haxe
+import haxefmod.core.CoreSystem;
+
 FmodManager.Initialize({speakerMode: 6}); // FMOD_SPEAKERMODE_7POINT1
+CoreSystem.setSpeakerPosition(2, 0, 0, false); // FMOD_SPEAKER_FRONT_CENTER off
 ```
 
 ## 119
 <!-- System::setSpeakerPosition -->
-Speaker geometry is not exposed. Set a speaker mode at initialization and FMOD uses the standard layout for it.
+CoreSystem.setSpeakerPosition places one speaker of the mode chosen at initialization, and a speaker set inactive is left out of the mix.
 ```haxe
+import haxefmod.core.CoreSystem;
+
 FmodManager.Initialize({speakerMode: 6}); // FMOD_SPEAKERMODE_7POINT1
+CoreSystem.setSpeakerPosition(2, 0, 0, false); // FMOD_SPEAKER_FRONT_CENTER off
 ```

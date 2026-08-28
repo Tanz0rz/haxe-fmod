@@ -444,9 +444,9 @@ def render_unsupported_md(table):
     lines = [
         "# Unsupported functions",
         "",
-        f"The {total} functions of the FMOD API that haxefmod {haxelib_version()} does not expose, with the reason for each. Generated from `extension/functions.md` by `ci/haxe-bindings.py`, so this page and the Haxe tab of the browser extension always agree. [Limitations](limitations.md) explains the categories, and [Coverage](coverage.md) lists what is bound.",
+        f"The {total} functions of the FMOD API that haxefmod {haxelib_version()} cannot bind, with the reason for each. Nearly all of them hand FMOD a callback to run on its own threads, which no Haxe target can host, and the rest belong to platforms the library does not ship for or return raw pointers. Generated from `extension/functions.md` by `ci/haxe-bindings.py`, so this page and the Haxe tab of the browser extension always agree. [Coverage](coverage.md) lists everything that is bound.",
         "",
-        "Every function here is a candidate for a future binding. An issue naming one, with the use case, is the way to ask.",
+        "If one of these blocks a real use case, open an issue describing it. A workaround at the library level is sometimes possible even when the function itself is not.",
         "",
     ]
     for owner in sorted(groups, key=str.lower):

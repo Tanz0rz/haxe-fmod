@@ -109,12 +109,12 @@ async function main() {
 
     if (!live) {
         const unbound = await page.evaluate(() => {
-            const heading = document.getElementById('studio_system_getadvancedsettings');
+            const heading = document.getElementById('system_setfilesystem');
             let node = heading.nextElementSibling;
             while (node && !node.classList.contains('haxefmod-block')) node = node.nextElementSibling;
             return node.textContent;
         });
-        if (unbound.indexOf('Not exposed') < 0 && unbound.indexOf('No direct haxefmod call') < 0) fail('unbound function lacks a note: ' + unbound);
+        if (unbound.indexOf('Cannot be bound') < 0) fail('an impossible function should say it cannot be bound: ' + unbound);
         const also = await page.evaluate(() => {
             const heading = document.getElementById('studio_eventinstance_set3dattributes');
             let node = heading.nextElementSibling;

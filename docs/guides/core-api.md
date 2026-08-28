@@ -80,6 +80,8 @@ var curve:Array<FmodVector> = [
 channel.set3DCustomRolloff(curve);
 ```
 
+`CoreSound.set3DConeSettings` and `CoreSound.set3DMinMaxDistance` set the cone and rolloff distances every channel played from that sound starts with, and the channel's own setters override them per instance. `Channel.getChannelGroup()` returns the group a channel is routed into. `getFadePoints()` reads back the fade points scheduled with `addFadePoint` as clock and volume pairs (unsupported in HTML5). It is a compile error there unless the project opts in, and then returns `null` with `FMOD_ERR_UNSUPPORTED` in `StudioSystem.lastResult()`. `getMixMatrix(outChannels, inChannels)` reads the mix matrix back the same way, and `ChannelGroup` carries both readers with the same HTML5 behavior.
+
 `Channel.setCallback` delivers `ChannelEvent` values (`End`, `SyncPoint(index)`) on the game thread through the same per-frame drain as studio callbacks. Sync points are set on the sound with `CoreSound.addSyncPoint`.
 
 ## Channel groups
@@ -114,7 +116,11 @@ StudioSystem.getBus("bus:/SFX").getChannelGroup().removeDsp(lowpass);
 lowpass.release();
 ```
 
-`setParameterInt`, `setParameterBool`, and `setParameterData` cover the other parameter kinds, and `setBypass`, `setActive`, `setWetDryMix`, and `reset` control the unit. Detach an effect before releasing it.
+`setParameterInt`, `setParameterBool`, and `setParameterData` cover the other parameter kinds, and `setBypass`, `setActive`, `setWetDryMix`, and `reset` control the unit. Detach an effect before releasing it. `setDspIndex(dsp, index)` on a channel or group moves an attached effect to another chain position and `getDspIndex(dsp)` reads its position back, `-1` when the effect is not attached.
+
+`getParameterInfo(index)` reports a parameter's name, type, range, and default, which is what a settings screen needs to build a slider for an effect it did not author (unsupported in HTML5). It is a compile error there unless the project opts in, and then returns `null` with `FMOD_ERR_UNSUPPORTED` in `StudioSystem.lastResult()`. `getDataParameterIndex(dataType)` finds the data parameter carrying a given `FMOD_DSP_PARAMETER_DATA_TYPE`. `setChannelFormat`, `getChannelFormat`, and `getOutputChannelFormat` fix and read the unit's channel mask, channel count, and speaker mode.
+
+`StudioSystem.lockDsp()` holds the mixer so that several graph edits land in one mixer update instead of being heard one at a time, and `unlockDsp()` releases it. Keep the locked section short, since the mixer waits for it.
 
 Two effects double as analyzers. A `DspType.FFT` unit attached where you want to listen exposes `getFftSpectrum(maxBins)`, and any unit reports `getMetering()` (peak and RMS per output channel) once `setMeteringEnabled` is on.
 
@@ -130,9 +136,50 @@ var spectrum = fft.getFftSpectrum(64);
 if (spectrum != null) trace('bass ${spectrum[1]}');
 ```
 
-`Dsp.play` plays a generator unit such as `DspType.OSCILLATOR` as a sound source. `addInput`, `disconnectFrom`, and the `DspConnection` handle build custom mixer topologies, including send and sidechain routings through `DspConnection.TYPE_SEND` and `TYPE_SIDECHAIN` with a per-connection mix level. Any graph change invalidates every connection handle, so query them again through `getInputConnection` afterwards.
+`Dsp.play` plays a generator unit such as `DspType.OSCILLATOR` as a sound source. `addInput`, `disconnectFrom`, and the `DspConnection` handle build custom mixer topologies, including send and sidechain routings through `DspConnection.TYPE_SEND` and `TYPE_SIDECHAIN` with a per-connection mix level. Any graph change invalidates every connection handle, so query them again through `getInputConnection` afterwards. `DspConnection.setMixMatrix(matrix, outChannels, inChannels)` routes an input's channels to the output's with explicit gains, and `getMixMatrix(outChannels, inChannels)` reads the region back (unsupported in HTML5). It is a compile error there unless the project opts in, and then returns `null` with `FMOD_ERR_UNSUPPORTED` in `StudioSystem.lastResult()`.
 
-Custom DSP callbacks and third-party plugins are unavailable, since Haxe code cannot run on FMOD's mixer thread on any target.
+Custom DSP callbacks are unavailable, since Haxe code cannot run on FMOD's mixer thread on any target. Effects shipped as FMOD plugins are loaded as described below.
+
+## Plugins
+
+An FMOD Studio project can place third-party plugin effects on its events and buses. The bank stores those effects by name, and FMOD resolves the name against the plugins registered in the running engine when the bank's events play. A plugin that is not loaded leaves a silent gap where the effect should be, so a game whose project uses plugin effects loads the same plugin libraries at startup, before the banks. `StudioSystem.loadPlugin(path, ?priority)` loads a plugin shared library and returns FMOD's plugin handle (unsupported in HTML5). It is a compile error there unless the project opts in, and then returns `0` with `FMOD_ERR_UNSUPPORTED` in `StudioSystem.lastResult()`. On native targets `0` means the load failed, with `FMOD_ERR_FILE_NOTFOUND` for a missing file. `setPluginPath(directory)` names the directory a relative path is resolved against. Plugin handles are FMOD's own ids rather than haxefmod handles, so they never show up in `liveHandleCount()`.
+
+A loaded DSP plugin is also usable from game code. `Dsp.createByPlugin(handle)` makes an effect unit from it that behaves like any built-in `Dsp`, and `Dsp.getPluginInfo(handle)` reports the name, version, buffer counts, and parameter count the plugin registered. `getPluginCount(type)` and `getPluginHandle(type, index)` enumerate the plugins of one `FmodPluginType` with the built-in ones included, `StudioSystem.getPluginInfo(handle)` reports a plugin's name, type, and version, and `getNestedPluginCount` and `getNestedPlugin` walk a library that carries several plugins.
+
+```haxe
+import haxefmod.core.ChannelGroup;
+import haxefmod.core.Dsp;
+
+StudioSystem.setPluginPath("plugins");
+var plugin = StudioSystem.loadPlugin("fmod_gain");
+if (plugin == 0) {
+    trace('plugin failed: ${StudioSystem.lastResult()}');
+} else {
+    var info = Dsp.getPluginInfo(plugin);
+    if (info != null) trace('${info.name} with ${info.parameterCount} parameters');
+    var gain = Dsp.createByPlugin(plugin);
+    gain.setParameter(0, -6);
+    ChannelGroup.master().addDsp(ChannelGroup.DSP_HEAD, gain);
+}
+```
+
+Unloading goes in the reverse order. Detach and release every unit created from the plugin, run an update so FMOD's mixer frees them, and then call `unloadPlugin(handle)`. FMOD frees a released unit from its mixer thread and reports the plugin in use for a tick or two after the release, so an unload that answers `FMOD_ERR_DSP_INUSE` succeeds when retried a few frames later.
+
+```haxe
+import haxefmod.core.ChannelGroup;
+import haxefmod.core.Dsp;
+import haxefmod.studio.FmodResult;
+
+var plugin = StudioSystem.loadPlugin("fmod_gain");
+var gain = Dsp.createByPlugin(plugin);
+ChannelGroup.master().addDsp(ChannelGroup.DSP_HEAD, gain);
+// at teardown
+ChannelGroup.master().removeDsp(gain);
+gain.release();
+FmodManager.Update();
+var result = StudioSystem.unloadPlugin(plugin);
+if (result == FmodResult.FMOD_ERR_DSP_INUSE) trace("retry next frame");
+```
 
 ## Reverb
 
@@ -153,7 +200,7 @@ Studio events route through the Studio mixer, where reverb is authored in FMOD S
 
 ## Sound groups
 
-A `SoundGroup` caps how many sounds from a set play at once. `setMaxAudible` sets the limit and `setMaxAudibleBehavior` chooses what happens past it: `BEHAVIOR_FAIL` refuses the new sound, `BEHAVIOR_MUTE` plays it silently, and `BEHAVIOR_STEAL_LOWEST` stops the quietest. Assign sounds with `CoreSound.setSoundGroup`. Every sound belongs to `SoundGroup.master()` until moved.
+A `SoundGroup` caps how many sounds from a set play at once. `setMaxAudible` sets the limit and `setMaxAudibleBehavior` chooses what happens past it: `BEHAVIOR_FAIL` refuses the new sound, `BEHAVIOR_MUTE` plays it silently, and `BEHAVIOR_STEAL_LOWEST` stops the quietest. Assign sounds with `CoreSound.setSoundGroup`. Every sound belongs to `SoundGroup.master()` until moved. `getName()` returns the name given at creation and `getSound(index)` enumerates the group's sounds, returning `CoreSound.NULL` past the end. The group does not own those sounds, so never release a handle obtained that way.
 
 ```haxe
 import haxefmod.core.SoundGroup;
@@ -195,13 +242,63 @@ Geometry exists on native targets only. A game that also ships to the browser ke
 
 ## Mixer and 3D settings
 
-`CoreSystem` holds the calls that belong to no single object. `getChannelsPlaying()` reports total and real (audible) channel counts, `getSoftwareFormat()` the mixer's sample rate and speaker mode, and `mixerSuspend` and `mixerResume` stop and restart the mixer for platforms that demand silence in the background. `set3DSettings(dopplerScale, distanceFactor, rolloffScale)` rescales doppler, world units per meter, and distance attenuation for every 3D sound, Studio events included. Output device selection goes through `getDriverCount`, `getDriverName`, `setDriver`, and `getDriver`.
+`CoreSystem` holds the calls that belong to no single object. `getChannelsPlaying()` reports total and real (audible) channel counts, `getSoftwareFormat()` the mixer's sample rate and speaker mode, and `mixerSuspend` and `mixerResume` stop and restart the mixer for platforms that demand silence in the background. `set3DSettings(dopplerScale, distanceFactor, rolloffScale)` rescales doppler, world units per meter, and distance attenuation for every 3D sound, Studio events included. Output device selection goes through `getDriverCount`, `getDriverName`, `setDriver`, and `getDriver`, and `getOutput()` reports the active output type as an `FMOD_OUTPUTTYPE` value.
+
+`getChannel(index)` returns the pool channel at an index (see `Channel.getIndex`). It is a separate handle from the one `play` returned, shared by every call for the same index, and an idle slot answers `FMOD_ERR_INVALID_HANDLE` until FMOD reuses it. `getSpeakerModeChannels(speakerMode)` gives the speaker count of an `FMOD_SPEAKERMODE` value. `getDefaultMixMatrix(sourceSpeakerMode, targetSpeakerMode, ?matrixHop)` returns FMOD's default upmix or downmix matrix between two speaker modes, row-major with one row per target channel (unsupported in HTML5). It is a compile error there unless the project opts in, and then returns `null` with `FMOD_ERR_UNSUPPORTED` in `StudioSystem.lastResult()`. `setSpeakerPosition(speaker, x, y, active)` and `getSpeakerPosition(speaker)` place one output speaker for panning, `x` from left `-1` to right `1` and `y` from back `-1` to front `1`, with `active` false for a speaker that receives nothing.
+
+FMOD's own network streams take a proxy through `setNetworkProxy("host:port")`, with `user:pass@host:port` for credentials, and a timeout in milliseconds through `setNetworkTimeout`. `getNetworkProxy` and `getNetworkTimeout` read them back.
 
 ## Profiling
 
 `StudioSystem.getCpuUsage()` breaks mixer time down per subsystem, `getMemoryUsage()` reports bytes (native only), and `getBufferUsage()` shows the Studio command queue and handle buffer with their stall counts. `Bus`, `EventInstance`, and `Dsp` have `getCpuUsage()` as well. FMOD fills those in only when the system was initialized with `profiling: true` in the settings, and they return `null` otherwise. The same setting lets the FMOD Profiler connect to the running game.
 
-`StudioSystem.startCommandCapture(path)` records every Studio API call to a file that FMOD's tools can analyze, `stopCommandCapture()` ends it, and `loadCommandReplay(path)` plays a capture back through the live system as a `CommandReplay` handle.
+`getMemoryStats(?blocking)` reports the bytes FMOD currently has allocated and the most it has ever had, with `blocking` true making FMOD flush pending commands first so the numbers are exact. `getFileUsage()` reports the bytes FMOD has read from disk since init, split into sample loads, streams, and everything else. Both work on every target and return `null` on failure.
+
+### Command capture and replay
+
+`StudioSystem.startCommandCapture(path)` records every Studio API call to a file that FMOD's tools can analyze, and `stopCommandCapture()` ends it. `loadCommandReplay(path)` loads a capture as a `CommandReplay` handle that plays the recorded calls back through the live system with `start`, `stop`, `setPaused`, and `seekToTime`. The handle also exposes the capture itself. `getCommandCount()` reports how many commands it holds, `getCommandInfo(index)` returns an `FmodCommandInfo` with the command name, frame number, frame time, and the instance and output it applied to, and `getCommandString(index)` formats one command the way FMOD's tools print it. `getCommandAtTime(timeMs)` finds the command playing at a point in the capture, `seekToCommand(index)` moves playback there, `getPlaybackState()` reports the replay's state, and `setBankPath(directory)` tells the replay where to load banks from when the captured paths no longer apply.
+
+```haxe
+StudioSystem.startCommandCapture("capture.cmd");
+// play the game for a while
+StudioSystem.stopCommandCapture();
+
+var replay = StudioSystem.loadCommandReplay("capture.cmd");
+if (replay.isNull()) {
+    trace('load failed: ${StudioSystem.lastResult()}');
+} else {
+    trace('${replay.getCommandCount()} commands, first: ${replay.getCommandString(0)}');
+    replay.start();
+    // when finished
+    replay.release();
+}
+```
+
+## Tracker music, subsounds, and tags
+
+A `CoreSound` loaded from a MOD, S3M, XM, or IT file exposes its tracker channels. `getMusicNumChannels()` reports how many, `setMusicChannelVolume(channel, volume)` and `getMusicChannelVolume(channel)` mix them, and `setMusicSpeed(speed)` and `getMusicSpeed()` scale the tempo (unsupported in HTML5, where loose files cannot load and the calls return `FMOD_ERR_UNSUPPORTED`).
+
+```haxe
+import haxefmod.studio.CoreSound;
+
+var song = CoreSound.create("assets/music/level1.xm");
+var channels = song.getMusicNumChannels();
+for (i in 0...channels) song.setMusicChannelVolume(i, 0.8);
+song.setMusicSpeed(1.1);
+```
+
+Container formats carry subsounds. `getNumSubSounds()`, `getSubSound(index)`, and `getSubSoundParent()` walk them. A subsound belongs to its parent and is released with it, so never release the handle `getSubSound` returns. `getNumTags()` counts metadata tags and `getTag(name, index)` reads one as an `FmodTag` with its type, data type, and string or numeric payload (unsupported in HTML5, where `getTag` returns `null`). Pass `null` as the name to walk every tag by index.
+
+```haxe
+import haxefmod.studio.CoreSound;
+
+var song = CoreSound.create("assets/music/level1.xm");
+var count = song.getNumTags();
+for (i in 0...count) {
+    var tag = song.getTag(null, i);
+    if (tag != null) trace('${tag.name} = ${tag.stringValue}');
+}
+```
 
 ## Recording
 

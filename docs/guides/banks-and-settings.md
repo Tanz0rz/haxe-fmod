@@ -52,9 +52,16 @@ FmodRuntime.onceReady(() -> {
 | `autoLoadBanks` | | `["Master.bank", "Master.strings.bank"]` | Banks loaded during init. Pass `[]` to manage all loading yourself. |
 | `autoUpdate` | | true | Services FMOD from a background thread (native) or timer (HTML5) so audio keeps running when the game loop stalls. |
 | `muteWhenUnfocused` | `haxefmod_no_mute_when_unfocused` | true | Mutes the master output while the window is unfocused. See [FmodManager](fmod-manager.md#window-focus). |
+| `maxMPEGCodecs`, `maxVorbisCodecs`, `maxFADPCMCodecs` | | 0 | Codec pool sizes. 0 keeps FMOD's default for each. |
+| `vol0VirtualVol` | | 0 | Volume below which a voice goes virtual. 0 keeps FMOD's default. |
+| `defaultDecodeBufferSize`, `profilePort`, `geometryMaxFadeTime`, `distanceFilterCenterFreq`, `randomSeed` | | 0 | The remaining core advanced settings, passed through as given. 0 keeps FMOD's default. |
+| `commandQueueSize`, `handleInitialSize`, `studioUpdatePeriod`, `idleSampleDataPoolSize`, `streamingScheduleDelay` | | 0 | The Studio advanced settings. 0 keeps FMOD's default. |
+| `encryptionKey` | | none | The key for banks built with encryption in FMOD Studio. |
 | `maxAttachedVelocity` | | 0 | Caps the velocity magnitude pushed for attached instances and the flixel listener, in game units per second. 0 means no cap. See [Callbacks and 3D](callbacks-and-3d.md#doppler-and-velocity). |
 
 Defines go in `Project.xml` as `<haxedef name="haxefmod_num_channels" value="256" />` or on the command line as `-D haxefmod_num_channels=256`. `FmodRuntime.settings()` returns the fully resolved settings after init, and `null` before it.
+
+`StudioSystem.getAdvancedSettings()` and `getStudioAdvancedSettings()` read the advanced settings FMOD is running with (unsupported in HTML5, where they return `null`).
 
 The Live Update port is fixed at 9264 by FMOD. Enabling it triggers a firewall dialog on macOS and Windows the first time the game runs.
 

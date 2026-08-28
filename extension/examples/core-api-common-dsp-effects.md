@@ -672,7 +672,7 @@ tremolo.setParameter(7, 0.3); // SPREAD
 
 ## 53
 <!-- FMOD_DSP_TYPE -->
-haxefmod.core.DspType is an enum abstract with the same names and values, minus MAX. Every built-in type is available on every target. Third-party and custom plugin types are not.
+haxefmod.core.DspType is an enum abstract with the same names and values, minus MAX. Every built-in type is available on every target. A third-party plugin loads with StudioSystem.loadPlugin and its unit is created with Dsp.createByPlugin, native only (unsupported in HTML5).
 ```haxe
 import haxefmod.core.Dsp;
 import haxefmod.core.DspType;

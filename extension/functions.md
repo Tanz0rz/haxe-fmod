@@ -1,21 +1,5 @@
 # functions
 
-## channel_getchannelgroup
-<!-- Channel::getChannelGroup -->
-Not exposed. The group a channel plays in is the one you passed to Channel.setChannelGroup, or the master group by default, so keep that reference on the game side.
-
-## channelcontrol_getdspindex
-<!-- ChannelControl::getDSPIndex -->
-Not exposed. Channel.getDspCount() and Channel.getDsp(index) walk the chain in order, so the index of a unit is the position where getDsp returns it.
-
-## channelcontrol_getfadepoints
-<!-- ChannelControl::getFadePoints -->
-Not exposed. Fade point readback is left out. Channel.addFadePoint, setFadePointRamp, and removeFadePoints are bound, and the game keeps its own list of the points it added.
-
-## channelcontrol_getmixmatrix
-<!-- ChannelControl::getMixMatrix -->
-Not exposed. Mix matrix readback is left out. Channel.setMixMatrix and ChannelGroup.setMixMatrix are bound, and the game keeps the matrix it set.
-
 ## channelcontrol_getsystemobject
 <!-- ChannelControl::getSystemObject -->
 haxefmod has one core system, and haxefmod.core.CoreSystem reaches it directly, so no object needs to hand it back.
@@ -27,59 +11,30 @@ var format = CoreSystem.getSoftwareFormat();
 
 ## channelcontrol_getuserdata
 <!-- ChannelControl::getUserData -->
-Not exposed. Userdata on FMOD objects is left out because the binding's handle table already carries object identity. Keep your own map from the handle to your data, handles are ints and work as keys.
+haxefmod covers this with Channel and ChannelGroup.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
+```haxe
+import haxefmod.core.ChannelGroup;
 
-## channelcontrol_setdspindex
-<!-- ChannelControl::setDSPIndex -->
-Not exposed. Reordering the chain after the fact is left out. Channel.addDsp(index, dsp) and ChannelGroup.addDsp(index, dsp) take the position when the unit is inserted, and removeDsp followed by addDsp moves it.
-
-## channelcontrol_setmixlevelsinput
-<!-- ChannelControl::setMixLevelsInput -->
-Not exposed. Per-speaker input mix levels are left out with the speaker geometry APIs. Channel.setMixMatrix and ChannelGroup.setMixMatrix accept an explicit matrix, and setPan covers the common case.
-
-## channelcontrol_setmixlevelsoutput
-<!-- ChannelControl::setMixLevelsOutput -->
-Not exposed. Per-speaker output mix levels are left out with the speaker geometry APIs. Channel.setMixMatrix and ChannelGroup.setMixMatrix accept an explicit matrix, and setPan covers the common case.
+var group = ChannelGroup.master();
+group.setUserData({label: "cave"});
+var data = group.getUserData();
+```
 
 ## file_getdiskbusy
 <!-- File_GetDiskBusy -->
-Not exposed. Disk busy flags belong to the custom file system integration, which is left out because IO callbacks would run on FMOD threads.
+Cannot be bound. The disk busy flag belongs to the custom file system callbacks, which FMOD runs on its streaming thread, and no Haxe target can execute code there.
 
 ## file_setdiskbusy
 <!-- File_SetDiskBusy -->
-Not exposed. Disk busy flags belong to the custom file system integration, which is left out because IO callbacks would run on FMOD threads.
-
-## memory_getstats
-<!-- Memory_GetStats -->
-Not exposed. Global allocator statistics are left out with the custom allocator hooks. StudioSystem.getMemoryUsage() reports the memory held by Studio objects.
+Cannot be bound. The disk busy flag belongs to the custom file system callbacks, which FMOD runs on its streaming thread, and no Haxe target can execute code there.
 
 ## memory_initialize
 <!-- Memory_Initialize -->
-Not exposed. Custom allocators would be called from FMOD threads, which no Haxe target can do safely, and the library owns init. FMOD uses its default allocator on every target.
+Cannot be bound. Custom allocators are callbacks that FMOD runs on every one of its threads, and no Haxe target can execute code there. FMOD uses its default allocator on every target, and StudioSystem.getMemoryStats reports what it holds.
 
 ## thread_setattributes
 <!-- Thread_SetAttributes -->
-Not exposed. Thread affinity and priority are init-time engine settings the library keeps at FMOD's defaults, and the web build has no threads to configure.
-
-## dsp_addinputpreallocated
-<!-- DSP::addInputPreallocated -->
-Not exposed. Preallocated connections are left out. Dsp.addInput() connects two units and returns the DspConnection, and FMOD allocates it on its own thread.
-
-## dsp_getchannelformat
-<!-- DSP::getChannelFormat -->
-Not exposed. Channel format control on individual units is left out, and every unit runs in the mixer's format from FmodSettings.speakerMode.
-
-## dsp_getdataparameterindex
-<!-- DSP::getDataParameterIndex -->
-Not exposed. Data parameter lookup is left out with the DSP parameter metadata. Dsp.getFftSpectrum() reads the FFT unit's spectrum data directly, and Dsp.setParameterData(index, bytes) writes a data parameter by index.
-
-## dsp_getoutputchannelformat
-<!-- DSP::getOutputChannelFormat -->
-Not exposed. Channel format control on individual units is left out, and every unit runs in the mixer's format from FmodSettings.speakerMode.
-
-## dsp_getparameterinfo
-<!-- DSP::getParameterInfo -->
-Not exposed. The web build has no binding for the parameter description struct, so DSP parameter metadata is left out. Parameter values round-trip by index through Dsp.getParameter, setParameter, and their Int and Bool variants on every target.
+Cannot be bound. It must run before the system is created, and haxefmod creates the system inside FmodManager.Initialize() with no hook before it. FMOD keeps its default thread affinity and priority on every target, and the web build has no threads to configure.
 
 ## dsp_getsystemobject
 <!-- DSP::getSystemObject -->
@@ -92,55 +47,93 @@ var format = CoreSystem.getSoftwareFormat();
 
 ## dsp_getuserdata
 <!-- DSP::getUserData -->
-Not exposed. Userdata on FMOD objects is left out because the binding's handle table already carries object identity. Keep your own map from the handle to your data, handles are ints and work as keys.
+haxefmod covers this with Dsp.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
+```haxe
+import haxefmod.core.Dsp;
+import haxefmod.core.DspType;
+
+var reverb = Dsp.create(DspType.SFXREVERB);
+reverb.setUserData({label: "cave"});
+var data = reverb.getUserData();
+```
 
 ## dsp_setcallback
 <!-- DSP::setCallback -->
-Not exposed. Haxe code cannot run on FMOD's mixer thread, so DSP callbacks cannot be delivered. Poll the unit from the game loop with Dsp.getMetering() or Dsp.getFftSpectrum() instead.
-
-## dsp_setchannelformat
-<!-- DSP::setChannelFormat -->
-Not exposed. Channel format control on individual units is left out, and every unit runs in the mixer's format from FmodSettings.speakerMode.
+Cannot be bound. FMOD runs the callback on its mixer thread, and no Haxe target can execute code there. Poll the unit from the game loop with Dsp.getMetering() or Dsp.getFftSpectrum() instead.
 
 ## dsp_setuserdata
 <!-- DSP::setUserData -->
-Not exposed. Userdata on FMOD objects is left out because the binding's handle table already carries object identity. Keep your own map from the handle to your data, handles are ints and work as keys.
+haxefmod covers this with Dsp.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
+```haxe
+import haxefmod.core.Dsp;
+import haxefmod.core.DspType;
+
+var reverb = Dsp.create(DspType.SFXREVERB);
+reverb.setUserData({label: "cave"});
+var data = reverb.getUserData();
+```
 
 ## dsp_showconfigdialog
 <!-- DSP::showConfigDialog -->
-Not exposed. Plugin configuration dialogs belong to third-party plugins, which haxefmod does not load. Built-in DSP parameters are set through Dsp.setParameter.
-
-## dspconnection_getmixmatrix
-<!-- DSPConnection::getMixMatrix -->
-Not exposed. Per-connection mix matrices are left out. DspConnection.getMix reads the connection volume.
+Cannot be bound. It takes a raw operating system window handle, which has no meaning in Haxe. Plugin and built-in DSP parameters are set through Dsp.setParameter.
 
 ## dspconnection_getuserdata
 <!-- DSPConnection::getUserData -->
-Not exposed. Userdata on FMOD objects is left out because the binding's handle table already carries object identity. Keep your own map from the handle to your data, handles are ints and work as keys.
+haxefmod covers this with DspConnection.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
+```haxe
+import haxefmod.core.Dsp;
+import haxefmod.core.DspType;
 
-## dspconnection_setmixmatrix
-<!-- DSPConnection::setMixMatrix -->
-Not exposed. Per-connection mix matrices are left out. DspConnection.setMix sets the connection volume, and Channel.setMixMatrix or ChannelGroup.setMixMatrix shape the speaker mix.
+var reverb = Dsp.create(DspType.SFXREVERB);
+var fft = Dsp.create(DspType.FFT);
+var connection = fft.addInput(reverb);
+connection.setUserData({label: "cave"});
+var data = connection.getUserData();
+```
 
 ## dspconnection_setuserdata
 <!-- DSPConnection::setUserData -->
-Not exposed. Userdata on FMOD objects is left out because the binding's handle table already carries object identity. Keep your own map from the handle to your data, handles are ints and work as keys.
+haxefmod covers this with DspConnection.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
+```haxe
+import haxefmod.core.Dsp;
+import haxefmod.core.DspType;
+
+var reverb = Dsp.create(DspType.SFXREVERB);
+var fft = Dsp.create(DspType.FFT);
+var connection = fft.addInput(reverb);
+connection.setUserData({label: "cave"});
+var data = connection.getUserData();
+```
 
 ## geometry_getuserdata
 <!-- Geometry::getUserData -->
-Not exposed. Userdata on FMOD objects is left out because the binding's handle table already carries object identity. Keep your own map from the handle to your data, handles are ints and work as keys.
+haxefmod covers this with Geometry.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
+```haxe
+import haxefmod.core.Geometry;
+
+var geometry = Geometry.create(8, 32);
+geometry.setUserData({label: "cave"});
+var data = geometry.getUserData();
+```
 
 ## geometry_setuserdata
 <!-- Geometry::setUserData -->
-Not exposed. Userdata on FMOD objects is left out because the binding's handle table already carries object identity. Keep your own map from the handle to your data, handles are ints and work as keys.
+haxefmod covers this with Geometry.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
+```haxe
+import haxefmod.core.Geometry;
+
+var geometry = Geometry.create(8, 32);
+geometry.setUserData({label: "cave"});
+var data = geometry.getUserData();
+```
 
 ## fmod_android_jni_close
 <!-- FMOD_Android_JNI_Close -->
-Not exposed. Android is not a supported platform, haxefmod targets desktop and web only.
+Cannot be bound. This is an Android JNI entry point and haxefmod targets desktop and web only.
 
 ## fmod_android_jni_init
 <!-- FMOD_Android_JNI_Init -->
-Not exposed. Android is not a supported platform, haxefmod targets desktop and web only.
+Cannot be bound. This is an Android JNI entry point and haxefmod targets desktop and web only.
 
 ## fs_createpreloadedfile
 <!-- FS_createPreloadedFile -->
@@ -153,83 +146,61 @@ var bank:Bank = StudioSystem.loadBankFile("assets/fmod/Desktop/Level1.bank");
 
 ## readfile
 <!-- ReadFile -->
-Not exposed. Reading files from the wasm file system is left out with the custom file system integration. StudioSystem.loadBankMemory() loads a bank from bytes you already hold, and CoreSound.fromPcm() plays raw PCM you already hold.
+Cannot be bound. It returns a raw wasm heap address, which has no meaning in Haxe. StudioSystem.loadBankMemory() loads a bank from bytes you already hold, and CoreSound.fromPcm() plays raw PCM you already hold.
 
 ## memory_free
 <!-- Memory_Free -->
-Not exposed. Haxe code never allocates on the FMOD heap, so there is nothing to free. Release handles with the release() method of the object that created them.
+Cannot be bound. It frees a raw pointer from FMOD's heap, which has no meaning in Haxe, and Haxe code never receives one. Release handles with the release() method of the object that created them.
 
 ## file_open
 <!-- file_open -->
-Not exposed. File callbacks belong to the custom file system integration, which is left out because they would run on FMOD threads. StudioSystem.loadBankFile, loadBankMemory, CoreSound.create, and CoreSound.fromPcm are the supported loading paths.
+Cannot be bound. FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, CoreSound.create, and CoreSound.fromPcm are the loading paths.
 
 ## file_close
 <!-- file_close -->
-Not exposed. File callbacks belong to the custom file system integration, which is left out because they would run on FMOD threads. StudioSystem.loadBankFile, loadBankMemory, CoreSound.create, and CoreSound.fromPcm are the supported loading paths.
+Cannot be bound. FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, CoreSound.create, and CoreSound.fromPcm are the loading paths.
 
 ## file_read
 <!-- file_read -->
-Not exposed. File callbacks belong to the custom file system integration, which is left out because they would run on FMOD threads. StudioSystem.loadBankFile, loadBankMemory, CoreSound.create, and CoreSound.fromPcm are the supported loading paths.
+Cannot be bound. FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, CoreSound.create, and CoreSound.fromPcm are the loading paths.
 
 ## file_seek
 <!-- file_seek -->
-Not exposed. File callbacks belong to the custom file system integration, which is left out because they would run on FMOD threads. StudioSystem.loadBankFile, loadBankMemory, CoreSound.create, and CoreSound.fromPcm are the supported loading paths.
+Cannot be bound. FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, CoreSound.create, and CoreSound.fromPcm are the loading paths.
 
 ## setvalue
 <!-- setValue -->
-Not exposed. Direct wasm heap access belongs to hand-written JS glue, which the haxefmod web runtime keeps inside the binding. Values cross into FMOD through the typed haxefmod methods.
+Cannot be bound. This reads and writes the wasm heap through a raw address, which has no meaning in Haxe. Values cross into FMOD through the typed haxefmod methods, and getters return values directly.
 
 ## getvalue
 <!-- getValue -->
-Not exposed. Direct wasm heap access belongs to hand-written JS glue, which the haxefmod web runtime keeps inside the binding. Getters return values directly, and struct getters return typedefs.
+Cannot be bound. This reads and writes the wasm heap through a raw address, which has no meaning in Haxe. Values cross into FMOD through the typed haxefmod methods, and getters return values directly.
 
 ## file_seek_1
 <!-- file_seek -->
-Not exposed. File callbacks belong to the custom file system integration, which is left out because they would run on FMOD threads. StudioSystem.loadBankFile, loadBankMemory, CoreSound.create, and CoreSound.fromPcm are the supported loading paths.
+Cannot be bound. FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, CoreSound.create, and CoreSound.fromPcm are the loading paths.
 
 ## reverb3d_getuserdata
 <!-- Reverb3D::getUserData -->
-Not exposed. Userdata on FMOD objects is left out because the binding's handle table already carries object identity. Keep your own map from the handle to your data, handles are ints and work as keys.
+haxefmod covers this with Reverb3D.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
+```haxe
+import haxefmod.core.Reverb3D;
+
+var reverb = Reverb3D.create();
+reverb.setUserData({label: "cave"});
+var data = reverb.getUserData();
+```
 
 ## reverb3d_setuserdata
 <!-- Reverb3D::setUserData -->
-Not exposed. Userdata on FMOD objects is left out because the binding's handle table already carries object identity. Keep your own map from the handle to your data, handles are ints and work as keys.
+haxefmod covers this with Reverb3D.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
+```haxe
+import haxefmod.core.Reverb3D;
 
-## sound_get3dconesettings
-<!-- Sound::get3DConeSettings -->
-Not exposed on the sound. Cone settings are bound on the channel and the group, so read them with Channel.get3DConeSettings or ChannelGroup.get3DConeSettings.
-
-## sound_get3dminmaxdistance
-<!-- Sound::get3DMinMaxDistance -->
-Not exposed on the sound. Min and max distance are bound on the channel and the group, so read them with Channel.get3DMinMaxDistance or ChannelGroup.get3DMinMaxDistance.
-
-## sound_getmusicchannelvolume
-<!-- Sound::getMusicChannelVolume -->
-Not exposed. Tracker music channel control (MOD, S3M, XM per-channel access) is left out. Volume and pitch of the whole sound are set on its Channel.
-
-## sound_getmusicnumchannels
-<!-- Sound::getMusicNumChannels -->
-Not exposed. Tracker music channel control (MOD, S3M, XM per-channel access) is left out. Volume and pitch of the whole sound are set on its Channel.
-
-## sound_getmusicspeed
-<!-- Sound::getMusicSpeed -->
-Not exposed. Tracker music channel control (MOD, S3M, XM per-channel access) is left out. Volume and pitch of the whole sound are set on its Channel.
-
-## sound_getnumsubsounds
-<!-- Sound::getNumSubSounds -->
-Not exposed. Subsound and tag access are container internals with no cross-platform story. Load each file as its own CoreSound, or play authored content from banks.
-
-## sound_getnumtags
-<!-- Sound::getNumTags -->
-Not exposed. Subsound and tag access are container internals with no cross-platform story. Load each file as its own CoreSound, or play authored content from banks.
-
-## sound_getsubsound
-<!-- Sound::getSubSound -->
-Not exposed. Subsound and tag access are container internals with no cross-platform story. Load each file as its own CoreSound, or play authored content from banks.
-
-## sound_getsubsoundparent
-<!-- Sound::getSubSoundParent -->
-Not exposed. Subsound and tag access are container internals with no cross-platform story. Load each file as its own CoreSound, or play authored content from banks.
+var reverb = Reverb3D.create();
+reverb.setUserData({label: "cave"});
+var data = reverb.getUserData();
+```
 
 ## sound_getsystemobject
 <!-- Sound::getSystemObject -->
@@ -240,17 +211,20 @@ import haxefmod.core.CoreSystem;
 var format = CoreSystem.getSoftwareFormat();
 ```
 
-## sound_gettag
-<!-- Sound::getTag -->
-Not exposed. Subsound and tag access are container internals with no cross-platform story. Load each file as its own CoreSound, or play authored content from banks.
-
 ## sound_getuserdata
 <!-- Sound::getUserData -->
-Not exposed. Userdata on FMOD objects is left out because the binding's handle table already carries object identity. Keep your own map from the handle to your data, handles are ints and work as keys.
+haxefmod covers this with CoreSound.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
+```haxe
+import haxefmod.studio.CoreSound;
+
+var sound = CoreSound.create("assets/sfx/engine.wav");
+sound.setUserData({label: "cave"});
+var data = sound.getUserData();
+```
 
 ## sound_lock
 <!-- Sound::lock -->
-Not exposed. lock and unlock hand out raw pointers into the sample buffer, which Haxe code never holds. CoreSound.readData reads decoded PCM out of a sound opened with the openOnly flag of CoreSound.create, and seekData moves the read cursor. Both are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED.
+Cannot be bound. It returns a raw pointer into the sample buffer, which has no meaning in Haxe. CoreSound.readData covers reading, it copies decoded PCM out of a sound opened with the openOnly flag of CoreSound.create, and seekData moves the read cursor. Both are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED.
 ```haxe
 import haxefmod.studio.CoreSound;
 
@@ -263,26 +237,10 @@ while (read > 0) {
 }
 sound.release();
 ```
-
-## sound_set3dconesettings
-<!-- Sound::set3DConeSettings -->
-Not exposed on the sound. Cone settings are bound on the channel and the group, so set them with Channel.set3DConeSettings after play or with ChannelGroup.set3DConeSettings for a whole group.
-
-## sound_set3dminmaxdistance
-<!-- Sound::set3DMinMaxDistance -->
-Not exposed on the sound. Min and max distance are bound on the channel and the group, so set them with Channel.set3DMinMaxDistance after play or with ChannelGroup.set3DMinMaxDistance for a whole group.
-
-## sound_setmusicchannelvolume
-<!-- Sound::setMusicChannelVolume -->
-Not exposed. Tracker music channel control (MOD, S3M, XM per-channel access) is left out. Volume and pitch of the whole sound are set on its Channel.
-
-## sound_setmusicspeed
-<!-- Sound::setMusicSpeed -->
-Not exposed. Tracker music channel control (MOD, S3M, XM per-channel access) is left out. Volume and pitch of the whole sound are set on its Channel.
 
 ## sound_unlock
 <!-- Sound::unlock -->
-Not exposed. lock and unlock hand out raw pointers into the sample buffer, which Haxe code never holds. CoreSound.readData reads decoded PCM out of a sound opened with the openOnly flag of CoreSound.create, and seekData moves the read cursor. Both are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED.
+Cannot be bound. It returns a raw pointer into the sample buffer, which has no meaning in Haxe. CoreSound.readData covers reading, it copies decoded PCM out of a sound opened with the openOnly flag of CoreSound.create, and seekData moves the read cursor. Both are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED.
 ```haxe
 import haxefmod.studio.CoreSound;
 
@@ -295,14 +253,6 @@ while (read > 0) {
 }
 sound.release();
 ```
-
-## soundgroup_getname
-<!-- SoundGroup::getName -->
-Not exposed. The name is the one you passed to SoundGroup.create, so keep it on the game side. SoundGroup.master() is the default group.
-
-## soundgroup_getsound
-<!-- SoundGroup::getSound -->
-Not exposed. Enumerating a group's sounds is left out. SoundGroup.getSoundCount() and getPlayingCount() report the totals, and the game keeps the CoreSound handles it assigned with CoreSound.setSoundGroup.
 
 ## soundgroup_getsystemobject
 <!-- SoundGroup::getSystemObject -->
@@ -315,19 +265,33 @@ var format = CoreSystem.getSoftwareFormat();
 
 ## soundgroup_getuserdata
 <!-- SoundGroup::getUserData -->
-Not exposed. Userdata on FMOD objects is left out because the binding's handle table already carries object identity. Keep your own map from the handle to your data, handles are ints and work as keys.
+haxefmod covers this with SoundGroup.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
+```haxe
+import haxefmod.core.SoundGroup;
+
+var group = SoundGroup.create("ambience");
+group.setUserData({label: "cave"});
+var data = group.getUserData();
+```
 
 ## soundgroup_setuserdata
 <!-- SoundGroup::setUserData -->
-Not exposed. Userdata on FMOD objects is left out because the binding's handle table already carries object identity. Keep your own map from the handle to your data, handles are ints and work as keys.
+haxefmod covers this with SoundGroup.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
+```haxe
+import haxefmod.core.SoundGroup;
+
+var group = SoundGroup.create("ambience");
+group.setUserData({label: "cave"});
+var data = group.getUserData();
+```
 
 ## system_attachchannelgrouptoport
 <!-- System::attachChannelGroupToPort -->
-Not exposed. Console port APIs are left out because haxefmod supports desktop and web only. Route audio through ChannelGroup and Bus instead.
+Cannot be bound. This is a console port API and haxefmod targets desktop and web only. Route audio through ChannelGroup and Bus instead.
 
 ## system_attachfilesystem
 <!-- System::attachFileSystem -->
-Not exposed. Custom file systems need IO callbacks that run on FMOD threads, which no Haxe target can do safely. StudioSystem.loadBankFile and loadBankMemory are the supported bank paths, and CoreSound.create and CoreSound.fromPcm are the sound paths.
+Cannot be bound. A custom file system is a set of callbacks that FMOD runs on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile and loadBankMemory are the bank paths, and CoreSound.create and CoreSound.fromPcm are the sound paths.
 
 ## system_close
 <!-- System::close -->
@@ -349,11 +313,7 @@ FmodManager.Initialize({numChannels: 256, sampleRate: 48000});
 
 ## system_createdsp
 <!-- System::createDSP -->
-Not exposed. A DSP description carries callbacks that would run on FMOD's mixer thread, which no Haxe target can do, so creating a unit from a description stays out for good. All 33 built-in DSP types are created with Dsp.create(type).
-
-## system_createdspbyplugin
-<!-- System::createDSPByPlugin -->
-Not bound yet. Loading a prebuilt plugin binary runs the plugin's own code on FMOD's threads with no Haxe involved, so nothing rules it out, it is deferred until CI has a plugin binary to test against. Until then a Studio project that uses plugin effects cannot load them from haxefmod. The 33 built-in DSP types are bound through Dsp.create. HTML5 has no plugin host (unsupported in HTML5), so the call will return FMOD_ERR_UNSUPPORTED there once it lands.
+Cannot be bound. A DSP description is a struct of callbacks that FMOD runs on its mixer thread, and no Haxe target can execute code there. All 33 built-in DSP types are created with Dsp.create(type), and a unit from a loaded plugin with Dsp.createByPlugin(handle).
 
 ## system_createdspconnection
 <!-- System::createDSPConnection -->
@@ -380,7 +340,7 @@ var channel = stream.play();
 
 ## system_detachchannelgroupfromport
 <!-- System::detachChannelGroupFromPort -->
-Not exposed. Console port APIs are left out because haxefmod supports desktop and web only. Route audio through ChannelGroup and Bus instead.
+Cannot be bound. This is a console port API and haxefmod targets desktop and web only. Route audio through ChannelGroup and Bus instead.
 
 ## system_get3dlistenerattributes
 <!-- System::get3DListenerAttributes -->
@@ -399,14 +359,6 @@ haxefmod covers this with StudioSystem.getNumListeners(). Studio drives the core
 var listeners = StudioSystem.getNumListeners();
 ```
 
-## system_getadvancedsettings
-<!-- System::getAdvancedSettings -->
-Not exposed. FMOD_ADVANCEDSETTINGS is left at its defaults on every target. FmodRuntime.settings() returns the resolved FmodSettings the engine started with.
-
-## system_getchannel
-<!-- System::getChannel -->
-Not exposed. Channels are reached through the handle returned by CoreSound.play, PcmStream.play, or Dsp.play rather than by pool index, and ChannelGroup.getChannel(index) enumerates the channels in a group.
-
 ## system_getcpuusage
 <!-- System::getCPUUsage -->
 haxefmod covers this with StudioSystem.getCpuUsage(), which returns the core mixer, stream, geometry, update, and convolution figures next to the Studio update time.
@@ -416,10 +368,6 @@ if (usage != null) {
     trace('dsp ${usage.dsp}% update ${usage.update}%');
 }
 ```
-
-## system_getdefaultmixmatrix
-<!-- System::getDefaultMixMatrix -->
-Not exposed. Speaker geometry and mix matrix readback are left out. Channel.setMixMatrix and ChannelGroup.setMixMatrix accept the matrix you build yourself.
 
 ## system_getdspbuffersize
 <!-- System::getDSPBufferSize -->
@@ -432,57 +380,9 @@ var settings = FmodRuntime.settings();
 trace('mixer ${settings.dspBufferSize} x ${settings.dspNumBuffers}');
 ```
 
-## system_getdspinfobyplugin
-<!-- System::getDSPInfoByPlugin -->
-Not bound yet. Loading a prebuilt plugin binary runs the plugin's own code on FMOD's threads with no Haxe involved, so nothing rules it out, it is deferred until CI has a plugin binary to test against. Until then a Studio project that uses plugin effects cannot load them from haxefmod. The 33 built-in DSP types are bound through Dsp.create. HTML5 has no plugin host (unsupported in HTML5), so the call will return FMOD_ERR_UNSUPPORTED there once it lands.
-
-## system_getdspinfobytype
-<!-- System::getDSPInfoByType -->
-Not exposed. DSP metadata lookup is left out with the plugin APIs. Dsp.getName() and Dsp.getType() report what a created unit is, and Dsp.getParameterCount() reports how many parameters it has.
-
-## system_getfileusage
-<!-- System::getFileUsage -->
-Not exposed. File IO statistics are a tooling diagnostic with no cross-platform story, and the web build has no file system to count. StudioSystem.getBufferUsage() reports the Studio command and handle buffer usage.
-
-## system_getnestedplugin
-<!-- System::getNestedPlugin -->
-Not bound yet. Loading a prebuilt plugin binary runs the plugin's own code on FMOD's threads with no Haxe involved, so nothing rules it out, it is deferred until CI has a plugin binary to test against. Until then a Studio project that uses plugin effects cannot load them from haxefmod. The 33 built-in DSP types are bound through Dsp.create. HTML5 has no plugin host (unsupported in HTML5), so the call will return FMOD_ERR_UNSUPPORTED there once it lands.
-
-## system_getnetworkproxy
-<!-- System::getNetworkProxy -->
-Not exposed. Network streaming is left out, the library keeps FMOD's default network settings, and CoreSound.create opens local files only.
-
-## system_getnetworktimeout
-<!-- System::getNetworkTimeout -->
-Not exposed. Network streaming is left out, the library keeps FMOD's default network settings, and CoreSound.create opens local files only.
-
-## system_getnumnestedplugins
-<!-- System::getNumNestedPlugins -->
-Not bound yet. Loading a prebuilt plugin binary runs the plugin's own code on FMOD's threads with no Haxe involved, so nothing rules it out, it is deferred until CI has a plugin binary to test against. Until then a Studio project that uses plugin effects cannot load them from haxefmod. The 33 built-in DSP types are bound through Dsp.create. HTML5 has no plugin host (unsupported in HTML5), so the call will return FMOD_ERR_UNSUPPORTED there once it lands.
-
-## system_getnumplugins
-<!-- System::getNumPlugins -->
-Not bound yet. Loading a prebuilt plugin binary runs the plugin's own code on FMOD's threads with no Haxe involved, so nothing rules it out, it is deferred until CI has a plugin binary to test against. Until then a Studio project that uses plugin effects cannot load them from haxefmod. The 33 built-in DSP types are bound through Dsp.create. HTML5 has no plugin host (unsupported in HTML5), so the call will return FMOD_ERR_UNSUPPORTED there once it lands.
-
-## system_getoutput
-<!-- System::getOutput -->
-Not exposed. The library owns init and keeps FMOD's default output type for the platform. Output device selection is bound through CoreSystem.getDriverCount, getDriverName, and setDriver.
-
-## system_getoutputbyplugin
-<!-- System::getOutputByPlugin -->
-Not exposed. Output plugins are not loadable from haxefmod, and the library keeps FMOD's default output type for the platform.
-
 ## system_getoutputhandle
 <!-- System::getOutputHandle -->
-Not exposed. Haxe code never holds a raw pointer, and the library keeps FMOD's default output type, so there is no platform handle to hand back.
-
-## system_getpluginhandle
-<!-- System::getPluginHandle -->
-Not bound yet. Loading a prebuilt plugin binary runs the plugin's own code on FMOD's threads with no Haxe involved, so nothing rules it out, it is deferred until CI has a plugin binary to test against. Until then a Studio project that uses plugin effects cannot load them from haxefmod. The 33 built-in DSP types are bound through Dsp.create. HTML5 has no plugin host (unsupported in HTML5), so the call will return FMOD_ERR_UNSUPPORTED there once it lands.
-
-## system_getplugininfo
-<!-- System::getPluginInfo -->
-Not bound yet. Loading a prebuilt plugin binary runs the plugin's own code on FMOD's threads with no Haxe involved, so nothing rules it out, it is deferred until CI has a plugin binary to test against. Until then a Studio project that uses plugin effects cannot load them from haxefmod. The 33 built-in DSP types are bound through Dsp.create. HTML5 has no plugin host (unsupported in HTML5), so the call will return FMOD_ERR_UNSUPPORTED there once it lands.
+Cannot be bound. It returns a raw operating system pointer, which has no meaning in Haxe. Output device selection goes through CoreSystem.getDriverCount, getDriverName, and setDriver.
 
 ## system_getsoftwarechannels
 <!-- System::getSoftwareChannels -->
@@ -493,14 +393,6 @@ import haxefmod.runtime.FmodRuntime;
 FmodManager.Initialize({softwareChannels: 128});
 var voices = FmodRuntime.settings().softwareChannels;
 ```
-
-## system_getspeakermodechannels
-<!-- System::getSpeakerModeChannels -->
-Not exposed. Speaker geometry APIs are left out. CoreSystem.getSoftwareFormat() reports the speaker mode and raw speaker count the mixer runs with.
-
-## system_getspeakerposition
-<!-- System::getSpeakerPosition -->
-Not exposed. Speaker geometry APIs are left out, and the mixer runs with FMOD's default speaker positions for the speaker mode in FmodSettings.speakerMode.
 
 ## system_getstreambuffersize
 <!-- System::getStreamBufferSize -->
@@ -514,7 +406,11 @@ var bytes = FmodRuntime.settings().streamBufferSize;
 
 ## system_getuserdata
 <!-- System::getUserData -->
-Not exposed. Userdata on FMOD objects is left out because the binding's handle table already carries object identity. Keep your own map from the handle to your data, handles are ints and work as keys.
+haxefmod covers this with StudioSystem.setUserData() and getUserData(). haxefmod has one system, so the value lives on StudioSystem and the core system shares it.
+```haxe
+StudioSystem.setUserData({label: "main"});
+var data = StudioSystem.getUserData();
+```
 
 ## system_init
 <!-- System::init -->
@@ -523,25 +419,17 @@ haxefmod calls this for you. FmodManager.Initialize() (or FmodRuntime.init()) cr
 FmodManager.Initialize({numChannels: 256, sampleRate: 48000});
 ```
 
-## system_loadplugin
-<!-- System::loadPlugin -->
-Not bound yet. Loading a prebuilt plugin binary runs the plugin's own code on FMOD's threads with no Haxe involved, so nothing rules it out, it is deferred until CI has a plugin binary to test against. Until then a Studio project that uses plugin effects cannot load them from haxefmod. The 33 built-in DSP types are bound through Dsp.create. HTML5 has no plugin host (unsupported in HTML5), so the call will return FMOD_ERR_UNSUPPORTED there once it lands.
-
-## system_lockdsp
-<!-- System::lockDSP -->
-Not exposed. Haxe code cannot run on FMOD's mixer thread, so there is nothing to lock the DSP graph against. Effects are added and removed with Dsp, Channel.addDsp, and ChannelGroup.addDsp without locking.
-
 ## system_registercodec
 <!-- System::registerCodec -->
-Not exposed. Registering a plugin from a description hands FMOD callbacks that would run on its mixer and streaming threads, which no Haxe target can do, so this stays out for good. Loading a prebuilt plugin binary with System::loadPlugin is a separate case that is deferred rather than impossible. The 33 built-in DSP types are bound through Dsp.create.
+Cannot be bound. A plugin description is a struct of callbacks that FMOD runs on its mixer and streaming threads, and no Haxe target can execute code there. A prebuilt plugin binary loads with StudioSystem.loadPlugin, and the built-in DSP types are created with Dsp.create.
 
 ## system_registerdsp
 <!-- System::registerDSP -->
-Not exposed. Registering a plugin from a description hands FMOD callbacks that would run on its mixer and streaming threads, which no Haxe target can do, so this stays out for good. Loading a prebuilt plugin binary with System::loadPlugin is a separate case that is deferred rather than impossible. The 33 built-in DSP types are bound through Dsp.create.
+Cannot be bound. A plugin description is a struct of callbacks that FMOD runs on its mixer and streaming threads, and no Haxe target can execute code there. A prebuilt plugin binary loads with StudioSystem.loadPlugin, and the built-in DSP types are created with Dsp.create.
 
 ## system_registeroutput
 <!-- System::registerOutput -->
-Not exposed. Registering a plugin from a description hands FMOD callbacks that would run on its mixer and streaming threads, which no Haxe target can do, so this stays out for good. Loading a prebuilt plugin binary with System::loadPlugin is a separate case that is deferred rather than impossible. The 33 built-in DSP types are bound through Dsp.create.
+Cannot be bound. A plugin description is a struct of callbacks that FMOD runs on its mixer and streaming threads, and no Haxe target can execute code there. A prebuilt plugin binary loads with StudioSystem.loadPlugin, and the built-in DSP types are created with Dsp.create.
 
 ## system_release
 <!-- System::release -->
@@ -566,21 +454,13 @@ StudioSystem.setNumListeners(2);
 
 ## system_set3drolloffcallback
 <!-- System::set3DRolloffCallback -->
-Not exposed. Haxe code cannot run on FMOD's mixer thread, so a rolloff callback cannot be delivered. The built-in rolloff modes are set through Channel.setMode and ChannelGroup.setMode.
+Cannot be bound. FMOD runs the callback on its mixer thread, and no Haxe target can execute code there. Channel.set3DCustomRolloff takes a curve of points instead, and the built-in rolloff modes are set through Channel.setMode and ChannelGroup.setMode.
 
 ## system_setadvancedsettings
 <!-- System::setAdvancedSettings -->
-Not exposed. The library owns init, and FMOD_ADVANCEDSETTINGS is left at its defaults on every target. The init-time options haxefmod supports are the FmodSettings fields and the haxefmod_* compile-time defines.
-
-## system_setcallback
-<!-- System::setCallback -->
-StudioSystem.setSystemCallback delivers the core system events (device list changed, device lost) from FmodManager.Update() on the game thread, next to the Studio system events on the same handler. Engine errors are not among them, set FmodSettings.logLevel or call FmodManager.EnableDebugMessages() to see those in the log.
-The handler is a function that takes the event and switches on it, so a game that only cares about device changes matches the device list changed case and leaves the default branch empty.
+haxefmod applies these before init from FmodSettings, which carries maxMPEGCodecs, maxVorbisCodecs, maxFADPCMCodecs, vol0VirtualVol, defaultDecodeBufferSize, profilePort, geometryMaxFadeTime, distanceFilterCenterFreq, and randomSeed. Zero or null keeps FMOD's default for a field. Read them back with StudioSystem.getAdvancedSettings() (unsupported in HTML5, returns null there).
 ```haxe
-StudioSystem.setSystemCallback(event -> switch (event) {
-    case DeviceListChanged: trace("devices changed");
-    default:
-});
+FmodManager.Initialize({vol0VirtualVol: 0.001, randomSeed: 42});
 ```
 
 ## system_setdspbuffersize
@@ -592,23 +472,7 @@ FmodManager.Initialize({dspBufferSize: 512, dspNumBuffers: 4});
 
 ## system_setfilesystem
 <!-- System::setFileSystem -->
-Not exposed. Custom file systems need IO callbacks that run on FMOD threads, which no Haxe target can do safely. StudioSystem.loadBankFile and loadBankMemory are the supported bank paths, and CoreSound.create and CoreSound.fromPcm are the sound paths.
-
-## system_setnetworkproxy
-<!-- System::setNetworkProxy -->
-Not exposed. Network streaming is left out, the library keeps FMOD's default network settings, and CoreSound.create opens local files only.
-
-## system_setnetworktimeout
-<!-- System::setNetworkTimeout -->
-Not exposed. Network streaming is left out, the library keeps FMOD's default network settings, and CoreSound.create opens local files only.
-
-## system_setoutputbyplugin
-<!-- System::setOutputByPlugin -->
-Not exposed. Output plugins are third-party code that would run on FMOD threads, which no Haxe target can do safely. The library keeps FMOD's default output type for the platform.
-
-## system_setpluginpath
-<!-- System::setPluginPath -->
-Not bound yet. Loading a prebuilt plugin binary runs the plugin's own code on FMOD's threads with no Haxe involved, so nothing rules it out, it is deferred until CI has a plugin binary to test against. Until then a Studio project that uses plugin effects cannot load them from haxefmod. The 33 built-in DSP types are bound through Dsp.create. HTML5 has no plugin host (unsupported in HTML5), so the call will return FMOD_ERR_UNSUPPORTED there once it lands.
+Cannot be bound. A custom file system is a set of callbacks that FMOD runs on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile and loadBankMemory are the bank paths, and CoreSound.create and CoreSound.fromPcm are the sound paths.
 
 ## system_setsoftwarechannels
 <!-- System::setSoftwareChannels -->
@@ -616,10 +480,6 @@ Covered by FmodSettings. FMOD only accepts the audible voice cap before init, so
 ```haxe
 FmodManager.Initialize({numChannels: 256, softwareChannels: 128});
 ```
-
-## system_setspeakerposition
-<!-- System::setSpeakerPosition -->
-Not exposed. Speaker geometry APIs are left out, and the mixer runs with FMOD's default speaker positions for the speaker mode in FmodSettings.speakerMode.
 
 ## system_setstreambuffersize
 <!-- System::setStreamBufferSize -->
@@ -630,15 +490,11 @@ FmodManager.Initialize({streamBufferSize: 65536});
 
 ## system_setuserdata
 <!-- System::setUserData -->
-Not exposed. Userdata on FMOD objects is left out because the binding's handle table already carries object identity. Keep your own map from the handle to your data, handles are ints and work as keys.
-
-## system_unloadplugin
-<!-- System::unloadPlugin -->
-Not bound yet. Loading a prebuilt plugin binary runs the plugin's own code on FMOD's threads with no Haxe involved, so nothing rules it out, it is deferred until CI has a plugin binary to test against. Until then a Studio project that uses plugin effects cannot load them from haxefmod. The 33 built-in DSP types are bound through Dsp.create. HTML5 has no plugin host (unsupported in HTML5), so the call will return FMOD_ERR_UNSUPPORTED there once it lands.
-
-## system_unlockdsp
-<!-- System::unlockDSP -->
-Not exposed. Haxe code cannot run on FMOD's mixer thread, so the DSP graph is never locked from Haxe. Effects are added and removed with Dsp, Channel.addDsp, and ChannelGroup.addDsp without locking.
+haxefmod covers this with StudioSystem.setUserData() and getUserData(). haxefmod has one system, so the value lives on StudioSystem and the core system shares it.
+```haxe
+StudioSystem.setUserData({label: "main"});
+var data = StudioSystem.getUserData();
+```
 
 ## system_update
 <!-- System::update -->
@@ -649,43 +505,33 @@ FmodManager.Update();
 
 ## studio_bank_getuserdata
 <!-- Studio::Bank::getUserData -->
-Not exposed. Userdata on FMOD objects is left out because the binding's handle table already carries object identity. Keep your own map from the handle to your data, handles are ints and work as keys.
+haxefmod covers this with Bank.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
+```haxe
+import haxefmod.studio.Bank;
+
+var bank:Bank = StudioSystem.loadBankFile("assets/fmod/Desktop/Level1.bank");
+bank.setUserData({label: "cave"});
+var data = bank.getUserData();
+```
 
 ## studio_bank_setuserdata
 <!-- Studio::Bank::setUserData -->
-Not exposed. Userdata on FMOD objects is left out because the binding's handle table already carries object identity. Keep your own map from the handle to your data, handles are ints and work as keys.
+haxefmod covers this with Bank.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
+```haxe
+import haxefmod.studio.Bank;
+
+var bank:Bank = StudioSystem.loadBankFile("assets/fmod/Desktop/Level1.bank");
+bank.setUserData({label: "cave"});
+var data = bank.getUserData();
+```
 
 ## studio_bus_getportindex
 <!-- Studio::Bus::getPortIndex -->
-Not exposed. Console port APIs are left out because haxefmod supports desktop and web only. Route audio through ChannelGroup and Bus instead.
+Cannot be bound. This is a console port API and haxefmod targets desktop and web only. Route audio through ChannelGroup and Bus instead.
 
 ## studio_bus_setportindex
 <!-- Studio::Bus::setPortIndex -->
-Not exposed. Console port APIs are left out because haxefmod supports desktop and web only. Route audio through ChannelGroup and Bus instead.
-
-## studio_commandreplay_getcommandattime
-<!-- Studio::CommandReplay::getCommandAtTime -->
-Not exposed. Command replay inspection and tool hooks are FMOD tooling integration points. Command capture and basic playback are bound through StudioSystem.startCommandCapture, stopCommandCapture, loadCommandReplay, and CommandReplay.start, stop, setPaused, seekToTime, and getLength.
-
-## studio_commandreplay_getcommandcount
-<!-- Studio::CommandReplay::getCommandCount -->
-Not exposed. Command replay inspection and tool hooks are FMOD tooling integration points. Command capture and basic playback are bound through StudioSystem.startCommandCapture, stopCommandCapture, loadCommandReplay, and CommandReplay.start, stop, setPaused, seekToTime, and getLength.
-
-## studio_commandreplay_getcommandinfo
-<!-- Studio::CommandReplay::getCommandInfo -->
-Not exposed. Command replay inspection and tool hooks are FMOD tooling integration points. Command capture and basic playback are bound through StudioSystem.startCommandCapture, stopCommandCapture, loadCommandReplay, and CommandReplay.start, stop, setPaused, seekToTime, and getLength.
-
-## studio_commandreplay_getcommandstring
-<!-- Studio::CommandReplay::getCommandString -->
-Not exposed. Command replay inspection and tool hooks are FMOD tooling integration points. Command capture and basic playback are bound through StudioSystem.startCommandCapture, stopCommandCapture, loadCommandReplay, and CommandReplay.start, stop, setPaused, seekToTime, and getLength.
-
-## studio_commandreplay_getcurrentcommand
-<!-- Studio::CommandReplay::getCurrentCommand -->
-Not exposed. Command replay inspection and tool hooks are FMOD tooling integration points. Command capture and basic playback are bound through StudioSystem.startCommandCapture, stopCommandCapture, loadCommandReplay, and CommandReplay.start, stop, setPaused, seekToTime, and getLength.
-
-## studio_commandreplay_getplaybackstate
-<!-- Studio::CommandReplay::getPlaybackState -->
-Not exposed. Command replay inspection and tool hooks are FMOD tooling integration points. Command capture and basic playback are bound through StudioSystem.startCommandCapture, stopCommandCapture, loadCommandReplay, and CommandReplay.start, stop, setPaused, seekToTime, and getLength.
+Cannot be bound. This is a console port API and haxefmod targets desktop and web only. Route audio through ChannelGroup and Bus instead.
 
 ## studio_commandreplay_getsystem
 <!-- Studio::CommandReplay::getSystem -->
@@ -697,31 +543,33 @@ replay.start();
 
 ## studio_commandreplay_getuserdata
 <!-- Studio::CommandReplay::getUserData -->
-Not exposed. Userdata on FMOD objects is left out because the binding's handle table already carries object identity. Keep your own map from the handle to your data, handles are ints and work as keys.
-
-## studio_commandreplay_seektocommand
-<!-- Studio::CommandReplay::seekToCommand -->
-Not exposed. Command replay inspection and tool hooks are FMOD tooling integration points. Command capture and basic playback are bound through StudioSystem.startCommandCapture, stopCommandCapture, loadCommandReplay, and CommandReplay.start, stop, setPaused, seekToTime, and getLength.
-
-## studio_commandreplay_setbankpath
-<!-- Studio::CommandReplay::setBankPath -->
-Not exposed. Command replay inspection and tool hooks are FMOD tooling integration points. Command capture and basic playback are bound through StudioSystem.startCommandCapture, stopCommandCapture, loadCommandReplay, and CommandReplay.start, stop, setPaused, seekToTime, and getLength.
+haxefmod covers this with CommandReplay.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
+```haxe
+var replay = StudioSystem.loadCommandReplay("capture.cmd.txt");
+replay.setUserData({label: "cave"});
+var data = replay.getUserData();
+```
 
 ## studio_commandreplay_setcreateinstancecallback
 <!-- Studio::CommandReplay::setCreateInstanceCallback -->
-Not exposed. Command replay inspection and tool hooks are FMOD tooling integration points. Command capture and basic playback are bound through StudioSystem.startCommandCapture, stopCommandCapture, loadCommandReplay, and CommandReplay.start, stop, setPaused, seekToTime, and getLength.
+Cannot be bound. FMOD runs the callback on its update thread while the replay plays, and no Haxe target can execute code there. CommandReplay.getCommandInfo, getCommandString, and getCommandAtTime read the same commands from the game thread.
 
 ## studio_commandreplay_setframecallback
 <!-- Studio::CommandReplay::setFrameCallback -->
-Not exposed. Command replay inspection and tool hooks are FMOD tooling integration points. Command capture and basic playback are bound through StudioSystem.startCommandCapture, stopCommandCapture, loadCommandReplay, and CommandReplay.start, stop, setPaused, seekToTime, and getLength.
+Cannot be bound. FMOD runs the callback on its update thread while the replay plays, and no Haxe target can execute code there. CommandReplay.getCommandInfo, getCommandString, and getCommandAtTime read the same commands from the game thread.
 
 ## studio_commandreplay_setloadbankcallback
 <!-- Studio::CommandReplay::setLoadBankCallback -->
-Not exposed. Command replay inspection and tool hooks are FMOD tooling integration points. Command capture and basic playback are bound through StudioSystem.startCommandCapture, stopCommandCapture, loadCommandReplay, and CommandReplay.start, stop, setPaused, seekToTime, and getLength.
+Cannot be bound. FMOD runs the callback on its update thread while the replay plays, and no Haxe target can execute code there. CommandReplay.getCommandInfo, getCommandString, and getCommandAtTime read the same commands from the game thread.
 
 ## studio_commandreplay_setuserdata
 <!-- Studio::CommandReplay::setUserData -->
-Not exposed. Userdata on FMOD objects is left out because the binding's handle table already carries object identity. Keep your own map from the handle to your data, handles are ints and work as keys.
+haxefmod covers this with CommandReplay.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
+```haxe
+var replay = StudioSystem.loadCommandReplay("capture.cmd.txt");
+replay.setUserData({label: "cave"});
+var data = replay.getUserData();
+```
 
 ## studio_parseid
 <!-- Studio::parseID -->
@@ -766,7 +614,12 @@ if (parameter != null) {
 
 ## studio_eventdescription_getuserdata
 <!-- Studio::EventDescription::getUserData -->
-Not exposed. Userdata on FMOD objects is left out because the binding's handle table already carries object identity. Keep your own map from the handle to your data, handles are ints and work as keys.
+haxefmod covers this with EventDescription.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
+```haxe
+var description = StudioSystem.getEvent(FmodEvents.SFXEngine);
+description.setUserData({label: "cave"});
+var data = description.getUserData();
+```
 
 ## studio_eventdescription_getuserproperty
 <!-- Studio::EventDescription::getUserProperty -->
@@ -781,11 +634,24 @@ if (property != null) {
 
 ## studio_eventdescription_setcallback
 <!-- Studio::EventDescription::setCallback -->
-Not exposed on the description. Callbacks are registered per instance with EventInstance.setCallback (or FmodSound.onEvent), which delivers typed EventCallbackData from FmodManager.Update() instead of from an FMOD thread.
+haxefmod covers this with EventDescription.setCallback(handler, ?mask), which remembers a handler that createInstance installs on every instance made from the description from then on. The events are queued on FMOD's thread and delivered as typed EventCallbackData from FmodManager.Update() on the game thread.
+```haxe
+var description = StudioSystem.getEvent(FmodEvents.SFXEngine);
+description.setCallback(data -> switch (data) {
+    case Stopped: trace("engine stopped");
+    default:
+});
+var instance = description.createInstance();
+```
 
 ## studio_eventdescription_setuserdata
 <!-- Studio::EventDescription::setUserData -->
-Not exposed. Userdata on FMOD objects is left out because the binding's handle table already carries object identity. Keep your own map from the handle to your data, handles are ints and work as keys.
+haxefmod covers this with EventDescription.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
+```haxe
+var description = StudioSystem.getEvent(FmodEvents.SFXEngine);
+description.setUserData({label: "cave"});
+var data = description.getUserData();
+```
 
 ## studio_eventinstance_getsystem
 <!-- Studio::EventInstance::getSystem -->
@@ -807,10 +673,6 @@ for (i in 0...ids.length) {
 }
 ```
 
-## studio_system_getadvancedsettings
-<!-- Studio::System::getAdvancedSettings -->
-Not exposed. FMOD_STUDIO_ADVANCEDSETTINGS is left at its defaults on every target. FmodRuntime.settings() returns the resolved FmodSettings the engine started with.
-
 ## studio_system_getparameterdescriptionbyid
 <!-- Studio::System::getParameterDescriptionByID -->
 haxefmod covers this with StudioSystem.getParameterDescriptionByID().
@@ -831,13 +693,13 @@ if (weather != null) {
 }
 ```
 
-## studio_system_getsoundinfo
-<!-- Studio::System::getSoundInfo -->
-Not exposed. Audio table lookup is left out because the programmer sound flow hands the key to FMOD instead. EventInstance.assignProgrammerSound(key) names the audio table entry or file to play, and the binding resolves it. Programmer sounds are native only (unsupported in HTML5), where assignProgrammerSound returns FMOD_ERR_UNSUPPORTED.
-
 ## studio_system_getuserdata
 <!-- Studio::System::getUserData -->
-Not exposed. Userdata on FMOD objects is left out because the binding's handle table already carries object identity. Keep your own map from the handle to your data, handles are ints and work as keys.
+haxefmod covers this with StudioSystem.setUserData() and getUserData(). The value is any Haxe value and lives on the Haxe side.
+```haxe
+StudioSystem.setUserData({label: "main"});
+var data = StudioSystem.getUserData();
+```
 
 ## studio_system_isvalid
 <!-- Studio::System::isValid -->
@@ -850,25 +712,17 @@ if (FmodManager.IsInitialized()) {
 
 ## studio_system_loadbankcustom
 <!-- Studio::System::loadBankCustom -->
-Not exposed. Custom file systems need IO callbacks that run on FMOD threads, which no Haxe target can do safely. StudioSystem.loadBankFile and loadBankMemory are the supported bank paths, and CoreSound.create and CoreSound.fromPcm are the sound paths.
+Cannot be bound. A custom file system is a set of callbacks that FMOD runs on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile and loadBankMemory are the bank paths, and CoreSound.create and CoreSound.fromPcm are the sound paths.
 
 ## studio_system_registerplugin
 <!-- Studio::System::registerPlugin -->
-Not bound yet. Loading a prebuilt plugin binary runs the plugin's own code on FMOD's threads with no Haxe involved, so nothing rules it out, it is deferred until CI has a plugin binary to test against. Until then a Studio project that uses plugin effects cannot load them from haxefmod. The 33 built-in DSP types are bound through Dsp.create. HTML5 has no plugin host (unsupported in HTML5), so the call will return FMOD_ERR_UNSUPPORTED there once it lands.
+Cannot be bound. It takes a DSP description struct whose callbacks FMOD runs on its mixer thread, and no Haxe target can execute code there. A prebuilt plugin binary loads with StudioSystem.loadPlugin, which makes its effects available to Studio events.
 
 ## studio_system_setadvancedsettings
 <!-- Studio::System::setAdvancedSettings -->
-Not exposed. The library owns init, and FMOD_STUDIO_ADVANCEDSETTINGS is left at its defaults on every target. The init-time options haxefmod supports are the FmodSettings fields and the haxefmod_* compile-time defines.
-
-## studio_system_setcallback
-<!-- Studio::System::setCallback -->
-StudioSystem.setSystemCallback takes one handler and delivers the events from FmodManager.Update() on the game thread: device list changed, device lost, bank unload with the bank's path, live update connected and disconnected, and pre and post update. Bank loading stays synchronous through StudioSystem.loadBankFile, and Bank.getLoadingState reports the state.
-The handler is a function that takes the event and switches on it, so a game that only cares about device changes matches the device list changed case and leaves the default branch empty.
+haxefmod applies these before init from FmodSettings, which carries commandQueueSize, handleInitialSize, studioUpdatePeriod, idleSampleDataPoolSize, streamingScheduleDelay, and encryptionKey. Zero or null keeps FMOD's default for a field. Read them back with StudioSystem.getStudioAdvancedSettings() (unsupported in HTML5, returns null there).
 ```haxe
-StudioSystem.setSystemCallback(event -> switch (event) {
-    case DeviceListChanged: trace("devices changed");
-    default:
-});
+FmodManager.Initialize({commandQueueSize: 65536});
 ```
 
 ## studio_system_setparametersbyids
@@ -886,8 +740,12 @@ for (i in 0...ids.length) {
 
 ## studio_system_setuserdata
 <!-- Studio::System::setUserData -->
-Not exposed. Userdata on FMOD objects is left out because the binding's handle table already carries object identity. Keep your own map from the handle to your data, handles are ints and work as keys.
+haxefmod covers this with StudioSystem.setUserData() and getUserData(). The value is any Haxe value and lives on the Haxe side.
+```haxe
+StudioSystem.setUserData({label: "main"});
+var data = StudioSystem.getUserData();
+```
 
 ## studio_system_unregisterplugin
 <!-- Studio::System::unregisterPlugin -->
-Not bound yet. Loading a prebuilt plugin binary runs the plugin's own code on FMOD's threads with no Haxe involved, so nothing rules it out, it is deferred until CI has a plugin binary to test against. Until then a Studio project that uses plugin effects cannot load them from haxefmod. The 33 built-in DSP types are bound through Dsp.create. HTML5 has no plugin host (unsupported in HTML5), so the call will return FMOD_ERR_UNSUPPORTED there once it lands.
+Cannot be bound. It names a plugin registered from a description struct, and that registration cannot be bound because its callbacks would run on FMOD's mixer thread. A plugin loaded with StudioSystem.loadPlugin is unloaded with StudioSystem.unloadPlugin.

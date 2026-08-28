@@ -77,7 +77,13 @@ haxefmod creates exactly one FMOD system per process, so the system limit never 
 
 ## 14
 <!-- FMOD_MEMORY_ALLOC_CALLBACK -->
-Custom allocators are not exposed. FMOD uses its own allocator, and StudioSystem.getMemoryUsage reports what it holds.
+Custom allocators are not exposed. FMOD uses its own allocator, and StudioSystem.getMemoryStats reports what it has allocated.
+```haxe
+var stats = StudioSystem.getMemoryStats();
+if (stats != null) {
+    trace('current ${stats.current} bytes, peak ${stats.maximum} bytes');
+}
+```
 
 ## 15
 <!-- FMOD_MEMORY_FREE_CALLBACK -->
@@ -89,7 +95,7 @@ Custom allocators are not exposed. FMOD uses its own allocator.
 
 ## 19
 <!-- FMOD_MEMORY_TYPE -->
-Memory type flags belong to the custom allocator hooks, which are not exposed. Memory reporting is available through StudioSystem.getMemoryUsage on native targets.
+Memory type flags belong to the custom allocator hooks, which are not exposed. StudioSystem.getMemoryStats reports the current and peak allocation totals, and StudioSystem.getMemoryUsage breaks down what Studio objects hold on native targets.
 ```haxe
 var memory = StudioSystem.getMemoryUsage();
 if (memory != null) {
@@ -213,4 +219,7 @@ instance.set3DAttributes({
 
 ## 32
 <!-- FMOD_VERSION -->
-The FMOD header version is not exposed as a constant. haxefmod ships and links one FMOD version per release, listed in its README, and the runtime checks its native binding version at init on its own.
+haxefmod ships and links one FMOD version per release, and StudioSystem.getVersion reports the version of the library that is running as a string.
+```haxe
+trace('FMOD ${StudioSystem.getVersion()}');
+```

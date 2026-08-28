@@ -46,6 +46,19 @@ instance.release();
 
 Handles that are never released hold a slot in the native table for the life of the process. `StudioSystem.liveHandleCount()` reports the number of live handles and is useful in tests for catching leaks.
 
+## Userdata
+
+Every handle has `setUserData(value)` and `getUserData()`, and so does `StudioSystem`. FMOD's own userdata slot holds a raw pointer, which cannot carry a Haxe value across the binding, so the value lives on the Haxe side keyed by the handle. It is dropped when the handle is released through the abstract (`release`, `stop`, `unload`), when FMOD destroys an event instance on its own and `Destroyed` is delivered, and for everything at once by `unloadAll`. A recycled native slot gets a new generation and therefore a new handle int, so a value left on a dead handle can never be read through the handle that later reuses its slot.
+
+```haxe
+var instance = StudioSystem.getEvent("event:/SFX/Engine").createInstance();
+instance.setUserData({owner: "car 3"});
+var tag = instance.getUserData();
+if (tag != null) trace('instance belongs to ${tag.owner}');
+instance.release();
+trace(instance.getUserData() == null); // true
+```
+
 ## Results
 
 Setters and commands return `haxefmod.studio.FmodResult`, an enum abstract of FMOD's `FMOD_RESULT` codes pinned to the 2.03.12 header values. `FMOD_OK` is `0`, and `isOk()` and `toString()` cover the usual checks.

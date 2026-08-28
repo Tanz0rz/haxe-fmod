@@ -2,8 +2,8 @@
 
 ## *
 <!-- page default -->
-haxefmod binds command capture and basic replay playback only. Record with StudioSystem.startCommandCapture(path), load the file with StudioSystem.loadCommandReplay(path), and drive the CommandReplay handle with start, stop, setPaused, seekToTime, and getLength.
-The per-command callbacks (create instance, frame, load bank), command info queries, and instance type lookups are FMOD tooling hooks that would run Haxe code from FMOD's threads, so they are not exposed. Use FMOD Studio's own profiler tools to inspect a capture.
+Record with StudioSystem.startCommandCapture(path), load the file with StudioSystem.loadCommandReplay(path), and drive the CommandReplay handle with start, stop, setPaused, seekToTime, seekToCommand, getPlaybackState, and getLength. getCommandCount, getCommandInfo, getCommandString, and getCommandAtTime inspect the capture, and setBankPath redirects its bank loads.
+The per-command callbacks (create instance, frame, load bank) cannot be bound, FMOD runs them on its update thread while the replay plays and no Haxe target can execute code there.
 ```haxe
 if (StudioSystem.startCommandCapture("capture.cmd.txt").isOk()) {
     // play the game for a while

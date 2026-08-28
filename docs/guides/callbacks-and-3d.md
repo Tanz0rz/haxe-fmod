@@ -32,11 +32,46 @@ instance.setCallback(handler, EventCallbackType.TIMELINE_BEAT | EventCallbackTyp
 
 Each instance has one handler. Registering again replaces it. `release()` removes the handler on every target, so cleanup code that belongs with the instance's end goes there rather than in a `Destroyed` case. HTML5 never delivers `Destroyed` at all, see [Platforms](../platforms.md#html5).
 
+`EventDescription.setCallback(handler, ?mask)` remembers a handler that `createInstance` installs on every instance made from that description from then on, the way `Studio::EventDescription::setCallback` does. Instances created before the call keep whatever handler they already had, and an instance's own `setCallback` still replaces the inherited one. `clearCallback()` forgets the description's handler, again without touching existing instances.
+
+```haxe
+import haxefmod.studio.Callbacks;
+
+var description = StudioSystem.getEvent("event:/SFX/Footstep");
+description.setCallback(data -> switch (data) {
+    case Stopped: trace("a footstep ended");
+    default:
+}, EventCallbackType.STOPPED);
+var step = description.createInstance(); // carries the handler
+step.start();
+step.release();
+```
+
 `FmodSound.onEvent` and `FmodManager.OnSongEvent` are the same mechanism on the facade's handles. `FmodManager.ClearAllCallbacks()` removes every handler at once.
 
 ### Programmer sounds
 
-`EventInstance.assignProgrammerSound(key)` names the audio a programmer instrument should play. Assign it before `start()`, and the native side resolves it on FMOD's thread when the instrument triggers. The key is either an audio table entry or a `CoreSound` you loaded from a file or PCM. Keys must be under 512 UTF-8 bytes. On HTML5 the call returns `FMOD_ERR_UNSUPPORTED` because of a defect in FMOD's JavaScript runtime, documented in [Limitations](../limitations.md#html5).
+`EventInstance.assignProgrammerSound(key)` names the audio a programmer instrument should play. Assign it before `start()`, and the native side resolves it on FMOD's thread when the instrument triggers. The key is either an audio table entry or a `CoreSound` you loaded from a file or PCM. Keys must be under 512 UTF-8 bytes. On HTML5 the call returns `FMOD_ERR_UNSUPPORTED` because of a defect in FMOD's JavaScript runtime, documented in [Limitations](../limitations.md#html5). `StudioSystem.getSoundInfo(key)` reports what FMOD would load for an audio table key, the file name or path and the subsound index inside it, and returns `null` for a key that is in no loaded audio table.
+
+### System events
+
+`StudioSystem.setSystemCallback(handler, ?coreMask, ?studioMask)` installs one handler for events the systems themselves raise, delivered as `SystemEvent` values through the same per-frame drain. `DeviceListChanged` and `DeviceLost` come from the core system when the audio device list changes or the active device goes away. `BankUnload(path)`, `LiveUpdateConnected`, and `LiveUpdateDisconnected` come from Studio. Registering again replaces the handler, and `clearSystemCallback()` removes it.
+
+```haxe
+import haxefmod.studio.SystemCallbacks;
+
+StudioSystem.setSystemCallback(event -> switch (event) {
+    case DeviceListChanged:
+        trace("audio devices changed");
+    case BankUnload(path):
+        trace('unloaded $path');
+    case LiveUpdateConnected:
+        trace("FMOD Studio connected");
+    default:
+});
+```
+
+The default masks deliver the device and Studio events above. `PreUpdate` and `PostUpdate` fire on every update, so they are opt-in through the studio mask, for example `SystemCallbacks.DEFAULT_STUDIO_MASK | SystemCallbacks.STUDIO_PREUPDATE`. `BankUnload` carries the bank path only for banks the game unloads through `Bank.unload` or `unloadAll`, since FMOD refuses reads on the bank inside the callback and the binding reads the path ahead of the unload. A bank FMOD drops on its own arrives with an empty path. On HTML5 the core device events never fire under the browser output.
 
 ## Core channel callbacks
 

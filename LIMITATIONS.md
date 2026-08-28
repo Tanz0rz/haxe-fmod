@@ -25,24 +25,27 @@ The web build runs on FMOD's Emscripten runtime, which has real differences from
 - **Geometry occlusion is native only.** `Geometry.create` and `Geometry.load` make an occlusion mesh (unsupported in HTML5). They return `Geometry.NULL` there, and every other geometry call returns `FMOD_ERR_UNSUPPORTED`, `-1`, `0`, `false`, or `null`. The web build reports the Geometry API unsupported. The alternative that works everywhere is a game-side raycast driving an event parameter that the sound designer hooks to a filter in FMOD Studio, and manual occlusion values are bound per channel and per group through `set3DOcclusion`.
 - **Microphone recording is native only.** `StudioSystem.recordStart` and `recordStop` record a driver into a `CoreSound.createRecordBuffer` sound (unsupported in HTML5). They return `FMOD_ERR_UNSUPPORTED` there, `getRecordDriverCount` and `getRecordDriverInfo` return `null`, `isRecording` is always false, `getRecordPosition` is always `-1`, and `createRecordBuffer` returns `CoreSound.NULL`. Browser permission flows make recording behavior environment-dependent and untestable in CI.
 - **Custom 3D rolloff curves are native only.** `set3DCustomRolloff` on `Channel`, `ChannelGroup`, and `CoreSound` replaces the rolloff with a point array (unsupported in HTML5). It returns `FMOD_ERR_UNSUPPORTED` there and `get3DCustomRolloff` is always empty. The web boundary rejects the point-array argument. The built-in rolloff modes work everywhere.
+- **Tracker music channel control is native only.** `CoreSound.getMusicNumChannels`, `setMusicChannelVolume`, `getMusicChannelVolume`, `setMusicSpeed`, and `getMusicSpeed` drive MOD, S3M, XM, and IT playback (unsupported in HTML5). They return `FMOD_ERR_UNSUPPORTED`, `-1`, or `0` there, since the web build cannot load loose tracker files at all.
+- **Tag payloads are native only.** `CoreSound.getTag` reads a metadata tag (unsupported in HTML5). It returns `null` there because FMOD's web glue cannot hand the payload to JavaScript. `getNumTags`, `getNumSubSounds`, `getSubSound`, and `getSubSoundParent` work everywhere.
+- **Advanced settings readback is native only.** `StudioSystem.getAdvancedSettings` and `getStudioAdvancedSettings` return `null` (unsupported in HTML5). The web build rejects the getter, while the settings themselves apply there through `FmodSettings`.
+- **Plugin loading is native only.** `StudioSystem.loadPlugin` loads a plugin shared library and returns FMOD's plugin handle (unsupported in HTML5). It returns `0` there with `FMOD_ERR_UNSUPPORTED` in `lastResult()`, `setPluginPath` and `unloadPlugin` return `FMOD_ERR_UNSUPPORTED`, the count and handle queries return `-1` and `0`, the info queries return `null`, and `Dsp.createByPlugin` returns `Dsp.NULL`. The web build has no plugin host. Every built-in DSP type works everywhere.
 - **Sample readback is native only.** `CoreSound.readData` decodes PCM out of a sound opened with the `openOnly` flag (unsupported in HTML5). It returns `-68` there, the negated `FMOD_ERR_UNSUPPORTED` code, and `seekData` returns `FMOD_ERR_UNSUPPORTED`. Games that need waveform data in the browser keep their own copy of the PCM they feed through `PcmStream` or `CoreSound.fromPcm`.
 - **Native-only calls are compile errors in a js build.** The compiler stops at each call site, names the method and the reason, and points at the opt-out. Projects that share code across targets and branch at runtime set `-D haxefmod_html5_allow_unsupported`, and the calls then compile, return `FMOD_ERR_UNSUPPORTED` at runtime in the browser, and the library prints one warning per build saying so.
 
 ## FMOD features not exposed on any target
 
-These FMOD features exist in the native engine but are not part of the haxefmod surface, either because the web build cannot support them or because they conflict with how the binding keeps every target stable. In the future, features that are supported by native builds, but not HTML5, will be fully implemented.
+These FMOD features cannot be bound from Haxe. Each one hands FMOD a function pointer or a memory layout that FMOD calls into from its own threads, and no Haxe target can run game code there safely.
 
-- **DSP parameter metadata** (`getParameterInfo`). The web build has no binding for the description struct. Parameter values themselves round-trip by index on every target.
-- **Custom DSP callbacks and third-party plugins.** Haxe code cannot run on FMOD's mixer thread on any target, and the web build removed the plugin-host DSP types entirely. All 33 built-in DSP types are bound.
-- **Loudness meter readback** (LUFS histograms). The web build returns zeroes from a working meter, so the values cannot be trusted cross-platform. FFT spectrum readback and DSP metering are bound and work everywhere.
-- **Sound buffer locking** (`lock` and `unlock`). Sample access goes through `CoreSound.readData` on native targets instead.
-- **Tracker music channel control** (MOD/S3M/XM per-channel access).
-- **Speaker geometry and console port APIs.**
-- **userdata on FMOD objects.** The binding's handle table carries object identity, which is what userdata exists for. Typed handles and payload callbacks replace it.
-- **Custom file systems and `loadBankCustom`.** User IO callbacks would run on FMOD threads, which no Haxe target can do safely. `loadBankFile` and `loadBankMemory` are the supported paths.
-- **System lifecycle calls.** The library owns init and the per-frame update. There is no shutdown or re-init. FMOD initializes once per process and lives until the process exits, and every use-after-shutdown bug goes away with the capability. Init-time engine settings are exposed through `FmodSettings` and compile-time defines.
-- **System diagnostic callbacks and CommandReplay tool hooks.** These are FMOD-tooling integration points. Command capture and basic replay playback are bound.
-- **Tag and subsound access.** Container internals with no cross-platform story.
+- **Custom DSP descriptions and DSP callbacks.** A custom effect's process, create, and release functions run on FMOD's mixer thread. All 33 built-in DSP types are bound, and effects shipped as FMOD plugins load through `StudioSystem.loadPlugin`.
+- **Codec and output registration** (`registerCodec`, `registerOutput`). Both run their callbacks on FMOD's file and mixer threads.
+- **Custom file systems and file callbacks** (`setFileSystem`, `attachFileSystem`, `loadBankCustom`). User IO callbacks run on FMOD's file thread. `loadBankFile` and `loadBankMemory` are the supported paths.
+- **Allocator hooks** (`Memory_Initialize`). FMOD would call into Haxe for every allocation on every thread.
+- **The rolloff callback** (`FMOD_3D_ROLLOFF_CALLBACK`). It runs per channel on the mixer thread. `set3DCustomRolloff` covers custom curves as point arrays.
+- **Console ports** (`attachChannelGroupToPort`, `detachChannelGroupFromPort`). Console-only handles the desktop and web SDKs do not carry.
+- **Android and thread affinity calls** (`Thread_SetAttributes`, JNI setup). They target platforms the library does not ship for.
+- **Sound lock and unlock.** They expose raw sample memory pointers. `CoreSound.readData` reads samples on native targets instead.
+- **`getOutputHandle`.** It returns a platform-specific pointer with nothing Haxe can do with it.
+- **CommandReplay callback setters** (`setFrameCallback`, `setLoadBankCallback`, `setCreateInstanceCallback`). They run on FMOD's replay thread. Command capture, replay playback, and command inspection are bound.
 
 ## Fixed behaviors and caps
 
@@ -50,6 +53,7 @@ These FMOD features exist in the native engine but are not part of the haxefmod 
 - **Programmer sound keys must be under 512 UTF-8 bytes.** Longer keys are rejected with `FMOD_ERR_INVALID_PARAM` on every target.
 - **Live Update uses TCP port 9264 and the port is fixed** (the FMOD API has no way to change it). Enabling it triggers a firewall dialog on macOS and Windows. It defaults to on in debug builds only.
 - **Numeric arguments pass through to FMOD for validation.** An out-of-range index or count comes back as an FMOD error code from the engine, the same code native FMOD would report.
+- **The library owns the system lifecycle.** It initializes FMOD once per process and runs the per-frame update, and there is no shutdown or re-init. Init-time engine settings are exposed through `FmodSettings` and compile-time defines.
 - **Generated constants drop non-ASCII characters.** An event name with no ASCII characters at all mangles to `Root`, `Root2`, and so on.
 - **Bank files require an FMOD runtime at least as new as the FMOD Studio version that built them.** This is FMOD's own format rule. A project that rebuilds its banks with a newer Studio raises the minimum FMOD engine version its players' builds must bundle.
 

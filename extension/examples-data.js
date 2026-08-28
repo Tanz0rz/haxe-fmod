@@ -3,10 +3,10 @@
 const HAXEFMOD_EXAMPLES = {
  "advanced-core-api-topics": {
   "*": {
-   "code": null,
+   "code": "import haxefmod.core.Dsp;\nimport haxefmod.core.ChannelGroup;\n\nStudioSystem.setPluginPath(\"plugins\");\nvar plugin = StudioSystem.loadPlugin(\"fmod_gain.dll\");\nif (plugin != 0) {\n    var gain = Dsp.createByPlugin(plugin);\n    ChannelGroup.master().addDsp(ChannelGroup.DSP_HEAD, gain);\n}",
    "heading": "page default",
    "notes": [
-    "Codec, output, and DSP plug-in authoring stays in C, because Haxe code cannot run on FMOD's mixer thread on any target. Loading a prebuilt plug-in binary is deferred until CI has one to test against, so Studio projects that use plug-in effects cannot load them from haxefmod yet, and the web build has no plug-in host (unsupported in HTML5). Built-in codecs, outputs, and all 33 built-in effect types are available."
+    "Codec, output, and DSP plug-in authoring stays in C, because Haxe code cannot run on FMOD's mixer thread on any target. A prebuilt plug-in binary loads with StudioSystem.loadPlugin, and Dsp.createByPlugin creates a unit from it, native only (unsupported in HTML5) because the web build has no plug-in host. Built-in codecs, outputs, and all 33 built-in effect types are available on every target."
    ]
   },
   "0": {
@@ -159,10 +159,10 @@ const HAXEFMOD_EXAMPLES = {
    ]
   },
   "14": {
-   "code": null,
+   "code": "var stats = StudioSystem.getMemoryStats();\nif (stats != null) {\n    trace('current ${stats.current} bytes, peak ${stats.maximum} bytes');\n}",
    "heading": "FMOD_MEMORY_ALLOC_CALLBACK",
    "notes": [
-    "Custom allocators are not exposed. FMOD uses its own allocator, and StudioSystem.getMemoryUsage reports what it holds."
+    "Custom allocators are not exposed. FMOD uses its own allocator, and StudioSystem.getMemoryStats reports what it has allocated."
    ]
   },
   "15": {
@@ -183,7 +183,7 @@ const HAXEFMOD_EXAMPLES = {
    "code": "var memory = StudioSystem.getMemoryUsage();\nif (memory != null) {\n    trace('inclusive ${memory.inclusive} bytes, sample data ${memory.sampledata} bytes');\n}",
    "heading": "FMOD_MEMORY_TYPE",
    "notes": [
-    "Memory type flags belong to the custom allocator hooks, which are not exposed. Memory reporting is available through StudioSystem.getMemoryUsage on native targets."
+    "Memory type flags belong to the custom allocator hooks, which are not exposed. StudioSystem.getMemoryStats reports the current and peak allocation totals, and StudioSystem.getMemoryUsage breaks down what Studio objects hold on native targets."
    ]
   },
   "2": {
@@ -278,10 +278,10 @@ const HAXEFMOD_EXAMPLES = {
    ]
   },
   "32": {
-   "code": null,
+   "code": "trace('FMOD ${StudioSystem.getVersion()}');",
    "heading": "FMOD_VERSION",
    "notes": [
-    "The FMOD header version is not exposed as a constant. haxefmod ships and links one FMOD version per release, listed in its README, and the runtime checks its native binding version at init on its own."
+    "haxefmod ships and links one FMOD version per release, and StudioSystem.getVersion reports the version of the library that is running as a string."
    ]
   },
   "4": {
@@ -654,7 +654,7 @@ const HAXEFMOD_EXAMPLES = {
    "code": "import haxefmod.core.Dsp;\nimport haxefmod.core.DspType;\n\nimport haxefmod.core.ChannelGroup;\n\nvar lowpass = Dsp.create(DspType.LOWPASS);\nif (lowpass.isNull()) {\n    trace('create failed: ${StudioSystem.lastResult()}');\n}\nChannelGroup.master().addDsp(ChannelGroup.DSP_HEAD, lowpass);\nlowpass.setParameter(0, 800); // CUTOFF in Hz",
    "heading": "FMOD_DSP_TYPE",
    "notes": [
-    "haxefmod.core.DspType is an enum abstract with the same names and values, minus MAX. Every built-in type is available on every target. Third-party and custom plugin types are not."
+    "haxefmod.core.DspType is an enum abstract with the same names and values, minus MAX. Every built-in type is available on every target. A third-party plugin loads with StudioSystem.loadPlugin and its unit is created with Dsp.createByPlugin, native only (unsupported in HTML5)."
    ]
   },
   "6": {
@@ -922,7 +922,7 @@ const HAXEFMOD_EXAMPLES = {
    "code": "import haxefmod.core.CoreSystem;\n\nvar format = CoreSystem.getSoftwareFormat();\nif (format != null) {\n    trace('Mixer sample rate = ${format.sampleRate} Hz');\n}",
    "heading": "System::setDSPBufferSize",
    "notes": [
-    "The DSP buffer size is chosen by the library and is not exposed. The mixer sample rate is readable from getSoftwareFormat."
+    "FMOD only accepts the mixer buffer before init, so it is set through the dspBufferSize and dspNumBuffers fields of FmodSettings, native only (unsupported in HTML5). The mixer sample rate is readable from getSoftwareFormat."
    ]
   },
   "11": {
@@ -933,31 +933,31 @@ const HAXEFMOD_EXAMPLES = {
    ]
   },
   "116": {
-   "code": "FmodManager.Initialize({speakerMode: 2}); // FMOD_SPEAKERMODE_STEREO",
+   "code": "import haxefmod.core.CoreSystem;\n\nFmodManager.Initialize({speakerMode: 2}); // FMOD_SPEAKERMODE_STEREO\nCoreSystem.setSpeakerPosition(0, -1, 0, true); // FMOD_SPEAKER_FRONT_LEFT\nCoreSystem.setSpeakerPosition(1, 1, 0, true); // FMOD_SPEAKER_FRONT_RIGHT",
    "heading": "System::setSpeakerPosition",
    "notes": [
-    "Speaker geometry is not exposed. Set a speaker mode at initialization and FMOD uses the standard layout for it."
+    "CoreSystem.setSpeakerPosition places one speaker of the mode chosen at initialization, and getSpeakerPosition reads it back."
    ]
   },
   "117": {
-   "code": "FmodManager.Initialize({speakerMode: 2}); // FMOD_SPEAKERMODE_STEREO",
+   "code": "import haxefmod.core.CoreSystem;\n\nFmodManager.Initialize({speakerMode: 2}); // FMOD_SPEAKERMODE_STEREO\nCoreSystem.setSpeakerPosition(0, -1, 0, true); // FMOD_SPEAKER_FRONT_LEFT\nCoreSystem.setSpeakerPosition(1, 1, 0, true); // FMOD_SPEAKER_FRONT_RIGHT",
    "heading": "System::setSpeakerPosition",
    "notes": [
-    "Speaker geometry is not exposed. Set a speaker mode at initialization and FMOD uses the standard layout for it."
+    "CoreSystem.setSpeakerPosition places one speaker of the mode chosen at initialization, and getSpeakerPosition reads it back."
    ]
   },
   "118": {
-   "code": "FmodManager.Initialize({speakerMode: 6}); // FMOD_SPEAKERMODE_7POINT1",
+   "code": "import haxefmod.core.CoreSystem;\n\nFmodManager.Initialize({speakerMode: 6}); // FMOD_SPEAKERMODE_7POINT1\nCoreSystem.setSpeakerPosition(2, 0, 0, false); // FMOD_SPEAKER_FRONT_CENTER off",
    "heading": "System::setSpeakerPosition",
    "notes": [
-    "Speaker geometry is not exposed. Set a speaker mode at initialization and FMOD uses the standard layout for it."
+    "CoreSystem.setSpeakerPosition places one speaker of the mode chosen at initialization, and a speaker set inactive is left out of the mix."
    ]
   },
   "119": {
-   "code": "FmodManager.Initialize({speakerMode: 6}); // FMOD_SPEAKERMODE_7POINT1",
+   "code": "import haxefmod.core.CoreSystem;\n\nFmodManager.Initialize({speakerMode: 6}); // FMOD_SPEAKERMODE_7POINT1\nCoreSystem.setSpeakerPosition(2, 0, 0, false); // FMOD_SPEAKER_FRONT_CENTER off",
    "heading": "System::setSpeakerPosition",
    "notes": [
-    "Speaker geometry is not exposed. Set a speaker mode at initialization and FMOD uses the standard layout for it."
+    "CoreSystem.setSpeakerPosition places one speaker of the mode chosen at initialization, and a speaker set inactive is left out of the mix."
    ]
   },
   "12": {
@@ -992,21 +992,21 @@ const HAXEFMOD_EXAMPLES = {
    "code": "import haxefmod.core.CoreSystem;\n\nif (CoreSystem.getDriverCount() > 1) {\n    CoreSystem.setDriver(1);\n}",
    "heading": "FMOD_OUTPUTTYPE",
    "notes": [
-    "The output type is chosen automatically for each platform and is not exposed. Output device selection within that type goes through the driver calls."
+    "The output type is chosen by FMOD for each platform, and CoreSystem.getOutput reports it as the FMOD_OUTPUTTYPE value. Output device selection within that type goes through the driver calls."
    ]
   },
   "17": {
-   "code": null,
+   "code": "import haxefmod.core.Dsp;\nimport haxefmod.core.ChannelGroup;\n\nStudioSystem.setPluginPath(\"plugins\");\nvar plugin = StudioSystem.loadPlugin(\"fmod_gain.dll\");\nif (plugin != 0) {\n    var gain = Dsp.createByPlugin(plugin);\n    ChannelGroup.master().addDsp(ChannelGroup.DSP_HEAD, gain);\n}",
    "heading": "FMOD_PLUGINLIST",
    "notes": [
-    "Plugin authoring stays in C because Haxe code cannot run on FMOD's mixer thread. Loading a prebuilt plugin binary is deferred until CI has one to test against, so Studio projects that use plugin effects cannot load them from haxefmod yet."
+    "Plugin authoring stays in C because Haxe code cannot run on FMOD's mixer thread. A prebuilt plugin binary loads with StudioSystem.loadPlugin, native only (unsupported in HTML5), and StudioSystem.getPluginCount, getPluginHandle, and getPluginInfo enumerate what is loaded by FmodPluginType."
    ]
   },
   "18": {
-   "code": null,
+   "code": "import haxefmod.core.Dsp;\nimport haxefmod.core.ChannelGroup;\n\nStudioSystem.setPluginPath(\"plugins\");\nvar plugin = StudioSystem.loadPlugin(\"fmod_gain.dll\");\nif (plugin != 0) {\n    var gain = Dsp.createByPlugin(plugin);\n    ChannelGroup.master().addDsp(ChannelGroup.DSP_HEAD, gain);\n}",
    "heading": "FMOD_PLUGINTYPE",
    "notes": [
-    "Plugin authoring stays in C because Haxe code cannot run on FMOD's mixer thread. Loading a prebuilt plugin binary is deferred until CI has one to test against, so Studio projects that use plugin effects cannot load them from haxefmod yet."
+    "Plugin authoring stays in C because Haxe code cannot run on FMOD's mixer thread. A prebuilt plugin binary loads with StudioSystem.loadPlugin, native only (unsupported in HTML5), and StudioSystem.getPluginCount, getPluginHandle, and getPluginInfo enumerate what is loaded by FmodPluginType."
    ]
   },
   "19": {
@@ -1052,17 +1052,17 @@ const HAXEFMOD_EXAMPLES = {
    ]
   },
   "26": {
-   "code": null,
+   "code": "StudioSystem.setSystemCallback(event -> switch (event) {\n    case DeviceListChanged: trace(\"devices changed\");\n    default:\n});",
    "heading": "FMOD_SYSTEM_CALLBACK",
    "notes": [
-    "System callbacks are not exposed since Haxe code cannot run on FMOD's threads."
+    "StudioSystem.setSystemCallback takes one handler and delivers the device list changed and device lost events from FmodManager.Update() on the game thread, next to the Studio system events. Engine errors are not among them, set FmodSettings.logLevel to see those in the log."
    ]
   },
   "27": {
-   "code": null,
+   "code": "StudioSystem.setSystemCallback(event -> switch (event) {\n    case DeviceListChanged: trace(\"devices changed\");\n    default:\n});",
    "heading": "FMOD_SYSTEM_CALLBACK_TYPE",
    "notes": [
-    "System callbacks are not exposed since Haxe code cannot run on FMOD's threads."
+    "StudioSystem.setSystemCallback takes one handler and delivers the device list changed and device lost events from FmodManager.Update() on the game thread, next to the Studio system events. Engine errors are not among them, set FmodSettings.logLevel to see those in the log."
    ]
   },
   "3": {
@@ -1117,10 +1117,10 @@ const HAXEFMOD_EXAMPLES = {
  },
  "dsp-plugin-api-guide": {
   "*": {
-   "code": null,
+   "code": "import haxefmod.core.Dsp;\nimport haxefmod.core.ChannelGroup;\n\nStudioSystem.setPluginPath(\"plugins\");\nvar plugin = StudioSystem.loadPlugin(\"fmod_gain.dll\");\nif (plugin != 0) {\n    var gain = Dsp.createByPlugin(plugin);\n    ChannelGroup.master().addDsp(ChannelGroup.DSP_HEAD, gain);\n}",
    "heading": "page default",
    "notes": [
-    "This guide walks through writing, building, and loading a DSP plug-in library. haxefmod does not bind registerDSP, because a description carries callbacks that would run on FMOD's mixer thread and Haxe code cannot do that on any target. loadPlugin and setPluginPath only load a prebuilt binary with no Haxe involved, so they are deferred until CI has a plug-in binary to test against, and Studio projects that use plug-in effects cannot load them from haxefmod yet.",
+    "This guide walks through writing, building, and loading a DSP plug-in library. haxefmod does not bind registerDSP, because a description carries callbacks that would run on FMOD's mixer thread and Haxe code cannot do that on any target. The built library loads with StudioSystem.loadPlugin after StudioSystem.setPluginPath names its folder, native only (unsupported in HTML5), and a Studio project that uses the effect finds it once the plug-in is loaded before its banks.",
     "The built-in effects cover most game needs and are all available through haxefmod.core.Dsp, with the parameter indices listed in FMOD's effects reference. Sounds your code synthesizes can be played through haxefmod.core.PcmStream. See docs/guides/core-api.md."
    ]
   }
@@ -1144,10 +1144,10 @@ const HAXEFMOD_EXAMPLES = {
    ]
   },
   "1": {
-   "code": "import haxefmod.studio.CoreSound;\n\nvar sound = CoreSound.create(\"drumloop.wav\");\nvar userData = new Map<CoreSound, String>();\nuserData.set(sound, \"Hello User Data!\");\n\ntrace(userData.get(sound));",
+   "code": "import haxefmod.studio.CoreSound;\n\nvar sound = CoreSound.create(\"drumloop.wav\");\nsound.setUserData(\"Hello User Data!\");\n\ntrace(sound.getUserData());",
    "heading": "22.49 User Data",
    "notes": [
-    "userdata is not exposed. Handles are plain integers, so keep a Map from the handle to your own data, or a field on the game object that owns the sound."
+    "Every handle has setUserData and getUserData. The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released."
    ]
   }
  },
@@ -1210,7 +1210,7 @@ const HAXEFMOD_EXAMPLES = {
    "code": "import haxefmod.core.PcmStream;\n\nvar stream = PcmStream.create(44100, 2);\nvar channel = stream.play();\n\n// each frame, keep the ring topped up\nvar buffer = haxe.io.Bytes.alloc(stream.space());\nfor (i in 0...Std.int(buffer.length / 2)) {\n    buffer.setUInt16(i * 2, nextSample() & 0xFFFF);\n}\nstream.write(buffer);",
    "heading": "4.3.3 Creating a Sound by manually providing sample data",
    "notes": [
-    "PCM read callbacks and Sound::lock are not exposed. PcmStream is the user-sound equivalent, a ring buffer the game writes 16-bit PCM into from the game thread while the mixer drains it."
+    "PCM read callbacks and Sound::lock cannot be bound, the callbacks run on FMOD's threads and lock hands out a raw pointer. PcmStream is the user-sound equivalent, a ring buffer the game writes 16-bit PCM into from the game thread while the mixer drains it, and CoreSound.readData covers reading PCM back out of a sound."
    ]
   },
   "8": {
@@ -1286,7 +1286,7 @@ const HAXEFMOD_EXAMPLES = {
    "code": null,
    "heading": "Audio Stability (Stuttering)",
    "notes": [
-    "The DSP buffer size is not exposed. The binding initializes FMOD with its default buffer settings on every target."
+    "The dspBufferSize and dspNumBuffers fields of FmodSettings are native only (unsupported in HTML5). The web build fixes the mixer at 2048 samples by 2 buffers and ignores them."
    ]
   },
   "9": {
@@ -1473,8 +1473,8 @@ const HAXEFMOD_EXAMPLES = {
    "code": "if (StudioSystem.startCommandCapture(\"capture.cmd.txt\").isOk()) {\n    // play the game for a while\n    StudioSystem.stopCommandCapture();\n}\n\nvar replay = StudioSystem.loadCommandReplay(\"capture.cmd.txt\");\nif (!replay.isNull()) {\n    replay.start();\n    trace('replay length ${replay.getLength()} seconds');\n    // when finished\n    replay.stop();\n    replay.release();\n}",
    "heading": "page default",
    "notes": [
-    "haxefmod binds command capture and basic replay playback only. Record with StudioSystem.startCommandCapture(path), load the file with StudioSystem.loadCommandReplay(path), and drive the CommandReplay handle with start, stop, setPaused, seekToTime, and getLength.",
-    "The per-command callbacks (create instance, frame, load bank), command info queries, and instance type lookups are FMOD tooling hooks that would run Haxe code from FMOD's threads, so they are not exposed. Use FMOD Studio's own profiler tools to inspect a capture."
+    "Record with StudioSystem.startCommandCapture(path), load the file with StudioSystem.loadCommandReplay(path), and drive the CommandReplay handle with start, stop, setPaused, seekToTime, seekToCommand, getPlaybackState, and getLength. getCommandCount, getCommandInfo, getCommandString, and getCommandAtTime inspect the capture, and setBankPath redirects its bank loads.",
+    "The per-command callbacks (create instance, frame, load bank) cannot be bound, FMOD runs them on its update thread while the replay plays and no Haxe target can execute code there."
    ]
   }
  },
@@ -1571,7 +1571,7 @@ const HAXEFMOD_EXAMPLES = {
    "code": null,
    "heading": "FMOD_STUDIO_PLUGIN_INSTANCE_PROPERTIES",
    "notes": [
-    "Third-party plugins are not available from haxefmod because Haxe code cannot run on FMOD's mixer thread, so the plugin created and destroyed callbacks never carry a payload. They arrive as EventCallbackData.Other(PLUGIN_CREATED) if subscribed."
+    "The plugin created and destroyed callbacks arrive as EventCallbackData.Other(PLUGIN_CREATED) and Other(PLUGIN_DESTROYED) if subscribed, without the properties payload, because the DSP pointer it carries has no meaning in Haxe. A plugin effect used by an event loads with StudioSystem.loadPlugin before the bank, native only (unsupported in HTML5)."
    ]
   },
   "43": {
@@ -1656,10 +1656,10 @@ const HAXEFMOD_EXAMPLES = {
    ]
   },
   "13": {
-   "code": null,
+   "code": "StudioSystem.setSystemCallback(event -> switch (event) {\n    case BankUnload(path): trace('unloaded $path');\n    case LiveUpdateConnected: trace(\"live update connected\");\n    default:\n});",
    "heading": "FMOD_STUDIO_SYSTEM_CALLBACK",
    "notes": [
-    "System callbacks are FMOD tooling hooks that would run Haxe code on FMOD's update thread, so they are not exposed. Poll what you need after FmodManager.Update: Bank.getLoadingState for unloads and FmodManager.IsInitialized for readiness."
+    "StudioSystem.setSystemCallback takes one handler and delivers the events from FmodManager.Update() on the game thread: device list changed, device lost, bank unload with the bank's path, live update connected and disconnected, and pre and post update."
    ]
   },
   "14": {
@@ -1772,10 +1772,10 @@ const HAXEFMOD_EXAMPLES = {
  },
  "using-dsp-effects-in-the-core-api": {
   "*": {
-   "code": null,
+   "code": "import haxefmod.core.Dsp;\nimport haxefmod.core.ChannelGroup;\n\nStudioSystem.setPluginPath(\"plugins\");\nvar plugin = StudioSystem.loadPlugin(\"fmod_gain.dll\");\nif (plugin != 0) {\n    var gain = Dsp.createByPlugin(plugin);\n    ChannelGroup.master().addDsp(ChannelGroup.DSP_HEAD, gain);\n}",
    "heading": "page default",
    "notes": [
-    "Plug-in DSP authoring stays in C, because Haxe code cannot run on FMOD's mixer thread on any target. Loading a prebuilt plug-in binary is deferred until CI has one to test against, so Studio projects that use plug-in effects cannot load them from haxefmod yet, and the web build has no plug-in host (unsupported in HTML5). All 33 built-in effect types are available through Dsp.create."
+    "Plug-in DSP authoring stays in C, because Haxe code cannot run on FMOD's mixer thread on any target. A prebuilt plug-in binary loads with StudioSystem.loadPlugin, and Dsp.createByPlugin creates a unit from it, native only (unsupported in HTML5) because the web build has no plug-in host. All 33 built-in effect types are available through Dsp.create on every target."
    ]
   },
   "0": {
@@ -1784,10 +1784,10 @@ const HAXEFMOD_EXAMPLES = {
    "notes": []
   },
   "1": {
-   "code": "import haxefmod.core.Dsp;\nimport haxefmod.core.DspType;\n\nvar echo = Dsp.create(DspType.ECHO);\nchannel.addDsp(0, echo);\n\n// move it to position 1\nchannel.removeDsp(echo);\nchannel.addDsp(1, echo);",
+   "code": "import haxefmod.core.Dsp;\nimport haxefmod.core.DspType;\n\nvar echo = Dsp.create(DspType.ECHO);\nchannel.addDsp(0, echo);\n\n// move it to position 1\nchannel.setDspIndex(echo, 1);",
    "heading": "Add a DSP effect to a Channel",
    "notes": [
-    "Reordering a unit in place is not exposed. Remove the effect and add it back at the wanted index."
+    "Channel.setDspIndex moves a unit that is already in the chain, and getDspIndex reads its position."
    ]
   },
   "10": {
@@ -1842,10 +1842,10 @@ const HAXEFMOD_EXAMPLES = {
    "notes": []
   },
   "9": {
-   "code": null,
+   "code": "import haxefmod.core.Dsp;\nimport haxefmod.core.DspType;\n\nvar reverb = Dsp.create(DspType.SFXREVERB);\nreverb.setChannelFormat(0, 2, 2); // FMOD_SPEAKERMODE_STEREO",
    "heading": "Set the output format of a DSP unit, and control the pan matrix for its output signal",
    "notes": [
-    "DSP::setChannelFormat is not exposed. The mixer runs at the speaker mode chosen in FmodSettings, and a channel's output layout is shaped with Channel.setMixMatrix instead."
+    "Dsp.setChannelFormat sets the format a unit outputs, and getChannelFormat reads it back. The channel mask, channel count, and speaker mode take FMOD's numeric values."
    ]
   }
  },

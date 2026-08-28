@@ -126,4 +126,15 @@ var multibandEq = Dsp.create(DspType.MULTIBAND_EQ);
 
 ## *
 <!-- page default -->
-Codec, output, and DSP plug-in authoring stays in C, because Haxe code cannot run on FMOD's mixer thread on any target. Loading a prebuilt plug-in binary is deferred until CI has one to test against, so Studio projects that use plug-in effects cannot load them from haxefmod yet, and the web build has no plug-in host (unsupported in HTML5). Built-in codecs, outputs, and all 33 built-in effect types are available.
+Codec, output, and DSP plug-in authoring stays in C, because Haxe code cannot run on FMOD's mixer thread on any target. A prebuilt plug-in binary loads with StudioSystem.loadPlugin, and Dsp.createByPlugin creates a unit from it, native only (unsupported in HTML5) because the web build has no plug-in host. Built-in codecs, outputs, and all 33 built-in effect types are available on every target.
+```haxe
+import haxefmod.core.Dsp;
+import haxefmod.core.ChannelGroup;
+
+StudioSystem.setPluginPath("plugins");
+var plugin = StudioSystem.loadPlugin("fmod_gain.dll");
+if (plugin != 0) {
+    var gain = Dsp.createByPlugin(plugin);
+    ChannelGroup.master().addDsp(ChannelGroup.DSP_HEAD, gain);
+}
+```

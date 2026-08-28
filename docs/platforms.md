@@ -34,7 +34,7 @@ Browsers refuse to start audio before the user interacts with the page. The libr
 - Numeric user properties. Reading an integer, boolean, or float user property crashes FMOD's runtime, so those reads return `FMOD_ERR_UNSUPPORTED`. String properties work.
 - Live Update. FMOD does not support it in browsers.
 - Firefox never delivers `NestedTimelineBeat`, and fires an extra empty callback alongside each real marker. Chromium-based browsers deliver both correctly.
-- Geometry occlusion, microphone recording, custom 3D rolloff curves, and sample readback. These are native only, and [Limitations](limitations.md#html5) lists what each call returns on HTML5.
+- Geometry occlusion, microphone recording, custom 3D rolloff curves, sample readback, plugin loading, and the mix matrix, fade point, DSP parameter description, and default mix matrix readers. These are native only, and [Limitations](limitations.md#html5) lists what each call returns on HTML5.
 
 A call from that native-only group is a compile error in a js build. The compiler stops at the call site, names the method and the reason, and points at the opt-out, so a web build cannot ship a call that silently does nothing. Projects that share code across targets and branch at runtime set `-D haxefmod_html5_allow_unsupported`. The calls then compile, return `FMOD_ERR_UNSUPPORTED` at runtime in the browser, and the library prints one warning per build saying so.
 

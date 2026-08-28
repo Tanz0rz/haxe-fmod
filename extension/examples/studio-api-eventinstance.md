@@ -39,7 +39,7 @@ trace(instance.getProperty(FmodEventProperty.COOLDOWN));
 
 ## 42
 <!-- FMOD_STUDIO_PLUGIN_INSTANCE_PROPERTIES -->
-Third-party plugins are not available from haxefmod because Haxe code cannot run on FMOD's mixer thread, so the plugin created and destroyed callbacks never carry a payload. They arrive as EventCallbackData.Other(PLUGIN_CREATED) if subscribed.
+The plugin created and destroyed callbacks arrive as EventCallbackData.Other(PLUGIN_CREATED) and Other(PLUGIN_DESTROYED) if subscribed, without the properties payload, because the DSP pointer it carries has no meaning in Haxe. A plugin effect used by an event loads with StudioSystem.loadPlugin before the bank, native only (unsupported in HTML5).
 
 ## 43
 <!-- FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES -->
