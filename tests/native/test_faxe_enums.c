@@ -7,7 +7,7 @@
  * against 2.03 headers.
  *
  *   python3 ci/haxe-enum-values.py --check
- *   gcc -std=c99 -Wall -Wextra -Werror -I<sdk>/api/core/inc \
+ *   gcc -std=c99 -Wall -Wextra -Werror -I<sdk>/api/core/inc -I<sdk>/api/studio/inc \
  *       -o t tests/native/test_faxe_enums.c && ./t
  */
 #include <stdio.h>

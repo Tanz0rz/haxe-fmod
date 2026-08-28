@@ -30,14 +30,14 @@ python3 ci/haxe-bindings.py
 
 The same table renders the coverage page of the documentation site.
 
-Guide pages carry code examples that are not function entries (tabbed C, C++, C#, JS samples, and lone C++ blocks). Their Haxe versions are written by hand in `examples/<page>.md`, one file per fmod.com page, keyed by the example's position on the page. `ci/haxe-examples.py` compiles them into `examples-data.js`, and the docs workflow compiles every Haxe fence in them against the library:
+Every other code block on the site (type definitions, guide examples, lone C++ blocks) is inventoried in `catalog/<page>.md`, written by `test/catalog-site.js` from the live site: one entry per block under a stable key (the function id, or the heading the block sits under) with the snippet of every language the site shows. The Haxe side lives in `haxe/<page>.md` under the same keys, one section per block with a `verdict:` line (`bound` with a Haxe fence or a `Type:` line that copies the declaration out of the sources, or `cannot`, `library`, `covered` with a reason). `ci/haxe-catalog.py` compiles them into `examples-data.js` and fails when any block on the site has no section, a section has no verdict, a declaration lacks a member the site's snippet declares, or an example uses none of the Haxe methods that reach a call the snippet makes. The format is documented at the top of that script.
 
 ```bash
-python3 ci/haxe-examples.py
-python3 ci/check-readme-snippets.py extension/examples
+python3 ci/haxe-catalog.py
+python3 ci/check-readme-snippets.py extension/haxe extension/functions.md
 ```
 
-Lone C++ blocks have no language selector on fmod.com, so the extension adds one with a C++ tab and the Haxe tab. The format of the example files is documented at the top of `ci/haxe-examples.py`.
+Lone C++ blocks have no language selector on fmod.com, so the extension adds one with a C++ tab and the Haxe tab. `keys.js` computes the block keys at runtime the same way the crawler did.
 
 Clicking the toolbar icon opens the FMOD API reference. The extension asks for no permissions beyond running on fmod.com documentation pages and makes no network requests. The data ships inside the package.
 
@@ -52,16 +52,16 @@ The default run serves `test/fixture.html` in place of fmod.com and checks the t
 
 ## When fmod.com changes
 
-The tab is keyed by function heading ids and by the position of code examples on each page, so an edit on fmod.com can move or drop a tab. `test/site-snapshot.json` records those keys for every page of the API reference, and the weekly `docs-canary` workflow crawls the live site and fails when they differ, listing every added, removed, or moved function and example. Run it by hand with:
+The weekly `docs-canary` workflow crawls the live site into the catalog format and fails when it differs from `catalog/`, listing every added or removed code location and every page whose snippets changed. Run it by hand with:
 
 ```bash
-NODE_PATH=/path/to/node_modules node extension/test/crawl-site.js --check
+NODE_PATH=/path/to/node_modules node extension/test/catalog-site.js --check
 ```
 
-After fixing `examples/` and `functions.md` to match, refresh the snapshot:
+Refresh the catalog, then bring `haxe/` and `functions.md` in line until `ci/haxe-catalog.py --check` passes:
 
 ```bash
-NODE_PATH=/path/to/node_modules node extension/test/crawl-site.js --update
+NODE_PATH=/path/to/node_modules node extension/test/catalog-site.js --update
 ```
 
 Functions haxefmod does not expose are listed with their reasons on the documentation site's "Unsupported functions" page, generated from `functions.md` by `ci/haxe-bindings.py`. Adding a binding means removing its section there, at which point the generator picks the new method up from the sources.

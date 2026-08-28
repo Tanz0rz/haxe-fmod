@@ -22,8 +22,7 @@
         "https://www.fmod.com/docs/*",
         "https://fmod.com/docs/*"
       ],
-      "js": [
-        "bindings-data.js",
+      "js": ["keys.js", "bindings-data.js",
         "examples-data.js",
         "content.js"
       ],

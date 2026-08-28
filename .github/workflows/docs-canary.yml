@@ -13,7 +13,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  site-snapshot:
+  catalog:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -29,13 +29,13 @@ jobs:
           npm install playwright > /dev/null
           npx playwright install --with-deps chromium
 
-      - name: Compare fmod.com with the snapshot
-        run: node extension/test/crawl-site.js --check
+      - name: Compare fmod.com with the catalog
+        run: node extension/test/catalog-site.js --check
 
   notify-failure:
     runs-on: ubuntu-latest
-    needs: [site-snapshot]
-    if: ${{ !cancelled() && needs.site-snapshot.result == 'failure' }}
+    needs: [catalog]
+    if: ${{ !cancelled() && needs.catalog.result == 'failure' }}
     timeout-minutes: 5
     steps:
       - name: Send failure email
@@ -54,13 +54,14 @@ jobs:
             exit 0
           fi
           SUBJECT="haxe-fmod docs canary: fmod.com changed"
-          TEXT="The fmod.com API reference no longer matches extension/test/site-snapshot.json.
+          TEXT="The fmod.com API reference no longer matches extension/catalog/.
 
-          The run log lists every added, removed, or moved function and example:
+          The run log lists every added or removed code location and every page whose snippets changed:
           $RUN_URL
 
-          Check extension/examples and extension/functions.md, then refresh the snapshot with:
-            node extension/test/crawl-site.js --update"
+          Refresh the catalog and bring extension/haxe and extension/functions.md in line:
+            node extension/test/catalog-site.js --update
+            python3 ci/haxe-catalog.py"
           PAYLOAD=$(jq -n --arg from "$ALERT_FROM" --arg to "$ALERT_TO" --arg subject "$SUBJECT" --arg text "$TEXT" \
             '{from: $from, to: [$to], subject: $subject, text: $text}')
           curl -sS -X POST https://api.resend.com/emails \

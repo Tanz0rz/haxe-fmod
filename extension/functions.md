@@ -2,6 +2,7 @@
 
 ## channelcontrol_getsystemobject
 <!-- ChannelControl::getSystemObject -->
+verdict: bound
 haxefmod has one core system, and haxefmod.core.CoreSystem reaches it directly, so no object needs to hand it back.
 ```haxe
 import haxefmod.core.CoreSystem;
@@ -11,6 +12,7 @@ var format = CoreSystem.getSoftwareFormat();
 
 ## channelcontrol_getuserdata
 <!-- ChannelControl::getUserData -->
+verdict: bound
 haxefmod covers this with Channel and ChannelGroup.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
 ```haxe
 import haxefmod.core.ChannelGroup;
@@ -22,22 +24,23 @@ var data = group.getUserData();
 
 ## file_getdiskbusy
 <!-- File_GetDiskBusy -->
-Cannot be bound. The disk busy flag belongs to the custom file system callbacks, which FMOD runs on its streaming thread, and no Haxe target can execute code there.
+verdict: cannot The disk busy flag belongs to the custom file system callbacks, which FMOD runs on its streaming thread, and no Haxe target can execute code there.
 
 ## file_setdiskbusy
 <!-- File_SetDiskBusy -->
-Cannot be bound. The disk busy flag belongs to the custom file system callbacks, which FMOD runs on its streaming thread, and no Haxe target can execute code there.
+verdict: cannot The disk busy flag belongs to the custom file system callbacks, which FMOD runs on its streaming thread, and no Haxe target can execute code there.
 
 ## memory_initialize
 <!-- Memory_Initialize -->
-Cannot be bound. Custom allocators are callbacks that FMOD runs on every one of its threads, and no Haxe target can execute code there. FMOD uses its default allocator on every target, and StudioSystem.getMemoryStats reports what it holds.
+verdict: cannot Custom allocators are callbacks that FMOD runs on every one of its threads, and no Haxe target can execute code there. FMOD uses its default allocator on every target, and StudioSystem.getMemoryStats reports what it holds.
 
 ## thread_setattributes
 <!-- Thread_SetAttributes -->
-Cannot be bound. It must run before the system is created, and haxefmod creates the system inside FmodManager.Initialize() with no hook before it. FMOD keeps its default thread affinity and priority on every target, and the web build has no threads to configure.
+verdict: cannot It must run before the system is created, and haxefmod creates the system inside FmodManager.Initialize() with no hook before it. FMOD keeps its default thread affinity and priority on every target, and the web build has no threads to configure.
 
 ## dsp_getsystemobject
 <!-- DSP::getSystemObject -->
+verdict: bound
 haxefmod has one core system, and haxefmod.core.CoreSystem reaches it directly, so no object needs to hand it back.
 ```haxe
 import haxefmod.core.CoreSystem;
@@ -47,6 +50,7 @@ var format = CoreSystem.getSoftwareFormat();
 
 ## dsp_getuserdata
 <!-- DSP::getUserData -->
+verdict: bound
 haxefmod covers this with Dsp.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
 ```haxe
 import haxefmod.core.Dsp;
@@ -59,10 +63,11 @@ var data = reverb.getUserData();
 
 ## dsp_setcallback
 <!-- DSP::setCallback -->
-Cannot be bound. FMOD runs the callback on its mixer thread, and no Haxe target can execute code there. Poll the unit from the game loop with Dsp.getMetering() or Dsp.getFftSpectrum() instead.
+verdict: cannot FMOD runs the callback on its mixer thread, and no Haxe target can execute code there. Poll the unit from the game loop with Dsp.getMetering() or Dsp.getFftSpectrum() instead.
 
 ## dsp_setuserdata
 <!-- DSP::setUserData -->
+verdict: bound
 haxefmod covers this with Dsp.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
 ```haxe
 import haxefmod.core.Dsp;
@@ -75,10 +80,11 @@ var data = reverb.getUserData();
 
 ## dsp_showconfigdialog
 <!-- DSP::showConfigDialog -->
-Cannot be bound. It takes a raw operating system window handle, which has no meaning in Haxe. Plugin and built-in DSP parameters are set through Dsp.setParameter.
+verdict: cannot It takes a raw operating system window handle, which has no meaning in Haxe. Plugin and built-in DSP parameters are set through Dsp.setParameter.
 
 ## dspconnection_getuserdata
 <!-- DSPConnection::getUserData -->
+verdict: bound
 haxefmod covers this with DspConnection.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
 ```haxe
 import haxefmod.core.Dsp;
@@ -93,6 +99,7 @@ var data = connection.getUserData();
 
 ## dspconnection_setuserdata
 <!-- DSPConnection::setUserData -->
+verdict: bound
 haxefmod covers this with DspConnection.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
 ```haxe
 import haxefmod.core.Dsp;
@@ -107,6 +114,7 @@ var data = connection.getUserData();
 
 ## geometry_getuserdata
 <!-- Geometry::getUserData -->
+verdict: bound
 haxefmod covers this with Geometry.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
 ```haxe
 import haxefmod.core.Geometry;
@@ -118,6 +126,7 @@ var data = geometry.getUserData();
 
 ## geometry_setuserdata
 <!-- Geometry::setUserData -->
+verdict: bound
 haxefmod covers this with Geometry.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
 ```haxe
 import haxefmod.core.Geometry;
@@ -129,14 +138,15 @@ var data = geometry.getUserData();
 
 ## fmod_android_jni_close
 <!-- FMOD_Android_JNI_Close -->
-Cannot be bound. This is an Android JNI entry point and haxefmod targets desktop and web only.
+verdict: cannot This is an Android JNI entry point and haxefmod targets desktop and web only.
 
 ## fmod_android_jni_init
 <!-- FMOD_Android_JNI_Init -->
-Cannot be bound. This is an Android JNI entry point and haxefmod targets desktop and web only.
+verdict: cannot This is an Android JNI entry point and haxefmod targets desktop and web only.
 
 ## fs_createpreloadedfile
 <!-- FS_createPreloadedFile -->
+verdict: bound
 haxefmod does this for you on HTML5. The banks named in FmodSettings.autoLoadBanks are fetched during init, and StudioSystem.loadBankFile() fetches any other bank and places it in the wasm file system before loading it.
 ```haxe
 import haxefmod.studio.Bank;
@@ -146,42 +156,43 @@ var bank:Bank = StudioSystem.loadBankFile("assets/fmod/Desktop/Level1.bank");
 
 ## readfile
 <!-- ReadFile -->
-Cannot be bound. It returns a raw wasm heap address, which has no meaning in Haxe. StudioSystem.loadBankMemory() loads a bank from bytes you already hold, and Sound.fromPcm() plays raw PCM you already hold.
+verdict: cannot It returns a raw wasm heap address, which has no meaning in Haxe. StudioSystem.loadBankMemory() loads a bank from bytes you already hold, and Sound.fromPcm() plays raw PCM you already hold.
 
 ## memory_free
 <!-- Memory_Free -->
-Cannot be bound. It frees a raw pointer from FMOD's heap, which has no meaning in Haxe, and Haxe code never receives one. Release handles with the release() method of the object that created them.
+verdict: cannot It frees a raw pointer from FMOD's heap, which has no meaning in Haxe, and Haxe code never receives one. Release handles with the release() method of the object that created them.
 
 ## file_open
 <!-- file_open -->
-Cannot be bound. FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, Sound.create, and Sound.fromPcm are the loading paths.
+verdict: cannot FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, Sound.create, and Sound.fromPcm are the loading paths.
 
 ## file_close
 <!-- file_close -->
-Cannot be bound. FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, Sound.create, and Sound.fromPcm are the loading paths.
+verdict: cannot FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, Sound.create, and Sound.fromPcm are the loading paths.
 
 ## file_read
 <!-- file_read -->
-Cannot be bound. FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, Sound.create, and Sound.fromPcm are the loading paths.
+verdict: cannot FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, Sound.create, and Sound.fromPcm are the loading paths.
 
 ## file_seek
 <!-- file_seek -->
-Cannot be bound. FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, Sound.create, and Sound.fromPcm are the loading paths.
+verdict: cannot FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, Sound.create, and Sound.fromPcm are the loading paths.
 
 ## setvalue
 <!-- setValue -->
-Cannot be bound. This reads and writes the wasm heap through a raw address, which has no meaning in Haxe. Values cross into FMOD through the typed haxefmod methods, and getters return values directly.
+verdict: cannot This reads and writes the wasm heap through a raw address, which has no meaning in Haxe. Values cross into FMOD through the typed haxefmod methods, and getters return values directly.
 
 ## getvalue
 <!-- getValue -->
-Cannot be bound. This reads and writes the wasm heap through a raw address, which has no meaning in Haxe. Values cross into FMOD through the typed haxefmod methods, and getters return values directly.
+verdict: cannot This reads and writes the wasm heap through a raw address, which has no meaning in Haxe. Values cross into FMOD through the typed haxefmod methods, and getters return values directly.
 
 ## file_seek_1
 <!-- file_seek -->
-Cannot be bound. FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, Sound.create, and Sound.fromPcm are the loading paths.
+verdict: cannot FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, Sound.create, and Sound.fromPcm are the loading paths.
 
 ## reverb3d_getuserdata
 <!-- Reverb3D::getUserData -->
+verdict: bound
 haxefmod covers this with Reverb3D.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
 ```haxe
 import haxefmod.core.Reverb3D;
@@ -193,6 +204,7 @@ var data = reverb.getUserData();
 
 ## reverb3d_setuserdata
 <!-- Reverb3D::setUserData -->
+verdict: bound
 haxefmod covers this with Reverb3D.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
 ```haxe
 import haxefmod.core.Reverb3D;
@@ -204,6 +216,7 @@ var data = reverb.getUserData();
 
 ## sound_getsystemobject
 <!-- Sound::getSystemObject -->
+verdict: bound
 haxefmod has one core system, and haxefmod.core.CoreSystem reaches it directly, so no object needs to hand it back.
 ```haxe
 import haxefmod.core.CoreSystem;
@@ -213,6 +226,7 @@ var format = CoreSystem.getSoftwareFormat();
 
 ## sound_getuserdata
 <!-- Sound::getUserData -->
+verdict: bound
 haxefmod covers this with Sound.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
 ```haxe
 import haxefmod.core.Sound;
@@ -224,7 +238,7 @@ var data = sound.getUserData();
 
 ## sound_lock
 <!-- Sound::lock -->
-Cannot be bound. It returns a raw pointer into the sample buffer, which has no meaning in Haxe. Sound.readData covers reading, it copies decoded PCM out of a sound opened with the openOnly flag of Sound.create, and seekData moves the read cursor. Both are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED.
+verdict: cannot It returns a raw pointer into the sample buffer, which has no meaning in Haxe. Sound.readData covers reading, it copies decoded PCM out of a sound opened with the openOnly flag of Sound.create, and seekData moves the read cursor. Both are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED.
 ```haxe
 import haxefmod.core.Sound;
 
@@ -240,7 +254,7 @@ sound.release();
 
 ## sound_unlock
 <!-- Sound::unlock -->
-Cannot be bound. It returns a raw pointer into the sample buffer, which has no meaning in Haxe. Sound.readData covers reading, it copies decoded PCM out of a sound opened with the openOnly flag of Sound.create, and seekData moves the read cursor. Both are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED.
+verdict: cannot It returns a raw pointer into the sample buffer, which has no meaning in Haxe. Sound.readData covers reading, it copies decoded PCM out of a sound opened with the openOnly flag of Sound.create, and seekData moves the read cursor. Both are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED.
 ```haxe
 import haxefmod.core.Sound;
 
@@ -256,6 +270,7 @@ sound.release();
 
 ## soundgroup_getsystemobject
 <!-- SoundGroup::getSystemObject -->
+verdict: bound
 haxefmod has one core system, and haxefmod.core.CoreSystem reaches it directly, so no object needs to hand it back.
 ```haxe
 import haxefmod.core.CoreSystem;
@@ -265,6 +280,7 @@ var format = CoreSystem.getSoftwareFormat();
 
 ## soundgroup_getuserdata
 <!-- SoundGroup::getUserData -->
+verdict: bound
 haxefmod covers this with SoundGroup.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
 ```haxe
 import haxefmod.core.SoundGroup;
@@ -276,6 +292,7 @@ var data = group.getUserData();
 
 ## soundgroup_setuserdata
 <!-- SoundGroup::setUserData -->
+verdict: bound
 haxefmod covers this with SoundGroup.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
 ```haxe
 import haxefmod.core.SoundGroup;
@@ -287,14 +304,15 @@ var data = group.getUserData();
 
 ## system_attachchannelgrouptoport
 <!-- System::attachChannelGroupToPort -->
-Cannot be bound. This is a console port API and haxefmod targets desktop and web only. Route audio through ChannelGroup and Bus instead.
+verdict: cannot This is a console port API and haxefmod targets desktop and web only. Route audio through ChannelGroup and Bus instead.
 
 ## system_attachfilesystem
 <!-- System::attachFileSystem -->
-Cannot be bound. A custom file system is a set of callbacks that FMOD runs on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile and loadBankMemory are the bank paths, and Sound.create and Sound.fromPcm are the sound paths.
+verdict: cannot A custom file system is a set of callbacks that FMOD runs on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile and loadBankMemory are the bank paths, and Sound.create and Sound.fromPcm are the sound paths.
 
 ## system_close
 <!-- System::close -->
+verdict: bound
 haxefmod owns this. The system is never closed, FMOD initializes once in FmodManager.Initialize() and lives until the process exits. Use FmodManager.PauseAllSounds() or CoreSystem.mixerSuspend() when the game goes to the background.
 ```haxe
 import haxefmod.core.CoreSystem;
@@ -306,6 +324,7 @@ CoreSystem.mixerResume();
 
 ## system_create
 <!-- System_Create -->
+verdict: bound
 haxefmod calls this for you. FmodManager.Initialize() (or FmodRuntime.init()) creates and initializes the Studio system and its core system in one step, and the engine lives until the process exits. Init-time options come from FmodSettings.
 ```haxe
 FmodManager.Initialize({numChannels: 256, sampleRate: 48000});
@@ -313,10 +332,11 @@ FmodManager.Initialize({numChannels: 256, sampleRate: 48000});
 
 ## system_createdsp
 <!-- System::createDSP -->
-Cannot be bound. A DSP description is a struct of callbacks that FMOD runs on its mixer thread, and no Haxe target can execute code there. All 33 built-in DSP types are created with Dsp.create(type), and a unit from a loaded plugin with Dsp.createByPlugin(handle).
+verdict: cannot A DSP description is a struct of callbacks that FMOD runs on its mixer thread, and no Haxe target can execute code there. All 33 built-in DSP types are created with Dsp.create(type), and a unit from a loaded plugin with Dsp.createByPlugin(handle).
 
 ## system_createdspconnection
 <!-- System::createDSPConnection -->
+verdict: bound
 haxefmod covers this with Dsp.addInput(), which connects two units and returns the DspConnection for the link.
 ```haxe
 import haxefmod.core.Dsp;
@@ -330,6 +350,7 @@ connection.setMix(0.5);
 
 ## system_createstream
 <!-- System::createStream -->
+verdict: bound
 haxefmod covers streams two ways. Sound.create() opens a file for playback, and PcmStream.create() opens a stream that Haxe code feeds with raw PCM, which is the one path that works on HTML5 as well.
 ```haxe
 import haxefmod.core.PcmStream;
@@ -340,10 +361,11 @@ var channel = stream.play();
 
 ## system_detachchannelgroupfromport
 <!-- System::detachChannelGroupFromPort -->
-Cannot be bound. This is a console port API and haxefmod targets desktop and web only. Route audio through ChannelGroup and Bus instead.
+verdict: cannot This is a console port API and haxefmod targets desktop and web only. Route audio through ChannelGroup and Bus instead.
 
 ## system_get3dlistenerattributes
 <!-- System::get3DListenerAttributes -->
+verdict: bound
 haxefmod covers this with StudioSystem.getListenerAttributes(). Studio drives the core listeners, so the Studio listener is the core listener.
 ```haxe
 var listener = StudioSystem.getListenerAttributes(0);
@@ -354,6 +376,7 @@ if (listener != null) {
 
 ## system_get3dnumlisteners
 <!-- System::get3DNumListeners -->
+verdict: bound
 haxefmod covers this with StudioSystem.getNumListeners(). Studio drives the core listeners, so the Studio count is the core count.
 ```haxe
 var listeners = StudioSystem.getNumListeners();
@@ -361,6 +384,7 @@ var listeners = StudioSystem.getNumListeners();
 
 ## system_getcpuusage
 <!-- System::getCPUUsage -->
+verdict: bound
 haxefmod covers this with StudioSystem.getCpuUsage(), which returns the core mixer, stream, geometry, update, and convolution figures next to the Studio update time.
 ```haxe
 var usage = StudioSystem.getCpuUsage();
@@ -371,6 +395,7 @@ if (usage != null) {
 
 ## system_getdspbuffersize
 <!-- System::getDSPBufferSize -->
+verdict: bound
 Covered by FmodSettings. The mixer buffer is set once at init through dspBufferSize and dspNumBuffers, and FmodRuntime.settings() reports the values the engine started with, 0 when FMOD's default was kept. Both are native only (unsupported in HTML5), where the web build fixes the mixer at 2048 samples by 2 buffers.
 ```haxe
 import haxefmod.runtime.FmodRuntime;
@@ -382,10 +407,11 @@ trace('mixer ${settings.dspBufferSize} x ${settings.dspNumBuffers}');
 
 ## system_getoutputhandle
 <!-- System::getOutputHandle -->
-Cannot be bound. It returns a raw operating system pointer, which has no meaning in Haxe. Output device selection goes through CoreSystem.getDriverCount, getDriverName, and setDriver.
+verdict: cannot It returns a raw operating system pointer, which has no meaning in Haxe. Output device selection goes through CoreSystem.getDriverCount, getDriverName, and setDriver.
 
 ## system_getsoftwarechannels
 <!-- System::getSoftwareChannels -->
+verdict: bound
 Covered by FmodSettings. The audible voice cap is set once at init through softwareChannels, and FmodRuntime.settings().softwareChannels reports the value the engine started with, 0 when FMOD's default of 64 was kept.
 ```haxe
 import haxefmod.runtime.FmodRuntime;
@@ -396,6 +422,7 @@ var voices = FmodRuntime.settings().softwareChannels;
 
 ## system_getstreambuffersize
 <!-- System::getStreamBufferSize -->
+verdict: bound
 Covered by FmodSettings. The file stream buffer is set once at init through streamBufferSize, and FmodRuntime.settings().streamBufferSize reports the value the engine started with, 0 when FMOD's default of 16384 bytes was kept. PcmStream.space() reports how much room a stream you feed yourself has left.
 ```haxe
 import haxefmod.runtime.FmodRuntime;
@@ -406,6 +433,7 @@ var bytes = FmodRuntime.settings().streamBufferSize;
 
 ## system_getuserdata
 <!-- System::getUserData -->
+verdict: bound
 haxefmod covers this with StudioSystem.setUserData() and getUserData(). haxefmod has one system, so the value lives on StudioSystem and the core system shares it.
 ```haxe
 StudioSystem.setUserData({label: "main"});
@@ -414,6 +442,7 @@ var data = StudioSystem.getUserData();
 
 ## system_init
 <!-- System::init -->
+verdict: bound
 haxefmod calls this for you. FmodManager.Initialize() (or FmodRuntime.init()) creates and initializes the Studio system and its core system in one step, and the engine lives until the process exits. Init-time options come from FmodSettings.
 ```haxe
 FmodManager.Initialize({numChannels: 256, sampleRate: 48000});
@@ -421,18 +450,19 @@ FmodManager.Initialize({numChannels: 256, sampleRate: 48000});
 
 ## system_registercodec
 <!-- System::registerCodec -->
-Cannot be bound. A plugin description is a struct of callbacks that FMOD runs on its mixer and streaming threads, and no Haxe target can execute code there. A prebuilt plugin binary loads with StudioSystem.loadPlugin, and the built-in DSP types are created with Dsp.create.
+verdict: cannot A plugin description is a struct of callbacks that FMOD runs on its mixer and streaming threads, and no Haxe target can execute code there. A prebuilt plugin binary loads with StudioSystem.loadPlugin, and the built-in DSP types are created with Dsp.create.
 
 ## system_registerdsp
 <!-- System::registerDSP -->
-Cannot be bound. A plugin description is a struct of callbacks that FMOD runs on its mixer and streaming threads, and no Haxe target can execute code there. A prebuilt plugin binary loads with StudioSystem.loadPlugin, and the built-in DSP types are created with Dsp.create.
+verdict: cannot A plugin description is a struct of callbacks that FMOD runs on its mixer and streaming threads, and no Haxe target can execute code there. A prebuilt plugin binary loads with StudioSystem.loadPlugin, and the built-in DSP types are created with Dsp.create.
 
 ## system_registeroutput
 <!-- System::registerOutput -->
-Cannot be bound. A plugin description is a struct of callbacks that FMOD runs on its mixer and streaming threads, and no Haxe target can execute code there. A prebuilt plugin binary loads with StudioSystem.loadPlugin, and the built-in DSP types are created with Dsp.create.
+verdict: cannot A plugin description is a struct of callbacks that FMOD runs on its mixer and streaming threads, and no Haxe target can execute code there. A prebuilt plugin binary loads with StudioSystem.loadPlugin, and the built-in DSP types are created with Dsp.create.
 
 ## system_release
 <!-- System::release -->
+verdict: bound
 haxefmod owns this. There is no shutdown or re-init, FMOD initializes once in FmodManager.Initialize() and lives until the process exits, so no use-after-shutdown bug can occur. Stop or release your own objects instead of closing the system.
 ```haxe
 FmodManager.StopAllSounds();
@@ -440,6 +470,7 @@ FmodManager.StopAllSounds();
 
 ## system_set3dlistenerattributes
 <!-- System::set3DListenerAttributes -->
+verdict: bound
 haxefmod covers this with StudioSystem.setListenerPosition2D() for 2D games and StudioSystem.setListenerAttributes() for the full struct. Studio drives the core listeners, so setting the Studio listener sets the core one.
 ```haxe
 StudioSystem.setListenerPosition2D(0, cameraX, cameraY);
@@ -447,6 +478,7 @@ StudioSystem.setListenerPosition2D(0, cameraX, cameraY);
 
 ## system_set3dnumlisteners
 <!-- System::set3DNumListeners -->
+verdict: bound
 haxefmod covers this with StudioSystem.setNumListeners(). Studio drives the core listeners, so the count is set once on the Studio system and the core system follows.
 ```haxe
 StudioSystem.setNumListeners(2);
@@ -454,10 +486,11 @@ StudioSystem.setNumListeners(2);
 
 ## system_set3drolloffcallback
 <!-- System::set3DRolloffCallback -->
-Cannot be bound. FMOD runs the callback on its mixer thread, and no Haxe target can execute code there. Channel.set3DCustomRolloff takes a curve of points instead, and the built-in rolloff modes are set through Channel.setMode and ChannelGroup.setMode.
+verdict: cannot FMOD runs the callback on its mixer thread, and no Haxe target can execute code there. Channel.set3DCustomRolloff takes a curve of points instead, and the built-in rolloff modes are set through Channel.setMode and ChannelGroup.setMode.
 
 ## system_setadvancedsettings
 <!-- System::setAdvancedSettings -->
+verdict: bound
 haxefmod applies these before init from FmodSettings, which carries maxMPEGCodecs, maxVorbisCodecs, maxFADPCMCodecs, vol0VirtualVol, defaultDecodeBufferSize, profilePort, geometryMaxFadeTime, distanceFilterCenterFreq, and randomSeed. Zero or null keeps FMOD's default for a field. Read them back with StudioSystem.getAdvancedSettings() (unsupported in HTML5, returns null there).
 ```haxe
 FmodManager.Initialize({vol0VirtualVol: 0.001, randomSeed: 42});
@@ -465,6 +498,7 @@ FmodManager.Initialize({vol0VirtualVol: 0.001, randomSeed: 42});
 
 ## system_setdspbuffersize
 <!-- System::setDSPBufferSize -->
+verdict: bound
 Covered by FmodSettings. FMOD only accepts the mixer buffer before init, so pass dspBufferSize (samples) and dspNumBuffers to FmodManager.Initialize(). Both are native only (unsupported in HTML5), where the web build fixes the mixer at 2048 samples by 2 buffers and ignores them.
 ```haxe
 FmodManager.Initialize({dspBufferSize: 512, dspNumBuffers: 4});
@@ -472,10 +506,11 @@ FmodManager.Initialize({dspBufferSize: 512, dspNumBuffers: 4});
 
 ## system_setfilesystem
 <!-- System::setFileSystem -->
-Cannot be bound. A custom file system is a set of callbacks that FMOD runs on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile and loadBankMemory are the bank paths, and Sound.create and Sound.fromPcm are the sound paths.
+verdict: cannot A custom file system is a set of callbacks that FMOD runs on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile and loadBankMemory are the bank paths, and Sound.create and Sound.fromPcm are the sound paths.
 
 ## system_setsoftwarechannels
 <!-- System::setSoftwareChannels -->
+verdict: bound
 Covered by FmodSettings. FMOD only accepts the audible voice cap before init, so pass softwareChannels to FmodManager.Initialize(). It is separate from numChannels, which is the virtual voice count Studio initializes with.
 ```haxe
 FmodManager.Initialize({numChannels: 256, softwareChannels: 128});
@@ -483,6 +518,7 @@ FmodManager.Initialize({numChannels: 256, softwareChannels: 128});
 
 ## system_setstreambuffersize
 <!-- System::setStreamBufferSize -->
+verdict: bound
 Covered by FmodSettings. FMOD only accepts the file stream buffer before init, so pass streamBufferSize (bytes) to FmodManager.Initialize(). The ringBytes argument of PcmStream.create sizes the buffer of a stream you feed yourself.
 ```haxe
 FmodManager.Initialize({streamBufferSize: 65536});
@@ -490,6 +526,7 @@ FmodManager.Initialize({streamBufferSize: 65536});
 
 ## system_setuserdata
 <!-- System::setUserData -->
+verdict: bound
 haxefmod covers this with StudioSystem.setUserData() and getUserData(). haxefmod has one system, so the value lives on StudioSystem and the core system shares it.
 ```haxe
 StudioSystem.setUserData({label: "main"});
@@ -498,6 +535,7 @@ var data = StudioSystem.getUserData();
 
 ## system_update
 <!-- System::update -->
+verdict: bound
 haxefmod calls this for you. FmodManager.Update() (or FmodRuntime.update()) services the Studio system once per frame, which updates the core system as well, and a background thread keeps audio running between frames.
 ```haxe
 FmodManager.Update();
@@ -505,6 +543,7 @@ FmodManager.Update();
 
 ## studio_bank_getuserdata
 <!-- Studio::Bank::getUserData -->
+verdict: bound
 haxefmod covers this with Bank.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
 ```haxe
 import haxefmod.studio.Bank;
@@ -516,6 +555,7 @@ var data = bank.getUserData();
 
 ## studio_bank_setuserdata
 <!-- Studio::Bank::setUserData -->
+verdict: bound
 haxefmod covers this with Bank.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
 ```haxe
 import haxefmod.studio.Bank;
@@ -527,14 +567,15 @@ var data = bank.getUserData();
 
 ## studio_bus_getportindex
 <!-- Studio::Bus::getPortIndex -->
-Cannot be bound. This is a console port API and haxefmod targets desktop and web only. Route audio through ChannelGroup and Bus instead.
+verdict: cannot This is a console port API and haxefmod targets desktop and web only. Route audio through ChannelGroup and Bus instead.
 
 ## studio_bus_setportindex
 <!-- Studio::Bus::setPortIndex -->
-Cannot be bound. This is a console port API and haxefmod targets desktop and web only. Route audio through ChannelGroup and Bus instead.
+verdict: cannot This is a console port API and haxefmod targets desktop and web only. Route audio through ChannelGroup and Bus instead.
 
 ## studio_commandreplay_getsystem
 <!-- Studio::CommandReplay::getSystem -->
+verdict: bound
 haxefmod has one Studio system, and StudioSystem reaches it directly, so a replay never needs to hand it back.
 ```haxe
 var replay = StudioSystem.loadCommandReplay("capture.cmd.txt");
@@ -543,6 +584,7 @@ replay.start();
 
 ## studio_commandreplay_getuserdata
 <!-- Studio::CommandReplay::getUserData -->
+verdict: bound
 haxefmod covers this with CommandReplay.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
 ```haxe
 var replay = StudioSystem.loadCommandReplay("capture.cmd.txt");
@@ -552,18 +594,19 @@ var data = replay.getUserData();
 
 ## studio_commandreplay_setcreateinstancecallback
 <!-- Studio::CommandReplay::setCreateInstanceCallback -->
-Cannot be bound. FMOD runs the callback on its update thread while the replay plays, and no Haxe target can execute code there. CommandReplay.getCommandInfo, getCommandString, and getCommandAtTime read the same commands from the game thread.
+verdict: cannot FMOD runs the callback on its update thread while the replay plays, and no Haxe target can execute code there. CommandReplay.getCommandInfo, getCommandString, and getCommandAtTime read the same commands from the game thread.
 
 ## studio_commandreplay_setframecallback
 <!-- Studio::CommandReplay::setFrameCallback -->
-Cannot be bound. FMOD runs the callback on its update thread while the replay plays, and no Haxe target can execute code there. CommandReplay.getCommandInfo, getCommandString, and getCommandAtTime read the same commands from the game thread.
+verdict: cannot FMOD runs the callback on its update thread while the replay plays, and no Haxe target can execute code there. CommandReplay.getCommandInfo, getCommandString, and getCommandAtTime read the same commands from the game thread.
 
 ## studio_commandreplay_setloadbankcallback
 <!-- Studio::CommandReplay::setLoadBankCallback -->
-Cannot be bound. FMOD runs the callback on its update thread while the replay plays, and no Haxe target can execute code there. CommandReplay.getCommandInfo, getCommandString, and getCommandAtTime read the same commands from the game thread.
+verdict: cannot FMOD runs the callback on its update thread while the replay plays, and no Haxe target can execute code there. CommandReplay.getCommandInfo, getCommandString, and getCommandAtTime read the same commands from the game thread.
 
 ## studio_commandreplay_setuserdata
 <!-- Studio::CommandReplay::setUserData -->
+verdict: bound
 haxefmod covers this with CommandReplay.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
 ```haxe
 var replay = StudioSystem.loadCommandReplay("capture.cmd.txt");
@@ -573,6 +616,7 @@ var data = replay.getUserData();
 
 ## studio_parseid
 <!-- Studio::parseID -->
+verdict: bound
 haxefmod passes GUIDs as strings, so there is nothing to parse. StudioSystem.getEventByID, getBusByID, getVCAByID, and getBankByID accept the braced string, and StudioSystem.lookupID converts a path to one.
 ```haxe
 var guid = StudioSystem.lookupID(FmodEvents.MusicMainLevel);
@@ -581,6 +625,7 @@ var description = StudioSystem.getEventByID(guid);
 
 ## studio_eventdescription_getparameterdescriptionbyid
 <!-- Studio::EventDescription::getParameterDescriptionByID -->
+verdict: bound
 haxefmod covers this with EventDescription.getParameterDescriptionByID().
 ```haxe
 var description = StudioSystem.getEvent(FmodEvents.SFXEngine);
@@ -592,6 +637,7 @@ if (rpm != null) {
 
 ## studio_eventdescription_getparameterlabelbyid
 <!-- Studio::EventDescription::getParameterLabelByID -->
+verdict: bound
 haxefmod covers this with EventDescription.getParameterLabelByID().
 ```haxe
 var description = StudioSystem.getEvent(FmodEvents.SFXEngine);
@@ -603,6 +649,7 @@ if (surface != null) {
 
 ## studio_eventdescription_getparameterlabelbyindex
 <!-- Studio::EventDescription::getParameterLabelByIndex -->
+verdict: bound
 haxefmod covers this with EventDescription.getParameterDescriptionByIndex() followed by getParameterLabel() with the parameter's name, or getParameterLabelByID() with its id.
 ```haxe
 var description = StudioSystem.getEvent(FmodEvents.SFXEngine);
@@ -614,6 +661,7 @@ if (parameter != null) {
 
 ## studio_eventdescription_getuserdata
 <!-- Studio::EventDescription::getUserData -->
+verdict: bound
 haxefmod covers this with EventDescription.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
 ```haxe
 var description = StudioSystem.getEvent(FmodEvents.SFXEngine);
@@ -623,6 +671,7 @@ var data = description.getUserData();
 
 ## studio_eventdescription_getuserproperty
 <!-- Studio::EventDescription::getUserProperty -->
+verdict: bound
 haxefmod covers this with EventDescription.getUserPropertyByName(). Numeric typed properties are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED because of a defect in FMOD's JS runtime, and string typed properties read on every target.
 ```haxe
 var description = StudioSystem.getEvent(FmodEvents.MusicMainLevel);
@@ -634,6 +683,7 @@ if (property != null) {
 
 ## studio_eventdescription_setcallback
 <!-- Studio::EventDescription::setCallback -->
+verdict: bound
 haxefmod covers this with EventDescription.setCallback(handler, ?mask), which remembers a handler that createInstance installs on every instance made from the description from then on. The events are queued on FMOD's thread and delivered as typed EventCallbackData from FmodManager.Update() on the game thread.
 ```haxe
 var description = StudioSystem.getEvent(FmodEvents.SFXEngine);
@@ -646,6 +696,7 @@ var instance = description.createInstance();
 
 ## studio_eventdescription_setuserdata
 <!-- Studio::EventDescription::setUserData -->
+verdict: bound
 haxefmod covers this with EventDescription.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
 ```haxe
 var description = StudioSystem.getEvent(FmodEvents.SFXEngine);
@@ -655,6 +706,7 @@ var data = description.getUserData();
 
 ## studio_eventinstance_getsystem
 <!-- Studio::EventInstance::getSystem -->
+verdict: bound
 haxefmod has one Studio system, and StudioSystem reaches it directly, so an instance never needs to hand it back.
 ```haxe
 var bus = StudioSystem.getBus(FmodBuses.Music);
@@ -662,6 +714,7 @@ var bus = StudioSystem.getBus(FmodBuses.Music);
 
 ## studio_eventinstance_setparametersbyids
 <!-- Studio::EventInstance::setParametersByIDs -->
+verdict: bound
 haxefmod covers this with one EventInstance.setParameterByID() call per parameter. The call is cheap, and FMOD applies the values on the next update either way.
 ```haxe
 import haxefmod.studio.Types;
@@ -675,6 +728,7 @@ for (i in 0...ids.length) {
 
 ## studio_system_getparameterdescriptionbyid
 <!-- Studio::System::getParameterDescriptionByID -->
+verdict: bound
 haxefmod covers this with StudioSystem.getParameterDescriptionByID().
 ```haxe
 var intensity = StudioSystem.getParameterDescriptionByName("Intensity");
@@ -685,6 +739,7 @@ if (intensity != null) {
 
 ## studio_system_getparameterlabelbyid
 <!-- Studio::System::getParameterLabelByID -->
+verdict: bound
 haxefmod covers this with StudioSystem.getParameterLabelByID().
 ```haxe
 var weather = StudioSystem.getParameterDescriptionByName("Weather");
@@ -695,6 +750,7 @@ if (weather != null) {
 
 ## studio_system_getuserdata
 <!-- Studio::System::getUserData -->
+verdict: bound
 haxefmod covers this with StudioSystem.setUserData() and getUserData(). The value is any Haxe value and lives on the Haxe side.
 ```haxe
 StudioSystem.setUserData({label: "main"});
@@ -703,6 +759,7 @@ var data = StudioSystem.getUserData();
 
 ## studio_system_isvalid
 <!-- Studio::System::isValid -->
+verdict: bound
 haxefmod covers this with FmodManager.IsInitialized(), which reports true once the Studio system and the default banks are usable. On HTML5 initialization is asynchronous, so games gate their first scene on it.
 ```haxe
 if (FmodManager.IsInitialized()) {
@@ -712,14 +769,15 @@ if (FmodManager.IsInitialized()) {
 
 ## studio_system_loadbankcustom
 <!-- Studio::System::loadBankCustom -->
-Cannot be bound. A custom file system is a set of callbacks that FMOD runs on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile and loadBankMemory are the bank paths, and Sound.create and Sound.fromPcm are the sound paths.
+verdict: cannot A custom file system is a set of callbacks that FMOD runs on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile and loadBankMemory are the bank paths, and Sound.create and Sound.fromPcm are the sound paths.
 
 ## studio_system_registerplugin
 <!-- Studio::System::registerPlugin -->
-Cannot be bound. It takes a DSP description struct whose callbacks FMOD runs on its mixer thread, and no Haxe target can execute code there. A prebuilt plugin binary loads with StudioSystem.loadPlugin, which makes its effects available to Studio events.
+verdict: cannot It takes a DSP description struct whose callbacks FMOD runs on its mixer thread, and no Haxe target can execute code there. A prebuilt plugin binary loads with StudioSystem.loadPlugin, which makes its effects available to Studio events.
 
 ## studio_system_setadvancedsettings
 <!-- Studio::System::setAdvancedSettings -->
+verdict: bound
 haxefmod applies these before init from FmodSettings, which carries commandQueueSize, handleInitialSize, studioUpdatePeriod, idleSampleDataPoolSize, streamingScheduleDelay, and encryptionKey. Zero or null keeps FMOD's default for a field. Read them back with StudioSystem.getStudioAdvancedSettings() (unsupported in HTML5, returns null there).
 ```haxe
 FmodManager.Initialize({commandQueueSize: 65536});
@@ -727,6 +785,7 @@ FmodManager.Initialize({commandQueueSize: 65536});
 
 ## studio_system_setparametersbyids
 <!-- Studio::System::setParametersByIDs -->
+verdict: bound
 haxefmod covers this with one StudioSystem.setParameterByID() call per global parameter. The call is cheap, and FMOD applies the values on the next update either way.
 ```haxe
 import haxefmod.studio.Types;
@@ -740,6 +799,7 @@ for (i in 0...ids.length) {
 
 ## studio_system_setuserdata
 <!-- Studio::System::setUserData -->
+verdict: bound
 haxefmod covers this with StudioSystem.setUserData() and getUserData(). The value is any Haxe value and lives on the Haxe side.
 ```haxe
 StudioSystem.setUserData({label: "main"});
@@ -748,4 +808,4 @@ var data = StudioSystem.getUserData();
 
 ## studio_system_unregisterplugin
 <!-- Studio::System::unregisterPlugin -->
-Cannot be bound. It names a plugin registered from a description struct, and that registration cannot be bound because its callbacks would run on FMOD's mixer thread. A plugin loaded with StudioSystem.loadPlugin is unloaded with StudioSystem.unloadPlugin.
+verdict: cannot It names a plugin registered from a description struct, and that registration cannot be bound because its callbacks would run on FMOD's mixer thread. A plugin loaded with StudioSystem.loadPlugin is unloaded with StudioSystem.unloadPlugin.

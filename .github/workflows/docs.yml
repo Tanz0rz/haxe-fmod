@@ -77,13 +77,11 @@ jobs:
 
       - name: Check the generated bindings table and example translations
         run: |
-          python3 ci/haxe-examples.py --check
           python3 ci/haxe-bindings.py --check
-          python3 ci/check-example-types.py
-          python3 ci/check-example-mapping.py
+          python3 ci/haxe-catalog.py --check
 
       - name: Compile the guide examples
-        run: python3 ci/check-readme-snippets.py docs extension/examples
+        run: python3 ci/check-readme-snippets.py docs extension/haxe extension/functions.md
 
       - name: Generate type XML
         run: |

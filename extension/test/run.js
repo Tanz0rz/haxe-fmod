@@ -149,7 +149,7 @@ async function main() {
         tabs: document.querySelectorAll('.haxefmod-tab').length,
         blocks: document.querySelectorAll('.haxefmod-block').length,
     }));
-    const covered = examples['*'] ? guide.lone : Object.keys(examples).length;
+    const covered = Object.keys(examples).length;
     console.log('guide: ' + guide.lone + ' lone blocks, ' + guide.selectors + ' added selectors, ' + guide.blocks + ' haxe blocks, ' + covered + ' translations');
     if (guide.blocks !== covered || guide.tabs !== covered) fail('guide page should get one Haxe block per translated example');
     if (covered > 0) {

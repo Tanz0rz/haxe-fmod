@@ -1,7 +1,7 @@
 """Reads the FMOD SDK headers into a table of declared types.
 
 Used by ci/check-type-parity.py (every Haxe declaration mapped to an FMOD
-type must carry the same names and values) and by ci/haxe-examples.py
+type must carry the same names and values) and by ci/haxe-catalog.py
 (type definitions on fmod.com resolve through the mapping to the Haxe
 declaration). Four kinds of declaration are read:
 

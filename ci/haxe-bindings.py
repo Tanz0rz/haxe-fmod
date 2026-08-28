@@ -365,10 +365,16 @@ def function_notes():
         return {}
     import importlib.util
     spec = importlib.util.spec_from_file_location(
-        "haxe_examples", os.path.join(ROOT, "ci", "haxe-examples.py"))
+        "haxe_catalog", os.path.join(ROOT, "ci", "haxe-catalog.py"))
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    return module.parse_page(read(FUNCTIONS_MD))
+    sections = module.parse_sections(read(FUNCTIONS_MD))
+    # a category verdict is shown as its text and reason, ahead of the notes
+    for section in sections.values():
+        verdict = section.get("verdict")
+        if verdict in module.CATEGORY_TEXT:
+            section["notes"] = [module.CATEGORY_TEXT[verdict] + " " + section["reason"]] + section["notes"]
+    return sections
 
 
 def merge_notes(table):
@@ -415,7 +421,8 @@ def render_userscript(table):
              "    document.documentElement.appendChild(style);\n})();\n")
     examples_path = os.path.join(ROOT, "extension", "examples-data.js")
     examples = read(examples_path) if os.path.exists(examples_path) else ""
-    return header + "\n" + render_data_js(table) + "\n" + examples + "\n" + style + "\n" + read(CONTENT_JS)
+    keys = read(os.path.join(ROOT, "extension", "keys.js"))
+    return header + "\n" + keys + "\n" + render_data_js(table) + "\n" + examples + "\n" + style + "\n" + read(CONTENT_JS)
 
 
 def render_coverage_md(table):
