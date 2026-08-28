@@ -38,8 +38,14 @@ abstract CommandReplay(Int) from Int to Int {
         return NativeStudio.replay_get_paused(this);
     }
 
-    public inline function seekToTime(timeMs:Int):FmodResult {
-        return NativeStudio.replay_seek_to_time(this, timeMs);
+    /** Moves playback to a time in seconds into the capture. */
+    public inline function seekToTime(seconds:Float):FmodResult {
+        return NativeStudio.replay_seek_to_time(this, seconds);
+    }
+
+    @:deprecated("CommandReplay.seekToTimeMs is replaced by seekToTime, which takes seconds")
+    public inline function seekToTimeMs(timeMs:Int):FmodResult {
+        return NativeStudio.replay_seek_to_time(this, timeMs / 1000.0);
     }
 
     /** Total capture length in seconds. */
@@ -94,8 +100,13 @@ abstract CommandReplay(Int) from Int to Int {
         return NativeStudio.replay_get_command_string(this, index);
     }
 
-    /** Index of the command playing at timeMs into the capture, -1 on failure. */
-    public inline function getCommandAtTime(timeMs:Int):Int {
+    /** Index of the command playing at a time in seconds into the capture, -1 on failure. */
+    public inline function getCommandAtTime(seconds:Float):Int {
+        return NativeStudio.replay_get_command_at_time(this, seconds);
+    }
+
+    @:deprecated("CommandReplay.getCommandAtTimeMs is replaced by getCommandAtTime, which takes seconds")
+    public inline function getCommandAtTimeMs(timeMs:Int):Int {
         return NativeStudio.replay_get_command_at_time(this, timeMs / 1000.0);
     }
 

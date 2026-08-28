@@ -149,7 +149,9 @@ class CallbackDispatcher {
             case START_FAILED: StartFailed;
             case TIMELINE_MARKER: TimelineMarker(str, i1);
             case TIMELINE_BEAT: TimelineBeat(i1, i2, i3, f1, i4, i5);
-            case NESTED_TIMELINE_BEAT: NestedTimelineBeat(i1, i2, i3, f1, i4, i5);
+            case NESTED_TIMELINE_BEAT: NestedTimelineBeat(i1, i2, i3, f1, i4, i5, str);
+            case PLUGIN_CREATED: PluginCreated(str, (i1 : haxefmod.core.Dsp));
+            case PLUGIN_DESTROYED: PluginDestroyed(str, (i1 : haxefmod.core.Dsp));
             case SOUND_PLAYED: SoundPlayed;
             case SOUND_STOPPED: SoundStopped;
             case REAL_TO_VIRTUAL: RealToVirtual;

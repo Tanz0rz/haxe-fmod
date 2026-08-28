@@ -181,10 +181,12 @@ class ApiProbeState extends FlxState {
         ProbeEnums.run(this);
         ProbeGroupDsp.run(this);
         ProbeChannelControl.run(this);
+        ProbeStudioParity.run(this);
         if (skipAuthored()) {
             info("authored_surface", "skipped (HAXEFMOD_PROBE_SKIP_AUTHORED)");
         } else {
             probeAuthoredSurface();
+            ProbeStudioParity.runAuthored(this);
         }
         _statusLabel = label;
 

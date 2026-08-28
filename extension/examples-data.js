@@ -3038,9 +3038,9 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "FMOD_STUDIO_PARAMETER_DESCRIPTION": {
-   "code": "/** FMOD_STUDIO_PARAMETER_DESCRIPTION */\ntypedef FmodParameterDescription = {\n    var name:String;\n    var id:FmodParameterId;\n    var minimum:Float;\n    var maximum:Float;\n    var defaultValue:Float;\n    var type:FmodParameterType;\n    var flags:Int;\n    /** The parameter's GUID in FMOD Studio's text form. Always \"\" for now, the native side does not read it. */\n    var guid:String;\n}",
+   "code": "/** FMOD_STUDIO_PARAMETER_DESCRIPTION */\ntypedef FmodParameterDescription = {\n    var name:String;\n    var id:FmodParameterId;\n    var minimum:Float;\n    var maximum:Float;\n    var defaultValue:Float;\n    var type:FmodParameterType;\n    var flags:Int;\n    /** The parameter's GUID in FMOD Studio's text form, the same form lookupID returns. */\n    var guid:String;\n}",
    "notes": [
-    "The guid field is always empty, the native side does not read it. Look a parameter up by path with StudioSystem.lookupID when you need its GUID."
+    "The guid field is the parameter's GUID in the text form StudioSystem.lookupID returns."
    ],
    "type": "haxefmod.studio.Types.FmodParameterDescription",
    "verdict": "bound"
@@ -3115,10 +3115,10 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_STUDIO_PLUGIN_INSTANCE_PROPERTIES": {
    "code": null,
    "notes": [
-    "No Haxe declaration, the library owns this choice. the payload of the plugin callbacks, delivered as EventCallbackData.Other(PLUGIN_CREATED) without it since a DSP pointer has no meaning in Haxe"
+    "No Haxe declaration, another call plays this role. the arguments of haxefmod.studio.Callbacks.EventCallbackData.PluginCreated(name, dsp) and PluginDestroyed(name, dsp). dsp is a haxefmod.core.Dsp handle, live until the destroyed callback delivers it again for matching"
    ],
    "type": null,
-   "verdict": "library"
+   "verdict": "covered"
   },
   "FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES": {
    "code": null,
@@ -3153,7 +3153,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_STUDIO_TIMELINE_NESTED_BEAT_PROPERTIES": {
    "code": null,
    "notes": [
-    "No Haxe declaration, another call plays this role. the arguments of haxefmod.studio.Callbacks.EventCallbackData.NestedTimelineBeat(bar, beat, positionMs, tempo, timeSigUpper, timeSigLower), the referenced event's GUID is not carried"
+    "No Haxe declaration, another call plays this role. the arguments of haxefmod.studio.Callbacks.EventCallbackData.NestedTimelineBeat(bar, beat, positionMs, tempo, timeSigUpper, timeSigLower, eventId), eventId is the GUID FMOD reports for the referenced timeline, in FMOD's text form (empty in HTML5, the web runtime hands the beat over without it)"
    ],
    "type": null,
    "verdict": "covered"
@@ -3200,17 +3200,17 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "FMOD_STUDIO_COMMANDCAPTURE_FLAGS": {
-   "code": "/** FMOD_STUDIO_COMMANDCAPTURE_FLAGS bits. StudioSystem.startCommandCapture always captures with NORMAL. */\nenum abstract FmodCommandCaptureFlags(Int) from Int to Int {\n    var NORMAL = 0x00000000;\n    var FILEFLUSH = 0x00000001;\n    var SKIP_INITIAL_STATE = 0x00000002;\n}",
+   "code": "/** FMOD_STUDIO_COMMANDCAPTURE_FLAGS bits, the flags StudioSystem.startCommandCapture takes. */\nenum abstract FmodCommandCaptureFlags(Int) from Int to Int {\n    var NORMAL = 0x00000000;\n    var FILEFLUSH = 0x00000001;\n    var SKIP_INITIAL_STATE = 0x00000002;\n}",
    "notes": [
-    "StudioSystem.startCommandCapture(path) takes no flags and captures with NORMAL."
+    "The flags argument of StudioSystem.startCommandCapture(path, flags), NORMAL when left out."
    ],
    "type": "haxefmod.studio.Types.FmodCommandCaptureFlags",
    "verdict": "bound"
   },
   "FMOD_STUDIO_COMMANDREPLAY_FLAGS": {
-   "code": "/** FMOD_STUDIO_COMMANDREPLAY_FLAGS bits. StudioSystem.loadCommandReplay always loads with NORMAL. */\nenum abstract FmodCommandReplayFlags(Int) from Int to Int {\n    var NORMAL = 0x00000000;\n    var SKIP_CLEANUP = 0x00000001;\n    var FAST_FORWARD = 0x00000002;\n    var SKIP_BANK_LOAD = 0x00000004;\n}",
+   "code": "/** FMOD_STUDIO_COMMANDREPLAY_FLAGS bits, the flags StudioSystem.loadCommandReplay takes. */\nenum abstract FmodCommandReplayFlags(Int) from Int to Int {\n    var NORMAL = 0x00000000;\n    var SKIP_CLEANUP = 0x00000001;\n    var FAST_FORWARD = 0x00000002;\n    var SKIP_BANK_LOAD = 0x00000004;\n}",
    "notes": [
-    "StudioSystem.loadCommandReplay(path) takes no flags and loads with NORMAL."
+    "The flags argument of StudioSystem.loadCommandReplay(path, flags), NORMAL when left out."
    ],
    "type": "haxefmod.studio.Types.FmodCommandReplayFlags",
    "verdict": "bound"
@@ -3232,8 +3232,10 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "FMOD_STUDIO_LOAD_BANK_FLAGS": {
-   "code": "/** FMOD_STUDIO_LOAD_BANK_FLAGS bits, the flags StudioSystem.loadBankFile takes. */\nenum abstract FmodLoadBankFlags(Int) from Int to Int {\n    var NORMAL = 0;\n    var NONBLOCKING = 1;\n    var DECOMPRESS_SAMPLES = 2;\n    var UNENCRYPTED = 4;\n}",
-   "notes": [],
+   "code": "/** FMOD_STUDIO_LOAD_BANK_FLAGS bits, the flags StudioSystem.loadBankFile and loadBankMemory take. */\nenum abstract FmodLoadBankFlags(Int) from Int to Int {\n    var NORMAL = 0;\n    var NONBLOCKING = 1;\n    var DECOMPRESS_SAMPLES = 2;\n    var UNENCRYPTED = 4;\n}",
+   "notes": [
+    "The flags argument of StudioSystem.loadBankFile and loadBankMemory, NORMAL when left out."
+   ],
    "type": "haxefmod.studio.Types.FmodLoadBankFlags",
    "verdict": "bound"
   },
@@ -3262,12 +3264,12 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "FMOD_STUDIO_SOUND_INFO": {
-   "code": null,
+   "code": "/**\n * FMOD_STUDIO_SOUND_INFO, what StudioSystem.getSoundInfo reports for an\n * audio table key. name is the file FMOD would open (the bank path for a\n * bank loaded from disk, \"\" for a bank held in memory), mode the\n * ChannelMode flags it would open it with, and the exinfo fields say where\n * the sample sits in that file: length in bytes, fileOffset in bytes,\n * initialSubsound, and numSubsounds. subSoundIndex is the subsound inside\n * the loaded sound that plays the key.\n */\ntypedef FmodSoundInfo = {\n    var name:String;\n    var mode:Int;\n    var length:Int;\n    var fileOffset:Int;\n    var initialSubsound:Int;\n    var numSubsounds:Int;\n    var subSoundIndex:Int;\n}",
    "notes": [
-    "No Haxe declaration, the library owns this choice. the native side of programmer sounds resolves it, StudioSystem.getSoundInfo(key) returns the name and subsound index, and EventInstance.assignProgrammerSound(key) picks the sound"
+    "Returned by StudioSystem.getSoundInfo(key). The exinfo fields FMOD fills are flattened into length, fileOffset, initialSubsound, and numSubsounds. The programmer sound callbacks resolve the key natively, EventInstance.assignProgrammerSound(key) picks the sound."
    ],
-   "type": null,
-   "verdict": "library"
+   "type": "haxefmod.studio.Types.FmodSoundInfo",
+   "verdict": "bound"
   },
   "FMOD_STUDIO_SYSTEM_CALLBACK": {
    "code": "StudioSystem.setSystemCallback(event -> switch (event) {\n    case PreUpdate: trace(\"before update\");\n    case PostUpdate: trace(\"after update\");\n    case BankUnload(path): trace('unloaded $path');\n    case LiveUpdateConnected: trace(\"live update connected\");\n    case LiveUpdateDisconnected: trace(\"live update disconnected\");\n    default:\n}, null, SystemCallbacks.STUDIO_PREUPDATE | SystemCallbacks.STUDIO_POSTUPDATE | SystemCallbacks.DEFAULT_STUDIO_MASK);",

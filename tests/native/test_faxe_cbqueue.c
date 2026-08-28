@@ -253,6 +253,32 @@ int main(void) {
         }
     }
 
+    /* a borrowed ptr rides the queue untouched and is never parked as an
+     * orphan when its event is dropped (it owns nothing) */
+    {
+        int borrowed = 5;
+        memset(&ev, 0, sizeof(ev));
+        ev.handle = 8;
+        ev.type = 0x200; /* PLUGIN_CREATED */
+        ev.ptr = &borrowed;
+        snprintf(ev.str, sizeof(ev.str), "fmod_gain");
+        faxe_cbq_push(&ev);
+        assert(faxe_cbq_pop(&out) == 1);
+        assert(out.ptr == &borrowed);
+        assert(out.opaque == NULL);
+        assert(strcmp(out.str, "fmod_gain") == 0);
+        for (int i = 0; i < FAXE_CBQ_CAPACITY + 1; i++) {
+            ev.handle = i;
+            faxe_cbq_push(&ev);
+        }
+        assert(faxe_cbq_take_overflow() == 1);
+        assert(faxe_cbq_take_orphans() == NULL);
+        assert(borrowed == 5); /* the dropped event never wrote into it */
+        while (faxe_cbq_pop(&out)) {
+            assert(out.ptr == &borrowed);
+        }
+    }
+
     test_concurrent_payload_delivery();
 
     printf("faxe_cbqueue: all assertions passed\n");

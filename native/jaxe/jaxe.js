@@ -113,6 +113,22 @@ class jaxe {
         return jaxe.handleAlloc(ptr, type);
     }
 
+    // The existing handle for an object the table has seen (same type), 0
+    // when it has not. Mirrors faxe_handle_find.
+    static handleFind(ptr, type) {
+        if (!ptr) return 0;
+        var raw = jaxe.rawPtr(ptr);
+        for (var i = 0; i < jaxe.slots.length; i++) {
+            var s = jaxe.slots[i];
+            if (!s.alive || s.type != type) continue;
+            if ((raw != 0 && s.raw === raw) || s.ptr === ptr
+                || (s.ptr.isAliasOf && s.ptr.isAliasOf(ptr))) {
+                return (s.gen << 16) | i;
+            }
+        }
+        return 0;
+    }
+
     // A cached wrapper is usable when it has not been deleted and its FMOD
     // object still reports valid (safe to ask of destroyed objects). Core
     // sounds have no isValid and pass the deleted-wrapper check only.
@@ -332,7 +348,7 @@ class jaxe {
             }
         }
 
-        var ev = { handle: handle, type: type, i1: 0, i2: 0, i3: 0, i4: 0, i5: 0, f1: 0.0, str: "" };
+        var ev = { handle: handle, type: type, i1: 0, i2: 0, i3: 0, i4: 0, i5: 0, f1: 0.0, str: "", ptr: null };
 
         if ((type == 0x80 || type == 0x100) && parameters && typeof parameters.name === "string") {
             ev.str = parameters.name;
@@ -360,6 +376,12 @@ class jaxe {
             ev.i4 = beatProps.timesignatureupper | 0;
             ev.i5 = beatProps.timesignaturelower | 0;
             ev.f1 = beatProps.tempo || 0.0;
+            // The nested event's GUID rides in str when the glue delivers it
+            if (parameters.eventid) ev.str = jaxe.formatGuid(parameters.eventid);
+        } else if ((type == 0x00000200 /* PLUGIN_CREATED */ || type == 0x00000400 /* PLUGIN_DESTROYED */) && parameters) {
+            if (typeof parameters.name === "string") ev.str = parameters.name;
+            // The DSP wrapper becomes a handle when the record drains
+            if (parameters.dsp) ev.ptr = parameters.dsp;
         }
 
         // Destroyed events are documented as never delivered on this
@@ -384,6 +406,18 @@ class jaxe {
     static fmod_cb_next() {
         if (jaxe.cbQueue.length == 0) return false;
         jaxe.cbCurrent = jaxe.cbQueue.shift();
+        // Plugin records carry the DSP wrapper. Turn it into a handle in i1,
+        // mirroring the drain in the native shims. A destroyed plugin's
+        // slot is freed right away, the handle value still reaches the
+        // handler for identity.
+        var cur = jaxe.cbCurrent;
+        if (cur.type == 0x00000200 /* PLUGIN_CREATED */) {
+            cur.i1 = jaxe.handleFindOrAlloc(cur.ptr, jaxe.TYPE_DSP);
+        } else if (cur.type == 0x00000400 /* PLUGIN_DESTROYED */) {
+            cur.i1 = jaxe.handleFind(cur.ptr, jaxe.TYPE_DSP);
+            if (cur.i1) jaxe.handleFree(cur.i1);
+        }
+        cur.ptr = null;
         return true;
     }
 
@@ -481,11 +515,20 @@ class jaxe {
         return { data1: d1 >>> 0, data2: d2 >>> 0 };
     }
 
+    // GUID of the parameter description read last, in FMOD's text form
+    static lastParamGuid = "";
+
+    static fmod_sys_last_parameter_guid() {
+        return jaxe.lastParamGuid;
+    }
+
     // Shared writer for parameter descriptions. FMOD JS writes the struct
     // fields directly onto the out object (not out.val).
     // Layout: fbuf [0]=min [1]=max [2]=default. ibuf [0]=type [1]=flags
-    // [2]=id1 [3]=id2. Returns the parameter name.
+    // [2]=id1 [3]=id2. The guid lands in lastParamGuid. Returns the
+    // parameter name.
     static writeParamDesc(pd, fbuf, ibuf) {
+        jaxe.lastParamGuid = pd.guid ? jaxe.formatGuid(pd.guid) : "";
         fbuf[0] = pd.minimum || 0.0;
         fbuf[1] = pd.maximum || 0.0;
         fbuf[2] = pd.defaultvalue || 0.0;
@@ -848,21 +891,32 @@ class jaxe {
         return jaxe.lastResult;
     }
 
-    // fbuf[0..11] = 3D attributes (pos/vel/forward/up)
+    // fbuf[0..11] = 3D attributes (pos/vel/forward/up), fbuf[12..14] = the
+    // attenuation position. The glue writes that one as x/y/z onto a
+    // pre-shaped out object.
     static fmod_sys_get_listener_attributes(index, fbuf) {
         if (!jaxe.sysReady()) return jaxe.lastResult;
         var attr = {};
-        // (index, attributes, attenuationposition) - attenuation not exposed
-        jaxe.lastResult = jaxe.gSystem.getListenerAttributes(index, attr, null);
-        if (jaxe.lastResult == jaxe.FMOD.OK) jaxe.readAttributes3D(attr, fbuf);
-        else jaxe.zeroFill(fbuf, 12);
+        var attenuation = { x: 0, y: 0, z: 0 };
+        jaxe.lastResult = jaxe.gSystem.getListenerAttributes(index, attr, attenuation);
+        if (jaxe.lastResult == jaxe.FMOD.OK) {
+            jaxe.readAttributes3D(attr, fbuf);
+            fbuf[12] = attenuation.x || 0.0;
+            fbuf[13] = attenuation.y || 0.0;
+            fbuf[14] = attenuation.z || 0.0;
+        } else {
+            jaxe.zeroFill(fbuf, 15);
+        }
         return jaxe.lastResult;
     }
 
-    static fmod_sys_set_listener_attributes(index, f) {
+    // f laid out like the getter. With hasAttenuation false FMOD attenuates
+    // from the listener position and f[12..14] are ignored.
+    static fmod_sys_set_listener_attributes(index, f, hasAttenuation) {
         if (!jaxe.FmodIsInitialized) { jaxe.lastResult = jaxe.ERR_STUDIO_UNINITIALIZED; return jaxe.lastResult; }
         jaxe.lastResult = jaxe.gSystem.setListenerAttributes(index,
-            jaxe.buildAttributes3D(f[0], f[1], f[2], f[3], f[4], f[5], f[6], f[7], f[8], f[9], f[10], f[11]), null);
+            jaxe.buildAttributes3D(f[0], f[1], f[2], f[3], f[4], f[5], f[6], f[7], f[8], f[9], f[10], f[11]),
+            hasAttenuation ? { x: f[12], y: f[13], z: f[14] } : null);
         return jaxe.lastResult;
     }
 
@@ -3997,12 +4051,12 @@ class jaxe {
 
     //// Bank loading from memory
 
-    static fmod_sys_load_bank_memory(data, len) {
+    static fmod_sys_load_bank_memory(data, len, flags) {
         if (!jaxe.sysReady()) return 0;
         var bytes = new Uint8Array(data, 0, Math.min(len, data.byteLength));
         var bank = {};
         jaxe.lastResult = jaxe.gSystem.loadBankMemory(bytes, bytes.length,
-            jaxe.FMOD.STUDIO_LOAD_MEMORY, jaxe.FMOD.STUDIO_LOAD_BANK_NORMAL, bank);
+            jaxe.FMOD.STUDIO_LOAD_MEMORY, flags >>> 0, bank);
         if (jaxe.lastResult != jaxe.FMOD.OK || !bank.val) return 0;
         return jaxe.handleFindOrAlloc(bank.val, jaxe.TYPE_BANK);
     }
@@ -4024,10 +4078,10 @@ class jaxe {
         return jaxe.handleResolve(handle, jaxe.TYPE_REPLAY);
     }
 
-    static fmod_sys_start_command_capture(path) {
+    static fmod_sys_start_command_capture(path, flags) {
         if (typeof path !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
         if (!jaxe.sysReady()) return jaxe.lastResult;
-        jaxe.lastResult = jaxe.gSystem.startCommandCapture(path, 0);
+        jaxe.lastResult = jaxe.gSystem.startCommandCapture(path, flags >>> 0);
         return jaxe.lastResult;
     }
 
@@ -4037,11 +4091,11 @@ class jaxe {
         return jaxe.lastResult;
     }
 
-    static fmod_sys_load_command_replay(path) {
+    static fmod_sys_load_command_replay(path, flags) {
         if (typeof path !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return 0; }
         if (!jaxe.sysReady()) return 0;
         var out = {};
-        jaxe.lastResult = jaxe.gSystem.loadCommandReplay(path, 0, out);
+        jaxe.lastResult = jaxe.gSystem.loadCommandReplay(path, flags >>> 0, out);
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
         var handle = jaxe.handleAlloc(out.val, jaxe.TYPE_REPLAY);
         if (handle == 0) {
@@ -4094,10 +4148,10 @@ class jaxe {
         return jaxe.lastResult == jaxe.FMOD.OK ? !!out.val : false;
     }
 
-    static fmod_replay_seek_to_time(handle, timeMs) {
+    static fmod_replay_seek_to_time(handle, seconds) {
         var replay = jaxe.resolveReplay(handle);
         if (!replay) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
-        jaxe.lastResult = replay.seekToTime(timeMs / 1000.0);
+        jaxe.lastResult = replay.seekToTime(seconds);
         return jaxe.lastResult;
     }
 
@@ -5320,15 +5374,23 @@ class jaxe {
         return jaxe.lastResult;
     }
 
+    // ibuf: [0]=subsound index [1]=mode [2]=exinfo length [3]=exinfo file
+    // offset [4]=exinfo initial subsound [5]=exinfo subsound count
     static fmod_sys_get_sound_info(key, ibuf) {
         if (typeof key !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return ""; }
         ibuf[0] = -1;
+        for (var i = 1; i < 6; i++) ibuf[i] = 0;
         if (!jaxe.sysReady()) return "";
         // The glue writes exinfo fields onto a pre-existing object and throws without one
         var info = { exinfo: {} };
         jaxe.lastResult = jaxe.gSystem.getSoundInfo(key, info);
         if (jaxe.lastResult != jaxe.FMOD.OK) return "";
         ibuf[0] = info.subsoundindex | 0;
+        ibuf[1] = info.mode | 0;
+        ibuf[2] = info.exinfo.length | 0;
+        ibuf[3] = info.exinfo.fileoffset | 0;
+        ibuf[4] = info.exinfo.initialsubsound | 0;
+        ibuf[5] = info.exinfo.numsubsounds | 0;
         return typeof info.name_or_data === "string" ? info.name_or_data : "";
     }
 

@@ -163,7 +163,7 @@ def html5_limited():
 
 TYPE_DECL = re.compile(r"^(?:@:\w+(?:\([^)]*\))?\s*)*(?:enum\s+)?(class|abstract|typedef|interface)\s+(\w+)", re.M)
 FUNCTION = re.compile(
-    r"(?:/\*\*(?P<doc>(?:(?!\*/).)*)\*/\s*)?(?:@:\w+(?:\([^)]*\))?\s*)*"
+    r"(?:/\*\*(?P<doc>(?:(?!\*/).)*)\*/\s*)?(?P<meta>(?:@:\w+(?:\([^)]*\))?\s*)*)"
     r"(?:override\s+)?public\s+(?P<static>static\s+)?(?:inline\s+)?(?:override\s+)?"
     r"function\s+(?P<name>\w+)\s*(?P<generics><[^>]*>)?\s*\((?P<args>(?:[^()]|\([^()]*\))*)\)",
     re.S)
@@ -267,6 +267,9 @@ def haxe_methods():
             type_starts = [(m.start(), m.group(2)) for m in TYPE_DECL.finditer(text)]
             gates = gated_ranges(text)
             for match in FUNCTION.finditer(text):
+                # A deprecated alias stays out of the table, its replacement is listed
+                if "@:deprecated" in match.group("meta"):
+                    continue
                 type_name = None
                 for start, name in type_starts:
                     if start < match.start():

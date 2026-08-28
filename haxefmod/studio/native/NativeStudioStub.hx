@@ -59,7 +59,8 @@ class NativeStudioStub {
     public static function sys_get_num_listeners():Int return 0;
     public static function sys_set_num_listeners(count:Int):Int return ERR_UNSUPPORTED;
     public static function sys_get_listener_attributes(index:Int):Int return ERR_UNSUPPORTED;
-    public static function sys_set_listener_attributes(index:Int, px:Float, py:Float, pz:Float, vx:Float, vy:Float, vz:Float, fx:Float, fy:Float, fz:Float, ux:Float, uy:Float, uz:Float):Int return ERR_UNSUPPORTED;
+    public static function sys_set_listener_attributes(index:Int, px:Float, py:Float, pz:Float, vx:Float, vy:Float, vz:Float, fx:Float, fy:Float, fz:Float, ux:Float, uy:Float, uz:Float, hasAttenuation:Bool, ax:Float, ay:Float, az:Float):Int return ERR_UNSUPPORTED;
+    public static function sys_last_parameter_guid():String return "";
     public static function sys_get_listener_weight(index:Int):Float return 0.0;
     public static function sys_set_listener_weight(index:Int, weight:Float):Int return ERR_UNSUPPORTED;
     public static function sys_load_bank_file(path:String, flags:Int):Int
@@ -461,22 +462,22 @@ class NativeStudioStub {
     public static function dsp_get_metering_enabled(handle:Int):Int return ERR_UNSUPPORTED;
 
     // Bank loading from memory
-    public static function sys_load_bank_memory(data:haxe.io.Bytes, len:Int):Int return 0;
+    public static function sys_load_bank_memory(data:haxe.io.Bytes, len:Int, flags:Int):Int return 0;
 
     // Event instance core bridge
     public static function evi_get_channel_group(handle:Int):Int return 0;
 
     // Command capture and replay
-    public static function sys_start_command_capture(path:String):Int return ERR_UNSUPPORTED;
+    public static function sys_start_command_capture(path:String, flags:Int):Int return ERR_UNSUPPORTED;
     public static function sys_stop_command_capture():Int return ERR_UNSUPPORTED;
-    public static function sys_load_command_replay(path:String):Int return 0;
+    public static function sys_load_command_replay(path:String, flags:Int):Int return 0;
     public static function replay_release(handle:Int):Int return ERR_UNSUPPORTED;
     public static function replay_is_valid(handle:Int):Bool return false;
     public static function replay_start(handle:Int):Int return ERR_UNSUPPORTED;
     public static function replay_stop(handle:Int):Int return ERR_UNSUPPORTED;
     public static function replay_set_paused(handle:Int, paused:Bool):Int return ERR_UNSUPPORTED;
     public static function replay_get_paused(handle:Int):Bool return false;
-    public static function replay_seek_to_time(handle:Int, timeMs:Int):Int return ERR_UNSUPPORTED;
+    public static function replay_seek_to_time(handle:Int, seconds:Float):Int return ERR_UNSUPPORTED;
     public static function replay_get_length(handle:Int):Float return 0.0;
 
     // Channel priority, virtualization, and remaining getters

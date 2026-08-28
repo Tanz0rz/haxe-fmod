@@ -135,9 +135,20 @@ int main(void) {
     assert(faxe_handle_resolve(h1, FAXE_TYPE_BUS) == NULL); /* type tag mismatch */
     assert(faxe_live_handle_count() == 1);
 
+    /* find reports the live handle for a known pointer and type, 0 for
+     * anything else, and never allocates */
+    assert(faxe_handle_find(&dummy1, FAXE_TYPE_EVI) == h1);
+    assert(faxe_handle_find(&dummy1, FAXE_TYPE_BUS) == 0);
+    assert(faxe_handle_find(&dummy2, FAXE_TYPE_EVI) == 0);
+    assert(faxe_handle_find(NULL, FAXE_TYPE_EVI) == 0);
+    assert(faxe_live_handle_count() == 1);
+    assert(faxe_handle_find_or_alloc(&dummy1, FAXE_TYPE_EVI) == h1);
+    assert(faxe_live_handle_count() == 1);
+
     /* free -> stale handle stops resolving */
     faxe_handle_free(h1);
     assert(faxe_handle_resolve(h1, FAXE_TYPE_EVI) == NULL);
+    assert(faxe_handle_find(&dummy1, FAXE_TYPE_EVI) == 0);
     assert(faxe_live_handle_count() == 0);
     faxe_handle_free(h1); /* double free is a safe no-op */
     assert(faxe_live_handle_count() == 0);

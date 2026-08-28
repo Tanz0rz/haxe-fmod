@@ -489,10 +489,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Reads the mix matrix back as one flat row-major array with inChannelHop floats per row (0 = packed to the input count), and the output and input channel counts FMOD reports (unsupported in HTML5, null there).",
+     "doc": "Reads back the mix matrix region of outChannels rows by inChannels gains, row-major (unsupported in HTML5, null there).",
      "gated": true,
      "name": "getMixMatrix",
-     "signature": "getMixMatrix(outChannels:Int = 0, inChannels:Int = 0, inChannelHop:Int = 0):Null<{matrix:Array<Float>, outChannels:Int, inChannels:Int}>",
+     "signature": "getMixMatrix(outChannels:Int, inChannels:Int):Null<{matrix:Array<Float>, outChannels:Int, inChannels:Int}>",
      "static": false,
      "type": "haxefmod.core.Channel"
     }
@@ -621,22 +621,6 @@ const HAXEFMOD_BINDINGS = {
      "gated": false,
      "name": "getReverbWet",
      "signature": "getReverbWet(instance:Int):Float",
-     "static": false,
-     "type": "haxefmod.core.Channel"
-    }
-   ],
-   "html5": false
-  },
-  "channel_getuserdata": {
-   "fmod": "FMOD_Channel_GetUserData",
-   "gated": false,
-   "haxe": [
-    {
-     "direct": true,
-     "doc": "The value attached with setUserData, or null.",
-     "gated": false,
-     "name": "getUserData",
-     "signature": "getUserData():Dynamic",
      "static": false,
      "type": "haxefmod.core.Channel"
     }
@@ -904,8 +888,8 @@ const HAXEFMOD_BINDINGS = {
    "gated": false,
    "haxe": [
     {
-     "direct": true,
-     "doc": "Delivers ChannelEvent values for this channel (drained once per frame with the other callbacks): End, SyncPoint, VirtualVoice, and Occlusion.",
+     "direct": false,
+     "doc": "Delivers End and SyncPoint events for this channel (drained once per frame with the other callbacks).",
      "name": "setCallback",
      "signature": "setCallback(handler:haxefmod.core.ChannelEvent->Void):Void",
      "static": false,
@@ -947,7 +931,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Sample-accurate start/stop window on the parent clock (0 = no bound).",
      "gated": false,
      "name": "setDelay",
-     "signature": "setDelay(startClock:Float, endClock:Float, stopChannels:Bool = true):FmodResult",
+     "signature": "setDelay(startClock:Float, endClock:Float, stopChannels:Bool = false):FmodResult",
      "static": false,
      "type": "haxefmod.core.Channel"
     }
@@ -1088,10 +1072,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Routes input channels to output speakers with explicit gains.",
+     "doc": "Routes input channels to output speakers with explicit gains (row-major, outChannels rows of inChannels gains, up to 32x32).",
      "gated": false,
      "name": "setMixMatrix",
-     "signature": "setMixMatrix(matrix:Array<Float>, outChannels:Int, inChannels:Int, inChannelHop:Int = 0):FmodResult",
+     "signature": "setMixMatrix(matrix:Array<Float>, outChannels:Int, inChannels:Int):FmodResult",
      "static": false,
      "type": "haxefmod.core.Channel"
     }
@@ -1231,11 +1215,18 @@ const HAXEFMOD_BINDINGS = {
    "gated": false,
    "haxe": [
     {
-     "direct": true,
-     "doc": "Attaches a Haxe value to this handle.",
-     "gated": false,
-     "name": "setUserData",
-     "signature": "setUserData(value:Dynamic):Void",
+     "direct": false,
+     "doc": "",
+     "name": "clearCallback",
+     "signature": "clearCallback():Void",
+     "static": false,
+     "type": "haxefmod.core.Channel"
+    },
+    {
+     "direct": false,
+     "doc": "Delivers End and SyncPoint events for this channel (drained once per frame with the other callbacks).",
+     "name": "setCallback",
+     "signature": "setCallback(handler:haxefmod.core.ChannelEvent->Void):Void",
      "static": false,
      "type": "haxefmod.core.Channel"
     }
@@ -1376,16 +1367,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Routes a child group's output through this one (group hierarchies).",
      "gated": false,
      "name": "addGroup",
-     "signature": "addGroup(child:ChannelGroup, propagateDspClock:Bool = true):FmodResult",
-     "static": false,
-     "type": "haxefmod.core.ChannelGroup"
-    },
-    {
-     "direct": false,
-     "doc": "Routes a child group's output through this one and returns the connection between the two, DspConnection.NULL on failure with the reason in StudioSystem.lastResult().",
-     "gated": false,
-     "name": "addGroupConnection",
-     "signature": "addGroupConnection(child:ChannelGroup, propagateDspClock:Bool = true):DspConnection",
+     "signature": "addGroup(child:ChannelGroup):FmodResult",
      "static": false,
      "type": "haxefmod.core.ChannelGroup"
     }
@@ -1593,18 +1575,9 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "channelcontrol_get3docclusion": {
-   "fmod": "FMOD_ChannelGroup_Get3DOcclusion, FMOD_Channel_Get3DOcclusion",
+   "fmod": "FMOD_Channel_Get3DOcclusion",
    "gated": false,
    "haxe": [
-    {
-     "direct": true,
-     "doc": "The group's occlusion levels, null on failure.",
-     "gated": false,
-     "name": "get3DOcclusion",
-     "signature": "get3DOcclusion():Null<{direct:Float, reverb:Float}>",
-     "static": false,
-     "type": "haxefmod.core.ChannelGroup"
-    },
     {
      "direct": true,
      "doc": "",
@@ -1716,18 +1689,9 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "channelcontrol_getdelay": {
-   "fmod": "FMOD_ChannelGroup_GetDelay, FMOD_Channel_GetDelay",
+   "fmod": "FMOD_Channel_GetDelay",
    "gated": false,
    "haxe": [
-    {
-     "direct": true,
-     "doc": "",
-     "gated": false,
-     "name": "getDelay",
-     "signature": "getDelay():Null<{startClock:Float, endClock:Float, stopChannels:Bool}>",
-     "static": false,
-     "type": "haxefmod.core.ChannelGroup"
-    },
     {
      "direct": true,
      "doc": "",
@@ -1921,18 +1885,9 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "channelcontrol_getlowpassgain": {
-   "fmod": "FMOD_ChannelGroup_GetLowPassGain, FMOD_Channel_GetLowPassGain",
+   "fmod": "FMOD_Channel_GetLowPassGain",
    "gated": false,
    "haxe": [
-    {
-     "direct": true,
-     "doc": "The group's lowpass gain, 0.0 on failure.",
-     "gated": false,
-     "name": "getLowPassGain",
-     "signature": "getLowPassGain():Float",
-     "static": false,
-     "type": "haxefmod.core.ChannelGroup"
-    },
     {
      "direct": true,
      "doc": "",
@@ -1946,34 +1901,29 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "channelcontrol_getmixmatrix": {
-   "code": "var read = channel.getMixMatrix();\nif (read != null) {\n    var gains = read.matrix; // read.outChannels rows of read.inChannels floats\n}\nvar hopped = channel.getMixMatrix(0, 0, 8); // rows padded to 8 floats",
    "fmod": "FMOD_ChannelGroup_GetMixMatrix, FMOD_Channel_GetMixMatrix",
    "gated": true,
    "haxe": [
     {
      "direct": true,
-     "doc": "Reads the mix matrix back as one flat row-major array with inChannelHop floats per row (0 = packed to the input count), and the output and input channel counts FMOD reports (unsupported in HTML5, null there).",
+     "doc": "Reads back the mix matrix region of outChannels rows by inChannels gains, row-major (unsupported in HTML5, null there).",
      "gated": true,
      "name": "getMixMatrix",
-     "signature": "getMixMatrix(outChannels:Int = 0, inChannels:Int = 0, inChannelHop:Int = 0):Null<{matrix:Array<Float>, outChannels:Int, inChannels:Int}>",
+     "signature": "getMixMatrix(outChannels:Int, inChannels:Int):Null<{matrix:Array<Float>, outChannels:Int, inChannels:Int}>",
      "static": false,
      "type": "haxefmod.core.ChannelGroup"
     },
     {
      "direct": true,
-     "doc": "Reads the mix matrix back as one flat row-major array with inChannelHop floats per row (0 = packed to the input count), and the output and input channel counts FMOD reports (unsupported in HTML5, null there).",
+     "doc": "Reads back the mix matrix region of outChannels rows by inChannels gains, row-major (unsupported in HTML5, null there).",
      "gated": true,
      "name": "getMixMatrix",
-     "signature": "getMixMatrix(outChannels:Int = 0, inChannels:Int = 0, inChannelHop:Int = 0):Null<{matrix:Array<Float>, outChannels:Int, inChannels:Int}>",
+     "signature": "getMixMatrix(outChannels:Int, inChannels:Int):Null<{matrix:Array<Float>, outChannels:Int, inChannels:Int}>",
      "static": false,
      "type": "haxefmod.core.Channel"
     }
    ],
-   "heading": "ChannelControl::getMixMatrix",
-   "html5": true,
-   "notes": [
-    "The matrix comes back as a struct instead of three out parameters: one flat row-major Array<Float> with inChannelHop floats per row (0 = packed to the input count), and the output and input channel counts FMOD reports. Every argument is optional. outChannels and inChannels above 0 keep only that many rows and columns. Native only, the web glue binds the matrix as a single float."
-   ]
+   "html5": true
   },
   "channelcontrol_getmode": {
    "fmod": "FMOD_ChannelGroup_GetMode, FMOD_Channel_GetMode",
@@ -2232,29 +2182,14 @@ const HAXEFMOD_BINDINGS = {
    ]
   },
   "channelcontrol_getuserdata": {
-   "fmod": "FMOD_ChannelGroup_GetUserData, FMOD_Channel_GetUserData",
-   "gated": false,
-   "haxe": [
-    {
-     "direct": true,
-     "doc": "The value attached with setUserData, or null.",
-     "gated": false,
-     "name": "getUserData",
-     "signature": "getUserData():Dynamic",
-     "static": false,
-     "type": "haxefmod.core.ChannelGroup"
-    },
-    {
-     "direct": true,
-     "doc": "The value attached with setUserData, or null.",
-     "gated": false,
-     "name": "getUserData",
-     "signature": "getUserData():Dynamic",
-     "static": false,
-     "type": "haxefmod.core.Channel"
-    }
-   ],
-   "html5": false
+   "code": "import haxefmod.core.ChannelGroup;\n\nvar group = ChannelGroup.master();\ngroup.setUserData({label: \"cave\"});\nvar data = group.getUserData();",
+   "fmod": "",
+   "haxe": [],
+   "heading": "ChannelControl::getUserData",
+   "html5": false,
+   "notes": [
+    "haxefmod covers this with Channel and ChannelGroup.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released."
+   ]
   },
   "channelcontrol_getvolume": {
    "fmod": "FMOD_ChannelGroup_GetVolume, FMOD_Channel_GetVolume",
@@ -2307,18 +2242,9 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "channelcontrol_isplaying": {
-   "fmod": "FMOD_ChannelGroup_IsPlaying, FMOD_Channel_IsPlaying",
+   "fmod": "FMOD_Channel_IsPlaying",
    "gated": false,
    "haxe": [
-    {
-     "direct": true,
-     "doc": "True while any channel in the group or a nested group is playing.",
-     "gated": false,
-     "name": "isPlaying",
-     "signature": "isPlaying():Bool",
-     "static": false,
-     "type": "haxefmod.core.ChannelGroup"
-    },
     {
      "direct": true,
      "doc": "",
@@ -2628,7 +2554,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Muffles the group as if behind an obstacle (0.0 = clear, 1.0 = fully blocked).",
+     "doc": "Muffles the group as if behind an obstacle.",
      "gated": false,
      "name": "set3DOcclusion",
      "signature": "set3DOcclusion(direct:Float, reverb:Float):FmodResult",
@@ -2673,28 +2599,12 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "channelcontrol_setcallback": {
-   "fmod": "FMOD_ChannelGroup_SetCallback, FMOD_Channel_SetCallback",
+   "fmod": "FMOD_Channel_SetCallback",
    "gated": false,
    "haxe": [
     {
-     "direct": true,
-     "doc": "Delivers ChannelEvent values for this group (drained once per frame with the other callbacks).",
-     "name": "setCallback",
-     "signature": "setCallback(handler:haxefmod.core.ChannelEvent->Void):Void",
-     "static": false,
-     "type": "haxefmod.core.ChannelGroup"
-    },
-    {
      "direct": false,
-     "doc": "",
-     "name": "clearCallback",
-     "signature": "clearCallback():Void",
-     "static": false,
-     "type": "haxefmod.core.ChannelGroup"
-    },
-    {
-     "direct": true,
-     "doc": "Delivers ChannelEvent values for this channel (drained once per frame with the other callbacks): End, SyncPoint, VirtualVoice, and Occlusion.",
+     "doc": "Delivers End and SyncPoint events for this channel (drained once per frame with the other callbacks).",
      "name": "setCallback",
      "signature": "setCallback(handler:haxefmod.core.ChannelEvent->Void):Void",
      "static": false,
@@ -2736,7 +2646,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Sample-accurate start/stop window on the parent clock (0 = no bound).",
      "gated": false,
      "name": "setDelay",
-     "signature": "setDelay(startClock:Float, endClock:Float, stopChannels:Bool = true):FmodResult",
+     "signature": "setDelay(startClock:Float, endClock:Float, stopChannels:Bool = false):FmodResult",
      "static": false,
      "type": "haxefmod.core.ChannelGroup"
     },
@@ -2745,7 +2655,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Sample-accurate start/stop window on the parent clock (0 = no bound).",
      "gated": false,
      "name": "setDelay",
-     "signature": "setDelay(startClock:Float, endClock:Float, stopChannels:Bool = true):FmodResult",
+     "signature": "setDelay(startClock:Float, endClock:Float, stopChannels:Bool = false):FmodResult",
      "static": false,
      "type": "haxefmod.core.Channel"
     }
@@ -2926,34 +2836,29 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "channelcontrol_setmixmatrix": {
-   "code": "var result = channel.setMixMatrix([1, 0, 0, 1], 2, 2);\nvar padded = channel.setMixMatrix([1, 0, 0, 0, 0, 1, 0, 0], 2, 2, 4);",
    "fmod": "FMOD_ChannelGroup_SetMixMatrix, FMOD_Channel_SetMixMatrix",
    "gated": false,
    "haxe": [
     {
      "direct": true,
-     "doc": "Routes input channels to output speakers with explicit gains.",
+     "doc": "Routes inputs to speakers with explicit gains (row-major, up to 32x32).",
      "gated": false,
      "name": "setMixMatrix",
-     "signature": "setMixMatrix(matrix:Array<Float>, outChannels:Int, inChannels:Int, inChannelHop:Int = 0):FmodResult",
+     "signature": "setMixMatrix(matrix:Array<Float>, outChannels:Int, inChannels:Int):FmodResult",
      "static": false,
      "type": "haxefmod.core.ChannelGroup"
     },
     {
      "direct": true,
-     "doc": "Routes input channels to output speakers with explicit gains.",
+     "doc": "Routes input channels to output speakers with explicit gains (row-major, outChannels rows of inChannels gains, up to 32x32).",
      "gated": false,
      "name": "setMixMatrix",
-     "signature": "setMixMatrix(matrix:Array<Float>, outChannels:Int, inChannels:Int, inChannelHop:Int = 0):FmodResult",
+     "signature": "setMixMatrix(matrix:Array<Float>, outChannels:Int, inChannels:Int):FmodResult",
      "static": false,
      "type": "haxefmod.core.Channel"
     }
    ],
-   "heading": "ChannelControl::setMixMatrix",
-   "html5": false,
-   "notes": [
-    "The matrix is one flat row-major Array<Float>, one row per output channel, with inChannelHop floats per row (0 = packed to inChannels). FMOD mixes at most 32 channels, so a shape outside 32 by 32 or a hop below inChannels is refused with FMOD_ERR_INVALID_PARAM before the call reaches FMOD."
-   ]
+   "html5": false
   },
   "channelcontrol_setmode": {
    "fmod": "FMOD_ChannelGroup_SetMode, FMOD_Channel_SetMode",
@@ -3138,24 +3043,22 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "channelcontrol_setuserdata": {
-   "fmod": "FMOD_ChannelGroup_SetUserData, FMOD_Channel_SetUserData",
+   "fmod": "FMOD_Channel_SetUserData",
    "gated": false,
    "haxe": [
     {
-     "direct": true,
-     "doc": "Attaches a Haxe value to this handle.",
-     "gated": false,
-     "name": "setUserData",
-     "signature": "setUserData(value:Dynamic):Void",
+     "direct": false,
+     "doc": "",
+     "name": "clearCallback",
+     "signature": "clearCallback():Void",
      "static": false,
-     "type": "haxefmod.core.ChannelGroup"
+     "type": "haxefmod.core.Channel"
     },
     {
-     "direct": true,
-     "doc": "Attaches a Haxe value to this handle.",
-     "gated": false,
-     "name": "setUserData",
-     "signature": "setUserData(value:Dynamic):Void",
+     "direct": false,
+     "doc": "Delivers End and SyncPoint events for this channel (drained once per frame with the other callbacks).",
+     "name": "setCallback",
+     "signature": "setCallback(handler:haxefmod.core.ChannelEvent->Void):Void",
      "static": false,
      "type": "haxefmod.core.Channel"
     }
@@ -3305,16 +3208,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Routes a child group's output through this one (group hierarchies).",
      "gated": false,
      "name": "addGroup",
-     "signature": "addGroup(child:ChannelGroup, propagateDspClock:Bool = true):FmodResult",
-     "static": false,
-     "type": "haxefmod.core.ChannelGroup"
-    },
-    {
-     "direct": false,
-     "doc": "Routes a child group's output through this one and returns the connection between the two, DspConnection.NULL on failure with the reason in StudioSystem.lastResult().",
-     "gated": false,
-     "name": "addGroupConnection",
-     "signature": "addGroupConnection(child:ChannelGroup, propagateDspClock:Bool = true):DspConnection",
+     "signature": "addGroup(child:ChannelGroup):FmodResult",
      "static": false,
      "type": "haxefmod.core.ChannelGroup"
     }
@@ -3449,22 +3343,6 @@ const HAXEFMOD_BINDINGS = {
    ],
    "html5": false
   },
-  "channelgroup_get3docclusion": {
-   "fmod": "FMOD_ChannelGroup_Get3DOcclusion",
-   "gated": false,
-   "haxe": [
-    {
-     "direct": true,
-     "doc": "The group's occlusion levels, null on failure.",
-     "gated": false,
-     "name": "get3DOcclusion",
-     "signature": "get3DOcclusion():Null<{direct:Float, reverb:Float}>",
-     "static": false,
-     "type": "haxefmod.core.ChannelGroup"
-    }
-   ],
-   "html5": false
-  },
   "channelgroup_get3dspread": {
    "fmod": "FMOD_ChannelGroup_Get3DSpread",
    "gated": false,
@@ -3507,22 +3385,6 @@ const HAXEFMOD_BINDINGS = {
      "gated": false,
      "name": "getChannel",
      "signature": "getChannel(index:Int):Channel",
-     "static": false,
-     "type": "haxefmod.core.ChannelGroup"
-    }
-   ],
-   "html5": false
-  },
-  "channelgroup_getdelay": {
-   "fmod": "FMOD_ChannelGroup_GetDelay",
-   "gated": false,
-   "haxe": [
-    {
-     "direct": true,
-     "doc": "",
-     "gated": false,
-     "name": "getDelay",
-     "signature": "getDelay():Null<{startClock:Float, endClock:Float, stopChannels:Bool}>",
      "static": false,
      "type": "haxefmod.core.ChannelGroup"
     }
@@ -3609,32 +3471,16 @@ const HAXEFMOD_BINDINGS = {
    ],
    "html5": false
   },
-  "channelgroup_getlowpassgain": {
-   "fmod": "FMOD_ChannelGroup_GetLowPassGain",
-   "gated": false,
-   "haxe": [
-    {
-     "direct": true,
-     "doc": "The group's lowpass gain, 0.0 on failure.",
-     "gated": false,
-     "name": "getLowPassGain",
-     "signature": "getLowPassGain():Float",
-     "static": false,
-     "type": "haxefmod.core.ChannelGroup"
-    }
-   ],
-   "html5": false
-  },
   "channelgroup_getmixmatrix": {
    "fmod": "FMOD_ChannelGroup_GetMixMatrix",
    "gated": true,
    "haxe": [
     {
      "direct": true,
-     "doc": "Reads the mix matrix back as one flat row-major array with inChannelHop floats per row (0 = packed to the input count), and the output and input channel counts FMOD reports (unsupported in HTML5, null there).",
+     "doc": "Reads back the mix matrix region of outChannels rows by inChannels gains, row-major (unsupported in HTML5, null there).",
      "gated": true,
      "name": "getMixMatrix",
-     "signature": "getMixMatrix(outChannels:Int = 0, inChannels:Int = 0, inChannelHop:Int = 0):Null<{matrix:Array<Float>, outChannels:Int, inChannels:Int}>",
+     "signature": "getMixMatrix(outChannels:Int, inChannels:Int):Null<{matrix:Array<Float>, outChannels:Int, inChannels:Int}>",
      "static": false,
      "type": "haxefmod.core.ChannelGroup"
     }
@@ -3801,22 +3647,6 @@ const HAXEFMOD_BINDINGS = {
    ],
    "html5": false
   },
-  "channelgroup_getuserdata": {
-   "fmod": "FMOD_ChannelGroup_GetUserData",
-   "gated": false,
-   "haxe": [
-    {
-     "direct": true,
-     "doc": "The value attached with setUserData, or null.",
-     "gated": false,
-     "name": "getUserData",
-     "signature": "getUserData():Dynamic",
-     "static": false,
-     "type": "haxefmod.core.ChannelGroup"
-    }
-   ],
-   "html5": false
-  },
   "channelgroup_getvolume": {
    "fmod": "FMOD_ChannelGroup_GetVolume",
    "gated": false,
@@ -3843,22 +3673,6 @@ const HAXEFMOD_BINDINGS = {
      "gated": false,
      "name": "getVolumeRamp",
      "signature": "getVolumeRamp():Bool",
-     "static": false,
-     "type": "haxefmod.core.ChannelGroup"
-    }
-   ],
-   "html5": false
-  },
-  "channelgroup_isplaying": {
-   "fmod": "FMOD_ChannelGroup_IsPlaying",
-   "gated": false,
-   "haxe": [
-    {
-     "direct": true,
-     "doc": "True while any channel in the group or a nested group is playing.",
-     "gated": false,
-     "name": "isPlaying",
-     "signature": "isPlaying():Bool",
      "static": false,
      "type": "haxefmod.core.ChannelGroup"
     }
@@ -4056,7 +3870,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Muffles the group as if behind an obstacle (0.0 = clear, 1.0 = fully blocked).",
+     "doc": "Muffles the group as if behind an obstacle.",
      "gated": false,
      "name": "set3DOcclusion",
      "signature": "set3DOcclusion(direct:Float, reverb:Float):FmodResult",
@@ -4082,29 +3896,6 @@ const HAXEFMOD_BINDINGS = {
    ],
    "html5": false
   },
-  "channelgroup_setcallback": {
-   "fmod": "FMOD_ChannelGroup_SetCallback",
-   "gated": false,
-   "haxe": [
-    {
-     "direct": true,
-     "doc": "Delivers ChannelEvent values for this group (drained once per frame with the other callbacks).",
-     "name": "setCallback",
-     "signature": "setCallback(handler:haxefmod.core.ChannelEvent->Void):Void",
-     "static": false,
-     "type": "haxefmod.core.ChannelGroup"
-    },
-    {
-     "direct": false,
-     "doc": "",
-     "name": "clearCallback",
-     "signature": "clearCallback():Void",
-     "static": false,
-     "type": "haxefmod.core.ChannelGroup"
-    }
-   ],
-   "html5": false
-  },
   "channelgroup_setdelay": {
    "fmod": "FMOD_ChannelGroup_SetDelay",
    "gated": false,
@@ -4114,7 +3905,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Sample-accurate start/stop window on the parent clock (0 = no bound).",
      "gated": false,
      "name": "setDelay",
-     "signature": "setDelay(startClock:Float, endClock:Float, stopChannels:Bool = true):FmodResult",
+     "signature": "setDelay(startClock:Float, endClock:Float, stopChannels:Bool = false):FmodResult",
      "static": false,
      "type": "haxefmod.core.ChannelGroup"
     }
@@ -4207,10 +3998,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Routes input channels to output speakers with explicit gains.",
+     "doc": "Routes inputs to speakers with explicit gains (row-major, up to 32x32).",
      "gated": false,
      "name": "setMixMatrix",
-     "signature": "setMixMatrix(matrix:Array<Float>, outChannels:Int, inChannels:Int, inChannelHop:Int = 0):FmodResult",
+     "signature": "setMixMatrix(matrix:Array<Float>, outChannels:Int, inChannels:Int):FmodResult",
      "static": false,
      "type": "haxefmod.core.ChannelGroup"
     }
@@ -4307,22 +4098,6 @@ const HAXEFMOD_BINDINGS = {
      "gated": false,
      "name": "setReverbWet",
      "signature": "setReverbWet(instance:Int, wet:Float):FmodResult",
-     "static": false,
-     "type": "haxefmod.core.ChannelGroup"
-    }
-   ],
-   "html5": false
-  },
-  "channelgroup_setuserdata": {
-   "fmod": "FMOD_ChannelGroup_SetUserData",
-   "gated": false,
-   "haxe": [
-    {
-     "direct": true,
-     "doc": "Attaches a Haxe value to this handle.",
-     "gated": false,
-     "name": "setUserData",
-     "signature": "setUserData(value:Dynamic):Void",
      "static": false,
      "type": "haxefmod.core.ChannelGroup"
     }
@@ -4464,10 +4239,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Removes the link from input into this unit.",
+     "doc": "",
      "gated": false,
      "name": "disconnectFrom",
-     "signature": "disconnectFrom(input:Dsp, connection:DspConnection = DspConnection.NULL):FmodResult",
+     "signature": "disconnectFrom(input:Dsp):FmodResult",
      "static": false,
      "type": "haxefmod.core.Dsp"
     }
@@ -4839,20 +4614,14 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "dsp_getuserdata": {
-   "fmod": "FMOD_DSP_GetUserData",
-   "gated": false,
-   "haxe": [
-    {
-     "direct": true,
-     "doc": "The value attached with setUserData, or null.",
-     "gated": false,
-     "name": "getUserData",
-     "signature": "getUserData():Dynamic",
-     "static": false,
-     "type": "haxefmod.core.Dsp"
-    }
-   ],
-   "html5": false
+   "code": "import haxefmod.core.Dsp;\nimport haxefmod.core.DspType;\n\nvar reverb = Dsp.create(DspType.SFXREVERB);\nreverb.setUserData({label: \"cave\"});\nvar data = reverb.getUserData();",
+   "fmod": "",
+   "haxe": [],
+   "heading": "DSP::getUserData",
+   "html5": false,
+   "notes": [
+    "haxefmod covers this with Dsp.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released."
+   ]
   },
   "dsp_getwetdrymix": {
    "fmod": "FMOD_DSP_GetWetDryMix",
@@ -5058,20 +4827,14 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "dsp_setuserdata": {
-   "fmod": "FMOD_DSP_SetUserData",
-   "gated": false,
-   "haxe": [
-    {
-     "direct": true,
-     "doc": "Attaches a Haxe value to this handle.",
-     "gated": false,
-     "name": "setUserData",
-     "signature": "setUserData(value:Dynamic):Void",
-     "static": false,
-     "type": "haxefmod.core.Dsp"
-    }
-   ],
-   "html5": false
+   "code": "import haxefmod.core.Dsp;\nimport haxefmod.core.DspType;\n\nvar reverb = Dsp.create(DspType.SFXREVERB);\nreverb.setUserData({label: \"cave\"});\nvar data = reverb.getUserData();",
+   "fmod": "",
+   "haxe": [],
+   "heading": "DSP::setUserData",
+   "html5": false,
+   "notes": [
+    "haxefmod covers this with Dsp.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released."
+   ]
   },
   "dsp_setwetdrymix": {
    "fmod": "FMOD_DSP_SetWetDryMix",
@@ -5131,25 +4894,20 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "dspconnection_getmixmatrix": {
-   "code": "import haxefmod.core.Dsp;\nimport haxefmod.core.DspType;\n\nvar fft = Dsp.create(DspType.FFT);\nvar connection = fft.addInput(Dsp.create(DspType.OSCILLATOR));\nvar read = connection.getMixMatrix();\nif (read != null) {\n    var gains = read.matrix; // read.outChannels rows of read.inChannels floats\n}",
    "fmod": "FMOD_DSPConnection_GetMixMatrix",
    "gated": true,
    "haxe": [
     {
      "direct": true,
-     "doc": "Reads the mix matrix back as one flat row-major array with inChannelHop floats per row (0 = packed to the input count), and the output and input channel counts FMOD reports (unsupported in HTML5, null there).",
+     "doc": "Reads back the mix matrix region of outChannels rows by inChannels gains, row-major (unsupported in HTML5, null there).",
      "gated": true,
      "name": "getMixMatrix",
-     "signature": "getMixMatrix(outChannels:Int = 0, inChannels:Int = 0, inChannelHop:Int = 0):Null<{matrix:Array<Float>, outChannels:Int, inChannels:Int}>",
+     "signature": "getMixMatrix(outChannels:Int, inChannels:Int):Null<{matrix:Array<Float>, outChannels:Int, inChannels:Int}>",
      "static": false,
      "type": "haxefmod.core.DspConnection"
     }
    ],
-   "heading": "DSPConnection::getMixMatrix",
-   "html5": true,
-   "notes": [
-    "The matrix comes back as a struct instead of three out parameters: one flat row-major Array<Float> with inChannelHop floats per row (0 = packed to the input count), and the output and input channel counts FMOD reports. Every argument is optional. Native only, the web glue binds the matrix as a single float."
-   ]
+   "html5": true
   },
   "dspconnection_getoutput": {
    "fmod": "FMOD_DSPConnection_GetOutput",
@@ -5184,20 +4942,14 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "dspconnection_getuserdata": {
-   "fmod": "FMOD_DSPConnection_GetUserData",
-   "gated": false,
-   "haxe": [
-    {
-     "direct": true,
-     "doc": "The value attached with setUserData, or null.",
-     "gated": false,
-     "name": "getUserData",
-     "signature": "getUserData():Dynamic",
-     "static": false,
-     "type": "haxefmod.core.DspConnection"
-    }
-   ],
-   "html5": false
+   "code": "import haxefmod.core.Dsp;\nimport haxefmod.core.DspType;\n\nvar reverb = Dsp.create(DspType.SFXREVERB);\nvar fft = Dsp.create(DspType.FFT);\nvar connection = fft.addInput(reverb);\nconnection.setUserData({label: \"cave\"});\nvar data = connection.getUserData();",
+   "fmod": "",
+   "haxe": [],
+   "heading": "DSPConnection::getUserData",
+   "html5": false,
+   "notes": [
+    "haxefmod covers this with DspConnection.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released."
+   ]
   },
   "dspconnection_setmix": {
    "fmod": "FMOD_DSPConnection_SetMix",
@@ -5216,41 +4968,30 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "dspconnection_setmixmatrix": {
-   "code": "import haxefmod.core.Dsp;\nimport haxefmod.core.DspType;\n\nvar fft = Dsp.create(DspType.FFT);\nvar connection = fft.addInput(Dsp.create(DspType.OSCILLATOR));\nvar result = connection.setMixMatrix([0.5, 0, 0, 0.5], 2, 2);",
    "fmod": "FMOD_DSPConnection_SetMixMatrix",
    "gated": false,
    "haxe": [
     {
      "direct": true,
-     "doc": "Routes the input's channels to the output's with explicit gains.",
+     "doc": "Routes the input's channels to the output's with explicit gains (row-major, outChannels rows of inChannels gains, up to 32x32).",
      "gated": false,
      "name": "setMixMatrix",
-     "signature": "setMixMatrix(matrix:Array<Float>, outChannels:Int, inChannels:Int, inChannelHop:Int = 0):FmodResult",
-     "static": false,
-     "type": "haxefmod.core.DspConnection"
-    }
-   ],
-   "heading": "DSPConnection::setMixMatrix",
-   "html5": false,
-   "notes": [
-    "The matrix is one flat row-major Array<Float>, one row per output channel, with inChannelHop floats per row (0 = packed to inChannels). FMOD mixes at most 32 channels, so a shape outside 32 by 32 or a hop below inChannels is refused with FMOD_ERR_INVALID_PARAM before the call reaches FMOD."
-   ]
-  },
-  "dspconnection_setuserdata": {
-   "fmod": "FMOD_DSPConnection_SetUserData",
-   "gated": false,
-   "haxe": [
-    {
-     "direct": true,
-     "doc": "Attaches a Haxe value to this handle.",
-     "gated": false,
-     "name": "setUserData",
-     "signature": "setUserData(value:Dynamic):Void",
+     "signature": "setMixMatrix(matrix:Array<Float>, outChannels:Int, inChannels:Int):FmodResult",
      "static": false,
      "type": "haxefmod.core.DspConnection"
     }
    ],
    "html5": false
+  },
+  "dspconnection_setuserdata": {
+   "code": "import haxefmod.core.Dsp;\nimport haxefmod.core.DspType;\n\nvar reverb = Dsp.create(DspType.SFXREVERB);\nvar fft = Dsp.create(DspType.FFT);\nvar connection = fft.addInput(reverb);\nconnection.setUserData({label: \"cave\"});\nvar data = connection.getUserData();",
+   "fmod": "",
+   "haxe": [],
+   "heading": "DSPConnection::setUserData",
+   "html5": false,
+   "notes": [
+    "haxefmod covers this with DspConnection.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released."
+   ]
   },
   "file_close": {
    "fmod": "",
@@ -5585,20 +5326,14 @@ const HAXEFMOD_BINDINGS = {
    "html5": true
   },
   "geometry_getuserdata": {
-   "fmod": "FMOD_Geometry_GetUserData",
-   "gated": false,
-   "haxe": [
-    {
-     "direct": true,
-     "doc": "",
-     "gated": false,
-     "name": "getUserData",
-     "signature": "getUserData():Dynamic",
-     "static": false,
-     "type": "haxefmod.core.Geometry"
-    }
-   ],
-   "html5": false
+   "code": "import haxefmod.core.Geometry;\n\nvar geometry = Geometry.create(8, 32);\ngeometry.setUserData({label: \"cave\"});\nvar data = geometry.getUserData();",
+   "fmod": "",
+   "haxe": [],
+   "heading": "Geometry::getUserData",
+   "html5": false,
+   "notes": [
+    "haxefmod covers this with Geometry.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released."
+   ]
   },
   "geometry_release": {
    "fmod": "FMOD_Geometry_Release",
@@ -5747,20 +5482,14 @@ const HAXEFMOD_BINDINGS = {
    "html5": true
   },
   "geometry_setuserdata": {
-   "fmod": "FMOD_Geometry_SetUserData",
-   "gated": false,
-   "haxe": [
-    {
-     "direct": true,
-     "doc": "Attaches a Haxe value to this handle.",
-     "gated": false,
-     "name": "setUserData",
-     "signature": "setUserData(value:Dynamic):Void",
-     "static": false,
-     "type": "haxefmod.core.Geometry"
-    }
-   ],
-   "html5": false
+   "code": "import haxefmod.core.Geometry;\n\nvar geometry = Geometry.create(8, 32);\ngeometry.setUserData({label: \"cave\"});\nvar data = geometry.getUserData();",
+   "fmod": "",
+   "haxe": [],
+   "heading": "Geometry::setUserData",
+   "html5": false,
+   "notes": [
+    "haxefmod covers this with Geometry.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released."
+   ]
   },
   "getvalue": {
    "fmod": "",
@@ -5863,20 +5592,14 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "reverb3d_getuserdata": {
-   "fmod": "FMOD_Reverb3D_GetUserData",
-   "gated": false,
-   "haxe": [
-    {
-     "direct": true,
-     "doc": "The value attached with setUserData, or null.",
-     "gated": false,
-     "name": "getUserData",
-     "signature": "getUserData():Dynamic",
-     "static": false,
-     "type": "haxefmod.core.Reverb3D"
-    }
-   ],
-   "html5": false
+   "code": "import haxefmod.core.Reverb3D;\n\nvar reverb = Reverb3D.create();\nreverb.setUserData({label: \"cave\"});\nvar data = reverb.getUserData();",
+   "fmod": "",
+   "haxe": [],
+   "heading": "Reverb3D::getUserData",
+   "html5": false,
+   "notes": [
+    "haxefmod covers this with Reverb3D.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released."
+   ]
   },
   "reverb3d_release": {
    "fmod": "FMOD_Reverb3D_Release",
@@ -5952,20 +5675,14 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "reverb3d_setuserdata": {
-   "fmod": "FMOD_Reverb3D_SetUserData",
-   "gated": false,
-   "haxe": [
-    {
-     "direct": true,
-     "doc": "Attaches a Haxe value to this handle.",
-     "gated": false,
-     "name": "setUserData",
-     "signature": "setUserData(value:Dynamic):Void",
-     "static": false,
-     "type": "haxefmod.core.Reverb3D"
-    }
-   ],
-   "html5": false
+   "code": "import haxefmod.core.Reverb3D;\n\nvar reverb = Reverb3D.create();\nreverb.setUserData({label: \"cave\"});\nvar data = reverb.getUserData();",
+   "fmod": "",
+   "haxe": [],
+   "heading": "Reverb3D::setUserData",
+   "html5": false,
+   "notes": [
+    "haxefmod covers this with Reverb3D.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released."
+   ]
   },
   "setvalue": {
    "fmod": "",
@@ -6432,29 +6149,14 @@ const HAXEFMOD_BINDINGS = {
    "html5": true
   },
   "sound_getuserdata": {
-   "fmod": "FMOD_Sound_GetUserData",
-   "gated": false,
-   "haxe": [
-    {
-     "direct": true,
-     "doc": "The value attached with setUserData, or null.",
-     "gated": false,
-     "name": "getUserData",
-     "signature": "getUserData():Dynamic",
-     "static": false,
-     "type": "haxefmod.core.PcmStream"
-    },
-    {
-     "direct": true,
-     "doc": "The value attached with setUserData, or null.",
-     "gated": false,
-     "name": "getUserData",
-     "signature": "getUserData():Dynamic",
-     "static": false,
-     "type": "haxefmod.core.Sound"
-    }
-   ],
-   "html5": false
+   "code": "import haxefmod.core.Sound;\n\nvar sound = Sound.create(\"assets/sfx/engine.wav\");\nsound.setUserData({label: \"cave\"});\nvar data = sound.getUserData();",
+   "fmod": "",
+   "haxe": [],
+   "heading": "Sound::getUserData",
+   "html5": false,
+   "notes": [
+    "haxefmod covers this with Sound.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released."
+   ]
   },
   "sound_lock": {
    "code": "import haxefmod.core.Sound;\n\nvar sound = Sound.create(\"assets/sfx/engine.wav\", false, true);\nvar buffer = haxe.io.Bytes.alloc(4096);\nvar read = sound.readData(buffer);\nwhile (read > 0) {\n    // the first read bytes of buffer hold decoded PCM\n    read = sound.readData(buffer);\n}\nsound.release();",
@@ -6487,7 +6189,7 @@ const HAXEFMOD_BINDINGS = {
    "gated": true,
    "haxe": [
     {
-     "direct": true,
+     "direct": false,
      "doc": "Stops playback, frees the stream, and invalidates this handle.",
      "gated": false,
      "name": "release",
@@ -6733,22 +6435,13 @@ const HAXEFMOD_BINDINGS = {
    "gated": false,
    "haxe": [
     {
-     "direct": true,
-     "doc": "Attaches a Haxe value to this handle.",
+     "direct": false,
+     "doc": "Stops playback, frees the stream, and invalidates this handle.",
      "gated": false,
-     "name": "setUserData",
-     "signature": "setUserData(value:Dynamic):Void",
+     "name": "release",
+     "signature": "release():FmodResult",
      "static": false,
      "type": "haxefmod.core.PcmStream"
-    },
-    {
-     "direct": true,
-     "doc": "Attaches a Haxe value to this handle.",
-     "gated": false,
-     "name": "setUserData",
-     "signature": "setUserData(value:Dynamic):Void",
-     "static": false,
-     "type": "haxefmod.core.Sound"
     }
    ],
    "html5": false
@@ -6886,20 +6579,14 @@ const HAXEFMOD_BINDINGS = {
    ]
   },
   "soundgroup_getuserdata": {
-   "fmod": "FMOD_SoundGroup_GetUserData",
-   "gated": false,
-   "haxe": [
-    {
-     "direct": true,
-     "doc": "The value attached with setUserData, or null.",
-     "gated": false,
-     "name": "getUserData",
-     "signature": "getUserData():Dynamic",
-     "static": false,
-     "type": "haxefmod.core.SoundGroup"
-    }
-   ],
-   "html5": false
+   "code": "import haxefmod.core.SoundGroup;\n\nvar group = SoundGroup.create(\"ambience\");\ngroup.setUserData({label: \"cave\"});\nvar data = group.getUserData();",
+   "fmod": "",
+   "haxe": [],
+   "heading": "SoundGroup::getUserData",
+   "html5": false,
+   "notes": [
+    "haxefmod covers this with SoundGroup.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released."
+   ]
   },
   "soundgroup_getvolume": {
    "fmod": "FMOD_SoundGroup_GetVolume",
@@ -6991,20 +6678,14 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "soundgroup_setuserdata": {
-   "fmod": "FMOD_SoundGroup_SetUserData",
-   "gated": false,
-   "haxe": [
-    {
-     "direct": true,
-     "doc": "Attaches a Haxe value to this handle.",
-     "gated": false,
-     "name": "setUserData",
-     "signature": "setUserData(value:Dynamic):Void",
-     "static": false,
-     "type": "haxefmod.core.SoundGroup"
-    }
-   ],
-   "html5": false
+   "code": "import haxefmod.core.SoundGroup;\n\nvar group = SoundGroup.create(\"ambience\");\ngroup.setUserData({label: \"cave\"});\nvar data = group.getUserData();",
+   "fmod": "",
+   "haxe": [],
+   "heading": "SoundGroup::setUserData",
+   "html5": false,
+   "notes": [
+    "haxefmod covers this with SoundGroup.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released."
+   ]
   },
   "soundgroup_setvolume": {
    "fmod": "FMOD_SoundGroup_SetVolume",
@@ -7226,20 +6907,14 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "studio_bank_getuserdata": {
-   "fmod": "FMOD_Studio_Bank_GetUserData",
-   "gated": false,
-   "haxe": [
-    {
-     "direct": true,
-     "doc": "The value attached with setUserData, or null.",
-     "gated": false,
-     "name": "getUserData",
-     "signature": "getUserData():Dynamic",
-     "static": false,
-     "type": "haxefmod.studio.Bank"
-    }
-   ],
-   "html5": false
+   "code": "import haxefmod.studio.Bank;\n\nvar bank:Bank = StudioSystem.loadBankFile(\"assets/fmod/Desktop/Level1.bank\");\nbank.setUserData({label: \"cave\"});\nvar data = bank.getUserData();",
+   "fmod": "",
+   "haxe": [],
+   "heading": "Studio::Bank::getUserData",
+   "html5": false,
+   "notes": [
+    "haxefmod covers this with Bank.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released."
+   ]
   },
   "studio_bank_getvcacount": {
    "fmod": "FMOD_Studio_Bank_GetVCACount",
@@ -7306,20 +6981,14 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "studio_bank_setuserdata": {
-   "fmod": "FMOD_Studio_Bank_SetUserData",
-   "gated": false,
-   "haxe": [
-    {
-     "direct": true,
-     "doc": "Attaches a Haxe value to this handle.",
-     "gated": false,
-     "name": "setUserData",
-     "signature": "setUserData(value:Dynamic):Void",
-     "static": false,
-     "type": "haxefmod.studio.Bank"
-    }
-   ],
-   "html5": false
+   "code": "import haxefmod.studio.Bank;\n\nvar bank:Bank = StudioSystem.loadBankFile(\"assets/fmod/Desktop/Level1.bank\");\nbank.setUserData({label: \"cave\"});\nvar data = bank.getUserData();",
+   "fmod": "",
+   "haxe": [],
+   "heading": "Studio::Bank::setUserData",
+   "html5": false,
+   "notes": [
+    "haxefmod covers this with Bank.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released."
+   ]
   },
   "studio_bank_unload": {
    "fmod": "FMOD_Studio_Bank_Unload",
@@ -7626,10 +7295,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Index of the command playing at timeMs into the capture, -1 on failure.",
+     "doc": "Index of the command playing at a time in seconds into the capture, -1 on failure.",
      "gated": false,
      "name": "getCommandAtTime",
-     "signature": "getCommandAtTime(timeMs:Int):Int",
+     "signature": "getCommandAtTime(seconds:Float):Int",
      "static": false,
      "type": "haxefmod.studio.CommandReplay"
     }
@@ -7759,20 +7428,14 @@ const HAXEFMOD_BINDINGS = {
    ]
   },
   "studio_commandreplay_getuserdata": {
-   "fmod": "FMOD_Studio_CommandReplay_GetUserData",
-   "gated": false,
-   "haxe": [
-    {
-     "direct": true,
-     "doc": "The value attached with setUserData, or null.",
-     "gated": false,
-     "name": "getUserData",
-     "signature": "getUserData():Dynamic",
-     "static": false,
-     "type": "haxefmod.studio.CommandReplay"
-    }
-   ],
-   "html5": false
+   "code": "var replay = StudioSystem.loadCommandReplay(\"capture.cmd.txt\");\nreplay.setUserData({label: \"cave\"});\nvar data = replay.getUserData();",
+   "fmod": "",
+   "haxe": [],
+   "heading": "Studio::CommandReplay::getUserData",
+   "html5": false,
+   "notes": [
+    "haxefmod covers this with CommandReplay.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released."
+   ]
   },
   "studio_commandreplay_isvalid": {
    "fmod": "FMOD_Studio_CommandReplay_IsValid",
@@ -7808,7 +7471,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Loads a capture file for playback.",
      "gated": false,
      "name": "loadCommandReplay",
-     "signature": "loadCommandReplay(path:String):CommandReplay",
+     "signature": "loadCommandReplay(path:String, flags:FmodCommandReplayFlags = NORMAL):CommandReplay",
      "static": true,
      "type": "haxefmod.studio.StudioSystem"
     }
@@ -7837,10 +7500,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Moves playback to a time in seconds into the capture.",
      "gated": false,
      "name": "seekToTime",
-     "signature": "seekToTime(timeMs:Int):FmodResult",
+     "signature": "seekToTime(seconds:Float):FmodResult",
      "static": false,
      "type": "haxefmod.studio.CommandReplay"
     }
@@ -7907,20 +7570,14 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "studio_commandreplay_setuserdata": {
-   "fmod": "FMOD_Studio_CommandReplay_SetUserData",
-   "gated": false,
-   "haxe": [
-    {
-     "direct": true,
-     "doc": "Attaches a Haxe value to this handle.",
-     "gated": false,
-     "name": "setUserData",
-     "signature": "setUserData(value:Dynamic):Void",
-     "static": false,
-     "type": "haxefmod.studio.CommandReplay"
-    }
-   ],
-   "html5": false
+   "code": "var replay = StudioSystem.loadCommandReplay(\"capture.cmd.txt\");\nreplay.setUserData({label: \"cave\"});\nvar data = replay.getUserData();",
+   "fmod": "",
+   "haxe": [],
+   "heading": "Studio::CommandReplay::setUserData",
+   "html5": false,
+   "notes": [
+    "haxefmod covers this with CommandReplay.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released."
+   ]
   },
   "studio_commandreplay_start": {
    "fmod": "FMOD_Studio_CommandReplay_Start",
@@ -8193,20 +7850,14 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "studio_eventdescription_getuserdata": {
-   "fmod": "FMOD_Studio_EventDescription_GetUserData",
-   "gated": false,
-   "haxe": [
-    {
-     "direct": true,
-     "doc": "The value attached with setUserData, or null.",
-     "gated": false,
-     "name": "getUserData",
-     "signature": "getUserData():Dynamic",
-     "static": false,
-     "type": "haxefmod.studio.EventDescription"
-    }
-   ],
-   "html5": false
+   "code": "var description = StudioSystem.getEvent(FmodEvents.SFXEngine);\ndescription.setUserData({label: \"cave\"});\nvar data = description.getUserData();",
+   "fmod": "",
+   "haxe": [],
+   "heading": "Studio::EventDescription::getUserData",
+   "html5": false,
+   "notes": [
+    "haxefmod covers this with EventDescription.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released."
+   ]
   },
   "studio_eventdescription_getuserproperty": {
    "code": "var description = StudioSystem.getEvent(FmodEvents.MusicMainLevel);\nvar property = description.getUserPropertyByName(\"Author\");\nif (property != null) {\n    trace(property.name);\n}",
@@ -8405,20 +8056,14 @@ const HAXEFMOD_BINDINGS = {
    ]
   },
   "studio_eventdescription_setuserdata": {
-   "fmod": "FMOD_Studio_EventDescription_SetUserData",
-   "gated": false,
-   "haxe": [
-    {
-     "direct": true,
-     "doc": "Attaches a Haxe value to this handle.",
-     "gated": false,
-     "name": "setUserData",
-     "signature": "setUserData(value:Dynamic):Void",
-     "static": false,
-     "type": "haxefmod.studio.EventDescription"
-    }
-   ],
-   "html5": false
+   "code": "var description = StudioSystem.getEvent(FmodEvents.SFXEngine);\ndescription.setUserData({label: \"cave\"});\nvar data = description.getUserData();",
+   "fmod": "",
+   "haxe": [],
+   "heading": "Studio::EventDescription::setUserData",
+   "html5": false,
+   "notes": [
+    "haxefmod covers this with EventDescription.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released."
+   ]
   },
   "studio_eventdescription_unloadsampledata": {
    "fmod": "FMOD_Studio_EventDescription_UnloadSampleData",
@@ -8457,7 +8102,7 @@ const HAXEFMOD_BINDINGS = {
    "gated": false,
    "haxe": [
     {
-     "direct": true,
+     "direct": false,
      "doc": "The core channel group carrying this instance's audio, for attaching DSP effects to a single event.",
      "gated": false,
      "name": "getChannelGroup",
@@ -8715,14 +8360,49 @@ const HAXEFMOD_BINDINGS = {
   },
   "studio_eventinstance_getuserdata": {
    "fmod": "FMOD_Studio_EventInstance_GetUserData",
-   "gated": false,
+   "gated": true,
    "haxe": [
     {
-     "direct": true,
-     "doc": "The value attached with setUserData, or null.",
+     "direct": false,
+     "doc": "Live instances of this event (up to Scratch.CAPACITY entries).",
      "gated": false,
-     "name": "getUserData",
-     "signature": "getUserData():Dynamic",
+     "name": "getInstanceList",
+     "signature": "getInstanceList():Array<EventInstance>",
+     "static": false,
+     "type": "haxefmod.studio.EventDescription"
+    },
+    {
+     "direct": false,
+     "doc": "Assigns the audio-table key (or file path fallback) this instance's programmer instrument should play (unsupported in HTML5).",
+     "gated": true,
+     "name": "assignProgrammerSound",
+     "signature": "assignProgrammerSound(key:String):FmodResult",
+     "static": false,
+     "type": "haxefmod.studio.EventInstance"
+    },
+    {
+     "direct": false,
+     "doc": "Removes the programmer-sound assignment (unsupported in HTML5, where nothing can be assigned).",
+     "gated": true,
+     "name": "clearProgrammerSound",
+     "signature": "clearProgrammerSound():FmodResult",
+     "static": false,
+     "type": "haxefmod.studio.EventInstance"
+    },
+    {
+     "direct": false,
+     "doc": "The core channel group carrying this instance's audio, for attaching DSP effects to a single event.",
+     "gated": false,
+     "name": "getChannelGroup",
+     "signature": "getChannelGroup():haxefmod.core.ChannelGroup",
+     "static": false,
+     "type": "haxefmod.studio.EventInstance"
+    },
+    {
+     "direct": true,
+     "doc": "Registers a typed payload callback for this instance (replaces any existing handler.",
+     "name": "setCallback",
+     "signature": "setCallback(handler:EventCallbackData->Void, ?mask:Int):Void",
      "static": false,
      "type": "haxefmod.studio.EventInstance"
     }
@@ -8901,7 +8581,7 @@ const HAXEFMOD_BINDINGS = {
      "type": "haxefmod.studio.EventInstance"
     }
    ],
-   "html5": true
+   "html5": false
   },
   "studio_eventinstance_setlistenermask": {
    "fmod": "FMOD_Studio_EventInstance_SetListenerMask",
@@ -9078,13 +8758,22 @@ const HAXEFMOD_BINDINGS = {
    "gated": false,
    "haxe": [
     {
-     "direct": true,
-     "doc": "Attaches a Haxe value to this handle.",
+     "direct": false,
+     "doc": "Creates a playable instance of this event.",
      "gated": false,
-     "name": "setUserData",
-     "signature": "setUserData(value:Dynamic):Void",
+     "name": "createInstance",
+     "signature": "createInstance():EventInstance",
      "static": false,
-     "type": "haxefmod.studio.EventInstance"
+     "type": "haxefmod.studio.EventDescription"
+    },
+    {
+     "direct": false,
+     "doc": "Live instances of this event (up to Scratch.CAPACITY entries).",
+     "gated": false,
+     "name": "getInstanceList",
+     "signature": "getInstanceList():Array<EventInstance>",
+     "static": false,
+     "type": "haxefmod.studio.EventDescription"
     }
    ],
    "html5": false
@@ -9535,10 +9224,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "A listener's 3D attributes, or null on failure.",
+     "doc": "A listener's 3D attributes and its attenuation position, or null on failure.",
      "gated": false,
      "name": "getListenerAttributes",
-     "signature": "getListenerAttributes(index:Int):Null<Fmod3DAttributes>",
+     "signature": "getListenerAttributes(index:Int):Null<FmodListenerAttributes>",
      "static": true,
      "type": "haxefmod.studio.StudioSystem"
     },
@@ -9741,10 +9430,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "What FMOD would load for an audio table key: the name or file path it reports (empty for a bank held in memory) and the subsound index inside it.",
+     "doc": "What FMOD would load for an audio table key: the file it reports (empty for a bank held in memory), the ChannelMode flags, where the sample sits in that file, and the subsound index inside it.",
      "gated": false,
      "name": "getSoundInfo",
-     "signature": "getSoundInfo(key:String):Null<{name:String, subSoundIndex:Int}>",
+     "signature": "getSoundInfo(key:String):Null<FmodSoundInfo>",
      "static": true,
      "type": "haxefmod.studio.StudioSystem"
     }
@@ -9752,20 +9441,14 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "studio_system_getuserdata": {
-   "fmod": "FMOD_Studio_System_GetUserData",
-   "gated": false,
-   "haxe": [
-    {
-     "direct": true,
-     "doc": "The value attached with setUserData, or null.",
-     "gated": false,
-     "name": "getUserData",
-     "signature": "getUserData():Dynamic",
-     "static": true,
-     "type": "haxefmod.studio.StudioSystem"
-    }
-   ],
-   "html5": false
+   "code": "StudioSystem.setUserData({label: \"main\"});\nvar data = StudioSystem.getUserData();",
+   "fmod": "",
+   "haxe": [],
+   "heading": "Studio::System::getUserData",
+   "html5": false,
+   "notes": [
+    "haxefmod covers this with StudioSystem.setUserData() and getUserData(). The value is any Haxe value and lives on the Haxe side."
+   ]
   },
   "studio_system_getvca": {
    "fmod": "FMOD_Studio_System_GetVCA",
@@ -9867,7 +9550,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Loads a bank from bytes (embedded, downloaded, or packed banks).",
      "gated": false,
      "name": "loadBankMemory",
-     "signature": "loadBankMemory(data:haxe.io.Bytes):Bank",
+     "signature": "loadBankMemory(data:haxe.io.Bytes, flags:FmodLoadBankFlags = NORMAL):Bank",
      "static": true,
      "type": "haxefmod.studio.StudioSystem"
     }
@@ -9883,7 +9566,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Loads a capture file for playback.",
      "gated": false,
      "name": "loadCommandReplay",
-     "signature": "loadCommandReplay(path:String):CommandReplay",
+     "signature": "loadCommandReplay(path:String, flags:FmodCommandReplayFlags = NORMAL):CommandReplay",
      "static": true,
      "type": "haxefmod.studio.StudioSystem"
     }
@@ -10055,10 +9738,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Sets a listener's 3D attributes.",
      "gated": false,
      "name": "setListenerAttributes",
-     "signature": "setListenerAttributes(index:Int, attributes:Fmod3DAttributes):FmodResult",
+     "signature": "setListenerAttributes(index:Int, attributes:Fmod3DAttributes, ?attenuationPosition:FmodVector):FmodResult",
      "static": true,
      "type": "haxefmod.studio.StudioSystem"
     },
@@ -10197,20 +9880,14 @@ const HAXEFMOD_BINDINGS = {
    ]
   },
   "studio_system_setuserdata": {
-   "fmod": "FMOD_Studio_System_SetUserData",
-   "gated": false,
-   "haxe": [
-    {
-     "direct": true,
-     "doc": "Attaches a Haxe value to the studio system.",
-     "gated": false,
-     "name": "setUserData",
-     "signature": "setUserData(value:Dynamic):Void",
-     "static": true,
-     "type": "haxefmod.studio.StudioSystem"
-    }
-   ],
-   "html5": false
+   "code": "StudioSystem.setUserData({label: \"main\"});\nvar data = StudioSystem.getUserData();",
+   "fmod": "",
+   "haxe": [],
+   "heading": "Studio::System::setUserData",
+   "html5": false,
+   "notes": [
+    "haxefmod covers this with StudioSystem.setUserData() and getUserData(). The value is any Haxe value and lives on the Haxe side."
+   ]
   },
   "studio_system_startcommandcapture": {
    "fmod": "FMOD_Studio_System_StartCommandCapture",
@@ -10221,7 +9898,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Records every API command to a file until stopCommandCapture, for FMOD's analysis tools or replay through loadCommandReplay.",
      "gated": false,
      "name": "startCommandCapture",
-     "signature": "startCommandCapture(path:String):FmodResult",
+     "signature": "startCommandCapture(path:String, flags:FmodCommandCaptureFlags = NORMAL):FmodResult",
      "static": true,
      "type": "haxefmod.studio.StudioSystem"
     }
@@ -11207,20 +10884,14 @@ const HAXEFMOD_BINDINGS = {
    ]
   },
   "system_getuserdata": {
-   "fmod": "FMOD_System_GetUserData",
-   "gated": false,
-   "haxe": [
-    {
-     "direct": true,
-     "doc": "The value attached with setUserData, or null.",
-     "gated": false,
-     "name": "getUserData",
-     "signature": "getUserData():Dynamic",
-     "static": true,
-     "type": "haxefmod.studio.StudioSystem"
-    }
-   ],
-   "html5": false
+   "code": "StudioSystem.setUserData({label: \"main\"});\nvar data = StudioSystem.getUserData();",
+   "fmod": "",
+   "haxe": [],
+   "heading": "System::getUserData",
+   "html5": false,
+   "notes": [
+    "haxefmod covers this with StudioSystem.setUserData() and getUserData(). haxefmod has one system, so the value lives on StudioSystem and the core system shares it."
+   ]
   },
   "system_getversion": {
    "fmod": "FMOD_System_GetVersion",
@@ -11850,20 +11521,14 @@ const HAXEFMOD_BINDINGS = {
    ]
   },
   "system_setuserdata": {
-   "fmod": "FMOD_System_SetUserData",
-   "gated": false,
-   "haxe": [
-    {
-     "direct": true,
-     "doc": "Attaches a Haxe value to the studio system.",
-     "gated": false,
-     "name": "setUserData",
-     "signature": "setUserData(value:Dynamic):Void",
-     "static": true,
-     "type": "haxefmod.studio.StudioSystem"
-    }
-   ],
-   "html5": false
+   "code": "StudioSystem.setUserData({label: \"main\"});\nvar data = StudioSystem.getUserData();",
+   "fmod": "",
+   "haxe": [],
+   "heading": "System::setUserData",
+   "html5": false,
+   "notes": [
+    "haxefmod covers this with StudioSystem.setUserData() and getUserData(). haxefmod has one system, so the value lives on StudioSystem and the core system shares it."
+   ]
   },
   "system_unloadplugin": {
    "fmod": "FMOD_System_UnloadPlugin",
@@ -12070,17 +11735,17 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "FMOD_CHANNELCONTROL_CALLBACK": {
-   "code": "channel.setCallback(function(event:ChannelEvent) {\n    switch (event) {\n        case End: trace(\"channel finished\");\n        case SyncPoint(index): trace('sync point $index');\n        case VirtualVoice(isVirtual): trace('virtual $isVirtual');\n        case Occlusion(direct, reverb): trace('occluded $direct $reverb');\n    }\n});",
+   "code": "channel.setCallback(function(event:ChannelEvent) {\n    switch (event) {\n        case End: trace(\"channel finished\");\n        case SyncPoint(index): trace('sync point $index');\n    }\n});",
    "notes": [
-    "Raw channel callbacks run on FMOD's threads and cannot reach Haxe. Channel.setCallback and ChannelGroup.setCallback deliver ChannelEvent values on the game thread during FmodManager.Update(). A group only ever sees Occlusion, the other three are channel events."
+    "Raw channel callbacks run on FMOD's threads and cannot reach Haxe. Channel.setCallback delivers End and SyncPoint as ChannelEvent values on the game thread during FmodManager.Update()."
    ],
    "type": "haxefmod.core.ChannelEvent",
    "verdict": "bound"
   },
   "FMOD_CHANNELCONTROL_CALLBACK_TYPE": {
-   "code": "/** FMOD_CHANNELCONTROL_CALLBACK_TYPE, the channel callback kinds. Channel.setCallback delivers all four as ChannelEvent values, ChannelGroup.setCallback delivers OCCLUSION. */\nenum abstract FmodChannelControlCallbackType(Int) from Int to Int {\n    var END = 0;\n    var VIRTUALVOICE = 1;\n    var SYNCPOINT = 2;\n    var OCCLUSION = 3;\n    var MAX = 4;\n}",
+   "code": "/** FMOD_CHANNELCONTROL_CALLBACK_TYPE, the channel callback kinds. Channel.setCallback delivers END and SYNCPOINT as ChannelEvent, the other two are not delivered. */\nenum abstract FmodChannelControlCallbackType(Int) from Int to Int {\n    var END = 0;\n    var VIRTUALVOICE = 1;\n    var SYNCPOINT = 2;\n    var OCCLUSION = 3;\n    var MAX = 4;\n}",
    "notes": [
-    "Channel.setCallback delivers all four as ChannelEvent values (End, SyncPoint, VirtualVoice, Occlusion). ChannelGroup.setCallback delivers Occlusion, the only one FMOD raises on a group."
+    "Channel.setCallback delivers END and SYNCPOINT as ChannelEvent values. VIRTUALVOICE and OCCLUSION are not delivered, Channel.isVirtual reports the voice state on demand."
    ],
    "type": "haxefmod.studio.Types.FmodChannelControlCallbackType",
    "verdict": "bound"
@@ -14961,9 +14626,9 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "FMOD_STUDIO_PARAMETER_DESCRIPTION": {
-   "code": "/** FMOD_STUDIO_PARAMETER_DESCRIPTION */\ntypedef FmodParameterDescription = {\n    var name:String;\n    var id:FmodParameterId;\n    var minimum:Float;\n    var maximum:Float;\n    var defaultValue:Float;\n    var type:FmodParameterType;\n    var flags:Int;\n    /** The parameter's GUID in FMOD Studio's text form. Always \"\" for now, the native side does not read it. */\n    var guid:String;\n}",
+   "code": "/** FMOD_STUDIO_PARAMETER_DESCRIPTION */\ntypedef FmodParameterDescription = {\n    var name:String;\n    var id:FmodParameterId;\n    var minimum:Float;\n    var maximum:Float;\n    var defaultValue:Float;\n    var type:FmodParameterType;\n    var flags:Int;\n    /** The parameter's GUID in FMOD Studio's text form, the same form lookupID returns. */\n    var guid:String;\n}",
    "notes": [
-    "The guid field is always empty, the native side does not read it. Look a parameter up by path with StudioSystem.lookupID when you need its GUID."
+    "The guid field is the parameter's GUID in the text form StudioSystem.lookupID returns."
    ],
    "type": "haxefmod.studio.Types.FmodParameterDescription",
    "verdict": "bound"
@@ -15038,10 +14703,10 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_STUDIO_PLUGIN_INSTANCE_PROPERTIES": {
    "code": null,
    "notes": [
-    "No Haxe declaration, the library owns this choice. the payload of the plugin callbacks, delivered as EventCallbackData.Other(PLUGIN_CREATED) without it since a DSP pointer has no meaning in Haxe"
+    "No Haxe declaration, another call plays this role. the arguments of haxefmod.studio.Callbacks.EventCallbackData.PluginCreated(name, dsp) and PluginDestroyed(name, dsp). dsp is a haxefmod.core.Dsp handle, live until the destroyed callback delivers it again for matching"
    ],
    "type": null,
-   "verdict": "library"
+   "verdict": "covered"
   },
   "FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES": {
    "code": null,
@@ -15076,7 +14741,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_STUDIO_TIMELINE_NESTED_BEAT_PROPERTIES": {
    "code": null,
    "notes": [
-    "No Haxe declaration, another call plays this role. the arguments of haxefmod.studio.Callbacks.EventCallbackData.NestedTimelineBeat(bar, beat, positionMs, tempo, timeSigUpper, timeSigLower), the referenced event's GUID is not carried"
+    "No Haxe declaration, another call plays this role. the arguments of haxefmod.studio.Callbacks.EventCallbackData.NestedTimelineBeat(bar, beat, positionMs, tempo, timeSigUpper, timeSigLower, eventId), eventId is the referenced event's GUID in FMOD's text form (empty in HTML5, the web runtime hands the beat over without it)"
    ],
    "type": null,
    "verdict": "covered"
@@ -15123,17 +14788,17 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "FMOD_STUDIO_COMMANDCAPTURE_FLAGS": {
-   "code": "/** FMOD_STUDIO_COMMANDCAPTURE_FLAGS bits. StudioSystem.startCommandCapture always captures with NORMAL. */\nenum abstract FmodCommandCaptureFlags(Int) from Int to Int {\n    var NORMAL = 0x00000000;\n    var FILEFLUSH = 0x00000001;\n    var SKIP_INITIAL_STATE = 0x00000002;\n}",
+   "code": "/** FMOD_STUDIO_COMMANDCAPTURE_FLAGS bits, the flags StudioSystem.startCommandCapture takes. */\nenum abstract FmodCommandCaptureFlags(Int) from Int to Int {\n    var NORMAL = 0x00000000;\n    var FILEFLUSH = 0x00000001;\n    var SKIP_INITIAL_STATE = 0x00000002;\n}",
    "notes": [
-    "StudioSystem.startCommandCapture(path) takes no flags and captures with NORMAL."
+    "The flags argument of StudioSystem.startCommandCapture(path, flags), NORMAL when left out."
    ],
    "type": "haxefmod.studio.Types.FmodCommandCaptureFlags",
    "verdict": "bound"
   },
   "FMOD_STUDIO_COMMANDREPLAY_FLAGS": {
-   "code": "/** FMOD_STUDIO_COMMANDREPLAY_FLAGS bits. StudioSystem.loadCommandReplay always loads with NORMAL. */\nenum abstract FmodCommandReplayFlags(Int) from Int to Int {\n    var NORMAL = 0x00000000;\n    var SKIP_CLEANUP = 0x00000001;\n    var FAST_FORWARD = 0x00000002;\n    var SKIP_BANK_LOAD = 0x00000004;\n}",
+   "code": "/** FMOD_STUDIO_COMMANDREPLAY_FLAGS bits, the flags StudioSystem.loadCommandReplay takes. */\nenum abstract FmodCommandReplayFlags(Int) from Int to Int {\n    var NORMAL = 0x00000000;\n    var SKIP_CLEANUP = 0x00000001;\n    var FAST_FORWARD = 0x00000002;\n    var SKIP_BANK_LOAD = 0x00000004;\n}",
    "notes": [
-    "StudioSystem.loadCommandReplay(path) takes no flags and loads with NORMAL."
+    "The flags argument of StudioSystem.loadCommandReplay(path, flags), NORMAL when left out."
    ],
    "type": "haxefmod.studio.Types.FmodCommandReplayFlags",
    "verdict": "bound"
@@ -15155,8 +14820,10 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "FMOD_STUDIO_LOAD_BANK_FLAGS": {
-   "code": "/** FMOD_STUDIO_LOAD_BANK_FLAGS bits, the flags StudioSystem.loadBankFile takes. */\nenum abstract FmodLoadBankFlags(Int) from Int to Int {\n    var NORMAL = 0;\n    var NONBLOCKING = 1;\n    var DECOMPRESS_SAMPLES = 2;\n    var UNENCRYPTED = 4;\n}",
-   "notes": [],
+   "code": "/** FMOD_STUDIO_LOAD_BANK_FLAGS bits, the flags StudioSystem.loadBankFile and loadBankMemory take. */\nenum abstract FmodLoadBankFlags(Int) from Int to Int {\n    var NORMAL = 0;\n    var NONBLOCKING = 1;\n    var DECOMPRESS_SAMPLES = 2;\n    var UNENCRYPTED = 4;\n}",
+   "notes": [
+    "The flags argument of StudioSystem.loadBankFile and loadBankMemory, NORMAL when left out."
+   ],
    "type": "haxefmod.studio.Types.FmodLoadBankFlags",
    "verdict": "bound"
   },
@@ -15185,12 +14852,12 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "FMOD_STUDIO_SOUND_INFO": {
-   "code": null,
+   "code": "/**\n * FMOD_STUDIO_SOUND_INFO, what StudioSystem.getSoundInfo reports for an\n * audio table key. name is the file FMOD would open (the bank path for a\n * bank loaded from disk, \"\" for a bank held in memory), mode the\n * ChannelMode flags it would open it with, and the exinfo fields say where\n * the sample sits in that file: length in bytes, fileOffset in bytes,\n * initialSubsound, and numSubsounds. subSoundIndex is the subsound inside\n * the loaded sound that plays the key.\n */\ntypedef FmodSoundInfo = {\n    var name:String;\n    var mode:Int;\n    var length:Int;\n    var fileOffset:Int;\n    var initialSubsound:Int;\n    var numSubsounds:Int;\n    var subSoundIndex:Int;\n}",
    "notes": [
-    "No Haxe declaration, the library owns this choice. the native side of programmer sounds resolves it, StudioSystem.getSoundInfo(key) returns the name and subsound index, and EventInstance.assignProgrammerSound(key) picks the sound"
+    "Returned by StudioSystem.getSoundInfo(key). The exinfo fields FMOD fills are flattened into length, fileOffset, initialSubsound, and numSubsounds. The programmer sound callbacks resolve the key natively, EventInstance.assignProgrammerSound(key) picks the sound."
    ],
-   "type": null,
-   "verdict": "library"
+   "type": "haxefmod.studio.Types.FmodSoundInfo",
+   "verdict": "bound"
   },
   "FMOD_STUDIO_SYSTEM_CALLBACK": {
    "code": "StudioSystem.setSystemCallback(event -> switch (event) {\n    case PreUpdate: trace(\"before update\");\n    case PostUpdate: trace(\"after update\");\n    case BankUnload(path): trace('unloaded $path');\n    case LiveUpdateConnected: trace(\"live update connected\");\n    case LiveUpdateDisconnected: trace(\"live update disconnected\");\n    default:\n}, null, SystemCallbacks.STUDIO_PREUPDATE | SystemCallbacks.STUDIO_POSTUPDATE | SystemCallbacks.DEFAULT_STUDIO_MASK);",

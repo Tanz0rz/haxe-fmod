@@ -50,9 +50,16 @@
 
 ### Changed
 - `setDelay` on `Channel` and `ChannelGroup` defaults `stopChannels` to `true`, matching FMOD. Pass `false` to keep the earlier pause-at-end behaviour.
+- Studio API parity: `StudioSystem.startCommandCapture(path, ?flags)`, `loadCommandReplay(path, ?flags)`, and `loadBankMemory(data, ?flags)` take their FMOD flags (`FmodCommandCaptureFlags`, `FmodCommandReplayFlags`, `FmodLoadBankFlags`). `setListenerAttributes(index, attributes, ?attenuationPosition)` sets the point distance attenuation is measured from, and `getListenerAttributes` returns it in an `FmodListenerAttributes`. `FmodParameterDescription.guid` carries the parameter's GUID from every description reader. `getSoundInfo(key)` returns an `FmodSoundInfo` with the mode flags and the `length`, `fileOffset`, `initialSubsound`, and `numSubsounds` FMOD fills. Event callbacks deliver `PluginCreated(name, dsp)` and `PluginDestroyed(name, dsp)` with the plugin effect as a `Dsp` handle, and `NestedTimelineBeat` carries the referenced event's GUID as `eventId`.
+- HTML5 compile gate: calling a native-only method in a js build is a compile error at the call site naming the method and the reason. `-D haxefmod_html5_allow_unsupported` compiles the call anyway, prints one warning per build, and the call returns `FMOD_ERR_UNSUPPORTED` at runtime in the browser. Applies to sample readback, recording, custom rolloff, geometry, programmer sounds, and memory usage queries.
+
+### Changed
+- `CommandReplay.seekToTime` and `getCommandAtTime` take seconds as a `Float`, the unit FMOD uses and the one `getLength` and `getCurrentCommand` already report. Code that passed milliseconds now seeks a thousand times too far. `seekToTimeMs` and `getCommandAtTimeMs` keep the millisecond form as deprecated aliases.
+- `EventCallbackData.NestedTimelineBeat` gained a seventh argument, `eventId`. A `case NestedTimelineBeat(...)` pattern has to name it (`_` works). `PLUGIN_CREATED` and `PLUGIN_DESTROYED` arrive as `PluginCreated` and `PluginDestroyed` instead of `Other(type)`.
 
 ### Deprecated
 - `haxefmod.studio.CoreSound` is now `haxefmod.core.Sound`, the core `Sound` object next to `Channel`, `ChannelGroup`, `Dsp`, and `SoundGroup`. The old name remains as a deprecated alias for this release and the compiler warns at every use.
+- `CommandReplay.seekToTimeMs(timeMs)` and `getCommandAtTimeMs(timeMs)`, the millisecond forms of `seekToTime` and `getCommandAtTime`. The compiler warns at every use.
 
 ### Fixed
 - Pointing `FMOD_SDK` at the HTML5 FMOD Engine package (or `FMOD_SDK_WEB` at a desktop one) now fails the build with a message naming the swapped packages. Previously a native build got as far as copying libraries and died with an uncaught exception on macOS and Windows. Both packages ship the same `api/core/inc` headers, so the check is the platform's own core library rather than a header.

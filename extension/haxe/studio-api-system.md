@@ -19,12 +19,12 @@ Type: haxefmod.studio.Types.FmodBufferUsage
 ## FMOD_STUDIO_COMMANDCAPTURE_FLAGS
 verdict: bound
 Type: haxefmod.studio.Types.FmodCommandCaptureFlags
-StudioSystem.startCommandCapture(path) takes no flags and captures with NORMAL.
+The flags argument of StudioSystem.startCommandCapture(path, flags), NORMAL when left out.
 
 ## FMOD_STUDIO_COMMANDREPLAY_FLAGS
 verdict: bound
 Type: haxefmod.studio.Types.FmodCommandReplayFlags
-StudioSystem.loadCommandReplay(path) takes no flags and loads with NORMAL.
+The flags argument of StudioSystem.loadCommandReplay(path, flags), NORMAL when left out.
 
 ## FMOD_STUDIO_CPU_USAGE
 verdict: bound
@@ -39,6 +39,7 @@ The library passes LIVEUPDATE when FmodSettings.liveUpdate is true and NORMAL ot
 ## FMOD_STUDIO_LOAD_BANK_FLAGS
 verdict: bound
 Type: haxefmod.studio.Types.FmodLoadBankFlags
+The flags argument of StudioSystem.loadBankFile and loadBankMemory, NORMAL when left out.
 
 ## FMOD_STUDIO_LOAD_MEMORY_ALIGNMENT
 verdict: library StudioSystem.loadBankMemory copies the bytes into memory FMOD allocates, so game code never aligns a bank buffer
@@ -54,7 +55,9 @@ Type: haxefmod.studio.Types.FmodLoadMemoryMode
 StudioSystem.loadBankMemory always loads with MEMORY. A Haxe buffer cannot be pinned for the bank's lifetime, so MEMORY_POINT is never used.
 
 ## FMOD_STUDIO_SOUND_INFO
-verdict: library the native side of programmer sounds resolves it, StudioSystem.getSoundInfo(key) returns the name and subsound index, and EventInstance.assignProgrammerSound(key) picks the sound
+verdict: bound
+Type: haxefmod.studio.Types.FmodSoundInfo
+Returned by StudioSystem.getSoundInfo(key). The exinfo fields FMOD fills are flattened into length, fileOffset, initialSubsound, and numSubsounds. The programmer sound callbacks resolve the key natively, EventInstance.assignProgrammerSound(key) picks the sound.
 
 ## FMOD_STUDIO_SYSTEM_CALLBACK
 verdict: bound

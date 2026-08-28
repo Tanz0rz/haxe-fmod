@@ -204,6 +204,19 @@ static FMOD_RESULT F_CALLBACK eventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type
                 ev.i4 = props->properties.timesignatureupper;
                 ev.i5 = props->properties.timesignaturelower;
                 ev.f1 = props->properties.tempo;
+                faxe_guid_format(&props->eventid, ev.str, FAXE_CBQ_STR_MAX);
+            }
+            break;
+        }
+        case FMOD_STUDIO_EVENT_CALLBACK_PLUGIN_CREATED:
+        case FMOD_STUDIO_EVENT_CALLBACK_PLUGIN_DESTROYED: {
+            const FMOD_STUDIO_PLUGIN_INSTANCE_PROPERTIES* props =
+                (const FMOD_STUDIO_PLUGIN_INSTANCE_PROPERTIES*)parameters;
+            if (props) {
+                if (props->name) {
+                    strncpy(ev.str, props->name, FAXE_CBQ_STR_MAX - 1);
+                }
+                ev.ptr = props->dsp;
             }
             break;
         }
@@ -2551,16 +2564,16 @@ DEFINE_PRIM(_I32, dsp_get_metering_enabled, _I32 _BYTES);
 
 //// Bank loading from memory
 
-HL_PRIM int HL_NAME(sys_load_bank_memory)(vbyte* data, int len) {
+HL_PRIM int HL_NAME(sys_load_bank_memory)(vbyte* data, int len, int flags) {
     FMOD_STUDIO_BANK* bank = NULL;
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
     if (!data || len <= 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
     gLastResult = FMOD_Studio_System_LoadBankMemory(gStudioSystem, (const char*)data, len,
-        FMOD_STUDIO_LOAD_MEMORY, FMOD_STUDIO_LOAD_BANK_NORMAL, &bank);
+        FMOD_STUDIO_LOAD_MEMORY, (FMOD_STUDIO_LOAD_BANK_FLAGS)flags, &bank);
     if (gLastResult != FMOD_OK || !bank) return 0;
     return faxe_handle_find_or_alloc(bank, FAXE_TYPE_BANK);
 }
-DEFINE_PRIM(_I32, sys_load_bank_memory, _BYTES _I32);
+DEFINE_PRIM(_I32, sys_load_bank_memory, _BYTES _I32 _I32);
 
 //// Event instance core bridge
 
@@ -2595,13 +2608,13 @@ static FMOD_STUDIO_COMMANDREPLAY* resolve_replay(int h) {
     return (FMOD_STUDIO_COMMANDREPLAY*)faxe_handle_resolve(h, FAXE_TYPE_REPLAY);
 }
 
-HL_PRIM int HL_NAME(sys_start_command_capture)(vbyte* path) {
+HL_PRIM int HL_NAME(sys_start_command_capture)(vbyte* path, int flags) {
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
     gLastResult = FMOD_Studio_System_StartCommandCapture(gStudioSystem, (const char*)path,
-        FMOD_STUDIO_COMMANDCAPTURE_NORMAL);
+        (FMOD_STUDIO_COMMANDCAPTURE_FLAGS)flags);
     return (int)gLastResult;
 }
-DEFINE_PRIM(_I32, sys_start_command_capture, _BYTES);
+DEFINE_PRIM(_I32, sys_start_command_capture, _BYTES _I32);
 
 HL_PRIM int HL_NAME(sys_stop_command_capture)() {
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
@@ -2610,12 +2623,12 @@ HL_PRIM int HL_NAME(sys_stop_command_capture)() {
 }
 DEFINE_PRIM(_I32, sys_stop_command_capture, _NO_ARG);
 
-HL_PRIM int HL_NAME(sys_load_command_replay)(vbyte* path) {
+HL_PRIM int HL_NAME(sys_load_command_replay)(vbyte* path, int flags) {
     FMOD_STUDIO_COMMANDREPLAY* replay = NULL;
     int handle;
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
     gLastResult = FMOD_Studio_System_LoadCommandReplay(gStudioSystem, (const char*)path,
-        FMOD_STUDIO_COMMANDREPLAY_NORMAL, &replay);
+        (FMOD_STUDIO_COMMANDREPLAY_FLAGS)flags, &replay);
     if (gLastResult != FMOD_OK || !replay) return 0;
     handle = faxe_handle_alloc(replay, FAXE_TYPE_REPLAY);
     if (handle == 0) {
@@ -2625,7 +2638,7 @@ HL_PRIM int HL_NAME(sys_load_command_replay)(vbyte* path) {
     }
     return handle;
 }
-DEFINE_PRIM(_I32, sys_load_command_replay, _BYTES);
+DEFINE_PRIM(_I32, sys_load_command_replay, _BYTES _I32);
 
 HL_PRIM int HL_NAME(replay_release)(int h) {
     FMOD_STUDIO_COMMANDREPLAY* replay = resolve_replay(h);
@@ -2675,13 +2688,13 @@ HL_PRIM bool HL_NAME(replay_get_paused)(int h) {
 }
 DEFINE_PRIM(_BOOL, replay_get_paused, _I32);
 
-HL_PRIM int HL_NAME(replay_seek_to_time)(int h, int timeMs) {
+HL_PRIM int HL_NAME(replay_seek_to_time)(int h, double seconds) {
     FMOD_STUDIO_COMMANDREPLAY* replay = resolve_replay(h);
     if (!replay) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
-    gLastResult = FMOD_Studio_CommandReplay_SeekToTime(replay, (float)timeMs / 1000.0f);
+    gLastResult = FMOD_Studio_CommandReplay_SeekToTime(replay, (float)seconds);
     return (int)gLastResult;
 }
-DEFINE_PRIM(_I32, replay_seek_to_time, _I32 _I32);
+DEFINE_PRIM(_I32, replay_seek_to_time, _I32 _F64);
 
 HL_PRIM double HL_NAME(replay_get_length)(int h) {
     FMOD_STUDIO_COMMANDREPLAY* replay = resolve_replay(h);
@@ -3391,6 +3404,16 @@ HL_PRIM bool HL_NAME(cb_next)() {
         free_destroyed_ctx((FaxeInstCtx*)gCbCurrent.opaque);
         gCbCurrent.opaque = NULL;
     }
+    /* Plugin records carry the DSP address. Turn it into a handle here on
+     * the Haxe thread, in i1. A destroyed plugin's slot is freed right
+     * away, the handle value still reaches the handler for identity. */
+    if (gCbCurrent.type == FMOD_STUDIO_EVENT_CALLBACK_PLUGIN_CREATED) {
+        gCbCurrent.i1 = faxe_handle_find_or_alloc(gCbCurrent.ptr, FAXE_TYPE_DSP);
+    } else if (gCbCurrent.type == FMOD_STUDIO_EVENT_CALLBACK_PLUGIN_DESTROYED) {
+        gCbCurrent.i1 = faxe_handle_find(gCbCurrent.ptr, FAXE_TYPE_DSP);
+        if (gCbCurrent.i1) faxe_handle_free(gCbCurrent.i1);
+    }
+    gCbCurrent.ptr = NULL;
     return true;
 }
 DEFINE_PRIM(_BOOL, cb_next, _NO_ARG);
@@ -3434,12 +3457,17 @@ DEFINE_PRIM(_BOOL, cb_take_overflow, _NO_ARG);
 
 //// Studio System
 
+// GUID of the parameter description read last, in FMOD's text form.
+static char gParamGuidBuf[40] = "";
+
 // Copies a parameter description into the scratch buffers: name -> gStringBuf,
-// fbuf [0]=min [1]=max [2]=default, ibuf [0]=type [1]=flags [2]=id1 [3]=id2.
+// fbuf [0]=min [1]=max [2]=default, ibuf [0]=type [1]=flags [2]=id1 [3]=id2,
+// guid -> gParamGuidBuf (read back with sys_last_parameter_guid).
 static void write_param_desc(const FMOD_STUDIO_PARAMETER_DESCRIPTION* desc, vbyte* fbuf, vbyte* ibuf) {
     double* outFloats = (double*)fbuf;
     int* outInts = (int*)ibuf;
     snprintf(gStringBuf, sizeof(gStringBuf), "%s", desc->name ? desc->name : "");
+    faxe_guid_format(&desc->guid, gParamGuidBuf, sizeof(gParamGuidBuf));
     outFloats[0] = (double)desc->minimum;
     outFloats[1] = (double)desc->maximum;
     outFloats[2] = (double)desc->defaultvalue;
@@ -3448,6 +3476,11 @@ static void write_param_desc(const FMOD_STUDIO_PARAMETER_DESCRIPTION* desc, vbyt
     outInts[2] = (int)desc->id.data1;
     outInts[3] = (int)desc->id.data2;
 }
+
+HL_PRIM vbyte* HL_NAME(sys_last_parameter_guid)() {
+    return (vbyte*)gParamGuidBuf;
+}
+DEFINE_PRIM(_BYTES, sys_last_parameter_guid, _NO_ARG);
 
 // Narrows 12 flattened doubles (pos, vel, forward, up) into FMOD 3D attributes.
 static void pack_3d_attributes(FMOD_3D_ATTRIBUTES* attrs,
@@ -3865,26 +3898,40 @@ HL_PRIM int HL_NAME(sys_set_num_listeners)(int num) {
 }
 DEFINE_PRIM(_I32, sys_set_num_listeners, _I32);
 
-// out = double[12]: position xyz, velocity xyz, forward xyz, up xyz
+// out = double[15]: position xyz, velocity xyz, forward xyz, up xyz,
+// attenuation position xyz
 HL_PRIM int HL_NAME(sys_get_listener_attributes)(int index, vbyte* out) {
     FMOD_3D_ATTRIBUTES attrs;
+    FMOD_VECTOR attenuation;
+    double* d = (double*)out;
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
     memset(&attrs, 0, sizeof(attrs));
-    gLastResult = FMOD_Studio_System_GetListenerAttributes(gStudioSystem, index, &attrs, NULL);
-    unpack_3d_attributes(&attrs, (double*)out);
+    memset(&attenuation, 0, sizeof(attenuation));
+    gLastResult = FMOD_Studio_System_GetListenerAttributes(gStudioSystem, index, &attrs, &attenuation);
+    unpack_3d_attributes(&attrs, d);
+    d[12] = (double)attenuation.x;
+    d[13] = (double)attenuation.y;
+    d[14] = (double)attenuation.z;
     return (int)gLastResult;
 }
 DEFINE_PRIM(_I32, sys_get_listener_attributes, _I32 _BYTES);
 
-HL_PRIM int HL_NAME(sys_set_listener_attributes)(int index, vbyte* f) {
+// f = double[15] laid out like the getter. With hasAttenuation false FMOD
+// attenuates from the listener position and f[12..14] are ignored.
+HL_PRIM int HL_NAME(sys_set_listener_attributes)(int index, vbyte* f, bool hasAttenuation) {
     FMOD_3D_ATTRIBUTES attrs;
+    FMOD_VECTOR attenuation;
     double* d = (double*)f;
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
     pack_3d_attributes(&attrs, d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7], d[8], d[9], d[10], d[11]);
-    gLastResult = FMOD_Studio_System_SetListenerAttributes(gStudioSystem, index, &attrs, NULL);
+    attenuation.x = (float)d[12];
+    attenuation.y = (float)d[13];
+    attenuation.z = (float)d[14];
+    gLastResult = FMOD_Studio_System_SetListenerAttributes(gStudioSystem, index, &attrs,
+        hasAttenuation ? &attenuation : NULL);
     return (int)gLastResult;
 }
-DEFINE_PRIM(_I32, sys_set_listener_attributes, _I32 _BYTES);
+DEFINE_PRIM(_I32, sys_set_listener_attributes, _I32 _BYTES _BOOL);
 
 HL_PRIM double HL_NAME(sys_get_listener_weight)(int index) {
     float weight = 0.0f;
@@ -6202,16 +6249,28 @@ HL_PRIM int HL_NAME(sys_unlock_dsp)() {
 }
 DEFINE_PRIM(_I32, sys_unlock_dsp, _NO_ARG);
 
+// ibuf out: [0]=subsound index [1]=mode [2]=exinfo length [3]=exinfo file
+// offset [4]=exinfo initial subsound [5]=exinfo subsound count
 HL_PRIM vbyte* HL_NAME(sys_get_sound_info)(vbyte* key, vbyte* ibuf) {
     FMOD_STUDIO_SOUND_INFO info;
     int* outInts = (int*)ibuf;
     gStringBuf[0] = '\0';
     outInts[0] = -1;
+    outInts[1] = 0;
+    outInts[2] = 0;
+    outInts[3] = 0;
+    outInts[4] = 0;
+    outInts[5] = 0;
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (vbyte*)gStringBuf; }
     memset(&info, 0, sizeof(info));
     gLastResult = FMOD_Studio_System_GetSoundInfo(gStudioSystem, (const char*)key, &info);
     if (gLastResult != FMOD_OK) return (vbyte*)gStringBuf;
     outInts[0] = info.subsoundindex;
+    outInts[1] = (int)info.mode;
+    outInts[2] = (int)info.exinfo.length;
+    outInts[3] = (int)info.exinfo.fileoffset;
+    outInts[4] = info.exinfo.initialsubsound;
+    outInts[5] = info.exinfo.numsubsounds;
     /* For a bank loaded from memory name_or_data is the sample bytes themselves, which are no string. */
     if (info.name_or_data && !(info.mode & (FMOD_OPENMEMORY | FMOD_OPENMEMORY_POINT))) {
         strncpy(gStringBuf, info.name_or_data, sizeof(gStringBuf) - 1);

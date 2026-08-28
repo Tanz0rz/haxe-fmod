@@ -41,18 +41,21 @@ class NativeStudioJs {
     public static inline function sys_get_parameter_description_by_name(name:String):String return Raw.fmod_sys_get_parameter_description_by_name(name, Scratch.floatBuf(), Scratch.intBuf());
 
     public static inline function sys_get_parameter_label(parameterName:String, labelIndex:Int):String return Raw.fmod_sys_get_parameter_label(parameterName, labelIndex);
+    /** GUID of the parameter description read last, in FMOD's text form */
+    public static inline function sys_last_parameter_guid():String return Raw.fmod_sys_last_parameter_guid();
     public static inline function sys_get_num_listeners():Int return Raw.fmod_sys_get_num_listeners();
     public static inline function sys_set_num_listeners(count:Int):Int return Raw.fmod_sys_set_num_listeners(count);
 
-    /** Fills Scratch float buffer [0..11]: pos xyz, vel xyz, forward xyz, up xyz */
+    /** Fills Scratch float buffer [0..11]: pos xyz, vel xyz, forward xyz, up xyz, [12..14]: attenuation position xyz */
     public static inline function sys_get_listener_attributes(index:Int):Int return Raw.fmod_sys_get_listener_attributes(index, Scratch.floatBuf());
 
-    public static function sys_set_listener_attributes(index:Int, px:Float, py:Float, pz:Float, vx:Float, vy:Float, vz:Float, fx:Float, fy:Float, fz:Float, ux:Float, uy:Float, uz:Float):Int {
+    public static function sys_set_listener_attributes(index:Int, px:Float, py:Float, pz:Float, vx:Float, vy:Float, vz:Float, fx:Float, fy:Float, fz:Float, ux:Float, uy:Float, uz:Float, hasAttenuation:Bool, ax:Float, ay:Float, az:Float):Int {
         Scratch.writeF(0, px); Scratch.writeF(1, py); Scratch.writeF(2, pz);
         Scratch.writeF(3, vx); Scratch.writeF(4, vy); Scratch.writeF(5, vz);
         Scratch.writeF(6, fx); Scratch.writeF(7, fy); Scratch.writeF(8, fz);
         Scratch.writeF(9, ux); Scratch.writeF(10, uy); Scratch.writeF(11, uz);
-        return Raw.fmod_sys_set_listener_attributes(index, Scratch.floatBuf());
+        Scratch.writeF(12, ax); Scratch.writeF(13, ay); Scratch.writeF(14, az);
+        return Raw.fmod_sys_set_listener_attributes(index, Scratch.floatBuf(), hasAttenuation);
     }
     public static inline function sys_get_listener_weight(index:Int):Float return Raw.fmod_sys_get_listener_weight(index);
     public static inline function sys_set_listener_weight(index:Int, weight:Float):Int return Raw.fmod_sys_set_listener_weight(index, weight);
@@ -484,22 +487,22 @@ class NativeStudioJs {
     public static inline function dsp_get_metering_enabled(handle:Int):Int return Raw.fmod_dsp_get_metering_enabled(handle, Scratch.intBuf());
 
     // Bank loading from memory
-    public static inline function sys_load_bank_memory(data:haxe.io.Bytes, len:Int):Int return Raw.fmod_sys_load_bank_memory(data.getData(), len);
+    public static inline function sys_load_bank_memory(data:haxe.io.Bytes, len:Int, flags:Int):Int return Raw.fmod_sys_load_bank_memory(data.getData(), len, flags);
 
     // Event instance core bridge
     public static inline function evi_get_channel_group(handle:Int):Int return Raw.fmod_evi_get_channel_group(handle);
 
     // Command capture and replay
-    public static inline function sys_start_command_capture(path:String):Int return Raw.fmod_sys_start_command_capture(path);
+    public static inline function sys_start_command_capture(path:String, flags:Int):Int return Raw.fmod_sys_start_command_capture(path, flags);
     public static inline function sys_stop_command_capture():Int return Raw.fmod_sys_stop_command_capture();
-    public static inline function sys_load_command_replay(path:String):Int return Raw.fmod_sys_load_command_replay(path);
+    public static inline function sys_load_command_replay(path:String, flags:Int):Int return Raw.fmod_sys_load_command_replay(path, flags);
     public static inline function replay_release(handle:Int):Int return Raw.fmod_replay_release(handle);
     public static inline function replay_is_valid(handle:Int):Bool return Raw.fmod_replay_is_valid(handle);
     public static inline function replay_start(handle:Int):Int return Raw.fmod_replay_start(handle);
     public static inline function replay_stop(handle:Int):Int return Raw.fmod_replay_stop(handle);
     public static inline function replay_set_paused(handle:Int, paused:Bool):Int return Raw.fmod_replay_set_paused(handle, paused);
     public static inline function replay_get_paused(handle:Int):Bool return Raw.fmod_replay_get_paused(handle);
-    public static inline function replay_seek_to_time(handle:Int, timeMs:Int):Int return Raw.fmod_replay_seek_to_time(handle, timeMs);
+    public static inline function replay_seek_to_time(handle:Int, seconds:Float):Int return Raw.fmod_replay_seek_to_time(handle, seconds);
     public static inline function replay_get_length(handle:Int):Float return Raw.fmod_replay_get_length(handle);
 
     // Channel priority, virtualization, and remaining getters
@@ -782,11 +785,12 @@ private extern class Raw {
     static function fmod_sys_get_parameter_description_count():Int;
     static function fmod_sys_get_parameter_description_by_index(index:Int, fout:Array<Float>, iout:Array<Int>):String;
     static function fmod_sys_get_parameter_description_by_name(name:String, fout:Array<Float>, iout:Array<Int>):String;
+    static function fmod_sys_last_parameter_guid():String;
     static function fmod_sys_get_parameter_label(parameterName:String, labelIndex:Int):String;
     static function fmod_sys_get_num_listeners():Int;
     static function fmod_sys_set_num_listeners(count:Int):Int;
     static function fmod_sys_get_listener_attributes(index:Int, fout:Array<Float>):Int;
-    static function fmod_sys_set_listener_attributes(index:Int, f:Array<Float>):Int;
+    static function fmod_sys_set_listener_attributes(index:Int, f:Array<Float>, hasAttenuation:Bool):Int;
     static function fmod_sys_get_listener_weight(index:Int):Float;
     static function fmod_sys_set_listener_weight(index:Int, weight:Float):Int;
     static function fmod_sys_load_bank_file(path:String, flags:Int):Int;
@@ -1069,18 +1073,18 @@ private extern class Raw {
     static function fmod_dsp_get_active(handle:Int):Bool;
     static function fmod_dsp_get_metering_enabled(handle:Int, ibuf:Array<Int>):Int;
 
-    static function fmod_sys_load_bank_memory(data:haxe.io.BytesData, len:Int):Int;
+    static function fmod_sys_load_bank_memory(data:haxe.io.BytesData, len:Int, flags:Int):Int;
     static function fmod_evi_get_channel_group(handle:Int):Int;
-    static function fmod_sys_start_command_capture(path:String):Int;
+    static function fmod_sys_start_command_capture(path:String, flags:Int):Int;
     static function fmod_sys_stop_command_capture():Int;
-    static function fmod_sys_load_command_replay(path:String):Int;
+    static function fmod_sys_load_command_replay(path:String, flags:Int):Int;
     static function fmod_replay_release(handle:Int):Int;
     static function fmod_replay_is_valid(handle:Int):Bool;
     static function fmod_replay_start(handle:Int):Int;
     static function fmod_replay_stop(handle:Int):Int;
     static function fmod_replay_set_paused(handle:Int, paused:Bool):Int;
     static function fmod_replay_get_paused(handle:Int):Bool;
-    static function fmod_replay_seek_to_time(handle:Int, timeMs:Int):Int;
+    static function fmod_replay_seek_to_time(handle:Int, seconds:Float):Int;
     static function fmod_replay_get_length(handle:Int):Float;
     static function fmod_chan_set_priority(handle:Int, priority:Int):Int;
     static function fmod_chan_get_priority(handle:Int):Int;

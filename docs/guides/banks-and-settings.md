@@ -100,7 +100,7 @@ Two spellings of one file share one refcount, since `BankRegistry.normalizePath`
 The registry is a convenience over `StudioSystem` and `Bank`, which remain available.
 
 - `StudioSystem.loadBankFile(path, ?flags)` loads a bank and returns its handle. `NONBLOCKING` starts an asynchronous load.
-- `StudioSystem.loadBankMemory(bytes)` loads a bank from bytes you fetched or embedded. The data is copied.
+- `StudioSystem.loadBankMemory(bytes, ?flags)` loads a bank from bytes you fetched or embedded, with the same flags. The data is copied.
 - `StudioSystem.getBank("bank:/Master")` looks a loaded bank up by its FMOD path, and `getBankList()` enumerates them.
 - `Bank.getLoadingState()`, `loadSampleData()`, `unloadSampleData()`, `getSampleLoadingState()`, `getEventList()`, `getBusList()`, `getVCAList()`, and `unload()`.
 - `StudioSystem.unloadAll()` unloads everything. The registry keeps its reference counts, so a later registry load carries them forward.

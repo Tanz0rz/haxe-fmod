@@ -104,8 +104,8 @@ class BeatTestState extends FlxState {
                     log('CB_TEST: TimelineBeat bar=$bar beat=$beat position=$positionMs tempo=$tempo timeSig=$timeSigUpper/$timeSigLower');
                     _beatSeen = true;
                     if (timeSigUpper > 0 && timeSigLower > 0) _beatTimeSigOk = true;
-                case NestedTimelineBeat(bar, beat, positionMs, tempo, timeSigUpper, timeSigLower):
-                    log('CB_TEST: NestedTimelineBeat bar=$bar beat=$beat position=$positionMs tempo=$tempo timeSig=$timeSigUpper/$timeSigLower');
+                case NestedTimelineBeat(bar, beat, positionMs, tempo, timeSigUpper, timeSigLower, eventId):
+                    log('CB_TEST: NestedTimelineBeat bar=$bar beat=$beat position=$positionMs tempo=$tempo timeSig=$timeSigUpper/$timeSigLower eventId=$eventId');
                 case Stopped:
                     log("CB_TEST: Stopped");
                     _stoppedReceived = true;
@@ -155,6 +155,8 @@ class BeatTestState extends FlxState {
     var _nestedInstance:EventInstance = EventInstance.NULL;
     var _nestedBeats:Int = 0;
     var _nestedTempoOk:Bool = false;
+    var _nestedEventId:String = "";
+    var _nestedParentId:String = "";
     var _nestedFrames:Int = 0;
     var _nestedBaseline:Int = 0;
 
@@ -166,16 +168,18 @@ class BeatTestState extends FlxState {
         _nestedBaseline = StudioSystem.liveHandleCount();
         check("nested_event_lookup", !desc.isNull(),
             'result=${StudioSystem.lastResult().toString()}');
+        _nestedParentId = desc.getID();
         _nestedInstance = desc.createInstance();
         // The full mask, with every delivery logged: which type the
         // parent's referenced-event beats arrive under is itself under
         // test (a browser glue can misroute them)
         _nestedInstance.setCallback(data -> {
             switch (data) {
-                case NestedTimelineBeat(bar, beat, positionMs, tempo, timeSigUpper, timeSigLower):
-                    log('CB_TEST: nested-phase NestedTimelineBeat bar=$bar beat=$beat position=$positionMs tempo=$tempo timeSig=$timeSigUpper/$timeSigLower');
+                case NestedTimelineBeat(bar, beat, positionMs, tempo, timeSigUpper, timeSigLower, eventId):
+                    log('CB_TEST: nested-phase NestedTimelineBeat bar=$bar beat=$beat position=$positionMs tempo=$tempo timeSig=$timeSigUpper/$timeSigLower eventId=$eventId');
                     _nestedBeats++;
                     if (tempo > 0 && timeSigUpper > 0 && timeSigLower > 0) _nestedTempoOk = true;
+                    _nestedEventId = eventId;
                 case other:
                     log('CB_TEST: nested-phase $other');
             }
@@ -210,6 +214,19 @@ class BeatTestState extends FlxState {
         FmodManager.Update();
         check("no_nested_leaks", StudioSystem.liveHandleCount() == _nestedBaseline,
             'baseline=$_nestedBaseline now=${StudioSystem.liveHandleCount()}');
+        // The payload carries the GUID FMOD reports for the referenced
+        // timeline. FMOD 2.03.12 hands over the timeline object's own id,
+        // which no lookup resolves, so a well-formed non-zero GUID that is
+        // not the parent's is the proof it arrived intact
+        var zeroGuid = "{00000000-0000-0000-0000-000000000000}";
+        #if js
+        // The web glue hands the beat fields over flat and drops the GUID
+        log('CB_TEST: nested_beat_event_id info=eventId=$_nestedEventId');
+        #else
+        check("nested_beat_event_id", _nestedEventId.length == 38 && _nestedEventId != zeroGuid
+            && _nestedEventId != _nestedParentId,
+            'eventId=$_nestedEventId');
+        #end
         startOverflowPhase();
     }
 
