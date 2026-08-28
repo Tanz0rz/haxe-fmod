@@ -22,3 +22,12 @@
     color: #666666;
     text-decoration: underline;
 }
+
+/* The site sizes every tab for two or three characters (max-width 30px),
+   which pushes "Haxe" off center. Match the site's selector specificity
+   and give the word its room. */
+#Documentation div.documentation-content div.language-tab.haxefmod-tab,
+#Documentation div.searchresults div.language-tab.haxefmod-tab {
+    max-width: 40px;
+    text-align: center;
+}

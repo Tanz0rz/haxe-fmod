@@ -28,7 +28,7 @@ Pick the lowest tier that does what you need. They compose, so a game can start 
 - The command line (`check`, `generate`, `todos`, `build-hdll`): [Tools CLI](guides/tools-cli.md).
 - Per-target behavior: [Platforms](platforms.md).
 - Every class and method: [API reference](/haxe-fmod/api/).
-- Which FMOD functions are bound, and by what: [Coverage](coverage.md).
+- Which FMOD functions are bound, and by what: [Coverage](coverage.md). Which are not, and why: [Unsupported functions](unsupported.md).
 
 ## The Haxe tab on fmod.com
 

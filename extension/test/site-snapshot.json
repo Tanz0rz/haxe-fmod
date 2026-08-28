@@ -1,0 +1,3425 @@
+{
+ "welcome-whats-new-201": {
+  "functions": [],
+  "examples": [
+   {
+    "index": 0,
+    "kind": "lone",
+    "heading": "Thread attributes",
+    "code": "3c351394c88e"
+   },
+   {
+    "index": 1,
+    "kind": "lone",
+    "heading": "Thread attributes",
+    "code": "a90b3791abe3"
+   }
+  ]
+ },
+ "running-the-core-api": {
+  "functions": [],
+  "examples": [
+   {
+    "index": 0,
+    "kind": "lone",
+    "heading": "3.1 Initializing the Core API",
+    "code": "52fd432c8f81"
+   }
+  ]
+ },
+ "loading-and-playing-sounds-in-the-core-api": {
+  "functions": [],
+  "examples": [
+   {
+    "index": 0,
+    "kind": "lone",
+    "heading": "4.1.1 Non-blocking Sound Creation",
+    "code": "c237eeef21be"
+   },
+   {
+    "index": 1,
+    "kind": "lone",
+    "heading": "4.1.1 Non-blocking Sound Creation",
+    "code": "46c2bf2f78af"
+   },
+   {
+    "index": 2,
+    "kind": "lone",
+    "heading": "4.1.1 Non-blocking Sound Creation",
+    "code": "b59d7756a887"
+   },
+   {
+    "index": 3,
+    "kind": "tabbed",
+    "heading": "4.2 Playing a sound",
+    "code": "49af1266a5e3"
+   },
+   {
+    "index": 4,
+    "kind": "tabbed",
+    "heading": "4.3.1 Creating a Sound from memory",
+    "code": "34181152527f"
+   },
+   {
+    "index": 5,
+    "kind": "tabbed",
+    "heading": "4.3.1 Creating a Sound from memory",
+    "code": "112a603139d5"
+   },
+   {
+    "index": 6,
+    "kind": "tabbed",
+    "heading": "4.3.2 Creating a Sound from PCM data",
+    "code": "582a368b47bd"
+   },
+   {
+    "index": 7,
+    "kind": "tabbed",
+    "heading": "4.3.3 Creating a Sound by manually providing sample data",
+    "code": "267ce3c58ca1"
+   },
+   {
+    "index": 8,
+    "kind": "lone",
+    "heading": "4.3.4 Creating the Sound as a Streamed FSB File",
+    "code": "08b75c7e2616"
+   },
+   {
+    "index": 9,
+    "kind": "lone",
+    "heading": "4.5.1 Setup : Override FMOD's file system with callbacks",
+    "code": "41f5eac836ce"
+   },
+   {
+    "index": 10,
+    "kind": "lone",
+    "heading": "4.5.1 Setup : Override FMOD's file system with callbacks",
+    "code": "80657a95007a"
+   },
+   {
+    "index": 11,
+    "kind": "lone",
+    "heading": "4.5.2 Defining the basics - opening and closing the file handle.",
+    "code": "599008f5e36b"
+   },
+   {
+    "index": 12,
+    "kind": "lone",
+    "heading": "4.5.3 Defining 'userasyncread'",
+    "code": "389a022e3dc7"
+   },
+   {
+    "index": 13,
+    "kind": "lone",
+    "heading": "4.5.4 Defining 'userasynccancel'",
+    "code": "e1532205cf10"
+   },
+   {
+    "index": 14,
+    "kind": "lone",
+    "heading": "4.5.5 Filling out the FMOD_ASYNCREADINFO structure when performing a deferred read",
+    "code": "974efaa43d0b"
+   }
+  ]
+ },
+ "spatializing-sounds-in-the-core-api": {
+  "functions": [],
+  "examples": [
+   {
+    "index": 0,
+    "kind": "lone",
+    "heading": "5.0.2 Loading Sounds as 3D",
+    "code": "aea3745deeb7"
+   },
+   {
+    "index": 1,
+    "kind": "lone",
+    "heading": "5.1 Controlling a Spatializer DSP",
+    "code": "2206cba6f1cb"
+   },
+   {
+    "index": 2,
+    "kind": "lone",
+    "heading": "5.1 Controlling a Spatializer DSP",
+    "code": "d8fdc52df3ec"
+   },
+   {
+    "index": 3,
+    "kind": "lone",
+    "heading": "5.1.1 Velocity",
+    "code": "91d49de82677"
+   },
+   {
+    "index": 4,
+    "kind": "lone",
+    "heading": "5.1.1 Velocity",
+    "code": "0c70a4978816"
+   },
+   {
+    "index": 5,
+    "kind": "lone",
+    "heading": "5.1.1 Velocity",
+    "code": "aeb84b01aa0d"
+   }
+  ]
+ },
+ "using-dsp-effects-in-the-core-api": {
+  "functions": [],
+  "examples": [
+   {
+    "index": 0,
+    "kind": "lone",
+    "heading": "Add a DSP effect to a Channel",
+    "code": "5e4aff5fee3a"
+   },
+   {
+    "index": 1,
+    "kind": "lone",
+    "heading": "Add a DSP effect to a Channel",
+    "code": "e590cbde2deb"
+   },
+   {
+    "index": 2,
+    "kind": "lone",
+    "heading": "Add a DSP effect to a Channel",
+    "code": "568f8b54a61e"
+   },
+   {
+    "index": 3,
+    "kind": "lone",
+    "heading": "Add an effect to the ChannelGroup",
+    "code": "bbe6f233617a"
+   },
+   {
+    "index": 4,
+    "kind": "lone",
+    "heading": "Creating an effect and making all Channels send to it.",
+    "code": "5f3149177cc4"
+   },
+   {
+    "index": 5,
+    "kind": "lone",
+    "heading": "Creating an effect and making all Channels send to it.",
+    "code": "9ef5c90df5d3"
+   },
+   {
+    "index": 6,
+    "kind": "lone",
+    "heading": "Creating an effect and making all Channels send to it.",
+    "code": "7645db4c7cb9"
+   },
+   {
+    "index": 7,
+    "kind": "lone",
+    "heading": "Controlling mix level and pan matrices for DSPConnections",
+    "code": "628a3cd845f1"
+   },
+   {
+    "index": 8,
+    "kind": "lone",
+    "heading": "Controlling mix level and pan matrices for DSPConnections",
+    "code": "f6157ca33b0e"
+   },
+   {
+    "index": 9,
+    "kind": "lone",
+    "heading": "Set the output format of a DSP unit, and control the pan matrix for its output signal",
+    "code": "02e7a366404e"
+   },
+   {
+    "index": 10,
+    "kind": "lone",
+    "heading": "Set the output format of a DSP unit, and control the pan matrix for its output signal",
+    "code": "e0fc1899d849"
+   },
+   {
+    "index": 11,
+    "kind": "lone",
+    "heading": "Bypass an effect / disable it.",
+    "code": "35e2f59bb030"
+   },
+   {
+    "index": 12,
+    "kind": "lone",
+    "heading": "7.2 Plug-in DSP Effects",
+    "code": "9f3f7da3da9d"
+   },
+   {
+    "index": 13,
+    "kind": "lone",
+    "heading": "7.2 Plug-in DSP Effects",
+    "code": "842f6772db2c"
+   },
+   {
+    "index": 14,
+    "kind": "lone",
+    "heading": "7.2 Plug-in DSP Effects",
+    "code": "f7f5010f53d0"
+   },
+   {
+    "index": 15,
+    "kind": "lone",
+    "heading": "7.2 Plug-in DSP Effects",
+    "code": "770770860fed"
+   },
+   {
+    "index": 16,
+    "kind": "lone",
+    "heading": "7.2.1 The Plug-in Descriptor",
+    "code": "8d7ea898d0d3"
+   },
+   {
+    "index": 17,
+    "kind": "lone",
+    "heading": "7.2.4 Multiple plug-ins within one file",
+    "code": "e550d7c9500e"
+   },
+   {
+    "index": 18,
+    "kind": "lone",
+    "heading": "7.2.4 Multiple plug-ins within one file",
+    "code": "ebe883cabdc0"
+   }
+  ]
+ },
+ "managing-resources-in-the-core-api": {
+  "functions": [],
+  "examples": [
+   {
+    "index": 0,
+    "kind": "lone",
+    "heading": "9.5.1 Use a Fixed-size Memory Pool.",
+    "code": "d9c4e1170daf"
+   }
+  ]
+ },
+ "advanced-core-api-topics": {
+  "functions": [],
+  "examples": [
+   {
+    "index": 0,
+    "kind": "tabbed",
+    "heading": "10.2 Extracting PCM Data from a Sound",
+    "code": "3edfab4da3bc"
+   },
+   {
+    "index": 1,
+    "kind": "tabbed",
+    "heading": "Codec Example",
+    "code": "c6240804dd4c"
+   },
+   {
+    "index": 2,
+    "kind": "tabbed",
+    "heading": "Output Example",
+    "code": "8df9c9128cc8"
+   },
+   {
+    "index": 3,
+    "kind": "tabbed",
+    "heading": "DSP Example",
+    "code": "547d35e43e18"
+   },
+   {
+    "index": 4,
+    "kind": "tabbed",
+    "heading": "Codec Example",
+    "code": "3bdaf1b45dac"
+   },
+   {
+    "index": 5,
+    "kind": "tabbed",
+    "heading": "Output Example",
+    "code": "633f2f9d8fe6"
+   },
+   {
+    "index": 6,
+    "kind": "tabbed",
+    "heading": "DSP Example",
+    "code": "a33b8da0dc60"
+   },
+   {
+    "index": 7,
+    "kind": "lone",
+    "heading": "10.7.1 3D Reverbs",
+    "code": "715f7f76059b"
+   },
+   {
+    "index": 8,
+    "kind": "lone",
+    "heading": "10.7.1 3D Reverbs",
+    "code": "e7bc46f774ce"
+   },
+   {
+    "index": 9,
+    "kind": "lone",
+    "heading": "10.7.1 3D Reverbs",
+    "code": "6efc5277069c"
+   },
+   {
+    "index": 10,
+    "kind": "lone",
+    "heading": "10.7.2 Using Multiple Reverbs",
+    "code": "6645d1147be7"
+   },
+   {
+    "index": 11,
+    "kind": "lone",
+    "heading": "10.7.2 Using Multiple Reverbs",
+    "code": "89f4f04f4958"
+   },
+   {
+    "index": 12,
+    "kind": "lone",
+    "heading": "10.7.2 Using Multiple Reverbs",
+    "code": "34c7d7539b23"
+   },
+   {
+    "index": 13,
+    "kind": "lone",
+    "heading": "10.7.2 Using Multiple Reverbs",
+    "code": "f13c56db6961"
+   },
+   {
+    "index": 14,
+    "kind": "lone",
+    "heading": "10.7.2 Using Multiple Reverbs",
+    "code": "24bd9031b05e"
+   },
+   {
+    "index": 15,
+    "kind": "lone",
+    "heading": "Added new DSP effects",
+    "code": "7516e207aade"
+   }
+  ]
+ },
+ "studio-api-getting-started": {
+  "functions": [],
+  "examples": [
+   {
+    "index": 0,
+    "kind": "lone",
+    "heading": "12.1.1 Studio API Initialization",
+    "code": "4129f2fc10c4"
+   }
+  ]
+ },
+ "studio-guide": {
+  "functions": [],
+  "examples": [
+   {
+    "index": 0,
+    "kind": "lone",
+    "heading": "13.9.1 Scripting Example",
+    "code": "893560925da2"
+   },
+   {
+    "index": 1,
+    "kind": "lone",
+    "heading": "13.9.1 Scripting Example",
+    "code": "dada2689ed6e"
+   },
+   {
+    "index": 2,
+    "kind": "lone",
+    "heading": "13.9.1 Scripting Example",
+    "code": "caf5598e272d"
+   },
+   {
+    "index": 3,
+    "kind": "lone",
+    "heading": "13.9.1 Scripting Example",
+    "code": "f5301ee3c9b4"
+   },
+   {
+    "index": 4,
+    "kind": "lone",
+    "heading": "13.9.1 Scripting Example",
+    "code": "b83ddf095762"
+   },
+   {
+    "index": 5,
+    "kind": "lone",
+    "heading": "13.9.1 Scripting Example",
+    "code": "fa7eaefc48fe"
+   }
+  ]
+ },
+ "dsp-plugin-api-guide": {
+  "functions": [],
+  "examples": [
+   {
+    "index": 0,
+    "kind": "lone",
+    "heading": "18.2.1 Building a Plug-in",
+    "code": "bdaf5d4ae703"
+   },
+   {
+    "index": 1,
+    "kind": "lone",
+    "heading": "18.2.1 Building a Plug-in",
+    "code": "a6e1796900fb"
+   },
+   {
+    "index": 2,
+    "kind": "lone",
+    "heading": "18.2.2 Loading the Plug-in in the Game",
+    "code": "9f3f7da3da9d"
+   },
+   {
+    "index": 3,
+    "kind": "lone",
+    "heading": "18.2.2 Loading the Plug-in in the Game",
+    "code": "842f6772db2c"
+   },
+   {
+    "index": 4,
+    "kind": "lone",
+    "heading": "18.2.2 Loading the Plug-in in the Game",
+    "code": "f7f5010f53d0"
+   },
+   {
+    "index": 5,
+    "kind": "lone",
+    "heading": "18.2.2 Loading the Plug-in in the Game",
+    "code": "770770860fed"
+   },
+   {
+    "index": 6,
+    "kind": "lone",
+    "heading": "18.4 The Plug-in Descriptor",
+    "code": "8d7ea898d0d3"
+   },
+   {
+    "index": 7,
+    "kind": "lone",
+    "heading": "18.7 Multiple Plug-ins Within One File",
+    "code": "e550d7c9500e"
+   },
+   {
+    "index": 8,
+    "kind": "lone",
+    "heading": "18.7 Multiple Plug-ins Within One File",
+    "code": "ebe883cabdc0"
+   }
+  ]
+ },
+ "fsbank-api": {
+  "functions": [
+   "fsbank_init",
+   "fsbank_build",
+   "fsbank_buildcancel",
+   "fsbank_release",
+   "fsbank_releaseprogressitem",
+   "fsbank_memorygetstats",
+   "fsbank_memoryinit",
+   "fsbank_fetchfsbmemory",
+   "fsbank_fetchnextprogressitem"
+  ],
+  "examples": [
+   {
+    "index": 9,
+    "kind": "tabbed",
+    "heading": "20.10 FSBANK_MEMORY_ALLOC_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 10,
+    "kind": "tabbed",
+    "heading": "20.11 FSBANK_MEMORY_FREE_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 11,
+    "kind": "tabbed",
+    "heading": "20.12 FSBANK_MEMORY_REALLOC_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 12,
+    "kind": "tabbed",
+    "heading": "20.13 FSBANK_INITFLAGS",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 13,
+    "kind": "tabbed",
+    "heading": "20.14 FSBANK_BUILDFLAGS",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 14,
+    "kind": "tabbed",
+    "heading": "20.15 FSBANK_FORMAT",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 15,
+    "kind": "tabbed",
+    "heading": "20.16 FSBANK_FSBVERSION",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 16,
+    "kind": "tabbed",
+    "heading": "20.17 FSBANK_PROGRESSITEM",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 17,
+    "kind": "tabbed",
+    "heading": "20.18 FSBANK_RESULT",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 18,
+    "kind": "tabbed",
+    "heading": "20.19 FSBANK_STATE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 19,
+    "kind": "tabbed",
+    "heading": "20.20 FSBANK_STATEDATA_FAILED",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 20,
+    "kind": "tabbed",
+    "heading": "20.21 FSBANK_STATEDATA_WARNING",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 21,
+    "kind": "tabbed",
+    "heading": "20.22 FSBANK_SUBSOUND",
+    "code": "da39a3ee5e6b"
+   }
+  ]
+ },
+ "glossary": {
+  "functions": [],
+  "examples": [
+   {
+    "index": 0,
+    "kind": "tabbed",
+    "heading": "22.33 Reading Sound Data",
+    "code": "c6acb230324f"
+   },
+   {
+    "index": 1,
+    "kind": "tabbed",
+    "heading": "22.49 User Data",
+    "code": "15df068d3bf9"
+   }
+  ]
+ },
+ "core-api-common-dsp-effects": {
+  "functions": [],
+  "examples": [
+   {
+    "index": 0,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_CHANNELMIX",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 1,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_CHANNELMIX_OUTPUT",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 2,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_CHORUS",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 3,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_COMPRESSOR",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 4,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_CONVOLUTION_REVERB",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 5,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_DELAY",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 6,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_DISTORTION",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 7,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_ECHO",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 8,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_ECHO_DELAYCHANGEMODE_TYPE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 9,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_FADER",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 10,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_FFT",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 11,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_FFT_DOWNMIX_TYPE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 12,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_FFT_WINDOW_TYPE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 13,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_FLANGE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 14,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_HIGHPASS",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 15,
+    "kind": "lone",
+    "heading": "FMOD_DSP_HIGHPASS",
+    "code": "bf10825079bf"
+   },
+   {
+    "index": 16,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_HIGHPASS_SIMPLE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 17,
+    "kind": "lone",
+    "heading": "FMOD_DSP_HIGHPASS_SIMPLE",
+    "code": "3e40114e5821"
+   },
+   {
+    "index": 18,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_ITECHO",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 19,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_ITLOWPASS",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 20,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_LIMITER",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 21,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_LOUDNESS_METER",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 22,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_LOUDNESS_METER_INFO_TYPE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 23,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_LOUDNESS_METER_STATE_TYPE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 24,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_LOUDNESS_METER_WEIGHTING_TYPE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 25,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_LOWPASS",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 26,
+    "kind": "lone",
+    "heading": "FMOD_DSP_LOWPASS",
+    "code": "824c4924ec13"
+   },
+   {
+    "index": 27,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_LOWPASS_SIMPLE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 28,
+    "kind": "lone",
+    "heading": "FMOD_DSP_LOWPASS_SIMPLE",
+    "code": "2f24ddfe63b2"
+   },
+   {
+    "index": 29,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_MULTIBAND_DYNAMICS",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 30,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_MULTIBAND_DYNAMICS_MODE_TYPE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 31,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_MULTIBAND_EQ",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 32,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_MULTIBAND_EQ_FILTER_TYPE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 33,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_NORMALIZE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 34,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_OBJECTPAN",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 35,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_OSCILLATOR",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 36,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_PAN",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 37,
+    "kind": "lone",
+    "heading": "FMOD_DSP_PAN",
+    "code": "836904aebfa2"
+   },
+   {
+    "index": 38,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_PAN_2D_STEREO_MODE_TYPE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 39,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_PAN_3D_EXTENT_MODE_TYPE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 40,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_PAN_3D_ROLLOFF_TYPE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 41,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_PAN_MODE_TYPE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 42,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_PARAMEQ",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 43,
+    "kind": "lone",
+    "heading": "FMOD_DSP_PARAMEQ",
+    "code": "bc44c1d7d2d2"
+   },
+   {
+    "index": 44,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_PITCHSHIFT",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 45,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_RETURN",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 46,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_SEND",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 47,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_SFXREVERB",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 48,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_THREE_EQ",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 49,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_THREE_EQ_CROSSOVERSLOPE_TYPE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 50,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_TRANSCEIVER",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 51,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_TRANSCEIVER_SPEAKERMODE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 52,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_TREMOLO",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 53,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_TYPE",
+    "code": "da39a3ee5e6b"
+   }
+  ]
+ },
+ "core-api-system": {
+  "functions": [
+   "system_attachchannelgrouptoport",
+   "system_attachfilesystem",
+   "system_close",
+   "system_create",
+   "system_createchannelgroup",
+   "system_createdsp",
+   "system_createdspbyplugin",
+   "system_createdspbytype",
+   "system_createdspconnection",
+   "system_creategeometry",
+   "system_createreverb3d",
+   "system_createsound",
+   "system_createsoundgroup",
+   "system_createstream",
+   "system_detachchannelgroupfromport",
+   "system_get3dlistenerattributes",
+   "system_get3dnumlisteners",
+   "system_get3dsettings",
+   "system_getadvancedsettings",
+   "system_getchannel",
+   "system_getchannelsplaying",
+   "system_getcpuusage",
+   "system_getdefaultmixmatrix",
+   "system_getdriver",
+   "system_getdriverinfo",
+   "system_getdspbuffersize",
+   "system_getdspinfobyplugin",
+   "system_getdspinfobytype",
+   "system_getfileusage",
+   "system_getgeometryocclusion",
+   "system_getgeometrysettings",
+   "system_getmasterchannelgroup",
+   "system_getmastersoundgroup",
+   "system_getnestedplugin",
+   "system_getnetworkproxy",
+   "system_getnetworktimeout",
+   "system_getnumdrivers",
+   "system_getnumnestedplugins",
+   "system_getnumplugins",
+   "system_getoutput",
+   "system_getoutputbyplugin",
+   "system_getoutputhandle",
+   "system_getpluginhandle",
+   "system_getplugininfo",
+   "system_getrecorddriverinfo",
+   "system_getrecordnumdrivers",
+   "system_getrecordposition",
+   "system_getreverbproperties",
+   "system_getsoftwarechannels",
+   "system_getsoftwareformat",
+   "system_getspeakermodechannels",
+   "system_getspeakerposition",
+   "system_getstreambuffersize",
+   "system_getuserdata",
+   "system_getversion",
+   "system_init",
+   "system_isrecording",
+   "system_loadgeometry",
+   "system_loadplugin",
+   "system_lockdsp",
+   "system_mixerresume",
+   "system_mixersuspend",
+   "system_playdsp",
+   "system_playsound",
+   "system_recordstart",
+   "system_recordstop",
+   "system_registercodec",
+   "system_registerdsp",
+   "system_registeroutput",
+   "system_release",
+   "system_set3dlistenerattributes",
+   "system_set3dnumlisteners",
+   "system_set3drolloffcallback",
+   "system_set3dsettings",
+   "system_setadvancedsettings",
+   "system_setcallback",
+   "system_setdriver",
+   "system_setdspbuffersize",
+   "system_setfilesystem",
+   "system_setgeometrysettings",
+   "system_setnetworkproxy",
+   "system_setnetworktimeout",
+   "system_setoutput",
+   "system_setoutputbyplugin",
+   "system_setpluginpath",
+   "system_setreverbproperties",
+   "system_setsoftwarechannels",
+   "system_setsoftwareformat",
+   "system_setspeakerposition",
+   "system_setstreambuffersize",
+   "system_setuserdata",
+   "system_unloadplugin",
+   "system_unlockdsp",
+   "system_update"
+  ],
+  "examples": [
+   {
+    "index": 0,
+    "kind": "tabbed",
+    "heading": "FMOD_3D_ROLLOFF_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 1,
+    "kind": "tabbed",
+    "heading": "FMOD_ADVANCEDSETTINGS",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 2,
+    "kind": "tabbed",
+    "heading": "FMOD_ASYNCREADINFO",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 3,
+    "kind": "tabbed",
+    "heading": "FMOD_CREATESOUNDEXINFO",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 4,
+    "kind": "tabbed",
+    "heading": "FMOD_DRIVER_STATE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 5,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_RESAMPLER",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 6,
+    "kind": "tabbed",
+    "heading": "FMOD_ERRORCALLBACK_INFO",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 7,
+    "kind": "tabbed",
+    "heading": "FMOD_ERRORCALLBACK_INSTANCETYPE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 8,
+    "kind": "tabbed",
+    "heading": "FMOD_FILE_ASYNCCANCEL_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 9,
+    "kind": "tabbed",
+    "heading": "FMOD_FILE_ASYNCDONE_FUNC",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 10,
+    "kind": "tabbed",
+    "heading": "FMOD_FILE_ASYNCREAD_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 11,
+    "kind": "tabbed",
+    "heading": "FMOD_FILE_CLOSE_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 12,
+    "kind": "tabbed",
+    "heading": "FMOD_FILE_OPEN_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 13,
+    "kind": "tabbed",
+    "heading": "FMOD_FILE_READ_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 14,
+    "kind": "tabbed",
+    "heading": "FMOD_FILE_SEEK_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 15,
+    "kind": "tabbed",
+    "heading": "FMOD_INITFLAGS",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 16,
+    "kind": "tabbed",
+    "heading": "FMOD_OUTPUTTYPE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 17,
+    "kind": "tabbed",
+    "heading": "FMOD_PLUGINLIST",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 18,
+    "kind": "tabbed",
+    "heading": "FMOD_PLUGINTYPE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 19,
+    "kind": "tabbed",
+    "heading": "FMOD_PORT_INDEX",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 20,
+    "kind": "tabbed",
+    "heading": "FMOD_PORT_TYPE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 21,
+    "kind": "tabbed",
+    "heading": "FMOD_REVERB_MAXINSTANCES",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 22,
+    "kind": "tabbed",
+    "heading": "FMOD_REVERB_PRESETS",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 23,
+    "kind": "tabbed",
+    "heading": "FMOD_REVERB_PROPERTIES",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 26,
+    "kind": "tabbed",
+    "heading": "FMOD_SYSTEM_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 27,
+    "kind": "tabbed",
+    "heading": "FMOD_SYSTEM_CALLBACK_TYPE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 104,
+    "kind": "lone",
+    "heading": "System::setDSPBufferSize",
+    "code": "a51f1ce9bdd3"
+   },
+   {
+    "index": 116,
+    "kind": "lone",
+    "heading": "System::setSpeakerPosition",
+    "code": "214c316327e3"
+   },
+   {
+    "index": 117,
+    "kind": "lone",
+    "heading": "System::setSpeakerPosition",
+    "code": "8661decc40c3"
+   },
+   {
+    "index": 118,
+    "kind": "lone",
+    "heading": "System::setSpeakerPosition",
+    "code": "4a85349832dc"
+   },
+   {
+    "index": 119,
+    "kind": "lone",
+    "heading": "System::setSpeakerPosition",
+    "code": "76e1592f9acd"
+   }
+  ]
+ },
+ "studio-api-system": {
+  "functions": [
+   "studio_system_create",
+   "studio_system_flushcommands",
+   "studio_system_flushsampleloading",
+   "studio_system_getadvancedsettings",
+   "studio_system_getbank",
+   "studio_system_getbankbyid",
+   "studio_system_getbankcount",
+   "studio_system_getbanklist",
+   "studio_system_getbufferusage",
+   "studio_system_getbus",
+   "studio_system_getbusbyid",
+   "studio_system_getcoresystem",
+   "studio_system_getcpuusage",
+   "studio_system_getevent",
+   "studio_system_geteventbyid",
+   "studio_system_getlistenerattributes",
+   "studio_system_getlistenerweight",
+   "studio_system_getmemoryusage",
+   "studio_system_getnumlisteners",
+   "studio_system_getparameterbyid",
+   "studio_system_getparameterbyname",
+   "studio_system_getparameterdescriptionbyid",
+   "studio_system_getparameterdescriptionbyname",
+   "studio_system_getparameterdescriptioncount",
+   "studio_system_getparameterdescriptionlist",
+   "studio_system_getparameterlabelbyid",
+   "studio_system_getparameterlabelbyname",
+   "studio_system_getsoundinfo",
+   "studio_system_getuserdata",
+   "studio_system_getvca",
+   "studio_system_getvcabyid",
+   "studio_system_initialize",
+   "studio_system_isvalid",
+   "studio_system_loadbankcustom",
+   "studio_system_loadbankfile",
+   "studio_system_loadbankmemory",
+   "studio_system_loadcommandreplay",
+   "studio_system_lookupid",
+   "studio_system_lookuppath",
+   "studio_system_registerplugin",
+   "studio_system_release",
+   "studio_system_resetbufferusage",
+   "studio_system_setadvancedsettings",
+   "studio_system_setcallback",
+   "studio_system_setlistenerattributes",
+   "studio_system_setlistenerweight",
+   "studio_system_setnumlisteners",
+   "studio_system_setparameterbyid",
+   "studio_system_setparameterbyidwithlabel",
+   "studio_system_setparameterbyname",
+   "studio_system_setparameterbynamewithlabel",
+   "studio_system_setparametersbyids",
+   "studio_system_setuserdata",
+   "studio_system_startcommandcapture",
+   "studio_system_stopcommandcapture",
+   "studio_system_unloadall",
+   "studio_system_unregisterplugin",
+   "studio_system_update"
+  ],
+  "examples": [
+   {
+    "index": 0,
+    "kind": "tabbed",
+    "heading": "FMOD_STUDIO_ADVANCEDSETTINGS",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 1,
+    "kind": "tabbed",
+    "heading": "FMOD_STUDIO_BANK_INFO",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 2,
+    "kind": "tabbed",
+    "heading": "FMOD_STUDIO_BUFFER_INFO",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 3,
+    "kind": "tabbed",
+    "heading": "FMOD_STUDIO_BUFFER_USAGE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 4,
+    "kind": "tabbed",
+    "heading": "FMOD_STUDIO_COMMANDCAPTURE_FLAGS",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 5,
+    "kind": "tabbed",
+    "heading": "FMOD_STUDIO_COMMANDREPLAY_FLAGS",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 6,
+    "kind": "tabbed",
+    "heading": "FMOD_STUDIO_CPU_USAGE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 7,
+    "kind": "tabbed",
+    "heading": "FMOD_STUDIO_INITFLAGS",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 8,
+    "kind": "tabbed",
+    "heading": "FMOD_STUDIO_LOAD_BANK_FLAGS",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 9,
+    "kind": "tabbed",
+    "heading": "FMOD_STUDIO_LOAD_MEMORY_ALIGNMENT",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 10,
+    "kind": "tabbed",
+    "heading": "FMOD_STUDIO_LOAD_MEMORY_MODE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 11,
+    "kind": "lone",
+    "heading": "FMOD_STUDIO_LOAD_MEMORY_MODE",
+    "code": "b5d07ab1176c"
+   },
+   {
+    "index": 12,
+    "kind": "tabbed",
+    "heading": "FMOD_STUDIO_SOUND_INFO",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 13,
+    "kind": "tabbed",
+    "heading": "FMOD_STUDIO_SYSTEM_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 14,
+    "kind": "tabbed",
+    "heading": "FMOD_STUDIO_SYSTEM_CALLBACK_TYPE",
+    "code": "da39a3ee5e6b"
+   }
+  ]
+ },
+ "studio-api-bus": {
+  "functions": [
+   "studio_bus_getchannelgroup",
+   "studio_bus_getcpuusage",
+   "studio_bus_getid",
+   "studio_bus_getmemoryusage",
+   "studio_bus_getmute",
+   "studio_bus_getpath",
+   "studio_bus_getpaused",
+   "studio_bus_getportindex",
+   "studio_bus_getvolume",
+   "studio_bus_isvalid",
+   "studio_bus_lockchannelgroup",
+   "studio_bus_setmute",
+   "studio_bus_setpaused",
+   "studio_bus_setportindex",
+   "studio_bus_setvolume",
+   "studio_bus_stopallevents",
+   "studio_bus_unlockchannelgroup"
+  ],
+  "examples": []
+ },
+ "studio-api-eventinstance": {
+  "functions": [
+   "studio_eventinstance_get3dattributes",
+   "studio_eventinstance_getchannelgroup",
+   "studio_eventinstance_getcpuusage",
+   "studio_eventinstance_getdescription",
+   "studio_eventinstance_getlistenermask",
+   "studio_eventinstance_getmemoryusage",
+   "studio_eventinstance_getminmaxdistance",
+   "studio_eventinstance_getparameterbyid",
+   "studio_eventinstance_getparameterbyname",
+   "studio_eventinstance_getpaused",
+   "studio_eventinstance_getpitch",
+   "studio_eventinstance_getplaybackstate",
+   "studio_eventinstance_getproperty",
+   "studio_eventinstance_getreverblevel",
+   "studio_eventinstance_getsystem",
+   "studio_eventinstance_gettimelineposition",
+   "studio_eventinstance_getuserdata",
+   "studio_eventinstance_getvolume",
+   "studio_eventinstance_isvalid",
+   "studio_eventinstance_isvirtual",
+   "studio_eventinstance_keyoff",
+   "studio_eventinstance_release",
+   "studio_eventinstance_set3dattributes",
+   "studio_eventinstance_setcallback",
+   "studio_eventinstance_setlistenermask",
+   "studio_eventinstance_setparameterbyid",
+   "studio_eventinstance_setparameterbyidwithlabel",
+   "studio_eventinstance_setparameterbyname",
+   "studio_eventinstance_setparameterbynamewithlabel",
+   "studio_eventinstance_setparametersbyids",
+   "studio_eventinstance_setpaused",
+   "studio_eventinstance_setpitch",
+   "studio_eventinstance_setproperty",
+   "studio_eventinstance_setreverblevel",
+   "studio_eventinstance_settimelineposition",
+   "studio_eventinstance_setuserdata",
+   "studio_eventinstance_setvolume",
+   "studio_eventinstance_start",
+   "studio_eventinstance_stop"
+  ],
+  "examples": [
+   {
+    "index": 39,
+    "kind": "tabbed",
+    "heading": "FMOD_STUDIO_EVENT_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 40,
+    "kind": "tabbed",
+    "heading": "FMOD_STUDIO_EVENT_CALLBACK_TYPE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 41,
+    "kind": "tabbed",
+    "heading": "FMOD_STUDIO_EVENT_PROPERTY",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 42,
+    "kind": "tabbed",
+    "heading": "FMOD_STUDIO_PLUGIN_INSTANCE_PROPERTIES",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 43,
+    "kind": "tabbed",
+    "heading": "FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 44,
+    "kind": "tabbed",
+    "heading": "FMOD_STUDIO_STOP_MODE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 45,
+    "kind": "tabbed",
+    "heading": "FMOD_STUDIO_TIMELINE_BEAT_PROPERTIES",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 46,
+    "kind": "tabbed",
+    "heading": "FMOD_STUDIO_TIMELINE_MARKER_PROPERTIES",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 47,
+    "kind": "tabbed",
+    "heading": "FMOD_STUDIO_TIMELINE_NESTED_BEAT_PROPERTIES",
+    "code": "da39a3ee5e6b"
+   }
+  ]
+ },
+ "studio-api-common": {
+  "functions": [
+   "studio_parseid"
+  ],
+  "examples": [
+   {
+    "index": 0,
+    "kind": "tabbed",
+    "heading": "FMOD_STUDIO_LOADING_STATE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 1,
+    "kind": "tabbed",
+    "heading": "FMOD_STUDIO_MEMORY_USAGE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 2,
+    "kind": "tabbed",
+    "heading": "FMOD_STUDIO_PARAMETER_DESCRIPTION",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 3,
+    "kind": "tabbed",
+    "heading": "FMOD_STUDIO_PARAMETER_FLAGS",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 4,
+    "kind": "tabbed",
+    "heading": "FMOD_STUDIO_PARAMETER_ID",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 5,
+    "kind": "tabbed",
+    "heading": "FMOD_STUDIO_PARAMETER_TYPE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 7,
+    "kind": "tabbed",
+    "heading": "FMOD_STUDIO_PLAYBACK_STATE",
+    "code": "da39a3ee5e6b"
+   }
+  ]
+ },
+ "core-api-dsp": {
+  "functions": [
+   "dsp_addinput",
+   "dsp_addinputpreallocated",
+   "dsp_disconnectall",
+   "dsp_disconnectfrom",
+   "dsp_getactive",
+   "dsp_getbypass",
+   "dsp_getchannelformat",
+   "dsp_getcpuusage",
+   "dsp_getdataparameterindex",
+   "dsp_getidle",
+   "dsp_getinfo",
+   "dsp_getinput",
+   "dsp_getmeteringenabled",
+   "dsp_getmeteringinfo",
+   "dsp_getnuminputs",
+   "dsp_getnumoutputs",
+   "dsp_getnumparameters",
+   "dsp_getoutput",
+   "dsp_getoutputchannelformat",
+   "dsp_getparameterbool",
+   "dsp_getparameterdata",
+   "dsp_getparameterfloat",
+   "dsp_getparameterinfo",
+   "dsp_getparameterint",
+   "dsp_getsystemobject",
+   "dsp_gettype",
+   "dsp_getuserdata",
+   "dsp_getwetdrymix",
+   "dsp_release",
+   "dsp_reset",
+   "dsp_setactive",
+   "dsp_setbypass",
+   "dsp_setcallback",
+   "dsp_setchannelformat",
+   "dsp_setmeteringenabled",
+   "dsp_setparameterbool",
+   "dsp_setparameterdata",
+   "dsp_setparameterfloat",
+   "dsp_setparameterint",
+   "dsp_setuserdata",
+   "dsp_setwetdrymix",
+   "dsp_showconfigdialog"
+  ],
+  "examples": [
+   {
+    "index": 2,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 3,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_CALLBACK_TYPE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 4,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_DATA_PARAMETER_INFO",
+    "code": "da39a3ee5e6b"
+   }
+  ]
+ },
+ "studio-api-eventdescription": {
+  "functions": [
+   "studio_eventdescription_createinstance",
+   "studio_eventdescription_getid",
+   "studio_eventdescription_getinstancecount",
+   "studio_eventdescription_getinstancelist",
+   "studio_eventdescription_getlength",
+   "studio_eventdescription_getminmaxdistance",
+   "studio_eventdescription_getparameterdescriptionbyid",
+   "studio_eventdescription_getparameterdescriptionbyindex",
+   "studio_eventdescription_getparameterdescriptionbyname",
+   "studio_eventdescription_getparameterdescriptioncount",
+   "studio_eventdescription_getparameterlabelbyid",
+   "studio_eventdescription_getparameterlabelbyindex",
+   "studio_eventdescription_getparameterlabelbyname",
+   "studio_eventdescription_getpath",
+   "studio_eventdescription_getsampleloadingstate",
+   "studio_eventdescription_getsoundsize",
+   "studio_eventdescription_getuserdata",
+   "studio_eventdescription_getuserproperty",
+   "studio_eventdescription_getuserpropertybyindex",
+   "studio_eventdescription_getuserpropertycount",
+   "studio_eventdescription_hassustainpoint",
+   "studio_eventdescription_is3d",
+   "studio_eventdescription_isdopplerenabled",
+   "studio_eventdescription_isoneshot",
+   "studio_eventdescription_issnapshot",
+   "studio_eventdescription_isstream",
+   "studio_eventdescription_isvalid",
+   "studio_eventdescription_loadsampledata",
+   "studio_eventdescription_releaseallinstances",
+   "studio_eventdescription_setcallback",
+   "studio_eventdescription_setuserdata",
+   "studio_eventdescription_unloadsampledata"
+  ],
+  "examples": [
+   {
+    "index": 32,
+    "kind": "tabbed",
+    "heading": "FMOD_STUDIO_USER_PROPERTY",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 33,
+    "kind": "tabbed",
+    "heading": "FMOD_STUDIO_USER_PROPERTY_TYPE",
+    "code": "da39a3ee5e6b"
+   }
+  ]
+ },
+ "plugin-api-dsp": {
+  "functions": [],
+  "examples": [
+   {
+    "index": 0,
+    "kind": "tabbed",
+    "heading": "FMOD_COMPLEX",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 1,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_ALLOC_FUNC",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 2,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_BUFFER_ARRAY",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 3,
+    "kind": "lone",
+    "heading": "FMOD_DSP_BUFFER_ARRAY",
+    "code": "83d1782e68a2"
+   },
+   {
+    "index": 4,
+    "kind": "lone",
+    "heading": "FMOD_DSP_BUFFER_ARRAY",
+    "code": "3704a12b85cc"
+   },
+   {
+    "index": 5,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_CREATE_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 6,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_DESCRIPTION",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 7,
+    "kind": "lone",
+    "heading": "FMOD_DSP_DESCRIPTION",
+    "code": "1db26841861e"
+   },
+   {
+    "index": 8,
+    "kind": "lone",
+    "heading": "FMOD_DSP_DESCRIPTION",
+    "code": "be72bd763ae7"
+   },
+   {
+    "index": 9,
+    "kind": "lone",
+    "heading": "FMOD_DSP_DESCRIPTION",
+    "code": "4aaabe8c5e09"
+   },
+   {
+    "index": 10,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_DFT_FFTREAL_FUNC",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 11,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_DFT_IFFTREAL_FUNC",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 12,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_FREE_FUNC",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 13,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_GETBLOCKSIZE_FUNC",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 14,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_GETCLOCK_FUNC",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 15,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_GETLISTENERATTRIBUTES_FUNC",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 16,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_GETPARAM_BOOL_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 17,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_GETPARAM_DATA_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 18,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_GETPARAM_FLOAT_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 19,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_GETPARAM_INT_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 20,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_GETPARAM_VALUESTR_LENGTH",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 21,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_GETSAMPLERATE_FUNC",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 22,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_GETSPEAKERMODE_FUNC",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 23,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_GETUSERDATA_FUNC",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 24,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_LOG_FUNC",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 25,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_METERING_INFO",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 26,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_PAN_GETROLLOFFGAIN_FUNC",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 27,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_PAN_SUMMONOMATRIX_FUNC",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 28,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_PAN_SUMMONOTOSURROUNDMATRIX_FUNC",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 29,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_PAN_SUMSTEREOMATRIX_FUNC",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 30,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_PAN_SUMSTEREOTOSURROUNDMATRIX_FUNC",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 31,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_PAN_SUMSURROUNDMATRIX_FUNC",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 32,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_PAN_SURROUND_FLAGS",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 33,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_PARAMETER_3DATTRIBUTES",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 34,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_PARAMETER_3DATTRIBUTES_MULTI",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 35,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_PARAMETER_ATTENUATION_RANGE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 36,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_PARAMETER_DATA_TYPE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 37,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_PARAMETER_DESC",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 38,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_PARAMETER_DESC_BOOL",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 39,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_PARAMETER_DESC_DATA",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 40,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_PARAMETER_DESC_FLOAT",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 41,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_PARAMETER_DESC_INT",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 42,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_PARAMETER_DYNAMIC_RESPONSE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 43,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_PARAMETER_FFT",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 44,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_PARAMETER_FINITE_LENGTH",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 45,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_PARAMETER_FLOAT_MAPPING",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 46,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_PARAMETER_FLOAT_MAPPING_PIECEWISE_LINEAR",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 47,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_PARAMETER_FLOAT_MAPPING_TYPE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 48,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_PARAMETER_OVERALLGAIN",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 49,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_PARAMETER_SIDECHAIN",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 50,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_PARAMETER_TYPE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 51,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_PROCESS_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 52,
+    "kind": "lone",
+    "heading": "FMOD_DSP_PROCESS_CALLBACK",
+    "code": "a6325be858ea"
+   },
+   {
+    "index": 53,
+    "kind": "lone",
+    "heading": "FMOD_DSP_PROCESS_CALLBACK",
+    "code": "3bb2d5d07813"
+   },
+   {
+    "index": 54,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_PROCESS_OPERATION",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 55,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_READ_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 56,
+    "kind": "lone",
+    "heading": "FMOD_DSP_READ_CALLBACK",
+    "code": "2ad1ab040d1f"
+   },
+   {
+    "index": 57,
+    "kind": "lone",
+    "heading": "FMOD_DSP_READ_CALLBACK",
+    "code": "47d105c0c3c5"
+   },
+   {
+    "index": 58,
+    "kind": "lone",
+    "heading": "FMOD_DSP_READ_CALLBACK",
+    "code": "8e09cf300c25"
+   },
+   {
+    "index": 59,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_REALLOC_FUNC",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 60,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_RELEASE_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 61,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_RESET_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 62,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_SETPARAM_BOOL_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 63,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_SETPARAM_DATA_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 64,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_SETPARAM_FLOAT_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 65,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_SETPARAM_INT_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 66,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_SETPOSITION_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 67,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_SHOULDIPROCESS_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 68,
+    "kind": "lone",
+    "heading": "FMOD_DSP_SHOULDIPROCESS_CALLBACK",
+    "code": "52a673112f0b"
+   },
+   {
+    "index": 69,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_STATE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 70,
+    "kind": "lone",
+    "heading": "FMOD_DSP_STATE",
+    "code": "615b4a5976be"
+   },
+   {
+    "index": 71,
+    "kind": "lone",
+    "heading": "FMOD_DSP_STATE",
+    "code": "43b139aabacb"
+   },
+   {
+    "index": 72,
+    "kind": "lone",
+    "heading": "FMOD_DSP_STATE",
+    "code": "9dee5413e495"
+   },
+   {
+    "index": 73,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_STATE_DFT_FUNCTIONS",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 74,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_STATE_FUNCTIONS",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 75,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_STATE_PAN_FUNCTIONS",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 76,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_SYSTEM_DEREGISTER_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 77,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_SYSTEM_MIX_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 78,
+    "kind": "tabbed",
+    "heading": "FMOD_DSP_SYSTEM_REGISTER_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 79,
+    "kind": "tabbed",
+    "heading": "FMOD_PLUGIN_SDK_VERSION",
+    "code": "da39a3ee5e6b"
+   }
+  ]
+ },
+ "core-api-common": {
+  "functions": [
+   "debug_initialize",
+   "file_getdiskbusy",
+   "file_setdiskbusy",
+   "memory_getstats",
+   "memory_initialize",
+   "thread_setattributes"
+  ],
+  "examples": [
+   {
+    "index": 0,
+    "kind": "tabbed",
+    "heading": "FMOD_3D_ATTRIBUTES",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 1,
+    "kind": "tabbed",
+    "heading": "FMOD_CHANNELMASK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 2,
+    "kind": "tabbed",
+    "heading": "FMOD_CHANNELORDER",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 3,
+    "kind": "tabbed",
+    "heading": "FMOD_CPU_USAGE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 4,
+    "kind": "tabbed",
+    "heading": "FMOD_DEBUG_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 5,
+    "kind": "tabbed",
+    "heading": "FMOD_DEBUG_FLAGS",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 7,
+    "kind": "tabbed",
+    "heading": "FMOD_DEBUG_MODE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 10,
+    "kind": "tabbed",
+    "heading": "FMOD_GUID",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 11,
+    "kind": "tabbed",
+    "heading": "FMOD_MAX_CHANNEL_WIDTH",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 12,
+    "kind": "tabbed",
+    "heading": "FMOD_MAX_LISTENERS",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 13,
+    "kind": "tabbed",
+    "heading": "FMOD_MAX_SYSTEMS",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 14,
+    "kind": "tabbed",
+    "heading": "FMOD_MEMORY_ALLOC_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 15,
+    "kind": "tabbed",
+    "heading": "FMOD_MEMORY_FREE_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 18,
+    "kind": "tabbed",
+    "heading": "FMOD_MEMORY_REALLOC_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 19,
+    "kind": "tabbed",
+    "heading": "FMOD_MEMORY_TYPE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 20,
+    "kind": "tabbed",
+    "heading": "FMOD_MODE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 21,
+    "kind": "tabbed",
+    "heading": "FMOD_RESULT",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 22,
+    "kind": "tabbed",
+    "heading": "FMOD_SPEAKER",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 23,
+    "kind": "tabbed",
+    "heading": "FMOD_SPEAKERMODE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 24,
+    "kind": "tabbed",
+    "heading": "FMOD_SYNCPOINT",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 25,
+    "kind": "tabbed",
+    "heading": "FMOD_THREAD_AFFINITY",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 26,
+    "kind": "tabbed",
+    "heading": "FMOD_THREAD_PRIORITY",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 28,
+    "kind": "tabbed",
+    "heading": "FMOD_THREAD_STACK_SIZE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 29,
+    "kind": "tabbed",
+    "heading": "FMOD_THREAD_TYPE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 30,
+    "kind": "tabbed",
+    "heading": "FMOD_TIMEUNIT",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 31,
+    "kind": "tabbed",
+    "heading": "FMOD_VECTOR",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 32,
+    "kind": "tabbed",
+    "heading": "FMOD_VERSION",
+    "code": "da39a3ee5e6b"
+   }
+  ]
+ },
+ "plugin-api-output": {
+  "functions": [],
+  "examples": [
+   {
+    "index": 0,
+    "kind": "tabbed",
+    "heading": "FMOD_OUTPUT_ALLOC_FUNC",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 1,
+    "kind": "tabbed",
+    "heading": "FMOD_OUTPUT_CLOSEPORT_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 2,
+    "kind": "tabbed",
+    "heading": "FMOD_OUTPUT_CLOSE_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 3,
+    "kind": "tabbed",
+    "heading": "FMOD_OUTPUT_COPYPORT_FUNC",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 4,
+    "kind": "tabbed",
+    "heading": "FMOD_OUTPUT_DESCRIPTION",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 5,
+    "kind": "lone",
+    "heading": "FMOD_OUTPUT_DESCRIPTION",
+    "code": "5b356f783566"
+   },
+   {
+    "index": 6,
+    "kind": "tabbed",
+    "heading": "FMOD_OUTPUT_DEVICELISTCHANGED_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 7,
+    "kind": "tabbed",
+    "heading": "FMOD_OUTPUT_FREE_FUNC",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 8,
+    "kind": "tabbed",
+    "heading": "FMOD_OUTPUT_GETDRIVERINFO_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 9,
+    "kind": "tabbed",
+    "heading": "FMOD_OUTPUT_GETHANDLE_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 10,
+    "kind": "tabbed",
+    "heading": "FMOD_OUTPUT_GETNUMDRIVERS_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 11,
+    "kind": "tabbed",
+    "heading": "FMOD_OUTPUT_INIT_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 12,
+    "kind": "tabbed",
+    "heading": "FMOD_OUTPUT_LOG_FUNC",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 13,
+    "kind": "tabbed",
+    "heading": "FMOD_OUTPUT_METHOD",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 14,
+    "kind": "tabbed",
+    "heading": "FMOD_OUTPUT_MIXER_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 15,
+    "kind": "tabbed",
+    "heading": "FMOD_OUTPUT_OBJECT3DALLOC_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 16,
+    "kind": "tabbed",
+    "heading": "FMOD_OUTPUT_OBJECT3DFREE_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 17,
+    "kind": "tabbed",
+    "heading": "FMOD_OUTPUT_OBJECT3DGETINFO_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 18,
+    "kind": "tabbed",
+    "heading": "FMOD_OUTPUT_OBJECT3DINFO",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 19,
+    "kind": "tabbed",
+    "heading": "FMOD_OUTPUT_OBJECT3DUPDATE_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 20,
+    "kind": "tabbed",
+    "heading": "FMOD_OUTPUT_OPENPORT_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 21,
+    "kind": "tabbed",
+    "heading": "FMOD_OUTPUT_PLUGIN_VERSION",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 22,
+    "kind": "tabbed",
+    "heading": "FMOD_OUTPUT_READFROMMIXER_FUNC",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 23,
+    "kind": "tabbed",
+    "heading": "FMOD_OUTPUT_REQUESTRESET_FUNC",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 24,
+    "kind": "tabbed",
+    "heading": "FMOD_OUTPUT_START_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 25,
+    "kind": "tabbed",
+    "heading": "FMOD_OUTPUT_STATE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 26,
+    "kind": "tabbed",
+    "heading": "FMOD_OUTPUT_STOP_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 27,
+    "kind": "tabbed",
+    "heading": "FMOD_OUTPUT_UPDATE_CALLBACK",
+    "code": "da39a3ee5e6b"
+   }
+  ]
+ },
+ "plugin-api-codec": {
+  "functions": [],
+  "examples": [
+   {
+    "index": 0,
+    "kind": "tabbed",
+    "heading": "FMOD_CODEC_ALLOC_FUNC",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 1,
+    "kind": "tabbed",
+    "heading": "FMOD_CODEC_CLOSE_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 2,
+    "kind": "tabbed",
+    "heading": "FMOD_CODEC_DESCRIPTION",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 3,
+    "kind": "tabbed",
+    "heading": "FMOD_CODEC_FILE_READ_FUNC",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 4,
+    "kind": "tabbed",
+    "heading": "FMOD_CODEC_FILE_SEEK_FUNC",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 5,
+    "kind": "tabbed",
+    "heading": "FMOD_CODEC_FILE_SIZE_FUNC",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 6,
+    "kind": "tabbed",
+    "heading": "FMOD_CODEC_FILE_TELL_FUNC",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 7,
+    "kind": "tabbed",
+    "heading": "FMOD_CODEC_FREE_FUNC",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 8,
+    "kind": "tabbed",
+    "heading": "FMOD_CODEC_GETLENGTH_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 9,
+    "kind": "tabbed",
+    "heading": "FMOD_CODEC_GETPOSITION_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 10,
+    "kind": "tabbed",
+    "heading": "FMOD_CODEC_GETWAVEFORMAT_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 11,
+    "kind": "tabbed",
+    "heading": "FMOD_CODEC_LOG_FUNC",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 12,
+    "kind": "tabbed",
+    "heading": "FMOD_CODEC_METADATA_FUNC",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 13,
+    "kind": "tabbed",
+    "heading": "FMOD_CODEC_OPEN_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 14,
+    "kind": "tabbed",
+    "heading": "FMOD_CODEC_PLUGIN_VERSION",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 15,
+    "kind": "tabbed",
+    "heading": "FMOD_CODEC_READ_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 16,
+    "kind": "tabbed",
+    "heading": "FMOD_CODEC_SEEK_METHOD",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 17,
+    "kind": "tabbed",
+    "heading": "FMOD_CODEC_SETPOSITION_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 18,
+    "kind": "tabbed",
+    "heading": "FMOD_CODEC_SOUNDCREATE_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 19,
+    "kind": "tabbed",
+    "heading": "FMOD_CODEC_STATE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 20,
+    "kind": "tabbed",
+    "heading": "FMOD_CODEC_STATE_FUNCTIONS",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 21,
+    "kind": "tabbed",
+    "heading": "FMOD_CODEC_WAVEFORMAT",
+    "code": "da39a3ee5e6b"
+   }
+  ]
+ },
+ "core-api-channel": {
+  "functions": [
+   "channel_getchannelgroup",
+   "channel_getcurrentsound",
+   "channel_getfrequency",
+   "channel_getindex",
+   "channel_getloopcount",
+   "channel_getlooppoints",
+   "channel_getposition",
+   "channel_getpriority",
+   "channel_isvirtual",
+   "channel_setchannelgroup",
+   "channel_setfrequency",
+   "channel_setloopcount",
+   "channel_setlooppoints",
+   "channel_setposition",
+   "channel_setpriority"
+  ],
+  "examples": []
+ },
+ "core-api-dspconnection": {
+  "functions": [
+   "dspconnection_getinput",
+   "dspconnection_getmix",
+   "dspconnection_getmixmatrix",
+   "dspconnection_getoutput",
+   "dspconnection_gettype",
+   "dspconnection_getuserdata",
+   "dspconnection_setmix",
+   "dspconnection_setmixmatrix",
+   "dspconnection_setuserdata"
+  ],
+  "examples": [
+   {
+    "index": 9,
+    "kind": "tabbed",
+    "heading": "FMOD_DSPCONNECTION_TYPE",
+    "code": "da39a3ee5e6b"
+   }
+  ]
+ },
+ "core-api-channelcontrol": {
+  "functions": [
+   "channelcontrol_adddsp",
+   "channelcontrol_addfadepoint",
+   "channelcontrol_get3dattributes",
+   "channelcontrol_get3dconeorientation",
+   "channelcontrol_get3dconesettings",
+   "channelcontrol_get3dcustomrolloff",
+   "channelcontrol_get3ddistancefilter",
+   "channelcontrol_get3ddopplerlevel",
+   "channelcontrol_get3dlevel",
+   "channelcontrol_get3dminmaxdistance",
+   "channelcontrol_get3docclusion",
+   "channelcontrol_get3dspread",
+   "channelcontrol_getaudibility",
+   "channelcontrol_getdelay",
+   "channelcontrol_getdsp",
+   "channelcontrol_getdspclock",
+   "channelcontrol_getdspindex",
+   "channelcontrol_getfadepoints",
+   "channelcontrol_getlowpassgain",
+   "channelcontrol_getmixmatrix",
+   "channelcontrol_getmode",
+   "channelcontrol_getmute",
+   "channelcontrol_getnumdsps",
+   "channelcontrol_getpaused",
+   "channelcontrol_getpitch",
+   "channelcontrol_getreverbproperties",
+   "channelcontrol_getsystemobject",
+   "channelcontrol_getuserdata",
+   "channelcontrol_getvolume",
+   "channelcontrol_getvolumeramp",
+   "channelcontrol_isplaying",
+   "channelcontrol_removedsp",
+   "channelcontrol_removefadepoints",
+   "channelcontrol_set3dattributes",
+   "channelcontrol_set3dconeorientation",
+   "channelcontrol_set3dconesettings",
+   "channelcontrol_set3dcustomrolloff",
+   "channelcontrol_set3ddistancefilter",
+   "channelcontrol_set3ddopplerlevel",
+   "channelcontrol_set3dlevel",
+   "channelcontrol_set3dminmaxdistance",
+   "channelcontrol_set3docclusion",
+   "channelcontrol_set3dspread",
+   "channelcontrol_setcallback",
+   "channelcontrol_setdelay",
+   "channelcontrol_setdspindex",
+   "channelcontrol_setfadepointramp",
+   "channelcontrol_setlowpassgain",
+   "channelcontrol_setmixlevelsinput",
+   "channelcontrol_setmixlevelsoutput",
+   "channelcontrol_setmixmatrix",
+   "channelcontrol_setmode",
+   "channelcontrol_setmute",
+   "channelcontrol_setpan",
+   "channelcontrol_setpaused",
+   "channelcontrol_setpitch",
+   "channelcontrol_setreverbproperties",
+   "channelcontrol_setuserdata",
+   "channelcontrol_setvolume",
+   "channelcontrol_setvolumeramp",
+   "channelcontrol_stop"
+  ],
+  "examples": [
+   {
+    "index": 2,
+    "kind": "lone",
+    "heading": "ChannelControl::addFadePoint",
+    "code": "65b95ea392f2"
+   },
+   {
+    "index": 3,
+    "kind": "lone",
+    "heading": "ChannelControl::addFadePoint",
+    "code": "bd8db0fd958e"
+   },
+   {
+    "index": 4,
+    "kind": "tabbed",
+    "heading": "FMOD_CHANNELCONTROL_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 5,
+    "kind": "tabbed",
+    "heading": "FMOD_CHANNELCONTROL_CALLBACK_TYPE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 6,
+    "kind": "tabbed",
+    "heading": "FMOD_CHANNELCONTROL_DSP_INDEX",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 42,
+    "kind": "lone",
+    "heading": "ChannelControl::set3DCustomRolloff",
+    "code": "0c449df34152"
+   },
+   {
+    "index": 67,
+    "kind": "tabbed",
+    "heading": "FMOD_CHANNELCONTROL_TYPE",
+    "code": "da39a3ee5e6b"
+   }
+  ]
+ },
+ "core-api-sound": {
+  "functions": [
+   "sound_addsyncpoint",
+   "sound_deletesyncpoint",
+   "sound_get3dconesettings",
+   "sound_get3dcustomrolloff",
+   "sound_get3dminmaxdistance",
+   "sound_getdefaults",
+   "sound_getformat",
+   "sound_getlength",
+   "sound_getloopcount",
+   "sound_getlooppoints",
+   "sound_getmode",
+   "sound_getmusicchannelvolume",
+   "sound_getmusicnumchannels",
+   "sound_getmusicspeed",
+   "sound_getname",
+   "sound_getnumsubsounds",
+   "sound_getnumsyncpoints",
+   "sound_getnumtags",
+   "sound_getopenstate",
+   "sound_getsoundgroup",
+   "sound_getsubsound",
+   "sound_getsubsoundparent",
+   "sound_getsyncpoint",
+   "sound_getsyncpointinfo",
+   "sound_getsystemobject",
+   "sound_gettag",
+   "sound_getuserdata",
+   "sound_lock",
+   "sound_readdata",
+   "sound_release",
+   "sound_seekdata",
+   "sound_set3dconesettings",
+   "sound_set3dcustomrolloff",
+   "sound_set3dminmaxdistance",
+   "sound_setdefaults",
+   "sound_setloopcount",
+   "sound_setlooppoints",
+   "sound_setmode",
+   "sound_setmusicchannelvolume",
+   "sound_setmusicspeed",
+   "sound_setsoundgroup",
+   "sound_setuserdata",
+   "sound_unlock"
+  ],
+  "examples": [
+   {
+    "index": 0,
+    "kind": "tabbed",
+    "heading": "FMOD_OPENSTATE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 3,
+    "kind": "tabbed",
+    "heading": "FMOD_SOUND_FORMAT",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 28,
+    "kind": "lone",
+    "heading": "Sound::getTag",
+    "code": "d1682cdb5a8b"
+   },
+   {
+    "index": 29,
+    "kind": "lone",
+    "heading": "Sound::getTag",
+    "code": "e63b340281df"
+   },
+   {
+    "index": 32,
+    "kind": "tabbed",
+    "heading": "FMOD_SOUND_NONBLOCK_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 33,
+    "kind": "tabbed",
+    "heading": "FMOD_SOUND_PCMREAD_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 34,
+    "kind": "tabbed",
+    "heading": "FMOD_SOUND_PCMSETPOS_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 40,
+    "kind": "lone",
+    "heading": "Sound::set3DCustomRolloff",
+    "code": "0c449df34152"
+   },
+   {
+    "index": 43,
+    "kind": "lone",
+    "heading": "Sound::setDefaults",
+    "code": "0d49c47f323b"
+   },
+   {
+    "index": 44,
+    "kind": "lone",
+    "heading": "Sound::setDefaults",
+    "code": "d276e490fcc0"
+   },
+   {
+    "index": 45,
+    "kind": "lone",
+    "heading": "Sound::setDefaults",
+    "code": "faac6fca2412"
+   },
+   {
+    "index": 46,
+    "kind": "lone",
+    "heading": "Sound::setDefaults",
+    "code": "dfa4250854d4"
+   },
+   {
+    "index": 54,
+    "kind": "tabbed",
+    "heading": "FMOD_SOUND_TYPE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 56,
+    "kind": "tabbed",
+    "heading": "FMOD_TAG",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 57,
+    "kind": "tabbed",
+    "heading": "FMOD_TAGDATATYPE",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 58,
+    "kind": "tabbed",
+    "heading": "FMOD_TAGTYPE",
+    "code": "da39a3ee5e6b"
+   }
+  ]
+ },
+ "core-api-platform-android": {
+  "functions": [
+   "fmod_android_jni_close",
+   "fmod_android_jni_init"
+  ],
+  "examples": [
+   {
+    "index": 2,
+    "kind": "lone",
+    "heading": "FMOD_Android_JNI_Init",
+    "code": "4b02194dbcf5"
+   }
+  ]
+ },
+ "studio-api-bank": {
+  "functions": [
+   "studio_bank_getbuscount",
+   "studio_bank_getbuslist",
+   "studio_bank_geteventcount",
+   "studio_bank_geteventlist",
+   "studio_bank_getid",
+   "studio_bank_getloadingstate",
+   "studio_bank_getpath",
+   "studio_bank_getsampleloadingstate",
+   "studio_bank_getstringcount",
+   "studio_bank_getstringinfo",
+   "studio_bank_getuserdata",
+   "studio_bank_getvcacount",
+   "studio_bank_getvcalist",
+   "studio_bank_isvalid",
+   "studio_bank_loadsampledata",
+   "studio_bank_setuserdata",
+   "studio_bank_unload",
+   "studio_bank_unloadsampledata"
+  ],
+  "examples": []
+ },
+ "studio-api-commandreplay": {
+  "functions": [
+   "studio_commandreplay_getcommandattime",
+   "studio_commandreplay_getcommandcount",
+   "studio_commandreplay_getcommandinfo",
+   "studio_commandreplay_getcommandstring",
+   "studio_commandreplay_getcurrentcommand",
+   "studio_commandreplay_getlength",
+   "studio_commandreplay_getpaused",
+   "studio_commandreplay_getplaybackstate",
+   "studio_commandreplay_getsystem",
+   "studio_commandreplay_getuserdata",
+   "studio_commandreplay_isvalid",
+   "studio_commandreplay_release",
+   "studio_commandreplay_seektocommand",
+   "studio_commandreplay_seektotime",
+   "studio_commandreplay_setbankpath",
+   "studio_commandreplay_setcreateinstancecallback",
+   "studio_commandreplay_setframecallback",
+   "studio_commandreplay_setloadbankcallback",
+   "studio_commandreplay_setpaused",
+   "studio_commandreplay_setuserdata",
+   "studio_commandreplay_start",
+   "studio_commandreplay_stop"
+  ],
+  "examples": [
+   {
+    "index": 0,
+    "kind": "tabbed",
+    "heading": "FMOD_STUDIO_COMMANDREPLAY_CREATE_INSTANCE_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 1,
+    "kind": "tabbed",
+    "heading": "FMOD_STUDIO_COMMANDREPLAY_FRAME_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 13,
+    "kind": "tabbed",
+    "heading": "FMOD_STUDIO_COMMANDREPLAY_LOAD_BANK_CALLBACK",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 25,
+    "kind": "tabbed",
+    "heading": "FMOD_STUDIO_COMMAND_INFO",
+    "code": "da39a3ee5e6b"
+   },
+   {
+    "index": 26,
+    "kind": "tabbed",
+    "heading": "FMOD_STUDIO_INSTANCETYPE",
+    "code": "da39a3ee5e6b"
+   }
+  ]
+ },
+ "studio-api-vca": {
+  "functions": [
+   "studio_vca_getid",
+   "studio_vca_getpath",
+   "studio_vca_getvolume",
+   "studio_vca_isvalid",
+   "studio_vca_setvolume"
+  ],
+  "examples": []
+ },
+ "core-api-channelgroup": {
+  "functions": [
+   "channelgroup_addgroup",
+   "channelgroup_getchannel",
+   "channelgroup_getgroup",
+   "channelgroup_getname",
+   "channelgroup_getnumchannels",
+   "channelgroup_getnumgroups",
+   "channelgroup_getparentgroup",
+   "channelgroup_release"
+  ],
+  "examples": []
+ },
+ "core-api-geometry": {
+  "functions": [
+   "geometry_addpolygon",
+   "geometry_getactive",
+   "geometry_getmaxpolygons",
+   "geometry_getnumpolygons",
+   "geometry_getpolygonattributes",
+   "geometry_getpolygonnumvertices",
+   "geometry_getpolygonvertex",
+   "geometry_getposition",
+   "geometry_getrotation",
+   "geometry_getscale",
+   "geometry_getuserdata",
+   "geometry_release",
+   "geometry_save",
+   "geometry_setactive",
+   "geometry_setpolygonattributes",
+   "geometry_setpolygonvertex",
+   "geometry_setposition",
+   "geometry_setrotation",
+   "geometry_setscale",
+   "geometry_setuserdata"
+  ],
+  "examples": []
+ },
+ "core-api-reverb3d": {
+  "functions": [
+   "reverb3d_get3dattributes",
+   "reverb3d_getactive",
+   "reverb3d_getproperties",
+   "reverb3d_getuserdata",
+   "reverb3d_release",
+   "reverb3d_set3dattributes",
+   "reverb3d_setactive",
+   "reverb3d_setproperties",
+   "reverb3d_setuserdata"
+  ],
+  "examples": []
+ },
+ "core-api-soundgroup": {
+  "functions": [
+   "soundgroup_getmaxaudible",
+   "soundgroup_getmaxaudiblebehavior",
+   "soundgroup_getmutefadespeed",
+   "soundgroup_getname",
+   "soundgroup_getnumplaying",
+   "soundgroup_getnumsounds",
+   "soundgroup_getsound",
+   "soundgroup_getsystemobject",
+   "soundgroup_getuserdata",
+   "soundgroup_getvolume",
+   "soundgroup_release",
+   "soundgroup_setmaxaudible",
+   "soundgroup_setmaxaudiblebehavior",
+   "soundgroup_setmutefadespeed",
+   "soundgroup_setuserdata",
+   "soundgroup_setvolume",
+   "soundgroup_stop"
+  ],
+  "examples": [
+   {
+    "index": 0,
+    "kind": "tabbed",
+    "heading": "FMOD_SOUNDGROUP_BEHAVIOR",
+    "code": "da39a3ee5e6b"
+   }
+  ]
+ },
+ "core-api-platform-ios": {
+  "functions": [],
+  "examples": [
+   {
+    "index": 0,
+    "kind": "tabbed",
+    "heading": "FMOD_AUDIOQUEUE_CODECPOLICY",
+    "code": "da39a3ee5e6b"
+   }
+  ]
+ },
+ "core-api-platform-html5": {
+  "functions": [
+   "fs_createpreloadedfile",
+   "readfile",
+   "memory_free",
+   "file_open",
+   "file_close",
+   "file_read",
+   "file_seek",
+   "setvalue",
+   "getvalue",
+   "file_seek_1"
+  ],
+  "examples": [
+   {
+    "index": 1,
+    "kind": "lone",
+    "heading": "Example usage.",
+    "code": "b5b12571d9af"
+   },
+   {
+    "index": 3,
+    "kind": "lone",
+    "heading": "Example usage.",
+    "code": "6991778e1925"
+   },
+   {
+    "index": 10,
+    "kind": "lone",
+    "heading": "Example usage.",
+    "code": "319768ee2d44"
+   },
+   {
+    "index": 12,
+    "kind": "lone",
+    "heading": "Example usage.",
+    "code": "319768ee2d44"
+   }
+  ]
+ },
+ "platforms-win": {
+  "functions": [],
+  "examples": [
+   {
+    "index": 0,
+    "kind": "lone",
+    "heading": "ASIO and C#",
+    "code": "771997e0eb4a"
+   },
+   {
+    "index": 1,
+    "kind": "lone",
+    "heading": "Background Music",
+    "code": "86d1aa960ce7"
+   },
+   {
+    "index": 2,
+    "kind": "lone",
+    "heading": "Pass Through",
+    "code": "534dc88e6500"
+   }
+  ]
+ },
+ "platforms-mac": {
+  "functions": [],
+  "examples": [
+   {
+    "index": 0,
+    "kind": "lone",
+    "heading": "Latency",
+    "code": "fe582cf167cc"
+   }
+  ]
+ },
+ "platforms-ios": {
+  "functions": [],
+  "examples": [
+   {
+    "index": 0,
+    "kind": "lone",
+    "heading": "Handling Interruptions",
+    "code": "24c6a64e513c"
+   },
+   {
+    "index": 1,
+    "kind": "lone",
+    "heading": "Latency",
+    "code": "97e2269ec148"
+   },
+   {
+    "index": 2,
+    "kind": "lone",
+    "heading": "Multi-channel Output",
+    "code": "74cfeace6483"
+   }
+  ]
+ },
+ "platforms-android": {
+  "functions": [],
+  "examples": [
+   {
+    "index": 0,
+    "kind": "lone",
+    "heading": "Java",
+    "code": "b2772f22bdf1"
+   },
+   {
+    "index": 1,
+    "kind": "lone",
+    "heading": "Java",
+    "code": "a87a8ac9acd7"
+   },
+   {
+    "index": 2,
+    "kind": "lone",
+    "heading": "Application Lifecycle Management",
+    "code": "54fb4995f9fd"
+   },
+   {
+    "index": 3,
+    "kind": "lone",
+    "heading": "Application Lifecycle Management",
+    "code": "b9f3f2afb225"
+   }
+  ]
+ },
+ "platforms-openharmony": {
+  "functions": [],
+  "examples": [
+   {
+    "index": 0,
+    "kind": "lone",
+    "heading": "JavaScript",
+    "code": "d8448e9485ed"
+   },
+   {
+    "index": 1,
+    "kind": "lone",
+    "heading": "JavaScript",
+    "code": "3a376f2c359c"
+   },
+   {
+    "index": 2,
+    "kind": "lone",
+    "heading": "JavaScript",
+    "code": "9c8812fc325c"
+   },
+   {
+    "index": 3,
+    "kind": "lone",
+    "heading": "JavaScript",
+    "code": "6373054bf56a"
+   },
+   {
+    "index": 4,
+    "kind": "lone",
+    "heading": "JavaScript",
+    "code": "7fa08b6848fe"
+   },
+   {
+    "index": 5,
+    "kind": "lone",
+    "heading": "JavaScript",
+    "code": "34c85f179090"
+   },
+   {
+    "index": 6,
+    "kind": "lone",
+    "heading": "JavaScript",
+    "code": "a26c37068106"
+   }
+  ]
+ },
+ "platforms-uwp": {
+  "functions": [],
+  "examples": [
+   {
+    "index": 0,
+    "kind": "lone",
+    "heading": "Background Music",
+    "code": "86d1aa960ce7"
+   },
+   {
+    "index": 1,
+    "kind": "lone",
+    "heading": "Pass Through",
+    "code": "534dc88e6500"
+   }
+  ]
+ },
+ "platforms-html5": {
+  "functions": [],
+  "examples": [
+   {
+    "index": 0,
+    "kind": "lone",
+    "heading": "Libraries",
+    "code": "eec88c7de460"
+   },
+   {
+    "index": 1,
+    "kind": "lone",
+    "heading": "Libraries",
+    "code": "c6eadfd8954b"
+   },
+   {
+    "index": 2,
+    "kind": "lone",
+    "heading": "Using FMOD with C/C++",
+    "code": "fd728ef83dfc"
+   },
+   {
+    "index": 3,
+    "kind": "lone",
+    "heading": "Flags using WASM pthread build",
+    "code": "a62ea6147d21"
+   },
+   {
+    "index": 4,
+    "kind": "lone",
+    "heading": "Overriding FMOD's 'window' handle.",
+    "code": "21fb3baf5a51"
+   },
+   {
+    "index": 5,
+    "kind": "lone",
+    "heading": "Application setup",
+    "code": "17120d493997"
+   },
+   {
+    "index": 6,
+    "kind": "lone",
+    "heading": "Setting and getting",
+    "code": "298ed4b8f269"
+   },
+   {
+    "index": 7,
+    "kind": "lone",
+    "heading": "Using structures",
+    "code": "075543e07e08"
+   },
+   {
+    "index": 8,
+    "kind": "lone",
+    "heading": "Direct from host, via FMOD's filesystem",
+    "code": "d51aeee3ebf2"
+   },
+   {
+    "index": 9,
+    "kind": "lone",
+    "heading": "Direct from host, via FMOD's filesystem",
+    "code": "075f67fcbc03"
+   },
+   {
+    "index": 10,
+    "kind": "lone",
+    "heading": "Via memory",
+    "code": "d8234b5e74d0"
+   },
+   {
+    "index": 11,
+    "kind": "lone",
+    "heading": "Via callbacks",
+    "code": "fae495a539ec"
+   },
+   {
+    "index": 12,
+    "kind": "lone",
+    "heading": "Via callbacks",
+    "code": "bbb035f23033"
+   },
+   {
+    "index": 13,
+    "kind": "lone",
+    "heading": "Via callbacks",
+    "code": "7d9b1dbdbcd3"
+   },
+   {
+    "index": 14,
+    "kind": "lone",
+    "heading": "CPU Overhead",
+    "code": "c0cc0cf1d890"
+   },
+   {
+    "index": 15,
+    "kind": "lone",
+    "heading": "Audio Stability (Stuttering)",
+    "code": "0cc5d3e98a9a"
+   }
+  ]
+ }
+}

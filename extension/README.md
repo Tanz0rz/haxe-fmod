@@ -50,6 +50,22 @@ NODE_PATH=/path/to/node_modules xvfb-run node extension/test/run.js --live
 
 The default run serves `test/fixture.html` in place of fmod.com and checks the tab flow. `--live` runs the same checks against the real site.
 
+## When fmod.com changes
+
+The tab is keyed by function heading ids and by the position of code examples on each page, so an edit on fmod.com can move or drop a tab. `test/site-snapshot.json` records those keys for every page of the API reference, and the weekly `docs-canary` workflow crawls the live site and fails when they differ, listing every added, removed, or moved function and example. Run it by hand with:
+
+```bash
+NODE_PATH=/path/to/node_modules node extension/test/crawl-site.js --check
+```
+
+After fixing `examples/` and `functions.md` to match, refresh the snapshot:
+
+```bash
+NODE_PATH=/path/to/node_modules node extension/test/crawl-site.js --update
+```
+
+Functions haxefmod does not expose are listed with their reasons on the documentation site's "Unsupported functions" page, generated from `functions.md` by `ci/haxe-bindings.py`. Adding a binding means removing its section there, at which point the generator picks the new method up from the sources.
+
 ## Package for the stores
 
 ```bash

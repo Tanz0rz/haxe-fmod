@@ -8,6 +8,8 @@ The table drives two artifacts:
   extension/haxefmod-fmod-docs.user.js
                                the same data and script as one userscript
   docs/coverage.md             the coverage matrix page of the docs site
+  docs/unsupported.md          every FMOD function haxefmod does not expose,
+                               with the reason, from extension/functions.md
 
 The chain is FMOD function <- native shim function <- Haxe wrapper method:
 
@@ -46,6 +48,7 @@ HAXE_ROOT = os.path.join(ROOT, "haxefmod")
 DATA_JS = os.path.join(ROOT, "extension", "bindings-data.js")
 COVERAGE_MD = os.path.join(ROOT, "docs", "coverage.md")
 FUNCTIONS_MD = os.path.join(ROOT, "extension", "functions.md")
+UNSUPPORTED_MD = os.path.join(ROOT, "docs", "unsupported.md")
 CONTENT_JS = os.path.join(ROOT, "extension", "content.js")
 USERSCRIPT = os.path.join(ROOT, "extension", "haxefmod-fmod-docs.user.js")
 
@@ -340,6 +343,7 @@ def merge_notes(table):
     for key, section in function_notes().items():
         record = table.setdefault(key, {"fmod": "", "haxe": [], "html5": False})
         record["notes"] = section["notes"]
+        record["heading"] = section["heading"]
         if section["code"] is not None:
             record["code"] = section["code"]
     return table
@@ -420,6 +424,43 @@ def render_coverage_md(table):
     return "\n".join(lines) + "\n"
 
 
+def owner_of(key, heading):
+    """The FMOD object a function belongs to, from its heading
+    (Studio::EventInstance::start gives Studio::EventInstance)."""
+    if heading and "::" in heading:
+        return heading.rsplit("::", 1)[0]
+    return "Global functions"
+
+
+def render_unsupported_md(table):
+    """Functions with neither a binding nor an equivalent call, grouped by
+    FMOD object, each with the note that says why."""
+    groups = {}
+    for key, record in table.items():
+        if record["haxe"] or record.get("code") is not None:
+            continue
+        groups.setdefault(owner_of(key, record.get("heading")), []).append((key, record))
+    total = sum(len(g) for g in groups.values())
+    lines = [
+        "# Unsupported functions",
+        "",
+        f"The {total} functions of the FMOD API that haxefmod {haxelib_version()} does not expose, with the reason for each. Generated from `extension/functions.md` by `ci/haxe-bindings.py`, so this page and the Haxe tab of the browser extension always agree. [Limitations](limitations.md) explains the categories, and [Coverage](coverage.md) lists what is bound.",
+        "",
+        "Every function here is a candidate for a future binding. An issue naming one, with the use case, is the way to ask.",
+        "",
+    ]
+    for owner in sorted(groups, key=str.lower):
+        lines += [f"## {owner}", "", "| Function | Why |", "|---|---|"]
+        for key, record in sorted(groups[owner]):
+            name = record.get("heading") or key
+            note = " ".join(record.get("notes") or []).replace("|", "\\|")
+            if note.startswith("Not exposed."):
+                note = note[len("Not exposed."):].strip()
+            lines.append(f"| `{name}` | {note} |")
+        lines.append("")
+    return "\n".join(lines) + "\n"
+
+
 def main():
     check = "--check" in sys.argv[1:]
     table = merge_notes(build_table())
@@ -427,6 +468,7 @@ def main():
         DATA_JS: render_data_js(table),
         USERSCRIPT: render_userscript(table),
         COVERAGE_MD: render_coverage_md(table),
+        UNSUPPORTED_MD: render_unsupported_md(table),
     }
     stale = []
     for path, content in outputs.items():
