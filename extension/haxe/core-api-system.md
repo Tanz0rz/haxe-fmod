@@ -12,7 +12,7 @@ Set at init through the FmodSettings fields of the same names and read back with
 verdict: cannot The struct is handed to the async file callbacks, which run on FMOD's file threads, and custom file systems are not exposed. Sound.create reads the platform file system and StudioSystem.loadBankMemory takes bytes.
 
 ## FMOD_CREATESOUNDEXINFO
-verdict: library Sound.create and Sound.fromPcm take its fields as arguments.
+verdict: library Sound.create, Sound.fromMemory, and Sound.fromPcm take its fields as arguments: the length of a memory image, the initial subsound of an FSB, and the format, rate, and channel count of raw PCM.
 
 ## FMOD_DRIVER_STATE
 verdict: bound

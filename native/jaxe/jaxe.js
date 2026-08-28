@@ -334,6 +334,10 @@ class jaxe {
 
         var ev = { handle: handle, type: type, i1: 0, i2: 0, i3: 0, i4: 0, i5: 0, f1: 0.0, str: "" };
 
+        if ((type == 0x80 || type == 0x100) && parameters && typeof parameters.name === "string") {
+            ev.str = parameters.name;
+        }
+
         if (type == 0x00000800 /* TIMELINE_MARKER */ && parameters) {
             if (typeof parameters.name === "string") ev.str = parameters.name;
             if (typeof parameters.position === "number") ev.i1 = parameters.position;
@@ -2122,6 +2126,29 @@ class jaxe {
         return jaxe.lastResult;
     }
 
+    // The game-owned sound form of the assignment. Refused for the same
+    // glue reason as fmod_ps_assign, after the same argument checks native
+    // makes so a wrong call fails the same way everywhere.
+    static fmod_ps_assign_sound(handle, soundHandle, subsoundIndex) {
+        var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
+        if (!inst) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        if (!jaxe.handleResolve(soundHandle, jaxe.TYPE_SOUND)) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        if ((subsoundIndex | 0) < -1) { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
+        jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        return jaxe.lastResult;
+    }
+
+    // The instrument-name form. Same refusal, same checks as native
+    // (names under 64 bytes, keys under 512).
+    static fmod_ps_assign_named(handle, name, key) {
+        if (typeof name !== "string" || typeof key !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
+        if (jaxe.utf8ByteLength(name) >= 64 || jaxe.utf8ByteLength(key) >= 512) { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
+        var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
+        if (!inst) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        return jaxe.lastResult;
+    }
+
     static fmod_ps_clear(handle) {
         var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
         if (!inst) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
@@ -2132,15 +2159,22 @@ class jaxe {
 
     //// Core API micro subset (programmer sounds only)
 
-    static fmod_core_create_sound(path, mode, openOnly) {
+    // mode is a full FMOD_MODE. initialSubsound >= 0 goes into
+    // exinfo.initialsubsound for FSB streams, -1 leaves the default.
+    static fmod_core_create_sound(path, mode, initialSubsound) {
         if (typeof path !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return 0; }
         if (!jaxe.FmodIsInitialized) { jaxe.lastResult = jaxe.ERR_STUDIO_UNINITIALIZED; return 0; }
         var soundOut = {};
-        var fmodMode = jaxe.FMOD.DEFAULT >>> 0;
-        if (mode & 1) fmodMode = (fmodMode | jaxe.FMOD.LOOP_NORMAL) >>> 0;
-        if (openOnly) fmodMode = (fmodMode | jaxe.FMOD.OPENONLY) >>> 0;
-        // Files live in the MEMFS root (banks are preloaded there)
-        jaxe.lastResult = jaxe.gSystemCore.createSound("/" + path, fmodMode, null, soundOut);
+        var exinfo = null;
+        if ((initialSubsound | 0) >= 0) {
+            exinfo = jaxe.FMOD.CREATESOUNDEXINFO();
+            exinfo.initialsubsound = initialSubsound | 0;
+        }
+        // Files live in the MEMFS root (banks are preloaded there). The
+        // glue rejects NONBLOCKING outright, so the flag is dropped and the
+        // load runs synchronously: the sound is READY when this returns,
+        // which is what a getOpenState poll expects to reach anyway.
+        jaxe.lastResult = jaxe.gSystemCore.createSound("/" + path, (mode & ~0x10000) >>> 0, exinfo, soundOut);
         if (jaxe.lastResult != jaxe.FMOD.OK || !soundOut.val) return 0;
         var handle = jaxe.handleAlloc(soundOut.val, jaxe.TYPE_SOUND);
         if (handle == 0) {
@@ -2148,6 +2182,42 @@ class jaxe {
             return 0;
         }
         return handle;
+    }
+
+    // An encoded file image already in memory. The bytes are copied into
+    // a fresh typed array that the glue moves into the wasm heap, so the
+    // caller's buffer is free once this returns. The web build decodes
+    // FSB only, so a wav or ogg image reports ERR_FORMAT here.
+    static fmod_core_create_sound_memory(data, len, mode) {
+        if (!jaxe.FmodIsInitialized) { jaxe.lastResult = jaxe.ERR_STUDIO_UNINITIALIZED; return 0; }
+        if (!data || len <= 0 || len > data.byteLength) {
+            jaxe.lastResult = jaxe.ERR_INVALID_PARAM;
+            return 0;
+        }
+        var bytes = new Uint8Array(len);
+        bytes.set(new Uint8Array(data, 0, len));
+        var exinfo = jaxe.FMOD.CREATESOUNDEXINFO();
+        exinfo.length = len;
+        var out = {};
+        // NONBLOCKING is dropped for the same reason as in fmod_core_create_sound
+        jaxe.lastResult = jaxe.gSystemCore.createSound(bytes,
+            ((mode & ~0x10000000 & ~0x10000) | jaxe.FMOD.OPENMEMORY) >>> 0, exinfo, out);
+        if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
+        var handle = jaxe.handleAlloc(out.val, jaxe.TYPE_SOUND);
+        if (handle == 0) {
+            out.val.release();
+            return 0;
+        }
+        return handle;
+    }
+
+    // The channel group a play call routes into: null for handle 0 (the
+    // master group), the resolved group otherwise. A stale handle returns
+    // undefined so the caller can fail the play.
+    static resolvePlayGroup(group) {
+        if (!group) return null;
+        var cg = jaxe.handleResolve(group, jaxe.TYPE_CHANGROUP);
+        return cg ? cg : undefined;
     }
 
     // Releasing a parent sound destroys its subsounds, so every sound
@@ -2314,11 +2384,13 @@ class jaxe {
         return n;
     }
 
-    static fmod_core_pcm_play(handle, paused) {
+    static fmod_core_pcm_play(handle, group, paused) {
         var ps = jaxe.handleResolve(handle, jaxe.TYPE_PCM);
         if (!ps) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }
+        var cg = jaxe.resolvePlayGroup(group);
+        if (cg === undefined) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }
         var chOut = {};
-        jaxe.lastResult = jaxe.gSystemCore.playSound(ps.sound, null, !!paused, chOut);
+        jaxe.lastResult = jaxe.gSystemCore.playSound(ps.sound, cg, !!paused, chOut);
         if (jaxe.lastResult != jaxe.FMOD.OK || !chOut.val) return 0;
         var ch = jaxe.handleAlloc(chOut.val, jaxe.TYPE_CHAN);
         if (ch == 0) {
@@ -2837,11 +2909,13 @@ class jaxe {
 
     //// Core system extras
 
-    static fmod_sys_play_dsp(dspHandle, startPaused) {
+    static fmod_sys_play_dsp(dspHandle, group, startPaused) {
         var dsp = jaxe.resolveDsp(dspHandle);
         if (!dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }
+        var cg = jaxe.resolvePlayGroup(group);
+        if (cg === undefined) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }
         var out = {};
-        jaxe.lastResult = jaxe.gSystemCore.playDSP(dsp, null, !!startPaused, out);
+        jaxe.lastResult = jaxe.gSystemCore.playDSP(dsp, cg, !!startPaused, out);
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
         var handle = jaxe.handleAlloc(out.val, jaxe.TYPE_CHAN);
         if (handle == 0) {
@@ -3269,11 +3343,13 @@ class jaxe {
         return handle;
     }
 
-    static fmod_core_play_sound(handle, startPaused) {
+    static fmod_core_play_sound(handle, group, startPaused) {
         var sound = jaxe.resolveCoreSound(handle);
         if (!sound) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }
+        var cg = jaxe.resolvePlayGroup(group);
+        if (cg === undefined) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }
         var out = {};
-        jaxe.lastResult = jaxe.gSystemCore.playSound(sound, null, !!startPaused, out);
+        jaxe.lastResult = jaxe.gSystemCore.playSound(sound, cg, !!startPaused, out);
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
         var chHandle = jaxe.handleAlloc(out.val, jaxe.TYPE_CHAN);
         if (chHandle == 0) {

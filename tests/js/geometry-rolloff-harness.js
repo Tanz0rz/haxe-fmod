@@ -78,7 +78,7 @@ async function main() {
 
     // Live handles of each rolloff type
     const stream = jaxe.fmod_core_pcm_create_3d(48000, 1, 4096);
-    const chan = jaxe.fmod_core_pcm_play(stream, true);
+    const chan = jaxe.fmod_core_pcm_play(stream, 0, true);
     check('rolloff_channel_live', chan > 0, `handle=${chan}`);
     const group = jaxe.fmod_cg_create('rolloff');
     check('rolloff_group_live', group > 0, `handle=${group}`);

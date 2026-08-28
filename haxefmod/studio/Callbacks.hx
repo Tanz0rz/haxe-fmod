@@ -51,6 +51,10 @@ enum EventCallbackData {
     SoundStopped;
     RealToVirtual;
     VirtualToReal;
+    /** A programmer instrument asked for its sound. name is the instrument's name in FMOD Studio. */
+    ProgrammerSoundCreated(name:String);
+    /** A programmer instrument finished with its sound. */
+    ProgrammerSoundDestroyed(name:String);
     /** A callback type without a dedicated constructor (e.g. plugin hooks). */
     Other(type:EventCallbackType);
 }

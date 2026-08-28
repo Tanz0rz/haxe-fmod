@@ -20,6 +20,11 @@ import haxefmod.studio.native.Scratch;
 abstract Channel(Int) from Int to Int {
     public static inline var NULL:Channel = cast 0;
 
+    /** Chain positions for getDsp and addDsp, the same values as ChannelGroup's. */
+    public static inline var DSP_HEAD:Int = haxefmod.core.ChannelGroup.DSP_HEAD;
+    public static inline var DSP_FADER:Int = haxefmod.core.ChannelGroup.DSP_FADER;
+    public static inline var DSP_TAIL:Int = haxefmod.core.ChannelGroup.DSP_TAIL;
+
     /** True if this is the invalid handle (play failed). */
     public inline function isNull():Bool {
         return this == 0;

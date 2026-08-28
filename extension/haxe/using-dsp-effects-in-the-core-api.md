@@ -71,9 +71,9 @@ var result = dsp_reverb.setActive(true);
 
 ## Creating an effect and making all Channels send to it.#3
 verdict: bound
-Sound.play takes no ChannelGroup, the channel is routed with setChannelGroup while it is still paused.
-The head, fader, and tail slots are the ChannelGroup.DSP_HEAD, DSP_FADER, and DSP_TAIL constants, Channel.getDsp accepts them too.
+The head, fader, and tail slots are the Channel.DSP_HEAD, DSP_FADER, and DSP_TAIL constants.
 ```haxe
+import haxefmod.core.Channel;
 import haxefmod.core.Sound;
 import haxefmod.core.ChannelGroup;
 import haxefmod.core.Dsp;
@@ -83,9 +83,8 @@ var sound = Sound.create("drumloop.wav");
 var channelgroup = ChannelGroup.create("my channelgroup");
 var dsp_reverb = Dsp.create(DspType.SFXREVERB);
 
-var channel = sound.play(true);                                                     /* Play the sound.  Play it paused so we dont hear the sound play before it is connected to the reverb. */
-channel.setChannelGroup(channelgroup);
-var channel_dsp_head = channel.getDsp(ChannelGroup.DSP_HEAD);                       /* Grab the 'head' unit for the Channel */
+var channel = sound.play(true, channelgroup);                                       /* Play the sound.  Play it paused so we dont hear the sound play before it is connected to the reverb. */
+var channel_dsp_head = channel.getDsp(Channel.DSP_HEAD);                            /* Grab the 'head' unit for the Channel */
 var connection = dsp_reverb.addInput(channel_dsp_head);                             /* Manually add a connection from the Channel DSP head to the reverb. */
 var result = channel.setPaused(false);                                              /* Unpause the channel and let it be audible. */
 ```

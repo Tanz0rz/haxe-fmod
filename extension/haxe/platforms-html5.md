@@ -40,7 +40,7 @@ verdict: library the library fetches banks itself, FmodRuntime.banks.load (and t
 
 ## Direct from host, via FMOD's filesystem#2
 verdict: bound
-The web build decodes FSB only, so on HTML5 this returns Sound.NULL with FMOD_ERR_FORMAT. Play bank content instead, or feed raw PCM through Sound.fromPcm.
+The web build decodes FSB only, so on HTML5 this returns Sound.NULL with FMOD_ERR_FORMAT. Play bank content, load an FSB with Sound.create or Sound.fromMemory, or feed raw PCM through Sound.fromPcm.
 ```haxe
 import haxefmod.core.Sound;
 
@@ -52,14 +52,21 @@ if (sound.isNull()) {
 
 ## Via memory
 verdict: bound
-Data already in memory goes in as haxe.io.Bytes and is copied into FMOD's heap. Sound.fromPcm takes raw PCM only, its sampleRate and channels arguments stand in for the CREATESOUNDEXINFO fields and length is taken from the bytes. Encoded data in memory goes in as a bank through StudioSystem.loadBankMemory.
+Data already in memory goes in as haxe.io.Bytes and is copied into FMOD's heap. Sound.fromMemory takes an encoded file image and length is taken from the bytes. The web build decodes FSB images only, so a wav or ogg image returns Sound.NULL with FMOD_ERR_FORMAT there. Sound.fromPcm takes raw PCM, its sampleRate and channels arguments stand in for the CREATESOUNDEXINFO fields. Bank data in memory goes through StudioSystem.loadBankMemory.
 ```haxe
 import haxefmod.core.Sound;
 
+var image = haxe.io.Bytes.alloc(0); // an FSB file image fetched by the game
+
+var sound = Sound.fromMemory(image);
+if (sound.isNull()) {
+    trace("fromMemory failed: " + StudioSystem.lastResult());
+}
+
 var bytes = haxe.io.Bytes.alloc(48000 * 2 * 2);
 
-var sound = Sound.fromPcm(bytes, 48000, 2);
-if (sound.isNull()) {
+var pcmSound = Sound.fromPcm(bytes, 48000, 2);
+if (pcmSound.isNull()) {
     trace("fromPcm failed: " + StudioSystem.lastResult());
 }
 

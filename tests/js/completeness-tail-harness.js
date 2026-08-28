@@ -91,7 +91,7 @@ async function main() {
     check('core_sound_get_3d_min_max_bad_handle', jaxe.fmod_core_sound_get_3d_min_max(999999, fbuf) === INVALID_HANDLE, '');
 
     // Chain positions on a paused channel
-    const channel = jaxe.fmod_core_play_sound(sound, true);
+    const channel = jaxe.fmod_core_play_sound(sound, 0, true);
     check('core_play_sound', channel > 0, `handle=${channel}`);
     const lowpass = jaxe.fmod_dsp_create_by_type(3);
     const echo = jaxe.fmod_dsp_create_by_type(9);

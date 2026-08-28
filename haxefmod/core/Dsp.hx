@@ -27,9 +27,13 @@ abstract Dsp(Int) from Int to Int {
         return this == 0;
     }
 
-    /** Plays this DSP as a sound source (e.g. an OSCILLATOR). Returns Channel.NULL on failure. */
-    public inline function play(startPaused:Bool = false):Channel {
-        return NativeStudio.sys_play_dsp(this, startPaused);
+    /**
+     * Plays this DSP as a sound source (e.g. an OSCILLATOR). Returns
+     * Channel.NULL on failure. group routes the new channel into a
+     * ChannelGroup from the first sample, null means the master group.
+     */
+    public inline function play(startPaused:Bool = false, ?group:ChannelGroup):Channel {
+        return NativeStudio.sys_play_dsp(this, group == null ? 0 : (group : Int), startPaused);
     }
 
     public inline function setParameter(index:Int, value:Float):FmodResult {

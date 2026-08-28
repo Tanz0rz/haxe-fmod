@@ -30,6 +30,16 @@
 
 ### Changed
 - `Sound.getFormat()` now returns the container `type` (`FmodSoundType`) and sample `format` (`FmodSoundFormat`) next to `channels` and `bits`.
+- `Sound.create(path, ?loop, ?openOnly, ?mode, ?initialSubsound)` takes any `ChannelMode` flags at load time (`MODE_3D`, `CREATESTREAM`, `CREATESAMPLE`, `CREATECOMPRESSEDSAMPLE`, `LOOP_BIDI`, `NONBLOCKING`, and the rest) and the subsound an FSB stream starts on. A `NONBLOCKING` load returns at once and `getOpenState()` reports when it is `READY`. HTML5 loads synchronously and drops the flag.
+- `Sound.fromMemory(bytes, ?mode, ?length)` creates a sound from an encoded file image in memory (wav, ogg, mp3, fsb). `fromPcm` stays for raw samples. HTML5 decodes FSB images only.
+- `Sound.play`, `Dsp.play`, and `PcmStream.play` take an optional `ChannelGroup` so the channel starts inside the group instead of moving there after `setChannelGroup`.
+- `Channel.DSP_HEAD`, `DSP_FADER`, and `DSP_TAIL`, the same chain positions `ChannelGroup` declares.
+- Programmer sounds: `EventInstance.assignProgrammerSoundFrom(sound, ?subsoundIndex)` hands a `Sound` the game owns to the instrument and never releases it, `assignProgrammerSoundForName(name, key)` and `assignProgrammerSounds(map)` map programmer instrument names to keys for events with several instruments, and the callbacks deliver `ProgrammerSoundCreated(name)` and `ProgrammerSoundDestroyed(name)` with the instrument's name. Unsupported in HTML5 like `assignProgrammerSound`.
+- HTML5 compile gate: calling a native-only method in a js build is a compile error at the call site naming the method and the reason. `-D haxefmod_html5_allow_unsupported` compiles the call anyway, prints one warning per build, and the call returns `FMOD_ERR_UNSUPPORTED` at runtime in the browser. Applies to sample readback, recording, custom rolloff, geometry, programmer sounds, and memory usage queries.
+
+### Changed
+- The native programmer sound callback creates its sound with `FMOD_NONBLOCKING`, the same as FMOD's own example, so audio table entries and files decode off the Studio thread. FMOD waits for the sound before the instrument plays it.
+- `EventInstance.setCallback` handlers receive `ProgrammerSoundCreated(name)` and `ProgrammerSoundDestroyed(name)` for the programmer sound callback types instead of `Other(type)`.
 
 ### Deprecated
 - `haxefmod.studio.CoreSound` is now `haxefmod.core.Sound`, the core `Sound` object next to `Channel`, `ChannelGroup`, `Dsp`, and `SoundGroup`. The old name remains as a deprecated alias for this release and the compiler warns at every use.

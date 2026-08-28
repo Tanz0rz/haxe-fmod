@@ -71,6 +71,18 @@ static FMOD_STUDIO_EVENTINSTANCE* resolve_instance(int h) {
     return (FMOD_STUDIO_EVENTINSTANCE*)faxe_handle_resolve(h, FAXE_TYPE_EVI);
 }
 
+static FMOD_CHANNELGROUP* resolve_changroup(int h);
+
+// The channel group a play call routes into. Handle 0 means the master
+// group (FMOD's NULL). A stale handle fails the call instead of falling
+// back to the master group, so a wrong route is heard about.
+static int resolve_play_group(int h, FMOD_CHANNELGROUP** out) {
+    *out = NULL;
+    if (h == 0) return 1;
+    *out = resolve_changroup(h);
+    return *out != NULL;
+}
+
 // Callback - runs on an FMOD thread, NOT an HL thread. Must not touch the
 // handle table or any HL values. It reads the per-instance context back from
 // FMOD userdata, copies payloads into a plain C record, and pushes it onto
@@ -105,20 +117,37 @@ static FMOD_RESULT F_CALLBACK eventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type
             char key[FAXE_PS_KEY_MAX];
             FMOD_STUDIO_SOUND_INFO info;
             FMOD_SOUND* sound = NULL;
+            void* gameSound;
+            int gameSubsound;
+            // A name entry wins over the single key, the game sound wins
+            // over both.
             faxe_cbq_lock();
+            gameSound = ctx->psGameSound;
+            gameSubsound = ctx->psGameSubsound;
             strncpy(key, ctx->psKey, FAXE_PS_KEY_MAX - 1);
             key[FAXE_PS_KEY_MAX - 1] = '\0';
+            if (props) faxe_instctx_ps_find_named(ctx, props->name, key);
             faxe_cbq_unlock();
-            if (props && key[0] != '\0' && gCoreSystem && gStudioSystem) {
+            if (props && props->name) {
+                strncpy(ev.str, props->name, FAXE_CBQ_STR_MAX - 1);
+            }
+            if (props && gameSound) {
+                props->sound = (FMOD_SOUND*)gameSound;
+                props->subsoundIndex = gameSubsound;
+                ctx->psSound = NULL;
+            } else if (props && key[0] != '\0' && gCoreSystem && gStudioSystem) {
+                // NONBLOCKING moves the decode off the Studio thread. FMOD
+                // waits for the sound to become ready before the instrument
+                // plays it, the same as FMOD's own example.
                 if (FMOD_Studio_System_GetSoundInfo(gStudioSystem, key, &info) == FMOD_OK) {
                     // Audio table entry
                     if (FMOD_System_CreateSound(gCoreSystem, info.name_or_data,
-                            FMOD_LOOP_NORMAL | FMOD_CREATECOMPRESSEDSAMPLE | info.mode,
+                            FMOD_LOOP_NORMAL | FMOD_CREATECOMPRESSEDSAMPLE | FMOD_NONBLOCKING | info.mode,
                             &info.exinfo, &sound) == FMOD_OK) {
                         props->sound = sound;
                         props->subsoundIndex = info.subsoundindex;
                     }
-                } else if (FMOD_System_CreateSound(gCoreSystem, key, FMOD_DEFAULT, NULL, &sound) == FMOD_OK) {
+                } else if (FMOD_System_CreateSound(gCoreSystem, key, FMOD_DEFAULT | FMOD_NONBLOCKING, NULL, &sound) == FMOD_OK) {
                     // Plain file path fallback
                     props->sound = sound;
                     props->subsoundIndex = -1;
@@ -130,7 +159,12 @@ static FMOD_RESULT F_CALLBACK eventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type
         case FMOD_STUDIO_EVENT_CALLBACK_DESTROY_PROGRAMMER_SOUND: {
             FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES* props =
                 (FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES*)parameters;
-            if (props && props->sound) {
+            if (props && props->name) {
+                strncpy(ev.str, props->name, FAXE_CBQ_STR_MAX - 1);
+            }
+            // Only a sound this shim created is released. A game-owned one
+            // stays with the game.
+            if (props && props->sound && props->sound == (FMOD_SOUND*)ctx->psSound) {
                 FMOD_Sound_Release(props->sound);
             }
             ctx->psSound = NULL;
@@ -217,12 +251,12 @@ static FaxeInstCtx* instance_ctx(FMOD_STUDIO_EVENTINSTANCE* instance) {
 }
 
 // Builds the mask actually installed on the instance: the user's mask plus
-// DESTROYED (context cleanup) plus the programmer-sound bits when a key is
-// assigned.
+// DESTROYED (context cleanup) plus the programmer-sound bits when any
+// programmer sound assignment is present.
 static FMOD_STUDIO_EVENT_CALLBACK_TYPE effective_callback_mask(FaxeInstCtx* ctx) {
     unsigned int mask = ctx->cbMask | FMOD_STUDIO_EVENT_CALLBACK_DESTROYED;
     faxe_cbq_lock();
-    if (ctx->psKey[0] != '\0') {
+    if (faxe_instctx_ps_armed(ctx)) {
         mask |= FMOD_STUDIO_EVENT_CALLBACK_CREATE_PROGRAMMER_SOUND
               | FMOD_STUDIO_EVENT_CALLBACK_DESTROY_PROGRAMMER_SOUND;
     }
@@ -335,6 +369,50 @@ HL_PRIM int HL_NAME(ps_assign)(int h, vbyte* key) {
 }
 DEFINE_PRIM(_I32, ps_assign, _I32 _BYTES);
 
+// Hands a game-owned sound to the programmer instrument. The sound is
+// resolved here on the Haxe thread, the callback only reads the pointer.
+// The game keeps the sound alive until the instrument has destroyed it.
+HL_PRIM int HL_NAME(ps_assign_sound)(int h, int soundHandle, int subsoundIndex) {
+    FMOD_STUDIO_EVENTINSTANCE* instance = resolve_instance(h);
+    FMOD_SOUND* sound;
+    FaxeInstCtx* ctx;
+    if (!instance) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    ctx = instance_ctx(instance);
+    if (!ctx) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    sound = (FMOD_SOUND*)faxe_handle_resolve(soundHandle, FAXE_TYPE_SOUND);
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    if (subsoundIndex < -1) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    faxe_cbq_lock();
+    ctx->psGameSound = sound;
+    ctx->psGameSubsound = subsoundIndex;
+    faxe_cbq_unlock();
+    gLastResult = FMOD_Studio_EventInstance_SetCallback(instance, eventCallback,
+        effective_callback_mask(ctx));
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, ps_assign_sound, _I32 _I32 _I32);
+
+// Maps one programmer instrument name to a key or path. The name is the
+// instrument's name in FMOD Studio, matched when the create callback runs.
+HL_PRIM int HL_NAME(ps_assign_named)(int h, vbyte* name, vbyte* key) {
+    FMOD_STUDIO_EVENTINSTANCE* instance = resolve_instance(h);
+    FaxeInstCtx* ctx;
+    int stored;
+    if (!instance) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    ctx = instance_ctx(instance);
+    if (!ctx) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    if (!name || !key) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    faxe_cbq_lock();
+    stored = faxe_instctx_ps_set_named(ctx, (const char*)name, (const char*)key);
+    faxe_cbq_unlock();
+    if (stored < 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    if (stored == 0) { gLastResult = FMOD_ERR_MEMORY; return (int)gLastResult; }
+    gLastResult = FMOD_Studio_EventInstance_SetCallback(instance, eventCallback,
+        effective_callback_mask(ctx));
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, ps_assign_named, _I32 _BYTES _BYTES);
+
 HL_PRIM int HL_NAME(ps_clear)(int h) {
     FMOD_STUDIO_EVENTINSTANCE* instance = resolve_instance(h);
     FaxeInstCtx* ctx;
@@ -342,7 +420,7 @@ HL_PRIM int HL_NAME(ps_clear)(int h) {
     ctx = instance_ctx(instance);
     if (!ctx) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     faxe_cbq_lock();
-    ctx->psKey[0] = '\0';
+    faxe_instctx_ps_clear(ctx);
     faxe_cbq_unlock();
     gLastResult = FMOD_Studio_EventInstance_SetCallback(instance, eventCallback,
         effective_callback_mask(ctx));
@@ -356,14 +434,21 @@ static FMOD_SOUND* resolve_sound(int h) {
     return (FMOD_SOUND*)faxe_handle_resolve(h, FAXE_TYPE_SOUND);
 }
 
-HL_PRIM int HL_NAME(core_create_sound)(vbyte* path, int mode, bool openOnly) {
+// mode is a full FMOD_MODE. initialSubsound >= 0 goes into
+// exinfo.initialsubsound for FSB streams, -1 leaves the default.
+HL_PRIM int HL_NAME(core_create_sound)(vbyte* path, int mode, int initialSubsound) {
     FMOD_SOUND* sound = NULL;
-    FMOD_MODE fmodMode = FMOD_DEFAULT;
+    FMOD_CREATESOUNDEXINFO exinfo;
+    FMOD_CREATESOUNDEXINFO* exinfoPtr = NULL;
     int handle;
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
-    if (mode & 1) fmodMode |= FMOD_LOOP_NORMAL;
-    if (openOnly) fmodMode |= FMOD_OPENONLY;
-    gLastResult = FMOD_System_CreateSound(gCoreSystem, (const char*)path, fmodMode, NULL, &sound);
+    if (initialSubsound >= 0) {
+        memset(&exinfo, 0, sizeof(exinfo));
+        exinfo.cbsize = sizeof(exinfo);
+        exinfo.initialsubsound = initialSubsound;
+        exinfoPtr = &exinfo;
+    }
+    gLastResult = FMOD_System_CreateSound(gCoreSystem, (const char*)path, (FMOD_MODE)mode, exinfoPtr, &sound);
     if (gLastResult != FMOD_OK || !sound) return 0;
     handle = faxe_handle_alloc(sound, FAXE_TYPE_SOUND);
     if (handle == 0) {
@@ -373,7 +458,31 @@ HL_PRIM int HL_NAME(core_create_sound)(vbyte* path, int mode, bool openOnly) {
     }
     return handle;
 }
-DEFINE_PRIM(_I32, core_create_sound, _BYTES _I32 _BOOL);
+DEFINE_PRIM(_I32, core_create_sound, _BYTES _I32 _I32);
+
+// An encoded file image (wav, ogg, mp3, fsb) already in memory. FMOD
+// copies the bytes, so the buffer is free once this returns.
+HL_PRIM int HL_NAME(core_create_sound_memory)(vbyte* data, int len, int mode) {
+    FMOD_CREATESOUNDEXINFO exinfo;
+    FMOD_SOUND* sound = NULL;
+    int handle;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    if (!data || len <= 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
+    memset(&exinfo, 0, sizeof(exinfo));
+    exinfo.cbsize = sizeof(exinfo);
+    exinfo.length = (unsigned int)len;
+    gLastResult = FMOD_System_CreateSound(gCoreSystem, (const char*)data,
+        ((FMOD_MODE)mode & ~(FMOD_MODE)FMOD_OPENMEMORY_POINT) | FMOD_OPENMEMORY, &exinfo, &sound);
+    if (gLastResult != FMOD_OK || !sound) return 0;
+    handle = faxe_handle_alloc(sound, FAXE_TYPE_SOUND);
+    if (handle == 0) {
+        gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
+        FMOD_Sound_Release(sound);
+        return 0;
+    }
+    return handle;
+}
+DEFINE_PRIM(_I32, core_create_sound_memory, _BYTES _I32 _I32);
 
 // Releasing a parent sound destroys its subsounds, so every sound handle
 // whose FMOD parent is this sound is dropped first. Otherwise those slots
@@ -550,12 +659,14 @@ HL_PRIM int HL_NAME(core_pcm_underruns)(int h) {
 }
 DEFINE_PRIM(_I32, core_pcm_underruns, _I32);
 
-HL_PRIM int HL_NAME(core_pcm_play)(int h, bool paused) {
+HL_PRIM int HL_NAME(core_pcm_play)(int h, int group, bool paused) {
     HlaxePcmStream* ps = resolve_pcm(h);
     FMOD_CHANNEL* channel = NULL;
+    FMOD_CHANNELGROUP* cg;
     int handle;
     if (!ps) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
-    gLastResult = FMOD_System_PlaySound(gCoreSystem, ps->sound, NULL, paused ? 1 : 0, &channel);
+    if (!resolve_play_group(group, &cg)) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = FMOD_System_PlaySound(gCoreSystem, ps->sound, cg, paused ? 1 : 0, &channel);
     if (gLastResult != FMOD_OK || !channel) return 0;
     handle = faxe_handle_alloc(channel, FAXE_TYPE_CHAN);
     if (handle == 0) {
@@ -565,7 +676,7 @@ HL_PRIM int HL_NAME(core_pcm_play)(int h, bool paused) {
     }
     return handle;
 }
-DEFINE_PRIM(_I32, core_pcm_play, _I32 _BOOL);
+DEFINE_PRIM(_I32, core_pcm_play, _I32 _I32 _BOOL);
 
 HL_PRIM int HL_NAME(core_pcm_release)(int h) {
     HlaxePcmStream* ps = resolve_pcm(h);
@@ -1147,13 +1258,15 @@ DEFINE_PRIM(_I32, bus_get_channel_group, _I32);
 
 //// Core system extras
 
-HL_PRIM int HL_NAME(sys_play_dsp)(int dspHandle, bool startPaused) {
+HL_PRIM int HL_NAME(sys_play_dsp)(int dspHandle, int group, bool startPaused) {
     FMOD_DSP* dsp = resolve_dsp(dspHandle);
     FMOD_CHANNEL* channel = NULL;
+    FMOD_CHANNELGROUP* cg;
     int handle;
     if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
-    gLastResult = FMOD_System_PlayDSP(gCoreSystem, dsp, NULL, startPaused ? 1 : 0, &channel);
+    if (!resolve_play_group(group, &cg)) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = FMOD_System_PlayDSP(gCoreSystem, dsp, cg, startPaused ? 1 : 0, &channel);
     if (gLastResult != FMOD_OK || !channel) return 0;
     handle = faxe_handle_alloc(channel, FAXE_TYPE_CHAN);
     if (handle == 0) {
@@ -1163,7 +1276,7 @@ HL_PRIM int HL_NAME(sys_play_dsp)(int dspHandle, bool startPaused) {
     }
     return handle;
 }
-DEFINE_PRIM(_I32, sys_play_dsp, _I32 _BOOL);
+DEFINE_PRIM(_I32, sys_play_dsp, _I32 _I32 _BOOL);
 
 // fbuf = double[12]: reverb properties in fmod_common.h field order
 // (DecayTime, EarlyDelay, LateDelay, HFReference, HFDecayRatio, Diffusion,
@@ -1698,13 +1811,15 @@ HL_PRIM int HL_NAME(core_create_sound_pcm)(vbyte* data, int len, int sampleRate,
 }
 DEFINE_PRIM(_I32, core_create_sound_pcm, _BYTES _I32 _I32 _I32);
 
-HL_PRIM int HL_NAME(core_play_sound)(int h, bool startPaused) {
+HL_PRIM int HL_NAME(core_play_sound)(int h, int group, bool startPaused) {
     FMOD_SOUND* sound = resolve_core_sound(h);
     FMOD_CHANNEL* channel = NULL;
+    FMOD_CHANNELGROUP* cg;
     int handle;
     if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
-    gLastResult = FMOD_System_PlaySound(gCoreSystem, sound, NULL, startPaused ? 1 : 0, &channel);
+    if (!resolve_play_group(group, &cg)) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = FMOD_System_PlaySound(gCoreSystem, sound, cg, startPaused ? 1 : 0, &channel);
     if (gLastResult != FMOD_OK || !channel) return 0;
     handle = faxe_handle_alloc(channel, FAXE_TYPE_CHAN);
     if (handle == 0) {
@@ -1714,7 +1829,7 @@ HL_PRIM int HL_NAME(core_play_sound)(int h, bool startPaused) {
     }
     return handle;
 }
-DEFINE_PRIM(_I32, core_play_sound, _I32 _BOOL);
+DEFINE_PRIM(_I32, core_play_sound, _I32 _I32 _BOOL);
 
 HL_PRIM int HL_NAME(sound_set_defaults)(int h, double frequency, int priority) {
     FMOD_SOUND* sound = resolve_core_sound(h);

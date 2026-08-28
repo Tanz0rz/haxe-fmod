@@ -76,9 +76,13 @@ abstract PcmStream(Int) from Int to Int {
         return NativeStudio.core_pcm_underruns(this);
     }
 
-    /** Starts playback. Returns Channel.NULL on failure. */
-    public inline function play(startPaused:Bool = false):Channel {
-        return NativeStudio.core_pcm_play(this, startPaused);
+    /**
+     * Starts playback. Returns Channel.NULL on failure. group routes the
+     * new channel into a ChannelGroup from the first sample, null means
+     * the master group.
+     */
+    public inline function play(startPaused:Bool = false, ?group:ChannelGroup):Channel {
+        return NativeStudio.core_pcm_play(this, group == null ? 0 : (group : Int), startPaused);
     }
 
     /** Stops playback, frees the stream, and invalidates this handle. */

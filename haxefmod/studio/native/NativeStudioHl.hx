@@ -238,10 +238,13 @@ class NativeStudioHl {
 
     // Programmer sounds
     public static inline function ps_assign(handle:Int, key:String):Int return Raw.ps_assign(handle, toBytes(key));
+    public static inline function ps_assign_sound(handle:Int, sound:Int, subsoundIndex:Int):Int return Raw.ps_assign_sound(handle, sound, subsoundIndex);
+    public static inline function ps_assign_named(handle:Int, name:String, key:String):Int return Raw.ps_assign_named(handle, toBytes(name), toBytes(key));
     public static inline function ps_clear(handle:Int):Int return Raw.ps_clear(handle);
 
     // Core API micro subset
-    public static inline function core_create_sound(path:String, mode:Int, openOnly:Bool):Int return Raw.core_create_sound(toBytes(path), mode, openOnly);
+    public static inline function core_create_sound(path:String, mode:Int, initialSubsound:Int):Int return Raw.core_create_sound(toBytes(path), mode, initialSubsound);
+    public static inline function core_create_sound_memory(data:haxe.io.Bytes, len:Int, mode:Int):Int return Raw.core_create_sound_memory(data.getData().bytes, len, mode);
     public static inline function core_release_sound(handle:Int):Int return Raw.core_release_sound(handle);
     public static inline function core_get_sound_length(handle:Int, unit:Int):Int return Raw.core_get_sound_length(handle, unit);
 
@@ -250,7 +253,7 @@ class NativeStudioHl {
     public static inline function core_pcm_write(handle:Int, data:haxe.io.Bytes, len:Int):Int return Raw.core_pcm_write(handle, data.getData().bytes, len);
     public static inline function core_pcm_space(handle:Int):Int return Raw.core_pcm_space(handle);
     public static inline function core_pcm_underruns(handle:Int):Int return Raw.core_pcm_underruns(handle);
-    public static inline function core_pcm_play(handle:Int, startPaused:Bool):Int return Raw.core_pcm_play(handle, startPaused);
+    public static inline function core_pcm_play(handle:Int, group:Int, startPaused:Bool):Int return Raw.core_pcm_play(handle, group, startPaused);
     public static inline function core_pcm_release(handle:Int):Int return Raw.core_pcm_release(handle);
 
     // Core channels
@@ -323,7 +326,7 @@ class NativeStudioHl {
     public static inline function bus_get_channel_group(handle:Int):Int return Raw.bus_get_channel_group(handle);
 
     // Core system extras
-    public static inline function sys_play_dsp(dspHandle:Int, startPaused:Bool):Int return Raw.sys_play_dsp(dspHandle, startPaused);
+    public static inline function sys_play_dsp(dspHandle:Int, group:Int, startPaused:Bool):Int return Raw.sys_play_dsp(dspHandle, group, startPaused);
 
     /** 12 reverb property floats through the Scratch float buffer, DecayTime..WetLevel. */
     public static inline function sys_set_reverb_properties(instance:Int):Int return Raw.sys_set_reverb_properties(instance, Scratch.floatBuf());
@@ -393,7 +396,7 @@ class NativeStudioHl {
 
     // Core sound surface
     public static inline function core_create_sound_pcm(data:haxe.io.Bytes, len:Int, sampleRate:Int, channels:Int):Int return Raw.core_create_sound_pcm(data.getData().bytes, len, sampleRate, channels);
-    public static inline function core_play_sound(handle:Int, startPaused:Bool):Int return Raw.core_play_sound(handle, startPaused);
+    public static inline function core_play_sound(handle:Int, group:Int, startPaused:Bool):Int return Raw.core_play_sound(handle, group, startPaused);
     public static inline function sound_set_defaults(handle:Int, frequency:Float, priority:Int):Int return Raw.sound_set_defaults(handle, frequency, priority);
 
     /** Fills Scratch float buffer: [0]=frequency [1]=priority */
@@ -901,15 +904,18 @@ private extern class Raw {
     static function evi_get_cpu_usage(handle:Int, out:hl.Bytes):Int;
     static function evi_get_memory_usage(handle:Int, out:hl.Bytes):Int;
     static function ps_assign(handle:Int, key:hl.Bytes):Int;
+    static function ps_assign_sound(handle:Int, sound:Int, subsoundIndex:Int):Int;
+    static function ps_assign_named(handle:Int, name:hl.Bytes, key:hl.Bytes):Int;
     static function ps_clear(handle:Int):Int;
-    static function core_create_sound(path:hl.Bytes, mode:Int, openOnly:Bool):Int;
+    static function core_create_sound(path:hl.Bytes, mode:Int, initialSubsound:Int):Int;
+    static function core_create_sound_memory(data:hl.Bytes, len:Int, mode:Int):Int;
     static function core_release_sound(handle:Int):Int;
     static function core_get_sound_length(handle:Int, unit:Int):Int;
     static function core_pcm_create(sampleRate:Int, channels:Int, ringBytes:Int):Int;
     static function core_pcm_write(handle:Int, data:hl.Bytes, len:Int):Int;
     static function core_pcm_space(handle:Int):Int;
     static function core_pcm_underruns(handle:Int):Int;
-    static function core_pcm_play(handle:Int, startPaused:Bool):Int;
+    static function core_pcm_play(handle:Int, group:Int, startPaused:Bool):Int;
     static function core_pcm_release(handle:Int):Int;
     static function chan_set_volume(handle:Int, volume:Float):Int;
     static function chan_get_volume(handle:Int):Float;
@@ -966,7 +972,7 @@ private extern class Raw {
     static function bus_lock_channel_group(handle:Int):Int;
     static function bus_unlock_channel_group(handle:Int):Int;
     static function bus_get_channel_group(handle:Int):Int;
-    static function sys_play_dsp(dspHandle:Int, startPaused:Bool):Int;
+    static function sys_play_dsp(dspHandle:Int, group:Int, startPaused:Bool):Int;
     static function sys_set_reverb_properties(instance:Int, fbuf:hl.Bytes):Int;
     static function sys_get_reverb_properties(instance:Int, fbuf:hl.Bytes):Int;
     static function core_pcm_create_3d(sampleRate:Int, channels:Int, ringBytes:Int):Int;
@@ -1013,7 +1019,7 @@ private extern class Raw {
     static function r3d_get_properties(handle:Int, fbuf:hl.Bytes):Int;
     static function r3d_set_active(handle:Int, active:Bool):Int;
     static function core_create_sound_pcm(data:hl.Bytes, len:Int, sampleRate:Int, channels:Int):Int;
-    static function core_play_sound(handle:Int, startPaused:Bool):Int;
+    static function core_play_sound(handle:Int, group:Int, startPaused:Bool):Int;
     static function sound_set_defaults(handle:Int, frequency:Float, priority:Int):Int;
     static function sound_get_defaults(handle:Int, fbuf:hl.Bytes):Int;
     static function sound_set_loop_points(handle:Int, start:Int, end:Int, unit:Int):Int;

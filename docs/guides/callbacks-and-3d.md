@@ -51,7 +51,21 @@ step.release();
 
 ### Programmer sounds
 
-`EventInstance.assignProgrammerSound(key)` names the audio a programmer instrument should play. Assign it before `start()`, and the native side resolves it on FMOD's thread when the instrument triggers. The key is either an audio table entry or a `Sound` you loaded from a file or PCM. Keys must be under 512 UTF-8 bytes. On HTML5 the call returns `FMOD_ERR_UNSUPPORTED` because of a defect in FMOD's JavaScript runtime, documented in [Limitations](../limitations.md#html5). `StudioSystem.getSoundInfo(key)` reports what FMOD would load for an audio table key, the file name or path and the subsound index inside it, and returns `null` for a key that is in no loaded audio table.
+`EventInstance.assignProgrammerSound(key)` names the audio a programmer instrument should play. Assign it before `start()`, and the native side resolves it on FMOD's thread when the instrument triggers. The key is either an audio table entry or a file path. Keys must be under 512 UTF-8 bytes. The sound is created with `FMOD_NONBLOCKING`, so the decode runs off the Studio thread and FMOD waits for it before the instrument plays. On HTML5 the call returns `FMOD_ERR_UNSUPPORTED` because of a defect in FMOD's JavaScript runtime, documented in [Limitations](../limitations.md#html5). `StudioSystem.getSoundInfo(key)` reports what FMOD would load for an audio table key, the file name or path and the subsound index inside it, and returns `null` for a key that is in no loaded audio table.
+
+`assignProgrammerSoundFrom(sound, ?subsoundIndex)` hands the instrument a `Sound` the game created itself, from a file, from memory, or from PCM, with an optional subsound of an FSB. The instrument plays it and never releases it. Keep the sound alive until the instrument is done with it and release it yourself afterwards. A sound still loading with `NONBLOCKING` is fine, FMOD waits for it.
+
+An event with several programmer instruments tells them apart by name. `assignProgrammerSoundForName(name, key)` maps one instrument name to a key or path, and `assignProgrammerSounds(map)` sets several at once, up to eight per instance. A name with no entry falls back to the single key. The handler passed to `setCallback` receives `ProgrammerSoundCreated(name)` when an instrument asks for its sound and `ProgrammerSoundDestroyed(name)` when it is done, so the game learns the instrument names its events use. `clearProgrammerSound()` drops every assignment.
+
+```haxe
+var line = StudioSystem.getEvent("event:/Dialogue/Conversation").createInstance();
+line.assignProgrammerSounds(["Question" => "npc_question_03", "Answer" => "player_answer_03"]);
+line.setCallback(data -> switch (data) {
+    case ProgrammerSoundDestroyed(name): trace('$name finished');
+    default:
+});
+line.start();
+```
 
 ### System events
 

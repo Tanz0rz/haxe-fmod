@@ -65,7 +65,7 @@ while (tag != null) {
 ```
 
 ## FMOD_SOUND_NONBLOCK_CALLBACK
-verdict: cannot It runs on FMOD's file thread, where no Haxe code can run. Sound.create opens synchronously, and Sound.getOpenState reports the state of a sound at any time.
+verdict: cannot It runs on FMOD's file thread, where no Haxe code can run. Sound.create with ChannelMode.NONBLOCKING starts the load and Sound.getOpenState reports READY or ERROR when it finishes.
 
 ## FMOD_SOUND_PCMREAD_CALLBACK
 verdict: bound

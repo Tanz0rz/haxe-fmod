@@ -1283,7 +1283,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Plays this DSP as a sound source (e.g.",
      "gated": false,
      "name": "play",
-     "signature": "play(startPaused:Bool = false):Channel",
+     "signature": "play(startPaused:Bool = false, ?group:ChannelGroup):Channel",
      "static": false,
      "type": "haxefmod.core.Dsp"
     },
@@ -1292,7 +1292,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Starts playback.",
      "gated": false,
      "name": "play",
-     "signature": "play(startPaused:Bool = false):Channel",
+     "signature": "play(startPaused:Bool = false, ?group:ChannelGroup):Channel",
      "static": false,
      "type": "haxefmod.core.PcmStream"
     },
@@ -1301,7 +1301,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Starts playback.",
      "gated": false,
      "name": "play",
-     "signature": "play(startPaused:Bool = false):haxefmod.core.Channel",
+     "signature": "play(startPaused:Bool = false, ?group:haxefmod.core.ChannelGroup):haxefmod.core.Channel",
      "static": false,
      "type": "haxefmod.core.Sound"
     }
@@ -3142,7 +3142,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Plays this DSP as a sound source (e.g.",
      "gated": false,
      "name": "play",
-     "signature": "play(startPaused:Bool = false):Channel",
+     "signature": "play(startPaused:Bool = false, ?group:ChannelGroup):Channel",
      "static": false,
      "type": "haxefmod.core.Dsp"
     },
@@ -3151,7 +3151,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Starts playback.",
      "gated": false,
      "name": "play",
-     "signature": "play(startPaused:Bool = false):Channel",
+     "signature": "play(startPaused:Bool = false, ?group:ChannelGroup):Channel",
      "static": false,
      "type": "haxefmod.core.PcmStream"
     },
@@ -3160,7 +3160,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Starts playback.",
      "gated": false,
      "name": "play",
-     "signature": "play(startPaused:Bool = false):haxefmod.core.Channel",
+     "signature": "play(startPaused:Bool = false, ?group:haxefmod.core.ChannelGroup):haxefmod.core.Channel",
      "static": false,
      "type": "haxefmod.core.Sound"
     }
@@ -4346,19 +4346,9 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "dsp_getinfo": {
-   "code": "import haxefmod.core.Dsp;\nimport haxefmod.core.DspType;\n\nvar unit = Dsp.create(DspType.COMPRESSOR);\nvar info = unit.getInfo();\nif (info != null) {\n    trace('${info.name} ${info.version} ${info.channels}');\n}",
    "fmod": "FMOD_DSP_GetInfo",
    "gated": false,
    "haxe": [
-    {
-     "direct": true,
-     "doc": "The unit's description: display name, plugin version (BCD, 0x10000 is 1.0), channel count (0 when the unit takes any), and the config dialog size a plugin declares.",
-     "gated": false,
-     "name": "getInfo",
-     "signature": "getInfo():Null<{name:String, version:Int, channels:Int, configWidth:Int, configHeight:Int}>",
-     "static": false,
-     "type": "haxefmod.core.Dsp"
-    },
     {
      "direct": false,
      "doc": "The effect's display name (e.g.",
@@ -4369,11 +4359,7 @@ const HAXEFMOD_BINDINGS = {
      "type": "haxefmod.core.Dsp"
     }
    ],
-   "heading": "DSP::getInfo",
-   "html5": false,
-   "notes": [
-    "Dsp.getInfo() returns the name, version, channels, configwidth, and configheight fields together. Dsp.getName() returns the name alone."
-   ]
+   "html5": false
   },
   "dsp_getinput": {
    "fmod": "FMOD_DSP_GetInput",
@@ -4417,25 +4403,20 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "dsp_getmeteringinfo": {
-   "code": "import haxefmod.core.Dsp;\nimport haxefmod.core.DspType;\n\nvar unit = Dsp.create(DspType.FADER);\nunit.setMeteringEnabled(true, true);\nvar output = unit.getMetering();\nvar input = unit.getInputMetering();",
    "fmod": "FMOD_DSP_GetMeteringInfo",
    "gated": false,
    "haxe": [
     {
      "direct": false,
-     "doc": "Peak and RMS levels per channel (linear 0..1) on the output side, or on the input side with input set, plus the channel count and the number of samples the meter averaged.",
+     "doc": "Peak and RMS levels per output channel (linear 0..1), or null when unavailable (metering disabled, no signal yet, or a stale handle).",
      "gated": false,
      "name": "getMetering",
-     "signature": "getMetering(input:Bool = false):Null<{peak:Array<Float>, rms:Array<Float>, numChannels:Int, numSamples:Int}>",
+     "signature": "getMetering():Null<{peak:Array<Float>, rms:Array<Float>}>",
      "static": false,
      "type": "haxefmod.core.Dsp"
     }
    ],
-   "heading": "DSP::getMeteringInfo",
-   "html5": false,
-   "notes": [
-    "One side per call. Dsp.getMetering() reads the output side, getMetering(true) or getInputMetering() the input side. The result carries peak, rms, numChannels, and numSamples."
-   ]
+   "html5": false
   },
   "dsp_getnuminputs": {
    "fmod": "FMOD_DSP_GetNumInputs",
@@ -4543,19 +4524,9 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "dsp_getparameterdata": {
-   "code": "import haxefmod.core.Dsp;\nimport haxefmod.core.DspType;\nimport haxefmod.studio.Types;\n\nvar fader = Dsp.create(DspType.FADER);\nvar gain = fader.getOverallGain();\nvar index = fader.getDataParameterIndex(FmodDspParameterDataType.OVERALLGAIN);\nvar raw = fader.getParameterData(index);\nif (raw != null) {\n    var linearGain = raw.getFloat(0);\n}",
    "fmod": "FMOD_DSP_GetParameterData",
    "gated": false,
    "haxe": [
-    {
-     "direct": true,
-     "doc": "A copy of the data block behind a data parameter, laid out as the effect's C struct (little endian, read it with haxe.io.Bytes getFloat and getInt32).",
-     "gated": false,
-     "name": "getParameterData",
-     "signature": "getParameterData(index:Int):Null<haxe.io.Bytes>",
-     "static": false,
-     "type": "haxefmod.core.Dsp"
-    },
     {
      "direct": false,
      "doc": "Spectrum magnitudes from an FFT effect (create with DspType.FFT and attach where you want to analyze).",
@@ -4564,22 +4535,9 @@ const HAXEFMOD_BINDINGS = {
      "signature": "getFftSpectrum(maxBins:Int = 512):Null<Array<Float>>",
      "static": false,
      "type": "haxefmod.core.Dsp"
-    },
-    {
-     "direct": false,
-     "doc": "The whole FFT payload: the bin count, the channel count, and one magnitude array per channel, each capped at maxBins (512 at most).",
-     "gated": false,
-     "name": "getFftSpectrumInfo",
-     "signature": "getFftSpectrumInfo(maxBins:Int = 512):Null<FmodDspParameterFft>",
-     "static": false,
-     "type": "haxefmod.core.Dsp"
     }
    ],
-   "heading": "DSP::getParameterData",
-   "html5": true,
-   "notes": [
-    "Dsp.getParameterData(index) returns a copy of the block as bytes in the effect's C layout, and the typed readers decode the common formats: getFftSpectrumInfo() for FMOD_DSP_PARAMETER_FFT, getOverallGain() for FMOD_DSP_PARAMETER_OVERALLGAIN, getLoudnessMeterInfo() for FMOD_DSP_LOUDNESS_METER_INFO_TYPE. On HTML5 the web glue types the block instead of exposing its bytes, so only the overall gain, FFT, dynamic response, and attenuation range payloads come back and getLoudnessMeterInfo is a compile error."
-   ]
+   "html5": false
   },
   "dsp_getparameterfloat": {
    "fmod": "FMOD_DSP_GetParameterFloat",
@@ -4603,10 +4561,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "The descriptor of the parameter at index (unsupported in HTML5, null there).",
+     "doc": "Name, type, and range of the parameter at index (unsupported in HTML5, null there).",
      "gated": true,
      "name": "getParameterInfo",
-     "signature": "getParameterInfo(index:Int):Null<{name:String, label:String, description:String, type:FmodDspParameterType,\n            min:Float, max:Float, defaultValue:Float, mappingType:FmodDspParameterFloatMappingType,\n            mappingPoints:Null<{values:Array<Float>, positions:Array<Float>}>, goesToInfinity:Bool,\n            dataType:FmodDspParameterDataType, valueNames:Null<Array<String>>}>",
+     "signature": "getParameterInfo(index:Int):Null<{name:String, type:FmodDspParameterType, min:Float, max:Float, defaultValue:Float}>",
      "static": false,
      "type": "haxefmod.core.Dsp"
     }
@@ -4769,7 +4727,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "DSP::setCallback",
    "html5": false,
    "notes": [
-    "Cannot be bound. FMOD runs the callback on its mixer thread, and no Haxe target can execute code there. Poll the unit from the game loop with Dsp.getMetering(), Dsp.getFftSpectrumInfo(), or Dsp.getParameterData() instead."
+    "Cannot be bound. FMOD runs the callback on its mixer thread, and no Haxe target can execute code there. Poll the unit from the game loop with Dsp.getMetering() or Dsp.getFftSpectrum() instead."
    ]
   },
   "dsp_setchannelformat": {
@@ -4830,24 +4788,6 @@ const HAXEFMOD_BINDINGS = {
      "gated": false,
      "name": "setParameterData",
      "signature": "setParameterData(index:Int, data:haxe.io.Bytes):FmodResult",
-     "static": false,
-     "type": "haxefmod.core.Dsp"
-    },
-    {
-     "direct": false,
-     "doc": "Sets a data parameter of type FmodDspParameterDataType._3DATTRIBUTES (FMOD_DSP_PARAMETER_3DATTRIBUTES).",
-     "gated": false,
-     "name": "setParameter3DAttributes",
-     "signature": "setParameter3DAttributes(index:Int, absolute:Fmod3DAttributes, ?relative:Fmod3DAttributes):FmodResult",
-     "static": false,
-     "type": "haxefmod.core.Dsp"
-    },
-    {
-     "direct": false,
-     "doc": "Sets a data parameter of type FmodDspParameterDataType._3DATTRIBUTES_MULTI (FMOD_DSP_PARAMETER_3DATTRIBUTES_MULTI), the position of an object panner or pan unit for every listener.",
-     "gated": false,
-     "name": "setParameter3DAttributesMulti",
-     "signature": "setParameter3DAttributesMulti(index:Int, absolute:Fmod3DAttributes, relative:Array<Fmod3DAttributes>, ?weights:Array<Float>):FmodResult",
      "static": false,
      "type": "haxefmod.core.Dsp"
     }
@@ -6289,7 +6229,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Loads a sound file.",
      "gated": false,
      "name": "create",
-     "signature": "create(path:String, loop:Bool = false, openOnly:Bool = false):Sound",
+     "signature": "create(path:String, loop:Bool = false, openOnly:Bool = false, mode:Int = 0, initialSubsound:Int = -1):Sound",
      "static": true,
      "type": "haxefmod.core.Sound"
     },
@@ -6299,6 +6239,15 @@ const HAXEFMOD_BINDINGS = {
      "gated": true,
      "name": "createRecordBuffer",
      "signature": "createRecordBuffer(sampleRate:Int, channels:Int, seconds:Int):Sound",
+     "static": true,
+     "type": "haxefmod.core.Sound"
+    },
+    {
+     "direct": false,
+     "doc": "A sound from an encoded file image in memory (wav, ogg, mp3, fsb, anything Sound.create would load from disk).",
+     "gated": false,
+     "name": "fromMemory",
+     "signature": "fromMemory(data:haxe.io.Bytes, mode:Int = 0, length:Int = -1):Sound",
      "static": true,
      "type": "haxefmod.core.Sound"
     },
@@ -8442,7 +8391,25 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "Removes the programmer-sound assignment (unsupported in HTML5, where nothing can be assigned).",
+     "doc": "Maps one programmer instrument name to the audio table key or file path it should play (unsupported in HTML5).",
+     "gated": true,
+     "name": "assignProgrammerSoundForName",
+     "signature": "assignProgrammerSoundForName(name:String, key:String):FmodResult",
+     "static": false,
+     "type": "haxefmod.studio.EventInstance"
+    },
+    {
+     "direct": false,
+     "doc": "Hands a sound the game owns to this instance's programmer instrument (unsupported in HTML5).",
+     "gated": true,
+     "name": "assignProgrammerSoundFrom",
+     "signature": "assignProgrammerSoundFrom(sound:haxefmod.core.Sound, subsoundIndex:Int = -1):FmodResult",
+     "static": false,
+     "type": "haxefmod.studio.EventInstance"
+    },
+    {
+     "direct": false,
+     "doc": "Removes every programmer-sound assignment, key, game sound, and names (unsupported in HTML5, where nothing can be assigned).",
      "gated": true,
      "name": "clearProgrammerSound",
      "signature": "clearProgrammerSound():FmodResult",
@@ -8633,7 +8600,25 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "Removes the programmer-sound assignment (unsupported in HTML5, where nothing can be assigned).",
+     "doc": "Maps one programmer instrument name to the audio table key or file path it should play (unsupported in HTML5).",
+     "gated": true,
+     "name": "assignProgrammerSoundForName",
+     "signature": "assignProgrammerSoundForName(name:String, key:String):FmodResult",
+     "static": false,
+     "type": "haxefmod.studio.EventInstance"
+    },
+    {
+     "direct": false,
+     "doc": "Hands a sound the game owns to this instance's programmer instrument (unsupported in HTML5).",
+     "gated": true,
+     "name": "assignProgrammerSoundFrom",
+     "signature": "assignProgrammerSoundFrom(sound:haxefmod.core.Sound, subsoundIndex:Int = -1):FmodResult",
+     "static": false,
+     "type": "haxefmod.studio.EventInstance"
+    },
+    {
+     "direct": false,
+     "doc": "Removes every programmer-sound assignment, key, game sound, and names (unsupported in HTML5, where nothing can be assigned).",
      "gated": true,
      "name": "clearProgrammerSound",
      "signature": "clearProgrammerSound():FmodResult",
@@ -10292,7 +10277,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Loads a sound file.",
      "gated": false,
      "name": "create",
-     "signature": "create(path:String, loop:Bool = false, openOnly:Bool = false):Sound",
+     "signature": "create(path:String, loop:Bool = false, openOnly:Bool = false, mode:Int = 0, initialSubsound:Int = -1):Sound",
      "static": true,
      "type": "haxefmod.core.Sound"
     },
@@ -10302,6 +10287,15 @@ const HAXEFMOD_BINDINGS = {
      "gated": true,
      "name": "createRecordBuffer",
      "signature": "createRecordBuffer(sampleRate:Int, channels:Int, seconds:Int):Sound",
+     "static": true,
+     "type": "haxefmod.core.Sound"
+    },
+    {
+     "direct": false,
+     "doc": "A sound from an encoded file image in memory (wav, ogg, mp3, fsb, anything Sound.create would load from disk).",
+     "gated": false,
+     "name": "fromMemory",
+     "signature": "fromMemory(data:haxe.io.Bytes, mode:Int = 0, length:Int = -1):Sound",
      "static": true,
      "type": "haxefmod.core.Sound"
     },
@@ -10334,13 +10328,13 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "system_createstream": {
-   "code": "import haxefmod.core.PcmStream;\n\nvar stream = PcmStream.create(44100, 2);\nvar channel = stream.play();",
+   "code": "import haxefmod.core.ChannelMode;\nimport haxefmod.core.PcmStream;\nimport haxefmod.core.Sound;\n\nvar music = Sound.create(\"assets/music/level1.ogg\", true, false, ChannelMode.CREATESTREAM);\nvar stream = PcmStream.create(44100, 2);\nvar channel = stream.play();",
    "fmod": "",
    "haxe": [],
    "heading": "System::createStream",
    "html5": false,
    "notes": [
-    "haxefmod covers streams two ways. Sound.create() opens a file for playback, and PcmStream.create() opens a stream that Haxe code feeds with raw PCM, which is the one path that works on HTML5 as well."
+    "haxefmod covers streams two ways. Sound.create() with ChannelMode.CREATESTREAM opens a file as a stream, and PcmStream.create() opens a stream that Haxe code feeds with raw PCM, which is the one path that works on HTML5 as well."
    ]
   },
   "system_detachchannelgroupfromport": {
@@ -11084,7 +11078,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Plays this DSP as a sound source (e.g.",
      "gated": false,
      "name": "play",
-     "signature": "play(startPaused:Bool = false):Channel",
+     "signature": "play(startPaused:Bool = false, ?group:ChannelGroup):Channel",
      "static": false,
      "type": "haxefmod.core.Dsp"
     }
@@ -11100,7 +11094,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Starts playback.",
      "gated": false,
      "name": "play",
-     "signature": "play(startPaused:Bool = false):Channel",
+     "signature": "play(startPaused:Bool = false, ?group:ChannelGroup):Channel",
      "static": false,
      "type": "haxefmod.core.PcmStream"
     },
@@ -11109,7 +11103,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Starts playback.",
      "gated": false,
      "name": "play",
-     "signature": "play(startPaused:Bool = false):haxefmod.core.Channel",
+     "signature": "play(startPaused:Bool = false, ?group:haxefmod.core.ChannelGroup):haxefmod.core.Channel",
      "static": false,
      "type": "haxefmod.core.Sound"
     }
@@ -12111,7 +12105,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_FFT": {
    "code": "/** FMOD_DSP_FFT, parameter indices of the FFT analyser. */\nenum abstract DspFft(Int) from Int to Int {\n    var WINDOWSIZE = 0;\n    var WINDOW = 1;\n    var BAND_START_FREQ = 2;\n    var BAND_STOP_FREQ = 3;\n    var SPECTRUMDATA = 4;\n    var RMS = 5;\n    var SPECTRAL_CENTROID = 6;\n    var IMMEDIATE_MODE = 7;\n    var DOWNMIX = 8;\n    var CHANNEL = 9;\n}",
    "notes": [
-    "The SPECTRUMDATA parameter is read through getFftSpectrum (the first channel) or getFftSpectrumInfo (every channel with the bin and channel counts) instead of getParameterData."
+    "The SPECTRUMDATA parameter is read through getFftSpectrum instead of getParameterData."
    ],
    "type": "haxefmod.core.DspParameters.DspFft",
    "verdict": "bound"
@@ -12183,18 +12177,18 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_LOUDNESS_METER": {
    "code": "/** FMOD_DSP_LOUDNESS_METER, parameter indices of the loudness meter. */\nenum abstract DspLoudnessMeter(Int) from Int to Int {\n    var STATE = 0;\n    var WEIGHTING = 1;\n    var INFO = 2;\n}",
    "notes": [
-    "STATE is set with setParameterInt and WEIGHTING with setParameterData. INFO is read with Dsp.getLoudnessMeterInfo (unsupported in HTML5, where the web glue hands the block back without its fields)."
+    "STATE is set with setParameterInt and WEIGHTING with setParameterData. The INFO readback has no Haxe getter, Dsp.getMetering gives peak and RMS levels on every target."
    ],
    "type": "haxefmod.core.DspParameters.DspLoudnessMeter",
    "verdict": "bound"
   },
   "FMOD_DSP_LOUDNESS_METER_INFO_TYPE": {
-   "code": "/** FMOD_DSP_LOUDNESS_METER_INFO_TYPE, the readback of a loudness meter unit. Loudness values are in LUFS, the histogram has 66 bins. */\ntypedef FmodDspLoudnessMeterInfo = {\n    var momentaryLoudness:Float;\n    var shortTermLoudness:Float;\n    var integratedLoudness:Float;\n    var loudness10thPercentile:Float;\n    var loudness95thPercentile:Float;\n    var loudnessHistogram:Array<Float>;\n    var maxTruePeak:Float;\n    var maxMomentaryLoudness:Float;\n}",
+   "code": null,
    "notes": [
-    "Read with Dsp.getLoudnessMeterInfo on a LOUDNESS_METER unit, native only (unsupported in HTML5)."
+    "No Haxe declaration, the library owns this choice. the library has no data parameter getter, so the loudness readback is not exposed and Dsp.getMetering gives peak and RMS levels instead"
    ],
-   "type": "haxefmod.studio.Types.FmodDspLoudnessMeterInfo",
-   "verdict": "bound"
+   "type": null,
+   "verdict": "library"
   },
   "FMOD_DSP_LOUDNESS_METER_STATE_TYPE": {
    "code": "/** FMOD_DSP_LOUDNESS_METER_STATE_TYPE, the LOUDNESS_METER unit's STATE parameter. Negative values reset the meter. */\nenum abstract DspLoudnessMeterState(Int) from Int to Int {\n    var RESET_INTEGRATED = -3;\n    var RESET_MAXPEAK = -2;\n    var RESET_ALL = -1;\n    var PAUSED = 0;\n    var ANALYZING = 1;\n}",
@@ -12277,7 +12271,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_OBJECTPAN": {
    "code": "/** FMOD_DSP_OBJECTPAN, parameter indices of the object pan effect. Names that start with a digit keep a leading underscore, since a Haxe identifier cannot start with one. */\nenum abstract DspObjectPan(Int) from Int to Int {\n    var _3D_POSITION = 0;\n    var _3D_ROLLOFF = 1;\n    var _3D_MIN_DISTANCE = 2;\n    var _3D_MAX_DISTANCE = 3;\n    var _3D_EXTENT_MODE = 4;\n    var _3D_SOUND_SIZE = 5;\n    var _3D_MIN_EXTENT = 6;\n    var OVERALL_GAIN = 7;\n    var OUTPUTGAIN = 8;\n    var ATTENUATION_RANGE = 9;\n    var OVERRIDE_RANGE = 10;\n}",
    "notes": [
-    "The 3D position parameter takes the FMOD_DSP_PARAMETER_3DATTRIBUTES_MULTI struct, set with Dsp.setParameter3DAttributesMulti on DspObjectPan._3D_POSITION. A source played through a 3D channel gets the same from Channel.set3DAttributes."
+    "The 3D position parameter takes the FMOD_DSP_PARAMETER_3DATTRIBUTES_MULTI struct, which is not exposed, so position an object panner by playing its source through a 3D channel and driving that channel's set3DAttributes instead."
    ],
    "type": "haxefmod.core.DspParameters.DspObjectPan",
    "verdict": "bound"
@@ -12533,7 +12527,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_SOUND_NONBLOCK_CALLBACK": {
    "code": null,
    "notes": [
-    "Cannot be bound. It runs on FMOD's file thread, where no Haxe code can run. Sound.create opens synchronously, and Sound.getOpenState reports the state of a sound at any time."
+    "Cannot be bound. It runs on FMOD's file thread, where no Haxe code can run. Sound.create with ChannelMode.NONBLOCKING starts the load and Sound.getOpenState reports READY or ERROR when it finishes."
    ],
    "type": null,
    "verdict": "cannot"
@@ -12677,7 +12671,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_CREATESOUNDEXINFO": {
    "code": null,
    "notes": [
-    "No Haxe declaration, the library owns this choice. Sound.create and Sound.fromPcm take its fields as arguments."
+    "No Haxe declaration, the library owns this choice. Sound.create, Sound.fromMemory, and Sound.fromPcm take its fields as arguments: the length of a memory image, the initial subsound of an FSB, and the format, rate, and channel count of raw PCM."
    ],
    "type": null,
    "verdict": "library"
@@ -13106,28 +13100,28 @@ const HAXEFMOD_EXAMPLES = {
  },
  "loading-and-playing-sounds-in-the-core-api": {
   "4.1.1 Non-blocking Sound Creation": {
-   "code": "var sound = Sound.create(\"../media/wave.mp3\"); // Loads the file on the calling thread and returns once it is ready.\nif (sound.isNull()) {\n    trace('load failed: ${StudioSystem.lastResult()}');\n}",
+   "code": "var sound = Sound.create(\"../media/wave.mp3\", false, false, ChannelMode.NONBLOCKING); // Returns at once, the file decodes on FMOD's thread.\nif (sound.isNull()) {\n    trace('load failed: ${StudioSystem.lastResult()}');\n}",
    "notes": [
-    "Sound.create has no NONBLOCKING mode. It loads on the calling thread and returns a ready handle, so load loose files at level start or from a loading screen."
+    "The mode argument of Sound.create takes FMOD_NONBLOCKING. The load runs on FMOD's thread and getOpenState reports LOADING until the sound is READY. The web build loads synchronously, the sound is READY when create returns."
    ],
-   "type": "haxefmod.core.Sound",
+   "type": "haxefmod.core.ChannelMode, haxefmod.core.Sound",
    "verdict": "bound"
   },
   "4.1.1 Non-blocking Sound Creation#2": {
    "code": null,
    "notes": [
-    "Cannot be bound. FMOD calls the callback on its async loader thread, no Haxe target can run code there. Sound.create returns a ready handle, and Sound.getOpenState reports READY for a usable sound."
+    "Cannot be bound. FMOD calls the callback on its async loader thread, no Haxe target can run code there. Poll Sound.getOpenState each frame instead, it reports READY once the sound can play and ERROR when the load failed."
    ],
    "type": null,
    "verdict": "cannot"
   },
   "4.1.1 Non-blocking Sound Creation#3": {
-   "code": null,
+   "code": "var sound = Sound.create(\"../media/wave.mp3\", false, false, ChannelMode.CREATESTREAM | ChannelMode.NONBLOCKING);\nif (sound.isNull()) {\n    trace('load failed: ${StudioSystem.lastResult()}');\n}\n\n// Each frame until it is ready\nif (sound.getOpenState() == FmodOpenState.READY) {\n    trace(\"Sound loaded!\");\n}",
    "notes": [
-    "Cannot be bound. FMOD_CREATESOUNDEXINFO is not exposed and the callback runs on FMOD's async loader thread. Sound.create takes the path and a loop flag and returns a ready handle, or Sound.NULL with the reason in StudioSystem.lastResult."
+    "No completion callback, the game polls getOpenState. CREATESTREAM in the mode argument is the createStream form."
    ],
-   "type": null,
-   "verdict": "cannot"
+   "type": "haxefmod.core.ChannelMode, haxefmod.core.Sound, haxefmod.studio.Types.FmodOpenState",
+   "verdict": "bound"
   },
   "4.2 Playing a sound": {
    "code": "var sound:Sound;\nvar channel:Channel;\n\nsound = Sound.create(\"../media/wave.mp3\");\nif (sound.isNull()) {\n    trace('load failed: ${StudioSystem.lastResult()}');\n}\n\nchannel = sound.play();\nif (channel.isNull()) {\n    trace('play failed: ${StudioSystem.lastResult()}');\n}",
@@ -13136,9 +13130,9 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "4.3.1 Creating a Sound from memory": {
-   "code": "var sound:Sound;\nvar buffer:haxe.io.Bytes = null;\n\n//\n// Load your interleaved 16-bit PCM data to the \"buffer\" bytes here\n//\n\nsound = Sound.fromPcm(buffer, 44100, 2); // The buffer's length is the length of the sound in bytes\n// The audio data stored in \"buffer\" has been duplicated into FMOD's buffers, and can now be freed",
+   "code": "var sound:Sound;\nvar buffer:haxe.io.Bytes = null;\n\n//\n// Load your file image (wav, ogg, mp3, fsb) into the \"buffer\" bytes here\n//\n\nsound = Sound.fromMemory(buffer); // The buffer's length is the length of the file image in bytes\n// The audio data stored in \"buffer\" has been duplicated into FMOD's buffers, and can now be freed",
    "notes": [
-    "Encoded files cannot be opened from memory. Sound.fromPcm takes raw 16-bit PCM and the sample rate and channel count stand in for the exinfo fields."
+    "Sound.fromMemory takes an encoded file image, the length is the bytes' own. Raw PCM goes through Sound.fromPcm, whose sample rate and channel count stand in for the exinfo fields."
    ],
    "type": "haxefmod.core.Sound",
    "verdict": "bound"
@@ -13146,7 +13140,7 @@ const HAXEFMOD_EXAMPLES = {
   "4.3.1 Creating a Sound from memory#2": {
    "code": null,
    "notes": [
-    "No Haxe declaration, another call plays this role. there is no point-to-memory mode. Sound.fromPcm always copies the bytes, so nothing stays pinned and the buffer is free after the call."
+    "No Haxe declaration, another call plays this role. there is no point-to-memory mode. Sound.fromMemory and Sound.fromPcm always copy the bytes, so nothing stays pinned and the buffer is free after the call."
    ],
    "type": null,
    "verdict": "covered"
@@ -13168,11 +13162,11 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "4.3.4 Creating the Sound as a Streamed FSB File": {
-   "code": "var sound:Sound;\n\nsound = Sound.create(\"../media/sounds.fsb\");\nif (sound.isNull()) {\n    trace('load failed: ${StudioSystem.lastResult()}');\n}\n\nvar subsound = sound.getSubSound(1);",
+   "code": "var sound:Sound;\n\nsound = Sound.create(\"../media/sounds.fsb\", false, false, ChannelMode.CREATESTREAM | ChannelMode.NONBLOCKING, 1);\nif (sound.isNull()) {\n    trace('load failed: ${StudioSystem.lastResult()}');\n}",
    "notes": [
-    "Sound.create has no NONBLOCKING mode and no initial subsound field. The FSB loads on the calling thread and getSubSound picks the subsound to play."
+    "The mode argument carries CREATESTREAM and NONBLOCKING, and the initialSubsound argument is exinfo.initialsubsound."
    ],
-   "type": "haxefmod.core.Sound",
+   "type": "haxefmod.core.ChannelMode, haxefmod.core.Sound",
    "verdict": "bound"
   },
   "4.5.1 Setup : Override FMOD's file system with callbacks": {
@@ -13304,7 +13298,7 @@ const HAXEFMOD_EXAMPLES = {
   "Direct from host, via FMOD's filesystem#2": {
    "code": "var sound = Sound.create(\"lion.wav\");\nif (sound.isNull()) {\n    trace(\"createSound failed: \" + StudioSystem.lastResult());\n}",
    "notes": [
-    "The web build decodes FSB only, so on HTML5 this returns Sound.NULL with FMOD_ERR_FORMAT. Play bank content instead, or feed raw PCM through Sound.fromPcm."
+    "The web build decodes FSB only, so on HTML5 this returns Sound.NULL with FMOD_ERR_FORMAT. Play bank content, load an FSB with Sound.create or Sound.fromMemory, or feed raw PCM through Sound.fromPcm."
    ],
    "type": "haxefmod.core.Sound",
    "verdict": "bound"
@@ -13390,9 +13384,9 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "cannot"
   },
   "Via memory": {
-   "code": "var bytes = haxe.io.Bytes.alloc(48000 * 2 * 2);\n\nvar sound = Sound.fromPcm(bytes, 48000, 2);\nif (sound.isNull()) {\n    trace(\"fromPcm failed: \" + StudioSystem.lastResult());\n}\n\nvar bankBytes = haxe.io.Bytes.alloc(0);\nvar bank = StudioSystem.loadBankMemory(bankBytes);\nif (bank.isNull()) {\n    trace(\"loadBankMemory failed: \" + StudioSystem.lastResult());\n}",
+   "code": "var image = haxe.io.Bytes.alloc(0); // an FSB file image fetched by the game\n\nvar sound = Sound.fromMemory(image);\nif (sound.isNull()) {\n    trace(\"fromMemory failed: \" + StudioSystem.lastResult());\n}\n\nvar bytes = haxe.io.Bytes.alloc(48000 * 2 * 2);\n\nvar pcmSound = Sound.fromPcm(bytes, 48000, 2);\nif (pcmSound.isNull()) {\n    trace(\"fromPcm failed: \" + StudioSystem.lastResult());\n}\n\nvar bankBytes = haxe.io.Bytes.alloc(0);\nvar bank = StudioSystem.loadBankMemory(bankBytes);\nif (bank.isNull()) {\n    trace(\"loadBankMemory failed: \" + StudioSystem.lastResult());\n}",
    "notes": [
-    "Data already in memory goes in as haxe.io.Bytes and is copied into FMOD's heap. Sound.fromPcm takes raw PCM only, its sampleRate and channels arguments stand in for the CREATESOUNDEXINFO fields and length is taken from the bytes. Encoded data in memory goes in as a bank through StudioSystem.loadBankMemory."
+    "Data already in memory goes in as haxe.io.Bytes and is copied into FMOD's heap. Sound.fromMemory takes an encoded file image and length is taken from the bytes. The web build decodes FSB images only, so a wav or ogg image returns Sound.NULL with FMOD_ERR_FORMAT there. Sound.fromPcm takes raw PCM, its sampleRate and channels arguments stand in for the CREATESOUNDEXINFO fields. Bank data in memory goes through StudioSystem.loadBankMemory."
    ],
    "type": "haxefmod.core.Sound",
    "verdict": "bound"
@@ -13917,9 +13911,9 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "cannot"
   },
   "FMOD_DSP_METERING_INFO": {
-   "code": "var fader = Dsp.create(DspType.FADER);\nChannelGroup.master().addDsp(ChannelGroup.DSP_TAIL, fader);\nfader.setMeteringEnabled(true, true);\n\n// each frame\nvar meter = fader.getMetering();\nif (meter != null) {\n    var numsamples = meter.numSamples;\n    var numchannels = meter.numChannels;\n    var peaklevel = meter.peak;\n    var rmslevel = meter.rms;\n}\nvar inputMeter = fader.getInputMetering();",
+   "code": "var fader = Dsp.create(DspType.FADER);\nChannelGroup.master().addDsp(ChannelGroup.DSP_TAIL, fader);\nfader.setMeteringEnabled(false, true);\n\n// each frame\nvar meter = fader.getMetering();\nif (meter != null) {\n    var numchannels = meter.peak.length;\n    var peaklevel = meter.peak;\n    var rmslevel = meter.rms;\n}",
    "notes": [
-    "getMetering reads the output side, getMetering(true) or getInputMetering the input side. numchannels and numsamples are fields of the result."
+    "numsamples is not reported, numchannels is the length of the peak and rms arrays."
    ],
    "type": "haxefmod.core.ChannelGroup, haxefmod.core.Dsp, haxefmod.core.DspType",
    "verdict": "bound"
@@ -13979,25 +13973,25 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_3DATTRIBUTES": {
-   "code": "/** FMOD_DSP_PARAMETER_3DATTRIBUTES, the payload of a 3D data parameter: the emitter in the listener's space and in world space. */\ntypedef FmodDspParameter3DAttributes = {\n    var relative:Fmod3DAttributes;\n    var absolute:Fmod3DAttributes;\n}",
+   "code": null,
    "notes": [
-    "Set with Dsp.setParameter3DAttributes(index, absolute, ?relative), the shim packs the struct."
+    "No Haxe declaration, the library owns this choice. the 3D position of a pan unit is not set by parameter, play the source through a 3D channel and call Channel.set3DAttributes"
    ],
-   "type": "haxefmod.studio.Types.FmodDspParameter3DAttributes",
-   "verdict": "bound"
+   "type": null,
+   "verdict": "library"
   },
   "FMOD_DSP_PARAMETER_3DATTRIBUTES_MULTI": {
-   "code": "/** FMOD_DSP_PARAMETER_3DATTRIBUTES_MULTI, the same payload for several listeners, one relative entry and one weight per listener. */\ntypedef FmodDspParameter3DAttributesMulti = {\n    var numListeners:Int;\n    var relative:Array<Fmod3DAttributes>;\n    var weight:Array<Float>;\n    var absolute:Fmod3DAttributes;\n}",
+   "code": null,
    "notes": [
-    "Set with Dsp.setParameter3DAttributesMulti(index, absolute, relative, ?weights), one relative entry per listener, the shim packs the struct."
+    "No Haxe declaration, the library owns this choice. the 3D position of a pan unit is not set by parameter, play the source through a 3D channel and call Channel.set3DAttributes"
    ],
-   "type": "haxefmod.studio.Types.FmodDspParameter3DAttributesMulti",
-   "verdict": "bound"
+   "type": null,
+   "verdict": "library"
   },
   "FMOD_DSP_PARAMETER_ATTENUATION_RANGE": {
    "code": null,
    "notes": [
-    "No Haxe declaration, another call plays this role. a data parameter format the unit reads, Dsp.setParameterData hands it over as raw bytes, Dsp.getParameterData reads it back, and Dsp.getDataParameterIndex finds its index"
+    "No Haxe declaration, another call plays this role. a data parameter format the unit reads, Dsp.setParameterData hands it over as raw bytes and Dsp.getDataParameterIndex finds its index"
    ],
    "type": null,
    "verdict": "covered"
@@ -14009,9 +14003,9 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_DESC": {
-   "code": "var eq = Dsp.create(DspType.THREE_EQ);\nfor (index in 0...eq.getParameterCount()) {\n    var desc = eq.getParameterInfo(index);\n    if (desc == null) continue;\n    var type = desc.type;\n    var name = desc.name;\n    var label = desc.label;\n    var description = desc.description;\n    var min = desc.min;\n    var max = desc.max;\n    var defaultval = desc.defaultValue;\n    var mapping = desc.mappingType;\n    var valuenames = desc.valueNames;\n    var datatype = desc.dataType;\n}",
+   "code": "var eq = Dsp.create(DspType.THREE_EQ);\nfor (index in 0...eq.getParameterCount()) {\n    var desc = eq.getParameterInfo(index);\n    if (desc == null) continue;\n    var name = desc.name;\n    var type = desc.type;\n    var min = desc.min;\n    var max = desc.max;\n    var defaultval = desc.defaultValue;\n}",
    "notes": [
-    "Native only (unsupported in HTML5). The union members are fields of the result: min, max, defaultValue, mappingType and mappingPoints for a float, goesToInfinity and valueNames for an int, valueNames for a bool, dataType for data."
+    "Native only (unsupported in HTML5)."
    ],
    "type": "haxefmod.core.Dsp, haxefmod.core.DspType",
    "verdict": "bound"
@@ -14019,7 +14013,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_PARAMETER_DESC_BOOL": {
    "code": null,
    "notes": [
-    "Cannot be bound. a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, label, description, type, range, float mapping, int and bool value names, and data type"
+    "Cannot be bound. a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, type, and range"
    ],
    "type": null,
    "verdict": "cannot"
@@ -14027,7 +14021,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_PARAMETER_DESC_DATA": {
    "code": null,
    "notes": [
-    "Cannot be bound. a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, label, description, type, range, float mapping, int and bool value names, and data type"
+    "Cannot be bound. a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, type, and range"
    ],
    "type": null,
    "verdict": "cannot"
@@ -14035,7 +14029,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_PARAMETER_DESC_FLOAT": {
    "code": null,
    "notes": [
-    "Cannot be bound. a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, label, description, type, range, float mapping, int and bool value names, and data type"
+    "Cannot be bound. a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, type, and range"
    ],
    "type": null,
    "verdict": "cannot"
@@ -14043,7 +14037,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_PARAMETER_DESC_INT": {
    "code": null,
    "notes": [
-    "Cannot be bound. a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, label, description, type, range, float mapping, int and bool value names, and data type"
+    "Cannot be bound. a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, type, and range"
    ],
    "type": null,
    "verdict": "cannot"
@@ -14051,23 +14045,23 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_PARAMETER_DYNAMIC_RESPONSE": {
    "code": null,
    "notes": [
-    "No Haxe declaration, another call plays this role. a data parameter format the unit reads, Dsp.setParameterData hands it over as raw bytes, Dsp.getParameterData reads it back, and Dsp.getDataParameterIndex finds its index"
+    "No Haxe declaration, another call plays this role. a data parameter format the unit reads, Dsp.setParameterData hands it over as raw bytes and Dsp.getDataParameterIndex finds its index"
    ],
    "type": null,
    "verdict": "covered"
   },
   "FMOD_DSP_PARAMETER_FFT": {
-   "code": "/** FMOD_DSP_PARAMETER_FFT, the spectrum of an FFT unit with one magnitude array per channel. */\ntypedef FmodDspParameterFft = {\n    var length:Int;\n    var numChannels:Int;\n    var spectrum:Array<Array<Float>>;\n}",
+   "code": "var fft = Dsp.create(DspType.FFT);\nChannelGroup.master().addDsp(ChannelGroup.DSP_TAIL, fft);\n\n// each frame\nvar spectrum = fft.getFftSpectrum(512);\nif (spectrum != null) {\n    var length = spectrum.length;\n}",
    "notes": [
-    "Read with Dsp.getFftSpectrumInfo(maxBins) on an FFT unit, or getFftSpectrum(maxBins) for the first channel alone."
+    "getFftSpectrum returns the first channel's bins, length is the array length."
    ],
-   "type": "haxefmod.studio.Types.FmodDspParameterFft",
+   "type": "haxefmod.core.ChannelGroup, haxefmod.core.Dsp, haxefmod.core.DspType",
    "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_FINITE_LENGTH": {
    "code": null,
    "notes": [
-    "No Haxe declaration, another call plays this role. a data parameter format the unit reads, Dsp.setParameterData hands it over as raw bytes, Dsp.getParameterData reads it back, and Dsp.getDataParameterIndex finds its index"
+    "No Haxe declaration, another call plays this role. a data parameter format the unit reads, Dsp.setParameterData hands it over as raw bytes and Dsp.getDataParameterIndex finds its index"
    ],
    "type": null,
    "verdict": "covered"
@@ -14075,7 +14069,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_PARAMETER_FLOAT_MAPPING": {
    "code": null,
    "notes": [
-    "Cannot be bound. a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, label, description, type, range, float mapping, int and bool value names, and data type"
+    "Cannot be bound. a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, type, and range"
    ],
    "type": null,
    "verdict": "cannot"
@@ -14083,7 +14077,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_PARAMETER_FLOAT_MAPPING_PIECEWISE_LINEAR": {
    "code": null,
    "notes": [
-    "Cannot be bound. a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, label, description, type, range, float mapping, int and bool value names, and data type"
+    "Cannot be bound. a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, type, and range"
    ],
    "type": null,
    "verdict": "cannot"
@@ -14095,17 +14089,17 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_OVERALLGAIN": {
-   "code": "/** FMOD_DSP_PARAMETER_OVERALLGAIN, the gain a unit reports for FMOD's virtual voice ranking. */\ntypedef FmodDspParameterOverallGain = {\n    var linearGain:Float;\n    var linearGainAdditive:Float;\n}",
+   "code": null,
    "notes": [
-    "Read with Dsp.getOverallGain(), which finds the unit's overall gain parameter, or getOverallGain(index)."
+    "No Haxe declaration, another call plays this role. a data parameter format the unit reads, Dsp.setParameterData hands it over as raw bytes and Dsp.getDataParameterIndex finds its index"
    ],
-   "type": "haxefmod.studio.Types.FmodDspParameterOverallGain",
-   "verdict": "bound"
+   "type": null,
+   "verdict": "covered"
   },
   "FMOD_DSP_PARAMETER_SIDECHAIN": {
    "code": null,
    "notes": [
-    "No Haxe declaration, another call plays this role. a data parameter format the unit reads, Dsp.setParameterData hands it over as raw bytes, Dsp.getParameterData reads it back, and Dsp.getDataParameterIndex finds its index"
+    "No Haxe declaration, another call plays this role. a data parameter format the unit reads, Dsp.setParameterData hands it over as raw bytes and Dsp.getDataParameterIndex finds its index"
    ],
    "type": null,
    "verdict": "covered"
@@ -14588,21 +14582,21 @@ const HAXEFMOD_EXAMPLES = {
  },
  "spatializing-sounds-in-the-core-api": {
   "5.0.2 Loading Sounds as 3D": {
-   "code": "var result:FmodResult;\nfunction handleError(result:FmodResult):Void {\n    trace(result);\n}\n\nvar sound = Sound.create(\"../media/drumloop.wav\");\nif (sound.isNull()) {\n    handleError(StudioSystem.lastResult());\n}\nresult = sound.setMode(ChannelMode.MODE_3D);\nif (!result.isOk()) {\n    handleError(result);\n}",
+   "code": "var handleError = (result:FmodResult) -> trace(result);\n\nvar sound = Sound.create(\"../media/drumloop.wav\", false, false, ChannelMode.MODE_3D);\nif (sound.isNull()) {\n    handleError(StudioSystem.lastResult());\n}",
    "notes": [
-    "Sound.create takes no mode flags, so the 3D flag is set with setMode after loading.",
+    "The mode argument of Sound.create takes the 3D flag at load time.",
     "Sound.create returns Sound.NULL on failure and StudioSystem.lastResult() holds the FMOD_RESULT."
    ],
    "type": "haxefmod.core.Sound, haxefmod.core.ChannelMode, haxefmod.studio.FmodResult",
    "verdict": "bound"
   },
   "5.1 Controlling a Spatializer DSP": {
-   "code": "function dot(a:FmodVector, b:FmodVector):Float {\n    return a.x * b.x + a.y * b.y + a.z * b.z;\n}\n\nfunction cross(a:FmodVector, b:FmodVector):FmodVector {\n    return {x: a.y * b.z - a.z * b.y, y: a.z * b.x - a.x * b.z, z: a.x * b.y - a.y * b.x};\n}\n\nfunction toListenerSpace(v:FmodVector, listener:Fmod3DAttributes):FmodVector {\n    var right = cross(listener.up, listener.forward);\n    return {x: dot(v, right), y: dot(v, listener.up), z: dot(v, listener.forward)};\n}\n\nfunction calculatePannerAttributes(listener:Fmod3DAttributes, emitter:Fmod3DAttributes):FmodDspParameter3DAttributes {\n    var offset = {x: emitter.position.x - listener.position.x, y: emitter.position.y - listener.position.y, z: emitter.position.z - listener.position.z};\n    var motion = {x: emitter.velocity.x - listener.velocity.x, y: emitter.velocity.y - listener.velocity.y, z: emitter.velocity.z - listener.velocity.z};\n    return {\n        relative: {\n            position: toListenerSpace(offset, listener),\n            velocity: toListenerSpace(motion, listener),\n            forward: toListenerSpace(emitter.forward, listener),\n            up: toListenerSpace(emitter.up, listener)\n        },\n        absolute: emitter\n    };\n}\n\nfunction updatePanner(panner:Dsp, listener:Fmod3DAttributes, emitter:Fmod3DAttributes):Void {\n    var attributes = calculatePannerAttributes(listener, emitter);\n    panner.setParameter3DAttributesMulti(DspPan._3D_POSITION, attributes.absolute, [attributes.relative]);\n}",
+   "code": null,
    "notes": [
-    "The relative attributes are the emitter transformed into the listener's space, the absolute attributes are the emitter itself. Dsp.setParameter3DAttributesMulti packs both into the pan unit's 3D position parameter."
+    "No Haxe declaration, another call plays this role. The relative and absolute 3D attributes of a spatializer are not computed in Haxe. A source played through a 3D channel is positioned in world space with Channel.set3DAttributes and FMOD derives the listener-relative attributes from the listener set with StudioSystem.setListenerAttributes. A pan DSP created by hand can only take its 3D attributes as a raw byte payload through Dsp.setParameterData."
    ],
-   "type": "haxefmod.core.Dsp, haxefmod.core.DspParameters.DspPan, haxefmod.studio.Types",
-   "verdict": "bound"
+   "type": null,
+   "verdict": "covered"
   },
   "5.1 Controlling a Spatializer DSP#2": {
    "code": "var listenerPos:FmodVector = {x: cameraX, y: cameraY, z: 0};\nvar listenerVel:FmodVector = {x: 0, y: 0, z: 0};\nvar listenerForward:FmodVector = {x: 0, y: 0, z: 1};\nvar listenerUp:FmodVector = {x: 0, y: 1, z: 0};\nvar gameRunning = true;\nfunction updateGame():Void {\n    channel.set3DAttributes(carX, carY, 0);\n}\n\ndo\n{\n    updateGame();       // here the game is updated and the sources would be moved with channel.set3DAttributes.\n\n    StudioSystem.setListenerAttributes(0, {\n        position: listenerPos,\n        velocity: listenerVel,\n        forward: listenerForward,\n        up: listenerUp\n    });     // update 'ears'\n\n} while (gameRunning);",
@@ -14964,7 +14958,7 @@ const HAXEFMOD_EXAMPLES = {
   "13.9.1 Scripting Example#4": {
    "code": null,
    "notes": [
-    "No Haxe declaration, the library owns this choice. The programmer sound callback runs on FMOD's thread and is implemented once natively for every instance that has a key assigned. EventInstance.setCallback delivers the CREATE_PROGRAMMER_SOUND and DESTROY_PROGRAMMER_SOUND types on the game thread as Other(type) for observation only."
+    "No Haxe declaration, the library owns this choice. The programmer sound callback runs on FMOD's thread and is implemented once natively for every instance that has an assignment. EventInstance.setCallback delivers ProgrammerSoundCreated(name) and ProgrammerSoundDestroyed(name) on the game thread with the instrument's name, for observation and cleanup. An event with several programmer instruments assigns one key per instrument name with assignProgrammerSoundForName or assignProgrammerSounds."
    ],
    "type": null,
    "verdict": "library"
@@ -14972,7 +14966,7 @@ const HAXEFMOD_EXAMPLES = {
   "13.9.1 Scripting Example#5": {
    "code": null,
    "notes": [
-    "No Haxe declaration, the library owns this choice. The create callback body runs natively when the instrument triggers. It calls getSoundInfo with the assigned key, creates the sound with FMOD_LOOP_NORMAL and FMOD_CREATECOMPRESSEDSAMPLE plus the mode getSoundInfo reports, and fills the properties. The native side does not pass FMOD_NONBLOCKING, so the create is synchronous. A key that matches no audio table entry is opened as a plain file path with FMOD_DEFAULT. StudioSystem.getSoundInfo(key) shows the name and subsound index a key resolves to."
+    "No Haxe declaration, the library owns this choice. The create callback body runs natively when the instrument triggers. It looks the instrument name up in the name map, falls back to the single key, calls getSoundInfo, creates the sound with FMOD_LOOP_NORMAL, FMOD_CREATECOMPRESSEDSAMPLE, and FMOD_NONBLOCKING plus the mode getSoundInfo reports, and fills the properties. A key that matches no audio table entry is opened as a plain file path. A sound assigned with assignProgrammerSoundFrom is handed over as is, with its subsound index. StudioSystem.getSoundInfo(key) shows the name and subsound index a key resolves to."
    ],
    "type": null,
    "verdict": "library"
@@ -14980,7 +14974,7 @@ const HAXEFMOD_EXAMPLES = {
   "13.9.1 Scripting Example#6": {
    "code": null,
    "notes": [
-    "No Haxe declaration, the library owns this choice. The destroy callback runs natively and releases the sound when the instrument ends. EventInstance.clearProgrammerSound drops the key assignment when an instance is reused for a different line."
+    "No Haxe declaration, the library owns this choice. The destroy callback runs natively and releases the sound it created when the instrument ends. A sound assigned with assignProgrammerSoundFrom stays with the game. EventInstance.clearProgrammerSound drops every assignment when an instance is reused for a different line."
    ],
    "type": null,
    "verdict": "library"
@@ -15105,12 +15099,11 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "Creating an effect and making all Channels send to it.#3": {
-   "code": "var sound = Sound.create(\"drumloop.wav\");\nvar channelgroup = ChannelGroup.create(\"my channelgroup\");\nvar dsp_reverb = Dsp.create(DspType.SFXREVERB);\n\nvar channel = sound.play(true);                                                     /* Play the sound.  Play it paused so we dont hear the sound play before it is connected to the reverb. */\nchannel.setChannelGroup(channelgroup);\nvar channel_dsp_head = channel.getDsp(ChannelGroup.DSP_HEAD);                       /* Grab the 'head' unit for the Channel */\nvar connection = dsp_reverb.addInput(channel_dsp_head);                             /* Manually add a connection from the Channel DSP head to the reverb. */\nvar result = channel.setPaused(false);                                              /* Unpause the channel and let it be audible. */",
+   "code": "var sound = Sound.create(\"drumloop.wav\");\nvar channelgroup = ChannelGroup.create(\"my channelgroup\");\nvar dsp_reverb = Dsp.create(DspType.SFXREVERB);\n\nvar channel = sound.play(true, channelgroup);                                       /* Play the sound.  Play it paused so we dont hear the sound play before it is connected to the reverb. */\nvar channel_dsp_head = channel.getDsp(Channel.DSP_HEAD);                            /* Grab the 'head' unit for the Channel */\nvar connection = dsp_reverb.addInput(channel_dsp_head);                             /* Manually add a connection from the Channel DSP head to the reverb. */\nvar result = channel.setPaused(false);                                              /* Unpause the channel and let it be audible. */",
    "notes": [
-    "Sound.play takes no ChannelGroup, the channel is routed with setChannelGroup while it is still paused.",
-    "The head, fader, and tail slots are the ChannelGroup.DSP_HEAD, DSP_FADER, and DSP_TAIL constants, Channel.getDsp accepts them too."
+    "The head, fader, and tail slots are the Channel.DSP_HEAD, DSP_FADER, and DSP_TAIL constants."
    ],
-   "type": "haxefmod.core.Sound, haxefmod.core.ChannelGroup, haxefmod.core.Dsp, haxefmod.core.DspType",
+   "type": "haxefmod.core.Channel, haxefmod.core.Sound, haxefmod.core.ChannelGroup, haxefmod.core.Dsp, haxefmod.core.DspType",
    "verdict": "bound"
   },
   "Set the output format of a DSP unit, and control the pan matrix for its output signal": {

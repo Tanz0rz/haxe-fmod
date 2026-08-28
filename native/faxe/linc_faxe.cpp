@@ -60,6 +60,18 @@ static inline FMOD::Studio::EventInstance* resolveInstance(int h) {
     return (FMOD::Studio::EventInstance*)faxe_handle_resolve(h, FAXE_TYPE_EVI);
 }
 
+static inline FMOD::ChannelGroup* resolveChanGroup(int h);
+
+// The channel group a play call routes into. Handle 0 means the master
+// group (FMOD's NULL). A stale handle fails the call instead of falling
+// back to the master group, so a wrong route is heard about.
+static bool resolvePlayGroup(int h, FMOD::ChannelGroup** out) {
+    *out = NULL;
+    if (h == 0) return true;
+    *out = resolveChanGroup(h);
+    return *out != NULL;
+}
+
 // Callback handler - runs on an FMOD thread. Must not touch the handle table
 // or any Haxe values. It reads the per-instance context back from FMOD
 // userdata, copies payloads into a plain C record, and pushes it onto the
@@ -90,22 +102,37 @@ static FMOD_RESULT F_CALLBACK eventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type
             FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES* props =
                 (FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES*)parameters;
             char key[FAXE_PS_KEY_MAX];
+            // A name entry wins over the single key, the game sound wins
+            // over both.
             faxe_cbq_lock();
+            void* gameSound = ctx->psGameSound;
+            int gameSubsound = ctx->psGameSubsound;
             strncpy(key, ctx->psKey, FAXE_PS_KEY_MAX - 1);
             key[FAXE_PS_KEY_MAX - 1] = '\0';
+            if (props) faxe_instctx_ps_find_named(ctx, props->name, key);
             faxe_cbq_unlock();
-            if (props && key[0] != '\0' && gCoreSystem && gStudioSystem) {
+            if (props && props->name) {
+                strncpy(ev.str, props->name, FAXE_CBQ_STR_MAX - 1);
+            }
+            if (props && gameSound) {
+                props->sound = (FMOD_SOUND*)gameSound;
+                props->subsoundIndex = gameSubsound;
+                ctx->psSound = NULL;
+            } else if (props && key[0] != '\0' && gCoreSystem && gStudioSystem) {
                 FMOD_STUDIO_SOUND_INFO info;
                 FMOD::Sound* sound = NULL;
+                // NONBLOCKING moves the decode off the Studio thread. FMOD
+                // waits for the sound to become ready before the instrument
+                // plays it, the same as FMOD's own example.
                 if (gStudioSystem->getSoundInfo(key, &info) == FMOD_OK) {
                     // Audio table entry
                     if (gCoreSystem->createSound(info.name_or_data,
-                            FMOD_LOOP_NORMAL | FMOD_CREATECOMPRESSEDSAMPLE | info.mode,
+                            FMOD_LOOP_NORMAL | FMOD_CREATECOMPRESSEDSAMPLE | FMOD_NONBLOCKING | info.mode,
                             &info.exinfo, &sound) == FMOD_OK) {
                         props->sound = (FMOD_SOUND*)sound;
                         props->subsoundIndex = info.subsoundindex;
                     }
-                } else if (gCoreSystem->createSound(key, FMOD_DEFAULT, NULL, &sound) == FMOD_OK) {
+                } else if (gCoreSystem->createSound(key, FMOD_DEFAULT | FMOD_NONBLOCKING, NULL, &sound) == FMOD_OK) {
                     // Plain file path fallback
                     props->sound = (FMOD_SOUND*)sound;
                     props->subsoundIndex = -1;
@@ -117,7 +144,12 @@ static FMOD_RESULT F_CALLBACK eventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type
         case FMOD_STUDIO_EVENT_CALLBACK_DESTROY_PROGRAMMER_SOUND: {
             FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES* props =
                 (FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES*)parameters;
-            if (props && props->sound) {
+            if (props && props->name) {
+                strncpy(ev.str, props->name, FAXE_CBQ_STR_MAX - 1);
+            }
+            // Only a sound this shim created is released. A game-owned one
+            // stays with the game.
+            if (props && props->sound && props->sound == (FMOD_SOUND*)ctx->psSound) {
                 ((FMOD::Sound*)props->sound)->release();
             }
             ctx->psSound = NULL;
@@ -241,12 +273,12 @@ void fmod_sys_set_auto_update(bool enabled) {
 //// Callbacks
 
 // Builds the mask actually installed on the instance: the user's mask plus
-// DESTROYED (context cleanup) plus the programmer-sound bits when a key is
-// assigned.
+// DESTROYED (context cleanup) plus the programmer-sound bits when any
+// programmer sound assignment is present.
 static FMOD_STUDIO_EVENT_CALLBACK_TYPE effectiveCallbackMask(FaxeInstCtx* ctx) {
     unsigned int mask = ctx->cbMask | FMOD_STUDIO_EVENT_CALLBACK_DESTROYED;
     faxe_cbq_lock();
-    if (ctx->psKey[0] != '\0') {
+    if (faxe_instctx_ps_armed(ctx)) {
         mask |= FMOD_STUDIO_EVENT_CALLBACK_CREATE_PROGRAMMER_SOUND
               | FMOD_STUDIO_EVENT_CALLBACK_DESTROY_PROGRAMMER_SOUND;
     }
@@ -288,13 +320,49 @@ int fmod_ps_assign(int h, const ::String& key) {
     return (int)gLastResult;
 }
 
+// Hands a game-owned sound to the programmer instrument. The sound is
+// resolved here on the Haxe thread, the callback only reads the pointer.
+// The game keeps the sound alive until the instrument has destroyed it.
+int fmod_ps_assign_sound(int h, int soundHandle, int subsoundIndex) {
+    FMOD::Studio::EventInstance* instance = resolveInstance(h);
+    if (!instance) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    FaxeInstCtx* ctx = instanceCtx(instance);
+    if (!ctx) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    FMOD::Sound* sound = (FMOD::Sound*)faxe_handle_resolve(soundHandle, FAXE_TYPE_SOUND);
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    if (subsoundIndex < -1) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    faxe_cbq_lock();
+    ctx->psGameSound = sound;
+    ctx->psGameSubsound = subsoundIndex;
+    faxe_cbq_unlock();
+    gLastResult = instance->setCallback(eventCallback, effectiveCallbackMask(ctx));
+    return (int)gLastResult;
+}
+
+// Maps one programmer instrument name to a key or path. The name is the
+// instrument's name in FMOD Studio, matched when the create callback runs.
+int fmod_ps_assign_named(int h, const ::String& name, const ::String& key) {
+    FMOD::Studio::EventInstance* instance = resolveInstance(h);
+    if (!instance) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    FaxeInstCtx* ctx = instanceCtx(instance);
+    if (!ctx) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    if (name == null() || key == null()) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    faxe_cbq_lock();
+    int stored = faxe_instctx_ps_set_named(ctx, name.c_str(), key.c_str());
+    faxe_cbq_unlock();
+    if (stored < 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    if (stored == 0) { gLastResult = FMOD_ERR_MEMORY; return (int)gLastResult; }
+    gLastResult = instance->setCallback(eventCallback, effectiveCallbackMask(ctx));
+    return (int)gLastResult;
+}
+
 int fmod_ps_clear(int h) {
     FMOD::Studio::EventInstance* instance = resolveInstance(h);
     if (!instance) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     FaxeInstCtx* ctx = instanceCtx(instance);
     if (!ctx) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     faxe_cbq_lock();
-    ctx->psKey[0] = '\0';
+    faxe_instctx_ps_clear(ctx);
     faxe_cbq_unlock();
     gLastResult = instance->setCallback(eventCallback, effectiveCallbackMask(ctx));
     return (int)gLastResult;
@@ -306,13 +374,45 @@ static inline FMOD::Sound* resolveSound(int h) {
     return (FMOD::Sound*)faxe_handle_resolve(h, FAXE_TYPE_SOUND);
 }
 
-int fmod_core_create_sound(const ::String& path, int mode, bool openOnly) {
+// mode is a full FMOD_MODE. initialSubsound >= 0 goes into
+// exinfo.initialsubsound for FSB streams, -1 leaves the default.
+int fmod_core_create_sound(const ::String& path, int mode, int initialSubsound) {
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
     FMOD::Sound* sound = NULL;
-    FMOD_MODE fmodMode = FMOD_DEFAULT;
-    if (mode & 1) fmodMode |= FMOD_LOOP_NORMAL;
-    if (openOnly) fmodMode |= FMOD_OPENONLY;
-    gLastResult = gCoreSystem->createSound(path.c_str(), fmodMode, NULL, &sound);
+    FMOD_CREATESOUNDEXINFO exinfo;
+    FMOD_CREATESOUNDEXINFO* exinfoPtr = NULL;
+    if (initialSubsound >= 0) {
+        memset(&exinfo, 0, sizeof(exinfo));
+        exinfo.cbsize = sizeof(exinfo);
+        exinfo.initialsubsound = initialSubsound;
+        exinfoPtr = &exinfo;
+    }
+    gLastResult = gCoreSystem->createSound(path.c_str(), (FMOD_MODE)mode, exinfoPtr, &sound);
+    if (gLastResult != FMOD_OK || !sound) return 0;
+    int handle = faxe_handle_alloc(sound, FAXE_TYPE_SOUND);
+    if (handle == 0) {
+        gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
+        sound->release();
+        return 0;
+    }
+    return handle;
+}
+
+// An encoded file image (wav, ogg, mp3, fsb) already in memory. FMOD
+// copies the bytes, so the buffer is free once this returns.
+int fmod_core_create_sound_memory(::Array<unsigned char> data, int len, int mode) {
+    FMOD::Sound* sound = NULL;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    if (data == null() || len <= 0 || len > data->length) {
+        gLastResult = FMOD_ERR_INVALID_PARAM;
+        return 0;
+    }
+    FMOD_CREATESOUNDEXINFO exinfo;
+    memset(&exinfo, 0, sizeof(exinfo));
+    exinfo.cbsize = sizeof(exinfo);
+    exinfo.length = (unsigned int)len;
+    gLastResult = gCoreSystem->createSound((const char*)&data[0],
+        ((FMOD_MODE)mode & ~(FMOD_MODE)FMOD_OPENMEMORY_POINT) | FMOD_OPENMEMORY, &exinfo, &sound);
     if (gLastResult != FMOD_OK || !sound) return 0;
     int handle = faxe_handle_alloc(sound, FAXE_TYPE_SOUND);
     if (handle == 0) {
@@ -486,11 +586,13 @@ int fmod_core_pcm_underruns(int h) {
     return faxe_pcmring_take_underruns(ps->ring);
 }
 
-int fmod_core_pcm_play(int h, bool paused) {
+int fmod_core_pcm_play(int h, int group, bool paused) {
     LincPcmStream* ps = resolvePcm(h);
     if (!ps) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    FMOD::ChannelGroup* cg;
+    if (!resolvePlayGroup(group, &cg)) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     FMOD::Channel* channel = NULL;
-    gLastResult = gCoreSystem->playSound(ps->sound, NULL, paused, &channel);
+    gLastResult = gCoreSystem->playSound(ps->sound, cg, paused, &channel);
     if (gLastResult != FMOD_OK || !channel) return 0;
     int handle = faxe_handle_alloc(channel, FAXE_TYPE_CHAN);
     if (handle == 0) {
@@ -1014,12 +1116,14 @@ int fmod_bus_get_channel_group(int h) {
 
 //// Core system extras
 
-int fmod_sys_play_dsp(int dspHandle, bool startPaused) {
+int fmod_sys_play_dsp(int dspHandle, int group, bool startPaused) {
     FMOD::DSP* dsp = resolveDsp(dspHandle);
     FMOD::Channel* channel = NULL;
+    FMOD::ChannelGroup* cg;
     if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
-    gLastResult = gCoreSystem->playDSP(dsp, NULL, startPaused, &channel);
+    if (!resolvePlayGroup(group, &cg)) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = gCoreSystem->playDSP(dsp, cg, startPaused, &channel);
     if (gLastResult != FMOD_OK || !channel) return 0;
     int handle = faxe_handle_alloc(channel, FAXE_TYPE_CHAN);
     if (handle == 0) {
@@ -1497,12 +1601,14 @@ int fmod_core_create_sound_pcm(::Array<unsigned char> data, int len, int sampleR
     return handle;
 }
 
-int fmod_core_play_sound(int h, bool startPaused) {
+int fmod_core_play_sound(int h, int group, bool startPaused) {
     FMOD::Sound* sound = resolveSound(h);
     FMOD::Channel* channel = NULL;
+    FMOD::ChannelGroup* cg;
     if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
-    gLastResult = gCoreSystem->playSound(sound, NULL, startPaused, &channel);
+    if (!resolvePlayGroup(group, &cg)) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = gCoreSystem->playSound(sound, cg, startPaused, &channel);
     if (gLastResult != FMOD_OK || !channel) return 0;
     int handle = faxe_handle_alloc(channel, FAXE_TYPE_CHAN);
     if (handle == 0) {
