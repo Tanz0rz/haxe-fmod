@@ -106,7 +106,8 @@ async function main() {
     check('memory_fsb_subsounds', jaxe.fmod_core_sound_get_num_sub_sounds(fsb) === 2, `n=${jaxe.fmod_core_sound_get_num_sub_sounds(fsb)}`);
     check('memory_fsb_ready', jaxe.fmod_sound_get_open_state(fsb) === 0, `state=${jaxe.fmod_sound_get_open_state(fsb)}`);
     const sub = jaxe.fmod_core_sound_get_sub_sound(fsb, 1);
-    check('memory_fsb_subsound', sub > 0 && jaxe.fmod_core_get_sound_length(sub) > 0, `sub=${sub} len=${jaxe.fmod_core_get_sound_length(sub)}`);
+    // 1 is FMOD_TIMEUNIT_MS, the unit argument core_get_sound_length takes
+    check('memory_fsb_subsound', sub > 0 && jaxe.fmod_core_get_sound_length(sub, 1) > 0, `sub=${sub} len=${jaxe.fmod_core_get_sound_length(sub, 1)}`);
 
     // --- play routing: every play call takes a group handle, 0 is the
     // master group, a stale one refuses

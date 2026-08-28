@@ -173,7 +173,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_DSP_GetChannelFormat` | `Dsp.getChannelFormat` |  |
 | `FMOD_DSP_GetDataParameterIndex` | `Dsp.getDataParameterIndex` |  |
 | `FMOD_DSP_GetIdle` | `Dsp.isIdle` |  |
-| `FMOD_DSP_GetInfo` | `Dsp.getName` |  |
+| `FMOD_DSP_GetInfo` | `Dsp.getInfo`<br>`Dsp.getName` |  |
 | `FMOD_DSP_GetInput` | `Dsp.getInput`<br>`Dsp.getInputConnection` |  |
 | `FMOD_DSP_GetMeteringEnabled` | `Dsp.getMeteringEnabled` |  |
 | `FMOD_DSP_GetMeteringInfo` | `Dsp.getMetering` |  |
@@ -183,7 +183,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_DSP_GetOutput` | `Dsp.getOutput`<br>`Dsp.getOutputConnection` |  |
 | `FMOD_DSP_GetOutputChannelFormat` | `Dsp.getOutputChannelFormat` |  |
 | `FMOD_DSP_GetParameterBool` | `Dsp.getParameterBool` |  |
-| `FMOD_DSP_GetParameterData` | `Dsp.getFftSpectrum` |  |
+| `FMOD_DSP_GetParameterData` | `Dsp.getParameterData`<br>`Dsp.getFftSpectrum`<br>`Dsp.getFftSpectrumInfo` | limited |
 | `FMOD_DSP_GetParameterFloat` | `Dsp.getParameter` |  |
 | `FMOD_DSP_GetParameterInfo` | `Dsp.getParameterInfo` | compile error |
 | `FMOD_DSP_GetParameterInt` | `Dsp.getParameterInt` |  |
@@ -197,7 +197,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_DSP_SetChannelFormat` | `Dsp.setChannelFormat` |  |
 | `FMOD_DSP_SetMeteringEnabled` | `Dsp.setMeteringEnabled` |  |
 | `FMOD_DSP_SetParameterBool` | `Dsp.setParameterBool` |  |
-| `FMOD_DSP_SetParameterData` | `Dsp.setParameterData` |  |
+| `FMOD_DSP_SetParameterData` | `Dsp.setParameterData`<br>`Dsp.setParameter3DAttributes`<br>`Dsp.setParameter3DAttributesMulti` |  |
 | `FMOD_DSP_SetParameterFloat` | `Dsp.setParameter` |  |
 | `FMOD_DSP_SetParameterInt` | `Dsp.setParameterInt` |  |
 | `FMOD_DSP_SetUserData` | `Dsp.setUserData` |  |
@@ -290,7 +290,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_Sound_GetNumSubSounds` | `Sound.getNumSubSounds` |  |
 | `FMOD_Sound_GetNumSyncPoints` | `Sound.getSyncPointCount` |  |
 | `FMOD_Sound_GetNumTags` | `Sound.getNumTags`<br>`Sound.getNumTagsUpdated` |  |
-| `FMOD_Sound_GetOpenState` | `Sound.getOpenState` |  |
+| `FMOD_Sound_GetOpenState` | `Sound.getOpenState`<br>`Sound.getOpenStateInfo` |  |
 | `FMOD_Sound_GetSoundGroup` | `Sound.getSoundGroup` |  |
 | `FMOD_Sound_GetSubSound` | `Sound.getSubSound` |  |
 | `FMOD_Sound_GetSubSoundParent` | `Sound.getSubSoundParent`<br>`Sound.release` |  |
@@ -299,7 +299,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_Sound_GetTag` | `Sound.getTag` | compile error |
 | `FMOD_Sound_GetUserData` | `PcmStream.getUserData`<br>`Sound.getUserData` |  |
 | `FMOD_Sound_ReadData` | `Sound.readData` | compile error |
-| `FMOD_Sound_Release` | `PcmStream.release`<br>`Sound.release`<br>`PcmStream.create`<br>`PcmStream.create3d`<br>`Sound.create`<br>`Sound.createRecordBuffer`<br>`Sound.fromPcm` | compile error |
+| `FMOD_Sound_Release` | `PcmStream.release`<br>`Sound.release`<br>`PcmStream.create`<br>`PcmStream.create3d`<br>`Sound.create`<br>`Sound.createRecordBuffer`<br>`Sound.fromMemory`<br>`Sound.fromPcm` | compile error |
 | `FMOD_Sound_SeekData` | `Sound.seekData` | compile error |
 | `FMOD_Sound_Set3DConeSettings` | `Sound.set3DConeSettings` |  |
 | `FMOD_Sound_Set3DCustomRolloff` | `Sound.set3DCustomRolloff` | compile error |
@@ -458,7 +458,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_Studio_EventInstance_KeyOff` | `EventInstance.keyOff` |  |
 | `FMOD_Studio_EventInstance_Release` | `EventInstance.release`<br>`EventDescription.createInstance` |  |
 | `FMOD_Studio_EventInstance_Set3DAttributes` | `EventInstance.set3DAttributes`<br>`EventInstance.setPosition2D` |  |
-| `FMOD_Studio_EventInstance_SetCallback` | `EventInstance.setCallback`<br>`EventDescription.createInstance`<br>`EventDescription.getInstanceList`<br>`EventInstance.assignProgrammerSound`<br>`EventInstance.clearProgrammerSound` | compile error |
+| `FMOD_Studio_EventInstance_SetCallback` | `EventInstance.setCallback`<br>`EventDescription.createInstance`<br>`EventDescription.getInstanceList`<br>`EventInstance.assignProgrammerSound`<br>`EventInstance.assignProgrammerSoundForName`<br>`EventInstance.assignProgrammerSoundFrom`<br>`EventInstance.clearProgrammerSound` | compile error |
 | `FMOD_Studio_EventInstance_SetListenerMask` | `EventInstance.setListenerMask` |  |
 | `FMOD_Studio_EventInstance_SetParameterByID` | `EventInstance.setParameterByID` |  |
 | `FMOD_Studio_EventInstance_SetParameterByIDWithLabel` | `EventInstance.setParameterByIDWithLabel` |  |
@@ -549,7 +549,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_System_CreateDSPByType` | `Dsp.create` |  |
 | `FMOD_System_CreateGeometry` | `Geometry.create` | compile error |
 | `FMOD_System_CreateReverb3D` | `Reverb3D.create` |  |
-| `FMOD_System_CreateSound` | `PcmStream.create`<br>`PcmStream.create3d`<br>`Sound.create`<br>`Sound.createRecordBuffer`<br>`Sound.fromPcm` | compile error |
+| `FMOD_System_CreateSound` | `PcmStream.create`<br>`PcmStream.create3d`<br>`Sound.create`<br>`Sound.createRecordBuffer`<br>`Sound.fromMemory`<br>`Sound.fromPcm` | compile error |
 | `FMOD_System_CreateSoundGroup` | `SoundGroup.create` |  |
 | `FMOD_System_Get3DSettings` | `CoreSystem.get3DSettings` |  |
 | `FMOD_System_GetAdvancedSettings` | `StudioSystem.getAdvancedSettings`<br>`FmodManager.Initialize`<br>`FmodRuntime.init` | compile error |

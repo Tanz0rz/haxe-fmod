@@ -376,10 +376,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "The loop region in unit (milliseconds by default), or null on failure.",
      "gated": false,
      "name": "getLoopPoints",
-     "signature": "getLoopPoints():Null<{startMs:Int, endMs:Int}>",
+     "signature": "getLoopPoints(unit:FmodTimeUnit = FmodTimeUnit.MS):Null<{startMs:Int, endMs:Int}>",
      "static": false,
      "type": "haxefmod.core.Channel"
     }
@@ -504,10 +504,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Playback position in milliseconds, or -1 on failure.",
+     "doc": "Playback position in unit (milliseconds by default, samples with FmodTimeUnit.PCM), or -1 on failure.",
      "gated": false,
      "name": "getPosition",
-     "signature": "getPosition():Int",
+     "signature": "getPosition(unit:FmodTimeUnit = FmodTimeUnit.MS):Int",
      "static": false,
      "type": "haxefmod.core.Channel"
     }
@@ -943,10 +943,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Loop region in milliseconds for this channel (overrides the sound's).",
+     "doc": "Loop region for this channel (overrides the sound's).",
      "gated": false,
      "name": "setLoopPoints",
-     "signature": "setLoopPoints(startMs:Int, endMs:Int):FmodResult",
+     "signature": "setLoopPoints(startMs:Int, endMs:Int, unit:FmodTimeUnit = FmodTimeUnit.MS):FmodResult",
      "static": false,
      "type": "haxefmod.core.Channel"
     }
@@ -1103,10 +1103,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Seeks to a position read in unit, milliseconds unless another FmodTimeUnit is given.",
      "gated": false,
      "name": "setPosition",
-     "signature": "setPosition(positionMs:Int):FmodResult",
+     "signature": "setPosition(positionMs:Int, unit:FmodTimeUnit = FmodTimeUnit.MS):FmodResult",
      "static": false,
      "type": "haxefmod.core.Channel"
     }
@@ -1211,7 +1211,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Plays this DSP as a sound source (e.g.",
      "gated": false,
      "name": "play",
-     "signature": "play(startPaused:Bool = false):Channel",
+     "signature": "play(startPaused:Bool = false, ?group:ChannelGroup):Channel",
      "static": false,
      "type": "haxefmod.core.Dsp"
     },
@@ -1220,7 +1220,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Starts playback.",
      "gated": false,
      "name": "play",
-     "signature": "play(startPaused:Bool = false):Channel",
+     "signature": "play(startPaused:Bool = false, ?group:ChannelGroup):Channel",
      "static": false,
      "type": "haxefmod.core.PcmStream"
     },
@@ -1229,7 +1229,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Starts playback.",
      "gated": false,
      "name": "play",
-     "signature": "play(startPaused:Bool = false):haxefmod.core.Channel",
+     "signature": "play(startPaused:Bool = false, ?group:haxefmod.core.ChannelGroup):haxefmod.core.Channel",
      "static": false,
      "type": "haxefmod.core.Sound"
     }
@@ -1829,10 +1829,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "The loop region in unit (milliseconds by default), or null on failure.",
      "gated": false,
      "name": "getLoopPoints",
-     "signature": "getLoopPoints():Null<{startMs:Int, endMs:Int}>",
+     "signature": "getLoopPoints(unit:FmodTimeUnit = FmodTimeUnit.MS):Null<{startMs:Int, endMs:Int}>",
      "static": false,
      "type": "haxefmod.core.Channel"
     }
@@ -2089,10 +2089,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Playback position in milliseconds, or -1 on failure.",
+     "doc": "Playback position in unit (milliseconds by default, samples with FmodTimeUnit.PCM), or -1 on failure.",
      "gated": false,
      "name": "getPosition",
-     "signature": "getPosition():Int",
+     "signature": "getPosition(unit:FmodTimeUnit = FmodTimeUnit.MS):Int",
      "static": false,
      "type": "haxefmod.core.Channel"
     }
@@ -2759,10 +2759,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Loop region in milliseconds for this channel (overrides the sound's).",
+     "doc": "Loop region for this channel (overrides the sound's).",
      "gated": false,
      "name": "setLoopPoints",
-     "signature": "setLoopPoints(startMs:Int, endMs:Int):FmodResult",
+     "signature": "setLoopPoints(startMs:Int, endMs:Int, unit:FmodTimeUnit = FmodTimeUnit.MS):FmodResult",
      "static": false,
      "type": "haxefmod.core.Channel"
     }
@@ -3005,10 +3005,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Seeks to a position read in unit, milliseconds unless another FmodTimeUnit is given.",
      "gated": false,
      "name": "setPosition",
-     "signature": "setPosition(positionMs:Int):FmodResult",
+     "signature": "setPosition(positionMs:Int, unit:FmodTimeUnit = FmodTimeUnit.MS):FmodResult",
      "static": false,
      "type": "haxefmod.core.Channel"
     }
@@ -3158,7 +3158,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Plays this DSP as a sound source (e.g.",
      "gated": false,
      "name": "play",
-     "signature": "play(startPaused:Bool = false):Channel",
+     "signature": "play(startPaused:Bool = false, ?group:ChannelGroup):Channel",
      "static": false,
      "type": "haxefmod.core.Dsp"
     },
@@ -3167,7 +3167,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Starts playback.",
      "gated": false,
      "name": "play",
-     "signature": "play(startPaused:Bool = false):Channel",
+     "signature": "play(startPaused:Bool = false, ?group:ChannelGroup):Channel",
      "static": false,
      "type": "haxefmod.core.PcmStream"
     },
@@ -3176,7 +3176,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Starts playback.",
      "gated": false,
      "name": "play",
-     "signature": "play(startPaused:Bool = false):haxefmod.core.Channel",
+     "signature": "play(startPaused:Bool = false, ?group:haxefmod.core.ChannelGroup):haxefmod.core.Channel",
      "static": false,
      "type": "haxefmod.core.Sound"
     }
@@ -4490,9 +4490,19 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "dsp_getinfo": {
+   "code": "import haxefmod.core.Dsp;\nimport haxefmod.core.DspType;\n\nvar unit = Dsp.create(DspType.COMPRESSOR);\nvar info = unit.getInfo();\nif (info != null) {\n    trace('${info.name} ${info.version} ${info.channels}');\n}",
    "fmod": "FMOD_DSP_GetInfo",
    "gated": false,
    "haxe": [
+    {
+     "direct": true,
+     "doc": "The unit's description: display name, plugin version (BCD, 0x10000 is 1.0), channel count (0 when the unit takes any), and the config dialog size a plugin declares.",
+     "gated": false,
+     "name": "getInfo",
+     "signature": "getInfo():Null<{name:String, version:Int, channels:Int, configWidth:Int, configHeight:Int}>",
+     "static": false,
+     "type": "haxefmod.core.Dsp"
+    },
     {
      "direct": false,
      "doc": "The effect's display name (e.g.",
@@ -4503,7 +4513,11 @@ const HAXEFMOD_BINDINGS = {
      "type": "haxefmod.core.Dsp"
     }
    ],
-   "html5": false
+   "heading": "DSP::getInfo",
+   "html5": false,
+   "notes": [
+    "Dsp.getInfo() returns the name, version, channels, configwidth, and configheight fields together. Dsp.getName() returns the name alone."
+   ]
   },
   "dsp_getinput": {
    "fmod": "FMOD_DSP_GetInput",
@@ -4547,20 +4561,25 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "dsp_getmeteringinfo": {
+   "code": "import haxefmod.core.Dsp;\nimport haxefmod.core.DspType;\n\nvar unit = Dsp.create(DspType.FADER);\nunit.setMeteringEnabled(true, true);\nvar output = unit.getMetering();\nvar input = unit.getInputMetering();",
    "fmod": "FMOD_DSP_GetMeteringInfo",
    "gated": false,
    "haxe": [
     {
      "direct": false,
-     "doc": "Peak and RMS levels per output channel (linear 0..1), or null when unavailable (metering disabled, no signal yet, or a stale handle).",
+     "doc": "Peak and RMS levels per channel (linear 0..1) on the output side, or on the input side with input set, plus the channel count and the number of samples the meter averaged.",
      "gated": false,
      "name": "getMetering",
-     "signature": "getMetering():Null<{peak:Array<Float>, rms:Array<Float>}>",
+     "signature": "getMetering(input:Bool = false):Null<{peak:Array<Float>, rms:Array<Float>, numChannels:Int, numSamples:Int}>",
      "static": false,
      "type": "haxefmod.core.Dsp"
     }
    ],
-   "html5": false
+   "heading": "DSP::getMeteringInfo",
+   "html5": false,
+   "notes": [
+    "One side per call. Dsp.getMetering() reads the output side, getMetering(true) or getInputMetering() the input side. The result carries peak, rms, numChannels, and numSamples."
+   ]
   },
   "dsp_getnuminputs": {
    "fmod": "FMOD_DSP_GetNumInputs",
@@ -4668,9 +4687,19 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "dsp_getparameterdata": {
+   "code": "import haxefmod.core.Dsp;\nimport haxefmod.core.DspType;\nimport haxefmod.studio.Types;\n\nvar fader = Dsp.create(DspType.FADER);\nvar gain = fader.getOverallGain();\nvar index = fader.getDataParameterIndex(FmodDspParameterDataType.OVERALLGAIN);\nvar raw = fader.getParameterData(index);\nif (raw != null) {\n    var linearGain = raw.getFloat(0);\n}",
    "fmod": "FMOD_DSP_GetParameterData",
    "gated": false,
    "haxe": [
+    {
+     "direct": true,
+     "doc": "A copy of the data block behind a data parameter, laid out as the effect's C struct (little endian, read it with haxe.io.Bytes getFloat and getInt32).",
+     "gated": false,
+     "name": "getParameterData",
+     "signature": "getParameterData(index:Int):Null<haxe.io.Bytes>",
+     "static": false,
+     "type": "haxefmod.core.Dsp"
+    },
     {
      "direct": false,
      "doc": "Spectrum magnitudes from an FFT effect (create with DspType.FFT and attach where you want to analyze).",
@@ -4679,9 +4708,22 @@ const HAXEFMOD_BINDINGS = {
      "signature": "getFftSpectrum(maxBins:Int = 512):Null<Array<Float>>",
      "static": false,
      "type": "haxefmod.core.Dsp"
+    },
+    {
+     "direct": false,
+     "doc": "The whole FFT payload: the bin count, the channel count, and one magnitude array per channel, each capped at maxBins (512 at most).",
+     "gated": false,
+     "name": "getFftSpectrumInfo",
+     "signature": "getFftSpectrumInfo(maxBins:Int = 512):Null<FmodDspParameterFft>",
+     "static": false,
+     "type": "haxefmod.core.Dsp"
     }
    ],
-   "html5": false
+   "heading": "DSP::getParameterData",
+   "html5": true,
+   "notes": [
+    "Dsp.getParameterData(index) returns a copy of the block as bytes in the effect's C layout, and the typed readers decode the common formats: getFftSpectrumInfo() for FMOD_DSP_PARAMETER_FFT, getOverallGain() for FMOD_DSP_PARAMETER_OVERALLGAIN, getLoudnessMeterInfo() for FMOD_DSP_LOUDNESS_METER_INFO_TYPE. On HTML5 the web glue types the block instead of exposing its bytes, so only the overall gain, FFT, dynamic response, and attenuation range payloads come back and getLoudnessMeterInfo is a compile error."
+   ]
   },
   "dsp_getparameterfloat": {
    "fmod": "FMOD_DSP_GetParameterFloat",
@@ -4705,10 +4747,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Name, type, and range of the parameter at index (unsupported in HTML5, null there).",
+     "doc": "The descriptor of the parameter at index (unsupported in HTML5, null there).",
      "gated": true,
      "name": "getParameterInfo",
-     "signature": "getParameterInfo(index:Int):Null<{name:String, type:FmodDspParameterType, min:Float, max:Float, defaultValue:Float}>",
+     "signature": "getParameterInfo(index:Int):Null<{name:String, label:String, description:String, type:FmodDspParameterType,\n            min:Float, max:Float, defaultValue:Float, mappingType:FmodDspParameterFloatMappingType,\n            mappingPoints:Null<{values:Array<Float>, positions:Array<Float>}>, goesToInfinity:Bool,\n            dataType:FmodDspParameterDataType, valueNames:Null<Array<String>>}>",
      "static": false,
      "type": "haxefmod.core.Dsp"
     }
@@ -4877,7 +4919,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "DSP::setCallback",
    "html5": false,
    "notes": [
-    "Cannot be bound. FMOD runs the callback on its mixer thread, and no Haxe target can execute code there. Poll the unit from the game loop with Dsp.getMetering() or Dsp.getFftSpectrum() instead."
+    "Cannot be bound. FMOD runs the callback on its mixer thread, and no Haxe target can execute code there. Poll the unit from the game loop with Dsp.getMetering(), Dsp.getFftSpectrumInfo(), or Dsp.getParameterData() instead."
    ]
   },
   "dsp_setchannelformat": {
@@ -4938,6 +4980,24 @@ const HAXEFMOD_BINDINGS = {
      "gated": false,
      "name": "setParameterData",
      "signature": "setParameterData(index:Int, data:haxe.io.Bytes):FmodResult",
+     "static": false,
+     "type": "haxefmod.core.Dsp"
+    },
+    {
+     "direct": false,
+     "doc": "Sets a data parameter of type FmodDspParameterDataType._3DATTRIBUTES (FMOD_DSP_PARAMETER_3DATTRIBUTES).",
+     "gated": false,
+     "name": "setParameter3DAttributes",
+     "signature": "setParameter3DAttributes(index:Int, absolute:Fmod3DAttributes, ?relative:Fmod3DAttributes):FmodResult",
+     "static": false,
+     "type": "haxefmod.core.Dsp"
+    },
+    {
+     "direct": false,
+     "doc": "Sets a data parameter of type FmodDspParameterDataType._3DATTRIBUTES_MULTI (FMOD_DSP_PARAMETER_3DATTRIBUTES_MULTI), the position of an object panner or pan unit for every listener.",
+     "gated": false,
+     "name": "setParameter3DAttributesMulti",
+     "signature": "setParameter3DAttributesMulti(index:Int, absolute:Fmod3DAttributes, relative:Array<Fmod3DAttributes>, ?weights:Array<Float>):FmodResult",
      "static": false,
      "type": "haxefmod.core.Dsp"
     }
@@ -5896,6 +5956,7 @@ const HAXEFMOD_BINDINGS = {
    ]
   },
   "sound_addsyncpoint": {
+   "code": "import haxefmod.core.Sound;\nimport haxefmod.studio.Types;\n\nvar sound = Sound.create(\"assets/music/track.wav\");\nsound.addSyncPoint(500, \"drop\");\nsound.addSyncPoint(48000, \"verse\", FmodTimeUnit.PCM);",
    "fmod": "FMOD_Sound_AddSyncPoint",
    "gated": false,
    "haxe": [
@@ -5904,14 +5965,19 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Marks a timeline position.",
      "gated": false,
      "name": "addSyncPoint",
-     "signature": "addSyncPoint(offsetMs:Int, name:String):FmodResult",
+     "signature": "addSyncPoint(offsetMs:Int, name:String, unit:FmodTimeUnit = FmodTimeUnit.MS):FmodResult",
      "static": false,
      "type": "haxefmod.core.Sound"
     }
    ],
-   "html5": false
+   "heading": "Sound::addSyncPoint",
+   "html5": false,
+   "notes": [
+    "The offset is read in the unit given as the last parameter, milliseconds when left out. FMOD's FMOD_SYNCPOINT handle is not returned. Points are addressed by their index in offset order in the other sync point calls and in ChannelEvent.SyncPoint."
+   ]
   },
   "sound_deletesyncpoint": {
+   "code": "import haxefmod.core.Sound;\n\nvar sound = Sound.create(\"assets/music/track.wav\");\nsound.deleteSyncPoint(0);",
    "fmod": "FMOD_Sound_DeleteSyncPoint",
    "gated": false,
    "haxe": [
@@ -5925,7 +5991,11 @@ const HAXEFMOD_BINDINGS = {
      "type": "haxefmod.core.Sound"
     }
    ],
-   "html5": false
+   "heading": "Sound::deleteSyncPoint",
+   "html5": false,
+   "notes": [
+    "Takes the point's index in offset order instead of an FMOD_SYNCPOINT handle. The indices of later points shift down by one."
+   ]
   },
   "sound_get3dconesettings": {
    "fmod": "FMOD_Sound_Get3DConeSettings",
@@ -5997,10 +6067,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Container type, sample format, channel count, and bits per sample, or null on failure.",
      "gated": false,
      "name": "getFormat",
-     "signature": "getFormat():Null<{channels:Int, bits:Int}>",
+     "signature": "getFormat():Null<{type:FmodSoundType, format:FmodSoundFormat, channels:Int, bits:Int}>",
      "static": false,
      "type": "haxefmod.core.Sound"
     }
@@ -6013,10 +6083,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Length in milliseconds, or -1 on failure.",
+     "doc": "Length in unit (milliseconds by default, PCM samples with FmodTimeUnit.PCM), or -1 on failure.",
      "gated": false,
      "name": "getLength",
-     "signature": "getLength():Int",
+     "signature": "getLength(unit:FmodTimeUnit = FmodTimeUnit.MS):Int",
      "static": false,
      "type": "haxefmod.core.Sound"
     }
@@ -6045,10 +6115,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "The loop region in unit (milliseconds by default), or null on failure.",
      "gated": false,
      "name": "getLoopPoints",
-     "signature": "getLoopPoints():Null<{startMs:Int, endMs:Int}>",
+     "signature": "getLoopPoints(unit:FmodTimeUnit = FmodTimeUnit.MS):Null<{startMs:Int, endMs:Int}>",
      "static": false,
      "type": "haxefmod.core.Sound"
     }
@@ -6204,6 +6274,15 @@ const HAXEFMOD_BINDINGS = {
      "signature": "getOpenState():FmodOpenState",
      "static": false,
      "type": "haxefmod.core.Sound"
+    },
+    {
+     "direct": false,
+     "doc": "The open state with the streaming details FMOD reports next to it.",
+     "gated": false,
+     "name": "getOpenStateInfo",
+     "signature": "getOpenStateInfo():Null<{state:FmodOpenState, percentBuffered:Int, starving:Bool, diskBusy:Bool}>",
+     "static": false,
+     "type": "haxefmod.core.Sound"
     }
    ],
    "html5": false
@@ -6266,6 +6345,7 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "sound_getsyncpoint": {
+   "code": "import haxefmod.core.Sound;\n\nvar sound = Sound.create(\"assets/music/track.wav\");\nfor (i in 0...sound.getSyncPointCount()) {\n    trace(sound.getSyncPointName(i));\n}",
    "fmod": "FMOD_Sound_GetSyncPoint",
    "gated": false,
    "haxe": [
@@ -6289,17 +6369,22 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "The point's offset in milliseconds, or -1 on failure.",
+     "doc": "The point's offset in unit (milliseconds by default), or -1 on failure.",
      "gated": false,
      "name": "getSyncPointOffset",
-     "signature": "getSyncPointOffset(index:Int):Int",
+     "signature": "getSyncPointOffset(index:Int, unit:FmodTimeUnit = FmodTimeUnit.MS):Int",
      "static": false,
      "type": "haxefmod.core.Sound"
     }
    ],
-   "html5": false
+   "heading": "Sound::getSyncPoint",
+   "html5": false,
+   "notes": [
+    "There is no FMOD_SYNCPOINT handle on the Haxe side. The index in offset order is the address of a point, passed straight to getSyncPointName, getSyncPointOffset, and deleteSyncPoint."
+   ]
   },
   "sound_getsyncpointinfo": {
+   "code": "import haxefmod.core.Sound;\nimport haxefmod.studio.Types;\n\nvar sound = Sound.create(\"assets/music/track.wav\");\nvar name = sound.getSyncPointName(0);\nvar ms = sound.getSyncPointOffset(0);\nvar samples = sound.getSyncPointOffset(0, FmodTimeUnit.PCM);",
    "fmod": "FMOD_Sound_GetSyncPointInfo",
    "gated": false,
    "haxe": [
@@ -6314,15 +6399,19 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "The point's offset in milliseconds, or -1 on failure.",
+     "doc": "The point's offset in unit (milliseconds by default), or -1 on failure.",
      "gated": false,
      "name": "getSyncPointOffset",
-     "signature": "getSyncPointOffset(index:Int):Int",
+     "signature": "getSyncPointOffset(index:Int, unit:FmodTimeUnit = FmodTimeUnit.MS):Int",
      "static": false,
      "type": "haxefmod.core.Sound"
     }
    ],
-   "html5": false
+   "heading": "Sound::getSyncPointInfo",
+   "html5": false,
+   "notes": [
+    "Split into getSyncPointName and getSyncPointOffset, both taking the index in offset order. The offset comes back in the unit given as the last parameter, milliseconds when left out."
+   ]
   },
   "sound_getsystemobject": {
    "code": "import haxefmod.core.CoreSystem;\n\nvar format = CoreSystem.getSoftwareFormat();",
@@ -6446,7 +6535,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Loads a sound file.",
      "gated": false,
      "name": "create",
-     "signature": "create(path:String, loop:Bool = false, openOnly:Bool = false):Sound",
+     "signature": "create(path:String, loop:Bool = false, openOnly:Bool = false, mode:Int = 0, initialSubsound:Int = -1):Sound",
      "static": true,
      "type": "haxefmod.core.Sound"
     },
@@ -6456,6 +6545,15 @@ const HAXEFMOD_BINDINGS = {
      "gated": true,
      "name": "createRecordBuffer",
      "signature": "createRecordBuffer(sampleRate:Int, channels:Int, seconds:Int):Sound",
+     "static": true,
+     "type": "haxefmod.core.Sound"
+    },
+    {
+     "direct": false,
+     "doc": "A sound from an encoded file image in memory (wav, ogg, mp3, fsb, anything Sound.create would load from disk).",
+     "gated": false,
+     "name": "fromMemory",
+     "signature": "fromMemory(data:haxe.io.Bytes, mode:Int = 0, length:Int = -1):Sound",
      "static": true,
      "type": "haxefmod.core.Sound"
     },
@@ -6573,10 +6671,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Loop region in milliseconds (needs a looping mode set).",
+     "doc": "Loop region (needs a looping mode set).",
      "gated": false,
      "name": "setLoopPoints",
-     "signature": "setLoopPoints(startMs:Int, endMs:Int):FmodResult",
+     "signature": "setLoopPoints(startMs:Int, endMs:Int, unit:FmodTimeUnit = FmodTimeUnit.MS):FmodResult",
      "static": false,
      "type": "haxefmod.core.Sound"
     }
@@ -8812,7 +8910,25 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "Removes the programmer-sound assignment (unsupported in HTML5, where nothing can be assigned).",
+     "doc": "Maps one programmer instrument name to the audio table key or file path it should play (unsupported in HTML5).",
+     "gated": true,
+     "name": "assignProgrammerSoundForName",
+     "signature": "assignProgrammerSoundForName(name:String, key:String):FmodResult",
+     "static": false,
+     "type": "haxefmod.studio.EventInstance"
+    },
+    {
+     "direct": false,
+     "doc": "Hands a sound the game owns to this instance's programmer instrument (unsupported in HTML5).",
+     "gated": true,
+     "name": "assignProgrammerSoundFrom",
+     "signature": "assignProgrammerSoundFrom(sound:haxefmod.core.Sound, subsoundIndex:Int = -1):FmodResult",
+     "static": false,
+     "type": "haxefmod.studio.EventInstance"
+    },
+    {
+     "direct": false,
+     "doc": "Removes every programmer-sound assignment, key, game sound, and names (unsupported in HTML5, where nothing can be assigned).",
      "gated": true,
      "name": "clearProgrammerSound",
      "signature": "clearProgrammerSound():FmodResult",
@@ -10474,7 +10590,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Loads a sound file.",
      "gated": false,
      "name": "create",
-     "signature": "create(path:String, loop:Bool = false, openOnly:Bool = false):Sound",
+     "signature": "create(path:String, loop:Bool = false, openOnly:Bool = false, mode:Int = 0, initialSubsound:Int = -1):Sound",
      "static": true,
      "type": "haxefmod.core.Sound"
     },
@@ -10484,6 +10600,15 @@ const HAXEFMOD_BINDINGS = {
      "gated": true,
      "name": "createRecordBuffer",
      "signature": "createRecordBuffer(sampleRate:Int, channels:Int, seconds:Int):Sound",
+     "static": true,
+     "type": "haxefmod.core.Sound"
+    },
+    {
+     "direct": false,
+     "doc": "A sound from an encoded file image in memory (wav, ogg, mp3, fsb, anything Sound.create would load from disk).",
+     "gated": false,
+     "name": "fromMemory",
+     "signature": "fromMemory(data:haxe.io.Bytes, mode:Int = 0, length:Int = -1):Sound",
      "static": true,
      "type": "haxefmod.core.Sound"
     },
@@ -10516,13 +10641,13 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "system_createstream": {
-   "code": "import haxefmod.core.PcmStream;\n\nvar stream = PcmStream.create(44100, 2);\nvar channel = stream.play();",
+   "code": "import haxefmod.core.ChannelMode;\nimport haxefmod.core.PcmStream;\nimport haxefmod.core.Sound;\n\nvar music = Sound.create(\"assets/music/level1.ogg\", true, false, ChannelMode.CREATESTREAM);\nvar stream = PcmStream.create(44100, 2);\nvar channel = stream.play();",
    "fmod": "",
    "haxe": [],
    "heading": "System::createStream",
    "html5": false,
    "notes": [
-    "haxefmod covers streams two ways. Sound.create() opens a file for playback, and PcmStream.create() opens a stream that Haxe code feeds with raw PCM, which is the one path that works on HTML5 as well."
+    "haxefmod covers streams two ways. Sound.create() with ChannelMode.CREATESTREAM opens a file as a stream, and PcmStream.create() opens a stream that Haxe code feeds with raw PCM, which is the one path that works on HTML5 as well."
    ]
   },
   "system_detachchannelgroupfromport": {
@@ -11272,7 +11397,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Plays this DSP as a sound source (e.g.",
      "gated": false,
      "name": "play",
-     "signature": "play(startPaused:Bool = false):Channel",
+     "signature": "play(startPaused:Bool = false, ?group:ChannelGroup):Channel",
      "static": false,
      "type": "haxefmod.core.Dsp"
     }
@@ -11288,7 +11413,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Starts playback.",
      "gated": false,
      "name": "play",
-     "signature": "play(startPaused:Bool = false):Channel",
+     "signature": "play(startPaused:Bool = false, ?group:ChannelGroup):Channel",
      "static": false,
      "type": "haxefmod.core.PcmStream"
     },
@@ -11297,7 +11422,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Starts playback.",
      "gated": false,
      "name": "play",
-     "signature": "play(startPaused:Bool = false):haxefmod.core.Channel",
+     "signature": "play(startPaused:Bool = false, ?group:haxefmod.core.ChannelGroup):haxefmod.core.Channel",
      "static": false,
      "type": "haxefmod.core.Sound"
     }

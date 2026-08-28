@@ -117,7 +117,7 @@ async function main() {
     check('open_state_plain', jaxe.fmod_sound_get_open_state(snd) === state[0], '');
 
     // Channel position and loop points in samples
-    const ch = jaxe.fmod_core_play_sound(snd, true);
+    const ch = jaxe.fmod_core_play_sound(snd, 0, true);
     check('play_paused', ch !== 0, `handle=${ch}`);
     check('chan_set_position_pcm', jaxe.fmod_chan_set_position(ch, 2400, F.TIMEUNIT_PCM) === F.OK, '');
     check('chan_get_position_ms', jaxe.fmod_chan_get_position(ch, F.TIMEUNIT_MS) === 50,
