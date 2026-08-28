@@ -8,6 +8,7 @@
  */
 #include <stdio.h>
 #include <assert.h>
+#include <stdlib.h>
 #include "../../native/shared/faxe_handles.h"
 
 static int sweep_all_valid(void* ptr, unsigned char type) {
@@ -140,6 +141,24 @@ int main(void) {
     assert(faxe_live_handle_count() == 0);
     faxe_handle_free(h1); /* double free is a safe no-op */
     assert(faxe_live_handle_count() == 0);
+
+    /* aux memory dies with the handle and is replaced on a second set */
+    {
+        int ha = faxe_handle_alloc(&dummy3, FAXE_TYPE_CHAN);
+        int idx = ha & 0xFFFF;
+        void* first = malloc(16);
+        void* second = malloc(16);
+        faxe_handle_set_aux(ha, first);
+        assert(gFaxeSlots[idx].aux == first);
+        faxe_handle_set_aux(ha, second);          /* frees first */
+        assert(gFaxeSlots[idx].aux == second);
+        faxe_handle_set_aux(ha, NULL);            /* frees second, leaves nothing */
+        assert(gFaxeSlots[idx].aux == NULL);
+        faxe_handle_set_aux(ha, malloc(16));
+        faxe_handle_free(ha);                     /* free releases the block */
+        assert(gFaxeSlots[idx].aux == NULL);
+        assert(faxe_live_handle_count() == 0);
+    }
 
     /* slot reuse bumps generation */
     int h2 = faxe_handle_alloc(&dummy2, FAXE_TYPE_EVI);
