@@ -12074,9 +12074,15 @@ const HAXEFMOD_EXAMPLES = {
 
     // Static methods are called on the type, instance methods on a value
     // of it, which the receiver name shows without a comment.
+    // CoreSound is only called that to keep clear of the studio package,
+    // so its receiver reads "sound" like the other language tabs.
+    var RECEIVER_ALIASES = { CoreSound: "sound" };
+
     function receiver(m) {
         var name = shortType(m.type);
-        return m.static ? name : name.charAt(0).toLowerCase() + name.slice(1);
+        if (m.static) return name;
+        if (RECEIVER_ALIASES[name]) return RECEIVER_ALIASES[name];
+        return name.charAt(0).toLowerCase() + name.slice(1);
     }
 
     function renderBlock(entry) {
@@ -12123,9 +12129,8 @@ const HAXEFMOD_EXAMPLES = {
             shown.forEach(function (m) { if (types.indexOf(m.type) < 0) types.push(m.type); });
             note.appendChild(el("p", "haxefmod-type", types.join(", ")));
 
-            var doc = "";
-            for (var i = 0; i < shown.length && !doc; i++) doc = shown[i].doc;
-            if (doc) note.appendChild(el("p", null, doc));
+            // The page already describes the function above the tabs, so
+            // the note carries only what is specific to the Haxe side.
             if (rest.length) {
                 var names = rest.map(function (m) { return shortType(m.type) + "." + m.name; });
                 note.appendChild(el("p", null, "Also reaches this function: " + names.join(", ")));
