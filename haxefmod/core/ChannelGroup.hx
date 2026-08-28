@@ -329,6 +329,63 @@ abstract ChannelGroup(Int) from Int to Int {
         return NativeStudio.cg_get_audibility(this);
     }
 
+    /** Moves an attached effect to another chain position (0 = head). */
+    public inline function setDspIndex(dsp:Dsp, index:Int):haxefmod.studio.FmodResult {
+        return NativeStudio.cg_set_dsp_index(this, dsp, index);
+    }
+
+    /** The chain position of an attached effect, -1 when it is not attached or on failure. */
+    public inline function getDspIndex(dsp:Dsp):Int {
+        return NativeStudio.cg_get_dsp_index(this, dsp);
+    }
+
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /**
+     * The scheduled fade points as parent-clock and volume pairs
+     * (unsupported in HTML5, null there). Null on failure, at most
+     * Scratch.CAPACITY / 2 points.
+     */
+    public macro function getFadePoints(self:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("ChannelGroup.getFadePoints", "FMOD's web glue never returns the fade point arrays");
+    }
+    #else
+    /**
+     * The scheduled fade points as parent-clock and volume pairs
+     * (unsupported in HTML5, null there). Null on failure, at most
+     * Scratch.CAPACITY / 2 points.
+     */
+    public function getFadePoints():Null<Array<{clock:Float, volume:Float}>> {
+        var count = NativeStudio.cg_get_fade_points(this);
+        var result:haxefmod.studio.FmodResult = haxefmod.studio.StudioSystem.lastResult();
+        if (!result.isOk()) return null;
+        return [for (i in 0...count) {clock: Scratch.readF(i * 2), volume: Scratch.readF(i * 2 + 1)}];
+    }
+    #end
+
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /**
+     * Reads back the mix matrix region of outChannels rows by inChannels
+     * gains, row-major (unsupported in HTML5, null there). The returned
+     * outChannels and inChannels are the counts FMOD reports for the
+     * group. Null on failure or for sizes outside 1..32.
+     */
+    public macro function getMixMatrix(self:haxe.macro.Expr, outChannels:haxe.macro.Expr, inChannels:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("ChannelGroup.getMixMatrix", "FMOD's web glue binds the matrix as a single float");
+    }
+    #else
+    /**
+     * Reads back the mix matrix region of outChannels rows by inChannels
+     * gains, row-major (unsupported in HTML5, null there). The returned
+     * outChannels and inChannels are the counts FMOD reports for the
+     * group. Null on failure or for sizes outside 1..32.
+     */
+    public function getMixMatrix(outChannels:Int, inChannels:Int):Null<{matrix:Array<Float>, outChannels:Int, inChannels:Int}> {
+        var total = NativeStudio.cg_get_mix_matrix(this, outChannels, inChannels);
+        if (total <= 0) return null;
+        return {matrix: [for (i in 0...total) Scratch.readF(i)], outChannels: Scratch.readI(0), inChannels: Scratch.readI(1)};
+    }
+    #end
+
     public inline function getName():String {
         return NativeStudio.cg_get_name(this);
     }

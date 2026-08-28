@@ -67,4 +67,51 @@ class CoreSystem {
     public static inline function getDriver():Int {
         return NativeStudio.sys_get_driver();
     }
+
+    /**
+     * The pool channel at index (see Channel.getIndex). FMOD hands back a
+     * reference to the pool slot rather than to the sound playing in it,
+     * so this is a separate handle from the one play returned, shared by
+     * every call for the same index. The channel may be idle, and every
+     * call on an idle channel reports FMOD_ERR_INVALID_HANDLE until FMOD
+     * reuses the slot. Stop the handle when done with it to release it.
+     * Channel.NULL on failure.
+     */
+    public static inline function getChannel(index:Int):Channel {
+        return NativeStudio.sys_get_channel(index);
+    }
+
+    /** The active output type as an FMOD_OUTPUTTYPE value, -1 on failure. */
+    public static inline function getOutput():Int {
+        return NativeStudio.sys_get_output();
+    }
+
+    /** Speaker count of an FMOD_SPEAKERMODE value, 0 on failure. */
+    public static inline function getSpeakerModeChannels(speakerMode:Int):Int {
+        return NativeStudio.sys_get_speaker_mode_channels(speakerMode);
+    }
+
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /**
+     * FMOD's default upmix or downmix matrix between two FMOD_SPEAKERMODE
+     * values, row-major with one row per target channel (unsupported in
+     * HTML5, null there). matrixHop widens each row past the source
+     * channel count, 0 keeps rows at that count. Null on failure.
+     */
+    public static macro function getDefaultMixMatrix(sourceSpeakerMode:haxe.macro.Expr, targetSpeakerMode:haxe.macro.Expr, ?matrixHop:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("CoreSystem.getDefaultMixMatrix", "FMOD's web glue binds the matrix as a single float");
+    }
+    #else
+    /**
+     * FMOD's default upmix or downmix matrix between two FMOD_SPEAKERMODE
+     * values, row-major with one row per target channel (unsupported in
+     * HTML5, null there). matrixHop widens each row past the source
+     * channel count, 0 keeps rows at that count. Null on failure.
+     */
+    public static function getDefaultMixMatrix(sourceSpeakerMode:Int, targetSpeakerMode:Int, matrixHop:Int = 0):Null<Array<Float>> {
+        var total = NativeStudio.sys_get_default_mix_matrix(sourceSpeakerMode, targetSpeakerMode, matrixHop);
+        if (total <= 0) return null;
+        return [for (i in 0...total) Scratch.readF(i)];
+    }
+    #end
 }

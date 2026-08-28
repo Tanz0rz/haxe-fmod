@@ -4653,6 +4653,244 @@ class jaxe {
 
     //// Debug
 
+    //// Completeness tail: getters and setters on objects the library already wraps
+
+    static fmod_core_sound_set_3d_cone_settings(handle, inside, outside, outsideVolume) {
+        var sound = jaxe.resolveCoreSound(handle);
+        if (!sound) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = sound.set3DConeSettings(inside, outside, outsideVolume);
+        return jaxe.lastResult;
+    }
+
+    static fmod_core_sound_get_3d_cone_settings(handle, fbuf) {
+        var sound = jaxe.resolveCoreSound(handle);
+        if (!sound) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        var inside = {};
+        var outside = {};
+        var outsideVolume = {};
+        jaxe.lastResult = sound.get3DConeSettings(inside, outside, outsideVolume);
+        fbuf[0] = inside.val || 0;
+        fbuf[1] = outside.val || 0;
+        fbuf[2] = outsideVolume.val || 0;
+        return jaxe.lastResult;
+    }
+
+    static fmod_core_sound_set_3d_min_max(handle, minDistance, maxDistance) {
+        var sound = jaxe.resolveCoreSound(handle);
+        if (!sound) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = sound.set3DMinMaxDistance(minDistance, maxDistance);
+        return jaxe.lastResult;
+    }
+
+    static fmod_core_sound_get_3d_min_max(handle, fbuf) {
+        var sound = jaxe.resolveCoreSound(handle);
+        if (!sound) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        var minDistance = {};
+        var maxDistance = {};
+        jaxe.lastResult = sound.get3DMinMaxDistance(minDistance, maxDistance);
+        fbuf[0] = minDistance.val || 0;
+        fbuf[1] = maxDistance.val || 0;
+        return jaxe.lastResult;
+    }
+
+    static fmod_chan_set_dsp_index(handle, dspHandle, index) {
+        var ch = jaxe.resolveChan(handle);
+        var dsp = jaxe.resolveDsp(dspHandle);
+        if (!ch || !dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = ch.setDSPIndex(dsp, index);
+        return jaxe.lastResult;
+    }
+
+    static fmod_chan_get_dsp_index(handle, dspHandle) {
+        var ch = jaxe.resolveChan(handle);
+        var dsp = jaxe.resolveDsp(dspHandle);
+        if (!ch || !dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return -1; }
+        var out = {};
+        jaxe.lastResult = ch.getDSPIndex(dsp, out);
+        return jaxe.lastResult == jaxe.FMOD.OK ? (out.val | 0) : -1;
+    }
+
+    // The glue binds getFadePoints with a zero-capacity count and single
+    // value slots, so the point arrays never come back. Unsupported here.
+    static fmod_chan_get_fade_points(handle, fbuf) {
+        var ch = jaxe.resolveChan(handle);
+        if (!ch) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }
+        jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        return 0;
+    }
+
+    // The glue binds the matrix pointer of every getMixMatrix as one float
+    // and FMOD rejects the call, so the matrix never comes back. Unsupported here.
+    static fmod_chan_get_mix_matrix(handle, fbuf, ibuf, outChannels, inChannels) {
+        var ch = jaxe.resolveChan(handle);
+        if (!ch) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }
+        jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        return 0;
+    }
+
+    static fmod_chan_get_channel_group(handle) {
+        var ch = jaxe.resolveChan(handle);
+        if (!ch) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }
+        var out = {};
+        jaxe.lastResult = ch.getChannelGroup(out);
+        if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
+        return jaxe.handleFindOrAlloc(out.val, jaxe.TYPE_CHANGROUP);
+    }
+
+    static fmod_cg_set_dsp_index(handle, dspHandle, index) {
+        var group = jaxe.resolveCg(handle);
+        var dsp = jaxe.resolveDsp(dspHandle);
+        if (!group || !dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = group.setDSPIndex(dsp, index);
+        return jaxe.lastResult;
+    }
+
+    static fmod_cg_get_dsp_index(handle, dspHandle) {
+        var group = jaxe.resolveCg(handle);
+        var dsp = jaxe.resolveDsp(dspHandle);
+        if (!group || !dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return -1; }
+        var out = {};
+        jaxe.lastResult = group.getDSPIndex(dsp, out);
+        return jaxe.lastResult == jaxe.FMOD.OK ? (out.val | 0) : -1;
+    }
+
+    static fmod_cg_get_fade_points(handle, fbuf) {
+        var group = jaxe.resolveCg(handle);
+        if (!group) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }
+        jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        return 0;
+    }
+
+    static fmod_cg_get_mix_matrix(handle, fbuf, ibuf, outChannels, inChannels) {
+        var group = jaxe.resolveCg(handle);
+        if (!group) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }
+        jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        return 0;
+    }
+
+    static fmod_sg_get_name(handle) {
+        var group = jaxe.resolveSoundGroup(handle);
+        if (!group) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return ""; }
+        // embind drops the buffer length arg
+        var out = {};
+        jaxe.lastResult = group.getName(out);
+        return jaxe.lastResult == jaxe.FMOD.OK ? (out.val || "") : "";
+    }
+
+    static fmod_sg_get_sound(handle, index) {
+        var group = jaxe.resolveSoundGroup(handle);
+        if (!group) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }
+        var out = {};
+        jaxe.lastResult = group.getSound(index, out);
+        if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
+        // Borrowed reference, the group does not own the sound
+        return jaxe.handleFindOrAlloc(out.val, jaxe.TYPE_SOUND);
+    }
+
+    // The pool channel at this index. It may be idle, in which case every
+    // call on the handle reports FMOD_ERR_INVALID_HANDLE until FMOD reuses it.
+    static fmod_sys_get_channel(index) {
+        if (!jaxe.FmodIsInitialized) { jaxe.lastResult = jaxe.ERR_STUDIO_UNINITIALIZED; return 0; }
+        var out = {};
+        jaxe.lastResult = jaxe.gSystemCore.getChannel(index, out);
+        if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
+        return jaxe.handleFindOrAlloc(out.val, jaxe.TYPE_CHAN);
+    }
+
+    static fmod_sys_get_output() {
+        if (!jaxe.FmodIsInitialized) { jaxe.lastResult = jaxe.ERR_STUDIO_UNINITIALIZED; return -1; }
+        var out = {};
+        jaxe.lastResult = jaxe.gSystemCore.getOutput(out);
+        return jaxe.lastResult == jaxe.FMOD.OK ? (out.val | 0) : -1;
+    }
+
+    static fmod_sys_get_speaker_mode_channels(mode) {
+        if (!jaxe.FmodIsInitialized) { jaxe.lastResult = jaxe.ERR_STUDIO_UNINITIALIZED; return 0; }
+        var out = {};
+        jaxe.lastResult = jaxe.gSystemCore.getSpeakerModeChannels(mode, out);
+        return jaxe.lastResult == jaxe.FMOD.OK ? (out.val | 0) : 0;
+    }
+
+    // The glue binds the matrix pointer as one float, so only element zero
+    // would ever come back. Unsupported here.
+    static fmod_sys_get_default_mix_matrix(sourceMode, targetMode, hop, fbuf) {
+        if (!jaxe.FmodIsInitialized) { jaxe.lastResult = jaxe.ERR_STUDIO_UNINITIALIZED; return 0; }
+        jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        return 0;
+    }
+
+    // The glue cannot marshal FMOD_DSP_PARAMETER_DESC (the call throws
+    // inside embind), so the descriptor never comes back. Unsupported here.
+    static fmod_dsp_get_parameter_info(handle, index, fbuf, ibuf) {
+        var dsp = jaxe.resolveDsp(handle);
+        fbuf[0] = 0;
+        fbuf[1] = 0;
+        fbuf[2] = 0;
+        ibuf[0] = 0;
+        if (!dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return ""; }
+        jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        return "";
+    }
+
+    static fmod_dsp_get_data_parameter_index(handle, dataType) {
+        var dsp = jaxe.resolveDsp(handle);
+        if (!dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return -1; }
+        var out = {};
+        jaxe.lastResult = dsp.getDataParameterIndex(dataType, out);
+        return jaxe.lastResult == jaxe.FMOD.OK ? (out.val | 0) : -1;
+    }
+
+    static fmod_dsp_set_channel_format(handle, mask, channels, speakerMode) {
+        var dsp = jaxe.resolveDsp(handle);
+        if (!dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = dsp.setChannelFormat(mask, channels, speakerMode);
+        return jaxe.lastResult;
+    }
+
+    static fmod_dsp_get_channel_format(handle, ibuf) {
+        var dsp = jaxe.resolveDsp(handle);
+        if (!dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        var mask = {};
+        var channels = {};
+        var mode = {};
+        jaxe.lastResult = dsp.getChannelFormat(mask, channels, mode);
+        ibuf[0] = mask.val | 0;
+        ibuf[1] = channels.val | 0;
+        ibuf[2] = mode.val | 0;
+        return jaxe.lastResult;
+    }
+
+    static fmod_dsp_get_output_channel_format(handle, inMask, inChannels, inMode, ibuf) {
+        var dsp = jaxe.resolveDsp(handle);
+        if (!dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        var mask = {};
+        var channels = {};
+        var mode = {};
+        jaxe.lastResult = dsp.getOutputChannelFormat(inMask, inChannels, inMode, mask, channels, mode);
+        ibuf[0] = mask.val | 0;
+        ibuf[1] = channels.val | 0;
+        ibuf[2] = mode.val | 0;
+        return jaxe.lastResult;
+    }
+
+    static fmod_conn_set_mix_matrix(handle, fbuf, outChannels, inChannels) {
+        var conn = jaxe.resolveDspConn(handle);
+        if (!conn) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        var total = outChannels * inChannels;
+        if (total < 0 || total > 32 * 32) { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
+        var matrix = [];
+        for (var i = 0; i < total; i++) matrix.push(fbuf[i] || 0);
+        jaxe.lastResult = conn.setMixMatrix(matrix, outChannels, inChannels, 0);
+        return jaxe.lastResult;
+    }
+
+    static fmod_conn_get_mix_matrix(handle, fbuf, ibuf, outChannels, inChannels) {
+        var conn = jaxe.resolveDspConn(handle);
+        if (!conn) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }
+        jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        return 0;
+    }
+
     static fmod_debug_live_handle_count() {
         return jaxe.liveCount;
     }

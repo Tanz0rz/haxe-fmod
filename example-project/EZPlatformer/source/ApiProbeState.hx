@@ -159,6 +159,7 @@ class ApiProbeState extends FlxState {
         probeCoreSurface();
         probeDspSurface();
         probeParityTail();
+        probeCompletenessTail();
         probeSoundGroupsAndSystem();
         probeAuditClosure();
         probeInstanceLifecycle();
@@ -2253,6 +2254,165 @@ class ApiProbeState extends FlxState {
             format == null ? "" : 'rate=${format.sampleRate}');
 
         check("no_handle_leaks_tail", StudioSystem.liveHandleCount() == baseline,
+            'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
+    }
+
+    /**
+     * The completeness tail: plain getters and setters on objects the
+     * library already wrapped, checked as round trips against FMOD.
+     */
+    function probeCompletenessTail():Void {
+        var baseline = StudioSystem.liveHandleCount();
+
+        // Sound cone and rolloff distances
+        var samples = 4800;
+        var pcm = haxe.io.Bytes.alloc(samples * 2);
+        for (i in 0...samples) {
+            var v = Std.int(Math.sin(2 * Math.PI * 440 * i / 48000) * 0x3000);
+            pcm.setUInt16(i * 2, v & 0xFFFF);
+        }
+        var sound = CoreSound.fromPcm(pcm, 48000, 1);
+        sound.setMode(ChannelMode.MODE_3D);
+        var cone = sound.set3DConeSettings(30, 60, 0.5);
+        var coneBack = sound.get3DConeSettings();
+        check("sound_cone_roundtrip", cone.isOk() && coneBack != null
+            && Math.abs(coneBack.insideAngle - 30) < 0.01 && Math.abs(coneBack.outsideAngle - 60) < 0.01
+            && Math.abs(coneBack.outsideVolume - 0.5) < 0.001,
+            coneBack == null ? 'result=${cone.toString()}' : 'inside=${coneBack.insideAngle} outside=${coneBack.outsideAngle}');
+        var minMax = sound.set3DMinMaxDistance(2, 50);
+        var minMaxBack = sound.get3DMinMaxDistance();
+        check("sound_min_max_roundtrip", minMax.isOk() && minMaxBack != null
+            && Math.abs(minMaxBack.minDistance - 2) < 0.001 && Math.abs(minMaxBack.maxDistance - 50) < 0.001,
+            minMaxBack == null ? 'result=${minMax.toString()}' : 'min=${minMaxBack.minDistance} max=${minMaxBack.maxDistance}');
+
+        // DSP chain position on a paused channel, then a fade point and
+        // mix matrix readback
+        var channel = sound.play(true);
+        var lowpass = Dsp.create(DspType.LOWPASS);
+        var echo = Dsp.create(DspType.ECHO);
+        channel.addDsp(0, lowpass);
+        channel.addDsp(0, echo);
+        check("chan_dsp_index_before_move", channel.getDspIndex(echo) == 0 && channel.getDspIndex(lowpass) == 1,
+            'echo=${channel.getDspIndex(echo)} lowpass=${channel.getDspIndex(lowpass)}');
+        var move = channel.setDspIndex(echo, 1);
+        check("chan_dsp_index_move", move.isOk() && channel.getDspIndex(echo) == 1 && channel.getDspIndex(lowpass) == 0,
+            'result=${move.toString()} echo=${channel.getDspIndex(echo)} lowpass=${channel.getDspIndex(lowpass)}');
+        var clocks = channel.getDspClock();
+        var base = clocks == null ? 0.0 : clocks.parent;
+        channel.addFadePoint(base + 4800, 0.25);
+        channel.addFadePoint(base + 9600, 0.75);
+        var fades = channel.getFadePoints();
+        check("chan_fade_points_readback", fades != null && fades.length == 2
+            && Math.abs(fades[0].clock - (base + 4800)) < 1 && Math.abs(fades[0].volume - 0.25) < 0.001
+            && Math.abs(fades[1].clock - (base + 9600)) < 1 && Math.abs(fades[1].volume - 0.75) < 0.001,
+            fades == null ? 'result=${StudioSystem.lastResult().toString()}' : 'count=${fades.length}');
+        channel.removeFadePoints(0, base + 96000);
+        check("chan_fade_points_cleared", channel.getFadePoints() != null && channel.getFadePoints().length == 0, "");
+        channel.setMixMatrix([0.5, 0.25, 0.25, 0.5], 2, 2);
+        var matrix = channel.getMixMatrix(2, 2);
+        check("chan_mix_matrix_readback", matrix != null && matrix.matrix.length == 4
+            && Math.abs(matrix.matrix[0] - 0.5) < 0.001 && Math.abs(matrix.matrix[1] - 0.25) < 0.001
+            && Math.abs(matrix.matrix[3] - 0.5) < 0.001 && matrix.outChannels == 2 && matrix.inChannels == 2,
+            matrix == null ? 'result=${StudioSystem.lastResult().toString()}'
+            : 'out=${matrix.outChannels} in=${matrix.inChannels} m0=${matrix.matrix[0]}');
+        check("chan_mix_matrix_bad_size", channel.getMixMatrix(0, 2) == null
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_PARAM, "");
+
+        // The group getter hands back the handle the setter took
+        var group = ChannelGroup.create("probe-tail-group");
+        channel.setChannelGroup(group);
+        check("chan_get_channel_group", (channel.getChannelGroup() : Int) == (group : Int),
+            'got=${(channel.getChannelGroup() : Int)} set=${(group : Int)}');
+        group.addDsp(0, lowpass);
+        check("cg_dsp_index_readback", group.getDspIndex(lowpass) == 0, 'value=${group.getDspIndex(lowpass)}');
+        var groupClocks = group.getDspClock();
+        var groupBase = groupClocks == null ? 0.0 : groupClocks.parent;
+        group.addFadePoint(groupBase + 4800, 0.5);
+        var groupFades = group.getFadePoints();
+        check("cg_fade_points_readback", groupFades != null && groupFades.length == 1
+            && Math.abs(groupFades[0].volume - 0.5) < 0.001,
+            groupFades == null ? 'result=${StudioSystem.lastResult().toString()}' : 'count=${groupFades.length}');
+        group.removeFadePoints(0, groupBase + 96000);
+        group.setMixMatrix([1, 0, 0, 1], 2, 2);
+        var groupMatrix = group.getMixMatrix(2, 2);
+        check("cg_mix_matrix_readback", groupMatrix != null && groupMatrix.matrix.length == 4
+            && Math.abs(groupMatrix.matrix[0] - 1) < 0.001 && Math.abs(groupMatrix.matrix[1]) < 0.001,
+            groupMatrix == null ? 'result=${StudioSystem.lastResult().toString()}' : 'm0=${groupMatrix.matrix[0]}');
+
+        // The pool channel by index is the playing channel, deduplicated
+        var index = channel.getIndex();
+        var pooled = CoreSystem.getChannel(index);
+        check("sys_get_channel", index >= 0 && !pooled.isNull() && pooled.getIndex() == index && pooled.getPaused(),
+            'index=$index pooled=${(pooled : Int)} pooledIndex=${pooled.getIndex()}');
+        check("sys_get_channel_dedup", (CoreSystem.getChannel(index) : Int) == (pooled : Int), "");
+        check("sys_get_channel_bad_index", CoreSystem.getChannel(-1).isNull(), "");
+
+        // Sound group name and enumeration
+        var soundGroup = SoundGroup.create("probe-tail-sg");
+        check("sg_get_name", soundGroup.getName() == "probe-tail-sg", 'name=${soundGroup.getName()}');
+        sound.setSoundGroup(soundGroup);
+        check("sg_get_sound", soundGroup.getSoundCount() == 1 && (soundGroup.getSound(0) : Int) == (sound : Int),
+            'count=${soundGroup.getSoundCount()} got=${(soundGroup.getSound(0) : Int)} have=${(sound : Int)}');
+        check("sg_get_sound_past_end", soundGroup.getSound(5).isNull(), "");
+
+        // System queries
+        check("sys_get_output", CoreSystem.getOutput() >= 0, 'value=${CoreSystem.getOutput()}');
+        check("sys_speaker_mode_channels", CoreSystem.getSpeakerModeChannels(3) == 2,
+            'value=${CoreSystem.getSpeakerModeChannels(3)}');
+        var identity = CoreSystem.getDefaultMixMatrix(3, 3);
+        check("sys_default_mix_matrix_identity", identity != null && identity.length == 4
+            && Math.abs(identity[0] - 1) < 0.001 && Math.abs(identity[1]) < 0.001
+            && Math.abs(identity[2]) < 0.001 && Math.abs(identity[3] - 1) < 0.001,
+            identity == null ? 'result=${StudioSystem.lastResult().toString()}' : 'values=${identity.join(",")}');
+        var hopped = CoreSystem.getDefaultMixMatrix(3, 3, 4);
+        check("sys_default_mix_matrix_hop", hopped != null && hopped.length == 8
+            && Math.abs(hopped[0] - 1) < 0.001 && Math.abs(hopped[5] - 1) < 0.001,
+            hopped == null ? 'result=${StudioSystem.lastResult().toString()}' : 'length=${hopped.length}');
+
+        // DSP descriptors and channel formats
+        var info = lowpass.getParameterInfo(0);
+        check("dsp_parameter_info_cutoff", info != null && info.name.toLowerCase().indexOf("cutoff") >= 0
+            && info.type == Dsp.PARAMETER_FLOAT && info.max > info.min && info.defaultValue >= info.min
+            && info.defaultValue <= info.max,
+            info == null ? 'result=${StudioSystem.lastResult().toString()}'
+            : 'name=${info.name} type=${info.type} min=${info.min} max=${info.max} default=${info.defaultValue}');
+        check("dsp_parameter_info_bad_index", lowpass.getParameterInfo(99) == null, "");
+        var fft = Dsp.create(DspType.FFT);
+        check("dsp_data_parameter_index", fft.getDataParameterIndex(-4) >= 0,
+            'value=${fft.getDataParameterIndex(-4)}');
+        check("dsp_data_parameter_index_missing", lowpass.getDataParameterIndex(-4) == -1, "");
+        var format = echo.setChannelFormat(0, 2, 3);
+        var formatBack = echo.getChannelFormat();
+        check("dsp_channel_format_roundtrip", format.isOk() && formatBack != null
+            && formatBack.channels == 2 && formatBack.speakerMode == 3,
+            formatBack == null ? 'result=${format.toString()}' : 'channels=${formatBack.channels} mode=${formatBack.speakerMode}');
+        var outFormat = echo.getOutputChannelFormat(0, 2, 3);
+        check("dsp_output_channel_format", outFormat != null && outFormat.channels == 2,
+            outFormat == null ? 'result=${StudioSystem.lastResult().toString()}' : 'channels=${outFormat.channels}');
+
+        // Connection mix matrix round trip
+        var osc = Dsp.create(DspType.OSCILLATOR);
+        var conn = fft.addInput(osc);
+        var connSet = conn.setMixMatrix([0.5, 0, 0, 0.5], 2, 2);
+        var connMatrix = conn.getMixMatrix(2, 2);
+        check("conn_mix_matrix_roundtrip", connSet.isOk() && connMatrix != null && connMatrix.matrix.length == 4
+            && Math.abs(connMatrix.matrix[0] - 0.5) < 0.001 && Math.abs(connMatrix.matrix[1]) < 0.001
+            && connMatrix.outChannels == 2 && connMatrix.inChannels == 2,
+            connMatrix == null ? 'result=${StudioSystem.lastResult().toString()}'
+            : 'out=${connMatrix.outChannels} in=${connMatrix.inChannels} m0=${connMatrix.matrix[0]}');
+
+        fft.disconnectFrom(osc);
+        channel.stop();
+        // The pool slot handle is its own handle and needs its own stop
+        pooled.stop();
+        osc.release();
+        fft.release();
+        echo.release();
+        lowpass.release();
+        group.release();
+        sound.release();
+        soundGroup.release();
+        check("no_handle_leaks_completeness_tail", StudioSystem.liveHandleCount() == baseline,
             'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
     }
 

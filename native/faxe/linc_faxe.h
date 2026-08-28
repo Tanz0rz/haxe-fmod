@@ -532,5 +532,33 @@ extern const char* fmod_cg_get_name(int handle);
 extern int fmod_cg_get_num_channels(int handle);
 extern int fmod_cg_get_channel(int handle, int index);
 
+// Completeness tail: getters and setters on objects the library already wraps
+extern int fmod_core_sound_set_3d_cone_settings(int handle, float inside, float outside, float outsideVolume);
+extern int fmod_core_sound_get_3d_cone_settings(int handle, ::Array<Float> fbuf);
+extern int fmod_core_sound_set_3d_min_max(int handle, float minDistance, float maxDistance);
+extern int fmod_core_sound_get_3d_min_max(int handle, ::Array<Float> fbuf);
+extern int fmod_chan_set_dsp_index(int handle, int dspHandle, int index);
+extern int fmod_chan_get_dsp_index(int handle, int dspHandle);
+extern int fmod_chan_get_fade_points(int handle, ::Array<Float> fbuf);
+extern int fmod_chan_get_mix_matrix(int handle, ::Array<Float> fbuf, ::Array<int> ibuf, int outChannels, int inChannels);
+extern int fmod_chan_get_channel_group(int handle);
+extern int fmod_cg_set_dsp_index(int handle, int dspHandle, int index);
+extern int fmod_cg_get_dsp_index(int handle, int dspHandle);
+extern int fmod_cg_get_fade_points(int handle, ::Array<Float> fbuf);
+extern int fmod_cg_get_mix_matrix(int handle, ::Array<Float> fbuf, ::Array<int> ibuf, int outChannels, int inChannels);
+extern const char* fmod_sg_get_name(int handle);
+extern int fmod_sg_get_sound(int handle, int index);
+extern int fmod_sys_get_channel(int index);
+extern int fmod_sys_get_output();
+extern int fmod_sys_get_speaker_mode_channels(int mode);
+extern int fmod_sys_get_default_mix_matrix(int sourceMode, int targetMode, int hop, ::Array<Float> fbuf);
+extern const char* fmod_dsp_get_parameter_info(int handle, int index, ::Array<Float> fbuf, ::Array<int> ibuf);
+extern int fmod_dsp_get_data_parameter_index(int handle, int dataType);
+extern int fmod_dsp_set_channel_format(int handle, int mask, int channels, int speakerMode);
+extern int fmod_dsp_get_channel_format(int handle, ::Array<int> ibuf);
+extern int fmod_dsp_get_output_channel_format(int handle, int inMask, int inChannels, int inMode, ::Array<int> ibuf);
+extern int fmod_conn_set_mix_matrix(int handle, ::Array<Float> fbuf, int outChannels, int inChannels);
+extern int fmod_conn_get_mix_matrix(int handle, ::Array<Float> fbuf, ::Array<int> ibuf, int outChannels, int inChannels);
+
 } // namespace faxe
 } // namespace linc

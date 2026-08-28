@@ -678,6 +678,57 @@ geo_get_scale i32 fbuf -> i32
 # a buffer shorter than the size is rejected (INVALID_PARAM, negated).
 geo_save i32 bytes i32 -> i32
 
+## Completeness tail: getters and setters on objects the library already wraps
+core_sound_set_3d_cone_settings i32 f32 f32 f32 -> i32
+# fbuf out: [0]=inside [1]=outside [2]=outside volume
+core_sound_get_3d_cone_settings i32 fbuf -> i32
+core_sound_set_3d_min_max i32 f32 f32 -> i32
+# fbuf out: [0]=min [1]=max
+core_sound_get_3d_min_max i32 fbuf -> i32
+# (channel, dsp, chain position)
+chan_set_dsp_index i32 i32 i32 -> i32
+# Chain position of the dsp, -1 on failure
+chan_get_dsp_index i32 i32 -> i32
+# fbuf out: [2i]=clock [2i+1]=volume. Returns the point count, capped at
+# FAXE_LIST_MAX/2 pairs, 0 on failure. ERR_UNSUPPORTED (68) on js, the glue
+# cannot return the arrays.
+chan_get_fade_points i32 fbuf -> i32
+# (handle, out channels, in channels). fbuf out: out*in gains row-major,
+# ibuf out: [0]=actual out [1]=actual in. Returns out*in, 0 on failure.
+# ERR_UNSUPPORTED (68) on js, the glue passes a single float.
+chan_get_mix_matrix i32 fbuf ibuf i32 i32 -> i32
+chan_get_channel_group i32 -> i32
+cg_set_dsp_index i32 i32 i32 -> i32
+cg_get_dsp_index i32 i32 -> i32
+cg_get_fade_points i32 fbuf -> i32
+cg_get_mix_matrix i32 fbuf ibuf i32 i32 -> i32
+sg_get_name i32 -> str
+sg_get_sound i32 i32 -> i32
+# Pool channel by index, possibly idle
+sys_get_channel i32 -> i32
+# FMOD_OUTPUTTYPE, -1 on failure
+sys_get_output -> i32
+sys_get_speaker_mode_channels i32 -> i32
+# (source speaker mode, target speaker mode, matrix hop). fbuf out: the
+# matrix, target rows of hop columns (hop 0 = source channels). Returns the
+# element count, 0 on failure. ERR_UNSUPPORTED (68) on js.
+sys_get_default_mix_matrix i32 i32 i32 fbuf -> i32
+# ibuf out: [0]=FMOD_DSP_PARAMETER_TYPE. fbuf out: [0]=min [1]=max [2]=default
+# (float and int parameters, bool fills the default only). Returns the name.
+# ERR_UNSUPPORTED (68) on js, the glue cannot marshal the descriptor.
+dsp_get_parameter_info i32 i32 fbuf ibuf -> str
+# Index of the data parameter with this FMOD_DSP_PARAMETER_DATA_TYPE, -1 on failure
+dsp_get_data_parameter_index i32 i32 -> i32
+# (dsp, channel mask, channel count, speaker mode)
+dsp_set_channel_format i32 i32 i32 i32 -> i32
+# ibuf out: [0]=mask [1]=channels [2]=speaker mode
+dsp_get_channel_format i32 ibuf -> i32
+# (dsp, in mask, in channels, in speaker mode). ibuf out: [0]=mask [1]=channels [2]=speaker mode
+dsp_get_output_channel_format i32 i32 i32 i32 ibuf -> i32
+# fbuf in: out*in gains row-major
+conn_set_mix_matrix i32 fbuf i32 i32 -> i32
+conn_get_mix_matrix i32 fbuf ibuf i32 i32 -> i32
+
 ## Debug
 debug_live_handle_count -> i32
 binding_abi_version -> i32

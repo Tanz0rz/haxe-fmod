@@ -2,6 +2,7 @@ package haxefmod.core;
 
 import haxefmod.studio.FmodResult;
 import haxefmod.studio.native.NativeStudio;
+import haxefmod.studio.native.Scratch;
 
 /**
  * A handle to a connection between two DSPs in the mixing graph.
@@ -50,4 +51,41 @@ abstract DspConnection(Int) from Int to Int {
     public inline function getOutputDsp():Dsp {
         return NativeStudio.dspconn_get_output_dsp(this);
     }
+
+    /**
+     * Routes the input's channels to the output's with explicit gains
+     * (row-major, outChannels rows of inChannels gains, up to 32x32).
+     */
+    public function setMixMatrix(matrix:Array<Float>, outChannels:Int, inChannels:Int):FmodResult {
+        var total = outChannels * inChannels;
+        if (total < 0 || total > matrix.length || total > Scratch.CAPACITY) {
+            return FmodResult.FMOD_ERR_INVALID_PARAM;
+        }
+        for (i in 0...total) Scratch.writeF(i, matrix[i]);
+        return NativeStudio.conn_set_mix_matrix(this, outChannels, inChannels);
+    }
+
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /**
+     * Reads back the mix matrix region of outChannels rows by inChannels
+     * gains, row-major (unsupported in HTML5, null there). The returned
+     * outChannels and inChannels are the counts FMOD reports for the
+     * connection. Null on failure or for sizes outside 1..32.
+     */
+    public macro function getMixMatrix(self:haxe.macro.Expr, outChannels:haxe.macro.Expr, inChannels:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("DspConnection.getMixMatrix", "FMOD's web glue binds the matrix as a single float");
+    }
+    #else
+    /**
+     * Reads back the mix matrix region of outChannels rows by inChannels
+     * gains, row-major (unsupported in HTML5, null there). The returned
+     * outChannels and inChannels are the counts FMOD reports for the
+     * connection. Null on failure or for sizes outside 1..32.
+     */
+    public function getMixMatrix(outChannels:Int, inChannels:Int):Null<{matrix:Array<Float>, outChannels:Int, inChannels:Int}> {
+        var total = NativeStudio.conn_get_mix_matrix(this, outChannels, inChannels);
+        if (total <= 0) return null;
+        return {matrix: [for (i in 0...total) Scratch.readF(i)], outChannels: Scratch.readI(0), inChannels: Scratch.readI(1)};
+    }
+    #end
 }

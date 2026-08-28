@@ -579,6 +579,34 @@ class NativeStudioStub {
     public static function geo_get_scale(handle:Int):Int return ERR_UNSUPPORTED;
     public static function geo_save(handle:Int, data:haxe.io.Bytes, len:Int):Int return -1;
 
+    // Completeness tail: getters and setters on objects the library already wraps
+    public static function core_sound_set_3d_cone_settings(handle:Int, inside:Float, outside:Float, outsideVolume:Float):Int return ERR_UNSUPPORTED;
+    public static function core_sound_get_3d_cone_settings(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function core_sound_set_3d_min_max(handle:Int, minDistance:Float, maxDistance:Float):Int return ERR_UNSUPPORTED;
+    public static function core_sound_get_3d_min_max(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function chan_set_dsp_index(handle:Int, dsp:Int, index:Int):Int return ERR_UNSUPPORTED;
+    public static function chan_get_dsp_index(handle:Int, dsp:Int):Int return -1;
+    public static function chan_get_fade_points(handle:Int):Int return 0;
+    public static function chan_get_mix_matrix(handle:Int, outChannels:Int, inChannels:Int):Int return 0;
+    public static function chan_get_channel_group(handle:Int):Int return 0;
+    public static function cg_set_dsp_index(handle:Int, dsp:Int, index:Int):Int return ERR_UNSUPPORTED;
+    public static function cg_get_dsp_index(handle:Int, dsp:Int):Int return -1;
+    public static function cg_get_fade_points(handle:Int):Int return 0;
+    public static function cg_get_mix_matrix(handle:Int, outChannels:Int, inChannels:Int):Int return 0;
+    public static function sg_get_name(handle:Int):String return "";
+    public static function sg_get_sound(handle:Int, index:Int):Int return 0;
+    public static function sys_get_channel(index:Int):Int return 0;
+    public static function sys_get_output():Int return -1;
+    public static function sys_get_speaker_mode_channels(mode:Int):Int return 0;
+    public static function sys_get_default_mix_matrix(sourceMode:Int, targetMode:Int, hop:Int):Int return 0;
+    public static function dsp_get_parameter_info(handle:Int, index:Int):String return "";
+    public static function dsp_get_data_parameter_index(handle:Int, dataType:Int):Int return -1;
+    public static function dsp_set_channel_format(handle:Int, mask:Int, channels:Int, speakerMode:Int):Int return ERR_UNSUPPORTED;
+    public static function dsp_get_channel_format(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function dsp_get_output_channel_format(handle:Int, inMask:Int, inChannels:Int, inMode:Int):Int return ERR_UNSUPPORTED;
+    public static function conn_set_mix_matrix(handle:Int, outChannels:Int, inChannels:Int):Int return ERR_UNSUPPORTED;
+    public static function conn_get_mix_matrix(handle:Int, outChannels:Int, inChannels:Int):Int return 0;
+
     // Debug
     public static function debug_live_handle_count():Int return 0;
     public static function binding_abi_version():Int return 0;

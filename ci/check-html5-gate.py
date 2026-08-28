@@ -123,6 +123,20 @@ GATED = [
      "var g:Geometry = cast 1; var r = g.getScale();"),
     ("Geometry", "save", "haxefmod/core/Geometry.hx",
      "var g:Geometry = cast 1; var r = g.save();"),
+    ("Channel", "getFadePoints", "haxefmod/core/Channel.hx",
+     "var c:Channel = cast 1; var r = c.getFadePoints();"),
+    ("Channel", "getMixMatrix", "haxefmod/core/Channel.hx",
+     "var c:Channel = cast 1; var r = c.getMixMatrix(2, 2);"),
+    ("ChannelGroup", "getFadePoints", "haxefmod/core/ChannelGroup.hx",
+     "var g:ChannelGroup = cast 1; var r = g.getFadePoints();"),
+    ("ChannelGroup", "getMixMatrix", "haxefmod/core/ChannelGroup.hx",
+     "var g:ChannelGroup = cast 1; var r = g.getMixMatrix(2, 2);"),
+    ("DspConnection", "getMixMatrix", "haxefmod/core/DspConnection.hx",
+     "var c:DspConnection = cast 1; var r = c.getMixMatrix(2, 2);"),
+    ("CoreSystem", "getDefaultMixMatrix", "haxefmod/core/CoreSystem.hx",
+     "var r = CoreSystem.getDefaultMixMatrix(3, 3);"),
+    ("Dsp", "getParameterInfo", "haxefmod/core/Dsp.hx",
+     "var d:Dsp = cast 1; var r = d.getParameterInfo(0);"),
 ]
 
 IMPORTS = "\n".join([
@@ -133,6 +147,9 @@ IMPORTS = "\n".join([
     "import haxefmod.core.Channel;",
     "import haxefmod.core.ChannelGroup;",
     "import haxefmod.core.Geometry;",
+    "import haxefmod.core.CoreSystem;",
+    "import haxefmod.core.Dsp;",
+    "import haxefmod.core.DspConnection;",
 ])
 
 # (label, extra haxe args, must compile)

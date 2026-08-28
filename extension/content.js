@@ -57,7 +57,10 @@
             pre.textContent = entry.code;
             notes.forEach(function (text) { note.appendChild(el("p", null, text)); });
         } else if (!entry || entry.haxe.length === 0) {
-            pre.textContent = notes.length ? "// No direct haxefmod call" : "// Not exposed by haxefmod";
+            // A note that starts with "Not exposed" is a deliberate gap. Any
+            // other note names the haxefmod call that covers this function.
+            var gap = !notes.length || notes[0].indexOf("Not exposed") === 0;
+            pre.textContent = gap ? "// Not exposed by haxefmod" : "// Covered by another haxefmod call, see below";
             notes.forEach(function (text) { note.appendChild(el("p", "haxefmod-warn", text)); });
             if (!notes.length) {
                 var limits = el("a", null, "Limitations");

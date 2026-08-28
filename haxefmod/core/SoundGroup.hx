@@ -71,6 +71,20 @@ abstract SoundGroup(Int) from Int to Int {
         return NativeStudio.sg_get_num_sounds(this);
     }
 
+    /** The name given at create(), "FMOD master" for the master group. */
+    public inline function getName():String {
+        return NativeStudio.sg_get_name(this);
+    }
+
+    /**
+     * The sound at position index in this group (a known sound returns its
+     * existing handle). CoreSound.NULL past the end. The group does not own
+     * the sound, so do not release a handle obtained this way.
+     */
+    public inline function getSound(index:Int):haxefmod.studio.CoreSound {
+        return NativeStudio.sg_get_sound(this, index);
+    }
+
     /** Sounds from this group audible right now. */
     public inline function getPlayingCount():Int {
         return NativeStudio.sg_get_num_playing(this);

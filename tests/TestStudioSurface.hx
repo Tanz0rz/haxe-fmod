@@ -47,6 +47,7 @@ class TestStudioSurface {
 		testVersionDataAndRecording();
 		testRolloffAndGeometry();
 		testSystemCallbackStub();
+		testCompletenessTail();
 
 		Sys.println('  $passed passed, $failed failed');
 		return failed;
@@ -613,5 +614,55 @@ class TestStudioSurface {
 		assert(haxefmod.studio.SystemCallbacks.decode(0x20000001, "") == DeviceListChanged, "decode core type");
 		assert(haxefmod.studio.SystemCallbacks.decode(0x20000101, "") == PreUpdate, "decode studio type");
 		assert(haxefmod.studio.SystemCallbacks.decode(0x20000040, "") == null, "decode unknown type");
+	}
+	static function testCompletenessTail():Void {
+		// Sound cone and rolloff distances
+		var sound = CoreSound.fromPcm(haxe.io.Bytes.alloc(16), 48000, 1);
+		assert(!sound.set3DConeSettings(30, 60, 0.5).isOk(), "sound cone result");
+		assert(sound.get3DConeSettings() == null, "sound cone default");
+		assert(!sound.set3DMinMaxDistance(1, 100).isOk(), "sound minmax result");
+		assert(sound.get3DMinMaxDistance() == null, "sound minmax default");
+
+		// Channel and group DSP chain positions, fade points, mix matrices
+		var channel:Channel = cast 0;
+		var dsp = Dsp.create(DspType.LOWPASS);
+		assert(!channel.setDspIndex(dsp, 1).isOk(), "chan setDspIndex result");
+		assert(channel.getDspIndex(dsp) == -1, "chan dspIndex default");
+		assert(channel.getChannelGroup().isNull(), "chan channelGroup default");
+		assert(channel.getFadePoints() == null, "chan fadePoints default");
+		assert(channel.getMixMatrix(2, 2) == null, "chan mixMatrix getter default");
+		var group = ChannelGroup.create("tail");
+		assert(!group.setDspIndex(dsp, 1).isOk(), "cg setDspIndex result");
+		assert(group.getDspIndex(dsp) == -1, "cg dspIndex default");
+		assert(group.getFadePoints() == null, "cg fadePoints default");
+		assert(group.getMixMatrix(2, 2) == null, "cg mixMatrix getter default");
+
+		// Sound group name and enumeration
+		var soundGroup = SoundGroup.create("tail");
+		assert(soundGroup.getName() == "", "sg name default");
+		assert(soundGroup.getSound(0).isNull(), "sg getSound default");
+
+		// System queries
+		assert(CoreSystem.getChannel(0).isNull(), "sys getChannel default");
+		assert(CoreSystem.getOutput() == -1, "sys getOutput default");
+		assert(CoreSystem.getSpeakerModeChannels(3) == 0, "sys speakerModeChannels default");
+		assert(CoreSystem.getDefaultMixMatrix(3, 3) == null, "sys defaultMixMatrix default");
+		assert(haxefmod.studio.native.NativeStudio.sys_get_default_mix_matrix(3, 3, 0) == 0,
+			"sys_get_default_mix_matrix stub zero");
+
+		// DSP descriptors and channel formats
+		assert(dsp.getParameterInfo(0) == null, "dsp parameterInfo default");
+		assert(dsp.getDataParameterIndex(-4) == -1, "dsp dataParameterIndex default");
+		assert(!dsp.setChannelFormat(0, 2, 3).isOk(), "dsp setChannelFormat result");
+		assert(dsp.getChannelFormat() == null, "dsp channelFormat default");
+		assert(dsp.getOutputChannelFormat(0, 2, 3) == null, "dsp outputChannelFormat default");
+		assert(Dsp.PARAMETER_FLOAT == 0 && Dsp.PARAMETER_DATA == 3, "dsp parameter type constants");
+
+		// Connection mix matrix, including the pure bounds checks
+		var conn:DspConnection = cast 0;
+		assert(conn.setMixMatrix([1, 0, 0, 1], 2, 2) == FmodResult.FMOD_ERR_UNSUPPORTED, "conn mixMatrix stub unsupported");
+		assert(conn.setMixMatrix([1], 2, 2) == FmodResult.FMOD_ERR_INVALID_PARAM, "conn mixMatrix bounds");
+		assert(conn.setMixMatrix([], 40, 40) == FmodResult.FMOD_ERR_INVALID_PARAM, "conn mixMatrix capacity");
+		assert(conn.getMixMatrix(2, 2) == null, "conn mixMatrix getter default");
 	}
 }

@@ -206,6 +206,31 @@ abstract CoreSound(Int) from Int to Int {
         return this == 0;
     }
 
+    /**
+     * Default 3D cone for channels played from this sound: full volume
+     * inside insideAngle, fading to outsideVolume past outsideAngle.
+     */
+    public inline function set3DConeSettings(insideAngle:Float, outsideAngle:Float, outsideVolume:Float):FmodResult {
+        return NativeStudio.core_sound_set_3d_cone_settings(this, insideAngle, outsideAngle, outsideVolume);
+    }
+
+    public function get3DConeSettings():Null<{insideAngle:Float, outsideAngle:Float, outsideVolume:Float}> {
+        var result:FmodResult = NativeStudio.core_sound_get_3d_cone_settings(this);
+        if (!result.isOk()) return null;
+        return {insideAngle: Scratch.readF(0), outsideAngle: Scratch.readF(1), outsideVolume: Scratch.readF(2)};
+    }
+
+    /** Default rolloff distances for channels played from this sound. */
+    public inline function set3DMinMaxDistance(minDistance:Float, maxDistance:Float):FmodResult {
+        return NativeStudio.core_sound_set_3d_min_max(this, minDistance, maxDistance);
+    }
+
+    public function get3DMinMaxDistance():Null<{minDistance:Float, maxDistance:Float}> {
+        var result:FmodResult = NativeStudio.core_sound_get_3d_min_max(this);
+        if (!result.isOk()) return null;
+        return {minDistance: Scratch.readF(0), maxDistance: Scratch.readF(1)};
+    }
+
     /** Length in milliseconds, or -1 on failure. */
     public inline function getLength():Int {
         return NativeStudio.core_get_sound_length(this);

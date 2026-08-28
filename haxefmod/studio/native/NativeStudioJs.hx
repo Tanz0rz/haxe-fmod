@@ -640,6 +640,34 @@ class NativeStudioJs {
     public static inline function geo_get_scale(handle:Int):Int return Raw.fmod_geo_get_scale(handle, Scratch.floatBuf());
     public static inline function geo_save(handle:Int, data:haxe.io.Bytes, len:Int):Int return Raw.fmod_geo_save(handle, data == null ? null : data.getData(), len);
 
+    // Completeness tail: getters and setters on objects the library already wraps
+    public static inline function core_sound_set_3d_cone_settings(handle:Int, inside:Float, outside:Float, outsideVolume:Float):Int return Raw.fmod_core_sound_set_3d_cone_settings(handle, inside, outside, outsideVolume);
+    public static inline function core_sound_get_3d_cone_settings(handle:Int):Int return Raw.fmod_core_sound_get_3d_cone_settings(handle, Scratch.floatBuf());
+    public static inline function core_sound_set_3d_min_max(handle:Int, minDistance:Float, maxDistance:Float):Int return Raw.fmod_core_sound_set_3d_min_max(handle, minDistance, maxDistance);
+    public static inline function core_sound_get_3d_min_max(handle:Int):Int return Raw.fmod_core_sound_get_3d_min_max(handle, Scratch.floatBuf());
+    public static inline function chan_set_dsp_index(handle:Int, dsp:Int, index:Int):Int return Raw.fmod_chan_set_dsp_index(handle, dsp, index);
+    public static inline function chan_get_dsp_index(handle:Int, dsp:Int):Int return Raw.fmod_chan_get_dsp_index(handle, dsp);
+    public static inline function chan_get_fade_points(handle:Int):Int return Raw.fmod_chan_get_fade_points(handle, Scratch.floatBuf());
+    public static inline function chan_get_mix_matrix(handle:Int, outChannels:Int, inChannels:Int):Int return Raw.fmod_chan_get_mix_matrix(handle, Scratch.floatBuf(), Scratch.intBuf(), outChannels, inChannels);
+    public static inline function chan_get_channel_group(handle:Int):Int return Raw.fmod_chan_get_channel_group(handle);
+    public static inline function cg_set_dsp_index(handle:Int, dsp:Int, index:Int):Int return Raw.fmod_cg_set_dsp_index(handle, dsp, index);
+    public static inline function cg_get_dsp_index(handle:Int, dsp:Int):Int return Raw.fmod_cg_get_dsp_index(handle, dsp);
+    public static inline function cg_get_fade_points(handle:Int):Int return Raw.fmod_cg_get_fade_points(handle, Scratch.floatBuf());
+    public static inline function cg_get_mix_matrix(handle:Int, outChannels:Int, inChannels:Int):Int return Raw.fmod_cg_get_mix_matrix(handle, Scratch.floatBuf(), Scratch.intBuf(), outChannels, inChannels);
+    public static inline function sg_get_name(handle:Int):String return Raw.fmod_sg_get_name(handle);
+    public static inline function sg_get_sound(handle:Int, index:Int):Int return Raw.fmod_sg_get_sound(handle, index);
+    public static inline function sys_get_channel(index:Int):Int return Raw.fmod_sys_get_channel(index);
+    public static inline function sys_get_output():Int return Raw.fmod_sys_get_output();
+    public static inline function sys_get_speaker_mode_channels(mode:Int):Int return Raw.fmod_sys_get_speaker_mode_channels(mode);
+    public static inline function sys_get_default_mix_matrix(sourceMode:Int, targetMode:Int, hop:Int):Int return Raw.fmod_sys_get_default_mix_matrix(sourceMode, targetMode, hop, Scratch.floatBuf());
+    public static inline function dsp_get_parameter_info(handle:Int, index:Int):String return Raw.fmod_dsp_get_parameter_info(handle, index, Scratch.floatBuf(), Scratch.intBuf());
+    public static inline function dsp_get_data_parameter_index(handle:Int, dataType:Int):Int return Raw.fmod_dsp_get_data_parameter_index(handle, dataType);
+    public static inline function dsp_set_channel_format(handle:Int, mask:Int, channels:Int, speakerMode:Int):Int return Raw.fmod_dsp_set_channel_format(handle, mask, channels, speakerMode);
+    public static inline function dsp_get_channel_format(handle:Int):Int return Raw.fmod_dsp_get_channel_format(handle, Scratch.intBuf());
+    public static inline function dsp_get_output_channel_format(handle:Int, inMask:Int, inChannels:Int, inMode:Int):Int return Raw.fmod_dsp_get_output_channel_format(handle, inMask, inChannels, inMode, Scratch.intBuf());
+    public static inline function conn_set_mix_matrix(handle:Int, outChannels:Int, inChannels:Int):Int return Raw.fmod_conn_set_mix_matrix(handle, Scratch.floatBuf(), outChannels, inChannels);
+    public static inline function conn_get_mix_matrix(handle:Int, outChannels:Int, inChannels:Int):Int return Raw.fmod_conn_get_mix_matrix(handle, Scratch.floatBuf(), Scratch.intBuf(), outChannels, inChannels);
+
     // Debug
     public static inline function debug_live_handle_count():Int return Raw.fmod_debug_live_handle_count();
     public static inline function binding_abi_version():Int return Raw.fmod_binding_abi_version();
@@ -1083,6 +1111,33 @@ private extern class Raw {
     static function fmod_geo_set_scale(handle:Int, x:Float, y:Float, z:Float):Int;
     static function fmod_geo_get_scale(handle:Int, fbuf:Array<Float>):Int;
     static function fmod_geo_save(handle:Int, data:haxe.io.BytesData, len:Int):Int;
+
+    static function fmod_core_sound_set_3d_cone_settings(handle:Int, inside:Float, outside:Float, outsideVolume:Float):Int;
+    static function fmod_core_sound_get_3d_cone_settings(handle:Int, fbuf:Array<Float>):Int;
+    static function fmod_core_sound_set_3d_min_max(handle:Int, minDistance:Float, maxDistance:Float):Int;
+    static function fmod_core_sound_get_3d_min_max(handle:Int, fbuf:Array<Float>):Int;
+    static function fmod_chan_set_dsp_index(handle:Int, dsp:Int, index:Int):Int;
+    static function fmod_chan_get_dsp_index(handle:Int, dsp:Int):Int;
+    static function fmod_chan_get_fade_points(handle:Int, fbuf:Array<Float>):Int;
+    static function fmod_chan_get_mix_matrix(handle:Int, fbuf:Array<Float>, ibuf:Array<Int>, outChannels:Int, inChannels:Int):Int;
+    static function fmod_chan_get_channel_group(handle:Int):Int;
+    static function fmod_cg_set_dsp_index(handle:Int, dsp:Int, index:Int):Int;
+    static function fmod_cg_get_dsp_index(handle:Int, dsp:Int):Int;
+    static function fmod_cg_get_fade_points(handle:Int, fbuf:Array<Float>):Int;
+    static function fmod_cg_get_mix_matrix(handle:Int, fbuf:Array<Float>, ibuf:Array<Int>, outChannels:Int, inChannels:Int):Int;
+    static function fmod_sg_get_name(handle:Int):String;
+    static function fmod_sg_get_sound(handle:Int, index:Int):Int;
+    static function fmod_sys_get_channel(index:Int):Int;
+    static function fmod_sys_get_output():Int;
+    static function fmod_sys_get_speaker_mode_channels(mode:Int):Int;
+    static function fmod_sys_get_default_mix_matrix(sourceMode:Int, targetMode:Int, hop:Int, fbuf:Array<Float>):Int;
+    static function fmod_dsp_get_parameter_info(handle:Int, index:Int, fbuf:Array<Float>, ibuf:Array<Int>):String;
+    static function fmod_dsp_get_data_parameter_index(handle:Int, dataType:Int):Int;
+    static function fmod_dsp_set_channel_format(handle:Int, mask:Int, channels:Int, speakerMode:Int):Int;
+    static function fmod_dsp_get_channel_format(handle:Int, ibuf:Array<Int>):Int;
+    static function fmod_dsp_get_output_channel_format(handle:Int, inMask:Int, inChannels:Int, inMode:Int, ibuf:Array<Int>):Int;
+    static function fmod_conn_set_mix_matrix(handle:Int, fbuf:Array<Float>, outChannels:Int, inChannels:Int):Int;
+    static function fmod_conn_get_mix_matrix(handle:Int, fbuf:Array<Float>, ibuf:Array<Int>, outChannels:Int, inChannels:Int):Int;
 
     static function fmod_debug_live_handle_count():Int;
     static function fmod_binding_abi_version():Int;
