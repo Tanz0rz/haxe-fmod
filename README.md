@@ -37,6 +37,8 @@ This is a faithful implementation of the FMOD stack. If this library doesn't sup
 
 ## Prerequisites
 
+**Haxe** - built and tested against 4.3.6, with 4.3.7 covered by the nightly canary. Haxe 5 is not tested yet.
+
 **FMOD Engine SDK** - Download version 2.03.12 from [fmod.com/download](https://www.fmod.com/download). See [How to Use This Library](#how-to-use-this-library) for setup instructions.
 
 Projects that need C++ builds (so building via `lime build mac`, `lime build windows`, and/or `lime build linux`) require a C++ compiler to be installed locally. HashLink and HTML5 builds do not.
