@@ -663,5 +663,14 @@ class NativeStudioStub {
     public static function core_sound_get_tag_string(handle:Int, name:String, index:Int):String return "";
     public static function sys_get_advanced_settings():Int return ERR_UNSUPPORTED;
     public static function sys_get_studio_advanced_settings():Int return ERR_UNSUPPORTED;
+    public static function dsp_add_input_preallocated(handle:Int, inputHandle:Int, connHandle:Int):Int return 0;
+    public static function chan_set_mix_levels_input(handle:Int, count:Int):Int return ERR_UNSUPPORTED;
+    public static function chan_set_mix_levels_output(handle:Int, fl:Float, fr:Float, c:Float, lfe:Float, sl:Float, sr:Float, bl:Float, br:Float):Int return ERR_UNSUPPORTED;
+    public static function cg_set_mix_levels_input(handle:Int, count:Int):Int return ERR_UNSUPPORTED;
+    public static function cg_set_mix_levels_output(handle:Int, fl:Float, fr:Float, c:Float, lfe:Float, sl:Float, sr:Float, bl:Float, br:Float):Int return ERR_UNSUPPORTED;
+    public static function sys_get_dsp_info_by_type(type:Int):String return "";
+    public static function sys_get_output_by_plugin():Int return 0;
+    public static function sys_set_output_by_plugin(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function replay_get_current_command(handle:Int):Int return -1;
 
 }

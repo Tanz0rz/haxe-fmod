@@ -173,6 +173,10 @@ GATED = [
      "var s:CoreSound = cast 1; var r = s.getMusicSpeed();"),
     ("CoreSound", "getTag", "haxefmod/studio/CoreSound.hx",
      "var s:CoreSound = cast 1; var r = s.getTag(null, 0);"),
+    ("Dsp", "addInputPreallocated", "haxefmod/core/Dsp.hx",
+     "var d:Dsp = cast 1; var c:DspConnection = cast 1; var r = d.addInputPreallocated(d, c);"),
+    ("CoreSystem", "getDspInfoByType", "haxefmod/core/CoreSystem.hx",
+     "var r = CoreSystem.getDspInfoByType(DspType.FADER);"),
 ]
 
 IMPORTS = "\n".join([
@@ -186,6 +190,7 @@ IMPORTS = "\n".join([
     "import haxefmod.core.CoreSystem;",
     "import haxefmod.core.Dsp;",
     "import haxefmod.core.DspConnection;",
+    "import haxefmod.core.DspType;",
     "import haxefmod.core.Dsp;",
     "import haxefmod.studio.Types;",
 ])

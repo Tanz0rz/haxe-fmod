@@ -50,6 +50,7 @@ class TestStudioSurface {
 		testCompletenessTail();
 		testSysExtras();
 		testSoundExtrasStub();
+		testLastSevenStub();
 
 		Sys.println('  $passed passed, $failed failed');
 		return failed;
@@ -726,5 +727,31 @@ class TestStudioSurface {
 			"advanced settings default to zero");
 		var keyed = haxefmod.runtime.FmodSettings.FmodSettingsResolver.resolve({encryptionKey: "k", studioUpdatePeriod: 10});
 		assert(keyed.encryptionKey == "k" && keyed.studioUpdatePeriod == 10, "advanced settings pass through");
+	}
+
+	static function testLastSevenStub():Void {
+		// The stub reports failure from each of the last seven bindings and
+		// the wrappers route to it, so the abstracts surface NULL, null,
+		// UNSUPPORTED, or 0
+		var dsp:Dsp = cast 1;
+		var conn:DspConnection = cast 1;
+		assert(dsp.addInputPreallocated(dsp, conn).isNull(), "addInputPreallocated stub NULL");
+		var channel:Channel = cast 1;
+		assert(channel.setMixLevelsInput([1.0, 0.5]) == FmodResult.FMOD_ERR_UNSUPPORTED, "channel setMixLevelsInput stub unsupported");
+		assert(channel.setMixLevelsInput(null) == FmodResult.FMOD_ERR_INVALID_PARAM, "channel setMixLevelsInput null rejected");
+		assert(channel.setMixLevelsInput([for (_ in 0...33) 1.0]) == FmodResult.FMOD_ERR_INVALID_PARAM, "channel setMixLevelsInput 33 levels rejected");
+		assert(channel.setMixLevelsInput([]) == FmodResult.FMOD_ERR_INVALID_PARAM, "channel setMixLevelsInput empty rejected");
+		assert(channel.setMixLevelsOutput(1, 1, 0, 0, 0, 0, 0, 0) == FmodResult.FMOD_ERR_UNSUPPORTED, "channel setMixLevelsOutput stub unsupported");
+		var group:ChannelGroup = cast 1;
+		assert(group.setMixLevelsInput([1.0]) == FmodResult.FMOD_ERR_UNSUPPORTED, "group setMixLevelsInput stub unsupported");
+		assert(group.setMixLevelsInput([for (_ in 0...33) 1.0]) == FmodResult.FMOD_ERR_INVALID_PARAM, "group setMixLevelsInput 33 levels rejected");
+		assert(group.setMixLevelsOutput(1, 1, 0, 0, 0, 0, 0, 0) == FmodResult.FMOD_ERR_UNSUPPORTED, "group setMixLevelsOutput stub unsupported");
+		assert(CoreSystem.getDspInfoByType(DspType.FADER) == null, "getDspInfoByType stub null");
+		assert(haxefmod.studio.native.NativeStudio.sys_get_dsp_info_by_type(DspType.FADER) == "", "sys_get_dsp_info_by_type stub empty");
+		assert(CoreSystem.getOutputByPlugin() == 0, "getOutputByPlugin stub 0");
+		assert(CoreSystem.setOutputByPlugin(4) == FmodResult.FMOD_ERR_UNSUPPORTED, "setOutputByPlugin stub unsupported");
+		var replay:CommandReplay = cast 1;
+		assert(replay.getCurrentCommand() == null, "getCurrentCommand stub null");
+		assert(haxefmod.studio.native.NativeStudio.replay_get_current_command(1) == -1, "replay_get_current_command stub -1");
 	}
 }

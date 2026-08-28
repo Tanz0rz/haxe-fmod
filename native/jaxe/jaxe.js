@@ -5361,4 +5361,84 @@ class jaxe {
         jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
         return jaxe.lastResult;
     }
+
+    //// Last seven: preallocated DSP input, mix levels, DSP info by type, output plugin, replay cursor
+
+    // The wasm DSP object has no addInputPreallocated, so this reports 68
+    static fmod_dsp_add_input_preallocated(handle, inputHandle, connHandle) {
+        var dsp = jaxe.resolveDsp(handle);
+        var input = jaxe.resolveDsp(inputHandle);
+        var conn = jaxe.resolveDspConn(connHandle);
+        if (!dsp || !input || !conn) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }
+        jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        return 0;
+    }
+
+    static fmod_chan_set_mix_levels_input(handle, fbuf, count) {
+        var ch = jaxe.resolveChan(handle);
+        if (!ch) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        if (count < 0 || count > 32) { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
+        var levels = [];
+        for (var i = 0; i < count; i++) levels.push(fbuf[i] || 0);
+        jaxe.lastResult = ch.setMixLevelsInput(levels, count);
+        return jaxe.lastResult;
+    }
+
+    static fmod_chan_set_mix_levels_output(handle, fl, fr, c, lfe, sl, sr, bl, br) {
+        var ch = jaxe.resolveChan(handle);
+        if (!ch) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = ch.setMixLevelsOutput(fl, fr, c, lfe, sl, sr, bl, br);
+        return jaxe.lastResult;
+    }
+
+    static fmod_cg_set_mix_levels_input(handle, fbuf, count) {
+        var group = jaxe.resolveCg(handle);
+        if (!group) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        if (count < 0 || count > 32) { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
+        var levels = [];
+        for (var i = 0; i < count; i++) levels.push(fbuf[i] || 0);
+        jaxe.lastResult = group.setMixLevelsInput(levels, count);
+        return jaxe.lastResult;
+    }
+
+    static fmod_cg_set_mix_levels_output(handle, fl, fr, c, lfe, sl, sr, bl, br) {
+        var group = jaxe.resolveCg(handle);
+        if (!group) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = group.setMixLevelsOutput(fl, fr, c, lfe, sl, sr, bl, br);
+        return jaxe.lastResult;
+    }
+
+    // The glue cannot marshal the FMOD_DSP_DESCRIPTION pointer (the call
+    // throws inside embind), so the description never comes back. Unsupported here.
+    static fmod_sys_get_dsp_info_by_type(type, ibuf) {
+        for (var i = 0; i < 4; i++) ibuf[i] = 0;
+        if (!jaxe.sysReady()) return "";
+        jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        return "";
+    }
+
+    static fmod_sys_get_output_by_plugin() {
+        if (!jaxe.sysReady()) return 0;
+        var out = {};
+        jaxe.lastResult = jaxe.gSystemCore.getOutputByPlugin(out);
+        return jaxe.lastResult == jaxe.FMOD.OK ? (out.val | 0) : 0;
+    }
+
+    static fmod_sys_set_output_by_plugin(handle) {
+        if (!jaxe.sysReady()) return jaxe.lastResult;
+        jaxe.lastResult = jaxe.gSystemCore.setOutputByPlugin(handle | 0);
+        return jaxe.lastResult;
+    }
+
+    static fmod_replay_get_current_command(handle, fbuf) {
+        var replay = jaxe.resolveReplay(handle);
+        fbuf[0] = 0.0;
+        if (!replay) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return -1; }
+        var index = {};
+        var time = {};
+        jaxe.lastResult = replay.getCurrentCommand(index, time);
+        if (jaxe.lastResult != jaxe.FMOD.OK) return -1;
+        fbuf[0] = time.val || 0;
+        return index.val | 0;
+    }
 }

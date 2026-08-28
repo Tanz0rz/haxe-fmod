@@ -607,6 +607,15 @@ extern const char* fmod_core_sound_get_tag(int handle, const ::String& name, int
 extern const char* fmod_core_sound_get_tag_string(int handle, const ::String& name, int index);
 extern int fmod_sys_get_advanced_settings(::Array<int> ibuf, ::Array<Float> fbuf);
 extern int fmod_sys_get_studio_advanced_settings(::Array<int> ibuf);
+extern int fmod_dsp_add_input_preallocated(int handle, int inputHandle, int connHandle);
+extern int fmod_chan_set_mix_levels_input(int handle, ::Array<Float> fbuf, int count);
+extern int fmod_chan_set_mix_levels_output(int handle, float fl, float fr, float c, float lfe, float sl, float sr, float bl, float br);
+extern int fmod_cg_set_mix_levels_input(int handle, ::Array<Float> fbuf, int count);
+extern int fmod_cg_set_mix_levels_output(int handle, float fl, float fr, float c, float lfe, float sl, float sr, float bl, float br);
+extern const char* fmod_sys_get_dsp_info_by_type(int type, ::Array<int> ibuf);
+extern int fmod_sys_get_output_by_plugin();
+extern int fmod_sys_set_output_by_plugin(int handle);
+extern int fmod_replay_get_current_command(int handle, ::Array<Float> fbuf);
 
 } // namespace faxe
 } // namespace linc

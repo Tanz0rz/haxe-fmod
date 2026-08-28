@@ -327,4 +327,32 @@ abstract Dsp(Int) from Int to Int {
             outputBuffers: Scratch.readI(2), parameterCount: Scratch.readI(3)};
     }
     #end
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /**
+     * Wires another DSP's output into this one through a connection FMOD
+     * reserved ahead of time, so the mixer allocates nothing on the way in
+     * (unsupported in HTML5, returns DspConnection.NULL there). Returns
+     * the connection (DspConnection.NULL on failure). FMOD only accepts a
+     * connection it reserved itself, so with the connections this library
+     * can hand over it reports FMOD_ERR_INVALID_PARAM, and a NULL or stale
+     * connection reports FMOD_ERR_INVALID_HANDLE without reaching FMOD.
+     */
+    public macro function addInputPreallocated(self:haxe.macro.Expr, input:haxe.macro.Expr, connection:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("Dsp.addInputPreallocated", "the web build has no addInputPreallocated");
+    }
+    #else
+    /**
+     * Wires another DSP's output into this one through a connection FMOD
+     * reserved ahead of time, so the mixer allocates nothing on the way in
+     * (unsupported in HTML5, returns DspConnection.NULL there). Returns
+     * the connection (DspConnection.NULL on failure). FMOD only accepts a
+     * connection it reserved itself, so with the connections this library
+     * can hand over it reports FMOD_ERR_INVALID_PARAM, and a NULL or stale
+     * connection reports FMOD_ERR_INVALID_HANDLE without reaching FMOD.
+     */
+    public inline function addInputPreallocated(input:Dsp, connection:DspConnection):DspConnection {
+        return NativeStudio.dsp_add_input_preallocated(this, input, connection);
+    }
+    #end
+
 }

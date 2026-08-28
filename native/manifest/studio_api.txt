@@ -821,3 +821,28 @@ sys_get_advanced_settings ibuf fbuf -> i32
 # ibuf out: [0]=commandQueueSize [1]=handleInitialSize [2]=studioUpdatePeriod
 # [3]=idleSampleDataPoolSize [4]=streamingScheduleDelay. ERR_UNSUPPORTED (68) on js.
 sys_get_studio_advanced_settings ibuf -> i32
+
+## Last seven: preallocated DSP input, mix levels, DSP info by type, output plugin, replay cursor
+# Args: dsp, input, connection. Returns the DspConnection handle (0 on failure),
+# find-or-alloc like dsp_add_input. The connection must resolve (FMOD dereferences
+# a null one), a NULL or stale handle reports INVALID_HANDLE (30) without the call.
+# FMOD only accepts a connection it reserved itself, so the ones this library can
+# hand over report INVALID_PARAM (31).
+# ERR_UNSUPPORTED (68) on js, the web build has no addInputPreallocated.
+dsp_add_input_preallocated i32 i32 i32 -> i32
+# fbuf in: one gain per input channel, count of them (0 to 32).
+chan_set_mix_levels_input i32 fbuf i32 -> i32
+chan_set_mix_levels_output i32 f32 f32 f32 f32 f32 f32 f32 f32 -> i32
+cg_set_mix_levels_input i32 fbuf i32 -> i32
+cg_set_mix_levels_output i32 f32 f32 f32 f32 f32 f32 f32 f32 -> i32
+# Returns the built-in effect's registered name ("" on failure).
+# ibuf out: [0]=version [1]=inputBuffers [2]=outputBuffers [3]=parameterCount.
+# ERR_UNSUPPORTED (68) on js, embind cannot marshal the description pointer.
+sys_get_dsp_info_by_type i32 ibuf -> str
+# Returns the output plugin handle (0 on failure).
+sys_get_output_by_plugin -> i32
+# FMOD's contract is before init, which the library owns. Running natively the current handle reports OK and
+# another handle re-selects the output device on the spot. ERR_INITIALIZED (27) on js once running.
+sys_set_output_by_plugin i32 -> i32
+# Returns the index of the command the replay is on (-1 on failure). fbuf out: [0]=current time in seconds.
+replay_get_current_command i32 fbuf -> i32

@@ -149,4 +149,44 @@ class CoreSystem {
         if (!result.isOk()) return null;
         return {x: Scratch.readF(0), y: Scratch.readF(1), active: Scratch.readF(2) != 0};
     }
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /**
+     * The description FMOD registered for a built-in effect type, its
+     * name, version, buffer counts and parameter count (unsupported in
+     * HTML5, null there). Null for a type FMOD does not know.
+     */
+    public static macro function getDspInfoByType(type:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("CoreSystem.getDspInfoByType", "embind cannot marshal the description pointer");
+    }
+    #else
+    /**
+     * The description FMOD registered for a built-in effect type, its
+     * name, version, buffer counts and parameter count (unsupported in
+     * HTML5, null there). Null for a type FMOD does not know.
+     */
+    public static function getDspInfoByType(type:DspType):Null<{name:String, version:Int, inputBuffers:Int, outputBuffers:Int, parameterCount:Int}> {
+        var name = NativeStudio.sys_get_dsp_info_by_type(type);
+        var result:FmodResult = NativeStudio.sys_last_result();
+        if (!result.isOk()) return null;
+        return {name: name, version: Scratch.readI(0), inputBuffers: Scratch.readI(1),
+            outputBuffers: Scratch.readI(2), parameterCount: Scratch.readI(3)};
+    }
+    #end
+
+    /** The plugin handle of the output mode in use, 0 on failure. */
+    public static inline function getOutputByPlugin():Int {
+        return NativeStudio.sys_get_output_by_plugin();
+    }
+
+    /**
+     * Selects the output mode by plugin handle. FMOD's contract is a call
+     * before initialization, which the library owns. On a running native
+     * system the current handle reports OK and leaves the output alone,
+     * while another handle re-selects the output device on the spot. The
+     * web build reports FMOD_ERR_INITIALIZED once running.
+     */
+    public static inline function setOutputByPlugin(handle:Int):FmodResult {
+        return NativeStudio.sys_set_output_by_plugin(handle);
+    }
+
 }

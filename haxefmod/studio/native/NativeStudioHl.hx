@@ -723,6 +723,15 @@ class NativeStudioHl {
     public static inline function core_sound_get_tag_string(handle:Int, name:String, index:Int):String return fromBytes(Raw.core_sound_get_tag_string(handle, toBytes(name), index));
     public static inline function sys_get_advanced_settings():Int return Raw.sys_get_advanced_settings(Scratch.intBuf(), Scratch.floatBuf());
     public static inline function sys_get_studio_advanced_settings():Int return Raw.sys_get_studio_advanced_settings(Scratch.intBuf());
+    public static inline function dsp_add_input_preallocated(handle:Int, inputHandle:Int, connHandle:Int):Int return Raw.dsp_add_input_preallocated(handle, inputHandle, connHandle);
+    public static inline function chan_set_mix_levels_input(handle:Int, count:Int):Int return Raw.chan_set_mix_levels_input(handle, Scratch.floatBuf(), count);
+    public static inline function chan_set_mix_levels_output(handle:Int, fl:Float, fr:Float, c:Float, lfe:Float, sl:Float, sr:Float, bl:Float, br:Float):Int return Raw.chan_set_mix_levels_output(handle, fl, fr, c, lfe, sl, sr, bl, br);
+    public static inline function cg_set_mix_levels_input(handle:Int, count:Int):Int return Raw.cg_set_mix_levels_input(handle, Scratch.floatBuf(), count);
+    public static inline function cg_set_mix_levels_output(handle:Int, fl:Float, fr:Float, c:Float, lfe:Float, sl:Float, sr:Float, bl:Float, br:Float):Int return Raw.cg_set_mix_levels_output(handle, fl, fr, c, lfe, sl, sr, bl, br);
+    public static inline function sys_get_dsp_info_by_type(type:Int):String return fromBytes(Raw.sys_get_dsp_info_by_type(type, Scratch.intBuf()));
+    public static inline function sys_get_output_by_plugin():Int return Raw.sys_get_output_by_plugin();
+    public static inline function sys_set_output_by_plugin(handle:Int):Int return Raw.sys_set_output_by_plugin(handle);
+    public static inline function replay_get_current_command(handle:Int):Int return Raw.replay_get_current_command(handle, Scratch.floatBuf());
 
 }
 
@@ -1237,6 +1246,15 @@ private extern class Raw {
     static function core_sound_get_tag_string(handle:Int, name:hl.Bytes, index:Int):hl.Bytes;
     static function sys_get_advanced_settings(ibuf:hl.Bytes, fbuf:hl.Bytes):Int;
     static function sys_get_studio_advanced_settings(ibuf:hl.Bytes):Int;
+    static function dsp_add_input_preallocated(handle:Int, inputHandle:Int, connHandle:Int):Int;
+    static function chan_set_mix_levels_input(handle:Int, fbuf:hl.Bytes, count:Int):Int;
+    static function chan_set_mix_levels_output(handle:Int, fl:Float, fr:Float, c:Float, lfe:Float, sl:Float, sr:Float, bl:Float, br:Float):Int;
+    static function cg_set_mix_levels_input(handle:Int, fbuf:hl.Bytes, count:Int):Int;
+    static function cg_set_mix_levels_output(handle:Int, fl:Float, fr:Float, c:Float, lfe:Float, sl:Float, sr:Float, bl:Float, br:Float):Int;
+    static function sys_get_dsp_info_by_type(type:Int, ibuf:hl.Bytes):hl.Bytes;
+    static function sys_get_output_by_plugin():Int;
+    static function sys_set_output_by_plugin(handle:Int):Int;
+    static function replay_get_current_command(handle:Int, fbuf:hl.Bytes):Int;
 
 }
 #end

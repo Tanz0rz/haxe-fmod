@@ -5606,5 +5606,99 @@ const char* fmod_dsp_get_info_by_plugin(int handle, ::Array<int> ibuf) {
     return gStringBuf;
 }
 
+//// Last seven: preallocated DSP input, mix levels, DSP info by type, output plugin, replay cursor
+
+// FMOD dereferences the connection, so a null one never reaches it
+int fmod_dsp_add_input_preallocated(int h, int inputHandle, int connHandle) {
+    FMOD::DSP* dsp = resolveDsp(h);
+    FMOD::DSP* input = resolveDsp(inputHandle);
+    FMOD::DSPConnection* conn = resolveDspConn(connHandle);
+    if (!dsp || !input || !conn) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = dsp->addInputPreallocated(input, &conn);
+    if (gLastResult != FMOD_OK || !conn) return 0;
+    return faxe_handle_find_or_alloc(conn, FAXE_TYPE_DSPCONN);
+}
+
+// fbuf = one gain per input channel, count of them
+int fmod_chan_set_mix_levels_input(int h, ::Array<Float> fbuf, int count) {
+    FMOD::Channel* ch = resolveChannel(h);
+    float levels[32];
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    if (count < 0 || count > 32) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    for (int i = 0; i < count; i++) levels[i] = (float)fbuf[i];
+    gLastResult = ch->setMixLevelsInput(levels, count);
+    return (int)gLastResult;
+}
+
+int fmod_chan_set_mix_levels_output(int h, float fl, float fr, float c, float lfe, float sl, float sr, float bl, float br) {
+    FMOD::Channel* ch = resolveChannel(h);
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = ch->setMixLevelsOutput(fl, fr, c, lfe, sl, sr, bl, br);
+    return (int)gLastResult;
+}
+
+int fmod_cg_set_mix_levels_input(int h, ::Array<Float> fbuf, int count) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    float levels[32];
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    if (count < 0 || count > 32) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    for (int i = 0; i < count; i++) levels[i] = (float)fbuf[i];
+    gLastResult = group->setMixLevelsInput(levels, count);
+    return (int)gLastResult;
+}
+
+int fmod_cg_set_mix_levels_output(int h, float fl, float fr, float c, float lfe, float sl, float sr, float bl, float br) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = group->setMixLevelsOutput(fl, fr, c, lfe, sl, sr, bl, br);
+    return (int)gLastResult;
+}
+
+// ibuf = int[4]: version, input buffers, output buffers, parameter count
+const char* fmod_sys_get_dsp_info_by_type(int type, ::Array<int> ibuf) {
+    const FMOD_DSP_DESCRIPTION* desc = NULL;
+    gStringBuf[0] = '\0';
+    for (int i = 0; i < 4; i++) ibuf[i] = 0;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return gStringBuf; }
+    gLastResult = gCoreSystem->getDSPInfoByType((FMOD_DSP_TYPE)type, &desc);
+    if (gLastResult == FMOD_OK && !desc) gLastResult = FMOD_ERR_INVALID_PARAM;
+    if (gLastResult != FMOD_OK) return gStringBuf;
+    // The description name is a fixed 32 byte field with no terminator guarantee
+    size_t i = 0;
+    for (; i < sizeof(desc->name) && desc->name[i] != '\0'; i++) gStringBuf[i] = desc->name[i];
+    gStringBuf[i] = '\0';
+    ibuf[0] = (int)desc->version;
+    ibuf[1] = desc->numinputbuffers;
+    ibuf[2] = desc->numoutputbuffers;
+    ibuf[3] = desc->numparameters;
+    return gStringBuf;
+}
+
+int fmod_sys_get_output_by_plugin() {
+    unsigned int handle = 0;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    gLastResult = gCoreSystem->getOutputByPlugin(&handle);
+    return gLastResult == FMOD_OK ? (int)handle : 0;
+}
+
+int fmod_sys_set_output_by_plugin(int handle) {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = gCoreSystem->setOutputByPlugin((unsigned int)handle);
+    return (int)gLastResult;
+}
+
+// fbuf[0] = current time in seconds
+int fmod_replay_get_current_command(int h, ::Array<Float> fbuf) {
+    FMOD::Studio::CommandReplay* replay = resolveReplay(h);
+    int index = -1;
+    float time = 0.0f;
+    fbuf[0] = 0.0;
+    if (!replay) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    gLastResult = replay->getCurrentCommand(&index, &time);
+    if (gLastResult != FMOD_OK) return -1;
+    fbuf[0] = (Float)time;
+    return index;
+}
+
 } // namespace faxe
 } // namespace linc

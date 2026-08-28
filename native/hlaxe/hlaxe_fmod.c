@@ -6371,3 +6371,112 @@ HL_PRIM int HL_NAME(sys_get_studio_advanced_settings)(vbyte* ibuf) {
     return (int)gLastResult;
 }
 DEFINE_PRIM(_I32, sys_get_studio_advanced_settings, _BYTES);
+
+//// Last seven: preallocated DSP input, mix levels, DSP info by type, output plugin, replay cursor
+
+/* FMOD dereferences the connection, so a null one never reaches it */
+HL_PRIM int HL_NAME(dsp_add_input_preallocated)(int h, int inputHandle, int connHandle) {
+    FMOD_DSP* dsp = resolve_dsp(h);
+    FMOD_DSP* input = resolve_dsp(inputHandle);
+    FMOD_DSPCONNECTION* conn = resolve_dspconn(connHandle);
+    if (!dsp || !input || !conn) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = FMOD_DSP_AddInputPreallocated(dsp, input, &conn);
+    if (gLastResult != FMOD_OK || !conn) return 0;
+    return faxe_handle_find_or_alloc(conn, FAXE_TYPE_DSPCONN);
+}
+DEFINE_PRIM(_I32, dsp_add_input_preallocated, _I32 _I32 _I32);
+
+/* in = double[count], one gain per input channel */
+HL_PRIM int HL_NAME(chan_set_mix_levels_input)(int h, vbyte* in, int count) {
+    FMOD_CHANNEL* channel = resolve_channel(h);
+    double* inFloats = (double*)in;
+    float levels[32];
+    int i;
+    if (!channel) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    if (count < 0 || count > 32) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    for (i = 0; i < count; i++) levels[i] = (float)inFloats[i];
+    gLastResult = FMOD_Channel_SetMixLevelsInput(channel, levels, count);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, chan_set_mix_levels_input, _I32 _BYTES _I32);
+
+HL_PRIM int HL_NAME(chan_set_mix_levels_output)(int h, double fl, double fr, double c, double lfe, double sl, double sr, double bl, double br) {
+    FMOD_CHANNEL* channel = resolve_channel(h);
+    if (!channel) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_Channel_SetMixLevelsOutput(channel, (float)fl, (float)fr, (float)c, (float)lfe, (float)sl, (float)sr, (float)bl, (float)br);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, chan_set_mix_levels_output, _I32 _F64 _F64 _F64 _F64 _F64 _F64 _F64 _F64);
+
+HL_PRIM int HL_NAME(cg_set_mix_levels_input)(int h, vbyte* in, int count) {
+    FMOD_CHANNELGROUP* group = resolve_changroup(h);
+    double* inFloats = (double*)in;
+    float levels[32];
+    int i;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    if (count < 0 || count > 32) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    for (i = 0; i < count; i++) levels[i] = (float)inFloats[i];
+    gLastResult = FMOD_ChannelGroup_SetMixLevelsInput(group, levels, count);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, cg_set_mix_levels_input, _I32 _BYTES _I32);
+
+HL_PRIM int HL_NAME(cg_set_mix_levels_output)(int h, double fl, double fr, double c, double lfe, double sl, double sr, double bl, double br) {
+    FMOD_CHANNELGROUP* group = resolve_changroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_ChannelGroup_SetMixLevelsOutput(group, (float)fl, (float)fr, (float)c, (float)lfe, (float)sl, (float)sr, (float)bl, (float)br);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, cg_set_mix_levels_output, _I32 _F64 _F64 _F64 _F64 _F64 _F64 _F64 _F64);
+
+/* out = int[4]: version, input buffers, output buffers, parameter count */
+HL_PRIM vbyte* HL_NAME(sys_get_dsp_info_by_type)(int type, vbyte* out) {
+    const FMOD_DSP_DESCRIPTION* desc = NULL;
+    int* outInts = (int*)out;
+    size_t i;
+    gStringBuf[0] = '\0';
+    for (i = 0; i < 4; i++) outInts[i] = 0;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (vbyte*)gStringBuf; }
+    gLastResult = FMOD_System_GetDSPInfoByType(gCoreSystem, (FMOD_DSP_TYPE)type, &desc);
+    if (gLastResult == FMOD_OK && !desc) gLastResult = FMOD_ERR_INVALID_PARAM;
+    if (gLastResult != FMOD_OK) return (vbyte*)gStringBuf;
+    /* The description name is a fixed 32 byte field with no terminator guarantee */
+    for (i = 0; i < sizeof(desc->name) && desc->name[i] != '\0'; i++) gStringBuf[i] = desc->name[i];
+    gStringBuf[i] = '\0';
+    outInts[0] = (int)desc->version;
+    outInts[1] = desc->numinputbuffers;
+    outInts[2] = desc->numoutputbuffers;
+    outInts[3] = desc->numparameters;
+    return (vbyte*)gStringBuf;
+}
+DEFINE_PRIM(_BYTES, sys_get_dsp_info_by_type, _I32 _BYTES);
+
+HL_PRIM int HL_NAME(sys_get_output_by_plugin)() {
+    unsigned int handle = 0;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    gLastResult = FMOD_System_GetOutputByPlugin(gCoreSystem, &handle);
+    return gLastResult == FMOD_OK ? (int)handle : 0;
+}
+DEFINE_PRIM(_I32, sys_get_output_by_plugin, _NO_ARG);
+
+HL_PRIM int HL_NAME(sys_set_output_by_plugin)(int handle) {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = FMOD_System_SetOutputByPlugin(gCoreSystem, (unsigned int)handle);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, sys_set_output_by_plugin, _I32);
+
+/* out = double[1]: current time in seconds */
+HL_PRIM int HL_NAME(replay_get_current_command)(int h, vbyte* out) {
+    FMOD_STUDIO_COMMANDREPLAY* replay = resolve_replay(h);
+    double* outFloats = (double*)out;
+    int index = -1;
+    float time = 0.0f;
+    outFloats[0] = 0.0;
+    if (!replay) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    gLastResult = FMOD_Studio_CommandReplay_GetCurrentCommand(replay, &index, &time);
+    if (gLastResult != FMOD_OK) return -1;
+    outFloats[0] = (double)time;
+    return index;
+}
+DEFINE_PRIM(_I32, replay_get_current_command, _I32 _BYTES);

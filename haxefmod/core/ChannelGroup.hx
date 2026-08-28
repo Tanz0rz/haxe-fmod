@@ -423,4 +423,27 @@ abstract ChannelGroup(Int) from Int to Int {
     public inline function getUserData():Dynamic {
         return UserData.get(UserDataKind.ChannelGroup, this);
     }
+    /**
+     * Sets the gain of each incoming signal channel before the mix matrix,
+     * one level per input channel (1 to 32, an empty list is rejected
+     * with FMOD_ERR_INVALID_PARAM). More levels than the signal has
+     * channels are ignored, fewer leave the rest at their current gain.
+     */
+    public function setMixLevelsInput(levels:Array<Float>):FmodResult {
+        if (levels == null || levels.length == 0 || levels.length > 32) return FmodResult.FMOD_ERR_INVALID_PARAM;
+        for (i in 0...levels.length) Scratch.writeF(i, levels[i]);
+        return NativeStudio.cg_set_mix_levels_input(this, levels.length);
+    }
+
+    /**
+     * Sets the gain of each output speaker directly, which replaces the
+     * mix matrix with a standard speaker layout. Speakers the output
+     * lacks are ignored.
+     */
+    public inline function setMixLevelsOutput(frontLeft:Float, frontRight:Float, center:Float, lowFrequency:Float,
+            surroundLeft:Float, surroundRight:Float, backLeft:Float, backRight:Float):FmodResult {
+        return NativeStudio.cg_set_mix_levels_output(this, frontLeft, frontRight, center, lowFrequency,
+            surroundLeft, surroundRight, backLeft, backRight);
+    }
+
 }

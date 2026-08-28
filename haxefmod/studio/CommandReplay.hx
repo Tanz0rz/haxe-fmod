@@ -112,4 +112,14 @@ abstract CommandReplay(Int) from Int to Int {
     public inline function setBankPath(path:String):FmodResult {
         return NativeStudio.replay_set_bank_path(this, path);
     }
+    /**
+     * The index of the command the replay is on and the playback time in
+     * seconds, or null on failure.
+     */
+    public function getCurrentCommand():Null<{index:Int, time:Float}> {
+        var index = NativeStudio.replay_get_current_command(this);
+        if (!StudioSystem.lastResult().isOk()) return null;
+        return {index: index, time: Scratch.readF(0)};
+    }
+
 }
