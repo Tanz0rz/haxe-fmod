@@ -671,6 +671,20 @@ class NativeStudioCpp {
     public static inline function sys_get_speaker_mode_channels(mode:Int):Int return Raw.sys_get_speaker_mode_channels(mode);
     public static inline function sys_get_default_mix_matrix(sourceMode:Int, targetMode:Int, hop:Int):Int return Raw.sys_get_default_mix_matrix(sourceMode, targetMode, hop, Scratch.floatBuf());
     public static inline function dsp_get_parameter_info(handle:Int, index:Int):String return Raw.dsp_get_parameter_info(handle, index, Scratch.floatBuf(), Scratch.intBuf()).toString();
+
+    /** ibuf[0] version, [1] channels, [2] config width, [3] config height. Returns the name. */
+    public static inline function dsp_get_info(handle:Int):String return Raw.dsp_get_info(handle, Scratch.intBuf()).toString();
+    /** Copies up to cap bytes of the data block into out (null asks for the size). Returns the length, -1 on failure. */
+    public static inline function dsp_get_param_data(handle:Int, index:Int, out:haxe.io.Bytes, cap:Int):Int return Raw.dsp_get_param_data(handle, index, out == null ? null : out.getData(), cap);
+    /** Scratch float buffer [0..23] = relative then absolute attributes. */
+    public static inline function dsp_set_param_3d_attributes(handle:Int, index:Int):Int return Raw.dsp_set_param_3d_attributes(handle, index, Scratch.floatBuf());
+    /** Scratch float buffer [0..115] = relative[8], weight[8], absolute. */
+    public static inline function dsp_set_param_3d_attributes_multi(handle:Int, index:Int, numListeners:Int):Int return Raw.dsp_set_param_3d_attributes_multi(handle, index, numListeners, Scratch.floatBuf());
+    /** Fills Scratch float buffer peak then rms per channel, int buffer [0] numsamples, [1] numchannels. Returns the channel count. */
+    public static inline function dsp_get_metering_info(handle:Int, input:Bool):Int return Raw.dsp_get_metering_info(handle, input, Scratch.floatBuf(), Scratch.intBuf());
+    /** Fills Scratch float buffer with one channel's bins, int buffer [0] numchannels, [1] length. Returns the bins written. */
+    public static inline function dsp_fft_get_spectrum_channel(handle:Int, channel:Int, maxBins:Int):Int return Raw.dsp_fft_get_spectrum_channel(handle, channel, Scratch.floatBuf(), maxBins, Scratch.intBuf());
+    public static inline function dsp_get_parameter_text(handle:Int, index:Int, kind:Int):String return Raw.dsp_get_parameter_text(handle, index, kind).toString();
     public static inline function dsp_get_data_parameter_index(handle:Int, dataType:Int):Int return Raw.dsp_get_data_parameter_index(handle, dataType);
     public static inline function dsp_set_channel_format(handle:Int, mask:Int, channels:Int, speakerMode:Int):Int return Raw.dsp_set_channel_format(handle, mask, channels, speakerMode);
     public static inline function dsp_get_channel_format(handle:Int):Int return Raw.dsp_get_channel_format(handle, Scratch.intBuf());
@@ -2108,6 +2122,20 @@ private extern class Raw {
 
     @:native("linc::faxe::fmod_dsp_get_parameter_info")
     static function dsp_get_parameter_info(handle:Int, index:Int, fbuf:Array<Float>, ibuf:Array<Int>):cpp.ConstCharStar;
+    @:native("linc::faxe::fmod_dsp_get_info")
+    static function dsp_get_info(handle:Int, ibuf:Array<Int>):cpp.ConstCharStar;
+    @:native("linc::faxe::fmod_dsp_get_param_data")
+    static function dsp_get_param_data(handle:Int, index:Int, out:haxe.io.BytesData, cap:Int):Int;
+    @:native("linc::faxe::fmod_dsp_set_param_3d_attributes")
+    static function dsp_set_param_3d_attributes(handle:Int, index:Int, fbuf:Array<Float>):Int;
+    @:native("linc::faxe::fmod_dsp_set_param_3d_attributes_multi")
+    static function dsp_set_param_3d_attributes_multi(handle:Int, index:Int, numListeners:Int, fbuf:Array<Float>):Int;
+    @:native("linc::faxe::fmod_dsp_get_metering_info")
+    static function dsp_get_metering_info(handle:Int, input:Bool, fbuf:Array<Float>, ibuf:Array<Int>):Int;
+    @:native("linc::faxe::fmod_dsp_fft_get_spectrum_channel")
+    static function dsp_fft_get_spectrum_channel(handle:Int, channel:Int, fbuf:Array<Float>, maxBins:Int, ibuf:Array<Int>):Int;
+    @:native("linc::faxe::fmod_dsp_get_parameter_text")
+    static function dsp_get_parameter_text(handle:Int, index:Int, kind:Int):cpp.ConstCharStar;
 
     @:native("linc::faxe::fmod_dsp_get_data_parameter_index")
     static function dsp_get_data_parameter_index(handle:Int, dataType:Int):Int;

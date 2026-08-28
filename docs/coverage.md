@@ -165,7 +165,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_DSP_GetChannelFormat` | `Dsp.getChannelFormat` |  |
 | `FMOD_DSP_GetDataParameterIndex` | `Dsp.getDataParameterIndex` |  |
 | `FMOD_DSP_GetIdle` | `Dsp.isIdle` |  |
-| `FMOD_DSP_GetInfo` | `Dsp.getName` |  |
+| `FMOD_DSP_GetInfo` | `Dsp.getInfo`<br>`Dsp.getName` |  |
 | `FMOD_DSP_GetInput` | `Dsp.getInput`<br>`Dsp.getInputConnection` |  |
 | `FMOD_DSP_GetMeteringEnabled` | `Dsp.getMeteringEnabled` |  |
 | `FMOD_DSP_GetMeteringInfo` | `Dsp.getMetering` |  |
@@ -175,7 +175,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_DSP_GetOutput` | `Dsp.getOutput`<br>`Dsp.getOutputConnection` |  |
 | `FMOD_DSP_GetOutputChannelFormat` | `Dsp.getOutputChannelFormat` |  |
 | `FMOD_DSP_GetParameterBool` | `Dsp.getParameterBool` |  |
-| `FMOD_DSP_GetParameterData` | `Dsp.getFftSpectrum` |  |
+| `FMOD_DSP_GetParameterData` | `Dsp.getParameterData`<br>`Dsp.getFftSpectrum`<br>`Dsp.getFftSpectrumInfo` | limited |
 | `FMOD_DSP_GetParameterFloat` | `Dsp.getParameter` |  |
 | `FMOD_DSP_GetParameterInfo` | `Dsp.getParameterInfo` | compile error |
 | `FMOD_DSP_GetParameterInt` | `Dsp.getParameterInt` |  |
@@ -188,7 +188,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_DSP_SetChannelFormat` | `Dsp.setChannelFormat` |  |
 | `FMOD_DSP_SetMeteringEnabled` | `Dsp.setMeteringEnabled` |  |
 | `FMOD_DSP_SetParameterBool` | `Dsp.setParameterBool` |  |
-| `FMOD_DSP_SetParameterData` | `Dsp.setParameterData` |  |
+| `FMOD_DSP_SetParameterData` | `Dsp.setParameterData`<br>`Dsp.setParameter3DAttributes`<br>`Dsp.setParameter3DAttributesMulti` |  |
 | `FMOD_DSP_SetParameterFloat` | `Dsp.setParameter` |  |
 | `FMOD_DSP_SetParameterInt` | `Dsp.setParameterInt` |  |
 | `FMOD_DSP_SetWetDryMix` | `Dsp.setWetDryMix` |  |

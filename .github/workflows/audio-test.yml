@@ -945,6 +945,9 @@ jobs:
           gcc -std=c99 -Wall -Wextra -Werror -I "$FMOD_SDK/api/core/inc" \
             -o /tmp/test_dsptype tests/native/test_faxe_dsptype.c
           /tmp/test_dsptype
+          gcc -std=c99 -Wall -Wextra -Werror -I "$FMOD_SDK/api/core/inc" \
+            -o /tmp/test_dspdata tests/native/test_faxe_dspdata.c
+          /tmp/test_dspdata
           python3 ci/haxe-enum-values.py --check
           gcc -std=c99 -Wall -Wextra -Werror -I "$FMOD_SDK/api/core/inc" -I "$FMOD_SDK/api/studio/inc" \
             -o /tmp/test_enums tests/native/test_faxe_enums.c
@@ -1975,6 +1978,9 @@ jobs:
             -o /tmp/test_dsptype tests/native/test_faxe_dsptype.c
           /tmp/test_dsptype
           clang -std=c99 -Wall -Wextra -Werror -I "$FMOD_SDK/api/core/inc" \
+            -o /tmp/test_dspdata tests/native/test_faxe_dspdata.c
+          /tmp/test_dspdata
+          clang -std=c99 -Wall -Wextra -Werror -I "$FMOD_SDK/api/core/inc" \
             -o /tmp/test_dspparams tests/native/test_faxe_dspparams.c
           /tmp/test_dspparams
           python3 ci/haxe-enum-values.py --check
@@ -2636,6 +2642,8 @@ jobs:
           )
           cl /nologo /W3 /std:c11 /TC /I "%FMOD_SDK%\api\core\inc" /Fe:%TEMP%\msvc_dsptype.exe tests\native\test_faxe_dsptype.c || exit /b 1
           %TEMP%\msvc_dsptype.exe || exit /b 1
+          cl /nologo /W3 /std:c11 /TC /I "%FMOD_SDK%\api\core\inc" /Fe:%TEMP%\msvc_dspdata.exe tests\native\test_faxe_dspdata.c || exit /b 1
+          %TEMP%\msvc_dspdata.exe || exit /b 1
           python ci\haxe-enum-values.py --check || exit /b 1
           cl /nologo /W3 /std:c11 /TC /I "%FMOD_SDK%\api\core\inc" /I "%FMOD_SDK%\api\studio\inc" /Fe:%TEMP%\msvc_enums.exe tests\native\test_faxe_enums.c || exit /b 1
           %TEMP%\msvc_enums.exe || exit /b 1
@@ -3207,6 +3215,7 @@ jobs:
           node tests/js/plugins-harness.js
           node tests/js/soundextras-harness.js
           node tests/js/lastseven-harness.js
+          node tests/js/dspdata-harness.js
 
       - name: Run Core dynamic-audio prototype against the real wasm
         env:
@@ -3435,6 +3444,9 @@ jobs:
           gcc -std=c99 -Wall -Wextra -Werror -I "$FMOD_SDK/api/core/inc" \
             -o /tmp/test_dsptype tests/native/test_faxe_dsptype.c
           /tmp/test_dsptype
+          gcc -std=c99 -Wall -Wextra -Werror -I "$FMOD_SDK/api/core/inc" \
+            -o /tmp/test_dspdata tests/native/test_faxe_dspdata.c
+          /tmp/test_dspdata
 
       - name: Test the DSP parameter indices against this SDK's headers
         run: |

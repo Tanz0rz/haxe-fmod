@@ -38,6 +38,53 @@ verdict: cannot Custom allocators are callbacks that FMOD runs on every one of i
 <!-- Thread_SetAttributes -->
 verdict: cannot It must run before the system is created, and haxefmod creates the system inside FmodManager.Initialize() with no hook before it. FMOD keeps its default thread affinity and priority on every target, and the web build has no threads to configure.
 
+## dsp_getinfo
+<!-- DSP::getInfo -->
+verdict: bound
+Dsp.getInfo() returns the name, version, channels, configwidth, and configheight fields together. Dsp.getName() returns the name alone.
+```haxe
+import haxefmod.core.Dsp;
+import haxefmod.core.DspType;
+
+var unit = Dsp.create(DspType.COMPRESSOR);
+var info = unit.getInfo();
+if (info != null) {
+    trace('${info.name} ${info.version} ${info.channels}');
+}
+```
+
+## dsp_getmeteringinfo
+<!-- DSP::getMeteringInfo -->
+verdict: bound
+One side per call. Dsp.getMetering() reads the output side, getMetering(true) or getInputMetering() the input side. The result carries peak, rms, numChannels, and numSamples.
+```haxe
+import haxefmod.core.Dsp;
+import haxefmod.core.DspType;
+
+var unit = Dsp.create(DspType.FADER);
+unit.setMeteringEnabled(true, true);
+var output = unit.getMetering();
+var input = unit.getInputMetering();
+```
+
+## dsp_getparameterdata
+<!-- DSP::getParameterData -->
+verdict: bound
+Dsp.getParameterData(index) returns a copy of the block as bytes in the effect's C layout, and the typed readers decode the common formats: getFftSpectrumInfo() for FMOD_DSP_PARAMETER_FFT, getOverallGain() for FMOD_DSP_PARAMETER_OVERALLGAIN, getLoudnessMeterInfo() for FMOD_DSP_LOUDNESS_METER_INFO_TYPE. On HTML5 the web glue types the block instead of exposing its bytes, so only the overall gain, FFT, dynamic response, and attenuation range payloads come back and getLoudnessMeterInfo is a compile error.
+```haxe
+import haxefmod.core.Dsp;
+import haxefmod.core.DspType;
+import haxefmod.studio.Types;
+
+var fader = Dsp.create(DspType.FADER);
+var gain = fader.getOverallGain();
+var index = fader.getDataParameterIndex(FmodDspParameterDataType.OVERALLGAIN);
+var raw = fader.getParameterData(index);
+if (raw != null) {
+    var linearGain = raw.getFloat(0);
+}
+```
+
 ## dsp_getsystemobject
 <!-- DSP::getSystemObject -->
 verdict: bound
@@ -63,7 +110,7 @@ var data = reverb.getUserData();
 
 ## dsp_setcallback
 <!-- DSP::setCallback -->
-verdict: cannot FMOD runs the callback on its mixer thread, and no Haxe target can execute code there. Poll the unit from the game loop with Dsp.getMetering() or Dsp.getFftSpectrum() instead.
+verdict: cannot FMOD runs the callback on its mixer thread, and no Haxe target can execute code there. Poll the unit from the game loop with Dsp.getMetering(), Dsp.getFftSpectrumInfo(), or Dsp.getParameterData() instead.
 
 ## dsp_setuserdata
 <!-- DSP::setUserData -->

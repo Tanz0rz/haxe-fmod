@@ -106,6 +106,45 @@ typedef Fmod3DAttributes = {
     var up:FmodVector;
 }
 
+/** FMOD_DSP_PARAMETER_3DATTRIBUTES, the payload of a 3D data parameter: the emitter in the listener's space and in world space. */
+typedef FmodDspParameter3DAttributes = {
+    var relative:Fmod3DAttributes;
+    var absolute:Fmod3DAttributes;
+}
+
+/** FMOD_DSP_PARAMETER_3DATTRIBUTES_MULTI, the same payload for several listeners, one relative entry and one weight per listener. */
+typedef FmodDspParameter3DAttributesMulti = {
+    var numListeners:Int;
+    var relative:Array<Fmod3DAttributes>;
+    var weight:Array<Float>;
+    var absolute:Fmod3DAttributes;
+}
+
+/** FMOD_DSP_PARAMETER_OVERALLGAIN, the gain a unit reports for FMOD's virtual voice ranking. */
+typedef FmodDspParameterOverallGain = {
+    var linearGain:Float;
+    var linearGainAdditive:Float;
+}
+
+/** FMOD_DSP_LOUDNESS_METER_INFO_TYPE, the readback of a loudness meter unit. Loudness values are in LUFS, the histogram has 66 bins. */
+typedef FmodDspLoudnessMeterInfo = {
+    var momentaryLoudness:Float;
+    var shortTermLoudness:Float;
+    var integratedLoudness:Float;
+    var loudness10thPercentile:Float;
+    var loudness95thPercentile:Float;
+    var loudnessHistogram:Array<Float>;
+    var maxTruePeak:Float;
+    var maxMomentaryLoudness:Float;
+}
+
+/** FMOD_DSP_PARAMETER_FFT, the spectrum of an FFT unit with one magnitude array per channel. */
+typedef FmodDspParameterFft = {
+    var length:Int;
+    var numChannels:Int;
+    var spectrum:Array<Array<Float>>;
+}
+
 /** CPU usage in microseconds (FMOD_Studio_Bus_GetCPUUsage) */
 typedef FmodCpuUsage = {
     var exclusive:Int;
