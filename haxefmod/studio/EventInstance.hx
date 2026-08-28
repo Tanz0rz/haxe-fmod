@@ -213,7 +213,7 @@ abstract EventInstance(Int) from Int to Int {
      * existing handler. removed automatically when the instance is
      * destroyed). Delivered from FmodManager.Update / FmodRuntime.update.
      */
-    public inline function setCallback(handler:EventCallbackData->Void, ?mask:Int):Void {
+    public inline function setCallback(handler:EventCallback, ?mask:Int):Void {
         CallbackDispatcher.setCallback(this, handler, mask);
     }
 

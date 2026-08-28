@@ -23,7 +23,8 @@ This check reads the SDK headers (ci/fmod_headers.py) and fails when:
   - an enum or flag family in Haxe is missing a value the header has,
     carries one the header lacks, or gives one a different number,
   - a struct typedef in Haxe is missing a field the header has (extra
-    Haxe fields are fine, they are documented conveniences).
+    Haxe fields are fine, they are documented conveniences). A field may
+    be a property (var data1(get, never):Int) on an abstract.
 
 Value names compare after the prefix is removed: the type's own name
 when every value starts with it (FMOD_DSP_CONVOLUTION_REVERB_PARAM_IR
@@ -111,7 +112,7 @@ def haxe_declaration(path):
         fields = set()
         for value in re.finditer(r"^\s*(?:public\s+)?(?:static\s+)?(?:inline\s+)?var\s+(\w+)\s*(?::\s*[\w<>.]+)?\s*=\s*(-?0x[0-9A-Fa-f]+|-?\d+)\s*;", body, re.M):
             values[value.group(1)] = int(value.group(2), 0)
-        for field in re.finditer(r"^\s*(?:@:optional\s+)?var\s+(\w+)\s*:", body, re.M):
+        for field in re.finditer(r"^\s*(?:public\s+)?(?:@:optional\s+)?var\s+(\w+)\s*(?:\([^)]*\))?\s*:", body, re.M):
             fields.add(field.group(1))
         return kind, values, fields
     return None, {}, set()
@@ -198,6 +199,9 @@ def main():
             continue
         mapped += 1
         if entry["kind"] in ("enum", "flags"):
+            if not entry["values"]:
+                # a bare typedef alias (FMOD_BOOL) has nothing to compare
+                continue
             if not values:
                 problems.append(f"{fmod_name}: {target} declares no numeric values to compare")
             else:

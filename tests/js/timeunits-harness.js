@@ -81,18 +81,18 @@ async function main() {
 
     // Loop points written in samples read back in milliseconds
     jaxe.fmod_sound_set_mode(snd, F.LOOP_NORMAL >>> 0);
-    check('sound_loop_points_pcm', jaxe.fmod_sound_set_loop_points(snd, 480, 2400, F.TIMEUNIT_PCM) === F.OK, '');
+    check('sound_loop_points_pcm', jaxe.fmod_sound_set_loop_points(snd, 480, F.TIMEUNIT_PCM, 2400, F.TIMEUNIT_PCM) === F.OK, '');
     const loopsPcm = [];
-    jaxe.fmod_sound_get_loop_points(snd, F.TIMEUNIT_PCM, loopsPcm);
+    jaxe.fmod_sound_get_loop_points(snd, F.TIMEUNIT_PCM, F.TIMEUNIT_PCM, loopsPcm);
     check('sound_loop_points_pcm_roundtrip', loopsPcm[0] === 480 && loopsPcm[1] === 2400,
         `start=${loopsPcm[0]} end=${loopsPcm[1]}`);
     const loopsMs = [];
-    jaxe.fmod_sound_get_loop_points(snd, F.TIMEUNIT_MS, loopsMs);
+    jaxe.fmod_sound_get_loop_points(snd, F.TIMEUNIT_MS, F.TIMEUNIT_MS, loopsMs);
     check('sound_loop_points_ms_view', loopsMs[0] === 10 && loopsMs[1] === 50,
         `start=${loopsMs[0]} end=${loopsMs[1]}`);
 
     // Sync point offset in samples, read in both units
-    check('sync_add_pcm', jaxe.fmod_sound_add_sync_point(snd, 2400, F.TIMEUNIT_PCM, 'half') === F.OK, '');
+    check('sync_add_pcm', jaxe.fmod_sound_add_sync_point(snd, 2400, F.TIMEUNIT_PCM, 'half') === 0, '');
     check('sync_offset_ms', jaxe.fmod_sound_get_sync_point_offset(snd, 0, F.TIMEUNIT_MS) === 50,
         `ms=${jaxe.fmod_sound_get_sync_point_offset(snd, 0, F.TIMEUNIT_MS)}`);
     check('sync_offset_pcm', jaxe.fmod_sound_get_sync_point_offset(snd, 0, F.TIMEUNIT_PCM) === 2400,
@@ -124,9 +124,9 @@ async function main() {
         `ms=${jaxe.fmod_chan_get_position(ch, F.TIMEUNIT_MS)}`);
     check('chan_get_position_pcm', jaxe.fmod_chan_get_position(ch, F.TIMEUNIT_PCM) === 2400,
         `pcm=${jaxe.fmod_chan_get_position(ch, F.TIMEUNIT_PCM)}`);
-    check('chan_loop_points_pcm', jaxe.fmod_chan_set_loop_points(ch, 960, 1920, F.TIMEUNIT_PCM) === F.OK, '');
+    check('chan_loop_points_pcm', jaxe.fmod_chan_set_loop_points(ch, 960, F.TIMEUNIT_PCM, 1920, F.TIMEUNIT_PCM) === F.OK, '');
     const chLoops = [];
-    jaxe.fmod_chan_get_loop_points(ch, F.TIMEUNIT_MS, chLoops);
+    jaxe.fmod_chan_get_loop_points(ch, F.TIMEUNIT_MS, F.TIMEUNIT_MS, chLoops);
     check('chan_loop_points_ms_view', chLoops[0] === 20 && chLoops[1] === 40,
         `start=${chLoops[0]} end=${chLoops[1]}`);
     jaxe.fmod_chan_stop(ch);

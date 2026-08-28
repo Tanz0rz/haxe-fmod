@@ -3228,6 +3228,7 @@ jobs:
           node tests/js/channelcontrol-harness.js
           node tests/js/studio-parity-harness.js
           node tests/js/init-settings-harness.js
+          node tests/js/core-types-harness.js
 
       - name: Run Core dynamic-audio prototype against the real wasm
         env:

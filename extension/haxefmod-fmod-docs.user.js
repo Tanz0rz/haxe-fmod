@@ -452,16 +452,16 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "channel_getlooppoints": {
-   "code": "import haxefmod.studio.Types;\nimport haxefmod.core.Sound;\n\nvar engineSound = Sound.create(\"assets/sfx/engine.wav\", true);\n\nvar channel = engineSound.play();\nvar points = channel.getLoopPoints(FmodTimeUnit.PCM);\ntrace(points.startMs, points.endMs); // samples here",
+   "code": "import haxefmod.studio.Types;\nimport haxefmod.core.Sound;\n\nvar engineSound = Sound.create(\"assets/sfx/engine.wav\", true);\n\nvar channel = engineSound.play();\nvar points = channel.getLoopPoints(FmodTimeUnit.PCM);\ntrace(points.loopStart, points.loopEnd); // samples here",
    "fmod": "FMOD_Channel_GetLoopPoints",
    "gated": false,
    "haxe": [
     {
      "direct": true,
-     "doc": "The loop region in unit (milliseconds by default), or null on failure.",
+     "doc": "The loop region, loopStart in loopStartType and loopEnd in loopEndType (milliseconds when left out, a missing loopEndType follows loopStartType), or null on failure.",
      "gated": false,
      "name": "getLoopPoints",
-     "signature": "getLoopPoints(unit:FmodTimeUnit = FmodTimeUnit.MS):Null<{startMs:Int, endMs:Int}>",
+     "signature": "getLoopPoints(loopStartType:FmodTimeUnit = FmodTimeUnit.MS, ?loopEndType:FmodTimeUnit):Null<{loopStart:Int, loopEnd:Int}>",
      "static": false,
      "type": "haxefmod.core.Channel"
     }
@@ -469,7 +469,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "Channel::getLoopPoints",
    "html5": false,
    "notes": [
-    "One time unit applies to both the start and the end point, given as the last parameter and milliseconds when left out, where FMOD takes a unit per point. The startMs and endMs names keep the millisecond default in view, the values are in the unit given."
+    "A unit per point, loopStartType then loopEndType as the trailing parameters, milliseconds when left out. A missing loopEndType follows loopStartType."
    ]
   },
   "channel_getlowpassgain": {
@@ -912,7 +912,7 @@ const HAXEFMOD_BINDINGS = {
      "direct": true,
      "doc": "Delivers ChannelEvent values for this channel (drained once per frame with the other callbacks): End, SyncPoint, VirtualVoice, and Occlusion.",
      "name": "setCallback",
-     "signature": "setCallback(handler:haxefmod.core.ChannelEvent->Void):Void",
+     "signature": "setCallback(handler:haxefmod.core.ChannelEvent.ChannelCallback):Void",
      "static": false,
      "type": "haxefmod.core.Channel"
     },
@@ -1033,7 +1033,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Loop region for this channel (overrides the sound's).",
      "gated": false,
      "name": "setLoopPoints",
-     "signature": "setLoopPoints(startMs:Int, endMs:Int, unit:FmodTimeUnit = FmodTimeUnit.MS):FmodResult",
+     "signature": "setLoopPoints(loopStart:Int, loopEnd:Int, loopStartType:FmodTimeUnit = FmodTimeUnit.MS, ?loopEndType:FmodTimeUnit):FmodResult",
      "static": false,
      "type": "haxefmod.core.Channel"
     }
@@ -1041,7 +1041,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "Channel::setLoopPoints",
    "html5": false,
    "notes": [
-    "One time unit applies to both the start and the end point, given as the last parameter and milliseconds when left out, where FMOD takes a unit per point. The startMs and endMs names keep the millisecond default in view, the values are in the unit given."
+    "A unit per point, loopStartType then loopEndType as the trailing parameters, milliseconds when left out. A missing loopEndType follows loopStartType."
    ]
   },
   "channel_setlowpassgain": {
@@ -1893,10 +1893,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "The loop region in unit (milliseconds by default), or null on failure.",
+     "doc": "The loop region, loopStart in loopStartType and loopEnd in loopEndType (milliseconds when left out, a missing loopEndType follows loopStartType), or null on failure.",
      "gated": false,
      "name": "getLoopPoints",
-     "signature": "getLoopPoints(unit:FmodTimeUnit = FmodTimeUnit.MS):Null<{startMs:Int, endMs:Int}>",
+     "signature": "getLoopPoints(loopStartType:FmodTimeUnit = FmodTimeUnit.MS, ?loopEndType:FmodTimeUnit):Null<{loopStart:Int, loopEnd:Int}>",
      "static": false,
      "type": "haxefmod.core.Channel"
     }
@@ -2654,7 +2654,7 @@ const HAXEFMOD_BINDINGS = {
      "direct": true,
      "doc": "Delivers ChannelEvent values for this group (drained once per frame with the other callbacks).",
      "name": "setCallback",
-     "signature": "setCallback(handler:haxefmod.core.ChannelEvent->Void):Void",
+     "signature": "setCallback(handler:haxefmod.core.ChannelEvent.ChannelCallback):Void",
      "static": false,
      "type": "haxefmod.core.ChannelGroup"
     },
@@ -2670,7 +2670,7 @@ const HAXEFMOD_BINDINGS = {
      "direct": true,
      "doc": "Delivers ChannelEvent values for this channel (drained once per frame with the other callbacks): End, SyncPoint, VirtualVoice, and Occlusion.",
      "name": "setCallback",
-     "signature": "setCallback(handler:haxefmod.core.ChannelEvent->Void):Void",
+     "signature": "setCallback(handler:haxefmod.core.ChannelEvent.ChannelCallback):Void",
      "static": false,
      "type": "haxefmod.core.Channel"
     },
@@ -2817,7 +2817,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Loop region for this channel (overrides the sound's).",
      "gated": false,
      "name": "setLoopPoints",
-     "signature": "setLoopPoints(startMs:Int, endMs:Int, unit:FmodTimeUnit = FmodTimeUnit.MS):FmodResult",
+     "signature": "setLoopPoints(loopStart:Int, loopEnd:Int, loopStartType:FmodTimeUnit = FmodTimeUnit.MS, ?loopEndType:FmodTimeUnit):FmodResult",
      "static": false,
      "type": "haxefmod.core.Channel"
     }
@@ -4028,7 +4028,7 @@ const HAXEFMOD_BINDINGS = {
      "direct": true,
      "doc": "Delivers ChannelEvent values for this group (drained once per frame with the other callbacks).",
      "name": "setCallback",
-     "signature": "setCallback(handler:haxefmod.core.ChannelEvent->Void):Void",
+     "signature": "setCallback(handler:haxefmod.core.ChannelEvent.ChannelCallback):Void",
      "static": false,
      "type": "haxefmod.core.ChannelGroup"
     },
@@ -5955,7 +5955,7 @@ const HAXEFMOD_BINDINGS = {
    ]
   },
   "sound_addsyncpoint": {
-   "code": "import haxefmod.core.Sound;\nimport haxefmod.studio.Types;\n\nvar sound = Sound.create(\"assets/music/track.wav\");\nsound.addSyncPoint(500, \"drop\");\nsound.addSyncPoint(48000, \"verse\", FmodTimeUnit.PCM);",
+   "code": "import haxefmod.core.Sound;\nimport haxefmod.studio.Types;\n\nvar sound = Sound.create(\"assets/music/track.wav\");\nvar drop = sound.addSyncPoint(500, \"drop\");\nvar verse = sound.addSyncPoint(48000, \"verse\", FmodTimeUnit.PCM);",
    "fmod": "FMOD_Sound_AddSyncPoint",
    "gated": false,
    "haxe": [
@@ -5964,7 +5964,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Marks a timeline position.",
      "gated": false,
      "name": "addSyncPoint",
-     "signature": "addSyncPoint(offsetMs:Int, name:String, unit:FmodTimeUnit = FmodTimeUnit.MS):FmodResult",
+     "signature": "addSyncPoint(offset:Int, name:String, offsetType:FmodTimeUnit = FmodTimeUnit.MS):FmodSyncPoint",
      "static": false,
      "type": "haxefmod.core.Sound"
     }
@@ -5972,20 +5972,20 @@ const HAXEFMOD_BINDINGS = {
    "heading": "Sound::addSyncPoint",
    "html5": false,
    "notes": [
-    "The offset is read in the unit given as the last parameter, milliseconds when left out. FMOD's FMOD_SYNCPOINT handle is not returned. Points are addressed by their index in offset order in the other sync point calls and in ChannelEvent.SyncPoint."
+    "The offset is read in the unit given as the last parameter, milliseconds when left out. Returns the FmodSyncPoint, the point's index in offset order, and FmodSyncPoint.NULL on failure with the result in StudioSystem.lastResult."
    ]
   },
   "sound_deletesyncpoint": {
-   "code": "import haxefmod.core.Sound;\n\nvar sound = Sound.create(\"assets/music/track.wav\");\nsound.deleteSyncPoint(0);",
+   "code": "import haxefmod.core.Sound;\n\nvar sound = Sound.create(\"assets/music/track.wav\");\nsound.deleteSyncPoint(sound.getSyncPoint(0));",
    "fmod": "FMOD_Sound_DeleteSyncPoint",
    "gated": false,
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Removes a point.",
      "gated": false,
      "name": "deleteSyncPoint",
-     "signature": "deleteSyncPoint(index:Int):FmodResult",
+     "signature": "deleteSyncPoint(point:FmodSyncPoint):FmodResult",
      "static": false,
      "type": "haxefmod.core.Sound"
     }
@@ -5993,7 +5993,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "Sound::deleteSyncPoint",
    "html5": false,
    "notes": [
-    "Takes the point's index in offset order instead of an FMOD_SYNCPOINT handle. The indices of later points shift down by one."
+    "A FmodSyncPoint is the point's index in offset order, so the handles of the points after it move down by one."
    ]
   },
   "sound_get3dconesettings": {
@@ -6109,16 +6109,16 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "sound_getlooppoints": {
-   "code": "import haxefmod.studio.Types;\nimport haxefmod.core.Sound;\n\nvar sound = Sound.create(\"assets/music/track.wav\", true);\nvar points = sound.getLoopPoints(FmodTimeUnit.PCM);\ntrace(points.startMs, points.endMs); // samples here",
+   "code": "import haxefmod.studio.Types;\nimport haxefmod.core.Sound;\n\nvar sound = Sound.create(\"assets/music/track.wav\", true);\nvar points = sound.getLoopPoints(FmodTimeUnit.PCM);\ntrace(points.loopStart, points.loopEnd); // samples here",
    "fmod": "FMOD_Sound_GetLoopPoints",
    "gated": false,
    "haxe": [
     {
      "direct": true,
-     "doc": "The loop region in unit (milliseconds by default), or null on failure.",
+     "doc": "The loop region, loopStart in loopStartType and loopEnd in loopEndType (milliseconds when left out, a missing loopEndType follows loopStartType), or null on failure.",
      "gated": false,
      "name": "getLoopPoints",
-     "signature": "getLoopPoints(unit:FmodTimeUnit = FmodTimeUnit.MS):Null<{startMs:Int, endMs:Int}>",
+     "signature": "getLoopPoints(loopStartType:FmodTimeUnit = FmodTimeUnit.MS, ?loopEndType:FmodTimeUnit):Null<{loopStart:Int, loopEnd:Int}>",
      "static": false,
      "type": "haxefmod.core.Sound"
     }
@@ -6126,7 +6126,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "Sound::getLoopPoints",
    "html5": false,
    "notes": [
-    "One time unit applies to both the start and the end point, given as the last parameter and milliseconds when left out, where FMOD takes a unit per point. The startMs and endMs names keep the millisecond default in view, the values are in the unit given."
+    "A unit per point, loopStartType then loopEndType as the trailing parameters, milliseconds when left out. A missing loopEndType follows loopStartType."
    ]
   },
   "sound_getmode": {
@@ -6231,8 +6231,17 @@ const HAXEFMOD_BINDINGS = {
    "gated": false,
    "haxe": [
     {
+     "direct": true,
+     "doc": "Alias of getSyncPointCount under FMOD's name.",
+     "gated": false,
+     "name": "getNumSyncPoints",
+     "signature": "getNumSyncPoints():Int",
+     "static": false,
+     "type": "haxefmod.core.Sound"
+    },
+    {
      "direct": false,
-     "doc": "",
+     "doc": "Number of sync points, 0 on failure.",
      "gated": false,
      "name": "getSyncPointCount",
      "signature": "getSyncPointCount():Int",
@@ -6345,10 +6354,28 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "sound_getsyncpoint": {
-   "code": "import haxefmod.core.Sound;\n\nvar sound = Sound.create(\"assets/music/track.wav\");\nfor (i in 0...sound.getSyncPointCount()) {\n    trace(sound.getSyncPointName(i));\n}",
+   "code": "import haxefmod.core.Sound;\n\nvar sound = Sound.create(\"assets/music/track.wav\");\nfor (i in 0...sound.getNumSyncPoints()) {\n    var point = sound.getSyncPoint(i);\n    trace(sound.getSyncPointInfo(point).name);\n}",
    "fmod": "FMOD_Sound_GetSyncPoint",
    "gated": false,
    "haxe": [
+    {
+     "direct": false,
+     "doc": "The point at index in offset order, FmodSyncPoint.NULL when the index is out of range (StudioSystem.lastResult reports FMOD_ERR_INVALID_PARAM).",
+     "gated": false,
+     "name": "getSyncPoint",
+     "signature": "getSyncPoint(index:Int):FmodSyncPoint",
+     "static": false,
+     "type": "haxefmod.core.Sound"
+    },
+    {
+     "direct": true,
+     "doc": "The point's name and its offset in offsetType (milliseconds by default), or null when the point does not exist.",
+     "gated": false,
+     "name": "getSyncPointInfo",
+     "signature": "getSyncPointInfo(point:FmodSyncPoint, offsetType:FmodTimeUnit = FmodTimeUnit.MS):Null<{name:String, offset:Int}>",
+     "static": false,
+     "type": "haxefmod.core.Sound"
+    },
     {
      "direct": false,
      "doc": "",
@@ -6360,7 +6387,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "The point's offset in unit (milliseconds by default), or -1 on failure.",
+     "doc": "",
      "gated": false,
      "name": "getSyncPointOffset",
      "signature": "getSyncPointOffset(index:Int, unit:FmodTimeUnit = FmodTimeUnit.MS):Int",
@@ -6371,14 +6398,32 @@ const HAXEFMOD_BINDINGS = {
    "heading": "Sound::getSyncPoint",
    "html5": false,
    "notes": [
-    "There is no FMOD_SYNCPOINT handle on the Haxe side. The index in offset order is the address of a point, passed straight to getSyncPointName, getSyncPointOffset, and deleteSyncPoint."
+    "Returns FmodSyncPoint.NULL for an index out of range. The handle is the index itself, valid until a point before it is added or deleted."
    ]
   },
   "sound_getsyncpointinfo": {
-   "code": "import haxefmod.core.Sound;\nimport haxefmod.studio.Types;\n\nvar sound = Sound.create(\"assets/music/track.wav\");\nvar name = sound.getSyncPointName(0);\nvar ms = sound.getSyncPointOffset(0);\nvar samples = sound.getSyncPointOffset(0, FmodTimeUnit.PCM);",
+   "code": "import haxefmod.core.Sound;\nimport haxefmod.studio.Types;\n\nvar sound = Sound.create(\"assets/music/track.wav\");\nvar point = sound.getSyncPoint(0);\nvar info = sound.getSyncPointInfo(point);\nvar samples = sound.getSyncPointInfo(point, FmodTimeUnit.PCM).offset;\ntrace(info.name, info.offset, samples);",
    "fmod": "FMOD_Sound_GetSyncPointInfo",
    "gated": false,
    "haxe": [
+    {
+     "direct": true,
+     "doc": "The point's name and its offset in offsetType (milliseconds by default), or null when the point does not exist.",
+     "gated": false,
+     "name": "getSyncPointInfo",
+     "signature": "getSyncPointInfo(point:FmodSyncPoint, offsetType:FmodTimeUnit = FmodTimeUnit.MS):Null<{name:String, offset:Int}>",
+     "static": false,
+     "type": "haxefmod.core.Sound"
+    },
+    {
+     "direct": false,
+     "doc": "The point at index in offset order, FmodSyncPoint.NULL when the index is out of range (StudioSystem.lastResult reports FMOD_ERR_INVALID_PARAM).",
+     "gated": false,
+     "name": "getSyncPoint",
+     "signature": "getSyncPoint(index:Int):FmodSyncPoint",
+     "static": false,
+     "type": "haxefmod.core.Sound"
+    },
     {
      "direct": false,
      "doc": "",
@@ -6390,7 +6435,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "The point's offset in unit (milliseconds by default), or -1 on failure.",
+     "doc": "",
      "gated": false,
      "name": "getSyncPointOffset",
      "signature": "getSyncPointOffset(index:Int, unit:FmodTimeUnit = FmodTimeUnit.MS):Int",
@@ -6401,7 +6446,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "Sound::getSyncPointInfo",
    "html5": false,
    "notes": [
-    "Split into getSyncPointName and getSyncPointOffset, both taking the index in offset order. The offset comes back in the unit given as the last parameter, milliseconds when left out."
+    "Returns the name and offset together, null when the point does not exist. The offset comes back in the unit given as the last parameter, milliseconds when left out."
    ]
   },
   "sound_getsystemobject": {
@@ -6603,7 +6648,7 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "sound_setlooppoints": {
-   "code": "import haxefmod.studio.Types;\nimport haxefmod.core.Sound;\n\nvar sound = Sound.create(\"assets/music/track.wav\", true);\nsound.setLoopPoints(48000, 96000, FmodTimeUnit.PCM);",
+   "code": "import haxefmod.studio.Types;\nimport haxefmod.core.Sound;\n\nvar sound = Sound.create(\"assets/music/track.wav\", true);\nsound.setLoopPoints(48000, 96000, FmodTimeUnit.PCM);\nsound.setLoopPoints(1000, 96000, FmodTimeUnit.MS, FmodTimeUnit.PCM);",
    "fmod": "FMOD_Sound_SetLoopPoints",
    "gated": false,
    "haxe": [
@@ -6612,7 +6657,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Loop region (needs a looping mode set).",
      "gated": false,
      "name": "setLoopPoints",
-     "signature": "setLoopPoints(startMs:Int, endMs:Int, unit:FmodTimeUnit = FmodTimeUnit.MS):FmodResult",
+     "signature": "setLoopPoints(loopStart:Int, loopEnd:Int, loopStartType:FmodTimeUnit = FmodTimeUnit.MS, ?loopEndType:FmodTimeUnit):FmodResult",
      "static": false,
      "type": "haxefmod.core.Sound"
     }
@@ -6620,7 +6665,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "Sound::setLoopPoints",
    "html5": false,
    "notes": [
-    "One time unit applies to both the start and the end point, given as the last parameter and milliseconds when left out, where FMOD takes a unit per point. The startMs and endMs names keep the millisecond default in view, the values are in the unit given."
+    "A unit per point, loopStartType then loopEndType as the trailing parameters, milliseconds when left out. A missing loopEndType follows loopStartType."
    ]
   },
   "sound_setmode": {
@@ -7063,10 +7108,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "The bank GUID as a string.",
+     "doc": "The bank GUID.",
      "gated": false,
      "name": "getID",
-     "signature": "getID():String",
+     "signature": "getID():FmodGuid",
      "static": false,
      "type": "haxefmod.studio.Bank"
     }
@@ -7143,10 +7188,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": false,
-     "doc": "String table GUID by index, formatted \"{8-4-4-4-12}\".",
+     "doc": "String table GUID by index.",
      "gated": false,
      "name": "getStringGuid",
-     "signature": "getStringGuid(index:Int):String",
+     "signature": "getStringGuid(index:Int):FmodGuid",
      "static": false,
      "type": "haxefmod.studio.Bank"
     },
@@ -7328,10 +7373,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "The bus GUID as a string, e.g.",
+     "doc": "The bus GUID.",
      "gated": false,
      "name": "getID",
-     "signature": "getID():String",
+     "signature": "getID():FmodGuid",
      "static": false,
      "type": "haxefmod.studio.Bus"
     }
@@ -7904,10 +7949,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "The event GUID as a string.",
+     "doc": "The event GUID.",
      "gated": false,
      "name": "getID",
-     "signature": "getID():String",
+     "signature": "getID():FmodGuid",
      "static": false,
      "type": "haxefmod.studio.EventDescription"
     }
@@ -8779,7 +8824,7 @@ const HAXEFMOD_BINDINGS = {
      "direct": true,
      "doc": "Registers a typed payload callback for this instance (replaces any existing handler.",
      "name": "setCallback",
-     "signature": "setCallback(handler:EventCallbackData->Void, ?mask:Int):Void",
+     "signature": "setCallback(handler:EventCallback, ?mask:Int):Void",
      "static": false,
      "type": "haxefmod.studio.EventInstance"
     },
@@ -9057,13 +9102,13 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "studio_parseid": {
-   "code": "var guid = StudioSystem.lookupID(FmodEvents.MusicMainLevel);\nvar description = StudioSystem.getEventByID(guid);",
+   "code": "import haxefmod.studio.Types;\n\nvar guid = FmodGuid.fromString(\"{0225c47b-e69f-4785-b89c-fd321387934a}\");\nvar description = StudioSystem.getEventByID(guid);\nvar same = StudioSystem.getEventByID(StudioSystem.lookupID(FmodEvents.MusicMainLevel));",
    "fmod": "",
    "haxe": [],
    "heading": "Studio::parseID",
    "html5": false,
    "notes": [
-    "haxefmod passes GUIDs as strings, so there is nothing to parse. StudioSystem.getEventByID, getBusByID, getVCAByID, and getBankByID accept the braced string, and StudioSystem.lookupID converts a path to one."
+    "FmodGuid.fromString parses the braced text into a FmodGuid, and a plain String converts on its own. StudioSystem.getEventByID, getBusByID, getVCAByID, and getBankByID take one, and StudioSystem.lookupID converts a path to one."
    ]
   },
   "studio_system_create": {
@@ -9163,7 +9208,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "",
      "gated": false,
      "name": "getBankByID",
-     "signature": "getBankByID(guid:String):Bank",
+     "signature": "getBankByID(guid:FmodGuid):Bank",
      "static": true,
      "type": "haxefmod.studio.StudioSystem"
     }
@@ -9296,10 +9341,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Looks up a bus by GUID string.",
+     "doc": "Looks up a bus by GUID.",
      "gated": false,
      "name": "getBusByID",
-     "signature": "getBusByID(guid:String):Bus",
+     "signature": "getBusByID(guid:FmodGuid):Bus",
      "static": true,
      "type": "haxefmod.studio.StudioSystem"
     }
@@ -9376,10 +9421,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Looks up an event description by GUID string.",
+     "doc": "Looks up an event description by GUID.",
      "gated": false,
      "name": "getEventByID",
-     "signature": "getEventByID(guid:String):EventDescription",
+     "signature": "getEventByID(guid:FmodGuid):EventDescription",
      "static": true,
      "type": "haxefmod.studio.StudioSystem"
     }
@@ -9649,7 +9694,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "",
      "gated": false,
      "name": "getVCAByID",
-     "signature": "getVCAByID(guid:String):Vca",
+     "signature": "getVCAByID(guid:FmodGuid):Vca",
      "static": true,
      "type": "haxefmod.studio.StudioSystem"
     }
@@ -9763,10 +9808,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Resolves a path to its GUID string (\"\" on failure.",
+     "doc": "Resolves a path to its GUID (\"\" on failure.",
      "gated": false,
      "name": "lookupID",
-     "signature": "lookupID(path:String):String",
+     "signature": "lookupID(path:String):FmodGuid",
      "static": true,
      "type": "haxefmod.studio.StudioSystem"
     }
@@ -9779,10 +9824,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Resolves a GUID string to its path (\"\" on failure.",
+     "doc": "Resolves a GUID to its path (\"\" on failure.",
      "gated": false,
      "name": "lookupPath",
-     "signature": "lookupPath(guid:String):String",
+     "signature": "lookupPath(guid:FmodGuid):String",
      "static": true,
      "type": "haxefmod.studio.StudioSystem"
     }
@@ -9887,7 +9932,7 @@ const HAXEFMOD_BINDINGS = {
      "direct": false,
      "doc": "Installs a handler for system events (device changes from the core system, bank unloads and Live Update connections from Studio).",
      "name": "setSystemCallback",
-     "signature": "setSystemCallback(handler:SystemEvent->Void, ?coreMask:Int, ?studioMask:Int):Void",
+     "signature": "setSystemCallback(handler:SystemCallback, ?coreMask:Int, ?studioMask:Int):Void",
      "static": true,
      "type": "haxefmod.studio.StudioSystem"
     },
@@ -9905,13 +9950,13 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Installs the handler and tells FMOD which events to raise.",
      "gated": false,
      "name": "set",
-     "signature": "set(handler:SystemEvent->Void, ?coreMask:Int, ?studioMask:Int):Void",
+     "signature": "set(handler:SystemCallback, ?coreMask:Int, ?studioMask:Int):Void",
      "static": true,
      "type": "haxefmod.studio.SystemCallbacks"
     },
     {
      "direct": false,
-     "doc": "Removes every registered callback (song, sounds, descriptions, and core channels).",
+     "doc": "Removes every registered callback (song, sounds, descriptions, core channels, the system, and PCM streams).",
      "name": "ClearAllCallbacks",
      "signature": "ClearAllCallbacks():Void",
      "static": true,
@@ -10179,10 +10224,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "The VCA GUID as a string, e.g.",
+     "doc": "The VCA GUID.",
      "gated": false,
      "name": "getID",
-     "signature": "getID():String",
+     "signature": "getID():FmodGuid",
      "static": false,
      "type": "haxefmod.studio.Vca"
     }
@@ -10438,7 +10483,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Loads a sound file.",
      "gated": false,
      "name": "create",
-     "signature": "create(path:String, loop:Bool = false, openOnly:Bool = false, mode:Int = 0, initialSubsound:Int = -1):Sound",
+     "signature": "create(path:String, loop:Bool = false, openOnly:Bool = false, mode:Int = 0, initialSubsound:Int = -1, ?exinfo:FmodCreateSoundExInfo):Sound",
      "static": true,
      "type": "haxefmod.core.Sound"
     },
@@ -10456,7 +10501,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "A sound from an encoded file image in memory (wav, ogg, mp3, fsb, anything Sound.create would load from disk).",
      "gated": false,
      "name": "fromMemory",
-     "signature": "fromMemory(data:haxe.io.Bytes, mode:Int = 0, length:Int = -1):Sound",
+     "signature": "fromMemory(data:haxe.io.Bytes, mode:Int = 0, length:Int = -1, ?exinfo:FmodCreateSoundExInfo):Sound",
      "static": true,
      "type": "haxefmod.core.Sound"
     },
@@ -10654,7 +10699,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Name, GUID, native rate, speaker mode, and channel count of an output driver (see getDriverCount).",
      "gated": false,
      "name": "getDriverInfo",
-     "signature": "getDriverInfo(index:Int):Null<{name:String, guid:String, systemRate:Int, speakerMode:FmodSpeakerMode, speakerModeChannels:Int}>",
+     "signature": "getDriverInfo(index:Int):Null<{name:String, guid:FmodGuid, systemRate:Int, speakerMode:FmodSpeakerMode, speakerModeChannels:Int}>",
      "static": true,
      "type": "haxefmod.core.CoreSystem"
     },
@@ -10970,7 +11015,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Name, GUID, and native format of a record driver (unsupported in HTML5, returns null there).",
      "gated": true,
      "name": "getRecordDriverInfo",
-     "signature": "getRecordDriverInfo(id:Int):Null<{name:String, guid:String, systemRate:Int, speakerMode:FmodSpeakerMode, channels:Int, state:FmodDriverState}>",
+     "signature": "getRecordDriverInfo(id:Int):Null<{name:String, guid:FmodGuid, systemRate:Int, speakerMode:FmodSpeakerMode, channels:Int, state:FmodDriverState}>",
      "static": true,
      "type": "haxefmod.studio.StudioSystem"
     }
@@ -11436,7 +11481,7 @@ const HAXEFMOD_BINDINGS = {
      "direct": false,
      "doc": "Installs a handler for system events (device changes from the core system, bank unloads and Live Update connections from Studio).",
      "name": "setSystemCallback",
-     "signature": "setSystemCallback(handler:SystemEvent->Void, ?coreMask:Int, ?studioMask:Int):Void",
+     "signature": "setSystemCallback(handler:SystemCallback, ?coreMask:Int, ?studioMask:Int):Void",
      "static": true,
      "type": "haxefmod.studio.StudioSystem"
     },
@@ -11454,13 +11499,13 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Installs the handler and tells FMOD which events to raise.",
      "gated": false,
      "name": "set",
-     "signature": "set(handler:SystemEvent->Void, ?coreMask:Int, ?studioMask:Int):Void",
+     "signature": "set(handler:SystemCallback, ?coreMask:Int, ?studioMask:Int):Void",
      "static": true,
      "type": "haxefmod.studio.SystemCallbacks"
     },
     {
      "direct": false,
-     "doc": "Removes every registered callback (song, sounds, descriptions, and core channels).",
+     "doc": "Removes every registered callback (song, sounds, descriptions, core channels, the system, and PCM streams).",
      "name": "ClearAllCallbacks",
      "signature": "ClearAllCallbacks():Void",
      "static": true,
@@ -12899,7 +12944,7 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "library"
   },
   "FMOD_ERRORCALLBACK_INSTANCETYPE": {
-   "code": "/** FMOD_ERRORCALLBACK_INSTANCETYPE, the object kind an FMOD error callback names. Error callbacks are not exposed, every call returns its FmodResult. */\nenum abstract FmodErrorCallbackInstanceType(Int) from Int to Int {\n    var NONE = 0;\n    var SYSTEM = 1;\n    var CHANNEL = 2;\n    var CHANNELGROUP = 3;\n    var CHANNELCONTROL = 4;\n    var SOUND = 5;\n    var SOUNDGROUP = 6;\n    var DSP = 7;\n    var DSPCONNECTION = 8;\n    var GEOMETRY = 9;\n    var REVERB3D = 10;\n    var STUDIO_SYSTEM = 11;\n    var STUDIO_EVENTDESCRIPTION = 12;\n    var STUDIO_EVENTINSTANCE = 13;\n    var STUDIO_PARAMETERINSTANCE = 14;\n    var STUDIO_BUS = 15;\n    var STUDIO_VCA = 16;\n    var STUDIO_BANK = 17;\n    var STUDIO_COMMANDREPLAY = 18;\n}",
+   "code": "/** FMOD_ERRORCALLBACK_INSTANCETYPE, the object kind named by the instanceType field of FmodErrorCallbackInfo. */\nenum abstract FmodErrorCallbackInstanceType(Int) from Int to Int {\n    var NONE = 0;\n    var SYSTEM = 1;\n    var CHANNEL = 2;\n    var CHANNELGROUP = 3;\n    var CHANNELCONTROL = 4;\n    var SOUND = 5;\n    var SOUNDGROUP = 6;\n    var DSP = 7;\n    var DSPCONNECTION = 8;\n    var GEOMETRY = 9;\n    var REVERB3D = 10;\n    var STUDIO_SYSTEM = 11;\n    var STUDIO_EVENTDESCRIPTION = 12;\n    var STUDIO_EVENTINSTANCE = 13;\n    var STUDIO_PARAMETERINSTANCE = 14;\n    var STUDIO_BUS = 15;\n    var STUDIO_VCA = 16;\n    var STUDIO_BANK = 17;\n    var STUDIO_COMMANDREPLAY = 18;\n}",
    "notes": [
     "Error callbacks are not exposed, check the FmodResult each call returns instead."
    ],
@@ -13040,7 +13085,7 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "FMOD_SYSTEM_CALLBACK_TYPE": {
-   "code": "/** FMOD_SYSTEM_CALLBACK_TYPE bits, the core system callback mask. StudioSystem.setSystemCallback delivers DEVICELISTCHANGED and DEVICELOST as SystemEvent, the rest are not delivered. */\nenum abstract FmodSystemCallbackType(Int) from Int to Int {\n    var DEVICELISTCHANGED = 0x00000001;\n    var DEVICELOST = 0x00000002;\n    var MEMORYALLOCATIONFAILED = 0x00000004;\n    var THREADCREATED = 0x00000008;\n    var BADDSPCONNECTION = 0x00000010;\n    var PREMIX = 0x00000020;\n    var POSTMIX = 0x00000040;\n    var ERROR = 0x00000080;\n    var THREADDESTROYED = 0x00000100;\n    var PREUPDATE = 0x00000200;\n    var POSTUPDATE = 0x00000400;\n    var RECORDLISTCHANGED = 0x00000800;\n    var BUFFEREDNOMIX = 0x00001000;\n    var DEVICEREINITIALIZE = 0x00002000;\n    var OUTPUTUNDERRUN = 0x00004000;\n    var RECORDPOSITIONCHANGED = 0x00008000;\n    var ALL = 0xFFFFFFFF;\n}",
+   "code": "/** FMOD_SYSTEM_CALLBACK_TYPE bits, the core system callback mask. StudioSystem.setSystemCallback delivers DEVICELISTCHANGED, DEVICELOST, and ERROR as SystemEvent, the rest are not delivered. */\nenum abstract FmodSystemCallbackType(Int) from Int to Int {\n    var DEVICELISTCHANGED = 0x00000001;\n    var DEVICELOST = 0x00000002;\n    var MEMORYALLOCATIONFAILED = 0x00000004;\n    var THREADCREATED = 0x00000008;\n    var BADDSPCONNECTION = 0x00000010;\n    var PREMIX = 0x00000020;\n    var POSTMIX = 0x00000040;\n    var ERROR = 0x00000080;\n    var THREADDESTROYED = 0x00000100;\n    var PREUPDATE = 0x00000200;\n    var POSTUPDATE = 0x00000400;\n    var RECORDLISTCHANGED = 0x00000800;\n    var BUFFEREDNOMIX = 0x00001000;\n    var DEVICEREINITIALIZE = 0x00002000;\n    var OUTPUTUNDERRUN = 0x00004000;\n    var RECORDPOSITIONCHANGED = 0x00008000;\n    var ALL = 0xFFFFFFFF;\n}",
    "notes": [
     "StudioSystem.setSystemCallback delivers DEVICELISTCHANGED and DEVICELOST, its coreMask takes the CORE_* constants of SystemCallbacks. The other types are not delivered."
    ],
@@ -14879,7 +14924,7 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "FMOD_STUDIO_PARAMETER_DESCRIPTION": {
-   "code": "/** FMOD_STUDIO_PARAMETER_DESCRIPTION */\ntypedef FmodParameterDescription = {\n    var name:String;\n    var id:FmodParameterId;\n    var minimum:Float;\n    var maximum:Float;\n    var defaultValue:Float;\n    var type:FmodParameterType;\n    var flags:Int;\n    /** The parameter's GUID in FMOD Studio's text form, the same form lookupID returns. */\n    var guid:String;\n}",
+   "code": "/** FMOD_STUDIO_PARAMETER_DESCRIPTION */\ntypedef FmodParameterDescription = {\n    var name:String;\n    var id:FmodParameterId;\n    var minimum:Float;\n    var maximum:Float;\n    var defaultValue:Float;\n    var type:FmodParameterType;\n    var flags:Int;\n    /** The parameter's GUID, the same value lookupID returns for its path. */\n    var guid:FmodGuid;\n}",
    "notes": [
     "The guid field is the parameter's GUID in the text form StudioSystem.lookupID returns."
    ],

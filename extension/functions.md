@@ -553,10 +553,13 @@ verdict: cannot FMOD runs the callback on its update thread while the replay pla
 ## studio_parseid
 <!-- Studio::parseID -->
 verdict: bound
-haxefmod passes GUIDs as strings, so there is nothing to parse. StudioSystem.getEventByID, getBusByID, getVCAByID, and getBankByID accept the braced string, and StudioSystem.lookupID converts a path to one.
+FmodGuid.fromString parses the braced text into a FmodGuid, and a plain String converts on its own. StudioSystem.getEventByID, getBusByID, getVCAByID, and getBankByID take one, and StudioSystem.lookupID converts a path to one.
 ```haxe
-var guid = StudioSystem.lookupID(FmodEvents.MusicMainLevel);
+import haxefmod.studio.Types;
+
+var guid = FmodGuid.fromString("{0225c47b-e69f-4785-b89c-fd321387934a}");
 var description = StudioSystem.getEventByID(guid);
+var same = StudioSystem.getEventByID(StudioSystem.lookupID(FmodEvents.MusicMainLevel));
 ```
 
 ## studio_eventdescription_getparameterdescriptionbyid
@@ -747,83 +750,86 @@ verdict: cannot FSBank is FMOD's offline bank encoder, shipped as a separate too
 ## sound_addsyncpoint
 <!-- Sound::addSyncPoint -->
 verdict: bound
-The offset is read in the unit given as the last parameter, milliseconds when left out. FMOD's FMOD_SYNCPOINT handle is not returned. Points are addressed by their index in offset order in the other sync point calls and in ChannelEvent.SyncPoint.
+The offset is read in the unit given as the last parameter, milliseconds when left out. Returns the FmodSyncPoint, the point's index in offset order, and FmodSyncPoint.NULL on failure with the result in StudioSystem.lastResult.
 ```haxe
 import haxefmod.core.Sound;
 import haxefmod.studio.Types;
 
 var sound = Sound.create("assets/music/track.wav");
-sound.addSyncPoint(500, "drop");
-sound.addSyncPoint(48000, "verse", FmodTimeUnit.PCM);
+var drop = sound.addSyncPoint(500, "drop");
+var verse = sound.addSyncPoint(48000, "verse", FmodTimeUnit.PCM);
 ```
 
 ## sound_deletesyncpoint
 <!-- Sound::deleteSyncPoint -->
 verdict: bound
-Takes the point's index in offset order instead of an FMOD_SYNCPOINT handle. The indices of later points shift down by one.
+A FmodSyncPoint is the point's index in offset order, so the handles of the points after it move down by one.
 ```haxe
 import haxefmod.core.Sound;
 
 var sound = Sound.create("assets/music/track.wav");
-sound.deleteSyncPoint(0);
+sound.deleteSyncPoint(sound.getSyncPoint(0));
 ```
 
 ## sound_getsyncpoint
 <!-- Sound::getSyncPoint -->
 verdict: bound
-There is no FMOD_SYNCPOINT handle on the Haxe side. The index in offset order is the address of a point, passed straight to getSyncPointName, getSyncPointOffset, and deleteSyncPoint.
+Returns FmodSyncPoint.NULL for an index out of range. The handle is the index itself, valid until a point before it is added or deleted.
 ```haxe
 import haxefmod.core.Sound;
 
 var sound = Sound.create("assets/music/track.wav");
-for (i in 0...sound.getSyncPointCount()) {
-    trace(sound.getSyncPointName(i));
+for (i in 0...sound.getNumSyncPoints()) {
+    var point = sound.getSyncPoint(i);
+    trace(sound.getSyncPointInfo(point).name);
 }
 ```
 
 ## sound_getsyncpointinfo
 <!-- Sound::getSyncPointInfo -->
 verdict: bound
-Split into getSyncPointName and getSyncPointOffset, both taking the index in offset order. The offset comes back in the unit given as the last parameter, milliseconds when left out.
+Returns the name and offset together, null when the point does not exist. The offset comes back in the unit given as the last parameter, milliseconds when left out.
 ```haxe
 import haxefmod.core.Sound;
 import haxefmod.studio.Types;
 
 var sound = Sound.create("assets/music/track.wav");
-var name = sound.getSyncPointName(0);
-var ms = sound.getSyncPointOffset(0);
-var samples = sound.getSyncPointOffset(0, FmodTimeUnit.PCM);
+var point = sound.getSyncPoint(0);
+var info = sound.getSyncPointInfo(point);
+var samples = sound.getSyncPointInfo(point, FmodTimeUnit.PCM).offset;
+trace(info.name, info.offset, samples);
 ```
 
 ## sound_setlooppoints
 <!-- Sound::setLoopPoints -->
 verdict: bound
-One time unit applies to both the start and the end point, given as the last parameter and milliseconds when left out, where FMOD takes a unit per point. The startMs and endMs names keep the millisecond default in view, the values are in the unit given.
+A unit per point, loopStartType then loopEndType as the trailing parameters, milliseconds when left out. A missing loopEndType follows loopStartType.
 ```haxe
 import haxefmod.studio.Types;
 import haxefmod.core.Sound;
 
 var sound = Sound.create("assets/music/track.wav", true);
 sound.setLoopPoints(48000, 96000, FmodTimeUnit.PCM);
+sound.setLoopPoints(1000, 96000, FmodTimeUnit.MS, FmodTimeUnit.PCM);
 ```
 
 ## sound_getlooppoints
 <!-- Sound::getLoopPoints -->
 verdict: bound
-One time unit applies to both the start and the end point, given as the last parameter and milliseconds when left out, where FMOD takes a unit per point. The startMs and endMs names keep the millisecond default in view, the values are in the unit given.
+A unit per point, loopStartType then loopEndType as the trailing parameters, milliseconds when left out. A missing loopEndType follows loopStartType.
 ```haxe
 import haxefmod.studio.Types;
 import haxefmod.core.Sound;
 
 var sound = Sound.create("assets/music/track.wav", true);
 var points = sound.getLoopPoints(FmodTimeUnit.PCM);
-trace(points.startMs, points.endMs); // samples here
+trace(points.loopStart, points.loopEnd); // samples here
 ```
 
 ## channel_setlooppoints
 <!-- Channel::setLoopPoints -->
 verdict: bound
-One time unit applies to both the start and the end point, given as the last parameter and milliseconds when left out, where FMOD takes a unit per point. The startMs and endMs names keep the millisecond default in view, the values are in the unit given.
+A unit per point, loopStartType then loopEndType as the trailing parameters, milliseconds when left out. A missing loopEndType follows loopStartType.
 ```haxe
 import haxefmod.studio.Types;
 import haxefmod.core.Sound;
@@ -837,7 +843,7 @@ channel.setLoopPoints(48000, 96000, FmodTimeUnit.PCM);
 ## channel_getlooppoints
 <!-- Channel::getLoopPoints -->
 verdict: bound
-One time unit applies to both the start and the end point, given as the last parameter and milliseconds when left out, where FMOD takes a unit per point. The startMs and endMs names keep the millisecond default in view, the values are in the unit given.
+A unit per point, loopStartType then loopEndType as the trailing parameters, milliseconds when left out. A missing loopEndType follows loopStartType.
 ```haxe
 import haxefmod.studio.Types;
 import haxefmod.core.Sound;
@@ -846,7 +852,7 @@ var engineSound = Sound.create("assets/sfx/engine.wav", true);
 
 var channel = engineSound.play();
 var points = channel.getLoopPoints(FmodTimeUnit.PCM);
-trace(points.startMs, points.endMs); // samples here
+trace(points.loopStart, points.loopEnd); // samples here
 ```
 
 ## sound_getnumsyncpoints

@@ -48,8 +48,8 @@ class StudioSystem {
         return bus;
     }
 
-    /** Looks up a bus by GUID string. */
-    public static function getBusByID(guid:String):Bus {
+    /** Looks up a bus by GUID. */
+    public static function getBusByID(guid:FmodGuid):Bus {
         return NativeStudio.sys_get_bus_by_id(guid);
     }
 
@@ -58,8 +58,8 @@ class StudioSystem {
         return NativeStudio.sys_get_event(path);
     }
 
-    /** Looks up an event description by GUID string. */
-    public static function getEventByID(guid:String):EventDescription {
+    /** Looks up an event description by GUID. */
+    public static function getEventByID(guid:FmodGuid):EventDescription {
         return NativeStudio.sys_get_event_by_id(guid);
     }
 
@@ -68,7 +68,7 @@ class StudioSystem {
         return NativeStudio.sys_get_vca(path);
     }
 
-    public static function getVCAByID(guid:String):Vca {
+    public static function getVCAByID(guid:FmodGuid):Vca {
         return NativeStudio.sys_get_vca_by_id(guid);
     }
 
@@ -77,7 +77,7 @@ class StudioSystem {
         return NativeStudio.sys_get_bank(path);
     }
 
-    public static function getBankByID(guid:String):Bank {
+    public static function getBankByID(guid:FmodGuid):Bank {
         return NativeStudio.sys_get_bank_by_id(guid);
     }
 
@@ -93,13 +93,13 @@ class StudioSystem {
         return [for (i in 0...count) (Scratch.readI(i) : Bank)];
     }
 
-    /** Resolves a path to its GUID string ("" on failure. Needs the strings bank loaded). */
-    public static function lookupID(path:String):String {
+    /** Resolves a path to its GUID ("" on failure. Needs the strings bank loaded). */
+    public static function lookupID(path:String):FmodGuid {
         return NativeStudio.sys_lookup_id(path);
     }
 
-    /** Resolves a GUID string to its path ("" on failure. Needs the strings bank loaded). */
-    public static function lookupPath(guid:String):String {
+    /** Resolves a GUID to its path ("" on failure. Needs the strings bank loaded). */
+    public static function lookupPath(guid:FmodGuid):String {
         return NativeStudio.sys_lookup_path(guid);
     }
 
@@ -427,12 +427,12 @@ class StudioSystem {
      * HTML5, returns null there). state is a FmodDriverState bitmask. Null
      * for an id out of range.
      */
-    public static function getRecordDriverInfo(id:Int):Null<{name:String, guid:String, systemRate:Int, speakerMode:FmodSpeakerMode, channels:Int, state:FmodDriverState}> {
+    public static function getRecordDriverInfo(id:Int):Null<{name:String, guid:FmodGuid, systemRate:Int, speakerMode:FmodSpeakerMode, channels:Int, state:FmodDriverState}> {
         var name = NativeStudio.sys_get_record_driver_info(id);
         if (!lastResult().isOk()) return null;
-        var info = {name: name, guid: "", systemRate: Scratch.readI(0), speakerMode: (Scratch.readI(1) : FmodSpeakerMode),
+        var info = {name: name, guid: (FmodGuid.NULL : FmodGuid), systemRate: Scratch.readI(0), speakerMode: (Scratch.readI(1) : FmodSpeakerMode),
             channels: Scratch.readI(2), state: (Scratch.readI(3) : FmodDriverState)};
-        info.guid = NativeStudio.sys_get_record_driver_guid(id);
+        info.guid = (NativeStudio.sys_get_record_driver_guid(id) : FmodGuid);
         return info;
     }
     #end
@@ -515,7 +515,7 @@ class StudioSystem {
      * drops on its own arrives with an empty path. On HTML5 the core
      * device events never fire under the browser output.
      */
-    public static function setSystemCallback(handler:SystemEvent->Void, ?coreMask:Int, ?studioMask:Int):Void {
+    public static function setSystemCallback(handler:SystemCallback, ?coreMask:Int, ?studioMask:Int):Void {
         SystemCallbacks.set(handler, coreMask, studioMask);
     }
 

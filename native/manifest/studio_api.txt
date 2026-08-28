@@ -33,9 +33,15 @@ cb_type -> i32
 cb_int i32 -> i32
 cb_float -> f64
 cb_string -> str
+# The second string slot. Only the core ERROR record fills it (function parameters).
+cb_string2 -> str
 cb_take_overflow -> bool
 # System callbacks ride the queue with handle 0 under the 0x20000000
 # namespace: core types as 0x20000000 | type, studio types as 0x20000100 | type.
+# The core ERROR record (0x20000080) carries i1 = FMOD_RESULT, i2 = the
+# FMOD_ERRORCALLBACK_INSTANCETYPE, i3 = the handle of the instance when
+# the table knows it (resolved on the drain), str = the function name,
+# and the second string = the function parameters.
 # BANK_UNLOAD carries the bank path in str (read ahead of bank_unload and
 # sys_unload_all, FMOD refuses bank reads inside the callback). Mask 0
 # removes the callback.
@@ -291,6 +297,18 @@ ps_clear i32 -> i32
 core_create_sound str i32 i32 -> i32
 # An encoded file image in memory (FMOD_OPENMEMORY with exinfo.length).
 core_create_sound_memory bytes i32 i32 -> i32
+# The same two with a full FMOD_CREATESOUNDEXINFO. ibuf in, packed by
+# Sound.packExInfo: [0]=length [1]=fileoffset [2]=numchannels
+# [3]=defaultfrequency [4]=format [5]=decodebuffersize [6]=initialsubsound
+# [7]=numsubsounds [8]=maxpolyphony [9]=suggestedsoundtype
+# [10]=minmidigranularity [11]=nonblockthreadid [12]=filebuffersize
+# [13]=channelorder [14]=initialsoundgroup handle [15]=initialseekposition
+# [16]=initialseekpostype [17]=ignoresetfilesystem [18]=audioqueuepolicy
+# [19]=inclusion list length, entries from [20]. Then dlsname,
+# encryptionkey, and the fsb GUID text, each empty for none.
+# The memory form takes the byte count as its own argument.
+core_create_sound_ex str i32 ibuf str str str -> i32
+core_create_sound_memory_ex bytes i32 i32 ibuf str str str -> i32
 core_release_sound i32 -> i32
 # length in milliseconds (-1 on failure)
 core_get_sound_length i32 i32 -> i32
@@ -442,9 +460,10 @@ core_play_sound i32 i32 bool -> i32
 sound_set_defaults i32 f32 i32 -> i32
 # fbuf out: [0]=frequency [1]=priority
 sound_get_defaults i32 fbuf -> i32
-sound_set_loop_points i32 i32 i32 i32 -> i32
-# ibuf out: [0]=loop start ms [1]=loop end ms
-sound_get_loop_points i32 i32 ibuf -> i32
+# handle, loop start, its FMOD_TIMEUNIT, loop end, its FMOD_TIMEUNIT
+sound_set_loop_points i32 i32 i32 i32 i32 -> i32
+# handle, start unit, end unit. ibuf out: [0]=loop start [1]=loop end
+sound_get_loop_points i32 i32 i32 ibuf -> i32
 sound_set_mode i32 i32 -> i32
 sound_get_mode i32 -> i32
 # ibuf out: [0]=channels [1]=bits
@@ -466,6 +485,7 @@ dsp_get_cpu_usage i32 ibuf -> i32
 # channel events ride the callback queue under the 0x40000000 namespace:
 # 0x40000001 = channel end, 0x40000002 = sync point (i1 = point index)
 chan_set_callback i32 bool -> i32
+# returns the new point's index in offset order, -1 on failure
 sound_add_sync_point i32 i32 i32 str -> i32
 sound_delete_sync_point i32 i32 -> i32
 sound_get_num_sync_points i32 -> i32
@@ -541,9 +561,10 @@ chan_set_volume_ramp i32 bool -> i32
 chan_get_volume_ramp i32 -> bool
 # borrowed reference: do not release a sound obtained this way
 chan_get_current_sound i32 -> i32
-chan_set_loop_points i32 i32 i32 i32 -> i32
-# ibuf out: [0]=loop start ms [1]=loop end ms
-chan_get_loop_points i32 i32 ibuf -> i32
+# handle, loop start, its FMOD_TIMEUNIT, loop end, its FMOD_TIMEUNIT
+chan_set_loop_points i32 i32 i32 i32 i32 -> i32
+# handle, start unit, end unit. ibuf out: [0]=loop start [1]=loop end
+chan_get_loop_points i32 i32 i32 ibuf -> i32
 chan_get_reverb_wet i32 i32 -> f32
 chan_get_index i32 -> i32
 # fbuf out: [0..2]=direction xyz

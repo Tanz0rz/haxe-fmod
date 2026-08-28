@@ -27,6 +27,12 @@ DEPRECATED = [
     ("haxefmod.studio.CommandReplay.getCommandAtTimeMs",
      "var r:haxefmod.studio.CommandReplay = haxefmod.studio.CommandReplay.NULL; trace(r.getCommandAtTimeMs(0));",
      "CommandReplay.getCommandAtTimeMs is replaced by getCommandAtTime, which takes seconds"),
+    ("haxefmod.core.Sound.getSyncPointName",
+     "var s:haxefmod.core.Sound = haxefmod.core.Sound.NULL; trace(s.getSyncPointName(0));",
+     "Sound.getSyncPointName is replaced by getSyncPointInfo(point).name"),
+    ("haxefmod.core.Sound.getSyncPointOffset",
+     "var s:haxefmod.core.Sound = haxefmod.core.Sound.NULL; trace(s.getSyncPointOffset(0));",
+     "Sound.getSyncPointOffset is replaced by getSyncPointInfo(point, offsetType).offset"),
 ]
 
 

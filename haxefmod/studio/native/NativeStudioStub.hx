@@ -263,14 +263,34 @@ class NativeStudioStub {
         testLastMemoryMode = mode;
         return 0;
     }
+    public static var testLastExInfoInts:Array<Int> = null;
+    public static var testLastExInfoStrings:Array<String> = null;
+    public static function core_create_sound_ex(path:String, mode:Int, dls:String, key:String, guid:String):Int {
+        testLastCreateSoundMode = mode;
+        testLastExInfoInts = [for (i in 0...20 + Scratch.readI(19)) Scratch.readI(i)];
+        testLastExInfoStrings = [dls, key, guid];
+        return 0;
+    }
+    public static function core_create_sound_memory_ex(data:haxe.io.Bytes, len:Int, mode:Int, dls:String, key:String, guid:String):Int {
+        testLastMemoryLen = len;
+        testLastMemoryMode = mode;
+        testLastExInfoInts = [for (i in 0...20 + Scratch.readI(19)) Scratch.readI(i)];
+        testLastExInfoStrings = [dls, key, guid];
+        return 0;
+    }
     public static var testLastPlayGroup:Int = -1;
     public static function core_release_sound(handle:Int):Int return ERR_UNSUPPORTED;
     public static function core_get_sound_length(handle:Int, unit:Int):Int return -1;
 
     // Core PCM streams
     public static function core_pcm_create(sampleRate:Int, channels:Int, ringBytes:Int):Int return 0;
-    public static function core_pcm_write(handle:Int, data:haxe.io.Bytes, len:Int):Int return 0;
-    public static function core_pcm_space(handle:Int):Int return 0;
+    public static var testPcmSpace:Int = 0;
+    public static var testLastPcmWriteLen:Int = -1;
+    public static function core_pcm_write(handle:Int, data:haxe.io.Bytes, len:Int):Int {
+        testLastPcmWriteLen = len;
+        return 0;
+    }
+    public static function core_pcm_space(handle:Int):Int return testPcmSpace;
     public static function core_pcm_underruns(handle:Int):Int return 0;
     public static function core_pcm_play(handle:Int, group:Int, startPaused:Bool):Int {
         testLastPlayGroup = group;
@@ -406,8 +426,15 @@ class NativeStudioStub {
     }
     public static function sound_set_defaults(handle:Int, frequency:Float, priority:Int):Int return ERR_UNSUPPORTED;
     public static function sound_get_defaults(handle:Int):Int return ERR_UNSUPPORTED;
-    public static function sound_set_loop_points(handle:Int, start:Int, end:Int, unit:Int):Int return ERR_UNSUPPORTED;
-    public static function sound_get_loop_points(handle:Int, unit:Int):Int return ERR_UNSUPPORTED;
+    public static var testLastLoopUnits:Array<Int> = null;
+    public static function sound_set_loop_points(handle:Int, start:Int, startType:Int, end:Int, endType:Int):Int {
+        testLastLoopUnits = [startType, endType];
+        return ERR_UNSUPPORTED;
+    }
+    public static function sound_get_loop_points(handle:Int, startType:Int, endType:Int):Int {
+        testLastLoopUnits = [startType, endType];
+        return ERR_UNSUPPORTED;
+    }
     public static function sound_set_mode(handle:Int, mode:Int):Int return ERR_UNSUPPORTED;
     public static function sound_get_mode(handle:Int):Int return 0;
     public static function sound_get_format(handle:Int):Int return ERR_UNSUPPORTED;
@@ -423,7 +450,7 @@ class NativeStudioStub {
     public static function chan_set_callback(handle:Int, enabled:Bool):Int return ERR_UNSUPPORTED;
     public static function sys_set_callback_mask(mask:Int):Int return ERR_UNSUPPORTED;
     public static function sys_set_studio_callback_mask(mask:Int):Int return ERR_UNSUPPORTED;
-    public static function sound_add_sync_point(handle:Int, offset:Int, unit:Int, name:String):Int return ERR_UNSUPPORTED;
+    public static function sound_add_sync_point(handle:Int, offset:Int, unit:Int, name:String):Int return -1;
     public static function sound_delete_sync_point(handle:Int, index:Int):Int return ERR_UNSUPPORTED;
     public static function sound_get_num_sync_points(handle:Int):Int return 0;
     public static function sound_get_sync_point_name(handle:Int, index:Int):String return "";
@@ -490,8 +517,14 @@ class NativeStudioStub {
     public static function chan_set_volume_ramp(handle:Int, ramp:Bool):Int return ERR_UNSUPPORTED;
     public static function chan_get_volume_ramp(handle:Int):Bool return false;
     public static function chan_get_current_sound(handle:Int):Int return 0;
-    public static function chan_set_loop_points(handle:Int, start:Int, end:Int, unit:Int):Int return ERR_UNSUPPORTED;
-    public static function chan_get_loop_points(handle:Int, unit:Int):Int return ERR_UNSUPPORTED;
+    public static function chan_set_loop_points(handle:Int, start:Int, startType:Int, end:Int, endType:Int):Int {
+        testLastLoopUnits = [startType, endType];
+        return ERR_UNSUPPORTED;
+    }
+    public static function chan_get_loop_points(handle:Int, startType:Int, endType:Int):Int {
+        testLastLoopUnits = [startType, endType];
+        return ERR_UNSUPPORTED;
+    }
     public static function chan_get_reverb_wet(handle:Int, instance:Int):Float return 0.0;
     public static function chan_get_index(handle:Int):Int return -1;
     public static function chan_get_3d_cone_orientation(handle:Int):Int return ERR_UNSUPPORTED;
@@ -574,6 +607,7 @@ class NativeStudioStub {
     public static function cb_int(index:Int):Int return 0;
     public static function cb_float():Float return 0.0;
     public static function cb_string():String return "";
+    public static function cb_string2():String return "";
     public static function cb_take_overflow():Bool return false;
 
     // Distance filter, version, sound data, and recording

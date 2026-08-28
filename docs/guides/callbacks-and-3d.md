@@ -69,7 +69,7 @@ line.start();
 
 ### System events
 
-`StudioSystem.setSystemCallback(handler, ?coreMask, ?studioMask)` installs one handler for events the systems themselves raise, delivered as `SystemEvent` values through the same per-frame drain. `DeviceListChanged` and `DeviceLost` come from the core system when the audio device list changes or the active device goes away. `BankUnload(path)`, `LiveUpdateConnected`, and `LiveUpdateDisconnected` come from Studio. Registering again replaces the handler, and `clearSystemCallback()` removes it.
+`StudioSystem.setSystemCallback(handler, ?coreMask, ?studioMask)` installs one `SystemCallback` for events the systems themselves raise, delivered as `SystemEvent` values through the same per-frame drain. `DeviceListChanged` and `DeviceLost` come from the core system when the audio device list changes or the active device goes away. `Error(info)` comes from the core system when an FMOD call fails, once `SystemCallbacks.CORE_ERROR` is in the core mask, with the result, the object kind and handle, the function name, and its parameters in a `FmodErrorCallbackInfo`. `BankUnload(path)`, `LiveUpdateConnected`, and `LiveUpdateDisconnected` come from Studio. Registering again replaces the handler, and `clearSystemCallback()` removes it.
 
 ```haxe
 import haxefmod.studio.SystemCallbacks;
@@ -81,11 +81,13 @@ StudioSystem.setSystemCallback(event -> switch (event) {
         trace('unloaded $path');
     case LiveUpdateConnected:
         trace("FMOD Studio connected");
+    case Error(info):
+        trace('${info.functionName} failed with ${info.result.toString()}');
     default:
-});
+}, SystemCallbacks.DEFAULT_CORE_MASK | SystemCallbacks.CORE_ERROR);
 ```
 
-The default masks deliver the device and Studio events above. `PreUpdate` and `PostUpdate` fire on every update, so they are opt-in through the studio mask, for example `SystemCallbacks.DEFAULT_STUDIO_MASK | SystemCallbacks.STUDIO_PREUPDATE`. `BankUnload` carries the bank path only for banks the game unloads through `Bank.unload` or `unloadAll`, since FMOD refuses reads on the bank inside the callback and the binding reads the path ahead of the unload. A bank FMOD drops on its own arrives with an empty path. On HTML5 the core device events never fire under the browser output.
+The default masks deliver the device and Studio events above. `PreUpdate` and `PostUpdate` fire on every update, so they are opt-in through the studio mask, for example `SystemCallbacks.DEFAULT_STUDIO_MASK | SystemCallbacks.STUDIO_PREUPDATE`. `BankUnload` carries the bank path only for banks the game unloads through `Bank.unload` or `unloadAll`, since FMOD refuses reads on the bank inside the callback and the binding reads the path ahead of the unload. A bank FMOD drops on its own arrives with an empty path. On HTML5 the core device events never fire under the browser output and the error callback is never raised.
 
 ## Core channel callbacks
 

@@ -25,8 +25,8 @@ abstract Bank(Int) from Int to Int {
         return this != 0 && NativeStudio.bank_is_valid(this);
     }
 
-    /** The bank GUID as a string. */
-    public inline function getID():String {
+    /** The bank GUID. */
+    public inline function getID():FmodGuid {
         return NativeStudio.bank_get_id(this);
     }
 
@@ -107,8 +107,8 @@ abstract Bank(Int) from Int to Int {
         return NativeStudio.bank_get_string_info(this, index);
     }
 
-    /** String table GUID by index, formatted "{8-4-4-4-12}". */
-    public inline function getStringGuid(index:Int):String {
+    /** String table GUID by index. */
+    public inline function getStringGuid(index:Int):FmodGuid {
         return NativeStudio.bank_get_string_guid(this, index);
     }
 

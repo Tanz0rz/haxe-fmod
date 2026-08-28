@@ -28,8 +28,8 @@ if (clocks != null) {
 
 ## FMOD_CHANNELCONTROL_CALLBACK
 verdict: bound
-Shape: usage
-Raw channel callbacks run on FMOD's threads and cannot reach Haxe. Channel.setCallback and ChannelGroup.setCallback deliver ChannelEvent values on the game thread during FmodManager.Update(). A group only ever sees Occlusion, the other three are channel events.
+Type: haxefmod.core.ChannelEvent.ChannelCallback
+Raw channel callbacks run on FMOD's threads and cannot reach Haxe. Channel.setCallback and ChannelGroup.setCallback take a ChannelCallback and deliver ChannelEvent values on the game thread during FmodManager.Update(). A group only ever sees Occlusion, the other three are channel events.
 ```haxe
 import haxefmod.core.ChannelEvent;
 

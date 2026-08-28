@@ -593,6 +593,10 @@
 #define FAXE_HX_FmodLimits_STUDIO_LOAD_MEMORY_ALIGNMENT (32)
 #define FAXE_HX_FmodLimits_COUNT 5
 
+/* FmodVersion mirrors the FMOD_VERSION defines */
+#define FAXE_HX_FmodVersion_VERSION (0x00020312)
+#define FAXE_HX_FmodVersion_COUNT 1
+
 /* DspChannelMixOutput mirrors FMOD_DSP_CHANNELMIX_OUTPUT */
 #define FAXE_HX_DspChannelMixOutput_DEFAULT (0)
 #define FAXE_HX_DspChannelMixOutput_ALLMONO (1)

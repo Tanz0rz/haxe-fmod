@@ -33,6 +33,15 @@ enum abstract EventCallbackType(Int) from Int to Int {
 }
 
 /**
+ * FMOD_STUDIO_EVENT_CALLBACK as game code holds it. The handler receives
+ * the decoded payload on the game thread from FmodManager.Update, so the
+ * FMOD side has no instance or parameters argument and nothing to
+ * return. EventInstance.setCallback and EventDescription.setCallback
+ * take one.
+ */
+typedef EventCallback = EventCallbackData->Void;
+
+/**
  * A decoded FMOD Studio event callback with its payload.
  * Delivered on the game thread by the CallbackDispatcher during update().
  */

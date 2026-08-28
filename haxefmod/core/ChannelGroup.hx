@@ -156,7 +156,7 @@ abstract ChannelGroup(Int) from Int to Int {
      * for 3D groups when geometry is in use. release() removes the
      * handler.
      */
-    public inline function setCallback(handler:haxefmod.core.ChannelEvent->Void):Void {
+    public inline function setCallback(handler:haxefmod.core.ChannelEvent.ChannelCallback):Void {
         haxefmod.core.ChannelCallbacks.setGroup(this, handler);
     }
 

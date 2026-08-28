@@ -170,6 +170,7 @@ int main(void) {
         ev.i5 = i * 5;
         ev.f1 = (float)i * 0.5f;
         snprintf(ev.str, sizeof(ev.str), "marker-%d", i);
+        snprintf(ev.str2, sizeof(ev.str2), "params-%d", i);
         faxe_cbq_push(&ev);
     }
     for (int i = 0; i < 5; i++) {
@@ -181,6 +182,8 @@ int main(void) {
         assert(out.i4 == i * 4 && out.i5 == i * 5);
         snprintf(expected, sizeof(expected), "marker-%d", i);
         assert(strcmp(out.str, expected) == 0);
+        snprintf(expected, sizeof(expected), "params-%d", i);
+        assert(strcmp(out.str2, expected) == 0);
     }
     assert(faxe_cbq_pop(&out) == 0);
     assert(faxe_cbq_take_overflow() == 0);
@@ -188,9 +191,12 @@ int main(void) {
     /* string truncation stays NUL-terminated */
     memset(&ev, 0, sizeof(ev));
     memset(ev.str, 'x', sizeof(ev.str)); /* no terminator on purpose */
+    memset(ev.str2, 'y', sizeof(ev.str2));
     faxe_cbq_push(&ev);
     assert(faxe_cbq_pop(&out) == 1);
     assert(out.str[FAXE_CBQ_STR_MAX - 1] == '\0');
+    assert(out.str2[FAXE_CBQ_STR2_MAX - 1] == '\0');
+    assert(strlen(out.str2) == FAXE_CBQ_STR2_MAX - 1);
 
     /* overflow drops oldest and sets the flag */
     memset(&ev, 0, sizeof(ev));

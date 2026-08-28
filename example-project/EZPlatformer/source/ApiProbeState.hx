@@ -107,7 +107,7 @@ class ApiProbeState extends FlxState {
         var path = master.getPath();
         check("bus_get_path", path == "bus:/", 'value=$path');
 
-        var guid = master.getID();
+        var guid:String = master.getID();
         // "{8-4-4-4-12}" formatted GUID is exactly 38 chars
         check("bus_get_id", guid.length == 38 && StringTools.startsWith(guid, "{"), 'value=$guid');
 
@@ -183,6 +183,7 @@ class ApiProbeState extends FlxState {
         ProbeGroupDsp.run(this);
         ProbeChannelControl.run(this);
         ProbeStudioParity.run(this);
+        ProbeCoreTypes.run(this);
         if (skipAuthored()) {
             info("authored_surface", "skipped (HAXEFMOD_PROBE_SKIP_AUTHORED)");
         } else {
@@ -762,11 +763,11 @@ class ApiProbeState extends FlxState {
         check("vca_lookup", !vca.isNull() && vca.isValid(),
             'result=${StudioSystem.lastResult().toString()}');
         check("vca_get_path", vca.getPath() == FmodVCAs.Main, 'value=${vca.getPath()}');
-        var vcaGuid = vca.getID();
+        var vcaGuid:String = vca.getID();
         check("vca_get_id", vcaGuid.length == 38 && StringTools.startsWith(vcaGuid, "{"),
             'value=$vcaGuid');
         check("sys_get_vca_by_id", (StudioSystem.getVCAByID(vcaGuid) : Int) == (vca : Int), "");
-        check("vca_lookup_id", StudioSystem.lookupID(FmodVCAs.Main).toLowerCase()
+        check("vca_lookup_id", (StudioSystem.lookupID(FmodVCAs.Main) : String).toLowerCase()
             == FmodVCAs.FmodVCAsGuids.Main, 'value=${StudioSystem.lookupID(FmodVCAs.Main)}');
         check("vca_set_volume", vca.setVolume(0.5).isOk(), "");
         check("vca_get_volume", Math.abs(vca.getVolume() - 0.5) < 0.001, 'value=${vca.getVolume()}');
@@ -936,7 +937,7 @@ class ApiProbeState extends FlxState {
         info("chan_audibility", Std.string(channel.getAudibility()));
         info("chan_index", Std.string(channel.getIndex()));
         check("chan_loop_points_roundtrip", channel.setLoopPoints(10, 90).isOk()
-            && channel.getLoopPoints() != null && channel.getLoopPoints().startMs == 10, "");
+            && channel.getLoopPoints() != null && channel.getLoopPoints().loopStart == 10, "");
         channel.setReverbWet(0, 0.4);
         check("chan_reverb_wet_roundtrip", Math.abs(channel.getReverbWet(0) - 0.4) < 0.001,
             'value=${channel.getReverbWet(0)}');
@@ -1135,7 +1136,7 @@ class ApiProbeState extends FlxState {
             'result=${StudioSystem.lastResult().toString()}');
 
         // Path and ID string lookups agree with the generated constants
-        check("sys_lookup_id", StudioSystem.lookupID(FmodEvents.SFXJump).toLowerCase()
+        check("sys_lookup_id", (StudioSystem.lookupID(FmodEvents.SFXJump) : String).toLowerCase()
             == FmodEvents.FmodEventsGuids.SFXJump, 'value=${StudioSystem.lookupID(FmodEvents.SFXJump)}');
         check("sys_lookup_path", StudioSystem.lookupPath(FmodEvents.FmodEventsGuids.SFXJump)
             == FmodEvents.SFXJump, 'value=${StudioSystem.lookupPath(FmodEvents.FmodEventsGuids.SFXJump)}');
@@ -1155,7 +1156,7 @@ class ApiProbeState extends FlxState {
         // handle was warmed above, before the baseline)
         check("sys_get_bank", !bank.isNull(), 'result=${StudioSystem.lastResult().toString()}');
         if (!bank.isNull()) {
-            var bankGuid = bank.getID();
+            var bankGuid:String = bank.getID();
             check("bank_get_id", bankGuid.length == 38 && StringTools.startsWith(bankGuid, "{"),
                 'value=$bankGuid');
             check("sys_get_bank_by_id", (StudioSystem.getBankByID(bankGuid) : Int) == (bank : Int), "");
@@ -1409,11 +1410,11 @@ class ApiProbeState extends FlxState {
         var pcm = haxe.io.Bytes.alloc(samples * 2);
         _chanEventSound = Sound.fromPcm(pcm, 48000, 1);
         check("chanev_sound", !_chanEventSound.isNull(), 'handle=${(_chanEventSound : Int)}');
-        var syncResult = _chanEventSound.addSyncPoint(50, "mid");
-        check("chanev_sync_point", syncResult.isOk(), 'result=${syncResult.toString()}');
+        var syncPoint = _chanEventSound.addSyncPoint(50, "mid");
+        check("chanev_sync_point", !syncPoint.isNull() && syncPoint.index() == 0, 'point=${syncPoint.index()} result=${StudioSystem.lastResult().toString()}');
+        var syncInfo = _chanEventSound.getSyncPointInfo(syncPoint);
         check("chanev_sync_info", _chanEventSound.getSyncPointCount() == 1
-            && _chanEventSound.getSyncPointName(0) == "mid"
-            && _chanEventSound.getSyncPointOffset(0) == 50, "");
+            && syncInfo != null && syncInfo.name == "mid" && syncInfo.offset == 50, syncInfo == null ? "null" : 'name=${syncInfo.name} offset=${syncInfo.offset}');
         _chanEventChannel = _chanEventSound.play(false);
         check("chanev_play", !_chanEventChannel.isNull(), 'handle=${(_chanEventChannel : Int)}');
         _chanEventChannel.setCallback(function(e) _chanEvents.push(e));
@@ -1748,7 +1749,7 @@ class ApiProbeState extends FlxState {
         check("sys_get_event", !desc.isNull(), 'handle=${(desc : Int)}');
         check("evd_is_valid", desc.isValid(), "");
         check("evd_get_path", desc.getPath() == FmodEvents.MusicMainLevel, 'value=${desc.getPath()}');
-        var descGuid = desc.getID();
+        var descGuid:String = desc.getID();
         check("evd_get_id", descGuid.length == 38, 'value=$descGuid');
         check("evd_get_length", desc.getLength() > 0, 'value=${desc.getLength()}');
         info("evd_is_snapshot", Std.string(desc.isSnapshot()));
@@ -2416,7 +2417,7 @@ class ApiProbeState extends FlxState {
         check("coresound_mode", sound.setMode(ChannelMode.LOOP_NORMAL).isOk()
             && (sound.getMode() & ChannelMode.LOOP_NORMAL) != 0, "");
         check("coresound_loop_points", sound.setLoopPoints(10, 90).isOk()
-            && sound.getLoopPoints() != null && sound.getLoopPoints().startMs == 10, "");
+            && sound.getLoopPoints() != null && sound.getLoopPoints().loopStart == 10, "");
         check("coresound_format", sound.getFormat() != null
             && sound.getFormat().channels == 1 && sound.getFormat().bits == 16, "");
         check("coresound_open_state", sound.getOpenState() == 0,
@@ -2461,19 +2462,20 @@ class ApiProbeState extends FlxState {
         check("tu_sound_loop_points_pcm", sound.setLoopPoints(480, 2400, FmodTimeUnit.PCM).isOk(),
             'result=${StudioSystem.lastResult().toString()}');
         var loopsPcm = sound.getLoopPoints(FmodTimeUnit.PCM);
-        check("tu_sound_loop_points_pcm_roundtrip", loopsPcm != null && loopsPcm.startMs == 480 && loopsPcm.endMs == 2400,
-            loopsPcm == null ? "null" : 'start=${loopsPcm.startMs} end=${loopsPcm.endMs}');
+        check("tu_sound_loop_points_pcm_roundtrip", loopsPcm != null && loopsPcm.loopStart == 480 && loopsPcm.loopEnd == 2400,
+            loopsPcm == null ? "null" : 'start=${loopsPcm.loopStart} end=${loopsPcm.loopEnd}');
         var loopsMs = sound.getLoopPoints();
-        check("tu_sound_loop_points_ms_view", loopsMs != null && loopsMs.startMs == 10 && loopsMs.endMs == 50,
-            loopsMs == null ? "null" : 'start=${loopsMs.startMs} end=${loopsMs.endMs}');
+        check("tu_sound_loop_points_ms_view", loopsMs != null && loopsMs.loopStart == 10 && loopsMs.loopEnd == 50,
+            loopsMs == null ? "null" : 'start=${loopsMs.loopStart} end=${loopsMs.loopEnd}');
 
-        check("tu_sync_add_pcm", sound.addSyncPoint(2400, "half", FmodTimeUnit.PCM).isOk(),
-            'result=${StudioSystem.lastResult().toString()}');
-        check("tu_sync_offset_ms", sound.getSyncPointOffset(0) == 50, 'ms=${sound.getSyncPointOffset(0)}');
-        check("tu_sync_offset_pcm", sound.getSyncPointOffset(0, FmodTimeUnit.PCM) == 2400,
-            'pcm=${sound.getSyncPointOffset(0, FmodTimeUnit.PCM)}');
-        check("tu_sync_name", sound.getSyncPointName(0) == "half", 'name=${sound.getSyncPointName(0)}');
-        check("tu_sync_delete", sound.deleteSyncPoint(0).isOk() && sound.getSyncPointCount() == 0, "");
+        var half = sound.addSyncPoint(2400, "half", FmodTimeUnit.PCM);
+        check("tu_sync_add_pcm", !half.isNull(), 'result=${StudioSystem.lastResult().toString()}');
+        var halfMs = sound.getSyncPointInfo(half);
+        var halfPcm = sound.getSyncPointInfo(half, FmodTimeUnit.PCM);
+        check("tu_sync_offset_ms", halfMs != null && halfMs.offset == 50, halfMs == null ? "null" : 'ms=${halfMs.offset}');
+        check("tu_sync_offset_pcm", halfPcm != null && halfPcm.offset == 2400, halfPcm == null ? "null" : 'pcm=${halfPcm.offset}');
+        check("tu_sync_name", halfMs != null && halfMs.name == "half", halfMs == null ? "null" : 'name=${halfMs.name}');
+        check("tu_sync_delete", sound.deleteSyncPoint(half).isOk() && sound.getSyncPointCount() == 0, "");
 
         var format = sound.getFormat();
         check("tu_format_type_raw", format != null && format.type == FmodSoundType.RAW,
@@ -2499,8 +2501,8 @@ class ApiProbeState extends FlxState {
         check("tu_chan_loop_points_pcm", channel.setLoopPoints(960, 1920, FmodTimeUnit.PCM).isOk(),
             'result=${StudioSystem.lastResult().toString()}');
         var chLoops = channel.getLoopPoints();
-        check("tu_chan_loop_points_ms_view", chLoops != null && chLoops.startMs == 20 && chLoops.endMs == 40,
-            chLoops == null ? "null" : 'start=${chLoops.startMs} end=${chLoops.endMs}');
+        check("tu_chan_loop_points_ms_view", chLoops != null && chLoops.loopStart == 20 && chLoops.loopEnd == 40,
+            chLoops == null ? "null" : 'start=${chLoops.loopStart} end=${chLoops.loopEnd}');
         channel.stop();
         sound.release();
 

@@ -64,12 +64,12 @@ class CoreSystem {
      * Name, GUID, native rate, speaker mode, and channel count of an
      * output driver (see getDriverCount). Null for an index out of range.
      */
-    public static function getDriverInfo(index:Int):Null<{name:String, guid:String, systemRate:Int, speakerMode:FmodSpeakerMode, speakerModeChannels:Int}> {
+    public static function getDriverInfo(index:Int):Null<{name:String, guid:FmodGuid, systemRate:Int, speakerMode:FmodSpeakerMode, speakerModeChannels:Int}> {
         var name = NativeStudio.sys_get_driver_info(index);
         if (!(NativeStudio.sys_last_result() : FmodResult).isOk()) return null;
-        var info = {name: name, guid: "", systemRate: Scratch.readI(0), speakerMode: (Scratch.readI(1) : FmodSpeakerMode),
+        var info = {name: name, guid: (FmodGuid.NULL : FmodGuid), systemRate: Scratch.readI(0), speakerMode: (Scratch.readI(1) : FmodSpeakerMode),
             speakerModeChannels: Scratch.readI(2)};
-        info.guid = NativeStudio.sys_get_driver_guid(index);
+        info.guid = (NativeStudio.sys_get_driver_guid(index) : FmodGuid);
         return info;
     }
 

@@ -9,15 +9,74 @@ import haxefmod.studio.native.NativeStudio;
 import haxefmod.studio.native.Scratch;
 
 /**
- * A handle to an FMOD Core sound - the micro subset of the Core API shipped
- * for programmer sounds. Create from an audio file (native: a path on disk;
- * html5: a file preloaded into the virtual filesystem).
- *
- * The full Core API is not bound. Games use this to inspect and manage
- * the loose audio files they feed to programmer sounds.
+ * FMOD_SYNCPOINT. A sync point on a Sound, returned by Sound.addSyncPoint
+ * and Sound.getSyncPoint and taken by Sound.getSyncPointInfo and
+ * Sound.deleteSyncPoint. The value is the point's index in offset order,
+ * the same number ChannelEvent.SyncPoint carries, so an Int converts both
+ * ways. FMOD keeps its points sorted by offset. Deleting a point moves the
+ * points after it down by one, and adding one at an earlier offset moves
+ * the ones after it up, so fetch handles again with getSyncPoint after
+ * changing the set.
+ */
+abstract FmodSyncPoint(Int) from Int to Int {
+    /** The invalid handle, what a failed addSyncPoint or getSyncPoint returns. */
+    public static inline var NULL:FmodSyncPoint = cast -1;
+
+    /** The index in offset order this handle stands for. */
+    public inline function index():Int return this;
+
+    public inline function isNull():Bool return this < 0;
+}
+
+/**
+ * A handle to an FMOD Core sound. Create from an audio file (native: a
+ * path on disk; html5: a file preloaded into the virtual filesystem), a
+ * file image in memory, or raw PCM.
  */
 abstract Sound(Int) from Int to Int {
     public static inline var NULL:Sound = cast 0;
+
+    /**
+     * Writes an FmodCreateSoundExInfo into the Scratch int buffer for the
+     * _ex create calls, in lockstep with the readers in the shims. Slot
+     * 19 is the inclusion list length and the entries follow it. A null
+     * field is 0, which FMOD reads as its default.
+     */
+    static function packExInfo(exinfo:FmodCreateSoundExInfo, initialSubsound:Int):Int {
+        var i = 0;
+        inline function put(value:Null<Int>):Void {
+            Scratch.writeI(i++, value == null ? 0 : value);
+        }
+        put(exinfo.length);
+        put(exinfo.fileOffset);
+        put(exinfo.numChannels);
+        put(exinfo.defaultFrequency);
+        put(exinfo.format == null ? 0 : (exinfo.format : Int));
+        put(exinfo.decodeBufferSize);
+        put(exinfo.initialSubsound == null ? (initialSubsound >= 0 ? initialSubsound : 0) : exinfo.initialSubsound);
+        put(exinfo.numSubsounds);
+        put(exinfo.maxPolyphony);
+        put(exinfo.suggestedSoundType == null ? 0 : (exinfo.suggestedSoundType : Int));
+        put(exinfo.minMidiGranularity);
+        put(exinfo.nonBlockThreadId);
+        put(exinfo.fileBufferSize);
+        put(exinfo.channelOrder == null ? 0 : (exinfo.channelOrder : Int));
+        put(exinfo.initialSoundGroup == null ? 0 : (exinfo.initialSoundGroup : Int));
+        put(exinfo.initialSeekPosition);
+        put(exinfo.initialSeekPosType == null ? 0 : (exinfo.initialSeekPosType : Int));
+        put(exinfo.ignoreSetFileSystem);
+        put(exinfo.audioQueuePolicy);
+        var list = exinfo.inclusionList;
+        var count = list == null ? 0 : list.length;
+        if (count > Scratch.CAPACITY - 20) count = Scratch.CAPACITY - 20;
+        put(count);
+        for (k in 0...count) put(list[k]);
+        return count;
+    }
+
+    static inline function exText(text:String):String {
+        return text == null ? "" : text;
+    }
 
     /**
      * Loads a sound file. Returns Sound.NULL on failure (see
@@ -30,12 +89,17 @@ abstract Sound(Int) from Int to Int {
      * CREATECOMPRESSEDSAMPLE, LOOP_BIDI, or NONBLOCKING. A NONBLOCKING
      * load returns at once and getOpenState reports LOADING until the
      * sound is READY (or ERROR). initialSubsound picks the subsound an
-     * FSB stream starts on, -1 keeps FMOD's default.
+     * FSB stream starts on, -1 keeps FMOD's default. exinfo passes the
+     * rest of FMOD_CREATESOUNDEXINFO (raw PCM format, file offset and
+     * length, stream buffer sizes, encryption key, and the others). Its
+     * initialSubsound wins over the argument when both are given.
      */
-    public static inline function create(path:String, loop:Bool = false, openOnly:Bool = false, mode:Int = 0, initialSubsound:Int = -1):Sound {
-        return NativeStudio.core_create_sound(path,
-            mode | (loop ? ChannelMode.LOOP_NORMAL : 0) | (openOnly ? ChannelMode.OPENONLY : 0),
-            initialSubsound);
+    public static function create(path:String, loop:Bool = false, openOnly:Bool = false, mode:Int = 0, initialSubsound:Int = -1, ?exinfo:FmodCreateSoundExInfo):Sound {
+        var fullMode = mode | (loop ? ChannelMode.LOOP_NORMAL : 0) | (openOnly ? ChannelMode.OPENONLY : 0);
+        if (exinfo == null) return NativeStudio.core_create_sound(path, fullMode, initialSubsound);
+        packExInfo(exinfo, initialSubsound);
+        return NativeStudio.core_create_sound_ex(path, fullMode, exText(exinfo.dlsName), exText(exinfo.encryptionKey),
+            exinfo.fsbGuid == null ? "" : (exinfo.fsbGuid : String));
     }
 
     /**
@@ -44,13 +108,19 @@ abstract Sound(Int) from Int to Int {
      * so the buffer is free after this returns. mode takes the same
      * ChannelMode flags as create. Returns Sound.NULL on failure. The
      * web build decodes FSB only, so a wav or ogg image reports
-     * FMOD_ERR_FORMAT there. Use fromPcm for raw sample data.
+     * FMOD_ERR_FORMAT there. Use fromPcm for raw sample data, or pass an
+     * exinfo with numChannels, defaultFrequency, and format together
+     * with ChannelMode.OPENRAW. exinfo.length is ignored, the byte count
+     * comes from length and the buffer.
      */
-    public static function fromMemory(data:haxe.io.Bytes, mode:Int = 0, length:Int = -1):Sound {
+    public static function fromMemory(data:haxe.io.Bytes, mode:Int = 0, length:Int = -1, ?exinfo:FmodCreateSoundExInfo):Sound {
         if (data == null) return NULL;
         // Same clamp as fromPcm, the HashLink shim cannot see the real size
         var count = length == -1 || length > data.length ? data.length : length;
-        return NativeStudio.core_create_sound_memory(data, count, mode);
+        if (exinfo == null) return NativeStudio.core_create_sound_memory(data, count, mode);
+        packExInfo(exinfo, -1);
+        return NativeStudio.core_create_sound_memory_ex(data, count, mode, exText(exinfo.dlsName), exText(exinfo.encryptionKey),
+            exinfo.fsbGuid == null ? "" : (exinfo.fsbGuid : String));
     }
 
     #if (macro || (js && !haxefmod_html5_allow_unsupported))
@@ -152,19 +222,23 @@ abstract Sound(Int) from Int to Int {
     }
 
     /**
-     * Loop region (needs a looping mode set). Both points are read in
-     * unit, milliseconds unless another FmodTimeUnit is given.
+     * Loop region (needs a looping mode set). loopStart is read in
+     * loopStartType and loopEnd in loopEndType, milliseconds when left
+     * out. A missing loopEndType follows loopStartType.
      */
-    public inline function setLoopPoints(startMs:Int, endMs:Int, unit:FmodTimeUnit = FmodTimeUnit.MS):FmodResult {
-        return NativeStudio.sound_set_loop_points(this, startMs, endMs, unit);
+    public inline function setLoopPoints(loopStart:Int, loopEnd:Int, loopStartType:FmodTimeUnit = FmodTimeUnit.MS, ?loopEndType:FmodTimeUnit):FmodResult {
+        return NativeStudio.sound_set_loop_points(this, loopStart, loopStartType, loopEnd, loopEndType == null ? loopStartType : loopEndType);
     }
 
-    /** The loop region in unit (milliseconds by default), or null on failure. */
-    public function getLoopPoints(unit:FmodTimeUnit = FmodTimeUnit.MS):Null<{startMs:Int, endMs:Int}> {
-        var result:FmodResult = NativeStudio.sound_get_loop_points(this, unit);
+    /**
+     * The loop region, loopStart in loopStartType and loopEnd in
+     * loopEndType (milliseconds when left out, a missing loopEndType
+     * follows loopStartType), or null on failure.
+     */
+    public function getLoopPoints(loopStartType:FmodTimeUnit = FmodTimeUnit.MS, ?loopEndType:FmodTimeUnit):Null<{loopStart:Int, loopEnd:Int}> {
+        var result:FmodResult = NativeStudio.sound_get_loop_points(this, loopStartType, loopEndType == null ? loopStartType : loopEndType);
         if (!result.isOk()) return null;
-        return {startMs: haxefmod.studio.native.Scratch.readI(0),
-            endMs: haxefmod.studio.native.Scratch.readI(1)};
+        return {loopStart: Scratch.readI(0), loopEnd: Scratch.readI(1)};
     }
 
     /** Combines ChannelMode flags. New channels start with the sound's mode. */
@@ -211,27 +285,56 @@ abstract Sound(Int) from Int to Int {
 
     /**
      * Marks a timeline position. Playback crossing it delivers
-     * ChannelEvent.SyncPoint (see Channel.setCallback) with the point's
-     * index in offset order. The offset is read in unit, milliseconds
-     * unless another FmodTimeUnit is given.
+     * ChannelEvent.SyncPoint (see Channel.setCallback). The offset is
+     * read in offsetType, milliseconds unless another FmodTimeUnit is
+     * given. Returns the new point, FmodSyncPoint.NULL on failure (see
+     * StudioSystem.lastResult).
      */
-    public inline function addSyncPoint(offsetMs:Int, name:String, unit:FmodTimeUnit = FmodTimeUnit.MS):FmodResult {
-        return NativeStudio.sound_add_sync_point(this, offsetMs, unit, name);
+    public inline function addSyncPoint(offset:Int, name:String, offsetType:FmodTimeUnit = FmodTimeUnit.MS):FmodSyncPoint {
+        return NativeStudio.sound_add_sync_point(this, offset, offsetType, name);
     }
 
-    public inline function deleteSyncPoint(index:Int):FmodResult {
-        return NativeStudio.sound_delete_sync_point(this, index);
+    /** Removes a point. The points after it move down by one. */
+    public inline function deleteSyncPoint(point:FmodSyncPoint):FmodResult {
+        return NativeStudio.sound_delete_sync_point(this, point);
     }
 
+    /** Number of sync points, 0 on failure. */
     public inline function getSyncPointCount():Int {
         return NativeStudio.sound_get_num_sync_points(this);
     }
 
+    /** Alias of getSyncPointCount under FMOD's name. */
+    public inline function getNumSyncPoints():Int {
+        return NativeStudio.sound_get_num_sync_points(this);
+    }
+
+    /**
+     * The point at index in offset order, FmodSyncPoint.NULL when the
+     * index is out of range (StudioSystem.lastResult reports
+     * FMOD_ERR_INVALID_PARAM).
+     */
+    public function getSyncPoint(index:Int):FmodSyncPoint {
+        if (NativeStudio.sound_get_sync_point_offset(this, index, FmodTimeUnit.MS) < 0) return FmodSyncPoint.NULL;
+        return index;
+    }
+
+    /**
+     * The point's name and its offset in offsetType (milliseconds by
+     * default), or null when the point does not exist.
+     */
+    public function getSyncPointInfo(point:FmodSyncPoint, offsetType:FmodTimeUnit = FmodTimeUnit.MS):Null<{name:String, offset:Int}> {
+        var offset = NativeStudio.sound_get_sync_point_offset(this, point, offsetType);
+        if (offset < 0) return null;
+        return {name: NativeStudio.sound_get_sync_point_name(this, point), offset: offset};
+    }
+
+    @:deprecated("Sound.getSyncPointName is replaced by getSyncPointInfo(point).name")
     public inline function getSyncPointName(index:Int):String {
         return NativeStudio.sound_get_sync_point_name(this, index);
     }
 
-    /** The point's offset in unit (milliseconds by default), or -1 on failure. */
+    @:deprecated("Sound.getSyncPointOffset is replaced by getSyncPointInfo(point, offsetType).offset")
     public inline function getSyncPointOffset(index:Int, unit:FmodTimeUnit = FmodTimeUnit.MS):Int {
         return NativeStudio.sound_get_sync_point_offset(this, index, unit);
     }

@@ -24,8 +24,8 @@ abstract EventDescription(Int) from Int to Int {
         return this != 0 && NativeStudio.evd_is_valid(this);
     }
 
-    /** The event GUID as a string. */
-    public inline function getID():String {
+    /** The event GUID. */
+    public inline function getID():FmodGuid {
         return NativeStudio.evd_get_id(this);
     }
 
@@ -98,7 +98,7 @@ abstract EventDescription(Int) from Int to Int {
      * to the playback types, as on EventInstance.setCallback. Calling again
      * replaces the remembered handler for future instances only.
      */
-    public function setCallback(handler:EventCallbackData->Void, ?mask:Int):Void {
+    public function setCallback(handler:EventCallback, ?mask:Int):Void {
         if (this == 0) return;
         if (handler == null) {
             descriptionCallbacks.remove(this);

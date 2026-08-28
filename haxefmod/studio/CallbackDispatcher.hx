@@ -29,7 +29,7 @@ class CallbackDispatcher {
      */
     public static inline var SYSTEM_TYPE_NAMESPACE:Int = 0x20000000;
 
-    static var handlers:Map<Int, EventCallbackData->Void> = new Map();
+    static var handlers:Map<Int, EventCallback> = new Map();
 
     /**
      * Router consulted before event-instance dispatch. Queue records that
@@ -44,14 +44,21 @@ class CallbackDispatcher {
      * Router for system records, installed by SystemCallbacks when its
      * handler registers. Returns true when the record was consumed.
      */
-    public static var systemRouter:Null<(type:Int, str:String) -> Bool> = null;
+    public static var systemRouter:Null<(type:Int, i1:Int, i2:Int, i3:Int, str:String, str2:String) -> Bool> = null;
+
+    /**
+     * Runs after every drain, on the game thread. PcmStream installs its
+     * read callback pump here, which keeps the core package out of this
+     * class the same way the routers do.
+     */
+    public static var frameHook:Null<Void->Void> = null;
 
     /**
      * Registers a handler for an event instance and tells FMOD which
      * callback types to deliver. Replaces any existing handler. A null
      * handler removes the current registration.
      */
-    public static function setCallback(handle:Int, handler:EventCallbackData->Void, ?mask:Int):Void {
+    public static function setCallback(handle:Int, handler:EventCallback, ?mask:Int):Void {
         if (handle == 0) return;
         if (handler == null) {
             handlers.remove(handle);
@@ -93,11 +100,12 @@ class CallbackDispatcher {
             deliver(NativeStudio.cb_handle(), NativeStudio.cb_type(),
                 NativeStudio.cb_int(0), NativeStudio.cb_int(1), NativeStudio.cb_int(2),
                 NativeStudio.cb_int(3), NativeStudio.cb_int(4),
-                NativeStudio.cb_float(), NativeStudio.cb_string());
+                NativeStudio.cb_float(), NativeStudio.cb_string(), NativeStudio.cb_string2());
         }
         if (NativeStudio.cb_take_overflow()) {
             trace("Warn: FMOD - callback event queue overflowed. Oldest events were dropped.");
         }
+        if (frameHook != null) frameHook();
     }
 
     /**
@@ -106,7 +114,7 @@ class CallbackDispatcher {
      * release instances): delivery looks up the handler per event and never
      * iterates the registration map. Public for unit tests.
      */
-    public static function deliver(handle:Int, type:Int, i1:Int, i2:Int, i3:Int, i4:Int, i5:Int, f1:Float, str:String):Void {
+    public static function deliver(handle:Int, type:Int, i1:Int, i2:Int, i3:Int, i4:Int, i5:Int, f1:Float, str:String, str2:String = ""):Void {
         // Channel-domain records never reach event dispatch: routed when a
         // router is installed, dropped otherwise
         if ((type & CHANNEL_TYPE_NAMESPACE) != 0) {
@@ -115,7 +123,7 @@ class CallbackDispatcher {
         }
         // Same for system records
         if ((type & SYSTEM_TYPE_NAMESPACE) != 0) {
-            if (systemRouter != null) systemRouter(type, str);
+            if (systemRouter != null) systemRouter(type, i1, i2, i3, str, str2);
             return;
         }
         var handler = handlers.get(handle);

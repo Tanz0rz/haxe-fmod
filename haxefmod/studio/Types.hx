@@ -72,6 +72,114 @@ enum abstract FmodUserPropertyType(Int) from Int to Int {
     var STRING = 3;
 }
 
+/** FMOD_BOOL, an int in C. Haxe Bool crosses the boundary as 0 or 1. */
+typedef FmodBool = Bool;
+
+/**
+ * FMOD_GUID. A 128-bit identifier held in the text form FMOD Studio
+ * shows, "{xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}" in lower case. A plain
+ * String converts both ways, so a generated constant or a literal can be
+ * passed wherever a FmodGuid is taken. data1, data2, data3, and data4
+ * read the four C fields out of the text. Two GUIDs are equal when their
+ * hex digits match, braces and case aside.
+ */
+abstract FmodGuid(String) from String to String {
+    /** The all-zero GUID, what a failed lookup returns. */
+    public static inline var NULL:FmodGuid = cast "{00000000-0000-0000-0000-000000000000}";
+
+    inline function new(text:String) this = text;
+
+    /**
+     * Builds one from text, with or without braces, any case. Returns
+     * NULL for anything that is not five hex groups of 8-4-4-4-12.
+     */
+    public static function fromString(text:String):FmodGuid {
+        var digits = hexDigits(text);
+        if (digits == null) return NULL;
+        return new FmodGuid("{" + digits.substr(0, 8) + "-" + digits.substr(8, 4) + "-" + digits.substr(12, 4)
+            + "-" + digits.substr(16, 4) + "-" + digits.substr(20, 12) + "}");
+    }
+
+    /** Builds one from the four C fields, data4 being eight bytes. */
+    public static function fromFields(data1:Int, data2:Int, data3:Int, data4:Array<Int>):FmodGuid {
+        var text = StringTools.hex(data1, 8) + "-" + StringTools.hex(data2 & 0xFFFF, 4) + "-" + StringTools.hex(data3 & 0xFFFF, 4) + "-";
+        for (i in 0...8) {
+            if (i == 2) text += "-";
+            text += StringTools.hex(data4 != null && i < data4.length ? data4[i] & 0xFF : 0, 2);
+        }
+        return fromString(text);
+    }
+
+    /** The braced lower-case text. */
+    public inline function toString():String return this;
+
+    /** The Data1 field, the first 32 bits. */
+    public var data1(get, never):Int;
+    function get_data1():Int return readHex(0, 8);
+
+    /** The Data2 field, the next 16 bits. */
+    public var data2(get, never):Int;
+    function get_data2():Int return readHex(8, 4);
+
+    /** The Data3 field, the 16 bits after Data2. */
+    public var data3(get, never):Int;
+    function get_data3():Int return readHex(12, 4);
+
+    /** The Data4 field, the last eight bytes in order. */
+    public var data4(get, never):Array<Int>;
+    function get_data4():Array<Int> return [for (i in 0...8) readHex(16 + i * 2, 2)];
+
+    /** True for NULL, an empty string, or text that is not a GUID. */
+    public function isNull():Bool {
+        var digits = hexDigits(this);
+        if (digits == null) return true;
+        for (i in 0...digits.length) if (digits.charCodeAt(i) != "0".code) return false;
+        return true;
+    }
+
+    /** True when the hex digits match, braces and case aside. */
+    public function equals(other:FmodGuid):Bool {
+        var a = hexDigits(this);
+        var b = hexDigits(other);
+        if (a == null || b == null) return a == b && this == (other : String);
+        return a == b;
+    }
+
+    @:op(A == B) static inline function eq(a:FmodGuid, b:FmodGuid):Bool return a.equals(b);
+    @:op(A != B) static inline function neq(a:FmodGuid, b:FmodGuid):Bool return !a.equals(b);
+
+    function readHex(start:Int, count:Int):Int {
+        var digits = hexDigits(this);
+        if (digits == null) return 0;
+        return Std.parseInt("0x" + digits.substr(start, count));
+    }
+
+    /** The 32 hex digits in lower case, or null when the text is not a GUID. */
+    static function hexDigits(text:String):Null<String> {
+        if (text == null) return null;
+        var s = StringTools.trim(text).toLowerCase();
+        if (s.length > 0 && s.charAt(0) == "{") {
+            if (s.charAt(s.length - 1) != "}") return null;
+            s = s.substr(1, s.length - 2);
+        }
+        var groups = s.split("-");
+        var widths = [8, 4, 4, 4, 12];
+        if (groups.length != 5) return null;
+        var out = "";
+        for (i in 0...5) {
+            var g = groups[i];
+            if (g.length != widths[i]) return null;
+            for (j in 0...g.length) {
+                var c = g.charCodeAt(j);
+                var hex = (c >= "0".code && c <= "9".code) || (c >= "a".code && c <= "f".code);
+                if (!hex) return null;
+            }
+            out += g;
+        }
+        return out;
+    }
+}
+
 /** FMOD_STUDIO_PARAMETER_ID (two opaque ints) */
 typedef FmodParameterId = {
     var data1:Int;
@@ -87,8 +195,8 @@ typedef FmodParameterDescription = {
     var defaultValue:Float;
     var type:FmodParameterType;
     var flags:Int;
-    /** The parameter's GUID in FMOD Studio's text form, the same form lookupID returns. */
-    var guid:String;
+    /** The parameter's GUID, the same value lookupID returns for its path. */
+    var guid:FmodGuid;
 }
 
 /** A 3D vector (FMOD_VECTOR) */
@@ -810,7 +918,7 @@ enum abstract FmodDspPanSurroundFlags(Int) from Int to Int {
     var ROTATION_NOT_BIASED = 1;
 }
 
-/** FMOD_ERRORCALLBACK_INSTANCETYPE, the object kind an FMOD error callback names. Error callbacks are not exposed, every call returns its FmodResult. */
+/** FMOD_ERRORCALLBACK_INSTANCETYPE, the object kind named by the instanceType field of FmodErrorCallbackInfo. */
 enum abstract FmodErrorCallbackInstanceType(Int) from Int to Int {
     var NONE = 0;
     var SYSTEM = 1;
@@ -853,7 +961,7 @@ enum abstract FmodOutputMethod(Int) from Int to Int {
     var MIX_BUFFERED = 1;
 }
 
-/** FMOD_SYSTEM_CALLBACK_TYPE bits, the core system callback mask. StudioSystem.setSystemCallback delivers DEVICELISTCHANGED and DEVICELOST as SystemEvent, the rest are not delivered. */
+/** FMOD_SYSTEM_CALLBACK_TYPE bits, the core system callback mask. StudioSystem.setSystemCallback delivers DEVICELISTCHANGED, DEVICELOST, and ERROR as SystemEvent, the rest are not delivered. */
 enum abstract FmodSystemCallbackType(Int) from Int to Int {
     var DEVICELISTCHANGED = 0x00000001;
     var DEVICELOST = 0x00000002;
@@ -882,4 +990,107 @@ enum abstract FmodStudioSystemCallbackType(Int) from Int to Int {
     var LIVEUPDATE_CONNECTED = 0x00000008;
     var LIVEUPDATE_DISCONNECTED = 0x00000010;
     var ALL = 0xFFFFFFFF;
+}
+
+/**
+ * FMOD_VERSION, the SDK version haxefmod is built against as FMOD encodes
+ * it: 0xAAAABBCC for AAAA.BB.CC. StudioSystem.getVersion reports the
+ * version the running build loaded. tests/native/test_faxe_enums.c pins
+ * it to the header.
+ */
+class FmodVersion {
+    /** FMOD_VERSION of the linked SDK, 2.03.12. */
+    public static inline var VERSION = 0x00020312;
+}
+
+/**
+ * FMOD_CREATESOUNDEXINFO, the optional details of a Sound.create or
+ * Sound.fromMemory call. Every field is optional and a missing one keeps
+ * FMOD's default. skip: cbsize (set by the shim), inclusionlistnum (the
+ * length of inclusionList), and the callback and pointer fields
+ * (pcmreadcallback, pcmsetposcallback, nonblockcallback, userdata,
+ * fileuseropen, fileuserclose, fileuserread, fileuserseek,
+ * fileuserasyncread, fileuserasynccancel, fileuserdata) because FMOD
+ * calls those on its own threads, where no Haxe code can run. PcmStream
+ * feeds generated audio from the game thread instead.
+ */
+typedef FmodCreateSoundExInfo = {
+    /** Bytes to read from a memory image or a file, 0 for the whole thing. fromMemory sets it to the buffer length when left out. */
+    @:optional var length:Int;
+    /** Byte offset to start reading a file at. */
+    @:optional var fileOffset:Int;
+    /** Channel count of raw PCM (ChannelMode.OPENRAW). */
+    @:optional var numChannels:Int;
+    /** Sample rate of raw PCM (ChannelMode.OPENRAW). */
+    @:optional var defaultFrequency:Int;
+    /** Sample format of raw PCM (ChannelMode.OPENRAW). */
+    @:optional var format:FmodSoundFormat;
+    /** Decode buffer size in samples for a stream. */
+    @:optional var decodeBufferSize:Int;
+    /** The subsound an FSB or multi-stream file starts on. */
+    @:optional var initialSubsound:Int;
+    /** Subsound count for a user-created container sound. */
+    @:optional var numSubsounds:Int;
+    /** Subsound indices to load, the rest stay unloaded. */
+    @:optional var inclusionList:Array<Int>;
+    /** DLS sound bank file for MIDI playback. */
+    @:optional var dlsName:String;
+    /** Key for an encrypted FSB. */
+    @:optional var encryptionKey:String;
+    /** Voice cap for a MIDI or tracker sound. */
+    @:optional var maxPolyphony:Int;
+    /** The codec to try first, skipping FMOD's format sniffing. */
+    @:optional var suggestedSoundType:FmodSoundType;
+    /** Buffer size in bytes for the file reader of a stream. */
+    @:optional var fileBufferSize:Int;
+    /** Speaker order of the source data. */
+    @:optional var channelOrder:FmodChannelOrder;
+    /** The group the new sound joins, SoundGroup.master() when left out. */
+    @:optional var initialSoundGroup:haxefmod.core.SoundGroup;
+    /** Where a stream starts, in initialSeekPosType units. */
+    @:optional var initialSeekPosition:Int;
+    /** The unit of initialSeekPosition, milliseconds when left out. */
+    @:optional var initialSeekPosType:FmodTimeUnit;
+    /** Nonzero reads the file through the platform file system even when a custom one is installed. */
+    @:optional var ignoreSetFileSystem:Int;
+    /** iOS AudioQueue codec policy. */
+    @:optional var audioQueuePolicy:Int;
+    /** Granularity in milliseconds of MIDI note timing. */
+    @:optional var minMidiGranularity:Int;
+    /** Which of FMOD's nonblocking threads handles a ChannelMode.NONBLOCKING load, 0 to 4. */
+    @:optional var nonBlockThreadId:Int;
+    /** The GUID of the FSB subsound to load, for FSB files that carry GUIDs. */
+    @:optional var fsbGuid:FmodGuid;
+}
+
+/**
+ * FMOD_ERRORCALLBACK_INFO, what FMOD reports when a call fails while
+ * SystemCallbacks.CORE_ERROR is in the core mask, delivered as
+ * SystemEvent.Error. instance is the haxefmod handle of the object the
+ * call was made on, 0 when the object has no handle or was the system.
+ */
+typedef FmodErrorCallbackInfo = {
+    /** The result the failing call returned. */
+    var result:FmodResult;
+    /** The kind of object the call was made on. */
+    var instanceType:FmodErrorCallbackInstanceType;
+    /** The handle of that object, castable to its abstract type, 0 when unknown. */
+    var instance:Int;
+    /** The FMOD function that failed, for example "System::createSound". */
+    var functionName:String;
+    /** The arguments as FMOD prints them, cut at 127 characters. */
+    var functionParams:String;
+}
+
+/**
+ * FMOD_PLUGINLIST, one entry of a static plugin list. A static plugin
+ * list holds pointers to plugin descriptions written in C and is linked
+ * into the binary, a step no Haxe build performs. haxefmod loads compiled
+ * plugins with StudioSystem.loadPlugin instead, so no call takes or
+ * returns this type.
+ */
+typedef FmodPluginList = {
+    var type:FmodPluginType;
+    /** The address of the plugin description, always 0 on the Haxe side. */
+    var description:Int;
 }
