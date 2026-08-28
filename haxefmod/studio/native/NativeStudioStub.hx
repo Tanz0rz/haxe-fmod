@@ -546,6 +546,37 @@ class NativeStudioStub {
     public static function sys_is_recording(id:Int):Bool return false;
     public static function sys_get_record_position(id:Int):Int return -1;
 
+    // Custom 3D rolloff and geometry
+    public static function chan_set_3d_custom_rolloff(handle:Int, data:haxe.io.Bytes, count:Int):Int return ERR_UNSUPPORTED;
+    public static function chan_get_3d_custom_rolloff(handle:Int):Int return -1;
+    public static function cg_set_3d_custom_rolloff(handle:Int, data:haxe.io.Bytes, count:Int):Int return ERR_UNSUPPORTED;
+    public static function cg_get_3d_custom_rolloff(handle:Int):Int return -1;
+    public static function core_sound_set_3d_custom_rolloff(handle:Int, data:haxe.io.Bytes, count:Int):Int return ERR_UNSUPPORTED;
+    public static function core_sound_get_3d_custom_rolloff(handle:Int):Int return -1;
+    public static function sys_create_geometry(maxPolygons:Int, maxVertices:Int):Int return 0;
+    public static function sys_set_geometry_settings(maxWorldSize:Float):Int return ERR_UNSUPPORTED;
+    public static function sys_get_geometry_settings():Float return 0;
+    public static function sys_get_geometry_occlusion(lx:Float, ly:Float, lz:Float, sx:Float, sy:Float, sz:Float):Int return ERR_UNSUPPORTED;
+    public static function sys_load_geometry(data:haxe.io.Bytes, len:Int):Int return 0;
+    public static function geo_release(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function geo_add_polygon(handle:Int, direct:Float, reverb:Float, doubleSided:Bool, vertices:haxe.io.Bytes, count:Int):Int return -1;
+    public static function geo_get_num_polygons(handle:Int):Int return -1;
+    public static function geo_get_max_polygons(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function geo_get_polygon_num_vertices(handle:Int, index:Int):Int return -1;
+    public static function geo_set_polygon_vertex(handle:Int, index:Int, vertexIndex:Int, x:Float, y:Float, z:Float):Int return ERR_UNSUPPORTED;
+    public static function geo_get_polygon_vertex(handle:Int, index:Int, vertexIndex:Int):Int return ERR_UNSUPPORTED;
+    public static function geo_set_polygon_attributes(handle:Int, index:Int, direct:Float, reverb:Float, doubleSided:Bool):Int return ERR_UNSUPPORTED;
+    public static function geo_get_polygon_attributes(handle:Int, index:Int):Int return ERR_UNSUPPORTED;
+    public static function geo_set_active(handle:Int, active:Bool):Int return ERR_UNSUPPORTED;
+    public static function geo_get_active(handle:Int):Bool return false;
+    public static function geo_set_rotation(handle:Int, fx:Float, fy:Float, fz:Float, ux:Float, uy:Float, uz:Float):Int return ERR_UNSUPPORTED;
+    public static function geo_get_rotation(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function geo_set_position(handle:Int, x:Float, y:Float, z:Float):Int return ERR_UNSUPPORTED;
+    public static function geo_get_position(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function geo_set_scale(handle:Int, x:Float, y:Float, z:Float):Int return ERR_UNSUPPORTED;
+    public static function geo_get_scale(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function geo_save(handle:Int, data:haxe.io.Bytes, len:Int):Int return -1;
+
     // Debug
     public static function debug_live_handle_count():Int return 0;
     public static function binding_abi_version():Int return 0;

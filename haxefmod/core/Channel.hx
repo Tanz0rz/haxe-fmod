@@ -1,6 +1,7 @@
 package haxefmod.core;
 
 import haxefmod.studio.FmodResult;
+import haxefmod.studio.Types.FmodVector;
 import haxefmod.studio.native.NativeStudio;
 import haxefmod.studio.native.Scratch;
 
@@ -165,6 +166,30 @@ abstract Channel(Int) from Int to Int {
         var result:FmodResult = NativeStudio.chan_get_3d_distance_filter(this);
         if (!result.isOk()) return null;
         return {custom: Scratch.readF(0) != 0, customLevel: Scratch.readF(1), centerFreq: Scratch.readF(2)};
+    }
+
+    /**
+     * Replaces the distance rolloff curve with the given points. Each
+     * point's x is the distance and y the volume (0 to 1), sorted by
+     * distance. An empty array restores the mode-driven rolloff
+     * (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED). The
+     * binding keeps its own copy of the points for the channel's
+     * lifetime.
+     */
+    public function set3DCustomRolloff(points:Array<FmodVector>):FmodResult {
+        var packed = Scratch.packVectors(points);
+        return NativeStudio.chan_set_3d_custom_rolloff(this, packed, packed == null ? 0 : points.length);
+    }
+
+    /**
+     * The custom rolloff points, empty when none are set or on failure
+     * (see StudioSystem.lastResult). Unsupported in HTML5, always empty
+     * there. Capped at Scratch.VECTOR_CAPACITY points.
+     */
+    public function get3DCustomRolloff():Array<FmodVector> {
+        var count = NativeStudio.chan_get_3d_custom_rolloff(this);
+        if (count <= 0) return [];
+        return Scratch.readVectors(count);
     }
 
     /** Speaker spread of a 3D sound in degrees (0 = point source). */

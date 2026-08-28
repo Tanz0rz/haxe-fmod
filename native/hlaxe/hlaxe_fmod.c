@@ -4945,6 +4945,405 @@ HL_PRIM int HL_NAME(sys_get_record_position)(int id) {
 }
 DEFINE_PRIM(_I32, sys_get_record_position, _I32);
 
+//// Custom 3D rolloff
+
+// Copies packed float32 xyz triples into a malloc'd FMOD_VECTOR array the
+// slot owns until the handle dies. NULL with count 0 means clear.
+static FMOD_VECTOR* rolloff_copy(vbyte* data, int count) {
+    FMOD_VECTOR* points;
+    const float* f = (const float*)data;
+    int i;
+    if (!data || count <= 0) return NULL;
+    points = (FMOD_VECTOR*)malloc(sizeof(FMOD_VECTOR) * (size_t)count);
+    if (!points) return NULL;
+    for (i = 0; i < count; i++) {
+        points[i].x = f[i * 3];
+        points[i].y = f[i * 3 + 1];
+        points[i].z = f[i * 3 + 2];
+    }
+    return points;
+}
+
+// out = double[count*3], capped at FAXE_LIST_MAX doubles. Returns the count.
+static int rolloff_unpack(FMOD_VECTOR* points, int count, double* out) {
+    int i;
+    if (!points || count < 0) count = 0;
+    if (count > FAXE_LIST_MAX / 3) count = FAXE_LIST_MAX / 3;
+    for (i = 0; i < count; i++) {
+        out[i * 3] = (double)points[i].x;
+        out[i * 3 + 1] = (double)points[i].y;
+        out[i * 3 + 2] = (double)points[i].z;
+    }
+    return count;
+}
+
+HL_PRIM int HL_NAME(chan_set_3d_custom_rolloff)(int h, vbyte* data, int count) {
+    FMOD_CHANNEL* channel = resolve_channel(h);
+    FMOD_VECTOR* points;
+    if (!channel) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    if (count < 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    points = rolloff_copy(data, count);
+    if (count > 0 && !points) { gLastResult = FMOD_ERR_MEMORY; return (int)gLastResult; }
+    gLastResult = FMOD_Channel_Set3DCustomRolloff(channel, points, points ? count : 0);
+    if (gLastResult != FMOD_OK) { free(points); return (int)gLastResult; }
+    faxe_handle_set_aux(h, points);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, chan_set_3d_custom_rolloff, _I32 _BYTES _I32);
+
+HL_PRIM int HL_NAME(chan_get_3d_custom_rolloff)(int h, vbyte* out) {
+    FMOD_CHANNEL* channel = resolve_channel(h);
+    FMOD_VECTOR* points = NULL;
+    int count = 0;
+    if (!channel) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    gLastResult = FMOD_Channel_Get3DCustomRolloff(channel, &points, &count);
+    if (gLastResult != FMOD_OK) return -1;
+    return rolloff_unpack(points, count, (double*)out);
+}
+DEFINE_PRIM(_I32, chan_get_3d_custom_rolloff, _I32 _BYTES);
+
+HL_PRIM int HL_NAME(cg_set_3d_custom_rolloff)(int h, vbyte* data, int count) {
+    FMOD_CHANNELGROUP* group = resolve_changroup(h);
+    FMOD_VECTOR* points;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    if (count < 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    points = rolloff_copy(data, count);
+    if (count > 0 && !points) { gLastResult = FMOD_ERR_MEMORY; return (int)gLastResult; }
+    gLastResult = FMOD_ChannelGroup_Set3DCustomRolloff(group, points, points ? count : 0);
+    if (gLastResult != FMOD_OK) { free(points); return (int)gLastResult; }
+    faxe_handle_set_aux(h, points);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, cg_set_3d_custom_rolloff, _I32 _BYTES _I32);
+
+HL_PRIM int HL_NAME(cg_get_3d_custom_rolloff)(int h, vbyte* out) {
+    FMOD_CHANNELGROUP* group = resolve_changroup(h);
+    FMOD_VECTOR* points = NULL;
+    int count = 0;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    gLastResult = FMOD_ChannelGroup_Get3DCustomRolloff(group, &points, &count);
+    if (gLastResult != FMOD_OK) return -1;
+    return rolloff_unpack(points, count, (double*)out);
+}
+DEFINE_PRIM(_I32, cg_get_3d_custom_rolloff, _I32 _BYTES);
+
+HL_PRIM int HL_NAME(core_sound_set_3d_custom_rolloff)(int h, vbyte* data, int count) {
+    FMOD_SOUND* sound = resolve_core_sound(h);
+    FMOD_VECTOR* points;
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    if (count < 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    points = rolloff_copy(data, count);
+    if (count > 0 && !points) { gLastResult = FMOD_ERR_MEMORY; return (int)gLastResult; }
+    gLastResult = FMOD_Sound_Set3DCustomRolloff(sound, points, points ? count : 0);
+    if (gLastResult != FMOD_OK) { free(points); return (int)gLastResult; }
+    faxe_handle_set_aux(h, points);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, core_sound_set_3d_custom_rolloff, _I32 _BYTES _I32);
+
+HL_PRIM int HL_NAME(core_sound_get_3d_custom_rolloff)(int h, vbyte* out) {
+    FMOD_SOUND* sound = resolve_core_sound(h);
+    FMOD_VECTOR* points = NULL;
+    int count = 0;
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    gLastResult = FMOD_Sound_Get3DCustomRolloff(sound, &points, &count);
+    if (gLastResult != FMOD_OK) return -1;
+    return rolloff_unpack(points, count, (double*)out);
+}
+DEFINE_PRIM(_I32, core_sound_get_3d_custom_rolloff, _I32 _BYTES);
+
+//// Geometry
+
+static FMOD_GEOMETRY* resolve_geometry(int h) {
+    return (FMOD_GEOMETRY*)faxe_handle_resolve(h, FAXE_TYPE_GEOMETRY);
+}
+
+static int geometry_handle(FMOD_GEOMETRY* geometry) {
+    int handle = faxe_handle_alloc(geometry, FAXE_TYPE_GEOMETRY);
+    if (handle == 0) {
+        gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
+        FMOD_Geometry_Release(geometry);
+    }
+    return handle;
+}
+
+HL_PRIM int HL_NAME(sys_create_geometry)(int maxPolygons, int maxVertices) {
+    FMOD_GEOMETRY* geometry = NULL;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    gLastResult = FMOD_System_CreateGeometry(gCoreSystem, maxPolygons, maxVertices, &geometry);
+    if (gLastResult != FMOD_OK || !geometry) return 0;
+    return geometry_handle(geometry);
+}
+DEFINE_PRIM(_I32, sys_create_geometry, _I32 _I32);
+
+HL_PRIM int HL_NAME(sys_set_geometry_settings)(double maxWorldSize) {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = FMOD_System_SetGeometrySettings(gCoreSystem, (float)maxWorldSize);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, sys_set_geometry_settings, _F64);
+
+HL_PRIM double HL_NAME(sys_get_geometry_settings)() {
+    float maxWorldSize = 0.0f;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0.0; }
+    gLastResult = FMOD_System_GetGeometrySettings(gCoreSystem, &maxWorldSize);
+    if (gLastResult != FMOD_OK) return 0.0;
+    return (double)maxWorldSize;
+}
+DEFINE_PRIM(_F64, sys_get_geometry_settings, _NO_ARG);
+
+// out = double[2]: direct, reverb
+HL_PRIM int HL_NAME(sys_get_geometry_occlusion)(double lx, double ly, double lz,
+        double sx, double sy, double sz, vbyte* out) {
+    FMOD_VECTOR listener;
+    FMOD_VECTOR source;
+    float direct = 0.0f;
+    float reverb = 0.0f;
+    double* outFloats = (double*)out;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    listener.x = (float)lx; listener.y = (float)ly; listener.z = (float)lz;
+    source.x = (float)sx; source.y = (float)sy; source.z = (float)sz;
+    gLastResult = FMOD_System_GetGeometryOcclusion(gCoreSystem, &listener, &source, &direct, &reverb);
+    outFloats[0] = (double)direct;
+    outFloats[1] = (double)reverb;
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, sys_get_geometry_occlusion, _F64 _F64 _F64 _F64 _F64 _F64 _BYTES);
+
+HL_PRIM int HL_NAME(sys_load_geometry)(vbyte* data, int len) {
+    FMOD_GEOMETRY* geometry = NULL;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    if (!data || len <= 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
+    gLastResult = FMOD_System_LoadGeometry(gCoreSystem, data, len, &geometry);
+    if (gLastResult != FMOD_OK || !geometry) return 0;
+    return geometry_handle(geometry);
+}
+DEFINE_PRIM(_I32, sys_load_geometry, _BYTES _I32);
+
+HL_PRIM int HL_NAME(geo_release)(int h) {
+    FMOD_GEOMETRY* geometry = resolve_geometry(h);
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_Geometry_Release(geometry);
+    if (gLastResult == FMOD_OK) faxe_handle_free(h);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, geo_release, _I32);
+
+// vertices = packed float32 xyz triples. Returns the polygon index, -1 on failure.
+HL_PRIM int HL_NAME(geo_add_polygon)(int h, double direct, double reverb, bool doubleSided,
+        vbyte* vertices, int count) {
+    FMOD_GEOMETRY* geometry = resolve_geometry(h);
+    FMOD_VECTOR* points;
+    int index = -1;
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    if (!vertices || count < 3) { gLastResult = FMOD_ERR_INVALID_PARAM; return -1; }
+    points = rolloff_copy(vertices, count);
+    if (!points) { gLastResult = FMOD_ERR_MEMORY; return -1; }
+    gLastResult = FMOD_Geometry_AddPolygon(geometry, (float)direct, (float)reverb,
+        doubleSided ? 1 : 0, count, points, &index);
+    free(points);
+    if (gLastResult != FMOD_OK) return -1;
+    return index;
+}
+DEFINE_PRIM(_I32, geo_add_polygon, _I32 _F64 _F64 _BOOL _BYTES _I32);
+
+HL_PRIM int HL_NAME(geo_get_num_polygons)(int h) {
+    FMOD_GEOMETRY* geometry = resolve_geometry(h);
+    int count = 0;
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    gLastResult = FMOD_Geometry_GetNumPolygons(geometry, &count);
+    if (gLastResult != FMOD_OK) return -1;
+    return count;
+}
+DEFINE_PRIM(_I32, geo_get_num_polygons, _I32);
+
+// out = int[2]: max polygons, max vertices
+HL_PRIM int HL_NAME(geo_get_max_polygons)(int h, vbyte* out) {
+    FMOD_GEOMETRY* geometry = resolve_geometry(h);
+    int maxPolygons = 0;
+    int maxVertices = 0;
+    int* outInts = (int*)out;
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_Geometry_GetMaxPolygons(geometry, &maxPolygons, &maxVertices);
+    outInts[0] = maxPolygons;
+    outInts[1] = maxVertices;
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, geo_get_max_polygons, _I32 _BYTES);
+
+HL_PRIM int HL_NAME(geo_get_polygon_num_vertices)(int h, int index) {
+    FMOD_GEOMETRY* geometry = resolve_geometry(h);
+    int count = 0;
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    gLastResult = FMOD_Geometry_GetPolygonNumVertices(geometry, index, &count);
+    if (gLastResult != FMOD_OK) return -1;
+    return count;
+}
+DEFINE_PRIM(_I32, geo_get_polygon_num_vertices, _I32 _I32);
+
+HL_PRIM int HL_NAME(geo_set_polygon_vertex)(int h, int index, int vertexIndex, double x, double y, double z) {
+    FMOD_GEOMETRY* geometry = resolve_geometry(h);
+    FMOD_VECTOR vertex;
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    vertex.x = (float)x; vertex.y = (float)y; vertex.z = (float)z;
+    gLastResult = FMOD_Geometry_SetPolygonVertex(geometry, index, vertexIndex, &vertex);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, geo_set_polygon_vertex, _I32 _I32 _I32 _F64 _F64 _F64);
+
+// out = double[3]: x, y, z
+HL_PRIM int HL_NAME(geo_get_polygon_vertex)(int h, int index, int vertexIndex, vbyte* out) {
+    FMOD_GEOMETRY* geometry = resolve_geometry(h);
+    FMOD_VECTOR vertex;
+    double* outFloats = (double*)out;
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    memset(&vertex, 0, sizeof(vertex));
+    gLastResult = FMOD_Geometry_GetPolygonVertex(geometry, index, vertexIndex, &vertex);
+    outFloats[0] = (double)vertex.x;
+    outFloats[1] = (double)vertex.y;
+    outFloats[2] = (double)vertex.z;
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, geo_get_polygon_vertex, _I32 _I32 _I32 _BYTES);
+
+HL_PRIM int HL_NAME(geo_set_polygon_attributes)(int h, int index, double direct, double reverb, bool doubleSided) {
+    FMOD_GEOMETRY* geometry = resolve_geometry(h);
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_Geometry_SetPolygonAttributes(geometry, index, (float)direct, (float)reverb,
+        doubleSided ? 1 : 0);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, geo_set_polygon_attributes, _I32 _I32 _F64 _F64 _BOOL);
+
+// out = double[3]: direct, reverb, doubleSided (1.0 or 0.0)
+HL_PRIM int HL_NAME(geo_get_polygon_attributes)(int h, int index, vbyte* out) {
+    FMOD_GEOMETRY* geometry = resolve_geometry(h);
+    float direct = 0.0f;
+    float reverb = 0.0f;
+    FMOD_BOOL doubleSided = 0;
+    double* outFloats = (double*)out;
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_Geometry_GetPolygonAttributes(geometry, index, &direct, &reverb, &doubleSided);
+    outFloats[0] = (double)direct;
+    outFloats[1] = (double)reverb;
+    outFloats[2] = doubleSided ? 1.0 : 0.0;
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, geo_get_polygon_attributes, _I32 _I32 _BYTES);
+
+HL_PRIM int HL_NAME(geo_set_active)(int h, bool active) {
+    FMOD_GEOMETRY* geometry = resolve_geometry(h);
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_Geometry_SetActive(geometry, active ? 1 : 0);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, geo_set_active, _I32 _BOOL);
+
+HL_PRIM bool HL_NAME(geo_get_active)(int h) {
+    FMOD_GEOMETRY* geometry = resolve_geometry(h);
+    FMOD_BOOL active = 0;
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return false; }
+    gLastResult = FMOD_Geometry_GetActive(geometry, &active);
+    return active != 0;
+}
+DEFINE_PRIM(_BOOL, geo_get_active, _I32);
+
+HL_PRIM int HL_NAME(geo_set_rotation)(int h, double fx, double fy, double fz, double ux, double uy, double uz) {
+    FMOD_GEOMETRY* geometry = resolve_geometry(h);
+    FMOD_VECTOR forward;
+    FMOD_VECTOR up;
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    forward.x = (float)fx; forward.y = (float)fy; forward.z = (float)fz;
+    up.x = (float)ux; up.y = (float)uy; up.z = (float)uz;
+    gLastResult = FMOD_Geometry_SetRotation(geometry, &forward, &up);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, geo_set_rotation, _I32 _F64 _F64 _F64 _F64 _F64 _F64);
+
+// out = double[6]: forward xyz, up xyz
+HL_PRIM int HL_NAME(geo_get_rotation)(int h, vbyte* out) {
+    FMOD_GEOMETRY* geometry = resolve_geometry(h);
+    FMOD_VECTOR forward;
+    FMOD_VECTOR up;
+    double* outFloats = (double*)out;
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    memset(&forward, 0, sizeof(forward));
+    memset(&up, 0, sizeof(up));
+    gLastResult = FMOD_Geometry_GetRotation(geometry, &forward, &up);
+    outFloats[0] = (double)forward.x; outFloats[1] = (double)forward.y; outFloats[2] = (double)forward.z;
+    outFloats[3] = (double)up.x; outFloats[4] = (double)up.y; outFloats[5] = (double)up.z;
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, geo_get_rotation, _I32 _BYTES);
+
+HL_PRIM int HL_NAME(geo_set_position)(int h, double x, double y, double z) {
+    FMOD_GEOMETRY* geometry = resolve_geometry(h);
+    FMOD_VECTOR position;
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    position.x = (float)x; position.y = (float)y; position.z = (float)z;
+    gLastResult = FMOD_Geometry_SetPosition(geometry, &position);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, geo_set_position, _I32 _F64 _F64 _F64);
+
+// out = double[3]: x, y, z
+HL_PRIM int HL_NAME(geo_get_position)(int h, vbyte* out) {
+    FMOD_GEOMETRY* geometry = resolve_geometry(h);
+    FMOD_VECTOR position;
+    double* outFloats = (double*)out;
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    memset(&position, 0, sizeof(position));
+    gLastResult = FMOD_Geometry_GetPosition(geometry, &position);
+    outFloats[0] = (double)position.x;
+    outFloats[1] = (double)position.y;
+    outFloats[2] = (double)position.z;
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, geo_get_position, _I32 _BYTES);
+
+HL_PRIM int HL_NAME(geo_set_scale)(int h, double x, double y, double z) {
+    FMOD_GEOMETRY* geometry = resolve_geometry(h);
+    FMOD_VECTOR scale;
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    scale.x = (float)x; scale.y = (float)y; scale.z = (float)z;
+    gLastResult = FMOD_Geometry_SetScale(geometry, &scale);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, geo_set_scale, _I32 _F64 _F64 _F64);
+
+// out = double[3]: x, y, z
+HL_PRIM int HL_NAME(geo_get_scale)(int h, vbyte* out) {
+    FMOD_GEOMETRY* geometry = resolve_geometry(h);
+    FMOD_VECTOR scale;
+    double* outFloats = (double*)out;
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    memset(&scale, 0, sizeof(scale));
+    gLastResult = FMOD_Geometry_GetScale(geometry, &scale);
+    outFloats[0] = (double)scale.x;
+    outFloats[1] = (double)scale.y;
+    outFloats[2] = (double)scale.z;
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, geo_get_scale, _I32 _BYTES);
+
+// Returns the serialized size. A null buffer (or len 0) only sizes, so the
+// Haxe wrapper calls twice. A buffer shorter than the size is rejected
+// before FMOD writes anything. The buffer length is trusted, the wrapper
+// allocates it to the size it was just told.
+HL_PRIM int HL_NAME(geo_save)(int h, vbyte* data, int len) {
+    FMOD_GEOMETRY* geometry = resolve_geometry(h);
+    int size = 0;
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    gLastResult = FMOD_Geometry_Save(geometry, NULL, &size);
+    if (gLastResult != FMOD_OK) return -1;
+    if (!data || len <= 0) return size;
+    if (len < size) { gLastResult = FMOD_ERR_INVALID_PARAM; return -1; }
+    gLastResult = FMOD_Geometry_Save(geometry, data, &size);
+    if (gLastResult != FMOD_OK) return -1;
+    return size;
+}
+DEFINE_PRIM(_I32, geo_save, _I32 _BYTES _I32);
+
 //// Debug
 
 HL_PRIM int HL_NAME(debug_live_handle_count)() {

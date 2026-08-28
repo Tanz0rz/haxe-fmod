@@ -342,6 +342,39 @@ extern int fmod_sys_mixer_resume();
 extern int fmod_sys_get_software_format(::Array<int> ibuf);
 extern int fmod_dsp_get_cpu_usage(int handle, ::Array<int> ibuf);
 
+//// Custom 3D rolloff
+extern int fmod_chan_set_3d_custom_rolloff(int handle, ::Array<unsigned char> data, int count);
+extern int fmod_chan_get_3d_custom_rolloff(int handle, ::Array<Float> fbuf);
+extern int fmod_cg_set_3d_custom_rolloff(int handle, ::Array<unsigned char> data, int count);
+extern int fmod_cg_get_3d_custom_rolloff(int handle, ::Array<Float> fbuf);
+extern int fmod_core_sound_set_3d_custom_rolloff(int handle, ::Array<unsigned char> data, int count);
+extern int fmod_core_sound_get_3d_custom_rolloff(int handle, ::Array<Float> fbuf);
+
+//// Geometry
+extern int fmod_sys_create_geometry(int maxPolygons, int maxVertices);
+extern int fmod_sys_set_geometry_settings(float maxWorldSize);
+extern float fmod_sys_get_geometry_settings();
+extern int fmod_sys_get_geometry_occlusion(float lx, float ly, float lz, float sx, float sy, float sz, ::Array<Float> fbuf);
+extern int fmod_sys_load_geometry(::Array<unsigned char> data, int len);
+extern int fmod_geo_release(int handle);
+extern int fmod_geo_add_polygon(int handle, float direct, float reverb, bool doubleSided, ::Array<unsigned char> vertices, int count);
+extern int fmod_geo_get_num_polygons(int handle);
+extern int fmod_geo_get_max_polygons(int handle, ::Array<int> ibuf);
+extern int fmod_geo_get_polygon_num_vertices(int handle, int index);
+extern int fmod_geo_set_polygon_vertex(int handle, int index, int vertexIndex, float x, float y, float z);
+extern int fmod_geo_get_polygon_vertex(int handle, int index, int vertexIndex, ::Array<Float> fbuf);
+extern int fmod_geo_set_polygon_attributes(int handle, int index, float direct, float reverb, bool doubleSided);
+extern int fmod_geo_get_polygon_attributes(int handle, int index, ::Array<Float> fbuf);
+extern int fmod_geo_set_active(int handle, bool active);
+extern bool fmod_geo_get_active(int handle);
+extern int fmod_geo_set_rotation(int handle, float fx, float fy, float fz, float ux, float uy, float uz);
+extern int fmod_geo_get_rotation(int handle, ::Array<Float> fbuf);
+extern int fmod_geo_set_position(int handle, float x, float y, float z);
+extern int fmod_geo_get_position(int handle, ::Array<Float> fbuf);
+extern int fmod_geo_set_scale(int handle, float x, float y, float z);
+extern int fmod_geo_get_scale(int handle, ::Array<Float> fbuf);
+extern int fmod_geo_save(int handle, ::Array<unsigned char> data, int len);
+
 //// Debug
 extern int fmod_chan_set_3d_distance_filter(int handle, bool custom, float customLevel, float centerFreq);
 extern int fmod_chan_get_3d_distance_filter(int handle, ::Array<Float> fbuf);

@@ -8,6 +8,7 @@ import haxefmod.core.CoreSystem;
 import haxefmod.core.Dsp;
 import haxefmod.core.DspConnection;
 import haxefmod.core.DspType;
+import haxefmod.core.Geometry;
 import haxefmod.core.PcmStream;
 import haxefmod.core.Reverb;
 import haxefmod.core.Reverb3D;
@@ -21,6 +22,7 @@ import haxefmod.studio.EventDescription;
 import haxefmod.studio.EventInstance;
 import haxefmod.studio.StudioSystem;
 import haxefmod.studio.Types;
+import haxefmod.studio.Types.FmodVector;
 import haxefmod.studio.Vca;
 
 /**
@@ -43,6 +45,7 @@ class TestStudioSurface {
 		testStructReturns();
 		testCoreSurface();
 		testVersionDataAndRecording();
+		testRolloffAndGeometry();
 
 		Sys.println('  $passed passed, $failed failed');
 		return failed;
@@ -217,6 +220,69 @@ class TestStudioSurface {
 		assert(!StudioSystem.recordStop(0).isOk(), "sys recordStop result");
 		assert(!StudioSystem.isRecording(0), "sys isRecording default");
 		assert(StudioSystem.getRecordPosition(0) == -1, "sys getRecordPosition default");
+	}
+
+	// Custom rolloff and geometry route through the stub like everything
+	// else. The point packing is the one piece of real logic (float32 xyz
+	// triples, empty list means clear), so it is checked byte for byte.
+	static function testRolloffAndGeometry():Void {
+		var points:Array<FmodVector> = [{x: 0, y: 1, z: 0}, {x: 10, y: 0.5, z: 0}, {x: 20, y: 0, z: 0}];
+		var packed = haxefmod.studio.native.Scratch.packVectors(points);
+		assert(packed.length == 36, "packVectors sizes three points at 12 bytes each");
+		assert(Math.abs(packed.getFloat(12) - 10) < 0.0001 && Math.abs(packed.getFloat(16) - 0.5) < 0.0001,
+			"packVectors writes x,y,z float32 triples in order");
+		assert(haxefmod.studio.native.Scratch.packVectors([]) == null, "packVectors empty list is null (clear)");
+		assert(haxefmod.studio.native.Scratch.packVectors(null) == null, "packVectors null list is null");
+		assert(haxefmod.studio.native.Scratch.readVectors(0).length == 0, "readVectors zero count is empty");
+		assert(haxefmod.studio.native.Scratch.readVectors(9999).length == haxefmod.studio.native.Scratch.VECTOR_CAPACITY,
+			"readVectors caps at the scratch capacity");
+
+		var channel:Channel = cast 0;
+		assert(!channel.set3DCustomRolloff(points).isOk(), "chan set3DCustomRolloff result");
+		assert(!channel.set3DCustomRolloff([]).isOk(), "chan set3DCustomRolloff clear result");
+		assert(channel.get3DCustomRolloff().length == 0, "chan get3DCustomRolloff default");
+		var group:ChannelGroup = cast 0;
+		assert(!group.set3DCustomRolloff(points).isOk(), "cg set3DCustomRolloff result");
+		assert(group.get3DCustomRolloff().length == 0, "cg get3DCustomRolloff default");
+		var sound:CoreSound = cast 0;
+		assert(!sound.set3DCustomRolloff(points).isOk(), "sound set3DCustomRolloff result");
+		assert(sound.get3DCustomRolloff().length == 0, "sound get3DCustomRolloff default");
+
+		assert(Geometry.create(8, 32).isNull(), "geometry create null");
+		assert(Geometry.load(haxe.io.Bytes.alloc(16)).isNull(), "geometry load null");
+		assert(Geometry.load(null).isNull(), "geometry load null data");
+		assert(!Geometry.setWorldSize(1000).isOk(), "geometry setWorldSize result");
+		assert(Geometry.getWorldSize() == 0, "geometry getWorldSize default");
+		assert(Geometry.getOcclusion({x: 0, y: 0, z: 0}, {x: 1, y: 0, z: 0}) == null, "geometry getOcclusion default");
+		assert(Geometry.getOcclusion(null, null) == null, "geometry getOcclusion null vectors");
+
+		var geometry:Geometry = cast 0;
+		assert(geometry.isNull(), "geometry isNull");
+		assert(!geometry.release().isOk(), "geometry release result");
+		var quad:Array<FmodVector> = [{x: 0, y: -1, z: -1}, {x: 0, y: 1, z: -1}, {x: 0, y: 1, z: 1}, {x: 0, y: -1, z: 1}];
+		assert(geometry.addPolygon(1, 0.5, true, quad) == -1, "geometry addPolygon default");
+		assert(geometry.addPolygon(1, 0.5, true, [quad[0], quad[1]]) == -1, "geometry addPolygon rejects fewer than three vertices");
+		assert(geometry.addPolygon(1, 0.5, true, null) == -1, "geometry addPolygon rejects null vertices");
+		assert(geometry.getNumPolygons() == -1, "geometry getNumPolygons default");
+		assert(geometry.getMaxPolygons() == null, "geometry getMaxPolygons default");
+		assert(geometry.getPolygonNumVertices(0) == -1, "geometry getPolygonNumVertices default");
+		assert(!geometry.setPolygonVertex(0, 0, quad[0]).isOk(), "geometry setPolygonVertex result");
+		assert(geometry.setPolygonVertex(0, 0, null) == FmodResult.FMOD_ERR_INVALID_PARAM, "geometry setPolygonVertex null vertex");
+		assert(geometry.getPolygonVertex(0, 0) == null, "geometry getPolygonVertex default");
+		assert(!geometry.setPolygonAttributes(0, 1, 1, false).isOk(), "geometry setPolygonAttributes result");
+		assert(geometry.getPolygonAttributes(0) == null, "geometry getPolygonAttributes default");
+		assert(!geometry.setActive(true).isOk(), "geometry setActive result");
+		assert(!geometry.getActive(), "geometry getActive default");
+		assert(!geometry.setRotation({x: 0, y: 0, z: 1}, {x: 0, y: 1, z: 0}).isOk(), "geometry setRotation result");
+		assert(geometry.setRotation(null, {x: 0, y: 1, z: 0}) == FmodResult.FMOD_ERR_INVALID_PARAM, "geometry setRotation null vector");
+		assert(geometry.getRotation() == null, "geometry getRotation default");
+		assert(!geometry.setPosition({x: 1, y: 2, z: 3}).isOk(), "geometry setPosition result");
+		assert(geometry.setPosition(null) == FmodResult.FMOD_ERR_INVALID_PARAM, "geometry setPosition null vector");
+		assert(geometry.getPosition() == null, "geometry getPosition default");
+		assert(!geometry.setScale({x: 1, y: 1, z: 1}).isOk(), "geometry setScale result");
+		assert(geometry.setScale(null) == FmodResult.FMOD_ERR_INVALID_PARAM, "geometry setScale null vector");
+		assert(geometry.getScale() == null, "geometry getScale default");
+		assert(geometry.save() == null, "geometry save default");
 	}
 
 	static function testCoreSurface():Void {

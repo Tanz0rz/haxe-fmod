@@ -1,6 +1,8 @@
 package haxefmod.studio;
 
+import haxefmod.studio.Types.FmodVector;
 import haxefmod.studio.native.NativeStudio;
+import haxefmod.studio.native.Scratch;
 
 /**
  * A handle to an FMOD Core sound - the micro subset of the Core API shipped
@@ -176,6 +178,30 @@ abstract CoreSound(Int) from Int to Int {
     /** Length in milliseconds, or -1 on failure. */
     public inline function getLength():Int {
         return NativeStudio.core_get_sound_length(this);
+    }
+
+    /**
+     * Replaces the distance rolloff curve with the given points. Each
+     * point's x is the distance and y the volume (0 to 1), sorted by
+     * distance. An empty array restores the mode-driven rolloff
+     * (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED). The
+     * binding keeps its own copy of the points for the sound's
+     * lifetime.
+     */
+    public function set3DCustomRolloff(points:Array<FmodVector>):FmodResult {
+        var packed = Scratch.packVectors(points);
+        return NativeStudio.core_sound_set_3d_custom_rolloff(this, packed, packed == null ? 0 : points.length);
+    }
+
+    /**
+     * The custom rolloff points, empty when none are set or on failure
+     * (see StudioSystem.lastResult). Unsupported in HTML5, always empty
+     * there. Capped at Scratch.VECTOR_CAPACITY points.
+     */
+    public function get3DCustomRolloff():Array<FmodVector> {
+        var count = NativeStudio.core_sound_get_3d_custom_rolloff(this);
+        if (count <= 0) return [];
+        return Scratch.readVectors(count);
     }
 
     /** Releases the sound and invalidates this handle. */

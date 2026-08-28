@@ -44,6 +44,7 @@ class jaxe {
     static TYPE_REVERB3D = 12;
     static TYPE_SOUNDGROUP = 13;
     static TYPE_REPLAY = 14;
+    static TYPE_GEOMETRY = 15;
     static LIST_MAX = 1024;
     static slots = [];       // {ptr, raw, gen, type, alive}
     static freeList = [];    // stack of free slot indices
@@ -4486,6 +4487,87 @@ class jaxe {
         jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
         return -1;
     }
+
+    //// Custom 3D rolloff
+
+    // The web build rejects the point array outright (embind reports 29 for
+    // every array shape and the getter throws a BindingError on the
+    // FMOD_VECTOR pointer), so the rolloff never reaches FMOD here.
+    static fmod_chan_set_3d_custom_rolloff(handle, data, count) {
+        var ch = jaxe.resolveChan(handle);
+        if (!ch) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        return jaxe.lastResult;
+    }
+
+    static fmod_chan_get_3d_custom_rolloff(handle, fbuf) {
+        var ch = jaxe.resolveChan(handle);
+        if (!ch) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return -1; }
+        jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        return -1;
+    }
+
+    static fmod_cg_set_3d_custom_rolloff(handle, data, count) {
+        var group = jaxe.resolveCg(handle);
+        if (!group) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        return jaxe.lastResult;
+    }
+
+    static fmod_cg_get_3d_custom_rolloff(handle, fbuf) {
+        var group = jaxe.resolveCg(handle);
+        if (!group) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return -1; }
+        jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        return -1;
+    }
+
+    static fmod_core_sound_set_3d_custom_rolloff(handle, data, count) {
+        var sound = jaxe.resolveCoreSound(handle);
+        if (!sound) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        return jaxe.lastResult;
+    }
+
+    static fmod_core_sound_get_3d_custom_rolloff(handle, fbuf) {
+        var sound = jaxe.resolveCoreSound(handle);
+        if (!sound) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return -1; }
+        jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        return -1;
+    }
+
+    //// Geometry
+
+    // The web build has no geometry (createGeometry reports 68), so no
+    // geometry handle can ever exist here and every call reports
+    // ERR_UNSUPPORTED without touching FMOD.
+    static geometryUnsupported(value) {
+        jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        return value;
+    }
+
+    static fmod_sys_create_geometry(maxPolygons, maxVertices) { return jaxe.geometryUnsupported(0); }
+    static fmod_sys_set_geometry_settings(maxWorldSize) { return jaxe.geometryUnsupported(jaxe.ERR_UNSUPPORTED); }
+    static fmod_sys_get_geometry_settings() { return jaxe.geometryUnsupported(0); }
+    static fmod_sys_get_geometry_occlusion(lx, ly, lz, sx, sy, sz, fbuf) { return jaxe.geometryUnsupported(jaxe.ERR_UNSUPPORTED); }
+    static fmod_sys_load_geometry(data, len) { return jaxe.geometryUnsupported(0); }
+    static fmod_geo_release(handle) { return jaxe.geometryUnsupported(jaxe.ERR_UNSUPPORTED); }
+    static fmod_geo_add_polygon(handle, direct, reverb, doubleSided, vertices, count) { return jaxe.geometryUnsupported(-1); }
+    static fmod_geo_get_num_polygons(handle) { return jaxe.geometryUnsupported(-1); }
+    static fmod_geo_get_max_polygons(handle, ibuf) { return jaxe.geometryUnsupported(jaxe.ERR_UNSUPPORTED); }
+    static fmod_geo_get_polygon_num_vertices(handle, index) { return jaxe.geometryUnsupported(-1); }
+    static fmod_geo_set_polygon_vertex(handle, index, vertexIndex, x, y, z) { return jaxe.geometryUnsupported(jaxe.ERR_UNSUPPORTED); }
+    static fmod_geo_get_polygon_vertex(handle, index, vertexIndex, fbuf) { return jaxe.geometryUnsupported(jaxe.ERR_UNSUPPORTED); }
+    static fmod_geo_set_polygon_attributes(handle, index, direct, reverb, doubleSided) { return jaxe.geometryUnsupported(jaxe.ERR_UNSUPPORTED); }
+    static fmod_geo_get_polygon_attributes(handle, index, fbuf) { return jaxe.geometryUnsupported(jaxe.ERR_UNSUPPORTED); }
+    static fmod_geo_set_active(handle, active) { return jaxe.geometryUnsupported(jaxe.ERR_UNSUPPORTED); }
+    static fmod_geo_get_active(handle) { return jaxe.geometryUnsupported(false); }
+    static fmod_geo_set_rotation(handle, fx, fy, fz, ux, uy, uz) { return jaxe.geometryUnsupported(jaxe.ERR_UNSUPPORTED); }
+    static fmod_geo_get_rotation(handle, fbuf) { return jaxe.geometryUnsupported(jaxe.ERR_UNSUPPORTED); }
+    static fmod_geo_set_position(handle, x, y, z) { return jaxe.geometryUnsupported(jaxe.ERR_UNSUPPORTED); }
+    static fmod_geo_get_position(handle, fbuf) { return jaxe.geometryUnsupported(jaxe.ERR_UNSUPPORTED); }
+    static fmod_geo_set_scale(handle, x, y, z) { return jaxe.geometryUnsupported(jaxe.ERR_UNSUPPORTED); }
+    static fmod_geo_get_scale(handle, fbuf) { return jaxe.geometryUnsupported(jaxe.ERR_UNSUPPORTED); }
+    static fmod_geo_save(handle, data, len) { return jaxe.geometryUnsupported(-1); }
 
     //// Debug
 

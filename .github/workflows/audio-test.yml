@@ -3158,6 +3158,7 @@ jobs:
           node tests/js/hostile-input-test.js
           node tests/js/runtime-init-test.js
           node tests/js/system-extras-harness.js
+          node tests/js/geometry-rolloff-harness.js
 
       - name: Run Core dynamic-audio prototype against the real wasm
         env:

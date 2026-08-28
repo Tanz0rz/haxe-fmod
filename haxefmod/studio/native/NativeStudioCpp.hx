@@ -617,6 +617,37 @@ class NativeStudioCpp {
     public static inline function sys_is_recording(id:Int):Bool return Raw.sys_is_recording(id);
     public static inline function sys_get_record_position(id:Int):Int return Raw.sys_get_record_position(id);
 
+    // Custom 3D rolloff and geometry
+    public static inline function chan_set_3d_custom_rolloff(handle:Int, data:haxe.io.Bytes, count:Int):Int return Raw.chan_set_3d_custom_rolloff(handle, data == null ? null : data.getData(), count);
+    public static inline function chan_get_3d_custom_rolloff(handle:Int):Int return Raw.chan_get_3d_custom_rolloff(handle, Scratch.floatBuf());
+    public static inline function cg_set_3d_custom_rolloff(handle:Int, data:haxe.io.Bytes, count:Int):Int return Raw.cg_set_3d_custom_rolloff(handle, data == null ? null : data.getData(), count);
+    public static inline function cg_get_3d_custom_rolloff(handle:Int):Int return Raw.cg_get_3d_custom_rolloff(handle, Scratch.floatBuf());
+    public static inline function core_sound_set_3d_custom_rolloff(handle:Int, data:haxe.io.Bytes, count:Int):Int return Raw.core_sound_set_3d_custom_rolloff(handle, data == null ? null : data.getData(), count);
+    public static inline function core_sound_get_3d_custom_rolloff(handle:Int):Int return Raw.core_sound_get_3d_custom_rolloff(handle, Scratch.floatBuf());
+    public static inline function sys_create_geometry(maxPolygons:Int, maxVertices:Int):Int return Raw.sys_create_geometry(maxPolygons, maxVertices);
+    public static inline function sys_set_geometry_settings(maxWorldSize:Float):Int return Raw.sys_set_geometry_settings(maxWorldSize);
+    public static inline function sys_get_geometry_settings():Float return Raw.sys_get_geometry_settings();
+    public static inline function sys_get_geometry_occlusion(lx:Float, ly:Float, lz:Float, sx:Float, sy:Float, sz:Float):Int return Raw.sys_get_geometry_occlusion(lx, ly, lz, sx, sy, sz, Scratch.floatBuf());
+    public static inline function sys_load_geometry(data:haxe.io.Bytes, len:Int):Int return Raw.sys_load_geometry(data == null ? null : data.getData(), len);
+    public static inline function geo_release(handle:Int):Int return Raw.geo_release(handle);
+    public static inline function geo_add_polygon(handle:Int, direct:Float, reverb:Float, doubleSided:Bool, vertices:haxe.io.Bytes, count:Int):Int return Raw.geo_add_polygon(handle, direct, reverb, doubleSided, vertices == null ? null : vertices.getData(), count);
+    public static inline function geo_get_num_polygons(handle:Int):Int return Raw.geo_get_num_polygons(handle);
+    public static inline function geo_get_max_polygons(handle:Int):Int return Raw.geo_get_max_polygons(handle, Scratch.intBuf());
+    public static inline function geo_get_polygon_num_vertices(handle:Int, index:Int):Int return Raw.geo_get_polygon_num_vertices(handle, index);
+    public static inline function geo_set_polygon_vertex(handle:Int, index:Int, vertexIndex:Int, x:Float, y:Float, z:Float):Int return Raw.geo_set_polygon_vertex(handle, index, vertexIndex, x, y, z);
+    public static inline function geo_get_polygon_vertex(handle:Int, index:Int, vertexIndex:Int):Int return Raw.geo_get_polygon_vertex(handle, index, vertexIndex, Scratch.floatBuf());
+    public static inline function geo_set_polygon_attributes(handle:Int, index:Int, direct:Float, reverb:Float, doubleSided:Bool):Int return Raw.geo_set_polygon_attributes(handle, index, direct, reverb, doubleSided);
+    public static inline function geo_get_polygon_attributes(handle:Int, index:Int):Int return Raw.geo_get_polygon_attributes(handle, index, Scratch.floatBuf());
+    public static inline function geo_set_active(handle:Int, active:Bool):Int return Raw.geo_set_active(handle, active);
+    public static inline function geo_get_active(handle:Int):Bool return Raw.geo_get_active(handle);
+    public static inline function geo_set_rotation(handle:Int, fx:Float, fy:Float, fz:Float, ux:Float, uy:Float, uz:Float):Int return Raw.geo_set_rotation(handle, fx, fy, fz, ux, uy, uz);
+    public static inline function geo_get_rotation(handle:Int):Int return Raw.geo_get_rotation(handle, Scratch.floatBuf());
+    public static inline function geo_set_position(handle:Int, x:Float, y:Float, z:Float):Int return Raw.geo_set_position(handle, x, y, z);
+    public static inline function geo_get_position(handle:Int):Int return Raw.geo_get_position(handle, Scratch.floatBuf());
+    public static inline function geo_set_scale(handle:Int, x:Float, y:Float, z:Float):Int return Raw.geo_set_scale(handle, x, y, z);
+    public static inline function geo_get_scale(handle:Int):Int return Raw.geo_get_scale(handle, Scratch.floatBuf());
+    public static inline function geo_save(handle:Int, data:haxe.io.Bytes, len:Int):Int return Raw.geo_save(handle, data == null ? null : data.getData(), len);
+
     // Debug
     public static inline function debug_live_handle_count():Int return Raw.debug_live_handle_count();
     public static inline function binding_abi_version():Int return Raw.binding_abi_version();
@@ -1836,6 +1867,94 @@ private extern class Raw {
 
     @:native("linc::faxe::fmod_sys_get_record_position")
     static function sys_get_record_position(id:Int):Int;
+
+    // Custom 3D rolloff and geometry
+    @:native("linc::faxe::fmod_chan_set_3d_custom_rolloff")
+    static function chan_set_3d_custom_rolloff(handle:Int, data:haxe.io.BytesData, count:Int):Int;
+
+    @:native("linc::faxe::fmod_chan_get_3d_custom_rolloff")
+    static function chan_get_3d_custom_rolloff(handle:Int, fbuf:Array<Float>):Int;
+
+    @:native("linc::faxe::fmod_cg_set_3d_custom_rolloff")
+    static function cg_set_3d_custom_rolloff(handle:Int, data:haxe.io.BytesData, count:Int):Int;
+
+    @:native("linc::faxe::fmod_cg_get_3d_custom_rolloff")
+    static function cg_get_3d_custom_rolloff(handle:Int, fbuf:Array<Float>):Int;
+
+    @:native("linc::faxe::fmod_core_sound_set_3d_custom_rolloff")
+    static function core_sound_set_3d_custom_rolloff(handle:Int, data:haxe.io.BytesData, count:Int):Int;
+
+    @:native("linc::faxe::fmod_core_sound_get_3d_custom_rolloff")
+    static function core_sound_get_3d_custom_rolloff(handle:Int, fbuf:Array<Float>):Int;
+
+    @:native("linc::faxe::fmod_sys_create_geometry")
+    static function sys_create_geometry(maxPolygons:Int, maxVertices:Int):Int;
+
+    @:native("linc::faxe::fmod_sys_set_geometry_settings")
+    static function sys_set_geometry_settings(maxWorldSize:Float):Int;
+
+    @:native("linc::faxe::fmod_sys_get_geometry_settings")
+    static function sys_get_geometry_settings():Float;
+
+    @:native("linc::faxe::fmod_sys_get_geometry_occlusion")
+    static function sys_get_geometry_occlusion(lx:Float, ly:Float, lz:Float, sx:Float, sy:Float, sz:Float, fbuf:Array<Float>):Int;
+
+    @:native("linc::faxe::fmod_sys_load_geometry")
+    static function sys_load_geometry(data:haxe.io.BytesData, len:Int):Int;
+
+    @:native("linc::faxe::fmod_geo_release")
+    static function geo_release(handle:Int):Int;
+
+    @:native("linc::faxe::fmod_geo_add_polygon")
+    static function geo_add_polygon(handle:Int, direct:Float, reverb:Float, doubleSided:Bool, vertices:haxe.io.BytesData, count:Int):Int;
+
+    @:native("linc::faxe::fmod_geo_get_num_polygons")
+    static function geo_get_num_polygons(handle:Int):Int;
+
+    @:native("linc::faxe::fmod_geo_get_max_polygons")
+    static function geo_get_max_polygons(handle:Int, ibuf:Array<Int>):Int;
+
+    @:native("linc::faxe::fmod_geo_get_polygon_num_vertices")
+    static function geo_get_polygon_num_vertices(handle:Int, index:Int):Int;
+
+    @:native("linc::faxe::fmod_geo_set_polygon_vertex")
+    static function geo_set_polygon_vertex(handle:Int, index:Int, vertexIndex:Int, x:Float, y:Float, z:Float):Int;
+
+    @:native("linc::faxe::fmod_geo_get_polygon_vertex")
+    static function geo_get_polygon_vertex(handle:Int, index:Int, vertexIndex:Int, fbuf:Array<Float>):Int;
+
+    @:native("linc::faxe::fmod_geo_set_polygon_attributes")
+    static function geo_set_polygon_attributes(handle:Int, index:Int, direct:Float, reverb:Float, doubleSided:Bool):Int;
+
+    @:native("linc::faxe::fmod_geo_get_polygon_attributes")
+    static function geo_get_polygon_attributes(handle:Int, index:Int, fbuf:Array<Float>):Int;
+
+    @:native("linc::faxe::fmod_geo_set_active")
+    static function geo_set_active(handle:Int, active:Bool):Int;
+
+    @:native("linc::faxe::fmod_geo_get_active")
+    static function geo_get_active(handle:Int):Bool;
+
+    @:native("linc::faxe::fmod_geo_set_rotation")
+    static function geo_set_rotation(handle:Int, fx:Float, fy:Float, fz:Float, ux:Float, uy:Float, uz:Float):Int;
+
+    @:native("linc::faxe::fmod_geo_get_rotation")
+    static function geo_get_rotation(handle:Int, fbuf:Array<Float>):Int;
+
+    @:native("linc::faxe::fmod_geo_set_position")
+    static function geo_set_position(handle:Int, x:Float, y:Float, z:Float):Int;
+
+    @:native("linc::faxe::fmod_geo_get_position")
+    static function geo_get_position(handle:Int, fbuf:Array<Float>):Int;
+
+    @:native("linc::faxe::fmod_geo_set_scale")
+    static function geo_set_scale(handle:Int, x:Float, y:Float, z:Float):Int;
+
+    @:native("linc::faxe::fmod_geo_get_scale")
+    static function geo_get_scale(handle:Int, fbuf:Array<Float>):Int;
+
+    @:native("linc::faxe::fmod_geo_save")
+    static function geo_save(handle:Int, data:haxe.io.BytesData, len:Int):Int;
 
     @:native("linc::faxe::fmod_debug_live_handle_count")
     static function debug_live_handle_count():Int;

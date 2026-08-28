@@ -14,6 +14,35 @@ package haxefmod.studio.native;
 class Scratch {
     public static inline var CAPACITY:Int = 1024;
 
+    /** Most xyz triples the float buffer holds, the cap on vector list getters. */
+    public static inline var VECTOR_CAPACITY:Int = 341;
+
+    /**
+     * Packs vectors as float32 x,y,z triples for the bindings that take a
+     * point array (custom rolloff, geometry polygons). Null for an empty
+     * or missing list, which the shims read as "clear".
+     */
+    public static function packVectors(points:Array<haxefmod.studio.Types.FmodVector>):haxe.io.Bytes {
+        if (points == null || points.length == 0) return null;
+        var bytes = haxe.io.Bytes.alloc(points.length * 12);
+        for (i in 0...points.length) {
+            bytes.setFloat(i * 12, points[i].x);
+            bytes.setFloat(i * 12 + 4, points[i].y);
+            bytes.setFloat(i * 12 + 8, points[i].z);
+        }
+        return bytes;
+    }
+
+    /** Reads count xyz triples back out of the float buffer. */
+    public static function readVectors(count:Int):Array<haxefmod.studio.Types.FmodVector> {
+        var points = [];
+        if (count > VECTOR_CAPACITY) count = VECTOR_CAPACITY;
+        for (i in 0...count) {
+            points.push({x: readF(i * 3), y: readF(i * 3 + 1), z: readF(i * 3 + 2)});
+        }
+        return points;
+    }
+
     /** Shared warning for list getters that hit the scratch capacity. */
     public static function warnTruncated(what:String, returned:Int, total:Int):Void {
         if (total > returned) {

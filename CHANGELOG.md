@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Added
+- Init settings for the engine knobs FMOD only accepts before initialization: `FmodSettings.dspBufferSize` and `dspNumBuffers` (mixer latency, native only, the web build fixes its buffer), `softwareChannels` (the audible voice cap, separate from the virtual count in `numChannels`), `streamBufferSize`, `profiling` (turns on FMOD profiling so `Bus`, `EventInstance`, and `Dsp` `getCpuUsage()` report values), and `distanceFilter`. Defines `haxefmod_dsp_buffer_size` and `haxefmod_software_channels` set the first two from `Project.xml`.
+- `Channel.set3DDistanceFilter` and `ChannelGroup.set3DDistanceFilter` with their getters, FMOD's built-in muffling with distance. They need the `distanceFilter` setting on at init.
+- `StudioSystem.getVersion()` reports the FMOD engine the running build loaded, formatted like `2.03.12`, for diagnostics and bug reports.
+- `CoreSound.readData(buffer, ?length)` and `seekData(pcm)` read decoded PCM out of a sound, for waveform displays and offline analysis. `CoreSound.create` gained an `openOnly` flag that keeps the file open for reading. Unsupported in HTML5, where they report `FMOD_ERR_UNSUPPORTED`.
+- Microphone recording on native targets: `StudioSystem.getRecordDriverCount()`, `getRecordDriverInfo(id)`, `recordStart(id, sound, loop)`, `recordStop(id)`, `isRecording(id)`, and `getRecordPosition(id)`, recording into a buffer from `CoreSound.createRecordBuffer(sampleRate, channels, seconds)`. Unsupported in HTML5.
+
 ### Fixed
 - Pointing `FMOD_SDK` at the HTML5 FMOD Engine package (or `FMOD_SDK_WEB` at a desktop one) now fails the build with a message naming the swapped packages. Previously a native build got as far as copying libraries and died with an uncaught exception on macOS and Windows. Both packages ship the same `api/core/inc` headers, so the check is the platform's own core library rather than a header.
 - A desktop FMOD SDK missing the libraries for the platform being built now reports the missing file with setup instructions instead of an uncaught exception. Linux already did this; macOS and Windows now match.

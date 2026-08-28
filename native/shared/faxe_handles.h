@@ -43,6 +43,7 @@
 #define FAXE_TYPE_REVERB3D 12  /* Core Reverb3D zone */
 #define FAXE_TYPE_SOUNDGROUP 13  /* Core SoundGroup */
 #define FAXE_TYPE_REPLAY 14  /* Studio CommandReplay */
+#define FAXE_TYPE_GEOMETRY 15  /* Core Geometry */
 
 #define FAXE_MAX_SLOTS 0x10000
 /* Max entries any list getter returns in one call. The Haxe-side scratch
@@ -53,6 +54,9 @@
 
 typedef struct {
     void* ptr;
+    /* malloc'd memory the shim hands FMOD for the object's lifetime (the
+     * custom rolloff point array). Freed with the slot. */
+    void* aux;
     unsigned short gen;   /* 1..FAXE_GEN_MAX once used, 0 = never used yet */
     unsigned char type;
     unsigned char alive;
@@ -101,6 +105,7 @@ static int faxe_handle_alloc(void* ptr, unsigned char type) {
 
     s = &gFaxeSlots[idx];
     s->ptr = ptr;
+    s->aux = NULL;
     s->type = type;
     s->alive = 1;
     if (s->gen == 0) s->gen = 1; /* first use of this slot */
@@ -194,11 +199,21 @@ static void faxe_handle_free(int handle) {
 
     s->alive = 0;
     s->ptr = NULL;
+    if (s->aux) { free(s->aux); s->aux = NULL; }
     s->type = FAXE_TYPE_NONE;
     s->gen = (unsigned short)((s->gen % FAXE_GEN_MAX) + 1); /* wraps 1..FAXE_GEN_MAX, never 0 */
     s->next_free = gFaxeFreeHead;
     gFaxeFreeHead = idx;
     gFaxeLiveCount--;
+}
+
+/* Replaces the slot's owned memory, freeing the previous block. The handle
+ * must resolve (callers check first). Passing NULL just frees. */
+static void faxe_handle_set_aux(int handle, void* aux) {
+    int idx = handle & 0xFFFF;
+    FaxeSlot* s = &gFaxeSlots[idx];
+    if (s->aux) free(s->aux);
+    s->aux = aux;
 }
 
 static int faxe_live_handle_count(void) {

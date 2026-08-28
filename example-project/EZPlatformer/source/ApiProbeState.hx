@@ -13,6 +13,7 @@ import haxefmod.core.CoreSystem;
 import haxefmod.core.Dsp;
 import haxefmod.core.DspConnection;
 import haxefmod.core.DspType;
+import haxefmod.core.Geometry;
 import haxefmod.core.PcmStream;
 import haxefmod.core.ChannelCallbacks;
 import haxefmod.core.ChannelEvent;
@@ -165,6 +166,7 @@ class ApiProbeState extends FlxState {
         probeFocusMute();
         probeHardeningTail();
         probeVersionDataAndRecording();
+        probeRolloffAndGeometry();
         if (skipAuthored()) {
             info("authored_surface", "skipped (HAXEFMOD_PROBE_SKIP_AUTHORED)");
         } else {
@@ -387,6 +389,164 @@ class ApiProbeState extends FlxState {
      * parameter plumbing (a swapped id.data1/data2 in any wrapper would
      * break exactly one of these round trips).
      */
+    // Custom rolloff round trips on a channel, a group, and a sound, then
+    // a geometry quad occluding a listener from a source. Every created
+    // object is released and the handle count must come back to baseline.
+    function probeRolloffAndGeometry():Void {
+        var baseline = StudioSystem.liveHandleCount();
+        var points:Array<FmodVector> = [{x: 0, y: 1, z: 0}, {x: 10, y: 0.5, z: 0}, {x: 20, y: 0, z: 0}];
+
+        function sameRolloff(got:Array<FmodVector>):Bool {
+            if (got.length != points.length) return false;
+            for (i in 0...points.length) {
+                if (Math.abs(got[i].x - points[i].x) > 0.001 || Math.abs(got[i].y - points[i].y) > 0.001) return false;
+            }
+            return true;
+        }
+        function describe(got:Array<FmodVector>):String {
+            return 'count=${got.length} result=${StudioSystem.lastResult().toString()}';
+        }
+
+        var stream = PcmStream.create3d(48000, 1);
+        var channel = stream.play(true);
+        var chanSet:FmodResult = channel.set3DCustomRolloff(points);
+        check("chan_set_3d_custom_rolloff", chanSet.isOk(), 'result=${chanSet.toString()}');
+        var chanGot = channel.get3DCustomRolloff();
+        check("chan_get_3d_custom_rolloff", sameRolloff(chanGot), describe(chanGot));
+        // A second set replaces the copy (the old block is freed, not leaked)
+        var chanReset:FmodResult = channel.set3DCustomRolloff([{x: 0, y: 1, z: 0}, {x: 5, y: 0, z: 0}]);
+        check("chan_set_3d_custom_rolloff_replace", chanReset.isOk() && channel.get3DCustomRolloff().length == 2,
+            'result=${chanReset.toString()} count=${channel.get3DCustomRolloff().length}');
+        var chanClear:FmodResult = channel.set3DCustomRolloff([]);
+        check("chan_clear_3d_custom_rolloff", chanClear.isOk() && channel.get3DCustomRolloff().length == 0,
+            'result=${chanClear.toString()} count=${channel.get3DCustomRolloff().length}');
+        // Stopping frees the slot and the copy with it (the leak check below covers the slot)
+        channel.set3DCustomRolloff(points);
+        channel.stop();
+        var chanStale:FmodResult = channel.set3DCustomRolloff(points);
+        check("chan_custom_rolloff_stale", chanStale == FmodResult.FMOD_ERR_INVALID_HANDLE
+            && channel.get3DCustomRolloff().length == 0, 'result=${chanStale.toString()}');
+        stream.release();
+
+        var group = ChannelGroup.create("custom-rolloff");
+        group.setMode(ChannelMode.MODE_3D);
+        var cgSet:FmodResult = group.set3DCustomRolloff(points);
+        check("cg_set_3d_custom_rolloff", cgSet.isOk(), 'result=${cgSet.toString()}');
+        var cgGot = group.get3DCustomRolloff();
+        check("cg_get_3d_custom_rolloff", sameRolloff(cgGot), describe(cgGot));
+        var cgClear:FmodResult = group.set3DCustomRolloff([]);
+        check("cg_clear_3d_custom_rolloff", cgClear.isOk() && group.get3DCustomRolloff().length == 0,
+            'result=${cgClear.toString()} count=${group.get3DCustomRolloff().length}');
+        group.set3DCustomRolloff(points);
+        group.release();
+        check("cg_custom_rolloff_stale", group.get3DCustomRolloff().length == 0
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_HANDLE, "");
+
+        var pcm = haxe.io.Bytes.alloc(4800 * 2);
+        var sound = CoreSound.fromPcm(pcm, 48000, 1);
+        sound.setMode(ChannelMode.MODE_3D);
+        var soundSet:FmodResult = sound.set3DCustomRolloff(points);
+        check("core_sound_set_3d_custom_rolloff", soundSet.isOk(), 'result=${soundSet.toString()}');
+        var soundGot = sound.get3DCustomRolloff();
+        check("core_sound_get_3d_custom_rolloff", sameRolloff(soundGot), describe(soundGot));
+        var soundClear:FmodResult = sound.set3DCustomRolloff([]);
+        check("core_sound_clear_3d_custom_rolloff", soundClear.isOk() && sound.get3DCustomRolloff().length == 0,
+            'result=${soundClear.toString()} count=${sound.get3DCustomRolloff().length}');
+        sound.set3DCustomRolloff(points);
+        sound.release();
+        check("core_sound_custom_rolloff_stale", sound.get3DCustomRolloff().length == 0
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_HANDLE, "");
+
+        // Geometry: a quad in the x=0 plane between a listener at x=-5 and
+        // a source at x=5 blocks the direct path completely
+        var worldBefore = Geometry.getWorldSize();
+        var worldSet:FmodResult = Geometry.setWorldSize(500);
+        check("sys_set_geometry_settings", worldSet.isOk() && Math.abs(Geometry.getWorldSize() - 500) < 0.5,
+            'result=${worldSet.toString()} size=${Geometry.getWorldSize()}');
+        Geometry.setWorldSize(worldBefore > 0 ? worldBefore : 1000);
+
+        var geometry = Geometry.create(4, 16);
+        check("sys_create_geometry", !geometry.isNull(),
+            'handle=${(geometry : Int)} result=${StudioSystem.lastResult().toString()}');
+        var max = geometry.getMaxPolygons();
+        check("geo_get_max_polygons", max != null && max.polygons == 4 && max.vertices == 16,
+            max == null ? 'result=${StudioSystem.lastResult().toString()}' : 'polygons=${max.polygons} vertices=${max.vertices}');
+        var quad:Array<FmodVector> = [{x: 0, y: -10, z: -10}, {x: 0, y: 10, z: -10}, {x: 0, y: 10, z: 10}, {x: 0, y: -10, z: 10}];
+        var index = geometry.addPolygon(1.0, 0.5, true, quad);
+        check("geo_add_polygon", index == 0, 'index=$index result=${StudioSystem.lastResult().toString()}');
+        check("geo_get_num_polygons", geometry.getNumPolygons() == 1, 'count=${geometry.getNumPolygons()}');
+        check("geo_get_polygon_num_vertices", geometry.getPolygonNumVertices(0) == 4,
+            'count=${geometry.getPolygonNumVertices(0)}');
+        var attrs = geometry.getPolygonAttributes(0);
+        check("geo_get_polygon_attributes", attrs != null && Math.abs(attrs.direct - 1.0) < 0.001
+            && Math.abs(attrs.reverb - 0.5) < 0.001 && attrs.doubleSided,
+            attrs == null ? 'result=${StudioSystem.lastResult().toString()}'
+                : 'direct=${attrs.direct} reverb=${attrs.reverb} doubleSided=${attrs.doubleSided}');
+        var vertex = geometry.getPolygonVertex(0, 2);
+        check("geo_get_polygon_vertex", vertex != null && Math.abs(vertex.y - 10) < 0.001 && Math.abs(vertex.z - 10) < 0.001,
+            vertex == null ? 'result=${StudioSystem.lastResult().toString()}' : 'x=${vertex.x} y=${vertex.y} z=${vertex.z}');
+        var setVertex:FmodResult = geometry.setPolygonVertex(0, 2, {x: 0, y: 12, z: 10});
+        var movedVertex = geometry.getPolygonVertex(0, 2);
+        check("geo_set_polygon_vertex", setVertex.isOk() && movedVertex != null && Math.abs(movedVertex.y - 12) < 0.001,
+            'result=${setVertex.toString()} y=${movedVertex == null ? -1 : movedVertex.y}');
+        geometry.setPolygonVertex(0, 2, quad[2]);
+
+        var setRot:FmodResult = geometry.setRotation({x: 0, y: 0, z: 1}, {x: 0, y: 1, z: 0});
+        var rot = geometry.getRotation();
+        check("geo_rotation_round_trip", setRot.isOk() && rot != null && Math.abs(rot.forward.z - 1) < 0.001
+            && Math.abs(rot.up.y - 1) < 0.001, 'result=${setRot.toString()}');
+        var setPos:FmodResult = geometry.setPosition({x: 0, y: 0, z: 0});
+        var pos = geometry.getPosition();
+        check("geo_position_round_trip", setPos.isOk() && pos != null && pos.x == 0 && pos.y == 0 && pos.z == 0,
+            'result=${setPos.toString()}');
+        var setScale:FmodResult = geometry.setScale({x: 1, y: 1, z: 1});
+        var scale = geometry.getScale();
+        check("geo_scale_round_trip", setScale.isOk() && scale != null && Math.abs(scale.x - 1) < 0.001
+            && Math.abs(scale.y - 1) < 0.001 && Math.abs(scale.z - 1) < 0.001, 'result=${setScale.toString()}');
+        check("geo_get_active_default", geometry.getActive(), 'result=${StudioSystem.lastResult().toString()}');
+
+        var listener:FmodVector = {x: -5, y: 0, z: 0};
+        var source:FmodVector = {x: 5, y: 0, z: 0};
+        var occluded = Geometry.getOcclusion(listener, source);
+        check("sys_get_geometry_occlusion", occluded != null && occluded.direct > 0,
+            occluded == null ? 'result=${StudioSystem.lastResult().toString()}'
+                : 'direct=${occluded.direct} reverb=${occluded.reverb}');
+        var inactive:FmodResult = geometry.setActive(false);
+        var open = Geometry.getOcclusion(listener, source);
+        check("geo_set_active_off_clears_occlusion", inactive.isOk() && !geometry.getActive() && open != null && open.direct == 0,
+            open == null ? 'result=${StudioSystem.lastResult().toString()}' : 'direct=${open.direct}');
+        geometry.setActive(true);
+        var setAttrs:FmodResult = geometry.setPolygonAttributes(0, 0.25, 0.75, false);
+        var newAttrs = geometry.getPolygonAttributes(0);
+        check("geo_set_polygon_attributes", setAttrs.isOk() && newAttrs != null && Math.abs(newAttrs.direct - 0.25) < 0.001
+            && Math.abs(newAttrs.reverb - 0.75) < 0.001 && !newAttrs.doubleSided,
+            newAttrs == null ? 'result=${StudioSystem.lastResult().toString()}'
+                : 'direct=${newAttrs.direct} reverb=${newAttrs.reverb} doubleSided=${newAttrs.doubleSided}');
+
+        var saved = geometry.save();
+        check("geo_save", saved != null && saved.length > 0, saved == null
+            ? 'result=${StudioSystem.lastResult().toString()}' : 'bytes=${saved.length}');
+        var loaded = Geometry.load(saved);
+        check("sys_load_geometry", !loaded.isNull() && loaded.getNumPolygons() == 1
+            && loaded.getPolygonNumVertices(0) == 4,
+            'handle=${(loaded : Int)} result=${StudioSystem.lastResult().toString()} polygons=${loaded.getNumPolygons()}');
+        var loadedAttrs = loaded.getPolygonAttributes(0);
+        check("sys_load_geometry_keeps_attributes", loadedAttrs != null && Math.abs(loadedAttrs.direct - 0.25) < 0.001,
+            loadedAttrs == null ? 'result=${StudioSystem.lastResult().toString()}' : 'direct=${loadedAttrs.direct}');
+        check("sys_load_geometry_rejects_garbage", Geometry.load(haxe.io.Bytes.alloc(8)).isNull(),
+            'result=${StudioSystem.lastResult().toString()}');
+
+        var releaseLoaded:FmodResult = loaded.release();
+        var releaseGeometry:FmodResult = geometry.release();
+        check("geo_release", releaseLoaded.isOk() && releaseGeometry.isOk(),
+            'loaded=${releaseLoaded.toString()} original=${releaseGeometry.toString()}');
+        check("geo_release_stale", geometry.release() == FmodResult.FMOD_ERR_INVALID_HANDLE
+            && geometry.getNumPolygons() == -1, 'result=${StudioSystem.lastResult().toString()}');
+
+        check("no_handle_leaks_rolloff_geometry", StudioSystem.liveHandleCount() == baseline,
+            'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
+    }
+
     function probeHardeningTail():Void {
         StudioSystem.flushCommands();
         CallbackDispatcher.update();

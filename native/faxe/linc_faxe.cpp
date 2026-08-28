@@ -4352,6 +4352,348 @@ int fmod_sys_get_record_position(int id) {
     return (int)position;
 }
 
+//// Custom 3D rolloff
+
+// Copies packed float32 xyz triples into a malloc'd FMOD_VECTOR array the
+// slot owns until the handle dies. NULL with count 0 means clear.
+static FMOD_VECTOR* rolloffCopy(::Array<unsigned char> data, int count) {
+    if (data == null() || count <= 0) return NULL;
+    if (count * 12 > data->length) return NULL;
+    const float* f = (const float*)&data[0];
+    FMOD_VECTOR* points = (FMOD_VECTOR*)malloc(sizeof(FMOD_VECTOR) * (size_t)count);
+    if (!points) return NULL;
+    for (int i = 0; i < count; i++) {
+        points[i].x = f[i * 3];
+        points[i].y = f[i * 3 + 1];
+        points[i].z = f[i * 3 + 2];
+    }
+    return points;
+}
+
+// fbuf out: count*3 doubles, capped at FAXE_LIST_MAX. Returns the count.
+static int rolloffUnpack(FMOD_VECTOR* points, int count, ::Array<Float> fbuf) {
+    if (!points || count < 0) count = 0;
+    if (count > FAXE_LIST_MAX / 3) count = FAXE_LIST_MAX / 3;
+    for (int i = 0; i < count; i++) {
+        fbuf[i * 3] = (double)points[i].x;
+        fbuf[i * 3 + 1] = (double)points[i].y;
+        fbuf[i * 3 + 2] = (double)points[i].z;
+    }
+    return count;
+}
+
+int fmod_chan_set_3d_custom_rolloff(int h, ::Array<unsigned char> data, int count) {
+    FMOD::Channel* ch = resolveChannel(h);
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    if (count < 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    FMOD_VECTOR* points = rolloffCopy(data, count);
+    if (count > 0 && !points) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    gLastResult = ch->set3DCustomRolloff(points, points ? count : 0);
+    if (gLastResult != FMOD_OK) { free(points); return (int)gLastResult; }
+    faxe_handle_set_aux(h, points);
+    return (int)gLastResult;
+}
+
+int fmod_chan_get_3d_custom_rolloff(int h, ::Array<Float> fbuf) {
+    FMOD::Channel* ch = resolveChannel(h);
+    FMOD_VECTOR* points = NULL;
+    int count = 0;
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    gLastResult = ch->get3DCustomRolloff(&points, &count);
+    if (gLastResult != FMOD_OK) return -1;
+    return rolloffUnpack(points, count, fbuf);
+}
+
+int fmod_cg_set_3d_custom_rolloff(int h, ::Array<unsigned char> data, int count) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    if (count < 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    FMOD_VECTOR* points = rolloffCopy(data, count);
+    if (count > 0 && !points) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    gLastResult = group->set3DCustomRolloff(points, points ? count : 0);
+    if (gLastResult != FMOD_OK) { free(points); return (int)gLastResult; }
+    faxe_handle_set_aux(h, points);
+    return (int)gLastResult;
+}
+
+int fmod_cg_get_3d_custom_rolloff(int h, ::Array<Float> fbuf) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    FMOD_VECTOR* points = NULL;
+    int count = 0;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    gLastResult = group->get3DCustomRolloff(&points, &count);
+    if (gLastResult != FMOD_OK) return -1;
+    return rolloffUnpack(points, count, fbuf);
+}
+
+int fmod_core_sound_set_3d_custom_rolloff(int h, ::Array<unsigned char> data, int count) {
+    FMOD::Sound* sound = resolveSound(h);
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    if (count < 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    FMOD_VECTOR* points = rolloffCopy(data, count);
+    if (count > 0 && !points) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    gLastResult = sound->set3DCustomRolloff(points, points ? count : 0);
+    if (gLastResult != FMOD_OK) { free(points); return (int)gLastResult; }
+    faxe_handle_set_aux(h, points);
+    return (int)gLastResult;
+}
+
+int fmod_core_sound_get_3d_custom_rolloff(int h, ::Array<Float> fbuf) {
+    FMOD::Sound* sound = resolveSound(h);
+    FMOD_VECTOR* points = NULL;
+    int count = 0;
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    gLastResult = sound->get3DCustomRolloff(&points, &count);
+    if (gLastResult != FMOD_OK) return -1;
+    return rolloffUnpack(points, count, fbuf);
+}
+
+//// Geometry
+
+static inline FMOD::Geometry* resolveGeometry(int h) {
+    return (FMOD::Geometry*)faxe_handle_resolve(h, FAXE_TYPE_GEOMETRY);
+}
+
+static int geometryHandle(FMOD::Geometry* geometry) {
+    int handle = faxe_handle_alloc(geometry, FAXE_TYPE_GEOMETRY);
+    if (handle == 0) {
+        gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
+        geometry->release();
+    }
+    return handle;
+}
+
+int fmod_sys_create_geometry(int maxPolygons, int maxVertices) {
+    FMOD::Geometry* geometry = NULL;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    gLastResult = gCoreSystem->createGeometry(maxPolygons, maxVertices, &geometry);
+    if (gLastResult != FMOD_OK || !geometry) return 0;
+    return geometryHandle(geometry);
+}
+
+int fmod_sys_set_geometry_settings(float maxWorldSize) {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = gCoreSystem->setGeometrySettings(maxWorldSize);
+    return (int)gLastResult;
+}
+
+float fmod_sys_get_geometry_settings() {
+    float maxWorldSize = 0.0f;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0.0f; }
+    gLastResult = gCoreSystem->getGeometrySettings(&maxWorldSize);
+    if (gLastResult != FMOD_OK) return 0.0f;
+    return maxWorldSize;
+}
+
+// fbuf out: [0]=direct [1]=reverb
+int fmod_sys_get_geometry_occlusion(float lx, float ly, float lz, float sx, float sy, float sz, ::Array<Float> fbuf) {
+    float direct = 0.0f;
+    float reverb = 0.0f;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    FMOD_VECTOR listener = { lx, ly, lz };
+    FMOD_VECTOR source = { sx, sy, sz };
+    gLastResult = gCoreSystem->getGeometryOcclusion(&listener, &source, &direct, &reverb);
+    fbuf[0] = (double)direct;
+    fbuf[1] = (double)reverb;
+    return (int)gLastResult;
+}
+
+int fmod_sys_load_geometry(::Array<unsigned char> data, int len) {
+    FMOD::Geometry* geometry = NULL;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    if (data == null() || len <= 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
+    if (len > data->length) len = data->length;
+    gLastResult = gCoreSystem->loadGeometry(&data[0], len, &geometry);
+    if (gLastResult != FMOD_OK || !geometry) return 0;
+    return geometryHandle(geometry);
+}
+
+int fmod_geo_release(int h) {
+    FMOD::Geometry* geometry = resolveGeometry(h);
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = geometry->release();
+    if (gLastResult == FMOD_OK) faxe_handle_free(h);
+    return (int)gLastResult;
+}
+
+// vertices: packed float32 xyz triples. Returns the polygon index, -1 on failure.
+int fmod_geo_add_polygon(int h, float direct, float reverb, bool doubleSided, ::Array<unsigned char> vertices, int count) {
+    FMOD::Geometry* geometry = resolveGeometry(h);
+    int index = -1;
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    if (count < 3) { gLastResult = FMOD_ERR_INVALID_PARAM; return -1; }
+    FMOD_VECTOR* points = rolloffCopy(vertices, count);
+    if (!points) { gLastResult = FMOD_ERR_INVALID_PARAM; return -1; }
+    gLastResult = geometry->addPolygon(direct, reverb, doubleSided, count, points, &index);
+    free(points);
+    if (gLastResult != FMOD_OK) return -1;
+    return index;
+}
+
+int fmod_geo_get_num_polygons(int h) {
+    FMOD::Geometry* geometry = resolveGeometry(h);
+    int count = 0;
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    gLastResult = geometry->getNumPolygons(&count);
+    if (gLastResult != FMOD_OK) return -1;
+    return count;
+}
+
+// ibuf out: [0]=max polygons [1]=max vertices
+int fmod_geo_get_max_polygons(int h, ::Array<int> ibuf) {
+    FMOD::Geometry* geometry = resolveGeometry(h);
+    int maxPolygons = 0;
+    int maxVertices = 0;
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = geometry->getMaxPolygons(&maxPolygons, &maxVertices);
+    ibuf[0] = maxPolygons;
+    ibuf[1] = maxVertices;
+    return (int)gLastResult;
+}
+
+int fmod_geo_get_polygon_num_vertices(int h, int index) {
+    FMOD::Geometry* geometry = resolveGeometry(h);
+    int count = 0;
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    gLastResult = geometry->getPolygonNumVertices(index, &count);
+    if (gLastResult != FMOD_OK) return -1;
+    return count;
+}
+
+int fmod_geo_set_polygon_vertex(int h, int index, int vertexIndex, float x, float y, float z) {
+    FMOD::Geometry* geometry = resolveGeometry(h);
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    FMOD_VECTOR vertex = { x, y, z };
+    gLastResult = geometry->setPolygonVertex(index, vertexIndex, &vertex);
+    return (int)gLastResult;
+}
+
+// fbuf out: [0..2]=x y z
+int fmod_geo_get_polygon_vertex(int h, int index, int vertexIndex, ::Array<Float> fbuf) {
+    FMOD::Geometry* geometry = resolveGeometry(h);
+    FMOD_VECTOR vertex = { 0.0f, 0.0f, 0.0f };
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = geometry->getPolygonVertex(index, vertexIndex, &vertex);
+    fbuf[0] = (double)vertex.x;
+    fbuf[1] = (double)vertex.y;
+    fbuf[2] = (double)vertex.z;
+    return (int)gLastResult;
+}
+
+int fmod_geo_set_polygon_attributes(int h, int index, float direct, float reverb, bool doubleSided) {
+    FMOD::Geometry* geometry = resolveGeometry(h);
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = geometry->setPolygonAttributes(index, direct, reverb, doubleSided);
+    return (int)gLastResult;
+}
+
+// fbuf out: [0]=direct [1]=reverb [2]=doubleSided (1.0 or 0.0)
+int fmod_geo_get_polygon_attributes(int h, int index, ::Array<Float> fbuf) {
+    FMOD::Geometry* geometry = resolveGeometry(h);
+    float direct = 0.0f;
+    float reverb = 0.0f;
+    bool doubleSided = false;
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = geometry->getPolygonAttributes(index, &direct, &reverb, &doubleSided);
+    fbuf[0] = (double)direct;
+    fbuf[1] = (double)reverb;
+    fbuf[2] = doubleSided ? 1.0 : 0.0;
+    return (int)gLastResult;
+}
+
+int fmod_geo_set_active(int h, bool active) {
+    FMOD::Geometry* geometry = resolveGeometry(h);
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = geometry->setActive(active);
+    return (int)gLastResult;
+}
+
+bool fmod_geo_get_active(int h) {
+    FMOD::Geometry* geometry = resolveGeometry(h);
+    bool active = false;
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return false; }
+    gLastResult = geometry->getActive(&active);
+    return active;
+}
+
+int fmod_geo_set_rotation(int h, float fx, float fy, float fz, float ux, float uy, float uz) {
+    FMOD::Geometry* geometry = resolveGeometry(h);
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    FMOD_VECTOR forward = { fx, fy, fz };
+    FMOD_VECTOR up = { ux, uy, uz };
+    gLastResult = geometry->setRotation(&forward, &up);
+    return (int)gLastResult;
+}
+
+// fbuf out: [0..2]=forward [3..5]=up
+int fmod_geo_get_rotation(int h, ::Array<Float> fbuf) {
+    FMOD::Geometry* geometry = resolveGeometry(h);
+    FMOD_VECTOR forward = { 0.0f, 0.0f, 0.0f };
+    FMOD_VECTOR up = { 0.0f, 0.0f, 0.0f };
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = geometry->getRotation(&forward, &up);
+    fbuf[0] = (double)forward.x; fbuf[1] = (double)forward.y; fbuf[2] = (double)forward.z;
+    fbuf[3] = (double)up.x; fbuf[4] = (double)up.y; fbuf[5] = (double)up.z;
+    return (int)gLastResult;
+}
+
+int fmod_geo_set_position(int h, float x, float y, float z) {
+    FMOD::Geometry* geometry = resolveGeometry(h);
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    FMOD_VECTOR position = { x, y, z };
+    gLastResult = geometry->setPosition(&position);
+    return (int)gLastResult;
+}
+
+// fbuf out: [0..2]=x y z
+int fmod_geo_get_position(int h, ::Array<Float> fbuf) {
+    FMOD::Geometry* geometry = resolveGeometry(h);
+    FMOD_VECTOR position = { 0.0f, 0.0f, 0.0f };
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = geometry->getPosition(&position);
+    fbuf[0] = (double)position.x;
+    fbuf[1] = (double)position.y;
+    fbuf[2] = (double)position.z;
+    return (int)gLastResult;
+}
+
+int fmod_geo_set_scale(int h, float x, float y, float z) {
+    FMOD::Geometry* geometry = resolveGeometry(h);
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    FMOD_VECTOR scale = { x, y, z };
+    gLastResult = geometry->setScale(&scale);
+    return (int)gLastResult;
+}
+
+// fbuf out: [0..2]=x y z
+int fmod_geo_get_scale(int h, ::Array<Float> fbuf) {
+    FMOD::Geometry* geometry = resolveGeometry(h);
+    FMOD_VECTOR scale = { 0.0f, 0.0f, 0.0f };
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = geometry->getScale(&scale);
+    fbuf[0] = (double)scale.x;
+    fbuf[1] = (double)scale.y;
+    fbuf[2] = (double)scale.z;
+    return (int)gLastResult;
+}
+
+// Returns the serialized size. A null buffer (or len 0) only sizes, so the
+// Haxe wrapper calls twice. A buffer shorter than the size is rejected
+// before FMOD writes anything.
+int fmod_geo_save(int h, ::Array<unsigned char> data, int len) {
+    FMOD::Geometry* geometry = resolveGeometry(h);
+    int size = 0;
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    gLastResult = geometry->save(NULL, &size);
+    if (gLastResult != FMOD_OK) return -1;
+    if (data == null() || len <= 0) return size;
+    if (len > data->length) len = data->length;
+    if (len < size) { gLastResult = FMOD_ERR_INVALID_PARAM; return -1; }
+    gLastResult = geometry->save(&data[0], &size);
+    if (gLastResult != FMOD_OK) return -1;
+    return size;
+}
+
 //// Debug
 
 int fmod_debug_live_handle_count() {
