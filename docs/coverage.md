@@ -274,7 +274,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_Sound_GetNumSubSounds` | `Sound.getNumSubSounds` |  |
 | `FMOD_Sound_GetNumSyncPoints` | `Sound.getSyncPointCount` |  |
 | `FMOD_Sound_GetNumTags` | `Sound.getNumTags`<br>`Sound.getNumTagsUpdated` |  |
-| `FMOD_Sound_GetOpenState` | `Sound.getOpenState` |  |
+| `FMOD_Sound_GetOpenState` | `Sound.getOpenState`<br>`Sound.getOpenStateInfo` |  |
 | `FMOD_Sound_GetSoundGroup` | `Sound.getSoundGroup` |  |
 | `FMOD_Sound_GetSubSound` | `Sound.getSubSound` |  |
 | `FMOD_Sound_GetSubSoundParent` | `Sound.getSubSoundParent`<br>`Sound.release` |  |

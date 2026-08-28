@@ -845,3 +845,54 @@ verdict: cannot FSBank is FMOD's offline bank encoder, shipped as a separate too
 ## fsbank_fetchnextprogressitem
 <!-- FSBANK_RESULT -->
 verdict: cannot FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio.
+
+## sound_addsyncpoint
+<!-- Sound::addSyncPoint -->
+verdict: bound
+The offset is read in the unit given as the last parameter, milliseconds when left out. FMOD's FMOD_SYNCPOINT handle is not returned. Points are addressed by their index in offset order in the other sync point calls and in ChannelEvent.SyncPoint.
+```haxe
+import haxefmod.core.Sound;
+import haxefmod.studio.Types;
+
+var sound = Sound.create("assets/music/track.wav");
+sound.addSyncPoint(500, "drop");
+sound.addSyncPoint(48000, "verse", FmodTimeUnit.PCM);
+```
+
+## sound_deletesyncpoint
+<!-- Sound::deleteSyncPoint -->
+verdict: bound
+Takes the point's index in offset order instead of an FMOD_SYNCPOINT handle. The indices of later points shift down by one.
+```haxe
+import haxefmod.core.Sound;
+
+var sound = Sound.create("assets/music/track.wav");
+sound.deleteSyncPoint(0);
+```
+
+## sound_getsyncpoint
+<!-- Sound::getSyncPoint -->
+verdict: bound
+There is no FMOD_SYNCPOINT handle on the Haxe side. The index in offset order is the address of a point, passed straight to getSyncPointName, getSyncPointOffset, and deleteSyncPoint.
+```haxe
+import haxefmod.core.Sound;
+
+var sound = Sound.create("assets/music/track.wav");
+for (i in 0...sound.getSyncPointCount()) {
+    trace(sound.getSyncPointName(i));
+}
+```
+
+## sound_getsyncpointinfo
+<!-- Sound::getSyncPointInfo -->
+verdict: bound
+Split into getSyncPointName and getSyncPointOffset, both taking the index in offset order. The offset comes back in the unit given as the last parameter, milliseconds when left out.
+```haxe
+import haxefmod.core.Sound;
+import haxefmod.studio.Types;
+
+var sound = Sound.create("assets/music/track.wav");
+var name = sound.getSyncPointName(0);
+var ms = sound.getSyncPointOffset(0);
+var samples = sound.getSyncPointOffset(0, FmodTimeUnit.PCM);
+```

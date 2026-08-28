@@ -160,6 +160,7 @@ class ApiProbeState extends FlxState {
         probeDspSurface();
         probeParityTail();
         probeCompletenessTail();
+        probeTimeUnitsAndSoundInfo();
         probeSoundGroupsAndSystem();
         probeAuditClosure();
         probeInstanceLifecycle();
@@ -2269,6 +2270,75 @@ class ApiProbeState extends FlxState {
      * The completeness tail: plain getters and setters on objects the
      * library already wrapped, checked as round trips against FMOD.
      */
+    /**
+     * Time units on the length, loop point, sync point, and position calls,
+     * and the extra fields on getFormat and getOpenStateInfo. A 4800 frame
+     * mono sound at 48 kHz is 100 ms, 4800 samples, and 9600 PCM bytes.
+     */
+    function probeTimeUnitsAndSoundInfo():Void {
+        var baseline = StudioSystem.liveHandleCount();
+        var frames = 4800;
+        var sound = Sound.fromPcm(haxe.io.Bytes.alloc(frames * 2), 48000, 1);
+        check("tu_sound", !sound.isNull(), 'handle=${(sound : Int)}');
+        check("tu_length_ms", sound.getLength() == 100, 'ms=${sound.getLength()}');
+        check("tu_length_pcm", sound.getLength(FmodTimeUnit.PCM) == frames, 'pcm=${sound.getLength(FmodTimeUnit.PCM)}');
+        check("tu_length_pcmbytes", sound.getLength(FmodTimeUnit.PCMBYTES) == frames * 2,
+            'bytes=${sound.getLength(FmodTimeUnit.PCMBYTES)}');
+
+        sound.setMode(ChannelMode.LOOP_NORMAL);
+        check("tu_sound_loop_points_pcm", sound.setLoopPoints(480, 2400, FmodTimeUnit.PCM).isOk(),
+            'result=${StudioSystem.lastResult().toString()}');
+        var loopsPcm = sound.getLoopPoints(FmodTimeUnit.PCM);
+        check("tu_sound_loop_points_pcm_roundtrip", loopsPcm != null && loopsPcm.startMs == 480 && loopsPcm.endMs == 2400,
+            loopsPcm == null ? "null" : 'start=${loopsPcm.startMs} end=${loopsPcm.endMs}');
+        var loopsMs = sound.getLoopPoints();
+        check("tu_sound_loop_points_ms_view", loopsMs != null && loopsMs.startMs == 10 && loopsMs.endMs == 50,
+            loopsMs == null ? "null" : 'start=${loopsMs.startMs} end=${loopsMs.endMs}');
+
+        check("tu_sync_add_pcm", sound.addSyncPoint(2400, "half", FmodTimeUnit.PCM).isOk(),
+            'result=${StudioSystem.lastResult().toString()}');
+        check("tu_sync_offset_ms", sound.getSyncPointOffset(0) == 50, 'ms=${sound.getSyncPointOffset(0)}');
+        check("tu_sync_offset_pcm", sound.getSyncPointOffset(0, FmodTimeUnit.PCM) == 2400,
+            'pcm=${sound.getSyncPointOffset(0, FmodTimeUnit.PCM)}');
+        check("tu_sync_name", sound.getSyncPointName(0) == "half", 'name=${sound.getSyncPointName(0)}');
+        check("tu_sync_delete", sound.deleteSyncPoint(0).isOk() && sound.getSyncPointCount() == 0, "");
+
+        var format = sound.getFormat();
+        check("tu_format_type_raw", format != null && format.type == FmodSoundType.RAW,
+            format == null ? "null" : 'type=${(format.type : Int)}');
+        check("tu_format_pcm16", format != null && format.format == FmodSoundFormat.PCM16,
+            format == null ? "null" : 'format=${(format.format : Int)}');
+        check("tu_format_channels_bits", format != null && format.channels == 1 && format.bits == 16,
+            format == null ? "null" : 'ch=${format.channels} bits=${format.bits}');
+
+        var openInfo = sound.getOpenStateInfo();
+        check("tu_open_state_info", openInfo != null && openInfo.state == FmodOpenState.READY
+            && !openInfo.starving && !openInfo.diskBusy,
+            openInfo == null ? "null" : 'state=${(openInfo.state : Int)} buffered=${openInfo.percentBuffered}');
+        check("tu_open_state_plain", openInfo != null && sound.getOpenState() == openInfo.state, "");
+
+        var channel = sound.play(true);
+        check("tu_play", !channel.isNull(), 'handle=${(channel : Int)}');
+        check("tu_chan_set_position_pcm", channel.setPosition(2400, FmodTimeUnit.PCM).isOk(),
+            'result=${StudioSystem.lastResult().toString()}');
+        check("tu_chan_get_position_ms", channel.getPosition() == 50, 'ms=${channel.getPosition()}');
+        check("tu_chan_get_position_pcm", channel.getPosition(FmodTimeUnit.PCM) == 2400,
+            'pcm=${channel.getPosition(FmodTimeUnit.PCM)}');
+        check("tu_chan_loop_points_pcm", channel.setLoopPoints(960, 1920, FmodTimeUnit.PCM).isOk(),
+            'result=${StudioSystem.lastResult().toString()}');
+        var chLoops = channel.getLoopPoints();
+        check("tu_chan_loop_points_ms_view", chLoops != null && chLoops.startMs == 20 && chLoops.endMs == 40,
+            chLoops == null ? "null" : 'start=${chLoops.startMs} end=${chLoops.endMs}');
+        channel.stop();
+        sound.release();
+
+        var stale = sound.getOpenStateInfo();
+        check("tu_stale_open_state_info", stale == null && StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_HANDLE,
+            'result=${StudioSystem.lastResult().toString()}');
+        check("no_handle_leaks_timeunits", StudioSystem.liveHandleCount() == baseline,
+            'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
+    }
+
     function probeCompletenessTail():Void {
         var baseline = StudioSystem.liveHandleCount();
 

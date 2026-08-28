@@ -123,13 +123,17 @@ abstract Sound(Int) from Int to Int {
             priority: Std.int(haxefmod.studio.native.Scratch.readF(1))};
     }
 
-    /** Loop region in milliseconds (needs a looping mode set). */
-    public inline function setLoopPoints(startMs:Int, endMs:Int):FmodResult {
-        return NativeStudio.sound_set_loop_points(this, startMs, endMs);
+    /**
+     * Loop region (needs a looping mode set). Both points are read in
+     * unit, milliseconds unless another FmodTimeUnit is given.
+     */
+    public inline function setLoopPoints(startMs:Int, endMs:Int, unit:FmodTimeUnit = FmodTimeUnit.MS):FmodResult {
+        return NativeStudio.sound_set_loop_points(this, startMs, endMs, unit);
     }
 
-    public function getLoopPoints():Null<{startMs:Int, endMs:Int}> {
-        var result:FmodResult = NativeStudio.sound_get_loop_points(this);
+    /** The loop region in unit (milliseconds by default), or null on failure. */
+    public function getLoopPoints(unit:FmodTimeUnit = FmodTimeUnit.MS):Null<{startMs:Int, endMs:Int}> {
+        var result:FmodResult = NativeStudio.sound_get_loop_points(this, unit);
         if (!result.isOk()) return null;
         return {startMs: haxefmod.studio.native.Scratch.readI(0),
             endMs: haxefmod.studio.native.Scratch.readI(1)};
@@ -144,11 +148,14 @@ abstract Sound(Int) from Int to Int {
         return NativeStudio.sound_get_mode(this);
     }
 
-    public function getFormat():Null<{channels:Int, bits:Int}> {
+    /** Container type, sample format, channel count, and bits per sample, or null on failure. */
+    public function getFormat():Null<{type:FmodSoundType, format:FmodSoundFormat, channels:Int, bits:Int}> {
         var result:FmodResult = NativeStudio.sound_get_format(this);
         if (!result.isOk()) return null;
-        return {channels: haxefmod.studio.native.Scratch.readI(0),
-            bits: haxefmod.studio.native.Scratch.readI(1)};
+        return {type: (haxefmod.studio.native.Scratch.readI(0) : FmodSoundType),
+            format: (haxefmod.studio.native.Scratch.readI(1) : FmodSoundFormat),
+            channels: haxefmod.studio.native.Scratch.readI(2),
+            bits: haxefmod.studio.native.Scratch.readI(3)};
     }
 
     /**
@@ -162,12 +169,26 @@ abstract Sound(Int) from Int to Int {
     }
 
     /**
+     * The open state with the streaming details FMOD reports next to it.
+     * percentBuffered is how much of a stream's buffer is filled, starving
+     * means the stream ran out of data, diskBusy means the file thread is
+     * reading. Null on failure, with the reason in StudioSystem.lastResult().
+     */
+    public function getOpenStateInfo():Null<{state:FmodOpenState, percentBuffered:Int, starving:Bool, diskBusy:Bool}> {
+        var result:FmodResult = NativeStudio.sound_get_open_state_info(this);
+        if (!result.isOk()) return null;
+        return {state: (Scratch.readI(0) : FmodOpenState), percentBuffered: Scratch.readI(1),
+            starving: Scratch.readI(2) != 0, diskBusy: Scratch.readI(3) != 0};
+    }
+
+    /**
      * Marks a timeline position. Playback crossing it delivers
      * ChannelEvent.SyncPoint (see Channel.setCallback) with the point's
-     * index in offset order.
+     * index in offset order. The offset is read in unit, milliseconds
+     * unless another FmodTimeUnit is given.
      */
-    public inline function addSyncPoint(offsetMs:Int, name:String):FmodResult {
-        return NativeStudio.sound_add_sync_point(this, offsetMs, name);
+    public inline function addSyncPoint(offsetMs:Int, name:String, unit:FmodTimeUnit = FmodTimeUnit.MS):FmodResult {
+        return NativeStudio.sound_add_sync_point(this, offsetMs, unit, name);
     }
 
     public inline function deleteSyncPoint(index:Int):FmodResult {
@@ -182,9 +203,9 @@ abstract Sound(Int) from Int to Int {
         return NativeStudio.sound_get_sync_point_name(this, index);
     }
 
-    /** The point's offset in milliseconds, or -1 on failure. */
-    public inline function getSyncPointOffset(index:Int):Int {
-        return NativeStudio.sound_get_sync_point_offset(this, index);
+    /** The point's offset in unit (milliseconds by default), or -1 on failure. */
+    public inline function getSyncPointOffset(index:Int, unit:FmodTimeUnit = FmodTimeUnit.MS):Int {
+        return NativeStudio.sound_get_sync_point_offset(this, index, unit);
     }
 
     /** The sound's name (raw memory sounds report an empty name). */
@@ -240,9 +261,9 @@ abstract Sound(Int) from Int to Int {
         return {minDistance: Scratch.readF(0), maxDistance: Scratch.readF(1)};
     }
 
-    /** Length in milliseconds, or -1 on failure. */
-    public inline function getLength():Int {
-        return NativeStudio.core_get_sound_length(this);
+    /** Length in unit (milliseconds by default, PCM samples with FmodTimeUnit.PCM), or -1 on failure. */
+    public inline function getLength(unit:FmodTimeUnit = FmodTimeUnit.MS):Int {
+        return NativeStudio.core_get_sound_length(this, unit);
     }
 
     #if (macro || (js && !haxefmod_html5_allow_unsupported))

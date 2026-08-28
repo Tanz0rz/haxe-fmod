@@ -344,11 +344,12 @@ int fmod_core_release_sound(int h) {
     return (int)gLastResult;
 }
 
-int fmod_core_get_sound_length(int h) {
+// unit is an FMOD_TIMEUNIT value, the length comes back in that unit
+int fmod_core_get_sound_length(int h, int unit) {
     FMOD::Sound* sound = resolveSound(h);
     if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
     unsigned int length = 0;
-    gLastResult = sound->getLength(&length, FMOD_TIMEUNIT_MS);
+    gLastResult = sound->getLength(&length, (FMOD_TIMEUNIT)unit);
     if (gLastResult != FMOD_OK) return -1;
     return (int)length;
 }
@@ -912,18 +913,18 @@ int fmod_chan_set_loop_count(int h, int loopCount) {
     return (int)gLastResult;
 }
 
-int fmod_chan_get_position(int h) {
+int fmod_chan_get_position(int h, int unit) {
     FMOD::Channel* ch = resolveChannel(h);
     unsigned int position = 0;
     if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
-    gLastResult = ch->getPosition(&position, FMOD_TIMEUNIT_MS);
+    gLastResult = ch->getPosition(&position, (FMOD_TIMEUNIT)unit);
     return gLastResult == FMOD_OK ? (int)position : -1;
 }
 
-int fmod_chan_set_position(int h, int positionMs) {
+int fmod_chan_set_position(int h, int position, int unit) {
     FMOD::Channel* ch = resolveChannel(h);
     if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
-    gLastResult = ch->setPosition((unsigned int)positionMs, FMOD_TIMEUNIT_MS);
+    gLastResult = ch->setPosition((unsigned int)position, (FMOD_TIMEUNIT)unit);
     return (int)gLastResult;
 }
 
@@ -1530,20 +1531,21 @@ int fmod_sound_get_defaults(int h, ::Array<Float> fbuf) {
     return (int)gLastResult;
 }
 
-int fmod_sound_set_loop_points(int h, int startMs, int endMs) {
+// Both points share one FMOD_TIMEUNIT
+int fmod_sound_set_loop_points(int h, int start, int end, int unit) {
     FMOD::Sound* sound = resolveSound(h);
     if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
-    gLastResult = sound->setLoopPoints((unsigned int)startMs, FMOD_TIMEUNIT_MS, (unsigned int)endMs, FMOD_TIMEUNIT_MS);
+    gLastResult = sound->setLoopPoints((unsigned int)start, (FMOD_TIMEUNIT)unit, (unsigned int)end, (FMOD_TIMEUNIT)unit);
     return (int)gLastResult;
 }
 
-// ibuf out: [0]=loop start ms [1]=loop end ms
-int fmod_sound_get_loop_points(int h, ::Array<int> ibuf) {
+// ibuf out: [0]=loop start [1]=loop end, both in the given unit
+int fmod_sound_get_loop_points(int h, int unit, ::Array<int> ibuf) {
     FMOD::Sound* sound = resolveSound(h);
     unsigned int start = 0;
     unsigned int end = 0;
     if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
-    gLastResult = sound->getLoopPoints(&start, FMOD_TIMEUNIT_MS, &end, FMOD_TIMEUNIT_MS);
+    gLastResult = sound->getLoopPoints(&start, (FMOD_TIMEUNIT)unit, &end, (FMOD_TIMEUNIT)unit);
     ibuf[0] = (int)start;
     ibuf[1] = (int)end;
     return (int)gLastResult;
@@ -1564,7 +1566,7 @@ int fmod_sound_get_mode(int h) {
     return (int)mode;
 }
 
-// ibuf out: [0]=channels [1]=bits
+// ibuf out: [0]=sound type [1]=sample format [2]=channels [3]=bits
 int fmod_sound_get_format(int h, ::Array<int> ibuf) {
     FMOD::Sound* sound = resolveSound(h);
     FMOD_SOUND_TYPE type = FMOD_SOUND_TYPE_UNKNOWN;
@@ -1573,8 +1575,10 @@ int fmod_sound_get_format(int h, ::Array<int> ibuf) {
     int bits = 0;
     if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = sound->getFormat(&type, &format, &channels, &bits);
-    ibuf[0] = channels;
-    ibuf[1] = bits;
+    ibuf[0] = (int)type;
+    ibuf[1] = (int)format;
+    ibuf[2] = channels;
+    ibuf[3] = bits;
     return (int)gLastResult;
 }
 
@@ -1587,6 +1591,22 @@ int fmod_sound_get_open_state(int h) {
     if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
     gLastResult = sound->getOpenState(&state, &buffered, &starving, &diskBusy);
     return gLastResult == FMOD_OK ? (int)state : -1;
+}
+
+// ibuf out: [0]=open state [1]=percent buffered [2]=starving [3]=disk busy
+int fmod_sound_get_open_state_info(int h, ::Array<int> ibuf) {
+    FMOD::Sound* sound = resolveSound(h);
+    FMOD_OPENSTATE state = FMOD_OPENSTATE_READY;
+    unsigned int buffered = 0;
+    bool starving = false;
+    bool diskBusy = false;
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = sound->getOpenState(&state, &buffered, &starving, &diskBusy);
+    ibuf[0] = (int)state;
+    ibuf[1] = (int)buffered;
+    ibuf[2] = starving ? 1 : 0;
+    ibuf[3] = diskBusy ? 1 : 0;
+    return (int)gLastResult;
 }
 
 //// Core system extras (slice 3)
@@ -1760,11 +1780,11 @@ int fmod_sys_set_studio_callback_mask(int mask) {
     return (int)gLastResult;
 }
 
-int fmod_sound_add_sync_point(int h, int offsetMs, const ::String& name) {
+int fmod_sound_add_sync_point(int h, int offset, int unit, const ::String& name) {
     FMOD::Sound* sound = resolveSound(h);
     FMOD_SYNCPOINT* point = NULL;
     if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
-    gLastResult = sound->addSyncPoint((unsigned int)offsetMs, FMOD_TIMEUNIT_MS, name.c_str(), &point);
+    gLastResult = sound->addSyncPoint((unsigned int)offset, (FMOD_TIMEUNIT)unit, name.c_str(), &point);
     return (int)gLastResult;
 }
 
@@ -1799,14 +1819,14 @@ const char* fmod_sound_get_sync_point_name(int h, int index) {
     return gStringBuf;
 }
 
-int fmod_sound_get_sync_point_offset(int h, int index) {
+int fmod_sound_get_sync_point_offset(int h, int index, int unit) {
     FMOD::Sound* sound = resolveSound(h);
     FMOD_SYNCPOINT* point = NULL;
     unsigned int offset = 0;
     if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
     gLastResult = sound->getSyncPoint(index, &point);
     if (gLastResult != FMOD_OK) return -1;
-    gLastResult = sound->getSyncPointInfo(point, NULL, 0, &offset, FMOD_TIMEUNIT_MS);
+    gLastResult = sound->getSyncPointInfo(point, NULL, 0, &offset, (FMOD_TIMEUNIT)unit);
     return gLastResult == FMOD_OK ? (int)offset : -1;
 }
 
@@ -2271,19 +2291,20 @@ int fmod_chan_get_current_sound(int h) {
     return faxe_handle_find_or_alloc(sound, FAXE_TYPE_SOUND);
 }
 
-int fmod_chan_set_loop_points(int h, int startMs, int endMs) {
+int fmod_chan_set_loop_points(int h, int start, int end, int unit) {
     FMOD::Channel* ch = resolveChannel(h);
     if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
-    gLastResult = ch->setLoopPoints((unsigned int)startMs, FMOD_TIMEUNIT_MS, (unsigned int)endMs, FMOD_TIMEUNIT_MS);
+    gLastResult = ch->setLoopPoints((unsigned int)start, (FMOD_TIMEUNIT)unit, (unsigned int)end, (FMOD_TIMEUNIT)unit);
     return (int)gLastResult;
 }
 
-int fmod_chan_get_loop_points(int h, ::Array<int> ibuf) {
+// ibuf out: [0]=loop start [1]=loop end, both in the given unit
+int fmod_chan_get_loop_points(int h, int unit, ::Array<int> ibuf) {
     FMOD::Channel* ch = resolveChannel(h);
     unsigned int start = 0;
     unsigned int end = 0;
     if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
-    gLastResult = ch->getLoopPoints(&start, FMOD_TIMEUNIT_MS, &end, FMOD_TIMEUNIT_MS);
+    gLastResult = ch->getLoopPoints(&start, (FMOD_TIMEUNIT)unit, &end, (FMOD_TIMEUNIT)unit);
     ibuf[0] = (int)start;
     ibuf[1] = (int)end;
     return (int)gLastResult;

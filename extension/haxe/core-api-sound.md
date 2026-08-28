@@ -3,12 +3,12 @@
 ## FMOD_OPENSTATE
 verdict: bound
 Type: haxefmod.studio.Types.FmodOpenState
-Sound.getOpenState reports only the state. A failed query also comes back as ERROR, with the reason in StudioSystem.lastResult().
+Sound.getOpenState reports the state alone, and a failed query comes back as ERROR with the reason in StudioSystem.lastResult(). Sound.getOpenStateInfo returns the state with percentBuffered, starving, and diskBusy, or null on failure.
 
 ## FMOD_SOUND_FORMAT
 verdict: bound
 Type: haxefmod.studio.Types.FmodSoundFormat
-Sound.getFormat reports the bit depth as a number instead of this enum. Sound.fromPcm always builds PCM16.
+Sound.getFormat reports it in the format field next to the bit depth. Sound.fromPcm always builds PCM16.
 
 ## Sound::getTag
 verdict: bound
@@ -159,7 +159,7 @@ if (defaults != null) {
 ## FMOD_SOUND_TYPE
 verdict: bound
 Type: haxefmod.studio.Types.FmodSoundType
-Sound.create accepts any format FMOD decodes on the target. The type of a loaded sound is not queried, Sound.getFormat reports only channels and bits.
+Sound.create accepts any format FMOD decodes on the target. Sound.getFormat reports the type of a loaded sound in its type field.
 
 ## FMOD_TAG
 verdict: bound

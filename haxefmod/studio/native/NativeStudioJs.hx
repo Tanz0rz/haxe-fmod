@@ -236,7 +236,7 @@ class NativeStudioJs {
     // Core API micro subset
     public static inline function core_create_sound(path:String, mode:Int, openOnly:Bool):Int return Raw.fmod_core_create_sound(path, mode, openOnly);
     public static inline function core_release_sound(handle:Int):Int return Raw.fmod_core_release_sound(handle);
-    public static inline function core_get_sound_length(handle:Int):Int return Raw.fmod_core_get_sound_length(handle);
+    public static inline function core_get_sound_length(handle:Int, unit:Int):Int return Raw.fmod_core_get_sound_length(handle, unit);
 
     // Core PCM streams
     public static inline function core_pcm_create(sampleRate:Int, channels:Int, ringBytes:Int):Int return Raw.fmod_core_pcm_create(sampleRate, channels, ringBytes);
@@ -301,8 +301,8 @@ class NativeStudioJs {
     public static inline function chan_set_frequency(handle:Int, frequency:Float):Int return Raw.fmod_chan_set_frequency(handle, frequency);
     public static inline function chan_get_frequency(handle:Int):Float return Raw.fmod_chan_get_frequency(handle);
     public static inline function chan_set_loop_count(handle:Int, loopCount:Int):Int return Raw.fmod_chan_set_loop_count(handle, loopCount);
-    public static inline function chan_get_position(handle:Int):Int return Raw.fmod_chan_get_position(handle);
-    public static inline function chan_set_position(handle:Int, positionMs:Int):Int return Raw.fmod_chan_set_position(handle, positionMs);
+    public static inline function chan_get_position(handle:Int, unit:Int):Int return Raw.fmod_chan_get_position(handle, unit);
+    public static inline function chan_set_position(handle:Int, position:Int, unit:Int):Int return Raw.fmod_chan_set_position(handle, position, unit);
     public static inline function chan_set_channel_group(handle:Int, groupHandle:Int):Int return Raw.fmod_chan_set_channel_group(handle, groupHandle);
     public static inline function chan_add_dsp(handle:Int, index:Int, dspHandle:Int):Int return Raw.fmod_chan_add_dsp(handle, index, dspHandle);
     public static inline function chan_remove_dsp(handle:Int, dspHandle:Int):Int return Raw.fmod_chan_remove_dsp(handle, dspHandle);
@@ -392,10 +392,10 @@ class NativeStudioJs {
     /** Fills Scratch float buffer: [0]=frequency [1]=priority */
     public static inline function sound_get_defaults(handle:Int):Int return Raw.fmod_sound_get_defaults(handle, Scratch.floatBuf());
 
-    public static inline function sound_set_loop_points(handle:Int, startMs:Int, endMs:Int):Int return Raw.fmod_sound_set_loop_points(handle, startMs, endMs);
+    public static inline function sound_set_loop_points(handle:Int, start:Int, end:Int, unit:Int):Int return Raw.fmod_sound_set_loop_points(handle, start, end, unit);
 
     /** Fills Scratch int buffer: [0]=loop start ms [1]=loop end ms */
-    public static inline function sound_get_loop_points(handle:Int):Int return Raw.fmod_sound_get_loop_points(handle, Scratch.intBuf());
+    public static inline function sound_get_loop_points(handle:Int, unit:Int):Int return Raw.fmod_sound_get_loop_points(handle, unit, Scratch.intBuf());
 
     public static inline function sound_set_mode(handle:Int, mode:Int):Int return Raw.fmod_sound_set_mode(handle, mode);
     public static inline function sound_get_mode(handle:Int):Int return Raw.fmod_sound_get_mode(handle);
@@ -404,6 +404,7 @@ class NativeStudioJs {
     public static inline function sound_get_format(handle:Int):Int return Raw.fmod_sound_get_format(handle, Scratch.intBuf());
 
     public static inline function sound_get_open_state(handle:Int):Int return Raw.fmod_sound_get_open_state(handle);
+    public static inline function sound_get_open_state_info(handle:Int):Int return Raw.fmod_sound_get_open_state_info(handle, Scratch.intBuf());
 
     // Core system extras (slice 3)
     /** Fills Scratch int buffer: [0]=all channels [1]=real channels */
@@ -422,11 +423,11 @@ class NativeStudioJs {
     public static inline function chan_set_callback(handle:Int, enabled:Bool):Int return Raw.fmod_chan_set_callback(handle, enabled);
     public static inline function sys_set_callback_mask(mask:Int):Int return Raw.fmod_sys_set_callback_mask(mask);
     public static inline function sys_set_studio_callback_mask(mask:Int):Int return Raw.fmod_sys_set_studio_callback_mask(mask);
-    public static inline function sound_add_sync_point(handle:Int, offsetMs:Int, name:String):Int return Raw.fmod_sound_add_sync_point(handle, offsetMs, name);
+    public static inline function sound_add_sync_point(handle:Int, offset:Int, unit:Int, name:String):Int return Raw.fmod_sound_add_sync_point(handle, offset, unit, name);
     public static inline function sound_delete_sync_point(handle:Int, index:Int):Int return Raw.fmod_sound_delete_sync_point(handle, index);
     public static inline function sound_get_num_sync_points(handle:Int):Int return Raw.fmod_sound_get_num_sync_points(handle);
     public static inline function sound_get_sync_point_name(handle:Int, index:Int):String return Raw.fmod_sound_get_sync_point_name(handle, index);
-    public static inline function sound_get_sync_point_offset(handle:Int, index:Int):Int return Raw.fmod_sound_get_sync_point_offset(handle, index);
+    public static inline function sound_get_sync_point_offset(handle:Int, index:Int, unit:Int):Int return Raw.fmod_sound_get_sync_point_offset(handle, index, unit);
 
     // Sound groups
     public static inline function sys_create_sound_group(name:String):Int return Raw.fmod_sys_create_sound_group(name);
@@ -507,9 +508,9 @@ class NativeStudioJs {
     public static inline function chan_get_volume_ramp(handle:Int):Bool return Raw.fmod_chan_get_volume_ramp(handle);
     /** Borrowed reference: do not release a sound obtained this way. */
     public static inline function chan_get_current_sound(handle:Int):Int return Raw.fmod_chan_get_current_sound(handle);
-    public static inline function chan_set_loop_points(handle:Int, startMs:Int, endMs:Int):Int return Raw.fmod_chan_set_loop_points(handle, startMs, endMs);
+    public static inline function chan_set_loop_points(handle:Int, start:Int, end:Int, unit:Int):Int return Raw.fmod_chan_set_loop_points(handle, start, end, unit);
     /** Fills Scratch int buffer: [0]=loop start ms [1]=loop end ms */
-    public static inline function chan_get_loop_points(handle:Int):Int return Raw.fmod_chan_get_loop_points(handle, Scratch.intBuf());
+    public static inline function chan_get_loop_points(handle:Int, unit:Int):Int return Raw.fmod_chan_get_loop_points(handle, unit, Scratch.intBuf());
     public static inline function chan_get_reverb_wet(handle:Int, instance:Int):Float return Raw.fmod_chan_get_reverb_wet(handle, instance);
     public static inline function chan_get_index(handle:Int):Int return Raw.fmod_chan_get_index(handle);
     /** Fills Scratch float buffer: [0..2]=direction xyz */
@@ -882,7 +883,7 @@ private extern class Raw {
     static function fmod_ps_clear(handle:Int):Int;
     static function fmod_core_create_sound(path:String, mode:Int, openOnly:Bool):Int;
     static function fmod_core_release_sound(handle:Int):Int;
-    static function fmod_core_get_sound_length(handle:Int):Int;
+    static function fmod_core_get_sound_length(handle:Int, unit:Int):Int;
     static function fmod_core_pcm_create(sampleRate:Int, channels:Int, ringBytes:Int):Int;
     static function fmod_core_pcm_write(handle:Int, data:haxe.io.BytesData, len:Int):Int;
     static function fmod_core_pcm_space(handle:Int):Int;
@@ -933,8 +934,8 @@ private extern class Raw {
     static function fmod_chan_set_frequency(handle:Int, frequency:Float):Int;
     static function fmod_chan_get_frequency(handle:Int):Float;
     static function fmod_chan_set_loop_count(handle:Int, loopCount:Int):Int;
-    static function fmod_chan_get_position(handle:Int):Int;
-    static function fmod_chan_set_position(handle:Int, positionMs:Int):Int;
+    static function fmod_chan_get_position(handle:Int, unit:Int):Int;
+    static function fmod_chan_set_position(handle:Int, position:Int, unit:Int):Int;
     static function fmod_chan_set_channel_group(handle:Int, groupHandle:Int):Int;
     static function fmod_chan_add_dsp(handle:Int, index:Int, dspHandle:Int):Int;
     static function fmod_chan_remove_dsp(handle:Int, dspHandle:Int):Int;
@@ -994,12 +995,13 @@ private extern class Raw {
     static function fmod_core_play_sound(handle:Int, startPaused:Bool):Int;
     static function fmod_sound_set_defaults(handle:Int, frequency:Float, priority:Int):Int;
     static function fmod_sound_get_defaults(handle:Int, fbuf:Array<Float>):Int;
-    static function fmod_sound_set_loop_points(handle:Int, startMs:Int, endMs:Int):Int;
-    static function fmod_sound_get_loop_points(handle:Int, ibuf:Array<Int>):Int;
+    static function fmod_sound_set_loop_points(handle:Int, start:Int, end:Int, unit:Int):Int;
+    static function fmod_sound_get_loop_points(handle:Int, unit:Int, ibuf:Array<Int>):Int;
     static function fmod_sound_set_mode(handle:Int, mode:Int):Int;
     static function fmod_sound_get_mode(handle:Int):Int;
     static function fmod_sound_get_format(handle:Int, ibuf:Array<Int>):Int;
     static function fmod_sound_get_open_state(handle:Int):Int;
+    static function fmod_sound_get_open_state_info(handle:Int, ibuf:Array<Int>):Int;
     static function fmod_sys_get_channels_playing(ibuf:Array<Int>):Int;
     static function fmod_sys_mixer_suspend():Int;
     static function fmod_sys_mixer_resume():Int;
@@ -1008,11 +1010,11 @@ private extern class Raw {
     static function fmod_chan_set_callback(handle:Int, enabled:Bool):Int;
     static function fmod_sys_set_callback_mask(mask:Int):Int;
     static function fmod_sys_set_studio_callback_mask(mask:Int):Int;
-    static function fmod_sound_add_sync_point(handle:Int, offsetMs:Int, name:String):Int;
+    static function fmod_sound_add_sync_point(handle:Int, offset:Int, unit:Int, name:String):Int;
     static function fmod_sound_delete_sync_point(handle:Int, index:Int):Int;
     static function fmod_sound_get_num_sync_points(handle:Int):Int;
     static function fmod_sound_get_sync_point_name(handle:Int, index:Int):String;
-    static function fmod_sound_get_sync_point_offset(handle:Int, index:Int):Int;
+    static function fmod_sound_get_sync_point_offset(handle:Int, index:Int, unit:Int):Int;
     static function fmod_sys_create_sound_group(name:String):Int;
     static function fmod_sys_get_master_sound_group():Int;
     static function fmod_sg_release(handle:Int):Int;
@@ -1062,8 +1064,8 @@ private extern class Raw {
     static function fmod_chan_set_volume_ramp(handle:Int, ramp:Bool):Int;
     static function fmod_chan_get_volume_ramp(handle:Int):Bool;
     static function fmod_chan_get_current_sound(handle:Int):Int;
-    static function fmod_chan_set_loop_points(handle:Int, startMs:Int, endMs:Int):Int;
-    static function fmod_chan_get_loop_points(handle:Int, ibuf:Array<Int>):Int;
+    static function fmod_chan_set_loop_points(handle:Int, start:Int, end:Int, unit:Int):Int;
+    static function fmod_chan_get_loop_points(handle:Int, unit:Int, ibuf:Array<Int>):Int;
     static function fmod_chan_get_reverb_wet(handle:Int, instance:Int):Float;
     static function fmod_chan_get_index(handle:Int):Int;
     static function fmod_chan_get_3d_cone_orientation(handle:Int, fbuf:Array<Float>):Int;

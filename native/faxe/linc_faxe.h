@@ -194,7 +194,7 @@ extern int fmod_ps_clear(int handle);
 //// Core API micro subset (programmer sounds only)
 extern int fmod_core_create_sound(const ::String& path, int mode, bool openOnly);
 extern int fmod_core_release_sound(int handle);
-extern int fmod_core_get_sound_length(int handle);
+extern int fmod_core_get_sound_length(int handle, int unit);
 
 //// Core PCM streams
 extern int fmod_core_pcm_create(int sampleRate, int channels, int ringBytes);
@@ -255,8 +255,8 @@ extern int fmod_chan_set_pan(int handle, float pan);
 extern int fmod_chan_set_frequency(int handle, float frequency);
 extern float fmod_chan_get_frequency(int handle);
 extern int fmod_chan_set_loop_count(int handle, int loopCount);
-extern int fmod_chan_get_position(int handle);
-extern int fmod_chan_set_position(int handle, int positionMs);
+extern int fmod_chan_get_position(int handle, int unit);
+extern int fmod_chan_set_position(int handle, int position, int unit);
 extern int fmod_chan_set_channel_group(int handle, int groupHandle);
 extern int fmod_chan_add_dsp(int handle, int index, int dspHandle);
 extern int fmod_chan_remove_dsp(int handle, int dspHandle);
@@ -332,12 +332,13 @@ extern int fmod_core_create_sound_pcm(::Array<unsigned char> data, int len, int 
 extern int fmod_core_play_sound(int handle, bool startPaused);
 extern int fmod_sound_set_defaults(int handle, float frequency, int priority);
 extern int fmod_sound_get_defaults(int handle, ::Array<Float> fbuf);
-extern int fmod_sound_set_loop_points(int handle, int startMs, int endMs);
-extern int fmod_sound_get_loop_points(int handle, ::Array<int> ibuf);
+extern int fmod_sound_set_loop_points(int handle, int start, int end, int unit);
+extern int fmod_sound_get_loop_points(int handle, int unit, ::Array<int> ibuf);
 extern int fmod_sound_set_mode(int handle, int mode);
 extern int fmod_sound_get_mode(int handle);
 extern int fmod_sound_get_format(int handle, ::Array<int> ibuf);
 extern int fmod_sound_get_open_state(int handle);
+extern int fmod_sound_get_open_state_info(int handle, ::Array<int> ibuf);
 
 // Core system extras (slice 3)
 extern int fmod_sys_get_channels_playing(::Array<int> ibuf);
@@ -402,11 +403,11 @@ extern int fmod_binding_abi_version();
 extern int fmod_chan_set_callback(int handle, bool enabled);
 extern int fmod_sys_set_callback_mask(int mask);
 extern int fmod_sys_set_studio_callback_mask(int mask);
-extern int fmod_sound_add_sync_point(int handle, int offsetMs, const ::String& name);
+extern int fmod_sound_add_sync_point(int handle, int offset, int unit, const ::String& name);
 extern int fmod_sound_delete_sync_point(int handle, int index);
 extern int fmod_sound_get_num_sync_points(int handle);
 extern const char* fmod_sound_get_sync_point_name(int handle, int index);
-extern int fmod_sound_get_sync_point_offset(int handle, int index);
+extern int fmod_sound_get_sync_point_offset(int handle, int index, int unit);
 
 // Sound groups
 extern int fmod_sys_create_sound_group(const ::String& name);
@@ -469,8 +470,8 @@ extern float fmod_chan_get_audibility(int handle);
 extern int fmod_chan_set_volume_ramp(int handle, bool ramp);
 extern bool fmod_chan_get_volume_ramp(int handle);
 extern int fmod_chan_get_current_sound(int handle);
-extern int fmod_chan_set_loop_points(int handle, int startMs, int endMs);
-extern int fmod_chan_get_loop_points(int handle, ::Array<int> ibuf);
+extern int fmod_chan_set_loop_points(int handle, int start, int end, int unit);
+extern int fmod_chan_get_loop_points(int handle, int unit, ::Array<int> ibuf);
 extern float fmod_chan_get_reverb_wet(int handle, int instance);
 extern int fmod_chan_get_index(int handle);
 extern int fmod_chan_get_3d_cone_orientation(int handle, ::Array<Float> fbuf);

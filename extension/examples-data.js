@@ -3,12 +3,12 @@
 const HAXEFMOD_EXAMPLES = {
  "advanced-core-api-topics": {
   "10.2 Extracting PCM Data from a Sound": {
-   "code": "var sound = Sound.create(\"drumloop.wav\", false, true); // openOnly, like FMOD_OPENONLY\nvar length = sound.getLength(); // milliseconds\n\nvar buffer = haxe.io.Bytes.alloc(4096);\nvar read = sound.readData(buffer, buffer.length);\nwhile (read > 0) {\n    // the first read bytes of buffer hold decoded PCM\n    read = sound.readData(buffer, buffer.length);\n}",
+   "code": "var sound = Sound.create(\"drumloop.wav\", false, true); // openOnly, like FMOD_OPENONLY\nvar length = sound.getLength(FmodTimeUnit.PCMBYTES);\n\nvar buffer = haxe.io.Bytes.alloc(4096);\nvar total = 0;\nvar read = sound.readData(buffer, buffer.length);\nwhile (read > 0) {\n    // the first read bytes of buffer hold decoded PCM\n    total += read;\n    read = sound.readData(buffer, buffer.length);\n}\n// total == length once the whole sound is read",
    "notes": [
     "Native only (unsupported in HTML5).",
-    "Sound.getLength reports milliseconds only, there is no byte count, so the PCM is read in fixed chunks until readData returns 0."
+    "Sound.getLength takes the time unit as its parameter, PCMBYTES here for the byte count."
    ],
-   "type": "haxefmod.core.Sound",
+   "type": "haxefmod.core.Sound, haxefmod.studio.Types",
    "verdict": "bound"
   },
   "10.7.1 3D Reverbs": {
@@ -369,9 +369,9 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "FMOD_TIMEUNIT": {
-   "code": "/**\n * FMOD_TIMEUNIT bits. No haxefmod call takes a time unit, positions and\n * lengths are always milliseconds (Channel.getPosition, Sound.getLength)\n * and stream buffer sizes are always RAWBYTES.\n */\nenum abstract FmodTimeUnit(Int) from Int to Int {\n    var MS = 0x00000001;\n    var PCM = 0x00000002;\n    var PCMBYTES = 0x00000004;\n    var RAWBYTES = 0x00000008;\n    var PCMFRACTION = 0x00000010;\n    var MODORDER = 0x00000100;\n    var MODROW = 0x00000200;\n    var MODPATTERN = 0x00000400;\n}",
+   "code": "/**\n * FMOD_TIMEUNIT bits. The length, loop point, sync point, and position\n * calls on Sound and Channel take one as an optional trailing parameter\n * and default to MS. Stream buffer sizes are always RAWBYTES.\n */\nenum abstract FmodTimeUnit(Int) from Int to Int {\n    var MS = 0x00000001;\n    var PCM = 0x00000002;\n    var PCMBYTES = 0x00000004;\n    var RAWBYTES = 0x00000008;\n    var PCMFRACTION = 0x00000010;\n    var MODORDER = 0x00000100;\n    var MODROW = 0x00000200;\n    var MODPATTERN = 0x00000400;\n}",
    "notes": [
-    "No call takes a time unit. Positions and lengths are always milliseconds in Channel.getPosition, Channel.setPosition, Sound.getLength, and Sound.addSyncPoint."
+    "An optional trailing parameter on Sound.getLength, Sound.getLoopPoints, Sound.setLoopPoints, Sound.addSyncPoint, Sound.getSyncPointOffset, Channel.getPosition, Channel.setPosition, Channel.getLoopPoints, and Channel.setLoopPoints. It defaults to MS. Loop points share one unit for the start and the end."
    ],
    "type": "haxefmod.studio.Types.FmodTimeUnit",
    "verdict": "bound"
@@ -867,17 +867,17 @@ const HAXEFMOD_EXAMPLES = {
  },
  "core-api-sound": {
   "FMOD_OPENSTATE": {
-   "code": "/** FMOD_OPENSTATE, what Sound.getOpenState reports while a sound loads or streams. */\nenum abstract FmodOpenState(Int) from Int to Int {\n    var READY = 0;\n    var LOADING = 1;\n    var ERROR = 2;\n    var CONNECTING = 3;\n    var BUFFERING = 4;\n    var SEEKING = 5;\n    var PLAYING = 6;\n    var SETPOSITION = 7;\n    var MAX = 8;\n}",
+   "code": "/** FMOD_OPENSTATE, what Sound.getOpenState and getOpenStateInfo report while a sound loads or streams. */\nenum abstract FmodOpenState(Int) from Int to Int {\n    var READY = 0;\n    var LOADING = 1;\n    var ERROR = 2;\n    var CONNECTING = 3;\n    var BUFFERING = 4;\n    var SEEKING = 5;\n    var PLAYING = 6;\n    var SETPOSITION = 7;\n    var MAX = 8;\n}",
    "notes": [
-    "Sound.getOpenState reports only the state. A failed query also comes back as ERROR, with the reason in StudioSystem.lastResult()."
+    "Sound.getOpenState reports the state alone, and a failed query comes back as ERROR with the reason in StudioSystem.lastResult(). Sound.getOpenStateInfo returns the state with percentBuffered, starving, and diskBusy, or null on failure."
    ],
    "type": "haxefmod.studio.Types.FmodOpenState",
    "verdict": "bound"
   },
   "FMOD_SOUND_FORMAT": {
-   "code": "/** FMOD_SOUND_FORMAT, the sample formats. Sound.fromPcm always builds PCM16, and Sound.getFormat reports the bit depth as a number. */\nenum abstract FmodSoundFormat(Int) from Int to Int {\n    var NONE = 0;\n    var PCM8 = 1;\n    var PCM16 = 2;\n    var PCM24 = 3;\n    var PCM32 = 4;\n    var PCMFLOAT = 5;\n    var BITSTREAM = 6;\n    var MAX = 7;\n}",
+   "code": "/** FMOD_SOUND_FORMAT, the sample formats. Sound.fromPcm always builds PCM16, and Sound.getFormat reports the format of a loaded sound. */\nenum abstract FmodSoundFormat(Int) from Int to Int {\n    var NONE = 0;\n    var PCM8 = 1;\n    var PCM16 = 2;\n    var PCM24 = 3;\n    var PCM32 = 4;\n    var PCMFLOAT = 5;\n    var BITSTREAM = 6;\n    var MAX = 7;\n}",
    "notes": [
-    "Sound.getFormat reports the bit depth as a number instead of this enum. Sound.fromPcm always builds PCM16."
+    "Sound.getFormat reports it in the format field next to the bit depth. Sound.fromPcm always builds PCM16."
    ],
    "type": "haxefmod.studio.Types.FmodSoundFormat",
    "verdict": "bound"
@@ -907,9 +907,9 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "cannot"
   },
   "FMOD_SOUND_TYPE": {
-   "code": "/** FMOD_SOUND_TYPE, the container formats FMOD decodes. Sound.create takes any of them the target supports, the type of a loaded sound is not queried. */\nenum abstract FmodSoundType(Int) from Int to Int {\n    var UNKNOWN = 0;\n    var AIFF = 1;\n    var ASF = 2;\n    var DLS = 3;\n    var FLAC = 4;\n    var FSB = 5;\n    var IT = 6;\n    var MIDI = 7;\n    var MOD = 8;\n    var MPEG = 9;\n    var OGGVORBIS = 10;\n    var PLAYLIST = 11;\n    var RAW = 12;\n    var S3M = 13;\n    var USER = 14;\n    var WAV = 15;\n    var XM = 16;\n    var XMA = 17;\n    var AUDIOQUEUE = 18;\n    var AT9 = 19;\n    var VORBIS = 20;\n    var MEDIA_FOUNDATION = 21;\n    var MEDIACODEC = 22;\n    var FADPCM = 23;\n    var OPUS = 24;\n    var MAX = 25;\n}",
+   "code": "/** FMOD_SOUND_TYPE, the container formats FMOD decodes. Sound.create takes any of them the target supports, and Sound.getFormat reports which one a loaded sound has. */\nenum abstract FmodSoundType(Int) from Int to Int {\n    var UNKNOWN = 0;\n    var AIFF = 1;\n    var ASF = 2;\n    var DLS = 3;\n    var FLAC = 4;\n    var FSB = 5;\n    var IT = 6;\n    var MIDI = 7;\n    var MOD = 8;\n    var MPEG = 9;\n    var OGGVORBIS = 10;\n    var PLAYLIST = 11;\n    var RAW = 12;\n    var S3M = 13;\n    var USER = 14;\n    var WAV = 15;\n    var XM = 16;\n    var XMA = 17;\n    var AUDIOQUEUE = 18;\n    var AT9 = 19;\n    var VORBIS = 20;\n    var MEDIA_FOUNDATION = 21;\n    var MEDIACODEC = 22;\n    var FADPCM = 23;\n    var OPUS = 24;\n    var MAX = 25;\n}",
    "notes": [
-    "Sound.create accepts any format FMOD decodes on the target. The type of a loaded sound is not queried, Sound.getFormat reports only channels and bits."
+    "Sound.create accepts any format FMOD decodes on the target. Sound.getFormat reports the type of a loaded sound in its type field."
    ],
    "type": "haxefmod.studio.Types.FmodSoundType",
    "verdict": "bound"
@@ -1439,12 +1439,12 @@ const HAXEFMOD_EXAMPLES = {
  },
  "glossary": {
   "22.33 Reading Sound Data": {
-   "code": "var sound:Sound;\nvar length:Int;\nvar buffer:haxe.io.Bytes;\n\nsound = Sound.create(\"drumloop.wav\", false, true); // openOnly is FMOD_OPENONLY\nlength = sound.getLength();\n\nbuffer = haxe.io.Bytes.alloc(4096);\nvar read = sound.readData(buffer, buffer.length);\nwhile (read > 0) {\n    read = sound.readData(buffer, buffer.length);\n}\n\nsound.release();",
+   "code": "var sound:Sound;\nvar length:Int;\nvar buffer:haxe.io.Bytes;\n\nsound = Sound.create(\"drumloop.wav\", false, true); // openOnly is FMOD_OPENONLY\nlength = sound.getLength(FmodTimeUnit.PCMBYTES);\n\nbuffer = haxe.io.Bytes.alloc(4096);\nvar read = sound.readData(buffer, buffer.length);\nwhile (read > 0) {\n    read = sound.readData(buffer, buffer.length);\n}\n\nsound.release();",
    "notes": [
     "Native only (unsupported in HTML5).",
-    "getLength reports milliseconds, not a byte count, so the PCM is read in fixed chunks until readData returns 0."
+    "getLength takes the time unit as its parameter, PCMBYTES for the byte count the page reads."
    ],
-   "type": "haxefmod.core.Sound",
+   "type": "haxefmod.core.Sound, haxefmod.studio.Types",
    "verdict": "bound"
   },
   "22.49 User Data": {

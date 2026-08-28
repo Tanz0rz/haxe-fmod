@@ -246,7 +246,7 @@ class NativeStudioCpp {
     // Core API micro subset
     public static inline function core_create_sound(path:String, mode:Int, openOnly:Bool):Int return Raw.core_create_sound(path, mode, openOnly);
     public static inline function core_release_sound(handle:Int):Int return Raw.core_release_sound(handle);
-    public static inline function core_get_sound_length(handle:Int):Int return Raw.core_get_sound_length(handle);
+    public static inline function core_get_sound_length(handle:Int, unit:Int):Int return Raw.core_get_sound_length(handle, unit);
 
     // Core PCM streams
     public static inline function core_pcm_create(sampleRate:Int, channels:Int, ringBytes:Int):Int return Raw.core_pcm_create(sampleRate, channels, ringBytes);
@@ -311,8 +311,8 @@ class NativeStudioCpp {
     public static inline function chan_set_frequency(handle:Int, frequency:Float):Int return Raw.chan_set_frequency(handle, frequency);
     public static inline function chan_get_frequency(handle:Int):Float return Raw.chan_get_frequency(handle);
     public static inline function chan_set_loop_count(handle:Int, loopCount:Int):Int return Raw.chan_set_loop_count(handle, loopCount);
-    public static inline function chan_get_position(handle:Int):Int return Raw.chan_get_position(handle);
-    public static inline function chan_set_position(handle:Int, positionMs:Int):Int return Raw.chan_set_position(handle, positionMs);
+    public static inline function chan_get_position(handle:Int, unit:Int):Int return Raw.chan_get_position(handle, unit);
+    public static inline function chan_set_position(handle:Int, position:Int, unit:Int):Int return Raw.chan_set_position(handle, position, unit);
     public static inline function chan_set_channel_group(handle:Int, groupHandle:Int):Int return Raw.chan_set_channel_group(handle, groupHandle);
     public static inline function chan_add_dsp(handle:Int, index:Int, dspHandle:Int):Int return Raw.chan_add_dsp(handle, index, dspHandle);
     public static inline function chan_remove_dsp(handle:Int, dspHandle:Int):Int return Raw.chan_remove_dsp(handle, dspHandle);
@@ -402,10 +402,10 @@ class NativeStudioCpp {
     /** Fills Scratch float buffer: [0]=frequency [1]=priority */
     public static inline function sound_get_defaults(handle:Int):Int return Raw.sound_get_defaults(handle, Scratch.floatBuf());
 
-    public static inline function sound_set_loop_points(handle:Int, startMs:Int, endMs:Int):Int return Raw.sound_set_loop_points(handle, startMs, endMs);
+    public static inline function sound_set_loop_points(handle:Int, start:Int, end:Int, unit:Int):Int return Raw.sound_set_loop_points(handle, start, end, unit);
 
     /** Fills Scratch int buffer: [0]=loop start ms [1]=loop end ms */
-    public static inline function sound_get_loop_points(handle:Int):Int return Raw.sound_get_loop_points(handle, Scratch.intBuf());
+    public static inline function sound_get_loop_points(handle:Int, unit:Int):Int return Raw.sound_get_loop_points(handle, unit, Scratch.intBuf());
 
     public static inline function sound_set_mode(handle:Int, mode:Int):Int return Raw.sound_set_mode(handle, mode);
     public static inline function sound_get_mode(handle:Int):Int return Raw.sound_get_mode(handle);
@@ -414,6 +414,7 @@ class NativeStudioCpp {
     public static inline function sound_get_format(handle:Int):Int return Raw.sound_get_format(handle, Scratch.intBuf());
 
     public static inline function sound_get_open_state(handle:Int):Int return Raw.sound_get_open_state(handle);
+    public static inline function sound_get_open_state_info(handle:Int):Int return Raw.sound_get_open_state_info(handle, Scratch.intBuf());
 
     // Core system extras (slice 3)
     /** Fills Scratch int buffer: [0]=all channels [1]=real channels */
@@ -432,11 +433,11 @@ class NativeStudioCpp {
     public static inline function chan_set_callback(handle:Int, enabled:Bool):Int return Raw.chan_set_callback(handle, enabled);
     public static inline function sys_set_callback_mask(mask:Int):Int return Raw.sys_set_callback_mask(mask);
     public static inline function sys_set_studio_callback_mask(mask:Int):Int return Raw.sys_set_studio_callback_mask(mask);
-    public static inline function sound_add_sync_point(handle:Int, offsetMs:Int, name:String):Int return Raw.sound_add_sync_point(handle, offsetMs, name);
+    public static inline function sound_add_sync_point(handle:Int, offset:Int, unit:Int, name:String):Int return Raw.sound_add_sync_point(handle, offset, unit, name);
     public static inline function sound_delete_sync_point(handle:Int, index:Int):Int return Raw.sound_delete_sync_point(handle, index);
     public static inline function sound_get_num_sync_points(handle:Int):Int return Raw.sound_get_num_sync_points(handle);
     public static inline function sound_get_sync_point_name(handle:Int, index:Int):String return Raw.sound_get_sync_point_name(handle, index).toString();
-    public static inline function sound_get_sync_point_offset(handle:Int, index:Int):Int return Raw.sound_get_sync_point_offset(handle, index);
+    public static inline function sound_get_sync_point_offset(handle:Int, index:Int, unit:Int):Int return Raw.sound_get_sync_point_offset(handle, index, unit);
 
     // Sound groups
     public static inline function sys_create_sound_group(name:String):Int return Raw.sys_create_sound_group(name);
@@ -517,9 +518,9 @@ class NativeStudioCpp {
     public static inline function chan_get_volume_ramp(handle:Int):Bool return Raw.chan_get_volume_ramp(handle);
     /** Borrowed reference: do not release a sound obtained this way. */
     public static inline function chan_get_current_sound(handle:Int):Int return Raw.chan_get_current_sound(handle);
-    public static inline function chan_set_loop_points(handle:Int, startMs:Int, endMs:Int):Int return Raw.chan_set_loop_points(handle, startMs, endMs);
+    public static inline function chan_set_loop_points(handle:Int, start:Int, end:Int, unit:Int):Int return Raw.chan_set_loop_points(handle, start, end, unit);
     /** Fills Scratch int buffer: [0]=loop start ms [1]=loop end ms */
-    public static inline function chan_get_loop_points(handle:Int):Int return Raw.chan_get_loop_points(handle, Scratch.intBuf());
+    public static inline function chan_get_loop_points(handle:Int, unit:Int):Int return Raw.chan_get_loop_points(handle, unit, Scratch.intBuf());
     public static inline function chan_get_reverb_wet(handle:Int, instance:Int):Float return Raw.chan_get_reverb_wet(handle, instance);
     public static inline function chan_get_index(handle:Int):Int return Raw.chan_get_index(handle);
     /** Fills Scratch float buffer: [0..2]=direction xyz */
@@ -1194,7 +1195,7 @@ private extern class Raw {
     static function core_release_sound(handle:Int):Int;
 
     @:native("linc::faxe::fmod_core_get_sound_length")
-    static function core_get_sound_length(handle:Int):Int;
+    static function core_get_sound_length(handle:Int, unit:Int):Int;
 
     @:native("linc::faxe::fmod_core_pcm_create")
     static function core_pcm_create(sampleRate:Int, channels:Int, ringBytes:Int):Int;
@@ -1347,10 +1348,10 @@ private extern class Raw {
     static function chan_set_loop_count(handle:Int, loopCount:Int):Int;
 
     @:native("linc::faxe::fmod_chan_get_position")
-    static function chan_get_position(handle:Int):Int;
+    static function chan_get_position(handle:Int, unit:Int):Int;
 
     @:native("linc::faxe::fmod_chan_set_position")
-    static function chan_set_position(handle:Int, positionMs:Int):Int;
+    static function chan_set_position(handle:Int, position:Int, unit:Int):Int;
 
     @:native("linc::faxe::fmod_chan_set_channel_group")
     static function chan_set_channel_group(handle:Int, groupHandle:Int):Int;
@@ -1530,10 +1531,10 @@ private extern class Raw {
     static function sound_get_defaults(handle:Int, fbuf:Array<Float>):Int;
 
     @:native("linc::faxe::fmod_sound_set_loop_points")
-    static function sound_set_loop_points(handle:Int, startMs:Int, endMs:Int):Int;
+    static function sound_set_loop_points(handle:Int, start:Int, end:Int, unit:Int):Int;
 
     @:native("linc::faxe::fmod_sound_get_loop_points")
-    static function sound_get_loop_points(handle:Int, ibuf:Array<Int>):Int;
+    static function sound_get_loop_points(handle:Int, unit:Int, ibuf:Array<Int>):Int;
 
     @:native("linc::faxe::fmod_sound_set_mode")
     static function sound_set_mode(handle:Int, mode:Int):Int;
@@ -1546,6 +1547,9 @@ private extern class Raw {
 
     @:native("linc::faxe::fmod_sound_get_open_state")
     static function sound_get_open_state(handle:Int):Int;
+
+    @:native("linc::faxe::fmod_sound_get_open_state_info")
+    static function sound_get_open_state_info(handle:Int, ibuf:Array<Int>):Int;
 
     @:native("linc::faxe::fmod_sys_get_channels_playing")
     static function sys_get_channels_playing(ibuf:Array<Int>):Int;
@@ -1572,7 +1576,7 @@ private extern class Raw {
     static function sys_set_studio_callback_mask(mask:Int):Int;
 
     @:native("linc::faxe::fmod_sound_add_sync_point")
-    static function sound_add_sync_point(handle:Int, offsetMs:Int, name:String):Int;
+    static function sound_add_sync_point(handle:Int, offset:Int, unit:Int, name:String):Int;
 
     @:native("linc::faxe::fmod_sound_delete_sync_point")
     static function sound_delete_sync_point(handle:Int, index:Int):Int;
@@ -1584,7 +1588,7 @@ private extern class Raw {
     static function sound_get_sync_point_name(handle:Int, index:Int):cpp.ConstCharStar;
 
     @:native("linc::faxe::fmod_sound_get_sync_point_offset")
-    static function sound_get_sync_point_offset(handle:Int, index:Int):Int;
+    static function sound_get_sync_point_offset(handle:Int, index:Int, unit:Int):Int;
 
     @:native("linc::faxe::fmod_sys_create_sound_group")
     static function sys_create_sound_group(name:String):Int;
@@ -1731,10 +1735,10 @@ private extern class Raw {
     static function chan_get_current_sound(handle:Int):Int;
 
     @:native("linc::faxe::fmod_chan_set_loop_points")
-    static function chan_set_loop_points(handle:Int, startMs:Int, endMs:Int):Int;
+    static function chan_set_loop_points(handle:Int, start:Int, end:Int, unit:Int):Int;
 
     @:native("linc::faxe::fmod_chan_get_loop_points")
-    static function chan_get_loop_points(handle:Int, ibuf:Array<Int>):Int;
+    static function chan_get_loop_points(handle:Int, unit:Int, ibuf:Array<Int>):Int;
 
     @:native("linc::faxe::fmod_chan_get_reverb_wet")
     static function chan_get_reverb_wet(handle:Int, instance:Int):Float;

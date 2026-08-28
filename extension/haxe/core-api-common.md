@@ -101,7 +101,7 @@ Thread settings are not exposed, so no call takes a thread type.
 ## FMOD_TIMEUNIT
 verdict: bound
 Type: haxefmod.studio.Types.FmodTimeUnit
-No call takes a time unit. Positions and lengths are always milliseconds in Channel.getPosition, Channel.setPosition, Sound.getLength, and Sound.addSyncPoint.
+An optional trailing parameter on Sound.getLength, Sound.getLoopPoints, Sound.setLoopPoints, Sound.addSyncPoint, Sound.getSyncPointOffset, Channel.getPosition, Channel.setPosition, Channel.getLoopPoints, and Channel.setLoopPoints. It defaults to MS. Loop points share one unit for the start and the end.
 
 ## FMOD_VECTOR
 verdict: bound

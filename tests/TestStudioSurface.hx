@@ -471,6 +471,15 @@ class TestStudioSurface {
 		assert(pcmSound.getSyncPointName(0) == "", "sound syncPointName default");
 		assert(pcmSound.getSyncPointOffset(0) == -1, "sound syncPointOffset default");
 
+		// Time units are an optional trailing parameter, milliseconds when left out
+		assert(pcmSound.getLength() == -1 && pcmSound.getLength(FmodTimeUnit.PCM) == -1, "sound length takes a unit");
+		assert(!pcmSound.setLoopPoints(0, 100, FmodTimeUnit.PCM).isOk(), "sound setLoopPoints takes a unit");
+		assert(pcmSound.getLoopPoints(FmodTimeUnit.PCMBYTES) == null, "sound getLoopPoints takes a unit");
+		assert(!pcmSound.addSyncPoint(50, "mid", FmodTimeUnit.PCM).isOk(), "sound addSyncPoint takes a unit");
+		assert(pcmSound.getSyncPointOffset(0, FmodTimeUnit.PCM) == -1, "sound syncPointOffset takes a unit");
+		assert(pcmSound.getOpenStateInfo() == null, "sound openStateInfo default");
+		assert(pcmSound.getOpenState() == FmodOpenState.ERROR, "sound openState stays a plain state");
+
 		var soundGroup = SoundGroup.create("test");
 		assert(soundGroup.isNull(), "sg create null");
 		assert(SoundGroup.master().isNull(), "sg master null");
@@ -530,6 +539,10 @@ class TestStudioSurface {
 		assert(channel.getCurrentSound().isNull(), "chan currentSound default");
 		assert(!channel.setLoopPoints(0, 100).isOk(), "chan setLoopPoints result");
 		assert(channel.getLoopPoints() == null, "chan loopPoints default");
+		assert(!channel.setLoopPoints(0, 100, FmodTimeUnit.PCM).isOk(), "chan setLoopPoints takes a unit");
+		assert(channel.getLoopPoints(FmodTimeUnit.PCM) == null, "chan getLoopPoints takes a unit");
+		assert(channel.getPosition(FmodTimeUnit.PCM) == -1, "chan getPosition takes a unit");
+		assert(!channel.setPosition(0, FmodTimeUnit.PCM).isOk(), "chan setPosition takes a unit");
 		assert(channel.getReverbWet(0) == 0.0, "chan reverbWet default");
 		assert(channel.getIndex() == -1, "chan index default");
 		assert(channel.get3DConeOrientation() == null, "chan coneOrientation default");

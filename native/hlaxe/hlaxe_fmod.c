@@ -398,15 +398,16 @@ HL_PRIM int HL_NAME(core_release_sound)(int h) {
 }
 DEFINE_PRIM(_I32, core_release_sound, _I32);
 
-HL_PRIM int HL_NAME(core_get_sound_length)(int h) {
+// unit is an FMOD_TIMEUNIT value, the length comes back in that unit
+HL_PRIM int HL_NAME(core_get_sound_length)(int h, int unit) {
     FMOD_SOUND* sound = resolve_sound(h);
     unsigned int length = 0;
     if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
-    gLastResult = FMOD_Sound_GetLength(sound, &length, FMOD_TIMEUNIT_MS);
+    gLastResult = FMOD_Sound_GetLength(sound, &length, (FMOD_TIMEUNIT)unit);
     if (gLastResult != FMOD_OK) return -1;
     return (int)length;
 }
-DEFINE_PRIM(_I32, core_get_sound_length, _I32);
+DEFINE_PRIM(_I32, core_get_sound_length, _I32 _I32);
 
 //// Core PCM streams (user-generated audio)
 
@@ -1031,22 +1032,22 @@ HL_PRIM int HL_NAME(chan_set_loop_count)(int h, int loopCount) {
 }
 DEFINE_PRIM(_I32, chan_set_loop_count, _I32 _I32);
 
-HL_PRIM int HL_NAME(chan_get_position)(int h) {
+HL_PRIM int HL_NAME(chan_get_position)(int h, int unit) {
     FMOD_CHANNEL* channel = resolve_channel(h);
     unsigned int position = 0;
     if (!channel) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
-    gLastResult = FMOD_Channel_GetPosition(channel, &position, FMOD_TIMEUNIT_MS);
+    gLastResult = FMOD_Channel_GetPosition(channel, &position, (FMOD_TIMEUNIT)unit);
     return gLastResult == FMOD_OK ? (int)position : -1;
 }
-DEFINE_PRIM(_I32, chan_get_position, _I32);
+DEFINE_PRIM(_I32, chan_get_position, _I32 _I32);
 
-HL_PRIM int HL_NAME(chan_set_position)(int h, int positionMs) {
+HL_PRIM int HL_NAME(chan_set_position)(int h, int position, int unit) {
     FMOD_CHANNEL* channel = resolve_channel(h);
     if (!channel) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
-    gLastResult = FMOD_Channel_SetPosition(channel, (unsigned int)positionMs, FMOD_TIMEUNIT_MS);
+    gLastResult = FMOD_Channel_SetPosition(channel, (unsigned int)position, (FMOD_TIMEUNIT)unit);
     return (int)gLastResult;
 }
-DEFINE_PRIM(_I32, chan_set_position, _I32 _I32);
+DEFINE_PRIM(_I32, chan_set_position, _I32 _I32 _I32);
 
 HL_PRIM int HL_NAME(chan_set_channel_group)(int h, int groupHandle) {
     FMOD_CHANNEL* channel = resolve_channel(h);
@@ -1736,28 +1737,29 @@ HL_PRIM int HL_NAME(sound_get_defaults)(int h, vbyte* out) {
 }
 DEFINE_PRIM(_I32, sound_get_defaults, _I32 _BYTES);
 
-HL_PRIM int HL_NAME(sound_set_loop_points)(int h, int startMs, int endMs) {
+// Both points share one FMOD_TIMEUNIT
+HL_PRIM int HL_NAME(sound_set_loop_points)(int h, int start, int end, int unit) {
     FMOD_SOUND* sound = resolve_core_sound(h);
     if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
-    gLastResult = FMOD_Sound_SetLoopPoints(sound, (unsigned int)startMs, FMOD_TIMEUNIT_MS,
-        (unsigned int)endMs, FMOD_TIMEUNIT_MS);
+    gLastResult = FMOD_Sound_SetLoopPoints(sound, (unsigned int)start, (FMOD_TIMEUNIT)unit,
+        (unsigned int)end, (FMOD_TIMEUNIT)unit);
     return (int)gLastResult;
 }
-DEFINE_PRIM(_I32, sound_set_loop_points, _I32 _I32 _I32);
+DEFINE_PRIM(_I32, sound_set_loop_points, _I32 _I32 _I32 _I32);
 
-// out = int[2]: loop start ms, loop end ms
-HL_PRIM int HL_NAME(sound_get_loop_points)(int h, vbyte* out) {
+// out = int[2]: loop start, loop end, both in the given unit
+HL_PRIM int HL_NAME(sound_get_loop_points)(int h, int unit, vbyte* out) {
     FMOD_SOUND* sound = resolve_core_sound(h);
     unsigned int start = 0;
     unsigned int end = 0;
     int* outInts = (int*)out;
     if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
-    gLastResult = FMOD_Sound_GetLoopPoints(sound, &start, FMOD_TIMEUNIT_MS, &end, FMOD_TIMEUNIT_MS);
+    gLastResult = FMOD_Sound_GetLoopPoints(sound, &start, (FMOD_TIMEUNIT)unit, &end, (FMOD_TIMEUNIT)unit);
     outInts[0] = (int)start;
     outInts[1] = (int)end;
     return (int)gLastResult;
 }
-DEFINE_PRIM(_I32, sound_get_loop_points, _I32 _BYTES);
+DEFINE_PRIM(_I32, sound_get_loop_points, _I32 _I32 _BYTES);
 
 HL_PRIM int HL_NAME(sound_set_mode)(int h, int mode) {
     FMOD_SOUND* sound = resolve_core_sound(h);
@@ -1776,7 +1778,7 @@ HL_PRIM int HL_NAME(sound_get_mode)(int h) {
 }
 DEFINE_PRIM(_I32, sound_get_mode, _I32);
 
-// out = int[2]: channels, bits
+// out = int[4]: sound type, sample format, channels, bits
 HL_PRIM int HL_NAME(sound_get_format)(int h, vbyte* out) {
     FMOD_SOUND* sound = resolve_core_sound(h);
     FMOD_SOUND_TYPE type = FMOD_SOUND_TYPE_UNKNOWN;
@@ -1786,8 +1788,10 @@ HL_PRIM int HL_NAME(sound_get_format)(int h, vbyte* out) {
     int* outInts = (int*)out;
     if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = FMOD_Sound_GetFormat(sound, &type, &format, &channels, &bits);
-    outInts[0] = channels;
-    outInts[1] = bits;
+    outInts[0] = (int)type;
+    outInts[1] = (int)format;
+    outInts[2] = channels;
+    outInts[3] = bits;
     return (int)gLastResult;
 }
 DEFINE_PRIM(_I32, sound_get_format, _I32 _BYTES);
@@ -1803,6 +1807,24 @@ HL_PRIM int HL_NAME(sound_get_open_state)(int h) {
     return gLastResult == FMOD_OK ? (int)state : -1;
 }
 DEFINE_PRIM(_I32, sound_get_open_state, _I32);
+
+// out = int[4]: open state, percent buffered, starving, disk busy
+HL_PRIM int HL_NAME(sound_get_open_state_info)(int h, vbyte* out) {
+    FMOD_SOUND* sound = resolve_core_sound(h);
+    FMOD_OPENSTATE state = FMOD_OPENSTATE_READY;
+    unsigned int buffered = 0;
+    FMOD_BOOL starving = 0;
+    FMOD_BOOL diskBusy = 0;
+    int* outInts = (int*)out;
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_Sound_GetOpenState(sound, &state, &buffered, &starving, &diskBusy);
+    outInts[0] = (int)state;
+    outInts[1] = (int)buffered;
+    outInts[2] = starving ? 1 : 0;
+    outInts[3] = diskBusy ? 1 : 0;
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, sound_get_open_state_info, _I32 _BYTES);
 
 //// Core system extras (slice 3)
 
@@ -1992,15 +2014,15 @@ HL_PRIM int HL_NAME(sys_set_studio_callback_mask)(int mask) {
 }
 DEFINE_PRIM(_I32, sys_set_studio_callback_mask, _I32);
 
-HL_PRIM int HL_NAME(sound_add_sync_point)(int h, int offsetMs, vbyte* name) {
+HL_PRIM int HL_NAME(sound_add_sync_point)(int h, int offset, int unit, vbyte* name) {
     FMOD_SOUND* sound = resolve_core_sound(h);
     FMOD_SYNCPOINT* point = NULL;
     if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
-    gLastResult = FMOD_Sound_AddSyncPoint(sound, (unsigned int)offsetMs, FMOD_TIMEUNIT_MS,
+    gLastResult = FMOD_Sound_AddSyncPoint(sound, (unsigned int)offset, (FMOD_TIMEUNIT)unit,
         (const char*)name, &point);
     return (int)gLastResult;
 }
-DEFINE_PRIM(_I32, sound_add_sync_point, _I32 _I32 _BYTES);
+DEFINE_PRIM(_I32, sound_add_sync_point, _I32 _I32 _I32 _BYTES);
 
 HL_PRIM int HL_NAME(sound_delete_sync_point)(int h, int index) {
     FMOD_SOUND* sound = resolve_core_sound(h);
@@ -2037,17 +2059,17 @@ HL_PRIM vbyte* HL_NAME(sound_get_sync_point_name)(int h, int index) {
 }
 DEFINE_PRIM(_BYTES, sound_get_sync_point_name, _I32 _I32);
 
-HL_PRIM int HL_NAME(sound_get_sync_point_offset)(int h, int index) {
+HL_PRIM int HL_NAME(sound_get_sync_point_offset)(int h, int index, int unit) {
     FMOD_SOUND* sound = resolve_core_sound(h);
     FMOD_SYNCPOINT* point = NULL;
     unsigned int offset = 0;
     if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
     gLastResult = FMOD_Sound_GetSyncPoint(sound, index, &point);
     if (gLastResult != FMOD_OK) return -1;
-    gLastResult = FMOD_Sound_GetSyncPointInfo(sound, point, NULL, 0, &offset, FMOD_TIMEUNIT_MS);
+    gLastResult = FMOD_Sound_GetSyncPointInfo(sound, point, NULL, 0, &offset, (FMOD_TIMEUNIT)unit);
     return gLastResult == FMOD_OK ? (int)offset : -1;
 }
-DEFINE_PRIM(_I32, sound_get_sync_point_offset, _I32 _I32);
+DEFINE_PRIM(_I32, sound_get_sync_point_offset, _I32 _I32 _I32);
 
 //// Sound groups
 
@@ -2570,28 +2592,28 @@ HL_PRIM int HL_NAME(chan_get_current_sound)(int h) {
 }
 DEFINE_PRIM(_I32, chan_get_current_sound, _I32);
 
-HL_PRIM int HL_NAME(chan_set_loop_points)(int h, int startMs, int endMs) {
+HL_PRIM int HL_NAME(chan_set_loop_points)(int h, int start, int end, int unit) {
     FMOD_CHANNEL* channel = resolve_channel(h);
     if (!channel) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
-    gLastResult = FMOD_Channel_SetLoopPoints(channel, (unsigned int)startMs, FMOD_TIMEUNIT_MS,
-        (unsigned int)endMs, FMOD_TIMEUNIT_MS);
+    gLastResult = FMOD_Channel_SetLoopPoints(channel, (unsigned int)start, (FMOD_TIMEUNIT)unit,
+        (unsigned int)end, (FMOD_TIMEUNIT)unit);
     return (int)gLastResult;
 }
-DEFINE_PRIM(_I32, chan_set_loop_points, _I32 _I32 _I32);
+DEFINE_PRIM(_I32, chan_set_loop_points, _I32 _I32 _I32 _I32);
 
-// out = int[2]: loop start ms, loop end ms
-HL_PRIM int HL_NAME(chan_get_loop_points)(int h, vbyte* out) {
+// out = int[2]: loop start, loop end, both in the given unit
+HL_PRIM int HL_NAME(chan_get_loop_points)(int h, int unit, vbyte* out) {
     FMOD_CHANNEL* channel = resolve_channel(h);
     unsigned int start = 0;
     unsigned int end = 0;
     int* outInts = (int*)out;
     if (!channel) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
-    gLastResult = FMOD_Channel_GetLoopPoints(channel, &start, FMOD_TIMEUNIT_MS, &end, FMOD_TIMEUNIT_MS);
+    gLastResult = FMOD_Channel_GetLoopPoints(channel, &start, (FMOD_TIMEUNIT)unit, &end, (FMOD_TIMEUNIT)unit);
     outInts[0] = (int)start;
     outInts[1] = (int)end;
     return (int)gLastResult;
 }
-DEFINE_PRIM(_I32, chan_get_loop_points, _I32 _BYTES);
+DEFINE_PRIM(_I32, chan_get_loop_points, _I32 _I32 _BYTES);
 
 HL_PRIM double HL_NAME(chan_get_reverb_wet)(int h, int instance) {
     FMOD_CHANNEL* channel = resolve_channel(h);

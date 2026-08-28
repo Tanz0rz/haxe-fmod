@@ -30,13 +30,15 @@ if (stream.takeUnderruns() > 0) trace("ring ran dry");
 
 ## Reading samples
 
-`Sound.create(path, loop, openOnly)` with `openOnly` true opens a file without decoding it up front. A sound opened that way cannot be played, it exists to be read. `readData(buffer, ?length)` decodes PCM from it into the buffer (unsupported in HTML5). It returns `-68` there, the negated `FMOD_ERR_UNSUPPORTED` code. On native targets it returns the bytes read, `0` at the end of the file with `StudioSystem.lastResult()` reporting `FMOD_ERR_FILE_EOF`, or a negated FMOD error code. `length` defaults to the whole buffer and is clamped to it. `seekData(pcm)` moves the read cursor to a sample offset, and `getFormat()` reports the channel count and bits per sample the bytes are laid out in.
+`Sound.create(path, loop, openOnly)` with `openOnly` true opens a file without decoding it up front. A sound opened that way cannot be played, it exists to be read. `readData(buffer, ?length)` decodes PCM from it into the buffer (unsupported in HTML5). It returns `-68` there, the negated `FMOD_ERR_UNSUPPORTED` code. On native targets it returns the bytes read, `0` at the end of the file with `StudioSystem.lastResult()` reporting `FMOD_ERR_FILE_EOF`, or a negated FMOD error code. `length` defaults to the whole buffer and is clamped to it. `seekData(pcm)` moves the read cursor to a sample offset, and `getFormat()` reports the container type, the sample format, the channel count, and the bits per sample the bytes are laid out in. `getLength(FmodTimeUnit.PCMBYTES)` gives the byte count to expect.
 
 ```haxe
 import haxefmod.core.Sound;
+import haxefmod.studio.Types;
 
 var sound = Sound.create("assets/voice/line01.ogg", false, true);
 var format = sound.getFormat();
+var expected = sound.getLength(FmodTimeUnit.PCMBYTES);
 var chunk = haxe.io.Bytes.alloc(4096);
 var total = 0;
 while (true) {
@@ -83,6 +85,24 @@ channel.set3DCustomRolloff(curve);
 `Sound.set3DConeSettings` and `Sound.set3DMinMaxDistance` set the cone and rolloff distances every channel played from that sound starts with, and the channel's own setters override them per instance. `Channel.getChannelGroup()` returns the group a channel is routed into. `getFadePoints()` reads back the fade points scheduled with `addFadePoint` as clock and volume pairs (unsupported in HTML5). It is a compile error there unless the project opts in, and then returns `null` with `FMOD_ERR_UNSUPPORTED` in `StudioSystem.lastResult()`. `getMixMatrix(outChannels, inChannels)` reads the mix matrix back the same way, and `ChannelGroup` carries both readers with the same HTML5 behavior.
 
 `Channel.setCallback` delivers `ChannelEvent` values (`End`, `SyncPoint(index)`) on the game thread through the same per-frame drain as studio callbacks. Sync points are set on the sound with `Sound.addSyncPoint`.
+
+## Time units
+
+`Sound.getLength`, `getLoopPoints`, `setLoopPoints`, `addSyncPoint`, and `getSyncPointOffset`, and `Channel.getPosition`, `setPosition`, `getLoopPoints`, and `setLoopPoints` take an `FmodTimeUnit` as an optional last parameter. Without it every value is in milliseconds. `FmodTimeUnit.PCM` counts samples, `PCMBYTES` counts decoded bytes, and the `MOD*` units address tracker music. Loop points share one unit for the start and the end.
+
+```haxe
+import haxefmod.core.Sound;
+import haxefmod.studio.Types;
+
+var sound = Sound.create("assets/loops/drums.wav", true);
+var samples = sound.getLength(FmodTimeUnit.PCM);
+sound.setLoopPoints(0, samples - 1, FmodTimeUnit.PCM);
+var channel = sound.play();
+channel.setPosition(samples >> 1, FmodTimeUnit.PCM);
+trace(channel.getPosition()); // milliseconds
+```
+
+`Sound.getOpenStateInfo()` returns the open state with the streaming details next to it, `percentBuffered`, `starving`, and `diskBusy`. `getOpenState()` returns the state alone.
 
 ## Channel groups
 

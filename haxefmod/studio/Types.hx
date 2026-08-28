@@ -337,9 +337,9 @@ enum abstract FmodChannelMask(Int) from Int to Int {
 }
 
 /**
- * FMOD_TIMEUNIT bits. No haxefmod call takes a time unit, positions and
- * lengths are always milliseconds (Channel.getPosition, Sound.getLength)
- * and stream buffer sizes are always RAWBYTES.
+ * FMOD_TIMEUNIT bits. The length, loop point, sync point, and position
+ * calls on Sound and Channel take one as an optional trailing parameter
+ * and default to MS. Stream buffer sizes are always RAWBYTES.
  */
 enum abstract FmodTimeUnit(Int) from Int to Int {
     var MS = 0x00000001;
@@ -352,7 +352,7 @@ enum abstract FmodTimeUnit(Int) from Int to Int {
     var MODPATTERN = 0x00000400;
 }
 
-/** FMOD_OPENSTATE, what Sound.getOpenState reports while a sound loads or streams. */
+/** FMOD_OPENSTATE, what Sound.getOpenState and getOpenStateInfo report while a sound loads or streams. */
 enum abstract FmodOpenState(Int) from Int to Int {
     var READY = 0;
     var LOADING = 1;
@@ -365,7 +365,7 @@ enum abstract FmodOpenState(Int) from Int to Int {
     var MAX = 8;
 }
 
-/** FMOD_SOUND_TYPE, the container formats FMOD decodes. Sound.create takes any of them the target supports, the type of a loaded sound is not queried. */
+/** FMOD_SOUND_TYPE, the container formats FMOD decodes. Sound.create takes any of them the target supports, and Sound.getFormat reports which one a loaded sound has. */
 enum abstract FmodSoundType(Int) from Int to Int {
     var UNKNOWN = 0;
     var AIFF = 1;
@@ -395,7 +395,7 @@ enum abstract FmodSoundType(Int) from Int to Int {
     var MAX = 25;
 }
 
-/** FMOD_SOUND_FORMAT, the sample formats. Sound.fromPcm always builds PCM16, and Sound.getFormat reports the bit depth as a number. */
+/** FMOD_SOUND_FORMAT, the sample formats. Sound.fromPcm always builds PCM16, and Sound.getFormat reports the format of a loaded sound. */
 enum abstract FmodSoundFormat(Int) from Int to Int {
     var NONE = 0;
     var PCM8 = 1;

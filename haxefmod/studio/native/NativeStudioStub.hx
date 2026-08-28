@@ -240,7 +240,7 @@ class NativeStudioStub {
         return 0;
     }
     public static function core_release_sound(handle:Int):Int return ERR_UNSUPPORTED;
-    public static function core_get_sound_length(handle:Int):Int return -1;
+    public static function core_get_sound_length(handle:Int, unit:Int):Int return -1;
 
     // Core PCM streams
     public static function core_pcm_create(sampleRate:Int, channels:Int, ringBytes:Int):Int return 0;
@@ -301,8 +301,8 @@ class NativeStudioStub {
     public static function chan_set_frequency(handle:Int, frequency:Float):Int return ERR_UNSUPPORTED;
     public static function chan_get_frequency(handle:Int):Float return 0.0;
     public static function chan_set_loop_count(handle:Int, loopCount:Int):Int return ERR_UNSUPPORTED;
-    public static function chan_get_position(handle:Int):Int return -1;
-    public static function chan_set_position(handle:Int, positionMs:Int):Int return ERR_UNSUPPORTED;
+    public static function chan_get_position(handle:Int, unit:Int):Int return -1;
+    public static function chan_set_position(handle:Int, position:Int, unit:Int):Int return ERR_UNSUPPORTED;
     public static function chan_set_channel_group(handle:Int, groupHandle:Int):Int return ERR_UNSUPPORTED;
     public static function chan_add_dsp(handle:Int, index:Int, dspHandle:Int):Int return ERR_UNSUPPORTED;
     public static function chan_remove_dsp(handle:Int, dspHandle:Int):Int return ERR_UNSUPPORTED;
@@ -372,12 +372,13 @@ class NativeStudioStub {
     public static function core_play_sound(handle:Int, startPaused:Bool):Int return 0;
     public static function sound_set_defaults(handle:Int, frequency:Float, priority:Int):Int return ERR_UNSUPPORTED;
     public static function sound_get_defaults(handle:Int):Int return ERR_UNSUPPORTED;
-    public static function sound_set_loop_points(handle:Int, startMs:Int, endMs:Int):Int return ERR_UNSUPPORTED;
-    public static function sound_get_loop_points(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function sound_set_loop_points(handle:Int, start:Int, end:Int, unit:Int):Int return ERR_UNSUPPORTED;
+    public static function sound_get_loop_points(handle:Int, unit:Int):Int return ERR_UNSUPPORTED;
     public static function sound_set_mode(handle:Int, mode:Int):Int return ERR_UNSUPPORTED;
     public static function sound_get_mode(handle:Int):Int return 0;
     public static function sound_get_format(handle:Int):Int return ERR_UNSUPPORTED;
     public static function sound_get_open_state(handle:Int):Int return -1;
+    public static function sound_get_open_state_info(handle:Int):Int return ERR_UNSUPPORTED;
     public static function sys_get_channels_playing():Int return ERR_UNSUPPORTED;
     public static function sys_mixer_suspend():Int return ERR_UNSUPPORTED;
     public static function sys_mixer_resume():Int return ERR_UNSUPPORTED;
@@ -388,11 +389,11 @@ class NativeStudioStub {
     public static function chan_set_callback(handle:Int, enabled:Bool):Int return ERR_UNSUPPORTED;
     public static function sys_set_callback_mask(mask:Int):Int return ERR_UNSUPPORTED;
     public static function sys_set_studio_callback_mask(mask:Int):Int return ERR_UNSUPPORTED;
-    public static function sound_add_sync_point(handle:Int, offsetMs:Int, name:String):Int return ERR_UNSUPPORTED;
+    public static function sound_add_sync_point(handle:Int, offset:Int, unit:Int, name:String):Int return ERR_UNSUPPORTED;
     public static function sound_delete_sync_point(handle:Int, index:Int):Int return ERR_UNSUPPORTED;
     public static function sound_get_num_sync_points(handle:Int):Int return 0;
     public static function sound_get_sync_point_name(handle:Int, index:Int):String return "";
-    public static function sound_get_sync_point_offset(handle:Int, index:Int):Int return -1;
+    public static function sound_get_sync_point_offset(handle:Int, index:Int, unit:Int):Int return -1;
 
     // Sound groups
     public static function sys_create_sound_group(name:String):Int return 0;
@@ -455,8 +456,8 @@ class NativeStudioStub {
     public static function chan_set_volume_ramp(handle:Int, ramp:Bool):Int return ERR_UNSUPPORTED;
     public static function chan_get_volume_ramp(handle:Int):Bool return false;
     public static function chan_get_current_sound(handle:Int):Int return 0;
-    public static function chan_set_loop_points(handle:Int, startMs:Int, endMs:Int):Int return ERR_UNSUPPORTED;
-    public static function chan_get_loop_points(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function chan_set_loop_points(handle:Int, start:Int, end:Int, unit:Int):Int return ERR_UNSUPPORTED;
+    public static function chan_get_loop_points(handle:Int, unit:Int):Int return ERR_UNSUPPORTED;
     public static function chan_get_reverb_wet(handle:Int, instance:Int):Float return 0.0;
     public static function chan_get_index(handle:Int):Int return -1;
     public static function chan_get_3d_cone_orientation(handle:Int):Int return ERR_UNSUPPORTED;

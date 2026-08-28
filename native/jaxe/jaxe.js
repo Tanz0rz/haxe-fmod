@@ -2177,11 +2177,12 @@ class jaxe {
         return jaxe.lastResult;
     }
 
-    static fmod_core_get_sound_length(handle) {
+    // unit is an FMOD_TIMEUNIT value, the length comes back in that unit
+    static fmod_core_get_sound_length(handle, unit) {
         var sound = jaxe.handleResolve(handle, jaxe.TYPE_SOUND);
         if (!sound) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return -1; }
         var outval = {};
-        jaxe.lastResult = sound.getLength(outval, jaxe.FMOD.TIMEUNIT_MS);
+        jaxe.lastResult = sound.getLength(outval, unit);
         if (jaxe.lastResult != jaxe.FMOD.OK) return -1;
         return outval.val | 0;
     }
@@ -2739,18 +2740,18 @@ class jaxe {
         return jaxe.lastResult;
     }
 
-    static fmod_chan_get_position(handle) {
+    static fmod_chan_get_position(handle, unit) {
         var ch = jaxe.resolveChan(handle);
         if (!ch) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return -1; }
         var out = {};
-        jaxe.lastResult = ch.getPosition(out, jaxe.FMOD.TIMEUNIT_MS);
+        jaxe.lastResult = ch.getPosition(out, unit);
         return jaxe.lastResult == jaxe.FMOD.OK ? out.val : -1;
     }
 
-    static fmod_chan_set_position(handle, positionMs) {
+    static fmod_chan_set_position(handle, position, unit) {
         var ch = jaxe.resolveChan(handle);
         if (!ch) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
-        jaxe.lastResult = ch.setPosition(positionMs, jaxe.FMOD.TIMEUNIT_MS);
+        jaxe.lastResult = ch.setPosition(position, unit);
         return jaxe.lastResult;
     }
 
@@ -3300,19 +3301,20 @@ class jaxe {
         return jaxe.lastResult;
     }
 
-    static fmod_sound_set_loop_points(handle, startMs, endMs) {
+    // Both points share one FMOD_TIMEUNIT
+    static fmod_sound_set_loop_points(handle, start, end, unit) {
         var sound = jaxe.resolveCoreSound(handle);
         if (!sound) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
-        jaxe.lastResult = sound.setLoopPoints(startMs, jaxe.FMOD.TIMEUNIT_MS, endMs, jaxe.FMOD.TIMEUNIT_MS);
+        jaxe.lastResult = sound.setLoopPoints(start, unit, end, unit);
         return jaxe.lastResult;
     }
 
-    static fmod_sound_get_loop_points(handle, ibuf) {
+    static fmod_sound_get_loop_points(handle, unit, ibuf) {
         var sound = jaxe.resolveCoreSound(handle);
         if (!sound) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
         var start = {};
         var end = {};
-        jaxe.lastResult = sound.getLoopPoints(start, jaxe.FMOD.TIMEUNIT_MS, end, jaxe.FMOD.TIMEUNIT_MS);
+        jaxe.lastResult = sound.getLoopPoints(start, unit, end, unit);
         ibuf[0] = start.val || 0;
         ibuf[1] = end.val || 0;
         return jaxe.lastResult;
@@ -3341,8 +3343,10 @@ class jaxe {
         var channels = {};
         var bits = {};
         jaxe.lastResult = sound.getFormat(type, format, channels, bits);
-        ibuf[0] = channels.val || 0;
-        ibuf[1] = bits.val || 0;
+        ibuf[0] = type.val || 0;
+        ibuf[1] = format.val || 0;
+        ibuf[2] = channels.val || 0;
+        ibuf[3] = bits.val || 0;
         return jaxe.lastResult;
     }
 
@@ -3355,6 +3359,22 @@ class jaxe {
         var diskBusy = {};
         jaxe.lastResult = sound.getOpenState(state, buffered, starving, diskBusy);
         return jaxe.lastResult == jaxe.FMOD.OK ? state.val : -1;
+    }
+
+    // ibuf out: [0]=open state [1]=percent buffered [2]=starving [3]=disk busy
+    static fmod_sound_get_open_state_info(handle, ibuf) {
+        var sound = jaxe.resolveCoreSound(handle);
+        if (!sound) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        var state = {};
+        var buffered = {};
+        var starving = {};
+        var diskBusy = {};
+        jaxe.lastResult = sound.getOpenState(state, buffered, starving, diskBusy);
+        ibuf[0] = state.val || 0;
+        ibuf[1] = buffered.val || 0;
+        ibuf[2] = starving.val ? 1 : 0;
+        ibuf[3] = diskBusy.val ? 1 : 0;
+        return jaxe.lastResult;
     }
 
     //// Core system extras (slice 3)
@@ -3529,12 +3549,12 @@ class jaxe {
         return jaxe.lastResult;
     }
 
-    static fmod_sound_add_sync_point(handle, offsetMs, name) {
+    static fmod_sound_add_sync_point(handle, offset, unit, name) {
         if (typeof name !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
         var sound = jaxe.resolveCoreSound(handle);
         if (!sound) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
         var point = {};
-        jaxe.lastResult = sound.addSyncPoint(offsetMs, jaxe.FMOD.TIMEUNIT_MS, name, point);
+        jaxe.lastResult = sound.addSyncPoint(offset, unit, name, point);
         return jaxe.lastResult;
     }
 
@@ -3568,7 +3588,7 @@ class jaxe {
         return jaxe.lastResult == jaxe.FMOD.OK ? (name.val || "") : "";
     }
 
-    static fmod_sound_get_sync_point_offset(handle, index) {
+    static fmod_sound_get_sync_point_offset(handle, index, unit) {
         var sound = jaxe.resolveCoreSound(handle);
         if (!sound) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return -1; }
         var point = {};
@@ -3576,7 +3596,7 @@ class jaxe {
         if (jaxe.lastResult != jaxe.FMOD.OK) return -1;
         var name = {};
         var offset = {};
-        jaxe.lastResult = sound.getSyncPointInfo(point.val, name, 512, offset, jaxe.FMOD.TIMEUNIT_MS);
+        jaxe.lastResult = sound.getSyncPointInfo(point.val, name, 512, offset, unit);
         return jaxe.lastResult == jaxe.FMOD.OK ? offset.val : -1;
     }
 
@@ -4023,19 +4043,19 @@ class jaxe {
         return jaxe.handleFindOrAlloc(out.val, jaxe.TYPE_SOUND);
     }
 
-    static fmod_chan_set_loop_points(handle, startMs, endMs) {
+    static fmod_chan_set_loop_points(handle, start, end, unit) {
         var ch = jaxe.resolveChan(handle);
         if (!ch) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
-        jaxe.lastResult = ch.setLoopPoints(startMs, jaxe.FMOD.TIMEUNIT_MS, endMs, jaxe.FMOD.TIMEUNIT_MS);
+        jaxe.lastResult = ch.setLoopPoints(start, unit, end, unit);
         return jaxe.lastResult;
     }
 
-    static fmod_chan_get_loop_points(handle, ibuf) {
+    static fmod_chan_get_loop_points(handle, unit, ibuf) {
         var ch = jaxe.resolveChan(handle);
         if (!ch) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
         var start = {};
         var end = {};
-        jaxe.lastResult = ch.getLoopPoints(start, jaxe.FMOD.TIMEUNIT_MS, end, jaxe.FMOD.TIMEUNIT_MS);
+        jaxe.lastResult = ch.getLoopPoints(start, unit, end, unit);
         ibuf[0] = start.val || 0;
         ibuf[1] = end.val || 0;
         return jaxe.lastResult;

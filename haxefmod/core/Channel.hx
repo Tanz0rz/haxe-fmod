@@ -1,6 +1,7 @@
 package haxefmod.core;
 
 import haxefmod.studio.FmodResult;
+import haxefmod.studio.Types.FmodTimeUnit;
 import haxefmod.studio.Types.FmodVector;
 import haxefmod.studio.UserData;
 import haxefmod.studio.native.NativeStudio;
@@ -73,13 +74,14 @@ abstract Channel(Int) from Int to Int {
         return NativeStudio.chan_set_loop_count(this, loopCount);
     }
 
-    /** Playback position in milliseconds, or -1 on failure. */
-    public inline function getPosition():Int {
-        return NativeStudio.chan_get_position(this);
+    /** Playback position in unit (milliseconds by default, samples with FmodTimeUnit.PCM), or -1 on failure. */
+    public inline function getPosition(unit:FmodTimeUnit = FmodTimeUnit.MS):Int {
+        return NativeStudio.chan_get_position(this, unit);
     }
 
-    public inline function setPosition(positionMs:Int):FmodResult {
-        return NativeStudio.chan_set_position(this, positionMs);
+    /** Seeks to a position read in unit, milliseconds unless another FmodTimeUnit is given. */
+    public inline function setPosition(positionMs:Int, unit:FmodTimeUnit = FmodTimeUnit.MS):FmodResult {
+        return NativeStudio.chan_set_position(this, positionMs, unit);
     }
 
     /** Reroutes this channel into a group. */
@@ -369,13 +371,17 @@ abstract Channel(Int) from Int to Int {
         return NativeStudio.chan_get_current_sound(this);
     }
 
-    /** Loop region in milliseconds for this channel (overrides the sound's). */
-    public inline function setLoopPoints(startMs:Int, endMs:Int):FmodResult {
-        return NativeStudio.chan_set_loop_points(this, startMs, endMs);
+    /**
+     * Loop region for this channel (overrides the sound's). Both points are
+     * read in unit, milliseconds unless another FmodTimeUnit is given.
+     */
+    public inline function setLoopPoints(startMs:Int, endMs:Int, unit:FmodTimeUnit = FmodTimeUnit.MS):FmodResult {
+        return NativeStudio.chan_set_loop_points(this, startMs, endMs, unit);
     }
 
-    public function getLoopPoints():Null<{startMs:Int, endMs:Int}> {
-        var result:FmodResult = NativeStudio.chan_get_loop_points(this);
+    /** The loop region in unit (milliseconds by default), or null on failure. */
+    public function getLoopPoints(unit:FmodTimeUnit = FmodTimeUnit.MS):Null<{startMs:Int, endMs:Int}> {
+        var result:FmodResult = NativeStudio.chan_get_loop_points(this, unit);
         if (!result.isOk()) return null;
         return {startMs: Scratch.readI(0), endMs: Scratch.readI(1)};
     }

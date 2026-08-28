@@ -376,10 +376,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "The loop region in unit (milliseconds by default), or null on failure.",
      "gated": false,
      "name": "getLoopPoints",
-     "signature": "getLoopPoints():Null<{startMs:Int, endMs:Int}>",
+     "signature": "getLoopPoints(unit:FmodTimeUnit = FmodTimeUnit.MS):Null<{startMs:Int, endMs:Int}>",
      "static": false,
      "type": "haxefmod.core.Channel"
     }
@@ -504,10 +504,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Playback position in milliseconds, or -1 on failure.",
+     "doc": "Playback position in unit (milliseconds by default, samples with FmodTimeUnit.PCM), or -1 on failure.",
      "gated": false,
      "name": "getPosition",
-     "signature": "getPosition():Int",
+     "signature": "getPosition(unit:FmodTimeUnit = FmodTimeUnit.MS):Int",
      "static": false,
      "type": "haxefmod.core.Channel"
     }
@@ -927,10 +927,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Loop region in milliseconds for this channel (overrides the sound's).",
+     "doc": "Loop region for this channel (overrides the sound's).",
      "gated": false,
      "name": "setLoopPoints",
-     "signature": "setLoopPoints(startMs:Int, endMs:Int):FmodResult",
+     "signature": "setLoopPoints(startMs:Int, endMs:Int, unit:FmodTimeUnit = FmodTimeUnit.MS):FmodResult",
      "static": false,
      "type": "haxefmod.core.Channel"
     }
@@ -1087,10 +1087,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Seeks to a position read in unit, milliseconds unless another FmodTimeUnit is given.",
      "gated": false,
      "name": "setPosition",
-     "signature": "setPosition(positionMs:Int):FmodResult",
+     "signature": "setPosition(positionMs:Int, unit:FmodTimeUnit = FmodTimeUnit.MS):FmodResult",
      "static": false,
      "type": "haxefmod.core.Channel"
     }
@@ -1793,10 +1793,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "The loop region in unit (milliseconds by default), or null on failure.",
      "gated": false,
      "name": "getLoopPoints",
-     "signature": "getLoopPoints():Null<{startMs:Int, endMs:Int}>",
+     "signature": "getLoopPoints(unit:FmodTimeUnit = FmodTimeUnit.MS):Null<{startMs:Int, endMs:Int}>",
      "static": false,
      "type": "haxefmod.core.Channel"
     }
@@ -2039,10 +2039,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Playback position in milliseconds, or -1 on failure.",
+     "doc": "Playback position in unit (milliseconds by default, samples with FmodTimeUnit.PCM), or -1 on failure.",
      "gated": false,
      "name": "getPosition",
-     "signature": "getPosition():Int",
+     "signature": "getPosition(unit:FmodTimeUnit = FmodTimeUnit.MS):Int",
      "static": false,
      "type": "haxefmod.core.Channel"
     }
@@ -2669,10 +2669,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Loop region in milliseconds for this channel (overrides the sound's).",
+     "doc": "Loop region for this channel (overrides the sound's).",
      "gated": false,
      "name": "setLoopPoints",
-     "signature": "setLoopPoints(startMs:Int, endMs:Int):FmodResult",
+     "signature": "setLoopPoints(startMs:Int, endMs:Int, unit:FmodTimeUnit = FmodTimeUnit.MS):FmodResult",
      "static": false,
      "type": "haxefmod.core.Channel"
     }
@@ -2910,10 +2910,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Seeks to a position read in unit, milliseconds unless another FmodTimeUnit is given.",
      "gated": false,
      "name": "setPosition",
-     "signature": "setPosition(positionMs:Int):FmodResult",
+     "signature": "setPosition(positionMs:Int, unit:FmodTimeUnit = FmodTimeUnit.MS):FmodResult",
      "static": false,
      "type": "haxefmod.core.Channel"
     }
@@ -5003,6 +5003,87 @@ const HAXEFMOD_BINDINGS = {
     "haxefmod does this for you on HTML5. The banks named in FmodSettings.autoLoadBanks are fetched during init, and StudioSystem.loadBankFile() fetches any other bank and places it in the wasm file system before loading it."
    ]
   },
+  "fsbank_build": {
+   "fmod": "",
+   "haxe": [],
+   "heading": "FSBANK_RESULT",
+   "html5": false,
+   "notes": [
+    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
+   ]
+  },
+  "fsbank_buildcancel": {
+   "fmod": "",
+   "haxe": [],
+   "heading": "FSBANK_RESULT",
+   "html5": false,
+   "notes": [
+    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
+   ]
+  },
+  "fsbank_fetchfsbmemory": {
+   "fmod": "",
+   "haxe": [],
+   "heading": "FSBANK_RESULT",
+   "html5": false,
+   "notes": [
+    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
+   ]
+  },
+  "fsbank_fetchnextprogressitem": {
+   "fmod": "",
+   "haxe": [],
+   "heading": "FSBANK_RESULT",
+   "html5": false,
+   "notes": [
+    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
+   ]
+  },
+  "fsbank_init": {
+   "fmod": "",
+   "haxe": [],
+   "heading": "FSBANK_RESULT",
+   "html5": false,
+   "notes": [
+    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
+   ]
+  },
+  "fsbank_memorygetstats": {
+   "fmod": "",
+   "haxe": [],
+   "heading": "FSBANK_RESULT",
+   "html5": false,
+   "notes": [
+    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
+   ]
+  },
+  "fsbank_memoryinit": {
+   "fmod": "",
+   "haxe": [],
+   "heading": "FSBANK_RESULT",
+   "html5": false,
+   "notes": [
+    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
+   ]
+  },
+  "fsbank_release": {
+   "fmod": "",
+   "haxe": [],
+   "heading": "FSBANK_RESULT",
+   "html5": false,
+   "notes": [
+    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
+   ]
+  },
+  "fsbank_releaseprogressitem": {
+   "fmod": "",
+   "haxe": [],
+   "heading": "FSBANK_RESULT",
+   "html5": false,
+   "notes": [
+    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
+   ]
+  },
   "geometry_addpolygon": {
    "fmod": "FMOD_Geometry_AddPolygon",
    "gated": true,
@@ -5532,6 +5613,7 @@ const HAXEFMOD_BINDINGS = {
    ]
   },
   "sound_addsyncpoint": {
+   "code": "import haxefmod.core.Sound;\nimport haxefmod.studio.Types;\n\nvar sound = Sound.create(\"assets/music/track.wav\");\nsound.addSyncPoint(500, \"drop\");\nsound.addSyncPoint(48000, \"verse\", FmodTimeUnit.PCM);",
    "fmod": "FMOD_Sound_AddSyncPoint",
    "gated": false,
    "haxe": [
@@ -5540,14 +5622,19 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Marks a timeline position.",
      "gated": false,
      "name": "addSyncPoint",
-     "signature": "addSyncPoint(offsetMs:Int, name:String):FmodResult",
+     "signature": "addSyncPoint(offsetMs:Int, name:String, unit:FmodTimeUnit = FmodTimeUnit.MS):FmodResult",
      "static": false,
      "type": "haxefmod.core.Sound"
     }
    ],
-   "html5": false
+   "heading": "Sound::addSyncPoint",
+   "html5": false,
+   "notes": [
+    "The offset is read in the unit given as the last parameter, milliseconds when left out. FMOD's FMOD_SYNCPOINT handle is not returned. Points are addressed by their index in offset order in the other sync point calls and in ChannelEvent.SyncPoint."
+   ]
   },
   "sound_deletesyncpoint": {
+   "code": "import haxefmod.core.Sound;\n\nvar sound = Sound.create(\"assets/music/track.wav\");\nsound.deleteSyncPoint(0);",
    "fmod": "FMOD_Sound_DeleteSyncPoint",
    "gated": false,
    "haxe": [
@@ -5561,7 +5648,11 @@ const HAXEFMOD_BINDINGS = {
      "type": "haxefmod.core.Sound"
     }
    ],
-   "html5": false
+   "heading": "Sound::deleteSyncPoint",
+   "html5": false,
+   "notes": [
+    "Takes the point's index in offset order instead of an FMOD_SYNCPOINT handle. The indices of later points shift down by one."
+   ]
   },
   "sound_get3dconesettings": {
    "fmod": "FMOD_Sound_Get3DConeSettings",
@@ -5633,10 +5724,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Container type, sample format, channel count, and bits per sample, or null on failure.",
      "gated": false,
      "name": "getFormat",
-     "signature": "getFormat():Null<{channels:Int, bits:Int}>",
+     "signature": "getFormat():Null<{type:FmodSoundType, format:FmodSoundFormat, channels:Int, bits:Int}>",
      "static": false,
      "type": "haxefmod.core.Sound"
     }
@@ -5649,10 +5740,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Length in milliseconds, or -1 on failure.",
+     "doc": "Length in unit (milliseconds by default, PCM samples with FmodTimeUnit.PCM), or -1 on failure.",
      "gated": false,
      "name": "getLength",
-     "signature": "getLength():Int",
+     "signature": "getLength(unit:FmodTimeUnit = FmodTimeUnit.MS):Int",
      "static": false,
      "type": "haxefmod.core.Sound"
     }
@@ -5681,10 +5772,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "The loop region in unit (milliseconds by default), or null on failure.",
      "gated": false,
      "name": "getLoopPoints",
-     "signature": "getLoopPoints():Null<{startMs:Int, endMs:Int}>",
+     "signature": "getLoopPoints(unit:FmodTimeUnit = FmodTimeUnit.MS):Null<{startMs:Int, endMs:Int}>",
      "static": false,
      "type": "haxefmod.core.Sound"
     }
@@ -5840,6 +5931,15 @@ const HAXEFMOD_BINDINGS = {
      "signature": "getOpenState():FmodOpenState",
      "static": false,
      "type": "haxefmod.core.Sound"
+    },
+    {
+     "direct": false,
+     "doc": "The open state with the streaming details FMOD reports next to it.",
+     "gated": false,
+     "name": "getOpenStateInfo",
+     "signature": "getOpenStateInfo():Null<{state:FmodOpenState, percentBuffered:Int, starving:Bool, diskBusy:Bool}>",
+     "static": false,
+     "type": "haxefmod.core.Sound"
     }
    ],
    "html5": false
@@ -5902,6 +6002,7 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "sound_getsyncpoint": {
+   "code": "import haxefmod.core.Sound;\n\nvar sound = Sound.create(\"assets/music/track.wav\");\nfor (i in 0...sound.getSyncPointCount()) {\n    trace(sound.getSyncPointName(i));\n}",
    "fmod": "FMOD_Sound_GetSyncPoint",
    "gated": false,
    "haxe": [
@@ -5925,17 +6026,22 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "The point's offset in milliseconds, or -1 on failure.",
+     "doc": "The point's offset in unit (milliseconds by default), or -1 on failure.",
      "gated": false,
      "name": "getSyncPointOffset",
-     "signature": "getSyncPointOffset(index:Int):Int",
+     "signature": "getSyncPointOffset(index:Int, unit:FmodTimeUnit = FmodTimeUnit.MS):Int",
      "static": false,
      "type": "haxefmod.core.Sound"
     }
    ],
-   "html5": false
+   "heading": "Sound::getSyncPoint",
+   "html5": false,
+   "notes": [
+    "There is no FMOD_SYNCPOINT handle on the Haxe side. The index in offset order is the address of a point, passed straight to getSyncPointName, getSyncPointOffset, and deleteSyncPoint."
+   ]
   },
   "sound_getsyncpointinfo": {
+   "code": "import haxefmod.core.Sound;\nimport haxefmod.studio.Types;\n\nvar sound = Sound.create(\"assets/music/track.wav\");\nvar name = sound.getSyncPointName(0);\nvar ms = sound.getSyncPointOffset(0);\nvar samples = sound.getSyncPointOffset(0, FmodTimeUnit.PCM);",
    "fmod": "FMOD_Sound_GetSyncPointInfo",
    "gated": false,
    "haxe": [
@@ -5950,15 +6056,19 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "The point's offset in milliseconds, or -1 on failure.",
+     "doc": "The point's offset in unit (milliseconds by default), or -1 on failure.",
      "gated": false,
      "name": "getSyncPointOffset",
-     "signature": "getSyncPointOffset(index:Int):Int",
+     "signature": "getSyncPointOffset(index:Int, unit:FmodTimeUnit = FmodTimeUnit.MS):Int",
      "static": false,
      "type": "haxefmod.core.Sound"
     }
    ],
-   "html5": false
+   "heading": "Sound::getSyncPointInfo",
+   "html5": false,
+   "notes": [
+    "Split into getSyncPointName and getSyncPointOffset, both taking the index in offset order. The offset comes back in the unit given as the last parameter, milliseconds when left out."
+   ]
   },
   "sound_getsystemobject": {
    "code": "import haxefmod.core.CoreSystem;\n\nvar format = CoreSystem.getSoftwareFormat();",
@@ -6194,10 +6304,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Loop region in milliseconds (needs a looping mode set).",
+     "doc": "Loop region (needs a looping mode set).",
      "gated": false,
      "name": "setLoopPoints",
-     "signature": "setLoopPoints(startMs:Int, endMs:Int):FmodResult",
+     "signature": "setLoopPoints(startMs:Int, endMs:Int, unit:FmodTimeUnit = FmodTimeUnit.MS):FmodResult",
      "static": false,
      "type": "haxefmod.core.Sound"
     }

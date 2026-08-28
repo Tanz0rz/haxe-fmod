@@ -63,7 +63,7 @@ async function main() {
         `handle=${snd} lastResult=${jaxe.fmod_sys_last_result()}`);
     check('core_missing_file', jaxe.fmod_core_create_sound('Nope.wav', 0) === 0
         && jaxe.fmod_sys_last_result() === 18, `lastResult=${jaxe.fmod_sys_last_result()}`);
-    check('core_invalid_handle_len', jaxe.fmod_core_get_sound_length(12345) === -1, '');
+    check('core_invalid_handle_len', jaxe.fmod_core_get_sound_length(12345, jaxe.FMOD.TIMEUNIT_MS) === -1, '');
 
     // --- ps_assign / ps_clear mask plumbing on a real instance ---
     const evi = jaxe.fmod_evd_create_instance(jaxe.fmod_sys_get_event('event:/Music/MainLevel'));
