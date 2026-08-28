@@ -54,7 +54,7 @@ static void* gListBuf[FAXE_LIST_MAX];
 // the unreferenced string from the binary, erasing the marker the scan
 // depends on. Volatile reads cannot be folded, so the string survives any
 // optimization level.
-static const volatile char gAbiMarker[] = "hlaxe_fmod_abi=9";
+static const volatile char gAbiMarker[] = "hlaxe_fmod_abi=10";
 
 // Auto-update thread state
 static volatile int gAutoUpdateRunning = 0;

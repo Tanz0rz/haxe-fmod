@@ -694,6 +694,7 @@ class TestStudioSurface {
 		assert(CoreSystem.getNetworkTimeout() == -1, "sys getNetworkTimeout default");
 		assert(!CoreSystem.setSpeakerPosition(0, -1, 1, true).isOk(), "sys setSpeakerPosition result");
 		assert(CoreSystem.getSpeakerPosition(0) == null, "sys getSpeakerPosition default");
+	}
 
 	static function testSoundExtrasStub() {
 		// The stub reports failure from every sound extra and the wrappers

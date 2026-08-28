@@ -5319,7 +5319,7 @@ int fmod_sys_get_studio_advanced_settings(::Array<int> ibuf) {
 
 int fmod_binding_abi_version() {
     // Keep in lockstep with the manifest header "# abi-version:"
-    return 9;
+    return 10;
 }
 
 //// System extras (replay inspection, DSP lock, sound info, memory and file stats, network, speaker positions)
