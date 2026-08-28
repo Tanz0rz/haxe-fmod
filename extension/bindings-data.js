@@ -5003,6 +5003,87 @@ const HAXEFMOD_BINDINGS = {
     "haxefmod does this for you on HTML5. The banks named in FmodSettings.autoLoadBanks are fetched during init, and StudioSystem.loadBankFile() fetches any other bank and places it in the wasm file system before loading it."
    ]
   },
+  "fsbank_build": {
+   "fmod": "",
+   "haxe": [],
+   "heading": "FSBANK_RESULT",
+   "html5": false,
+   "notes": [
+    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
+   ]
+  },
+  "fsbank_buildcancel": {
+   "fmod": "",
+   "haxe": [],
+   "heading": "FSBANK_RESULT",
+   "html5": false,
+   "notes": [
+    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
+   ]
+  },
+  "fsbank_fetchfsbmemory": {
+   "fmod": "",
+   "haxe": [],
+   "heading": "FSBANK_RESULT",
+   "html5": false,
+   "notes": [
+    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
+   ]
+  },
+  "fsbank_fetchnextprogressitem": {
+   "fmod": "",
+   "haxe": [],
+   "heading": "FSBANK_RESULT",
+   "html5": false,
+   "notes": [
+    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
+   ]
+  },
+  "fsbank_init": {
+   "fmod": "",
+   "haxe": [],
+   "heading": "FSBANK_RESULT",
+   "html5": false,
+   "notes": [
+    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
+   ]
+  },
+  "fsbank_memorygetstats": {
+   "fmod": "",
+   "haxe": [],
+   "heading": "FSBANK_RESULT",
+   "html5": false,
+   "notes": [
+    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
+   ]
+  },
+  "fsbank_memoryinit": {
+   "fmod": "",
+   "haxe": [],
+   "heading": "FSBANK_RESULT",
+   "html5": false,
+   "notes": [
+    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
+   ]
+  },
+  "fsbank_release": {
+   "fmod": "",
+   "haxe": [],
+   "heading": "FSBANK_RESULT",
+   "html5": false,
+   "notes": [
+    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
+   ]
+  },
+  "fsbank_releaseprogressitem": {
+   "fmod": "",
+   "haxe": [],
+   "heading": "FSBANK_RESULT",
+   "html5": false,
+   "notes": [
+    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
+   ]
+  },
   "geometry_addpolygon": {
    "fmod": "FMOD_Geometry_AddPolygon",
    "gated": true,
@@ -7133,10 +7214,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Index of the command playing at timeMs into the capture, -1 on failure.",
+     "doc": "Index of the command playing at a time in seconds into the capture, -1 on failure.",
      "gated": false,
      "name": "getCommandAtTime",
-     "signature": "getCommandAtTime(timeMs:Int):Int",
+     "signature": "getCommandAtTime(seconds:Float):Int",
      "static": false,
      "type": "haxefmod.studio.CommandReplay"
     }
@@ -7309,7 +7390,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Loads a capture file for playback.",
      "gated": false,
      "name": "loadCommandReplay",
-     "signature": "loadCommandReplay(path:String):CommandReplay",
+     "signature": "loadCommandReplay(path:String, flags:FmodCommandReplayFlags = NORMAL):CommandReplay",
      "static": true,
      "type": "haxefmod.studio.StudioSystem"
     }
@@ -7338,10 +7419,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Moves playback to a time in seconds into the capture.",
      "gated": false,
      "name": "seekToTime",
-     "signature": "seekToTime(timeMs:Int):FmodResult",
+     "signature": "seekToTime(seconds:Float):FmodResult",
      "static": false,
      "type": "haxefmod.studio.CommandReplay"
     }
@@ -9062,10 +9143,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "A listener's 3D attributes, or null on failure.",
+     "doc": "A listener's 3D attributes and its attenuation position, or null on failure.",
      "gated": false,
      "name": "getListenerAttributes",
-     "signature": "getListenerAttributes(index:Int):Null<Fmod3DAttributes>",
+     "signature": "getListenerAttributes(index:Int):Null<FmodListenerAttributes>",
      "static": true,
      "type": "haxefmod.studio.StudioSystem"
     },
@@ -9268,10 +9349,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "What FMOD would load for an audio table key: the name or file path it reports (empty for a bank held in memory) and the subsound index inside it.",
+     "doc": "What FMOD would load for an audio table key: the file it reports (empty for a bank held in memory), the ChannelMode flags, where the sample sits in that file, and the subsound index inside it.",
      "gated": false,
      "name": "getSoundInfo",
-     "signature": "getSoundInfo(key:String):Null<{name:String, subSoundIndex:Int}>",
+     "signature": "getSoundInfo(key:String):Null<FmodSoundInfo>",
      "static": true,
      "type": "haxefmod.studio.StudioSystem"
     }
@@ -9388,7 +9469,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Loads a bank from bytes (embedded, downloaded, or packed banks).",
      "gated": false,
      "name": "loadBankMemory",
-     "signature": "loadBankMemory(data:haxe.io.Bytes):Bank",
+     "signature": "loadBankMemory(data:haxe.io.Bytes, flags:FmodLoadBankFlags = NORMAL):Bank",
      "static": true,
      "type": "haxefmod.studio.StudioSystem"
     }
@@ -9404,7 +9485,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Loads a capture file for playback.",
      "gated": false,
      "name": "loadCommandReplay",
-     "signature": "loadCommandReplay(path:String):CommandReplay",
+     "signature": "loadCommandReplay(path:String, flags:FmodCommandReplayFlags = NORMAL):CommandReplay",
      "static": true,
      "type": "haxefmod.studio.StudioSystem"
     }
@@ -9576,10 +9657,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Sets a listener's 3D attributes.",
      "gated": false,
      "name": "setListenerAttributes",
-     "signature": "setListenerAttributes(index:Int, attributes:Fmod3DAttributes):FmodResult",
+     "signature": "setListenerAttributes(index:Int, attributes:Fmod3DAttributes, ?attenuationPosition:FmodVector):FmodResult",
      "static": true,
      "type": "haxefmod.studio.StudioSystem"
     },
@@ -9736,7 +9817,7 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Records every API command to a file until stopCommandCapture, for FMOD's analysis tools or replay through loadCommandReplay.",
      "gated": false,
      "name": "startCommandCapture",
-     "signature": "startCommandCapture(path:String):FmodResult",
+     "signature": "startCommandCapture(path:String, flags:FmodCommandCaptureFlags = NORMAL):FmodResult",
      "static": true,
      "type": "haxefmod.studio.StudioSystem"
     }

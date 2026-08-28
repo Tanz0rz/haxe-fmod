@@ -21,6 +21,12 @@ DEPRECATED = [
     ("haxefmod.studio.CoreSound",
      "var s:haxefmod.studio.CoreSound = haxefmod.studio.CoreSound.create(\"x.wav\"); trace(s.isNull());",
      "haxefmod.studio.CoreSound moved to haxefmod.core.Sound"),
+    ("haxefmod.studio.CommandReplay.seekToTimeMs",
+     "var r:haxefmod.studio.CommandReplay = haxefmod.studio.CommandReplay.NULL; trace(r.seekToTimeMs(0));",
+     "CommandReplay.seekToTimeMs is replaced by seekToTime, which takes seconds"),
+    ("haxefmod.studio.CommandReplay.getCommandAtTimeMs",
+     "var r:haxefmod.studio.CommandReplay = haxefmod.studio.CommandReplay.NULL; trace(r.getCommandAtTimeMs(0));",
+     "CommandReplay.getCommandAtTimeMs is replaced by getCommandAtTime, which takes seconds"),
 ]
 
 

@@ -39,6 +39,10 @@
  *   TIMELINE_MARKER: str = marker name, i1 = position (ms)
  *   TIMELINE_BEAT:   i1 = bar, i2 = beat, i3 = position (ms), f1 = tempo,
  *                    i4 = time signature upper, i5 = time signature lower
+ *   NESTED_TIMELINE_BEAT: the beat fields above, str = GUID of the nested
+ *                    event in FMOD's text form
+ *   PLUGIN_CREATED / PLUGIN_DESTROYED: str = plugin name, ptr = the FMOD_DSP
+ *                    (the drain turns it into a handle, see below)
  *   others:          only handle + type
  *
  * opaque carries a native payload across the thread boundary (the DESTROYED
@@ -46,6 +50,10 @@
  * drain: whoever pops the event must dispose of the payload. A payload
  * MUST begin with a void* qnext field, which the queue uses to park
  * payloads whose events get dropped on overflow (see faxe_cbq_take_orphans).
+ *
+ * ptr is a borrowed FMOD object address with no ownership. The queue never
+ * reads it, and a dropped event just loses it. The drain resolves it on the
+ * Haxe thread, where the handle table may be touched.
  */
 typedef struct {
     int32_t handle;             /* event instance handle (from FMOD userdata) */
@@ -57,6 +65,7 @@ typedef struct {
     int32_t i5;
     float f1;
     void* opaque;               /* payload owned by the drain, or NULL */
+    void* ptr;                  /* borrowed FMOD object for the drain, or NULL */
     char str[FAXE_CBQ_STR_MAX]; /* UTF-8, truncated, always NUL-terminated */
 } FaxeCbEvent;
 

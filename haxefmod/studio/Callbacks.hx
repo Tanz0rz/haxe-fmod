@@ -46,11 +46,22 @@ enum EventCallbackData {
     StartFailed;
     TimelineMarker(name:String, positionMs:Int);
     TimelineBeat(bar:Int, beat:Int, positionMs:Int, tempo:Float, timeSigUpper:Int, timeSigLower:Int);
-    NestedTimelineBeat(bar:Int, beat:Int, positionMs:Int, tempo:Float, timeSigUpper:Int, timeSigLower:Int);
+    /** A beat on a referenced event's timeline. eventId is the GUID FMOD reports for that timeline, in FMOD's text form. */
+    NestedTimelineBeat(bar:Int, beat:Int, positionMs:Int, tempo:Float, timeSigUpper:Int, timeSigLower:Int, eventId:String);
     SoundPlayed;
     SoundStopped;
     RealToVirtual;
     VirtualToReal;
-    /** A callback type without a dedicated constructor (e.g. plugin hooks). */
+    /**
+     * A plugin effect on the instance was created. dsp is the effect unit,
+     * valid until PluginDestroyed arrives for it.
+     */
+    PluginCreated(name:String, dsp:haxefmod.core.Dsp);
+    /**
+     * A plugin effect on the instance is gone. dsp carries the same handle
+     * PluginCreated delivered, for matching, and no longer resolves.
+     */
+    PluginDestroyed(name:String, dsp:haxefmod.core.Dsp);
+    /** A callback type without a dedicated constructor. */
     Other(type:EventCallbackType);
 }

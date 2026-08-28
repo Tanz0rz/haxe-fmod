@@ -87,6 +87,8 @@ sys_get_parameter_description_count -> i32
 # returns param name; fbuf: [0]=min [1]=max [2]=default; ibuf: [0]=type [1]=flags [2]=id1 [3]=id2
 sys_get_parameter_description_by_index i32 fbuf ibuf -> str
 sys_get_parameter_description_by_name str fbuf ibuf -> str
+# GUID of the parameter description read last, formatted like lookup_id
+sys_last_parameter_guid -> str
 # global parameter labels (paramName, labelIndex)
 sys_get_parameter_label str i32 -> str
 # listeners
@@ -96,7 +98,7 @@ sys_set_num_listeners i32 -> i32
 sys_get_listener_attributes i32 fbuf -> i32
 # fbuf[0..11] = 3D attributes to apply (passed via buffer - the HL JIT
 # garbles native calls with more than ~10 arguments)
-sys_set_listener_attributes i32 fbuf -> i32
+sys_set_listener_attributes i32 fbuf bool -> i32
 sys_get_listener_weight i32 -> f64
 sys_set_listener_weight i32 f64 -> i32
 # bank loading (flags: bit0 = nonblocking); returns bank handle or 0
@@ -502,22 +504,22 @@ dsp_get_active i32 -> bool
 dsp_get_metering_enabled i32 ibuf -> i32
 
 ## Bank loading from memory
-sys_load_bank_memory bytes i32 -> i32
+sys_load_bank_memory bytes i32 i32 -> i32
 
 ## Event instance core bridge
 evi_get_channel_group i32 -> i32
 
 ## Command capture and replay
-sys_start_command_capture str -> i32
+sys_start_command_capture str i32 -> i32
 sys_stop_command_capture -> i32
-sys_load_command_replay str -> i32
+sys_load_command_replay str i32 -> i32
 replay_release i32 -> i32
 replay_is_valid i32 -> bool
 replay_start i32 -> i32
 replay_stop i32 -> i32
 replay_set_paused i32 bool -> i32
 replay_get_paused i32 -> bool
-replay_seek_to_time i32 i32 -> i32
+replay_seek_to_time i32 f32 -> i32
 replay_get_length i32 -> f32
 
 ## Channel priority, virtualization, and remaining getters

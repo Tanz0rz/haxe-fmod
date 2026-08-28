@@ -172,6 +172,11 @@ class TestStudioSurface {
 			up: {x: 0, y: 1, z: 0},
 		};
 		assert(!StudioSystem.setListenerAttributes(0, attrs).isOk(), "sys setListenerAttributes result");
+		assert(!StudioSystem.setListenerAttributes(0, attrs, {x: 4, y: 5, z: 6}).isOk(), "sys setListenerAttributes attenuation result");
+		// The listener getter's shape extends Fmod3DAttributes, so it still
+		// lands in a variable of that type
+		var plain:Null<Fmod3DAttributes> = StudioSystem.getListenerAttributes(0);
+		assert(plain == null, "sys listener attrs assignable");
 
 		var instance:EventInstance = EventInstance.NULL;
 		assert(!instance.set3DAttributes(attrs).isOk(), "evi set3DAttributes result");
@@ -505,7 +510,10 @@ class TestStudioSurface {
 
 		// Slice-5 surface on the stub
 		assert(StudioSystem.loadBankMemory(haxe.io.Bytes.alloc(16)).isNull(), "sys loadBankMemory null");
+		assert(StudioSystem.loadBankMemory(haxe.io.Bytes.alloc(16), FmodLoadBankFlags.NONBLOCKING).isNull(), "sys loadBankMemory flags null");
 		assert(!StudioSystem.startCommandCapture("x.cmd.txt").isOk(), "sys startCapture result");
+		assert(!StudioSystem.startCommandCapture("x.cmd.txt", FmodCommandCaptureFlags.FILEFLUSH | FmodCommandCaptureFlags.SKIP_INITIAL_STATE).isOk(), "sys startCapture flags result");
+		assert(StudioSystem.loadCommandReplay("x.cmd.txt", FmodCommandReplayFlags.FAST_FORWARD).isNull(), "sys loadReplay flags null");
 		assert(!StudioSystem.stopCommandCapture().isOk(), "sys stopCapture result");
 		var replay = StudioSystem.loadCommandReplay("x.cmd.txt");
 		assert(replay.isNull(), "sys loadReplay null");
@@ -515,6 +523,8 @@ class TestStudioSurface {
 		assert(!replay.setPaused(true).isOk(), "replay setPaused result");
 		assert(!replay.getPaused(), "replay paused default");
 		assert(!replay.seekToTime(0).isOk(), "replay seek result");
+		assert(!replay.seekToTime(1.5).isOk(), "replay seek seconds result");
+		assert(replay.getCommandAtTime(1.5) == -1, "replay command at time default");
 		assert(replay.getLength() == 0.0, "replay length default");
 		assert(!replay.release().isOk(), "replay release result");
 
@@ -876,8 +886,11 @@ class TestStudioSurface {
 			instanceHandle: 0, outputHandle: 0};
 		assert((info.instanceType : Int) == 3 && info.outputType == FmodStudioInstanceType.NONE, "command info typed");
 		var desc:FmodParameterDescription = {name: "p", id: {data1: 0, data2: 0}, minimum: 0, maximum: 1, defaultValue: 0,
-			type: FmodParameterType.GAME_CONTROLLED, flags: 0, guid: ""};
-		assert(desc.guid == "", "parameter description carries guid");
+			type: FmodParameterType.GAME_CONTROLLED, flags: 0, guid: "{0225c47b-e69f-4785-b89c-fd321387934a}"};
+		assert(desc.guid.length == 38, "parameter description carries guid");
+		var soundInfo:FmodSoundInfo = {name: "Master.bank", mode: ChannelMode.CREATECOMPRESSEDSAMPLE, length: 4800,
+			fileOffset: 2844864, initialSubsound: 0, numSubsounds: 1, subSoundIndex: 0};
+		assert(soundInfo.mode == 0x200 && soundInfo.length == 4800, "sound info typed");
 
 		assert(ChannelMode.MODE_3D_LINEARROLLOFF == ChannelMode.LINEAR_ROLLOFF_3D
 			&& ChannelMode.MODE_3D_HEADRELATIVE == 0x00040000

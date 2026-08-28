@@ -138,28 +138,36 @@ class StudioSystem {
 
     /**
      * Loads a bank from bytes (embedded, downloaded, or packed banks).
-     * The data is copied, so the buffer is free after this returns.
-     * Returns Bank.NULL on failure.
+     * The data is copied, so the buffer is free after this returns. flags
+     * are the same FmodLoadBankFlags loadBankFile takes. Returns Bank.NULL
+     * on failure.
      */
-    public static function loadBankMemory(data:haxe.io.Bytes):Bank {
-        return NativeStudio.sys_load_bank_memory(data, data.length);
+    public static function loadBankMemory(data:haxe.io.Bytes, flags:FmodLoadBankFlags = NORMAL):Bank {
+        return NativeStudio.sys_load_bank_memory(data, data.length, flags);
     }
 
     /**
      * Records every API command to a file until stopCommandCapture, for
-     * FMOD's analysis tools or replay through loadCommandReplay.
+     * FMOD's analysis tools or replay through loadCommandReplay. FILEFLUSH
+     * writes each command straight to disk and SKIP_INITIAL_STATE leaves
+     * out the commands that recreate the current state.
      */
-    public static function startCommandCapture(path:String):FmodResult {
-        return NativeStudio.sys_start_command_capture(path);
+    public static function startCommandCapture(path:String, flags:FmodCommandCaptureFlags = NORMAL):FmodResult {
+        return NativeStudio.sys_start_command_capture(path, flags);
     }
 
     public static function stopCommandCapture():FmodResult {
         return NativeStudio.sys_stop_command_capture();
     }
 
-    /** Loads a capture file for playback. Returns CommandReplay.NULL on failure. */
-    public static function loadCommandReplay(path:String):CommandReplay {
-        return NativeStudio.sys_load_command_replay(path);
+    /**
+     * Loads a capture file for playback. FAST_FORWARD plays it back as fast
+     * as it can, SKIP_CLEANUP leaves the objects it created alive at the
+     * end, and SKIP_BANK_LOAD keeps it from loading banks. Returns
+     * CommandReplay.NULL on failure.
+     */
+    public static function loadCommandReplay(path:String, flags:FmodCommandReplayFlags = NORMAL):CommandReplay {
+        return NativeStudio.sys_load_command_replay(path, flags);
     }
 
     /** Blocks until all pending commands have executed. */
@@ -267,8 +275,11 @@ class StudioSystem {
         return NativeStudio.sys_set_num_listeners(count);
     }
 
-    /** A listener's 3D attributes, or null on failure. */
-    public static function getListenerAttributes(index:Int):Null<Fmod3DAttributes> {
+    /**
+     * A listener's 3D attributes and its attenuation position, or null on
+     * failure.
+     */
+    public static function getListenerAttributes(index:Int):Null<FmodListenerAttributes> {
         var result:FmodResult = NativeStudio.sys_get_listener_attributes(index);
         if (!result.isOk()) return null;
         return {
@@ -276,22 +287,35 @@ class StudioSystem {
             velocity: {x: Scratch.readF(3), y: Scratch.readF(4), z: Scratch.readF(5)},
             forward: {x: Scratch.readF(6), y: Scratch.readF(7), z: Scratch.readF(8)},
             up: {x: Scratch.readF(9), y: Scratch.readF(10), z: Scratch.readF(11)},
+            attenuationPosition: {x: Scratch.readF(12), y: Scratch.readF(13), z: Scratch.readF(14)},
         };
     }
 
-    public static function setListenerAttributes(index:Int, attributes:Fmod3DAttributes):FmodResult {
+    /**
+     * Sets a listener's 3D attributes. attenuationPosition is the point
+     * distance attenuation is measured from when it differs from the
+     * listener position (a third-person camera that hears from the
+     * character). Left out, FMOD attenuates from the listener position.
+     */
+    public static function setListenerAttributes(index:Int, attributes:Fmod3DAttributes,
+            ?attenuationPosition:FmodVector):FmodResult {
+        var hasAttenuation = attenuationPosition != null;
         return NativeStudio.sys_set_listener_attributes(index,
             attributes.position.x, attributes.position.y, attributes.position.z,
             attributes.velocity.x, attributes.velocity.y, attributes.velocity.z,
             attributes.forward.x, attributes.forward.y, attributes.forward.z,
-            attributes.up.x, attributes.up.y, attributes.up.z);
+            attributes.up.x, attributes.up.y, attributes.up.z,
+            hasAttenuation,
+            hasAttenuation ? attenuationPosition.x : 0,
+            hasAttenuation ? attenuationPosition.y : 0,
+            hasAttenuation ? attenuationPosition.z : 0);
     }
 
     /** Convenience for 2D games: listener position only, unit forward/up. */
     public static function setListenerPosition2D(index:Int, x:Float, y:Float,
             velocityX:Float = 0, velocityY:Float = 0):FmodResult {
         return NativeStudio.sys_set_listener_attributes(index, x, y, 0,
-            velocityX, velocityY, 0, 0, 0, 1, 0, 1, 0);
+            velocityX, velocityY, 0, 0, 0, 1, 0, 1, 0, false, 0, 0, 0);
     }
 
     public static function getListenerWeight(index:Int):Float {
@@ -523,7 +547,7 @@ class StudioSystem {
             defaultValue: Scratch.readF(2),
             type: (Scratch.readI(0) : FmodParameterType),
             flags: Scratch.readI(1),
-            guid: "",
+            guid: NativeStudio.sys_last_parameter_guid(),
         };
     }
 
@@ -545,15 +569,23 @@ class StudioSystem {
     }
 
     /**
-     * What FMOD would load for an audio table key: the name or file path
-     * it reports (empty for a bank held in memory) and the subsound
-     * index inside it. Null when the key is not in any loaded audio table
-     * (lastResult says why).
+     * What FMOD would load for an audio table key: the file it reports
+     * (empty for a bank held in memory), the ChannelMode flags, where the
+     * sample sits in that file, and the subsound index inside it. Null when
+     * the key is not in any loaded audio table (lastResult says why).
      */
-    public static function getSoundInfo(key:String):Null<{name:String, subSoundIndex:Int}> {
+    public static function getSoundInfo(key:String):Null<FmodSoundInfo> {
         var name = NativeStudio.sys_get_sound_info(key);
         if (!lastResult().isOk()) return null;
-        return {name: name, subSoundIndex: Scratch.readI(0)};
+        return {
+            name: name,
+            subSoundIndex: Scratch.readI(0),
+            mode: Scratch.readI(1),
+            length: Scratch.readI(2),
+            fileOffset: Scratch.readI(3),
+            initialSubsound: Scratch.readI(4),
+            numSubsounds: Scratch.readI(5),
+        };
     }
 
     /**

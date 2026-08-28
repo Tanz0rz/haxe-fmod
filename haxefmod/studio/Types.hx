@@ -87,7 +87,7 @@ typedef FmodParameterDescription = {
     var defaultValue:Float;
     var type:FmodParameterType;
     var flags:Int;
-    /** The parameter's GUID in FMOD Studio's text form. Always "" for now, the native side does not read it. */
+    /** The parameter's GUID in FMOD Studio's text form, the same form lookupID returns. */
     var guid:String;
 }
 
@@ -104,6 +104,36 @@ typedef Fmod3DAttributes = {
     var velocity:FmodVector;
     var forward:FmodVector;
     var up:FmodVector;
+}
+
+/**
+ * What StudioSystem.getListenerAttributes returns: the listener's 3D
+ * attributes plus the point FMOD attenuates from. The attenuation position
+ * equals the listener position unless setListenerAttributes was given a
+ * separate one. Usable anywhere an Fmod3DAttributes is expected.
+ */
+typedef FmodListenerAttributes = {
+    > Fmod3DAttributes,
+    var attenuationPosition:FmodVector;
+}
+
+/**
+ * FMOD_STUDIO_SOUND_INFO, what StudioSystem.getSoundInfo reports for an
+ * audio table key. name is the file FMOD would open (the bank path for a
+ * bank loaded from disk, "" for a bank held in memory), mode the
+ * ChannelMode flags it would open it with, and the exinfo fields say where
+ * the sample sits in that file: length in bytes, fileOffset in bytes,
+ * initialSubsound, and numSubsounds. subSoundIndex is the subsound inside
+ * the loaded sound that plays the key.
+ */
+typedef FmodSoundInfo = {
+    var name:String;
+    var mode:Int;
+    var length:Int;
+    var fileOffset:Int;
+    var initialSubsound:Int;
+    var numSubsounds:Int;
+    var subSoundIndex:Int;
 }
 
 /** CPU usage in microseconds (FMOD_Studio_Bus_GetCPUUsage) */
@@ -155,7 +185,7 @@ typedef FmodUserProperty = {
     var stringValue:String;
 }
 
-/** FMOD_STUDIO_LOAD_BANK_FLAGS bits, the flags StudioSystem.loadBankFile takes. */
+/** FMOD_STUDIO_LOAD_BANK_FLAGS bits, the flags StudioSystem.loadBankFile and loadBankMemory take. */
 enum abstract FmodLoadBankFlags(Int) from Int to Int {
     var NORMAL = 0;
     var NONBLOCKING = 1;
@@ -530,14 +560,14 @@ enum abstract FmodLoadMemoryMode(Int) from Int to Int {
     var MEMORY_POINT = 1;
 }
 
-/** FMOD_STUDIO_COMMANDCAPTURE_FLAGS bits. StudioSystem.startCommandCapture always captures with NORMAL. */
+/** FMOD_STUDIO_COMMANDCAPTURE_FLAGS bits, the flags StudioSystem.startCommandCapture takes. */
 enum abstract FmodCommandCaptureFlags(Int) from Int to Int {
     var NORMAL = 0x00000000;
     var FILEFLUSH = 0x00000001;
     var SKIP_INITIAL_STATE = 0x00000002;
 }
 
-/** FMOD_STUDIO_COMMANDREPLAY_FLAGS bits. StudioSystem.loadCommandReplay always loads with NORMAL. */
+/** FMOD_STUDIO_COMMANDREPLAY_FLAGS bits, the flags StudioSystem.loadCommandReplay takes. */
 enum abstract FmodCommandReplayFlags(Int) from Int to Int {
     var NORMAL = 0x00000000;
     var SKIP_CLEANUP = 0x00000001;

@@ -12,7 +12,7 @@ Memory usage is native only (unsupported in HTML5), where the getters return nul
 ## FMOD_STUDIO_PARAMETER_DESCRIPTION
 verdict: bound
 Type: haxefmod.studio.Types.FmodParameterDescription
-The guid field is always empty, the native side does not read it. Look a parameter up by path with StudioSystem.lookupID when you need its GUID.
+The guid field is the parameter's GUID in the text form StudioSystem.lookupID returns.
 
 ## FMOD_STUDIO_PARAMETER_FLAGS
 verdict: bound

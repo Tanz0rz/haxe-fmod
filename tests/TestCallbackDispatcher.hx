@@ -15,6 +15,7 @@ class TestCallbackDispatcher {
 		testDecodeMarker();
 		testDecodeBeat();
 		testDecodeNestedBeat();
+		testDecodePlugin();
 		testDecodeUnknown();
 		testRegistration();
 		testReentrancy();
@@ -66,21 +67,44 @@ class TestCallbackDispatcher {
 	}
 
 	static function testDecodeNestedBeat() {
-		var data = CallbackDispatcher.decode(0x40000, 1, 3, 500, 6, 8, 90.0, "");
+		var guid = "{0225c47b-e69f-4785-b89c-fd321387934a}";
+		var data = CallbackDispatcher.decode(0x40000, 1, 3, 500, 6, 8, 90.0, guid);
 		switch (data) {
-			case NestedTimelineBeat(bar, beat, positionMs, tempo, timeSigUpper, timeSigLower):
+			case NestedTimelineBeat(bar, beat, positionMs, tempo, timeSigUpper, timeSigLower, eventId):
 				assert("nested beat fields", bar == 1 && beat == 3 && positionMs == 500 && tempo == 90.0);
 				assert("nested beat time signature", timeSigUpper == 6 && timeSigLower == 8);
+				assert("nested beat event id", eventId == guid);
 			default:
 				assert("nested beat decoded", false);
 		}
 	}
 
+	// The drain writes the plugin DSP handle into i1 and the plugin name
+	// into str before the record reaches decode
+	static function testDecodePlugin() {
+		var created = CallbackDispatcher.decode(0x200, 0x10007, 0, 0, 0, 0, 0, "fmod_gain");
+		switch (created) {
+			case PluginCreated(name, dsp):
+				assert("plugin created name", name == "fmod_gain");
+				assert("plugin created dsp handle", (dsp : Int) == 0x10007);
+			default:
+				assert("plugin created decoded", false);
+		}
+		var destroyed = CallbackDispatcher.decode(0x400, 0x10007, 0, 0, 0, 0, 0, "fmod_gain");
+		switch (destroyed) {
+			case PluginDestroyed(name, dsp):
+				assert("plugin destroyed name", name == "fmod_gain");
+				assert("plugin destroyed dsp handle", (dsp : Int) == 0x10007);
+			default:
+				assert("plugin destroyed decoded", false);
+		}
+	}
+
 	static function testDecodeUnknown() {
-		var data = CallbackDispatcher.decode(0x200, 0, 0, 0, 0, 0, 0, "");
+		var data = CallbackDispatcher.decode(0x20000, 0, 0, 0, 0, 0, 0, "");
 		switch (data) {
 			case Other(type):
-				assert("unknown type preserved", (type : Int) == 0x200);
+				assert("unknown type preserved", (type : Int) == 0x20000);
 			default:
 				assert("unknown decoded as Other", false);
 		}

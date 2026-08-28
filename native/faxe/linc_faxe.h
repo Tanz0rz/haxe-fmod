@@ -64,7 +64,8 @@ extern const char* fmod_sys_get_parameter_label(const ::String& name, int labelI
 extern int fmod_sys_get_num_listeners();
 extern int fmod_sys_set_num_listeners(int num);
 extern int fmod_sys_get_listener_attributes(int index, ::Array<Float> fbuf);
-extern int fmod_sys_set_listener_attributes(int index, ::Array<Float> f);
+extern int fmod_sys_set_listener_attributes(int index, ::Array<Float> f, bool hasAttenuation);
+extern const char* fmod_sys_last_parameter_guid();
 extern double fmod_sys_get_listener_weight(int index);
 extern int fmod_sys_set_listener_weight(int index, double weight);
 extern int fmod_sys_load_bank_file(const ::String& path, int flags);
@@ -443,22 +444,22 @@ extern bool fmod_dsp_get_active(int handle);
 extern int fmod_dsp_get_metering_enabled(int handle, ::Array<int> ibuf);
 
 // Bank loading from memory
-extern int fmod_sys_load_bank_memory(::Array<unsigned char> data, int len);
+extern int fmod_sys_load_bank_memory(::Array<unsigned char> data, int len, int flags);
 
 // Event instance core bridge
 extern int fmod_evi_get_channel_group(int handle);
 
 // Command capture and replay
-extern int fmod_sys_start_command_capture(const ::String& path);
+extern int fmod_sys_start_command_capture(const ::String& path, int flags);
 extern int fmod_sys_stop_command_capture();
-extern int fmod_sys_load_command_replay(const ::String& path);
+extern int fmod_sys_load_command_replay(const ::String& path, int flags);
 extern int fmod_replay_release(int handle);
 extern bool fmod_replay_is_valid(int handle);
 extern int fmod_replay_start(int handle);
 extern int fmod_replay_stop(int handle);
 extern int fmod_replay_set_paused(int handle, bool paused);
 extern bool fmod_replay_get_paused(int handle);
-extern int fmod_replay_seek_to_time(int handle, int timeMs);
+extern int fmod_replay_seek_to_time(int handle, float seconds);
 extern float fmod_replay_get_length(int handle);
 
 // Channel priority, virtualization, and remaining getters

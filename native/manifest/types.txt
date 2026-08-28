@@ -229,15 +229,15 @@ FMOD_STUDIO_PARAMETER_FLAGS                         haxefmod.studio.Types.FmodPa
 FMOD_STUDIO_PARAMETER_ID                            haxefmod.studio.Types.FmodParameterId
 FMOD_STUDIO_PARAMETER_TYPE                          haxefmod.studio.Types.FmodParameterType
 FMOD_STUDIO_PLAYBACK_STATE                          haxefmod.studio.Types.FmodPlaybackState
-FMOD_STUDIO_PLUGIN_INSTANCE_PROPERTIES              library   the payload of the plugin callbacks, delivered as EventCallbackData.Other(PLUGIN_CREATED) without it since a DSP pointer has no meaning in Haxe
+FMOD_STUDIO_PLUGIN_INSTANCE_PROPERTIES              covered   the arguments of haxefmod.studio.Callbacks.EventCallbackData.PluginCreated(name, dsp) and PluginDestroyed(name, dsp), the dsp is a haxefmod.core.Dsp handle
 FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES             library   the programmer sound callbacks are handled natively, EventInstance.assignProgrammerSound(key) before start() picks the sound
-FMOD_STUDIO_SOUND_INFO                              library   the native side of programmer sounds, StudioSystem.getSoundInfo returns the name and subsound index
+FMOD_STUDIO_SOUND_INFO                              haxefmod.studio.Types.FmodSoundInfo   name carries name_or_data and the exinfo fields FMOD fills are flattened into length, fileOffset, initialSubsound, and numSubsounds skip: name_or_data,exinfo
 FMOD_STUDIO_STOP_MODE                               haxefmod.studio.Types.FmodStopMode
 FMOD_STUDIO_SYSTEM_CALLBACK                         cannot   runs on FMOD's threads, StudioSystem.setSystemCallback delivers SystemEvent on the game thread instead
 FMOD_STUDIO_SYSTEM_CALLBACK_TYPE                    haxefmod.studio.Types.FmodStudioSystemCallbackType
 FMOD_STUDIO_TIMELINE_BEAT_PROPERTIES                covered   the arguments of haxefmod.studio.Callbacks.EventCallbackData.TimelineBeat
 FMOD_STUDIO_TIMELINE_MARKER_PROPERTIES              covered   the arguments of haxefmod.studio.Callbacks.EventCallbackData.TimelineMarker
-FMOD_STUDIO_TIMELINE_NESTED_BEAT_PROPERTIES         covered   the arguments of haxefmod.studio.Callbacks.EventCallbackData.NestedTimelineBeat, the referenced event's GUID is not carried
+FMOD_STUDIO_TIMELINE_NESTED_BEAT_PROPERTIES         covered   the arguments of haxefmod.studio.Callbacks.EventCallbackData.NestedTimelineBeat, eventId is the GUID FMOD reports for the referenced timeline
 FMOD_STUDIO_USER_PROPERTY                           haxefmod.studio.Types.FmodUserProperty   the union is folded, floatValue carries integer and boolean properties too skip: intvalue,boolvalue
 FMOD_STUDIO_USER_PROPERTY_TYPE                      haxefmod.studio.Types.FmodUserPropertyType
 FMOD_SYSTEM_CALLBACK                                cannot   runs on FMOD's threads, StudioSystem.setSystemCallback delivers SystemEvent on the game thread instead

@@ -20,7 +20,7 @@ instance.setCallback(data -> switch (data) {
 instance.start();
 ```
 
-The constructors are `Created`, `Destroyed`, `Starting`, `Started`, `Restarted`, `Stopped`, `StartFailed`, `TimelineMarker(name, positionMs)`, `TimelineBeat(bar, beat, positionMs, tempo, timeSigUpper, timeSigLower)`, `NestedTimelineBeat` with the same payload, `SoundPlayed`, `SoundStopped`, `RealToVirtual`, `VirtualToReal`, and `Other(type)` for callback types without a dedicated constructor. Haxe lets you elide trailing arguments in a pattern, so `case TimelineBeat(bar, beat, _, _)` compiles.
+The constructors are `Created`, `Destroyed`, `Starting`, `Started`, `Restarted`, `Stopped`, `StartFailed`, `TimelineMarker(name, positionMs)`, `TimelineBeat(bar, beat, positionMs, tempo, timeSigUpper, timeSigLower)`, `NestedTimelineBeat` with the same payload plus `eventId`, the GUID FMOD reports for the referenced timeline the beat comes from (empty in HTML5, where FMOD's JavaScript runtime hands the beat over without it), `SoundPlayed`, `SoundStopped`, `RealToVirtual`, `VirtualToReal`, `PluginCreated(name, dsp)` and `PluginDestroyed(name, dsp)` for the plugin effects on the instance (`dsp` is a `haxefmod.core.Dsp` handle, live until the destroyed callback), and `Other(type)` for the callback types without a dedicated constructor. A pattern names every argument, so write `case TimelineBeat(bar, beat, _, _, _, _)` to ignore the trailing ones.
 
 `setCallback(handler, ?mask)` takes an optional mask of `EventCallbackType` bits. Without a mask every playback event is delivered (`EventCallbackType.PLAYBACK_ALL`). A mask limits delivery to the events you care about, which matters for busy events like beat tracking on a fast tempo.
 
@@ -85,7 +85,7 @@ FMOD positions sound relative to listeners. A 2D game has one listener at the ca
 StudioSystem.setListenerPosition2D(0, cameraX, cameraY);
 ```
 
-`setListenerPosition2D(index, x, y, ?velocityX, ?velocityY)` sets position with unit forward and up vectors. `setListenerAttributes(index, attributes)` takes a full `Fmod3DAttributes` (position, velocity, forward, up) for 3D games. `setNumListeners` enables split-screen setups, and `setListenerWeight` blends between them. `FmodRuntime.setListenerPosition(index, x, y)` is the same 2D call reachable from the runtime layer.
+`setListenerPosition2D(index, x, y, ?velocityX, ?velocityY)` sets position with unit forward and up vectors. `setListenerAttributes(index, attributes, ?attenuationPosition)` takes a full `Fmod3DAttributes` (position, velocity, forward, up) for 3D games, and the optional `attenuationPosition` is the point distance attenuation is measured from when it differs from the listener, a third-person camera that hears from the character. `getListenerAttributes(index)` returns both, as an `FmodListenerAttributes`. `setNumListeners` enables split-screen setups, and `setListenerWeight` blends between them. `FmodRuntime.setListenerPosition(index, x, y)` is the same 2D call reachable from the runtime layer.
 
 Distance units are whatever your game uses. Authored min and max distances in FMOD Studio are in those same units, so a pixel-based game authors its falloff in pixels. `CoreSystem.set3DSettings(dopplerScale, distanceFactor, rolloffScale)` rescales globally.
 

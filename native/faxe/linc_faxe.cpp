@@ -156,6 +156,19 @@ static FMOD_RESULT F_CALLBACK eventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type
                 ev.i4 = props->properties.timesignatureupper;
                 ev.i5 = props->properties.timesignaturelower;
                 ev.f1 = props->properties.tempo;
+                faxe_guid_format(&props->eventid, ev.str, FAXE_CBQ_STR_MAX);
+            }
+            break;
+        }
+        case FMOD_STUDIO_EVENT_CALLBACK_PLUGIN_CREATED:
+        case FMOD_STUDIO_EVENT_CALLBACK_PLUGIN_DESTROYED: {
+            const FMOD_STUDIO_PLUGIN_INSTANCE_PROPERTIES* props =
+                (const FMOD_STUDIO_PLUGIN_INSTANCE_PROPERTIES*)parameters;
+            if (props) {
+                if (props->name) {
+                    strncpy(ev.str, props->name, FAXE_CBQ_STR_MAX - 1);
+                }
+                ev.ptr = props->dsp;
             }
             break;
         }
@@ -2086,7 +2099,7 @@ int fmod_dsp_get_metering_enabled(int h, ::Array<int> ibuf) {
 
 //// Bank loading from memory
 
-int fmod_sys_load_bank_memory(::Array<unsigned char> data, int len) {
+int fmod_sys_load_bank_memory(::Array<unsigned char> data, int len, int flags) {
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
     if (data == null() || len <= 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
     if (len > data->length) len = data->length;
@@ -2094,7 +2107,7 @@ int fmod_sys_load_bank_memory(::Array<unsigned char> data, int len) {
     // FMOD_STUDIO_LOAD_MEMORY copies the buffer, so the caller's bytes are
     // free as soon as this returns
     gLastResult = gStudioSystem->loadBankMemory((const char*)&data[0], len,
-        FMOD_STUDIO_LOAD_MEMORY, FMOD_STUDIO_LOAD_BANK_NORMAL, &bank);
+        FMOD_STUDIO_LOAD_MEMORY, (FMOD_STUDIO_LOAD_BANK_FLAGS)flags, &bank);
     if (gLastResult != FMOD_OK || !bank) return 0;
     return faxe_handle_find_or_alloc(bank, FAXE_TYPE_BANK);
 }
@@ -2129,9 +2142,9 @@ static inline FMOD::Studio::CommandReplay* resolveReplay(int h) {
     return (FMOD::Studio::CommandReplay*)faxe_handle_resolve(h, FAXE_TYPE_REPLAY);
 }
 
-int fmod_sys_start_command_capture(const ::String& path) {
+int fmod_sys_start_command_capture(const ::String& path, int flags) {
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
-    gLastResult = gStudioSystem->startCommandCapture(path.c_str(), FMOD_STUDIO_COMMANDCAPTURE_NORMAL);
+    gLastResult = gStudioSystem->startCommandCapture(path.c_str(), (FMOD_STUDIO_COMMANDCAPTURE_FLAGS)flags);
     return (int)gLastResult;
 }
 
@@ -2141,10 +2154,10 @@ int fmod_sys_stop_command_capture() {
     return (int)gLastResult;
 }
 
-int fmod_sys_load_command_replay(const ::String& path) {
+int fmod_sys_load_command_replay(const ::String& path, int flags) {
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
     FMOD::Studio::CommandReplay* replay = NULL;
-    gLastResult = gStudioSystem->loadCommandReplay(path.c_str(), FMOD_STUDIO_COMMANDREPLAY_NORMAL, &replay);
+    gLastResult = gStudioSystem->loadCommandReplay(path.c_str(), (FMOD_STUDIO_COMMANDREPLAY_FLAGS)flags, &replay);
     if (gLastResult != FMOD_OK || !replay) return 0;
     int handle = faxe_handle_alloc(replay, FAXE_TYPE_REPLAY);
     if (handle == 0) {
@@ -2197,10 +2210,10 @@ bool fmod_replay_get_paused(int h) {
     return paused;
 }
 
-int fmod_replay_seek_to_time(int h, int timeMs) {
+int fmod_replay_seek_to_time(int h, float seconds) {
     FMOD::Studio::CommandReplay* replay = resolveReplay(h);
     if (!replay) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
-    gLastResult = replay->seekToTime((float)timeMs / 1000.0f);
+    gLastResult = replay->seekToTime(seconds);
     return (int)gLastResult;
 }
 
@@ -2782,6 +2795,16 @@ bool fmod_cb_next() {
         freeDestroyedCtx((FaxeInstCtx*)gCbCurrent.opaque);
         gCbCurrent.opaque = NULL;
     }
+    // Plugin records carry the DSP address. Turn it into a handle here on
+    // the Haxe thread, in i1. A destroyed plugin's slot is freed right
+    // away, the handle value still reaches the handler for identity.
+    if (gCbCurrent.type == FMOD_STUDIO_EVENT_CALLBACK_PLUGIN_CREATED) {
+        gCbCurrent.i1 = faxe_handle_find_or_alloc(gCbCurrent.ptr, FAXE_TYPE_DSP);
+    } else if (gCbCurrent.type == FMOD_STUDIO_EVENT_CALLBACK_PLUGIN_DESTROYED) {
+        gCbCurrent.i1 = faxe_handle_find(gCbCurrent.ptr, FAXE_TYPE_DSP);
+        if (gCbCurrent.i1) faxe_handle_free(gCbCurrent.i1);
+    }
+    gCbCurrent.ptr = NULL;
     return true;
 }
 
@@ -2835,9 +2858,14 @@ static const char* copyToStringBuf(const char* text) {
     return gStringBuf;
 }
 
+// GUID of the parameter description read last, in FMOD's text form.
+static char gParamGuidBuf[40] = "";
+
 // fbuf: [0]=min [1]=max [2]=default; ibuf: [0]=type [1]=flags [2]=id1 [3]=id2;
+// guid -> gParamGuidBuf (read back with fmod_sys_last_parameter_guid);
 // returns the parameter name (via gStringBuf).
 static const char* writeParamDescription(const FMOD_STUDIO_PARAMETER_DESCRIPTION* param, ::Array<Float> fbuf, ::Array<int> ibuf) {
+    faxe_guid_format(&param->guid, gParamGuidBuf, sizeof(gParamGuidBuf));
     fbuf[0] = (double)param->minimum;
     fbuf[1] = (double)param->maximum;
     fbuf[2] = (double)param->defaultvalue;
@@ -2846,6 +2874,10 @@ static const char* writeParamDescription(const FMOD_STUDIO_PARAMETER_DESCRIPTION
     ibuf[2] = (int)param->id.data1;
     ibuf[3] = (int)param->id.data2;
     return copyToStringBuf(param->name);
+}
+
+const char* fmod_sys_last_parameter_guid() {
+    return gParamGuidBuf;
 }
 
 // fbuf[0..11] = position xyz, velocity xyz, forward xyz, up xyz
@@ -3207,20 +3239,32 @@ int fmod_sys_set_num_listeners(int num) {
     return (int)gLastResult;
 }
 
-// fbuf[0..11] = 3D attributes of the listener at index
+// fbuf[0..11] = 3D attributes of the listener at index, fbuf[12..14] = its
+// attenuation position
 int fmod_sys_get_listener_attributes(int index, ::Array<Float> fbuf) {
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
     FMOD_3D_ATTRIBUTES attributes;
+    FMOD_VECTOR attenuation;
     memset(&attributes, 0, sizeof(attributes));
-    gLastResult = gStudioSystem->getListenerAttributes(index, &attributes, NULL);
+    memset(&attenuation, 0, sizeof(attenuation));
+    gLastResult = gStudioSystem->getListenerAttributes(index, &attributes, &attenuation);
     writeAttributes(&attributes, fbuf);
+    fbuf[12] = (double)attenuation.x;
+    fbuf[13] = (double)attenuation.y;
+    fbuf[14] = (double)attenuation.z;
     return (int)gLastResult;
 }
 
-int fmod_sys_set_listener_attributes(int index, ::Array<Float> f) {
+// f laid out like the getter. With hasAttenuation false FMOD attenuates
+// from the listener position and f[12..14] are ignored.
+int fmod_sys_set_listener_attributes(int index, ::Array<Float> f, bool hasAttenuation) {
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
     FMOD_3D_ATTRIBUTES attrs = makeAttributes(f[0], f[1], f[2], f[3], f[4], f[5], f[6], f[7], f[8], f[9], f[10], f[11]);
-    gLastResult = gStudioSystem->setListenerAttributes(index, &attrs, NULL);
+    FMOD_VECTOR attenuation;
+    attenuation.x = (float)f[12];
+    attenuation.y = (float)f[13];
+    attenuation.z = (float)f[14];
+    gLastResult = gStudioSystem->setListenerAttributes(index, &attrs, hasAttenuation ? &attenuation : NULL);
     return (int)gLastResult;
 }
 
@@ -5409,15 +5453,23 @@ int fmod_sys_unlock_dsp() {
     return (int)gLastResult;
 }
 
+// ibuf: [0]=subsound index [1]=mode [2]=exinfo length [3]=exinfo file
+// offset [4]=exinfo initial subsound [5]=exinfo subsound count
 const char* fmod_sys_get_sound_info(const ::String& key, ::Array<int> ibuf) {
     gStringBuf[0] = '\0';
     ibuf[0] = -1;
+    for (int i = 1; i < 6; i++) ibuf[i] = 0;
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return gStringBuf; }
     FMOD_STUDIO_SOUND_INFO info;
     memset(&info, 0, sizeof(info));
     gLastResult = gStudioSystem->getSoundInfo(key.c_str(), &info);
     if (gLastResult != FMOD_OK) return gStringBuf;
     ibuf[0] = info.subsoundindex;
+    ibuf[1] = (int)info.mode;
+    ibuf[2] = (int)info.exinfo.length;
+    ibuf[3] = (int)info.exinfo.fileoffset;
+    ibuf[4] = info.exinfo.initialsubsound;
+    ibuf[5] = info.exinfo.numsubsounds;
     // For a bank loaded from memory name_or_data is the sample bytes themselves, which are no string.
     if (info.name_or_data && !(info.mode & (FMOD_OPENMEMORY | FMOD_OPENMEMORY_POINT))) {
         strncpy(gStringBuf, info.name_or_data, sizeof(gStringBuf) - 1);

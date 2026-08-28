@@ -30,7 +30,7 @@ verdict: bound
 Type: haxefmod.studio.Types.FmodEventProperty
 
 ## FMOD_STUDIO_PLUGIN_INSTANCE_PROPERTIES
-verdict: library the payload of the plugin callbacks, delivered as EventCallbackData.Other(PLUGIN_CREATED) without it since a DSP pointer has no meaning in Haxe
+verdict: covered the arguments of haxefmod.studio.Callbacks.EventCallbackData.PluginCreated(name, dsp) and PluginDestroyed(name, dsp). dsp is a haxefmod.core.Dsp handle, live until the destroyed callback delivers it again for matching
 
 ## FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES
 verdict: library the programmer sound callbacks are handled natively, EventInstance.assignProgrammerSound(key) before start() picks the sound
@@ -46,4 +46,4 @@ verdict: covered the arguments of haxefmod.studio.Callbacks.EventCallbackData.Ti
 verdict: covered the arguments of haxefmod.studio.Callbacks.EventCallbackData.TimelineMarker(name, positionMs)
 
 ## FMOD_STUDIO_TIMELINE_NESTED_BEAT_PROPERTIES
-verdict: covered the arguments of haxefmod.studio.Callbacks.EventCallbackData.NestedTimelineBeat(bar, beat, positionMs, tempo, timeSigUpper, timeSigLower), the referenced event's GUID is not carried
+verdict: covered the arguments of haxefmod.studio.Callbacks.EventCallbackData.NestedTimelineBeat(bar, beat, positionMs, tempo, timeSigUpper, timeSigLower, eventId), eventId is the GUID FMOD reports for the referenced timeline, in FMOD's text form (empty in HTML5, the web runtime hands the beat over without it)
