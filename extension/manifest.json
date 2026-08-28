@@ -14,10 +14,7 @@
     "default_title": "Open the FMOD API reference"
   },
   "background": {
-    "service_worker": "background.js",
-    "scripts": [
-      "background.js"
-    ]
+    "service_worker": "background.js"
   },
   "content_scripts": [
     {
@@ -35,11 +32,5 @@
       ],
       "run_at": "document_idle"
     }
-  ],
-  "browser_specific_settings": {
-    "gecko": {
-      "id": "haxefmod-docs@haxe-fmod.tanz0rz.github.io",
-      "strict_min_version": "109.0"
-    }
-  }
+  ]
 }

@@ -38,3 +38,6 @@ __pycache__/
 
 # Extension test output
 /extension/test/last-run.png
+
+# Extension store packages
+/extension/dist/

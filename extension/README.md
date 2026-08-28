@@ -16,7 +16,7 @@ Any browser with a userscript manager: install `haxefmod-fmod-docs.user.js` from
 
 Chromium browsers: open `chrome://extensions`, turn on Developer mode, choose "Load unpacked", and pick this directory.
 
-Firefox: open `about:debugging#/runtime/this-firefox`, choose "Load Temporary Add-on", and pick `manifest.json`.
+Firefox needs its own manifest (a background script instead of a service worker, plus the add-on id). Run `python3 extension/package.py --unpacked`, then open `about:debugging#/runtime/this-firefox`, choose "Load Temporary Add-on", and pick `extension/dist/firefox/manifest.json`.
 
 ## How it works
 
@@ -69,7 +69,7 @@ Functions haxefmod does not expose are listed with their reasons on the document
 ## Package for the stores
 
 ```bash
-cd extension && zip -r ../haxefmod-fmod-docs.zip manifest.json background.js content.js content.css bindings-data.js examples-data.js icon16.png icon32.png icon48.png icon128.png
+python3 extension/package.py
 ```
 
-The same zip uploads to both the Chrome Web Store and addons.mozilla.org.
+This writes `extension/dist/haxefmod-fmod-docs-chrome-<version>.zip` for the Chrome Web Store (and Edge, Brave, Opera) and `haxefmod-fmod-docs-firefox-<version>.zip` for addons.mozilla.org. The two differ only in the manifest: Firefox runs the background file as a script and carries the add-on id, which Chrome would warn about.
