@@ -18,6 +18,13 @@ The chain is FMOD function <- native shim function <- Haxe wrapper method:
   3. native/jaxe/jaxe.js: a fmod_<native> body that can report
      ERR_UNSUPPORTED marks the entry as limited on HTML5.
 
+Functions the shim never calls still get an entry when
+extension/functions.md has a section for them (same format as the
+example files, keyed by the fmod.com heading id): lifecycle calls the
+library makes on the game's behalf, settings that FmodSettings covers,
+and features that are deliberately left out, each with a note and an
+optional Haxe fence.
+
 Keys are the ids fmod.com gives function headings: the C name without
 its FMOD_ prefix, lowercased (FMOD_Studio_EventInstance_Start becomes
 studio_eventinstance_start). Channel and ChannelGroup functions are also
@@ -38,6 +45,7 @@ JAXE = os.path.join(ROOT, "native", "jaxe", "jaxe.js")
 HAXE_ROOT = os.path.join(ROOT, "haxefmod")
 DATA_JS = os.path.join(ROOT, "extension", "bindings-data.js")
 COVERAGE_MD = os.path.join(ROOT, "docs", "coverage.md")
+FUNCTIONS_MD = os.path.join(ROOT, "extension", "functions.md")
 CONTENT_JS = os.path.join(ROOT, "extension", "content.js")
 USERSCRIPT = os.path.join(ROOT, "extension", "haxefmod-fmod-docs.user.js")
 
@@ -316,6 +324,27 @@ def build_table():
     return table
 
 
+def function_notes():
+    """Hand-written sections from extension/functions.md, keyed by id."""
+    if not os.path.exists(FUNCTIONS_MD):
+        return {}
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "haxe_examples", os.path.join(ROOT, "ci", "haxe-examples.py"))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.parse_page(read(FUNCTIONS_MD))
+
+
+def merge_notes(table):
+    for key, section in function_notes().items():
+        record = table.setdefault(key, {"fmod": "", "haxe": [], "html5": False})
+        record["notes"] = section["notes"]
+        if section["code"] is not None:
+            record["code"] = section["code"]
+    return table
+
+
 # --- artifacts -----------------------------------------------------------
 
 def render_data_js(table):
@@ -348,13 +377,15 @@ def render_userscript(table):
     style = ("(function () {\n    var style = document.createElement(\"style\");\n"
              "    style.textContent = " + json.dumps(css) + ";\n"
              "    document.documentElement.appendChild(style);\n})();\n")
-    return header + "\n" + render_data_js(table) + "\n" + style + "\n" + read(CONTENT_JS)
+    examples_path = os.path.join(ROOT, "extension", "examples-data.js")
+    examples = read(examples_path) if os.path.exists(examples_path) else ""
+    return header + "\n" + render_data_js(table) + "\n" + examples + "\n" + style + "\n" + read(CONTENT_JS)
 
 
 def render_coverage_md(table):
     groups = {}
     for key, record in table.items():
-        if key.startswith("channelcontrol_"):
+        if key.startswith("channelcontrol_") or not record["fmod"]:
             continue
         fmod_name = record["fmod"]
         parts = fmod_name.split("_")
@@ -391,7 +422,7 @@ def render_coverage_md(table):
 
 def main():
     check = "--check" in sys.argv[1:]
-    table = build_table()
+    table = merge_notes(build_table())
     outputs = {
         DATA_JS: render_data_js(table),
         USERSCRIPT: render_userscript(table),
@@ -410,8 +441,9 @@ def main():
                 fh.write(content)
             print(f"wrote {os.path.relpath(path, ROOT)}")
     bound = sum(1 for k, r in table.items() if r["haxe"] and not k.startswith("channelcontrol_"))
-    total = sum(1 for k in table if not k.startswith("channelcontrol_"))
-    print(f"haxe-bindings: {total} FMOD functions, {bound} reachable from a public Haxe method")
+    total = sum(1 for k, r in table.items() if r["fmod"] and not k.startswith("channelcontrol_"))
+    noted = sum(1 for r in table.values() if not r["fmod"])
+    print(f"haxe-bindings: {total} FMOD functions, {bound} reachable from a public Haxe method, {noted} more covered by notes")
     if stale:
         print("haxe-bindings: out of date: " + ", ".join(stale) + " (run python3 ci/haxe-bindings.py)")
         return 1

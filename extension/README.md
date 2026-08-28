@@ -30,6 +30,15 @@ python3 ci/haxe-bindings.py
 
 The same table renders the coverage page of the documentation site.
 
+Guide pages carry code examples that are not function entries (tabbed C, C++, C#, JS samples, and lone C++ blocks). Their Haxe versions are written by hand in `examples/<page>.md`, one file per fmod.com page, keyed by the example's position on the page. `ci/haxe-examples.py` compiles them into `examples-data.js`, and the docs workflow compiles every Haxe fence in them against the library:
+
+```bash
+python3 ci/haxe-examples.py
+python3 ci/check-readme-snippets.py extension/examples
+```
+
+Lone C++ blocks have no language selector on fmod.com, so the extension adds one with a C++ tab and the Haxe tab. The format of the example files is documented at the top of `ci/haxe-examples.py`.
+
 The extension asks for no permissions beyond running on fmod.com documentation pages and makes no network requests. The data ships inside the package.
 
 ## Test
@@ -44,7 +53,7 @@ The default run serves `test/fixture.html` in place of fmod.com and checks the t
 ## Package for the stores
 
 ```bash
-cd extension && zip -r ../haxefmod-fmod-docs.zip manifest.json content.js content.css bindings-data.js icon48.png icon128.png
+cd extension && zip -r ../haxefmod-fmod-docs.zip manifest.json content.js content.css bindings-data.js examples-data.js icon48.png icon128.png
 ```
 
 The same zip uploads to both the Chrome Web Store and addons.mozilla.org.

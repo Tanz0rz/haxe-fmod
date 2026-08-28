@@ -19,8 +19,14 @@
     var NATIVE_LANGS = ["language-c", "language-cpp", "language-c-cpp", "language-csharp", "language-javascript"];
     var GUIDES = "https://tanz0rz.github.io/haxe-fmod/";
     var DATA = typeof HAXEFMOD_BINDINGS !== "undefined" ? HAXEFMOD_BINDINGS : null;
+    var EXAMPLES = typeof HAXEFMOD_EXAMPLES !== "undefined" ? HAXEFMOD_EXAMPLES : {};
 
     if (!DATA) return;
+
+    function pageName() {
+        var file = window.location.pathname.split("/").pop() || "";
+        return file.replace(/\.html$/, "");
+    }
 
     function el(tag, className, text) {
         var node = document.createElement(tag);
@@ -46,14 +52,21 @@
         var pre = el("pre");
         var note = el("div", "haxefmod-note");
 
-        if (!entry || entry.haxe.length === 0) {
-            pre.textContent = "// Not exposed by haxefmod";
-            var limits = el("a", null, "Limitations");
-            limits.href = GUIDES + "limitations/";
-            limits.target = "_blank";
-            note.appendChild(document.createTextNode("This function has no haxefmod binding. See "));
-            note.appendChild(limits);
-            note.appendChild(document.createTextNode(" for what is left out and why."));
+        var notes = entry && entry.notes ? entry.notes : [];
+        if (entry && entry.code != null) {
+            pre.textContent = entry.code;
+            notes.forEach(function (text) { note.appendChild(el("p", null, text)); });
+        } else if (!entry || entry.haxe.length === 0) {
+            pre.textContent = notes.length ? "// No direct haxefmod call" : "// Not exposed by haxefmod";
+            notes.forEach(function (text) { note.appendChild(el("p", "haxefmod-warn", text)); });
+            if (!notes.length) {
+                var limits = el("a", null, "Limitations");
+                limits.href = GUIDES + "limitations/";
+                limits.target = "_blank";
+                note.appendChild(document.createTextNode("This function has no haxefmod binding. See "));
+                note.appendChild(limits);
+                note.appendChild(document.createTextNode(" for what is left out and why."));
+            }
         } else {
             var direct = entry.haxe.filter(function (m) { return m.direct; });
             var also = entry.haxe.filter(function (m) { return !m.direct; });
@@ -83,17 +96,41 @@
             if (entry.html5) {
                 note.appendChild(el("p", "haxefmod-warn", "HTML5: FMOD's web build does not support this call, haxefmod reports FMOD_ERR_UNSUPPORTED there."));
             }
+            notes.forEach(function (text) { note.appendChild(el("p", null, text)); });
         }
 
-        var footer = el("p", "haxefmod-footer");
-        footer.appendChild(document.createTextNode("haxefmod " + DATA.haxefmod + " for FMOD " + DATA.fmod + ". "));
+        note.appendChild(footer());
+
+        block.appendChild(pre);
+        block.appendChild(note);
+        return block;
+    }
+
+    function footer() {
+        var line = el("p", "haxefmod-footer");
+        line.appendChild(document.createTextNode("haxefmod " + DATA.haxefmod + " for FMOD " + DATA.fmod + ". "));
         var link = el("a", null, "Guides and API reference");
         link.href = GUIDES;
         link.target = "_blank";
-        footer.appendChild(link);
-        note.appendChild(footer);
+        line.appendChild(link);
+        return line;
+    }
 
-        block.appendChild(pre);
+    // A guide example: hand-written Haxe for the C++ sample above it, or
+    // a note when haxefmod has no equivalent.
+    function renderExample(example) {
+        var block = el("div", "highlight " + LANG + " haxefmod-block");
+        block.style.display = "none";
+        var note = el("div", "haxefmod-note");
+        if (example.code != null) {
+            var pre = el("pre");
+            pre.textContent = example.code;
+            block.appendChild(pre);
+        }
+        example.notes.forEach(function (text) {
+            note.appendChild(el("p", example.code == null ? "haxefmod-warn" : null, text));
+        });
+        note.appendChild(footer());
         block.appendChild(note);
         return block;
     }
@@ -111,33 +148,81 @@
         return last;
     }
 
-    function inject(heading) {
-        if (heading.dataset.haxefmod) return;
-        var selector = null;
-        var node = heading.nextElementSibling;
+    function functionHeading(selector) {
+        var node = selector.previousElementSibling;
         for (var i = 0; node && i < 4; i++) {
-            if (node.classList && node.classList.contains("language-selector")) { selector = node; break; }
-            node = node.nextElementSibling;
+            if (node.tagName === "H2" && node.getAttribute("api") === "function") return node;
+            node = node.previousElementSibling;
         }
-        if (!selector) return;
-        var anchor = lastHighlight(selector);
-        if (!anchor) return;
-        heading.dataset.haxefmod = "1";
+        return null;
+    }
 
+    function addTab(selector, block) {
+        var anchor = lastHighlight(selector);
+        if (!anchor) return false;
         var tab = el("div", "language-tab haxefmod-tab", "Haxe");
         tab.setAttribute("data-language", LANG);
         selector.appendChild(tab);
-
-        var block = renderBlock(DATA.entries[heading.id]);
         anchor.parentNode.insertBefore(block, anchor.nextSibling);
+        return true;
     }
 
+    // A highlight block that follows a selector (through empty
+    // paragraphs) is one of its language variants. Any other highlight
+    // is a lone single-language example.
+    function attachedToSelector(highlight) {
+        var node = highlight.previousElementSibling;
+        while (node && (node.classList.contains("highlight") || (node.tagName === "P" && node.textContent.trim() === ""))) {
+            node = node.previousElementSibling;
+        }
+        return !!(node && node.classList.contains("language-selector"));
+    }
+
+    // Lone examples get a selector of their own so the Haxe tab has a
+    // place to live. The original language keeps the site's tab class,
+    // so the site's selector logic treats it like any other block.
+    function selectorForLone(highlight) {
+        var lang = null;
+        for (var i = 0; i < highlight.classList.length; i++) {
+            if (highlight.classList[i].indexOf("language-") === 0) lang = highlight.classList[i];
+        }
+        var labels = { "language-c": "C", "language-cpp": "C++", "language-csharp": "C#", "language-javascript": "JS" };
+        var selector = el("div", "language-selector haxefmod-selector");
+        var tab = el("div", "language-tab selected", labels[lang] || "Code");
+        tab.setAttribute("data-language", lang || "language-all");
+        selector.appendChild(tab);
+        highlight.parentNode.insertBefore(selector, highlight);
+        return selector;
+    }
+
+    // Example units are counted the way ci/haxe-examples.py documents:
+    // every selector and every lone highlight, in document order.
     function injectAll() {
-        var root = document.querySelector("div.manual-content.api");
+        var root = document.querySelector("div.manual-content");
         if (!root) return false;
-        var headings = root.querySelectorAll('h2[api="function"]');
-        for (var i = 0; i < headings.length; i++) inject(headings[i]);
-        return headings.length > 0;
+        var nodes = root.querySelectorAll("div.language-selector, div.highlight");
+        var examples = EXAMPLES[pageName()] || {};
+        var index = -1;
+        for (var i = 0; i < nodes.length; i++) {
+            var node = nodes[i];
+            var tabbed = node.classList.contains("language-selector");
+            if (!tabbed && (attachedToSelector(node) || node.classList.contains(LANG))) continue;
+            if (node.classList.contains("haxefmod-selector")) continue;
+            index++;
+            if (node.dataset.haxefmod) continue;
+            var heading = tabbed ? functionHeading(node) : null;
+            var block;
+            if (heading) {
+                block = renderBlock(DATA.entries[heading.id]);
+            } else if (examples[index] || examples["*"]) {
+                block = renderExample(examples[index] || examples["*"]);
+            } else {
+                continue;
+            }
+            var selector = tabbed ? node : selectorForLone(node);
+            if (addTab(selector, block)) node.dataset.haxefmod = "1";
+        }
+        return nodes.length > 0;
     }
 
     function setDisplay(selectorList, display) {
@@ -157,6 +242,17 @@
         if (haxeOn) {
             setDisplay(NATIVE_LANGS.map(function (l) { return "." + l; }).join(", "), "none");
         }
+    }
+
+    function applyNative(lang) {
+        var tabs = document.querySelectorAll(".language-tab");
+        for (var i = 0; i < tabs.length; i++) {
+            tabs[i].classList.toggle("selected", tabs[i].getAttribute("data-language") === lang);
+        }
+        NATIVE_LANGS.forEach(function (other) {
+            setDisplay("." + other, other === lang ? "block" : "none");
+        });
+        try { window.localStorage.setItem(STORAGE_KEY, lang); } catch (e) { /* ignore */ }
     }
 
     function haxeChosen() {
@@ -184,6 +280,9 @@
         } else {
             choose(false);
             apply(lang);
+            // The site only wired the tabs it rendered. Tabs on the
+            // selectors added for lone examples do the same work here.
+            if (tab.parentNode.classList.contains("haxefmod-selector")) applyNative(lang);
         }
     });
 

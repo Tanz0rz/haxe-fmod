@@ -75,11 +75,13 @@ jobs:
           haxelib install openfl 9.5.0 --always --quiet
           haxelib install flixel 6.1.2 --always --quiet
 
-      - name: Check the generated bindings table
-        run: python3 ci/haxe-bindings.py --check
+      - name: Check the generated bindings table and example translations
+        run: |
+          python3 ci/haxe-examples.py --check
+          python3 ci/haxe-bindings.py --check
 
       - name: Compile the guide examples
-        run: python3 ci/check-readme-snippets.py docs
+        run: python3 ci/check-readme-snippets.py docs extension/examples
 
       - name: Generate type XML
         run: |
