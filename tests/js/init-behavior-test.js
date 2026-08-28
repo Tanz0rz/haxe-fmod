@@ -39,6 +39,9 @@ jaxe.fmod_sys_init_ex(64, 0, 3, 0, 0, 0, 0, 0, 0);
 check('initial_memory_set', jaxe.FMOD['INITIAL_MEMORY'] === 64 * 1024 * 1024,
     `INITIAL_MEMORY=${jaxe.FMOD['INITIAL_MEMORY']}`);
 check('module_kicked_off', calls.length === 1, '');
+// A second init while the module loads must not start it again
+jaxe.fmod_sys_init_ex(64, 0, 3, 0, 0, 0, 0, 0, 0);
+check('second_init_is_a_no_op', calls.length === 1, 'calls=' + calls.length);
 
 // --- drive the real onRuntimeInitialized with a recording mock system ---
 const DRIVER_RATE = 47999;
@@ -119,6 +122,7 @@ check('zero_settings_leave_core_defaults', !got.softwareChannels && !got.streamB
 calls.length = 0;
 mockSystems();
 jaxe.FmodIsInitialized = false;
+jaxe.pendingInit = null;
 jaxe.fmod_sys_set_auto_update(false);
 jaxe.fmod_sys_init_ex(32, 0, 0, 0, 512, 4, 40, 65536, 3);
 jaxe.onRuntimeInitialized();

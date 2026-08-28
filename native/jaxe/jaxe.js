@@ -551,6 +551,14 @@ class jaxe {
     // streamingscheduledelay or encryptionkey, so those two are accepted
     // and dropped.
     static fmod_sys_init_ex(numChannels, sampleRate, speakerMode, studioFlags, dspBufferLength, dspNumBuffers, softwareChannels, streamBufferSize, initFlags, maxMPEGCodecs, maxVorbisCodecs, maxFADPCMCodecs, vol0VirtualVol, defaultDecodeBufferSize, profilePort, geometryMaxFadeTime, distanceFilterCenterFreq, randomSeed, commandQueueSize, handleInitialSize, studioUpdatePeriod, idleSampleDataPoolSize, streamingScheduleDelay, encryptionKey) {
+        // Trailing settings may be omitted by direct callers and mean the
+        // defaults. The key is "" for none, an explicit null is a caller bug.
+        if (encryptionKey === undefined) encryptionKey = "";
+        if (typeof encryptionKey !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
+        // Init once, like the native shims. A second call while the module
+        // is loading or after it is ready would run FMODModule again over
+        // a live system.
+        if (jaxe.pendingInit || jaxe.sysReady()) { jaxe.lastResult = 0; return 0; }
         jaxe.pendingInit = {
             numChannels: numChannels,
             sampleRate: sampleRate,
@@ -5320,6 +5328,7 @@ class jaxe {
     // embind cannot marshal the tag payload pointer (the call throws), so
     // tag reads report 68 (ERR_UNSUPPORTED) on a live handle
     static fmod_core_sound_get_tag(handle, name, index, ibuf, fbuf) {
+        if (typeof name !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return ""; }
         jaxe.zeroFill(ibuf, 5);
         fbuf[0] = 0.0;
         var sound = jaxe.resolveCoreSound(handle);
@@ -5329,6 +5338,7 @@ class jaxe {
     }
 
     static fmod_core_sound_get_tag_string(handle, name, index) {
+        if (typeof name !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return ""; }
         var sound = jaxe.resolveCoreSound(handle);
         if (!sound) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return ""; }
         jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
