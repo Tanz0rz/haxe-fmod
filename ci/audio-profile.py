@@ -32,9 +32,11 @@ CLIP_WINDOWS = 3
 # The synth-test contract (SynthTestState.hx): tone segments in this order,
 # each at least this long in the recording. Windows are labeled by the SET
 # of tones present. 1320Hz is 660Hz data played at pitch 2.0, so 660Hz
-# appearing anywhere means the pitch was not applied. The final segment is
-# the 300+5000 mix through a lowpass: 5000Hz appearing there means the DSP
-# effect was not applied.
+# appearing anywhere means the pitch was not applied. Segment 5 is the
+# 300+5000 mix through a lowpass: 5000Hz appearing there means the DSP
+# effect was not applied. Segments 7 and 8 are the same PcmStream.create3d
+# path at two distances, and carry different tones only so the run labeling
+# keeps them apart.
 SYNTH_EXPECTED = [
     (frozenset([440.0]), 3.0),
     (frozenset([880.0]), 3.0),
@@ -42,12 +44,24 @@ SYNTH_EXPECTED = [
     (frozenset([300.0, 5000.0]), 3.0),
     (frozenset([300.0]), 3.0),
     (frozenset([500.0]), 3.0),
+    (frozenset([2000.0]), 3.0),
+    (frozenset([2400.0]), 3.0),
 ]
 SYNTH_DATA_FREQ = 660.0
 SYNTH_FILTERED_FREQ = 5000.0
 SYNTH_FADE_TONES = frozenset([500.0])
 SYNTH_FADE_DROP_DB = 12.0
-SYNTH_CANDIDATES = [300.0, 440.0, 500.0, 660.0, 880.0, 1320.0, 5000.0]
+# Positions in SYNTH_EXPECTED. Indexed rather than taken from the end of
+# the run list so that appending a segment can never silently retire one of
+# these checks.
+SYNTH_FADE_INDEX = 5
+SYNTH_3D_NEAR_INDEX = 6
+SYNTH_3D_FAR_INDEX = 7
+# Segment 8 sits 8x its min distance out, which inverse rolloff makes 1/8
+# the amplitude (-18dB). Required drop leaves room for rolloff differences
+# between platforms and FMOD versions.
+SYNTH_3D_DROP_DB = 12.0
+SYNTH_CANDIDATES = [300.0, 440.0, 500.0, 660.0, 880.0, 1320.0, 2000.0, 2400.0, 5000.0]
 SYNTH_PRESENT_MARGIN_DB = 18.0  # present = within this of the window max
 SYNTH_PRESENT_FLOOR_DB = -55.0  # and above this absolute level
 SYNTH_MIN_RUN = 2  # windows (0.5s) - shorter runs are boundary noise
@@ -234,8 +248,9 @@ def synth_gate(channels, rate, pcm, window_count, window_frames, window_dbs):
                 failures.append("{} segment {:.2f}s < required {:.2f}s".format(
                     label_name(tones), duration, minimum))
         # The fade segment must show the scheduled volume ramp: the last
-        # window well below the first, declining without recovering
-        fade_run = runs[-1]
+        # window well below the first, declining without recovering. The
+        # sequence matched above, so this run is the fade by construction.
+        fade_run = runs[SYNTH_FADE_INDEX]
         if fade_run[0] == SYNTH_FADE_TONES:
             # The first and last windows straddle the segment seams (partial
             # silence lowers their RMS), so the ramp analysis trims them
@@ -257,6 +272,27 @@ def synth_gate(channels, rate, pcm, window_count, window_frames, window_dbs):
                         " (not a scheduled fade)".format(recovery))
             else:
                 failures.append("fade segment too short to analyze the ramp")
+
+        # Distance attenuation on PcmStream.create3d: both 3D segments are
+        # written at the same amplitude and played straight ahead, so the
+        # only thing that can separate their levels is the 3D rolloff.
+        near_run = runs[SYNTH_3D_NEAR_INDEX]
+        far_run = runs[SYNTH_3D_FAR_INDEX]
+        near_dbs = window_dbs[near_run[1] + 1:near_run[2] - 1]
+        far_dbs = window_dbs[far_run[1] + 1:far_run[2] - 1]
+        if len(near_dbs) >= 2 and len(far_dbs) >= 2:
+            near_db = sum(near_dbs) / len(near_dbs)
+            far_db = sum(far_dbs) / len(far_dbs)
+            drop = near_db - far_db
+            print("  3D segments: near {:.1f}dB far {:.1f}dB (drop {:.1f}dB)".format(
+                near_db, far_db, drop))
+            if drop < SYNTH_3D_DROP_DB:
+                failures.append(
+                    "3D far segment only {:.1f}dB below the near segment,"
+                    " required {:.1f}dB (create3d distance attenuation was"
+                    " not applied)".format(drop, SYNTH_3D_DROP_DB))
+        else:
+            failures.append("3D segments too short to compare levels")
 
     if failures:
         for failure in failures:
