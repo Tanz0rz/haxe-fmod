@@ -55,8 +55,8 @@
         return out;
     }
 
-    // The site prints every signature as one line with no arguments or
-    // one argument, and one argument per line otherwise, ending with a
+    // The site prints a zero-argument signature on one line and every
+    // other signature with one argument per line, ending with a
     // semicolon. The Haxe tab follows that shape.
     function formatSignature(prefix, signature) {
         var open = signature.indexOf("(");
@@ -64,7 +64,7 @@
         var name = signature.slice(0, open);
         var args = splitArgs(signature.slice(open + 1, close));
         var ret = signature.slice(close + 1);
-        if (args.length < 2) return prefix + "." + name + "(" + args.join("") + ")" + ret + ";";
+        if (args.length === 0) return prefix + "." + name + "()" + ret + ";";
         return prefix + "." + name + "(\n  " + args.join(",\n  ") + "\n)" + ret + ";";
     }
 
