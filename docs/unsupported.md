@@ -8,7 +8,7 @@ If one of these blocks a real use case, open an issue describing it. A workaroun
 
 | Function | Why |
 |---|---|
-| `DSP::setCallback` | Cannot be bound. FMOD runs the callback on its mixer thread, and no Haxe target can execute code there. Poll the unit from the game loop with Dsp.getMetering() or Dsp.getFftSpectrum() instead. |
+| `DSP::setCallback` | Cannot be bound. FMOD runs the callback on its mixer thread, and no Haxe target can execute code there. Poll the unit from the game loop with Dsp.getMetering(), Dsp.getFftSpectrumInfo(), or Dsp.getParameterData() instead. |
 | `DSP::showConfigDialog` | Cannot be bound. It takes a raw operating system window handle, which has no meaning in Haxe. Plugin and built-in DSP parameters are set through Dsp.setParameter. |
 
 ## Global functions

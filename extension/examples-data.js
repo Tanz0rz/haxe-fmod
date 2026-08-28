@@ -463,7 +463,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_FFT": {
    "code": "/** FMOD_DSP_FFT, parameter indices of the FFT analyser. */\nenum abstract DspFft(Int) from Int to Int {\n    var WINDOWSIZE = 0;\n    var WINDOW = 1;\n    var BAND_START_FREQ = 2;\n    var BAND_STOP_FREQ = 3;\n    var SPECTRUMDATA = 4;\n    var RMS = 5;\n    var SPECTRAL_CENTROID = 6;\n    var IMMEDIATE_MODE = 7;\n    var DOWNMIX = 8;\n    var CHANNEL = 9;\n}",
    "notes": [
-    "The SPECTRUMDATA parameter is read through getFftSpectrum instead of getParameterData."
+    "The SPECTRUMDATA parameter is read through getFftSpectrum (the first channel) or getFftSpectrumInfo (every channel with the bin and channel counts) instead of getParameterData."
    ],
    "type": "haxefmod.core.DspParameters.DspFft",
    "verdict": "bound"
@@ -535,18 +535,18 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_LOUDNESS_METER": {
    "code": "/** FMOD_DSP_LOUDNESS_METER, parameter indices of the loudness meter. */\nenum abstract DspLoudnessMeter(Int) from Int to Int {\n    var STATE = 0;\n    var WEIGHTING = 1;\n    var INFO = 2;\n}",
    "notes": [
-    "STATE is set with setParameterInt and WEIGHTING with setParameterData. The INFO readback has no Haxe getter, Dsp.getMetering gives peak and RMS levels on every target."
+    "STATE is set with setParameterInt and WEIGHTING with setParameterData. INFO is read with Dsp.getLoudnessMeterInfo (unsupported in HTML5, where the web glue hands the block back without its fields)."
    ],
    "type": "haxefmod.core.DspParameters.DspLoudnessMeter",
    "verdict": "bound"
   },
   "FMOD_DSP_LOUDNESS_METER_INFO_TYPE": {
-   "code": null,
+   "code": "/** FMOD_DSP_LOUDNESS_METER_INFO_TYPE, the readback of a loudness meter unit. Loudness values are in LUFS, the histogram has 66 bins. */\ntypedef FmodDspLoudnessMeterInfo = {\n    var momentaryLoudness:Float;\n    var shortTermLoudness:Float;\n    var integratedLoudness:Float;\n    var loudness10thPercentile:Float;\n    var loudness95thPercentile:Float;\n    var loudnessHistogram:Array<Float>;\n    var maxTruePeak:Float;\n    var maxMomentaryLoudness:Float;\n}",
    "notes": [
-    "No Haxe declaration, the library owns this choice. the library has no data parameter getter, so the loudness readback is not exposed and Dsp.getMetering gives peak and RMS levels instead"
+    "Read with Dsp.getLoudnessMeterInfo on a LOUDNESS_METER unit, native only (unsupported in HTML5)."
    ],
-   "type": null,
-   "verdict": "library"
+   "type": "haxefmod.studio.Types.FmodDspLoudnessMeterInfo",
+   "verdict": "bound"
   },
   "FMOD_DSP_LOUDNESS_METER_STATE_TYPE": {
    "code": "/** FMOD_DSP_LOUDNESS_METER_STATE_TYPE, the LOUDNESS_METER unit's STATE parameter. Negative values reset the meter. */\nenum abstract DspLoudnessMeterState(Int) from Int to Int {\n    var RESET_INTEGRATED = -3;\n    var RESET_MAXPEAK = -2;\n    var RESET_ALL = -1;\n    var PAUSED = 0;\n    var ANALYZING = 1;\n}",
@@ -629,7 +629,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_OBJECTPAN": {
    "code": "/** FMOD_DSP_OBJECTPAN, parameter indices of the object pan effect. Names that start with a digit keep a leading underscore, since a Haxe identifier cannot start with one. */\nenum abstract DspObjectPan(Int) from Int to Int {\n    var _3D_POSITION = 0;\n    var _3D_ROLLOFF = 1;\n    var _3D_MIN_DISTANCE = 2;\n    var _3D_MAX_DISTANCE = 3;\n    var _3D_EXTENT_MODE = 4;\n    var _3D_SOUND_SIZE = 5;\n    var _3D_MIN_EXTENT = 6;\n    var OVERALL_GAIN = 7;\n    var OUTPUTGAIN = 8;\n    var ATTENUATION_RANGE = 9;\n    var OVERRIDE_RANGE = 10;\n}",
    "notes": [
-    "The 3D position parameter takes the FMOD_DSP_PARAMETER_3DATTRIBUTES_MULTI struct, which is not exposed, so position an object panner by playing its source through a 3D channel and driving that channel's set3DAttributes instead."
+    "The 3D position parameter takes the FMOD_DSP_PARAMETER_3DATTRIBUTES_MULTI struct, set with Dsp.setParameter3DAttributesMulti on DspObjectPan._3D_POSITION. A source played through a 3D channel gets the same from Channel.set3DAttributes."
    ],
    "type": "haxefmod.core.DspParameters.DspObjectPan",
    "verdict": "bound"
@@ -2269,9 +2269,9 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "cannot"
   },
   "FMOD_DSP_METERING_INFO": {
-   "code": "var fader = Dsp.create(DspType.FADER);\nChannelGroup.master().addDsp(ChannelGroup.DSP_TAIL, fader);\nfader.setMeteringEnabled(false, true);\n\n// each frame\nvar meter = fader.getMetering();\nif (meter != null) {\n    var numchannels = meter.peak.length;\n    var peaklevel = meter.peak;\n    var rmslevel = meter.rms;\n}",
+   "code": "var fader = Dsp.create(DspType.FADER);\nChannelGroup.master().addDsp(ChannelGroup.DSP_TAIL, fader);\nfader.setMeteringEnabled(true, true);\n\n// each frame\nvar meter = fader.getMetering();\nif (meter != null) {\n    var numsamples = meter.numSamples;\n    var numchannels = meter.numChannels;\n    var peaklevel = meter.peak;\n    var rmslevel = meter.rms;\n}\nvar inputMeter = fader.getInputMetering();",
    "notes": [
-    "numsamples is not reported, numchannels is the length of the peak and rms arrays."
+    "getMetering reads the output side, getMetering(true) or getInputMetering the input side. numchannels and numsamples are fields of the result."
    ],
    "type": "haxefmod.core.ChannelGroup, haxefmod.core.Dsp, haxefmod.core.DspType",
    "verdict": "bound"
@@ -2331,25 +2331,25 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_3DATTRIBUTES": {
-   "code": null,
+   "code": "/** FMOD_DSP_PARAMETER_3DATTRIBUTES, the payload of a 3D data parameter: the emitter in the listener's space and in world space. */\ntypedef FmodDspParameter3DAttributes = {\n    var relative:Fmod3DAttributes;\n    var absolute:Fmod3DAttributes;\n}",
    "notes": [
-    "No Haxe declaration, the library owns this choice. the 3D position of a pan unit is not set by parameter, play the source through a 3D channel and call Channel.set3DAttributes"
+    "Set with Dsp.setParameter3DAttributes(index, absolute, ?relative), the shim packs the struct."
    ],
-   "type": null,
-   "verdict": "library"
+   "type": "haxefmod.studio.Types.FmodDspParameter3DAttributes",
+   "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_3DATTRIBUTES_MULTI": {
-   "code": null,
+   "code": "/** FMOD_DSP_PARAMETER_3DATTRIBUTES_MULTI, the same payload for several listeners, one relative entry and one weight per listener. */\ntypedef FmodDspParameter3DAttributesMulti = {\n    var numListeners:Int;\n    var relative:Array<Fmod3DAttributes>;\n    var weight:Array<Float>;\n    var absolute:Fmod3DAttributes;\n}",
    "notes": [
-    "No Haxe declaration, the library owns this choice. the 3D position of a pan unit is not set by parameter, play the source through a 3D channel and call Channel.set3DAttributes"
+    "Set with Dsp.setParameter3DAttributesMulti(index, absolute, relative, ?weights), one relative entry per listener, the shim packs the struct."
    ],
-   "type": null,
-   "verdict": "library"
+   "type": "haxefmod.studio.Types.FmodDspParameter3DAttributesMulti",
+   "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_ATTENUATION_RANGE": {
    "code": null,
    "notes": [
-    "No Haxe declaration, another call plays this role. a data parameter format the unit reads, Dsp.setParameterData hands it over as raw bytes and Dsp.getDataParameterIndex finds its index"
+    "No Haxe declaration, another call plays this role. a data parameter format the unit reads, Dsp.setParameterData hands it over as raw bytes, Dsp.getParameterData reads it back, and Dsp.getDataParameterIndex finds its index"
    ],
    "type": null,
    "verdict": "covered"
@@ -2361,9 +2361,9 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_DESC": {
-   "code": "var eq = Dsp.create(DspType.THREE_EQ);\nfor (index in 0...eq.getParameterCount()) {\n    var desc = eq.getParameterInfo(index);\n    if (desc == null) continue;\n    var name = desc.name;\n    var type = desc.type;\n    var min = desc.min;\n    var max = desc.max;\n    var defaultval = desc.defaultValue;\n}",
+   "code": "var eq = Dsp.create(DspType.THREE_EQ);\nfor (index in 0...eq.getParameterCount()) {\n    var desc = eq.getParameterInfo(index);\n    if (desc == null) continue;\n    var type = desc.type;\n    var name = desc.name;\n    var label = desc.label;\n    var description = desc.description;\n    var min = desc.min;\n    var max = desc.max;\n    var defaultval = desc.defaultValue;\n    var mapping = desc.mappingType;\n    var valuenames = desc.valueNames;\n    var datatype = desc.dataType;\n}",
    "notes": [
-    "Native only (unsupported in HTML5)."
+    "Native only (unsupported in HTML5). The union members are fields of the result: min, max, defaultValue, mappingType and mappingPoints for a float, goesToInfinity and valueNames for an int, valueNames for a bool, dataType for data."
    ],
    "type": "haxefmod.core.Dsp, haxefmod.core.DspType",
    "verdict": "bound"
@@ -2371,7 +2371,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_PARAMETER_DESC_BOOL": {
    "code": null,
    "notes": [
-    "Cannot be bound. a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, type, and range"
+    "Cannot be bound. a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, label, description, type, range, float mapping, int and bool value names, and data type"
    ],
    "type": null,
    "verdict": "cannot"
@@ -2379,7 +2379,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_PARAMETER_DESC_DATA": {
    "code": null,
    "notes": [
-    "Cannot be bound. a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, type, and range"
+    "Cannot be bound. a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, label, description, type, range, float mapping, int and bool value names, and data type"
    ],
    "type": null,
    "verdict": "cannot"
@@ -2387,7 +2387,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_PARAMETER_DESC_FLOAT": {
    "code": null,
    "notes": [
-    "Cannot be bound. a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, type, and range"
+    "Cannot be bound. a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, label, description, type, range, float mapping, int and bool value names, and data type"
    ],
    "type": null,
    "verdict": "cannot"
@@ -2395,7 +2395,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_PARAMETER_DESC_INT": {
    "code": null,
    "notes": [
-    "Cannot be bound. a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, type, and range"
+    "Cannot be bound. a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, label, description, type, range, float mapping, int and bool value names, and data type"
    ],
    "type": null,
    "verdict": "cannot"
@@ -2403,23 +2403,23 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_PARAMETER_DYNAMIC_RESPONSE": {
    "code": null,
    "notes": [
-    "No Haxe declaration, another call plays this role. a data parameter format the unit reads, Dsp.setParameterData hands it over as raw bytes and Dsp.getDataParameterIndex finds its index"
+    "No Haxe declaration, another call plays this role. a data parameter format the unit reads, Dsp.setParameterData hands it over as raw bytes, Dsp.getParameterData reads it back, and Dsp.getDataParameterIndex finds its index"
    ],
    "type": null,
    "verdict": "covered"
   },
   "FMOD_DSP_PARAMETER_FFT": {
-   "code": "var fft = Dsp.create(DspType.FFT);\nChannelGroup.master().addDsp(ChannelGroup.DSP_TAIL, fft);\n\n// each frame\nvar spectrum = fft.getFftSpectrum(512);\nif (spectrum != null) {\n    var length = spectrum.length;\n}",
+   "code": "/** FMOD_DSP_PARAMETER_FFT, the spectrum of an FFT unit with one magnitude array per channel. */\ntypedef FmodDspParameterFft = {\n    var length:Int;\n    var numChannels:Int;\n    var spectrum:Array<Array<Float>>;\n}",
    "notes": [
-    "getFftSpectrum returns the first channel's bins, length is the array length."
+    "Read with Dsp.getFftSpectrumInfo(maxBins) on an FFT unit, or getFftSpectrum(maxBins) for the first channel alone."
    ],
-   "type": "haxefmod.core.ChannelGroup, haxefmod.core.Dsp, haxefmod.core.DspType",
+   "type": "haxefmod.studio.Types.FmodDspParameterFft",
    "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_FINITE_LENGTH": {
    "code": null,
    "notes": [
-    "No Haxe declaration, another call plays this role. a data parameter format the unit reads, Dsp.setParameterData hands it over as raw bytes and Dsp.getDataParameterIndex finds its index"
+    "No Haxe declaration, another call plays this role. a data parameter format the unit reads, Dsp.setParameterData hands it over as raw bytes, Dsp.getParameterData reads it back, and Dsp.getDataParameterIndex finds its index"
    ],
    "type": null,
    "verdict": "covered"
@@ -2427,7 +2427,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_PARAMETER_FLOAT_MAPPING": {
    "code": null,
    "notes": [
-    "Cannot be bound. a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, type, and range"
+    "Cannot be bound. a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, label, description, type, range, float mapping, int and bool value names, and data type"
    ],
    "type": null,
    "verdict": "cannot"
@@ -2435,7 +2435,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_PARAMETER_FLOAT_MAPPING_PIECEWISE_LINEAR": {
    "code": null,
    "notes": [
-    "Cannot be bound. a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, type, and range"
+    "Cannot be bound. a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, label, description, type, range, float mapping, int and bool value names, and data type"
    ],
    "type": null,
    "verdict": "cannot"
@@ -2447,17 +2447,17 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_OVERALLGAIN": {
-   "code": null,
+   "code": "/** FMOD_DSP_PARAMETER_OVERALLGAIN, the gain a unit reports for FMOD's virtual voice ranking. */\ntypedef FmodDspParameterOverallGain = {\n    var linearGain:Float;\n    var linearGainAdditive:Float;\n}",
    "notes": [
-    "No Haxe declaration, another call plays this role. a data parameter format the unit reads, Dsp.setParameterData hands it over as raw bytes and Dsp.getDataParameterIndex finds its index"
+    "Read with Dsp.getOverallGain(), which finds the unit's overall gain parameter, or getOverallGain(index)."
    ],
-   "type": null,
-   "verdict": "covered"
+   "type": "haxefmod.studio.Types.FmodDspParameterOverallGain",
+   "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_SIDECHAIN": {
    "code": null,
    "notes": [
-    "No Haxe declaration, another call plays this role. a data parameter format the unit reads, Dsp.setParameterData hands it over as raw bytes and Dsp.getDataParameterIndex finds its index"
+    "No Haxe declaration, another call plays this role. a data parameter format the unit reads, Dsp.setParameterData hands it over as raw bytes, Dsp.getParameterData reads it back, and Dsp.getDataParameterIndex finds its index"
    ],
    "type": null,
    "verdict": "covered"
@@ -2949,12 +2949,12 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "5.1 Controlling a Spatializer DSP": {
-   "code": null,
+   "code": "function dot(a:FmodVector, b:FmodVector):Float {\n    return a.x * b.x + a.y * b.y + a.z * b.z;\n}\n\nfunction cross(a:FmodVector, b:FmodVector):FmodVector {\n    return {x: a.y * b.z - a.z * b.y, y: a.z * b.x - a.x * b.z, z: a.x * b.y - a.y * b.x};\n}\n\nfunction toListenerSpace(v:FmodVector, listener:Fmod3DAttributes):FmodVector {\n    var right = cross(listener.up, listener.forward);\n    return {x: dot(v, right), y: dot(v, listener.up), z: dot(v, listener.forward)};\n}\n\nfunction calculatePannerAttributes(listener:Fmod3DAttributes, emitter:Fmod3DAttributes):FmodDspParameter3DAttributes {\n    var offset = {x: emitter.position.x - listener.position.x, y: emitter.position.y - listener.position.y, z: emitter.position.z - listener.position.z};\n    var motion = {x: emitter.velocity.x - listener.velocity.x, y: emitter.velocity.y - listener.velocity.y, z: emitter.velocity.z - listener.velocity.z};\n    return {\n        relative: {\n            position: toListenerSpace(offset, listener),\n            velocity: toListenerSpace(motion, listener),\n            forward: toListenerSpace(emitter.forward, listener),\n            up: toListenerSpace(emitter.up, listener)\n        },\n        absolute: emitter\n    };\n}\n\nfunction updatePanner(panner:Dsp, listener:Fmod3DAttributes, emitter:Fmod3DAttributes):Void {\n    var attributes = calculatePannerAttributes(listener, emitter);\n    panner.setParameter3DAttributesMulti(DspPan._3D_POSITION, attributes.absolute, [attributes.relative]);\n}",
    "notes": [
-    "No Haxe declaration, another call plays this role. The relative and absolute 3D attributes of a spatializer are not computed in Haxe. A source played through a 3D channel is positioned in world space with Channel.set3DAttributes and FMOD derives the listener-relative attributes from the listener set with StudioSystem.setListenerAttributes. A pan DSP created by hand can only take its 3D attributes as a raw byte payload through Dsp.setParameterData."
+    "The relative attributes are the emitter transformed into the listener's space, the absolute attributes are the emitter itself. Dsp.setParameter3DAttributesMulti packs both into the pan unit's 3D position parameter."
    ],
-   "type": null,
-   "verdict": "covered"
+   "type": "haxefmod.core.Dsp, haxefmod.core.DspParameters.DspPan, haxefmod.studio.Types",
+   "verdict": "bound"
   },
   "5.1 Controlling a Spatializer DSP#2": {
    "code": "var listenerPos:FmodVector = {x: cameraX, y: cameraY, z: 0};\nvar listenerVel:FmodVector = {x: 0, y: 0, z: 0};\nvar listenerForward:FmodVector = {x: 0, y: 0, z: 1};\nvar listenerUp:FmodVector = {x: 0, y: 1, z: 0};\nvar gameRunning = true;\nfunction updateGame():Void {\n    channel.set3DAttributes(carX, carY, 0);\n}\n\ndo\n{\n    updateGame();       // here the game is updated and the sources would be moved with channel.set3DAttributes.\n\n    StudioSystem.setListenerAttributes(0, {\n        position: listenerPos,\n        velocity: listenerVel,\n        forward: listenerForward,\n        up: listenerUp\n    });     // update 'ears'\n\n} while (gameRunning);",

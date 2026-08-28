@@ -21,6 +21,7 @@
 #include "../shared/faxe_guid.h"
 #include "../shared/faxe_cbqueue.h"
 #include "../shared/faxe_instctx.h"
+#include "../shared/faxe_dspdata.h"
 
 // F_CALLBACK was removed in newer FMOD SDKs
 #ifndef F_CALLBACK
@@ -5768,35 +5769,22 @@ HL_PRIM int HL_NAME(sys_get_default_mix_matrix)(int sourceMode, int targetMode, 
 }
 DEFINE_PRIM(_I32, sys_get_default_mix_matrix, _I32 _I32 _I32 _BYTES);
 
-// ibuf[0] = parameter type. fbuf = min, max, default for float and int
-// parameters, the default alone for bool. Returns the name.
+// Layout in faxe_dspdata.h: fbuf min, max, default and the mapping
+// points, ibuf type, mapping type, goes-to-infinity, data type, point
+// count. Returns the name.
 HL_PRIM vbyte* HL_NAME(dsp_get_parameter_info)(int h, int index, vbyte* fout, vbyte* iout) {
     FMOD_DSP* dsp = resolve_dsp(h);
     FMOD_DSP_PARAMETER_DESC* desc = NULL;
     double* outFloats = (double*)fout;
     int* outInts = (int*)iout;
     gStringBuf[0] = '\0';
-    outFloats[0] = 0.0;
-    outFloats[1] = 0.0;
-    outFloats[2] = 0.0;
-    outInts[0] = 0;
+    faxe_dspdata_clear_desc(outFloats, outInts);
     if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (vbyte*)gStringBuf; }
     gLastResult = FMOD_DSP_GetParameterInfo(dsp, index, &desc);
     if (gLastResult != FMOD_OK || !desc) return (vbyte*)gStringBuf;
     memcpy(gStringBuf, desc->name, sizeof(desc->name));
     gStringBuf[sizeof(desc->name)] = '\0';
-    outInts[0] = (int)desc->type;
-    if (desc->type == FMOD_DSP_PARAMETER_TYPE_FLOAT) {
-        outFloats[0] = (double)desc->floatdesc.min;
-        outFloats[1] = (double)desc->floatdesc.max;
-        outFloats[2] = (double)desc->floatdesc.defaultval;
-    } else if (desc->type == FMOD_DSP_PARAMETER_TYPE_INT) {
-        outFloats[0] = (double)desc->intdesc.min;
-        outFloats[1] = (double)desc->intdesc.max;
-        outFloats[2] = (double)desc->intdesc.defaultval;
-    } else if (desc->type == FMOD_DSP_PARAMETER_TYPE_BOOL) {
-        outFloats[2] = desc->booldesc.defaultval ? 1.0 : 0.0;
-    }
+    faxe_dspdata_unpack_desc(desc, outFloats, outInts);
     return (vbyte*)gStringBuf;
 }
 DEFINE_PRIM(_BYTES, dsp_get_parameter_info, _I32 _I32 _BYTES _BYTES);
@@ -6523,3 +6511,119 @@ HL_PRIM int HL_NAME(cg_get_dsp)(int h, int index) {
     return faxe_handle_find_or_alloc(dsp, FAXE_TYPE_DSP);
 }
 DEFINE_PRIM(_I32, cg_get_dsp, _I32 _I32);
+
+//// DSP data parameters and unit info
+
+// ibuf[0] version, [1] channels, [2] config width, [3] config height. Returns the name.
+HL_PRIM vbyte* HL_NAME(dsp_get_info)(int h, vbyte* iout) {
+    FMOD_DSP* dsp = resolve_dsp(h);
+    int* outInts = (int*)iout;
+    unsigned int version = 0;
+    int channels = 0, width = 0, height = 0;
+    gStringBuf[0] = '\0';
+    outInts[0] = 0; outInts[1] = 0; outInts[2] = 0; outInts[3] = 0;
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (vbyte*)gStringBuf; }
+    gLastResult = FMOD_DSP_GetInfo(dsp, gStringBuf, &version, &channels, &width, &height);
+    if (gLastResult != FMOD_OK) { gStringBuf[0] = '\0'; return (vbyte*)gStringBuf; }
+    outInts[0] = (int)version;
+    outInts[1] = channels;
+    outInts[2] = width;
+    outInts[3] = height;
+    return (vbyte*)gStringBuf;
+}
+DEFINE_PRIM(_BYTES, dsp_get_info, _I32 _BYTES);
+
+// Copies up to cap bytes of the data block into out (out may be NULL to
+// ask for the size only). Returns the block length FMOD reports, -1 on
+// failure.
+HL_PRIM int HL_NAME(dsp_get_param_data)(int h, int index, vbyte* out, int cap) {
+    FMOD_DSP* dsp = resolve_dsp(h);
+    void* data = NULL;
+    unsigned int len = 0;
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    gLastResult = FMOD_DSP_GetParameterData(dsp, index, &data, &len, NULL, 0);
+    if (gLastResult != FMOD_OK) return -1;
+    if (out && data && cap > 0) memcpy(out, data, (unsigned int)cap < len ? (unsigned int)cap : len);
+    return (int)len;
+}
+DEFINE_PRIM(_I32, dsp_get_param_data, _I32 _I32 _BYTES _I32);
+
+// fbuf = 24 doubles, relative then absolute attributes (faxe_dspdata.h).
+HL_PRIM int HL_NAME(dsp_set_param_3d_attributes)(int h, int index, vbyte* f) {
+    FMOD_DSP* dsp = resolve_dsp(h);
+    FMOD_DSP_PARAMETER_3DATTRIBUTES attrs;
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    faxe_dspdata_pack_3d(&attrs, (const double*)f);
+    gLastResult = FMOD_DSP_SetParameterData(dsp, index, &attrs, sizeof(attrs));
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, dsp_set_param_3d_attributes, _I32 _I32 _BYTES);
+
+// fbuf = 116 doubles: relative[8], weight[8], absolute (faxe_dspdata.h).
+HL_PRIM int HL_NAME(dsp_set_param_3d_attributes_multi)(int h, int index, int numListeners, vbyte* f) {
+    FMOD_DSP* dsp = resolve_dsp(h);
+    FMOD_DSP_PARAMETER_3DATTRIBUTES_MULTI attrs;
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    if (!faxe_dspdata_pack_3d_multi(&attrs, numListeners, (const double*)f)) {
+        gLastResult = FMOD_ERR_INVALID_PARAM;
+        return (int)gLastResult;
+    }
+    gLastResult = FMOD_DSP_SetParameterData(dsp, index, &attrs, sizeof(attrs));
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, dsp_set_param_3d_attributes_multi, _I32 _I32 _I32 _BYTES);
+
+// One side of the meter: input when input is true, output otherwise.
+// fbuf peak then rms per channel, ibuf[0] numsamples, ibuf[1] numchannels.
+// Returns the channel count.
+HL_PRIM int HL_NAME(dsp_get_metering_info)(int h, bool input, vbyte* fout, vbyte* iout) {
+    FMOD_DSP* dsp = resolve_dsp(h);
+    FMOD_DSP_METERING_INFO info;
+    int* outInts = (int*)iout;
+    outInts[0] = 0;
+    outInts[1] = 0;
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    memset(&info, 0, sizeof(info));
+    gLastResult = input ? FMOD_DSP_GetMeteringInfo(dsp, &info, NULL) : FMOD_DSP_GetMeteringInfo(dsp, NULL, &info);
+    if (gLastResult != FMOD_OK) return 0;
+    return faxe_dspdata_unpack_metering(&info, (double*)fout, outInts);
+}
+DEFINE_PRIM(_I32, dsp_get_metering_info, _I32 _BOOL _BYTES _BYTES);
+
+// fbuf = the spectrum of one channel capped at maxBins, ibuf[0] the
+// channel count, ibuf[1] the bin count. Returns the bins written.
+HL_PRIM int HL_NAME(dsp_fft_get_spectrum_channel)(int h, int channel, vbyte* fout, int maxBins, vbyte* iout) {
+    FMOD_DSP* dsp = resolve_dsp(h);
+    FMOD_DSP_PARAMETER_FFT* fft = NULL;
+    unsigned int len = 0;
+    double* outFloats = (double*)fout;
+    int* outInts = (int*)iout;
+    int count, i;
+    outInts[0] = 0;
+    outInts[1] = 0;
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = FMOD_DSP_GetParameterData(dsp, FMOD_DSP_FFT_SPECTRUMDATA, (void**)&fft, &len, NULL, 0);
+    if (gLastResult != FMOD_OK || !fft) return 0;
+    outInts[0] = fft->numchannels;
+    outInts[1] = fft->length;
+    if (channel < 0 || channel >= fft->numchannels || channel >= 32 || !fft->spectrum[channel]) return 0;
+    count = fft->length < maxBins ? fft->length : maxBins;
+    if (count > FAXE_LIST_MAX) count = FAXE_LIST_MAX;
+    for (i = 0; i < count; i++) outFloats[i] = (double)fft->spectrum[channel][i];
+    return count;
+}
+DEFINE_PRIM(_I32, dsp_fft_get_spectrum_channel, _I32 _I32 _BYTES _I32 _BYTES);
+
+// kind 0 = label, 1 = description, 2 + n = value name n (faxe_dspdata.h).
+// Empty when the descriptor has no such text.
+HL_PRIM vbyte* HL_NAME(dsp_get_parameter_text)(int h, int index, int kind) {
+    FMOD_DSP* dsp = resolve_dsp(h);
+    FMOD_DSP_PARAMETER_DESC* desc = NULL;
+    gStringBuf[0] = '\0';
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (vbyte*)gStringBuf; }
+    gLastResult = FMOD_DSP_GetParameterInfo(dsp, index, &desc);
+    if (gLastResult != FMOD_OK || !desc) return (vbyte*)gStringBuf;
+    faxe_dspdata_desc_text(desc, kind, gStringBuf, sizeof(gStringBuf));
+    return (vbyte*)gStringBuf;
+}
+DEFINE_PRIM(_BYTES, dsp_get_parameter_text, _I32 _I32 _I32);

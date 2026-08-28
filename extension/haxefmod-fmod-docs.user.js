@@ -457,10 +457,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "The loop region in unit (milliseconds by default), or null on failure.",
+     "doc": "",
      "gated": false,
      "name": "getLoopPoints",
-     "signature": "getLoopPoints(unit:FmodTimeUnit = FmodTimeUnit.MS):Null<{startMs:Int, endMs:Int}>",
+     "signature": "getLoopPoints():Null<{startMs:Int, endMs:Int}>",
      "static": false,
      "type": "haxefmod.core.Channel"
     }
@@ -585,10 +585,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Playback position in unit (milliseconds by default, samples with FmodTimeUnit.PCM), or -1 on failure.",
+     "doc": "Playback position in milliseconds, or -1 on failure.",
      "gated": false,
      "name": "getPosition",
-     "signature": "getPosition(unit:FmodTimeUnit = FmodTimeUnit.MS):Int",
+     "signature": "getPosition():Int",
      "static": false,
      "type": "haxefmod.core.Channel"
     }
@@ -1008,10 +1008,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Loop region for this channel (overrides the sound's).",
+     "doc": "Loop region in milliseconds for this channel (overrides the sound's).",
      "gated": false,
      "name": "setLoopPoints",
-     "signature": "setLoopPoints(startMs:Int, endMs:Int, unit:FmodTimeUnit = FmodTimeUnit.MS):FmodResult",
+     "signature": "setLoopPoints(startMs:Int, endMs:Int):FmodResult",
      "static": false,
      "type": "haxefmod.core.Channel"
     }
@@ -1168,10 +1168,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Seeks to a position read in unit, milliseconds unless another FmodTimeUnit is given.",
+     "doc": "",
      "gated": false,
      "name": "setPosition",
-     "signature": "setPosition(positionMs:Int, unit:FmodTimeUnit = FmodTimeUnit.MS):FmodResult",
+     "signature": "setPosition(positionMs:Int):FmodResult",
      "static": false,
      "type": "haxefmod.core.Channel"
     }
@@ -1874,10 +1874,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "The loop region in unit (milliseconds by default), or null on failure.",
+     "doc": "",
      "gated": false,
      "name": "getLoopPoints",
-     "signature": "getLoopPoints(unit:FmodTimeUnit = FmodTimeUnit.MS):Null<{startMs:Int, endMs:Int}>",
+     "signature": "getLoopPoints():Null<{startMs:Int, endMs:Int}>",
      "static": false,
      "type": "haxefmod.core.Channel"
     }
@@ -2120,10 +2120,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Playback position in unit (milliseconds by default, samples with FmodTimeUnit.PCM), or -1 on failure.",
+     "doc": "Playback position in milliseconds, or -1 on failure.",
      "gated": false,
      "name": "getPosition",
-     "signature": "getPosition(unit:FmodTimeUnit = FmodTimeUnit.MS):Int",
+     "signature": "getPosition():Int",
      "static": false,
      "type": "haxefmod.core.Channel"
     }
@@ -2750,10 +2750,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Loop region for this channel (overrides the sound's).",
+     "doc": "Loop region in milliseconds for this channel (overrides the sound's).",
      "gated": false,
      "name": "setLoopPoints",
-     "signature": "setLoopPoints(startMs:Int, endMs:Int, unit:FmodTimeUnit = FmodTimeUnit.MS):FmodResult",
+     "signature": "setLoopPoints(startMs:Int, endMs:Int):FmodResult",
      "static": false,
      "type": "haxefmod.core.Channel"
     }
@@ -2991,10 +2991,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Seeks to a position read in unit, milliseconds unless another FmodTimeUnit is given.",
+     "doc": "",
      "gated": false,
      "name": "setPosition",
-     "signature": "setPosition(positionMs:Int, unit:FmodTimeUnit = FmodTimeUnit.MS):FmodResult",
+     "signature": "setPosition(positionMs:Int):FmodResult",
      "static": false,
      "type": "haxefmod.core.Channel"
     }
@@ -4346,9 +4346,19 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "dsp_getinfo": {
+   "code": "import haxefmod.core.Dsp;\nimport haxefmod.core.DspType;\n\nvar unit = Dsp.create(DspType.COMPRESSOR);\nvar info = unit.getInfo();\nif (info != null) {\n    trace('${info.name} ${info.version} ${info.channels}');\n}",
    "fmod": "FMOD_DSP_GetInfo",
    "gated": false,
    "haxe": [
+    {
+     "direct": true,
+     "doc": "The unit's description: display name, plugin version (BCD, 0x10000 is 1.0), channel count (0 when the unit takes any), and the config dialog size a plugin declares.",
+     "gated": false,
+     "name": "getInfo",
+     "signature": "getInfo():Null<{name:String, version:Int, channels:Int, configWidth:Int, configHeight:Int}>",
+     "static": false,
+     "type": "haxefmod.core.Dsp"
+    },
     {
      "direct": false,
      "doc": "The effect's display name (e.g.",
@@ -4359,7 +4369,11 @@ const HAXEFMOD_BINDINGS = {
      "type": "haxefmod.core.Dsp"
     }
    ],
-   "html5": false
+   "heading": "DSP::getInfo",
+   "html5": false,
+   "notes": [
+    "Dsp.getInfo() returns the name, version, channels, configwidth, and configheight fields together. Dsp.getName() returns the name alone."
+   ]
   },
   "dsp_getinput": {
    "fmod": "FMOD_DSP_GetInput",
@@ -4403,20 +4417,25 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "dsp_getmeteringinfo": {
+   "code": "import haxefmod.core.Dsp;\nimport haxefmod.core.DspType;\n\nvar unit = Dsp.create(DspType.FADER);\nunit.setMeteringEnabled(true, true);\nvar output = unit.getMetering();\nvar input = unit.getInputMetering();",
    "fmod": "FMOD_DSP_GetMeteringInfo",
    "gated": false,
    "haxe": [
     {
      "direct": false,
-     "doc": "Peak and RMS levels per output channel (linear 0..1), or null when unavailable (metering disabled, no signal yet, or a stale handle).",
+     "doc": "Peak and RMS levels per channel (linear 0..1) on the output side, or on the input side with input set, plus the channel count and the number of samples the meter averaged.",
      "gated": false,
      "name": "getMetering",
-     "signature": "getMetering():Null<{peak:Array<Float>, rms:Array<Float>}>",
+     "signature": "getMetering(input:Bool = false):Null<{peak:Array<Float>, rms:Array<Float>, numChannels:Int, numSamples:Int}>",
      "static": false,
      "type": "haxefmod.core.Dsp"
     }
    ],
-   "html5": false
+   "heading": "DSP::getMeteringInfo",
+   "html5": false,
+   "notes": [
+    "One side per call. Dsp.getMetering() reads the output side, getMetering(true) or getInputMetering() the input side. The result carries peak, rms, numChannels, and numSamples."
+   ]
   },
   "dsp_getnuminputs": {
    "fmod": "FMOD_DSP_GetNumInputs",
@@ -4524,9 +4543,19 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "dsp_getparameterdata": {
+   "code": "import haxefmod.core.Dsp;\nimport haxefmod.core.DspType;\nimport haxefmod.studio.Types;\n\nvar fader = Dsp.create(DspType.FADER);\nvar gain = fader.getOverallGain();\nvar index = fader.getDataParameterIndex(FmodDspParameterDataType.OVERALLGAIN);\nvar raw = fader.getParameterData(index);\nif (raw != null) {\n    var linearGain = raw.getFloat(0);\n}",
    "fmod": "FMOD_DSP_GetParameterData",
    "gated": false,
    "haxe": [
+    {
+     "direct": true,
+     "doc": "A copy of the data block behind a data parameter, laid out as the effect's C struct (little endian, read it with haxe.io.Bytes getFloat and getInt32).",
+     "gated": false,
+     "name": "getParameterData",
+     "signature": "getParameterData(index:Int):Null<haxe.io.Bytes>",
+     "static": false,
+     "type": "haxefmod.core.Dsp"
+    },
     {
      "direct": false,
      "doc": "Spectrum magnitudes from an FFT effect (create with DspType.FFT and attach where you want to analyze).",
@@ -4535,9 +4564,22 @@ const HAXEFMOD_BINDINGS = {
      "signature": "getFftSpectrum(maxBins:Int = 512):Null<Array<Float>>",
      "static": false,
      "type": "haxefmod.core.Dsp"
+    },
+    {
+     "direct": false,
+     "doc": "The whole FFT payload: the bin count, the channel count, and one magnitude array per channel, each capped at maxBins (512 at most).",
+     "gated": false,
+     "name": "getFftSpectrumInfo",
+     "signature": "getFftSpectrumInfo(maxBins:Int = 512):Null<FmodDspParameterFft>",
+     "static": false,
+     "type": "haxefmod.core.Dsp"
     }
    ],
-   "html5": false
+   "heading": "DSP::getParameterData",
+   "html5": true,
+   "notes": [
+    "Dsp.getParameterData(index) returns a copy of the block as bytes in the effect's C layout, and the typed readers decode the common formats: getFftSpectrumInfo() for FMOD_DSP_PARAMETER_FFT, getOverallGain() for FMOD_DSP_PARAMETER_OVERALLGAIN, getLoudnessMeterInfo() for FMOD_DSP_LOUDNESS_METER_INFO_TYPE. On HTML5 the web glue types the block instead of exposing its bytes, so only the overall gain, FFT, dynamic response, and attenuation range payloads come back and getLoudnessMeterInfo is a compile error."
+   ]
   },
   "dsp_getparameterfloat": {
    "fmod": "FMOD_DSP_GetParameterFloat",
@@ -4561,10 +4603,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Name, type, and range of the parameter at index (unsupported in HTML5, null there).",
+     "doc": "The descriptor of the parameter at index (unsupported in HTML5, null there).",
      "gated": true,
      "name": "getParameterInfo",
-     "signature": "getParameterInfo(index:Int):Null<{name:String, type:FmodDspParameterType, min:Float, max:Float, defaultValue:Float}>",
+     "signature": "getParameterInfo(index:Int):Null<{name:String, label:String, description:String, type:FmodDspParameterType,\n            min:Float, max:Float, defaultValue:Float, mappingType:FmodDspParameterFloatMappingType,\n            mappingPoints:Null<{values:Array<Float>, positions:Array<Float>}>, goesToInfinity:Bool,\n            dataType:FmodDspParameterDataType, valueNames:Null<Array<String>>}>",
      "static": false,
      "type": "haxefmod.core.Dsp"
     }
@@ -4727,7 +4769,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "DSP::setCallback",
    "html5": false,
    "notes": [
-    "Cannot be bound. FMOD runs the callback on its mixer thread, and no Haxe target can execute code there. Poll the unit from the game loop with Dsp.getMetering() or Dsp.getFftSpectrum() instead."
+    "Cannot be bound. FMOD runs the callback on its mixer thread, and no Haxe target can execute code there. Poll the unit from the game loop with Dsp.getMetering(), Dsp.getFftSpectrumInfo(), or Dsp.getParameterData() instead."
    ]
   },
   "dsp_setchannelformat": {
@@ -4788,6 +4830,24 @@ const HAXEFMOD_BINDINGS = {
      "gated": false,
      "name": "setParameterData",
      "signature": "setParameterData(index:Int, data:haxe.io.Bytes):FmodResult",
+     "static": false,
+     "type": "haxefmod.core.Dsp"
+    },
+    {
+     "direct": false,
+     "doc": "Sets a data parameter of type FmodDspParameterDataType._3DATTRIBUTES (FMOD_DSP_PARAMETER_3DATTRIBUTES).",
+     "gated": false,
+     "name": "setParameter3DAttributes",
+     "signature": "setParameter3DAttributes(index:Int, absolute:Fmod3DAttributes, ?relative:Fmod3DAttributes):FmodResult",
+     "static": false,
+     "type": "haxefmod.core.Dsp"
+    },
+    {
+     "direct": false,
+     "doc": "Sets a data parameter of type FmodDspParameterDataType._3DATTRIBUTES_MULTI (FMOD_DSP_PARAMETER_3DATTRIBUTES_MULTI), the position of an object panner or pan unit for every listener.",
+     "gated": false,
+     "name": "setParameter3DAttributesMulti",
+     "signature": "setParameter3DAttributesMulti(index:Int, absolute:Fmod3DAttributes, relative:Array<Fmod3DAttributes>, ?weights:Array<Float>):FmodResult",
      "static": false,
      "type": "haxefmod.core.Dsp"
     }
@@ -5694,7 +5754,6 @@ const HAXEFMOD_BINDINGS = {
    ]
   },
   "sound_addsyncpoint": {
-   "code": "import haxefmod.core.Sound;\nimport haxefmod.studio.Types;\n\nvar sound = Sound.create(\"assets/music/track.wav\");\nsound.addSyncPoint(500, \"drop\");\nsound.addSyncPoint(48000, \"verse\", FmodTimeUnit.PCM);",
    "fmod": "FMOD_Sound_AddSyncPoint",
    "gated": false,
    "haxe": [
@@ -5703,19 +5762,14 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Marks a timeline position.",
      "gated": false,
      "name": "addSyncPoint",
-     "signature": "addSyncPoint(offsetMs:Int, name:String, unit:FmodTimeUnit = FmodTimeUnit.MS):FmodResult",
+     "signature": "addSyncPoint(offsetMs:Int, name:String):FmodResult",
      "static": false,
      "type": "haxefmod.core.Sound"
     }
    ],
-   "heading": "Sound::addSyncPoint",
-   "html5": false,
-   "notes": [
-    "The offset is read in the unit given as the last parameter, milliseconds when left out. FMOD's FMOD_SYNCPOINT handle is not returned. Points are addressed by their index in offset order in the other sync point calls and in ChannelEvent.SyncPoint."
-   ]
+   "html5": false
   },
   "sound_deletesyncpoint": {
-   "code": "import haxefmod.core.Sound;\n\nvar sound = Sound.create(\"assets/music/track.wav\");\nsound.deleteSyncPoint(0);",
    "fmod": "FMOD_Sound_DeleteSyncPoint",
    "gated": false,
    "haxe": [
@@ -5729,11 +5783,7 @@ const HAXEFMOD_BINDINGS = {
      "type": "haxefmod.core.Sound"
     }
    ],
-   "heading": "Sound::deleteSyncPoint",
-   "html5": false,
-   "notes": [
-    "Takes the point's index in offset order instead of an FMOD_SYNCPOINT handle. The indices of later points shift down by one."
-   ]
+   "html5": false
   },
   "sound_get3dconesettings": {
    "fmod": "FMOD_Sound_Get3DConeSettings",
@@ -5805,10 +5855,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Container type, sample format, channel count, and bits per sample, or null on failure.",
+     "doc": "",
      "gated": false,
      "name": "getFormat",
-     "signature": "getFormat():Null<{type:FmodSoundType, format:FmodSoundFormat, channels:Int, bits:Int}>",
+     "signature": "getFormat():Null<{channels:Int, bits:Int}>",
      "static": false,
      "type": "haxefmod.core.Sound"
     }
@@ -5821,10 +5871,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Length in unit (milliseconds by default, PCM samples with FmodTimeUnit.PCM), or -1 on failure.",
+     "doc": "Length in milliseconds, or -1 on failure.",
      "gated": false,
      "name": "getLength",
-     "signature": "getLength(unit:FmodTimeUnit = FmodTimeUnit.MS):Int",
+     "signature": "getLength():Int",
      "static": false,
      "type": "haxefmod.core.Sound"
     }
@@ -5853,10 +5903,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "The loop region in unit (milliseconds by default), or null on failure.",
+     "doc": "",
      "gated": false,
      "name": "getLoopPoints",
-     "signature": "getLoopPoints(unit:FmodTimeUnit = FmodTimeUnit.MS):Null<{startMs:Int, endMs:Int}>",
+     "signature": "getLoopPoints():Null<{startMs:Int, endMs:Int}>",
      "static": false,
      "type": "haxefmod.core.Sound"
     }
@@ -6012,15 +6062,6 @@ const HAXEFMOD_BINDINGS = {
      "signature": "getOpenState():FmodOpenState",
      "static": false,
      "type": "haxefmod.core.Sound"
-    },
-    {
-     "direct": false,
-     "doc": "The open state with the streaming details FMOD reports next to it.",
-     "gated": false,
-     "name": "getOpenStateInfo",
-     "signature": "getOpenStateInfo():Null<{state:FmodOpenState, percentBuffered:Int, starving:Bool, diskBusy:Bool}>",
-     "static": false,
-     "type": "haxefmod.core.Sound"
     }
    ],
    "html5": false
@@ -6083,7 +6124,6 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "sound_getsyncpoint": {
-   "code": "import haxefmod.core.Sound;\n\nvar sound = Sound.create(\"assets/music/track.wav\");\nfor (i in 0...sound.getSyncPointCount()) {\n    trace(sound.getSyncPointName(i));\n}",
    "fmod": "FMOD_Sound_GetSyncPoint",
    "gated": false,
    "haxe": [
@@ -6107,22 +6147,17 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "The point's offset in unit (milliseconds by default), or -1 on failure.",
+     "doc": "The point's offset in milliseconds, or -1 on failure.",
      "gated": false,
      "name": "getSyncPointOffset",
-     "signature": "getSyncPointOffset(index:Int, unit:FmodTimeUnit = FmodTimeUnit.MS):Int",
+     "signature": "getSyncPointOffset(index:Int):Int",
      "static": false,
      "type": "haxefmod.core.Sound"
     }
    ],
-   "heading": "Sound::getSyncPoint",
-   "html5": false,
-   "notes": [
-    "There is no FMOD_SYNCPOINT handle on the Haxe side. The index in offset order is the address of a point, passed straight to getSyncPointName, getSyncPointOffset, and deleteSyncPoint."
-   ]
+   "html5": false
   },
   "sound_getsyncpointinfo": {
-   "code": "import haxefmod.core.Sound;\nimport haxefmod.studio.Types;\n\nvar sound = Sound.create(\"assets/music/track.wav\");\nvar name = sound.getSyncPointName(0);\nvar ms = sound.getSyncPointOffset(0);\nvar samples = sound.getSyncPointOffset(0, FmodTimeUnit.PCM);",
    "fmod": "FMOD_Sound_GetSyncPointInfo",
    "gated": false,
    "haxe": [
@@ -6137,19 +6172,15 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "The point's offset in unit (milliseconds by default), or -1 on failure.",
+     "doc": "The point's offset in milliseconds, or -1 on failure.",
      "gated": false,
      "name": "getSyncPointOffset",
-     "signature": "getSyncPointOffset(index:Int, unit:FmodTimeUnit = FmodTimeUnit.MS):Int",
+     "signature": "getSyncPointOffset(index:Int):Int",
      "static": false,
      "type": "haxefmod.core.Sound"
     }
    ],
-   "heading": "Sound::getSyncPointInfo",
-   "html5": false,
-   "notes": [
-    "Split into getSyncPointName and getSyncPointOffset, both taking the index in offset order. The offset comes back in the unit given as the last parameter, milliseconds when left out."
-   ]
+   "html5": false
   },
   "sound_getsystemobject": {
    "code": "import haxefmod.core.CoreSystem;\n\nvar format = CoreSystem.getSoftwareFormat();",
@@ -6385,10 +6416,10 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Loop region (needs a looping mode set).",
+     "doc": "Loop region in milliseconds (needs a looping mode set).",
      "gated": false,
      "name": "setLoopPoints",
-     "signature": "setLoopPoints(startMs:Int, endMs:Int, unit:FmodTimeUnit = FmodTimeUnit.MS):FmodResult",
+     "signature": "setLoopPoints(startMs:Int, endMs:Int):FmodResult",
      "static": false,
      "type": "haxefmod.core.Sound"
     }
@@ -11620,12 +11651,12 @@ const HAXEFMOD_BINDINGS = {
 const HAXEFMOD_EXAMPLES = {
  "advanced-core-api-topics": {
   "10.2 Extracting PCM Data from a Sound": {
-   "code": "var sound = Sound.create(\"drumloop.wav\", false, true); // openOnly, like FMOD_OPENONLY\nvar length = sound.getLength(FmodTimeUnit.PCMBYTES);\n\nvar buffer = haxe.io.Bytes.alloc(4096);\nvar total = 0;\nvar read = sound.readData(buffer, buffer.length);\nwhile (read > 0) {\n    // the first read bytes of buffer hold decoded PCM\n    total += read;\n    read = sound.readData(buffer, buffer.length);\n}\n// total == length once the whole sound is read",
+   "code": "var sound = Sound.create(\"drumloop.wav\", false, true); // openOnly, like FMOD_OPENONLY\nvar length = sound.getLength(); // milliseconds\n\nvar buffer = haxe.io.Bytes.alloc(4096);\nvar read = sound.readData(buffer, buffer.length);\nwhile (read > 0) {\n    // the first read bytes of buffer hold decoded PCM\n    read = sound.readData(buffer, buffer.length);\n}",
    "notes": [
     "Native only (unsupported in HTML5).",
-    "Sound.getLength takes the time unit as its parameter, PCMBYTES here for the byte count."
+    "Sound.getLength reports milliseconds only, there is no byte count, so the PCM is read in fixed chunks until readData returns 0."
    ],
-   "type": "haxefmod.core.Sound, haxefmod.studio.Types",
+   "type": "haxefmod.core.Sound",
    "verdict": "bound"
   },
   "10.7.1 3D Reverbs": {
@@ -11986,9 +12017,9 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "FMOD_TIMEUNIT": {
-   "code": "/**\n * FMOD_TIMEUNIT bits. The length, loop point, sync point, and position\n * calls on Sound and Channel take one as an optional trailing parameter\n * and default to MS. Stream buffer sizes are always RAWBYTES.\n */\nenum abstract FmodTimeUnit(Int) from Int to Int {\n    var MS = 0x00000001;\n    var PCM = 0x00000002;\n    var PCMBYTES = 0x00000004;\n    var RAWBYTES = 0x00000008;\n    var PCMFRACTION = 0x00000010;\n    var MODORDER = 0x00000100;\n    var MODROW = 0x00000200;\n    var MODPATTERN = 0x00000400;\n}",
+   "code": "/**\n * FMOD_TIMEUNIT bits. No haxefmod call takes a time unit, positions and\n * lengths are always milliseconds (Channel.getPosition, Sound.getLength)\n * and stream buffer sizes are always RAWBYTES.\n */\nenum abstract FmodTimeUnit(Int) from Int to Int {\n    var MS = 0x00000001;\n    var PCM = 0x00000002;\n    var PCMBYTES = 0x00000004;\n    var RAWBYTES = 0x00000008;\n    var PCMFRACTION = 0x00000010;\n    var MODORDER = 0x00000100;\n    var MODROW = 0x00000200;\n    var MODPATTERN = 0x00000400;\n}",
    "notes": [
-    "An optional trailing parameter on Sound.getLength, Sound.getLoopPoints, Sound.setLoopPoints, Sound.addSyncPoint, Sound.getSyncPointOffset, Channel.getPosition, Channel.setPosition, Channel.getLoopPoints, and Channel.setLoopPoints. It defaults to MS. Loop points share one unit for the start and the end."
+    "No call takes a time unit. Positions and lengths are always milliseconds in Channel.getPosition, Channel.setPosition, Sound.getLength, and Sound.addSyncPoint."
    ],
    "type": "haxefmod.studio.Types.FmodTimeUnit",
    "verdict": "bound"
@@ -12080,7 +12111,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_FFT": {
    "code": "/** FMOD_DSP_FFT, parameter indices of the FFT analyser. */\nenum abstract DspFft(Int) from Int to Int {\n    var WINDOWSIZE = 0;\n    var WINDOW = 1;\n    var BAND_START_FREQ = 2;\n    var BAND_STOP_FREQ = 3;\n    var SPECTRUMDATA = 4;\n    var RMS = 5;\n    var SPECTRAL_CENTROID = 6;\n    var IMMEDIATE_MODE = 7;\n    var DOWNMIX = 8;\n    var CHANNEL = 9;\n}",
    "notes": [
-    "The SPECTRUMDATA parameter is read through getFftSpectrum instead of getParameterData."
+    "The SPECTRUMDATA parameter is read through getFftSpectrum (the first channel) or getFftSpectrumInfo (every channel with the bin and channel counts) instead of getParameterData."
    ],
    "type": "haxefmod.core.DspParameters.DspFft",
    "verdict": "bound"
@@ -12152,18 +12183,18 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_LOUDNESS_METER": {
    "code": "/** FMOD_DSP_LOUDNESS_METER, parameter indices of the loudness meter. */\nenum abstract DspLoudnessMeter(Int) from Int to Int {\n    var STATE = 0;\n    var WEIGHTING = 1;\n    var INFO = 2;\n}",
    "notes": [
-    "STATE is set with setParameterInt and WEIGHTING with setParameterData. The INFO readback has no Haxe getter, Dsp.getMetering gives peak and RMS levels on every target."
+    "STATE is set with setParameterInt and WEIGHTING with setParameterData. INFO is read with Dsp.getLoudnessMeterInfo (unsupported in HTML5, where the web glue hands the block back without its fields)."
    ],
    "type": "haxefmod.core.DspParameters.DspLoudnessMeter",
    "verdict": "bound"
   },
   "FMOD_DSP_LOUDNESS_METER_INFO_TYPE": {
-   "code": null,
+   "code": "/** FMOD_DSP_LOUDNESS_METER_INFO_TYPE, the readback of a loudness meter unit. Loudness values are in LUFS, the histogram has 66 bins. */\ntypedef FmodDspLoudnessMeterInfo = {\n    var momentaryLoudness:Float;\n    var shortTermLoudness:Float;\n    var integratedLoudness:Float;\n    var loudness10thPercentile:Float;\n    var loudness95thPercentile:Float;\n    var loudnessHistogram:Array<Float>;\n    var maxTruePeak:Float;\n    var maxMomentaryLoudness:Float;\n}",
    "notes": [
-    "No Haxe declaration, the library owns this choice. the library has no data parameter getter, so the loudness readback is not exposed and Dsp.getMetering gives peak and RMS levels instead"
+    "Read with Dsp.getLoudnessMeterInfo on a LOUDNESS_METER unit, native only (unsupported in HTML5)."
    ],
-   "type": null,
-   "verdict": "library"
+   "type": "haxefmod.studio.Types.FmodDspLoudnessMeterInfo",
+   "verdict": "bound"
   },
   "FMOD_DSP_LOUDNESS_METER_STATE_TYPE": {
    "code": "/** FMOD_DSP_LOUDNESS_METER_STATE_TYPE, the LOUDNESS_METER unit's STATE parameter. Negative values reset the meter. */\nenum abstract DspLoudnessMeterState(Int) from Int to Int {\n    var RESET_INTEGRATED = -3;\n    var RESET_MAXPEAK = -2;\n    var RESET_ALL = -1;\n    var PAUSED = 0;\n    var ANALYZING = 1;\n}",
@@ -12246,7 +12277,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_OBJECTPAN": {
    "code": "/** FMOD_DSP_OBJECTPAN, parameter indices of the object pan effect. Names that start with a digit keep a leading underscore, since a Haxe identifier cannot start with one. */\nenum abstract DspObjectPan(Int) from Int to Int {\n    var _3D_POSITION = 0;\n    var _3D_ROLLOFF = 1;\n    var _3D_MIN_DISTANCE = 2;\n    var _3D_MAX_DISTANCE = 3;\n    var _3D_EXTENT_MODE = 4;\n    var _3D_SOUND_SIZE = 5;\n    var _3D_MIN_EXTENT = 6;\n    var OVERALL_GAIN = 7;\n    var OUTPUTGAIN = 8;\n    var ATTENUATION_RANGE = 9;\n    var OVERRIDE_RANGE = 10;\n}",
    "notes": [
-    "The 3D position parameter takes the FMOD_DSP_PARAMETER_3DATTRIBUTES_MULTI struct, which is not exposed, so position an object panner by playing its source through a 3D channel and driving that channel's set3DAttributes instead."
+    "The 3D position parameter takes the FMOD_DSP_PARAMETER_3DATTRIBUTES_MULTI struct, set with Dsp.setParameter3DAttributesMulti on DspObjectPan._3D_POSITION. A source played through a 3D channel gets the same from Channel.set3DAttributes."
    ],
    "type": "haxefmod.core.DspParameters.DspObjectPan",
    "verdict": "bound"
@@ -12484,17 +12515,17 @@ const HAXEFMOD_EXAMPLES = {
  },
  "core-api-sound": {
   "FMOD_OPENSTATE": {
-   "code": "/** FMOD_OPENSTATE, what Sound.getOpenState and getOpenStateInfo report while a sound loads or streams. */\nenum abstract FmodOpenState(Int) from Int to Int {\n    var READY = 0;\n    var LOADING = 1;\n    var ERROR = 2;\n    var CONNECTING = 3;\n    var BUFFERING = 4;\n    var SEEKING = 5;\n    var PLAYING = 6;\n    var SETPOSITION = 7;\n    var MAX = 8;\n}",
+   "code": "/** FMOD_OPENSTATE, what Sound.getOpenState reports while a sound loads or streams. */\nenum abstract FmodOpenState(Int) from Int to Int {\n    var READY = 0;\n    var LOADING = 1;\n    var ERROR = 2;\n    var CONNECTING = 3;\n    var BUFFERING = 4;\n    var SEEKING = 5;\n    var PLAYING = 6;\n    var SETPOSITION = 7;\n    var MAX = 8;\n}",
    "notes": [
-    "Sound.getOpenState reports the state alone, and a failed query comes back as ERROR with the reason in StudioSystem.lastResult(). Sound.getOpenStateInfo returns the state with percentBuffered, starving, and diskBusy, or null on failure."
+    "Sound.getOpenState reports only the state. A failed query also comes back as ERROR, with the reason in StudioSystem.lastResult()."
    ],
    "type": "haxefmod.studio.Types.FmodOpenState",
    "verdict": "bound"
   },
   "FMOD_SOUND_FORMAT": {
-   "code": "/** FMOD_SOUND_FORMAT, the sample formats. Sound.fromPcm always builds PCM16, and Sound.getFormat reports the format of a loaded sound. */\nenum abstract FmodSoundFormat(Int) from Int to Int {\n    var NONE = 0;\n    var PCM8 = 1;\n    var PCM16 = 2;\n    var PCM24 = 3;\n    var PCM32 = 4;\n    var PCMFLOAT = 5;\n    var BITSTREAM = 6;\n    var MAX = 7;\n}",
+   "code": "/** FMOD_SOUND_FORMAT, the sample formats. Sound.fromPcm always builds PCM16, and Sound.getFormat reports the bit depth as a number. */\nenum abstract FmodSoundFormat(Int) from Int to Int {\n    var NONE = 0;\n    var PCM8 = 1;\n    var PCM16 = 2;\n    var PCM24 = 3;\n    var PCM32 = 4;\n    var PCMFLOAT = 5;\n    var BITSTREAM = 6;\n    var MAX = 7;\n}",
    "notes": [
-    "Sound.getFormat reports it in the format field next to the bit depth. Sound.fromPcm always builds PCM16."
+    "Sound.getFormat reports the bit depth as a number instead of this enum. Sound.fromPcm always builds PCM16."
    ],
    "type": "haxefmod.studio.Types.FmodSoundFormat",
    "verdict": "bound"
@@ -12524,9 +12555,9 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "cannot"
   },
   "FMOD_SOUND_TYPE": {
-   "code": "/** FMOD_SOUND_TYPE, the container formats FMOD decodes. Sound.create takes any of them the target supports, and Sound.getFormat reports which one a loaded sound has. */\nenum abstract FmodSoundType(Int) from Int to Int {\n    var UNKNOWN = 0;\n    var AIFF = 1;\n    var ASF = 2;\n    var DLS = 3;\n    var FLAC = 4;\n    var FSB = 5;\n    var IT = 6;\n    var MIDI = 7;\n    var MOD = 8;\n    var MPEG = 9;\n    var OGGVORBIS = 10;\n    var PLAYLIST = 11;\n    var RAW = 12;\n    var S3M = 13;\n    var USER = 14;\n    var WAV = 15;\n    var XM = 16;\n    var XMA = 17;\n    var AUDIOQUEUE = 18;\n    var AT9 = 19;\n    var VORBIS = 20;\n    var MEDIA_FOUNDATION = 21;\n    var MEDIACODEC = 22;\n    var FADPCM = 23;\n    var OPUS = 24;\n    var MAX = 25;\n}",
+   "code": "/** FMOD_SOUND_TYPE, the container formats FMOD decodes. Sound.create takes any of them the target supports, the type of a loaded sound is not queried. */\nenum abstract FmodSoundType(Int) from Int to Int {\n    var UNKNOWN = 0;\n    var AIFF = 1;\n    var ASF = 2;\n    var DLS = 3;\n    var FLAC = 4;\n    var FSB = 5;\n    var IT = 6;\n    var MIDI = 7;\n    var MOD = 8;\n    var MPEG = 9;\n    var OGGVORBIS = 10;\n    var PLAYLIST = 11;\n    var RAW = 12;\n    var S3M = 13;\n    var USER = 14;\n    var WAV = 15;\n    var XM = 16;\n    var XMA = 17;\n    var AUDIOQUEUE = 18;\n    var AT9 = 19;\n    var VORBIS = 20;\n    var MEDIA_FOUNDATION = 21;\n    var MEDIACODEC = 22;\n    var FADPCM = 23;\n    var OPUS = 24;\n    var MAX = 25;\n}",
    "notes": [
-    "Sound.create accepts any format FMOD decodes on the target. Sound.getFormat reports the type of a loaded sound in its type field."
+    "Sound.create accepts any format FMOD decodes on the target. The type of a loaded sound is not queried, Sound.getFormat reports only channels and bits."
    ],
    "type": "haxefmod.studio.Types.FmodSoundType",
    "verdict": "bound"
@@ -13056,12 +13087,12 @@ const HAXEFMOD_EXAMPLES = {
  },
  "glossary": {
   "22.33 Reading Sound Data": {
-   "code": "var sound:Sound;\nvar length:Int;\nvar buffer:haxe.io.Bytes;\n\nsound = Sound.create(\"drumloop.wav\", false, true); // openOnly is FMOD_OPENONLY\nlength = sound.getLength(FmodTimeUnit.PCMBYTES);\n\nbuffer = haxe.io.Bytes.alloc(4096);\nvar read = sound.readData(buffer, buffer.length);\nwhile (read > 0) {\n    read = sound.readData(buffer, buffer.length);\n}\n\nsound.release();",
+   "code": "var sound:Sound;\nvar length:Int;\nvar buffer:haxe.io.Bytes;\n\nsound = Sound.create(\"drumloop.wav\", false, true); // openOnly is FMOD_OPENONLY\nlength = sound.getLength();\n\nbuffer = haxe.io.Bytes.alloc(4096);\nvar read = sound.readData(buffer, buffer.length);\nwhile (read > 0) {\n    read = sound.readData(buffer, buffer.length);\n}\n\nsound.release();",
    "notes": [
     "Native only (unsupported in HTML5).",
-    "getLength takes the time unit as its parameter, PCMBYTES for the byte count the page reads."
+    "getLength reports milliseconds, not a byte count, so the PCM is read in fixed chunks until readData returns 0."
    ],
-   "type": "haxefmod.core.Sound, haxefmod.studio.Types",
+   "type": "haxefmod.core.Sound",
    "verdict": "bound"
   },
   "22.49 User Data": {
@@ -13886,9 +13917,9 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "cannot"
   },
   "FMOD_DSP_METERING_INFO": {
-   "code": "var fader = Dsp.create(DspType.FADER);\nChannelGroup.master().addDsp(ChannelGroup.DSP_TAIL, fader);\nfader.setMeteringEnabled(false, true);\n\n// each frame\nvar meter = fader.getMetering();\nif (meter != null) {\n    var numchannels = meter.peak.length;\n    var peaklevel = meter.peak;\n    var rmslevel = meter.rms;\n}",
+   "code": "var fader = Dsp.create(DspType.FADER);\nChannelGroup.master().addDsp(ChannelGroup.DSP_TAIL, fader);\nfader.setMeteringEnabled(true, true);\n\n// each frame\nvar meter = fader.getMetering();\nif (meter != null) {\n    var numsamples = meter.numSamples;\n    var numchannels = meter.numChannels;\n    var peaklevel = meter.peak;\n    var rmslevel = meter.rms;\n}\nvar inputMeter = fader.getInputMetering();",
    "notes": [
-    "numsamples is not reported, numchannels is the length of the peak and rms arrays."
+    "getMetering reads the output side, getMetering(true) or getInputMetering the input side. numchannels and numsamples are fields of the result."
    ],
    "type": "haxefmod.core.ChannelGroup, haxefmod.core.Dsp, haxefmod.core.DspType",
    "verdict": "bound"
@@ -13948,25 +13979,25 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_3DATTRIBUTES": {
-   "code": null,
+   "code": "/** FMOD_DSP_PARAMETER_3DATTRIBUTES, the payload of a 3D data parameter: the emitter in the listener's space and in world space. */\ntypedef FmodDspParameter3DAttributes = {\n    var relative:Fmod3DAttributes;\n    var absolute:Fmod3DAttributes;\n}",
    "notes": [
-    "No Haxe declaration, the library owns this choice. the 3D position of a pan unit is not set by parameter, play the source through a 3D channel and call Channel.set3DAttributes"
+    "Set with Dsp.setParameter3DAttributes(index, absolute, ?relative), the shim packs the struct."
    ],
-   "type": null,
-   "verdict": "library"
+   "type": "haxefmod.studio.Types.FmodDspParameter3DAttributes",
+   "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_3DATTRIBUTES_MULTI": {
-   "code": null,
+   "code": "/** FMOD_DSP_PARAMETER_3DATTRIBUTES_MULTI, the same payload for several listeners, one relative entry and one weight per listener. */\ntypedef FmodDspParameter3DAttributesMulti = {\n    var numListeners:Int;\n    var relative:Array<Fmod3DAttributes>;\n    var weight:Array<Float>;\n    var absolute:Fmod3DAttributes;\n}",
    "notes": [
-    "No Haxe declaration, the library owns this choice. the 3D position of a pan unit is not set by parameter, play the source through a 3D channel and call Channel.set3DAttributes"
+    "Set with Dsp.setParameter3DAttributesMulti(index, absolute, relative, ?weights), one relative entry per listener, the shim packs the struct."
    ],
-   "type": null,
-   "verdict": "library"
+   "type": "haxefmod.studio.Types.FmodDspParameter3DAttributesMulti",
+   "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_ATTENUATION_RANGE": {
    "code": null,
    "notes": [
-    "No Haxe declaration, another call plays this role. a data parameter format the unit reads, Dsp.setParameterData hands it over as raw bytes and Dsp.getDataParameterIndex finds its index"
+    "No Haxe declaration, another call plays this role. a data parameter format the unit reads, Dsp.setParameterData hands it over as raw bytes, Dsp.getParameterData reads it back, and Dsp.getDataParameterIndex finds its index"
    ],
    "type": null,
    "verdict": "covered"
@@ -13978,9 +14009,9 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_DESC": {
-   "code": "var eq = Dsp.create(DspType.THREE_EQ);\nfor (index in 0...eq.getParameterCount()) {\n    var desc = eq.getParameterInfo(index);\n    if (desc == null) continue;\n    var name = desc.name;\n    var type = desc.type;\n    var min = desc.min;\n    var max = desc.max;\n    var defaultval = desc.defaultValue;\n}",
+   "code": "var eq = Dsp.create(DspType.THREE_EQ);\nfor (index in 0...eq.getParameterCount()) {\n    var desc = eq.getParameterInfo(index);\n    if (desc == null) continue;\n    var type = desc.type;\n    var name = desc.name;\n    var label = desc.label;\n    var description = desc.description;\n    var min = desc.min;\n    var max = desc.max;\n    var defaultval = desc.defaultValue;\n    var mapping = desc.mappingType;\n    var valuenames = desc.valueNames;\n    var datatype = desc.dataType;\n}",
    "notes": [
-    "Native only (unsupported in HTML5)."
+    "Native only (unsupported in HTML5). The union members are fields of the result: min, max, defaultValue, mappingType and mappingPoints for a float, goesToInfinity and valueNames for an int, valueNames for a bool, dataType for data."
    ],
    "type": "haxefmod.core.Dsp, haxefmod.core.DspType",
    "verdict": "bound"
@@ -13988,7 +14019,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_PARAMETER_DESC_BOOL": {
    "code": null,
    "notes": [
-    "Cannot be bound. a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, type, and range"
+    "Cannot be bound. a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, label, description, type, range, float mapping, int and bool value names, and data type"
    ],
    "type": null,
    "verdict": "cannot"
@@ -13996,7 +14027,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_PARAMETER_DESC_DATA": {
    "code": null,
    "notes": [
-    "Cannot be bound. a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, type, and range"
+    "Cannot be bound. a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, label, description, type, range, float mapping, int and bool value names, and data type"
    ],
    "type": null,
    "verdict": "cannot"
@@ -14004,7 +14035,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_PARAMETER_DESC_FLOAT": {
    "code": null,
    "notes": [
-    "Cannot be bound. a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, type, and range"
+    "Cannot be bound. a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, label, description, type, range, float mapping, int and bool value names, and data type"
    ],
    "type": null,
    "verdict": "cannot"
@@ -14012,7 +14043,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_PARAMETER_DESC_INT": {
    "code": null,
    "notes": [
-    "Cannot be bound. a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, type, and range"
+    "Cannot be bound. a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, label, description, type, range, float mapping, int and bool value names, and data type"
    ],
    "type": null,
    "verdict": "cannot"
@@ -14020,23 +14051,23 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_PARAMETER_DYNAMIC_RESPONSE": {
    "code": null,
    "notes": [
-    "No Haxe declaration, another call plays this role. a data parameter format the unit reads, Dsp.setParameterData hands it over as raw bytes and Dsp.getDataParameterIndex finds its index"
+    "No Haxe declaration, another call plays this role. a data parameter format the unit reads, Dsp.setParameterData hands it over as raw bytes, Dsp.getParameterData reads it back, and Dsp.getDataParameterIndex finds its index"
    ],
    "type": null,
    "verdict": "covered"
   },
   "FMOD_DSP_PARAMETER_FFT": {
-   "code": "var fft = Dsp.create(DspType.FFT);\nChannelGroup.master().addDsp(ChannelGroup.DSP_TAIL, fft);\n\n// each frame\nvar spectrum = fft.getFftSpectrum(512);\nif (spectrum != null) {\n    var length = spectrum.length;\n}",
+   "code": "/** FMOD_DSP_PARAMETER_FFT, the spectrum of an FFT unit with one magnitude array per channel. */\ntypedef FmodDspParameterFft = {\n    var length:Int;\n    var numChannels:Int;\n    var spectrum:Array<Array<Float>>;\n}",
    "notes": [
-    "getFftSpectrum returns the first channel's bins, length is the array length."
+    "Read with Dsp.getFftSpectrumInfo(maxBins) on an FFT unit, or getFftSpectrum(maxBins) for the first channel alone."
    ],
-   "type": "haxefmod.core.ChannelGroup, haxefmod.core.Dsp, haxefmod.core.DspType",
+   "type": "haxefmod.studio.Types.FmodDspParameterFft",
    "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_FINITE_LENGTH": {
    "code": null,
    "notes": [
-    "No Haxe declaration, another call plays this role. a data parameter format the unit reads, Dsp.setParameterData hands it over as raw bytes and Dsp.getDataParameterIndex finds its index"
+    "No Haxe declaration, another call plays this role. a data parameter format the unit reads, Dsp.setParameterData hands it over as raw bytes, Dsp.getParameterData reads it back, and Dsp.getDataParameterIndex finds its index"
    ],
    "type": null,
    "verdict": "covered"
@@ -14044,7 +14075,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_PARAMETER_FLOAT_MAPPING": {
    "code": null,
    "notes": [
-    "Cannot be bound. a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, type, and range"
+    "Cannot be bound. a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, label, description, type, range, float mapping, int and bool value names, and data type"
    ],
    "type": null,
    "verdict": "cannot"
@@ -14052,7 +14083,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_PARAMETER_FLOAT_MAPPING_PIECEWISE_LINEAR": {
    "code": null,
    "notes": [
-    "Cannot be bound. a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, type, and range"
+    "Cannot be bound. a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, label, description, type, range, float mapping, int and bool value names, and data type"
    ],
    "type": null,
    "verdict": "cannot"
@@ -14064,17 +14095,17 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_OVERALLGAIN": {
-   "code": null,
+   "code": "/** FMOD_DSP_PARAMETER_OVERALLGAIN, the gain a unit reports for FMOD's virtual voice ranking. */\ntypedef FmodDspParameterOverallGain = {\n    var linearGain:Float;\n    var linearGainAdditive:Float;\n}",
    "notes": [
-    "No Haxe declaration, another call plays this role. a data parameter format the unit reads, Dsp.setParameterData hands it over as raw bytes and Dsp.getDataParameterIndex finds its index"
+    "Read with Dsp.getOverallGain(), which finds the unit's overall gain parameter, or getOverallGain(index)."
    ],
-   "type": null,
-   "verdict": "covered"
+   "type": "haxefmod.studio.Types.FmodDspParameterOverallGain",
+   "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_SIDECHAIN": {
    "code": null,
    "notes": [
-    "No Haxe declaration, another call plays this role. a data parameter format the unit reads, Dsp.setParameterData hands it over as raw bytes and Dsp.getDataParameterIndex finds its index"
+    "No Haxe declaration, another call plays this role. a data parameter format the unit reads, Dsp.setParameterData hands it over as raw bytes, Dsp.getParameterData reads it back, and Dsp.getDataParameterIndex finds its index"
    ],
    "type": null,
    "verdict": "covered"
@@ -14566,12 +14597,12 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "5.1 Controlling a Spatializer DSP": {
-   "code": null,
+   "code": "function dot(a:FmodVector, b:FmodVector):Float {\n    return a.x * b.x + a.y * b.y + a.z * b.z;\n}\n\nfunction cross(a:FmodVector, b:FmodVector):FmodVector {\n    return {x: a.y * b.z - a.z * b.y, y: a.z * b.x - a.x * b.z, z: a.x * b.y - a.y * b.x};\n}\n\nfunction toListenerSpace(v:FmodVector, listener:Fmod3DAttributes):FmodVector {\n    var right = cross(listener.up, listener.forward);\n    return {x: dot(v, right), y: dot(v, listener.up), z: dot(v, listener.forward)};\n}\n\nfunction calculatePannerAttributes(listener:Fmod3DAttributes, emitter:Fmod3DAttributes):FmodDspParameter3DAttributes {\n    var offset = {x: emitter.position.x - listener.position.x, y: emitter.position.y - listener.position.y, z: emitter.position.z - listener.position.z};\n    var motion = {x: emitter.velocity.x - listener.velocity.x, y: emitter.velocity.y - listener.velocity.y, z: emitter.velocity.z - listener.velocity.z};\n    return {\n        relative: {\n            position: toListenerSpace(offset, listener),\n            velocity: toListenerSpace(motion, listener),\n            forward: toListenerSpace(emitter.forward, listener),\n            up: toListenerSpace(emitter.up, listener)\n        },\n        absolute: emitter\n    };\n}\n\nfunction updatePanner(panner:Dsp, listener:Fmod3DAttributes, emitter:Fmod3DAttributes):Void {\n    var attributes = calculatePannerAttributes(listener, emitter);\n    panner.setParameter3DAttributesMulti(DspPan._3D_POSITION, attributes.absolute, [attributes.relative]);\n}",
    "notes": [
-    "No Haxe declaration, another call plays this role. The relative and absolute 3D attributes of a spatializer are not computed in Haxe. A source played through a 3D channel is positioned in world space with Channel.set3DAttributes and FMOD derives the listener-relative attributes from the listener set with StudioSystem.setListenerAttributes. A pan DSP created by hand can only take its 3D attributes as a raw byte payload through Dsp.setParameterData."
+    "The relative attributes are the emitter transformed into the listener's space, the absolute attributes are the emitter itself. Dsp.setParameter3DAttributesMulti packs both into the pan unit's 3D position parameter."
    ],
-   "type": null,
-   "verdict": "covered"
+   "type": "haxefmod.core.Dsp, haxefmod.core.DspParameters.DspPan, haxefmod.studio.Types",
+   "verdict": "bound"
   },
   "5.1 Controlling a Spatializer DSP#2": {
    "code": "var listenerPos:FmodVector = {x: cameraX, y: cameraY, z: 0};\nvar listenerVel:FmodVector = {x: 0, y: 0, z: 0};\nvar listenerForward:FmodVector = {x: 0, y: 0, z: 1};\nvar listenerUp:FmodVector = {x: 0, y: 1, z: 0};\nvar gameRunning = true;\nfunction updateGame():Void {\n    channel.set3DAttributes(carX, carY, 0);\n}\n\ndo\n{\n    updateGame();       // here the game is updated and the sources would be moved with channel.set3DAttributes.\n\n    StudioSystem.setListenerAttributes(0, {\n        position: listenerPos,\n        velocity: listenerVel,\n        forward: listenerForward,\n        up: listenerUp\n    });     // update 'ears'\n\n} while (gameRunning);",

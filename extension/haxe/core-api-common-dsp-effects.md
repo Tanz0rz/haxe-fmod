@@ -47,7 +47,7 @@ Type: haxefmod.core.DspParameters.DspFader
 ## FMOD_DSP_FFT
 verdict: bound
 Type: haxefmod.core.DspParameters.DspFft
-The SPECTRUMDATA parameter is read through getFftSpectrum instead of getParameterData.
+The SPECTRUMDATA parameter is read through getFftSpectrum (the first channel) or getFftSpectrumInfo (every channel with the bin and channel counts) instead of getParameterData.
 
 ## FMOD_DSP_FFT_DOWNMIX_TYPE
 verdict: bound
@@ -122,10 +122,12 @@ Type: haxefmod.core.DspParameters.DspLimiter
 ## FMOD_DSP_LOUDNESS_METER
 verdict: bound
 Type: haxefmod.core.DspParameters.DspLoudnessMeter
-STATE is set with setParameterInt and WEIGHTING with setParameterData. The INFO readback has no Haxe getter, Dsp.getMetering gives peak and RMS levels on every target.
+STATE is set with setParameterInt and WEIGHTING with setParameterData. INFO is read with Dsp.getLoudnessMeterInfo (unsupported in HTML5, where the web glue hands the block back without its fields).
 
 ## FMOD_DSP_LOUDNESS_METER_INFO_TYPE
-verdict: library the library has no data parameter getter, so the loudness readback is not exposed and Dsp.getMetering gives peak and RMS levels instead
+verdict: bound
+Type: haxefmod.studio.Types.FmodDspLoudnessMeterInfo
+Read with Dsp.getLoudnessMeterInfo on a LOUDNESS_METER unit, native only (unsupported in HTML5).
 
 ## FMOD_DSP_LOUDNESS_METER_STATE_TYPE
 verdict: bound
@@ -219,7 +221,7 @@ Type: haxefmod.core.DspParameters.DspNormalize
 ## FMOD_DSP_OBJECTPAN
 verdict: bound
 Type: haxefmod.core.DspParameters.DspObjectPan
-The 3D position parameter takes the FMOD_DSP_PARAMETER_3DATTRIBUTES_MULTI struct, which is not exposed, so position an object panner by playing its source through a 3D channel and driving that channel's set3DAttributes instead.
+The 3D position parameter takes the FMOD_DSP_PARAMETER_3DATTRIBUTES_MULTI struct, set with Dsp.setParameter3DAttributesMulti on DspObjectPan._3D_POSITION. A source played through a 3D channel gets the same from Channel.set3DAttributes.
 
 ## FMOD_DSP_OSCILLATOR
 verdict: bound

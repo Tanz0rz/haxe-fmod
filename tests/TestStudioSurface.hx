@@ -675,6 +675,24 @@ class TestStudioSurface {
 
 		// DSP descriptors and channel formats
 		assert(dsp.getParameterInfo(0) == null, "dsp parameterInfo default");
+		assert(dsp.getInfo() == null, "dsp info default");
+		assert(dsp.getParameterData(0) == null, "dsp parameterData default");
+		assert(dsp.getOverallGain() == null, "dsp overallGain default");
+		assert(dsp.getOverallGain(3) == null, "dsp overallGain by index default");
+		assert(dsp.getLoudnessMeterInfo() == null, "dsp loudnessMeterInfo default");
+		assert(dsp.getFftSpectrumInfo() == null, "dsp fftSpectrumInfo default");
+		assert(dsp.getInputMetering() == null, "dsp inputMetering default");
+		assert(dsp.getMetering(true) == null, "dsp metering input default");
+		var origin:Fmod3DAttributes = {position: {x: 0, y: 0, z: 0}, velocity: {x: 0, y: 0, z: 0}, forward: {x: 0, y: 0, z: 1}, up: {x: 0, y: 1, z: 0}};
+		assert(!dsp.setParameter3DAttributes(0, origin).isOk(), "dsp setParameter3DAttributes result");
+		assert(!dsp.setParameter3DAttributes(0, origin, origin).isOk(), "dsp setParameter3DAttributes relative result");
+		assert(dsp.setParameter3DAttributes(0, null) == FmodResult.FMOD_ERR_INVALID_PARAM, "dsp setParameter3DAttributes null absolute");
+		assert(!dsp.setParameter3DAttributesMulti(0, origin, [origin]).isOk(), "dsp setParameter3DAttributesMulti result");
+		assert(dsp.setParameter3DAttributesMulti(0, origin, []) == FmodResult.FMOD_ERR_INVALID_PARAM, "dsp setParameter3DAttributesMulti empty");
+		assert(dsp.setParameter3DAttributesMulti(0, origin, [for (_ in 0...9) origin]) == FmodResult.FMOD_ERR_INVALID_PARAM, "dsp setParameter3DAttributesMulti oversized");
+		assert(dsp.setParameter3DAttributesMulti(0, origin, null) == FmodResult.FMOD_ERR_INVALID_PARAM, "dsp setParameter3DAttributesMulti null list");
+		assert(Dsp.LOUDNESS_INFO_BYTES == 292, "loudness payload size matches FMOD_DSP_LOUDNESS_METER_INFO_TYPE");
+		assert(Dsp.MAX_LISTENERS == 8, "MAX_LISTENERS matches FMOD_MAX_LISTENERS");
 		assert(dsp.getDataParameterIndex(-4) == -1, "dsp dataParameterIndex default");
 		assert(!dsp.setChannelFormat(0, 2, 3).isOk(), "dsp setChannelFormat result");
 		assert(dsp.getChannelFormat() == null, "dsp channelFormat default");

@@ -609,6 +609,13 @@ class NativeStudioStub {
     public static function sys_get_speaker_mode_channels(mode:Int):Int return 0;
     public static function sys_get_default_mix_matrix(sourceMode:Int, targetMode:Int, hop:Int):Int return 0;
     public static function dsp_get_parameter_info(handle:Int, index:Int):String return "";
+    public static function dsp_get_info(handle:Int):String return "";
+    public static function dsp_get_param_data(handle:Int, index:Int, out:haxe.io.Bytes, cap:Int):Int return -1;
+    public static function dsp_set_param_3d_attributes(handle:Int, index:Int):Int return ERR_UNSUPPORTED;
+    public static function dsp_set_param_3d_attributes_multi(handle:Int, index:Int, numListeners:Int):Int return ERR_UNSUPPORTED;
+    public static function dsp_get_metering_info(handle:Int, input:Bool):Int return 0;
+    public static function dsp_fft_get_spectrum_channel(handle:Int, channel:Int, maxBins:Int):Int return 0;
+    public static function dsp_get_parameter_text(handle:Int, index:Int, kind:Int):String return "";
     public static function dsp_get_data_parameter_index(handle:Int, dataType:Int):Int return -1;
     public static function dsp_set_channel_format(handle:Int, mask:Int, channels:Int, speakerMode:Int):Int return ERR_UNSUPPORTED;
     public static function dsp_get_channel_format(handle:Int):Int return ERR_UNSUPPORTED;

@@ -4888,10 +4888,8 @@ class jaxe {
     // inside embind), so the descriptor never comes back. Unsupported here.
     static fmod_dsp_get_parameter_info(handle, index, fbuf, ibuf) {
         var dsp = jaxe.resolveDsp(handle);
-        fbuf[0] = 0;
-        fbuf[1] = 0;
-        fbuf[2] = 0;
-        ibuf[0] = 0;
+        for (var i = 0; i < 3; i++) fbuf[i] = 0;
+        for (var j = 0; j < 5; j++) ibuf[j] = 0;
         if (!dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return ""; }
         jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
         return "";
@@ -5463,6 +5461,157 @@ class jaxe {
     }
 
     //// Channel group DSP chain walk
+
+    //// DSP data parameters and unit info
+
+    // ibuf[0] version, [1] channels, [2] config width, [3] config height. Returns the name.
+    static fmod_dsp_get_info(handle, ibuf) {
+        var dsp = jaxe.resolveDsp(handle);
+        ibuf[0] = 0; ibuf[1] = 0; ibuf[2] = 0; ibuf[3] = 0;
+        if (!dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return ""; }
+        var name = {};
+        var version = {};
+        var channels = {};
+        var configWidth = {};
+        var configHeight = {};
+        jaxe.lastResult = dsp.getInfo(name, version, channels, configWidth, configHeight);
+        if (jaxe.lastResult != jaxe.FMOD.OK) return "";
+        ibuf[0] = version.val | 0;
+        ibuf[1] = channels.val | 0;
+        ibuf[2] = configWidth.val | 0;
+        ibuf[3] = configHeight.val | 0;
+        return name.val || "";
+    }
+
+    // The glue hands a data parameter back as a typed object rather than
+    // bytes, so this writes the byte image of the C struct for the shapes
+    // it knows (overall gain, FFT, dynamic response, attenuation range)
+    // and reports UNSUPPORTED for the rest. The FFT image carries the
+    // wasm32 layout, 136 bytes with zeroed spectrum pointers. Returns the
+    // length, copying up to cap bytes into out (out may be null).
+    static fmod_dsp_get_param_data(handle, index, out, cap) {
+        var dsp = jaxe.resolveDsp(handle);
+        if (!dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return -1; }
+        var value = {};
+        jaxe.lastResult = dsp.getParameterData(index, value, null, null);
+        if (jaxe.lastResult != jaxe.FMOD.OK) return -1;
+        var image = null;
+        var view;
+        if (typeof value.linear_gain === "number") {
+            image = new ArrayBuffer(8);
+            view = new DataView(image);
+            view.setFloat32(0, value.linear_gain, true);
+            view.setFloat32(4, value.linear_gain_additive || 0, true);
+        } else if (typeof value.length === "number" && value.spectrum) {
+            image = new ArrayBuffer(136);
+            view = new DataView(image);
+            view.setInt32(0, value.length | 0, true);
+            view.setInt32(4, value.numchannels | 0, true);
+        } else if (typeof value.numchannels === "number" && value.rms) {
+            image = new ArrayBuffer(4 + 32 * 4);
+            view = new DataView(image);
+            view.setInt32(0, value.numchannels | 0, true);
+            for (var i = 0; i < 32; i++) view.setFloat32(4 + i * 4, value.rms[i] || 0, true);
+        } else if (typeof value.min === "number" && typeof value.max === "number") {
+            image = new ArrayBuffer(8);
+            view = new DataView(image);
+            view.setFloat32(0, value.min, true);
+            view.setFloat32(4, value.max, true);
+        }
+        if (!image) { jaxe.lastResult = jaxe.ERR_UNSUPPORTED; return -1; }
+        if (out && cap > 0) {
+            var n = Math.min(cap, image.byteLength, out.byteLength);
+            new Uint8Array(out, 0, n).set(new Uint8Array(image, 0, n));
+        }
+        return image.byteLength;
+    }
+
+    // Writes one FMOD_3D_ATTRIBUTES (12 floats) from 12 doubles at f[at].
+    static writeAttributes3D(view, offset, f, at) {
+        for (var i = 0; i < 12; i++) view.setFloat32(offset + i * 4, f[at + i], true);
+    }
+
+    // fbuf = 24 doubles, relative then absolute attributes, written as
+    // the 96 byte FMOD_DSP_PARAMETER_3DATTRIBUTES image.
+    static fmod_dsp_set_param_3d_attributes(handle, index, f) {
+        var dsp = jaxe.resolveDsp(handle);
+        if (!dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        var image = new ArrayBuffer(96);
+        var view = new DataView(image);
+        jaxe.writeAttributes3D(view, 0, f, 0);
+        jaxe.writeAttributes3D(view, 48, f, 12);
+        jaxe.lastResult = dsp.setParameterData(index, new Uint8Array(image), image.byteLength);
+        return jaxe.lastResult;
+    }
+
+    // fbuf = 116 doubles: relative[8], weight[8], absolute, written as the
+    // 468 byte FMOD_DSP_PARAMETER_3DATTRIBUTES_MULTI image.
+    static fmod_dsp_set_param_3d_attributes_multi(handle, index, numListeners, f) {
+        var dsp = jaxe.resolveDsp(handle);
+        if (!dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        if (numListeners < 1 || numListeners > 8) { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
+        var image = new ArrayBuffer(4 + 8 * 48 + 8 * 4 + 48);
+        var view = new DataView(image);
+        view.setInt32(0, numListeners | 0, true);
+        for (var i = 0; i < numListeners; i++) {
+            jaxe.writeAttributes3D(view, 4 + i * 48, f, i * 12);
+            view.setFloat32(4 + 8 * 48 + i * 4, f[96 + i], true);
+        }
+        jaxe.writeAttributes3D(view, 4 + 8 * 48 + 32, f, 104);
+        jaxe.lastResult = dsp.setParameterData(index, new Uint8Array(image), image.byteLength);
+        return jaxe.lastResult;
+    }
+
+    // One side of the meter: input when input is true, output otherwise.
+    // fbuf peak then rms per channel, ibuf[0] numsamples, ibuf[1] numchannels.
+    // Returns the channel count.
+    static fmod_dsp_get_metering_info(handle, input, fbuf, ibuf) {
+        var dsp = jaxe.resolveDsp(handle);
+        ibuf[0] = 0;
+        ibuf[1] = 0;
+        if (!dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }
+        var inInfo = { peaklevel: [], rmslevel: [] };
+        var outInfo = { peaklevel: [], rmslevel: [] };
+        jaxe.lastResult = dsp.getMeteringInfo(inInfo, outInfo);
+        if (jaxe.lastResult != jaxe.FMOD.OK) return 0;
+        var info = input ? inInfo : outInfo;
+        var ch = info.numchannels || info.peaklevel.length;
+        if (ch > 32) ch = 32;
+        for (var i = 0; i < ch; i++) {
+            fbuf[i] = info.peaklevel[i] || 0;
+            fbuf[ch + i] = info.rmslevel[i] || 0;
+        }
+        ibuf[0] = info.numsamples | 0;
+        ibuf[1] = ch;
+        return ch;
+    }
+
+    // fbuf = the spectrum of one channel capped at maxBins, ibuf[0] the
+    // channel count, ibuf[1] the bin count. Returns the bins written.
+    static fmod_dsp_fft_get_spectrum_channel(handle, channel, fbuf, maxBins, ibuf) {
+        var dsp = jaxe.resolveDsp(handle);
+        ibuf[0] = 0;
+        ibuf[1] = 0;
+        if (!dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }
+        var out = {};
+        jaxe.lastResult = dsp.getParameterData(4, out, null, null);
+        if (jaxe.lastResult != jaxe.FMOD.OK || !out.spectrum) return 0;
+        ibuf[0] = out.numchannels | 0;
+        ibuf[1] = out.length | 0;
+        var spec = out.spectrum[channel];
+        if (channel < 0 || channel >= (out.numchannels | 0) || !spec) return 0;
+        var count = Math.min(spec.length, maxBins, jaxe.LIST_MAX);
+        for (var i = 0; i < count; i++) fbuf[i] = spec[i];
+        return count;
+    }
+
+    // Same descriptor as getParameterInfo, the glue cannot marshal it.
+    static fmod_dsp_get_parameter_text(handle, index, kind) {
+        var dsp = jaxe.resolveDsp(handle);
+        if (!dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return ""; }
+        jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        return "";
+    }
 
     static fmod_cg_get_num_dsps(handle) {
         var group = jaxe.resolveCg(handle);

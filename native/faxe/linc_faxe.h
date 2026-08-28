@@ -621,5 +621,13 @@ extern int fmod_replay_get_current_command(int handle, ::Array<Float> fbuf);
 extern int fmod_cg_get_num_dsps(int handle);
 extern int fmod_cg_get_dsp(int handle, int index);
 
+extern const char* fmod_dsp_get_info(int handle, ::Array<int> ibuf);
+extern int fmod_dsp_get_param_data(int handle, int index, ::Array<unsigned char> out, int cap);
+extern int fmod_dsp_set_param_3d_attributes(int handle, int index, ::Array<Float> fbuf);
+extern int fmod_dsp_set_param_3d_attributes_multi(int handle, int index, int numListeners, ::Array<Float> fbuf);
+extern int fmod_dsp_get_metering_info(int handle, bool input, ::Array<Float> fbuf, ::Array<int> ibuf);
+extern int fmod_dsp_fft_get_spectrum_channel(int handle, int channel, ::Array<Float> fbuf, int maxBins, ::Array<int> ibuf);
+extern const char* fmod_dsp_get_parameter_text(int handle, int index, int kind);
+
 } // namespace faxe
 } // namespace linc

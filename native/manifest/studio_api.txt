@@ -853,3 +853,20 @@ replay_get_current_command i32 fbuf -> i32
 # group-wide send effect takes its input from.
 cg_get_num_dsps i32 -> i32
 cg_get_dsp i32 i32 -> i32
+
+## DSP data parameters and unit info
+# Flat layouts documented in native/shared/faxe_dspdata.h. jaxe.js writes
+# the same byte images for the web glue, which takes data parameters as
+# raw bytes. dsp_get_param_data copies the block FMOD returns into the
+# caller's bytes (null asks for the size) and returns the length. The js
+# shim packs the shapes the glue types (overall gain, FFT, dynamic
+# response, attenuation range) and reports FMOD_ERR_UNSUPPORTED for the
+# rest. dsp_get_parameter_text kinds: 0 label, 1 description, 2 + n the
+# value name n. The descriptor is unsupported on js like dsp_get_parameter_info.
+dsp_get_info i32 ibuf -> str
+dsp_get_param_data i32 i32 bytes i32 -> i32
+dsp_set_param_3d_attributes i32 i32 fbuf -> i32
+dsp_set_param_3d_attributes_multi i32 i32 i32 fbuf -> i32
+dsp_get_metering_info i32 bool fbuf ibuf -> i32
+dsp_fft_get_spectrum_channel i32 i32 fbuf i32 ibuf -> i32
+dsp_get_parameter_text i32 i32 i32 -> str

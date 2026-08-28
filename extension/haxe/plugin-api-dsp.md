@@ -100,7 +100,7 @@ verdict: cannot runs on FMOD's mixer thread inside a DSP plugin, plugin authorin
 ## FMOD_DSP_METERING_INFO
 verdict: bound
 Shape: usage
-numsamples is not reported, numchannels is the length of the peak and rms arrays.
+getMetering reads the output side, getMetering(true) or getInputMetering the input side. numchannels and numsamples are fields of the result.
 ```haxe
 import haxefmod.core.ChannelGroup;
 import haxefmod.core.Dsp;
@@ -108,15 +108,17 @@ import haxefmod.core.DspType;
 
 var fader = Dsp.create(DspType.FADER);
 ChannelGroup.master().addDsp(ChannelGroup.DSP_TAIL, fader);
-fader.setMeteringEnabled(false, true);
+fader.setMeteringEnabled(true, true);
 
 // each frame
 var meter = fader.getMetering();
 if (meter != null) {
-    var numchannels = meter.peak.length;
+    var numsamples = meter.numSamples;
+    var numchannels = meter.numChannels;
     var peaklevel = meter.peak;
     var rmslevel = meter.rms;
 }
+var inputMeter = fader.getInputMetering();
 ```
 
 ## FMOD_DSP_PAN_GETROLLOFFGAIN_FUNC
@@ -142,13 +144,17 @@ verdict: bound
 Type: haxefmod.studio.Types.FmodDspPanSurroundFlags
 
 ## FMOD_DSP_PARAMETER_3DATTRIBUTES
-verdict: library the 3D position of a pan unit is not set by parameter, play the source through a 3D channel and call Channel.set3DAttributes
+verdict: bound
+Type: haxefmod.studio.Types.FmodDspParameter3DAttributes
+Set with Dsp.setParameter3DAttributes(index, absolute, ?relative), the shim packs the struct.
 
 ## FMOD_DSP_PARAMETER_3DATTRIBUTES_MULTI
-verdict: library the 3D position of a pan unit is not set by parameter, play the source through a 3D channel and call Channel.set3DAttributes
+verdict: bound
+Type: haxefmod.studio.Types.FmodDspParameter3DAttributesMulti
+Set with Dsp.setParameter3DAttributesMulti(index, absolute, relative, ?weights), one relative entry per listener, the shim packs the struct.
 
 ## FMOD_DSP_PARAMETER_ATTENUATION_RANGE
-verdict: covered a data parameter format the unit reads, Dsp.setParameterData hands it over as raw bytes and Dsp.getDataParameterIndex finds its index
+verdict: covered a data parameter format the unit reads, Dsp.setParameterData hands it over as raw bytes, Dsp.getParameterData reads it back, and Dsp.getDataParameterIndex finds its index
 
 ## FMOD_DSP_PARAMETER_DATA_TYPE
 verdict: bound
@@ -157,7 +163,7 @@ Type: haxefmod.studio.Types.FmodDspParameterDataType
 ## FMOD_DSP_PARAMETER_DESC
 verdict: bound
 Shape: usage
-Native only (unsupported in HTML5).
+Native only (unsupported in HTML5). The union members are fields of the result: min, max, defaultValue, mappingType and mappingPoints for a float, goesToInfinity and valueNames for an int, valueNames for a bool, dataType for data.
 ```haxe
 import haxefmod.core.Dsp;
 import haxefmod.core.DspType;
@@ -166,66 +172,59 @@ var eq = Dsp.create(DspType.THREE_EQ);
 for (index in 0...eq.getParameterCount()) {
     var desc = eq.getParameterInfo(index);
     if (desc == null) continue;
-    var name = desc.name;
     var type = desc.type;
+    var name = desc.name;
+    var label = desc.label;
+    var description = desc.description;
     var min = desc.min;
     var max = desc.max;
     var defaultval = desc.defaultValue;
+    var mapping = desc.mappingType;
+    var valuenames = desc.valueNames;
+    var datatype = desc.dataType;
 }
 ```
 
 ## FMOD_DSP_PARAMETER_DESC_BOOL
-verdict: cannot a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, type, and range
+verdict: cannot a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, label, description, type, range, float mapping, int and bool value names, and data type
 
 ## FMOD_DSP_PARAMETER_DESC_DATA
-verdict: cannot a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, type, and range
+verdict: cannot a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, label, description, type, range, float mapping, int and bool value names, and data type
 
 ## FMOD_DSP_PARAMETER_DESC_FLOAT
-verdict: cannot a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, type, and range
+verdict: cannot a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, label, description, type, range, float mapping, int and bool value names, and data type
 
 ## FMOD_DSP_PARAMETER_DESC_INT
-verdict: cannot a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, type, and range
+verdict: cannot a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, label, description, type, range, float mapping, int and bool value names, and data type
 
 ## FMOD_DSP_PARAMETER_DYNAMIC_RESPONSE
-verdict: covered a data parameter format the unit reads, Dsp.setParameterData hands it over as raw bytes and Dsp.getDataParameterIndex finds its index
+verdict: covered a data parameter format the unit reads, Dsp.setParameterData hands it over as raw bytes, Dsp.getParameterData reads it back, and Dsp.getDataParameterIndex finds its index
 
 ## FMOD_DSP_PARAMETER_FFT
 verdict: bound
-Shape: usage
-getFftSpectrum returns the first channel's bins, length is the array length.
-```haxe
-import haxefmod.core.ChannelGroup;
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-var fft = Dsp.create(DspType.FFT);
-ChannelGroup.master().addDsp(ChannelGroup.DSP_TAIL, fft);
-
-// each frame
-var spectrum = fft.getFftSpectrum(512);
-if (spectrum != null) {
-    var length = spectrum.length;
-}
-```
+Type: haxefmod.studio.Types.FmodDspParameterFft
+Read with Dsp.getFftSpectrumInfo(maxBins) on an FFT unit, or getFftSpectrum(maxBins) for the first channel alone.
 
 ## FMOD_DSP_PARAMETER_FINITE_LENGTH
-verdict: covered a data parameter format the unit reads, Dsp.setParameterData hands it over as raw bytes and Dsp.getDataParameterIndex finds its index
+verdict: covered a data parameter format the unit reads, Dsp.setParameterData hands it over as raw bytes, Dsp.getParameterData reads it back, and Dsp.getDataParameterIndex finds its index
 
 ## FMOD_DSP_PARAMETER_FLOAT_MAPPING
-verdict: cannot a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, type, and range
+verdict: cannot a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, label, description, type, range, float mapping, int and bool value names, and data type
 
 ## FMOD_DSP_PARAMETER_FLOAT_MAPPING_PIECEWISE_LINEAR
-verdict: cannot a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, type, and range
+verdict: cannot a plugin's parameter descriptor, plugin authoring is C only, Dsp.getParameterInfo reports a parameter's name, label, description, type, range, float mapping, int and bool value names, and data type
 
 ## FMOD_DSP_PARAMETER_FLOAT_MAPPING_TYPE
 verdict: bound
 Type: haxefmod.studio.Types.FmodDspParameterFloatMappingType
 
 ## FMOD_DSP_PARAMETER_OVERALLGAIN
-verdict: covered a data parameter format the unit reads, Dsp.setParameterData hands it over as raw bytes and Dsp.getDataParameterIndex finds its index
+verdict: bound
+Type: haxefmod.studio.Types.FmodDspParameterOverallGain
+Read with Dsp.getOverallGain(), which finds the unit's overall gain parameter, or getOverallGain(index).
 
 ## FMOD_DSP_PARAMETER_SIDECHAIN
-verdict: covered a data parameter format the unit reads, Dsp.setParameterData hands it over as raw bytes and Dsp.getDataParameterIndex finds its index
+verdict: covered a data parameter format the unit reads, Dsp.setParameterData hands it over as raw bytes, Dsp.getParameterData reads it back, and Dsp.getDataParameterIndex finds its index
 
 ## FMOD_DSP_PARAMETER_TYPE
 verdict: bound

@@ -137,6 +137,8 @@ GATED = [
      "var r = CoreSystem.getDefaultMixMatrix(3, 3);"),
     ("Dsp", "getParameterInfo", "haxefmod/core/Dsp.hx",
      "var d:Dsp = cast 1; var r = d.getParameterInfo(0);"),
+    ("Dsp", "getLoudnessMeterInfo", "haxefmod/core/Dsp.hx",
+     "var d:Dsp = cast 1; var r = d.getLoudnessMeterInfo();"),
     ("StudioSystem", "setPluginPath", "haxefmod/studio/StudioSystem.hx",
      "var r = StudioSystem.setPluginPath(\"plugins\");"),
     ("StudioSystem", "loadPlugin", "haxefmod/studio/StudioSystem.hx",

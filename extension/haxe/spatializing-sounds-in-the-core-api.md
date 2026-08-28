@@ -25,7 +25,45 @@ if (!result.isOk()) {
 ```
 
 ## 5.1 Controlling a Spatializer DSP
-verdict: covered The relative and absolute 3D attributes of a spatializer are not computed in Haxe. A source played through a 3D channel is positioned in world space with Channel.set3DAttributes and FMOD derives the listener-relative attributes from the listener set with StudioSystem.setListenerAttributes. A pan DSP created by hand can only take its 3D attributes as a raw byte payload through Dsp.setParameterData.
+verdict: bound
+The relative attributes are the emitter transformed into the listener's space, the absolute attributes are the emitter itself. Dsp.setParameter3DAttributesMulti packs both into the pan unit's 3D position parameter.
+```haxe
+import haxefmod.core.Dsp;
+import haxefmod.core.DspParameters.DspPan;
+import haxefmod.studio.Types;
+
+function dot(a:FmodVector, b:FmodVector):Float {
+    return a.x * b.x + a.y * b.y + a.z * b.z;
+}
+
+function cross(a:FmodVector, b:FmodVector):FmodVector {
+    return {x: a.y * b.z - a.z * b.y, y: a.z * b.x - a.x * b.z, z: a.x * b.y - a.y * b.x};
+}
+
+function toListenerSpace(v:FmodVector, listener:Fmod3DAttributes):FmodVector {
+    var right = cross(listener.up, listener.forward);
+    return {x: dot(v, right), y: dot(v, listener.up), z: dot(v, listener.forward)};
+}
+
+function calculatePannerAttributes(listener:Fmod3DAttributes, emitter:Fmod3DAttributes):FmodDspParameter3DAttributes {
+    var offset = {x: emitter.position.x - listener.position.x, y: emitter.position.y - listener.position.y, z: emitter.position.z - listener.position.z};
+    var motion = {x: emitter.velocity.x - listener.velocity.x, y: emitter.velocity.y - listener.velocity.y, z: emitter.velocity.z - listener.velocity.z};
+    return {
+        relative: {
+            position: toListenerSpace(offset, listener),
+            velocity: toListenerSpace(motion, listener),
+            forward: toListenerSpace(emitter.forward, listener),
+            up: toListenerSpace(emitter.up, listener)
+        },
+        absolute: emitter
+    };
+}
+
+function updatePanner(panner:Dsp, listener:Fmod3DAttributes, emitter:Fmod3DAttributes):Void {
+    var attributes = calculatePannerAttributes(listener, emitter);
+    panner.setParameter3DAttributesMulti(DspPan._3D_POSITION, attributes.absolute, [attributes.relative]);
+}
+```
 
 ## 5.1 Controlling a Spatializer DSP#2
 verdict: bound
