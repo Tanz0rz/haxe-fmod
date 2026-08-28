@@ -5057,8 +5057,8 @@ class jaxe {
     }
 
     static fmod_sys_get_sound_info(key, ibuf) {
-        ibuf[0] = -1;
         if (typeof key !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return ""; }
+        ibuf[0] = -1;
         if (!jaxe.sysReady()) return "";
         // The glue writes exinfo fields onto a pre-existing object and throws without one
         var info = { exinfo: {} };
