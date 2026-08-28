@@ -5196,7 +5196,7 @@ class jaxe {
 
     static fmod_binding_abi_version() {
         // Keep in lockstep with the manifest header "# abi-version:"
-        return 10;
+        return 11;
     }
 
     //// Initialization (Emscripten-specific, must stay here)
