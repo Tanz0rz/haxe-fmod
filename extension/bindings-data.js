@@ -4504,16 +4504,16 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "dsp_getmeteringinfo": {
-   "code": "import haxefmod.core.Dsp;\nimport haxefmod.core.DspType;\n\nvar unit = Dsp.create(DspType.FADER);\nunit.setMeteringEnabled(true, true);\nvar output = unit.getMetering();\nvar input = unit.getInputMetering();",
+   "code": "import haxefmod.core.Dsp;\nimport haxefmod.core.DspType;\n\nvar unit = Dsp.create(DspType.FADER);\nunit.setMeteringEnabled(true, true);\nvar output = unit.getMetering();\nvar input = unit.getInputMetering();\nif (output != null) {\n    var peak = output.peakLevel[0];\n    var rms = output.rmsLevel[0];\n}",
    "fmod": "FMOD_DSP_GetMeteringInfo",
    "gated": false,
    "haxe": [
     {
      "direct": false,
-     "doc": "Peak and RMS levels per channel (linear 0..1) on the output side, or on the input side with input set, plus the channel count and the number of samples the meter averaged.",
+     "doc": "The FMOD_DSP_METERING_INFO of the output side, or of the input side with input set: peakLevel and rmsLevel per channel (linear 0..1), numChannels, and numSamples, the sample count the meter averaged.",
      "gated": false,
      "name": "getMetering",
-     "signature": "getMetering(input:Bool = false):Null<{peak:Array<Float>, rms:Array<Float>, numChannels:Int, numSamples:Int}>",
+     "signature": "getMetering(input:Bool = false):Null<FmodDspMeteringInfo>",
      "static": false,
      "type": "haxefmod.core.Dsp"
     }
@@ -4521,7 +4521,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "DSP::getMeteringInfo",
    "html5": false,
    "notes": [
-    "One side per call. Dsp.getMetering() reads the output side, getMetering(true) or getInputMetering() the input side. The result carries peak, rms, numChannels, and numSamples."
+    "One side per call. Dsp.getMetering() returns the FmodDspMeteringInfo of the output side, getMetering(true) or getInputMetering() the input side."
    ]
   },
   "dsp_getnuminputs": {
@@ -4630,9 +4630,9 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "dsp_getparameterdata": {
-   "code": "import haxefmod.core.Dsp;\nimport haxefmod.core.DspType;\nimport haxefmod.studio.Types;\n\nvar fader = Dsp.create(DspType.FADER);\nvar gain = fader.getOverallGain();\nvar index = fader.getDataParameterIndex(FmodDspParameterDataType.OVERALLGAIN);\nvar raw = fader.getParameterData(index);\nif (raw != null) {\n    var linearGain = raw.getFloat(0);\n}",
+   "code": "import haxefmod.core.Dsp;\nimport haxefmod.core.DspType;\nimport haxefmod.core.DspParameters.DspCompressor;\nimport haxefmod.studio.Types;\n\nvar fader = Dsp.create(DspType.FADER);\nvar gain = fader.getOverallGain();\nvar index = fader.getDataParameterIndex(FmodDspParameterDataType.OVERALLGAIN);\nvar raw = fader.getParameterData(index);\nif (raw != null) {\n    var linearGain = raw.getFloat(0);\n}\nvar compressor = Dsp.create(DspType.COMPRESSOR);\nvar sidechain = compressor.getParameterSidechain(DspCompressor.USESIDECHAIN);",
    "fmod": "FMOD_DSP_GetParameterData",
-   "gated": false,
+   "gated": true,
    "haxe": [
     {
      "direct": true,
@@ -4660,12 +4660,57 @@ const HAXEFMOD_BINDINGS = {
      "signature": "getFftSpectrumInfo(maxBins:Int = 512):Null<FmodDspParameterFft>",
      "static": false,
      "type": "haxefmod.core.Dsp"
+    },
+    {
+     "direct": false,
+     "doc": "Reads the FMOD_DSP_LOUDNESS_METER_WEIGHTING_TYPE of a DspType.LOUDNESS_METER unit back, all MAX_CHANNEL_SLOTS weights (unsupported in HTML5, null there).",
+     "gated": true,
+     "name": "getLoudnessMeterWeighting",
+     "signature": "getLoudnessMeterWeighting():Null<FmodDspLoudnessMeterWeightingType>",
+     "static": false,
+     "type": "haxefmod.core.Dsp"
+    },
+    {
+     "direct": false,
+     "doc": "Reads a FmodDspParameterDataType.ATTENUATION_RANGE data parameter back.",
+     "gated": false,
+     "name": "getParameterAttenuationRange",
+     "signature": "getParameterAttenuationRange(index:Int):Null<FmodDspParameterAttenuationRange>",
+     "static": false,
+     "type": "haxefmod.core.Dsp"
+    },
+    {
+     "direct": false,
+     "doc": "Reads a FmodDspParameterDataType.DYNAMIC_RESPONSE data parameter (FMOD_DSP_PARAMETER_DYNAMIC_RESPONSE), the RMS level per channel a dynamics plugin reports.",
+     "gated": false,
+     "name": "getParameterDynamicResponse",
+     "signature": "getParameterDynamicResponse(index:Int):Null<FmodDspParameterDynamicResponse>",
+     "static": false,
+     "type": "haxefmod.core.Dsp"
+    },
+    {
+     "direct": false,
+     "doc": "Reads a FmodDspParameterDataType.FINITE_LENGTH data parameter back.",
+     "gated": false,
+     "name": "getParameterFiniteLength",
+     "signature": "getParameterFiniteLength(index:Int):Null<FmodDspParameterFiniteLength>",
+     "static": false,
+     "type": "haxefmod.core.Dsp"
+    },
+    {
+     "direct": false,
+     "doc": "Reads a FmodDspParameterDataType.SIDECHAIN data parameter back.",
+     "gated": false,
+     "name": "getParameterSidechain",
+     "signature": "getParameterSidechain(index:Int):Null<FmodDspParameterSidechain>",
+     "static": false,
+     "type": "haxefmod.core.Dsp"
     }
    ],
    "heading": "DSP::getParameterData",
    "html5": true,
    "notes": [
-    "Dsp.getParameterData(index) returns a copy of the block as bytes in the effect's C layout, and the typed readers decode the common formats: getFftSpectrumInfo() for FMOD_DSP_PARAMETER_FFT, getOverallGain() for FMOD_DSP_PARAMETER_OVERALLGAIN, getLoudnessMeterInfo() for FMOD_DSP_LOUDNESS_METER_INFO_TYPE. On HTML5 the web glue types the block instead of exposing its bytes, so only the overall gain, FFT, dynamic response, and attenuation range payloads come back and getLoudnessMeterInfo is a compile error."
+    "Dsp.getParameterData(index) returns a copy of the block as bytes in the effect's C layout, and the typed readers return the FMOD structs: getFftSpectrumInfo() for FMOD_DSP_PARAMETER_FFT, getOverallGain() for FMOD_DSP_PARAMETER_OVERALLGAIN, getLoudnessMeterInfo() for FMOD_DSP_LOUDNESS_METER_INFO_TYPE, getLoudnessMeterWeighting() for FMOD_DSP_LOUDNESS_METER_WEIGHTING_TYPE, getParameterSidechain(index), getParameterFiniteLength(index), getParameterAttenuationRange(index), and getParameterDynamicResponse(index) for the matching FMOD_DSP_PARAMETER_ structs. On HTML5 the web glue types the block instead of exposing its bytes, so the raw bytes come back for the overall gain, FFT, dynamic response, and attenuation range only, the loudness readers are compile errors, and the other typed readers work."
    ]
   },
   "dsp_getparameterfloat": {
@@ -4685,20 +4730,25 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "dsp_getparameterinfo": {
+   "code": "import haxefmod.core.Dsp;\nimport haxefmod.core.DspType;\nimport haxefmod.studio.Types;\n\nvar eq = Dsp.create(DspType.THREE_EQ);\nfor (index in 0...eq.getParameterCount()) {\n    var desc = eq.getParameterInfo(index);\n    if (desc == null) continue;\n    switch (desc.type) {\n        case FmodDspParameterType.FLOAT:\n            trace('${desc.name} ${desc.floatDesc.min}..${desc.floatDesc.max} ${desc.label}');\n        case FmodDspParameterType.INT:\n            trace('${desc.name} ${desc.intDesc.valueNames}');\n        default:\n    }\n}",
    "fmod": "FMOD_DSP_GetParameterInfo",
    "gated": true,
    "haxe": [
     {
      "direct": true,
-     "doc": "The descriptor of the parameter at index (unsupported in HTML5, null there).",
+     "doc": "The FMOD_DSP_PARAMETER_DESC of the parameter at index (unsupported in HTML5, null there): type, name, label, description, and the union member matching type.",
      "gated": true,
      "name": "getParameterInfo",
-     "signature": "getParameterInfo(index:Int):Null<{name:String, label:String, description:String, type:FmodDspParameterType,\n            min:Float, max:Float, defaultValue:Float, mappingType:FmodDspParameterFloatMappingType,\n            mappingPoints:Null<{values:Array<Float>, positions:Array<Float>}>, goesToInfinity:Bool,\n            dataType:FmodDspParameterDataType, valueNames:Null<Array<String>>}>",
+     "signature": "getParameterInfo(index:Int):Null<FmodDspParameterDesc>",
      "static": false,
      "type": "haxefmod.core.Dsp"
     }
    ],
-   "html5": true
+   "heading": "DSP::getParameterInfo",
+   "html5": true,
+   "notes": [
+    "Dsp.getParameterInfo(index) returns the FmodDspParameterDesc, native only (unsupported in HTML5). The union member matching type is set and the other three are null: floatDesc holds min, max, defaultVal, and mapping, intDesc min, max, defaultVal, goesToInf, and valueNames, boolDesc defaultVal and valueNames, dataDesc dataType."
+   ]
   },
   "dsp_getparameterint": {
    "fmod": "FMOD_DSP_GetParameterInt",
@@ -4910,6 +4960,15 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
+     "doc": "Sets the FMOD_DSP_LOUDNESS_METER_WEIGHTING_TYPE of a DspType.LOUDNESS_METER unit, its DspLoudnessMeter.WEIGHTING data parameter.",
+     "gated": false,
+     "name": "setLoudnessMeterWeighting",
+     "signature": "setLoudnessMeterWeighting(weighting:FmodDspLoudnessMeterWeightingType):FmodResult",
+     "static": false,
+     "type": "haxefmod.core.Dsp"
+    },
+    {
+     "direct": false,
      "doc": "Sets a data parameter of type FmodDspParameterDataType._3DATTRIBUTES (FMOD_DSP_PARAMETER_3DATTRIBUTES).",
      "gated": false,
      "name": "setParameter3DAttributes",
@@ -4923,6 +4982,33 @@ const HAXEFMOD_BINDINGS = {
      "gated": false,
      "name": "setParameter3DAttributesMulti",
      "signature": "setParameter3DAttributesMulti(index:Int, absolute:Fmod3DAttributes, relative:Array<Fmod3DAttributes>, ?weights:Array<Float>):FmodResult",
+     "static": false,
+     "type": "haxefmod.core.Dsp"
+    },
+    {
+     "direct": false,
+     "doc": "Sets a data parameter of type FmodDspParameterDataType.ATTENUATION_RANGE (FMOD_DSP_PARAMETER_ATTENUATION_RANGE), the distance range of a pan or object pan unit.",
+     "gated": false,
+     "name": "setParameterAttenuationRange",
+     "signature": "setParameterAttenuationRange(index:Int, props:FmodDspParameterAttenuationRange):FmodResult",
+     "static": false,
+     "type": "haxefmod.core.Dsp"
+    },
+    {
+     "direct": false,
+     "doc": "Sets a data parameter of type FmodDspParameterDataType.FINITE_LENGTH (FMOD_DSP_PARAMETER_FINITE_LENGTH).",
+     "gated": false,
+     "name": "setParameterFiniteLength",
+     "signature": "setParameterFiniteLength(index:Int, props:FmodDspParameterFiniteLength):FmodResult",
+     "static": false,
+     "type": "haxefmod.core.Dsp"
+    },
+    {
+     "direct": false,
+     "doc": "Sets a data parameter of type FmodDspParameterDataType.SIDECHAIN (FMOD_DSP_PARAMETER_SIDECHAIN), for example DspCompressor.USESIDECHAIN.",
+     "gated": false,
+     "name": "setParameterSidechain",
+     "signature": "setParameterSidechain(index:Int, props:FmodDspParameterSidechain):FmodResult",
      "static": false,
      "type": "haxefmod.core.Dsp"
     }

@@ -122,7 +122,7 @@ Type: haxefmod.core.DspParameters.DspLimiter
 ## FMOD_DSP_LOUDNESS_METER
 verdict: bound
 Type: haxefmod.core.DspParameters.DspLoudnessMeter
-STATE is set with setParameterInt and WEIGHTING with setParameterData. INFO is read with Dsp.getLoudnessMeterInfo (unsupported in HTML5, where the web glue hands the block back without its fields).
+STATE is set with setParameterInt and WEIGHTING with Dsp.setLoudnessMeterWeighting. INFO is read with Dsp.getLoudnessMeterInfo (unsupported in HTML5, where the web glue hands the block back without its fields).
 
 ## FMOD_DSP_LOUDNESS_METER_INFO_TYPE
 verdict: bound
@@ -136,19 +136,8 @@ Passed through setParameterInt on DspLoudnessMeter.STATE, where negative values 
 
 ## FMOD_DSP_LOUDNESS_METER_WEIGHTING_TYPE
 verdict: bound
-Shape: usage
-The struct is 32 floats, written as bytes through setParameterData on DspLoudnessMeter.WEIGHTING.
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-import haxefmod.core.DspParameters.DspLoudnessMeter;
-var meter = Dsp.create(DspType.LOUDNESS_METER);
-var weighting = haxe.io.Bytes.alloc(32 * 4);
-for (channel in 0...32) {
-    weighting.setFloat(channel * 4, 1.0);
-}
-meter.setParameterData(DspLoudnessMeter.WEIGHTING, weighting);
-```
+Type: haxefmod.studio.Types.FmodDspLoudnessMeterWeightingType
+Set with Dsp.setLoudnessMeterWeighting(weighting) on a LOUDNESS_METER unit and read back with getLoudnessMeterWeighting() (unsupported in HTML5), the shim packs the struct.
 
 ## FMOD_DSP_LOWPASS
 verdict: bound

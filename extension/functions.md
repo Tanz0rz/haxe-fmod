@@ -127,7 +127,7 @@ if (info != null) {
 ## dsp_getmeteringinfo
 <!-- DSP::getMeteringInfo -->
 verdict: bound
-One side per call. Dsp.getMetering() reads the output side, getMetering(true) or getInputMetering() the input side. The result carries peak, rms, numChannels, and numSamples.
+One side per call. Dsp.getMetering() returns the FmodDspMeteringInfo of the output side, getMetering(true) or getInputMetering() the input side.
 ```haxe
 import haxefmod.core.Dsp;
 import haxefmod.core.DspType;
@@ -136,15 +136,20 @@ var unit = Dsp.create(DspType.FADER);
 unit.setMeteringEnabled(true, true);
 var output = unit.getMetering();
 var input = unit.getInputMetering();
+if (output != null) {
+    var peak = output.peakLevel[0];
+    var rms = output.rmsLevel[0];
+}
 ```
 
 ## dsp_getparameterdata
 <!-- DSP::getParameterData -->
 verdict: bound
-Dsp.getParameterData(index) returns a copy of the block as bytes in the effect's C layout, and the typed readers decode the common formats: getFftSpectrumInfo() for FMOD_DSP_PARAMETER_FFT, getOverallGain() for FMOD_DSP_PARAMETER_OVERALLGAIN, getLoudnessMeterInfo() for FMOD_DSP_LOUDNESS_METER_INFO_TYPE. On HTML5 the web glue types the block instead of exposing its bytes, so only the overall gain, FFT, dynamic response, and attenuation range payloads come back and getLoudnessMeterInfo is a compile error.
+Dsp.getParameterData(index) returns a copy of the block as bytes in the effect's C layout, and the typed readers return the FMOD structs: getFftSpectrumInfo() for FMOD_DSP_PARAMETER_FFT, getOverallGain() for FMOD_DSP_PARAMETER_OVERALLGAIN, getLoudnessMeterInfo() for FMOD_DSP_LOUDNESS_METER_INFO_TYPE, getLoudnessMeterWeighting() for FMOD_DSP_LOUDNESS_METER_WEIGHTING_TYPE, getParameterSidechain(index), getParameterFiniteLength(index), getParameterAttenuationRange(index), and getParameterDynamicResponse(index) for the matching FMOD_DSP_PARAMETER_ structs. On HTML5 the web glue types the block instead of exposing its bytes, so the raw bytes come back for the overall gain, FFT, dynamic response, and attenuation range only, the loudness readers are compile errors, and the other typed readers work.
 ```haxe
 import haxefmod.core.Dsp;
 import haxefmod.core.DspType;
+import haxefmod.core.DspParameters.DspCompressor;
 import haxefmod.studio.Types;
 
 var fader = Dsp.create(DspType.FADER);
@@ -153,6 +158,31 @@ var index = fader.getDataParameterIndex(FmodDspParameterDataType.OVERALLGAIN);
 var raw = fader.getParameterData(index);
 if (raw != null) {
     var linearGain = raw.getFloat(0);
+}
+var compressor = Dsp.create(DspType.COMPRESSOR);
+var sidechain = compressor.getParameterSidechain(DspCompressor.USESIDECHAIN);
+```
+
+## dsp_getparameterinfo
+<!-- DSP::getParameterInfo -->
+verdict: bound
+Dsp.getParameterInfo(index) returns the FmodDspParameterDesc, native only (unsupported in HTML5). The union member matching type is set and the other three are null: floatDesc holds min, max, defaultVal, and mapping, intDesc min, max, defaultVal, goesToInf, and valueNames, boolDesc defaultVal and valueNames, dataDesc dataType.
+```haxe
+import haxefmod.core.Dsp;
+import haxefmod.core.DspType;
+import haxefmod.studio.Types;
+
+var eq = Dsp.create(DspType.THREE_EQ);
+for (index in 0...eq.getParameterCount()) {
+    var desc = eq.getParameterInfo(index);
+    if (desc == null) continue;
+    switch (desc.type) {
+        case FmodDspParameterType.FLOAT:
+            trace('${desc.name} ${desc.floatDesc.min}..${desc.floatDesc.max} ${desc.label}');
+        case FmodDspParameterType.INT:
+            trace('${desc.name} ${desc.intDesc.valueNames}');
+        default:
+    }
 }
 ```
 

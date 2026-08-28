@@ -11,8 +11,9 @@ import haxefmod.studio.Types;
 /**
  * The api-probe section for DSP data parameters and unit info: getInfo,
  * both sides of the meter, the per channel FFT spectrum, the raw and
- * typed data parameter readbacks, the packed 3D attribute setters, and
- * the full parameter descriptor. An oscillator through the master group
+ * typed data parameter readbacks, the packed 3D attribute setters, the
+ * full parameter descriptor, and the typed sidechain, finite length,
+ * attenuation range, dynamic response, and loudness weighting structs. An oscillator through the master group
  * gives the analyzers a signal, and the section waits on the mixer
  * thread for the meters to fill.
  */
@@ -65,18 +66,18 @@ class ProbeDspData {
         fft.setMeteringEnabled(true, true);
         var metered = waitFor(function() {
             var m = fft.getMetering();
-            return m != null && m.peak[0] > 0.01;
+            return m != null && m.peakLevel[0] > 0.01;
         });
         var output = fft.getMetering();
-        @:privateAccess state.check("dsp_get_metering_output", metered && output != null && output.numChannels == output.peak.length
-            && output.numSamples > 0 && output.rms.length == output.numChannels,
+        @:privateAccess state.check("dsp_get_metering_output", metered && output != null && output.numChannels == output.peakLevel.length
+            && output.numSamples > 0 && output.rmsLevel.length == output.numChannels,
             output == null ? 'null result=${StudioSystem.lastResult().toString()}'
-            : 'channels=${output.numChannels} samples=${output.numSamples} peak=${output.peak[0]} rms=${output.rms[0]}');
+            : 'channels=${output.numChannels} samples=${output.numSamples} peak=${output.peakLevel[0]} rms=${output.rmsLevel[0]}');
         var input = fft.getInputMetering();
-        @:privateAccess state.check("dsp_get_metering_input", input != null && input.numChannels > 0 && input.peak[0] > 0.01
+        @:privateAccess state.check("dsp_get_metering_input", input != null && input.numChannels > 0 && input.peakLevel[0] > 0.01
             && input.numSamples > 0,
             input == null ? 'null result=${StudioSystem.lastResult().toString()}'
-            : 'channels=${input.numChannels} samples=${input.numSamples} peak=${input.peak[0]}');
+            : 'channels=${input.numChannels} samples=${input.numSamples} peak=${input.peakLevel[0]}');
         var inputAgain = fft.getMetering(true);
         @:privateAccess state.check("dsp_get_metering_input_flag", inputAgain != null && inputAgain.numChannels == input.numChannels, "");
 
@@ -159,33 +160,92 @@ class ProbeDspData {
         var lowpass = Dsp.create(DspType.LOWPASS_SIMPLE);
         var cutoff = lowpass.getParameterInfo(DspLowpassSimple.CUTOFF);
         @:privateAccess state.check("dsp_get_parameter_info_float", cutoff != null && cutoff.type == FmodDspParameterType.FLOAT
-            && cutoff.max > cutoff.min && cutoff.description != "" && cutoff.label != ""
-            && !cutoff.goesToInfinity && cutoff.valueNames == null,
+            && cutoff.floatDesc != null && cutoff.intDesc == null && cutoff.boolDesc == null && cutoff.dataDesc == null
+            && cutoff.floatDesc.max > cutoff.floatDesc.min && cutoff.description != "" && cutoff.label != ""
+            && cutoff.floatDesc.mapping.piecewiseLinearMapping.numPoints == cutoff.floatDesc.mapping.piecewiseLinearMapping.pointParamValues.length,
             cutoff == null ? 'null result=${StudioSystem.lastResult().toString()}'
-            : 'name=${cutoff.name} label=${cutoff.label} desc=${cutoff.description} mapping=${(cutoff.mappingType : Int)} points=${cutoff.mappingPoints == null ? 0 : cutoff.mappingPoints.values.length} range=${cutoff.min}..${cutoff.max}');
+            : cutoff.floatDesc == null ? 'type=${(cutoff.type : Int)} floatDesc=null'
+            : 'name=${cutoff.name} label=${cutoff.label} desc=${cutoff.description} mapping=${(cutoff.floatDesc.mapping.type : Int)} points=${cutoff.floatDesc.mapping.piecewiseLinearMapping.numPoints} range=${cutoff.floatDesc.min}..${cutoff.floatDesc.max}');
         var oscType = osc.getParameterInfo(DspOscillator.TYPE);
         @:privateAccess state.check("dsp_get_parameter_info_int", oscType != null && oscType.type == FmodDspParameterType.INT
-            && oscType.min == 0 && oscType.max >= 5 && oscType.valueNames != null
-            && oscType.valueNames.length == Std.int(oscType.max - oscType.min) + 1 && oscType.valueNames[0] != "",
+            && oscType.intDesc != null && oscType.floatDesc == null
+            && oscType.intDesc.min == 0 && oscType.intDesc.max >= 5 && oscType.intDesc.valueNames != null
+            && oscType.intDesc.valueNames.length == oscType.intDesc.max - oscType.intDesc.min + 1 && oscType.intDesc.valueNames[0] != "",
             oscType == null ? 'null result=${StudioSystem.lastResult().toString()}'
-            : 'name=${oscType.name} range=${oscType.min}..${oscType.max} names=${oscType.valueNames} inf=${oscType.goesToInfinity}');
+            : oscType.intDesc == null ? 'type=${(oscType.type : Int)} intDesc=null'
+            : 'name=${oscType.name} range=${oscType.intDesc.min}..${oscType.intDesc.max} names=${oscType.intDesc.valueNames} inf=${oscType.intDesc.goesToInf}');
         var compressor = Dsp.create(DspType.COMPRESSOR);
         var linked = compressor.getParameterInfo(DspCompressor.LINKED);
         @:privateAccess state.check("dsp_get_parameter_info_bool", linked != null && linked.type == FmodDspParameterType.BOOL
-            && (linked.defaultValue == 0 || linked.defaultValue == 1)
-            && (linked.valueNames == null || linked.valueNames.length == 2),
+            && linked.boolDesc != null && linked.intDesc == null
+            && (linked.boolDesc.valueNames == null || linked.boolDesc.valueNames.length == 2),
             linked == null ? 'null result=${StudioSystem.lastResult().toString()}'
-            : 'name=${linked.name} default=${linked.defaultValue} names=${linked.valueNames}');
+            : linked.boolDesc == null ? 'type=${(linked.type : Int)} boolDesc=null'
+            : 'name=${linked.name} default=${linked.boolDesc.defaultVal} names=${linked.boolDesc.valueNames}');
         var spectrumDesc = fft.getParameterInfo(DspFft.SPECTRUMDATA);
         @:privateAccess state.check("dsp_get_parameter_info_data", spectrumDesc != null && spectrumDesc.type == FmodDspParameterType.DATA
-            && spectrumDesc.dataType == FmodDspParameterDataType.FFT,
+            && spectrumDesc.dataDesc != null && spectrumDesc.floatDesc == null
+            && spectrumDesc.dataDesc.dataType == FmodDspParameterDataType.FFT,
             spectrumDesc == null ? 'null result=${StudioSystem.lastResult().toString()}'
-            : 'name=${spectrumDesc.name} dataType=${(spectrumDesc.dataType : Int)}');
+            : spectrumDesc.dataDesc == null ? 'type=${(spectrumDesc.type : Int)} dataDesc=null'
+            : 'name=${spectrumDesc.name} dataType=${(spectrumDesc.dataDesc.dataType : Int)}');
         var gainDesc = fader.getParameterInfo(gainIndex);
-        @:privateAccess state.check("dsp_get_parameter_info_data_overall_gain", gainDesc != null
-            && gainDesc.dataType == FmodDspParameterDataType.OVERALLGAIN, gainDesc == null ? "null" : 'dataType=${(gainDesc.dataType : Int)}');
+        @:privateAccess state.check("dsp_get_parameter_info_data_overall_gain", gainDesc != null && gainDesc.dataDesc != null
+            && gainDesc.dataDesc.dataType == FmodDspParameterDataType.OVERALLGAIN,
+            gainDesc == null || gainDesc.dataDesc == null ? "null" : 'dataType=${(gainDesc.dataDesc.dataType : Int)}');
         @:privateAccess state.check("dsp_get_parameter_info_out_of_range", lowpass.getParameterInfo(99) == null
             && !StudioSystem.lastResult().isOk(), 'result=${StudioSystem.lastResult().toString()}');
+
+        // --- typed data parameters ---
+        var sidechainIndex = compressor.getDataParameterIndex(FmodDspParameterDataType.SIDECHAIN);
+        @:privateAccess state.check("dsp_sidechain_index", sidechainIndex == DspCompressor.USESIDECHAIN, 'index=$sidechainIndex');
+        var setSidechain = compressor.setParameterSidechain(DspCompressor.USESIDECHAIN, {sidechainEnable: true});
+        var sidechain = compressor.getParameterSidechain(DspCompressor.USESIDECHAIN);
+        @:privateAccess state.check("dsp_set_get_parameter_sidechain", setSidechain.isOk() && sidechain != null && sidechain.sidechainEnable,
+            sidechain == null ? 'set=${setSidechain.toString()} get=null result=${StudioSystem.lastResult().toString()}'
+            : 'set=${setSidechain.toString()} enable=${sidechain.sidechainEnable}');
+        compressor.setParameterSidechain(DspCompressor.USESIDECHAIN, {sidechainEnable: false});
+        sidechain = compressor.getParameterSidechain(DspCompressor.USESIDECHAIN);
+        @:privateAccess state.check("dsp_get_parameter_sidechain_off", sidechain != null && !sidechain.sidechainEnable, "");
+        @:privateAccess state.check("dsp_set_parameter_sidechain_null_props",
+            compressor.setParameterSidechain(DspCompressor.USESIDECHAIN, null) == FmodResult.FMOD_ERR_INVALID_PARAM, "");
+        @:privateAccess state.check("dsp_set_parameter_sidechain_null_handle",
+            stale.setParameterSidechain(0, {sidechainEnable: true}) == FmodResult.FMOD_ERR_INVALID_HANDLE, "");
+        @:privateAccess state.check("dsp_get_parameter_sidechain_null_handle", stale.getParameterSidechain(0) == null
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_HANDLE, "");
+        // a finite length struct is the same four byte FMOD_BOOL block, it lands on the sidechain switch
+        var setFinite = compressor.setParameterFiniteLength(DspCompressor.USESIDECHAIN, {finite: true});
+        var finite = compressor.getParameterFiniteLength(DspCompressor.USESIDECHAIN);
+        @:privateAccess state.check("dsp_set_get_parameter_finite_length", setFinite.isOk() && finite != null && finite.finite,
+            finite == null ? 'set=${setFinite.toString()} null result=${StudioSystem.lastResult().toString()}' : 'finite=${finite.finite}');
+        compressor.setParameterSidechain(DspCompressor.USESIDECHAIN, {sidechainEnable: false});
+        @:privateAccess state.check("dsp_set_parameter_finite_length_null_props",
+            compressor.setParameterFiniteLength(DspCompressor.USESIDECHAIN, null) == FmodResult.FMOD_ERR_INVALID_PARAM, "");
+        // an eight byte overall gain block is too short for a dynamic response
+        @:privateAccess state.check("dsp_get_parameter_dynamic_response_short_block", fader.getParameterDynamicResponse(gainIndex) == null
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_PARAM, 'result=${StudioSystem.lastResult().toString()}');
+        @:privateAccess state.check("dsp_get_parameter_dynamic_response_float_param", fft.getParameterDynamicResponse(DspFft.WINDOWSIZE) == null
+            && !StudioSystem.lastResult().isOk(), 'result=${StudioSystem.lastResult().toString()}');
+        var rangeIndex = pan.getDataParameterIndex(FmodDspParameterDataType.ATTENUATION_RANGE);
+        var setRange = pan.setParameterAttenuationRange(rangeIndex, {min: 1.5, max: 250});
+        @:privateAccess state.check("dsp_set_parameter_attenuation_range", rangeIndex >= 0 && setRange.isOk(),
+            'index=$rangeIndex result=${setRange.toString()}');
+        var range = pan.getParameterAttenuationRange(rangeIndex);
+        @:privateAccess state.check("dsp_get_parameter_attenuation_range", range == null
+            ? !StudioSystem.lastResult().isOk() : (range.min == 1.5 && range.max == 250),
+            range == null ? 'null result=${StudioSystem.lastResult().toString()}' : 'min=${range.min} max=${range.max}');
+        @:privateAccess state.check("dsp_set_parameter_attenuation_range_null_props",
+            pan.setParameterAttenuationRange(rangeIndex, null) == FmodResult.FMOD_ERR_INVALID_PARAM, "");
+        var setWeighting = loud.setLoudnessMeterWeighting({channelWeight: [0.5, 0.25]});
+        @:privateAccess state.check("dsp_set_loudness_meter_weighting", setWeighting.isOk(), 'result=${setWeighting.toString()}');
+        var weighting = loud.getLoudnessMeterWeighting();
+        @:privateAccess state.check("dsp_get_loudness_meter_weighting", weighting != null
+            && weighting.channelWeight.length == Dsp.MAX_CHANNEL_SLOTS && weighting.channelWeight[0] == 0.5 && weighting.channelWeight[1] == 0.25 && weighting.channelWeight[2] == 0,
+            weighting == null ? 'null result=${StudioSystem.lastResult().toString()}' : 'w0=${weighting.channelWeight[0]} w1=${weighting.channelWeight[1]} n=${weighting.channelWeight.length}');
+        @:privateAccess state.check("dsp_set_loudness_meter_weighting_oversized",
+            loud.setLoudnessMeterWeighting({channelWeight: [for (_ in 0...Dsp.MAX_CHANNEL_SLOTS + 1) 1.0]}) == FmodResult.FMOD_ERR_INVALID_PARAM, "");
+        @:privateAccess state.check("dsp_set_loudness_meter_weighting_null",
+            loud.setLoudnessMeterWeighting(null) == FmodResult.FMOD_ERR_INVALID_PARAM, "");
 
         // --- teardown ---
         channel.stop();

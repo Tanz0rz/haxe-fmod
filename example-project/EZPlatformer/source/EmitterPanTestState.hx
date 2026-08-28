@@ -430,9 +430,9 @@ class EmitterPanTestState extends FlxState {
 
     function trackSpatialPeaks():Void {
         var metering = _spatialMeter.getMetering();
-        if (metering == null || metering.peak.length < 2) return;
-        if (metering.peak[0] > _peakL) _peakL = metering.peak[0];
-        if (metering.peak[1] > _peakR) _peakR = metering.peak[1];
+        if (metering == null || metering.peakLevel.length < 2) return;
+        if (metering.peakLevel[0] > _peakL) _peakL = metering.peakLevel[0];
+        if (metering.peakLevel[1] > _peakR) _peakR = metering.peakLevel[1];
     }
 
     function finishSpatial():Void {

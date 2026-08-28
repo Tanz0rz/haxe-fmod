@@ -6174,6 +6174,39 @@ const char* fmod_dsp_get_parameter_text(int h, int index, int kind) {
     return gStringBuf;
 }
 
+// A typed data parameter (faxe_dspdata.h kinds): fbuf and ibuf hold the
+// flat image, the helper builds the FMOD struct.
+int fmod_dsp_set_param_typed(int h, int index, int kind, ::Array<Float> fbuf, ::Array<int> ibuf) {
+    FMOD::DSP* dsp = resolveDsp(h);
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    double f[FAXE_DSPDATA_TYPED_DOUBLES];
+    int ints[FAXE_DSPDATA_TYPED_INTS];
+    for (int i = 0; i < FAXE_DSPDATA_TYPED_DOUBLES; i++) f[i] = fbuf[i];
+    for (int i = 0; i < FAXE_DSPDATA_TYPED_INTS; i++) ints[i] = ibuf[i];
+    faxe_dspdata_typed data;
+    unsigned int size = faxe_dspdata_pack_typed(kind, &data, f, ints);
+    if (!size) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    gLastResult = dsp->setParameterData(index, &data, size);
+    return (int)gLastResult;
+}
+
+// Reads the block back as the kind into fbuf and ibuf. FMOD_ERR_INVALID_PARAM
+// for an unknown kind or a block shorter than the struct.
+int fmod_dsp_get_param_typed(int h, int index, int kind, ::Array<Float> fbuf, ::Array<int> ibuf) {
+    FMOD::DSP* dsp = resolveDsp(h);
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    void* data = NULL;
+    unsigned int len = 0;
+    gLastResult = dsp->getParameterData(index, &data, &len, NULL, 0);
+    if (gLastResult != FMOD_OK) return (int)gLastResult;
+    double f[FAXE_DSPDATA_TYPED_DOUBLES];
+    int ints[FAXE_DSPDATA_TYPED_INTS];
+    if (!faxe_dspdata_unpack_typed(kind, data, len, f, ints)) gLastResult = FMOD_ERR_INVALID_PARAM;
+    for (int i = 0; i < FAXE_DSPDATA_TYPED_DOUBLES; i++) fbuf[i] = f[i];
+    for (int i = 0; i < FAXE_DSPDATA_TYPED_INTS; i++) ibuf[i] = ints[i];
+    return (int)gLastResult;
+}
+
 //// Init settings and system info: pre-create hooks, driver info, console ports
 
 // A fixed pool FMOD allocates from instead of the heap, handed over with

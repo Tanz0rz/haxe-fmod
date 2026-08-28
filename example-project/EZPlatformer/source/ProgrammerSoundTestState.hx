@@ -341,7 +341,7 @@ class ProgrammerSoundTestState extends FlxState {
             _atFrames++;
             var metering = _atMeter.getMetering();
             if (metering != null) {
-                for (p in metering.peak) if (p > _atMaxPeak) _atMaxPeak = p;
+                for (p in metering.peakLevel) if (p > _atMaxPeak) _atMaxPeak = p;
             }
             // The destroy event can trail the stop by a drain or two, so
             // wait for both before finishing

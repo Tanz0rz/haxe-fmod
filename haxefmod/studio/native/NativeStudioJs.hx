@@ -688,6 +688,10 @@ class NativeStudioJs {
     /** Fills Scratch float buffer with one channel's bins, int buffer [0] numchannels, [1] length. Returns the bins written. */
     public static inline function dsp_fft_get_spectrum_channel(handle:Int, channel:Int, maxBins:Int):Int return Raw.fmod_dsp_fft_get_spectrum_channel(handle, channel, Scratch.floatBuf(), maxBins, Scratch.intBuf());
     public static inline function dsp_get_parameter_text(handle:Int, index:Int, kind:Int):String return Raw.fmod_dsp_get_parameter_text(handle, index, kind);
+    /** A typed data parameter of the faxe_dspdata.h kind from the Scratch float and int buffers. Returns the FMOD result. */
+    public static inline function dsp_set_param_typed(handle:Int, index:Int, kind:Int):Int return Raw.fmod_dsp_set_param_typed(handle, index, kind, Scratch.floatBuf(), Scratch.intBuf());
+    /** Reads a data parameter back as the faxe_dspdata.h kind into the Scratch float and int buffers. Returns the FMOD result. */
+    public static inline function dsp_get_param_typed(handle:Int, index:Int, kind:Int):Int return Raw.fmod_dsp_get_param_typed(handle, index, kind, Scratch.floatBuf(), Scratch.intBuf());
     public static inline function dsp_get_data_parameter_index(handle:Int, dataType:Int):Int return Raw.fmod_dsp_get_data_parameter_index(handle, dataType);
     public static inline function dsp_set_channel_format(handle:Int, mask:Int, channels:Int, speakerMode:Int):Int return Raw.fmod_dsp_set_channel_format(handle, mask, channels, speakerMode);
     public static inline function dsp_get_channel_format(handle:Int):Int return Raw.fmod_dsp_get_channel_format(handle, Scratch.intBuf());
@@ -1244,6 +1248,8 @@ private extern class Raw {
     static function fmod_dsp_get_metering_info(handle:Int, input:Bool, fbuf:Array<Float>, ibuf:Array<Int>):Int;
     static function fmod_dsp_fft_get_spectrum_channel(handle:Int, channel:Int, fbuf:Array<Float>, maxBins:Int, ibuf:Array<Int>):Int;
     static function fmod_dsp_get_parameter_text(handle:Int, index:Int, kind:Int):String;
+    static function fmod_dsp_set_param_typed(handle:Int, index:Int, kind:Int, fbuf:Array<Float>, ibuf:Array<Int>):Int;
+    static function fmod_dsp_get_param_typed(handle:Int, index:Int, kind:Int, fbuf:Array<Float>, ibuf:Array<Int>):Int;
     static function fmod_dsp_get_data_parameter_index(handle:Int, dataType:Int):Int;
     static function fmod_dsp_set_channel_format(handle:Int, mask:Int, channels:Int, speakerMode:Int):Int;
     static function fmod_dsp_get_channel_format(handle:Int, ibuf:Array<Int>):Int;

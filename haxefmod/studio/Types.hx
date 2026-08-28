@@ -145,6 +145,94 @@ typedef FmodDspParameterFft = {
     var spectrum:Array<Array<Float>>;
 }
 
+/** FMOD_DSP_METERING_INFO, one side of a unit's meter: the sample count the meter averaged, the peak and RMS level per channel (linear 0..1), and the channel count. Dsp.getMetering and getInputMetering return it. */
+typedef FmodDspMeteringInfo = {
+    var numSamples:Int;
+    var peakLevel:Array<Float>;
+    var rmsLevel:Array<Float>;
+    var numChannels:Int;
+}
+
+/** FMOD_DSP_PARAMETER_FLOAT_MAPPING_PIECEWISE_LINEAR, the points of a piecewise linear float mapping: numPoints parameter values and the 0..1 control positions they sit at. */
+typedef FmodDspParameterFloatMappingPiecewiseLinear = {
+    var numPoints:Int;
+    var pointParamValues:Array<Float>;
+    var pointPositions:Array<Float>;
+}
+
+/** FMOD_DSP_PARAMETER_FLOAT_MAPPING, how a float parameter's range maps onto a control. The points are empty unless type is PIECEWISE_LINEAR. */
+typedef FmodDspParameterFloatMapping = {
+    var type:FmodDspParameterFloatMappingType;
+    var piecewiseLinearMapping:FmodDspParameterFloatMappingPiecewiseLinear;
+}
+
+/** FMOD_DSP_PARAMETER_DESC_FLOAT, the range, default, and mapping of a float parameter. */
+typedef FmodDspParameterDescFloat = {
+    var min:Float;
+    var max:Float;
+    var defaultVal:Float;
+    var mapping:FmodDspParameterFloatMapping;
+}
+
+/** FMOD_DSP_PARAMETER_DESC_INT, the range and default of an int parameter. valueNames is null when the unit names none, otherwise one name per value from min to max. */
+typedef FmodDspParameterDescInt = {
+    var min:Int;
+    var max:Int;
+    var defaultVal:Int;
+    var goesToInf:Bool;
+    var valueNames:Null<Array<String>>;
+}
+
+/** FMOD_DSP_PARAMETER_DESC_BOOL, the default of a bool parameter. valueNames is null when the unit names none, otherwise the false and true names. */
+typedef FmodDspParameterDescBool = {
+    var defaultVal:Bool;
+    var valueNames:Null<Array<String>>;
+}
+
+/** FMOD_DSP_PARAMETER_DESC_DATA, the FmodDspParameterDataType of a data parameter. */
+typedef FmodDspParameterDescData = {
+    var dataType:FmodDspParameterDataType;
+}
+
+/** FMOD_DSP_PARAMETER_DESC, what Dsp.getParameterInfo reports. The union member matching type is set, the other three are null. */
+typedef FmodDspParameterDesc = {
+    var type:FmodDspParameterType;
+    var name:String;
+    var label:String;
+    var description:String;
+    var floatDesc:Null<FmodDspParameterDescFloat>;
+    var intDesc:Null<FmodDspParameterDescInt>;
+    var boolDesc:Null<FmodDspParameterDescBool>;
+    var dataDesc:Null<FmodDspParameterDescData>;
+}
+
+/** FMOD_DSP_PARAMETER_ATTENUATION_RANGE, the distance range a spatializer attenuates over. Dsp.setParameterAttenuationRange and getParameterAttenuationRange carry it. */
+typedef FmodDspParameterAttenuationRange = {
+    var min:Float;
+    var max:Float;
+}
+
+/** FMOD_DSP_PARAMETER_DYNAMIC_RESPONSE, the RMS level per channel a dynamics unit reports. Dsp.getParameterDynamicResponse reads it. */
+typedef FmodDspParameterDynamicResponse = {
+    var numChannels:Int;
+    var rms:Array<Float>;
+}
+
+/** FMOD_DSP_PARAMETER_FINITE_LENGTH, whether a unit's output ends. Dsp.setParameterFiniteLength and getParameterFiniteLength carry it. */
+typedef FmodDspParameterFiniteLength = {
+    var finite:Bool;
+}
+
+/** FMOD_DSP_PARAMETER_SIDECHAIN, whether a unit analyses its sidechain input instead of its signal. Dsp.setParameterSidechain and getParameterSidechain carry it. */
+typedef FmodDspParameterSidechain = {
+    var sidechainEnable:Bool;
+}
+
+/** FMOD_DSP_LOUDNESS_METER_WEIGHTING_TYPE, the weight of each of the 32 channels a loudness meter sums. Dsp.setLoudnessMeterWeighting writes it. */
+typedef FmodDspLoudnessMeterWeightingType = {
+    var channelWeight:Array<Float>;
+}
+
 /**
  * What StudioSystem.getListenerAttributes returns: the listener's 3D
  * attributes plus the point FMOD attenuates from. The attenuation position
@@ -857,7 +945,7 @@ enum abstract FmodDspParameterDataType(Int) from Int to Int {
     var FINITE_LENGTH = -8;
 }
 
-/** FMOD_DSP_PARAMETER_FLOAT_MAPPING_TYPE, how a plugin maps a float parameter's range. Plugin authoring is C, declared for reference. */
+/** FMOD_DSP_PARAMETER_FLOAT_MAPPING_TYPE, the type field of FmodDspParameterFloatMapping. */
 enum abstract FmodDspParameterFloatMappingType(Int) from Int to Int {
     var LINEAR = 0;
     var AUTO = 1;
