@@ -151,6 +151,22 @@ abstract Channel(Int) from Int to Int {
         return {direct: Scratch.readF(0), reverb: Scratch.readF(1)};
     }
 
+    /**
+     * Overrides the distance lowpass on this 3D channel. With custom on,
+     * customLevel (0 to 1) replaces the distance-derived attenuation and
+     * centerFreq sets the filter's center in Hz. The distanceFilter
+     * setting must be on at init for any of this to take effect.
+     */
+    public inline function set3DDistanceFilter(custom:Bool, customLevel:Float, centerFreq:Float):FmodResult {
+        return NativeStudio.chan_set_3d_distance_filter(this, custom, customLevel, centerFreq);
+    }
+
+    public function get3DDistanceFilter():Null<{custom:Bool, customLevel:Float, centerFreq:Float}> {
+        var result:FmodResult = NativeStudio.chan_get_3d_distance_filter(this);
+        if (!result.isOk()) return null;
+        return {custom: Scratch.readF(0) != 0, customLevel: Scratch.readF(1), centerFreq: Scratch.readF(2)};
+    }
+
     /** Speaker spread of a 3D sound in degrees (0 = point source). */
     public inline function set3DSpread(angle:Float):FmodResult {
         return NativeStudio.chan_set_3d_spread(this, angle);

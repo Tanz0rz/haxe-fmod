@@ -79,7 +79,7 @@ class NativeStudioHl {
     /** Fills Scratch int buffer: [0]=exclusive, [1]=inclusive, [2]=sampledata (bytes) */
     public static inline function sys_get_memory_usage():Int return Raw.sys_get_memory_usage(Scratch.intBuf());
 
-    public static inline function sys_init_ex(numChannels:Int, sampleRate:Int, speakerMode:Int, studioFlags:Int):Int return Raw.sys_init_ex(numChannels, sampleRate, speakerMode, studioFlags);
+    public static inline function sys_init_ex(numChannels:Int, sampleRate:Int, speakerMode:Int, studioFlags:Int, dspBufferLength:Int, dspNumBuffers:Int, softwareChannels:Int, streamBufferSize:Int, initFlags:Int):Int return Raw.sys_init_ex(numChannels, sampleRate, speakerMode, studioFlags, dspBufferLength, dspNumBuffers, softwareChannels, streamBufferSize, initFlags);
     public static inline function sys_set_debug_level(level:Int):Int return Raw.sys_set_debug_level(level);
     public static inline function sys_load_bank_async(path:String):Int return Raw.sys_load_bank_async(toBytes(path));
     public static inline function sys_is_initialized():Bool return Raw.sys_is_initialized();
@@ -241,7 +241,7 @@ class NativeStudioHl {
     public static inline function ps_clear(handle:Int):Int return Raw.ps_clear(handle);
 
     // Core API micro subset
-    public static inline function core_create_sound(path:String, mode:Int):Int return Raw.core_create_sound(toBytes(path), mode);
+    public static inline function core_create_sound(path:String, mode:Int, openOnly:Bool):Int return Raw.core_create_sound(toBytes(path), mode, openOnly);
     public static inline function core_release_sound(handle:Int):Int return Raw.core_release_sound(handle);
     public static inline function core_get_sound_length(handle:Int):Int return Raw.core_get_sound_length(handle);
 
@@ -598,6 +598,22 @@ class NativeStudioHl {
     public static inline function cb_string():String return fromBytes(Raw.cb_string());
     public static inline function cb_take_overflow():Bool return Raw.cb_take_overflow();
 
+    // Distance filter, version, sound data, and recording
+    public static inline function chan_set_3d_distance_filter(handle:Int, custom:Bool, customLevel:Float, centerFreq:Float):Int return Raw.chan_set_3d_distance_filter(handle, custom, customLevel, centerFreq);
+    public static inline function chan_get_3d_distance_filter(handle:Int):Int return Raw.chan_get_3d_distance_filter(handle, Scratch.floatBuf());
+    public static inline function cg_set_3d_distance_filter(handle:Int, custom:Bool, customLevel:Float, centerFreq:Float):Int return Raw.cg_set_3d_distance_filter(handle, custom, customLevel, centerFreq);
+    public static inline function cg_get_3d_distance_filter(handle:Int):Int return Raw.cg_get_3d_distance_filter(handle, Scratch.floatBuf());
+    public static inline function sys_get_version():String return fromBytes(Raw.sys_get_version());
+    public static inline function core_sound_read_data(handle:Int, data:haxe.io.Bytes, len:Int):Int return Raw.core_sound_read_data(handle, data.getData().bytes, len);
+    public static inline function core_sound_seek_data(handle:Int, pcm:Int):Int return Raw.core_sound_seek_data(handle, pcm);
+    public static inline function sys_get_record_num_drivers():Int return Raw.sys_get_record_num_drivers(Scratch.intBuf());
+    public static inline function sys_get_record_driver_info(id:Int):String return fromBytes(Raw.sys_get_record_driver_info(id, Scratch.intBuf()));
+    public static inline function core_create_record_sound(sampleRate:Int, channels:Int, seconds:Int):Int return Raw.core_create_record_sound(sampleRate, channels, seconds);
+    public static inline function sys_record_start(id:Int, soundHandle:Int, loop:Bool):Int return Raw.sys_record_start(id, soundHandle, loop);
+    public static inline function sys_record_stop(id:Int):Int return Raw.sys_record_stop(id);
+    public static inline function sys_is_recording(id:Int):Bool return Raw.sys_is_recording(id);
+    public static inline function sys_get_record_position(id:Int):Int return Raw.sys_get_record_position(id);
+
     // Debug
     public static inline function debug_live_handle_count():Int return Raw.debug_live_handle_count();
     public static inline function binding_abi_version():Int return Raw.binding_abi_version();
@@ -647,7 +663,7 @@ private extern class Raw {
     static function sys_get_buffer_usage(iout:hl.Bytes, fout:hl.Bytes):Int;
     static function sys_reset_buffer_usage():Int;
     static function sys_get_memory_usage(out:hl.Bytes):Int;
-    static function sys_init_ex(numChannels:Int, sampleRate:Int, speakerMode:Int, studioFlags:Int):Int;
+    static function sys_init_ex(numChannels:Int, sampleRate:Int, speakerMode:Int, studioFlags:Int, dspBufferLength:Int, dspNumBuffers:Int, softwareChannels:Int, streamBufferSize:Int, initFlags:Int):Int;
     static function sys_set_debug_level(level:Int):Int;
     static function sys_load_bank_async(path:hl.Bytes):Int;
     static function bus_is_valid(handle:Int):Bool;
@@ -753,7 +769,7 @@ private extern class Raw {
     static function evi_get_memory_usage(handle:Int, out:hl.Bytes):Int;
     static function ps_assign(handle:Int, key:hl.Bytes):Int;
     static function ps_clear(handle:Int):Int;
-    static function core_create_sound(path:hl.Bytes, mode:Int):Int;
+    static function core_create_sound(path:hl.Bytes, mode:Int, openOnly:Bool):Int;
     static function core_release_sound(handle:Int):Int;
     static function core_get_sound_length(handle:Int):Int;
     static function core_pcm_create(sampleRate:Int, channels:Int, ringBytes:Int):Int;
@@ -995,6 +1011,20 @@ private extern class Raw {
     static function cb_float():Float;
     static function cb_string():hl.Bytes;
     static function cb_take_overflow():Bool;
+    static function chan_set_3d_distance_filter(handle:Int, custom:Bool, customLevel:Float, centerFreq:Float):Int;
+    static function chan_get_3d_distance_filter(handle:Int, fbuf:hl.Bytes):Int;
+    static function cg_set_3d_distance_filter(handle:Int, custom:Bool, customLevel:Float, centerFreq:Float):Int;
+    static function cg_get_3d_distance_filter(handle:Int, fbuf:hl.Bytes):Int;
+    static function sys_get_version():hl.Bytes;
+    static function core_sound_read_data(handle:Int, data:hl.Bytes, len:Int):Int;
+    static function core_sound_seek_data(handle:Int, pcm:Int):Int;
+    static function sys_get_record_num_drivers(ibuf:hl.Bytes):Int;
+    static function sys_get_record_driver_info(id:Int, ibuf:hl.Bytes):hl.Bytes;
+    static function core_create_record_sound(sampleRate:Int, channels:Int, seconds:Int):Int;
+    static function sys_record_start(id:Int, soundHandle:Int, loop:Bool):Int;
+    static function sys_record_stop(id:Int):Int;
+    static function sys_is_recording(id:Int):Bool;
+    static function sys_get_record_position(id:Int):Int;
     static function debug_live_handle_count():Int;
     static function binding_abi_version():Int;
 }

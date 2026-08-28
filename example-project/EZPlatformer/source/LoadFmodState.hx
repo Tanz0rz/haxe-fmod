@@ -15,7 +15,14 @@ class LoadFmodState extends FlxState {
         // The manual-update CI variant: every probe state then runs on
         // FmodManager.Update's manual sys_update pushes instead of the
         // native auto-update thread
-        FmodManager.Initialize({autoUpdate: false});
+        FmodManager.Initialize({autoUpdate: false, profiling: true, distanceFilter: true,
+            dspBufferSize: 1024, dspNumBuffers: 4, softwareChannels: 64, streamBufferSize: 65536});
+        #elseif audio_test
+        // The test builds turn on profiling and the distance filter so the
+        // api-probe can see both work, and pin the buffer settings so the
+        // init path with every argument set runs on every CI target
+        FmodManager.Initialize({profiling: true, distanceFilter: true,
+            dspBufferSize: 1024, dspNumBuffers: 4, softwareChannels: 64, streamBufferSize: 65536});
         #else
         FmodManager.Initialize();
         #end

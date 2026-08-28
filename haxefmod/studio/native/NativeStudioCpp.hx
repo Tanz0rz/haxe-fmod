@@ -82,7 +82,7 @@ class NativeStudioCpp {
     /** Fills Scratch int buffer: [0]=exclusive, [1]=inclusive, [2]=sampledata (bytes) */
     public static inline function sys_get_memory_usage():Int return Raw.sys_get_memory_usage(Scratch.intBuf());
 
-    public static inline function sys_init_ex(numChannels:Int, sampleRate:Int, speakerMode:Int, studioFlags:Int):Int return Raw.sys_init_ex(numChannels, sampleRate, speakerMode, studioFlags);
+    public static inline function sys_init_ex(numChannels:Int, sampleRate:Int, speakerMode:Int, studioFlags:Int, dspBufferLength:Int, dspNumBuffers:Int, softwareChannels:Int, streamBufferSize:Int, initFlags:Int):Int return Raw.sys_init_ex(numChannels, sampleRate, speakerMode, studioFlags, dspBufferLength, dspNumBuffers, softwareChannels, streamBufferSize, initFlags);
     public static inline function sys_set_debug_level(level:Int):Int return Raw.sys_set_debug_level(level);
     public static inline function sys_load_bank_async(path:String):Int return Raw.sys_load_bank_async(path);
     public static inline function sys_is_initialized():Bool return Raw.sys_is_initialized();
@@ -244,7 +244,7 @@ class NativeStudioCpp {
     public static inline function ps_clear(handle:Int):Int return Raw.ps_clear(handle);
 
     // Core API micro subset
-    public static inline function core_create_sound(path:String, mode:Int):Int return Raw.core_create_sound(path, mode);
+    public static inline function core_create_sound(path:String, mode:Int, openOnly:Bool):Int return Raw.core_create_sound(path, mode, openOnly);
     public static inline function core_release_sound(handle:Int):Int return Raw.core_release_sound(handle);
     public static inline function core_get_sound_length(handle:Int):Int return Raw.core_get_sound_length(handle);
 
@@ -601,6 +601,22 @@ class NativeStudioCpp {
     public static inline function cb_string():String return Raw.cb_string().toString();
     public static inline function cb_take_overflow():Bool return Raw.cb_take_overflow();
 
+    // Distance filter, version, sound data, and recording
+    public static inline function chan_set_3d_distance_filter(handle:Int, custom:Bool, customLevel:Float, centerFreq:Float):Int return Raw.chan_set_3d_distance_filter(handle, custom, customLevel, centerFreq);
+    public static inline function chan_get_3d_distance_filter(handle:Int):Int return Raw.chan_get_3d_distance_filter(handle, Scratch.floatBuf());
+    public static inline function cg_set_3d_distance_filter(handle:Int, custom:Bool, customLevel:Float, centerFreq:Float):Int return Raw.cg_set_3d_distance_filter(handle, custom, customLevel, centerFreq);
+    public static inline function cg_get_3d_distance_filter(handle:Int):Int return Raw.cg_get_3d_distance_filter(handle, Scratch.floatBuf());
+    public static inline function sys_get_version():String return Raw.sys_get_version().toString();
+    public static inline function core_sound_read_data(handle:Int, data:haxe.io.Bytes, len:Int):Int return Raw.core_sound_read_data(handle, data.getData(), len);
+    public static inline function core_sound_seek_data(handle:Int, pcm:Int):Int return Raw.core_sound_seek_data(handle, pcm);
+    public static inline function sys_get_record_num_drivers():Int return Raw.sys_get_record_num_drivers(Scratch.intBuf());
+    public static inline function sys_get_record_driver_info(id:Int):String return Raw.sys_get_record_driver_info(id, Scratch.intBuf()).toString();
+    public static inline function core_create_record_sound(sampleRate:Int, channels:Int, seconds:Int):Int return Raw.core_create_record_sound(sampleRate, channels, seconds);
+    public static inline function sys_record_start(id:Int, soundHandle:Int, loop:Bool):Int return Raw.sys_record_start(id, soundHandle, loop);
+    public static inline function sys_record_stop(id:Int):Int return Raw.sys_record_stop(id);
+    public static inline function sys_is_recording(id:Int):Bool return Raw.sys_is_recording(id);
+    public static inline function sys_get_record_position(id:Int):Int return Raw.sys_get_record_position(id);
+
     // Debug
     public static inline function debug_live_handle_count():Int return Raw.debug_live_handle_count();
     public static inline function binding_abi_version():Int return Raw.binding_abi_version();
@@ -736,7 +752,7 @@ private extern class Raw {
     static function sys_get_memory_usage(out:Array<Int>):Int;
 
     @:native("linc::faxe::fmod_sys_init_ex")
-    static function sys_init_ex(numChannels:Int, sampleRate:Int, speakerMode:Int, studioFlags:Int):Int;
+    static function sys_init_ex(numChannels:Int, sampleRate:Int, speakerMode:Int, studioFlags:Int, dspBufferLength:Int, dspNumBuffers:Int, softwareChannels:Int, streamBufferSize:Int, initFlags:Int):Int;
 
     @:native("linc::faxe::fmod_sys_set_debug_level")
     static function sys_set_debug_level(level:Int):Int;
@@ -1054,7 +1070,7 @@ private extern class Raw {
     static function ps_clear(handle:Int):Int;
 
     @:native("linc::faxe::fmod_core_create_sound")
-    static function core_create_sound(path:String, mode:Int):Int;
+    static function core_create_sound(path:String, mode:Int, openOnly:Bool):Int;
 
     @:native("linc::faxe::fmod_core_release_sound")
     static function core_release_sound(handle:Int):Int;
@@ -1778,6 +1794,48 @@ private extern class Raw {
 
     @:native("linc::faxe::fmod_cb_take_overflow")
     static function cb_take_overflow():Bool;
+
+    @:native("linc::faxe::fmod_chan_set_3d_distance_filter")
+    static function chan_set_3d_distance_filter(handle:Int, custom:Bool, customLevel:Float, centerFreq:Float):Int;
+
+    @:native("linc::faxe::fmod_chan_get_3d_distance_filter")
+    static function chan_get_3d_distance_filter(handle:Int, fbuf:Array<Float>):Int;
+
+    @:native("linc::faxe::fmod_cg_set_3d_distance_filter")
+    static function cg_set_3d_distance_filter(handle:Int, custom:Bool, customLevel:Float, centerFreq:Float):Int;
+
+    @:native("linc::faxe::fmod_cg_get_3d_distance_filter")
+    static function cg_get_3d_distance_filter(handle:Int, fbuf:Array<Float>):Int;
+
+    @:native("linc::faxe::fmod_sys_get_version")
+    static function sys_get_version():cpp.ConstCharStar;
+
+    @:native("linc::faxe::fmod_core_sound_read_data")
+    static function core_sound_read_data(handle:Int, data:haxe.io.BytesData, len:Int):Int;
+
+    @:native("linc::faxe::fmod_core_sound_seek_data")
+    static function core_sound_seek_data(handle:Int, pcm:Int):Int;
+
+    @:native("linc::faxe::fmod_sys_get_record_num_drivers")
+    static function sys_get_record_num_drivers(ibuf:Array<Int>):Int;
+
+    @:native("linc::faxe::fmod_sys_get_record_driver_info")
+    static function sys_get_record_driver_info(id:Int, ibuf:Array<Int>):cpp.ConstCharStar;
+
+    @:native("linc::faxe::fmod_core_create_record_sound")
+    static function core_create_record_sound(sampleRate:Int, channels:Int, seconds:Int):Int;
+
+    @:native("linc::faxe::fmod_sys_record_start")
+    static function sys_record_start(id:Int, soundHandle:Int, loop:Bool):Int;
+
+    @:native("linc::faxe::fmod_sys_record_stop")
+    static function sys_record_stop(id:Int):Int;
+
+    @:native("linc::faxe::fmod_sys_is_recording")
+    static function sys_is_recording(id:Int):Bool;
+
+    @:native("linc::faxe::fmod_sys_get_record_position")
+    static function sys_get_record_position(id:Int):Int;
 
     @:native("linc::faxe::fmod_debug_live_handle_count")
     static function debug_live_handle_count():Int;

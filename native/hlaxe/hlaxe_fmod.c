@@ -355,12 +355,13 @@ static FMOD_SOUND* resolve_sound(int h) {
     return (FMOD_SOUND*)faxe_handle_resolve(h, FAXE_TYPE_SOUND);
 }
 
-HL_PRIM int HL_NAME(core_create_sound)(vbyte* path, int mode) {
+HL_PRIM int HL_NAME(core_create_sound)(vbyte* path, int mode, bool openOnly) {
     FMOD_SOUND* sound = NULL;
     FMOD_MODE fmodMode = FMOD_DEFAULT;
     int handle;
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
     if (mode & 1) fmodMode |= FMOD_LOOP_NORMAL;
+    if (openOnly) fmodMode |= FMOD_OPENONLY;
     gLastResult = FMOD_System_CreateSound(gCoreSystem, (const char*)path, fmodMode, NULL, &sound);
     if (gLastResult != FMOD_OK || !sound) return 0;
     handle = faxe_handle_alloc(sound, FAXE_TYPE_SOUND);
@@ -371,7 +372,7 @@ HL_PRIM int HL_NAME(core_create_sound)(vbyte* path, int mode) {
     }
     return handle;
 }
-DEFINE_PRIM(_I32, core_create_sound, _BYTES _I32);
+DEFINE_PRIM(_I32, core_create_sound, _BYTES _I32 _BOOL);
 
 HL_PRIM int HL_NAME(core_release_sound)(int h) {
     FMOD_SOUND* sound = resolve_sound(h);
@@ -3141,10 +3142,15 @@ DEFINE_PRIM(_I32, sys_last_result, _NO_ARG);
 // live update. Keeps the FMOD_WAVWRITER env branch (CI recording), which
 // forces 48000/stereo and wins over the requested format. Idempotent:
 // returns FMOD_OK when already initialized.
-HL_PRIM int HL_NAME(sys_init_ex)(int numChannels, int sampleRate, int speakerMode, int studioFlags) {
+// dspBufferLength/dspNumBuffers, softwareChannels, and streamBufferSize
+// (bytes) are applied before initialize when nonzero. initFlags bit0 turns
+// on FMOD_INIT_PROFILE_ENABLE, bit1 FMOD_INIT_CHANNEL_DISTANCEFILTER.
+HL_PRIM int HL_NAME(sys_init_ex)(int numChannels, int sampleRate, int speakerMode, int studioFlags,
+    int dspBufferLength, int dspNumBuffers, int softwareChannels, int streamBufferSize, int initFlags) {
     const char* wavWriterPath;
     void* extradriverdata = NULL;
     FMOD_STUDIO_INITFLAGS studioInitFlags;
+    FMOD_INITFLAGS coreInitFlags = FMOD_INIT_NORMAL;
 
     if (gStudioSystem != NULL) { gLastResult = FMOD_OK; return (int)gLastResult; }
     if (numChannels <= 0) numChannels = 128;
@@ -3165,9 +3171,23 @@ HL_PRIM int HL_NAME(sys_init_ex)(int numChannels, int sampleRate, int speakerMod
         FMOD_System_SetSoftwareFormat(gCoreSystem, sampleRate, (FMOD_SPEAKERMODE)speakerMode, 0);
     }
 
+    if (dspBufferLength > 0 || softwareChannels > 0 || streamBufferSize > 0) {
+        FMOD_Studio_System_GetCoreSystem(gStudioSystem, &gCoreSystem);
+        if (dspBufferLength > 0) {
+            FMOD_System_SetDSPBufferSize(gCoreSystem, (unsigned int)dspBufferLength,
+                dspNumBuffers > 0 ? dspNumBuffers : 2);
+        }
+        if (softwareChannels > 0) FMOD_System_SetSoftwareChannels(gCoreSystem, softwareChannels);
+        if (streamBufferSize > 0) {
+            FMOD_System_SetStreamBufferSize(gCoreSystem, (unsigned int)streamBufferSize, FMOD_TIMEUNIT_RAWBYTES);
+        }
+    }
+    if (initFlags & 1) coreInitFlags |= FMOD_INIT_PROFILE_ENABLE;
+    if (initFlags & 2) coreInitFlags |= FMOD_INIT_CHANNEL_DISTANCEFILTER;
+
     studioInitFlags = (studioFlags & 1) ? FMOD_STUDIO_INIT_LIVEUPDATE : FMOD_STUDIO_INIT_NORMAL;
     gLastResult = FMOD_Studio_System_Initialize(gStudioSystem, numChannels,
-        studioInitFlags, FMOD_INIT_NORMAL, extradriverdata);
+        studioInitFlags, coreInitFlags, extradriverdata);
     if (gLastResult != FMOD_OK) {
         FMOD_Studio_System_Release(gStudioSystem);
         gStudioSystem = NULL;
@@ -3182,7 +3202,7 @@ HL_PRIM int HL_NAME(sys_init_ex)(int numChannels, int sampleRate, int speakerMod
     gLastResult = FMOD_OK;
     return (int)gLastResult;
 }
-DEFINE_PRIM(_I32, sys_init_ex, _I32 _I32 _I32 _I32);
+DEFINE_PRIM(_I32, sys_init_ex, _I32 _I32 _I32 _I32 _I32 _I32 _I32 _I32 _I32);
 
 // FMOD_Debug_Initialize level mapping (0=none 1=error 2=warning 3=log),
 // TTY mode, no file logging. The logging-stripped FMOD libs report
@@ -4742,6 +4762,188 @@ HL_PRIM int HL_NAME(evi_get_memory_usage)(int h, vbyte* out) {
     return (int)gLastResult;
 }
 DEFINE_PRIM(_I32, evi_get_memory_usage, _I32 _BYTES);
+
+//// Distance filter, version, sound data, and recording
+
+HL_PRIM int HL_NAME(chan_set_3d_distance_filter)(int h, bool custom, double customLevel, double centerFreq) {
+    FMOD_CHANNEL* channel = resolve_channel(h);
+    if (!channel) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_Channel_Set3DDistanceFilter(channel, custom ? 1 : 0, (float)customLevel, (float)centerFreq);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, chan_set_3d_distance_filter, _I32 _BOOL _F64 _F64);
+
+// out = double[3]: custom (1 or 0), custom level, center frequency
+HL_PRIM int HL_NAME(chan_get_3d_distance_filter)(int h, vbyte* out) {
+    FMOD_CHANNEL* channel = resolve_channel(h);
+    FMOD_BOOL custom = 0;
+    float customLevel = 0.0f;
+    float centerFreq = 0.0f;
+    double* outFloats = (double*)out;
+    if (!channel) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_Channel_Get3DDistanceFilter(channel, &custom, &customLevel, &centerFreq);
+    outFloats[0] = custom ? 1.0 : 0.0;
+    outFloats[1] = (double)customLevel;
+    outFloats[2] = (double)centerFreq;
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, chan_get_3d_distance_filter, _I32 _BYTES);
+
+HL_PRIM int HL_NAME(cg_set_3d_distance_filter)(int h, bool custom, double customLevel, double centerFreq) {
+    FMOD_CHANNELGROUP* group = resolve_changroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_ChannelGroup_Set3DDistanceFilter(group, custom ? 1 : 0, (float)customLevel, (float)centerFreq);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, cg_set_3d_distance_filter, _I32 _BOOL _F64 _F64);
+
+HL_PRIM int HL_NAME(cg_get_3d_distance_filter)(int h, vbyte* out) {
+    FMOD_CHANNELGROUP* group = resolve_changroup(h);
+    FMOD_BOOL custom = 0;
+    float customLevel = 0.0f;
+    float centerFreq = 0.0f;
+    double* outFloats = (double*)out;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_ChannelGroup_Get3DDistanceFilter(group, &custom, &customLevel, &centerFreq);
+    outFloats[0] = custom ? 1.0 : 0.0;
+    outFloats[1] = (double)customLevel;
+    outFloats[2] = (double)centerFreq;
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, cg_get_3d_distance_filter, _I32 _BYTES);
+
+// The version is BCD, so the fields print as hex: 0x00020312 is "2.03.12".
+HL_PRIM vbyte* HL_NAME(sys_get_version)() {
+    unsigned int version = 0;
+    unsigned int build = 0;
+    gStringBuf[0] = '\0';
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (vbyte*)gStringBuf; }
+    gLastResult = FMOD_System_GetVersion(gCoreSystem, &version, &build);
+    if (gLastResult != FMOD_OK) return (vbyte*)gStringBuf;
+    snprintf(gStringBuf, sizeof(gStringBuf), "%x.%02x.%02x",
+        version >> 16, (version >> 8) & 0xFF, version & 0xFF);
+    return (vbyte*)gStringBuf;
+}
+DEFINE_PRIM(_BYTES, sys_get_version, _NO_ARG);
+
+// Returns the bytes read, or the negated FMOD error. A short read at the
+// end of the file still returns the count and leaves FMOD_ERR_FILE_EOF in
+// gLastResult. The buffer length is trusted, the Haxe wrapper clamps it.
+HL_PRIM int HL_NAME(core_sound_read_data)(int h, vbyte* data, int len) {
+    FMOD_SOUND* sound = resolve_core_sound(h);
+    unsigned int read = 0;
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -(int)gLastResult; }
+    if (!data || len <= 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return -(int)gLastResult; }
+    gLastResult = FMOD_Sound_ReadData(sound, data, (unsigned int)len, &read);
+    if (gLastResult != FMOD_OK && gLastResult != FMOD_ERR_FILE_EOF) return -(int)gLastResult;
+    return (int)read;
+}
+DEFINE_PRIM(_I32, core_sound_read_data, _I32 _BYTES _I32);
+
+HL_PRIM int HL_NAME(core_sound_seek_data)(int h, int pcm) {
+    FMOD_SOUND* sound = resolve_core_sound(h);
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    if (pcm < 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    gLastResult = FMOD_Sound_SeekData(sound, (unsigned int)pcm);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, core_sound_seek_data, _I32 _I32);
+
+// out = int[1]: connected drivers. Returns the total, -1 on failure.
+HL_PRIM int HL_NAME(sys_get_record_num_drivers)(vbyte* out) {
+    int total = 0;
+    int connected = 0;
+    int* outInts = (int*)out;
+    outInts[0] = 0;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return -1; }
+    gLastResult = FMOD_System_GetRecordNumDrivers(gCoreSystem, &total, &connected);
+    if (gLastResult != FMOD_OK) return -1;
+    outInts[0] = connected;
+    return total;
+}
+DEFINE_PRIM(_I32, sys_get_record_num_drivers, _BYTES);
+
+// out = int[4]: system rate, speaker mode, channels, driver state
+HL_PRIM vbyte* HL_NAME(sys_get_record_driver_info)(int id, vbyte* out) {
+    int rate = 0;
+    FMOD_SPEAKERMODE mode = FMOD_SPEAKERMODE_DEFAULT;
+    int channels = 0;
+    FMOD_DRIVER_STATE state = 0;
+    int* outInts = (int*)out;
+    gStringBuf[0] = '\0';
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (vbyte*)gStringBuf; }
+    gLastResult = FMOD_System_GetRecordDriverInfo(gCoreSystem, id, gStringBuf, sizeof(gStringBuf),
+        NULL, &rate, &mode, &channels, &state);
+    if (gLastResult != FMOD_OK) gStringBuf[0] = '\0';
+    outInts[0] = rate;
+    outInts[1] = (int)mode;
+    outInts[2] = channels;
+    outInts[3] = (int)state;
+    return (vbyte*)gStringBuf;
+}
+DEFINE_PRIM(_BYTES, sys_get_record_driver_info, _I32 _BYTES);
+
+// An empty OPENUSER PCM16 sound of the given length for RecordStart to
+// fill. No callbacks, FMOD writes straight into the sample buffer.
+HL_PRIM int HL_NAME(core_create_record_sound)(int sampleRate, int channels, int seconds) {
+    FMOD_CREATESOUNDEXINFO exinfo;
+    FMOD_SOUND* sound = NULL;
+    int handle;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    if (sampleRate <= 0 || channels < 1 || channels > 2 || seconds <= 0) {
+        gLastResult = FMOD_ERR_INVALID_PARAM;
+        return 0;
+    }
+    memset(&exinfo, 0, sizeof(exinfo));
+    exinfo.cbsize = sizeof(exinfo);
+    exinfo.numchannels = channels;
+    exinfo.defaultfrequency = sampleRate;
+    exinfo.format = FMOD_SOUND_FORMAT_PCM16;
+    exinfo.length = (unsigned int)sampleRate * (unsigned int)channels * 2u * (unsigned int)seconds;
+    gLastResult = FMOD_System_CreateSound(gCoreSystem, NULL, FMOD_OPENUSER | FMOD_LOOP_NORMAL, &exinfo, &sound);
+    if (gLastResult != FMOD_OK || !sound) return 0;
+    handle = faxe_handle_alloc(sound, FAXE_TYPE_SOUND);
+    if (handle == 0) {
+        gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
+        FMOD_Sound_Release(sound);
+        return 0;
+    }
+    return handle;
+}
+DEFINE_PRIM(_I32, core_create_record_sound, _I32 _I32 _I32);
+
+HL_PRIM int HL_NAME(sys_record_start)(int id, int soundHandle, bool loop) {
+    FMOD_SOUND* sound = resolve_core_sound(soundHandle);
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = FMOD_System_RecordStart(gCoreSystem, id, sound, loop ? 1 : 0);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, sys_record_start, _I32 _I32 _BOOL);
+
+HL_PRIM int HL_NAME(sys_record_stop)(int id) {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = FMOD_System_RecordStop(gCoreSystem, id);
+    return (int)gLastResult;
+}
+DEFINE_PRIM(_I32, sys_record_stop, _I32);
+
+HL_PRIM bool HL_NAME(sys_is_recording)(int id) {
+    FMOD_BOOL recording = 0;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return false; }
+    gLastResult = FMOD_System_IsRecording(gCoreSystem, id, &recording);
+    return recording != 0;
+}
+DEFINE_PRIM(_BOOL, sys_is_recording, _I32);
+
+HL_PRIM int HL_NAME(sys_get_record_position)(int id) {
+    unsigned int position = 0;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return -1; }
+    gLastResult = FMOD_System_GetRecordPosition(gCoreSystem, id, &position);
+    if (gLastResult != FMOD_OK) return -1;
+    return (int)position;
+}
+DEFINE_PRIM(_I32, sys_get_record_position, _I32);
 
 //// Debug
 

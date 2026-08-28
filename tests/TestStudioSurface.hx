@@ -42,6 +42,7 @@ class TestStudioSurface {
 		testBusCache();
 		testStructReturns();
 		testCoreSurface();
+		testVersionDataAndRecording();
 
 		Sys.println('  $passed passed, $failed failed');
 		return failed;
@@ -171,6 +172,51 @@ class TestStudioSurface {
 		assert(sound.isNull(), "core sound null");
 		assert(sound.getLength() == -1, "core sound length default");
 		assert(!sound.release().isOk(), "core sound release result");
+	}
+
+	// The distance filter, version, sound data, and recording surface
+	// routes through the stub like everything else. The readData clamp is
+	// the one piece of real logic here (the HashLink shim cannot see the
+	// buffer size), so it gets the same treatment as fromPcm.
+	static function testVersionDataAndRecording():Void {
+		var stub = haxefmod.studio.native.NativeStudioStub;
+		var channel:Channel = cast 0;
+		assert(!channel.set3DDistanceFilter(true, 0.5, 1000).isOk(), "chan distance filter result");
+		assert(channel.get3DDistanceFilter() == null, "chan distance filter default");
+		var group:ChannelGroup = cast 0;
+		assert(!group.set3DDistanceFilter(false, 1.0, 1500).isOk(), "cg distance filter result");
+		assert(group.get3DDistanceFilter() == null, "cg distance filter default");
+
+		assert(StudioSystem.getVersion() == "", "sys getVersion default");
+
+		stub.testLastCreateSoundOpenOnly = null;
+		assert(CoreSound.create("x.wav").isNull(), "coresound create null");
+		assert(stub.testLastCreateSoundOpenOnly == false, "create defaults openOnly off");
+		CoreSound.create("x.wav", false, true);
+		assert(stub.testLastCreateSoundOpenOnly == true, "create passes openOnly through");
+
+		var sound:CoreSound = cast 0;
+		stub.testReadDataLen = -999;
+		assert(sound.readData(haxe.io.Bytes.alloc(64)) == -68, "readData surfaces the negated result");
+		assert(stub.testReadDataLen == 64, "readData sentinel means the whole buffer");
+		stub.testReadDataLen = -999;
+		sound.readData(haxe.io.Bytes.alloc(64), 4096);
+		assert(stub.testReadDataLen == 64, "readData clamps a lied length to the buffer size");
+		stub.testReadDataLen = -999;
+		sound.readData(haxe.io.Bytes.alloc(64), 16);
+		assert(stub.testReadDataLen == 16, "readData passes an honest partial length through");
+		stub.testReadDataLen = -999;
+		assert(sound.readData(null) == -31, "readData null buffer rejected with INVALID_PARAM");
+		assert(stub.testReadDataLen == -999, "readData null buffer never reaches the backend");
+		assert(!sound.seekData(0).isOk(), "seekData result");
+
+		assert(StudioSystem.getRecordDriverCount() == null, "sys record driver count default");
+		assert(StudioSystem.getRecordDriverInfo(0) == null, "sys record driver info default");
+		assert(CoreSound.createRecordBuffer(48000, 1, 2).isNull(), "coresound createRecordBuffer null");
+		assert(!StudioSystem.recordStart(0, sound).isOk(), "sys recordStart result");
+		assert(!StudioSystem.recordStop(0).isOk(), "sys recordStop result");
+		assert(!StudioSystem.isRecording(0), "sys isRecording default");
+		assert(StudioSystem.getRecordPosition(0) == -1, "sys getRecordPosition default");
 	}
 
 	static function testCoreSurface():Void {

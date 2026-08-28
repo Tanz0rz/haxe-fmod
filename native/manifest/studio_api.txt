@@ -234,11 +234,16 @@ evi_get_cpu_usage i32 ibuf -> i32
 evi_get_memory_usage i32 ibuf -> i32
 
 ## Runtime init
-# Settings-driven init: (numChannels, sampleRate, speakerMode, studioFlags).
+# Settings-driven init: (numChannels, sampleRate, speakerMode, studioFlags,
+# dspBufferLength, dspNumBuffers, softwareChannels, streamBufferSize, initFlags).
 # sampleRate 0 = FMOD default; speakerMode 0 = default (FMOD_SPEAKERMODE);
-# studioFlags bit0 = live update. Keeps the FMOD_WAVWRITER env branch.
+# studioFlags bit0 = live update. dspBufferLength/dspNumBuffers 0 = FMOD
+# default (js ignores them, the web build fixes 2048x2). softwareChannels 0 =
+# default. streamBufferSize is bytes, 0 = default. initFlags bit0 = profiling
+# (FMOD_INIT_PROFILE_ENABLE), bit1 = distance filter
+# (FMOD_INIT_CHANNEL_DISTANCEFILTER). Keeps the FMOD_WAVWRITER env branch.
 # On js this stores settings and kicks off module init (poll sys_is_initialized).
-sys_init_ex i32 i32 i32 i32 -> i32
+sys_init_ex i32 i32 i32 i32 i32 i32 i32 i32 i32 -> i32
 # FMOD_Debug_Initialize level (0=none 1=error 2=warning 3=log); file logging
 # not exposed. ERR_UNSUPPORTED on js (logging is baked into the wasm build).
 sys_set_debug_level i32 -> i32
@@ -257,8 +262,9 @@ ps_assign i32 str -> i32
 ps_clear i32 -> i32
 
 ## Core API micro subset (programmer sounds only)
-# mode bit0 = loop normal. Returns a FAXE_TYPE_SOUND handle or 0.
-core_create_sound str i32 -> i32
+# mode bit0 = loop normal. openOnly adds FMOD_OPENONLY (the file stays open
+# for core_sound_read_data). Returns a FAXE_TYPE_SOUND handle or 0.
+core_create_sound str i32 bool -> i32
 core_release_sound i32 -> i32
 # length in milliseconds (-1 on failure)
 core_get_sound_length i32 -> i32
@@ -584,6 +590,34 @@ cg_get_audibility i32 -> f32
 cg_get_name i32 -> str
 cg_get_num_channels i32 -> i32
 cg_get_channel i32 i32 -> i32
+
+## Distance filter, version, sound data, and recording
+# The distance filter needs FMOD_INIT_CHANNEL_DISTANCEFILTER (sys_init_ex
+# initFlags bit1) to have an audible effect.
+chan_set_3d_distance_filter i32 bool f32 f32 -> i32
+# fbuf out: [0]=custom (1.0 or 0.0) [1]=custom level [2]=center frequency
+chan_get_3d_distance_filter i32 fbuf -> i32
+cg_set_3d_distance_filter i32 bool f32 f32 -> i32
+cg_get_3d_distance_filter i32 fbuf -> i32
+# Core System::getVersion formatted "2.03.12" ("" on failure)
+sys_get_version -> str
+# Bytes read (partial counts at EOF included, lastResult = FMOD_ERR_FILE_EOF)
+# or the negated FMOD error code. Needs a sound created with openOnly.
+# ERR_UNSUPPORTED (68) on js.
+core_sound_read_data i32 bytes i32 -> i32
+core_sound_seek_data i32 i32 -> i32
+# Recording. ERR_UNSUPPORTED on js (left out of the web build).
+# ibuf out: [0]=connected count. Returns the total driver count (-1 on failure).
+sys_get_record_num_drivers ibuf -> i32
+# ibuf out: [0]=system rate [1]=speaker mode [2]=channels [3]=driver state
+sys_get_record_driver_info i32 ibuf -> str
+# (rate, channels, seconds): an OPENUSER PCM16 sound sized for the recording
+core_create_record_sound i32 i32 i32 -> i32
+sys_record_start i32 i32 bool -> i32
+sys_record_stop i32 -> i32
+sys_is_recording i32 -> bool
+# PCM position of the record cursor, -1 on failure
+sys_get_record_position i32 -> i32
 
 ## Debug
 debug_live_handle_count -> i32

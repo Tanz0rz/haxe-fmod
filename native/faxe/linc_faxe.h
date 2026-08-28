@@ -29,7 +29,8 @@ extern bool fmod_cb_take_overflow();
 
 //// Studio System
 extern int fmod_sys_last_result();
-extern int fmod_sys_init_ex(int numChannels, int sampleRate, int speakerMode, int studioFlags);
+extern int fmod_sys_init_ex(int numChannels, int sampleRate, int speakerMode, int studioFlags,
+    int dspBufferLength, int dspNumBuffers, int softwareChannels, int streamBufferSize, int initFlags);
 extern int fmod_sys_set_debug_level(int level);
 extern int fmod_sys_load_bank_async(const ::String& path);
 extern int fmod_sys_get_bus(const ::String& path);
@@ -187,7 +188,7 @@ extern int fmod_ps_assign(int handle, const ::String& key);
 extern int fmod_ps_clear(int handle);
 
 //// Core API micro subset (programmer sounds only)
-extern int fmod_core_create_sound(const ::String& path, int mode);
+extern int fmod_core_create_sound(const ::String& path, int mode, bool openOnly);
 extern int fmod_core_release_sound(int handle);
 extern int fmod_core_get_sound_length(int handle);
 
@@ -342,6 +343,21 @@ extern int fmod_sys_get_software_format(::Array<int> ibuf);
 extern int fmod_dsp_get_cpu_usage(int handle, ::Array<int> ibuf);
 
 //// Debug
+extern int fmod_chan_set_3d_distance_filter(int handle, bool custom, float customLevel, float centerFreq);
+extern int fmod_chan_get_3d_distance_filter(int handle, ::Array<Float> fbuf);
+extern int fmod_cg_set_3d_distance_filter(int handle, bool custom, float customLevel, float centerFreq);
+extern int fmod_cg_get_3d_distance_filter(int handle, ::Array<Float> fbuf);
+extern const char* fmod_sys_get_version();
+extern int fmod_core_sound_read_data(int handle, ::Array<unsigned char> data, int len);
+extern int fmod_core_sound_seek_data(int handle, int pcm);
+extern int fmod_sys_get_record_num_drivers(::Array<int> ibuf);
+extern const char* fmod_sys_get_record_driver_info(int id, ::Array<int> ibuf);
+extern int fmod_core_create_record_sound(int sampleRate, int channels, int seconds);
+extern int fmod_sys_record_start(int id, int soundHandle, bool loop);
+extern int fmod_sys_record_stop(int id);
+extern bool fmod_sys_is_recording(int id);
+extern int fmod_sys_get_record_position(int id);
+
 extern int fmod_debug_live_handle_count();
 extern int fmod_binding_abi_version();
 

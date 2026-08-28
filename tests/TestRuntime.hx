@@ -46,6 +46,12 @@ class TestRuntime {
 		assert(resolved.numChannels == 128, "default numChannels");
 		assert(resolved.sampleRate == 0, "default sampleRate");
 		assert(resolved.speakerMode == 0, "default speakerMode");
+		assert(resolved.dspBufferSize == 0, "default dspBufferSize");
+		assert(resolved.dspNumBuffers == 0, "default dspNumBuffers");
+		assert(resolved.softwareChannels == 0, "default softwareChannels");
+		assert(resolved.streamBufferSize == 0, "default streamBufferSize");
+		assert(resolved.profiling == false, "default profiling");
+		assert(resolved.distanceFilter == false, "default distanceFilter");
 		assert(resolved.logLevel == 1, "default logLevel");
 		assert(resolved.bankFolder == "assets/fmod/Desktop", "default bankFolder");
 		assert(resolved.autoLoadBanks.length == 2, "default autoLoadBanks");
@@ -66,6 +72,12 @@ class TestRuntime {
 		var resolved = FmodSettingsResolver.resolve({
 			numChannels: 64,
 			sampleRate: 48000,
+			dspBufferSize: 512,
+			dspNumBuffers: 4,
+			softwareChannels: 32,
+			streamBufferSize: 65536,
+			profiling: true,
+			distanceFilter: true,
 			liveUpdate: true,
 			logLevel: 3,
 			bankFolder: "sounds",
@@ -76,6 +88,12 @@ class TestRuntime {
 		});
 		assert(resolved.numChannels == 64, "override numChannels");
 		assert(resolved.sampleRate == 48000, "override sampleRate");
+		assert(resolved.dspBufferSize == 512, "override dspBufferSize");
+		assert(resolved.dspNumBuffers == 4, "override dspNumBuffers");
+		assert(resolved.softwareChannels == 32, "override softwareChannels");
+		assert(resolved.streamBufferSize == 65536, "override streamBufferSize");
+		assert(resolved.profiling == true, "override profiling");
+		assert(resolved.distanceFilter == true, "override distanceFilter");
 		assert(resolved.liveUpdate == true, "override liveUpdate");
 		assert(resolved.logLevel == 3, "override logLevel");
 		assert(resolved.bankFolder == "sounds", "override bankFolder");
@@ -212,8 +230,20 @@ class TestRuntime {
 		stub.testInitialized = true;
 		assert(FmodRuntime.isInitialized(), "system-ready fallback with no settings");
 		stub.testInitialized = false;
-		FmodRuntime.init({autoLoadBanks: []});
+		stub.testLastInit = null;
+		FmodRuntime.init({autoLoadBanks: [], dspBufferSize: 1024, dspNumBuffers: 3,
+			softwareChannels: 48, streamBufferSize: 32768, profiling: true, distanceFilter: true});
 		assert(!FmodRuntime.isInitialized(), "settings alone do not make it initialized");
+		// The one init call this suite gets also proves the settings reach
+		// the native call in the right slots
+		var init = stub.testLastInit;
+		assert(init != null, "init reaches sys_init_ex");
+		assert(init != null && init.numChannels == 128, "init forwards numChannels");
+		assert(init != null && init.dspBufferLength == 1024, "init forwards dspBufferSize");
+		assert(init != null && init.dspNumBuffers == 3, "init forwards dspNumBuffers");
+		assert(init != null && init.softwareChannels == 48, "init forwards softwareChannels");
+		assert(init != null && init.streamBufferSize == 32768, "init forwards streamBufferSize");
+		assert(init != null && init.initFlags == 3, "init packs profiling and distanceFilter into initFlags");
 		stub.testInitialized = true;
 		assert(FmodRuntime.isInitialized(), "system ready and default banks latched");
 		stub.testInitialized = false;

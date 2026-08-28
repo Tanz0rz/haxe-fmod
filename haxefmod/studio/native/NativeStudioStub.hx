@@ -71,7 +71,16 @@ class NativeStudioStub {
     public static function sys_get_buffer_usage():Int return ERR_UNSUPPORTED;
     public static function sys_reset_buffer_usage():Int return ERR_UNSUPPORTED;
     public static function sys_get_memory_usage():Int return ERR_UNSUPPORTED;
-    public static function sys_init_ex(numChannels:Int, sampleRate:Int, speakerMode:Int, studioFlags:Int):Int return ERR_UNSUPPORTED;
+    // Records the last init call so the runtime tests can see which
+    // settings reach the native surface. Null until init runs.
+    public static var testLastInit:Null<{numChannels:Int, sampleRate:Int, speakerMode:Int, studioFlags:Int,
+        dspBufferLength:Int, dspNumBuffers:Int, softwareChannels:Int, streamBufferSize:Int, initFlags:Int}> = null;
+    public static function sys_init_ex(numChannels:Int, sampleRate:Int, speakerMode:Int, studioFlags:Int, dspBufferLength:Int, dspNumBuffers:Int, softwareChannels:Int, streamBufferSize:Int, initFlags:Int):Int {
+        testLastInit = {numChannels: numChannels, sampleRate: sampleRate, speakerMode: speakerMode, studioFlags: studioFlags,
+            dspBufferLength: dspBufferLength, dspNumBuffers: dspNumBuffers, softwareChannels: softwareChannels,
+            streamBufferSize: streamBufferSize, initFlags: initFlags};
+        return ERR_UNSUPPORTED;
+    }
     public static function sys_set_debug_level(level:Int):Int return ERR_UNSUPPORTED;
     public static function sys_load_bank_async(path:String):Int
         return testSyntheticHandles ? ++testNextHandle : 0;
@@ -217,7 +226,11 @@ class NativeStudioStub {
     public static function ps_clear(handle:Int):Int return ERR_UNSUPPORTED;
 
     // Core API micro subset
-    public static function core_create_sound(path:String, mode:Int):Int return 0;
+    public static var testLastCreateSoundOpenOnly:Null<Bool> = null;
+    public static function core_create_sound(path:String, mode:Int, openOnly:Bool):Int {
+        testLastCreateSoundOpenOnly = openOnly;
+        return 0;
+    }
     public static function core_release_sound(handle:Int):Int return ERR_UNSUPPORTED;
     public static function core_get_sound_length(handle:Int):Int return -1;
 
@@ -512,6 +525,26 @@ class NativeStudioStub {
     public static function cb_float():Float return 0.0;
     public static function cb_string():String return "";
     public static function cb_take_overflow():Bool return false;
+
+    // Distance filter, version, sound data, and recording
+    public static function chan_set_3d_distance_filter(handle:Int, custom:Bool, customLevel:Float, centerFreq:Float):Int return ERR_UNSUPPORTED;
+    public static function chan_get_3d_distance_filter(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function cg_set_3d_distance_filter(handle:Int, custom:Bool, customLevel:Float, centerFreq:Float):Int return ERR_UNSUPPORTED;
+    public static function cg_get_3d_distance_filter(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function sys_get_version():String return "";
+    public static var testReadDataLen:Int = -999;
+    public static function core_sound_read_data(handle:Int, data:haxe.io.Bytes, len:Int):Int {
+        testReadDataLen = len;
+        return -ERR_UNSUPPORTED;
+    }
+    public static function core_sound_seek_data(handle:Int, pcm:Int):Int return ERR_UNSUPPORTED;
+    public static function sys_get_record_num_drivers():Int return -1;
+    public static function sys_get_record_driver_info(id:Int):String return "";
+    public static function core_create_record_sound(sampleRate:Int, channels:Int, seconds:Int):Int return 0;
+    public static function sys_record_start(id:Int, soundHandle:Int, loop:Bool):Int return ERR_UNSUPPORTED;
+    public static function sys_record_stop(id:Int):Int return ERR_UNSUPPORTED;
+    public static function sys_is_recording(id:Int):Bool return false;
+    public static function sys_get_record_position(id:Int):Int return -1;
 
     // Debug
     public static function debug_live_handle_count():Int return 0;

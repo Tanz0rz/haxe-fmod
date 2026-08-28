@@ -185,6 +185,23 @@ abstract ChannelGroup(Int) from Int to Int {
         return NativeStudio.cg_set_3d_occlusion(this, direct, reverb);
     }
 
+    /**
+     * Overrides the distance lowpass on this group's 3D channels. With
+     * custom on, customLevel (0 to 1) replaces the distance-derived
+     * attenuation and centerFreq sets the filter's center in Hz. The
+     * distanceFilter setting must be on at init for any of this to take
+     * effect.
+     */
+    public inline function set3DDistanceFilter(custom:Bool, customLevel:Float, centerFreq:Float):FmodResult {
+        return NativeStudio.cg_set_3d_distance_filter(this, custom, customLevel, centerFreq);
+    }
+
+    public function get3DDistanceFilter():Null<{custom:Bool, customLevel:Float, centerFreq:Float}> {
+        var result:FmodResult = NativeStudio.cg_get_3d_distance_filter(this);
+        if (!result.isOk()) return null;
+        return {custom: Scratch.readF(0) != 0, customLevel: Scratch.readF(1), centerFreq: Scratch.readF(2)};
+    }
+
     public inline function set3DLevel(level:Float):FmodResult {
         return NativeStudio.cg_set_3d_level(this, level);
     }

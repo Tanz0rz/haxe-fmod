@@ -164,6 +164,7 @@ class ApiProbeState extends FlxState {
         probeFlixelBridge();
         probeFocusMute();
         probeHardeningTail();
+        probeVersionDataAndRecording();
         if (skipAuthored()) {
             info("authored_surface", "skipped (HAXEFMOD_PROBE_SKIP_AUTHORED)");
         } else {
@@ -175,6 +176,210 @@ class ApiProbeState extends FlxState {
         // update() once the events arrive (or the wait times out)
         probeChannelEvents();
     }
+
+    /**
+     * The init settings (profiling and the distance filter are on in the
+     * test build), the version string, raw sound data reads, and the
+     * recording surface. Recording tolerates a machine with no input
+     * device, CI runners have none.
+     */
+    function probeVersionDataAndRecording():Void {
+        var baseline = StudioSystem.liveHandleCount();
+
+        var version = StudioSystem.getVersion();
+        var versionOk = ~/^\d+\.\d{2}\.\d{2}$/.match(version);
+        check("sys_get_version", versionOk, 'value=$version');
+
+        // Profiling is on in the test build, so the bus CPU query reports
+        // (the html5 bus binding has no CPU query at all)
+        var cpu = StudioSystem.getBus("bus:/").getCpuUsage();
+        #if js
+        info("init_profiling_enables_cpu_usage", cpu == null ? "unavailable on html5" : 'inclusive=${cpu.inclusive}');
+        #else
+        check("init_profiling_enables_cpu_usage", cpu != null,
+            cpu == null ? 'result=${StudioSystem.lastResult().toString()}' : 'inclusive=${cpu.inclusive}');
+        #end
+
+        // Distance filter round trip on a 3D channel and a 3D group (the
+        // init flag is on, a 2D group would report NEEDS3D)
+        var stream = PcmStream.create3d(48000, 1);
+        var channel = stream.play(true);
+        var setDf:FmodResult = channel.set3DDistanceFilter(true, 0.5, 1200);
+        check("chan_set_3d_distance_filter", setDf.isOk(), 'result=${setDf.toString()}');
+        var df = channel.get3DDistanceFilter();
+        check("chan_get_3d_distance_filter", df != null && df.custom
+            && Math.abs(df.customLevel - 0.5) < 0.001 && Math.abs(df.centerFreq - 1200) < 0.5,
+            df == null ? 'result=${StudioSystem.lastResult().toString()}'
+                : 'custom=${df.custom} level=${df.customLevel} freq=${df.centerFreq}');
+        channel.stop();
+        var staleDf:FmodResult = channel.set3DDistanceFilter(false, 1, 1000);
+        check("chan_distance_filter_stale", staleDf == FmodResult.FMOD_ERR_INVALID_HANDLE,
+            'result=${staleDf.toString()}');
+        stream.release();
+
+        var group = ChannelGroup.create("distance-filter");
+        group.setMode(ChannelMode.MODE_3D);
+        var setCgDf:FmodResult = group.set3DDistanceFilter(true, 0.25, 900);
+        check("cg_set_3d_distance_filter", setCgDf.isOk(), 'result=${setCgDf.toString()}');
+        var cgDf = group.get3DDistanceFilter();
+        check("cg_get_3d_distance_filter", cgDf != null && cgDf.custom
+            && Math.abs(cgDf.customLevel - 0.25) < 0.001 && Math.abs(cgDf.centerFreq - 900) < 0.5,
+            cgDf == null ? 'result=${StudioSystem.lastResult().toString()}'
+                : 'custom=${cgDf.custom} level=${cgDf.customLevel} freq=${cgDf.centerFreq}');
+        group.release();
+        check("cg_distance_filter_stale", group.get3DDistanceFilter() == null
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_HANDLE, "");
+
+        // readData needs an openOnly sound over a real file. The probe
+        // writes a short 16-bit mono WAV of its own so the check does not
+        // depend on which assets the CI step copied in.
+        var buffer = haxe.io.Bytes.alloc(4096);
+        #if sys
+        var wavPath = writeProbeWav();
+        var opened = CoreSound.create(wavPath, false, true);
+        check("core_create_sound_open_only", !opened.isNull(),
+            'handle=${(opened : Int)} result=${StudioSystem.lastResult().toString()}');
+        var read = opened.readData(buffer);
+        check("core_sound_read_data", read == buffer.length, 'read=$read');
+        var partial = opened.readData(buffer, 256);
+        check("core_sound_read_data_partial", partial == 256, 'read=$partial');
+        var seek:FmodResult = opened.seekData(0);
+        check("core_sound_seek_data", seek.isOk(), 'result=${seek.toString()}');
+        var again = opened.readData(buffer);
+        check("core_sound_read_after_seek", again == read && buffer.getUInt16(2) == PROBE_WAV_SECOND_SAMPLE,
+            'first=$read again=$again sample=${buffer.getUInt16(2)}');
+        var total = again;
+        var guard = 0;
+        var eofResult = FmodResult.FMOD_OK;
+        while (guard++ < 10000) {
+            var n = opened.readData(buffer);
+            eofResult = StudioSystem.lastResult();
+            if (n <= 0) break;
+            total += n;
+            if (eofResult == FmodResult.FMOD_ERR_FILE_EOF) break;
+        }
+        check("core_sound_read_data_eof", total == PROBE_WAV_BYTES && eofResult == FmodResult.FMOD_ERR_FILE_EOF,
+            'total=$total expected=$PROBE_WAV_BYTES result=${eofResult.toString()}');
+        check("core_sound_read_data_zero_rejected", opened.readData(buffer, 0) == -31,
+            'value=${opened.readData(buffer, 0)}');
+        check("core_sound_seek_data_negative_rejected", opened.seekData(-1) == FmodResult.FMOD_ERR_INVALID_PARAM,
+            'result=${opened.seekData(-1).toString()}');
+        opened.release();
+        check("core_sound_read_data_stale", opened.readData(buffer) == -30, 'value=${opened.readData(buffer)}');
+        check("core_sound_seek_data_stale", opened.seekData(0) == FmodResult.FMOD_ERR_INVALID_HANDLE, "");
+
+        // A decoded (default) sound has no open file left to read from
+        var decoded = CoreSound.create(wavPath);
+        var decodedRead = decoded.readData(buffer);
+        check("core_sound_read_data_needs_open_only", decodedRead < 0, 'value=$decodedRead');
+        decoded.release();
+        try sys.FileSystem.deleteFile(wavPath) catch (e:Dynamic) {}
+        #else
+        // html5: readData and seekData are unsupported, and only a raw PCM
+        // sound can stand in for the handle
+        var memorySound = CoreSound.fromPcm(haxe.io.Bytes.alloc(1024), 8000, 1);
+        check("core_sound_read_data_unsupported", memorySound.readData(buffer) == -68
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED,
+            'value=${memorySound.readData(buffer)}');
+        check("core_sound_seek_data_unsupported", memorySound.seekData(0) == FmodResult.FMOD_ERR_UNSUPPORTED,
+            'result=${memorySound.seekData(0).toString()}');
+        memorySound.release();
+        #end
+
+        #if js
+        // html5: the whole recording surface is unsupported
+        check("sys_get_record_num_drivers_unsupported", StudioSystem.getRecordDriverCount() == null
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED, "");
+        check("sys_get_record_driver_info_unsupported", StudioSystem.getRecordDriverInfo(0) == null, "");
+        check("core_create_record_sound_unsupported", CoreSound.createRecordBuffer(48000, 1, 1).isNull()
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED, "");
+        check("sys_record_start_unsupported", StudioSystem.recordStart(0, CoreSound.NULL) == FmodResult.FMOD_ERR_UNSUPPORTED, "");
+        check("sys_record_stop_unsupported", StudioSystem.recordStop(0) == FmodResult.FMOD_ERR_UNSUPPORTED, "");
+        check("sys_is_recording_unsupported", !StudioSystem.isRecording(0), "");
+        check("sys_get_record_position_unsupported", StudioSystem.getRecordPosition(0) == -1, "");
+        #else
+        // Recording: the enumeration must succeed even with no devices
+        var drivers = StudioSystem.getRecordDriverCount();
+        check("sys_get_record_num_drivers", drivers != null && drivers.drivers >= 0
+            && drivers.connected >= 0 && drivers.connected <= drivers.drivers,
+            drivers == null ? 'result=${StudioSystem.lastResult().toString()}'
+                : 'drivers=${drivers.drivers} connected=${drivers.connected}');
+        check("sys_get_record_driver_info_out_of_range", StudioSystem.getRecordDriverInfo(9999) == null,
+            'result=${StudioSystem.lastResult().toString()}');
+        var recordBuffer = CoreSound.createRecordBuffer(48000, 1, 1);
+        check("core_create_record_sound", !recordBuffer.isNull(),
+            'handle=${(recordBuffer : Int)} result=${StudioSystem.lastResult().toString()}');
+        check("core_create_record_sound_bad_args", CoreSound.createRecordBuffer(0, 1, 1).isNull()
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_PARAM,
+            'result=${StudioSystem.lastResult().toString()}');
+        var format = recordBuffer.getFormat();
+        check("record_sound_format", format != null && format.channels == 1 && format.bits == 16,
+            format == null ? "null" : 'channels=${format.channels} bits=${format.bits}');
+        check("record_sound_length", recordBuffer.getLength() == 1000, 'ms=${recordBuffer.getLength()}');
+        check("sys_is_recording_idle", !StudioSystem.isRecording(0), "");
+        var staleStart:FmodResult = StudioSystem.recordStart(0, CoreSound.NULL);
+        check("sys_record_start_stale_sound", staleStart == FmodResult.FMOD_ERR_INVALID_HANDLE,
+            'result=${staleStart.toString()}');
+        if (drivers != null && drivers.drivers > 0) {
+            var driver = StudioSystem.getRecordDriverInfo(0);
+            check("sys_get_record_driver_info", driver != null && driver.systemRate > 0,
+                driver == null ? 'result=${StudioSystem.lastResult().toString()}'
+                    : 'name=${driver.name} rate=${driver.systemRate} channels=${driver.channels} state=${driver.state}');
+            var start:FmodResult = StudioSystem.recordStart(0, recordBuffer, true);
+            check("sys_record_start", start.isOk(), 'result=${start.toString()}');
+            check("sys_is_recording", StudioSystem.isRecording(0), "");
+            FmodRuntime.update();
+            check("sys_get_record_position", StudioSystem.getRecordPosition(0) >= 0,
+                'value=${StudioSystem.getRecordPosition(0)}');
+            var stop:FmodResult = StudioSystem.recordStop(0);
+            check("sys_record_stop", stop.isOk(), 'result=${stop.toString()}');
+            check("sys_is_recording_stopped", !StudioSystem.isRecording(0), "");
+        } else {
+            info("sys_record_start", "skipped (no record drivers on this machine)");
+            var noDevice:FmodResult = StudioSystem.recordStart(0, recordBuffer);
+            check("sys_record_start_no_device_fails", !noDevice.isOk(), 'result=${noDevice.toString()}');
+            check("sys_record_stop_no_device", StudioSystem.recordStop(0) != FmodResult.FMOD_ERR_INVALID_HANDLE,
+                'result=${StudioSystem.recordStop(0).toString()}');
+            check("sys_get_record_position_no_device", StudioSystem.getRecordPosition(0) == -1,
+                'value=${StudioSystem.getRecordPosition(0)}');
+        }
+        recordBuffer.release();
+        #end
+
+        check("no_handle_leaks_version_data_recording", StudioSystem.liveHandleCount() == baseline,
+            'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
+    }
+
+    // The probe WAV: 8000 Hz, mono, 16-bit, one second, a ramp so the
+    // second sample has a known value after a seek back to the start
+    static inline var PROBE_WAV_BYTES:Int = 16000;
+    static inline var PROBE_WAV_SECOND_SAMPLE:Int = 1;
+
+    #if sys
+    static function writeProbeWav():String {
+        var data = haxe.io.Bytes.alloc(44 + PROBE_WAV_BYTES);
+        data.blit(0, haxe.io.Bytes.ofString("RIFF"), 0, 4);
+        data.setInt32(4, 36 + PROBE_WAV_BYTES);
+        data.blit(8, haxe.io.Bytes.ofString("WAVE"), 0, 4);
+        data.blit(12, haxe.io.Bytes.ofString("fmt "), 0, 4);
+        data.setInt32(16, 16);
+        data.setUInt16(20, 1);
+        data.setUInt16(22, 1);
+        data.setInt32(24, 8000);
+        data.setInt32(28, 16000);
+        data.setUInt16(32, 2);
+        data.setUInt16(34, 16);
+        data.blit(36, haxe.io.Bytes.ofString("data"), 0, 4);
+        data.setInt32(40, PROBE_WAV_BYTES);
+        for (i in 0...Std.int(PROBE_WAV_BYTES / 2)) data.setUInt16(44 + i * 2, i & 0x7FFF);
+        var dir = Sys.getEnv("TMPDIR");
+        if (dir == null || dir == "") dir = Sys.getEnv("TEMP");
+        if (dir == null || dir == "") dir = Sys.systemName() == "Windows" ? "." : "/tmp";
+        var path = haxe.io.Path.join([dir, "haxefmod-probe-" + Std.int(Date.now().getTime() % 1000000) + ".wav"]);
+        sys.io.File.saveBytes(path, data);
+        return path;
+    }
+    #end
 
     /**
      * Hostile inputs the shims reject identically on every target, the

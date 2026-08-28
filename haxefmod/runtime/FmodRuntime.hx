@@ -74,9 +74,12 @@ class FmodRuntime {
         #end
 
         NativeStudio.sys_set_debug_level(resolved.logLevel);
+        var initFlags = (resolved.profiling ? 1 : 0) | (resolved.distanceFilter ? 2 : 0);
         var result:FmodResult = NativeStudio.sys_init_ex(
             resolved.numChannels, resolved.sampleRate, resolved.speakerMode,
-            resolved.liveUpdate ? 1 : 0);
+            resolved.liveUpdate ? 1 : 0,
+            resolved.dspBufferSize, resolved.dspNumBuffers, resolved.softwareChannels,
+            resolved.streamBufferSize, initFlags);
 
         #if (cpp || hl)
         if (!result.isOk()) return result;

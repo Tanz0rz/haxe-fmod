@@ -541,12 +541,18 @@ class jaxe {
     // Settings-driven init: stores the settings for onRuntimeInitialized and
     // kicks off module init exactly like fmod_init. Module startup is
     // asynchronous - poll fmod_sys_is_initialized for completion. Returns 0 (OK).
-    static fmod_sys_init_ex(numChannels, sampleRate, speakerMode, studioFlags) {
+    // The DSP buffer arguments are accepted and ignored, the web build
+    // fixes the buffer at 2048x2. softwareChannels and streamBufferSize
+    // apply when nonzero. initFlags bit0 = profiling, bit1 = distance filter.
+    static fmod_sys_init_ex(numChannels, sampleRate, speakerMode, studioFlags, dspBufferLength, dspNumBuffers, softwareChannels, streamBufferSize, initFlags) {
         jaxe.pendingInit = {
             numChannels: numChannels,
             sampleRate: sampleRate,
             speakerMode: speakerMode,
-            studioFlags: studioFlags
+            studioFlags: studioFlags,
+            softwareChannels: softwareChannels,
+            streamBufferSize: streamBufferSize,
+            initFlags: initFlags
         };
         jaxe.FMOD['preRun'] = jaxe.preRun;
         jaxe.FMOD['onRuntimeInitialized'] = jaxe.onRuntimeInitialized;
@@ -2097,12 +2103,13 @@ class jaxe {
 
     //// Core API micro subset (programmer sounds only)
 
-    static fmod_core_create_sound(path, mode) {
+    static fmod_core_create_sound(path, mode, openOnly) {
         if (typeof path !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return 0; }
         if (!jaxe.FmodIsInitialized) { jaxe.lastResult = jaxe.ERR_STUDIO_UNINITIALIZED; return 0; }
         var soundOut = {};
         var fmodMode = jaxe.FMOD.DEFAULT >>> 0;
         if (mode & 1) fmodMode = (fmodMode | jaxe.FMOD.LOOP_NORMAL) >>> 0;
+        if (openOnly) fmodMode = (fmodMode | jaxe.FMOD.OPENONLY) >>> 0;
         // Files live in the MEMFS root (banks are preloaded there)
         jaxe.lastResult = jaxe.gSystemCore.createSound("/" + path, fmodMode, null, soundOut);
         if (jaxe.lastResult != jaxe.FMOD.OK || !soundOut.val) return 0;
@@ -4367,6 +4374,119 @@ class jaxe {
         return jaxe.handleFindOrAlloc(out.val, jaxe.TYPE_CHAN);
     }
 
+    //// Distance filter, version, sound data, and recording
+
+    static fmod_chan_set_3d_distance_filter(handle, custom, customLevel, centerFreq) {
+        var ch = jaxe.resolveChan(handle);
+        if (!ch) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = ch.set3DDistanceFilter(!!custom, customLevel, centerFreq);
+        return jaxe.lastResult;
+    }
+
+    static fmod_chan_get_3d_distance_filter(handle, fbuf) {
+        var ch = jaxe.resolveChan(handle);
+        if (!ch) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        var custom = {};
+        var level = {};
+        var freq = {};
+        jaxe.lastResult = ch.get3DDistanceFilter(custom, level, freq);
+        fbuf[0] = custom.val ? 1 : 0;
+        fbuf[1] = level.val || 0;
+        fbuf[2] = freq.val || 0;
+        return jaxe.lastResult;
+    }
+
+    static fmod_cg_set_3d_distance_filter(handle, custom, customLevel, centerFreq) {
+        var group = jaxe.resolveCg(handle);
+        if (!group) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = group.set3DDistanceFilter(!!custom, customLevel, centerFreq);
+        return jaxe.lastResult;
+    }
+
+    static fmod_cg_get_3d_distance_filter(handle, fbuf) {
+        var group = jaxe.resolveCg(handle);
+        if (!group) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        var custom = {};
+        var level = {};
+        var freq = {};
+        jaxe.lastResult = group.get3DDistanceFilter(custom, level, freq);
+        fbuf[0] = custom.val ? 1 : 0;
+        fbuf[1] = level.val || 0;
+        fbuf[2] = freq.val || 0;
+        return jaxe.lastResult;
+    }
+
+    // The version is BCD, so the fields print as hex: 0x00020312 is "2.03.12".
+    static fmod_sys_get_version() {
+        if (!jaxe.FmodIsInitialized) { jaxe.lastResult = jaxe.ERR_STUDIO_UNINITIALIZED; return ""; }
+        if (typeof jaxe.gSystemCore.getVersion !== "function") { jaxe.lastResult = jaxe.ERR_UNSUPPORTED; return ""; }
+        var version = {};
+        var build = {};
+        jaxe.lastResult = jaxe.gSystemCore.getVersion(version, build);
+        if (jaxe.lastResult != jaxe.FMOD.OK) return "";
+        var v = version.val >>> 0;
+        var two = function (n) { return (n < 0x10 ? "0" : "") + n.toString(16); };
+        return (v >>> 16).toString(16) + "." + two((v >>> 8) & 0xFF) + "." + two(v & 0xFF);
+    }
+
+    // The web build rejects readData and seekData outright (readData
+    // reports 68 from the glue), so neither reaches FMOD here.
+    static fmod_core_sound_read_data(handle, data, len) {
+        var sound = jaxe.handleResolve(handle, jaxe.TYPE_SOUND);
+        if (!sound) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return -jaxe.lastResult; }
+        jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        return -jaxe.lastResult;
+    }
+
+    static fmod_core_sound_seek_data(handle, pcm) {
+        var sound = jaxe.handleResolve(handle, jaxe.TYPE_SOUND);
+        if (!sound) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        return jaxe.lastResult;
+    }
+
+    // Recording is left out of the web build on purpose (the browser
+    // permission flow has no place in this shim). Every call reports 68.
+    static fmod_sys_get_record_num_drivers(ibuf) {
+        ibuf[0] = 0;
+        jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        return -1;
+    }
+
+    static fmod_sys_get_record_driver_info(id, ibuf) {
+        ibuf[0] = 0;
+        ibuf[1] = 0;
+        ibuf[2] = 0;
+        ibuf[3] = 0;
+        jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        return "";
+    }
+
+    static fmod_core_create_record_sound(sampleRate, channels, seconds) {
+        jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        return 0;
+    }
+
+    static fmod_sys_record_start(id, soundHandle, loop) {
+        jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        return jaxe.lastResult;
+    }
+
+    static fmod_sys_record_stop(id) {
+        jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        return jaxe.lastResult;
+    }
+
+    static fmod_sys_is_recording(id) {
+        jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        return false;
+    }
+
+    static fmod_sys_get_record_position(id) {
+        jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        return -1;
+    }
+
     //// Debug
 
     static fmod_debug_live_handle_count() {
@@ -4383,6 +4503,22 @@ class jaxe {
     // Nothing to preload. The runtime registry owns bank loading,
     // driven by the game's settings through the async fetch pipeline.
     static preRun = function () {
+    }
+
+    // Pre-init core settings from fmod_sys_init_ex. Zero leaves the FMOD
+    // default in place. The harnesses call this against their own core.
+    static applyPendingCoreSettings(core, init) {
+        if (!init) return;
+        if (init.softwareChannels > 0) core.setSoftwareChannels(init.softwareChannels);
+        if (init.streamBufferSize > 0) core.setStreamBufferSize(init.streamBufferSize, jaxe.FMOD.TIMEUNIT_RAWBYTES);
+    }
+
+    // FMOD_INIT_PROFILE_ENABLE = 0x10000, FMOD_INIT_CHANNEL_DISTANCEFILTER = 0x200
+    static coreInitFlags(init) {
+        var flags = jaxe.FMOD.INIT_NORMAL;
+        if (init && (init.initFlags & 1)) flags |= (jaxe.FMOD.INIT_PROFILE_ENABLE || 0x10000);
+        if (init && (init.initFlags & 2)) flags |= (jaxe.FMOD.INIT_CHANNEL_DISTANCEFILTER || 0x200);
+        return flags;
     }
 
     static onRuntimeInitialized = function () {
@@ -4423,12 +4559,14 @@ class jaxe {
             }
         });
 
+        jaxe.applyPendingCoreSettings(jaxe.gSystemCore, init);
+
         // 128 matches the native shims' fallback for a missing channel count
         var numChannels = (init && init.numChannels > 0) ? init.numChannels : 128;
         var studioInitFlags = (init && (init.studioFlags & 1))
             ? jaxe.FMOD.STUDIO_INIT_LIVEUPDATE
             : jaxe.FMOD.STUDIO_INIT_NORMAL;
-        jaxe.gSystem.initialize(numChannels, studioInitFlags, jaxe.FMOD.INIT_NORMAL, null);
+        jaxe.gSystem.initialize(numChannels, studioInitFlags, jaxe.coreInitFlags(init), null);
 
         // Enable auto-update by default (the runtime applies the
         // configured setting on its first serviced frame)

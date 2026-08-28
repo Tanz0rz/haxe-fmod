@@ -13,9 +13,43 @@ import haxefmod.studio.native.NativeStudio;
 abstract CoreSound(Int) from Int to Int {
     public static inline var NULL:CoreSound = cast 0;
 
-    /** Loads a sound file. Returns CoreSound.NULL on failure (see StudioSystem.lastResult). */
-    public static inline function create(path:String, loop:Bool = false):CoreSound {
-        return NativeStudio.core_create_sound(path, loop ? 1 : 0);
+    /**
+     * Loads a sound file. Returns CoreSound.NULL on failure (see
+     * StudioSystem.lastResult). openOnly keeps the file open without
+     * decoding it up front (FMOD_OPENONLY), which readData needs. A sound
+     * opened that way cannot be played.
+     */
+    public static inline function create(path:String, loop:Bool = false, openOnly:Bool = false):CoreSound {
+        return NativeStudio.core_create_sound(path, loop ? 1 : 0, openOnly);
+    }
+
+    /**
+     * An empty PCM16 sound of the given length for StudioSystem.recordStart
+     * to fill (unsupported in HTML5). Returns CoreSound.NULL there and on
+     * bad arguments. Release it like any other sound.
+     */
+    public static inline function createRecordBuffer(sampleRate:Int, channels:Int, seconds:Int):CoreSound {
+        return NativeStudio.core_create_record_sound(sampleRate, channels, seconds);
+    }
+
+    /**
+     * Reads decoded PCM from a sound created with openOnly into buffer
+     * (unsupported in HTML5). Returns the bytes read, 0 at the end of the
+     * file (StudioSystem.lastResult reports FMOD_ERR_FILE_EOF), or a
+     * negated FMOD error code. HTML5 returns -68. length defaults to the
+     * whole buffer and is clamped to it.
+     */
+    public function readData(buffer:haxe.io.Bytes, length:Int = -1):Int {
+        if (buffer == null) return -(FmodResult.FMOD_ERR_INVALID_PARAM : Int);
+        // The HashLink shim cannot see the buffer's real size, so an
+        // oversized count is clamped here before it can read past the heap
+        var count = length == -1 || length > buffer.length ? buffer.length : length;
+        return NativeStudio.core_sound_read_data(this, buffer, count);
+    }
+
+    /** Moves the readData cursor to a PCM sample offset (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED). */
+    public inline function seekData(pcm:Int):FmodResult {
+        return NativeStudio.core_sound_seek_data(this, pcm);
     }
 
     /**

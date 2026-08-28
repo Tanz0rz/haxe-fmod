@@ -3157,6 +3157,7 @@ jobs:
           node tests/js/bank-pipeline-test.js
           node tests/js/hostile-input-test.js
           node tests/js/runtime-init-test.js
+          node tests/js/system-extras-harness.js
 
       - name: Run Core dynamic-audio prototype against the real wasm
         env:

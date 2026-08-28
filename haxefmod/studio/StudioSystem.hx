@@ -330,6 +330,61 @@ class StudioSystem {
         return {exclusive: Scratch.readI(0), inclusive: Scratch.readI(1), sampledata: Scratch.readI(2)};
     }
 
+    //// Version and recording
+
+    /** The linked FMOD version as "2.03.12", or "" on failure. */
+    public static inline function getVersion():String {
+        return NativeStudio.sys_get_version();
+    }
+
+    /**
+     * Record drivers FMOD can see (unsupported in HTML5, returns null
+     * there). drivers counts every known device, connected the ones
+     * plugged in right now. Machines without a microphone report 0 and 0.
+     */
+    public static function getRecordDriverCount():Null<{drivers:Int, connected:Int}> {
+        var drivers = NativeStudio.sys_get_record_num_drivers();
+        if (drivers < 0) return null;
+        return {drivers: drivers, connected: Scratch.readI(0)};
+    }
+
+    /**
+     * Name and native format of a record driver (unsupported in HTML5,
+     * returns null there). state is an FMOD_DRIVER_STATE bitmask (1 =
+     * connected, 2 = default). Null for an id out of range.
+     */
+    public static function getRecordDriverInfo(id:Int):Null<{name:String, systemRate:Int, speakerMode:Int, channels:Int, state:Int}> {
+        var name = NativeStudio.sys_get_record_driver_info(id);
+        if (!lastResult().isOk()) return null;
+        return {name: name, systemRate: Scratch.readI(0), speakerMode: Scratch.readI(1),
+            channels: Scratch.readI(2), state: Scratch.readI(3)};
+    }
+
+    /**
+     * Starts recording a driver into a sound from CoreSound.createRecordBuffer
+     * (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED). With loop on
+     * the buffer wraps and keeps recording, otherwise recording stops at
+     * the end.
+     */
+    public static inline function recordStart(id:Int, sound:CoreSound, loop:Bool = false):FmodResult {
+        return NativeStudio.sys_record_start(id, sound, loop);
+    }
+
+    /** Stops recording on a driver (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED). */
+    public static inline function recordStop(id:Int):FmodResult {
+        return NativeStudio.sys_record_stop(id);
+    }
+
+    /** True while a driver is recording (unsupported in HTML5, always false there). */
+    public static inline function isRecording(id:Int):Bool {
+        return NativeStudio.sys_is_recording(id);
+    }
+
+    /** The record cursor in PCM samples, or -1 on failure (unsupported in HTML5, always -1 there). */
+    public static inline function getRecordPosition(id:Int):Int {
+        return NativeStudio.sys_get_record_position(id);
+    }
+
     //// Diagnostics
 
     /** Result of the most recent studio binding call. */
