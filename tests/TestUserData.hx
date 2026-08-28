@@ -13,7 +13,7 @@ import haxefmod.studio.Bus;
 import haxefmod.studio.CallbackDispatcher;
 import haxefmod.studio.Callbacks;
 import haxefmod.studio.CommandReplay;
-import haxefmod.studio.CoreSound;
+import haxefmod.core.Sound;
 import haxefmod.studio.EventDescription;
 import haxefmod.studio.EventInstance;
 import haxefmod.studio.StudioSystem;
@@ -64,7 +64,7 @@ class TestUserData {
 		var bus:Bus = 101;
 		var vca:Vca = 101;
 		var replay:CommandReplay = 101;
-		var sound:CoreSound = 101;
+		var sound:Sound = 101;
 		var chan:Channel = 101;
 		var group:ChannelGroup = 101;
 		var dsp:Dsp = 101;
@@ -146,7 +146,7 @@ class TestUserData {
 
 		// The other release paths clear even though the stub rejects the
 		// native call, so the entry never depends on the native result
-		var sound:CoreSound = 301;
+		var sound:Sound = 301;
 		sound.setUserData(1); sound.release();
 		assert("sound cleared on release", sound.getUserData() == null);
 		var chan:Channel = 302;

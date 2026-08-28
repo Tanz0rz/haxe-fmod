@@ -7,7 +7,7 @@ import haxefmod.studio.native.NativeStudio;
 /**
  * A handle to an FMOD sound group: polyphony caps and behaviors across any
  * set of sounds (e.g. at most three footstep sounds at once, stealing the
- * quietest). Assign sounds with CoreSound.setSoundGroup. Every sound
+ * quietest). Assign sounds with Sound.setSoundGroup. Every sound
  * belongs to the master group until moved.
  */
 abstract SoundGroup(Int) from Int to Int {
@@ -79,10 +79,10 @@ abstract SoundGroup(Int) from Int to Int {
 
     /**
      * The sound at position index in this group (a known sound returns its
-     * existing handle). CoreSound.NULL past the end. The group does not own
+     * existing handle). Sound.NULL past the end. The group does not own
      * the sound, so do not release a handle obtained this way.
      */
-    public inline function getSound(index:Int):haxefmod.studio.CoreSound {
+    public inline function getSound(index:Int):haxefmod.core.Sound {
         return NativeStudio.sg_get_sound(this, index);
     }
 

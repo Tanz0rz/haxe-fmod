@@ -2,9 +2,9 @@
 
 ## 9
 <!-- Direct from host, via FMOD's filesystem -->
-The web build decodes FSB only, so CoreSound.create on a loose .wav path returns FMOD_ERR_FORMAT on HTML5. Load a bank instead, or feed raw PCM through CoreSound.fromPcm. Banks are fetched into the browser's virtual filesystem for you, and StudioSystem.lastResult() holds the error when a load fails.
+The web build decodes FSB only, so Sound.create on a loose .wav path returns FMOD_ERR_FORMAT on HTML5. Load a bank instead, or feed raw PCM through Sound.fromPcm. Banks are fetched into the browser's virtual filesystem for you, and StudioSystem.lastResult() holds the error when a load fails.
 ```haxe
-import haxefmod.studio.CoreSound;
+import haxefmod.core.Sound;
 
 var bank = StudioSystem.loadBankFile("SFX.bank");
 if (bank.isNull()) {
@@ -12,7 +12,7 @@ if (bank.isNull()) {
 }
 
 var pcm = haxe.io.Bytes.alloc(48000 * 2 * 2);
-var sound = CoreSound.fromPcm(pcm, 48000, 2);
+var sound = Sound.fromPcm(pcm, 48000, 2);
 if (!sound.isNull()) {
     var ch = sound.play();
 }
@@ -22,7 +22,7 @@ if (!sound.isNull()) {
 <!-- Via memory -->
 Data already in memory goes in as haxe.io.Bytes. The binding copies it into FMOD's heap, so there is no pointer to manage.
 ```haxe
-import haxefmod.studio.CoreSound;
+import haxefmod.core.Sound;
 
 var bankBytes = haxe.io.Bytes.alloc(0);
 var bank = StudioSystem.loadBankMemory(bankBytes);
@@ -31,7 +31,7 @@ if (bank.isNull()) {
 }
 
 var pcm = haxe.io.Bytes.alloc(48000 * 2 * 2);
-var sound = CoreSound.fromPcm(pcm, 48000, 2);
+var sound = Sound.fromPcm(pcm, 48000, 2);
 ```
 
 ## 11

@@ -2,12 +2,12 @@
 
 ## 0
 <!-- 5.0.2 Loading Sounds as 3D -->
-CoreSound.create takes no mode flags. Switch the sound to 3D with setMode after loading, or call setMode on the channel that plays it.
+Sound.create takes no mode flags. Switch the sound to 3D with setMode after loading, or call setMode on the channel that plays it.
 ```haxe
-import haxefmod.studio.CoreSound;
+import haxefmod.core.Sound;
 import haxefmod.core.ChannelMode;
 
-var sound = CoreSound.create("assets/drumloop.wav");
+var sound = Sound.create("assets/drumloop.wav");
 if (sound.isNull()) {
     trace('load failed: ${StudioSystem.lastResult()}');
 }
@@ -21,10 +21,10 @@ if (!result.isOk()) {
 <!-- 5.1 Controlling a Spatializer DSP -->
 Spatializer parameters of the FMOD_DSP_PARAMETER_3DATTRIBUTES kind are not settable from Haxe. Give the channel its world-space position with Channel.set3DAttributes and let FMOD compute the listener-relative part itself.
 ```haxe
-import haxefmod.studio.CoreSound;
+import haxefmod.core.Sound;
 import haxefmod.core.ChannelMode;
 
-var sound = CoreSound.create("assets/drumloop.wav");
+var sound = Sound.create("assets/drumloop.wav");
 sound.setMode(ChannelMode.MODE_3D);
 var channel = sound.play();
 channel.set3DAttributes(carX, carY, 0, 0, 0, 0);

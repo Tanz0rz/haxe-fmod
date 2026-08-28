@@ -16,7 +16,7 @@ import haxefmod.core.SoundGroup;
 import haxefmod.studio.Bank;
 import haxefmod.studio.Bus;
 import haxefmod.studio.CommandReplay;
-import haxefmod.studio.CoreSound;
+import haxefmod.core.Sound;
 import haxefmod.studio.FmodResult;
 import haxefmod.studio.EventDescription;
 import haxefmod.studio.EventInstance;
@@ -176,7 +176,7 @@ class TestStudioSurface {
 		assert(instance.assignProgrammerSound(null) == FmodResult.FMOD_ERR_INVALID_PARAM,
 			"evi assignProgrammerSound null key rejected in the wrapper");
 		assert(!instance.clearProgrammerSound().isOk(), "evi clearProgrammerSound result");
-		var sound = CoreSound.create("missing.wav");
+		var sound = Sound.create("missing.wav");
 		assert(sound.isNull(), "core sound null");
 		assert(sound.getLength() == -1, "core sound length default");
 		assert(!sound.release().isOk(), "core sound release result");
@@ -198,12 +198,12 @@ class TestStudioSurface {
 		assert(StudioSystem.getVersion() == "", "sys getVersion default");
 
 		stub.testLastCreateSoundOpenOnly = null;
-		assert(CoreSound.create("x.wav").isNull(), "coresound create null");
+		assert(Sound.create("x.wav").isNull(), "coresound create null");
 		assert(stub.testLastCreateSoundOpenOnly == false, "create defaults openOnly off");
-		CoreSound.create("x.wav", false, true);
+		Sound.create("x.wav", false, true);
 		assert(stub.testLastCreateSoundOpenOnly == true, "create passes openOnly through");
 
-		var sound:CoreSound = cast 0;
+		var sound:Sound = cast 0;
 		stub.testReadDataLen = -999;
 		assert(sound.readData(haxe.io.Bytes.alloc(64)) == -68, "readData surfaces the negated result");
 		assert(stub.testReadDataLen == 64, "readData sentinel means the whole buffer");
@@ -220,7 +220,7 @@ class TestStudioSurface {
 
 		assert(StudioSystem.getRecordDriverCount() == null, "sys record driver count default");
 		assert(StudioSystem.getRecordDriverInfo(0) == null, "sys record driver info default");
-		assert(CoreSound.createRecordBuffer(48000, 1, 2).isNull(), "coresound createRecordBuffer null");
+		assert(Sound.createRecordBuffer(48000, 1, 2).isNull(), "coresound createRecordBuffer null");
 		assert(!StudioSystem.recordStart(0, sound).isOk(), "sys recordStart result");
 		assert(!StudioSystem.recordStop(0).isOk(), "sys recordStop result");
 		assert(!StudioSystem.isRecording(0), "sys isRecording default");
@@ -249,7 +249,7 @@ class TestStudioSurface {
 		var group:ChannelGroup = cast 0;
 		assert(!group.set3DCustomRolloff(points).isOk(), "cg set3DCustomRolloff result");
 		assert(group.get3DCustomRolloff().length == 0, "cg get3DCustomRolloff default");
-		var sound:CoreSound = cast 0;
+		var sound:Sound = cast 0;
 		assert(!sound.set3DCustomRolloff(points).isOk(), "sound set3DCustomRolloff result");
 		assert(sound.get3DCustomRolloff().length == 0, "sound get3DCustomRolloff default");
 
@@ -420,7 +420,7 @@ class TestStudioSurface {
 		assert(!zone.setActive(true).isOk(), "reverb3d active result");
 		assert(!zone.release().isOk(), "reverb3d release result");
 
-		var pcmSound = CoreSound.fromPcm(haxe.io.Bytes.alloc(64), 48000, 1);
+		var pcmSound = Sound.fromPcm(haxe.io.Bytes.alloc(64), 48000, 1);
 		assert(pcmSound.isNull(), "coresound fromPcm null");
 
 		// The wrapper must never let a lied length reach a backend: the
@@ -428,19 +428,19 @@ class TestStudioSurface {
 		// oversized count over-read the heap inside FMOD's memcpy
 		var stub = haxefmod.studio.native.NativeStudioStub;
 		stub.testPcmCreateLen = -999;
-		CoreSound.fromPcm(haxe.io.Bytes.alloc(64), 48000, 1, 1024);
+		Sound.fromPcm(haxe.io.Bytes.alloc(64), 48000, 1, 1024);
 		assert(stub.testPcmCreateLen == 64, "fromPcm clamps a lied length to the buffer size");
 		stub.testPcmCreateLen = -999;
-		CoreSound.fromPcm(haxe.io.Bytes.alloc(64), 48000, 1, 32);
+		Sound.fromPcm(haxe.io.Bytes.alloc(64), 48000, 1, 32);
 		assert(stub.testPcmCreateLen == 32, "fromPcm passes an honest partial length through");
 		stub.testPcmCreateLen = -999;
-		CoreSound.fromPcm(haxe.io.Bytes.alloc(64), 48000, 1);
+		Sound.fromPcm(haxe.io.Bytes.alloc(64), 48000, 1);
 		assert(stub.testPcmCreateLen == 64, "fromPcm sentinel means the whole buffer");
 		stub.testPcmCreateLen = -999;
-		CoreSound.fromPcm(haxe.io.Bytes.alloc(64), 48000, 1, -5);
+		Sound.fromPcm(haxe.io.Bytes.alloc(64), 48000, 1, -5);
 		assert(stub.testPcmCreateLen == -5, "fromPcm surfaces a negative non-sentinel to the backend");
 		stub.testPcmCreateLen = -999;
-		assert(CoreSound.fromPcm(null, 48000, 1).isNull(), "fromPcm null bytes rejected");
+		assert(Sound.fromPcm(null, 48000, 1).isNull(), "fromPcm null bytes rejected");
 		assert(stub.testPcmCreateLen == -999, "fromPcm null bytes never reach the backend");
 		assert(pcmSound.play().isNull(), "coresound play null");
 		assert(!pcmSound.setDefaults(24000, 128).isOk(), "coresound defaults result");
@@ -620,7 +620,7 @@ class TestStudioSurface {
 	}
 	static function testCompletenessTail():Void {
 		// Sound cone and rolloff distances
-		var sound = CoreSound.fromPcm(haxe.io.Bytes.alloc(16), 48000, 1);
+		var sound = Sound.fromPcm(haxe.io.Bytes.alloc(16), 48000, 1);
 		assert(!sound.set3DConeSettings(30, 60, 0.5).isOk(), "sound cone result");
 		assert(sound.get3DConeSettings() == null, "sound cone default");
 		assert(!sound.set3DMinMaxDistance(1, 100).isOk(), "sound minmax result");
@@ -700,7 +700,7 @@ class TestStudioSurface {
 	static function testSoundExtrasStub() {
 		// The stub reports failure from every sound extra and the wrappers
 		// route to it, so the abstract methods surface -1, 0, NULL, or null
-		var sound:CoreSound = cast 1;
+		var sound:Sound = cast 1;
 		assert(sound.getMusicNumChannels() == -1, "getMusicNumChannels stub -1");
 		assert(sound.setMusicChannelVolume(0, 0.5) == FmodResult.FMOD_ERR_UNSUPPORTED, "setMusicChannelVolume stub unsupported");
 		assert(sound.getMusicChannelVolume(0) == 0.0, "getMusicChannelVolume stub 0");

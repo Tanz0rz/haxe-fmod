@@ -1,6 +1,6 @@
 package;
 
-import haxefmod.studio.CoreSound;
+import haxefmod.core.Sound;
 import haxefmod.studio.FmodResult;
 import haxefmod.studio.StudioSystem;
 import haxefmod.studio.Types;
@@ -38,7 +38,7 @@ class ProbeSoundExtras {
 
         // --- subsounds on a plain sound ---
         var pcm = haxe.io.Bytes.alloc(4096);
-        var plain = CoreSound.fromPcm(pcm, 8000, 1);
+        var plain = Sound.fromPcm(pcm, 8000, 1);
         @:privateAccess state.check("sound_extras_pcm_sound", !plain.isNull(),
             'result=${StudioSystem.lastResult().toString()}');
         @:privateAccess state.check("core_sound_get_num_sub_sounds", plain.getNumSubSounds() == 0,
@@ -62,7 +62,7 @@ class ProbeSoundExtras {
         // --- tracker music and tags on a real module ---
         #if sys
         var modPath = TrackerFixture.write();
-        var mod = CoreSound.create(modPath);
+        var mod = Sound.create(modPath);
         @:privateAccess state.check("sound_extras_tracker_loads", !mod.isNull(),
             'result=${StudioSystem.lastResult().toString()} path=$modPath');
         if (!mod.isNull()) {

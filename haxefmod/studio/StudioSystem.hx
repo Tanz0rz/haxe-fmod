@@ -1,5 +1,6 @@
 package haxefmod.studio;
 
+import haxefmod.core.Sound;
 import haxefmod.studio.Types;
 import haxefmod.studio.UserData;
 import haxefmod.studio.native.NativeStudio;
@@ -412,7 +413,7 @@ class StudioSystem {
 
 #if (macro || (js && !haxefmod_html5_allow_unsupported))
     /**
-     * Starts recording a driver into a sound from CoreSound.createRecordBuffer
+     * Starts recording a driver into a sound from Sound.createRecordBuffer
      * (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED). With loop on
      * the buffer wraps and keeps recording, otherwise recording stops at
      * the end.
@@ -422,12 +423,12 @@ class StudioSystem {
     }
     #else
     /**
-     * Starts recording a driver into a sound from CoreSound.createRecordBuffer
+     * Starts recording a driver into a sound from Sound.createRecordBuffer
      * (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED). With loop on
      * the buffer wraps and keeps recording, otherwise recording stops at
      * the end.
      */
-    public static inline function recordStart(id:Int, sound:CoreSound, loop:Bool = false):FmodResult {
+    public static inline function recordStart(id:Int, sound:Sound, loop:Bool = false):FmodResult {
         return NativeStudio.sys_record_start(id, sound, loop);
     }
     #end

@@ -1,6 +1,6 @@
 # Handles and results
 
-Every FMOD object in `haxefmod.studio` and `haxefmod.core` is a typed handle: `EventInstance`, `EventDescription`, `Bank`, `Bus`, `Vca`, `CommandReplay`, `CoreSound`, `Channel`, `ChannelGroup`, `Dsp`, `SoundGroup`, and so on. This page describes the conventions all of them share, which is what you need to know to read any of their reference pages.
+Every FMOD object in `haxefmod.studio` and `haxefmod.core` is a typed handle: `EventInstance`, `EventDescription`, `Bank`, `Bus`, `Vca`, `CommandReplay`, `Sound`, `Channel`, `ChannelGroup`, `Dsp`, `SoundGroup`, and so on. This page describes the conventions all of them share, which is what you need to know to read any of their reference pages.
 
 ## Handles are integers
 
@@ -33,7 +33,7 @@ FMOD objects have two kinds of lifetime.
 
 **Looked-up handles** (`EventDescription`, `Bus`, `Vca`, `Bank`) refer to objects that live as long as their bank is loaded. `StudioSystem.getBus` and `getEvent` cache one handle per path, so repeated lookups return the same handle and there is nothing to release.
 
-**Created handles** (`EventInstance`, `CoreSound`, `Dsp`, custom `ChannelGroup`, `SoundGroup`, `CommandReplay`) are yours until you release them. `release()` on an event instance lets FMOD destroy it once it stops. The handle becomes invalid immediately, any registered callback is removed, and the instance keeps playing out unless you stopped it first. Fire-and-forget playback is just start followed by release.
+**Created handles** (`EventInstance`, `Sound`, `Dsp`, custom `ChannelGroup`, `SoundGroup`, `CommandReplay`) are yours until you release them. `release()` on an event instance lets FMOD destroy it once it stops. The handle becomes invalid immediately, any registered callback is removed, and the instance keeps playing out unless you stopped it first. Fire-and-forget playback is just start followed by release.
 
 ```haxe
 var description = StudioSystem.getEvent("event:/SFX/Explosion");
@@ -70,10 +70,10 @@ if (!result.isOk()) {
 }
 ```
 
-Getters return the value directly rather than a result. When a getter fails it returns its default, and the failing code is available from `StudioSystem.lastResult()`, which holds the result of the most recent studio binding call. Factory calls follow the same pattern. `createInstance`, `loadBankFile`, `CoreSound.create`, and their relatives return `NULL` on failure and leave the reason in `lastResult()`.
+Getters return the value directly rather than a result. When a getter fails it returns its default, and the failing code is available from `StudioSystem.lastResult()`, which holds the result of the most recent studio binding call. Factory calls follow the same pattern. `createInstance`, `loadBankFile`, `Sound.create`, and their relatives return `NULL` on failure and leave the reason in `lastResult()`.
 
 ```haxe
-var sound = haxefmod.studio.CoreSound.create("assets/voice/line01.ogg");
+var sound = haxefmod.core.Sound.create("assets/voice/line01.ogg");
 if (sound.isNull()) {
     trace('load failed: ${StudioSystem.lastResult()}');
 }

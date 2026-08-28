@@ -1,7 +1,7 @@
 package haxefmod.core;
 
 /**
- * Mode flags for Channel.setMode and CoreSound.setMode. Values match
+ * Mode flags for Channel.setMode and Sound.setMode. Values match
  * FMOD_MODE in the FMOD headers and combine with bitwise or.
  *
  * The rolloff flags pick how 3D sounds attenuate with distance:

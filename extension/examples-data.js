@@ -10,10 +10,10 @@ const HAXEFMOD_EXAMPLES = {
    ]
   },
   "0": {
-   "code": "import haxefmod.studio.CoreSound;\n\nvar sound = CoreSound.create(\"assets/sfx/engine.wav\", false, true);\nvar buffer = haxe.io.Bytes.alloc(4096);\nvar read = sound.readData(buffer);\nwhile (read > 0) {\n    // the first read bytes of buffer hold decoded PCM\n    read = sound.readData(buffer);\n}\nsound.release();",
+   "code": "import haxefmod.core.Sound;\n\nvar sound = Sound.create(\"assets/sfx/engine.wav\", false, true);\nvar buffer = haxe.io.Bytes.alloc(4096);\nvar read = sound.readData(buffer);\nwhile (read > 0) {\n    // the first read bytes of buffer hold decoded PCM\n    read = sound.readData(buffer);\n}\nsound.release();",
    "heading": "10.2 Extracting PCM Data from a Sound",
    "notes": [
-    "CoreSound.readData reads decoded PCM out of a sound opened with the openOnly flag of CoreSound.create, and seekData moves the read cursor. Both are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED, so a web build keeps its own copy of the PCM it feeds through CoreSound.fromPcm or PcmStream."
+    "Sound.readData reads decoded PCM out of a sound opened with the openOnly flag of Sound.create, and seekData moves the read cursor. Both are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED, so a web build keeps its own copy of the PCM it feeds through Sound.fromPcm or PcmStream."
    ]
   },
   "10": {
@@ -190,14 +190,14 @@ const HAXEFMOD_EXAMPLES = {
    "code": null,
    "heading": "FMOD_CHANNELORDER",
    "notes": [
-    "Channel order is not exposed. CoreSound.create and CoreSound.fromPcm use FMOD's default interleaved order."
+    "Channel order is not exposed. Sound.create and Sound.fromPcm use FMOD's default interleaved order."
    ]
   },
   "20": {
-   "code": "import haxefmod.core.ChannelMode;\nimport haxefmod.studio.CoreSound;\n\nvar sound = CoreSound.create(\"assets/sfx/engine.wav\");\nsound.setMode(ChannelMode.MODE_3D | ChannelMode.LOOP_NORMAL | ChannelMode.LINEAR_ROLLOFF_3D);\nvar channel = sound.play();\nif ((channel.getMode() & ChannelMode.LOOP_NORMAL) != 0) {\n    trace(\"looping\");\n}",
+   "code": "import haxefmod.core.ChannelMode;\nimport haxefmod.core.Sound;\n\nvar sound = Sound.create(\"assets/sfx/engine.wav\");\nsound.setMode(ChannelMode.MODE_3D | ChannelMode.LOOP_NORMAL | ChannelMode.LINEAR_ROLLOFF_3D);\nvar channel = sound.play();\nif ((channel.getMode() & ChannelMode.LOOP_NORMAL) != 0) {\n    trace(\"looping\");\n}",
    "heading": "FMOD_MODE",
    "notes": [
-    "haxefmod.core.ChannelMode holds the FMOD_MODE bits a game sets at runtime, with the same values. Combine them with bitwise or and pass the int to CoreSound.setMode or Channel.setMode. Loading flags such as CREATESTREAM and OPENMEMORY are chosen by CoreSound.create and CoreSound.fromPcm."
+    "haxefmod.core.ChannelMode holds the FMOD_MODE bits a game sets at runtime, with the same values. Combine them with bitwise or and pass the int to Sound.setMode or Channel.setMode. Loading flags such as CREATESTREAM and OPENMEMORY are chosen by Sound.create and Sound.fromPcm."
    ]
   },
   "21": {
@@ -222,10 +222,10 @@ const HAXEFMOD_EXAMPLES = {
    ]
   },
   "24": {
-   "code": "import haxefmod.core.ChannelEvent;\nimport haxefmod.studio.CoreSound;\n\nvar sound = CoreSound.create(\"assets/music/loop.wav\");\nsound.addSyncPoint(2000, \"drop\");\nvar channel = sound.play();\nchannel.setCallback(function(event:ChannelEvent) {\n    switch (event) {\n        case SyncPoint(index): trace('hit ${sound.getSyncPointName(index)}');\n        case End: trace(\"done\");\n    }\n});",
+   "code": "import haxefmod.core.ChannelEvent;\nimport haxefmod.core.Sound;\n\nvar sound = Sound.create(\"assets/music/loop.wav\");\nsound.addSyncPoint(2000, \"drop\");\nvar channel = sound.play();\nchannel.setCallback(function(event:ChannelEvent) {\n    switch (event) {\n        case SyncPoint(index): trace('hit ${sound.getSyncPointName(index)}');\n        case End: trace(\"done\");\n    }\n});",
    "heading": "FMOD_SYNCPOINT",
    "notes": [
-    "Sync points are addressed by index on the sound instead of by pointer. CoreSound.addSyncPoint takes an offset in milliseconds and a name, and the channel reports crossings through Channel.setCallback."
+    "Sync points are addressed by index on the sound instead of by pointer. Sound.addSyncPoint takes an offset in milliseconds and a name, and the channel reports crossings through Channel.setCallback."
    ]
   },
   "25": {
@@ -264,10 +264,10 @@ const HAXEFMOD_EXAMPLES = {
    ]
   },
   "30": {
-   "code": "import haxefmod.studio.CoreSound;\n\nvar sound = CoreSound.create(\"assets/music/loop.wav\");\nvar channel = sound.play();\nchannel.setPosition(1500);\ntrace('at ${channel.getPosition()} of ${sound.getLength()} ms');",
+   "code": "import haxefmod.core.Sound;\n\nvar sound = Sound.create(\"assets/music/loop.wav\");\nvar channel = sound.play();\nchannel.setPosition(1500);\ntrace('at ${channel.getPosition()} of ${sound.getLength()} ms');",
    "heading": "FMOD_TIMEUNIT",
    "notes": [
-    "Positions and lengths are always milliseconds. Channel.getPosition, Channel.setPosition, CoreSound.getLength, and CoreSound.addSyncPoint take and return ms, so there is no time unit argument."
+    "Positions and lengths are always milliseconds. Channel.getPosition, Channel.setPosition, Sound.getLength, and Sound.addSyncPoint take and return ms, so there is no time unit argument."
    ]
   },
   "31": {
@@ -775,28 +775,28 @@ const HAXEFMOD_EXAMPLES = {
  },
  "core-api-sound": {
   "0": {
-   "code": "import haxefmod.studio.CoreSound;\nvar sound = CoreSound.create(\"assets/music/intro.ogg\");\nif (sound.getOpenState() == 0) {\n    var channel = sound.play();\n}",
+   "code": "import haxefmod.core.Sound;\nvar sound = Sound.create(\"assets/music/intro.ogg\");\nif (sound.getOpenState() == 0) {\n    var channel = sound.play();\n}",
    "heading": "FMOD_OPENSTATE",
    "notes": [
     "getOpenState returns the FMOD_OPENSTATE value as an int, 0 once the sound is ready."
    ]
   },
   "28": {
-   "code": "import haxefmod.studio.CoreSound;\nvar sound = CoreSound.create(\"assets/music/track.ogg\");\nvar channel = sound.play();\nchannel.setFrequency(44100);",
+   "code": "import haxefmod.core.Sound;\nvar sound = Sound.create(\"assets/music/track.ogg\");\nvar channel = sound.play();\nchannel.setFrequency(44100);",
    "heading": "Sound::getTag",
    "notes": [
     "Tag access is not exposed, and netstreams are not part of the supported sound sources. Set the playback rate directly with setFrequency when your game knows it."
    ]
   },
   "29": {
-   "code": "import haxefmod.studio.CoreSound;\nvar sound = CoreSound.create(\"assets/music/track.ogg\");\nvar channel = sound.play();\nchannel.setFrequency(44100);",
+   "code": "import haxefmod.core.Sound;\nvar sound = Sound.create(\"assets/music/track.ogg\");\nvar channel = sound.play();\nchannel.setFrequency(44100);",
    "heading": "Sound::getTag",
    "notes": [
     "Tag access is not exposed, and netstreams are not part of the supported sound sources. Set the playback rate directly with setFrequency when your game knows it."
    ]
   },
   "3": {
-   "code": "import haxefmod.studio.CoreSound;\nvar sound = CoreSound.create(\"assets/sfx/hit.wav\");\nvar format = sound.getFormat();\nif (format != null) {\n    trace('${format.channels} channels, ${format.bits} bits');\n}",
+   "code": "import haxefmod.core.Sound;\nvar sound = Sound.create(\"assets/sfx/hit.wav\");\nvar format = sound.getFormat();\nif (format != null) {\n    trace('${format.channels} channels, ${format.bits} bits');\n}",
    "heading": "FMOD_SOUND_FORMAT",
    "notes": [
     "Sounds built from raw data are always 16-bit signed PCM. getFormat reports the channel count and bit depth of any loaded sound."
@@ -824,45 +824,45 @@ const HAXEFMOD_EXAMPLES = {
    ]
   },
   "40": {
-   "code": "import haxefmod.studio.CoreSound;\nimport haxefmod.core.ChannelMode;\n\nvar sound = CoreSound.create(\"assets/sfx/engine.wav\");\nsound.setMode(ChannelMode.MODE_3D);\nsound.set3DCustomRolloff([{x: 1, y: 1, z: 0}, {x: 10, y: 0.5, z: 0}, {x: 50, y: 0, z: 0}]);",
+   "code": "import haxefmod.core.Sound;\nimport haxefmod.core.ChannelMode;\n\nvar sound = Sound.create(\"assets/sfx/engine.wav\");\nsound.setMode(ChannelMode.MODE_3D);\nsound.set3DCustomRolloff([{x: 1, y: 1, z: 0}, {x: 10, y: 0.5, z: 0}, {x: 50, y: 0, z: 0}]);",
    "heading": "Sound::set3DCustomRolloff",
    "notes": [
     "Custom rolloff curves are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED. Each point is an FmodVector with x as the distance and y as the volume, and the copy FMOD needs lives with the sound until it is released."
    ]
   },
   "43": {
-   "code": "import haxefmod.studio.CoreSound;\nvar sound = CoreSound.create(\"assets/sfx/hit.wav\");\nvar defaults = sound.getDefaults();\nif (defaults != null) {\n    sound.setDefaults(48000, defaults.priority);\n}",
+   "code": "import haxefmod.core.Sound;\nvar sound = Sound.create(\"assets/sfx/hit.wav\");\nvar defaults = sound.getDefaults();\nif (defaults != null) {\n    sound.setDefaults(48000, defaults.priority);\n}",
    "heading": "Sound::setDefaults",
    "notes": [
     "getDefaults returns both values in one struct."
    ]
   },
   "44": {
-   "code": "import haxefmod.studio.CoreSound;\nvar sound = CoreSound.create(\"assets/sfx/hit.wav\");\nvar defaults = sound.getDefaults();\nif (defaults != null) {\n    sound.setDefaults(48000, defaults.priority);\n}",
+   "code": "import haxefmod.core.Sound;\nvar sound = Sound.create(\"assets/sfx/hit.wav\");\nvar defaults = sound.getDefaults();\nif (defaults != null) {\n    sound.setDefaults(48000, defaults.priority);\n}",
    "heading": "Sound::setDefaults",
    "notes": [
     "getDefaults returns both values in one struct."
    ]
   },
   "45": {
-   "code": "import haxefmod.studio.CoreSound;\nvar sound = CoreSound.create(\"assets/sfx/hit.wav\");\nvar defaults = sound.getDefaults();\nif (defaults != null) {\n    sound.setDefaults(48000, defaults.priority);\n}",
+   "code": "import haxefmod.core.Sound;\nvar sound = Sound.create(\"assets/sfx/hit.wav\");\nvar defaults = sound.getDefaults();\nif (defaults != null) {\n    sound.setDefaults(48000, defaults.priority);\n}",
    "heading": "Sound::setDefaults",
    "notes": [
     "getDefaults returns both values in one struct."
    ]
   },
   "46": {
-   "code": "import haxefmod.studio.CoreSound;\nvar sound = CoreSound.create(\"assets/sfx/hit.wav\");\nvar defaults = sound.getDefaults();\nif (defaults != null) {\n    sound.setDefaults(48000, defaults.priority);\n}",
+   "code": "import haxefmod.core.Sound;\nvar sound = Sound.create(\"assets/sfx/hit.wav\");\nvar defaults = sound.getDefaults();\nif (defaults != null) {\n    sound.setDefaults(48000, defaults.priority);\n}",
    "heading": "Sound::setDefaults",
    "notes": [
     "getDefaults returns both values in one struct."
    ]
   },
   "54": {
-   "code": "import haxefmod.studio.CoreSound;\nvar sound = CoreSound.create(\"assets/sfx/hit.ogg\");\nif (sound.isNull() && StudioSystem.lastResult() == FMOD_ERR_FORMAT) {\n    trace(\"this target cannot decode loose files\");\n}",
+   "code": "import haxefmod.core.Sound;\nvar sound = Sound.create(\"assets/sfx/hit.ogg\");\nif (sound.isNull() && StudioSystem.lastResult() == FMOD_ERR_FORMAT) {\n    trace(\"this target cannot decode loose files\");\n}",
    "heading": "FMOD_SOUND_TYPE",
    "notes": [
-    "The sound type is not queryable. CoreSound.create accepts any format FMOD decodes on the target, and on HTML5 only FSB and raw PCM decode, so a loose .wav or .ogg path leaves FMOD_ERR_FORMAT in lastResult."
+    "The sound type is not queryable. Sound.create accepts any format FMOD decodes on the target, and on HTML5 only FSB and raw PCM decode, so a loose .wav or .ogg path leaves FMOD_ERR_FORMAT in lastResult."
    ]
   },
   "56": {
@@ -898,7 +898,7 @@ const HAXEFMOD_EXAMPLES = {
  },
  "core-api-system": {
   "0": {
-   "code": "import haxefmod.studio.CoreSound;\nimport haxefmod.core.ChannelMode;\n\nvar sound = CoreSound.create(\"assets/sfx/engine.wav\");\nsound.setMode(ChannelMode.MODE_3D);\nsound.set3DCustomRolloff([{x: 1, y: 1, z: 0}, {x: 10, y: 0.5, z: 0}, {x: 50, y: 0, z: 0}]);\nvar channel = sound.play();",
+   "code": "import haxefmod.core.Sound;\nimport haxefmod.core.ChannelMode;\n\nvar sound = Sound.create(\"assets/sfx/engine.wav\");\nsound.setMode(ChannelMode.MODE_3D);\nsound.set3DCustomRolloff([{x: 1, y: 1, z: 0}, {x: 10, y: 0.5, z: 0}, {x: 50, y: 0, z: 0}]);\nvar channel = sound.play();",
    "heading": "FMOD_3D_ROLLOFF_CALLBACK",
    "notes": [
     "Rolloff callbacks cannot run on FMOD's threads from Haxe, so they are not exposed. A curve of FmodVector points does the same job without a callback through set3DCustomRolloff on the sound, channel, or group, native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED. The built-in rolloff modes work on every target through the mode flags."
@@ -1020,7 +1020,7 @@ const HAXEFMOD_EXAMPLES = {
    "code": null,
    "heading": "FMOD_ASYNCREADINFO",
    "notes": [
-    "Custom file systems are not exposed, since user IO callbacks run on FMOD's threads. Load banks with StudioSystem.loadBankFile or loadBankMemory, and core sounds with CoreSound.create or CoreSound.fromPcm."
+    "Custom file systems are not exposed, since user IO callbacks run on FMOD's threads. Load banks with StudioSystem.loadBankFile or loadBankMemory, and core sounds with Sound.create or Sound.fromPcm."
    ]
   },
   "20": {
@@ -1066,7 +1066,7 @@ const HAXEFMOD_EXAMPLES = {
    ]
   },
   "3": {
-   "code": "import haxefmod.studio.CoreSound;\nvar looped = CoreSound.create(\"assets/music/loop.ogg\", true);\n\nvar pcm = haxe.io.Bytes.alloc(48000 * 2 * 2);\nvar sample = CoreSound.fromPcm(pcm, 48000, 2);\nif (sample.isNull()) {\n    trace('create failed: ${StudioSystem.lastResult()}');\n}",
+   "code": "import haxefmod.core.Sound;\nvar looped = Sound.create(\"assets/music/loop.ogg\", true);\n\nvar pcm = haxe.io.Bytes.alloc(48000 * 2 * 2);\nvar sample = Sound.fromPcm(pcm, 48000, 2);\nif (sample.isNull()) {\n    trace('create failed: ${StudioSystem.lastResult()}');\n}",
    "heading": "FMOD_CREATESOUNDEXINFO",
    "notes": [
     "There is no extended-info struct. The file path form takes an optional loop flag, and raw PCM goes through fromPcm with the format described by its arguments."
@@ -1087,7 +1087,7 @@ const HAXEFMOD_EXAMPLES = {
    ]
   },
   "6": {
-   "code": "import haxefmod.studio.CoreSound;\nvar result = StudioSystem.getBus(\"bus:/SFX\").setVolume(0.5);\nif (!result.isOk()) {\n    trace('setVolume failed: $result');\n}\nvar sound = CoreSound.create(\"assets/sfx/missing.wav\");\nif (sound.isNull()) {\n    trace('create failed: ${StudioSystem.lastResult()}');\n}",
+   "code": "import haxefmod.core.Sound;\nvar result = StudioSystem.getBus(\"bus:/SFX\").setVolume(0.5);\nif (!result.isOk()) {\n    trace('setVolume failed: $result');\n}\nvar sound = Sound.create(\"assets/sfx/missing.wav\");\nif (sound.isNull()) {\n    trace('create failed: ${StudioSystem.lastResult()}');\n}",
    "heading": "FMOD_ERRORCALLBACK_INFO",
    "notes": [
     "System error callbacks are not exposed since Haxe code cannot run on FMOD's threads. Setters return an FmodResult and StudioSystem.lastResult() holds the last getter or factory error."
@@ -1131,20 +1131,20 @@ const HAXEFMOD_EXAMPLES = {
    "heading": "page default",
    "notes": [
     "FSBank is FMOD's offline encoding library for producing FSB files from source audio, and it is a separate native library rather than part of the runtime engine. haxefmod does not bind it.",
-    "Build your banks in FMOD Studio (or with its command line build) and load them with StudioSystem.loadBank. An FSB that already exists loads through CoreSound.create like any other file. See docs/guides/banks-and-settings.md."
+    "Build your banks in FMOD Studio (or with its command line build) and load them with StudioSystem.loadBank. An FSB that already exists loads through Sound.create like any other file. See docs/guides/banks-and-settings.md."
    ]
   }
  },
  "glossary": {
   "0": {
-   "code": "import haxefmod.studio.CoreSound;\n\nvar sound = CoreSound.create(\"assets/sfx/engine.wav\", false, true);\nvar buffer = haxe.io.Bytes.alloc(4096);\nvar read = sound.readData(buffer);\nwhile (read > 0) {\n    // the first read bytes of buffer hold decoded PCM\n    read = sound.readData(buffer);\n}\nsound.release();",
+   "code": "import haxefmod.core.Sound;\n\nvar sound = Sound.create(\"assets/sfx/engine.wav\", false, true);\nvar buffer = haxe.io.Bytes.alloc(4096);\nvar read = sound.readData(buffer);\nwhile (read > 0) {\n    // the first read bytes of buffer hold decoded PCM\n    read = sound.readData(buffer);\n}\nsound.release();",
    "heading": "22.33 Reading Sound Data",
    "notes": [
-    "CoreSound.readData reads decoded PCM out of a sound opened with the openOnly flag of CoreSound.create, and seekData moves the read cursor. Both are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED, so a web build keeps its own copy of the PCM it feeds through CoreSound.fromPcm or PcmStream."
+    "Sound.readData reads decoded PCM out of a sound opened with the openOnly flag of Sound.create, and seekData moves the read cursor. Both are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED, so a web build keeps its own copy of the PCM it feeds through Sound.fromPcm or PcmStream."
    ]
   },
   "1": {
-   "code": "import haxefmod.studio.CoreSound;\n\nvar sound = CoreSound.create(\"drumloop.wav\");\nsound.setUserData(\"Hello User Data!\");\n\ntrace(sound.getUserData());",
+   "code": "import haxefmod.core.Sound;\n\nvar sound = Sound.create(\"drumloop.wav\");\nsound.setUserData(\"Hello User Data!\");\n\ntrace(sound.getUserData());",
    "heading": "22.49 User Data",
    "notes": [
     "Every handle has setUserData and getUserData. The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released."
@@ -1156,68 +1156,68 @@ const HAXEFMOD_EXAMPLES = {
    "code": null,
    "heading": "page default",
    "notes": [
-    "Custom file systems and async IO callbacks are not exposed. User IO callbacks would run on FMOD threads, which no Haxe target can do safely, so file loading stays with FMOD through CoreSound.create, StudioSystem.loadBankFile, and StudioSystem.loadBankMemory."
+    "Custom file systems and async IO callbacks are not exposed. User IO callbacks would run on FMOD threads, which no Haxe target can do safely, so file loading stays with FMOD through Sound.create, StudioSystem.loadBankFile, and StudioSystem.loadBankMemory."
    ]
   },
   "0": {
-   "code": "import haxefmod.studio.CoreSound;\n\nvar sound = CoreSound.create(\"assets/wave.mp3\");\nif (sound.isNull()) {\n    trace('load failed: ${StudioSystem.lastResult()}');\n}",
+   "code": "import haxefmod.core.Sound;\n\nvar sound = Sound.create(\"assets/wave.mp3\");\nif (sound.isNull()) {\n    trace('load failed: ${StudioSystem.lastResult()}');\n}",
    "heading": "4.1.1 Non-blocking Sound Creation",
    "notes": [
-    "CoreSound.create loads on the calling thread and returns a ready handle. There is no non-blocking flag, so load loose files at level start or from a loading screen instead of mid-frame."
+    "Sound.create loads on the calling thread and returns a ready handle. There is no non-blocking flag, so load loose files at level start or from a loading screen instead of mid-frame."
    ]
   },
   "1": {
-   "code": "import haxefmod.studio.CoreSound;\n\nvar sound = CoreSound.create(\"assets/wave.mp3\");\nif (!sound.isNull() && sound.getOpenState() == 0) {\n    trace(\"Sound loaded!\");\n}",
+   "code": "import haxefmod.core.Sound;\n\nvar sound = Sound.create(\"assets/wave.mp3\");\nif (!sound.isNull() && sound.getOpenState() == 0) {\n    trace(\"Sound loaded!\");\n}",
    "heading": "4.1.1 Non-blocking Sound Creation",
    "notes": [
-    "Load callbacks are not exposed. CoreSound.create returns once the sound is ready, and getOpenState reports 0 for a usable sound."
+    "Load callbacks are not exposed. Sound.create returns once the sound is ready, and getOpenState reports 0 for a usable sound."
    ]
   },
   "2": {
    "code": null,
    "heading": "4.1.1 Non-blocking Sound Creation",
    "notes": [
-    "There is no extended-info struct or load callback. CoreSound.create takes a path and an optional loop flag and returns a ready handle, or NULL with the reason in StudioSystem.lastResult."
+    "There is no extended-info struct or load callback. Sound.create takes a path and an optional loop flag and returns a ready handle, or NULL with the reason in StudioSystem.lastResult."
    ]
   },
   "3": {
-   "code": "import haxefmod.studio.CoreSound;\n\nvar sound = CoreSound.create(\"assets/wave.mp3\");\nif (sound.isNull()) {\n    trace('load failed: ${StudioSystem.lastResult()}');\n}\n\nvar channel = sound.play();\nif (channel.isNull()) {\n    trace('play failed: ${StudioSystem.lastResult()}');\n}",
+   "code": "import haxefmod.core.Sound;\n\nvar sound = Sound.create(\"assets/wave.mp3\");\nif (sound.isNull()) {\n    trace('load failed: ${StudioSystem.lastResult()}');\n}\n\nvar channel = sound.play();\nif (channel.isNull()) {\n    trace('play failed: ${StudioSystem.lastResult()}');\n}",
    "heading": "4.2 Playing a sound",
    "notes": []
   },
   "4": {
-   "code": "import haxefmod.studio.CoreSound;\n\nvar buffer:haxe.io.Bytes = null;\n\n//\n// Fill \"buffer\" with interleaved 16-bit PCM here\n//\n\nvar sound = CoreSound.fromPcm(buffer, 44100, 2);\nif (sound.isNull()) {\n    trace('create failed: ${StudioSystem.lastResult()}');\n}",
+   "code": "import haxefmod.core.Sound;\n\nvar buffer:haxe.io.Bytes = null;\n\n//\n// Fill \"buffer\" with interleaved 16-bit PCM here\n//\n\nvar sound = Sound.fromPcm(buffer, 44100, 2);\nif (sound.isNull()) {\n    trace('create failed: ${StudioSystem.lastResult()}');\n}",
    "heading": "4.3.1 Creating a Sound from memory",
    "notes": [
-    "Encoded memory buffers cannot be opened. CoreSound.fromPcm takes raw 16-bit PCM instead, and the bytes are copied so the buffer is free once it returns."
+    "Encoded memory buffers cannot be opened. Sound.fromPcm takes raw 16-bit PCM instead, and the bytes are copied so the buffer is free once it returns."
    ]
   },
   "5": {
    "code": null,
    "heading": "4.3.1 Creating a Sound from memory",
    "notes": [
-    "There is no point-to-memory mode. CoreSound.fromPcm always copies the bytes, so nothing needs to stay pinned and the buffer is free after the call."
+    "There is no point-to-memory mode. Sound.fromPcm always copies the bytes, so nothing needs to stay pinned and the buffer is free after the call."
    ]
   },
   "6": {
-   "code": "import haxefmod.studio.CoreSound;\n\nvar raw = sys.io.File.getBytes(\"assets/Your/File/Path/Here.raw\");\nvar sound = CoreSound.fromPcm(raw, 44100, 2);\nif (sound.isNull()) {\n    trace('create failed: ${StudioSystem.lastResult()}');\n}",
+   "code": "import haxefmod.core.Sound;\n\nvar raw = sys.io.File.getBytes(\"assets/Your/File/Path/Here.raw\");\nvar sound = Sound.fromPcm(raw, 44100, 2);\nif (sound.isNull()) {\n    trace('create failed: ${StudioSystem.lastResult()}');\n}",
    "heading": "4.3.2 Creating a Sound from PCM data",
    "notes": [
-    "Raw PCM files open through CoreSound.fromPcm after the game reads the file itself. The format is fixed at signed 16-bit little endian, so only the sample rate and channel count are passed."
+    "Raw PCM files open through Sound.fromPcm after the game reads the file itself. The format is fixed at signed 16-bit little endian, so only the sample rate and channel count are passed."
    ]
   },
   "7": {
    "code": "import haxefmod.core.PcmStream;\n\nvar stream = PcmStream.create(44100, 2);\nvar channel = stream.play();\n\n// each frame, keep the ring topped up\nvar buffer = haxe.io.Bytes.alloc(stream.space());\nfor (i in 0...Std.int(buffer.length / 2)) {\n    buffer.setUInt16(i * 2, nextSample() & 0xFFFF);\n}\nstream.write(buffer);",
    "heading": "4.3.3 Creating a Sound by manually providing sample data",
    "notes": [
-    "PCM read callbacks and Sound::lock cannot be bound, the callbacks run on FMOD's threads and lock hands out a raw pointer. PcmStream is the user-sound equivalent, a ring buffer the game writes 16-bit PCM into from the game thread while the mixer drains it, and CoreSound.readData covers reading PCM back out of a sound."
+    "PCM read callbacks and Sound::lock cannot be bound, the callbacks run on FMOD's threads and lock hands out a raw pointer. PcmStream is the user-sound equivalent, a ring buffer the game writes 16-bit PCM into from the game thread while the mixer drains it, and Sound.readData covers reading PCM back out of a sound."
    ]
   },
   "8": {
    "code": null,
    "heading": "4.3.4 Creating the Sound as a Streamed FSB File",
    "notes": [
-    "Subsound access is not exposed, so an FSB cannot be opened at a chosen subsound. Ship the sounds in an FMOD Studio bank and play them as events, or load each loose file with CoreSound.create."
+    "Subsound access is not exposed, so an FSB cannot be opened at a chosen subsound. Ship the sounds in an FMOD Studio bank and play them as events, or load each loose file with Sound.create."
    ]
   }
  },
@@ -1248,7 +1248,7 @@ const HAXEFMOD_EXAMPLES = {
    ]
   },
   "10": {
-   "code": "import haxefmod.studio.CoreSound;\n\nvar bankBytes = haxe.io.Bytes.alloc(0);\nvar bank = StudioSystem.loadBankMemory(bankBytes);\nif (bank.isNull()) {\n    trace(\"bank load failed: \" + StudioSystem.lastResult());\n}\n\nvar pcm = haxe.io.Bytes.alloc(48000 * 2 * 2);\nvar sound = CoreSound.fromPcm(pcm, 48000, 2);",
+   "code": "import haxefmod.core.Sound;\n\nvar bankBytes = haxe.io.Bytes.alloc(0);\nvar bank = StudioSystem.loadBankMemory(bankBytes);\nif (bank.isNull()) {\n    trace(\"bank load failed: \" + StudioSystem.lastResult());\n}\n\nvar pcm = haxe.io.Bytes.alloc(48000 * 2 * 2);\nvar sound = Sound.fromPcm(pcm, 48000, 2);",
    "heading": "Via memory",
    "notes": [
     "Data already in memory goes in as haxe.io.Bytes. The binding copies it into FMOD's heap, so there is no pointer to manage."
@@ -1290,10 +1290,10 @@ const HAXEFMOD_EXAMPLES = {
    ]
   },
   "9": {
-   "code": "import haxefmod.studio.CoreSound;\n\nvar bank = StudioSystem.loadBankFile(\"SFX.bank\");\nif (bank.isNull()) {\n    trace(\"bank load failed: \" + StudioSystem.lastResult());\n}\n\nvar pcm = haxe.io.Bytes.alloc(48000 * 2 * 2);\nvar sound = CoreSound.fromPcm(pcm, 48000, 2);\nif (!sound.isNull()) {\n    var ch = sound.play();\n}",
+   "code": "import haxefmod.core.Sound;\n\nvar bank = StudioSystem.loadBankFile(\"SFX.bank\");\nif (bank.isNull()) {\n    trace(\"bank load failed: \" + StudioSystem.lastResult());\n}\n\nvar pcm = haxe.io.Bytes.alloc(48000 * 2 * 2);\nvar sound = Sound.fromPcm(pcm, 48000, 2);\nif (!sound.isNull()) {\n    var ch = sound.play();\n}",
    "heading": "Direct from host, via FMOD's filesystem",
    "notes": [
-    "The web build decodes FSB only, so CoreSound.create on a loose .wav path returns FMOD_ERR_FORMAT on HTML5. Load a bank instead, or feed raw PCM through CoreSound.fromPcm. Banks are fetched into the browser's virtual filesystem for you, and StudioSystem.lastResult() holds the error when a load fails."
+    "The web build decodes FSB only, so Sound.create on a loose .wav path returns FMOD_ERR_FORMAT on HTML5. Load a bank instead, or feed raw PCM through Sound.fromPcm. Banks are fetched into the browser's virtual filesystem for you, and StudioSystem.lastResult() holds the error when a load fails."
    ]
   }
  },
@@ -1348,7 +1348,7 @@ const HAXEFMOD_EXAMPLES = {
    "heading": "page default",
    "notes": [
     "A codec plug-in decodes file data into PCM from callbacks that FMOD invokes on its own streaming and mixer threads. Haxe cannot supply those callbacks, so haxefmod exposes no codec registration.",
-    "The formats FMOD decodes on its own (WAV, OGG, MP3, FLAC, FSB and more) load through CoreSound.create, and audio your game decodes itself can be fed to FMOD as PCM through haxefmod.core.PcmStream. See docs/guides/core-api.md."
+    "The formats FMOD decodes on its own (WAV, OGG, MP3, FLAC, FSB and more) load through Sound.create, and audio your game decodes itself can be fed to FMOD as PCM through haxefmod.core.PcmStream. See docs/guides/core-api.md."
    ]
   }
  },
@@ -1432,14 +1432,14 @@ const HAXEFMOD_EXAMPLES = {
  },
  "spatializing-sounds-in-the-core-api": {
   "0": {
-   "code": "import haxefmod.studio.CoreSound;\nimport haxefmod.core.ChannelMode;\n\nvar sound = CoreSound.create(\"assets/drumloop.wav\");\nif (sound.isNull()) {\n    trace('load failed: ${StudioSystem.lastResult()}');\n}\nvar result = sound.setMode(ChannelMode.MODE_3D);\nif (!result.isOk()) {\n    trace('setMode failed: $result');\n}",
+   "code": "import haxefmod.core.Sound;\nimport haxefmod.core.ChannelMode;\n\nvar sound = Sound.create(\"assets/drumloop.wav\");\nif (sound.isNull()) {\n    trace('load failed: ${StudioSystem.lastResult()}');\n}\nvar result = sound.setMode(ChannelMode.MODE_3D);\nif (!result.isOk()) {\n    trace('setMode failed: $result');\n}",
    "heading": "5.0.2 Loading Sounds as 3D",
    "notes": [
-    "CoreSound.create takes no mode flags. Switch the sound to 3D with setMode after loading, or call setMode on the channel that plays it."
+    "Sound.create takes no mode flags. Switch the sound to 3D with setMode after loading, or call setMode on the channel that plays it."
    ]
   },
   "1": {
-   "code": "import haxefmod.studio.CoreSound;\nimport haxefmod.core.ChannelMode;\n\nvar sound = CoreSound.create(\"assets/drumloop.wav\");\nsound.setMode(ChannelMode.MODE_3D);\nvar channel = sound.play();\nchannel.set3DAttributes(carX, carY, 0, 0, 0, 0);",
+   "code": "import haxefmod.core.Sound;\nimport haxefmod.core.ChannelMode;\n\nvar sound = Sound.create(\"assets/drumloop.wav\");\nsound.setMode(ChannelMode.MODE_3D);\nvar channel = sound.play();\nchannel.set3DAttributes(carX, carY, 0, 0, 0, 0);",
    "heading": "5.1 Controlling a Spatializer DSP",
    "notes": [
     "Spatializer parameters of the FMOD_DSP_PARAMETER_3DATTRIBUTES kind are not settable from Haxe. Give the channel its world-space position with Channel.set3DAttributes and let FMOD compute the listener-relative part itself."
@@ -1779,7 +1779,7 @@ const HAXEFMOD_EXAMPLES = {
    ]
   },
   "0": {
-   "code": "import haxefmod.studio.CoreSound;\nimport haxefmod.core.Dsp;\nimport haxefmod.core.DspType;\n\nvar sound = CoreSound.create(\"assets/drumloop.wav\");\nvar channel = sound.play();\nvar echo = Dsp.create(DspType.ECHO);\nvar result = channel.addDsp(0, echo);\nif (!result.isOk()) {\n    trace('addDsp failed: $result');\n}",
+   "code": "import haxefmod.core.Sound;\nimport haxefmod.core.Dsp;\nimport haxefmod.core.DspType;\n\nvar sound = Sound.create(\"assets/drumloop.wav\");\nvar channel = sound.play();\nvar echo = Dsp.create(DspType.ECHO);\nvar result = channel.addDsp(0, echo);\nif (!result.isOk()) {\n    trace('addDsp failed: $result');\n}",
    "heading": "Add a DSP effect to a Channel",
    "notes": []
   },
@@ -1825,12 +1825,12 @@ const HAXEFMOD_EXAMPLES = {
    "notes": []
   },
   "6": {
-   "code": "import haxefmod.studio.CoreSound;\nimport haxefmod.core.ChannelGroup;\nimport haxefmod.core.Dsp;\nimport haxefmod.core.DspType;\n\nvar reverb = Dsp.create(DspType.SFXREVERB);\nvar group = ChannelGroup.create(\"my channelgroup\");\nvar sound = CoreSound.create(\"assets/drumloop.wav\");\n\n// play paused so nothing is heard before the connection exists\nvar channel = sound.play(true);\nchannel.setChannelGroup(group);\nvar head = channel.getDsp(ChannelGroup.DSP_HEAD);\nvar connection = reverb.addInput(head);\nif (connection.isNull()) {\n    trace('addInput failed: ${StudioSystem.lastResult()}');\n}\nchannel.setPaused(false);",
+   "code": "import haxefmod.core.Sound;\nimport haxefmod.core.ChannelGroup;\nimport haxefmod.core.Dsp;\nimport haxefmod.core.DspType;\n\nvar reverb = Dsp.create(DspType.SFXREVERB);\nvar group = ChannelGroup.create(\"my channelgroup\");\nvar sound = Sound.create(\"assets/drumloop.wav\");\n\n// play paused so nothing is heard before the connection exists\nvar channel = sound.play(true);\nchannel.setChannelGroup(group);\nvar head = channel.getDsp(ChannelGroup.DSP_HEAD);\nvar connection = reverb.addInput(head);\nif (connection.isNull()) {\n    trace('addInput failed: ${StudioSystem.lastResult()}');\n}\nchannel.setPaused(false);",
    "heading": "Creating an effect and making all Channels send to it.",
    "notes": []
   },
   "7": {
-   "code": "import haxefmod.studio.CoreSound;\nimport haxefmod.core.ChannelGroup;\nimport haxefmod.core.Dsp;\nimport haxefmod.core.DspType;\n\nvar reverb = Dsp.create(DspType.SFXREVERB);\nvar group = ChannelGroup.create(\"my channelgroup\");\nvar sound = CoreSound.create(\"assets/drumloop.wav\");\n\nvar channel = sound.play(true);\nchannel.setChannelGroup(group);\nvar head = channel.getDsp(ChannelGroup.DSP_HEAD);\nvar connection = reverb.addInput(head);\nchannel.setPaused(false);",
+   "code": "import haxefmod.core.Sound;\nimport haxefmod.core.ChannelGroup;\nimport haxefmod.core.Dsp;\nimport haxefmod.core.DspType;\n\nvar reverb = Dsp.create(DspType.SFXREVERB);\nvar group = ChannelGroup.create(\"my channelgroup\");\nvar sound = Sound.create(\"assets/drumloop.wav\");\n\nvar channel = sound.play(true);\nchannel.setChannelGroup(group);\nvar head = channel.getDsp(ChannelGroup.DSP_HEAD);\nvar connection = reverb.addInput(head);\nchannel.setPaused(false);",
    "heading": "Controlling mix level and pan matrices for DSPConnections",
    "notes": [
     "addInput returns the DspConnection handle directly."

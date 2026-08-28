@@ -101,6 +101,9 @@ jobs:
       - name: Check the HTML5 phrase matches the gate
         run: python3 ci/check-html5-phrase.py
 
+      - name: Check the deprecated aliases still compile and warn
+        run: python3 ci/check-deprecations.py
+
       - name: Test native PCM ring buffer (C99 and C++ modes)
         run: |
           gcc -std=c99 -pthread -Wall -Wextra -Werror -o /tmp/test_pcmring_c tests/native/test_faxe_pcmring.c

@@ -22,7 +22,7 @@ Channel masks are not exposed. Speaker layouts come from the mixer through CoreS
 
 ## 2
 <!-- FMOD_CHANNELORDER -->
-Channel order is not exposed. CoreSound.create and CoreSound.fromPcm use FMOD's default interleaved order.
+Channel order is not exposed. Sound.create and Sound.fromPcm use FMOD's default interleaved order.
 
 ## 3
 <!-- FMOD_CPU_USAGE -->
@@ -105,12 +105,12 @@ if (memory != null) {
 
 ## 20
 <!-- FMOD_MODE -->
-haxefmod.core.ChannelMode holds the FMOD_MODE bits a game sets at runtime, with the same values. Combine them with bitwise or and pass the int to CoreSound.setMode or Channel.setMode. Loading flags such as CREATESTREAM and OPENMEMORY are chosen by CoreSound.create and CoreSound.fromPcm.
+haxefmod.core.ChannelMode holds the FMOD_MODE bits a game sets at runtime, with the same values. Combine them with bitwise or and pass the int to Sound.setMode or Channel.setMode. Loading flags such as CREATESTREAM and OPENMEMORY are chosen by Sound.create and Sound.fromPcm.
 ```haxe
 import haxefmod.core.ChannelMode;
-import haxefmod.studio.CoreSound;
+import haxefmod.core.Sound;
 
-var sound = CoreSound.create("assets/sfx/engine.wav");
+var sound = Sound.create("assets/sfx/engine.wav");
 sound.setMode(ChannelMode.MODE_3D | ChannelMode.LOOP_NORMAL | ChannelMode.LINEAR_ROLLOFF_3D);
 var channel = sound.play();
 if ((channel.getMode() & ChannelMode.LOOP_NORMAL) != 0) {
@@ -157,12 +157,12 @@ if (format != null && format.speakerMode == 3) {
 
 ## 24
 <!-- FMOD_SYNCPOINT -->
-Sync points are addressed by index on the sound instead of by pointer. CoreSound.addSyncPoint takes an offset in milliseconds and a name, and the channel reports crossings through Channel.setCallback.
+Sync points are addressed by index on the sound instead of by pointer. Sound.addSyncPoint takes an offset in milliseconds and a name, and the channel reports crossings through Channel.setCallback.
 ```haxe
 import haxefmod.core.ChannelEvent;
-import haxefmod.studio.CoreSound;
+import haxefmod.core.Sound;
 
-var sound = CoreSound.create("assets/music/loop.wav");
+var sound = Sound.create("assets/music/loop.wav");
 sound.addSyncPoint(2000, "drop");
 var channel = sound.play();
 channel.setCallback(function(event:ChannelEvent) {
@@ -191,11 +191,11 @@ FMOD thread settings are not exposed, so the thread type enum has no use from Ha
 
 ## 30
 <!-- FMOD_TIMEUNIT -->
-Positions and lengths are always milliseconds. Channel.getPosition, Channel.setPosition, CoreSound.getLength, and CoreSound.addSyncPoint take and return ms, so there is no time unit argument.
+Positions and lengths are always milliseconds. Channel.getPosition, Channel.setPosition, Sound.getLength, and Sound.addSyncPoint take and return ms, so there is no time unit argument.
 ```haxe
-import haxefmod.studio.CoreSound;
+import haxefmod.core.Sound;
 
-var sound = CoreSound.create("assets/music/loop.wav");
+var sound = Sound.create("assets/music/loop.wav");
 var channel = sound.play();
 channel.setPosition(1500);
 trace('at ${channel.getPosition()} of ${sound.getLength()} ms');

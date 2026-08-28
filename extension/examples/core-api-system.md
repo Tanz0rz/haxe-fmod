@@ -4,10 +4,10 @@
 <!-- FMOD_3D_ROLLOFF_CALLBACK -->
 Rolloff callbacks cannot run on FMOD's threads from Haxe, so they are not exposed. A curve of FmodVector points does the same job without a callback through set3DCustomRolloff on the sound, channel, or group, native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED. The built-in rolloff modes work on every target through the mode flags.
 ```haxe
-import haxefmod.studio.CoreSound;
+import haxefmod.core.Sound;
 import haxefmod.core.ChannelMode;
 
-var sound = CoreSound.create("assets/sfx/engine.wav");
+var sound = Sound.create("assets/sfx/engine.wav");
 sound.setMode(ChannelMode.MODE_3D);
 sound.set3DCustomRolloff([{x: 1, y: 1, z: 0}, {x: 10, y: 0.5, z: 0}, {x: 50, y: 0, z: 0}]);
 var channel = sound.play();
@@ -22,17 +22,17 @@ FmodManager.Initialize({numChannels: 256, sampleRate: 48000, logLevel: 2});
 
 ## 2
 <!-- FMOD_ASYNCREADINFO -->
-Custom file systems are not exposed, since user IO callbacks run on FMOD's threads. Load banks with StudioSystem.loadBankFile or loadBankMemory, and core sounds with CoreSound.create or CoreSound.fromPcm.
+Custom file systems are not exposed, since user IO callbacks run on FMOD's threads. Load banks with StudioSystem.loadBankFile or loadBankMemory, and core sounds with Sound.create or Sound.fromPcm.
 
 ## 3
 <!-- FMOD_CREATESOUNDEXINFO -->
 There is no extended-info struct. The file path form takes an optional loop flag, and raw PCM goes through fromPcm with the format described by its arguments.
 ```haxe
-import haxefmod.studio.CoreSound;
-var looped = CoreSound.create("assets/music/loop.ogg", true);
+import haxefmod.core.Sound;
+var looped = Sound.create("assets/music/loop.ogg", true);
 
 var pcm = haxe.io.Bytes.alloc(48000 * 2 * 2);
-var sample = CoreSound.fromPcm(pcm, 48000, 2);
+var sample = Sound.fromPcm(pcm, 48000, 2);
 if (sample.isNull()) {
     trace('create failed: ${StudioSystem.lastResult()}');
 }
@@ -58,12 +58,12 @@ The resampler method is an advanced setting and is not exposed. FMOD's default i
 <!-- FMOD_ERRORCALLBACK_INFO -->
 System error callbacks are not exposed since Haxe code cannot run on FMOD's threads. Setters return an FmodResult and StudioSystem.lastResult() holds the last getter or factory error.
 ```haxe
-import haxefmod.studio.CoreSound;
+import haxefmod.core.Sound;
 var result = StudioSystem.getBus("bus:/SFX").setVolume(0.5);
 if (!result.isOk()) {
     trace('setVolume failed: $result');
 }
-var sound = CoreSound.create("assets/sfx/missing.wav");
+var sound = Sound.create("assets/sfx/missing.wav");
 if (sound.isNull()) {
     trace('create failed: ${StudioSystem.lastResult()}');
 }

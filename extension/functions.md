@@ -146,7 +146,7 @@ var bank:Bank = StudioSystem.loadBankFile("assets/fmod/Desktop/Level1.bank");
 
 ## readfile
 <!-- ReadFile -->
-Cannot be bound. It returns a raw wasm heap address, which has no meaning in Haxe. StudioSystem.loadBankMemory() loads a bank from bytes you already hold, and CoreSound.fromPcm() plays raw PCM you already hold.
+Cannot be bound. It returns a raw wasm heap address, which has no meaning in Haxe. StudioSystem.loadBankMemory() loads a bank from bytes you already hold, and Sound.fromPcm() plays raw PCM you already hold.
 
 ## memory_free
 <!-- Memory_Free -->
@@ -154,19 +154,19 @@ Cannot be bound. It frees a raw pointer from FMOD's heap, which has no meaning i
 
 ## file_open
 <!-- file_open -->
-Cannot be bound. FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, CoreSound.create, and CoreSound.fromPcm are the loading paths.
+Cannot be bound. FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, Sound.create, and Sound.fromPcm are the loading paths.
 
 ## file_close
 <!-- file_close -->
-Cannot be bound. FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, CoreSound.create, and CoreSound.fromPcm are the loading paths.
+Cannot be bound. FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, Sound.create, and Sound.fromPcm are the loading paths.
 
 ## file_read
 <!-- file_read -->
-Cannot be bound. FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, CoreSound.create, and CoreSound.fromPcm are the loading paths.
+Cannot be bound. FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, Sound.create, and Sound.fromPcm are the loading paths.
 
 ## file_seek
 <!-- file_seek -->
-Cannot be bound. FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, CoreSound.create, and CoreSound.fromPcm are the loading paths.
+Cannot be bound. FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, Sound.create, and Sound.fromPcm are the loading paths.
 
 ## setvalue
 <!-- setValue -->
@@ -178,7 +178,7 @@ Cannot be bound. This reads and writes the wasm heap through a raw address, whic
 
 ## file_seek_1
 <!-- file_seek -->
-Cannot be bound. FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, CoreSound.create, and CoreSound.fromPcm are the loading paths.
+Cannot be bound. FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, Sound.create, and Sound.fromPcm are the loading paths.
 
 ## reverb3d_getuserdata
 <!-- Reverb3D::getUserData -->
@@ -213,22 +213,22 @@ var format = CoreSystem.getSoftwareFormat();
 
 ## sound_getuserdata
 <!-- Sound::getUserData -->
-haxefmod covers this with CoreSound.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
+haxefmod covers this with Sound.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released.
 ```haxe
-import haxefmod.studio.CoreSound;
+import haxefmod.core.Sound;
 
-var sound = CoreSound.create("assets/sfx/engine.wav");
+var sound = Sound.create("assets/sfx/engine.wav");
 sound.setUserData({label: "cave"});
 var data = sound.getUserData();
 ```
 
 ## sound_lock
 <!-- Sound::lock -->
-Cannot be bound. It returns a raw pointer into the sample buffer, which has no meaning in Haxe. CoreSound.readData covers reading, it copies decoded PCM out of a sound opened with the openOnly flag of CoreSound.create, and seekData moves the read cursor. Both are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED.
+Cannot be bound. It returns a raw pointer into the sample buffer, which has no meaning in Haxe. Sound.readData covers reading, it copies decoded PCM out of a sound opened with the openOnly flag of Sound.create, and seekData moves the read cursor. Both are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED.
 ```haxe
-import haxefmod.studio.CoreSound;
+import haxefmod.core.Sound;
 
-var sound = CoreSound.create("assets/sfx/engine.wav", false, true);
+var sound = Sound.create("assets/sfx/engine.wav", false, true);
 var buffer = haxe.io.Bytes.alloc(4096);
 var read = sound.readData(buffer);
 while (read > 0) {
@@ -240,11 +240,11 @@ sound.release();
 
 ## sound_unlock
 <!-- Sound::unlock -->
-Cannot be bound. It returns a raw pointer into the sample buffer, which has no meaning in Haxe. CoreSound.readData covers reading, it copies decoded PCM out of a sound opened with the openOnly flag of CoreSound.create, and seekData moves the read cursor. Both are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED.
+Cannot be bound. It returns a raw pointer into the sample buffer, which has no meaning in Haxe. Sound.readData covers reading, it copies decoded PCM out of a sound opened with the openOnly flag of Sound.create, and seekData moves the read cursor. Both are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED.
 ```haxe
-import haxefmod.studio.CoreSound;
+import haxefmod.core.Sound;
 
-var sound = CoreSound.create("assets/sfx/engine.wav", false, true);
+var sound = Sound.create("assets/sfx/engine.wav", false, true);
 var buffer = haxe.io.Bytes.alloc(4096);
 var read = sound.readData(buffer);
 while (read > 0) {
@@ -291,7 +291,7 @@ Cannot be bound. This is a console port API and haxefmod targets desktop and web
 
 ## system_attachfilesystem
 <!-- System::attachFileSystem -->
-Cannot be bound. A custom file system is a set of callbacks that FMOD runs on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile and loadBankMemory are the bank paths, and CoreSound.create and CoreSound.fromPcm are the sound paths.
+Cannot be bound. A custom file system is a set of callbacks that FMOD runs on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile and loadBankMemory are the bank paths, and Sound.create and Sound.fromPcm are the sound paths.
 
 ## system_close
 <!-- System::close -->
@@ -330,7 +330,7 @@ connection.setMix(0.5);
 
 ## system_createstream
 <!-- System::createStream -->
-haxefmod covers streams two ways. CoreSound.create() opens a file for playback, and PcmStream.create() opens a stream that Haxe code feeds with raw PCM, which is the one path that works on HTML5 as well.
+haxefmod covers streams two ways. Sound.create() opens a file for playback, and PcmStream.create() opens a stream that Haxe code feeds with raw PCM, which is the one path that works on HTML5 as well.
 ```haxe
 import haxefmod.core.PcmStream;
 
@@ -472,7 +472,7 @@ FmodManager.Initialize({dspBufferSize: 512, dspNumBuffers: 4});
 
 ## system_setfilesystem
 <!-- System::setFileSystem -->
-Cannot be bound. A custom file system is a set of callbacks that FMOD runs on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile and loadBankMemory are the bank paths, and CoreSound.create and CoreSound.fromPcm are the sound paths.
+Cannot be bound. A custom file system is a set of callbacks that FMOD runs on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile and loadBankMemory are the bank paths, and Sound.create and Sound.fromPcm are the sound paths.
 
 ## system_setsoftwarechannels
 <!-- System::setSoftwareChannels -->
@@ -712,7 +712,7 @@ if (FmodManager.IsInitialized()) {
 
 ## studio_system_loadbankcustom
 <!-- Studio::System::loadBankCustom -->
-Cannot be bound. A custom file system is a set of callbacks that FMOD runs on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile and loadBankMemory are the bank paths, and CoreSound.create and CoreSound.fromPcm are the sound paths.
+Cannot be bound. A custom file system is a set of callbacks that FMOD runs on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile and loadBankMemory are the bank paths, and Sound.create and Sound.fromPcm are the sound paths.
 
 ## studio_system_registerplugin
 <!-- Studio::System::registerPlugin -->

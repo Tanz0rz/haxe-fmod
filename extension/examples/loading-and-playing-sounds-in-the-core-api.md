@@ -2,11 +2,11 @@
 
 ## 0
 <!-- 4.1.1 Non-blocking Sound Creation -->
-CoreSound.create loads on the calling thread and returns a ready handle. There is no non-blocking flag, so load loose files at level start or from a loading screen instead of mid-frame.
+Sound.create loads on the calling thread and returns a ready handle. There is no non-blocking flag, so load loose files at level start or from a loading screen instead of mid-frame.
 ```haxe
-import haxefmod.studio.CoreSound;
+import haxefmod.core.Sound;
 
-var sound = CoreSound.create("assets/wave.mp3");
+var sound = Sound.create("assets/wave.mp3");
 if (sound.isNull()) {
     trace('load failed: ${StudioSystem.lastResult()}');
 }
@@ -14,11 +14,11 @@ if (sound.isNull()) {
 
 ## 1
 <!-- 4.1.1 Non-blocking Sound Creation -->
-Load callbacks are not exposed. CoreSound.create returns once the sound is ready, and getOpenState reports 0 for a usable sound.
+Load callbacks are not exposed. Sound.create returns once the sound is ready, and getOpenState reports 0 for a usable sound.
 ```haxe
-import haxefmod.studio.CoreSound;
+import haxefmod.core.Sound;
 
-var sound = CoreSound.create("assets/wave.mp3");
+var sound = Sound.create("assets/wave.mp3");
 if (!sound.isNull() && sound.getOpenState() == 0) {
     trace("Sound loaded!");
 }
@@ -26,14 +26,14 @@ if (!sound.isNull() && sound.getOpenState() == 0) {
 
 ## 2
 <!-- 4.1.1 Non-blocking Sound Creation -->
-There is no extended-info struct or load callback. CoreSound.create takes a path and an optional loop flag and returns a ready handle, or NULL with the reason in StudioSystem.lastResult.
+There is no extended-info struct or load callback. Sound.create takes a path and an optional loop flag and returns a ready handle, or NULL with the reason in StudioSystem.lastResult.
 
 ## 3
 <!-- 4.2 Playing a sound -->
 ```haxe
-import haxefmod.studio.CoreSound;
+import haxefmod.core.Sound;
 
-var sound = CoreSound.create("assets/wave.mp3");
+var sound = Sound.create("assets/wave.mp3");
 if (sound.isNull()) {
     trace('load failed: ${StudioSystem.lastResult()}');
 }
@@ -46,9 +46,9 @@ if (channel.isNull()) {
 
 ## 4
 <!-- 4.3.1 Creating a Sound from memory -->
-Encoded memory buffers cannot be opened. CoreSound.fromPcm takes raw 16-bit PCM instead, and the bytes are copied so the buffer is free once it returns.
+Encoded memory buffers cannot be opened. Sound.fromPcm takes raw 16-bit PCM instead, and the bytes are copied so the buffer is free once it returns.
 ```haxe
-import haxefmod.studio.CoreSound;
+import haxefmod.core.Sound;
 
 var buffer:haxe.io.Bytes = null;
 
@@ -56,7 +56,7 @@ var buffer:haxe.io.Bytes = null;
 // Fill "buffer" with interleaved 16-bit PCM here
 //
 
-var sound = CoreSound.fromPcm(buffer, 44100, 2);
+var sound = Sound.fromPcm(buffer, 44100, 2);
 if (sound.isNull()) {
     trace('create failed: ${StudioSystem.lastResult()}');
 }
@@ -64,16 +64,16 @@ if (sound.isNull()) {
 
 ## 5
 <!-- 4.3.1 Creating a Sound from memory -->
-There is no point-to-memory mode. CoreSound.fromPcm always copies the bytes, so nothing needs to stay pinned and the buffer is free after the call.
+There is no point-to-memory mode. Sound.fromPcm always copies the bytes, so nothing needs to stay pinned and the buffer is free after the call.
 
 ## 6
 <!-- 4.3.2 Creating a Sound from PCM data -->
-Raw PCM files open through CoreSound.fromPcm after the game reads the file itself. The format is fixed at signed 16-bit little endian, so only the sample rate and channel count are passed.
+Raw PCM files open through Sound.fromPcm after the game reads the file itself. The format is fixed at signed 16-bit little endian, so only the sample rate and channel count are passed.
 ```haxe
-import haxefmod.studio.CoreSound;
+import haxefmod.core.Sound;
 
 var raw = sys.io.File.getBytes("assets/Your/File/Path/Here.raw");
-var sound = CoreSound.fromPcm(raw, 44100, 2);
+var sound = Sound.fromPcm(raw, 44100, 2);
 if (sound.isNull()) {
     trace('create failed: ${StudioSystem.lastResult()}');
 }
@@ -81,7 +81,7 @@ if (sound.isNull()) {
 
 ## 7
 <!-- 4.3.3 Creating a Sound by manually providing sample data -->
-PCM read callbacks and Sound::lock cannot be bound, the callbacks run on FMOD's threads and lock hands out a raw pointer. PcmStream is the user-sound equivalent, a ring buffer the game writes 16-bit PCM into from the game thread while the mixer drains it, and CoreSound.readData covers reading PCM back out of a sound.
+PCM read callbacks and Sound::lock cannot be bound, the callbacks run on FMOD's threads and lock hands out a raw pointer. PcmStream is the user-sound equivalent, a ring buffer the game writes 16-bit PCM into from the game thread while the mixer drains it, and Sound.readData covers reading PCM back out of a sound.
 ```haxe
 import haxefmod.core.PcmStream;
 
@@ -98,8 +98,8 @@ stream.write(buffer);
 
 ## 8
 <!-- 4.3.4 Creating the Sound as a Streamed FSB File -->
-Subsound access is not exposed, so an FSB cannot be opened at a chosen subsound. Ship the sounds in an FMOD Studio bank and play them as events, or load each loose file with CoreSound.create.
+Subsound access is not exposed, so an FSB cannot be opened at a chosen subsound. Ship the sounds in an FMOD Studio bank and play them as events, or load each loose file with Sound.create.
 
 ## *
 <!-- page default -->
-Custom file systems and async IO callbacks are not exposed. User IO callbacks would run on FMOD threads, which no Haxe target can do safely, so file loading stays with FMOD through CoreSound.create, StudioSystem.loadBankFile, and StudioSystem.loadBankMemory.
+Custom file systems and async IO callbacks are not exposed. User IO callbacks would run on FMOD threads, which no Haxe target can do safely, so file loading stays with FMOD through Sound.create, StudioSystem.loadBankFile, and StudioSystem.loadBankMemory.

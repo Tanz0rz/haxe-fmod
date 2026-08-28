@@ -4,8 +4,8 @@
 <!-- FMOD_OPENSTATE -->
 getOpenState returns the FMOD_OPENSTATE value as an int, 0 once the sound is ready.
 ```haxe
-import haxefmod.studio.CoreSound;
-var sound = CoreSound.create("assets/music/intro.ogg");
+import haxefmod.core.Sound;
+var sound = Sound.create("assets/music/intro.ogg");
 if (sound.getOpenState() == 0) {
     var channel = sound.play();
 }
@@ -15,8 +15,8 @@ if (sound.getOpenState() == 0) {
 <!-- FMOD_SOUND_FORMAT -->
 Sounds built from raw data are always 16-bit signed PCM. getFormat reports the channel count and bit depth of any loaded sound.
 ```haxe
-import haxefmod.studio.CoreSound;
-var sound = CoreSound.create("assets/sfx/hit.wav");
+import haxefmod.core.Sound;
+var sound = Sound.create("assets/sfx/hit.wav");
 var format = sound.getFormat();
 if (format != null) {
     trace('${format.channels} channels, ${format.bits} bits');
@@ -27,8 +27,8 @@ if (format != null) {
 <!-- Sound::getTag -->
 Tag access is not exposed, and netstreams are not part of the supported sound sources. Set the playback rate directly with setFrequency when your game knows it.
 ```haxe
-import haxefmod.studio.CoreSound;
-var sound = CoreSound.create("assets/music/track.ogg");
+import haxefmod.core.Sound;
+var sound = Sound.create("assets/music/track.ogg");
 var channel = sound.play();
 channel.setFrequency(44100);
 ```
@@ -37,8 +37,8 @@ channel.setFrequency(44100);
 <!-- Sound::getTag -->
 Tag access is not exposed, and netstreams are not part of the supported sound sources. Set the playback rate directly with setFrequency when your game knows it.
 ```haxe
-import haxefmod.studio.CoreSound;
-var sound = CoreSound.create("assets/music/track.ogg");
+import haxefmod.core.Sound;
+var sound = Sound.create("assets/music/track.ogg");
 var channel = sound.play();
 channel.setFrequency(44100);
 ```
@@ -71,10 +71,10 @@ PCM position callbacks are not exposed since Haxe code cannot run on FMOD's thre
 <!-- Sound::set3DCustomRolloff -->
 Custom rolloff curves are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED. Each point is an FmodVector with x as the distance and y as the volume, and the copy FMOD needs lives with the sound until it is released.
 ```haxe
-import haxefmod.studio.CoreSound;
+import haxefmod.core.Sound;
 import haxefmod.core.ChannelMode;
 
-var sound = CoreSound.create("assets/sfx/engine.wav");
+var sound = Sound.create("assets/sfx/engine.wav");
 sound.setMode(ChannelMode.MODE_3D);
 sound.set3DCustomRolloff([{x: 1, y: 1, z: 0}, {x: 10, y: 0.5, z: 0}, {x: 50, y: 0, z: 0}]);
 ```
@@ -83,8 +83,8 @@ sound.set3DCustomRolloff([{x: 1, y: 1, z: 0}, {x: 10, y: 0.5, z: 0}, {x: 50, y: 
 <!-- Sound::setDefaults -->
 getDefaults returns both values in one struct.
 ```haxe
-import haxefmod.studio.CoreSound;
-var sound = CoreSound.create("assets/sfx/hit.wav");
+import haxefmod.core.Sound;
+var sound = Sound.create("assets/sfx/hit.wav");
 var defaults = sound.getDefaults();
 if (defaults != null) {
     sound.setDefaults(48000, defaults.priority);
@@ -95,8 +95,8 @@ if (defaults != null) {
 <!-- Sound::setDefaults -->
 getDefaults returns both values in one struct.
 ```haxe
-import haxefmod.studio.CoreSound;
-var sound = CoreSound.create("assets/sfx/hit.wav");
+import haxefmod.core.Sound;
+var sound = Sound.create("assets/sfx/hit.wav");
 var defaults = sound.getDefaults();
 if (defaults != null) {
     sound.setDefaults(48000, defaults.priority);
@@ -107,8 +107,8 @@ if (defaults != null) {
 <!-- Sound::setDefaults -->
 getDefaults returns both values in one struct.
 ```haxe
-import haxefmod.studio.CoreSound;
-var sound = CoreSound.create("assets/sfx/hit.wav");
+import haxefmod.core.Sound;
+var sound = Sound.create("assets/sfx/hit.wav");
 var defaults = sound.getDefaults();
 if (defaults != null) {
     sound.setDefaults(48000, defaults.priority);
@@ -119,8 +119,8 @@ if (defaults != null) {
 <!-- Sound::setDefaults -->
 getDefaults returns both values in one struct.
 ```haxe
-import haxefmod.studio.CoreSound;
-var sound = CoreSound.create("assets/sfx/hit.wav");
+import haxefmod.core.Sound;
+var sound = Sound.create("assets/sfx/hit.wav");
 var defaults = sound.getDefaults();
 if (defaults != null) {
     sound.setDefaults(48000, defaults.priority);
@@ -129,10 +129,10 @@ if (defaults != null) {
 
 ## 54
 <!-- FMOD_SOUND_TYPE -->
-The sound type is not queryable. CoreSound.create accepts any format FMOD decodes on the target, and on HTML5 only FSB and raw PCM decode, so a loose .wav or .ogg path leaves FMOD_ERR_FORMAT in lastResult.
+The sound type is not queryable. Sound.create accepts any format FMOD decodes on the target, and on HTML5 only FSB and raw PCM decode, so a loose .wav or .ogg path leaves FMOD_ERR_FORMAT in lastResult.
 ```haxe
-import haxefmod.studio.CoreSound;
-var sound = CoreSound.create("assets/sfx/hit.ogg");
+import haxefmod.core.Sound;
+var sound = Sound.create("assets/sfx/hit.ogg");
 if (sound.isNull() && StudioSystem.lastResult() == FMOD_ERR_FORMAT) {
     trace("this target cannot decode loose files");
 }

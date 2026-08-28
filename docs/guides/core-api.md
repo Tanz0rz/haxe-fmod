@@ -26,16 +26,16 @@ if (stream.takeUnderruns() > 0) trace("ring ran dry");
 
 `write` returns how many bytes were accepted. When the ring is full the rest are dropped, so hold on to anything unaccepted and resend it once `space()` opens up. The default ring holds half a second. A bigger ring rides out frame spikes, a smaller one lets generated audio react faster. `takeUnderruns()` reports how many times the mixer needed audio and found the ring empty, clearing the count. `create3d` makes a positional stream whose channel takes `set3DAttributes` and attenuates with distance from the Studio listener. `release()` stops playback and frees the stream.
 
-`CoreSound.fromPcm(bytes, sampleRate, channels)` is the static counterpart for a sample that is fully known ahead of time. Both work on every target because they take raw PCM.
+`Sound.fromPcm(bytes, sampleRate, channels)` is the static counterpart for a sample that is fully known ahead of time. Both work on every target because they take raw PCM.
 
 ## Reading samples
 
-`CoreSound.create(path, loop, openOnly)` with `openOnly` true opens a file without decoding it up front. A sound opened that way cannot be played, it exists to be read. `readData(buffer, ?length)` decodes PCM from it into the buffer (unsupported in HTML5). It returns `-68` there, the negated `FMOD_ERR_UNSUPPORTED` code. On native targets it returns the bytes read, `0` at the end of the file with `StudioSystem.lastResult()` reporting `FMOD_ERR_FILE_EOF`, or a negated FMOD error code. `length` defaults to the whole buffer and is clamped to it. `seekData(pcm)` moves the read cursor to a sample offset, and `getFormat()` reports the channel count and bits per sample the bytes are laid out in.
+`Sound.create(path, loop, openOnly)` with `openOnly` true opens a file without decoding it up front. A sound opened that way cannot be played, it exists to be read. `readData(buffer, ?length)` decodes PCM from it into the buffer (unsupported in HTML5). It returns `-68` there, the negated `FMOD_ERR_UNSUPPORTED` code. On native targets it returns the bytes read, `0` at the end of the file with `StudioSystem.lastResult()` reporting `FMOD_ERR_FILE_EOF`, or a negated FMOD error code. `length` defaults to the whole buffer and is clamped to it. `seekData(pcm)` moves the read cursor to a sample offset, and `getFormat()` reports the channel count and bits per sample the bytes are laid out in.
 
 ```haxe
-import haxefmod.studio.CoreSound;
+import haxefmod.core.Sound;
 
-var sound = CoreSound.create("assets/voice/line01.ogg", false, true);
+var sound = Sound.create("assets/voice/line01.ogg", false, true);
 var format = sound.getFormat();
 var chunk = haxe.io.Bytes.alloc(4096);
 var total = 0;
@@ -48,14 +48,14 @@ trace('$total bytes of ${format.channels} channel ${format.bits} bit PCM');
 sound.release();
 ```
 
-Games that also ship to the browser and need waveform data keep their own copy of the PCM they feed through `PcmStream` or `CoreSound.fromPcm`.
+Games that also ship to the browser and need waveform data keep their own copy of the PCM they feed through `PcmStream` or `Sound.fromPcm`.
 
 ## Channels
 
-A `Channel` is a playing instance of a core sound, returned by `PcmStream.play`, `CoreSound.play`, and `Dsp.play`. It carries volume, pitch, pan, pause, frequency, loop count, position, mute, a built-in lowpass, 3D attributes and cone settings, occlusion, a mix matrix, and sample-accurate scheduling through `getDspClock` and `setDelay`.
+A `Channel` is a playing instance of a core sound, returned by `PcmStream.play`, `Sound.play`, and `Dsp.play`. It carries volume, pitch, pan, pause, frequency, loop count, position, mute, a built-in lowpass, 3D attributes and cone settings, occlusion, a mix matrix, and sample-accurate scheduling through `getDspClock` and `setDelay`.
 
 ```haxe
-var sound = haxefmod.studio.CoreSound.create("assets/voice/line01.ogg");
+var sound = haxefmod.core.Sound.create("assets/voice/line01.ogg");
 var channel = sound.play();
 channel.setVolume(0.6);
 channel.setPitch(1.2);
@@ -67,7 +67,7 @@ Channels end on their own when playback stops, so a handle can go stale before y
 
 With `distanceFilter` on in the init settings (see [Banks and settings](banks-and-settings.md#settings)), every 3D channel also passes through a lowpass that closes with distance. `set3DDistanceFilter(custom, customLevel, centerFreq)` tunes it per channel. With `custom` true, `customLevel` (0 to 1) replaces the distance-derived amount and `centerFreq` sets the filter's center in Hz. `get3DDistanceFilter()` reads the three back, and `ChannelGroup` carries the same pair.
 
-`set3DCustomRolloff(points)` replaces the mode-driven distance attenuation with a curve of your own (unsupported in HTML5). It returns `FMOD_ERR_UNSUPPORTED` there. Each point is an `FmodVector` with `x` the distance and `y` the volume from 0 to 1, sorted by distance, and `z` unused. An empty array restores the mode-driven rolloff. `get3DCustomRolloff()` returns the points, empty when none are set. `ChannelGroup` has the same pair, and `CoreSound.set3DCustomRolloff` sets the curve new channels of that sound start with.
+`set3DCustomRolloff(points)` replaces the mode-driven distance attenuation with a curve of your own (unsupported in HTML5). It returns `FMOD_ERR_UNSUPPORTED` there. Each point is an `FmodVector` with `x` the distance and `y` the volume from 0 to 1, sorted by distance, and `z` unused. An empty array restores the mode-driven rolloff. `get3DCustomRolloff()` returns the points, empty when none are set. `ChannelGroup` has the same pair, and `Sound.set3DCustomRolloff` sets the curve new channels of that sound start with.
 
 ```haxe
 import haxefmod.studio.Types;
@@ -80,9 +80,9 @@ var curve:Array<FmodVector> = [
 channel.set3DCustomRolloff(curve);
 ```
 
-`CoreSound.set3DConeSettings` and `CoreSound.set3DMinMaxDistance` set the cone and rolloff distances every channel played from that sound starts with, and the channel's own setters override them per instance. `Channel.getChannelGroup()` returns the group a channel is routed into. `getFadePoints()` reads back the fade points scheduled with `addFadePoint` as clock and volume pairs (unsupported in HTML5). It is a compile error there unless the project opts in, and then returns `null` with `FMOD_ERR_UNSUPPORTED` in `StudioSystem.lastResult()`. `getMixMatrix(outChannels, inChannels)` reads the mix matrix back the same way, and `ChannelGroup` carries both readers with the same HTML5 behavior.
+`Sound.set3DConeSettings` and `Sound.set3DMinMaxDistance` set the cone and rolloff distances every channel played from that sound starts with, and the channel's own setters override them per instance. `Channel.getChannelGroup()` returns the group a channel is routed into. `getFadePoints()` reads back the fade points scheduled with `addFadePoint` as clock and volume pairs (unsupported in HTML5). It is a compile error there unless the project opts in, and then returns `null` with `FMOD_ERR_UNSUPPORTED` in `StudioSystem.lastResult()`. `getMixMatrix(outChannels, inChannels)` reads the mix matrix back the same way, and `ChannelGroup` carries both readers with the same HTML5 behavior.
 
-`Channel.setCallback` delivers `ChannelEvent` values (`End`, `SyncPoint(index)`) on the game thread through the same per-frame drain as studio callbacks. Sync points are set on the sound with `CoreSound.addSyncPoint`.
+`Channel.setCallback` delivers `ChannelEvent` values (`End`, `SyncPoint(index)`) on the game thread through the same per-frame drain as studio callbacks. Sync points are set on the sound with `Sound.addSyncPoint`.
 
 ## Channel groups
 
@@ -200,7 +200,7 @@ Studio events route through the Studio mixer, where reverb is authored in FMOD S
 
 ## Sound groups
 
-A `SoundGroup` caps how many sounds from a set play at once. `setMaxAudible` sets the limit and `setMaxAudibleBehavior` chooses what happens past it: `BEHAVIOR_FAIL` refuses the new sound, `BEHAVIOR_MUTE` plays it silently, and `BEHAVIOR_STEAL_LOWEST` stops the quietest. Assign sounds with `CoreSound.setSoundGroup`. Every sound belongs to `SoundGroup.master()` until moved. `getName()` returns the name given at creation and `getSound(index)` enumerates the group's sounds, returning `CoreSound.NULL` past the end. The group does not own those sounds, so never release a handle obtained that way.
+A `SoundGroup` caps how many sounds from a set play at once. `setMaxAudible` sets the limit and `setMaxAudibleBehavior` chooses what happens past it: `BEHAVIOR_FAIL` refuses the new sound, `BEHAVIOR_MUTE` plays it silently, and `BEHAVIOR_STEAL_LOWEST` stops the quietest. Assign sounds with `Sound.setSoundGroup`. Every sound belongs to `SoundGroup.master()` until moved. `getName()` returns the name given at creation and `getSound(index)` enumerates the group's sounds, returning `Sound.NULL` past the end. The group does not own those sounds, so never release a handle obtained that way.
 
 ```haxe
 import haxefmod.core.SoundGroup;
@@ -276,12 +276,12 @@ if (replay.isNull()) {
 
 ## Tracker music, subsounds, and tags
 
-A `CoreSound` loaded from a MOD, S3M, XM, or IT file exposes its tracker channels. `getMusicNumChannels()` reports how many, `setMusicChannelVolume(channel, volume)` and `getMusicChannelVolume(channel)` mix them, and `setMusicSpeed(speed)` and `getMusicSpeed()` scale the tempo (unsupported in HTML5, where loose files cannot load and the calls return `FMOD_ERR_UNSUPPORTED`).
+A `Sound` loaded from a MOD, S3M, XM, or IT file exposes its tracker channels. `getMusicNumChannels()` reports how many, `setMusicChannelVolume(channel, volume)` and `getMusicChannelVolume(channel)` mix them, and `setMusicSpeed(speed)` and `getMusicSpeed()` scale the tempo (unsupported in HTML5, where loose files cannot load and the calls return `FMOD_ERR_UNSUPPORTED`).
 
 ```haxe
-import haxefmod.studio.CoreSound;
+import haxefmod.core.Sound;
 
-var song = CoreSound.create("assets/music/level1.xm");
+var song = Sound.create("assets/music/level1.xm");
 var channels = song.getMusicNumChannels();
 for (i in 0...channels) song.setMusicChannelVolume(i, 0.8);
 song.setMusicSpeed(1.1);
@@ -290,9 +290,9 @@ song.setMusicSpeed(1.1);
 Container formats carry subsounds. `getNumSubSounds()`, `getSubSound(index)`, and `getSubSoundParent()` walk them. A subsound belongs to its parent and is released with it, so never release the handle `getSubSound` returns. `getNumTags()` counts metadata tags and `getTag(name, index)` reads one as an `FmodTag` with its type, data type, and string or numeric payload (unsupported in HTML5, where `getTag` returns `null`). Pass `null` as the name to walk every tag by index.
 
 ```haxe
-import haxefmod.studio.CoreSound;
+import haxefmod.core.Sound;
 
-var song = CoreSound.create("assets/music/level1.xm");
+var song = Sound.create("assets/music/level1.xm");
 var count = song.getNumTags();
 for (i in 0...count) {
     var tag = song.getTag(null, i);
@@ -302,12 +302,12 @@ for (i in 0...count) {
 
 ## Recording
 
-FMOD records a microphone into a sound the game supplies. `StudioSystem.getRecordDriverCount()` reports how many record drivers FMOD knows about and how many are connected right now (unsupported in HTML5). It returns `null` there, as does `getRecordDriverInfo`, `recordStart` and `recordStop` return `FMOD_ERR_UNSUPPORTED`, `isRecording` is always false, `getRecordPosition` is always `-1`, and `CoreSound.createRecordBuffer` returns `CoreSound.NULL`. A machine without a microphone reports 0 drivers and 0 connected.
+FMOD records a microphone into a sound the game supplies. `StudioSystem.getRecordDriverCount()` reports how many record drivers FMOD knows about and how many are connected right now (unsupported in HTML5). It returns `null` there, as does `getRecordDriverInfo`, `recordStart` and `recordStop` return `FMOD_ERR_UNSUPPORTED`, `isRecording` is always false, `getRecordPosition` is always `-1`, and `Sound.createRecordBuffer` returns `Sound.NULL`. A machine without a microphone reports 0 drivers and 0 connected.
 
-`getRecordDriverInfo(id)` gives a driver's name, native sample rate, speaker mode, channel count, and an `FMOD_DRIVER_STATE` bitmask (1 connected, 2 default). `CoreSound.createRecordBuffer(sampleRate, channels, seconds)` makes an empty 16-bit PCM sound of that length, and `recordStart(id, sound, ?loop)` fills it. With `loop` off, recording stops when the buffer is full. With it on, the buffer wraps and keeps recording. `isRecording(id)` and `getRecordPosition(id)` (the cursor in PCM samples) report progress, and `recordStop(id)` ends it. The buffer is an ordinary sound afterwards, so `play()` monitors it and `readData` pulls the samples out.
+`getRecordDriverInfo(id)` gives a driver's name, native sample rate, speaker mode, channel count, and an `FMOD_DRIVER_STATE` bitmask (1 connected, 2 default). `Sound.createRecordBuffer(sampleRate, channels, seconds)` makes an empty 16-bit PCM sound of that length, and `recordStart(id, sound, ?loop)` fills it. With `loop` off, recording stops when the buffer is full. With it on, the buffer wraps and keeps recording. `isRecording(id)` and `getRecordPosition(id)` (the cursor in PCM samples) report progress, and `recordStop(id)` ends it. The buffer is an ordinary sound afterwards, so `play()` monitors it and `readData` pulls the samples out.
 
 ```haxe
-import haxefmod.studio.CoreSound;
+import haxefmod.core.Sound;
 
 var drivers = StudioSystem.getRecordDriverCount();
 if (drivers == null || drivers.connected == 0) {
@@ -319,7 +319,7 @@ if (drivers == null || drivers.connected == 0) {
     }
     var seconds = 3;
     var rate = StudioSystem.getRecordDriverInfo(0).systemRate;
-    var buffer = CoreSound.createRecordBuffer(rate, 1, seconds);
+    var buffer = Sound.createRecordBuffer(rate, 1, seconds);
     StudioSystem.recordStart(0, buffer);
 }
 ```
@@ -327,10 +327,10 @@ if (drivers == null || drivers.connected == 0) {
 The buffer fills in real time, so the read happens a few seconds later, once `getRecordPosition(0)` reaches the buffer's length in samples or `isRecording(0)` turns false.
 
 ```haxe
-import haxefmod.studio.CoreSound;
+import haxefmod.core.Sound;
 
 var seconds = 3;
-var buffer = CoreSound.createRecordBuffer(48000, 1, seconds);
+var buffer = Sound.createRecordBuffer(48000, 1, seconds);
 StudioSystem.recordStart(0, buffer);
 // a few seconds later, from update
 StudioSystem.recordStop(0);

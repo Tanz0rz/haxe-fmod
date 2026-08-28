@@ -205,7 +205,7 @@ const HAXEFMOD_BINDINGS = {
      "direct": true,
      "doc": "The sound this channel plays (a borrowed reference: never release it).",
      "name": "getCurrentSound",
-     "signature": "getCurrentSound():haxefmod.studio.CoreSound",
+     "signature": "getCurrentSound():haxefmod.core.Sound",
      "static": false,
      "type": "haxefmod.core.Channel"
     }
@@ -1073,7 +1073,7 @@ const HAXEFMOD_BINDINGS = {
      "name": "play",
      "signature": "play(startPaused:Bool = false):haxefmod.core.Channel",
      "static": false,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     }
    ],
    "html5": false
@@ -1405,7 +1405,7 @@ const HAXEFMOD_BINDINGS = {
      "direct": true,
      "doc": "The sound this channel plays (a borrowed reference: never release it).",
      "name": "getCurrentSound",
-     "signature": "getCurrentSound():haxefmod.studio.CoreSound",
+     "signature": "getCurrentSound():haxefmod.core.Sound",
      "static": false,
      "type": "haxefmod.core.Channel"
     }
@@ -2697,7 +2697,7 @@ const HAXEFMOD_BINDINGS = {
      "name": "play",
      "signature": "play(startPaused:Bool = false):haxefmod.core.Channel",
      "static": false,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     }
    ],
    "html5": false
@@ -4288,7 +4288,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "file_close",
    "html5": false,
    "notes": [
-    "Cannot be bound. FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, CoreSound.create, and CoreSound.fromPcm are the loading paths."
+    "Cannot be bound. FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, Sound.create, and Sound.fromPcm are the loading paths."
    ]
   },
   "file_getdiskbusy": {
@@ -4306,7 +4306,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "file_open",
    "html5": false,
    "notes": [
-    "Cannot be bound. FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, CoreSound.create, and CoreSound.fromPcm are the loading paths."
+    "Cannot be bound. FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, Sound.create, and Sound.fromPcm are the loading paths."
    ]
   },
   "file_read": {
@@ -4315,7 +4315,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "file_read",
    "html5": false,
    "notes": [
-    "Cannot be bound. FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, CoreSound.create, and CoreSound.fromPcm are the loading paths."
+    "Cannot be bound. FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, Sound.create, and Sound.fromPcm are the loading paths."
    ]
   },
   "file_seek": {
@@ -4324,7 +4324,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "file_seek",
    "html5": false,
    "notes": [
-    "Cannot be bound. FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, CoreSound.create, and CoreSound.fromPcm are the loading paths."
+    "Cannot be bound. FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, Sound.create, and Sound.fromPcm are the loading paths."
    ]
   },
   "file_seek_1": {
@@ -4333,7 +4333,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "file_seek",
    "html5": false,
    "notes": [
-    "Cannot be bound. FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, CoreSound.create, and CoreSound.fromPcm are the loading paths."
+    "Cannot be bound. FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, Sound.create, and Sound.fromPcm are the loading paths."
    ]
   },
   "file_setdiskbusy": {
@@ -4708,7 +4708,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "ReadFile",
    "html5": false,
    "notes": [
-    "Cannot be bound. It returns a raw wasm heap address, which has no meaning in Haxe. StudioSystem.loadBankMemory() loads a bank from bytes you already hold, and CoreSound.fromPcm() plays raw PCM you already hold."
+    "Cannot be bound. It returns a raw wasm heap address, which has no meaning in Haxe. StudioSystem.loadBankMemory() loads a bank from bytes you already hold, and Sound.fromPcm() plays raw PCM you already hold."
    ]
   },
   "reverb3d_get3dattributes": {
@@ -4855,7 +4855,7 @@ const HAXEFMOD_BINDINGS = {
      "name": "addSyncPoint",
      "signature": "addSyncPoint(offsetMs:Int, name:String):FmodResult",
      "static": false,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     }
    ],
    "html5": false
@@ -4869,7 +4869,7 @@ const HAXEFMOD_BINDINGS = {
      "name": "deleteSyncPoint",
      "signature": "deleteSyncPoint(index:Int):FmodResult",
      "static": false,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     }
    ],
    "html5": false
@@ -4883,7 +4883,7 @@ const HAXEFMOD_BINDINGS = {
      "name": "get3DConeSettings",
      "signature": "get3DConeSettings():Null<{insideAngle:Float, outsideAngle:Float, outsideVolume:Float}>",
      "static": false,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     }
    ],
    "html5": false
@@ -4897,7 +4897,7 @@ const HAXEFMOD_BINDINGS = {
      "name": "get3DCustomRolloff",
      "signature": "get3DCustomRolloff():Array<FmodVector>",
      "static": false,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     }
    ],
    "html5": true
@@ -4911,7 +4911,7 @@ const HAXEFMOD_BINDINGS = {
      "name": "get3DMinMaxDistance",
      "signature": "get3DMinMaxDistance():Null<{minDistance:Float, maxDistance:Float}>",
      "static": false,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     }
    ],
    "html5": false
@@ -4925,7 +4925,7 @@ const HAXEFMOD_BINDINGS = {
      "name": "getDefaults",
      "signature": "getDefaults():Null<{frequency:Float, priority:Int}>",
      "static": false,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     }
    ],
    "html5": false
@@ -4939,7 +4939,7 @@ const HAXEFMOD_BINDINGS = {
      "name": "getFormat",
      "signature": "getFormat():Null<{channels:Int, bits:Int}>",
      "static": false,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     }
    ],
    "html5": false
@@ -4953,7 +4953,7 @@ const HAXEFMOD_BINDINGS = {
      "name": "getLength",
      "signature": "getLength():Int",
      "static": false,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     }
    ],
    "html5": false
@@ -4967,7 +4967,7 @@ const HAXEFMOD_BINDINGS = {
      "name": "getLoopCount",
      "signature": "getLoopCount():Int",
      "static": false,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     }
    ],
    "html5": false
@@ -4981,7 +4981,7 @@ const HAXEFMOD_BINDINGS = {
      "name": "getLoopPoints",
      "signature": "getLoopPoints():Null<{startMs:Int, endMs:Int}>",
      "static": false,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     }
    ],
    "html5": false
@@ -4995,7 +4995,7 @@ const HAXEFMOD_BINDINGS = {
      "name": "getMode",
      "signature": "getMode():Int",
      "static": false,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     }
    ],
    "html5": false
@@ -5009,7 +5009,7 @@ const HAXEFMOD_BINDINGS = {
      "name": "getMusicChannelVolume",
      "signature": "getMusicChannelVolume(channel:Int):Float",
      "static": false,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     }
    ],
    "html5": true
@@ -5023,7 +5023,7 @@ const HAXEFMOD_BINDINGS = {
      "name": "getMusicNumChannels",
      "signature": "getMusicNumChannels():Int",
      "static": false,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     }
    ],
    "html5": true
@@ -5037,7 +5037,7 @@ const HAXEFMOD_BINDINGS = {
      "name": "getMusicSpeed",
      "signature": "getMusicSpeed():Float",
      "static": false,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     }
    ],
    "html5": true
@@ -5051,7 +5051,7 @@ const HAXEFMOD_BINDINGS = {
      "name": "getName",
      "signature": "getName():String",
      "static": false,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     }
    ],
    "html5": false
@@ -5065,7 +5065,7 @@ const HAXEFMOD_BINDINGS = {
      "name": "getNumSubSounds",
      "signature": "getNumSubSounds():Int",
      "static": false,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     }
    ],
    "html5": false
@@ -5079,7 +5079,7 @@ const HAXEFMOD_BINDINGS = {
      "name": "getSyncPointCount",
      "signature": "getSyncPointCount():Int",
      "static": false,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     }
    ],
    "html5": false
@@ -5093,7 +5093,7 @@ const HAXEFMOD_BINDINGS = {
      "name": "getNumTags",
      "signature": "getNumTags():Int",
      "static": false,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     },
     {
      "direct": false,
@@ -5101,7 +5101,7 @@ const HAXEFMOD_BINDINGS = {
      "name": "getNumTagsUpdated",
      "signature": "getNumTagsUpdated():Int",
      "static": false,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     }
    ],
    "html5": false
@@ -5115,7 +5115,7 @@ const HAXEFMOD_BINDINGS = {
      "name": "getOpenState",
      "signature": "getOpenState():Int",
      "static": false,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     }
    ],
    "html5": false
@@ -5129,7 +5129,7 @@ const HAXEFMOD_BINDINGS = {
      "name": "getSoundGroup",
      "signature": "getSoundGroup():haxefmod.core.SoundGroup",
      "static": false,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     }
    ],
    "html5": false
@@ -5139,11 +5139,11 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "A subsound by index, or CoreSound.NULL when the index is out of range (StudioSystem.lastResult reports FMOD_ERR_INVALID_PARAM).",
+     "doc": "A subsound by index, or Sound.NULL when the index is out of range (StudioSystem.lastResult reports FMOD_ERR_INVALID_PARAM).",
      "name": "getSubSound",
-     "signature": "getSubSound(index:Int):CoreSound",
+     "signature": "getSubSound(index:Int):Sound",
      "static": false,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     }
    ],
    "html5": false
@@ -5153,11 +5153,11 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "The sound this one is a subsound of, or CoreSound.NULL for a top-level sound (lastResult stays FMOD_OK).",
+     "doc": "The sound this one is a subsound of, or Sound.NULL for a top-level sound (lastResult stays FMOD_OK).",
      "name": "getSubSoundParent",
-     "signature": "getSubSoundParent():CoreSound",
+     "signature": "getSubSoundParent():Sound",
      "static": false,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     },
     {
      "direct": true,
@@ -5165,7 +5165,7 @@ const HAXEFMOD_BINDINGS = {
      "name": "release",
      "signature": "release():FmodResult",
      "static": false,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     }
    ],
    "html5": false
@@ -5179,7 +5179,7 @@ const HAXEFMOD_BINDINGS = {
      "name": "deleteSyncPoint",
      "signature": "deleteSyncPoint(index:Int):FmodResult",
      "static": false,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     },
     {
      "direct": false,
@@ -5187,7 +5187,7 @@ const HAXEFMOD_BINDINGS = {
      "name": "getSyncPointName",
      "signature": "getSyncPointName(index:Int):String",
      "static": false,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     },
     {
      "direct": false,
@@ -5195,7 +5195,7 @@ const HAXEFMOD_BINDINGS = {
      "name": "getSyncPointOffset",
      "signature": "getSyncPointOffset(index:Int):Int",
      "static": false,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     }
    ],
    "html5": false
@@ -5209,7 +5209,7 @@ const HAXEFMOD_BINDINGS = {
      "name": "getSyncPointName",
      "signature": "getSyncPointName(index:Int):String",
      "static": false,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     },
     {
      "direct": false,
@@ -5217,7 +5217,7 @@ const HAXEFMOD_BINDINGS = {
      "name": "getSyncPointOffset",
      "signature": "getSyncPointOffset(index:Int):Int",
      "static": false,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     }
    ],
    "html5": false
@@ -5241,29 +5241,29 @@ const HAXEFMOD_BINDINGS = {
      "name": "getTag",
      "signature": "getTag(name:String, index:Int = 0):Null<FmodTag>",
      "static": false,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     }
    ],
    "html5": true
   },
   "sound_getuserdata": {
-   "code": "import haxefmod.studio.CoreSound;\n\nvar sound = CoreSound.create(\"assets/sfx/engine.wav\");\nsound.setUserData({label: \"cave\"});\nvar data = sound.getUserData();",
+   "code": "import haxefmod.core.Sound;\n\nvar sound = Sound.create(\"assets/sfx/engine.wav\");\nsound.setUserData({label: \"cave\"});\nvar data = sound.getUserData();",
    "fmod": "",
    "haxe": [],
    "heading": "Sound::getUserData",
    "html5": false,
    "notes": [
-    "haxefmod covers this with CoreSound.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released."
+    "haxefmod covers this with Sound.setUserData() and getUserData(). The value is any Haxe value, it lives on the Haxe side keyed by the handle, and the entry is dropped when the handle is released."
    ]
   },
   "sound_lock": {
-   "code": "import haxefmod.studio.CoreSound;\n\nvar sound = CoreSound.create(\"assets/sfx/engine.wav\", false, true);\nvar buffer = haxe.io.Bytes.alloc(4096);\nvar read = sound.readData(buffer);\nwhile (read > 0) {\n    // the first read bytes of buffer hold decoded PCM\n    read = sound.readData(buffer);\n}\nsound.release();",
+   "code": "import haxefmod.core.Sound;\n\nvar sound = Sound.create(\"assets/sfx/engine.wav\", false, true);\nvar buffer = haxe.io.Bytes.alloc(4096);\nvar read = sound.readData(buffer);\nwhile (read > 0) {\n    // the first read bytes of buffer hold decoded PCM\n    read = sound.readData(buffer);\n}\nsound.release();",
    "fmod": "",
    "haxe": [],
    "heading": "Sound::lock",
    "html5": false,
    "notes": [
-    "Cannot be bound. It returns a raw pointer into the sample buffer, which has no meaning in Haxe. CoreSound.readData covers reading, it copies decoded PCM out of a sound opened with the openOnly flag of CoreSound.create, and seekData moves the read cursor. Both are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED."
+    "Cannot be bound. It returns a raw pointer into the sample buffer, which has no meaning in Haxe. Sound.readData covers reading, it copies decoded PCM out of a sound opened with the openOnly flag of Sound.create, and seekData moves the read cursor. Both are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED."
    ]
   },
   "sound_readdata": {
@@ -5275,7 +5275,7 @@ const HAXEFMOD_BINDINGS = {
      "name": "readData",
      "signature": "readData(buffer:haxe.io.Bytes, length:Int = -1):Int",
      "static": false,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     }
    ],
    "html5": true
@@ -5297,7 +5297,7 @@ const HAXEFMOD_BINDINGS = {
      "name": "release",
      "signature": "release():FmodResult",
      "static": false,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     },
     {
      "direct": false,
@@ -5319,25 +5319,25 @@ const HAXEFMOD_BINDINGS = {
      "direct": false,
      "doc": "Loads a sound file.",
      "name": "create",
-     "signature": "create(path:String, loop:Bool = false, openOnly:Bool = false):CoreSound",
+     "signature": "create(path:String, loop:Bool = false, openOnly:Bool = false):Sound",
      "static": true,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     },
     {
      "direct": false,
      "doc": "An empty PCM16 sound of the given length for StudioSystem.recordStart to fill (unsupported in HTML5).",
      "name": "createRecordBuffer",
-     "signature": "createRecordBuffer(sampleRate:Int, channels:Int, seconds:Int):CoreSound",
+     "signature": "createRecordBuffer(sampleRate:Int, channels:Int, seconds:Int):Sound",
      "static": true,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     },
     {
      "direct": false,
      "doc": "A sound from raw 16-bit PCM in memory (interleaved when stereo).",
      "name": "fromPcm",
-     "signature": "fromPcm(data:haxe.io.Bytes, sampleRate:Int, channels:Int, length:Int = -1):CoreSound",
+     "signature": "fromPcm(data:haxe.io.Bytes, sampleRate:Int, channels:Int, length:Int = -1):Sound",
      "static": true,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     }
    ],
    "html5": false
@@ -5351,7 +5351,7 @@ const HAXEFMOD_BINDINGS = {
      "name": "seekData",
      "signature": "seekData(pcm:Int):FmodResult",
      "static": false,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     }
    ],
    "html5": true
@@ -5365,7 +5365,7 @@ const HAXEFMOD_BINDINGS = {
      "name": "set3DConeSettings",
      "signature": "set3DConeSettings(insideAngle:Float, outsideAngle:Float, outsideVolume:Float):FmodResult",
      "static": false,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     }
    ],
    "html5": false
@@ -5379,7 +5379,7 @@ const HAXEFMOD_BINDINGS = {
      "name": "set3DCustomRolloff",
      "signature": "set3DCustomRolloff(points:Array<FmodVector>):FmodResult",
      "static": false,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     }
    ],
    "html5": true
@@ -5393,7 +5393,7 @@ const HAXEFMOD_BINDINGS = {
      "name": "set3DMinMaxDistance",
      "signature": "set3DMinMaxDistance(minDistance:Float, maxDistance:Float):FmodResult",
      "static": false,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     }
    ],
    "html5": false
@@ -5407,7 +5407,7 @@ const HAXEFMOD_BINDINGS = {
      "name": "setDefaults",
      "signature": "setDefaults(frequency:Float, priority:Int):FmodResult",
      "static": false,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     }
    ],
    "html5": false
@@ -5421,7 +5421,7 @@ const HAXEFMOD_BINDINGS = {
      "name": "setLoopCount",
      "signature": "setLoopCount(loopCount:Int):FmodResult",
      "static": false,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     }
    ],
    "html5": false
@@ -5435,7 +5435,7 @@ const HAXEFMOD_BINDINGS = {
      "name": "setLoopPoints",
      "signature": "setLoopPoints(startMs:Int, endMs:Int):FmodResult",
      "static": false,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     }
    ],
    "html5": false
@@ -5449,7 +5449,7 @@ const HAXEFMOD_BINDINGS = {
      "name": "setMode",
      "signature": "setMode(mode:Int):FmodResult",
      "static": false,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     }
    ],
    "html5": false
@@ -5463,7 +5463,7 @@ const HAXEFMOD_BINDINGS = {
      "name": "setMusicChannelVolume",
      "signature": "setMusicChannelVolume(channel:Int, volume:Float):FmodResult",
      "static": false,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     }
    ],
    "html5": true
@@ -5477,7 +5477,7 @@ const HAXEFMOD_BINDINGS = {
      "name": "setMusicSpeed",
      "signature": "setMusicSpeed(speed:Float):FmodResult",
      "static": false,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     }
    ],
    "html5": true
@@ -5491,7 +5491,7 @@ const HAXEFMOD_BINDINGS = {
      "name": "setSoundGroup",
      "signature": "setSoundGroup(group:haxefmod.core.SoundGroup):FmodResult",
      "static": false,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     }
    ],
    "html5": false
@@ -5511,13 +5511,13 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "sound_unlock": {
-   "code": "import haxefmod.studio.CoreSound;\n\nvar sound = CoreSound.create(\"assets/sfx/engine.wav\", false, true);\nvar buffer = haxe.io.Bytes.alloc(4096);\nvar read = sound.readData(buffer);\nwhile (read > 0) {\n    // the first read bytes of buffer hold decoded PCM\n    read = sound.readData(buffer);\n}\nsound.release();",
+   "code": "import haxefmod.core.Sound;\n\nvar sound = Sound.create(\"assets/sfx/engine.wav\", false, true);\nvar buffer = haxe.io.Bytes.alloc(4096);\nvar read = sound.readData(buffer);\nwhile (read > 0) {\n    // the first read bytes of buffer hold decoded PCM\n    read = sound.readData(buffer);\n}\nsound.release();",
    "fmod": "",
    "haxe": [],
    "heading": "Sound::unlock",
    "html5": false,
    "notes": [
-    "Cannot be bound. It returns a raw pointer into the sample buffer, which has no meaning in Haxe. CoreSound.readData covers reading, it copies decoded PCM out of a sound opened with the openOnly flag of CoreSound.create, and seekData moves the read cursor. Both are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED."
+    "Cannot be bound. It returns a raw pointer into the sample buffer, which has no meaning in Haxe. Sound.readData covers reading, it copies decoded PCM out of a sound opened with the openOnly flag of Sound.create, and seekData moves the read cursor. Both are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED."
    ]
   },
   "soundgroup_getmaxaudible": {
@@ -5611,7 +5611,7 @@ const HAXEFMOD_BINDINGS = {
      "direct": true,
      "doc": "The sound at position index in this group (a known sound returns its existing handle).",
      "name": "getSound",
-     "signature": "getSound(index:Int):haxefmod.studio.CoreSound",
+     "signature": "getSound(index:Int):haxefmod.core.Sound",
      "static": false,
      "type": "haxefmod.core.SoundGroup"
     }
@@ -8255,7 +8255,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "Studio::System::loadBankCustom",
    "html5": false,
    "notes": [
-    "Cannot be bound. A custom file system is a set of callbacks that FMOD runs on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile and loadBankMemory are the bank paths, and CoreSound.create and CoreSound.fromPcm are the sound paths."
+    "Cannot be bound. A custom file system is a set of callbacks that FMOD runs on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile and loadBankMemory are the bank paths, and Sound.create and Sound.fromPcm are the sound paths."
    ]
   },
   "studio_system_loadbankfile": {
@@ -8762,7 +8762,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "System::attachFileSystem",
    "html5": false,
    "notes": [
-    "Cannot be bound. A custom file system is a set of callbacks that FMOD runs on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile and loadBankMemory are the bank paths, and CoreSound.create and CoreSound.fromPcm are the sound paths."
+    "Cannot be bound. A custom file system is a set of callbacks that FMOD runs on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile and loadBankMemory are the bank paths, and Sound.create and Sound.fromPcm are the sound paths."
    ]
   },
   "system_close": {
@@ -8897,25 +8897,25 @@ const HAXEFMOD_BINDINGS = {
      "direct": false,
      "doc": "Loads a sound file.",
      "name": "create",
-     "signature": "create(path:String, loop:Bool = false, openOnly:Bool = false):CoreSound",
+     "signature": "create(path:String, loop:Bool = false, openOnly:Bool = false):Sound",
      "static": true,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     },
     {
      "direct": false,
      "doc": "An empty PCM16 sound of the given length for StudioSystem.recordStart to fill (unsupported in HTML5).",
      "name": "createRecordBuffer",
-     "signature": "createRecordBuffer(sampleRate:Int, channels:Int, seconds:Int):CoreSound",
+     "signature": "createRecordBuffer(sampleRate:Int, channels:Int, seconds:Int):Sound",
      "static": true,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     },
     {
      "direct": false,
      "doc": "A sound from raw 16-bit PCM in memory (interleaved when stereo).",
      "name": "fromPcm",
-     "signature": "fromPcm(data:haxe.io.Bytes, sampleRate:Int, channels:Int, length:Int = -1):CoreSound",
+     "signature": "fromPcm(data:haxe.io.Bytes, sampleRate:Int, channels:Int, length:Int = -1):Sound",
      "static": true,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     }
    ],
    "html5": false
@@ -8941,7 +8941,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "System::createStream",
    "html5": false,
    "notes": [
-    "haxefmod covers streams two ways. CoreSound.create() opens a file for playback, and PcmStream.create() opens a stream that Haxe code feeds with raw PCM, which is the one path that works on HTML5 as well."
+    "haxefmod covers streams two ways. Sound.create() opens a file for playback, and PcmStream.create() opens a stream that Haxe code feeds with raw PCM, which is the one path that works on HTML5 as well."
    ]
   },
   "system_detachchannelgroupfromport": {
@@ -9629,7 +9629,7 @@ const HAXEFMOD_BINDINGS = {
      "name": "play",
      "signature": "play(startPaused:Bool = false):haxefmod.core.Channel",
      "static": false,
-     "type": "haxefmod.studio.CoreSound"
+     "type": "haxefmod.core.Sound"
     }
    ],
    "html5": false
@@ -9639,9 +9639,9 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Starts recording a driver into a sound from CoreSound.createRecordBuffer (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED).",
+     "doc": "Starts recording a driver into a sound from Sound.createRecordBuffer (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED).",
      "name": "recordStart",
-     "signature": "recordStart(id:Int, sound:CoreSound, loop:Bool = false):FmodResult",
+     "signature": "recordStart(id:Int, sound:Sound, loop:Bool = false):FmodResult",
      "static": true,
      "type": "haxefmod.studio.StudioSystem"
     }
@@ -9862,7 +9862,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "System::setFileSystem",
    "html5": false,
    "notes": [
-    "Cannot be bound. A custom file system is a set of callbacks that FMOD runs on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile and loadBankMemory are the bank paths, and CoreSound.create and CoreSound.fromPcm are the sound paths."
+    "Cannot be bound. A custom file system is a set of callbacks that FMOD runs on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile and loadBankMemory are the bank paths, and Sound.create and Sound.fromPcm are the sound paths."
    ]
   },
   "system_setgeometrysettings": {

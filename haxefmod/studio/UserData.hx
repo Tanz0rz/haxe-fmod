@@ -1,5 +1,6 @@
 package haxefmod.studio;
 
+import haxefmod.core.Sound;
 /**
  * The handle families that can carry user data. Each family has its own
  * map because handle ints from different native types can collide. Plain
@@ -13,7 +14,7 @@ class UserDataKind {
     public static inline var Bus:Int = 3;
     public static inline var Vca:Int = 4;
     public static inline var CommandReplay:Int = 5;
-    public static inline var CoreSound:Int = 6;
+    public static inline var Sound:Int = 6;
     public static inline var Channel:Int = 7;
     public static inline var ChannelGroup:Int = 8;
     public static inline var Dsp:Int = 9;

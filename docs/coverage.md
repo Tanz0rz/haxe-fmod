@@ -83,7 +83,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_Channel_SetUserData` | `Channel.clearCallback`<br>`Channel.setCallback` |  |
 | `FMOD_Channel_SetVolume` | `Channel.setVolume` |  |
 | `FMOD_Channel_SetVolumeRamp` | `Channel.setVolumeRamp` |  |
-| `FMOD_Channel_Stop` | `Channel.stop`<br>`Dsp.play`<br>`PcmStream.play`<br>`CoreSound.play` |  |
+| `FMOD_Channel_Stop` | `Channel.stop`<br>`Dsp.play`<br>`PcmStream.play`<br>`Sound.play` |  |
 
 ## ChannelGroup
 
@@ -254,44 +254,44 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 
 | FMOD | haxefmod | HTML5 |
 |---|---|---|
-| `FMOD_Sound_AddSyncPoint` | `CoreSound.addSyncPoint` |  |
-| `FMOD_Sound_DeleteSyncPoint` | `CoreSound.deleteSyncPoint` |  |
-| `FMOD_Sound_Get3DConeSettings` | `CoreSound.get3DConeSettings` |  |
-| `FMOD_Sound_Get3DCustomRolloff` | `CoreSound.get3DCustomRolloff` | limited |
-| `FMOD_Sound_Get3DMinMaxDistance` | `CoreSound.get3DMinMaxDistance` |  |
-| `FMOD_Sound_GetDefaults` | `CoreSound.getDefaults` |  |
-| `FMOD_Sound_GetFormat` | `CoreSound.getFormat` |  |
-| `FMOD_Sound_GetLength` | `CoreSound.getLength` |  |
-| `FMOD_Sound_GetLoopCount` | `CoreSound.getLoopCount` |  |
-| `FMOD_Sound_GetLoopPoints` | `CoreSound.getLoopPoints` |  |
-| `FMOD_Sound_GetMode` | `CoreSound.getMode` |  |
-| `FMOD_Sound_GetMusicChannelVolume` | `CoreSound.getMusicChannelVolume` | limited |
-| `FMOD_Sound_GetMusicNumChannels` | `CoreSound.getMusicNumChannels` | limited |
-| `FMOD_Sound_GetMusicSpeed` | `CoreSound.getMusicSpeed` | limited |
-| `FMOD_Sound_GetName` | `CoreSound.getName` |  |
-| `FMOD_Sound_GetNumSubSounds` | `CoreSound.getNumSubSounds` |  |
-| `FMOD_Sound_GetNumSyncPoints` | `CoreSound.getSyncPointCount` |  |
-| `FMOD_Sound_GetNumTags` | `CoreSound.getNumTags`<br>`CoreSound.getNumTagsUpdated` |  |
-| `FMOD_Sound_GetOpenState` | `CoreSound.getOpenState` |  |
-| `FMOD_Sound_GetSoundGroup` | `CoreSound.getSoundGroup` |  |
-| `FMOD_Sound_GetSubSound` | `CoreSound.getSubSound` |  |
-| `FMOD_Sound_GetSubSoundParent` | `CoreSound.getSubSoundParent`<br>`CoreSound.release` |  |
-| `FMOD_Sound_GetSyncPoint` | `CoreSound.deleteSyncPoint`<br>`CoreSound.getSyncPointName`<br>`CoreSound.getSyncPointOffset` |  |
-| `FMOD_Sound_GetSyncPointInfo` | `CoreSound.getSyncPointName`<br>`CoreSound.getSyncPointOffset` |  |
-| `FMOD_Sound_GetTag` | `CoreSound.getTag` | limited |
-| `FMOD_Sound_ReadData` | `CoreSound.readData` | limited |
-| `FMOD_Sound_Release` | `PcmStream.release`<br>`CoreSound.release`<br>`PcmStream.create`<br>`PcmStream.create3d`<br>`CoreSound.create`<br>`CoreSound.createRecordBuffer`<br>`CoreSound.fromPcm` |  |
-| `FMOD_Sound_SeekData` | `CoreSound.seekData` | limited |
-| `FMOD_Sound_Set3DConeSettings` | `CoreSound.set3DConeSettings` |  |
-| `FMOD_Sound_Set3DCustomRolloff` | `CoreSound.set3DCustomRolloff` | limited |
-| `FMOD_Sound_Set3DMinMaxDistance` | `CoreSound.set3DMinMaxDistance` |  |
-| `FMOD_Sound_SetDefaults` | `CoreSound.setDefaults` |  |
-| `FMOD_Sound_SetLoopCount` | `CoreSound.setLoopCount` |  |
-| `FMOD_Sound_SetLoopPoints` | `CoreSound.setLoopPoints` |  |
-| `FMOD_Sound_SetMode` | `CoreSound.setMode` |  |
-| `FMOD_Sound_SetMusicChannelVolume` | `CoreSound.setMusicChannelVolume` | limited |
-| `FMOD_Sound_SetMusicSpeed` | `CoreSound.setMusicSpeed` | limited |
-| `FMOD_Sound_SetSoundGroup` | `CoreSound.setSoundGroup` |  |
+| `FMOD_Sound_AddSyncPoint` | `Sound.addSyncPoint` |  |
+| `FMOD_Sound_DeleteSyncPoint` | `Sound.deleteSyncPoint` |  |
+| `FMOD_Sound_Get3DConeSettings` | `Sound.get3DConeSettings` |  |
+| `FMOD_Sound_Get3DCustomRolloff` | `Sound.get3DCustomRolloff` | limited |
+| `FMOD_Sound_Get3DMinMaxDistance` | `Sound.get3DMinMaxDistance` |  |
+| `FMOD_Sound_GetDefaults` | `Sound.getDefaults` |  |
+| `FMOD_Sound_GetFormat` | `Sound.getFormat` |  |
+| `FMOD_Sound_GetLength` | `Sound.getLength` |  |
+| `FMOD_Sound_GetLoopCount` | `Sound.getLoopCount` |  |
+| `FMOD_Sound_GetLoopPoints` | `Sound.getLoopPoints` |  |
+| `FMOD_Sound_GetMode` | `Sound.getMode` |  |
+| `FMOD_Sound_GetMusicChannelVolume` | `Sound.getMusicChannelVolume` | limited |
+| `FMOD_Sound_GetMusicNumChannels` | `Sound.getMusicNumChannels` | limited |
+| `FMOD_Sound_GetMusicSpeed` | `Sound.getMusicSpeed` | limited |
+| `FMOD_Sound_GetName` | `Sound.getName` |  |
+| `FMOD_Sound_GetNumSubSounds` | `Sound.getNumSubSounds` |  |
+| `FMOD_Sound_GetNumSyncPoints` | `Sound.getSyncPointCount` |  |
+| `FMOD_Sound_GetNumTags` | `Sound.getNumTags`<br>`Sound.getNumTagsUpdated` |  |
+| `FMOD_Sound_GetOpenState` | `Sound.getOpenState` |  |
+| `FMOD_Sound_GetSoundGroup` | `Sound.getSoundGroup` |  |
+| `FMOD_Sound_GetSubSound` | `Sound.getSubSound` |  |
+| `FMOD_Sound_GetSubSoundParent` | `Sound.getSubSoundParent`<br>`Sound.release` |  |
+| `FMOD_Sound_GetSyncPoint` | `Sound.deleteSyncPoint`<br>`Sound.getSyncPointName`<br>`Sound.getSyncPointOffset` |  |
+| `FMOD_Sound_GetSyncPointInfo` | `Sound.getSyncPointName`<br>`Sound.getSyncPointOffset` |  |
+| `FMOD_Sound_GetTag` | `Sound.getTag` | limited |
+| `FMOD_Sound_ReadData` | `Sound.readData` | limited |
+| `FMOD_Sound_Release` | `PcmStream.release`<br>`Sound.release`<br>`PcmStream.create`<br>`PcmStream.create3d`<br>`Sound.create`<br>`Sound.createRecordBuffer`<br>`Sound.fromPcm` |  |
+| `FMOD_Sound_SeekData` | `Sound.seekData` | limited |
+| `FMOD_Sound_Set3DConeSettings` | `Sound.set3DConeSettings` |  |
+| `FMOD_Sound_Set3DCustomRolloff` | `Sound.set3DCustomRolloff` | limited |
+| `FMOD_Sound_Set3DMinMaxDistance` | `Sound.set3DMinMaxDistance` |  |
+| `FMOD_Sound_SetDefaults` | `Sound.setDefaults` |  |
+| `FMOD_Sound_SetLoopCount` | `Sound.setLoopCount` |  |
+| `FMOD_Sound_SetLoopPoints` | `Sound.setLoopPoints` |  |
+| `FMOD_Sound_SetMode` | `Sound.setMode` |  |
+| `FMOD_Sound_SetMusicChannelVolume` | `Sound.setMusicChannelVolume` | limited |
+| `FMOD_Sound_SetMusicSpeed` | `Sound.setMusicSpeed` | limited |
+| `FMOD_Sound_SetSoundGroup` | `Sound.setSoundGroup` |  |
 | `FMOD_Sound_SetUserData` | `PcmStream.release` |  |
 
 ## SoundGroup
@@ -520,7 +520,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_System_CreateDSPByType` | `Dsp.create` |  |
 | `FMOD_System_CreateGeometry` | `Geometry.create` |  |
 | `FMOD_System_CreateReverb3D` | `Reverb3D.create` |  |
-| `FMOD_System_CreateSound` | `PcmStream.create`<br>`PcmStream.create3d`<br>`CoreSound.create`<br>`CoreSound.createRecordBuffer`<br>`CoreSound.fromPcm` |  |
+| `FMOD_System_CreateSound` | `PcmStream.create`<br>`PcmStream.create3d`<br>`Sound.create`<br>`Sound.createRecordBuffer`<br>`Sound.fromPcm` |  |
 | `FMOD_System_CreateSoundGroup` | `SoundGroup.create` |  |
 | `FMOD_System_Get3DSettings` | `CoreSystem.get3DSettings` |  |
 | `FMOD_System_GetAdvancedSettings` | `StudioSystem.getAdvancedSettings`<br>`FmodManager.Initialize`<br>`FmodRuntime.init` | limited |
@@ -561,7 +561,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_System_MixerResume` | `CoreSystem.mixerResume` |  |
 | `FMOD_System_MixerSuspend` | `CoreSystem.mixerSuspend` |  |
 | `FMOD_System_PlayDSP` | `Dsp.play` |  |
-| `FMOD_System_PlaySound` | `PcmStream.play`<br>`CoreSound.play` |  |
+| `FMOD_System_PlaySound` | `PcmStream.play`<br>`Sound.play` |  |
 | `FMOD_System_RecordStart` | `StudioSystem.recordStart` | limited |
 | `FMOD_System_RecordStop` | `StudioSystem.recordStop` | limited |
 | `FMOD_System_Set3DSettings` | `CoreSystem.set3DSettings` |  |

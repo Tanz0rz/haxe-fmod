@@ -29,7 +29,7 @@ Browsers refuse to start audio before the user interacts with the page. The libr
 ### What the web build cannot do
 
 - Programmer sounds. `assignProgrammerSound` returns `FMOD_ERR_UNSUPPORTED` because of a defect in FMOD's JavaScript runtime. Author dialogue and swappable audio as ordinary events on HTML5.
-- Loose audio files. The web build decodes FSB only, so `CoreSound.create` on a `.wav`, `.ogg`, or `.mp3` path returns `FMOD_ERR_FORMAT`. Bank content plays normally, and `CoreSound.fromPcm` and `PcmStream` work everywhere because they take raw PCM.
+- Loose audio files. The web build decodes FSB only, so `Sound.create` on a `.wav`, `.ogg`, or `.mp3` path returns `FMOD_ERR_FORMAT`. Bank content plays normally, and `Sound.fromPcm` and `PcmStream` work everywhere because they take raw PCM.
 - The `Destroyed` callback. FMOD's JavaScript glue corrupts the module if an instance is destroyed while a callback is installed, so callbacks are uninstalled before destruction and `Destroyed` cannot be delivered. `release()` removes handlers on every target, so cleanup placed there behaves identically everywhere.
 - Numeric user properties. Reading an integer, boolean, or float user property crashes FMOD's runtime, so those reads return `FMOD_ERR_UNSUPPORTED`. String properties work.
 - Live Update. FMOD does not support it in browsers.

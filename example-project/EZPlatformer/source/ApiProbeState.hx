@@ -23,7 +23,7 @@ import haxefmod.core.SoundGroup;
 import haxefmod.studio.Callbacks;
 import haxefmod.studio.CallbackDispatcher;
 import haxefmod.studio.CommandReplay;
-import haxefmod.studio.CoreSound;
+import haxefmod.core.Sound;
 import haxefmod.studio.Bus;
 import haxefmod.studio.EventInstance;
 import haxefmod.studio.FmodResult;
@@ -245,7 +245,7 @@ class ApiProbeState extends FlxState {
         var buffer = haxe.io.Bytes.alloc(4096);
         #if sys
         var wavPath = writeProbeWav();
-        var opened = CoreSound.create(wavPath, false, true);
+        var opened = Sound.create(wavPath, false, true);
         check("core_create_sound_open_only", !opened.isNull(),
             'handle=${(opened : Int)} result=${StudioSystem.lastResult().toString()}');
         var read = opened.readData(buffer);
@@ -278,7 +278,7 @@ class ApiProbeState extends FlxState {
         check("core_sound_seek_data_stale", opened.seekData(0) == FmodResult.FMOD_ERR_INVALID_HANDLE, "");
 
         // A decoded (default) sound has no open file left to read from
-        var decoded = CoreSound.create(wavPath);
+        var decoded = Sound.create(wavPath);
         var decodedRead = decoded.readData(buffer);
         check("core_sound_read_data_needs_open_only", decodedRead < 0, 'value=$decodedRead');
         decoded.release();
@@ -286,7 +286,7 @@ class ApiProbeState extends FlxState {
         #else
         // html5: readData and seekData are unsupported, and only a raw PCM
         // sound can stand in for the handle
-        var memorySound = CoreSound.fromPcm(haxe.io.Bytes.alloc(1024), 8000, 1);
+        var memorySound = Sound.fromPcm(haxe.io.Bytes.alloc(1024), 8000, 1);
         check("core_sound_read_data_unsupported", memorySound.readData(buffer) == -68
             && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED,
             'value=${memorySound.readData(buffer)}');
@@ -300,9 +300,9 @@ class ApiProbeState extends FlxState {
         check("sys_get_record_num_drivers_unsupported", StudioSystem.getRecordDriverCount() == null
             && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED, "");
         check("sys_get_record_driver_info_unsupported", StudioSystem.getRecordDriverInfo(0) == null, "");
-        check("core_create_record_sound_unsupported", CoreSound.createRecordBuffer(48000, 1, 1).isNull()
+        check("core_create_record_sound_unsupported", Sound.createRecordBuffer(48000, 1, 1).isNull()
             && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED, "");
-        check("sys_record_start_unsupported", StudioSystem.recordStart(0, CoreSound.NULL) == FmodResult.FMOD_ERR_UNSUPPORTED, "");
+        check("sys_record_start_unsupported", StudioSystem.recordStart(0, Sound.NULL) == FmodResult.FMOD_ERR_UNSUPPORTED, "");
         check("sys_record_stop_unsupported", StudioSystem.recordStop(0) == FmodResult.FMOD_ERR_UNSUPPORTED, "");
         check("sys_is_recording_unsupported", !StudioSystem.isRecording(0), "");
         check("sys_get_record_position_unsupported", StudioSystem.getRecordPosition(0) == -1, "");
@@ -315,10 +315,10 @@ class ApiProbeState extends FlxState {
                 : 'drivers=${drivers.drivers} connected=${drivers.connected}');
         check("sys_get_record_driver_info_out_of_range", StudioSystem.getRecordDriverInfo(9999) == null,
             'result=${StudioSystem.lastResult().toString()}');
-        var recordBuffer = CoreSound.createRecordBuffer(48000, 1, 1);
+        var recordBuffer = Sound.createRecordBuffer(48000, 1, 1);
         check("core_create_record_sound", !recordBuffer.isNull(),
             'handle=${(recordBuffer : Int)} result=${StudioSystem.lastResult().toString()}');
-        check("core_create_record_sound_bad_args", CoreSound.createRecordBuffer(0, 1, 1).isNull()
+        check("core_create_record_sound_bad_args", Sound.createRecordBuffer(0, 1, 1).isNull()
             && StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_PARAM,
             'result=${StudioSystem.lastResult().toString()}');
         var format = recordBuffer.getFormat();
@@ -326,7 +326,7 @@ class ApiProbeState extends FlxState {
             format == null ? "null" : 'channels=${format.channels} bits=${format.bits}');
         check("record_sound_length", recordBuffer.getLength() == 1000, 'ms=${recordBuffer.getLength()}');
         check("sys_is_recording_idle", !StudioSystem.isRecording(0), "");
-        var staleStart:FmodResult = StudioSystem.recordStart(0, CoreSound.NULL);
+        var staleStart:FmodResult = StudioSystem.recordStart(0, Sound.NULL);
         check("sys_record_start_stale_sound", staleStart == FmodResult.FMOD_ERR_INVALID_HANDLE,
             'result=${staleStart.toString()}');
         if (drivers != null && drivers.drivers > 0) {
@@ -510,7 +510,7 @@ class ApiProbeState extends FlxState {
             && StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_HANDLE, "");
 
         var pcm = haxe.io.Bytes.alloc(4800 * 2);
-        var sound = CoreSound.fromPcm(pcm, 48000, 1);
+        var sound = Sound.fromPcm(pcm, 48000, 1);
         sound.setMode(ChannelMode.MODE_3D);
         var soundSet:FmodResult = sound.set3DCustomRolloff(points);
         check("core_sound_set_3d_custom_rolloff", soundSet.isOk(), 'result=${soundSet.toString()}');
@@ -622,7 +622,7 @@ class ApiProbeState extends FlxState {
         // A lied fromPcm length must clamp, not over-read: the HashLink
         // shim crashed inside FMOD's memcpy before the wrapper clamp
         var pcm = haxe.io.Bytes.alloc(4800);
-        var lied = CoreSound.fromPcm(pcm, 48000, 1, 1024 * 1024);
+        var lied = Sound.fromPcm(pcm, 48000, 1, 1024 * 1024);
         check("hardening_frompcm_lied_length_clamps", !lied.isNull(),
             'result=${StudioSystem.lastResult().toString()}');
         // 4800 bytes of mono 16-bit at 48kHz = 2400 samples = 50ms: the
@@ -630,7 +630,7 @@ class ApiProbeState extends FlxState {
         var lengthMs = lied.getLength();
         check("hardening_frompcm_clamped_size", lengthMs == 50, 'lengthMs=$lengthMs');
         lied.release();
-        check("hardening_frompcm_null_bytes", CoreSound.fromPcm(null, 48000, 1).isNull(), "");
+        check("hardening_frompcm_null_bytes", Sound.fromPcm(null, 48000, 1).isNull(), "");
 
         // Programmer-sound key contract: null and oversized keys reject
         // instead of crashing (cpp strncpy) or silently truncating
@@ -938,7 +938,7 @@ class ApiProbeState extends FlxState {
 
         // Memory sounds and their metadata
         var pcm = haxe.io.Bytes.alloc(9600);
-        var sound = CoreSound.fromPcm(pcm, 48000, 1);
+        var sound = Sound.fromPcm(pcm, 48000, 1);
         info("sound_name", '"${sound.getName()}"');
         check("sound_group_getter", !sound.getSoundGroup().isNull(), "");
         check("sound_loop_count_roundtrip", sound.setLoopCount(2).isOk()
@@ -1230,7 +1230,7 @@ class ApiProbeState extends FlxState {
 
         // Channel position on a paused in-memory sound
         var pcm = haxe.io.Bytes.alloc(9600);
-        var posSound = CoreSound.fromPcm(pcm, 48000, 1);
+        var posSound = Sound.fromPcm(pcm, 48000, 1);
         var posChannel = posSound.play(true);
         check("chan_set_position", posChannel.setPosition(50).isOk(),
             'result=${StudioSystem.lastResult().toString()}');
@@ -1364,7 +1364,7 @@ class ApiProbeState extends FlxState {
 
     var _statusLabel:FlxText;
     var _chanEvents:Array<ChannelEvent> = [];
-    var _chanEventSound:CoreSound = CoreSound.NULL;
+    var _chanEventSound:Sound = Sound.NULL;
     var _chanEventChannel:Channel = Channel.NULL;
     var _chanEventBaseline:Int = 0;
     var _chanEventFrames:Int = 0;
@@ -1390,7 +1390,7 @@ class ApiProbeState extends FlxState {
         _chanEventBaseline = StudioSystem.liveHandleCount();
         var samples = 4800;
         var pcm = haxe.io.Bytes.alloc(samples * 2);
-        _chanEventSound = CoreSound.fromPcm(pcm, 48000, 1);
+        _chanEventSound = Sound.fromPcm(pcm, 48000, 1);
         check("chanev_sound", !_chanEventSound.isNull(), 'handle=${(_chanEventSound : Int)}');
         var syncResult = _chanEventSound.addSyncPoint(50, "mid");
         check("chanev_sync_point", syncResult.isOk(), 'result=${syncResult.toString()}');
@@ -1658,7 +1658,7 @@ class ApiProbeState extends FlxState {
         check("sg_mute_fade", group.setMuteFadeSpeed(0.5).isOk(), "");
 
         var pcm = haxe.io.Bytes.alloc(9600);
-        var sound = CoreSound.fromPcm(pcm, 48000, 1);
+        var sound = Sound.fromPcm(pcm, 48000, 1);
         check("sg_assign", sound.setSoundGroup(group).isOk(), "");
         check("sg_sound_count", group.getSoundCount() == 1, 'value=${group.getSoundCount()}');
         check("sg_stop", group.stop().isOk(), "");
@@ -2232,7 +2232,7 @@ class ApiProbeState extends FlxState {
             var v = Std.int(Math.sin(2 * Math.PI * 440 * i / 48000) * 0x3000);
             pcm.setUInt16(i * 2, v & 0xFFFF);
         }
-        var sound = CoreSound.fromPcm(pcm, 48000, 1);
+        var sound = Sound.fromPcm(pcm, 48000, 1);
         check("coresound_from_pcm", !sound.isNull(), 'handle=${(sound : Int)}');
         check("coresound_defaults", sound.setDefaults(24000, 128).isOk()
             && sound.getDefaults() != null
@@ -2276,7 +2276,7 @@ class ApiProbeState extends FlxState {
             var v = Std.int(Math.sin(2 * Math.PI * 440 * i / 48000) * 0x3000);
             pcm.setUInt16(i * 2, v & 0xFFFF);
         }
-        var sound = CoreSound.fromPcm(pcm, 48000, 1);
+        var sound = Sound.fromPcm(pcm, 48000, 1);
         sound.setMode(ChannelMode.MODE_3D);
         var cone = sound.set3DConeSettings(30, 60, 0.5);
         var coneBack = sound.get3DConeSettings();

@@ -3,11 +3,11 @@
 ## 0
 <!-- Add a DSP effect to a Channel -->
 ```haxe
-import haxefmod.studio.CoreSound;
+import haxefmod.core.Sound;
 import haxefmod.core.Dsp;
 import haxefmod.core.DspType;
 
-var sound = CoreSound.create("assets/drumloop.wav");
+var sound = Sound.create("assets/drumloop.wav");
 var channel = sound.play();
 var echo = Dsp.create(DspType.ECHO);
 var result = channel.addDsp(0, echo);
@@ -88,14 +88,14 @@ if (!result.isOk()) {
 ## 6
 <!-- Creating an effect and making all Channels send to it. -->
 ```haxe
-import haxefmod.studio.CoreSound;
+import haxefmod.core.Sound;
 import haxefmod.core.ChannelGroup;
 import haxefmod.core.Dsp;
 import haxefmod.core.DspType;
 
 var reverb = Dsp.create(DspType.SFXREVERB);
 var group = ChannelGroup.create("my channelgroup");
-var sound = CoreSound.create("assets/drumloop.wav");
+var sound = Sound.create("assets/drumloop.wav");
 
 // play paused so nothing is heard before the connection exists
 var channel = sound.play(true);
@@ -112,14 +112,14 @@ channel.setPaused(false);
 <!-- Controlling mix level and pan matrices for DSPConnections -->
 addInput returns the DspConnection handle directly.
 ```haxe
-import haxefmod.studio.CoreSound;
+import haxefmod.core.Sound;
 import haxefmod.core.ChannelGroup;
 import haxefmod.core.Dsp;
 import haxefmod.core.DspType;
 
 var reverb = Dsp.create(DspType.SFXREVERB);
 var group = ChannelGroup.create("my channelgroup");
-var sound = CoreSound.create("assets/drumloop.wav");
+var sound = Sound.create("assets/drumloop.wav");
 
 var channel = sound.play(true);
 channel.setChannelGroup(group);

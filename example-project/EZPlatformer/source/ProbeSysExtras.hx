@@ -4,7 +4,7 @@ import haxefmod.core.ChannelGroup;
 import haxefmod.core.CoreSystem;
 import haxefmod.core.Dsp;
 import haxefmod.core.DspType;
-import haxefmod.studio.CoreSound;
+import haxefmod.core.Sound;
 import haxefmod.studio.FmodResult;
 import haxefmod.studio.StudioSystem;
 import haxefmod.studio.Types;
@@ -84,7 +84,7 @@ class ProbeSysExtras {
         // File usage after a sound has been read from disk
         #if sys
         var wavPath = @:privateAccess ApiProbeState.writeProbeWav();
-        var sound = CoreSound.create(wavPath);
+        var sound = Sound.create(wavPath);
         var channel = sound.play(true);
         channel.stop();
         sound.release();

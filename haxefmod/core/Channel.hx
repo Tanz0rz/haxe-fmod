@@ -365,7 +365,7 @@ abstract Channel(Int) from Int to Int {
     }
 
     /** The sound this channel plays (a borrowed reference: never release it). */
-    public inline function getCurrentSound():haxefmod.studio.CoreSound {
+    public inline function getCurrentSound():haxefmod.core.Sound {
         return NativeStudio.chan_get_current_sound(this);
     }
 

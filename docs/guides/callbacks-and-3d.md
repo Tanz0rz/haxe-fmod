@@ -51,7 +51,7 @@ step.release();
 
 ### Programmer sounds
 
-`EventInstance.assignProgrammerSound(key)` names the audio a programmer instrument should play. Assign it before `start()`, and the native side resolves it on FMOD's thread when the instrument triggers. The key is either an audio table entry or a `CoreSound` you loaded from a file or PCM. Keys must be under 512 UTF-8 bytes. On HTML5 the call returns `FMOD_ERR_UNSUPPORTED` because of a defect in FMOD's JavaScript runtime, documented in [Limitations](../limitations.md#html5). `StudioSystem.getSoundInfo(key)` reports what FMOD would load for an audio table key, the file name or path and the subsound index inside it, and returns `null` for a key that is in no loaded audio table.
+`EventInstance.assignProgrammerSound(key)` names the audio a programmer instrument should play. Assign it before `start()`, and the native side resolves it on FMOD's thread when the instrument triggers. The key is either an audio table entry or a `Sound` you loaded from a file or PCM. Keys must be under 512 UTF-8 bytes. On HTML5 the call returns `FMOD_ERR_UNSUPPORTED` because of a defect in FMOD's JavaScript runtime, documented in [Limitations](../limitations.md#html5). `StudioSystem.getSoundInfo(key)` reports what FMOD would load for an audio table key, the file name or path and the subsound index inside it, and returns `null` for a key that is in no loaded audio table.
 
 ### System events
 
@@ -75,7 +75,7 @@ The default masks deliver the device and Studio events above. `PreUpdate` and `P
 
 ## Core channel callbacks
 
-Channels from `CoreSound.play` and `PcmStream.play` support `Channel.setCallback` with `ChannelEvent` values (end of playback, sync points). They ride the same queue and the same per-frame drain.
+Channels from `Sound.play` and `PcmStream.play` support `Channel.setCallback` with `ChannelEvent` values (end of playback, sync points). They ride the same queue and the same per-frame drain.
 
 ## Listeners
 
@@ -89,7 +89,7 @@ StudioSystem.setListenerPosition2D(0, cameraX, cameraY);
 
 Distance units are whatever your game uses. Authored min and max distances in FMOD Studio are in those same units, so a pixel-based game authors its falloff in pixels. `CoreSystem.set3DSettings(dopplerScale, distanceFactor, rolloffScale)` rescales globally.
 
-Studio events attenuate by the curve authored on their spatializer. Core channels attenuate by their 3D mode, and `set3DCustomRolloff(points)` on a `Channel`, `ChannelGroup`, or `CoreSound` replaces that with a curve of `FmodVector` points, `x` the distance and `y` the volume (unsupported in HTML5). It returns `FMOD_ERR_UNSUPPORTED` there. With `distanceFilter` on in the settings, 3D core channels also pass through a lowpass that closes with distance, and `Channel.set3DDistanceFilter` overrides it per channel. Both are described in [Core API](core-api.md#channels), and polygon occlusion between listener and source is in [Geometry occlusion](core-api.md#geometry-occlusion).
+Studio events attenuate by the curve authored on their spatializer. Core channels attenuate by their 3D mode, and `set3DCustomRolloff(points)` on a `Channel`, `ChannelGroup`, or `Sound` replaces that with a curve of `FmodVector` points, `x` the distance and `y` the volume (unsupported in HTML5). It returns `FMOD_ERR_UNSUPPORTED` there. With `distanceFilter` on in the settings, 3D core channels also pass through a lowpass that closes with distance, and `Channel.set3DDistanceFilter` overrides it per channel. Both are described in [Core API](core-api.md#channels), and polygon occlusion between listener and source is in [Geometry occlusion](core-api.md#geometry-occlusion).
 
 ## Positioned events
 

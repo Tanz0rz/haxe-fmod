@@ -8,7 +8,7 @@ import haxefmod.core.ChannelGroup;
 import haxefmod.core.Dsp;
 import haxefmod.core.DspType;
 import haxefmod.studio.Callbacks;
-import haxefmod.studio.CoreSound;
+import haxefmod.core.Sound;
 import haxefmod.studio.EventInstance;
 import haxefmod.studio.FmodResult;
 import haxefmod.studio.StudioSystem;
@@ -70,7 +70,7 @@ class ProgrammerSoundTestState extends FlxState {
         // Core API micro subset against a real file. The html5 build ships
         // FSB-only codecs, so loose files legitimately fail there with
         // FMOD_ERR_FORMAT - informational on js, gating on native.
-        var sound = CoreSound.create("assets/fmod/Jump.wav");
+        var sound = Sound.create("assets/fmod/Jump.wav");
         #if js
         info("core_create_sound", sound.isNull()
             ? 'unavailable result=${StudioSystem.lastResult().toString()}'
@@ -85,7 +85,7 @@ class ProgrammerSoundTestState extends FlxState {
             check("core_release_sound", releaseResult.isOk(), 'result=${releaseResult.toString()}');
             check("core_released_invalid", sound.getLength() == -1, "");
         }
-        check("core_missing_file", CoreSound.create("assets/fmod/DoesNotExist.wav").isNull(),
+        check("core_missing_file", Sound.create("assets/fmod/DoesNotExist.wav").isNull(),
             'lastResult=${StudioSystem.lastResult().toString()}');
         #end
 
