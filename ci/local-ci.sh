@@ -215,14 +215,14 @@ run_browser_state() {
 # Serves the html5 build and records the browser's audio for the main game
 # record_browser_game <port> <wav> <seconds> [console-log]
 record_browser_game() {
-  local port="$1" wav="$2" secs="$3" console="${4:-/dev/null}" http chrome rec
+  local port="$1" wav="$2" secs="$3" console="${4:-/dev/null}" query="${5:-}" http chrome rec
   (cd "$WEB_BIN" && exec python3 -m http.server "$port" > /dev/null 2>&1) &
   http=$!
   sleep 1
   "$CHROMIUM" --no-sandbox $CHROME_GL --autoplay-policy=no-user-gesture-required \
     --no-first-run --no-default-browser-check --disable-sync --user-data-dir="$(mktemp -d "$OUT/chrome.XXXXXX")" \
     --enable-logging=stderr --v=0 --window-size=640,480 --window-position=0,0 \
-    "http://localhost:$port" > "$console" 2>&1 &
+    "http://localhost:$port/index.html$query" > "$console" 2>&1 &
   chrome=$!
   sleep 3
   xdotool mousemove 320 240 click 1
@@ -241,7 +241,7 @@ record_browser_game() {
 }
 
 record_volume_html5() {
-  record_browser_game 8081 "$TMP/volume-test-html5.wav" 25 "$TMP/volume-test-html5-console.log"
+  record_browser_game 8081 "$TMP/volume-test-html5.wav" 25 "$TMP/volume-test-html5-console.log" "?test=volume"
   grep -o "VOLUME_TEST.*" "$TMP/volume-test-html5-console.log" | sed 's/",.*$//' || true
 }
 
@@ -334,6 +334,7 @@ job_linux_cpp() {
   step "Validate game log" ./ci/validate-game-log.sh "$TMP/game-linux-cpp.log"
   step "Build volume test" bash -eo pipefail -c 'cd "$1" && haxelib run lime clean linux && haxelib run lime build linux -64 -Daudio_test' _ "$EXAMPLE"
   step "Record volume test" bash -eo pipefail -c '
+    export HAXEFMOD_TEST_STATE=volume
     export FMOD_WAVWRITER="$2/volume-test-linux-cpp.wav"
     cd "$1" && chmod +x run.sh
     ./run.sh > "$2/volume-test-linux-cpp.log" 2>&1 &
@@ -401,6 +402,7 @@ job_linux_hl() {
   step "Validate game log" ./ci/validate-game-log.sh "$TMP/game-linux-hl.log"
   step "Build volume test" bash -eo pipefail -c 'cd "$1" && haxelib run lime clean hl && haxelib run lime build hl -Daudio_test' _ "$EXAMPLE"
   step "Record volume test" bash -eo pipefail -c '
+    export HAXEFMOD_TEST_STATE=volume
     export FMOD_WAVWRITER="$2/volume-test-linux-hl.wav"
     cd "$1"
     export LD_LIBRARY_PATH="$(pwd):${LD_LIBRARY_PATH:-}"
@@ -544,6 +546,7 @@ job_heaps_hl() {
   step "Validate game log" ./ci/validate-game-log.sh "$TMP/game-heaps-hl.log"
   step "Build test variant" bash -eo pipefail -c 'cd "$1" && ./build.sh hl -D audio_test' _ "$HEAPS"
   step "Record volume test" bash -eo pipefail -c '
+    export HAXEFMOD_TEST_STATE=volume
     export FMOD_WAVWRITER="$2/volume-test-heaps-hl.wav"
     cd "$1"
     ./run.sh > "$2/volume-test-heaps-hl.log" 2>&1 &
@@ -603,7 +606,7 @@ job_heaps_html5() {
 }
 
 record_volume_heaps_html5() {
-  record_browser_game 8181 "$TMP/volume-test-heaps-html5.wav" 25 "$TMP/volume-test-heaps-html5-console.log"
+  record_browser_game 8181 "$TMP/volume-test-heaps-html5.wav" 25 "$TMP/volume-test-heaps-html5-console.log" "?test=volume"
   grep -o "VOLUME_TEST.*" "$TMP/volume-test-heaps-html5-console.log" | sed 's/",.*$//' || true
 }
 
@@ -637,6 +640,7 @@ job_kha_native() {
   step "Validate game log" ./ci/validate-game-log.sh "$TMP/game-$job.log"
   step "Build test variant" bash -eo pipefail -c 'cd "$1" && KHA_AUDIO_TEST=1 ./build.sh "$2" 2>&1 | tail -3' _ "$KHAP" "$target"
   step "Record volume test" bash -eo pipefail -c '
+    export HAXEFMOD_TEST_STATE=volume
     export FMOD_WAVWRITER="$2/volume-test-$3.wav"
     cd "$1"
     ./run.sh > "$2/volume-test-$3.log" 2>&1 &
@@ -703,7 +707,7 @@ job_kha_html5() {
 }
 
 record_volume_kha_html5() {
-  record_browser_game 8281 "$TMP/volume-test-kha-html5.wav" 25 "$TMP/volume-test-kha-html5-console.log"
+  record_browser_game 8281 "$TMP/volume-test-kha-html5.wav" 25 "$TMP/volume-test-kha-html5-console.log" "?test=volume"
   grep -o "VOLUME_TEST.*" "$TMP/volume-test-kha-html5-console.log" | sed 's/",.*$//' || true
 }
 

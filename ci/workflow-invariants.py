@@ -123,19 +123,19 @@ else:
 # 5. linux-html5-chromium requires a FAILING build against a doctored web SDK,
 # with pipefail, and verifies the version-mismatch banner (paired to the
 # job so a copy of the block elsewhere cannot mask its removal here)
-html5_job = jobs.get("linux-html5-chromium", "")
+html5_job = jobs.get("linux-html5-chromium-build", "")
 web_gate = re.search(
     r'set -o pipefail[\s\S]*?'
     r'if FMOD_SDK_WEB="\$DOCTORED" haxelib run lime build html5 2>&1 \| tee [^\n]*; then\n'
     r'\s*echo "FAIL: build succeeded[^\n]*\n\s*exit 1\n\s*fi', html5_job)
 if not web_gate:
-    fail("linux-html5-chromium lost the web-SDK mismatch build-must-fail gate (with pipefail)")
+    fail("linux-html5-chromium-build lost the web-SDK mismatch build-must-fail gate (with pipefail)")
 else:
-    ok("linux-html5-chromium requires the doctored web-SDK build to fail, with pipefail")
+    ok("linux-html5-chromium-build requires the doctored web-SDK build to fail, with pipefail")
 if 'grep -q "FMOD web SDK version mismatch"' not in html5_job:
-    fail("linux-html5-chromium no longer greps for the web mismatch banner")
+    fail("linux-html5-chromium-build no longer greps for the web mismatch banner")
 else:
-    ok("linux-html5-chromium verifies the web mismatch banner text")
+    ok("linux-html5-chromium-build verifies the web mismatch banner text")
 
 # 6. Required test steps per job. Names must match the workflow's
 # `- name:` lines exactly. When a step is renamed on purpose, rename it
@@ -164,40 +164,27 @@ REQUIRED_STEPS = {
         "Check hxcpp depend lockstep",
         "Compile the README examples",
     ],
-    "linux-cpp": NATIVE_SUITE + ["Validate game log",
-                                 "Verify FMOD libraries have no executable stack",
-                                 "Build manual-update variant",
-                                 "Run api-probe state (manual update variant)"],
-    "linux-hl": NATIVE_SUITE + ["Validate game log",
-                                "Verify FMOD libraries have no executable stack",
-                                "Build HashLink target (pre-built hdll)",
-                                "Rebuild HashLink target (custom hdll)",
-                                "Run stress-test state (smoke)",
-                                "lime test end to end",
-                                "Stage FMOD runtime into a plain directory"],
-    "mac-cpp": NATIVE_SUITE + ["Validate game log",
-                               "Test native headers with Apple clang (sanitizers)"],
-    "mac-hl": NATIVE_SUITE + ["Validate game log"],
-    "windows-cpp": NATIVE_SUITE + ["Validate game log",
-                                   "Test native headers with MSVC (C and C++ modes)"],
-    "windows-hl": NATIVE_SUITE + ["Validate game log"],
-    "linux-html5-chromium": [
-        "Validate FMOD files replaced placeholders",
-        "Stage FMOD web files into a plain directory",
-        "Validate audio", "Validate volume/mute", "Validate synth audio",
-        "Run API probe (JS binding coverage)",
-        "Run synth test (generated PCM reaches the output)",
-        "Run callback test (JS payload delivery)",
-        "Run ps-test state (browser)", "Run bank-test state (browser)",
-        "Run pan-test state (browser)",
-        "Verify mismatched web SDK fails the build",
-        "Typecheck the flixel no-sound-system variant",
-    ],
+    "linux-cpp-build": ["Build C++ target", "Verify FMOD libraries have no executable stack", "Validate build output", "Build the test DSP plugin next to the game"],
+    "linux-cpp-build-manual": ["Build manual-update variant", "Build the test DSP plugin next to the game"],
+    "linux-cpp": ["Record audio", "Validate audio", "Validate game log", "Record volume test", "Validate volume/mute", "Run api-probe state", "Run synth-test state", "Validate synth audio", "Run cb-test state", "Run ps-test state", "Run bank-test state", "Run pan-test state", "Run api-probe state (manual update variant)"],
+    "linux-hl-build": ["Build HashLink target (pre-built hdll)", "Build custom hdll via build-hdll", "Rebuild HashLink target (custom hdll)", "Upload compiled hdll", "Verify FMOD libraries have no executable stack", "Debug bin directory contents", "Validate build output", "Stage FMOD runtime into a plain directory", "Build the test DSP plugin next to the game", "lime test end to end"],
+    "linux-hl": ["Record audio", "Validate audio", "Validate game log", "Record volume test", "Validate volume/mute", "Run api-probe state", "Run synth-test state", "Validate synth audio", "Run cb-test state", "Run ps-test state", "Run bank-test state", "Run pan-test state", "Run stress-test state (smoke)"],
+    "mac-cpp-build": ["Build C++ target", "Validate build output", "Test native headers with Apple clang (sanitizers)"],
+    "mac-cpp": ["Record audio via FMOD wavwriter", "Validate audio", "Validate game log", "Record volume test", "Validate volume/mute", "Run api-probe state", "Run synth-test state", "Validate synth audio", "Run cb-test state", "Run ps-test state", "Run bank-test state", "Run pan-test state"],
+    "mac-hl-build": ["Build HashLink target (pre-built hdll)", "Build custom hdll via build-hdll", "Rebuild HashLink target (custom hdll)", "Upload compiled hdll", "Validate build output"],
+    "mac-hl": ["Record audio via FMOD wavwriter", "Validate audio", "Validate game log", "Record volume test", "Validate volume/mute", "Run api-probe state", "Run synth-test state", "Validate synth audio", "Run cb-test state", "Run ps-test state", "Run bank-test state", "Run pan-test state"],
+    "windows-cpp-build": ["Build C++ target", "Validate build output", "Test native headers with MSVC (C and C++ modes)"],
+    "windows-cpp": ["Record audio via FMOD wavwriter", "Fix WAV header", "Validate audio", "Validate game log", "Record volume test", "Fix volume test WAV header", "Validate volume/mute", "Run api-probe state", "Run synth-test state", "Validate synth audio", "Run cb-test state", "Run ps-test state", "Run bank-test state", "Run pan-test state"],
+    "windows-hl-build": ["Build HashLink target (pre-built hdll)", "Build custom hdll via build-hdll", "Verify custom hdll created", "Rebuild HashLink target (custom hdll)", "Upload compiled hdll", "Validate build output"],
+    "windows-hl": ["Record audio via FMOD wavwriter", "Fix WAV header", "Validate audio", "Validate game log", "Record volume test", "Fix volume test WAV header", "Validate volume/mute", "Run api-probe state", "Run synth-test state", "Validate synth audio", "Run cb-test state", "Run ps-test state", "Run bank-test state", "Run pan-test state"],
+    "linux-html5-chromium-build": ["Build HTML5 target", "Validate FMOD files replaced placeholders", "Stage FMOD web files into a plain directory", "Typecheck the flixel no-sound-system variant", "Verify mismatched web SDK fails the build"],
+    "linux-html5-chromium": ["Record audio", "Validate audio", "Record volume test", "Validate volume/mute", "Run API probe (JS binding coverage)", "Run synth test (generated PCM reaches the output)", "Validate synth audio", "Run callback test (JS payload delivery)", "Run ps-test state (browser)", "Run bank-test state (browser)", "Run pan-test state (browser)"],
     "heaps-hl-build": ["Build test variant", "Validate build output"],
     "heaps-hl": ["Record audio", "Record volume test", "Run state", "Validate synth audio", "Run stress-test state (smoke)"],
     "heaps-html5-build": ["Build test variant", "Validate build output"],
     "heaps-html5": ["Record audio", "Record volume test", "Run state", "Validate synth audio"],
     "kha-linux-build": ["Build test variant", "Validate build output"],
+    "kha-linux-build-manual": ["Build test variant", "Validate build output"],
     "kha-linux": ["Record audio", "Record volume test", "Run state", "Validate synth audio", "Run stress-test state (smoke)"],
     "kha-hl-build": ["Build test variant", "Validate build output"],
     "kha-hl": ["Record audio", "Record volume test", "Run state", "Validate synth audio", "Run stress-test state (smoke)"],
