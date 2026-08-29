@@ -165,7 +165,7 @@ REQUIRED_STEPS = {
         "Compile the README examples",
     ],
     "linux-cpp-build": ["Build C++ target", "Verify FMOD libraries have no executable stack", "Validate build output", "Build the test DSP plugin next to the game"],
-    "linux-cpp-build-manual": ["Build manual-update variant", "Build the test DSP plugin next to the game"],
+    "linux-cpp-build-manual": ["Build manual-update variant", "Validate build output", "Build the test DSP plugin next to the game"],
     "linux-cpp": ["Record audio", "Validate audio", "Validate game log", "Record volume test", "Validate volume/mute", "Run api-probe state", "Run synth-test state", "Validate synth audio", "Run cb-test state", "Run ps-test state", "Run bank-test state", "Run pan-test state", "Run api-probe state (manual update variant)"],
     "linux-hl-build": ["Build HashLink target (pre-built hdll)", "Build custom hdll via build-hdll", "Rebuild HashLink target (custom hdll)", "Upload compiled hdll", "Verify FMOD libraries have no executable stack", "Debug bin directory contents", "Validate build output", "Stage FMOD runtime into a plain directory", "Build the test DSP plugin next to the game", "lime test end to end"],
     "linux-hl": ["Record audio", "Validate audio", "Validate game log", "Record volume test", "Validate volume/mute", "Run api-probe state", "Run synth-test state", "Validate synth audio", "Run cb-test state", "Run ps-test state", "Run bank-test state", "Run pan-test state", "Run stress-test state (smoke)"],

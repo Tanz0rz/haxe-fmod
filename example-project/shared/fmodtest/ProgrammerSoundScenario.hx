@@ -131,6 +131,9 @@ class ProgrammerSoundScenario implements TestScenario {
     var _atStopped:Bool = false;
     var _atMaxPeak:Float = 0;
     var _atPlayStamp:Float = 0;
+    var _atReadyFrame:Int = -1;
+    var _atCreateFrame:Int = -1;
+    var _atFirstAudibleFrame:Int = -1;
     var _bogusInstance:EventInstance = EventInstance.NULL;
     // Both audio-table keys run through the full flow. The table holds two
     // entries, so the second key also exercises a nonzero subsound index.
@@ -239,6 +242,9 @@ class ProgrammerSoundScenario implements TestScenario {
         }
         _atFrames = 0;
         _atPlayStamp = haxe.Timer.stamp();
+        _atReadyFrame = -1;
+        _atCreateFrame = -1;
+        _atFirstAudibleFrame = -1;
         _phase = "at-play";
     }
 
@@ -252,6 +258,7 @@ class ProgrammerSoundScenario implements TestScenario {
         // loop slower than 20 frames a second misses most blocks of a short
         // word, so the peak says nothing there and the check is recorded
         // as unsampled rather than guessed.
+        info("at_timeline", '$tag create_frame=$_atCreateFrame ready_frame=$_atReadyFrame first_audible_frame=$_atFirstAudibleFrame stopped_frame=$_atFrames');
         var elapsed = haxe.Timer.stamp() - _atPlayStamp;
         var pollsPerSecond = elapsed > 0 ? _atFrames / elapsed : 0;
         if (pollsPerSecond >= 20) {
@@ -347,8 +354,16 @@ class ProgrammerSoundScenario implements TestScenario {
             _atFrames++;
             var metering = _atMeter.getMetering();
             if (metering != null) {
-                for (p in metering.peakLevel) if (p > _atMaxPeak) _atMaxPeak = p;
+                for (p in metering.peakLevel) {
+                    if (p > 0.01 && _atFirstAudibleFrame < 0) _atFirstAudibleFrame = _atFrames;
+                    if (p > _atMaxPeak) _atMaxPeak = p;
+                }
             }
+            // When the created sound became ready, against when the
+            // instrument got it and when audio first showed up
+            if (_atCreates > 0 && _atCreateFrame < 0) _atCreateFrame = _atFrames;
+            if (_atReadyFrame < 0 && !_atCreateSound.isNull()
+                    && _atCreateSound.getOpenState() == FmodOpenState.READY) _atReadyFrame = _atFrames;
             // The destroy event can trail the stop by a drain or two, so
             // wait for both before finishing
             if ((_atStopped && _atDestroys > 0) || _atFrames > 600) {

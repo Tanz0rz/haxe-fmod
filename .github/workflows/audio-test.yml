@@ -318,7 +318,7 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: build-linux-cpp
-          path: example-project/EZPlatformer/export/linux*/bin
+          path: ${{ env.BIN_DIR }}
           include-hidden-files: true
           overwrite: true
 
@@ -391,6 +391,15 @@ jobs:
           cd example-project/EZPlatformer
           haxelib run lime build linux -64 -Daudio_test -Daudio_test_manual_update -Dhaxefmod_num_channels=100
 
+      - name: Validate build output
+        run: |
+          BIN_DIR="example-project/EZPlatformer/export/linux64/bin"
+          if [ ! -d "$BIN_DIR" ]; then
+            BIN_DIR="example-project/EZPlatformer/export/linux/bin"
+          fi
+          echo "BIN_DIR=$BIN_DIR" >> "$GITHUB_ENV"
+          ./ci/validate-build.sh "$BIN_DIR" cpp
+
       - name: Build the test DSP plugin next to the game
         run: |
           for BIN_DIR in example-project/EZPlatformer/export/linux*/bin; do
@@ -402,7 +411,7 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: build-linux-cpp-manual
-          path: example-project/EZPlatformer/export/linux*/bin
+          path: ${{ env.BIN_DIR }}
           include-hidden-files: true
           overwrite: true
 
