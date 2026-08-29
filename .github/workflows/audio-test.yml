@@ -1971,13 +1971,42 @@ jobs:
         run: |
           # Artifacts do not keep file modes
           cd example-project/HeapsPlatformer
-          chmod +x build*/hl/run.sh 2>/dev/null || true
-          chmod +x build*/hl/run.sh 2>/dev/null || true
+          find build*/hl -maxdepth 1 -type f -exec chmod +x {} +
 
       - name: Install runtime dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg libgl1-mesa-dri
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
+            libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev libz-dev
+
+      - name: Cache the HashLink build
+        id: hl-cache
+        uses: actions/cache@v5
+        with:
+          path: /tmp/hashlink-src
+          key: hashlink-781960a5-${{ runner.os }}
+
+      - name: Build HashLink
+        if: steps.hl-cache.outputs.cache-hit != 'true'
+        run: |
+          # Same pin as linux-hl: the commit before the SDL3 port
+          git clone https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
+          cd /tmp/hashlink-src
+          git checkout 781960a5daca32ad6d5cea87b255fe8b5872551e
+          make -j$(nproc)
+
+      - name: Install HashLink
+        run: |
+          cd /tmp/hashlink-src
+          sudo make install
+          sudo ldconfig
+          hl --version || echo "HashLink installed"
+
 
       - name: Start display and audio
         run: |
@@ -1997,12 +2026,16 @@ jobs:
           ALSA_EOF
           echo "DISPLAY=:99" >> "$GITHUB_ENV"
 
-      - name: Log file for the executable
-        run: echo "HAXEFMOD_LOG_FILE=/tmp/${{ matrix.state }}-heaps-hl.log" >> "$GITHUB_ENV"
+      - name: Show the build directory
+        run: |
+          ls -la example-project/HeapsPlatformer/build/hl
+          cd example-project/HeapsPlatformer/build/hl
+          ./run.sh --version || true
 
       - name: Record audio
         if: matrix.state == 'game-audio'
         run: |
+          export HAXEFMOD_LOG_FILE=/tmp/game-heaps-hl.log
           ffmpeg -f pulse -i virtual_speaker.monitor -t 30 -y /tmp/audio-heaps-hl.wav &
           RECORD_PID=$!
           cd example-project/HeapsPlatformer/build/hl
@@ -2017,6 +2050,7 @@ jobs:
         if: matrix.state == 'volume'
         run: |
           export FMOD_WAVWRITER=/tmp/volume-test-heaps-hl.wav
+          export HAXEFMOD_LOG_FILE=/tmp/volume-test-heaps-hl.log
           cd example-project/HeapsPlatformer/build-test/hl
           ./run.sh > /tmp/volume-test-heaps-hl.log 2>&1 &
           GAME_PID=$!
@@ -2064,6 +2098,7 @@ jobs:
           export STRESS_SECONDS=15
           export FMOD_WAVWRITER="${RUNNER_TEMP}/stress-smoke.wav"
           LOG=/tmp/stress-smoke-heaps-hl.log
+          export HAXEFMOD_LOG_FILE="$LOG"
           cd example-project/HeapsPlatformer/build-test/hl
           ./run.sh > "$LOG" 2>&1 &
           GAME_PID=$!
@@ -2191,13 +2226,13 @@ jobs:
         run: |
           # Artifacts do not keep file modes
           cd example-project/HeapsPlatformer
-          chmod +x build*/html5/ 2>/dev/null || true
-          chmod +x build*/html5/run.sh 2>/dev/null || true
+          find build*/html5 -maxdepth 1 -type f -exec chmod +x {} +
 
       - name: Install runtime dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg chromium-browser xdotool
+
 
       - name: Start display and audio
         run: |
@@ -2476,13 +2511,13 @@ jobs:
         run: |
           # Artifacts do not keep file modes
           cd example-project/KhaPlatformer
-          chmod +x build*/linux/run.sh 2>/dev/null || true
-          chmod +x build*/linux/run.sh 2>/dev/null || true
+          find build*/linux -maxdepth 1 -type f -exec chmod +x {} +
 
       - name: Install runtime dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg libgl1-mesa-dri
+
 
       - name: Start display and audio
         run: |
@@ -2502,12 +2537,16 @@ jobs:
           ALSA_EOF
           echo "DISPLAY=:99" >> "$GITHUB_ENV"
 
-      - name: Log file for the executable
-        run: echo "HAXEFMOD_LOG_FILE=/tmp/${{ matrix.state }}-kha-linux.log" >> "$GITHUB_ENV"
+      - name: Show the build directory
+        run: |
+          ls -la example-project/KhaPlatformer/build/linux
+          cd example-project/KhaPlatformer/build/linux
+          ./run.sh --version || true
 
       - name: Record audio
         if: matrix.state == 'game-audio'
         run: |
+          export HAXEFMOD_LOG_FILE=/tmp/game-kha-linux.log
           ffmpeg -f pulse -i virtual_speaker.monitor -t 30 -y /tmp/audio-kha-linux.wav &
           RECORD_PID=$!
           cd example-project/KhaPlatformer/build/linux
@@ -2522,6 +2561,7 @@ jobs:
         if: matrix.state == 'volume'
         run: |
           export FMOD_WAVWRITER=/tmp/volume-test-kha-linux.wav
+          export HAXEFMOD_LOG_FILE=/tmp/volume-test-kha-linux.log
           cd example-project/KhaPlatformer/build-test/linux
           ./run.sh > /tmp/volume-test-kha-linux.log 2>&1 &
           GAME_PID=$!
@@ -2579,6 +2619,7 @@ jobs:
           export STRESS_SECONDS=15
           export FMOD_WAVWRITER="${RUNNER_TEMP}/stress-smoke.wav"
           LOG=/tmp/stress-smoke-kha-linux.log
+          export HAXEFMOD_LOG_FILE="$LOG"
           cd example-project/KhaPlatformer/build-test/linux
           ./run.sh > "$LOG" 2>&1 &
           GAME_PID=$!
@@ -2723,13 +2764,13 @@ jobs:
         run: |
           # Artifacts do not keep file modes
           cd example-project/KhaPlatformer
-          chmod +x build*/linux-hl/run.sh 2>/dev/null || true
-          chmod +x build*/linux-hl/run.sh 2>/dev/null || true
+          find build*/linux-hl -maxdepth 1 -type f -exec chmod +x {} +
 
       - name: Install runtime dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg libgl1-mesa-dri
+
 
       - name: Start display and audio
         run: |
@@ -2749,12 +2790,16 @@ jobs:
           ALSA_EOF
           echo "DISPLAY=:99" >> "$GITHUB_ENV"
 
-      - name: Log file for the executable
-        run: echo "HAXEFMOD_LOG_FILE=/tmp/${{ matrix.state }}-kha-hl.log" >> "$GITHUB_ENV"
+      - name: Show the build directory
+        run: |
+          ls -la example-project/KhaPlatformer/build/linux-hl
+          cd example-project/KhaPlatformer/build/linux-hl
+          ./run.sh --version || true
 
       - name: Record audio
         if: matrix.state == 'game-audio'
         run: |
+          export HAXEFMOD_LOG_FILE=/tmp/game-kha-hl.log
           ffmpeg -f pulse -i virtual_speaker.monitor -t 30 -y /tmp/audio-kha-hl.wav &
           RECORD_PID=$!
           cd example-project/KhaPlatformer/build/linux-hl
@@ -2769,6 +2814,7 @@ jobs:
         if: matrix.state == 'volume'
         run: |
           export FMOD_WAVWRITER=/tmp/volume-test-kha-hl.wav
+          export HAXEFMOD_LOG_FILE=/tmp/volume-test-kha-hl.log
           cd example-project/KhaPlatformer/build-test/linux-hl
           ./run.sh > /tmp/volume-test-kha-hl.log 2>&1 &
           GAME_PID=$!
@@ -2816,6 +2862,7 @@ jobs:
           export STRESS_SECONDS=15
           export FMOD_WAVWRITER="${RUNNER_TEMP}/stress-smoke.wav"
           LOG=/tmp/stress-smoke-kha-hl.log
+          export HAXEFMOD_LOG_FILE="$LOG"
           cd example-project/KhaPlatformer/build-test/linux-hl
           ./run.sh > "$LOG" 2>&1 &
           GAME_PID=$!
@@ -2956,13 +3003,13 @@ jobs:
         run: |
           # Artifacts do not keep file modes
           cd example-project/KhaPlatformer
-          chmod +x build*/html5/ 2>/dev/null || true
-          chmod +x build*/html5/run.sh 2>/dev/null || true
+          find build*/html5 -maxdepth 1 -type f -exec chmod +x {} +
 
       - name: Install runtime dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg chromium-browser xdotool
+
 
       - name: Start display and audio
         run: |
@@ -3226,21 +3273,24 @@ jobs:
         run: |
           # Artifacts do not keep file modes
           cd example-project/HeapsPlatformer
-          chmod +x build*/hl/game 2>/dev/null || true
-          chmod +x build*/hl/run.sh 2>/dev/null || true
+          find build*/hl -maxdepth 1 -type f -exec chmod +x {} +
 
       - name: Install runtime dependencies
         run: |
           brew untap aws/tap 2>/dev/null || true
           brew install ffmpeg hashlink libuv
 
-      - name: Log file for the executable
-        run: echo "HAXEFMOD_LOG_FILE=/tmp/${{ matrix.state }}-heaps-mac-hl.log" >> "$GITHUB_ENV"
+      - name: Show the build directory
+        run: |
+          ls -la example-project/HeapsPlatformer/build/hl
+          cd example-project/HeapsPlatformer/build/hl
+          ./game --version || true
 
       - name: Record audio
         if: matrix.state == 'game-audio'
         run: |
           export FMOD_WAVWRITER=/tmp/audio-heaps-mac-hl.wav
+          export HAXEFMOD_LOG_FILE=/tmp/game-heaps-mac-hl.log
           cd example-project/HeapsPlatformer/build/hl
           ./game > /tmp/game-heaps-mac-hl.log 2>&1 &
           GAME_PID=$!
@@ -3259,6 +3309,7 @@ jobs:
         if: matrix.state == 'volume'
         run: |
           export FMOD_WAVWRITER=/tmp/volume-test-heaps-mac-hl.wav
+          export HAXEFMOD_LOG_FILE=/tmp/volume-test-heaps-mac-hl.log
           cd example-project/HeapsPlatformer/build-test/hl
           ./game > /tmp/volume-test-heaps-mac-hl.log 2>&1 &
           GAME_PID=$!
@@ -3306,6 +3357,7 @@ jobs:
           export STRESS_SECONDS=15
           export FMOD_WAVWRITER="${RUNNER_TEMP}/stress-smoke.wav"
           LOG=/tmp/stress-smoke-heaps-mac-hl.log
+          export HAXEFMOD_LOG_FILE="$LOG"
           cd example-project/HeapsPlatformer/build-test/hl
           ./game > "$LOG" 2>&1 &
           GAME_PID=$!
@@ -3457,13 +3509,17 @@ jobs:
         shell: powershell
         run: choco install ffmpeg -y --no-progress
 
-      - name: Log file for the executable
-        run: echo "HAXEFMOD_LOG_FILE=$GITHUB_WORKSPACE/${{ matrix.state }}-heaps-windows-hl.log" >> "$GITHUB_ENV"
+      - name: Show the build directory
+        run: |
+          ls -la example-project/HeapsPlatformer/build/hl
+          cd example-project/HeapsPlatformer/build/hl
+          ./HeapsPlatformer.exe --version || true
 
       - name: Record audio
         if: matrix.state == 'game-audio'
         run: |
           export FMOD_WAVWRITER="$GITHUB_WORKSPACE/audio-heaps-windows-hl.wav"
+          export HAXEFMOD_LOG_FILE="$GITHUB_WORKSPACE/game-heaps-windows-hl.log"
           cd example-project/HeapsPlatformer/build/hl
           timeout 60 ./HeapsPlatformer.exe > "$GITHUB_WORKSPACE/game-heaps-windows-hl.log" 2>&1 || true
           cd -
@@ -3475,6 +3531,7 @@ jobs:
         if: matrix.state == 'volume'
         run: |
           export FMOD_WAVWRITER="$GITHUB_WORKSPACE/volume-test-heaps-windows-hl.wav"
+          export HAXEFMOD_LOG_FILE="$GITHUB_WORKSPACE/volume-test-heaps-windows-hl.log"
           cd example-project/HeapsPlatformer/build-test/hl
           timeout 60 ./HeapsPlatformer.exe > "$GITHUB_WORKSPACE/volume-test-heaps-windows-hl.log" 2>&1 || true
           cd -
@@ -3528,6 +3585,7 @@ jobs:
           export STRESS_SECONDS=15
           export FMOD_WAVWRITER="${RUNNER_TEMP}/stress-smoke.wav"
           LOG=$GITHUB_WORKSPACE/stress-smoke-heaps-windows-hl.log
+          export HAXEFMOD_LOG_FILE="$LOG"
           cd example-project/HeapsPlatformer/build-test/hl
           ./HeapsPlatformer.exe > "$LOG" 2>&1 &
           GAME_PID=$!
@@ -3668,21 +3726,24 @@ jobs:
         run: |
           # Artifacts do not keep file modes
           cd example-project/KhaPlatformer
-          chmod +x build*/osx/KhaPlatformer 2>/dev/null || true
-          chmod +x build*/osx/run.sh 2>/dev/null || true
+          find build*/osx -maxdepth 1 -type f -exec chmod +x {} +
 
       - name: Install runtime dependencies
         run: |
           brew untap aws/tap 2>/dev/null || true
           brew install ffmpeg
 
-      - name: Log file for the executable
-        run: echo "HAXEFMOD_LOG_FILE=/tmp/${{ matrix.state }}-kha-mac.log" >> "$GITHUB_ENV"
+      - name: Show the build directory
+        run: |
+          ls -la example-project/KhaPlatformer/build/osx
+          cd example-project/KhaPlatformer/build/osx
+          ./KhaPlatformer --version || true
 
       - name: Record audio
         if: matrix.state == 'game-audio'
         run: |
           export FMOD_WAVWRITER=/tmp/audio-kha-mac.wav
+          export HAXEFMOD_LOG_FILE=/tmp/game-kha-mac.log
           cd example-project/KhaPlatformer/build/osx
           ./KhaPlatformer > /tmp/game-kha-mac.log 2>&1 &
           GAME_PID=$!
@@ -3701,6 +3762,7 @@ jobs:
         if: matrix.state == 'volume'
         run: |
           export FMOD_WAVWRITER=/tmp/volume-test-kha-mac.wav
+          export HAXEFMOD_LOG_FILE=/tmp/volume-test-kha-mac.log
           cd example-project/KhaPlatformer/build-test/osx
           ./KhaPlatformer > /tmp/volume-test-kha-mac.log 2>&1 &
           GAME_PID=$!
@@ -3748,6 +3810,7 @@ jobs:
           export STRESS_SECONDS=15
           export FMOD_WAVWRITER="${RUNNER_TEMP}/stress-smoke.wav"
           LOG=/tmp/stress-smoke-kha-mac.log
+          export HAXEFMOD_LOG_FILE="$LOG"
           cd example-project/KhaPlatformer/build-test/osx
           ./KhaPlatformer > "$LOG" 2>&1 &
           GAME_PID=$!
@@ -3888,21 +3951,24 @@ jobs:
         run: |
           # Artifacts do not keep file modes
           cd example-project/KhaPlatformer
-          chmod +x build*/osx-hl/KhaPlatformer 2>/dev/null || true
-          chmod +x build*/osx-hl/run.sh 2>/dev/null || true
+          find build*/osx-hl -maxdepth 1 -type f -exec chmod +x {} +
 
       - name: Install runtime dependencies
         run: |
           brew untap aws/tap 2>/dev/null || true
           brew install ffmpeg
 
-      - name: Log file for the executable
-        run: echo "HAXEFMOD_LOG_FILE=/tmp/${{ matrix.state }}-kha-mac-hl.log" >> "$GITHUB_ENV"
+      - name: Show the build directory
+        run: |
+          ls -la example-project/KhaPlatformer/build/osx-hl
+          cd example-project/KhaPlatformer/build/osx-hl
+          ./KhaPlatformer --version || true
 
       - name: Record audio
         if: matrix.state == 'game-audio'
         run: |
           export FMOD_WAVWRITER=/tmp/audio-kha-mac-hl.wav
+          export HAXEFMOD_LOG_FILE=/tmp/game-kha-mac-hl.log
           cd example-project/KhaPlatformer/build/osx-hl
           ./KhaPlatformer > /tmp/game-kha-mac-hl.log 2>&1 &
           GAME_PID=$!
@@ -3921,6 +3987,7 @@ jobs:
         if: matrix.state == 'volume'
         run: |
           export FMOD_WAVWRITER=/tmp/volume-test-kha-mac-hl.wav
+          export HAXEFMOD_LOG_FILE=/tmp/volume-test-kha-mac-hl.log
           cd example-project/KhaPlatformer/build-test/osx-hl
           ./KhaPlatformer > /tmp/volume-test-kha-mac-hl.log 2>&1 &
           GAME_PID=$!
@@ -3968,6 +4035,7 @@ jobs:
           export STRESS_SECONDS=15
           export FMOD_WAVWRITER="${RUNNER_TEMP}/stress-smoke.wav"
           LOG=/tmp/stress-smoke-kha-mac-hl.log
+          export HAXEFMOD_LOG_FILE="$LOG"
           cd example-project/KhaPlatformer/build-test/osx-hl
           ./KhaPlatformer > "$LOG" 2>&1 &
           GAME_PID=$!
@@ -4112,13 +4180,17 @@ jobs:
         shell: powershell
         run: choco install ffmpeg -y --no-progress
 
-      - name: Log file for the executable
-        run: echo "HAXEFMOD_LOG_FILE=$GITHUB_WORKSPACE/${{ matrix.state }}-kha-windows.log" >> "$GITHUB_ENV"
+      - name: Show the build directory
+        run: |
+          ls -la example-project/KhaPlatformer/build/windows
+          cd example-project/KhaPlatformer/build/windows
+          ./KhaPlatformer.exe --version || true
 
       - name: Record audio
         if: matrix.state == 'game-audio'
         run: |
           export FMOD_WAVWRITER="$GITHUB_WORKSPACE/audio-kha-windows.wav"
+          export HAXEFMOD_LOG_FILE="$GITHUB_WORKSPACE/game-kha-windows.log"
           cd example-project/KhaPlatformer/build/windows
           timeout 60 ./KhaPlatformer.exe > "$GITHUB_WORKSPACE/game-kha-windows.log" 2>&1 || true
           cd -
@@ -4130,6 +4202,7 @@ jobs:
         if: matrix.state == 'volume'
         run: |
           export FMOD_WAVWRITER="$GITHUB_WORKSPACE/volume-test-kha-windows.wav"
+          export HAXEFMOD_LOG_FILE="$GITHUB_WORKSPACE/volume-test-kha-windows.log"
           cd example-project/KhaPlatformer/build-test/windows
           timeout 60 ./KhaPlatformer.exe > "$GITHUB_WORKSPACE/volume-test-kha-windows.log" 2>&1 || true
           cd -
@@ -4183,6 +4256,7 @@ jobs:
           export STRESS_SECONDS=15
           export FMOD_WAVWRITER="${RUNNER_TEMP}/stress-smoke.wav"
           LOG=$GITHUB_WORKSPACE/stress-smoke-kha-windows.log
+          export HAXEFMOD_LOG_FILE="$LOG"
           cd example-project/KhaPlatformer/build-test/windows
           ./KhaPlatformer.exe > "$LOG" 2>&1 &
           GAME_PID=$!
@@ -4327,13 +4401,17 @@ jobs:
         shell: powershell
         run: choco install ffmpeg -y --no-progress
 
-      - name: Log file for the executable
-        run: echo "HAXEFMOD_LOG_FILE=$GITHUB_WORKSPACE/${{ matrix.state }}-kha-windows-hl.log" >> "$GITHUB_ENV"
+      - name: Show the build directory
+        run: |
+          ls -la example-project/KhaPlatformer/build/windows-hl
+          cd example-project/KhaPlatformer/build/windows-hl
+          ./KhaPlatformer.exe --version || true
 
       - name: Record audio
         if: matrix.state == 'game-audio'
         run: |
           export FMOD_WAVWRITER="$GITHUB_WORKSPACE/audio-kha-windows-hl.wav"
+          export HAXEFMOD_LOG_FILE="$GITHUB_WORKSPACE/game-kha-windows-hl.log"
           cd example-project/KhaPlatformer/build/windows-hl
           timeout 60 ./KhaPlatformer.exe > "$GITHUB_WORKSPACE/game-kha-windows-hl.log" 2>&1 || true
           cd -
@@ -4345,6 +4423,7 @@ jobs:
         if: matrix.state == 'volume'
         run: |
           export FMOD_WAVWRITER="$GITHUB_WORKSPACE/volume-test-kha-windows-hl.wav"
+          export HAXEFMOD_LOG_FILE="$GITHUB_WORKSPACE/volume-test-kha-windows-hl.log"
           cd example-project/KhaPlatformer/build-test/windows-hl
           timeout 60 ./KhaPlatformer.exe > "$GITHUB_WORKSPACE/volume-test-kha-windows-hl.log" 2>&1 || true
           cd -
@@ -4398,6 +4477,7 @@ jobs:
           export STRESS_SECONDS=15
           export FMOD_WAVWRITER="${RUNNER_TEMP}/stress-smoke.wav"
           LOG=$GITHUB_WORKSPACE/stress-smoke-kha-windows-hl.log
+          export HAXEFMOD_LOG_FILE="$LOG"
           cd example-project/KhaPlatformer/build-test/windows-hl
           ./KhaPlatformer.exe > "$LOG" 2>&1 &
           GAME_PID=$!

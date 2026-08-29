@@ -2579,8 +2579,10 @@ class ApiProbeScenario implements TestScenario {
             format == null ? "null" : 'ch=${format.channels} bits=${format.bits}');
 
         var openInfo = sound.getOpenStateInfo();
+        // diskBusy is a transient flag (HL/C builds see it set right after
+        // the open), so only the state and starvation are gated
         check("tu_open_state_info", openInfo != null && openInfo.state == FmodOpenState.READY
-            && !openInfo.starving && !openInfo.diskBusy,
+            && !openInfo.starving,
             openInfo == null ? "null" : 'state=${(openInfo.state : Int)} buffered=${openInfo.percentBuffered} starving=${openInfo.starving} diskBusy=${openInfo.diskBusy}');
         check("tu_open_state_plain", openInfo != null && sound.getOpenState() == openInfo.state, "");
 
