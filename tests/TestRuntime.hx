@@ -4,6 +4,7 @@ import haxefmod.runtime.AttachedInstances;
 import haxefmod.runtime.BankRegistry;
 import haxefmod.runtime.FmodSettings;
 import haxefmod.runtime.FmodRuntime;
+import haxefmod.studio.Types;
 import haxefmod.runtime.IFmodPositionProvider;
 import haxefmod.studio.EventInstance;
 
@@ -46,6 +47,20 @@ class TestRuntime {
 		assert(resolved.numChannels == 128, "default numChannels");
 		assert(resolved.sampleRate == 0, "default sampleRate");
 		assert(resolved.speakerMode == 0, "default speakerMode");
+		assert(resolved.dspBufferSize == 0, "default dspBufferSize");
+		assert(resolved.dspNumBuffers == 0, "default dspNumBuffers");
+		assert(resolved.rawSpeakers == 0, "default rawSpeakers");
+		assert(resolved.output == FmodOutputType.AUTODETECT, "default output");
+		assert(resolved.resamplerMethod == FmodDspResampler.DEFAULT, "default resamplerMethod");
+		assert(resolved.memoryPoolSize == 0, "default memoryPoolSize");
+		assert(resolved.memoryTracking == false, "default memoryTracking");
+		assert(resolved.threadAttributes.length == 0, "default threadAttributes");
+		assert(resolved.logFile == "", "default logFile");
+		assert((resolved.logFlags : Int) == 0, "default logFlags");
+		assert(resolved.softwareChannels == 0, "default softwareChannels");
+		assert(resolved.streamBufferSize == 0, "default streamBufferSize");
+		assert(resolved.profiling == false, "default profiling");
+		assert(resolved.distanceFilter == false, "default distanceFilter");
 		assert(resolved.logLevel == 1, "default logLevel");
 		assert(resolved.bankFolder == "assets/fmod/Desktop", "default bankFolder");
 		assert(resolved.autoLoadBanks.length == 2, "default autoLoadBanks");
@@ -66,6 +81,20 @@ class TestRuntime {
 		var resolved = FmodSettingsResolver.resolve({
 			numChannels: 64,
 			sampleRate: 48000,
+			dspBufferSize: 512,
+			dspNumBuffers: 4,
+			rawSpeakers: 6,
+			output: FmodOutputType.NOSOUND_NRT,
+			resamplerMethod: FmodDspResampler.CUBIC,
+			memoryPoolSize: 1000,
+			memoryTracking: true,
+			threadAttributes: [{type: FmodThreadType.MIXER, priority: FmodThreadPriority.HIGH}],
+			logFile: "fmod.log",
+			logFlags: FmodDebugFlags.TYPE_FILE | FmodDebugFlags.DISPLAY_TIMESTAMPS,
+			softwareChannels: 32,
+			streamBufferSize: 65536,
+			profiling: true,
+			distanceFilter: true,
 			liveUpdate: true,
 			logLevel: 3,
 			bankFolder: "sounds",
@@ -76,6 +105,22 @@ class TestRuntime {
 		});
 		assert(resolved.numChannels == 64, "override numChannels");
 		assert(resolved.sampleRate == 48000, "override sampleRate");
+		assert(resolved.dspBufferSize == 512, "override dspBufferSize");
+		assert(resolved.dspNumBuffers == 4, "override dspNumBuffers");
+		assert(resolved.rawSpeakers == 6, "override rawSpeakers");
+		assert(resolved.output == FmodOutputType.NOSOUND_NRT, "override output");
+		assert(resolved.resamplerMethod == FmodDspResampler.CUBIC, "override resamplerMethod");
+		assert(resolved.memoryPoolSize == 1000, "override memoryPoolSize");
+		assert(resolved.memoryTracking == true, "override memoryTracking");
+		assert(resolved.threadAttributes.length == 1 && resolved.threadAttributes[0].type == FmodThreadType.MIXER
+			&& resolved.threadAttributes[0].priority == FmodThreadPriority.HIGH
+			&& resolved.threadAttributes[0].stackSize == null, "override threadAttributes");
+		assert(resolved.logFile == "fmod.log", "override logFile");
+		assert((resolved.logFlags : Int) == (0x200 | 0x10000), "override logFlags");
+		assert(resolved.softwareChannels == 32, "override softwareChannels");
+		assert(resolved.streamBufferSize == 65536, "override streamBufferSize");
+		assert(resolved.profiling == true, "override profiling");
+		assert(resolved.distanceFilter == true, "override distanceFilter");
 		assert(resolved.liveUpdate == true, "override liveUpdate");
 		assert(resolved.logLevel == 3, "override logLevel");
 		assert(resolved.bankFolder == "sounds", "override bankFolder");
@@ -212,8 +257,56 @@ class TestRuntime {
 		stub.testInitialized = true;
 		assert(FmodRuntime.isInitialized(), "system-ready fallback with no settings");
 		stub.testInitialized = false;
-		FmodRuntime.init({autoLoadBanks: []});
+		stub.testLastInit = null;
+		stub.testPreInitCalls = [];
+		FmodRuntime.init({autoLoadBanks: [], dspBufferSize: 1024, dspNumBuffers: 3,
+			output: FmodOutputType.NOSOUND, resamplerMethod: FmodDspResampler.SPLINE, rawSpeakers: 4,
+			memoryTracking: true, memoryPoolSize: 1000, logFile: "fmod-test.log", logLevel: 3,
+			logFlags: FmodDebugFlags.TYPE_MEMORY,
+			threadAttributes: [
+				{type: FmodThreadType.MIXER, priority: FmodThreadPriority.EXTREME, stackSize: FmodThreadStackSize.MIXER, affinity: FmodThreadAffinity.CORE_1},
+				{type: FmodThreadType.STUDIO_UPDATE}
+			],
+			softwareChannels: 48, streamBufferSize: 32768, profiling: true, distanceFilter: true,
+			maxMPEGCodecs: 8, maxVorbisCodecs: 9, maxFADPCMCodecs: 10, vol0VirtualVol: 0.01,
+			defaultDecodeBufferSize: 800, profilePort: 9300, geometryMaxFadeTime: 250,
+			distanceFilterCenterFreq: 2000, randomSeed: 12345, commandQueueSize: 65536,
+			handleInitialSize: 16384, studioUpdatePeriod: 30, idleSampleDataPoolSize: 524288,
+			streamingScheduleDelay: 4096, encryptionKey: "secret"});
 		assert(!FmodRuntime.isInitialized(), "settings alone do not make it initialized");
+		// The one init call this suite gets also proves the settings reach
+		// the native call in the right slots
+		var init = stub.testLastInit;
+		assert(init != null, "init reaches sys_init_ex");
+		assert(init != null && init.numChannels == 128, "init forwards numChannels");
+		assert(init != null && init.dspBufferLength == 1024, "init forwards dspBufferSize");
+		assert(init != null && init.dspNumBuffers == 3, "init forwards dspNumBuffers");
+		assert(init != null && init.softwareChannels == 48, "init forwards softwareChannels");
+		assert(init != null && init.streamBufferSize == 32768, "init forwards streamBufferSize");
+		assert(init != null && init.initFlags == 3, "init packs profiling and distanceFilter into initFlags");
+		assert(init != null && init.maxMPEGCodecs == 8 && init.maxVorbisCodecs == 9 && init.maxFADPCMCodecs == 10,
+			"init forwards the codec limits");
+		assert(init != null && Math.abs(init.vol0VirtualVol - 0.01) < 0.0001, "init forwards vol0VirtualVol");
+		assert(init != null && init.defaultDecodeBufferSize == 800 && init.profilePort == 9300
+			&& init.geometryMaxFadeTime == 250, "init forwards decode buffer, profile port, and geometry fade");
+		assert(init != null && Math.abs(init.distanceFilterCenterFreq - 2000) < 0.001, "init forwards distanceFilterCenterFreq");
+		assert(init != null && init.randomSeed == 12345, "init forwards randomSeed");
+		assert(init != null && init.commandQueueSize == 65536 && init.handleInitialSize == 16384
+			&& init.studioUpdatePeriod == 30 && init.idleSampleDataPoolSize == 524288
+			&& init.streamingScheduleDelay == 4096, "init forwards the studio advanced settings");
+		assert(init != null && init.encryptionKey == "secret", "init forwards encryptionKey");
+		assert(init != null && init.studioFlags == 2, "init packs memoryTracking into studioFlags bit1");
+		// The pre-create calls run in order before sys_init_ex: the log file
+		// first, then the pool (rounded by the shim, so the raw size crosses),
+		// then one thread call per entry with FMOD's defaults filled in,
+		// then the output format for sys_init_ex to pick up
+		var pre = stub.testPreInitCalls;
+		assert(pre.length == 5, 'pre-init call count ${pre.length}');
+		assert(pre.length == 5 && pre[0] == "debug:260,1,fmod-test.log", 'log file call ${pre[0]}');
+		assert(pre.length == 5 && pre[1] == "memory:1000", 'memory pool call ${pre[1]}');
+		assert(pre.length == 5 && pre[2] == "thread:0,-32774,81920,2", 'mixer thread call ${pre[2]}');
+		assert(pre.length == 5 && pre[3] == "thread:8,-32769,0,-1", 'studio update thread call with defaults ${pre[3]}');
+		assert(pre.length == 5 && pre[4] == "format:2,4,4", 'output format call ${pre[4]}');
 		stub.testInitialized = true;
 		assert(FmodRuntime.isInitialized(), "system ready and default banks latched");
 		stub.testInitialized = false;

@@ -1,0 +1,70 @@
+name: Docs canary
+
+# Weekly check that fmod.com's API reference still matches the snapshot
+# the browser extension was built against. The Haxe tab is keyed by
+# function heading ids and by the position of code examples on each
+# page, so a page edit on their side can leave a tab on the wrong
+# example or drop one. A red run here means fmod.com changed and the
+# extension data needs a look, see extension/README.md.
+
+on:
+  schedule:
+    - cron: "0 7 * * 1"
+  workflow_dispatch:
+
+jobs:
+  catalog:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Playwright Chromium
+        run: |
+          npm install playwright > /dev/null
+          npx playwright install --with-deps chromium
+
+      - name: Compare fmod.com with the catalog
+        run: node extension/test/catalog-site.js --check
+
+  notify-failure:
+    runs-on: ubuntu-latest
+    needs: [catalog]
+    if: ${{ !cancelled() && needs.catalog.result == 'failure' }}
+    timeout-minutes: 5
+    steps:
+      - name: Send failure email
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          ALERT_TO: ${{ vars.CANARY_ALERT_TO }}
+          ALERT_FROM: ${{ vars.CANARY_ALERT_FROM || 'onboarding@resend.dev' }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ -z "$RESEND_API_KEY" ]; then
+            echo "RESEND_API_KEY secret is not set - skipping email alert"
+            exit 0
+          fi
+          if [ -z "$ALERT_TO" ]; then
+            echo "CANARY_ALERT_TO repository variable is not set - skipping email alert"
+            exit 0
+          fi
+          SUBJECT="haxe-fmod docs canary: fmod.com changed"
+          TEXT="The fmod.com API reference no longer matches extension/catalog/.
+
+          The run log lists every added or removed code location and every page whose snippets changed:
+          $RUN_URL
+
+          Refresh the catalog and bring extension/haxe and extension/functions.md in line:
+            node extension/test/catalog-site.js --update
+            python3 ci/haxe-catalog.py"
+          PAYLOAD=$(jq -n --arg from "$ALERT_FROM" --arg to "$ALERT_TO" --arg subject "$SUBJECT" --arg text "$TEXT" \
+            '{from: $from, to: [$to], subject: $subject, text: $text}')
+          curl -sS -X POST https://api.resend.com/emails \
+            -H "Authorization: Bearer $RESEND_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD"

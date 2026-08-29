@@ -4,6 +4,7 @@ import flixel.util.FlxColor;
 import flixel.text.FlxText;
 import flixel.FlxG;
 import flixel.FlxState;
+import haxefmod.studio.Types;
 
 /**
  * @author Tanner Moore
@@ -15,7 +16,28 @@ class LoadFmodState extends FlxState {
         // The manual-update CI variant: every probe state then runs on
         // FmodManager.Update's manual sys_update pushes instead of the
         // native auto-update thread
-        FmodManager.Initialize({autoUpdate: false});
+        // This variant also runs FMOD from a fixed memory pool
+        FmodManager.Initialize({autoUpdate: false, profiling: true, distanceFilter: true,
+            dspBufferSize: 1024, dspNumBuffers: 4, softwareChannels: 64, streamBufferSize: 65536,
+            vol0VirtualVol: 0.01, randomSeed: 12345, commandQueueSize: 65536,
+            memoryTracking: true, resamplerMethod: FmodDspResampler.CUBIC, memoryPoolSize: 96 * 1024 * 1024,
+            threadAttributes: [{type: FmodThreadType.STUDIO_UPDATE, priority: FmodThreadPriority.STUDIO_UPDATE,
+                stackSize: FmodThreadStackSize.STUDIO_UPDATE, affinity: FmodThreadAffinity.CORE_ALL}]});
+        #elseif audio_test
+        // The test builds turn on profiling and the distance filter so the
+        // api-probe can see both work, and pin the buffer settings so the
+        // init path with every argument set runs on every CI target
+        // The advanced settings are nondefault so the api-probe can read
+        // them back through getAdvancedSettings
+        // Memory tracking, the resampler, and one thread attribute entry
+        // (FMOD's own defaults for the studio update thread) run on every
+        // target so the api-probe can see them land
+        FmodManager.Initialize({profiling: true, distanceFilter: true,
+            dspBufferSize: 1024, dspNumBuffers: 4, softwareChannels: 64, streamBufferSize: 65536,
+            vol0VirtualVol: 0.01, randomSeed: 12345, commandQueueSize: 65536,
+            memoryTracking: true, resamplerMethod: FmodDspResampler.CUBIC,
+            threadAttributes: [{type: FmodThreadType.STUDIO_UPDATE, priority: FmodThreadPriority.STUDIO_UPDATE,
+                stackSize: FmodThreadStackSize.STUDIO_UPDATE}]});
         #else
         FmodManager.Initialize();
         #end

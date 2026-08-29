@@ -11,7 +11,7 @@ import haxefmod.core.DspType;
 import haxefmod.core.PcmStream;
 import haxefmod.core.Reverb;
 import haxefmod.core.Reverb3D;
-import haxefmod.studio.CoreSound;
+import haxefmod.core.Sound;
 import haxefmod.studio.Callbacks;
 import haxefmod.studio.EventInstance;
 import haxefmod.studio.StudioSystem;
@@ -184,7 +184,7 @@ class StressTestState extends FlxState {
                 // entry every batch and release() removes it again
                 instance.setCallback(function(data) {
                     _callbackEvents++;
-                }, EventCallbackType.PLAYBACK_ALL);
+                }, EventCallbackType.ALL);
             }
             instance.start();
             instance.stop(IMMEDIATE);
@@ -260,7 +260,7 @@ class StressTestState extends FlxState {
                 parent.release();
             }
             var soundGroup = SoundGroup.create("churn-sg");
-            var pcmSound = CoreSound.fromPcm(_pcmChunk, 48000, 1);
+            var pcmSound = Sound.fromPcm(_pcmChunk, 48000, 1);
             if (!soundGroup.isNull() && !pcmSound.isNull()) {
                 soundGroup.setMaxAudible(1);
                 pcmSound.setSoundGroup(soundGroup);

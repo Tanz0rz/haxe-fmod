@@ -45,7 +45,7 @@ class FmodRuntime {
     static var readyHandlers:Array<Void->Void> = [];
 
     /** Expected native binding ABI - lockstep with the manifest "# abi-version:". */
-    public static inline var BINDING_ABI:Int = 8;
+    public static inline var BINDING_ABI:Int = 11;
 
     /**
      * Initializes FMOD with the given settings (see FmodSettings for the
@@ -73,10 +73,68 @@ class FmodRuntime {
         }
         #end
 
-        NativeStudio.sys_set_debug_level(resolved.logLevel);
+        // The settings FMOD only takes before the system exists: the log
+        // target, the memory pool, and the thread attributes. Native only,
+        // the web build has no pool and no threads. A failure is logged
+        // and init carries on, FMOD runs fine on its defaults.
+        var levelBits = resolved.logLevel <= 0 ? 0 : resolved.logLevel == 1 ? 1 : resolved.logLevel == 2 ? 2 : 4;
+        if (resolved.logFile != "") {
+            #if js
+            trace("Warn: FMOD - logFile is not available on HTML5, the log stays on the console");
+            NativeStudio.sys_set_debug_level(resolved.logLevel);
+            #else
+            var logResult:FmodResult = NativeStudio.sys_debug_initialize(levelBits | resolved.logFlags,
+                FmodDebugMode.FILE, resolved.logFile);
+            if (!logResult.isOk() && logResult != FmodResult.FMOD_ERR_UNSUPPORTED) {
+                trace("Error: FMOD - could not open the log file " + resolved.logFile + ": " + logResult.toString());
+            }
+            #end
+        } else if ((resolved.logFlags : Int) != 0) {
+            NativeStudio.sys_debug_initialize(levelBits | resolved.logFlags, FmodDebugMode.TTY, "");
+        } else {
+            NativeStudio.sys_set_debug_level(resolved.logLevel);
+        }
+        #if !js
+        if (resolved.memoryPoolSize > 0) {
+            var poolResult:FmodResult = NativeStudio.sys_memory_initialize(resolved.memoryPoolSize);
+            if (!poolResult.isOk()) {
+                trace("Error: FMOD - memory pool of " + resolved.memoryPoolSize + " bytes refused: " + poolResult.toString());
+            }
+        }
+        for (thread in resolved.threadAttributes) {
+            var threadResult:FmodResult = NativeStudio.sys_thread_set_attributes(thread.type,
+                thread.priority != null ? thread.priority : FmodThreadPriority.DEFAULT,
+                thread.stackSize != null ? thread.stackSize : FmodThreadStackSize.DEFAULT,
+                thread.affinity != null ? thread.affinity : -1);
+            if (!threadResult.isOk()) {
+                trace("Error: FMOD - thread attributes for thread type " + (thread.type : Int) + " refused: "
+                    + threadResult.toString());
+            }
+        }
+        #else
+        if (resolved.memoryPoolSize > 0) trace("Warn: FMOD - memoryPoolSize is not available on HTML5, FMOD allocates from the wasm heap");
+        if (resolved.threadAttributes.length > 0) trace("Warn: FMOD - threadAttributes are not available on HTML5, the web build has no threads to place");
+        #end
+        if ((resolved.output : Int) != 0 || (resolved.resamplerMethod : Int) != 0 || resolved.rawSpeakers != 0) {
+            var formatResult:FmodResult = NativeStudio.sys_set_init_format(resolved.output, resolved.resamplerMethod,
+                resolved.rawSpeakers);
+            if (!formatResult.isOk()) {
+                trace("Error: FMOD - output type " + (resolved.output : Int) + " refused: " + formatResult.toString());
+                return formatResult;
+            }
+        }
+        var initFlags = (resolved.profiling ? 1 : 0) | (resolved.distanceFilter ? 2 : 0);
+        var studioFlags = (resolved.liveUpdate ? 1 : 0) | (resolved.memoryTracking ? 2 : 0);
         var result:FmodResult = NativeStudio.sys_init_ex(
             resolved.numChannels, resolved.sampleRate, resolved.speakerMode,
-            resolved.liveUpdate ? 1 : 0);
+            studioFlags,
+            resolved.dspBufferSize, resolved.dspNumBuffers, resolved.softwareChannels,
+            resolved.streamBufferSize, initFlags,
+            resolved.maxMPEGCodecs, resolved.maxVorbisCodecs, resolved.maxFADPCMCodecs, resolved.vol0VirtualVol,
+            resolved.defaultDecodeBufferSize, resolved.profilePort, resolved.geometryMaxFadeTime,
+            resolved.distanceFilterCenterFreq, resolved.randomSeed,
+            resolved.commandQueueSize, resolved.handleInitialSize, resolved.studioUpdatePeriod,
+            resolved.idleSampleDataPoolSize, resolved.streamingScheduleDelay, resolved.encryptionKey);
 
         #if (cpp || hl)
         if (!result.isOk()) return result;

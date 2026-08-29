@@ -1,21 +1,23 @@
 package haxefmod.core;
 
 import haxefmod.studio.FmodResult;
+import haxefmod.studio.Types.SoundGroupBehavior;
+import haxefmod.studio.UserData;
 import haxefmod.studio.native.NativeStudio;
 
 /**
  * A handle to an FMOD sound group: polyphony caps and behaviors across any
  * set of sounds (e.g. at most three footstep sounds at once, stealing the
- * quietest). Assign sounds with CoreSound.setSoundGroup. Every sound
+ * quietest). Assign sounds with Sound.setSoundGroup. Every sound
  * belongs to the master group until moved.
  */
 abstract SoundGroup(Int) from Int to Int {
     public static inline var NULL:SoundGroup = cast 0;
 
-    /** Behaviors when a group is past maxAudible (FMOD_SOUNDGROUP_BEHAVIOR). */
-    public static inline var BEHAVIOR_FAIL:Int = 0;
-    public static inline var BEHAVIOR_MUTE:Int = 1;
-    public static inline var BEHAVIOR_STEAL_LOWEST:Int = 2;
+    /** Behaviors when a group is past maxAudible, the same values as SoundGroupBehavior. */
+    public static inline var BEHAVIOR_FAIL:SoundGroupBehavior = SoundGroupBehavior.FAIL;
+    public static inline var BEHAVIOR_MUTE:SoundGroupBehavior = SoundGroupBehavior.MUTE;
+    public static inline var BEHAVIOR_STEAL_LOWEST:SoundGroupBehavior = SoundGroupBehavior.STEALLOWEST;
 
     /** Creates a group. Returns SoundGroup.NULL on failure. */
     public static inline function create(name:String):SoundGroup {
@@ -40,12 +42,13 @@ abstract SoundGroup(Int) from Int to Int {
         return NativeStudio.sg_get_max_audible(this);
     }
 
-    /** One of the BEHAVIOR_* values. */
-    public inline function setMaxAudibleBehavior(behavior:Int):FmodResult {
+    /** What happens to a new sound once the group is at maxAudible. */
+    public inline function setMaxAudibleBehavior(behavior:SoundGroupBehavior):FmodResult {
         return NativeStudio.sg_set_max_audible_behavior(this, behavior);
     }
 
-    public inline function getMaxAudibleBehavior():Int {
+    /** The current behavior, FAIL on failure. */
+    public inline function getMaxAudibleBehavior():SoundGroupBehavior {
         return NativeStudio.sg_get_max_audible_behavior(this);
     }
 
@@ -71,8 +74,32 @@ abstract SoundGroup(Int) from Int to Int {
         return NativeStudio.sg_get_num_sounds(this);
     }
 
+    /** The name given at create(), "FMOD master" for the master group. */
+    public inline function getName():String {
+        return NativeStudio.sg_get_name(this);
+    }
+
+    /**
+     * The sound at position index in this group (a known sound returns its
+     * existing handle). Sound.NULL past the end. The group does not own
+     * the sound, so do not release a handle obtained this way.
+     */
+    public inline function getSound(index:Int):haxefmod.core.Sound {
+        return NativeStudio.sg_get_sound(this, index);
+    }
+
     /** Sounds from this group audible right now. */
     public inline function getPlayingCount():Int {
+        return NativeStudio.sg_get_num_playing(this);
+    }
+
+    /** The same count as getSoundCount under FMOD's name. */
+    public inline function getNumSounds():Int {
+        return NativeStudio.sg_get_num_sounds(this);
+    }
+
+    /** The same count as getPlayingCount under FMOD's name. */
+    public inline function getNumPlaying():Int {
         return NativeStudio.sg_get_num_playing(this);
     }
 
@@ -86,6 +113,22 @@ abstract SoundGroup(Int) from Int to Int {
      * sounds move back to the master group. Do not release the master.
      */
     public inline function release():FmodResult {
+        UserData.clear(UserDataKind.SoundGroup, this);
         return NativeStudio.sg_release(this);
+    }
+
+    /**
+     * Attaches a Haxe value to this handle. The value lives on the Haxe
+     * side keyed by the handle and is dropped when the handle is released.
+     * A recycled native slot gets a new generation and therefore a new
+     * handle int, so a stale entry never shows up on a later handle.
+     */
+    public inline function setUserData(value:Dynamic):Void {
+        UserData.set(UserDataKind.SoundGroup, this, value);
+    }
+
+    /** The value attached with setUserData, or null. */
+    public inline function getUserData():Dynamic {
+        return UserData.get(UserDataKind.SoundGroup, this);
     }
 }

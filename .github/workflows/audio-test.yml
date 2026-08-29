@@ -80,6 +80,13 @@ jobs:
           g++ -x c++ -Wall -Wextra -Werror -o /tmp/test_guid_cpp tests/native/test_faxe_guid.c
           /tmp/test_guid_cpp
 
+      - name: Test native instance context (C99 and C++ modes)
+        run: |
+          gcc -std=c99 -Wall -Wextra -Werror -o /tmp/test_instctx_c tests/native/test_faxe_instctx.c
+          /tmp/test_instctx_c
+          g++ -x c++ -Wall -Wextra -Werror -o /tmp/test_instctx_cpp tests/native/test_faxe_instctx.c
+          /tmp/test_instctx_cpp
+
       - name: Negative-test the synth frequency gate
         run: python3 ci/synth-gate-selftest.py
 
@@ -92,8 +99,31 @@ jobs:
       - name: Check hxcpp depend lockstep
         run: python3 ci/depend-lockstep.py
 
+      - name: Download FMOD SDK
+        uses: ./.github/actions/fmod-sdk
+        with:
+          version: "2.03.12"
+          platform: linux
+          dest: ${{ env.FMOD_SDK }}
+          token: ${{ secrets.FMOD_SDK_TOKEN }}
+
+      - name: Check the DSP parameter enums match fmod_dsp_effects.h
+        run: python3 ci/gen-dsp-parameters.py --check
+
       - name: Compile the README examples
         run: python3 ci/check-readme-snippets.py
+
+      - name: Check the HTML5 compile gate
+        run: python3 ci/check-html5-gate.py
+
+      - name: Check the HTML5 phrase matches the gate
+        run: python3 ci/check-html5-phrase.py
+
+      - name: Check the deprecated aliases still compile and warn
+        run: python3 ci/check-deprecations.py
+
+      - name: Check Haxe type declarations against the FMOD headers
+        run: python3 ci/check-type-parity.py
 
       - name: Test native PCM ring buffer (C99 and C++ modes)
         run: |
@@ -367,6 +397,14 @@ jobs:
       - name: Validate volume/mute
         run: ./ci/validate-volume.sh /tmp/volume-test-linux-cpp.wav 15
 
+      - name: Build the test DSP plugin next to the game
+        if: ${{ !cancelled() }}
+        run: |
+          for BIN_DIR in example-project/EZPlatformer/export/linux*/bin; do
+            gcc -shared -fPIC -o "$BIN_DIR/libtest_plugin_gain.so" \
+              -I "$FMOD_SDK/api/core/inc" tests/native/test_plugin_gain.c
+          done
+
       - name: Run api-probe state
         if: ${{ !cancelled() }}
         uses: ./.github/actions/run-test-state
@@ -539,6 +577,22 @@ jobs:
 
       - name: Build HashLink target (pre-built hdll)
         run: |
+          # A binding ABI bump lands before update-hdlls can rebuild the
+          # shipped hdlls, so a stale marker skips this verification and
+          # the fresh hdll from build-hdll carries the rest of the job.
+          # update-hdlls refreshes the templates once the HL jobs pass and
+          # the next run verifies the pre-built one again.
+          ABI=$(grep "^# abi-version:" native/manifest/studio_api.txt | sed 's/.*: *//')
+          STALE=0
+          for HDLL in templates/bin/hl/*/hlaxe_fmod.hdll; do
+            MARK=$(grep -a -o "hlaxe_fmod_abi=[0-9]*" "$HDLL" | head -1 | sed 's/.*=//')
+            echo "$HDLL marker abi=$MARK (library abi=$ABI)"
+            if [ "$MARK" != "$ABI" ]; then STALE=1; fi
+          done
+          if [ "$STALE" = "1" ]; then
+            echo "Pre-built hdlls are behind the binding ABI, skipping the pre-built build until update-hdlls refreshes them"
+            exit 0
+          fi
           cd example-project/EZPlatformer
           haxelib run lime build hl 2>&1 | tee /tmp/build-prebuilt.log
           grep -q "(pre-built)" /tmp/build-prebuilt.log
@@ -693,6 +747,12 @@ jobs:
 
       - name: Validate volume/mute
         run: ./ci/validate-volume.sh /tmp/volume-test-linux-hl.wav 15
+
+      - name: Build the test DSP plugin next to the game
+        if: ${{ !cancelled() }}
+        run: |
+          gcc -shared -fPIC -o example-project/EZPlatformer/export/hl/bin/libtest_plugin_gain.so \
+            -I "$FMOD_SDK/api/core/inc" tests/native/test_plugin_gain.c
 
       - name: Run api-probe state
         if: ${{ !cancelled() }}
@@ -924,6 +984,13 @@ jobs:
           gcc -std=c99 -Wall -Wextra -Werror -I "$FMOD_SDK/api/core/inc" \
             -o /tmp/test_dsptype tests/native/test_faxe_dsptype.c
           /tmp/test_dsptype
+          gcc -std=c99 -Wall -Wextra -Werror -I "$FMOD_SDK/api/core/inc" \
+            -o /tmp/test_dspdata tests/native/test_faxe_dspdata.c
+          /tmp/test_dspdata
+          python3 ci/haxe-enum-values.py --check
+          gcc -std=c99 -Wall -Wextra -Werror -I "$FMOD_SDK/api/core/inc" -I "$FMOD_SDK/api/studio/inc" \
+            -o /tmp/test_enums tests/native/test_faxe_enums.c
+          /tmp/test_enums
 
       - name: Build custom hdll via build-hdll
         run: |
@@ -1954,6 +2021,16 @@ jobs:
           clang -std=c99 -Wall -Wextra -Werror -I "$FMOD_SDK/api/core/inc" \
             -o /tmp/test_dsptype tests/native/test_faxe_dsptype.c
           /tmp/test_dsptype
+          clang -std=c99 -Wall -Wextra -Werror -I "$FMOD_SDK/api/core/inc" \
+            -o /tmp/test_dspdata tests/native/test_faxe_dspdata.c
+          /tmp/test_dspdata
+          clang -std=c99 -Wall -Wextra -Werror -I "$FMOD_SDK/api/core/inc" \
+            -o /tmp/test_dspparams tests/native/test_faxe_dspparams.c
+          /tmp/test_dspparams
+          python3 ci/haxe-enum-values.py --check
+          gcc -std=c99 -Wall -Wextra -Werror -I "$FMOD_SDK/api/core/inc" -I "$FMOD_SDK/api/studio/inc" \
+            -o /tmp/test_enums tests/native/test_faxe_enums.c
+          /tmp/test_enums
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v6
@@ -2016,6 +2093,22 @@ jobs:
 
       - name: Build HashLink target (pre-built hdll)
         run: |
+          # A binding ABI bump lands before update-hdlls can rebuild the
+          # shipped hdlls, so a stale marker skips this verification and
+          # the fresh hdll from build-hdll carries the rest of the job.
+          # update-hdlls refreshes the templates once the HL jobs pass and
+          # the next run verifies the pre-built one again.
+          ABI=$(grep "^# abi-version:" native/manifest/studio_api.txt | sed 's/.*: *//')
+          STALE=0
+          for HDLL in templates/bin/hl/*/hlaxe_fmod.hdll; do
+            MARK=$(grep -a -o "hlaxe_fmod_abi=[0-9]*" "$HDLL" | head -1 | sed 's/.*=//')
+            echo "$HDLL marker abi=$MARK (library abi=$ABI)"
+            if [ "$MARK" != "$ABI" ]; then STALE=1; fi
+          done
+          if [ "$STALE" = "1" ]; then
+            echo "Pre-built hdlls are behind the binding ABI, skipping the pre-built build until update-hdlls refreshes them"
+            exit 0
+          fi
           cd example-project/EZPlatformer
           haxelib run lime build hl 2>&1 | tee /tmp/build-prebuilt.log
           grep -q "(pre-built)" /tmp/build-prebuilt.log
@@ -2614,6 +2707,11 @@ jobs:
           )
           cl /nologo /W3 /std:c11 /TC /I "%FMOD_SDK%\api\core\inc" /Fe:%TEMP%\msvc_dsptype.exe tests\native\test_faxe_dsptype.c || exit /b 1
           %TEMP%\msvc_dsptype.exe || exit /b 1
+          cl /nologo /W3 /std:c11 /TC /I "%FMOD_SDK%\api\core\inc" /Fe:%TEMP%\msvc_dspdata.exe tests\native\test_faxe_dspdata.c || exit /b 1
+          %TEMP%\msvc_dspdata.exe || exit /b 1
+          python ci\haxe-enum-values.py --check || exit /b 1
+          cl /nologo /W3 /std:c11 /TC /I "%FMOD_SDK%\api\core\inc" /I "%FMOD_SDK%\api\studio\inc" /Fe:%TEMP%\msvc_enums.exe tests\native\test_faxe_enums.c || exit /b 1
+          %TEMP%\msvc_enums.exe || exit /b 1
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v6
@@ -2699,6 +2797,22 @@ jobs:
 
       - name: Build HashLink target (pre-built hdll)
         run: |
+          # A binding ABI bump lands before update-hdlls can rebuild the
+          # shipped hdlls, so a stale marker skips this verification and
+          # the fresh hdll from build-hdll carries the rest of the job.
+          # update-hdlls refreshes the templates once the HL jobs pass and
+          # the next run verifies the pre-built one again.
+          ABI=$(grep "^# abi-version:" native/manifest/studio_api.txt | sed 's/.*: *//')
+          STALE=0
+          for HDLL in templates/bin/hl/*/hlaxe_fmod.hdll; do
+            MARK=$(grep -a -o "hlaxe_fmod_abi=[0-9]*" "$HDLL" | head -1 | sed 's/.*=//')
+            echo "$HDLL marker abi=$MARK (library abi=$ABI)"
+            if [ "$MARK" != "$ABI" ]; then STALE=1; fi
+          done
+          if [ "$STALE" = "1" ]; then
+            echo "Pre-built hdlls are behind the binding ABI, skipping the pre-built build until update-hdlls refreshes them"
+            exit 0
+          fi
           cd example-project/EZPlatformer
           haxelib run lime build hl 2>&1 | tee /tmp/build-prebuilt.log
           grep -q "(pre-built)" /tmp/build-prebuilt.log
@@ -3175,6 +3289,22 @@ jobs:
           node tests/js/bank-pipeline-test.js
           node tests/js/hostile-input-test.js
           node tests/js/runtime-init-test.js
+          node tests/js/system-extras-harness.js
+          node tests/js/geometry-rolloff-harness.js
+          node tests/js/completeness-tail-harness.js
+          node tests/js/sysextras-harness.js
+          node tests/js/plugins-harness.js
+          node tests/js/soundextras-harness.js
+          node tests/js/lastseven-harness.js
+          node tests/js/timeunits-harness.js
+          node tests/js/dspdata-harness.js
+          node tests/js/sound-routing-harness.js
+          node tests/js/channelcontrol-harness.js
+          node tests/js/studio-parity-harness.js
+          node tests/js/init-settings-harness.js
+          node tests/js/callback-structs-harness.js
+          node tests/js/csharp-audit-harness.js
+          node tests/js/core-types-harness.js
 
       - name: Run Core dynamic-audio prototype against the real wasm
         env:
@@ -3403,6 +3533,19 @@ jobs:
           gcc -std=c99 -Wall -Wextra -Werror -I "$FMOD_SDK/api/core/inc" \
             -o /tmp/test_dsptype tests/native/test_faxe_dsptype.c
           /tmp/test_dsptype
+          gcc -std=c99 -Wall -Wextra -Werror -I "$FMOD_SDK/api/core/inc" \
+            -o /tmp/test_dspdata tests/native/test_faxe_dspdata.c
+          /tmp/test_dspdata
+
+      - name: Test the DSP parameter indices against this SDK's headers
+        run: |
+          gcc -std=c99 -Wall -Wextra -Werror -I "$FMOD_SDK/api/core/inc" \
+            -o /tmp/test_dspparams tests/native/test_faxe_dspparams.c
+          /tmp/test_dspparams
+          python3 ci/haxe-enum-values.py --check
+          gcc -std=c99 -Wall -Wextra -Werror -I "$FMOD_SDK/api/core/inc" -I "$FMOD_SDK/api/studio/inc" \
+            -o /tmp/test_enums tests/native/test_faxe_enums.c
+          /tmp/test_enums
 
       - name: Refuse to package without the pre-built hdlls
         run: |
@@ -3485,7 +3628,7 @@ jobs:
         run: |
           set -o pipefail
           git ls-files \
-            | grep -vE '^(\.github/|\.gitignore|\.vscode/|ci/|tests/|example-project/|package\.sh)' \
+            | grep -vE '^(\.github/|\.gitignore|\.vscode/|ci/|tests/|example-project/|package\.sh|docs/|extension/|logo/|mkdocs\.yml)' \
             | sort > /tmp/tracked-shippable.txt
           unzip -Z1 haxefmod.zip | grep -v '/$' | sort > /tmp/zip-contents.txt
           MISSING=$(comm -23 /tmp/tracked-shippable.txt /tmp/zip-contents.txt)

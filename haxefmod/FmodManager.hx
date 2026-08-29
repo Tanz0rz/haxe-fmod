@@ -1,5 +1,6 @@
 package haxefmod;
 
+import haxefmod.core.Sound;
 import haxefmod.FmodSound;
 import haxefmod.studio.CallbackDispatcher;
 import haxefmod.runtime.FmodRuntime;
@@ -410,10 +411,13 @@ class FmodManager {
         return instance;
     }
 
-    /** Removes every registered callback (song, sounds, and core channels). */
+    /** Removes every registered callback (song, sounds, descriptions, core channels, the system, and PCM streams). Userdata is left alone. */
     public static function ClearAllCallbacks():Void {
         CallbackDispatcher.clearAll();
+        haxefmod.studio.EventDescription.clearAllCallbacks();
         haxefmod.core.ChannelCallbacks.clearAll();
+        haxefmod.studio.SystemCallbacks.clear();
+        haxefmod.core.PcmStream.clearAllReadCallbacks();
     }
 
     /**
@@ -436,7 +440,7 @@ class FmodManager {
     #if (debug || haxefmod_todo_beep)
     static var todoSeen:Map<String, Bool> = new Map();
     #if haxefmod_todo_beep
-    static var todoBeep:haxefmod.studio.CoreSound = haxefmod.studio.CoreSound.NULL;
+    static var todoBeep:haxefmod.core.Sound = haxefmod.core.Sound.NULL;
     #end
 
     static function todoImpl(description:String, pos:haxe.PosInfos):Void {
@@ -462,7 +466,7 @@ class FmodManager {
                 var value = Std.int(12000.0 * envelope * Math.sin(i * 2.0 * Math.PI * 880.0 / rate));
                 pcm.setUInt16(i * 2, value & 0xFFFF);
             }
-            todoBeep = haxefmod.studio.CoreSound.fromPcm(pcm, rate, 1);
+            todoBeep = haxefmod.core.Sound.fromPcm(pcm, rate, 1);
         }
         if (!todoBeep.isNull()) {
             // The previous beep's channel is long finished (the blip is

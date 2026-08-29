@@ -35,16 +35,21 @@ try {
 check('update_before_init_safe', !updateThrew, '');
 
 // --- module config: this Emscripten build reads INITIAL_MEMORY ---
-jaxe.fmod_sys_init_ex(64, 0, 3, 0);
+jaxe.fmod_sys_init_ex(64, 0, 3, 0, 0, 0, 0, 0, 0);
 check('initial_memory_set', jaxe.FMOD['INITIAL_MEMORY'] === 64 * 1024 * 1024,
     `INITIAL_MEMORY=${jaxe.FMOD['INITIAL_MEMORY']}`);
 check('module_kicked_off', calls.length === 1, '');
+// A second init while the module loads must not start it again
+jaxe.fmod_sys_init_ex(64, 0, 3, 0, 0, 0, 0, 0, 0);
+check('second_init_is_a_no_op', calls.length === 1, 'calls=' + calls.length);
 
 // --- drive the real onRuntimeInitialized with a recording mock system ---
 const DRIVER_RATE = 47999;
 function mockSystems() {
     const core = {
         setDSPBufferSize: function () {},
+        setSoftwareChannels: function (n) { calls.push(['setSoftwareChannels', n]); },
+        setStreamBufferSize: function (n, unit) { calls.push(['setStreamBufferSize', n, unit]); },
         getDriverInfo: function (i, a, b, outval) { outval.val = DRIVER_RATE; },
         setSoftwareFormat: function (rate, mode, raw) { calls.push(['setSoftwareFormat', rate, mode, raw]); },
     };
@@ -59,6 +64,9 @@ function mockSystems() {
     jaxe.FMOD.STUDIO_INIT_NORMAL = 0;
     jaxe.FMOD.STUDIO_INIT_LIVEUPDATE = 1;
     jaxe.FMOD.INIT_NORMAL = 0;
+    jaxe.FMOD.INIT_PROFILE_ENABLE = 0x10000;
+    jaxe.FMOD.INIT_CHANNEL_DISTANCEFILTER = 0x200;
+    jaxe.FMOD.TIMEUNIT_RAWBYTES = 8;
     jaxe.FMOD.STUDIO_LOAD_BANK_NORMAL = 0;
     jaxe.FMOD.OK = 0;
 }
@@ -67,6 +75,8 @@ function initCalls() {
     return {
         format: calls.filter(c => c[0] === 'setSoftwareFormat').pop(),
         init: calls.filter(c => c[0] === 'initialize').pop(),
+        softwareChannels: calls.filter(c => c[0] === 'setSoftwareChannels').pop(),
+        streamBuffer: calls.filter(c => c[0] === 'setStreamBufferSize').pop(),
     };
 }
 
@@ -105,6 +115,27 @@ got = initCalls();
 check('explicit_rate_and_mode',
     got.format && got.format[1] === 44100 && got.format[2] === 5,
     JSON.stringify(got.format));
+check('zero_settings_leave_core_defaults', !got.softwareChannels && !got.streamBuffer
+    && got.init && got.init[3] === 0, JSON.stringify(got.init));
+
+// the pre-init settings and the init flags reach the core before initialize
+calls.length = 0;
+mockSystems();
+jaxe.FmodIsInitialized = false;
+jaxe.pendingInit = null;
+jaxe.fmod_sys_set_auto_update(false);
+jaxe.fmod_sys_init_ex(32, 0, 0, 0, 512, 4, 40, 65536, 3);
+jaxe.onRuntimeInitialized();
+got = initCalls();
+check('software_channels_applied', got.softwareChannels && got.softwareChannels[1] === 40,
+    JSON.stringify(got.softwareChannels));
+check('stream_buffer_size_applied_in_bytes',
+    got.streamBuffer && got.streamBuffer[1] === 65536 && got.streamBuffer[2] === 8,
+    JSON.stringify(got.streamBuffer));
+check('init_flags_translate_to_core_flags', got.init && got.init[3] === (0x10000 | 0x200),
+    JSON.stringify(got.init));
+check('settings_apply_before_initialize',
+    calls.findIndex(c => c[0] === 'setSoftwareChannels') < calls.findIndex(c => c[0] === 'initialize'), '');
 
 // --- callback marshaling for shapes the wasm harnesses cannot author:
 // FMOD's JS glue delivers timeline beats with flat keys and has no

@@ -1,0 +1,134 @@
+name: Docs
+
+# Builds the documentation site (guides from docs/ plus the dox API
+# reference under /api/) on every push and pull request, and publishes it
+# to GitHub Pages from the default branch and from release tags.
+
+on:
+  push:
+    branches: [master]
+    tags: ["*"]
+    paths:
+      - "docs/**"
+      - "mkdocs.yml"
+      - "haxefmod/**"
+      - "ci/check-readme-snippets.py"
+      - "ci/docs-root-pages.py"
+      - "ci/haxe-bindings.py"
+      - "extension/**"
+      - "native/**"
+      - "LIMITATIONS.md"
+      - "MIGRATION.md"
+      - "CHANGELOG.md"
+      - ".github/workflows/docs.yml"
+  pull_request:
+    paths:
+      - "docs/**"
+      - "mkdocs.yml"
+      - "haxefmod/**"
+      - "ci/check-readme-snippets.py"
+      - "ci/docs-root-pages.py"
+      - "ci/haxe-bindings.py"
+      - "extension/**"
+      - "native/**"
+      - "LIMITATIONS.md"
+      - "MIGRATION.md"
+      - "CHANGELOG.md"
+      - ".github/workflows/docs.yml"
+  workflow_dispatch:
+
+env:
+  HAXE_VERSION: 4.3.6
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v2
+        with:
+          haxe-version: ${{ env.HAXE_VERSION }}
+
+      - name: Cache haxelib
+        uses: actions/cache@v5
+        with:
+          path: ~/haxelib
+          key: haxelib-docs-${{ runner.os }}-${{ env.HAXE_VERSION }}-flixel
+
+      - name: Install Haxe libraries
+        run: |
+          haxelib setup ~/haxelib
+          haxelib install dox --always --quiet
+          haxelib install lime 8.3.0 --always --quiet
+          haxelib install openfl 9.5.0 --always --quiet
+          haxelib install flixel 6.1.2 --always --quiet
+
+      - name: Check the generated bindings table and example translations
+        run: |
+          python3 ci/haxe-bindings.py --check
+          python3 ci/haxe-catalog.py --check
+
+      - name: Compile the guide examples
+        run: python3 ci/check-readme-snippets.py docs extension/haxe extension/functions.md
+
+      - name: Generate type XML
+        run: |
+          mkdir -p /tmp/haxefmod-docs
+          # Typed as an html5 build so the flixel components resolve.
+          # The CLI (sys-only) and the native shim package are internal
+          # and stay out of the reference.
+          haxe -cp . -lib flixel -lib openfl -lib lime \
+            -D FLX_STANDARD_ASSETS_DIRECTORY -D openfl-html5 -D html5 \
+            --no-output -js /dev/null \
+            --macro "include('haxefmod', true, ['haxefmod.tools', 'haxefmod.studio.native'])" \
+            --xml /tmp/haxefmod-docs/types.xml
+
+      - name: Render the API reference
+        run: |
+          haxelib run dox -i /tmp/haxefmod-docs -o site-api -in haxefmod --title "haxefmod API reference"
+          python3 ci/api-module-pages.py /tmp/haxefmod-docs/types.xml site-api
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install MkDocs
+        run: pip install mkdocs-material
+
+      - name: Build the site
+        run: |
+          mkdocs build --strict
+          rm -rf site/api
+          mv site-api site/api
+          python3 ci/check-site-links.py site
+
+      - name: Upload the site
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: site
+
+  deploy:
+    if: ${{ github.event_name != 'pull_request' }}
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

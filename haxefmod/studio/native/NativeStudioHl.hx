@@ -48,18 +48,21 @@ class NativeStudioHl {
     public static inline function sys_get_parameter_description_by_name(name:String):String return fromBytes(Raw.sys_get_parameter_description_by_name(toBytes(name), Scratch.floatBuf(), Scratch.intBuf()));
 
     public static inline function sys_get_parameter_label(parameterName:String, labelIndex:Int):String return fromBytes(Raw.sys_get_parameter_label(toBytes(parameterName), labelIndex));
+    /** GUID of the parameter description read last, in FMOD's text form */
+    public static inline function sys_last_parameter_guid():String return fromBytes(Raw.sys_last_parameter_guid());
     public static inline function sys_get_num_listeners():Int return Raw.sys_get_num_listeners();
     public static inline function sys_set_num_listeners(count:Int):Int return Raw.sys_set_num_listeners(count);
 
-    /** Fills Scratch float buffer [0..11]: pos xyz, vel xyz, forward xyz, up xyz */
+    /** Fills Scratch float buffer [0..11]: pos xyz, vel xyz, forward xyz, up xyz, [12..14]: attenuation position xyz */
     public static inline function sys_get_listener_attributes(index:Int):Int return Raw.sys_get_listener_attributes(index, Scratch.floatBuf());
 
-    public static function sys_set_listener_attributes(index:Int, px:Float, py:Float, pz:Float, vx:Float, vy:Float, vz:Float, fx:Float, fy:Float, fz:Float, ux:Float, uy:Float, uz:Float):Int {
+    public static function sys_set_listener_attributes(index:Int, px:Float, py:Float, pz:Float, vx:Float, vy:Float, vz:Float, fx:Float, fy:Float, fz:Float, ux:Float, uy:Float, uz:Float, hasAttenuation:Bool, ax:Float, ay:Float, az:Float):Int {
         Scratch.writeF(0, px); Scratch.writeF(1, py); Scratch.writeF(2, pz);
         Scratch.writeF(3, vx); Scratch.writeF(4, vy); Scratch.writeF(5, vz);
         Scratch.writeF(6, fx); Scratch.writeF(7, fy); Scratch.writeF(8, fz);
         Scratch.writeF(9, ux); Scratch.writeF(10, uy); Scratch.writeF(11, uz);
-        return Raw.sys_set_listener_attributes(index, Scratch.floatBuf());
+        Scratch.writeF(12, ax); Scratch.writeF(13, ay); Scratch.writeF(14, az);
+        return Raw.sys_set_listener_attributes(index, Scratch.floatBuf(), hasAttenuation);
     }
     public static inline function sys_get_listener_weight(index:Int):Float return Raw.sys_get_listener_weight(index);
     public static inline function sys_set_listener_weight(index:Int, weight:Float):Int return Raw.sys_set_listener_weight(index, weight);
@@ -79,7 +82,7 @@ class NativeStudioHl {
     /** Fills Scratch int buffer: [0]=exclusive, [1]=inclusive, [2]=sampledata (bytes) */
     public static inline function sys_get_memory_usage():Int return Raw.sys_get_memory_usage(Scratch.intBuf());
 
-    public static inline function sys_init_ex(numChannels:Int, sampleRate:Int, speakerMode:Int, studioFlags:Int):Int return Raw.sys_init_ex(numChannels, sampleRate, speakerMode, studioFlags);
+    public static inline function sys_init_ex(numChannels:Int, sampleRate:Int, speakerMode:Int, studioFlags:Int, dspBufferLength:Int, dspNumBuffers:Int, softwareChannels:Int, streamBufferSize:Int, initFlags:Int, maxMPEGCodecs:Int, maxVorbisCodecs:Int, maxFADPCMCodecs:Int, vol0VirtualVol:Float, defaultDecodeBufferSize:Int, profilePort:Int, geometryMaxFadeTime:Int, distanceFilterCenterFreq:Float, randomSeed:Int, commandQueueSize:Int, handleInitialSize:Int, studioUpdatePeriod:Int, idleSampleDataPoolSize:Int, streamingScheduleDelay:Int, encryptionKey:String):Int return Raw.sys_init_ex(numChannels, sampleRate, speakerMode, studioFlags, dspBufferLength, dspNumBuffers, softwareChannels, streamBufferSize, initFlags, maxMPEGCodecs, maxVorbisCodecs, maxFADPCMCodecs, vol0VirtualVol, defaultDecodeBufferSize, profilePort, geometryMaxFadeTime, distanceFilterCenterFreq, randomSeed, commandQueueSize, handleInitialSize, studioUpdatePeriod, idleSampleDataPoolSize, streamingScheduleDelay, toBytes(encryptionKey));
     public static inline function sys_set_debug_level(level:Int):Int return Raw.sys_set_debug_level(level);
     public static inline function sys_load_bank_async(path:String):Int return Raw.sys_load_bank_async(toBytes(path));
     public static inline function sys_is_initialized():Bool return Raw.sys_is_initialized();
@@ -238,19 +241,25 @@ class NativeStudioHl {
 
     // Programmer sounds
     public static inline function ps_assign(handle:Int, key:String):Int return Raw.ps_assign(handle, toBytes(key));
+    public static inline function ps_assign_sound(handle:Int, sound:Int, subsoundIndex:Int):Int return Raw.ps_assign_sound(handle, sound, subsoundIndex);
+    public static inline function ps_assign_named(handle:Int, name:String, key:String):Int return Raw.ps_assign_named(handle, toBytes(name), toBytes(key));
     public static inline function ps_clear(handle:Int):Int return Raw.ps_clear(handle);
 
     // Core API micro subset
-    public static inline function core_create_sound(path:String, mode:Int):Int return Raw.core_create_sound(toBytes(path), mode);
+    public static inline function core_create_sound(path:String, mode:Int, initialSubsound:Int):Int return Raw.core_create_sound(toBytes(path), mode, initialSubsound);
+    public static inline function core_create_sound_memory(data:haxe.io.Bytes, len:Int, mode:Int):Int return Raw.core_create_sound_memory(data.getData().bytes, len, mode);
+    /** Reads the exinfo slots from the Scratch int buffer (packed by Sound.packExInfo) */
+    public static inline function core_create_sound_ex(path:String, mode:Int, dls:String, key:String, guid:String):Int return Raw.core_create_sound_ex(toBytes(path), mode, Scratch.intBuf(), toBytes(dls), toBytes(key), toBytes(guid));
+    public static inline function core_create_sound_memory_ex(data:haxe.io.Bytes, len:Int, mode:Int, dls:String, key:String, guid:String):Int return Raw.core_create_sound_memory_ex(data.getData().bytes, len, mode, Scratch.intBuf(), toBytes(dls), toBytes(key), toBytes(guid));
     public static inline function core_release_sound(handle:Int):Int return Raw.core_release_sound(handle);
-    public static inline function core_get_sound_length(handle:Int):Int return Raw.core_get_sound_length(handle);
+    public static inline function core_get_sound_length(handle:Int, unit:Int):Int return Raw.core_get_sound_length(handle, unit);
 
     // Core PCM streams
     public static inline function core_pcm_create(sampleRate:Int, channels:Int, ringBytes:Int):Int return Raw.core_pcm_create(sampleRate, channels, ringBytes);
     public static inline function core_pcm_write(handle:Int, data:haxe.io.Bytes, len:Int):Int return Raw.core_pcm_write(handle, data.getData().bytes, len);
     public static inline function core_pcm_space(handle:Int):Int return Raw.core_pcm_space(handle);
     public static inline function core_pcm_underruns(handle:Int):Int return Raw.core_pcm_underruns(handle);
-    public static inline function core_pcm_play(handle:Int, startPaused:Bool):Int return Raw.core_pcm_play(handle, startPaused);
+    public static inline function core_pcm_play(handle:Int, group:Int, startPaused:Bool):Int return Raw.core_pcm_play(handle, group, startPaused);
     public static inline function core_pcm_release(handle:Int):Int return Raw.core_pcm_release(handle);
 
     // Core channels
@@ -308,8 +317,8 @@ class NativeStudioHl {
     public static inline function chan_set_frequency(handle:Int, frequency:Float):Int return Raw.chan_set_frequency(handle, frequency);
     public static inline function chan_get_frequency(handle:Int):Float return Raw.chan_get_frequency(handle);
     public static inline function chan_set_loop_count(handle:Int, loopCount:Int):Int return Raw.chan_set_loop_count(handle, loopCount);
-    public static inline function chan_get_position(handle:Int):Int return Raw.chan_get_position(handle);
-    public static inline function chan_set_position(handle:Int, positionMs:Int):Int return Raw.chan_set_position(handle, positionMs);
+    public static inline function chan_get_position(handle:Int, unit:Int):Int return Raw.chan_get_position(handle, unit);
+    public static inline function chan_set_position(handle:Int, position:Int, unit:Int):Int return Raw.chan_set_position(handle, position, unit);
     public static inline function chan_set_channel_group(handle:Int, groupHandle:Int):Int return Raw.chan_set_channel_group(handle, groupHandle);
     public static inline function chan_add_dsp(handle:Int, index:Int, dspHandle:Int):Int return Raw.chan_add_dsp(handle, index, dspHandle);
     public static inline function chan_remove_dsp(handle:Int, dspHandle:Int):Int return Raw.chan_remove_dsp(handle, dspHandle);
@@ -323,7 +332,7 @@ class NativeStudioHl {
     public static inline function bus_get_channel_group(handle:Int):Int return Raw.bus_get_channel_group(handle);
 
     // Core system extras
-    public static inline function sys_play_dsp(dspHandle:Int, startPaused:Bool):Int return Raw.sys_play_dsp(dspHandle, startPaused);
+    public static inline function sys_play_dsp(dspHandle:Int, group:Int, startPaused:Bool):Int return Raw.sys_play_dsp(dspHandle, group, startPaused);
 
     /** 12 reverb property floats through the Scratch float buffer, DecayTime..WetLevel. */
     public static inline function sys_set_reverb_properties(instance:Int):Int return Raw.sys_set_reverb_properties(instance, Scratch.floatBuf());
@@ -332,7 +341,7 @@ class NativeStudioHl {
 
     // Core DSP connection graph
     public static inline function dsp_add_input(handle:Int, inputHandle:Int, type:Int):Int return Raw.dsp_add_input(handle, inputHandle, type);
-    public static inline function dsp_disconnect_from(handle:Int, inputHandle:Int):Int return Raw.dsp_disconnect_from(handle, inputHandle);
+    public static inline function dsp_disconnect_from(handle:Int, inputHandle:Int, connHandle:Int):Int return Raw.dsp_disconnect_from(handle, inputHandle, connHandle);
     public static inline function dsp_disconnect_all(handle:Int, inputs:Bool, outputs:Bool):Int return Raw.dsp_disconnect_all(handle, inputs, outputs);
     public static inline function dsp_get_num_inputs(handle:Int):Int return Raw.dsp_get_num_inputs(handle);
     public static inline function dsp_get_num_outputs(handle:Int):Int return Raw.dsp_get_num_outputs(handle);
@@ -343,7 +352,7 @@ class NativeStudioHl {
     public static inline function dspconn_get_type(handle:Int):Int return Raw.dspconn_get_type(handle);
 
     // Core channel group nesting
-    public static inline function cg_add_group(handle:Int, childHandle:Int):Int return Raw.cg_add_group(handle, childHandle);
+    public static inline function cg_add_group(handle:Int, childHandle:Int, propagateDspClock:Bool):Int return Raw.cg_add_group(handle, childHandle, propagateDspClock);
     public static inline function cg_get_num_groups(handle:Int):Int return Raw.cg_get_num_groups(handle);
     public static inline function cg_get_group(handle:Int, index:Int):Int return Raw.cg_get_group(handle, index);
     public static inline function cg_get_parent_group(handle:Int):Int return Raw.cg_get_parent_group(handle);
@@ -365,7 +374,7 @@ class NativeStudioHl {
     public static inline function chan_set_3d_doppler_level(handle:Int, level:Float):Int return Raw.chan_set_3d_doppler_level(handle, level);
 
     /** Matrix rows go through the Scratch float buffer, out*in gains row-major. */
-    public static inline function chan_set_mix_matrix(handle:Int, outChannels:Int, inChannels:Int):Int return Raw.chan_set_mix_matrix(handle, Scratch.floatBuf(), outChannels, inChannels);
+    public static inline function chan_set_mix_matrix(handle:Int, outChannels:Int, inChannels:Int, inChannelHop:Int):Int return Raw.chan_set_mix_matrix(handle, Scratch.floatBuf(), outChannels, inChannels, inChannelHop);
 
     // Core scheduling (clocks as Float doubles, exact to 2^53 samples)
     /** Fills Scratch float buffer: [0]=channel clock [1]=parent group clock */
@@ -393,16 +402,16 @@ class NativeStudioHl {
 
     // Core sound surface
     public static inline function core_create_sound_pcm(data:haxe.io.Bytes, len:Int, sampleRate:Int, channels:Int):Int return Raw.core_create_sound_pcm(data.getData().bytes, len, sampleRate, channels);
-    public static inline function core_play_sound(handle:Int, startPaused:Bool):Int return Raw.core_play_sound(handle, startPaused);
+    public static inline function core_play_sound(handle:Int, group:Int, startPaused:Bool):Int return Raw.core_play_sound(handle, group, startPaused);
     public static inline function sound_set_defaults(handle:Int, frequency:Float, priority:Int):Int return Raw.sound_set_defaults(handle, frequency, priority);
 
     /** Fills Scratch float buffer: [0]=frequency [1]=priority */
     public static inline function sound_get_defaults(handle:Int):Int return Raw.sound_get_defaults(handle, Scratch.floatBuf());
 
-    public static inline function sound_set_loop_points(handle:Int, startMs:Int, endMs:Int):Int return Raw.sound_set_loop_points(handle, startMs, endMs);
+    public static inline function sound_set_loop_points(handle:Int, start:Int, startType:Int, end:Int, endType:Int):Int return Raw.sound_set_loop_points(handle, start, startType, end, endType);
 
-    /** Fills Scratch int buffer: [0]=loop start ms [1]=loop end ms */
-    public static inline function sound_get_loop_points(handle:Int):Int return Raw.sound_get_loop_points(handle, Scratch.intBuf());
+    /** Fills Scratch int buffer: [0]=loop start in startType [1]=loop end in endType */
+    public static inline function sound_get_loop_points(handle:Int, startType:Int, endType:Int):Int return Raw.sound_get_loop_points(handle, startType, endType, Scratch.intBuf());
 
     public static inline function sound_set_mode(handle:Int, mode:Int):Int return Raw.sound_set_mode(handle, mode);
     public static inline function sound_get_mode(handle:Int):Int return Raw.sound_get_mode(handle);
@@ -411,6 +420,7 @@ class NativeStudioHl {
     public static inline function sound_get_format(handle:Int):Int return Raw.sound_get_format(handle, Scratch.intBuf());
 
     public static inline function sound_get_open_state(handle:Int):Int return Raw.sound_get_open_state(handle);
+    public static inline function sound_get_open_state_info(handle:Int):Int return Raw.sound_get_open_state_info(handle, Scratch.intBuf());
 
     // Core system extras (slice 3)
     /** Fills Scratch int buffer: [0]=all channels [1]=real channels */
@@ -427,11 +437,13 @@ class NativeStudioHl {
 
     // Channel callbacks and sync points
     public static inline function chan_set_callback(handle:Int, enabled:Bool):Int return Raw.chan_set_callback(handle, enabled);
-    public static inline function sound_add_sync_point(handle:Int, offsetMs:Int, name:String):Int return Raw.sound_add_sync_point(handle, offsetMs, toBytes(name));
+    public static inline function sys_set_callback_mask(mask:Int):Int return Raw.sys_set_callback_mask(mask);
+    public static inline function sys_set_studio_callback_mask(mask:Int):Int return Raw.sys_set_studio_callback_mask(mask);
+    public static inline function sound_add_sync_point(handle:Int, offset:Int, unit:Int, name:String):Int return Raw.sound_add_sync_point(handle, offset, unit, toBytes(name));
     public static inline function sound_delete_sync_point(handle:Int, index:Int):Int return Raw.sound_delete_sync_point(handle, index);
     public static inline function sound_get_num_sync_points(handle:Int):Int return Raw.sound_get_num_sync_points(handle);
     public static inline function sound_get_sync_point_name(handle:Int, index:Int):String return fromBytes(Raw.sound_get_sync_point_name(handle, index));
-    public static inline function sound_get_sync_point_offset(handle:Int, index:Int):Int return Raw.sound_get_sync_point_offset(handle, index);
+    public static inline function sound_get_sync_point_offset(handle:Int, index:Int, unit:Int):Int return Raw.sound_get_sync_point_offset(handle, index, unit);
 
     // Sound groups
     public static inline function sys_create_sound_group(name:String):Int return Raw.sys_create_sound_group(toBytes(name));
@@ -485,22 +497,22 @@ class NativeStudioHl {
     public static inline function dsp_get_metering_enabled(handle:Int):Int return Raw.dsp_get_metering_enabled(handle, Scratch.intBuf());
 
     // Bank loading from memory
-    public static inline function sys_load_bank_memory(data:haxe.io.Bytes, len:Int):Int return Raw.sys_load_bank_memory(data.getData().bytes, len);
+    public static inline function sys_load_bank_memory(data:haxe.io.Bytes, len:Int, flags:Int):Int return Raw.sys_load_bank_memory(data.getData().bytes, len, flags);
 
     // Event instance core bridge
     public static inline function evi_get_channel_group(handle:Int):Int return Raw.evi_get_channel_group(handle);
 
     // Command capture and replay
-    public static inline function sys_start_command_capture(path:String):Int return Raw.sys_start_command_capture(toBytes(path));
+    public static inline function sys_start_command_capture(path:String, flags:Int):Int return Raw.sys_start_command_capture(toBytes(path), flags);
     public static inline function sys_stop_command_capture():Int return Raw.sys_stop_command_capture();
-    public static inline function sys_load_command_replay(path:String):Int return Raw.sys_load_command_replay(toBytes(path));
+    public static inline function sys_load_command_replay(path:String, flags:Int):Int return Raw.sys_load_command_replay(toBytes(path), flags);
     public static inline function replay_release(handle:Int):Int return Raw.replay_release(handle);
     public static inline function replay_is_valid(handle:Int):Bool return Raw.replay_is_valid(handle);
     public static inline function replay_start(handle:Int):Int return Raw.replay_start(handle);
     public static inline function replay_stop(handle:Int):Int return Raw.replay_stop(handle);
     public static inline function replay_set_paused(handle:Int, paused:Bool):Int return Raw.replay_set_paused(handle, paused);
     public static inline function replay_get_paused(handle:Int):Bool return Raw.replay_get_paused(handle);
-    public static inline function replay_seek_to_time(handle:Int, timeMs:Int):Int return Raw.replay_seek_to_time(handle, timeMs);
+    public static inline function replay_seek_to_time(handle:Int, seconds:Float):Int return Raw.replay_seek_to_time(handle, seconds);
     public static inline function replay_get_length(handle:Int):Float return Raw.replay_get_length(handle);
 
     // Channel priority, virtualization, and remaining getters
@@ -512,9 +524,9 @@ class NativeStudioHl {
     public static inline function chan_get_volume_ramp(handle:Int):Bool return Raw.chan_get_volume_ramp(handle);
     /** Borrowed reference: do not release a sound obtained this way. */
     public static inline function chan_get_current_sound(handle:Int):Int return Raw.chan_get_current_sound(handle);
-    public static inline function chan_set_loop_points(handle:Int, startMs:Int, endMs:Int):Int return Raw.chan_set_loop_points(handle, startMs, endMs);
+    public static inline function chan_set_loop_points(handle:Int, start:Int, startType:Int, end:Int, endType:Int):Int return Raw.chan_set_loop_points(handle, start, startType, end, endType);
     /** Fills Scratch int buffer: [0]=loop start ms [1]=loop end ms */
-    public static inline function chan_get_loop_points(handle:Int):Int return Raw.chan_get_loop_points(handle, Scratch.intBuf());
+    public static inline function chan_get_loop_points(handle:Int, startType:Int, endType:Int):Int return Raw.chan_get_loop_points(handle, startType, endType, Scratch.intBuf());
     public static inline function chan_get_reverb_wet(handle:Int, instance:Int):Float return Raw.chan_get_reverb_wet(handle, instance);
     public static inline function chan_get_index(handle:Int):Int return Raw.chan_get_index(handle);
     /** Fills Scratch float buffer: [0..2]=direction xyz */
@@ -565,6 +577,11 @@ class NativeStudioHl {
     /** Fills Scratch float buffer: [0]=min [1]=max */
     public static inline function cg_get_3d_min_max(handle:Int):Int return Raw.cg_get_3d_min_max(handle, Scratch.floatBuf());
     public static inline function cg_set_3d_occlusion(handle:Int, direct:Float, reverb:Float):Int return Raw.cg_set_3d_occlusion(handle, direct, reverb);
+    public static inline function cg_get_3d_occlusion(handle:Int):Int return Raw.cg_get_3d_occlusion(handle, Scratch.floatBuf());
+    public static inline function cg_get_delay(handle:Int):Int return Raw.cg_get_delay(handle, Scratch.floatBuf());
+    public static inline function cg_get_low_pass_gain(handle:Int):Float return Raw.cg_get_low_pass_gain(handle);
+    public static inline function cg_is_playing(handle:Int):Bool return Raw.cg_is_playing(handle);
+    public static inline function cg_set_callback(handle:Int, enabled:Bool):Int return Raw.cg_set_callback(handle, enabled);
     public static inline function cg_set_3d_level(handle:Int, level:Float):Int return Raw.cg_set_3d_level(handle, level);
     public static inline function cg_get_3d_level(handle:Int):Float return Raw.cg_get_3d_level(handle);
     public static inline function cg_set_3d_spread(handle:Int, angle:Float):Int return Raw.cg_set_3d_spread(handle, angle);
@@ -580,7 +597,7 @@ class NativeStudioHl {
     public static inline function cg_set_reverb_wet(handle:Int, instance:Int, wet:Float):Int return Raw.cg_set_reverb_wet(handle, instance, wet);
     public static inline function cg_get_reverb_wet(handle:Int, instance:Int):Float return Raw.cg_get_reverb_wet(handle, instance);
     /** Matrix rows go through the Scratch float buffer, out*in gains row-major. */
-    public static inline function cg_set_mix_matrix(handle:Int, outChannels:Int, inChannels:Int):Int return Raw.cg_set_mix_matrix(handle, Scratch.floatBuf(), outChannels, inChannels);
+    public static inline function cg_set_mix_matrix(handle:Int, outChannels:Int, inChannels:Int, inChannelHop:Int):Int return Raw.cg_set_mix_matrix(handle, Scratch.floatBuf(), outChannels, inChannels, inChannelHop);
     public static inline function cg_set_volume_ramp(handle:Int, ramp:Bool):Int return Raw.cg_set_volume_ramp(handle, ramp);
     public static inline function cg_get_volume_ramp(handle:Int):Bool return Raw.cg_get_volume_ramp(handle);
     public static inline function cg_get_audibility(handle:Int):Float return Raw.cg_get_audibility(handle);
@@ -596,11 +613,190 @@ class NativeStudioHl {
     public static inline function cb_int(index:Int):Int return Raw.cb_int(index);
     public static inline function cb_float():Float return Raw.cb_float();
     public static inline function cb_string():String return fromBytes(Raw.cb_string());
+    public static inline function cb_string2():String return fromBytes(Raw.cb_string2());
     public static inline function cb_take_overflow():Bool return Raw.cb_take_overflow();
+
+    // Distance filter, version, sound data, and recording
+    public static inline function chan_set_3d_distance_filter(handle:Int, custom:Bool, customLevel:Float, centerFreq:Float):Int return Raw.chan_set_3d_distance_filter(handle, custom, customLevel, centerFreq);
+    public static inline function chan_get_3d_distance_filter(handle:Int):Int return Raw.chan_get_3d_distance_filter(handle, Scratch.floatBuf());
+    public static inline function cg_set_3d_distance_filter(handle:Int, custom:Bool, customLevel:Float, centerFreq:Float):Int return Raw.cg_set_3d_distance_filter(handle, custom, customLevel, centerFreq);
+    public static inline function cg_get_3d_distance_filter(handle:Int):Int return Raw.cg_get_3d_distance_filter(handle, Scratch.floatBuf());
+    public static inline function sys_get_version():String return fromBytes(Raw.sys_get_version());
+    public static inline function core_sound_read_data(handle:Int, data:haxe.io.Bytes, len:Int):Int return Raw.core_sound_read_data(handle, data.getData().bytes, len);
+    public static inline function core_sound_seek_data(handle:Int, pcm:Int):Int return Raw.core_sound_seek_data(handle, pcm);
+    public static inline function sys_get_record_num_drivers():Int return Raw.sys_get_record_num_drivers(Scratch.intBuf());
+    public static inline function sys_get_record_driver_info(id:Int):String return fromBytes(Raw.sys_get_record_driver_info(id, Scratch.intBuf()));
+    public static inline function sys_get_record_driver_guid(id:Int):String return fromBytes(Raw.sys_get_record_driver_guid(id));
+    public static inline function core_create_record_sound(sampleRate:Int, channels:Int, seconds:Int):Int return Raw.core_create_record_sound(sampleRate, channels, seconds);
+    public static inline function sys_record_start(id:Int, soundHandle:Int, loop:Bool):Int return Raw.sys_record_start(id, soundHandle, loop);
+    public static inline function sys_record_stop(id:Int):Int return Raw.sys_record_stop(id);
+    public static inline function sys_is_recording(id:Int):Bool return Raw.sys_is_recording(id);
+    public static inline function sys_get_record_position(id:Int):Int return Raw.sys_get_record_position(id);
+
+    // Custom 3D rolloff and geometry
+    public static inline function chan_set_3d_custom_rolloff(handle:Int, data:haxe.io.Bytes, count:Int):Int return Raw.chan_set_3d_custom_rolloff(handle, data == null ? null : data.getData().bytes, count);
+    public static inline function chan_get_3d_custom_rolloff(handle:Int):Int return Raw.chan_get_3d_custom_rolloff(handle, Scratch.floatBuf());
+    public static inline function cg_set_3d_custom_rolloff(handle:Int, data:haxe.io.Bytes, count:Int):Int return Raw.cg_set_3d_custom_rolloff(handle, data == null ? null : data.getData().bytes, count);
+    public static inline function cg_get_3d_custom_rolloff(handle:Int):Int return Raw.cg_get_3d_custom_rolloff(handle, Scratch.floatBuf());
+    public static inline function core_sound_set_3d_custom_rolloff(handle:Int, data:haxe.io.Bytes, count:Int):Int return Raw.core_sound_set_3d_custom_rolloff(handle, data == null ? null : data.getData().bytes, count);
+    public static inline function core_sound_get_3d_custom_rolloff(handle:Int):Int return Raw.core_sound_get_3d_custom_rolloff(handle, Scratch.floatBuf());
+    public static inline function sys_create_geometry(maxPolygons:Int, maxVertices:Int):Int return Raw.sys_create_geometry(maxPolygons, maxVertices);
+    public static inline function sys_set_geometry_settings(maxWorldSize:Float):Int return Raw.sys_set_geometry_settings(maxWorldSize);
+    public static inline function sys_get_geometry_settings():Float return Raw.sys_get_geometry_settings();
+    public static inline function sys_get_geometry_occlusion(lx:Float, ly:Float, lz:Float, sx:Float, sy:Float, sz:Float):Int return Raw.sys_get_geometry_occlusion(lx, ly, lz, sx, sy, sz, Scratch.floatBuf());
+    public static inline function sys_load_geometry(data:haxe.io.Bytes, len:Int):Int return Raw.sys_load_geometry(data == null ? null : data.getData().bytes, len);
+    public static inline function geo_release(handle:Int):Int return Raw.geo_release(handle);
+    public static inline function geo_add_polygon(handle:Int, direct:Float, reverb:Float, doubleSided:Bool, vertices:haxe.io.Bytes, count:Int):Int return Raw.geo_add_polygon(handle, direct, reverb, doubleSided, vertices == null ? null : vertices.getData().bytes, count);
+    public static inline function geo_get_num_polygons(handle:Int):Int return Raw.geo_get_num_polygons(handle);
+    public static inline function geo_get_max_polygons(handle:Int):Int return Raw.geo_get_max_polygons(handle, Scratch.intBuf());
+    public static inline function geo_get_polygon_num_vertices(handle:Int, index:Int):Int return Raw.geo_get_polygon_num_vertices(handle, index);
+    public static inline function geo_set_polygon_vertex(handle:Int, index:Int, vertexIndex:Int, x:Float, y:Float, z:Float):Int return Raw.geo_set_polygon_vertex(handle, index, vertexIndex, x, y, z);
+    public static inline function geo_get_polygon_vertex(handle:Int, index:Int, vertexIndex:Int):Int return Raw.geo_get_polygon_vertex(handle, index, vertexIndex, Scratch.floatBuf());
+    public static inline function geo_set_polygon_attributes(handle:Int, index:Int, direct:Float, reverb:Float, doubleSided:Bool):Int return Raw.geo_set_polygon_attributes(handle, index, direct, reverb, doubleSided);
+    public static inline function geo_get_polygon_attributes(handle:Int, index:Int):Int return Raw.geo_get_polygon_attributes(handle, index, Scratch.floatBuf());
+    public static inline function geo_set_active(handle:Int, active:Bool):Int return Raw.geo_set_active(handle, active);
+    public static inline function geo_get_active(handle:Int):Bool return Raw.geo_get_active(handle);
+    public static inline function geo_set_rotation(handle:Int, fx:Float, fy:Float, fz:Float, ux:Float, uy:Float, uz:Float):Int return Raw.geo_set_rotation(handle, fx, fy, fz, ux, uy, uz);
+    public static inline function geo_get_rotation(handle:Int):Int return Raw.geo_get_rotation(handle, Scratch.floatBuf());
+    public static inline function geo_set_position(handle:Int, x:Float, y:Float, z:Float):Int return Raw.geo_set_position(handle, x, y, z);
+    public static inline function geo_get_position(handle:Int):Int return Raw.geo_get_position(handle, Scratch.floatBuf());
+    public static inline function geo_set_scale(handle:Int, x:Float, y:Float, z:Float):Int return Raw.geo_set_scale(handle, x, y, z);
+    public static inline function geo_get_scale(handle:Int):Int return Raw.geo_get_scale(handle, Scratch.floatBuf());
+    public static inline function geo_save(handle:Int, data:haxe.io.Bytes, len:Int):Int return Raw.geo_save(handle, data == null ? null : data.getData().bytes, len);
+
+    // Completeness tail: getters and setters on objects the library already wraps
+    public static inline function core_sound_set_3d_cone_settings(handle:Int, inside:Float, outside:Float, outsideVolume:Float):Int return Raw.core_sound_set_3d_cone_settings(handle, inside, outside, outsideVolume);
+    public static inline function core_sound_get_3d_cone_settings(handle:Int):Int return Raw.core_sound_get_3d_cone_settings(handle, Scratch.floatBuf());
+    public static inline function core_sound_set_3d_min_max(handle:Int, minDistance:Float, maxDistance:Float):Int return Raw.core_sound_set_3d_min_max(handle, minDistance, maxDistance);
+    public static inline function core_sound_get_3d_min_max(handle:Int):Int return Raw.core_sound_get_3d_min_max(handle, Scratch.floatBuf());
+    public static inline function chan_set_dsp_index(handle:Int, dsp:Int, index:Int):Int return Raw.chan_set_dsp_index(handle, dsp, index);
+    public static inline function chan_get_dsp_index(handle:Int, dsp:Int):Int return Raw.chan_get_dsp_index(handle, dsp);
+    public static inline function chan_get_fade_points(handle:Int):Int return Raw.chan_get_fade_points(handle, Scratch.floatBuf());
+    public static inline function chan_get_mix_matrix(handle:Int, inChannelHop:Int):Int return Raw.chan_get_mix_matrix(handle, Scratch.floatBuf(), Scratch.intBuf(), inChannelHop);
+    public static inline function chan_get_channel_group(handle:Int):Int return Raw.chan_get_channel_group(handle);
+    public static inline function cg_set_dsp_index(handle:Int, dsp:Int, index:Int):Int return Raw.cg_set_dsp_index(handle, dsp, index);
+    public static inline function cg_get_dsp_index(handle:Int, dsp:Int):Int return Raw.cg_get_dsp_index(handle, dsp);
+    public static inline function cg_get_fade_points(handle:Int):Int return Raw.cg_get_fade_points(handle, Scratch.floatBuf());
+    public static inline function cg_get_mix_matrix(handle:Int, inChannelHop:Int):Int return Raw.cg_get_mix_matrix(handle, Scratch.floatBuf(), Scratch.intBuf(), inChannelHop);
+    public static inline function sg_get_name(handle:Int):String return fromBytes(Raw.sg_get_name(handle));
+    public static inline function sg_get_sound(handle:Int, index:Int):Int return Raw.sg_get_sound(handle, index);
+    public static inline function sys_get_channel(index:Int):Int return Raw.sys_get_channel(index);
+    public static inline function sys_get_output():Int return Raw.sys_get_output();
+    public static inline function sys_get_speaker_mode_channels(mode:Int):Int return Raw.sys_get_speaker_mode_channels(mode);
+    public static inline function sys_get_default_mix_matrix(sourceMode:Int, targetMode:Int, hop:Int):Int return Raw.sys_get_default_mix_matrix(sourceMode, targetMode, hop, Scratch.floatBuf());
+    public static inline function dsp_get_parameter_info(handle:Int, index:Int):String return fromBytes(Raw.dsp_get_parameter_info(handle, index, Scratch.floatBuf(), Scratch.intBuf()));
+
+    /** ibuf[0] version, [1] channels, [2] config width, [3] config height. Returns the name. */
+    public static inline function dsp_get_info(handle:Int):String return fromBytes(Raw.dsp_get_info(handle, Scratch.intBuf()));
+    /** Copies up to cap bytes of the data block into out (null asks for the size). Returns the length, -1 on failure. */
+    public static inline function dsp_get_param_data(handle:Int, index:Int, out:haxe.io.Bytes, cap:Int):Int return Raw.dsp_get_param_data(handle, index, out == null ? null : out.getData().bytes, cap);
+    /** Scratch float buffer [0..23] = relative then absolute attributes. */
+    public static inline function dsp_set_param_3d_attributes(handle:Int, index:Int):Int return Raw.dsp_set_param_3d_attributes(handle, index, Scratch.floatBuf());
+    /** Scratch float buffer [0..115] = relative[8], weight[8], absolute. */
+    public static inline function dsp_set_param_3d_attributes_multi(handle:Int, index:Int, numListeners:Int):Int return Raw.dsp_set_param_3d_attributes_multi(handle, index, numListeners, Scratch.floatBuf());
+    /** Fills Scratch float buffer peak then rms per channel, int buffer [0] numsamples, [1] numchannels. Returns the channel count. */
+    public static inline function dsp_get_metering_info(handle:Int, input:Bool):Int return Raw.dsp_get_metering_info(handle, input, Scratch.floatBuf(), Scratch.intBuf());
+    /** Fills Scratch float buffer with one channel's bins, int buffer [0] numchannels, [1] length. Returns the bins written. */
+    public static inline function dsp_fft_get_spectrum_channel(handle:Int, channel:Int, maxBins:Int):Int return Raw.dsp_fft_get_spectrum_channel(handle, channel, Scratch.floatBuf(), maxBins, Scratch.intBuf());
+    public static inline function dsp_get_parameter_text(handle:Int, index:Int, kind:Int):String return fromBytes(Raw.dsp_get_parameter_text(handle, index, kind));
+    /** A typed data parameter of the faxe_dspdata.h kind from the Scratch float and int buffers. Returns the FMOD result. */
+    public static inline function dsp_set_param_typed(handle:Int, index:Int, kind:Int):Int return Raw.dsp_set_param_typed(handle, index, kind, Scratch.floatBuf(), Scratch.intBuf());
+    /** Reads a data parameter back as the faxe_dspdata.h kind into the Scratch float and int buffers. Returns the FMOD result. */
+    public static inline function dsp_get_param_typed(handle:Int, index:Int, kind:Int):Int return Raw.dsp_get_param_typed(handle, index, kind, Scratch.floatBuf(), Scratch.intBuf());
+    public static inline function dsp_get_data_parameter_index(handle:Int, dataType:Int):Int return Raw.dsp_get_data_parameter_index(handle, dataType);
+    public static inline function dsp_set_channel_format(handle:Int, mask:Int, channels:Int, speakerMode:Int):Int return Raw.dsp_set_channel_format(handle, mask, channels, speakerMode);
+    public static inline function dsp_get_channel_format(handle:Int):Int return Raw.dsp_get_channel_format(handle, Scratch.intBuf());
+    public static inline function dsp_get_output_channel_format(handle:Int, inMask:Int, inChannels:Int, inMode:Int):Int return Raw.dsp_get_output_channel_format(handle, inMask, inChannels, inMode, Scratch.intBuf());
+    public static inline function conn_set_mix_matrix(handle:Int, outChannels:Int, inChannels:Int, inChannelHop:Int):Int return Raw.conn_set_mix_matrix(handle, Scratch.floatBuf(), outChannels, inChannels, inChannelHop);
+    public static inline function conn_get_mix_matrix(handle:Int, inChannelHop:Int):Int return Raw.conn_get_mix_matrix(handle, Scratch.floatBuf(), Scratch.intBuf(), inChannelHop);
 
     // Debug
     public static inline function debug_live_handle_count():Int return Raw.debug_live_handle_count();
     public static inline function binding_abi_version():Int return Raw.binding_abi_version();
+
+    // System extras
+    public static inline function replay_get_command_count(handle:Int):Int return Raw.replay_get_command_count(handle);
+    public static inline function replay_get_command_info(handle:Int, index:Int):String return fromBytes(Raw.replay_get_command_info(handle, index, Scratch.intBuf(), Scratch.floatBuf()));
+    public static inline function replay_get_command_string(handle:Int, index:Int):String return fromBytes(Raw.replay_get_command_string(handle, index));
+    public static inline function replay_get_command_at_time(handle:Int, seconds:Float):Int return Raw.replay_get_command_at_time(handle, seconds);
+    public static inline function replay_seek_to_command(handle:Int, index:Int):Int return Raw.replay_seek_to_command(handle, index);
+    public static inline function replay_get_playback_state(handle:Int):Int return Raw.replay_get_playback_state(handle);
+    public static inline function replay_set_bank_path(handle:Int, path:String):Int return Raw.replay_set_bank_path(handle, toBytes(path));
+    public static inline function sys_lock_dsp():Int return Raw.sys_lock_dsp();
+    public static inline function sys_unlock_dsp():Int return Raw.sys_unlock_dsp();
+    public static inline function sys_get_sound_info(key:String):String return fromBytes(Raw.sys_get_sound_info(toBytes(key), Scratch.intBuf()));
+    public static inline function sys_get_memory_stats(blocking:Bool):Int return Raw.sys_get_memory_stats(blocking, Scratch.intBuf());
+    public static inline function sys_get_file_usage():Int return Raw.sys_get_file_usage(Scratch.floatBuf());
+    public static inline function sys_set_network_proxy(proxy:String):Int return Raw.sys_set_network_proxy(toBytes(proxy));
+    public static inline function sys_get_network_proxy():String return fromBytes(Raw.sys_get_network_proxy());
+    public static inline function sys_set_network_timeout(timeoutMs:Int):Int return Raw.sys_set_network_timeout(timeoutMs);
+    public static inline function sys_get_network_timeout():Int return Raw.sys_get_network_timeout();
+    public static inline function sys_set_speaker_position(speaker:Int, x:Float, y:Float, active:Bool):Int return Raw.sys_set_speaker_position(speaker, x, y, active);
+    public static inline function sys_get_speaker_position(speaker:Int):Int return Raw.sys_get_speaker_position(speaker, Scratch.floatBuf());
+    // Plugins
+    public static inline function sys_set_plugin_path(path:String):Int return Raw.sys_set_plugin_path(toBytes(path));
+    public static inline function sys_load_plugin(path:String, priority:Int):Int return Raw.sys_load_plugin(toBytes(path), priority);
+    public static inline function sys_unload_plugin(handle:Int):Int return Raw.sys_unload_plugin(handle);
+    public static inline function sys_get_num_plugins(type:Int):Int return Raw.sys_get_num_plugins(type);
+    public static inline function sys_get_plugin_handle(type:Int, index:Int):Int return Raw.sys_get_plugin_handle(type, index);
+    public static inline function sys_get_plugin_info(handle:Int):String return fromBytes(Raw.sys_get_plugin_info(handle, Scratch.intBuf()));
+    public static inline function sys_get_num_nested_plugins(handle:Int):Int return Raw.sys_get_num_nested_plugins(handle);
+    public static inline function sys_get_nested_plugin(handle:Int, index:Int):Int return Raw.sys_get_nested_plugin(handle, index);
+    public static inline function dsp_create_by_plugin(pluginHandle:Int):Int return Raw.dsp_create_by_plugin(pluginHandle);
+    public static inline function dsp_get_info_by_plugin(handle:Int):String return fromBytes(Raw.dsp_get_info_by_plugin(handle, Scratch.intBuf()));
+    // Sound extras: tracker music, subsounds, tags, and advanced settings readback
+    public static inline function core_sound_get_music_num_channels(handle:Int):Int return Raw.core_sound_get_music_num_channels(handle);
+    public static inline function core_sound_set_music_channel_volume(handle:Int, channel:Int, volume:Float):Int return Raw.core_sound_set_music_channel_volume(handle, channel, volume);
+    public static inline function core_sound_get_music_channel_volume(handle:Int, channel:Int):Float return Raw.core_sound_get_music_channel_volume(handle, channel);
+    public static inline function core_sound_set_music_speed(handle:Int, speed:Float):Int return Raw.core_sound_set_music_speed(handle, speed);
+    public static inline function core_sound_get_music_speed(handle:Int):Float return Raw.core_sound_get_music_speed(handle);
+    public static inline function core_sound_get_num_sub_sounds(handle:Int):Int return Raw.core_sound_get_num_sub_sounds(handle);
+    public static inline function core_sound_get_sub_sound(handle:Int, index:Int):Int return Raw.core_sound_get_sub_sound(handle, index);
+    public static inline function core_sound_get_sub_sound_parent(handle:Int):Int return Raw.core_sound_get_sub_sound_parent(handle);
+    public static inline function core_sound_get_num_tags(handle:Int):Int return Raw.core_sound_get_num_tags(handle, Scratch.intBuf());
+    public static inline function core_sound_get_tag(handle:Int, name:String, index:Int):String return fromBytes(Raw.core_sound_get_tag(handle, toBytes(name), index, Scratch.intBuf(), Scratch.floatBuf()));
+    public static inline function core_sound_get_tag_string(handle:Int, name:String, index:Int):String return fromBytes(Raw.core_sound_get_tag_string(handle, toBytes(name), index));
+    public static inline function sys_get_advanced_settings():Int return Raw.sys_get_advanced_settings(Scratch.intBuf(), Scratch.floatBuf());
+    public static inline function sys_get_studio_advanced_settings():Int return Raw.sys_get_studio_advanced_settings(Scratch.intBuf());
+    public static inline function dsp_add_input_preallocated(handle:Int, inputHandle:Int, connHandle:Int):Int return Raw.dsp_add_input_preallocated(handle, inputHandle, connHandle);
+    public static inline function chan_set_mix_levels_input(handle:Int, count:Int):Int return Raw.chan_set_mix_levels_input(handle, Scratch.floatBuf(), count);
+    public static inline function chan_set_mix_levels_output(handle:Int, fl:Float, fr:Float, c:Float, lfe:Float, sl:Float, sr:Float, bl:Float, br:Float):Int return Raw.chan_set_mix_levels_output(handle, fl, fr, c, lfe, sl, sr, bl, br);
+    public static inline function cg_set_mix_levels_input(handle:Int, count:Int):Int return Raw.cg_set_mix_levels_input(handle, Scratch.floatBuf(), count);
+    public static inline function cg_set_mix_levels_output(handle:Int, fl:Float, fr:Float, c:Float, lfe:Float, sl:Float, sr:Float, bl:Float, br:Float):Int return Raw.cg_set_mix_levels_output(handle, fl, fr, c, lfe, sl, sr, bl, br);
+    public static inline function sys_get_dsp_info_by_type(type:Int):String return fromBytes(Raw.sys_get_dsp_info_by_type(type, Scratch.intBuf()));
+    public static inline function sys_get_output_by_plugin():Int return Raw.sys_get_output_by_plugin();
+    public static inline function sys_set_output_by_plugin(handle:Int):Int return Raw.sys_set_output_by_plugin(handle);
+    public static inline function core_sound_lock(handle:Int, offset:Int, length:Int, out:haxe.io.Bytes):Int return Raw.core_sound_lock(handle, offset, length, out.getData().bytes);
+    public static inline function core_sound_unlock(handle:Int, data:haxe.io.Bytes, len:Int):Int return Raw.core_sound_unlock(handle, data.getData().bytes, len);
+    public static inline function sys_set_disk_busy(busy:Bool):Int return Raw.sys_set_disk_busy(busy);
+    public static inline function sys_get_disk_busy():Bool return Raw.sys_get_disk_busy();
+    public static inline function replay_get_current_command(handle:Int):Int return Raw.replay_get_current_command(handle, Scratch.floatBuf());
+
+    public static inline function cg_get_num_dsps(handle:Int):Int return Raw.cg_get_num_dsps(handle);
+    public static inline function cg_get_dsp(handle:Int, index:Int):Int return Raw.cg_get_dsp(handle, index);
+
+    //// Init settings and system info
+    public static inline function sys_set_init_format(outputType:Int, resamplerMethod:Int, rawSpeakers:Int):Int return Raw.sys_set_init_format(outputType, resamplerMethod, rawSpeakers);
+    public static inline function sys_memory_initialize(poolSize:Int):Int return Raw.sys_memory_initialize(poolSize);
+    public static inline function sys_thread_set_attributes(type:Int, priority:Int, stackSize:Int, affinity:Int):Int return Raw.sys_thread_set_attributes(type, priority, stackSize, affinity);
+    public static inline function sys_debug_initialize(flags:Int, mode:Int, filename:String):Int return Raw.sys_debug_initialize(flags, mode, toBytes(filename));
+    public static inline function sys_get_driver_info(id:Int):String return fromBytes(Raw.sys_get_driver_info(id, Scratch.intBuf()));
+    public static inline function sys_get_driver_guid(id:Int):String return fromBytes(Raw.sys_get_driver_guid(id));
+    public static inline function sys_attach_channel_group_to_port(portType:Int, portIndex:Int, group:Int, passThru:Bool):Int return Raw.sys_attach_channel_group_to_port(portType, portIndex, group, passThru);
+    public static inline function sys_detach_channel_group_from_port(group:Int):Int return Raw.sys_detach_channel_group_from_port(group);
+
+    //// Audit against FMOD's C# integration
+    public static inline function bus_get_port_index(handle:Int):Int return Raw.bus_get_port_index(handle);
+    public static inline function bus_set_port_index(handle:Int, index:Int):Int return Raw.bus_set_port_index(handle, index);
+    public static inline function evd_get_parameter_label_by_index(handle:Int, index:Int, labelIndex:Int):String return fromBytes(Raw.evd_get_parameter_label_by_index(handle, index, labelIndex));
+    /** Reads id pairs from the Scratch int buffer and values from the float buffer. */
+    public static inline function sys_set_parameters_by_ids(count:Int, ignoreSeekSpeed:Bool):Int return Raw.sys_set_parameters_by_ids(Scratch.intBuf(), Scratch.floatBuf(), count, ignoreSeekSpeed);
+    public static inline function evi_set_parameters_by_ids(handle:Int, count:Int, ignoreSeekSpeed:Bool):Int return Raw.evi_set_parameters_by_ids(handle, Scratch.intBuf(), Scratch.floatBuf(), count, ignoreSeekSpeed);
+    public static inline function sys_get_software_channels():Int return Raw.sys_get_software_channels();
+    /** Fills Scratch int buffer: [0]=buffer length in samples, [1]=buffer count */
+    public static inline function sys_get_dsp_buffer_size():Int return Raw.sys_get_dsp_buffer_size(Scratch.intBuf());
+    /** Fills Scratch int buffer: [0]=file buffer size, [1]=its time unit */
+    public static inline function sys_get_stream_buffer_size():Int return Raw.sys_get_stream_buffer_size(Scratch.intBuf());
 }
 
 @:hlNative("hlaxe_fmod")
@@ -632,11 +828,12 @@ private extern class Raw {
     static function sys_get_parameter_description_count():Int;
     static function sys_get_parameter_description_by_index(index:Int, fout:hl.Bytes, iout:hl.Bytes):hl.Bytes;
     static function sys_get_parameter_description_by_name(name:hl.Bytes, fout:hl.Bytes, iout:hl.Bytes):hl.Bytes;
+    static function sys_last_parameter_guid():hl.Bytes;
     static function sys_get_parameter_label(parameterName:hl.Bytes, labelIndex:Int):hl.Bytes;
     static function sys_get_num_listeners():Int;
     static function sys_set_num_listeners(count:Int):Int;
     static function sys_get_listener_attributes(index:Int, fout:hl.Bytes):Int;
-    static function sys_set_listener_attributes(index:Int, f:hl.Bytes):Int;
+    static function sys_set_listener_attributes(index:Int, f:hl.Bytes, hasAttenuation:Bool):Int;
     static function sys_get_listener_weight(index:Int):Float;
     static function sys_set_listener_weight(index:Int, weight:Float):Int;
     static function sys_load_bank_file(path:hl.Bytes, flags:Int):Int;
@@ -647,7 +844,7 @@ private extern class Raw {
     static function sys_get_buffer_usage(iout:hl.Bytes, fout:hl.Bytes):Int;
     static function sys_reset_buffer_usage():Int;
     static function sys_get_memory_usage(out:hl.Bytes):Int;
-    static function sys_init_ex(numChannels:Int, sampleRate:Int, speakerMode:Int, studioFlags:Int):Int;
+    static function sys_init_ex(numChannels:Int, sampleRate:Int, speakerMode:Int, studioFlags:Int, dspBufferLength:Int, dspNumBuffers:Int, softwareChannels:Int, streamBufferSize:Int, initFlags:Int, maxMPEGCodecs:Int, maxVorbisCodecs:Int, maxFADPCMCodecs:Int, vol0VirtualVol:Float, defaultDecodeBufferSize:Int, profilePort:Int, geometryMaxFadeTime:Int, distanceFilterCenterFreq:Float, randomSeed:Int, commandQueueSize:Int, handleInitialSize:Int, studioUpdatePeriod:Int, idleSampleDataPoolSize:Int, streamingScheduleDelay:Int, encryptionKey:hl.Bytes):Int;
     static function sys_set_debug_level(level:Int):Int;
     static function sys_load_bank_async(path:hl.Bytes):Int;
     static function bus_is_valid(handle:Int):Bool;
@@ -752,15 +949,20 @@ private extern class Raw {
     static function evi_get_cpu_usage(handle:Int, out:hl.Bytes):Int;
     static function evi_get_memory_usage(handle:Int, out:hl.Bytes):Int;
     static function ps_assign(handle:Int, key:hl.Bytes):Int;
+    static function ps_assign_sound(handle:Int, sound:Int, subsoundIndex:Int):Int;
+    static function ps_assign_named(handle:Int, name:hl.Bytes, key:hl.Bytes):Int;
     static function ps_clear(handle:Int):Int;
-    static function core_create_sound(path:hl.Bytes, mode:Int):Int;
+    static function core_create_sound(path:hl.Bytes, mode:Int, initialSubsound:Int):Int;
+    static function core_create_sound_memory(data:hl.Bytes, len:Int, mode:Int):Int;
+    static function core_create_sound_ex(path:hl.Bytes, mode:Int, ibuf:hl.Bytes, dls:hl.Bytes, key:hl.Bytes, guid:hl.Bytes):Int;
+    static function core_create_sound_memory_ex(data:hl.Bytes, len:Int, mode:Int, ibuf:hl.Bytes, dls:hl.Bytes, key:hl.Bytes, guid:hl.Bytes):Int;
     static function core_release_sound(handle:Int):Int;
-    static function core_get_sound_length(handle:Int):Int;
+    static function core_get_sound_length(handle:Int, unit:Int):Int;
     static function core_pcm_create(sampleRate:Int, channels:Int, ringBytes:Int):Int;
     static function core_pcm_write(handle:Int, data:hl.Bytes, len:Int):Int;
     static function core_pcm_space(handle:Int):Int;
     static function core_pcm_underruns(handle:Int):Int;
-    static function core_pcm_play(handle:Int, startPaused:Bool):Int;
+    static function core_pcm_play(handle:Int, group:Int, startPaused:Bool):Int;
     static function core_pcm_release(handle:Int):Int;
     static function chan_set_volume(handle:Int, volume:Float):Int;
     static function chan_get_volume(handle:Int):Float;
@@ -806,8 +1008,8 @@ private extern class Raw {
     static function chan_set_frequency(handle:Int, frequency:Float):Int;
     static function chan_get_frequency(handle:Int):Float;
     static function chan_set_loop_count(handle:Int, loopCount:Int):Int;
-    static function chan_get_position(handle:Int):Int;
-    static function chan_set_position(handle:Int, positionMs:Int):Int;
+    static function chan_get_position(handle:Int, unit:Int):Int;
+    static function chan_set_position(handle:Int, position:Int, unit:Int):Int;
     static function chan_set_channel_group(handle:Int, groupHandle:Int):Int;
     static function chan_add_dsp(handle:Int, index:Int, dspHandle:Int):Int;
     static function chan_remove_dsp(handle:Int, dspHandle:Int):Int;
@@ -817,12 +1019,12 @@ private extern class Raw {
     static function bus_lock_channel_group(handle:Int):Int;
     static function bus_unlock_channel_group(handle:Int):Int;
     static function bus_get_channel_group(handle:Int):Int;
-    static function sys_play_dsp(dspHandle:Int, startPaused:Bool):Int;
+    static function sys_play_dsp(dspHandle:Int, group:Int, startPaused:Bool):Int;
     static function sys_set_reverb_properties(instance:Int, fbuf:hl.Bytes):Int;
     static function sys_get_reverb_properties(instance:Int, fbuf:hl.Bytes):Int;
     static function core_pcm_create_3d(sampleRate:Int, channels:Int, ringBytes:Int):Int;
     static function dsp_add_input(handle:Int, inputHandle:Int, type:Int):Int;
-    static function dsp_disconnect_from(handle:Int, inputHandle:Int):Int;
+    static function dsp_disconnect_from(handle:Int, inputHandle:Int, connHandle:Int):Int;
     static function dsp_disconnect_all(handle:Int, inputs:Bool, outputs:Bool):Int;
     static function dsp_get_num_inputs(handle:Int):Int;
     static function dsp_get_num_outputs(handle:Int):Int;
@@ -831,7 +1033,7 @@ private extern class Raw {
     static function dspconn_set_mix(handle:Int, mix:Float):Int;
     static function dspconn_get_mix(handle:Int):Float;
     static function dspconn_get_type(handle:Int):Int;
-    static function cg_add_group(handle:Int, childHandle:Int):Int;
+    static function cg_add_group(handle:Int, childHandle:Int, propagateDspClock:Bool):Int;
     static function cg_get_num_groups(handle:Int):Int;
     static function cg_get_group(handle:Int, index:Int):Int;
     static function cg_get_parent_group(handle:Int):Int;
@@ -846,7 +1048,7 @@ private extern class Raw {
     static function chan_set_3d_spread(handle:Int, angle:Float):Int;
     static function chan_set_3d_level(handle:Int, level:Float):Int;
     static function chan_set_3d_doppler_level(handle:Int, level:Float):Int;
-    static function chan_set_mix_matrix(handle:Int, fbuf:hl.Bytes, outChannels:Int, inChannels:Int):Int;
+    static function chan_set_mix_matrix(handle:Int, fbuf:hl.Bytes, outChannels:Int, inChannels:Int, inChannelHop:Int):Int;
     static function chan_get_dsp_clock(handle:Int, fbuf:hl.Bytes):Int;
     static function chan_set_delay(handle:Int, startClock:Float, endClock:Float, stopChannels:Bool):Int;
     static function chan_add_fade_point(handle:Int, clock:Float, volume:Float):Int;
@@ -864,26 +1066,29 @@ private extern class Raw {
     static function r3d_get_properties(handle:Int, fbuf:hl.Bytes):Int;
     static function r3d_set_active(handle:Int, active:Bool):Int;
     static function core_create_sound_pcm(data:hl.Bytes, len:Int, sampleRate:Int, channels:Int):Int;
-    static function core_play_sound(handle:Int, startPaused:Bool):Int;
+    static function core_play_sound(handle:Int, group:Int, startPaused:Bool):Int;
     static function sound_set_defaults(handle:Int, frequency:Float, priority:Int):Int;
     static function sound_get_defaults(handle:Int, fbuf:hl.Bytes):Int;
-    static function sound_set_loop_points(handle:Int, startMs:Int, endMs:Int):Int;
-    static function sound_get_loop_points(handle:Int, ibuf:hl.Bytes):Int;
+    static function sound_set_loop_points(handle:Int, start:Int, startType:Int, end:Int, endType:Int):Int;
+    static function sound_get_loop_points(handle:Int, startType:Int, endType:Int, ibuf:hl.Bytes):Int;
     static function sound_set_mode(handle:Int, mode:Int):Int;
     static function sound_get_mode(handle:Int):Int;
     static function sound_get_format(handle:Int, ibuf:hl.Bytes):Int;
     static function sound_get_open_state(handle:Int):Int;
+    static function sound_get_open_state_info(handle:Int, ibuf:hl.Bytes):Int;
     static function sys_get_channels_playing(ibuf:hl.Bytes):Int;
     static function sys_mixer_suspend():Int;
     static function sys_mixer_resume():Int;
     static function sys_get_software_format(ibuf:hl.Bytes):Int;
     static function dsp_get_cpu_usage(handle:Int, ibuf:hl.Bytes):Int;
     static function chan_set_callback(handle:Int, enabled:Bool):Int;
-    static function sound_add_sync_point(handle:Int, offsetMs:Int, name:hl.Bytes):Int;
+    static function sys_set_callback_mask(mask:Int):Int;
+    static function sys_set_studio_callback_mask(mask:Int):Int;
+    static function sound_add_sync_point(handle:Int, offset:Int, unit:Int, name:hl.Bytes):Int;
     static function sound_delete_sync_point(handle:Int, index:Int):Int;
     static function sound_get_num_sync_points(handle:Int):Int;
     static function sound_get_sync_point_name(handle:Int, index:Int):hl.Bytes;
-    static function sound_get_sync_point_offset(handle:Int, index:Int):Int;
+    static function sound_get_sync_point_offset(handle:Int, index:Int, unit:Int):Int;
     static function sys_create_sound_group(name:hl.Bytes):Int;
     static function sys_get_master_sound_group():Int;
     static function sg_release(handle:Int):Int;
@@ -913,18 +1118,18 @@ private extern class Raw {
     static function dsp_get_active(handle:Int):Bool;
     static function dsp_get_metering_enabled(handle:Int, ibuf:hl.Bytes):Int;
 
-    static function sys_load_bank_memory(data:hl.Bytes, len:Int):Int;
+    static function sys_load_bank_memory(data:hl.Bytes, len:Int, flags:Int):Int;
     static function evi_get_channel_group(handle:Int):Int;
-    static function sys_start_command_capture(path:hl.Bytes):Int;
+    static function sys_start_command_capture(path:hl.Bytes, flags:Int):Int;
     static function sys_stop_command_capture():Int;
-    static function sys_load_command_replay(path:hl.Bytes):Int;
+    static function sys_load_command_replay(path:hl.Bytes, flags:Int):Int;
     static function replay_release(handle:Int):Int;
     static function replay_is_valid(handle:Int):Bool;
     static function replay_start(handle:Int):Int;
     static function replay_stop(handle:Int):Int;
     static function replay_set_paused(handle:Int, paused:Bool):Int;
     static function replay_get_paused(handle:Int):Bool;
-    static function replay_seek_to_time(handle:Int, timeMs:Int):Int;
+    static function replay_seek_to_time(handle:Int, seconds:Float):Int;
     static function replay_get_length(handle:Int):Float;
     static function chan_set_priority(handle:Int, priority:Int):Int;
     static function chan_get_priority(handle:Int):Int;
@@ -933,8 +1138,8 @@ private extern class Raw {
     static function chan_set_volume_ramp(handle:Int, ramp:Bool):Int;
     static function chan_get_volume_ramp(handle:Int):Bool;
     static function chan_get_current_sound(handle:Int):Int;
-    static function chan_set_loop_points(handle:Int, startMs:Int, endMs:Int):Int;
-    static function chan_get_loop_points(handle:Int, ibuf:hl.Bytes):Int;
+    static function chan_set_loop_points(handle:Int, start:Int, startType:Int, end:Int, endType:Int):Int;
+    static function chan_get_loop_points(handle:Int, startType:Int, endType:Int, ibuf:hl.Bytes):Int;
     static function chan_get_reverb_wet(handle:Int, instance:Int):Float;
     static function chan_get_index(handle:Int):Int;
     static function chan_get_3d_cone_orientation(handle:Int, fbuf:hl.Bytes):Int;
@@ -968,6 +1173,11 @@ private extern class Raw {
     static function cg_set_3d_min_max(handle:Int, minDist:Float, maxDist:Float):Int;
     static function cg_get_3d_min_max(handle:Int, fbuf:hl.Bytes):Int;
     static function cg_set_3d_occlusion(handle:Int, direct:Float, reverb:Float):Int;
+    static function cg_get_3d_occlusion(handle:Int, fbuf:hl.Bytes):Int;
+    static function cg_get_delay(handle:Int, fbuf:hl.Bytes):Int;
+    static function cg_get_low_pass_gain(handle:Int):Float;
+    static function cg_is_playing(handle:Int):Bool;
+    static function cg_set_callback(handle:Int, enabled:Bool):Int;
     static function cg_set_3d_level(handle:Int, level:Float):Int;
     static function cg_get_3d_level(handle:Int):Float;
     static function cg_set_3d_spread(handle:Int, angle:Float):Int;
@@ -980,7 +1190,7 @@ private extern class Raw {
     static function cg_get_3d_cone_orientation(handle:Int, fbuf:hl.Bytes):Int;
     static function cg_set_reverb_wet(handle:Int, instance:Int, wet:Float):Int;
     static function cg_get_reverb_wet(handle:Int, instance:Int):Float;
-    static function cg_set_mix_matrix(handle:Int, fbuf:hl.Bytes, outChannels:Int, inChannels:Int):Int;
+    static function cg_set_mix_matrix(handle:Int, fbuf:hl.Bytes, outChannels:Int, inChannels:Int, inChannelHop:Int):Int;
     static function cg_set_volume_ramp(handle:Int, ramp:Bool):Int;
     static function cg_get_volume_ramp(handle:Int):Bool;
     static function cg_get_audibility(handle:Int):Float;
@@ -994,8 +1204,167 @@ private extern class Raw {
     static function cb_int(index:Int):Int;
     static function cb_float():Float;
     static function cb_string():hl.Bytes;
+    static function cb_string2():hl.Bytes;
     static function cb_take_overflow():Bool;
+    static function chan_set_3d_distance_filter(handle:Int, custom:Bool, customLevel:Float, centerFreq:Float):Int;
+    static function chan_get_3d_distance_filter(handle:Int, fbuf:hl.Bytes):Int;
+    static function cg_set_3d_distance_filter(handle:Int, custom:Bool, customLevel:Float, centerFreq:Float):Int;
+    static function cg_get_3d_distance_filter(handle:Int, fbuf:hl.Bytes):Int;
+    static function sys_get_version():hl.Bytes;
+    static function core_sound_read_data(handle:Int, data:hl.Bytes, len:Int):Int;
+    static function core_sound_seek_data(handle:Int, pcm:Int):Int;
+    static function sys_get_record_num_drivers(ibuf:hl.Bytes):Int;
+    static function sys_get_record_driver_info(id:Int, ibuf:hl.Bytes):hl.Bytes;
+    static function sys_get_record_driver_guid(id:Int):hl.Bytes;
+    static function core_create_record_sound(sampleRate:Int, channels:Int, seconds:Int):Int;
+    static function sys_record_start(id:Int, soundHandle:Int, loop:Bool):Int;
+    static function sys_record_stop(id:Int):Int;
+    static function sys_is_recording(id:Int):Bool;
+    static function sys_get_record_position(id:Int):Int;
+    // Custom 3D rolloff and geometry
+    static function chan_set_3d_custom_rolloff(handle:Int, data:hl.Bytes, count:Int):Int;
+    static function chan_get_3d_custom_rolloff(handle:Int, fbuf:hl.Bytes):Int;
+    static function cg_set_3d_custom_rolloff(handle:Int, data:hl.Bytes, count:Int):Int;
+    static function cg_get_3d_custom_rolloff(handle:Int, fbuf:hl.Bytes):Int;
+    static function core_sound_set_3d_custom_rolloff(handle:Int, data:hl.Bytes, count:Int):Int;
+    static function core_sound_get_3d_custom_rolloff(handle:Int, fbuf:hl.Bytes):Int;
+    static function sys_create_geometry(maxPolygons:Int, maxVertices:Int):Int;
+    static function sys_set_geometry_settings(maxWorldSize:Float):Int;
+    static function sys_get_geometry_settings():Float;
+    static function sys_get_geometry_occlusion(lx:Float, ly:Float, lz:Float, sx:Float, sy:Float, sz:Float, fbuf:hl.Bytes):Int;
+    static function sys_load_geometry(data:hl.Bytes, len:Int):Int;
+    static function geo_release(handle:Int):Int;
+    static function geo_add_polygon(handle:Int, direct:Float, reverb:Float, doubleSided:Bool, vertices:hl.Bytes, count:Int):Int;
+    static function geo_get_num_polygons(handle:Int):Int;
+    static function geo_get_max_polygons(handle:Int, ibuf:hl.Bytes):Int;
+    static function geo_get_polygon_num_vertices(handle:Int, index:Int):Int;
+    static function geo_set_polygon_vertex(handle:Int, index:Int, vertexIndex:Int, x:Float, y:Float, z:Float):Int;
+    static function geo_get_polygon_vertex(handle:Int, index:Int, vertexIndex:Int, fbuf:hl.Bytes):Int;
+    static function geo_set_polygon_attributes(handle:Int, index:Int, direct:Float, reverb:Float, doubleSided:Bool):Int;
+    static function geo_get_polygon_attributes(handle:Int, index:Int, fbuf:hl.Bytes):Int;
+    static function geo_set_active(handle:Int, active:Bool):Int;
+    static function geo_get_active(handle:Int):Bool;
+    static function geo_set_rotation(handle:Int, fx:Float, fy:Float, fz:Float, ux:Float, uy:Float, uz:Float):Int;
+    static function geo_get_rotation(handle:Int, fbuf:hl.Bytes):Int;
+    static function geo_set_position(handle:Int, x:Float, y:Float, z:Float):Int;
+    static function geo_get_position(handle:Int, fbuf:hl.Bytes):Int;
+    static function geo_set_scale(handle:Int, x:Float, y:Float, z:Float):Int;
+    static function geo_get_scale(handle:Int, fbuf:hl.Bytes):Int;
+    static function geo_save(handle:Int, data:hl.Bytes, len:Int):Int;
+
+    static function core_sound_set_3d_cone_settings(handle:Int, inside:Float, outside:Float, outsideVolume:Float):Int;
+    static function core_sound_get_3d_cone_settings(handle:Int, fbuf:hl.Bytes):Int;
+    static function core_sound_set_3d_min_max(handle:Int, minDistance:Float, maxDistance:Float):Int;
+    static function core_sound_get_3d_min_max(handle:Int, fbuf:hl.Bytes):Int;
+    static function chan_set_dsp_index(handle:Int, dsp:Int, index:Int):Int;
+    static function chan_get_dsp_index(handle:Int, dsp:Int):Int;
+    static function chan_get_fade_points(handle:Int, fbuf:hl.Bytes):Int;
+    static function chan_get_mix_matrix(handle:Int, fbuf:hl.Bytes, ibuf:hl.Bytes, inChannelHop:Int):Int;
+    static function chan_get_channel_group(handle:Int):Int;
+    static function cg_set_dsp_index(handle:Int, dsp:Int, index:Int):Int;
+    static function cg_get_dsp_index(handle:Int, dsp:Int):Int;
+    static function cg_get_fade_points(handle:Int, fbuf:hl.Bytes):Int;
+    static function cg_get_mix_matrix(handle:Int, fbuf:hl.Bytes, ibuf:hl.Bytes, inChannelHop:Int):Int;
+    static function sg_get_name(handle:Int):hl.Bytes;
+    static function sg_get_sound(handle:Int, index:Int):Int;
+    static function sys_get_channel(index:Int):Int;
+    static function sys_get_output():Int;
+    static function sys_get_speaker_mode_channels(mode:Int):Int;
+    static function sys_get_default_mix_matrix(sourceMode:Int, targetMode:Int, hop:Int, fbuf:hl.Bytes):Int;
+    static function dsp_get_parameter_info(handle:Int, index:Int, fbuf:hl.Bytes, ibuf:hl.Bytes):hl.Bytes;
+    static function dsp_get_info(handle:Int, ibuf:hl.Bytes):hl.Bytes;
+    static function dsp_get_param_data(handle:Int, index:Int, out:hl.Bytes, cap:Int):Int;
+    static function dsp_set_param_3d_attributes(handle:Int, index:Int, fbuf:hl.Bytes):Int;
+    static function dsp_set_param_3d_attributes_multi(handle:Int, index:Int, numListeners:Int, fbuf:hl.Bytes):Int;
+    static function dsp_get_metering_info(handle:Int, input:Bool, fbuf:hl.Bytes, ibuf:hl.Bytes):Int;
+    static function dsp_fft_get_spectrum_channel(handle:Int, channel:Int, fbuf:hl.Bytes, maxBins:Int, ibuf:hl.Bytes):Int;
+    static function dsp_get_parameter_text(handle:Int, index:Int, kind:Int):hl.Bytes;
+    static function dsp_set_param_typed(handle:Int, index:Int, kind:Int, fbuf:hl.Bytes, ibuf:hl.Bytes):Int;
+    static function dsp_get_param_typed(handle:Int, index:Int, kind:Int, fbuf:hl.Bytes, ibuf:hl.Bytes):Int;
+    static function dsp_get_data_parameter_index(handle:Int, dataType:Int):Int;
+    static function dsp_set_channel_format(handle:Int, mask:Int, channels:Int, speakerMode:Int):Int;
+    static function dsp_get_channel_format(handle:Int, ibuf:hl.Bytes):Int;
+    static function dsp_get_output_channel_format(handle:Int, inMask:Int, inChannels:Int, inMode:Int, ibuf:hl.Bytes):Int;
+    static function conn_set_mix_matrix(handle:Int, fbuf:hl.Bytes, outChannels:Int, inChannels:Int, inChannelHop:Int):Int;
+    static function conn_get_mix_matrix(handle:Int, fbuf:hl.Bytes, ibuf:hl.Bytes, inChannelHop:Int):Int;
+
     static function debug_live_handle_count():Int;
     static function binding_abi_version():Int;
+
+    static function replay_get_command_count(handle:Int):Int;
+    static function replay_get_command_info(handle:Int, index:Int, ibuf:hl.Bytes, fbuf:hl.Bytes):hl.Bytes;
+    static function replay_get_command_string(handle:Int, index:Int):hl.Bytes;
+    static function replay_get_command_at_time(handle:Int, seconds:Float):Int;
+    static function replay_seek_to_command(handle:Int, index:Int):Int;
+    static function replay_get_playback_state(handle:Int):Int;
+    static function replay_set_bank_path(handle:Int, path:hl.Bytes):Int;
+    static function sys_lock_dsp():Int;
+    static function sys_unlock_dsp():Int;
+    static function sys_get_sound_info(key:hl.Bytes, ibuf:hl.Bytes):hl.Bytes;
+    static function sys_get_memory_stats(blocking:Bool, ibuf:hl.Bytes):Int;
+    static function sys_get_file_usage(fbuf:hl.Bytes):Int;
+    static function sys_set_network_proxy(proxy:hl.Bytes):Int;
+    static function sys_get_network_proxy():hl.Bytes;
+    static function sys_set_network_timeout(timeoutMs:Int):Int;
+    static function sys_get_network_timeout():Int;
+    static function sys_set_speaker_position(speaker:Int, x:Float, y:Float, active:Bool):Int;
+    static function sys_get_speaker_position(speaker:Int, fbuf:hl.Bytes):Int;
+    static function sys_set_plugin_path(path:hl.Bytes):Int;
+    static function sys_load_plugin(path:hl.Bytes, priority:Int):Int;
+    static function sys_unload_plugin(handle:Int):Int;
+    static function sys_get_num_plugins(type:Int):Int;
+    static function sys_get_plugin_handle(type:Int, index:Int):Int;
+    static function sys_get_plugin_info(handle:Int, ibuf:hl.Bytes):hl.Bytes;
+    static function sys_get_num_nested_plugins(handle:Int):Int;
+    static function sys_get_nested_plugin(handle:Int, index:Int):Int;
+    static function dsp_create_by_plugin(pluginHandle:Int):Int;
+    static function dsp_get_info_by_plugin(handle:Int, ibuf:hl.Bytes):hl.Bytes;
+    // Sound extras: tracker music, subsounds, tags, and advanced settings readback
+    static function core_sound_get_music_num_channels(handle:Int):Int;
+    static function core_sound_set_music_channel_volume(handle:Int, channel:Int, volume:Float):Int;
+    static function core_sound_get_music_channel_volume(handle:Int, channel:Int):Float;
+    static function core_sound_set_music_speed(handle:Int, speed:Float):Int;
+    static function core_sound_get_music_speed(handle:Int):Float;
+    static function core_sound_get_num_sub_sounds(handle:Int):Int;
+    static function core_sound_get_sub_sound(handle:Int, index:Int):Int;
+    static function core_sound_get_sub_sound_parent(handle:Int):Int;
+    static function core_sound_get_num_tags(handle:Int, ibuf:hl.Bytes):Int;
+    static function core_sound_get_tag(handle:Int, name:hl.Bytes, index:Int, ibuf:hl.Bytes, fbuf:hl.Bytes):hl.Bytes;
+    static function core_sound_get_tag_string(handle:Int, name:hl.Bytes, index:Int):hl.Bytes;
+    static function sys_get_advanced_settings(ibuf:hl.Bytes, fbuf:hl.Bytes):Int;
+    static function sys_get_studio_advanced_settings(ibuf:hl.Bytes):Int;
+    static function dsp_add_input_preallocated(handle:Int, inputHandle:Int, connHandle:Int):Int;
+    static function chan_set_mix_levels_input(handle:Int, fbuf:hl.Bytes, count:Int):Int;
+    static function chan_set_mix_levels_output(handle:Int, fl:Float, fr:Float, c:Float, lfe:Float, sl:Float, sr:Float, bl:Float, br:Float):Int;
+    static function cg_set_mix_levels_input(handle:Int, fbuf:hl.Bytes, count:Int):Int;
+    static function cg_set_mix_levels_output(handle:Int, fl:Float, fr:Float, c:Float, lfe:Float, sl:Float, sr:Float, bl:Float, br:Float):Int;
+    static function sys_get_dsp_info_by_type(type:Int, ibuf:hl.Bytes):hl.Bytes;
+    static function sys_get_output_by_plugin():Int;
+    static function sys_set_output_by_plugin(handle:Int):Int;
+    static function core_sound_lock(handle:Int, offset:Int, length:Int, out:hl.Bytes):Int;
+    static function core_sound_unlock(handle:Int, data:hl.Bytes, len:Int):Int;
+    static function sys_set_disk_busy(busy:Bool):Int;
+    static function sys_get_disk_busy():Bool;
+    static function replay_get_current_command(handle:Int, fbuf:hl.Bytes):Int;
+
+    static function cg_get_num_dsps(handle:Int):Int;
+    static function cg_get_dsp(handle:Int, index:Int):Int;
+
+    static function sys_set_init_format(outputType:Int, resamplerMethod:Int, rawSpeakers:Int):Int;
+    static function sys_memory_initialize(poolSize:Int):Int;
+    static function sys_thread_set_attributes(type:Int, priority:Int, stackSize:Int, affinity:Int):Int;
+    static function sys_debug_initialize(flags:Int, mode:Int, filename:hl.Bytes):Int;
+    static function sys_get_driver_info(id:Int, ibuf:hl.Bytes):hl.Bytes;
+    static function sys_get_driver_guid(id:Int):hl.Bytes;
+    static function sys_attach_channel_group_to_port(portType:Int, portIndex:Int, group:Int, passThru:Bool):Int;
+    static function sys_detach_channel_group_from_port(group:Int):Int;
+    static function bus_get_port_index(handle:Int):Int;
+    static function bus_set_port_index(handle:Int, index:Int):Int;
+    static function evd_get_parameter_label_by_index(handle:Int, index:Int, labelIndex:Int):hl.Bytes;
+    static function sys_set_parameters_by_ids(ibuf:hl.Bytes, fbuf:hl.Bytes, count:Int, ignoreSeekSpeed:Bool):Int;
+    static function evi_set_parameters_by_ids(handle:Int, ibuf:hl.Bytes, fbuf:hl.Bytes, count:Int, ignoreSeekSpeed:Bool):Int;
+    static function sys_get_software_channels():Int;
+    static function sys_get_dsp_buffer_size(ibuf:hl.Bytes):Int;
+    static function sys_get_stream_buffer_size(ibuf:hl.Bytes):Int;
 }
 #end

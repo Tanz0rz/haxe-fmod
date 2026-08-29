@@ -1,6 +1,10 @@
 package haxefmod.core;
 
 import haxefmod.studio.FmodResult;
+import haxefmod.studio.Types;
+import haxefmod.studio.Types.FmodTimeUnit;
+import haxefmod.studio.Types.FmodVector;
+import haxefmod.studio.UserData;
 import haxefmod.studio.native.NativeStudio;
 import haxefmod.studio.native.Scratch;
 
@@ -16,6 +20,11 @@ import haxefmod.studio.native.Scratch;
  */
 abstract Channel(Int) from Int to Int {
     public static inline var NULL:Channel = cast 0;
+
+    /** Chain positions for getDsp and addDsp, the same values as ChannelGroup's. */
+    public static inline var DSP_HEAD:Int = haxefmod.core.ChannelGroup.DSP_HEAD;
+    public static inline var DSP_FADER:Int = haxefmod.core.ChannelGroup.DSP_FADER;
+    public static inline var DSP_TAIL:Int = haxefmod.core.ChannelGroup.DSP_TAIL;
 
     /** True if this is the invalid handle (play failed). */
     public inline function isNull():Bool {
@@ -71,13 +80,14 @@ abstract Channel(Int) from Int to Int {
         return NativeStudio.chan_set_loop_count(this, loopCount);
     }
 
-    /** Playback position in milliseconds, or -1 on failure. */
-    public inline function getPosition():Int {
-        return NativeStudio.chan_get_position(this);
+    /** Playback position in unit (milliseconds by default, samples with FmodTimeUnit.PCM), or -1 on failure. */
+    public inline function getPosition(unit:FmodTimeUnit = FmodTimeUnit.MS):Int {
+        return NativeStudio.chan_get_position(this, unit);
     }
 
-    public inline function setPosition(positionMs:Int):FmodResult {
-        return NativeStudio.chan_set_position(this, positionMs);
+    /** Seeks to a position read in unit, milliseconds unless another FmodTimeUnit is given. */
+    public inline function setPosition(positionMs:Int, unit:FmodTimeUnit = FmodTimeUnit.MS):FmodResult {
+        return NativeStudio.chan_set_position(this, positionMs, unit);
     }
 
     /** Reroutes this channel into a group. */
@@ -113,6 +123,16 @@ abstract Channel(Int) from Int to Int {
         return NativeStudio.chan_set_reverb_wet(this, instance, wet);
     }
 
+    /** The same reverb send as setReverbWet under FMOD's name (ChannelControl::setReverbProperties). */
+    public inline function setReverbProperties(instance:Int, wet:Float):FmodResult {
+        return NativeStudio.chan_set_reverb_wet(this, instance, wet);
+    }
+
+    /** The wet level of a reverb send, the same read as getReverbWet under FMOD's name. */
+    public inline function getReverbProperties(instance:Int):Float {
+        return NativeStudio.chan_get_reverb_wet(this, instance);
+    }
+
     public inline function getMute():Bool {
         return NativeStudio.chan_get_mute(this);
     }
@@ -145,11 +165,76 @@ abstract Channel(Int) from Int to Int {
         return NativeStudio.chan_set_3d_occlusion(this, direct, reverb);
     }
 
-    public function get3DOcclusion():Null<{direct:Float, reverb:Float}> {
+    public function get3DOcclusion():Null<FmodOcclusion> {
         var result:FmodResult = NativeStudio.chan_get_3d_occlusion(this);
         if (!result.isOk()) return null;
         return {direct: Scratch.readF(0), reverb: Scratch.readF(1)};
     }
+
+    /**
+     * Overrides the distance lowpass on this 3D channel. With custom on,
+     * customLevel (0 to 1) replaces the distance-derived attenuation and
+     * centerFreq sets the filter's center in Hz. The distanceFilter
+     * setting must be on at init for any of this to take effect.
+     */
+    public inline function set3DDistanceFilter(custom:Bool, customLevel:Float, centerFreq:Float):FmodResult {
+        return NativeStudio.chan_set_3d_distance_filter(this, custom, customLevel, centerFreq);
+    }
+
+    public function get3DDistanceFilter():Null<FmodDistanceFilter> {
+        var result:FmodResult = NativeStudio.chan_get_3d_distance_filter(this);
+        if (!result.isOk()) return null;
+        return {custom: Scratch.readF(0) != 0, customLevel: Scratch.readF(1), centerFreq: Scratch.readF(2)};
+    }
+
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /**
+     * Replaces the distance rolloff curve with the given points. Each
+     * point's x is the distance and y the volume (0 to 1), sorted by
+     * distance. An empty array restores the mode-driven rolloff
+     * (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED). The
+     * binding keeps its own copy of the points for the channel's
+     * lifetime.
+     */
+    public macro function set3DCustomRolloff(self:haxe.macro.Expr, points:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("Channel.set3DCustomRolloff", "the web boundary rejects custom rolloff points");
+    }
+    #else
+    /**
+     * Replaces the distance rolloff curve with the given points. Each
+     * point's x is the distance and y the volume (0 to 1), sorted by
+     * distance. An empty array restores the mode-driven rolloff
+     * (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED). The
+     * binding keeps its own copy of the points for the channel's
+     * lifetime.
+     */
+    public function set3DCustomRolloff(points:Array<FmodVector>):FmodResult {
+        var packed = Scratch.packVectors(points);
+        return NativeStudio.chan_set_3d_custom_rolloff(this, packed, packed == null ? 0 : points.length);
+    }
+    #end
+
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /**
+     * The custom rolloff points (unsupported in HTML5, always empty
+     * there), empty when none are set or on failure (see
+     * StudioSystem.lastResult). Capped at Scratch.VECTOR_CAPACITY points.
+     */
+    public macro function get3DCustomRolloff(self:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("Channel.get3DCustomRolloff", "custom rolloff points cannot be set in the web build, so there is nothing to read");
+    }
+    #else
+    /**
+     * The custom rolloff points (unsupported in HTML5, always empty
+     * there), empty when none are set or on failure (see
+     * StudioSystem.lastResult). Capped at Scratch.VECTOR_CAPACITY points.
+     */
+    public function get3DCustomRolloff():Array<FmodVector> {
+        var count = NativeStudio.chan_get_3d_custom_rolloff(this);
+        if (count <= 0) return [];
+        return Scratch.readVectors(count);
+    }
+    #end
 
     /** Speaker spread of a 3D sound in degrees (0 = point source). */
     public inline function set3DSpread(angle:Float):FmodResult {
@@ -166,16 +251,15 @@ abstract Channel(Int) from Int to Int {
     }
 
     /**
-     * Routes input channels to output speakers with explicit gains
-     * (row-major, outChannels rows of inChannels gains, up to 32x32).
+     * Routes input channels to output speakers with explicit gains. The
+     * matrix is one flat row-major array, one row per output channel,
+     * with inChannelHop floats per row (0 = packed to inChannels). FMOD
+     * mixes at most 32 channels, so larger shapes are refused with
+     * FMOD_ERR_INVALID_PARAM.
      */
-    public function setMixMatrix(matrix:Array<Float>, outChannels:Int, inChannels:Int):FmodResult {
-        var total = outChannels * inChannels;
-        if (total < 0 || total > matrix.length || total > Scratch.CAPACITY) {
-            return FmodResult.FMOD_ERR_INVALID_PARAM;
-        }
-        for (i in 0...total) Scratch.writeF(i, matrix[i]);
-        return NativeStudio.chan_set_mix_matrix(this, outChannels, inChannels);
+    public function setMixMatrix(matrix:Array<Float>, outChannels:Int, inChannels:Int, inChannelHop:Int = 0):FmodResult {
+        if (!MixMatrix.pack(matrix, outChannels, inChannels, inChannelHop)) return FmodResult.FMOD_ERR_INVALID_PARAM;
+        return NativeStudio.chan_set_mix_matrix(this, outChannels, inChannels, inChannelHop);
     }
 
     /**
@@ -183,14 +267,18 @@ abstract Channel(Int) from Int to Int {
      * `parent` is the group clock that setDelay and fade points schedule
      * against. Clocks are exact to 2^53 samples.
      */
-    public function getDspClock():Null<{clock:Float, parent:Float}> {
+    public function getDspClock():Null<FmodDspClock> {
         var result:FmodResult = NativeStudio.chan_get_dsp_clock(this);
         if (!result.isOk()) return null;
         return {clock: Scratch.readF(0), parent: Scratch.readF(1)};
     }
 
-    /** Sample-accurate start/stop window on the parent clock (0 = no bound). */
-    public inline function setDelay(startClock:Float, endClock:Float, stopChannels:Bool = false):FmodResult {
+    /**
+     * Sample-accurate start/stop window on the parent clock (0 = no
+     * bound). With stopChannels on, the channel stops at endClock, off
+     * it pauses there and can be resumed.
+     */
+    public inline function setDelay(startClock:Float, endClock:Float, stopChannels:Bool = true):FmodResult {
         return NativeStudio.chan_set_delay(this, startClock, endClock, stopChannels);
     }
 
@@ -209,10 +297,11 @@ abstract Channel(Int) from Int to Int {
     }
 
     /**
-     * Delivers End and SyncPoint events for this channel (drained once per
-     * frame with the other callbacks). End also removes the handler.
+     * Delivers ChannelEvent values for this channel (drained once per
+     * frame with the other callbacks): End, SyncPoint, VirtualVoice, and
+     * Occlusion. End also removes the handler.
      */
-    public inline function setCallback(handler:haxefmod.core.ChannelEvent->Void):Void {
+    public inline function setCallback(handler:haxefmod.core.ChannelEvent.ChannelCallback):Void {
         haxefmod.core.ChannelCallbacks.set(this, handler);
     }
 
@@ -232,7 +321,7 @@ abstract Channel(Int) from Int to Int {
         return NativeStudio.chan_get_mode(this);
     }
 
-    public function get3DConeSettings():Null<{insideAngle:Float, outsideAngle:Float, outsideVolume:Float}> {
+    public function get3DConeSettings():Null<FmodConeSettings> {
         var result:FmodResult = NativeStudio.chan_get_3d_cone_settings(this);
         if (!result.isOk()) return null;
         return {insideAngle: Scratch.readF(0), outsideAngle: Scratch.readF(1), outsideVolume: Scratch.readF(2)};
@@ -250,20 +339,20 @@ abstract Channel(Int) from Int to Int {
         return NativeStudio.chan_get_3d_doppler_level(this);
     }
 
-    public function get3DMinMaxDistance():Null<{minDistance:Float, maxDistance:Float}> {
+    public function get3DMinMaxDistance():Null<FmodMinMaxDistance> {
         var result:FmodResult = NativeStudio.chan_get_3d_min_max(this);
         if (!result.isOk()) return null;
         return {minDistance: Scratch.readF(0), maxDistance: Scratch.readF(1)};
     }
 
-    public function get3DAttributes():Null<{posX:Float, posY:Float, posZ:Float, velX:Float, velY:Float, velZ:Float}> {
+    public function get3DAttributes():Null<FmodChannel3DAttributes> {
         var result:FmodResult = NativeStudio.chan_get_3d_attributes(this);
         if (!result.isOk()) return null;
         return {posX: Scratch.readF(0), posY: Scratch.readF(1), posZ: Scratch.readF(2),
             velX: Scratch.readF(3), velY: Scratch.readF(4), velZ: Scratch.readF(5)};
     }
 
-    public function getDelay():Null<{startClock:Float, endClock:Float, stopChannels:Bool}> {
+    public function getDelay():Null<FmodDelay> {
         var result:FmodResult = NativeStudio.chan_get_delay(this);
         if (!result.isOk()) return null;
         return {startClock: Scratch.readF(0), endClock: Scratch.readF(1), stopChannels: Scratch.readF(2) > 0.5};
@@ -298,19 +387,28 @@ abstract Channel(Int) from Int to Int {
     }
 
     /** The sound this channel plays (a borrowed reference: never release it). */
-    public inline function getCurrentSound():haxefmod.studio.CoreSound {
+    public inline function getCurrentSound():haxefmod.core.Sound {
         return NativeStudio.chan_get_current_sound(this);
     }
 
-    /** Loop region in milliseconds for this channel (overrides the sound's). */
-    public inline function setLoopPoints(startMs:Int, endMs:Int):FmodResult {
-        return NativeStudio.chan_set_loop_points(this, startMs, endMs);
+    /**
+     * Loop region for this channel (overrides the sound's). loopStart is
+     * read in loopStartType and loopEnd in loopEndType, milliseconds when
+     * left out. A missing loopEndType follows loopStartType.
+     */
+    public inline function setLoopPoints(loopStart:Int, loopEnd:Int, loopStartType:FmodTimeUnit = FmodTimeUnit.MS, ?loopEndType:FmodTimeUnit):FmodResult {
+        return NativeStudio.chan_set_loop_points(this, loopStart, loopStartType, loopEnd, loopEndType == null ? loopStartType : loopEndType);
     }
 
-    public function getLoopPoints():Null<{startMs:Int, endMs:Int}> {
-        var result:FmodResult = NativeStudio.chan_get_loop_points(this);
+    /**
+     * The loop region, loopStart in loopStartType and loopEnd in
+     * loopEndType (milliseconds when left out, a missing loopEndType
+     * follows loopStartType), or null on failure.
+     */
+    public function getLoopPoints(loopStartType:FmodTimeUnit = FmodTimeUnit.MS, ?loopEndType:FmodTimeUnit):Null<{loopStart:Int, loopEnd:Int}> {
+        var result:FmodResult = NativeStudio.chan_get_loop_points(this, loopStartType, loopEndType == null ? loopStartType : loopEndType);
         if (!result.isOk()) return null;
-        return {startMs: Scratch.readI(0), endMs: Scratch.readI(1)};
+        return {loopStart: Scratch.readI(0), loopEnd: Scratch.readI(1)};
     }
 
     public inline function getReverbWet(instance:Int):Float {
@@ -322,7 +420,7 @@ abstract Channel(Int) from Int to Int {
         return NativeStudio.chan_get_index(this);
     }
 
-    public function get3DConeOrientation():Null<{x:Float, y:Float, z:Float}> {
+    public function get3DConeOrientation():Null<FmodVector> {
         var result:FmodResult = NativeStudio.chan_get_3d_cone_orientation(this);
         if (!result.isOk()) return null;
         return {x: Scratch.readF(0), y: Scratch.readF(1), z: Scratch.readF(2)};
@@ -332,14 +430,122 @@ abstract Channel(Int) from Int to Int {
         return NativeStudio.chan_get_num_dsps(this);
     }
 
+    /** The same count as getDspCount under FMOD's name. */
+    public inline function getNumDSPs():Int {
+        return NativeStudio.chan_get_num_dsps(this);
+    }
+
     /** The effect at chain position `index` (a known DSP returns its existing handle). */
     public inline function getDsp(index:Int):Dsp {
         return NativeStudio.chan_get_dsp(this, index);
     }
 
+    /** Moves an attached effect to another chain position (0 = head). */
+    public inline function setDspIndex(dsp:Dsp, index:Int):FmodResult {
+        return NativeStudio.chan_set_dsp_index(this, dsp, index);
+    }
+
+    /** The chain position of an attached effect, -1 when it is not attached or on failure. */
+    public inline function getDspIndex(dsp:Dsp):Int {
+        return NativeStudio.chan_get_dsp_index(this, dsp);
+    }
+
+    /** The group this channel is routed into (a known group returns its existing handle). */
+    public inline function getChannelGroup():ChannelGroup {
+        return NativeStudio.chan_get_channel_group(this);
+    }
+
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /**
+     * The scheduled fade points as parent-clock and volume pairs
+     * (unsupported in HTML5, null there). Null on failure, at most
+     * Scratch.CAPACITY / 2 points.
+     */
+    public macro function getFadePoints(self:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("Channel.getFadePoints", "FMOD's web glue never returns the fade point arrays");
+    }
+    #else
+    /**
+     * The scheduled fade points as parent-clock and volume pairs
+     * (unsupported in HTML5, null there). Null on failure, at most
+     * Scratch.CAPACITY / 2 points.
+     */
+    public function getFadePoints():Null<Array<FmodFadePoint>> {
+        var count = NativeStudio.chan_get_fade_points(this);
+        var result:FmodResult = haxefmod.studio.StudioSystem.lastResult();
+        if (!result.isOk()) return null;
+        return [for (i in 0...count) {clock: Scratch.readF(i * 2), volume: Scratch.readF(i * 2 + 1)}];
+    }
+    #end
+
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /**
+     * Reads the mix matrix back as one flat row-major array with
+     * inChannelHop floats per row (0 = packed to the input count), and
+     * the output and input channel counts FMOD reports (unsupported in
+     * HTML5, null there). outChannels and inChannels above 0 keep only
+     * that many rows and columns. Null on failure, at most 32 by 32.
+     */
+    public macro function getMixMatrix(self:haxe.macro.Expr, ?outChannels:haxe.macro.Expr, ?inChannels:haxe.macro.Expr, ?inChannelHop:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("Channel.getMixMatrix", "FMOD's web glue binds the matrix as a single float");
+    }
+    #else
+    /**
+     * Reads the mix matrix back as one flat row-major array with
+     * inChannelHop floats per row (0 = packed to the input count), and
+     * the output and input channel counts FMOD reports (unsupported in
+     * HTML5, null there). outChannels and inChannels above 0 keep only
+     * that many rows and columns. Null on failure, at most 32 by 32.
+     */
+    public function getMixMatrix(outChannels:Int = 0, inChannels:Int = 0, inChannelHop:Int = 0):Null<FmodMixMatrix> {
+        var total = NativeStudio.chan_get_mix_matrix(this, inChannelHop);
+        if (total <= 0) return null;
+        return MixMatrix.read(total, outChannels, inChannels, inChannelHop);
+    }
+    #end
+
     /** Stops playback, removes any callback handler, and invalidates this handle. */
     public function stop():FmodResult {
         haxefmod.core.ChannelCallbacks.remove(this);
+        UserData.clear(UserDataKind.Channel, this);
         return NativeStudio.chan_stop(this);
     }
+
+    /**
+     * Attaches a Haxe value to this handle. The value lives on the Haxe
+     * side keyed by the handle and is dropped when the handle is released.
+     * A recycled native slot gets a new generation and therefore a new
+     * handle int, so a stale entry never shows up on a later handle.
+     */
+    public inline function setUserData(value:Dynamic):Void {
+        UserData.set(UserDataKind.Channel, this, value);
+    }
+
+    /** The value attached with setUserData, or null. */
+    public inline function getUserData():Dynamic {
+        return UserData.get(UserDataKind.Channel, this);
+    }
+    /**
+     * Sets the gain of each incoming signal channel before the mix matrix,
+     * one level per input channel (1 to 32, an empty list is rejected
+     * with FMOD_ERR_INVALID_PARAM). More levels than the signal has
+     * channels are ignored, fewer leave the rest at their current gain.
+     */
+    public function setMixLevelsInput(levels:Array<Float>):FmodResult {
+        if (levels == null || levels.length == 0 || levels.length > 32) return FmodResult.FMOD_ERR_INVALID_PARAM;
+        for (i in 0...levels.length) Scratch.writeF(i, levels[i]);
+        return NativeStudio.chan_set_mix_levels_input(this, levels.length);
+    }
+
+    /**
+     * Sets the gain of each output speaker directly, which replaces the
+     * mix matrix with a standard speaker layout. Speakers the output
+     * lacks are ignored.
+     */
+    public inline function setMixLevelsOutput(frontLeft:Float, frontRight:Float, center:Float, lowFrequency:Float,
+            surroundLeft:Float, surroundRight:Float, backLeft:Float, backRight:Float):FmodResult {
+        return NativeStudio.chan_set_mix_levels_output(this, frontLeft, frontRight, center, lowFrequency,
+            surroundLeft, surroundRight, backLeft, backRight);
+    }
+
 }

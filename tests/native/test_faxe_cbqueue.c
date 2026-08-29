@@ -8,6 +8,7 @@
  */
 #include <stdio.h>
 #include <assert.h>
+#include <stdint.h>
 #include "../../native/shared/faxe_cbqueue.h"
 
 #ifdef _WIN32
@@ -129,6 +130,31 @@ int main(void) {
     faxe_cbq_init();
     faxe_cbq_init(); /* double init is a safe no-op */
 
+    /* bank path stash: put, take once, then gone */
+    {
+        char path[FAXE_CBQ_STR_MAX];
+        int bankA = 1, bankB = 2, i;
+        char name[16];
+        assert(faxe_bankpath_take(&bankA, path) == 0 && path[0] == '\0'); /* nothing stashed yet */
+        faxe_bankpath_put(&bankA, "bank:/A");
+        faxe_bankpath_put(&bankA, "bank:/A2"); /* same bank updates in place */
+        assert(faxe_bankpath_take(&bankA, path) == 1);
+        assert(strcmp(path, "bank:/A2") == 0);
+        assert(faxe_bankpath_take(&bankA, path) == 0); /* consumed */
+        faxe_bankpath_put(&bankB, "");             /* empty path is ignored */
+        assert(faxe_bankpath_take(&bankB, path) == 0);
+        faxe_bankpath_put(NULL, "bank:/none");     /* null bank is ignored */
+        /* a full table overwrites the oldest entry */
+        for (i = 0; i < FAXE_BANKPATH_CAPACITY + 1; i++) {
+            snprintf(name, sizeof(name), "bank:/%d", i);
+            faxe_bankpath_put((const void*)(uintptr_t)(100 + i), name);
+        }
+        assert(faxe_bankpath_take((const void*)(uintptr_t)100, path) == 0);   /* oldest gone */
+        assert(faxe_bankpath_take((const void*)(uintptr_t)(100 + FAXE_BANKPATH_CAPACITY), path) == 1);
+        faxe_bankpath_clear();
+        assert(faxe_bankpath_take((const void*)(uintptr_t)101, path) == 0);   /* cleared */
+    }
+
     /* empty pop */
     assert(faxe_cbq_pop(&out) == 0);
 
@@ -144,6 +170,7 @@ int main(void) {
         ev.i5 = i * 5;
         ev.f1 = (float)i * 0.5f;
         snprintf(ev.str, sizeof(ev.str), "marker-%d", i);
+        snprintf(ev.str2, sizeof(ev.str2), "params-%d", i);
         faxe_cbq_push(&ev);
     }
     for (int i = 0; i < 5; i++) {
@@ -155,6 +182,8 @@ int main(void) {
         assert(out.i4 == i * 4 && out.i5 == i * 5);
         snprintf(expected, sizeof(expected), "marker-%d", i);
         assert(strcmp(out.str, expected) == 0);
+        snprintf(expected, sizeof(expected), "params-%d", i);
+        assert(strcmp(out.str2, expected) == 0);
     }
     assert(faxe_cbq_pop(&out) == 0);
     assert(faxe_cbq_take_overflow() == 0);
@@ -162,9 +191,12 @@ int main(void) {
     /* string truncation stays NUL-terminated */
     memset(&ev, 0, sizeof(ev));
     memset(ev.str, 'x', sizeof(ev.str)); /* no terminator on purpose */
+    memset(ev.str2, 'y', sizeof(ev.str2));
     faxe_cbq_push(&ev);
     assert(faxe_cbq_pop(&out) == 1);
     assert(out.str[FAXE_CBQ_STR_MAX - 1] == '\0');
+    assert(out.str2[FAXE_CBQ_STR2_MAX - 1] == '\0');
+    assert(strlen(out.str2) == FAXE_CBQ_STR2_MAX - 1);
 
     /* overflow drops oldest and sets the flag */
     memset(&ev, 0, sizeof(ev));
@@ -224,6 +256,32 @@ int main(void) {
         assert(faxe_cbq_take_orphans() == NULL); /* cleared */
         while (faxe_cbq_pop(&out)) {
             assert(out.opaque == NULL); /* surviving events carry no payload */
+        }
+    }
+
+    /* a borrowed ptr rides the queue untouched and is never parked as an
+     * orphan when its event is dropped (it owns nothing) */
+    {
+        int borrowed = 5;
+        memset(&ev, 0, sizeof(ev));
+        ev.handle = 8;
+        ev.type = 0x200; /* PLUGIN_CREATED */
+        ev.ptr = &borrowed;
+        snprintf(ev.str, sizeof(ev.str), "fmod_gain");
+        faxe_cbq_push(&ev);
+        assert(faxe_cbq_pop(&out) == 1);
+        assert(out.ptr == &borrowed);
+        assert(out.opaque == NULL);
+        assert(strcmp(out.str, "fmod_gain") == 0);
+        for (int i = 0; i < FAXE_CBQ_CAPACITY + 1; i++) {
+            ev.handle = i;
+            faxe_cbq_push(&ev);
+        }
+        assert(faxe_cbq_take_overflow() == 1);
+        assert(faxe_cbq_take_orphans() == NULL);
+        assert(borrowed == 5); /* the dropped event never wrote into it */
+        while (faxe_cbq_pop(&out)) {
+            assert(out.ptr == &borrowed);
         }
     }
 

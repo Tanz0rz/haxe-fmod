@@ -1,0 +1,34 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Studio guide fixture</title>
+<style>
+.language-selector { display: flex; gap: 4px; }
+.language-tab { padding: 2px 8px; border: 1px solid #999; cursor: pointer; }
+.language-tab.selected { background: #333; color: #fff; }
+.highlight { border: 1px solid #b3b3b3; background: #f1f1f1; padding: 6px; }
+</style>
+</head>
+<body class="specificity">
+<div id="app"></div>
+<script>
+// A guide page in the shape of fmod.com's studio-guide.html: six code
+// examples under one heading, each a lone C++ block with no language
+// selector, keyed the way the catalog keys the real page. The page
+// carries no selector logic of its own because the site adds none for
+// lone blocks either.
+var parts = ['<div id="Documentation"><div class="documentation-content"><div class="manual-content">', '<h1>13. Studio API Guide</h1>'];
+parts.push('<h3 id="scripting-example">13.9.1 Scripting Example</h3>');
+for (var i = 0; i < 6; i++) {
+  parts.push('<p>Prose introducing example ' + i + '.</p>');
+  parts.push('<div class="highlight language-cpp" style="display: block;"><pre>FMOD::Studio::System* system; // example ' + i + '</pre></div>');
+  parts.push('<p>Prose after example ' + i + '.</p>');
+}
+parts.push('</div></div></div>');
+window.setTimeout(function () {
+  document.getElementById('app').innerHTML = parts.join('\n');
+}, 200);
+</script>
+</body>
+</html>

@@ -32,3 +32,12 @@ __pycache__/
 
 # Unit test scratch files
 /tests/.tmp/
+
+# Documentation site build output
+/site/
+
+# Extension test output
+/extension/test/last-run.png
+
+# Extension store packages
+/extension/dist/
