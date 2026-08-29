@@ -75,8 +75,11 @@
     // The site prints every language as a type-qualified declaration
     // (Sound::set3DConeSettings, Studio.EventInstance.start), so the Haxe
     // tab qualifies with the Haxe type the same way, static or not.
+    // The other tabs qualify the function with its package (C# prints
+    // Studio.EventInstance.start), so the Haxe tab prints the full type
+    // path, which is the valid Haxe form of the same reference
     function receiver(m) {
-        return shortType(m.type);
+        return m.type;
     }
 
     function renderBlock(entry) {
@@ -119,9 +122,6 @@
             });
             pre.textContent = lines.join("\n");
 
-            var types = [];
-            shown.forEach(function (m) { if (types.indexOf(m.type) < 0) types.push(m.type); });
-            note.appendChild(el("p", "haxefmod-type", types.join(", ")));
 
             // The page already describes the function above the tabs, so
             // the note carries only what is specific to the Haxe side.

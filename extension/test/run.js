@@ -94,7 +94,7 @@ async function main() {
 
     let start = await startBlock();
     if (start.display !== 'none') fail('Haxe block visible before selection');
-    if (start.text.indexOf('EventInstance.start():FmodResult;') < 0) fail('start block lacks the Haxe signature: ' + start.text);
+    if (start.text.indexOf('haxefmod.studio.EventInstance.start():FmodResult;') < 0) fail('start block lacks the Haxe signature: ' + start.text);
 
     await page.click('#studio_eventinstance_start ~ .language-selector .haxefmod-tab');
     await page.waitForTimeout(150);
