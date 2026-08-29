@@ -1,5 +1,6 @@
 package;
 
+import fmodtest.ApiProbeScenario;
 import haxefmod.core.ChannelGroup;
 import haxefmod.core.Dsp;
 import haxefmod.core.DspType;
@@ -12,7 +13,7 @@ import haxefmod.studio.StudioSystem;
  * compares handles, removes it again and checks nothing leaked.
  */
 class ProbeGroupDsp {
-    public static function run(state:ApiProbeState):Void {
+    public static function run(state:ApiProbeScenario):Void {
         var baseline = StudioSystem.liveHandleCount();
         var master = ChannelGroup.master();
 

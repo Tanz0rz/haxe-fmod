@@ -41,3 +41,6 @@ __pycache__/
 
 # Extension store packages
 /extension/dist/
+
+# Local CI runner output
+/ci/local/

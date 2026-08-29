@@ -1,5 +1,6 @@
 package;
 
+import fmodtest.ApiProbeScenario;
 import haxefmod.core.ChannelGroup;
 import haxefmod.core.CoreSystem;
 import haxefmod.core.Dsp;
@@ -16,7 +17,7 @@ import haxefmod.studio.Types;
  * before it returns.
  */
 class ProbeSysExtras {
-    public static function run(state:ApiProbeState):Void {
+    public static function run(state:ApiProbeScenario):Void {
         // The master group handle is cached by the shim, so it is taken before the baseline
         var master = ChannelGroup.master();
         var baseline = StudioSystem.liveHandleCount();
@@ -83,7 +84,7 @@ class ProbeSysExtras {
 
         // File usage after a sound has been read from disk
         #if sys
-        var wavPath = @:privateAccess ApiProbeState.writeProbeWav();
+        var wavPath = @:privateAccess ApiProbeScenario.writeProbeWav();
         var sound = Sound.create(wavPath);
         var channel = sound.play(true);
         channel.stop();

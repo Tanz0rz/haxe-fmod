@@ -1,5 +1,6 @@
 package;
 
+import fmodtest.ApiProbeScenario;
 import haxefmod.core.ChannelGroup;
 import haxefmod.core.CoreSystem;
 import haxefmod.runtime.FmodRuntime;
@@ -14,7 +15,7 @@ import haxefmod.studio.Types;
  * and the limits. Nothing here changes state that outlives the probe.
  */
 class ProbeInitSettings {
-    public static function run(state:ApiProbeState):Void {
+    public static function run(state:ApiProbeScenario):Void {
         var baseline = StudioSystem.liveHandleCount();
         var settings = FmodRuntime.settings();
 

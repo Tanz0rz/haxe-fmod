@@ -1,5 +1,6 @@
 package;
 
+import fmodtest.ApiProbeScenario;
 import haxefmod.core.Channel;
 import haxefmod.core.ChannelMode;
 import haxefmod.core.PcmStream;
@@ -21,7 +22,7 @@ import haxefmod.studio.Types;
  * Leaves the reverb and the system callback as it found them.
  */
 class ProbeCoreTypes {
-    public static function run(state:ApiProbeState):Void {
+    public static function run(state:ApiProbeScenario):Void {
         var baseline = StudioSystem.liveHandleCount();
 
         // FmodGuid: what getID returns finds the same object again, in any case
@@ -171,7 +172,7 @@ class ProbeCoreTypes {
         // run the older runtime the templates ship, so there the check is
         // that the constant formats like a version and the engine is older
         var engine = StudioSystem.getVersion();
-        var older = !ApiProbeState.engine203();
+        var older = !ApiProbeScenario.engine203();
         @:privateAccess state.check("types_version_matches_engine", engine == expected || (older && ~/^\d+\.\d{2}\.\d{2}$/.match(expected)),
             'engine=$engine constant=$expected');
 

@@ -1,5 +1,6 @@
 package;
 
+import fmodtest.ApiProbeScenario;
 import haxefmod.core.ChannelGroup;
 import haxefmod.core.Dsp;
 import haxefmod.core.DspType;
@@ -59,7 +60,7 @@ class ProbeDspData {
         return ready();
     }
 
-    public static function run(state:ApiProbeState):Void {
+    public static function run(state:ApiProbeScenario):Void {
         _baseline = StudioSystem.liveHandleCount();
         _master = ChannelGroup.master();
 
@@ -95,7 +96,7 @@ class ProbeDspData {
     }
 
     /** Called from the state's update loop, finishes the html5 run once the meter reads or the wait times out. */
-    public static function tick(state:ApiProbeState):Void {
+    public static function tick(state:ApiProbeScenario):Void {
         if (!_waiting) return;
         _frames++;
         var m = _fft.getMetering();
@@ -110,7 +111,7 @@ class ProbeDspData {
         return m != null && m.peakLevel[0] > 0.01;
     }
 
-    static function finish(state:ApiProbeState):Void {
+    static function finish(state:ApiProbeScenario):Void {
         var master = _master;
         var fft = _fft;
         var osc = _osc;
@@ -154,7 +155,7 @@ class ProbeDspData {
         // --- raw data readback: the FFT block carries its header ---
         // The generated parameter indices follow the 2.03 header, and the
         // 2.02 runtime of the HashLink jobs lays the FFT unit out differently
-        var engine203 = ApiProbeState.engine203();
+        var engine203 = ApiProbeScenario.engine203();
         var fftBlock = fft.getParameterData(DspFft.SPECTRUMDATA);
         @:privateAccess state.check("dsp_get_parameter_data_fft", idleWeb || (!engine203 && fftBlock == null)
             || (fftBlock != null && fftBlock.length >= 8 && spectrum != null
@@ -265,7 +266,7 @@ class ProbeDspData {
             : linked.boolDesc == null ? 'type=${(linked.type : Int)} boolDesc=null'
             : 'name=${linked.name} default=${linked.boolDesc.defaultVal} names=${linked.boolDesc.valueNames}');
         var spectrumDesc = fft.getParameterInfo(DspFft.SPECTRUMDATA);
-        @:privateAccess state.check("dsp_get_parameter_info_data", (!ApiProbeState.engine203() && spectrumDesc == null)
+        @:privateAccess state.check("dsp_get_parameter_info_data", (!ApiProbeScenario.engine203() && spectrumDesc == null)
             || spectrumDesc != null && spectrumDesc.type == FmodDspParameterType.DATA
             && spectrumDesc.dataDesc != null && spectrumDesc.floatDesc == null
             && spectrumDesc.dataDesc.dataType == FmodDspParameterDataType.FFT,

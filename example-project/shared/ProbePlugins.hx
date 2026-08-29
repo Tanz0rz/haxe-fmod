@@ -1,5 +1,6 @@
 package;
 
+import fmodtest.ApiProbeScenario;
 import haxefmod.core.ChannelGroup;
 import haxefmod.core.Dsp;
 import haxefmod.studio.FmodResult;
@@ -17,7 +18,7 @@ class ProbePlugins {
     static inline var PLUGIN_FILE = "libtest_plugin_gain.so";
     static inline var PLUGIN_NAME = "haxefmod test gain";
 
-    public static function run(state:ApiProbeState):Void {
+    public static function run(state:ApiProbeScenario):Void {
         // The master group is cached, fetching it before the baseline keeps
         // the leak check honest whichever probe ran first
         var master = ChannelGroup.master();

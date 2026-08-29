@@ -1,5 +1,6 @@
 package;
 
+import fmodtest.ApiProbeScenario;
 import haxefmod.FmodManager;
 import haxefmod.studio.CallbackDispatcher;
 import haxefmod.studio.Callbacks;
@@ -10,10 +11,10 @@ import haxefmod.studio.UserData;
 
 /**
  * Haxe-side userdata on handles and the description-level callback,
- * against the real backend. Runs synchronously inside ApiProbeState.create.
+ * against the real backend. Runs synchronously inside ApiProbeScenario.create.
  */
 class ProbeUserData {
-    public static function run(state:ApiProbeState):Void {
+    public static function run(state:ApiProbeScenario):Void {
         // Earlier sections leave Destroyed records queued. Drain them so
         // the baseline and the userdata table only move with this section.
         StudioSystem.flushCommands();

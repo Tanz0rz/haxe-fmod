@@ -1,5 +1,6 @@
 package;
 
+import fmodtest.ApiProbeScenario;
 import haxefmod.core.Channel;
 import haxefmod.core.ChannelEvent;
 import haxefmod.core.ChannelGroup;
@@ -34,7 +35,7 @@ class ProbeChannelControl {
     static var _stream:PcmStream = PcmStream.NULL;
     static var _channel:Channel = Channel.NULL;
 
-    public static function run(state:ApiProbeState):Void {
+    public static function run(state:ApiProbeScenario):Void {
         var master = ChannelGroup.master();
         var baseline = StudioSystem.liveHandleCount();
 
@@ -207,7 +208,7 @@ class ProbeChannelControl {
      * FMOD computes occlusion from System::update, and both callbacks
      * should see an Occlusion event within a few frames.
      */
-    static function startOcclusionWait(state:ApiProbeState):Void {
+    static function startOcclusionWait(state:ApiProbeScenario):Void {
         _baseline = StudioSystem.liveHandleCount();
         _events = [];
         _groupEvents = [];
@@ -236,7 +237,7 @@ class ProbeChannelControl {
      * checks. Starts the occlusion wait on the first call and finishes it
      * once the events land or the timeout passes. Geometry is native only.
      */
-    public static function tick(state:ApiProbeState):Void {
+    public static function tick(state:ApiProbeScenario):Void {
         #if js
         return;
         #end
@@ -262,7 +263,7 @@ class ProbeChannelControl {
         }
     }
 
-    static function finishOcclusionWait(state:ApiProbeState, sawChannel:Bool, sawGroup:Bool):Void {
+    static function finishOcclusionWait(state:ApiProbeScenario, sawChannel:Bool, sawGroup:Bool):Void {
         var direct = -1.0;
         for (e in _events) switch (e) {
             case Occlusion(d, _): direct = d;

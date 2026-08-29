@@ -1,5 +1,6 @@
 package;
 
+import fmodtest.ApiProbeScenario;
 import haxefmod.core.ChannelGroup;
 import haxefmod.core.CoreSystem;
 import haxefmod.core.Dsp;
@@ -16,7 +17,7 @@ import haxefmod.studio.StudioSystem;
  * before it returns.
  */
 class ProbeLastSeven {
-    public static function run(state:ApiProbeState):Void {
+    public static function run(state:ApiProbeScenario):Void {
         // The master group handle is cached by the shim, so it is taken before the baseline
         var master = ChannelGroup.master();
         var baseline = StudioSystem.liveHandleCount();
@@ -35,7 +36,7 @@ class ProbeLastSeven {
             'lastResult=${StudioSystem.lastResult().toString()}');
         #else
         // The preallocated form arrived in FMOD 2.03, older engines report it unsupported
-        var refusal = ApiProbeState.engine203() ? FmodResult.FMOD_ERR_INVALID_PARAM : FmodResult.FMOD_ERR_UNSUPPORTED;
+        var refusal = ApiProbeScenario.engine203() ? FmodResult.FMOD_ERR_INVALID_PARAM : FmodResult.FMOD_ERR_UNSUPPORTED;
         @:privateAccess state.check("dsp_add_input_preallocated_refused", echo.addInputPreallocated(fader, conn).isNull()
             && StudioSystem.lastResult() == refusal,
             'lastResult=${StudioSystem.lastResult().toString()}');

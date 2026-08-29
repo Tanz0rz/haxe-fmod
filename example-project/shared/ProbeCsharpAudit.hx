@@ -1,5 +1,6 @@
 package;
 
+import fmodtest.ApiProbeScenario;
 import haxefmod.core.CoreSystem;
 import haxefmod.studio.FmodResult;
 import haxefmod.studio.StudioSystem;
@@ -13,7 +14,7 @@ import haxefmod.studio.Types;
  * renamed getters.
  */
 class ProbeCsharpAudit {
-    public static function run(state:ApiProbeState):Void {
+    public static function run(state:ApiProbeScenario):Void {
         var baseline = StudioSystem.liveHandleCount();
 
         // Bus port index: FMOD only routes buses to ports on consoles, so
@@ -73,7 +74,7 @@ class ProbeCsharpAudit {
         #else
         // The user properties live in the authored banks, which the frozen
         // fixture banks of the compat runs do not carry
-        if (!@:privateAccess ApiProbeState.skipAuthored()) {
+        if (!@:privateAccess ApiProbeScenario.skipAuthored()) {
             var byName = music.getUserProperty("probe_int");
             var byIndex = music.getUserPropertyByIndex(0);
             @:privateAccess state.check("audit_evd_user_property_by_name", byName != null && byName.name == "probe_int",

@@ -1,5 +1,6 @@
 package;
 
+import fmodtest.ApiProbeScenario;
 import haxefmod.FmodManager;
 import haxefmod.studio.FmodResult;
 import haxefmod.studio.StudioSystem;
@@ -12,7 +13,7 @@ import haxefmod.studio.Types;
  * every reader, and the sound info fields for an audio table key.
  */
 class ProbeStudioParity {
-    public static function run(state:ApiProbeState):Void {
+    public static function run(state:ApiProbeScenario):Void {
         var baseline = StudioSystem.liveHandleCount();
 
         // Capture with flags, replay with flags, and the seconds cursor
@@ -85,7 +86,7 @@ class ProbeStudioParity {
     }
 
     /** The parts that need the authored parameters and audio table. */
-    public static function runAuthored(state:ApiProbeState):Void {
+    public static function runAuthored(state:ApiProbeScenario):Void {
         var baseline = StudioSystem.liveHandleCount();
 
         // The GUID on every parameter description reader matches lookupID

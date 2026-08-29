@@ -1,5 +1,6 @@
 package;
 
+import fmodtest.ApiProbeScenario;
 import haxefmod.core.CoreSystem;
 import haxefmod.core.Dsp;
 import haxefmod.core.DspConnection;
@@ -19,7 +20,7 @@ import haxefmod.studio.Types;
  * Dsp.addInput, DspConnection.getType, and the sound group behavior.
  */
 class ProbeEnums {
-    public static function run(state:ApiProbeState):Void {
+    public static function run(state:ApiProbeScenario):Void {
         var baseline = StudioSystem.liveHandleCount();
 
         var format = CoreSystem.getSoftwareFormat();

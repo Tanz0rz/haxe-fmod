@@ -1,5 +1,6 @@
 package;
 
+import fmodtest.ApiProbeScenario;
 import haxefmod.core.Sound;
 import haxefmod.studio.FmodResult;
 import haxefmod.studio.StudioSystem;
@@ -12,7 +13,7 @@ import haxefmod.studio.Types;
  * checks they reach FMOD.
  */
 class ProbeSoundExtras {
-    public static function run(state:ApiProbeState):Void {
+    public static function run(state:ApiProbeScenario):Void {
         var baseline = StudioSystem.liveHandleCount();
 
         // --- advanced settings readback ---

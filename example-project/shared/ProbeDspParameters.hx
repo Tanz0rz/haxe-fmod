@@ -1,5 +1,6 @@
 package;
 
+import fmodtest.ApiProbeScenario;
 import haxefmod.core.Dsp;
 import haxefmod.core.DspParameters;
 import haxefmod.core.DspType;
@@ -17,7 +18,7 @@ import haxefmod.studio.StudioSystem;
  * counts still prove the ranges.
  */
 class ProbeDspParameters {
-    static function checkName(state:ApiProbeState, name:String, dsp:Dsp, index:Int, expected:String):Void {
+    static function checkName(state:ApiProbeScenario, name:String, dsp:Dsp, index:Int, expected:String):Void {
         var info = dsp.getParameterInfo(index);
         #if js
         @:privateAccess state.check(name + "_unsupported", info == null && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED,
@@ -27,7 +28,7 @@ class ProbeDspParameters {
         #end
     }
 
-    public static function run(state:ApiProbeState):Void {
+    public static function run(state:ApiProbeScenario):Void {
         var baseline = StudioSystem.liveHandleCount();
 
         var lowpass = Dsp.create(DspType.LOWPASS);

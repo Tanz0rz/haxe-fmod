@@ -1,5 +1,6 @@
 package;
 
+import fmodtest.ApiProbeScenario;
 import haxefmod.core.CoreSystem;
 import haxefmod.core.Sound;
 import haxefmod.studio.FmodResult;
@@ -15,7 +16,7 @@ import haxefmod.studio.StudioSystem;
 class ProbeSoundLock {
     static inline var SAMPLES:Int = 512;
 
-    public static function run(state:ApiProbeState):Void {
+    public static function run(state:ApiProbeScenario):Void {
         var baseline = StudioSystem.liveHandleCount();
 
         // 16-bit mono ramp, sample i holds the value i
@@ -90,7 +91,7 @@ class ProbeSoundLock {
 
         // a stream has no sample buffer to lock
         #if sys
-        var wavPath = @:privateAccess ApiProbeState.writeProbeWav();
+        var wavPath = @:privateAccess ApiProbeScenario.writeProbeWav();
         var stream = Sound.create(wavPath, false, false, haxefmod.core.ChannelMode.CREATESTREAM);
         if (!stream.isNull()) {
             var streamRange = stream.lock(0, 16);
