@@ -193,12 +193,12 @@ jobs:
 
       - name: Generate type XML
         run: |
-          # haxefmod.flixel is ignored: the flixel components only type-check
-          # against an installed flixel, and the API docs cover the core
-          # library surface
+          # The engine packages are ignored: their components only
+          # type-check against an installed flixel, heaps or kha, and the
+          # API docs cover the core library surface
           mkdir -p /tmp/haxefmod-docs
           haxe -cp . --no-output -D doc-gen \
-            --macro "include('haxefmod', true, ['haxefmod.flixel'])" \
+            --macro "include('haxefmod', true, ['haxefmod.flixel', 'haxefmod.heaps', 'haxefmod.kha'])" \
             -xml /tmp/haxefmod-docs/haxefmod-docs.xml --interp
 
       - name: Render API docs
