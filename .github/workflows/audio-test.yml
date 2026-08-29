@@ -3489,14 +3489,20 @@ jobs:
           cat > "$RUNNER_TEMP/dialog.ps1" <<'PS'
           Add-Type -AssemblyName UIAutomationClient
           Add-Type -AssemblyName System.Windows.Forms
+          $procs = Get-Process HeapsPlatformer -ErrorAction SilentlyContinue
+          if (-not $procs) { "no HeapsPlatformer process"; exit 0 }
           $root = [System.Windows.Automation.AutomationElement]::RootElement
-          $cond = New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::NameProperty, "Fatal Error")
-          $w = $root.FindFirst([System.Windows.Automation.TreeScope]::Children, $cond)
-          if ($w) {
-            $w.FindAll([System.Windows.Automation.TreeScope]::Descendants, [System.Windows.Automation.Condition]::TrueCondition) | ForEach-Object { "UI: " + $_.Current.Name }
-            (New-Object -ComObject WScript.Shell).AppActivate("Fatal Error") | Out-Null
-            [System.Windows.Forms.SendKeys]::SendWait("{ENTER}")
-          } else { "no Fatal Error window" }
+          foreach ($p in $procs) {
+            "process " + $p.Id + " title=[" + $p.MainWindowTitle + "] threads=" + $p.Threads.Count
+            $cond = New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::ProcessIdProperty, $p.Id)
+            $wins = $root.FindAll([System.Windows.Automation.TreeScope]::Children, $cond)
+            foreach ($w in $wins) {
+              "window [" + $w.Current.Name + "] class=" + $w.Current.ClassName
+              $w.FindAll([System.Windows.Automation.TreeScope]::Descendants, [System.Windows.Automation.Condition]::TrueCondition) | ForEach-Object { "  UI: [" + $_.Current.Name + "] " + $_.Current.ControlType.ProgrammaticName }
+              (New-Object -ComObject WScript.Shell).AppActivate($w.Current.Name) | Out-Null
+              [System.Windows.Forms.SendKeys]::SendWait("{ENTER}")
+            }
+          }
           PS
           powershell -NoProfile -ExecutionPolicy Bypass -File "$RUNNER_TEMP/dialog.ps1" || true
           sleep 3
