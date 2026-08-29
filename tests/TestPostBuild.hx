@@ -185,7 +185,7 @@ class TestPostBuild {
 
 		var mac = PostBuild.runShContent("game.hl", true, true);
 		check("mac launcher runs the bytecode through hl", mac.indexOf('hl "./game.hl"') != -1);
-		check("mac launcher sets DYLD_LIBRARY_PATH", mac.indexOf("DYLD_LIBRARY_PATH") != -1 && mac.indexOf("LD_LIBRARY_PATH=\"") == -1);
+		check("mac launcher sets DYLD_LIBRARY_PATH", mac.indexOf("export DYLD_LIBRARY_PATH") != -1 && mac.indexOf("export LD_LIBRARY_PATH") == -1);
 		var cmd = PostBuild.runCmdContent("game.hl");
 		check("windows launcher changes to its own directory", cmd.indexOf('cd /d "%~dp0"') != -1);
 		check("windows launcher runs the bytecode through hl", cmd.indexOf('hl "game.hl" %*') != -1);

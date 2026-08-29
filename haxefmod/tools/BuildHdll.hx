@@ -244,6 +244,11 @@ class BuildHdll {
 		return "/opt/homebrew";
 	}
 
+	static function macArch():String {
+		var arch = Sys.getEnv("HAXEFMOD_HDLL_ARCH");
+		return arch == null || arch == "" ? "x86_64" : arch;
+	}
+
 	static function buildCompilerArgs(platform:String, source:String, output:String, fmodSdk:String, coreInc:String,
 			studioInc:String, hlInclude:String):Array<String> {
 		return switch (platform) {
@@ -267,7 +272,9 @@ class BuildHdll {
 				var studioLib = Path.join([fmodSdk, "api", "studio", "lib"]);
 				[
 					"-dynamiclib", "-O2",
-					"-arch", "x86_64",
+					// x86_64 matches lime's bundled HashLink VM. An arm64 HashLink
+					// (Homebrew's libhl, HL/C builds) needs HAXEFMOD_HDLL_ARCH=arm64.
+					"-arch", macArch(),
 					"-install_name", "@executable_path/hlaxe_fmod.hdll",
 					"-o", output,
 					source,
