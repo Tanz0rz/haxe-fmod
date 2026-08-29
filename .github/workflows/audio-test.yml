@@ -2465,10 +2465,11 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[kha-linux]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-js]') && !contains(github.event.head_commit.message, '[kha-linux]') && !contains(github.event.head_commit.message, '[kha-hl]') && !contains(github.event.head_commit.message, '[kha-html5]')))) }}
     timeout-minutes: 40
-    env:
-      KHA: ${{ runner.temp }}/Kha
     steps:
       - uses: actions/checkout@v5
+
+      - name: Point at the Kha checkout
+        run: echo "KHA=$RUNNER_TEMP/Kha" >> "$GITHUB_ENV"
 
       - name: Download FMOD SDK
         uses: ./.github/actions/fmod-sdk
@@ -2735,10 +2736,11 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[kha-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-js]') && !contains(github.event.head_commit.message, '[kha-linux]') && !contains(github.event.head_commit.message, '[kha-hl]') && !contains(github.event.head_commit.message, '[kha-html5]')))) }}
     timeout-minutes: 40
-    env:
-      KHA: ${{ runner.temp }}/Kha
     steps:
       - uses: actions/checkout@v5
+
+      - name: Point at the Kha checkout
+        run: echo "KHA=$RUNNER_TEMP/Kha" >> "$GITHUB_ENV"
 
       - name: Download FMOD SDK
         uses: ./.github/actions/fmod-sdk
@@ -2989,10 +2991,11 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[kha-html5]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-js]') && !contains(github.event.head_commit.message, '[kha-linux]') && !contains(github.event.head_commit.message, '[kha-hl]') && !contains(github.event.head_commit.message, '[kha-html5]')))) }}
     timeout-minutes: 40
-    env:
-      KHA: ${{ runner.temp }}/Kha
     steps:
       - uses: actions/checkout@v5
+
+      - name: Point at the Kha checkout
+        run: echo "KHA=$RUNNER_TEMP/Kha" >> "$GITHUB_ENV"
 
       - name: Download FMOD SDK
         uses: ./.github/actions/fmod-sdk
