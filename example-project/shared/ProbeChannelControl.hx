@@ -26,6 +26,16 @@ import haxefmod.studio.Types.FmodVector;
 class ProbeChannelControl {
     static var _started:Bool = false;
     static var _waiting:Bool = false;
+    static var _finished:Bool = false;
+
+    /** True until the occlusion wait and its leak count have run (never on js). */
+    public static function pending():Bool {
+        #if js
+        return false;
+        #else
+        return !_finished;
+        #end
+    }
     static var _frames:Int = 0;
     static var _baseline:Int = 0;
     static var _events:Array<ChannelEvent> = [];
@@ -293,5 +303,6 @@ class ProbeChannelControl {
         }
         @:privateAccess state.check("no_handle_leaks_occlusion_callback", StudioSystem.liveHandleCount() <= _baseline,
             'baseline=$_baseline now=${StudioSystem.liveHandleCount()} settle_wait=$settled stop=${rStop.toString()} stream=${rStream.toString()} group=${rGroup.toString()} geometry=${rGeometry.toString()}');
+        _finished = true;
     }
 }

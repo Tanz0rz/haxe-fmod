@@ -1466,6 +1466,7 @@ class ApiProbeScenario implements TestScenario {
     var _waitingForDspData:Bool = false;
     var _waitingForChannelEvents:Bool = false;
     var _oneShotFrames:Int = 0;
+    var _oneShotDone:Bool = false;
     var _waitingForOneShot:Bool = false;
     var _oneShotBaseline:Int = 0;
     var _oneShotAttachedBaseline:Int = 0;
@@ -2868,10 +2869,14 @@ class ApiProbeScenario implements TestScenario {
             _waitingForDspData = false;
             probeChannelEvents();
         }
-        // The remint phase's leak check waits for FMOD to destroy its
-        // instance, and the occlusion wait below holds four handles of its
-        // own, so it only starts once that check has run
-        if (!_waitingForRemint && !_waitingForRemintDrain && !_waitingForChannelEvents) ProbeChannelControl.tick(this);
+        // The occlusion probe holds four handles of its own and counts
+        // them against a baseline, so it only ticks while no other phase
+        // is in flight: the transition, snapshot, sustain and one-shot
+        // phases create and release instances of their own, and on a slow
+        // frame one of those landed between its baseline and its count
+        if (!_waitingForRemint && !_waitingForRemintDrain && !_waitingForChannelEvents
+                && !_waitingForTransition && !_waitingForSnapshotActive && !_waitingForSnapshotRecovery
+                && !_waitingForSustainHold && !_waitingForSustainStop && !_waitingForOneShot) ProbeChannelControl.tick(this);
         if (_waitingForChannelEvents) {
             _chanEventFrames++;
             var sawEnd = false;
@@ -2952,8 +2957,14 @@ class ApiProbeScenario implements TestScenario {
             // makes a broken release path fail loudly instead of hanging
             if (FmodRuntime.attachedCount() == _oneShotAttachedBaseline || _oneShotFrames > 600) {
                 _waitingForOneShot = false;
-                finishOneShotAttached();
+                _oneShotDone = true;
             }
+        }
+        // The occlusion probe gets the quiet frames after the one-shot,
+        // and the COMPLETE line waits for it
+        if (_oneShotDone && !ProbeChannelControl.pending()) {
+            _oneShotDone = false;
+            finishOneShotAttached();
         }
         if (!_done) return;
 
