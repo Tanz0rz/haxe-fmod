@@ -124,6 +124,8 @@ class ProgrammerSoundScenario implements TestScenario {
     var _atInstance:EventInstance = EventInstance.NULL;
     var _atGroup:ChannelGroup = ChannelGroup.NULL;
     var _atMeter:Dsp = Dsp.NULL;
+    var _atMasterBus:haxefmod.studio.Bus = haxefmod.studio.Bus.NULL;
+    var _atMeterGroup:ChannelGroup = ChannelGroup.NULL;
     var _atBaseline:Int = 0;
     var _atFrames:Int = 0;
     var _atCreates:Int = 0;
@@ -154,13 +156,33 @@ class ProgrammerSoundScenario implements TestScenario {
      * The audio-table key route: Speak's async programmer instrument
      * resolves each key through the Master bank's audio table. The create
      * callback fires whether or not the key resolves, so metering on the
-     * instance's channel group is the proof it resolved to real audio.
+     * master bus is the proof it resolved to real audio.
      * Async: the event plays its region out per key (about six seconds).
      */
     function startAudioTable():Void {
         // The description lookup mints a persistent dedup handle: warm it
         // before the baseline
         var desc = StudioSystem.getEvent(FmodEvents.DialogueSpeak);
+        // The meter sits on the master bus for the whole audio table
+        // phase: nothing else plays during it, and the instance's own
+        // group is not a reliable place for it on the first instance of
+        // a fresh process (the first key metered silent there on macOS
+        // while the sound was ready and the event ran its full length).
+        // Its handles live until the last leak check, so they go inside
+        // the baseline.
+        _atMasterBus = StudioSystem.getBus("bus:/");
+        _atMasterBus.lockChannelGroup();
+        StudioSystem.flushCommands();
+        _atMeterGroup = _atMasterBus.getChannelGroup();
+        check("at_master_channel_group", !_atMeterGroup.isNull(),
+            'result=${StudioSystem.lastResult().toString()}');
+        _atMeter = Dsp.create(DspType.FFT);
+        if (!_atMeterGroup.isNull()) {
+            _atMeterGroup.addDsp(0, _atMeter);
+            // getMetering reads the output meter, so output metering must
+            // be on (the FFT passes audio through unchanged)
+            _atMeter.setMeteringEnabled(true, true);
+        }
         _atBaseline = StudioSystem.liveHandleCount();
         check("at_event_lookup", !desc.isNull(),
             'result=${StudioSystem.lastResult().toString()}');
@@ -233,13 +255,6 @@ class ProgrammerSoundScenario implements TestScenario {
         _atGroup = _atInstance.getChannelGroup();
         check("at_channel_group", !_atGroup.isNull(),
             'result=${StudioSystem.lastResult().toString()}');
-        _atMeter = Dsp.create(DspType.FFT);
-        if (!_atGroup.isNull()) {
-            _atGroup.addDsp(0, _atMeter);
-            // getMetering reads the output meter, so output metering must
-            // be on (the FFT passes audio through unchanged)
-            _atMeter.setMeteringEnabled(true, true);
-        }
         _atFrames = 0;
         _atPlayStamp = haxe.Timer.stamp();
         _atReadyFrame = -1;
@@ -292,8 +307,6 @@ class ProgrammerSoundScenario implements TestScenario {
             _atGameSound.release();
             _atGameSound = Sound.NULL;
         }
-        _atGroup.removeDsp(_atMeter);
-        _atMeter.release();
         _atInstance.release();
         var desc = StudioSystem.getEvent(FmodEvents.DialogueSpeak);
         desc.releaseAllInstances();
@@ -338,6 +351,10 @@ class ProgrammerSoundScenario implements TestScenario {
         FmodManager.Update();
         check("no_bogus_leaks", StudioSystem.liveHandleCount() == _atBaseline,
             'baseline=$_atBaseline now=${StudioSystem.liveHandleCount()}');
+        if (!_atMeterGroup.isNull()) _atMeterGroup.removeDsp(_atMeter);
+        _atMeter.release();
+        _atMeter = Dsp.NULL;
+        _atMasterBus.unlockChannelGroup();
         finishState();
     }
 
