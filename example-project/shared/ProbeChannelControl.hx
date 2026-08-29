@@ -279,8 +279,15 @@ class ProbeChannelControl {
             case Occlusion(d, _): direct = d;
             default:
         }
+        // What FMOD itself reports at this moment, for a timed-out wait
+        var live = _channel.get3DOcclusion();
+        var listener = StudioSystem.getListenerAttributes(0);
+        var query = Geometry.getOcclusion({x: 0, y: -5, z: 0}, {x: 5, y: 0, z: 0});
         @:privateAccess state.check("chan_occlusion_event_delivered", sawChannel && direct > 0,
-            'events=${_events.length} frames=$_frames direct=$direct');
+            'events=${_events.length} frames=$_frames direct=$direct'
+            + ' live_direct=${live == null ? -1 : live.direct} playing=${_channel.isPlaying()}'
+            + ' listener=${listener == null ? "null" : listener.position.x + "," + listener.position.y + "," + listener.position.z}'
+            + ' query_direct=${query == null ? -1 : query.direct}');
         @:privateAccess state.check("cg_occlusion_event_delivered", sawGroup,
             'events=${_groupEvents.length} frames=$_frames');
         var rStop = _channel.stop();
