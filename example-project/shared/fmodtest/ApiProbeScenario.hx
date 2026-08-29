@@ -2965,6 +2965,7 @@ class ApiProbeScenario implements TestScenario {
             if (FmodRuntime.attachedCount() == _oneShotAttachedBaseline || _oneShotFrames > 600) {
                 _waitingForOneShot = false;
                 finishOneShotAttached();
+            }
         }
         if (!_done) return;
 
