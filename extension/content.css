@@ -21,14 +21,8 @@
     color: #555555;
 }
 
-.haxefmod-block .haxefmod-warn,
-.haxefmod-block .haxefmod-warn p,
-.haxefmod-block .haxefmod-warn li,
 .haxefmod-block .haxefmod-warn-title {
     color: #a40000;
-}
-
-.haxefmod-block .haxefmod-warn-title {
     font-weight: bold;
 }
 

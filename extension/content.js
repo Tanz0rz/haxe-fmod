@@ -39,7 +39,7 @@
         // The site styles text inside highlight blocks with rules that win
         // over a content script's stylesheet, so the warning colour goes
         // on the element itself
-        if (className && className.indexOf("haxefmod-warn") >= 0) node.style.color = WARN_COLOR;
+        if (className && className.indexOf("haxefmod-warn-title") >= 0) node.style.color = WARN_COLOR;
         return node;
     }
 
