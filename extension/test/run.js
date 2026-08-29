@@ -130,6 +130,24 @@ async function main() {
     start = await startBlock();
     if (start.display !== 'block') fail('Haxe selection did not survive a reload');
 
+    // Swapping blocks must not move the tab under the pointer: scroll so
+    // the last function's tab sits mid-viewport, click Haxe, and the tab
+    // stays at the same viewport position although the block below it
+    // changed height.
+    const pinned = await page.evaluate(async () => {
+        const selectors = document.querySelectorAll('h2[api="function"] ~ .language-selector');
+        const selector = selectors[selectors.length - 1];
+        const tab = selector.querySelector('.language-tab[data-language="language-haxe"]');
+        tab.scrollIntoView({ block: 'center' });
+        await new Promise(r => setTimeout(r, 100));
+        const before = tab.getBoundingClientRect().top;
+        tab.click();
+        await new Promise(r => setTimeout(r, 200));
+        return { before, after: tab.getBoundingClientRect().top };
+    });
+    if (Math.abs(pinned.after - pinned.before) > 1) fail('clicking a Haxe tab moved it from ' + pinned.before + ' to ' + pinned.after);
+    await page.evaluate(() => window.scrollTo(0, 0));
+
     await page.click('#studio_eventinstance_start ~ .language-selector .language-tab[data-language="language-cpp"]');
     await page.waitForTimeout(150);
     start = await startBlock();

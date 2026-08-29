@@ -288,6 +288,22 @@
         } catch (e) { /* storage unavailable, selection lasts for the page only */ }
     }
 
+    // Swapping a language block changes the height below the tab strip,
+    // and the browser's scroll anchoring then shifts the page so some
+    // other element stays put. The tab that was clicked is what the eye
+    // is on, so its viewport position is taken before any handler runs
+    // (capture phase) and restored once the site and this script have
+    // both applied the change.
+    document.addEventListener("click", function (event) {
+        var tab = event.target.closest ? event.target.closest(".language-tab") : null;
+        if (!tab) return;
+        var before = tab.getBoundingClientRect().top;
+        window.requestAnimationFrame(function () {
+            var after = tab.getBoundingClientRect().top;
+            if (after !== before) window.scrollBy(0, after - before);
+        });
+    }, true);
+
     document.addEventListener("click", function (event) {
         var tab = event.target.closest ? event.target.closest(".language-tab") : null;
         if (!tab) return;

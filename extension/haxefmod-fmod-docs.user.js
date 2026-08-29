@@ -15272,7 +15272,7 @@ const HAXEFMOD_EXAMPLES = {
 
 (function () {
     var style = document.createElement("style");
-    style.textContent = "/* The site's .highlight box carries 6px of padding and a grey fill. The\n   note pulls back out to the box edge, draws a rule, and sits on white\n   so the code and the prose read as two things. */\n.haxefmod-block .haxefmod-note {\n    font-size: 14px;\n    line-height: 1.5;\n    margin: 10px -6px -6px -6px;\n    padding: 8px 12px 6px 12px;\n    border-top: 1px solid #b3b3b3;\n    background: #ffffff;\n    color: #333333;\n}\n\n.haxefmod-block .haxefmod-note p {\n    margin: 4px 0;\n}\n\n.haxefmod-block .haxefmod-type {\n    font-family: monospace;\n    font-size: 13px;\n    color: #555555;\n}\n\n.haxefmod-block .haxefmod-warn {\n    color: #a40000;\n}\n\n.haxefmod-block .haxefmod-warn-title {\n    font-weight: bold;\n}\n\n.haxefmod-block .haxefmod-warn ul {\n    margin: 2px 0 6px 0;\n    padding-left: 20px;\n}\n\n.haxefmod-block .haxefmod-warn li {\n    margin: 2px 0;\n}\n\n.haxefmod-block .haxefmod-footer {\n    color: #666666;\n    font-size: 12px;\n}\n\n.haxefmod-block .haxefmod-footer a {\n    color: #666666;\n    text-decoration: underline;\n}\n\n/* The site sizes every tab for two or three characters (max-width 30px),\n   which pushes \"Haxe\" off center. Match the site's selector specificity\n   and give the word its room. */\n#Documentation div.documentation-content div.language-tab.haxefmod-tab,\n#Documentation div.searchresults div.language-tab.haxefmod-tab {\n    max-width: 40px;\n    text-align: center;\n}\n";
+    style.textContent = "/* The site's .highlight box carries 6px of padding and a grey fill. The\n   note pulls back out to the box edge, draws a rule, and sits on white\n   so the code and the prose read as two things. */\n.haxefmod-block .haxefmod-note {\n    font-size: 14px;\n    line-height: 1.5;\n    margin: 10px -6px -6px -6px;\n    padding: 8px 12px 6px 12px;\n    border-top: 1px solid #b3b3b3;\n    background: #ffffff;\n    color: #333333;\n}\n\n.haxefmod-block .haxefmod-note p {\n    margin: 4px 0;\n}\n\n.haxefmod-block .haxefmod-type {\n    font-family: monospace;\n    font-size: 13px;\n    color: #555555;\n}\n\n.haxefmod-block .haxefmod-warn {\n    color: #a40000;\n}\n\n.haxefmod-block .haxefmod-warn-title {\n    font-weight: bold;\n}\n\n.haxefmod-block .haxefmod-warn ul {\n    margin: 2px 0 6px 0;\n    padding-left: 20px;\n}\n\n.haxefmod-block .haxefmod-warn li {\n    margin: 2px 0;\n}\n\n.haxefmod-block .haxefmod-footer {\n    color: #666666;\n    font-size: 12px;\n}\n\n.haxefmod-block .haxefmod-footer a {\n    color: #666666;\n    text-decoration: underline;\n}\n\n/* The site sizes every tab for two or three characters (max-width 30px),\n   which pushes \"Haxe\" off center. Match the site's selector specificity\n   and give the word its room. */\n#Documentation div.documentation-content div.language-tab.haxefmod-tab,\n#Documentation div.searchresults div.language-tab.haxefmod-tab {\n    max-width: 40px;\n    text-align: center;\n}\n\n/* The extension keeps the clicked tab in place itself, so the browser's own anchoring must not move the page as blocks change height. */\ndiv.manual-content {\n    overflow-anchor: none;\n}\n";
     document.documentElement.appendChild(style);
 })();
 
@@ -15565,6 +15565,22 @@ const HAXEFMOD_EXAMPLES = {
             }
         } catch (e) { /* storage unavailable, selection lasts for the page only */ }
     }
+
+    // Swapping a language block changes the height below the tab strip,
+    // and the browser's scroll anchoring then shifts the page so some
+    // other element stays put. The tab that was clicked is what the eye
+    // is on, so its viewport position is taken before any handler runs
+    // (capture phase) and restored once the site and this script have
+    // both applied the change.
+    document.addEventListener("click", function (event) {
+        var tab = event.target.closest ? event.target.closest(".language-tab") : null;
+        if (!tab) return;
+        var before = tab.getBoundingClientRect().top;
+        window.requestAnimationFrame(function () {
+            var after = tab.getBoundingClientRect().top;
+            if (after !== before) window.scrollBy(0, after - before);
+        });
+    }, true);
 
     document.addEventListener("click", function (event) {
         var tab = event.target.closest ? event.target.closest(".language-tab") : null;

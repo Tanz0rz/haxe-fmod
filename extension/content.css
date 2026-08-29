@@ -56,3 +56,8 @@
     max-width: 40px;
     text-align: center;
 }
+
+/* The extension keeps the clicked tab in place itself, so the browser's own anchoring must not move the page as blocks change height. */
+div.manual-content {
+    overflow-anchor: none;
+}
