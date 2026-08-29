@@ -57,6 +57,7 @@
 - `FmodVersion.VERSION`, the linked SDK's `FMOD_VERSION`, `ReverbPresets` with every `FMOD_PRESET_` environment under its FMOD name, `FmodBool`, `FmodPluginList`, and the callback typedefs `EventCallback`, `ChannelCallback`, and `SystemCallback` that `setCallback` and `setSystemCallback` take.
 
 ### Changed
+- `EventInstance.setCallback` and `EventDescription.setCallback` deliver every callback type when no mask is given, the default FMOD's API and its C# integration use. `EventCallbackType.PLAYBACK_ALL`, a haxefmod-only member that FMOD's enum does not have, is gone: pass `EventCallbackType.ALL` or an explicit mask.
 - `Sound.getFormat()` now returns the container `type` (`FmodSoundType`) and sample `format` (`FmodSoundFormat`) next to `channels` and `bits`.
 - The native programmer sound callback creates its sound with `FMOD_NONBLOCKING`, the same as FMOD's own example, so audio table entries and files decode off the Studio thread. FMOD waits for the sound before the instrument plays it.
 - `EventInstance.setCallback` handlers receive `ProgrammerSoundCreated(name)` and `ProgrammerSoundDestroyed(name)` for the programmer sound callback types instead of `Other(type)`.

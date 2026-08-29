@@ -185,7 +185,7 @@ class BeatTestState extends FlxState {
                 case other:
                     log('CB_TEST: nested-phase $other');
             }
-        }, EventCallbackType.PLAYBACK_ALL);
+        }, EventCallbackType.ALL);
         _nestedInstance.start();
         _phase = 4;
     }
@@ -250,7 +250,7 @@ class BeatTestState extends FlxState {
                         if (isRecoveryProbe) _recoveryStopped = true;
                     default:
                 }
-            }, EventCallbackType.PLAYBACK_ALL);
+            }, EventCallbackType.ALL);
             instance.start();
             _overflowInstances.push(instance);
         }

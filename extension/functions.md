@@ -589,7 +589,7 @@ if (property != null) {
 ## studio_eventdescription_setcallback
 <!-- Studio::EventDescription::setCallback -->
 verdict: bound
-haxefmod covers this with EventDescription.setCallback(handler, ?mask), which remembers a handler that createInstance installs on every instance made from the description from then on. The mask is an EventCallbackType bit set and defaults to PLAYBACK_ALL plus DESTROYED, where FMOD defaults to every type, so pass EventCallbackType.ALL to receive everything. The events are queued on FMOD's thread and delivered as typed EventCallbackData from FmodManager.Update() on the game thread.
+haxefmod covers this with EventDescription.setCallback(handler, ?mask), which remembers a handler that createInstance installs on every instance made from the description from then on. The mask is an EventCallbackType bit set and defaults to every type, as FMOD's does. The events are queued on FMOD's thread and delivered as typed EventCallbackData from FmodManager.Update() on the game thread.
 ```haxe
 var description = StudioSystem.getEvent(FmodEvents.SFXEngine);
 description.setCallback(data -> switch (data) {

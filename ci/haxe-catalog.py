@@ -341,7 +341,16 @@ def strip_imports(record):
     if record["code"] is None:
         return record
     lines = record["code"].split("\n")
-    types = [record["type"]] if record["type"] else []
+    if record["type"]:
+        # A declaration shows where it lives the way the C# tab prefixes
+        # the namespace: as the package line of a Haxe module. The module
+        # itself is an import detail the guides cover.
+        package = ".".join(record["type"].split(".")[:2])
+        shown = dict(record)
+        shown["code"] = "package " + package + ";\n\n" + "\n".join(lines)
+        shown["type"] = None
+        return shown
+    types = []
     while lines and (lines[0].startswith("import ") or lines[0].strip() == ""):
         line = lines.pop(0).strip()
         if line.startswith("import "):

@@ -184,7 +184,7 @@ class StressTestState extends FlxState {
                 // entry every batch and release() removes it again
                 instance.setCallback(function(data) {
                     _callbackEvents++;
-                }, EventCallbackType.PLAYBACK_ALL);
+                }, EventCallbackType.ALL);
             }
             instance.start();
             instance.stop(IMMEDIATE);

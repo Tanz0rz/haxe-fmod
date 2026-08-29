@@ -69,7 +69,8 @@ class CallbackDispatcher {
             NativeStudio.evi_set_callback_mask(handle, 0);
             return;
         }
-        var callbackMask:Int = mask == null ? EventCallbackType.PLAYBACK_ALL : mask;
+        // Every type when no mask is given, the default FMOD's own API and its C# integration use
+        var callbackMask:Int = mask == null ? EventCallbackType.ALL : mask;
         // Always include DESTROYED so registrations clean themselves up.
         callbackMask |= EventCallbackType.DESTROYED;
         var result:FmodResult = NativeStudio.evi_set_callback_mask(handle, callbackMask);
