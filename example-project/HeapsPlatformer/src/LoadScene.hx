@@ -26,10 +26,15 @@ class LoadScene implements GameScene {
     public function update(dt:Float):Void {
         if (!FmodManager.IsInitialized()) return;
         #if audio_test
-        Main.instance.switchScene(new TestScene(TestConfig.testState()));
-        #else
-        Main.instance.switchScene(new PlayScene());
+        // A test build with no state requested is the plain game, so CI
+        // builds one variant for every leg
+        var state = TestConfig.requestedState();
+        if (state != null) {
+            Main.instance.switchScene(new TestScene(state));
+            return;
+        }
         #end
+        Main.instance.switchScene(new PlayScene());
     }
 
     public function dispose():Void {

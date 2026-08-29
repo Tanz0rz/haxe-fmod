@@ -1904,22 +1904,19 @@ jobs:
           haxelib run haxefmod build-hdll
           cat .haxefmod/hlaxe_fmod.version
 
-      - name: Build game and test variants
+      - name: Build test variant
         run: |
           cd example-project/HeapsPlatformer
-          # Both variants at once, into separate output roots
-          ./build.sh hl > "$RUNNER_TEMP/build-game.log" 2>&1 &
-          P1=$!
-          BUILD_ROOT=build-test ./build.sh hl -D audio_test > "$RUNNER_TEMP/build-test.log" 2>&1 &
+          # The test variant is the game when no state is requested, so one
+          # build serves every leg
+          ./build.sh hl -D audio_test > "$RUNNER_TEMP/build-test.log" 2>&1 &
           P2=$!
-          wait $P1 || { echo "=== game build failed ==="; cat "$RUNNER_TEMP/build-game.log"; exit 1; }
           wait $P2 || { echo "=== test build failed ==="; cat "$RUNNER_TEMP/build-test.log"; exit 1; }
-          tail -5 "$RUNNER_TEMP/build-game.log"
           tail -5 "$RUNNER_TEMP/build-test.log"
 
       - name: Validate build output
         run: |
-          for d in example-project/HeapsPlatformer/build/hl example-project/HeapsPlatformer/build-test/hl; do
+          for d in example-project/HeapsPlatformer/build/hl; do
             for f in game.hl run.sh hlaxe_fmod.hdll libfmod.so libfmodstudio.so assets/fmod/Desktop/Master.bank; do
               test -e "$d/$f" || { echo "FAIL: missing $f in $d"; exit 1; }
             done
@@ -1932,7 +1929,6 @@ jobs:
           name: build-heaps-hl
           path: |
             example-project/HeapsPlatformer/build/hl
-            example-project/HeapsPlatformer/build-test/hl
           include-hidden-files: true
           overwrite: true
 
@@ -2026,12 +2022,6 @@ jobs:
           ALSA_EOF
           echo "DISPLAY=:99" >> "$GITHUB_ENV"
 
-      - name: Show the build directory
-        run: |
-          ls -la example-project/HeapsPlatformer/build/hl
-          cd example-project/HeapsPlatformer/build/hl
-          ./run.sh --version || true
-
       - name: Record audio
         if: matrix.state == 'game-audio'
         run: |
@@ -2049,9 +2039,10 @@ jobs:
       - name: Record volume test
         if: matrix.state == 'volume'
         run: |
+          export HAXEFMOD_TEST_STATE=volume
           export FMOD_WAVWRITER=/tmp/volume-test-heaps-hl.wav
           export HAXEFMOD_LOG_FILE=/tmp/volume-test-heaps-hl.log
-          cd example-project/HeapsPlatformer/build-test/hl
+          cd example-project/HeapsPlatformer/build/hl
           ./run.sh > /tmp/volume-test-heaps-hl.log 2>&1 &
           GAME_PID=$!
           cd -
@@ -2081,7 +2072,7 @@ jobs:
           state: ${{ matrix.state }}
           gate: ${{ matrix.gate }}
           timeout: "60"
-          bin-dir: example-project/HeapsPlatformer/build-test/hl
+          bin-dir: example-project/HeapsPlatformer/build/hl
           log-file: /tmp/${{ matrix.state }}-heaps-hl.log
           extra-gate: "${{ matrix.state == 'cb-test' && 'CB_TEST: Stopped' || '' }}"
           copy-jump-wav: "${{ matrix.state == 'ps-test' && 'true' || 'false' }}"
@@ -2099,7 +2090,7 @@ jobs:
           export FMOD_WAVWRITER="${RUNNER_TEMP}/stress-smoke.wav"
           LOG=/tmp/stress-smoke-heaps-hl.log
           export HAXEFMOD_LOG_FILE="$LOG"
-          cd example-project/HeapsPlatformer/build-test/hl
+          cd example-project/HeapsPlatformer/build/hl
           ./run.sh > "$LOG" 2>&1 &
           GAME_PID=$!
           cd -
@@ -2157,24 +2148,21 @@ jobs:
           haxelib dev haxefmod "$GITHUB_WORKSPACE"
 
 
-      - name: Build game and test variants
+      - name: Build test variant
         env:
           FMOD_SDK_WEB: ${{ env.FMOD_SDK }}
         run: |
           cd example-project/HeapsPlatformer
-          # Both variants at once, into separate output roots
-          ./build.sh js > "$RUNNER_TEMP/build-game.log" 2>&1 &
-          P1=$!
-          BUILD_ROOT=build-test ./build.sh js -D audio_test > "$RUNNER_TEMP/build-test.log" 2>&1 &
+          # The test variant is the game when no state is requested, so one
+          # build serves every leg
+          ./build.sh js -D audio_test > "$RUNNER_TEMP/build-test.log" 2>&1 &
           P2=$!
-          wait $P1 || { echo "=== game build failed ==="; cat "$RUNNER_TEMP/build-game.log"; exit 1; }
           wait $P2 || { echo "=== test build failed ==="; cat "$RUNNER_TEMP/build-test.log"; exit 1; }
-          tail -5 "$RUNNER_TEMP/build-game.log"
           tail -5 "$RUNNER_TEMP/build-test.log"
 
       - name: Validate build output
         run: |
-          for d in example-project/HeapsPlatformer/build/html5 example-project/HeapsPlatformer/build-test/html5; do
+          for d in example-project/HeapsPlatformer/build/html5; do
             for f in index.html game.js lib/fmodstudio.js lib/fmodstudio.wasm lib/jaxe.js assets/fmod/Desktop/Master.bank; do
               test -e "$d/$f" || { echo "FAIL: missing $f in $d"; exit 1; }
             done
@@ -2187,7 +2175,6 @@ jobs:
           name: build-heaps-html5
           path: |
             example-project/HeapsPlatformer/build/html5
-            example-project/HeapsPlatformer/build-test/html5
           include-hidden-files: true
           overwrite: true
 
@@ -2290,7 +2277,7 @@ jobs:
       - name: Record volume test
         if: matrix.state == 'volume'
         run: |
-          cd example-project/HeapsPlatformer/build-test/html5
+          cd example-project/HeapsPlatformer/build/html5
           python3 -m http.server 8181 &
           HTTP_PID=$!
           cd -
@@ -2303,7 +2290,7 @@ jobs:
             --enable-logging=stderr --v=0 \
             --window-size=640,480 \
             --window-position=0,0 \
-            http://localhost:8181 > /tmp/volume-test-heaps-html5-console.log 2>&1 &
+            "http://localhost:8181/index.html?test=volume" > /tmp/volume-test-heaps-html5-console.log 2>&1 &
           CHROME_PID=$!
           sleep 3
           xdotool mousemove 320 240 click 1
@@ -2330,7 +2317,7 @@ jobs:
           GATE="${{ matrix.gate }}"
           RAW=/tmp/$STATE-heaps-html5.log.raw
           LOG=/tmp/$STATE-heaps-html5.log
-          cd example-project/HeapsPlatformer/build-test/html5
+          cd example-project/HeapsPlatformer/build/html5
           python3 -m http.server 8182 &
           HTTP_PID=$!
           cd -
@@ -2440,25 +2427,22 @@ jobs:
           sudo apt-get install -y clang libx11-dev libxinerama-dev libxrandr-dev libxcursor-dev libxi-dev libxkbcommon-dev \
             libgl1-mesa-dev libgl1-mesa-dri libegl1-mesa-dev libasound2-dev libudev-dev libwayland-dev wayland-protocols
 
-      - name: Build game and test variants
+      - name: Build test variant
         run: |
           cd example-project/KhaPlatformer
-          # Both variants at once, into separate output roots
-          ./build.sh linux > "$RUNNER_TEMP/build-game.log" 2>&1 &
-          P1=$!
-          KHA_AUDIO_TEST=1 BUILD_ROOT=build-test ./build.sh linux > "$RUNNER_TEMP/build-test.log" 2>&1 &
+          # The test variant is the game when no state is requested, so one
+          # build serves every leg
+          KHA_AUDIO_TEST=1 ./build.sh linux > "$RUNNER_TEMP/build-test.log" 2>&1 &
           P2=$!
           KHA_AUDIO_TEST=1 KHA_MANUAL_UPDATE=1 BUILD_ROOT=build-manual ./build.sh linux > "$RUNNER_TEMP/build-manual.log" 2>&1 &
           P3=$!
-          wait $P1 || { echo "=== game build failed ==="; cat "$RUNNER_TEMP/build-game.log"; exit 1; }
           wait $P2 || { echo "=== test build failed ==="; cat "$RUNNER_TEMP/build-test.log"; exit 1; }
           wait $P3 || { echo "=== manual-update build failed ==="; cat "$RUNNER_TEMP/build-manual.log"; exit 1; }
-          tail -5 "$RUNNER_TEMP/build-game.log"
           tail -5 "$RUNNER_TEMP/build-test.log"
 
       - name: Validate build output
         run: |
-          for d in example-project/KhaPlatformer/build/linux example-project/KhaPlatformer/build-test/linux; do
+          for d in example-project/KhaPlatformer/build/linux; do
             for f in KhaPlatformer run.sh libfmod.so libfmodstudio.so assets/fmod/Desktop/Master.bank; do
               test -e "$d/$f" || { echo "FAIL: missing $f in $d"; exit 1; }
             done
@@ -2471,7 +2455,6 @@ jobs:
           name: build-kha-linux
           path: |
             example-project/KhaPlatformer/build/linux
-            example-project/KhaPlatformer/build-test/linux
             example-project/KhaPlatformer/build-manual/linux
           include-hidden-files: true
           overwrite: true
@@ -2537,12 +2520,6 @@ jobs:
           ALSA_EOF
           echo "DISPLAY=:99" >> "$GITHUB_ENV"
 
-      - name: Show the build directory
-        run: |
-          ls -la example-project/KhaPlatformer/build/linux
-          cd example-project/KhaPlatformer/build/linux
-          ./run.sh --version || true
-
       - name: Record audio
         if: matrix.state == 'game-audio'
         run: |
@@ -2560,9 +2537,10 @@ jobs:
       - name: Record volume test
         if: matrix.state == 'volume'
         run: |
+          export HAXEFMOD_TEST_STATE=volume
           export FMOD_WAVWRITER=/tmp/volume-test-kha-linux.wav
           export HAXEFMOD_LOG_FILE=/tmp/volume-test-kha-linux.log
-          cd example-project/KhaPlatformer/build-test/linux
+          cd example-project/KhaPlatformer/build/linux
           ./run.sh > /tmp/volume-test-kha-linux.log 2>&1 &
           GAME_PID=$!
           cd -
@@ -2592,7 +2570,7 @@ jobs:
           state: ${{ matrix.state }}
           gate: ${{ matrix.gate }}
           timeout: "60"
-          bin-dir: example-project/KhaPlatformer/build-test/linux
+          bin-dir: example-project/KhaPlatformer/build/linux
           log-file: /tmp/${{ matrix.state }}-kha-linux.log
           extra-gate: "${{ matrix.state == 'cb-test' && 'CB_TEST: Stopped' || '' }}"
           copy-jump-wav: "${{ matrix.state == 'ps-test' && 'true' || 'false' }}"
@@ -2620,7 +2598,7 @@ jobs:
           export FMOD_WAVWRITER="${RUNNER_TEMP}/stress-smoke.wav"
           LOG=/tmp/stress-smoke-kha-linux.log
           export HAXEFMOD_LOG_FILE="$LOG"
-          cd example-project/KhaPlatformer/build-test/linux
+          cd example-project/KhaPlatformer/build/linux
           ./run.sh > "$LOG" 2>&1 &
           GAME_PID=$!
           cd -
@@ -2697,22 +2675,19 @@ jobs:
           sudo apt-get install -y clang libx11-dev libxinerama-dev libxrandr-dev libxcursor-dev libxi-dev libxkbcommon-dev \
             libgl1-mesa-dev libgl1-mesa-dri libegl1-mesa-dev libasound2-dev libudev-dev libwayland-dev wayland-protocols
 
-      - name: Build game and test variants
+      - name: Build test variant
         run: |
           cd example-project/KhaPlatformer
-          # Both variants at once, into separate output roots
-          ./build.sh linux-hl > "$RUNNER_TEMP/build-game.log" 2>&1 &
-          P1=$!
-          KHA_AUDIO_TEST=1 BUILD_ROOT=build-test ./build.sh linux-hl > "$RUNNER_TEMP/build-test.log" 2>&1 &
+          # The test variant is the game when no state is requested, so one
+          # build serves every leg
+          KHA_AUDIO_TEST=1 ./build.sh linux-hl > "$RUNNER_TEMP/build-test.log" 2>&1 &
           P2=$!
-          wait $P1 || { echo "=== game build failed ==="; cat "$RUNNER_TEMP/build-game.log"; exit 1; }
           wait $P2 || { echo "=== test build failed ==="; cat "$RUNNER_TEMP/build-test.log"; exit 1; }
-          tail -5 "$RUNNER_TEMP/build-game.log"
           tail -5 "$RUNNER_TEMP/build-test.log"
 
       - name: Validate build output
         run: |
-          for d in example-project/KhaPlatformer/build/linux-hl example-project/KhaPlatformer/build-test/linux-hl; do
+          for d in example-project/KhaPlatformer/build/linux-hl; do
             for f in KhaPlatformer run.sh libfmod.so libfmodstudio.so assets/fmod/Desktop/Master.bank; do
               test -e "$d/$f" || { echo "FAIL: missing $f in $d"; exit 1; }
             done
@@ -2725,7 +2700,6 @@ jobs:
           name: build-kha-hl
           path: |
             example-project/KhaPlatformer/build/linux-hl
-            example-project/KhaPlatformer/build-test/linux-hl
           include-hidden-files: true
           overwrite: true
 
@@ -2790,12 +2764,6 @@ jobs:
           ALSA_EOF
           echo "DISPLAY=:99" >> "$GITHUB_ENV"
 
-      - name: Show the build directory
-        run: |
-          ls -la example-project/KhaPlatformer/build/linux-hl
-          cd example-project/KhaPlatformer/build/linux-hl
-          ./run.sh --version || true
-
       - name: Record audio
         if: matrix.state == 'game-audio'
         run: |
@@ -2813,9 +2781,10 @@ jobs:
       - name: Record volume test
         if: matrix.state == 'volume'
         run: |
+          export HAXEFMOD_TEST_STATE=volume
           export FMOD_WAVWRITER=/tmp/volume-test-kha-hl.wav
           export HAXEFMOD_LOG_FILE=/tmp/volume-test-kha-hl.log
-          cd example-project/KhaPlatformer/build-test/linux-hl
+          cd example-project/KhaPlatformer/build/linux-hl
           ./run.sh > /tmp/volume-test-kha-hl.log 2>&1 &
           GAME_PID=$!
           cd -
@@ -2845,7 +2814,7 @@ jobs:
           state: ${{ matrix.state }}
           gate: ${{ matrix.gate }}
           timeout: "60"
-          bin-dir: example-project/KhaPlatformer/build-test/linux-hl
+          bin-dir: example-project/KhaPlatformer/build/linux-hl
           log-file: /tmp/${{ matrix.state }}-kha-hl.log
           extra-gate: "${{ matrix.state == 'cb-test' && 'CB_TEST: Stopped' || '' }}"
           copy-jump-wav: "${{ matrix.state == 'ps-test' && 'true' || 'false' }}"
@@ -2863,7 +2832,7 @@ jobs:
           export FMOD_WAVWRITER="${RUNNER_TEMP}/stress-smoke.wav"
           LOG=/tmp/stress-smoke-kha-hl.log
           export HAXEFMOD_LOG_FILE="$LOG"
-          cd example-project/KhaPlatformer/build-test/linux-hl
+          cd example-project/KhaPlatformer/build/linux-hl
           ./run.sh > "$LOG" 2>&1 &
           GAME_PID=$!
           cd -
@@ -2934,24 +2903,21 @@ jobs:
           cd "$RUNNER_TEMP/Kha"
           git checkout "$KHA_COMMIT" 2>/dev/null || true
 
-      - name: Build game and test variants
+      - name: Build test variant
         env:
           FMOD_SDK_WEB: ${{ env.FMOD_SDK }}
         run: |
           cd example-project/KhaPlatformer
-          # Both variants at once, into separate output roots
-          ./build.sh html5 > "$RUNNER_TEMP/build-game.log" 2>&1 &
-          P1=$!
-          KHA_AUDIO_TEST=1 BUILD_ROOT=build-test ./build.sh html5 > "$RUNNER_TEMP/build-test.log" 2>&1 &
+          # The test variant is the game when no state is requested, so one
+          # build serves every leg
+          KHA_AUDIO_TEST=1 ./build.sh html5 > "$RUNNER_TEMP/build-test.log" 2>&1 &
           P2=$!
-          wait $P1 || { echo "=== game build failed ==="; cat "$RUNNER_TEMP/build-game.log"; exit 1; }
           wait $P2 || { echo "=== test build failed ==="; cat "$RUNNER_TEMP/build-test.log"; exit 1; }
-          tail -5 "$RUNNER_TEMP/build-game.log"
           tail -5 "$RUNNER_TEMP/build-test.log"
 
       - name: Validate build output
         run: |
-          for d in example-project/KhaPlatformer/build/html5 example-project/KhaPlatformer/build-test/html5; do
+          for d in example-project/KhaPlatformer/build/html5; do
             for f in index.html kha.js lib/fmodstudio.js lib/fmodstudio.wasm lib/jaxe.js assets/fmod/Desktop/Master.bank; do
               test -e "$d/$f" || { echo "FAIL: missing $f in $d"; exit 1; }
             done
@@ -2964,7 +2930,6 @@ jobs:
           name: build-kha-html5
           path: |
             example-project/KhaPlatformer/build/html5
-            example-project/KhaPlatformer/build-test/html5
           include-hidden-files: true
           overwrite: true
 
@@ -3067,7 +3032,7 @@ jobs:
       - name: Record volume test
         if: matrix.state == 'volume'
         run: |
-          cd example-project/KhaPlatformer/build-test/html5
+          cd example-project/KhaPlatformer/build/html5
           python3 -m http.server 8181 &
           HTTP_PID=$!
           cd -
@@ -3080,7 +3045,7 @@ jobs:
             --enable-logging=stderr --v=0 \
             --window-size=640,480 \
             --window-position=0,0 \
-            http://localhost:8181 > /tmp/volume-test-kha-html5-console.log 2>&1 &
+            "http://localhost:8181/index.html?test=volume" > /tmp/volume-test-kha-html5-console.log 2>&1 &
           CHROME_PID=$!
           sleep 3
           xdotool mousemove 320 240 click 1
@@ -3107,7 +3072,7 @@ jobs:
           GATE="${{ matrix.gate }}"
           RAW=/tmp/$STATE-kha-html5.log.raw
           LOG=/tmp/$STATE-kha-html5.log
-          cd example-project/KhaPlatformer/build-test/html5
+          cd example-project/KhaPlatformer/build/html5
           python3 -m http.server 8182 &
           HTTP_PID=$!
           cd -
@@ -3206,22 +3171,19 @@ jobs:
           HAXEFMOD_HDLL_ARCH=arm64 haxelib run haxefmod build-hdll
           cat .haxefmod/hlaxe_fmod.version
 
-      - name: Build game and test variants
+      - name: Build test variant
         run: |
           cd example-project/HeapsPlatformer
-          # Both variants at once, into separate output roots
-          ./build.sh hlc > "$RUNNER_TEMP/build-game.log" 2>&1 &
-          P1=$!
-          BUILD_ROOT=build-test ./build.sh hlc -D audio_test > "$RUNNER_TEMP/build-test.log" 2>&1 &
+          # The test variant is the game when no state is requested, so one
+          # build serves every leg
+          ./build.sh hlc -D audio_test > "$RUNNER_TEMP/build-test.log" 2>&1 &
           P2=$!
-          wait $P1 || { echo "=== game build failed ==="; cat "$RUNNER_TEMP/build-game.log"; exit 1; }
           wait $P2 || { echo "=== test build failed ==="; cat "$RUNNER_TEMP/build-test.log"; exit 1; }
-          tail -5 "$RUNNER_TEMP/build-game.log"
           tail -5 "$RUNNER_TEMP/build-test.log"
 
       - name: Validate build output
         run: |
-          for d in example-project/HeapsPlatformer/build/hl example-project/HeapsPlatformer/build-test/hl; do
+          for d in example-project/HeapsPlatformer/build/hl; do
             for f in game hlaxe_fmod.hdll libfmod.dylib libfmodstudio.dylib assets/fmod/Desktop/Master.bank; do
               test -e "$d/$f" || { echo "FAIL: missing $f in $d"; exit 1; }
             done
@@ -3234,7 +3196,6 @@ jobs:
           name: build-heaps-mac-hl
           path: |
             example-project/HeapsPlatformer/build/hl
-            example-project/HeapsPlatformer/build-test/hl
           include-hidden-files: true
           overwrite: true
 
@@ -3280,12 +3241,6 @@ jobs:
           brew untap aws/tap 2>/dev/null || true
           brew install ffmpeg hashlink libuv
 
-      - name: Show the build directory
-        run: |
-          ls -la example-project/HeapsPlatformer/build/hl
-          cd example-project/HeapsPlatformer/build/hl
-          ./game --version || true
-
       - name: Record audio
         if: matrix.state == 'game-audio'
         run: |
@@ -3308,9 +3263,10 @@ jobs:
       - name: Record volume test
         if: matrix.state == 'volume'
         run: |
+          export HAXEFMOD_TEST_STATE=volume
           export FMOD_WAVWRITER=/tmp/volume-test-heaps-mac-hl.wav
           export HAXEFMOD_LOG_FILE=/tmp/volume-test-heaps-mac-hl.log
-          cd example-project/HeapsPlatformer/build-test/hl
+          cd example-project/HeapsPlatformer/build/hl
           ./game > /tmp/volume-test-heaps-mac-hl.log 2>&1 &
           GAME_PID=$!
           cd -
@@ -3340,7 +3296,7 @@ jobs:
           state: ${{ matrix.state }}
           gate: ${{ matrix.gate }}
           timeout: "60"
-          bin-dir: example-project/HeapsPlatformer/build-test/hl
+          bin-dir: example-project/HeapsPlatformer/build/hl
           log-file: /tmp/${{ matrix.state }}-heaps-mac-hl.log
           extra-gate: "${{ matrix.state == 'cb-test' && 'CB_TEST: Stopped' || '' }}"
           copy-jump-wav: "${{ matrix.state == 'ps-test' && 'true' || 'false' }}"
@@ -3358,7 +3314,7 @@ jobs:
           export FMOD_WAVWRITER="${RUNNER_TEMP}/stress-smoke.wav"
           LOG=/tmp/stress-smoke-heaps-mac-hl.log
           export HAXEFMOD_LOG_FILE="$LOG"
-          cd example-project/HeapsPlatformer/build-test/hl
+          cd example-project/HeapsPlatformer/build/hl
           ./game > "$LOG" 2>&1 &
           GAME_PID=$!
           cd -
@@ -3439,22 +3395,19 @@ jobs:
           cd example-project\HeapsPlatformer
           haxelib run haxefmod build-hdll
 
-      - name: Build game and test variants
+      - name: Build test variant
         run: |
           cd example-project/HeapsPlatformer
-          # Both variants at once, into separate output roots
-          ./build.sh hl > "$RUNNER_TEMP/build-game.log" 2>&1 &
-          P1=$!
-          BUILD_ROOT=build-test ./build.sh hl -D audio_test > "$RUNNER_TEMP/build-test.log" 2>&1 &
+          # The test variant is the game when no state is requested, so one
+          # build serves every leg
+          ./build.sh hl -D audio_test > "$RUNNER_TEMP/build-test.log" 2>&1 &
           P2=$!
-          wait $P1 || { echo "=== game build failed ==="; cat "$RUNNER_TEMP/build-game.log"; exit 1; }
           wait $P2 || { echo "=== test build failed ==="; cat "$RUNNER_TEMP/build-test.log"; exit 1; }
-          tail -5 "$RUNNER_TEMP/build-game.log"
           tail -5 "$RUNNER_TEMP/build-test.log"
 
       - name: Validate build output
         run: |
-          for d in example-project/HeapsPlatformer/build/hl example-project/HeapsPlatformer/build-test/hl; do
+          for d in example-project/HeapsPlatformer/build/hl; do
             for f in HeapsPlatformer.exe hlboot.dat libhl.dll sdl.hdll hlaxe_fmod.hdll fmod.dll fmodstudio.dll assets/fmod/Desktop/Master.bank; do
               test -e "$d/$f" || { echo "FAIL: missing $f in $d"; exit 1; }
             done
@@ -3467,7 +3420,6 @@ jobs:
           name: build-heaps-windows-hl
           path: |
             example-project/HeapsPlatformer/build/hl
-            example-project/HeapsPlatformer/build-test/hl
           include-hidden-files: true
           overwrite: true
 
@@ -3513,7 +3465,7 @@ jobs:
         run: |
           ls -la example-project/HeapsPlatformer/build/hl
           cd example-project/HeapsPlatformer/build/hl
-          ./HeapsPlatformer.exe --version || true
+          timeout 10 ./HeapsPlatformer.exe --version || true
 
       - name: Record audio
         if: matrix.state == 'game-audio'
@@ -3530,9 +3482,10 @@ jobs:
       - name: Record volume test
         if: matrix.state == 'volume'
         run: |
+          export HAXEFMOD_TEST_STATE=volume
           export FMOD_WAVWRITER="$GITHUB_WORKSPACE/volume-test-heaps-windows-hl.wav"
           export HAXEFMOD_LOG_FILE="$GITHUB_WORKSPACE/volume-test-heaps-windows-hl.log"
-          cd example-project/HeapsPlatformer/build-test/hl
+          cd example-project/HeapsPlatformer/build/hl
           timeout 60 ./HeapsPlatformer.exe > "$GITHUB_WORKSPACE/volume-test-heaps-windows-hl.log" 2>&1 || true
           cd -
 
@@ -3568,7 +3521,7 @@ jobs:
           state: ${{ matrix.state }}
           gate: ${{ matrix.gate }}
           timeout: "60"
-          bin-dir: example-project/HeapsPlatformer/build-test/hl
+          bin-dir: example-project/HeapsPlatformer/build/hl
           log-file: ${{ github.workspace }}/${{ matrix.state }}-heaps-windows-hl.log
           extra-gate: "${{ matrix.state == 'cb-test' && 'CB_TEST: Stopped' || '' }}"
           copy-jump-wav: "${{ matrix.state == 'ps-test' && 'true' || 'false' }}"
@@ -3586,7 +3539,7 @@ jobs:
           export FMOD_WAVWRITER="${RUNNER_TEMP}/stress-smoke.wav"
           LOG=$GITHUB_WORKSPACE/stress-smoke-heaps-windows-hl.log
           export HAXEFMOD_LOG_FILE="$LOG"
-          cd example-project/HeapsPlatformer/build-test/hl
+          cd example-project/HeapsPlatformer/build/hl
           ./HeapsPlatformer.exe > "$LOG" 2>&1 &
           GAME_PID=$!
           cd -
@@ -3659,22 +3612,19 @@ jobs:
           cd "$RUNNER_TEMP/Kha"
           git checkout "$KHA_COMMIT" 2>/dev/null || true
 
-      - name: Build game and test variants
+      - name: Build test variant
         run: |
           cd example-project/KhaPlatformer
-          # Both variants at once, into separate output roots
-          ./build.sh osx > "$RUNNER_TEMP/build-game.log" 2>&1 &
-          P1=$!
-          KHA_AUDIO_TEST=1 BUILD_ROOT=build-test ./build.sh osx > "$RUNNER_TEMP/build-test.log" 2>&1 &
+          # The test variant is the game when no state is requested, so one
+          # build serves every leg
+          KHA_AUDIO_TEST=1 ./build.sh osx > "$RUNNER_TEMP/build-test.log" 2>&1 &
           P2=$!
-          wait $P1 || { echo "=== game build failed ==="; cat "$RUNNER_TEMP/build-game.log"; exit 1; }
           wait $P2 || { echo "=== test build failed ==="; cat "$RUNNER_TEMP/build-test.log"; exit 1; }
-          tail -5 "$RUNNER_TEMP/build-game.log"
           tail -5 "$RUNNER_TEMP/build-test.log"
 
       - name: Validate build output
         run: |
-          for d in example-project/KhaPlatformer/build/osx example-project/KhaPlatformer/build-test/osx; do
+          for d in example-project/KhaPlatformer/build/osx; do
             for f in KhaPlatformer libfmod.dylib libfmodstudio.dylib assets/fmod/Desktop/Master.bank; do
               test -e "$d/$f" || { echo "FAIL: missing $f in $d"; exit 1; }
             done
@@ -3687,7 +3637,6 @@ jobs:
           name: build-kha-mac
           path: |
             example-project/KhaPlatformer/build/osx
-            example-project/KhaPlatformer/build-test/osx
           include-hidden-files: true
           overwrite: true
 
@@ -3733,12 +3682,6 @@ jobs:
           brew untap aws/tap 2>/dev/null || true
           brew install ffmpeg
 
-      - name: Show the build directory
-        run: |
-          ls -la example-project/KhaPlatformer/build/osx
-          cd example-project/KhaPlatformer/build/osx
-          ./KhaPlatformer --version || true
-
       - name: Record audio
         if: matrix.state == 'game-audio'
         run: |
@@ -3761,9 +3704,10 @@ jobs:
       - name: Record volume test
         if: matrix.state == 'volume'
         run: |
+          export HAXEFMOD_TEST_STATE=volume
           export FMOD_WAVWRITER=/tmp/volume-test-kha-mac.wav
           export HAXEFMOD_LOG_FILE=/tmp/volume-test-kha-mac.log
-          cd example-project/KhaPlatformer/build-test/osx
+          cd example-project/KhaPlatformer/build/osx
           ./KhaPlatformer > /tmp/volume-test-kha-mac.log 2>&1 &
           GAME_PID=$!
           cd -
@@ -3793,7 +3737,7 @@ jobs:
           state: ${{ matrix.state }}
           gate: ${{ matrix.gate }}
           timeout: "60"
-          bin-dir: example-project/KhaPlatformer/build-test/osx
+          bin-dir: example-project/KhaPlatformer/build/osx
           log-file: /tmp/${{ matrix.state }}-kha-mac.log
           extra-gate: "${{ matrix.state == 'cb-test' && 'CB_TEST: Stopped' || '' }}"
           copy-jump-wav: "${{ matrix.state == 'ps-test' && 'true' || 'false' }}"
@@ -3811,7 +3755,7 @@ jobs:
           export FMOD_WAVWRITER="${RUNNER_TEMP}/stress-smoke.wav"
           LOG=/tmp/stress-smoke-kha-mac.log
           export HAXEFMOD_LOG_FILE="$LOG"
-          cd example-project/KhaPlatformer/build-test/osx
+          cd example-project/KhaPlatformer/build/osx
           ./KhaPlatformer > "$LOG" 2>&1 &
           GAME_PID=$!
           cd -
@@ -3884,22 +3828,19 @@ jobs:
           cd "$RUNNER_TEMP/Kha"
           git checkout "$KHA_COMMIT" 2>/dev/null || true
 
-      - name: Build game and test variants
+      - name: Build test variant
         run: |
           cd example-project/KhaPlatformer
-          # Both variants at once, into separate output roots
-          ./build.sh osx-hl > "$RUNNER_TEMP/build-game.log" 2>&1 &
-          P1=$!
-          KHA_AUDIO_TEST=1 BUILD_ROOT=build-test ./build.sh osx-hl > "$RUNNER_TEMP/build-test.log" 2>&1 &
+          # The test variant is the game when no state is requested, so one
+          # build serves every leg
+          KHA_AUDIO_TEST=1 ./build.sh osx-hl > "$RUNNER_TEMP/build-test.log" 2>&1 &
           P2=$!
-          wait $P1 || { echo "=== game build failed ==="; cat "$RUNNER_TEMP/build-game.log"; exit 1; }
           wait $P2 || { echo "=== test build failed ==="; cat "$RUNNER_TEMP/build-test.log"; exit 1; }
-          tail -5 "$RUNNER_TEMP/build-game.log"
           tail -5 "$RUNNER_TEMP/build-test.log"
 
       - name: Validate build output
         run: |
-          for d in example-project/KhaPlatformer/build/osx-hl example-project/KhaPlatformer/build-test/osx-hl; do
+          for d in example-project/KhaPlatformer/build/osx-hl; do
             for f in KhaPlatformer libfmod.dylib libfmodstudio.dylib assets/fmod/Desktop/Master.bank; do
               test -e "$d/$f" || { echo "FAIL: missing $f in $d"; exit 1; }
             done
@@ -3912,7 +3853,6 @@ jobs:
           name: build-kha-mac-hl
           path: |
             example-project/KhaPlatformer/build/osx-hl
-            example-project/KhaPlatformer/build-test/osx-hl
           include-hidden-files: true
           overwrite: true
 
@@ -3958,12 +3898,6 @@ jobs:
           brew untap aws/tap 2>/dev/null || true
           brew install ffmpeg
 
-      - name: Show the build directory
-        run: |
-          ls -la example-project/KhaPlatformer/build/osx-hl
-          cd example-project/KhaPlatformer/build/osx-hl
-          ./KhaPlatformer --version || true
-
       - name: Record audio
         if: matrix.state == 'game-audio'
         run: |
@@ -3986,9 +3920,10 @@ jobs:
       - name: Record volume test
         if: matrix.state == 'volume'
         run: |
+          export HAXEFMOD_TEST_STATE=volume
           export FMOD_WAVWRITER=/tmp/volume-test-kha-mac-hl.wav
           export HAXEFMOD_LOG_FILE=/tmp/volume-test-kha-mac-hl.log
-          cd example-project/KhaPlatformer/build-test/osx-hl
+          cd example-project/KhaPlatformer/build/osx-hl
           ./KhaPlatformer > /tmp/volume-test-kha-mac-hl.log 2>&1 &
           GAME_PID=$!
           cd -
@@ -4018,7 +3953,7 @@ jobs:
           state: ${{ matrix.state }}
           gate: ${{ matrix.gate }}
           timeout: "60"
-          bin-dir: example-project/KhaPlatformer/build-test/osx-hl
+          bin-dir: example-project/KhaPlatformer/build/osx-hl
           log-file: /tmp/${{ matrix.state }}-kha-mac-hl.log
           extra-gate: "${{ matrix.state == 'cb-test' && 'CB_TEST: Stopped' || '' }}"
           copy-jump-wav: "${{ matrix.state == 'ps-test' && 'true' || 'false' }}"
@@ -4036,7 +3971,7 @@ jobs:
           export FMOD_WAVWRITER="${RUNNER_TEMP}/stress-smoke.wav"
           LOG=/tmp/stress-smoke-kha-mac-hl.log
           export HAXEFMOD_LOG_FILE="$LOG"
-          cd example-project/KhaPlatformer/build-test/osx-hl
+          cd example-project/KhaPlatformer/build/osx-hl
           ./KhaPlatformer > "$LOG" 2>&1 &
           GAME_PID=$!
           cd -
@@ -4110,22 +4045,19 @@ jobs:
           cd "$RUNNER_TEMP/Kha"
           git checkout "$KHA_COMMIT" 2>/dev/null || true
 
-      - name: Build game and test variants
+      - name: Build test variant
         run: |
           cd example-project/KhaPlatformer
-          # Both variants at once, into separate output roots
-          ./build.sh windows > "$RUNNER_TEMP/build-game.log" 2>&1 &
-          P1=$!
-          KHA_AUDIO_TEST=1 BUILD_ROOT=build-test ./build.sh windows > "$RUNNER_TEMP/build-test.log" 2>&1 &
+          # The test variant is the game when no state is requested, so one
+          # build serves every leg
+          KHA_AUDIO_TEST=1 ./build.sh windows > "$RUNNER_TEMP/build-test.log" 2>&1 &
           P2=$!
-          wait $P1 || { echo "=== game build failed ==="; cat "$RUNNER_TEMP/build-game.log"; exit 1; }
           wait $P2 || { echo "=== test build failed ==="; cat "$RUNNER_TEMP/build-test.log"; exit 1; }
-          tail -5 "$RUNNER_TEMP/build-game.log"
           tail -5 "$RUNNER_TEMP/build-test.log"
 
       - name: Validate build output
         run: |
-          for d in example-project/KhaPlatformer/build/windows example-project/KhaPlatformer/build-test/windows; do
+          for d in example-project/KhaPlatformer/build/windows; do
             for f in KhaPlatformer.exe fmod.dll fmodstudio.dll assets/fmod/Desktop/Master.bank; do
               test -e "$d/$f" || { echo "FAIL: missing $f in $d"; exit 1; }
             done
@@ -4138,7 +4070,6 @@ jobs:
           name: build-kha-windows
           path: |
             example-project/KhaPlatformer/build/windows
-            example-project/KhaPlatformer/build-test/windows
           include-hidden-files: true
           overwrite: true
 
@@ -4180,12 +4111,6 @@ jobs:
         shell: powershell
         run: choco install ffmpeg -y --no-progress
 
-      - name: Show the build directory
-        run: |
-          ls -la example-project/KhaPlatformer/build/windows
-          cd example-project/KhaPlatformer/build/windows
-          ./KhaPlatformer.exe --version || true
-
       - name: Record audio
         if: matrix.state == 'game-audio'
         run: |
@@ -4201,9 +4126,10 @@ jobs:
       - name: Record volume test
         if: matrix.state == 'volume'
         run: |
+          export HAXEFMOD_TEST_STATE=volume
           export FMOD_WAVWRITER="$GITHUB_WORKSPACE/volume-test-kha-windows.wav"
           export HAXEFMOD_LOG_FILE="$GITHUB_WORKSPACE/volume-test-kha-windows.log"
-          cd example-project/KhaPlatformer/build-test/windows
+          cd example-project/KhaPlatformer/build/windows
           timeout 60 ./KhaPlatformer.exe > "$GITHUB_WORKSPACE/volume-test-kha-windows.log" 2>&1 || true
           cd -
 
@@ -4239,7 +4165,7 @@ jobs:
           state: ${{ matrix.state }}
           gate: ${{ matrix.gate }}
           timeout: "60"
-          bin-dir: example-project/KhaPlatformer/build-test/windows
+          bin-dir: example-project/KhaPlatformer/build/windows
           log-file: ${{ github.workspace }}/${{ matrix.state }}-kha-windows.log
           extra-gate: "${{ matrix.state == 'cb-test' && 'CB_TEST: Stopped' || '' }}"
           copy-jump-wav: "${{ matrix.state == 'ps-test' && 'true' || 'false' }}"
@@ -4257,7 +4183,7 @@ jobs:
           export FMOD_WAVWRITER="${RUNNER_TEMP}/stress-smoke.wav"
           LOG=$GITHUB_WORKSPACE/stress-smoke-kha-windows.log
           export HAXEFMOD_LOG_FILE="$LOG"
-          cd example-project/KhaPlatformer/build-test/windows
+          cd example-project/KhaPlatformer/build/windows
           ./KhaPlatformer.exe > "$LOG" 2>&1 &
           GAME_PID=$!
           cd -
@@ -4331,22 +4257,19 @@ jobs:
           cd "$RUNNER_TEMP/Kha"
           git checkout "$KHA_COMMIT" 2>/dev/null || true
 
-      - name: Build game and test variants
+      - name: Build test variant
         run: |
           cd example-project/KhaPlatformer
-          # Both variants at once, into separate output roots
-          ./build.sh windows-hl > "$RUNNER_TEMP/build-game.log" 2>&1 &
-          P1=$!
-          KHA_AUDIO_TEST=1 BUILD_ROOT=build-test ./build.sh windows-hl > "$RUNNER_TEMP/build-test.log" 2>&1 &
+          # The test variant is the game when no state is requested, so one
+          # build serves every leg
+          KHA_AUDIO_TEST=1 ./build.sh windows-hl > "$RUNNER_TEMP/build-test.log" 2>&1 &
           P2=$!
-          wait $P1 || { echo "=== game build failed ==="; cat "$RUNNER_TEMP/build-game.log"; exit 1; }
           wait $P2 || { echo "=== test build failed ==="; cat "$RUNNER_TEMP/build-test.log"; exit 1; }
-          tail -5 "$RUNNER_TEMP/build-game.log"
           tail -5 "$RUNNER_TEMP/build-test.log"
 
       - name: Validate build output
         run: |
-          for d in example-project/KhaPlatformer/build/windows-hl example-project/KhaPlatformer/build-test/windows-hl; do
+          for d in example-project/KhaPlatformer/build/windows-hl; do
             for f in KhaPlatformer.exe fmod.dll fmodstudio.dll assets/fmod/Desktop/Master.bank; do
               test -e "$d/$f" || { echo "FAIL: missing $f in $d"; exit 1; }
             done
@@ -4359,7 +4282,6 @@ jobs:
           name: build-kha-windows-hl
           path: |
             example-project/KhaPlatformer/build/windows-hl
-            example-project/KhaPlatformer/build-test/windows-hl
           include-hidden-files: true
           overwrite: true
 
@@ -4401,12 +4323,6 @@ jobs:
         shell: powershell
         run: choco install ffmpeg -y --no-progress
 
-      - name: Show the build directory
-        run: |
-          ls -la example-project/KhaPlatformer/build/windows-hl
-          cd example-project/KhaPlatformer/build/windows-hl
-          ./KhaPlatformer.exe --version || true
-
       - name: Record audio
         if: matrix.state == 'game-audio'
         run: |
@@ -4422,9 +4338,10 @@ jobs:
       - name: Record volume test
         if: matrix.state == 'volume'
         run: |
+          export HAXEFMOD_TEST_STATE=volume
           export FMOD_WAVWRITER="$GITHUB_WORKSPACE/volume-test-kha-windows-hl.wav"
           export HAXEFMOD_LOG_FILE="$GITHUB_WORKSPACE/volume-test-kha-windows-hl.log"
-          cd example-project/KhaPlatformer/build-test/windows-hl
+          cd example-project/KhaPlatformer/build/windows-hl
           timeout 60 ./KhaPlatformer.exe > "$GITHUB_WORKSPACE/volume-test-kha-windows-hl.log" 2>&1 || true
           cd -
 
@@ -4460,7 +4377,7 @@ jobs:
           state: ${{ matrix.state }}
           gate: ${{ matrix.gate }}
           timeout: "60"
-          bin-dir: example-project/KhaPlatformer/build-test/windows-hl
+          bin-dir: example-project/KhaPlatformer/build/windows-hl
           log-file: ${{ github.workspace }}/${{ matrix.state }}-kha-windows-hl.log
           extra-gate: "${{ matrix.state == 'cb-test' && 'CB_TEST: Stopped' || '' }}"
           copy-jump-wav: "${{ matrix.state == 'ps-test' && 'true' || 'false' }}"
@@ -4478,7 +4395,7 @@ jobs:
           export FMOD_WAVWRITER="${RUNNER_TEMP}/stress-smoke.wav"
           LOG=$GITHUB_WORKSPACE/stress-smoke-kha-windows-hl.log
           export HAXEFMOD_LOG_FILE="$LOG"
-          cd example-project/KhaPlatformer/build-test/windows-hl
+          cd example-project/KhaPlatformer/build/windows-hl
           ./KhaPlatformer.exe > "$LOG" 2>&1 &
           GAME_PID=$!
           cd -
