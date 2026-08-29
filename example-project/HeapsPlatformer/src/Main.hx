@@ -26,9 +26,10 @@ class Main extends hxd.App {
         // display spins thousands of frames per second and the scenarios'
         // frame-counted waits expire before FMOD can deliver anything.
         s2d.scaleMode = LetterBox(320, 240);
-        #if js
-        hxd.System.fpsLimit = 60;
-        #end
+        // No fpsLimit in the browser: Heaps then runs its loop through
+        // setTimeout, which Chromium throttles to one call per second when
+        // it decides the window is in the background, and requestAnimationFrame
+        // caps at the display rate anyway
         engine.backgroundColor = 0xffaaaaaa;
 
         #if audio_test_manual_update
