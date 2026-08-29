@@ -4836,7 +4836,11 @@ const char* fmod_sys_get_version() {
     unsigned int build = 0;
     gStringBuf[0] = '\0';
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return gStringBuf; }
+#if FMOD_VERSION >= 0x00020300
     gLastResult = gCoreSystem->getVersion(&version, &build);
+#else
+    gLastResult = gCoreSystem->getVersion(&version);
+#endif
     if (gLastResult != FMOD_OK) return gStringBuf;
     snprintf(gStringBuf, sizeof(gStringBuf), "%x.%02x.%02x",
         version >> 16, (version >> 8) & 0xFF, version & 0xFF);
@@ -6098,7 +6102,12 @@ int fmod_dsp_add_input_preallocated(int h, int inputHandle, int connHandle) {
     FMOD::DSP* input = resolveDsp(inputHandle);
     FMOD::DSPConnection* conn = resolveDspConn(connHandle);
     if (!dsp || !input || !conn) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+#if FMOD_VERSION >= 0x00020300
     gLastResult = dsp->addInputPreallocated(input, &conn);
+#else
+    // the preallocated form arrived in FMOD 2.03
+    gLastResult = FMOD_ERR_UNSUPPORTED;
+#endif
     if (gLastResult != FMOD_OK || !conn) return 0;
     return faxe_handle_find_or_alloc(conn, FAXE_TYPE_DSPCONN);
 }

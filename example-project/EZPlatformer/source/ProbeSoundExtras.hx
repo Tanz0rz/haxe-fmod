@@ -16,6 +16,14 @@ class ProbeSoundExtras {
         var baseline = StudioSystem.liveHandleCount();
 
         // --- advanced settings readback ---
+        #if js
+        // FMOD's web build rejects every getAdvancedSettings argument
+        // shape with INVALID_PARAM, so both readbacks are unsupported there
+        @:privateAccess state.check("sys_get_advanced_settings_unsupported", StudioSystem.getAdvancedSettings() == null
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED, 'result=${StudioSystem.lastResult().toString()}');
+        @:privateAccess state.check("sys_get_studio_advanced_settings_unsupported", StudioSystem.getStudioAdvancedSettings() == null
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED, 'result=${StudioSystem.lastResult().toString()}');
+        #else
         var adv = StudioSystem.getAdvancedSettings();
         @:privateAccess state.check("sys_get_advanced_settings", adv != null,
             'result=${StudioSystem.lastResult().toString()}');
@@ -35,6 +43,7 @@ class ProbeSoundExtras {
         @:privateAccess state.check("sys_get_studio_advanced_settings_defaults",
             sadv != null && sadv.studioUpdatePeriod > 0 && sadv.handleInitialSize > 0,
             'period=${sadv == null ? -1 : sadv.studioUpdatePeriod} handles=${sadv == null ? -1 : sadv.handleInitialSize}');
+        #end
 
         // --- subsounds on a plain sound ---
         var pcm = haxe.io.Bytes.alloc(4096);
@@ -53,11 +62,19 @@ class ProbeSoundExtras {
             'handle=${(parent : Int)} result=${StudioSystem.lastResult().toString()}');
         @:privateAccess state.check("core_sound_get_num_tags_plain", plain.getNumTags() == 0,
             'value=${plain.getNumTags()}');
-        // A plain sound is not a tracker module, so the music calls report FORMAT
         var notTracker = plain.getMusicNumChannels();
+        #if js
+        // The web build decodes no tracker format (a module image reports
+        // FORMAT from createSound), so the music calls are unsupported there
+        @:privateAccess state.check("core_sound_get_music_num_channels_unsupported",
+            notTracker == -1 && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED,
+            'value=$notTracker result=${StudioSystem.lastResult().toString()}');
+        #else
+        // A plain sound is not a tracker module, so the music calls report FORMAT
         @:privateAccess state.check("core_sound_get_music_num_channels_format",
             notTracker == -1 && StudioSystem.lastResult() == FmodResult.FMOD_ERR_FORMAT,
             'value=$notTracker result=${StudioSystem.lastResult().toString()}');
+        #end
 
         // --- tracker music and tags on a real module ---
         #if sys

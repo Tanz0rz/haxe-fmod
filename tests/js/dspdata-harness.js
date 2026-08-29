@@ -85,6 +85,13 @@ async function main() {
     const fft = jaxe.fmod_dsp_create_by_type(26 /* FFT */);
     check('cg_add_dsp_fft', jaxe.fmod_cg_add_dsp(master, 0, fft) === 0, '');
     check('dsp_set_metering_enabled', jaxe.fmod_dsp_set_metering_enabled(fft, true, true) === 0, '');
+    // Before the mixer has run through the unit the glue reports zero
+    // channels (its level arrays are always 32 long, so the count must
+    // not fall back to their length)
+    ibuf.fill(7);
+    const unmixed = jaxe.fmod_dsp_get_metering_info(fft, false, fbuf, ibuf);
+    check('dsp_get_metering_info_before_mix', unmixed === 0 && jaxe.fmod_sys_last_result() === 0 && ibuf[1] === 0,
+        `channels=${unmixed} result=${jaxe.fmod_sys_last_result()}`);
     pump(40);
 
     // getInfo
@@ -95,9 +102,11 @@ async function main() {
     check('dsp_get_info_stale', jaxe.fmod_dsp_get_info(999999, ibuf) === '' && jaxe.fmod_sys_last_result() === 30
         && ibuf[0] === 0 && ibuf[3] === 0, `result=${jaxe.fmod_sys_last_result()}`);
 
-    // metering, both sides
+    // metering, both sides: a stereo mix reports two channels with real
+    // levels on both, not the 32 slots the glue fills
     const outCh = jaxe.fmod_dsp_get_metering_info(fft, false, fbuf, ibuf);
-    check('dsp_get_metering_info_output', outCh > 0 && ibuf[1] === outCh && ibuf[0] > 0 && fbuf[0] > 0.1,
+    check('dsp_get_metering_info_output', outCh > 0 && outCh < 32 && ibuf[1] === outCh && ibuf[0] > 0 && fbuf[0] > 0.1
+        && fbuf[outCh - 1] > 0.1 && fbuf[outCh] > 0.05,
         `channels=${outCh} samples=${ibuf[0]} peak=${fbuf[0]} rms=${fbuf[outCh]}`);
     const inCh = jaxe.fmod_dsp_get_metering_info(fft, true, fbuf, ibuf);
     check('dsp_get_metering_info_input', inCh > 0 && ibuf[1] === inCh && fbuf[0] > 0.1,
@@ -193,11 +202,16 @@ async function main() {
         `result=${jaxe.fmod_sys_last_result()}`);
     check('dsp_get_param_typed_loudness_weighting_unsupported', jaxe.fmod_dsp_get_param_typed(loud, 1, 5, fbuf, ibuf) === 68, '');
     // a finite length struct is the same four byte FMOD_BOOL block, it lands on the sidechain
-    // switch, which the glue types as a sidechain and so refuses to read back as anything else
+    // switch and reads back through either kind (the glue types the object as a sidechain)
     fbuf[0] = 1;
     check('dsp_set_param_typed_finite_length', jaxe.fmod_dsp_set_param_typed(compressor, sidechainIndex, 2, fbuf, ibuf) === 0
         && jaxe.fmod_dsp_get_param_typed(compressor, sidechainIndex, 1, fbuf, ibuf) === 0 && fbuf[0] === 1, `enable=${fbuf[0]}`);
-    check('dsp_get_param_typed_finite_length_typed_by_glue', jaxe.fmod_dsp_get_param_typed(compressor, sidechainIndex, 2, fbuf, ibuf) === 31, '');
+    fbuf[0] = 0;
+    check('dsp_get_param_typed_finite_length_round_trip', jaxe.fmod_dsp_get_param_typed(compressor, sidechainIndex, 2, fbuf, ibuf) === 0
+        && fbuf[0] === 1, `finite=${fbuf[0]} result=${jaxe.fmod_sys_last_result()}`);
+    fbuf[0] = 0;
+    check('dsp_set_param_typed_finite_length_off', jaxe.fmod_dsp_set_param_typed(compressor, sidechainIndex, 2, fbuf, ibuf) === 0
+        && jaxe.fmod_dsp_get_param_typed(compressor, sidechainIndex, 2, fbuf, ibuf) === 0 && fbuf[0] === 0, `finite=${fbuf[0]}`);
     // the overall gain block is too short for a dynamic response
     check('dsp_get_param_typed_dynamic_response_wrong_block', jaxe.fmod_dsp_get_param_typed(fader, gainIndex, 4, fbuf, ibuf) === 31
         && ibuf[0] === 0, `result=${jaxe.fmod_sys_last_result()}`);

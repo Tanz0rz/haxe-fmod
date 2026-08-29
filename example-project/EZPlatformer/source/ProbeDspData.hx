@@ -15,9 +15,28 @@ import haxefmod.studio.Types;
  * full parameter descriptor, and the typed sidechain, finite length,
  * attenuation range, dynamic response, and loudness weighting structs. An oscillator through the master group
  * gives the analyzers a signal, and the section waits on the mixer
- * thread for the meters to fill.
+ * thread for the meters to fill. Native targets wait inside run. On
+ * html5 the mixer runs on the audio thread and only advances between
+ * frames, so run starts the signal and the state's update loop calls
+ * tick until the meter reads, then the checks finish from there. The
+ * parameter descriptor, the loudness readbacks, and the loudness
+ * weighting readback are unsupported on html5 and assert that.
  */
 class ProbeDspData {
+    static var _waiting:Bool = false;
+    static var _frames:Int = 0;
+    static var _baseline:Int = 0;
+    static var _master:ChannelGroup = ChannelGroup.NULL;
+    static var _fft:Dsp = cast 0;
+    static var _osc:Dsp = cast 0;
+    static var _loud:Dsp = cast 0;
+    static var _channel:haxefmod.core.Channel = cast 0;
+
+    /** True while the html5 run is waiting on the mixer for the meters. */
+    public static function pending():Bool {
+        return _waiting;
+    }
+
     static function origin():Fmod3DAttributes {
         return {position: {x: 0, y: 0, z: 0}, velocity: {x: 0, y: 0, z: 0}, forward: {x: 0, y: 0, z: 1}, up: {x: 0, y: 1, z: 0}};
     }
@@ -41,11 +60,12 @@ class ProbeDspData {
     }
 
     public static function run(state:ApiProbeState):Void {
-        var baseline = StudioSystem.liveHandleCount();
-        var master = ChannelGroup.master();
+        _baseline = StudioSystem.liveHandleCount();
+        _master = ChannelGroup.master();
 
         // --- getInfo ---
-        var fft = Dsp.create(DspType.FFT);
+        _fft = Dsp.create(DspType.FFT);
+        var fft = _fft;
         var fftInfo = fft.getInfo();
         @:privateAccess state.check("dsp_get_info", fftInfo != null && fftInfo.name == fft.getName() && fftInfo.name != ""
             && fftInfo.version > 0,
@@ -56,18 +76,48 @@ class ProbeDspData {
             && StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_HANDLE, 'result=${StudioSystem.lastResult().toString()}');
 
         // --- analyzers on a live signal ---
-        var osc = Dsp.create(DspType.OSCILLATOR);
-        osc.setParameterInt(DspOscillator.TYPE, 0);
-        osc.setParameter(DspOscillator.RATE, 1000);
-        var channel = osc.play(false);
-        channel.setVolume(0.5);
-        @:privateAccess state.check("dspdata_play_osc", !channel.isNull(), 'handle=${(channel : Int)}');
-        @:privateAccess state.check("dspdata_add_fft", master.addDsp(ChannelGroup.DSP_TAIL, fft).isOk(), "");
+        _osc = Dsp.create(DspType.OSCILLATOR);
+        _osc.setParameterInt(DspOscillator.TYPE, 0);
+        _osc.setParameter(DspOscillator.RATE, 1000);
+        _channel = _osc.play(false);
+        _channel.setVolume(0.5);
+        @:privateAccess state.check("dspdata_play_osc", !_channel.isNull(), 'handle=${(_channel : Int)}');
+        @:privateAccess state.check("dspdata_add_fft", _master.addDsp(ChannelGroup.DSP_TAIL, fft).isOk(), "");
         fft.setMeteringEnabled(true, true);
-        var metered = waitFor(function() {
-            var m = fft.getMetering();
-            return m != null && m.peakLevel[0] > 0.01;
-        });
+        _loud = Dsp.create(DspType.LOUDNESS_METER);
+        @:privateAccess state.check("dspdata_add_loudness", _master.addDsp(ChannelGroup.DSP_TAIL, _loud).isOk(), "");
+        #if js
+        _waiting = true;
+        _frames = 0;
+        #else
+        finish(state);
+        #end
+    }
+
+    /** Called from the state's update loop, finishes the html5 run once the meter reads or the wait times out. */
+    public static function tick(state:ApiProbeState):Void {
+        if (!_waiting) return;
+        _frames++;
+        var m = _fft.getMetering();
+        if ((m != null && m.peakLevel[0] > 0.01) || _frames > 300) {
+            _waiting = false;
+            finish(state);
+        }
+    }
+
+    static function metered():Bool {
+        var m = _fft.getMetering();
+        return m != null && m.peakLevel[0] > 0.01;
+    }
+
+    static function finish(state:ApiProbeState):Void {
+        var master = _master;
+        var fft = _fft;
+        var osc = _osc;
+        var channel = _channel;
+        var loud = _loud;
+        var stale:Dsp = cast 0;
+        var metered = waitFor(metered);
         var output = fft.getMetering();
         @:privateAccess state.check("dsp_get_metering_output", metered && output != null && output.numChannels == output.peakLevel.length
             && output.numSamples > 0 && output.rmsLevel.length == output.numChannels,
@@ -120,8 +170,14 @@ class ProbeDspData {
         @:privateAccess state.check("dsp_get_overall_gain_none", fft.getOverallGain() == null, "");
 
         // --- loudness meter readback ---
-        var loud = Dsp.create(DspType.LOUDNESS_METER);
-        @:privateAccess state.check("dspdata_add_loudness", master.addDsp(ChannelGroup.DSP_TAIL, loud).isOk(), "");
+        #if js
+        // FMOD's web glue rejects the loudness info block (INVALID_PARAM
+        // from getParameterData), so neither readback exists on html5
+        @:privateAccess state.check("dsp_get_loudness_meter_info_unsupported", loud.getLoudnessMeterInfo() == null
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED, 'result=${StudioSystem.lastResult().toString()}');
+        @:privateAccess state.check("dsp_get_parameter_data_loudness_unsupported", loud.getParameterData(DspLoudnessMeter.INFO) == null
+            && !StudioSystem.lastResult().isOk(), 'result=${StudioSystem.lastResult().toString()}');
+        #else
         var loudness = null;
         waitFor(function() {
             loudness = loud.getLoudnessMeterInfo();
@@ -134,6 +190,7 @@ class ProbeDspData {
         var loudBlock = loud.getParameterData(DspLoudnessMeter.INFO);
         @:privateAccess state.check("dsp_get_parameter_data_loudness", loudBlock != null && loudBlock.length == Dsp.LOUDNESS_INFO_BYTES,
             loudBlock == null ? "null" : 'bytes=${loudBlock.length}');
+        #end
 
         // --- 3D attributes on a pan unit ---
         var pan = Dsp.create(DspType.PAN);
@@ -158,6 +215,20 @@ class ProbeDspData {
 
         // --- the full parameter descriptor ---
         var lowpass = Dsp.create(DspType.LOWPASS_SIMPLE);
+        var compressor = Dsp.create(DspType.COMPRESSOR);
+        #if js
+        // FMOD's web glue cannot marshal FMOD_DSP_PARAMETER_DESC (the call
+        // throws inside embind), so no descriptor comes back on html5
+        function unsupportedInfo(name:String, dsp:Dsp, index:Int):Void {
+            @:privateAccess state.check(name, dsp.getParameterInfo(index) == null
+                && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED, 'result=${StudioSystem.lastResult().toString()}');
+        }
+        unsupportedInfo("dsp_get_parameter_info_float_unsupported", lowpass, DspLowpassSimple.CUTOFF);
+        unsupportedInfo("dsp_get_parameter_info_int_unsupported", osc, DspOscillator.TYPE);
+        unsupportedInfo("dsp_get_parameter_info_bool_unsupported", compressor, DspCompressor.LINKED);
+        unsupportedInfo("dsp_get_parameter_info_data_unsupported", fft, DspFft.SPECTRUMDATA);
+        unsupportedInfo("dsp_get_parameter_info_data_overall_gain_unsupported", fader, gainIndex);
+        #else
         var cutoff = lowpass.getParameterInfo(DspLowpassSimple.CUTOFF);
         @:privateAccess state.check("dsp_get_parameter_info_float", cutoff != null && cutoff.type == FmodDspParameterType.FLOAT
             && cutoff.floatDesc != null && cutoff.intDesc == null && cutoff.boolDesc == null && cutoff.dataDesc == null
@@ -174,7 +245,6 @@ class ProbeDspData {
             oscType == null ? 'null result=${StudioSystem.lastResult().toString()}'
             : oscType.intDesc == null ? 'type=${(oscType.type : Int)} intDesc=null'
             : 'name=${oscType.name} range=${oscType.intDesc.min}..${oscType.intDesc.max} names=${oscType.intDesc.valueNames} inf=${oscType.intDesc.goesToInf}');
-        var compressor = Dsp.create(DspType.COMPRESSOR);
         var linked = compressor.getParameterInfo(DspCompressor.LINKED);
         @:privateAccess state.check("dsp_get_parameter_info_bool", linked != null && linked.type == FmodDspParameterType.BOOL
             && linked.boolDesc != null && linked.intDesc == null
@@ -193,6 +263,7 @@ class ProbeDspData {
         @:privateAccess state.check("dsp_get_parameter_info_data_overall_gain", gainDesc != null && gainDesc.dataDesc != null
             && gainDesc.dataDesc.dataType == FmodDspParameterDataType.OVERALLGAIN,
             gainDesc == null || gainDesc.dataDesc == null ? "null" : 'dataType=${(gainDesc.dataDesc.dataType : Int)}');
+        #end
         @:privateAccess state.check("dsp_get_parameter_info_out_of_range", lowpass.getParameterInfo(99) == null
             && !StudioSystem.lastResult().isOk(), 'result=${StudioSystem.lastResult().toString()}');
 
@@ -238,10 +309,16 @@ class ProbeDspData {
             pan.setParameterAttenuationRange(rangeIndex, null) == FmodResult.FMOD_ERR_INVALID_PARAM, "");
         var setWeighting = loud.setLoudnessMeterWeighting({channelWeight: [0.5, 0.25]});
         @:privateAccess state.check("dsp_set_loudness_meter_weighting", setWeighting.isOk(), 'result=${setWeighting.toString()}');
+        #if js
+        // The glue hands the weighting block back without its fields
+        @:privateAccess state.check("dsp_get_loudness_meter_weighting_unsupported", loud.getLoudnessMeterWeighting() == null
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED, 'result=${StudioSystem.lastResult().toString()}');
+        #else
         var weighting = loud.getLoudnessMeterWeighting();
         @:privateAccess state.check("dsp_get_loudness_meter_weighting", weighting != null
             && weighting.channelWeight.length == Dsp.MAX_CHANNEL_SLOTS && weighting.channelWeight[0] == 0.5 && weighting.channelWeight[1] == 0.25 && weighting.channelWeight[2] == 0,
             weighting == null ? 'null result=${StudioSystem.lastResult().toString()}' : 'w0=${weighting.channelWeight[0]} w1=${weighting.channelWeight[1]} n=${weighting.channelWeight.length}');
+        #end
         @:privateAccess state.check("dsp_set_loudness_meter_weighting_oversized",
             loud.setLoudnessMeterWeighting({channelWeight: [for (_ in 0...Dsp.MAX_CHANNEL_SLOTS + 1) 1.0]}) == FmodResult.FMOD_ERR_INVALID_PARAM, "");
         @:privateAccess state.check("dsp_set_loudness_meter_weighting_null",
@@ -259,6 +336,6 @@ class ProbeDspData {
         lowpass.release();
         compressor.release();
         var now = StudioSystem.liveHandleCount();
-        @:privateAccess state.check("no_handle_leaks_dspdata", now == baseline, 'baseline=$baseline now=$now');
+        @:privateAccess state.check("no_handle_leaks_dspdata", now == _baseline, 'baseline=$_baseline now=$now');
     }
 }

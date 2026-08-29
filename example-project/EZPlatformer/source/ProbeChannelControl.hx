@@ -249,7 +249,12 @@ class ProbeChannelControl {
         _frames++;
         var sawChannel = false;
         var sawGroup = false;
-        for (e in _events) if (e.match(Occlusion(_, _))) sawChannel = true;
+        // the first occlusion event can carry zero before the geometry
+        // settles, so wait for one with a real value
+        for (e in _events) switch (e) {
+            case Occlusion(d, _) if (d > 0): sawChannel = true;
+            default:
+        }
         for (e in _groupEvents) if (e.match(Occlusion(_, _))) sawGroup = true;
         if ((sawChannel && sawGroup) || _frames > 300) {
             _waiting = false;

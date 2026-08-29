@@ -572,9 +572,15 @@ int main(void) {
     PIN(FAXE_HX_FmodLimits_REVERB_MAXINSTANCES, FMOD_REVERB_MAXINSTANCES);
     PIN(FAXE_HX_FmodLimits_STUDIO_LOAD_MEMORY_ALIGNMENT, FMOD_STUDIO_LOAD_MEMORY_ALIGNMENT);
 
-    /* FMOD_VERSION, FmodVersion */
+    /* FMOD_VERSION, FmodVersion: the constant names the SDK the library
+     * links, so it is pinned against the 2.03 headers and skipped when this
+     * test compiles against the 2.02 compat headers */
     assert(FAXE_HX_FmodVersion_COUNT == 1);
+#if FMOD_VERSION >= 0x00020300
     PIN(FAXE_HX_FmodVersion_VERSION, FMOD_VERSION);
+#else
+    printf("test_enums: FmodVersion pin skipped against FMOD %08x\n", FMOD_VERSION);
+#endif
 
     /* FMOD_DSP_RESAMPLER */
     assert(FAXE_HX_FmodDspResampler_COUNT == 6);

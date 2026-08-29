@@ -35,7 +35,9 @@ class UserDataKind {
  *
  * An entry is dropped when the handle is released through the abstract
  * (release, stop, unload) or when the dispatcher delivers Destroyed for an
- * event instance FMOD tore down on its own. The native handle table
+ * event instance FMOD tore down on its own (on HTML5, where Destroyed
+ * never arrives, the dispatcher drops the entries of dead instance
+ * handles each update instead). The native handle table
  * recycles a slot with a new generation, so a reused slot produces a
  * different handle int and a stale entry can never be read through a
  * newer handle. Entries for handles that die without passing through one
@@ -79,6 +81,25 @@ class UserData {
         maps = [for (i in 0...UserDataKind.COUNT) new Map()];
         systemValue = null;
     }
+
+    #if js
+    /**
+     * Drops the event instance entries whose handle no longer resolves.
+     * FMOD's web glue never delivers Destroyed (the js backend uninstalls
+     * callbacks before every destruction path), so an instance FMOD tore
+     * down on its own is reclaimed by the backend's handle sweep instead,
+     * and the dispatcher calls this each update to drop its entry.
+     */
+    @:allow(haxefmod.studio.CallbackDispatcher)
+    static function dropDeadInstances():Void {
+        var map = maps[UserDataKind.EventInstance];
+        var dead:Array<Int> = [];
+        for (handle in map.keys()) {
+            if (!haxefmod.studio.native.NativeStudio.evi_is_valid(handle)) dead.push(handle);
+        }
+        for (handle in dead) map.remove(handle);
+    }
+    #end
 
     /** Number of stored entries across all families. Used by tests. */
     public static function count():Int {

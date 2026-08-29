@@ -5966,7 +5966,10 @@ class jaxe {
         jaxe.lastResult = dsp.getMeteringInfo(inInfo, outInfo);
         if (jaxe.lastResult != jaxe.FMOD.OK) return 0;
         var info = input ? inInfo : outInfo;
-        var ch = info.numchannels || info.peaklevel.length;
+        // The glue always fills 32 level slots, so the channel count is
+        // the numchannels field alone. Until the mixer has run through the
+        // unit it reports zero channels and the read yields nothing.
+        var ch = info.numchannels | 0;
         if (ch > 32) ch = 32;
         for (var i = 0; i < ch; i++) {
             fbuf[i] = info.peaklevel[i] || 0;
@@ -6043,9 +6046,12 @@ class jaxe {
         return jaxe.lastResult;
     }
 
-    // The glue types the block, so the kinds it knows (sidechain, finite
-    // length, attenuation range, dynamic response) read back from the
-    // object's fields and the loudness weighting reports UNSUPPORTED.
+    // The glue types the block by the parameter it belongs to, so the
+    // kinds it knows (sidechain, finite length, attenuation range, dynamic
+    // response) read back from the object's fields and the loudness
+    // weighting reports UNSUPPORTED. Sidechain and finite length are the
+    // same four byte FMOD_BOOL block, so either flag field satisfies
+    // either kind, the way the native byte copy does.
     static fmod_dsp_get_param_typed(handle, index, kind, f, i) {
         var dsp = jaxe.resolveDsp(handle);
         if (!dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
@@ -6054,10 +6060,9 @@ class jaxe {
         var value = {};
         jaxe.lastResult = dsp.getParameterData(index, value, null, null);
         if (jaxe.lastResult != jaxe.FMOD.OK) return jaxe.lastResult;
-        if (kind === 1 && value.sidechainenable !== undefined) {
-            f[0] = value.sidechainenable ? 1 : 0;
-        } else if (kind === 2 && value.finite !== undefined) {
-            f[0] = value.finite ? 1 : 0;
+        var flag = value.sidechainenable !== undefined ? value.sidechainenable : value.finite;
+        if ((kind === 1 || kind === 2) && flag !== undefined) {
+            f[0] = flag ? 1 : 0;
         } else if (kind === 3 && typeof value.min === "number" && typeof value.max === "number") {
             f[0] = value.min;
             f[1] = value.max;

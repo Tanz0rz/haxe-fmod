@@ -53,12 +53,31 @@ class ProbeCsharpAudit {
             && !StudioSystem.lastResult().isOk(), 'result=${StudioSystem.lastResult().toString()}');
 
         // User properties: by name is the FMOD call, by index walks the list
+        #if js
+        // Numeric user properties trap FMOD's JS glue (see
+        // tests/js/fmod_userprop_glue_repro.html), so on html5 only the
+        // string property reads, by name and by index alike
+        var byName = music.getUserProperty("probe_bool");
+        @:privateAccess state.check("audit_evd_user_property_by_name", byName != null && byName.name == "probe_bool",
+            'name=${byName == null ? "null" : byName.name}');
+        @:privateAccess state.check("audit_evd_user_property_by_name_numeric_unsupported", music.getUserProperty("probe_int") == null, "");
+        var stringsByIndex = 0;
+        var numericByIndex = 0;
+        for (i in 0...music.getUserPropertyCount()) {
+            var p = music.getUserPropertyByIndex(i);
+            if (p != null && p.name == "probe_bool") stringsByIndex++;
+            if (p == null && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED) numericByIndex++;
+        }
+        @:privateAccess state.check("audit_evd_user_property_by_index", stringsByIndex == 1 && numericByIndex == 2,
+            'strings=$stringsByIndex numeric=$numericByIndex count=${music.getUserPropertyCount()}');
+        #else
         var byName = music.getUserProperty("probe_int");
         var byIndex = music.getUserPropertyByIndex(0);
         @:privateAccess state.check("audit_evd_user_property_by_name", byName != null && byName.name == "probe_int",
             'name=${byName == null ? "null" : byName.name}');
         @:privateAccess state.check("audit_evd_user_property_by_index", byIndex != null && byIndex.name != "",
             'name=${byIndex == null ? "null" : byIndex.name}');
+        #end
         @:privateAccess state.check("audit_evd_user_property_miss", music.getUserProperty("nope") == null
             && music.getUserPropertyByIndex(99) == null, "");
 

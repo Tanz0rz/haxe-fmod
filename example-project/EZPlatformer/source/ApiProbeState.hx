@@ -175,7 +175,6 @@ class ApiProbeState extends FlxState {
         ProbeSysExtras.run(this);
         ProbePlugins.run(this);
         ProbeSoundExtras.run(this);
-        ProbeDspData.run(this);
         ProbeInitSettings.run(this);
         ProbeLastSeven.run(this);
         ProbeDspParameters.run(this);
@@ -191,11 +190,19 @@ class ApiProbeState extends FlxState {
             probeAuthoredSurface();
             ProbeStudioParity.runAuthored(this);
         }
+        // Last of the synchronous sections: on html5 its meters fill
+        // between frames, so it finishes from update() before the async
+        // chain below starts and nothing else holds handles meanwhile
+        ProbeDspData.run(this);
         _statusLabel = label;
 
         // Channel event delivery is asynchronous: the probe finishes from
         // update() once the events arrive (or the wait times out)
+        #if js
+        _waitingForDspData = true;
+        #else
         probeChannelEvents();
+        #end
     }
 
     /**
@@ -493,6 +500,73 @@ class ApiProbeState extends FlxState {
             return 'count=${got.length} result=${StudioSystem.lastResult().toString()}';
         }
 
+        #if js
+        // html5: FMOD's web glue takes no rolloff point array (the curve
+        // never reaches FMOD, see tests/js/geometry-rolloff-harness.js)
+        // and the web build has no geometry at all, so every entry point
+        // reports UNSUPPORTED on a live handle and a dead handle still
+        // reports INVALID_HANDLE
+        function unsupportedRolloff(prefix:String, set:Array<FmodVector>->FmodResult, get:Void->Array<FmodVector>):Void {
+            check(prefix + "_set_3d_custom_rolloff_unsupported", set(points) == FmodResult.FMOD_ERR_UNSUPPORTED,
+                'result=${StudioSystem.lastResult().toString()}');
+            var got = get();
+            check(prefix + "_get_3d_custom_rolloff_unsupported", got.length == 0
+                && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED, describe(got));
+        }
+        var stream = PcmStream.create3d(48000, 1);
+        var channel = stream.play(true);
+        unsupportedRolloff("chan", function(p) return channel.set3DCustomRolloff(p), function() return channel.get3DCustomRolloff());
+        channel.stop();
+        var chanStale:FmodResult = channel.set3DCustomRolloff(points);
+        check("chan_custom_rolloff_stale", chanStale == FmodResult.FMOD_ERR_INVALID_HANDLE
+            && channel.get3DCustomRolloff().length == 0, 'result=${chanStale.toString()}');
+        stream.release();
+
+        var group = ChannelGroup.create("custom-rolloff");
+        group.setMode(ChannelMode.MODE_3D);
+        unsupportedRolloff("cg", function(p) return group.set3DCustomRolloff(p), function() return group.get3DCustomRolloff());
+        group.release();
+        check("cg_custom_rolloff_stale", group.get3DCustomRolloff().length == 0
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_HANDLE, "");
+
+        var sound = Sound.fromPcm(haxe.io.Bytes.alloc(4800 * 2), 48000, 1);
+        sound.setMode(ChannelMode.MODE_3D);
+        unsupportedRolloff("core_sound", function(p) return sound.set3DCustomRolloff(p), function() return sound.get3DCustomRolloff());
+        sound.release();
+        check("core_sound_custom_rolloff_stale", sound.get3DCustomRolloff().length == 0
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_HANDLE, "");
+
+        var worldSet:FmodResult = Geometry.setWorldSize(500);
+        check("sys_set_geometry_settings_unsupported", worldSet == FmodResult.FMOD_ERR_UNSUPPORTED && Geometry.getWorldSize() == 0
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED, 'result=${worldSet.toString()} size=${Geometry.getWorldSize()}');
+        var geometry = Geometry.create(4, 16);
+        check("sys_create_geometry_unsupported", geometry.isNull() && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED,
+            'handle=${(geometry : Int)} result=${StudioSystem.lastResult().toString()}');
+        var quad:Array<FmodVector> = [{x: 0, y: -10, z: -10}, {x: 0, y: 10, z: -10}, {x: 0, y: 10, z: 10}, {x: 0, y: -10, z: 10}];
+        check("geo_add_polygon_unsupported", geometry.addPolygon(1.0, 0.5, true, quad) == -1
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED, 'result=${StudioSystem.lastResult().toString()}');
+        check("geo_get_num_polygons_unsupported", geometry.getNumPolygons() == -1, 'count=${geometry.getNumPolygons()}');
+        check("geo_get_max_polygons_unsupported", geometry.getMaxPolygons() == null
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED, 'result=${StudioSystem.lastResult().toString()}');
+        check("geo_get_polygon_attributes_unsupported", geometry.getPolygonAttributes(0) == null
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED, "");
+        check("geo_set_polygon_vertex_unsupported", geometry.setPolygonVertex(0, 0, quad[0]) == FmodResult.FMOD_ERR_UNSUPPORTED
+            && geometry.getPolygonVertex(0, 0) == null, "");
+        check("geo_rotation_unsupported", geometry.setRotation({x: 0, y: 0, z: 1}, {x: 0, y: 1, z: 0}) == FmodResult.FMOD_ERR_UNSUPPORTED
+            && geometry.getRotation() == null, "");
+        check("geo_position_unsupported", geometry.setPosition({x: 0, y: 0, z: 0}) == FmodResult.FMOD_ERR_UNSUPPORTED
+            && geometry.getPosition() == null, "");
+        check("geo_scale_unsupported", geometry.setScale({x: 1, y: 1, z: 1}) == FmodResult.FMOD_ERR_UNSUPPORTED
+            && geometry.getScale() == null, "");
+        check("geo_active_unsupported", geometry.setActive(true) == FmodResult.FMOD_ERR_UNSUPPORTED && !geometry.getActive(), "");
+        check("sys_get_geometry_occlusion_unsupported", Geometry.getOcclusion({x: -5, y: 0, z: 0}, {x: 5, y: 0, z: 0}) == null
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED, 'result=${StudioSystem.lastResult().toString()}');
+        check("geo_set_polygon_attributes_unsupported", geometry.setPolygonAttributes(0, 0.25, 0.75, false) == FmodResult.FMOD_ERR_UNSUPPORTED, "");
+        check("geo_save_unsupported", geometry.save() == null && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED, "");
+        check("sys_load_geometry_unsupported", Geometry.load(haxe.io.Bytes.alloc(16)).isNull()
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED, 'result=${StudioSystem.lastResult().toString()}');
+        check("geo_release_unsupported", geometry.release() == FmodResult.FMOD_ERR_UNSUPPORTED, "");
+        #else
         var stream = PcmStream.create3d(48000, 1);
         var channel = stream.play(true);
         var chanSet:FmodResult = channel.set3DCustomRolloff(points);
@@ -628,6 +702,7 @@ class ApiProbeState extends FlxState {
             'loaded=${releaseLoaded.toString()} original=${releaseGeometry.toString()}');
         check("geo_release_stale", geometry.release() == FmodResult.FMOD_ERR_INVALID_HANDLE
             && geometry.getNumPolygons() == -1, 'result=${StudioSystem.lastResult().toString()}');
+        #end
 
         check("no_handle_leaks_rolloff_geometry", StudioSystem.liveHandleCount() == baseline,
             'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
@@ -1387,6 +1462,7 @@ class ApiProbeState extends FlxState {
     var _chanEventChannel:Channel = Channel.NULL;
     var _chanEventBaseline:Int = 0;
     var _chanEventFrames:Int = 0;
+    var _waitingForDspData:Bool = false;
     var _waitingForChannelEvents:Bool = false;
     var _oneShotFrames:Int = 0;
     var _waitingForOneShot:Bool = false;
@@ -2559,6 +2635,18 @@ class ApiProbeState extends FlxState {
         var base = clocks == null ? 0.0 : clocks.parent;
         channel.addFadePoint(base + 4800, 0.25);
         channel.addFadePoint(base + 9600, 0.75);
+        #if js
+        // html5: the glue binds getFadePoints with single value slots and
+        // every getMixMatrix pointer as one float, so neither readback
+        // exists on the web (the setters work)
+        check("chan_fade_points_readback_unsupported", channel.getFadePoints() == null
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED, 'result=${StudioSystem.lastResult().toString()}');
+        channel.removeFadePoints(0, base + 96000);
+        check("chan_set_mix_matrix", channel.setMixMatrix([0.5, 0.25, 0.25, 0.5], 2, 2).isOk(),
+            'result=${StudioSystem.lastResult().toString()}');
+        check("chan_mix_matrix_readback_unsupported", channel.getMixMatrix(2, 2) == null
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED, 'result=${StudioSystem.lastResult().toString()}');
+        #else
         var fades = channel.getFadePoints();
         check("chan_fade_points_readback", fades != null && fades.length == 2
             && Math.abs(fades[0].clock - (base + 4800)) < 1 && Math.abs(fades[0].volume - 0.25) < 0.001
@@ -2575,6 +2663,7 @@ class ApiProbeState extends FlxState {
             : 'out=${matrix.outChannels} in=${matrix.inChannels} m0=${matrix.matrix[0]}');
         check("chan_mix_matrix_bad_size", channel.getMixMatrix(0, 0, 33) == null
             && StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_PARAM, "");
+        #end
 
         // The group getter hands back the handle the setter took
         var group = ChannelGroup.create("probe-tail-group");
@@ -2586,6 +2675,14 @@ class ApiProbeState extends FlxState {
         var groupClocks = group.getDspClock();
         var groupBase = groupClocks == null ? 0.0 : groupClocks.parent;
         group.addFadePoint(groupBase + 4800, 0.5);
+        #if js
+        check("cg_fade_points_readback_unsupported", group.getFadePoints() == null
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED, 'result=${StudioSystem.lastResult().toString()}');
+        group.removeFadePoints(0, groupBase + 96000);
+        check("cg_set_mix_matrix", group.setMixMatrix([1, 0, 0, 1], 2, 2).isOk(), 'result=${StudioSystem.lastResult().toString()}');
+        check("cg_mix_matrix_readback_unsupported", group.getMixMatrix(2, 2) == null
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED, 'result=${StudioSystem.lastResult().toString()}');
+        #else
         var groupFades = group.getFadePoints();
         check("cg_fade_points_readback", groupFades != null && groupFades.length == 1
             && Math.abs(groupFades[0].volume - 0.5) < 0.001,
@@ -2596,6 +2693,7 @@ class ApiProbeState extends FlxState {
         check("cg_mix_matrix_readback", groupMatrix != null && groupMatrix.matrix.length == 4
             && Math.abs(groupMatrix.matrix[0] - 1) < 0.001 && Math.abs(groupMatrix.matrix[1]) < 0.001,
             groupMatrix == null ? 'result=${StudioSystem.lastResult().toString()}' : 'm0=${groupMatrix.matrix[0]}');
+        #end
 
         // The pool channel by index is the playing channel, deduplicated
         var index = channel.getIndex();
@@ -2617,6 +2715,12 @@ class ApiProbeState extends FlxState {
         check("sys_get_output", (CoreSystem.getOutput() : Int) >= 0, 'value=${CoreSystem.getOutput()}');
         check("sys_speaker_mode_channels", CoreSystem.getSpeakerModeChannels(3) == 2,
             'value=${CoreSystem.getSpeakerModeChannels(3)}');
+        #if js
+        check("sys_default_mix_matrix_unsupported", CoreSystem.getDefaultMixMatrix(3, 3) == null
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED, 'result=${StudioSystem.lastResult().toString()}');
+        check("sys_default_mix_matrix_hop_unsupported", CoreSystem.getDefaultMixMatrix(3, 3, 4) == null
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED, 'result=${StudioSystem.lastResult().toString()}');
+        #else
         var identity = CoreSystem.getDefaultMixMatrix(3, 3);
         check("sys_default_mix_matrix_identity", identity != null && identity.length == 4
             && Math.abs(identity[0] - 1) < 0.001 && Math.abs(identity[1]) < 0.001
@@ -2626,8 +2730,14 @@ class ApiProbeState extends FlxState {
         check("sys_default_mix_matrix_hop", hopped != null && hopped.length == 8
             && Math.abs(hopped[0] - 1) < 0.001 && Math.abs(hopped[5] - 1) < 0.001,
             hopped == null ? 'result=${StudioSystem.lastResult().toString()}' : 'length=${hopped.length}');
+        #end
 
         // DSP descriptors and channel formats
+        #if js
+        // The glue cannot marshal FMOD_DSP_PARAMETER_DESC
+        check("dsp_parameter_info_cutoff_unsupported", lowpass.getParameterInfo(0) == null
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED, 'result=${StudioSystem.lastResult().toString()}');
+        #else
         var info = lowpass.getParameterInfo(0);
         check("dsp_parameter_info_cutoff", info != null && info.name.toLowerCase().indexOf("cutoff") >= 0
             && info.type == Dsp.PARAMETER_FLOAT && info.floatDesc != null && info.floatDesc.max > info.floatDesc.min
@@ -2635,6 +2745,7 @@ class ApiProbeState extends FlxState {
             info == null ? 'result=${StudioSystem.lastResult().toString()}'
             : info.floatDesc == null ? 'name=${info.name} type=${info.type} floatDesc=null'
             : 'name=${info.name} type=${info.type} min=${info.floatDesc.min} max=${info.floatDesc.max} default=${info.floatDesc.defaultVal}');
+        #end
         check("dsp_parameter_info_bad_index", lowpass.getParameterInfo(99) == null, "");
         var fft = Dsp.create(DspType.FFT);
         check("dsp_data_parameter_index", fft.getDataParameterIndex(-4) >= 0,
@@ -2653,12 +2764,18 @@ class ApiProbeState extends FlxState {
         var osc = Dsp.create(DspType.OSCILLATOR);
         var conn = fft.addInput(osc);
         var connSet = conn.setMixMatrix([0.5, 0, 0, 0.5], 2, 2);
+        #if js
+        check("conn_mix_matrix_set", connSet.isOk(), 'result=${connSet.toString()}');
+        check("conn_mix_matrix_readback_unsupported", conn.getMixMatrix(2, 2) == null
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED, 'result=${StudioSystem.lastResult().toString()}');
+        #else
         var connMatrix = conn.getMixMatrix(2, 2);
         check("conn_mix_matrix_roundtrip", connSet.isOk() && connMatrix != null && connMatrix.matrix.length == 4
             && Math.abs(connMatrix.matrix[0] - 0.5) < 0.001 && Math.abs(connMatrix.matrix[1]) < 0.001
             && connMatrix.outChannels == 2 && connMatrix.inChannels == 2,
             connMatrix == null ? 'result=${StudioSystem.lastResult().toString()}'
             : 'out=${connMatrix.outChannels} in=${connMatrix.inChannels} m0=${connMatrix.matrix[0]}');
+        #end
 
         fft.disconnectFrom(osc);
         channel.stop();
@@ -2741,6 +2858,12 @@ class ApiProbeState extends FlxState {
 
     override public function update(elapsed:Float):Void {
         super.update(elapsed);
+        if (_waitingForDspData) {
+            ProbeDspData.tick(this);
+            if (ProbeDspData.pending()) return;
+            _waitingForDspData = false;
+            probeChannelEvents();
+        }
         if (!_waitingForChannelEvents) ProbeChannelControl.tick(this);
         if (_waitingForChannelEvents) {
             _chanEventFrames++;

@@ -106,6 +106,9 @@ class CallbackDispatcher {
         if (NativeStudio.cb_take_overflow()) {
             trace("Warn: FMOD - callback event queue overflowed. Oldest events were dropped.");
         }
+        #if js
+        UserData.dropDeadInstances();
+        #end
         if (frameHook != null) frameHook();
     }
 
