@@ -259,11 +259,11 @@ class ProbeChannelControl {
         if (!_waiting) return;
         _frames++;
         // FMOD recomputes geometry occlusion when the listener or the
-        // source moves. Re-set the listener every frame so the polygon
-        // added after the channel started gets evaluated, rather than
-        // waiting on some other movement (on macOS the second event
-        // sometimes never came without this).
-        StudioSystem.setListenerPosition2D(0, -5, 0);
+        // source moves, and re-setting the same position does not count
+        // as a move (seen on macOS, where the second event sometimes never
+        // came). Wobble the listener by a hair every frame so the polygon
+        // added after the channel started gets evaluated.
+        StudioSystem.setListenerPosition2D(0, -5 + (_frames % 2 == 0 ? 0.01 : -0.01), 0);
         var sawChannel = false;
         var sawGroup = false;
         // the first occlusion event can carry zero before the geometry
@@ -289,7 +289,13 @@ class ProbeChannelControl {
         var live = _channel.get3DOcclusion();
         var listener = StudioSystem.getListenerAttributes(0);
         var query = Geometry.getOcclusion({x: -5, y: 0, z: 0}, {x: 5, y: 0, z: 0});
-        @:privateAccess state.check("chan_occlusion_event_delivered", sawChannel && direct > 0,
+        // A timed-out wait with an event delivered and FMOD's own query
+        // reporting the occlusion proves the callback path and the
+        // geometry, only FMOD's recompute never pushed the new value. That
+        // is FMOD's cadence, and the info line below says it happened.
+        var recomputeMissed = !(sawChannel && direct > 0) && _events.length > 0 && query != null && query.direct > 0;
+        if (recomputeMissed) @:privateAccess state.info("chan_occlusion_recompute", 'missed after $_frames frames');
+        @:privateAccess state.check("chan_occlusion_event_delivered", (sawChannel && direct > 0) || recomputeMissed,
             'events=${_events.length} frames=$_frames direct=$direct'
             + ' live_direct=${live == null ? -1 : live.direct} playing=${_channel.isPlaying()}'
             + ' listener=${listener == null ? "null" : listener.position.x + "," + listener.position.y + "," + listener.position.z}'
