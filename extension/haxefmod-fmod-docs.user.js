@@ -15308,10 +15308,16 @@ const HAXEFMOD_EXAMPLES = {
         return file.replace(/\.html$/, "");
     }
 
+    var WARN_COLOR = "#a40000";
+
     function el(tag, className, text) {
         var node = document.createElement(tag);
         if (className) node.className = className;
         if (text != null) node.textContent = text;
+        // The site styles text inside highlight blocks with rules that win
+        // over a content script's stylesheet, so the warning colour goes
+        // on the element itself
+        if (className && className.indexOf("haxefmod-warn") >= 0) node.style.color = WARN_COLOR;
         return node;
     }
 
@@ -15401,9 +15407,9 @@ const HAXEFMOD_EXAMPLES = {
             if (entry.gated) {
                 var warn = el("div", "haxefmod-warn");
                 warn.appendChild(el("p", "haxefmod-warn-title", "HTML5 UNSUPPORTED"));
-                var list = el("ul");
-                list.appendChild(el("li", null, "FMOD's web build does not support this feature, so the call does not compile in a js build."));
-                list.appendChild(el("li", null, "The build flag haxefmod_html5_allow_unsupported compiles it anyway, and it then returns FMOD_ERR_UNSUPPORTED at runtime."));
+                var list = el("ul", "haxefmod-warn-list");
+                list.appendChild(el("li", "haxefmod-warn-item", "FMOD's web build does not support this feature, so the call does not compile in a js build."));
+                list.appendChild(el("li", "haxefmod-warn-item", "The build flag haxefmod_html5_allow_unsupported compiles it anyway, and it then returns FMOD_ERR_UNSUPPORTED at runtime."));
                 warn.appendChild(list);
                 note.appendChild(warn);
             } else if (entry.html5) {
