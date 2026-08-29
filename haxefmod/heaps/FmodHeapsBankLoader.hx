@@ -1,6 +1,6 @@
-package haxefmod.flixel;
+package haxefmod.heaps;
 
-import flixel.FlxBasic;
+import haxefmod.heaps.FmodHeapsUpdater.IHeapsTicker;
 import haxefmod.runtime.BankLoadTracker;
 
 /**
@@ -8,42 +8,40 @@ import haxefmod.runtime.BankLoadTracker;
 
     File names are resolved against the configured bank folder (see
     FmodSettings.bankFolder), so pass plain names like "Vehicles.bank".
-    Loading is refcounted through FmodRuntime.banks: destroy() releases
+    Loading is refcounted through FmodRuntime.banks: dispose() releases
     this loader's references, and the banks unload once nobody else holds
-    them. Add the loader to the state so its update() can poll:
+    them. The loader registers with FmodHeapsUpdater and polls on its own.
 
-        add(new FmodFlxBankLoader(["Vehicles.bank"], () -> spawnCars()));
+        new FmodHeapsBankLoader(["Vehicles.bank"], () -> spawnCars());
 **/
-class FmodFlxBankLoader extends FlxBasic {
+class FmodHeapsBankLoader implements IHeapsTicker {
     /** True once every requested bank has finished loading. **/
     public var loaded(get, never):Bool;
 
     var tracker:BankLoadTracker;
 
     /**
-        Starts loading immediately.
+        Starts loading on the next frame FMOD is ready.
         @param bankFiles bank file names (resolved via FmodRuntime.bankPath)
         @param onLoaded called exactly once, when all banks are loaded
         @param onError called exactly once, when any bank settles in an
-        error state (a missing file or a failed fetch on html5). Without
-        it a failed load is only visible through loadingState polling.
+        error state (a missing file or a failed fetch on html5)
         @param async load in the background (default). Pass false to load
         synchronously on native targets
     **/
     public function new(bankFiles:Array<String>, ?onLoaded:Void->Void, ?onError:Void->Void, async:Bool = true) {
-        super();
         tracker = new BankLoadTracker(bankFiles, onLoaded, onError, async);
+        FmodHeapsUpdater.add(this);
     }
 
-    override public function update(elapsed:Float):Void {
-        super.update(elapsed);
+    public function tick(dt:Float):Void {
         tracker.update();
     }
 
     /** Releases this loader's bank references (refcounted unload). **/
-    override public function destroy():Void {
+    public function dispose():Void {
+        FmodHeapsUpdater.remove(this);
         tracker.dispose();
-        super.destroy();
     }
 
     function get_loaded():Bool return tracker.loaded;

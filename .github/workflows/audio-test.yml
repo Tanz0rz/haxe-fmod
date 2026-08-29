@@ -213,7 +213,7 @@ jobs:
   # ===========================================================================
   linux-cpp:
     runs-on: ubuntu-latest
-    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-cpp]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]')))) }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-cpp]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-js]')))) }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
@@ -514,7 +514,7 @@ jobs:
   # ===========================================================================
   linux-hl:
     runs-on: ubuntu-latest
-    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]')))) }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-js]')))) }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
@@ -921,7 +921,7 @@ jobs:
   # ===========================================================================
   linux-hl-compat:
     runs-on: ubuntu-latest
-    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-hl-compat]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]')))) }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-hl-compat]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-js]')))) }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
@@ -1171,7 +1171,7 @@ jobs:
   # ===========================================================================
   linux-html5-chromium:
     runs-on: ubuntu-latest
-    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-html5-chromium]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]')))) }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-html5-chromium]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-js]')))) }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
@@ -1669,7 +1669,7 @@ jobs:
   # ===========================================================================
   linux-html5-firefox:
     runs-on: ubuntu-latest
-    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-html5-firefox]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]')))) }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-html5-firefox]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-js]')))) }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
@@ -1832,12 +1832,635 @@ jobs:
           if-no-files-found: warn
           overwrite: true
 
+
+  # ===========================================================================
+  # Heaps on the HashLink VM: hxml build, stage command, same scenarios
+  # ===========================================================================
+  heaps-hl:
+    runs-on: ubuntu-latest
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[heaps-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-js]')))) }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download FMOD SDK
+        uses: ./.github/actions/fmod-sdk
+        with:
+          version: "2.03.12"
+          platform: linux
+          dest: ${{ env.FMOD_SDK }}
+          token: ${{ secrets.FMOD_SDK_TOKEN }}
+
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v2
+        with:
+          haxe-version: ${{ env.HAXE_VERSION }}
+
+      - name: Cache haxelib
+        uses: actions/cache@v5
+        with:
+          path: ~/haxelib
+          key: haxelib-heaps-${{ runner.os }}-${{ env.HAXE_VERSION }}
+
+      - name: Install Haxe libraries
+        run: |
+          haxelib setup ~/haxelib
+          haxelib install heaps 2.1.0 --always --quiet
+          haxelib install hlsdl 1.15.0 --always --quiet
+          haxelib dev haxefmod $GITHUB_WORKSPACE
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg \
+            libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
+            libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev libz-dev
+
+      - name: Build and install HashLink
+        run: |
+          # Same pin as linux-hl: the commit before the SDL3 port
+          git clone https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
+          cd /tmp/hashlink-src
+          git checkout 781960a5daca32ad6d5cea87b255fe8b5872551e
+          make -j$(nproc) 2>&1 | tee /tmp/hashlink-build.log || {
+            echo "=== MAKE FAILED - retrying single-threaded ==="
+            make 2>&1 | tee -a /tmp/hashlink-build.log
+            exit 1
+          }
+          sudo make install
+          sudo ldconfig
+          hl --version || echo "HashLink installed"
+
+      - name: Build custom hdll via build-hdll
+        run: |
+          cd example-project/HeapsPlatformer
+          haxelib run haxefmod build-hdll
+          cat .haxefmod/hlaxe_fmod.version
+
+      - name: Build HashLink target
+        run: |
+          set -o pipefail
+          cd example-project/HeapsPlatformer
+          ./build.sh hl 2>&1 | tee /tmp/build-heaps-hl.log
+          grep -q "(custom-compiled from .haxefmod/)" /tmp/build-heaps-hl.log
+
+      - name: Verify FMOD libraries have no executable stack
+        run: |
+          BIN_DIR="example-project/HeapsPlatformer/build/hl"
+          FOUND=0
+          for lib in "$BIN_DIR"/libfmod*.so*; do
+            [ -L "$lib" ] && continue
+            FOUND=1
+            LINE=$(readelf -lW "$lib" | grep GNU_STACK) || {
+              echo "FAIL: $lib has no GNU_STACK header"; exit 1; }
+            FLAGS=$(echo "$LINE" | awk '{print $7}')
+            echo "$lib: GNU_STACK $FLAGS"
+            case "$FLAGS" in *E*)
+              echo "FAIL: $lib still has an executable stack (stage should have cleared it)"
+              exit 1;;
+            esac
+          done
+          [ "$FOUND" = "1" ] || { echo "FAIL: no FMOD libraries found in $BIN_DIR"; exit 1; }
+
+      - name: Validate build output
+        run: |
+          BIN_DIR="example-project/HeapsPlatformer/build/hl"
+          for f in game.hl run.sh hlaxe_fmod.hdll libfmod.so libfmodstudio.so assets/fmod/Desktop/Master.bank; do
+            test -e "$BIN_DIR/$f" || { echo "FAIL: missing $f"; exit 1; }
+          done
+          echo "OK: HashLink build directory is complete"
+
+      - name: Record audio
+        run: |
+          Xvfb :99 -screen 0 1024x768x24 &
+          export DISPLAY=:99
+          sleep 1
+          pulseaudio --start --exit-idle-time=-1 || true
+          pactl load-module module-null-sink sink_name=virtual_speaker sink_properties=device.description=VirtualSpeaker
+          pactl set-default-sink virtual_speaker
+          cat > ~/.asoundrc << 'ALSA_EOF'
+          pcm.!default {
+            type pulse
+          }
+          ctl.!default {
+            type pulse
+          }
+          ALSA_EOF
+          BIN_DIR="example-project/HeapsPlatformer/build/hl"
+          ffmpeg -f pulse -i virtual_speaker.monitor -t 30 -y /tmp/audio-heaps-hl.wav &
+          RECORD_PID=$!
+          cd "$BIN_DIR"
+          timeout 30 ./run.sh > /tmp/game-heaps-hl.log 2>&1 || true
+          cd -
+          echo "=== Game log ==="
+          cat /tmp/game-heaps-hl.log || true
+          echo "=== End game log ==="
+          wait $RECORD_PID || true
+          ls -la /tmp/audio-heaps-hl.wav
+
+      - name: Validate audio
+        run: ./ci/validate-audio.sh /tmp/audio-heaps-hl.wav 10
+
+      - name: Validate game log
+        run: ./ci/validate-game-log.sh /tmp/game-heaps-hl.log
+
+      - name: Build test variant
+        run: |
+          cd example-project/HeapsPlatformer
+          ./build.sh hl -D audio_test
+
+      - name: Record volume test
+        run: |
+          export DISPLAY=:99
+          export FMOD_WAVWRITER=/tmp/volume-test-heaps-hl.wav
+          cd example-project/HeapsPlatformer/build/hl
+          ./run.sh > /tmp/volume-test-heaps-hl.log 2>&1 &
+          GAME_PID=$!
+          cd -
+          for i in $(seq 60); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill $GAME_PID 2>/dev/null || true
+          wait $GAME_PID 2>/dev/null || true
+
+      - name: Validate volume/mute
+        run: ./ci/validate-volume.sh /tmp/volume-test-heaps-hl.wav 15
+
+      - name: Run api-probe state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: api-probe
+          gate: API_PROBE
+          timeout: "60"
+          bin-dir: example-project/HeapsPlatformer/build/hl
+          log-file: /tmp/api-probe-heaps-hl.log
+
+      - name: Run synth-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: synth-test
+          gate: SYNTH_TEST
+          timeout: "60"
+          bin-dir: example-project/HeapsPlatformer/build/hl
+          log-file: /tmp/synth-test-heaps-hl.log
+          use-wavwriter: "true"
+
+      - name: Validate synth audio
+        if: ${{ !cancelled() }}
+        run: ./ci/validate-synth.sh "${RUNNER_TEMP}/state-synth-test.wav"
+
+      - name: Run cb-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: cb-test
+          gate: CB_TEST
+          timeout: "30"
+          bin-dir: example-project/HeapsPlatformer/build/hl
+          log-file: /tmp/cb-test-heaps-hl.log
+          extra-gate: "CB_TEST: Stopped"
+
+      - name: Run ps-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: ps-test
+          gate: PS_TEST
+          timeout: "60"
+          bin-dir: example-project/HeapsPlatformer/build/hl
+          log-file: /tmp/ps-test-heaps-hl.log
+          copy-jump-wav: "true"
+
+      - name: Run bank-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: bank-test
+          gate: BANK_TEST
+          timeout: "60"
+          bin-dir: example-project/HeapsPlatformer/build/hl
+          log-file: /tmp/bank-test-heaps-hl.log
+
+      - name: Run pan-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: pan-test
+          gate: PAN_TEST
+          timeout: "60"
+          bin-dir: example-project/HeapsPlatformer/build/hl
+          log-file: /tmp/pan-test-heaps-hl.log
+
+      - name: Run stress-test state (smoke)
+        if: ${{ !cancelled() }}
+        run: |
+          export DISPLAY=:99
+          export HAXEFMOD_TEST_STATE=stress-test
+          export STRESS_SECONDS=15
+          cd example-project/HeapsPlatformer/build/hl
+          ./run.sh > /tmp/stress-smoke-heaps-hl.log 2>&1 &
+          GAME_PID=$!
+          cd -
+          for i in $(seq 90); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill $GAME_PID 2>/dev/null || true
+          wait $GAME_PID 2>/dev/null || true
+          grep "STRESS_TEST:" /tmp/stress-smoke-heaps-hl.log || true
+          grep -q "STRESS_TEST: COMPLETE" /tmp/stress-smoke-heaps-hl.log || {
+            echo "Stress smoke never completed - full log:"
+            cat /tmp/stress-smoke-heaps-hl.log
+            exit 1
+          }
+          if grep -q "pass=false" /tmp/stress-smoke-heaps-hl.log; then
+            echo "Stress smoke reported failing checks"
+            exit 1
+          fi
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: audio-heaps-hl
+          path: |
+            /tmp/audio-heaps-hl.wav
+            /tmp/game-heaps-hl.log
+            /tmp/volume-test-heaps-hl.wav
+            /tmp/volume-test-heaps-hl.log
+            /tmp/api-probe-heaps-hl.log
+            /tmp/synth-test-heaps-hl.log
+            /tmp/cb-test-heaps-hl.log
+            /tmp/ps-test-heaps-hl.log
+            /tmp/bank-test-heaps-hl.log
+            /tmp/pan-test-heaps-hl.log
+            /tmp/stress-smoke-heaps-hl.log
+          if-no-files-found: warn
+          overwrite: true
+
+  # ===========================================================================
+  # Heaps in the browser: hxml build, stage command, WebGL through SwiftShader
+  # ===========================================================================
+  heaps-js:
+    runs-on: ubuntu-latest
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[heaps-js]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-js]')))) }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download FMOD SDK
+        uses: ./.github/actions/fmod-sdk
+        with:
+          version: "2.03.12"
+          platform: html5
+          dest: ${{ env.FMOD_SDK }}
+          token: ${{ secrets.FMOD_SDK_TOKEN }}
+
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v2
+        with:
+          haxe-version: ${{ env.HAXE_VERSION }}
+
+      - name: Cache haxelib
+        uses: actions/cache@v5
+        with:
+          path: ~/haxelib
+          key: haxelib-heaps-js-${{ runner.os }}-${{ env.HAXE_VERSION }}
+
+      - name: Install Haxe libraries
+        run: |
+          haxelib setup ~/haxelib
+          haxelib install heaps 2.1.0 --always --quiet
+          haxelib dev haxefmod $GITHUB_WORKSPACE
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg chromium-browser xdotool
+
+      - name: Build HTML5 target
+        env:
+          FMOD_SDK_WEB: ${{ env.FMOD_SDK }}
+        run: |
+          cd example-project/HeapsPlatformer
+          ./build.sh js
+
+      - name: Validate build output
+        run: |
+          BIN_DIR="example-project/HeapsPlatformer/build/html5"
+          for f in index.html game.js lib/fmodstudio.js lib/fmodstudio.wasm lib/jaxe.js assets/fmod/Desktop/Master.bank; do
+            test -s "$BIN_DIR/$f" || { echo "FAIL: missing $f"; exit 1; }
+          done
+          echo "OK: html5 build directory is complete"
+
+      - name: Record audio
+        run: |
+          Xvfb :99 -screen 0 1024x768x24 &
+          export DISPLAY=:99
+          sleep 1
+          pulseaudio --start --exit-idle-time=-1 || true
+          pactl load-module module-null-sink sink_name=virtual_speaker sink_properties=device.description=VirtualSpeaker
+          pactl set-default-sink virtual_speaker
+          cat > ~/.asoundrc << 'ALSA_EOF'
+          pcm.!default {
+            type pulse
+          }
+          ctl.!default {
+            type pulse
+          }
+          ALSA_EOF
+          cd example-project/HeapsPlatformer/build/html5
+          python3 -m http.server 8180 &
+          HTTP_PID=$!
+          cd -
+          sleep 1
+          chromium-browser \
+            --no-sandbox \
+            --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
+            --autoplay-policy=no-user-gesture-required \
+            --window-size=640,480 \
+            --window-position=0,0 \
+            http://localhost:8180 &
+          CHROME_PID=$!
+          sleep 3
+          xdotool mousemove 320 240 click 1
+          sleep 1
+          ffmpeg -f pulse -i virtual_speaker.monitor -t 30 -y /tmp/audio-heaps-js.wav &
+          RECORD_PID=$!
+          sleep 31
+          kill $CHROME_PID || true
+          kill $HTTP_PID || true
+          wait $RECORD_PID || true
+          ls -la /tmp/audio-heaps-js.wav
+
+      - name: Validate audio
+        run: ./ci/validate-audio.sh /tmp/audio-heaps-js.wav 10
+
+      - name: Build test variant
+        env:
+          FMOD_SDK_WEB: ${{ env.FMOD_SDK }}
+        run: |
+          cd example-project/HeapsPlatformer
+          ./build.sh js -D audio_test
+
+      - name: Record volume test
+        run: |
+          export DISPLAY=:99
+          cd example-project/HeapsPlatformer/build/html5
+          python3 -m http.server 8181 &
+          HTTP_PID=$!
+          cd -
+          sleep 1
+          chromium-browser \
+            --no-sandbox \
+            --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
+            --autoplay-policy=no-user-gesture-required \
+            --enable-logging=stderr --v=0 \
+            --window-size=640,480 \
+            --window-position=0,0 \
+            http://localhost:8181 > /tmp/volume-test-heaps-js-console.log 2>&1 &
+          CHROME_PID=$!
+          sleep 3
+          xdotool mousemove 320 240 click 1
+          sleep 1
+          ffmpeg -f pulse -i virtual_speaker.monitor -t 25 -y /tmp/volume-test-heaps-js.wav &
+          RECORD_PID=$!
+          sleep 26
+          kill $CHROME_PID || true
+          kill $HTTP_PID || true
+          wait $RECORD_PID || true
+          grep -o "VOLUME_TEST.*" /tmp/volume-test-heaps-js-console.log | sed 's/",.*$//' || true
+
+      - name: Validate volume/mute
+        run: ./ci/validate-volume.sh /tmp/volume-test-heaps-js.wav 15
+
+      - name: Run API probe (JS binding coverage)
+        if: ${{ !cancelled() }}
+        run: |
+          export DISPLAY=:99
+          cd example-project/HeapsPlatformer/build/html5
+          python3 -m http.server 8182 &
+          HTTP_PID=$!
+          sleep 1
+          chromium-browser \
+            --no-sandbox \
+            --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
+            --autoplay-policy=no-user-gesture-required \
+            --enable-logging=stderr --v=0 \
+            --window-size=640,480 \
+            --window-position=0,0 \
+            "http://localhost:8182/index.html?test=api-probe" > /tmp/api-probe-heaps-js.log.raw 2>&1 &
+          CHROME_PID=$!
+          sleep 3
+          xdotool mousemove 320 240 click 1
+          for i in $(seq 45); do
+            grep -q "API_PROBE: COMPLETE" /tmp/api-probe-heaps-js.log.raw && break
+            sleep 1
+          done
+          kill $CHROME_PID || true
+          kill $HTTP_PID || true
+          grep -o "API_PROBE:.*" /tmp/api-probe-heaps-js.log.raw | sed 's/",.*$//' | tee /tmp/api-probe-heaps-js.log
+          grep -q "API_PROBE: COMPLETE" /tmp/api-probe-heaps-js.log
+          if grep -q "pass=false" /tmp/api-probe-heaps-js.log; then
+            echo "FAIL: API_PROBE reported failing checks"
+            exit 1
+          fi
+
+      - name: Run synth test (generated PCM reaches the output)
+        if: ${{ !cancelled() }}
+        run: |
+          export DISPLAY=:99
+          cd example-project/HeapsPlatformer/build/html5
+          python3 -m http.server 8186 &
+          HTTP_PID=$!
+          sleep 1
+          ffmpeg -f pulse -i virtual_speaker.monitor -t 60 -y /tmp/synth-test-heaps-js.wav &
+          RECORD_PID=$!
+          chromium-browser \
+            --no-sandbox \
+            --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
+            --autoplay-policy=no-user-gesture-required \
+            --enable-logging=stderr --v=0 \
+            --window-size=640,480 \
+            --window-position=0,0 \
+            "http://localhost:8186/index.html?test=synth-test" > /tmp/synth-test-heaps-js.log.raw 2>&1 &
+          CHROME_PID=$!
+          sleep 3
+          xdotool mousemove 320 240 click 1
+          for i in $(seq 70); do
+            grep -q "SYNTH_TEST: COMPLETE" /tmp/synth-test-heaps-js.log.raw && break
+            sleep 1
+          done
+          wait $RECORD_PID || true
+          kill $CHROME_PID || true
+          kill $HTTP_PID || true
+          grep -o "SYNTH_TEST:.*" /tmp/synth-test-heaps-js.log.raw | sed 's/",.*$//' | tee /tmp/synth-test-heaps-js.log
+          grep -q "SYNTH_TEST: COMPLETE" /tmp/synth-test-heaps-js.log
+          if grep -q "pass=false" /tmp/synth-test-heaps-js.log; then
+            echo "FAIL: SYNTH_TEST reported failing checks"
+            exit 1
+          fi
+
+      - name: Validate synth audio
+        if: ${{ !cancelled() }}
+        run: ./ci/validate-synth.sh /tmp/synth-test-heaps-js.wav
+
+      - name: Run callback test (JS payload delivery)
+        if: ${{ !cancelled() }}
+        run: |
+          export DISPLAY=:99
+          cd example-project/HeapsPlatformer/build/html5
+          python3 -m http.server 8183 &
+          HTTP_PID=$!
+          sleep 1
+          chromium-browser \
+            --no-sandbox \
+            --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
+            --autoplay-policy=no-user-gesture-required \
+            --enable-logging=stderr --v=0 \
+            --window-size=640,480 \
+            --window-position=0,0 \
+            "http://localhost:8183/index.html?test=cb-test" > /tmp/cb-test-heaps-js.log.raw 2>&1 &
+          CHROME_PID=$!
+          sleep 3
+          xdotool mousemove 320 240 click 1
+          for i in $(seq 45); do
+            grep -q "CB_TEST: COMPLETE" /tmp/cb-test-heaps-js.log.raw && break
+            sleep 1
+          done
+          kill $CHROME_PID || true
+          kill $HTTP_PID || true
+          grep -o "CB_TEST:.*" /tmp/cb-test-heaps-js.log.raw | sed 's/",.*$//' | tee /tmp/cb-test-heaps-js.log
+          grep -q "CB_TEST: COMPLETE" /tmp/cb-test-heaps-js.log
+          grep -q "CB_TEST: Stopped" /tmp/cb-test-heaps-js.log
+          if grep -q "pass=false" /tmp/cb-test-heaps-js.log; then
+            echo "FAIL: CB_TEST reported failing checks"
+            exit 1
+          fi
+
+      - name: Run ps-test state (browser)
+        if: ${{ !cancelled() }}
+        run: |
+          export DISPLAY=:99
+          cd example-project/HeapsPlatformer/build/html5
+          python3 -m http.server 8184 &
+          HTTP_PID=$!
+          sleep 1
+          chromium-browser \
+            --no-sandbox \
+            --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
+            --autoplay-policy=no-user-gesture-required \
+            --enable-logging=stderr --v=0 \
+            --window-size=640,480 \
+            --window-position=0,0 \
+            "http://localhost:8184/index.html?test=ps-test" > /tmp/ps-test-heaps-js.log.raw 2>&1 &
+          CHROME_PID=$!
+          sleep 3
+          xdotool mousemove 320 240 click 1
+          for i in $(seq 45); do
+            grep -q "PS_TEST: COMPLETE" /tmp/ps-test-heaps-js.log.raw && break
+            sleep 1
+          done
+          kill $CHROME_PID || true
+          kill $HTTP_PID || true
+          grep -o "PS_TEST:.*" /tmp/ps-test-heaps-js.log.raw | sed 's/",.*$//' | tee /tmp/ps-test-heaps-js.log
+          grep -q "PS_TEST: COMPLETE" /tmp/ps-test-heaps-js.log
+          if grep -q "pass=false" /tmp/ps-test-heaps-js.log; then
+            echo "FAIL: PS_TEST reported failing checks"
+            exit 1
+          fi
+
+      - name: Run bank-test state (browser)
+        if: ${{ !cancelled() }}
+        run: |
+          export DISPLAY=:99
+          cd example-project/HeapsPlatformer/build/html5
+          python3 -m http.server 8185 &
+          HTTP_PID=$!
+          sleep 1
+          chromium-browser \
+            --no-sandbox \
+            --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
+            --autoplay-policy=no-user-gesture-required \
+            --enable-logging=stderr --v=0 \
+            --window-size=640,480 \
+            --window-position=0,0 \
+            "http://localhost:8185/index.html?test=bank-test" > /tmp/bank-test-heaps-js.log.raw 2>&1 &
+          CHROME_PID=$!
+          sleep 3
+          xdotool mousemove 320 240 click 1
+          for i in $(seq 45); do
+            grep -q "BANK_TEST: COMPLETE" /tmp/bank-test-heaps-js.log.raw && break
+            sleep 1
+          done
+          kill $CHROME_PID || true
+          kill $HTTP_PID || true
+          grep -o "BANK_TEST:.*" /tmp/bank-test-heaps-js.log.raw | sed 's/",.*$//' | tee /tmp/bank-test-heaps-js.log
+          grep -q "BANK_TEST: COMPLETE" /tmp/bank-test-heaps-js.log
+          if grep -q "pass=false" /tmp/bank-test-heaps-js.log; then
+            echo "FAIL: BANK_TEST reported failing checks"
+            exit 1
+          fi
+
+      - name: Run pan-test state (browser)
+        if: ${{ !cancelled() }}
+        run: |
+          export DISPLAY=:99
+          cd example-project/HeapsPlatformer/build/html5
+          python3 -m http.server 8187 &
+          HTTP_PID=$!
+          sleep 1
+          chromium-browser \
+            --no-sandbox \
+            --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
+            --autoplay-policy=no-user-gesture-required \
+            --enable-logging=stderr --v=0 \
+            --window-size=640,480 \
+            --window-position=0,0 \
+            "http://localhost:8187/index.html?test=pan-test" > /tmp/pan-test-heaps-js.log.raw 2>&1 &
+          CHROME_PID=$!
+          sleep 3
+          xdotool mousemove 320 240 click 1
+          for i in $(seq 45); do
+            grep -q "PAN_TEST: COMPLETE" /tmp/pan-test-heaps-js.log.raw && break
+            sleep 1
+          done
+          kill $CHROME_PID || true
+          kill $HTTP_PID || true
+          grep -o "PAN_TEST:.*" /tmp/pan-test-heaps-js.log.raw | sed 's/",.*$//' | tee /tmp/pan-test-heaps-js.log
+          grep -q "PAN_TEST: COMPLETE" /tmp/pan-test-heaps-js.log
+          if grep -q "pass=false" /tmp/pan-test-heaps-js.log; then
+            echo "FAIL: PAN_TEST reported failing checks"
+            exit 1
+          fi
+
+      - name: Upload audio artifact
+        uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: audio-heaps-js
+          path: |
+            /tmp/audio-heaps-js.wav
+            /tmp/volume-test-heaps-js.wav
+            /tmp/volume-test-heaps-js-console.log
+            /tmp/api-probe-heaps-js.log
+            /tmp/synth-test-heaps-js.log
+            /tmp/cb-test-heaps-js.log
+            /tmp/ps-test-heaps-js.log
+            /tmp/bank-test-heaps-js.log
+            /tmp/pan-test-heaps-js.log
+          if-no-files-found: warn
+          overwrite: true
+
   # ===========================================================================
   # macOS C++ Build + Audio Recording
   # ===========================================================================
   mac-cpp:
     runs-on: macos-14
-    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[mac-cpp]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]')))) }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[mac-cpp]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-js]')))) }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
@@ -2081,7 +2704,7 @@ jobs:
   # ===========================================================================
   mac-hl:
     runs-on: macos-14
-    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[mac-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]')))) }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[mac-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-js]')))) }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
@@ -2324,7 +2947,7 @@ jobs:
   # ===========================================================================
   mac-hl-compat:
     runs-on: macos-14
-    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[mac-hl-compat]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]')))) }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[mac-hl-compat]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-js]')))) }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
@@ -2477,7 +3100,7 @@ jobs:
   # ===========================================================================
   windows-cpp:
     runs-on: windows-latest
-    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[windows-cpp]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]')))) }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[windows-cpp]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-js]')))) }}
     timeout-minutes: 30
     defaults:
       run:
@@ -2762,7 +3385,7 @@ jobs:
   # ===========================================================================
   windows-hl:
     runs-on: windows-latest
-    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[windows-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]')))) }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[windows-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-js]')))) }}
     timeout-minutes: 30
     defaults:
       run:
@@ -3071,7 +3694,7 @@ jobs:
   # ===========================================================================
   windows-hl-compat:
     runs-on: windows-latest
-    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[windows-hl-compat]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]')))) }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[windows-hl-compat]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-js]')))) }}
     timeout-minutes: 30
     defaults:
       run:
@@ -3781,7 +4404,7 @@ jobs:
   # ===========================================================================
   package-check-cpp:
     runs-on: ubuntu-latest
-    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && !contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]')) }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && !contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-js]')) }}
     timeout-minutes: 30
     env:
       FMOD_SDK: ${{ github.workspace }}/fmod-sdk

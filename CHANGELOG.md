@@ -79,6 +79,9 @@
 - `CommandReplay.seekToTimeMs(timeMs)` and `getCommandAtTimeMs(timeMs)`, the millisecond forms of `seekToTime` and `getCommandAtTime`. The compiler warns at every use.
 
 ### Added
+- Heaps support: the `haxefmod.heaps` package (`FmodHeapsSetup.init()` one-call setup with per-frame update and focus-driven muting, `FmodHeapsEmitter`, `FmodHeapsListener`, `FmodHeapsBankLoader`, `FmodHeapsParameterTrigger`, `FmodHeapsUtilities.PlaySoundOneShotAttached`) on HashLink and in the browser. `example-project/HeapsPlatformer` is the working recipe: hxml builds, the `stage` command for the runtime files, and a page that script-tags `fmodstudio.js`, `jaxe.js` and the game.
+- Engine-free component cores in `haxefmod.runtime` (`EmitterTracker`, `ListenerTracker`, `DerivedVelocityProvider`, `ZoneTrigger`, `BankLoadTracker`) for adapting haxefmod to any engine with a position source and a frame hook. The flixel and Heaps components are thin wrappers over them.
+- `FmodRuntime.isAttachedProvider(provider)` reports whether an attached instance still follows a position provider.
 - `haxelib run haxefmod stage <platform> <target> <outdir>` copies the FMOD runtime files (shared libraries, `hlaxe_fmod.hdll`, or the html5 engine scripts plus `jaxe.js`) into any build output directory, for projects that lime does not build (Heaps, Kha, plain hxml). The same SDK, version and hdll checks as the lime postbuild apply. A Linux HashLink bytecode build gets a `run.sh` that launches it through `hl` with the library path set.
 - The compile-time SDK check runs for Heaps and Kha builds, and any hxml build can opt in with `-D haxefmod_build_check` and `--macro haxefmod.tools.BuildCheck.verify()`.
 

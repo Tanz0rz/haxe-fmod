@@ -7,6 +7,8 @@
 
 # Example project
 /example-project/EZPlatformer/export
+/example-project/HeapsPlatformer/build
+/example-project/HeapsPlatformer/.haxefmod
 /example-project/EZPlatformer/.haxefmod
 /example-project/EZPlatformer/fmod/.cache
 /example-project/EZPlatformer/fmod/.user

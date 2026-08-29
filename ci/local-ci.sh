@@ -6,7 +6,8 @@
 #
 # Usage: ci/local-ci.sh [job ...]
 #   jobs: unit-tests linux-cpp linux-hl linux-html5-chromium linux-html5-firefox
-#   no argument runs all five
+#         heaps-hl heaps-js
+#   no argument runs all of them
 #
 # Environment:
 #   FMOD_SDK_ROOT  directory holding the linux/ and html5/ FMOD packages
@@ -29,12 +30,17 @@ OUT="$ROOT/ci/local"
 EXAMPLE="$ROOT/example-project/EZPlatformer"
 FMOD_SDK_ROOT="${FMOD_SDK_ROOT:-$ROOT/../fmod-sdk-cache/sdk/2.03.12}"
 CHROMIUM="${CHROMIUM:-$(command -v chromium-browser || command -v chromium || true)}"
+# The html5 build a browser step serves, and the GL flags for it. Heaps needs
+# WebGL, which a display-less chromium only has through SwiftShader.
+WEB_BIN="$EXAMPLE/export/html5/bin"
+CHROME_GL="--disable-gpu"
+HEAPS="$ROOT/example-project/HeapsPlatformer"
 export NODE_PATH="${NODE_PATH:-/opt/playwright/node_modules}"
 export HXCPP_COMPILE_CACHE="$OUT/hxcpp-cache"
 export HXCPP_CACHE_MB=4000
 
 JOBS=("$@")
-[ ${#JOBS[@]} -eq 0 ] && JOBS=(unit-tests linux-cpp linux-hl linux-html5-chromium linux-html5-firefox)
+[ ${#JOBS[@]} -eq 0 ] && JOBS=(unit-tests linux-cpp linux-hl linux-html5-chromium linux-html5-firefox heaps-hl heaps-js)
 
 mkdir -p "$OUT"
 FAILED_STEPS=()
@@ -163,14 +169,14 @@ run_native_state() {
 run_browser_state() {
   local state="$1" gate="$2" port="$3" log="$4" tmo="${5:-45}" extra="${6:-}" wav="${7:-}" secs="${8:-60}"
   local raw="$log.raw" http chrome rec=""
-  (cd "$EXAMPLE/export/html5/bin" && python3 -m http.server "$port" > /dev/null 2>&1) &
+  (cd "$WEB_BIN" && python3 -m http.server "$port" > /dev/null 2>&1) &
   http=$!
   sleep 1
   if [ -n "$wav" ]; then
     ffmpeg -loglevel error -f pulse -i virtual_speaker.monitor -t "$secs" -y "$wav" &
     rec=$!
   fi
-  "$CHROMIUM" --no-sandbox --disable-gpu --autoplay-policy=no-user-gesture-required \
+  "$CHROMIUM" --no-sandbox $CHROME_GL --autoplay-policy=no-user-gesture-required \
     --enable-logging=stderr --v=0 --window-size=640,480 --window-position=0,0 \
     "http://localhost:$port/index.html?test=$state" > "$raw" 2>&1 &
   chrome=$!
@@ -196,10 +202,10 @@ run_browser_state() {
 # record_browser_game <port> <wav> <seconds> [console-log]
 record_browser_game() {
   local port="$1" wav="$2" secs="$3" console="${4:-/dev/null}" http chrome rec
-  (cd "$EXAMPLE/export/html5/bin" && python3 -m http.server "$port" > /dev/null 2>&1) &
+  (cd "$WEB_BIN" && python3 -m http.server "$port" > /dev/null 2>&1) &
   http=$!
   sleep 1
-  "$CHROMIUM" --no-sandbox --disable-gpu --autoplay-policy=no-user-gesture-required \
+  "$CHROMIUM" --no-sandbox $CHROME_GL --autoplay-policy=no-user-gesture-required \
     --enable-logging=stderr --v=0 --window-size=640,480 --window-position=0,0 \
     "http://localhost:$port" > "$console" 2>&1 &
   chrome=$!
@@ -467,7 +473,7 @@ job_linux_html5_chromium() {
 
 firefox_state() {
   local state="$1" gate="$2" port="$3" log="$4" tmo="$5" http rc=0
-  (cd "$EXAMPLE/export/html5/bin" && python3 -m http.server "$port" > /dev/null 2>&1) &
+  (cd "$WEB_BIN" && python3 -m http.server "$port" > /dev/null 2>&1) &
   http=$!
   sleep 1
   node "$ROOT/ci/run-firefox-state.js" "http://localhost:$port/index.html?test=$state" "$gate" "$log" "$tmo" || rc=$?
@@ -489,6 +495,99 @@ job_linux_html5_firefox() {
   step "Run pan-test state (firefox)" firefox_state pan-test PAN_TEST 8095 "$TMP/pan-test-firefox.log" 180
 }
 
+# ---------------------------------------------------------------- heaps-hl
+
+# The Heaps example on the HashLink VM: hxml build, the stage command for
+# the runtime files, then the same scenarios as linux-hl
+job_heaps_hl() {
+  begin_job heaps-hl
+  require_sdk
+  local bin="$HEAPS/build/hl"
+  rm -rf "$HEAPS/build" "$HEAPS/.haxefmod"
+  step "Build custom hdll via build-hdll" bash -eo pipefail -c 'cd "$1" && haxelib run haxefmod build-hdll' _ "$HEAPS"
+  step "Build HashLink target" bash -eo pipefail -c '
+    cd "$1" && ./build.sh hl 2>&1 | tee "$2/build-hl.log"
+    grep -q "(custom-compiled from .haxefmod/)" "$2/build-hl.log"' _ "$HEAPS" "$TMP"
+  step "Verify FMOD libraries have no executable stack" no_execstack "$bin"
+  step "Validate build output" bash -eo pipefail -c '
+    for f in game.hl run.sh hlaxe_fmod.hdll libfmod.so libfmodstudio.so assets/fmod/Desktop/Master.bank; do
+      test -e "$1/$f" || { echo "FAIL: missing $f"; exit 1; }
+    done
+    echo "OK: HashLink build directory is complete"' _ "$bin"
+  start_display_audio
+  step "Record audio" bash -eo pipefail -c '
+    ffmpeg -loglevel error -f pulse -i virtual_speaker.monitor -t 30 -y "$2/audio-heaps-hl.wav" &
+    REC=$!
+    cd "$1" && timeout 30 ./run.sh > "$2/game-heaps-hl.log" 2>&1 || true
+    wait $REC || true
+    ls -la "$2/audio-heaps-hl.wav"' _ "$bin" "$TMP"
+  step "Validate audio" ./ci/validate-audio.sh "$TMP/audio-heaps-hl.wav" 10
+  step "Validate game log" ./ci/validate-game-log.sh "$TMP/game-heaps-hl.log"
+  step "Build test variant" bash -eo pipefail -c 'cd "$1" && ./build.sh hl -D audio_test' _ "$HEAPS"
+  step "Record volume test" bash -eo pipefail -c '
+    export FMOD_WAVWRITER="$2/volume-test-heaps-hl.wav"
+    cd "$1"
+    ./run.sh > "$2/volume-test-heaps-hl.log" 2>&1 &
+    PID=$!
+    for i in $(seq 60); do kill -0 $PID 2>/dev/null || break; sleep 1; done
+    kill $PID 2>/dev/null || true; wait $PID 2>/dev/null || true' _ "$bin" "$TMP"
+  step "Validate volume/mute" ./ci/validate-volume.sh "$TMP/volume-test-heaps-hl.wav" 15
+  step "Run api-probe state" run_native_state api-probe API_PROBE "$bin" "$TMP/api-probe-heaps-hl.log" 60
+  step "Run synth-test state" run_native_state synth-test SYNTH_TEST "$bin" "$TMP/synth-test-heaps-hl.log" 60 "" false true
+  step "Validate synth audio" ./ci/validate-synth.sh "$TMP/state-synth-test.wav"
+  step "Run cb-test state" run_native_state cb-test CB_TEST "$bin" "$TMP/cb-test-heaps-hl.log" 30 "CB_TEST: Stopped"
+  step "Run ps-test state" run_native_state ps-test PS_TEST "$bin" "$TMP/ps-test-heaps-hl.log" 60 "" true
+  step "Run bank-test state" run_native_state bank-test BANK_TEST "$bin" "$TMP/bank-test-heaps-hl.log" 60
+  step "Run pan-test state" run_native_state pan-test PAN_TEST "$bin" "$TMP/pan-test-heaps-hl.log" 60
+  step "Run stress-test state (smoke)" bash -eo pipefail -c '
+    export HAXEFMOD_TEST_STATE=stress-test STRESS_SECONDS=15
+    cd "$1"
+    ./run.sh > "$2/stress-smoke-heaps-hl.log" 2>&1 &
+    PID=$!
+    for i in $(seq 90); do kill -0 $PID 2>/dev/null || break; sleep 1; done
+    kill $PID 2>/dev/null || true; wait $PID 2>/dev/null || true
+    grep "STRESS_TEST:" "$2/stress-smoke-heaps-hl.log" || true
+    grep -q "STRESS_TEST: COMPLETE" "$2/stress-smoke-heaps-hl.log" || { cat "$2/stress-smoke-heaps-hl.log"; exit 1; }
+    ! grep -q "pass=false" "$2/stress-smoke-heaps-hl.log"' _ "$bin" "$TMP"
+}
+
+# ---------------------------------------------------------------- heaps-js
+
+job_heaps_js() {
+  begin_job heaps-js
+  require_sdk
+  [ -n "$CHROMIUM" ] || { echo "no chromium binary found (set CHROMIUM)"; return; }
+  rm -rf "$HEAPS/build/html5"
+  WEB_BIN="$HEAPS/build/html5"
+  CHROME_GL="--use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader"
+  step "Build HTML5 target" bash -eo pipefail -c 'cd "$1" && ./build.sh js' _ "$HEAPS"
+  step "Validate build output" bash -eo pipefail -c '
+    for f in index.html game.js lib/fmodstudio.js lib/fmodstudio.wasm lib/jaxe.js assets/fmod/Desktop/Master.bank; do
+      test -s "$1/$f" || { echo "FAIL: missing $f"; exit 1; }
+    done
+    echo "OK: html5 build directory is complete"' _ "$WEB_BIN"
+  start_display_audio
+  step "Record audio" record_browser_game 8180 "$TMP/audio-heaps-js.wav" 30
+  step "Validate audio" ./ci/validate-audio.sh "$TMP/audio-heaps-js.wav" 10
+  step "Build test variant" bash -eo pipefail -c 'cd "$1" && ./build.sh js -D audio_test' _ "$HEAPS"
+  step "Record volume test" record_volume_heaps_js
+  step "Validate volume/mute" ./ci/validate-volume.sh "$TMP/volume-test-heaps-js.wav" 15
+  step "Run API probe (JS binding coverage)" run_browser_state api-probe API_PROBE 8182 "$TMP/api-probe-heaps-js.log" 45
+  step "Run synth test (generated PCM reaches the output)" run_browser_state synth-test SYNTH_TEST 8186 "$TMP/synth-test-heaps-js.log" 70 "" "$TMP/synth-test-heaps-js.wav" 60
+  step "Validate synth audio" ./ci/validate-synth.sh "$TMP/synth-test-heaps-js.wav"
+  step "Run callback test (JS payload delivery)" run_browser_state cb-test CB_TEST 8183 "$TMP/cb-test-heaps-js.log" 45 "CB_TEST: Stopped"
+  step "Run ps-test state (browser)" run_browser_state ps-test PS_TEST 8184 "$TMP/ps-test-heaps-js.log" 45
+  step "Run bank-test state (browser)" run_browser_state bank-test BANK_TEST 8185 "$TMP/bank-test-heaps-js.log" 45
+  step "Run pan-test state (browser)" run_browser_state pan-test PAN_TEST 8187 "$TMP/pan-test-heaps-js.log" 45
+  WEB_BIN="$EXAMPLE/export/html5/bin"
+  CHROME_GL="--disable-gpu"
+}
+
+record_volume_heaps_js() {
+  record_browser_game 8181 "$TMP/volume-test-heaps-js.wav" 25 "$TMP/volume-test-heaps-js-console.log"
+  grep -o "VOLUME_TEST.*" "$TMP/volume-test-heaps-js-console.log" | sed 's/",.*$//' || true
+}
+
 # ---------------------------------------------------------------- main
 
 for job in "${JOBS[@]}"; do
@@ -498,6 +597,8 @@ for job in "${JOBS[@]}"; do
     linux-hl) job_linux_hl ;;
     linux-html5-chromium) job_linux_html5_chromium ;;
     linux-html5-firefox) job_linux_html5_firefox ;;
+    heaps-hl) job_heaps_hl ;;
+    heaps-js) job_heaps_js ;;
     *) echo "unknown job: $job"; exit 2 ;;
   esac
 done
