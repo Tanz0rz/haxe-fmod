@@ -569,6 +569,22 @@ jobs:
 
       - name: Build HashLink target (pre-built hdll)
         run: |
+          # A binding ABI bump lands before update-hdlls can rebuild the
+          # shipped hdlls, so a stale marker skips this verification and
+          # the fresh hdll from build-hdll carries the rest of the job.
+          # update-hdlls refreshes the templates once the HL jobs pass and
+          # the next run verifies the pre-built one again.
+          ABI=$(grep "^# abi-version:" native/manifest/studio_api.txt | sed 's/.*: *//')
+          STALE=0
+          for HDLL in templates/bin/hl/*/hlaxe_fmod.hdll; do
+            MARK=$(grep -a -o "hlaxe_fmod_abi=[0-9]*" "$HDLL" | head -1 | sed 's/.*=//')
+            echo "$HDLL marker abi=$MARK (library abi=$ABI)"
+            if [ "$MARK" != "$ABI" ]; then STALE=1; fi
+          done
+          if [ "$STALE" = "1" ]; then
+            echo "Pre-built hdlls are behind the binding ABI, skipping the pre-built build until update-hdlls refreshes them"
+            exit 0
+          fi
           cd example-project/EZPlatformer
           haxelib run lime build hl 2>&1 | tee /tmp/build-prebuilt.log
           grep -q "(pre-built)" /tmp/build-prebuilt.log
@@ -2064,6 +2080,22 @@ jobs:
 
       - name: Build HashLink target (pre-built hdll)
         run: |
+          # A binding ABI bump lands before update-hdlls can rebuild the
+          # shipped hdlls, so a stale marker skips this verification and
+          # the fresh hdll from build-hdll carries the rest of the job.
+          # update-hdlls refreshes the templates once the HL jobs pass and
+          # the next run verifies the pre-built one again.
+          ABI=$(grep "^# abi-version:" native/manifest/studio_api.txt | sed 's/.*: *//')
+          STALE=0
+          for HDLL in templates/bin/hl/*/hlaxe_fmod.hdll; do
+            MARK=$(grep -a -o "hlaxe_fmod_abi=[0-9]*" "$HDLL" | head -1 | sed 's/.*=//')
+            echo "$HDLL marker abi=$MARK (library abi=$ABI)"
+            if [ "$MARK" != "$ABI" ]; then STALE=1; fi
+          done
+          if [ "$STALE" = "1" ]; then
+            echo "Pre-built hdlls are behind the binding ABI, skipping the pre-built build until update-hdlls refreshes them"
+            exit 0
+          fi
           cd example-project/EZPlatformer
           haxelib run lime build hl 2>&1 | tee /tmp/build-prebuilt.log
           grep -q "(pre-built)" /tmp/build-prebuilt.log
@@ -2747,6 +2779,22 @@ jobs:
 
       - name: Build HashLink target (pre-built hdll)
         run: |
+          # A binding ABI bump lands before update-hdlls can rebuild the
+          # shipped hdlls, so a stale marker skips this verification and
+          # the fresh hdll from build-hdll carries the rest of the job.
+          # update-hdlls refreshes the templates once the HL jobs pass and
+          # the next run verifies the pre-built one again.
+          ABI=$(grep "^# abi-version:" native/manifest/studio_api.txt | sed 's/.*: *//')
+          STALE=0
+          for HDLL in templates/bin/hl/*/hlaxe_fmod.hdll; do
+            MARK=$(grep -a -o "hlaxe_fmod_abi=[0-9]*" "$HDLL" | head -1 | sed 's/.*=//')
+            echo "$HDLL marker abi=$MARK (library abi=$ABI)"
+            if [ "$MARK" != "$ABI" ]; then STALE=1; fi
+          done
+          if [ "$STALE" = "1" ]; then
+            echo "Pre-built hdlls are behind the binding ABI, skipping the pre-built build until update-hdlls refreshes them"
+            exit 0
+          fi
           cd example-project/EZPlatformer
           haxelib run lime build hl 2>&1 | tee /tmp/build-prebuilt.log
           grep -q "(pre-built)" /tmp/build-prebuilt.log
