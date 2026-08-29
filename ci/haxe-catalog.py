@@ -183,9 +183,10 @@ def snippet_calls(code):
 # ------------------------------------------------------------- haxe side
 
 def declaration_of(path):
-    """The declaration of a Haxe type as written in its source file:
-    from the doc comment or the declaration keyword through the matching
-    closing brace (or the semicolon of a typedef alias). None when the
+    """The declaration of a Haxe type as written in its source file, from
+    the declaration keyword through the matching closing brace (or the
+    semicolon of a typedef alias). The doc comment above it stays out,
+    the tab shows code the way the other language tabs do. None when the
     type is not in the sources."""
     parts = path.split(".")
     name = parts[-1]
@@ -200,11 +201,6 @@ def declaration_of(path):
         if not match:
             continue
         start = match.start()
-        before = text[:start].rstrip()
-        if before.endswith("*/"):
-            doc_start = before.rfind("/**")
-            if doc_start >= 0:
-                start = doc_start
         brace = text.find("{", match.end() - len(match.group(0)))
         semicolon = text.find(";", match.start())
         if brace < 0 or (0 <= semicolon < brace):
