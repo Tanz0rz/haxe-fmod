@@ -258,6 +258,12 @@ class ProbeChannelControl {
         }
         if (!_waiting) return;
         _frames++;
+        // FMOD recomputes geometry occlusion when the listener or the
+        // source moves. Re-set the listener every frame so the polygon
+        // added after the channel started gets evaluated, rather than
+        // waiting on some other movement (on macOS the second event
+        // sometimes never came without this).
+        StudioSystem.setListenerPosition2D(0, -5, 0);
         var sawChannel = false;
         var sawGroup = false;
         // the first occlusion event can carry zero before the geometry
@@ -282,7 +288,7 @@ class ProbeChannelControl {
         // What FMOD itself reports at this moment, for a timed-out wait
         var live = _channel.get3DOcclusion();
         var listener = StudioSystem.getListenerAttributes(0);
-        var query = Geometry.getOcclusion({x: 0, y: -5, z: 0}, {x: 5, y: 0, z: 0});
+        var query = Geometry.getOcclusion({x: -5, y: 0, z: 0}, {x: 5, y: 0, z: 0});
         @:privateAccess state.check("chan_occlusion_event_delivered", sawChannel && direct > 0,
             'events=${_events.length} frames=$_frames direct=$direct'
             + ' live_direct=${live == null ? -1 : live.direct} playing=${_channel.isPlaying()}'
