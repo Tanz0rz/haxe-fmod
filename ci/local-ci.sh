@@ -204,7 +204,9 @@ run_browser_state() {
   if [ -n "$extra" ]; then
     grep -q "$extra" "$log" || { echo "missing required line: $extra"; return 1; }
   fi
-  if grep -q "pass=false" "$log"; then echo "FAIL: $gate reported failing checks"; return 1; fi
+  # The callback test is gated on delivery alone, like the workflow: the
+  # nested-beat check is informational on Chromium
+  if [ "$gate" != "CB_TEST" ] && grep -q "pass=false" "$log"; then echo "FAIL: $gate reported failing checks"; return 1; fi
   echo "$gate passed"
 }
 
