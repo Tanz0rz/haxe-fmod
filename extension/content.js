@@ -129,7 +129,10 @@
                 warn.appendChild(list);
                 note.appendChild(warn);
             } else if (entry.html5) {
-                note.appendChild(el("p", "haxefmod-warn", "HTML5: FMOD's web build does not support this call, haxefmod reports FMOD_ERR_UNSUPPORTED there."));
+                var limited = el("p", "haxefmod-warn");
+                limited.appendChild(el("span", "haxefmod-warn-title", "Warning - "));
+                limited.appendChild(document.createTextNode("HTML5: FMOD's web build does not support this call, haxefmod reports FMOD_ERR_UNSUPPORTED there."));
+                note.appendChild(limited);
             }
             notes.forEach(function (text) { note.appendChild(el("p", null, text)); });
         }

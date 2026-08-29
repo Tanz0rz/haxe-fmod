@@ -343,7 +343,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_Studio_Bank_GetBusList` | `Bank.getBusList` |  |
 | `FMOD_Studio_Bank_GetEventCount` | `Bank.getEventCount` |  |
 | `FMOD_Studio_Bank_GetEventList` | `Bank.getEventList` |  |
-| `FMOD_Studio_Bank_GetID` | `Bank.getID` | limited |
+| `FMOD_Studio_Bank_GetID` | `Bank.getID` |  |
 | `FMOD_Studio_Bank_GetLoadingState` | `Bank.getLoadingState` |  |
 | `FMOD_Studio_Bank_GetPath` | `Bank.getPath` |  |
 | `FMOD_Studio_Bank_GetSampleLoadingState` | `Bank.getSampleLoadingState` |  |
@@ -364,7 +364,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 |---|---|---|
 | `FMOD_Studio_Bus_GetCPUUsage` | `Bus.getCpuUsage` | compile error |
 | `FMOD_Studio_Bus_GetChannelGroup` | `Bus.getChannelGroup` |  |
-| `FMOD_Studio_Bus_GetID` | `Bus.getID` | limited |
+| `FMOD_Studio_Bus_GetID` | `Bus.getID` |  |
 | `FMOD_Studio_Bus_GetMemoryUsage` | `Bus.getMemoryUsage` | compile error |
 | `FMOD_Studio_Bus_GetMute` | `Bus.getMute` |  |
 | `FMOD_Studio_Bus_GetPath` | `Bus.getPath` |  |
@@ -408,7 +408,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | FMOD | haxefmod | HTML5 |
 |---|---|---|
 | `FMOD_Studio_EventDescription_CreateInstance` | `EventDescription.createInstance` |  |
-| `FMOD_Studio_EventDescription_GetID` | `EventDescription.getID` | limited |
+| `FMOD_Studio_EventDescription_GetID` | `EventDescription.getID` |  |
 | `FMOD_Studio_EventDescription_GetInstanceCount` | `EventDescription.getInstanceCount` |  |
 | `FMOD_Studio_EventDescription_GetInstanceList` | `EventDescription.getInstanceList` |  |
 | `FMOD_Studio_EventDescription_GetLength` | `EventDescription.getLength` |  |
@@ -540,7 +540,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 
 | FMOD | haxefmod | HTML5 |
 |---|---|---|
-| `FMOD_Studio_VCA_GetID` | `Vca.getID` | limited |
+| `FMOD_Studio_VCA_GetID` | `Vca.getID` |  |
 | `FMOD_Studio_VCA_GetPath` | `Vca.getPath` |  |
 | `FMOD_Studio_VCA_GetVolume` | `Vca.getVolume`<br>`Vca.getFinalVolume` |  |
 | `FMOD_Studio_VCA_IsValid` | `Vca.isValid` |  |

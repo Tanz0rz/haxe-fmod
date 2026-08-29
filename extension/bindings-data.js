@@ -7221,7 +7221,7 @@ const HAXEFMOD_BINDINGS = {
      "type": "haxefmod.studio.Bank"
     }
    ],
-   "html5": true
+   "html5": false
   },
   "studio_bank_getloadingstate": {
    "fmod": "FMOD_Studio_Bank_GetLoadingState",
@@ -7479,7 +7479,7 @@ const HAXEFMOD_BINDINGS = {
      "type": "haxefmod.studio.Bus"
     }
    ],
-   "html5": true
+   "html5": false
   },
   "studio_bus_getid": {
    "fmod": "FMOD_Studio_Bus_GetID",
@@ -7495,7 +7495,7 @@ const HAXEFMOD_BINDINGS = {
      "type": "haxefmod.studio.Bus"
     }
    ],
-   "html5": true
+   "html5": false
   },
   "studio_bus_getmemoryusage": {
    "fmod": "FMOD_Studio_Bus_GetMemoryUsage",
@@ -7511,7 +7511,7 @@ const HAXEFMOD_BINDINGS = {
      "type": "haxefmod.studio.Bus"
     }
    ],
-   "html5": true
+   "html5": false
   },
   "studio_bus_getmute": {
    "fmod": "FMOD_Studio_Bus_GetMute",
@@ -8084,7 +8084,7 @@ const HAXEFMOD_BINDINGS = {
      "type": "haxefmod.studio.EventDescription"
     }
    ],
-   "html5": true
+   "html5": false
   },
   "studio_eventdescription_getinstancecount": {
    "fmod": "FMOD_Studio_EventDescription_GetInstanceCount",
@@ -8593,7 +8593,7 @@ const HAXEFMOD_BINDINGS = {
      "type": "haxefmod.studio.EventInstance"
     }
    ],
-   "html5": true
+   "html5": false
   },
   "studio_eventinstance_getdescription": {
    "fmod": "FMOD_Studio_EventInstance_GetDescription",
@@ -8641,7 +8641,7 @@ const HAXEFMOD_BINDINGS = {
      "type": "haxefmod.studio.EventInstance"
     }
    ],
-   "html5": true
+   "html5": false
   },
   "studio_eventinstance_getminmaxdistance": {
    "fmod": "FMOD_Studio_EventInstance_GetMinMaxDistance",
@@ -9663,7 +9663,7 @@ const HAXEFMOD_BINDINGS = {
      "type": "haxefmod.studio.StudioSystem"
     }
    ],
-   "html5": true
+   "html5": false
   },
   "studio_system_getnumlisteners": {
    "fmod": "FMOD_Studio_System_GetNumListeners",
@@ -10447,7 +10447,7 @@ const HAXEFMOD_BINDINGS = {
      "type": "haxefmod.studio.Vca"
     }
    ],
-   "html5": true
+   "html5": false
   },
   "studio_vca_getpath": {
    "fmod": "FMOD_Studio_VCA_GetPath",

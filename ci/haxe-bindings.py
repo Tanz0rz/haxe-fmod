@@ -185,10 +185,16 @@ def primary_functions(native, fmod_names):
 # --- html5 shim ----------------------------------------------------------
 
 def html5_limited():
+    """Shim functions whose web path reports FMOD_ERR_UNSUPPORTED on
+    purpose. A feature guard of the form `if (!obj.method) { ...
+    ERR_UNSUPPORTED ... }` is defensive code for a glue method that may be
+    missing in another SDK version and does not make the call limited, so
+    those lines are dropped before looking for the marker."""
     text = read(JAXE)
     limited = set()
+    guard = re.compile(r"if \(![^)]*\)\s*\{[^}]*ERR_UNSUPPORTED[^}]*\}")
     for match in re.finditer(r"^\s*static fmod_(\w+)\s*\([^)]*\)\s*\{", text, re.M):
-        body = body_after(text, match.end() - 1)
+        body = guard.sub("", body_after(text, match.end() - 1))
         if "ERR_UNSUPPORTED" in body:
             limited.add(match.group(1))
     return limited
