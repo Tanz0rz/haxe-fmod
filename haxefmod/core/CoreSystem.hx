@@ -91,9 +91,9 @@ class CoreSystem {
     public static function getDriverInfo(index:Int):Null<FmodDriverInfo> {
         var name = NativeStudio.sys_get_driver_info(index);
         if (!(NativeStudio.sys_last_result() : FmodResult).isOk()) return null;
-        var info = {name: name, guid: "", systemRate: Scratch.readI(0), speakerMode: (Scratch.readI(1) : FmodSpeakerMode),
+        var info = {name: name, guid: (FmodGuid.NULL : FmodGuid), systemRate: Scratch.readI(0), speakerMode: (Scratch.readI(1) : FmodSpeakerMode),
             speakerModeChannels: Scratch.readI(2)};
-        info.guid = NativeStudio.sys_get_driver_guid(index);
+        info.guid = (NativeStudio.sys_get_driver_guid(index) : FmodGuid);
         return info;
     }
 

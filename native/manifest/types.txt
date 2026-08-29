@@ -5,8 +5,8 @@
 FMOD_3D_ATTRIBUTES                                  haxefmod.studio.Types.Fmod3DAttributes
 FMOD_3D_ROLLOFF_CALLBACK                            cannot   runs on FMOD's mixer thread, the rolloff flags of ChannelMode and set3DCustomRolloff on Sound, Channel, and ChannelGroup shape the curve instead
 FMOD_ADVANCEDSETTINGS                               haxefmod.studio.Types.FmodAdvancedSettings   the fields FmodSettings sets and StudioSystem.getAdvancedSettings reads back, the rest keep FMOD's defaults skip: cbSize,maxADPCMCodecs,maxXMACodecs,maxAT9Codecs,maxOpusCodecs,ASIONumChannels,ASIOChannelList,ASIOSpeakerList,reverb3Dinstance,DSPBufferPoolSize,maxConvolutionThreads,maxSpatialObjects
-FMOD_BOOL                                           library   Haxe Bool crosses the boundary as 0 or 1
-FMOD_CHANNELCONTROL_CALLBACK                        cannot   runs on FMOD's threads, Channel.setCallback delivers ChannelEvent on the game thread instead
+FMOD_BOOL                                           haxefmod.studio.Types.FmodBool
+FMOD_CHANNELCONTROL_CALLBACK                        haxefmod.core.ChannelEvent.ChannelCallback   the handle it is registered on stands in for the channelcontrol and controltype arguments, the event carries the type and data skip: TYPE,CALLBACK_TYPE
 FMOD_CHANNELCONTROL_CALLBACK_TYPE                   haxefmod.studio.Types.FmodChannelControlCallbackType
 FMOD_CHANNELCONTROL_DSP_INDEX                       haxefmod.studio.Types.ChannelControlDspIndex
 FMOD_CHANNELCONTROL_TYPE                            haxefmod.studio.Types.FmodChannelControlType
@@ -32,7 +32,7 @@ FMOD_CODEC_SOUNDCREATE_CALLBACK                     cannot   runs on FMOD's thre
 FMOD_CODEC_SEEK_METHOD                              cannot   the seek origin of a codec plugin file callback, plugin authoring is C only
 FMOD_CODEC_STATE_FUNCTIONS                          cannot   codec plugins are written in C, Sound.create loads every format FMOD decodes and PcmStream feeds decoded audio
 FMOD_CPU_USAGE                                      haxefmod.studio.Types.FmodSystemCpuUsage
-FMOD_CREATESOUNDEXINFO                              library   Sound.create and Sound.fromPcm take its fields as arguments
+FMOD_CREATESOUNDEXINFO                              haxefmod.studio.Types.FmodCreateSoundExInfo   the optional argument of Sound.create and Sound.fromMemory, the callback and pointer fields run on FMOD threads skip: cbsize,inclusionlistnum,pcmreadcallback,pcmsetposcallback,nonblockcallback,userdata,fileuseropen,fileuserclose,fileuserread,fileuserseek,fileuserasyncread,fileuserasynccancel,fileuserdata
 FMOD_DEBUG_CALLBACK                                 cannot   runs on FMOD's threads, the log goes to the platform output at FmodSettings.logLevel instead
 FMOD_DEBUG_FLAGS                                    haxefmod.studio.Types.FmodDebugFlags
 FMOD_DEBUG_MODE                                     haxefmod.studio.Types.FmodDebugMode
@@ -151,7 +151,7 @@ FMOD_DSP_TRANSCEIVER                                haxefmod.core.DspParameters.
 FMOD_DSP_TRANSCEIVER_SPEAKERMODE                    haxefmod.core.DspEnums.DspTransceiverSpeakerMode
 FMOD_DSP_TREMOLO                                    haxefmod.core.DspParameters.DspTremolo
 FMOD_DSP_TYPE                                       haxefmod.core.DspType   the built-in unit kinds Dsp.create takes skip: MAX
-FMOD_ERRORCALLBACK_INFO                             library   error callbacks are not exposed, every call returns its FmodResult and StudioSystem.lastResult() keeps the last getter error
+FMOD_ERRORCALLBACK_INFO                             haxefmod.studio.Types.FmodErrorCallbackInfo   delivered as SystemEvent.Error when SystemCallbacks.CORE_ERROR is in the mask, instance is the handle of the object
 FMOD_ERRORCALLBACK_INSTANCETYPE                     haxefmod.studio.Types.FmodErrorCallbackInstanceType
 FMOD_FILE_ASYNCCANCEL_CALLBACK                      cannot   runs on FMOD's file threads, custom file systems are not exposed, Sound.create reads the platform file system and StudioSystem.loadBankMemory takes bytes
 FMOD_FILE_ASYNCDONE_FUNC                            cannot   runs on FMOD's file threads, custom file systems are not exposed, Sound.create reads the platform file system and StudioSystem.loadBankMemory takes bytes
@@ -160,7 +160,7 @@ FMOD_FILE_CLOSE_CALLBACK                            cannot   runs on FMOD's file
 FMOD_FILE_OPEN_CALLBACK                             cannot   runs on FMOD's file threads, custom file systems are not exposed, Sound.create reads the platform file system and StudioSystem.loadBankMemory takes bytes
 FMOD_FILE_READ_CALLBACK                             cannot   runs on FMOD's file threads, custom file systems are not exposed, Sound.create reads the platform file system and StudioSystem.loadBankMemory takes bytes
 FMOD_FILE_SEEK_CALLBACK                             cannot   runs on FMOD's file threads, custom file systems are not exposed, Sound.create reads the platform file system and StudioSystem.loadBankMemory takes bytes
-FMOD_GUID                                           library   GUIDs are strings in the text form FMOD Studio shows, taken by StudioSystem.getEventByID and returned by EventDescription.getID
+FMOD_GUID                                           haxefmod.studio.Types.FmodGuid   the braced text form, data1 to data4 read the fields out of it
 FMOD_INITFLAGS                                      haxefmod.studio.Types.FmodInitFlags
 FMOD_MEMORY_ALLOC_CALLBACK                          cannot   runs on FMOD's threads, custom allocators are not exposed, StudioSystem.getMemoryStats reports what FMOD allocated
 FMOD_MEMORY_FREE_CALLBACK                           cannot   runs on FMOD's threads, custom allocators are not exposed, StudioSystem.getMemoryStats reports what FMOD allocated
@@ -193,7 +193,7 @@ FMOD_OUTPUT_REQUESTRESET_FUNC                       cannot   runs on FMOD's mixe
 FMOD_OUTPUT_START_CALLBACK                          cannot   runs on FMOD's mixer thread inside an output plugin, plugin authoring is C only
 FMOD_OUTPUT_STOP_CALLBACK                           cannot   runs on FMOD's mixer thread inside an output plugin, plugin authoring is C only
 FMOD_OUTPUT_UPDATE_CALLBACK                         cannot   runs on FMOD's mixer thread inside an output plugin, plugin authoring is C only
-FMOD_PLUGINLIST                                     library   static plugin lists are C, a compiled plugin loads with StudioSystem.loadPlugin
+FMOD_PLUGINLIST                                     haxefmod.studio.Types.FmodPluginList   declared for completeness, static plugin lists are a C link step and StudioSystem.loadPlugin loads compiled plugins
 FMOD_PLUGINTYPE                                     haxefmod.studio.Types.FmodPluginType
 FMOD_PORT_INDEX                                     haxefmod.studio.Types.FmodPortIndex   NONE crosses as -1, the 64-bit all-ones value does not fit an Int skip: NONE
 FMOD_PORT_TYPE                                      haxefmod.studio.Types.FmodPortType
@@ -202,7 +202,7 @@ FMOD_REVERB_PROPERTIES                              haxefmod.core.Reverb.ReverbP
 FMOD_SOUNDGROUP_BEHAVIOR                            haxefmod.studio.Types.SoundGroupBehavior
 FMOD_SOUND_FORMAT                                   haxefmod.studio.Types.FmodSoundFormat
 FMOD_SOUND_NONBLOCK_CALLBACK                        cannot   runs on FMOD's threads, poll Sound.getOpenState until it reports READY
-FMOD_SOUND_PCMREAD_CALLBACK                         cannot   runs on FMOD's mixer thread, PcmStream feeds PCM from the game thread instead
+FMOD_SOUND_PCMREAD_CALLBACK                         haxefmod.core.PcmStream.PcmReadCallback   runs on the game thread from PcmStream.setReadCallback whenever the ring has room, FMOD's own runs on the mixer thread
 FMOD_SOUND_PCMSETPOS_CALLBACK                       cannot   runs on FMOD's mixer thread, PcmStream feeds PCM from the game thread instead
 FMOD_SOUND_TYPE                                     haxefmod.studio.Types.FmodSoundType
 FMOD_SPEAKER                                        haxefmod.studio.Types.FmodSpeaker
@@ -218,7 +218,7 @@ FMOD_STUDIO_COMMANDREPLAY_FRAME_CALLBACK            cannot   runs on FMOD's thre
 FMOD_STUDIO_COMMANDREPLAY_LOAD_BANK_CALLBACK        cannot   runs on FMOD's threads, CommandReplay plays back without hooks
 FMOD_STUDIO_COMMAND_INFO                            haxefmod.studio.Types.FmodCommandInfo
 FMOD_STUDIO_CPU_USAGE                               haxefmod.studio.Types.FmodSystemCpuUsage
-FMOD_STUDIO_EVENT_CALLBACK                          cannot   runs on FMOD's threads, EventInstance.setCallback delivers EventCallbackData on the game thread instead
+FMOD_STUDIO_EVENT_CALLBACK                          haxefmod.studio.Callbacks.EventCallback   the handle it is registered on stands in for the event argument, the decoded EventCallbackData replaces type and parameters skip: EVENT_CALLBACK_TYPE,EVENTINSTANCE
 FMOD_STUDIO_EVENT_CALLBACK_TYPE                     haxefmod.studio.Callbacks.EventCallbackType
 FMOD_STUDIO_EVENT_PROPERTY                          haxefmod.studio.Types.FmodEventProperty
 FMOD_STUDIO_INITFLAGS                               haxefmod.studio.Types.FmodStudioInitFlags
@@ -236,14 +236,14 @@ FMOD_STUDIO_PLUGIN_INSTANCE_PROPERTIES              haxefmod.studio.Types.FmodPl
 FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES             haxefmod.studio.Types.FmodProgrammerSoundProperties
 FMOD_STUDIO_SOUND_INFO                              haxefmod.studio.Types.FmodSoundInfo   name carries name_or_data and the exinfo fields FMOD fills are flattened into length, fileOffset, initialSubsound, and numSubsounds skip: name_or_data,exinfo
 FMOD_STUDIO_STOP_MODE                               haxefmod.studio.Types.FmodStopMode
-FMOD_STUDIO_SYSTEM_CALLBACK                         cannot   runs on FMOD's threads, StudioSystem.setSystemCallback delivers SystemEvent on the game thread instead
+FMOD_STUDIO_SYSTEM_CALLBACK                         haxefmod.studio.SystemCallbacks.SystemCallback   one handler for both systems, the SystemEvent replaces the type and commanddata arguments skip: TYPE
 FMOD_STUDIO_SYSTEM_CALLBACK_TYPE                    haxefmod.studio.Types.FmodStudioSystemCallbackType
 FMOD_STUDIO_TIMELINE_BEAT_PROPERTIES                haxefmod.studio.Types.FmodTimelineBeatProperties
 FMOD_STUDIO_TIMELINE_MARKER_PROPERTIES              haxefmod.studio.Types.FmodTimelineMarkerProperties
 FMOD_STUDIO_TIMELINE_NESTED_BEAT_PROPERTIES         haxefmod.studio.Types.FmodTimelineNestedBeatProperties
 FMOD_STUDIO_USER_PROPERTY                           haxefmod.studio.Types.FmodUserProperty   the union is folded, floatValue carries integer and boolean properties too skip: intvalue,boolvalue
 FMOD_STUDIO_USER_PROPERTY_TYPE                      haxefmod.studio.Types.FmodUserPropertyType
-FMOD_SYSTEM_CALLBACK                                cannot   runs on FMOD's threads, StudioSystem.setSystemCallback delivers SystemEvent on the game thread instead
+FMOD_SYSTEM_CALLBACK                                haxefmod.studio.SystemCallbacks.SystemCallback   one handler for both systems, the SystemEvent replaces the type and commanddata arguments skip: TYPE
 FMOD_SYSTEM_CALLBACK_TYPE                           haxefmod.studio.Types.FmodSystemCallbackType
 FMOD_TAG                                            haxefmod.studio.Types.FmodTag   data and datalen are folded into intValue, floatValue, stringValue, and length skip: data,datalen
 FMOD_TAGDATATYPE                                    haxefmod.studio.Types.FmodTagDataType

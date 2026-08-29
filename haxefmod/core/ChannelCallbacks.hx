@@ -1,6 +1,7 @@
 package haxefmod.core;
 
 import haxefmod.core.ChannelEvent;
+import haxefmod.core.ChannelEvent.ChannelCallback;
 import haxefmod.studio.native.NativeStudio;
 
 /**
@@ -26,17 +27,17 @@ class ChannelCallbacks {
 
     // Channels and groups come out of one handle table, so one map holds
     // both. The group set says which native call turns a handler off.
-    static var handlers:Map<Int, ChannelEvent->Void> = new Map();
+    static var handlers:Map<Int, ChannelCallback> = new Map();
     static var groups:Map<Int, Bool> = new Map();
 
-    public static function set(handle:Int, handler:ChannelEvent->Void):Void {
+    public static function set(handle:Int, handler:ChannelCallback):Void {
         if (handle == 0 || handler == null) return;
         installRouter();
         handlers.set(handle, handler);
         NativeStudio.chan_set_callback(handle, true);
     }
 
-    public static function setGroup(handle:Int, handler:ChannelEvent->Void):Void {
+    public static function setGroup(handle:Int, handler:ChannelCallback):Void {
         if (handle == 0 || handler == null) return;
         installRouter();
         handlers.set(handle, handler);

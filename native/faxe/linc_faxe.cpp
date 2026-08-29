@@ -451,6 +451,98 @@ int fmod_core_create_sound_memory(::Array<unsigned char> data, int len, int mode
     return handle;
 }
 
+// Fills exinfo from the packed int slots (layout in the manifest next to
+// core_create_sound_ex) and the three strings. Empty strings mean unset.
+// Returns false when the GUID text does not parse. The inclusion list
+// points into ibuf, which outlives the create call.
+static bool lincFillExInfo(FMOD_CREATESOUNDEXINFO* exinfo, ::Array<int> ibuf, const char* dls,
+        const char* key, const char* guidText, FMOD_GUID* guid) {
+    const int* ints = &ibuf[0];
+    memset(exinfo, 0, sizeof(*exinfo));
+    exinfo->cbsize = sizeof(*exinfo);
+    exinfo->length = (unsigned int)ints[0];
+    exinfo->fileoffset = (unsigned int)ints[1];
+    exinfo->numchannels = ints[2];
+    exinfo->defaultfrequency = ints[3];
+    exinfo->format = (FMOD_SOUND_FORMAT)ints[4];
+    exinfo->decodebuffersize = (unsigned int)ints[5];
+    exinfo->initialsubsound = ints[6];
+    exinfo->numsubsounds = ints[7];
+    exinfo->maxpolyphony = ints[8];
+    exinfo->suggestedsoundtype = (FMOD_SOUND_TYPE)ints[9];
+    exinfo->minmidigranularity = (unsigned int)ints[10];
+    exinfo->nonblockthreadid = ints[11];
+    exinfo->filebuffersize = ints[12];
+    exinfo->channelorder = (FMOD_CHANNELORDER)ints[13];
+    if (ints[14]) exinfo->initialsoundgroup = (FMOD_SOUNDGROUP*)faxe_handle_resolve(ints[14], FAXE_TYPE_SOUNDGROUP);
+    exinfo->initialseekposition = (unsigned int)ints[15];
+    exinfo->initialseekpostype = (FMOD_TIMEUNIT)ints[16];
+    exinfo->ignoresetfilesystem = ints[17];
+    exinfo->audioqueuepolicy = (unsigned int)ints[18];
+    if (ints[19] > 0 && ibuf->length >= 20 + ints[19]) {
+        exinfo->inclusionlist = (int*)(ints + 20);
+        exinfo->inclusionlistnum = ints[19];
+    }
+    if (dls && dls[0]) exinfo->dlsname = dls;
+    if (key && key[0]) exinfo->encryptionkey = key;
+    if (guidText && guidText[0]) {
+        if (!faxe_guid_parse(guidText, guid)) return false;
+        exinfo->fsbguid = guid;
+    }
+    return true;
+}
+
+// Sound.create with a full FMOD_CREATESOUNDEXINFO. ibuf is the Scratch
+// int buffer packed by the Haxe side, the strings are empty when unset.
+int fmod_core_create_sound_ex(const ::String& path, int mode, ::Array<int> ibuf, const ::String& dls, const ::String& key, const ::String& guidText) {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    if (ibuf == null() || ibuf->length < 20) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
+    FMOD::Sound* sound = NULL;
+    FMOD_CREATESOUNDEXINFO exinfo;
+    FMOD_GUID guid;
+    if (!lincFillExInfo(&exinfo, ibuf, dls.c_str(), key.c_str(), guidText.c_str(), &guid)) {
+        gLastResult = FMOD_ERR_INVALID_PARAM;
+        return 0;
+    }
+    gLastResult = gCoreSystem->createSound(path.c_str(), (FMOD_MODE)mode, &exinfo, &sound);
+    if (gLastResult != FMOD_OK || !sound) return 0;
+    int handle = faxe_handle_alloc(sound, FAXE_TYPE_SOUND);
+    if (handle == 0) {
+        gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
+        sound->release();
+        return 0;
+    }
+    return handle;
+}
+
+// Sound.fromMemory with a full FMOD_CREATESOUNDEXINFO. len is the byte
+// count and overrides the packed length slot.
+int fmod_core_create_sound_memory_ex(::Array<unsigned char> data, int len, int mode, ::Array<int> ibuf, const ::String& dls, const ::String& key, const ::String& guidText) {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    if (data == null() || len <= 0 || len > data->length || ibuf == null() || ibuf->length < 20) {
+        gLastResult = FMOD_ERR_INVALID_PARAM;
+        return 0;
+    }
+    FMOD::Sound* sound = NULL;
+    FMOD_CREATESOUNDEXINFO exinfo;
+    FMOD_GUID guid;
+    if (!lincFillExInfo(&exinfo, ibuf, dls.c_str(), key.c_str(), guidText.c_str(), &guid)) {
+        gLastResult = FMOD_ERR_INVALID_PARAM;
+        return 0;
+    }
+    exinfo.length = (unsigned int)len;
+    gLastResult = gCoreSystem->createSound((const char*)&data[0],
+        ((FMOD_MODE)mode & ~(FMOD_MODE)FMOD_OPENMEMORY_POINT) | FMOD_OPENMEMORY, &exinfo, &sound);
+    if (gLastResult != FMOD_OK || !sound) return 0;
+    int handle = faxe_handle_alloc(sound, FAXE_TYPE_SOUND);
+    if (handle == 0) {
+        gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
+        sound->release();
+        return 0;
+    }
+    return handle;
+}
+
 // Releasing a parent sound destroys its subsounds, so every sound handle
 // whose FMOD parent is this sound is dropped first. Otherwise those slots
 // would keep pointing at freed memory.
@@ -1686,20 +1778,21 @@ int fmod_sound_get_defaults(int h, ::Array<Float> fbuf) {
 }
 
 // Both points share one FMOD_TIMEUNIT
-int fmod_sound_set_loop_points(int h, int start, int end, int unit) {
+// Each point carries its own FMOD_TIMEUNIT
+int fmod_sound_set_loop_points(int h, int start, int startType, int end, int endType) {
     FMOD::Sound* sound = resolveSound(h);
     if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
-    gLastResult = sound->setLoopPoints((unsigned int)start, (FMOD_TIMEUNIT)unit, (unsigned int)end, (FMOD_TIMEUNIT)unit);
+    gLastResult = sound->setLoopPoints((unsigned int)start, (FMOD_TIMEUNIT)startType, (unsigned int)end, (FMOD_TIMEUNIT)endType);
     return (int)gLastResult;
 }
 
-// ibuf out: [0]=loop start [1]=loop end, both in the given unit
-int fmod_sound_get_loop_points(int h, int unit, ::Array<int> ibuf) {
+// ibuf out: [0]=loop start in startType [1]=loop end in endType
+int fmod_sound_get_loop_points(int h, int startType, int endType, ::Array<int> ibuf) {
     FMOD::Sound* sound = resolveSound(h);
     unsigned int start = 0;
     unsigned int end = 0;
     if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
-    gLastResult = sound->getLoopPoints(&start, (FMOD_TIMEUNIT)unit, &end, (FMOD_TIMEUNIT)unit);
+    gLastResult = sound->getLoopPoints(&start, (FMOD_TIMEUNIT)startType, &end, (FMOD_TIMEUNIT)endType);
     ibuf[0] = (int)start;
     ibuf[1] = (int)end;
     return (int)gLastResult;
@@ -1894,14 +1987,47 @@ int fmod_cg_set_callback(int h, bool enabled) {
 // The studio mask in force. Zero means no stash work on the unload paths.
 static unsigned int gSystemCallbackMask = 0;
 
-// Runs on whichever FMOD thread raised the event. Plain C data handling only.
+// Runs on whichever FMOD thread raised the event. Plain C data handling
+// only. ERROR copies the FMOD_ERRORCALLBACK_INFO strings into the
+// record's fixed slots and parks the instance address in ptr for the
+// drain to resolve.
 static FMOD_RESULT F_CALLBACK lincSystemCallback(FMOD_SYSTEM* system, FMOD_SYSTEM_CALLBACK_TYPE type, void* commanddata1, void* commanddata2, void* userdata) {
     FaxeCbEvent event;
-    (void)system; (void)commanddata1; (void)commanddata2; (void)userdata;
+    (void)system; (void)commanddata2; (void)userdata;
     memset(&event, 0, sizeof(event));
     event.type = FAXE_CB_SYS_NAMESPACE | (uint32_t)type;
+    if (type == FMOD_SYSTEM_CALLBACK_ERROR && commanddata1) {
+        const FMOD_ERRORCALLBACK_INFO* info = (const FMOD_ERRORCALLBACK_INFO*)commanddata1;
+        event.i1 = (int32_t)info->result;
+        event.i2 = (int32_t)info->instancetype;
+        event.ptr = info->instance;
+        if (info->functionname) strncpy(event.str, info->functionname, FAXE_CBQ_STR_MAX - 1);
+        if (info->functionparams) strncpy(event.str2, info->functionparams, FAXE_CBQ_STR2_MAX - 1);
+    }
     faxe_cbq_push(&event);
     return FMOD_OK;
+}
+
+// The handle table type an error record's instance type maps to, or
+// FAXE_TYPE_NONE for kinds the table never holds.
+static unsigned char lincErrorInstanceType(int instanceType) {
+    switch ((FMOD_ERRORCALLBACK_INSTANCETYPE)instanceType) {
+        case FMOD_ERRORCALLBACK_INSTANCETYPE_CHANNEL: return FAXE_TYPE_CHAN;
+        case FMOD_ERRORCALLBACK_INSTANCETYPE_CHANNELGROUP: return FAXE_TYPE_CHANGROUP;
+        case FMOD_ERRORCALLBACK_INSTANCETYPE_SOUND: return FAXE_TYPE_SOUND;
+        case FMOD_ERRORCALLBACK_INSTANCETYPE_SOUNDGROUP: return FAXE_TYPE_SOUNDGROUP;
+        case FMOD_ERRORCALLBACK_INSTANCETYPE_DSP: return FAXE_TYPE_DSP;
+        case FMOD_ERRORCALLBACK_INSTANCETYPE_DSPCONNECTION: return FAXE_TYPE_DSPCONN;
+        case FMOD_ERRORCALLBACK_INSTANCETYPE_GEOMETRY: return FAXE_TYPE_GEOMETRY;
+        case FMOD_ERRORCALLBACK_INSTANCETYPE_REVERB3D: return FAXE_TYPE_REVERB3D;
+        case FMOD_ERRORCALLBACK_INSTANCETYPE_STUDIO_EVENTDESCRIPTION: return FAXE_TYPE_EVD;
+        case FMOD_ERRORCALLBACK_INSTANCETYPE_STUDIO_EVENTINSTANCE: return FAXE_TYPE_EVI;
+        case FMOD_ERRORCALLBACK_INSTANCETYPE_STUDIO_BUS: return FAXE_TYPE_BUS;
+        case FMOD_ERRORCALLBACK_INSTANCETYPE_STUDIO_VCA: return FAXE_TYPE_VCA;
+        case FMOD_ERRORCALLBACK_INSTANCETYPE_STUDIO_BANK: return FAXE_TYPE_BANK;
+        case FMOD_ERRORCALLBACK_INSTANCETYPE_STUDIO_COMMANDREPLAY: return FAXE_TYPE_REPLAY;
+        default: return FAXE_TYPE_NONE;
+    }
 }
 
 // Runs on the Studio thread. BANK_UNLOAD carries the bank as commanddata.
@@ -1960,12 +2086,21 @@ int fmod_sys_set_studio_callback_mask(int mask) {
     return (int)gLastResult;
 }
 
+// Returns the new point's index in offset order (FMOD keeps the list
+// sorted, so the index is found by walking it), -1 on failure.
 int fmod_sound_add_sync_point(int h, int offset, int unit, const ::String& name) {
     FMOD::Sound* sound = resolveSound(h);
     FMOD_SYNCPOINT* point = NULL;
-    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    FMOD_SYNCPOINT* other = NULL;
+    int count = 0;
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
     gLastResult = sound->addSyncPoint((unsigned int)offset, (FMOD_TIMEUNIT)unit, name.c_str(), &point);
-    return (int)gLastResult;
+    if (gLastResult != FMOD_OK) return -1;
+    if (sound->getNumSyncPoints(&count) != FMOD_OK) return -1;
+    for (int i = 0; i < count; i++) {
+        if (sound->getSyncPoint(i, &other) == FMOD_OK && other == point) return i;
+    }
+    return -1;
 }
 
 int fmod_sound_delete_sync_point(int h, int index) {
@@ -2471,20 +2606,21 @@ int fmod_chan_get_current_sound(int h) {
     return faxe_handle_find_or_alloc(sound, FAXE_TYPE_SOUND);
 }
 
-int fmod_chan_set_loop_points(int h, int start, int end, int unit) {
+// Each point carries its own FMOD_TIMEUNIT
+int fmod_chan_set_loop_points(int h, int start, int startType, int end, int endType) {
     FMOD::Channel* ch = resolveChannel(h);
     if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
-    gLastResult = ch->setLoopPoints((unsigned int)start, (FMOD_TIMEUNIT)unit, (unsigned int)end, (FMOD_TIMEUNIT)unit);
+    gLastResult = ch->setLoopPoints((unsigned int)start, (FMOD_TIMEUNIT)startType, (unsigned int)end, (FMOD_TIMEUNIT)endType);
     return (int)gLastResult;
 }
 
-// ibuf out: [0]=loop start [1]=loop end, both in the given unit
-int fmod_chan_get_loop_points(int h, int unit, ::Array<int> ibuf) {
+// ibuf out: [0]=loop start in startType [1]=loop end in endType
+int fmod_chan_get_loop_points(int h, int startType, int endType, ::Array<int> ibuf) {
     FMOD::Channel* ch = resolveChannel(h);
     unsigned int start = 0;
     unsigned int end = 0;
     if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
-    gLastResult = ch->getLoopPoints(&start, (FMOD_TIMEUNIT)unit, &end, (FMOD_TIMEUNIT)unit);
+    gLastResult = ch->getLoopPoints(&start, (FMOD_TIMEUNIT)startType, &end, (FMOD_TIMEUNIT)endType);
     ibuf[0] = (int)start;
     ibuf[1] = (int)end;
     return (int)gLastResult;
@@ -3041,6 +3177,11 @@ bool fmod_cb_next() {
         // i3 marks a shim-created sound, released in the callback, whose
         // handle ends here. A game-owned sound keeps its handle.
         if (gCbCurrent.i1 && gCbCurrent.i3) faxe_handle_free(gCbCurrent.i1);
+    } else if (gCbCurrent.type == (FAXE_CB_SYS_NAMESPACE | (uint32_t)FMOD_SYSTEM_CALLBACK_ERROR)) {
+        // The failing object's handle when the table knows it, never a
+        // fresh one: a sound FMOD rejected may already be gone.
+        unsigned char kind = lincErrorInstanceType(gCbCurrent.i2);
+        gCbCurrent.i3 = kind == FAXE_TYPE_NONE ? 0 : faxe_handle_find(gCbCurrent.ptr, kind);
     }
     gCbCurrent.ptr = NULL;
     return true;
@@ -3071,6 +3212,10 @@ double fmod_cb_float() {
 
 const char* fmod_cb_string() {
     return gCbCurrent.str;
+}
+
+const char* fmod_cb_string2() {
+    return gCbCurrent.str2;
 }
 
 bool fmod_cb_take_overflow() {

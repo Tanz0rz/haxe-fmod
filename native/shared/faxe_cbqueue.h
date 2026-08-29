@@ -34,6 +34,7 @@
 
 #define FAXE_CBQ_CAPACITY 256
 #define FAXE_CBQ_STR_MAX 64
+#define FAXE_CBQ_STR2_MAX 128
 
 /* One callback event. Which fields are meaningful depends on type:
  *   TIMELINE_MARKER: str = marker name, i1 = position (ms)
@@ -47,6 +48,9 @@
  *                    name, ptr = the FMOD_SOUND the instrument plays,
  *                    i2 = subsound index, i3 = 1 when the shim created the
  *                    sound (the drain frees its handle on destroy)
+ *   core ERROR (system namespace): i1 = FMOD_RESULT, i2 = instance type,
+ *                    ptr = the failing object, str = function name,
+ *                    str2 = function parameters
  *   others:          only handle + type
  *
  * opaque carries a native payload across the thread boundary (the DESTROYED
@@ -71,6 +75,7 @@ typedef struct {
     void* opaque;               /* payload owned by the drain, or NULL */
     void* ptr;                  /* borrowed FMOD object for the drain, or NULL */
     char str[FAXE_CBQ_STR_MAX]; /* UTF-8, truncated, always NUL-terminated */
+    char str2[FAXE_CBQ_STR2_MAX]; /* second string, same rules, empty for most types */
 } FaxeCbEvent;
 
 static FaxeCbEvent gCbqRing[FAXE_CBQ_CAPACITY];
@@ -130,6 +135,7 @@ static void faxe_cbq_push(const FaxeCbEvent* event) {
     }
     gCbqRing[gCbqHead] = *event;
     gCbqRing[gCbqHead].str[FAXE_CBQ_STR_MAX - 1] = '\0';
+    gCbqRing[gCbqHead].str2[FAXE_CBQ_STR2_MAX - 1] = '\0';
     gCbqHead = (gCbqHead + 1) % FAXE_CBQ_CAPACITY;
     if (gCbqCount < FAXE_CBQ_CAPACITY) {
         gCbqCount++;

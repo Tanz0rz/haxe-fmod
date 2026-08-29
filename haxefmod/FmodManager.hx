@@ -411,12 +411,13 @@ class FmodManager {
         return instance;
     }
 
-    /** Removes every registered callback (song, sounds, descriptions, and core channels). Userdata is left alone. */
+    /** Removes every registered callback (song, sounds, descriptions, core channels, the system, and PCM streams). Userdata is left alone. */
     public static function ClearAllCallbacks():Void {
         CallbackDispatcher.clearAll();
         haxefmod.studio.EventDescription.clearAllCallbacks();
         haxefmod.core.ChannelCallbacks.clearAll();
         haxefmod.studio.SystemCallbacks.clear();
+        haxefmod.core.PcmStream.clearAllReadCallbacks();
     }
 
     /**

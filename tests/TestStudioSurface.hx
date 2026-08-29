@@ -62,6 +62,7 @@ class TestStudioSurface {
 		testChannelControlParity();
 		testValueEnums();
 		testTypedSignatures();
+		testCoreTypes();
 
 		Sys.println('  $passed passed, $failed failed');
 		return failed;
@@ -572,18 +573,19 @@ class TestStudioSurface {
 		assert(CoreSystem.getSoftwareFormat() == null, "sys softwareFormat default");
 
 		// Slice-4 surface on the stub
-		assert(!pcmSound.addSyncPoint(50, "mid").isOk(), "sound addSyncPoint result");
+		assert(pcmSound.addSyncPoint(50, "mid").isNull(), "sound addSyncPoint null point");
 		assert(!pcmSound.deleteSyncPoint(0).isOk(), "sound deleteSyncPoint result");
 		assert(pcmSound.getSyncPointCount() == 0, "sound syncPointCount default");
-		assert(pcmSound.getSyncPointName(0) == "", "sound syncPointName default");
-		assert(pcmSound.getSyncPointOffset(0) == -1, "sound syncPointOffset default");
+		assert(pcmSound.getNumSyncPoints() == 0, "sound getNumSyncPoints default");
+		assert(pcmSound.getSyncPoint(0).isNull(), "sound getSyncPoint null");
+		assert(pcmSound.getSyncPointInfo(0) == null, "sound getSyncPointInfo default");
 
 		// Time units are an optional trailing parameter, milliseconds when left out
 		assert(pcmSound.getLength() == -1 && pcmSound.getLength(FmodTimeUnit.PCM) == -1, "sound length takes a unit");
 		assert(!pcmSound.setLoopPoints(0, 100, FmodTimeUnit.PCM).isOk(), "sound setLoopPoints takes a unit");
 		assert(pcmSound.getLoopPoints(FmodTimeUnit.PCMBYTES) == null, "sound getLoopPoints takes a unit");
-		assert(!pcmSound.addSyncPoint(50, "mid", FmodTimeUnit.PCM).isOk(), "sound addSyncPoint takes a unit");
-		assert(pcmSound.getSyncPointOffset(0, FmodTimeUnit.PCM) == -1, "sound syncPointOffset takes a unit");
+		assert(pcmSound.addSyncPoint(50, "mid", FmodTimeUnit.PCM).isNull(), "sound addSyncPoint takes a unit");
+		assert(pcmSound.getSyncPointInfo(0, FmodTimeUnit.PCM) == null, "sound getSyncPointInfo takes a unit");
 		assert(pcmSound.getOpenStateInfo() == null, "sound openStateInfo default");
 		assert(pcmSound.getOpenState() == FmodOpenState.ERROR, "sound openState stays a plain state");
 
@@ -1115,7 +1117,7 @@ class TestStudioSurface {
 		assert((info.instanceType : Int) == 3 && info.outputType == FmodStudioInstanceType.NONE, "command info typed");
 		var desc:FmodParameterDescription = {name: "p", id: {data1: 0, data2: 0}, minimum: 0, maximum: 1, defaultValue: 0,
 			type: FmodParameterType.GAME_CONTROLLED, flags: 0, guid: "{0225c47b-e69f-4785-b89c-fd321387934a}"};
-		assert(desc.guid.length == 38, "parameter description carries guid");
+		assert((desc.guid : String).length == 38 && desc.guid.data1 == 0x0225c47b, "parameter description carries guid");
 		var soundInfo:FmodSoundInfo = {name: "Master.bank", mode: ChannelMode.CREATECOMPRESSEDSAMPLE, length: 4800,
 			fileOffset: 2844864, initialSubsound: 0, numSubsounds: 1, subSoundIndex: 0};
 		assert(soundInfo.mode == 0x200 && soundInfo.length == 4800, "sound info typed");
@@ -1214,5 +1216,124 @@ class TestStudioSurface {
 		var geometry:Geometry = Geometry.NULL;
 		var rotation:Null<FmodGeometryRotation> = geometry.getRotation();
 		assert(rotation == null, "geometry rotation typed null");
+	}
+
+	static function testCoreTypes():Void {
+		var stub = haxefmod.studio.native.NativeStudioStub;
+
+		// FmodGuid: a String both ways, fields parsed from the text, equality ignores braces and case
+		var guid:FmodGuid = "{0225C47B-E69F-4785-B89C-FD321387934A}";
+		assert(guid.data1 == 0x0225c47b && guid.data2 == 0xe69f && guid.data3 == 0x4785, "guid data1-3");
+		assert(guid.data4.length == 8 && guid.data4[0] == 0xb8 && guid.data4[7] == 0x4a, "guid data4 bytes");
+		assert(guid == FmodGuid.fromString("0225c47b-e69f-4785-b89c-fd321387934a"), "guid equality ignores braces and case");
+		assert(guid != FmodGuid.fromString("{1225c47b-e69f-4785-b89c-fd321387934a}"), "guid inequality");
+		assert(FmodGuid.fromString("nope").isNull() && FmodGuid.fromString("{0225c47b-e69f-4785-b89c-fd32138793}").isNull(), "guid rejects bad text");
+		assert(FmodGuid.NULL.isNull() && !guid.isNull(), "guid null check");
+		assert(FmodGuid.fromFields(0x0225c47b, 0xe69f, 0x4785, [0xb8, 0x9c, 0xfd, 0x32, 0x13, 0x87, 0x93, 0x4a]) == guid, "guid from fields");
+		assert(FmodGuid.fromString(" 0225C47B-E69F-4785-B89C-FD321387934A ").toString() == "{0225c47b-e69f-4785-b89c-fd321387934a}", "guid normalizes to braced lower case");
+		var asString:String = guid;
+		assert(asString.length == 38, "guid converts to String");
+		assert(StudioSystem.lookupID("event:/x").isNull(), "lookupID returns a null guid on the stub");
+		assert(StudioSystem.getEventByID("{0225c47b-e69f-4785-b89c-fd321387934a}").isNull(), "getEventByID takes a string literal");
+
+		// FmodSyncPoint: the index in offset order, -1 is NULL
+		var point:FmodSyncPoint = 3;
+		assert(point.index() == 3 && !point.isNull() && FmodSyncPoint.NULL.isNull(), "sync point handle");
+		var asIndex:Int = point;
+		assert(asIndex == 3, "sync point converts to Int");
+
+		// Loop points forward a unit per point, the end unit follows the start unit when left out
+		var sound = Sound.fromPcm(haxe.io.Bytes.alloc(64), 48000, 1);
+		sound.setLoopPoints(0, 100, FmodTimeUnit.PCM);
+		assert(stub.testLastLoopUnits[0] == (FmodTimeUnit.PCM : Int) && stub.testLastLoopUnits[1] == (FmodTimeUnit.PCM : Int), "sound loop end unit follows start unit");
+		sound.setLoopPoints(0, 100, FmodTimeUnit.PCM, FmodTimeUnit.MS);
+		assert(stub.testLastLoopUnits[0] == (FmodTimeUnit.PCM : Int) && stub.testLastLoopUnits[1] == (FmodTimeUnit.MS : Int), "sound loop units separate");
+		sound.getLoopPoints(FmodTimeUnit.PCMBYTES);
+		assert(stub.testLastLoopUnits[1] == (FmodTimeUnit.PCMBYTES : Int), "sound getLoopPoints end unit follows");
+		var channel:Channel = Channel.NULL;
+		channel.setLoopPoints(1, 2, FmodTimeUnit.MS, FmodTimeUnit.PCM);
+		assert(stub.testLastLoopUnits[0] == (FmodTimeUnit.MS : Int) && stub.testLastLoopUnits[1] == (FmodTimeUnit.PCM : Int), "channel loop units separate");
+		channel.getLoopPoints();
+		assert(stub.testLastLoopUnits[0] == (FmodTimeUnit.MS : Int) && stub.testLastLoopUnits[1] == (FmodTimeUnit.MS : Int), "channel getLoopPoints defaults to MS");
+
+		// FmodCreateSoundExInfo packs into the int slots in manifest order
+		stub.testLastExInfoInts = null;
+		Sound.create("x.wav", false, false, 0, 4, {defaultFrequency: 44100, numChannels: 2, format: FmodSoundFormat.PCM16,
+			inclusionList: [1, 3], dlsName: "bank.dls", encryptionKey: "k", fsbGuid: guid, fileOffset: 12, decodeBufferSize: 1024,
+			suggestedSoundType: FmodSoundType.WAV, initialSeekPosition: 7, initialSeekPosType: FmodTimeUnit.PCM});
+		var ints = stub.testLastExInfoInts;
+		assert(ints != null && ints[1] == 12 && ints[2] == 2 && ints[3] == 44100 && ints[4] == (FmodSoundFormat.PCM16 : Int)
+			&& ints[5] == 1024 && ints[6] == 4 && ints[9] == (FmodSoundType.WAV : Int) && ints[15] == 7
+			&& ints[16] == (FmodTimeUnit.PCM : Int), "exinfo int slots");
+		assert(ints != null && ints[19] == 2 && ints[20] == 1 && ints[21] == 3, "exinfo inclusion list");
+		assert(stub.testLastExInfoStrings[0] == "bank.dls" && stub.testLastExInfoStrings[1] == "k"
+			&& stub.testLastExInfoStrings[2] == (guid : String), "exinfo strings");
+		stub.testLastExInfoInts = null;
+		Sound.create("x.wav", false, false, 0, 4, {initialSubsound: 1});
+		assert(stub.testLastExInfoInts[6] == 1, "exinfo initialSubsound wins over the argument");
+		Sound.create("x.wav", true, false, 0, -1, {});
+		assert(stub.testLastExInfoInts[6] == 0 && stub.testLastExInfoInts[19] == 0 && stub.testLastExInfoStrings[2] == "",
+			"empty exinfo packs zeros");
+		assert(stub.testLastCreateSoundMode & ChannelMode.LOOP_NORMAL != 0, "exinfo create keeps the loop flag");
+		stub.testLastExInfoInts = null;
+		Sound.fromMemory(haxe.io.Bytes.alloc(32), ChannelMode.OPENRAW, -1, {numChannels: 1, defaultFrequency: 8000, format: FmodSoundFormat.PCM8});
+		assert(stub.testLastMemoryLen == 32 && stub.testLastMemoryMode == ChannelMode.OPENRAW
+			&& stub.testLastExInfoInts[2] == 1 && stub.testLastExInfoInts[3] == 8000, "fromMemory exinfo");
+		stub.testLastExInfoInts = null;
+		Sound.fromMemory(haxe.io.Bytes.alloc(32));
+		assert(stub.testLastExInfoInts == null, "fromMemory without exinfo takes the plain path");
+
+		// FmodVersion and the reverb presets under FMOD's names
+		assert(FmodVersion.VERSION == 0x00020312, "FmodVersion matches the linked SDK");
+		assert(haxefmod.core.Reverb.ReverbPresets.UNDERWATER.decayTime == Reverb.PRESET_UNDERWATER.decayTime
+			&& haxefmod.core.Reverb.ReverbPresets.OFF.wetLevel == -80.0, "reverb presets alias the Reverb statics");
+		var b:FmodBool = true;
+		assert(b, "FmodBool is Bool");
+		var plugin:FmodPluginList = {type: FmodPluginType.DSP, description: 0};
+		assert(plugin.type == FmodPluginType.DSP, "plugin list entry typed");
+
+		// PcmStream read callback: pumped from the frame hook, filled by
+		// the callback, skipped when it declines
+		var stream:PcmStream = 77;
+		var calls = 0;
+		var seenLen = 0;
+		stream.setReadCallback(function(s, data, len) {
+			calls++;
+			seenLen = len;
+			return s == stream ? FmodResult.FMOD_OK : FmodResult.FMOD_ERR_INVALID_PARAM;
+		});
+		assert(stream.hasReadCallback() && CallbackDispatcher.frameHook != null, "read callback installed");
+		stub.testPcmSpace = 0;
+		stub.testLastPcmWriteLen = -1;
+		PcmStream.pump();
+		assert(calls == 0, "read callback skipped with no room");
+		stub.testPcmSpace = 256;
+		PcmStream.pump();
+		assert(calls == 1 && seenLen == 256 && stub.testLastPcmWriteLen == 256, "read callback fills the room");
+		stream.setReadCallback(function(s, data, len) return FmodResult.FMOD_ERR_INVALID_PARAM);
+		stub.testLastPcmWriteLen = -1;
+		PcmStream.pump();
+		assert(stub.testLastPcmWriteLen == -1, "a declining read callback writes nothing");
+		stream.setReadCallback(function(s, data, len) { s.clearReadCallback(); return FmodResult.FMOD_OK; });
+		PcmStream.pump();
+		assert(!stream.hasReadCallback(), "read callback may remove itself");
+		stream.setReadCallback(function(s, data, len) throw "boom");
+		PcmStream.pump();
+		assert(stream.hasReadCallback(), "a throwing read callback is contained");
+		stream.release();
+		assert(!stream.hasReadCallback(), "release drops the read callback");
+		PcmStream.NULL.setReadCallback(function(s, data, len) return FmodResult.FMOD_OK);
+		assert(!PcmStream.NULL.hasReadCallback(), "null stream takes no read callback");
+		stub.testPcmSpace = 0;
+
+		// The callback typedefs are the handler types the setters take
+		var eventHandler:EventCallback = function(data) {};
+		var channelHandler:haxefmod.core.ChannelEvent.ChannelCallback = function(event) {};
+		var systemHandler:haxefmod.studio.SystemCallbacks.SystemCallback = function(event) {};
+		EventInstance.NULL.setCallback(eventHandler);
+		Channel.NULL.setCallback(channelHandler);
+		StudioSystem.setSystemCallback(systemHandler);
+		StudioSystem.clearSystemCallback();
+		assert(true, "callback typedefs accepted");
 	}
 }

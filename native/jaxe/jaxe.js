@@ -463,6 +463,10 @@ class jaxe {
         return jaxe.cbCurrent.str;
     }
 
+    static fmod_cb_string2() {
+        return jaxe.cbCurrent.str2 || "";
+    }
+
     static fmod_cb_take_overflow() {
         var overflowed = jaxe.cbOverflow;
         jaxe.cbOverflow = false;
@@ -2292,6 +2296,94 @@ class jaxe {
         return handle;
     }
 
+    // Builds the glue's CREATESOUNDEXINFO from the packed int slots
+    // (layout in the manifest next to core_create_sound_ex) and the three
+    // strings, empty when unset. Returns null when the GUID text does
+    // not parse. The glue takes the FSB GUID as its own object.
+    static fillExInfo(ibuf, dls, key, guidText) {
+        var exinfo = jaxe.FMOD.CREATESOUNDEXINFO();
+        exinfo.length = ibuf[0] >>> 0;
+        exinfo.fileoffset = ibuf[1] >>> 0;
+        exinfo.numchannels = ibuf[2] | 0;
+        exinfo.defaultfrequency = ibuf[3] | 0;
+        exinfo.format = ibuf[4] | 0;
+        exinfo.decodebuffersize = ibuf[5] >>> 0;
+        exinfo.initialsubsound = ibuf[6] | 0;
+        exinfo.numsubsounds = ibuf[7] | 0;
+        exinfo.maxpolyphony = ibuf[8] | 0;
+        exinfo.suggestedsoundtype = ibuf[9] | 0;
+        exinfo.minmidigranularity = ibuf[10] >>> 0;
+        exinfo.nonblockthreadid = ibuf[11] | 0;
+        exinfo.filebuffersize = ibuf[12] | 0;
+        exinfo.channelorder = ibuf[13] | 0;
+        if (ibuf[14]) {
+            var group = jaxe.handleResolve(ibuf[14], jaxe.TYPE_SOUNDGROUP);
+            if (group) exinfo.initialsoundgroup = group;
+        }
+        exinfo.initialseekposition = ibuf[15] >>> 0;
+        exinfo.initialseekpostype = ibuf[16] | 0;
+        exinfo.ignoresetfilesystem = ibuf[17] | 0;
+        exinfo.audioqueuepolicy = ibuf[18] >>> 0;
+        var listCount = ibuf[19] | 0;
+        if (listCount > 0) {
+            var list = [];
+            for (var i = 0; i < listCount; i++) list.push(ibuf[20 + i] | 0);
+            exinfo.inclusionlist = list;
+            exinfo.inclusionlistnum = listCount;
+        }
+        if (dls) exinfo.dlsname = dls;
+        if (key) exinfo.encryptionkey = key;
+        if (guidText) {
+            var guid = jaxe.parseGuid(guidText);
+            if (!guid) return null;
+            exinfo.fsbguid = guid;
+        }
+        return exinfo;
+    }
+
+    // Sound.create with a full FMOD_CREATESOUNDEXINFO. NONBLOCKING is
+    // dropped as in fmod_core_create_sound.
+    static fmod_core_create_sound_ex(path, mode, ibuf, dls, key, guidText) {
+        if (typeof path !== "string" || !ibuf || ibuf.length < 20) { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return 0; }
+        if (!jaxe.FmodIsInitialized) { jaxe.lastResult = jaxe.ERR_STUDIO_UNINITIALIZED; return 0; }
+        var exinfo = jaxe.fillExInfo(ibuf, dls, key, guidText);
+        if (!exinfo) { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return 0; }
+        var soundOut = {};
+        jaxe.lastResult = jaxe.gSystemCore.createSound("/" + path, (mode & ~0x10000) >>> 0, exinfo, soundOut);
+        if (jaxe.lastResult != jaxe.FMOD.OK || !soundOut.val) return 0;
+        var handle = jaxe.handleAlloc(soundOut.val, jaxe.TYPE_SOUND);
+        if (handle == 0) {
+            soundOut.val.release();
+            return 0;
+        }
+        return handle;
+    }
+
+    // Sound.fromMemory with a full FMOD_CREATESOUNDEXINFO. len is the
+    // byte count and overrides the packed length slot.
+    static fmod_core_create_sound_memory_ex(data, len, mode, ibuf, dls, key, guidText) {
+        if (!jaxe.FmodIsInitialized) { jaxe.lastResult = jaxe.ERR_STUDIO_UNINITIALIZED; return 0; }
+        if (!data || len <= 0 || len > data.byteLength || !ibuf || ibuf.length < 20) {
+            jaxe.lastResult = jaxe.ERR_INVALID_PARAM;
+            return 0;
+        }
+        var exinfo = jaxe.fillExInfo(ibuf, dls, key, guidText);
+        if (!exinfo) { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return 0; }
+        var bytes = new Uint8Array(len);
+        bytes.set(new Uint8Array(data, 0, len));
+        exinfo.length = len;
+        var out = {};
+        jaxe.lastResult = jaxe.gSystemCore.createSound(bytes,
+            ((mode & ~0x10000000 & ~0x10000) | jaxe.FMOD.OPENMEMORY) >>> 0, exinfo, out);
+        if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
+        var handle = jaxe.handleAlloc(out.val, jaxe.TYPE_SOUND);
+        if (handle == 0) {
+            out.val.release();
+            return 0;
+        }
+        return handle;
+    }
+
     // The channel group a play call routes into: null for handle 0 (the
     // master group), the resolved group otherwise. A stale handle returns
     // undefined so the caller can fail the play.
@@ -3480,20 +3572,20 @@ class jaxe {
         return jaxe.lastResult;
     }
 
-    // Both points share one FMOD_TIMEUNIT
-    static fmod_sound_set_loop_points(handle, start, end, unit) {
+    // Each point carries its own FMOD_TIMEUNIT
+    static fmod_sound_set_loop_points(handle, start, startType, end, endType) {
         var sound = jaxe.resolveCoreSound(handle);
         if (!sound) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
-        jaxe.lastResult = sound.setLoopPoints(start, unit, end, unit);
+        jaxe.lastResult = sound.setLoopPoints(start, startType, end, endType);
         return jaxe.lastResult;
     }
 
-    static fmod_sound_get_loop_points(handle, unit, ibuf) {
+    static fmod_sound_get_loop_points(handle, startType, endType, ibuf) {
         var sound = jaxe.resolveCoreSound(handle);
         if (!sound) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
         var start = {};
         var end = {};
-        jaxe.lastResult = sound.getLoopPoints(start, unit, end, unit);
+        jaxe.lastResult = sound.getLoopPoints(start, startType, end, endType);
         ibuf[0] = start.val || 0;
         ibuf[1] = end.val || 0;
         return jaxe.lastResult;
@@ -3691,7 +3783,21 @@ class jaxe {
         }
     }
 
+    // The web build never raises ERROR (verified on 2.03.12, the mask is
+    // accepted and nothing fires), so the record below only documents the
+    // shape the native shims fill.
     static systemCallback(system, type, commanddata1, commanddata2, userdata) {
+        if (type === 0x80 /* ERROR */ && commanddata1 && typeof commanddata1 === "object") {
+            var info = commanddata1;
+            var ev = { handle: 0, type: jaxe.CB_SYS_NAMESPACE | type, i1: info.result | 0, i2: info.instancetype | 0,
+                i3: 0, i4: 0, i5: 0, f1: 0.0, str: String(info.functionname || ""), str2: String(info.functionparams || "") };
+            jaxe.cbQueue.push(ev);
+            if (jaxe.cbQueue.length > jaxe.CBQ_CAPACITY) {
+                jaxe.cbQueue.shift();
+                jaxe.cbOverflow = true;
+            }
+            return jaxe.FMOD.OK;
+        }
         jaxe.pushSystemEvent(jaxe.CB_SYS_NAMESPACE | type, "");
         return jaxe.FMOD.OK;
     }
@@ -3755,13 +3861,22 @@ class jaxe {
         return jaxe.lastResult;
     }
 
+    // Returns the new point's index in offset order (FMOD keeps the list
+    // sorted, so the index is found by walking it), -1 on failure.
     static fmod_sound_add_sync_point(handle, offset, unit, name) {
-        if (typeof name !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
+        if (typeof name !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return -1; }
         var sound = jaxe.resolveCoreSound(handle);
-        if (!sound) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        if (!sound) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return -1; }
         var point = {};
         jaxe.lastResult = sound.addSyncPoint(offset, unit, name, point);
-        return jaxe.lastResult;
+        if (jaxe.lastResult != jaxe.FMOD.OK) return -1;
+        var count = {};
+        if (sound.getNumSyncPoints(count) != jaxe.FMOD.OK) return -1;
+        for (var i = 0; i < count.val; i++) {
+            var other = {};
+            if (sound.getSyncPoint(i, other) == jaxe.FMOD.OK && other.val === point.val) return i;
+        }
+        return -1;
     }
 
     static fmod_sound_delete_sync_point(handle, index) {
@@ -4249,19 +4364,19 @@ class jaxe {
         return jaxe.handleFindOrAlloc(out.val, jaxe.TYPE_SOUND);
     }
 
-    static fmod_chan_set_loop_points(handle, start, end, unit) {
+    static fmod_chan_set_loop_points(handle, start, startType, end, endType) {
         var ch = jaxe.resolveChan(handle);
         if (!ch) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
-        jaxe.lastResult = ch.setLoopPoints(start, unit, end, unit);
+        jaxe.lastResult = ch.setLoopPoints(start, startType, end, endType);
         return jaxe.lastResult;
     }
 
-    static fmod_chan_get_loop_points(handle, unit, ibuf) {
+    static fmod_chan_get_loop_points(handle, startType, endType, ibuf) {
         var ch = jaxe.resolveChan(handle);
         if (!ch) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
         var start = {};
         var end = {};
-        jaxe.lastResult = ch.getLoopPoints(start, unit, end, unit);
+        jaxe.lastResult = ch.getLoopPoints(start, startType, end, endType);
         ibuf[0] = start.val || 0;
         ibuf[1] = end.val || 0;
         return jaxe.lastResult;

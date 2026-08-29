@@ -414,9 +414,9 @@ function testReverb3dSoundsSystem() {
         `freq=${defs[0]} priority=${defs[1]}`);
     check('s3_sound_mode', jaxe.fmod_sound_set_mode(snd, jaxe.FMOD.LOOP_NORMAL >>> 0) === jaxe.FMOD.OK
         && (jaxe.fmod_sound_get_mode(snd) & jaxe.FMOD.LOOP_NORMAL) !== 0);
-    check('s3_sound_loop_points', jaxe.fmod_sound_set_loop_points(snd, 10, 90, jaxe.FMOD.TIMEUNIT_MS) === jaxe.FMOD.OK);
+    check('s3_sound_loop_points', jaxe.fmod_sound_set_loop_points(snd, 10, jaxe.FMOD.TIMEUNIT_MS, 90, jaxe.FMOD.TIMEUNIT_MS) === jaxe.FMOD.OK);
     const loops = [];
-    jaxe.fmod_sound_get_loop_points(snd, jaxe.FMOD.TIMEUNIT_MS, loops);
+    jaxe.fmod_sound_get_loop_points(snd, jaxe.FMOD.TIMEUNIT_MS, jaxe.FMOD.TIMEUNIT_MS, loops);
     check('s3_sound_loop_roundtrip', loops[0] === 10 && loops[1] === 90,
         `start=${loops[0]} end=${loops[1]}`);
     const format = [];
@@ -454,7 +454,7 @@ function testCallbacksAndSyncPoints() {
     const frames = 4800;
     const buf = new ArrayBuffer(frames * 2);
     const snd = jaxe.fmod_core_create_sound_pcm(buf, buf.byteLength, 48000, 1);
-    check('s4_sync_add', jaxe.fmod_sound_add_sync_point(snd, 50, jaxe.FMOD.TIMEUNIT_MS, 'mid') === jaxe.FMOD.OK);
+    check('s4_sync_add', jaxe.fmod_sound_add_sync_point(snd, 50, jaxe.FMOD.TIMEUNIT_MS, 'mid') === 0);
     check('s4_sync_count', jaxe.fmod_sound_get_num_sync_points(snd) === 1);
     check('s4_sync_name', jaxe.fmod_sound_get_sync_point_name(snd, 0) === 'mid',
         `name=${jaxe.fmod_sound_get_sync_point_name(snd, 0)}`);
@@ -463,7 +463,7 @@ function testCallbacksAndSyncPoints() {
     // Long designer-authored names survive intact (the natives allow 511
     // bytes, the shim buffer must not truncate shorter)
     const longName = 'sync-'.repeat(20);
-    check('s4_sync_long_name_add', jaxe.fmod_sound_add_sync_point(snd, 75, jaxe.FMOD.TIMEUNIT_MS, longName) === jaxe.FMOD.OK);
+    check('s4_sync_long_name_add', jaxe.fmod_sound_add_sync_point(snd, 75, jaxe.FMOD.TIMEUNIT_MS, longName) >= 0);
     check('s4_sync_long_name_roundtrip', jaxe.fmod_sound_get_sync_point_name(snd, 1) === longName,
         `len=${jaxe.fmod_sound_get_sync_point_name(snd, 1).length}`);
     check('s4_sync_long_name_delete', jaxe.fmod_sound_delete_sync_point(snd, 1) === jaxe.FMOD.OK);
@@ -637,9 +637,9 @@ function testAuditClosure() {
         && jaxe.fmod_chan_get_volume_ramp(ch) === true, '');
     check('s5_current_sound_dedup', jaxe.fmod_chan_get_current_sound(ch) === snd,
         `sound=${jaxe.fmod_chan_get_current_sound(ch)} orig=${snd}`);
-    check('s5_chan_loop_points', jaxe.fmod_chan_set_loop_points(ch, 10, 90, jaxe.FMOD.TIMEUNIT_MS) === jaxe.FMOD.OK, '');
+    check('s5_chan_loop_points', jaxe.fmod_chan_set_loop_points(ch, 10, jaxe.FMOD.TIMEUNIT_MS, 90, jaxe.FMOD.TIMEUNIT_MS) === jaxe.FMOD.OK, '');
     const loops = [];
-    jaxe.fmod_chan_get_loop_points(ch, jaxe.FMOD.TIMEUNIT_MS, loops);
+    jaxe.fmod_chan_get_loop_points(ch, jaxe.FMOD.TIMEUNIT_MS, jaxe.FMOD.TIMEUNIT_MS, loops);
     check('s5_chan_loop_roundtrip', loops[0] === 10 && loops[1] === 90, `start=${loops[0]} end=${loops[1]}`);
     jaxe.fmod_chan_set_reverb_wet(ch, 0, 0.4);
     check('s5_reverb_wet_roundtrip', Math.abs(jaxe.fmod_chan_get_reverb_wet(ch, 0) - 0.4) < 0.001,

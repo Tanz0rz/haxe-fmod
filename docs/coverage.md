@@ -289,14 +289,14 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_Sound_GetMusicSpeed` | `Sound.getMusicSpeed` | compile error |
 | `FMOD_Sound_GetName` | `Sound.getName` |  |
 | `FMOD_Sound_GetNumSubSounds` | `Sound.getNumSubSounds` |  |
-| `FMOD_Sound_GetNumSyncPoints` | `Sound.getSyncPointCount` |  |
+| `FMOD_Sound_GetNumSyncPoints` | `Sound.getNumSyncPoints`<br>`Sound.getSyncPointCount` |  |
 | `FMOD_Sound_GetNumTags` | `Sound.getNumTags`<br>`Sound.getNumTagsUpdated` |  |
 | `FMOD_Sound_GetOpenState` | `Sound.getOpenState`<br>`Sound.getOpenStateInfo` |  |
 | `FMOD_Sound_GetSoundGroup` | `Sound.getSoundGroup` |  |
 | `FMOD_Sound_GetSubSound` | `Sound.getSubSound` |  |
 | `FMOD_Sound_GetSubSoundParent` | `Sound.getSubSoundParent` |  |
-| `FMOD_Sound_GetSyncPoint` | `Sound.getSyncPointName`<br>`Sound.getSyncPointOffset` |  |
-| `FMOD_Sound_GetSyncPointInfo` | `Sound.getSyncPointName`<br>`Sound.getSyncPointOffset` |  |
+| `FMOD_Sound_GetSyncPoint` | `Sound.getSyncPoint`<br>`Sound.getSyncPointInfo`<br>`Sound.getSyncPointName`<br>`Sound.getSyncPointOffset` |  |
+| `FMOD_Sound_GetSyncPointInfo` | `Sound.getSyncPointInfo`<br>`Sound.getSyncPoint`<br>`Sound.getSyncPointName`<br>`Sound.getSyncPointOffset` |  |
 | `FMOD_Sound_GetTag` | `Sound.getTag` | compile error |
 | `FMOD_Sound_GetUserData` | `PcmStream.getUserData`<br>`Sound.getUserData` |  |
 | `FMOD_Sound_ReadData` | `Sound.readData` | compile error |

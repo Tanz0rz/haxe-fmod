@@ -22,6 +22,7 @@ class TestCallbackDispatcher {
 		testFaultIsolation();
 		testStaleRegistrationGate();
 		testSystemRouting();
+		testSystemErrorRecord();
 
 		Sys.println('  $passed passed, $failed failed');
 		return failed;
@@ -238,6 +239,37 @@ class TestCallbackDispatcher {
 		assert("destroyed cleanup despite throw", !CallbackDispatcher.hasHandler(90));
 	}
 
+	static function testSystemErrorRecord() {
+		var SC = haxefmod.studio.SystemCallbacks;
+		var received:Array<haxefmod.studio.SystemCallbacks.SystemEvent> = [];
+		haxefmod.studio.StudioSystem.setSystemCallback(function(e) received.push(e), SC.DEFAULT_CORE_MASK | SC.CORE_ERROR);
+		// i1 = result, i2 = instance type, i3 = handle, str = function, the second string = params
+		CallbackDispatcher.deliver(0, SC.TYPE_ERROR, 31, 5, 0x10007, 0, 0, 0.0, "Sound::getSyncPoint", "(0x1, 99, 0x2)");
+		assert("error record delivered", received.length == 1);
+		if (received.length == 1) {
+			switch (received[0]) {
+				case Error(info):
+					assert("error result", info.result == haxefmod.studio.FmodResult.FMOD_ERR_INVALID_PARAM);
+					assert("error instance type", info.instanceType == haxefmod.studio.Types.FmodErrorCallbackInstanceType.SOUND);
+					assert("error instance handle", info.instance == 0x10007);
+					assert("error function name", info.functionName == "Sound::getSyncPoint");
+					assert("error function params", info.functionParams == "(0x1, 99, 0x2)");
+				default:
+					assert("error record shape", false);
+			}
+		}
+		// The decoder alone, with the second string left out
+		var decoded = SC.decode(SC.TYPE_ERROR, "System::update", 74, 1, 0);
+		var plain = switch (decoded) {
+			case Error(info): (info.result : Int) == 74
+				&& info.instanceType == haxefmod.studio.Types.FmodErrorCallbackInstanceType.SYSTEM
+				&& info.instance == 0 && info.functionName == "System::update" && info.functionParams == "";
+			default: false;
+		}
+		assert("error decode without params", plain);
+		haxefmod.studio.StudioSystem.clearSystemCallback();
+	}
+
 	static function testSystemRouting() {
 		var SC = haxefmod.studio.SystemCallbacks;
 		var received:Array<haxefmod.studio.SystemCallbacks.SystemEvent> = [];
@@ -252,7 +284,7 @@ class TestCallbackDispatcher {
 		CallbackDispatcher.deliver(0, SC.TYPE_LIVEUPDATE_CONNECTED, 0, 0, 0, 0, 0, 0.0, "");
 		CallbackDispatcher.deliver(0, SC.TYPE_LIVEUPDATE_DISCONNECTED, 0, 0, 0, 0, 0, 0.0, "");
 		// An unknown type inside the namespace is dropped, never delivered
-		CallbackDispatcher.deliver(0, SC.TYPE_NAMESPACE | 0x80, 0, 0, 0, 0, 0, 0.0, "");
+		CallbackDispatcher.deliver(0, SC.TYPE_NAMESPACE | 0x10, 0, 0, 0, 0, 0, 0.0, "");
 		assert("system events delivered", received.length == 7);
 		if (received.length == 7) {
 			assert("system DeviceListChanged", received[0].match(DeviceListChanged));

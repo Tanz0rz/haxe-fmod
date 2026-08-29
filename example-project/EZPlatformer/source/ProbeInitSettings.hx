@@ -62,7 +62,7 @@ class ProbeInitSettings {
         var count = CoreSystem.getDriverCount();
         var driver = CoreSystem.getDriverInfo(0);
         @:privateAccess state.check("sys_get_driver_info", count >= 1 && driver != null && driver.name == CoreSystem.getDriverName(0)
-            && driver.systemRate > 0 && driver.speakerModeChannels > 0 && driver.guid.length == 38,
+            && driver.systemRate > 0 && driver.speakerModeChannels > 0 && (driver.guid : String).length == 38,
             driver == null ? 'result=${StudioSystem.lastResult().toString()}'
             : 'name=${driver.name} guid=${driver.guid} rate=${driver.systemRate} mode=${(driver.speakerMode : Int)} channels=${driver.speakerModeChannels}');
         @:privateAccess state.check("sys_get_driver_info_out_of_range", CoreSystem.getDriverInfo(9999) == null, "");

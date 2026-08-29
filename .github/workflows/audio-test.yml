@@ -3230,6 +3230,7 @@ jobs:
           node tests/js/init-settings-harness.js
           node tests/js/callback-structs-harness.js
           node tests/js/csharp-audit-harness.js
+          node tests/js/core-types-harness.js
 
       - name: Run Core dynamic-audio prototype against the real wasm
         env:

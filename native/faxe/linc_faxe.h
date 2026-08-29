@@ -25,6 +25,7 @@ extern int fmod_cb_type();
 extern int fmod_cb_int(int index);
 extern double fmod_cb_float();
 extern const char* fmod_cb_string();
+extern const char* fmod_cb_string2();
 extern bool fmod_cb_take_overflow();
 
 //// Studio System
@@ -197,6 +198,8 @@ extern int fmod_ps_clear(int handle);
 //// Core API micro subset (programmer sounds only)
 extern int fmod_core_create_sound(const ::String& path, int mode, int initialSubsound);
 extern int fmod_core_create_sound_memory(::Array<unsigned char> data, int len, int mode);
+extern int fmod_core_create_sound_ex(const ::String& path, int mode, ::Array<int> ibuf, const ::String& dls, const ::String& key, const ::String& guidText);
+extern int fmod_core_create_sound_memory_ex(::Array<unsigned char> data, int len, int mode, ::Array<int> ibuf, const ::String& dls, const ::String& key, const ::String& guidText);
 extern int fmod_core_release_sound(int handle);
 extern int fmod_core_get_sound_length(int handle, int unit);
 
@@ -336,8 +339,8 @@ extern int fmod_core_create_sound_pcm(::Array<unsigned char> data, int len, int 
 extern int fmod_core_play_sound(int handle, int group, bool startPaused);
 extern int fmod_sound_set_defaults(int handle, float frequency, int priority);
 extern int fmod_sound_get_defaults(int handle, ::Array<Float> fbuf);
-extern int fmod_sound_set_loop_points(int handle, int start, int end, int unit);
-extern int fmod_sound_get_loop_points(int handle, int unit, ::Array<int> ibuf);
+extern int fmod_sound_set_loop_points(int handle, int start, int startType, int end, int endType);
+extern int fmod_sound_get_loop_points(int handle, int startType, int endType, ::Array<int> ibuf);
 extern int fmod_sound_set_mode(int handle, int mode);
 extern int fmod_sound_get_mode(int handle);
 extern int fmod_sound_get_format(int handle, ::Array<int> ibuf);
@@ -476,8 +479,8 @@ extern float fmod_chan_get_audibility(int handle);
 extern int fmod_chan_set_volume_ramp(int handle, bool ramp);
 extern bool fmod_chan_get_volume_ramp(int handle);
 extern int fmod_chan_get_current_sound(int handle);
-extern int fmod_chan_set_loop_points(int handle, int start, int end, int unit);
-extern int fmod_chan_get_loop_points(int handle, int unit, ::Array<int> ibuf);
+extern int fmod_chan_set_loop_points(int handle, int start, int startType, int end, int endType);
+extern int fmod_chan_get_loop_points(int handle, int startType, int endType, ::Array<int> ibuf);
 extern float fmod_chan_get_reverb_wet(int handle, int instance);
 extern int fmod_chan_get_index(int handle);
 extern int fmod_chan_get_3d_cone_orientation(int handle, ::Array<Float> fbuf);

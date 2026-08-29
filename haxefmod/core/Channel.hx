@@ -301,7 +301,7 @@ abstract Channel(Int) from Int to Int {
      * frame with the other callbacks): End, SyncPoint, VirtualVoice, and
      * Occlusion. End also removes the handler.
      */
-    public inline function setCallback(handler:haxefmod.core.ChannelEvent->Void):Void {
+    public inline function setCallback(handler:haxefmod.core.ChannelEvent.ChannelCallback):Void {
         haxefmod.core.ChannelCallbacks.set(this, handler);
     }
 
@@ -392,18 +392,23 @@ abstract Channel(Int) from Int to Int {
     }
 
     /**
-     * Loop region for this channel (overrides the sound's). Both points are
-     * read in unit, milliseconds unless another FmodTimeUnit is given.
+     * Loop region for this channel (overrides the sound's). loopStart is
+     * read in loopStartType and loopEnd in loopEndType, milliseconds when
+     * left out. A missing loopEndType follows loopStartType.
      */
-    public inline function setLoopPoints(startMs:Int, endMs:Int, unit:FmodTimeUnit = FmodTimeUnit.MS):FmodResult {
-        return NativeStudio.chan_set_loop_points(this, startMs, endMs, unit);
+    public inline function setLoopPoints(loopStart:Int, loopEnd:Int, loopStartType:FmodTimeUnit = FmodTimeUnit.MS, ?loopEndType:FmodTimeUnit):FmodResult {
+        return NativeStudio.chan_set_loop_points(this, loopStart, loopStartType, loopEnd, loopEndType == null ? loopStartType : loopEndType);
     }
 
-    /** The loop region in unit (milliseconds by default), or null on failure. */
-    public function getLoopPoints(unit:FmodTimeUnit = FmodTimeUnit.MS):Null<{startMs:Int, endMs:Int}> {
-        var result:FmodResult = NativeStudio.chan_get_loop_points(this, unit);
+    /**
+     * The loop region, loopStart in loopStartType and loopEnd in
+     * loopEndType (milliseconds when left out, a missing loopEndType
+     * follows loopStartType), or null on failure.
+     */
+    public function getLoopPoints(loopStartType:FmodTimeUnit = FmodTimeUnit.MS, ?loopEndType:FmodTimeUnit):Null<{loopStart:Int, loopEnd:Int}> {
+        var result:FmodResult = NativeStudio.chan_get_loop_points(this, loopStartType, loopEndType == null ? loopStartType : loopEndType);
         if (!result.isOk()) return null;
-        return {startMs: Scratch.readI(0), endMs: Scratch.readI(1)};
+        return {loopStart: Scratch.readI(0), loopEnd: Scratch.readI(1)};
     }
 
     public inline function getReverbWet(instance:Int):Float {

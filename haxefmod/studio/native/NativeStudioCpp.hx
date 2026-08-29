@@ -251,6 +251,9 @@ class NativeStudioCpp {
     // Core API micro subset
     public static inline function core_create_sound(path:String, mode:Int, initialSubsound:Int):Int return Raw.core_create_sound(path, mode, initialSubsound);
     public static inline function core_create_sound_memory(data:haxe.io.Bytes, len:Int, mode:Int):Int return Raw.core_create_sound_memory(data.getData(), len, mode);
+    /** Reads the exinfo slots from the Scratch int buffer (packed by Sound.packExInfo) */
+    public static inline function core_create_sound_ex(path:String, mode:Int, dls:String, key:String, guid:String):Int return Raw.core_create_sound_ex(path, mode, Scratch.intBuf(), dls, key, guid);
+    public static inline function core_create_sound_memory_ex(data:haxe.io.Bytes, len:Int, mode:Int, dls:String, key:String, guid:String):Int return Raw.core_create_sound_memory_ex(data.getData(), len, mode, Scratch.intBuf(), dls, key, guid);
     public static inline function core_release_sound(handle:Int):Int return Raw.core_release_sound(handle);
     public static inline function core_get_sound_length(handle:Int, unit:Int):Int return Raw.core_get_sound_length(handle, unit);
 
@@ -408,10 +411,10 @@ class NativeStudioCpp {
     /** Fills Scratch float buffer: [0]=frequency [1]=priority */
     public static inline function sound_get_defaults(handle:Int):Int return Raw.sound_get_defaults(handle, Scratch.floatBuf());
 
-    public static inline function sound_set_loop_points(handle:Int, start:Int, end:Int, unit:Int):Int return Raw.sound_set_loop_points(handle, start, end, unit);
+    public static inline function sound_set_loop_points(handle:Int, start:Int, startType:Int, end:Int, endType:Int):Int return Raw.sound_set_loop_points(handle, start, startType, end, endType);
 
-    /** Fills Scratch int buffer: [0]=loop start ms [1]=loop end ms */
-    public static inline function sound_get_loop_points(handle:Int, unit:Int):Int return Raw.sound_get_loop_points(handle, unit, Scratch.intBuf());
+    /** Fills Scratch int buffer: [0]=loop start in startType [1]=loop end in endType */
+    public static inline function sound_get_loop_points(handle:Int, startType:Int, endType:Int):Int return Raw.sound_get_loop_points(handle, startType, endType, Scratch.intBuf());
 
     public static inline function sound_set_mode(handle:Int, mode:Int):Int return Raw.sound_set_mode(handle, mode);
     public static inline function sound_get_mode(handle:Int):Int return Raw.sound_get_mode(handle);
@@ -524,9 +527,9 @@ class NativeStudioCpp {
     public static inline function chan_get_volume_ramp(handle:Int):Bool return Raw.chan_get_volume_ramp(handle);
     /** Borrowed reference: do not release a sound obtained this way. */
     public static inline function chan_get_current_sound(handle:Int):Int return Raw.chan_get_current_sound(handle);
-    public static inline function chan_set_loop_points(handle:Int, start:Int, end:Int, unit:Int):Int return Raw.chan_set_loop_points(handle, start, end, unit);
+    public static inline function chan_set_loop_points(handle:Int, start:Int, startType:Int, end:Int, endType:Int):Int return Raw.chan_set_loop_points(handle, start, startType, end, endType);
     /** Fills Scratch int buffer: [0]=loop start ms [1]=loop end ms */
-    public static inline function chan_get_loop_points(handle:Int, unit:Int):Int return Raw.chan_get_loop_points(handle, unit, Scratch.intBuf());
+    public static inline function chan_get_loop_points(handle:Int, startType:Int, endType:Int):Int return Raw.chan_get_loop_points(handle, startType, endType, Scratch.intBuf());
     public static inline function chan_get_reverb_wet(handle:Int, instance:Int):Float return Raw.chan_get_reverb_wet(handle, instance);
     public static inline function chan_get_index(handle:Int):Int return Raw.chan_get_index(handle);
     /** Fills Scratch float buffer: [0..2]=direction xyz */
@@ -613,6 +616,7 @@ class NativeStudioCpp {
     public static inline function cb_int(index:Int):Int return Raw.cb_int(index);
     public static inline function cb_float():Float return Raw.cb_float();
     public static inline function cb_string():String return Raw.cb_string().toString();
+    public static inline function cb_string2():String return Raw.cb_string2().toString();
     public static inline function cb_take_overflow():Bool return Raw.cb_take_overflow();
 
     // Distance filter, version, sound data, and recording
@@ -1255,6 +1259,12 @@ private extern class Raw {
     @:native("linc::faxe::fmod_core_create_sound_memory")
     static function core_create_sound_memory(data:haxe.io.BytesData, len:Int, mode:Int):Int;
 
+    @:native("linc::faxe::fmod_core_create_sound_ex")
+    static function core_create_sound_ex(path:String, mode:Int, ibuf:Array<Int>, dls:String, key:String, guid:String):Int;
+
+    @:native("linc::faxe::fmod_core_create_sound_memory_ex")
+    static function core_create_sound_memory_ex(data:haxe.io.BytesData, len:Int, mode:Int, ibuf:Array<Int>, dls:String, key:String, guid:String):Int;
+
     @:native("linc::faxe::fmod_core_release_sound")
     static function core_release_sound(handle:Int):Int;
 
@@ -1595,10 +1605,10 @@ private extern class Raw {
     static function sound_get_defaults(handle:Int, fbuf:Array<Float>):Int;
 
     @:native("linc::faxe::fmod_sound_set_loop_points")
-    static function sound_set_loop_points(handle:Int, start:Int, end:Int, unit:Int):Int;
+    static function sound_set_loop_points(handle:Int, start:Int, startType:Int, end:Int, endType:Int):Int;
 
     @:native("linc::faxe::fmod_sound_get_loop_points")
-    static function sound_get_loop_points(handle:Int, unit:Int, ibuf:Array<Int>):Int;
+    static function sound_get_loop_points(handle:Int, startType:Int, endType:Int, ibuf:Array<Int>):Int;
 
     @:native("linc::faxe::fmod_sound_set_mode")
     static function sound_set_mode(handle:Int, mode:Int):Int;
@@ -1799,10 +1809,10 @@ private extern class Raw {
     static function chan_get_current_sound(handle:Int):Int;
 
     @:native("linc::faxe::fmod_chan_set_loop_points")
-    static function chan_set_loop_points(handle:Int, start:Int, end:Int, unit:Int):Int;
+    static function chan_set_loop_points(handle:Int, start:Int, startType:Int, end:Int, endType:Int):Int;
 
     @:native("linc::faxe::fmod_chan_get_loop_points")
-    static function chan_get_loop_points(handle:Int, unit:Int, ibuf:Array<Int>):Int;
+    static function chan_get_loop_points(handle:Int, startType:Int, endType:Int, ibuf:Array<Int>):Int;
 
     @:native("linc::faxe::fmod_chan_get_reverb_wet")
     static function chan_get_reverb_wet(handle:Int, instance:Int):Float;
@@ -1993,6 +2003,9 @@ private extern class Raw {
 
     @:native("linc::faxe::fmod_cb_string")
     static function cb_string():cpp.ConstCharStar;
+
+    @:native("linc::faxe::fmod_cb_string2")
+    static function cb_string2():cpp.ConstCharStar;
 
     @:native("linc::faxe::fmod_cb_take_overflow")
     static function cb_take_overflow():Bool;

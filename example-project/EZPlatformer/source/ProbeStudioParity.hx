@@ -104,14 +104,14 @@ class ProbeStudioParity {
             var p = StudioSystem.getParameterDescriptionByIndex(i);
             if (p == null) continue;
             indexed++;
-            if (p.guid.length != 38 || p.guid != StudioSystem.lookupID('parameter:/${p.name}')) indexedOk = false;
+            if ((p.guid : String).length != 38 || p.guid != StudioSystem.lookupID('parameter:/${p.name}')) indexedOk = false;
         }
         @:privateAccess state.check("parity_param_guid_by_index", indexed > 0 && indexedOk, 'count=$indexed');
         var jumpDesc = StudioSystem.getEvent(FmodEvents.SFXJump);
         var surface = jumpDesc.getParameterDescriptionByName("Surface");
         var surfaceIndexed = jumpDesc.getParameterDescriptionCount() > 0 ? jumpDesc.getParameterDescriptionByIndex(0) : null;
-        @:privateAccess state.check("parity_event_param_guid", surface != null && surface.guid.length == 38
-            && surfaceIndexed != null && surfaceIndexed.guid.length == 38
+        @:privateAccess state.check("parity_event_param_guid", surface != null && (surface.guid : String).length == 38
+            && surfaceIndexed != null && (surfaceIndexed.guid : String).length == 38
             && jumpDesc.getParameterDescriptionByID(surface.id).guid == surface.guid,
             'guid=${surface == null ? "null" : surface.guid}');
 

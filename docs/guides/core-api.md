@@ -6,7 +6,7 @@ Every method keeps the FMOD name, so the [FMOD Core API reference](https://www.f
 
 ## Generated audio
 
-`PcmStream` plays audio the game produces frame by frame: procedural synths, a tracker, a network voice stream. `create(sampleRate, channels, ?ringBytes)` makes an FMOD user sound backed by a ring buffer, `write` queues 16-bit signed PCM bytes (interleaved when stereo), and FMOD's mixer drains them as the sound plays.
+`PcmStream` plays audio the game produces frame by frame: procedural synths, a tracker, a network voice stream. `create(sampleRate, channels, ?ringBytes)` makes an FMOD user sound backed by a ring buffer, `write` queues 16-bit signed PCM bytes (interleaved when stereo), and FMOD's mixer drains them as the sound plays. `setReadCallback` turns that around: the `PcmReadCallback` runs from `FmodManager.Update` whenever the ring has room, fills the buffer it is handed, and returns `FMOD_OK` to have it written.
 
 ```haxe
 import haxefmod.core.PcmStream;
@@ -107,11 +107,11 @@ channel.set3DCustomRolloff(curve);
 
 `Sound.set3DConeSettings` and `Sound.set3DMinMaxDistance` set the cone and rolloff distances every channel played from that sound starts with, and the channel's own setters override them per instance. `Channel.getChannelGroup()` returns the group a channel is routed into. `getFadePoints()` reads back the fade points scheduled with `addFadePoint` as clock and volume pairs (unsupported in HTML5). It is a compile error there unless the project opts in, and then returns `null` with `FMOD_ERR_UNSUPPORTED` in `StudioSystem.lastResult()`. `getMixMatrix()` reads the mix matrix back the same way as a struct of the flat matrix and the channel counts FMOD reports, with an optional `inChannelHop` row stride, and `ChannelGroup` carries both readers with the same HTML5 behavior. `setMixMatrix(matrix, outChannels, inChannels, ?inChannelHop)` takes the same flat row-major layout, at most 32 by 32.
 
-`Channel.setCallback` delivers `ChannelEvent` values (`End`, `SyncPoint(index)`, `VirtualVoice(isVirtual)`, `Occlusion(direct, reverb)`) on the game thread through the same per-frame drain as studio callbacks. Sync points are set on the sound with `Sound.addSyncPoint`. `setDelay(startClock, endClock, ?stopChannels)` stops the channel at the end clock unless `stopChannels` is false, which pauses it there instead.
+`Channel.setCallback` takes a `ChannelCallback` and delivers `ChannelEvent` values (`End`, `SyncPoint(index)`, `VirtualVoice(isVirtual)`, `Occlusion(direct, reverb)`) on the game thread through the same per-frame drain as studio callbacks. Sync points are set on the sound with `Sound.addSyncPoint`, which returns a `FmodSyncPoint` for `getSyncPointInfo` and `deleteSyncPoint`. The handle is the point's index in offset order, the same number `SyncPoint(index)` carries, and `getSyncPoint(index)` fetches one again after the set changes. `setDelay(startClock, endClock, ?stopChannels)` stops the channel at the end clock unless `stopChannels` is false, which pauses it there instead.
 
 ## Time units
 
-`Sound.getLength`, `getLoopPoints`, `setLoopPoints`, `addSyncPoint`, and `getSyncPointOffset`, and `Channel.getPosition`, `setPosition`, `getLoopPoints`, and `setLoopPoints` take an `FmodTimeUnit` as an optional last parameter. Without it every value is in milliseconds. `FmodTimeUnit.PCM` counts samples, `PCMBYTES` counts decoded bytes, and the `MOD*` units address tracker music. Loop points share one unit for the start and the end.
+`Sound.getLength`, `addSyncPoint`, and `getSyncPointInfo`, and `Channel.getPosition` and `setPosition` take an `FmodTimeUnit` as an optional last parameter. Without it every value is in milliseconds. `FmodTimeUnit.PCM` counts samples, `PCMBYTES` counts decoded bytes, and the `MOD*` units address tracker music. `setLoopPoints` and `getLoopPoints` on `Sound` and `Channel` take a unit per point, `loopStartType` then `loopEndType`, and the end unit follows the start unit when left out. The result fields are `loopStart` and `loopEnd`.
 
 ```haxe
 import haxefmod.core.Sound;

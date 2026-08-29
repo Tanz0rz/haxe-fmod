@@ -33,7 +33,9 @@ Type: haxefmod.studio.Types.FmodDebugMode
 TTY unless FmodSettings.logFile names a file, which picks FILE on native targets. CALLBACK is not exposed, FMOD would call it from whichever thread logs.
 
 ## FMOD_GUID
-verdict: library GUIDs are strings in the text form FMOD Studio shows, taken by StudioSystem.getEventByID and returned by getID on EventDescription, Bank, Bus, and Vca, by FmodParameterDescription.guid, and by the guid field of CoreSystem.getDriverInfo
+verdict: bound
+Type: haxefmod.studio.Types.FmodGuid
+Held in the braced text form FMOD Studio shows, a String both ways, so a generated constant passes straight in. data1 to data4 read the C fields out of the text, fromString and fromFields build one, and equality ignores braces and case. Returned by getID on EventDescription, Bank, Bus, and Vca, by StudioSystem.lookupID, by FmodParameterDescription.guid, and by the guid field of CoreSystem.getDriverInfo. Taken by StudioSystem.getEventByID, getBusByID, getVCAByID, getBankByID, and lookupPath.
 
 ## FMOD_MAX_CHANNEL_WIDTH
 verdict: bound
@@ -84,7 +86,9 @@ Type: haxefmod.studio.Types.FmodSpeakerMode
 Requested through FmodSettings.speakerMode and read from CoreSystem.getSoftwareFormat, CoreSystem.getDriverInfo, and StudioSystem.getRecordDriverInfo. Dsp.setChannelFormat takes one with the channel mask.
 
 ## FMOD_SYNCPOINT
-verdict: covered sync points are addressed by index on the Sound (Sound.addSyncPoint, Sound.getSyncPointName, Sound.getSyncPointOffset, Sound.deleteSyncPoint), and a crossing arrives as ChannelEvent.SyncPoint(index) through Channel.setCallback
+verdict: bound
+Type: haxefmod.core.Sound.FmodSyncPoint
+Returned by Sound.addSyncPoint and Sound.getSyncPoint, taken by Sound.getSyncPointInfo and Sound.deleteSyncPoint. The handle is the point's index in offset order, the same number ChannelEvent.SyncPoint carries, so it shifts when points before it are added or deleted.
 
 ## FMOD_THREAD_AFFINITY
 verdict: bound
@@ -109,11 +113,13 @@ The type field of a FmodSettings.threadAttributes entry, applied with Thread_Set
 ## FMOD_TIMEUNIT
 verdict: bound
 Type: haxefmod.studio.Types.FmodTimeUnit
-An optional trailing parameter on Sound.getLength, Sound.getLoopPoints, Sound.setLoopPoints, Sound.addSyncPoint, Sound.getSyncPointOffset, Channel.getPosition, Channel.setPosition, Channel.getLoopPoints, and Channel.setLoopPoints. It defaults to MS. Loop points share one unit for the start and the end.
+An optional trailing parameter on Sound.getLength, Sound.addSyncPoint, Sound.getSyncPointInfo, Channel.getPosition, and Channel.setPosition. It defaults to MS. setLoopPoints and getLoopPoints on Sound and Channel take one per end, loopStartType then loopEndType, and the end unit follows the start unit when left out.
 
 ## FMOD_VECTOR
 verdict: bound
 Type: haxefmod.studio.Types.FmodVector
 
 ## FMOD_VERSION
-verdict: covered haxefmod links one FMOD version per release, and StudioSystem.getVersion returns the version the running build loaded as a string formatted like "2.03.12"
+verdict: bound
+Type: haxefmod.studio.Types.FmodVersion
+FmodVersion.VERSION is the SDK haxefmod is built against, and StudioSystem.getVersion reports the version the running build loaded as text like "2.03.12".

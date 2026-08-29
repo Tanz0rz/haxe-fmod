@@ -2,8 +2,8 @@
 
 ## FMOD_STUDIO_EVENT_CALLBACK
 verdict: bound
-Shape: usage
-The handler is a Haxe function that receives an EventCallbackData value. Without a mask it receives EventCallbackType.PLAYBACK_ALL, the lifecycle, timeline, sound, and virtual types, so programmer sound, plugin, and command types need an explicit mask. DESTROYED is always added so the registration cleans itself up.
+Type: haxefmod.studio.Callbacks.EventCallback
+The handler is an EventCallback, a Haxe function that receives an EventCallbackData value. Without a mask it receives EventCallbackType.PLAYBACK_ALL, the lifecycle, timeline, sound, and virtual types, so programmer sound, plugin, and command types need an explicit mask. DESTROYED is always added so the registration cleans itself up.
 FMOD raises the callback on its own thread. haxefmod queues it and delivers it on the game thread from FmodManager.Update, so the handler may touch game state.
 No return value and no userdata. The handle itself identifies the instance, and the payload is the FMOD struct of the callback type as the constructor's argument.
 ```haxe

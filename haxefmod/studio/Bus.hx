@@ -25,8 +25,8 @@ abstract Bus(Int) from Int to Int {
         return this != 0 && NativeStudio.bus_is_valid(this);
     }
 
-    /** The bus GUID as a string, e.g. "{1f687138-e06c-40f5-9bac-57f84bbcedd3}". */
-    public inline function getID():String {
+    /** The bus GUID. */
+    public inline function getID():FmodGuid {
         return NativeStudio.bus_get_id(this);
     }
 

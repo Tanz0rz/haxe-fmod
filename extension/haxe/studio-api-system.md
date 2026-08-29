@@ -64,8 +64,8 @@ Returned by StudioSystem.getSoundInfo(key). The exinfo fields FMOD fills are fla
 
 ## FMOD_STUDIO_SYSTEM_CALLBACK
 verdict: bound
-Shape: usage
-The handler is a SystemEvent->Void function. FmodManager.Update() delivers the events on the game thread, so there is no system, commanddata, or userdata argument and nothing to return.
+Type: haxefmod.studio.SystemCallbacks.SystemCallback
+The handler is a SystemCallback, a SystemEvent->Void function shared with the core system callback. FmodManager.Update() delivers the events on the game thread, so there is no system, commanddata, or userdata argument and nothing to return.
 ```haxe
 import haxefmod.studio.SystemCallbacks;
 

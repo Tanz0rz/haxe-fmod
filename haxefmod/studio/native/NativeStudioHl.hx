@@ -248,6 +248,9 @@ class NativeStudioHl {
     // Core API micro subset
     public static inline function core_create_sound(path:String, mode:Int, initialSubsound:Int):Int return Raw.core_create_sound(toBytes(path), mode, initialSubsound);
     public static inline function core_create_sound_memory(data:haxe.io.Bytes, len:Int, mode:Int):Int return Raw.core_create_sound_memory(data.getData().bytes, len, mode);
+    /** Reads the exinfo slots from the Scratch int buffer (packed by Sound.packExInfo) */
+    public static inline function core_create_sound_ex(path:String, mode:Int, dls:String, key:String, guid:String):Int return Raw.core_create_sound_ex(toBytes(path), mode, Scratch.intBuf(), toBytes(dls), toBytes(key), toBytes(guid));
+    public static inline function core_create_sound_memory_ex(data:haxe.io.Bytes, len:Int, mode:Int, dls:String, key:String, guid:String):Int return Raw.core_create_sound_memory_ex(data.getData().bytes, len, mode, Scratch.intBuf(), toBytes(dls), toBytes(key), toBytes(guid));
     public static inline function core_release_sound(handle:Int):Int return Raw.core_release_sound(handle);
     public static inline function core_get_sound_length(handle:Int, unit:Int):Int return Raw.core_get_sound_length(handle, unit);
 
@@ -405,10 +408,10 @@ class NativeStudioHl {
     /** Fills Scratch float buffer: [0]=frequency [1]=priority */
     public static inline function sound_get_defaults(handle:Int):Int return Raw.sound_get_defaults(handle, Scratch.floatBuf());
 
-    public static inline function sound_set_loop_points(handle:Int, start:Int, end:Int, unit:Int):Int return Raw.sound_set_loop_points(handle, start, end, unit);
+    public static inline function sound_set_loop_points(handle:Int, start:Int, startType:Int, end:Int, endType:Int):Int return Raw.sound_set_loop_points(handle, start, startType, end, endType);
 
-    /** Fills Scratch int buffer: [0]=loop start ms [1]=loop end ms */
-    public static inline function sound_get_loop_points(handle:Int, unit:Int):Int return Raw.sound_get_loop_points(handle, unit, Scratch.intBuf());
+    /** Fills Scratch int buffer: [0]=loop start in startType [1]=loop end in endType */
+    public static inline function sound_get_loop_points(handle:Int, startType:Int, endType:Int):Int return Raw.sound_get_loop_points(handle, startType, endType, Scratch.intBuf());
 
     public static inline function sound_set_mode(handle:Int, mode:Int):Int return Raw.sound_set_mode(handle, mode);
     public static inline function sound_get_mode(handle:Int):Int return Raw.sound_get_mode(handle);
@@ -521,9 +524,9 @@ class NativeStudioHl {
     public static inline function chan_get_volume_ramp(handle:Int):Bool return Raw.chan_get_volume_ramp(handle);
     /** Borrowed reference: do not release a sound obtained this way. */
     public static inline function chan_get_current_sound(handle:Int):Int return Raw.chan_get_current_sound(handle);
-    public static inline function chan_set_loop_points(handle:Int, start:Int, end:Int, unit:Int):Int return Raw.chan_set_loop_points(handle, start, end, unit);
+    public static inline function chan_set_loop_points(handle:Int, start:Int, startType:Int, end:Int, endType:Int):Int return Raw.chan_set_loop_points(handle, start, startType, end, endType);
     /** Fills Scratch int buffer: [0]=loop start ms [1]=loop end ms */
-    public static inline function chan_get_loop_points(handle:Int, unit:Int):Int return Raw.chan_get_loop_points(handle, unit, Scratch.intBuf());
+    public static inline function chan_get_loop_points(handle:Int, startType:Int, endType:Int):Int return Raw.chan_get_loop_points(handle, startType, endType, Scratch.intBuf());
     public static inline function chan_get_reverb_wet(handle:Int, instance:Int):Float return Raw.chan_get_reverb_wet(handle, instance);
     public static inline function chan_get_index(handle:Int):Int return Raw.chan_get_index(handle);
     /** Fills Scratch float buffer: [0..2]=direction xyz */
@@ -610,6 +613,7 @@ class NativeStudioHl {
     public static inline function cb_int(index:Int):Int return Raw.cb_int(index);
     public static inline function cb_float():Float return Raw.cb_float();
     public static inline function cb_string():String return fromBytes(Raw.cb_string());
+    public static inline function cb_string2():String return fromBytes(Raw.cb_string2());
     public static inline function cb_take_overflow():Bool return Raw.cb_take_overflow();
 
     // Distance filter, version, sound data, and recording
@@ -946,6 +950,8 @@ private extern class Raw {
     static function ps_clear(handle:Int):Int;
     static function core_create_sound(path:hl.Bytes, mode:Int, initialSubsound:Int):Int;
     static function core_create_sound_memory(data:hl.Bytes, len:Int, mode:Int):Int;
+    static function core_create_sound_ex(path:hl.Bytes, mode:Int, ibuf:hl.Bytes, dls:hl.Bytes, key:hl.Bytes, guid:hl.Bytes):Int;
+    static function core_create_sound_memory_ex(data:hl.Bytes, len:Int, mode:Int, ibuf:hl.Bytes, dls:hl.Bytes, key:hl.Bytes, guid:hl.Bytes):Int;
     static function core_release_sound(handle:Int):Int;
     static function core_get_sound_length(handle:Int, unit:Int):Int;
     static function core_pcm_create(sampleRate:Int, channels:Int, ringBytes:Int):Int;
@@ -1059,8 +1065,8 @@ private extern class Raw {
     static function core_play_sound(handle:Int, group:Int, startPaused:Bool):Int;
     static function sound_set_defaults(handle:Int, frequency:Float, priority:Int):Int;
     static function sound_get_defaults(handle:Int, fbuf:hl.Bytes):Int;
-    static function sound_set_loop_points(handle:Int, start:Int, end:Int, unit:Int):Int;
-    static function sound_get_loop_points(handle:Int, unit:Int, ibuf:hl.Bytes):Int;
+    static function sound_set_loop_points(handle:Int, start:Int, startType:Int, end:Int, endType:Int):Int;
+    static function sound_get_loop_points(handle:Int, startType:Int, endType:Int, ibuf:hl.Bytes):Int;
     static function sound_set_mode(handle:Int, mode:Int):Int;
     static function sound_get_mode(handle:Int):Int;
     static function sound_get_format(handle:Int, ibuf:hl.Bytes):Int;
@@ -1128,8 +1134,8 @@ private extern class Raw {
     static function chan_set_volume_ramp(handle:Int, ramp:Bool):Int;
     static function chan_get_volume_ramp(handle:Int):Bool;
     static function chan_get_current_sound(handle:Int):Int;
-    static function chan_set_loop_points(handle:Int, start:Int, end:Int, unit:Int):Int;
-    static function chan_get_loop_points(handle:Int, unit:Int, ibuf:hl.Bytes):Int;
+    static function chan_set_loop_points(handle:Int, start:Int, startType:Int, end:Int, endType:Int):Int;
+    static function chan_get_loop_points(handle:Int, startType:Int, endType:Int, ibuf:hl.Bytes):Int;
     static function chan_get_reverb_wet(handle:Int, instance:Int):Float;
     static function chan_get_index(handle:Int):Int;
     static function chan_get_3d_cone_orientation(handle:Int, fbuf:hl.Bytes):Int;
@@ -1194,6 +1200,7 @@ private extern class Raw {
     static function cb_int(index:Int):Int;
     static function cb_float():Float;
     static function cb_string():hl.Bytes;
+    static function cb_string2():hl.Bytes;
     static function cb_take_overflow():Bool;
     static function chan_set_3d_distance_filter(handle:Int, custom:Bool, customLevel:Float, centerFreq:Float):Int;
     static function chan_get_3d_distance_filter(handle:Int, fbuf:hl.Bytes):Int;

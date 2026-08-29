@@ -142,3 +142,59 @@ class Reverb {
     public static var PRESET_UNDERWATER(get, never):ReverbProperties;
     static function get_PRESET_UNDERWATER() return preset([1500, 7, 11, 5000, 10, 100, 100, 250, 0, 500, 92, 7.0]);
 }
+
+/**
+ * FMOD_REVERB_PRESETS, the FMOD_PRESET_* environments under their FMOD
+ * names. Each one is the same ReverbProperties as the matching
+ * Reverb.PRESET_ static, for Reverb.set and Reverb3D.setProperties.
+ */
+class ReverbPresets {
+    public static var OFF(get, never):ReverbProperties;
+    static function get_OFF() return Reverb.PRESET_OFF;
+    public static var GENERIC(get, never):ReverbProperties;
+    static function get_GENERIC() return Reverb.PRESET_GENERIC;
+    public static var PADDEDCELL(get, never):ReverbProperties;
+    static function get_PADDEDCELL() return Reverb.PRESET_PADDEDCELL;
+    public static var ROOM(get, never):ReverbProperties;
+    static function get_ROOM() return Reverb.PRESET_ROOM;
+    public static var BATHROOM(get, never):ReverbProperties;
+    static function get_BATHROOM() return Reverb.PRESET_BATHROOM;
+    public static var LIVINGROOM(get, never):ReverbProperties;
+    static function get_LIVINGROOM() return Reverb.PRESET_LIVINGROOM;
+    public static var STONEROOM(get, never):ReverbProperties;
+    static function get_STONEROOM() return Reverb.PRESET_STONEROOM;
+    public static var AUDITORIUM(get, never):ReverbProperties;
+    static function get_AUDITORIUM() return Reverb.PRESET_AUDITORIUM;
+    public static var CONCERTHALL(get, never):ReverbProperties;
+    static function get_CONCERTHALL() return Reverb.PRESET_CONCERTHALL;
+    public static var CAVE(get, never):ReverbProperties;
+    static function get_CAVE() return Reverb.PRESET_CAVE;
+    public static var ARENA(get, never):ReverbProperties;
+    static function get_ARENA() return Reverb.PRESET_ARENA;
+    public static var HANGAR(get, never):ReverbProperties;
+    static function get_HANGAR() return Reverb.PRESET_HANGAR;
+    public static var CARPETTEDHALLWAY(get, never):ReverbProperties;
+    static function get_CARPETTEDHALLWAY() return Reverb.PRESET_CARPETTEDHALLWAY;
+    public static var HALLWAY(get, never):ReverbProperties;
+    static function get_HALLWAY() return Reverb.PRESET_HALLWAY;
+    public static var STONECORRIDOR(get, never):ReverbProperties;
+    static function get_STONECORRIDOR() return Reverb.PRESET_STONECORRIDOR;
+    public static var ALLEY(get, never):ReverbProperties;
+    static function get_ALLEY() return Reverb.PRESET_ALLEY;
+    public static var FOREST(get, never):ReverbProperties;
+    static function get_FOREST() return Reverb.PRESET_FOREST;
+    public static var CITY(get, never):ReverbProperties;
+    static function get_CITY() return Reverb.PRESET_CITY;
+    public static var MOUNTAINS(get, never):ReverbProperties;
+    static function get_MOUNTAINS() return Reverb.PRESET_MOUNTAINS;
+    public static var QUARRY(get, never):ReverbProperties;
+    static function get_QUARRY() return Reverb.PRESET_QUARRY;
+    public static var PLAIN(get, never):ReverbProperties;
+    static function get_PLAIN() return Reverb.PRESET_PLAIN;
+    public static var PARKINGLOT(get, never):ReverbProperties;
+    static function get_PARKINGLOT() return Reverb.PRESET_PARKINGLOT;
+    public static var SEWERPIPE(get, never):ReverbProperties;
+    static function get_SEWERPIPE() return Reverb.PRESET_SEWERPIPE;
+    public static var UNDERWATER(get, never):ReverbProperties;
+    static function get_UNDERWATER() return Reverb.PRESET_UNDERWATER;
+}
