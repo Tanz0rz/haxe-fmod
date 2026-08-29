@@ -46,12 +46,10 @@ channel.setCallback(function(event:ChannelEvent) {
 ## FMOD_CHANNELCONTROL_CALLBACK_TYPE
 verdict: bound
 Type: haxefmod.studio.Types.FmodChannelControlCallbackType
-Channel.setCallback delivers all four as ChannelEvent values (End, SyncPoint, VirtualVoice, Occlusion). ChannelGroup.setCallback delivers Occlusion, the only one FMOD raises on a group.
 
 ## FMOD_CHANNELCONTROL_DSP_INDEX
 verdict: bound
 Type: haxefmod.studio.Types.ChannelControlDspIndex
-addDsp, getDsp, and setDspIndex on Channel and ChannelGroup accept these values as the index. Channel.DSP_HEAD, DSP_FADER, and DSP_TAIL hold the same values as plain Int constants.
 
 ## ChannelControl::set3DCustomRolloff
 verdict: bound
@@ -72,4 +70,4 @@ channel.set3DCustomRolloff(curve);
 ## FMOD_CHANNELCONTROL_TYPE
 verdict: bound
 Type: haxefmod.studio.Types.FmodChannelControlType
-Channel and ChannelGroup are separate handle types, so no Haxe call takes this value.
+

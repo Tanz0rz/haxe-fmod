@@ -41,7 +41,6 @@ verdict: cannot a helper FMOD hands to an output plugin through FMOD_OUTPUT_STAT
 
 ## FMOD_OUTPUT_METHOD
 verdict: bound
-MIX_BUFFERED is 1 in the FMOD 2.02 header haxefmod binds.
 Type: haxefmod.studio.Types.FmodOutputMethod
 
 ## FMOD_OUTPUT_MIXER_CALLBACK

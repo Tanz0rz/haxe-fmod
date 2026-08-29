@@ -46,7 +46,9 @@ The checks fail when:
   - a bound section has neither a fence nor a Type: line, or a Type:
     line names a type missing from the sources,
   - a type definition on the site (struct, enum, define, callback) has a
-    hand-written fence, a Shape: line, or a library or covered verdict,
+    hand-written fence, note lines, a Shape: line, or a library or
+    covered verdict (the tab shows the declaration alone, like the C#
+    tab shows the struct),
   - a bound Haxe declaration lacks a member the site's snippet declares
     (unless native/manifest/types.txt lists it after skip:),
   - a bound Haxe fence uses none of the Haxe methods that reach an FMOD
@@ -356,6 +358,9 @@ def check_type_definition(entry, section, record, skips, problems, label):
         return 0
     if section["type"] is None:
         problems.append(f"{label}: a type definition on the site needs a Type: line, not a hand-written fence")
+        return 0
+    if section["code"] is not None or section["notes"]:
+        problems.append(f"{label}: a type definition shows its declaration alone, drop the fence and the note lines")
         return 0
     members = snippet_members(native_snippet(entry))
     if not members:

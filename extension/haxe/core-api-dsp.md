@@ -6,7 +6,6 @@ verdict: cannot FMOD calls it on its mixer thread, no Haxe target can run code t
 ## FMOD_DSP_CALLBACK_TYPE
 verdict: bound
 Type: haxefmod.studio.Types.FmodDspCallbackType
-The callback itself is not exposed. Dsp.setParameterData copies its bytes, so nothing needs releasing.
 
 ## FMOD_DSP_DATA_PARAMETER_INFO
 verdict: cannot the payload of a DSP callback, which runs on the mixer thread. Dsp.setParameterData copies its bytes so nothing needs releasing.

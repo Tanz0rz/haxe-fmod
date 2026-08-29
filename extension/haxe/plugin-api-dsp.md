@@ -100,7 +100,6 @@ verdict: cannot received only by a plugin callback on FMOD's mixer thread, which
 ## FMOD_DSP_METERING_INFO
 verdict: bound
 Type: haxefmod.studio.Types.FmodDspMeteringInfo
-Dsp.getMetering() returns the output side, getMetering(true) or getInputMetering() the input side, once setMeteringEnabled is on.
 
 ## FMOD_DSP_PAN_GETROLLOFFGAIN_FUNC
 verdict: cannot received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin
@@ -127,17 +126,14 @@ Type: haxefmod.studio.Types.FmodDspPanSurroundFlags
 ## FMOD_DSP_PARAMETER_3DATTRIBUTES
 verdict: bound
 Type: haxefmod.studio.Types.FmodDspParameter3DAttributes
-Set with Dsp.setParameter3DAttributes(index, absolute, ?relative), the shim packs the struct.
 
 ## FMOD_DSP_PARAMETER_3DATTRIBUTES_MULTI
 verdict: bound
 Type: haxefmod.studio.Types.FmodDspParameter3DAttributesMulti
-Set with Dsp.setParameter3DAttributesMulti(index, absolute, relative, ?weights), one relative entry per listener, the shim packs the struct.
 
 ## FMOD_DSP_PARAMETER_ATTENUATION_RANGE
 verdict: bound
 Type: haxefmod.studio.Types.FmodDspParameterAttenuationRange
-Set with Dsp.setParameterAttenuationRange(index, props) and read with getParameterAttenuationRange(index), the shim packs the struct. Dsp.getDataParameterIndex(ATTENUATION_RANGE) finds the index.
 
 ## FMOD_DSP_PARAMETER_DATA_TYPE
 verdict: bound
@@ -146,52 +142,42 @@ Type: haxefmod.studio.Types.FmodDspParameterDataType
 ## FMOD_DSP_PARAMETER_DESC
 verdict: bound
 Type: haxefmod.studio.Types.FmodDspParameterDesc
-Dsp.getParameterInfo(index) returns it, native only (unsupported in HTML5). The union member matching type is set (floatDesc, intDesc, boolDesc, or dataDesc), the other three are null.
 
 ## FMOD_DSP_PARAMETER_DESC_BOOL
 verdict: bound
 Type: haxefmod.studio.Types.FmodDspParameterDescBool
-The boolDesc member of FmodDspParameterDesc.
 
 ## FMOD_DSP_PARAMETER_DESC_DATA
 verdict: bound
 Type: haxefmod.studio.Types.FmodDspParameterDescData
-The dataDesc member of FmodDspParameterDesc.
 
 ## FMOD_DSP_PARAMETER_DESC_FLOAT
 verdict: bound
 Type: haxefmod.studio.Types.FmodDspParameterDescFloat
-The floatDesc member of FmodDspParameterDesc.
 
 ## FMOD_DSP_PARAMETER_DESC_INT
 verdict: bound
 Type: haxefmod.studio.Types.FmodDspParameterDescInt
-The intDesc member of FmodDspParameterDesc.
 
 ## FMOD_DSP_PARAMETER_DYNAMIC_RESPONSE
 verdict: bound
 Type: haxefmod.studio.Types.FmodDspParameterDynamicResponse
-Read with Dsp.getParameterDynamicResponse(index), the shim unpacks the struct. Dsp.getDataParameterIndex(DYNAMIC_RESPONSE) finds the index.
 
 ## FMOD_DSP_PARAMETER_FFT
 verdict: bound
 Type: haxefmod.studio.Types.FmodDspParameterFft
-Read with Dsp.getFftSpectrumInfo(maxBins) on an FFT unit, or getFftSpectrum(maxBins) for the first channel alone.
 
 ## FMOD_DSP_PARAMETER_FINITE_LENGTH
 verdict: bound
 Type: haxefmod.studio.Types.FmodDspParameterFiniteLength
-Set with Dsp.setParameterFiniteLength(index, props) and read with getParameterFiniteLength(index), the shim packs the struct.
 
 ## FMOD_DSP_PARAMETER_FLOAT_MAPPING
 verdict: bound
 Type: haxefmod.studio.Types.FmodDspParameterFloatMapping
-The mapping field of FmodDspParameterDescFloat.
 
 ## FMOD_DSP_PARAMETER_FLOAT_MAPPING_PIECEWISE_LINEAR
 verdict: bound
 Type: haxefmod.studio.Types.FmodDspParameterFloatMappingPiecewiseLinear
-The piecewiseLinearMapping field of FmodDspParameterFloatMapping, empty unless the mapping type is PIECEWISE_LINEAR.
 
 ## FMOD_DSP_PARAMETER_FLOAT_MAPPING_TYPE
 verdict: bound
@@ -200,17 +186,14 @@ Type: haxefmod.studio.Types.FmodDspParameterFloatMappingType
 ## FMOD_DSP_PARAMETER_OVERALLGAIN
 verdict: bound
 Type: haxefmod.studio.Types.FmodDspParameterOverallGain
-Read with Dsp.getOverallGain(), which finds the unit's overall gain parameter, or getOverallGain(index).
 
 ## FMOD_DSP_PARAMETER_SIDECHAIN
 verdict: bound
 Type: haxefmod.studio.Types.FmodDspParameterSidechain
-Set with Dsp.setParameterSidechain(index, props) and read with getParameterSidechain(index), the shim packs the struct. DspCompressor.USESIDECHAIN is one such parameter.
 
 ## FMOD_DSP_PARAMETER_TYPE
 verdict: bound
 Type: haxefmod.studio.Types.FmodDspParameterType
-Reported in the type field of Dsp.getParameterInfo.
 
 ## FMOD_DSP_PROCESS_CALLBACK
 verdict: cannot received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin

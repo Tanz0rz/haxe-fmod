@@ -12510,25 +12510,19 @@ const HAXEFMOD_EXAMPLES = {
   },
   "FMOD_CHANNELCONTROL_CALLBACK_TYPE": {
    "code": "enum abstract FmodChannelControlCallbackType(Int) from Int to Int {\n    var END = 0;\n    var VIRTUALVOICE = 1;\n    var SYNCPOINT = 2;\n    var OCCLUSION = 3;\n    var MAX = 4;\n}",
-   "notes": [
-    "Channel.setCallback delivers all four as ChannelEvent values (End, SyncPoint, VirtualVoice, Occlusion). ChannelGroup.setCallback delivers Occlusion, the only one FMOD raises on a group."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodChannelControlCallbackType",
    "verdict": "bound"
   },
   "FMOD_CHANNELCONTROL_DSP_INDEX": {
    "code": "enum abstract ChannelControlDspIndex(Int) from Int to Int {\n    var HEAD = -1;\n    var FADER = -2;\n    var TAIL = -3;\n}",
-   "notes": [
-    "addDsp, getDsp, and setDspIndex on Channel and ChannelGroup accept these values as the index. Channel.DSP_HEAD, DSP_FADER, and DSP_TAIL hold the same values as plain Int constants."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.ChannelControlDspIndex",
    "verdict": "bound"
   },
   "FMOD_CHANNELCONTROL_TYPE": {
    "code": "enum abstract FmodChannelControlType(Int) from Int to Int {\n    var CHANNEL = 0;\n    var CHANNELGROUP = 1;\n    var MAX = 2;\n}",
-   "notes": [
-    "Channel and ChannelGroup are separate handle types, so no Haxe call takes this value."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodChannelControlType",
    "verdict": "bound"
   }
@@ -12542,25 +12536,19 @@ const HAXEFMOD_EXAMPLES = {
   },
   "FMOD_CHANNELMASK": {
    "code": "enum abstract FmodChannelMask(Int) from Int to Int {\n    var FRONT_LEFT = 0x00000001;\n    var FRONT_RIGHT = 0x00000002;\n    var FRONT_CENTER = 0x00000004;\n    var LOW_FREQUENCY = 0x00000008;\n    var SURROUND_LEFT = 0x00000010;\n    var SURROUND_RIGHT = 0x00000020;\n    var BACK_LEFT = 0x00000040;\n    var BACK_RIGHT = 0x00000080;\n    var BACK_CENTER = 0x00000100;\n    var MONO = 0x00000001;\n    var STEREO = 0x00000003;\n    var LRC = 0x00000007;\n    var QUAD = 0x00000033;\n    var SURROUND = 0x00000037;\n    var _5POINT1 = 0x0000003F;\n    var _5POINT1_REARS = 0x000000CF;\n    var _7POINT0 = 0x000000F7;\n    var _7POINT1 = 0x000000FF;\n}",
-   "notes": [
-    "Taken by Dsp.setChannelFormat and Dsp.getOutputChannelFormat. Per-speaker routing goes through Channel.setMixMatrix or ChannelGroup.setMixMatrix."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodChannelMask",
    "verdict": "bound"
   },
   "FMOD_CHANNELORDER": {
    "code": "enum abstract FmodChannelOrder(Int) from Int to Int {\n    var DEFAULT = 0;\n    var WAVEFORMAT = 1;\n    var PROTOOLS = 2;\n    var ALLMONO = 3;\n    var ALLSTEREO = 4;\n    var ALSA = 5;\n    var MAX = 6;\n}",
-   "notes": [
-    "Sound.create and Sound.fromPcm use DEFAULT, no call takes a channel order."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodChannelOrder",
    "verdict": "bound"
   },
   "FMOD_CPU_USAGE": {
    "code": "typedef FmodSystemCpuUsage = {\n    var studioUpdate:Float;\n    var dsp:Float;\n    var stream:Float;\n    var geometry:Float;\n    var update:Float;\n    var convolution1:Float;\n    var convolution2:Float;\n}",
-   "notes": [
-    "FMOD_CPU_USAGE and the studio update field are merged into one record, returned by StudioSystem.getCpuUsage."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodSystemCpuUsage",
    "verdict": "bound"
   },
@@ -12574,49 +12562,37 @@ const HAXEFMOD_EXAMPLES = {
   },
   "FMOD_DEBUG_FLAGS": {
    "code": "enum abstract FmodDebugFlags(Int) from Int to Int {\n    var LEVEL_NONE = 0x00000000;\n    var LEVEL_ERROR = 0x00000001;\n    var LEVEL_WARNING = 0x00000002;\n    var LEVEL_LOG = 0x00000004;\n    var TYPE_MEMORY = 0x00000100;\n    var TYPE_FILE = 0x00000200;\n    var TYPE_CODEC = 0x00000400;\n    var TYPE_TRACE = 0x00000800;\n    var TYPE_VIRTUAL = 0x00001000;\n    var DISPLAY_TIMESTAMPS = 0x00010000;\n    var DISPLAY_LINENUMBERS = 0x00020000;\n    var DISPLAY_THREAD = 0x00040000;\n}",
-   "notes": [
-    "The LEVEL_ bits come from FmodSettings.logLevel (0 none, 1 error, 2 warning, 3 log) and FmodManager.EnableDebugMessages logs everything. FmodSettings.logFlags adds the TYPE_ and DISPLAY_ bits, native only."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodDebugFlags",
    "verdict": "bound"
   },
   "FMOD_DEBUG_MODE": {
    "code": "enum abstract FmodDebugMode(Int) from Int to Int {\n    var TTY = 0;\n    var FILE = 1;\n    var CALLBACK = 2;\n}",
-   "notes": [
-    "TTY unless FmodSettings.logFile names a file, which picks FILE on native targets. CALLBACK is not exposed, FMOD would call it from whichever thread logs."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodDebugMode",
    "verdict": "bound"
   },
   "FMOD_GUID": {
    "code": "abstract FmodGuid(String) from String to String {\n    /** The all-zero GUID, what a failed lookup returns. */\n    public static inline var NULL:FmodGuid = cast \"{00000000-0000-0000-0000-000000000000}\";\n\n    inline function new(text:String) this = text;\n\n    /**\n     * Builds one from text, with or without braces, any case. Returns\n     * NULL for anything that is not five hex groups of 8-4-4-4-12.\n     */\n    public static function fromString(text:String):FmodGuid {\n        var digits = hexDigits(text);\n        if (digits == null) return NULL;\n        return new FmodGuid(\"{\" + digits.substr(0, 8) + \"-\" + digits.substr(8, 4) + \"-\" + digits.substr(12, 4)\n            + \"-\" + digits.substr(16, 4) + \"-\" + digits.substr(20, 12) + \"}\");\n    }\n\n    /** Builds one from the four C fields, data4 being eight bytes. */\n    public static function fromFields(data1:Int, data2:Int, data3:Int, data4:Array<Int>):FmodGuid {\n        var text = StringTools.hex(data1, 8) + \"-\" + StringTools.hex(data2 & 0xFFFF, 4) + \"-\" + StringTools.hex(data3 & 0xFFFF, 4) + \"-\";\n        for (i in 0...8) {\n            if (i == 2) text += \"-\";\n            text += StringTools.hex(data4 != null && i < data4.length ? data4[i] & 0xFF : 0, 2);\n        }\n        return fromString(text);\n    }\n\n    /** The braced lower-case text. */\n    public inline function toString():String return this;\n\n    /** The Data1 field, the first 32 bits. */\n    public var data1(get, never):Int;\n    function get_data1():Int return readHex(0, 8);\n\n    /** The Data2 field, the next 16 bits. */\n    public var data2(get, never):Int;\n    function get_data2():Int return readHex(8, 4);\n\n    /** The Data3 field, the 16 bits after Data2. */\n    public var data3(get, never):Int;\n    function get_data3():Int return readHex(12, 4);\n\n    /** The Data4 field, the last eight bytes in order. */\n    public var data4(get, never):Array<Int>;\n    function get_data4():Array<Int> return [for (i in 0...8) readHex(16 + i * 2, 2)];\n\n    /** True for NULL, an empty string, or text that is not a GUID. */\n    public function isNull():Bool {\n        var digits = hexDigits(this);\n        if (digits == null) return true;\n        for (i in 0...digits.length) if (digits.charCodeAt(i) != \"0\".code) return false;\n        return true;\n    }\n\n    /** True when the hex digits match, braces and case aside. */\n    public function equals(other:FmodGuid):Bool {\n        var a = hexDigits(this);\n        var b = hexDigits(other);\n        if (a == null || b == null) return a == b && this == (other : String);\n        return a == b;\n    }\n\n    @:op(A == B) static inline function eq(a:FmodGuid, b:FmodGuid):Bool return a.equals(b);\n    @:op(A != B) static inline function neq(a:FmodGuid, b:FmodGuid):Bool return !a.equals(b);\n\n    function readHex(start:Int, count:Int):Int {\n        var digits = hexDigits(this);\n        if (digits == null) return 0;\n        return Std.parseInt(\"0x\" + digits.substr(start, count));\n    }\n\n    /** The 32 hex digits in lower case, or null when the text is not a GUID. */\n    static function hexDigits(text:String):Null<String> {\n        if (text == null) return null;\n        var s = StringTools.trim(text).toLowerCase();\n        if (s.length > 0 && s.charAt(0) == \"{\") {\n            if (s.charAt(s.length - 1) != \"}\") return null;\n            s = s.substr(1, s.length - 2);\n        }\n        var groups = s.split(\"-\");\n        var widths = [8, 4, 4, 4, 12];\n        if (groups.length != 5) return null;\n        var out = \"\";\n        for (i in 0...5) {\n            var g = groups[i];\n            if (g.length != widths[i]) return null;\n            for (j in 0...g.length) {\n                var c = g.charCodeAt(j);\n                var hex = (c >= \"0\".code && c <= \"9\".code) || (c >= \"a\".code && c <= \"f\".code);\n                if (!hex) return null;\n            }\n            out += g;\n        }\n        return out;\n    }\n}",
-   "notes": [
-    "Held in the braced text form FMOD Studio shows, a String both ways, so a generated constant passes straight in. data1 to data4 read the C fields out of the text, fromString and fromFields build one, and equality ignores braces and case. Returned by getID on EventDescription, Bank, Bus, and Vca, by StudioSystem.lookupID, by FmodParameterDescription.guid, and by the guid field of CoreSystem.getDriverInfo. Taken by StudioSystem.getEventByID, getBusByID, getVCAByID, getBankByID, and lookupPath."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodGuid",
    "verdict": "bound"
   },
   "FMOD_MAX_CHANNEL_WIDTH": {
    "code": "class FmodLimits {\n    /** FMOD_MAX_CHANNEL_WIDTH, the widest mix matrix and channel format. */\n    public static inline var MAX_CHANNEL_WIDTH = 32;\n    /** FMOD_MAX_SYSTEMS, how many FMOD systems one process may create. haxefmod creates one. */\n    public static inline var MAX_SYSTEMS = 8;\n    /** FMOD_MAX_LISTENERS, the cap on StudioSystem.setNumListeners. */\n    public static inline var MAX_LISTENERS = 8;\n    /** FMOD_REVERB_MAXINSTANCES, the number of reverb instance slots. */\n    public static inline var REVERB_MAXINSTANCES = 4;\n    /** FMOD_STUDIO_LOAD_MEMORY_ALIGNMENT, the alignment loadBankMemory needs in point mode. */\n    public static inline var STUDIO_LOAD_MEMORY_ALIGNMENT = 32;\n}",
-   "notes": [
-    "FmodLimits.MAX_CHANNEL_WIDTH. A wider mix matrix passed to Channel.setMixMatrix or ChannelGroup.setMixMatrix comes back as FmodResult.FMOD_ERR_INVALID_PARAM."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodLimits",
    "verdict": "bound"
   },
   "FMOD_MAX_LISTENERS": {
    "code": "class FmodLimits {\n    /** FMOD_MAX_CHANNEL_WIDTH, the widest mix matrix and channel format. */\n    public static inline var MAX_CHANNEL_WIDTH = 32;\n    /** FMOD_MAX_SYSTEMS, how many FMOD systems one process may create. haxefmod creates one. */\n    public static inline var MAX_SYSTEMS = 8;\n    /** FMOD_MAX_LISTENERS, the cap on StudioSystem.setNumListeners. */\n    public static inline var MAX_LISTENERS = 8;\n    /** FMOD_REVERB_MAXINSTANCES, the number of reverb instance slots. */\n    public static inline var REVERB_MAXINSTANCES = 4;\n    /** FMOD_STUDIO_LOAD_MEMORY_ALIGNMENT, the alignment loadBankMemory needs in point mode. */\n    public static inline var STUDIO_LOAD_MEMORY_ALIGNMENT = 32;\n}",
-   "notes": [
-    "FmodLimits.MAX_LISTENERS, the cap StudioSystem.setNumListeners runs into."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodLimits",
    "verdict": "bound"
   },
   "FMOD_MAX_SYSTEMS": {
    "code": "class FmodLimits {\n    /** FMOD_MAX_CHANNEL_WIDTH, the widest mix matrix and channel format. */\n    public static inline var MAX_CHANNEL_WIDTH = 32;\n    /** FMOD_MAX_SYSTEMS, how many FMOD systems one process may create. haxefmod creates one. */\n    public static inline var MAX_SYSTEMS = 8;\n    /** FMOD_MAX_LISTENERS, the cap on StudioSystem.setNumListeners. */\n    public static inline var MAX_LISTENERS = 8;\n    /** FMOD_REVERB_MAXINSTANCES, the number of reverb instance slots. */\n    public static inline var REVERB_MAXINSTANCES = 4;\n    /** FMOD_STUDIO_LOAD_MEMORY_ALIGNMENT, the alignment loadBankMemory needs in point mode. */\n    public static inline var STUDIO_LOAD_MEMORY_ALIGNMENT = 32;\n}",
-   "notes": [
-    "FmodLimits.MAX_SYSTEMS. haxefmod creates exactly one FMOD system per process inside FmodManager.Initialize, so the limit never applies."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodLimits",
    "verdict": "bound"
   },
@@ -12646,17 +12622,13 @@ const HAXEFMOD_EXAMPLES = {
   },
   "FMOD_MEMORY_TYPE": {
    "code": "enum abstract FmodMemoryType(Int) from Int to Int {\n    var NORMAL = 0x00000000;\n    var STREAM_FILE = 0x00000001;\n    var STREAM_DECODE = 0x00000002;\n    var SAMPLEDATA = 0x00000004;\n    var DSP_BUFFER = 0x00000008;\n    var PLUGIN = 0x00000010;\n    var PERSISTENT = 0x00200000;\n    var ALL = 0xFFFFFFFF;\n}",
-   "notes": [
-    "The flags belong to the allocator hooks, which are not exposed. Totals come from StudioSystem.getMemoryStats and StudioSystem.getMemoryUsage."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodMemoryType",
    "verdict": "bound"
   },
   "FMOD_MODE": {
    "code": "class ChannelMode {\n    public static inline var DEFAULT:Int = 0x00000000;\n    public static inline var LOOP_OFF:Int = 0x00000001;\n    public static inline var LOOP_NORMAL:Int = 0x00000002;\n    public static inline var LOOP_BIDI:Int = 0x00000004;\n    public static inline var MODE_2D:Int = 0x00000008;\n    public static inline var MODE_3D:Int = 0x00000010;\n    public static inline var CREATESTREAM:Int = 0x00000080;\n    public static inline var CREATESAMPLE:Int = 0x00000100;\n    public static inline var CREATECOMPRESSEDSAMPLE:Int = 0x00000200;\n    public static inline var OPENUSER:Int = 0x00000400;\n    public static inline var OPENMEMORY:Int = 0x00000800;\n    public static inline var OPENMEMORY_POINT:Int = 0x10000000;\n    public static inline var OPENRAW:Int = 0x00001000;\n    public static inline var OPENONLY:Int = 0x00002000;\n    public static inline var ACCURATETIME:Int = 0x00004000;\n    public static inline var MPEGSEARCH:Int = 0x00008000;\n    public static inline var NONBLOCKING:Int = 0x00010000;\n    public static inline var UNIQUE:Int = 0x00020000;\n    public static inline var MODE_3D_HEADRELATIVE:Int = 0x00040000;\n    public static inline var MODE_3D_WORLDRELATIVE:Int = 0x00080000;\n    public static inline var MODE_3D_INVERSEROLLOFF:Int = 0x00100000;\n    public static inline var MODE_3D_LINEARROLLOFF:Int = 0x00200000;\n    public static inline var MODE_3D_LINEARSQUAREROLLOFF:Int = 0x00400000;\n    public static inline var MODE_3D_INVERSETAPEREDROLLOFF:Int = 0x00800000;\n    public static inline var MODE_3D_CUSTOMROLLOFF:Int = 0x04000000;\n    public static inline var MODE_3D_IGNOREGEOMETRY:Int = 0x40000000;\n    public static inline var IGNORETAGS:Int = 0x02000000;\n    public static inline var LOWMEM:Int = 0x08000000;\n    public static inline var VIRTUAL_PLAYFROMSTART:Int = 0x80000000;\n\n    /** The names haxefmod 2.0.0 gave the 3D flags, the same bits. */\n    public static inline var HEAD_RELATIVE_3D:Int = MODE_3D_HEADRELATIVE;\n    public static inline var WORLD_RELATIVE_3D:Int = MODE_3D_WORLDRELATIVE;\n    public static inline var INVERSE_ROLLOFF_3D:Int = MODE_3D_INVERSEROLLOFF;\n    public static inline var LINEAR_ROLLOFF_3D:Int = MODE_3D_LINEARROLLOFF;\n    public static inline var LINEAR_SQUARE_ROLLOFF_3D:Int = MODE_3D_LINEARSQUAREROLLOFF;\n    public static inline var INVERSE_TAPERED_ROLLOFF_3D:Int = MODE_3D_INVERSETAPEREDROLLOFF;\n}",
-   "notes": [
-    "The flags are Int constants on ChannelMode, combined with | and passed to Sound.setMode or Channel.setMode."
-   ],
+   "notes": [],
    "type": "haxefmod.core.ChannelMode",
    "verdict": "bound"
   },
@@ -12668,65 +12640,49 @@ const HAXEFMOD_EXAMPLES = {
   },
   "FMOD_SPEAKER": {
    "code": "enum abstract FmodSpeaker(Int) from Int to Int {\n    var NONE = -1;\n    var FRONT_LEFT = 0;\n    var FRONT_RIGHT = 1;\n    var FRONT_CENTER = 2;\n    var LOW_FREQUENCY = 3;\n    var SURROUND_LEFT = 4;\n    var SURROUND_RIGHT = 5;\n    var BACK_LEFT = 6;\n    var BACK_RIGHT = 7;\n    var TOP_FRONT_LEFT = 8;\n    var TOP_FRONT_RIGHT = 9;\n    var TOP_BACK_LEFT = 10;\n    var TOP_BACK_RIGHT = 11;\n    var MAX = 12;\n}",
-   "notes": [
-    "Taken by CoreSystem.setSpeakerPosition and getSpeakerPosition. The same values are the row and column indices of a mix matrix in Channel.setMixMatrix and ChannelGroup.setMixMatrix."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodSpeaker",
    "verdict": "bound"
   },
   "FMOD_SPEAKERMODE": {
    "code": "enum abstract FmodSpeakerMode(Int) from Int to Int {\n    var DEFAULT = 0;\n    var RAW = 1;\n    var MONO = 2;\n    var STEREO = 3;\n    var QUAD = 4;\n    var SURROUND = 5;\n    var _5POINT1 = 6;\n    var _7POINT1 = 7;\n    var _7POINT1POINT4 = 8;\n    var MAX = 9;\n}",
-   "notes": [
-    "Requested through FmodSettings.speakerMode and read from CoreSystem.getSoftwareFormat, CoreSystem.getDriverInfo, and StudioSystem.getRecordDriverInfo. Dsp.setChannelFormat takes one with the channel mask."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodSpeakerMode",
    "verdict": "bound"
   },
   "FMOD_SYNCPOINT": {
    "code": "abstract FmodSyncPoint(Int) from Int to Int {\n    /** The invalid handle, what a failed addSyncPoint or getSyncPoint returns. */\n    public static inline var NULL:FmodSyncPoint = cast -1;\n\n    /** The index in offset order this handle stands for. */\n    public inline function index():Int return this;\n\n    public inline function isNull():Bool return this < 0;\n}",
-   "notes": [
-    "Returned by Sound.addSyncPoint and Sound.getSyncPoint, taken by Sound.getSyncPointInfo and Sound.deleteSyncPoint. The handle is the point's index in offset order, the same number ChannelEvent.SyncPoint carries, so it shifts when points before it are added or deleted."
-   ],
+   "notes": [],
    "type": "haxefmod.core.Sound.FmodSyncPoint",
    "verdict": "bound"
   },
   "FMOD_THREAD_AFFINITY": {
    "code": "enum abstract FmodThreadAffinity(Int) from Int to Int {\n    var CORE_ALL = 0;\n    var CORE_0 = 0x00000001;\n    var CORE_1 = 0x00000002;\n    var CORE_2 = 0x00000004;\n    var CORE_3 = 0x00000008;\n    var CORE_4 = 0x00000010;\n    var CORE_5 = 0x00000020;\n    var CORE_6 = 0x00000040;\n    var CORE_7 = 0x00000080;\n    var CORE_8 = 0x00000100;\n    var CORE_9 = 0x00000200;\n    var CORE_10 = 0x00000400;\n    var CORE_11 = 0x00000800;\n    var CORE_12 = 0x00001000;\n    var CORE_13 = 0x00002000;\n    var CORE_14 = 0x00004000;\n    var CORE_15 = 0x00008000;\n}",
-   "notes": [
-    "The affinity field of a FmodSettings.threadAttributes entry, a 32-bit core mask. The 64-bit group values do not fit a Haxe Int, so an unset affinity keeps FMOD's default group. Native only, the web build has no threads to place."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodThreadAffinity",
    "verdict": "bound"
   },
   "FMOD_THREAD_PRIORITY": {
    "code": "enum abstract FmodThreadPriority(Int) from Int to Int {\n    var PLATFORM_MIN = -32768;\n    var PLATFORM_MAX = 32768;\n    var DEFAULT = -32769;\n    var LOW = -32770;\n    var MEDIUM = -32771;\n    var HIGH = -32772;\n    var VERY_HIGH = -32773;\n    var EXTREME = -32774;\n    var CRITICAL = -32775;\n    var MIXER = -32774;\n    var FEEDER = -32775;\n    var STREAM = -32773;\n    var FILE = -32772;\n    var NONBLOCKING = -32772;\n    var RECORD = -32772;\n    var GEOMETRY = -32770;\n    var PROFILER = -32771;\n    var STUDIO_UPDATE = -32771;\n    var STUDIO_LOAD_BANK = -32771;\n    var STUDIO_LOAD_SAMPLE = -32771;\n    var CONVOLUTION1 = -32773;\n    var CONVOLUTION2 = -32773;\n}",
-   "notes": [
-    "The priority field of a FmodSettings.threadAttributes entry. DEFAULT keeps FMOD's own value for that thread."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodThreadPriority",
    "verdict": "bound"
   },
   "FMOD_THREAD_STACK_SIZE": {
    "code": "enum abstract FmodThreadStackSize(Int) from Int to Int {\n    var DEFAULT = 0;\n    var MIXER = 81920;\n    var FEEDER = 16384;\n    var STREAM = 98304;\n    var FILE = 65536;\n    var NONBLOCKING = 114688;\n    var RECORD = 16384;\n    var GEOMETRY = 49152;\n    var PROFILER = 131072;\n    var STUDIO_UPDATE = 98304;\n    var STUDIO_LOAD_BANK = 98304;\n    var STUDIO_LOAD_SAMPLE = 98304;\n    var CONVOLUTION1 = 16384;\n    var CONVOLUTION2 = 16384;\n}",
-   "notes": [
-    "The stackSize field of a FmodSettings.threadAttributes entry. DEFAULT keeps FMOD's own value for that thread."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodThreadStackSize",
    "verdict": "bound"
   },
   "FMOD_THREAD_TYPE": {
    "code": "enum abstract FmodThreadType(Int) from Int to Int {\n    var MIXER = 0;\n    var FEEDER = 1;\n    var STREAM = 2;\n    var FILE = 3;\n    var NONBLOCKING = 4;\n    var RECORD = 5;\n    var GEOMETRY = 6;\n    var PROFILER = 7;\n    var STUDIO_UPDATE = 8;\n    var STUDIO_LOAD_BANK = 9;\n    var STUDIO_LOAD_SAMPLE = 10;\n    var CONVOLUTION1 = 11;\n    var CONVOLUTION2 = 12;\n    var MAX = 13;\n}",
-   "notes": [
-    "The type field of a FmodSettings.threadAttributes entry, applied with Thread_SetAttributes before the system is created."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodThreadType",
    "verdict": "bound"
   },
   "FMOD_TIMEUNIT": {
    "code": "enum abstract FmodTimeUnit(Int) from Int to Int {\n    var MS = 0x00000001;\n    var PCM = 0x00000002;\n    var PCMBYTES = 0x00000004;\n    var RAWBYTES = 0x00000008;\n    var PCMFRACTION = 0x00000010;\n    var MODORDER = 0x00000100;\n    var MODROW = 0x00000200;\n    var MODPATTERN = 0x00000400;\n}",
-   "notes": [
-    "An optional trailing parameter on Sound.getLength, Sound.addSyncPoint, Sound.getSyncPointInfo, Channel.getPosition, and Channel.setPosition. It defaults to MS. setLoopPoints and getLoopPoints on Sound and Channel take one per end, loopStartType then loopEndType, and the end unit follows the start unit when left out."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodTimeUnit",
    "verdict": "bound"
   },
@@ -12738,9 +12694,7 @@ const HAXEFMOD_EXAMPLES = {
   },
   "FMOD_VERSION": {
    "code": "class FmodVersion {\n    /** FMOD_VERSION of the linked SDK, 2.03.12. */\n    public static inline var VERSION = 0x00020312;\n}",
-   "notes": [
-    "FmodVersion.VERSION is the SDK haxefmod is built against, and StudioSystem.getVersion reports the version the running build loaded as text like \"2.03.12\"."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodVersion",
    "verdict": "bound"
   }
@@ -12754,9 +12708,7 @@ const HAXEFMOD_EXAMPLES = {
   },
   "FMOD_DSP_CHANNELMIX_OUTPUT": {
    "code": "enum abstract DspChannelMixOutput(Int) from Int to Int {\n    var DEFAULT = 0;\n    var ALLMONO = 1;\n    var ALLSTEREO = 2;\n    var ALLQUAD = 3;\n    var ALL5POINT1 = 4;\n    var ALL7POINT1 = 5;\n    var ALLLFE = 6;\n    var ALL7POINT1POINT4 = 7;\n}",
-   "notes": [
-    "Passed through setParameterInt on DspChannelMix.OUTPUTGROUPING."
-   ],
+   "notes": [],
    "type": "haxefmod.core.DspEnums.DspChannelMixOutput",
    "verdict": "bound"
   },
@@ -12774,17 +12726,13 @@ const HAXEFMOD_EXAMPLES = {
   },
   "FMOD_DSP_CONVOLUTION_REVERB": {
    "code": "enum abstract DspConvolutionReverb(Int) from Int to Int {\n    var PARAM_IR = 0;\n    var PARAM_WET = 1;\n    var PARAM_DRY = 2;\n    var PARAM_LINKED = 3;\n}",
-   "notes": [
-    "The impulse response is 16-bit PCM handed over through setParameterData on PARAM_IR, with the channel count in the first two bytes as FMOD's format describes."
-   ],
+   "notes": [],
    "type": "haxefmod.core.DspParameters.DspConvolutionReverb",
    "verdict": "bound"
   },
   "FMOD_DSP_DELAY": {
    "code": "enum abstract DspDelay(Int) from Int to Int {\n    var CH0 = 0;\n    var CH1 = 1;\n    var CH2 = 2;\n    var CH3 = 3;\n    var CH4 = 4;\n    var CH5 = 5;\n    var CH6 = 6;\n    var CH7 = 7;\n    var CH8 = 8;\n    var CH9 = 9;\n    var CH10 = 10;\n    var CH11 = 11;\n    var CH12 = 12;\n    var CH13 = 13;\n    var CH14 = 14;\n    var CH15 = 15;\n    var MAXDELAY = 16;\n}",
-   "notes": [
-    "MAXDELAY is set before the per-channel delays."
-   ],
+   "notes": [],
    "type": "haxefmod.core.DspParameters.DspDelay",
    "verdict": "bound"
   },
@@ -12802,9 +12750,7 @@ const HAXEFMOD_EXAMPLES = {
   },
   "FMOD_DSP_ECHO_DELAYCHANGEMODE_TYPE": {
    "code": "enum abstract DspEchoDelayChangeMode(Int) from Int to Int {\n    var FADE = 0;\n    var LERP = 1;\n    var NONE = 2;\n}",
-   "notes": [
-    "Passed through setParameterInt on DspEcho.DELAYCHANGEMODE."
-   ],
+   "notes": [],
    "type": "haxefmod.core.DspEnums.DspEchoDelayChangeMode",
    "verdict": "bound"
   },
@@ -12816,25 +12762,19 @@ const HAXEFMOD_EXAMPLES = {
   },
   "FMOD_DSP_FFT": {
    "code": "enum abstract DspFft(Int) from Int to Int {\n    var WINDOWSIZE = 0;\n    var WINDOW = 1;\n    var BAND_START_FREQ = 2;\n    var BAND_STOP_FREQ = 3;\n    var SPECTRUMDATA = 4;\n    var RMS = 5;\n    var SPECTRAL_CENTROID = 6;\n    var IMMEDIATE_MODE = 7;\n    var DOWNMIX = 8;\n    var CHANNEL = 9;\n}",
-   "notes": [
-    "The SPECTRUMDATA parameter is read through getFftSpectrum (the first channel) or getFftSpectrumInfo (every channel with the bin and channel counts) instead of getParameterData."
-   ],
+   "notes": [],
    "type": "haxefmod.core.DspParameters.DspFft",
    "verdict": "bound"
   },
   "FMOD_DSP_FFT_DOWNMIX_TYPE": {
    "code": "enum abstract DspFftDownmix(Int) from Int to Int {\n    var NONE = 0;\n    var MONO = 1;\n}",
-   "notes": [
-    "Passed through setParameterInt on DspFft.DOWNMIX."
-   ],
+   "notes": [],
    "type": "haxefmod.core.DspEnums.DspFftDownmix",
    "verdict": "bound"
   },
   "FMOD_DSP_FFT_WINDOW_TYPE": {
    "code": "enum abstract DspFftWindow(Int) from Int to Int {\n    var RECT = 0;\n    var TRIANGLE = 1;\n    var HAMMING = 2;\n    var HANNING = 3;\n    var BLACKMAN = 4;\n    var BLACKMANHARRIS = 5;\n}",
-   "notes": [
-    "Passed through setParameterInt on DspFft.WINDOW."
-   ],
+   "notes": [],
    "type": "haxefmod.core.DspEnums.DspFftWindow",
    "verdict": "bound"
   },
@@ -12888,33 +12828,25 @@ const HAXEFMOD_EXAMPLES = {
   },
   "FMOD_DSP_LOUDNESS_METER": {
    "code": "enum abstract DspLoudnessMeter(Int) from Int to Int {\n    var STATE = 0;\n    var WEIGHTING = 1;\n    var INFO = 2;\n}",
-   "notes": [
-    "STATE is set with setParameterInt and WEIGHTING with Dsp.setLoudnessMeterWeighting. INFO is read with Dsp.getLoudnessMeterInfo (unsupported in HTML5, where the web glue hands the block back without its fields)."
-   ],
+   "notes": [],
    "type": "haxefmod.core.DspParameters.DspLoudnessMeter",
    "verdict": "bound"
   },
   "FMOD_DSP_LOUDNESS_METER_INFO_TYPE": {
    "code": "typedef FmodDspLoudnessMeterInfo = {\n    var momentaryLoudness:Float;\n    var shortTermLoudness:Float;\n    var integratedLoudness:Float;\n    var loudness10thPercentile:Float;\n    var loudness95thPercentile:Float;\n    var loudnessHistogram:Array<Float>;\n    var maxTruePeak:Float;\n    var maxMomentaryLoudness:Float;\n}",
-   "notes": [
-    "Read with Dsp.getLoudnessMeterInfo on a LOUDNESS_METER unit, native only (unsupported in HTML5)."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodDspLoudnessMeterInfo",
    "verdict": "bound"
   },
   "FMOD_DSP_LOUDNESS_METER_STATE_TYPE": {
    "code": "enum abstract DspLoudnessMeterState(Int) from Int to Int {\n    var RESET_INTEGRATED = -3;\n    var RESET_MAXPEAK = -2;\n    var RESET_ALL = -1;\n    var PAUSED = 0;\n    var ANALYZING = 1;\n}",
-   "notes": [
-    "Passed through setParameterInt on DspLoudnessMeter.STATE, where negative values reset the meter."
-   ],
+   "notes": [],
    "type": "haxefmod.core.DspEnums.DspLoudnessMeterState",
    "verdict": "bound"
   },
   "FMOD_DSP_LOUDNESS_METER_WEIGHTING_TYPE": {
    "code": "typedef FmodDspLoudnessMeterWeightingType = {\n    var channelWeight:Array<Float>;\n}",
-   "notes": [
-    "Set with Dsp.setLoudnessMeterWeighting(weighting) on a LOUDNESS_METER unit and read back with getLoudnessMeterWeighting() (unsupported in HTML5), the shim packs the struct."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodDspLoudnessMeterWeightingType",
    "verdict": "bound"
   },
@@ -12944,33 +12876,25 @@ const HAXEFMOD_EXAMPLES = {
   },
   "FMOD_DSP_MULTIBAND_DYNAMICS": {
    "code": "enum abstract DspMultibandDynamics(Int) from Int to Int {\n    var LOWER_FREQUENCY = 0;\n    var UPPER_FREQUENCY = 1;\n    var LINKED = 2;\n    var USE_SIDECHAIN = 3;\n    var A_MODE = 4;\n    var A_GAIN = 5;\n    var A_THRESHOLD = 6;\n    var A_RATIO = 7;\n    var A_ATTACK = 8;\n    var A_RELEASE = 9;\n    var A_GAIN_MAKEUP = 10;\n    var A_RESPONSE_DATA = 11;\n    var B_MODE = 12;\n    var B_GAIN = 13;\n    var B_THRESHOLD = 14;\n    var B_RATIO = 15;\n    var B_ATTACK = 16;\n    var B_RELEASE = 17;\n    var B_GAIN_MAKEUP = 18;\n    var B_RESPONSE_DATA = 19;\n    var C_MODE = 20;\n    var C_GAIN = 21;\n    var C_THRESHOLD = 22;\n    var C_RATIO = 23;\n    var C_ATTACK = 24;\n    var C_RELEASE = 25;\n    var C_GAIN_MAKEUP = 26;\n    var C_RESPONSE_DATA = 27;\n}",
-   "notes": [
-    "Each band takes eight consecutive indices starting at A_MODE, B_MODE, and C_MODE."
-   ],
+   "notes": [],
    "type": "haxefmod.core.DspParameters.DspMultibandDynamics",
    "verdict": "bound"
   },
   "FMOD_DSP_MULTIBAND_DYNAMICS_MODE_TYPE": {
    "code": "enum abstract DspMultibandDynamicsMode(Int) from Int to Int {\n    var DISABLED = 0;\n    var COMPRESS_UP = 1;\n    var COMPRESS_DOWN = 2;\n    var EXPAND_UP = 3;\n    var EXPAND_DOWN = 4;\n}",
-   "notes": [
-    "Passed through setParameterInt on the band's MODE index (DspMultibandDynamics.A_MODE, B_MODE, C_MODE)."
-   ],
+   "notes": [],
    "type": "haxefmod.core.DspEnums.DspMultibandDynamicsMode",
    "verdict": "bound"
   },
   "FMOD_DSP_MULTIBAND_EQ": {
    "code": "enum abstract DspMultibandEq(Int) from Int to Int {\n    var A_FILTER = 0;\n    var A_FREQUENCY = 1;\n    var A_Q = 2;\n    var A_GAIN = 3;\n    var B_FILTER = 4;\n    var B_FREQUENCY = 5;\n    var B_Q = 6;\n    var B_GAIN = 7;\n    var C_FILTER = 8;\n    var C_FREQUENCY = 9;\n    var C_Q = 10;\n    var C_GAIN = 11;\n    var D_FILTER = 12;\n    var D_FREQUENCY = 13;\n    var D_Q = 14;\n    var D_GAIN = 15;\n    var E_FILTER = 16;\n    var E_FREQUENCY = 17;\n    var E_Q = 18;\n    var E_GAIN = 19;\n}",
-   "notes": [
-    "Each band takes four consecutive indices: filter, frequency, Q, gain."
-   ],
+   "notes": [],
    "type": "haxefmod.core.DspParameters.DspMultibandEq",
    "verdict": "bound"
   },
   "FMOD_DSP_MULTIBAND_EQ_FILTER_TYPE": {
    "code": "enum abstract DspMultibandEqFilter(Int) from Int to Int {\n    var DISABLED = 0;\n    var LOWPASS_12DB = 1;\n    var LOWPASS_24DB = 2;\n    var LOWPASS_48DB = 3;\n    var HIGHPASS_12DB = 4;\n    var HIGHPASS_24DB = 5;\n    var HIGHPASS_48DB = 6;\n    var LOWSHELF = 7;\n    var HIGHSHELF = 8;\n    var PEAKING = 9;\n    var BANDPASS = 10;\n    var NOTCH = 11;\n    var ALLPASS = 12;\n    var LOWPASS_6DB = 13;\n    var HIGHPASS_6DB = 14;\n}",
-   "notes": [
-    "Passed through setParameterInt on the band's FILTER index (DspMultibandEq.A_FILTER through E_FILTER)."
-   ],
+   "notes": [],
    "type": "haxefmod.core.DspEnums.DspMultibandEqFilter",
    "verdict": "bound"
   },
@@ -12982,25 +12906,19 @@ const HAXEFMOD_EXAMPLES = {
   },
   "FMOD_DSP_OBJECTPAN": {
    "code": "enum abstract DspObjectPan(Int) from Int to Int {\n    var _3D_POSITION = 0;\n    var _3D_ROLLOFF = 1;\n    var _3D_MIN_DISTANCE = 2;\n    var _3D_MAX_DISTANCE = 3;\n    var _3D_EXTENT_MODE = 4;\n    var _3D_SOUND_SIZE = 5;\n    var _3D_MIN_EXTENT = 6;\n    var OVERALL_GAIN = 7;\n    var OUTPUTGAIN = 8;\n    var ATTENUATION_RANGE = 9;\n    var OVERRIDE_RANGE = 10;\n}",
-   "notes": [
-    "The 3D position parameter takes the FMOD_DSP_PARAMETER_3DATTRIBUTES_MULTI struct, set with Dsp.setParameter3DAttributesMulti on DspObjectPan._3D_POSITION. A source played through a 3D channel gets the same from Channel.set3DAttributes."
-   ],
+   "notes": [],
    "type": "haxefmod.core.DspParameters.DspObjectPan",
    "verdict": "bound"
   },
   "FMOD_DSP_OSCILLATOR": {
    "code": "enum abstract DspOscillator(Int) from Int to Int {\n    var TYPE = 0;\n    var RATE = 1;\n}",
-   "notes": [
-    "A generator unit plays as a sound source through Dsp.play."
-   ],
+   "notes": [],
    "type": "haxefmod.core.DspParameters.DspOscillator",
    "verdict": "bound"
   },
   "FMOD_DSP_PAN": {
    "code": "enum abstract DspPan(Int) from Int to Int {\n    var MODE = 0;\n    var _2D_STEREO_POSITION = 1;\n    var _2D_DIRECTION = 2;\n    var _2D_EXTENT = 3;\n    var _2D_ROTATION = 4;\n    var _2D_LFE_LEVEL = 5;\n    var _2D_STEREO_MODE = 6;\n    var _2D_STEREO_SEPARATION = 7;\n    var _2D_STEREO_AXIS = 8;\n    var ENABLED_SPEAKERS = 9;\n    var _3D_POSITION = 10;\n    var _3D_ROLLOFF = 11;\n    var _3D_MIN_DISTANCE = 12;\n    var _3D_MAX_DISTANCE = 13;\n    var _3D_EXTENT_MODE = 14;\n    var _3D_SOUND_SIZE = 15;\n    var _3D_MIN_EXTENT = 16;\n    var _3D_PAN_BLEND = 17;\n    var LFE_UPMIX_ENABLED = 18;\n    var OVERALL_GAIN = 19;\n    var SURROUND_SPEAKER_MODE = 20;\n    var _2D_HEIGHT_BLEND = 21;\n    var ATTENUATION_RANGE = 22;\n    var OVERRIDE_RANGE = 23;\n}",
-   "notes": [
-    "The 3D position parameter takes the FMOD_DSP_PARAMETER_3DATTRIBUTES struct, set with Dsp.setParameter3DAttributes on DspPan._3D_POSITION. A source played through a 3D channel gets the same from Channel.set3DAttributes."
-   ],
+   "notes": [],
    "type": "haxefmod.core.DspParameters.DspPan",
    "verdict": "bound"
   },
@@ -13014,33 +12932,25 @@ const HAXEFMOD_EXAMPLES = {
   },
   "FMOD_DSP_PAN_2D_STEREO_MODE_TYPE": {
    "code": "enum abstract DspPan2DStereoModeType(Int) from Int to Int {\n    var DISTRIBUTED = 0;\n    var DISCRETE = 1;\n}",
-   "notes": [
-    "Passed through setParameterInt on DspPan._2D_STEREO_MODE."
-   ],
+   "notes": [],
    "type": "haxefmod.core.DspEnums.DspPan2DStereoModeType",
    "verdict": "bound"
   },
   "FMOD_DSP_PAN_3D_EXTENT_MODE_TYPE": {
    "code": "enum abstract DspPan3DExtentModeType(Int) from Int to Int {\n    var AUTO = 0;\n    var USER = 1;\n    var OFF = 2;\n}",
-   "notes": [
-    "Passed through setParameterInt on DspPan._3D_EXTENT_MODE."
-   ],
+   "notes": [],
    "type": "haxefmod.core.DspEnums.DspPan3DExtentModeType",
    "verdict": "bound"
   },
   "FMOD_DSP_PAN_3D_ROLLOFF_TYPE": {
    "code": "enum abstract DspPan3DRolloffType(Int) from Int to Int {\n    var LINEARSQUARED = 0;\n    var LINEAR = 1;\n    var INVERSE = 2;\n    var INVERSETAPERED = 3;\n    var CUSTOM = 4;\n}",
-   "notes": [
-    "Passed through setParameterInt on DspPan._3D_ROLLOFF. A CUSTOM curve goes on the channel through Channel.set3DCustomRolloff (unsupported in HTML5)."
-   ],
+   "notes": [],
    "type": "haxefmod.core.DspEnums.DspPan3DRolloffType",
    "verdict": "bound"
   },
   "FMOD_DSP_PAN_MODE_TYPE": {
    "code": "enum abstract DspPanModeType(Int) from Int to Int {\n    var MONO = 0;\n    var STEREO = 1;\n    var SURROUND = 2;\n}",
-   "notes": [
-    "Passed through setParameterInt on DspPan.MODE."
-   ],
+   "notes": [],
    "type": "haxefmod.core.DspEnums.DspPanModeType",
    "verdict": "bound"
   },
@@ -13064,25 +12974,19 @@ const HAXEFMOD_EXAMPLES = {
   },
   "FMOD_DSP_RETURN": {
    "code": "enum abstract DspReturn(Int) from Int to Int {\n    var ID = 0;\n    var INPUT_SPEAKER_MODE = 1;\n}",
-   "notes": [
-    "The return's ID is read with getParameterInt and given to a send's RETURNID."
-   ],
+   "notes": [],
    "type": "haxefmod.core.DspParameters.DspReturn",
    "verdict": "bound"
   },
   "FMOD_DSP_SEND": {
    "code": "enum abstract DspSend(Int) from Int to Int {\n    var RETURNID = 0;\n    var LEVEL = 1;\n}",
-   "notes": [
-    "RETURNID takes the ID read from a RETURN unit's DspReturn.ID parameter."
-   ],
+   "notes": [],
    "type": "haxefmod.core.DspParameters.DspSend",
    "verdict": "bound"
   },
   "FMOD_DSP_SFXREVERB": {
    "code": "enum abstract DspSfxReverb(Int) from Int to Int {\n    var DECAYTIME = 0;\n    var EARLYDELAY = 1;\n    var LATEDELAY = 2;\n    var HFREFERENCE = 3;\n    var HFDECAYRATIO = 4;\n    var DIFFUSION = 5;\n    var DENSITY = 6;\n    var LOWSHELFFREQUENCY = 7;\n    var LOWSHELFGAIN = 8;\n    var HIGHCUT = 9;\n    var EARLYLATEMIX = 10;\n    var WETLEVEL = 11;\n    var DRYLEVEL = 12;\n}",
-   "notes": [
-    "The first twelve indices match the fields of ReverbProperties in order. For a global reverb, Reverb.set with a preset is simpler than an SFXREVERB unit."
-   ],
+   "notes": [],
    "type": "haxefmod.core.DspParameters.DspSfxReverb",
    "verdict": "bound"
   },
@@ -13094,25 +12998,19 @@ const HAXEFMOD_EXAMPLES = {
   },
   "FMOD_DSP_THREE_EQ_CROSSOVERSLOPE_TYPE": {
    "code": "enum abstract DspThreeEqCrossoverSlope(Int) from Int to Int {\n    var _12DB = 0;\n    var _24DB = 1;\n    var _48DB = 2;\n}",
-   "notes": [
-    "Passed through setParameterInt on DspThreeEq.CROSSOVERSLOPE."
-   ],
+   "notes": [],
    "type": "haxefmod.core.DspEnums.DspThreeEqCrossoverSlope",
    "verdict": "bound"
   },
   "FMOD_DSP_TRANSCEIVER": {
    "code": "enum abstract DspTransceiver(Int) from Int to Int {\n    var TRANSMIT = 0;\n    var GAIN = 1;\n    var CHANNEL = 2;\n    var TRANSMITSPEAKERMODE = 3;\n}",
-   "notes": [
-    "One unit transmits on a channel and another receives it anywhere in the graph."
-   ],
+   "notes": [],
    "type": "haxefmod.core.DspParameters.DspTransceiver",
    "verdict": "bound"
   },
   "FMOD_DSP_TRANSCEIVER_SPEAKERMODE": {
    "code": "enum abstract DspTransceiverSpeakerMode(Int) from Int to Int {\n    var AUTO = -1;\n    var MONO = 0;\n    var STEREO = 1;\n    var SURROUND = 2;\n}",
-   "notes": [
-    "Passed through setParameterInt on DspTransceiver.TRANSMITSPEAKERMODE."
-   ],
+   "notes": [],
    "type": "haxefmod.core.DspEnums.DspTransceiverSpeakerMode",
    "verdict": "bound"
   },
@@ -13124,9 +13022,7 @@ const HAXEFMOD_EXAMPLES = {
   },
   "FMOD_DSP_TYPE": {
    "code": "enum abstract DspType(Int) from Int to Int {\n    var UNKNOWN = 0;\n    var MIXER = 1;\n    var OSCILLATOR = 2;\n    var LOWPASS = 3;\n    var ITLOWPASS = 4;\n    var HIGHPASS = 5;\n    var ECHO = 6;\n    var FADER = 7;\n    var FLANGE = 8;\n    var DISTORTION = 9;\n    var NORMALIZE = 10;\n    var LIMITER = 11;\n    var PARAMEQ = 12;\n    var PITCHSHIFT = 13;\n    var CHORUS = 14;\n    var ITECHO = 15;\n    var COMPRESSOR = 16;\n    var SFXREVERB = 17;\n    var LOWPASS_SIMPLE = 18;\n    var DELAY = 19;\n    var TREMOLO = 20;\n    var SEND = 21;\n    var RETURN = 22;\n    var HIGHPASS_SIMPLE = 23;\n    var PAN = 24;\n    var THREE_EQ = 25;\n    var FFT = 26;\n    var LOUDNESS_METER = 27;\n    var CONVOLUTIONREVERB = 28;\n    var CHANNELMIX = 29;\n    var TRANSCEIVER = 30;\n    var OBJECTPAN = 31;\n    var MULTIBAND_EQ = 32;\n    var MULTIBAND_DYNAMICS = 33;\n}",
-   "notes": [
-    "Third-party plugin units come from StudioSystem.loadPlugin and Dsp.createByPlugin, native only."
-   ],
+   "notes": [],
    "type": "haxefmod.core.DspType",
    "verdict": "bound"
   }
@@ -13142,9 +13038,7 @@ const HAXEFMOD_EXAMPLES = {
   },
   "FMOD_DSP_CALLBACK_TYPE": {
    "code": "enum abstract FmodDspCallbackType(Int) from Int to Int {\n    var DATAPARAMETERRELEASE = 0;\n    var MAX = 1;\n}",
-   "notes": [
-    "The callback itself is not exposed. Dsp.setParameterData copies its bytes, so nothing needs releasing."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodDspCallbackType",
    "verdict": "bound"
   },
@@ -13222,17 +13116,13 @@ const HAXEFMOD_EXAMPLES = {
  "core-api-sound": {
   "FMOD_OPENSTATE": {
    "code": "enum abstract FmodOpenState(Int) from Int to Int {\n    var READY = 0;\n    var LOADING = 1;\n    var ERROR = 2;\n    var CONNECTING = 3;\n    var BUFFERING = 4;\n    var SEEKING = 5;\n    var PLAYING = 6;\n    var SETPOSITION = 7;\n    var MAX = 8;\n}",
-   "notes": [
-    "Sound.getOpenState reports the state alone, and a failed query comes back as ERROR with the reason in StudioSystem.lastResult(). Sound.getOpenStateInfo returns the state with percentBuffered, starving, and diskBusy, or null on failure."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodOpenState",
    "verdict": "bound"
   },
   "FMOD_SOUND_FORMAT": {
    "code": "enum abstract FmodSoundFormat(Int) from Int to Int {\n    var NONE = 0;\n    var PCM8 = 1;\n    var PCM16 = 2;\n    var PCM24 = 3;\n    var PCM32 = 4;\n    var PCMFLOAT = 5;\n    var BITSTREAM = 6;\n    var MAX = 7;\n}",
-   "notes": [
-    "Sound.getFormat reports it in the format field next to the bit depth. Sound.fromPcm always builds PCM16."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodSoundFormat",
    "verdict": "bound"
   },
@@ -13262,17 +13152,13 @@ const HAXEFMOD_EXAMPLES = {
   },
   "FMOD_SOUND_TYPE": {
    "code": "enum abstract FmodSoundType(Int) from Int to Int {\n    var UNKNOWN = 0;\n    var AIFF = 1;\n    var ASF = 2;\n    var DLS = 3;\n    var FLAC = 4;\n    var FSB = 5;\n    var IT = 6;\n    var MIDI = 7;\n    var MOD = 8;\n    var MPEG = 9;\n    var OGGVORBIS = 10;\n    var PLAYLIST = 11;\n    var RAW = 12;\n    var S3M = 13;\n    var USER = 14;\n    var WAV = 15;\n    var XM = 16;\n    var XMA = 17;\n    var AUDIOQUEUE = 18;\n    var AT9 = 19;\n    var VORBIS = 20;\n    var MEDIA_FOUNDATION = 21;\n    var MEDIACODEC = 22;\n    var FADPCM = 23;\n    var OPUS = 24;\n    var MAX = 25;\n}",
-   "notes": [
-    "Sound.create accepts any format FMOD decodes on the target. Sound.getFormat reports the type of a loaded sound in its type field."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodSoundType",
    "verdict": "bound"
   },
   "FMOD_TAG": {
    "code": "typedef FmodTag = {\n    var name:String;\n    var type:FmodTagType;\n    var dataType:FmodTagDataType;\n    /** True until the tag has been read once through getTag. */\n    var updated:Bool;\n    /** Payload size in bytes, reported for every data type. */\n    var length:Int;\n    /** The payload of an INT tag. 0 otherwise. */\n    var intValue:Int;\n    /** The payload of a FLOAT tag. 0 otherwise. */\n    var floatValue:Float;\n    /** The payload of a STRING or STRING_UTF8 tag. \"\" otherwise, UTF16 and binary payloads are not copied. */\n    var stringValue:String;\n}",
-   "notes": [
-    "Returned by Sound.getTag (unsupported in HTML5, null there). data and datalen are folded into intValue, floatValue, stringValue, and length."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodTag",
    "verdict": "bound"
   },
@@ -13348,9 +13234,7 @@ const HAXEFMOD_EXAMPLES = {
  "core-api-soundgroup": {
   "FMOD_SOUNDGROUP_BEHAVIOR": {
    "code": "enum abstract SoundGroupBehavior(Int) from Int to Int {\n    var FAIL = 0;\n    var MUTE = 1;\n    var STEALLOWEST = 2;\n    var MAX = 3;\n}",
-   "notes": [
-    "SoundGroup.BEHAVIOR_FAIL, BEHAVIOR_MUTE, and BEHAVIOR_STEAL_LOWEST are the same values."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.SoundGroupBehavior",
    "verdict": "bound"
   }
@@ -13366,9 +13250,7 @@ const HAXEFMOD_EXAMPLES = {
   },
   "FMOD_ADVANCEDSETTINGS": {
    "code": "typedef FmodAdvancedSettings = {\n    var maxMPEGCodecs:Int;\n    var maxVorbisCodecs:Int;\n    var maxFADPCMCodecs:Int;\n    var vol0VirtualVol:Float;\n    var defaultDecodeBufferSize:Int;\n    var profilePort:Int;\n    var geometryMaxFadeTime:Int;\n    var distanceFilterCenterFreq:Float;\n    var randomSeed:Int;\n    var resamplerMethod:FmodDspResampler;\n}",
-   "notes": [
-    "Set at init through the FmodSettings fields of the same names and read back with StudioSystem.getAdvancedSettings. The fields not listed here keep FMOD's defaults."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodAdvancedSettings",
    "verdict": "bound"
   },
@@ -13382,41 +13264,31 @@ const HAXEFMOD_EXAMPLES = {
   },
   "FMOD_CREATESOUNDEXINFO": {
    "code": "typedef FmodCreateSoundExInfo = {\n    /** Bytes to read from a memory image or a file, 0 for the whole thing. fromMemory sets it to the buffer length when left out. */\n    @:optional var length:Int;\n    /** Byte offset to start reading a file at. */\n    @:optional var fileOffset:Int;\n    /** Channel count of raw PCM (ChannelMode.OPENRAW). */\n    @:optional var numChannels:Int;\n    /** Sample rate of raw PCM (ChannelMode.OPENRAW). */\n    @:optional var defaultFrequency:Int;\n    /** Sample format of raw PCM (ChannelMode.OPENRAW). */\n    @:optional var format:FmodSoundFormat;\n    /** Decode buffer size in samples for a stream. */\n    @:optional var decodeBufferSize:Int;\n    /** The subsound an FSB or multi-stream file starts on. */\n    @:optional var initialSubsound:Int;\n    /** Subsound count for a user-created container sound. */\n    @:optional var numSubsounds:Int;\n    /** Subsound indices to load, the rest stay unloaded. */\n    @:optional var inclusionList:Array<Int>;\n    /** DLS sound bank file for MIDI playback. */\n    @:optional var dlsName:String;\n    /** Key for an encrypted FSB. */\n    @:optional var encryptionKey:String;\n    /** Voice cap for a MIDI or tracker sound. */\n    @:optional var maxPolyphony:Int;\n    /** The codec to try first, skipping FMOD's format sniffing. */\n    @:optional var suggestedSoundType:FmodSoundType;\n    /** Buffer size in bytes for the file reader of a stream. */\n    @:optional var fileBufferSize:Int;\n    /** Speaker order of the source data. */\n    @:optional var channelOrder:FmodChannelOrder;\n    /** The group the new sound joins, SoundGroup.master() when left out. */\n    @:optional var initialSoundGroup:haxefmod.core.SoundGroup;\n    /** Where a stream starts, in initialSeekPosType units. */\n    @:optional var initialSeekPosition:Int;\n    /** The unit of initialSeekPosition, milliseconds when left out. */\n    @:optional var initialSeekPosType:FmodTimeUnit;\n    /** Nonzero reads the file through the platform file system even when a custom one is installed. */\n    @:optional var ignoreSetFileSystem:Int;\n    /** iOS AudioQueue codec policy. */\n    @:optional var audioQueuePolicy:Int;\n    /** Granularity in milliseconds of MIDI note timing. */\n    @:optional var minMidiGranularity:Int;\n    /** Which of FMOD's nonblocking threads handles a ChannelMode.NONBLOCKING load, 0 to 4. */\n    @:optional var nonBlockThreadId:Int;\n    /** The GUID of the FSB subsound to load, for FSB files that carry GUIDs. */\n    @:optional var fsbGuid:FmodGuid;\n}",
-   "notes": [
-    "The optional last argument of Sound.create and Sound.fromMemory. Every field is optional and a missing one keeps FMOD's default. The callback and pointer fields have no Haxe side, FMOD calls them on its own threads. Sound.fromPcm and PcmStream cover raw PCM and generated audio without it."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodCreateSoundExInfo",
    "verdict": "bound"
   },
   "FMOD_DRIVER_STATE": {
    "code": "enum abstract FmodDriverState(Int) from Int to Int {\n    var CONNECTED = 0x00000001;\n    var DEFAULT = 0x00000002;\n}",
-   "notes": [
-    "The state field of StudioSystem.getRecordDriverInfo. Output drivers are listed by CoreSystem.getDriverCount, getDriverName, and getDriverInfo without a state."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodDriverState",
    "verdict": "bound"
   },
   "FMOD_DSP_RESAMPLER": {
    "code": "enum abstract FmodDspResampler(Int) from Int to Int {\n    var DEFAULT = 0;\n    var NOINTERP = 1;\n    var LINEAR = 2;\n    var CUBIC = 3;\n    var SPLINE = 4;\n    var MAX = 5;\n}",
-   "notes": [
-    "Picked by the resamplerMethod field of FmodSettings, and read back by StudioSystem.getAdvancedSettings."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodDspResampler",
    "verdict": "bound"
   },
   "FMOD_ERRORCALLBACK_INFO": {
    "code": "typedef FmodErrorCallbackInfo = {\n    /** The result the failing call returned. */\n    var result:FmodResult;\n    /** The kind of object the call was made on. */\n    var instanceType:FmodErrorCallbackInstanceType;\n    /** The handle of that object, castable to its abstract type, 0 when unknown. */\n    var instance:Int;\n    /** The FMOD function that failed, for example \"System::createSound\". */\n    var functionName:String;\n    /** The arguments as FMOD prints them, cut at 127 characters. */\n    var functionParams:String;\n}",
-   "notes": [
-    "Delivered as SystemEvent.Error(info) by the handler StudioSystem.setSystemCallback installs when SystemCallbacks.CORE_ERROR is in the core mask. instance is the haxefmod handle of the failing object when the library knows it. The web build never raises the callback."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodErrorCallbackInfo",
    "verdict": "bound"
   },
   "FMOD_ERRORCALLBACK_INSTANCETYPE": {
    "code": "enum abstract FmodErrorCallbackInstanceType(Int) from Int to Int {\n    var NONE = 0;\n    var SYSTEM = 1;\n    var CHANNEL = 2;\n    var CHANNELGROUP = 3;\n    var CHANNELCONTROL = 4;\n    var SOUND = 5;\n    var SOUNDGROUP = 6;\n    var DSP = 7;\n    var DSPCONNECTION = 8;\n    var GEOMETRY = 9;\n    var REVERB3D = 10;\n    var STUDIO_SYSTEM = 11;\n    var STUDIO_EVENTDESCRIPTION = 12;\n    var STUDIO_EVENTINSTANCE = 13;\n    var STUDIO_PARAMETERINSTANCE = 14;\n    var STUDIO_BUS = 15;\n    var STUDIO_VCA = 16;\n    var STUDIO_BANK = 17;\n    var STUDIO_COMMANDREPLAY = 18;\n}",
-   "notes": [
-    "The instanceType field of FmodErrorCallbackInfo."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodErrorCallbackInstanceType",
    "verdict": "bound"
   },
@@ -13478,25 +13350,19 @@ const HAXEFMOD_EXAMPLES = {
   },
   "FMOD_INITFLAGS": {
    "code": "enum abstract FmodInitFlags(Int) from Int to Int {\n    var NORMAL = 0x00000000;\n    var STREAM_FROM_UPDATE = 0x00000001;\n    var MIX_FROM_UPDATE = 0x00000002;\n    var _3D_RIGHTHANDED = 0x00000004;\n    var CLIP_OUTPUT = 0x00000008;\n    var CHANNEL_LOWPASS = 0x00000100;\n    var CHANNEL_DISTANCEFILTER = 0x00000200;\n    var PROFILE_ENABLE = 0x00010000;\n    var VOL0_BECOMES_VIRTUAL = 0x00020000;\n    var GEOMETRY_USECLOSEST = 0x00040000;\n    var PREFER_DOLBY_DOWNMIX = 0x00080000;\n    var THREAD_UNSAFE = 0x00100000;\n    var PROFILE_METER_ALL = 0x00200000;\n    var MEMORY_TRACKING = 0x00400000;\n}",
-   "notes": [
-    "The library composes the flags at init. FmodSettings.profiling sets PROFILE_ENABLE and FmodSettings.distanceFilter sets CHANNEL_DISTANCEFILTER, the other bits stay clear."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodInitFlags",
    "verdict": "bound"
   },
   "FMOD_OUTPUTTYPE": {
    "code": "enum abstract FmodOutputType(Int) from Int to Int {\n    var AUTODETECT = 0;\n    var UNKNOWN = 1;\n    var NOSOUND = 2;\n    var WAVWRITER = 3;\n    var NOSOUND_NRT = 4;\n    var WAVWRITER_NRT = 5;\n    var WASAPI = 6;\n    var ASIO = 7;\n    var PULSEAUDIO = 8;\n    var ALSA = 9;\n    var COREAUDIO = 10;\n    var AUDIOTRACK = 11;\n    var OPENSL = 12;\n    var AUDIOOUT = 13;\n    var AUDIO3D = 14;\n    var WEBAUDIO = 15;\n    var NNAUDIO = 16;\n    var WINSONIC = 17;\n    var AAUDIO = 18;\n    var AUDIOWORKLET = 19;\n    var PHASE = 20;\n    var OHAUDIO = 21;\n    var MAX = 22;\n}",
-   "notes": [
-    "Picked by FmodSettings.output at init (AUTODETECT when unset, the FMOD_WAVWRITER environment variable still forces WAVWRITER) and read back with CoreSystem.getOutput. HTML5 has WEBAUDIO, AUDIOWORKLET, NOSOUND, and NOSOUND_NRT only."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodOutputType",
    "verdict": "bound"
   },
   "FMOD_PLUGINLIST": {
    "code": "typedef FmodPluginList = {\n    var type:FmodPluginType;\n    /** The address of the plugin description, always 0 on the Haxe side. */\n    var description:Int;\n}",
-   "notes": [
-    "Declared for completeness. A static plugin list holds pointers to plugin descriptions written in C and is linked into the binary, a step no Haxe build performs, so no call takes or returns it. A compiled plugin loads with StudioSystem.loadPlugin."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodPluginList",
    "verdict": "bound"
   },
@@ -13508,33 +13374,25 @@ const HAXEFMOD_EXAMPLES = {
   },
   "FMOD_PORT_INDEX": {
    "code": "enum abstract FmodPortIndex(Int) from Int to Int {\n    var NONE = -1;\n}",
-   "notes": [
-    "The portIndex argument of CoreSystem.attachChannelGroupToPort. FMOD's NONE is the 64-bit all-ones value and crosses as -1."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodPortIndex",
    "verdict": "bound"
   },
   "FMOD_PORT_TYPE": {
    "code": "enum abstract FmodPortType(Int) from Int to Int {\n    var MUSIC = 0;\n    var COPYRIGHT_MUSIC = 1;\n    var VOICE = 2;\n    var CONTROLLER = 3;\n    var PERSONAL = 4;\n    var VIBRATION = 5;\n    var AUX = 6;\n    var PASSTHROUGH = 7;\n    var VR_VIBRATION = 8;\n    var MAX = 9;\n}",
-   "notes": [
-    "The portType argument of CoreSystem.attachChannelGroupToPort. Desktop and web outputs have no ports and report FMOD_ERR_UNSUPPORTED."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodPortType",
    "verdict": "bound"
   },
   "FMOD_REVERB_MAXINSTANCES": {
    "code": "class FmodLimits {\n    /** FMOD_MAX_CHANNEL_WIDTH, the widest mix matrix and channel format. */\n    public static inline var MAX_CHANNEL_WIDTH = 32;\n    /** FMOD_MAX_SYSTEMS, how many FMOD systems one process may create. haxefmod creates one. */\n    public static inline var MAX_SYSTEMS = 8;\n    /** FMOD_MAX_LISTENERS, the cap on StudioSystem.setNumListeners. */\n    public static inline var MAX_LISTENERS = 8;\n    /** FMOD_REVERB_MAXINSTANCES, the number of reverb instance slots. */\n    public static inline var REVERB_MAXINSTANCES = 4;\n    /** FMOD_STUDIO_LOAD_MEMORY_ALIGNMENT, the alignment loadBankMemory needs in point mode. */\n    public static inline var STUDIO_LOAD_MEMORY_ALIGNMENT = 32;\n}",
-   "notes": [
-    "FmodLimits.REVERB_MAXINSTANCES. The instance argument of Reverb.set, Reverb.get, and Reverb.off runs from 0 to one below it."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodLimits",
    "verdict": "bound"
   },
   "FMOD_REVERB_PRESETS": {
    "code": "class ReverbPresets {\n    public static var OFF(get, never):ReverbProperties;\n    static function get_OFF() return Reverb.PRESET_OFF;\n    public static var GENERIC(get, never):ReverbProperties;\n    static function get_GENERIC() return Reverb.PRESET_GENERIC;\n    public static var PADDEDCELL(get, never):ReverbProperties;\n    static function get_PADDEDCELL() return Reverb.PRESET_PADDEDCELL;\n    public static var ROOM(get, never):ReverbProperties;\n    static function get_ROOM() return Reverb.PRESET_ROOM;\n    public static var BATHROOM(get, never):ReverbProperties;\n    static function get_BATHROOM() return Reverb.PRESET_BATHROOM;\n    public static var LIVINGROOM(get, never):ReverbProperties;\n    static function get_LIVINGROOM() return Reverb.PRESET_LIVINGROOM;\n    public static var STONEROOM(get, never):ReverbProperties;\n    static function get_STONEROOM() return Reverb.PRESET_STONEROOM;\n    public static var AUDITORIUM(get, never):ReverbProperties;\n    static function get_AUDITORIUM() return Reverb.PRESET_AUDITORIUM;\n    public static var CONCERTHALL(get, never):ReverbProperties;\n    static function get_CONCERTHALL() return Reverb.PRESET_CONCERTHALL;\n    public static var CAVE(get, never):ReverbProperties;\n    static function get_CAVE() return Reverb.PRESET_CAVE;\n    public static var ARENA(get, never):ReverbProperties;\n    static function get_ARENA() return Reverb.PRESET_ARENA;\n    public static var HANGAR(get, never):ReverbProperties;\n    static function get_HANGAR() return Reverb.PRESET_HANGAR;\n    public static var CARPETTEDHALLWAY(get, never):ReverbProperties;\n    static function get_CARPETTEDHALLWAY() return Reverb.PRESET_CARPETTEDHALLWAY;\n    public static var HALLWAY(get, never):ReverbProperties;\n    static function get_HALLWAY() return Reverb.PRESET_HALLWAY;\n    public static var STONECORRIDOR(get, never):ReverbProperties;\n    static function get_STONECORRIDOR() return Reverb.PRESET_STONECORRIDOR;\n    public static var ALLEY(get, never):ReverbProperties;\n    static function get_ALLEY() return Reverb.PRESET_ALLEY;\n    public static var FOREST(get, never):ReverbProperties;\n    static function get_FOREST() return Reverb.PRESET_FOREST;\n    public static var CITY(get, never):ReverbProperties;\n    static function get_CITY() return Reverb.PRESET_CITY;\n    public static var MOUNTAINS(get, never):ReverbProperties;\n    static function get_MOUNTAINS() return Reverb.PRESET_MOUNTAINS;\n    public static var QUARRY(get, never):ReverbProperties;\n    static function get_QUARRY() return Reverb.PRESET_QUARRY;\n    public static var PLAIN(get, never):ReverbProperties;\n    static function get_PLAIN() return Reverb.PRESET_PLAIN;\n    public static var PARKINGLOT(get, never):ReverbProperties;\n    static function get_PARKINGLOT() return Reverb.PRESET_PARKINGLOT;\n    public static var SEWERPIPE(get, never):ReverbProperties;\n    static function get_SEWERPIPE() return Reverb.PRESET_SEWERPIPE;\n    public static var UNDERWATER(get, never):ReverbProperties;\n    static function get_UNDERWATER() return Reverb.PRESET_UNDERWATER;\n}",
-   "notes": [
-    "Each preset is a ReverbProperties for Reverb.set and Reverb3D.setProperties, the same values as the Reverb.PRESET_ statics."
-   ],
+   "notes": [],
    "type": "haxefmod.core.Reverb.ReverbPresets",
    "verdict": "bound"
   },
@@ -13555,9 +13413,7 @@ const HAXEFMOD_EXAMPLES = {
   },
   "FMOD_SYSTEM_CALLBACK_TYPE": {
    "code": "enum abstract FmodSystemCallbackType(Int) from Int to Int {\n    var DEVICELISTCHANGED = 0x00000001;\n    var DEVICELOST = 0x00000002;\n    var MEMORYALLOCATIONFAILED = 0x00000004;\n    var THREADCREATED = 0x00000008;\n    var BADDSPCONNECTION = 0x00000010;\n    var PREMIX = 0x00000020;\n    var POSTMIX = 0x00000040;\n    var ERROR = 0x00000080;\n    var THREADDESTROYED = 0x00000100;\n    var PREUPDATE = 0x00000200;\n    var POSTUPDATE = 0x00000400;\n    var RECORDLISTCHANGED = 0x00000800;\n    var BUFFEREDNOMIX = 0x00001000;\n    var DEVICEREINITIALIZE = 0x00002000;\n    var OUTPUTUNDERRUN = 0x00004000;\n    var RECORDPOSITIONCHANGED = 0x00008000;\n    var ALL = 0xFFFFFFFF;\n}",
-   "notes": [
-    "StudioSystem.setSystemCallback delivers DEVICELISTCHANGED, DEVICELOST, and ERROR, its coreMask takes the CORE_* constants of SystemCallbacks. The other types are not delivered."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodSystemCallbackType",
    "verdict": "bound"
   },
@@ -14625,9 +14481,7 @@ const HAXEFMOD_EXAMPLES = {
   },
   "FMOD_DSP_METERING_INFO": {
    "code": "typedef FmodDspMeteringInfo = {\n    var numSamples:Int;\n    var peakLevel:Array<Float>;\n    var rmsLevel:Array<Float>;\n    var numChannels:Int;\n}",
-   "notes": [
-    "Dsp.getMetering() returns the output side, getMetering(true) or getInputMetering() the input side, once setMeteringEnabled is on."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodDspMeteringInfo",
    "verdict": "bound"
   },
@@ -14687,25 +14541,19 @@ const HAXEFMOD_EXAMPLES = {
   },
   "FMOD_DSP_PARAMETER_3DATTRIBUTES": {
    "code": "typedef FmodDspParameter3DAttributes = {\n    var relative:Fmod3DAttributes;\n    var absolute:Fmod3DAttributes;\n}",
-   "notes": [
-    "Set with Dsp.setParameter3DAttributes(index, absolute, ?relative), the shim packs the struct."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodDspParameter3DAttributes",
    "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_3DATTRIBUTES_MULTI": {
    "code": "typedef FmodDspParameter3DAttributesMulti = {\n    var numListeners:Int;\n    var relative:Array<Fmod3DAttributes>;\n    var weight:Array<Float>;\n    var absolute:Fmod3DAttributes;\n}",
-   "notes": [
-    "Set with Dsp.setParameter3DAttributesMulti(index, absolute, relative, ?weights), one relative entry per listener, the shim packs the struct."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodDspParameter3DAttributesMulti",
    "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_ATTENUATION_RANGE": {
    "code": "typedef FmodDspParameterAttenuationRange = {\n    var min:Float;\n    var max:Float;\n}",
-   "notes": [
-    "Set with Dsp.setParameterAttenuationRange(index, props) and read with getParameterAttenuationRange(index), the shim packs the struct. Dsp.getDataParameterIndex(ATTENUATION_RANGE) finds the index."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodDspParameterAttenuationRange",
    "verdict": "bound"
   },
@@ -14717,81 +14565,61 @@ const HAXEFMOD_EXAMPLES = {
   },
   "FMOD_DSP_PARAMETER_DESC": {
    "code": "typedef FmodDspParameterDesc = {\n    var type:FmodDspParameterType;\n    var name:String;\n    var label:String;\n    var description:String;\n    var floatDesc:Null<FmodDspParameterDescFloat>;\n    var intDesc:Null<FmodDspParameterDescInt>;\n    var boolDesc:Null<FmodDspParameterDescBool>;\n    var dataDesc:Null<FmodDspParameterDescData>;\n}",
-   "notes": [
-    "Dsp.getParameterInfo(index) returns it, native only (unsupported in HTML5). The union member matching type is set (floatDesc, intDesc, boolDesc, or dataDesc), the other three are null."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodDspParameterDesc",
    "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_DESC_BOOL": {
    "code": "typedef FmodDspParameterDescBool = {\n    var defaultVal:Bool;\n    var valueNames:Null<Array<String>>;\n}",
-   "notes": [
-    "The boolDesc member of FmodDspParameterDesc."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodDspParameterDescBool",
    "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_DESC_DATA": {
    "code": "typedef FmodDspParameterDescData = {\n    var dataType:FmodDspParameterDataType;\n}",
-   "notes": [
-    "The dataDesc member of FmodDspParameterDesc."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodDspParameterDescData",
    "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_DESC_FLOAT": {
    "code": "typedef FmodDspParameterDescFloat = {\n    var min:Float;\n    var max:Float;\n    var defaultVal:Float;\n    var mapping:FmodDspParameterFloatMapping;\n}",
-   "notes": [
-    "The floatDesc member of FmodDspParameterDesc."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodDspParameterDescFloat",
    "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_DESC_INT": {
    "code": "typedef FmodDspParameterDescInt = {\n    var min:Int;\n    var max:Int;\n    var defaultVal:Int;\n    var goesToInf:Bool;\n    var valueNames:Null<Array<String>>;\n}",
-   "notes": [
-    "The intDesc member of FmodDspParameterDesc."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodDspParameterDescInt",
    "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_DYNAMIC_RESPONSE": {
    "code": "typedef FmodDspParameterDynamicResponse = {\n    var numChannels:Int;\n    var rms:Array<Float>;\n}",
-   "notes": [
-    "Read with Dsp.getParameterDynamicResponse(index), the shim unpacks the struct. Dsp.getDataParameterIndex(DYNAMIC_RESPONSE) finds the index."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodDspParameterDynamicResponse",
    "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_FFT": {
    "code": "typedef FmodDspParameterFft = {\n    var length:Int;\n    var numChannels:Int;\n    var spectrum:Array<Array<Float>>;\n}",
-   "notes": [
-    "Read with Dsp.getFftSpectrumInfo(maxBins) on an FFT unit, or getFftSpectrum(maxBins) for the first channel alone."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodDspParameterFft",
    "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_FINITE_LENGTH": {
    "code": "typedef FmodDspParameterFiniteLength = {\n    var finite:Bool;\n}",
-   "notes": [
-    "Set with Dsp.setParameterFiniteLength(index, props) and read with getParameterFiniteLength(index), the shim packs the struct."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodDspParameterFiniteLength",
    "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_FLOAT_MAPPING": {
    "code": "typedef FmodDspParameterFloatMapping = {\n    var type:FmodDspParameterFloatMappingType;\n    var piecewiseLinearMapping:FmodDspParameterFloatMappingPiecewiseLinear;\n}",
-   "notes": [
-    "The mapping field of FmodDspParameterDescFloat."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodDspParameterFloatMapping",
    "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_FLOAT_MAPPING_PIECEWISE_LINEAR": {
    "code": "typedef FmodDspParameterFloatMappingPiecewiseLinear = {\n    var numPoints:Int;\n    var pointParamValues:Array<Float>;\n    var pointPositions:Array<Float>;\n}",
-   "notes": [
-    "The piecewiseLinearMapping field of FmodDspParameterFloatMapping, empty unless the mapping type is PIECEWISE_LINEAR."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodDspParameterFloatMappingPiecewiseLinear",
    "verdict": "bound"
   },
@@ -14803,25 +14631,19 @@ const HAXEFMOD_EXAMPLES = {
   },
   "FMOD_DSP_PARAMETER_OVERALLGAIN": {
    "code": "typedef FmodDspParameterOverallGain = {\n    var linearGain:Float;\n    var linearGainAdditive:Float;\n}",
-   "notes": [
-    "Read with Dsp.getOverallGain(), which finds the unit's overall gain parameter, or getOverallGain(index)."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodDspParameterOverallGain",
    "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_SIDECHAIN": {
    "code": "typedef FmodDspParameterSidechain = {\n    var sidechainEnable:Bool;\n}",
-   "notes": [
-    "Set with Dsp.setParameterSidechain(index, props) and read with getParameterSidechain(index), the shim packs the struct. DspCompressor.USESIDECHAIN is one such parameter."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodDspParameterSidechain",
    "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_TYPE": {
    "code": "enum abstract FmodDspParameterType(Int) from Int to Int {\n    var FLOAT = 0;\n    var INT = 1;\n    var BOOL = 2;\n    var DATA = 3;\n    var MAX = 4;\n}",
-   "notes": [
-    "Reported in the type field of Dsp.getParameterInfo."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodDspParameterType",
    "verdict": "bound"
   },
@@ -15163,9 +14985,7 @@ const HAXEFMOD_EXAMPLES = {
   },
   "FMOD_OUTPUT_METHOD": {
    "code": "enum abstract FmodOutputMethod(Int) from Int to Int {\n    var MIX_DIRECT = 0;\n    var MIX_BUFFERED = 1;\n}",
-   "notes": [
-    "MIX_BUFFERED is 1 in the FMOD 2.02 header haxefmod binds."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodOutputMethod",
    "verdict": "bound"
   },
@@ -15386,25 +15206,19 @@ const HAXEFMOD_EXAMPLES = {
   },
   "FMOD_STUDIO_MEMORY_USAGE": {
    "code": "typedef FmodMemoryUsage = {\n    var exclusive:Int;\n    var inclusive:Int;\n    var sampledata:Int;\n}",
-   "notes": [
-    "Memory usage is native only. A js build rejects the getMemoryUsage calls at compile time unless -D haxefmod_html5_allow_unsupported is set, and then they return null in the browser. The counts are real with the logging FMOD libraries and the memoryTracking setting, the release libraries report zero."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodMemoryUsage",
    "verdict": "bound"
   },
   "FMOD_STUDIO_PARAMETER_DESCRIPTION": {
    "code": "typedef FmodParameterDescription = {\n    var name:String;\n    var id:FmodParameterId;\n    var minimum:Float;\n    var maximum:Float;\n    var defaultValue:Float;\n    var type:FmodParameterType;\n    var flags:Int;\n    /** The parameter's GUID, the same value lookupID returns for its path. */\n    var guid:FmodGuid;\n}",
-   "notes": [
-    "The guid field is the parameter's GUID in the text form StudioSystem.lookupID returns."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodParameterDescription",
    "verdict": "bound"
   },
   "FMOD_STUDIO_PARAMETER_FLAGS": {
    "code": "enum abstract FmodParameterFlags(Int) from Int to Int {\n    var READONLY = 0x00000001;\n    var AUTOMATIC = 0x00000002;\n    var GLOBAL = 0x00000004;\n    var DISCRETE = 0x00000008;\n    var LABELED = 0x00000010;\n}",
-   "notes": [
-    "The flags field of a description is an Int, mask it with these bits."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodParameterFlags",
    "verdict": "bound"
   },
@@ -15430,10 +15244,7 @@ const HAXEFMOD_EXAMPLES = {
  "studio-api-eventdescription": {
   "FMOD_STUDIO_USER_PROPERTY": {
    "code": "typedef FmodUserProperty = {\n    var name:String;\n    var type:FmodUserPropertyType;\n    /** Numeric value (int/bool coerced). 0 for string properties. */\n    var floatValue:Float;\n    /** String value. \"\" for non-string properties. */\n    var stringValue:String;\n}",
-   "notes": [
-    "The union is folded, floatValue carries integer, boolean, and float properties and stringValue is \"\" for them.",
-    "Numeric properties are native only (unsupported in HTML5), where the read returns FMOD_ERR_UNSUPPORTED."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodUserProperty",
    "verdict": "bound"
   },
@@ -15518,9 +15329,7 @@ const HAXEFMOD_EXAMPLES = {
  "studio-api-system": {
   "FMOD_STUDIO_ADVANCEDSETTINGS": {
    "code": "typedef FmodStudioAdvancedSettings = {\n    var commandQueueSize:Int;\n    var handleInitialSize:Int;\n    var studioUpdatePeriod:Int;\n    var idleSampleDataPoolSize:Int;\n    var streamingScheduleDelay:Int;\n}",
-   "notes": [
-    "Set through the FmodSettings fields of the same names before init, encryptionKey included. StudioSystem.getStudioAdvancedSettings reads the five sizes back, native only (unsupported in HTML5). The key is never read back."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodStudioAdvancedSettings",
    "verdict": "bound"
   },
@@ -15544,57 +15353,43 @@ const HAXEFMOD_EXAMPLES = {
   },
   "FMOD_STUDIO_COMMANDCAPTURE_FLAGS": {
    "code": "enum abstract FmodCommandCaptureFlags(Int) from Int to Int {\n    var NORMAL = 0x00000000;\n    var FILEFLUSH = 0x00000001;\n    var SKIP_INITIAL_STATE = 0x00000002;\n}",
-   "notes": [
-    "The flags argument of StudioSystem.startCommandCapture(path, flags), NORMAL when left out."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodCommandCaptureFlags",
    "verdict": "bound"
   },
   "FMOD_STUDIO_COMMANDREPLAY_FLAGS": {
    "code": "enum abstract FmodCommandReplayFlags(Int) from Int to Int {\n    var NORMAL = 0x00000000;\n    var SKIP_CLEANUP = 0x00000001;\n    var FAST_FORWARD = 0x00000002;\n    var SKIP_BANK_LOAD = 0x00000004;\n}",
-   "notes": [
-    "The flags argument of StudioSystem.loadCommandReplay(path, flags), NORMAL when left out."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodCommandReplayFlags",
    "verdict": "bound"
   },
   "FMOD_STUDIO_CPU_USAGE": {
    "code": "typedef FmodSystemCpuUsage = {\n    var studioUpdate:Float;\n    var dsp:Float;\n    var stream:Float;\n    var geometry:Float;\n    var update:Float;\n    var convolution1:Float;\n    var convolution2:Float;\n}",
-   "notes": [
-    "StudioSystem.getCpuUsage returns one structure for both systems. The Studio update time is studioUpdate, and update is the core update time from FMOD_CPU_USAGE."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodSystemCpuUsage",
    "verdict": "bound"
   },
   "FMOD_STUDIO_INITFLAGS": {
    "code": "enum abstract FmodStudioInitFlags(Int) from Int to Int {\n    var NORMAL = 0x00000000;\n    var LIVEUPDATE = 0x00000001;\n    var ALLOW_MISSING_PLUGINS = 0x00000002;\n    var SYNCHRONOUS_UPDATE = 0x00000004;\n    var DEFERRED_CALLBACKS = 0x00000008;\n    var LOAD_FROM_UPDATE = 0x00000010;\n    var MEMORY_TRACKING = 0x00000020;\n}",
-   "notes": [
-    "The library passes LIVEUPDATE when FmodSettings.liveUpdate is true and MEMORY_TRACKING when FmodSettings.memoryTracking is true, NORMAL otherwise. The other flags are never set."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodStudioInitFlags",
    "verdict": "bound"
   },
   "FMOD_STUDIO_LOAD_BANK_FLAGS": {
    "code": "enum abstract FmodLoadBankFlags(Int) from Int to Int {\n    var NORMAL = 0;\n    var NONBLOCKING = 1;\n    var DECOMPRESS_SAMPLES = 2;\n    var UNENCRYPTED = 4;\n}",
-   "notes": [
-    "The flags argument of StudioSystem.loadBankFile and loadBankMemory, NORMAL when left out."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodLoadBankFlags",
    "verdict": "bound"
   },
   "FMOD_STUDIO_LOAD_MEMORY_ALIGNMENT": {
    "code": "class FmodLimits {\n    /** FMOD_MAX_CHANNEL_WIDTH, the widest mix matrix and channel format. */\n    public static inline var MAX_CHANNEL_WIDTH = 32;\n    /** FMOD_MAX_SYSTEMS, how many FMOD systems one process may create. haxefmod creates one. */\n    public static inline var MAX_SYSTEMS = 8;\n    /** FMOD_MAX_LISTENERS, the cap on StudioSystem.setNumListeners. */\n    public static inline var MAX_LISTENERS = 8;\n    /** FMOD_REVERB_MAXINSTANCES, the number of reverb instance slots. */\n    public static inline var REVERB_MAXINSTANCES = 4;\n    /** FMOD_STUDIO_LOAD_MEMORY_ALIGNMENT, the alignment loadBankMemory needs in point mode. */\n    public static inline var STUDIO_LOAD_MEMORY_ALIGNMENT = 32;\n}",
-   "notes": [
-    "FmodLimits.STUDIO_LOAD_MEMORY_ALIGNMENT. StudioSystem.loadBankMemory copies the bytes into memory FMOD allocates, so game code never aligns a bank buffer."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodLimits",
    "verdict": "bound"
   },
   "FMOD_STUDIO_LOAD_MEMORY_MODE": {
    "code": "enum abstract FmodLoadMemoryMode(Int) from Int to Int {\n    var MEMORY = 0;\n    var MEMORY_POINT = 1;\n}",
-   "notes": [
-    "StudioSystem.loadBankMemory always loads with MEMORY. A Haxe buffer cannot be pinned for the bank's lifetime, so MEMORY_POINT is never used."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodLoadMemoryMode",
    "verdict": "bound"
   },
@@ -15608,9 +15403,7 @@ const HAXEFMOD_EXAMPLES = {
   },
   "FMOD_STUDIO_SOUND_INFO": {
    "code": "typedef FmodSoundInfo = {\n    var name:String;\n    var mode:Int;\n    var length:Int;\n    var fileOffset:Int;\n    var initialSubsound:Int;\n    var numSubsounds:Int;\n    var subSoundIndex:Int;\n}",
-   "notes": [
-    "Returned by StudioSystem.getSoundInfo(key). The exinfo fields FMOD fills are flattened into length, fileOffset, initialSubsound, and numSubsounds. The programmer sound callbacks resolve the key natively, EventInstance.assignProgrammerSound(key) picks the sound."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodSoundInfo",
    "verdict": "bound"
   },
@@ -15624,9 +15417,7 @@ const HAXEFMOD_EXAMPLES = {
   },
   "FMOD_STUDIO_SYSTEM_CALLBACK_TYPE": {
    "code": "enum abstract FmodStudioSystemCallbackType(Int) from Int to Int {\n    var PREUPDATE = 0x00000001;\n    var POSTUPDATE = 0x00000002;\n    var BANK_UNLOAD = 0x00000004;\n    var LIVEUPDATE_CONNECTED = 0x00000008;\n    var LIVEUPDATE_DISCONNECTED = 0x00000010;\n    var ALL = 0xFFFFFFFF;\n}",
-   "notes": [
-    "The same bits are the STUDIO_* Int constants on SystemCallbacks, which is what the studioMask argument of StudioSystem.setSystemCallback takes. PREUPDATE and POSTUPDATE are off by default."
-   ],
+   "notes": [],
    "type": "haxefmod.studio.Types.FmodStudioSystemCallbackType",
    "verdict": "bound"
   }
