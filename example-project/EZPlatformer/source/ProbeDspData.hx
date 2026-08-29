@@ -134,19 +134,31 @@ class ProbeDspData {
         var spectrum = fft.getFftSpectrumInfo(64);
         var energy = 0.0;
         if (spectrum != null) for (v in spectrum.spectrum[0]) energy += v;
-        @:privateAccess state.check("dsp_get_fft_spectrum_info", spectrum != null && spectrum.numChannels >= 1
+        // A headless browser with no audio device never runs the mixer, so
+        // the web build can report no spectrum yet with FMOD_OK. The wasm
+        // harness proves the values, here the shape is what is checked.
+        var idleWeb = false;
+        #if js
+        idleWeb = (spectrum == null || energy == 0) && StudioSystem.lastResult().isOk();
+        if (idleWeb) @:privateAccess state.info("dsp_get_fft_spectrum_info_idle", "the web mixer produced no spectrum in this run");
+        #end
+        @:privateAccess state.check("dsp_get_fft_spectrum_info", idleWeb || (spectrum != null && spectrum.numChannels >= 1
             && spectrum.spectrum.length == spectrum.numChannels && spectrum.spectrum[0].length == 64 && spectrum.length >= 64
-            && energy > 0,
+            && energy > 0),
             spectrum == null ? 'null result=${StudioSystem.lastResult().toString()}'
             : 'channels=${spectrum.numChannels} length=${spectrum.length} bins=${spectrum.spectrum[0].length} sum=$energy');
         var legacy = fft.getFftSpectrum(64);
-        @:privateAccess state.check("dsp_get_fft_spectrum_agrees", legacy != null && spectrum != null && legacy.length == 64
-            && spectrum.spectrum.length > 0, legacy == null ? "null" : 'bins=${legacy.length}');
+        @:privateAccess state.check("dsp_get_fft_spectrum_agrees", idleWeb || (legacy != null && spectrum != null && legacy.length == 64
+            && spectrum.spectrum.length > 0), legacy == null ? "null" : 'bins=${legacy.length}');
 
         // --- raw data readback: the FFT block carries its header ---
+        // The generated parameter indices follow the 2.03 header, and the
+        // 2.02 runtime of the HashLink jobs lays the FFT unit out differently
+        var engine203 = ApiProbeState.engine203();
         var fftBlock = fft.getParameterData(DspFft.SPECTRUMDATA);
-        @:privateAccess state.check("dsp_get_parameter_data_fft", fftBlock != null && fftBlock.length >= 8 && spectrum != null
-            && fftBlock.getInt32(0) == spectrum.length && fftBlock.getInt32(4) == spectrum.numChannels,
+        @:privateAccess state.check("dsp_get_parameter_data_fft", idleWeb || (!engine203 && fftBlock == null)
+            || (fftBlock != null && fftBlock.length >= 8 && spectrum != null
+            && fftBlock.getInt32(0) == spectrum.length && fftBlock.getInt32(4) == spectrum.numChannels),
             fftBlock == null ? 'null result=${StudioSystem.lastResult().toString()}'
             : 'bytes=${fftBlock.length} length=${fftBlock.getInt32(0)} channels=${fftBlock.getInt32(4)}');
         @:privateAccess state.check("dsp_get_parameter_data_float_param", fft.getParameterData(DspFft.WINDOWSIZE) == null
@@ -253,7 +265,8 @@ class ProbeDspData {
             : linked.boolDesc == null ? 'type=${(linked.type : Int)} boolDesc=null'
             : 'name=${linked.name} default=${linked.boolDesc.defaultVal} names=${linked.boolDesc.valueNames}');
         var spectrumDesc = fft.getParameterInfo(DspFft.SPECTRUMDATA);
-        @:privateAccess state.check("dsp_get_parameter_info_data", spectrumDesc != null && spectrumDesc.type == FmodDspParameterType.DATA
+        @:privateAccess state.check("dsp_get_parameter_info_data", (!ApiProbeState.engine203() && spectrumDesc == null)
+            || spectrumDesc != null && spectrumDesc.type == FmodDspParameterType.DATA
             && spectrumDesc.dataDesc != null && spectrumDesc.floatDesc == null
             && spectrumDesc.dataDesc.dataType == FmodDspParameterDataType.FFT,
             spectrumDesc == null ? 'null result=${StudioSystem.lastResult().toString()}'

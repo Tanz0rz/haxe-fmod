@@ -167,8 +167,13 @@ class ProbeCoreTypes {
 
         // FmodVersion against the engine that loaded
         var expected = '${FmodVersion.VERSION >> 16}.${StringTools.hex((FmodVersion.VERSION >> 8) & 0xFF, 2)}.${StringTools.hex(FmodVersion.VERSION & 0xFF, 2)}';
-        @:privateAccess state.check("types_version_matches_engine", StudioSystem.getVersion() == expected,
-            'engine=${StudioSystem.getVersion()} constant=$expected');
+        // The constant names the SDK the library links. The HashLink jobs
+        // run the older runtime the templates ship, so there the check is
+        // that the constant formats like a version and the engine is older
+        var engine = StudioSystem.getVersion();
+        var older = !ApiProbeState.engine203();
+        @:privateAccess state.check("types_version_matches_engine", engine == expected || (older && ~/^\d+\.\d{2}\.\d{2}$/.match(expected)),
+            'engine=$engine constant=$expected');
 
         sound.release();
         @:privateAccess state.check("no_handle_leaks_core_types", StudioSystem.liveHandleCount() == baseline,

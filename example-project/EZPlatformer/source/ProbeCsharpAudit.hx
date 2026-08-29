@@ -71,12 +71,16 @@ class ProbeCsharpAudit {
         @:privateAccess state.check("audit_evd_user_property_by_index", stringsByIndex == 1 && numericByIndex == 2,
             'strings=$stringsByIndex numeric=$numericByIndex count=${music.getUserPropertyCount()}');
         #else
-        var byName = music.getUserProperty("probe_int");
-        var byIndex = music.getUserPropertyByIndex(0);
-        @:privateAccess state.check("audit_evd_user_property_by_name", byName != null && byName.name == "probe_int",
-            'name=${byName == null ? "null" : byName.name}');
-        @:privateAccess state.check("audit_evd_user_property_by_index", byIndex != null && byIndex.name != "",
-            'name=${byIndex == null ? "null" : byIndex.name}');
+        // The user properties live in the authored banks, which the frozen
+        // fixture banks of the compat runs do not carry
+        if (!@:privateAccess ApiProbeState.skipAuthored()) {
+            var byName = music.getUserProperty("probe_int");
+            var byIndex = music.getUserPropertyByIndex(0);
+            @:privateAccess state.check("audit_evd_user_property_by_name", byName != null && byName.name == "probe_int",
+                'name=${byName == null ? "null" : byName.name}');
+            @:privateAccess state.check("audit_evd_user_property_by_index", byIndex != null && byIndex.name != "",
+                'name=${byIndex == null ? "null" : byIndex.name}');
+        }
         #end
         @:privateAccess state.check("audit_evd_user_property_miss", music.getUserProperty("nope") == null
             && music.getUserPropertyByIndex(99) == null, "");

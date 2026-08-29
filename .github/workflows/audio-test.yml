@@ -99,6 +99,14 @@ jobs:
       - name: Check hxcpp depend lockstep
         run: python3 ci/depend-lockstep.py
 
+      - name: Download FMOD SDK
+        uses: ./.github/actions/fmod-sdk
+        with:
+          version: "2.03.12"
+          platform: linux
+          dest: ${{ env.FMOD_SDK }}
+          token: ${{ secrets.FMOD_SDK_TOKEN }}
+
       - name: Check the DSP parameter enums match fmod_dsp_effects.h
         run: python3 ci/gen-dsp-parameters.py --check
 

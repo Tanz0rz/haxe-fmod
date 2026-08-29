@@ -59,6 +59,16 @@ class ApiProbeState extends FlxState {
     // The compat jobs run this probe against banks frozen before the
     // authored-content round (newer banks do not load on FMOD 2.02.33),
     // so they opt out of the sections that need that content.
+    /** True when the FMOD engine that loaded is 2.03 or newer. The HashLink
+        jobs run the 2.02.33 runtime the templates ship, where a few 2.03
+        calls and parameter layouts do not exist. */
+    public static function engine203():Bool {
+        var version = StudioSystem.getVersion();
+        var parts = version.split(".");
+        if (parts.length < 2) return true;
+        return Std.parseInt(parts[0]) > 2 || (Std.parseInt(parts[0]) == 2 && Std.parseInt(parts[1]) >= 3);
+    }
+
     static function skipAuthored():Bool {
         #if sys
         return Sys.getEnv("HAXEFMOD_PROBE_SKIP_AUTHORED") == "1";
@@ -1569,8 +1579,15 @@ class ApiProbeState extends FlxState {
         if (!_remintInstance.isNull()) {
             _remintInstance.stop(FmodStopMode.IMMEDIATE);
             _remintInstance.release();
-            StudioSystem.flushCommands();
-            CallbackDispatcher.update();
+            // The instance's last callback records (a programmer sound's
+            // Destroyed frees the handle its Created minted) can land a
+            // few updates after the release, so drain until the count
+            // settles or the attempts run out
+            for (_ in 0...10) {
+                StudioSystem.flushCommands();
+                CallbackDispatcher.update();
+                if (StudioSystem.liveHandleCount() == _remintBaseline) break;
+            }
         }
         check("no_handle_leaks_remint", StudioSystem.liveHandleCount() == _remintBaseline,
             'baseline=$_remintBaseline now=${StudioSystem.liveHandleCount()}');
