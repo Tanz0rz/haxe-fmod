@@ -3068,6 +3068,452 @@ jobs:
   # ===========================================================================
   # Kha in the browser: khamake build, stage command, WebGL through SwiftShader
   # ===========================================================================
+  # Kha in the browser: khamake build, stage command, WebGL through SwiftShader
+  # ===========================================================================
+  kha-html5:
+    runs-on: ubuntu-latest
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[kha-html5]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-html5]') && !contains(github.event.head_commit.message, '[kha-linux]') && !contains(github.event.head_commit.message, '[kha-hl]') && !contains(github.event.head_commit.message, '[kha-html5]') && !contains(github.event.head_commit.message, '[heaps-mac-hl]') && !contains(github.event.head_commit.message, '[heaps-windows-hl]') && !contains(github.event.head_commit.message, '[kha-mac]') && !contains(github.event.head_commit.message, '[kha-mac-hl]') && !contains(github.event.head_commit.message, '[kha-windows]') && !contains(github.event.head_commit.message, '[kha-windows-hl]')))) }}
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Point at the Kha checkout
+        run: echo "KHA=$RUNNER_TEMP/Kha" >> "$GITHUB_ENV"
+
+      - name: Download FMOD SDK
+        uses: ./.github/actions/fmod-sdk
+        with:
+          version: "2.03.12"
+          platform: html5
+          dest: ${{ env.FMOD_SDK }}
+          token: ${{ secrets.FMOD_SDK_TOKEN }}
+
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v2
+        with:
+          haxe-version: ${{ env.HAXE_VERSION }}
+
+      - name: Install Haxe libraries
+        run: |
+          haxelib setup ~/haxelib
+          haxelib dev haxefmod $GITHUB_WORKSPACE
+
+      - name: Cache Kha
+        id: kha-cache
+        uses: actions/cache@v5
+        with:
+          path: ${{ runner.temp }}/Kha
+          key: kha-${{ runner.os }}-${{ env.KHA_COMMIT }}
+
+      - name: Check out Kha
+        if: steps.kha-cache.outputs.cache-hit != 'true'
+        run: |
+          git clone --recursive --depth 1 https://github.com/Kode/Kha.git "$RUNNER_TEMP/Kha"
+          cd "$RUNNER_TEMP/Kha"
+          git checkout "$KHA_COMMIT" 2>/dev/null || true
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg chromium-browser xdotool
+
+      - name: Build HTML5 target
+        env:
+          FMOD_SDK_WEB: ${{ env.FMOD_SDK }}
+        run: |
+          cd example-project/KhaPlatformer
+          ./build.sh html5 2>&1 | tail -3
+
+      - name: Validate build output
+        run: |
+          BIN_DIR="example-project/KhaPlatformer/build/html5"
+          for f in index.html kha.js lib/fmodstudio.js lib/fmodstudio.wasm lib/jaxe.js assets/fmod/Desktop/Master.bank; do
+            test -s "$BIN_DIR/$f" || { echo "FAIL: missing $f"; exit 1; }
+          done
+          echo "OK: html5 build directory is complete"
+
+      - name: Record audio
+        run: |
+          Xvfb :99 -screen 0 1024x768x24 &
+          export DISPLAY=:99
+          sleep 1
+          pulseaudio --start --exit-idle-time=-1 || true
+          pactl load-module module-null-sink sink_name=virtual_speaker sink_properties=device.description=VirtualSpeaker
+          pactl set-default-sink virtual_speaker
+          cat > ~/.asoundrc << 'ALSA_EOF'
+          pcm.!default {
+            type pulse
+          }
+          ctl.!default {
+            type pulse
+          }
+          ALSA_EOF
+          cd example-project/KhaPlatformer/build/html5
+          python3 -m http.server 8280 &
+          HTTP_PID=$!
+          cd -
+          sleep 1
+          # Own profile per launch: the snap launcher exits while the browser
+          # lives on, and a relaunch on the shared profile hands its URL to
+          # that instance, whose stderr nobody captures
+          PROFILE=$(mktemp -d)
+          chromium-browser \
+            --no-sandbox --no-first-run --no-default-browser-check --user-data-dir="$PROFILE" \
+            --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
+            --autoplay-policy=no-user-gesture-required \
+            --window-size=640,480 \
+            --window-position=0,0 \
+            http://localhost:8280 &
+          CHROME_PID=$!
+          sleep 3
+          xdotool mousemove 320 240 click 1
+          sleep 1
+          ffmpeg -f pulse -i virtual_speaker.monitor -t 30 -y /tmp/audio-kha-html5.wav &
+          RECORD_PID=$!
+          # A second click during the recording: the first can land before a
+          # page on software GL is interactive, and the audio context needs
+          # a gesture that reaches it
+          sleep 4
+          xdotool mousemove 320 240 click 1
+          sleep 27
+          kill $CHROME_PID || true
+          pkill -f "$PROFILE" || true
+          kill $HTTP_PID || true
+          wait $RECORD_PID || true
+          ls -la /tmp/audio-kha-html5.wav
+
+      - name: Validate audio
+        run: ./ci/validate-audio.sh /tmp/audio-kha-html5.wav 10
+
+      - name: Build test variant
+        if: ${{ !cancelled() }}
+        env:
+          FMOD_SDK_WEB: ${{ env.FMOD_SDK }}
+        run: |
+          cd example-project/KhaPlatformer
+          KHA_AUDIO_TEST=1 ./build.sh html5 2>&1 | tail -3
+
+      - name: Record volume test
+        run: |
+          export DISPLAY=:99
+          cd example-project/KhaPlatformer/build/html5
+          python3 -m http.server 8281 &
+          HTTP_PID=$!
+          cd -
+          sleep 1
+          # Own profile per launch: the snap launcher exits while the browser
+          # lives on, and a relaunch on the shared profile hands its URL to
+          # that instance, whose stderr nobody captures
+          PROFILE=$(mktemp -d)
+          chromium-browser \
+            --no-sandbox --no-first-run --no-default-browser-check --user-data-dir="$PROFILE" \
+            --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
+            --autoplay-policy=no-user-gesture-required \
+            --enable-logging=stderr --v=0 \
+            --window-size=640,480 \
+            --window-position=0,0 \
+            http://localhost:8281 > /tmp/volume-test-kha-html5-console.log 2>&1 &
+          CHROME_PID=$!
+          sleep 3
+          xdotool mousemove 320 240 click 1
+          sleep 1
+          ffmpeg -f pulse -i virtual_speaker.monitor -t 25 -y /tmp/volume-test-kha-html5.wav &
+          RECORD_PID=$!
+          # A second click during the recording: the first can land before a
+          # page on software GL is interactive, and the audio context needs
+          # a gesture that reaches it
+          sleep 4
+          xdotool mousemove 320 240 click 1
+          sleep 22
+          kill $CHROME_PID || true
+          pkill -f "$PROFILE" || true
+          kill $HTTP_PID || true
+          wait $RECORD_PID || true
+          grep -o "VOLUME_TEST.*" /tmp/volume-test-kha-html5-console.log | sed 's/",.*$//' || true
+
+      - name: Validate volume/mute
+        run: ./ci/validate-volume.sh /tmp/volume-test-kha-html5.wav 15
+
+      - name: Run API probe (JS binding coverage)
+        if: ${{ !cancelled() }}
+        run: |
+          export DISPLAY=:99
+          cd example-project/KhaPlatformer/build/html5
+          python3 -m http.server 8282 &
+          HTTP_PID=$!
+          sleep 1
+          # Own profile per launch: the snap launcher exits while the browser
+          # lives on, and a relaunch on the shared profile hands its URL to
+          # that instance, whose stderr nobody captures
+          PROFILE=$(mktemp -d)
+          chromium-browser \
+            --no-sandbox --no-first-run --no-default-browser-check --user-data-dir="$PROFILE" \
+            --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
+            --autoplay-policy=no-user-gesture-required \
+            --enable-logging=stderr --v=0 \
+            --window-size=640,480 \
+            --window-position=0,0 \
+            "http://localhost:8282/index.html?test=api-probe" > /tmp/api-probe-kha-html5.log.raw 2>&1 &
+          CHROME_PID=$!
+          # Two clicks: the first can land before a page on software GL is
+          # interactive, and the audio context needs a gesture that reaches it
+          sleep 3
+          xdotool mousemove 320 240 click 1
+          sleep 5
+          xdotool mousemove 320 240 click 1
+          for i in $(seq 45); do
+            grep -q "API_PROBE: COMPLETE" /tmp/api-probe-kha-html5.log.raw && break
+            sleep 1
+          done
+          kill $CHROME_PID || true
+          pkill -f "$PROFILE" || true
+          kill $HTTP_PID || true
+          grep -v "dbus" /tmp/api-probe-kha-html5.log.raw | tail -n 15 || true
+          grep -o "API_PROBE:.*" /tmp/api-probe-kha-html5.log.raw | sed 's/",.*$//' | tee /tmp/api-probe-kha-html5.log
+          grep -q "API_PROBE: COMPLETE" /tmp/api-probe-kha-html5.log
+          if grep -q "pass=false" /tmp/api-probe-kha-html5.log; then
+            echo "FAIL: API_PROBE reported failing checks"
+            exit 1
+          fi
+
+      - name: Run synth test (generated PCM reaches the output)
+        if: ${{ !cancelled() }}
+        run: |
+          export DISPLAY=:99
+          cd example-project/KhaPlatformer/build/html5
+          python3 -m http.server 8286 &
+          HTTP_PID=$!
+          sleep 1
+          ffmpeg -f pulse -i virtual_speaker.monitor -t 60 -y /tmp/synth-test-kha-html5.wav &
+          RECORD_PID=$!
+          # Own profile per launch: the snap launcher exits while the browser
+          # lives on, and a relaunch on the shared profile hands its URL to
+          # that instance, whose stderr nobody captures
+          PROFILE=$(mktemp -d)
+          chromium-browser \
+            --no-sandbox --no-first-run --no-default-browser-check --user-data-dir="$PROFILE" \
+            --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
+            --autoplay-policy=no-user-gesture-required \
+            --enable-logging=stderr --v=0 \
+            --window-size=640,480 \
+            --window-position=0,0 \
+            "http://localhost:8286/index.html?test=synth-test" > /tmp/synth-test-kha-html5.log.raw 2>&1 &
+          CHROME_PID=$!
+          # Two clicks: the first can land before a page on software GL is
+          # interactive, and the audio context needs a gesture that reaches it
+          sleep 3
+          xdotool mousemove 320 240 click 1
+          sleep 5
+          xdotool mousemove 320 240 click 1
+          for i in $(seq 70); do
+            grep -q "SYNTH_TEST: COMPLETE" /tmp/synth-test-kha-html5.log.raw && break
+            sleep 1
+          done
+          wait $RECORD_PID || true
+          kill $CHROME_PID || true
+          pkill -f "$PROFILE" || true
+          kill $HTTP_PID || true
+          grep -v "dbus" /tmp/synth-test-kha-html5.log.raw | tail -n 15 || true
+          grep -o "SYNTH_TEST:.*" /tmp/synth-test-kha-html5.log.raw | sed 's/",.*$//' | tee /tmp/synth-test-kha-html5.log
+          grep -q "SYNTH_TEST: COMPLETE" /tmp/synth-test-kha-html5.log
+          if grep -q "pass=false" /tmp/synth-test-kha-html5.log; then
+            echo "FAIL: SYNTH_TEST reported failing checks"
+            exit 1
+          fi
+
+      - name: Validate synth audio
+        if: ${{ !cancelled() }}
+        run: ./ci/validate-synth.sh /tmp/synth-test-kha-html5.wav
+
+      - name: Run callback test (JS payload delivery)
+        if: ${{ !cancelled() }}
+        run: |
+          export DISPLAY=:99
+          cd example-project/KhaPlatformer/build/html5
+          python3 -m http.server 8283 &
+          HTTP_PID=$!
+          sleep 1
+          # Own profile per launch: the snap launcher exits while the browser
+          # lives on, and a relaunch on the shared profile hands its URL to
+          # that instance, whose stderr nobody captures
+          PROFILE=$(mktemp -d)
+          chromium-browser \
+            --no-sandbox --no-first-run --no-default-browser-check --user-data-dir="$PROFILE" \
+            --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
+            --autoplay-policy=no-user-gesture-required \
+            --enable-logging=stderr --v=0 \
+            --window-size=640,480 \
+            --window-position=0,0 \
+            "http://localhost:8283/index.html?test=cb-test" > /tmp/cb-test-kha-html5.log.raw 2>&1 &
+          CHROME_PID=$!
+          # Two clicks: the first can land before a page on software GL is
+          # interactive, and the audio context needs a gesture that reaches it
+          sleep 3
+          xdotool mousemove 320 240 click 1
+          sleep 5
+          xdotool mousemove 320 240 click 1
+          for i in $(seq 45); do
+            grep -q "CB_TEST: COMPLETE" /tmp/cb-test-kha-html5.log.raw && break
+            sleep 1
+          done
+          kill $CHROME_PID || true
+          pkill -f "$PROFILE" || true
+          kill $HTTP_PID || true
+          grep -v "dbus" /tmp/cb-test-kha-html5.log.raw | tail -n 15 || true
+          grep -o "CB_TEST:.*" /tmp/cb-test-kha-html5.log.raw | sed 's/",.*$//' | tee /tmp/cb-test-kha-html5.log
+          # Same gate as the flixel browser step: delivery end to end. The
+          # nested-beat check is informational on Chromium, whose FMOD JS
+          # glue does not deliver nested timeline beats.
+          grep -q "CB_TEST: COMPLETE" /tmp/cb-test-kha-html5.log
+          grep -q "CB_TEST: Stopped" /tmp/cb-test-kha-html5.log
+          echo "Callback test passed"
+
+      - name: Run ps-test state (browser)
+        if: ${{ !cancelled() }}
+        run: |
+          export DISPLAY=:99
+          cd example-project/KhaPlatformer/build/html5
+          python3 -m http.server 8284 &
+          HTTP_PID=$!
+          sleep 1
+          # Own profile per launch: the snap launcher exits while the browser
+          # lives on, and a relaunch on the shared profile hands its URL to
+          # that instance, whose stderr nobody captures
+          PROFILE=$(mktemp -d)
+          chromium-browser \
+            --no-sandbox --no-first-run --no-default-browser-check --user-data-dir="$PROFILE" \
+            --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
+            --autoplay-policy=no-user-gesture-required \
+            --enable-logging=stderr --v=0 \
+            --window-size=640,480 \
+            --window-position=0,0 \
+            "http://localhost:8284/index.html?test=ps-test" > /tmp/ps-test-kha-html5.log.raw 2>&1 &
+          CHROME_PID=$!
+          # Two clicks: the first can land before a page on software GL is
+          # interactive, and the audio context needs a gesture that reaches it
+          sleep 3
+          xdotool mousemove 320 240 click 1
+          sleep 5
+          xdotool mousemove 320 240 click 1
+          for i in $(seq 45); do
+            grep -q "PS_TEST: COMPLETE" /tmp/ps-test-kha-html5.log.raw && break
+            sleep 1
+          done
+          kill $CHROME_PID || true
+          pkill -f "$PROFILE" || true
+          kill $HTTP_PID || true
+          grep -v "dbus" /tmp/ps-test-kha-html5.log.raw | tail -n 15 || true
+          grep -o "PS_TEST:.*" /tmp/ps-test-kha-html5.log.raw | sed 's/",.*$//' | tee /tmp/ps-test-kha-html5.log
+          grep -q "PS_TEST: COMPLETE" /tmp/ps-test-kha-html5.log
+          if grep -q "pass=false" /tmp/ps-test-kha-html5.log; then
+            echo "FAIL: PS_TEST reported failing checks"
+            exit 1
+          fi
+
+      - name: Run bank-test state (browser)
+        if: ${{ !cancelled() }}
+        run: |
+          export DISPLAY=:99
+          cd example-project/KhaPlatformer/build/html5
+          python3 -m http.server 8285 &
+          HTTP_PID=$!
+          sleep 1
+          # Own profile per launch: the snap launcher exits while the browser
+          # lives on, and a relaunch on the shared profile hands its URL to
+          # that instance, whose stderr nobody captures
+          PROFILE=$(mktemp -d)
+          chromium-browser \
+            --no-sandbox --no-first-run --no-default-browser-check --user-data-dir="$PROFILE" \
+            --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
+            --autoplay-policy=no-user-gesture-required \
+            --enable-logging=stderr --v=0 \
+            --window-size=640,480 \
+            --window-position=0,0 \
+            "http://localhost:8285/index.html?test=bank-test" > /tmp/bank-test-kha-html5.log.raw 2>&1 &
+          CHROME_PID=$!
+          # Two clicks: the first can land before a page on software GL is
+          # interactive, and the audio context needs a gesture that reaches it
+          sleep 3
+          xdotool mousemove 320 240 click 1
+          sleep 5
+          xdotool mousemove 320 240 click 1
+          for i in $(seq 45); do
+            grep -q "BANK_TEST: COMPLETE" /tmp/bank-test-kha-html5.log.raw && break
+            sleep 1
+          done
+          kill $CHROME_PID || true
+          pkill -f "$PROFILE" || true
+          kill $HTTP_PID || true
+          grep -v "dbus" /tmp/bank-test-kha-html5.log.raw | tail -n 15 || true
+          grep -o "BANK_TEST:.*" /tmp/bank-test-kha-html5.log.raw | sed 's/",.*$//' | tee /tmp/bank-test-kha-html5.log
+          grep -q "BANK_TEST: COMPLETE" /tmp/bank-test-kha-html5.log
+          if grep -q "pass=false" /tmp/bank-test-kha-html5.log; then
+            echo "FAIL: BANK_TEST reported failing checks"
+            exit 1
+          fi
+
+      - name: Run pan-test state (browser)
+        if: ${{ !cancelled() }}
+        run: |
+          export DISPLAY=:99
+          cd example-project/KhaPlatformer/build/html5
+          python3 -m http.server 8287 &
+          HTTP_PID=$!
+          sleep 1
+          # Own profile per launch: the snap launcher exits while the browser
+          # lives on, and a relaunch on the shared profile hands its URL to
+          # that instance, whose stderr nobody captures
+          PROFILE=$(mktemp -d)
+          chromium-browser \
+            --no-sandbox --no-first-run --no-default-browser-check --user-data-dir="$PROFILE" \
+            --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
+            --autoplay-policy=no-user-gesture-required \
+            --enable-logging=stderr --v=0 \
+            --window-size=640,480 \
+            --window-position=0,0 \
+            "http://localhost:8287/index.html?test=pan-test" > /tmp/pan-test-kha-html5.log.raw 2>&1 &
+          CHROME_PID=$!
+          # Two clicks: the first can land before a page on software GL is
+          # interactive, and the audio context needs a gesture that reaches it
+          sleep 3
+          xdotool mousemove 320 240 click 1
+          sleep 5
+          xdotool mousemove 320 240 click 1
+          for i in $(seq 45); do
+            grep -q "PAN_TEST: COMPLETE" /tmp/pan-test-kha-html5.log.raw && break
+            sleep 1
+          done
+          kill $CHROME_PID || true
+          pkill -f "$PROFILE" || true
+          kill $HTTP_PID || true
+          grep -v "dbus" /tmp/pan-test-kha-html5.log.raw | tail -n 15 || true
+          grep -o "PAN_TEST:.*" /tmp/pan-test-kha-html5.log.raw | sed 's/",.*$//' | tee /tmp/pan-test-kha-html5.log
+          grep -q "PAN_TEST: COMPLETE" /tmp/pan-test-kha-html5.log
+          if grep -q "pass=false" /tmp/pan-test-kha-html5.log; then
+            echo "FAIL: PAN_TEST reported failing checks"
+            exit 1
+          fi
+
+      - name: Upload audio artifact
+        uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: audio-kha-html5
+          path: |
+            /tmp/audio-kha-html5.wav
+            /tmp/volume-test-kha-html5.wav
+            /tmp/volume-test-kha-html5-console.log
+            /tmp/api-probe-kha-html5.log
+            /tmp/synth-test-kha-html5.log
+            /tmp/cb-test-kha-html5.log
+            /tmp/ps-test-kha-html5.log
+            /tmp/bank-test-kha-html5.log
+            /tmp/pan-test-kha-html5.log
+          if-no-files-found: warn
+          overwrite: true
+
+
+  # ===========================================================================
   # Heaps HL/C on macOS (Homebrew HashLink)
   # ===========================================================================
   heaps-mac-hl:
