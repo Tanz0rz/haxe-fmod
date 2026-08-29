@@ -11,13 +11,18 @@ TARGET="$1"; shift
 B="${BUILD_ROOT:-build}"
 case "$TARGET" in
   hl)
-    # The hxml minus its output line, so the output root applies
-    haxe $(grep -v '^#' build-hl.hxml | grep -v '^-hl ') "$@" -hl "$B/hl/game.hl"
     case "$(uname -s)" in
       Darwin*) PLATFORM=mac ;;
       MINGW*|MSYS*|CYGWIN*) PLATFORM=windows ;;
       *) PLATFORM=linux ;;
     esac
+    # Windows runs Heaps on DirectX (hldx) instead of SDL/OpenGL: a machine
+    # without an OpenGL driver, such as a CI runner, cannot create the GL
+    # context hlsdl needs, while Direct3D always has WARP to fall back on
+    WINDOW_LIB=""
+    if [ "$PLATFORM" = windows ]; then WINDOW_LIB="-lib hldx"; fi
+    # The hxml minus its output line, so the output root applies
+    haxe $(grep -v '^#' build-hl.hxml | grep -v '^-hl ' | { if [ -n "$WINDOW_LIB" ]; then grep -v '^-lib hlsdl'; else cat; fi; }) $WINDOW_LIB "$@" -hl "$B/hl/game.hl"
     haxelib run haxefmod stage "$PLATFORM" hl "$B"/hl
     if [ "$PLATFORM" = windows ]; then
       # HashLink's own packaging: hl.exe loads hlboot.dat from its directory

@@ -3384,6 +3384,7 @@ jobs:
           haxelib install heaps 2.1.0 --always --quiet
           haxelib install hashlink 1.15.0 --always --quiet
           haxelib install hlsdl 1.15.0 --always --quiet
+          haxelib install hldx 1.15.0 --always --quiet
           haxelib dev haxefmod "$GITHUB_WORKSPACE"
 
       - name: Install HashLink
