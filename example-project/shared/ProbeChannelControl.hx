@@ -278,17 +278,20 @@ class ProbeChannelControl {
         _group.release();
         _geometry.release();
         StudioSystem.setListenerPosition2D(0, 0, 0);
-        // Occlusion callbacks arrive from the mixer thread with a handle
-        // each, and one can still land after the stop. Drain a few times
-        // with the mixer given a moment in between, then count, before the
-        // scenario moves on and holds handles of its own. Fewer than the
-        // baseline only means an earlier probe's events drained late.
-        for (i in 0...5) {
+        // The stopped channel frees its handle when its End callback
+        // drains, which rides the mixer, so wait for the count to settle
+        // (bounded) before comparing, and before the scenario moves on and
+        // holds handles of its own. Fewer than the baseline only means an
+        // earlier probe's events drained late.
+        var settled = 0;
+        for (i in 0...100) {
             StudioSystem.flushCommands();
             haxefmod.studio.CallbackDispatcher.update();
+            if (StudioSystem.liveHandleCount() <= _baseline) break;
+            settled++;
             Sys.sleep(0.01);
         }
         @:privateAccess state.check("no_handle_leaks_occlusion_callback", StudioSystem.liveHandleCount() <= _baseline,
-            'baseline=$_baseline now=${StudioSystem.liveHandleCount()}');
+            'baseline=$_baseline now=${StudioSystem.liveHandleCount()} waited=$settled');
     }
 }
