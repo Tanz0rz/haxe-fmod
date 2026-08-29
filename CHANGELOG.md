@@ -78,6 +78,10 @@
 - `haxefmod.studio.CoreSound` is now `haxefmod.core.Sound`, the core `Sound` object next to `Channel`, `ChannelGroup`, `Dsp`, and `SoundGroup`. The old name remains as a deprecated alias for this release and the compiler warns at every use.
 - `CommandReplay.seekToTimeMs(timeMs)` and `getCommandAtTimeMs(timeMs)`, the millisecond forms of `seekToTime` and `getCommandAtTime`. The compiler warns at every use.
 
+### Added
+- `haxelib run haxefmod stage <platform> <target> <outdir>` copies the FMOD runtime files (shared libraries, `hlaxe_fmod.hdll`, or the html5 engine scripts plus `jaxe.js`) into any build output directory, for projects that lime does not build (Heaps, Kha, plain hxml). The same SDK, version and hdll checks as the lime postbuild apply. A Linux HashLink bytecode build gets a `run.sh` that launches it through `hl` with the library path set.
+- The compile-time SDK check runs for Heaps and Kha builds, and any hxml build can opt in with `-D haxefmod_build_check` and `--macro haxefmod.tools.BuildCheck.verify()`.
+
 ### Fixed
 - Pointing `FMOD_SDK` at the HTML5 FMOD Engine package (or `FMOD_SDK_WEB` at a desktop one) now fails the build with a message naming the swapped packages. Previously a native build got as far as copying libraries and died with an uncaught exception on macOS and Windows. Both packages ship the same `api/core/inc` headers, so the check is the platform's own core library rather than a header.
 - A desktop FMOD SDK missing the libraries for the platform being built now reports the missing file with setup instructions instead of an uncaught exception. Linux already did this; macOS and Windows now match.

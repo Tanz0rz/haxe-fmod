@@ -173,7 +173,8 @@ REQUIRED_STEPS = {
                                 "Build HashLink target (pre-built hdll)",
                                 "Rebuild HashLink target (custom hdll)",
                                 "Run stress-test state (smoke)",
-                                "lime test end to end"],
+                                "lime test end to end",
+                                "Stage FMOD runtime into a plain directory"],
     "mac-cpp": NATIVE_SUITE + ["Validate game log",
                                "Test native headers with Apple clang (sanitizers)"],
     "mac-hl": NATIVE_SUITE + ["Validate game log"],
@@ -182,6 +183,7 @@ REQUIRED_STEPS = {
     "windows-hl": NATIVE_SUITE + ["Validate game log"],
     "linux-html5-chromium": [
         "Validate FMOD files replaced placeholders",
+        "Stage FMOD web files into a plain directory",
         "Validate audio", "Validate volume/mute", "Validate synth audio",
         "Run API probe (JS binding coverage)",
         "Run synth test (generated PCM reaches the output)",

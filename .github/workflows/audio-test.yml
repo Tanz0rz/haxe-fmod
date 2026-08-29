@@ -658,6 +658,25 @@ jobs:
           echo "BIN_DIR=$BIN_DIR" >> "$GITHUB_ENV"
           ./ci/validate-build.sh "$BIN_DIR" hl
 
+      # The stage command is what Heaps and Kha builds use instead of the
+      # lime postbuild. Run it against the real SDK and custom hdll here.
+      - name: Stage FMOD runtime into a plain directory
+        run: |
+          cd example-project/EZPlatformer
+          STAGE_DIR="$RUNNER_TEMP/stage-hl"
+          haxelib run haxefmod stage linux hl "$STAGE_DIR" 2>&1 | tee /tmp/stage-hl.log
+          grep -q "custom-compiled from .haxefmod/" /tmp/stage-hl.log
+          for f in libfmod.so libfmodstudio.so hlaxe_fmod.hdll; do
+            test -e "$STAGE_DIR/$f" || { echo "FAIL: $f not staged"; exit 1; }
+          done
+          cmp "$STAGE_DIR/hlaxe_fmod.hdll" .haxefmod/hlaxe_fmod.hdll
+          if readelf -lW "$STAGE_DIR/libfmod.so" | grep GNU_STACK | grep -q RWE; then
+            echo "FAIL: staged libfmod.so still has an executable stack"
+            exit 1
+          fi
+          test ! -e "$STAGE_DIR/run.sh"
+          echo "OK: stage produced a launchable HashLink runtime directory"
+
       - name: Record audio
         run: |
           # Start virtual display
@@ -1210,6 +1229,19 @@ jobs:
             exit 1
           fi
           echo "OK: fmodstudio.js is $SIZE bytes (real SDK file)"
+
+      - name: Stage FMOD web files into a plain directory
+        env:
+          FMOD_SDK_WEB: ${{ env.FMOD_SDK }}
+        run: |
+          cd example-project/EZPlatformer
+          STAGE_DIR="$RUNNER_TEMP/stage-web"
+          haxelib run haxefmod stage html5 html5 "$STAGE_DIR"
+          for f in fmodstudio.js fmodstudio.wasm jaxe.js; do
+            test -s "$STAGE_DIR/$f" || { echo "FAIL: $f not staged"; exit 1; }
+          done
+          cmp "$STAGE_DIR/fmodstudio.js" export/html5/bin/lib/fmodstudio.js
+          echo "OK: stage produced the web engine trio"
 
       - name: Record audio
         run: |

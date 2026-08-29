@@ -5,13 +5,69 @@ import sys.io.File;
 import haxe.io.Path;
 
 /**
- * Post-build script to copy FMOD shared libraries to lime's output directory.
- * Called automatically by lime via <postbuild> in include.xml.
+ * Copies the FMOD runtime files a build needs to launch (shared libraries,
+ * the HashLink hdll, the html5 engine scripts) into a build output
+ * directory.
  *
- * Replaces scripts/postbuild-copy-fmod.sh with pure Haxe - no bash dependency.
+ * Two entry points share the copy code. run() is what lime calls from
+ * include.xml and finds the output directory in lime's export/ layout.
+ * stage() takes the directory as an argument and is for builds lime does
+ * not drive (Heaps hxml builds, Kha's khamake, plain haxe).
  */
 class PostBuild {
 	public static function run(platform:String, target:String, libRoot:String, projectDir:String):Void {
+		var sdkPath = checkSdk(platform, target, libRoot, projectDir);
+
+		// Use project directory for finding export/ output
+		var exportDir = Path.join([projectDir, "export"]);
+		var dest = findLimeOutputDir(platform, target, exportDir);
+		if (dest == null) {
+			if (platform == "mac") {
+				log("No .app bundle found in export/ - skipping FMOD lib copy");
+			} else if (platform == "html5") {
+				log("No html5/bin directory found - skipping FMOD file replacement");
+			} else {
+				log("No bin directory found in export/ - skipping FMOD lib copy");
+			}
+			return;
+		}
+		stageInto(platform, target, sdkPath, libRoot, projectDir, dest, false);
+	}
+
+	/**
+	 * Stages the FMOD runtime files into destDir, creating it if needed.
+	 * platform is mac, linux, windows or html5. target is hl when the
+	 * program loads hlaxe_fmod.hdll at runtime (the HashLink VM, HL/C
+	 * output linked against libhl) and cpp when the binding was compiled
+	 * into the executable (hxcpp, Kha's Kore and Kore HL builds). html5
+	 * ignores target.
+	 */
+	public static function stage(platform:String, target:String, libRoot:String, projectDir:String, destDir:String):Void {
+		if (["mac", "linux", "windows", "html5"].indexOf(platform) == -1) {
+			log('Unknown platform: $platform (expected mac, linux, windows, or html5)');
+			Sys.exit(1);
+		}
+		if (platform == "html5") {
+			target = "html5";
+		} else if (target != "hl" && target != "cpp") {
+			log('Unknown target: $target (expected hl or cpp)');
+			Sys.exit(1);
+		}
+		var sdkPath = checkSdk(platform, target, libRoot, projectDir);
+		if (!FileSystem.exists(destDir)) FileSystem.createDirectory(destDir);
+		if (!FileSystem.isDirectory(destDir)) {
+			log('ERROR: $destDir is not a directory');
+			Sys.exit(1);
+		}
+		stageInto(platform, target, sdkPath, libRoot, projectDir, destDir, true);
+	}
+
+	/**
+	 * Resolves the SDK env var for the platform and stops the build when
+	 * it is unset, points at the wrong package, or holds a version this
+	 * release cannot use. Returns the SDK path.
+	 */
+	static function checkSdk(platform:String, target:String, libRoot:String, projectDir:String):String {
 		var sdkEnvName = platform == "html5" ? "FMOD_SDK_WEB" : "FMOD_SDK";
 		var sdkPath = Sys.getEnv(sdkEnvName);
 
@@ -31,23 +87,48 @@ class PostBuild {
 
 		// Version check
 		verifyVersion(libRoot, sdkPath, sdkEnvName, projectDir, target);
+		return sdkPath;
+	}
 
-		// Use project directory for finding export/ output
-		var exportDir = Path.join([projectDir, "export"]);
-
+	/**
+	 * Copies into destDir, which already exists. standalone marks a
+	 * stage() call, where the web files include jaxe.js (lime bundles
+	 * that one itself) and a Linux HashLink VM build gets a launcher.
+	 */
+	public static function stageInto(platform:String, target:String, sdkPath:String, libRoot:String,
+			projectDir:String, destDir:String, standalone:Bool):Void {
 		switch (platform) {
 			case "mac":
-				copyMac(sdkPath, target, libRoot, exportDir, projectDir);
+				copyMac(sdkPath, target, libRoot, destDir, projectDir);
 			case "linux":
-				copyLinux(sdkPath, target, libRoot, exportDir, projectDir);
+				copyLinux(sdkPath, target, libRoot, destDir, projectDir, standalone);
 			case "windows":
-				copyWindows(sdkPath, target, libRoot, exportDir, projectDir);
+				copyWindows(sdkPath, target, libRoot, destDir, projectDir);
 			case "html5":
-				copyHtml5(sdkPath, exportDir);
+				copyHtml5(sdkPath, libRoot, destDir, standalone);
 			default:
 				log('Unknown platform: $platform (expected mac, linux, windows, or html5)');
 				Sys.exit(1);
 		}
+	}
+
+	/** The directory lime built into, or null when no build output exists. */
+	static function findLimeOutputDir(platform:String, target:String, exportDir:String):Null<String> {
+		if (platform == "mac") {
+			var appDir = target == "hl"
+				? findAppBundle(Path.join([exportDir, "hl"]))
+				: findAppBundleInPlatformDir(exportDir, "mac");
+			if (appDir == null) return null;
+			return Path.join([appDir, "Contents", "MacOS"]);
+		}
+		if (platform == "html5") {
+			var binDir = findBinDir(exportDir, "html5", "html5");
+			if (binDir == null) return null;
+			var libDir = Path.join([binDir, "lib"]);
+			if (!FileSystem.exists(libDir)) FileSystem.createDirectory(libDir);
+			return libDir;
+		}
+		return findBinDir(exportDir, target, platform);
 	}
 
 	//// SDK package verification
@@ -364,22 +445,7 @@ class PostBuild {
 
 	//// Mac
 
-	static function copyMac(sdkDir:String, target:String, libRoot:String, exportDir:String, projectDir:String):Void {
-		// Find .app bundle in export directory
-		var appDir:String = null;
-		if (target == "hl") {
-			appDir = findAppBundle(Path.join([exportDir, "hl"]));
-		} else {
-			// C++ Mac builds: search for .app in any subdir containing "mac"
-			appDir = findAppBundleInPlatformDir(exportDir, "mac");
-		}
-
-		if (appDir == null) {
-			log("No .app bundle found in export/ - skipping FMOD lib copy");
-			return;
-		}
-
-		var dest = Path.join([appDir, "Contents", "MacOS"]);
+	static function copyMac(sdkDir:String, target:String, libRoot:String, dest:String, projectDir:String):Void {
 		log('Copying FMOD dylibs to $dest');
 
 		copyRequired(Path.join([sdkDir, "api", "core", "lib", "libfmod.dylib"]), Path.join([dest, "libfmod.dylib"]));
@@ -408,14 +474,7 @@ class PostBuild {
 
 	//// Linux
 
-	static function copyLinux(sdkDir:String, target:String, libRoot:String, exportDir:String, projectDir:String):Void {
-		var binDir = findBinDir(exportDir, target, "linux");
-
-		if (binDir == null) {
-			log("No bin directory found in export/ - skipping FMOD lib copy");
-			return;
-		}
-
+	static function copyLinux(sdkDir:String, target:String, libRoot:String, binDir:String, projectDir:String, standalone:Bool):Void {
 		log('Copying FMOD shared libraries to $binDir');
 
 		// Copy .so files preserving symlinks (must use cp -P)
@@ -437,15 +496,33 @@ class PostBuild {
 		var runSh = Path.join([binDir, "run.sh"]);
 		if (!FileSystem.exists(runSh)) {
 			// .dat excluded: HL builds ship hlboot.dat next to the exe and
-			// run.sh must never point at it
-			var exeName = findExecutableName(binDir, [".so", ".hdll", ".ndll", ".dat"]);
+			// run.sh must never point at it. .hl excluded for the same
+			// reason, a VM build's bytecode is launched through hl below.
+			var exeName = findExecutableName(binDir, [".so", ".hdll", ".ndll", ".dat", ".hl"]);
 			if (exeName != null) {
 				File.saveContent(runSh, runShContent(exeName));
 				Sys.command("chmod", ["+x", runSh]);
+			} else if (standalone && target == "hl") {
+				// A HashLink VM build (Heaps, plain haxe -hl) has no
+				// executable of its own. The launcher runs the bytecode
+				// through hl with the library path set.
+				var bytecode = findBytecodeName(binDir);
+				if (bytecode != null) {
+					File.saveContent(runSh, runShContent(bytecode, true));
+					Sys.command("chmod", ["+x", runSh]);
+				}
 			}
 		}
 
 		log("Done - copied FMOD .so files");
+	}
+
+	/** The .hl bytecode file in a directory, or null when there is none. */
+	static function findBytecodeName(dir:String):Null<String> {
+		for (file in FileSystem.readDirectory(dir)) {
+			if (StringTools.endsWith(file, ".hl") && !FileSystem.isDirectory(Path.join([dir, file]))) return file;
+		}
+		return null;
 	}
 
 	/**
@@ -509,14 +586,7 @@ class PostBuild {
 
 	//// Windows
 
-	static function copyWindows(sdkDir:String, target:String, libRoot:String, exportDir:String, projectDir:String):Void {
-		var binDir = findBinDir(exportDir, target, "windows");
-
-		if (binDir == null) {
-			log("No bin directory found in export/ - skipping FMOD lib copy");
-			return;
-		}
-
+	static function copyWindows(sdkDir:String, target:String, libRoot:String, binDir:String, projectDir:String):Void {
 		log('Copying FMOD DLLs to $binDir');
 
 		copyRequired(Path.join([sdkDir, "api", "core", "lib", "x64", "fmod.dll"]), Path.join([binDir, "fmod.dll"]));
@@ -532,17 +602,17 @@ class PostBuild {
 
 	//// HTML5
 
-	static function copyHtml5(sdkDir:String, exportDir:String):Void {
-		var binDir = findBinDir(exportDir, "html5", "html5");
-		if (binDir == null) {
-			log("No html5/bin directory found - skipping FMOD file replacement");
-			return;
+	static function copyHtml5(sdkDir:String, libRoot:String, libDir:String, standalone:Bool):Void {
+		if (standalone) {
+			log('Copying FMOD web engine and jaxe.js to $libDir');
+			// lime bundles jaxe.js through include.xml. Every other build
+			// system gets it here, next to the engine it drives, and the
+			// page script-tags all three files in this order:
+			// fmodstudio.js, jaxe.js, then the game.
+			copyRequired(Path.join([libRoot, "native", "jaxe", "jaxe.js"]), Path.join([libDir, "jaxe.js"]));
+		} else {
+			log("Replacing FMOD placeholder files with real SDK files");
 		}
-
-		log("Replacing FMOD placeholder files with real SDK files");
-
-		var libDir = Path.join([binDir, "lib"]);
-		if (!FileSystem.exists(libDir)) FileSystem.createDirectory(libDir);
 
 		var jsSrc = Path.join([sdkDir, "api", "studio", "lib", "wasm", "fmodstudio.js"]);
 		if (FileSystem.exists(jsSrc)) {
@@ -701,8 +771,9 @@ class PostBuild {
 	 * The generated Linux launcher script. The exe invocation is quoted so
 	 * a name with spaces still launches. Public for unit tests.
 	 */
-	public static function runShContent(exeName:String):String {
-		return '#!/bin/bash\ncd "$$(dirname "$$0")"\nexport LD_LIBRARY_PATH="$$(pwd):$$LD_LIBRARY_PATH"\n"./${exeName}" "$$@"\n';
+	public static function runShContent(exeName:String, viaHl:Bool = false):String {
+		var launch = viaHl ? 'hl "./${exeName}"' : '"./${exeName}"';
+		return '#!/bin/bash\ncd "$$(dirname "$$0")"\nexport LD_LIBRARY_PATH="$$(pwd):$$LD_LIBRARY_PATH"\n${launch} "$$@"\n';
 	}
 
 	/** Find just the filename of the executable in a directory. */
