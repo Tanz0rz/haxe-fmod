@@ -12083,5 +12083,5 @@ const HAXEFMOD_BINDINGS = {
   }
  },
  "fmod": "2.03.12",
- "haxefmod": "2.0.0"
+ "haxefmod": "3.0.0"
 };

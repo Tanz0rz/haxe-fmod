@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "haxefmod for FMOD docs",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "Adds a Haxe tab to the FMOD API reference showing the haxefmod method for every function.",
   "homepage_url": "https://github.com/Tanz0rz/haxe-fmod",
   "icons": {

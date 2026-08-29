@@ -1,6 +1,6 @@
 # Unsupported functions
 
-The 67 functions of the FMOD API that haxefmod 2.0.0 cannot bind, with the reason for each. Nearly all of them hand FMOD a callback to run on its own threads, which no Haxe target can host, and the rest belong to platforms the library does not ship for or return raw pointers. Generated from `extension/functions.md` by `ci/haxe-bindings.py`, so this page and the Haxe tab of the browser extension always agree. [Coverage](coverage.md) lists everything that is bound.
+The 67 functions of the FMOD API that haxefmod 3.0.0 cannot bind, with the reason for each. Nearly all of them hand FMOD a callback to run on its own threads, which no Haxe target can host, and the rest belong to platforms the library does not ship for or return raw pointers. Generated from `extension/functions.md` by `ci/haxe-bindings.py`, so this page and the Haxe tab of the browser extension always agree. [Coverage](coverage.md) lists everything that is bound.
 
 If one of these blocks a real use case, open an issue describing it. A workaround at the library level is sometimes possible even when the function itself is not.
 
