@@ -3389,7 +3389,7 @@ jobs:
       - name: Install HashLink
         shell: powershell
         run: |
-          $HL_URL = "https://github.com/HaxeFoundation/hashlink/releases/download/1.14/hashlink-1.14.0-win.zip"
+          $HL_URL = "https://github.com/HaxeFoundation/hashlink/releases/download/1.15/hashlink-1.15.0-win.zip"
           Invoke-WebRequest -Uri $HL_URL -OutFile "C:\hashlink.zip"
           Expand-Archive -Path "C:\hashlink.zip" -DestinationPath "C:\"
           $HL_DIR = Get-ChildItem "C:\" -Directory | Where-Object { $_.Name -like "hashlink*" } | Select-Object -First 1
@@ -3480,33 +3480,6 @@ jobs:
           ls -la example-project/HeapsPlatformer/build/hl
           cd example-project/HeapsPlatformer/build/hl
           timeout 10 ./HeapsPlatformer.exe --version || true
-          # Where does a silent launch spend its time? The window title of a
-          # blocked process names a dialog when there is one.
-          od -A x -t x1 -N 8 game.hl
-          ./HeapsPlatformer.exe > diag-boot.log 2>&1 &
-          DIAG_PID=$!
-          sleep 12
-          tasklist //v //fi "imagename eq HeapsPlatformer.exe" || true
-          # Read the dialog text, then dismiss it so the process exits and
-          # flushes what it printed
-          cat > "$RUNNER_TEMP/dialog.ps1" <<'PS'
-          Add-Type -AssemblyName UIAutomationClient
-          Add-Type -AssemblyName System.Windows.Forms
-          $root = [System.Windows.Automation.AutomationElement]::RootElement
-          $cond = New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::NameProperty, "Fatal Error")
-          $w = $root.FindFirst([System.Windows.Automation.TreeScope]::Children, $cond)
-          if ($w) {
-            $w.FindAll([System.Windows.Automation.TreeScope]::Descendants, [System.Windows.Automation.Condition]::TrueCondition) | ForEach-Object { "UI: " + $_.Current.Name }
-            (New-Object -ComObject WScript.Shell).AppActivate("Fatal Error") | Out-Null
-            [System.Windows.Forms.SendKeys]::SendWait("{ENTER}")
-          } else { "no Fatal Error window" }
-          PS
-          powershell -NoProfile -ExecutionPolicy Bypass -File "$RUNNER_TEMP/dialog.ps1" || true
-          sleep 3
-          kill $DIAG_PID 2>/dev/null || true
-          wait $DIAG_PID 2>/dev/null || true
-          echo "--- launch without arguments:"; head -20 diag-boot.log
-          rm -f diag-boot.log
 
       - name: Record audio
         if: matrix.state == 'game-audio'
