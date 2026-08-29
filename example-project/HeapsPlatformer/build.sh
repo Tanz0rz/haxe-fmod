@@ -48,8 +48,10 @@ case "$TARGET" in
         *) LIBS="$LIBS $HL_PREFIX/lib/$lib.hdll" ;;
       esac
     done
+    # libuv is linked directly: the generated C calls its functions by name
+    # for Heaps' networking natives
     clang -O2 -std=gnu11 -w -o build/hl/game build/hlc/main.c -Ibuild/hlc -I"$HL_PREFIX/include" \
-      -L"$HL_PREFIX/lib" -lhl $LIBS -Wl,-rpath,@executable_path -Wl,-rpath,"$HL_PREFIX/lib"
+      -L"$HL_PREFIX/lib" -lhl -luv $LIBS -Wl,-rpath,@executable_path -Wl,-rpath,"$HL_PREFIX/lib"
     haxelib run haxefmod stage mac hl build/hl
     rm -rf build/hl/assets
     mkdir -p build/hl/assets/fmod

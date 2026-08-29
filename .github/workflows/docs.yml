@@ -92,7 +92,7 @@ jobs:
           haxe -cp . -lib flixel -lib openfl -lib lime \
             -D FLX_STANDARD_ASSETS_DIRECTORY -D openfl-html5 -D html5 \
             --no-output -js /dev/null \
-            --macro "include('haxefmod', true, ['haxefmod.tools', 'haxefmod.studio.native'])" \
+            --macro "include('haxefmod', true, ['haxefmod.tools', 'haxefmod.studio.native', 'haxefmod.heaps', 'haxefmod.kha'])" \
             --xml /tmp/haxefmod-docs/types.xml
 
       - name: Render the API reference

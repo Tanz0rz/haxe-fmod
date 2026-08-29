@@ -3534,7 +3534,7 @@ jobs:
       - name: Setup Haxe via Homebrew
         run: |
           brew untap aws/tap 2>/dev/null || true
-          brew install haxe neko hashlink ffmpeg
+          brew install haxe neko hashlink libuv ffmpeg
           echo "HAXE_STD_PATH=$(brew --prefix)/lib/haxe/std" >> $GITHUB_ENV
 
       - name: Install Haxe libraries

@@ -21,7 +21,7 @@ case "$TARGET" in
       linux*)   PLATFORM=linux; GRAPHICS="--graphics opengl"
                 # kfile.js links -lfmod -lfmodstudio, so the linker needs the SDK's lib dirs
                 export LIBRARY_PATH="$FMOD_SDK/api/core/lib/x86_64:$FMOD_SDK/api/studio/lib/x86_64${LIBRARY_PATH:+:$LIBRARY_PATH}" ;;
-      osx*)     PLATFORM=mac; GRAPHICS=""
+      osx*)     PLATFORM=mac; GRAPHICS="--graphics opengl"
                 export LIBRARY_PATH="$FMOD_SDK/api/core/lib:$FMOD_SDK/api/studio/lib${LIBRARY_PATH:+:$LIBRARY_PATH}" ;;
       windows*) PLATFORM=windows; GRAPHICS="" ;;
     esac
@@ -29,8 +29,9 @@ case "$TARGET" in
     # The object directory goes too: kmake reuses objects across flag changes
     # (a graphics backend switch, for one) and links a broken binary from them
     rm -rf "build/$TARGET" "build/$TARGET-build"
-    # Linux asks for OpenGL rather than Kinc's default Vulkan: it runs on any
-    # display, a virtual one included. Mac keeps Metal and Windows Direct3D.
+    # Linux and macOS ask for OpenGL rather than Kinc's default Vulkan or
+    # Metal: it runs on any display, a virtual or GPU-less one included.
+    # Windows keeps Direct3D.
     node "$KHA/make.js" "$TARGET" --to build --compile $GRAPHICS
     OUT="build/$TARGET"
     mkdir -p "$OUT"
