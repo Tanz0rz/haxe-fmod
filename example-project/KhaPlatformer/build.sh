@@ -1,6 +1,6 @@
 #!/bin/bash
 # Builds the Kha example for one target and lays out a runnable directory.
-# Usage: KHA=/path/to/Kha ./build.sh linux|linux-hl|osx|osx-hl|windows|windows-hl|html5
+# Usage: KHA=/path/to/Kha [BUILD_ROOT=dir] ./build.sh linux|linux-hl|osx|osx-hl|windows|windows-hl|html5
 #   linux, osx, windows:  Kore with hxcpp-generated C++, the binding compiled
 #             from native/faxe/linc_faxe.cpp. Output build/<target>/, run
 #             with run.sh (run.cmd on Windows)
@@ -14,6 +14,8 @@ set -e
 cd "$(dirname "$0")"
 : "${KHA:?set KHA to the Kha checkout}"
 TARGET="$1"
+# Output root, so a game build and a test build can run side by side
+B="${BUILD_ROOT:-build}"
 case "$TARGET" in
   linux|linux-hl|osx|osx-hl|windows|windows-hl)
     : "${FMOD_SDK:?set FMOD_SDK to the desktop FMOD Engine directory}"
@@ -28,21 +30,21 @@ case "$TARGET" in
     case "$TARGET" in *-hl) export HAXEFMOD_KHA_HL=1 ;; *) unset HAXEFMOD_KHA_HL ;; esac
     # The object directory goes too: kmake reuses objects across flag changes
     # (a graphics backend switch, for one) and links a broken binary from them
-    rm -rf "build/$TARGET" "build/$TARGET-build"
+    rm -rf "$B/$TARGET" "$B/$TARGET-build"
     # Linux and macOS ask for OpenGL rather than Kinc's default Vulkan or
     # Metal: it runs on any display, a virtual or GPU-less one included.
     # Windows keeps Direct3D.
-    node "$KHA/make.js" "$TARGET" --to build --compile $GRAPHICS
-    OUT="build/$TARGET"
+    node "$KHA/make.js" "$TARGET" --to "$B" --compile $GRAPHICS
+    OUT="$B/$TARGET"
     mkdir -p "$OUT"
     # kmake writes the executable somewhere under the build tree, and the
     # depth differs per toolchain (Xcode and Visual Studio nest theirs)
     if [ "$PLATFORM" = windows ]; then
-      EXE=$(find "build/$TARGET-build" -type f -name "KhaPlatformer.exe" | head -1)
+      EXE=$(find "$B/$TARGET-build" -type f -name "KhaPlatformer.exe" | head -1)
     else
-      EXE=$(find "build/$TARGET-build" -type f -perm -u+x -name "KhaPlatformer" | head -1)
+      EXE=$(find "$B/$TARGET-build" -type f -perm -u+x -name "KhaPlatformer" | head -1)
     fi
-    [ -n "$EXE" ] || { echo "no executable found under build/$TARGET-build"; exit 1; }
+    [ -n "$EXE" ] || { echo "no executable found under $B/$TARGET-build"; exit 1; }
     cp "$EXE" "$OUT/KhaPlatformer$( [ "$PLATFORM" = windows ] && echo .exe )"
     haxelib run haxefmod stage "$PLATFORM" cpp "$OUT"
     rm -rf "$OUT/assets"
@@ -51,15 +53,15 @@ case "$TARGET" in
     ;;
   html5)
     : "${FMOD_SDK_WEB:?set FMOD_SDK_WEB to the HTML5 FMOD Engine directory}"
-    rm -rf build/html5
-    mkdir -p build/html5
+    rm -rf "$B/html5"
+    mkdir -p "$B/html5"
     # khamake only writes an index.html when none exists
-    cp index.html build/html5/index.html
-    node "$KHA/make.js" html5 --to build
-    haxelib run haxefmod stage html5 html5 build/html5/lib
-    rm -rf build/html5/assets
-    mkdir -p build/html5/assets/fmod
-    cp -r ../EZPlatformer/assets/fmod/Desktop build/html5/assets/fmod/
+    cp index.html "$B/html5/index.html"
+    node "$KHA/make.js" html5 --to "$B"
+    haxelib run haxefmod stage html5 html5 "$B/html5/lib"
+    rm -rf "$B/html5/assets"
+    mkdir -p "$B/html5/assets/fmod"
+    cp -r ../EZPlatformer/assets/fmod/Desktop "$B/html5/assets/fmod/"
     ;;
   *)
     echo "usage: $0 linux|linux-hl|osx|osx-hl|windows|windows-hl|html5"; exit 2 ;;

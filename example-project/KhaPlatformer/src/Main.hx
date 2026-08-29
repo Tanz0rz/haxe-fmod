@@ -31,6 +31,9 @@ class Main {
 
     function new() {
         instance = this;
+        #if sys
+        mirrorTraceToFile();
+        #end
 
         #if audio_test_manual_update
         // The manual-update CI variant: every scenario then runs on
@@ -93,6 +96,26 @@ class Main {
         g2.popTransformation();
         g2.end();
     }
+
+    #if sys
+    /**
+     * CI on Windows builds GUI executables whose stdout goes nowhere, so
+     * every trace also lands in the file HAXEFMOD_LOG_FILE names.
+     */
+    static function mirrorTraceToFile():Void {
+        var path = Sys.getEnv("HAXEFMOD_LOG_FILE");
+        if (path == null || path == "") return;
+        var original = haxe.Log.trace;
+        haxe.Log.trace = function(v:Dynamic, ?pos:haxe.PosInfos) {
+            original(v, pos);
+            try {
+                var out = sys.io.File.append(path, false);
+                out.writeString(haxe.Log.formatOutput(v, pos) + "\n");
+                out.close();
+            } catch (e:Dynamic) {}
+        };
+    }
+    #end
 
     public function switchScene(next:GameScene):Void {
         if (scene != null) scene.dispose();

@@ -21,6 +21,9 @@ class Main extends hxd.App {
 
     override function init() {
         instance = this;
+        #if sys
+        mirrorTraceToFile();
+        #end
         // The flixel game runs 320x240 doubled into a 640x480 window at
         // 60 fps. The cap matters off-screen too: without vsync a virtual
         // display spins thousands of frames per second and the scenarios'
@@ -78,6 +81,26 @@ class Main extends hxd.App {
 
     static inline var FRAME_SECONDS:Float = 1 / 60;
     var lastFrameStamp:Float = 0;
+
+    #if sys
+    /**
+     * CI on Windows builds GUI executables whose stdout goes nowhere, so
+     * every trace also lands in the file HAXEFMOD_LOG_FILE names.
+     */
+    static function mirrorTraceToFile():Void {
+        var path = Sys.getEnv("HAXEFMOD_LOG_FILE");
+        if (path == null || path == "") return;
+        var original = haxe.Log.trace;
+        haxe.Log.trace = function(v:Dynamic, ?pos:haxe.PosInfos) {
+            original(v, pos);
+            try {
+                var out = sys.io.File.append(path, false);
+                out.writeString(haxe.Log.formatOutput(v, pos) + "\n");
+                out.close();
+            } catch (e:Dynamic) {}
+        };
+    }
+    #end
 
     public function switchScene(next:GameScene):Void {
         if (scene != null) scene.dispose();

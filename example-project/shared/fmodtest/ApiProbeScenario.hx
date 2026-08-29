@@ -2581,7 +2581,7 @@ class ApiProbeScenario implements TestScenario {
         var openInfo = sound.getOpenStateInfo();
         check("tu_open_state_info", openInfo != null && openInfo.state == FmodOpenState.READY
             && !openInfo.starving && !openInfo.diskBusy,
-            openInfo == null ? "null" : 'state=${(openInfo.state : Int)} buffered=${openInfo.percentBuffered}');
+            openInfo == null ? "null" : 'state=${(openInfo.state : Int)} buffered=${openInfo.percentBuffered} starving=${openInfo.starving} diskBusy=${openInfo.diskBusy}');
         check("tu_open_state_plain", openInfo != null && sound.getOpenState() == openInfo.state, "");
 
         var channel = sound.play(true);

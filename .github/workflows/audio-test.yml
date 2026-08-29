@@ -1836,12 +1836,15 @@ jobs:
 
 
   # ===========================================================================
-  # Heaps on the HashLink VM: hxml build, stage command, same scenarios
+  # Kha in the browser: khamake build, stage command, WebGL through SwiftShader
+
   # ===========================================================================
-  heaps-hl:
+  # Heaps on the HashLink VM, Linux: build once, the states run in parallel in heaps-hl
+  # ===========================================================================
+  heaps-hl-build:
     runs-on: ubuntu-latest
     if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[heaps-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-html5]') && !contains(github.event.head_commit.message, '[kha-linux]') && !contains(github.event.head_commit.message, '[kha-hl]') && !contains(github.event.head_commit.message, '[kha-html5]') && !contains(github.event.head_commit.message, '[heaps-mac-hl]') && !contains(github.event.head_commit.message, '[heaps-windows-hl]') && !contains(github.event.head_commit.message, '[kha-mac]') && !contains(github.event.head_commit.message, '[kha-mac-hl]') && !contains(github.event.head_commit.message, '[kha-windows]') && !contains(github.event.head_commit.message, '[kha-windows-hl]')))) }}
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v5
 
@@ -1858,37 +1861,39 @@ jobs:
         with:
           haxe-version: ${{ env.HAXE_VERSION }}
 
-      - name: Cache haxelib
-        uses: actions/cache@v5
-        with:
-          path: ~/haxelib
-          key: haxelib-heaps-${{ runner.os }}-${{ env.HAXE_VERSION }}
-
       - name: Install Haxe libraries
         run: |
           haxelib setup ~/haxelib
           haxelib install heaps 2.1.0 --always --quiet
+          haxelib install hashlink 1.15.0 --always --quiet
           haxelib install hlsdl 1.15.0 --always --quiet
-          haxelib dev haxefmod $GITHUB_WORKSPACE
+          haxelib dev haxefmod "$GITHUB_WORKSPACE"
 
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg \
-            libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
+          sudo apt-get install -y libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
             libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev libz-dev
 
-      - name: Build and install HashLink
+      - name: Cache the HashLink build
+        id: hl-cache
+        uses: actions/cache@v5
+        with:
+          path: /tmp/hashlink-src
+          key: hashlink-781960a5-${{ runner.os }}
+
+      - name: Build HashLink
+        if: steps.hl-cache.outputs.cache-hit != 'true'
         run: |
           # Same pin as linux-hl: the commit before the SDL3 port
           git clone https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
           cd /tmp/hashlink-src
           git checkout 781960a5daca32ad6d5cea87b255fe8b5872551e
-          make -j$(nproc) 2>&1 | tee /tmp/hashlink-build.log || {
-            echo "=== MAKE FAILED - retrying single-threaded ==="
-            make 2>&1 | tee -a /tmp/hashlink-build.log
-            exit 1
-          }
+          make -j$(nproc)
+
+      - name: Install HashLink
+        run: |
+          cd /tmp/hashlink-src
           sudo make install
           sudo ldconfig
           hl --version || echo "HashLink installed"
@@ -1899,40 +1904,82 @@ jobs:
           haxelib run haxefmod build-hdll
           cat .haxefmod/hlaxe_fmod.version
 
-      - name: Build HashLink target
+      - name: Build game and test variants
         run: |
-          set -o pipefail
           cd example-project/HeapsPlatformer
-          ./build.sh hl 2>&1 | tee /tmp/build-heaps-hl.log
-          grep -q "(custom-compiled from .haxefmod/)" /tmp/build-heaps-hl.log
-
-      - name: Verify FMOD libraries have no executable stack
-        run: |
-          BIN_DIR="example-project/HeapsPlatformer/build/hl"
-          FOUND=0
-          for lib in "$BIN_DIR"/libfmod*.so*; do
-            [ -L "$lib" ] && continue
-            FOUND=1
-            LINE=$(readelf -lW "$lib" | grep GNU_STACK) || {
-              echo "FAIL: $lib has no GNU_STACK header"; exit 1; }
-            FLAGS=$(echo "$LINE" | awk '{print $7}')
-            echo "$lib: GNU_STACK $FLAGS"
-            case "$FLAGS" in *E*)
-              echo "FAIL: $lib still has an executable stack (stage should have cleared it)"
-              exit 1;;
-            esac
-          done
-          [ "$FOUND" = "1" ] || { echo "FAIL: no FMOD libraries found in $BIN_DIR"; exit 1; }
+          # Both variants at once, into separate output roots
+          ./build.sh hl > "$RUNNER_TEMP/build-game.log" 2>&1 &
+          P1=$!
+          BUILD_ROOT=build-test ./build.sh hl -D audio_test > "$RUNNER_TEMP/build-test.log" 2>&1 &
+          P2=$!
+          wait $P1 || { echo "=== game build failed ==="; cat "$RUNNER_TEMP/build-game.log"; exit 1; }
+          wait $P2 || { echo "=== test build failed ==="; cat "$RUNNER_TEMP/build-test.log"; exit 1; }
+          tail -5 "$RUNNER_TEMP/build-game.log"
+          tail -5 "$RUNNER_TEMP/build-test.log"
 
       - name: Validate build output
         run: |
-          BIN_DIR="example-project/HeapsPlatformer/build/hl"
-          for f in game.hl run.sh hlaxe_fmod.hdll libfmod.so libfmodstudio.so assets/fmod/Desktop/Master.bank; do
-            test -e "$BIN_DIR/$f" || { echo "FAIL: missing $f"; exit 1; }
+          for d in example-project/HeapsPlatformer/build/hl example-project/HeapsPlatformer/build-test/hl; do
+            for f in game.hl run.sh hlaxe_fmod.hdll libfmod.so libfmodstudio.so assets/fmod/Desktop/Master.bank; do
+              test -e "$d/$f" || { echo "FAIL: missing $f in $d"; exit 1; }
+            done
           done
-          echo "OK: HashLink build directory is complete"
+          echo "OK: build directories are complete"
 
-      - name: Record audio
+      - name: Upload build
+        uses: actions/upload-artifact@v6
+        with:
+          name: build-heaps-hl
+          path: |
+            example-project/HeapsPlatformer/build/hl
+            example-project/HeapsPlatformer/build-test/hl
+          include-hidden-files: true
+          overwrite: true
+
+  heaps-hl:
+    needs: heaps-hl-build
+    runs-on: ubuntu-latest
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[heaps-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-html5]') && !contains(github.event.head_commit.message, '[kha-linux]') && !contains(github.event.head_commit.message, '[kha-hl]') && !contains(github.event.head_commit.message, '[kha-html5]') && !contains(github.event.head_commit.message, '[heaps-mac-hl]') && !contains(github.event.head_commit.message, '[heaps-windows-hl]') && !contains(github.event.head_commit.message, '[kha-mac]') && !contains(github.event.head_commit.message, '[kha-mac-hl]') && !contains(github.event.head_commit.message, '[kha-windows]') && !contains(github.event.head_commit.message, '[kha-windows-hl]')))) }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        state: [game-audio, volume, api-probe, synth-test, cb-test, ps-test, bank-test, pan-test, stress-test]
+        include:
+          - state: api-probe
+            gate: API_PROBE
+          - state: synth-test
+            gate: SYNTH_TEST
+          - state: cb-test
+            gate: CB_TEST
+          - state: ps-test
+            gate: PS_TEST
+          - state: bank-test
+            gate: BANK_TEST
+          - state: pan-test
+            gate: PAN_TEST
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download build
+        uses: actions/download-artifact@v6
+        with:
+          name: build-heaps-hl
+          path: example-project/HeapsPlatformer
+
+      - name: Restore executable bits
+        run: |
+          # Artifacts do not keep file modes
+          cd example-project/HeapsPlatformer
+          chmod +x build*/hl/run.sh 2>/dev/null || true
+          chmod +x build*/hl/run.sh 2>/dev/null || true
+
+      - name: Install runtime dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg libgl1-mesa-dri
+
+      - name: Start display and audio
         run: |
           Xvfb :99 -screen 0 1024x768x24 &
           export DISPLAY=:99
@@ -1948,34 +1995,29 @@ jobs:
             type pulse
           }
           ALSA_EOF
-          BIN_DIR="example-project/HeapsPlatformer/build/hl"
+          echo "DISPLAY=:99" >> "$GITHUB_ENV"
+
+      - name: Log file for the executable
+        run: echo "HAXEFMOD_LOG_FILE=/tmp/${{ matrix.state }}-heaps-hl.log" >> "$GITHUB_ENV"
+
+      - name: Record audio
+        if: matrix.state == 'game-audio'
+        run: |
           ffmpeg -f pulse -i virtual_speaker.monitor -t 30 -y /tmp/audio-heaps-hl.wav &
           RECORD_PID=$!
-          cd "$BIN_DIR"
+          cd example-project/HeapsPlatformer/build/hl
           timeout 30 ./run.sh > /tmp/game-heaps-hl.log 2>&1 || true
           cd -
+          wait $RECORD_PID || true
           echo "=== Game log ==="
           cat /tmp/game-heaps-hl.log || true
           echo "=== End game log ==="
-          wait $RECORD_PID || true
-          ls -la /tmp/audio-heaps-hl.wav
-
-      - name: Validate audio
-        run: ./ci/validate-audio.sh /tmp/audio-heaps-hl.wav 10
-
-      - name: Validate game log
-        run: ./ci/validate-game-log.sh /tmp/game-heaps-hl.log
-
-      - name: Build test variant
-        run: |
-          cd example-project/HeapsPlatformer
-          ./build.sh hl -D audio_test
 
       - name: Record volume test
+        if: matrix.state == 'volume'
         run: |
-          export DISPLAY=:99
           export FMOD_WAVWRITER=/tmp/volume-test-heaps-hl.wav
-          cd example-project/HeapsPlatformer/build/hl
+          cd example-project/HeapsPlatformer/build-test/hl
           ./run.sh > /tmp/volume-test-heaps-hl.log 2>&1 &
           GAME_PID=$!
           cd -
@@ -1986,84 +2028,44 @@ jobs:
           kill $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
 
+      - name: Validate audio
+        if: matrix.state == 'game-audio'
+        run: ./ci/validate-audio.sh /tmp/audio-heaps-hl.wav 10
+
+      - name: Validate game log
+        if: matrix.state == 'game-audio'
+        run: ./ci/validate-game-log.sh /tmp/game-heaps-hl.log
+
       - name: Validate volume/mute
+        if: matrix.state == 'volume'
         run: ./ci/validate-volume.sh /tmp/volume-test-heaps-hl.wav 15
 
-      - name: Run api-probe state
-        if: ${{ !cancelled() }}
+      - name: Run state
+        if: matrix.gate
         uses: ./.github/actions/run-test-state
         with:
-          state: api-probe
-          gate: API_PROBE
+          state: ${{ matrix.state }}
+          gate: ${{ matrix.gate }}
           timeout: "60"
-          bin-dir: example-project/HeapsPlatformer/build/hl
-          log-file: /tmp/api-probe-heaps-hl.log
-
-      - name: Run synth-test state
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/run-test-state
-        with:
-          state: synth-test
-          gate: SYNTH_TEST
-          timeout: "60"
-          bin-dir: example-project/HeapsPlatformer/build/hl
-          log-file: /tmp/synth-test-heaps-hl.log
-          use-wavwriter: "true"
+          bin-dir: example-project/HeapsPlatformer/build-test/hl
+          log-file: /tmp/${{ matrix.state }}-heaps-hl.log
+          extra-gate: "${{ matrix.state == 'cb-test' && 'CB_TEST: Stopped' || '' }}"
+          copy-jump-wav: "${{ matrix.state == 'ps-test' && 'true' || 'false' }}"
+          use-wavwriter: "${{ matrix.state == 'synth-test' && 'true' || 'false' }}"
 
       - name: Validate synth audio
-        if: ${{ !cancelled() }}
+        if: matrix.state == 'synth-test'
         run: ./ci/validate-synth.sh "${RUNNER_TEMP}/state-synth-test.wav"
 
-      - name: Run cb-test state
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/run-test-state
-        with:
-          state: cb-test
-          gate: CB_TEST
-          timeout: "30"
-          bin-dir: example-project/HeapsPlatformer/build/hl
-          log-file: /tmp/cb-test-heaps-hl.log
-          extra-gate: "CB_TEST: Stopped"
-
-      - name: Run ps-test state
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/run-test-state
-        with:
-          state: ps-test
-          gate: PS_TEST
-          timeout: "60"
-          bin-dir: example-project/HeapsPlatformer/build/hl
-          log-file: /tmp/ps-test-heaps-hl.log
-          copy-jump-wav: "true"
-
-      - name: Run bank-test state
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/run-test-state
-        with:
-          state: bank-test
-          gate: BANK_TEST
-          timeout: "60"
-          bin-dir: example-project/HeapsPlatformer/build/hl
-          log-file: /tmp/bank-test-heaps-hl.log
-
-      - name: Run pan-test state
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/run-test-state
-        with:
-          state: pan-test
-          gate: PAN_TEST
-          timeout: "60"
-          bin-dir: example-project/HeapsPlatformer/build/hl
-          log-file: /tmp/pan-test-heaps-hl.log
-
       - name: Run stress-test state (smoke)
-        if: ${{ !cancelled() }}
+        if: matrix.state == 'stress-test'
         run: |
-          export DISPLAY=:99
           export HAXEFMOD_TEST_STATE=stress-test
           export STRESS_SECONDS=15
-          cd example-project/HeapsPlatformer/build/hl
-          ./run.sh > /tmp/stress-smoke-heaps-hl.log 2>&1 &
+          export FMOD_WAVWRITER="${RUNNER_TEMP}/stress-smoke.wav"
+          LOG=/tmp/stress-smoke-heaps-hl.log
+          cd example-project/HeapsPlatformer/build-test/hl
+          ./run.sh > "$LOG" 2>&1 &
           GAME_PID=$!
           cd -
           for i in $(seq 90); do
@@ -2072,44 +2074,29 @@ jobs:
           done
           kill $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
-          grep "STRESS_TEST:" /tmp/stress-smoke-heaps-hl.log || true
-          grep -q "STRESS_TEST: COMPLETE" /tmp/stress-smoke-heaps-hl.log || {
-            echo "Stress smoke never completed - full log:"
-            cat /tmp/stress-smoke-heaps-hl.log
-            exit 1
-          }
-          if grep -q "pass=false" /tmp/stress-smoke-heaps-hl.log; then
-            echo "Stress smoke reported failing checks"
-            exit 1
-          fi
+          grep "STRESS_TEST:" "$LOG" || true
+          grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed - full log:"; cat "$LOG"; exit 1; }
+          if grep -q "pass=false" "$LOG"; then echo "Stress smoke reported failing checks"; exit 1; fi
 
-      - name: Upload artifacts
+      - name: Upload logs
         uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: audio-heaps-hl
+          name: logs-heaps-hl-${{ matrix.state }}
           path: |
-            /tmp/audio-heaps-hl.wav
-            /tmp/game-heaps-hl.log
-            /tmp/volume-test-heaps-hl.wav
-            /tmp/volume-test-heaps-hl.log
-            /tmp/api-probe-heaps-hl.log
-            /tmp/synth-test-heaps-hl.log
-            /tmp/cb-test-heaps-hl.log
-            /tmp/ps-test-heaps-hl.log
-            /tmp/bank-test-heaps-hl.log
-            /tmp/pan-test-heaps-hl.log
-            /tmp/stress-smoke-heaps-hl.log
-          if-no-files-found: warn
+            /tmp/*-heaps-hl.wav
+            /tmp/*-heaps-hl.log
+            /tmp/*-heaps-hl-console.log
+          if-no-files-found: ignore
           overwrite: true
 
   # ===========================================================================
-  # Heaps in the browser: hxml build, stage command, WebGL through SwiftShader
+  # Heaps in the browser: build once, the states run in parallel in heaps-html5
   # ===========================================================================
-  heaps-html5:
+  heaps-html5-build:
     runs-on: ubuntu-latest
     if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[heaps-html5]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-html5]') && !contains(github.event.head_commit.message, '[kha-linux]') && !contains(github.event.head_commit.message, '[kha-hl]') && !contains(github.event.head_commit.message, '[kha-html5]') && !contains(github.event.head_commit.message, '[heaps-mac-hl]') && !contains(github.event.head_commit.message, '[heaps-windows-hl]') && !contains(github.event.head_commit.message, '[kha-mac]') && !contains(github.event.head_commit.message, '[kha-mac-hl]') && !contains(github.event.head_commit.message, '[kha-windows]') && !contains(github.event.head_commit.message, '[kha-windows-hl]')))) }}
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v5
 
@@ -2126,39 +2113,93 @@ jobs:
         with:
           haxe-version: ${{ env.HAXE_VERSION }}
 
-      - name: Cache haxelib
-        uses: actions/cache@v5
-        with:
-          path: ~/haxelib
-          key: haxelib-heaps-html5-${{ runner.os }}-${{ env.HAXE_VERSION }}
-
       - name: Install Haxe libraries
         run: |
           haxelib setup ~/haxelib
           haxelib install heaps 2.1.0 --always --quiet
-          haxelib dev haxefmod $GITHUB_WORKSPACE
+          haxelib install hashlink 1.15.0 --always --quiet
+          haxelib install hlsdl 1.15.0 --always --quiet
+          haxelib dev haxefmod "$GITHUB_WORKSPACE"
 
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg chromium-browser xdotool
 
-      - name: Build HTML5 target
+      - name: Build game and test variants
         env:
           FMOD_SDK_WEB: ${{ env.FMOD_SDK }}
         run: |
           cd example-project/HeapsPlatformer
-          ./build.sh js
+          # Both variants at once, into separate output roots
+          ./build.sh js > "$RUNNER_TEMP/build-game.log" 2>&1 &
+          P1=$!
+          BUILD_ROOT=build-test ./build.sh js -D audio_test > "$RUNNER_TEMP/build-test.log" 2>&1 &
+          P2=$!
+          wait $P1 || { echo "=== game build failed ==="; cat "$RUNNER_TEMP/build-game.log"; exit 1; }
+          wait $P2 || { echo "=== test build failed ==="; cat "$RUNNER_TEMP/build-test.log"; exit 1; }
+          tail -5 "$RUNNER_TEMP/build-game.log"
+          tail -5 "$RUNNER_TEMP/build-test.log"
 
       - name: Validate build output
         run: |
-          BIN_DIR="example-project/HeapsPlatformer/build/html5"
-          for f in index.html game.js lib/fmodstudio.js lib/fmodstudio.wasm lib/jaxe.js assets/fmod/Desktop/Master.bank; do
-            test -s "$BIN_DIR/$f" || { echo "FAIL: missing $f"; exit 1; }
+          for d in example-project/HeapsPlatformer/build/html5 example-project/HeapsPlatformer/build-test/html5; do
+            for f in index.html game.js lib/fmodstudio.js lib/fmodstudio.wasm lib/jaxe.js assets/fmod/Desktop/Master.bank; do
+              test -e "$d/$f" || { echo "FAIL: missing $f in $d"; exit 1; }
+            done
           done
-          echo "OK: html5 build directory is complete"
+          echo "OK: build directories are complete"
 
-      - name: Record audio
+      - name: Upload build
+        uses: actions/upload-artifact@v6
+        with:
+          name: build-heaps-html5
+          path: |
+            example-project/HeapsPlatformer/build/html5
+            example-project/HeapsPlatformer/build-test/html5
+          include-hidden-files: true
+          overwrite: true
+
+  heaps-html5:
+    needs: heaps-html5-build
+    runs-on: ubuntu-latest
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[heaps-html5]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-html5]') && !contains(github.event.head_commit.message, '[kha-linux]') && !contains(github.event.head_commit.message, '[kha-hl]') && !contains(github.event.head_commit.message, '[kha-html5]') && !contains(github.event.head_commit.message, '[heaps-mac-hl]') && !contains(github.event.head_commit.message, '[heaps-windows-hl]') && !contains(github.event.head_commit.message, '[kha-mac]') && !contains(github.event.head_commit.message, '[kha-mac-hl]') && !contains(github.event.head_commit.message, '[kha-windows]') && !contains(github.event.head_commit.message, '[kha-windows-hl]')))) }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        state: [game-audio, volume, api-probe, synth-test, cb-test, ps-test, bank-test, pan-test]
+        include:
+          - state: api-probe
+            gate: API_PROBE
+          - state: synth-test
+            gate: SYNTH_TEST
+          - state: cb-test
+            gate: CB_TEST
+          - state: ps-test
+            gate: PS_TEST
+          - state: bank-test
+            gate: BANK_TEST
+          - state: pan-test
+            gate: PAN_TEST
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download build
+        uses: actions/download-artifact@v6
+        with:
+          name: build-heaps-html5
+          path: example-project/HeapsPlatformer
+
+      - name: Restore executable bits
+        run: |
+          # Artifacts do not keep file modes
+          cd example-project/HeapsPlatformer
+          chmod +x build*/html5/ 2>/dev/null || true
+          chmod +x build*/html5/run.sh 2>/dev/null || true
+
+      - name: Install runtime dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg chromium-browser xdotool
+
+      - name: Start display and audio
         run: |
           Xvfb :99 -screen 0 1024x768x24 &
           export DISPLAY=:99
@@ -2174,19 +2215,22 @@ jobs:
             type pulse
           }
           ALSA_EOF
+          echo "DISPLAY=:99" >> "$GITHUB_ENV"
+
+      - name: Record audio
+        if: matrix.state == 'game-audio'
+        run: |
           cd example-project/HeapsPlatformer/build/html5
           python3 -m http.server 8180 &
           HTTP_PID=$!
           cd -
           sleep 1
-          # Own profile per launch: the snap launcher exits while the browser
-          # lives on, and a relaunch on the shared profile hands its URL to
-          # that instance, whose stderr nobody captures
           PROFILE=$(mktemp -d)
           chromium-browser \
             --no-sandbox --no-first-run --no-default-browser-check --user-data-dir="$PROFILE" \
             --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
             --autoplay-policy=no-user-gesture-required \
+            --enable-logging=stderr --v=0 \
             --window-size=640,480 \
             --window-position=0,0 \
             http://localhost:8180 &
@@ -2196,9 +2240,6 @@ jobs:
           sleep 1
           ffmpeg -f pulse -i virtual_speaker.monitor -t 30 -y /tmp/audio-heaps-html5.wav &
           RECORD_PID=$!
-          # A second click during the recording: the first can land before a
-          # page on software GL is interactive, and the audio context needs
-          # a gesture that reaches it
           sleep 4
           xdotool mousemove 320 240 click 1
           sleep 27
@@ -2206,30 +2247,19 @@ jobs:
           pkill -f "$PROFILE" || true
           kill $HTTP_PID || true
           wait $RECORD_PID || true
-          ls -la /tmp/audio-heaps-html5.wav
 
       - name: Validate audio
+        if: matrix.state == 'game-audio'
         run: ./ci/validate-audio.sh /tmp/audio-heaps-html5.wav 10
 
-      - name: Build test variant
-        if: ${{ !cancelled() }}
-        env:
-          FMOD_SDK_WEB: ${{ env.FMOD_SDK }}
-        run: |
-          cd example-project/HeapsPlatformer
-          ./build.sh js -D audio_test
-
       - name: Record volume test
+        if: matrix.state == 'volume'
         run: |
-          export DISPLAY=:99
-          cd example-project/HeapsPlatformer/build/html5
+          cd example-project/HeapsPlatformer/build-test/html5
           python3 -m http.server 8181 &
           HTTP_PID=$!
           cd -
           sleep 1
-          # Own profile per launch: the snap launcher exits while the browser
-          # lives on, and a relaunch on the shared profile hands its URL to
-          # that instance, whose stderr nobody captures
           PROFILE=$(mktemp -d)
           chromium-browser \
             --no-sandbox --no-first-run --no-default-browser-check --user-data-dir="$PROFILE" \
@@ -2245,9 +2275,6 @@ jobs:
           sleep 1
           ffmpeg -f pulse -i virtual_speaker.monitor -t 25 -y /tmp/volume-test-heaps-html5.wav &
           RECORD_PID=$!
-          # A second click during the recording: the first can land before a
-          # page on software GL is interactive, and the audio context needs
-          # a gesture that reaches it
           sleep 4
           xdotool mousemove 320 240 click 1
           sleep 22
@@ -2258,64 +2285,26 @@ jobs:
           grep -o "VOLUME_TEST.*" /tmp/volume-test-heaps-html5-console.log | sed 's/",.*$//' || true
 
       - name: Validate volume/mute
+        if: matrix.state == 'volume'
         run: ./ci/validate-volume.sh /tmp/volume-test-heaps-html5.wav 15
 
-      - name: Run API probe (JS binding coverage)
-        if: ${{ !cancelled() }}
+      - name: Run state
+        if: matrix.gate
         run: |
-          export DISPLAY=:99
-          cd example-project/HeapsPlatformer/build/html5
+          STATE="${{ matrix.state }}"
+          GATE="${{ matrix.gate }}"
+          RAW=/tmp/$STATE-heaps-html5.log.raw
+          LOG=/tmp/$STATE-heaps-html5.log
+          cd example-project/HeapsPlatformer/build-test/html5
           python3 -m http.server 8182 &
           HTTP_PID=$!
+          cd -
           sleep 1
-          # Own profile per launch: the snap launcher exits while the browser
-          # lives on, and a relaunch on the shared profile hands its URL to
-          # that instance, whose stderr nobody captures
           PROFILE=$(mktemp -d)
-          chromium-browser \
-            --no-sandbox --no-first-run --no-default-browser-check --user-data-dir="$PROFILE" \
-            --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
-            --autoplay-policy=no-user-gesture-required \
-            --enable-logging=stderr --v=0 \
-            --window-size=640,480 \
-            --window-position=0,0 \
-            "http://localhost:8182/index.html?test=api-probe" > /tmp/api-probe-heaps-html5.log.raw 2>&1 &
-          CHROME_PID=$!
-          # Two clicks: the first can land before a page on software GL is
-          # interactive, and the audio context needs a gesture that reaches it
-          sleep 3
-          xdotool mousemove 320 240 click 1
-          sleep 5
-          xdotool mousemove 320 240 click 1
-          for i in $(seq 45); do
-            grep -q "API_PROBE: COMPLETE" /tmp/api-probe-heaps-html5.log.raw && break
-            sleep 1
-          done
-          kill $CHROME_PID || true
-          pkill -f "$PROFILE" || true
-          kill $HTTP_PID || true
-          grep -v "dbus" /tmp/api-probe-heaps-html5.log.raw | tail -n 15 || true
-          grep -o "API_PROBE:.*" /tmp/api-probe-heaps-html5.log.raw | sed 's/",.*$//' | tee /tmp/api-probe-heaps-html5.log
-          grep -q "API_PROBE: COMPLETE" /tmp/api-probe-heaps-html5.log
-          if grep -q "pass=false" /tmp/api-probe-heaps-html5.log; then
-            echo "FAIL: API_PROBE reported failing checks"
-            exit 1
+          if [ "$STATE" = synth-test ]; then
+            ffmpeg -f pulse -i virtual_speaker.monitor -t 60 -y /tmp/synth-test-heaps-html5.wav &
+            RECORD_PID=$!
           fi
-
-      - name: Run synth test (generated PCM reaches the output)
-        if: ${{ !cancelled() }}
-        run: |
-          export DISPLAY=:99
-          cd example-project/HeapsPlatformer/build/html5
-          python3 -m http.server 8186 &
-          HTTP_PID=$!
-          sleep 1
-          ffmpeg -f pulse -i virtual_speaker.monitor -t 60 -y /tmp/synth-test-heaps-html5.wav &
-          RECORD_PID=$!
-          # Own profile per launch: the snap launcher exits while the browser
-          # lives on, and a relaunch on the shared profile hands its URL to
-          # that instance, whose stderr nobody captures
-          PROFILE=$(mktemp -d)
           chromium-browser \
             --no-sandbox --no-first-run --no-default-browser-check --user-data-dir="$PROFILE" \
             --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
@@ -2323,234 +2312,57 @@ jobs:
             --enable-logging=stderr --v=0 \
             --window-size=640,480 \
             --window-position=0,0 \
-            "http://localhost:8186/index.html?test=synth-test" > /tmp/synth-test-heaps-html5.log.raw 2>&1 &
+            "http://localhost:8182/index.html?test=$STATE" > "$RAW" 2>&1 &
           CHROME_PID=$!
-          # Two clicks: the first can land before a page on software GL is
-          # interactive, and the audio context needs a gesture that reaches it
           sleep 3
           xdotool mousemove 320 240 click 1
           sleep 5
           xdotool mousemove 320 240 click 1
           for i in $(seq 70); do
-            grep -q "SYNTH_TEST: COMPLETE" /tmp/synth-test-heaps-html5.log.raw && break
+            grep -q "$GATE: COMPLETE" "$RAW" && break
             sleep 1
           done
-          wait $RECORD_PID || true
+          [ "$STATE" = synth-test ] && wait $RECORD_PID || true
           kill $CHROME_PID || true
           pkill -f "$PROFILE" || true
           kill $HTTP_PID || true
-          grep -v "dbus" /tmp/synth-test-heaps-html5.log.raw | tail -n 15 || true
-          grep -o "SYNTH_TEST:.*" /tmp/synth-test-heaps-html5.log.raw | sed 's/",.*$//' | tee /tmp/synth-test-heaps-html5.log
-          grep -q "SYNTH_TEST: COMPLETE" /tmp/synth-test-heaps-html5.log
-          if grep -q "pass=false" /tmp/synth-test-heaps-html5.log; then
-            echo "FAIL: SYNTH_TEST reported failing checks"
+          grep -v "dbus" "$RAW" | tail -n 15 || true
+          grep -o "$GATE:.*" "$RAW" | sed 's/",.*$//' | tee "$LOG"
+          grep -q "$GATE: COMPLETE" "$LOG"
+          if [ "$STATE" = cb-test ]; then
+            # Same gate as the flixel browser step: delivery end to end. The
+            # nested-beat check is informational on Chromium.
+            grep -q "CB_TEST: Stopped" "$LOG"
+          elif grep -q "pass=false" "$LOG"; then
+            echo "FAIL: $GATE reported failing checks"
             exit 1
           fi
 
       - name: Validate synth audio
-        if: ${{ !cancelled() }}
+        if: matrix.state == 'synth-test'
         run: ./ci/validate-synth.sh /tmp/synth-test-heaps-html5.wav
 
-      - name: Run callback test (JS payload delivery)
-        if: ${{ !cancelled() }}
-        run: |
-          export DISPLAY=:99
-          cd example-project/HeapsPlatformer/build/html5
-          python3 -m http.server 8183 &
-          HTTP_PID=$!
-          sleep 1
-          # Own profile per launch: the snap launcher exits while the browser
-          # lives on, and a relaunch on the shared profile hands its URL to
-          # that instance, whose stderr nobody captures
-          PROFILE=$(mktemp -d)
-          chromium-browser \
-            --no-sandbox --no-first-run --no-default-browser-check --user-data-dir="$PROFILE" \
-            --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
-            --autoplay-policy=no-user-gesture-required \
-            --enable-logging=stderr --v=0 \
-            --window-size=640,480 \
-            --window-position=0,0 \
-            "http://localhost:8183/index.html?test=cb-test" > /tmp/cb-test-heaps-html5.log.raw 2>&1 &
-          CHROME_PID=$!
-          # Two clicks: the first can land before a page on software GL is
-          # interactive, and the audio context needs a gesture that reaches it
-          sleep 3
-          xdotool mousemove 320 240 click 1
-          sleep 5
-          xdotool mousemove 320 240 click 1
-          for i in $(seq 45); do
-            grep -q "CB_TEST: COMPLETE" /tmp/cb-test-heaps-html5.log.raw && break
-            sleep 1
-          done
-          kill $CHROME_PID || true
-          pkill -f "$PROFILE" || true
-          kill $HTTP_PID || true
-          grep -v "dbus" /tmp/cb-test-heaps-html5.log.raw | tail -n 15 || true
-          grep -o "CB_TEST:.*" /tmp/cb-test-heaps-html5.log.raw | sed 's/",.*$//' | tee /tmp/cb-test-heaps-html5.log
-          # Same gate as the flixel browser step: delivery end to end. The
-          # nested-beat check is informational on Chromium, whose FMOD JS
-          # glue does not deliver nested timeline beats.
-          grep -q "CB_TEST: COMPLETE" /tmp/cb-test-heaps-html5.log
-          grep -q "CB_TEST: Stopped" /tmp/cb-test-heaps-html5.log
-          echo "Callback test passed"
-
-      - name: Run ps-test state (browser)
-        if: ${{ !cancelled() }}
-        run: |
-          export DISPLAY=:99
-          cd example-project/HeapsPlatformer/build/html5
-          python3 -m http.server 8184 &
-          HTTP_PID=$!
-          sleep 1
-          # Own profile per launch: the snap launcher exits while the browser
-          # lives on, and a relaunch on the shared profile hands its URL to
-          # that instance, whose stderr nobody captures
-          PROFILE=$(mktemp -d)
-          chromium-browser \
-            --no-sandbox --no-first-run --no-default-browser-check --user-data-dir="$PROFILE" \
-            --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
-            --autoplay-policy=no-user-gesture-required \
-            --enable-logging=stderr --v=0 \
-            --window-size=640,480 \
-            --window-position=0,0 \
-            "http://localhost:8184/index.html?test=ps-test" > /tmp/ps-test-heaps-html5.log.raw 2>&1 &
-          CHROME_PID=$!
-          # Two clicks: the first can land before a page on software GL is
-          # interactive, and the audio context needs a gesture that reaches it
-          sleep 3
-          xdotool mousemove 320 240 click 1
-          sleep 5
-          xdotool mousemove 320 240 click 1
-          for i in $(seq 45); do
-            grep -q "PS_TEST: COMPLETE" /tmp/ps-test-heaps-html5.log.raw && break
-            sleep 1
-          done
-          kill $CHROME_PID || true
-          pkill -f "$PROFILE" || true
-          kill $HTTP_PID || true
-          grep -v "dbus" /tmp/ps-test-heaps-html5.log.raw | tail -n 15 || true
-          grep -o "PS_TEST:.*" /tmp/ps-test-heaps-html5.log.raw | sed 's/",.*$//' | tee /tmp/ps-test-heaps-html5.log
-          grep -q "PS_TEST: COMPLETE" /tmp/ps-test-heaps-html5.log
-          if grep -q "pass=false" /tmp/ps-test-heaps-html5.log; then
-            echo "FAIL: PS_TEST reported failing checks"
-            exit 1
-          fi
-
-      - name: Run bank-test state (browser)
-        if: ${{ !cancelled() }}
-        run: |
-          export DISPLAY=:99
-          cd example-project/HeapsPlatformer/build/html5
-          python3 -m http.server 8185 &
-          HTTP_PID=$!
-          sleep 1
-          # Own profile per launch: the snap launcher exits while the browser
-          # lives on, and a relaunch on the shared profile hands its URL to
-          # that instance, whose stderr nobody captures
-          PROFILE=$(mktemp -d)
-          chromium-browser \
-            --no-sandbox --no-first-run --no-default-browser-check --user-data-dir="$PROFILE" \
-            --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
-            --autoplay-policy=no-user-gesture-required \
-            --enable-logging=stderr --v=0 \
-            --window-size=640,480 \
-            --window-position=0,0 \
-            "http://localhost:8185/index.html?test=bank-test" > /tmp/bank-test-heaps-html5.log.raw 2>&1 &
-          CHROME_PID=$!
-          # Two clicks: the first can land before a page on software GL is
-          # interactive, and the audio context needs a gesture that reaches it
-          sleep 3
-          xdotool mousemove 320 240 click 1
-          sleep 5
-          xdotool mousemove 320 240 click 1
-          for i in $(seq 45); do
-            grep -q "BANK_TEST: COMPLETE" /tmp/bank-test-heaps-html5.log.raw && break
-            sleep 1
-          done
-          kill $CHROME_PID || true
-          pkill -f "$PROFILE" || true
-          kill $HTTP_PID || true
-          grep -v "dbus" /tmp/bank-test-heaps-html5.log.raw | tail -n 15 || true
-          grep -o "BANK_TEST:.*" /tmp/bank-test-heaps-html5.log.raw | sed 's/",.*$//' | tee /tmp/bank-test-heaps-html5.log
-          grep -q "BANK_TEST: COMPLETE" /tmp/bank-test-heaps-html5.log
-          if grep -q "pass=false" /tmp/bank-test-heaps-html5.log; then
-            echo "FAIL: BANK_TEST reported failing checks"
-            exit 1
-          fi
-
-      - name: Run pan-test state (browser)
-        if: ${{ !cancelled() }}
-        run: |
-          export DISPLAY=:99
-          cd example-project/HeapsPlatformer/build/html5
-          python3 -m http.server 8187 &
-          HTTP_PID=$!
-          sleep 1
-          # Own profile per launch: the snap launcher exits while the browser
-          # lives on, and a relaunch on the shared profile hands its URL to
-          # that instance, whose stderr nobody captures
-          PROFILE=$(mktemp -d)
-          chromium-browser \
-            --no-sandbox --no-first-run --no-default-browser-check --user-data-dir="$PROFILE" \
-            --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
-            --autoplay-policy=no-user-gesture-required \
-            --enable-logging=stderr --v=0 \
-            --window-size=640,480 \
-            --window-position=0,0 \
-            "http://localhost:8187/index.html?test=pan-test" > /tmp/pan-test-heaps-html5.log.raw 2>&1 &
-          CHROME_PID=$!
-          # Two clicks: the first can land before a page on software GL is
-          # interactive, and the audio context needs a gesture that reaches it
-          sleep 3
-          xdotool mousemove 320 240 click 1
-          sleep 5
-          xdotool mousemove 320 240 click 1
-          for i in $(seq 45); do
-            grep -q "PAN_TEST: COMPLETE" /tmp/pan-test-heaps-html5.log.raw && break
-            sleep 1
-          done
-          kill $CHROME_PID || true
-          pkill -f "$PROFILE" || true
-          kill $HTTP_PID || true
-          grep -v "dbus" /tmp/pan-test-heaps-html5.log.raw | tail -n 15 || true
-          grep -o "PAN_TEST:.*" /tmp/pan-test-heaps-html5.log.raw | sed 's/",.*$//' | tee /tmp/pan-test-heaps-html5.log
-          grep -q "PAN_TEST: COMPLETE" /tmp/pan-test-heaps-html5.log
-          if grep -q "pass=false" /tmp/pan-test-heaps-html5.log; then
-            echo "FAIL: PAN_TEST reported failing checks"
-            exit 1
-          fi
-
-      - name: Upload audio artifact
+      - name: Upload logs
         uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: audio-heaps-html5
+          name: logs-heaps-html5-${{ matrix.state }}
           path: |
-            /tmp/audio-heaps-html5.wav
-            /tmp/volume-test-heaps-html5.wav
-            /tmp/volume-test-heaps-html5-console.log
-            /tmp/api-probe-heaps-html5.log
-            /tmp/synth-test-heaps-html5.log
-            /tmp/cb-test-heaps-html5.log
-            /tmp/ps-test-heaps-html5.log
-            /tmp/bank-test-heaps-html5.log
-            /tmp/pan-test-heaps-html5.log
-          if-no-files-found: warn
+            /tmp/*-heaps-html5.wav
+            /tmp/*-heaps-html5.log
+            /tmp/*-heaps-html5-console.log
+          if-no-files-found: ignore
           overwrite: true
 
-
   # ===========================================================================
-  # Kha on Linux (Kore, hxcpp-generated C++, binding compiled from linc_faxe.cpp)
+  # Kha on Linux (Kore, hxcpp-generated C++): build once, the states run in parallel in kha-linux
   # ===========================================================================
-  kha-linux:
+  kha-linux-build:
     runs-on: ubuntu-latest
     if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[kha-linux]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-html5]') && !contains(github.event.head_commit.message, '[kha-linux]') && !contains(github.event.head_commit.message, '[kha-hl]') && !contains(github.event.head_commit.message, '[kha-html5]') && !contains(github.event.head_commit.message, '[heaps-mac-hl]') && !contains(github.event.head_commit.message, '[heaps-windows-hl]') && !contains(github.event.head_commit.message, '[kha-mac]') && !contains(github.event.head_commit.message, '[kha-mac-hl]') && !contains(github.event.head_commit.message, '[kha-windows]') && !contains(github.event.head_commit.message, '[kha-windows-hl]')))) }}
-    timeout-minutes: 40
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v5
-
-      - name: Point at the Kha checkout
-        run: echo "KHA=$RUNNER_TEMP/Kha" >> "$GITHUB_ENV"
 
       - name: Download FMOD SDK
         uses: ./.github/actions/fmod-sdk
@@ -2568,7 +2380,10 @@ jobs:
       - name: Install Haxe libraries
         run: |
           haxelib setup ~/haxelib
-          haxelib dev haxefmod $GITHUB_WORKSPACE
+          haxelib dev haxefmod "$GITHUB_WORKSPACE"
+
+      - name: Point at the Kha checkout
+        run: echo "KHA=$RUNNER_TEMP/Kha" >> "$GITHUB_ENV"
 
       - name: Cache Kha
         id: kha-cache
@@ -2587,43 +2402,89 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg \
-            clang libx11-dev libxinerama-dev libxrandr-dev libxcursor-dev libxi-dev libxkbcommon-dev \
+          sudo apt-get install -y clang libx11-dev libxinerama-dev libxrandr-dev libxcursor-dev libxi-dev libxkbcommon-dev \
             libgl1-mesa-dev libgl1-mesa-dri libegl1-mesa-dev libasound2-dev libudev-dev libwayland-dev wayland-protocols
 
-      - name: Build linux target
+      - name: Build game and test variants
         run: |
           cd example-project/KhaPlatformer
-          ./build.sh linux 2>&1 | tail -5
-
-      - name: Verify FMOD libraries have no executable stack
-        run: |
-          BIN_DIR="example-project/KhaPlatformer/build/linux"
-          FOUND=0
-          for lib in "$BIN_DIR"/libfmod*.so*; do
-            [ -L "$lib" ] && continue
-            FOUND=1
-            LINE=$(readelf -lW "$lib" | grep GNU_STACK) || {
-              echo "FAIL: $lib has no GNU_STACK header"; exit 1; }
-            FLAGS=$(echo "$LINE" | awk '{print $7}')
-            echo "$lib: GNU_STACK $FLAGS"
-            case "$FLAGS" in *E*)
-              echo "FAIL: $lib still has an executable stack (stage should have cleared it)"
-              exit 1;;
-            esac
-          done
-          [ "$FOUND" = "1" ] || { echo "FAIL: no FMOD libraries found in $BIN_DIR"; exit 1; }
+          # Both variants at once, into separate output roots
+          ./build.sh linux > "$RUNNER_TEMP/build-game.log" 2>&1 &
+          P1=$!
+          KHA_AUDIO_TEST=1 BUILD_ROOT=build-test ./build.sh linux > "$RUNNER_TEMP/build-test.log" 2>&1 &
+          P2=$!
+          KHA_AUDIO_TEST=1 KHA_MANUAL_UPDATE=1 BUILD_ROOT=build-manual ./build.sh linux > "$RUNNER_TEMP/build-manual.log" 2>&1 &
+          P3=$!
+          wait $P1 || { echo "=== game build failed ==="; cat "$RUNNER_TEMP/build-game.log"; exit 1; }
+          wait $P2 || { echo "=== test build failed ==="; cat "$RUNNER_TEMP/build-test.log"; exit 1; }
+          wait $P3 || { echo "=== manual-update build failed ==="; cat "$RUNNER_TEMP/build-manual.log"; exit 1; }
+          tail -5 "$RUNNER_TEMP/build-game.log"
+          tail -5 "$RUNNER_TEMP/build-test.log"
 
       - name: Validate build output
         run: |
-          BIN_DIR="example-project/KhaPlatformer/build/linux"
-          for f in KhaPlatformer run.sh libfmod.so libfmodstudio.so assets/fmod/Desktop/Master.bank; do
-            test -e "$BIN_DIR/$f" || { echo "FAIL: missing $f"; exit 1; }
+          for d in example-project/KhaPlatformer/build/linux example-project/KhaPlatformer/build-test/linux; do
+            for f in KhaPlatformer run.sh libfmod.so libfmodstudio.so assets/fmod/Desktop/Master.bank; do
+              test -e "$d/$f" || { echo "FAIL: missing $f in $d"; exit 1; }
+            done
           done
-          test ! -e "$BIN_DIR/hlaxe_fmod.hdll"
-          echo "OK: native build directory is complete"
+          echo "OK: build directories are complete"
 
-      - name: Record audio
+      - name: Upload build
+        uses: actions/upload-artifact@v6
+        with:
+          name: build-kha-linux
+          path: |
+            example-project/KhaPlatformer/build/linux
+            example-project/KhaPlatformer/build-test/linux
+            example-project/KhaPlatformer/build-manual/linux
+          include-hidden-files: true
+          overwrite: true
+
+  kha-linux:
+    needs: kha-linux-build
+    runs-on: ubuntu-latest
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[kha-linux]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-html5]') && !contains(github.event.head_commit.message, '[kha-linux]') && !contains(github.event.head_commit.message, '[kha-hl]') && !contains(github.event.head_commit.message, '[kha-html5]') && !contains(github.event.head_commit.message, '[heaps-mac-hl]') && !contains(github.event.head_commit.message, '[heaps-windows-hl]') && !contains(github.event.head_commit.message, '[kha-mac]') && !contains(github.event.head_commit.message, '[kha-mac-hl]') && !contains(github.event.head_commit.message, '[kha-windows]') && !contains(github.event.head_commit.message, '[kha-windows-hl]')))) }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        state: [game-audio, volume, api-probe, synth-test, cb-test, ps-test, bank-test, pan-test, stress-test, api-probe-manual]
+        include:
+          - state: api-probe
+            gate: API_PROBE
+          - state: synth-test
+            gate: SYNTH_TEST
+          - state: cb-test
+            gate: CB_TEST
+          - state: ps-test
+            gate: PS_TEST
+          - state: bank-test
+            gate: BANK_TEST
+          - state: pan-test
+            gate: PAN_TEST
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download build
+        uses: actions/download-artifact@v6
+        with:
+          name: build-kha-linux
+          path: example-project/KhaPlatformer
+
+      - name: Restore executable bits
+        run: |
+          # Artifacts do not keep file modes
+          cd example-project/KhaPlatformer
+          chmod +x build*/linux/run.sh 2>/dev/null || true
+          chmod +x build*/linux/run.sh 2>/dev/null || true
+
+      - name: Install runtime dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg libgl1-mesa-dri
+
+      - name: Start display and audio
         run: |
           Xvfb :99 -screen 0 1024x768x24 &
           export DISPLAY=:99
@@ -2639,34 +2500,29 @@ jobs:
             type pulse
           }
           ALSA_EOF
-          BIN_DIR="example-project/KhaPlatformer/build/linux"
+          echo "DISPLAY=:99" >> "$GITHUB_ENV"
+
+      - name: Log file for the executable
+        run: echo "HAXEFMOD_LOG_FILE=/tmp/${{ matrix.state }}-kha-linux.log" >> "$GITHUB_ENV"
+
+      - name: Record audio
+        if: matrix.state == 'game-audio'
+        run: |
           ffmpeg -f pulse -i virtual_speaker.monitor -t 30 -y /tmp/audio-kha-linux.wav &
           RECORD_PID=$!
-          cd "$BIN_DIR"
+          cd example-project/KhaPlatformer/build/linux
           timeout 30 ./run.sh > /tmp/game-kha-linux.log 2>&1 || true
           cd -
+          wait $RECORD_PID || true
           echo "=== Game log ==="
           cat /tmp/game-kha-linux.log || true
           echo "=== End game log ==="
-          wait $RECORD_PID || true
-          ls -la /tmp/audio-kha-linux.wav
-
-      - name: Validate audio
-        run: ./ci/validate-audio.sh /tmp/audio-kha-linux.wav 10
-
-      - name: Validate game log
-        run: ./ci/validate-game-log.sh /tmp/game-kha-linux.log
-
-      - name: Build test variant
-        run: |
-          cd example-project/KhaPlatformer
-          KHA_AUDIO_TEST=1 ./build.sh linux 2>&1 | tail -3
 
       - name: Record volume test
+        if: matrix.state == 'volume'
         run: |
-          export DISPLAY=:99
           export FMOD_WAVWRITER=/tmp/volume-test-kha-linux.wav
-          cd example-project/KhaPlatformer/build/linux
+          cd example-project/KhaPlatformer/build-test/linux
           ./run.sh > /tmp/volume-test-kha-linux.log 2>&1 &
           GAME_PID=$!
           cd -
@@ -2677,84 +2533,54 @@ jobs:
           kill $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
 
+      - name: Validate audio
+        if: matrix.state == 'game-audio'
+        run: ./ci/validate-audio.sh /tmp/audio-kha-linux.wav 10
+
+      - name: Validate game log
+        if: matrix.state == 'game-audio'
+        run: ./ci/validate-game-log.sh /tmp/game-kha-linux.log
+
       - name: Validate volume/mute
+        if: matrix.state == 'volume'
         run: ./ci/validate-volume.sh /tmp/volume-test-kha-linux.wav 15
 
-      - name: Run api-probe state
-        if: ${{ !cancelled() }}
+      - name: Run state
+        if: matrix.gate
+        uses: ./.github/actions/run-test-state
+        with:
+          state: ${{ matrix.state }}
+          gate: ${{ matrix.gate }}
+          timeout: "60"
+          bin-dir: example-project/KhaPlatformer/build-test/linux
+          log-file: /tmp/${{ matrix.state }}-kha-linux.log
+          extra-gate: "${{ matrix.state == 'cb-test' && 'CB_TEST: Stopped' || '' }}"
+          copy-jump-wav: "${{ matrix.state == 'ps-test' && 'true' || 'false' }}"
+          use-wavwriter: "${{ matrix.state == 'synth-test' && 'true' || 'false' }}"
+
+      - name: Validate synth audio
+        if: matrix.state == 'synth-test'
+        run: ./ci/validate-synth.sh "${RUNNER_TEMP}/state-synth-test.wav"
+
+      - name: Run api-probe state (manual update variant)
+        if: matrix.state == 'api-probe-manual'
         uses: ./.github/actions/run-test-state
         with:
           state: api-probe
           gate: API_PROBE
           timeout: "60"
-          bin-dir: example-project/KhaPlatformer/build/linux
-          log-file: /tmp/api-probe-kha-linux.log
-
-      - name: Run synth-test state
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/run-test-state
-        with:
-          state: synth-test
-          gate: SYNTH_TEST
-          timeout: "60"
-          bin-dir: example-project/KhaPlatformer/build/linux
-          log-file: /tmp/synth-test-kha-linux.log
-          use-wavwriter: "true"
-
-      - name: Validate synth audio
-        if: ${{ !cancelled() }}
-        run: ./ci/validate-synth.sh "${RUNNER_TEMP}/state-synth-test.wav"
-
-      - name: Run cb-test state
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/run-test-state
-        with:
-          state: cb-test
-          gate: CB_TEST
-          timeout: "30"
-          bin-dir: example-project/KhaPlatformer/build/linux
-          log-file: /tmp/cb-test-kha-linux.log
-          extra-gate: "CB_TEST: Stopped"
-
-      - name: Run ps-test state
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/run-test-state
-        with:
-          state: ps-test
-          gate: PS_TEST
-          timeout: "60"
-          bin-dir: example-project/KhaPlatformer/build/linux
-          log-file: /tmp/ps-test-kha-linux.log
-          copy-jump-wav: "true"
-
-      - name: Run bank-test state
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/run-test-state
-        with:
-          state: bank-test
-          gate: BANK_TEST
-          timeout: "60"
-          bin-dir: example-project/KhaPlatformer/build/linux
-          log-file: /tmp/bank-test-kha-linux.log
-
-      - name: Run pan-test state
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/run-test-state
-        with:
-          state: pan-test
-          gate: PAN_TEST
-          timeout: "60"
-          bin-dir: example-project/KhaPlatformer/build/linux
-          log-file: /tmp/pan-test-kha-linux.log
+          bin-dir: example-project/KhaPlatformer/build-manual/linux
+          log-file: /tmp/api-probe-kha-linux-manual.log
 
       - name: Run stress-test state (smoke)
-        if: ${{ !cancelled() }}
+        if: matrix.state == 'stress-test'
         run: |
-          export DISPLAY=:99
           export HAXEFMOD_TEST_STATE=stress-test
           export STRESS_SECONDS=15
-          cd example-project/KhaPlatformer/build/linux
-          ./run.sh > /tmp/stress-smoke-kha-linux.log 2>&1 &
+          export FMOD_WAVWRITER="${RUNNER_TEMP}/stress-smoke.wav"
+          LOG=/tmp/stress-smoke-kha-linux.log
+          cd example-project/KhaPlatformer/build-test/linux
+          ./run.sh > "$LOG" 2>&1 &
           GAME_PID=$!
           cd -
           for i in $(seq 90); do
@@ -2763,65 +2589,31 @@ jobs:
           done
           kill $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
-          grep "STRESS_TEST:" /tmp/stress-smoke-kha-linux.log || true
-          grep -q "STRESS_TEST: COMPLETE" /tmp/stress-smoke-kha-linux.log || {
-            echo "Stress smoke never completed - full log:"
-            cat /tmp/stress-smoke-kha-linux.log
-            exit 1
-          }
-          if grep -q "pass=false" /tmp/stress-smoke-kha-linux.log; then
-            echo "Stress smoke reported failing checks"
-            exit 1
-          fi
+          grep "STRESS_TEST:" "$LOG" || true
+          grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed - full log:"; cat "$LOG"; exit 1; }
+          if grep -q "pass=false" "$LOG"; then echo "Stress smoke reported failing checks"; exit 1; fi
 
-      - name: Build manual-update variant
-        if: ${{ !cancelled() }}
-        run: |
-          cd example-project/KhaPlatformer
-          KHA_AUDIO_TEST=1 KHA_MANUAL_UPDATE=1 ./build.sh linux 2>&1 | tail -3
-
-      - name: Run api-probe state (manual update variant)
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/run-test-state
-        with:
-          state: api-probe
-          gate: API_PROBE
-          timeout: "60"
-          bin-dir: example-project/KhaPlatformer/build/linux
-          log-file: /tmp/api-probe-kha-linux-manual.log
-
-      - name: Upload artifacts
+      - name: Upload logs
         uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: audio-kha-linux
+          name: logs-kha-linux-${{ matrix.state }}
           path: |
-            /tmp/audio-kha-linux.wav
-            /tmp/game-kha-linux.log
-            /tmp/volume-test-kha-linux.wav
-            /tmp/volume-test-kha-linux.log
-            /tmp/api-probe-kha-linux.log
-            /tmp/synth-test-kha-linux.log
-            /tmp/cb-test-kha-linux.log
-            /tmp/ps-test-kha-linux.log
-            /tmp/bank-test-kha-linux.log
-            /tmp/pan-test-kha-linux.log
-            /tmp/stress-smoke-kha-linux.log
-          if-no-files-found: warn
+            /tmp/*-kha-linux.wav
+            /tmp/*-kha-linux.log
+            /tmp/*-kha-linux-console.log
+          if-no-files-found: ignore
           overwrite: true
 
   # ===========================================================================
-  # Kha HL/C on Linux (Kore HL, binding compiled from hlaxe_fmod.c)
+  # Kha HL/C on Linux: build once, the states run in parallel in kha-hl
   # ===========================================================================
-  kha-hl:
+  kha-hl-build:
     runs-on: ubuntu-latest
     if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[kha-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-html5]') && !contains(github.event.head_commit.message, '[kha-linux]') && !contains(github.event.head_commit.message, '[kha-hl]') && !contains(github.event.head_commit.message, '[kha-html5]') && !contains(github.event.head_commit.message, '[heaps-mac-hl]') && !contains(github.event.head_commit.message, '[heaps-windows-hl]') && !contains(github.event.head_commit.message, '[kha-mac]') && !contains(github.event.head_commit.message, '[kha-mac-hl]') && !contains(github.event.head_commit.message, '[kha-windows]') && !contains(github.event.head_commit.message, '[kha-windows-hl]')))) }}
-    timeout-minutes: 40
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v5
-
-      - name: Point at the Kha checkout
-        run: echo "KHA=$RUNNER_TEMP/Kha" >> "$GITHUB_ENV"
 
       - name: Download FMOD SDK
         uses: ./.github/actions/fmod-sdk
@@ -2839,7 +2631,10 @@ jobs:
       - name: Install Haxe libraries
         run: |
           haxelib setup ~/haxelib
-          haxelib dev haxefmod $GITHUB_WORKSPACE
+          haxelib dev haxefmod "$GITHUB_WORKSPACE"
+
+      - name: Point at the Kha checkout
+        run: echo "KHA=$RUNNER_TEMP/Kha" >> "$GITHUB_ENV"
 
       - name: Cache Kha
         id: kha-cache
@@ -2858,43 +2653,85 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg \
-            clang libx11-dev libxinerama-dev libxrandr-dev libxcursor-dev libxi-dev libxkbcommon-dev \
+          sudo apt-get install -y clang libx11-dev libxinerama-dev libxrandr-dev libxcursor-dev libxi-dev libxkbcommon-dev \
             libgl1-mesa-dev libgl1-mesa-dri libegl1-mesa-dev libasound2-dev libudev-dev libwayland-dev wayland-protocols
 
-      - name: Build linux-hl target
+      - name: Build game and test variants
         run: |
           cd example-project/KhaPlatformer
-          ./build.sh linux-hl 2>&1 | tail -5
-
-      - name: Verify FMOD libraries have no executable stack
-        run: |
-          BIN_DIR="example-project/KhaPlatformer/build/linux-hl"
-          FOUND=0
-          for lib in "$BIN_DIR"/libfmod*.so*; do
-            [ -L "$lib" ] && continue
-            FOUND=1
-            LINE=$(readelf -lW "$lib" | grep GNU_STACK) || {
-              echo "FAIL: $lib has no GNU_STACK header"; exit 1; }
-            FLAGS=$(echo "$LINE" | awk '{print $7}')
-            echo "$lib: GNU_STACK $FLAGS"
-            case "$FLAGS" in *E*)
-              echo "FAIL: $lib still has an executable stack (stage should have cleared it)"
-              exit 1;;
-            esac
-          done
-          [ "$FOUND" = "1" ] || { echo "FAIL: no FMOD libraries found in $BIN_DIR"; exit 1; }
+          # Both variants at once, into separate output roots
+          ./build.sh linux-hl > "$RUNNER_TEMP/build-game.log" 2>&1 &
+          P1=$!
+          KHA_AUDIO_TEST=1 BUILD_ROOT=build-test ./build.sh linux-hl > "$RUNNER_TEMP/build-test.log" 2>&1 &
+          P2=$!
+          wait $P1 || { echo "=== game build failed ==="; cat "$RUNNER_TEMP/build-game.log"; exit 1; }
+          wait $P2 || { echo "=== test build failed ==="; cat "$RUNNER_TEMP/build-test.log"; exit 1; }
+          tail -5 "$RUNNER_TEMP/build-game.log"
+          tail -5 "$RUNNER_TEMP/build-test.log"
 
       - name: Validate build output
         run: |
-          BIN_DIR="example-project/KhaPlatformer/build/linux-hl"
-          for f in KhaPlatformer run.sh libfmod.so libfmodstudio.so assets/fmod/Desktop/Master.bank; do
-            test -e "$BIN_DIR/$f" || { echo "FAIL: missing $f"; exit 1; }
+          for d in example-project/KhaPlatformer/build/linux-hl example-project/KhaPlatformer/build-test/linux-hl; do
+            for f in KhaPlatformer run.sh libfmod.so libfmodstudio.so assets/fmod/Desktop/Master.bank; do
+              test -e "$d/$f" || { echo "FAIL: missing $f in $d"; exit 1; }
+            done
           done
-          test ! -e "$BIN_DIR/hlaxe_fmod.hdll"
-          echo "OK: native build directory is complete"
+          echo "OK: build directories are complete"
 
-      - name: Record audio
+      - name: Upload build
+        uses: actions/upload-artifact@v6
+        with:
+          name: build-kha-hl
+          path: |
+            example-project/KhaPlatformer/build/linux-hl
+            example-project/KhaPlatformer/build-test/linux-hl
+          include-hidden-files: true
+          overwrite: true
+
+  kha-hl:
+    needs: kha-hl-build
+    runs-on: ubuntu-latest
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[kha-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-html5]') && !contains(github.event.head_commit.message, '[kha-linux]') && !contains(github.event.head_commit.message, '[kha-hl]') && !contains(github.event.head_commit.message, '[kha-html5]') && !contains(github.event.head_commit.message, '[heaps-mac-hl]') && !contains(github.event.head_commit.message, '[heaps-windows-hl]') && !contains(github.event.head_commit.message, '[kha-mac]') && !contains(github.event.head_commit.message, '[kha-mac-hl]') && !contains(github.event.head_commit.message, '[kha-windows]') && !contains(github.event.head_commit.message, '[kha-windows-hl]')))) }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        state: [game-audio, volume, api-probe, synth-test, cb-test, ps-test, bank-test, pan-test, stress-test]
+        include:
+          - state: api-probe
+            gate: API_PROBE
+          - state: synth-test
+            gate: SYNTH_TEST
+          - state: cb-test
+            gate: CB_TEST
+          - state: ps-test
+            gate: PS_TEST
+          - state: bank-test
+            gate: BANK_TEST
+          - state: pan-test
+            gate: PAN_TEST
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download build
+        uses: actions/download-artifact@v6
+        with:
+          name: build-kha-hl
+          path: example-project/KhaPlatformer
+
+      - name: Restore executable bits
+        run: |
+          # Artifacts do not keep file modes
+          cd example-project/KhaPlatformer
+          chmod +x build*/linux-hl/run.sh 2>/dev/null || true
+          chmod +x build*/linux-hl/run.sh 2>/dev/null || true
+
+      - name: Install runtime dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg libgl1-mesa-dri
+
+      - name: Start display and audio
         run: |
           Xvfb :99 -screen 0 1024x768x24 &
           export DISPLAY=:99
@@ -2910,34 +2747,29 @@ jobs:
             type pulse
           }
           ALSA_EOF
-          BIN_DIR="example-project/KhaPlatformer/build/linux-hl"
+          echo "DISPLAY=:99" >> "$GITHUB_ENV"
+
+      - name: Log file for the executable
+        run: echo "HAXEFMOD_LOG_FILE=/tmp/${{ matrix.state }}-kha-hl.log" >> "$GITHUB_ENV"
+
+      - name: Record audio
+        if: matrix.state == 'game-audio'
+        run: |
           ffmpeg -f pulse -i virtual_speaker.monitor -t 30 -y /tmp/audio-kha-hl.wav &
           RECORD_PID=$!
-          cd "$BIN_DIR"
+          cd example-project/KhaPlatformer/build/linux-hl
           timeout 30 ./run.sh > /tmp/game-kha-hl.log 2>&1 || true
           cd -
+          wait $RECORD_PID || true
           echo "=== Game log ==="
           cat /tmp/game-kha-hl.log || true
           echo "=== End game log ==="
-          wait $RECORD_PID || true
-          ls -la /tmp/audio-kha-hl.wav
-
-      - name: Validate audio
-        run: ./ci/validate-audio.sh /tmp/audio-kha-hl.wav 10
-
-      - name: Validate game log
-        run: ./ci/validate-game-log.sh /tmp/game-kha-hl.log
-
-      - name: Build test variant
-        run: |
-          cd example-project/KhaPlatformer
-          KHA_AUDIO_TEST=1 ./build.sh linux-hl 2>&1 | tail -3
 
       - name: Record volume test
+        if: matrix.state == 'volume'
         run: |
-          export DISPLAY=:99
           export FMOD_WAVWRITER=/tmp/volume-test-kha-hl.wav
-          cd example-project/KhaPlatformer/build/linux-hl
+          cd example-project/KhaPlatformer/build-test/linux-hl
           ./run.sh > /tmp/volume-test-kha-hl.log 2>&1 &
           GAME_PID=$!
           cd -
@@ -2948,84 +2780,44 @@ jobs:
           kill $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
 
+      - name: Validate audio
+        if: matrix.state == 'game-audio'
+        run: ./ci/validate-audio.sh /tmp/audio-kha-hl.wav 10
+
+      - name: Validate game log
+        if: matrix.state == 'game-audio'
+        run: ./ci/validate-game-log.sh /tmp/game-kha-hl.log
+
       - name: Validate volume/mute
+        if: matrix.state == 'volume'
         run: ./ci/validate-volume.sh /tmp/volume-test-kha-hl.wav 15
 
-      - name: Run api-probe state
-        if: ${{ !cancelled() }}
+      - name: Run state
+        if: matrix.gate
         uses: ./.github/actions/run-test-state
         with:
-          state: api-probe
-          gate: API_PROBE
+          state: ${{ matrix.state }}
+          gate: ${{ matrix.gate }}
           timeout: "60"
-          bin-dir: example-project/KhaPlatformer/build/linux-hl
-          log-file: /tmp/api-probe-kha-hl.log
-
-      - name: Run synth-test state
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/run-test-state
-        with:
-          state: synth-test
-          gate: SYNTH_TEST
-          timeout: "60"
-          bin-dir: example-project/KhaPlatformer/build/linux-hl
-          log-file: /tmp/synth-test-kha-hl.log
-          use-wavwriter: "true"
+          bin-dir: example-project/KhaPlatformer/build-test/linux-hl
+          log-file: /tmp/${{ matrix.state }}-kha-hl.log
+          extra-gate: "${{ matrix.state == 'cb-test' && 'CB_TEST: Stopped' || '' }}"
+          copy-jump-wav: "${{ matrix.state == 'ps-test' && 'true' || 'false' }}"
+          use-wavwriter: "${{ matrix.state == 'synth-test' && 'true' || 'false' }}"
 
       - name: Validate synth audio
-        if: ${{ !cancelled() }}
+        if: matrix.state == 'synth-test'
         run: ./ci/validate-synth.sh "${RUNNER_TEMP}/state-synth-test.wav"
 
-      - name: Run cb-test state
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/run-test-state
-        with:
-          state: cb-test
-          gate: CB_TEST
-          timeout: "30"
-          bin-dir: example-project/KhaPlatformer/build/linux-hl
-          log-file: /tmp/cb-test-kha-hl.log
-          extra-gate: "CB_TEST: Stopped"
-
-      - name: Run ps-test state
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/run-test-state
-        with:
-          state: ps-test
-          gate: PS_TEST
-          timeout: "60"
-          bin-dir: example-project/KhaPlatformer/build/linux-hl
-          log-file: /tmp/ps-test-kha-hl.log
-          copy-jump-wav: "true"
-
-      - name: Run bank-test state
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/run-test-state
-        with:
-          state: bank-test
-          gate: BANK_TEST
-          timeout: "60"
-          bin-dir: example-project/KhaPlatformer/build/linux-hl
-          log-file: /tmp/bank-test-kha-hl.log
-
-      - name: Run pan-test state
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/run-test-state
-        with:
-          state: pan-test
-          gate: PAN_TEST
-          timeout: "60"
-          bin-dir: example-project/KhaPlatformer/build/linux-hl
-          log-file: /tmp/pan-test-kha-hl.log
-
       - name: Run stress-test state (smoke)
-        if: ${{ !cancelled() }}
+        if: matrix.state == 'stress-test'
         run: |
-          export DISPLAY=:99
           export HAXEFMOD_TEST_STATE=stress-test
           export STRESS_SECONDS=15
-          cd example-project/KhaPlatformer/build/linux-hl
-          ./run.sh > /tmp/stress-smoke-kha-hl.log 2>&1 &
+          export FMOD_WAVWRITER="${RUNNER_TEMP}/stress-smoke.wav"
+          LOG=/tmp/stress-smoke-kha-hl.log
+          cd example-project/KhaPlatformer/build-test/linux-hl
+          ./run.sh > "$LOG" 2>&1 &
           GAME_PID=$!
           cd -
           for i in $(seq 90); do
@@ -3034,51 +2826,31 @@ jobs:
           done
           kill $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
-          grep "STRESS_TEST:" /tmp/stress-smoke-kha-hl.log || true
-          grep -q "STRESS_TEST: COMPLETE" /tmp/stress-smoke-kha-hl.log || {
-            echo "Stress smoke never completed - full log:"
-            cat /tmp/stress-smoke-kha-hl.log
-            exit 1
-          }
-          if grep -q "pass=false" /tmp/stress-smoke-kha-hl.log; then
-            echo "Stress smoke reported failing checks"
-            exit 1
-          fi
+          grep "STRESS_TEST:" "$LOG" || true
+          grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed - full log:"; cat "$LOG"; exit 1; }
+          if grep -q "pass=false" "$LOG"; then echo "Stress smoke reported failing checks"; exit 1; fi
 
-      - name: Upload artifacts
+      - name: Upload logs
         uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: audio-kha-hl
+          name: logs-kha-hl-${{ matrix.state }}
           path: |
-            /tmp/audio-kha-hl.wav
-            /tmp/game-kha-hl.log
-            /tmp/volume-test-kha-hl.wav
-            /tmp/volume-test-kha-hl.log
-            /tmp/api-probe-kha-hl.log
-            /tmp/synth-test-kha-hl.log
-            /tmp/cb-test-kha-hl.log
-            /tmp/ps-test-kha-hl.log
-            /tmp/bank-test-kha-hl.log
-            /tmp/pan-test-kha-hl.log
-            /tmp/stress-smoke-kha-hl.log
-          if-no-files-found: warn
+            /tmp/*-kha-hl.wav
+            /tmp/*-kha-hl.log
+            /tmp/*-kha-hl-console.log
+          if-no-files-found: ignore
           overwrite: true
 
   # ===========================================================================
-  # Kha in the browser: khamake build, stage command, WebGL through SwiftShader
+  # Kha in the browser: build once, the states run in parallel in kha-html5
   # ===========================================================================
-  # Kha in the browser: khamake build, stage command, WebGL through SwiftShader
-  # ===========================================================================
-  kha-html5:
+  kha-html5-build:
     runs-on: ubuntu-latest
     if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[kha-html5]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-html5]') && !contains(github.event.head_commit.message, '[kha-linux]') && !contains(github.event.head_commit.message, '[kha-hl]') && !contains(github.event.head_commit.message, '[kha-html5]') && !contains(github.event.head_commit.message, '[heaps-mac-hl]') && !contains(github.event.head_commit.message, '[heaps-windows-hl]') && !contains(github.event.head_commit.message, '[kha-mac]') && !contains(github.event.head_commit.message, '[kha-mac-hl]') && !contains(github.event.head_commit.message, '[kha-windows]') && !contains(github.event.head_commit.message, '[kha-windows-hl]')))) }}
-    timeout-minutes: 40
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v5
-
-      - name: Point at the Kha checkout
-        run: echo "KHA=$RUNNER_TEMP/Kha" >> "$GITHUB_ENV"
 
       - name: Download FMOD SDK
         uses: ./.github/actions/fmod-sdk
@@ -3096,7 +2868,10 @@ jobs:
       - name: Install Haxe libraries
         run: |
           haxelib setup ~/haxelib
-          haxelib dev haxefmod $GITHUB_WORKSPACE
+          haxelib dev haxefmod "$GITHUB_WORKSPACE"
+
+      - name: Point at the Kha checkout
+        run: echo "KHA=$RUNNER_TEMP/Kha" >> "$GITHUB_ENV"
 
       - name: Cache Kha
         id: kha-cache
@@ -3112,27 +2887,84 @@ jobs:
           cd "$RUNNER_TEMP/Kha"
           git checkout "$KHA_COMMIT" 2>/dev/null || true
 
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg chromium-browser xdotool
-
-      - name: Build HTML5 target
+      - name: Build game and test variants
         env:
           FMOD_SDK_WEB: ${{ env.FMOD_SDK }}
         run: |
           cd example-project/KhaPlatformer
-          ./build.sh html5 2>&1 | tail -3
+          # Both variants at once, into separate output roots
+          ./build.sh html5 > "$RUNNER_TEMP/build-game.log" 2>&1 &
+          P1=$!
+          KHA_AUDIO_TEST=1 BUILD_ROOT=build-test ./build.sh html5 > "$RUNNER_TEMP/build-test.log" 2>&1 &
+          P2=$!
+          wait $P1 || { echo "=== game build failed ==="; cat "$RUNNER_TEMP/build-game.log"; exit 1; }
+          wait $P2 || { echo "=== test build failed ==="; cat "$RUNNER_TEMP/build-test.log"; exit 1; }
+          tail -5 "$RUNNER_TEMP/build-game.log"
+          tail -5 "$RUNNER_TEMP/build-test.log"
 
       - name: Validate build output
         run: |
-          BIN_DIR="example-project/KhaPlatformer/build/html5"
-          for f in index.html kha.js lib/fmodstudio.js lib/fmodstudio.wasm lib/jaxe.js assets/fmod/Desktop/Master.bank; do
-            test -s "$BIN_DIR/$f" || { echo "FAIL: missing $f"; exit 1; }
+          for d in example-project/KhaPlatformer/build/html5 example-project/KhaPlatformer/build-test/html5; do
+            for f in index.html kha.js lib/fmodstudio.js lib/fmodstudio.wasm lib/jaxe.js assets/fmod/Desktop/Master.bank; do
+              test -e "$d/$f" || { echo "FAIL: missing $f in $d"; exit 1; }
+            done
           done
-          echo "OK: html5 build directory is complete"
+          echo "OK: build directories are complete"
 
-      - name: Record audio
+      - name: Upload build
+        uses: actions/upload-artifact@v6
+        with:
+          name: build-kha-html5
+          path: |
+            example-project/KhaPlatformer/build/html5
+            example-project/KhaPlatformer/build-test/html5
+          include-hidden-files: true
+          overwrite: true
+
+  kha-html5:
+    needs: kha-html5-build
+    runs-on: ubuntu-latest
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[kha-html5]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-html5]') && !contains(github.event.head_commit.message, '[kha-linux]') && !contains(github.event.head_commit.message, '[kha-hl]') && !contains(github.event.head_commit.message, '[kha-html5]') && !contains(github.event.head_commit.message, '[heaps-mac-hl]') && !contains(github.event.head_commit.message, '[heaps-windows-hl]') && !contains(github.event.head_commit.message, '[kha-mac]') && !contains(github.event.head_commit.message, '[kha-mac-hl]') && !contains(github.event.head_commit.message, '[kha-windows]') && !contains(github.event.head_commit.message, '[kha-windows-hl]')))) }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        state: [game-audio, volume, api-probe, synth-test, cb-test, ps-test, bank-test, pan-test]
+        include:
+          - state: api-probe
+            gate: API_PROBE
+          - state: synth-test
+            gate: SYNTH_TEST
+          - state: cb-test
+            gate: CB_TEST
+          - state: ps-test
+            gate: PS_TEST
+          - state: bank-test
+            gate: BANK_TEST
+          - state: pan-test
+            gate: PAN_TEST
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download build
+        uses: actions/download-artifact@v6
+        with:
+          name: build-kha-html5
+          path: example-project/KhaPlatformer
+
+      - name: Restore executable bits
+        run: |
+          # Artifacts do not keep file modes
+          cd example-project/KhaPlatformer
+          chmod +x build*/html5/ 2>/dev/null || true
+          chmod +x build*/html5/run.sh 2>/dev/null || true
+
+      - name: Install runtime dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg chromium-browser xdotool
+
+      - name: Start display and audio
         run: |
           Xvfb :99 -screen 0 1024x768x24 &
           export DISPLAY=:99
@@ -3148,62 +2980,16 @@ jobs:
             type pulse
           }
           ALSA_EOF
+          echo "DISPLAY=:99" >> "$GITHUB_ENV"
+
+      - name: Record audio
+        if: matrix.state == 'game-audio'
+        run: |
           cd example-project/KhaPlatformer/build/html5
-          python3 -m http.server 8280 &
+          python3 -m http.server 8180 &
           HTTP_PID=$!
           cd -
           sleep 1
-          # Own profile per launch: the snap launcher exits while the browser
-          # lives on, and a relaunch on the shared profile hands its URL to
-          # that instance, whose stderr nobody captures
-          PROFILE=$(mktemp -d)
-          chromium-browser \
-            --no-sandbox --no-first-run --no-default-browser-check --user-data-dir="$PROFILE" \
-            --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
-            --autoplay-policy=no-user-gesture-required \
-            --window-size=640,480 \
-            --window-position=0,0 \
-            http://localhost:8280 &
-          CHROME_PID=$!
-          sleep 3
-          xdotool mousemove 320 240 click 1
-          sleep 1
-          ffmpeg -f pulse -i virtual_speaker.monitor -t 30 -y /tmp/audio-kha-html5.wav &
-          RECORD_PID=$!
-          # A second click during the recording: the first can land before a
-          # page on software GL is interactive, and the audio context needs
-          # a gesture that reaches it
-          sleep 4
-          xdotool mousemove 320 240 click 1
-          sleep 27
-          kill $CHROME_PID || true
-          pkill -f "$PROFILE" || true
-          kill $HTTP_PID || true
-          wait $RECORD_PID || true
-          ls -la /tmp/audio-kha-html5.wav
-
-      - name: Validate audio
-        run: ./ci/validate-audio.sh /tmp/audio-kha-html5.wav 10
-
-      - name: Build test variant
-        if: ${{ !cancelled() }}
-        env:
-          FMOD_SDK_WEB: ${{ env.FMOD_SDK }}
-        run: |
-          cd example-project/KhaPlatformer
-          KHA_AUDIO_TEST=1 ./build.sh html5 2>&1 | tail -3
-
-      - name: Record volume test
-        run: |
-          export DISPLAY=:99
-          cd example-project/KhaPlatformer/build/html5
-          python3 -m http.server 8281 &
-          HTTP_PID=$!
-          cd -
-          sleep 1
-          # Own profile per launch: the snap launcher exits while the browser
-          # lives on, and a relaunch on the shared profile hands its URL to
-          # that instance, whose stderr nobody captures
           PROFILE=$(mktemp -d)
           chromium-browser \
             --no-sandbox --no-first-run --no-default-browser-check --user-data-dir="$PROFILE" \
@@ -3212,16 +2998,48 @@ jobs:
             --enable-logging=stderr --v=0 \
             --window-size=640,480 \
             --window-position=0,0 \
-            http://localhost:8281 > /tmp/volume-test-kha-html5-console.log 2>&1 &
+            http://localhost:8180 &
+          CHROME_PID=$!
+          sleep 3
+          xdotool mousemove 320 240 click 1
+          sleep 1
+          ffmpeg -f pulse -i virtual_speaker.monitor -t 30 -y /tmp/audio-kha-html5.wav &
+          RECORD_PID=$!
+          sleep 4
+          xdotool mousemove 320 240 click 1
+          sleep 27
+          kill $CHROME_PID || true
+          pkill -f "$PROFILE" || true
+          kill $HTTP_PID || true
+          wait $RECORD_PID || true
+
+      - name: Validate audio
+        if: matrix.state == 'game-audio'
+        run: ./ci/validate-audio.sh /tmp/audio-kha-html5.wav 10
+
+      - name: Record volume test
+        if: matrix.state == 'volume'
+        run: |
+          cd example-project/KhaPlatformer/build-test/html5
+          python3 -m http.server 8181 &
+          HTTP_PID=$!
+          cd -
+          sleep 1
+          PROFILE=$(mktemp -d)
+          chromium-browser \
+            --no-sandbox --no-first-run --no-default-browser-check --user-data-dir="$PROFILE" \
+            --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
+            --autoplay-policy=no-user-gesture-required \
+            --enable-logging=stderr --v=0 \
+            --window-size=640,480 \
+            --window-position=0,0 \
+            http://localhost:8181 > /tmp/volume-test-kha-html5-console.log 2>&1 &
           CHROME_PID=$!
           sleep 3
           xdotool mousemove 320 240 click 1
           sleep 1
           ffmpeg -f pulse -i virtual_speaker.monitor -t 25 -y /tmp/volume-test-kha-html5.wav &
           RECORD_PID=$!
-          # A second click during the recording: the first can land before a
-          # page on software GL is interactive, and the audio context needs
-          # a gesture that reaches it
           sleep 4
           xdotool mousemove 320 240 click 1
           sleep 22
@@ -3232,64 +3050,26 @@ jobs:
           grep -o "VOLUME_TEST.*" /tmp/volume-test-kha-html5-console.log | sed 's/",.*$//' || true
 
       - name: Validate volume/mute
+        if: matrix.state == 'volume'
         run: ./ci/validate-volume.sh /tmp/volume-test-kha-html5.wav 15
 
-      - name: Run API probe (JS binding coverage)
-        if: ${{ !cancelled() }}
+      - name: Run state
+        if: matrix.gate
         run: |
-          export DISPLAY=:99
-          cd example-project/KhaPlatformer/build/html5
-          python3 -m http.server 8282 &
+          STATE="${{ matrix.state }}"
+          GATE="${{ matrix.gate }}"
+          RAW=/tmp/$STATE-kha-html5.log.raw
+          LOG=/tmp/$STATE-kha-html5.log
+          cd example-project/KhaPlatformer/build-test/html5
+          python3 -m http.server 8182 &
           HTTP_PID=$!
+          cd -
           sleep 1
-          # Own profile per launch: the snap launcher exits while the browser
-          # lives on, and a relaunch on the shared profile hands its URL to
-          # that instance, whose stderr nobody captures
           PROFILE=$(mktemp -d)
-          chromium-browser \
-            --no-sandbox --no-first-run --no-default-browser-check --user-data-dir="$PROFILE" \
-            --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
-            --autoplay-policy=no-user-gesture-required \
-            --enable-logging=stderr --v=0 \
-            --window-size=640,480 \
-            --window-position=0,0 \
-            "http://localhost:8282/index.html?test=api-probe" > /tmp/api-probe-kha-html5.log.raw 2>&1 &
-          CHROME_PID=$!
-          # Two clicks: the first can land before a page on software GL is
-          # interactive, and the audio context needs a gesture that reaches it
-          sleep 3
-          xdotool mousemove 320 240 click 1
-          sleep 5
-          xdotool mousemove 320 240 click 1
-          for i in $(seq 45); do
-            grep -q "API_PROBE: COMPLETE" /tmp/api-probe-kha-html5.log.raw && break
-            sleep 1
-          done
-          kill $CHROME_PID || true
-          pkill -f "$PROFILE" || true
-          kill $HTTP_PID || true
-          grep -v "dbus" /tmp/api-probe-kha-html5.log.raw | tail -n 15 || true
-          grep -o "API_PROBE:.*" /tmp/api-probe-kha-html5.log.raw | sed 's/",.*$//' | tee /tmp/api-probe-kha-html5.log
-          grep -q "API_PROBE: COMPLETE" /tmp/api-probe-kha-html5.log
-          if grep -q "pass=false" /tmp/api-probe-kha-html5.log; then
-            echo "FAIL: API_PROBE reported failing checks"
-            exit 1
+          if [ "$STATE" = synth-test ]; then
+            ffmpeg -f pulse -i virtual_speaker.monitor -t 60 -y /tmp/synth-test-kha-html5.wav &
+            RECORD_PID=$!
           fi
-
-      - name: Run synth test (generated PCM reaches the output)
-        if: ${{ !cancelled() }}
-        run: |
-          export DISPLAY=:99
-          cd example-project/KhaPlatformer/build/html5
-          python3 -m http.server 8286 &
-          HTTP_PID=$!
-          sleep 1
-          ffmpeg -f pulse -i virtual_speaker.monitor -t 60 -y /tmp/synth-test-kha-html5.wav &
-          RECORD_PID=$!
-          # Own profile per launch: the snap launcher exits while the browser
-          # lives on, and a relaunch on the shared profile hands its URL to
-          # that instance, whose stderr nobody captures
-          PROFILE=$(mktemp -d)
           chromium-browser \
             --no-sandbox --no-first-run --no-default-browser-check --user-data-dir="$PROFILE" \
             --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
@@ -3297,229 +3077,55 @@ jobs:
             --enable-logging=stderr --v=0 \
             --window-size=640,480 \
             --window-position=0,0 \
-            "http://localhost:8286/index.html?test=synth-test" > /tmp/synth-test-kha-html5.log.raw 2>&1 &
+            "http://localhost:8182/index.html?test=$STATE" > "$RAW" 2>&1 &
           CHROME_PID=$!
-          # Two clicks: the first can land before a page on software GL is
-          # interactive, and the audio context needs a gesture that reaches it
           sleep 3
           xdotool mousemove 320 240 click 1
           sleep 5
           xdotool mousemove 320 240 click 1
           for i in $(seq 70); do
-            grep -q "SYNTH_TEST: COMPLETE" /tmp/synth-test-kha-html5.log.raw && break
+            grep -q "$GATE: COMPLETE" "$RAW" && break
             sleep 1
           done
-          wait $RECORD_PID || true
+          [ "$STATE" = synth-test ] && wait $RECORD_PID || true
           kill $CHROME_PID || true
           pkill -f "$PROFILE" || true
           kill $HTTP_PID || true
-          grep -v "dbus" /tmp/synth-test-kha-html5.log.raw | tail -n 15 || true
-          grep -o "SYNTH_TEST:.*" /tmp/synth-test-kha-html5.log.raw | sed 's/",.*$//' | tee /tmp/synth-test-kha-html5.log
-          grep -q "SYNTH_TEST: COMPLETE" /tmp/synth-test-kha-html5.log
-          if grep -q "pass=false" /tmp/synth-test-kha-html5.log; then
-            echo "FAIL: SYNTH_TEST reported failing checks"
+          grep -v "dbus" "$RAW" | tail -n 15 || true
+          grep -o "$GATE:.*" "$RAW" | sed 's/",.*$//' | tee "$LOG"
+          grep -q "$GATE: COMPLETE" "$LOG"
+          if [ "$STATE" = cb-test ]; then
+            # Same gate as the flixel browser step: delivery end to end. The
+            # nested-beat check is informational on Chromium.
+            grep -q "CB_TEST: Stopped" "$LOG"
+          elif grep -q "pass=false" "$LOG"; then
+            echo "FAIL: $GATE reported failing checks"
             exit 1
           fi
 
       - name: Validate synth audio
-        if: ${{ !cancelled() }}
+        if: matrix.state == 'synth-test'
         run: ./ci/validate-synth.sh /tmp/synth-test-kha-html5.wav
 
-      - name: Run callback test (JS payload delivery)
-        if: ${{ !cancelled() }}
-        run: |
-          export DISPLAY=:99
-          cd example-project/KhaPlatformer/build/html5
-          python3 -m http.server 8283 &
-          HTTP_PID=$!
-          sleep 1
-          # Own profile per launch: the snap launcher exits while the browser
-          # lives on, and a relaunch on the shared profile hands its URL to
-          # that instance, whose stderr nobody captures
-          PROFILE=$(mktemp -d)
-          chromium-browser \
-            --no-sandbox --no-first-run --no-default-browser-check --user-data-dir="$PROFILE" \
-            --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
-            --autoplay-policy=no-user-gesture-required \
-            --enable-logging=stderr --v=0 \
-            --window-size=640,480 \
-            --window-position=0,0 \
-            "http://localhost:8283/index.html?test=cb-test" > /tmp/cb-test-kha-html5.log.raw 2>&1 &
-          CHROME_PID=$!
-          # Two clicks: the first can land before a page on software GL is
-          # interactive, and the audio context needs a gesture that reaches it
-          sleep 3
-          xdotool mousemove 320 240 click 1
-          sleep 5
-          xdotool mousemove 320 240 click 1
-          for i in $(seq 45); do
-            grep -q "CB_TEST: COMPLETE" /tmp/cb-test-kha-html5.log.raw && break
-            sleep 1
-          done
-          kill $CHROME_PID || true
-          pkill -f "$PROFILE" || true
-          kill $HTTP_PID || true
-          grep -v "dbus" /tmp/cb-test-kha-html5.log.raw | tail -n 15 || true
-          grep -o "CB_TEST:.*" /tmp/cb-test-kha-html5.log.raw | sed 's/",.*$//' | tee /tmp/cb-test-kha-html5.log
-          # Same gate as the flixel browser step: delivery end to end. The
-          # nested-beat check is informational on Chromium, whose FMOD JS
-          # glue does not deliver nested timeline beats.
-          grep -q "CB_TEST: COMPLETE" /tmp/cb-test-kha-html5.log
-          grep -q "CB_TEST: Stopped" /tmp/cb-test-kha-html5.log
-          echo "Callback test passed"
-
-      - name: Run ps-test state (browser)
-        if: ${{ !cancelled() }}
-        run: |
-          export DISPLAY=:99
-          cd example-project/KhaPlatformer/build/html5
-          python3 -m http.server 8284 &
-          HTTP_PID=$!
-          sleep 1
-          # Own profile per launch: the snap launcher exits while the browser
-          # lives on, and a relaunch on the shared profile hands its URL to
-          # that instance, whose stderr nobody captures
-          PROFILE=$(mktemp -d)
-          chromium-browser \
-            --no-sandbox --no-first-run --no-default-browser-check --user-data-dir="$PROFILE" \
-            --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
-            --autoplay-policy=no-user-gesture-required \
-            --enable-logging=stderr --v=0 \
-            --window-size=640,480 \
-            --window-position=0,0 \
-            "http://localhost:8284/index.html?test=ps-test" > /tmp/ps-test-kha-html5.log.raw 2>&1 &
-          CHROME_PID=$!
-          # Two clicks: the first can land before a page on software GL is
-          # interactive, and the audio context needs a gesture that reaches it
-          sleep 3
-          xdotool mousemove 320 240 click 1
-          sleep 5
-          xdotool mousemove 320 240 click 1
-          for i in $(seq 45); do
-            grep -q "PS_TEST: COMPLETE" /tmp/ps-test-kha-html5.log.raw && break
-            sleep 1
-          done
-          kill $CHROME_PID || true
-          pkill -f "$PROFILE" || true
-          kill $HTTP_PID || true
-          grep -v "dbus" /tmp/ps-test-kha-html5.log.raw | tail -n 15 || true
-          grep -o "PS_TEST:.*" /tmp/ps-test-kha-html5.log.raw | sed 's/",.*$//' | tee /tmp/ps-test-kha-html5.log
-          grep -q "PS_TEST: COMPLETE" /tmp/ps-test-kha-html5.log
-          if grep -q "pass=false" /tmp/ps-test-kha-html5.log; then
-            echo "FAIL: PS_TEST reported failing checks"
-            exit 1
-          fi
-
-      - name: Run bank-test state (browser)
-        if: ${{ !cancelled() }}
-        run: |
-          export DISPLAY=:99
-          cd example-project/KhaPlatformer/build/html5
-          python3 -m http.server 8285 &
-          HTTP_PID=$!
-          sleep 1
-          # Own profile per launch: the snap launcher exits while the browser
-          # lives on, and a relaunch on the shared profile hands its URL to
-          # that instance, whose stderr nobody captures
-          PROFILE=$(mktemp -d)
-          chromium-browser \
-            --no-sandbox --no-first-run --no-default-browser-check --user-data-dir="$PROFILE" \
-            --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
-            --autoplay-policy=no-user-gesture-required \
-            --enable-logging=stderr --v=0 \
-            --window-size=640,480 \
-            --window-position=0,0 \
-            "http://localhost:8285/index.html?test=bank-test" > /tmp/bank-test-kha-html5.log.raw 2>&1 &
-          CHROME_PID=$!
-          # Two clicks: the first can land before a page on software GL is
-          # interactive, and the audio context needs a gesture that reaches it
-          sleep 3
-          xdotool mousemove 320 240 click 1
-          sleep 5
-          xdotool mousemove 320 240 click 1
-          for i in $(seq 45); do
-            grep -q "BANK_TEST: COMPLETE" /tmp/bank-test-kha-html5.log.raw && break
-            sleep 1
-          done
-          kill $CHROME_PID || true
-          pkill -f "$PROFILE" || true
-          kill $HTTP_PID || true
-          grep -v "dbus" /tmp/bank-test-kha-html5.log.raw | tail -n 15 || true
-          grep -o "BANK_TEST:.*" /tmp/bank-test-kha-html5.log.raw | sed 's/",.*$//' | tee /tmp/bank-test-kha-html5.log
-          grep -q "BANK_TEST: COMPLETE" /tmp/bank-test-kha-html5.log
-          if grep -q "pass=false" /tmp/bank-test-kha-html5.log; then
-            echo "FAIL: BANK_TEST reported failing checks"
-            exit 1
-          fi
-
-      - name: Run pan-test state (browser)
-        if: ${{ !cancelled() }}
-        run: |
-          export DISPLAY=:99
-          cd example-project/KhaPlatformer/build/html5
-          python3 -m http.server 8287 &
-          HTTP_PID=$!
-          sleep 1
-          # Own profile per launch: the snap launcher exits while the browser
-          # lives on, and a relaunch on the shared profile hands its URL to
-          # that instance, whose stderr nobody captures
-          PROFILE=$(mktemp -d)
-          chromium-browser \
-            --no-sandbox --no-first-run --no-default-browser-check --user-data-dir="$PROFILE" \
-            --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
-            --autoplay-policy=no-user-gesture-required \
-            --enable-logging=stderr --v=0 \
-            --window-size=640,480 \
-            --window-position=0,0 \
-            "http://localhost:8287/index.html?test=pan-test" > /tmp/pan-test-kha-html5.log.raw 2>&1 &
-          CHROME_PID=$!
-          # Two clicks: the first can land before a page on software GL is
-          # interactive, and the audio context needs a gesture that reaches it
-          sleep 3
-          xdotool mousemove 320 240 click 1
-          sleep 5
-          xdotool mousemove 320 240 click 1
-          for i in $(seq 45); do
-            grep -q "PAN_TEST: COMPLETE" /tmp/pan-test-kha-html5.log.raw && break
-            sleep 1
-          done
-          kill $CHROME_PID || true
-          pkill -f "$PROFILE" || true
-          kill $HTTP_PID || true
-          grep -v "dbus" /tmp/pan-test-kha-html5.log.raw | tail -n 15 || true
-          grep -o "PAN_TEST:.*" /tmp/pan-test-kha-html5.log.raw | sed 's/",.*$//' | tee /tmp/pan-test-kha-html5.log
-          grep -q "PAN_TEST: COMPLETE" /tmp/pan-test-kha-html5.log
-          if grep -q "pass=false" /tmp/pan-test-kha-html5.log; then
-            echo "FAIL: PAN_TEST reported failing checks"
-            exit 1
-          fi
-
-      - name: Upload audio artifact
+      - name: Upload logs
         uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: audio-kha-html5
+          name: logs-kha-html5-${{ matrix.state }}
           path: |
-            /tmp/audio-kha-html5.wav
-            /tmp/volume-test-kha-html5.wav
-            /tmp/volume-test-kha-html5-console.log
-            /tmp/api-probe-kha-html5.log
-            /tmp/synth-test-kha-html5.log
-            /tmp/cb-test-kha-html5.log
-            /tmp/ps-test-kha-html5.log
-            /tmp/bank-test-kha-html5.log
-            /tmp/pan-test-kha-html5.log
-          if-no-files-found: warn
+            /tmp/*-kha-html5.wav
+            /tmp/*-kha-html5.log
+            /tmp/*-kha-html5-console.log
+          if-no-files-found: ignore
           overwrite: true
 
-
   # ===========================================================================
-  # Heaps HL/C on macOS (Homebrew HashLink)
+  # Heaps HL/C on macOS (Homebrew HashLink): build once, the states run in parallel in heaps-mac-hl
   # ===========================================================================
-  heaps-mac-hl:
+  heaps-mac-hl-build:
     runs-on: macos-14
     if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[heaps-mac-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-html5]') && !contains(github.event.head_commit.message, '[kha-linux]') && !contains(github.event.head_commit.message, '[kha-hl]') && !contains(github.event.head_commit.message, '[kha-html5]') && !contains(github.event.head_commit.message, '[heaps-mac-hl]') && !contains(github.event.head_commit.message, '[heaps-windows-hl]') && !contains(github.event.head_commit.message, '[kha-mac]') && !contains(github.event.head_commit.message, '[kha-mac-hl]') && !contains(github.event.head_commit.message, '[kha-windows]') && !contains(github.event.head_commit.message, '[kha-windows-hl]')))) }}
-    timeout-minutes: 60
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v5
 
@@ -3534,7 +3140,7 @@ jobs:
       - name: Setup Haxe via Homebrew
         run: |
           brew untap aws/tap 2>/dev/null || true
-          brew install haxe neko hashlink libuv ffmpeg
+          brew install haxe neko hashlink libuv
           echo "HAXE_STD_PATH=$(brew --prefix)/lib/haxe/std" >> $GITHUB_ENV
 
       - name: Install Haxe libraries
@@ -3553,24 +3159,90 @@ jobs:
           HAXEFMOD_HDLL_ARCH=arm64 haxelib run haxefmod build-hdll
           cat .haxefmod/hlaxe_fmod.version
 
-      - name: Build hlc target
+      - name: Build game and test variants
         run: |
           cd example-project/HeapsPlatformer
-          ./build.sh hlc
+          # Both variants at once, into separate output roots
+          ./build.sh hlc > "$RUNNER_TEMP/build-game.log" 2>&1 &
+          P1=$!
+          BUILD_ROOT=build-test ./build.sh hlc -D audio_test > "$RUNNER_TEMP/build-test.log" 2>&1 &
+          P2=$!
+          wait $P1 || { echo "=== game build failed ==="; cat "$RUNNER_TEMP/build-game.log"; exit 1; }
+          wait $P2 || { echo "=== test build failed ==="; cat "$RUNNER_TEMP/build-test.log"; exit 1; }
+          tail -5 "$RUNNER_TEMP/build-game.log"
+          tail -5 "$RUNNER_TEMP/build-test.log"
 
       - name: Validate build output
         run: |
-          for f in game hlaxe_fmod.hdll libfmod.dylib libfmodstudio.dylib assets/fmod/Desktop/Master.bank; do
-            test -e "example-project/HeapsPlatformer/build/hl/$f" || { echo "FAIL: missing $f"; exit 1; }
+          for d in example-project/HeapsPlatformer/build/hl example-project/HeapsPlatformer/build-test/hl; do
+            for f in game hlaxe_fmod.hdll libfmod.dylib libfmodstudio.dylib assets/fmod/Desktop/Master.bank; do
+              test -e "$d/$f" || { echo "FAIL: missing $f in $d"; exit 1; }
+            done
           done
-          echo "OK: build directory is complete"
+          echo "OK: build directories are complete"
 
-      - name: Record audio via FMOD wavwriter
+      - name: Upload build
+        uses: actions/upload-artifact@v6
+        with:
+          name: build-heaps-mac-hl
+          path: |
+            example-project/HeapsPlatformer/build/hl
+            example-project/HeapsPlatformer/build-test/hl
+          include-hidden-files: true
+          overwrite: true
+
+  heaps-mac-hl:
+    needs: heaps-mac-hl-build
+    runs-on: macos-14
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[heaps-mac-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-html5]') && !contains(github.event.head_commit.message, '[kha-linux]') && !contains(github.event.head_commit.message, '[kha-hl]') && !contains(github.event.head_commit.message, '[kha-html5]') && !contains(github.event.head_commit.message, '[heaps-mac-hl]') && !contains(github.event.head_commit.message, '[heaps-windows-hl]') && !contains(github.event.head_commit.message, '[kha-mac]') && !contains(github.event.head_commit.message, '[kha-mac-hl]') && !contains(github.event.head_commit.message, '[kha-windows]') && !contains(github.event.head_commit.message, '[kha-windows-hl]')))) }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        state: [game-audio, volume, api-probe, synth-test, cb-test, ps-test, bank-test, pan-test, stress-test]
+        include:
+          - state: api-probe
+            gate: API_PROBE
+          - state: synth-test
+            gate: SYNTH_TEST
+          - state: cb-test
+            gate: CB_TEST
+          - state: ps-test
+            gate: PS_TEST
+          - state: bank-test
+            gate: BANK_TEST
+          - state: pan-test
+            gate: PAN_TEST
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download build
+        uses: actions/download-artifact@v6
+        with:
+          name: build-heaps-mac-hl
+          path: example-project/HeapsPlatformer
+
+      - name: Restore executable bits
+        run: |
+          # Artifacts do not keep file modes
+          cd example-project/HeapsPlatformer
+          chmod +x build*/hl/game 2>/dev/null || true
+          chmod +x build*/hl/run.sh 2>/dev/null || true
+
+      - name: Install runtime dependencies
+        run: |
+          brew untap aws/tap 2>/dev/null || true
+          brew install ffmpeg hashlink libuv
+
+      - name: Log file for the executable
+        run: echo "HAXEFMOD_LOG_FILE=/tmp/${{ matrix.state }}-heaps-mac-hl.log" >> "$GITHUB_ENV"
+
+      - name: Record audio
+        if: matrix.state == 'game-audio'
         run: |
           export FMOD_WAVWRITER=/tmp/audio-heaps-mac-hl.wav
           cd example-project/HeapsPlatformer/build/hl
-          LAUNCH=./game
-          $LAUNCH > /tmp/game-heaps-mac-hl.log 2>&1 &
+          ./game > /tmp/game-heaps-mac-hl.log 2>&1 &
           GAME_PID=$!
           cd -
           for i in $(seq 60); do
@@ -3583,25 +3255,12 @@ jobs:
           cat /tmp/game-heaps-mac-hl.log || true
           echo "=== End game log ==="
 
-      - name: Validate audio
-        run: ./ci/validate-audio.sh /tmp/audio-heaps-mac-hl.wav 10
-
-      - name: Validate game log
-        run: ./ci/validate-game-log.sh /tmp/game-heaps-mac-hl.log
-
-      - name: Build test variant
-        if: ${{ !cancelled() }}
-        run: |
-          cd example-project/HeapsPlatformer
-          ./build.sh hlc -D audio_test
-
       - name: Record volume test
-        if: ${{ !cancelled() }}
+        if: matrix.state == 'volume'
         run: |
           export FMOD_WAVWRITER=/tmp/volume-test-heaps-mac-hl.wav
-          cd example-project/HeapsPlatformer/build/hl
-          LAUNCH=./game
-          $LAUNCH > /tmp/volume-test-heaps-mac-hl.log 2>&1 &
+          cd example-project/HeapsPlatformer/build-test/hl
+          ./game > /tmp/volume-test-heaps-mac-hl.log 2>&1 &
           GAME_PID=$!
           cd -
           for i in $(seq 60); do
@@ -3610,95 +3269,45 @@ jobs:
           done
           kill $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
-          echo "=== Game log ==="
-          cat /tmp/volume-test-heaps-mac-hl.log || true
-          echo "=== End game log ==="
+
+      - name: Validate audio
+        if: matrix.state == 'game-audio'
+        run: ./ci/validate-audio.sh /tmp/audio-heaps-mac-hl.wav 10
+
+      - name: Validate game log
+        if: matrix.state == 'game-audio'
+        run: ./ci/validate-game-log.sh /tmp/game-heaps-mac-hl.log
 
       - name: Validate volume/mute
-        if: ${{ !cancelled() }}
+        if: matrix.state == 'volume'
         run: ./ci/validate-volume.sh /tmp/volume-test-heaps-mac-hl.wav 15
 
-      - name: Run api-probe state
-        if: ${{ !cancelled() }}
+      - name: Run state
+        if: matrix.gate
         uses: ./.github/actions/run-test-state
         with:
-          state: api-probe
-          gate: API_PROBE
+          state: ${{ matrix.state }}
+          gate: ${{ matrix.gate }}
           timeout: "60"
-          bin-dir: example-project/HeapsPlatformer/build/hl
-          log-file: /tmp/api-probe-heaps-mac-hl.log
-          use-wavwriter: "true"
-
-      - name: Run synth-test state
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/run-test-state
-        with:
-          state: synth-test
-          gate: SYNTH_TEST
-          timeout: "60"
-          bin-dir: example-project/HeapsPlatformer/build/hl
-          log-file: /tmp/synth-test-heaps-mac-hl.log
+          bin-dir: example-project/HeapsPlatformer/build-test/hl
+          log-file: /tmp/${{ matrix.state }}-heaps-mac-hl.log
+          extra-gate: "${{ matrix.state == 'cb-test' && 'CB_TEST: Stopped' || '' }}"
+          copy-jump-wav: "${{ matrix.state == 'ps-test' && 'true' || 'false' }}"
           use-wavwriter: "true"
 
       - name: Validate synth audio
-        if: ${{ !cancelled() }}
+        if: matrix.state == 'synth-test'
         run: ./ci/validate-synth.sh "${RUNNER_TEMP}/state-synth-test.wav"
 
-      - name: Run cb-test state
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/run-test-state
-        with:
-          state: cb-test
-          gate: CB_TEST
-          timeout: "30"
-          bin-dir: example-project/HeapsPlatformer/build/hl
-          log-file: /tmp/cb-test-heaps-mac-hl.log
-          use-wavwriter: "true"
-          extra-gate: "CB_TEST: Stopped"
-
-      - name: Run ps-test state
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/run-test-state
-        with:
-          state: ps-test
-          gate: PS_TEST
-          timeout: "60"
-          bin-dir: example-project/HeapsPlatformer/build/hl
-          log-file: /tmp/ps-test-heaps-mac-hl.log
-          use-wavwriter: "true"
-          copy-jump-wav: "true"
-
-      - name: Run bank-test state
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/run-test-state
-        with:
-          state: bank-test
-          gate: BANK_TEST
-          timeout: "60"
-          bin-dir: example-project/HeapsPlatformer/build/hl
-          log-file: /tmp/bank-test-heaps-mac-hl.log
-          use-wavwriter: "true"
-
-      - name: Run pan-test state
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/run-test-state
-        with:
-          state: pan-test
-          gate: PAN_TEST
-          timeout: "60"
-          bin-dir: example-project/HeapsPlatformer/build/hl
-          log-file: /tmp/pan-test-heaps-mac-hl.log
-          use-wavwriter: "true"
-
       - name: Run stress-test state (smoke)
-        if: ${{ !cancelled() }}
+        if: matrix.state == 'stress-test'
         run: |
           export HAXEFMOD_TEST_STATE=stress-test
           export STRESS_SECONDS=15
           export FMOD_WAVWRITER="${RUNNER_TEMP}/stress-smoke.wav"
-          cd example-project/HeapsPlatformer/build/hl
-          LAUNCH=./game
-          $LAUNCH > "/tmp/stress-smoke-heaps-mac-hl.log" 2>&1 &
+          LOG=/tmp/stress-smoke-heaps-mac-hl.log
+          cd example-project/HeapsPlatformer/build-test/hl
+          ./game > "$LOG" 2>&1 &
           GAME_PID=$!
           cd -
           for i in $(seq 90); do
@@ -3707,44 +3316,29 @@ jobs:
           done
           kill $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
-          grep "STRESS_TEST:" "/tmp/stress-smoke-heaps-mac-hl.log" || true
-          grep -q "STRESS_TEST: COMPLETE" "/tmp/stress-smoke-heaps-mac-hl.log" || {
-            echo "Stress smoke never completed - full log:"
-            cat "/tmp/stress-smoke-heaps-mac-hl.log"
-            exit 1
-          }
-          if grep -q "pass=false" "/tmp/stress-smoke-heaps-mac-hl.log"; then
-            echo "Stress smoke reported failing checks"
-            exit 1
-          fi
+          grep "STRESS_TEST:" "$LOG" || true
+          grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed - full log:"; cat "$LOG"; exit 1; }
+          if grep -q "pass=false" "$LOG"; then echo "Stress smoke reported failing checks"; exit 1; fi
 
-      - name: Upload artifacts
+      - name: Upload logs
         uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: audio-heaps-mac-hl
+          name: logs-heaps-mac-hl-${{ matrix.state }}
           path: |
-            /tmp/audio-heaps-mac-hl.wav
-            /tmp/game-heaps-mac-hl.log
-            /tmp/volume-test-heaps-mac-hl.wav
-            /tmp/volume-test-heaps-mac-hl.log
-            /tmp/api-probe-heaps-mac-hl.log
-            /tmp/synth-test-heaps-mac-hl.log
-            /tmp/cb-test-heaps-mac-hl.log
-            /tmp/ps-test-heaps-mac-hl.log
-            /tmp/bank-test-heaps-mac-hl.log
-            /tmp/pan-test-heaps-mac-hl.log
-            /tmp/stress-smoke-heaps-mac-hl.log
-          if-no-files-found: warn
+            /tmp/*-heaps-mac-hl.wav
+            /tmp/*-heaps-mac-hl.log
+            /tmp/*-heaps-mac-hl-console.log
+          if-no-files-found: ignore
           overwrite: true
 
   # ===========================================================================
-  # Heaps on the HashLink VM, Windows
+  # Heaps on the HashLink VM, Windows: build once, the states run in parallel in heaps-windows-hl
   # ===========================================================================
-  heaps-windows-hl:
+  heaps-windows-hl-build:
     runs-on: windows-latest
     if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[heaps-windows-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-html5]') && !contains(github.event.head_commit.message, '[kha-linux]') && !contains(github.event.head_commit.message, '[kha-hl]') && !contains(github.event.head_commit.message, '[kha-html5]') && !contains(github.event.head_commit.message, '[heaps-mac-hl]') && !contains(github.event.head_commit.message, '[heaps-windows-hl]') && !contains(github.event.head_commit.message, '[kha-mac]') && !contains(github.event.head_commit.message, '[kha-mac-hl]') && !contains(github.event.head_commit.message, '[kha-windows]') && !contains(github.event.head_commit.message, '[kha-windows-hl]')))) }}
-    timeout-minutes: 60
+    timeout-minutes: 45
     defaults:
       run:
         shell: bash
@@ -3763,10 +3357,6 @@ jobs:
         uses: krdlab/setup-haxe@v2
         with:
           haxe-version: ${{ env.HAXE_VERSION }}
-
-      - name: Install ffmpeg
-        shell: powershell
-        run: choco install ffmpeg -y --no-progress
 
       - name: Install Haxe libraries
         run: |
@@ -3797,28 +3387,97 @@ jobs:
           cd example-project\HeapsPlatformer
           haxelib run haxefmod build-hdll
 
-      - name: Build hl target
+      - name: Build game and test variants
         run: |
           cd example-project/HeapsPlatformer
-          ./build.sh hl
+          # Both variants at once, into separate output roots
+          ./build.sh hl > "$RUNNER_TEMP/build-game.log" 2>&1 &
+          P1=$!
+          BUILD_ROOT=build-test ./build.sh hl -D audio_test > "$RUNNER_TEMP/build-test.log" 2>&1 &
+          P2=$!
+          wait $P1 || { echo "=== game build failed ==="; cat "$RUNNER_TEMP/build-game.log"; exit 1; }
+          wait $P2 || { echo "=== test build failed ==="; cat "$RUNNER_TEMP/build-test.log"; exit 1; }
+          tail -5 "$RUNNER_TEMP/build-game.log"
+          tail -5 "$RUNNER_TEMP/build-test.log"
 
       - name: Validate build output
         run: |
-          for f in HeapsPlatformer.exe hlboot.dat libhl.dll sdl.hdll hlaxe_fmod.hdll fmod.dll fmodstudio.dll assets/fmod/Desktop/Master.bank; do
-            test -e "example-project/HeapsPlatformer/build/hl/$f" || { echo "FAIL: missing $f"; exit 1; }
+          for d in example-project/HeapsPlatformer/build/hl example-project/HeapsPlatformer/build-test/hl; do
+            for f in HeapsPlatformer.exe hlboot.dat libhl.dll sdl.hdll hlaxe_fmod.hdll fmod.dll fmodstudio.dll assets/fmod/Desktop/Master.bank; do
+              test -e "$d/$f" || { echo "FAIL: missing $f in $d"; exit 1; }
+            done
           done
-          echo "OK: build directory is complete"
+          echo "OK: build directories are complete"
 
-      - name: Record audio via FMOD wavwriter
+      - name: Upload build
+        uses: actions/upload-artifact@v6
+        with:
+          name: build-heaps-windows-hl
+          path: |
+            example-project/HeapsPlatformer/build/hl
+            example-project/HeapsPlatformer/build-test/hl
+          include-hidden-files: true
+          overwrite: true
+
+  heaps-windows-hl:
+    needs: heaps-windows-hl-build
+    runs-on: windows-latest
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[heaps-windows-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-html5]') && !contains(github.event.head_commit.message, '[kha-linux]') && !contains(github.event.head_commit.message, '[kha-hl]') && !contains(github.event.head_commit.message, '[kha-html5]') && !contains(github.event.head_commit.message, '[heaps-mac-hl]') && !contains(github.event.head_commit.message, '[heaps-windows-hl]') && !contains(github.event.head_commit.message, '[kha-mac]') && !contains(github.event.head_commit.message, '[kha-mac-hl]') && !contains(github.event.head_commit.message, '[kha-windows]') && !contains(github.event.head_commit.message, '[kha-windows-hl]')))) }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        state: [game-audio, volume, api-probe, synth-test, cb-test, ps-test, bank-test, pan-test, stress-test]
+        include:
+          - state: api-probe
+            gate: API_PROBE
+          - state: synth-test
+            gate: SYNTH_TEST
+          - state: cb-test
+            gate: CB_TEST
+          - state: ps-test
+            gate: PS_TEST
+          - state: bank-test
+            gate: BANK_TEST
+          - state: pan-test
+            gate: PAN_TEST
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download build
+        uses: actions/download-artifact@v6
+        with:
+          name: build-heaps-windows-hl
+          path: example-project/HeapsPlatformer
+
+      - name: Install ffmpeg
+        shell: powershell
+        run: choco install ffmpeg -y --no-progress
+
+      - name: Log file for the executable
+        run: echo "HAXEFMOD_LOG_FILE=$GITHUB_WORKSPACE/${{ matrix.state }}-heaps-windows-hl.log" >> "$GITHUB_ENV"
+
+      - name: Record audio
+        if: matrix.state == 'game-audio'
         run: |
           export FMOD_WAVWRITER="$GITHUB_WORKSPACE/audio-heaps-windows-hl.wav"
           cd example-project/HeapsPlatformer/build/hl
-          LAUNCH=./HeapsPlatformer.exe
-          timeout 60 $LAUNCH > "$GITHUB_WORKSPACE/game-heaps-windows-hl.log" 2>&1 || true
+          timeout 60 ./HeapsPlatformer.exe > "$GITHUB_WORKSPACE/game-heaps-windows-hl.log" 2>&1 || true
           cd -
           echo "=== Game log ==="
-          cat "$GITHUB_WORKSPACE/game-heaps-windows-hl.log" || true
+          cat $GITHUB_WORKSPACE/game-heaps-windows-hl.log || true
           echo "=== End game log ==="
+
+      - name: Record volume test
+        if: matrix.state == 'volume'
+        run: |
+          export FMOD_WAVWRITER="$GITHUB_WORKSPACE/volume-test-heaps-windows-hl.wav"
+          cd example-project/HeapsPlatformer/build-test/hl
+          timeout 60 ./HeapsPlatformer.exe > "$GITHUB_WORKSPACE/volume-test-heaps-windows-hl.log" 2>&1 || true
+          cd -
 
       - name: Fix WAV headers
         if: ${{ !cancelled() }}
@@ -3834,127 +3493,43 @@ jobs:
                       print("fixed header of " + wav)
 
       - name: Validate audio
+        if: matrix.state == 'game-audio'
         run: ./ci/validate-audio.sh $GITHUB_WORKSPACE/audio-heaps-windows-hl.wav 10
 
       - name: Validate game log
+        if: matrix.state == 'game-audio'
         run: ./ci/validate-game-log.sh $GITHUB_WORKSPACE/game-heaps-windows-hl.log
 
-      - name: Build test variant
-        if: ${{ !cancelled() }}
-        run: |
-          cd example-project/HeapsPlatformer
-          ./build.sh hl -D audio_test
-
-      - name: Record volume test
-        if: ${{ !cancelled() }}
-        run: |
-          export FMOD_WAVWRITER="$GITHUB_WORKSPACE/volume-test-heaps-windows-hl.wav"
-          cd example-project/HeapsPlatformer/build/hl
-          LAUNCH=./HeapsPlatformer.exe
-          timeout 60 $LAUNCH > "$GITHUB_WORKSPACE/volume-test-heaps-windows-hl.log" 2>&1 || true
-          cd -
-          echo "=== Game log ==="
-          cat "$GITHUB_WORKSPACE/volume-test-heaps-windows-hl.log" || true
-          echo "=== End game log ==="
-
-      - name: Fix WAV headers again
-        if: ${{ !cancelled() }}
-        shell: python
-        run: |
-          import struct, os, glob
-          for wav in glob.glob(os.path.join(os.environ['GITHUB_WORKSPACE'], '*.wav')):
-              with open(wav, 'r+b') as f:
-                  f.seek(22)
-                  if struct.unpack('<H', f.read(2))[0] == 0:
-                      f.seek(22); f.write(struct.pack('<H', 2))
-                      f.seek(28); f.write(struct.pack('<I', 192000)); f.write(struct.pack('<H', 4))
-                      print("fixed header of " + wav)
-
       - name: Validate volume/mute
-        if: ${{ !cancelled() }}
+        if: matrix.state == 'volume'
         run: ./ci/validate-volume.sh $GITHUB_WORKSPACE/volume-test-heaps-windows-hl.wav 15
 
-      - name: Run api-probe state
-        if: ${{ !cancelled() }}
+      - name: Run state
+        if: matrix.gate
         uses: ./.github/actions/run-test-state
         with:
-          state: api-probe
-          gate: API_PROBE
+          state: ${{ matrix.state }}
+          gate: ${{ matrix.gate }}
           timeout: "60"
-          bin-dir: example-project/HeapsPlatformer/build/hl
-          log-file: ${{ github.workspace }}/api-probe-heaps-windows-hl.log
-          use-wavwriter: "true"
-
-      - name: Run synth-test state
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/run-test-state
-        with:
-          state: synth-test
-          gate: SYNTH_TEST
-          timeout: "60"
-          bin-dir: example-project/HeapsPlatformer/build/hl
-          log-file: ${{ github.workspace }}/synth-test-heaps-windows-hl.log
+          bin-dir: example-project/HeapsPlatformer/build-test/hl
+          log-file: ${{ github.workspace }}/${{ matrix.state }}-heaps-windows-hl.log
+          extra-gate: "${{ matrix.state == 'cb-test' && 'CB_TEST: Stopped' || '' }}"
+          copy-jump-wav: "${{ matrix.state == 'ps-test' && 'true' || 'false' }}"
           use-wavwriter: "true"
 
       - name: Validate synth audio
-        if: ${{ !cancelled() }}
+        if: matrix.state == 'synth-test'
         run: ./ci/validate-synth.sh "${RUNNER_TEMP}/state-synth-test.wav"
 
-      - name: Run cb-test state
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/run-test-state
-        with:
-          state: cb-test
-          gate: CB_TEST
-          timeout: "30"
-          bin-dir: example-project/HeapsPlatformer/build/hl
-          log-file: ${{ github.workspace }}/cb-test-heaps-windows-hl.log
-          use-wavwriter: "true"
-          extra-gate: "CB_TEST: Stopped"
-
-      - name: Run ps-test state
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/run-test-state
-        with:
-          state: ps-test
-          gate: PS_TEST
-          timeout: "60"
-          bin-dir: example-project/HeapsPlatformer/build/hl
-          log-file: ${{ github.workspace }}/ps-test-heaps-windows-hl.log
-          use-wavwriter: "true"
-          copy-jump-wav: "true"
-
-      - name: Run bank-test state
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/run-test-state
-        with:
-          state: bank-test
-          gate: BANK_TEST
-          timeout: "60"
-          bin-dir: example-project/HeapsPlatformer/build/hl
-          log-file: ${{ github.workspace }}/bank-test-heaps-windows-hl.log
-          use-wavwriter: "true"
-
-      - name: Run pan-test state
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/run-test-state
-        with:
-          state: pan-test
-          gate: PAN_TEST
-          timeout: "60"
-          bin-dir: example-project/HeapsPlatformer/build/hl
-          log-file: ${{ github.workspace }}/pan-test-heaps-windows-hl.log
-          use-wavwriter: "true"
-
       - name: Run stress-test state (smoke)
-        if: ${{ !cancelled() }}
+        if: matrix.state == 'stress-test'
         run: |
           export HAXEFMOD_TEST_STATE=stress-test
           export STRESS_SECONDS=15
           export FMOD_WAVWRITER="${RUNNER_TEMP}/stress-smoke.wav"
-          cd example-project/HeapsPlatformer/build/hl
-          LAUNCH=./HeapsPlatformer.exe
-          $LAUNCH > "$GITHUB_WORKSPACE/stress-smoke-heaps-windows-hl.log" 2>&1 &
+          LOG=$GITHUB_WORKSPACE/stress-smoke-heaps-windows-hl.log
+          cd example-project/HeapsPlatformer/build-test/hl
+          ./HeapsPlatformer.exe > "$LOG" 2>&1 &
           GAME_PID=$!
           cd -
           for i in $(seq 90); do
@@ -3963,44 +3538,29 @@ jobs:
           done
           kill $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
-          grep "STRESS_TEST:" "$GITHUB_WORKSPACE/stress-smoke-heaps-windows-hl.log" || true
-          grep -q "STRESS_TEST: COMPLETE" "$GITHUB_WORKSPACE/stress-smoke-heaps-windows-hl.log" || {
-            echo "Stress smoke never completed - full log:"
-            cat "$GITHUB_WORKSPACE/stress-smoke-heaps-windows-hl.log"
-            exit 1
-          }
-          if grep -q "pass=false" "$GITHUB_WORKSPACE/stress-smoke-heaps-windows-hl.log"; then
-            echo "Stress smoke reported failing checks"
-            exit 1
-          fi
+          grep "STRESS_TEST:" "$LOG" || true
+          grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed - full log:"; cat "$LOG"; exit 1; }
+          if grep -q "pass=false" "$LOG"; then echo "Stress smoke reported failing checks"; exit 1; fi
 
-      - name: Upload artifacts
+      - name: Upload logs
         uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: audio-heaps-windows-hl
+          name: logs-heaps-windows-hl-${{ matrix.state }}
           path: |
-            ${{ github.workspace }}/audio-heaps-windows-hl.wav
-            ${{ github.workspace }}/game-heaps-windows-hl.log
-            ${{ github.workspace }}/volume-test-heaps-windows-hl.wav
-            ${{ github.workspace }}/volume-test-heaps-windows-hl.log
-            ${{ github.workspace }}/api-probe-heaps-windows-hl.log
-            ${{ github.workspace }}/synth-test-heaps-windows-hl.log
-            ${{ github.workspace }}/cb-test-heaps-windows-hl.log
-            ${{ github.workspace }}/ps-test-heaps-windows-hl.log
-            ${{ github.workspace }}/bank-test-heaps-windows-hl.log
-            ${{ github.workspace }}/pan-test-heaps-windows-hl.log
-            ${{ github.workspace }}/stress-smoke-heaps-windows-hl.log
-          if-no-files-found: warn
+            ${{ github.workspace }}/*-heaps-windows-hl.wav
+            ${{ github.workspace }}/*-heaps-windows-hl.log
+            ${{ github.workspace }}/*-heaps-windows-hl-console.log
+          if-no-files-found: ignore
           overwrite: true
 
   # ===========================================================================
-  # Kha on macOS (Kore, Xcode, Metal)
+  # Kha on macOS (Kore, Xcode, OpenGL): build once, the states run in parallel in kha-mac
   # ===========================================================================
-  kha-mac:
+  kha-mac-build:
     runs-on: macos-14
     if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[kha-mac]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-html5]') && !contains(github.event.head_commit.message, '[kha-linux]') && !contains(github.event.head_commit.message, '[kha-hl]') && !contains(github.event.head_commit.message, '[kha-html5]') && !contains(github.event.head_commit.message, '[heaps-mac-hl]') && !contains(github.event.head_commit.message, '[heaps-windows-hl]') && !contains(github.event.head_commit.message, '[kha-mac]') && !contains(github.event.head_commit.message, '[kha-mac-hl]') && !contains(github.event.head_commit.message, '[kha-windows]') && !contains(github.event.head_commit.message, '[kha-windows-hl]')))) }}
-    timeout-minutes: 60
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v5
 
@@ -4015,7 +3575,7 @@ jobs:
       - name: Setup Haxe via Homebrew
         run: |
           brew untap aws/tap 2>/dev/null || true
-          brew install haxe neko ffmpeg
+          brew install haxe neko 
           echo "HAXE_STD_PATH=$(brew --prefix)/lib/haxe/std" >> $GITHUB_ENV
 
       - name: Install Haxe libraries
@@ -4041,24 +3601,90 @@ jobs:
           cd "$RUNNER_TEMP/Kha"
           git checkout "$KHA_COMMIT" 2>/dev/null || true
 
-      - name: Build osx target
+      - name: Build game and test variants
         run: |
           cd example-project/KhaPlatformer
-          ./build.sh osx
+          # Both variants at once, into separate output roots
+          ./build.sh osx > "$RUNNER_TEMP/build-game.log" 2>&1 &
+          P1=$!
+          KHA_AUDIO_TEST=1 BUILD_ROOT=build-test ./build.sh osx > "$RUNNER_TEMP/build-test.log" 2>&1 &
+          P2=$!
+          wait $P1 || { echo "=== game build failed ==="; cat "$RUNNER_TEMP/build-game.log"; exit 1; }
+          wait $P2 || { echo "=== test build failed ==="; cat "$RUNNER_TEMP/build-test.log"; exit 1; }
+          tail -5 "$RUNNER_TEMP/build-game.log"
+          tail -5 "$RUNNER_TEMP/build-test.log"
 
       - name: Validate build output
         run: |
-          for f in KhaPlatformer libfmod.dylib libfmodstudio.dylib assets/fmod/Desktop/Master.bank; do
-            test -e "example-project/KhaPlatformer/build/osx/$f" || { echo "FAIL: missing $f"; exit 1; }
+          for d in example-project/KhaPlatformer/build/osx example-project/KhaPlatformer/build-test/osx; do
+            for f in KhaPlatformer libfmod.dylib libfmodstudio.dylib assets/fmod/Desktop/Master.bank; do
+              test -e "$d/$f" || { echo "FAIL: missing $f in $d"; exit 1; }
+            done
           done
-          echo "OK: build directory is complete"
+          echo "OK: build directories are complete"
 
-      - name: Record audio via FMOD wavwriter
+      - name: Upload build
+        uses: actions/upload-artifact@v6
+        with:
+          name: build-kha-mac
+          path: |
+            example-project/KhaPlatformer/build/osx
+            example-project/KhaPlatformer/build-test/osx
+          include-hidden-files: true
+          overwrite: true
+
+  kha-mac:
+    needs: kha-mac-build
+    runs-on: macos-14
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[kha-mac]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-html5]') && !contains(github.event.head_commit.message, '[kha-linux]') && !contains(github.event.head_commit.message, '[kha-hl]') && !contains(github.event.head_commit.message, '[kha-html5]') && !contains(github.event.head_commit.message, '[heaps-mac-hl]') && !contains(github.event.head_commit.message, '[heaps-windows-hl]') && !contains(github.event.head_commit.message, '[kha-mac]') && !contains(github.event.head_commit.message, '[kha-mac-hl]') && !contains(github.event.head_commit.message, '[kha-windows]') && !contains(github.event.head_commit.message, '[kha-windows-hl]')))) }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        state: [game-audio, volume, api-probe, synth-test, cb-test, ps-test, bank-test, pan-test, stress-test]
+        include:
+          - state: api-probe
+            gate: API_PROBE
+          - state: synth-test
+            gate: SYNTH_TEST
+          - state: cb-test
+            gate: CB_TEST
+          - state: ps-test
+            gate: PS_TEST
+          - state: bank-test
+            gate: BANK_TEST
+          - state: pan-test
+            gate: PAN_TEST
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download build
+        uses: actions/download-artifact@v6
+        with:
+          name: build-kha-mac
+          path: example-project/KhaPlatformer
+
+      - name: Restore executable bits
+        run: |
+          # Artifacts do not keep file modes
+          cd example-project/KhaPlatformer
+          chmod +x build*/osx/KhaPlatformer 2>/dev/null || true
+          chmod +x build*/osx/run.sh 2>/dev/null || true
+
+      - name: Install runtime dependencies
+        run: |
+          brew untap aws/tap 2>/dev/null || true
+          brew install ffmpeg
+
+      - name: Log file for the executable
+        run: echo "HAXEFMOD_LOG_FILE=/tmp/${{ matrix.state }}-kha-mac.log" >> "$GITHUB_ENV"
+
+      - name: Record audio
+        if: matrix.state == 'game-audio'
         run: |
           export FMOD_WAVWRITER=/tmp/audio-kha-mac.wav
           cd example-project/KhaPlatformer/build/osx
-          LAUNCH=./KhaPlatformer
-          $LAUNCH > /tmp/game-kha-mac.log 2>&1 &
+          ./KhaPlatformer > /tmp/game-kha-mac.log 2>&1 &
           GAME_PID=$!
           cd -
           for i in $(seq 60); do
@@ -4071,25 +3697,12 @@ jobs:
           cat /tmp/game-kha-mac.log || true
           echo "=== End game log ==="
 
-      - name: Validate audio
-        run: ./ci/validate-audio.sh /tmp/audio-kha-mac.wav 10
-
-      - name: Validate game log
-        run: ./ci/validate-game-log.sh /tmp/game-kha-mac.log
-
-      - name: Build test variant
-        if: ${{ !cancelled() }}
-        run: |
-          cd example-project/KhaPlatformer
-          KHA_AUDIO_TEST=1 ./build.sh osx
-
       - name: Record volume test
-        if: ${{ !cancelled() }}
+        if: matrix.state == 'volume'
         run: |
           export FMOD_WAVWRITER=/tmp/volume-test-kha-mac.wav
-          cd example-project/KhaPlatformer/build/osx
-          LAUNCH=./KhaPlatformer
-          $LAUNCH > /tmp/volume-test-kha-mac.log 2>&1 &
+          cd example-project/KhaPlatformer/build-test/osx
+          ./KhaPlatformer > /tmp/volume-test-kha-mac.log 2>&1 &
           GAME_PID=$!
           cd -
           for i in $(seq 60); do
@@ -4098,95 +3711,45 @@ jobs:
           done
           kill $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
-          echo "=== Game log ==="
-          cat /tmp/volume-test-kha-mac.log || true
-          echo "=== End game log ==="
+
+      - name: Validate audio
+        if: matrix.state == 'game-audio'
+        run: ./ci/validate-audio.sh /tmp/audio-kha-mac.wav 10
+
+      - name: Validate game log
+        if: matrix.state == 'game-audio'
+        run: ./ci/validate-game-log.sh /tmp/game-kha-mac.log
 
       - name: Validate volume/mute
-        if: ${{ !cancelled() }}
+        if: matrix.state == 'volume'
         run: ./ci/validate-volume.sh /tmp/volume-test-kha-mac.wav 15
 
-      - name: Run api-probe state
-        if: ${{ !cancelled() }}
+      - name: Run state
+        if: matrix.gate
         uses: ./.github/actions/run-test-state
         with:
-          state: api-probe
-          gate: API_PROBE
+          state: ${{ matrix.state }}
+          gate: ${{ matrix.gate }}
           timeout: "60"
-          bin-dir: example-project/KhaPlatformer/build/osx
-          log-file: /tmp/api-probe-kha-mac.log
-          use-wavwriter: "true"
-
-      - name: Run synth-test state
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/run-test-state
-        with:
-          state: synth-test
-          gate: SYNTH_TEST
-          timeout: "60"
-          bin-dir: example-project/KhaPlatformer/build/osx
-          log-file: /tmp/synth-test-kha-mac.log
+          bin-dir: example-project/KhaPlatformer/build-test/osx
+          log-file: /tmp/${{ matrix.state }}-kha-mac.log
+          extra-gate: "${{ matrix.state == 'cb-test' && 'CB_TEST: Stopped' || '' }}"
+          copy-jump-wav: "${{ matrix.state == 'ps-test' && 'true' || 'false' }}"
           use-wavwriter: "true"
 
       - name: Validate synth audio
-        if: ${{ !cancelled() }}
+        if: matrix.state == 'synth-test'
         run: ./ci/validate-synth.sh "${RUNNER_TEMP}/state-synth-test.wav"
 
-      - name: Run cb-test state
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/run-test-state
-        with:
-          state: cb-test
-          gate: CB_TEST
-          timeout: "30"
-          bin-dir: example-project/KhaPlatformer/build/osx
-          log-file: /tmp/cb-test-kha-mac.log
-          use-wavwriter: "true"
-          extra-gate: "CB_TEST: Stopped"
-
-      - name: Run ps-test state
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/run-test-state
-        with:
-          state: ps-test
-          gate: PS_TEST
-          timeout: "60"
-          bin-dir: example-project/KhaPlatformer/build/osx
-          log-file: /tmp/ps-test-kha-mac.log
-          use-wavwriter: "true"
-          copy-jump-wav: "true"
-
-      - name: Run bank-test state
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/run-test-state
-        with:
-          state: bank-test
-          gate: BANK_TEST
-          timeout: "60"
-          bin-dir: example-project/KhaPlatformer/build/osx
-          log-file: /tmp/bank-test-kha-mac.log
-          use-wavwriter: "true"
-
-      - name: Run pan-test state
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/run-test-state
-        with:
-          state: pan-test
-          gate: PAN_TEST
-          timeout: "60"
-          bin-dir: example-project/KhaPlatformer/build/osx
-          log-file: /tmp/pan-test-kha-mac.log
-          use-wavwriter: "true"
-
       - name: Run stress-test state (smoke)
-        if: ${{ !cancelled() }}
+        if: matrix.state == 'stress-test'
         run: |
           export HAXEFMOD_TEST_STATE=stress-test
           export STRESS_SECONDS=15
           export FMOD_WAVWRITER="${RUNNER_TEMP}/stress-smoke.wav"
-          cd example-project/KhaPlatformer/build/osx
-          LAUNCH=./KhaPlatformer
-          $LAUNCH > "/tmp/stress-smoke-kha-mac.log" 2>&1 &
+          LOG=/tmp/stress-smoke-kha-mac.log
+          cd example-project/KhaPlatformer/build-test/osx
+          ./KhaPlatformer > "$LOG" 2>&1 &
           GAME_PID=$!
           cd -
           for i in $(seq 90); do
@@ -4195,44 +3758,29 @@ jobs:
           done
           kill $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
-          grep "STRESS_TEST:" "/tmp/stress-smoke-kha-mac.log" || true
-          grep -q "STRESS_TEST: COMPLETE" "/tmp/stress-smoke-kha-mac.log" || {
-            echo "Stress smoke never completed - full log:"
-            cat "/tmp/stress-smoke-kha-mac.log"
-            exit 1
-          }
-          if grep -q "pass=false" "/tmp/stress-smoke-kha-mac.log"; then
-            echo "Stress smoke reported failing checks"
-            exit 1
-          fi
+          grep "STRESS_TEST:" "$LOG" || true
+          grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed - full log:"; cat "$LOG"; exit 1; }
+          if grep -q "pass=false" "$LOG"; then echo "Stress smoke reported failing checks"; exit 1; fi
 
-      - name: Upload artifacts
+      - name: Upload logs
         uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: audio-kha-mac
+          name: logs-kha-mac-${{ matrix.state }}
           path: |
-            /tmp/audio-kha-mac.wav
-            /tmp/game-kha-mac.log
-            /tmp/volume-test-kha-mac.wav
-            /tmp/volume-test-kha-mac.log
-            /tmp/api-probe-kha-mac.log
-            /tmp/synth-test-kha-mac.log
-            /tmp/cb-test-kha-mac.log
-            /tmp/ps-test-kha-mac.log
-            /tmp/bank-test-kha-mac.log
-            /tmp/pan-test-kha-mac.log
-            /tmp/stress-smoke-kha-mac.log
-          if-no-files-found: warn
+            /tmp/*-kha-mac.wav
+            /tmp/*-kha-mac.log
+            /tmp/*-kha-mac-console.log
+          if-no-files-found: ignore
           overwrite: true
 
   # ===========================================================================
-  # Kha HL/C on macOS
+  # Kha HL/C on macOS: build once, the states run in parallel in kha-mac-hl
   # ===========================================================================
-  kha-mac-hl:
+  kha-mac-hl-build:
     runs-on: macos-14
     if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[kha-mac-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-html5]') && !contains(github.event.head_commit.message, '[kha-linux]') && !contains(github.event.head_commit.message, '[kha-hl]') && !contains(github.event.head_commit.message, '[kha-html5]') && !contains(github.event.head_commit.message, '[heaps-mac-hl]') && !contains(github.event.head_commit.message, '[heaps-windows-hl]') && !contains(github.event.head_commit.message, '[kha-mac]') && !contains(github.event.head_commit.message, '[kha-mac-hl]') && !contains(github.event.head_commit.message, '[kha-windows]') && !contains(github.event.head_commit.message, '[kha-windows-hl]')))) }}
-    timeout-minutes: 60
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v5
 
@@ -4247,7 +3795,7 @@ jobs:
       - name: Setup Haxe via Homebrew
         run: |
           brew untap aws/tap 2>/dev/null || true
-          brew install haxe neko ffmpeg
+          brew install haxe neko 
           echo "HAXE_STD_PATH=$(brew --prefix)/lib/haxe/std" >> $GITHUB_ENV
 
       - name: Install Haxe libraries
@@ -4273,24 +3821,90 @@ jobs:
           cd "$RUNNER_TEMP/Kha"
           git checkout "$KHA_COMMIT" 2>/dev/null || true
 
-      - name: Build osx-hl target
+      - name: Build game and test variants
         run: |
           cd example-project/KhaPlatformer
-          ./build.sh osx-hl
+          # Both variants at once, into separate output roots
+          ./build.sh osx-hl > "$RUNNER_TEMP/build-game.log" 2>&1 &
+          P1=$!
+          KHA_AUDIO_TEST=1 BUILD_ROOT=build-test ./build.sh osx-hl > "$RUNNER_TEMP/build-test.log" 2>&1 &
+          P2=$!
+          wait $P1 || { echo "=== game build failed ==="; cat "$RUNNER_TEMP/build-game.log"; exit 1; }
+          wait $P2 || { echo "=== test build failed ==="; cat "$RUNNER_TEMP/build-test.log"; exit 1; }
+          tail -5 "$RUNNER_TEMP/build-game.log"
+          tail -5 "$RUNNER_TEMP/build-test.log"
 
       - name: Validate build output
         run: |
-          for f in KhaPlatformer libfmod.dylib libfmodstudio.dylib assets/fmod/Desktop/Master.bank; do
-            test -e "example-project/KhaPlatformer/build/osx-hl/$f" || { echo "FAIL: missing $f"; exit 1; }
+          for d in example-project/KhaPlatformer/build/osx-hl example-project/KhaPlatformer/build-test/osx-hl; do
+            for f in KhaPlatformer libfmod.dylib libfmodstudio.dylib assets/fmod/Desktop/Master.bank; do
+              test -e "$d/$f" || { echo "FAIL: missing $f in $d"; exit 1; }
+            done
           done
-          echo "OK: build directory is complete"
+          echo "OK: build directories are complete"
 
-      - name: Record audio via FMOD wavwriter
+      - name: Upload build
+        uses: actions/upload-artifact@v6
+        with:
+          name: build-kha-mac-hl
+          path: |
+            example-project/KhaPlatformer/build/osx-hl
+            example-project/KhaPlatformer/build-test/osx-hl
+          include-hidden-files: true
+          overwrite: true
+
+  kha-mac-hl:
+    needs: kha-mac-hl-build
+    runs-on: macos-14
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[kha-mac-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-html5]') && !contains(github.event.head_commit.message, '[kha-linux]') && !contains(github.event.head_commit.message, '[kha-hl]') && !contains(github.event.head_commit.message, '[kha-html5]') && !contains(github.event.head_commit.message, '[heaps-mac-hl]') && !contains(github.event.head_commit.message, '[heaps-windows-hl]') && !contains(github.event.head_commit.message, '[kha-mac]') && !contains(github.event.head_commit.message, '[kha-mac-hl]') && !contains(github.event.head_commit.message, '[kha-windows]') && !contains(github.event.head_commit.message, '[kha-windows-hl]')))) }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        state: [game-audio, volume, api-probe, synth-test, cb-test, ps-test, bank-test, pan-test, stress-test]
+        include:
+          - state: api-probe
+            gate: API_PROBE
+          - state: synth-test
+            gate: SYNTH_TEST
+          - state: cb-test
+            gate: CB_TEST
+          - state: ps-test
+            gate: PS_TEST
+          - state: bank-test
+            gate: BANK_TEST
+          - state: pan-test
+            gate: PAN_TEST
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download build
+        uses: actions/download-artifact@v6
+        with:
+          name: build-kha-mac-hl
+          path: example-project/KhaPlatformer
+
+      - name: Restore executable bits
+        run: |
+          # Artifacts do not keep file modes
+          cd example-project/KhaPlatformer
+          chmod +x build*/osx-hl/KhaPlatformer 2>/dev/null || true
+          chmod +x build*/osx-hl/run.sh 2>/dev/null || true
+
+      - name: Install runtime dependencies
+        run: |
+          brew untap aws/tap 2>/dev/null || true
+          brew install ffmpeg
+
+      - name: Log file for the executable
+        run: echo "HAXEFMOD_LOG_FILE=/tmp/${{ matrix.state }}-kha-mac-hl.log" >> "$GITHUB_ENV"
+
+      - name: Record audio
+        if: matrix.state == 'game-audio'
         run: |
           export FMOD_WAVWRITER=/tmp/audio-kha-mac-hl.wav
           cd example-project/KhaPlatformer/build/osx-hl
-          LAUNCH=./KhaPlatformer
-          $LAUNCH > /tmp/game-kha-mac-hl.log 2>&1 &
+          ./KhaPlatformer > /tmp/game-kha-mac-hl.log 2>&1 &
           GAME_PID=$!
           cd -
           for i in $(seq 60); do
@@ -4303,25 +3917,12 @@ jobs:
           cat /tmp/game-kha-mac-hl.log || true
           echo "=== End game log ==="
 
-      - name: Validate audio
-        run: ./ci/validate-audio.sh /tmp/audio-kha-mac-hl.wav 10
-
-      - name: Validate game log
-        run: ./ci/validate-game-log.sh /tmp/game-kha-mac-hl.log
-
-      - name: Build test variant
-        if: ${{ !cancelled() }}
-        run: |
-          cd example-project/KhaPlatformer
-          KHA_AUDIO_TEST=1 ./build.sh osx-hl
-
       - name: Record volume test
-        if: ${{ !cancelled() }}
+        if: matrix.state == 'volume'
         run: |
           export FMOD_WAVWRITER=/tmp/volume-test-kha-mac-hl.wav
-          cd example-project/KhaPlatformer/build/osx-hl
-          LAUNCH=./KhaPlatformer
-          $LAUNCH > /tmp/volume-test-kha-mac-hl.log 2>&1 &
+          cd example-project/KhaPlatformer/build-test/osx-hl
+          ./KhaPlatformer > /tmp/volume-test-kha-mac-hl.log 2>&1 &
           GAME_PID=$!
           cd -
           for i in $(seq 60); do
@@ -4330,95 +3931,45 @@ jobs:
           done
           kill $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
-          echo "=== Game log ==="
-          cat /tmp/volume-test-kha-mac-hl.log || true
-          echo "=== End game log ==="
+
+      - name: Validate audio
+        if: matrix.state == 'game-audio'
+        run: ./ci/validate-audio.sh /tmp/audio-kha-mac-hl.wav 10
+
+      - name: Validate game log
+        if: matrix.state == 'game-audio'
+        run: ./ci/validate-game-log.sh /tmp/game-kha-mac-hl.log
 
       - name: Validate volume/mute
-        if: ${{ !cancelled() }}
+        if: matrix.state == 'volume'
         run: ./ci/validate-volume.sh /tmp/volume-test-kha-mac-hl.wav 15
 
-      - name: Run api-probe state
-        if: ${{ !cancelled() }}
+      - name: Run state
+        if: matrix.gate
         uses: ./.github/actions/run-test-state
         with:
-          state: api-probe
-          gate: API_PROBE
+          state: ${{ matrix.state }}
+          gate: ${{ matrix.gate }}
           timeout: "60"
-          bin-dir: example-project/KhaPlatformer/build/osx-hl
-          log-file: /tmp/api-probe-kha-mac-hl.log
-          use-wavwriter: "true"
-
-      - name: Run synth-test state
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/run-test-state
-        with:
-          state: synth-test
-          gate: SYNTH_TEST
-          timeout: "60"
-          bin-dir: example-project/KhaPlatformer/build/osx-hl
-          log-file: /tmp/synth-test-kha-mac-hl.log
+          bin-dir: example-project/KhaPlatformer/build-test/osx-hl
+          log-file: /tmp/${{ matrix.state }}-kha-mac-hl.log
+          extra-gate: "${{ matrix.state == 'cb-test' && 'CB_TEST: Stopped' || '' }}"
+          copy-jump-wav: "${{ matrix.state == 'ps-test' && 'true' || 'false' }}"
           use-wavwriter: "true"
 
       - name: Validate synth audio
-        if: ${{ !cancelled() }}
+        if: matrix.state == 'synth-test'
         run: ./ci/validate-synth.sh "${RUNNER_TEMP}/state-synth-test.wav"
 
-      - name: Run cb-test state
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/run-test-state
-        with:
-          state: cb-test
-          gate: CB_TEST
-          timeout: "30"
-          bin-dir: example-project/KhaPlatformer/build/osx-hl
-          log-file: /tmp/cb-test-kha-mac-hl.log
-          use-wavwriter: "true"
-          extra-gate: "CB_TEST: Stopped"
-
-      - name: Run ps-test state
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/run-test-state
-        with:
-          state: ps-test
-          gate: PS_TEST
-          timeout: "60"
-          bin-dir: example-project/KhaPlatformer/build/osx-hl
-          log-file: /tmp/ps-test-kha-mac-hl.log
-          use-wavwriter: "true"
-          copy-jump-wav: "true"
-
-      - name: Run bank-test state
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/run-test-state
-        with:
-          state: bank-test
-          gate: BANK_TEST
-          timeout: "60"
-          bin-dir: example-project/KhaPlatformer/build/osx-hl
-          log-file: /tmp/bank-test-kha-mac-hl.log
-          use-wavwriter: "true"
-
-      - name: Run pan-test state
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/run-test-state
-        with:
-          state: pan-test
-          gate: PAN_TEST
-          timeout: "60"
-          bin-dir: example-project/KhaPlatformer/build/osx-hl
-          log-file: /tmp/pan-test-kha-mac-hl.log
-          use-wavwriter: "true"
-
       - name: Run stress-test state (smoke)
-        if: ${{ !cancelled() }}
+        if: matrix.state == 'stress-test'
         run: |
           export HAXEFMOD_TEST_STATE=stress-test
           export STRESS_SECONDS=15
           export FMOD_WAVWRITER="${RUNNER_TEMP}/stress-smoke.wav"
-          cd example-project/KhaPlatformer/build/osx-hl
-          LAUNCH=./KhaPlatformer
-          $LAUNCH > "/tmp/stress-smoke-kha-mac-hl.log" 2>&1 &
+          LOG=/tmp/stress-smoke-kha-mac-hl.log
+          cd example-project/KhaPlatformer/build-test/osx-hl
+          ./KhaPlatformer > "$LOG" 2>&1 &
           GAME_PID=$!
           cd -
           for i in $(seq 90); do
@@ -4427,44 +3978,29 @@ jobs:
           done
           kill $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
-          grep "STRESS_TEST:" "/tmp/stress-smoke-kha-mac-hl.log" || true
-          grep -q "STRESS_TEST: COMPLETE" "/tmp/stress-smoke-kha-mac-hl.log" || {
-            echo "Stress smoke never completed - full log:"
-            cat "/tmp/stress-smoke-kha-mac-hl.log"
-            exit 1
-          }
-          if grep -q "pass=false" "/tmp/stress-smoke-kha-mac-hl.log"; then
-            echo "Stress smoke reported failing checks"
-            exit 1
-          fi
+          grep "STRESS_TEST:" "$LOG" || true
+          grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed - full log:"; cat "$LOG"; exit 1; }
+          if grep -q "pass=false" "$LOG"; then echo "Stress smoke reported failing checks"; exit 1; fi
 
-      - name: Upload artifacts
+      - name: Upload logs
         uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: audio-kha-mac-hl
+          name: logs-kha-mac-hl-${{ matrix.state }}
           path: |
-            /tmp/audio-kha-mac-hl.wav
-            /tmp/game-kha-mac-hl.log
-            /tmp/volume-test-kha-mac-hl.wav
-            /tmp/volume-test-kha-mac-hl.log
-            /tmp/api-probe-kha-mac-hl.log
-            /tmp/synth-test-kha-mac-hl.log
-            /tmp/cb-test-kha-mac-hl.log
-            /tmp/ps-test-kha-mac-hl.log
-            /tmp/bank-test-kha-mac-hl.log
-            /tmp/pan-test-kha-mac-hl.log
-            /tmp/stress-smoke-kha-mac-hl.log
-          if-no-files-found: warn
+            /tmp/*-kha-mac-hl.wav
+            /tmp/*-kha-mac-hl.log
+            /tmp/*-kha-mac-hl-console.log
+          if-no-files-found: ignore
           overwrite: true
 
   # ===========================================================================
-  # Kha on Windows (Kore, Visual Studio 2022, Direct3D)
+  # Kha on Windows (Kore, Visual Studio 2022, Direct3D): build once, the states run in parallel in kha-windows
   # ===========================================================================
-  kha-windows:
+  kha-windows-build:
     runs-on: windows-2022
     if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[kha-windows]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-html5]') && !contains(github.event.head_commit.message, '[kha-linux]') && !contains(github.event.head_commit.message, '[kha-hl]') && !contains(github.event.head_commit.message, '[kha-html5]') && !contains(github.event.head_commit.message, '[heaps-mac-hl]') && !contains(github.event.head_commit.message, '[heaps-windows-hl]') && !contains(github.event.head_commit.message, '[kha-mac]') && !contains(github.event.head_commit.message, '[kha-mac-hl]') && !contains(github.event.head_commit.message, '[kha-windows]') && !contains(github.event.head_commit.message, '[kha-windows-hl]')))) }}
-    timeout-minutes: 60
+    timeout-minutes: 45
     defaults:
       run:
         shell: bash
@@ -4483,10 +4019,6 @@ jobs:
         uses: krdlab/setup-haxe@v2
         with:
           haxe-version: ${{ env.HAXE_VERSION }}
-
-      - name: Install ffmpeg
-        shell: powershell
-        run: choco install ffmpeg -y --no-progress
 
       - name: Install Haxe libraries
         run: |
@@ -4510,28 +4042,97 @@ jobs:
           cd "$RUNNER_TEMP/Kha"
           git checkout "$KHA_COMMIT" 2>/dev/null || true
 
-      - name: Build windows target
+      - name: Build game and test variants
         run: |
           cd example-project/KhaPlatformer
-          ./build.sh windows
+          # Both variants at once, into separate output roots
+          ./build.sh windows > "$RUNNER_TEMP/build-game.log" 2>&1 &
+          P1=$!
+          KHA_AUDIO_TEST=1 BUILD_ROOT=build-test ./build.sh windows > "$RUNNER_TEMP/build-test.log" 2>&1 &
+          P2=$!
+          wait $P1 || { echo "=== game build failed ==="; cat "$RUNNER_TEMP/build-game.log"; exit 1; }
+          wait $P2 || { echo "=== test build failed ==="; cat "$RUNNER_TEMP/build-test.log"; exit 1; }
+          tail -5 "$RUNNER_TEMP/build-game.log"
+          tail -5 "$RUNNER_TEMP/build-test.log"
 
       - name: Validate build output
         run: |
-          for f in KhaPlatformer.exe fmod.dll fmodstudio.dll assets/fmod/Desktop/Master.bank; do
-            test -e "example-project/KhaPlatformer/build/windows/$f" || { echo "FAIL: missing $f"; exit 1; }
+          for d in example-project/KhaPlatformer/build/windows example-project/KhaPlatformer/build-test/windows; do
+            for f in KhaPlatformer.exe fmod.dll fmodstudio.dll assets/fmod/Desktop/Master.bank; do
+              test -e "$d/$f" || { echo "FAIL: missing $f in $d"; exit 1; }
+            done
           done
-          echo "OK: build directory is complete"
+          echo "OK: build directories are complete"
 
-      - name: Record audio via FMOD wavwriter
+      - name: Upload build
+        uses: actions/upload-artifact@v6
+        with:
+          name: build-kha-windows
+          path: |
+            example-project/KhaPlatformer/build/windows
+            example-project/KhaPlatformer/build-test/windows
+          include-hidden-files: true
+          overwrite: true
+
+  kha-windows:
+    needs: kha-windows-build
+    runs-on: windows-2022
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[kha-windows]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-html5]') && !contains(github.event.head_commit.message, '[kha-linux]') && !contains(github.event.head_commit.message, '[kha-hl]') && !contains(github.event.head_commit.message, '[kha-html5]') && !contains(github.event.head_commit.message, '[heaps-mac-hl]') && !contains(github.event.head_commit.message, '[heaps-windows-hl]') && !contains(github.event.head_commit.message, '[kha-mac]') && !contains(github.event.head_commit.message, '[kha-mac-hl]') && !contains(github.event.head_commit.message, '[kha-windows]') && !contains(github.event.head_commit.message, '[kha-windows-hl]')))) }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        state: [game-audio, volume, api-probe, synth-test, cb-test, ps-test, bank-test, pan-test, stress-test]
+        include:
+          - state: api-probe
+            gate: API_PROBE
+          - state: synth-test
+            gate: SYNTH_TEST
+          - state: cb-test
+            gate: CB_TEST
+          - state: ps-test
+            gate: PS_TEST
+          - state: bank-test
+            gate: BANK_TEST
+          - state: pan-test
+            gate: PAN_TEST
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download build
+        uses: actions/download-artifact@v6
+        with:
+          name: build-kha-windows
+          path: example-project/KhaPlatformer
+
+      - name: Install ffmpeg
+        shell: powershell
+        run: choco install ffmpeg -y --no-progress
+
+      - name: Log file for the executable
+        run: echo "HAXEFMOD_LOG_FILE=$GITHUB_WORKSPACE/${{ matrix.state }}-kha-windows.log" >> "$GITHUB_ENV"
+
+      - name: Record audio
+        if: matrix.state == 'game-audio'
         run: |
           export FMOD_WAVWRITER="$GITHUB_WORKSPACE/audio-kha-windows.wav"
           cd example-project/KhaPlatformer/build/windows
-          LAUNCH=./KhaPlatformer.exe
-          timeout 60 $LAUNCH > "$GITHUB_WORKSPACE/game-kha-windows.log" 2>&1 || true
+          timeout 60 ./KhaPlatformer.exe > "$GITHUB_WORKSPACE/game-kha-windows.log" 2>&1 || true
           cd -
           echo "=== Game log ==="
-          cat "$GITHUB_WORKSPACE/game-kha-windows.log" || true
+          cat $GITHUB_WORKSPACE/game-kha-windows.log || true
           echo "=== End game log ==="
+
+      - name: Record volume test
+        if: matrix.state == 'volume'
+        run: |
+          export FMOD_WAVWRITER="$GITHUB_WORKSPACE/volume-test-kha-windows.wav"
+          cd example-project/KhaPlatformer/build-test/windows
+          timeout 60 ./KhaPlatformer.exe > "$GITHUB_WORKSPACE/volume-test-kha-windows.log" 2>&1 || true
+          cd -
 
       - name: Fix WAV headers
         if: ${{ !cancelled() }}
@@ -4547,127 +4148,43 @@ jobs:
                       print("fixed header of " + wav)
 
       - name: Validate audio
+        if: matrix.state == 'game-audio'
         run: ./ci/validate-audio.sh $GITHUB_WORKSPACE/audio-kha-windows.wav 10
 
       - name: Validate game log
+        if: matrix.state == 'game-audio'
         run: ./ci/validate-game-log.sh $GITHUB_WORKSPACE/game-kha-windows.log
 
-      - name: Build test variant
-        if: ${{ !cancelled() }}
-        run: |
-          cd example-project/KhaPlatformer
-          KHA_AUDIO_TEST=1 ./build.sh windows
-
-      - name: Record volume test
-        if: ${{ !cancelled() }}
-        run: |
-          export FMOD_WAVWRITER="$GITHUB_WORKSPACE/volume-test-kha-windows.wav"
-          cd example-project/KhaPlatformer/build/windows
-          LAUNCH=./KhaPlatformer.exe
-          timeout 60 $LAUNCH > "$GITHUB_WORKSPACE/volume-test-kha-windows.log" 2>&1 || true
-          cd -
-          echo "=== Game log ==="
-          cat "$GITHUB_WORKSPACE/volume-test-kha-windows.log" || true
-          echo "=== End game log ==="
-
-      - name: Fix WAV headers again
-        if: ${{ !cancelled() }}
-        shell: python
-        run: |
-          import struct, os, glob
-          for wav in glob.glob(os.path.join(os.environ['GITHUB_WORKSPACE'], '*.wav')):
-              with open(wav, 'r+b') as f:
-                  f.seek(22)
-                  if struct.unpack('<H', f.read(2))[0] == 0:
-                      f.seek(22); f.write(struct.pack('<H', 2))
-                      f.seek(28); f.write(struct.pack('<I', 192000)); f.write(struct.pack('<H', 4))
-                      print("fixed header of " + wav)
-
       - name: Validate volume/mute
-        if: ${{ !cancelled() }}
+        if: matrix.state == 'volume'
         run: ./ci/validate-volume.sh $GITHUB_WORKSPACE/volume-test-kha-windows.wav 15
 
-      - name: Run api-probe state
-        if: ${{ !cancelled() }}
+      - name: Run state
+        if: matrix.gate
         uses: ./.github/actions/run-test-state
         with:
-          state: api-probe
-          gate: API_PROBE
+          state: ${{ matrix.state }}
+          gate: ${{ matrix.gate }}
           timeout: "60"
-          bin-dir: example-project/KhaPlatformer/build/windows
-          log-file: ${{ github.workspace }}/api-probe-kha-windows.log
-          use-wavwriter: "true"
-
-      - name: Run synth-test state
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/run-test-state
-        with:
-          state: synth-test
-          gate: SYNTH_TEST
-          timeout: "60"
-          bin-dir: example-project/KhaPlatformer/build/windows
-          log-file: ${{ github.workspace }}/synth-test-kha-windows.log
+          bin-dir: example-project/KhaPlatformer/build-test/windows
+          log-file: ${{ github.workspace }}/${{ matrix.state }}-kha-windows.log
+          extra-gate: "${{ matrix.state == 'cb-test' && 'CB_TEST: Stopped' || '' }}"
+          copy-jump-wav: "${{ matrix.state == 'ps-test' && 'true' || 'false' }}"
           use-wavwriter: "true"
 
       - name: Validate synth audio
-        if: ${{ !cancelled() }}
+        if: matrix.state == 'synth-test'
         run: ./ci/validate-synth.sh "${RUNNER_TEMP}/state-synth-test.wav"
 
-      - name: Run cb-test state
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/run-test-state
-        with:
-          state: cb-test
-          gate: CB_TEST
-          timeout: "30"
-          bin-dir: example-project/KhaPlatformer/build/windows
-          log-file: ${{ github.workspace }}/cb-test-kha-windows.log
-          use-wavwriter: "true"
-          extra-gate: "CB_TEST: Stopped"
-
-      - name: Run ps-test state
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/run-test-state
-        with:
-          state: ps-test
-          gate: PS_TEST
-          timeout: "60"
-          bin-dir: example-project/KhaPlatformer/build/windows
-          log-file: ${{ github.workspace }}/ps-test-kha-windows.log
-          use-wavwriter: "true"
-          copy-jump-wav: "true"
-
-      - name: Run bank-test state
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/run-test-state
-        with:
-          state: bank-test
-          gate: BANK_TEST
-          timeout: "60"
-          bin-dir: example-project/KhaPlatformer/build/windows
-          log-file: ${{ github.workspace }}/bank-test-kha-windows.log
-          use-wavwriter: "true"
-
-      - name: Run pan-test state
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/run-test-state
-        with:
-          state: pan-test
-          gate: PAN_TEST
-          timeout: "60"
-          bin-dir: example-project/KhaPlatformer/build/windows
-          log-file: ${{ github.workspace }}/pan-test-kha-windows.log
-          use-wavwriter: "true"
-
       - name: Run stress-test state (smoke)
-        if: ${{ !cancelled() }}
+        if: matrix.state == 'stress-test'
         run: |
           export HAXEFMOD_TEST_STATE=stress-test
           export STRESS_SECONDS=15
           export FMOD_WAVWRITER="${RUNNER_TEMP}/stress-smoke.wav"
-          cd example-project/KhaPlatformer/build/windows
-          LAUNCH=./KhaPlatformer.exe
-          $LAUNCH > "$GITHUB_WORKSPACE/stress-smoke-kha-windows.log" 2>&1 &
+          LOG=$GITHUB_WORKSPACE/stress-smoke-kha-windows.log
+          cd example-project/KhaPlatformer/build-test/windows
+          ./KhaPlatformer.exe > "$LOG" 2>&1 &
           GAME_PID=$!
           cd -
           for i in $(seq 90); do
@@ -4676,44 +4193,29 @@ jobs:
           done
           kill $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
-          grep "STRESS_TEST:" "$GITHUB_WORKSPACE/stress-smoke-kha-windows.log" || true
-          grep -q "STRESS_TEST: COMPLETE" "$GITHUB_WORKSPACE/stress-smoke-kha-windows.log" || {
-            echo "Stress smoke never completed - full log:"
-            cat "$GITHUB_WORKSPACE/stress-smoke-kha-windows.log"
-            exit 1
-          }
-          if grep -q "pass=false" "$GITHUB_WORKSPACE/stress-smoke-kha-windows.log"; then
-            echo "Stress smoke reported failing checks"
-            exit 1
-          fi
+          grep "STRESS_TEST:" "$LOG" || true
+          grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed - full log:"; cat "$LOG"; exit 1; }
+          if grep -q "pass=false" "$LOG"; then echo "Stress smoke reported failing checks"; exit 1; fi
 
-      - name: Upload artifacts
+      - name: Upload logs
         uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: audio-kha-windows
+          name: logs-kha-windows-${{ matrix.state }}
           path: |
-            ${{ github.workspace }}/audio-kha-windows.wav
-            ${{ github.workspace }}/game-kha-windows.log
-            ${{ github.workspace }}/volume-test-kha-windows.wav
-            ${{ github.workspace }}/volume-test-kha-windows.log
-            ${{ github.workspace }}/api-probe-kha-windows.log
-            ${{ github.workspace }}/synth-test-kha-windows.log
-            ${{ github.workspace }}/cb-test-kha-windows.log
-            ${{ github.workspace }}/ps-test-kha-windows.log
-            ${{ github.workspace }}/bank-test-kha-windows.log
-            ${{ github.workspace }}/pan-test-kha-windows.log
-            ${{ github.workspace }}/stress-smoke-kha-windows.log
-          if-no-files-found: warn
+            ${{ github.workspace }}/*-kha-windows.wav
+            ${{ github.workspace }}/*-kha-windows.log
+            ${{ github.workspace }}/*-kha-windows-console.log
+          if-no-files-found: ignore
           overwrite: true
 
   # ===========================================================================
-  # Kha HL/C on Windows
+  # Kha HL/C on Windows: build once, the states run in parallel in kha-windows-hl
   # ===========================================================================
-  kha-windows-hl:
+  kha-windows-hl-build:
     runs-on: windows-2022
     if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[kha-windows-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-html5]') && !contains(github.event.head_commit.message, '[kha-linux]') && !contains(github.event.head_commit.message, '[kha-hl]') && !contains(github.event.head_commit.message, '[kha-html5]') && !contains(github.event.head_commit.message, '[heaps-mac-hl]') && !contains(github.event.head_commit.message, '[heaps-windows-hl]') && !contains(github.event.head_commit.message, '[kha-mac]') && !contains(github.event.head_commit.message, '[kha-mac-hl]') && !contains(github.event.head_commit.message, '[kha-windows]') && !contains(github.event.head_commit.message, '[kha-windows-hl]')))) }}
-    timeout-minutes: 60
+    timeout-minutes: 45
     defaults:
       run:
         shell: bash
@@ -4732,10 +4234,6 @@ jobs:
         uses: krdlab/setup-haxe@v2
         with:
           haxe-version: ${{ env.HAXE_VERSION }}
-
-      - name: Install ffmpeg
-        shell: powershell
-        run: choco install ffmpeg -y --no-progress
 
       - name: Install Haxe libraries
         run: |
@@ -4759,28 +4257,97 @@ jobs:
           cd "$RUNNER_TEMP/Kha"
           git checkout "$KHA_COMMIT" 2>/dev/null || true
 
-      - name: Build windows-hl target
+      - name: Build game and test variants
         run: |
           cd example-project/KhaPlatformer
-          ./build.sh windows-hl
+          # Both variants at once, into separate output roots
+          ./build.sh windows-hl > "$RUNNER_TEMP/build-game.log" 2>&1 &
+          P1=$!
+          KHA_AUDIO_TEST=1 BUILD_ROOT=build-test ./build.sh windows-hl > "$RUNNER_TEMP/build-test.log" 2>&1 &
+          P2=$!
+          wait $P1 || { echo "=== game build failed ==="; cat "$RUNNER_TEMP/build-game.log"; exit 1; }
+          wait $P2 || { echo "=== test build failed ==="; cat "$RUNNER_TEMP/build-test.log"; exit 1; }
+          tail -5 "$RUNNER_TEMP/build-game.log"
+          tail -5 "$RUNNER_TEMP/build-test.log"
 
       - name: Validate build output
         run: |
-          for f in KhaPlatformer.exe fmod.dll fmodstudio.dll assets/fmod/Desktop/Master.bank; do
-            test -e "example-project/KhaPlatformer/build/windows-hl/$f" || { echo "FAIL: missing $f"; exit 1; }
+          for d in example-project/KhaPlatformer/build/windows-hl example-project/KhaPlatformer/build-test/windows-hl; do
+            for f in KhaPlatformer.exe fmod.dll fmodstudio.dll assets/fmod/Desktop/Master.bank; do
+              test -e "$d/$f" || { echo "FAIL: missing $f in $d"; exit 1; }
+            done
           done
-          echo "OK: build directory is complete"
+          echo "OK: build directories are complete"
 
-      - name: Record audio via FMOD wavwriter
+      - name: Upload build
+        uses: actions/upload-artifact@v6
+        with:
+          name: build-kha-windows-hl
+          path: |
+            example-project/KhaPlatformer/build/windows-hl
+            example-project/KhaPlatformer/build-test/windows-hl
+          include-hidden-files: true
+          overwrite: true
+
+  kha-windows-hl:
+    needs: kha-windows-hl-build
+    runs-on: windows-2022
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[kha-windows-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-html5]') && !contains(github.event.head_commit.message, '[kha-linux]') && !contains(github.event.head_commit.message, '[kha-hl]') && !contains(github.event.head_commit.message, '[kha-html5]') && !contains(github.event.head_commit.message, '[heaps-mac-hl]') && !contains(github.event.head_commit.message, '[heaps-windows-hl]') && !contains(github.event.head_commit.message, '[kha-mac]') && !contains(github.event.head_commit.message, '[kha-mac-hl]') && !contains(github.event.head_commit.message, '[kha-windows]') && !contains(github.event.head_commit.message, '[kha-windows-hl]')))) }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        state: [game-audio, volume, api-probe, synth-test, cb-test, ps-test, bank-test, pan-test, stress-test]
+        include:
+          - state: api-probe
+            gate: API_PROBE
+          - state: synth-test
+            gate: SYNTH_TEST
+          - state: cb-test
+            gate: CB_TEST
+          - state: ps-test
+            gate: PS_TEST
+          - state: bank-test
+            gate: BANK_TEST
+          - state: pan-test
+            gate: PAN_TEST
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download build
+        uses: actions/download-artifact@v6
+        with:
+          name: build-kha-windows-hl
+          path: example-project/KhaPlatformer
+
+      - name: Install ffmpeg
+        shell: powershell
+        run: choco install ffmpeg -y --no-progress
+
+      - name: Log file for the executable
+        run: echo "HAXEFMOD_LOG_FILE=$GITHUB_WORKSPACE/${{ matrix.state }}-kha-windows-hl.log" >> "$GITHUB_ENV"
+
+      - name: Record audio
+        if: matrix.state == 'game-audio'
         run: |
           export FMOD_WAVWRITER="$GITHUB_WORKSPACE/audio-kha-windows-hl.wav"
           cd example-project/KhaPlatformer/build/windows-hl
-          LAUNCH=./KhaPlatformer.exe
-          timeout 60 $LAUNCH > "$GITHUB_WORKSPACE/game-kha-windows-hl.log" 2>&1 || true
+          timeout 60 ./KhaPlatformer.exe > "$GITHUB_WORKSPACE/game-kha-windows-hl.log" 2>&1 || true
           cd -
           echo "=== Game log ==="
-          cat "$GITHUB_WORKSPACE/game-kha-windows-hl.log" || true
+          cat $GITHUB_WORKSPACE/game-kha-windows-hl.log || true
           echo "=== End game log ==="
+
+      - name: Record volume test
+        if: matrix.state == 'volume'
+        run: |
+          export FMOD_WAVWRITER="$GITHUB_WORKSPACE/volume-test-kha-windows-hl.wav"
+          cd example-project/KhaPlatformer/build-test/windows-hl
+          timeout 60 ./KhaPlatformer.exe > "$GITHUB_WORKSPACE/volume-test-kha-windows-hl.log" 2>&1 || true
+          cd -
 
       - name: Fix WAV headers
         if: ${{ !cancelled() }}
@@ -4796,127 +4363,43 @@ jobs:
                       print("fixed header of " + wav)
 
       - name: Validate audio
+        if: matrix.state == 'game-audio'
         run: ./ci/validate-audio.sh $GITHUB_WORKSPACE/audio-kha-windows-hl.wav 10
 
       - name: Validate game log
+        if: matrix.state == 'game-audio'
         run: ./ci/validate-game-log.sh $GITHUB_WORKSPACE/game-kha-windows-hl.log
 
-      - name: Build test variant
-        if: ${{ !cancelled() }}
-        run: |
-          cd example-project/KhaPlatformer
-          KHA_AUDIO_TEST=1 ./build.sh windows-hl
-
-      - name: Record volume test
-        if: ${{ !cancelled() }}
-        run: |
-          export FMOD_WAVWRITER="$GITHUB_WORKSPACE/volume-test-kha-windows-hl.wav"
-          cd example-project/KhaPlatformer/build/windows-hl
-          LAUNCH=./KhaPlatformer.exe
-          timeout 60 $LAUNCH > "$GITHUB_WORKSPACE/volume-test-kha-windows-hl.log" 2>&1 || true
-          cd -
-          echo "=== Game log ==="
-          cat "$GITHUB_WORKSPACE/volume-test-kha-windows-hl.log" || true
-          echo "=== End game log ==="
-
-      - name: Fix WAV headers again
-        if: ${{ !cancelled() }}
-        shell: python
-        run: |
-          import struct, os, glob
-          for wav in glob.glob(os.path.join(os.environ['GITHUB_WORKSPACE'], '*.wav')):
-              with open(wav, 'r+b') as f:
-                  f.seek(22)
-                  if struct.unpack('<H', f.read(2))[0] == 0:
-                      f.seek(22); f.write(struct.pack('<H', 2))
-                      f.seek(28); f.write(struct.pack('<I', 192000)); f.write(struct.pack('<H', 4))
-                      print("fixed header of " + wav)
-
       - name: Validate volume/mute
-        if: ${{ !cancelled() }}
+        if: matrix.state == 'volume'
         run: ./ci/validate-volume.sh $GITHUB_WORKSPACE/volume-test-kha-windows-hl.wav 15
 
-      - name: Run api-probe state
-        if: ${{ !cancelled() }}
+      - name: Run state
+        if: matrix.gate
         uses: ./.github/actions/run-test-state
         with:
-          state: api-probe
-          gate: API_PROBE
+          state: ${{ matrix.state }}
+          gate: ${{ matrix.gate }}
           timeout: "60"
-          bin-dir: example-project/KhaPlatformer/build/windows-hl
-          log-file: ${{ github.workspace }}/api-probe-kha-windows-hl.log
-          use-wavwriter: "true"
-
-      - name: Run synth-test state
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/run-test-state
-        with:
-          state: synth-test
-          gate: SYNTH_TEST
-          timeout: "60"
-          bin-dir: example-project/KhaPlatformer/build/windows-hl
-          log-file: ${{ github.workspace }}/synth-test-kha-windows-hl.log
+          bin-dir: example-project/KhaPlatformer/build-test/windows-hl
+          log-file: ${{ github.workspace }}/${{ matrix.state }}-kha-windows-hl.log
+          extra-gate: "${{ matrix.state == 'cb-test' && 'CB_TEST: Stopped' || '' }}"
+          copy-jump-wav: "${{ matrix.state == 'ps-test' && 'true' || 'false' }}"
           use-wavwriter: "true"
 
       - name: Validate synth audio
-        if: ${{ !cancelled() }}
+        if: matrix.state == 'synth-test'
         run: ./ci/validate-synth.sh "${RUNNER_TEMP}/state-synth-test.wav"
 
-      - name: Run cb-test state
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/run-test-state
-        with:
-          state: cb-test
-          gate: CB_TEST
-          timeout: "30"
-          bin-dir: example-project/KhaPlatformer/build/windows-hl
-          log-file: ${{ github.workspace }}/cb-test-kha-windows-hl.log
-          use-wavwriter: "true"
-          extra-gate: "CB_TEST: Stopped"
-
-      - name: Run ps-test state
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/run-test-state
-        with:
-          state: ps-test
-          gate: PS_TEST
-          timeout: "60"
-          bin-dir: example-project/KhaPlatformer/build/windows-hl
-          log-file: ${{ github.workspace }}/ps-test-kha-windows-hl.log
-          use-wavwriter: "true"
-          copy-jump-wav: "true"
-
-      - name: Run bank-test state
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/run-test-state
-        with:
-          state: bank-test
-          gate: BANK_TEST
-          timeout: "60"
-          bin-dir: example-project/KhaPlatformer/build/windows-hl
-          log-file: ${{ github.workspace }}/bank-test-kha-windows-hl.log
-          use-wavwriter: "true"
-
-      - name: Run pan-test state
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/run-test-state
-        with:
-          state: pan-test
-          gate: PAN_TEST
-          timeout: "60"
-          bin-dir: example-project/KhaPlatformer/build/windows-hl
-          log-file: ${{ github.workspace }}/pan-test-kha-windows-hl.log
-          use-wavwriter: "true"
-
       - name: Run stress-test state (smoke)
-        if: ${{ !cancelled() }}
+        if: matrix.state == 'stress-test'
         run: |
           export HAXEFMOD_TEST_STATE=stress-test
           export STRESS_SECONDS=15
           export FMOD_WAVWRITER="${RUNNER_TEMP}/stress-smoke.wav"
-          cd example-project/KhaPlatformer/build/windows-hl
-          LAUNCH=./KhaPlatformer.exe
-          $LAUNCH > "$GITHUB_WORKSPACE/stress-smoke-kha-windows-hl.log" 2>&1 &
+          LOG=$GITHUB_WORKSPACE/stress-smoke-kha-windows-hl.log
+          cd example-project/KhaPlatformer/build-test/windows-hl
+          ./KhaPlatformer.exe > "$LOG" 2>&1 &
           GAME_PID=$!
           cd -
           for i in $(seq 90); do
@@ -4925,35 +4408,20 @@ jobs:
           done
           kill $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
-          grep "STRESS_TEST:" "$GITHUB_WORKSPACE/stress-smoke-kha-windows-hl.log" || true
-          grep -q "STRESS_TEST: COMPLETE" "$GITHUB_WORKSPACE/stress-smoke-kha-windows-hl.log" || {
-            echo "Stress smoke never completed - full log:"
-            cat "$GITHUB_WORKSPACE/stress-smoke-kha-windows-hl.log"
-            exit 1
-          }
-          if grep -q "pass=false" "$GITHUB_WORKSPACE/stress-smoke-kha-windows-hl.log"; then
-            echo "Stress smoke reported failing checks"
-            exit 1
-          fi
+          grep "STRESS_TEST:" "$LOG" || true
+          grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed - full log:"; cat "$LOG"; exit 1; }
+          if grep -q "pass=false" "$LOG"; then echo "Stress smoke reported failing checks"; exit 1; fi
 
-      - name: Upload artifacts
+      - name: Upload logs
         uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: audio-kha-windows-hl
+          name: logs-kha-windows-hl-${{ matrix.state }}
           path: |
-            ${{ github.workspace }}/audio-kha-windows-hl.wav
-            ${{ github.workspace }}/game-kha-windows-hl.log
-            ${{ github.workspace }}/volume-test-kha-windows-hl.wav
-            ${{ github.workspace }}/volume-test-kha-windows-hl.log
-            ${{ github.workspace }}/api-probe-kha-windows-hl.log
-            ${{ github.workspace }}/synth-test-kha-windows-hl.log
-            ${{ github.workspace }}/cb-test-kha-windows-hl.log
-            ${{ github.workspace }}/ps-test-kha-windows-hl.log
-            ${{ github.workspace }}/bank-test-kha-windows-hl.log
-            ${{ github.workspace }}/pan-test-kha-windows-hl.log
-            ${{ github.workspace }}/stress-smoke-kha-windows-hl.log
-          if-no-files-found: warn
+            ${{ github.workspace }}/*-kha-windows-hl.wav
+            ${{ github.workspace }}/*-kha-windows-hl.log
+            ${{ github.workspace }}/*-kha-windows-hl-console.log
+          if-no-files-found: ignore
           overwrite: true
 
   # ===========================================================================
