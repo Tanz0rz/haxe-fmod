@@ -167,12 +167,18 @@ run_native_state() {
   echo "$gate passed"
 }
 
+# The static server is exec'd so the recorded pid is python's own and the
+# kill reaches it. A server that outlives its step keeps the port and
+# serves a directory the next build has already replaced.
 # One html5 state in chromium, log gated like the workflow's browser steps.
+# Every launch gets its own profile directory: a launch that reuses the
+# profile of a browser still shutting down hands its URL to that instance
+# and exits, and the page never runs.
 # run_browser_state <state> <gate> <port> <log> [timeout] [extra-gate] [record-wav] [record-seconds]
 run_browser_state() {
   local state="$1" gate="$2" port="$3" log="$4" tmo="${5:-45}" extra="${6:-}" wav="${7:-}" secs="${8:-60}"
   local raw="$log.raw" http chrome rec=""
-  (cd "$WEB_BIN" && python3 -m http.server "$port" > /dev/null 2>&1) &
+  (cd "$WEB_BIN" && exec python3 -m http.server "$port" > /dev/null 2>&1) &
   http=$!
   sleep 1
   if [ -n "$wav" ]; then
@@ -180,6 +186,7 @@ run_browser_state() {
     rec=$!
   fi
   "$CHROMIUM" --no-sandbox $CHROME_GL --autoplay-policy=no-user-gesture-required \
+    --no-first-run --no-default-browser-check --disable-sync --user-data-dir="$(mktemp -d "$OUT/chrome.XXXXXX")" \
     --enable-logging=stderr --v=0 --window-size=640,480 --window-position=0,0 \
     "http://localhost:$port/index.html?test=$state" > "$raw" 2>&1 &
   chrome=$!
@@ -205,10 +212,11 @@ run_browser_state() {
 # record_browser_game <port> <wav> <seconds> [console-log]
 record_browser_game() {
   local port="$1" wav="$2" secs="$3" console="${4:-/dev/null}" http chrome rec
-  (cd "$WEB_BIN" && python3 -m http.server "$port" > /dev/null 2>&1) &
+  (cd "$WEB_BIN" && exec python3 -m http.server "$port" > /dev/null 2>&1) &
   http=$!
   sleep 1
   "$CHROMIUM" --no-sandbox $CHROME_GL --autoplay-policy=no-user-gesture-required \
+    --no-first-run --no-default-browser-check --disable-sync --user-data-dir="$(mktemp -d "$OUT/chrome.XXXXXX")" \
     --enable-logging=stderr --v=0 --window-size=640,480 --window-position=0,0 \
     "http://localhost:$port" > "$console" 2>&1 &
   chrome=$!
@@ -476,7 +484,7 @@ job_linux_html5_chromium() {
 
 firefox_state() {
   local state="$1" gate="$2" port="$3" log="$4" tmo="$5" http rc=0
-  (cd "$WEB_BIN" && python3 -m http.server "$port" > /dev/null 2>&1) &
+  (cd "$WEB_BIN" && exec python3 -m http.server "$port" > /dev/null 2>&1) &
   http=$!
   sleep 1
   node "$ROOT/ci/run-firefox-state.js" "http://localhost:$port/index.html?test=$state" "$gate" "$log" "$tmo" || rc=$?
