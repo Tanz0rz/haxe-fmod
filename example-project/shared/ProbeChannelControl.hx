@@ -278,7 +278,12 @@ class ProbeChannelControl {
         _group.release();
         _geometry.release();
         StudioSystem.setListenerPosition2D(0, 0, 0);
-        @:privateAccess state.check("no_handle_leaks_occlusion_callback", StudioSystem.liveHandleCount() == _baseline,
+        // Occlusion callbacks arrive from the mixer thread with a handle
+        // each, so drain the queue before counting. Fewer handles than the
+        // baseline only means an earlier probe's events drained late.
+        StudioSystem.flushCommands();
+        haxefmod.studio.CallbackDispatcher.update();
+        @:privateAccess state.check("no_handle_leaks_occlusion_callback", StudioSystem.liveHandleCount() <= _baseline,
             'baseline=$_baseline now=${StudioSystem.liveHandleCount()}');
     }
 }

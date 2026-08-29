@@ -1667,7 +1667,9 @@ class ApiProbeScenario implements TestScenario {
         _snapshotInstance = EventInstance.NULL;
         StudioSystem.flushCommands();
         CallbackDispatcher.update();
-        check("no_handle_leaks_snapshot", StudioSystem.liveHandleCount() == _snapshotBaseline,
+        // Fewer handles than the baseline only means an earlier probe's
+        // callback events drained late
+        check("no_handle_leaks_snapshot", StudioSystem.liveHandleCount() <= _snapshotBaseline,
             'baseline=$_snapshotBaseline now=${StudioSystem.liveHandleCount()}');
 
         probeSustain();
