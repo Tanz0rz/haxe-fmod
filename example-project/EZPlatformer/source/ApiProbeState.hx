@@ -2884,7 +2884,10 @@ class ApiProbeState extends FlxState {
             _waitingForDspData = false;
             probeChannelEvents();
         }
-        if (!_waitingForChannelEvents) ProbeChannelControl.tick(this);
+        // The remint phase's leak check waits for FMOD to destroy its
+        // instance, and the occlusion wait below holds four handles of its
+        // own, so it only starts once that check has run
+        if (!_waitingForRemint && !_waitingForRemintDrain && !_waitingForChannelEvents) ProbeChannelControl.tick(this);
         if (_waitingForChannelEvents) {
             _chanEventFrames++;
             var sawEnd = false;
