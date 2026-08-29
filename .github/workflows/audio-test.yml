@@ -3480,6 +3480,18 @@ jobs:
           ls -la example-project/HeapsPlatformer/build/hl
           cd example-project/HeapsPlatformer/build/hl
           timeout 10 ./HeapsPlatformer.exe --version || true
+          # Where does a silent launch spend its time? The window title of a
+          # blocked process names a dialog when there is one.
+          od -A x -t x1 -N 8 game.hl
+          ./HeapsPlatformer.exe > diag-boot.log 2>&1 &
+          DIAG_PID=$!
+          sleep 12
+          tasklist //v //fi "imagename eq HeapsPlatformer.exe" || true
+          kill $DIAG_PID 2>/dev/null || true
+          echo "--- launch without arguments:"; head -20 diag-boot.log
+          timeout 15 ./HeapsPlatformer.exe game.hl > diag-explicit.log 2>&1 || echo "explicit exit=$?"
+          echo "--- launch with game.hl:"; head -20 diag-explicit.log
+          rm -f diag-boot.log diag-explicit.log
 
       - name: Record audio
         if: matrix.state == 'game-audio'
