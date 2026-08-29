@@ -318,7 +318,9 @@ class ProbeChannelControl {
             haxefmod.studio.CallbackDispatcher.update();
             if (StudioSystem.liveHandleCount() <= _baseline) break;
             settled++;
+            #if sys
             Sys.sleep(0.01);
+            #end
         }
         @:privateAccess state.check("no_handle_leaks_occlusion_callback", StudioSystem.liveHandleCount() <= _baseline,
             'baseline=$_baseline now=${StudioSystem.liveHandleCount()} settle_wait=$settled stop=${rStop.toString()} stream=${rStream.toString()} group=${rGroup.toString()} geometry=${rGeometry.toString()}');
