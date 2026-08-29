@@ -1484,6 +1484,8 @@ class ApiProbeState extends FlxState {
     var _remintBeatPropertiesOk:Bool = false;
     var _remintFrames:Int = 0;
     var _waitingForRemint:Bool = false;
+    var _waitingForRemintDrain:Bool = false;
+    var _remintDrainFrames:Int = 0;
     var _transitionFrames:Int = 0;
     var _waitingForTransition:Bool = false;
 
@@ -1579,18 +1581,19 @@ class ApiProbeState extends FlxState {
         if (!_remintInstance.isNull()) {
             _remintInstance.stop(FmodStopMode.IMMEDIATE);
             _remintInstance.release();
-            // The instance's last callback records (a programmer sound's
-            // Destroyed frees the handle its Created minted) can land a
-            // few updates after the release, so drain until the count
-            // settles or the attempts run out
-            for (_ in 0...10) {
-                StudioSystem.flushCommands();
-                CallbackDispatcher.update();
-                if (StudioSystem.liveHandleCount() == _remintBaseline) break;
-            }
         }
+        // The instance's last callback records (a plugin or programmer
+        // sound Destroyed frees the handle its Created minted) arrive from
+        // FMOD's Studio thread a few frames after the release, later on
+        // mac than on linux, so the leak check waits for the count to
+        // settle. Async: finishes from update().
+        _remintDrainFrames = 0;
+        _waitingForRemintDrain = true;
+    }
+
+    function finishRemintDrain():Void {
         check("no_handle_leaks_remint", StudioSystem.liveHandleCount() == _remintBaseline,
-            'baseline=$_remintBaseline now=${StudioSystem.liveHandleCount()}');
+            'baseline=$_remintBaseline now=${StudioSystem.liveHandleCount()} frames=$_remintDrainFrames');
 
         probeSongTransition();
     }
@@ -2900,6 +2903,14 @@ class ApiProbeState extends FlxState {
             if (_remintBeats > 0 || _remintFrames > 600) {
                 _waitingForRemint = false;
                 finishRemintCallbacks();
+            }
+        }
+        if (_waitingForRemintDrain) {
+            _remintDrainFrames++;
+            StudioSystem.flushCommands();
+            if (StudioSystem.liveHandleCount() == _remintBaseline || _remintDrainFrames > 180) {
+                _waitingForRemintDrain = false;
+                finishRemintDrain();
             }
         }
         if (_waitingForTransition) {

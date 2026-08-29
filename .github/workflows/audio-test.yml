@@ -3610,7 +3610,7 @@ jobs:
         run: |
           set -o pipefail
           git ls-files \
-            | grep -vE '^(\.github/|\.gitignore|\.vscode/|ci/|tests/|example-project/|package\.sh)' \
+            | grep -vE '^(\.github/|\.gitignore|\.vscode/|ci/|tests/|example-project/|package\.sh|docs/|extension/|logo/|mkdocs\.yml)' \
             | sort > /tmp/tracked-shippable.txt
           unzip -Z1 haxefmod.zip | grep -v '/$' | sort > /tmp/zip-contents.txt
           MISSING=$(comm -23 /tmp/tracked-shippable.txt /tmp/zip-contents.txt)
