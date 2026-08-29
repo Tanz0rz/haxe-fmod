@@ -2179,8 +2179,12 @@ jobs:
           HTTP_PID=$!
           cd -
           sleep 1
+          # Own profile per launch: the snap launcher exits while the browser
+          # lives on, and a relaunch on the shared profile hands its URL to
+          # that instance, whose stderr nobody captures
+          PROFILE=$(mktemp -d)
           chromium-browser \
-            --no-sandbox \
+            --no-sandbox --no-first-run --no-default-browser-check --user-data-dir="$PROFILE" \
             --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
             --autoplay-policy=no-user-gesture-required \
             --window-size=640,480 \
@@ -2194,6 +2198,7 @@ jobs:
           RECORD_PID=$!
           sleep 31
           kill $CHROME_PID || true
+          pkill -f "$PROFILE" || true
           kill $HTTP_PID || true
           wait $RECORD_PID || true
           ls -la /tmp/audio-heaps-js.wav
@@ -2216,8 +2221,12 @@ jobs:
           HTTP_PID=$!
           cd -
           sleep 1
+          # Own profile per launch: the snap launcher exits while the browser
+          # lives on, and a relaunch on the shared profile hands its URL to
+          # that instance, whose stderr nobody captures
+          PROFILE=$(mktemp -d)
           chromium-browser \
-            --no-sandbox \
+            --no-sandbox --no-first-run --no-default-browser-check --user-data-dir="$PROFILE" \
             --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
             --autoplay-policy=no-user-gesture-required \
             --enable-logging=stderr --v=0 \
@@ -2232,6 +2241,7 @@ jobs:
           RECORD_PID=$!
           sleep 26
           kill $CHROME_PID || true
+          pkill -f "$PROFILE" || true
           kill $HTTP_PID || true
           wait $RECORD_PID || true
           grep -o "VOLUME_TEST.*" /tmp/volume-test-heaps-js-console.log | sed 's/",.*$//' || true
@@ -2247,8 +2257,12 @@ jobs:
           python3 -m http.server 8182 &
           HTTP_PID=$!
           sleep 1
+          # Own profile per launch: the snap launcher exits while the browser
+          # lives on, and a relaunch on the shared profile hands its URL to
+          # that instance, whose stderr nobody captures
+          PROFILE=$(mktemp -d)
           chromium-browser \
-            --no-sandbox \
+            --no-sandbox --no-first-run --no-default-browser-check --user-data-dir="$PROFILE" \
             --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
             --autoplay-policy=no-user-gesture-required \
             --enable-logging=stderr --v=0 \
@@ -2263,7 +2277,9 @@ jobs:
             sleep 1
           done
           kill $CHROME_PID || true
+          pkill -f "$PROFILE" || true
           kill $HTTP_PID || true
+          grep -v "dbus" /tmp/api-probe-heaps-js.log.raw | tail -n 15 || true
           grep -o "API_PROBE:.*" /tmp/api-probe-heaps-js.log.raw | sed 's/",.*$//' | tee /tmp/api-probe-heaps-js.log
           grep -q "API_PROBE: COMPLETE" /tmp/api-probe-heaps-js.log
           if grep -q "pass=false" /tmp/api-probe-heaps-js.log; then
@@ -2281,8 +2297,12 @@ jobs:
           sleep 1
           ffmpeg -f pulse -i virtual_speaker.monitor -t 60 -y /tmp/synth-test-heaps-js.wav &
           RECORD_PID=$!
+          # Own profile per launch: the snap launcher exits while the browser
+          # lives on, and a relaunch on the shared profile hands its URL to
+          # that instance, whose stderr nobody captures
+          PROFILE=$(mktemp -d)
           chromium-browser \
-            --no-sandbox \
+            --no-sandbox --no-first-run --no-default-browser-check --user-data-dir="$PROFILE" \
             --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
             --autoplay-policy=no-user-gesture-required \
             --enable-logging=stderr --v=0 \
@@ -2298,7 +2318,9 @@ jobs:
           done
           wait $RECORD_PID || true
           kill $CHROME_PID || true
+          pkill -f "$PROFILE" || true
           kill $HTTP_PID || true
+          grep -v "dbus" /tmp/synth-test-heaps-js.log.raw | tail -n 15 || true
           grep -o "SYNTH_TEST:.*" /tmp/synth-test-heaps-js.log.raw | sed 's/",.*$//' | tee /tmp/synth-test-heaps-js.log
           grep -q "SYNTH_TEST: COMPLETE" /tmp/synth-test-heaps-js.log
           if grep -q "pass=false" /tmp/synth-test-heaps-js.log; then
@@ -2318,8 +2340,12 @@ jobs:
           python3 -m http.server 8183 &
           HTTP_PID=$!
           sleep 1
+          # Own profile per launch: the snap launcher exits while the browser
+          # lives on, and a relaunch on the shared profile hands its URL to
+          # that instance, whose stderr nobody captures
+          PROFILE=$(mktemp -d)
           chromium-browser \
-            --no-sandbox \
+            --no-sandbox --no-first-run --no-default-browser-check --user-data-dir="$PROFILE" \
             --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
             --autoplay-policy=no-user-gesture-required \
             --enable-logging=stderr --v=0 \
@@ -2334,7 +2360,9 @@ jobs:
             sleep 1
           done
           kill $CHROME_PID || true
+          pkill -f "$PROFILE" || true
           kill $HTTP_PID || true
+          grep -v "dbus" /tmp/cb-test-heaps-js.log.raw | tail -n 15 || true
           grep -o "CB_TEST:.*" /tmp/cb-test-heaps-js.log.raw | sed 's/",.*$//' | tee /tmp/cb-test-heaps-js.log
           grep -q "CB_TEST: COMPLETE" /tmp/cb-test-heaps-js.log
           grep -q "CB_TEST: Stopped" /tmp/cb-test-heaps-js.log
@@ -2351,8 +2379,12 @@ jobs:
           python3 -m http.server 8184 &
           HTTP_PID=$!
           sleep 1
+          # Own profile per launch: the snap launcher exits while the browser
+          # lives on, and a relaunch on the shared profile hands its URL to
+          # that instance, whose stderr nobody captures
+          PROFILE=$(mktemp -d)
           chromium-browser \
-            --no-sandbox \
+            --no-sandbox --no-first-run --no-default-browser-check --user-data-dir="$PROFILE" \
             --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
             --autoplay-policy=no-user-gesture-required \
             --enable-logging=stderr --v=0 \
@@ -2367,7 +2399,9 @@ jobs:
             sleep 1
           done
           kill $CHROME_PID || true
+          pkill -f "$PROFILE" || true
           kill $HTTP_PID || true
+          grep -v "dbus" /tmp/ps-test-heaps-js.log.raw | tail -n 15 || true
           grep -o "PS_TEST:.*" /tmp/ps-test-heaps-js.log.raw | sed 's/",.*$//' | tee /tmp/ps-test-heaps-js.log
           grep -q "PS_TEST: COMPLETE" /tmp/ps-test-heaps-js.log
           if grep -q "pass=false" /tmp/ps-test-heaps-js.log; then
@@ -2383,8 +2417,12 @@ jobs:
           python3 -m http.server 8185 &
           HTTP_PID=$!
           sleep 1
+          # Own profile per launch: the snap launcher exits while the browser
+          # lives on, and a relaunch on the shared profile hands its URL to
+          # that instance, whose stderr nobody captures
+          PROFILE=$(mktemp -d)
           chromium-browser \
-            --no-sandbox \
+            --no-sandbox --no-first-run --no-default-browser-check --user-data-dir="$PROFILE" \
             --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
             --autoplay-policy=no-user-gesture-required \
             --enable-logging=stderr --v=0 \
@@ -2399,7 +2437,9 @@ jobs:
             sleep 1
           done
           kill $CHROME_PID || true
+          pkill -f "$PROFILE" || true
           kill $HTTP_PID || true
+          grep -v "dbus" /tmp/bank-test-heaps-js.log.raw | tail -n 15 || true
           grep -o "BANK_TEST:.*" /tmp/bank-test-heaps-js.log.raw | sed 's/",.*$//' | tee /tmp/bank-test-heaps-js.log
           grep -q "BANK_TEST: COMPLETE" /tmp/bank-test-heaps-js.log
           if grep -q "pass=false" /tmp/bank-test-heaps-js.log; then
@@ -2415,8 +2455,12 @@ jobs:
           python3 -m http.server 8187 &
           HTTP_PID=$!
           sleep 1
+          # Own profile per launch: the snap launcher exits while the browser
+          # lives on, and a relaunch on the shared profile hands its URL to
+          # that instance, whose stderr nobody captures
+          PROFILE=$(mktemp -d)
           chromium-browser \
-            --no-sandbox \
+            --no-sandbox --no-first-run --no-default-browser-check --user-data-dir="$PROFILE" \
             --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
             --autoplay-policy=no-user-gesture-required \
             --enable-logging=stderr --v=0 \
@@ -2431,7 +2475,9 @@ jobs:
             sleep 1
           done
           kill $CHROME_PID || true
+          pkill -f "$PROFILE" || true
           kill $HTTP_PID || true
+          grep -v "dbus" /tmp/pan-test-heaps-js.log.raw | tail -n 15 || true
           grep -o "PAN_TEST:.*" /tmp/pan-test-heaps-js.log.raw | sed 's/",.*$//' | tee /tmp/pan-test-heaps-js.log
           grep -q "PAN_TEST: COMPLETE" /tmp/pan-test-heaps-js.log
           if grep -q "pass=false" /tmp/pan-test-heaps-js.log; then
@@ -3070,8 +3116,12 @@ jobs:
           HTTP_PID=$!
           cd -
           sleep 1
+          # Own profile per launch: the snap launcher exits while the browser
+          # lives on, and a relaunch on the shared profile hands its URL to
+          # that instance, whose stderr nobody captures
+          PROFILE=$(mktemp -d)
           chromium-browser \
-            --no-sandbox \
+            --no-sandbox --no-first-run --no-default-browser-check --user-data-dir="$PROFILE" \
             --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
             --autoplay-policy=no-user-gesture-required \
             --window-size=640,480 \
@@ -3085,6 +3135,7 @@ jobs:
           RECORD_PID=$!
           sleep 31
           kill $CHROME_PID || true
+          pkill -f "$PROFILE" || true
           kill $HTTP_PID || true
           wait $RECORD_PID || true
           ls -la /tmp/audio-kha-html5.wav
@@ -3107,8 +3158,12 @@ jobs:
           HTTP_PID=$!
           cd -
           sleep 1
+          # Own profile per launch: the snap launcher exits while the browser
+          # lives on, and a relaunch on the shared profile hands its URL to
+          # that instance, whose stderr nobody captures
+          PROFILE=$(mktemp -d)
           chromium-browser \
-            --no-sandbox \
+            --no-sandbox --no-first-run --no-default-browser-check --user-data-dir="$PROFILE" \
             --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
             --autoplay-policy=no-user-gesture-required \
             --enable-logging=stderr --v=0 \
@@ -3123,6 +3178,7 @@ jobs:
           RECORD_PID=$!
           sleep 26
           kill $CHROME_PID || true
+          pkill -f "$PROFILE" || true
           kill $HTTP_PID || true
           wait $RECORD_PID || true
           grep -o "VOLUME_TEST.*" /tmp/volume-test-kha-html5-console.log | sed 's/",.*$//' || true
@@ -3138,8 +3194,12 @@ jobs:
           python3 -m http.server 8282 &
           HTTP_PID=$!
           sleep 1
+          # Own profile per launch: the snap launcher exits while the browser
+          # lives on, and a relaunch on the shared profile hands its URL to
+          # that instance, whose stderr nobody captures
+          PROFILE=$(mktemp -d)
           chromium-browser \
-            --no-sandbox \
+            --no-sandbox --no-first-run --no-default-browser-check --user-data-dir="$PROFILE" \
             --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
             --autoplay-policy=no-user-gesture-required \
             --enable-logging=stderr --v=0 \
@@ -3154,7 +3214,9 @@ jobs:
             sleep 1
           done
           kill $CHROME_PID || true
+          pkill -f "$PROFILE" || true
           kill $HTTP_PID || true
+          grep -v "dbus" /tmp/api-probe-kha-html5.log.raw | tail -n 15 || true
           grep -o "API_PROBE:.*" /tmp/api-probe-kha-html5.log.raw | sed 's/",.*$//' | tee /tmp/api-probe-kha-html5.log
           grep -q "API_PROBE: COMPLETE" /tmp/api-probe-kha-html5.log
           if grep -q "pass=false" /tmp/api-probe-kha-html5.log; then
@@ -3172,8 +3234,12 @@ jobs:
           sleep 1
           ffmpeg -f pulse -i virtual_speaker.monitor -t 60 -y /tmp/synth-test-kha-html5.wav &
           RECORD_PID=$!
+          # Own profile per launch: the snap launcher exits while the browser
+          # lives on, and a relaunch on the shared profile hands its URL to
+          # that instance, whose stderr nobody captures
+          PROFILE=$(mktemp -d)
           chromium-browser \
-            --no-sandbox \
+            --no-sandbox --no-first-run --no-default-browser-check --user-data-dir="$PROFILE" \
             --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
             --autoplay-policy=no-user-gesture-required \
             --enable-logging=stderr --v=0 \
@@ -3189,7 +3255,9 @@ jobs:
           done
           wait $RECORD_PID || true
           kill $CHROME_PID || true
+          pkill -f "$PROFILE" || true
           kill $HTTP_PID || true
+          grep -v "dbus" /tmp/synth-test-kha-html5.log.raw | tail -n 15 || true
           grep -o "SYNTH_TEST:.*" /tmp/synth-test-kha-html5.log.raw | sed 's/",.*$//' | tee /tmp/synth-test-kha-html5.log
           grep -q "SYNTH_TEST: COMPLETE" /tmp/synth-test-kha-html5.log
           if grep -q "pass=false" /tmp/synth-test-kha-html5.log; then
@@ -3209,8 +3277,12 @@ jobs:
           python3 -m http.server 8283 &
           HTTP_PID=$!
           sleep 1
+          # Own profile per launch: the snap launcher exits while the browser
+          # lives on, and a relaunch on the shared profile hands its URL to
+          # that instance, whose stderr nobody captures
+          PROFILE=$(mktemp -d)
           chromium-browser \
-            --no-sandbox \
+            --no-sandbox --no-first-run --no-default-browser-check --user-data-dir="$PROFILE" \
             --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
             --autoplay-policy=no-user-gesture-required \
             --enable-logging=stderr --v=0 \
@@ -3225,7 +3297,9 @@ jobs:
             sleep 1
           done
           kill $CHROME_PID || true
+          pkill -f "$PROFILE" || true
           kill $HTTP_PID || true
+          grep -v "dbus" /tmp/cb-test-kha-html5.log.raw | tail -n 15 || true
           grep -o "CB_TEST:.*" /tmp/cb-test-kha-html5.log.raw | sed 's/",.*$//' | tee /tmp/cb-test-kha-html5.log
           grep -q "CB_TEST: COMPLETE" /tmp/cb-test-kha-html5.log
           grep -q "CB_TEST: Stopped" /tmp/cb-test-kha-html5.log
@@ -3242,8 +3316,12 @@ jobs:
           python3 -m http.server 8284 &
           HTTP_PID=$!
           sleep 1
+          # Own profile per launch: the snap launcher exits while the browser
+          # lives on, and a relaunch on the shared profile hands its URL to
+          # that instance, whose stderr nobody captures
+          PROFILE=$(mktemp -d)
           chromium-browser \
-            --no-sandbox \
+            --no-sandbox --no-first-run --no-default-browser-check --user-data-dir="$PROFILE" \
             --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
             --autoplay-policy=no-user-gesture-required \
             --enable-logging=stderr --v=0 \
@@ -3258,7 +3336,9 @@ jobs:
             sleep 1
           done
           kill $CHROME_PID || true
+          pkill -f "$PROFILE" || true
           kill $HTTP_PID || true
+          grep -v "dbus" /tmp/ps-test-kha-html5.log.raw | tail -n 15 || true
           grep -o "PS_TEST:.*" /tmp/ps-test-kha-html5.log.raw | sed 's/",.*$//' | tee /tmp/ps-test-kha-html5.log
           grep -q "PS_TEST: COMPLETE" /tmp/ps-test-kha-html5.log
           if grep -q "pass=false" /tmp/ps-test-kha-html5.log; then
@@ -3274,8 +3354,12 @@ jobs:
           python3 -m http.server 8285 &
           HTTP_PID=$!
           sleep 1
+          # Own profile per launch: the snap launcher exits while the browser
+          # lives on, and a relaunch on the shared profile hands its URL to
+          # that instance, whose stderr nobody captures
+          PROFILE=$(mktemp -d)
           chromium-browser \
-            --no-sandbox \
+            --no-sandbox --no-first-run --no-default-browser-check --user-data-dir="$PROFILE" \
             --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
             --autoplay-policy=no-user-gesture-required \
             --enable-logging=stderr --v=0 \
@@ -3290,7 +3374,9 @@ jobs:
             sleep 1
           done
           kill $CHROME_PID || true
+          pkill -f "$PROFILE" || true
           kill $HTTP_PID || true
+          grep -v "dbus" /tmp/bank-test-kha-html5.log.raw | tail -n 15 || true
           grep -o "BANK_TEST:.*" /tmp/bank-test-kha-html5.log.raw | sed 's/",.*$//' | tee /tmp/bank-test-kha-html5.log
           grep -q "BANK_TEST: COMPLETE" /tmp/bank-test-kha-html5.log
           if grep -q "pass=false" /tmp/bank-test-kha-html5.log; then
@@ -3306,8 +3392,12 @@ jobs:
           python3 -m http.server 8287 &
           HTTP_PID=$!
           sleep 1
+          # Own profile per launch: the snap launcher exits while the browser
+          # lives on, and a relaunch on the shared profile hands its URL to
+          # that instance, whose stderr nobody captures
+          PROFILE=$(mktemp -d)
           chromium-browser \
-            --no-sandbox \
+            --no-sandbox --no-first-run --no-default-browser-check --user-data-dir="$PROFILE" \
             --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
             --autoplay-policy=no-user-gesture-required \
             --enable-logging=stderr --v=0 \
@@ -3322,7 +3412,9 @@ jobs:
             sleep 1
           done
           kill $CHROME_PID || true
+          pkill -f "$PROFILE" || true
           kill $HTTP_PID || true
+          grep -v "dbus" /tmp/pan-test-kha-html5.log.raw | tail -n 15 || true
           grep -o "PAN_TEST:.*" /tmp/pan-test-kha-html5.log.raw | sed 's/",.*$//' | tee /tmp/pan-test-kha-html5.log
           grep -q "PAN_TEST: COMPLETE" /tmp/pan-test-kha-html5.log
           if grep -q "pass=false" /tmp/pan-test-kha-html5.log; then
