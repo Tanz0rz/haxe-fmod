@@ -3480,6 +3480,30 @@ jobs:
           ls -la example-project/HeapsPlatformer/build/hl
           cd example-project/HeapsPlatformer/build/hl
           timeout 10 ./HeapsPlatformer.exe --version || true
+          # HashLink reports a fatal error in a dialog on Windows and the
+          # process waits there forever. Read the dialog text, then dismiss
+          # it so the process exits and flushes what it printed.
+          ./HeapsPlatformer.exe > diag-boot.log 2>&1 &
+          DIAG_PID=$!
+          sleep 12
+          cat > "$RUNNER_TEMP/dialog.ps1" <<'PS'
+          Add-Type -AssemblyName UIAutomationClient
+          Add-Type -AssemblyName System.Windows.Forms
+          $root = [System.Windows.Automation.AutomationElement]::RootElement
+          $cond = New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::NameProperty, "Fatal Error")
+          $w = $root.FindFirst([System.Windows.Automation.TreeScope]::Children, $cond)
+          if ($w) {
+            $w.FindAll([System.Windows.Automation.TreeScope]::Descendants, [System.Windows.Automation.Condition]::TrueCondition) | ForEach-Object { "UI: " + $_.Current.Name }
+            (New-Object -ComObject WScript.Shell).AppActivate("Fatal Error") | Out-Null
+            [System.Windows.Forms.SendKeys]::SendWait("{ENTER}")
+          } else { "no Fatal Error window" }
+          PS
+          powershell -NoProfile -ExecutionPolicy Bypass -File "$RUNNER_TEMP/dialog.ps1" || true
+          sleep 3
+          kill $DIAG_PID 2>/dev/null || true
+          wait $DIAG_PID 2>/dev/null || true
+          echo "--- first 20 lines of a plain launch:"; head -20 diag-boot.log
+          rm -f diag-boot.log
 
       - name: Record audio
         if: matrix.state == 'game-audio'
