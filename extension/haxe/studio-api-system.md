@@ -56,19 +56,6 @@ Type: haxefmod.studio.Types.FmodSoundInfo
 ## FMOD_STUDIO_SYSTEM_CALLBACK
 verdict: bound
 Type: haxefmod.studio.SystemCallbacks.SystemCallback
-The handler is a SystemCallback, a SystemEvent->Void function shared with the core system callback. FmodManager.Update() delivers the events on the game thread, so there is no system, commanddata, or userdata argument and nothing to return.
-```haxe
-import haxefmod.studio.SystemCallbacks;
-
-StudioSystem.setSystemCallback(event -> switch (event) {
-    case PreUpdate: trace("before update");
-    case PostUpdate: trace("after update");
-    case BankUnload(path): trace('unloaded $path');
-    case LiveUpdateConnected: trace("live update connected");
-    case LiveUpdateDisconnected: trace("live update disconnected");
-    default:
-}, null, SystemCallbacks.STUDIO_PREUPDATE | SystemCallbacks.STUDIO_POSTUPDATE | SystemCallbacks.DEFAULT_STUDIO_MASK);
-```
 
 ## FMOD_STUDIO_SYSTEM_CALLBACK_TYPE
 verdict: bound

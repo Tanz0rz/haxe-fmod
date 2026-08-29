@@ -29,19 +29,6 @@ if (clocks != null) {
 ## FMOD_CHANNELCONTROL_CALLBACK
 verdict: bound
 Type: haxefmod.core.ChannelEvent.ChannelCallback
-Raw channel callbacks run on FMOD's threads and cannot reach Haxe. Channel.setCallback and ChannelGroup.setCallback take a ChannelCallback and deliver ChannelEvent values on the game thread during FmodManager.Update(). A group only ever sees Occlusion, the other three are channel events.
-```haxe
-import haxefmod.core.ChannelEvent;
-
-channel.setCallback(function(event:ChannelEvent) {
-    switch (event) {
-        case End: trace("channel finished");
-        case SyncPoint(index): trace('sync point $index');
-        case VirtualVoice(isVirtual): trace('virtual $isVirtual');
-        case Occlusion(direct, reverb): trace('occluded $direct $reverb');
-    }
-});
-```
 
 ## FMOD_CHANNELCONTROL_CALLBACK_TYPE
 verdict: bound

@@ -199,18 +199,7 @@ Type: haxefmod.studio.Types.FmodDspParameterType
 verdict: cannot received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin
 
 ## FMOD_DSP_PROCESS_CALLBACK#2
-verdict: bound
-A plugin process callback cannot run in Haxe, the built-in fader unit halves the signal in the same place of the chain.
-```haxe
-import haxefmod.core.ChannelGroup;
-import haxefmod.core.Dsp;
-import haxefmod.core.DspParameters.DspFader;
-import haxefmod.core.DspType;
-
-var fader = Dsp.create(DspType.FADER);
-fader.setParameter(DspFader.GAIN, -6.02); // dB, half amplitude
-ChannelGroup.master().addDsp(ChannelGroup.DSP_TAIL, fader);
-```
+verdict: cannot the body of a DSP callback FMOD runs on its mixer thread, which Haxe code cannot host. Dsp.create and the built-in DspType units cover using effects, authoring one stays in C.
 
 ## FMOD_DSP_PROCESS_CALLBACK#3
 verdict: bound
@@ -234,18 +223,7 @@ Type: haxefmod.studio.Types.FmodDspProcessOperation
 verdict: cannot received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin
 
 ## FMOD_DSP_READ_CALLBACK#2
-verdict: bound
-A plugin read callback cannot run in Haxe, the built-in fader unit halves the signal in the same place of the chain.
-```haxe
-import haxefmod.core.ChannelGroup;
-import haxefmod.core.Dsp;
-import haxefmod.core.DspParameters.DspFader;
-import haxefmod.core.DspType;
-
-var fader = Dsp.create(DspType.FADER);
-fader.setParameter(DspFader.GAIN, -6.02); // dB, half amplitude
-ChannelGroup.master().addDsp(ChannelGroup.DSP_TAIL, fader);
-```
+verdict: cannot the body of a DSP callback FMOD runs on its mixer thread, which Haxe code cannot host. Dsp.create and the built-in DspType units cover using effects, authoring one stays in C.
 
 ## FMOD_DSP_READ_CALLBACK#3
 verdict: bound

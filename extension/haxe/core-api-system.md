@@ -90,18 +90,6 @@ Type: haxefmod.core.Reverb.ReverbProperties
 ## FMOD_SYSTEM_CALLBACK
 verdict: bound
 Type: haxefmod.studio.SystemCallbacks.SystemCallback
-The native callback runs on FMOD's threads. StudioSystem.setSystemCallback takes one SystemCallback and delivers DeviceListChanged, DeviceLost, and Error(info) from FmodManager.Update() on the game thread as SystemEvent, next to the Studio system events. Error needs SystemCallbacks.CORE_ERROR in the core mask.
-The command data and user data pointers have no Haxe side. On HTML5 the device events never fire under the browser output and the error callback is never raised.
-```haxe
-import haxefmod.studio.SystemCallbacks;
-
-StudioSystem.setSystemCallback(event -> switch (event) {
-    case DeviceListChanged: trace("device list changed");
-    case DeviceLost: trace("device lost");
-    case Error(info): trace('${info.functionName} failed: ${info.result.toString()}');
-    default:
-}, SystemCallbacks.DEFAULT_CORE_MASK | SystemCallbacks.CORE_ERROR);
-```
 
 ## FMOD_SYSTEM_CALLBACK_TYPE
 verdict: bound

@@ -12501,11 +12501,9 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "FMOD_CHANNELCONTROL_CALLBACK": {
-   "code": "channel.setCallback(function(event:ChannelEvent) {\n    switch (event) {\n        case End: trace(\"channel finished\");\n        case SyncPoint(index): trace('sync point $index');\n        case VirtualVoice(isVirtual): trace('virtual $isVirtual');\n        case Occlusion(direct, reverb): trace('occluded $direct $reverb');\n    }\n});",
-   "notes": [
-    "Raw channel callbacks run on FMOD's threads and cannot reach Haxe. Channel.setCallback and ChannelGroup.setCallback take a ChannelCallback and deliver ChannelEvent values on the game thread during FmodManager.Update(). A group only ever sees Occlusion, the other three are channel events."
-   ],
-   "type": "haxefmod.core.ChannelEvent.ChannelCallback, haxefmod.core.ChannelEvent",
+   "code": "typedef ChannelCallback = ChannelEvent->Void;",
+   "notes": [],
+   "type": "haxefmod.core.ChannelEvent.ChannelCallback",
    "verdict": "bound"
   },
   "FMOD_CHANNELCONTROL_CALLBACK_TYPE": {
@@ -13135,11 +13133,9 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "cannot"
   },
   "FMOD_SOUND_PCMREAD_CALLBACK": {
-   "code": "var stream = PcmStream.create(48000, 1);\nstream.setReadCallback(function(stream, data, dataLen) {\n    for (i in 0...Std.int(dataLen / 2)) {\n        data.setUInt16(i * 2, nextSample() & 0xFFFF);\n    }\n    return FmodResult.FMOD_OK;\n});\nvar channel = stream.play();",
-   "notes": [
-    "FMOD's callback runs on the mixer thread, where no Haxe code can run. PcmStream.setReadCallback takes a PcmReadCallback that runs on the game thread from FmodManager.Update whenever the stream's ring has room, fills the buffer with PCM16, and returns FMOD_OK to have it written. stream.write stays for games that push instead."
-   ],
-   "type": "haxefmod.core.PcmStream.PcmReadCallback, haxefmod.core.PcmStream, haxefmod.studio.FmodResult",
+   "code": "typedef PcmReadCallback = (stream:PcmStream, data:haxe.io.Bytes, dataLen:Int)->FmodResult;",
+   "notes": [],
+   "type": "haxefmod.core.PcmStream.PcmReadCallback",
    "verdict": "bound"
   },
   "FMOD_SOUND_PCMSETPOS_CALLBACK": {
@@ -13403,12 +13399,9 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "FMOD_SYSTEM_CALLBACK": {
-   "code": "StudioSystem.setSystemCallback(event -> switch (event) {\n    case DeviceListChanged: trace(\"device list changed\");\n    case DeviceLost: trace(\"device lost\");\n    case Error(info): trace('${info.functionName} failed: ${info.result.toString()}');\n    default:\n}, SystemCallbacks.DEFAULT_CORE_MASK | SystemCallbacks.CORE_ERROR);",
-   "notes": [
-    "The native callback runs on FMOD's threads. StudioSystem.setSystemCallback takes one SystemCallback and delivers DeviceListChanged, DeviceLost, and Error(info) from FmodManager.Update() on the game thread as SystemEvent, next to the Studio system events. Error needs SystemCallbacks.CORE_ERROR in the core mask.",
-    "The command data and user data pointers have no Haxe side. On HTML5 the device events never fire under the browser output and the error callback is never raised."
-   ],
-   "type": "haxefmod.studio.SystemCallbacks.SystemCallback, haxefmod.studio.SystemCallbacks",
+   "code": "typedef SystemCallback = SystemEvent->Void;",
+   "notes": [],
+   "type": "haxefmod.studio.SystemCallbacks.SystemCallback",
    "verdict": "bound"
   },
   "FMOD_SYSTEM_CALLBACK_TYPE": {
@@ -14656,12 +14649,12 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "cannot"
   },
   "FMOD_DSP_PROCESS_CALLBACK#2": {
-   "code": "var fader = Dsp.create(DspType.FADER);\nfader.setParameter(DspFader.GAIN, -6.02); // dB, half amplitude\nChannelGroup.master().addDsp(ChannelGroup.DSP_TAIL, fader);",
+   "code": null,
    "notes": [
-    "A plugin process callback cannot run in Haxe, the built-in fader unit halves the signal in the same place of the chain."
+    "Cannot be bound. the body of a DSP callback FMOD runs on its mixer thread, which Haxe code cannot host. Dsp.create and the built-in DspType units cover using effects, authoring one stays in C."
    ],
-   "type": "haxefmod.core.ChannelGroup, haxefmod.core.Dsp, haxefmod.core.DspParameters.DspFader, haxefmod.core.DspType",
-   "verdict": "bound"
+   "type": null,
+   "verdict": "cannot"
   },
   "FMOD_DSP_PROCESS_CALLBACK#3": {
    "code": "var fader = Dsp.create(DspType.FADER);\nfader.setParameter(DspFader.GAIN, -6.02); // dB, half amplitude\nChannelGroup.master().addDsp(ChannelGroup.DSP_TAIL, fader);",
@@ -14686,12 +14679,12 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "cannot"
   },
   "FMOD_DSP_READ_CALLBACK#2": {
-   "code": "var fader = Dsp.create(DspType.FADER);\nfader.setParameter(DspFader.GAIN, -6.02); // dB, half amplitude\nChannelGroup.master().addDsp(ChannelGroup.DSP_TAIL, fader);",
+   "code": null,
    "notes": [
-    "A plugin read callback cannot run in Haxe, the built-in fader unit halves the signal in the same place of the chain."
+    "Cannot be bound. the body of a DSP callback FMOD runs on its mixer thread, which Haxe code cannot host. Dsp.create and the built-in DspType units cover using effects, authoring one stays in C."
    ],
-   "type": "haxefmod.core.ChannelGroup, haxefmod.core.Dsp, haxefmod.core.DspParameters.DspFader, haxefmod.core.DspType",
-   "verdict": "bound"
+   "type": null,
+   "verdict": "cannot"
   },
   "FMOD_DSP_READ_CALLBACK#3": {
    "code": "var fader = Dsp.create(DspType.FADER);\nfader.setParameter(DspFader.GAIN, -6.02); // dB, half amplitude\nChannelGroup.master().addDsp(ChannelGroup.DSP_TAIL, fader);",
@@ -15257,13 +15250,9 @@ const HAXEFMOD_EXAMPLES = {
  },
  "studio-api-eventinstance": {
   "FMOD_STUDIO_EVENT_CALLBACK": {
-   "code": "instance.setCallback(function(data:EventCallbackData) {\n    switch (data) {\n        case Started: trace(\"started\");\n        case Stopped: trace(\"stopped\");\n        case TimelineMarker(marker): trace(\"marker \" + marker.name + \" at \" + marker.position);\n        case TimelineBeat(beat): trace(\"beat \" + beat.bar + \":\" + beat.beat);\n        default:\n    }\n}, EventCallbackType.STARTED | EventCallbackType.STOPPED | EventCallbackType.TIMELINE_MARKER | EventCallbackType.TIMELINE_BEAT);\ninstance.start();",
-   "notes": [
-    "The handler is an EventCallback, a Haxe function that receives an EventCallbackData value. Without a mask it receives EventCallbackType.PLAYBACK_ALL, the lifecycle, timeline, sound, and virtual types, so programmer sound, plugin, and command types need an explicit mask. DESTROYED is always added so the registration cleans itself up.",
-    "FMOD raises the callback on its own thread. haxefmod queues it and delivers it on the game thread from FmodManager.Update, so the handler may touch game state.",
-    "No return value and no userdata. The handle itself identifies the instance, and the payload is the FMOD struct of the callback type as the constructor's argument."
-   ],
-   "type": "haxefmod.studio.Callbacks.EventCallback, haxefmod.studio.Callbacks",
+   "code": "typedef EventCallback = EventCallbackData->Void;",
+   "notes": [],
+   "type": "haxefmod.studio.Callbacks.EventCallback",
    "verdict": "bound"
   },
   "FMOD_STUDIO_EVENT_CALLBACK_TYPE": {
@@ -15408,11 +15397,9 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "FMOD_STUDIO_SYSTEM_CALLBACK": {
-   "code": "StudioSystem.setSystemCallback(event -> switch (event) {\n    case PreUpdate: trace(\"before update\");\n    case PostUpdate: trace(\"after update\");\n    case BankUnload(path): trace('unloaded $path');\n    case LiveUpdateConnected: trace(\"live update connected\");\n    case LiveUpdateDisconnected: trace(\"live update disconnected\");\n    default:\n}, null, SystemCallbacks.STUDIO_PREUPDATE | SystemCallbacks.STUDIO_POSTUPDATE | SystemCallbacks.DEFAULT_STUDIO_MASK);",
-   "notes": [
-    "The handler is a SystemCallback, a SystemEvent->Void function shared with the core system callback. FmodManager.Update() delivers the events on the game thread, so there is no system, commanddata, or userdata argument and nothing to return."
-   ],
-   "type": "haxefmod.studio.SystemCallbacks.SystemCallback, haxefmod.studio.SystemCallbacks",
+   "code": "typedef SystemCallback = SystemEvent->Void;",
+   "notes": [],
+   "type": "haxefmod.studio.SystemCallbacks.SystemCallback",
    "verdict": "bound"
   },
   "FMOD_STUDIO_SYSTEM_CALLBACK_TYPE": {

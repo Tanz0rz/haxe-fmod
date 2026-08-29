@@ -83,7 +83,7 @@ CATEGORY_TEXT = {
 LIBRARY_CALLS = {"create", "init", "initialize", "update", "release", "close", "getCoreSystem",
                  "setSoftwareFormat", "setDSPBufferSize", "setOutput", "setCallback", "setUserData",
                  "getUserData", "setFileSystem", "setAdvancedSettings", "getVersion"}
-DECL = re.compile(r"^(typedef\s+(struct|enum)|enum\s|struct\s|#define\s|typedef\s+\w[\w\s*]*\(|FMOD_RESULT\s+\(F_CALL)")
+DECL = re.compile(r"^(typedef\s+(struct|enum)|enum\s|struct\s|#define\s|typedef\s+\w[\w\s*]*\(|FMOD_RESULT\s+\(F_CALL|\w+\s+F_CALL\s+\w+\()")
 
 SECTION = re.compile(r"^## (.+?)\s*$", re.M)
 COMMENT = re.compile(r"<!--(.*?)-->", re.S)

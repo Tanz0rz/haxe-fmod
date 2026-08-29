@@ -68,20 +68,6 @@ verdict: cannot It runs on FMOD's file thread, where no Haxe code can run. Sound
 ## FMOD_SOUND_PCMREAD_CALLBACK
 verdict: bound
 Type: haxefmod.core.PcmStream.PcmReadCallback
-FMOD's callback runs on the mixer thread, where no Haxe code can run. PcmStream.setReadCallback takes a PcmReadCallback that runs on the game thread from FmodManager.Update whenever the stream's ring has room, fills the buffer with PCM16, and returns FMOD_OK to have it written. stream.write stays for games that push instead.
-```haxe
-import haxefmod.core.PcmStream;
-import haxefmod.studio.FmodResult;
-
-var stream = PcmStream.create(48000, 1);
-stream.setReadCallback(function(stream, data, dataLen) {
-    for (i in 0...Std.int(dataLen / 2)) {
-        data.setUInt16(i * 2, nextSample() & 0xFFFF);
-    }
-    return FmodResult.FMOD_OK;
-});
-var channel = stream.play();
-```
 
 ## FMOD_SOUND_PCMSETPOS_CALLBACK
 verdict: cannot It runs on FMOD's mixer thread, where no Haxe code can run. A PcmStream has no seekable position, so a game that needs to jump changes what it writes into the ring.
