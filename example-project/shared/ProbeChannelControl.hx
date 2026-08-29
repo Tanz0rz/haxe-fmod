@@ -273,16 +273,16 @@ class ProbeChannelControl {
             'events=${_events.length} frames=$_frames direct=$direct');
         @:privateAccess state.check("cg_occlusion_event_delivered", sawGroup,
             'events=${_groupEvents.length} frames=$_frames');
-        _channel.stop();
-        _stream.release();
-        _group.release();
-        _geometry.release();
+        var rStop = _channel.stop();
+        var rStream = _stream.release();
+        var rGroup = _group.release();
+        var rGeometry = _geometry.release();
         StudioSystem.setListenerPosition2D(0, 0, 0);
-        // The stopped channel frees its handle when its End callback
-        // drains, which rides the mixer, so wait for the count to settle
-        // (bounded) before comparing, and before the scenario moves on and
-        // holds handles of its own. Fewer than the baseline only means an
-        // earlier probe's events drained late.
+        // Occlusion callbacks arrive from the mixer thread, so let the
+        // queue drain and the count settle (bounded) before comparing.
+        // Fewer handles than the baseline only means an earlier probe's
+        // events drained late. The release results are in the detail so a
+        // handle that stays behind names its owner.
         var settled = 0;
         for (i in 0...100) {
             StudioSystem.flushCommands();
@@ -292,6 +292,6 @@ class ProbeChannelControl {
             Sys.sleep(0.01);
         }
         @:privateAccess state.check("no_handle_leaks_occlusion_callback", StudioSystem.liveHandleCount() <= _baseline,
-            'baseline=$_baseline now=${StudioSystem.liveHandleCount()} waited=$settled');
+            'baseline=$_baseline now=${StudioSystem.liveHandleCount()} settle_wait=$settled stop=${rStop.toString()} stream=${rStream.toString()} group=${rGroup.toString()} geometry=${rGeometry.toString()}');
     }
 }
