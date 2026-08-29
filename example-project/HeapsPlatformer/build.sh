@@ -16,6 +16,15 @@ case "$TARGET" in
       *) PLATFORM=linux ;;
     esac
     haxelib run haxefmod stage "$PLATFORM" hl build/hl
+    if [ "$PLATFORM" = windows ]; then
+      # HashLink's own packaging: hl.exe loads hlboot.dat from its directory
+      # when started without arguments, so the copy gets the game's name
+      # and the runtime DLL and hdlls sit next to it. Needs HASHLINK_DIR.
+      : "${HASHLINK_DIR:?set HASHLINK_DIR to the HashLink installation}"
+      cp "$HASHLINK_DIR"/hl.exe build/hl/HeapsPlatformer.exe
+      cp "$HASHLINK_DIR"/libhl.dll "$HASHLINK_DIR"/*.hdll build/hl/ 2>/dev/null || true
+      cp build/hl/game.hl build/hl/hlboot.dat
+    fi
     rm -rf build/hl/assets
     mkdir -p build/hl/assets/fmod
     cp -r ../EZPlatformer/assets/fmod/Desktop build/hl/assets/fmod/

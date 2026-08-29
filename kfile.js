@@ -33,9 +33,14 @@ if (process.env.HAXEFMOD_KHA_HL === '1') {
 	project.addFile('native/faxe/linc_faxe.cpp');
 }
 
-if (platform === Platform.Windows) {
-	project.addLib(path.join(sdk, 'api', 'core', 'lib', 'x64', 'fmod_vc.lib'));
-	project.addLib(path.join(sdk, 'api', 'studio', 'lib', 'x64', 'fmodstudio_vc.lib'));
+if (platform === Platform.OSX) {
+	// A bare name becomes -framework on macOS, so the dylibs go in by path
+	project.addLib(path.join(sdk, 'api', 'core', 'lib', 'libfmod.dylib'));
+	project.addLib(path.join(sdk, 'api', 'studio', 'lib', 'libfmodstudio.dylib'));
+} else if (platform === Platform.Windows) {
+	// kmake appends .lib itself
+	project.addLib(path.join(sdk, 'api', 'core', 'lib', 'x64', 'fmod_vc'));
+	project.addLib(path.join(sdk, 'api', 'studio', 'lib', 'x64', 'fmodstudio_vc'));
 } else {
 	project.addLib('fmod');
 	project.addLib('fmodstudio');

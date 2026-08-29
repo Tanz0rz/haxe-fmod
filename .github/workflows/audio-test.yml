@@ -3542,6 +3542,7 @@ jobs:
           mkdir -p ~/haxelib
           haxelib setup ~/haxelib
           haxelib install heaps 2.1.0 --always --quiet
+          haxelib install hashlink 1.15.0 --always --quiet
           haxelib install hlsdl 1.15.0 --always --quiet
           haxelib dev haxefmod "$GITHUB_WORKSPACE"
 
@@ -3771,6 +3772,7 @@ jobs:
         run: |
           haxelib setup ~/haxelib
           haxelib install heaps 2.1.0 --always --quiet
+          haxelib install hashlink 1.15.0 --always --quiet
           haxelib install hlsdl 1.15.0 --always --quiet
           haxelib dev haxefmod "$GITHUB_WORKSPACE"
 
@@ -3802,7 +3804,7 @@ jobs:
 
       - name: Validate build output
         run: |
-          for f in game.hl run.cmd hlaxe_fmod.hdll fmod.dll fmodstudio.dll assets/fmod/Desktop/Master.bank; do
+          for f in HeapsPlatformer.exe hlboot.dat libhl.dll sdl.hdll hlaxe_fmod.hdll fmod.dll fmodstudio.dll assets/fmod/Desktop/Master.bank; do
             test -e "example-project/HeapsPlatformer/build/hl/$f" || { echo "FAIL: missing $f"; exit 1; }
           done
           echo "OK: build directory is complete"
@@ -3811,7 +3813,7 @@ jobs:
         run: |
           export FMOD_WAVWRITER="$GITHUB_WORKSPACE/audio-heaps-windows-hl.wav"
           cd example-project/HeapsPlatformer/build/hl
-          LAUNCH=./run.cmd
+          LAUNCH=./HeapsPlatformer.exe
           timeout 60 $LAUNCH > "$GITHUB_WORKSPACE/game-heaps-windows-hl.log" 2>&1 || true
           cd -
           echo "=== Game log ==="
@@ -3848,7 +3850,7 @@ jobs:
         run: |
           export FMOD_WAVWRITER="$GITHUB_WORKSPACE/volume-test-heaps-windows-hl.wav"
           cd example-project/HeapsPlatformer/build/hl
-          LAUNCH=./run.cmd
+          LAUNCH=./HeapsPlatformer.exe
           timeout 60 $LAUNCH > "$GITHUB_WORKSPACE/volume-test-heaps-windows-hl.log" 2>&1 || true
           cd -
           echo "=== Game log ==="
@@ -3951,7 +3953,7 @@ jobs:
           export STRESS_SECONDS=15
           export FMOD_WAVWRITER="${RUNNER_TEMP}/stress-smoke.wav"
           cd example-project/HeapsPlatformer/build/hl
-          LAUNCH=./run.cmd
+          LAUNCH=./HeapsPlatformer.exe
           $LAUNCH > "$GITHUB_WORKSPACE/stress-smoke-heaps-windows-hl.log" 2>&1 &
           GAME_PID=$!
           cd -
