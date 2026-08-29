@@ -192,6 +192,8 @@ run_browser_state() {
   chrome=$!
   sleep 3
   xdotool mousemove 320 240 click 1
+  sleep 5
+  xdotool mousemove 320 240 click 1
   for i in $(seq "$tmo"); do
     grep -q "$gate: COMPLETE" "$raw" && break
     sleep 1
@@ -223,6 +225,8 @@ record_browser_game() {
     "http://localhost:$port" > "$console" 2>&1 &
   chrome=$!
   sleep 3
+  xdotool mousemove 320 240 click 1
+  sleep 5
   xdotool mousemove 320 240 click 1
   sleep 1
   ffmpeg -loglevel error -f pulse -i virtual_speaker.monitor -t "$secs" -y "$wav" &

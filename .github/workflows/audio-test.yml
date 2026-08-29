@@ -2191,7 +2191,11 @@ jobs:
             --window-position=0,0 \
             http://localhost:8180 &
           CHROME_PID=$!
+          # Two clicks: the first can land before a page on software GL is
+          # interactive, and the audio context needs a gesture that reaches it
           sleep 3
+          xdotool mousemove 320 240 click 1
+          sleep 5
           xdotool mousemove 320 240 click 1
           sleep 1
           ffmpeg -f pulse -i virtual_speaker.monitor -t 30 -y /tmp/audio-heaps-html5.wav &
@@ -2207,6 +2211,7 @@ jobs:
         run: ./ci/validate-audio.sh /tmp/audio-heaps-html5.wav 10
 
       - name: Build test variant
+        if: ${{ !cancelled() }}
         env:
           FMOD_SDK_WEB: ${{ env.FMOD_SDK }}
         run: |
@@ -2234,7 +2239,11 @@ jobs:
             --window-position=0,0 \
             http://localhost:8181 > /tmp/volume-test-heaps-html5-console.log 2>&1 &
           CHROME_PID=$!
+          # Two clicks: the first can land before a page on software GL is
+          # interactive, and the audio context needs a gesture that reaches it
           sleep 3
+          xdotool mousemove 320 240 click 1
+          sleep 5
           xdotool mousemove 320 240 click 1
           sleep 1
           ffmpeg -f pulse -i virtual_speaker.monitor -t 25 -y /tmp/volume-test-heaps-html5.wav &
@@ -2270,7 +2279,11 @@ jobs:
             --window-position=0,0 \
             "http://localhost:8182/index.html?test=api-probe" > /tmp/api-probe-heaps-html5.log.raw 2>&1 &
           CHROME_PID=$!
+          # Two clicks: the first can land before a page on software GL is
+          # interactive, and the audio context needs a gesture that reaches it
           sleep 3
+          xdotool mousemove 320 240 click 1
+          sleep 5
           xdotool mousemove 320 240 click 1
           for i in $(seq 45); do
             grep -q "API_PROBE: COMPLETE" /tmp/api-probe-heaps-html5.log.raw && break
@@ -2310,7 +2323,11 @@ jobs:
             --window-position=0,0 \
             "http://localhost:8186/index.html?test=synth-test" > /tmp/synth-test-heaps-html5.log.raw 2>&1 &
           CHROME_PID=$!
+          # Two clicks: the first can land before a page on software GL is
+          # interactive, and the audio context needs a gesture that reaches it
           sleep 3
+          xdotool mousemove 320 240 click 1
+          sleep 5
           xdotool mousemove 320 240 click 1
           for i in $(seq 70); do
             grep -q "SYNTH_TEST: COMPLETE" /tmp/synth-test-heaps-html5.log.raw && break
@@ -2353,7 +2370,11 @@ jobs:
             --window-position=0,0 \
             "http://localhost:8183/index.html?test=cb-test" > /tmp/cb-test-heaps-html5.log.raw 2>&1 &
           CHROME_PID=$!
+          # Two clicks: the first can land before a page on software GL is
+          # interactive, and the audio context needs a gesture that reaches it
           sleep 3
+          xdotool mousemove 320 240 click 1
+          sleep 5
           xdotool mousemove 320 240 click 1
           for i in $(seq 45); do
             grep -q "CB_TEST: COMPLETE" /tmp/cb-test-heaps-html5.log.raw && break
@@ -2392,7 +2413,11 @@ jobs:
             --window-position=0,0 \
             "http://localhost:8184/index.html?test=ps-test" > /tmp/ps-test-heaps-html5.log.raw 2>&1 &
           CHROME_PID=$!
+          # Two clicks: the first can land before a page on software GL is
+          # interactive, and the audio context needs a gesture that reaches it
           sleep 3
+          xdotool mousemove 320 240 click 1
+          sleep 5
           xdotool mousemove 320 240 click 1
           for i in $(seq 45); do
             grep -q "PS_TEST: COMPLETE" /tmp/ps-test-heaps-html5.log.raw && break
@@ -2430,7 +2455,11 @@ jobs:
             --window-position=0,0 \
             "http://localhost:8185/index.html?test=bank-test" > /tmp/bank-test-heaps-html5.log.raw 2>&1 &
           CHROME_PID=$!
+          # Two clicks: the first can land before a page on software GL is
+          # interactive, and the audio context needs a gesture that reaches it
           sleep 3
+          xdotool mousemove 320 240 click 1
+          sleep 5
           xdotool mousemove 320 240 click 1
           for i in $(seq 45); do
             grep -q "BANK_TEST: COMPLETE" /tmp/bank-test-heaps-html5.log.raw && break
@@ -2468,7 +2497,11 @@ jobs:
             --window-position=0,0 \
             "http://localhost:8187/index.html?test=pan-test" > /tmp/pan-test-heaps-html5.log.raw 2>&1 &
           CHROME_PID=$!
+          # Two clicks: the first can land before a page on software GL is
+          # interactive, and the audio context needs a gesture that reaches it
           sleep 3
+          xdotool mousemove 320 240 click 1
+          sleep 5
           xdotool mousemove 320 240 click 1
           for i in $(seq 45); do
             grep -q "PAN_TEST: COMPLETE" /tmp/pan-test-heaps-html5.log.raw && break
@@ -3128,7 +3161,11 @@ jobs:
             --window-position=0,0 \
             http://localhost:8280 &
           CHROME_PID=$!
+          # Two clicks: the first can land before a page on software GL is
+          # interactive, and the audio context needs a gesture that reaches it
           sleep 3
+          xdotool mousemove 320 240 click 1
+          sleep 5
           xdotool mousemove 320 240 click 1
           sleep 1
           ffmpeg -f pulse -i virtual_speaker.monitor -t 30 -y /tmp/audio-kha-html5.wav &
@@ -3144,6 +3181,7 @@ jobs:
         run: ./ci/validate-audio.sh /tmp/audio-kha-html5.wav 10
 
       - name: Build test variant
+        if: ${{ !cancelled() }}
         env:
           FMOD_SDK_WEB: ${{ env.FMOD_SDK }}
         run: |
@@ -3171,7 +3209,11 @@ jobs:
             --window-position=0,0 \
             http://localhost:8281 > /tmp/volume-test-kha-html5-console.log 2>&1 &
           CHROME_PID=$!
+          # Two clicks: the first can land before a page on software GL is
+          # interactive, and the audio context needs a gesture that reaches it
           sleep 3
+          xdotool mousemove 320 240 click 1
+          sleep 5
           xdotool mousemove 320 240 click 1
           sleep 1
           ffmpeg -f pulse -i virtual_speaker.monitor -t 25 -y /tmp/volume-test-kha-html5.wav &
@@ -3207,7 +3249,11 @@ jobs:
             --window-position=0,0 \
             "http://localhost:8282/index.html?test=api-probe" > /tmp/api-probe-kha-html5.log.raw 2>&1 &
           CHROME_PID=$!
+          # Two clicks: the first can land before a page on software GL is
+          # interactive, and the audio context needs a gesture that reaches it
           sleep 3
+          xdotool mousemove 320 240 click 1
+          sleep 5
           xdotool mousemove 320 240 click 1
           for i in $(seq 45); do
             grep -q "API_PROBE: COMPLETE" /tmp/api-probe-kha-html5.log.raw && break
@@ -3247,7 +3293,11 @@ jobs:
             --window-position=0,0 \
             "http://localhost:8286/index.html?test=synth-test" > /tmp/synth-test-kha-html5.log.raw 2>&1 &
           CHROME_PID=$!
+          # Two clicks: the first can land before a page on software GL is
+          # interactive, and the audio context needs a gesture that reaches it
           sleep 3
+          xdotool mousemove 320 240 click 1
+          sleep 5
           xdotool mousemove 320 240 click 1
           for i in $(seq 70); do
             grep -q "SYNTH_TEST: COMPLETE" /tmp/synth-test-kha-html5.log.raw && break
@@ -3290,7 +3340,11 @@ jobs:
             --window-position=0,0 \
             "http://localhost:8283/index.html?test=cb-test" > /tmp/cb-test-kha-html5.log.raw 2>&1 &
           CHROME_PID=$!
+          # Two clicks: the first can land before a page on software GL is
+          # interactive, and the audio context needs a gesture that reaches it
           sleep 3
+          xdotool mousemove 320 240 click 1
+          sleep 5
           xdotool mousemove 320 240 click 1
           for i in $(seq 45); do
             grep -q "CB_TEST: COMPLETE" /tmp/cb-test-kha-html5.log.raw && break
@@ -3329,7 +3383,11 @@ jobs:
             --window-position=0,0 \
             "http://localhost:8284/index.html?test=ps-test" > /tmp/ps-test-kha-html5.log.raw 2>&1 &
           CHROME_PID=$!
+          # Two clicks: the first can land before a page on software GL is
+          # interactive, and the audio context needs a gesture that reaches it
           sleep 3
+          xdotool mousemove 320 240 click 1
+          sleep 5
           xdotool mousemove 320 240 click 1
           for i in $(seq 45); do
             grep -q "PS_TEST: COMPLETE" /tmp/ps-test-kha-html5.log.raw && break
@@ -3367,7 +3425,11 @@ jobs:
             --window-position=0,0 \
             "http://localhost:8285/index.html?test=bank-test" > /tmp/bank-test-kha-html5.log.raw 2>&1 &
           CHROME_PID=$!
+          # Two clicks: the first can land before a page on software GL is
+          # interactive, and the audio context needs a gesture that reaches it
           sleep 3
+          xdotool mousemove 320 240 click 1
+          sleep 5
           xdotool mousemove 320 240 click 1
           for i in $(seq 45); do
             grep -q "BANK_TEST: COMPLETE" /tmp/bank-test-kha-html5.log.raw && break
@@ -3405,7 +3467,11 @@ jobs:
             --window-position=0,0 \
             "http://localhost:8287/index.html?test=pan-test" > /tmp/pan-test-kha-html5.log.raw 2>&1 &
           CHROME_PID=$!
+          # Two clicks: the first can land before a page on software GL is
+          # interactive, and the audio context needs a gesture that reaches it
           sleep 3
+          xdotool mousemove 320 240 click 1
+          sleep 5
           xdotool mousemove 320 240 click 1
           for i in $(seq 45); do
             grep -q "PAN_TEST: COMPLETE" /tmp/pan-test-kha-html5.log.raw && break
