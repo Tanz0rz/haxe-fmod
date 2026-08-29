@@ -2191,16 +2191,17 @@ jobs:
             --window-position=0,0 \
             http://localhost:8180 &
           CHROME_PID=$!
-          # Two clicks: the first can land before a page on software GL is
-          # interactive, and the audio context needs a gesture that reaches it
           sleep 3
-          xdotool mousemove 320 240 click 1
-          sleep 5
           xdotool mousemove 320 240 click 1
           sleep 1
           ffmpeg -f pulse -i virtual_speaker.monitor -t 30 -y /tmp/audio-heaps-html5.wav &
           RECORD_PID=$!
-          sleep 31
+          # A second click during the recording: the first can land before a
+          # page on software GL is interactive, and the audio context needs
+          # a gesture that reaches it
+          sleep 4
+          xdotool mousemove 320 240 click 1
+          sleep 27
           kill $CHROME_PID || true
           pkill -f "$PROFILE" || true
           kill $HTTP_PID || true
@@ -2239,16 +2240,17 @@ jobs:
             --window-position=0,0 \
             http://localhost:8181 > /tmp/volume-test-heaps-html5-console.log 2>&1 &
           CHROME_PID=$!
-          # Two clicks: the first can land before a page on software GL is
-          # interactive, and the audio context needs a gesture that reaches it
           sleep 3
-          xdotool mousemove 320 240 click 1
-          sleep 5
           xdotool mousemove 320 240 click 1
           sleep 1
           ffmpeg -f pulse -i virtual_speaker.monitor -t 25 -y /tmp/volume-test-heaps-html5.wav &
           RECORD_PID=$!
-          sleep 26
+          # A second click during the recording: the first can land before a
+          # page on software GL is interactive, and the audio context needs
+          # a gesture that reaches it
+          sleep 4
+          xdotool mousemove 320 240 click 1
+          sleep 22
           kill $CHROME_PID || true
           pkill -f "$PROFILE" || true
           kill $HTTP_PID || true
@@ -3161,16 +3163,17 @@ jobs:
             --window-position=0,0 \
             http://localhost:8280 &
           CHROME_PID=$!
-          # Two clicks: the first can land before a page on software GL is
-          # interactive, and the audio context needs a gesture that reaches it
           sleep 3
-          xdotool mousemove 320 240 click 1
-          sleep 5
           xdotool mousemove 320 240 click 1
           sleep 1
           ffmpeg -f pulse -i virtual_speaker.monitor -t 30 -y /tmp/audio-kha-html5.wav &
           RECORD_PID=$!
-          sleep 31
+          # A second click during the recording: the first can land before a
+          # page on software GL is interactive, and the audio context needs
+          # a gesture that reaches it
+          sleep 4
+          xdotool mousemove 320 240 click 1
+          sleep 27
           kill $CHROME_PID || true
           pkill -f "$PROFILE" || true
           kill $HTTP_PID || true
@@ -3209,16 +3212,17 @@ jobs:
             --window-position=0,0 \
             http://localhost:8281 > /tmp/volume-test-kha-html5-console.log 2>&1 &
           CHROME_PID=$!
-          # Two clicks: the first can land before a page on software GL is
-          # interactive, and the audio context needs a gesture that reaches it
           sleep 3
-          xdotool mousemove 320 240 click 1
-          sleep 5
           xdotool mousemove 320 240 click 1
           sleep 1
           ffmpeg -f pulse -i virtual_speaker.monitor -t 25 -y /tmp/volume-test-kha-html5.wav &
           RECORD_PID=$!
-          sleep 26
+          # A second click during the recording: the first can land before a
+          # page on software GL is interactive, and the audio context needs
+          # a gesture that reaches it
+          sleep 4
+          xdotool mousemove 320 240 click 1
+          sleep 22
           kill $CHROME_PID || true
           pkill -f "$PROFILE" || true
           kill $HTTP_PID || true

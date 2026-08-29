@@ -226,12 +226,14 @@ record_browser_game() {
   chrome=$!
   sleep 3
   xdotool mousemove 320 240 click 1
-  sleep 5
-  xdotool mousemove 320 240 click 1
   sleep 1
   ffmpeg -loglevel error -f pulse -i virtual_speaker.monitor -t "$secs" -y "$wav" &
   rec=$!
-  sleep $((secs + 1))
+  # Second click during the recording, for a page that was not yet
+  # interactive at the first one
+  sleep 4
+  xdotool mousemove 320 240 click 1
+  sleep $((secs - 3))
   kill $chrome $http 2>/dev/null || true
   wait $rec 2>/dev/null || true
   wait $chrome $http 2>/dev/null || true
