@@ -15,7 +15,7 @@ if (description.isNull()) {
 }
 ```
 
-`isValid()` asks the native side whether the handle still points at a live FMOD object. A handle that was released, or whose object FMOD destroyed on its own, is stale. `isNull()` is a local check, `isValid()` is a native call.
+The studio handles (`EventInstance`, `EventDescription`, `Bank`, `Bus`, `Vca`, `CommandReplay`) and `FmodSound` also have `isValid()`, which asks the native side whether the handle still points at a live FMOD object. A handle that was released, or whose object FMOD destroyed on its own, is stale. `isNull()` is a local check, `isValid()` is a native call. The core handles have `isNull()` only, and a stale core handle shows up as `FMOD_ERR_INVALID_HANDLE` from its next call.
 
 ## Stale handles are safe
 
@@ -31,7 +31,7 @@ sound.release();      // also safe
 
 FMOD objects have two kinds of lifetime.
 
-**Looked-up handles** (`EventDescription`, `Bus`, `Vca`, `Bank`) refer to objects that live as long as their bank is loaded. `StudioSystem.getBus` and `getEvent` cache one handle per path, so repeated lookups return the same handle and there is nothing to release.
+**Looked-up handles** (`EventDescription`, `Bus`, `Vca`, `Bank`) refer to objects that live as long as their bank is loaded. `StudioSystem.getBus` caches one handle per path, so repeated bus lookups return the same handle. `getEvent`, `getVCA`, and `getBank` look the object up on each call. None of these handles is released by the game.
 
 **Created handles** (`EventInstance`, `Sound`, `Dsp`, custom `ChannelGroup`, `SoundGroup`, `CommandReplay`) are yours until you release them. `release()` on an event instance lets FMOD destroy it once it stops. The handle becomes invalid immediately, any registered callback is removed, and the instance keeps playing out unless you stopped it first. Fire-and-forget playback is just start followed by release.
 

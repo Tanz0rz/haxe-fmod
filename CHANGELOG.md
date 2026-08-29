@@ -3,7 +3,7 @@
 ## 3.0.0 (unreleased)
 
 ### Added
-- Init settings for the engine knobs FMOD only accepts before initialization: `FmodSettings.dspBufferSize` and `dspNumBuffers` (mixer latency, native only, the web build fixes its buffer), `softwareChannels` (the audible voice cap, separate from the virtual count in `numChannels`), `streamBufferSize`, `profiling` (turns on FMOD profiling so `Bus`, `EventInstance`, and `Dsp` `getCpuUsage()` report values), and `distanceFilter`. Defines `haxefmod_dsp_buffer_size` and `haxefmod_software_channels` set the first two from `Project.xml`.
+- Init settings for the engine knobs FMOD only accepts before initialization: `FmodSettings.dspBufferSize` and `dspNumBuffers` (mixer latency, the web build starts at 2048 by 2 and takes the values as well), `softwareChannels` (the audible voice cap, separate from the virtual count in `numChannels`), `streamBufferSize`, `profiling` (turns on FMOD profiling so `Bus`, `EventInstance`, and `Dsp` `getCpuUsage()` report values), and `distanceFilter`. Defines `haxefmod_dsp_buffer_size` and `haxefmod_software_channels` set the first two from `Project.xml`.
 - `Channel.set3DDistanceFilter` and `ChannelGroup.set3DDistanceFilter` with their getters, FMOD's built-in muffling with distance. They need the `distanceFilter` setting on at init.
 - `StudioSystem.getVersion()` reports the FMOD engine the running build loaded, formatted like `2.03.12`, for diagnostics and bug reports.
 - `Sound.readData(buffer, ?length)` and `seekData(pcm)` read decoded PCM out of a sound, for waveform displays and offline analysis. `Sound.create` gained an `openOnly` flag that keeps the file open for reading. Unsupported in HTML5, where they report `FMOD_ERR_UNSUPPORTED`.

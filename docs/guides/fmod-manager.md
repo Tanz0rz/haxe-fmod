@@ -94,7 +94,7 @@ instance.setParameterWithLabel("Surface", "Grass");
 | `SetBusVolume(path, volume)` / `GetBusVolume(path)` | Linear bus volume, 0.0 silent to 1.0 full. |
 | `SetBusMute(path, mute)` / `GetBusMute(path)` | Bus mute flag. Volume survives a mute and unmute round trip. |
 | `SetBusVolumeMaster`, `GetBusVolumeMaster`, `SetBusMuteMaster`, `GetBusMuteMaster` | The same for `bus:/`. |
-| `ClearAllCallbacks()` | Removes every registered callback: song, sounds, and core channels. |
+| `ClearAllCallbacks()` | Removes every registered callback: song and sound handlers, event description handlers, core channel and group handlers, the system callback, and PCM stream read callbacks. Userdata is left alone. |
 
 Bus paths come from FMOD Studio, for example `bus:/SFX`, and the generated `FmodBuses` class holds them as constants.
 

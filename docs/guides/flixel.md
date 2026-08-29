@@ -4,7 +4,7 @@
 
 ## Setup
 
-Call `FmodFlxSetup.init(?settings)` once, in your first state. It initializes FMOD with the given [settings](banks-and-settings.md#settings), registers `FmodFlxUpdater` as a global plugin so `FmodManager.Update()` runs every frame in every state, and wires flixel's own audio controls to FMOD. The volume keys and sound tray drive the FMOD master bus, `FlxG.sound.volume` and `FlxG.sound.muted` map to bus volume and mute, and the tray's beep is silenced because FMOD owns the audio now.
+Call `FmodFlxSetup.init(?settings)` once, in your first state. It initializes FMOD with the given [settings](banks-and-settings.md#settings), registers `FmodFlxUpdater` as a global plugin so `FmodManager.Update()` runs every frame in every state, forwards `FlxG.signals.focusGained` and `focusLost` to `FmodManager.SetWindowFocused` (see [FmodManager](fmod-manager.md#window-focus)), and wires flixel's own audio controls to FMOD. The volume keys and sound tray drive the FMOD master bus, `FlxG.sound.volume` and `FlxG.sound.muted` map to bus volume and mute, and the tray's beep is silenced because FMOD owns the audio now.
 
 ```haxe
 import haxefmod.flixel.FmodFlxSetup;
@@ -42,7 +42,7 @@ emitter.instance.setParameter("RPM", 0.4);
 
 `FmodFlxEmitter.play(path, target)` creates and starts an instance, and `new FmodFlxEmitter(instance, target)` wraps one you already created. Positions are pushed by the runtime update, so the emitter has no per-frame work of its own.
 
-Distance culling is opt-in. With `stopEventsOutsideMaxDistance = true`, the emitter stops its event with a fadeout while it is beyond the event's authored maximum distance from the listener, and restarts it when the listener comes back in range. This saves voices on far-away looping emitters. Only an instance the emitter itself stopped is restarted, so an instance the game stopped stays stopped, and a restart begins from the event's start with the instance's parameters still applied. `listenerIndex` picks which listener the distance is measured against, `cullCheckInterval` sets how many frames pass between checks (default 6), and `cullMaxDistance` overrides the authored distance when set to a positive value. Culling applies to 3D events only.
+Distance culling is opt-in. With `stopEventsOutsideMaxDistance = true`, the emitter stops its event with a fadeout while it is beyond the event's authored maximum distance from the listener, and restarts it when the listener comes back in range. This saves voices on far-away looping emitters. Only an instance the emitter itself stopped is restarted, so an instance the game stopped stays stopped, and a restart begins from the event's start with the instance's parameters still applied. `listenerIndex` picks which listener the distance is measured against, `cullCheckInterval` sets how many frames pass between checks (default 6), and `cullMaxDistance` overrides the authored distance when set to a positive value. One-shot events are never culled, since stopping and restarting a self-ending event would replay it long after it would have finished. With the default `cullMaxDistance` only 3D events are culled. A 2D event is culled only when `cullMaxDistance` is set.
 
 ## FmodFlxListener
 
