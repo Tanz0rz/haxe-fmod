@@ -233,39 +233,39 @@ verdict: cannot It takes a DSP description struct whose callbacks FMOD runs on i
 verdict: cannot It names a plugin registered from a description struct, and that registration cannot be bound because its callbacks would run on FMOD's mixer thread. A plugin loaded with StudioSystem.loadPlugin is unloaded with StudioSystem.unloadPlugin.
 
 ## fsbank_init
-<!-- FSBANK_RESULT -->
+<!-- FSBank_Init -->
 verdict: cannot FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio.
 
 ## fsbank_build
-<!-- FSBANK_RESULT -->
+<!-- FSBank_Build -->
 verdict: cannot FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio.
 
 ## fsbank_buildcancel
-<!-- FSBANK_RESULT -->
+<!-- FSBank_BuildCancel -->
 verdict: cannot FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio.
 
 ## fsbank_release
-<!-- FSBANK_RESULT -->
+<!-- FSBank_Release -->
 verdict: cannot FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio.
 
 ## fsbank_releaseprogressitem
-<!-- FSBANK_RESULT -->
+<!-- FSBank_ReleaseProgressItem -->
 verdict: cannot FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio.
 
 ## fsbank_memorygetstats
-<!-- FSBANK_RESULT -->
+<!-- FSBank_MemoryGetStats -->
 verdict: cannot FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio.
 
 ## fsbank_memoryinit
-<!-- FSBANK_RESULT -->
+<!-- FSBank_MemoryInit -->
 verdict: cannot FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio.
 
 ## fsbank_fetchfsbmemory
-<!-- FSBANK_RESULT -->
+<!-- FSBank_FetchFSBMemory -->
 verdict: cannot FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio.
 
 ## fsbank_fetchnextprogressitem
-<!-- FSBANK_RESULT -->
+<!-- FSBank_FetchNextProgressItem -->
 verdict: cannot FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio.
 
 ## studio_system_release

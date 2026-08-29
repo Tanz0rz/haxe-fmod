@@ -563,12 +563,21 @@ def owner_of(key, heading):
 
 
 def render_unsupported_md(table):
-    """Functions with neither a binding nor an equivalent call, grouped by
-    FMOD object, each with the note that says why."""
+    """Functions with a cannot verdict, grouped by FMOD object, each with
+    the reason."""
     groups = {}
+    seen = set()
     for key, record in table.items():
-        if record["haxe"] or record.get("code") is not None:
+        notes = record.get("notes") or []
+        # covered and library verdicts are reached through another call or
+        # performed by the library, only a cannot verdict is unsupported
+        if record["haxe"] or not notes or not notes[0].startswith("Cannot be bound."):
             continue
+        # a function documented under two headings on one page is one function
+        name = (record.get("heading") or key).lower()
+        if name in seen:
+            continue
+        seen.add(name)
         groups.setdefault(owner_of(key, record.get("heading")), []).append((key, record))
     total = sum(len(g) for g in groups.values())
     lines = [

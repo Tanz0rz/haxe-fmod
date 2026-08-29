@@ -5548,7 +5548,7 @@ const HAXEFMOD_BINDINGS = {
   "fsbank_build": {
    "fmod": "",
    "haxe": [],
-   "heading": "FSBANK_RESULT",
+   "heading": "FSBank_Build",
    "html5": false,
    "notes": [
     "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
@@ -5557,7 +5557,7 @@ const HAXEFMOD_BINDINGS = {
   "fsbank_buildcancel": {
    "fmod": "",
    "haxe": [],
-   "heading": "FSBANK_RESULT",
+   "heading": "FSBank_BuildCancel",
    "html5": false,
    "notes": [
     "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
@@ -5566,7 +5566,7 @@ const HAXEFMOD_BINDINGS = {
   "fsbank_fetchfsbmemory": {
    "fmod": "",
    "haxe": [],
-   "heading": "FSBANK_RESULT",
+   "heading": "FSBank_FetchFSBMemory",
    "html5": false,
    "notes": [
     "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
@@ -5575,7 +5575,7 @@ const HAXEFMOD_BINDINGS = {
   "fsbank_fetchnextprogressitem": {
    "fmod": "",
    "haxe": [],
-   "heading": "FSBANK_RESULT",
+   "heading": "FSBank_FetchNextProgressItem",
    "html5": false,
    "notes": [
     "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
@@ -5584,7 +5584,7 @@ const HAXEFMOD_BINDINGS = {
   "fsbank_init": {
    "fmod": "",
    "haxe": [],
-   "heading": "FSBANK_RESULT",
+   "heading": "FSBank_Init",
    "html5": false,
    "notes": [
     "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
@@ -5593,7 +5593,7 @@ const HAXEFMOD_BINDINGS = {
   "fsbank_memorygetstats": {
    "fmod": "",
    "haxe": [],
-   "heading": "FSBANK_RESULT",
+   "heading": "FSBank_MemoryGetStats",
    "html5": false,
    "notes": [
     "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
@@ -5602,7 +5602,7 @@ const HAXEFMOD_BINDINGS = {
   "fsbank_memoryinit": {
    "fmod": "",
    "haxe": [],
-   "heading": "FSBANK_RESULT",
+   "heading": "FSBank_MemoryInit",
    "html5": false,
    "notes": [
     "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
@@ -5611,7 +5611,7 @@ const HAXEFMOD_BINDINGS = {
   "fsbank_release": {
    "fmod": "",
    "haxe": [],
-   "heading": "FSBANK_RESULT",
+   "heading": "FSBank_Release",
    "html5": false,
    "notes": [
     "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
@@ -5620,7 +5620,7 @@ const HAXEFMOD_BINDINGS = {
   "fsbank_releaseprogressitem": {
    "fmod": "",
    "haxe": [],
-   "heading": "FSBANK_RESULT",
+   "heading": "FSBank_ReleaseProgressItem",
    "html5": false,
    "notes": [
     "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
