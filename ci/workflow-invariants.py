@@ -223,6 +223,12 @@ REQUIRED_STEPS = {
         "Run ps-test state (browser)", "Run bank-test state (browser)",
         "Run pan-test state (browser)",
     ],
+    "heaps-mac-hl": NATIVE_SUITE + ["Validate game log", "Run stress-test state (smoke)"],
+    "heaps-windows-hl": NATIVE_SUITE + ["Validate game log", "Run stress-test state (smoke)"],
+    "kha-mac": NATIVE_SUITE + ["Validate game log", "Run stress-test state (smoke)"],
+    "kha-mac-hl": NATIVE_SUITE + ["Validate game log", "Run stress-test state (smoke)"],
+    "kha-windows": NATIVE_SUITE + ["Validate game log", "Run stress-test state (smoke)"],
+    "kha-windows-hl": NATIVE_SUITE + ["Validate game log", "Run stress-test state (smoke)"],
     "linux-html5-firefox": [
         "Build HTML5 target",
         "Start display and audio",

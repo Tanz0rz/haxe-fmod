@@ -183,6 +183,13 @@ class TestPostBuild {
 		assert(script.indexOf("\"./My Game\" \"$@\"") >= 0, "run.sh quoted exe invocation");
 		assert(script.indexOf("cd \"$(dirname \"$0\")\"") >= 0, "run.sh cd to script dir");
 
+		var mac = PostBuild.runShContent("game.hl", true, true);
+		check("mac launcher runs the bytecode through hl", mac.indexOf('hl "./game.hl"') != -1);
+		check("mac launcher sets DYLD_LIBRARY_PATH", mac.indexOf("DYLD_LIBRARY_PATH") != -1 && mac.indexOf("LD_LIBRARY_PATH=\"") == -1);
+		var cmd = PostBuild.runCmdContent("game.hl");
+		check("windows launcher changes to its own directory", cmd.indexOf('cd /d "%~dp0"') != -1);
+		check("windows launcher runs the bytecode through hl", cmd.indexOf('hl "game.hl" %*') != -1);
+		check("windows launcher uses CRLF", cmd.indexOf("\r\n") != -1);
 		var plain = PostBuild.runShContent("Game");
 		assert(plain.indexOf("\"./Game\" \"$@\"") >= 0, "run.sh plain name quoted too");
 	}

@@ -79,10 +79,18 @@ runs:
             fi
             ;;
           Darwin*)
-            EXE=$(find . -maxdepth 1 -type f ! -name "*.dylib" ! -name "*.hdll" ! -name "*.ndll" ! -name "*.so*" -print -quit)
+            EXE=$(find . -maxdepth 1 -type f ! -name "*.dylib" ! -name "*.hdll" ! -name "*.ndll" ! -name "*.so*" ! -name "*.hl" ! -name "run.sh" -print -quit)
+            # A HashLink bytecode build has no executable, only the launcher
+            # the stage command wrote
+            if [ -z "$EXE" ] && [ -f run.sh ]; then
+              EXE=./run.sh
+            fi
             ;;
           *)
             EXE=$(find . -maxdepth 1 -name "*.exe" -print -quit)
+            if [ -z "$EXE" ] && [ -f run.cmd ]; then
+              EXE=./run.cmd
+            fi
             ;;
         esac
         echo "Running state ${{ inputs.state }} via $EXE"

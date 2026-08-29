@@ -34,8 +34,8 @@ if (process.env.HAXEFMOD_KHA_HL === '1') {
 }
 
 if (platform === Platform.Windows) {
-	project.addLib(path.join(sdk, 'api', 'core', 'lib', 'x64', 'fmod_vc'));
-	project.addLib(path.join(sdk, 'api', 'studio', 'lib', 'x64', 'fmodstudio_vc'));
+	project.addLib(path.join(sdk, 'api', 'core', 'lib', 'x64', 'fmod_vc.lib'));
+	project.addLib(path.join(sdk, 'api', 'studio', 'lib', 'x64', 'fmodstudio_vc.lib'));
 } else {
 	project.addLib('fmod');
 	project.addLib('fmodstudio');

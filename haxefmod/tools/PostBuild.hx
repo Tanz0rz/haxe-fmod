@@ -99,11 +99,11 @@ class PostBuild {
 			projectDir:String, destDir:String, standalone:Bool):Void {
 		switch (platform) {
 			case "mac":
-				copyMac(sdkPath, target, libRoot, destDir, projectDir);
+				copyMac(sdkPath, target, libRoot, destDir, projectDir, standalone);
 			case "linux":
 				copyLinux(sdkPath, target, libRoot, destDir, projectDir, standalone);
 			case "windows":
-				copyWindows(sdkPath, target, libRoot, destDir, projectDir);
+				copyWindows(sdkPath, target, libRoot, destDir, projectDir, standalone);
 			case "html5":
 				copyHtml5(sdkPath, libRoot, destDir, standalone);
 			default:
@@ -445,7 +445,7 @@ class PostBuild {
 
 	//// Mac
 
-	static function copyMac(sdkDir:String, target:String, libRoot:String, dest:String, projectDir:String):Void {
+	static function copyMac(sdkDir:String, target:String, libRoot:String, dest:String, projectDir:String, standalone:Bool = false):Void {
 		log('Copying FMOD dylibs to $dest');
 
 		copyRequired(Path.join([sdkDir, "api", "core", "lib", "libfmod.dylib"]), Path.join([dest, "libfmod.dylib"]));
@@ -466,6 +466,18 @@ class PostBuild {
 					proc.exitCode();
 					proc.close();
 				} catch (e:Dynamic) {}
+			}
+		}
+
+		// A HashLink VM build (Heaps, plain haxe -hl) has no executable of
+		// its own. The launcher runs the bytecode through hl with the
+		// library path set, since the hl binary carries no rpath to here.
+		if (standalone && target == "hl" && !FileSystem.exists(Path.join([dest, "run.sh"]))) {
+			var bytecode = findBytecodeName(dest);
+			if (bytecode != null) {
+				var runSh = Path.join([dest, "run.sh"]);
+				File.saveContent(runSh, runShContent(bytecode, true, true));
+				Sys.command("chmod", ["+x", runSh]);
 			}
 		}
 
@@ -586,7 +598,7 @@ class PostBuild {
 
 	//// Windows
 
-	static function copyWindows(sdkDir:String, target:String, libRoot:String, binDir:String, projectDir:String):Void {
+	static function copyWindows(sdkDir:String, target:String, libRoot:String, binDir:String, projectDir:String, standalone:Bool = false):Void {
 		log('Copying FMOD DLLs to $binDir');
 
 		copyRequired(Path.join([sdkDir, "api", "core", "lib", "x64", "fmod.dll"]), Path.join([binDir, "fmod.dll"]));
@@ -595,6 +607,15 @@ class PostBuild {
 		// Copy hlaxe_fmod.hdll - tiered resolution with binding ABI check
 		if (target == "hl") {
 			copyHdll(projectDir, libRoot, "Windows64", binDir);
+		}
+
+		// Launcher for a HashLink VM build: hl.exe on PATH, DLLs and hdll
+		// next to the bytecode
+		if (standalone && target == "hl" && !FileSystem.exists(Path.join([binDir, "run.cmd"]))) {
+			var bytecode = findBytecodeName(binDir);
+			if (bytecode != null) {
+				File.saveContent(Path.join([binDir, "run.cmd"]), runCmdContent(bytecode));
+			}
 		}
 
 		log("Done - copied fmod.dll and fmodstudio.dll");
@@ -771,9 +792,15 @@ class PostBuild {
 	 * The generated Linux launcher script. The exe invocation is quoted so
 	 * a name with spaces still launches. Public for unit tests.
 	 */
-	public static function runShContent(exeName:String, viaHl:Bool = false):String {
+	public static function runShContent(exeName:String, viaHl:Bool = false, mac:Bool = false):String {
 		var launch = viaHl ? 'hl "./${exeName}"' : '"./${exeName}"';
-		return '#!/bin/bash\ncd "$$(dirname "$$0")"\nexport LD_LIBRARY_PATH="$$(pwd):$$LD_LIBRARY_PATH"\n${launch} "$$@"\n';
+		var libPath = mac ? "DYLD_LIBRARY_PATH" : "LD_LIBRARY_PATH";
+		return '#!/bin/bash\ncd "$$(dirname "$$0")"\nexport ${libPath}="$$(pwd):$$${libPath}"\n${launch} "$$@"\n';
+	}
+
+	/** The Windows launcher for a HashLink bytecode build. Public for unit tests. */
+	public static function runCmdContent(bytecode:String):String {
+		return '@echo off\r\ncd /d "%~dp0"\r\nhl "${bytecode}" %*\r\n';
 	}
 
 	/** Find just the filename of the executable in a directory. */
