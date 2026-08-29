@@ -4,14 +4,6 @@
 <!-- ChannelControl::getSystemObject -->
 verdict: covered haxefmod has one core system, and haxefmod.core.CoreSystem reaches it directly, so no object needs to hand it back.
 
-## file_getdiskbusy
-<!-- File_GetDiskBusy -->
-verdict: covered The global disk busy flag is not bound. Sound.getOpenStateInfo() reports diskBusy per sound, which is the value a game polls while a stream fills.
-
-## file_setdiskbusy
-<!-- File_SetDiskBusy -->
-verdict: cannot The disk busy flag belongs to the custom file system callbacks, which FMOD runs on its streaming thread, and no Haxe target can execute code there.
-
 ## dsp_getsystemobject
 <!-- DSP::getSystemObject -->
 verdict: covered haxefmod has one core system, and haxefmod.core.CoreSystem reaches it directly, so no object needs to hand it back.
@@ -75,14 +67,6 @@ verdict: cannot FMOD runs file callbacks on its streaming and loading threads, a
 ## sound_getsystemobject
 <!-- Sound::getSystemObject -->
 verdict: covered haxefmod has one core system, and haxefmod.core.CoreSystem reaches it directly, so no object needs to hand it back.
-
-## sound_lock
-<!-- Sound::lock -->
-verdict: cannot It returns a raw pointer into the sample buffer, which has no meaning in Haxe. Sound.readData covers reading, it copies decoded PCM out of a sound opened with the openOnly flag of Sound.create, and seekData moves the read cursor. Both are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED.
-
-## sound_unlock
-<!-- Sound::unlock -->
-verdict: cannot It returns a raw pointer into the sample buffer, which has no meaning in Haxe. Sound.readData covers reading, it copies decoded PCM out of a sound opened with the openOnly flag of Sound.create, and seekData moves the read cursor. Both are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED.
 
 ## soundgroup_getsystemobject
 <!-- SoundGroup::getSystemObject -->

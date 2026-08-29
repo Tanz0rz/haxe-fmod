@@ -6275,4 +6275,31 @@ class jaxe {
         ibuf[1] = unit.val || 0;
         return jaxe.lastResult;
     }
+
+    // The web glue has no Sound lock or unlock and no File_SetDiskBusy, so
+    // all four report 68 (ERR_UNSUPPORTED) on a live handle and the sound
+    // calls keep reporting 30 on a dead one.
+    static fmod_core_sound_lock(handle, offset, length, out) {
+        var sound = jaxe.handleResolve(handle, jaxe.TYPE_SOUND);
+        if (!sound) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return -jaxe.lastResult; }
+        jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        return -jaxe.lastResult;
+    }
+
+    static fmod_core_sound_unlock(handle, data, len) {
+        var sound = jaxe.handleResolve(handle, jaxe.TYPE_SOUND);
+        if (!sound) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        return jaxe.lastResult;
+    }
+
+    static fmod_sys_set_disk_busy(busy) {
+        jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        return jaxe.lastResult;
+    }
+
+    static fmod_sys_get_disk_busy() {
+        jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
+        return false;
+    }
 }

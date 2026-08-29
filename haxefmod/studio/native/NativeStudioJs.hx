@@ -759,6 +759,10 @@ class NativeStudioJs {
     public static inline function sys_get_dsp_info_by_type(type:Int):String return Raw.fmod_sys_get_dsp_info_by_type(type, Scratch.intBuf());
     public static inline function sys_get_output_by_plugin():Int return Raw.fmod_sys_get_output_by_plugin();
     public static inline function sys_set_output_by_plugin(handle:Int):Int return Raw.fmod_sys_set_output_by_plugin(handle);
+    public static inline function core_sound_lock(handle:Int, offset:Int, length:Int, out:haxe.io.Bytes):Int return Raw.fmod_core_sound_lock(handle, offset, length, out.getData());
+    public static inline function core_sound_unlock(handle:Int, data:haxe.io.Bytes, len:Int):Int return Raw.fmod_core_sound_unlock(handle, data.getData(), len);
+    public static inline function sys_set_disk_busy(busy:Bool):Int return Raw.fmod_sys_set_disk_busy(busy);
+    public static inline function sys_get_disk_busy():Bool return Raw.fmod_sys_get_disk_busy();
     public static inline function replay_get_current_command(handle:Int):Int return Raw.fmod_replay_get_current_command(handle, Scratch.floatBuf());
 
     public static inline function cg_get_num_dsps(handle:Int):Int return Raw.fmod_cg_get_num_dsps(handle);
@@ -1330,6 +1334,10 @@ private extern class Raw {
     static function fmod_sys_get_dsp_info_by_type(type:Int, ibuf:Array<Int>):String;
     static function fmod_sys_get_output_by_plugin():Int;
     static function fmod_sys_set_output_by_plugin(handle:Int):Int;
+    static function fmod_core_sound_lock(handle:Int, offset:Int, length:Int, out:haxe.io.BytesData):Int;
+    static function fmod_core_sound_unlock(handle:Int, data:haxe.io.BytesData, len:Int):Int;
+    static function fmod_sys_set_disk_busy(busy:Bool):Int;
+    static function fmod_sys_get_disk_busy():Bool;
     static function fmod_replay_get_current_command(handle:Int, fbuf:Array<Float>):Int;
 
     static function fmod_cg_get_num_dsps(handle:Int):Int;

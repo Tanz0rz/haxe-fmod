@@ -50,6 +50,7 @@ class TestStudioSurface {
 		testCoreSurface();
 		testCsharpAudit();
 		testVersionDataAndRecording();
+		testSoundLockAndDiskBusy();
 		testSoundCreationAndRouting();
 		testRolloffAndGeometry();
 		testSystemCallbackStub();
@@ -340,6 +341,29 @@ class TestStudioSurface {
 		assert(!StudioSystem.recordStop(0).isOk(), "sys recordStop result");
 		assert(!StudioSystem.isRecording(0), "sys isRecording default");
 		assert(StudioSystem.getRecordPosition(0) == -1, "sys getRecordPosition default");
+	}
+
+	// Sound lock and unlock and the disk busy flag route through the stub.
+	// The Haxe side owns the buffer sizing (lock allocates the copy and
+	// trims it to what the shim locked, unlock passes the exact length), so
+	// the stub records the arguments it saw.
+	static function testSoundLockAndDiskBusy():Void {
+		var stub = haxefmod.studio.native.NativeStudioStub;
+		var sound:Sound = cast 0;
+		stub.testLockArgs = "";
+		assert(sound.lock(0, 64) == null, "lock surfaces the failure as null");
+		assert(stub.testLockArgs == "lock:0:64:64", "lock hands the shim a copy buffer of length bytes");
+		stub.testLockArgs = "";
+		assert(sound.lock(8, 0) == null, "lock with an empty range is null");
+		assert(stub.testLockArgs == "lock:8:0:0", "an empty range still reaches the shim, which reports INVALID_PARAM");
+		stub.testLockArgs = "";
+		assert(sound.unlock(haxe.io.Bytes.alloc(64)) == FmodResult.FMOD_ERR_UNSUPPORTED, "unlock surfaces the result");
+		assert(stub.testLockArgs == "unlock:64:64", "unlock passes the buffer length through");
+		stub.testLockArgs = "";
+		assert(sound.unlock(null) == FmodResult.FMOD_ERR_INVALID_PARAM, "unlock null rejected with INVALID_PARAM");
+		assert(stub.testLockArgs == "", "unlock null never reaches the backend");
+		assert(!CoreSystem.setDiskBusy(true).isOk(), "sys setDiskBusy result");
+		assert(!CoreSystem.getDiskBusy(), "sys getDiskBusy default");
 	}
 
 	// Custom rolloff and geometry route through the stub like everything

@@ -543,6 +543,24 @@ int fmod_core_create_sound_memory_ex(::Array<unsigned char> data, int len, int m
     return handle;
 }
 
+// The open Sound::lock range parked on a sound handle. FMOD returns two
+// pointers because the range can wrap around the end of the sample
+// buffer. The record lives until unlock or release.
+struct SoundLock {
+    void* ptr1;
+    void* ptr2;
+    unsigned int len1;
+    unsigned int len2;
+};
+
+// Closes an open lock on the handle, if any, and drops the record.
+static void soundLockClose(int h, FMOD::Sound* sound) {
+    SoundLock* lock = (SoundLock*)faxe_handle_get_lock(h);
+    if (!lock) return;
+    sound->unlock(lock->ptr1, lock->ptr2, lock->len1, lock->len2);
+    faxe_handle_set_lock(h, NULL);
+}
+
 // Releasing a parent sound destroys its subsounds, so every sound handle
 // whose FMOD parent is this sound is dropped first. Otherwise those slots
 // would keep pointing at freed memory.
@@ -552,13 +570,17 @@ static void releaseSubsoundHandles(FMOD::Sound* parent) {
         if (!gFaxeSlots[i].alive || gFaxeSlots[i].type != FAXE_TYPE_SOUND) continue;
         if (gFaxeSlots[i].ptr == (void*)parent) continue;
         if (((FMOD::Sound*)gFaxeSlots[i].ptr)->getSubSoundParent(&owner) != FMOD_OK) continue;
-        if (owner == parent) faxe_handle_free(((int)gFaxeSlots[i].gen << 16) | i);
+        if (owner != parent) continue;
+        int handle = ((int)gFaxeSlots[i].gen << 16) | i;
+        soundLockClose(handle, (FMOD::Sound*)gFaxeSlots[i].ptr);
+        faxe_handle_free(handle);
     }
 }
 
 int fmod_core_release_sound(int h) {
     FMOD::Sound* sound = resolveSound(h);
     if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    soundLockClose(h, sound);
     releaseSubsoundHandles(sound);
     gLastResult = sound->release();
     if (gLastResult == FMOD_OK) faxe_handle_free(h);
@@ -6547,6 +6569,63 @@ int fmod_sys_get_stream_buffer_size(::Array<int> ibuf) {
     ibuf[0] = (int)size;
     ibuf[1] = (int)unit;
     return (int)gLastResult;
+}
+
+// Locks offset..offset+length of the sample buffer and copies both halves
+// into out (the wrapped half after the first). Returns the locked byte
+// count or the negated FMOD error. The lock stays open on the handle until
+// fmod_core_sound_unlock or release.
+int fmod_core_sound_lock(int h, int offset, int length, ::Array<unsigned char> out) {
+    FMOD::Sound* sound = resolveSound(h);
+    void* ptr1 = NULL;
+    void* ptr2 = NULL;
+    unsigned int len1 = 0;
+    unsigned int len2 = 0;
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -(int)gLastResult; }
+    if (out == null() || offset < 0 || length <= 0 || length > out->length) { gLastResult = FMOD_ERR_INVALID_PARAM; return -(int)gLastResult; }
+    if (faxe_handle_get_lock(h)) { gLastResult = FMOD_ERR_INVALID_PARAM; return -(int)gLastResult; }
+    SoundLock* lock = (SoundLock*)std::malloc(sizeof(SoundLock));
+    if (!lock) { gLastResult = FMOD_ERR_MEMORY; return -(int)gLastResult; }
+    gLastResult = sound->lock((unsigned int)offset, (unsigned int)length, &ptr1, &ptr2, &len1, &len2);
+    if (gLastResult != FMOD_OK) { std::free(lock); return -(int)gLastResult; }
+    if (len1 > (unsigned int)length) len1 = (unsigned int)length;
+    if (len2 > (unsigned int)length - len1) len2 = (unsigned int)length - len1;
+    if (ptr1 && len1) memcpy(&out[0], ptr1, len1);
+    if (ptr2 && len2) memcpy(&out[0] + len1, ptr2, len2);
+    lock->ptr1 = ptr1;
+    lock->ptr2 = ptr2;
+    lock->len1 = len1;
+    lock->len2 = len2;
+    faxe_handle_set_lock(h, lock);
+    return (int)(len1 + len2);
+}
+
+// Copies len bytes back over the locked range and closes the lock. len must
+// equal the count fmod_core_sound_lock returned.
+int fmod_core_sound_unlock(int h, ::Array<unsigned char> data, int len) {
+    FMOD::Sound* sound = resolveSound(h);
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    SoundLock* lock = (SoundLock*)faxe_handle_get_lock(h);
+    if (!lock || data == null() || len < 0 || len > data->length || (unsigned int)len != lock->len1 + lock->len2) {
+        gLastResult = FMOD_ERR_INVALID_PARAM;
+        return (int)gLastResult;
+    }
+    if (lock->ptr1 && lock->len1) memcpy(lock->ptr1, &data[0], lock->len1);
+    if (lock->ptr2 && lock->len2) memcpy(lock->ptr2, &data[0] + lock->len1, lock->len2);
+    gLastResult = sound->unlock(lock->ptr1, lock->ptr2, lock->len1, lock->len2);
+    faxe_handle_set_lock(h, NULL);
+    return (int)gLastResult;
+}
+
+int fmod_sys_set_disk_busy(bool busy) {
+    gLastResult = FMOD::File_SetDiskBusy(busy ? 1 : 0);
+    return (int)gLastResult;
+}
+
+bool fmod_sys_get_disk_busy() {
+    int busy = 0;
+    gLastResult = FMOD::File_GetDiskBusy(&busy);
+    return gLastResult == FMOD_OK && busy != 0;
 }
 
 } // namespace faxe

@@ -939,3 +939,17 @@ sys_get_software_channels -> i32
 sys_get_dsp_buffer_size ibuf -> i32
 # ibuf out: [0]=file buffer size [1]=its FMOD_TIMEUNIT
 sys_get_stream_buffer_size ibuf -> i32
+
+## Sample data locks and the disk busy flag
+# core_sound_lock copies both halves of the locked range (FMOD hands back
+# two pointers because the range can wrap) into bytes and keeps the lock
+# open on the handle. Returns the locked byte count or the negated FMOD
+# error. core_sound_unlock copies bytes back over the range and closes it.
+# A second lock, an unlock with no lock open, or a length that differs
+# from the locked count is ERR_INVALID_PARAM. Releasing a locked sound
+# unlocks it first. ERR_UNSUPPORTED (68) on js.
+core_sound_lock i32 i32 i32 bytes -> i32
+core_sound_unlock i32 bytes i32 -> i32
+# FMOD_File_SetDiskBusy / GetDiskBusy, the global flag. ERR_UNSUPPORTED on js.
+sys_set_disk_busy bool -> i32
+sys_get_disk_busy -> bool

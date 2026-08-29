@@ -54,6 +54,8 @@
 - `FmodErrorCallbackInfo`, the `FMOD_ERRORCALLBACK_INFO` struct, delivered as `SystemEvent.Error(info)` by the `StudioSystem.setSystemCallback` handler when `SystemCallbacks.CORE_ERROR` is in the core mask: the result, the object kind and its handle, the FMOD function name, and its parameters. The web build never raises it.
 - `FmodSyncPoint`, the `FMOD_SYNCPOINT` handle: `Sound.addSyncPoint` returns one, `Sound.getSyncPoint(index)` fetches one, and `Sound.getSyncPointInfo(point, ?offsetType)` returns the name and offset together. `Sound.getNumSyncPoints` under FMOD's name.
 - `PcmStream.setReadCallback(callback)` with `clearReadCallback` and `hasReadCallback`, the game-thread form of `FMOD_SOUND_PCMREAD_CALLBACK`: the `PcmReadCallback` runs from `FmodManager.Update` whenever the ring has room and fills the buffer it is handed.
+- `Sound.lock(offset, length)` and `Sound.unlock(data)`, the write path for sample data: `lock` returns a copy of the byte range as `haxe.io.Bytes` and keeps FMOD's lock open, `unlock` writes the bytes back and closes it. A second lock, an unlock with no lock open, or bytes of the wrong length report `FMOD_ERR_INVALID_PARAM`, and releasing a sound with a lock open unlocks it first. `Sound.readData` stays the read path for decoded PCM. Unsupported in HTML5.
+- `CoreSystem.setDiskBusy(busy)` and `getDiskBusy()`, FMOD's global disk busy flag (`FMOD_File_SetDiskBusy` and `GetDiskBusy`). Unsupported in HTML5.
 - `FmodVersion.VERSION`, the linked SDK's `FMOD_VERSION`, `ReverbPresets` with every `FMOD_PRESET_` environment under its FMOD name, `FmodBool`, `FmodPluginList`, and the callback typedefs `EventCallback`, `ChannelCallback`, and `SystemCallback` that `setCallback` and `setSystemCallback` take.
 
 ### Changed

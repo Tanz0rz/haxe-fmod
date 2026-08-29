@@ -769,6 +769,10 @@ class NativeStudioCpp {
     public static inline function sys_get_dsp_info_by_type(type:Int):String return Raw.sys_get_dsp_info_by_type(type, Scratch.intBuf()).toString();
     public static inline function sys_get_output_by_plugin():Int return Raw.sys_get_output_by_plugin();
     public static inline function sys_set_output_by_plugin(handle:Int):Int return Raw.sys_set_output_by_plugin(handle);
+    public static inline function core_sound_lock(handle:Int, offset:Int, length:Int, out:haxe.io.Bytes):Int return Raw.core_sound_lock(handle, offset, length, out.getData());
+    public static inline function core_sound_unlock(handle:Int, data:haxe.io.Bytes, len:Int):Int return Raw.core_sound_unlock(handle, data.getData(), len);
+    public static inline function sys_set_disk_busy(busy:Bool):Int return Raw.sys_set_disk_busy(busy);
+    public static inline function sys_get_disk_busy():Bool return Raw.sys_get_disk_busy();
     public static inline function replay_get_current_command(handle:Int):Int return Raw.replay_get_current_command(handle, Scratch.floatBuf());
 
     public static inline function cg_get_num_dsps(handle:Int):Int return Raw.cg_get_num_dsps(handle);
@@ -2369,6 +2373,14 @@ private extern class Raw {
     static function sys_get_output_by_plugin():Int;
     @:native("linc::faxe::fmod_sys_set_output_by_plugin")
     static function sys_set_output_by_plugin(handle:Int):Int;
+    @:native("linc::faxe::fmod_core_sound_lock")
+    static function core_sound_lock(handle:Int, offset:Int, length:Int, out:haxe.io.BytesData):Int;
+    @:native("linc::faxe::fmod_core_sound_unlock")
+    static function core_sound_unlock(handle:Int, data:haxe.io.BytesData, len:Int):Int;
+    @:native("linc::faxe::fmod_sys_set_disk_busy")
+    static function sys_set_disk_busy(busy:Bool):Int;
+    @:native("linc::faxe::fmod_sys_get_disk_busy")
+    static function sys_get_disk_busy():Bool;
     @:native("linc::faxe::fmod_replay_get_current_command")
     static function replay_get_current_command(handle:Int, fbuf:Array<Float>):Int;
 

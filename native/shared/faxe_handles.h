@@ -57,6 +57,10 @@ typedef struct {
     /* malloc'd memory the shim hands FMOD for the object's lifetime (the
      * custom rolloff point array). Freed with the slot. */
     void* aux;
+    /* malloc'd record of the open Sound::lock range (both pointers and
+     * lengths). The shim closes the lock before the slot dies, the slot
+     * only frees the record. */
+    void* lock;
     unsigned short gen;   /* 1..FAXE_GEN_MAX once used, 0 = never used yet */
     unsigned char type;
     unsigned char alive;
@@ -106,6 +110,7 @@ static int faxe_handle_alloc(void* ptr, unsigned char type) {
     s = &gFaxeSlots[idx];
     s->ptr = ptr;
     s->aux = NULL;
+    s->lock = NULL;
     s->type = type;
     s->alive = 1;
     if (s->gen == 0) s->gen = 1; /* first use of this slot */
@@ -207,6 +212,7 @@ static void faxe_handle_free(int handle) {
     s->alive = 0;
     s->ptr = NULL;
     if (s->aux) { free(s->aux); s->aux = NULL; }
+    if (s->lock) { free(s->lock); s->lock = NULL; }
     s->type = FAXE_TYPE_NONE;
     s->gen = (unsigned short)((s->gen % FAXE_GEN_MAX) + 1); /* wraps 1..FAXE_GEN_MAX, never 0 */
     s->next_free = gFaxeFreeHead;
@@ -221,6 +227,20 @@ static void faxe_handle_set_aux(int handle, void* aux) {
     FaxeSlot* s = &gFaxeSlots[idx];
     if (s->aux) free(s->aux);
     s->aux = aux;
+}
+
+/* The lock record parked on a handle, NULL when no lock is open. The
+ * handle must resolve (callers check first). */
+static void* faxe_handle_get_lock(int handle) {
+    return gFaxeSlots[handle & 0xFFFF].lock;
+}
+
+/* Parks a lock record on the handle, freeing the previous one. NULL just
+ * frees. Same contract as faxe_handle_set_aux. */
+static void faxe_handle_set_lock(int handle, void* lock) {
+    FaxeSlot* s = &gFaxeSlots[handle & 0xFFFF];
+    if (s->lock) free(s->lock);
+    s->lock = lock;
 }
 
 static int faxe_live_handle_count(void) {

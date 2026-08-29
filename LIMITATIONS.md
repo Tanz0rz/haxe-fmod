@@ -45,7 +45,6 @@ These FMOD features cannot be bound from Haxe. Each one hands FMOD a function po
 - **The rolloff callback** (`FMOD_3D_ROLLOFF_CALLBACK`). It runs per channel on the mixer thread. `set3DCustomRolloff` covers custom curves as point arrays.
 - **Android JNI setup.** It targets a platform the library does not ship for.
 - **Thread affinity groups.** `FMOD_THREAD_AFFINITY_GROUP_DEFAULT` and the `GROUP_A` to `GROUP_C` values are 64-bit and do not fit a Haxe `Int`. `FmodSettings.threadAttributes` takes a 32-bit core mask, and an unset affinity keeps FMOD's default group.
-- **Sound lock and unlock.** They expose raw sample memory pointers. `Sound.readData` reads samples on native targets instead.
 - **`getOutputHandle`.** It returns a platform-specific pointer with nothing Haxe can do with it.
 - **CommandReplay callback setters** (`setFrameCallback`, `setLoadBankCallback`, `setCreateInstanceCallback`). They run on FMOD's replay thread. Command capture, replay playback, and command inspection are bound.
 

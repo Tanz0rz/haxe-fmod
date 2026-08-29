@@ -2,7 +2,7 @@
 
 Every FMOD function the native layer calls, with the haxefmod methods that reach it. Generated from the sources by `ci/haxe-bindings.py` for haxefmod 3.0.0 against FMOD 2.03.12. Functions absent from this list are not exposed, see [Limitations](limitations.md).
 
-530 FMOD functions are reached.
+534 FMOD functions are reached.
 
 The same table powers the browser extension that adds a Haxe tab to the [fmod.com API reference](https://www.fmod.com/docs/2.03/api/welcome.html). In the HTML5 column, "compile error" marks a call a js build refuses unless the project sets `-D haxefmod_html5_allow_unsupported`, after which it returns `FMOD_ERR_UNSUPPORTED` at runtime, and "limited" marks a call the web build only partly supports.
 
@@ -223,6 +223,13 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 |---|---|---|
 | `FMOD_Debug_Initialize` | `FmodManager.Initialize`<br>`FmodManager.EnableDebugMessages`<br>`FmodRuntime.init` | limited |
 
+## File
+
+| FMOD | haxefmod | HTML5 |
+|---|---|---|
+| `FMOD_File_GetDiskBusy` | `CoreSystem.getDiskBusy` | compile error |
+| `FMOD_File_SetDiskBusy` | `CoreSystem.setDiskBusy` | compile error |
+
 ## Geometry
 
 | FMOD | haxefmod | HTML5 |
@@ -299,6 +306,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_Sound_GetSyncPointInfo` | `Sound.getSyncPointInfo`<br>`Sound.getSyncPoint`<br>`Sound.getSyncPointName`<br>`Sound.getSyncPointOffset` |  |
 | `FMOD_Sound_GetTag` | `Sound.getTag` | compile error |
 | `FMOD_Sound_GetUserData` | `PcmStream.getUserData`<br>`Sound.getUserData` |  |
+| `FMOD_Sound_Lock` | `Sound.lock` | compile error |
 | `FMOD_Sound_ReadData` | `Sound.readData` | compile error |
 | `FMOD_Sound_Release` | `PcmStream.release`<br>`Sound.release` |  |
 | `FMOD_Sound_SeekData` | `Sound.seekData` | compile error |
@@ -313,6 +321,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_Sound_SetMusicSpeed` | `Sound.setMusicSpeed` | compile error |
 | `FMOD_Sound_SetSoundGroup` | `Sound.setSoundGroup` |  |
 | `FMOD_Sound_SetUserData` | `PcmStream.setUserData`<br>`Sound.setUserData` |  |
+| `FMOD_Sound_Unlock` | `Sound.unlock` | compile error |
 
 ## SoundGroup
 

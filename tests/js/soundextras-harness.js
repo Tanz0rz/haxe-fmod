@@ -127,8 +127,22 @@ async function main() {
     check('core_sound_get_tag_string_unsupported', jaxe.fmod_core_sound_get_tag_string(sound, "", 0) === ""
         && jaxe.fmod_sys_last_result() === 68, `result=${jaxe.fmod_sys_last_result()}`);
 
+    // Sound lock and unlock and the disk busy flag: the glue has none of
+    // them, so 68 on a live handle and the copy buffer stays untouched
+    const lockBuf = new Uint8Array(64);
+    lockBuf[0] = 7;
+    check('core_sound_lock_unsupported', jaxe.fmod_core_sound_lock(sound, 0, 64, lockBuf) === -68
+        && jaxe.fmod_sys_last_result() === 68 && lockBuf[0] === 7, `result=${jaxe.fmod_sys_last_result()}`);
+    check('core_sound_unlock_unsupported', jaxe.fmod_core_sound_unlock(sound, lockBuf, 64) === 68, '');
+    check('sys_set_disk_busy_unsupported', jaxe.fmod_sys_set_disk_busy(true) === 68, '');
+    check('sys_get_disk_busy_unsupported', jaxe.fmod_sys_get_disk_busy() === false
+        && jaxe.fmod_sys_last_result() === 68, `result=${jaxe.fmod_sys_last_result()}`);
+
     // Dead handle: every call reports 30 ahead of the unsupported path
     jaxe.fmod_core_release_sound(sound);
+    check('core_sound_lock_stale', jaxe.fmod_core_sound_lock(sound, 0, 64, lockBuf) === -30
+        && jaxe.fmod_sys_last_result() === 30, '');
+    check('core_sound_unlock_stale', jaxe.fmod_core_sound_unlock(sound, lockBuf, 64) === 30, '');
     check('core_sound_get_music_num_channels_stale', jaxe.fmod_core_sound_get_music_num_channels(sound) === -1
         && jaxe.fmod_sys_last_result() === 30, `result=${jaxe.fmod_sys_last_result()}`);
     check('core_sound_set_music_channel_volume_stale', jaxe.fmod_core_sound_set_music_channel_volume(sound, 0, 0.5) === 30, '');

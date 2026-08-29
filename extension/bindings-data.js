@@ -5384,13 +5384,20 @@ const HAXEFMOD_BINDINGS = {
    ]
   },
   "file_getdiskbusy": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "File_GetDiskBusy",
-   "html5": false,
-   "notes": [
-    "No Haxe declaration, another call plays this role. The global disk busy flag is not bound. Sound.getOpenStateInfo() reports diskBusy per sound, which is the value a game polls while a stream fills."
-   ]
+   "fmod": "FMOD_File_GetDiskBusy",
+   "gated": true,
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "The global disk busy flag (unsupported in HTML5, false there).",
+     "gated": true,
+     "name": "getDiskBusy",
+     "signature": "getDiskBusy():Bool",
+     "static": true,
+     "type": "haxefmod.core.CoreSystem"
+    }
+   ],
+   "html5": true
   },
   "file_open": {
    "fmod": "",
@@ -5429,13 +5436,20 @@ const HAXEFMOD_BINDINGS = {
    ]
   },
   "file_setdiskbusy": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "File_SetDiskBusy",
-   "html5": false,
-   "notes": [
-    "Cannot be bound. The disk busy flag belongs to the custom file system callbacks, which FMOD runs on its streaming thread, and no Haxe target can execute code there."
-   ]
+   "fmod": "FMOD_File_SetDiskBusy",
+   "gated": true,
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Sets FMOD's global disk busy flag (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED).",
+     "gated": true,
+     "name": "setDiskBusy",
+     "signature": "setDiskBusy(busy:Bool):FmodResult",
+     "static": true,
+     "type": "haxefmod.core.CoreSystem"
+    }
+   ],
+   "html5": true
   },
   "fmod_android_jni_close": {
    "fmod": "",
@@ -6601,13 +6615,20 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "sound_lock": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "Sound::lock",
-   "html5": false,
-   "notes": [
-    "Cannot be bound. It returns a raw pointer into the sample buffer, which has no meaning in Haxe. Sound.readData covers reading, it copies decoded PCM out of a sound opened with the openOnly flag of Sound.create, and seekData moves the read cursor. Both are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED."
-   ]
+   "fmod": "FMOD_Sound_Lock",
+   "gated": true,
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Locks a byte range of the sample buffer for writing and returns a copy of it (unsupported in HTML5, null there).",
+     "gated": true,
+     "name": "lock",
+     "signature": "lock(offset:Int, length:Int):Null<haxe.io.Bytes>",
+     "static": false,
+     "type": "haxefmod.core.Sound"
+    }
+   ],
+   "html5": true
   },
   "sound_readdata": {
    "fmod": "FMOD_Sound_ReadData",
@@ -6852,13 +6873,20 @@ const HAXEFMOD_BINDINGS = {
    "html5": false
   },
   "sound_unlock": {
-   "fmod": "",
-   "haxe": [],
-   "heading": "Sound::unlock",
-   "html5": false,
-   "notes": [
-    "Cannot be bound. It returns a raw pointer into the sample buffer, which has no meaning in Haxe. Sound.readData covers reading, it copies decoded PCM out of a sound opened with the openOnly flag of Sound.create, and seekData moves the read cursor. Both are native only (unsupported in HTML5), where the call returns FMOD_ERR_UNSUPPORTED."
-   ]
+   "fmod": "FMOD_Sound_Unlock",
+   "gated": true,
+   "haxe": [
+    {
+     "direct": true,
+     "doc": "Writes the bytes from lock back into the sample buffer and closes the lock (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED).",
+     "gated": true,
+     "name": "unlock",
+     "signature": "unlock(data:haxe.io.Bytes):FmodResult",
+     "static": false,
+     "type": "haxefmod.core.Sound"
+    }
+   ],
+   "html5": true
   },
   "soundgroup_getmaxaudible": {
    "fmod": "FMOD_SoundGroup_GetMaxAudible",

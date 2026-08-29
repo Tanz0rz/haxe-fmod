@@ -171,6 +171,23 @@ int main(void) {
         assert(faxe_live_handle_count() == 0);
     }
 
+    /* the lock record is a second owned block with the same lifetime */
+    {
+        int hl = faxe_handle_alloc(&dummy3, FAXE_TYPE_SOUND);
+        int idx = hl & 0xFFFF;
+        void* rec = malloc(32);
+        assert(faxe_handle_get_lock(hl) == NULL);
+        faxe_handle_set_lock(hl, rec);
+        assert(faxe_handle_get_lock(hl) == rec);
+        assert(gFaxeSlots[idx].aux == NULL);      /* aux is untouched */
+        faxe_handle_set_lock(hl, NULL);           /* frees rec */
+        assert(faxe_handle_get_lock(hl) == NULL);
+        faxe_handle_set_lock(hl, malloc(32));
+        faxe_handle_free(hl);                     /* free releases the record */
+        assert(gFaxeSlots[idx].lock == NULL);
+        assert(faxe_live_handle_count() == 0);
+    }
+
     /* slot reuse bumps generation */
     int h2 = faxe_handle_alloc(&dummy2, FAXE_TYPE_EVI);
     assert((h2 & 0xFFFF) == (h1 & 0xFFFF));  /* same slot recycled */

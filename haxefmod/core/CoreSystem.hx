@@ -262,4 +262,35 @@ class CoreSystem {
         return NativeStudio.sys_set_output_by_plugin(handle);
     }
 
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /**
+     * Sets FMOD's global disk busy flag (unsupported in HTML5, returns
+     * FMOD_ERR_UNSUPPORTED). FMOD_File_SetDiskBusy. Raise it while other
+     * code is hitting the disk so FMOD's streamer waits for the drive.
+     */
+    public static macro function setDiskBusy(busy:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("CoreSystem.setDiskBusy", "FMOD's web build has no file API");
+    }
+    #else
+    /**
+     * Sets FMOD's global disk busy flag (unsupported in HTML5, returns
+     * FMOD_ERR_UNSUPPORTED). FMOD_File_SetDiskBusy. Raise it while other
+     * code is hitting the disk so FMOD's streamer waits for the drive.
+     */
+    public static inline function setDiskBusy(busy:Bool):FmodResult {
+        return NativeStudio.sys_set_disk_busy(busy);
+    }
+    #end
+
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /** The global disk busy flag (unsupported in HTML5, false there). FMOD_File_GetDiskBusy. */
+    public static macro function getDiskBusy():haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("CoreSystem.getDiskBusy", "FMOD's web build has no file API");
+    }
+    #else
+    /** The global disk busy flag (unsupported in HTML5, false there). FMOD_File_GetDiskBusy. */
+    public static inline function getDiskBusy():Bool {
+        return NativeStudio.sys_get_disk_busy();
+    }
+    #end
 }

@@ -73,6 +73,24 @@ trace('$total bytes of ${format.channels} channel ${format.bits} bit PCM');
 sound.release();
 ```
 
+## Writing samples
+
+`lock(offset, length)` is the write path for sample data. It locks a byte range of a sample sound's buffer and returns a copy of it as `haxe.io.Bytes` (unsupported in HTML5, null there). Edit the copy and pass it to `unlock(data)`, which writes it back and closes the lock. FMOD keeps the range locked in between, so unlock as soon as the edit is done. One lock at a time per sound: a second `lock` returns null with `StudioSystem.lastResult()` reporting `FMOD_ERR_INVALID_PARAM`, and so does `unlock` without a lock open or with bytes of a different length than `lock` returned. Streams have no buffer to lock and FMOD reports that in the result. Releasing a sound with a lock still open unlocks it first. `readData` stays the read path for decoded PCM. It decodes from a file opened with `openOnly` and reports `FMOD_ERR_UNSUPPORTED` on a sample buffer, so reading a buffer back after an edit goes through `lock` as well.
+
+```haxe
+import haxefmod.core.Sound;
+
+var pcm = haxe.io.Bytes.alloc(8192);
+var sound = Sound.fromPcm(pcm, 44100, 1);
+var samples = sound.lock(0, 2048);
+if (samples != null) {
+    for (i in 0...Std.int(samples.length / 2)) {
+        samples.setUInt16(i * 2, Std.int(samples.getUInt16(i * 2) * 0.5));
+    }
+    sound.unlock(samples);
+}
+```
+
 Games that also ship to the browser and need waveform data keep their own copy of the PCM they feed through `PcmStream` or `Sound.fromPcm`.
 
 ## Channels

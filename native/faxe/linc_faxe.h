@@ -662,6 +662,10 @@ extern int fmod_evi_set_parameters_by_ids(int handle, ::Array<int> ibuf, ::Array
 extern int fmod_sys_get_software_channels();
 extern int fmod_sys_get_dsp_buffer_size(::Array<int> ibuf);
 extern int fmod_sys_get_stream_buffer_size(::Array<int> ibuf);
+extern int fmod_core_sound_lock(int handle, int offset, int length, ::Array<unsigned char> out);
+extern int fmod_core_sound_unlock(int handle, ::Array<unsigned char> data, int len);
+extern int fmod_sys_set_disk_busy(bool busy);
+extern bool fmod_sys_get_disk_busy();
 
 } // namespace faxe
 } // namespace linc

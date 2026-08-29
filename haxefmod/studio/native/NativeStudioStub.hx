@@ -755,6 +755,17 @@ class NativeStudioStub {
     public static function sys_get_dsp_info_by_type(type:Int):String return "";
     public static function sys_get_output_by_plugin():Int return 0;
     public static function sys_set_output_by_plugin(handle:Int):Int return ERR_UNSUPPORTED;
+    public static var testLockArgs:String = "";
+    public static function core_sound_lock(handle:Int, offset:Int, length:Int, out:haxe.io.Bytes):Int {
+        testLockArgs = 'lock:$offset:$length:${out.length}';
+        return -ERR_UNSUPPORTED;
+    }
+    public static function core_sound_unlock(handle:Int, data:haxe.io.Bytes, len:Int):Int {
+        testLockArgs = 'unlock:$len:${data.length}';
+        return ERR_UNSUPPORTED;
+    }
+    public static function sys_set_disk_busy(busy:Bool):Int return ERR_UNSUPPORTED;
+    public static function sys_get_disk_busy():Bool return false;
     public static function replay_get_current_command(handle:Int):Int return -1;
 
 

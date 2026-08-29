@@ -183,6 +183,69 @@ abstract Sound(Int) from Int to Int {
     }
     #end
 
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /**
+     * Locks a byte range of the sample buffer for writing and returns a
+     * copy of it (unsupported in HTML5, null there). This is the write
+     * path for sample data, readData stays the read path for decoded PCM.
+     * Edit the bytes and hand them to unlock, which writes them back and
+     * closes the lock. Null on failure with the reason in
+     * StudioSystem.lastResult(): FMOD_ERR_INVALID_PARAM when a lock is
+     * already open on this sound or the range is empty, and FMOD's own
+     * error for a stream or a range past the end. Only sample sounds
+     * (fromPcm, createRecordBuffer, or create without a stream mode) hold
+     * a buffer to lock. The copy can be shorter than length when FMOD
+     * clamps the range.
+     */
+    public macro function lock(self:haxe.macro.Expr, offset:haxe.macro.Expr, length:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("Sound.lock", "FMOD's web build cannot expose the sample buffer");
+    }
+    #else
+    /**
+     * Locks a byte range of the sample buffer for writing and returns a
+     * copy of it (unsupported in HTML5, null there). This is the write
+     * path for sample data, readData stays the read path for decoded PCM.
+     * Edit the bytes and hand them to unlock, which writes them back and
+     * closes the lock. Null on failure with the reason in
+     * StudioSystem.lastResult(): FMOD_ERR_INVALID_PARAM when a lock is
+     * already open on this sound or the range is empty, and FMOD's own
+     * error for a stream or a range past the end. Only sample sounds
+     * (fromPcm, createRecordBuffer, or create without a stream mode) hold
+     * a buffer to lock. The copy can be shorter than length when FMOD
+     * clamps the range.
+     */
+    public function lock(offset:Int, length:Int):Null<haxe.io.Bytes> {
+        if (length <= 0 || offset < 0) length = 0;
+        var out = haxe.io.Bytes.alloc(length);
+        var locked = NativeStudio.core_sound_lock(this, offset, length, out);
+        if (locked < 0) return null;
+        return locked == length ? out : out.sub(0, locked);
+    }
+    #end
+
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /**
+     * Writes the bytes from lock back into the sample buffer and closes
+     * the lock (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED).
+     * FMOD_ERR_INVALID_PARAM without an open lock or when data is not the
+     * length lock returned. Releasing a sound with a lock open unlocks it.
+     */
+    public macro function unlock(self:haxe.macro.Expr, data:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("Sound.unlock", "FMOD's web build cannot expose the sample buffer");
+    }
+    #else
+    /**
+     * Writes the bytes from lock back into the sample buffer and closes
+     * the lock (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED).
+     * FMOD_ERR_INVALID_PARAM without an open lock or when data is not the
+     * length lock returned. Releasing a sound with a lock open unlocks it.
+     */
+    public function unlock(data:haxe.io.Bytes):FmodResult {
+        if (data == null) return FmodResult.FMOD_ERR_INVALID_PARAM;
+        return NativeStudio.core_sound_unlock(this, data, data.length);
+    }
+    #end
+
     /**
      * A sound from raw 16-bit PCM in memory (interleaved when stereo).
      * The bytes are copied, so the buffer is free after this returns.
