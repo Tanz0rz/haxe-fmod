@@ -190,7 +190,25 @@ class ProgrammerSoundScenario implements TestScenario {
             finishState();
             return;
         }
-        startAudioTableKey();
+        // Studio skips an instrument whose sample data is not loaded when
+        // it triggers, and a cold first launch can lose the race (the
+        // first key played silent on a fresh macOS runner while the
+        // programmer sound itself was ready). Preload, as FMOD advises,
+        // and wait for it.
+        check("at_load_sample_data", desc.loadSampleData().isOk(),
+            'result=${StudioSystem.lastResult().toString()}');
+        _atFrames = 0;
+        _phase = "at-preload";
+    }
+
+    function tickPreload():Void {
+        _atFrames++;
+        var desc = StudioSystem.getEvent(FmodEvents.DialogueSpeak);
+        var state = desc.getSampleLoadingState();
+        if (state == FmodLoadingState.LOADED || _atFrames > 600) {
+            check("at_sample_data_loaded", state == FmodLoadingState.LOADED, 'state=${(state : Int)} frames=$_atFrames');
+            startAudioTableKey();
+        }
     }
 
     function startAudioTableKey():Void {
@@ -367,6 +385,10 @@ class ProgrammerSoundScenario implements TestScenario {
 
     public function update(elapsed:Float):Void {
         FmodManager.Update();
+        if (_phase == "at-preload") {
+            tickPreload();
+            return;
+        }
         if (_phase == "at-play") {
             _atFrames++;
             var metering = _atMeter.getMetering();
