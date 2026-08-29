@@ -1466,7 +1466,7 @@ class ApiProbeScenario implements TestScenario {
     var _waitingForDspData:Bool = false;
     var _waitingForChannelEvents:Bool = false;
     var _oneShotFrames:Int = 0;
-    var _oneShotDone:Bool = false;
+    var _waitingForOcclusion:Bool = false;
     var _waitingForOneShot:Bool = false;
     var _oneShotBaseline:Int = 0;
     var _oneShotAttachedBaseline:Int = 0;
@@ -1587,7 +1587,9 @@ class ApiProbeScenario implements TestScenario {
         check("no_handle_leaks_remint", StudioSystem.liveHandleCount() == _remintBaseline,
             'baseline=$_remintBaseline now=${StudioSystem.liveHandleCount()} frames=$_remintDrainFrames');
 
-        probeSongTransition();
+        // The occlusion wait runs next, on its own (see update), and the
+        // transition follows it
+        _waitingForOcclusion = true;
     }
 
     /**
@@ -2870,13 +2872,18 @@ class ApiProbeScenario implements TestScenario {
             probeChannelEvents();
         }
         // The occlusion probe holds four handles of its own and counts
-        // them against a baseline, so it only ticks while no other phase
-        // is in flight: the transition, snapshot, sustain and one-shot
-        // phases create and release instances of their own, and on a slow
-        // frame one of those landed between its baseline and its count
-        if (!_waitingForRemint && !_waitingForRemintDrain && !_waitingForChannelEvents
-                && !_waitingForTransition && !_waitingForSnapshotActive && !_waitingForSnapshotRecovery
-                && !_waitingForSustainHold && !_waitingForSustainStop && !_waitingForOneShot) ProbeChannelControl.tick(this);
+        // them against a baseline, so it is a phase of its own: nothing
+        // else is in flight while it runs (the transition, snapshot,
+        // sustain and one-shot phases create and release instances, and
+        // on a slow frame one of those landed between its baseline and
+        // its count while it ticked alongside them)
+        if (_waitingForOcclusion) {
+            ProbeChannelControl.tick(this);
+            if (!ProbeChannelControl.pending()) {
+                _waitingForOcclusion = false;
+                probeSongTransition();
+            }
+        }
         if (_waitingForChannelEvents) {
             _chanEventFrames++;
             var sawEnd = false;
@@ -2957,14 +2964,7 @@ class ApiProbeScenario implements TestScenario {
             // makes a broken release path fail loudly instead of hanging
             if (FmodRuntime.attachedCount() == _oneShotAttachedBaseline || _oneShotFrames > 600) {
                 _waitingForOneShot = false;
-                _oneShotDone = true;
-            }
-        }
-        // The occlusion probe gets the quiet frames after the one-shot,
-        // and the COMPLETE line waits for it
-        if (_oneShotDone && !ProbeChannelControl.pending()) {
-            _oneShotDone = false;
-            finishOneShotAttached();
+                finishOneShotAttached();
         }
         if (!_done) return;
 

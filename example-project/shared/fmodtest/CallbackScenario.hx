@@ -262,8 +262,13 @@ class CallbackScenario implements TestScenario {
 
         check("queue_overflowed", _overflowSeen, 'frames=$_overflowFrames');
 
-        // Recovery: drain the backlog, then prove delivery still works by
-        // soft-stopping one instance and waiting for its Stopped event
+        // Recovery: quiet the flood first (the other instances keep firing
+        // beat and marker callbacks, and on a machine with slow frames they
+        // overflow the queue again between drains and drop the very event
+        // this waits for), drain the backlog, then prove delivery still
+        // works by soft-stopping one instance and waiting for its Stopped
+        // event
+        for (i in 1..._overflowInstances.length) _overflowInstances[i].stop(IMMEDIATE);
         FmodManager.Update();
         log("CB_TEST: Requesting recovery stop");
         _overflowInstances[0].stop(ALLOWFADEOUT);
