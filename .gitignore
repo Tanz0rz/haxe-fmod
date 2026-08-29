@@ -46,3 +46,4 @@ __pycache__/
 
 # Local CI runner output
 /ci/local/
+/example-project/KhaPlatformer/build

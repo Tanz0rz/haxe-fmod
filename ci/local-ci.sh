@@ -6,13 +6,14 @@
 #
 # Usage: ci/local-ci.sh [job ...]
 #   jobs: unit-tests linux-cpp linux-hl linux-html5-chromium linux-html5-firefox
-#         heaps-hl heaps-js
+#         heaps-hl heaps-js kha-linux kha-hl kha-html5
 #   no argument runs all of them
 #
 # Environment:
 #   FMOD_SDK_ROOT  directory holding the linux/ and html5/ FMOD packages
 #                  (default: the fmod-sdk-cache checkout next to this repo)
 #   CHROMIUM       chromium binary (default: chromium-browser, then chromium)
+#   KHA            a Kha checkout with submodules (kha jobs). Default: ../Kha
 #   NODE_PATH      where the playwright package resolves from (firefox job).
 #                  PLAYWRIGHT_BROWSERS_PATH is inherited, the image sets it
 #
@@ -35,12 +36,14 @@ CHROMIUM="${CHROMIUM:-$(command -v chromium-browser || command -v chromium || tr
 WEB_BIN="$EXAMPLE/export/html5/bin"
 CHROME_GL="--disable-gpu"
 HEAPS="$ROOT/example-project/HeapsPlatformer"
+KHAP="$ROOT/example-project/KhaPlatformer"
+export KHA="${KHA:-$ROOT/../Kha}"
 export NODE_PATH="${NODE_PATH:-/opt/playwright/node_modules}"
 export HXCPP_COMPILE_CACHE="$OUT/hxcpp-cache"
 export HXCPP_CACHE_MB=4000
 
 JOBS=("$@")
-[ ${#JOBS[@]} -eq 0 ] && JOBS=(unit-tests linux-cpp linux-hl linux-html5-chromium linux-html5-firefox heaps-hl heaps-js)
+[ ${#JOBS[@]} -eq 0 ] && JOBS=(unit-tests linux-cpp linux-hl linux-html5-chromium linux-html5-firefox heaps-hl heaps-js kha-linux kha-hl kha-html5)
 
 mkdir -p "$OUT"
 FAILED_STEPS=()
@@ -588,6 +591,106 @@ record_volume_heaps_js() {
   grep -o "VOLUME_TEST.*" "$TMP/volume-test-heaps-js-console.log" | sed 's/",.*$//' || true
 }
 
+# ---------------------------------------------------------------- kha-linux, kha-hl
+
+# The Kha example on a native target: khamake build with the binding
+# compiled in through kfile.js, the stage command for the runtime files,
+# then the same scenarios as linux-cpp
+job_kha_native() {
+  local target="$1" job="$2"
+  begin_job "$job"
+  require_sdk
+  [ -d "$KHA/Tools/khamake" ] || { echo "no Kha checkout at $KHA (set KHA)"; return; }
+  local bin="$KHAP/build/$target"
+  step "Build $target target" bash -eo pipefail -c 'cd "$1" && ./build.sh "$2" 2>&1 | tail -5' _ "$KHAP" "$target"
+  step "Verify FMOD libraries have no executable stack" no_execstack "$bin"
+  step "Validate build output" bash -eo pipefail -c '
+    for f in KhaPlatformer run.sh libfmod.so libfmodstudio.so assets/fmod/Desktop/Master.bank; do
+      test -e "$1/$f" || { echo "FAIL: missing $f"; exit 1; }
+    done
+    test ! -e "$1/hlaxe_fmod.hdll"
+    echo "OK: native build directory is complete"' _ "$bin"
+  start_display_audio
+  step "Record audio" bash -eo pipefail -c '
+    ffmpeg -loglevel error -f pulse -i virtual_speaker.monitor -t 30 -y "$2/audio-$3.wav" &
+    REC=$!
+    cd "$1" && timeout 30 ./run.sh > "$2/game-$3.log" 2>&1 || true
+    wait $REC || true
+    ls -la "$2/audio-$3.wav"' _ "$bin" "$TMP" "$job"
+  step "Validate audio" ./ci/validate-audio.sh "$TMP/audio-$job.wav" 10
+  step "Validate game log" ./ci/validate-game-log.sh "$TMP/game-$job.log"
+  step "Build test variant" bash -eo pipefail -c 'cd "$1" && KHA_AUDIO_TEST=1 ./build.sh "$2" 2>&1 | tail -3' _ "$KHAP" "$target"
+  step "Record volume test" bash -eo pipefail -c '
+    export FMOD_WAVWRITER="$2/volume-test-$3.wav"
+    cd "$1"
+    ./run.sh > "$2/volume-test-$3.log" 2>&1 &
+    PID=$!
+    for i in $(seq 60); do kill -0 $PID 2>/dev/null || break; sleep 1; done
+    kill $PID 2>/dev/null || true; wait $PID 2>/dev/null || true' _ "$bin" "$TMP" "$job"
+  step "Validate volume/mute" ./ci/validate-volume.sh "$TMP/volume-test-$job.wav" 15
+  step "Run api-probe state" run_native_state api-probe API_PROBE "$bin" "$TMP/api-probe-$job.log" 60
+  step "Run synth-test state" run_native_state synth-test SYNTH_TEST "$bin" "$TMP/synth-test-$job.log" 60 "" false true
+  step "Validate synth audio" ./ci/validate-synth.sh "$TMP/state-synth-test.wav"
+  step "Run cb-test state" run_native_state cb-test CB_TEST "$bin" "$TMP/cb-test-$job.log" 30 "CB_TEST: Stopped"
+  step "Run ps-test state" run_native_state ps-test PS_TEST "$bin" "$TMP/ps-test-$job.log" 60 "" true
+  step "Run bank-test state" run_native_state bank-test BANK_TEST "$bin" "$TMP/bank-test-$job.log" 60
+  step "Run pan-test state" run_native_state pan-test PAN_TEST "$bin" "$TMP/pan-test-$job.log" 60
+  step "Run stress-test state (smoke)" bash -eo pipefail -c '
+    export HAXEFMOD_TEST_STATE=stress-test STRESS_SECONDS=15
+    cd "$1"
+    ./run.sh > "$2/stress-smoke-$3.log" 2>&1 &
+    PID=$!
+    for i in $(seq 90); do kill -0 $PID 2>/dev/null || break; sleep 1; done
+    kill $PID 2>/dev/null || true; wait $PID 2>/dev/null || true
+    grep "STRESS_TEST:" "$2/stress-smoke-$3.log" || true
+    grep -q "STRESS_TEST: COMPLETE" "$2/stress-smoke-$3.log" || { cat "$2/stress-smoke-$3.log"; exit 1; }
+    ! grep -q "pass=false" "$2/stress-smoke-$3.log"' _ "$bin" "$TMP" "$job"
+  if [ "$target" = linux ]; then
+    step "Build manual-update variant" bash -eo pipefail -c 'cd "$1" && KHA_AUDIO_TEST=1 KHA_MANUAL_UPDATE=1 ./build.sh linux 2>&1 | tail -3' _ "$KHAP"
+    step "Run api-probe state (manual update variant)" run_native_state api-probe API_PROBE "$bin" "$TMP/api-probe-$job-manual.log" 60
+  fi
+}
+
+job_kha_linux() { job_kha_native linux kha-linux; }
+job_kha_hl() { job_kha_native linux-hl kha-hl; }
+
+# ---------------------------------------------------------------- kha-html5
+
+job_kha_html5() {
+  begin_job kha-html5
+  require_sdk
+  [ -n "$CHROMIUM" ] || { echo "no chromium binary found (set CHROMIUM)"; return; }
+  [ -d "$KHA/Tools/khamake" ] || { echo "no Kha checkout at $KHA (set KHA)"; return; }
+  WEB_BIN="$KHAP/build/html5"
+  CHROME_GL="--use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader"
+  step "Build HTML5 target" bash -eo pipefail -c 'cd "$1" && ./build.sh html5 2>&1 | tail -3' _ "$KHAP"
+  step "Validate build output" bash -eo pipefail -c '
+    for f in index.html kha.js lib/fmodstudio.js lib/fmodstudio.wasm lib/jaxe.js assets/fmod/Desktop/Master.bank; do
+      test -s "$1/$f" || { echo "FAIL: missing $f"; exit 1; }
+    done
+    echo "OK: html5 build directory is complete"' _ "$WEB_BIN"
+  start_display_audio
+  step "Record audio" record_browser_game 8280 "$TMP/audio-kha-html5.wav" 30
+  step "Validate audio" ./ci/validate-audio.sh "$TMP/audio-kha-html5.wav" 10
+  step "Build test variant" bash -eo pipefail -c 'cd "$1" && KHA_AUDIO_TEST=1 ./build.sh html5 2>&1 | tail -3' _ "$KHAP"
+  step "Record volume test" record_volume_kha_html5
+  step "Validate volume/mute" ./ci/validate-volume.sh "$TMP/volume-test-kha-html5.wav" 15
+  step "Run API probe (JS binding coverage)" run_browser_state api-probe API_PROBE 8282 "$TMP/api-probe-kha-html5.log" 45
+  step "Run synth test (generated PCM reaches the output)" run_browser_state synth-test SYNTH_TEST 8286 "$TMP/synth-test-kha-html5.log" 70 "" "$TMP/synth-test-kha-html5.wav" 60
+  step "Validate synth audio" ./ci/validate-synth.sh "$TMP/synth-test-kha-html5.wav"
+  step "Run callback test (JS payload delivery)" run_browser_state cb-test CB_TEST 8283 "$TMP/cb-test-kha-html5.log" 45 "CB_TEST: Stopped"
+  step "Run ps-test state (browser)" run_browser_state ps-test PS_TEST 8284 "$TMP/ps-test-kha-html5.log" 45
+  step "Run bank-test state (browser)" run_browser_state bank-test BANK_TEST 8285 "$TMP/bank-test-kha-html5.log" 45
+  step "Run pan-test state (browser)" run_browser_state pan-test PAN_TEST 8287 "$TMP/pan-test-kha-html5.log" 45
+  WEB_BIN="$EXAMPLE/export/html5/bin"
+  CHROME_GL="--disable-gpu"
+}
+
+record_volume_kha_html5() {
+  record_browser_game 8281 "$TMP/volume-test-kha-html5.wav" 25 "$TMP/volume-test-kha-html5-console.log"
+  grep -o "VOLUME_TEST.*" "$TMP/volume-test-kha-html5-console.log" | sed 's/",.*$//' || true
+}
+
 # ---------------------------------------------------------------- main
 
 for job in "${JOBS[@]}"; do
@@ -599,6 +702,9 @@ for job in "${JOBS[@]}"; do
     linux-html5-firefox) job_linux_html5_firefox ;;
     heaps-hl) job_heaps_hl ;;
     heaps-js) job_heaps_js ;;
+    kha-linux) job_kha_linux ;;
+    kha-hl) job_kha_hl ;;
+    kha-html5) job_kha_html5 ;;
     *) echo "unknown job: $job"; exit 2 ;;
   esac
 done

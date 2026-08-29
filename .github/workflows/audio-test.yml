@@ -15,6 +15,8 @@ concurrency:
 
 env:
   HAXE_VERSION: 4.3.6
+  # Kode/Kha main as checked out for the first Kha jobs (2026-08-28)
+  KHA_COMMIT: 0b2f97fe1c1612604efb5535c940ffdc4cc29f1e
   FMOD_SDK: ${{ github.workspace }}/fmod-sdk
 
 jobs:
@@ -213,7 +215,7 @@ jobs:
   # ===========================================================================
   linux-cpp:
     runs-on: ubuntu-latest
-    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-cpp]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-js]')))) }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-cpp]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-js]') && !contains(github.event.head_commit.message, '[kha-linux]') && !contains(github.event.head_commit.message, '[kha-hl]') && !contains(github.event.head_commit.message, '[kha-html5]')))) }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
@@ -514,7 +516,7 @@ jobs:
   # ===========================================================================
   linux-hl:
     runs-on: ubuntu-latest
-    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-js]')))) }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-js]') && !contains(github.event.head_commit.message, '[kha-linux]') && !contains(github.event.head_commit.message, '[kha-hl]') && !contains(github.event.head_commit.message, '[kha-html5]')))) }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
@@ -921,7 +923,7 @@ jobs:
   # ===========================================================================
   linux-hl-compat:
     runs-on: ubuntu-latest
-    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-hl-compat]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-js]')))) }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-hl-compat]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-js]') && !contains(github.event.head_commit.message, '[kha-linux]') && !contains(github.event.head_commit.message, '[kha-hl]') && !contains(github.event.head_commit.message, '[kha-html5]')))) }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
@@ -1171,7 +1173,7 @@ jobs:
   # ===========================================================================
   linux-html5-chromium:
     runs-on: ubuntu-latest
-    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-html5-chromium]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-js]')))) }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-html5-chromium]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-js]') && !contains(github.event.head_commit.message, '[kha-linux]') && !contains(github.event.head_commit.message, '[kha-hl]') && !contains(github.event.head_commit.message, '[kha-html5]')))) }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
@@ -1669,7 +1671,7 @@ jobs:
   # ===========================================================================
   linux-html5-firefox:
     runs-on: ubuntu-latest
-    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-html5-firefox]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-js]')))) }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-html5-firefox]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-js]') && !contains(github.event.head_commit.message, '[kha-linux]') && !contains(github.event.head_commit.message, '[kha-hl]') && !contains(github.event.head_commit.message, '[kha-html5]')))) }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
@@ -1838,7 +1840,7 @@ jobs:
   # ===========================================================================
   heaps-hl:
     runs-on: ubuntu-latest
-    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[heaps-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-js]')))) }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[heaps-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-js]') && !contains(github.event.head_commit.message, '[kha-linux]') && !contains(github.event.head_commit.message, '[kha-hl]') && !contains(github.event.head_commit.message, '[kha-html5]')))) }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
@@ -2106,7 +2108,7 @@ jobs:
   # ===========================================================================
   heaps-js:
     runs-on: ubuntu-latest
-    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[heaps-js]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-js]')))) }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[heaps-js]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-js]') && !contains(github.event.head_commit.message, '[kha-linux]') && !contains(github.event.head_commit.message, '[kha-hl]') && !contains(github.event.head_commit.message, '[kha-html5]')))) }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
@@ -2455,12 +2457,900 @@ jobs:
           if-no-files-found: warn
           overwrite: true
 
+
+  # ===========================================================================
+  # Kha on Linux (Kore, hxcpp-generated C++, binding compiled from linc_faxe.cpp)
+  # ===========================================================================
+  kha-linux:
+    runs-on: ubuntu-latest
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[kha-linux]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-js]') && !contains(github.event.head_commit.message, '[kha-linux]') && !contains(github.event.head_commit.message, '[kha-hl]') && !contains(github.event.head_commit.message, '[kha-html5]')))) }}
+    timeout-minutes: 40
+    env:
+      KHA: ${{ runner.temp }}/Kha
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download FMOD SDK
+        uses: ./.github/actions/fmod-sdk
+        with:
+          version: "2.03.12"
+          platform: linux
+          dest: ${{ env.FMOD_SDK }}
+          token: ${{ secrets.FMOD_SDK_TOKEN }}
+
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v2
+        with:
+          haxe-version: ${{ env.HAXE_VERSION }}
+
+      - name: Install Haxe libraries
+        run: |
+          haxelib setup ~/haxelib
+          haxelib dev haxefmod $GITHUB_WORKSPACE
+
+      - name: Cache Kha
+        id: kha-cache
+        uses: actions/cache@v5
+        with:
+          path: ${{ runner.temp }}/Kha
+          key: kha-${{ runner.os }}-${{ env.KHA_COMMIT }}
+
+      - name: Check out Kha
+        if: steps.kha-cache.outputs.cache-hit != 'true'
+        run: |
+          git clone --recursive --depth 1 https://github.com/Kode/Kha.git "$RUNNER_TEMP/Kha"
+          cd "$RUNNER_TEMP/Kha"
+          git checkout "$KHA_COMMIT" 2>/dev/null || true
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg \
+            clang libx11-dev libxinerama-dev libxrandr-dev libxcursor-dev libxi-dev libxkbcommon-dev \
+            libgl1-mesa-dev libgl1-mesa-dri libegl1-mesa-dev libasound2-dev libudev-dev libwayland-dev wayland-protocols
+
+      - name: Build linux target
+        run: |
+          cd example-project/KhaPlatformer
+          ./build.sh linux 2>&1 | tail -5
+
+      - name: Verify FMOD libraries have no executable stack
+        run: |
+          BIN_DIR="example-project/KhaPlatformer/build/linux"
+          FOUND=0
+          for lib in "$BIN_DIR"/libfmod*.so*; do
+            [ -L "$lib" ] && continue
+            FOUND=1
+            LINE=$(readelf -lW "$lib" | grep GNU_STACK) || {
+              echo "FAIL: $lib has no GNU_STACK header"; exit 1; }
+            FLAGS=$(echo "$LINE" | awk '{print $7}')
+            echo "$lib: GNU_STACK $FLAGS"
+            case "$FLAGS" in *E*)
+              echo "FAIL: $lib still has an executable stack (stage should have cleared it)"
+              exit 1;;
+            esac
+          done
+          [ "$FOUND" = "1" ] || { echo "FAIL: no FMOD libraries found in $BIN_DIR"; exit 1; }
+
+      - name: Validate build output
+        run: |
+          BIN_DIR="example-project/KhaPlatformer/build/linux"
+          for f in KhaPlatformer run.sh libfmod.so libfmodstudio.so assets/fmod/Desktop/Master.bank; do
+            test -e "$BIN_DIR/$f" || { echo "FAIL: missing $f"; exit 1; }
+          done
+          test ! -e "$BIN_DIR/hlaxe_fmod.hdll"
+          echo "OK: native build directory is complete"
+
+      - name: Record audio
+        run: |
+          Xvfb :99 -screen 0 1024x768x24 &
+          export DISPLAY=:99
+          sleep 1
+          pulseaudio --start --exit-idle-time=-1 || true
+          pactl load-module module-null-sink sink_name=virtual_speaker sink_properties=device.description=VirtualSpeaker
+          pactl set-default-sink virtual_speaker
+          cat > ~/.asoundrc << 'ALSA_EOF'
+          pcm.!default {
+            type pulse
+          }
+          ctl.!default {
+            type pulse
+          }
+          ALSA_EOF
+          BIN_DIR="example-project/KhaPlatformer/build/linux"
+          ffmpeg -f pulse -i virtual_speaker.monitor -t 30 -y /tmp/audio-kha-linux.wav &
+          RECORD_PID=$!
+          cd "$BIN_DIR"
+          timeout 30 ./run.sh > /tmp/game-kha-linux.log 2>&1 || true
+          cd -
+          echo "=== Game log ==="
+          cat /tmp/game-kha-linux.log || true
+          echo "=== End game log ==="
+          wait $RECORD_PID || true
+          ls -la /tmp/audio-kha-linux.wav
+
+      - name: Validate audio
+        run: ./ci/validate-audio.sh /tmp/audio-kha-linux.wav 10
+
+      - name: Validate game log
+        run: ./ci/validate-game-log.sh /tmp/game-kha-linux.log
+
+      - name: Build test variant
+        run: |
+          cd example-project/KhaPlatformer
+          KHA_AUDIO_TEST=1 ./build.sh linux 2>&1 | tail -3
+
+      - name: Record volume test
+        run: |
+          export DISPLAY=:99
+          export FMOD_WAVWRITER=/tmp/volume-test-kha-linux.wav
+          cd example-project/KhaPlatformer/build/linux
+          ./run.sh > /tmp/volume-test-kha-linux.log 2>&1 &
+          GAME_PID=$!
+          cd -
+          for i in $(seq 60); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill $GAME_PID 2>/dev/null || true
+          wait $GAME_PID 2>/dev/null || true
+
+      - name: Validate volume/mute
+        run: ./ci/validate-volume.sh /tmp/volume-test-kha-linux.wav 15
+
+      - name: Run api-probe state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: api-probe
+          gate: API_PROBE
+          timeout: "60"
+          bin-dir: example-project/KhaPlatformer/build/linux
+          log-file: /tmp/api-probe-kha-linux.log
+
+      - name: Run synth-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: synth-test
+          gate: SYNTH_TEST
+          timeout: "60"
+          bin-dir: example-project/KhaPlatformer/build/linux
+          log-file: /tmp/synth-test-kha-linux.log
+          use-wavwriter: "true"
+
+      - name: Validate synth audio
+        if: ${{ !cancelled() }}
+        run: ./ci/validate-synth.sh "${RUNNER_TEMP}/state-synth-test.wav"
+
+      - name: Run cb-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: cb-test
+          gate: CB_TEST
+          timeout: "30"
+          bin-dir: example-project/KhaPlatformer/build/linux
+          log-file: /tmp/cb-test-kha-linux.log
+          extra-gate: "CB_TEST: Stopped"
+
+      - name: Run ps-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: ps-test
+          gate: PS_TEST
+          timeout: "60"
+          bin-dir: example-project/KhaPlatformer/build/linux
+          log-file: /tmp/ps-test-kha-linux.log
+          copy-jump-wav: "true"
+
+      - name: Run bank-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: bank-test
+          gate: BANK_TEST
+          timeout: "60"
+          bin-dir: example-project/KhaPlatformer/build/linux
+          log-file: /tmp/bank-test-kha-linux.log
+
+      - name: Run pan-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: pan-test
+          gate: PAN_TEST
+          timeout: "60"
+          bin-dir: example-project/KhaPlatformer/build/linux
+          log-file: /tmp/pan-test-kha-linux.log
+
+      - name: Run stress-test state (smoke)
+        if: ${{ !cancelled() }}
+        run: |
+          export DISPLAY=:99
+          export HAXEFMOD_TEST_STATE=stress-test
+          export STRESS_SECONDS=15
+          cd example-project/KhaPlatformer/build/linux
+          ./run.sh > /tmp/stress-smoke-kha-linux.log 2>&1 &
+          GAME_PID=$!
+          cd -
+          for i in $(seq 90); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill $GAME_PID 2>/dev/null || true
+          wait $GAME_PID 2>/dev/null || true
+          grep "STRESS_TEST:" /tmp/stress-smoke-kha-linux.log || true
+          grep -q "STRESS_TEST: COMPLETE" /tmp/stress-smoke-kha-linux.log || {
+            echo "Stress smoke never completed - full log:"
+            cat /tmp/stress-smoke-kha-linux.log
+            exit 1
+          }
+          if grep -q "pass=false" /tmp/stress-smoke-kha-linux.log; then
+            echo "Stress smoke reported failing checks"
+            exit 1
+          fi
+
+      - name: Build manual-update variant
+        if: ${{ !cancelled() }}
+        run: |
+          cd example-project/KhaPlatformer
+          KHA_AUDIO_TEST=1 KHA_MANUAL_UPDATE=1 ./build.sh linux 2>&1 | tail -3
+
+      - name: Run api-probe state (manual update variant)
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: api-probe
+          gate: API_PROBE
+          timeout: "60"
+          bin-dir: example-project/KhaPlatformer/build/linux
+          log-file: /tmp/api-probe-kha-linux-manual.log
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: audio-kha-linux
+          path: |
+            /tmp/audio-kha-linux.wav
+            /tmp/game-kha-linux.log
+            /tmp/volume-test-kha-linux.wav
+            /tmp/volume-test-kha-linux.log
+            /tmp/api-probe-kha-linux.log
+            /tmp/synth-test-kha-linux.log
+            /tmp/cb-test-kha-linux.log
+            /tmp/ps-test-kha-linux.log
+            /tmp/bank-test-kha-linux.log
+            /tmp/pan-test-kha-linux.log
+            /tmp/stress-smoke-kha-linux.log
+          if-no-files-found: warn
+          overwrite: true
+
+  # ===========================================================================
+  # Kha HL/C on Linux (Kore HL, binding compiled from hlaxe_fmod.c)
+  # ===========================================================================
+  kha-hl:
+    runs-on: ubuntu-latest
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[kha-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-js]') && !contains(github.event.head_commit.message, '[kha-linux]') && !contains(github.event.head_commit.message, '[kha-hl]') && !contains(github.event.head_commit.message, '[kha-html5]')))) }}
+    timeout-minutes: 40
+    env:
+      KHA: ${{ runner.temp }}/Kha
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download FMOD SDK
+        uses: ./.github/actions/fmod-sdk
+        with:
+          version: "2.03.12"
+          platform: linux
+          dest: ${{ env.FMOD_SDK }}
+          token: ${{ secrets.FMOD_SDK_TOKEN }}
+
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v2
+        with:
+          haxe-version: ${{ env.HAXE_VERSION }}
+
+      - name: Install Haxe libraries
+        run: |
+          haxelib setup ~/haxelib
+          haxelib dev haxefmod $GITHUB_WORKSPACE
+
+      - name: Cache Kha
+        id: kha-cache
+        uses: actions/cache@v5
+        with:
+          path: ${{ runner.temp }}/Kha
+          key: kha-${{ runner.os }}-${{ env.KHA_COMMIT }}
+
+      - name: Check out Kha
+        if: steps.kha-cache.outputs.cache-hit != 'true'
+        run: |
+          git clone --recursive --depth 1 https://github.com/Kode/Kha.git "$RUNNER_TEMP/Kha"
+          cd "$RUNNER_TEMP/Kha"
+          git checkout "$KHA_COMMIT" 2>/dev/null || true
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg \
+            clang libx11-dev libxinerama-dev libxrandr-dev libxcursor-dev libxi-dev libxkbcommon-dev \
+            libgl1-mesa-dev libgl1-mesa-dri libegl1-mesa-dev libasound2-dev libudev-dev libwayland-dev wayland-protocols
+
+      - name: Build linux-hl target
+        run: |
+          cd example-project/KhaPlatformer
+          ./build.sh linux-hl 2>&1 | tail -5
+
+      - name: Verify FMOD libraries have no executable stack
+        run: |
+          BIN_DIR="example-project/KhaPlatformer/build/linux-hl"
+          FOUND=0
+          for lib in "$BIN_DIR"/libfmod*.so*; do
+            [ -L "$lib" ] && continue
+            FOUND=1
+            LINE=$(readelf -lW "$lib" | grep GNU_STACK) || {
+              echo "FAIL: $lib has no GNU_STACK header"; exit 1; }
+            FLAGS=$(echo "$LINE" | awk '{print $7}')
+            echo "$lib: GNU_STACK $FLAGS"
+            case "$FLAGS" in *E*)
+              echo "FAIL: $lib still has an executable stack (stage should have cleared it)"
+              exit 1;;
+            esac
+          done
+          [ "$FOUND" = "1" ] || { echo "FAIL: no FMOD libraries found in $BIN_DIR"; exit 1; }
+
+      - name: Validate build output
+        run: |
+          BIN_DIR="example-project/KhaPlatformer/build/linux-hl"
+          for f in KhaPlatformer run.sh libfmod.so libfmodstudio.so assets/fmod/Desktop/Master.bank; do
+            test -e "$BIN_DIR/$f" || { echo "FAIL: missing $f"; exit 1; }
+          done
+          test ! -e "$BIN_DIR/hlaxe_fmod.hdll"
+          echo "OK: native build directory is complete"
+
+      - name: Record audio
+        run: |
+          Xvfb :99 -screen 0 1024x768x24 &
+          export DISPLAY=:99
+          sleep 1
+          pulseaudio --start --exit-idle-time=-1 || true
+          pactl load-module module-null-sink sink_name=virtual_speaker sink_properties=device.description=VirtualSpeaker
+          pactl set-default-sink virtual_speaker
+          cat > ~/.asoundrc << 'ALSA_EOF'
+          pcm.!default {
+            type pulse
+          }
+          ctl.!default {
+            type pulse
+          }
+          ALSA_EOF
+          BIN_DIR="example-project/KhaPlatformer/build/linux-hl"
+          ffmpeg -f pulse -i virtual_speaker.monitor -t 30 -y /tmp/audio-kha-hl.wav &
+          RECORD_PID=$!
+          cd "$BIN_DIR"
+          timeout 30 ./run.sh > /tmp/game-kha-hl.log 2>&1 || true
+          cd -
+          echo "=== Game log ==="
+          cat /tmp/game-kha-hl.log || true
+          echo "=== End game log ==="
+          wait $RECORD_PID || true
+          ls -la /tmp/audio-kha-hl.wav
+
+      - name: Validate audio
+        run: ./ci/validate-audio.sh /tmp/audio-kha-hl.wav 10
+
+      - name: Validate game log
+        run: ./ci/validate-game-log.sh /tmp/game-kha-hl.log
+
+      - name: Build test variant
+        run: |
+          cd example-project/KhaPlatformer
+          KHA_AUDIO_TEST=1 ./build.sh linux-hl 2>&1 | tail -3
+
+      - name: Record volume test
+        run: |
+          export DISPLAY=:99
+          export FMOD_WAVWRITER=/tmp/volume-test-kha-hl.wav
+          cd example-project/KhaPlatformer/build/linux-hl
+          ./run.sh > /tmp/volume-test-kha-hl.log 2>&1 &
+          GAME_PID=$!
+          cd -
+          for i in $(seq 60); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill $GAME_PID 2>/dev/null || true
+          wait $GAME_PID 2>/dev/null || true
+
+      - name: Validate volume/mute
+        run: ./ci/validate-volume.sh /tmp/volume-test-kha-hl.wav 15
+
+      - name: Run api-probe state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: api-probe
+          gate: API_PROBE
+          timeout: "60"
+          bin-dir: example-project/KhaPlatformer/build/linux-hl
+          log-file: /tmp/api-probe-kha-hl.log
+
+      - name: Run synth-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: synth-test
+          gate: SYNTH_TEST
+          timeout: "60"
+          bin-dir: example-project/KhaPlatformer/build/linux-hl
+          log-file: /tmp/synth-test-kha-hl.log
+          use-wavwriter: "true"
+
+      - name: Validate synth audio
+        if: ${{ !cancelled() }}
+        run: ./ci/validate-synth.sh "${RUNNER_TEMP}/state-synth-test.wav"
+
+      - name: Run cb-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: cb-test
+          gate: CB_TEST
+          timeout: "30"
+          bin-dir: example-project/KhaPlatformer/build/linux-hl
+          log-file: /tmp/cb-test-kha-hl.log
+          extra-gate: "CB_TEST: Stopped"
+
+      - name: Run ps-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: ps-test
+          gate: PS_TEST
+          timeout: "60"
+          bin-dir: example-project/KhaPlatformer/build/linux-hl
+          log-file: /tmp/ps-test-kha-hl.log
+          copy-jump-wav: "true"
+
+      - name: Run bank-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: bank-test
+          gate: BANK_TEST
+          timeout: "60"
+          bin-dir: example-project/KhaPlatformer/build/linux-hl
+          log-file: /tmp/bank-test-kha-hl.log
+
+      - name: Run pan-test state
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/run-test-state
+        with:
+          state: pan-test
+          gate: PAN_TEST
+          timeout: "60"
+          bin-dir: example-project/KhaPlatformer/build/linux-hl
+          log-file: /tmp/pan-test-kha-hl.log
+
+      - name: Run stress-test state (smoke)
+        if: ${{ !cancelled() }}
+        run: |
+          export DISPLAY=:99
+          export HAXEFMOD_TEST_STATE=stress-test
+          export STRESS_SECONDS=15
+          cd example-project/KhaPlatformer/build/linux-hl
+          ./run.sh > /tmp/stress-smoke-kha-hl.log 2>&1 &
+          GAME_PID=$!
+          cd -
+          for i in $(seq 90); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill $GAME_PID 2>/dev/null || true
+          wait $GAME_PID 2>/dev/null || true
+          grep "STRESS_TEST:" /tmp/stress-smoke-kha-hl.log || true
+          grep -q "STRESS_TEST: COMPLETE" /tmp/stress-smoke-kha-hl.log || {
+            echo "Stress smoke never completed - full log:"
+            cat /tmp/stress-smoke-kha-hl.log
+            exit 1
+          }
+          if grep -q "pass=false" /tmp/stress-smoke-kha-hl.log; then
+            echo "Stress smoke reported failing checks"
+            exit 1
+          fi
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: audio-kha-hl
+          path: |
+            /tmp/audio-kha-hl.wav
+            /tmp/game-kha-hl.log
+            /tmp/volume-test-kha-hl.wav
+            /tmp/volume-test-kha-hl.log
+            /tmp/api-probe-kha-hl.log
+            /tmp/synth-test-kha-hl.log
+            /tmp/cb-test-kha-hl.log
+            /tmp/ps-test-kha-hl.log
+            /tmp/bank-test-kha-hl.log
+            /tmp/pan-test-kha-hl.log
+            /tmp/stress-smoke-kha-hl.log
+          if-no-files-found: warn
+          overwrite: true
+
+  # ===========================================================================
+  # Kha in the browser: khamake build, stage command, WebGL through SwiftShader
+  # ===========================================================================
+  kha-html5:
+    runs-on: ubuntu-latest
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[kha-html5]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-js]') && !contains(github.event.head_commit.message, '[kha-linux]') && !contains(github.event.head_commit.message, '[kha-hl]') && !contains(github.event.head_commit.message, '[kha-html5]')))) }}
+    timeout-minutes: 40
+    env:
+      KHA: ${{ runner.temp }}/Kha
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download FMOD SDK
+        uses: ./.github/actions/fmod-sdk
+        with:
+          version: "2.03.12"
+          platform: html5
+          dest: ${{ env.FMOD_SDK }}
+          token: ${{ secrets.FMOD_SDK_TOKEN }}
+
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v2
+        with:
+          haxe-version: ${{ env.HAXE_VERSION }}
+
+      - name: Install Haxe libraries
+        run: |
+          haxelib setup ~/haxelib
+          haxelib dev haxefmod $GITHUB_WORKSPACE
+
+      - name: Cache Kha
+        id: kha-cache
+        uses: actions/cache@v5
+        with:
+          path: ${{ runner.temp }}/Kha
+          key: kha-${{ runner.os }}-${{ env.KHA_COMMIT }}
+
+      - name: Check out Kha
+        if: steps.kha-cache.outputs.cache-hit != 'true'
+        run: |
+          git clone --recursive --depth 1 https://github.com/Kode/Kha.git "$RUNNER_TEMP/Kha"
+          cd "$RUNNER_TEMP/Kha"
+          git checkout "$KHA_COMMIT" 2>/dev/null || true
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg chromium-browser xdotool
+
+      - name: Build HTML5 target
+        env:
+          FMOD_SDK_WEB: ${{ env.FMOD_SDK }}
+        run: |
+          cd example-project/KhaPlatformer
+          ./build.sh html5 2>&1 | tail -3
+
+      - name: Validate build output
+        run: |
+          BIN_DIR="example-project/KhaPlatformer/build/html5"
+          for f in index.html kha.js lib/fmodstudio.js lib/fmodstudio.wasm lib/jaxe.js assets/fmod/Desktop/Master.bank; do
+            test -s "$BIN_DIR/$f" || { echo "FAIL: missing $f"; exit 1; }
+          done
+          echo "OK: html5 build directory is complete"
+
+      - name: Record audio
+        run: |
+          Xvfb :99 -screen 0 1024x768x24 &
+          export DISPLAY=:99
+          sleep 1
+          pulseaudio --start --exit-idle-time=-1 || true
+          pactl load-module module-null-sink sink_name=virtual_speaker sink_properties=device.description=VirtualSpeaker
+          pactl set-default-sink virtual_speaker
+          cat > ~/.asoundrc << 'ALSA_EOF'
+          pcm.!default {
+            type pulse
+          }
+          ctl.!default {
+            type pulse
+          }
+          ALSA_EOF
+          cd example-project/KhaPlatformer/build/html5
+          python3 -m http.server 8280 &
+          HTTP_PID=$!
+          cd -
+          sleep 1
+          chromium-browser \
+            --no-sandbox \
+            --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
+            --autoplay-policy=no-user-gesture-required \
+            --window-size=640,480 \
+            --window-position=0,0 \
+            http://localhost:8280 &
+          CHROME_PID=$!
+          sleep 3
+          xdotool mousemove 320 240 click 1
+          sleep 1
+          ffmpeg -f pulse -i virtual_speaker.monitor -t 30 -y /tmp/audio-kha-html5.wav &
+          RECORD_PID=$!
+          sleep 31
+          kill $CHROME_PID || true
+          kill $HTTP_PID || true
+          wait $RECORD_PID || true
+          ls -la /tmp/audio-kha-html5.wav
+
+      - name: Validate audio
+        run: ./ci/validate-audio.sh /tmp/audio-kha-html5.wav 10
+
+      - name: Build test variant
+        env:
+          FMOD_SDK_WEB: ${{ env.FMOD_SDK }}
+        run: |
+          cd example-project/KhaPlatformer
+          KHA_AUDIO_TEST=1 ./build.sh html5 2>&1 | tail -3
+
+      - name: Record volume test
+        run: |
+          export DISPLAY=:99
+          cd example-project/KhaPlatformer/build/html5
+          python3 -m http.server 8281 &
+          HTTP_PID=$!
+          cd -
+          sleep 1
+          chromium-browser \
+            --no-sandbox \
+            --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
+            --autoplay-policy=no-user-gesture-required \
+            --enable-logging=stderr --v=0 \
+            --window-size=640,480 \
+            --window-position=0,0 \
+            http://localhost:8281 > /tmp/volume-test-kha-html5-console.log 2>&1 &
+          CHROME_PID=$!
+          sleep 3
+          xdotool mousemove 320 240 click 1
+          sleep 1
+          ffmpeg -f pulse -i virtual_speaker.monitor -t 25 -y /tmp/volume-test-kha-html5.wav &
+          RECORD_PID=$!
+          sleep 26
+          kill $CHROME_PID || true
+          kill $HTTP_PID || true
+          wait $RECORD_PID || true
+          grep -o "VOLUME_TEST.*" /tmp/volume-test-kha-html5-console.log | sed 's/",.*$//' || true
+
+      - name: Validate volume/mute
+        run: ./ci/validate-volume.sh /tmp/volume-test-kha-html5.wav 15
+
+      - name: Run API probe (JS binding coverage)
+        if: ${{ !cancelled() }}
+        run: |
+          export DISPLAY=:99
+          cd example-project/KhaPlatformer/build/html5
+          python3 -m http.server 8282 &
+          HTTP_PID=$!
+          sleep 1
+          chromium-browser \
+            --no-sandbox \
+            --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
+            --autoplay-policy=no-user-gesture-required \
+            --enable-logging=stderr --v=0 \
+            --window-size=640,480 \
+            --window-position=0,0 \
+            "http://localhost:8282/index.html?test=api-probe" > /tmp/api-probe-kha-html5.log.raw 2>&1 &
+          CHROME_PID=$!
+          sleep 3
+          xdotool mousemove 320 240 click 1
+          for i in $(seq 45); do
+            grep -q "API_PROBE: COMPLETE" /tmp/api-probe-kha-html5.log.raw && break
+            sleep 1
+          done
+          kill $CHROME_PID || true
+          kill $HTTP_PID || true
+          grep -o "API_PROBE:.*" /tmp/api-probe-kha-html5.log.raw | sed 's/",.*$//' | tee /tmp/api-probe-kha-html5.log
+          grep -q "API_PROBE: COMPLETE" /tmp/api-probe-kha-html5.log
+          if grep -q "pass=false" /tmp/api-probe-kha-html5.log; then
+            echo "FAIL: API_PROBE reported failing checks"
+            exit 1
+          fi
+
+      - name: Run synth test (generated PCM reaches the output)
+        if: ${{ !cancelled() }}
+        run: |
+          export DISPLAY=:99
+          cd example-project/KhaPlatformer/build/html5
+          python3 -m http.server 8286 &
+          HTTP_PID=$!
+          sleep 1
+          ffmpeg -f pulse -i virtual_speaker.monitor -t 60 -y /tmp/synth-test-kha-html5.wav &
+          RECORD_PID=$!
+          chromium-browser \
+            --no-sandbox \
+            --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
+            --autoplay-policy=no-user-gesture-required \
+            --enable-logging=stderr --v=0 \
+            --window-size=640,480 \
+            --window-position=0,0 \
+            "http://localhost:8286/index.html?test=synth-test" > /tmp/synth-test-kha-html5.log.raw 2>&1 &
+          CHROME_PID=$!
+          sleep 3
+          xdotool mousemove 320 240 click 1
+          for i in $(seq 70); do
+            grep -q "SYNTH_TEST: COMPLETE" /tmp/synth-test-kha-html5.log.raw && break
+            sleep 1
+          done
+          wait $RECORD_PID || true
+          kill $CHROME_PID || true
+          kill $HTTP_PID || true
+          grep -o "SYNTH_TEST:.*" /tmp/synth-test-kha-html5.log.raw | sed 's/",.*$//' | tee /tmp/synth-test-kha-html5.log
+          grep -q "SYNTH_TEST: COMPLETE" /tmp/synth-test-kha-html5.log
+          if grep -q "pass=false" /tmp/synth-test-kha-html5.log; then
+            echo "FAIL: SYNTH_TEST reported failing checks"
+            exit 1
+          fi
+
+      - name: Validate synth audio
+        if: ${{ !cancelled() }}
+        run: ./ci/validate-synth.sh /tmp/synth-test-kha-html5.wav
+
+      - name: Run callback test (JS payload delivery)
+        if: ${{ !cancelled() }}
+        run: |
+          export DISPLAY=:99
+          cd example-project/KhaPlatformer/build/html5
+          python3 -m http.server 8283 &
+          HTTP_PID=$!
+          sleep 1
+          chromium-browser \
+            --no-sandbox \
+            --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
+            --autoplay-policy=no-user-gesture-required \
+            --enable-logging=stderr --v=0 \
+            --window-size=640,480 \
+            --window-position=0,0 \
+            "http://localhost:8283/index.html?test=cb-test" > /tmp/cb-test-kha-html5.log.raw 2>&1 &
+          CHROME_PID=$!
+          sleep 3
+          xdotool mousemove 320 240 click 1
+          for i in $(seq 45); do
+            grep -q "CB_TEST: COMPLETE" /tmp/cb-test-kha-html5.log.raw && break
+            sleep 1
+          done
+          kill $CHROME_PID || true
+          kill $HTTP_PID || true
+          grep -o "CB_TEST:.*" /tmp/cb-test-kha-html5.log.raw | sed 's/",.*$//' | tee /tmp/cb-test-kha-html5.log
+          grep -q "CB_TEST: COMPLETE" /tmp/cb-test-kha-html5.log
+          grep -q "CB_TEST: Stopped" /tmp/cb-test-kha-html5.log
+          if grep -q "pass=false" /tmp/cb-test-kha-html5.log; then
+            echo "FAIL: CB_TEST reported failing checks"
+            exit 1
+          fi
+
+      - name: Run ps-test state (browser)
+        if: ${{ !cancelled() }}
+        run: |
+          export DISPLAY=:99
+          cd example-project/KhaPlatformer/build/html5
+          python3 -m http.server 8284 &
+          HTTP_PID=$!
+          sleep 1
+          chromium-browser \
+            --no-sandbox \
+            --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
+            --autoplay-policy=no-user-gesture-required \
+            --enable-logging=stderr --v=0 \
+            --window-size=640,480 \
+            --window-position=0,0 \
+            "http://localhost:8284/index.html?test=ps-test" > /tmp/ps-test-kha-html5.log.raw 2>&1 &
+          CHROME_PID=$!
+          sleep 3
+          xdotool mousemove 320 240 click 1
+          for i in $(seq 45); do
+            grep -q "PS_TEST: COMPLETE" /tmp/ps-test-kha-html5.log.raw && break
+            sleep 1
+          done
+          kill $CHROME_PID || true
+          kill $HTTP_PID || true
+          grep -o "PS_TEST:.*" /tmp/ps-test-kha-html5.log.raw | sed 's/",.*$//' | tee /tmp/ps-test-kha-html5.log
+          grep -q "PS_TEST: COMPLETE" /tmp/ps-test-kha-html5.log
+          if grep -q "pass=false" /tmp/ps-test-kha-html5.log; then
+            echo "FAIL: PS_TEST reported failing checks"
+            exit 1
+          fi
+
+      - name: Run bank-test state (browser)
+        if: ${{ !cancelled() }}
+        run: |
+          export DISPLAY=:99
+          cd example-project/KhaPlatformer/build/html5
+          python3 -m http.server 8285 &
+          HTTP_PID=$!
+          sleep 1
+          chromium-browser \
+            --no-sandbox \
+            --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
+            --autoplay-policy=no-user-gesture-required \
+            --enable-logging=stderr --v=0 \
+            --window-size=640,480 \
+            --window-position=0,0 \
+            "http://localhost:8285/index.html?test=bank-test" > /tmp/bank-test-kha-html5.log.raw 2>&1 &
+          CHROME_PID=$!
+          sleep 3
+          xdotool mousemove 320 240 click 1
+          for i in $(seq 45); do
+            grep -q "BANK_TEST: COMPLETE" /tmp/bank-test-kha-html5.log.raw && break
+            sleep 1
+          done
+          kill $CHROME_PID || true
+          kill $HTTP_PID || true
+          grep -o "BANK_TEST:.*" /tmp/bank-test-kha-html5.log.raw | sed 's/",.*$//' | tee /tmp/bank-test-kha-html5.log
+          grep -q "BANK_TEST: COMPLETE" /tmp/bank-test-kha-html5.log
+          if grep -q "pass=false" /tmp/bank-test-kha-html5.log; then
+            echo "FAIL: BANK_TEST reported failing checks"
+            exit 1
+          fi
+
+      - name: Run pan-test state (browser)
+        if: ${{ !cancelled() }}
+        run: |
+          export DISPLAY=:99
+          cd example-project/KhaPlatformer/build/html5
+          python3 -m http.server 8287 &
+          HTTP_PID=$!
+          sleep 1
+          chromium-browser \
+            --no-sandbox \
+            --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
+            --autoplay-policy=no-user-gesture-required \
+            --enable-logging=stderr --v=0 \
+            --window-size=640,480 \
+            --window-position=0,0 \
+            "http://localhost:8287/index.html?test=pan-test" > /tmp/pan-test-kha-html5.log.raw 2>&1 &
+          CHROME_PID=$!
+          sleep 3
+          xdotool mousemove 320 240 click 1
+          for i in $(seq 45); do
+            grep -q "PAN_TEST: COMPLETE" /tmp/pan-test-kha-html5.log.raw && break
+            sleep 1
+          done
+          kill $CHROME_PID || true
+          kill $HTTP_PID || true
+          grep -o "PAN_TEST:.*" /tmp/pan-test-kha-html5.log.raw | sed 's/",.*$//' | tee /tmp/pan-test-kha-html5.log
+          grep -q "PAN_TEST: COMPLETE" /tmp/pan-test-kha-html5.log
+          if grep -q "pass=false" /tmp/pan-test-kha-html5.log; then
+            echo "FAIL: PAN_TEST reported failing checks"
+            exit 1
+          fi
+
+      - name: Upload audio artifact
+        uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: audio-kha-html5
+          path: |
+            /tmp/audio-kha-html5.wav
+            /tmp/volume-test-kha-html5.wav
+            /tmp/volume-test-kha-html5-console.log
+            /tmp/api-probe-kha-html5.log
+            /tmp/synth-test-kha-html5.log
+            /tmp/cb-test-kha-html5.log
+            /tmp/ps-test-kha-html5.log
+            /tmp/bank-test-kha-html5.log
+            /tmp/pan-test-kha-html5.log
+          if-no-files-found: warn
+          overwrite: true
+
   # ===========================================================================
   # macOS C++ Build + Audio Recording
   # ===========================================================================
   mac-cpp:
     runs-on: macos-14
-    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[mac-cpp]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-js]')))) }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[mac-cpp]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-js]') && !contains(github.event.head_commit.message, '[kha-linux]') && !contains(github.event.head_commit.message, '[kha-hl]') && !contains(github.event.head_commit.message, '[kha-html5]')))) }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
@@ -2704,7 +3594,7 @@ jobs:
   # ===========================================================================
   mac-hl:
     runs-on: macos-14
-    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[mac-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-js]')))) }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[mac-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-js]') && !contains(github.event.head_commit.message, '[kha-linux]') && !contains(github.event.head_commit.message, '[kha-hl]') && !contains(github.event.head_commit.message, '[kha-html5]')))) }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
@@ -2947,7 +3837,7 @@ jobs:
   # ===========================================================================
   mac-hl-compat:
     runs-on: macos-14
-    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[mac-hl-compat]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-js]')))) }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[mac-hl-compat]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-js]') && !contains(github.event.head_commit.message, '[kha-linux]') && !contains(github.event.head_commit.message, '[kha-hl]') && !contains(github.event.head_commit.message, '[kha-html5]')))) }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
@@ -3100,7 +3990,7 @@ jobs:
   # ===========================================================================
   windows-cpp:
     runs-on: windows-latest
-    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[windows-cpp]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-js]')))) }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[windows-cpp]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-js]') && !contains(github.event.head_commit.message, '[kha-linux]') && !contains(github.event.head_commit.message, '[kha-hl]') && !contains(github.event.head_commit.message, '[kha-html5]')))) }}
     timeout-minutes: 30
     defaults:
       run:
@@ -3385,7 +4275,7 @@ jobs:
   # ===========================================================================
   windows-hl:
     runs-on: windows-latest
-    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[windows-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-js]')))) }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[windows-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-js]') && !contains(github.event.head_commit.message, '[kha-linux]') && !contains(github.event.head_commit.message, '[kha-hl]') && !contains(github.event.head_commit.message, '[kha-html5]')))) }}
     timeout-minutes: 30
     defaults:
       run:
@@ -3694,7 +4584,7 @@ jobs:
   # ===========================================================================
   windows-hl-compat:
     runs-on: windows-latest
-    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[windows-hl-compat]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-js]')))) }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[windows-hl-compat]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-js]') && !contains(github.event.head_commit.message, '[kha-linux]') && !contains(github.event.head_commit.message, '[kha-hl]') && !contains(github.event.head_commit.message, '[kha-html5]')))) }}
     timeout-minutes: 30
     defaults:
       run:
@@ -4404,7 +5294,7 @@ jobs:
   # ===========================================================================
   package-check-cpp:
     runs-on: ubuntu-latest
-    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && !contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-js]')) }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && !contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-js]') && !contains(github.event.head_commit.message, '[kha-linux]') && !contains(github.event.head_commit.message, '[kha-hl]') && !contains(github.event.head_commit.message, '[kha-html5]')) }}
     timeout-minutes: 30
     env:
       FMOD_SDK: ${{ github.workspace }}/fmod-sdk

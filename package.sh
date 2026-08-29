@@ -22,7 +22,7 @@ done
 # sits in the working tree. Refuse to package anything git does not know
 # about, allowing only the patterns the zip itself excludes below.
 if command -v git > /dev/null && git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
-  dirty=$(git status --porcelain --ignored -- haxefmod native templates fmod-scripts fmod_expected_version include.xml haxelib.json README.md MIGRATION.md CHANGELOG.md LIMITATIONS.md LICENSE | grep -vE '\.DS_Store$|/\.haxefmod/|\.obj$' || true)
+  dirty=$(git status --porcelain --ignored -- haxefmod native templates fmod-scripts fmod_expected_version include.xml kfile.js haxelib.json README.md MIGRATION.md CHANGELOG.md LIMITATIONS.md LICENSE | grep -vE '\.DS_Store$|/\.haxefmod/|\.obj$' || true)
   if [ -n "$dirty" ]; then
     echo "ERROR: packaged paths have uncommitted or untracked changes:"
     echo "$dirty"
@@ -51,6 +51,7 @@ zip -r haxefmod.zip \
   fmod-scripts/ \
   fmod_expected_version \
   include.xml \
+  kfile.js \
   haxelib.json \
   README.md \
   MIGRATION.md \
