@@ -6,7 +6,7 @@
 #
 # Usage: ci/local-ci.sh [job ...]
 #   jobs: unit-tests linux-cpp linux-hl linux-html5-chromium linux-html5-firefox
-#         heaps-hl heaps-js kha-linux kha-hl kha-html5
+#         heaps-hl heaps-html5 kha-linux kha-hl kha-html5
 #   no argument runs all of them
 #
 # Environment:
@@ -43,7 +43,7 @@ export HXCPP_COMPILE_CACHE="$OUT/hxcpp-cache"
 export HXCPP_CACHE_MB=4000
 
 JOBS=("$@")
-[ ${#JOBS[@]} -eq 0 ] && JOBS=(unit-tests linux-cpp linux-hl linux-html5-chromium linux-html5-firefox heaps-hl heaps-js kha-linux kha-hl kha-html5)
+[ ${#JOBS[@]} -eq 0 ] && JOBS=(unit-tests linux-cpp linux-hl linux-html5-chromium linux-html5-firefox heaps-hl heaps-html5 kha-linux kha-hl kha-html5)
 
 mkdir -p "$OUT"
 FAILED_STEPS=()
@@ -564,10 +564,10 @@ job_heaps_hl() {
     ! grep -q "pass=false" "$2/stress-smoke-heaps-hl.log"' _ "$bin" "$TMP"
 }
 
-# ---------------------------------------------------------------- heaps-js
+# ---------------------------------------------------------------- heaps-html5
 
-job_heaps_js() {
-  begin_job heaps-js
+job_heaps_html5() {
+  begin_job heaps-html5
   require_sdk
   [ -n "$CHROMIUM" ] || { echo "no chromium binary found (set CHROMIUM)"; return; }
   rm -rf "$HEAPS/build/html5"
@@ -580,25 +580,25 @@ job_heaps_js() {
     done
     echo "OK: html5 build directory is complete"' _ "$WEB_BIN"
   start_display_audio
-  step "Record audio" record_browser_game 8180 "$TMP/audio-heaps-js.wav" 30
-  step "Validate audio" ./ci/validate-audio.sh "$TMP/audio-heaps-js.wav" 10
+  step "Record audio" record_browser_game 8180 "$TMP/audio-heaps-html5.wav" 30
+  step "Validate audio" ./ci/validate-audio.sh "$TMP/audio-heaps-html5.wav" 10
   step "Build test variant" bash -eo pipefail -c 'cd "$1" && ./build.sh js -D audio_test' _ "$HEAPS"
-  step "Record volume test" record_volume_heaps_js
-  step "Validate volume/mute" ./ci/validate-volume.sh "$TMP/volume-test-heaps-js.wav" 15
-  step "Run API probe (JS binding coverage)" run_browser_state api-probe API_PROBE 8182 "$TMP/api-probe-heaps-js.log" 45
-  step "Run synth test (generated PCM reaches the output)" run_browser_state synth-test SYNTH_TEST 8186 "$TMP/synth-test-heaps-js.log" 70 "" "$TMP/synth-test-heaps-js.wav" 60
-  step "Validate synth audio" ./ci/validate-synth.sh "$TMP/synth-test-heaps-js.wav"
-  step "Run callback test (JS payload delivery)" run_browser_state cb-test CB_TEST 8183 "$TMP/cb-test-heaps-js.log" 45 "CB_TEST: Stopped"
-  step "Run ps-test state (browser)" run_browser_state ps-test PS_TEST 8184 "$TMP/ps-test-heaps-js.log" 45
-  step "Run bank-test state (browser)" run_browser_state bank-test BANK_TEST 8185 "$TMP/bank-test-heaps-js.log" 45
-  step "Run pan-test state (browser)" run_browser_state pan-test PAN_TEST 8187 "$TMP/pan-test-heaps-js.log" 45
+  step "Record volume test" record_volume_heaps_html5
+  step "Validate volume/mute" ./ci/validate-volume.sh "$TMP/volume-test-heaps-html5.wav" 15
+  step "Run API probe (JS binding coverage)" run_browser_state api-probe API_PROBE 8182 "$TMP/api-probe-heaps-html5.log" 45
+  step "Run synth test (generated PCM reaches the output)" run_browser_state synth-test SYNTH_TEST 8186 "$TMP/synth-test-heaps-html5.log" 70 "" "$TMP/synth-test-heaps-html5.wav" 60
+  step "Validate synth audio" ./ci/validate-synth.sh "$TMP/synth-test-heaps-html5.wav"
+  step "Run callback test (JS payload delivery)" run_browser_state cb-test CB_TEST 8183 "$TMP/cb-test-heaps-html5.log" 45 "CB_TEST: Stopped"
+  step "Run ps-test state (browser)" run_browser_state ps-test PS_TEST 8184 "$TMP/ps-test-heaps-html5.log" 45
+  step "Run bank-test state (browser)" run_browser_state bank-test BANK_TEST 8185 "$TMP/bank-test-heaps-html5.log" 45
+  step "Run pan-test state (browser)" run_browser_state pan-test PAN_TEST 8187 "$TMP/pan-test-heaps-html5.log" 45
   WEB_BIN="$EXAMPLE/export/html5/bin"
   CHROME_GL="--disable-gpu"
 }
 
-record_volume_heaps_js() {
-  record_browser_game 8181 "$TMP/volume-test-heaps-js.wav" 25 "$TMP/volume-test-heaps-js-console.log"
-  grep -o "VOLUME_TEST.*" "$TMP/volume-test-heaps-js-console.log" | sed 's/",.*$//' || true
+record_volume_heaps_html5() {
+  record_browser_game 8181 "$TMP/volume-test-heaps-html5.wav" 25 "$TMP/volume-test-heaps-html5-console.log"
+  grep -o "VOLUME_TEST.*" "$TMP/volume-test-heaps-html5-console.log" | sed 's/",.*$//' || true
 }
 
 # ---------------------------------------------------------------- kha-linux, kha-hl
@@ -711,7 +711,7 @@ for job in "${JOBS[@]}"; do
     linux-html5-chromium) job_linux_html5_chromium ;;
     linux-html5-firefox) job_linux_html5_firefox ;;
     heaps-hl) job_heaps_hl ;;
-    heaps-js) job_heaps_js ;;
+    heaps-html5) job_heaps_html5 ;;
     kha-linux) job_kha_linux ;;
     kha-hl) job_kha_hl ;;
     kha-html5) job_kha_html5 ;;

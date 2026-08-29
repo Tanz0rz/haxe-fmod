@@ -197,7 +197,7 @@ REQUIRED_STEPS = {
                                 "Verify FMOD libraries have no executable stack",
                                 "Build custom hdll via build-hdll",
                                 "Run stress-test state (smoke)"],
-    "heaps-js": [
+    "heaps-html5": [
         "Validate build output",
         "Validate audio", "Validate volume/mute", "Validate synth audio",
         "Run API probe (JS binding coverage)",

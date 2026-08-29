@@ -61,6 +61,10 @@ class Main extends hxd.App {
     }
 
     override function update(dt:Float) {
+        #if js
+        // Frame counter the test page's heartbeat reports
+        untyped window.__frames = (untyped window.__frames || 0) + 1;
+        #end
         if (scene != null) scene.update(dt);
         #if hl
         // HashLink has no frame cap of its own and a virtual display has
