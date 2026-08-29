@@ -1961,7 +1961,9 @@ jobs:
         uses: actions/download-artifact@v6
         with:
           name: build-heaps-hl
-          path: example-project/HeapsPlatformer
+          # A single-path upload drops the directory prefix, a multi-path
+          # upload keeps everything below the common ancestor
+          path: example-project/HeapsPlatformer/build/hl
 
       - name: Restore executable bits
         run: |
@@ -1972,7 +1974,7 @@ jobs:
       - name: Install runtime dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg libgl1-mesa-dri
+          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg libgl1-mesa-dri libegl1 libgles2
 
       - name: Install system dependencies
         run: |
@@ -2207,7 +2209,9 @@ jobs:
         uses: actions/download-artifact@v6
         with:
           name: build-heaps-html5
-          path: example-project/HeapsPlatformer
+          # A single-path upload drops the directory prefix, a multi-path
+          # upload keeps everything below the common ancestor
+          path: example-project/HeapsPlatformer/build/html5
 
       - name: Restore executable bits
         run: |
@@ -2488,6 +2492,8 @@ jobs:
         uses: actions/download-artifact@v6
         with:
           name: build-kha-linux
+          # A single-path upload drops the directory prefix, a multi-path
+          # upload keeps everything below the common ancestor
           path: example-project/KhaPlatformer
 
       - name: Restore executable bits
@@ -2499,7 +2505,7 @@ jobs:
       - name: Install runtime dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg libgl1-mesa-dri
+          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg libgl1-mesa-dri libegl1 libgles2
 
 
       - name: Start display and audio
@@ -2732,7 +2738,9 @@ jobs:
         uses: actions/download-artifact@v6
         with:
           name: build-kha-hl
-          path: example-project/KhaPlatformer
+          # A single-path upload drops the directory prefix, a multi-path
+          # upload keeps everything below the common ancestor
+          path: example-project/KhaPlatformer/build/linux-hl
 
       - name: Restore executable bits
         run: |
@@ -2743,7 +2751,7 @@ jobs:
       - name: Install runtime dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg libgl1-mesa-dri
+          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg libgl1-mesa-dri libegl1 libgles2
 
 
       - name: Start display and audio
@@ -2962,7 +2970,9 @@ jobs:
         uses: actions/download-artifact@v6
         with:
           name: build-kha-html5
-          path: example-project/KhaPlatformer
+          # A single-path upload drops the directory prefix, a multi-path
+          # upload keeps everything below the common ancestor
+          path: example-project/KhaPlatformer/build/html5
 
       - name: Restore executable bits
         run: |
@@ -3228,7 +3238,9 @@ jobs:
         uses: actions/download-artifact@v6
         with:
           name: build-heaps-mac-hl
-          path: example-project/HeapsPlatformer
+          # A single-path upload drops the directory prefix, a multi-path
+          # upload keeps everything below the common ancestor
+          path: example-project/HeapsPlatformer/build/hl
 
       - name: Restore executable bits
         run: |
@@ -3455,7 +3467,9 @@ jobs:
         uses: actions/download-artifact@v6
         with:
           name: build-heaps-windows-hl
-          path: example-project/HeapsPlatformer
+          # A single-path upload drops the directory prefix, a multi-path
+          # upload keeps everything below the common ancestor
+          path: example-project/HeapsPlatformer/build/hl
 
       - name: Install ffmpeg
         shell: powershell
@@ -3669,7 +3683,9 @@ jobs:
         uses: actions/download-artifact@v6
         with:
           name: build-kha-mac
-          path: example-project/KhaPlatformer
+          # A single-path upload drops the directory prefix, a multi-path
+          # upload keeps everything below the common ancestor
+          path: example-project/KhaPlatformer/build/osx
 
       - name: Restore executable bits
         run: |
@@ -3885,7 +3901,9 @@ jobs:
         uses: actions/download-artifact@v6
         with:
           name: build-kha-mac-hl
-          path: example-project/KhaPlatformer
+          # A single-path upload drops the directory prefix, a multi-path
+          # upload keeps everything below the common ancestor
+          path: example-project/KhaPlatformer/build/osx-hl
 
       - name: Restore executable bits
         run: |
@@ -4105,7 +4123,9 @@ jobs:
         uses: actions/download-artifact@v6
         with:
           name: build-kha-windows
-          path: example-project/KhaPlatformer
+          # A single-path upload drops the directory prefix, a multi-path
+          # upload keeps everything below the common ancestor
+          path: example-project/KhaPlatformer/build/windows
 
       - name: Install ffmpeg
         shell: powershell
@@ -4317,7 +4337,9 @@ jobs:
         uses: actions/download-artifact@v6
         with:
           name: build-kha-windows-hl
-          path: example-project/KhaPlatformer
+          # A single-path upload drops the directory prefix, a multi-path
+          # upload keeps everything below the common ancestor
+          path: example-project/KhaPlatformer/build/windows-hl
 
       - name: Install ffmpeg
         shell: powershell
