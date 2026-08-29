@@ -96,7 +96,9 @@ jobs:
             --xml /tmp/haxefmod-docs/types.xml
 
       - name: Render the API reference
-        run: haxelib run dox -i /tmp/haxefmod-docs -o site-api -in haxefmod --title "haxefmod API reference"
+        run: |
+          haxelib run dox -i /tmp/haxefmod-docs -o site-api -in haxefmod --title "haxefmod API reference"
+          python3 ci/api-module-pages.py /tmp/haxefmod-docs/types.xml site-api
 
       - name: Setup Python
         uses: actions/setup-python@v6
@@ -111,6 +113,7 @@ jobs:
           mkdocs build --strict
           rm -rf site/api
           mv site-api site/api
+          python3 ci/check-site-links.py site
 
       - name: Upload the site
         uses: actions/upload-pages-artifact@v4
