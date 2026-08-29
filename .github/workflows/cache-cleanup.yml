@@ -1,0 +1,79 @@
+name: Cache Cleanup
+
+# The Actions cache store is capped at 10GB and evicts least-recently-used
+# entries once it is full, so a repo that never prunes quietly starts
+# losing the caches it depends on. This keeps it well under the cap: stale
+# branch caches go on a schedule, and a merged branch's caches go as soon
+# as its PR closes.
+#
+# Nothing here can break a build. Every cache it removes is rebuilt by the
+# next run that asks for it, at the cost of one slow job.
+
+on:
+  schedule:
+    - cron: "0 5 * * 1"
+  pull_request:
+    types: [closed]
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: "List what would be removed without deleting it"
+        type: boolean
+        required: false
+        default: true
+      keep:
+        description: "Entries to keep per cache key"
+        required: false
+        default: "2"
+      max-age-days:
+        description: "Drop side-branch caches idle longer than this"
+        required: false
+        default: "14"
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  # Caches belong to the branch that made them, and deleting the branch
+  # does not delete them. A merged PR is the moment they stop being useful.
+  merged-branch:
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Remove the closed branch's caches
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 ci/prune-caches.py \
+            --repo "${{ github.repository }}" \
+            --branch "${{ github.event.pull_request.head.ref }}"
+
+  scheduled:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Prune stale caches
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 ci/prune-caches.py \
+            --repo "${{ github.repository }}" \
+            --keep "${{ github.event.inputs.keep || '2' }}" \
+            --max-age-days "${{ github.event.inputs.max-age-days || '14' }}" \
+            ${{ github.event.inputs.dry-run == 'true' && '--dry-run' || '' }}
+
+      - name: Report remaining usage
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api "repos/${{ github.repository }}/actions/cache/usage" \
+            -q '"cache store: \(.active_caches_size_in_bytes/1073741824*100|round/100) GB across \(.active_caches_count) entries (10 GB cap)"'

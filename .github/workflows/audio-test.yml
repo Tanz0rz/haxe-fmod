@@ -252,13 +252,18 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg libgl1-mesa-dev
 
+      # The cache key carries a flavour ('app'), keeping it clear of the
+      # package-check-cpp job's 'pkg' cache. Two jobs on one OS sharing a
+      # key means whichever finishes first claims it, and the other then
+      # gets a primary-key hit and skips its own save, so it rebuilds from
+      # scratch on every run.
       - name: Cache hxcpp objects
         uses: actions/cache@v5
         with:
           path: ${{ runner.temp }}/hxcpp-cache
-          key: hxcpp-${{ runner.os }}-${{ github.sha }}
+          key: hxcpp-${{ runner.os }}-app-${{ github.sha }}
           restore-keys: |
-            hxcpp-${{ runner.os }}-
+            hxcpp-${{ runner.os }}-app-
 
       - name: Build C++ target
         env:
@@ -473,6 +478,9 @@ jobs:
       # hardening_define_channels checks).
       - name: Build manual-update variant
         if: ${{ !cancelled() }}
+        env:
+          HXCPP_COMPILE_CACHE: ${{ runner.temp }}/hxcpp-cache
+          HXCPP_CACHE_MB: "4000"
         run: |
           cd example-project/EZPlatformer
           haxelib run lime build linux -64 -Daudio_test -Daudio_test_manual_update -Dhaxefmod_num_channels=100
@@ -1835,13 +1843,18 @@ jobs:
           haxelib dev haxefmod $GITHUB_WORKSPACE
           yes | haxelib run lime setup || true
 
+      # The cache key carries a flavour ('app'), keeping it clear of the
+      # package-check-cpp job's 'pkg' cache. Two jobs on one OS sharing a
+      # key means whichever finishes first claims it, and the other then
+      # gets a primary-key hit and skips its own save, so it rebuilds from
+      # scratch on every run.
       - name: Cache hxcpp objects
         uses: actions/cache@v5
         with:
           path: ${{ runner.temp }}/hxcpp-cache
-          key: hxcpp-${{ runner.os }}-${{ github.sha }}
+          key: hxcpp-${{ runner.os }}-app-${{ github.sha }}
           restore-keys: |
-            hxcpp-${{ runner.os }}-
+            hxcpp-${{ runner.os }}-app-
 
       - name: Build C++ target
         env:
@@ -2482,13 +2495,18 @@ jobs:
           haxelib dev haxefmod "$GITHUB_WORKSPACE"
           yes | haxelib run lime setup || true
 
+      # The cache key carries a flavour ('app'), keeping it clear of the
+      # package-check-cpp job's 'pkg' cache. Two jobs on one OS sharing a
+      # key means whichever finishes first claims it, and the other then
+      # gets a primary-key hit and skips its own save, so it rebuilds from
+      # scratch on every run.
       - name: Cache hxcpp objects
         uses: actions/cache@v5
         with:
           path: ${{ runner.temp }}/hxcpp-cache
-          key: hxcpp-${{ runner.os }}-${{ github.sha }}
+          key: hxcpp-${{ runner.os }}-app-${{ github.sha }}
           restore-keys: |
-            hxcpp-${{ runner.os }}-
+            hxcpp-${{ runner.os }}-app-
 
       - name: Build C++ target
         env:
@@ -3757,13 +3775,16 @@ jobs:
           path: ~/haxelib
           key: haxelib-package-${{ runner.os }}-${{ env.HAXE_VERSION }}
 
+      # 'pkg' keeps this clear of the platform jobs' 'app' cache: this job
+      # builds from the installed haxelib package, and it finishes early
+      # enough to claim a shared key before linux-cpp could save its own.
       - name: Cache hxcpp objects
         uses: actions/cache@v5
         with:
           path: ${{ runner.temp }}/hxcpp-cache
-          key: hxcpp-${{ runner.os }}-${{ github.sha }}
+          key: hxcpp-${{ runner.os }}-pkg-${{ github.sha }}
           restore-keys: |
-            hxcpp-${{ runner.os }}-
+            hxcpp-${{ runner.os }}-pkg-
 
       - name: Build the haxelib package
         run: ./package.sh
