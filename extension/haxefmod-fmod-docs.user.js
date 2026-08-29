@@ -15406,7 +15406,7 @@ const HAXEFMOD_EXAMPLES = {
             }
             if (entry.gated) {
                 var warn = el("div", "haxefmod-warn");
-                warn.appendChild(el("p", "haxefmod-warn-title", "HTML5 UNSUPPORTED"));
+                warn.appendChild(el("p", "haxefmod-warn-title", "HTML5 BUILD TARGET UNSUPPORTED"));
                 var list = el("ul", "haxefmod-warn-list");
                 list.appendChild(el("li", "haxefmod-warn-item", "FMOD's web build does not support this feature, so the call does not compile in a js build."));
                 list.appendChild(el("li", "haxefmod-warn-item", "The build flag haxefmod_html5_allow_unsupported compiles it anyway, and it then returns FMOD_ERR_UNSUPPORTED at runtime."));
