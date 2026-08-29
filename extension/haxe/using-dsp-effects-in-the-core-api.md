@@ -47,7 +47,6 @@ var result = channelgroup.addDsp(1, dsp_lowpass);
 
 ## Creating an effect and making all Channels send to it.
 verdict: bound
-addInput returns the DspConnection, DspConnection.NULL on failure with the reason in StudioSystem.lastResult().
 ```haxe
 import haxefmod.core.ChannelGroup;
 import haxefmod.core.Dsp;
@@ -71,7 +70,6 @@ var result = dsp_reverb.setActive(true);
 
 ## Creating an effect and making all Channels send to it.#3
 verdict: bound
-The head, fader, and tail slots are the Channel.DSP_HEAD, DSP_FADER, and DSP_TAIL constants.
 ```haxe
 import haxefmod.core.Channel;
 import haxefmod.core.Sound;
@@ -91,7 +89,6 @@ var result = channel.setPaused(false);                                          
 
 ## Controlling mix level and pan matrices for DSPConnections
 verdict: bound
-addInput returns the DspConnection directly, DspConnection.NULL on failure with the reason in StudioSystem.lastResult().
 ```haxe
 import haxefmod.core.Channel;
 import haxefmod.core.Sound;
@@ -134,8 +131,6 @@ var result = channel_dsp_head.setChannelFormat(0, 0, FmodSpeakerMode.QUAD);
 
 ## Set the output format of a DSP unit, and control the pan matrix for its output signal#2
 verdict: bound
-Dsp.getOutputConnection(index) returns the connection on an output slot, the target unit itself comes from Dsp.getOutput(index).
-The matrix is one flat row-major array, one row per output channel with one column per input channel.
 ```haxe
 import haxefmod.core.Channel;
 import haxefmod.core.Dsp;
@@ -167,23 +162,18 @@ verdict: cannot registerPlugin and registerDSP take a DSP description whose call
 
 ## 7.2 Plug-in DSP Effects#2
 verdict: bound
-Native only (unsupported in HTML5).
-loadPlugin returns FMOD's plug-in handle, 0 on failure with the reason in StudioSystem.lastResult().
 ```haxe
 var handle = StudioSystem.loadPlugin("plugin_name.dll", 0);
 ```
 
 ## 7.2 Plug-in DSP Effects#3
 verdict: bound
-Native only (unsupported in HTML5).
 ```haxe
 var result = StudioSystem.setPluginPath("plugins");
 ```
 
 ## 7.2 Plug-in DSP Effects#4
 verdict: bound
-Native only (unsupported in HTML5).
-unregisterPlugin cannot be bound because registerPlugin cannot. A plug-in loaded with StudioSystem.loadPlugin is unloaded with StudioSystem.unloadPlugin after every Dsp created from it is released.
 ```haxe
 var handle = StudioSystem.loadPlugin("plugin_name.dll");
 var result = StudioSystem.unloadPlugin(handle);
@@ -197,8 +187,6 @@ verdict: cannot the plug-in list and its exported FMODGetPluginDescriptionList a
 
 ## 7.2.4 Multiple plug-ins within one file#2
 verdict: bound
-Native only (unsupported in HTML5).
-loadPlugin returns 0 on failure and getNestedPluginCount returns -1, the reason is in StudioSystem.lastResult().
 ```haxe
 var baseHandle = StudioSystem.loadPlugin("plugin_name.dll");
 if (baseHandle == 0) {
@@ -216,3 +204,4 @@ for (index in 0...count) {
     // We have an output plug-in, a DSP plug-in, or a codec plug-in here.
 }
 ```
+

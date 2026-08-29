@@ -13,7 +13,6 @@ are not function entries, one section per key:
 
     ## 10.2 Extracting PCM Data from a Sound
     verdict: bound
-    A note shown as comment lines above the code, one per line.
     ```haxe
     var read = sound.readData(buffer);
     ```
@@ -35,9 +34,12 @@ Haxe form of it. A type definition is one shown under an FMOD_ heading
 of the API reference, a guide example that opens with a helper struct
 of its own is an example and takes a fence.
 
-Function entries take their Haxe side from bindings-data.js and their
-notes from extension/functions.md, whose sections use the same format
-under the function id.
+Function entries take their Haxe side from bindings-data.js. A function
+with no binding has a section in extension/functions.md under the
+function id holding one verdict line (`cannot`, `covered`, or `library`
+with the reason), which the tab shows as a single comment line. A
+section never carries a fence or note lines: the tab shows generated
+signatures or that one line, nothing hand-written.
 
 The checks fail when:
   - a catalog key has no section (nothing on the site is left blank),
@@ -314,6 +316,8 @@ def resolve(section, problems, label, type_definition=False):
     if verdict in CATEGORIES:
         if not section["reason"]:
             problems.append(f"{label}: verdict {verdict} needs a reason")
+        if section["notes"]:
+            problems.append(f"{label}: the reason on the verdict line is the whole entry, drop the note lines")
         if type_definition and verdict != "cannot":
             problems.append(f"{label}: a type definition is declared in Haxe or cannot be, verdict {verdict} is not an answer")
         notes = [CATEGORY_TEXT[verdict] + " " + section["reason"]] + section["notes"]
@@ -321,6 +325,8 @@ def resolve(section, problems, label, type_definition=False):
     if verdict != "bound":
         problems.append(f"{label}: unknown verdict {verdict}")
         return None
+    if section["notes"]:
+        problems.append(f"{label}: a bound entry shows code only, drop the note lines")
     code = section["code"]
     if section["type"]:
         declared = declaration_of(section["type"])
@@ -477,6 +483,15 @@ def build():
             problems.append(f"functions.md: \"{key}\" is not a function on any catalog page")
         elif section["verdict"] is None:
             problems.append(f"functions.md: \"{key}\": no verdict line")
+        # A function entry shows its generated signatures, or one comment line
+        # with the reason it has none. The notes file never carries code or prose.
+        if section["code"] is not None or section["notes"]:
+            problems.append(f"functions.md: \"{key}\": a function section is a verdict line only, drop the fence and the note lines")
+        if section["verdict"] == "bound":
+            problems.append(f"functions.md: \"{key}\": bound is implied by the bindings table, a section is for cannot, covered, or library")
+        binding = bindings.get(key)
+        if section["verdict"] in ("cannot", "covered") and binding and binding["haxe"]:
+            problems.append(f"functions.md: \"{key}\": says {section['verdict']} but the bindings table reaches it, delete the section")
     return output, problems, stats
 
 

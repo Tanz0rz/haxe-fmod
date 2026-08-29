@@ -11,8 +11,6 @@ verdict: cannot Registering from a description struct cannot be bound, because t
 
 ## 18.2.2 Loading the Plug-in in the Game#2
 verdict: bound
-Native only (unsupported in HTML5).
-Returns FMOD's plugin handle, or 0 on failure with the reason in StudioSystem.lastResult().
 ```haxe
 var priority = 0;
 var handle = StudioSystem.loadPlugin("fmod_gain.dll", priority);
@@ -23,7 +21,6 @@ if (handle == 0) {
 
 ## 18.2.2 Loading the Plug-in in the Game#3
 verdict: bound
-Native only (unsupported in HTML5).
 ```haxe
 var result = StudioSystem.setPluginPath("plugins");
 if (!result.isOk()) {
@@ -33,9 +30,6 @@ if (!result.isOk()) {
 
 ## 18.2.2 Loading the Plug-in in the Game#4
 verdict: bound
-Native only (unsupported in HTML5).
-unregisterPlugin has no Haxe form because registerPlugin has none, unloadPlugin is the one that applies.
-Release every Dsp created from the plug-in first. FMOD frees them from its mixer thread, so an unload that answers FMOD_ERR_DSP_INUSE succeeds when retried a few frames later.
 ```haxe
 var handle = StudioSystem.loadPlugin("fmod_gain.dll");
 var result = StudioSystem.unloadPlugin(handle);
@@ -52,8 +46,6 @@ verdict: cannot The plug-in list and the descriptors it points to are C code ins
 
 ## 18.7 Multiple Plug-ins Within One File#2
 verdict: bound
-Native only (unsupported in HTML5).
-loadPlugin returns 0 on failure and getNestedPluginCount returns -1, with the reason in StudioSystem.lastResult(). getPluginInfo returns the type together with the name and version.
 ```haxe
 var baseHandle = StudioSystem.loadPlugin("plugin_name.dll");
 if (baseHandle == 0) {
@@ -69,3 +61,4 @@ for (index in 0...count) {
     }
 }
 ```
+

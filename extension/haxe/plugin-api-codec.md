@@ -8,7 +8,6 @@ verdict: cannot runs on FMOD's threads inside a codec plugin, plugin authoring i
 
 ## FMOD_CODEC_DESCRIPTION
 verdict: cannot codec plugins are written in C, Sound.create loads every format FMOD decodes and PcmStream feeds decoded audio
-A prebuilt codec plugin binary loads with StudioSystem.loadPlugin, native only (unsupported in HTML5).
 
 ## FMOD_CODEC_FILE_READ_FUNC
 verdict: cannot runs on FMOD's threads inside a codec plugin, plugin authoring is C only

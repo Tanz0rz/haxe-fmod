@@ -11,7 +11,6 @@ verdict: cannot the mixer buffers received only by a plugin callback on FMOD's m
 
 ## FMOD_DSP_BUFFER_ARRAY#2
 verdict: bound
-A plugin process callback cannot run in Haxe, the built-in oscillator unit plays the same square wave from game code.
 ```haxe
 import haxefmod.core.Dsp;
 import haxefmod.core.DspParameters.DspOscillator;
@@ -25,7 +24,6 @@ var tone = osc.play();
 
 ## FMOD_DSP_BUFFER_ARRAY#3
 verdict: bound
-A plugin process callback cannot run in Haxe, the built-in oscillator unit plays the same square wave from game code.
 ```haxe
 import haxefmod.core.Dsp;
 import haxefmod.core.DspParameters.DspOscillator;
@@ -203,7 +201,6 @@ verdict: cannot the body of a DSP callback FMOD runs on its mixer thread, which 
 
 ## FMOD_DSP_PROCESS_CALLBACK#3
 verdict: bound
-A plugin process callback cannot run in Haxe, the built-in fader unit halves the signal in the same place of the chain.
 ```haxe
 import haxefmod.core.ChannelGroup;
 import haxefmod.core.Dsp;
@@ -227,7 +224,6 @@ verdict: cannot the body of a DSP callback FMOD runs on its mixer thread, which 
 
 ## FMOD_DSP_READ_CALLBACK#3
 verdict: bound
-A plugin read callback cannot run in Haxe, the built-in fader unit halves the signal in the same place of the chain.
 ```haxe
 import haxefmod.core.ChannelGroup;
 import haxefmod.core.Dsp;
@@ -241,7 +237,6 @@ ChannelGroup.master().addDsp(ChannelGroup.DSP_TAIL, fader);
 
 ## FMOD_DSP_READ_CALLBACK#4
 verdict: bound
-A plugin read callback cannot run in Haxe, the built-in fader unit halves the signal in the same place of the chain.
 ```haxe
 import haxefmod.core.ChannelGroup;
 import haxefmod.core.Dsp;
@@ -291,7 +286,6 @@ verdict: cannot a plugin read callback keeping its phase in plugindata, received
 
 ## FMOD_DSP_STATE#3
 verdict: bound
-A plugin oscillator keeps its phase in plugindata on the mixer thread, the built-in oscillator unit plays the same 440 Hz sine from game code.
 ```haxe
 import haxefmod.core.Dsp;
 import haxefmod.core.DspParameters.DspOscillator;
@@ -311,7 +305,6 @@ if (!result.isOk()) trace(result.toString());
 
 ## FMOD_DSP_STATE#4
 verdict: bound
-A plugin oscillator keeps its phase in plugindata on the mixer thread, the built-in oscillator unit plays the same 440 Hz sine from game code.
 ```haxe
 import haxefmod.core.Dsp;
 import haxefmod.core.DspParameters.DspOscillator;

@@ -47,7 +47,6 @@ Type: haxefmod.studio.Types.FmodLoadMemoryMode
 ## FMOD_STUDIO_LOAD_MEMORY_MODE#2
 verdict: bound
 Type: haxefmod.studio.Types.FmodLoadMemoryMode
-StudioSystem.loadBankMemory always loads with MEMORY. A Haxe buffer cannot be pinned for the bank's lifetime, so MEMORY_POINT is never used.
 
 ## FMOD_STUDIO_SOUND_INFO
 verdict: bound

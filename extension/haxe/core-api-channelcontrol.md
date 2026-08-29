@@ -2,7 +2,6 @@
 
 ## ChannelControl::addFadePoint
 verdict: bound
-getDspClock returns both clocks in one struct, or null on failure. Clock values are Floats, exact to 2^53 samples.
 ```haxe
 // Example. Ramp from full volume to half volume over the next 4096 samples
 var clocks = channel.getDspClock();
@@ -15,7 +14,6 @@ if (clocks != null) {
 
 ## ChannelControl::addFadePoint#2
 verdict: bound
-getDspClock returns both clocks in one struct, or null on failure. Clock values are Floats, exact to 2^53 samples.
 ```haxe
 // Example. Ramp from full volume to half volume over the next 4096 samples
 var clocks = channel.getDspClock();
@@ -40,8 +38,6 @@ Type: haxefmod.studio.Types.ChannelControlDspIndex
 
 ## ChannelControl::set3DCustomRolloff
 verdict: bound
-Native only (unsupported in HTML5).
-Each point is an FmodVector with x as the distance and y as the volume. The binding keeps its own copy of the points for the channel's lifetime.
 ```haxe
 import haxefmod.studio.Types.FmodVector;
 

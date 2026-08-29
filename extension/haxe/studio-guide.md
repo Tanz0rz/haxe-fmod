@@ -2,7 +2,6 @@
 
 ## 13.9.1 Scripting Example
 verdict: bound
-The core and studio systems are the static classes CoreSystem and StudioSystem in haxefmod, so the context carries them as the classes themselves next to the dialogue string. The string is what assignProgrammerSound stores on the instance in the next block.
 ```haxe
 import haxefmod.core.CoreSystem;
 import haxefmod.studio.StudioSystem;
@@ -21,9 +20,6 @@ programmerSoundContext.coreSystem = CoreSystem;
 
 ## 13.9.1 Scripting Example#2
 verdict: bound
-Native only (unsupported in HTML5).
-The create and destroy programmer sound callbacks are implemented natively. Assigning a key to the instance stands in for both the user data and the callback registration, the native side keeps the key itself.
-EventInstance.setUserData and getUserData stay free for the game's own values, and setCallback still delivers ProgrammerSoundCreated(properties) and ProgrammerSoundDestroyed(properties) with the instrument name, the sound, and the subsound index.
 ```haxe
 import haxefmod.studio.FmodResult;
 
@@ -34,8 +30,6 @@ if (result != FmodResult.FMOD_OK) trace("assignProgrammerSound failed: " + resul
 
 ## 13.9.1 Scripting Example#3
 verdict: bound
-Native only (unsupported in HTML5).
-The key is assigned to the instance before start instead of being written into the context.
 ```haxe
 import haxefmod.studio.Bank;
 import haxefmod.studio.Types.FmodLoadBankFlags;

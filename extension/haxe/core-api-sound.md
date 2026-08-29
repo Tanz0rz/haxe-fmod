@@ -10,8 +10,6 @@ Type: haxefmod.studio.Types.FmodSoundFormat
 
 ## Sound::getTag
 verdict: bound
-Native only (unsupported in HTML5).
-A null name with index -1 walks the tags updated since the last pass, and a FLOAT payload is read from floatValue.
 ```haxe
 import haxefmod.core.Sound;
 import haxefmod.studio.Types;
@@ -37,8 +35,6 @@ while (tag != null) {
 
 ## Sound::getTag#2
 verdict: bound
-Native only (unsupported in HTML5).
-A null name with index -1 walks the tags updated since the last pass, and a FLOAT payload is read from floatValue.
 ```haxe
 import haxefmod.core.Sound;
 import haxefmod.studio.Types;
@@ -87,7 +83,6 @@ var curve:Array<FmodVector> = [
 
 ## Sound::setDefaults
 verdict: bound
-getDefaults returns both values in one struct, null on failure.
 ```haxe
 import haxefmod.core.Sound;
 
@@ -101,7 +96,6 @@ if (defaults != null) {
 
 ## Sound::setDefaults#2
 verdict: bound
-getDefaults returns both values in one struct, null on failure.
 ```haxe
 import haxefmod.core.Sound;
 
@@ -115,7 +109,6 @@ if (defaults != null) {
 
 ## Sound::setDefaults#3
 verdict: bound
-getDefaults returns both values in one struct, null on failure.
 ```haxe
 import haxefmod.core.Sound;
 
@@ -129,7 +122,6 @@ if (defaults != null) {
 
 ## Sound::setDefaults#4
 verdict: bound
-getDefaults returns both values in one struct, null on failure.
 ```haxe
 import haxefmod.core.Sound;
 

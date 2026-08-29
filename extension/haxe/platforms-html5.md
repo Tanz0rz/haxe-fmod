@@ -20,7 +20,6 @@ verdict: library FmodManager.Initialize does this through jaxe.js, which sets pr
 
 ## Setting and getting
 verdict: bound
-Getters return the value directly, there is no out object. A failed getter returns its default and StudioSystem.lastResult() holds the error.
 ```haxe
 import haxefmod.core.Sound;
 
@@ -40,7 +39,6 @@ verdict: library the library fetches banks itself, FmodRuntime.banks.load (and t
 
 ## Direct from host, via FMOD's filesystem#2
 verdict: bound
-Sound.create reads the path from FMOD's virtual filesystem, where the library preloads banks only, and the web build decodes FSB only. On HTML5 a loose wav returns Sound.NULL, with FMOD_ERR_FILE_NOTFOUND when nothing put the file there or FMOD_ERR_FORMAT for a file that is not an FSB. Play bank content, load an FSB with Sound.fromMemory, or feed raw PCM through Sound.fromPcm. The second argument is loop, false stands for FMOD_LOOP_OFF.
 ```haxe
 import haxefmod.core.Sound;
 
@@ -52,7 +50,6 @@ if (sound.isNull()) {
 
 ## Via memory
 verdict: bound
-Data already in memory goes in as haxe.io.Bytes and is copied into FMOD's heap. Sound.fromMemory takes an encoded file image, the ChannelMode flags to open it with (OPENMEMORY is added by the library, CREATESTREAM stands for createStream), and the length that fills CREATESOUNDEXINFO.length, which defaults to the size of the bytes. The web build decodes FSB images only, so a wav or ogg image returns Sound.NULL with FMOD_ERR_FORMAT there. Sound.fromPcm takes raw PCM, its sampleRate and channels arguments stand in for the CREATESOUNDEXINFO fields. Bank data in memory goes through StudioSystem.loadBankMemory.
 ```haxe
 import haxefmod.core.Sound;
 import haxefmod.core.ChannelMode;
@@ -92,7 +89,7 @@ verdict: library jaxe.js does this at init, it reads the driver's rate with getD
 
 ## Audio Stability (Stuttering)
 verdict: bound
-The dspBufferSize and dspNumBuffers fields of FmodSettings set the mixer block before the system initializes. Unset, the web build runs at 2048 samples by 2 buffers.
 ```haxe
 FmodManager.Initialize({dspBufferSize: 2048, dspNumBuffers: 2});
 ```
+

@@ -89,27 +89,18 @@
         var note = el("div", "haxefmod-note");
 
         var notes = entry && entry.notes ? entry.notes : [];
-        if (entry && entry.code != null) {
-            pre.textContent = entry.code;
-            notes.forEach(function (text) { note.appendChild(el("p", null, text)); });
-        } else if (!entry || entry.haxe.length === 0) {
-            // A note that starts with "Cannot be bound." gives the reason the
-            // function has no Haxe counterpart, one that starts with "Not
-            // exposed" is a deliberate gap, and any other note names the
-            // haxefmod call that covers this function. A function with no
-            // note at all is a gap in the notes file, so say so on the page.
-            var first = notes.length ? notes[0] : "";
+        if (!entry || entry.haxe.length === 0) {
+            // A function haxefmod does not reach shows one comment line:
+            // the verdict and its reason from functions.md ("Cannot be
+            // bound. ...", "No Haxe declaration, another call plays this
+            // role. ...", or the library's own step). No note at all is a
+            // gap in the notes file, so say so on the page.
             if (!notes.length) {
                 pre.textContent = "// Not exposed by haxefmod";
                 note.appendChild(el("p", "haxefmod-warn", "haxefmod has no binding for this function and no note explaining why. Please report it."));
-            } else if (first.indexOf("Cannot be bound.") === 0) {
-                pre.textContent = "// Cannot be bound from Haxe";
-            } else if (first.indexOf("Not exposed") === 0) {
-                pre.textContent = "// Not exposed by haxefmod";
             } else {
-                pre.textContent = "// Covered by another haxefmod call, see below";
+                pre.textContent = "// " + notes[0];
             }
-            notes.forEach(function (text) { note.appendChild(el("p", "haxefmod-warn", text)); });
         } else {
             var direct = entry.haxe.filter(function (m) { return m.direct; });
             var also = entry.haxe.filter(function (m) { return !m.direct; });

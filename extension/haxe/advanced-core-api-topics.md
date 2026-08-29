@@ -2,8 +2,6 @@
 
 ## 10.2 Extracting PCM Data from a Sound
 verdict: bound
-Native only (unsupported in HTML5).
-Sound.getLength takes the time unit as its parameter. readData returns the bytes read and defaults to the whole buffer, so the length is not passed again.
 ```haxe
 import haxefmod.core.Sound;
 import haxefmod.studio.Types;
@@ -26,8 +24,6 @@ verdict: cannot registerDSP takes a description of callbacks that FMOD runs on i
 
 ## Codec Example#2
 verdict: bound
-Native only (unsupported in HTML5).
-loadPlugin returns the handle directly, 0 on failure with the reason in StudioSystem.lastResult.
 ```haxe
 import haxefmod.core.Sound;
 
@@ -39,8 +35,6 @@ var sound = Sound.create("example.xyz");
 
 ## Output Example#2
 verdict: bound
-Native only (unsupported in HTML5).
-FmodManager.Initialize has already created the system, so the output switches on the running system.
 ```haxe
 import haxefmod.core.CoreSystem;
 
@@ -50,7 +44,6 @@ var result = CoreSystem.setOutputByPlugin(handle);
 
 ## DSP Example#2
 verdict: bound
-Native only (unsupported in HTML5).
 ```haxe
 import haxefmod.core.Dsp;
 import haxefmod.core.Sound;
@@ -88,7 +81,6 @@ reverb.set3DAttributes(pos.x, pos.y, pos.z, mindist, maxdist);
 
 ## 10.7.1 3D Reverbs#3
 verdict: bound
-The Studio listener drives the core listener. haxefmod takes the whole attribute set, so velocity, forward, and up are passed too where the site leaves them null.
 ```haxe
 var listenerpos = {x: 0.0, y: 0.0, z: -1.0};
 StudioSystem.setListenerAttributes(0, {
@@ -128,7 +120,6 @@ result = Reverb.set(3, prop4);
 
 ## 10.7.2 Using Multiple Reverbs#3
 verdict: bound
-Reverb.get returns the properties, null on failure with the reason in StudioSystem.lastResult.
 ```haxe
 import haxefmod.core.Reverb;
 

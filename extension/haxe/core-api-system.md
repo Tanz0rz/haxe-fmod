@@ -97,7 +97,6 @@ Type: haxefmod.studio.Types.FmodSystemCallbackType
 
 ## System::setDSPBufferSize
 verdict: bound
-The buffer is set once at init through FmodSettings.dspBufferSize and dspNumBuffers, and CoreSystem.getDSPBufferSize() reads back what the engine runs with (1024 samples by 2 on desktop, 2048 by 2 on HTML5 when left at FMOD's default).
 ```haxe
 import haxefmod.core.CoreSystem;
 

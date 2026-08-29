@@ -5,7 +5,6 @@ verdict: library the library fetches bank files into the browser's virtual files
 
 ## Example usage.#2
 verdict: bound
-There is no ReadFile. The game fetches the bank bytes itself, loadBankMemory copies them into FMOD's heap, and there is no pointer to free.
 ```haxe
 import haxefmod.studio.Bank;
 import haxefmod.studio.Types;

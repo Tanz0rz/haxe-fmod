@@ -2,7 +2,6 @@
 
 ## 4.1.1 Non-blocking Sound Creation
 verdict: bound
-CREATESTREAM in the mode argument of Sound.create is the createStream form, and NONBLOCKING next to it is FMOD_NONBLOCKING. The load runs on FMOD's thread and getOpenState reports LOADING until the sound is READY. The web build loads synchronously, the sound is READY when create returns.
 ```haxe
 import haxefmod.core.ChannelMode;
 import haxefmod.core.Sound;
@@ -18,7 +17,6 @@ verdict: cannot FMOD calls the callback on its async loader thread, no Haxe targ
 
 ## 4.1.1 Non-blocking Sound Creation#3
 verdict: bound
-No completion callback, the game polls getOpenState. CREATESTREAM in the mode argument is the createStream form.
 ```haxe
 import haxefmod.core.ChannelMode;
 import haxefmod.core.Sound;
@@ -57,7 +55,6 @@ if (channel.isNull()) {
 
 ## 4.3.1 Creating a Sound from memory
 verdict: bound
-Sound.fromMemory takes an encoded file image, the length is the bytes' own. Raw PCM goes through Sound.fromPcm, whose sample rate and channel count stand in for the exinfo fields.
 ```haxe
 import haxefmod.core.Sound;
 
@@ -77,7 +74,6 @@ verdict: covered there is no point-to-memory mode. Sound.fromMemory and Sound.fr
 
 ## 4.3.2 Creating a Sound from PCM data
 verdict: bound
-Raw PCM files are read by the game and passed to Sound.fromPcm. The format is fixed at signed 16-bit PCM, so only the channel count and playback rate are passed.
 ```haxe
 import haxefmod.core.Sound;
 
@@ -91,7 +87,6 @@ sound = Sound.fromPcm(raw,
 
 ## 4.3.3 Creating a Sound by manually providing sample data
 verdict: bound
-PCM read callbacks run on FMOD's threads and Sound::lock hands out a raw pointer, so neither is exposed. PcmStream plays the user sound role. The game writes 16-bit PCM into its ring buffer while the mixer drains it.
 ```haxe
 import haxefmod.core.PcmStream;
 
@@ -111,7 +106,6 @@ stream.write(buffer);
 
 ## 4.3.4 Creating the Sound as a Streamed FSB File
 verdict: bound
-The mode argument carries CREATESTREAM and NONBLOCKING, and the initialSubsound argument is exinfo.initialsubsound.
 ```haxe
 import haxefmod.core.ChannelMode;
 import haxefmod.core.Sound;

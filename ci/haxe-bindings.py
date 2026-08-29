@@ -469,8 +469,6 @@ def merge_notes(table):
         record = table.setdefault(key, {"fmod": "", "haxe": [], "html5": False})
         record["notes"] = section["notes"]
         record["heading"] = section["heading"]
-        if section["code"] is not None:
-            record["code"] = section["code"]
     return table
 
 

@@ -2,8 +2,6 @@
 
 ## 5.0.2 Loading Sounds as 3D
 verdict: bound
-The mode argument of Sound.create takes the 3D flag at load time.
-Sound.create returns Sound.NULL on failure and StudioSystem.lastResult() holds the FMOD_RESULT.
 ```haxe
 import haxefmod.core.Sound;
 import haxefmod.core.ChannelMode;
@@ -19,7 +17,6 @@ if (sound.isNull()) {
 
 ## 5.1 Controlling a Spatializer DSP
 verdict: bound
-The relative attributes are the emitter transformed into the listener's space, the absolute attributes are the emitter itself. Dsp.setParameter3DAttributes packs both into the pan unit's 3D position parameter.
 ```haxe
 import haxefmod.core.Dsp;
 import haxefmod.core.DspParameters.DspPan;
@@ -60,8 +57,6 @@ function updatePanner(panner:Dsp, listener:Fmod3DAttributes, emitter:Fmod3DAttri
 
 ## 5.1 Controlling a Spatializer DSP#2
 verdict: bound
-The library calls System::update once per frame on its own, so the loop does not call it.
-The listener is set through the Studio system, which drives the Core listener.
 ```haxe
 import haxefmod.studio.Types;
 

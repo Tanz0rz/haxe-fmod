@@ -11,7 +11,6 @@ verdict: cannot Android is not a haxefmod target, the library ships Windows, Lin
 
 ## Application Lifecycle Management#2
 verdict: bound
-Android is not a haxefmod target. The same calls suspend and resume the mixer on desktop when the game goes to the background.
 ```haxe
 import haxefmod.core.CoreSystem;
 
@@ -27,3 +26,4 @@ function onDestroy():Void {
     CoreSystem.mixerResume();
 }
 ```
+

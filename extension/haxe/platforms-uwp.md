@@ -2,7 +2,6 @@
 
 ## Background Music
 verdict: bound
-UWP is not a haxefmod target. The port call is bound for builds against a console SDK, desktop outputs have no ports and report that in the result.
 ```haxe
 import haxefmod.core.ChannelGroup;
 import haxefmod.core.CoreSystem;
@@ -17,7 +16,6 @@ var channel = bgm.play(false, music);
 
 ## Pass Through
 verdict: bound
-UWP is not a haxefmod target. The port call is bound for builds against a console SDK, desktop outputs have no ports and report that in the result.
 ```haxe
 import haxefmod.core.ChannelGroup;
 import haxefmod.core.CoreSystem;
@@ -29,3 +27,4 @@ CoreSystem.attachChannelGroupToPort(FmodPortType.PASSTHROUGH, FmodPortIndex.NONE
 var voice = Sound.create("assets/voice/line.wav");
 var channel = voice.play(false, raw);
 ```
+

@@ -2,7 +2,6 @@
 
 ## ASIO and C#
 verdict: bound
-The output setting picks ASIO before the system initializes. The library creates and initializes the system itself.
 ```haxe
 import haxefmod.studio.Types;
 
@@ -11,7 +10,6 @@ FmodManager.Initialize({output: FmodOutputType.ASIO, numChannels: 32});
 
 ## Background Music
 verdict: bound
-Bound for builds against a console SDK. Desktop outputs have no ports and report that in the result.
 ```haxe
 import haxefmod.core.ChannelGroup;
 import haxefmod.core.CoreSystem;
@@ -26,7 +24,6 @@ var channel = bgm.play(false, music);
 
 ## Pass Through
 verdict: bound
-Bound for builds against a console SDK. Desktop outputs have no ports and report that in the result.
 ```haxe
 import haxefmod.core.ChannelGroup;
 import haxefmod.core.CoreSystem;
@@ -38,3 +35,4 @@ CoreSystem.attachChannelGroupToPort(FmodPortType.PASSTHROUGH, FmodPortIndex.NONE
 var voice = Sound.create("assets/voice/line.wav");
 var channel = voice.play(false, raw);
 ```
+
