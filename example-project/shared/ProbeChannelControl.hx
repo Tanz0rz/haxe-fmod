@@ -26,6 +26,7 @@ import haxefmod.studio.Types.FmodVector;
 class ProbeChannelControl {
     static var _started:Bool = false;
     static var _waiting:Bool = false;
+    static var _waitStamp:Float = 0;
     static var _finished:Bool = false;
 
     /** True until the occlusion wait and its leak count have run (never on js). */
@@ -239,6 +240,7 @@ class ProbeChannelControl {
         @:privateAccess state.check("occlusion_wait_setup", !_geometry.isNull() && !_channel.isNull(),
             'geometry=${(_geometry : Int)} channel=${(_channel : Int)}');
         _waiting = true;
+        _waitStamp = haxe.Timer.stamp();
     }
 
     /**
@@ -273,7 +275,10 @@ class ProbeChannelControl {
             default:
         }
         for (e in _groupEvents) if (e.match(Occlusion(_, _))) sawGroup = true;
-        if ((sawChannel && sawGroup) || _frames > 300) {
+        // Bounded in frames and in seconds: a slow loop (Kha on the macOS
+        // runner draws about eleven frames a second) would otherwise spend
+        // most of the state's minute here when the recompute never comes
+        if ((sawChannel && sawGroup) || _frames > 300 || haxe.Timer.stamp() - _waitStamp > 5) {
             _waiting = false;
             finishOcclusionWait(state, sawChannel, sawGroup);
         }
