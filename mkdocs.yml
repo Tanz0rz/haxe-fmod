@@ -12,6 +12,7 @@ theme:
   name: material
   features:
     - navigation.sections
+    - navigation.indexes
     - navigation.top
     - navigation.footer
     - content.code.copy
@@ -47,7 +48,11 @@ hooks:
 
 nav:
   - Welcome: index.md
-  - Getting started: getting-started.md
+  - Getting started:
+      - getting-started/index.md
+      - HaxeFlixel: getting-started/flixel.md
+      - Heaps: getting-started/heaps.md
+      - Kha: getting-started/kha.md
   - Guides:
       - FmodManager: guides/fmod-manager.md
       - Handles and results: guides/handles-and-results.md
@@ -55,6 +60,8 @@ nav:
       - Callbacks and 3D: guides/callbacks-and-3d.md
       - Core API: guides/core-api.md
       - Flixel components: guides/flixel.md
+      - Heaps components: guides/heaps.md
+      - Kha components: guides/kha.md
       - Tools CLI: guides/tools-cli.md
   - Platforms: platforms.md
   - Coverage: coverage.md

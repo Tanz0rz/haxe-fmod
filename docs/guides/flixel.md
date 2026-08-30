@@ -81,6 +81,6 @@ FmodFlxUtilities.TransitionToStateAndStopMusic(MenuState.new);
 FmodFlxUtilities.PlaySoundOneShotAttached(FmodEvents.SFXCoin, coin);
 ```
 
-## Custom engines
+## Other engines
 
-Everything the flixel components do goes through public runtime calls: `FmodRuntime.attach` with an `IFmodPositionProvider`, `StudioSystem.setListenerPosition2D`, and `FmodRuntime.banks`. A game on another engine writes the same few lines against its own object types.
+[Heaps components](heaps.md) and [Kha components](kha.md) are the same component set for those engines. Everything all of them do goes through public runtime calls: `FmodRuntime.attach` with an `IFmodPositionProvider`, `StudioSystem.setListenerPosition2D`, and `FmodRuntime.banks`. A game on an engine without a component package writes the same few lines against its own object types.
