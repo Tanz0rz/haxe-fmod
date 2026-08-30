@@ -29,9 +29,11 @@ STATES = [("api-probe", "API_PROBE"), ("synth-test", "SYNTH_TEST"), ("cb-test", 
 
 
 class Job:
-    def __init__(self, name, os_, runner, download, launch, bindir=None, browser=False,
+    def __init__(self, name, title, os_, runner, download, launch, bindir=None, browser=False,
                  manual=None, hashlink=False, brew=""):
         self.name = name
+        # Display name, "Engine / Platform" like the build jobs carry
+        self.title = title
         self.os = os_
         self.runner = runner
         # Where the build artifact lands, and the directory the game runs in
@@ -73,29 +75,29 @@ MAC_APP = "EZPlatformerTestEdition.app"
 
 JOBS = [
     # flixel
-    Job("linux-cpp", "linux", "ubuntu-latest", f"{EZ}/linux/bin", "./run.sh", manual=f"{EZ}/linux/bin"),
-    Job("linux-hl", "linux", "ubuntu-latest", f"{EZ}/hl/bin", 'env LD_LIBRARY_PATH="$(pwd)" ./EZPlatformerTestEdition'),
-    Job("linux-html5-chromium", "linux", "ubuntu-latest", f"{EZ}/html5/bin", "", browser=True),
-    Job("mac-cpp", "mac", "macos-14", f"{EZ}/macos/bin/{MAC_APP}", "./EZPlatformerTestEdition",
+    Job("linux-cpp", "Flixel / Linux C++", "linux", "ubuntu-latest", f"{EZ}/linux/bin", "./run.sh", manual=f"{EZ}/linux/bin"),
+    Job("linux-hl", "Flixel / Linux HashLink", "linux", "ubuntu-latest", f"{EZ}/hl/bin", 'env LD_LIBRARY_PATH="$(pwd)" ./EZPlatformerTestEdition'),
+    Job("linux-html5-chromium", "Flixel / Chromium", "linux", "ubuntu-latest", f"{EZ}/html5/bin", "", browser=True),
+    Job("mac-cpp", "Flixel / macOS C++", "mac", "macos-14", f"{EZ}/macos/bin/{MAC_APP}", "./EZPlatformerTestEdition",
         bindir=f"{EZ}/macos/bin/{MAC_APP}/Contents/MacOS"),
-    Job("mac-hl", "mac", "macos-14", f"{EZ}/hl/bin/{MAC_APP}", "./EZPlatformerTestEdition",
+    Job("mac-hl", "Flixel / macOS HashLink", "mac", "macos-14", f"{EZ}/hl/bin/{MAC_APP}", "./EZPlatformerTestEdition",
         bindir=f"{EZ}/hl/bin/{MAC_APP}/Contents/MacOS"),
-    Job("windows-cpp", "windows", "windows-latest", f"{EZ}/windows/bin", "./EZPlatformerTestEdition.exe"),
-    Job("windows-hl", "windows", "windows-latest", f"{EZ}/hl/bin", "./EZPlatformerTestEdition.exe"),
+    Job("windows-cpp", "Flixel / Windows C++", "windows", "windows-latest", f"{EZ}/windows/bin", "./EZPlatformerTestEdition.exe"),
+    Job("windows-hl", "Flixel / Windows HashLink", "windows", "windows-latest", f"{EZ}/hl/bin", "./EZPlatformerTestEdition.exe"),
     # Heaps
-    Job("heaps-hl", "linux", "ubuntu-latest", f"{HEAPS}/build/hl", "./run.sh", manual=f"{HEAPS}/build-manual/hl", hashlink=True),
-    Job("heaps-html5", "linux", "ubuntu-latest", f"{HEAPS}/build/html5", "", browser=True),
+    Job("heaps-hl", "Heaps / Linux HashLink", "linux", "ubuntu-latest", f"{HEAPS}/build/hl", "./run.sh", manual=f"{HEAPS}/build-manual/hl", hashlink=True),
+    Job("heaps-html5", "Heaps / Chromium", "linux", "ubuntu-latest", f"{HEAPS}/build/html5", "", browser=True),
     # HL/C links Homebrew's libhl and hdlls
-    Job("heaps-mac-hl", "mac", "macos-14", f"{HEAPS}/build/hl", "./game", brew="hashlink libuv"),
-    Job("heaps-windows-hl", "windows", "windows-latest", f"{HEAPS}/build/hl", "./HeapsPlatformer.exe"),
+    Job("heaps-mac-hl", "Heaps / macOS HL/C", "mac", "macos-14", f"{HEAPS}/build/hl", "./game", brew="hashlink libuv"),
+    Job("heaps-windows-hl", "Heaps / Windows HashLink", "windows", "windows-latest", f"{HEAPS}/build/hl", "./HeapsPlatformer.exe"),
     # Kha
-    Job("kha-linux", "linux", "ubuntu-latest", f"{KHA}/build/linux", "./run.sh", manual=f"{KHA}/build-manual/linux"),
-    Job("kha-hl", "linux", "ubuntu-latest", f"{KHA}/build/linux-hl", "./run.sh"),
-    Job("kha-html5", "linux", "ubuntu-latest", f"{KHA}/build/html5", "", browser=True),
-    Job("kha-mac", "mac", "macos-14", f"{KHA}/build/osx", "./KhaPlatformer"),
-    Job("kha-mac-hl", "mac", "macos-14", f"{KHA}/build/osx-hl", "./KhaPlatformer"),
-    Job("kha-windows", "windows", "windows-2022", f"{KHA}/build/windows", "./KhaPlatformer.exe"),
-    Job("kha-windows-hl", "windows", "windows-2022", f"{KHA}/build/windows-hl", "./KhaPlatformer.exe"),
+    Job("kha-linux", "Kha / Linux C++", "linux", "ubuntu-latest", f"{KHA}/build/linux", "./run.sh", manual=f"{KHA}/build-manual/linux"),
+    Job("kha-hl", "Kha / Linux HL/C", "linux", "ubuntu-latest", f"{KHA}/build/linux-hl", "./run.sh"),
+    Job("kha-html5", "Kha / Chromium", "linux", "ubuntu-latest", f"{KHA}/build/html5", "", browser=True),
+    Job("kha-mac", "Kha / macOS C++", "mac", "macos-14", f"{KHA}/build/osx", "./KhaPlatformer"),
+    Job("kha-mac-hl", "Kha / macOS HL/C", "mac", "macos-14", f"{KHA}/build/osx-hl", "./KhaPlatformer"),
+    Job("kha-windows", "Kha / Windows C++", "windows", "windows-2022", f"{KHA}/build/windows", "./KhaPlatformer.exe"),
+    Job("kha-windows-hl", "Kha / Windows HL/C", "windows", "windows-2022", f"{KHA}/build/windows-hl", "./KhaPlatformer.exe"),
 ]
 
 # The HashLink VM for the Linux Heaps legs, from the same cached build the
@@ -466,6 +468,7 @@ def run_job(j, text):
     steps = browser_steps(j) if j.browser else native_steps(j)
     return f"""
   {j.name}:
+    name: {j.title} / ${{{{ matrix.state }}}}
     needs: {needs}
     runs-on: {j.runner}
     if: {tag_condition(text, j.name)}
