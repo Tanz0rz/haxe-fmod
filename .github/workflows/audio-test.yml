@@ -4098,19 +4098,19 @@ jobs:
       - name: Restore executable bits
         run: |
           # Artifacts do not keep file modes
-          find example-project/EZPlatformer/export/mac/bin/EZPlatformerTestEdition.app/Contents/MacOS -maxdepth 1 -type f -exec chmod +x {} + 2>/dev/null || true
+          find example-project/EZPlatformer/export/macos/bin/EZPlatformerTestEdition.app/Contents/MacOS -maxdepth 1 -type f -exec chmod +x {} + 2>/dev/null || true
 
       - name: Install runtime dependencies
         run: |
           brew untap aws/tap 2>/dev/null || true
-          brew install ffmpeg
+          brew install ffmpeg 
 
       - name: Record audio
         if: matrix.state == 'game-audio'
         run: |
           export FMOD_WAVWRITER=/tmp/audio-mac-cpp.wav
           export HAXEFMOD_LOG_FILE=/tmp/game-mac-cpp.log
-          cd example-project/EZPlatformer/export/mac/bin/EZPlatformerTestEdition.app/Contents/MacOS
+          cd example-project/EZPlatformer/export/macos/bin/EZPlatformerTestEdition.app/Contents/MacOS
           ./EZPlatformerTestEdition > /tmp/game-mac-cpp.log 2>&1 &
           GAME_PID=$!
           cd -
@@ -4130,7 +4130,7 @@ jobs:
           export HAXEFMOD_TEST_STATE=volume
           export FMOD_WAVWRITER=/tmp/volume-test-mac-cpp.wav
           export HAXEFMOD_LOG_FILE=/tmp/volume-test-mac-cpp.log
-          cd example-project/EZPlatformer/export/mac/bin/EZPlatformerTestEdition.app/Contents/MacOS
+          cd example-project/EZPlatformer/export/macos/bin/EZPlatformerTestEdition.app/Contents/MacOS
           ./EZPlatformerTestEdition > /tmp/volume-test-mac-cpp.log 2>&1 &
           GAME_PID=$!
           cd -
@@ -4160,7 +4160,7 @@ jobs:
           state: ${{ matrix.state }}
           gate: ${{ matrix.gate }}
           timeout: "60"
-          bin-dir: example-project/EZPlatformer/export/mac/bin/EZPlatformerTestEdition.app/Contents/MacOS
+          bin-dir: example-project/EZPlatformer/export/macos/bin/EZPlatformerTestEdition.app/Contents/MacOS
           log-file: /tmp/${{ matrix.state }}-mac-cpp.log
           extra-gate: "${{ matrix.state == 'cb-test' && 'CB_TEST: Stopped' || '' }}"
           copy-jump-wav: "${{ matrix.state == 'ps-test' && 'true' || 'false' }}"
@@ -4178,7 +4178,7 @@ jobs:
           export FMOD_WAVWRITER="${RUNNER_TEMP}/stress-smoke.wav"
           LOG=/tmp/stress-smoke-mac-cpp.log
           export HAXEFMOD_LOG_FILE="$LOG"
-          cd example-project/EZPlatformer/export/mac/bin/EZPlatformerTestEdition.app/Contents/MacOS
+          cd example-project/EZPlatformer/export/macos/bin/EZPlatformerTestEdition.app/Contents/MacOS
           ./EZPlatformerTestEdition > "$LOG" 2>&1 &
           GAME_PID=$!
           cd -
@@ -4244,7 +4244,7 @@ jobs:
       - name: Install runtime dependencies
         run: |
           brew untap aws/tap 2>/dev/null || true
-          brew install ffmpeg
+          brew install ffmpeg 
 
       - name: Record audio
         if: matrix.state == 'game-audio'
@@ -5075,7 +5075,7 @@ jobs:
       - name: Install runtime dependencies
         run: |
           brew untap aws/tap 2>/dev/null || true
-          brew install ffmpeg
+          brew install ffmpeg hashlink libuv
 
       - name: Record audio
         if: matrix.state == 'game-audio'
@@ -5888,7 +5888,7 @@ jobs:
       - name: Install runtime dependencies
         run: |
           brew untap aws/tap 2>/dev/null || true
-          brew install ffmpeg
+          brew install ffmpeg 
 
       - name: Record audio
         if: matrix.state == 'game-audio'
@@ -6029,7 +6029,7 @@ jobs:
       - name: Install runtime dependencies
         run: |
           brew untap aws/tap 2>/dev/null || true
-          brew install ffmpeg
+          brew install ffmpeg 
 
       - name: Record audio
         if: matrix.state == 'game-audio'

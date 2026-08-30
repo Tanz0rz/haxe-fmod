@@ -76,7 +76,7 @@ runs:
             export LD_LIBRARY_PATH="$(pwd):$LD_LIBRARY_PATH"
             # The game binary directly. PostBuild's run.sh is only a fallback
             # (on HL builds it can point at hlboot.dat instead of the exe)
-            EXE=$(find . -maxdepth 1 -type f -executable ! -name "*.so*" ! -name "*.hdll" ! -name "*.sh" ! -name "*.dat" ! -name "*.hl" -print -quit)
+            EXE=$(find . -maxdepth 1 -type f -executable ! -name "*.so*" ! -name "*.hdll" ! -name "*.sh" ! -name "*.dat" ! -name "*.hl" ! -name "*.ndll" -print -quit)
             if [ -z "$EXE" ] && [ -f run.sh ]; then
               EXE=./run.sh
             fi

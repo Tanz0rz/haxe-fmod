@@ -30,7 +30,7 @@ STATES = [("api-probe", "API_PROBE"), ("synth-test", "SYNTH_TEST"), ("cb-test", 
 
 class Job:
     def __init__(self, name, os_, runner, download, launch, bindir=None, browser=False,
-                 manual=None, hashlink=False):
+                 manual=None, hashlink=False, brew=""):
         self.name = name
         self.os = os_
         self.runner = runner
@@ -44,6 +44,8 @@ class Job:
         self.manual = manual
         # Linux Heaps legs need the HashLink VM installed
         self.hashlink = hashlink
+        # Extra Homebrew packages a macOS leg runs against
+        self.brew = brew
 
     @property
     def windows(self):
@@ -75,7 +77,7 @@ JOBS = [
     Job("linux-hl", "linux", "ubuntu-latest", f"{EZ}/hl/bin", 'env LD_LIBRARY_PATH="$(pwd)" ./EZPlatformerTestEdition'),
     Job("linux-html5-chromium", "linux", "ubuntu-latest", f"{EZ}/html5/bin", "", browser=True),
     Job("mac-cpp", "mac", "macos-14", f"{EZ}/macos/bin/{MAC_APP}", "./EZPlatformerTestEdition",
-        bindir=f"{EZ}/mac/bin/{MAC_APP}/Contents/MacOS"),
+        bindir=f"{EZ}/macos/bin/{MAC_APP}/Contents/MacOS"),
     Job("mac-hl", "mac", "macos-14", f"{EZ}/hl/bin/{MAC_APP}", "./EZPlatformerTestEdition",
         bindir=f"{EZ}/hl/bin/{MAC_APP}/Contents/MacOS"),
     Job("windows-cpp", "windows", "windows-latest", f"{EZ}/windows/bin", "./EZPlatformerTestEdition.exe"),
@@ -83,7 +85,8 @@ JOBS = [
     # Heaps
     Job("heaps-hl", "linux", "ubuntu-latest", f"{HEAPS}/build/hl", "./run.sh", manual=f"{HEAPS}/build-manual/hl", hashlink=True),
     Job("heaps-html5", "linux", "ubuntu-latest", f"{HEAPS}/build/html5", "", browser=True),
-    Job("heaps-mac-hl", "mac", "macos-14", f"{HEAPS}/build/hl", "./game"),
+    # HL/C links Homebrew's libhl and hdlls
+    Job("heaps-mac-hl", "mac", "macos-14", f"{HEAPS}/build/hl", "./game", brew="hashlink libuv"),
     Job("heaps-windows-hl", "windows", "windows-latest", f"{HEAPS}/build/hl", "./HeapsPlatformer.exe"),
     # Kha
     Job("kha-linux", "linux", "ubuntu-latest", f"{KHA}/build/linux", "./run.sh", manual=f"{KHA}/build-manual/linux"),
@@ -185,10 +188,10 @@ def setup_steps(j):
 {LINUX_HASHLINK if j.hashlink else ""}
 {AUDIO_SETUP}"""
     if j.mac:
-        return """      - name: Install runtime dependencies
+        return f"""      - name: Install runtime dependencies
         run: |
           brew untap aws/tap 2>/dev/null || true
-          brew install ffmpeg
+          brew install ffmpeg {j.brew}
 """
     return """      - name: Install ffmpeg
         shell: powershell
