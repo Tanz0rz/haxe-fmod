@@ -6,7 +6,7 @@ name: Docs
 
 on:
   push:
-    branches: [master]
+    branches: [master, docs-journey]
     tags: ["*"]
     paths:
       - "docs/**"
@@ -65,7 +65,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ~/haxelib
-          key: haxelib-docs-${{ runner.os }}-${{ env.HAXE_VERSION }}-flixel
+          key: haxelib-docs-${{ runner.os }}-${{ env.HAXE_VERSION }}-flixel-heaps
 
       - name: Install Haxe libraries
         run: |
@@ -74,6 +74,7 @@ jobs:
           haxelib install lime 8.3.0 --always --quiet
           haxelib install openfl 9.5.0 --always --quiet
           haxelib install flixel 6.1.2 --always --quiet
+          haxelib install heaps 2.1.0 --always --quiet
 
       - name: Check the generated bindings table and example translations
         run: |
