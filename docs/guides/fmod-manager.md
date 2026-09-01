@@ -102,7 +102,7 @@ Bus paths come from FMOD Studio, for example `bus:/SFX`, and the generated `Fmod
 
 ## Window focus
 
-By default the master output is muted while the game window is unfocused, so audio does not play to a window nobody is looking at. FMOD keeps mixing, which means sounds finish on schedule instead of piling up and bursting out when focus returns. Report focus changes from wherever your framework observes them.
+By default the master output is muted while the game window is unfocused, so audio does not play to a window nobody is looking at. FMOD keeps mixing, which means sounds finish on schedule instead of piling up and bursting out when focus returns. The [engine setup calls](components.md#setup) report focus changes for you, and a game without one reports them from wherever its framework observes them.
 
 ```haxe
 FmodManager.SetWindowFocused(false);
