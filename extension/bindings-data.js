@@ -10774,7 +10774,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "System::createStream",
    "html5": false,
    "notes": [
-    "No Haxe declaration, another call plays this role. haxefmod covers streams two ways."
+    "No Haxe declaration, another call plays this role. Sound.create with the ChannelMode.CREATESTREAM mode streams from a file, and PcmStream.create streams sample data the game writes."
    ]
   },
   "system_detachchannelgroupfromport": {

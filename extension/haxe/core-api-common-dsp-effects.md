@@ -63,8 +63,6 @@ Type: haxefmod.core.DspParameters.DspHighpass
 ## FMOD_DSP_HIGHPASS#2
 verdict: bound
 ```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
 import haxefmod.core.DspParameters.DspMultibandEq;
 import haxefmod.core.DspEnums.DspMultibandEqFilter;
 // Configure a single band (band A) as a highpass (all other bands default to off).
@@ -83,8 +81,6 @@ Type: haxefmod.core.DspParameters.DspHighpassSimple
 ## FMOD_DSP_HIGHPASS_SIMPLE#2
 verdict: bound
 ```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
 import haxefmod.core.DspParameters.DspMultibandEq;
 import haxefmod.core.DspEnums.DspMultibandEqFilter;
 // Configure a single band (band A) as a highpass (all other bands default to off).
@@ -130,8 +126,6 @@ Type: haxefmod.core.DspParameters.DspLowpass
 ## FMOD_DSP_LOWPASS#2
 verdict: bound
 ```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
 import haxefmod.core.DspParameters.DspMultibandEq;
 import haxefmod.core.DspEnums.DspMultibandEqFilter;
 // Configure a single band (band A) as a lowpass (all other bands default to off).
@@ -150,8 +144,6 @@ Type: haxefmod.core.DspParameters.DspLowpassSimple
 ## FMOD_DSP_LOWPASS_SIMPLE#2
 verdict: bound
 ```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
 import haxefmod.core.DspParameters.DspMultibandEq;
 import haxefmod.core.DspEnums.DspMultibandEqFilter;
 // Configure a single band (band A) as a lowpass (all other bands default to off).
@@ -220,8 +212,6 @@ Type: haxefmod.core.DspParameters.DspParamEq
 ## FMOD_DSP_PARAMEQ#2
 verdict: bound
 ```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
 import haxefmod.core.DspParameters.DspMultibandEq;
 import haxefmod.core.DspEnums.DspMultibandEqFilter;
 // Configure a single band (band A) as a peaking EQ (all other bands default to off).

@@ -52,7 +52,6 @@ var handle = StudioSystem.loadPlugin("example_dsp.dll");
 var channel = sound.play();
 var dsp = Dsp.createByPlugin(handle);
 var result = channel.addDsp(0, dsp);
-var result = channel.addDsp(0, dsp);
 ```
 
 ## 10.7.1 3D Reverbs
@@ -69,9 +68,6 @@ reverb.setProperties(prop2);
 ## 10.7.1 3D Reverbs#2
 verdict: bound
 ```haxe
-import haxefmod.core.Reverb3D;
-
-var reverb = Reverb3D.create();
 var pos = {x: -10.0, y: 0.0, z: 0.0};
 var mindist = 10.0;
 var maxdist = 20.0;

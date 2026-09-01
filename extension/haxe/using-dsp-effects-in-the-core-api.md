@@ -15,9 +15,6 @@ var result = channel.addDsp(0, dsp_echo);
 ## Add a DSP effect to a Channel#2
 verdict: bound
 ```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
 var result = channel.setDspIndex(dsp_echo, 1);
 ```
 
@@ -57,10 +54,6 @@ var connection = dsp_tail.addInput(dsp_reverb);
 ## Creating an effect and making all Channels send to it.#2
 verdict: bound
 ```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-var dsp_reverb = Dsp.create(DspType.SFXREVERB);
 var result = dsp_reverb.setActive(true);
 ```
 
@@ -97,18 +90,12 @@ var result = channel.setPaused(false);                                          
 ## Controlling mix level and pan matrices for DSPConnections#2
 verdict: bound
 ```haxe
-import haxefmod.core.Channel;
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
 var result = dsp_connection.setMix(0.0);
 ```
 
 ## Set the output format of a DSP unit, and control the pan matrix for its output signal
 verdict: bound
 ```haxe
-import haxefmod.core.Channel;
-import haxefmod.core.Dsp;
 import haxefmod.studio.Types.FmodSpeakerMode;
 
 var result = channel_dsp_head.setChannelFormat(0, 0, FmodSpeakerMode.QUAD);
@@ -134,10 +121,6 @@ var result = channel_dsp_head_output_connection.setMixMatrix(matrix, 4, 4);
 ## Bypass an effect / disable it.
 verdict: bound
 ```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-var dsp_reverb = Dsp.create(DspType.SFXREVERB);
 var result = dsp_reverb.setBypass(true);
 ```
 

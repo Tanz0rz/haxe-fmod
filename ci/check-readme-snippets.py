@@ -53,6 +53,7 @@ class Snippet{index} {{
     static var handle:Int;
     static var key:String;
     static var eventInstance:haxefmod.studio.EventInstance;
+    static var reverb:haxefmod.core.Reverb3D;
     static var music:haxefmod.core.Sound;
     static var your_non_diegetic_sound:haxefmod.core.Sound;
     static var stackSizeStream:Int;
@@ -81,6 +82,7 @@ class Snippet{index} {{
     static var listenerForward:haxefmod.studio.Types.FmodVector;
     static var listenerUp:haxefmod.studio.Types.FmodVector;
     static function updateGame():Void {{}}
+    static function handleError(result:haxefmod.studio.FmodResult):Void {{}}
     static function degtorad(degrees:Float):Float return degrees * Math.PI / 180;
     static var instance:haxefmod.studio.EventInstance;
     static var handler:haxefmod.studio.Callbacks.EventCallbackData->Void;

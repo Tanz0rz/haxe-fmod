@@ -15,9 +15,9 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "10.7.1 3D Reverbs#2": {
-   "code": "var reverb = Reverb3D.create();\nvar pos = {x: -10.0, y: 0.0, z: 0.0};\nvar mindist = 10.0;\nvar maxdist = 20.0;\nreverb.set3DAttributes(pos.x, pos.y, pos.z, mindist, maxdist);",
+   "code": "var pos = {x: -10.0, y: 0.0, z: 0.0};\nvar mindist = 10.0;\nvar maxdist = 20.0;\nreverb.set3DAttributes(pos.x, pos.y, pos.z, mindist, maxdist);",
    "notes": [],
-   "type": "haxefmod.core.Reverb3D",
+   "type": null,
    "verdict": "bound"
   },
   "10.7.1 3D Reverbs#3": {
@@ -85,7 +85,7 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "cannot"
   },
   "DSP Example#2": {
-   "code": "var handle = StudioSystem.loadPlugin(\"example_dsp.dll\");\nvar channel = sound.play();\nvar dsp = Dsp.createByPlugin(handle);\nvar result = channel.addDsp(0, dsp);\nvar result = channel.addDsp(0, dsp);",
+   "code": "var handle = StudioSystem.loadPlugin(\"example_dsp.dll\");\nvar channel = sound.play();\nvar dsp = Dsp.createByPlugin(handle);\nvar result = channel.addDsp(0, dsp);",
    "notes": [],
    "type": "haxefmod.core.Dsp, haxefmod.core.Sound",
    "verdict": "bound"
@@ -409,7 +409,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_HIGHPASS#2": {
    "code": "// Configure a single band (band A) as a highpass (all other bands default to off).\n// 12dB roll-off to approximate the old effect curve.\n// Cutoff frequency can be used the same as with the old effect.\n// Resonance can be applied by setting the 'Q' value of the new effect.\nmultiband.setParameterInt(DspMultibandEq.A_FILTER, DspMultibandEqFilter.HIGHPASS_12DB);\nmultiband.setParameter(DspMultibandEq.A_FREQUENCY, frequency);\nmultiband.setParameter(DspMultibandEq.A_Q, resonance);",
    "notes": [],
-   "type": "haxefmod.core.Dsp, haxefmod.core.DspType, haxefmod.core.DspParameters.DspMultibandEq, haxefmod.core.DspEnums.DspMultibandEqFilter",
+   "type": "haxefmod.core.DspParameters.DspMultibandEq, haxefmod.core.DspEnums.DspMultibandEqFilter",
    "verdict": "bound"
   },
   "FMOD_DSP_HIGHPASS_SIMPLE": {
@@ -421,7 +421,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_HIGHPASS_SIMPLE#2": {
    "code": "// Configure a single band (band A) as a highpass (all other bands default to off).\n// 12dB roll-off to approximate the old effect curve.\n// Cutoff frequency can be used the same as with the old effect.\n// Resonance / 'Q' should remain at default 0.707.\nmultiband.setParameterInt(DspMultibandEq.A_FILTER, DspMultibandEqFilter.HIGHPASS_12DB);\nmultiband.setParameter(DspMultibandEq.A_FREQUENCY, frequency);",
    "notes": [],
-   "type": "haxefmod.core.Dsp, haxefmod.core.DspType, haxefmod.core.DspParameters.DspMultibandEq, haxefmod.core.DspEnums.DspMultibandEqFilter",
+   "type": "haxefmod.core.DspParameters.DspMultibandEq, haxefmod.core.DspEnums.DspMultibandEqFilter",
    "verdict": "bound"
   },
   "FMOD_DSP_ITECHO": {
@@ -475,7 +475,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_LOWPASS#2": {
    "code": "// Configure a single band (band A) as a lowpass (all other bands default to off).\n// 24dB roll-off to approximate the old effect curve.\n// Cutoff frequency can be used the same as with the old effect.\n// Resonance can be applied by setting the 'Q' value of the new effect.\nmultiband.setParameterInt(DspMultibandEq.A_FILTER, DspMultibandEqFilter.LOWPASS_24DB);\nmultiband.setParameter(DspMultibandEq.A_FREQUENCY, frequency);\nmultiband.setParameter(DspMultibandEq.A_Q, resonance);",
    "notes": [],
-   "type": "haxefmod.core.Dsp, haxefmod.core.DspType, haxefmod.core.DspParameters.DspMultibandEq, haxefmod.core.DspEnums.DspMultibandEqFilter",
+   "type": "haxefmod.core.DspParameters.DspMultibandEq, haxefmod.core.DspEnums.DspMultibandEqFilter",
    "verdict": "bound"
   },
   "FMOD_DSP_LOWPASS_SIMPLE": {
@@ -487,7 +487,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_LOWPASS_SIMPLE#2": {
    "code": "// Configure a single band (band A) as a lowpass (all other bands default to off).\n// 12dB roll-off to approximate the old effect curve.\n// Cutoff frequency can be used the same as with the old effect.\n// Resonance / 'Q' should remain at default 0.707.\nmultiband.setParameterInt(DspMultibandEq.A_FILTER, DspMultibandEqFilter.LOWPASS_12DB);\nmultiband.setParameter(DspMultibandEq.A_FREQUENCY, frequency);",
    "notes": [],
-   "type": "haxefmod.core.Dsp, haxefmod.core.DspType, haxefmod.core.DspParameters.DspMultibandEq, haxefmod.core.DspEnums.DspMultibandEqFilter",
+   "type": "haxefmod.core.DspParameters.DspMultibandEq, haxefmod.core.DspEnums.DspMultibandEqFilter",
    "verdict": "bound"
   },
   "FMOD_DSP_MULTIBAND_DYNAMICS": {
@@ -579,7 +579,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_PARAMEQ#2": {
    "code": "// Configure a single band (band A) as a peaking EQ (all other bands default to off).\n// Center frequency can be used as with the old effect.\n// Bandwidth can be applied by setting the 'Q' value of the new effect.\n// Gain at the center frequency can be used the same as with the old effect.\nmultiband.setParameterInt(DspMultibandEq.A_FILTER, DspMultibandEqFilter.PEAKING);\nmultiband.setParameter(DspMultibandEq.A_FREQUENCY, center);\nmultiband.setParameter(DspMultibandEq.A_Q, bandwidth);\nmultiband.setParameter(DspMultibandEq.A_GAIN, gain);",
    "notes": [],
-   "type": "haxefmod.core.Dsp, haxefmod.core.DspType, haxefmod.core.DspParameters.DspMultibandEq, haxefmod.core.DspEnums.DspMultibandEqFilter",
+   "type": "haxefmod.core.DspParameters.DspMultibandEq, haxefmod.core.DspEnums.DspMultibandEqFilter",
    "verdict": "bound"
   },
   "FMOD_DSP_PITCHSHIFT": {
@@ -2547,9 +2547,9 @@ const HAXEFMOD_EXAMPLES = {
  },
  "spatializing-sounds-in-the-core-api": {
   "5.0.2 Loading Sounds as 3D": {
-   "code": "var handleError = (result:FmodResult) -> trace(result);\n\nvar sound = Sound.create(\"../media/drumloop.wav\", false, false, ChannelMode.MODE_3D);\nif (sound.isNull()) {\n    handleError(StudioSystem.lastResult());\n}",
+   "code": "var sound = Sound.create(\"../media/drumloop.wav\", false, false, ChannelMode.MODE_3D);\nif (sound.isNull()) {\n    handleError(StudioSystem.lastResult());\n}",
    "notes": [],
-   "type": "haxefmod.core.Sound, haxefmod.core.ChannelMode, haxefmod.studio.FmodResult",
+   "type": "haxefmod.core.Sound, haxefmod.core.ChannelMode",
    "verdict": "bound"
   },
   "5.1 Controlling a Spatializer DSP": {
@@ -2931,7 +2931,7 @@ const HAXEFMOD_EXAMPLES = {
   "Add a DSP effect to a Channel#2": {
    "code": "var result = channel.setDspIndex(dsp_echo, 1);",
    "notes": [],
-   "type": "haxefmod.core.Dsp, haxefmod.core.DspType",
+   "type": null,
    "verdict": "bound"
   },
   "Add a DSP effect to a Channel#3": {
@@ -2947,9 +2947,9 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "Bypass an effect / disable it.": {
-   "code": "var dsp_reverb = Dsp.create(DspType.SFXREVERB);\nvar result = dsp_reverb.setBypass(true);",
+   "code": "var result = dsp_reverb.setBypass(true);",
    "notes": [],
-   "type": "haxefmod.core.Dsp, haxefmod.core.DspType",
+   "type": null,
    "verdict": "bound"
   },
   "Controlling mix level and pan matrices for DSPConnections": {
@@ -2961,7 +2961,7 @@ const HAXEFMOD_EXAMPLES = {
   "Controlling mix level and pan matrices for DSPConnections#2": {
    "code": "var result = dsp_connection.setMix(0.0);",
    "notes": [],
-   "type": "haxefmod.core.Channel, haxefmod.core.Dsp, haxefmod.core.DspType",
+   "type": null,
    "verdict": "bound"
   },
   "Creating an effect and making all Channels send to it.": {
@@ -2971,9 +2971,9 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "Creating an effect and making all Channels send to it.#2": {
-   "code": "var dsp_reverb = Dsp.create(DspType.SFXREVERB);\nvar result = dsp_reverb.setActive(true);",
+   "code": "var result = dsp_reverb.setActive(true);",
    "notes": [],
-   "type": "haxefmod.core.Dsp, haxefmod.core.DspType",
+   "type": null,
    "verdict": "bound"
   },
   "Creating an effect and making all Channels send to it.#3": {
@@ -2985,7 +2985,7 @@ const HAXEFMOD_EXAMPLES = {
   "Set the output format of a DSP unit, and control the pan matrix for its output signal": {
    "code": "var result = channel_dsp_head.setChannelFormat(0, 0, FmodSpeakerMode.QUAD);",
    "notes": [],
-   "type": "haxefmod.core.Channel, haxefmod.core.Dsp, haxefmod.studio.Types.FmodSpeakerMode",
+   "type": "haxefmod.studio.Types.FmodSpeakerMode",
    "verdict": "bound"
   },
   "Set the output format of a DSP unit, and control the pan matrix for its output signal#2": {

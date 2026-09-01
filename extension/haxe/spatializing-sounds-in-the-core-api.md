@@ -5,9 +5,6 @@ verdict: bound
 ```haxe
 import haxefmod.core.Sound;
 import haxefmod.core.ChannelMode;
-import haxefmod.studio.FmodResult;
-
-var handleError = (result:FmodResult) -> trace(result);
 
 var sound = Sound.create("../media/drumloop.wav", false, false, ChannelMode.MODE_3D);
 if (sound.isNull()) {
