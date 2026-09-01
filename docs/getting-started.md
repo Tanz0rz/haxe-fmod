@@ -267,15 +267,15 @@ HTML5 initializes asynchronously, so an HTML5 game waits for `FmodManager.IsInit
     haxelib run haxefmod stage linux cpp path/to/output
     ```
 
-    Pass `osx` or `windows` to khamake on those platforms, and their platform name to the [stage command](guides/tools-cli.md#stage). The target is `cpp` on every native Kha build, Kore HL/C included, because the binding is compiled into the executable rather than loaded from an hdll. Copy your banks to `assets/fmod/Desktop` next to the executable and run it from that directory.
+    `linux` is the Kore C++ target. `linux-hl` builds the same game as HashLink instead, which Kore compiles to a native executable rather than running in a VM. For the HashLink targets, set `HAXEFMOD_KHA_HL=1` in the environment before khamake so the library compiles its HashLink binding into the executable instead of the C++ one. On the other platforms the khamake targets are `osx`/`osx-hl` and `windows`/`windows-hl`, with the platform name passed to the [stage command](guides/tools-cli.md#stage).
+
+    The stage target is `cpp` for every native Kha build, the HashLink ones included: either way the binding is inside the executable, so no hdll or VM is involved and only the FMOD libraries need staging. Copy your banks to `assets/fmod/Desktop` next to the executable and run it from that directory.
 
     On Linux the linker also needs the SDK's library directories, since the binding links `-lfmod -lfmodstudio`:
 
     ```bash
     export LIBRARY_PATH="$FMOD_SDK/api/core/lib/x86_64:$FMOD_SDK/api/studio/lib/x86_64${LIBRARY_PATH:+:$LIBRARY_PATH}"
     ```
-
-    For a Kore HL/C build, set `HAXEFMOD_KHA_HL=1` in the environment before khamake so the library compiles its HashLink binding instead of the hxcpp one.
 
     You should hear your event as soon as the window opens. A silent run with a clean build points at missing banks, and the console output names the failing path when `FmodManager.EnableDebugMessages()` is on.
 
