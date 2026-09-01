@@ -125,10 +125,11 @@ function renderEntry(entry, parts, state) {
 
 function buildPage(name, catalogText) {
     const entries = parseCatalog(catalogText);
-    const isApi = entries.some(e => e.kind === 'function');
+    // Every page of the docs book carries "manual-content api", the
+    // guides included, so the site's selector logic runs on all of them.
     const parts = [];
     const state = { heading: null, count: 0 };
-    parts.push('<div id="Documentation"><div class="documentation-content"><div class="manual-content' + (isApi ? ' api' : '') + '">');
+    parts.push('<div id="Documentation"><div class="documentation-content"><div class="manual-content api">');
     parts.push('<h1>' + escapeHtml(name) + ' fixture</h1>');
     for (const entry of entries) renderEntry(entry, parts, state);
     parts.push('</div></div></div>');
@@ -150,27 +151,45 @@ function buildPage(name, catalogText) {
         '<div id="app"></div>',
         '<script>',
         'var CONTENT = ' + JSON.stringify(content) + ';',
-        // The site's selector logic: it knows five language classes,
-        // toggles inline display on every element carrying one, marks
-        // tabs selected, and persists the pick.
+        // The site's selector logic, reproduced from fmod.com's own
+        // bundle: blocks are snapshotted at init, the stored language is
+        // clamped to what the page offers (and the clamped value written
+        // back), language-c-cpp blocks show under C and C++, and a
+        // language-all block or pick is always visible.
         "var KNOWN = ['language-c', 'language-cpp', 'language-c-cpp', 'language-csharp', 'language-javascript'];",
+        'var siteTabs = null, siteBlocks = null, siteLangs = null;',
+        'function blockVisible(block, lang) {',
+        "  if (lang === 'language-all' || block.classList.contains('language-all')) return true;",
+        "  if ((lang === 'language-c' || lang === 'language-cpp') && block.classList.contains('language-c-cpp')) return true;",
+        '  return block.classList.contains(lang);',
+        '}',
         'function selectLanguage(lang) {',
-        "  var root = document.querySelector('div.manual-content');",
-        "  var tabs = root.getElementsByClassName('language-tab');",
-        '  for (var i = 0; i < tabs.length; i++) {',
-        "    tabs[i].classList.toggle('selected', tabs[i].getAttribute('data-language') === lang);",
+        '  if (siteBlocks == null) return;',
+        "  window.localStorage.setItem('FMOD.Documents.selected-language', lang);",
+        '  if (siteLangs.length > 0 && siteLangs.indexOf(lang) < 0) lang = siteLangs[0];',
+        '  for (var i = 0; i < siteTabs.length; i++) {',
+        "    siteTabs[i].classList.toggle('selected', siteTabs[i].getAttribute('data-language') === lang);",
         '  }',
-        "  var blocks = root.querySelectorAll(KNOWN.map(function (k) { return '.' + k; }).join(', '));",
-        '  for (var j = 0; j < blocks.length; j++) {',
-        "    blocks[j].style.display = blocks[j].classList.contains(lang) ? 'block' : 'none';",
+        '  for (var j = 0; j < siteBlocks.length; j++) {',
+        "    siteBlocks[j].style.display = blockVisible(siteBlocks[j], lang) ? 'block' : 'none';",
         '  }',
         "  window.localStorage.setItem('FMOD.Documents.selected-language', lang);",
         '}',
         'function initLanguageSelector() {',
-        "  var root = document.querySelector('div.manual-content');",
-        "  var tabs = root.getElementsByClassName('language-tab');",
-        '  for (var i = 0; i < tabs.length; i++) {',
-        "    tabs[i].onclick = function () { selectLanguage(this.getAttribute('data-language')); };",
+        "  var root = document.querySelector('div.manual-content.api');",
+        '  if (!root) return;',
+        "  siteTabs = root.getElementsByClassName('language-tab');",
+        '  for (var i = 0; i < siteTabs.length; i++) {',
+        "    siteTabs[i].onclick = function () { selectLanguage(this.getAttribute('data-language')); };",
+        '  }',
+        "  siteBlocks = root.querySelectorAll(KNOWN.map(function (k) { return '.' + k; }).join(', '));",
+        '  siteLangs = [];',
+        '  KNOWN.forEach(function (k) {',
+        "    if (root.querySelector('.' + k) != null) siteLangs.push(k);",
+        '  });',
+        "  if (siteLangs.indexOf('language-c-cpp') >= 0) {",
+        "    if (siteLangs.indexOf('language-c') < 0) siteLangs.push('language-c');",
+        "    if (siteLangs.indexOf('language-cpp') < 0) siteLangs.push('language-cpp');",
         '  }',
         "  var saved = window.localStorage.getItem('FMOD.Documents.selected-language');",
         "  if (saved == null) saved = 'language-cpp';",

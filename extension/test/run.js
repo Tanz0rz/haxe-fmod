@@ -21,7 +21,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { chromium } = require('playwright');
-const { buildAll } = require('./build-fixtures');
+const { buildAll, parseCatalog } = require('./build-fixtures');
 
 const EXTENSION = path.resolve(__dirname, '..');
 const FIXTURE = path.join(__dirname, 'fixture.html');
@@ -217,21 +217,41 @@ async function main() {
         });
         let unitsChecked = 0;
         for (const name of Object.keys(fixtures)) {
-            const covered = Object.keys(examplesFor(name)).length;
+            const examples = examplesFor(name);
+            // A unit under the site's own selector (a function, a tabbed
+            // example) carries a Haxe tab. A lone unit on a page that
+            // has any site selector only gets the Haxe block, the
+            // page's own tabs govern it. Only a page with no selector
+            // at all gets a strip per covered lone unit.
+            const entries = parseCatalog(fs.readFileSync(path.join(__dirname, '..', 'catalog', name + '.md'), 'utf8'));
+            const functions = entries.filter(e => e.kind === 'function').length;
+            const hasSelector = entries.some(e => e.kind === 'function' || e.blocks.length > 1);
+            const byKey = new Map(entries.map(e => [e.key, e]));
+            let tabbedCovered = 0;
+            let loneCovered = 0;
+            for (const key of Object.keys(examples)) {
+                const entry = byKey.get(key);
+                if (entry && entry.blocks.length > 1) tabbedCovered++;
+                else loneCovered++;
+            }
+            const expected = functions + tabbedCovered + loneCovered;
+            const expectedTabs = functions + tabbedCovered + (hasSelector ? 0 : loneCovered);
+            const expectedStrips = hasSelector ? 0 : loneCovered;
+
             await page.evaluate(() => { try { localStorage.clear(); } catch (e) { } });
             await page.goto('https://www.fmod.com/docs/2.03/api/' + name + '.html', { waitUntil: 'load' });
             await page.waitForFunction(() => document.querySelectorAll('div.manual-content div.highlight').length > 0, null, { timeout: 30000 });
             await page.waitForTimeout(300);
 
             const counts = await page.evaluate(() => ({
-                functions: document.querySelectorAll('div.manual-content h2[api="function"]').length,
                 tabs: document.querySelectorAll('.haxefmod-tab').length,
                 blocks: document.querySelectorAll('.haxefmod-block').length,
+                strips: document.querySelectorAll('.haxefmod-selector').length,
                 footers: Array.from(document.querySelectorAll('.haxefmod-block')).filter(b => b.querySelectorAll('.haxefmod-footer').length === 1).length,
             }));
-            const expected = counts.functions + covered;
-            if (counts.tabs !== expected) fail(name + ': ' + counts.tabs + ' Haxe tabs for ' + counts.functions + ' functions + ' + covered + ' covered examples');
+            if (counts.tabs !== expectedTabs) fail(name + ': ' + counts.tabs + ' Haxe tabs, expected ' + expectedTabs + ' (' + functions + ' functions, ' + tabbedCovered + ' tabbed, ' + loneCovered + ' lone)');
             if (counts.blocks !== expected) fail(name + ': ' + counts.blocks + ' Haxe blocks, expected ' + expected);
+            if (counts.strips !== expectedStrips) fail(name + ': ' + counts.strips + ' added strips, expected ' + expectedStrips + (hasSelector ? ' (the site selector governs this page)' : ''));
             if (counts.footers !== counts.blocks) fail(name + ': every Haxe block carries one footer, ' + counts.footers + ' of ' + counts.blocks + ' do');
 
             // No tab strip may stand over blocks that are all hidden,
@@ -277,7 +297,7 @@ async function main() {
                 tabs: document.querySelectorAll('.haxefmod-tab').length,
                 blocks: document.querySelectorAll('.haxefmod-block').length,
             }));
-            if (again.tabs !== expected || again.blocks !== expected) fail(name + ': re-render changed the page, ' + again.tabs + ' tabs and ' + again.blocks + ' blocks for ' + expected);
+            if (again.tabs !== expectedTabs || again.blocks !== expected) fail(name + ': re-render changed the page, ' + again.tabs + ' tabs and ' + again.blocks + ' blocks for ' + expectedTabs + ' and ' + expected);
             unitsChecked += expected;
         }
         console.log('matrix: ' + Object.keys(fixtures).length + ' pages, ' + unitsChecked + ' units held the invariants');

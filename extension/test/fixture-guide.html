@@ -15,10 +15,11 @@
 <script>
 // A guide page in the shape of fmod.com's studio-guide.html: six code
 // examples under one heading, each a lone C++ block with no language
-// selector, keyed the way the catalog keys the real page. The page
-// carries no selector logic of its own because the site adds none for
-// lone blocks either.
-var parts = ['<div id="Documentation"><div class="documentation-content"><div class="manual-content">', '<h1>13. Studio API Guide</h1>'];
+// selector on the page, keyed the way the catalog keys the real page.
+// The site wires its selector logic on every page of the book, but with
+// no language-selector in the content and C++ as the only language it
+// never changes anything here, so the fixture leaves it out.
+var parts = ['<div id="Documentation"><div class="documentation-content"><div class="manual-content api">', '<h1>13. Studio API Guide</h1>'];
 parts.push('<h3 id="scripting-example">13.9.1 Scripting Example</h3>');
 for (var i = 0; i < 6; i++) {
   parts.push('<p>Prose introducing example ' + i + '.</p>');
