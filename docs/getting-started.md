@@ -6,12 +6,32 @@ The library is tested on games built with the `lime` and `openfl` CLI tools (Hax
 
 ## Supported platforms
 
-| Platform | Architecture | Targets |
-|---|---|---|
-| HTML5 | All | WebAssembly |
-| Windows | x86_64 | C++, HashLink |
-| Linux | x86_64 | C++, HashLink |
-| macOS | ARM64 (Apple Silicon) | C++, HashLink |
+=== "HaxeFlixel"
+
+    | Platform | Architecture | Targets |
+    |---|---|---|
+    | HTML5 | All | WebAssembly |
+    | Windows | x86_64 | C++, HashLink |
+    | Linux | x86_64 | C++, HashLink |
+    | macOS | ARM64 (Apple Silicon) | C++, HashLink |
+
+=== "Heaps"
+
+    | Platform | Architecture | Targets |
+    |---|---|---|
+    | HTML5 | All | WebAssembly |
+    | Windows | x86_64 | HashLink |
+    | Linux | x86_64 | HashLink |
+    | macOS | ARM64 (Apple Silicon) | HashLink (compiled through HL/C) |
+
+=== "Kha"
+
+    | Platform | Architecture | Targets |
+    |---|---|---|
+    | HTML5 | All | WebAssembly |
+    | Windows | x86_64 | Kore C++, Kore HL/C |
+    | Linux | x86_64 | Kore C++, Kore HL/C |
+    | macOS | ARM64 (Apple Silicon) | Kore C++, Kore HL/C |
 
 ## Prerequisites
 
@@ -153,6 +173,10 @@ Banks are loaded from `assets/fmod/Desktop` by default (see [Banks and settings]
             FmodManager.PlaySong(FmodEvents.MusicMainLevel);
         }
 
+        function JumpPressed() {
+            FmodManager.PlaySoundOneShot(FmodEvents.SFXJump);
+        }
+
         static function main() {
             new Main();
         }
@@ -174,6 +198,10 @@ Banks are loaded from `assets/fmod/Desktop` by default (see [Banks and settings]
                 FmodKhaSetup.init();
                 FmodManager.PlaySong(FmodEvents.MusicMainLevel);
             });
+        }
+
+        static function JumpPressed() {
+            FmodManager.PlaySoundOneShot(FmodEvents.SFXJump);
         }
     }
     ```
