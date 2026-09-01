@@ -90,6 +90,7 @@
 ### Fixed
 - Pointing `FMOD_SDK` at the HTML5 FMOD Engine package (or `FMOD_SDK_WEB` at a desktop one) now fails the build with a message naming the swapped packages. Previously a native build got as far as copying libraries and died with an uncaught exception on macOS and Windows. Both packages ship the same `api/core/inc` headers, so the check is the platform's own core library rather than a header.
 - A desktop FMOD SDK missing the libraries for the platform being built now reports the missing file with setup instructions instead of an uncaught exception. Linux already did this; macOS and Windows now match.
+- **Docs extension**: an example fmod.com shows once per language (adjacent lone blocks the site's selector swaps) now renders as one tabbed unit with a single Haxe translation. Previously each block got its own added tab strip, so three orphaned strips stood over hidden code and picking Haxe stacked four identical snippets. Example translations were re-reviewed against the site's own snippets: invented file names, values, and setup lines are gone, and each fence now mirrors the snippet's data and shape.
 
 ## 2.0.0 (2026-08-27)
 
