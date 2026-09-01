@@ -52,7 +52,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v5
 
@@ -81,8 +81,17 @@ jobs:
           python3 ci/haxe-bindings.py --check
           python3 ci/haxe-catalog.py --check
 
+      - name: Check every docs-tab entry is reviewed
+        run: python3 ci/example-ledger.py --status --require-all
+
       - name: Compile the guide examples
         run: python3 ci/check-readme-snippets.py docs extension/haxe extension/functions.md
+
+      - name: Drive the extension over the fixture matrix
+        run: |
+          npm install playwright > /dev/null
+          npx playwright install --with-deps chromium
+          node extension/test/run.js --headless --all
 
       - name: Generate type XML
         run: |

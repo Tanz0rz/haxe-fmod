@@ -56,12 +56,14 @@ jobs:
           SUBJECT="haxe-fmod docs canary: fmod.com changed"
           TEXT="The fmod.com API reference no longer matches extension/catalog/.
 
-          The run log lists every added or removed code location and every page whose snippets changed:
+          The run log names every code location that was added, removed, or edited:
           $RUN_URL
 
-          Refresh the catalog and bring extension/haxe and extension/functions.md in line:
+          Refresh the catalog, then the review ledger lists exactly the entries the edits touched:
             node extension/test/catalog-site.js --update
-            python3 ci/haxe-catalog.py"
+            python3 ci/haxe-catalog.py
+            python3 ci/example-ledger.py --status
+          Review each flagged entry (python3 ci/example-ledger.py --next), fix or stamp, until --status --require-all passes."
           PAYLOAD=$(jq -n --arg from "$ALERT_FROM" --arg to "$ALERT_TO" --arg subject "$SUBJECT" --arg text "$TEXT" \
             '{from: $from, to: [$to], subject: $subject, text: $text}')
           curl -sS -X POST https://api.resend.com/emails \

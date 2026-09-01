@@ -123,11 +123,20 @@ async function main() {
         } else if (!fs.existsSync(file)) {
             drift.push(name + ': new page with ' + pages[name].length + ' code locations');
         } else if (fs.readFileSync(file, 'utf8') !== content) {
-            const before = new Set(fs.readFileSync(file, 'utf8').split('\n').filter(l => l.startsWith('## ')));
-            const after = new Set(content.split('\n').filter(l => l.startsWith('## ')));
-            for (const k of before) if (!after.has(k)) drift.push(name + ': entry removed ' + k.slice(3));
-            for (const k of after) if (!before.has(k)) drift.push(name + ': entry added ' + k.slice(3));
-            if ([...before].every(k => after.has(k)) && [...after].every(k => before.has(k))) drift.push(name + ': snippet text changed');
+            const sectionsOf = text => {
+                const map = new Map();
+                for (const part of text.split(/^## /m).slice(1)) {
+                    map.set(part.split('\n', 1)[0].trim(), part);
+                }
+                return map;
+            };
+            const before = sectionsOf(fs.readFileSync(file, 'utf8'));
+            const after = sectionsOf(content);
+            for (const k of before.keys()) if (!after.has(k)) drift.push(name + ': entry removed "' + k + '"');
+            for (const k of after.keys()) {
+                if (!before.has(k)) drift.push(name + ': entry added "' + k + '"');
+                else if (before.get(k) !== after.get(k)) drift.push(name + ': snippet changed under "' + k + '"');
+            }
         }
     }
     if (mode === 'update') {

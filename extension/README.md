@@ -37,7 +37,15 @@ python3 ci/haxe-catalog.py
 python3 ci/check-readme-snippets.py extension/haxe extension/functions.md
 ```
 
-Lone C++ blocks have no language selector on fmod.com, so the extension adds one with a C++ tab and the Haxe tab. `keys.js` computes the block keys at runtime the same way the crawler did.
+Lone blocks have no language selector on fmod.com, so the extension adds one with a tab for the block's language and the Haxe tab. An example the site repeats once per language as adjacent lone blocks folds into a single tabbed unit under the first block's key, with one Haxe translation. `keys.js` computes the block keys and the folding at runtime the same way the crawler did.
+
+Two more checks keep the Haxe side honest. `ci/haxe-catalog.py` compares each fence against the site's own snippet (string and number literals, the order of FMOD calls, statement count), and a difference a reviewer has judged right is silenced in place with a `waive: <rule> <reason>` line that itself fails when the check stops firing. `ci/example-ledger.py` records a review stamp per entry, a hash over the catalog snippet and the Haxe section, so a site edit or a rules change puts exactly the touched entries back on the review list:
+
+```bash
+python3 ci/example-ledger.py --status
+python3 ci/example-ledger.py --next 5
+python3 ci/example-ledger.py --stamp <page> "<key>"
+```
 
 Clicking the toolbar icon opens the FMOD API reference. The extension asks for no permissions beyond running on fmod.com documentation pages and makes no network requests. The data ships inside the package.
 
@@ -45,23 +53,26 @@ Clicking the toolbar icon opens the FMOD API reference. The extension asks for n
 
 ```bash
 NODE_PATH=/path/to/node_modules xvfb-run node extension/test/run.js
+NODE_PATH=/path/to/node_modules node extension/test/run.js --headless --all
 NODE_PATH=/path/to/node_modules xvfb-run node extension/test/run.js --live
 ```
 
-The default run serves `test/fixture.html` in place of fmod.com and checks the tab flow. `--live` runs the same checks against the real site.
+The default run serves `test/fixture.html` in place of fmod.com and checks the tab flow. `--all` also builds a fixture from every `catalog/` page (`test/build-fixtures.js`) and holds the tab invariants on each: one Haxe tab per unit, no strip standing over blocks that are all hidden, one Haxe block per unit when Haxe is picked, and nothing added on a re-render. `--headless` uses Chromium's new headless mode, which loads extensions without a display. `--live` runs the base checks against the real site.
 
 ## When fmod.com changes
 
-The weekly `docs-canary` workflow crawls the live site into the catalog format and fails when it differs from `catalog/`, listing every added or removed code location and every page whose snippets changed. Run it by hand with:
+The weekly `docs-canary` workflow crawls the live site into the catalog format and fails when it differs from `catalog/`, naming every code location that was added, removed, or edited. Run it by hand with:
 
 ```bash
 NODE_PATH=/path/to/node_modules node extension/test/catalog-site.js --check
 ```
 
-Refresh the catalog, then bring `haxe/` and `functions.md` in line until `ci/haxe-catalog.py --check` passes:
+Refresh the catalog, then bring `haxe/` and `functions.md` in line until `ci/haxe-catalog.py --check` passes. The refresh changes the hashes of the touched entries, so `ci/example-ledger.py --status` lists exactly what needs a fresh review, and the docs workflow stays red until every entry is fixed or stamped again:
 
 ```bash
 NODE_PATH=/path/to/node_modules node extension/test/catalog-site.js --update
+python3 ci/haxe-catalog.py
+python3 ci/example-ledger.py --status
 ```
 
 Functions haxefmod does not expose are listed with their reasons on the documentation site's "Unsupported functions" page, generated from `functions.md` by `ci/haxe-bindings.py`. Adding a binding means removing its section there, at which point the generator picks the new method up from the sources.
