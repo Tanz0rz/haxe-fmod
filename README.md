@@ -24,7 +24,7 @@ Having problems or want to chat? [Join the Haxe Discord](https://discordapp.com/
 - [FMOD Studio API](https://www.fmod.com/docs/2.03/api/studio-api.html) at runtime: events, buses, VCAs, snapshots, banks, global and labeled [parameters](https://www.fmod.com/docs/2.03/studio/parameters-reference.html), 3D/listeners, and profiling with some known [limitations](LIMITATIONS.md)
 - Typed [callbacks](https://www.fmod.com/docs/2.03/api/studio-api-eventinstance.html#fmod_studio_event_callback_type) that carry event data (beats, timeline markers, etc.)
 - [Live Update](https://fmod.com/docs/2.03/studio/editing-during-live-update.html) for mixing sounds while playtesting
-- Drop-in engine components for [HaxeFlixel](https://tanz0rz.github.io/haxe-fmod/guides/flixel/), [Heaps](https://tanz0rz.github.io/haxe-fmod/guides/heaps/), and [Kha](https://tanz0rz.github.io/haxe-fmod/guides/kha/): emitters that follow your game objects, listeners, bank loaders, and parameter triggers
+- Drop-in [engine components](https://tanz0rz.github.io/haxe-fmod/guides/components/) for HaxeFlixel, Heaps, and Kha: emitters that follow your game objects, listeners, bank loaders, and parameter triggers
 - Helper scripts to map FMOD Studio events to game code
 - Many, many more
 
@@ -41,11 +41,7 @@ This is a faithful implementation of the FMOD stack. If this library doesn't sup
 
 ## Getting Started
 
-Every engine wires FMOD in a little differently, so the documentation site has a full walkthrough per engine, from an empty project to a playing sound:
-
-- [HaxeFlixel](https://tanz0rz.github.io/haxe-fmod/getting-started/flixel/) (covers any project built with the `lime` and `openfl` CLI tools)
-- [Heaps](https://tanz0rz.github.io/haxe-fmod/getting-started/heaps/)
-- [Kha](https://tanz0rz.github.io/haxe-fmod/getting-started/kha/)
+The [getting started walkthrough](https://tanz0rz.github.io/haxe-fmod/getting-started/) takes a new project from an empty build file to a playing sound. Every step that differs by engine has HaxeFlixel, Heaps, and Kha tabs, and picking yours once switches the whole site to it.
 
 Once you are set up, `haxelib run haxefmod check` verifies your local dev environment and is **highly recommended** whenever something misbehaves.
 

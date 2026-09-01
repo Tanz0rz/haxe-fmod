@@ -26,6 +26,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import textwrap
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEFAULT_DOCS = [os.path.join(ROOT, "README.md"), os.path.join(ROOT, "MIGRATION.md")]
@@ -133,7 +134,9 @@ class Scheduler {
 
 
 def extract_fences(text):
-    return re.findall(r"```haxe\n(.*?)```", text, re.S)
+    # Fences inside content tabs are indented four spaces, and the type
+    # detection below expects declarations at column zero
+    return [textwrap.dedent(f) for f in re.findall(r"```haxe\n(.*?)```", text, re.S)]
 
 
 def split_snippet(code):

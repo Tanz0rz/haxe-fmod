@@ -103,7 +103,7 @@ Lime builds get the FMOD runtime files copied next to the game automatically. Ev
 - `cpp` copies the FMOD libraries only, for executables the binding was compiled into. Kha's native targets use this on Kore HL/C builds too.
 - `html5` copies the FMOD web engine (`fmodstudio.js`, `fmodstudio.wasm`) and the library's `jaxe.js` glue into the directory, which your page then loads with script tags ahead of the game.
 
-The command reads `FMOD_SDK` (or `FMOD_SDK_WEB` for html5) and stops with the reason when the variable is unset, points at the wrong package, or holds an unusable version. The [Heaps](../getting-started/heaps.md) and [Kha](../getting-started/kha.md) getting started pages show it inside a full build.
+The command reads `FMOD_SDK` (or `FMOD_SDK_WEB` for html5) and stops with the reason when the variable is unset, points at the wrong package, or holds an unusable version. The Heaps and Kha tabs of [Getting started](../getting-started.md#6-build-and-run) show it inside a full build.
 
 ## build-hdll
 

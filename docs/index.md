@@ -18,13 +18,13 @@ Pick the lowest tier that does what you need. They compose, so a game can start 
 
 ## Where to go
 
-- New project: [Getting started](getting-started/index.md), with a page each for [HaxeFlixel](getting-started/flixel.md), [Heaps](getting-started/heaps.md), and [Kha](getting-started/kha.md).
+- New project: [Getting started](getting-started.md), with HaxeFlixel, Heaps, and Kha tabs on every step that differs. Pick your engine once and the whole site follows.
 - Playing music and sounds from game code: [FmodManager](guides/fmod-manager.md).
 - How handles, null handles, and return codes behave: [Handles and results](guides/handles-and-results.md).
 - Loading banks and configuring the engine: [Banks and settings](guides/banks-and-settings.md).
 - Beats, markers, listeners, and moving emitters: [Callbacks and 3D](guides/callbacks-and-3d.md).
 - Generated audio, effects, reverb, and sound groups: [Core API](guides/core-api.md).
-- Engine components: [Flixel](guides/flixel.md), [Heaps](guides/heaps.md), and [Kha](guides/kha.md).
+- Emitters, listeners, and loaders for your engine: [Engine components](guides/components.md).
 - The command line (`check`, `generate`, `todos`, `stage`, `build-hdll`): [Tools CLI](guides/tools-cli.md).
 - Per-target behavior: [Platforms](platforms.md).
 - Every class and method: [API reference](/haxe-fmod/api/).
