@@ -4,6 +4,7 @@
 kind: example
 index: 0
 heading: FMOD_DSP_CHANNELMIX
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -221,6 +222,7 @@ FMOD.DSP_CHANNELMIX_OUTPUT_CH31
 kind: example
 index: 1
 heading: FMOD_DSP_CHANNELMIX_OUTPUT
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -267,6 +269,7 @@ FMOD.DSP_CHANNELMIX_OUTPUT_ALL7POINT1POINT4
 kind: example
 index: 2
 heading: FMOD_DSP_CHORUS
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -298,6 +301,7 @@ FMOD.DSP_CHORUS_DEPTH
 kind: example
 index: 3
 heading: FMOD_DSP_COMPRESSOR
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -341,6 +345,7 @@ FMOD.DSP_COMPRESSOR_LINKED
 kind: example
 index: 4
 heading: FMOD_DSP_CONVOLUTION_REVERB
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -375,6 +380,7 @@ FMOD.DSP_CONVOLUTION_REVERB_PARAM_LINKED
 kind: example
 index: 5
 heading: FMOD_DSP_DELAY
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -448,6 +454,7 @@ FMOD.DSP_DELAY_MAXDELAY
 kind: example
 index: 6
 heading: FMOD_DSP_DISTORTION
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -473,6 +480,7 @@ FMOD.DSP_DISTORTION_LEVEL
 kind: example
 index: 7
 heading: FMOD_DSP_ECHO
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -510,6 +518,7 @@ FMOD.DSP_ECHO_DELAYCHANGEMODE
 kind: example
 index: 8
 heading: FMOD_DSP_ECHO_DELAYCHANGEMODE_TYPE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -541,6 +550,7 @@ enum DSP_ECHO_DELAYCHANGEMODE_TYPE
 kind: example
 index: 9
 heading: FMOD_DSP_FADER
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -563,6 +573,7 @@ enum DSP_FADER
 kind: example
 index: 10
 heading: FMOD_DSP_FFT
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -615,6 +626,7 @@ FMOD.DSP_FFT_CHANNEL
 kind: example
 index: 11
 heading: FMOD_DSP_FFT_DOWNMIX_TYPE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -643,6 +655,7 @@ FMOD.DSP_FFT_DOWNMIX_MONO
 kind: example
 index: 12
 heading: FMOD_DSP_FFT_WINDOW_TYPE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -683,6 +696,7 @@ FMOD.DSP_FFT_WINDOW_BLACKMANHARRIS
 kind: example
 index: 13
 heading: FMOD_DSP_FLANGE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -714,6 +728,7 @@ FMOD.DSP_FLANGE_RATE
 kind: example
 index: 14
 heading: FMOD_DSP_HIGHPASS
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -758,6 +773,7 @@ FMOD_DSP_SetParameterFloat(multiband, FMOD_DSP_MULTIBAND_EQ_A_Q, resonance);
 kind: example
 index: 16
 heading: FMOD_DSP_HIGHPASS_SIMPLE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -798,6 +814,7 @@ FMOD_DSP_SetParameterFloat(multiband, FMOD_DSP_MULTIBAND_EQ_A_FREQUENCY, frequen
 kind: example
 index: 18
 heading: FMOD_DSP_ITECHO
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -835,6 +852,7 @@ FMOD.DSP_ITECHO_PANDELAY
 kind: example
 index: 19
 heading: FMOD_DSP_ITLOWPASS
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -863,6 +881,7 @@ FMOD.DSP_ITLOWPASS_RESONANCE
 kind: example
 index: 20
 heading: FMOD_DSP_LIMITER
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -897,6 +916,7 @@ FMOD.DSP_LIMITER_MODE
 kind: example
 index: 21
 heading: FMOD_DSP_LOUDNESS_METER
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -928,6 +948,7 @@ FMOD.DSP_LOUDNESS_METER_INFO
 kind: example
 index: 22
 heading: FMOD_DSP_LOUDNESS_METER_INFO_TYPE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -978,6 +999,7 @@ FMOD_DSP_LOUDNESS_METER_INFO_TYPE
 kind: example
 index: 23
 heading: FMOD_DSP_LOUDNESS_METER_STATE_TYPE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1015,6 +1037,7 @@ FMOD.DSP_LOUDNESS_METER_STATE_ANALYZING = 1
 kind: example
 index: 24
 heading: FMOD_DSP_LOUDNESS_METER_WEIGHTING_TYPE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1044,6 +1067,7 @@ FMOD_DSP_LOUDNESS_METER_WEIGHTING_TYPE
 kind: example
 index: 25
 heading: FMOD_DSP_LOWPASS
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1088,6 +1112,7 @@ FMOD_DSP_SetParameterFloat(multiband, FMOD_DSP_MULTIBAND_EQ_A_Q, resonance);
 kind: example
 index: 27
 heading: FMOD_DSP_LOWPASS_SIMPLE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1128,6 +1153,7 @@ FMOD_DSP_SetParameterFloat(multiband, FMOD_DSP_MULTIBAND_EQ_A_FREQUENCY, frequen
 kind: example
 index: 29
 heading: FMOD_DSP_MULTIBAND_DYNAMICS
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1235,6 +1261,7 @@ FMOD.DSP_MULTIBAND_DYNAMICS_C_RESPONSE_DATA
 kind: example
 index: 30
 heading: FMOD_DSP_MULTIBAND_DYNAMICS_MODE_TYPE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1272,6 +1299,7 @@ FMOD.DSP_MULTIBAND_DYNAMICS_MODE_EXPAND_DOWN
 kind: example
 index: 31
 heading: FMOD_DSP_MULTIBAND_EQ
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1354,6 +1382,7 @@ FMOD.DSP_MULTIBAND_EQ_E_GAIN
 kind: example
 index: 32
 heading: FMOD_DSP_MULTIBAND_EQ_FILTER_TYPE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1421,6 +1450,7 @@ FMOD.DSP_MULTIBAND_EQ_FILTER_HIGHPASS_6DB
 kind: example
 index: 33
 heading: FMOD_DSP_NORMALIZE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1452,6 +1482,7 @@ FMOD.DSP_NORMALIZE_MAXAMP
 kind: example
 index: 34
 heading: FMOD_DSP_OBJECTPAN
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1507,6 +1538,7 @@ FMOD.DSP_OBJECTPAN_OVERRIDE_RANGE
 kind: example
 index: 35
 heading: FMOD_DSP_OSCILLATOR
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1535,6 +1567,7 @@ FMOD.DSP_OSCILLATOR_RATE
 kind: example
 index: 36
 heading: FMOD_DSP_PAN
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1640,6 +1673,7 @@ heading: FMOD_DSP_PAN
 kind: example
 index: 38
 heading: FMOD_DSP_PAN_2D_STEREO_MODE_TYPE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1668,6 +1702,7 @@ FMOD.DSP_PAN_2D_STEREO_MODE_DISCRETE
 kind: example
 index: 39
 heading: FMOD_DSP_PAN_3D_EXTENT_MODE_TYPE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1699,6 +1734,7 @@ FMOD.DSP_PAN_3D_EXTENT_MODE_OFF
 kind: example
 index: 40
 heading: FMOD_DSP_PAN_3D_ROLLOFF_TYPE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1736,6 +1772,7 @@ FMOD.DSP_PAN_3D_ROLLOFF_CUSTOM
 kind: example
 index: 41
 heading: FMOD_DSP_PAN_MODE_TYPE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1767,6 +1804,7 @@ FMOD.DSP_PAN_MODE_SURROUND
 kind: example
 index: 42
 heading: FMOD_DSP_PARAMEQ
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1815,6 +1853,7 @@ FMOD_DSP_SetParameterFloat(multiband, FMOD_DSP_MULTIBAND_EQ_A_GAIN, gain);
 kind: example
 index: 44
 heading: FMOD_DSP_PITCHSHIFT
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1849,6 +1888,7 @@ FMOD.DSP_PITCHSHIFT_MAXCHANNELS
 kind: example
 index: 45
 heading: FMOD_DSP_RETURN
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1877,6 +1917,7 @@ FMOD.DSP_RETURN_INPUT_SPEAKER_MODE
 kind: example
 index: 46
 heading: FMOD_DSP_SEND
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1905,6 +1946,7 @@ FMOD.DSP_SEND_LEVEL
 kind: example
 index: 47
 heading: FMOD_DSP_SFXREVERB
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1966,6 +2008,7 @@ FMOD.DSP_SFXREVERB_DRYLEVEL
 kind: example
 index: 48
 heading: FMOD_DSP_THREE_EQ
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -2006,6 +2049,7 @@ FMOD.DSP_THREE_EQ_CROSSOVERSLOPE
 kind: example
 index: 49
 heading: FMOD_DSP_THREE_EQ_CROSSOVERSLOPE_TYPE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -2037,6 +2081,7 @@ FMOD.DSP_THREE_EQ_CROSSOVERSLOPE_48DB
 kind: example
 index: 50
 heading: FMOD_DSP_TRANSCEIVER
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -2071,6 +2116,7 @@ FMOD.DSP_TRANSCEIVER_TRANSMITSPEAKERMODE
 kind: example
 index: 51
 heading: FMOD_DSP_TRANSCEIVER_SPEAKERMODE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -2105,6 +2151,7 @@ FMOD.DSP_TRANSCEIVER_SPEAKERMODE_SURROUND
 kind: example
 index: 52
 heading: FMOD_DSP_TREMOLO
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -2151,6 +2198,7 @@ FMOD.DSP_TREMOLO_SPREAD
 kind: example
 index: 53
 heading: FMOD_DSP_TYPE
+tabbed: yes
 
 ### C/C++
 ```cpp

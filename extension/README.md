@@ -67,6 +67,8 @@ The weekly `docs-canary` workflow crawls the live site into the catalog format a
 NODE_PATH=/path/to/node_modules node extension/test/catalog-site.js --check
 ```
 
+On a machine where the site will not render, `--check --from <dir>` reads saved content fragments instead (one `<page>.html` per file from the docs content origin, `https://d1s9dnlmdewoh1.cloudfront.net/2.03/api/<page>.html`), which carry the same markup the site injects.
+
 Refresh the catalog, then bring `haxe/` and `functions.md` in line until `ci/haxe-catalog.py --check` passes. The refresh changes the hashes of the touched entries, so `ci/example-ledger.py --status` lists exactly what needs a fresh review, and the docs workflow stays red until every entry is fixed or stamped again:
 
 ```bash

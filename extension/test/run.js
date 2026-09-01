@@ -225,13 +225,13 @@ async function main() {
             // at all gets a strip per covered lone unit.
             const entries = parseCatalog(fs.readFileSync(path.join(__dirname, '..', 'catalog', name + '.md'), 'utf8'));
             const functions = entries.filter(e => e.kind === 'function').length;
-            const hasSelector = entries.some(e => e.kind === 'function' || e.blocks.length > 1);
+            const hasSelector = entries.some(e => e.kind === 'function' || e.tabbed);
             const byKey = new Map(entries.map(e => [e.key, e]));
             let tabbedCovered = 0;
             let loneCovered = 0;
             for (const key of Object.keys(examples)) {
                 const entry = byKey.get(key);
-                if (entry && entry.blocks.length > 1) tabbedCovered++;
+                if (entry && entry.tabbed) tabbedCovered++;
                 else loneCovered++;
             }
             const expected = functions + tabbedCovered + loneCovered;

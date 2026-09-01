@@ -4,6 +4,7 @@
 kind: example
 index: 0
 heading: FMOD_AUDIOQUEUE_CODECPOLICY
+tabbed: yes
 
 ### C/C++
 ```cpp

@@ -4,6 +4,7 @@
 kind: example
 index: 0
 heading: FMOD_STUDIO_COMMANDREPLAY_CREATE_INSTANCE_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -31,6 +32,7 @@ delegate RESULT Studio.COMMANDREPLAY_CREATE_INSTANCE_CALLBACK(
 kind: example
 index: 1
 heading: FMOD_STUDIO_COMMANDREPLAY_FRAME_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -428,6 +430,7 @@ Studio.CommandReplay.isValid()
 kind: example
 index: 13
 heading: FMOD_STUDIO_COMMANDREPLAY_LOAD_BANK_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -774,6 +777,7 @@ Studio.CommandReplay.stop();
 kind: example
 index: 25
 heading: FMOD_STUDIO_COMMAND_INFO
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -823,6 +827,7 @@ FMOD_STUDIO_COMMAND_INFO
 kind: example
 index: 26
 heading: FMOD_STUDIO_INSTANCETYPE
+tabbed: yes
 
 ### C/C++
 ```cpp

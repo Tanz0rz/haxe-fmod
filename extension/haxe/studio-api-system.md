@@ -44,6 +44,10 @@ Type: haxefmod.studio.Types.FmodLimits
 verdict: bound
 Type: haxefmod.studio.Types.FmodLoadMemoryMode
 
+## FMOD_STUDIO_LOAD_MEMORY_MODE#2
+verdict: bound
+Type: haxefmod.studio.Types.FmodLoadMemoryMode
+
 ## FMOD_STUDIO_SOUND_INFO
 verdict: bound
 Type: haxefmod.studio.Types.FmodSoundInfo

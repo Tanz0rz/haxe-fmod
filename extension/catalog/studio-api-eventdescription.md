@@ -1106,6 +1106,7 @@ Studio.EventDescription.unloadSampleData();
 kind: example
 index: 32
 heading: FMOD_STUDIO_USER_PROPERTY
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1152,6 +1153,7 @@ FMOD_STUDIO_USER_PROPERTY
 kind: example
 index: 33
 heading: FMOD_STUDIO_USER_PROPERTY_TYPE
+tabbed: yes
 
 ### C/C++
 ```cpp

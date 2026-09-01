@@ -4,6 +4,7 @@
 kind: example
 index: 0
 heading: FMOD_OUTPUT_ALLOC_FUNC
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -19,6 +20,7 @@ void * F_CALL FMOD_OUTPUT_ALLOC_FUNC(
 kind: example
 index: 1
 heading: FMOD_OUTPUT_CLOSEPORT_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -32,6 +34,7 @@ FMOD_RESULT F_CALL FMOD_OUTPUT_CLOSEPORT_CALLBACK(
 kind: example
 index: 2
 heading: FMOD_OUTPUT_CLOSE_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -44,6 +47,7 @@ FMOD_RESULT F_CALL FMOD_OUTPUT_CLOSE_CALLBACK(
 kind: example
 index: 3
 heading: FMOD_OUTPUT_COPYPORT_FUNC
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -59,6 +63,7 @@ FMOD_RESULT F_CALL FMOD_OUTPUT_COPYPORT_FUNC(
 kind: example
 index: 4
 heading: FMOD_OUTPUT_DESCRIPTION
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -139,6 +144,7 @@ extern "C" FMOD_OUTPUT_DESCRIPTION* F_CALL FMODGetOutputDescription()
 kind: example
 index: 6
 heading: FMOD_OUTPUT_DEVICELISTCHANGED_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -151,6 +157,7 @@ FMOD_RESULT F_CALL FMOD_OUTPUT_DEVICELISTCHANGED_CALLBACK(
 kind: example
 index: 7
 heading: FMOD_OUTPUT_FREE_FUNC
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -165,6 +172,7 @@ void F_CALL FMOD_OUTPUT_FREE_FUNC(
 kind: example
 index: 8
 heading: FMOD_OUTPUT_GETDRIVERINFO_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -184,6 +192,7 @@ FMOD_RESULT F_CALL FMOD_OUTPUT_GETDRIVERINFO_CALLBACK(
 kind: example
 index: 9
 heading: FMOD_OUTPUT_GETHANDLE_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -197,6 +206,7 @@ FMOD_RESULT F_CALL FMOD_OUTPUT_GETHANDLE_CALLBACK(
 kind: example
 index: 10
 heading: FMOD_OUTPUT_GETNUMDRIVERS_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -210,6 +220,7 @@ FMOD_RESULT F_CALL FMOD_OUTPUT_GETNUMDRIVERS_CALLBACK(
 kind: example
 index: 11
 heading: FMOD_OUTPUT_INIT_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -232,6 +243,7 @@ FMOD_RESULT F_CALL FMOD_OUTPUT_INIT_CALLBACK(
 kind: example
 index: 12
 heading: FMOD_OUTPUT_LOG_FUNC
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -249,6 +261,7 @@ void F_CALL FMOD_OUTPUT_LOG_FUNC(
 kind: example
 index: 13
 heading: FMOD_OUTPUT_METHOD
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -266,6 +279,7 @@ OUTPUT_METHOD_MIX_BUFFERED  = 1
 kind: example
 index: 14
 heading: FMOD_OUTPUT_MIXER_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -278,6 +292,7 @@ FMOD_RESULT F_CALL FMOD_OUTPUT_MIXER_CALLBACK(
 kind: example
 index: 15
 heading: FMOD_OUTPUT_OBJECT3DALLOC_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -291,6 +306,7 @@ FMOD_RESULT F_CALL FMOD_OUTPUT_OBJECT3DALLOC_CALLBACK(
 kind: example
 index: 16
 heading: FMOD_OUTPUT_OBJECT3DFREE_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -304,6 +320,7 @@ FMOD_RESULT F_CALL FMOD_OUTPUT_OBJECT3DFREE_CALLBACK(
 kind: example
 index: 17
 heading: FMOD_OUTPUT_OBJECT3DGETINFO_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -317,6 +334,7 @@ FMOD_RESULT F_CALL FMOD_OUTPUT_OBJECT3DGETINFO_CALLBACK(
 kind: example
 index: 18
 heading: FMOD_OUTPUT_OBJECT3DINFO
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -347,6 +365,7 @@ FMOD_OUTPUT_OBJECT3DINFO
 kind: example
 index: 19
 heading: FMOD_OUTPUT_OBJECT3DUPDATE_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -361,6 +380,7 @@ FMOD_RESULT F_CALL FMOD_OUTPUT_OBJECT3DUPDATE_CALLBACK(
 kind: example
 index: 20
 heading: FMOD_OUTPUT_OPENPORT_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -379,6 +399,7 @@ FMOD_RESULT F_CALL FMOD_OUTPUT_OPENPORT_CALLBACK(
 kind: example
 index: 21
 heading: FMOD_OUTPUT_PLUGIN_VERSION
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -394,6 +415,7 @@ FMOD.OUTPUT_PLUGIN_VERSION
 kind: example
 index: 22
 heading: FMOD_OUTPUT_READFROMMIXER_FUNC
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -408,6 +430,7 @@ FMOD_RESULT F_CALL FMOD_OUTPUT_READFROMMIXER_FUNC(
 kind: example
 index: 23
 heading: FMOD_OUTPUT_REQUESTRESET_FUNC
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -420,6 +443,7 @@ FMOD_RESULT F_CALL FMOD_OUTPUT_REQUESTRESET_FUNC(
 kind: example
 index: 24
 heading: FMOD_OUTPUT_START_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -432,6 +456,7 @@ FMOD_RESULT F_CALL FMOD_OUTPUT_START_CALLBACK(
 kind: example
 index: 25
 heading: FMOD_OUTPUT_STATE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -458,6 +483,7 @@ FMOD_OUTPUT_STATE
 kind: example
 index: 26
 heading: FMOD_OUTPUT_STOP_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -470,6 +496,7 @@ FMOD_RESULT F_CALL FMOD_OUTPUT_STOP_CALLBACK(
 kind: example
 index: 27
 heading: FMOD_OUTPUT_UPDATE_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp

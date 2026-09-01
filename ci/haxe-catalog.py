@@ -130,13 +130,13 @@ def normalize(text):
 # ---------------------------------------------------------------- catalog
 
 def parse_catalog(text):
-    """key -> {kind, index, heading, blocks: {language: code}}"""
+    """key -> {kind, index, heading, tabbed, blocks: {language: code}}"""
     entries = {}
     matches = list(SECTION.finditer(text))
     for i, match in enumerate(matches):
         end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
         body = text[match.end():end]
-        entry = {"kind": "", "index": -1, "heading": "", "blocks": {}}
+        entry = {"kind": "", "index": -1, "heading": "", "tabbed": False, "blocks": {}}
         for line in body.splitlines():
             if line.startswith("kind: "):
                 entry["kind"] = line[6:]
@@ -144,6 +144,8 @@ def parse_catalog(text):
                 entry["index"] = int(line[7:])
             elif line.startswith("heading: "):
                 entry["heading"] = line[9:]
+            elif line.startswith("tabbed: "):
+                entry["tabbed"] = line[8:] == "yes"
         for block in re.finditer(r"^### (.+?)\n```\w*\n(.*?)\n?```", body, re.S | re.M):
             entry["blocks"][block.group(1)] = block.group(2)
         entries[match.group(1)] = entry
@@ -184,7 +186,7 @@ def variant_groups(entries):
     while i < len(items):
         key, entry = items[i]
         langs = list(entry["blocks"])
-        if entry["kind"] != "example" or len(langs) != 1 or langs[0] not in GROUP_LANGS:
+        if entry["kind"] != "example" or entry["tabbed"] or len(langs) != 1 or langs[0] not in GROUP_LANGS:
             i += 1
             continue
         members = [key]
@@ -193,7 +195,7 @@ def variant_groups(entries):
         while j < len(items):
             nkey, nentry = items[j]
             nlangs = list(nentry["blocks"])
-            if (nentry["kind"] != "example" or len(nlangs) != 1 or nlangs[0] not in GROUP_LANGS
+            if (nentry["kind"] != "example" or nentry["tabbed"] or len(nlangs) != 1 or nlangs[0] not in GROUP_LANGS
                     or nentry["heading"] != entry["heading"] or nlangs[0] in seen_langs):
                 break
             members.append(nkey)

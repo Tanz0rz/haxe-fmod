@@ -1358,6 +1358,7 @@ Studio.EventInstance.stop(
 kind: example
 index: 39
 heading: FMOD_STUDIO_EVENT_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1390,6 +1391,7 @@ function FMOD_STUDIO_EVENT_CALLBACK(
 kind: example
 index: 40
 heading: FMOD_STUDIO_EVENT_CALLBACK_TYPE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1470,6 +1472,7 @@ STUDIO_EVENT_CALLBACK_ALL                      0xFFFFFFFF
 kind: example
 index: 41
 heading: FMOD_STUDIO_EVENT_PROPERTY
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1513,6 +1516,7 @@ STUDIO_EVENT_PROPERTY_MAX
 kind: example
 index: 42
 heading: FMOD_STUDIO_PLUGIN_INSTANCE_PROPERTIES
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1543,6 +1547,7 @@ FMOD_STUDIO_PLUGIN_INSTANCE_PROPERTIES
 kind: example
 index: 43
 heading: FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1577,6 +1582,7 @@ FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES
 kind: example
 index: 44
 heading: FMOD_STUDIO_STOP_MODE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1605,6 +1611,7 @@ STUDIO_STOP_IMMEDIATE
 kind: example
 index: 45
 heading: FMOD_STUDIO_TIMELINE_BEAT_PROPERTIES
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1648,6 +1655,7 @@ FMOD_STUDIO_TIMELINE_BEAT_PROPERTIES
 kind: example
 index: 46
 heading: FMOD_STUDIO_TIMELINE_MARKER_PROPERTIES
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1679,6 +1687,7 @@ FMOD_STUDIO_TIMELINE_MARKER_PROPERTIES
 kind: example
 index: 47
 heading: FMOD_STUDIO_TIMELINE_NESTED_BEAT_PROPERTIES
+tabbed: yes
 
 ### C/C++
 ```cpp

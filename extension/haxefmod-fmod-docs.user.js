@@ -15075,6 +15075,12 @@ const HAXEFMOD_EXAMPLES = {
    "type": null,
    "verdict": "bound"
   },
+  "FMOD_STUDIO_LOAD_MEMORY_MODE#2": {
+   "code": "package haxefmod.studio;\n\nenum abstract FmodLoadMemoryMode(Int) from Int to Int {\n    var MEMORY = 0;\n    var MEMORY_POINT = 1;\n}",
+   "notes": [],
+   "type": null,
+   "verdict": "bound"
+  },
   "FMOD_STUDIO_SOUND_INFO": {
    "code": "package haxefmod.studio;\n\ntypedef FmodSoundInfo = {\n    var name:String;\n    var mode:Int;\n    var length:Int;\n    var fileOffset:Int;\n    var initialSubsound:Int;\n    var numSubsounds:Int;\n    var subSoundIndex:Int;\n}",
    "notes": [],
@@ -15558,9 +15564,18 @@ const HAXEFMOD_EXAMPLES = {
 
     // Every code location on the page is keyed by extension/keys.js, the
     // same way the catalog was built, and looked up by that key.
+    //
+    // A lone block on a page that has a language selector of the site's
+    // own is already governed by it (the site shows and hides every
+    // language-classed block on the page), so the Haxe translation just
+    // joins that toggle: the block is inserted with the language-haxe
+    // class and no strip is added. Only a page with no selector at all
+    // (the guides and platform pages) gets a strip per lone unit, since
+    // there is no other place to pick Haxe from.
     function injectAll() {
         var root = document.querySelector("div.manual-content");
         if (!root || typeof haxefmodKeys === "undefined") return false;
+        var siteSelector = !!root.querySelector("div.language-selector:not(.haxefmod-selector)");
         var units = haxefmodKeys.grouped(haxefmodKeys.units(root));
         var examples = EXAMPLES[pageName()] || {};
         for (var i = 0; i < units.length; i++) {
@@ -15582,10 +15597,12 @@ const HAXEFMOD_EXAMPLES = {
                 if (addTab(unit.node, block)) unit.node.dataset.haxefmod = "1";
                 continue;
             }
-            var selector = selectorForGroup(unit);
-            var tab = el("div", "language-tab haxefmod-tab", "Haxe");
-            tab.setAttribute("data-language", LANG);
-            selector.appendChild(tab);
+            if (!siteSelector) {
+                var selector = selectorForGroup(unit);
+                var tab = el("div", "language-tab haxefmod-tab", "Haxe");
+                tab.setAttribute("data-language", LANG);
+                selector.appendChild(tab);
+            }
             var last = nodes[nodes.length - 1];
             last.parentNode.insertBefore(block, last.nextSibling);
             for (var m = 0; m < nodes.length; m++) {

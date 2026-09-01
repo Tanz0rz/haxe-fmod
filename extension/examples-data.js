@@ -2810,6 +2810,12 @@ const HAXEFMOD_EXAMPLES = {
    "type": null,
    "verdict": "bound"
   },
+  "FMOD_STUDIO_LOAD_MEMORY_MODE#2": {
+   "code": "package haxefmod.studio;\n\nenum abstract FmodLoadMemoryMode(Int) from Int to Int {\n    var MEMORY = 0;\n    var MEMORY_POINT = 1;\n}",
+   "notes": [],
+   "type": null,
+   "verdict": "bound"
+  },
   "FMOD_STUDIO_SOUND_INFO": {
    "code": "package haxefmod.studio;\n\ntypedef FmodSoundInfo = {\n    var name:String;\n    var mode:Int;\n    var length:Int;\n    var fileOffset:Int;\n    var initialSubsound:Int;\n    var numSubsounds:Int;\n    var subSoundIndex:Int;\n}",
    "notes": [],

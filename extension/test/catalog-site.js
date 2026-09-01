@@ -13,6 +13,11 @@
 //                                                       the site differs from
 //                                                       the committed catalog
 //
+// --from <dir> reads the pages from saved content fragments (one
+// <page>.html per file, as served by the docs content origin) instead
+// of crawling the live site, for machines where the site itself will
+// not render. The fragments carry the same markup the SPA injects.
+//
 // Needs the playwright package on NODE_PATH. Runs headless, no extension
 // involved. Set CHROMIUM_PATH to use a system Chromium.
 const fs = require('fs');
@@ -23,8 +28,10 @@ const BASE = 'https://www.fmod.com/docs/2.03/api/';
 const CATALOG = path.join(__dirname, '..', 'catalog');
 const KEYS = path.join(__dirname, '..', 'keys.js');
 const mode = process.argv.includes('--update') ? 'update' : process.argv.includes('--check') ? 'check' : null;
-if (!mode) {
-    console.error('usage: node extension/test/catalog-site.js --update | --check');
+const fromIndex = process.argv.indexOf('--from');
+const fromDir = fromIndex >= 0 ? process.argv[fromIndex + 1] : null;
+if (!mode || (fromIndex >= 0 && !fromDir)) {
+    console.error('usage: node extension/test/catalog-site.js --update | --check [--from <dir>]');
     process.exit(2);
 }
 
@@ -44,6 +51,10 @@ function render(page, units) {
         lines.push('kind: ' + unit.kind);
         lines.push('index: ' + unit.index);
         if (unit.kind !== 'function') lines.push('heading: ' + unit.heading);
+        // An example under a selector of its own, however few languages
+        // it offers, so a single-language one is not mistaken for a
+        // lone block.
+        if (unit.kind !== 'function' && unit.tabbed) lines.push('tabbed: yes');
         lines.push('');
         for (const block of unit.blocks) {
             lines.push('### ' + block.language);
@@ -60,25 +71,47 @@ async function crawl() {
     const launch = { args: ['--no-sandbox'] };
     if (process.env.CHROMIUM_PATH) launch.executablePath = process.env.CHROMIUM_PATH;
     const browser = await chromium.launch(launch);
-    const page = await browser.newPage();
+    const context = await browser.newContext();
+    if (fromDir) {
+        // Everything comes from the fragment directory, nothing from
+        // the network: a fragment's subresources (styles, scripts,
+        // trackers) play no part in the markup being cataloged.
+        await context.route('**/*', route => {
+            const url = route.request().url();
+            if (!url.startsWith(BASE)) return route.abort();
+            const file = path.join(fromDir, url.split('/').pop().split('#')[0]);
+            if (fs.existsSync(file) && file.endsWith('.html')) {
+                route.fulfill({ status: 200, contentType: 'text/html', body: fs.readFileSync(file, 'utf8') });
+            } else {
+                route.fulfill({ status: 404, contentType: 'text/plain', body: 'missing fragment' });
+            }
+        });
+    }
+    const page = await context.newPage();
     const keysSource = fs.readFileSync(KEYS, 'utf8');
-    const queue = ['welcome.html'];
+    const queue = fromDir
+        ? fs.readdirSync(fromDir).filter(f => f.endsWith('.html')).sort()
+        : ['welcome.html'];
     const seen = new Set(queue);
     const pages = {};
     while (queue.length) {
         const name = queue.shift();
         try {
-            await page.goto(BASE + name, { waitUntil: 'networkidle', timeout: 60000 });
-            await page.waitForSelector('div.manual-content', { timeout: 30000 });
+            await page.goto(BASE + name, { waitUntil: fromDir ? 'load' : 'networkidle', timeout: 60000 });
+            // The markup is what gets cataloged, layout does not matter
+            // (a page whose styles did not load can report zero height).
+            await page.waitForSelector('div.manual-content', { state: 'attached', timeout: 30000 });
         } catch (e) {
             console.error('skip ' + name + ': ' + e.message.split('\n')[0]);
             continue;
         }
-        const links = await page.evaluate(() => Array.from(document.querySelectorAll('a[href]'))
-            .map(a => a.getAttribute('href'))
-            .filter(h => h && /^[a-z0-9-]+\.html/.test(h))
-            .map(h => h.split('#')[0]));
-        for (const link of links) if (!seen.has(link)) { seen.add(link); queue.push(link); }
+        if (!fromDir) {
+            const links = await page.evaluate(() => Array.from(document.querySelectorAll('a[href]'))
+                .map(a => a.getAttribute('href'))
+                .filter(h => h && /^[a-z0-9-]+\.html/.test(h))
+                .map(h => h.split('#')[0]));
+            for (const link of links) if (!seen.has(link)) { seen.add(link); queue.push(link); }
+        }
 
         await page.evaluate(keysSource);
         const units = await page.evaluate((languages) => {
@@ -99,7 +132,7 @@ async function crawl() {
                 } else {
                     blocks.push({ language: languageOf(unit.node), code: unit.node.textContent });
                 }
-                return { key: unit.key, kind: unit.kind, heading: unit.heading, index: unit.index, blocks };
+                return { key: unit.key, kind: unit.kind, heading: unit.heading, index: unit.index, tabbed: unit.tabbed, blocks };
             });
         }, LANGUAGES);
         if (units.length) pages[name.replace(/\.html$/, '')] = units;

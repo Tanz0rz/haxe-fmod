@@ -4,6 +4,7 @@
 kind: example
 index: 0
 heading: FMOD_STUDIO_ADVANCEDSETTINGS
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -48,6 +49,7 @@ FMOD_STUDIO_ADVANCEDSETTINGS
 kind: example
 index: 1
 heading: FMOD_STUDIO_BANK_INFO
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -93,6 +95,7 @@ FMOD_STUDIO_BANK_INFO
 kind: example
 index: 2
 heading: FMOD_STUDIO_BUFFER_INFO
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -133,6 +136,7 @@ FMOD_STUDIO_BUFFER_INFO
 kind: example
 index: 3
 heading: FMOD_STUDIO_BUFFER_USAGE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -164,6 +168,7 @@ FMOD_STUDIO_BUFFER_USAGE
 kind: example
 index: 4
 heading: FMOD_STUDIO_COMMANDCAPTURE_FLAGS
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -193,6 +198,7 @@ STUDIO_COMMANDCAPTURE_SKIP_INITIAL_STATE 0x00000002
 kind: example
 index: 5
 heading: FMOD_STUDIO_COMMANDREPLAY_FLAGS
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -225,6 +231,7 @@ STUDIO_COMMANDREPLAY_SKIP_BANK_LOAD 0x00000004
 kind: example
 index: 6
 heading: FMOD_STUDIO_CPU_USAGE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -253,6 +260,7 @@ FMOD_STUDIO_CPU_USAGE
 kind: example
 index: 7
 heading: FMOD_STUDIO_INITFLAGS
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -294,6 +302,7 @@ STUDIO_INIT_MEMORY_TRACKING       0x00000020
 kind: example
 index: 8
 heading: FMOD_STUDIO_LOAD_BANK_FLAGS
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -326,6 +335,7 @@ STUDIO_LOAD_BANK_UNENCRYPTED        0x00000004
 kind: example
 index: 9
 heading: FMOD_STUDIO_LOAD_MEMORY_ALIGNMENT
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -336,6 +346,7 @@ heading: FMOD_STUDIO_LOAD_MEMORY_ALIGNMENT
 kind: example
 index: 10
 heading: FMOD_STUDIO_LOAD_MEMORY_MODE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -360,6 +371,7 @@ STUDIO_LOAD_MEMORY_POINT 1
 kind: example
 index: 12
 heading: FMOD_STUDIO_SOUND_INFO
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -398,6 +410,7 @@ FMOD_STUDIO_SOUND_INFO
 kind: example
 index: 13
 heading: FMOD_STUDIO_SYSTEM_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -433,6 +446,7 @@ function FMOD_STUDIO_SYSTEM_CALLBACK(
 kind: example
 index: 14
 heading: FMOD_STUDIO_SYSTEM_CALLBACK_TYPE
+tabbed: yes
 
 ### C/C++
 ```cpp

@@ -124,6 +124,7 @@ target->addFadePoint(parentclock + 4096, 0.5f);
 kind: example
 index: 4
 heading: FMOD_CHANNELCONTROL_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -162,6 +163,7 @@ function FMOD_CHANNELCONTROL_CALLBACK(
 kind: example
 index: 5
 heading: FMOD_CHANNELCONTROL_CALLBACK_TYPE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -199,6 +201,7 @@ CHANNELCONTROL_CALLBACK_MAX
 kind: example
 index: 6
 heading: FMOD_CHANNELCONTROL_DSP_INDEX
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -2864,6 +2867,7 @@ ChannelGroup.stop();
 kind: example
 index: 67
 heading: FMOD_CHANNELCONTROL_TYPE
+tabbed: yes
 
 ### C/C++
 ```cpp

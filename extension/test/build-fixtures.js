@@ -25,7 +25,8 @@ const CLASS_OF = {
 
 function classOf(language) {
     if (CLASS_OF[language]) return CLASS_OF[language];
-    if (language === 'text') return null;
+    // The site classes every block, language-text included. None of
+    // these are in the selector's set, so it never toggles them.
     return 'language-' + language;
 }
 
@@ -34,12 +35,13 @@ function parseCatalog(text) {
     const sections = text.split(/^## /m).slice(1);
     for (const section of sections) {
         const lines = section.split('\n');
-        const entry = { key: lines[0].trim(), kind: '', index: -1, heading: '', blocks: [] };
+        const entry = { key: lines[0].trim(), kind: '', index: -1, heading: '', tabbed: false, blocks: [] };
         const body = lines.slice(1).join('\n');
         for (const line of lines) {
             if (line.startsWith('kind: ')) entry.kind = line.slice(6);
             else if (line.startsWith('index: ')) entry.index = parseInt(line.slice(7), 10);
             else if (line.startsWith('heading: ')) entry.heading = line.slice(9);
+            else if (line.startsWith('tabbed: ')) entry.tabbed = line.slice(8) === 'yes';
         }
         const re = /^### (.+?)\n```\w*\n([\s\S]*?)\n?```/gm;
         let match;
@@ -67,13 +69,23 @@ function highlight(block, display) {
         + escapeHtml(block.code) + '</pre></div>';
 }
 
+// The site's selectors carry one tab per language, in the site's fixed
+// order, and never a C/C++ tab: a language-c-cpp block sits under
+// separate C and C++ tabs. A block in a language the site does not
+// toggle gets no tab.
 function selector(blocks) {
-    const parts = ['<div class="language-selector">'];
+    const order = ['language-c', 'language-cpp', 'language-csharp', 'language-javascript'];
+    const langs = new Set();
     for (const block of blocks) {
-        const cls = classOf(block.language) || 'language-all';
+        const cls = classOf(block.language);
+        if (cls === 'language-c-cpp') { langs.add('language-c'); langs.add('language-cpp'); }
+        else if (order.includes(cls)) langs.add(cls);
+    }
+    const parts = ['<div class="language-selector">'];
+    for (const cls of order) {
+        if (!langs.has(cls)) continue;
         const selected = cls === 'language-cpp' ? ' selected' : '';
-        parts.push('<div class="language-tab' + selected + '" data-language="' + cls + '">'
-            + (TAB_LABEL[cls] || block.language) + '</div>');
+        parts.push('<div class="language-tab' + selected + '" data-language="' + cls + '">' + TAB_LABEL[cls] + '</div>');
     }
     parts.push('</div>');
     return parts.join('\n');
@@ -105,16 +117,17 @@ function renderEntry(entry, parts, state) {
     // Per-language variants of one example sit right next to each other
     // on the site, so a lone block following a lone block under the
     // same heading gets no prose between.
-    const run = state.lastLone && entry.blocks.length === 1;
+    const lone = !entry.tabbed && entry.blocks.length === 1;
+    const run = state.lastLone && lone;
     if (!run) parts.push('<p>Prose before the example.</p>');
-    state.lastLone = entry.blocks.length === 1;
-    if (entry.blocks.length > 1) {
+    state.lastLone = lone;
+    if (!lone) {
         parts.push(selector(entry.blocks));
         parts.push('<p></p>');
         for (const block of entry.blocks) {
             parts.push(highlight(block, classOf(block.language) === 'language-cpp' ? 'block' : 'none'));
         }
-    } else if (entry.blocks.length === 1) {
+    } else {
         // The site's selector only toggles its own language classes, so
         // a block in any other language starts visible and stays so.
         const cls = classOf(entry.blocks[0].language);
