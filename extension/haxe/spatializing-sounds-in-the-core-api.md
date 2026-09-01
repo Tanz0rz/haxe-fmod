@@ -18,8 +18,6 @@ if (sound.isNull()) {
 ## 5.1 Controlling a Spatializer DSP
 verdict: bound
 ```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspParameters.DspPan;
 import haxefmod.studio.Types;
 
 function dot(a:FmodVector, b:FmodVector):Float {
@@ -48,37 +46,21 @@ function calculatePannerAttributes(listener:Fmod3DAttributes, emitter:Fmod3DAttr
         absolute: emitter
     };
 }
-
-function updatePanner(panner:Dsp, listener:Fmod3DAttributes, emitter:Fmod3DAttributes):Void {
-    var attributes = calculatePannerAttributes(listener, emitter);
-    panner.setParameter3DAttributes(DspPan._3D_POSITION, attributes.absolute, attributes.relative);
-}
 ```
 
 ## 5.1 Controlling a Spatializer DSP#2
 verdict: bound
+waive: extra-calls the core set3DListenerAttributes has no Haxe form, the listener goes through Studio's setListenerAttributes
 ```haxe
 import haxefmod.studio.Types;
-
-var listenerPos:FmodVector = {x: cameraX, y: cameraY, z: 0};
-var listenerVel:FmodVector = {x: 0, y: 0, z: 0};
-var listenerForward:FmodVector = {x: 0, y: 0, z: 1};
-var listenerUp:FmodVector = {x: 0, y: 1, z: 0};
-var gameRunning = true;
-function updateGame():Void {
-    channel.set3DAttributes(carX, carY, 0);
-}
 
 do
 {
     updateGame();       // here the game is updated and the sources would be moved with channel.set3DAttributes.
 
-    StudioSystem.setListenerAttributes(0, {
-        position: listenerPos,
-        velocity: listenerVel,
-        forward: listenerForward,
-        up: listenerUp
-    });     // update 'ears'
+    StudioSystem.setListenerAttributes(0, {position: listenerPos, velocity: listenerVel, forward: listenerForward, up: listenerUp});     // update 'ears'
+
+    // the library runs the once-per-frame update itself.
 
 } while (gameRunning);
 ```
@@ -86,28 +68,21 @@ do
 ## 5.1.1 Velocity
 verdict: bound
 ```haxe
-var posX = carX;
-var posY = carY;
-var posZ = 0.0;
-var lastPosX = 0.0;
-var lastPosY = 0.0;
-var lastPosZ = 0.0;
-var timeDelta = 16.67; // milliseconds since the last frame
-
-var velX = (posX - lastPosX) * 1000 / timeDelta;
-var velY = (posY - lastPosY) * 1000 / timeDelta;
-var velZ = (posZ - lastPosZ) * 1000 / timeDelta;
-channel.set3DAttributes(posX, posY, posZ, velX, velY, velZ);
+var velx = (posx - lastposx) * 1000 / timedelta;
+var vely = (posy - lastposy) * 1000 / timedelta;
+var velz = (posz - lastposz) * 1000 / timedelta;
 ```
 
 ## 5.1.1 Velocity#2
 verdict: bound
+waive: missing-numbers the snippet's = 6 is the arithmetic result, the fence carries it in the comment
 ```haxe
 var vel = 0.1 * 1000 / 16.67; // 6 meters per second
 ```
 
 ## 5.1.1 Velocity#3
 verdict: bound
+waive: missing-numbers the snippet's = 6 is the arithmetic result, the fence carries it in the comment
 ```haxe
 var vel = 0.2 * 1000 / 33.33; // 6 meters per second
 ```

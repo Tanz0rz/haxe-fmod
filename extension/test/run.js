@@ -4,16 +4,24 @@
 // others, picking C++ again hides it, and the choice survives a reload),
 // then a guide page whose lone C++ examples get a selector of their own.
 //
-// Usage: node extension/test/run.js [--live]
+// Usage: node extension/test/run.js [--live] [--all] [--headless]
 // --live runs the same checks against the real fmod.com page instead of
 // the fixture (needs network).
+// --all also drives a fixture generated from every catalog page (see
+// build-fixtures.js) and holds these invariants on each: one Haxe tab
+// per unit, no tab strip left standing over blocks that are all hidden,
+// selecting Haxe shows exactly one Haxe block per covered unit with one
+// footer each, and re-rendering the page (the SPA way) adds nothing.
 //
 // Needs the playwright package on NODE_PATH and a display: extensions
-// only load in headed Chromium, so run under xvfb-run on a headless box.
+// only load in headed Chromium, so run under xvfb-run on a headless
+// box, or pass --headless to use Chromium's new headless mode, which
+// loads extensions without a display.
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { chromium } = require('playwright');
+const { buildAll } = require('./build-fixtures');
 
 const EXTENSION = path.resolve(__dirname, '..');
 const FIXTURE = path.join(__dirname, 'fixture.html');
@@ -30,6 +38,8 @@ function examplesFor(page) {
     return JSON.parse(json)[page] || {};
 }
 const live = process.argv.includes('--live');
+const all = process.argv.includes('--all');
+const headless = process.argv.includes('--headless');
 
 function fail(message) {
     console.error('FAIL: ' + message);
@@ -46,6 +56,7 @@ async function main() {
             '--load-extension=' + EXTENSION,
         ],
     };
+    if (headless) launch.args.push('--headless=new');
     if (process.env.CHROMIUM_PATH) launch.executablePath = process.env.CHROMIUM_PATH;
     const context = await chromium.launchPersistentContext(profile, launch);
     if (!live) {
@@ -190,6 +201,86 @@ async function main() {
             cpp: Array.from(document.querySelectorAll('div.highlight.language-cpp:not(.haxefmod-block)')).every(n => n.style.display === 'block'),
         }));
         if (!back.haxe || !back.cpp) fail('picking C++ on an added selector should restore the C++ blocks');
+    }
+
+    // The matrix: a fixture built from every catalog page, so every DOM
+    // shape the site has (tabbed functions, tabbed examples, lone
+    // blocks, per-language runs, plain blocks) is driven with the same
+    // invariants.
+    if (all && !live) {
+        const fixtures = buildAll();
+        await context.unroute('https://www.fmod.com/**');
+        await context.route('https://www.fmod.com/**', route => {
+            const name = route.request().url().split('/').pop().split('#')[0].replace('.html', '');
+            if (fixtures[name]) route.fulfill({ status: 200, contentType: 'text/html', body: fixtures[name] });
+            else route.fulfill({ status: 404, contentType: 'text/html', body: 'no fixture' });
+        });
+        let unitsChecked = 0;
+        for (const name of Object.keys(fixtures)) {
+            const covered = Object.keys(examplesFor(name)).length;
+            await page.evaluate(() => { try { localStorage.clear(); } catch (e) { } });
+            await page.goto('https://www.fmod.com/docs/2.03/api/' + name + '.html', { waitUntil: 'load' });
+            await page.waitForFunction(() => document.querySelectorAll('div.manual-content div.highlight').length > 0, null, { timeout: 30000 });
+            await page.waitForTimeout(300);
+
+            const counts = await page.evaluate(() => ({
+                functions: document.querySelectorAll('div.manual-content h2[api="function"]').length,
+                tabs: document.querySelectorAll('.haxefmod-tab').length,
+                blocks: document.querySelectorAll('.haxefmod-block').length,
+                footers: Array.from(document.querySelectorAll('.haxefmod-block')).filter(b => b.querySelectorAll('.haxefmod-footer').length === 1).length,
+            }));
+            const expected = counts.functions + covered;
+            if (counts.tabs !== expected) fail(name + ': ' + counts.tabs + ' Haxe tabs for ' + counts.functions + ' functions + ' + covered + ' covered examples');
+            if (counts.blocks !== expected) fail(name + ': ' + counts.blocks + ' Haxe blocks, expected ' + expected);
+            if (counts.footers !== counts.blocks) fail(name + ': every Haxe block carries one footer, ' + counts.footers + ' of ' + counts.blocks + ' do');
+
+            // No tab strip may stand over blocks that are all hidden,
+            // whatever language is picked. Click through every tab
+            // language the page offers, Haxe included.
+            const langs = await page.evaluate(() => Array.from(new Set(
+                Array.from(document.querySelectorAll('.language-tab')).map(t => t.getAttribute('data-language'))
+            )));
+            for (const lang of langs) {
+                const tab = page.locator('.language-tab[data-language="' + lang + '"]:visible').first();
+                if (await tab.count() === 0) continue;
+                await tab.click();
+                await page.waitForTimeout(120);
+                const state = await page.evaluate(() => {
+                    // The site's own selectors can stand over blocks it
+                    // hid itself (a unit without the picked language),
+                    // with or without this extension. The invariant is
+                    // for the strips the extension added.
+                    const orphans = [];
+                    for (const strip of document.querySelectorAll('div.manual-content div.haxefmod-selector')) {
+                        if (getComputedStyle(strip).display === 'none') continue;
+                        let node = strip.nextElementSibling;
+                        let visible = 0;
+                        while (node && (node.classList.contains('highlight') || (node.tagName === 'P' && node.textContent.trim() === ''))) {
+                            if (node.classList.contains('highlight') && getComputedStyle(node).display !== 'none') visible++;
+                            node = node.nextElementSibling;
+                        }
+                        if (!visible) orphans.push(strip.textContent.replace(/\s+/g, ' ').trim());
+                    }
+                    const haxeVisible = Array.from(document.querySelectorAll('.haxefmod-block')).filter(b => b.style.display !== 'none').length;
+                    return { orphans, haxeVisible };
+                });
+                if (state.orphans.length) fail(name + ': tab strips with every block hidden after picking ' + lang + ': ' + state.orphans.slice(0, 3).join(' | '));
+                if (lang === 'language-haxe' && state.haxeVisible !== expected) fail(name + ': ' + state.haxeVisible + ' Haxe blocks visible with Haxe picked, expected ' + expected);
+                if (lang !== 'language-haxe' && lang !== 'language-all' && state.haxeVisible !== 0) fail(name + ': Haxe blocks still visible after picking ' + lang);
+            }
+
+            // A re-render of the same content (the SPA way) must add
+            // nothing: same tabs, same blocks.
+            await page.evaluate(() => window.__rerender());
+            await page.waitForTimeout(300);
+            const again = await page.evaluate(() => ({
+                tabs: document.querySelectorAll('.haxefmod-tab').length,
+                blocks: document.querySelectorAll('.haxefmod-block').length,
+            }));
+            if (again.tabs !== expected || again.blocks !== expected) fail(name + ': re-render changed the page, ' + again.tabs + ' tabs and ' + again.blocks + ' blocks for ' + expected);
+            unitsChecked += expected;
+        }
+        console.log('matrix: ' + Object.keys(fixtures).length + ' pages, ' + unitsChecked + ' units held the invariants');
     }
 
     await page.screenshot({ path: path.join(__dirname, 'last-run.png'), fullPage: true });

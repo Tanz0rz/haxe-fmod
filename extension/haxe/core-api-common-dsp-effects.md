@@ -67,9 +67,6 @@ import haxefmod.core.Dsp;
 import haxefmod.core.DspType;
 import haxefmod.core.DspParameters.DspMultibandEq;
 import haxefmod.core.DspEnums.DspMultibandEqFilter;
-var multiband = Dsp.create(DspType.MULTIBAND_EQ);
-var frequency = 5000.0;
-var resonance = 1.0;
 // Configure a single band (band A) as a highpass (all other bands default to off).
 // 12dB roll-off to approximate the old effect curve.
 // Cutoff frequency can be used the same as with the old effect.
@@ -90,8 +87,6 @@ import haxefmod.core.Dsp;
 import haxefmod.core.DspType;
 import haxefmod.core.DspParameters.DspMultibandEq;
 import haxefmod.core.DspEnums.DspMultibandEqFilter;
-var multiband = Dsp.create(DspType.MULTIBAND_EQ);
-var frequency = 1000.0;
 // Configure a single band (band A) as a highpass (all other bands default to off).
 // 12dB roll-off to approximate the old effect curve.
 // Cutoff frequency can be used the same as with the old effect.
@@ -139,9 +134,6 @@ import haxefmod.core.Dsp;
 import haxefmod.core.DspType;
 import haxefmod.core.DspParameters.DspMultibandEq;
 import haxefmod.core.DspEnums.DspMultibandEqFilter;
-var multiband = Dsp.create(DspType.MULTIBAND_EQ);
-var frequency = 5000.0;
-var resonance = 1.0;
 // Configure a single band (band A) as a lowpass (all other bands default to off).
 // 24dB roll-off to approximate the old effect curve.
 // Cutoff frequency can be used the same as with the old effect.
@@ -162,8 +154,6 @@ import haxefmod.core.Dsp;
 import haxefmod.core.DspType;
 import haxefmod.core.DspParameters.DspMultibandEq;
 import haxefmod.core.DspEnums.DspMultibandEqFilter;
-var multiband = Dsp.create(DspType.MULTIBAND_EQ);
-var frequency = 5000.0;
 // Configure a single band (band A) as a lowpass (all other bands default to off).
 // 12dB roll-off to approximate the old effect curve.
 // Cutoff frequency can be used the same as with the old effect.
@@ -234,10 +224,6 @@ import haxefmod.core.Dsp;
 import haxefmod.core.DspType;
 import haxefmod.core.DspParameters.DspMultibandEq;
 import haxefmod.core.DspEnums.DspMultibandEqFilter;
-var multiband = Dsp.create(DspType.MULTIBAND_EQ);
-var center = 8000.0;
-var bandwidth = 1.0;
-var gain = 0.0;
 // Configure a single band (band A) as a peaking EQ (all other bands default to off).
 // Center frequency can be used as with the old effect.
 // Bandwidth can be applied by setting the 'Q' value of the new effect.

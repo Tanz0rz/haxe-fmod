@@ -7,7 +7,6 @@ import haxefmod.core.Sound;
 import haxefmod.core.Dsp;
 import haxefmod.core.DspType;
 
-var sound = Sound.create("drumloop.wav");
 var channel = sound.play();
 var dsp_echo = Dsp.create(DspType.ECHO);
 var result = channel.addDsp(0, dsp_echo);
@@ -19,8 +18,6 @@ verdict: bound
 import haxefmod.core.Dsp;
 import haxefmod.core.DspType;
 
-var dsp_echo = Dsp.create(DspType.ECHO);
-channel.addDsp(0, dsp_echo);
 var result = channel.setDspIndex(dsp_echo, 1);
 ```
 
@@ -40,7 +37,6 @@ import haxefmod.core.ChannelGroup;
 import haxefmod.core.Dsp;
 import haxefmod.core.DspType;
 
-var channelgroup = ChannelGroup.create("my channelgroup");
 var dsp_lowpass = Dsp.create(DspType.LOWPASS);
 var result = channelgroup.addDsp(1, dsp_lowpass);
 ```
@@ -77,10 +73,6 @@ import haxefmod.core.ChannelGroup;
 import haxefmod.core.Dsp;
 import haxefmod.core.DspType;
 
-var sound = Sound.create("drumloop.wav");
-var channelgroup = ChannelGroup.create("my channelgroup");
-var dsp_reverb = Dsp.create(DspType.SFXREVERB);
-
 var channel = sound.play(true, channelgroup);                                       /* Play the sound.  Play it paused so we dont hear the sound play before it is connected to the reverb. */
 var channel_dsp_head = channel.getDsp(Channel.DSP_HEAD);                            /* Grab the 'head' unit for the Channel */
 var connection = dsp_reverb.addInput(channel_dsp_head);                             /* Manually add a connection from the Channel DSP head to the reverb. */
@@ -96,10 +88,6 @@ import haxefmod.core.ChannelGroup;
 import haxefmod.core.Dsp;
 import haxefmod.core.DspType;
 
-var sound = Sound.create("drumloop.wav");
-var channelgroup = ChannelGroup.create("my channelgroup");
-var dsp_reverb = Dsp.create(DspType.SFXREVERB);
-
 var channel = sound.play(true, channelgroup);                                       /* Play the sound.  Play it paused so we dont hear the sound play before it is connected to the reverb. */
 var channel_dsp_head = channel.getDsp(Channel.DSP_HEAD);                            /* Grab the 'head' unit for the Channel */
 var dsp_connection = dsp_reverb.addInput(channel_dsp_head);                         /* Manually add a connection from the Channel DSP head to the reverb. */
@@ -113,8 +101,6 @@ import haxefmod.core.Channel;
 import haxefmod.core.Dsp;
 import haxefmod.core.DspType;
 
-var dsp_reverb = Dsp.create(DspType.SFXREVERB);
-var dsp_connection = dsp_reverb.addInput(channel.getDsp(Channel.DSP_HEAD));
 var result = dsp_connection.setMix(0.0);
 ```
 
@@ -125,7 +111,6 @@ import haxefmod.core.Channel;
 import haxefmod.core.Dsp;
 import haxefmod.studio.Types.FmodSpeakerMode;
 
-var channel_dsp_head = channel.getDsp(Channel.DSP_HEAD);
 var result = channel_dsp_head.setChannelFormat(0, 0, FmodSpeakerMode.QUAD);
 ```
 
@@ -135,7 +120,6 @@ verdict: bound
 import haxefmod.core.Channel;
 import haxefmod.core.Dsp;
 
-var channel_dsp_head = channel.getDsp(Channel.DSP_HEAD);
 var matrix:Array<Float> =
 [   /*                                    FL FR SL SR <- Input signal (columns) */
     /* row 0 = front left  out    <- */    0, 0, 0, 0,
@@ -163,19 +147,19 @@ verdict: cannot registerPlugin and registerDSP take a DSP description whose call
 ## 7.2 Plug-in DSP Effects#2
 verdict: bound
 ```haxe
-var handle = StudioSystem.loadPlugin("plugin_name.dll", 0);
+var handle = StudioSystem.loadPlugin(filename, 0);
 ```
 
 ## 7.2 Plug-in DSP Effects#3
 verdict: bound
 ```haxe
-var result = StudioSystem.setPluginPath("plugins");
+var result = StudioSystem.setPluginPath(path);
 ```
 
 ## 7.2 Plug-in DSP Effects#4
 verdict: bound
 ```haxe
-var handle = StudioSystem.loadPlugin("plugin_name.dll");
+// Studio::System::unregisterPlugin stays C side with plug-in registration (see 7.2).
 var result = StudioSystem.unloadPlugin(handle);
 ```
 

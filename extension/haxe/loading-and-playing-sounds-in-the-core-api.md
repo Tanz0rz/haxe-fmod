@@ -17,6 +17,7 @@ verdict: cannot FMOD calls the callback on its async loader thread, no Haxe targ
 
 ## 4.1.1 Non-blocking Sound Creation#3
 verdict: bound
+waive: extra-calls the nonblock callback cannot be hosted, readiness is polled with getOpenState
 ```haxe
 import haxefmod.core.ChannelMode;
 import haxefmod.core.Sound;
@@ -24,12 +25,12 @@ import haxefmod.studio.Types.FmodOpenState;
 
 var sound = Sound.create("../media/wave.mp3", false, false, ChannelMode.CREATESTREAM | ChannelMode.NONBLOCKING);
 if (sound.isNull()) {
-    trace('load failed: ${StudioSystem.lastResult()}');
+    trace(StudioSystem.lastResult());
 }
 
-// Each frame until it is ready
+// There is no nonblock callback to host, poll each frame until the sound is ready
 if (sound.getOpenState() == FmodOpenState.READY) {
-    trace("Sound loaded!");
+    startGame();
 }
 ```
 
@@ -94,7 +95,6 @@ var stream = PcmStream.create(
     44100,                   // Playback rate of sound
     2,                       // Number of channels in the sound
     44100 * 2 * 2 * 5);      // Ring size in bytes. 2 = bytes per sample and 5 = seconds
-var channel = stream.play();
 
 // Each frame, write sample data instead of a read callback
 var buffer = haxe.io.Bytes.alloc(stream.space());

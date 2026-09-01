@@ -208,20 +208,68 @@
     }
 
     // Lone examples get a selector of their own so the Haxe tab has a
-    // place to live. The original language keeps the site's tab class,
-    // so the site's selector logic treats it like any other block.
-    function selectorForLone(highlight) {
-        var lang = null;
-        for (var i = 0; i < highlight.classList.length; i++) {
-            if (highlight.classList[i].indexOf("language-") === 0) lang = highlight.classList[i];
+    // place to live. A run of per-language variants (one lone block per
+    // language, folded by keys.js) shares a single selector with one
+    // tab per language, so it reads like any tabbed unit on the site.
+    var LABELS = { "language-c": "C", "language-cpp": "C++", "language-c-cpp": "C/C++", "language-csharp": "C#", "language-javascript": "JS" };
+    var PLAIN_LABELS = { "language-java": "Java", "language-javaScript": "JS", "language-objective-c": "Objective-C", "language-html": "HTML" };
+
+    // A block the site's selector never toggles: another language
+    // (java, objective-c), or no language class at all.
+    function plainLabel(node) {
+        for (var i = 0; i < node.classList.length; i++) {
+            var cls = node.classList[i];
+            if (PLAIN_LABELS[cls]) return PLAIN_LABELS[cls];
         }
-        var labels = { "language-c": "C", "language-cpp": "C++", "language-csharp": "C#", "language-javascript": "JS" };
+        return "Code";
+    }
+
+    function selectorForGroup(unit) {
         var selector = el("div", "language-selector haxefmod-selector");
-        var tab = el("div", "language-tab selected", labels[lang] || "Code");
-        tab.setAttribute("data-language", lang || "language-all");
-        selector.appendChild(tab);
-        highlight.parentNode.insertBefore(selector, highlight);
+        selector.setAttribute("data-haxefmod-count", String(unit.members.length));
+        selector.setAttribute("data-haxefmod-langs", unit.langs.join(" "));
+        for (var i = 0; i < unit.langs.length; i++) {
+            var tab = el("div", "language-tab", LABELS[unit.langs[i]] || "Code");
+            tab.setAttribute("data-language", unit.langs[i]);
+            selector.appendChild(tab);
+        }
+        if (unit.langs.length === 0) {
+            var lone = el("div", "language-tab", plainLabel(unit.members[0]));
+            lone.setAttribute("data-language", "language-all");
+            selector.appendChild(lone);
+        }
+        unit.members[0].parentNode.insertBefore(selector, unit.members[0]);
         return selector;
+    }
+
+    // The site's selector never learns about the strips this script
+    // adds, so their visibility is managed here: a strip shows when Haxe
+    // is the language, or when the pick is one of the languages its
+    // blocks cover. A strip over blocks the site never toggles (no
+    // language class) stays up. Native tabs get their selected state
+    // from the site's own pass over every .language-tab.
+    function updateStrips(selected) {
+        var strips = document.querySelectorAll(".haxefmod-selector");
+        for (var i = 0; i < strips.length; i++) {
+            var langs = (strips[i].getAttribute("data-haxefmod-langs") || "").split(" ").filter(Boolean);
+            var show = selected === LANG || langs.length === 0 || langs.indexOf(selected) >= 0;
+            strips[i].style.display = show ? "" : "none";
+            if (selected !== LANG) {
+                var tabs = strips[i].querySelectorAll(".language-tab");
+                for (var j = 0; j < tabs.length; j++) {
+                    tabs[j].classList.toggle("selected", tabs[j].getAttribute("data-language") === selected);
+                }
+            }
+        }
+    }
+
+    function current() {
+        if (haxeChosen()) return LANG;
+        try {
+            var saved = window.localStorage.getItem(STORAGE_KEY);
+            if (saved && saved !== LANG) return saved;
+        } catch (e) { /* fall through to the site's default */ }
+        return "language-cpp";
     }
 
     // Every code location on the page is keyed by extension/keys.js, the
@@ -229,12 +277,15 @@
     function injectAll() {
         var root = document.querySelector("div.manual-content");
         if (!root || typeof haxefmodKeys === "undefined") return false;
-        var units = haxefmodKeys.units(root);
+        var units = haxefmodKeys.grouped(haxefmodKeys.units(root));
         var examples = EXAMPLES[pageName()] || {};
         for (var i = 0; i < units.length; i++) {
             var unit = units[i];
-            var node = unit.node;
-            if (unit.added || node.dataset.haxefmod) continue;
+            if (unit.added) continue;
+            var nodes = unit.members || [unit.node];
+            var done = false;
+            for (var n = 0; n < nodes.length; n++) if (nodes[n].dataset.haxefmod) done = true;
+            if (done) continue;
             var block;
             if (unit.kind === "function") {
                 block = renderBlock(DATA.entries[unit.key]);
@@ -243,9 +294,25 @@
             } else {
                 continue;
             }
-            var selector = unit.tabbed ? node : selectorForLone(node);
-            if (addTab(selector, block)) node.dataset.haxefmod = "1";
+            if (unit.tabbed) {
+                if (addTab(unit.node, block)) unit.node.dataset.haxefmod = "1";
+                continue;
+            }
+            var selector = selectorForGroup(unit);
+            var tab = el("div", "language-tab haxefmod-tab", "Haxe");
+            tab.setAttribute("data-language", LANG);
+            selector.appendChild(tab);
+            var last = nodes[nodes.length - 1];
+            last.parentNode.insertBefore(block, last.nextSibling);
+            for (var m = 0; m < nodes.length; m++) {
+                nodes[m].dataset.haxefmod = "1";
+                // The site's selector never hides a block without a
+                // language class, so the Haxe swap for those is managed
+                // here through this marker.
+                if (unit.langs.length === 0) nodes[m].classList.add("haxefmod-plain");
+            }
         }
+        updateStrips(current());
         return units.length > 0;
     }
 
@@ -266,6 +333,8 @@
         if (haxeOn) {
             setDisplay(NATIVE_LANGS.map(function (l) { return "." + l; }).join(", "), "none");
         }
+        setDisplay(".haxefmod-plain", haxeOn ? "none" : "");
+        updateStrips(selected);
     }
 
     function applyNative(lang) {
@@ -276,6 +345,7 @@
         NATIVE_LANGS.forEach(function (other) {
             setDisplay("." + other, other === lang ? "block" : "none");
         });
+        updateStrips(lang);
         try { window.localStorage.setItem(STORAGE_KEY, lang); } catch (e) { /* ignore */ }
     }
 
@@ -317,6 +387,13 @@
         if (lang === LANG) {
             choose(true);
             apply(LANG);
+        } else if (lang === "language-all") {
+            // The Code tab over blocks the site never toggles: leave
+            // the page's language as it was, just put the block back.
+            choose(false);
+            var restored = current();
+            apply(restored);
+            applyNative(restored);
         } else {
             choose(false);
             apply(lang);

@@ -41,9 +41,18 @@ with the reason), which the tab shows as a single comment line. A
 section never carries a fence or note lines: the tab shows generated
 signatures or that one line, nothing hand-written.
 
+Some examples appear on the site once per language, as adjacent lone
+blocks under one heading that the selector shows one at a time. Such a
+run is one unit: the Haxe side holds a single section under the first
+block's key, and a section under a later member's key is an error. The
+fold mirrors grouped() in extension/keys.js and only applies to the
+languages the site's selector toggles.
+
 The checks fail when:
   - a catalog key has no section (nothing on the site is left blank),
   - a section names a key the catalog does not have (stale entry),
+  - a section sits on a later member of a per-language run (the run is
+    one unit under its first key),
   - a section has no verdict, or a category verdict has no reason,
   - a bound section has neither a fence nor a Type: line, or a Type:
     line names a type missing from the sources,
@@ -53,9 +62,23 @@ The checks fail when:
     tab shows the struct),
   - a bound Haxe declaration lacks a member the site's snippet declares
     (unless native/manifest/types.txt lists it after skip:),
-  - a bound Haxe fence uses none of the Haxe methods that reach an FMOD
-    call the site's snippet makes,
+  - a bound Haxe fence steps outside the site's snippet: a string
+    literal the snippet does not contain, a number (other than 0 and 1,
+    which C spells for false and true) absent from every language's
+    block, a number in the primary block that the fence dropped, an
+    FMOD call made out of the snippet's order or not at all, a call the
+    snippet never makes, or more statements than the snippet plus two,
+  - a waive: line names a check that did not fire (stale waiver),
   - a function entry has neither a binding nor a functions.md section.
+
+A parity check that fires on a translation that is right anyway is
+silenced in place with a reason:
+
+    waive: numbers the C example reads the rate from a macro the page defines earlier
+
+The rules are numbers, strings, missing-numbers, calls, extra-calls,
+and shape. The reason stays part of the entry, so every deviation from
+the site's snippet is explicit and reviewable.
 
 Run: python3 ci/haxe-catalog.py          rewrite extension/examples-data.js
      python3 ci/haxe-catalog.py --check  fail if it is out of date or a
@@ -91,6 +114,8 @@ SECTION = re.compile(r"^## (.+?)\s*$", re.M)
 COMMENT = re.compile(r"<!--(.*?)-->", re.S)
 FENCE = re.compile(r"```haxe\n(.*?)```", re.S)
 DIRECTIVE = re.compile(r"^(verdict|Type|Shape):\s*(.*?)\s*$", re.M)
+WAIVE = re.compile(r"^waive:\s*(\S+)\s+(.+?)\s*$")
+PARITY_RULES = ("numbers", "strings", "missing-numbers", "calls", "extra-calls", "shape")
 
 
 def read(path):
@@ -142,6 +167,54 @@ def native_snippet(entry):
         if language in blocks:
             return blocks[language]
     return next(iter(blocks.values()), "")
+
+
+# The language names whose blocks the site's selector shows and hides.
+# Mirrors SITE_LANGS in extension/keys.js.
+GROUP_LANGS = ("C", "C++", "C/C++", "C#", "JavaScript")
+
+
+def variant_groups(entries):
+    """base key -> member keys, for every run of per-language variants:
+    adjacent lone example blocks under one heading, each in a different
+    site language. Mirrors grouped() in extension/keys.js."""
+    items = sorted(entries.items(), key=lambda kv: kv[1]["index"])
+    groups = {}
+    i = 0
+    while i < len(items):
+        key, entry = items[i]
+        langs = list(entry["blocks"])
+        if entry["kind"] != "example" or len(langs) != 1 or langs[0] not in GROUP_LANGS:
+            i += 1
+            continue
+        members = [key]
+        seen_langs = {langs[0]}
+        j = i + 1
+        while j < len(items):
+            nkey, nentry = items[j]
+            nlangs = list(nentry["blocks"])
+            if (nentry["kind"] != "example" or len(nlangs) != 1 or nlangs[0] not in GROUP_LANGS
+                    or nentry["heading"] != entry["heading"] or nlangs[0] in seen_langs):
+                break
+            members.append(nkey)
+            seen_langs.add(nlangs[0])
+            j += 1
+        if len(members) > 1:
+            groups[key] = members
+        i = j
+    return groups
+
+
+def merged_entry(entries, members):
+    """One entry standing for a per-language run: the first member with
+    every member's block under its language."""
+    base = dict(entries[members[0]])
+    blocks = {}
+    for member in members:
+        for language, code in entries[member]["blocks"].items():
+            blocks.setdefault(language, code)
+    base["blocks"] = blocks
+    return base
 
 
 def is_type_definition(code):
@@ -237,10 +310,11 @@ def parse_sections(text):
         code = fence.group(1).rstrip("\n") if fence else None
         if fence:
             body = body[:fence.start()] + body[fence.end():]
-        section = {"heading": heading, "verdict": None, "reason": "", "notes": [], "code": code, "type": None, "shape": None}
+        section = {"heading": heading, "verdict": None, "reason": "", "notes": [], "code": code, "type": None, "shape": None, "waivers": {}}
         rest = []
         for line in body.splitlines():
             directive = DIRECTIVE.match(line)
+            waive = WAIVE.match(line)
             if directive:
                 name, value = directive.group(1), directive.group(2)
                 if name == "verdict":
@@ -251,6 +325,8 @@ def parse_sections(text):
                     section["type"] = value
                 else:
                     section["shape"] = value
+            elif waive:
+                section["waivers"][waive.group(1)] = waive.group(2)
             elif line.strip():
                 rest.append(line.strip())
         section["notes"] = rest
@@ -410,19 +486,138 @@ def check_type_definition(entry, section, record, skips, problems, label):
     return 1
 
 
-def check_calls(entry, record, methods, problems, label):
-    fence = record["code"].lower()
-    checked = 0
-    for call in snippet_calls(native_snippet(entry)):
-        if call in LIBRARY_CALLS:
+def strip_code_comments(code):
+    code = re.sub(r"/\*.*?\*/", " ", code, flags=re.S)
+    return re.sub(r"//[^\n]*", "", code)
+
+
+NUMBER = re.compile(r"(?<![\w.])(\d+\.\d+|\d+)(?=[fFuUlL]*\b)")
+STRING = re.compile(r'"((?:[^"\\\n]|\\.)*)"')
+
+
+def snippet_numbers(code):
+    """Numeric literals, as values. 0 and 1 stay out: C spells booleans,
+    null handles, and first indices with them, and every language of a
+    snippet differs there without the meaning changing. Bracketed
+    indices and array sizes ([3]) are structure, not data, and Haxe
+    spells them differently or not at all. Hex literals never match,
+    both sides skip them the same way."""
+    out = set()
+    body = re.sub(r"\[\s*\d+\s*\]", "[]", strip_code_comments(code))
+    for token in NUMBER.findall(body):
+        value = float(token)
+        if value not in (0.0, 1.0):
+            out.add(value)
+    return out
+
+
+def snippet_strings(code):
+    return {s for s in STRING.findall(strip_code_comments(code)) if s.strip()}
+
+
+def snippet_call_sequence(code):
+    """Method calls in snippet order, repeats kept. The C flavor
+    (FMOD_Object_Method) counts as its method name, so a C-only snippet
+    still yields its calls."""
+    out = []
+    for dotted, flat in re.findall(r"(?:(?:::|->|\.)\s*([a-z]\w*)|\bFMOD_(?:[A-Za-z0-9]+_)+([A-Z][a-z]\w*))\s*\(", strip_code_comments(code)):
+        out.append(dotted or flat)
+    return out
+
+
+def statement_count(code):
+    """Semicolons outside comments and strings. Wrapping an argument
+    list over lines is layout, a semicolon is a statement in C, C#, JS,
+    and Haxe alike."""
+    body = strip_code_comments(code)
+    body = re.sub(r'"(?:[^"\\\n]|\\.)*"', '""', body)
+    body = re.sub(r"^import [^\n]*;", "", body, flags=re.M)
+    return body.count(";")
+
+
+def check_parity(entry, section, record, methods, reverse, problems, label):
+    """The fence against the site's snippet: same literals, same calls in
+    the same order, no invented work. A finding a reviewer has judged
+    right anyway is silenced by a waive: line, and a waive: line whose
+    check passes is itself a finding, so the set of deviations stays
+    exact in both directions."""
+    fence = record["code"]
+    fired = set()
+    primary = native_snippet(entry)
+    all_blocks = list(entry["blocks"].values())
+
+    union_numbers = set().union(*[snippet_numbers(c) for c in all_blocks]) if all_blocks else set()
+    union_strings = set().union(*[snippet_strings(c) for c in all_blocks]) if all_blocks else set()
+    extra_numbers = snippet_numbers(fence) - union_numbers
+    if extra_numbers:
+        fired.add("numbers")
+        if "numbers" not in section["waivers"]:
+            listed = ", ".join(str(int(v)) if v == int(v) else str(v) for v in sorted(extra_numbers))
+            problems.append(f"{label}: the fence uses numbers the site's snippet does not have: {listed}")
+    extra_strings = snippet_strings(fence) - union_strings
+    if extra_strings:
+        fired.add("strings")
+        if "strings" not in section["waivers"]:
+            listed = ", ".join('"' + s + '"' for s in sorted(extra_strings)[:4])
+            problems.append(f"{label}: the fence uses strings the site's snippet does not have: {listed}")
+    missing_numbers = snippet_numbers(primary) - snippet_numbers(fence)
+    if missing_numbers:
+        fired.add("missing-numbers")
+        if "missing-numbers" not in section["waivers"]:
+            listed = ", ".join(str(int(v)) if v == int(v) else str(v) for v in sorted(missing_numbers))
+            problems.append(f"{label}: the snippet's numbers {listed} are not in the fence")
+
+    fence_lower = fence.lower()
+    position = 0
+    for call in snippet_call_sequence(primary):
+        if call in LIBRARY_CALLS or call.lower() in {c.lower() for c in LIBRARY_CALLS}:
             continue
-        haxe_names = methods.get(call.lower())
-        if not haxe_names:
+        mapped = methods.get(call.lower())
+        if not mapped:
             continue
-        checked += 1
-        if not any(name.lower() in fence for name in haxe_names) and call.lower() not in fence:
-            problems.append(f"{label}: FMOD calls {call}() but the Haxe code uses none of {sorted(haxe_names)}")
-    return checked
+        names = set(mapped) | {call}
+        found = -1
+        for name in names:
+            index = fence_lower.find(name.lower(), position)
+            if index >= 0 and (found < 0 or index < found):
+                found = index
+        if found >= 0:
+            position = found + 1
+            continue
+        fired.add("calls")
+        if "calls" not in section["waivers"]:
+            anywhere = any(fence_lower.find(name.lower()) >= 0 for name in names)
+            how = "out of the snippet's order" if anywhere else "not at all"
+            problems.append(f"{label}: the snippet calls {call}() but the fence reaches it {how}")
+
+    native_calls = set()
+    for code in all_blocks:
+        native_calls.update(c.lower() for c in snippet_call_sequence(code))
+    for call in dict.fromkeys(re.findall(r"\.\s*([a-zA-Z_]\w*)\s*\(", strip_code_comments(fence))):
+        lowered = call.lower()
+        if lowered in native_calls or lowered in {c.lower() for c in LIBRARY_CALLS}:
+            continue
+        mapped = reverse.get(lowered)
+        if not mapped or mapped & native_calls or mapped & {c.lower() for c in LIBRARY_CALLS}:
+            continue
+        fired.add("extra-calls")
+        if "extra-calls" not in section["waivers"]:
+            problems.append(f"{label}: the fence calls {call}() but the snippet reaches no FMOD function behind it")
+
+    if statement_count(fence) > statement_count(primary) + 2:
+        fired.add("shape")
+        if "shape" not in section["waivers"]:
+            problems.append(f"{label}: the fence has {statement_count(fence)} statements to the snippet's {statement_count(primary)}, translate what the snippet shows")
+
+    return fired
+
+
+def check_waivers(section, fired, problems, label):
+    for rule, _ in section["waivers"].items():
+        if rule not in PARITY_RULES:
+            problems.append(f"{label}: waive: {rule} is not a check ({', '.join(PARITY_RULES)})")
+        elif rule not in fired:
+            problems.append(f"{label}: waive: {rule} but that check passes, delete the line")
 
 
 def build():
@@ -432,15 +627,27 @@ def build():
     functions = read_functions()
     bindings = read_bindings()
     methods = bindings_by_method(bindings)
+    reverse = {}
+    for method, names in methods.items():
+        for name in names:
+            reverse.setdefault(name.lower(), set()).add(method)
     skips = table_skips()
     problems = []
-    stats = {"functions": 0, "examples": 0, "types": 0, "calls": 0, "bound": 0, "categorized": 0}
+    stats = {"functions": 0, "examples": 0, "groups": 0, "types": 0, "compared": 0, "bound": 0, "categorized": 0}
     output = {}
     for page, entries in sorted(catalog.items()):
         sections = haxe.get(page, {})
+        groups = variant_groups(entries)
+        stats["groups"] += len(groups)
+        member_of = {}
+        for base, members in groups.items():
+            for member in members[1:]:
+                member_of[member] = base
         for key in sections:
             if key not in entries:
                 problems.append(f"{page}: section \"{key}\" names a key the catalog does not have")
+            elif key in member_of:
+                problems.append(f"{page}: \"{key}\" is a per-language variant of \"{member_of[key]}\", the run is one unit under that key")
         for key, entry in entries.items():
             label = f"{page}: \"{key}\""
             if entry["kind"] == "function":
@@ -459,6 +666,10 @@ def build():
                     problems.append(f"{label}: no binding and no functions.md section")
                 continue
             stats["examples"] += 1
+            if key in member_of:
+                continue
+            if key in groups:
+                entry = merged_entry(entries, groups[key])
             section = sections.get(key)
             if section is None:
                 problems.append(f"{label}: no section in extension/haxe/{page}.md")
@@ -467,14 +678,17 @@ def build():
             if record is None:
                 continue
             output.setdefault(page, {})[key] = strip_imports(record)
-            if record["verdict"] != "bound":
-                stats["categorized"] += 1
-                continue
-            stats["bound"] += 1
-            if is_fmod_type_definition(entry):
-                stats["types"] += check_type_definition(entry, section, record, skips, problems, label)
+            fired = set()
+            if record["verdict"] == "bound":
+                stats["bound"] += 1
+                if is_fmod_type_definition(entry):
+                    stats["types"] += check_type_definition(entry, section, record, skips, problems, label)
+                elif section["code"] is not None:
+                    fired = check_parity(entry, section, record, methods, reverse, problems, label)
+                    stats["compared"] += 1
             else:
-                stats["calls"] += check_calls(entry, record, methods, problems, label)
+                stats["categorized"] += 1
+            check_waivers(section, fired, problems, label)
     for page in haxe:
         if page not in catalog:
             problems.append(f"extension/haxe/{page}.md has no catalog page")
@@ -485,7 +699,7 @@ def build():
             problems.append(f"functions.md: \"{key}\": no verdict line")
         # A function entry shows its generated signatures, or one comment line
         # with the reason it has none. The notes file never carries code or prose.
-        if section["code"] is not None or section["notes"]:
+        if section["code"] is not None or section["notes"] or section["waivers"]:
             problems.append(f"functions.md: \"{key}\": a function section is a verdict line only, drop the fence and the note lines")
         if section["verdict"] == "bound":
             problems.append(f"functions.md: \"{key}\": bound is implied by the bindings table, a section is for cannot, covered, or library")
@@ -517,9 +731,9 @@ def main():
             with open(DATA_JS, "w", encoding="utf-8") as fh:
                 fh.write(content)
             print("wrote extension/examples-data.js")
-    print(f"haxe-catalog: {stats['functions']} function entries and {stats['examples']} other code locations, "
-          f"{stats['bound']} bound, {stats['categorized']} with a reason, {stats['types']} declarations and "
-          f"{stats['calls']} calls compared, {len(problems)} problem(s)")
+    print(f"haxe-catalog: {stats['functions']} function entries and {stats['examples']} other code locations "
+          f"({stats['groups']} per-language runs), {stats['bound']} bound, {stats['categorized']} with a reason, "
+          f"{stats['types']} declarations and {stats['compared']} fences compared, {len(problems)} problem(s)")
     return 1 if problems else 0
 
 
