@@ -116,12 +116,22 @@ jobs:
           python3 ci/api-module-pages.py /tmp/haxefmod-docs/types.xml site-api
 
       - name: Setup Python
+        # setup-python has no prebuilt interpreters for Debian, so the
+        # self-hosted runner uses its system Python through a venv below
+        if: ${{ runner.environment != 'self-hosted' }}
         uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
       - name: Install MkDocs
-        run: pip install mkdocs-material
+        run: |
+          if [ "${{ runner.environment }}" = "self-hosted" ]; then
+            python3 -m venv "$RUNNER_TEMP/mkdocs-venv"
+            "$RUNNER_TEMP/mkdocs-venv/bin/pip" install --quiet mkdocs-material
+            echo "$RUNNER_TEMP/mkdocs-venv/bin" >> "$GITHUB_PATH"
+          else
+            pip install mkdocs-material
+          fi
 
       - name: Build the site
         run: |
