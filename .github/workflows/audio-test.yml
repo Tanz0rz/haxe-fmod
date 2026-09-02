@@ -4264,6 +4264,13 @@ jobs:
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }
           if grep -q "pass=false" "$LOG"; then echo "Stress smoke reported failing checks"; exit 1; fi
 
+      - name: Collect crash reports
+        if: failure()
+        run: |
+          mkdir -p /tmp/crash-mac-cpp
+          cp ~/Library/Logs/DiagnosticReports/*.ips /tmp/crash-mac-cpp/ 2>/dev/null || true
+          ls /tmp/crash-mac-cpp 2>/dev/null || true
+
       - name: Upload logs
         uses: actions/upload-artifact@v6
         if: always()
@@ -4273,6 +4280,7 @@ jobs:
             /tmp/*-mac-cpp.wav
             /tmp/*-mac-cpp.log
             /tmp/*-mac-cpp-console.log
+            /tmp/crash-mac-cpp/*
           if-no-files-found: ignore
           overwrite: true
 
@@ -4406,6 +4414,13 @@ jobs:
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }
           if grep -q "pass=false" "$LOG"; then echo "Stress smoke reported failing checks"; exit 1; fi
 
+      - name: Collect crash reports
+        if: failure()
+        run: |
+          mkdir -p /tmp/crash-mac-hl
+          cp ~/Library/Logs/DiagnosticReports/*.ips /tmp/crash-mac-hl/ 2>/dev/null || true
+          ls /tmp/crash-mac-hl 2>/dev/null || true
+
       - name: Upload logs
         uses: actions/upload-artifact@v6
         if: always()
@@ -4415,6 +4430,7 @@ jobs:
             /tmp/*-mac-hl.wav
             /tmp/*-mac-hl.log
             /tmp/*-mac-hl-console.log
+            /tmp/crash-mac-hl/*
           if-no-files-found: ignore
           overwrite: true
 
@@ -5242,6 +5258,13 @@ jobs:
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }
           if grep -q "pass=false" "$LOG"; then echo "Stress smoke reported failing checks"; exit 1; fi
 
+      - name: Collect crash reports
+        if: failure()
+        run: |
+          mkdir -p /tmp/crash-heaps-mac-hl
+          cp ~/Library/Logs/DiagnosticReports/*.ips /tmp/crash-heaps-mac-hl/ 2>/dev/null || true
+          ls /tmp/crash-heaps-mac-hl 2>/dev/null || true
+
       - name: Upload logs
         uses: actions/upload-artifact@v6
         if: always()
@@ -5251,6 +5274,7 @@ jobs:
             /tmp/*-heaps-mac-hl.wav
             /tmp/*-heaps-mac-hl.log
             /tmp/*-heaps-mac-hl-console.log
+            /tmp/crash-heaps-mac-hl/*
           if-no-files-found: ignore
           overwrite: true
 
@@ -6060,6 +6084,13 @@ jobs:
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }
           if grep -q "pass=false" "$LOG"; then echo "Stress smoke reported failing checks"; exit 1; fi
 
+      - name: Collect crash reports
+        if: failure()
+        run: |
+          mkdir -p /tmp/crash-kha-mac
+          cp ~/Library/Logs/DiagnosticReports/*.ips /tmp/crash-kha-mac/ 2>/dev/null || true
+          ls /tmp/crash-kha-mac 2>/dev/null || true
+
       - name: Upload logs
         uses: actions/upload-artifact@v6
         if: always()
@@ -6069,6 +6100,7 @@ jobs:
             /tmp/*-kha-mac.wav
             /tmp/*-kha-mac.log
             /tmp/*-kha-mac-console.log
+            /tmp/crash-kha-mac/*
           if-no-files-found: ignore
           overwrite: true
 
@@ -6202,6 +6234,13 @@ jobs:
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }
           if grep -q "pass=false" "$LOG"; then echo "Stress smoke reported failing checks"; exit 1; fi
 
+      - name: Collect crash reports
+        if: failure()
+        run: |
+          mkdir -p /tmp/crash-kha-mac-hl
+          cp ~/Library/Logs/DiagnosticReports/*.ips /tmp/crash-kha-mac-hl/ 2>/dev/null || true
+          ls /tmp/crash-kha-mac-hl 2>/dev/null || true
+
       - name: Upload logs
         uses: actions/upload-artifact@v6
         if: always()
@@ -6211,6 +6250,7 @@ jobs:
             /tmp/*-kha-mac-hl.wav
             /tmp/*-kha-mac-hl.log
             /tmp/*-kha-mac-hl-console.log
+            /tmp/crash-kha-mac-hl/*
           if-no-files-found: ignore
           overwrite: true
 

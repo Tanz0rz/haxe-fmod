@@ -466,6 +466,18 @@ def run_job(j, text):
 """
     defaults = "    defaults:\n      run:\n        shell: bash\n" if j.windows else ""
     steps = browser_steps(j) if j.browser else native_steps(j)
+    # macOS writes a diagnostic report for every crashed process. A run
+    # that dies with a signal has no stack in the game log, the report
+    # carries it.
+    crash = f"""
+      - name: Collect crash reports
+        if: failure()
+        run: |
+          mkdir -p /tmp/crash-{j.name}
+          cp ~/Library/Logs/DiagnosticReports/*.ips /tmp/crash-{j.name}/ 2>/dev/null || true
+          ls /tmp/crash-{j.name} 2>/dev/null || true
+""" if j.mac else ""
+    crash_path = f"\n            /tmp/crash-{j.name}/*" if j.mac else ""
     return f"""
   {j.name}:
     name: {j.title} / ${{{{ matrix.state }}}}
@@ -490,7 +502,7 @@ def run_job(j, text):
           path: {j.download}
 {manual_download}{chmod}
 {setup_steps(j)}
-{steps}
+{steps}{crash}
       - name: Upload logs
         uses: actions/upload-artifact@v6
         if: always()
@@ -499,7 +511,7 @@ def run_job(j, text):
           path: |
             {j.tmpx(f"*-{j.name}.wav")}
             {j.tmpx(f"*-{j.name}.log")}
-            {j.tmpx(f"*-{j.name}-console.log")}
+            {j.tmpx(f"*-{j.name}-console.log")}{crash_path}
           if-no-files-found: ignore
           overwrite: true
 """

@@ -645,6 +645,9 @@ HL_PRIM int HL_NAME(core_release_sound)(int h) {
     if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     sound_lock_close(h, sound);
     release_subsound_handles(sound);
+    /* The sound's custom rolloff points are freed with the slot below,
+     * so detach them while the sound is still alive. */
+    if (faxe_handle_get_aux(h)) FMOD_Sound_Set3DCustomRolloff(sound, NULL, 0);
     gLastResult = FMOD_Sound_Release(sound);
     if (gLastResult == FMOD_OK) faxe_handle_free(h);
     return (int)gLastResult;
@@ -905,6 +908,11 @@ DEFINE_PRIM(_BOOL, chan_is_playing, _I32);
 HL_PRIM int HL_NAME(chan_stop)(int h) {
     FMOD_CHANNEL* ch = resolve_channel(h);
     if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    /* A stopped channel goes back to FMOD's voice pool and can keep its
+     * custom rolloff pointer until the voice is reused. The points are
+     * freed with the slot below, so detach them while the channel still
+     * resolves. */
+    if (faxe_handle_get_aux(h)) FMOD_Channel_Set3DCustomRolloff(ch, NULL, 0);
     /* The channel is finished either way, so the slot is freed even when
      * FMOD reports the channel already gone */
     gLastResult = FMOD_Channel_Stop(ch);
@@ -1145,6 +1153,9 @@ DEFINE_PRIM(_I32, cg_create, _BYTES);
 HL_PRIM int HL_NAME(cg_release)(int h) {
     FMOD_CHANNELGROUP* group = resolve_changroup(h);
     if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    /* The group's custom rolloff points are freed with the slot below,
+     * so detach them while the group is still alive. */
+    if (faxe_handle_get_aux(h)) FMOD_ChannelGroup_Set3DCustomRolloff(group, NULL, 0);
     gLastResult = FMOD_ChannelGroup_Release(group);
     if (gLastResult == FMOD_OK) {
         faxe_handle_free(h);

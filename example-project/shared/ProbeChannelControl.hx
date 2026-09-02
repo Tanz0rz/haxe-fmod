@@ -308,6 +308,12 @@ class ProbeChannelControl {
         @:privateAccess state.check("cg_occlusion_event_delivered", sawGroup,
             'events=${_groupEvents.length} frames=$_frames');
         var rStop = _channel.stop();
+        // Core commands cross to the mixer asynchronously. A lock and
+        // unlock pair waits out the mix block in flight, so the stream,
+        // group, and geometry are not torn down under a mix that still
+        // reads them.
+        StudioSystem.lockDsp();
+        StudioSystem.unlockDsp();
         var rStream = _stream.release();
         var rGroup = _group.release();
         var rGeometry = _geometry.release();
