@@ -325,6 +325,7 @@ DSPConnection.setUserData(
 kind: example
 index: 9
 heading: FMOD_DSPCONNECTION_TYPE
+tabbed: yes
 
 ### C/C++
 ```cpp

@@ -14,8 +14,6 @@ verdict: bound
 import haxefmod.core.Sound;
 import haxefmod.studio.Types;
 
-var sound = Sound.create("assets/music/track.mp3");
-var channel = sound.play();
 var tag = sound.getTag(null, -1);
 while (tag != null) {
     if (tag.type == FmodTagType.FMOD) {
@@ -23,35 +21,7 @@ while (tag != null) {
         if (tag.name == "Sample Rate Change" && !channel.isNull()) {
             var frequency = tag.floatValue;
 
-            var result = channel.setFrequency(frequency);
-            if (!result.isOk()) {
-                trace('setFrequency failed: $result');
-            }
-        }
-    }
-    tag = sound.getTag(null, -1);
-}
-```
-
-## Sound::getTag#2
-verdict: bound
-```haxe
-import haxefmod.core.Sound;
-import haxefmod.studio.Types;
-
-var sound = Sound.create("assets/music/track.mp3");
-var channel = sound.play();
-var tag = sound.getTag(null, -1);
-while (tag != null) {
-    if (tag.type == FmodTagType.FMOD) {
-        /* When a song changes, the sample rate may also change, so compensate here. */
-        if (tag.name == "Sample Rate Change" && !channel.isNull()) {
-            var frequency = tag.floatValue;
-
-            var result = channel.setFrequency(frequency);
-            if (!result.isOk()) {
-                trace('setFrequency failed: $result');
-            }
+            channel.setFrequency(frequency);
         }
     }
     tag = sound.getTag(null, -1);
@@ -86,51 +56,8 @@ verdict: bound
 ```haxe
 import haxefmod.core.Sound;
 
-var sound = Sound.create("assets/sfx/hit.wav");
 var defaults = sound.getDefaults();
-if (defaults != null) {
-    var priority = defaults.priority;
-    sound.setDefaults(48000, priority);
-}
-```
-
-## Sound::setDefaults#2
-verdict: bound
-```haxe
-import haxefmod.core.Sound;
-
-var sound = Sound.create("assets/sfx/hit.wav");
-var defaults = sound.getDefaults();
-if (defaults != null) {
-    var priority = defaults.priority;
-    sound.setDefaults(48000, priority);
-}
-```
-
-## Sound::setDefaults#3
-verdict: bound
-```haxe
-import haxefmod.core.Sound;
-
-var sound = Sound.create("assets/sfx/hit.wav");
-var defaults = sound.getDefaults();
-if (defaults != null) {
-    var priority = defaults.priority;
-    sound.setDefaults(48000, priority);
-}
-```
-
-## Sound::setDefaults#4
-verdict: bound
-```haxe
-import haxefmod.core.Sound;
-
-var sound = Sound.create("assets/sfx/hit.wav");
-var defaults = sound.getDefaults();
-if (defaults != null) {
-    var priority = defaults.priority;
-    sound.setDefaults(48000, priority);
-}
+sound.setDefaults(48000, defaults.priority);
 ```
 
 ## FMOD_SOUND_TYPE

@@ -4,6 +4,7 @@
 kind: example
 index: 0
 heading: FMOD_OPENSTATE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -131,6 +132,7 @@ Sound.deleteSyncPoint(
 kind: example
 index: 3
 heading: FMOD_SOUND_FORMAT
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1206,6 +1208,7 @@ Sound.lock(
 kind: example
 index: 32
 heading: FMOD_SOUND_NONBLOCK_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1227,6 +1230,7 @@ delegate RESULT SOUND_NONBLOCKCALLBACK(
 kind: example
 index: 33
 heading: FMOD_SOUND_PCMREAD_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1259,6 +1263,7 @@ function FMOD_SOUND_PCMREAD_CALLBACK(
 kind: example
 index: 34
 heading: FMOD_SOUND_PCMSETPOS_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1856,6 +1861,7 @@ Sound.setUserData(
 kind: example
 index: 54
 heading: FMOD_SOUND_TYPE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -2001,6 +2007,7 @@ Sound.unlock(
 kind: example
 index: 56
 heading: FMOD_TAG
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -2043,6 +2050,7 @@ FMOD_TAG
 kind: example
 index: 57
 heading: FMOD_TAGDATATYPE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -2089,6 +2097,7 @@ FMOD.TAGDATATYPE_MAX
 kind: example
 index: 58
 heading: FMOD_TAGTYPE
+tabbed: yes
 
 ### C/C++
 ```cpp

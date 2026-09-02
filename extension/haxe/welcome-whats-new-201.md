@@ -6,9 +6,9 @@ verdict: bound
 import haxefmod.studio.Types;
 
 FmodManager.Initialize({threadAttributes: [
-    {type: FmodThreadType.STREAM, stackSize: 128 * 1024},
-    {type: FmodThreadType.NONBLOCKING, stackSize: 128 * 1024},
-    {type: FmodThreadType.MIXER, stackSize: 128 * 1024},
+    {type: FmodThreadType.STREAM, stackSize: stackSizeStream},
+    {type: FmodThreadType.NONBLOCKING, stackSize: stackSizeNonBlocking},
+    {type: FmodThreadType.MIXER, stackSize: stackSizeMixer},
 ]});
 ```
 

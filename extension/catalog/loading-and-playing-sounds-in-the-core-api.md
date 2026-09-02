@@ -52,6 +52,7 @@ ERRCHECK(result);
 kind: example
 index: 3
 heading: 4.2 Playing a sound
+tabbed: yes
 
 ### C
 ```c
@@ -112,6 +113,7 @@ ERRCHECK(result);
 kind: example
 index: 4
 heading: 4.3.1 Creating a Sound from memory
+tabbed: yes
 
 ### C++
 ```cpp
@@ -200,6 +202,7 @@ sound = outval.val;
 kind: example
 index: 5
 heading: 4.3.1 Creating a Sound from memory
+tabbed: yes
 
 ### C++
 ```cpp
@@ -269,6 +272,7 @@ system.createSound(gch.AddrOfPinnedObject(), FMOD.MODE.OPENMEMORY_POINT, ref exi
 kind: example
 index: 6
 heading: 4.3.2 Creating a Sound from PCM data
+tabbed: yes
 
 ### C++
 ```cpp
@@ -335,6 +339,7 @@ sound = outval.val;
 kind: example
 index: 7
 heading: 4.3.3 Creating a Sound by manually providing sample data
+tabbed: yes
 
 ### C++
 ```cpp

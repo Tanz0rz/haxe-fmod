@@ -4,6 +4,7 @@
 kind: example
 index: 0
 heading: FMOD_COMPLEX
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -35,6 +36,7 @@ FMOD_COMPLEX
 kind: example
 index: 1
 heading: FMOD_DSP_ALLOC_FUNC
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -58,6 +60,7 @@ delegate IntPtr DSP_ALLOC_FUNC(
 kind: example
 index: 2
 heading: FMOD_DSP_BUFFER_ARRAY
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -140,6 +143,7 @@ Marshal.Copy(output, 0, outbufferarray.buffer, (int)length * numchannels);
 kind: example
 index: 5
 heading: FMOD_DSP_CREATE_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -166,6 +170,7 @@ function FMOD_DSP_CREATE_CALLBACK(
 kind: example
 index: 6
 heading: FMOD_DSP_DESCRIPTION
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -302,6 +307,7 @@ desc.name = "My DSP";
 kind: example
 index: 10
 heading: FMOD_DSP_DFT_FFTREAL_FUNC
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -331,6 +337,7 @@ delegate RESULT DSP_DFT_FFTREAL_FUNC(
 kind: example
 index: 11
 heading: FMOD_DSP_DFT_IFFTREAL_FUNC
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -360,6 +367,7 @@ delegate RESULT DSP_DFT_IFFTREAL_FUNC(
 kind: example
 index: 12
 heading: FMOD_DSP_FREE_FUNC
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -383,6 +391,7 @@ delegate IntPtr DSP_FREE_FUNC(
 kind: example
 index: 13
 heading: FMOD_DSP_GETBLOCKSIZE_FUNC
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -412,6 +421,7 @@ FMOD_DSP_GETBLOCKSIZE_FUNC(
 kind: example
 index: 14
 heading: FMOD_DSP_GETCLOCK_FUNC
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -437,6 +447,7 @@ delegate RESULT DSP_GETCLOCK_FUNC(
 kind: example
 index: 15
 heading: FMOD_DSP_GETLISTENERATTRIBUTES_FUNC
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -460,6 +471,7 @@ delegate RESULT DSP_GETLISTENERATTRIBUTES_FUNC(
 kind: example
 index: 16
 heading: FMOD_DSP_GETPARAM_BOOL_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -496,6 +508,7 @@ function FMOD_DSP_GETPARAM_BOOL_CALLBACK(
 kind: example
 index: 17
 heading: FMOD_DSP_GETPARAM_DATA_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -535,6 +548,7 @@ function FMOD_DSP_GETPARAM_DATA_CALLBACK(
 kind: example
 index: 18
 heading: FMOD_DSP_GETPARAM_FLOAT_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -571,6 +585,7 @@ function FMOD_DSP_GETPARAM_FLOAT_CALLBACK(
 kind: example
 index: 19
 heading: FMOD_DSP_GETPARAM_INT_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -607,6 +622,7 @@ function FMOD_DSP_GETPARAM_INT_CALLBACK(
 kind: example
 index: 20
 heading: FMOD_DSP_GETPARAM_VALUESTR_LENGTH
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -622,6 +638,7 @@ FMOD.DSP_GETPARAM_VALUESTR_LENGTH = 32
 kind: example
 index: 21
 heading: FMOD_DSP_GETSAMPLERATE_FUNC
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -651,6 +668,7 @@ FMOD_DSP_GETSAMPLERATE_FUNC(
 kind: example
 index: 22
 heading: FMOD_DSP_GETSPEAKERMODE_FUNC
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -683,6 +701,7 @@ FMOD_DSP_GETSPEAKERMODE_FUNC(
 kind: example
 index: 23
 heading: FMOD_DSP_GETUSERDATA_FUNC
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -704,6 +723,7 @@ delegate RESULT DSP_GETUSERDATA_FUNC(
 kind: example
 index: 24
 heading: FMOD_DSP_LOG_FUNC
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -732,6 +752,7 @@ delegate void DSP_LOG_FUNC(
 kind: example
 index: 25
 heading: FMOD_DSP_METERING_INFO
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -769,6 +790,7 @@ FMOD_DSP_METERING_INFO
 kind: example
 index: 26
 heading: FMOD_DSP_PAN_GETROLLOFFGAIN_FUNC
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -798,6 +820,7 @@ delegate RESULT DSP_PAN_GETROLLOFFGAIN_FUNC(
 kind: example
 index: 27
 heading: FMOD_DSP_PAN_SUMMONOMATRIX_FUNC
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -825,6 +848,7 @@ delegate RESULT DSP_PAN_SUMMONOMATRIX_FUNC(
 kind: example
 index: 28
 heading: FMOD_DSP_PAN_SUMMONOTOSURROUNDMATRIX_FUNC
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -858,6 +882,7 @@ delegate RESULT DSP_PAN_SUMMONOTOSURROUNDMATRIX_FUNC(
 kind: example
 index: 29
 heading: FMOD_DSP_PAN_SUMSTEREOMATRIX_FUNC
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -889,6 +914,7 @@ delegate RESULT DSP_PAN_SUMSTEREOMATRIX_FUNC(
 kind: example
 index: 30
 heading: FMOD_DSP_PAN_SUMSTEREOTOSURROUNDMATRIX_FUNC
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -924,6 +950,7 @@ delegate RESULT DSP_PAN_SUMSTEREOTOSURROUNDMATRIX_FUNC(
 kind: example
 index: 31
 heading: FMOD_DSP_PAN_SUMSURROUNDMATRIX_FUNC
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -963,6 +990,7 @@ delegate RESULT DSP_PAN_SUMSURROUNDMATRIX_FUNC(
 kind: example
 index: 32
 heading: FMOD_DSP_PAN_SURROUND_FLAGS
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -991,6 +1019,7 @@ DSP_PAN_SURROUND_ROTATION_NOT_BIASED
 kind: example
 index: 33
 heading: FMOD_DSP_PARAMETER_3DATTRIBUTES
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1022,6 +1051,7 @@ FMOD_DSP_PARAMETER_3DATTRIBUTES
 kind: example
 index: 34
 heading: FMOD_DSP_PARAMETER_3DATTRIBUTES_MULTI
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1056,6 +1086,7 @@ FMOD_DSP_PARAMETER_3DATTRIBUTES_MULTI
 kind: example
 index: 35
 heading: FMOD_DSP_PARAMETER_ATTENUATION_RANGE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1087,6 +1118,7 @@ FMOD_DSP_PARAMETER_ATTENUATION_RANGE
 kind: example
 index: 36
 heading: FMOD_DSP_PARAMETER_DATA_TYPE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1136,6 +1168,7 @@ FMOD.DSP_PARAMETER_DATA_TYPE_FINITE_LENGTH = -8
 kind: example
 index: 37
 heading: FMOD_DSP_PARAMETER_DESC
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1181,6 +1214,7 @@ FMOD_DSP_PARAMETER_DESC
 kind: example
 index: 38
 heading: FMOD_DSP_PARAMETER_DESC_BOOL
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1211,6 +1245,7 @@ FMOD_DSP_PARAMETER_DESC_BOOL
 kind: example
 index: 39
 heading: FMOD_DSP_PARAMETER_DESC_DATA
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1239,6 +1274,7 @@ FMOD_DSP_PARAMETER_DESC_DATA
 kind: example
 index: 40
 heading: FMOD_DSP_PARAMETER_DESC_FLOAT
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1275,6 +1311,7 @@ FMOD_DSP_PARAMETER_DESC_FLOAT
 kind: example
 index: 41
 heading: FMOD_DSP_PARAMETER_DESC_INT
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1314,6 +1351,7 @@ FMOD_DSP_PARAMETER_DESC_INT
 kind: example
 index: 42
 heading: FMOD_DSP_PARAMETER_DYNAMIC_RESPONSE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1345,6 +1383,7 @@ DSP_PARAMETER_DYNAMIC_RESPONSE
 kind: example
 index: 43
 heading: FMOD_DSP_PARAMETER_FFT
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1381,6 +1420,7 @@ FMOD_DSP_PARAMETER_FFT
 kind: example
 index: 44
 heading: FMOD_DSP_PARAMETER_FINITE_LENGTH
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1410,6 +1450,7 @@ DSP_PARAMETER_FINITE_LENGTH
 kind: example
 index: 45
 heading: FMOD_DSP_PARAMETER_FLOAT_MAPPING
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1441,6 +1482,7 @@ FMOD_DSP_PARAMETER_FLOAT_MAPPING
 kind: example
 index: 46
 heading: FMOD_DSP_PARAMETER_FLOAT_MAPPING_PIECEWISE_LINEAR
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1473,6 +1515,7 @@ FMOD_DSP_PARAMETER_FLOAT_MAPPING_PIECEWISE_LINEAR
 kind: example
 index: 47
 heading: FMOD_DSP_PARAMETER_FLOAT_MAPPING_TYPE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1504,6 +1547,7 @@ FMOD.DSP_PARAMETER_FLOAT_MAPPING_TYPE_PIECEWISE_LINEAR
 kind: example
 index: 48
 heading: FMOD_DSP_PARAMETER_OVERALLGAIN
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1535,6 +1579,7 @@ FMOD_DSP_PARAMETER_OVERALLGAIN
 kind: example
 index: 49
 heading: FMOD_DSP_PARAMETER_SIDECHAIN
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1563,6 +1608,7 @@ FMOD_DSP_PARAMETER_SIDECHAIN
 kind: example
 index: 50
 heading: FMOD_DSP_PARAMETER_TYPE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1600,6 +1646,7 @@ FMOD.DSP_PARAMETER_TYPE_MAX
 kind: example
 index: 51
 heading: FMOD_DSP_PROCESS_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1716,6 +1763,7 @@ static RESULT Process(ref DSP_STATE dsp_state, uint length, ref DSP_BUFFER_ARRAY
 kind: example
 index: 54
 heading: FMOD_DSP_PROCESS_OPERATION
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1738,6 +1786,7 @@ enum DSP_PROCESS_OPERATION
 kind: example
 index: 55
 heading: FMOD_DSP_READ_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1854,6 +1903,7 @@ function Read(dsp_state, inbuffer, outbuffer, length, inchannels, outchannels)
 kind: example
 index: 59
 heading: FMOD_DSP_REALLOC_FUNC
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1879,6 +1929,7 @@ delegate IntPtr DSP_REALLOC_FUNC(
 kind: example
 index: 60
 heading: FMOD_DSP_RELEASE_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1906,6 +1957,7 @@ function FMOD_DSP_RELEASE_CALLBACK(
 kind: example
 index: 61
 heading: FMOD_DSP_RESET_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1933,6 +1985,7 @@ function FMOD_DSP_RESET_CALLBACK(
 kind: example
 index: 62
 heading: FMOD_DSP_SETPARAM_BOOL_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1966,6 +2019,7 @@ function FMOD_DSP_SETPARAM_BOOL_CALLBACK(
 kind: example
 index: 63
 heading: FMOD_DSP_SETPARAM_DATA_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -2002,6 +2056,7 @@ function FMOD_DSP_SETPARAM_DATA_CALLBACK(
 kind: example
 index: 64
 heading: FMOD_DSP_SETPARAM_FLOAT_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -2035,6 +2090,7 @@ function FMOD_DSP_SETPARAM_FLOAT_CALLBACK(
 kind: example
 index: 65
 heading: FMOD_DSP_SETPARAM_INT_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -2068,6 +2124,7 @@ function FMOD_DSP_SETPARAM_INT_CALLBACK(
 kind: example
 index: 66
 heading: FMOD_DSP_SETPOSITION_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -2098,6 +2155,7 @@ function FMOD_DSP_SETPOSITION_CALLBACK(
 kind: example
 index: 67
 heading: FMOD_DSP_SHOULDIPROCESS_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -2157,6 +2215,7 @@ static FMOD_RESULT F_CALL shouldIProcess(FMOD_DSP_STATE *dsp_state, bool inputsi
 kind: example
 index: 69
 heading: FMOD_DSP_STATE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -2364,6 +2423,7 @@ function Release(dsp_state)
 kind: example
 index: 73
 heading: FMOD_DSP_STATE_DFT_FUNCTIONS
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -2386,6 +2446,7 @@ struct DSP_STATE_DFT_FUNCTIONS
 kind: example
 index: 74
 heading: FMOD_DSP_STATE_FUNCTIONS
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -2438,6 +2499,7 @@ DSP_STATE_FUNCTIONS
 kind: example
 index: 75
 heading: FMOD_DSP_STATE_PAN_FUNCTIONS
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -2468,6 +2530,7 @@ struct DSP_STATE_PAN_FUNCTIONS
 kind: example
 index: 76
 heading: FMOD_DSP_SYSTEM_DEREGISTER_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -2495,6 +2558,7 @@ function FMOD_DSP_SYSTEM_DEREGISTER_CALLBACK(
 kind: example
 index: 77
 heading: FMOD_DSP_SYSTEM_MIX_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -2525,6 +2589,7 @@ function FMOD_DSP_SYSTEM_MIX_CALLBACK(
 kind: example
 index: 78
 heading: FMOD_DSP_SYSTEM_REGISTER_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -2552,6 +2617,7 @@ function FMOD_DSP_SYSTEM_REGISTER_CALLBACK(
 kind: example
 index: 79
 heading: FMOD_PLUGIN_SDK_VERSION
+tabbed: yes
 
 ### C/C++
 ```cpp

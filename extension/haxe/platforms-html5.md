@@ -23,10 +23,9 @@ verdict: bound
 ```haxe
 import haxefmod.core.Sound;
 
-var sound = Sound.create("lion.wav");
 var name:String; // to store name of sound.
 
-name = sound.getName();
+name = sound.getName(); // the returned value. Assign it to the variable we want to keep.
 
 trace(name);
 ```
@@ -42,36 +41,22 @@ verdict: bound
 ```haxe
 import haxefmod.core.Sound;
 
-var sound = Sound.create("lion.wav", false);
+var sound = Sound.create("/lion.wav", false);
 if (sound.isNull()) {
-    trace("createSound failed: " + StudioSystem.lastResult());
+    trace(StudioSystem.lastResult());
 }
 ```
 
 ## Via memory
 verdict: bound
+waive: extra-calls the web snippet's createStream is Sound.fromMemory with the CREATESTREAM mode
 ```haxe
 import haxefmod.core.Sound;
 import haxefmod.core.ChannelMode;
 
-var image = haxe.io.Bytes.alloc(0); // an FSB file image fetched by the game
-
-var sound = Sound.fromMemory(image, ChannelMode.LOOP_OFF | ChannelMode.CREATESTREAM, image.length);
+var sound = Sound.fromMemory(chars, ChannelMode.LOOP_OFF | ChannelMode.CREATESTREAM, chars.length);
 if (sound.isNull()) {
-    trace("fromMemory failed: " + StudioSystem.lastResult());
-}
-
-var bytes = haxe.io.Bytes.alloc(48000 * 2 * 2);
-
-var pcmSound = Sound.fromPcm(bytes, 48000, 2);
-if (pcmSound.isNull()) {
-    trace("fromPcm failed: " + StudioSystem.lastResult());
-}
-
-var bankBytes = haxe.io.Bytes.alloc(0);
-var bank = StudioSystem.loadBankMemory(bankBytes);
-if (bank.isNull()) {
-    trace("loadBankMemory failed: " + StudioSystem.lastResult());
+    trace(StudioSystem.lastResult());
 }
 ```
 

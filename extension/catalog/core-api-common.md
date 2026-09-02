@@ -4,6 +4,7 @@
 kind: example
 index: 0
 heading: FMOD_3D_ATTRIBUTES
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -41,6 +42,7 @@ _3D_ATTRIBUTES
 kind: example
 index: 1
 heading: FMOD_CHANNELMASK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -116,6 +118,7 @@ CHANNELMASK_7POINT1         = (CHANNELMASK_FRONT_LEFT | CHANNELMASK_FRONT_RIGHT 
 kind: example
 index: 2
 heading: FMOD_CHANNELORDER
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -159,6 +162,7 @@ CHANNELORDER_MAX
 kind: example
 index: 3
 heading: FMOD_CPU_USAGE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -202,6 +206,7 @@ CPU_USAGE
 kind: example
 index: 4
 heading: FMOD_DEBUG_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -229,6 +234,7 @@ delegate RESULT DEBUG_CALLBACK(
 kind: example
 index: 5
 heading: FMOD_DEBUG_FLAGS
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -327,6 +333,7 @@ Debug_Initialize(
 kind: example
 index: 7
 heading: FMOD_DEBUG_MODE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -387,6 +394,7 @@ FMOD_RESULT FMOD_File_SetDiskBusy(
 kind: example
 index: 10
 heading: FMOD_GUID
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -418,6 +426,7 @@ FMOD_GUID
 kind: example
 index: 11
 heading: FMOD_MAX_CHANNEL_WIDTH
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -441,6 +450,7 @@ MAX_CHANNEL_WIDTH = 32
 kind: example
 index: 12
 heading: FMOD_MAX_LISTENERS
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -464,6 +474,7 @@ MAX_LISTENERS = 8
 kind: example
 index: 13
 heading: FMOD_MAX_SYSTEMS
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -482,6 +493,7 @@ class CONSTANTS
 kind: example
 index: 14
 heading: FMOD_MEMORY_ALLOC_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -505,6 +517,7 @@ delegate IntPtr MEMORY_ALLOC_CALLBACK(
 kind: example
 index: 15
 heading: FMOD_MEMORY_FREE_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -608,6 +621,7 @@ static RESULT Memory.Initialize(
 kind: example
 index: 18
 heading: FMOD_MEMORY_REALLOC_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -633,6 +647,7 @@ delegate IntPtr MEMORY_REALLOC_CALLBACK(
 kind: example
 index: 19
 heading: FMOD_MEMORY_TYPE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -666,6 +681,7 @@ enum MEMORY_TYPE : uint
 kind: example
 index: 20
 heading: FMOD_MODE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -774,6 +790,7 @@ VIRTUAL_PLAYFROMSTART       = 0x80000000
 kind: example
 index: 21
 heading: FMOD_RESULT
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1042,6 +1059,7 @@ ERR_TOOMANYSAMPLES
 kind: example
 index: 22
 heading: FMOD_SPEAKER
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1106,6 +1124,7 @@ SPEAKER_MAX
 kind: example
 index: 23
 heading: FMOD_SPEAKERMODE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1158,6 +1177,7 @@ SPEAKERMODE_MAX
 kind: example
 index: 24
 heading: FMOD_SYNCPOINT
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1173,6 +1193,7 @@ IntPtr
 kind: example
 index: 25
 heading: FMOD_THREAD_AFFINITY
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1254,6 +1275,7 @@ enum THREAD_AFFINITY : long
 kind: example
 index: 26
 heading: FMOD_THREAD_PRIORITY
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1344,6 +1366,7 @@ static RESULT Thread.SetAttributes(
 kind: example
 index: 28
 heading: FMOD_THREAD_STACK_SIZE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1384,6 +1407,7 @@ enum THREAD_STACK_SIZE : uint
 kind: example
 index: 29
 heading: FMOD_THREAD_TYPE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1430,6 +1454,7 @@ enum THREAD_TYPE : int
 kind: example
 index: 30
 heading: FMOD_TIMEUNIT
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1475,6 +1500,7 @@ TIMEUNIT_MODPATTERN    = 0x00000400
 kind: example
 index: 31
 heading: FMOD_VECTOR
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1509,6 +1535,7 @@ FMOD_VECTOR
 kind: example
 index: 32
 heading: FMOD_VERSION
+tabbed: yes
 
 ### C/C++
 ```cpp

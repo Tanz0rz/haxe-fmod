@@ -90,6 +90,7 @@
 ### Fixed
 - Pointing `FMOD_SDK` at the HTML5 FMOD Engine package (or `FMOD_SDK_WEB` at a desktop one) now fails the build with a message naming the swapped packages. Previously a native build got as far as copying libraries and died with an uncaught exception on macOS and Windows. Both packages ship the same `api/core/inc` headers, so the check is the platform's own core library rather than a header.
 - A desktop FMOD SDK missing the libraries for the platform being built now reports the missing file with setup instructions instead of an uncaught exception. Linux already did this; macOS and Windows now match.
+- **Docs extension**: lone example blocks on pages with a language selector no longer get an added tab strip. The site's own tabs already govern every language-classed block on the page, so the Haxe translation now joins that toggle and shows when Haxe is picked at the top. Previously each lone block grew its own strip, an example repeated once per language showed orphaned strips over hidden code, and picking Haxe stacked identical snippets. Added strips remain only on guide and platform pages, which have no selector to extend. Example translations were also re-reviewed against the site's own snippets: invented file names, values, and setup lines are gone, and each fence mirrors the snippet's data and shape.
 
 ## 2.0.0 (2026-08-27)
 

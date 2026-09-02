@@ -112,6 +112,7 @@ FSBANK_RESULT FSBank_FetchNextProgressItem(
 kind: example
 index: 9
 heading: 20.10 FSBANK_MEMORY_ALLOC_CALLBACK
+tabbed: yes
 
 ### C
 ```c
@@ -126,6 +127,7 @@ void * FSBANK_CALLBACK FSBANK_MEMORY_ALLOC_CALLBACK(
 kind: example
 index: 10
 heading: 20.11 FSBANK_MEMORY_FREE_CALLBACK
+tabbed: yes
 
 ### C
 ```c
@@ -140,6 +142,7 @@ void FSBANK_CALLBACK FSBANK_MEMORY_FREE_CALLBACK(
 kind: example
 index: 11
 heading: 20.12 FSBANK_MEMORY_REALLOC_CALLBACK
+tabbed: yes
 
 ### C
 ```c
@@ -155,6 +158,7 @@ void * FSBANK_CALLBACK FSBANK_MEMORY_REALLOC_CALLBACK(
 kind: example
 index: 12
 heading: 20.13 FSBANK_INITFLAGS
+tabbed: yes
 
 ### C
 ```c
@@ -170,6 +174,7 @@ heading: 20.13 FSBANK_INITFLAGS
 kind: example
 index: 13
 heading: 20.14 FSBANK_BUILDFLAGS
+tabbed: yes
 
 ### C
 ```c
@@ -191,6 +196,7 @@ heading: 20.14 FSBANK_BUILDFLAGS
 kind: example
 index: 14
 heading: 20.15 FSBANK_FORMAT
+tabbed: yes
 
 ### C
 ```c
@@ -209,6 +215,7 @@ typedef enum FSBANK_FORMAT {
 kind: example
 index: 15
 heading: 20.16 FSBANK_FSBVERSION
+tabbed: yes
 
 ### C
 ```c
@@ -222,6 +229,7 @@ typedef enum FSBANK_FSBVERSION {
 kind: example
 index: 16
 heading: 20.17 FSBANK_PROGRESSITEM
+tabbed: yes
 
 ### C
 ```c
@@ -237,6 +245,7 @@ typedef struct FSBANK_PROGRESSITEM {
 kind: example
 index: 17
 heading: 20.18 FSBANK_RESULT
+tabbed: yes
 
 ### C
 ```c
@@ -271,6 +280,7 @@ typedef enum FSBANK_RESULT {
 kind: example
 index: 18
 heading: 20.19 FSBANK_STATE
+tabbed: yes
 
 ### C
 ```c
@@ -290,6 +300,7 @@ typedef enum FSBANK_STATE {
 kind: example
 index: 19
 heading: 20.20 FSBANK_STATEDATA_FAILED
+tabbed: yes
 
 ### C
 ```c
@@ -303,6 +314,7 @@ typedef struct FSBANK_STATEDATA_FAILED {
 kind: example
 index: 20
 heading: 20.21 FSBANK_STATEDATA_WARNING
+tabbed: yes
 
 ### C
 ```c
@@ -316,6 +328,7 @@ typedef struct FSBANK_STATEDATA_WARNING {
 kind: example
 index: 21
 heading: 20.22 FSBANK_SUBSOUND
+tabbed: yes
 
 ### C
 ```c

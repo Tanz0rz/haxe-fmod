@@ -21,11 +21,8 @@ programmerSoundContext.coreSystem = CoreSystem;
 ## 13.9.1 Scripting Example#2
 verdict: bound
 ```haxe
-import haxefmod.studio.FmodResult;
-
-var eventInstance = StudioSystem.getEvent("event:/Character/Dialogue").createInstance();
-var result = eventInstance.assignProgrammerSound("welcome");
-if (result != FmodResult.FMOD_OK) trace("assignProgrammerSound failed: " + result);
+// The library owns the programmer-sound callback and its user data.
+var result = eventInstance.assignProgrammerSound(key);
 ```
 
 ## 13.9.1 Scripting Example#3
@@ -36,8 +33,7 @@ import haxefmod.studio.Types.FmodLoadBankFlags;
 
 // Available banks
 // "Dialogue_EN.bank", "Dialogue_JP.bank", "Dialogue_CN.bank"
-var localizedBank:Bank = StudioSystem.loadBankFile("assets/fmod/Desktop/Dialogue_JP.bank", FmodLoadBankFlags.NORMAL);
-var eventInstance = StudioSystem.getEvent("event:/Character/Dialogue").createInstance();
+var localizedBank:Bank = StudioSystem.loadBankFile("Dialogue_JP.bank", FmodLoadBankFlags.NORMAL);
 eventInstance.assignProgrammerSound("welcome");
 eventInstance.start();
 ```

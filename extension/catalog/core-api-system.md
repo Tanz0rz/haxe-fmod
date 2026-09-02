@@ -4,6 +4,7 @@
 kind: example
 index: 0
 heading: FMOD_3D_ROLLOFF_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -25,6 +26,7 @@ delegate float CB_3D_ROLLOFFCALLBACK(
 kind: example
 index: 1
 heading: FMOD_ADVANCEDSETTINGS
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -113,6 +115,7 @@ ADVANCEDSETTINGS
 kind: example
 index: 2
 heading: FMOD_ASYNCREADINFO
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -147,6 +150,7 @@ struct ASYNCREADINFO
 kind: example
 index: 3
 heading: FMOD_CREATESOUNDEXINFO
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -278,6 +282,7 @@ CREATESOUNDEXINFO
 kind: example
 index: 4
 heading: FMOD_DRIVER_STATE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -305,6 +310,7 @@ DRIVER_STATE_DEFAULT   = 0x00000002
 kind: example
 index: 5
 heading: FMOD_DSP_RESAMPLER
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -345,6 +351,7 @@ DSP_RESAMPLER_MAX
 kind: example
 index: 6
 heading: FMOD_ERRORCALLBACK_INFO
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -385,6 +392,7 @@ ERRORCALLBACK_INFO
 kind: example
 index: 7
 heading: FMOD_ERRORCALLBACK_INSTANCETYPE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -464,6 +472,7 @@ ERRORCALLBACK_INSTANCETYPE_STUDIO_COMMANDREPLAY
 kind: example
 index: 8
 heading: FMOD_FILE_ASYNCCANCEL_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -485,6 +494,7 @@ delegate RESULT FILE_ASYNCCANCELCALLBACK(
 kind: example
 index: 9
 heading: FMOD_FILE_ASYNCDONE_FUNC
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -506,6 +516,7 @@ delegate void FILE_ASYNCDONE_FUNC(
 kind: example
 index: 10
 heading: FMOD_FILE_ASYNCREAD_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -527,6 +538,7 @@ delegate RESULT FILE_ASYNCREADCALLBACK(
 kind: example
 index: 11
 heading: FMOD_FILE_CLOSE_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -556,6 +568,7 @@ function FMOD_FILE_CLOSE_CALLBACK(
 kind: example
 index: 12
 heading: FMOD_FILE_OPEN_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -591,6 +604,7 @@ function FMOD_FILE_OPEN_CALLBACK(
 kind: example
 index: 13
 heading: FMOD_FILE_READ_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -629,6 +643,7 @@ function FMOD_FILE_READ_CALLBACK(
 kind: example
 index: 14
 heading: FMOD_FILE_SEEK_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -661,6 +676,7 @@ function FMOD_FILE_SEEK_CALLBACK(
 kind: example
 index: 15
 heading: FMOD_INITFLAGS
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -724,6 +740,7 @@ INIT_MEMORY_TRACKING        = 0x00400000
 kind: example
 index: 16
 heading: FMOD_OUTPUTTYPE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -815,6 +832,7 @@ OUTPUTTYPE_MAX
 kind: example
 index: 17
 heading: FMOD_PLUGINLIST
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -828,6 +846,7 @@ typedef struct FMOD_PLUGINLIST {
 kind: example
 index: 18
 heading: FMOD_PLUGINTYPE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -862,6 +881,7 @@ PLUGINTYPE_MAX
 kind: example
 index: 19
 heading: FMOD_PORT_INDEX
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -885,6 +905,7 @@ PORT_INDEX_NONE = 0xFFFFFFFFFFFFFFFF
 kind: example
 index: 20
 heading: FMOD_PORT_TYPE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -938,6 +959,7 @@ PORT_TYPE_MAX
 kind: example
 index: 21
 heading: FMOD_REVERB_MAXINSTANCES
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -961,6 +983,7 @@ REVERB_MAXINSTANCES = 4
 kind: example
 index: 22
 heading: FMOD_REVERB_PRESETS
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1025,6 +1048,7 @@ class PRESET
 kind: example
 index: 23
 heading: FMOD_REVERB_PROPERTIES
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1176,6 +1200,7 @@ System.attachFileSystem(
 kind: example
 index: 26
 heading: FMOD_SYSTEM_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -1214,6 +1239,7 @@ function FMOD_SYSTEM_CALLBACK(
 kind: example
 index: 27
 heading: FMOD_SYSTEM_CALLBACK_TYPE
+tabbed: yes
 
 ### C/C++
 ```cpp

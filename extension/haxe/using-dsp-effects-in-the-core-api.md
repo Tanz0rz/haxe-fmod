@@ -7,7 +7,6 @@ import haxefmod.core.Sound;
 import haxefmod.core.Dsp;
 import haxefmod.core.DspType;
 
-var sound = Sound.create("drumloop.wav");
 var channel = sound.play();
 var dsp_echo = Dsp.create(DspType.ECHO);
 var result = channel.addDsp(0, dsp_echo);
@@ -16,11 +15,6 @@ var result = channel.addDsp(0, dsp_echo);
 ## Add a DSP effect to a Channel#2
 verdict: bound
 ```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-var dsp_echo = Dsp.create(DspType.ECHO);
-channel.addDsp(0, dsp_echo);
 var result = channel.setDspIndex(dsp_echo, 1);
 ```
 
@@ -40,7 +34,6 @@ import haxefmod.core.ChannelGroup;
 import haxefmod.core.Dsp;
 import haxefmod.core.DspType;
 
-var channelgroup = ChannelGroup.create("my channelgroup");
 var dsp_lowpass = Dsp.create(DspType.LOWPASS);
 var result = channelgroup.addDsp(1, dsp_lowpass);
 ```
@@ -61,10 +54,6 @@ var connection = dsp_tail.addInput(dsp_reverb);
 ## Creating an effect and making all Channels send to it.#2
 verdict: bound
 ```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-var dsp_reverb = Dsp.create(DspType.SFXREVERB);
 var result = dsp_reverb.setActive(true);
 ```
 
@@ -76,10 +65,6 @@ import haxefmod.core.Sound;
 import haxefmod.core.ChannelGroup;
 import haxefmod.core.Dsp;
 import haxefmod.core.DspType;
-
-var sound = Sound.create("drumloop.wav");
-var channelgroup = ChannelGroup.create("my channelgroup");
-var dsp_reverb = Dsp.create(DspType.SFXREVERB);
 
 var channel = sound.play(true, channelgroup);                                       /* Play the sound.  Play it paused so we dont hear the sound play before it is connected to the reverb. */
 var channel_dsp_head = channel.getDsp(Channel.DSP_HEAD);                            /* Grab the 'head' unit for the Channel */
@@ -96,10 +81,6 @@ import haxefmod.core.ChannelGroup;
 import haxefmod.core.Dsp;
 import haxefmod.core.DspType;
 
-var sound = Sound.create("drumloop.wav");
-var channelgroup = ChannelGroup.create("my channelgroup");
-var dsp_reverb = Dsp.create(DspType.SFXREVERB);
-
 var channel = sound.play(true, channelgroup);                                       /* Play the sound.  Play it paused so we dont hear the sound play before it is connected to the reverb. */
 var channel_dsp_head = channel.getDsp(Channel.DSP_HEAD);                            /* Grab the 'head' unit for the Channel */
 var dsp_connection = dsp_reverb.addInput(channel_dsp_head);                         /* Manually add a connection from the Channel DSP head to the reverb. */
@@ -109,23 +90,14 @@ var result = channel.setPaused(false);                                          
 ## Controlling mix level and pan matrices for DSPConnections#2
 verdict: bound
 ```haxe
-import haxefmod.core.Channel;
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-var dsp_reverb = Dsp.create(DspType.SFXREVERB);
-var dsp_connection = dsp_reverb.addInput(channel.getDsp(Channel.DSP_HEAD));
 var result = dsp_connection.setMix(0.0);
 ```
 
 ## Set the output format of a DSP unit, and control the pan matrix for its output signal
 verdict: bound
 ```haxe
-import haxefmod.core.Channel;
-import haxefmod.core.Dsp;
 import haxefmod.studio.Types.FmodSpeakerMode;
 
-var channel_dsp_head = channel.getDsp(Channel.DSP_HEAD);
 var result = channel_dsp_head.setChannelFormat(0, 0, FmodSpeakerMode.QUAD);
 ```
 
@@ -135,7 +107,6 @@ verdict: bound
 import haxefmod.core.Channel;
 import haxefmod.core.Dsp;
 
-var channel_dsp_head = channel.getDsp(Channel.DSP_HEAD);
 var matrix:Array<Float> =
 [   /*                                    FL FR SL SR <- Input signal (columns) */
     /* row 0 = front left  out    <- */    0, 0, 0, 0,
@@ -150,10 +121,6 @@ var result = channel_dsp_head_output_connection.setMixMatrix(matrix, 4, 4);
 ## Bypass an effect / disable it.
 verdict: bound
 ```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspType;
-
-var dsp_reverb = Dsp.create(DspType.SFXREVERB);
 var result = dsp_reverb.setBypass(true);
 ```
 
@@ -163,19 +130,19 @@ verdict: cannot registerPlugin and registerDSP take a DSP description whose call
 ## 7.2 Plug-in DSP Effects#2
 verdict: bound
 ```haxe
-var handle = StudioSystem.loadPlugin("plugin_name.dll", 0);
+var handle = StudioSystem.loadPlugin(filename, 0);
 ```
 
 ## 7.2 Plug-in DSP Effects#3
 verdict: bound
 ```haxe
-var result = StudioSystem.setPluginPath("plugins");
+var result = StudioSystem.setPluginPath(path);
 ```
 
 ## 7.2 Plug-in DSP Effects#4
 verdict: bound
 ```haxe
-var handle = StudioSystem.loadPlugin("plugin_name.dll");
+// Studio::System::unregisterPlugin stays C side with plug-in registration (see 7.2).
 var result = StudioSystem.unloadPlugin(handle);
 ```
 

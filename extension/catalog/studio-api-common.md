@@ -4,6 +4,7 @@
 kind: example
 index: 0
 heading: FMOD_STUDIO_LOADING_STATE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -41,6 +42,7 @@ STUDIO_LOADING_STATE_ERROR
 kind: example
 index: 1
 heading: FMOD_STUDIO_MEMORY_USAGE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -65,6 +67,7 @@ struct Studio.MEMORY_USAGE
 kind: example
 index: 2
 heading: FMOD_STUDIO_PARAMETER_DESCRIPTION
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -114,6 +117,7 @@ FMOD_STUDIO_PARAMETER_DESCRIPTION
 kind: example
 index: 3
 heading: FMOD_STUDIO_PARAMETER_FLAGS
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -149,6 +153,7 @@ STUDIO_PARAMETER_LABELED    0x00000010
 kind: example
 index: 4
 heading: FMOD_STUDIO_PARAMETER_ID
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -181,6 +186,7 @@ FMOD_STUDIO_PARAMETER_ID
 kind: example
 index: 5
 heading: FMOD_STUDIO_PARAMETER_TYPE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -264,6 +270,7 @@ static RESULT Studio.Util.parseID(
 kind: example
 index: 7
 heading: FMOD_STUDIO_PLAYBACK_STATE
+tabbed: yes
 
 ### C/C++
 ```cpp

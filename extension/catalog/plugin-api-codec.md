@@ -4,6 +4,7 @@
 kind: example
 index: 0
 heading: FMOD_CODEC_ALLOC_FUNC
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -19,6 +20,7 @@ void * F_CALL FMOD_CODEC_ALLOC_FUNC(
 kind: example
 index: 1
 heading: FMOD_CODEC_CLOSE_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -31,6 +33,7 @@ FMOD_RESULT F_CALL FMOD_CODEC_CLOSE_CALLBACK(
 kind: example
 index: 2
 heading: FMOD_CODEC_DESCRIPTION
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -75,6 +78,7 @@ FMOD_CODEC_DESCRIPTION
 kind: example
 index: 3
 heading: FMOD_CODEC_FILE_READ_FUNC
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -90,6 +94,7 @@ FMOD_RESULT F_CALL FMOD_CODEC_FILE_READ_FUNC(
 kind: example
 index: 4
 heading: FMOD_CODEC_FILE_SEEK_FUNC
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -104,6 +109,7 @@ FMOD_RESULT F_CALL FMOD_CODEC_FILE_SEEK_FUNC(
 kind: example
 index: 5
 heading: FMOD_CODEC_FILE_SIZE_FUNC
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -117,6 +123,7 @@ FMOD_RESULT F_CALL FMOD_CODEC_FILE_SIZE_FUNC(
 kind: example
 index: 6
 heading: FMOD_CODEC_FILE_TELL_FUNC
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -130,6 +137,7 @@ FMOD_RESULT F_CALL FMOD_CODEC_FILE_TELL_FUNC(
 kind: example
 index: 7
 heading: FMOD_CODEC_FREE_FUNC
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -144,6 +152,7 @@ void F_CALL FMOD_CODEC_FREE_FUNC(
 kind: example
 index: 8
 heading: FMOD_CODEC_GETLENGTH_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -158,6 +167,7 @@ FMOD_RESULT F_CALL FMOD_CODEC_GETLENGTH_CALLBACK(
 kind: example
 index: 9
 heading: FMOD_CODEC_GETPOSITION_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -172,6 +182,7 @@ FMOD_RESULT F_CALL FMOD_CODEC_GETPOSITION_CALLBACK(
 kind: example
 index: 10
 heading: FMOD_CODEC_GETWAVEFORMAT_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -186,6 +197,7 @@ FMOD_RESULT F_CALL FMOD_CODEC_GETWAVEFORMAT_CALLBACK(
 kind: example
 index: 11
 heading: FMOD_CODEC_LOG_FUNC
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -203,6 +215,7 @@ void F_CALL FMOD_CODEC_LOG_FUNC(
 kind: example
 index: 12
 heading: FMOD_CODEC_METADATA_FUNC
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -221,6 +234,7 @@ FMOD_RESULT F_CALL FMOD_CODEC_METADATA_FUNC(
 kind: example
 index: 13
 heading: FMOD_CODEC_OPEN_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -235,6 +249,7 @@ FMOD_RESULT F_CALL FMOD_CODEC_OPEN_CALLBACK(
 kind: example
 index: 14
 heading: FMOD_CODEC_PLUGIN_VERSION
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -250,6 +265,7 @@ FMOD.CODEC_PLUGIN_VERSION
 kind: example
 index: 15
 heading: FMOD_CODEC_READ_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -265,6 +281,7 @@ FMOD_RESULT F_CALL FMOD_CODEC_READ_CALLBACK(
 kind: example
 index: 16
 heading: FMOD_CODEC_SEEK_METHOD
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -277,6 +294,7 @@ heading: FMOD_CODEC_SEEK_METHOD
 kind: example
 index: 17
 heading: FMOD_CODEC_SETPOSITION_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -292,6 +310,7 @@ FMOD_RESULT F_CALL FMOD_CODEC_SETPOSITION_CALLBACK(
 kind: example
 index: 18
 heading: FMOD_CODEC_SOUNDCREATE_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -306,6 +325,7 @@ FMOD_RESULT F_CALL FMOD_CODEC_SOUNDCREATE_CALLBACK(
 kind: example
 index: 19
 heading: FMOD_CODEC_STATE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -332,6 +352,7 @@ FMOD_CODEC_STATE
 kind: example
 index: 20
 heading: FMOD_CODEC_STATE_FUNCTIONS
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -351,6 +372,7 @@ typedef struct FMOD_CODEC_STATE_FUNCTIONS {
 kind: example
 index: 21
 heading: FMOD_CODEC_WAVEFORMAT
+tabbed: yes
 
 ### C/C++
 ```cpp
