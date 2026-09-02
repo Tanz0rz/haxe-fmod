@@ -52,9 +52,10 @@ concurrency:
 
 jobs:
   build:
-    # Pushes build on the self-hosted runner. Pull requests stay on
-    # GitHub-hosted runners so fork PRs never execute on local hardware.
-    runs-on: ${{ github.event_name == 'push' && 'self-hosted' || 'ubuntu-latest' }}
+    # Pushes and manual dispatches build on the self-hosted runner. Pull
+    # requests stay on GitHub-hosted runners so fork PRs never execute on
+    # local hardware.
+    runs-on: ${{ github.event_name != 'pull_request' && 'self-hosted' || 'ubuntu-latest' }}
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v5
