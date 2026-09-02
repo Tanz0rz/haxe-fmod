@@ -21,6 +21,7 @@ With no argument README.md and MIGRATION.md are checked. A directory is
 searched for *.md files recursively.
 """
 
+import concurrent.futures
 import os
 import re
 import subprocess
@@ -268,6 +269,7 @@ def main():
             os.makedirs(os.path.dirname(path), exist_ok=True)
             with open(path, "w", encoding="utf-8") as out:
                 out.write(content)
+        commands = []
         for index, (doc_name, doc_index, fence) in enumerate(fences):
             header, members, statements, types = split_snippet(fence.strip())
             uses_flixel = "flixel" in fence
@@ -303,15 +305,24 @@ def main():
             elif uses_kha:
                 command += ["-cp", kha_dir, "-js", os.path.join(workdir, "out.js")]
             command.append(f"Snippet{index}")
-            result = subprocess.run(command, capture_output=True, text=True)
-            if result.returncode != 0:
-                failures += 1
-                print(f"FAIL: {doc_name} fence {doc_index} does not compile:")
-                print("--- snippet ---")
-                print(fence.strip())
-                print("--- compiler ---")
-                print(result.stderr.strip())
-                print()
+            commands.append(command)
+        # The compiles are independent (--no-output writes nothing, each
+        # fence is its own module), so they fan out across the cores.
+        # Results come back in fence order, so failures print exactly as
+        # the serial loop printed them.
+        def compile_fence(command):
+            return subprocess.run(command, capture_output=True, text=True)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()) as pool:
+            results = pool.map(compile_fence, commands)
+            for (doc_name, doc_index, fence), result in zip(fences, results):
+                if result.returncode != 0:
+                    failures += 1
+                    print(f"FAIL: {doc_name} fence {doc_index} does not compile:")
+                    print("--- snippet ---")
+                    print(fence.strip())
+                    print("--- compiler ---")
+                    print(result.stderr.strip())
+                    print()
     print(f"readme-snippets: {len(fences)} fences, {failures} failing")
     if failures:
         return 1
