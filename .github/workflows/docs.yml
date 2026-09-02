@@ -52,7 +52,9 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    # Pushes build on the self-hosted runner. Pull requests stay on
+    # GitHub-hosted runners so fork PRs never execute on local hardware.
+    runs-on: ${{ github.event_name == 'push' && 'self-hosted' || 'ubuntu-latest' }}
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v5
@@ -91,7 +93,9 @@ jobs:
       - name: Drive the extension over the fixture matrix
         run: |
           npm install playwright > /dev/null
-          npx playwright install --with-deps chromium
+          # --with-deps needs apt and root, so the self-hosted runner
+          # installs the browser alone and relies on system libraries
+          if [ "${{ runner.environment }}" = "self-hosted" ]; then npx playwright install chromium; else npx playwright install --with-deps chromium; fi
           node extension/test/run.js --headless --all
 
       - name: Generate type XML
