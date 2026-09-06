@@ -156,8 +156,8 @@ The [export script](https://github.com/Tanz0rz/haxe-fmod/blob/master/fmod-script
 ![Haxe Constants Demo](https://raw.githubusercontent.com/Tanz0rz/haxe-fmod/master/.github/fmod_constants.gif)
 
 ```haxe
-FmodManager.PlaySong(FmodEvents.MusicMainLevel);
-FmodManager.PlaySong("event:/Music/MainLevel"); // the same call with the path
+FmodManager.PlaySong(FmodEvents.MusicLetsGo);
+FmodManager.PlaySong("event:/Music/LetsGo"); // the same call with the path
 ```
 
 [Generating constants in the docs](https://tanz0rz.github.io/haxe-fmod/guides/constants/) covers the setup and what gets generated.
