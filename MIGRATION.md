@@ -58,15 +58,15 @@ The binding ABI is 11. The build refuses a prebuilt `hlaxe_fmod.hdll` from 2.0 a
 
 # Migrating from haxefmod 1.x to 2.0
 
-haxefmod 2.0 is a clean break. The string-based sound IDs and bitmask polling callbacks are gone. Typed handles and payload-carrying callbacks replace them. The full FMOD Studio API is now exposed underneath the facade.
+haxefmod 2.0 is a clean break. The string-based sound IDs and bitmask polling callbacks are gone. Typed handles and payload-carrying callbacks replace them. The full FMOD Studio API is now exposed underneath the helper class.
 
 ## The big picture
 
 2.0 is layered. Use the layer that fits:
 
-- `FmodManager` is the friendly facade with the song slot and sound effects, in the same spirit as 1.x.
+- `FmodManager` is the friendly helper class with the song slot and sound effects, in the same spirit as 1.x.
 - `haxefmod.runtime.FmodRuntime` is the engine-agnostic runtime with settings, refcounted banks, 3D attachment, and listeners.
-- `haxefmod.studio.*` is the complete FMOD Studio API with events, buses, VCAs, banks, parameters, and profiling. Anything the facade does not cover is available here.
+- `haxefmod.studio.*` is the complete FMOD Studio API with events, buses, VCAs, banks, parameters, and profiling. Anything the helper class does not cover is available here.
 
 ## Removed APIs and their replacements
 

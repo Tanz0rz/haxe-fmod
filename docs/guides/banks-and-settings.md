@@ -1,6 +1,6 @@
 # Banks and settings
 
-`haxefmod.runtime` sits between the facade and the FMOD Studio bindings. `FmodRuntime` initializes the engine from a settings object and loads the default banks. It owns the bank registry and runs the per-frame update. `FmodManager` is built on it. A game that wants more control uses it directly.
+`haxefmod.runtime` sits between the helper class and the FMOD Studio bindings. `FmodRuntime` initializes the engine from a settings object and loads the default banks. It owns the bank registry and runs the per-frame update. `FmodManager` is built on it. A game that wants more control uses it directly.
 
 ## Initialization
 

@@ -14,7 +14,7 @@ import haxefmod.studio.native.NativeStudio;
 /**
  * The engine-agnostic FMOD runtime: settings-driven init, bank management,
  * 3D attachment, and per-frame servicing. FmodManager builds its
- * facade on top of this. Games that want more control use it directly:
+ * helper class on top of this. Games that want more control use it directly:
  *
  *   FmodRuntime.init({liveUpdate: true});
  *   var jump = FmodRuntime.createInstance("event:/SFX/Jump");

@@ -12,7 +12,7 @@ import haxefmod.studio.Types;
 import haxefmod.studio.native.NativeStudio;
 
 /**
- * High-level FMOD facade: one background song slot plus fire-and-forget
+ * High-level FMOD helper class: one background song slot plus fire-and-forget
  * and handle-based sound effects. Built entirely on the public layers
  * underneath - use haxefmod.runtime.FmodRuntime for banks/3D/settings and
  * haxefmod.studio.* for the complete FMOD Studio API.
@@ -50,7 +50,7 @@ class FmodManager {
         log("Initialized");
     }
 
-    /** Turns on FMOD debug logging and facade operation traces. */
+    /** Turns on FMOD debug logging and FmodManager operation traces. */
     public static function EnableDebugMessages():Void {
         debug = true;
         NativeStudio.sys_set_debug_level(3); // 3 = log everything (the FmodSettings.logLevel scale)

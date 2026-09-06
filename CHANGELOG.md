@@ -94,7 +94,7 @@
 
 ## 2.0.0 (2026-08-27)
 
-A clean-break rework: the full FMOD Studio API at runtime, typed handles, payload-carrying callbacks, and a layered architecture with the facade on top. See `MIGRATION.md` for the complete 1.x to 2.0 mapping.
+A clean-break rework: the full FMOD Studio API at runtime, typed handles, payload-carrying callbacks, and a layered architecture with the helper class on top. See `MIGRATION.md` for the complete 1.x to 2.0 mapping.
 
 ### Added
 - Complete FMOD Studio runtime bindings (`haxefmod.studio`): events, buses, VCAs, snapshots, banks, global and labeled parameters, GUID lookups, 3D/listeners, and profiling, as typed handles safe on stale references.

@@ -140,7 +140,7 @@ Every line it prints must end in a check mark. It reports what is missing and ho
 
 ## 5. Play something
 
-Banks load from `assets/fmod/Desktop` by default. [Banks and settings](guides/banks-and-settings.md) shows how to change that. With `Master.bank` and `Master.strings.bank` in that folder, the facade is ready to use.
+Banks load from `assets/fmod/Desktop` by default. [Banks and settings](guides/banks-and-settings.md) shows how to change that. With `Master.bank` and `Master.strings.bank` in that folder, the helper class is ready to use.
 
 === "HaxeFlixel"
 

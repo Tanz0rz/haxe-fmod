@@ -1,12 +1,12 @@
 # FmodManager
 
-`haxefmod.FmodManager` is the facade most games talk to. It owns one background song slot. It plays sound effects fire-and-forget or through a handle. It exposes the master and bus controls a settings menu needs. It is built entirely on the public layers underneath. Anything it does not cover is reachable through `haxefmod.runtime.FmodRuntime` and `haxefmod.studio.*`, with no hidden state.
+`haxefmod.FmodManager` is the helper class most games talk to. It owns one background song slot. It plays sound effects fire-and-forget or through a handle. It exposes the master and bus controls a settings menu needs. It is built entirely on the public layers underneath. Anything it does not cover is reachable through `haxefmod.runtime.FmodRuntime` and `haxefmod.studio.*`, with no hidden state.
 
 Every call behaves the same on HaxeFlixel, Heaps, and Kha. The [engine setup calls](components.md#setup) only keep `Update()` running and wire focus and volume.
 
 ## Initialization and update
 
-`FmodManager.Initialize(?settings)` starts FMOD. Every other facade call initializes with defaults on first use, so the call is optional. Call it yourself to pass [settings](banks-and-settings.md#settings) or to control when the engine starts. The first initialization wins. The library ignores settings passed to a later call.
+`FmodManager.Initialize(?settings)` starts FMOD. Every other `FmodManager` call initializes with defaults on first use, so the call is optional. Call it yourself to pass [settings](banks-and-settings.md#settings) or to control when the engine starts. The first initialization wins. The library ignores settings passed to a later call.
 
 ```haxe
 FmodManager.Initialize({liveUpdate: true, numChannels: 256});
@@ -16,11 +16,11 @@ Call `FmodManager.Update()` once per frame. It delivers callbacks, pushes positi
 
 `IsInitialized()` reports true once the engine and the default banks are usable. Native targets initialize synchronously, so it is true immediately. HTML5 initializes asynchronously, and games gate their first scene on it.
 
-`EnableDebugMessages()` turns on FMOD's own logging at its most verbose level and traces every facade operation. Debug builds enable it automatically.
+`EnableDebugMessages()` turns on FMOD's own logging at its most verbose level and traces every `FmodManager` operation. Debug builds enable it automatically.
 
 ## Music
 
-The facade has a single song slot. Songs are FMOD events like any other. The slot makes the common case of one background track at a time trivial.
+The helper class has a single song slot. Songs are FMOD events like any other. The slot makes the common case of one background track at a time trivial.
 
 ```haxe
 FmodManager.PlaySong(FmodEvents.MusicMainLevel);

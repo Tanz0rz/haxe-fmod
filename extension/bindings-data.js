@@ -4371,7 +4371,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "Turns on FMOD debug logging and facade operation traces.",
+     "doc": "Turns on FMOD debug logging and FmodManager operation traces.",
      "gated": false,
      "name": "EnableDebugMessages",
      "signature": "EnableDebugMessages():Void",

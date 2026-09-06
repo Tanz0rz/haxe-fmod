@@ -20,7 +20,7 @@ class NativeStudioStub {
     public static var testCallbackMaskResult:Int = ERR_UNSUPPORTED;
     public static var testLastCallbackMask:Int = -1;
     public static var testLastCallbackMaskHandle:Int = 0;
-    // Synthetic handles let facade tests drive the song slot: lookups and
+    // Synthetic handles let FmodManager tests drive the song slot: lookups and
     // creates return incrementing nonzero handles instead of 0
     public static var testSyntheticHandles:Bool = false;
     public static var testNextHandle:Int = 2000;
