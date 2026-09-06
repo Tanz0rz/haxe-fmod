@@ -4,7 +4,7 @@ The haxefmod for FMOD docs browser extension adds a **Haxe** tab beside C, C++, 
 
 FMOD's own reference stays the place to read what a function does. The tab only adds the Haxe side.
 
-![The Haxe tab on fmod.com](https://raw.githubusercontent.com/Tanz0rz/haxe-fmod/master/.github/fmod_extension.gif)
+![The Haxe tab on fmod.com](img/fmod_extension.gif)
 
 ## Install
 
