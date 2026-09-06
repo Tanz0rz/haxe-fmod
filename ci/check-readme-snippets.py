@@ -190,8 +190,9 @@ def split_snippet(code):
     """The leading run of imports (comments, blanks, and #if guards
     included) moves to the file header. Class and typedef declarations at
     column zero become extra types of the module. A body that starts with
-    a function definition compiles as class members, everything else as
-    statements (local functions are legal inside them)."""
+    a function definition compiles as class members, with any bare field
+    declarations ahead of it, everything else as statements (local
+    functions are legal inside them)."""
     header = []
     rest = []
     types = []
@@ -218,7 +219,10 @@ def split_snippet(code):
             rest.append(line)
     body = "\n".join(rest).strip("\n")
     types = "\n".join(types)
-    if re.match(r"\s*(public\s+|override\s+)*function\s", body):
+    # Bare field declarations ahead of the first function still make a
+    # member body. A declaration followed by statements stays a statement body.
+    after_fields = re.sub(r"^(\s*(public\s+|static\s+)*var\s+\w+\s*:[^=;\n]+;\s*\n)+", "", body)
+    if re.match(r"\s*(public\s+|override\s+|static\s+)*function\s", after_fields):
         return header, body, "", types
     return header, "", body, types
 

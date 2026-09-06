@@ -108,9 +108,11 @@ class Main {
 
 </details>
 
-From there the calls are the same on every engine:
+From there the calls are the same on every engine. On HTML5 the engine initializes asynchronously, so make the first call after `FmodManager.IsInitialized()` reports true. [Getting started](https://tanz0rz.github.io/haxe-fmod/getting-started/) shows the loading pattern.
 
 ```haxe
+var engine:FmodSound;
+
 public function StartLevel():Void {
     // One background song at a time. Transitions ride the authored fadeout
     FmodManager.PlaySong(FmodEvents.MusicMainLevel);
@@ -123,20 +125,20 @@ public function JumpPressed():Void {
 
 public function StartEngine():Void {
     // Handle-based playback for sounds you control over time
-    engineSound = FmodManager.PlaySound(FmodEvents.SFXEngine);
-    engineSound.setParameter("RPM", 0.2);
+    engine = FmodManager.PlaySound(FmodEvents.SFXEngine);
+    engine.setParameter("RPM", 0.2);
 }
 
 public function OnBeat():Void {
     // Typed callbacks with payloads
     FmodManager.OnSongEvent(data -> switch (data) {
-        case TimelineBeat(beat): pulseUI(beat.bar, beat.beat);
+        case TimelineBeat(beat): pulseUI(beat.bar, beat.beat); // your own function
         default:
     });
 }
 ```
 
-The FmodManager class needs to be updated to support the full capabilities of this library, so if it does not allow some functionality you need, you can reach into the deeper FMOD libraries directly:
+FmodManager covers the common cases. Anything else FMOD exposes is reachable through the deeper layers:
 
 ```haxe
 // Escape hatch example: everything FMOD Studio exposes is reachable
