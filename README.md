@@ -11,7 +11,6 @@ Having problems or want to chat? [Join the Haxe Discord](https://discordapp.com/
 - [Features](#features)
 - [Supported Platforms](#supported-platforms)
 - [Getting Started](#getting-started)
-- [Setting Up Your Engine](#setting-up-your-engine)
 - [Using the Library in Code](#using-the-library-in-code)
 - [Generating Constants From Your Banks](#generating-constants-from-your-banks)
 - [FMOD Studio Live Update](#fmod-studio-live-update)
@@ -47,9 +46,11 @@ The [getting started walkthrough](https://tanz0rz.github.io/haxe-fmod/getting-st
 
 Once you are set up, `haxelib run haxefmod check` verifies your local dev environment and is **highly recommended** whenever something misbehaves.
 
-## Setting Up Your Engine
+## Using the Library in Code
 
-One call per engine initializes FMOD, keeps the per-frame update running, and wires focus and volume. After it, the helper class is ready to use.
+The FmodManager class is the primary way to interact with FMOD in your game. It abstracts away nearly all of the low-level details of the FMOD API. The `FmodEvents` constants used below are generated from your banks (see [Generating constants](https://tanz0rz.github.io/haxe-fmod/guides/tools-cli/#generate)). You can look through all of the available function calls with descriptions [here](https://github.com/Tanz0rz/haxe-fmod/blob/master/haxefmod/FmodManager.hx).
+
+One call per engine initializes FMOD, keeps the per-frame update running, and wires focus and volume. Pick yours:
 
 <details>
 <summary>HaxeFlixel</summary>
@@ -124,11 +125,7 @@ class Main {
 
 </details>
 
-Each engine also gets drop-in [components](https://tanz0rz.github.io/haxe-fmod/guides/components/): an emitter that follows a game object, a listener, a bank loader, and a parameter trigger.
-
-## Using the Library in Code
-
-The FmodManager class is the primary way to interact with FMOD in your game. It abstracts away nearly all of the low-level details of the FMOD API. The `FmodEvents` constants used below are generated from your banks (see [Generating constants](https://tanz0rz.github.io/haxe-fmod/guides/tools-cli/#generate)). You can look through all of the available function calls with descriptions [here](https://github.com/Tanz0rz/haxe-fmod/blob/master/haxefmod/FmodManager.hx).
+After that call, the helper class works the same on every engine:
 
 ```haxe
 public function StartLevel():Void {
