@@ -2,12 +2,12 @@ name: Docs
 
 # Builds the documentation site (guides from docs/ plus the dox API
 # reference under /api/) on every push and pull request, and publishes it
-# to GitHub Pages from the default branch, the engine-adapters branch, and
-# release tags.
+# to GitHub Pages from the default branch, the 3.0.0 branch, and release
+# tags.
 
 on:
   push:
-    branches: [master, engine-adapters]
+    branches: [master, 3.0.0]
     tags: ["*"]
     paths:
       - "docs/**"
