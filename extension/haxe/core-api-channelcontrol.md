@@ -12,18 +12,6 @@ if (clocks != null) {
 }
 ```
 
-## ChannelControl::addFadePoint#2
-verdict: bound
-```haxe
-// Example. Ramp from full volume to half volume over the next 4096 samples
-var clocks = channel.getDspClock();
-if (clocks != null) {
-    var parentclock = clocks.parent;
-    channel.addFadePoint(parentclock,        1.0);
-    channel.addFadePoint(parentclock + 4096, 0.5);
-}
-```
-
 ## FMOD_CHANNELCONTROL_CALLBACK
 verdict: bound
 Type: haxefmod.core.ChannelEvent.ChannelCallback
@@ -47,7 +35,6 @@ var curve:Array<FmodVector> = [
     {x: 2.0,  y: 0.2, z: 0.0},
     {x: 20.0, y: 0.0, z: 0.0}
 ];
-channel.set3DCustomRolloff(curve);
 ```
 
 ## FMOD_CHANNELCONTROL_TYPE

@@ -13,6 +13,7 @@ theme:
   features:
     - navigation.sections
     - navigation.top
+    - content.tabs.link
     - navigation.footer
     - content.code.copy
     - content.action.edit
@@ -39,6 +40,8 @@ markdown_extensions:
   - pymdownx.highlight
   - pymdownx.superfences
   - pymdownx.details
+  - pymdownx.tabbed:
+      alternate_style: true
 
 # Copies LIMITATIONS.md, MIGRATION.md, and CHANGELOG.md from the repo root
 # into the site so they appear in the nav without a second copy in docs/
@@ -54,7 +57,7 @@ nav:
       - Banks and settings: guides/banks-and-settings.md
       - Callbacks and 3D: guides/callbacks-and-3d.md
       - Core API: guides/core-api.md
-      - Flixel components: guides/flixel.md
+      - Engine components: guides/components.md
       - Tools CLI: guides/tools-cli.md
   - Platforms: platforms.md
   - Coverage: coverage.md

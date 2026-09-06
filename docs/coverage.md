@@ -507,7 +507,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_Studio_System_GetCoreSystem` | `FmodManager.Initialize`<br>`FmodRuntime.init` |  |
 | `FMOD_Studio_System_GetEvent` | `StudioSystem.getEvent`<br>`FmodRuntime.createInstance` |  |
 | `FMOD_Studio_System_GetEventByID` | `StudioSystem.getEventByID` |  |
-| `FMOD_Studio_System_GetListenerAttributes` | `StudioSystem.getListenerAttributes`<br>`FmodFlxEmitter.update` |  |
+| `FMOD_Studio_System_GetListenerAttributes` | `StudioSystem.getListenerAttributes`<br>`EmitterTracker.update` |  |
 | `FMOD_Studio_System_GetListenerWeight` | `StudioSystem.getListenerWeight` |  |
 | `FMOD_Studio_System_GetMemoryUsage` | `StudioSystem.getMemoryUsage` | compile error |
 | `FMOD_Studio_System_GetNumListeners` | `StudioSystem.getNumListeners` |  |
@@ -531,7 +531,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_Studio_System_ResetBufferUsage` | `StudioSystem.resetBufferUsage` |  |
 | `FMOD_Studio_System_SetAdvancedSettings` | `FmodManager.Initialize`<br>`FmodRuntime.init` |  |
 | `FMOD_Studio_System_SetCallback` | `StudioSystem.clearSystemCallback`<br>`StudioSystem.setSystemCallback`<br>`SystemCallbacks.clear`<br>`SystemCallbacks.set`<br>`FmodManager.ClearAllCallbacks` |  |
-| `FMOD_Studio_System_SetListenerAttributes` | `StudioSystem.setListenerAttributes`<br>`StudioSystem.setListenerPosition2D`<br>`FmodFlxListener.update`<br>`FmodRuntime.setListenerPosition` |  |
+| `FMOD_Studio_System_SetListenerAttributes` | `StudioSystem.setListenerAttributes`<br>`StudioSystem.setListenerPosition2D`<br>`FmodRuntime.setListenerPosition`<br>`ListenerTracker.update` |  |
 | `FMOD_Studio_System_SetListenerWeight` | `StudioSystem.setListenerWeight` |  |
 | `FMOD_Studio_System_SetNumListeners` | `StudioSystem.setNumListeners` |  |
 | `FMOD_Studio_System_SetParameterByID` | `StudioSystem.setParameterByID` |  |

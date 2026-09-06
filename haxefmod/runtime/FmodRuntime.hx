@@ -353,6 +353,11 @@ class FmodRuntime {
         return attached.count();
     }
 
+    /** True while an attached instance still follows this provider. */
+    public static function isAttachedProvider(provider:IFmodPositionProvider):Bool {
+        return attached.hasProvider(provider);
+    }
+
     /** Positions a listener in 2D space (index 0 unless using multiple listeners). */
     public static function setListenerPosition(index:Int, x:Float, y:Float):FmodResult {
         return StudioSystem.setListenerPosition2D(index, x, y);

@@ -51,7 +51,11 @@ class LoadFmodState extends FlxState {
     override public function update(elapsed:Float):Void {
         if(FmodManager.IsInitialized()){
             #if audio_test
-            switch (TestConfig.testState()) {
+            // A test build with no state requested is the plain game, so CI
+            // builds one variant for every leg
+            switch (TestConfig.requestedState()) {
+                case null:
+                    FlxG.switchState(PlayState.new);
                 case "api-probe":
                     FlxG.switchState(ApiProbeState.new);
                 case "cb-test":

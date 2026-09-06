@@ -11,18 +11,23 @@ example fails CI here.
 
 A fence that mentions flixel compiles against flixel, openfl, and lime
 with a set of flixel-shaped stubs, so those libraries must be installed
-for the docs/ check.
+for the docs/ check. A fence that mentions heaps compiles against an
+installed heaps. Kha fences compile against small kha stubs written
+here, since Kha only exists as a checkout and only the adapter-facing
+surface matters to the examples.
 
 Run: python3 ci/check-readme-snippets.py [file.md | directory ...]
 With no argument README.md and MIGRATION.md are checked. A directory is
 searched for *.md files recursively.
 """
 
+import concurrent.futures
 import os
 import re
 import subprocess
 import sys
 import tempfile
+import textwrap
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEFAULT_DOCS = [os.path.join(ROOT, "README.md"), os.path.join(ROOT, "MIGRATION.md")]
@@ -35,6 +40,51 @@ import haxefmod.studio.StudioSystem;
 class Snippet{index} {{
     static var engineSound:haxefmod.FmodSound;
     static var channel:haxefmod.core.Channel;
+    static var sound:haxefmod.core.Sound;
+    static var dsp:haxefmod.core.Dsp;
+    static var multiband:haxefmod.core.Dsp;
+    static var dsp_echo:haxefmod.core.Dsp;
+    static var dsp_reverb:haxefmod.core.Dsp;
+    static var channel_dsp_head:haxefmod.core.Dsp;
+    static var dsp_connection:haxefmod.core.DspConnection;
+    static var group:haxefmod.core.ChannelGroup;
+    static var channelgroup:haxefmod.core.ChannelGroup;
+    static var filename:String;
+    static var path:String;
+    static var handle:Int;
+    static var key:String;
+    static var eventInstance:haxefmod.studio.EventInstance;
+    static var reverb:haxefmod.core.Reverb3D;
+    static var music:haxefmod.core.Sound;
+    static var your_non_diegetic_sound:haxefmod.core.Sound;
+    static var stackSizeStream:Int;
+    static var stackSizeNonBlocking:Int;
+    static var stackSizeMixer:Int;
+    static var chars:haxe.io.Bytes;
+    static var prop1:haxefmod.core.Reverb.ReverbProperties;
+    static var prop2:haxefmod.core.Reverb.ReverbProperties;
+    static var prop3:haxefmod.core.Reverb.ReverbProperties;
+    static var prop4:haxefmod.core.Reverb.ReverbProperties;
+    static var frequency:Float;
+    static var resonance:Float;
+    static var center:Float;
+    static var bandwidth:Float;
+    static var gain:Float;
+    static var posx:Float;
+    static var posy:Float;
+    static var posz:Float;
+    static var lastposx:Float;
+    static var lastposy:Float;
+    static var lastposz:Float;
+    static var timedelta:Float;
+    static var gameRunning:Bool;
+    static var listenerPos:haxefmod.studio.Types.FmodVector;
+    static var listenerVel:haxefmod.studio.Types.FmodVector;
+    static var listenerForward:haxefmod.studio.Types.FmodVector;
+    static var listenerUp:haxefmod.studio.Types.FmodVector;
+    static function updateGame():Void {{}}
+    static function handleError(result:haxefmod.studio.FmodResult):Void {{}}
+    static function degtorad(degrees:Float):Float return degrees * Math.PI / 180;
     static var instance:haxefmod.studio.EventInstance;
     static var handler:haxefmod.studio.Callbacks.EventCallbackData->Void;
     static var carPositionProvider:haxefmod.runtime.IFmodPositionProvider;
@@ -46,7 +96,7 @@ class Snippet{index} {{
     static function nextSample():Int return 0;
     static function startGame():Void {{}}
     static function spawnCars():Void {{}}
-{flixel_members}
+{engine_members}
 {members}
     static function snippet():Void {{
 {body}
@@ -59,6 +109,18 @@ FLIXEL_MEMBERS = """    static var car:flixel.FlxObject;
     static var player:flixel.FlxObject;
     static var coin:flixel.FlxObject;
     static function add(basic:flixel.FlxBasic):flixel.FlxBasic return basic;
+"""
+
+HEAPS_MEMBERS = """    static var car:h2d.Object;
+    static var player:h2d.Object;
+    static var coin:h2d.Object;
+    static var s2d:h2d.Scene;
+    static var waterZone:h2d.col.Bounds;
+"""
+
+KHA_MEMBERS = """    static var car:haxefmod.kha.FmodKhaEmitter.KhaBody;
+    static var player:haxefmod.kha.FmodKhaEmitter.KhaBody;
+    static var coin:haxefmod.kha.FmodKhaEmitter.KhaBody;
 """
 
 # Game-side generated-constants modules the snippets import. Written as
@@ -89,9 +151,38 @@ FLIXEL_STUB_MODULES = {
 """,
 }
 
+# The pieces of Kha the adapter package and the doc examples touch. Kept
+# to the exact members haxefmod.kha calls, so a Kha API change the
+# adapters depend on still surfaces through the real engine builds in CI.
+KHA_STUB_MODULES = {
+    os.path.join("kha", "System.hx"): """package kha;
+
+typedef SystemOptions = {
+    var title:String;
+    var width:Int;
+    var height:Int;
+}
+
+class System {
+    public static function start(options:SystemOptions, callback:Dynamic->Void):Void {}
+    public static function notifyOnApplicationState(foreground:Void->Void, resume:Void->Void,
+        pause:Void->Void, background:Void->Void, shutdown:Void->Void):Void {}
+}
+""",
+    os.path.join("kha", "Scheduler.hx"): """package kha;
+
+class Scheduler {
+    public static function addFrameTask(task:Void->Void, priority:Int):Int return 0;
+    public static function realTime():Float return 0;
+}
+""",
+}
+
 
 def extract_fences(text):
-    return re.findall(r"```haxe\n(.*?)```", text, re.S)
+    # Fences inside content tabs are indented four spaces, and the type
+    # detection below expects declarations at column zero
+    return [textwrap.dedent(f) for f in re.findall(r"```haxe\n(.*?)```", text, re.S)]
 
 
 def split_snippet(code):
@@ -172,14 +263,30 @@ def main():
         for name, content in FLIXEL_STUB_MODULES.items():
             with open(os.path.join(flixel_dir, name), "w", encoding="utf-8") as out:
                 out.write(content)
+        kha_dir = os.path.join(workdir, "kha-stubs")
+        for name, content in KHA_STUB_MODULES.items():
+            path = os.path.join(kha_dir, name)
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, "w", encoding="utf-8") as out:
+                out.write(content)
+        commands = []
         for index, (doc_name, doc_index, fence) in enumerate(fences):
             header, members, statements, types = split_snippet(fence.strip())
             uses_flixel = "flixel" in fence
+            uses_heaps = "heaps" in fence
+            uses_kha = "kha." in fence
+            engine_members = ""
+            if uses_flixel:
+                engine_members = FLIXEL_MEMBERS
+            elif uses_heaps:
+                engine_members = HEAPS_MEMBERS
+            elif uses_kha:
+                engine_members = KHA_MEMBERS
             # Duplicate scaffold imports are legal in Haxe, keep them all
             source = SCAFFOLD.format(
                 index=index,
                 imports="\n".join(header),
-                flixel_members=FLIXEL_MEMBERS if uses_flixel else "",
+                engine_members=engine_members,
                 members=indent(members, 4),
                 body=indent(statements, 8),
                 types=types)
@@ -193,16 +300,29 @@ def main():
                 command += ["-cp", flixel_dir, "-lib", "flixel", "-lib", "openfl", "-lib", "lime",
                             "-D", "FLX_STANDARD_ASSETS_DIRECTORY", "-D", "openfl-html5",
                             "-js", os.path.join(workdir, "out.js")]
+            elif uses_heaps:
+                command += ["-lib", "heaps", "-js", os.path.join(workdir, "out.js")]
+            elif uses_kha:
+                command += ["-cp", kha_dir, "-js", os.path.join(workdir, "out.js")]
             command.append(f"Snippet{index}")
-            result = subprocess.run(command, capture_output=True, text=True)
-            if result.returncode != 0:
-                failures += 1
-                print(f"FAIL: {doc_name} fence {doc_index} does not compile:")
-                print("--- snippet ---")
-                print(fence.strip())
-                print("--- compiler ---")
-                print(result.stderr.strip())
-                print()
+            commands.append(command)
+        # The compiles are independent (--no-output writes nothing, each
+        # fence is its own module), so they fan out across the cores.
+        # Results come back in fence order, so failures print exactly as
+        # the serial loop printed them.
+        def compile_fence(command):
+            return subprocess.run(command, capture_output=True, text=True)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()) as pool:
+            results = pool.map(compile_fence, commands)
+            for (doc_name, doc_index, fence), result in zip(fences, results):
+                if result.returncode != 0:
+                    failures += 1
+                    print(f"FAIL: {doc_name} fence {doc_index} does not compile:")
+                    print("--- snippet ---")
+                    print(fence.strip())
+                    print("--- compiler ---")
+                    print(result.stderr.strip())
+                    print()
     print(f"readme-snippets: {len(fences)} fences, {failures} failing")
     if failures:
         return 1

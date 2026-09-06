@@ -9654,9 +9654,9 @@ const HAXEFMOD_BINDINGS = {
      "direct": false,
      "doc": "",
      "name": "update",
-     "signature": "update(elapsed:Float):Void",
+     "signature": "update():Void",
      "static": false,
-     "type": "haxefmod.flixel.FmodFlxEmitter"
+     "type": "haxefmod.runtime.EmitterTracker"
     }
    ],
    "html5": false
@@ -10208,19 +10208,19 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "",
-     "name": "update",
-     "signature": "update(elapsed:Float):Void",
-     "static": false,
-     "type": "haxefmod.flixel.FmodFlxListener"
-    },
-    {
-     "direct": false,
      "doc": "Positions a listener in 2D space (index 0 unless using multiple listeners).",
      "name": "setListenerPosition",
      "signature": "setListenerPosition(index:Int, x:Float, y:Float):FmodResult",
      "static": true,
      "type": "haxefmod.runtime.FmodRuntime"
+    },
+    {
+     "direct": false,
+     "doc": "",
+     "name": "update",
+     "signature": "update():Void",
+     "static": false,
+     "type": "haxefmod.runtime.ListenerTracker"
     }
    ],
    "html5": false
@@ -10774,7 +10774,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "System::createStream",
    "html5": false,
    "notes": [
-    "No Haxe declaration, another call plays this role. haxefmod covers streams two ways."
+    "No Haxe declaration, another call plays this role. Sound.create with the ChannelMode.CREATESTREAM mode streams from a file, and PcmStream.create streams sample data the game writes."
    ]
   },
   "system_detachchannelgroupfromport": {

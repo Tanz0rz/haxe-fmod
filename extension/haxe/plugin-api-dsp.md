@@ -10,30 +10,7 @@ verdict: cannot received only by a plugin callback on FMOD's mixer thread, which
 verdict: cannot the mixer buffers received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units
 
 ## FMOD_DSP_BUFFER_ARRAY#2
-verdict: bound
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspParameters.DspOscillator;
-import haxefmod.core.DspType;
-
-var osc = Dsp.create(DspType.OSCILLATOR);
-osc.setParameterInt(DspOscillator.TYPE, 1); // square
-osc.setParameter(DspOscillator.RATE, 750.0); // one flip every 32 samples at 48 kHz
-var tone = osc.play();
-```
-
-## FMOD_DSP_BUFFER_ARRAY#3
-verdict: bound
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspParameters.DspOscillator;
-import haxefmod.core.DspType;
-
-var osc = Dsp.create(DspType.OSCILLATOR);
-osc.setParameterInt(DspOscillator.TYPE, 1); // square
-osc.setParameter(DspOscillator.RATE, 750.0); // one flip every 32 samples at 48 kHz
-var tone = osc.play();
-```
+verdict: cannot the square wave is written into the mixer buffers inside a plugin's process callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create(DspType.OSCILLATOR) is the built-in square wave source
 
 ## FMOD_DSP_CREATE_CALLBACK
 verdict: cannot received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin
@@ -42,9 +19,6 @@ verdict: cannot received only by a plugin callback on FMOD's mixer thread, which
 verdict: cannot received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin
 
 ## FMOD_DSP_DESCRIPTION#2
-verdict: cannot a plugin names itself in its description, received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.getName reads the name of a created unit
-
-## FMOD_DSP_DESCRIPTION#3
 verdict: cannot a plugin names itself in its description, received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.getName reads the name of a created unit
 
 ## FMOD_DSP_DESCRIPTION#4
@@ -199,19 +173,6 @@ verdict: cannot received only by a plugin callback on FMOD's mixer thread, which
 ## FMOD_DSP_PROCESS_CALLBACK#2
 verdict: cannot the body of a DSP callback FMOD runs on its mixer thread, which Haxe code cannot host. Dsp.create and the built-in DspType units cover using effects, authoring one stays in C.
 
-## FMOD_DSP_PROCESS_CALLBACK#3
-verdict: bound
-```haxe
-import haxefmod.core.ChannelGroup;
-import haxefmod.core.Dsp;
-import haxefmod.core.DspParameters.DspFader;
-import haxefmod.core.DspType;
-
-var fader = Dsp.create(DspType.FADER);
-fader.setParameter(DspFader.GAIN, -6.02); // dB, half amplitude
-ChannelGroup.master().addDsp(ChannelGroup.DSP_TAIL, fader);
-```
-
 ## FMOD_DSP_PROCESS_OPERATION
 verdict: bound
 Type: haxefmod.studio.Types.FmodDspProcessOperation
@@ -221,32 +182,6 @@ verdict: cannot received only by a plugin callback on FMOD's mixer thread, which
 
 ## FMOD_DSP_READ_CALLBACK#2
 verdict: cannot the body of a DSP callback FMOD runs on its mixer thread, which Haxe code cannot host. Dsp.create and the built-in DspType units cover using effects, authoring one stays in C.
-
-## FMOD_DSP_READ_CALLBACK#3
-verdict: bound
-```haxe
-import haxefmod.core.ChannelGroup;
-import haxefmod.core.Dsp;
-import haxefmod.core.DspParameters.DspFader;
-import haxefmod.core.DspType;
-
-var fader = Dsp.create(DspType.FADER);
-fader.setParameter(DspFader.GAIN, -6.02); // dB, half amplitude
-ChannelGroup.master().addDsp(ChannelGroup.DSP_TAIL, fader);
-```
-
-## FMOD_DSP_READ_CALLBACK#4
-verdict: bound
-```haxe
-import haxefmod.core.ChannelGroup;
-import haxefmod.core.Dsp;
-import haxefmod.core.DspParameters.DspFader;
-import haxefmod.core.DspType;
-
-var fader = Dsp.create(DspType.FADER);
-fader.setParameter(DspFader.GAIN, -6.02); // dB, half amplitude
-ChannelGroup.master().addDsp(ChannelGroup.DSP_TAIL, fader);
-```
 
 ## FMOD_DSP_REALLOC_FUNC
 verdict: cannot received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin
@@ -283,44 +218,6 @@ verdict: cannot the per instance state received only by a plugin callback on FMO
 
 ## FMOD_DSP_STATE#2
 verdict: cannot a plugin read callback keeping its phase in plugindata, received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, the built-in oscillator unit (Dsp.create(DspType.OSCILLATOR)) plays the same tone from game code
-
-## FMOD_DSP_STATE#3
-verdict: bound
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspParameters.DspOscillator;
-import haxefmod.core.DspType;
-
-var osc = Dsp.create(DspType.OSCILLATOR);
-osc.setParameterInt(DspOscillator.TYPE, 0); // 0 sine, 1 square, 2 saw up, 3 saw down, 4 triangle, 5 noise
-osc.setParameter(DspOscillator.RATE, 440.0);
-var tone = osc.play();
-if (tone.isNull()) trace("play failed");
-
-// later
-tone.stop();
-var result = osc.release();
-if (!result.isOk()) trace(result.toString());
-```
-
-## FMOD_DSP_STATE#4
-verdict: bound
-```haxe
-import haxefmod.core.Dsp;
-import haxefmod.core.DspParameters.DspOscillator;
-import haxefmod.core.DspType;
-
-var osc = Dsp.create(DspType.OSCILLATOR);
-osc.setParameterInt(DspOscillator.TYPE, 0); // 0 sine, 1 square, 2 saw up, 3 saw down, 4 triangle, 5 noise
-osc.setParameter(DspOscillator.RATE, 440.0);
-var tone = osc.play();
-if (tone.isNull()) trace("play failed");
-
-// later
-tone.stop();
-var result = osc.release();
-if (!result.isOk()) trace(result.toString());
-```
 
 ## FMOD_DSP_STATE_DFT_FUNCTIONS
 verdict: cannot received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin

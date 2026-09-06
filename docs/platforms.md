@@ -4,7 +4,7 @@ The Haxe API is identical on every target. This page covers what differs underne
 
 ## HTML5
 
-The FMOD web build is a WebAssembly module. The library's post-build step copies `fmodstudio.js` and `fmodstudio.wasm` from `FMOD_SDK_WEB` next to the output, so an HTML5 build needs that variable set even when `FMOD_SDK` is also set.
+The FMOD web build is a WebAssembly module. The library's post-build step (the [stage command](guides/tools-cli.md#stage) on Heaps and Kha) copies `fmodstudio.js` and `fmodstudio.wasm` from `FMOD_SDK_WEB` next to the output, so an HTML5 build needs that variable set even when `FMOD_SDK` is also set.
 
 ### Asynchronous initialization
 
@@ -45,12 +45,14 @@ HashLink loads the binding from `hlaxe_fmod.hdll`, a native library compiled aga
 
 ### How the hdll is resolved
 
-At build time `lime test hl` looks for the hdll in order:
+At build time `lime test hl` (and the [stage command](guides/tools-cli.md#stage) for Heaps builds) looks for the hdll in order:
 
 1. Project-local `.haxefmod/hlaxe_fmod.hdll`, when present. `haxelib run haxefmod build-hdll` writes it there.
 2. The pre-built `templates/bin/hl/<Platform>/hlaxe_fmod.hdll` inside the installed library.
 
 The build log states which one was used. At runtime the library checks the hdll's binding version against its own and refuses to initialize on a mismatch, printing the `build-hdll` command to run.
+
+Kha builds never involve the hdll, on the Kore HL/C target included, since the binding is compiled into the executable there.
 
 ### HashLink headers
 
@@ -58,22 +60,30 @@ The build log states which one was used. At runtime the library checks the hdll'
 
 ## C++
 
-C++ builds compile the binding (`linc_faxe.cpp`) into the executable alongside your game and link against the FMOD libraries in `FMOD_SDK`. There is nothing version-specific to rebuild. Switching FMOD Engine versions means pointing `FMOD_SDK` at the new SDK and rebuilding.
+C++ builds compile the binding (`linc_faxe.cpp`) into the executable alongside your game and link against the FMOD libraries in `FMOD_SDK`. Kha's native targets do this through the library's `kfile.js`. There is nothing version-specific to rebuild. Switching FMOD Engine versions means pointing `FMOD_SDK` at the new SDK and rebuilding.
 
 macOS may block the FMOD dylibs downloaded through a browser. `xattr -dr com.apple.quarantine "$FMOD_SDK"` clears the quarantine flag.
 
 ## Selecting an FMOD Engine version
 
-The supported FMOD Engine version is 2.03.12, and it is the only version tested. Other versions may work.
+The officially supported FMOD Engine version is 2.03.12. Other versions **may work fine**, but I have not tested them.
 
-- C++ and HTML5 builds pick up whichever SDK the environment variables point at.
-- HashLink builds need a matching hdll. Set `FMOD_SDK`, run `haxelib run haxefmod build-hdll` from the project directory, and build as normal.
+This library comes pre-bundled with HashLink binaries (hdlls) for FMOD Engine version 2.03.12. C++, Kha, and HTML5 builds pick up whichever SDK the environment variables point at, so those need nothing extra.
+
+If you use a different FMOD Engine version and want HashLink builds, you **must** compile the hdll for your platform from source against your installed version of the FMOD Engine:
 
 ```bash
+# 1. Set FMOD_SDK to your version
 export FMOD_SDK=/path/to/your/fmodstudioapi
+
+# 2. Compile the hdll (from your project directory)
 haxelib run haxefmod build-hdll
+
+# 3. Build as normal
 lime test hl
 ```
+
+This requires a C compiler (`gcc` on Linux, `cc` on macOS, `cl` on Windows) and HashLink headers installed on your system. See [build-hdll](guides/tools-cli.md#build-hdll) for the details.
 
 Bank files require an engine at least as new as the FMOD Studio that built them, so the Studio version and the engine version move together.
 

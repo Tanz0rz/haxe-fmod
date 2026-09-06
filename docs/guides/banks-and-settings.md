@@ -67,9 +67,33 @@ The engine reports what it runs with after init: `CoreSystem.getSoftwareFormat()
 | `defaultDecodeBufferSize`, `profilePort`, `geometryMaxFadeTime`, `distanceFilterCenterFreq`, `randomSeed` | | 0 | The remaining core advanced settings, passed through as given. 0 keeps FMOD's default. |
 | `commandQueueSize`, `handleInitialSize`, `studioUpdatePeriod`, `idleSampleDataPoolSize`, `streamingScheduleDelay` | | 0 | The Studio advanced settings. 0 keeps FMOD's default. |
 | `encryptionKey` | | none | The key for banks built with encryption in FMOD Studio. |
-| `maxAttachedVelocity` | | 0 | Caps the velocity magnitude pushed for attached instances and the flixel listener, in game units per second. 0 means no cap. See [Callbacks and 3D](callbacks-and-3d.md#doppler-and-velocity). |
+| `maxAttachedVelocity` | | 0 | Caps the velocity magnitude pushed for attached instances and the engine listeners, in game units per second. 0 means no cap. See [Callbacks and 3D](callbacks-and-3d.md#doppler-and-velocity). |
 
-Defines go in `Project.xml` as `<haxedef name="haxefmod_num_channels" value="256" />` or on the command line as `-D haxefmod_num_channels=256`. `FmodRuntime.settings()` returns the fully resolved settings after init, and `null` before it.
+=== "HaxeFlixel"
+
+    Defines go in `Project.xml`:
+
+    ```xml
+    <haxedef name="haxefmod_num_channels" value="256" />
+    ```
+
+=== "Heaps"
+
+    Defines go in the hxml:
+
+    ```text
+    -D haxefmod_num_channels=256
+    ```
+
+=== "Kha"
+
+    Defines go in the khafile:
+
+    ```js
+    project.addDefine('haxefmod_num_channels=256');
+    ```
+
+`FmodRuntime.settings()` returns the fully resolved settings after init, and `null` before it.
 
 `StudioSystem.getAdvancedSettings()` and `getStudioAdvancedSettings()` read the advanced settings FMOD is running with (unsupported in HTML5, where they return `null`).
 

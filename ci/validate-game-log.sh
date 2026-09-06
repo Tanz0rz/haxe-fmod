@@ -27,7 +27,10 @@ echo "OK ($LINES lines)"
 
 # 3. Check for error indicators
 echo -n "  [3/3] No FMOD errors ............... "
-ERRORS=$(grep -iE "(Failed|Error|error|FMOD_ERR)" "$LOG_FILE" || true)
+# Mesa prints "libEGL warning: DRI3 error" on a virtual display with no
+# accelerated device. The game runs fine on software GL, so that line is
+# not an error.
+ERRORS=$(grep -iE "(Failed|Error|error|FMOD_ERR)" "$LOG_FILE" | grep -v "libEGL warning" || true)
 if [ -n "$ERRORS" ]; then
   echo "FAIL"
   echo ""

@@ -12,30 +12,20 @@ verdict: cannot Registering from a description struct cannot be bound, because t
 ## 18.2.2 Loading the Plug-in in the Game#2
 verdict: bound
 ```haxe
-var priority = 0;
-var handle = StudioSystem.loadPlugin("fmod_gain.dll", priority);
-if (handle == 0) {
-    trace('loadPlugin failed: ${StudioSystem.lastResult()}');
-}
+var handle = StudioSystem.loadPlugin(filename, 0);
 ```
 
 ## 18.2.2 Loading the Plug-in in the Game#3
 verdict: bound
 ```haxe
-var result = StudioSystem.setPluginPath("plugins");
-if (!result.isOk()) {
-    trace('setPluginPath failed: $result');
-}
+var result = StudioSystem.setPluginPath(path);
 ```
 
 ## 18.2.2 Loading the Plug-in in the Game#4
 verdict: bound
 ```haxe
-var handle = StudioSystem.loadPlugin("fmod_gain.dll");
+// Studio::System::unregisterPlugin stays C side with plug-in registration (see 18.2.2).
 var result = StudioSystem.unloadPlugin(handle);
-if (!result.isOk()) {
-    trace('unloadPlugin failed: $result');
-}
 ```
 
 ## 18.4 The Plug-in Descriptor

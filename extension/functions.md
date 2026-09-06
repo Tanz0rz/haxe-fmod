@@ -94,7 +94,7 @@ verdict: covered haxefmod covers this with Dsp.addInput(), which connects two un
 
 ## system_createstream
 <!-- System::createStream -->
-verdict: covered haxefmod covers streams two ways.
+verdict: covered Sound.create with the ChannelMode.CREATESTREAM mode streams from a file, and PcmStream.create streams sample data the game writes.
 
 ## system_get3dlistenerattributes
 <!-- System::get3DListenerAttributes -->

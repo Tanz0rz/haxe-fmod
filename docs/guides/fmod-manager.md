@@ -2,6 +2,8 @@
 
 `haxefmod.FmodManager` is the facade most games talk to. It owns one background song slot, plays sound effects either fire-and-forget or through a handle, and exposes the master and bus controls a settings menu needs. It is built entirely on the public layers underneath, so anything it does not cover is reachable through `haxefmod.runtime.FmodRuntime` and `haxefmod.studio.*` with no hidden state to work around.
 
+Nothing on this page depends on an engine. Every call behaves the same on HaxeFlixel, Heaps, and Kha, and the [engine setup calls](components.md#setup) only keep `Update()` running and wire focus and volume.
+
 ## Initialization and update
 
 `FmodManager.Initialize(?settings)` starts FMOD. Every other facade call initializes with defaults on first use, so calling it is optional. Call it yourself when you want to pass [settings](banks-and-settings.md#settings) or control when the engine starts. The first initialization wins. Settings passed to a later call are ignored.
@@ -100,7 +102,7 @@ Bus paths come from FMOD Studio, for example `bus:/SFX`, and the generated `Fmod
 
 ## Window focus
 
-By default the master output is muted while the game window is unfocused, so audio does not play to a window nobody is looking at. FMOD keeps mixing, which means sounds finish on schedule instead of piling up and bursting out when focus returns. Report focus changes from wherever your framework observes them.
+By default the master output is muted while the game window is unfocused, so audio does not play to a window nobody is looking at. FMOD keeps mixing, which means sounds finish on schedule instead of piling up and bursting out when focus returns. The [engine setup calls](components.md#setup) report focus changes for you, and a game without one reports them from wherever its framework observes them.
 
 ```haxe
 FmodManager.SetWindowFocused(false);

@@ -3,8 +3,8 @@ package haxefmod.flixel;
 import flixel.FlxBasic;
 import flixel.FlxG;
 import flixel.FlxObject;
-import haxefmod.runtime.FmodRuntime;
-import haxefmod.studio.StudioSystem;
+import haxefmod.flixel.FmodFlxEmitter.FlxObjectPositionProvider;
+import haxefmod.runtime.ListenerTracker;
 
 /**
     Positions an FMOD listener every frame.
@@ -31,10 +31,8 @@ class FmodFlxListener extends FlxBasic {
     public var teleportDistance:Float = 0;
 
     var target:FlxObject;
-    var listenerIndex:Int;
-    var lastX:Float = 0;
-    var lastY:Float = 0;
-    var hasLast:Bool = false;
+    var tracker:ListenerTracker;
+    var cameraProvider:DerivedVelocityProvider;
 
     /**
         @param target the object to follow. Omit to follow the camera center
@@ -43,14 +41,16 @@ class FmodFlxListener extends FlxBasic {
     **/
     public function new(?target:FlxObject, listenerIndex:Int = 0) {
         super();
-        this.target = target;
-        this.listenerIndex = listenerIndex;
+        tracker = new ListenerTracker(null, listenerIndex);
+        cameraProvider = new DerivedVelocityProvider(cameraX, cameraY, 0);
+        setTarget(target);
     }
 
     /** Retargets the listener. Pass nothing to fall back to the camera. **/
     public function setTarget(?target:FlxObject):Void {
         this.target = target;
-        hasLast = false;
+        tracker.provider = target != null ? new FlxObjectPositionProvider(target) : cameraProvider;
+        cameraProvider.reset();
     }
 
     /**
@@ -59,49 +59,30 @@ class FmodFlxListener extends FlxBasic {
         automatic teleportDistance guard covers cuts this is not called for.
     **/
     public function resetMotion():Void {
-        hasLast = false;
+        cameraProvider.reset();
+    }
+
+    static function cameraX():Float {
+        var camera = FlxG.camera;
+        return camera.scroll.x + camera.width / 2;
+    }
+
+    static function cameraY():Float {
+        var camera = FlxG.camera;
+        return camera.scroll.y + camera.height / 2;
     }
 
     override public function update(elapsed:Float):Void {
         super.update(elapsed);
-        var x:Float;
-        var y:Float;
-        var velX:Float;
-        var velY:Float;
-        if (target != null) {
-            x = target.x + target.width / 2;
-            y = target.y + target.height / 2;
-            // A destroyed FlxObject nulls its velocity while position
-            // fields stay readable
-            var targetVelocity = target.velocity;
-            velX = targetVelocity == null ? 0 : targetVelocity.x;
-            velY = targetVelocity == null ? 0 : targetVelocity.y;
-        } else {
+        if (target == null) {
             var camera = FlxG.camera;
             if (camera == null) return;
-            x = camera.scroll.x + camera.width / 2;
-            y = camera.scroll.y + camera.height / 2;
             // The camera has no velocity of its own - derive it from the
             // center's movement since the previous frame. A jump beyond the
             // teleport threshold is a cut: zero velocity, re-seed tracking.
-            var threshold = teleportDistance > 0 ? teleportDistance : camera.width;
-            var dx = x - lastX;
-            var dy = y - lastY;
-            if (hasLast && elapsed > 0 && dx * dx + dy * dy <= threshold * threshold) {
-                velX = dx / elapsed;
-                velY = dy / elapsed;
-            } else {
-                velX = 0;
-                velY = 0;
-            }
-            lastX = x;
-            lastY = y;
-            hasLast = true;
+            cameraProvider.teleportDistance = teleportDistance > 0 ? teleportDistance : camera.width;
+            cameraProvider.sample(elapsed);
         }
-
-        var settings = FmodRuntime.settings();
-        var maxVelocity = settings != null ? settings.maxAttachedVelocity : 0.0;
-        var scale = haxefmod.runtime.AttachedInstances.velocityScale(velX, velY, maxVelocity);
-        StudioSystem.setListenerPosition2D(listenerIndex, x, y, velX * scale, velY * scale);
+        tracker.update();
     }
 }

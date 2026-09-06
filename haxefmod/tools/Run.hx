@@ -36,6 +36,17 @@ class Run {
 				// handling, so a haxelib path containing a space arrives
 				// shattered. The root is resolved from this process instead.
 				PostBuild.run(userArgs[1], userArgs[2], libRoot, cwd);
+			case "stage":
+				if (userArgs.length < 4) {
+					Sys.println("Usage: haxelib run haxefmod stage <platform> <target> <outdir>");
+					Sys.println("  platform: linux, mac, windows, html5");
+					Sys.println("  target:   hl (program loads hlaxe_fmod.hdll) or cpp (binding compiled in)");
+					Sys.println("  outdir:   the build output directory, relative to the project");
+					Sys.exit(1);
+				}
+				var outDir = userArgs[3];
+				if (!haxe.io.Path.isAbsolute(outDir)) outDir = haxe.io.Path.join([cwd, outDir]);
+				PostBuild.stage(userArgs[1], userArgs[2], libRoot, cwd, outDir);
 			case "verify-native":
 				Sys.exit(NativeManifestCheck.run(libRoot));
 			case "generate":
@@ -84,6 +95,7 @@ class Run {
 		Sys.println("Commands:");
 		Sys.println("  check          Check your environment for correct FMOD SDK setup");
 		Sys.println("  build-hdll     Compile hlaxe_fmod.hdll from source against your FMOD SDK");
+		Sys.println("  stage          Copy the FMOD runtime files into a build output directory (Heaps, Kha, plain haxe builds)");
 		Sys.println("  verify-native  Verify the native shims are in lockstep with the FFI manifest");
 		Sys.println("  generate       Generate Haxe constant classes (FmodEvents, FmodBuses, ...) from Master.strings.bank");
 		Sys.println("  todos          List every FmodManager.Todo sound marker in the project");

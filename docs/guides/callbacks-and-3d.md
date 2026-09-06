@@ -129,13 +129,13 @@ FmodRuntime.detach(instance);
 instance.release();
 ```
 
-`IFmodPositionProvider` is a four-method interface: `fmodX`, `fmodY`, `fmodVelocityX`, `fmodVelocityY`. The flixel components adapt `FlxObject` and `FlxCamera` to it, and any engine can implement it directly. Instances that die (released, or stopped and destroyed by FMOD) are pruned from the attachment list automatically, and `FmodRuntime.attachedCount()` reports how many are live.
+`IFmodPositionProvider` is a four-method interface: `fmodX`, `fmodY`, `fmodVelocityX`, `fmodVelocityY`. The [engine components](components.md) adapt their objects to it (`FlxObject` and `FlxCamera`, `h2d.Object`, any Kha body with `x` and `y`), and a game can implement it directly. Instances that die (released, or stopped and destroyed by FMOD) are pruned from the attachment list automatically, and `FmodRuntime.attachedCount()` reports how many are live.
 
 `FmodRuntime.playOneShotAttached(path, provider)` and `FmodManager.PlaySoundOneShotAttached` combine create, attach, start, and a release that fires when the event reports `STOPPED`. They suit self-ending events only. A looping event never stops on its own, so it would never release, and for those you keep the instance and use attach and detach yourself.
 
 ## Doppler and velocity
 
-Attached instances and the flixel listener push velocity alongside position, so an event authored with doppler responds to relative motion. Very fast movers and camera cuts can produce audible pitch flutter. The `maxAttachedVelocity` setting caps the velocity magnitude FMOD sees, preserving direction and leaving the position untouched. `0`, the default, applies no cap.
+Attached instances and the [engine listeners](components.md#listener) push velocity alongside position, so an event authored with doppler responds to relative motion. Very fast movers and camera cuts can produce audible pitch flutter. The `maxAttachedVelocity` setting caps the velocity magnitude FMOD sees, preserving direction and leaving the position untouched. `0`, the default, applies no cap.
 
 ```haxe
 FmodManager.Initialize({maxAttachedVelocity: 600});

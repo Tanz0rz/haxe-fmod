@@ -7,6 +7,7 @@
 | `check` | Verifies the FMOD SDK path and version, the compiler, and the HashLink headers. |
 | `generate` | Writes the `FmodEvents`, `FmodBuses`, `FmodVCAs`, `FmodSnapshots`, and `FmodParameters` constants classes from `Master.strings.bank`. |
 | `todos` | Lists every `FmodManager.Todo` marker in the project. |
+| `stage` | Copies the FMOD runtime files into a build output directory, for builds lime does not manage. |
 | `build-hdll` | Compiles the HashLink native library against your installed FMOD SDK. |
 | `verify-native` | Confirms the native shims match the binding manifest. Used by the library's own CI. |
 | `help` | Prints the command list. |
@@ -89,6 +90,20 @@ haxelib run haxefmod todos [--json]
 ```
 
 Finds every `FmodManager.Todo(...)` call in the project so the sound work they mark can be scheduled. The scanner is comment-aware and string-aware, so commented-out calls and mentions inside string literals are skipped. Calls with a literal first argument show their description. A computed description is still found and reported as dynamic. `--json` prints machine-readable output for build dashboards.
+
+## stage
+
+```bash
+haxelib run haxefmod stage <platform> <target> <outdir>
+```
+
+Lime builds get the FMOD runtime files copied next to the game automatically. Every other build runs `stage` after compiling to do the same: Heaps, Kha, and plain haxe builds. The platform is `mac`, `linux`, `windows`, or `html5`, and the target is `hl` or `cpp`.
+
+- `hl` copies the FMOD libraries and `hlaxe_fmod.hdll` (resolved through the same tiers as a lime build, see [Platforms](../platforms.md#hashlink)) and writes a launcher that starts the game with the right library path, `run.sh` on Linux and macOS and `run.cmd` on Windows.
+- `cpp` copies the FMOD libraries only, for executables the binding was compiled into. Kha's native targets use this on Kore HL/C builds too.
+- `html5` copies the FMOD web engine (`fmodstudio.js`, `fmodstudio.wasm`) and the library's `jaxe.js` glue into the directory, which your page then loads with script tags ahead of the game.
+
+The command reads `FMOD_SDK` (or `FMOD_SDK_WEB` for html5) and stops with the reason when the variable is unset, points at the wrong package, or holds an unusable version. The Heaps and Kha tabs of [Getting started](../getting-started.md#6-build-and-run) show it inside a full build.
 
 ## build-hdll
 

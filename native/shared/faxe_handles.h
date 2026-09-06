@@ -229,6 +229,12 @@ static void faxe_handle_set_aux(int handle, void* aux) {
     s->aux = aux;
 }
 
+/* The slot's owned memory, NULL when none is parked. The handle must
+ * resolve (callers check first). */
+static void* faxe_handle_get_aux(int handle) {
+    return gFaxeSlots[handle & 0xFFFF].aux;
+}
+
 /* The lock record parked on a handle, NULL when no lock is open. The
  * handle must resolve (callers check first). */
 static void* faxe_handle_get_lock(int handle) {

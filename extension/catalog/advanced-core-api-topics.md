@@ -4,6 +4,7 @@
 kind: example
 index: 0
 heading: 10.2 Extracting PCM Data from a Sound
+tabbed: yes
 
 ### C++
 ```cpp
@@ -68,6 +69,7 @@ buffer = buffer.val;
 kind: example
 index: 1
 heading: Codec Example
+tabbed: yes
 
 ### C++
 ```cpp
@@ -112,6 +114,7 @@ sound = outval.val;
 kind: example
 index: 2
 heading: Output Example
+tabbed: yes
 
 ### C++
 ```cpp
@@ -146,6 +149,7 @@ result = system.setOutputByPlugin(handle);
 kind: example
 index: 3
 heading: DSP Example
+tabbed: yes
 
 ### C++
 ```cpp
@@ -194,6 +198,7 @@ result = channel.addDSP(0, dsp);
 kind: example
 index: 4
 heading: Codec Example
+tabbed: yes
 
 ### C++
 ```cpp
@@ -235,6 +240,7 @@ result = system.createSound("example.xyz", FMOD.MODE.DEFAULT, 0, out sound);
 kind: example
 index: 5
 heading: Output Example
+tabbed: yes
 
 ### C++
 ```cpp
@@ -267,6 +273,7 @@ result = system.setOutputByPlugin(handle);
 kind: example
 index: 6
 heading: DSP Example
+tabbed: yes
 
 ### C++
 ```cpp

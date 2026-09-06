@@ -17,6 +17,7 @@ class TestPostBuild {
 		testCustomHdllMarkerCheck();
 		testClearExecstack();
 		testSdkPackageDetection();
+		testStage();
 
 		Sys.println('  $passed passed, $failed failed');
 		return failed;
@@ -182,6 +183,13 @@ class TestPostBuild {
 		assert(script.indexOf("\"./My Game\" \"$@\"") >= 0, "run.sh quoted exe invocation");
 		assert(script.indexOf("cd \"$(dirname \"$0\")\"") >= 0, "run.sh cd to script dir");
 
+		var mac = PostBuild.runShContent("game.hl", true, true);
+		check("mac launcher runs the bytecode through hl", mac.indexOf('hl "./game.hl"') != -1);
+		check("mac launcher sets DYLD_LIBRARY_PATH", mac.indexOf("export DYLD_LIBRARY_PATH") != -1 && mac.indexOf("export LD_LIBRARY_PATH") == -1);
+		var cmd = PostBuild.runCmdContent("game.hl");
+		check("windows launcher changes to its own directory", cmd.indexOf('cd /d "%~dp0"') != -1);
+		check("windows launcher runs the bytecode through hl", cmd.indexOf('hl "game.hl" %*') != -1);
+		check("windows launcher uses CRLF", cmd.indexOf("\r\n") != -1);
 		var plain = PostBuild.runShContent("Game");
 		assert(plain.indexOf("\"./Game\" \"$@\"") >= 0, "run.sh plain name quoted too");
 	}
@@ -235,5 +243,106 @@ class TestPostBuild {
 			var missing = haxe.io.Path.join([web].concat(PostBuild.nativeCoreLib(platform)));
 			assert(!sys.FileSystem.exists(missing), 'html5 package has no $platform core library');
 		}
+	}
+
+	/**
+	 * stage() copies into the directory it is given with no lime layout
+	 * involved. A HashLink VM output (bytecode, no executable) gets a
+	 * launcher that runs the bytecode through hl, and the web trio
+	 * includes jaxe.js, which lime bundles on its own.
+	 */
+	static function testStage():Void {
+		// cp -P and test -L run here, and the symlink layout is the Linux
+		// SDK's. The Windows runner never executes this file.
+		if (Sys.systemName() == "Windows") return;
+		var base = "tests/.tmp/stage";
+		var libRoot = '$base/lib';
+		var projectDir = '$base/project';
+		var sdk = '$base/sdk';
+		var savedSdk = Sys.getEnv("FMOD_SDK");
+		var savedWeb = Sys.getEnv("FMOD_SDK_WEB");
+
+		function write(path:String, content:String):Void {
+			var dir = haxe.io.Path.directory(path);
+			if (!sys.FileSystem.exists(dir)) sys.FileSystem.createDirectory(dir);
+			sys.io.File.saveContent(path, content);
+		}
+		function writeBytes(path:String, bytes:haxe.io.Bytes):Void {
+			var dir = haxe.io.Path.directory(path);
+			if (!sys.FileSystem.exists(dir)) sys.FileSystem.createDirectory(dir);
+			sys.io.File.saveBytes(path, bytes);
+		}
+		function rmTree(path:String):Void {
+			if (!sys.FileSystem.exists(path)) return;
+			for (name in sys.FileSystem.readDirectory(path)) {
+				var child = '$path/$name';
+				if (sys.FileSystem.isDirectory(child)) rmTree(child) else sys.FileSystem.deleteFile(child);
+			}
+			sys.FileSystem.deleteDirectory(path);
+		}
+		rmTree(base);
+
+		// Library side: version marker, a pre-built hdll, jaxe.js
+		write('$libRoot/fmod_expected_version', "0x00020312\n");
+		write('$libRoot/templates/bin/hl/Linux64/hlaxe_fmod.hdll', "hdll bytes");
+		write('$libRoot/native/jaxe/jaxe.js', "// jaxe");
+
+		// Desktop SDK: header plus versioned .so files with the symlinks
+		// FMOD ships, executable stack flag set like the real ones
+		write('$sdk/api/core/inc/fmod_common.h', "#define FMOD_VERSION 0x00020312\n");
+		var coreDir = '$sdk/api/core/lib/x86_64';
+		var studioDir = '$sdk/api/studio/lib/x86_64';
+		writeBytes('$coreDir/libfmod.so.14.12', fakeElf(7));
+		writeBytes('$studioDir/libfmodstudio.so.14.12', fakeElf(7));
+		Sys.command("ln", ["-s", "libfmod.so.14.12", '$coreDir/libfmod.so.14']);
+		Sys.command("ln", ["-s", "libfmod.so.14", '$coreDir/libfmod.so']);
+		Sys.command("ln", ["-s", "libfmodstudio.so.14.12", '$studioDir/libfmodstudio.so']);
+
+		var out = '$projectDir/build/hl';
+		write('$out/main.hl', "bytecode");
+		Sys.putEnv("FMOD_SDK", sdk);
+		PostBuild.stage("linux", "hl", libRoot, projectDir, out);
+
+		check("stage copies libfmod.so", sys.FileSystem.exists('$out/libfmod.so'));
+		check("stage copies libfmodstudio.so", sys.FileSystem.exists('$out/libfmodstudio.so'));
+		check("stage copies the versioned library", sys.FileSystem.exists('$out/libfmod.so.14.12'));
+		check("stage copies the pre-built hdll", sys.FileSystem.exists('$out/hlaxe_fmod.hdll')
+			&& sys.io.File.getContent('$out/hlaxe_fmod.hdll') == "hdll bytes");
+		check("stage clears the executable stack flag",
+			sys.io.File.getBytes('$out/libfmod.so.14.12').getInt32(124) & 1 == 0);
+		var runSh = '$out/run.sh';
+		check("stage writes an hl launcher for a bytecode build", sys.FileSystem.exists(runSh)
+			&& sys.io.File.getContent(runSh).indexOf('hl "./main.hl"') != -1);
+
+		// A project-local custom hdll wins when its marker matches the SDK
+		write('$projectDir/.haxefmod/hlaxe_fmod.hdll', "custom hdll");
+		write('$projectDir/.haxefmod/hlaxe_fmod.version', "0x00020312\n");
+		PostBuild.stage("linux", "hl", libRoot, projectDir, out);
+		check("stage prefers the custom hdll",
+			sys.io.File.getContent('$out/hlaxe_fmod.hdll') == "custom hdll");
+
+		// cpp target: libraries only, no hdll, and the directory is created
+		var cppOut = '$projectDir/build/cpp';
+		PostBuild.stage("linux", "cpp", libRoot, projectDir, cppOut);
+		check("stage creates the output directory", sys.FileSystem.isDirectory(cppOut));
+		check("stage cpp copies libfmod.so", sys.FileSystem.exists('$cppOut/libfmod.so'));
+		check("stage cpp skips the hdll", !sys.FileSystem.exists('$cppOut/hlaxe_fmod.hdll'));
+		check("stage cpp writes no launcher without an executable", !sys.FileSystem.exists('$cppOut/run.sh'));
+
+		// Web SDK: the engine pair plus jaxe.js land side by side
+		var web = '$base/web';
+		write('$web/api/core/inc/fmod_common.h', "#define FMOD_VERSION 0x00020312\n");
+		write('$web/api/studio/lib/wasm/fmodstudio.js', "// engine");
+		write('$web/api/studio/lib/wasm/fmodstudio.wasm', "wasm");
+		var webOut = '$projectDir/build/html5/lib';
+		Sys.putEnv("FMOD_SDK_WEB", web);
+		PostBuild.stage("html5", "ignored", libRoot, projectDir, webOut);
+		for (name in ["fmodstudio.js", "fmodstudio.wasm", "jaxe.js"]) {
+			check('stage html5 copies $name', sys.FileSystem.exists('$webOut/$name'));
+		}
+
+		Sys.putEnv("FMOD_SDK", savedSdk);
+		Sys.putEnv("FMOD_SDK_WEB", savedWeb);
+		rmTree(base);
 	}
 }

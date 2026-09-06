@@ -4,6 +4,7 @@
 kind: example
 index: 0
 heading: FMOD_SOUNDGROUP_BEHAVIOR
+tabbed: yes
 
 ### C/C++
 ```cpp

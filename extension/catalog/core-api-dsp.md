@@ -77,6 +77,7 @@ RESULT DSP.addInputPreallocated(
 kind: example
 index: 2
 heading: FMOD_DSP_CALLBACK
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -109,6 +110,7 @@ function FMOD_DSP_CALLBACK(
 kind: example
 index: 3
 heading: FMOD_DSP_CALLBACK_TYPE
+tabbed: yes
 
 ### C/C++
 ```cpp
@@ -137,6 +139,7 @@ DSP_CALLBACK_MAX
 kind: example
 index: 4
 heading: FMOD_DSP_DATA_PARAMETER_INFO
+tabbed: yes
 
 ### C/C++
 ```cpp

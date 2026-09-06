@@ -24,7 +24,6 @@ verdict: bound
 ```haxe
 import haxefmod.core.Sound;
 
-var sound = Sound.create("drumloop.wav");
 {
     var userData = "Hello User Data!";
     sound.setUserData(userData);

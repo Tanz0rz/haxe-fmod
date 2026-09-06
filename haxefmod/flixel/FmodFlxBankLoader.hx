@@ -1,8 +1,7 @@
 package haxefmod.flixel;
 
 import flixel.FlxBasic;
-import haxefmod.runtime.FmodRuntime;
-import haxefmod.studio.Types;
+import haxefmod.runtime.BankLoadTracker;
 
 /**
     Loads a set of banks and reports when they are all ready.
@@ -17,14 +16,9 @@ import haxefmod.studio.Types;
 **/
 class FmodFlxBankLoader extends FlxBasic {
     /** True once every requested bank has finished loading. **/
-    public var loaded(default, null):Bool = false;
+    public var loaded(get, never):Bool;
 
-    var destroyed:Bool = false;
-
-    var paths:Array<String>;
-    var onLoaded:Void->Void;
-    var onError:Void->Void;
-    var errored:Bool = false;
+    var tracker:BankLoadTracker;
 
     /**
         Starts loading immediately.
@@ -38,65 +32,19 @@ class FmodFlxBankLoader extends FlxBasic {
     **/
     public function new(bankFiles:Array<String>, ?onLoaded:Void->Void, ?onError:Void->Void, async:Bool = true) {
         super();
-        this.onLoaded = onLoaded;
-        this.onError = onError;
-        this.async = async;
-        paths = [for (file in bankFiles) FmodRuntime.bankPath(file)];
-    }
-
-    var async:Bool;
-    var started:Bool = false;
-    // Only paths whose load this loader actually registered are unloaded
-    // by destroy(), so a rejected load can never steal a reference some
-    // other holder registered for the same path later
-    var owned:Array<String> = [];
-
-    // Loads start on the first serviced frame after FMOD is ready, so a
-    // loader constructed before (or during) initialization waits instead
-    // of failing outright
-    function startLoads():Void {
-        started = true;
-        for (path in paths) {
-            var bank = async ? FmodRuntime.banks.loadAsync(path) : FmodRuntime.banks.load(path);
-            if (!bank.isNull()) owned.push(path);
-        }
+        tracker = new BankLoadTracker(bankFiles, onLoaded, onError, async);
     }
 
     override public function update(elapsed:Float):Void {
         super.update(elapsed);
-        // A destroyed loader has an empty path list, which would read as
-        // "all banks loaded" and fire onLoaded after the banks were released
-        if (loaded || destroyed || errored) return;
-        if (!started) {
-            if (!FmodRuntime.isInitialized()) return;
-            startLoads();
-        }
-        for (path in paths) {
-            var state = FmodRuntime.banks.loadingState(path);
-            // ERROR: an async load settled in failure. UNLOADED: the load
-            // this constructor issued was rejected outright and never
-            // registered. Both are load failures.
-            if (state == ERROR || state == UNLOADED) {
-                errored = true;
-                if (onError != null) onError();
-                return;
-            }
-        }
-        for (path in paths) {
-            if (!FmodRuntime.banks.isLoaded(path)) return;
-        }
-        loaded = true;
-        if (onLoaded != null) onLoaded();
+        tracker.update();
     }
 
     /** Releases this loader's bank references (refcounted unload). **/
     override public function destroy():Void {
-        destroyed = true;
-        for (path in owned) {
-            FmodRuntime.banks.unload(path);
-        }
-        owned = [];
-        paths = [];
+        tracker.dispose();
         super.destroy();
     }
+
+    function get_loaded():Bool return tracker.loaded;
 }

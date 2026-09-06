@@ -4,6 +4,7 @@
 kind: example
 index: 0
 heading: 22.33 Reading Sound Data
+tabbed: yes
 
 ### C++
 ```cpp
@@ -68,6 +69,7 @@ buffer = buffer.val;
 kind: example
 index: 1
 heading: 22.49 User Data
+tabbed: yes
 
 ### C++
 ```cpp

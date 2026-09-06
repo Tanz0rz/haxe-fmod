@@ -48,8 +48,6 @@ verdict: bound
 import haxefmod.core.Dsp;
 import haxefmod.core.Sound;
 
-var sound = Sound.create("drumloop.wav");
-
 var handle = StudioSystem.loadPlugin("example_dsp.dll");
 var channel = sound.play();
 var dsp = Dsp.createByPlugin(handle);
@@ -70,9 +68,6 @@ reverb.setProperties(prop2);
 ## 10.7.1 3D Reverbs#2
 verdict: bound
 ```haxe
-import haxefmod.core.Reverb3D;
-
-var reverb = Reverb3D.create();
 var pos = {x: -10.0, y: 0.0, z: 0.0};
 var mindist = 10.0;
 var maxdist = 20.0;
@@ -81,6 +76,7 @@ reverb.set3DAttributes(pos.x, pos.y, pos.z, mindist, maxdist);
 
 ## 10.7.1 3D Reverbs#3
 verdict: bound
+waive: extra-calls the core set3DListenerAttributes has no Haxe form, the listener goes through Studio's setListenerAttributes
 ```haxe
 var listenerpos = {x: 0.0, y: 0.0, z: -1.0};
 StudioSystem.setListenerAttributes(0, {
@@ -106,11 +102,6 @@ var prop4 = Reverb.PRESET_CONCERTHALL;
 verdict: bound
 ```haxe
 import haxefmod.core.Reverb;
-
-var prop1 = Reverb.PRESET_HALLWAY;
-var prop2 = Reverb.PRESET_SEWERPIPE;
-var prop3 = Reverb.PRESET_PARKINGLOT;
-var prop4 = Reverb.PRESET_CONCERTHALL;
 
 var result = Reverb.set(0, prop1);
 result = Reverb.set(1, prop2);
