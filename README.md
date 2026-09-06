@@ -50,7 +50,7 @@ Once you are set up, `haxelib run haxefmod check` verifies your local dev enviro
 
 The FmodManager class is the primary way to interact with FMOD in your game. It abstracts away nearly all of the low-level details of the FMOD API. The `FmodEvents` constants used below are generated from your banks (see [Generating constants](https://tanz0rz.github.io/haxe-fmod/guides/tools-cli/#generate)). You can look through all of the available function calls with descriptions [here](https://github.com/Tanz0rz/haxe-fmod/blob/master/haxefmod/FmodManager.hx).
 
-One call per engine initializes FMOD, keeps the per-frame update running, and wires focus and volume. Pick yours:
+Start with the one setup call for your engine. It initializes FMOD, keeps the per-frame update running, and wires focus and volume.
 
 <details>
 <summary>HaxeFlixel</summary>
@@ -62,11 +62,6 @@ import haxefmod.flixel.FmodFlxSetup;
 
 public function StartGame():Void {
     FmodFlxSetup.init();
-    FmodManager.PlaySong(FmodEvents.MusicMainLevel);
-}
-
-public function JumpPressed():Void {
-    FmodManager.PlaySoundOneShot(FmodEvents.SFXJump);
 }
 ```
 
@@ -78,17 +73,11 @@ public function JumpPressed():Void {
 Call `FmodHeapsSetup.init()` once from your `hxd.App`'s `init()`.
 
 ```haxe
-import haxefmod.FmodManager;
 import haxefmod.heaps.FmodHeapsSetup;
 
 class Main extends hxd.App {
     override function init() {
         FmodHeapsSetup.init();
-        FmodManager.PlaySong(FmodEvents.MusicMainLevel);
-    }
-
-    function JumpPressed() {
-        FmodManager.PlaySoundOneShot(FmodEvents.SFXJump);
     }
 
     static function main() {
@@ -105,7 +94,6 @@ class Main extends hxd.App {
 Call `FmodKhaSetup.init()` once from the `System.start` callback.
 
 ```haxe
-import haxefmod.FmodManager;
 import haxefmod.kha.FmodKhaSetup;
 import kha.System;
 
@@ -113,19 +101,14 @@ class Main {
     static function main() {
         System.start({title: "Game", width: 640, height: 480}, _ -> {
             FmodKhaSetup.init();
-            FmodManager.PlaySong(FmodEvents.MusicMainLevel);
         });
-    }
-
-    static function JumpPressed() {
-        FmodManager.PlaySoundOneShot(FmodEvents.SFXJump);
     }
 }
 ```
 
 </details>
 
-After that call, the helper class works the same on every engine:
+From there the calls are the same on every engine:
 
 ```haxe
 public function StartLevel():Void {
