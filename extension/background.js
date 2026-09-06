@@ -3,5 +3,5 @@
 // background script, which is why the manifest lists both forms.
 var api = typeof browser !== "undefined" ? browser : chrome;
 api.action.onClicked.addListener(function () {
-    api.tabs.create({ url: "https://www.fmod.com/docs/2.02/api/welcome.html" });
+    api.tabs.create({ url: "https://www.fmod.com/docs/2.03/api/welcome.html" });
 });
