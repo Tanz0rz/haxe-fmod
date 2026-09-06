@@ -1,24 +1,31 @@
 # haxefmod
 
-FMOD Studio for Haxe on HTML5, HashLink, Windows, Linux, and macOS, with drop-in components for HaxeFlixel, Heaps, and Kha. The library binds the full [FMOD Studio API](https://www.fmod.com/docs/2.03/api/studio-api.html) and the FMOD Core API at runtime, and adds the pieces a game needs around them: a facade, typed sound handles, payload callbacks, refcounted bank loading, engine components, and constants generated from your banks.
+haxefmod is FMOD Studio for Haxe on HTML5, HashLink, Windows, Linux, and macOS, with drop-in components for HaxeFlixel, Heaps, and Kha. The library binds the full [FMOD Studio API](https://www.fmod.com/docs/2.03/api/studio-api.html) and the FMOD Core API at runtime. Around them it adds the pieces a game needs:
+
+- a facade
+- typed sound handles
+- payload callbacks
+- refcounted bank loading
+- engine components
+- constants generated from your banks
 
 ## Two sets of docs
 
-FMOD's own documentation at [fmod.com/docs](https://www.fmod.com/docs/2.03/api/welcome.html) describes every FMOD function, type, and guide, and the [haxefmod for FMOD docs](https://github.com/Tanz0rz/haxe-fmod/tree/master/extension) browser extension adds a Haxe tab there with the haxefmod signature for each of them. Every haxefmod method that wraps an FMOD function keeps the FMOD name, so a page there maps directly onto a class here.
+FMOD's own documentation at [fmod.com/docs](https://www.fmod.com/docs/2.03/api/welcome.html) describes every FMOD function, type, and guide. The [haxefmod for FMOD docs](https://github.com/Tanz0rz/haxe-fmod/tree/master/extension) browser extension adds a Haxe tab to each of them with the haxefmod signature. Every haxefmod method that wraps an FMOD function keeps the FMOD name. A page there maps directly onto a class here.
 
-These pages cover only what the library adds on top of FMOD: setup, the facade, the runtime layer, the conventions every handle follows, the engine components, and the command line.
+These pages cover only what the library adds: setup, the facade, the runtime layer, handle conventions, engine components, and the command line.
 
 ## Three tiers
 
-Pick the lowest tier that does what you need. They compose, so a game can start on the facade and reach down when it wants more.
+Pick the lowest tier that does what you need. The tiers compose. A game can start on the facade and reach down when it wants more.
 
 | Tier | Package | What it is |
 |---|---|---|
-| Facade | `haxefmod.FmodManager`, `haxefmod.FmodSound` | One background song slot, fire-and-forget and handle-based sound effects, bus volume helpers, window focus handling. Enough for most games. |
+| Facade | `haxefmod.FmodManager`, `haxefmod.FmodSound` | One background song slot, fire-and-forget and handle-based sound effects, bus volume helpers, and window focus handling. Enough for most games. |
 | Runtime | `haxefmod.runtime` | Settings-driven initialization, the bank registry, 3D attachment, and the per-frame update that everything else rides on. |
-| Studio and Core | `haxefmod.studio`, `haxefmod.core` | Typed handles for every FMOD Studio and Core object. The binding is complete except for the callback-driven APIs no Haxe target can host, listed in [Limitations](limitations.md). |
+| Studio and Core | `haxefmod.studio`, `haxefmod.core` | Typed handles for every FMOD Studio and Core object. The binding is complete except for the callback-driven APIs that no Haxe target can host. [Limitations](limitations.md) lists them. |
 
-`haxefmod.flixel`, `haxefmod.heaps`, and `haxefmod.kha` sit beside these with drop-in components for their engines, and `haxefmod.tools` is the `haxelib run haxefmod` command line.
+`haxefmod.flixel`, `haxefmod.heaps`, and `haxefmod.kha` hold drop-in components for their engines. `haxefmod.tools` is the `haxelib run haxefmod` command line.
 
 ## Where to go
 
