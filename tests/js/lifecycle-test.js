@@ -169,7 +169,7 @@ async function main() {
     // --- channel-callback map cleanup on stop and on natural end ---
     const ps = jaxe.fmod_core_pcm_create(8000, 1, 8000);
     check('pcm_create', ps > 0, `handle=${ps}`);
-    const chan = jaxe.fmod_core_pcm_play(ps, false);
+    const chan = jaxe.fmod_core_pcm_play(ps, 0, false);
     check('pcm_play', chan > 0, `handle=${chan}`);
     jaxe.fmod_chan_set_callback(chan, true);
     check('chan_map_entry_present', jaxe.chanCallbackHandles.size === 1,
@@ -188,7 +188,7 @@ async function main() {
     const pcmBytes = new ArrayBuffer(sampleCount * 2);
     const sndFinite = jaxe.fmod_core_create_sound_pcm(pcmBytes, sampleCount * 2, 8000, 1);
     check('finite_pcm_sound', sndFinite > 0, `handle=${sndFinite}`);
-    const chan2 = jaxe.fmod_core_play_sound(sndFinite, false);
+    const chan2 = jaxe.fmod_core_play_sound(sndFinite, 0, false);
     check('finite_pcm_chan', chan2 > 0, `handle=${chan2}`);
     jaxe.fmod_chan_set_callback(chan2, true);
     check('chan2_map_entry', jaxe.chanCallbackHandles.size === 1, '');
@@ -204,7 +204,7 @@ async function main() {
     const dsp = jaxe.fmod_dsp_create_by_type(3 /* echo */);
     check('dsp_created', dsp > 0, `handle=${dsp}`);
     const ps2 = jaxe.fmod_core_pcm_create(8000, 1, 8000);
-    const chan3 = jaxe.fmod_core_pcm_play(ps2, false);
+    const chan3 = jaxe.fmod_core_pcm_play(ps2, 0, false);
     check('chan_add_dsp', jaxe.fmod_chan_add_dsp(chan3, 0, dsp) === 0, '');
     await pump(2);
     const conn = jaxe.fmod_dsp_get_input_connection(dsp, 0);

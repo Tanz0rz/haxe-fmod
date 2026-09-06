@@ -1,0 +1,69 @@
+site_name: haxefmod
+site_description: FMOD Studio for Haxe on HTML5, HashLink, Windows, Linux, and macOS
+site_url: https://tanz0rz.github.io/haxe-fmod/
+repo_url: https://github.com/Tanz0rz/haxe-fmod
+repo_name: Tanz0rz/haxe-fmod
+edit_uri: edit/master/docs/
+docs_dir: docs
+site_dir: site
+strict: true
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.top
+    - content.tabs.link
+    - navigation.footer
+    - content.code.copy
+    - content.action.edit
+    - search.suggest
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: deep purple
+      toggle:
+        icon: material/brightness-7
+        name: Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: deep purple
+      toggle:
+        icon: material/brightness-4
+        name: Light mode
+
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - pymdownx.details
+  - pymdownx.tabbed:
+      alternate_style: true
+
+# Copies LIMITATIONS.md, MIGRATION.md, and CHANGELOG.md from the repo root
+# into the site so they appear in the nav without a second copy in docs/
+hooks:
+  - ci/docs-root-pages.py
+
+nav:
+  - Welcome: index.md
+  - Getting started: getting-started.md
+  - Guides:
+      - FmodManager: guides/fmod-manager.md
+      - fmod.com extension: guides/extension.md
+      - Generated constants: guides/constants.md
+      - Handles and results: guides/handles-and-results.md
+      - Banks and settings: guides/banks-and-settings.md
+      - Callbacks and 3D: guides/callbacks-and-3d.md
+      - Core API: guides/core-api.md
+      - Engine components: guides/components.md
+      - Tools CLI: guides/tools-cli.md
+  - Platforms: platforms.md
+  - Coverage: coverage.md
+  - Limitations: limitations.md
+  - Migration: migration.md
+  - Changelog: changelog.md
+  - API reference: /haxe-fmod/api/

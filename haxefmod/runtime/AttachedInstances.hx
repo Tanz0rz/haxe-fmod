@@ -50,6 +50,14 @@ class AttachedInstances {
         return entries.length;
     }
 
+    /** True while any live entry still follows this provider. */
+    public function hasProvider(provider:IFmodPositionProvider):Bool {
+        for (entry in entries) {
+            if (entry.provider == provider) return true;
+        }
+        return false;
+    }
+
     /** Pushes positions for all live entries and prunes dead ones. */
     public function update():Void {
         var i = entries.length - 1;

@@ -11,6 +11,7 @@ import haxefmod.runtime.FmodSettings;
  *   -D haxefmod_num_channels=64 -D haxefmod_sample_rate=44100
  *   -D haxefmod_log_level=3 -D haxefmod_bank_folder=custom/banks
  *   -D haxefmod_live_update -D haxefmod_no_mute_when_unfocused
+ *   -D haxefmod_dsp_buffer_size=1024 -D haxefmod_software_channels=48
  *
  * and separately with -debug and no haxefmod defines (the debug build's
  * liveUpdate default). tests/build-defines.hxml and
@@ -38,6 +39,8 @@ class TestDefineOverrides {
 		assert(resolved.bankFolder == "custom/banks", "haxefmod_bank_folder reaches the resolver");
 		assert(resolved.liveUpdate == true, "haxefmod_live_update reaches the resolver");
 		assert(resolved.muteWhenUnfocused == false, "haxefmod_no_mute_when_unfocused reaches the resolver");
+		assert(resolved.dspBufferSize == 1024, "haxefmod_dsp_buffer_size reaches the resolver");
+		assert(resolved.softwareChannels == 48, "haxefmod_software_channels reaches the resolver");
 		// Explicit settings still beat defines
 		var explicit = FmodSettingsResolver.resolve({numChannels: 32, bankFolder: "explicit"});
 		assert(explicit.numChannels == 32, "explicit settings beat the channel define");

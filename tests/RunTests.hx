@@ -7,14 +7,17 @@ class RunTests {
 
 		var totalFailed = 0;
 		totalFailed += TestCallbackDispatcher.run();
+		totalFailed += TestComponentCores.run();
 		totalFailed += TestFacadePredicates.run();
 		totalFailed += TestLayering.run();
+		totalFailed += TestPlugins.run();
 		totalFailed += TestPostBuild.run();
 		totalFailed += TestRuntime.run();
 		totalFailed += TestSongMachine.run();
 		totalFailed += TestStringsBankParser.run();
 		totalFailed += TestStudioSurface.run();
 		totalFailed += TestTodoScanner.run();
+		totalFailed += TestUserData.run();
 		totalFailed += TestVersionParsing.run();
 
 		Sys.println("");

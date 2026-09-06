@@ -43,6 +43,7 @@
 #define FAXE_TYPE_REVERB3D 12  /* Core Reverb3D zone */
 #define FAXE_TYPE_SOUNDGROUP 13  /* Core SoundGroup */
 #define FAXE_TYPE_REPLAY 14  /* Studio CommandReplay */
+#define FAXE_TYPE_GEOMETRY 15  /* Core Geometry */
 
 #define FAXE_MAX_SLOTS 0x10000
 /* Max entries any list getter returns in one call. The Haxe-side scratch
@@ -53,6 +54,13 @@
 
 typedef struct {
     void* ptr;
+    /* malloc'd memory the shim hands FMOD for the object's lifetime (the
+     * custom rolloff point array). Freed with the slot. */
+    void* aux;
+    /* malloc'd record of the open Sound::lock range (both pointers and
+     * lengths). The shim closes the lock before the slot dies, the slot
+     * only frees the record. */
+    void* lock;
     unsigned short gen;   /* 1..FAXE_GEN_MAX once used, 0 = never used yet */
     unsigned char type;
     unsigned char alive;
@@ -101,6 +109,8 @@ static int faxe_handle_alloc(void* ptr, unsigned char type) {
 
     s = &gFaxeSlots[idx];
     s->ptr = ptr;
+    s->aux = NULL;
+    s->lock = NULL;
     s->type = type;
     s->alive = 1;
     if (s->gen == 0) s->gen = 1; /* first use of this slot */
@@ -110,10 +120,11 @@ static int faxe_handle_alloc(void* ptr, unsigned char type) {
 }
 
 /* Returns the existing handle for a pointer already in the table (same type),
- * or allocates a new one. Prevents duplicate handles when FMOD returns the
- * same object from multiple lookups (e.g. getBus by path then by ID).
- * Linear scan is fine: called only from the Haxe thread on lookup paths. */
-static int faxe_handle_find_or_alloc(void* ptr, unsigned char type) {
+ * 0 when the table has never seen it. Linear scan is fine: called only from
+ * the Haxe thread on lookup paths. find_or_alloc allocates when the scan
+ * misses, which prevents duplicate handles when FMOD returns the same object
+ * from multiple lookups (e.g. getBus by path then by ID). */
+static int faxe_handle_find(void* ptr, unsigned char type) {
     int i;
     if (!ptr) return 0;
     for (i = 0; i < gFaxeSlotCap; i++) {
@@ -121,6 +132,12 @@ static int faxe_handle_find_or_alloc(void* ptr, unsigned char type) {
             return ((int)gFaxeSlots[i].gen << 16) | i;
         }
     }
+    return 0;
+}
+
+static int faxe_handle_find_or_alloc(void* ptr, unsigned char type) {
+    int found = faxe_handle_find(ptr, type);
+    if (found) return found;
     return faxe_handle_alloc(ptr, type);
 }
 
@@ -194,11 +211,42 @@ static void faxe_handle_free(int handle) {
 
     s->alive = 0;
     s->ptr = NULL;
+    if (s->aux) { free(s->aux); s->aux = NULL; }
+    if (s->lock) { free(s->lock); s->lock = NULL; }
     s->type = FAXE_TYPE_NONE;
     s->gen = (unsigned short)((s->gen % FAXE_GEN_MAX) + 1); /* wraps 1..FAXE_GEN_MAX, never 0 */
     s->next_free = gFaxeFreeHead;
     gFaxeFreeHead = idx;
     gFaxeLiveCount--;
+}
+
+/* Replaces the slot's owned memory, freeing the previous block. The handle
+ * must resolve (callers check first). Passing NULL just frees. */
+static void faxe_handle_set_aux(int handle, void* aux) {
+    int idx = handle & 0xFFFF;
+    FaxeSlot* s = &gFaxeSlots[idx];
+    if (s->aux) free(s->aux);
+    s->aux = aux;
+}
+
+/* The slot's owned memory, NULL when none is parked. The handle must
+ * resolve (callers check first). */
+static void* faxe_handle_get_aux(int handle) {
+    return gFaxeSlots[handle & 0xFFFF].aux;
+}
+
+/* The lock record parked on a handle, NULL when no lock is open. The
+ * handle must resolve (callers check first). */
+static void* faxe_handle_get_lock(int handle) {
+    return gFaxeSlots[handle & 0xFFFF].lock;
+}
+
+/* Parks a lock record on the handle, freeing the previous one. NULL just
+ * frees. Same contract as faxe_handle_set_aux. */
+static void faxe_handle_set_lock(int handle, void* lock) {
+    FaxeSlot* s = &gFaxeSlots[handle & 0xFFFF];
+    if (s->lock) free(s->lock);
+    s->lock = lock;
 }
 
 static int faxe_live_handle_count(void) {

@@ -1,0 +1,60 @@
+/* The site's .highlight box carries 6px of padding and a grey fill. The
+   note pulls back out to the box edge, draws a rule, and sits on white
+   so the code and the prose read as two things. */
+.haxefmod-block .haxefmod-note {
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 10px -6px -6px -6px;
+    padding: 8px 12px 6px 12px;
+    border-top: 1px solid #b3b3b3;
+    background: #ffffff;
+    color: #333333;
+}
+
+.haxefmod-block .haxefmod-note p {
+    margin: 4px 0;
+}
+
+.haxefmod-block .haxefmod-type {
+    font-family: monospace;
+    font-size: 13px;
+    color: #555555;
+}
+
+.haxefmod-block .haxefmod-warn-title {
+    color: #a40000;
+    font-weight: bold;
+}
+
+.haxefmod-block .haxefmod-warn ul {
+    margin: 2px 0 6px 0;
+    padding-left: 20px;
+}
+
+.haxefmod-block .haxefmod-warn li {
+    margin: 2px 0;
+}
+
+.haxefmod-block .haxefmod-footer {
+    color: #666666;
+    font-size: 12px;
+}
+
+.haxefmod-block .haxefmod-footer a {
+    color: #666666;
+    text-decoration: underline;
+}
+
+/* The site sizes every tab for two or three characters (max-width 30px),
+   which pushes "Haxe" off center. Match the site's selector specificity
+   and give the word its room. */
+#Documentation div.documentation-content div.language-tab.haxefmod-tab,
+#Documentation div.searchresults div.language-tab.haxefmod-tab {
+    max-width: 40px;
+    text-align: center;
+}
+
+/* The extension keeps the clicked tab in place itself, so the browser's own anchoring must not move the page as blocks change height. */
+div.manual-content {
+    overflow-anchor: none;
+}

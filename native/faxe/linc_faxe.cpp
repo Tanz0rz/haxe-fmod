@@ -22,6 +22,7 @@
 #include "../shared/faxe_cbqueue.h"
 #include "../shared/faxe_guid.h"
 #include "../shared/faxe_instctx.h"
+#include "../shared/faxe_dspdata.h"
 #include <thread>
 #include <atomic>
 #include <chrono>
@@ -59,6 +60,18 @@ static inline FMOD::Studio::EventInstance* resolveInstance(int h) {
     return (FMOD::Studio::EventInstance*)faxe_handle_resolve(h, FAXE_TYPE_EVI);
 }
 
+static inline FMOD::ChannelGroup* resolveChanGroup(int h);
+
+// The channel group a play call routes into. Handle 0 means the master
+// group (FMOD's NULL). A stale handle fails the call instead of falling
+// back to the master group, so a wrong route is heard about.
+static bool resolvePlayGroup(int h, FMOD::ChannelGroup** out) {
+    *out = NULL;
+    if (h == 0) return true;
+    *out = resolveChanGroup(h);
+    return *out != NULL;
+}
+
 // Callback handler - runs on an FMOD thread. Must not touch the handle table
 // or any Haxe values. It reads the per-instance context back from FMOD
 // userdata, copies payloads into a plain C record, and pushes it onto the
@@ -89,34 +102,69 @@ static FMOD_RESULT F_CALLBACK eventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type
             FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES* props =
                 (FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES*)parameters;
             char key[FAXE_PS_KEY_MAX];
+            // A name entry wins over the single key, the game sound wins
+            // over both.
             faxe_cbq_lock();
+            void* gameSound = ctx->psGameSound;
+            int gameSubsound = ctx->psGameSubsound;
             strncpy(key, ctx->psKey, FAXE_PS_KEY_MAX - 1);
             key[FAXE_PS_KEY_MAX - 1] = '\0';
+            if (props) faxe_instctx_ps_find_named(ctx, props->name, key);
             faxe_cbq_unlock();
-            if (props && key[0] != '\0' && gCoreSystem && gStudioSystem) {
+            if (props && props->name) {
+                strncpy(ev.str, props->name, FAXE_CBQ_STR_MAX - 1);
+            }
+            if (props && gameSound) {
+                props->sound = (FMOD_SOUND*)gameSound;
+                props->subsoundIndex = gameSubsound;
+                ctx->psSound = NULL;
+            } else if (props && key[0] != '\0' && gCoreSystem && gStudioSystem) {
                 FMOD_STUDIO_SOUND_INFO info;
                 FMOD::Sound* sound = NULL;
+                // NONBLOCKING moves the decode off the Studio thread. FMOD
+                // waits for the sound to become ready before the instrument
+                // plays it, the same as FMOD's own example.
                 if (gStudioSystem->getSoundInfo(key, &info) == FMOD_OK) {
                     // Audio table entry
                     if (gCoreSystem->createSound(info.name_or_data,
-                            FMOD_LOOP_NORMAL | FMOD_CREATECOMPRESSEDSAMPLE | info.mode,
+                            FMOD_LOOP_NORMAL | FMOD_CREATECOMPRESSEDSAMPLE | FMOD_NONBLOCKING | info.mode,
                             &info.exinfo, &sound) == FMOD_OK) {
                         props->sound = (FMOD_SOUND*)sound;
                         props->subsoundIndex = info.subsoundindex;
                     }
-                } else if (gCoreSystem->createSound(key, FMOD_DEFAULT, NULL, &sound) == FMOD_OK) {
+                } else if (gCoreSystem->createSound(key, FMOD_DEFAULT | FMOD_NONBLOCKING, NULL, &sound) == FMOD_OK) {
                     // Plain file path fallback
                     props->sound = (FMOD_SOUND*)sound;
                     props->subsoundIndex = -1;
                 }
                 ctx->psSound = sound;
             }
+            // The record carries the sound the instrument got, so the drain
+            // can hand it to the game as a handle: ptr is the FMOD_SOUND, i2
+            // the subsound index, i3 set when this shim created the sound
+            // (its handle is freed again when the destroy record drains)
+            if (props) {
+                ev.ptr = props->sound;
+                ev.i2 = props->subsoundIndex;
+                ev.i3 = (props->sound && props->sound == (FMOD_SOUND*)ctx->psSound) ? 1 : 0;
+            }
             break;
         }
         case FMOD_STUDIO_EVENT_CALLBACK_DESTROY_PROGRAMMER_SOUND: {
             FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES* props =
                 (FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES*)parameters;
-            if (props && props->sound) {
+            if (props && props->name) {
+                strncpy(ev.str, props->name, FAXE_CBQ_STR_MAX - 1);
+            }
+            if (props) {
+                ev.ptr = props->sound;
+                ev.i2 = props->subsoundIndex;
+                ev.i3 = (props->sound && props->sound == (FMOD_SOUND*)ctx->psSound) ? 1 : 0;
+            }
+            // Only a sound this shim created is released. A game-owned one
+            // stays with the game. The address in ev.ptr is only a lookup
+            // key for the drain, which never dereferences it.
+            if (props && props->sound && props->sound == (FMOD_SOUND*)ctx->psSound) {
                 ((FMOD::Sound*)props->sound)->release();
             }
             ctx->psSound = NULL;
@@ -156,6 +204,19 @@ static FMOD_RESULT F_CALLBACK eventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type
                 ev.i4 = props->properties.timesignatureupper;
                 ev.i5 = props->properties.timesignaturelower;
                 ev.f1 = props->properties.tempo;
+                faxe_guid_format(&props->eventid, ev.str, FAXE_CBQ_STR_MAX);
+            }
+            break;
+        }
+        case FMOD_STUDIO_EVENT_CALLBACK_PLUGIN_CREATED:
+        case FMOD_STUDIO_EVENT_CALLBACK_PLUGIN_DESTROYED: {
+            const FMOD_STUDIO_PLUGIN_INSTANCE_PROPERTIES* props =
+                (const FMOD_STUDIO_PLUGIN_INSTANCE_PROPERTIES*)parameters;
+            if (props) {
+                if (props->name) {
+                    strncpy(ev.str, props->name, FAXE_CBQ_STR_MAX - 1);
+                }
+                ev.ptr = props->dsp;
             }
             break;
         }
@@ -240,12 +301,12 @@ void fmod_sys_set_auto_update(bool enabled) {
 //// Callbacks
 
 // Builds the mask actually installed on the instance: the user's mask plus
-// DESTROYED (context cleanup) plus the programmer-sound bits when a key is
-// assigned.
+// DESTROYED (context cleanup) plus the programmer-sound bits when any
+// programmer sound assignment is present.
 static FMOD_STUDIO_EVENT_CALLBACK_TYPE effectiveCallbackMask(FaxeInstCtx* ctx) {
     unsigned int mask = ctx->cbMask | FMOD_STUDIO_EVENT_CALLBACK_DESTROYED;
     faxe_cbq_lock();
-    if (ctx->psKey[0] != '\0') {
+    if (faxe_instctx_ps_armed(ctx)) {
         mask |= FMOD_STUDIO_EVENT_CALLBACK_CREATE_PROGRAMMER_SOUND
               | FMOD_STUDIO_EVENT_CALLBACK_DESTROY_PROGRAMMER_SOUND;
     }
@@ -287,13 +348,49 @@ int fmod_ps_assign(int h, const ::String& key) {
     return (int)gLastResult;
 }
 
+// Hands a game-owned sound to the programmer instrument. The sound is
+// resolved here on the Haxe thread, the callback only reads the pointer.
+// The game keeps the sound alive until the instrument has destroyed it.
+int fmod_ps_assign_sound(int h, int soundHandle, int subsoundIndex) {
+    FMOD::Studio::EventInstance* instance = resolveInstance(h);
+    if (!instance) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    FaxeInstCtx* ctx = instanceCtx(instance);
+    if (!ctx) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    FMOD::Sound* sound = (FMOD::Sound*)faxe_handle_resolve(soundHandle, FAXE_TYPE_SOUND);
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    if (subsoundIndex < -1) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    faxe_cbq_lock();
+    ctx->psGameSound = sound;
+    ctx->psGameSubsound = subsoundIndex;
+    faxe_cbq_unlock();
+    gLastResult = instance->setCallback(eventCallback, effectiveCallbackMask(ctx));
+    return (int)gLastResult;
+}
+
+// Maps one programmer instrument name to a key or path. The name is the
+// instrument's name in FMOD Studio, matched when the create callback runs.
+int fmod_ps_assign_named(int h, const ::String& name, const ::String& key) {
+    FMOD::Studio::EventInstance* instance = resolveInstance(h);
+    if (!instance) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    FaxeInstCtx* ctx = instanceCtx(instance);
+    if (!ctx) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    if (name == null() || key == null()) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    faxe_cbq_lock();
+    int stored = faxe_instctx_ps_set_named(ctx, name.c_str(), key.c_str());
+    faxe_cbq_unlock();
+    if (stored < 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    if (stored == 0) { gLastResult = FMOD_ERR_MEMORY; return (int)gLastResult; }
+    gLastResult = instance->setCallback(eventCallback, effectiveCallbackMask(ctx));
+    return (int)gLastResult;
+}
+
 int fmod_ps_clear(int h) {
     FMOD::Studio::EventInstance* instance = resolveInstance(h);
     if (!instance) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     FaxeInstCtx* ctx = instanceCtx(instance);
     if (!ctx) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     faxe_cbq_lock();
-    ctx->psKey[0] = '\0';
+    faxe_instctx_ps_clear(ctx);
     faxe_cbq_unlock();
     gLastResult = instance->setCallback(eventCallback, effectiveCallbackMask(ctx));
     return (int)gLastResult;
@@ -305,12 +402,20 @@ static inline FMOD::Sound* resolveSound(int h) {
     return (FMOD::Sound*)faxe_handle_resolve(h, FAXE_TYPE_SOUND);
 }
 
-int fmod_core_create_sound(const ::String& path, int mode) {
+// mode is a full FMOD_MODE. initialSubsound >= 0 goes into
+// exinfo.initialsubsound for FSB streams, -1 leaves the default.
+int fmod_core_create_sound(const ::String& path, int mode, int initialSubsound) {
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
     FMOD::Sound* sound = NULL;
-    FMOD_MODE fmodMode = FMOD_DEFAULT;
-    if (mode & 1) fmodMode |= FMOD_LOOP_NORMAL;
-    gLastResult = gCoreSystem->createSound(path.c_str(), fmodMode, NULL, &sound);
+    FMOD_CREATESOUNDEXINFO exinfo;
+    FMOD_CREATESOUNDEXINFO* exinfoPtr = NULL;
+    if (initialSubsound >= 0) {
+        memset(&exinfo, 0, sizeof(exinfo));
+        exinfo.cbsize = sizeof(exinfo);
+        exinfo.initialsubsound = initialSubsound;
+        exinfoPtr = &exinfo;
+    }
+    gLastResult = gCoreSystem->createSound(path.c_str(), (FMOD_MODE)mode, exinfoPtr, &sound);
     if (gLastResult != FMOD_OK || !sound) return 0;
     int handle = faxe_handle_alloc(sound, FAXE_TYPE_SOUND);
     if (handle == 0) {
@@ -321,19 +426,176 @@ int fmod_core_create_sound(const ::String& path, int mode) {
     return handle;
 }
 
+// An encoded file image (wav, ogg, mp3, fsb) already in memory. FMOD
+// copies the bytes, so the buffer is free once this returns.
+int fmod_core_create_sound_memory(::Array<unsigned char> data, int len, int mode) {
+    FMOD::Sound* sound = NULL;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    if (data == null() || len <= 0 || len > data->length) {
+        gLastResult = FMOD_ERR_INVALID_PARAM;
+        return 0;
+    }
+    FMOD_CREATESOUNDEXINFO exinfo;
+    memset(&exinfo, 0, sizeof(exinfo));
+    exinfo.cbsize = sizeof(exinfo);
+    exinfo.length = (unsigned int)len;
+    gLastResult = gCoreSystem->createSound((const char*)&data[0],
+        ((FMOD_MODE)mode & ~(FMOD_MODE)FMOD_OPENMEMORY_POINT) | FMOD_OPENMEMORY, &exinfo, &sound);
+    if (gLastResult != FMOD_OK || !sound) return 0;
+    int handle = faxe_handle_alloc(sound, FAXE_TYPE_SOUND);
+    if (handle == 0) {
+        gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
+        sound->release();
+        return 0;
+    }
+    return handle;
+}
+
+// Fills exinfo from the packed int slots (layout in the manifest next to
+// core_create_sound_ex) and the three strings. Empty strings mean unset.
+// Returns false when the GUID text does not parse. The inclusion list
+// points into ibuf, which outlives the create call.
+static bool lincFillExInfo(FMOD_CREATESOUNDEXINFO* exinfo, ::Array<int> ibuf, const char* dls,
+        const char* key, const char* guidText, FMOD_GUID* guid) {
+    const int* ints = &ibuf[0];
+    memset(exinfo, 0, sizeof(*exinfo));
+    exinfo->cbsize = sizeof(*exinfo);
+    exinfo->length = (unsigned int)ints[0];
+    exinfo->fileoffset = (unsigned int)ints[1];
+    exinfo->numchannels = ints[2];
+    exinfo->defaultfrequency = ints[3];
+    exinfo->format = (FMOD_SOUND_FORMAT)ints[4];
+    exinfo->decodebuffersize = (unsigned int)ints[5];
+    exinfo->initialsubsound = ints[6];
+    exinfo->numsubsounds = ints[7];
+    exinfo->maxpolyphony = ints[8];
+    exinfo->suggestedsoundtype = (FMOD_SOUND_TYPE)ints[9];
+    exinfo->minmidigranularity = (unsigned int)ints[10];
+    exinfo->nonblockthreadid = ints[11];
+    exinfo->filebuffersize = ints[12];
+    exinfo->channelorder = (FMOD_CHANNELORDER)ints[13];
+    if (ints[14]) exinfo->initialsoundgroup = (FMOD_SOUNDGROUP*)faxe_handle_resolve(ints[14], FAXE_TYPE_SOUNDGROUP);
+    exinfo->initialseekposition = (unsigned int)ints[15];
+    exinfo->initialseekpostype = (FMOD_TIMEUNIT)ints[16];
+    exinfo->ignoresetfilesystem = ints[17];
+    exinfo->audioqueuepolicy = (unsigned int)ints[18];
+    if (ints[19] > 0 && ibuf->length >= 20 + ints[19]) {
+        exinfo->inclusionlist = (int*)(ints + 20);
+        exinfo->inclusionlistnum = ints[19];
+    }
+    if (dls && dls[0]) exinfo->dlsname = dls;
+    if (key && key[0]) exinfo->encryptionkey = key;
+    if (guidText && guidText[0]) {
+        if (!faxe_guid_parse(guidText, guid)) return false;
+        exinfo->fsbguid = guid;
+    }
+    return true;
+}
+
+// Sound.create with a full FMOD_CREATESOUNDEXINFO. ibuf is the Scratch
+// int buffer packed by the Haxe side, the strings are empty when unset.
+int fmod_core_create_sound_ex(const ::String& path, int mode, ::Array<int> ibuf, const ::String& dls, const ::String& key, const ::String& guidText) {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    if (ibuf == null() || ibuf->length < 20) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
+    FMOD::Sound* sound = NULL;
+    FMOD_CREATESOUNDEXINFO exinfo;
+    FMOD_GUID guid;
+    if (!lincFillExInfo(&exinfo, ibuf, dls.c_str(), key.c_str(), guidText.c_str(), &guid)) {
+        gLastResult = FMOD_ERR_INVALID_PARAM;
+        return 0;
+    }
+    gLastResult = gCoreSystem->createSound(path.c_str(), (FMOD_MODE)mode, &exinfo, &sound);
+    if (gLastResult != FMOD_OK || !sound) return 0;
+    int handle = faxe_handle_alloc(sound, FAXE_TYPE_SOUND);
+    if (handle == 0) {
+        gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
+        sound->release();
+        return 0;
+    }
+    return handle;
+}
+
+// Sound.fromMemory with a full FMOD_CREATESOUNDEXINFO. len is the byte
+// count and overrides the packed length slot.
+int fmod_core_create_sound_memory_ex(::Array<unsigned char> data, int len, int mode, ::Array<int> ibuf, const ::String& dls, const ::String& key, const ::String& guidText) {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    if (data == null() || len <= 0 || len > data->length || ibuf == null() || ibuf->length < 20) {
+        gLastResult = FMOD_ERR_INVALID_PARAM;
+        return 0;
+    }
+    FMOD::Sound* sound = NULL;
+    FMOD_CREATESOUNDEXINFO exinfo;
+    FMOD_GUID guid;
+    if (!lincFillExInfo(&exinfo, ibuf, dls.c_str(), key.c_str(), guidText.c_str(), &guid)) {
+        gLastResult = FMOD_ERR_INVALID_PARAM;
+        return 0;
+    }
+    exinfo.length = (unsigned int)len;
+    gLastResult = gCoreSystem->createSound((const char*)&data[0],
+        ((FMOD_MODE)mode & ~(FMOD_MODE)FMOD_OPENMEMORY_POINT) | FMOD_OPENMEMORY, &exinfo, &sound);
+    if (gLastResult != FMOD_OK || !sound) return 0;
+    int handle = faxe_handle_alloc(sound, FAXE_TYPE_SOUND);
+    if (handle == 0) {
+        gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
+        sound->release();
+        return 0;
+    }
+    return handle;
+}
+
+// The open Sound::lock range parked on a sound handle. FMOD returns two
+// pointers because the range can wrap around the end of the sample
+// buffer. The record lives until unlock or release.
+struct SoundLock {
+    void* ptr1;
+    void* ptr2;
+    unsigned int len1;
+    unsigned int len2;
+};
+
+// Closes an open lock on the handle, if any, and drops the record.
+static void soundLockClose(int h, FMOD::Sound* sound) {
+    SoundLock* lock = (SoundLock*)faxe_handle_get_lock(h);
+    if (!lock) return;
+    sound->unlock(lock->ptr1, lock->ptr2, lock->len1, lock->len2);
+    faxe_handle_set_lock(h, NULL);
+}
+
+// Releasing a parent sound destroys its subsounds, so every sound handle
+// whose FMOD parent is this sound is dropped first. Otherwise those slots
+// would keep pointing at freed memory.
+static void releaseSubsoundHandles(FMOD::Sound* parent) {
+    for (int i = 0; i < gFaxeSlotCap; i++) {
+        FMOD::Sound* owner = NULL;
+        if (!gFaxeSlots[i].alive || gFaxeSlots[i].type != FAXE_TYPE_SOUND) continue;
+        if (gFaxeSlots[i].ptr == (void*)parent) continue;
+        if (((FMOD::Sound*)gFaxeSlots[i].ptr)->getSubSoundParent(&owner) != FMOD_OK) continue;
+        if (owner != parent) continue;
+        int handle = ((int)gFaxeSlots[i].gen << 16) | i;
+        soundLockClose(handle, (FMOD::Sound*)gFaxeSlots[i].ptr);
+        faxe_handle_free(handle);
+    }
+}
+
 int fmod_core_release_sound(int h) {
     FMOD::Sound* sound = resolveSound(h);
     if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    soundLockClose(h, sound);
+    releaseSubsoundHandles(sound);
+    // The sound's custom rolloff points are freed with the slot below,
+    // so detach them while the sound is still alive.
+    if (faxe_handle_get_aux(h)) sound->set3DCustomRolloff(NULL, 0);
     gLastResult = sound->release();
     if (gLastResult == FMOD_OK) faxe_handle_free(h);
     return (int)gLastResult;
 }
 
-int fmod_core_get_sound_length(int h) {
+// unit is an FMOD_TIMEUNIT value, the length comes back in that unit
+int fmod_core_get_sound_length(int h, int unit) {
     FMOD::Sound* sound = resolveSound(h);
     if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
     unsigned int length = 0;
-    gLastResult = sound->getLength(&length, FMOD_TIMEUNIT_MS);
+    gLastResult = sound->getLength(&length, (FMOD_TIMEUNIT)unit);
     if (gLastResult != FMOD_OK) return -1;
     return (int)length;
 }
@@ -469,11 +731,13 @@ int fmod_core_pcm_underruns(int h) {
     return faxe_pcmring_take_underruns(ps->ring);
 }
 
-int fmod_core_pcm_play(int h, bool paused) {
+int fmod_core_pcm_play(int h, int group, bool paused) {
     LincPcmStream* ps = resolvePcm(h);
     if (!ps) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    FMOD::ChannelGroup* cg;
+    if (!resolvePlayGroup(group, &cg)) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     FMOD::Channel* channel = NULL;
-    gLastResult = gCoreSystem->playSound(ps->sound, NULL, paused, &channel);
+    gLastResult = gCoreSystem->playSound(ps->sound, cg, paused, &channel);
     if (gLastResult != FMOD_OK || !channel) return 0;
     int handle = faxe_handle_alloc(channel, FAXE_TYPE_CHAN);
     if (handle == 0) {
@@ -560,6 +824,11 @@ bool fmod_chan_is_playing(int h) {
 int fmod_chan_stop(int h) {
     FMOD::Channel* ch = resolveChannel(h);
     if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    // A stopped channel goes back to FMOD's voice pool and can keep its
+    // custom rolloff pointer until the voice is reused. The points are
+    // freed with the slot below, so detach them while the channel still
+    // resolves.
+    if (faxe_handle_get_aux(h)) ch->set3DCustomRolloff(NULL, 0);
     // The channel is finished either way, so the slot is freed even when
     // FMOD reports the channel already gone
     gLastResult = ch->stop();
@@ -771,6 +1040,9 @@ int fmod_cg_create(const ::String& name) {
 int fmod_cg_release(int h) {
     FMOD::ChannelGroup* group = resolveChanGroup(h);
     if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    // The group's custom rolloff points are freed with the slot below,
+    // so detach them while the group is still alive.
+    if (faxe_handle_get_aux(h)) group->set3DCustomRolloff(NULL, 0);
     gLastResult = group->release();
     if (gLastResult == FMOD_OK) {
         faxe_handle_free(h);
@@ -897,18 +1169,18 @@ int fmod_chan_set_loop_count(int h, int loopCount) {
     return (int)gLastResult;
 }
 
-int fmod_chan_get_position(int h) {
+int fmod_chan_get_position(int h, int unit) {
     FMOD::Channel* ch = resolveChannel(h);
     unsigned int position = 0;
     if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
-    gLastResult = ch->getPosition(&position, FMOD_TIMEUNIT_MS);
+    gLastResult = ch->getPosition(&position, (FMOD_TIMEUNIT)unit);
     return gLastResult == FMOD_OK ? (int)position : -1;
 }
 
-int fmod_chan_set_position(int h, int positionMs) {
+int fmod_chan_set_position(int h, int position, int unit) {
     FMOD::Channel* ch = resolveChannel(h);
     if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
-    gLastResult = ch->setPosition((unsigned int)positionMs, FMOD_TIMEUNIT_MS);
+    gLastResult = ch->setPosition((unsigned int)position, (FMOD_TIMEUNIT)unit);
     return (int)gLastResult;
 }
 
@@ -997,12 +1269,14 @@ int fmod_bus_get_channel_group(int h) {
 
 //// Core system extras
 
-int fmod_sys_play_dsp(int dspHandle, bool startPaused) {
+int fmod_sys_play_dsp(int dspHandle, int group, bool startPaused) {
     FMOD::DSP* dsp = resolveDsp(dspHandle);
     FMOD::Channel* channel = NULL;
+    FMOD::ChannelGroup* cg;
     if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
-    gLastResult = gCoreSystem->playDSP(dsp, NULL, startPaused, &channel);
+    if (!resolvePlayGroup(group, &cg)) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = gCoreSystem->playDSP(dsp, cg, startPaused, &channel);
     if (gLastResult != FMOD_OK || !channel) return 0;
     int handle = faxe_handle_alloc(channel, FAXE_TYPE_CHAN);
     if (handle == 0) {
@@ -1076,13 +1350,17 @@ int fmod_dsp_add_input(int h, int inputHandle, int type) {
     return faxe_handle_find_or_alloc(conn, FAXE_TYPE_DSPCONN);
 }
 
-int fmod_dsp_disconnect_from(int h, int inputHandle) {
+// connHandle 0 means any connection between the two units
+int fmod_dsp_disconnect_from(int h, int inputHandle, int connHandle) {
     FMOD::DSP* dsp = resolveDsp(h);
     FMOD::DSP* input = resolveDsp(inputHandle);
+    FMOD::DSPConnection* conn = NULL;
     if (!dsp || !input) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
-    gLastResult = dsp->disconnectFrom(input, NULL);
-    // The connection object died: reclaim its cached handle before a
-    // recycled address can alias it
+    if (connHandle != 0) {
+        conn = resolveDspConn(connHandle);
+        if (!conn) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    }
+    gLastResult = dsp->disconnectFrom(input, conn);
     // Graph changes invalidate connection objects on the mixer's schedule,
     // so every connection handle is dropped deterministically here
     if (gLastResult == FMOD_OK) faxe_handles_free_type(FAXE_TYPE_DSPCONN);
@@ -1158,12 +1436,15 @@ int fmod_dspconn_get_type(int h) {
 
 //// Core channel group nesting
 
-int fmod_cg_add_group(int h, int childHandle) {
+// Returns the connection handle, 0 on failure with the reason in gLastResult
+int fmod_cg_add_group(int h, int childHandle, bool propagateDspClock) {
     FMOD::ChannelGroup* group = resolveChanGroup(h);
     FMOD::ChannelGroup* child = resolveChanGroup(childHandle);
-    if (!group || !child) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
-    gLastResult = group->addGroup(child, true, NULL);
-    return (int)gLastResult;
+    FMOD::DSPConnection* conn = NULL;
+    if (!group || !child) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = group->addGroup(child, propagateDspClock, &conn);
+    if (gLastResult != FMOD_OK || !conn) return 0;
+    return faxe_handle_find_or_alloc(conn, FAXE_TYPE_DSPCONN);
 }
 
 int fmod_cg_get_num_groups(int h) {
@@ -1279,14 +1560,26 @@ int fmod_chan_set_3d_doppler_level(int h, float level) {
 }
 
 // fbuf in: out*in gains row-major
-int fmod_chan_set_mix_matrix(int h, ::Array<Float> fbuf, int outChannels, int inChannels) {
+// Rows of outChannels by inChannels gains, laid out with inChannelHop
+// floats per row (0 = packed). Everything stays inside the 32x32 buffer.
+static bool matrixArgsOk(int outChannels, int inChannels, int inChannelHop) {
+    int stride = inChannelHop > 0 ? inChannelHop : inChannels;
+    if (outChannels < 1 || inChannels < 1 || outChannels > 32 || inChannels > 32
+            || inChannelHop < 0 || inChannelHop > 32 || stride < inChannels) {
+        gLastResult = FMOD_ERR_INVALID_PARAM;
+        return false;
+    }
+    return true;
+}
+
+int fmod_chan_set_mix_matrix(int h, ::Array<Float> fbuf, int outChannels, int inChannels, int inChannelHop) {
     FMOD::Channel* ch = resolveChannel(h);
     float matrix[32 * 32];
-    int total = outChannels * inChannels;
     if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
-    if (total < 0 || total > 32 * 32) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    if (!matrixArgsOk(outChannels, inChannels, inChannelHop)) return (int)gLastResult;
+    int total = outChannels * (inChannelHop > 0 ? inChannelHop : inChannels);
     for (int i = 0; i < total; i++) matrix[i] = (float)fbuf[i];
-    gLastResult = ch->setMixMatrix(matrix, outChannels, inChannels, 0);
+    gLastResult = ch->setMixMatrix(matrix, outChannels, inChannels, inChannelHop);
     return (int)gLastResult;
 }
 
@@ -1480,12 +1773,14 @@ int fmod_core_create_sound_pcm(::Array<unsigned char> data, int len, int sampleR
     return handle;
 }
 
-int fmod_core_play_sound(int h, bool startPaused) {
+int fmod_core_play_sound(int h, int group, bool startPaused) {
     FMOD::Sound* sound = resolveSound(h);
     FMOD::Channel* channel = NULL;
+    FMOD::ChannelGroup* cg;
     if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
-    gLastResult = gCoreSystem->playSound(sound, NULL, startPaused, &channel);
+    if (!resolvePlayGroup(group, &cg)) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = gCoreSystem->playSound(sound, cg, startPaused, &channel);
     if (gLastResult != FMOD_OK || !channel) return 0;
     int handle = faxe_handle_alloc(channel, FAXE_TYPE_CHAN);
     if (handle == 0) {
@@ -1515,20 +1810,22 @@ int fmod_sound_get_defaults(int h, ::Array<Float> fbuf) {
     return (int)gLastResult;
 }
 
-int fmod_sound_set_loop_points(int h, int startMs, int endMs) {
+// Both points share one FMOD_TIMEUNIT
+// Each point carries its own FMOD_TIMEUNIT
+int fmod_sound_set_loop_points(int h, int start, int startType, int end, int endType) {
     FMOD::Sound* sound = resolveSound(h);
     if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
-    gLastResult = sound->setLoopPoints((unsigned int)startMs, FMOD_TIMEUNIT_MS, (unsigned int)endMs, FMOD_TIMEUNIT_MS);
+    gLastResult = sound->setLoopPoints((unsigned int)start, (FMOD_TIMEUNIT)startType, (unsigned int)end, (FMOD_TIMEUNIT)endType);
     return (int)gLastResult;
 }
 
-// ibuf out: [0]=loop start ms [1]=loop end ms
-int fmod_sound_get_loop_points(int h, ::Array<int> ibuf) {
+// ibuf out: [0]=loop start in startType [1]=loop end in endType
+int fmod_sound_get_loop_points(int h, int startType, int endType, ::Array<int> ibuf) {
     FMOD::Sound* sound = resolveSound(h);
     unsigned int start = 0;
     unsigned int end = 0;
     if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
-    gLastResult = sound->getLoopPoints(&start, FMOD_TIMEUNIT_MS, &end, FMOD_TIMEUNIT_MS);
+    gLastResult = sound->getLoopPoints(&start, (FMOD_TIMEUNIT)startType, &end, (FMOD_TIMEUNIT)endType);
     ibuf[0] = (int)start;
     ibuf[1] = (int)end;
     return (int)gLastResult;
@@ -1549,7 +1846,7 @@ int fmod_sound_get_mode(int h) {
     return (int)mode;
 }
 
-// ibuf out: [0]=channels [1]=bits
+// ibuf out: [0]=sound type [1]=sample format [2]=channels [3]=bits
 int fmod_sound_get_format(int h, ::Array<int> ibuf) {
     FMOD::Sound* sound = resolveSound(h);
     FMOD_SOUND_TYPE type = FMOD_SOUND_TYPE_UNKNOWN;
@@ -1558,8 +1855,10 @@ int fmod_sound_get_format(int h, ::Array<int> ibuf) {
     int bits = 0;
     if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = sound->getFormat(&type, &format, &channels, &bits);
-    ibuf[0] = channels;
-    ibuf[1] = bits;
+    ibuf[0] = (int)type;
+    ibuf[1] = (int)format;
+    ibuf[2] = channels;
+    ibuf[3] = bits;
     return (int)gLastResult;
 }
 
@@ -1572,6 +1871,22 @@ int fmod_sound_get_open_state(int h) {
     if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
     gLastResult = sound->getOpenState(&state, &buffered, &starving, &diskBusy);
     return gLastResult == FMOD_OK ? (int)state : -1;
+}
+
+// ibuf out: [0]=open state [1]=percent buffered [2]=starving [3]=disk busy
+int fmod_sound_get_open_state_info(int h, ::Array<int> ibuf) {
+    FMOD::Sound* sound = resolveSound(h);
+    FMOD_OPENSTATE state = FMOD_OPENSTATE_READY;
+    unsigned int buffered = 0;
+    bool starving = false;
+    bool diskBusy = false;
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = sound->getOpenState(&state, &buffered, &starving, &diskBusy);
+    ibuf[0] = (int)state;
+    ibuf[1] = (int)buffered;
+    ibuf[2] = starving ? 1 : 0;
+    ibuf[3] = diskBusy ? 1 : 0;
+    return (int)gLastResult;
 }
 
 //// Core system extras (slice 3)
@@ -1628,17 +1943,23 @@ int fmod_dsp_get_cpu_usage(int h, ::Array<int> ibuf) {
 
 #define FAXE_CB_CHAN_END 0x40000001u
 #define FAXE_CB_CHAN_SYNCPOINT 0x40000002u
+#define FAXE_CB_CHAN_VIRTUALVOICE 0x40000003u
+#define FAXE_CB_CHAN_OCCLUSION 0x40000004u
 
-// Runs on whichever thread pumps System::update. Pure C data handling:
-// reads the handle from the channel's user data and enqueues, never
-// touching the runtime.
+// Runs on whichever thread pumps System::update. Pure C: reads the handle
+// from the channel or group user data and enqueues, never touching the
+// runtime. Occlusion carries two floats, the second rides in i1 as raw bits.
 static FMOD_RESULT F_CALLBACK lincChannelCallback(FMOD_CHANNELCONTROL* channelcontrol, FMOD_CHANNELCONTROL_TYPE controltype, FMOD_CHANNELCONTROL_CALLBACK_TYPE callbacktype, void* commanddata1, void* commanddata2) {
     void* userData = NULL;
     int handle;
     FaxeCbEvent event;
-    (void)commanddata2;
-    if (controltype != FMOD_CHANNELCONTROL_CHANNEL) return FMOD_OK;
-    ((FMOD::Channel*)channelcontrol)->getUserData(&userData);
+    if (controltype == FMOD_CHANNELCONTROL_CHANNEL) {
+        ((FMOD::Channel*)channelcontrol)->getUserData(&userData);
+    } else if (controltype == FMOD_CHANNELCONTROL_CHANNELGROUP) {
+        ((FMOD::ChannelGroup*)channelcontrol)->getUserData(&userData);
+    } else {
+        return FMOD_OK;
+    }
     handle = (int)(intptr_t)userData;
     if (!handle) return FMOD_OK;
     memset(&event, 0, sizeof(event));
@@ -1648,6 +1969,13 @@ static FMOD_RESULT F_CALLBACK lincChannelCallback(FMOD_CHANNELCONTROL* channelco
     } else if (callbacktype == FMOD_CHANNELCONTROL_CALLBACK_SYNCPOINT) {
         event.type = FAXE_CB_CHAN_SYNCPOINT;
         event.i1 = (int)(intptr_t)commanddata1;
+    } else if (callbacktype == FMOD_CHANNELCONTROL_CALLBACK_VIRTUALVOICE) {
+        event.type = FAXE_CB_CHAN_VIRTUALVOICE;
+        event.i1 = (int)(intptr_t)commanddata1;
+    } else if (callbacktype == FMOD_CHANNELCONTROL_CALLBACK_OCCLUSION) {
+        event.type = FAXE_CB_CHAN_OCCLUSION;
+        if (commanddata1) event.f1 = *(float*)commanddata1;
+        if (commanddata2) memcpy(&event.i1, commanddata2, sizeof(int32_t));
     } else {
         return FMOD_OK;
     }
@@ -1668,12 +1996,144 @@ int fmod_chan_set_callback(int h, bool enabled) {
     return (int)gLastResult;
 }
 
-int fmod_sound_add_sync_point(int h, int offsetMs, const ::String& name) {
+int fmod_cg_set_callback(int h, bool enabled) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    if (enabled) {
+        group->setUserData((void*)(intptr_t)h);
+        gLastResult = group->setCallback(lincChannelCallback);
+    } else {
+        gLastResult = group->setCallback(NULL);
+        group->setUserData(NULL);
+    }
+    return (int)gLastResult;
+}
+
+//// System callbacks (core and studio)
+
+// System events ride the queue with handle 0 under the 0x20000000
+// namespace. Core types sit at 0x20000000 | type, studio types at
+// 0x20000100 | type so the two sets cannot collide.
+#define FAXE_CB_SYS_NAMESPACE 0x20000000u
+#define FAXE_CB_SYS_STUDIO_BIT 0x00000100u
+
+// The studio mask in force. Zero means no stash work on the unload paths.
+static unsigned int gSystemCallbackMask = 0;
+
+// Runs on whichever FMOD thread raised the event. Plain C data handling
+// only. ERROR copies the FMOD_ERRORCALLBACK_INFO strings into the
+// record's fixed slots and parks the instance address in ptr for the
+// drain to resolve.
+static FMOD_RESULT F_CALLBACK lincSystemCallback(FMOD_SYSTEM* system, FMOD_SYSTEM_CALLBACK_TYPE type, void* commanddata1, void* commanddata2, void* userdata) {
+    FaxeCbEvent event;
+    (void)system; (void)commanddata2; (void)userdata;
+    memset(&event, 0, sizeof(event));
+    event.type = FAXE_CB_SYS_NAMESPACE | (uint32_t)type;
+    if (type == FMOD_SYSTEM_CALLBACK_ERROR && commanddata1) {
+        const FMOD_ERRORCALLBACK_INFO* info = (const FMOD_ERRORCALLBACK_INFO*)commanddata1;
+        event.i1 = (int32_t)info->result;
+        event.i2 = (int32_t)info->instancetype;
+        event.ptr = info->instance;
+        if (info->functionname) strncpy(event.str, info->functionname, FAXE_CBQ_STR_MAX - 1);
+        if (info->functionparams) strncpy(event.str2, info->functionparams, FAXE_CBQ_STR2_MAX - 1);
+    }
+    faxe_cbq_push(&event);
+    return FMOD_OK;
+}
+
+// The handle table type an error record's instance type maps to, or
+// FAXE_TYPE_NONE for kinds the table never holds.
+static unsigned char lincErrorInstanceType(int instanceType) {
+    switch ((FMOD_ERRORCALLBACK_INSTANCETYPE)instanceType) {
+        case FMOD_ERRORCALLBACK_INSTANCETYPE_CHANNEL: return FAXE_TYPE_CHAN;
+        case FMOD_ERRORCALLBACK_INSTANCETYPE_CHANNELGROUP: return FAXE_TYPE_CHANGROUP;
+        case FMOD_ERRORCALLBACK_INSTANCETYPE_SOUND: return FAXE_TYPE_SOUND;
+        case FMOD_ERRORCALLBACK_INSTANCETYPE_SOUNDGROUP: return FAXE_TYPE_SOUNDGROUP;
+        case FMOD_ERRORCALLBACK_INSTANCETYPE_DSP: return FAXE_TYPE_DSP;
+        case FMOD_ERRORCALLBACK_INSTANCETYPE_DSPCONNECTION: return FAXE_TYPE_DSPCONN;
+        case FMOD_ERRORCALLBACK_INSTANCETYPE_GEOMETRY: return FAXE_TYPE_GEOMETRY;
+        case FMOD_ERRORCALLBACK_INSTANCETYPE_REVERB3D: return FAXE_TYPE_REVERB3D;
+        case FMOD_ERRORCALLBACK_INSTANCETYPE_STUDIO_EVENTDESCRIPTION: return FAXE_TYPE_EVD;
+        case FMOD_ERRORCALLBACK_INSTANCETYPE_STUDIO_EVENTINSTANCE: return FAXE_TYPE_EVI;
+        case FMOD_ERRORCALLBACK_INSTANCETYPE_STUDIO_BUS: return FAXE_TYPE_BUS;
+        case FMOD_ERRORCALLBACK_INSTANCETYPE_STUDIO_VCA: return FAXE_TYPE_VCA;
+        case FMOD_ERRORCALLBACK_INSTANCETYPE_STUDIO_BANK: return FAXE_TYPE_BANK;
+        case FMOD_ERRORCALLBACK_INSTANCETYPE_STUDIO_COMMANDREPLAY: return FAXE_TYPE_REPLAY;
+        default: return FAXE_TYPE_NONE;
+    }
+}
+
+// Runs on the Studio thread. BANK_UNLOAD carries the bank as commanddata.
+// FMOD answers reads on that bank with NOTREADY here (verified on
+// 2.03.12), so the path comes from the stash the unload paths filled.
+static FMOD_RESULT F_CALLBACK lincStudioSystemCallback(FMOD_STUDIO_SYSTEM* system, FMOD_STUDIO_SYSTEM_CALLBACK_TYPE type, void* commanddata, void* userdata) {
+    FaxeCbEvent event;
+    (void)system; (void)userdata;
+    memset(&event, 0, sizeof(event));
+    event.type = FAXE_CB_SYS_NAMESPACE | FAXE_CB_SYS_STUDIO_BIT | (uint32_t)type;
+    if (type == FMOD_STUDIO_SYSTEM_CALLBACK_BANK_UNLOAD && commanddata) {
+        faxe_bankpath_take(commanddata, event.str);
+    }
+    faxe_cbq_push(&event);
+    return FMOD_OK;
+}
+
+// Reads a bank's path while the bank can still answer and stashes it for
+// the BANK_UNLOAD record. Haxe thread only.
+static void lincStashBankPath(FMOD::Studio::Bank* bank) {
+    char path[FAXE_CBQ_STR_MAX];
+    int retrieved = 0;
+    if (!gSystemCallbackMask) return;
+    if (bank->getPath(path, FAXE_CBQ_STR_MAX, &retrieved) == FMOD_OK) {
+        faxe_bankpath_put(bank, path);
+    }
+}
+
+static void lincStashAllBankPaths() {
+    FMOD::Studio::Bank* banks[FAXE_BANKPATH_CAPACITY];
+    int count = 0;
+    if (!gSystemCallbackMask || !gStudioSystem) return;
+    if (gStudioSystem->getBankList(banks, FAXE_BANKPATH_CAPACITY, &count) != FMOD_OK) return;
+    for (int i = 0; i < count; i++) lincStashBankPath(banks[i]);
+}
+
+int fmod_sys_set_callback_mask(int mask) {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    if (mask == 0) {
+        gLastResult = gCoreSystem->setCallback(NULL, 0);
+    } else {
+        gLastResult = gCoreSystem->setCallback(lincSystemCallback, (FMOD_SYSTEM_CALLBACK_TYPE)mask);
+    }
+    return (int)gLastResult;
+}
+
+int fmod_sys_set_studio_callback_mask(int mask) {
+    if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    if (mask == 0) {
+        gLastResult = gStudioSystem->setCallback(NULL, 0);
+        faxe_bankpath_clear();
+    } else {
+        gLastResult = gStudioSystem->setCallback(lincStudioSystemCallback, (FMOD_STUDIO_SYSTEM_CALLBACK_TYPE)mask);
+    }
+    gSystemCallbackMask = (gLastResult == FMOD_OK) ? (unsigned int)mask : 0u;
+    return (int)gLastResult;
+}
+
+// Returns the new point's index in offset order (FMOD keeps the list
+// sorted, so the index is found by walking it), -1 on failure.
+int fmod_sound_add_sync_point(int h, int offset, int unit, const ::String& name) {
     FMOD::Sound* sound = resolveSound(h);
     FMOD_SYNCPOINT* point = NULL;
-    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
-    gLastResult = sound->addSyncPoint((unsigned int)offsetMs, FMOD_TIMEUNIT_MS, name.c_str(), &point);
-    return (int)gLastResult;
+    FMOD_SYNCPOINT* other = NULL;
+    int count = 0;
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    gLastResult = sound->addSyncPoint((unsigned int)offset, (FMOD_TIMEUNIT)unit, name.c_str(), &point);
+    if (gLastResult != FMOD_OK) return -1;
+    if (sound->getNumSyncPoints(&count) != FMOD_OK) return -1;
+    for (int i = 0; i < count; i++) {
+        if (sound->getSyncPoint(i, &other) == FMOD_OK && other == point) return i;
+    }
+    return -1;
 }
 
 int fmod_sound_delete_sync_point(int h, int index) {
@@ -1707,14 +2167,14 @@ const char* fmod_sound_get_sync_point_name(int h, int index) {
     return gStringBuf;
 }
 
-int fmod_sound_get_sync_point_offset(int h, int index) {
+int fmod_sound_get_sync_point_offset(int h, int index, int unit) {
     FMOD::Sound* sound = resolveSound(h);
     FMOD_SYNCPOINT* point = NULL;
     unsigned int offset = 0;
     if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
     gLastResult = sound->getSyncPoint(index, &point);
     if (gLastResult != FMOD_OK) return -1;
-    gLastResult = sound->getSyncPointInfo(point, NULL, 0, &offset, FMOD_TIMEUNIT_MS);
+    gLastResult = sound->getSyncPointInfo(point, NULL, 0, &offset, (FMOD_TIMEUNIT)unit);
     return gLastResult == FMOD_OK ? (int)offset : -1;
 }
 
@@ -1994,7 +2454,7 @@ int fmod_dsp_get_metering_enabled(int h, ::Array<int> ibuf) {
 
 //// Bank loading from memory
 
-int fmod_sys_load_bank_memory(::Array<unsigned char> data, int len) {
+int fmod_sys_load_bank_memory(::Array<unsigned char> data, int len, int flags) {
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
     if (data == null() || len <= 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
     if (len > data->length) len = data->length;
@@ -2002,7 +2462,7 @@ int fmod_sys_load_bank_memory(::Array<unsigned char> data, int len) {
     // FMOD_STUDIO_LOAD_MEMORY copies the buffer, so the caller's bytes are
     // free as soon as this returns
     gLastResult = gStudioSystem->loadBankMemory((const char*)&data[0], len,
-        FMOD_STUDIO_LOAD_MEMORY, FMOD_STUDIO_LOAD_BANK_NORMAL, &bank);
+        FMOD_STUDIO_LOAD_MEMORY, (FMOD_STUDIO_LOAD_BANK_FLAGS)flags, &bank);
     if (gLastResult != FMOD_OK || !bank) return 0;
     return faxe_handle_find_or_alloc(bank, FAXE_TYPE_BANK);
 }
@@ -2037,9 +2497,9 @@ static inline FMOD::Studio::CommandReplay* resolveReplay(int h) {
     return (FMOD::Studio::CommandReplay*)faxe_handle_resolve(h, FAXE_TYPE_REPLAY);
 }
 
-int fmod_sys_start_command_capture(const ::String& path) {
+int fmod_sys_start_command_capture(const ::String& path, int flags) {
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
-    gLastResult = gStudioSystem->startCommandCapture(path.c_str(), FMOD_STUDIO_COMMANDCAPTURE_NORMAL);
+    gLastResult = gStudioSystem->startCommandCapture(path.c_str(), (FMOD_STUDIO_COMMANDCAPTURE_FLAGS)flags);
     return (int)gLastResult;
 }
 
@@ -2049,10 +2509,10 @@ int fmod_sys_stop_command_capture() {
     return (int)gLastResult;
 }
 
-int fmod_sys_load_command_replay(const ::String& path) {
+int fmod_sys_load_command_replay(const ::String& path, int flags) {
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
     FMOD::Studio::CommandReplay* replay = NULL;
-    gLastResult = gStudioSystem->loadCommandReplay(path.c_str(), FMOD_STUDIO_COMMANDREPLAY_NORMAL, &replay);
+    gLastResult = gStudioSystem->loadCommandReplay(path.c_str(), (FMOD_STUDIO_COMMANDREPLAY_FLAGS)flags, &replay);
     if (gLastResult != FMOD_OK || !replay) return 0;
     int handle = faxe_handle_alloc(replay, FAXE_TYPE_REPLAY);
     if (handle == 0) {
@@ -2105,10 +2565,10 @@ bool fmod_replay_get_paused(int h) {
     return paused;
 }
 
-int fmod_replay_seek_to_time(int h, int timeMs) {
+int fmod_replay_seek_to_time(int h, float seconds) {
     FMOD::Studio::CommandReplay* replay = resolveReplay(h);
     if (!replay) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
-    gLastResult = replay->seekToTime((float)timeMs / 1000.0f);
+    gLastResult = replay->seekToTime(seconds);
     return (int)gLastResult;
 }
 
@@ -2179,19 +2639,21 @@ int fmod_chan_get_current_sound(int h) {
     return faxe_handle_find_or_alloc(sound, FAXE_TYPE_SOUND);
 }
 
-int fmod_chan_set_loop_points(int h, int startMs, int endMs) {
+// Each point carries its own FMOD_TIMEUNIT
+int fmod_chan_set_loop_points(int h, int start, int startType, int end, int endType) {
     FMOD::Channel* ch = resolveChannel(h);
     if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
-    gLastResult = ch->setLoopPoints((unsigned int)startMs, FMOD_TIMEUNIT_MS, (unsigned int)endMs, FMOD_TIMEUNIT_MS);
+    gLastResult = ch->setLoopPoints((unsigned int)start, (FMOD_TIMEUNIT)startType, (unsigned int)end, (FMOD_TIMEUNIT)endType);
     return (int)gLastResult;
 }
 
-int fmod_chan_get_loop_points(int h, ::Array<int> ibuf) {
+// ibuf out: [0]=loop start in startType [1]=loop end in endType
+int fmod_chan_get_loop_points(int h, int startType, int endType, ::Array<int> ibuf) {
     FMOD::Channel* ch = resolveChannel(h);
     unsigned int start = 0;
     unsigned int end = 0;
     if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
-    gLastResult = ch->getLoopPoints(&start, FMOD_TIMEUNIT_MS, &end, FMOD_TIMEUNIT_MS);
+    gLastResult = ch->getLoopPoints(&start, (FMOD_TIMEUNIT)startType, &end, (FMOD_TIMEUNIT)endType);
     ibuf[0] = (int)start;
     ibuf[1] = (int)end;
     return (int)gLastResult;
@@ -2499,6 +2961,47 @@ int fmod_cg_set_3d_occlusion(int h, float direct, float reverb) {
     return (int)gLastResult;
 }
 
+int fmod_cg_get_3d_occlusion(int h, ::Array<Float> fbuf) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    float direct = 0.0f;
+    float reverb = 0.0f;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = group->get3DOcclusion(&direct, &reverb);
+    fbuf[0] = (double)direct;
+    fbuf[1] = (double)reverb;
+    return (int)gLastResult;
+}
+
+int fmod_cg_get_delay(int h, ::Array<Float> fbuf) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    unsigned long long startClock = 0;
+    unsigned long long endClock = 0;
+    bool stopChannels = false;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = group->getDelay(&startClock, &endClock, &stopChannels);
+    fbuf[0] = (double)startClock;
+    fbuf[1] = (double)endClock;
+    fbuf[2] = stopChannels ? 1.0 : 0.0;
+    return (int)gLastResult;
+}
+
+float fmod_cg_get_low_pass_gain(int h) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    float gain = 0.0f;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0.0f; }
+    gLastResult = group->getLowPassGain(&gain);
+    return gain;
+}
+
+bool fmod_cg_is_playing(int h) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    bool playing = false;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return false; }
+    gLastResult = group->isPlaying(&playing);
+    if (gLastResult != FMOD_OK) return false;
+    return playing;
+}
+
 int fmod_cg_set_3d_level(int h, float level) {
     FMOD::ChannelGroup* group = resolveChanGroup(h);
     if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
@@ -2600,14 +3103,14 @@ float fmod_cg_get_reverb_wet(int h, int instance) {
     return wet;
 }
 
-int fmod_cg_set_mix_matrix(int h, ::Array<Float> fbuf, int outChannels, int inChannels) {
+int fmod_cg_set_mix_matrix(int h, ::Array<Float> fbuf, int outChannels, int inChannels, int inChannelHop) {
     FMOD::ChannelGroup* group = resolveChanGroup(h);
     float matrix[32 * 32];
-    int total = outChannels * inChannels;
     if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
-    if (total < 0 || total > 32 * 32) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    if (!matrixArgsOk(outChannels, inChannels, inChannelHop)) return (int)gLastResult;
+    int total = outChannels * (inChannelHop > 0 ? inChannelHop : inChannels);
     for (int i = 0; i < total; i++) matrix[i] = (float)fbuf[i];
-    gLastResult = group->setMixMatrix(matrix, outChannels, inChannels, 0);
+    gLastResult = group->setMixMatrix(matrix, outChannels, inChannels, inChannelHop);
     return (int)gLastResult;
 }
 
@@ -2690,6 +3193,30 @@ bool fmod_cb_next() {
         freeDestroyedCtx((FaxeInstCtx*)gCbCurrent.opaque);
         gCbCurrent.opaque = NULL;
     }
+    // Plugin records carry the DSP address. Turn it into a handle here on
+    // the Haxe thread, in i1. A destroyed plugin's slot is freed right
+    // away, the handle value still reaches the handler for identity.
+    if (gCbCurrent.type == FMOD_STUDIO_EVENT_CALLBACK_PLUGIN_CREATED) {
+        gCbCurrent.i1 = faxe_handle_find_or_alloc(gCbCurrent.ptr, FAXE_TYPE_DSP);
+    } else if (gCbCurrent.type == FMOD_STUDIO_EVENT_CALLBACK_PLUGIN_DESTROYED) {
+        gCbCurrent.i1 = faxe_handle_find(gCbCurrent.ptr, FAXE_TYPE_DSP);
+        if (gCbCurrent.i1) faxe_handle_free(gCbCurrent.i1);
+    } else if (gCbCurrent.type == FMOD_STUDIO_EVENT_CALLBACK_CREATE_PROGRAMMER_SOUND) {
+        // Same for the programmer sound: a sound the game handed over finds
+        // its existing handle, one this shim created gets a fresh one
+        gCbCurrent.i1 = faxe_handle_find_or_alloc(gCbCurrent.ptr, FAXE_TYPE_SOUND);
+    } else if (gCbCurrent.type == FMOD_STUDIO_EVENT_CALLBACK_DESTROY_PROGRAMMER_SOUND) {
+        gCbCurrent.i1 = faxe_handle_find(gCbCurrent.ptr, FAXE_TYPE_SOUND);
+        // i3 marks a shim-created sound, released in the callback, whose
+        // handle ends here. A game-owned sound keeps its handle.
+        if (gCbCurrent.i1 && gCbCurrent.i3) faxe_handle_free(gCbCurrent.i1);
+    } else if (gCbCurrent.type == (FAXE_CB_SYS_NAMESPACE | (uint32_t)FMOD_SYSTEM_CALLBACK_ERROR)) {
+        // The failing object's handle when the table knows it, never a
+        // fresh one: a sound FMOD rejected may already be gone.
+        unsigned char kind = lincErrorInstanceType(gCbCurrent.i2);
+        gCbCurrent.i3 = kind == FAXE_TYPE_NONE ? 0 : faxe_handle_find(gCbCurrent.ptr, kind);
+    }
+    gCbCurrent.ptr = NULL;
     return true;
 }
 
@@ -2720,6 +3247,10 @@ const char* fmod_cb_string() {
     return gCbCurrent.str;
 }
 
+const char* fmod_cb_string2() {
+    return gCbCurrent.str2;
+}
+
 bool fmod_cb_take_overflow() {
     return faxe_cbq_take_overflow() == 1;
 }
@@ -2743,9 +3274,14 @@ static const char* copyToStringBuf(const char* text) {
     return gStringBuf;
 }
 
+// GUID of the parameter description read last, in FMOD's text form.
+static char gParamGuidBuf[40] = "";
+
 // fbuf: [0]=min [1]=max [2]=default; ibuf: [0]=type [1]=flags [2]=id1 [3]=id2;
+// guid -> gParamGuidBuf (read back with fmod_sys_last_parameter_guid);
 // returns the parameter name (via gStringBuf).
 static const char* writeParamDescription(const FMOD_STUDIO_PARAMETER_DESCRIPTION* param, ::Array<Float> fbuf, ::Array<int> ibuf) {
+    faxe_guid_format(&param->guid, gParamGuidBuf, sizeof(gParamGuidBuf));
     fbuf[0] = (double)param->minimum;
     fbuf[1] = (double)param->maximum;
     fbuf[2] = (double)param->defaultvalue;
@@ -2754,6 +3290,10 @@ static const char* writeParamDescription(const FMOD_STUDIO_PARAMETER_DESCRIPTION
     ibuf[2] = (int)param->id.data1;
     ibuf[3] = (int)param->id.data2;
     return copyToStringBuf(param->name);
+}
+
+const char* fmod_sys_last_parameter_guid() {
+    return gParamGuidBuf;
 }
 
 // fbuf[0..11] = position xyz, velocity xyz, forward xyz, up xyz
@@ -2779,11 +3319,39 @@ int fmod_sys_last_result() {
 
 // Settings-driven init: numChannels <= 0 falls back to 128, sampleRate 0 =
 // FMOD default, speakerMode 0 = default speaker mode, studioFlags bit0 =
-// live update. Keeps the FMOD_WAVWRITER env branch (CI recording), which
-// forces 48000/stereo and wins over the requested format. Idempotent:
-// returns FMOD_OK when already initialized.
-int fmod_sys_init_ex(int numChannels, int sampleRate, int speakerMode, int studioFlags) {
+// live update, bit1 = FMOD_STUDIO_INIT_MEMORY_TRACKING. Keeps the
+// FMOD_WAVWRITER env branch (CI recording), which forces the wavwriter
+// output and 48000/stereo and wins over the requested output and format.
+// Idempotent: returns FMOD_OK when already initialized. The output type,
+// resampler, and raw speaker count come from the last
+// fmod_sys_set_init_format call (hxcpp caps a function at 26 arguments).
+static int gInitOutputType = 0;
+static int gInitResamplerMethod = 0;
+static int gInitRawSpeakers = 0;
+
+// outputType is an FMOD_OUTPUTTYPE applied with setOutput when nonzero,
+// resamplerMethod an FMOD_DSP_RESAMPLER for the advanced settings, and
+// rawSpeakers the speaker count for FMOD_SPEAKERMODE_RAW.
+int fmod_sys_set_init_format(int outputType, int resamplerMethod, int rawSpeakers) {
+    if (gStudioSystem != NULL) { gLastResult = FMOD_ERR_INITIALIZED; return (int)gLastResult; }
+    gInitOutputType = outputType;
+    gInitResamplerMethod = resamplerMethod;
+    gInitRawSpeakers = rawSpeakers;
+    gLastResult = FMOD_OK;
+    return (int)gLastResult;
+}
+
+// dspBufferLength/dspNumBuffers, softwareChannels, and streamBufferSize
+// (bytes) are applied before initialize when nonzero. initFlags bit0 turns
+// on FMOD_INIT_PROFILE_ENABLE, bit1 FMOD_INIT_CHANNEL_DISTANCEFILTER.
+// The arguments after initFlags are the advanced settings. Zero (or an
+// empty key) keeps FMOD's default for that field. Both structs are read
+// back first so untouched fields keep whatever FMOD put there.
+int fmod_sys_init_ex(int numChannels, int sampleRate, int speakerMode, int studioFlags, int dspBufferLength, int dspNumBuffers, int softwareChannels, int streamBufferSize, int initFlags, int maxMPEGCodecs, int maxVorbisCodecs, int maxFADPCMCodecs, float vol0VirtualVol, int defaultDecodeBufferSize, int profilePort, int geometryMaxFadeTime, float distanceFilterCenterFreq, int randomSeed, int commandQueueSize, int handleInitialSize, int studioUpdatePeriod, int idleSampleDataPoolSize, int streamingScheduleDelay, const ::String& encryptionKey) {
     if (gStudioSystem != NULL) { gLastResult = FMOD_OK; return (int)gLastResult; }
+    int outputType = gInitOutputType;
+    int resamplerMethod = gInitResamplerMethod;
+    int rawSpeakers = gInitRawSpeakers;
     if (numChannels <= 0) numChannels = 128;
 
     gLastResult = FMOD::Studio::System::create(&gStudioSystem);
@@ -2793,18 +3361,86 @@ int fmod_sys_init_ex(int numChannels, int sampleRate, int speakerMode, int studi
     const char* wavWriterPath = std::getenv("FMOD_WAVWRITER");
     void* extradriverdata = nullptr;
     if (wavWriterPath && wavWriterPath[0] != '\0') {
-        gStudioSystem->getCoreSystem(&gCoreSystem);
-        gCoreSystem->setOutput(FMOD_OUTPUTTYPE_WAVWRITER);
-        // Explicit stereo format so WAV header has correct channel count (Windows needs this)
-        gCoreSystem->setSoftwareFormat(48000, FMOD_SPEAKERMODE_STEREO, 0);
+        outputType = (int)FMOD_OUTPUTTYPE_WAVWRITER;
         extradriverdata = (void*)wavWriterPath;
-    } else if (sampleRate > 0 || speakerMode > 0) {
+        // Explicit stereo format so WAV header has correct channel count (Windows needs this)
+        sampleRate = 48000;
+        speakerMode = (int)FMOD_SPEAKERMODE_STEREO;
+        rawSpeakers = 0;
+    }
+    if (outputType > 0) {
         gStudioSystem->getCoreSystem(&gCoreSystem);
-        gCoreSystem->setSoftwareFormat(sampleRate, (FMOD_SPEAKERMODE)speakerMode, 0);
+        gLastResult = gCoreSystem->setOutput((FMOD_OUTPUTTYPE)outputType);
+        if (gLastResult != FMOD_OK) {
+            gStudioSystem->release();
+            gStudioSystem = NULL;
+            gCoreSystem = NULL;
+            return (int)gLastResult;
+        }
+    }
+    if (sampleRate > 0 || speakerMode > 0) {
+        gStudioSystem->getCoreSystem(&gCoreSystem);
+        gCoreSystem->setSoftwareFormat(sampleRate, (FMOD_SPEAKERMODE)speakerMode,
+            speakerMode == (int)FMOD_SPEAKERMODE_RAW ? rawSpeakers : 0);
     }
 
-    FMOD_STUDIO_INITFLAGS studioInitFlags = (studioFlags & 1) ? FMOD_STUDIO_INIT_LIVEUPDATE : FMOD_STUDIO_INIT_NORMAL;
-    gLastResult = gStudioSystem->initialize(numChannels, studioInitFlags, FMOD_INIT_NORMAL, extradriverdata);
+    if (dspBufferLength > 0 || softwareChannels > 0 || streamBufferSize > 0) {
+        gStudioSystem->getCoreSystem(&gCoreSystem);
+        if (dspBufferLength > 0) {
+            gCoreSystem->setDSPBufferSize((unsigned int)dspBufferLength, dspNumBuffers > 0 ? dspNumBuffers : 2);
+        }
+        if (softwareChannels > 0) gCoreSystem->setSoftwareChannels(softwareChannels);
+        if (streamBufferSize > 0) {
+            gCoreSystem->setStreamBufferSize((unsigned int)streamBufferSize, FMOD_TIMEUNIT_RAWBYTES);
+        }
+    }
+    FMOD_INITFLAGS coreInitFlags = FMOD_INIT_NORMAL;
+    if (initFlags & 1) coreInitFlags |= FMOD_INIT_PROFILE_ENABLE;
+    if (initFlags & 2) coreInitFlags |= FMOD_INIT_CHANNEL_DISTANCEFILTER;
+
+    if (maxMPEGCodecs > 0 || maxVorbisCodecs > 0 || maxFADPCMCodecs > 0 || vol0VirtualVol > 0
+        || defaultDecodeBufferSize > 0 || profilePort > 0 || geometryMaxFadeTime > 0
+        || distanceFilterCenterFreq > 0 || randomSeed != 0 || resamplerMethod > 0) {
+        gStudioSystem->getCoreSystem(&gCoreSystem);
+        FMOD_ADVANCEDSETTINGS adv;
+        memset(&adv, 0, sizeof(adv));
+        adv.cbSize = sizeof(adv);
+        gCoreSystem->getAdvancedSettings(&adv);
+        adv.cbSize = sizeof(adv);
+        if (maxMPEGCodecs > 0) adv.maxMPEGCodecs = maxMPEGCodecs;
+        if (maxVorbisCodecs > 0) adv.maxVorbisCodecs = maxVorbisCodecs;
+        if (maxFADPCMCodecs > 0) adv.maxFADPCMCodecs = maxFADPCMCodecs;
+        if (vol0VirtualVol > 0) adv.vol0virtualvol = vol0VirtualVol;
+        if (defaultDecodeBufferSize > 0) adv.defaultDecodeBufferSize = (unsigned int)defaultDecodeBufferSize;
+        if (profilePort > 0) adv.profilePort = (unsigned short)profilePort;
+        if (geometryMaxFadeTime > 0) adv.geometryMaxFadeTime = (unsigned int)geometryMaxFadeTime;
+        if (distanceFilterCenterFreq > 0) adv.distanceFilterCenterFreq = distanceFilterCenterFreq;
+        if (randomSeed != 0) adv.randomSeed = (unsigned int)randomSeed;
+        if (resamplerMethod > 0) adv.resamplerMethod = (FMOD_DSP_RESAMPLER)resamplerMethod;
+        gCoreSystem->setAdvancedSettings(&adv);
+    }
+    const char* key = encryptionKey.c_str();
+    bool hasKey = key != NULL && key[0] != '\0';
+    if (commandQueueSize > 0 || handleInitialSize > 0 || studioUpdatePeriod > 0
+        || idleSampleDataPoolSize > 0 || streamingScheduleDelay > 0 || hasKey) {
+        FMOD_STUDIO_ADVANCEDSETTINGS sadv;
+        memset(&sadv, 0, sizeof(sadv));
+        sadv.cbsize = sizeof(sadv);
+        gStudioSystem->getAdvancedSettings(&sadv);
+        sadv.cbsize = sizeof(sadv);
+        if (commandQueueSize > 0) sadv.commandqueuesize = (unsigned int)commandQueueSize;
+        if (handleInitialSize > 0) sadv.handleinitialsize = (unsigned int)handleInitialSize;
+        if (studioUpdatePeriod > 0) sadv.studioupdateperiod = studioUpdatePeriod;
+        if (idleSampleDataPoolSize > 0) sadv.idlesampledatapoolsize = idleSampleDataPoolSize;
+        if (streamingScheduleDelay > 0) sadv.streamingscheduledelay = (unsigned int)streamingScheduleDelay;
+        if (hasKey) sadv.encryptionkey = key;
+        gStudioSystem->setAdvancedSettings(&sadv);
+    }
+
+    FMOD_STUDIO_INITFLAGS studioInitFlags = FMOD_STUDIO_INIT_NORMAL;
+    if (studioFlags & 1) studioInitFlags |= FMOD_STUDIO_INIT_LIVEUPDATE;
+    if (studioFlags & 2) studioInitFlags |= FMOD_STUDIO_INIT_MEMORY_TRACKING;
+    gLastResult = gStudioSystem->initialize(numChannels, studioInitFlags, coreInitFlags, extradriverdata);
     if (gLastResult != FMOD_OK) {
         gStudioSystem->release();
         gStudioSystem = NULL;
@@ -3057,20 +3693,32 @@ int fmod_sys_set_num_listeners(int num) {
     return (int)gLastResult;
 }
 
-// fbuf[0..11] = 3D attributes of the listener at index
+// fbuf[0..11] = 3D attributes of the listener at index, fbuf[12..14] = its
+// attenuation position
 int fmod_sys_get_listener_attributes(int index, ::Array<Float> fbuf) {
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
     FMOD_3D_ATTRIBUTES attributes;
+    FMOD_VECTOR attenuation;
     memset(&attributes, 0, sizeof(attributes));
-    gLastResult = gStudioSystem->getListenerAttributes(index, &attributes, NULL);
+    memset(&attenuation, 0, sizeof(attenuation));
+    gLastResult = gStudioSystem->getListenerAttributes(index, &attributes, &attenuation);
     writeAttributes(&attributes, fbuf);
+    fbuf[12] = (double)attenuation.x;
+    fbuf[13] = (double)attenuation.y;
+    fbuf[14] = (double)attenuation.z;
     return (int)gLastResult;
 }
 
-int fmod_sys_set_listener_attributes(int index, ::Array<Float> f) {
+// f laid out like the getter. With hasAttenuation false FMOD attenuates
+// from the listener position and f[12..14] are ignored.
+int fmod_sys_set_listener_attributes(int index, ::Array<Float> f, bool hasAttenuation) {
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
     FMOD_3D_ATTRIBUTES attrs = makeAttributes(f[0], f[1], f[2], f[3], f[4], f[5], f[6], f[7], f[8], f[9], f[10], f[11]);
-    gLastResult = gStudioSystem->setListenerAttributes(index, &attrs, NULL);
+    FMOD_VECTOR attenuation;
+    attenuation.x = (float)f[12];
+    attenuation.y = (float)f[13];
+    attenuation.z = (float)f[14];
+    gLastResult = gStudioSystem->setListenerAttributes(index, &attrs, hasAttenuation ? &attenuation : NULL);
     return (int)gLastResult;
 }
 
@@ -3134,6 +3782,7 @@ static void lincReclaimDeadLookups() {
 
 int fmod_sys_unload_all() {
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    lincStashAllBankPaths();
     gLastResult = gStudioSystem->unloadAll();
     if (gLastResult == FMOD_OK) lincReclaimDeadLookups();
     return (int)gLastResult;
@@ -3413,6 +4062,7 @@ const char* fmod_bank_get_path(int h) {
 int fmod_bank_unload(int h) {
     FMOD::Studio::Bank* bank = resolveBank(h);
     if (!bank) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    lincStashBankPath(bank);
     gLastResult = bank->unload();
     if (gLastResult == FMOD_OK) {
         faxe_handle_free(h);
@@ -4170,15 +4820,1823 @@ int fmod_evi_get_memory_usage(int h, ::Array<int> out) {
     return (int)gLastResult;
 }
 
+//// Distance filter, version, sound data, and recording
+
+int fmod_chan_set_3d_distance_filter(int h, bool custom, float customLevel, float centerFreq) {
+    FMOD::Channel* ch = resolveChannel(h);
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = ch->set3DDistanceFilter(custom, customLevel, centerFreq);
+    return (int)gLastResult;
+}
+
+// fbuf out: [0]=custom (1 or 0) [1]=custom level [2]=center frequency
+int fmod_chan_get_3d_distance_filter(int h, ::Array<Float> fbuf) {
+    FMOD::Channel* ch = resolveChannel(h);
+    bool custom = false;
+    float customLevel = 0.0f;
+    float centerFreq = 0.0f;
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = ch->get3DDistanceFilter(&custom, &customLevel, &centerFreq);
+    fbuf[0] = custom ? 1.0 : 0.0;
+    fbuf[1] = (double)customLevel;
+    fbuf[2] = (double)centerFreq;
+    return (int)gLastResult;
+}
+
+int fmod_cg_set_3d_distance_filter(int h, bool custom, float customLevel, float centerFreq) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = group->set3DDistanceFilter(custom, customLevel, centerFreq);
+    return (int)gLastResult;
+}
+
+int fmod_cg_get_3d_distance_filter(int h, ::Array<Float> fbuf) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    bool custom = false;
+    float customLevel = 0.0f;
+    float centerFreq = 0.0f;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = group->get3DDistanceFilter(&custom, &customLevel, &centerFreq);
+    fbuf[0] = custom ? 1.0 : 0.0;
+    fbuf[1] = (double)customLevel;
+    fbuf[2] = (double)centerFreq;
+    return (int)gLastResult;
+}
+
+// The version is BCD, so the fields print as hex: 0x00020312 is "2.03.12".
+const char* fmod_sys_get_version() {
+    unsigned int version = 0;
+    unsigned int build = 0;
+    gStringBuf[0] = '\0';
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return gStringBuf; }
+#if FMOD_VERSION >= 0x00020300
+    gLastResult = gCoreSystem->getVersion(&version, &build);
+#else
+    gLastResult = gCoreSystem->getVersion(&version);
+#endif
+    if (gLastResult != FMOD_OK) return gStringBuf;
+    snprintf(gStringBuf, sizeof(gStringBuf), "%x.%02x.%02x",
+        version >> 16, (version >> 8) & 0xFF, version & 0xFF);
+    return gStringBuf;
+}
+
+// Returns the bytes read, or the negated FMOD error. A short read at the
+// end of the file still returns the count and leaves FMOD_ERR_FILE_EOF in
+// gLastResult.
+int fmod_core_sound_read_data(int h, ::Array<unsigned char> data, int len) {
+    FMOD::Sound* sound = resolveSound(h);
+    unsigned int read = 0;
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -(int)gLastResult; }
+    if (data == null() || len <= 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return -(int)gLastResult; }
+    if (len > data->length) len = data->length;
+    gLastResult = sound->readData(&data[0], (unsigned int)len, &read);
+    if (gLastResult != FMOD_OK && gLastResult != FMOD_ERR_FILE_EOF) return -(int)gLastResult;
+    return (int)read;
+}
+
+int fmod_core_sound_seek_data(int h, int pcm) {
+    FMOD::Sound* sound = resolveSound(h);
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    if (pcm < 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    gLastResult = sound->seekData((unsigned int)pcm);
+    return (int)gLastResult;
+}
+
+// ibuf out: [0]=connected drivers. Returns the total, -1 on failure.
+int fmod_sys_get_record_num_drivers(::Array<int> ibuf) {
+    int total = 0;
+    int connected = 0;
+    ibuf[0] = 0;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return -1; }
+    gLastResult = gCoreSystem->getRecordNumDrivers(&total, &connected);
+    if (gLastResult != FMOD_OK) return -1;
+    ibuf[0] = connected;
+    return total;
+}
+
+// ibuf out: [0]=system rate [1]=speaker mode [2]=channels [3]=driver state
+const char* fmod_sys_get_record_driver_info(int id, ::Array<int> ibuf) {
+    int rate = 0;
+    FMOD_SPEAKERMODE mode = FMOD_SPEAKERMODE_DEFAULT;
+    int channels = 0;
+    FMOD_DRIVER_STATE state = 0;
+    gStringBuf[0] = '\0';
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return gStringBuf; }
+    gLastResult = gCoreSystem->getRecordDriverInfo(id, gStringBuf, sizeof(gStringBuf),
+        NULL, &rate, &mode, &channels, &state);
+    if (gLastResult != FMOD_OK) gStringBuf[0] = '\0';
+    ibuf[0] = rate;
+    ibuf[1] = (int)mode;
+    ibuf[2] = channels;
+    ibuf[3] = (int)state;
+    return gStringBuf;
+}
+
+const char* fmod_sys_get_record_driver_guid(int id) {
+    FMOD_GUID guid;
+    gStringBuf[0] = '\0';
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return gStringBuf; }
+    memset(&guid, 0, sizeof(guid));
+    gLastResult = gCoreSystem->getRecordDriverInfo(id, NULL, 0, &guid, NULL, NULL, NULL, NULL);
+    if (gLastResult == FMOD_OK) faxe_guid_format(&guid, gStringBuf, sizeof(gStringBuf));
+    return gStringBuf;
+}
+
+// An empty OPENUSER PCM16 sound of the given length for recordStart to
+// fill. No callbacks, FMOD writes straight into the sample buffer.
+int fmod_core_create_record_sound(int sampleRate, int channels, int seconds) {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    if (sampleRate <= 0 || channels < 1 || channels > 2 || seconds <= 0) {
+        gLastResult = FMOD_ERR_INVALID_PARAM;
+        return 0;
+    }
+    FMOD_CREATESOUNDEXINFO exinfo;
+    memset(&exinfo, 0, sizeof(exinfo));
+    exinfo.cbsize = sizeof(exinfo);
+    exinfo.numchannels = channels;
+    exinfo.defaultfrequency = sampleRate;
+    exinfo.format = FMOD_SOUND_FORMAT_PCM16;
+    exinfo.length = (unsigned int)sampleRate * (unsigned int)channels * 2u * (unsigned int)seconds;
+    FMOD::Sound* sound = NULL;
+    gLastResult = gCoreSystem->createSound(NULL, FMOD_OPENUSER | FMOD_LOOP_NORMAL, &exinfo, &sound);
+    if (gLastResult != FMOD_OK || !sound) return 0;
+    int handle = faxe_handle_alloc(sound, FAXE_TYPE_SOUND);
+    if (handle == 0) {
+        gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
+        sound->release();
+        return 0;
+    }
+    return handle;
+}
+
+int fmod_sys_record_start(int id, int soundHandle, bool loop) {
+    FMOD::Sound* sound = resolveSound(soundHandle);
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = gCoreSystem->recordStart(id, sound, loop);
+    return (int)gLastResult;
+}
+
+int fmod_sys_record_stop(int id) {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = gCoreSystem->recordStop(id);
+    return (int)gLastResult;
+}
+
+bool fmod_sys_is_recording(int id) {
+    bool recording = false;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return false; }
+    gLastResult = gCoreSystem->isRecording(id, &recording);
+    return recording;
+}
+
+int fmod_sys_get_record_position(int id) {
+    unsigned int position = 0;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return -1; }
+    gLastResult = gCoreSystem->getRecordPosition(id, &position);
+    if (gLastResult != FMOD_OK) return -1;
+    return (int)position;
+}
+
+//// Custom 3D rolloff
+
+// Copies packed float32 xyz triples into a malloc'd FMOD_VECTOR array the
+// slot owns until the handle dies. NULL with count 0 means clear.
+static FMOD_VECTOR* rolloffCopy(::Array<unsigned char> data, int count) {
+    if (data == null() || count <= 0) return NULL;
+    if (count * 12 > data->length) return NULL;
+    const float* f = (const float*)&data[0];
+    FMOD_VECTOR* points = (FMOD_VECTOR*)malloc(sizeof(FMOD_VECTOR) * (size_t)count);
+    if (!points) return NULL;
+    for (int i = 0; i < count; i++) {
+        points[i].x = f[i * 3];
+        points[i].y = f[i * 3 + 1];
+        points[i].z = f[i * 3 + 2];
+    }
+    return points;
+}
+
+// fbuf out: count*3 doubles, capped at FAXE_LIST_MAX. Returns the count.
+static int rolloffUnpack(FMOD_VECTOR* points, int count, ::Array<Float> fbuf) {
+    if (!points || count < 0) count = 0;
+    if (count > FAXE_LIST_MAX / 3) count = FAXE_LIST_MAX / 3;
+    for (int i = 0; i < count; i++) {
+        fbuf[i * 3] = (double)points[i].x;
+        fbuf[i * 3 + 1] = (double)points[i].y;
+        fbuf[i * 3 + 2] = (double)points[i].z;
+    }
+    return count;
+}
+
+int fmod_chan_set_3d_custom_rolloff(int h, ::Array<unsigned char> data, int count) {
+    FMOD::Channel* ch = resolveChannel(h);
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    if (count < 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    FMOD_VECTOR* points = rolloffCopy(data, count);
+    if (count > 0 && !points) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    gLastResult = ch->set3DCustomRolloff(points, points ? count : 0);
+    if (gLastResult != FMOD_OK) { free(points); return (int)gLastResult; }
+    faxe_handle_set_aux(h, points);
+    return (int)gLastResult;
+}
+
+int fmod_chan_get_3d_custom_rolloff(int h, ::Array<Float> fbuf) {
+    FMOD::Channel* ch = resolveChannel(h);
+    FMOD_VECTOR* points = NULL;
+    int count = 0;
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    gLastResult = ch->get3DCustomRolloff(&points, &count);
+    if (gLastResult != FMOD_OK) return -1;
+    return rolloffUnpack(points, count, fbuf);
+}
+
+int fmod_cg_set_3d_custom_rolloff(int h, ::Array<unsigned char> data, int count) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    if (count < 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    FMOD_VECTOR* points = rolloffCopy(data, count);
+    if (count > 0 && !points) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    gLastResult = group->set3DCustomRolloff(points, points ? count : 0);
+    if (gLastResult != FMOD_OK) { free(points); return (int)gLastResult; }
+    faxe_handle_set_aux(h, points);
+    return (int)gLastResult;
+}
+
+int fmod_cg_get_3d_custom_rolloff(int h, ::Array<Float> fbuf) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    FMOD_VECTOR* points = NULL;
+    int count = 0;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    gLastResult = group->get3DCustomRolloff(&points, &count);
+    if (gLastResult != FMOD_OK) return -1;
+    return rolloffUnpack(points, count, fbuf);
+}
+
+int fmod_core_sound_set_3d_custom_rolloff(int h, ::Array<unsigned char> data, int count) {
+    FMOD::Sound* sound = resolveSound(h);
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    if (count < 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    FMOD_VECTOR* points = rolloffCopy(data, count);
+    if (count > 0 && !points) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    gLastResult = sound->set3DCustomRolloff(points, points ? count : 0);
+    if (gLastResult != FMOD_OK) { free(points); return (int)gLastResult; }
+    faxe_handle_set_aux(h, points);
+    return (int)gLastResult;
+}
+
+int fmod_core_sound_get_3d_custom_rolloff(int h, ::Array<Float> fbuf) {
+    FMOD::Sound* sound = resolveSound(h);
+    FMOD_VECTOR* points = NULL;
+    int count = 0;
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    gLastResult = sound->get3DCustomRolloff(&points, &count);
+    if (gLastResult != FMOD_OK) return -1;
+    return rolloffUnpack(points, count, fbuf);
+}
+
+//// Geometry
+
+static inline FMOD::Geometry* resolveGeometry(int h) {
+    return (FMOD::Geometry*)faxe_handle_resolve(h, FAXE_TYPE_GEOMETRY);
+}
+
+static int geometryHandle(FMOD::Geometry* geometry) {
+    int handle = faxe_handle_alloc(geometry, FAXE_TYPE_GEOMETRY);
+    if (handle == 0) {
+        gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
+        geometry->release();
+    }
+    return handle;
+}
+
+int fmod_sys_create_geometry(int maxPolygons, int maxVertices) {
+    FMOD::Geometry* geometry = NULL;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    gLastResult = gCoreSystem->createGeometry(maxPolygons, maxVertices, &geometry);
+    if (gLastResult != FMOD_OK || !geometry) return 0;
+    return geometryHandle(geometry);
+}
+
+int fmod_sys_set_geometry_settings(float maxWorldSize) {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = gCoreSystem->setGeometrySettings(maxWorldSize);
+    return (int)gLastResult;
+}
+
+float fmod_sys_get_geometry_settings() {
+    float maxWorldSize = 0.0f;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0.0f; }
+    gLastResult = gCoreSystem->getGeometrySettings(&maxWorldSize);
+    if (gLastResult != FMOD_OK) return 0.0f;
+    return maxWorldSize;
+}
+
+// fbuf out: [0]=direct [1]=reverb
+int fmod_sys_get_geometry_occlusion(float lx, float ly, float lz, float sx, float sy, float sz, ::Array<Float> fbuf) {
+    float direct = 0.0f;
+    float reverb = 0.0f;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    FMOD_VECTOR listener = { lx, ly, lz };
+    FMOD_VECTOR source = { sx, sy, sz };
+    gLastResult = gCoreSystem->getGeometryOcclusion(&listener, &source, &direct, &reverb);
+    fbuf[0] = (double)direct;
+    fbuf[1] = (double)reverb;
+    return (int)gLastResult;
+}
+
+int fmod_sys_load_geometry(::Array<unsigned char> data, int len) {
+    FMOD::Geometry* geometry = NULL;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    if (data == null() || len <= 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
+    if (len > data->length) len = data->length;
+    gLastResult = gCoreSystem->loadGeometry(&data[0], len, &geometry);
+    if (gLastResult != FMOD_OK || !geometry) return 0;
+    return geometryHandle(geometry);
+}
+
+int fmod_geo_release(int h) {
+    FMOD::Geometry* geometry = resolveGeometry(h);
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = geometry->release();
+    if (gLastResult == FMOD_OK) faxe_handle_free(h);
+    return (int)gLastResult;
+}
+
+// vertices: packed float32 xyz triples. Returns the polygon index, -1 on failure.
+int fmod_geo_add_polygon(int h, float direct, float reverb, bool doubleSided, ::Array<unsigned char> vertices, int count) {
+    FMOD::Geometry* geometry = resolveGeometry(h);
+    int index = -1;
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    if (count < 3) { gLastResult = FMOD_ERR_INVALID_PARAM; return -1; }
+    FMOD_VECTOR* points = rolloffCopy(vertices, count);
+    if (!points) { gLastResult = FMOD_ERR_INVALID_PARAM; return -1; }
+    gLastResult = geometry->addPolygon(direct, reverb, doubleSided, count, points, &index);
+    free(points);
+    if (gLastResult != FMOD_OK) return -1;
+    return index;
+}
+
+int fmod_geo_get_num_polygons(int h) {
+    FMOD::Geometry* geometry = resolveGeometry(h);
+    int count = 0;
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    gLastResult = geometry->getNumPolygons(&count);
+    if (gLastResult != FMOD_OK) return -1;
+    return count;
+}
+
+// ibuf out: [0]=max polygons [1]=max vertices
+int fmod_geo_get_max_polygons(int h, ::Array<int> ibuf) {
+    FMOD::Geometry* geometry = resolveGeometry(h);
+    int maxPolygons = 0;
+    int maxVertices = 0;
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = geometry->getMaxPolygons(&maxPolygons, &maxVertices);
+    ibuf[0] = maxPolygons;
+    ibuf[1] = maxVertices;
+    return (int)gLastResult;
+}
+
+int fmod_geo_get_polygon_num_vertices(int h, int index) {
+    FMOD::Geometry* geometry = resolveGeometry(h);
+    int count = 0;
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    gLastResult = geometry->getPolygonNumVertices(index, &count);
+    if (gLastResult != FMOD_OK) return -1;
+    return count;
+}
+
+int fmod_geo_set_polygon_vertex(int h, int index, int vertexIndex, float x, float y, float z) {
+    FMOD::Geometry* geometry = resolveGeometry(h);
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    FMOD_VECTOR vertex = { x, y, z };
+    gLastResult = geometry->setPolygonVertex(index, vertexIndex, &vertex);
+    return (int)gLastResult;
+}
+
+// fbuf out: [0..2]=x y z
+int fmod_geo_get_polygon_vertex(int h, int index, int vertexIndex, ::Array<Float> fbuf) {
+    FMOD::Geometry* geometry = resolveGeometry(h);
+    FMOD_VECTOR vertex = { 0.0f, 0.0f, 0.0f };
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = geometry->getPolygonVertex(index, vertexIndex, &vertex);
+    fbuf[0] = (double)vertex.x;
+    fbuf[1] = (double)vertex.y;
+    fbuf[2] = (double)vertex.z;
+    return (int)gLastResult;
+}
+
+int fmod_geo_set_polygon_attributes(int h, int index, float direct, float reverb, bool doubleSided) {
+    FMOD::Geometry* geometry = resolveGeometry(h);
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = geometry->setPolygonAttributes(index, direct, reverb, doubleSided);
+    return (int)gLastResult;
+}
+
+// fbuf out: [0]=direct [1]=reverb [2]=doubleSided (1.0 or 0.0)
+int fmod_geo_get_polygon_attributes(int h, int index, ::Array<Float> fbuf) {
+    FMOD::Geometry* geometry = resolveGeometry(h);
+    float direct = 0.0f;
+    float reverb = 0.0f;
+    bool doubleSided = false;
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = geometry->getPolygonAttributes(index, &direct, &reverb, &doubleSided);
+    fbuf[0] = (double)direct;
+    fbuf[1] = (double)reverb;
+    fbuf[2] = doubleSided ? 1.0 : 0.0;
+    return (int)gLastResult;
+}
+
+int fmod_geo_set_active(int h, bool active) {
+    FMOD::Geometry* geometry = resolveGeometry(h);
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = geometry->setActive(active);
+    return (int)gLastResult;
+}
+
+bool fmod_geo_get_active(int h) {
+    FMOD::Geometry* geometry = resolveGeometry(h);
+    bool active = false;
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return false; }
+    gLastResult = geometry->getActive(&active);
+    return active;
+}
+
+int fmod_geo_set_rotation(int h, float fx, float fy, float fz, float ux, float uy, float uz) {
+    FMOD::Geometry* geometry = resolveGeometry(h);
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    FMOD_VECTOR forward = { fx, fy, fz };
+    FMOD_VECTOR up = { ux, uy, uz };
+    gLastResult = geometry->setRotation(&forward, &up);
+    return (int)gLastResult;
+}
+
+// fbuf out: [0..2]=forward [3..5]=up
+int fmod_geo_get_rotation(int h, ::Array<Float> fbuf) {
+    FMOD::Geometry* geometry = resolveGeometry(h);
+    FMOD_VECTOR forward = { 0.0f, 0.0f, 0.0f };
+    FMOD_VECTOR up = { 0.0f, 0.0f, 0.0f };
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = geometry->getRotation(&forward, &up);
+    fbuf[0] = (double)forward.x; fbuf[1] = (double)forward.y; fbuf[2] = (double)forward.z;
+    fbuf[3] = (double)up.x; fbuf[4] = (double)up.y; fbuf[5] = (double)up.z;
+    return (int)gLastResult;
+}
+
+int fmod_geo_set_position(int h, float x, float y, float z) {
+    FMOD::Geometry* geometry = resolveGeometry(h);
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    FMOD_VECTOR position = { x, y, z };
+    gLastResult = geometry->setPosition(&position);
+    return (int)gLastResult;
+}
+
+// fbuf out: [0..2]=x y z
+int fmod_geo_get_position(int h, ::Array<Float> fbuf) {
+    FMOD::Geometry* geometry = resolveGeometry(h);
+    FMOD_VECTOR position = { 0.0f, 0.0f, 0.0f };
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = geometry->getPosition(&position);
+    fbuf[0] = (double)position.x;
+    fbuf[1] = (double)position.y;
+    fbuf[2] = (double)position.z;
+    return (int)gLastResult;
+}
+
+int fmod_geo_set_scale(int h, float x, float y, float z) {
+    FMOD::Geometry* geometry = resolveGeometry(h);
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    FMOD_VECTOR scale = { x, y, z };
+    gLastResult = geometry->setScale(&scale);
+    return (int)gLastResult;
+}
+
+// fbuf out: [0..2]=x y z
+int fmod_geo_get_scale(int h, ::Array<Float> fbuf) {
+    FMOD::Geometry* geometry = resolveGeometry(h);
+    FMOD_VECTOR scale = { 0.0f, 0.0f, 0.0f };
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = geometry->getScale(&scale);
+    fbuf[0] = (double)scale.x;
+    fbuf[1] = (double)scale.y;
+    fbuf[2] = (double)scale.z;
+    return (int)gLastResult;
+}
+
+// Returns the serialized size. A null buffer (or len 0) only sizes, so the
+// Haxe wrapper calls twice. A buffer shorter than the size is rejected
+// before FMOD writes anything.
+int fmod_geo_save(int h, ::Array<unsigned char> data, int len) {
+    FMOD::Geometry* geometry = resolveGeometry(h);
+    int size = 0;
+    if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    gLastResult = geometry->save(NULL, &size);
+    if (gLastResult != FMOD_OK) return -1;
+    if (data == null() || len <= 0) return size;
+    if (len > data->length) len = data->length;
+    if (len < size) { gLastResult = FMOD_ERR_INVALID_PARAM; return -1; }
+    gLastResult = geometry->save(&data[0], &size);
+    if (gLastResult != FMOD_OK) return -1;
+    return size;
+}
+
 //// Debug
+
+//// Completeness tail: getters and setters on objects the library already wraps
+
+int fmod_core_sound_set_3d_cone_settings(int h, float inside, float outside, float outsideVolume) {
+    FMOD::Sound* snd = resolveSound(h);
+    if (!snd) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = snd->set3DConeSettings(inside, outside, outsideVolume);
+    return (int)gLastResult;
+}
+
+// fbuf out: [0]=inside [1]=outside [2]=outside volume
+int fmod_core_sound_get_3d_cone_settings(int h, ::Array<Float> fbuf) {
+    FMOD::Sound* snd = resolveSound(h);
+    float inside = 0.0f;
+    float outside = 0.0f;
+    float outsideVolume = 0.0f;
+    if (!snd) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = snd->get3DConeSettings(&inside, &outside, &outsideVolume);
+    fbuf[0] = (double)inside;
+    fbuf[1] = (double)outside;
+    fbuf[2] = (double)outsideVolume;
+    return (int)gLastResult;
+}
+
+int fmod_core_sound_set_3d_min_max(int h, float minDistance, float maxDistance) {
+    FMOD::Sound* snd = resolveSound(h);
+    if (!snd) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = snd->set3DMinMaxDistance(minDistance, maxDistance);
+    return (int)gLastResult;
+}
+
+// fbuf out: [0]=min [1]=max
+int fmod_core_sound_get_3d_min_max(int h, ::Array<Float> fbuf) {
+    FMOD::Sound* snd = resolveSound(h);
+    float minDistance = 0.0f;
+    float maxDistance = 0.0f;
+    if (!snd) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = snd->get3DMinMaxDistance(&minDistance, &maxDistance);
+    fbuf[0] = (double)minDistance;
+    fbuf[1] = (double)maxDistance;
+    return (int)gLastResult;
+}
+
+int fmod_chan_set_dsp_index(int h, int dspHandle, int index) {
+    FMOD::Channel* ch = resolveChannel(h);
+    FMOD::DSP* dsp = resolveDsp(dspHandle);
+    if (!ch || !dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = ch->setDSPIndex(dsp, index);
+    return (int)gLastResult;
+}
+
+int fmod_chan_get_dsp_index(int h, int dspHandle) {
+    FMOD::Channel* ch = resolveChannel(h);
+    FMOD::DSP* dsp = resolveDsp(dspHandle);
+    int index = -1;
+    if (!ch || !dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    gLastResult = ch->getDSPIndex(dsp, &index);
+    return gLastResult == FMOD_OK ? index : -1;
+}
+
+// Fade points cross as (clock, volume) pairs, so the scratch buffer holds
+// at most FAXE_LIST_MAX/2 of them
+#define FAXE_FADE_POINT_MAX (FAXE_LIST_MAX / 2)
+static unsigned long long gFadeClocks[FAXE_FADE_POINT_MAX];
+static float gFadeVolumes[FAXE_FADE_POINT_MAX];
+
+static int writeFadePoints(unsigned int count, ::Array<Float> fbuf) {
+    if (count > FAXE_FADE_POINT_MAX) count = FAXE_FADE_POINT_MAX;
+    for (unsigned int i = 0; i < count; i++) {
+        fbuf[i * 2] = (double)gFadeClocks[i];
+        fbuf[i * 2 + 1] = (double)gFadeVolumes[i];
+    }
+    return (int)count;
+}
+
+// fbuf out: [2i]=clock [2i+1]=volume. Returns the point count.
+int fmod_chan_get_fade_points(int h, ::Array<Float> fbuf) {
+    FMOD::Channel* ch = resolveChannel(h);
+    unsigned int count = FAXE_FADE_POINT_MAX;
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = ch->getFadePoints(&count, gFadeClocks, gFadeVolumes);
+    if (gLastResult != FMOD_OK) return 0;
+    return writeFadePoints(count, fbuf);
+}
+
+// Shared by the three mix matrix getters. The caller names the region it
+// wants (outChannels rows of inChannels gains) and gets that region back
+// row-major in fbuf, with the object's real counts in ibuf[0] and ibuf[1].
+// Callers make the FMOD call before this one, since the counts are only
+// valid after it returns.
+static float gMatrixBuf[32 * 32];
+
+// A read hop of 0 means packed rows. 32 is the widest matrix FMOD mixes.
+static bool matrixHopOk(int inChannelHop) {
+    if (inChannelHop < 0 || inChannelHop > 32) {
+        gLastResult = FMOD_ERR_INVALID_PARAM;
+        return false;
+    }
+    return true;
+}
+
+// Copies outActual rows of stride floats (the hop, or inActual when the
+// hop is 0) out of gMatrixBuf and returns that count, 0 on failure.
+static int writeMixMatrix(FMOD_RESULT result, int outActual, int inActual, int inChannelHop, ::Array<Float> fbuf, ::Array<int> ibuf) {
+    int stride = inChannelHop > 0 ? inChannelHop : inActual;
+    int total = outActual * stride;
+    gLastResult = result;
+    if (result != FMOD_OK) return 0;
+    if (total < 0 || total > 32 * 32) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
+    for (int i = 0; i < total; i++) fbuf[i] = (double)gMatrixBuf[i];
+    ibuf[0] = outActual;
+    ibuf[1] = inActual;
+    return total;
+}
+
+int fmod_chan_get_mix_matrix(int h, ::Array<Float> fbuf, ::Array<int> ibuf, int inChannelHop) {
+    FMOD::Channel* ch = resolveChannel(h);
+    int outActual = 0;
+    int inActual = 0;
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    if (!matrixHopOk(inChannelHop)) return 0;
+    FMOD_RESULT result = ch->getMixMatrix(gMatrixBuf, &outActual, &inActual, inChannelHop);
+    return writeMixMatrix(result, outActual, inActual, inChannelHop, fbuf, ibuf);
+}
+
+int fmod_chan_get_channel_group(int h) {
+    FMOD::Channel* ch = resolveChannel(h);
+    FMOD::ChannelGroup* group = NULL;
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = ch->getChannelGroup(&group);
+    if (gLastResult != FMOD_OK || !group) return 0;
+    return faxe_handle_find_or_alloc(group, FAXE_TYPE_CHANGROUP);
+}
+
+int fmod_cg_set_dsp_index(int h, int dspHandle, int index) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    FMOD::DSP* dsp = resolveDsp(dspHandle);
+    if (!group || !dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = group->setDSPIndex(dsp, index);
+    return (int)gLastResult;
+}
+
+int fmod_cg_get_dsp_index(int h, int dspHandle) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    FMOD::DSP* dsp = resolveDsp(dspHandle);
+    int index = -1;
+    if (!group || !dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    gLastResult = group->getDSPIndex(dsp, &index);
+    return gLastResult == FMOD_OK ? index : -1;
+}
+
+int fmod_cg_get_fade_points(int h, ::Array<Float> fbuf) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    unsigned int count = FAXE_FADE_POINT_MAX;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = group->getFadePoints(&count, gFadeClocks, gFadeVolumes);
+    if (gLastResult != FMOD_OK) return 0;
+    return writeFadePoints(count, fbuf);
+}
+
+int fmod_cg_get_mix_matrix(int h, ::Array<Float> fbuf, ::Array<int> ibuf, int inChannelHop) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    int outActual = 0;
+    int inActual = 0;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    if (!matrixHopOk(inChannelHop)) return 0;
+    FMOD_RESULT result = group->getMixMatrix(gMatrixBuf, &outActual, &inActual, inChannelHop);
+    return writeMixMatrix(result, outActual, inActual, inChannelHop, fbuf, ibuf);
+}
+
+const char* fmod_sg_get_name(int h) {
+    gStringBuf[0] = '\0';
+    FMOD::SoundGroup* group = resolveSoundGroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return gStringBuf; }
+    gLastResult = group->getName(gStringBuf, sizeof(gStringBuf));
+    if (gLastResult != FMOD_OK) gStringBuf[0] = '\0';
+    return gStringBuf;
+}
+
+// Borrowed reference, the group does not own the sound
+int fmod_sg_get_sound(int h, int index) {
+    FMOD::SoundGroup* group = resolveSoundGroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    FMOD::Sound* sound = NULL;
+    gLastResult = group->getSound(index, &sound);
+    if (gLastResult != FMOD_OK || !sound) return 0;
+    return faxe_handle_find_or_alloc(sound, FAXE_TYPE_SOUND);
+}
+
+// The pool channel at this index. It may be idle, in which case every call
+// on the handle reports FMOD_ERR_INVALID_HANDLE until FMOD reuses it.
+int fmod_sys_get_channel(int index) {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    FMOD::Channel* ch = NULL;
+    gLastResult = gCoreSystem->getChannel(index, &ch);
+    if (gLastResult != FMOD_OK || !ch) return 0;
+    return faxe_handle_find_or_alloc(ch, FAXE_TYPE_CHAN);
+}
+
+int fmod_sys_get_output() {
+    FMOD_OUTPUTTYPE output = FMOD_OUTPUTTYPE_AUTODETECT;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return -1; }
+    gLastResult = gCoreSystem->getOutput(&output);
+    return gLastResult == FMOD_OK ? (int)output : -1;
+}
+
+int fmod_sys_get_speaker_mode_channels(int mode) {
+    int channels = 0;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    gLastResult = gCoreSystem->getSpeakerModeChannels((FMOD_SPEAKERMODE)mode, &channels);
+    return gLastResult == FMOD_OK ? channels : 0;
+}
+
+// fbuf out: target channels rows of hop columns. hop 0 means the source
+// channel count. Returns the element count.
+int fmod_sys_get_default_mix_matrix(int sourceMode, int targetMode, int hop, ::Array<Float> fbuf) {
+    int sourceChannels = 0;
+    int targetChannels = 0;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    gLastResult = gCoreSystem->getSpeakerModeChannels((FMOD_SPEAKERMODE)sourceMode, &sourceChannels);
+    if (gLastResult != FMOD_OK) return 0;
+    gLastResult = gCoreSystem->getSpeakerModeChannels((FMOD_SPEAKERMODE)targetMode, &targetChannels);
+    if (gLastResult != FMOD_OK) return 0;
+    if (hop <= 0) hop = sourceChannels;
+    int total = targetChannels * hop;
+    if (hop < sourceChannels || total < 1 || total > 32 * 32) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
+    for (int i = 0; i < total; i++) gMatrixBuf[i] = 0.0f;
+    gLastResult = gCoreSystem->getDefaultMixMatrix((FMOD_SPEAKERMODE)sourceMode, (FMOD_SPEAKERMODE)targetMode, gMatrixBuf, hop);
+    if (gLastResult != FMOD_OK) return 0;
+    for (int i = 0; i < total; i++) fbuf[i] = (double)gMatrixBuf[i];
+    return total;
+}
+
+// Layout in faxe_dspdata.h: fbuf min, max, default and the mapping
+// points, ibuf type, mapping type, goes-to-infinity, data type, point
+// count. Returns the name.
+const char* fmod_dsp_get_parameter_info(int h, int index, ::Array<Float> fbuf, ::Array<int> ibuf) {
+    double f[FAXE_DSPDATA_DESC_FLOATS + 2 * FAXE_DSPDATA_MAX_MAPPING_POINTS];
+    int ints[FAXE_DSPDATA_DESC_INTS];
+    gStringBuf[0] = '\0';
+    faxe_dspdata_clear_desc(f, ints);
+    FMOD::DSP* dsp = resolveDsp(h);
+    FMOD_DSP_PARAMETER_DESC* desc = NULL;
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; }
+    else {
+        gLastResult = dsp->getParameterInfo(index, &desc);
+        if (gLastResult == FMOD_OK && desc) {
+            memcpy(gStringBuf, desc->name, sizeof(desc->name));
+            gStringBuf[sizeof(desc->name)] = '\0';
+            faxe_dspdata_unpack_desc(desc, f, ints);
+        }
+    }
+    int points = ints[4];
+    for (int i = 0; i < FAXE_DSPDATA_DESC_FLOATS + 2 * points; i++) fbuf[i] = f[i];
+    for (int i = 0; i < FAXE_DSPDATA_DESC_INTS; i++) ibuf[i] = ints[i];
+    return gStringBuf;
+}
+
+int fmod_dsp_get_data_parameter_index(int h, int dataType) {
+    FMOD::DSP* dsp = resolveDsp(h);
+    int index = -1;
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    gLastResult = dsp->getDataParameterIndex(dataType, &index);
+    return gLastResult == FMOD_OK ? index : -1;
+}
+
+int fmod_dsp_set_channel_format(int h, int mask, int channels, int speakerMode) {
+    FMOD::DSP* dsp = resolveDsp(h);
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = dsp->setChannelFormat((FMOD_CHANNELMASK)mask, channels, (FMOD_SPEAKERMODE)speakerMode);
+    return (int)gLastResult;
+}
+
+// ibuf out: [0]=mask [1]=channels [2]=speaker mode
+int fmod_dsp_get_channel_format(int h, ::Array<int> ibuf) {
+    FMOD::DSP* dsp = resolveDsp(h);
+    FMOD_CHANNELMASK mask = 0;
+    int channels = 0;
+    FMOD_SPEAKERMODE mode = FMOD_SPEAKERMODE_DEFAULT;
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = dsp->getChannelFormat(&mask, &channels, &mode);
+    ibuf[0] = (int)mask;
+    ibuf[1] = channels;
+    ibuf[2] = (int)mode;
+    return (int)gLastResult;
+}
+
+// ibuf out: [0]=mask [1]=channels [2]=speaker mode the unit would emit for this input
+int fmod_dsp_get_output_channel_format(int h, int inMask, int inChannels, int inMode, ::Array<int> ibuf) {
+    FMOD::DSP* dsp = resolveDsp(h);
+    FMOD_CHANNELMASK mask = 0;
+    int channels = 0;
+    FMOD_SPEAKERMODE mode = FMOD_SPEAKERMODE_DEFAULT;
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = dsp->getOutputChannelFormat((FMOD_CHANNELMASK)inMask, inChannels, (FMOD_SPEAKERMODE)inMode, &mask, &channels, &mode);
+    ibuf[0] = (int)mask;
+    ibuf[1] = channels;
+    ibuf[2] = (int)mode;
+    return (int)gLastResult;
+}
+
+// fbuf in: out*in gains row-major
+int fmod_conn_set_mix_matrix(int h, ::Array<Float> fbuf, int outChannels, int inChannels, int inChannelHop) {
+    FMOD::DSPConnection* conn = resolveDspConn(h);
+    if (!conn) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    if (!matrixArgsOk(outChannels, inChannels, inChannelHop)) return (int)gLastResult;
+    int total = outChannels * (inChannelHop > 0 ? inChannelHop : inChannels);
+    for (int i = 0; i < total; i++) gMatrixBuf[i] = (float)fbuf[i];
+    gLastResult = conn->setMixMatrix(gMatrixBuf, outChannels, inChannels, inChannelHop);
+    return (int)gLastResult;
+}
+
+int fmod_conn_get_mix_matrix(int h, ::Array<Float> fbuf, ::Array<int> ibuf, int inChannelHop) {
+    FMOD::DSPConnection* conn = resolveDspConn(h);
+    int outActual = 0;
+    int inActual = 0;
+    if (!conn) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    if (!matrixHopOk(inChannelHop)) return 0;
+    FMOD_RESULT result = conn->getMixMatrix(gMatrixBuf, &outActual, &inActual, inChannelHop);
+    return writeMixMatrix(result, outActual, inActual, inChannelHop, fbuf, ibuf);
+}
 
 int fmod_debug_live_handle_count() {
     return faxe_live_handle_count();
 }
 
+//// Sound extras: tracker music, subsounds, tags, and advanced settings readback
+
+int fmod_core_sound_get_music_num_channels(int h) {
+    FMOD::Sound* sound = resolveSound(h);
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    int count = 0;
+    gLastResult = sound->getMusicNumChannels(&count);
+    return gLastResult == FMOD_OK ? count : -1;
+}
+
+int fmod_core_sound_set_music_channel_volume(int h, int channel, float volume) {
+    FMOD::Sound* sound = resolveSound(h);
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = sound->setMusicChannelVolume(channel, volume);
+    return (int)gLastResult;
+}
+
+float fmod_core_sound_get_music_channel_volume(int h, int channel) {
+    FMOD::Sound* sound = resolveSound(h);
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0.0f; }
+    float volume = 0.0f;
+    gLastResult = sound->getMusicChannelVolume(channel, &volume);
+    return gLastResult == FMOD_OK ? volume : 0.0f;
+}
+
+int fmod_core_sound_set_music_speed(int h, float speed) {
+    FMOD::Sound* sound = resolveSound(h);
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = sound->setMusicSpeed(speed);
+    return (int)gLastResult;
+}
+
+float fmod_core_sound_get_music_speed(int h) {
+    FMOD::Sound* sound = resolveSound(h);
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0.0f; }
+    float speed = 0.0f;
+    gLastResult = sound->getMusicSpeed(&speed);
+    return gLastResult == FMOD_OK ? speed : 0.0f;
+}
+
+int fmod_core_sound_get_num_sub_sounds(int h) {
+    FMOD::Sound* sound = resolveSound(h);
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    int count = 0;
+    gLastResult = sound->getNumSubSounds(&count);
+    return gLastResult == FMOD_OK ? count : -1;
+}
+
+// The subsound stays owned by its parent. The handle is looked up or
+// allocated, never released from Haxe (see releaseSubsoundHandles).
+int fmod_core_sound_get_sub_sound(int h, int index) {
+    FMOD::Sound* sound = resolveSound(h);
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    FMOD::Sound* sub = NULL;
+    gLastResult = sound->getSubSound(index, &sub);
+    if (gLastResult != FMOD_OK || !sub) return 0;
+    return faxe_handle_find_or_alloc(sub, FAXE_TYPE_SOUND);
+}
+
+int fmod_core_sound_get_sub_sound_parent(int h) {
+    FMOD::Sound* sound = resolveSound(h);
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    FMOD::Sound* parent = NULL;
+    gLastResult = sound->getSubSoundParent(&parent);
+    if (gLastResult != FMOD_OK || !parent) return 0;
+    return faxe_handle_find_or_alloc(parent, FAXE_TYPE_SOUND);
+}
+
+int fmod_core_sound_get_num_tags(int h, ::Array<int> ibuf) {
+    ibuf[0] = 0;
+    FMOD::Sound* sound = resolveSound(h);
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    int count = 0;
+    int updated = 0;
+    gLastResult = sound->getNumTags(&count, &updated);
+    if (gLastResult != FMOD_OK) return -1;
+    ibuf[0] = updated;
+    return count;
+}
+
+// An empty name means any tag, which is FMOD's NULL name. The int and
+// float payloads are copied when they are exactly four bytes wide.
+const char* fmod_core_sound_get_tag(int h, const ::String& name, int index, ::Array<int> ibuf, ::Array<Float> fbuf) {
+    for (int i = 0; i < 5; i++) ibuf[i] = 0;
+    fbuf[0] = 0.0;
+    gStringBuf[0] = '\0';
+    FMOD::Sound* sound = resolveSound(h);
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return gStringBuf; }
+    const char* key = name.c_str();
+    FMOD_TAG tag;
+    memset(&tag, 0, sizeof(tag));
+    gLastResult = sound->getTag((key && key[0] != '\0') ? key : NULL, index, &tag);
+    if (gLastResult != FMOD_OK) return gStringBuf;
+    ibuf[0] = (int)tag.type;
+    ibuf[1] = (int)tag.datatype;
+    ibuf[2] = tag.updated ? 1 : 0;
+    ibuf[3] = (int)tag.datalen;
+    if (tag.datatype == FMOD_TAGDATATYPE_INT && tag.datalen == 4 && tag.data) ibuf[4] = *(int*)tag.data;
+    if (tag.datatype == FMOD_TAGDATATYPE_FLOAT && tag.datalen == 4 && tag.data) fbuf[0] = (Float)(*(float*)tag.data);
+    if (tag.name) {
+        strncpy(gStringBuf, tag.name, sizeof(gStringBuf) - 1);
+        gStringBuf[sizeof(gStringBuf) - 1] = '\0';
+    }
+    return gStringBuf;
+}
+
+const char* fmod_core_sound_get_tag_string(int h, const ::String& name, int index) {
+    gStringBuf[0] = '\0';
+    FMOD::Sound* sound = resolveSound(h);
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return gStringBuf; }
+    const char* key = name.c_str();
+    FMOD_TAG tag;
+    memset(&tag, 0, sizeof(tag));
+    gLastResult = sound->getTag((key && key[0] != '\0') ? key : NULL, index, &tag);
+    if (gLastResult != FMOD_OK) return gStringBuf;
+    if ((tag.datatype == FMOD_TAGDATATYPE_STRING || tag.datatype == FMOD_TAGDATATYPE_STRING_UTF8) && tag.data) {
+        // datalen usually counts the terminator, and the copy is capped so
+        // a payload that lies about its size cannot run past the buffer
+        size_t len = tag.datalen < sizeof(gStringBuf) - 1 ? tag.datalen : sizeof(gStringBuf) - 1;
+        memcpy(gStringBuf, tag.data, len);
+        gStringBuf[len] = '\0';
+    }
+    return gStringBuf;
+}
+
+int fmod_sys_get_advanced_settings(::Array<int> ibuf, ::Array<Float> fbuf) {
+    for (int i = 0; i < 8; i++) ibuf[i] = 0;
+    fbuf[0] = 0.0; fbuf[1] = 0.0;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    FMOD_ADVANCEDSETTINGS adv;
+    memset(&adv, 0, sizeof(adv));
+    adv.cbSize = sizeof(adv);
+    gLastResult = gCoreSystem->getAdvancedSettings(&adv);
+    if (gLastResult != FMOD_OK) return (int)gLastResult;
+    ibuf[0] = adv.maxMPEGCodecs;
+    ibuf[1] = adv.maxVorbisCodecs;
+    ibuf[2] = adv.maxFADPCMCodecs;
+    ibuf[3] = (int)adv.defaultDecodeBufferSize;
+    ibuf[4] = (int)adv.profilePort;
+    ibuf[5] = (int)adv.geometryMaxFadeTime;
+    ibuf[6] = (int)adv.randomSeed;
+    ibuf[7] = (int)adv.resamplerMethod;
+    fbuf[0] = (Float)adv.vol0virtualvol;
+    fbuf[1] = (Float)adv.distanceFilterCenterFreq;
+    return (int)gLastResult;
+}
+
+int fmod_sys_get_studio_advanced_settings(::Array<int> ibuf) {
+    for (int i = 0; i < 5; i++) ibuf[i] = 0;
+    if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    FMOD_STUDIO_ADVANCEDSETTINGS sadv;
+    memset(&sadv, 0, sizeof(sadv));
+    sadv.cbsize = sizeof(sadv);
+    gLastResult = gStudioSystem->getAdvancedSettings(&sadv);
+    if (gLastResult != FMOD_OK) return (int)gLastResult;
+    ibuf[0] = (int)sadv.commandqueuesize;
+    ibuf[1] = (int)sadv.handleinitialsize;
+    ibuf[2] = sadv.studioupdateperiod;
+    ibuf[3] = sadv.idlesampledatapoolsize;
+    ibuf[4] = (int)sadv.streamingscheduledelay;
+    return (int)gLastResult;
+}
+
 int fmod_binding_abi_version() {
     // Keep in lockstep with the manifest header "# abi-version:"
-    return 8;
+    return 11;
+}
+
+//// System extras (replay inspection, DSP lock, sound info, memory and file stats, network, speaker positions)
+
+// Command strings can run past gStringBuf, so they get the 1024 bytes FMOD's own example uses.
+static char gCommandBuf[1024];
+
+int fmod_replay_get_command_count(int h) {
+    FMOD::Studio::CommandReplay* replay = resolveReplay(h);
+    int count = 0;
+    if (!replay) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    gLastResult = replay->getCommandCount(&count);
+    return gLastResult == FMOD_OK ? count : -1;
+}
+
+const char* fmod_replay_get_command_info(int h, int index, ::Array<int> ibuf, ::Array<Float> fbuf) {
+    gStringBuf[0] = '\0';
+    FMOD::Studio::CommandReplay* replay = resolveReplay(h);
+    if (!replay) { gLastResult = FMOD_ERR_INVALID_HANDLE; return gStringBuf; }
+    FMOD_STUDIO_COMMAND_INFO info;
+    memset(&info, 0, sizeof(info));
+    gLastResult = replay->getCommandInfo(index, &info);
+    if (gLastResult != FMOD_OK) return gStringBuf;
+    ibuf[0] = (int)info.instancetype;
+    ibuf[1] = (int)info.outputtype;
+    ibuf[2] = (int)info.instancehandle;
+    ibuf[3] = (int)info.outputhandle;
+    ibuf[4] = info.framenumber;
+    ibuf[5] = info.parentcommandindex;
+    fbuf[0] = (Float)info.frametime;
+    // The name points into the replay's own memory, so it is copied out while the handle is still live.
+    if (info.commandname) {
+        strncpy(gStringBuf, info.commandname, sizeof(gStringBuf) - 1);
+        gStringBuf[sizeof(gStringBuf) - 1] = '\0';
+    }
+    return gStringBuf;
+}
+
+const char* fmod_replay_get_command_string(int h, int index) {
+    gCommandBuf[0] = '\0';
+    FMOD::Studio::CommandReplay* replay = resolveReplay(h);
+    if (!replay) { gLastResult = FMOD_ERR_INVALID_HANDLE; return gCommandBuf; }
+    gLastResult = replay->getCommandString(index, gCommandBuf, (int)sizeof(gCommandBuf));
+    if (gLastResult != FMOD_OK) gCommandBuf[0] = '\0';
+    return gCommandBuf;
+}
+
+int fmod_replay_get_command_at_time(int h, float seconds) {
+    FMOD::Studio::CommandReplay* replay = resolveReplay(h);
+    int index = -1;
+    if (!replay) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    gLastResult = replay->getCommandAtTime(seconds, &index);
+    return gLastResult == FMOD_OK ? index : -1;
+}
+
+int fmod_replay_seek_to_command(int h, int index) {
+    FMOD::Studio::CommandReplay* replay = resolveReplay(h);
+    if (!replay) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = replay->seekToCommand(index);
+    return (int)gLastResult;
+}
+
+int fmod_replay_get_playback_state(int h) {
+    FMOD::Studio::CommandReplay* replay = resolveReplay(h);
+    FMOD_STUDIO_PLAYBACK_STATE state = FMOD_STUDIO_PLAYBACK_STOPPED;
+    if (!replay) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)FMOD_STUDIO_PLAYBACK_STOPPED; }
+    gLastResult = replay->getPlaybackState(&state);
+    return gLastResult == FMOD_OK ? (int)state : (int)FMOD_STUDIO_PLAYBACK_STOPPED;
+}
+
+int fmod_replay_set_bank_path(int h, const ::String& path) {
+    FMOD::Studio::CommandReplay* replay = resolveReplay(h);
+    if (!replay) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = replay->setBankPath(path.c_str());
+    return (int)gLastResult;
+}
+
+int fmod_sys_lock_dsp() {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = gCoreSystem->lockDSP();
+    return (int)gLastResult;
+}
+
+int fmod_sys_unlock_dsp() {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = gCoreSystem->unlockDSP();
+    return (int)gLastResult;
+}
+
+// ibuf: [0]=subsound index [1]=mode [2]=exinfo length [3]=exinfo file
+// offset [4]=exinfo initial subsound [5]=exinfo subsound count
+const char* fmod_sys_get_sound_info(const ::String& key, ::Array<int> ibuf) {
+    gStringBuf[0] = '\0';
+    ibuf[0] = -1;
+    for (int i = 1; i < 6; i++) ibuf[i] = 0;
+    if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return gStringBuf; }
+    FMOD_STUDIO_SOUND_INFO info;
+    memset(&info, 0, sizeof(info));
+    gLastResult = gStudioSystem->getSoundInfo(key.c_str(), &info);
+    if (gLastResult != FMOD_OK) return gStringBuf;
+    ibuf[0] = info.subsoundindex;
+    ibuf[1] = (int)info.mode;
+    ibuf[2] = (int)info.exinfo.length;
+    ibuf[3] = (int)info.exinfo.fileoffset;
+    ibuf[4] = info.exinfo.initialsubsound;
+    ibuf[5] = info.exinfo.numsubsounds;
+    // For a bank loaded from memory name_or_data is the sample bytes themselves, which are no string.
+    if (info.name_or_data && !(info.mode & (FMOD_OPENMEMORY | FMOD_OPENMEMORY_POINT))) {
+        strncpy(gStringBuf, info.name_or_data, sizeof(gStringBuf) - 1);
+        gStringBuf[sizeof(gStringBuf) - 1] = '\0';
+    }
+    return gStringBuf;
+}
+
+int fmod_sys_get_memory_stats(bool blocking, ::Array<int> ibuf) {
+    int current = 0;
+    int maximum = 0;
+    gLastResult = FMOD::Memory_GetStats(&current, &maximum, blocking);
+    ibuf[0] = current;
+    ibuf[1] = maximum;
+    return (int)gLastResult;
+}
+
+int fmod_sys_get_file_usage(::Array<Float> fbuf) {
+    long long sample = 0;
+    long long stream = 0;
+    long long other = 0;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = gCoreSystem->getFileUsage(&sample, &stream, &other);
+    fbuf[0] = (Float)sample;
+    fbuf[1] = (Float)stream;
+    fbuf[2] = (Float)other;
+    return (int)gLastResult;
+}
+
+int fmod_sys_set_network_proxy(const ::String& proxy) {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = gCoreSystem->setNetworkProxy(proxy.c_str());
+    return (int)gLastResult;
+}
+
+const char* fmod_sys_get_network_proxy() {
+    gStringBuf[0] = '\0';
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return gStringBuf; }
+    gLastResult = gCoreSystem->getNetworkProxy(gStringBuf, (int)sizeof(gStringBuf));
+    if (gLastResult != FMOD_OK) gStringBuf[0] = '\0';
+    return gStringBuf;
+}
+
+int fmod_sys_set_network_timeout(int timeoutMs) {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = gCoreSystem->setNetworkTimeout(timeoutMs);
+    return (int)gLastResult;
+}
+
+int fmod_sys_get_network_timeout() {
+    int timeoutMs = -1;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return -1; }
+    gLastResult = gCoreSystem->getNetworkTimeout(&timeoutMs);
+    return gLastResult == FMOD_OK ? timeoutMs : -1;
+}
+
+int fmod_sys_set_speaker_position(int speaker, float x, float y, bool active) {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = gCoreSystem->setSpeakerPosition((FMOD_SPEAKER)speaker, x, y, active);
+    return (int)gLastResult;
+}
+
+int fmod_sys_get_speaker_position(int speaker, ::Array<Float> fbuf) {
+    float x = 0.0f;
+    float y = 0.0f;
+    bool active = false;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = gCoreSystem->getSpeakerPosition((FMOD_SPEAKER)speaker, &x, &y, &active);
+    fbuf[0] = (Float)x;
+    fbuf[1] = (Float)y;
+    fbuf[2] = active ? 1.0 : 0.0;
+    return (int)gLastResult;
+}
+
+} // namespace faxe
+} // namespace linc
+
+namespace linc {
+namespace faxe {
+
+//// Plugins
+
+// Plugin handles are FMOD's own unsigned ids. They never enter the handle
+// table, so a stale one comes back from FMOD as FMOD_ERR_INVALID_HANDLE.
+
+int fmod_sys_set_plugin_path(const ::String& path) {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = gCoreSystem->setPluginPath(path.c_str());
+    return (int)gLastResult;
+}
+
+int fmod_sys_load_plugin(const ::String& path, int priority) {
+    unsigned int handle = 0;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    gLastResult = gCoreSystem->loadPlugin(path.c_str(), &handle, (unsigned int)priority);
+    if (gLastResult != FMOD_OK) return 0;
+    return (int)handle;
+}
+
+int fmod_sys_unload_plugin(int handle) {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = gCoreSystem->unloadPlugin((unsigned int)handle);
+    return (int)gLastResult;
+}
+
+int fmod_sys_get_num_plugins(int type) {
+    int count = 0;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return -1; }
+    if (type < 0 || type >= (int)FMOD_PLUGINTYPE_MAX) { gLastResult = FMOD_ERR_INVALID_PARAM; return -1; }
+    gLastResult = gCoreSystem->getNumPlugins((FMOD_PLUGINTYPE)type, &count);
+    if (gLastResult != FMOD_OK) return -1;
+    return count;
+}
+
+int fmod_sys_get_plugin_handle(int type, int index) {
+    unsigned int handle = 0;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    if (type < 0 || type >= (int)FMOD_PLUGINTYPE_MAX) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
+    gLastResult = gCoreSystem->getPluginHandle((FMOD_PLUGINTYPE)type, index, &handle);
+    if (gLastResult != FMOD_OK) return 0;
+    return (int)handle;
+}
+
+// ibuf = int[2]: plugin type, version
+const char* fmod_sys_get_plugin_info(int handle, ::Array<int> ibuf) {
+    FMOD_PLUGINTYPE type = FMOD_PLUGINTYPE_OUTPUT;
+    unsigned int version = 0;
+    gStringBuf[0] = '\0';
+    ibuf[0] = 0;
+    ibuf[1] = 0;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return gStringBuf; }
+    gLastResult = gCoreSystem->getPluginInfo((unsigned int)handle, &type, gStringBuf, sizeof(gStringBuf), &version);
+    if (gLastResult != FMOD_OK) { gStringBuf[0] = '\0'; return gStringBuf; }
+    ibuf[0] = (int)type;
+    ibuf[1] = (int)version;
+    return gStringBuf;
+}
+
+int fmod_sys_get_num_nested_plugins(int handle) {
+    int count = 0;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return -1; }
+    gLastResult = gCoreSystem->getNumNestedPlugins((unsigned int)handle, &count);
+    if (gLastResult != FMOD_OK) return -1;
+    return count;
+}
+
+int fmod_sys_get_nested_plugin(int handle, int index) {
+    unsigned int nested = 0;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    gLastResult = gCoreSystem->getNestedPlugin((unsigned int)handle, index, &nested);
+    if (gLastResult != FMOD_OK) return 0;
+    return (int)nested;
+}
+
+int fmod_dsp_create_by_plugin(int pluginHandle) {
+    FMOD::DSP* dsp = NULL;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    gLastResult = gCoreSystem->createDSPByPlugin((unsigned int)pluginHandle, &dsp);
+    if (gLastResult != FMOD_OK || !dsp) return 0;
+    int handle = faxe_handle_alloc(dsp, FAXE_TYPE_DSP);
+    if (handle == 0) {
+        gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
+        dsp->release();
+        return 0;
+    }
+    return handle;
+}
+
+// ibuf = int[4]: version, input buffers, output buffers, parameter count
+const char* fmod_dsp_get_info_by_plugin(int handle, ::Array<int> ibuf) {
+    const FMOD_DSP_DESCRIPTION* desc = NULL;
+    gStringBuf[0] = '\0';
+    for (int i = 0; i < 4; i++) ibuf[i] = 0;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return gStringBuf; }
+    gLastResult = gCoreSystem->getDSPInfoByPlugin((unsigned int)handle, &desc);
+    if (gLastResult == FMOD_OK && !desc) gLastResult = FMOD_ERR_PLUGIN;
+    if (gLastResult != FMOD_OK) return gStringBuf;
+    // The description name is a fixed 32 byte field with no terminator guarantee
+    size_t i = 0;
+    for (; i < sizeof(desc->name) && desc->name[i] != '\0'; i++) gStringBuf[i] = desc->name[i];
+    gStringBuf[i] = '\0';
+    ibuf[0] = (int)desc->version;
+    ibuf[1] = desc->numinputbuffers;
+    ibuf[2] = desc->numoutputbuffers;
+    ibuf[3] = desc->numparameters;
+    return gStringBuf;
+}
+
+//// Last seven: preallocated DSP input, mix levels, DSP info by type, output plugin, replay cursor
+
+// FMOD dereferences the connection, so a null one never reaches it
+int fmod_dsp_add_input_preallocated(int h, int inputHandle, int connHandle) {
+    FMOD::DSP* dsp = resolveDsp(h);
+    FMOD::DSP* input = resolveDsp(inputHandle);
+    FMOD::DSPConnection* conn = resolveDspConn(connHandle);
+    if (!dsp || !input || !conn) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+#if FMOD_VERSION >= 0x00020300
+    gLastResult = dsp->addInputPreallocated(input, &conn);
+#else
+    // the preallocated form arrived in FMOD 2.03
+    gLastResult = FMOD_ERR_UNSUPPORTED;
+#endif
+    if (gLastResult != FMOD_OK || !conn) return 0;
+    return faxe_handle_find_or_alloc(conn, FAXE_TYPE_DSPCONN);
+}
+
+// fbuf = one gain per input channel, count of them
+int fmod_chan_set_mix_levels_input(int h, ::Array<Float> fbuf, int count) {
+    FMOD::Channel* ch = resolveChannel(h);
+    float levels[32];
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    if (count < 0 || count > 32) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    for (int i = 0; i < count; i++) levels[i] = (float)fbuf[i];
+    gLastResult = ch->setMixLevelsInput(levels, count);
+    return (int)gLastResult;
+}
+
+int fmod_chan_set_mix_levels_output(int h, float fl, float fr, float c, float lfe, float sl, float sr, float bl, float br) {
+    FMOD::Channel* ch = resolveChannel(h);
+    if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = ch->setMixLevelsOutput(fl, fr, c, lfe, sl, sr, bl, br);
+    return (int)gLastResult;
+}
+
+int fmod_cg_set_mix_levels_input(int h, ::Array<Float> fbuf, int count) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    float levels[32];
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    if (count < 0 || count > 32) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    for (int i = 0; i < count; i++) levels[i] = (float)fbuf[i];
+    gLastResult = group->setMixLevelsInput(levels, count);
+    return (int)gLastResult;
+}
+
+int fmod_cg_set_mix_levels_output(int h, float fl, float fr, float c, float lfe, float sl, float sr, float bl, float br) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = group->setMixLevelsOutput(fl, fr, c, lfe, sl, sr, bl, br);
+    return (int)gLastResult;
+}
+
+// ibuf = int[4]: version, input buffers, output buffers, parameter count
+const char* fmod_sys_get_dsp_info_by_type(int type, ::Array<int> ibuf) {
+    const FMOD_DSP_DESCRIPTION* desc = NULL;
+    gStringBuf[0] = '\0';
+    for (int i = 0; i < 4; i++) ibuf[i] = 0;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return gStringBuf; }
+    gLastResult = gCoreSystem->getDSPInfoByType((FMOD_DSP_TYPE)type, &desc);
+    if (gLastResult == FMOD_OK && !desc) gLastResult = FMOD_ERR_INVALID_PARAM;
+    if (gLastResult != FMOD_OK) return gStringBuf;
+    // The description name is a fixed 32 byte field with no terminator guarantee
+    size_t i = 0;
+    for (; i < sizeof(desc->name) && desc->name[i] != '\0'; i++) gStringBuf[i] = desc->name[i];
+    gStringBuf[i] = '\0';
+    ibuf[0] = (int)desc->version;
+    ibuf[1] = desc->numinputbuffers;
+    ibuf[2] = desc->numoutputbuffers;
+    ibuf[3] = desc->numparameters;
+    return gStringBuf;
+}
+
+int fmod_sys_get_output_by_plugin() {
+    unsigned int handle = 0;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    gLastResult = gCoreSystem->getOutputByPlugin(&handle);
+    return gLastResult == FMOD_OK ? (int)handle : 0;
+}
+
+int fmod_sys_set_output_by_plugin(int handle) {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = gCoreSystem->setOutputByPlugin((unsigned int)handle);
+    return (int)gLastResult;
+}
+
+// fbuf[0] = current time in seconds
+int fmod_replay_get_current_command(int h, ::Array<Float> fbuf) {
+    FMOD::Studio::CommandReplay* replay = resolveReplay(h);
+    int index = -1;
+    float time = 0.0f;
+    fbuf[0] = 0.0;
+    if (!replay) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    gLastResult = replay->getCurrentCommand(&index, &time);
+    if (gLastResult != FMOD_OK) return -1;
+    fbuf[0] = (Float)time;
+    return index;
+}
+
+//// Channel group DSP chain walk
+
+int fmod_cg_get_num_dsps(int h) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    int count = 0;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = group->getNumDSPs(&count);
+    return count;
+}
+
+int fmod_cg_get_dsp(int h, int index) {
+    FMOD::ChannelGroup* group = resolveChanGroup(h);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    FMOD::DSP* dsp = NULL;
+    gLastResult = group->getDSP(index, &dsp);
+    if (gLastResult != FMOD_OK || !dsp) return 0;
+    return faxe_handle_find_or_alloc(dsp, FAXE_TYPE_DSP);
+}
+
+//// DSP data parameters and unit info
+
+// ibuf[0] version, [1] channels, [2] config width, [3] config height. Returns the name.
+const char* fmod_dsp_get_info(int h, ::Array<int> ibuf) {
+    gStringBuf[0] = '\0';
+    ibuf[0] = 0; ibuf[1] = 0; ibuf[2] = 0; ibuf[3] = 0;
+    FMOD::DSP* dsp = resolveDsp(h);
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return gStringBuf; }
+    unsigned int version = 0;
+    int channels = 0, width = 0, height = 0;
+    gLastResult = dsp->getInfo(gStringBuf, &version, &channels, &width, &height);
+    if (gLastResult != FMOD_OK) { gStringBuf[0] = '\0'; return gStringBuf; }
+    ibuf[0] = (int)version;
+    ibuf[1] = channels;
+    ibuf[2] = width;
+    ibuf[3] = height;
+    return gStringBuf;
+}
+
+// Copies up to cap bytes of the data block into out (null asks for the
+// size only). Returns the block length FMOD reports, -1 on failure.
+int fmod_dsp_get_param_data(int h, int index, ::Array<unsigned char> out, int cap) {
+    FMOD::DSP* dsp = resolveDsp(h);
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    void* data = NULL;
+    unsigned int len = 0;
+    gLastResult = dsp->getParameterData(index, &data, &len, NULL, 0);
+    if (gLastResult != FMOD_OK) return -1;
+    if (out != null() && data && cap > 0) {
+        if (cap > out->length) cap = out->length;
+        memcpy(&out[0], data, (unsigned int)cap < len ? (unsigned int)cap : len);
+    }
+    return (int)len;
+}
+
+// fbuf = 24 doubles, relative then absolute attributes (faxe_dspdata.h).
+int fmod_dsp_set_param_3d_attributes(int h, int index, ::Array<Float> fbuf) {
+    FMOD::DSP* dsp = resolveDsp(h);
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    double f[FAXE_DSPDATA_SINGLE_DOUBLES];
+    for (int i = 0; i < FAXE_DSPDATA_SINGLE_DOUBLES; i++) f[i] = fbuf[i];
+    FMOD_DSP_PARAMETER_3DATTRIBUTES attrs;
+    faxe_dspdata_pack_3d(&attrs, f);
+    gLastResult = dsp->setParameterData(index, &attrs, sizeof(attrs));
+    return (int)gLastResult;
+}
+
+// fbuf = 116 doubles: relative[8], weight[8], absolute (faxe_dspdata.h).
+int fmod_dsp_set_param_3d_attributes_multi(int h, int index, int numListeners, ::Array<Float> fbuf) {
+    FMOD::DSP* dsp = resolveDsp(h);
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    double f[FAXE_DSPDATA_MULTI_DOUBLES];
+    for (int i = 0; i < FAXE_DSPDATA_MULTI_DOUBLES; i++) f[i] = fbuf[i];
+    FMOD_DSP_PARAMETER_3DATTRIBUTES_MULTI attrs;
+    if (!faxe_dspdata_pack_3d_multi(&attrs, numListeners, f)) {
+        gLastResult = FMOD_ERR_INVALID_PARAM;
+        return (int)gLastResult;
+    }
+    gLastResult = dsp->setParameterData(index, &attrs, sizeof(attrs));
+    return (int)gLastResult;
+}
+
+// One side of the meter: input when input is true, output otherwise.
+// fbuf peak then rms per channel, ibuf[0] numsamples, ibuf[1] numchannels.
+// Returns the channel count.
+int fmod_dsp_get_metering_info(int h, bool input, ::Array<Float> fbuf, ::Array<int> ibuf) {
+    ibuf[0] = 0;
+    ibuf[1] = 0;
+    FMOD::DSP* dsp = resolveDsp(h);
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    FMOD_DSP_METERING_INFO info;
+    memset(&info, 0, sizeof(info));
+    gLastResult = input ? dsp->getMeteringInfo(&info, NULL) : dsp->getMeteringInfo(NULL, &info);
+    if (gLastResult != FMOD_OK) return 0;
+    double f[64];
+    int ints[2];
+    int ch = faxe_dspdata_unpack_metering(&info, f, ints);
+    for (int i = 0; i < 2 * ch; i++) fbuf[i] = f[i];
+    ibuf[0] = ints[0];
+    ibuf[1] = ints[1];
+    return ch;
+}
+
+// fbuf = the spectrum of one channel capped at maxBins, ibuf[0] the
+// channel count, ibuf[1] the bin count. Returns the bins written.
+int fmod_dsp_fft_get_spectrum_channel(int h, int channel, ::Array<Float> fbuf, int maxBins, ::Array<int> ibuf) {
+    ibuf[0] = 0;
+    ibuf[1] = 0;
+    FMOD::DSP* dsp = resolveDsp(h);
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    FMOD_DSP_PARAMETER_FFT* fft = NULL;
+    unsigned int len = 0;
+    gLastResult = dsp->getParameterData(FMOD_DSP_FFT_SPECTRUMDATA, (void**)&fft, &len, NULL, 0);
+    if (gLastResult != FMOD_OK || !fft) return 0;
+    ibuf[0] = fft->numchannels;
+    ibuf[1] = fft->length;
+    if (channel < 0 || channel >= fft->numchannels || channel >= 32 || !fft->spectrum[channel]) return 0;
+    int count = fft->length < maxBins ? fft->length : maxBins;
+    if (count > FAXE_LIST_MAX) count = FAXE_LIST_MAX;
+    for (int i = 0; i < count; i++) fbuf[i] = (double)fft->spectrum[channel][i];
+    return count;
+}
+
+// kind 0 = label, 1 = description, 2 + n = value name n (faxe_dspdata.h).
+// Empty when the descriptor has no such text.
+const char* fmod_dsp_get_parameter_text(int h, int index, int kind) {
+    gStringBuf[0] = '\0';
+    FMOD::DSP* dsp = resolveDsp(h);
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return gStringBuf; }
+    FMOD_DSP_PARAMETER_DESC* desc = NULL;
+    gLastResult = dsp->getParameterInfo(index, &desc);
+    if (gLastResult != FMOD_OK || !desc) return gStringBuf;
+    faxe_dspdata_desc_text(desc, kind, gStringBuf, sizeof(gStringBuf));
+    return gStringBuf;
+}
+
+// A typed data parameter (faxe_dspdata.h kinds): fbuf and ibuf hold the
+// flat image, the helper builds the FMOD struct.
+int fmod_dsp_set_param_typed(int h, int index, int kind, ::Array<Float> fbuf, ::Array<int> ibuf) {
+    FMOD::DSP* dsp = resolveDsp(h);
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    double f[FAXE_DSPDATA_TYPED_DOUBLES];
+    int ints[FAXE_DSPDATA_TYPED_INTS];
+    for (int i = 0; i < FAXE_DSPDATA_TYPED_DOUBLES; i++) f[i] = fbuf[i];
+    for (int i = 0; i < FAXE_DSPDATA_TYPED_INTS; i++) ints[i] = ibuf[i];
+    faxe_dspdata_typed data;
+    unsigned int size = faxe_dspdata_pack_typed(kind, &data, f, ints);
+    if (!size) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    gLastResult = dsp->setParameterData(index, &data, size);
+    return (int)gLastResult;
+}
+
+// Reads the block back as the kind into fbuf and ibuf. FMOD_ERR_INVALID_PARAM
+// for an unknown kind or a block shorter than the struct.
+int fmod_dsp_get_param_typed(int h, int index, int kind, ::Array<Float> fbuf, ::Array<int> ibuf) {
+    FMOD::DSP* dsp = resolveDsp(h);
+    if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    void* data = NULL;
+    unsigned int len = 0;
+    gLastResult = dsp->getParameterData(index, &data, &len, NULL, 0);
+    if (gLastResult != FMOD_OK) return (int)gLastResult;
+    double f[FAXE_DSPDATA_TYPED_DOUBLES];
+    int ints[FAXE_DSPDATA_TYPED_INTS];
+    if (!faxe_dspdata_unpack_typed(kind, data, len, f, ints)) gLastResult = FMOD_ERR_INVALID_PARAM;
+    for (int i = 0; i < FAXE_DSPDATA_TYPED_DOUBLES; i++) fbuf[i] = f[i];
+    for (int i = 0; i < FAXE_DSPDATA_TYPED_INTS; i++) ibuf[i] = ints[i];
+    return (int)gLastResult;
+}
+
+//// Init settings and system info: pre-create hooks, driver info, console ports
+
+// A fixed pool FMOD allocates from instead of the heap, handed over with
+// Memory_Initialize. Only valid before the system exists. The pool lives
+// for the rest of the process. Size rounds up to the multiple of 512 FMOD
+// requires.
+static void* gMemoryPool = NULL;
+
+int fmod_sys_memory_initialize(int poolSize) {
+    if (gStudioSystem != NULL || gMemoryPool != NULL) { gLastResult = FMOD_ERR_INITIALIZED; return (int)gLastResult; }
+    if (poolSize <= 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    poolSize = (poolSize + 511) & ~511;
+    gMemoryPool = std::malloc((size_t)poolSize);
+    if (!gMemoryPool) { gLastResult = FMOD_ERR_MEMORY; return (int)gLastResult; }
+    gLastResult = FMOD::Memory_Initialize(gMemoryPool, poolSize, NULL, NULL, NULL, FMOD_MEMORY_ALL);
+    if (gLastResult != FMOD_OK) {
+        std::free(gMemoryPool);
+        gMemoryPool = NULL;
+    }
+    return (int)gLastResult;
+}
+
+// affinity is a 32-bit core mask, or -1 for FMOD's default group (the
+// 64-bit group values never cross the boundary).
+int fmod_sys_thread_set_attributes(int type, int priority, int stackSize, int affinity) {
+    FMOD_THREAD_AFFINITY mask = affinity < 0
+        ? (FMOD_THREAD_AFFINITY)FMOD_THREAD_AFFINITY_GROUP_DEFAULT
+        : (FMOD_THREAD_AFFINITY)(unsigned int)affinity;
+    if (gStudioSystem != NULL) { gLastResult = FMOD_ERR_INITIALIZED; return (int)gLastResult; }
+    gLastResult = FMOD::Thread_SetAttributes((FMOD_THREAD_TYPE)type, mask,
+        (FMOD_THREAD_PRIORITY)priority, (FMOD_THREAD_STACK_SIZE)stackSize);
+    return (int)gLastResult;
+}
+
+// flags are FMOD_DEBUG_FLAGS bits, mode FMOD_DEBUG_MODE_TTY or _FILE with
+// the file path. The callback mode is refused, it would run on FMOD's
+// threads. The logging-stripped libraries report FMOD_ERR_UNSUPPORTED,
+// passed through like fmod_sys_set_debug_level does.
+int fmod_sys_debug_initialize(int flags, int mode, const ::String& filename) {
+    const char* path = filename.c_str();
+    if (mode == (int)FMOD_DEBUG_MODE_CALLBACK) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    if (mode == (int)FMOD_DEBUG_MODE_FILE && (path == NULL || path[0] == '\0')) {
+        gLastResult = FMOD_ERR_INVALID_PARAM;
+        return (int)gLastResult;
+    }
+    gLastResult = FMOD::Debug_Initialize((FMOD_DEBUG_FLAGS)flags, (FMOD_DEBUG_MODE)mode, NULL,
+        mode == (int)FMOD_DEBUG_MODE_FILE ? path : NULL);
+    return (int)gLastResult;
+}
+
+// Name of an output driver plus rate, speaker mode, and channel count in
+// ibuf. The GUID comes from fmod_sys_get_driver_guid.
+const char* fmod_sys_get_driver_info(int id, ::Array<int> ibuf) {
+    int rate = 0;
+    FMOD_SPEAKERMODE mode = FMOD_SPEAKERMODE_DEFAULT;
+    int channels = 0;
+    gStringBuf[0] = '\0';
+    ibuf[0] = 0; ibuf[1] = 0; ibuf[2] = 0;
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return gStringBuf; }
+    gLastResult = gCoreSystem->getDriverInfo(id, gStringBuf, sizeof(gStringBuf), NULL, &rate, &mode, &channels);
+    if (gLastResult != FMOD_OK) gStringBuf[0] = '\0';
+    ibuf[0] = rate;
+    ibuf[1] = (int)mode;
+    ibuf[2] = channels;
+    return gStringBuf;
+}
+
+const char* fmod_sys_get_driver_guid(int id) {
+    FMOD_GUID guid;
+    gStringBuf[0] = '\0';
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return gStringBuf; }
+    memset(&guid, 0, sizeof(guid));
+    gLastResult = gCoreSystem->getDriverInfo(id, NULL, 0, &guid, NULL, NULL, NULL);
+    if (gLastResult == FMOD_OK) faxe_guid_format(&guid, gStringBuf, sizeof(gStringBuf));
+    return gStringBuf;
+}
+
+// Console port routing. portIndex -1 is FMOD_PORT_INDEX_NONE. Desktop
+// outputs have no ports and FMOD reports that itself.
+int fmod_sys_attach_channel_group_to_port(int portType, int portIndex, int groupHandle, bool passThru) {
+    FMOD::ChannelGroup* group = resolveChanGroup(groupHandle);
+    FMOD_PORT_INDEX index = portIndex < 0 ? FMOD_PORT_INDEX_NONE : (FMOD_PORT_INDEX)(unsigned int)portIndex;
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = gCoreSystem->attachChannelGroupToPort((FMOD_PORT_TYPE)portType, index, group, passThru);
+    return (int)gLastResult;
+}
+
+int fmod_sys_detach_channel_group_from_port(int groupHandle) {
+    FMOD::ChannelGroup* group = resolveChanGroup(groupHandle);
+    if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    gLastResult = gCoreSystem->detachChannelGroupFromPort(group);
+    return (int)gLastResult;
+}
+
+//// Audit against FMOD's C# integration: bus ports, labels by index,
+//// parameter batches, init readback
+
+// FMOD_PORT_INDEX_NONE (all ones) crosses as -1, other values as their low 32 bits
+int fmod_bus_get_port_index(int h) {
+    FMOD::Studio::Bus* bus = resolveBus(h);
+    if (!bus) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
+    FMOD_PORT_INDEX index = FMOD_PORT_INDEX_NONE;
+    gLastResult = bus->getPortIndex(&index);
+    if (gLastResult != FMOD_OK) return -1;
+    return index == FMOD_PORT_INDEX_NONE ? -1 : (int)(index & 0xffffffffu);
+}
+
+int fmod_bus_set_port_index(int h, int index) {
+    FMOD::Studio::Bus* bus = resolveBus(h);
+    if (!bus) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    gLastResult = bus->setPortIndex(index < 0 ? FMOD_PORT_INDEX_NONE : (FMOD_PORT_INDEX)(unsigned int)index);
+    return (int)gLastResult;
+}
+
+const char* fmod_evd_get_parameter_label_by_index(int h, int index, int labelIndex) {
+    gStringBuf[0] = '\0';
+    FMOD::Studio::EventDescription* desc = resolveDescription(h);
+    if (!desc) { gLastResult = FMOD_ERR_INVALID_HANDLE; return gStringBuf; }
+    int retrieved = 0;
+    gLastResult = desc->getParameterLabelByIndex(index, labelIndex, gStringBuf, sizeof(gStringBuf), &retrieved);
+    if (gLastResult != FMOD_OK) gStringBuf[0] = '\0';
+    return gStringBuf;
+}
+
+// ibuf: id pairs, fbuf: values, count pairs. Packed on the stack, so the
+// batch is capped at FAXE_LIST_MAX / 2 pairs like the scratch buffers.
+static bool packParameterBatch(::Array<int> ibuf, ::Array<Float> fbuf, int count,
+        FMOD_STUDIO_PARAMETER_ID* outIds, float* outValues) {
+    if (count < 0 || count > FAXE_LIST_MAX / 2) return false;
+    if (ibuf == null() || fbuf == null()) return false;
+    if (ibuf->length < count * 2 || fbuf->length < count) return false;
+    for (int i = 0; i < count; i++) {
+        outIds[i] = makeParamId(ibuf[i * 2], ibuf[i * 2 + 1]);
+        outValues[i] = (float)fbuf[i];
+    }
+    return true;
+}
+
+int fmod_sys_set_parameters_by_ids(::Array<int> ibuf, ::Array<Float> fbuf, int count, bool ignoreSeekSpeed) {
+    if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    FMOD_STUDIO_PARAMETER_ID ids[FAXE_LIST_MAX / 2];
+    float values[FAXE_LIST_MAX / 2];
+    if (!packParameterBatch(ibuf, fbuf, count, ids, values)) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    gLastResult = gStudioSystem->setParametersByIDs(ids, values, count, ignoreSeekSpeed);
+    return (int)gLastResult;
+}
+
+int fmod_evi_set_parameters_by_ids(int h, ::Array<int> ibuf, ::Array<Float> fbuf, int count, bool ignoreSeekSpeed) {
+    FMOD::Studio::EventInstance* instance = resolveInstance(h);
+    if (!instance) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    FMOD_STUDIO_PARAMETER_ID ids[FAXE_LIST_MAX / 2];
+    float values[FAXE_LIST_MAX / 2];
+    if (!packParameterBatch(ibuf, fbuf, count, ids, values)) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    gLastResult = instance->setParametersByIDs(ids, values, count, ignoreSeekSpeed);
+    return (int)gLastResult;
+}
+
+int fmod_sys_get_software_channels() {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    int channels = 0;
+    gLastResult = gCoreSystem->getSoftwareChannels(&channels);
+    return gLastResult == FMOD_OK ? channels : 0;
+}
+
+// ibuf out: [0]=buffer length in samples [1]=buffer count
+int fmod_sys_get_dsp_buffer_size(::Array<int> ibuf) {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    unsigned int length = 0;
+    int buffers = 0;
+    gLastResult = gCoreSystem->getDSPBufferSize(&length, &buffers);
+    ibuf[0] = (int)length;
+    ibuf[1] = buffers;
+    return (int)gLastResult;
+}
+
+// ibuf out: [0]=file buffer size [1]=its FMOD_TIMEUNIT
+int fmod_sys_get_stream_buffer_size(::Array<int> ibuf) {
+    if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    unsigned int size = 0;
+    FMOD_TIMEUNIT unit = FMOD_TIMEUNIT_RAWBYTES;
+    gLastResult = gCoreSystem->getStreamBufferSize(&size, &unit);
+    ibuf[0] = (int)size;
+    ibuf[1] = (int)unit;
+    return (int)gLastResult;
+}
+
+// Locks offset..offset+length of the sample buffer and copies both halves
+// into out (the wrapped half after the first). Returns the locked byte
+// count or the negated FMOD error. The lock stays open on the handle until
+// fmod_core_sound_unlock or release.
+int fmod_core_sound_lock(int h, int offset, int length, ::Array<unsigned char> out) {
+    FMOD::Sound* sound = resolveSound(h);
+    void* ptr1 = NULL;
+    void* ptr2 = NULL;
+    unsigned int len1 = 0;
+    unsigned int len2 = 0;
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -(int)gLastResult; }
+    if (out == null() || offset < 0 || length <= 0 || length > out->length) { gLastResult = FMOD_ERR_INVALID_PARAM; return -(int)gLastResult; }
+    if (faxe_handle_get_lock(h)) { gLastResult = FMOD_ERR_INVALID_PARAM; return -(int)gLastResult; }
+    SoundLock* lock = (SoundLock*)std::malloc(sizeof(SoundLock));
+    if (!lock) { gLastResult = FMOD_ERR_MEMORY; return -(int)gLastResult; }
+    gLastResult = sound->lock((unsigned int)offset, (unsigned int)length, &ptr1, &ptr2, &len1, &len2);
+    if (gLastResult != FMOD_OK) { std::free(lock); return -(int)gLastResult; }
+    if (len1 > (unsigned int)length) len1 = (unsigned int)length;
+    if (len2 > (unsigned int)length - len1) len2 = (unsigned int)length - len1;
+    if (ptr1 && len1) memcpy(&out[0], ptr1, len1);
+    if (ptr2 && len2) memcpy(&out[0] + len1, ptr2, len2);
+    lock->ptr1 = ptr1;
+    lock->ptr2 = ptr2;
+    lock->len1 = len1;
+    lock->len2 = len2;
+    faxe_handle_set_lock(h, lock);
+    return (int)(len1 + len2);
+}
+
+// Copies len bytes back over the locked range and closes the lock. len must
+// equal the count fmod_core_sound_lock returned.
+int fmod_core_sound_unlock(int h, ::Array<unsigned char> data, int len) {
+    FMOD::Sound* sound = resolveSound(h);
+    if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    SoundLock* lock = (SoundLock*)faxe_handle_get_lock(h);
+    if (!lock || data == null() || len < 0 || len > data->length || (unsigned int)len != lock->len1 + lock->len2) {
+        gLastResult = FMOD_ERR_INVALID_PARAM;
+        return (int)gLastResult;
+    }
+    if (lock->ptr1 && lock->len1) memcpy(lock->ptr1, &data[0], lock->len1);
+    if (lock->ptr2 && lock->len2) memcpy(lock->ptr2, &data[0] + lock->len1, lock->len2);
+    gLastResult = sound->unlock(lock->ptr1, lock->ptr2, lock->len1, lock->len2);
+    faxe_handle_set_lock(h, NULL);
+    return (int)gLastResult;
+}
+
+int fmod_sys_set_disk_busy(bool busy) {
+    gLastResult = FMOD::File_SetDiskBusy(busy ? 1 : 0);
+    return (int)gLastResult;
+}
+
+bool fmod_sys_get_disk_busy() {
+    int busy = 0;
+    gLastResult = FMOD::File_GetDiskBusy(&busy);
+    return gLastResult == FMOD_OK && busy != 0;
 }
 
 } // namespace faxe

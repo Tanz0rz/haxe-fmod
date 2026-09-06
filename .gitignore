@@ -7,6 +7,9 @@
 
 # Example project
 /example-project/EZPlatformer/export
+/example-project/HeapsPlatformer/build
+/example-project/HeapsPlatformer/build-test
+/example-project/HeapsPlatformer/.haxefmod
 /example-project/EZPlatformer/.haxefmod
 /example-project/EZPlatformer/fmod/.cache
 /example-project/EZPlatformer/fmod/.user
@@ -32,3 +35,17 @@ __pycache__/
 
 # Unit test scratch files
 /tests/.tmp/
+
+# Documentation site build output
+/site/
+
+# Extension test output
+/extension/test/last-run.png
+
+# Extension store packages
+/extension/dist/
+
+# Local CI runner output
+/ci/local/
+/example-project/KhaPlatformer/build
+/example-project/KhaPlatformer/build-test

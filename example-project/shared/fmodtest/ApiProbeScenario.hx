@@ -1,0 +1,2994 @@
+package fmodtest;
+
+import haxefmod.core.Channel;
+import haxefmod.core.ChannelGroup;
+import haxefmod.runtime.FmodRuntime;
+import haxefmod.runtime.IFmodPositionProvider;
+import haxefmod.core.ChannelMode;
+import haxefmod.core.CoreSystem;
+import haxefmod.core.Dsp;
+import haxefmod.core.DspConnection;
+import haxefmod.core.DspType;
+import haxefmod.core.Geometry;
+import haxefmod.core.PcmStream;
+import haxefmod.core.ChannelCallbacks;
+import haxefmod.core.ChannelEvent;
+import haxefmod.core.Reverb;
+import haxefmod.core.Reverb3D;
+import haxefmod.core.SoundGroup;
+import haxefmod.studio.Callbacks;
+import haxefmod.studio.CallbackDispatcher;
+import haxefmod.studio.CommandReplay;
+import haxefmod.core.Sound;
+import haxefmod.studio.Bus;
+import haxefmod.studio.EventInstance;
+import haxefmod.studio.FmodResult;
+import haxefmod.studio.StudioSystem;
+import haxefmod.studio.Types;
+
+/**
+ * CI probe for the haxefmod.studio binding surface.
+ *
+ * Exercises every Bus binding and logs one "API_PROBE:" line per check so
+ * CI can assert coverage from the game log. On HTML5 this is the source of
+ * truth for which functions FMOD's Emscripten API actually supports:
+ * gating checks log pass=true/false, informational checks log info=... and
+ * never fail the probe (e.g. CPU/memory profiling, which can legitimately
+ * report FMOD_ERR_UNSUPPORTED).
+ *
+ * Select via HAXEFMOD_TEST_STATE=api-probe (native) or ?test=api-probe (HTML5).
+ */
+class ApiProbeScenario implements TestScenario {
+    var host:TestHost;
+
+    public function new() {}
+
+    var _failCount:Int = 0;
+    var _passCount:Int = 0;
+    var _done:Bool = false;
+    var _framesWaited:Int = 0;
+
+    static inline function log(message:String):Void {
+        #if js
+        js.Browser.console.log(message);
+        #else
+        trace(message);
+        #end
+    }
+
+    // The compat jobs run this probe against banks frozen before the
+    // authored-content round (newer banks do not load on FMOD 2.02.33),
+    // so they opt out of the sections that need that content.
+    /** True when the FMOD engine that loaded is 2.03 or newer. The HashLink
+        jobs run the 2.02.33 runtime the templates ship, where a few 2.03
+        calls and parameter layouts do not exist. */
+    public static function engine203():Bool {
+        var version = StudioSystem.getVersion();
+        var parts = version.split(".");
+        if (parts.length < 2) return true;
+        return Std.parseInt(parts[0]) > 2 || (Std.parseInt(parts[0]) == 2 && Std.parseInt(parts[1]) >= 3);
+    }
+
+    static function skipAuthored():Bool {
+        #if sys
+        return Sys.getEnv("HAXEFMOD_PROBE_SKIP_AUTHORED") == "1";
+        #else
+        return false;
+        #end
+    }
+
+    function check(name:String, pass:Bool, detail:String):Void {
+        if (pass) _passCount++ else _failCount++;
+        log('API_PROBE: $name pass=$pass $detail');
+    }
+
+    function info(name:String, detail:String):Void {
+        log('API_PROBE: $name info=$detail');
+    }
+
+    public function create(host:TestHost):Void {
+        this.host = host;
+
+        host.setStatus("API_PROBE running");
+
+        log("API_PROBE: Starting");
+
+        // Installed here (instead of the loading state) because the
+        // per-frame updater it adds would drain the callback queue every
+        // frame and defeat cb-test's overflow phase
+        host.setupInit();
+
+        var handlesBefore = StudioSystem.liveHandleCount();
+        info("live_handle_count_before", Std.string(handlesBefore));
+
+        // Lookup
+        var master = StudioSystem.getBus("bus:/");
+        check("sys_get_bus", !master.isNull(), 'handle=${(master : Int)}');
+        check("bus_is_valid", master.isValid(), "");
+
+        var missing = StudioSystem.getBus("bus:/DoesNotExist");
+        check("sys_get_bus_missing", missing.isNull(),
+            'lastResult=${StudioSystem.lastResult().toString()}');
+
+        // Path and GUID
+        var path = master.getPath();
+        check("bus_get_path", path == "bus:/", 'value=$path');
+
+        var guid:String = master.getID();
+        // "{8-4-4-4-12}" formatted GUID is exactly 38 chars
+        check("bus_get_id", guid.length == 38 && StringTools.startsWith(guid, "{"), 'value=$guid');
+
+        // Volume round trip
+        var setResult:FmodResult = master.setVolume(0.5);
+        check("bus_set_volume", setResult.isOk(), 'result=${setResult.toString()}');
+        var volume = master.getVolume();
+        check("bus_get_volume", Math.abs(volume - 0.5) < 0.001, 'value=$volume');
+        info("bus_get_final_volume", Std.string(master.getFinalVolume()));
+        master.setVolume(1.0);
+
+        // Pause round trip
+        var pauseResult = master.setPaused(true);
+        check("bus_set_paused", pauseResult.isOk(), 'result=${pauseResult.toString()}');
+        check("bus_get_paused", master.getPaused(), "");
+        master.setPaused(false);
+        check("bus_get_paused_cleared", !master.getPaused(), "");
+
+        // Mute round trip
+        var muteResult = master.setMute(true);
+        check("bus_set_mute", muteResult.isOk(), 'result=${muteResult.toString()}');
+        check("bus_get_mute", master.getMute(), "");
+        master.setMute(false);
+        check("bus_get_mute_cleared", !master.getMute(), "");
+
+        // Stop all events (no events playing - just verify the call succeeds)
+        var stopResult = master.stopAllEvents(FmodStopMode.IMMEDIATE);
+        check("bus_stop_all_events", stopResult.isOk(), 'result=${stopResult.toString()}');
+
+        // Profiling - informational only (needs profiling enabled. May be
+        // unsupported on some targets, especially HTML5)
+        var cpu = master.getCpuUsage();
+        info("bus_get_cpu_usage", cpu == null
+            ? 'unavailable result=${StudioSystem.lastResult().toString()}'
+            : 'exclusive=${cpu.exclusive} inclusive=${cpu.inclusive}');
+        var memory = master.getMemoryUsage();
+        info("bus_get_memory_usage", memory == null
+            ? 'unavailable result=${StudioSystem.lastResult().toString()}'
+            : 'exclusive=${memory.exclusive} inclusive=${memory.inclusive} sampledata=${memory.sampledata}');
+
+        // Cached lookups must not allocate new handles
+        var again = StudioSystem.getBus("bus:/");
+        check("bus_lookup_cached", (again : Int) == (master : Int), "");
+
+        probeFacadeSong();
+        probeM3Surface();
+        probeParityTail2();
+        probeHandleSafety();
+        probeCoreSurface();
+        probeDspSurface();
+        probeSoundRouting();
+        probeParityTail();
+        probeCompletenessTail();
+        probeTimeUnitsAndSoundInfo();
+        probeSoundGroupsAndSystem();
+        probeAuditClosure();
+        probeInstanceLifecycle();
+        probeEngineBridge();
+        probeFocusMute();
+        probeHardeningTail();
+        probeVersionDataAndRecording();
+        probeRolloffAndGeometry();
+        probeSystemCallbacks();
+        ProbeUserData.run(this);
+        ProbeSysExtras.run(this);
+        ProbePlugins.run(this);
+        ProbeSoundExtras.run(this);
+        ProbeSoundLock.run(this);
+        ProbeInitSettings.run(this);
+        ProbeLastSeven.run(this);
+        ProbeDspParameters.run(this);
+        ProbeEnums.run(this);
+        ProbeGroupDsp.run(this);
+        ProbeChannelControl.run(this);
+        ProbeStudioParity.run(this);
+        ProbeCsharpAudit.run(this);
+        ProbeCoreTypes.run(this);
+        if (skipAuthored()) {
+            info("authored_surface", "skipped (HAXEFMOD_PROBE_SKIP_AUTHORED)");
+        } else {
+            probeAuthoredSurface();
+            ProbeStudioParity.runAuthored(this);
+        }
+        // Last of the synchronous sections: on html5 its meters fill
+        // between frames, so it finishes from update() before the async
+        // chain below starts and nothing else holds handles meanwhile
+        ProbeDspData.run(this);
+
+        // Channel event delivery is asynchronous: the probe finishes from
+        // update() once the events arrive (or the wait times out)
+        #if js
+        _waitingForDspData = true;
+        #else
+        probeChannelEvents();
+        #end
+    }
+
+    /**
+     * The init settings (profiling and the distance filter are on in the
+     * test build), the version string, raw sound data reads, and the
+     * recording surface. Recording tolerates a machine with no input
+     * device, CI runners have none.
+     */
+    function probeVersionDataAndRecording():Void {
+        var baseline = StudioSystem.liveHandleCount();
+
+        var version = StudioSystem.getVersion();
+        var versionOk = ~/^\d+\.\d{2}\.\d{2}$/.match(version);
+        check("sys_get_version", versionOk, 'value=$version');
+
+        // Profiling is on in the test build, so the bus CPU query reports
+        // (the html5 bus binding has no CPU query at all)
+        var cpu = StudioSystem.getBus("bus:/").getCpuUsage();
+        #if js
+        info("init_profiling_enables_cpu_usage", cpu == null ? "unavailable on html5" : 'inclusive=${cpu.inclusive}');
+        #else
+        check("init_profiling_enables_cpu_usage", cpu != null,
+            cpu == null ? 'result=${StudioSystem.lastResult().toString()}' : 'inclusive=${cpu.inclusive}');
+        #end
+
+        // Distance filter round trip on a 3D channel and a 3D group (the
+        // init flag is on, a 2D group would report NEEDS3D)
+        var stream = PcmStream.create3d(48000, 1);
+        var channel = stream.play(true);
+        var setDf:FmodResult = channel.set3DDistanceFilter(true, 0.5, 1200);
+        check("chan_set_3d_distance_filter", setDf.isOk(), 'result=${setDf.toString()}');
+        var df = channel.get3DDistanceFilter();
+        check("chan_get_3d_distance_filter", df != null && df.custom
+            && Math.abs(df.customLevel - 0.5) < 0.001 && Math.abs(df.centerFreq - 1200) < 0.5,
+            df == null ? 'result=${StudioSystem.lastResult().toString()}'
+                : 'custom=${df.custom} level=${df.customLevel} freq=${df.centerFreq}');
+        channel.stop();
+        var staleDf:FmodResult = channel.set3DDistanceFilter(false, 1, 1000);
+        check("chan_distance_filter_stale", staleDf == FmodResult.FMOD_ERR_INVALID_HANDLE,
+            'result=${staleDf.toString()}');
+        stream.release();
+
+        var group = ChannelGroup.create("distance-filter");
+        group.setMode(ChannelMode.MODE_3D);
+        var setCgDf:FmodResult = group.set3DDistanceFilter(true, 0.25, 900);
+        check("cg_set_3d_distance_filter", setCgDf.isOk(), 'result=${setCgDf.toString()}');
+        var cgDf = group.get3DDistanceFilter();
+        check("cg_get_3d_distance_filter", cgDf != null && cgDf.custom
+            && Math.abs(cgDf.customLevel - 0.25) < 0.001 && Math.abs(cgDf.centerFreq - 900) < 0.5,
+            cgDf == null ? 'result=${StudioSystem.lastResult().toString()}'
+                : 'custom=${cgDf.custom} level=${cgDf.customLevel} freq=${cgDf.centerFreq}');
+        group.release();
+        check("cg_distance_filter_stale", group.get3DDistanceFilter() == null
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_HANDLE, "");
+
+        // readData needs an openOnly sound over a real file. The probe
+        // writes a short 16-bit mono WAV of its own so the check does not
+        // depend on which assets the CI step copied in.
+        var buffer = haxe.io.Bytes.alloc(4096);
+        #if sys
+        var wavPath = writeProbeWav();
+        var opened = Sound.create(wavPath, false, true);
+        check("core_create_sound_open_only", !opened.isNull(),
+            'handle=${(opened : Int)} result=${StudioSystem.lastResult().toString()}');
+        var read = opened.readData(buffer);
+        check("core_sound_read_data", read == buffer.length, 'read=$read');
+        var partial = opened.readData(buffer, 256);
+        check("core_sound_read_data_partial", partial == 256, 'read=$partial');
+        var seek:FmodResult = opened.seekData(0);
+        check("core_sound_seek_data", seek.isOk(), 'result=${seek.toString()}');
+        var again = opened.readData(buffer);
+        check("core_sound_read_after_seek", again == read && buffer.getUInt16(2) == PROBE_WAV_SECOND_SAMPLE,
+            'first=$read again=$again sample=${buffer.getUInt16(2)}');
+        var total = again;
+        var guard = 0;
+        var eofResult = FmodResult.FMOD_OK;
+        while (guard++ < 10000) {
+            var n = opened.readData(buffer);
+            eofResult = StudioSystem.lastResult();
+            if (n <= 0) break;
+            total += n;
+            if (eofResult == FmodResult.FMOD_ERR_FILE_EOF) break;
+        }
+        check("core_sound_read_data_eof", total == PROBE_WAV_BYTES && eofResult == FmodResult.FMOD_ERR_FILE_EOF,
+            'total=$total expected=$PROBE_WAV_BYTES result=${eofResult.toString()}');
+        check("core_sound_read_data_zero_rejected", opened.readData(buffer, 0) == -31,
+            'value=${opened.readData(buffer, 0)}');
+        check("core_sound_seek_data_negative_rejected", opened.seekData(-1) == FmodResult.FMOD_ERR_INVALID_PARAM,
+            'result=${opened.seekData(-1).toString()}');
+        opened.release();
+        check("core_sound_read_data_stale", opened.readData(buffer) == -30, 'value=${opened.readData(buffer)}');
+        check("core_sound_seek_data_stale", opened.seekData(0) == FmodResult.FMOD_ERR_INVALID_HANDLE, "");
+
+        // A decoded (default) sound has no open file left to read from
+        var decoded = Sound.create(wavPath);
+        var decodedRead = decoded.readData(buffer);
+        check("core_sound_read_data_needs_open_only", decodedRead < 0, 'value=$decodedRead');
+        decoded.release();
+        try sys.FileSystem.deleteFile(wavPath) catch (e:Dynamic) {}
+        #else
+        // html5: readData and seekData are unsupported, and only a raw PCM
+        // sound can stand in for the handle
+        var memorySound = Sound.fromPcm(haxe.io.Bytes.alloc(1024), 8000, 1);
+        check("core_sound_read_data_unsupported", memorySound.readData(buffer) == -68
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED,
+            'value=${memorySound.readData(buffer)}');
+        check("core_sound_seek_data_unsupported", memorySound.seekData(0) == FmodResult.FMOD_ERR_UNSUPPORTED,
+            'result=${memorySound.seekData(0).toString()}');
+        memorySound.release();
+        #end
+
+        #if js
+        // html5: the whole recording surface is unsupported
+        check("sys_get_record_num_drivers_unsupported", StudioSystem.getRecordDriverCount() == null
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED, "");
+        check("sys_get_record_driver_info_unsupported", StudioSystem.getRecordDriverInfo(0) == null, "");
+        check("core_create_record_sound_unsupported", Sound.createRecordBuffer(48000, 1, 1).isNull()
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED, "");
+        check("sys_record_start_unsupported", StudioSystem.recordStart(0, Sound.NULL) == FmodResult.FMOD_ERR_UNSUPPORTED, "");
+        check("sys_record_stop_unsupported", StudioSystem.recordStop(0) == FmodResult.FMOD_ERR_UNSUPPORTED, "");
+        check("sys_is_recording_unsupported", !StudioSystem.isRecording(0), "");
+        check("sys_get_record_position_unsupported", StudioSystem.getRecordPosition(0) == -1, "");
+        #else
+        // Recording: the enumeration must succeed even with no devices
+        var drivers = StudioSystem.getRecordDriverCount();
+        check("sys_get_record_num_drivers", drivers != null && drivers.drivers >= 0
+            && drivers.connected >= 0 && drivers.connected <= drivers.drivers,
+            drivers == null ? 'result=${StudioSystem.lastResult().toString()}'
+                : 'drivers=${drivers.drivers} connected=${drivers.connected}');
+        check("sys_get_record_driver_info_out_of_range", StudioSystem.getRecordDriverInfo(9999) == null,
+            'result=${StudioSystem.lastResult().toString()}');
+        var recordBuffer = Sound.createRecordBuffer(48000, 1, 1);
+        check("core_create_record_sound", !recordBuffer.isNull(),
+            'handle=${(recordBuffer : Int)} result=${StudioSystem.lastResult().toString()}');
+        check("core_create_record_sound_bad_args", Sound.createRecordBuffer(0, 1, 1).isNull()
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_PARAM,
+            'result=${StudioSystem.lastResult().toString()}');
+        var format = recordBuffer.getFormat();
+        check("record_sound_format", format != null && format.channels == 1 && format.bits == 16,
+            format == null ? "null" : 'channels=${format.channels} bits=${format.bits}');
+        check("record_sound_length", recordBuffer.getLength() == 1000, 'ms=${recordBuffer.getLength()}');
+        check("sys_is_recording_idle", !StudioSystem.isRecording(0), "");
+        var staleStart:FmodResult = StudioSystem.recordStart(0, Sound.NULL);
+        check("sys_record_start_stale_sound", staleStart == FmodResult.FMOD_ERR_INVALID_HANDLE,
+            'result=${staleStart.toString()}');
+        if (drivers != null && drivers.drivers > 0) {
+            var driver = StudioSystem.getRecordDriverInfo(0);
+            check("sys_get_record_driver_info", driver != null && driver.systemRate > 0,
+                driver == null ? 'result=${StudioSystem.lastResult().toString()}'
+                    : 'name=${driver.name} rate=${driver.systemRate} channels=${driver.channels} state=${driver.state}');
+            var start:FmodResult = StudioSystem.recordStart(0, recordBuffer, true);
+            check("sys_record_start", start.isOk(), 'result=${start.toString()}');
+            check("sys_is_recording", StudioSystem.isRecording(0), "");
+            FmodRuntime.update();
+            check("sys_get_record_position", StudioSystem.getRecordPosition(0) >= 0,
+                'value=${StudioSystem.getRecordPosition(0)}');
+            var stop:FmodResult = StudioSystem.recordStop(0);
+            check("sys_record_stop", stop.isOk(), 'result=${stop.toString()}');
+            check("sys_is_recording_stopped", !StudioSystem.isRecording(0), "");
+        } else {
+            info("sys_record_start", "skipped (no record drivers on this machine)");
+            var noDevice:FmodResult = StudioSystem.recordStart(0, recordBuffer);
+            check("sys_record_start_no_device_fails", !noDevice.isOk(), 'result=${noDevice.toString()}');
+            check("sys_record_stop_no_device", StudioSystem.recordStop(0) != FmodResult.FMOD_ERR_INVALID_HANDLE,
+                'result=${StudioSystem.recordStop(0).toString()}');
+            check("sys_get_record_position_no_device", StudioSystem.getRecordPosition(0) == -1,
+                'value=${StudioSystem.getRecordPosition(0)}');
+        }
+        recordBuffer.release();
+        #end
+
+        check("no_handle_leaks_version_data_recording", StudioSystem.liveHandleCount() == baseline,
+            'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
+    }
+
+    // The probe WAV: 8000 Hz, mono, 16-bit, one second, a ramp so the
+    // second sample has a known value after a seek back to the start
+    static inline var PROBE_WAV_BYTES:Int = 16000;
+    static inline var PROBE_WAV_SECOND_SAMPLE:Int = 1;
+
+    // A one second 8 kHz 16-bit mono WAV image, the same one writeProbeWav
+    // saves, for the from-memory path
+    static function probeWavBytes():haxe.io.Bytes {
+        var data = haxe.io.Bytes.alloc(44 + PROBE_WAV_BYTES);
+        data.blit(0, haxe.io.Bytes.ofString("RIFF"), 0, 4);
+        data.setInt32(4, 36 + PROBE_WAV_BYTES);
+        data.blit(8, haxe.io.Bytes.ofString("WAVE"), 0, 4);
+        data.blit(12, haxe.io.Bytes.ofString("fmt "), 0, 4);
+        data.setInt32(16, 16);
+        data.setUInt16(20, 1);
+        data.setUInt16(22, 1);
+        data.setInt32(24, 8000);
+        data.setInt32(28, 16000);
+        data.setUInt16(32, 2);
+        data.setUInt16(34, 16);
+        data.blit(36, haxe.io.Bytes.ofString("data"), 0, 4);
+        data.setInt32(40, PROBE_WAV_BYTES);
+        for (i in 0...Std.int(PROBE_WAV_BYTES / 2)) data.setUInt16(44 + i * 2, i & 0x7FFF);
+        return data;
+    }
+
+    #if sys
+    static function writeProbeWav():String {
+        var data = probeWavBytes();
+        var dir = Sys.getEnv("TMPDIR");
+        if (dir == null || dir == "") dir = Sys.getEnv("TEMP");
+        if (dir == null || dir == "") dir = Sys.systemName() == "Windows" ? "." : "/tmp";
+        var path = haxe.io.Path.join([dir, "haxefmod-probe-" + Std.int(Date.now().getTime() % 1000000) + ".wav"]);
+        sys.io.File.saveBytes(path, data);
+        return path;
+    }
+    #end
+
+    /**
+     * Hostile inputs the shims reject identically on every target, the
+     * facade's failure branch and thin delegations, and the by-ID
+     * parameter plumbing (a swapped id.data1/data2 in any wrapper would
+     * break exactly one of these round trips).
+     */
+    // Custom rolloff round trips on a channel, a group, and a sound, then
+    // a geometry quad occluding a listener from a source. Every created
+    // object is released and the handle count must come back to baseline.
+    /**
+     * System callbacks through the queue: PreUpdate and PostUpdate with
+     * the studio mask opted in, BankUnload carrying the bank path, and a
+     * clean silence after clearCallback.
+     */
+    function probeSystemCallbacks():Void {
+        var baseline = StudioSystem.liveHandleCount();
+        var events:Array<haxefmod.studio.SystemCallbacks.SystemEvent> = [];
+        StudioSystem.setSystemCallback(function(e) events.push(e),
+            haxefmod.studio.SystemCallbacks.DEFAULT_CORE_MASK,
+            haxefmod.studio.SystemCallbacks.DEFAULT_STUDIO_MASK
+                | haxefmod.studio.SystemCallbacks.STUDIO_PREUPDATE
+                | haxefmod.studio.SystemCallbacks.STUDIO_POSTUPDATE);
+        check("sys_set_callback_mask", StudioSystem.lastResult().isOk(),
+            'result=${StudioSystem.lastResult().toString()}');
+        var pump = function() {
+            for (i in 0...3) {
+                haxefmod.studio.native.NativeStudio.sys_update();
+                StudioSystem.flushCommands();
+            }
+            CallbackDispatcher.update();
+        };
+        pump();
+        var pre = 0, post = 0;
+        for (e in events) switch (e) {
+            case PreUpdate: pre++;
+            case PostUpdate: post++;
+            default:
+        }
+        check("syscb_preupdate_delivered", pre > 0, 'pre=$pre post=$post events=${events.length}');
+        check("syscb_postupdate_delivered", post > 0, 'pre=$pre post=$post events=${events.length}');
+
+        var extras = StudioSystem.loadBankFile(FmodRuntime.bankPath("Extras.bank"));
+        if (extras.isNull()) {
+            info("syscb_bank_unload", 'Extras bank not loadable here, skipped (result=${StudioSystem.lastResult().toString()})');
+        } else {
+            var path = extras.getPath();
+            check("syscb_bank_path", path != "", 'path=$path');
+            events = [];
+            check("syscb_bank_unload_call", extras.unload().isOk(), '');
+            pump();
+            var unloadPath:String = null;
+            for (e in events) switch (e) {
+                case BankUnload(p): unloadPath = p;
+                default:
+            }
+            check("syscb_bank_unload_delivered", unloadPath != null, 'events=${events.length}');
+            check("syscb_bank_unload_path", unloadPath == path, 'expected=$path got=$unloadPath');
+        }
+
+        StudioSystem.clearSystemCallback();
+        check("sys_set_studio_callback_mask_clear", StudioSystem.lastResult().isOk(),
+            'result=${StudioSystem.lastResult().toString()}');
+        events = [];
+        pump();
+        check("syscb_silent_after_clear", events.length == 0, 'events=${events.length}');
+        check("no_handle_leaks_syscb", StudioSystem.liveHandleCount() == baseline,
+            'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
+    }
+
+    function probeRolloffAndGeometry():Void {
+        var baseline = StudioSystem.liveHandleCount();
+        var points:Array<FmodVector> = [{x: 0, y: 1, z: 0}, {x: 10, y: 0.5, z: 0}, {x: 20, y: 0, z: 0}];
+
+        function sameRolloff(got:Array<FmodVector>):Bool {
+            if (got.length != points.length) return false;
+            for (i in 0...points.length) {
+                if (Math.abs(got[i].x - points[i].x) > 0.001 || Math.abs(got[i].y - points[i].y) > 0.001) return false;
+            }
+            return true;
+        }
+        function describe(got:Array<FmodVector>):String {
+            return 'count=${got.length} result=${StudioSystem.lastResult().toString()}';
+        }
+
+        #if js
+        // html5: FMOD's web glue takes no rolloff point array (the curve
+        // never reaches FMOD, see tests/js/geometry-rolloff-harness.js)
+        // and the web build has no geometry at all, so every entry point
+        // reports UNSUPPORTED on a live handle and a dead handle still
+        // reports INVALID_HANDLE
+        function unsupportedRolloff(prefix:String, set:Array<FmodVector>->FmodResult, get:Void->Array<FmodVector>):Void {
+            check(prefix + "_set_3d_custom_rolloff_unsupported", set(points) == FmodResult.FMOD_ERR_UNSUPPORTED,
+                'result=${StudioSystem.lastResult().toString()}');
+            var got = get();
+            check(prefix + "_get_3d_custom_rolloff_unsupported", got.length == 0
+                && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED, describe(got));
+        }
+        var stream = PcmStream.create3d(48000, 1);
+        var channel = stream.play(true);
+        unsupportedRolloff("chan", function(p) return channel.set3DCustomRolloff(p), function() return channel.get3DCustomRolloff());
+        channel.stop();
+        var chanStale:FmodResult = channel.set3DCustomRolloff(points);
+        check("chan_custom_rolloff_stale", chanStale == FmodResult.FMOD_ERR_INVALID_HANDLE
+            && channel.get3DCustomRolloff().length == 0, 'result=${chanStale.toString()}');
+        stream.release();
+
+        var group = ChannelGroup.create("custom-rolloff");
+        group.setMode(ChannelMode.MODE_3D);
+        unsupportedRolloff("cg", function(p) return group.set3DCustomRolloff(p), function() return group.get3DCustomRolloff());
+        group.release();
+        check("cg_custom_rolloff_stale", group.get3DCustomRolloff().length == 0
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_HANDLE, "");
+
+        var sound = Sound.fromPcm(haxe.io.Bytes.alloc(4800 * 2), 48000, 1);
+        sound.setMode(ChannelMode.MODE_3D);
+        unsupportedRolloff("core_sound", function(p) return sound.set3DCustomRolloff(p), function() return sound.get3DCustomRolloff());
+        sound.release();
+        check("core_sound_custom_rolloff_stale", sound.get3DCustomRolloff().length == 0
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_HANDLE, "");
+
+        var worldSet:FmodResult = Geometry.setWorldSize(500);
+        check("sys_set_geometry_settings_unsupported", worldSet == FmodResult.FMOD_ERR_UNSUPPORTED && Geometry.getWorldSize() == 0
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED, 'result=${worldSet.toString()} size=${Geometry.getWorldSize()}');
+        var geometry = Geometry.create(4, 16);
+        check("sys_create_geometry_unsupported", geometry.isNull() && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED,
+            'handle=${(geometry : Int)} result=${StudioSystem.lastResult().toString()}');
+        var quad:Array<FmodVector> = [{x: 0, y: -10, z: -10}, {x: 0, y: 10, z: -10}, {x: 0, y: 10, z: 10}, {x: 0, y: -10, z: 10}];
+        check("geo_add_polygon_unsupported", geometry.addPolygon(1.0, 0.5, true, quad) == -1
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED, 'result=${StudioSystem.lastResult().toString()}');
+        check("geo_get_num_polygons_unsupported", geometry.getNumPolygons() == -1, 'count=${geometry.getNumPolygons()}');
+        check("geo_get_max_polygons_unsupported", geometry.getMaxPolygons() == null
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED, 'result=${StudioSystem.lastResult().toString()}');
+        check("geo_get_polygon_attributes_unsupported", geometry.getPolygonAttributes(0) == null
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED, "");
+        check("geo_set_polygon_vertex_unsupported", geometry.setPolygonVertex(0, 0, quad[0]) == FmodResult.FMOD_ERR_UNSUPPORTED
+            && geometry.getPolygonVertex(0, 0) == null, "");
+        check("geo_rotation_unsupported", geometry.setRotation({x: 0, y: 0, z: 1}, {x: 0, y: 1, z: 0}) == FmodResult.FMOD_ERR_UNSUPPORTED
+            && geometry.getRotation() == null, "");
+        check("geo_position_unsupported", geometry.setPosition({x: 0, y: 0, z: 0}) == FmodResult.FMOD_ERR_UNSUPPORTED
+            && geometry.getPosition() == null, "");
+        check("geo_scale_unsupported", geometry.setScale({x: 1, y: 1, z: 1}) == FmodResult.FMOD_ERR_UNSUPPORTED
+            && geometry.getScale() == null, "");
+        check("geo_active_unsupported", geometry.setActive(true) == FmodResult.FMOD_ERR_UNSUPPORTED && !geometry.getActive(), "");
+        check("sys_get_geometry_occlusion_unsupported", Geometry.getOcclusion({x: -5, y: 0, z: 0}, {x: 5, y: 0, z: 0}) == null
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED, 'result=${StudioSystem.lastResult().toString()}');
+        check("geo_set_polygon_attributes_unsupported", geometry.setPolygonAttributes(0, 0.25, 0.75, false) == FmodResult.FMOD_ERR_UNSUPPORTED, "");
+        check("geo_save_unsupported", geometry.save() == null && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED, "");
+        check("sys_load_geometry_unsupported", Geometry.load(haxe.io.Bytes.alloc(16)).isNull()
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED, 'result=${StudioSystem.lastResult().toString()}');
+        check("geo_release_unsupported", geometry.release() == FmodResult.FMOD_ERR_UNSUPPORTED, "");
+        #else
+        var stream = PcmStream.create3d(48000, 1);
+        var channel = stream.play(true);
+        var chanSet:FmodResult = channel.set3DCustomRolloff(points);
+        check("chan_set_3d_custom_rolloff", chanSet.isOk(), 'result=${chanSet.toString()}');
+        var chanGot = channel.get3DCustomRolloff();
+        check("chan_get_3d_custom_rolloff", sameRolloff(chanGot), describe(chanGot));
+        // A second set replaces the copy (the old block is freed, not leaked)
+        var chanReset:FmodResult = channel.set3DCustomRolloff([{x: 0, y: 1, z: 0}, {x: 5, y: 0, z: 0}]);
+        check("chan_set_3d_custom_rolloff_replace", chanReset.isOk() && channel.get3DCustomRolloff().length == 2,
+            'result=${chanReset.toString()} count=${channel.get3DCustomRolloff().length}');
+        var chanClear:FmodResult = channel.set3DCustomRolloff([]);
+        check("chan_clear_3d_custom_rolloff", chanClear.isOk() && channel.get3DCustomRolloff().length == 0,
+            'result=${chanClear.toString()} count=${channel.get3DCustomRolloff().length}');
+        // Stopping frees the slot and the copy with it (the leak check below covers the slot)
+        channel.set3DCustomRolloff(points);
+        channel.stop();
+        var chanStale:FmodResult = channel.set3DCustomRolloff(points);
+        check("chan_custom_rolloff_stale", chanStale == FmodResult.FMOD_ERR_INVALID_HANDLE
+            && channel.get3DCustomRolloff().length == 0, 'result=${chanStale.toString()}');
+        stream.release();
+
+        var group = ChannelGroup.create("custom-rolloff");
+        group.setMode(ChannelMode.MODE_3D);
+        var cgSet:FmodResult = group.set3DCustomRolloff(points);
+        check("cg_set_3d_custom_rolloff", cgSet.isOk(), 'result=${cgSet.toString()}');
+        var cgGot = group.get3DCustomRolloff();
+        check("cg_get_3d_custom_rolloff", sameRolloff(cgGot), describe(cgGot));
+        var cgClear:FmodResult = group.set3DCustomRolloff([]);
+        check("cg_clear_3d_custom_rolloff", cgClear.isOk() && group.get3DCustomRolloff().length == 0,
+            'result=${cgClear.toString()} count=${group.get3DCustomRolloff().length}');
+        group.set3DCustomRolloff(points);
+        group.release();
+        check("cg_custom_rolloff_stale", group.get3DCustomRolloff().length == 0
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_HANDLE, "");
+
+        var pcm = haxe.io.Bytes.alloc(4800 * 2);
+        var sound = Sound.fromPcm(pcm, 48000, 1);
+        sound.setMode(ChannelMode.MODE_3D);
+        var soundSet:FmodResult = sound.set3DCustomRolloff(points);
+        check("core_sound_set_3d_custom_rolloff", soundSet.isOk(), 'result=${soundSet.toString()}');
+        var soundGot = sound.get3DCustomRolloff();
+        check("core_sound_get_3d_custom_rolloff", sameRolloff(soundGot), describe(soundGot));
+        var soundClear:FmodResult = sound.set3DCustomRolloff([]);
+        check("core_sound_clear_3d_custom_rolloff", soundClear.isOk() && sound.get3DCustomRolloff().length == 0,
+            'result=${soundClear.toString()} count=${sound.get3DCustomRolloff().length}');
+        sound.set3DCustomRolloff(points);
+        sound.release();
+        check("core_sound_custom_rolloff_stale", sound.get3DCustomRolloff().length == 0
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_HANDLE, "");
+
+        // Geometry: a quad in the x=0 plane between a listener at x=-5 and
+        // a source at x=5 blocks the direct path completely
+        var worldBefore = Geometry.getWorldSize();
+        var worldSet:FmodResult = Geometry.setWorldSize(500);
+        check("sys_set_geometry_settings", worldSet.isOk() && Math.abs(Geometry.getWorldSize() - 500) < 0.5,
+            'result=${worldSet.toString()} size=${Geometry.getWorldSize()}');
+        Geometry.setWorldSize(worldBefore > 0 ? worldBefore : 1000);
+
+        var geometry = Geometry.create(4, 16);
+        check("sys_create_geometry", !geometry.isNull(),
+            'handle=${(geometry : Int)} result=${StudioSystem.lastResult().toString()}');
+        var max = geometry.getMaxPolygons();
+        check("geo_get_max_polygons", max != null && max.polygons == 4 && max.vertices == 16,
+            max == null ? 'result=${StudioSystem.lastResult().toString()}' : 'polygons=${max.polygons} vertices=${max.vertices}');
+        var quad:Array<FmodVector> = [{x: 0, y: -10, z: -10}, {x: 0, y: 10, z: -10}, {x: 0, y: 10, z: 10}, {x: 0, y: -10, z: 10}];
+        var index = geometry.addPolygon(1.0, 0.5, true, quad);
+        check("geo_add_polygon", index == 0, 'index=$index result=${StudioSystem.lastResult().toString()}');
+        check("geo_get_num_polygons", geometry.getNumPolygons() == 1, 'count=${geometry.getNumPolygons()}');
+        check("geo_get_polygon_num_vertices", geometry.getPolygonNumVertices(0) == 4,
+            'count=${geometry.getPolygonNumVertices(0)}');
+        var attrs = geometry.getPolygonAttributes(0);
+        check("geo_get_polygon_attributes", attrs != null && Math.abs(attrs.direct - 1.0) < 0.001
+            && Math.abs(attrs.reverb - 0.5) < 0.001 && attrs.doubleSided,
+            attrs == null ? 'result=${StudioSystem.lastResult().toString()}'
+                : 'direct=${attrs.direct} reverb=${attrs.reverb} doubleSided=${attrs.doubleSided}');
+        var vertex = geometry.getPolygonVertex(0, 2);
+        check("geo_get_polygon_vertex", vertex != null && Math.abs(vertex.y - 10) < 0.001 && Math.abs(vertex.z - 10) < 0.001,
+            vertex == null ? 'result=${StudioSystem.lastResult().toString()}' : 'x=${vertex.x} y=${vertex.y} z=${vertex.z}');
+        var setVertex:FmodResult = geometry.setPolygonVertex(0, 2, {x: 0, y: 12, z: 10});
+        var movedVertex = geometry.getPolygonVertex(0, 2);
+        check("geo_set_polygon_vertex", setVertex.isOk() && movedVertex != null && Math.abs(movedVertex.y - 12) < 0.001,
+            'result=${setVertex.toString()} y=${movedVertex == null ? -1 : movedVertex.y}');
+        geometry.setPolygonVertex(0, 2, quad[2]);
+
+        var setRot:FmodResult = geometry.setRotation({x: 0, y: 0, z: 1}, {x: 0, y: 1, z: 0});
+        var rot = geometry.getRotation();
+        check("geo_rotation_round_trip", setRot.isOk() && rot != null && Math.abs(rot.forward.z - 1) < 0.001
+            && Math.abs(rot.up.y - 1) < 0.001, 'result=${setRot.toString()}');
+        var setPos:FmodResult = geometry.setPosition({x: 0, y: 0, z: 0});
+        var pos = geometry.getPosition();
+        check("geo_position_round_trip", setPos.isOk() && pos != null && pos.x == 0 && pos.y == 0 && pos.z == 0,
+            'result=${setPos.toString()}');
+        var setScale:FmodResult = geometry.setScale({x: 1, y: 1, z: 1});
+        var scale = geometry.getScale();
+        check("geo_scale_round_trip", setScale.isOk() && scale != null && Math.abs(scale.x - 1) < 0.001
+            && Math.abs(scale.y - 1) < 0.001 && Math.abs(scale.z - 1) < 0.001, 'result=${setScale.toString()}');
+        check("geo_get_active_default", geometry.getActive(), 'result=${StudioSystem.lastResult().toString()}');
+
+        var listener:FmodVector = {x: -5, y: 0, z: 0};
+        var source:FmodVector = {x: 5, y: 0, z: 0};
+        var occluded = Geometry.getOcclusion(listener, source);
+        check("sys_get_geometry_occlusion", occluded != null && occluded.direct > 0,
+            occluded == null ? 'result=${StudioSystem.lastResult().toString()}'
+                : 'direct=${occluded.direct} reverb=${occluded.reverb}');
+        var inactive:FmodResult = geometry.setActive(false);
+        var open = Geometry.getOcclusion(listener, source);
+        check("geo_set_active_off_clears_occlusion", inactive.isOk() && !geometry.getActive() && open != null && open.direct == 0,
+            open == null ? 'result=${StudioSystem.lastResult().toString()}' : 'direct=${open.direct}');
+        geometry.setActive(true);
+        var setAttrs:FmodResult = geometry.setPolygonAttributes(0, 0.25, 0.75, false);
+        var newAttrs = geometry.getPolygonAttributes(0);
+        check("geo_set_polygon_attributes", setAttrs.isOk() && newAttrs != null && Math.abs(newAttrs.direct - 0.25) < 0.001
+            && Math.abs(newAttrs.reverb - 0.75) < 0.001 && !newAttrs.doubleSided,
+            newAttrs == null ? 'result=${StudioSystem.lastResult().toString()}'
+                : 'direct=${newAttrs.direct} reverb=${newAttrs.reverb} doubleSided=${newAttrs.doubleSided}');
+
+        var saved = geometry.save();
+        check("geo_save", saved != null && saved.length > 0, saved == null
+            ? 'result=${StudioSystem.lastResult().toString()}' : 'bytes=${saved.length}');
+        var loaded = Geometry.load(saved);
+        check("sys_load_geometry", !loaded.isNull() && loaded.getNumPolygons() == 1
+            && loaded.getPolygonNumVertices(0) == 4,
+            'handle=${(loaded : Int)} result=${StudioSystem.lastResult().toString()} polygons=${loaded.getNumPolygons()}');
+        var loadedAttrs = loaded.getPolygonAttributes(0);
+        check("sys_load_geometry_keeps_attributes", loadedAttrs != null && Math.abs(loadedAttrs.direct - 0.25) < 0.001,
+            loadedAttrs == null ? 'result=${StudioSystem.lastResult().toString()}' : 'direct=${loadedAttrs.direct}');
+        check("sys_load_geometry_rejects_garbage", Geometry.load(haxe.io.Bytes.alloc(8)).isNull(),
+            'result=${StudioSystem.lastResult().toString()}');
+
+        var releaseLoaded:FmodResult = loaded.release();
+        var releaseGeometry:FmodResult = geometry.release();
+        check("geo_release", releaseLoaded.isOk() && releaseGeometry.isOk(),
+            'loaded=${releaseLoaded.toString()} original=${releaseGeometry.toString()}');
+        check("geo_release_stale", geometry.release() == FmodResult.FMOD_ERR_INVALID_HANDLE
+            && geometry.getNumPolygons() == -1, 'result=${StudioSystem.lastResult().toString()}');
+        #end
+
+        check("no_handle_leaks_rolloff_geometry", StudioSystem.liveHandleCount() == baseline,
+            'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
+    }
+
+    function probeHardeningTail():Void {
+        StudioSystem.flushCommands();
+        CallbackDispatcher.update();
+        var baseline = StudioSystem.liveHandleCount();
+
+        // A lied fromPcm length must clamp, not over-read: the HashLink
+        // shim crashed inside FMOD's memcpy before the wrapper clamp
+        var pcm = haxe.io.Bytes.alloc(4800);
+        var lied = Sound.fromPcm(pcm, 48000, 1, 1024 * 1024);
+        check("hardening_frompcm_lied_length_clamps", !lied.isNull(),
+            'result=${StudioSystem.lastResult().toString()}');
+        // 4800 bytes of mono 16-bit at 48kHz = 2400 samples = 50ms: the
+        // length proves the clamp fed FMOD the real size, not the lie
+        var lengthMs = lied.getLength();
+        check("hardening_frompcm_clamped_size", lengthMs == 50, 'lengthMs=$lengthMs');
+        lied.release();
+        check("hardening_frompcm_null_bytes", Sound.fromPcm(null, 48000, 1).isNull(), "");
+
+        // Programmer-sound key contract: null and oversized keys reject
+        // instead of crashing (cpp strncpy) or silently truncating
+        var desc = StudioSystem.getEvent(FmodEvents.SFXJump);
+        var inst = desc.createInstance();
+        check("hardening_ps_null_key",
+            inst.assignProgrammerSound(null) == FmodResult.FMOD_ERR_INVALID_PARAM, "");
+        var longKey = StringTools.rpad("k", "k", 600);
+        check("hardening_ps_overlong_key", !inst.assignProgrammerSound(longKey).isOk(),
+            'result=${StudioSystem.lastResult().toString()}');
+
+        // By-ID parameter plumbing on the music event's local parameter:
+        // set by name, read by ID - the round trip only matches when each
+        // wrapper carries id.data1/data2 in the right order. The
+        // StudioSystem-level by-ID family runs against the global
+        // parameters in probeAuthoredSurface.
+        var musicDesc = StudioSystem.getEvent(FmodEvents.MusicMainLevel);
+        check("hardening_music_has_parameters", musicDesc.getParameterDescriptionCount() > 0,
+            'count=${musicDesc.getParameterDescriptionCount()}');
+        if (musicDesc.getParameterDescriptionCount() > 0) {
+            var param = musicDesc.getParameterDescriptionByIndex(0);
+            var musicInst = musicDesc.createInstance();
+            musicInst.setParameter(param.name, param.maximum);
+            check("hardening_evi_get_param_by_id",
+                Math.abs(musicInst.getParameterByID(param.id) - param.maximum) < 0.001,
+                'value=${musicInst.getParameterByID(param.id)}');
+            var mid = (param.minimum + param.maximum) / 2;
+            musicInst.setParameterByID(param.id, mid);
+            check("hardening_evi_set_param_by_id",
+                Math.abs(musicInst.getParameter(param.name) - mid) < 0.001,
+                'value=${musicInst.getParameter(param.name)}');
+            info("hardening_evi_param_by_id_final",
+                Std.string(musicInst.getParameterByIDFinal(param.id)));
+            check("hardening_evi_by_id_label_miss",
+                !musicInst.setParameterByIDWithLabel(param.id, "NoSuchLabel").isOk(), "");
+            musicInst.release();
+        }
+        info("hardening_final_pitch", Std.string(inst.getFinalPitch()));
+        inst.release();
+
+        // Facade failure branch: a bad event path warns and returns
+        // without wedging the machine
+        var badSound = FmodManager.PlaySound("event:/DoesNotExist");
+        check("hardening_facade_bad_sound_null", badSound.isNull(), "");
+        FmodManager.PlaySong("event:/DoesNotExist");
+        check("hardening_facade_bad_song_not_playing", !FmodManager.IsSongPlaying(), "");
+        FmodManager.PlaySong(FmodEvents.MusicMainLevel);
+        check("hardening_facade_recovers_after_bad_song", FmodManager.IsSongPlaying(), "");
+        info("hardening_song_param_miss", Std.string(FmodManager.GetEventParameterOnSong("NoSuchParam")));
+        FmodManager.PauseSong();
+        FmodManager.UnpauseSong();
+        FmodManager.StopSongImmediately();
+
+        // Thin facade delegations, each exercised once against the real
+        // backend with state restored afterwards
+        var smoke = FmodManager.PlaySound(FmodEvents.SFXJump);
+        check("hardening_sound_handle", !smoke.isNull(), "");
+        smoke.pause();
+        smoke.unpause();
+        smoke.setVolume(0.7);
+        smoke.setPitch(1.2);
+        check("hardening_sound_pitch_roundtrip", Math.abs(smoke.getPitch() - 1.2) < 0.001,
+            'value=${smoke.getPitch()}');
+        smoke.stopImmediately();
+        smoke.release();
+        FmodManager.PlaySoundOneShotAt(FmodEvents.SFXJump, 3.0, 4.0);
+        FmodManager.PauseAllSounds();
+        FmodManager.UnpauseAllSounds();
+        FmodManager.StopAllSounds();
+        check("hardening_listener_position",
+            FmodRuntime.setListenerPosition(0, 0.0, 0.0).isOk(), "");
+        FmodManager.SetAutoUpdate(true);
+
+        #if audio_test_manual_update
+        // The manual-update build variant: the resolved settings must
+        // carry both the init argument and the -D haxefmod_num_channels
+        // override, and this whole suite having run proves the manual
+        // sys_update path drives the system
+        check("hardening_manual_update_setting",
+            FmodRuntime.settings() != null && !FmodRuntime.settings().autoUpdate, "");
+        check("hardening_define_channels_setting",
+            FmodRuntime.settings().numChannels == 100,
+            'channels=${FmodRuntime.settings().numChannels}');
+        #end
+
+        // The engine setup's init() re-entry keeps exactly one updater
+        host.checkSetupReinit(check);
+
+        StudioSystem.flushCommands();
+        CallbackDispatcher.update();
+        check("no_handle_leaks_hardening", StudioSystem.liveHandleCount() == baseline,
+            'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
+    }
+
+    /**
+     * The authored-content positive paths: the Main VCA, the global
+     * parameter family at StudioSystem level, labeled sets against real
+     * labels, and the user property on the music event. Each of these had
+     * only negative coverage before the project authored the content.
+     */
+    function probeAuthoredSurface():Void {
+        // The VCA lookup mints a persistent dedup handle, so warm it
+        // before the baseline like the bus and event lookups
+        var vca = StudioSystem.getVCA(FmodVCAs.Main);
+        var baseline = StudioSystem.liveHandleCount();
+
+        check("vca_lookup", !vca.isNull() && vca.isValid(),
+            'result=${StudioSystem.lastResult().toString()}');
+        check("vca_get_path", vca.getPath() == FmodVCAs.Main, 'value=${vca.getPath()}');
+        var vcaGuid:String = vca.getID();
+        check("vca_get_id", vcaGuid.length == 38 && StringTools.startsWith(vcaGuid, "{"),
+            'value=$vcaGuid');
+        check("sys_get_vca_by_id", (StudioSystem.getVCAByID(vcaGuid) : Int) == (vca : Int), "");
+        check("vca_lookup_id", (StudioSystem.lookupID(FmodVCAs.Main) : String).toLowerCase()
+            == FmodVCAs.FmodVCAsGuids.Main, 'value=${StudioSystem.lookupID(FmodVCAs.Main)}');
+        check("vca_set_volume", vca.setVolume(0.5).isOk(), "");
+        check("vca_get_volume", Math.abs(vca.getVolume() - 0.5) < 0.001, 'value=${vca.getVolume()}');
+        info("vca_get_final_volume", Std.string(vca.getFinalVolume()));
+        vca.setVolume(1.0);
+        check("vca_volume_restored", Math.abs(vca.getVolume() - 1.0) < 0.001,
+            'value=${vca.getVolume()}');
+
+        // System-level parameter descriptions cover both globals
+        var paramCount = StudioSystem.getParameterDescriptionCount();
+        check("sys_param_description_count", paramCount >= 2, 'count=$paramCount');
+        var sawIntensity = false;
+        var sawWeather = false;
+        for (i in 0...paramCount) {
+            var p = StudioSystem.getParameterDescriptionByIndex(i);
+            if (p == null) continue;
+            if (p.name == "Intensity") sawIntensity = (p.flags & FmodParameterFlags.GLOBAL) != 0;
+            if (p.name == "Weather") sawWeather = (p.flags & FmodParameterFlags.GLOBAL) != 0
+                && (p.flags & FmodParameterFlags.LABELED) != 0;
+        }
+        check("sys_param_enumeration_globals", sawIntensity && sawWeather,
+            'intensity=$sawIntensity weather=$sawWeather');
+
+        // Global continuous parameter round trips by name and by ID
+        var intensity = StudioSystem.getParameterDescriptionByName("Intensity");
+        check("sys_param_desc_by_name", intensity != null,
+            intensity == null ? "" : 'min=${intensity.minimum} max=${intensity.maximum}');
+        if (intensity != null) {
+            check("sys_set_param_by_name", StudioSystem.setParameter("Intensity", intensity.maximum, true).isOk(), "");
+            check("sys_get_param_by_name",
+                Math.abs(StudioSystem.getParameter("Intensity") - intensity.maximum) < 0.001,
+                'value=${StudioSystem.getParameter("Intensity")}');
+            info("sys_get_param_by_name_final", Std.string(StudioSystem.getParameterFinal("Intensity")));
+            var mid = (intensity.minimum + intensity.maximum) / 2;
+            check("sys_set_param_by_id", StudioSystem.setParameterByID(intensity.id, mid, true).isOk(), "");
+            check("sys_get_param_by_id",
+                Math.abs(StudioSystem.getParameterByID(intensity.id) - mid) < 0.001,
+                'value=${StudioSystem.getParameterByID(intensity.id)}');
+            info("sys_get_param_by_id_final", Std.string(StudioSystem.getParameterByIDFinal(intensity.id)));
+            StudioSystem.setParameter("Intensity", intensity.defaultValue, true);
+        }
+
+        // Global labeled parameter: real labels through both set paths
+        var weather = StudioSystem.getParameterDescriptionByName("Weather");
+        check("sys_labeled_param_desc", weather != null, "");
+        if (weather != null) {
+            check("sys_get_parameter_label", StudioSystem.getParameterLabel("Weather", 1) == "Rain",
+                'value=${StudioSystem.getParameterLabel("Weather", 1)}');
+            check("sys_get_parameter_label_by_id",
+                StudioSystem.getParameterLabelByID(weather.id, 2) == "Storm",
+                'value=${StudioSystem.getParameterLabelByID(weather.id, 2)}');
+            check("sys_set_param_with_label",
+                StudioSystem.setParameterWithLabel("Weather", "Rain", true).isOk()
+                && Math.abs(StudioSystem.getParameter("Weather") - 1) < 0.001,
+                'value=${StudioSystem.getParameter("Weather")}');
+            check("sys_set_param_by_id_with_label",
+                StudioSystem.setParameterByIDWithLabel(weather.id, "Storm", true).isOk()
+                && Math.abs(StudioSystem.getParameter("Weather") - 2) < 0.001,
+                'value=${StudioSystem.getParameter("Weather")}');
+            check("sys_label_miss", !StudioSystem.setParameterWithLabel("Weather", "NoSuchLabel").isOk(),
+                'result=${StudioSystem.lastResult().toString()}');
+            StudioSystem.setParameter("Weather", weather.defaultValue, true);
+        }
+
+        // Event-local labeled parameter on the jump event
+        var jumpDesc = StudioSystem.getEvent(FmodEvents.SFXJump);
+        var surface = jumpDesc.getParameterDescriptionByName("Surface");
+        check("evd_labeled_param_desc", surface != null
+            && (surface.flags & FmodParameterFlags.LABELED) != 0
+            && (surface.flags & FmodParameterFlags.GLOBAL) == 0,
+            surface == null ? "" : 'flags=${surface.flags}');
+        check("evd_get_parameter_label", jumpDesc.getParameterLabel("Surface", 2) == "Metal",
+            'value=${jumpDesc.getParameterLabel("Surface", 2)}');
+        var jumpInst = jumpDesc.createInstance();
+        check("evi_set_param_with_label", jumpInst.setParameterWithLabel("Surface", "Stone").isOk()
+            && Math.abs(jumpInst.getParameter("Surface") - 1) < 0.001,
+            'value=${jumpInst.getParameter("Surface")}');
+        jumpInst.release();
+
+        // The authored user properties on the music event. FMOD Studio
+        // stores property values untyped and the bank builder infers the
+        // type: numbers build as FLOAT and everything else as STRING, so
+        // both payload channels and the type tag are covered here.
+        var musicDesc = StudioSystem.getEvent(FmodEvents.MusicMainLevel);
+        check("evd_user_property_count_authored", musicDesc.getUserPropertyCount() == 3,
+            'count=${musicDesc.getUserPropertyCount()}');
+        var intProp = musicDesc.getUserPropertyByName("probe_int");
+        var floatProp = musicDesc.getUserPropertyByName("probe_float");
+        var boolProp = musicDesc.getUserPropertyByName("probe_bool");
+        #if js
+        // Numeric user properties crash FMOD's JS glue (its string
+        // conversion of the value union dereferences the number bits as a
+        // pointer), so jaxe reports them unsupported and only string
+        // properties are readable on html5
+        check("evd_user_property_numeric_unsupported", intProp == null && floatProp == null, "");
+        #else
+        check("evd_user_property_numeric", intProp != null
+            && intProp.type == FmodUserPropertyType.FLOAT && intProp.floatValue == 42,
+            intProp == null ? "" : 'type=${(intProp.type : Int)} value=${intProp.floatValue}');
+        check("evd_user_property_float", floatProp != null
+            && floatProp.type == FmodUserPropertyType.FLOAT
+            && Math.abs(floatProp.floatValue - 1.5) < 0.001,
+            floatProp == null ? "" : 'type=${(floatProp.type : Int)} value=${floatProp.floatValue}');
+        // String values read as "" on every non-string property
+        check("evd_user_property_string_default", intProp.stringValue == "", "");
+        #end
+        check("evd_user_property_string", boolProp != null
+            && boolProp.type == FmodUserPropertyType.STRING && boolProp.stringValue == "true",
+            boolProp == null ? "" : 'type=${(boolProp.type : Int)} value=${boolProp.stringValue}');
+        var sawNames = 0;
+        for (i in 0...musicDesc.getUserPropertyCount()) {
+            var p = musicDesc.getUserPropertyByIndex(i);
+            if (p != null && (p.name == "probe_int" || p.name == "probe_float" || p.name == "probe_bool")) {
+                sawNames++;
+            }
+        }
+        #if js
+        check("evd_user_property_enumeration", sawNames == 1, 'found=$sawNames');
+        #else
+        check("evd_user_property_enumeration", sawNames == 3, 'found=$sawNames');
+        #end
+
+        StudioSystem.flushCommands();
+        CallbackDispatcher.update();
+        check("no_handle_leaks_authored", StudioSystem.liveHandleCount() == baseline,
+            'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
+    }
+
+    /** Exercises the audit-closure surface through the real FFI. */
+    function probeAuditClosure():Void {
+        // Per-instance channel group: effects on one event. The group
+        // handle is reclaimed with the instance (the DESTROYED drain on
+        // native, the release-all sweep on html5), and the timing of that
+        // reclaim depends on the studio thread, so it happens
+        // deterministically here before the baseline snapshot. SFXJump,
+        // not the music event: releaseAllInstances on the music event
+        // would destroy the facade song slot's retained instance behind
+        // FmodManager's back.
+        var desc = StudioSystem.getEvent(FmodEvents.SFXJump);
+        var instance = desc.createInstance();
+        instance.start();
+        StudioSystem.flushCommands();
+        var instanceGroup = instance.getChannelGroup();
+        check("evi_channel_group", !instanceGroup.isNull(), 'handle=${(instanceGroup : Int)}');
+        if (!instanceGroup.isNull()) {
+            var lowpass = Dsp.create(DspType.LOWPASS_SIMPLE);
+            check("evi_group_effect", instanceGroup.addDsp(0, lowpass).isOk()
+                && instanceGroup.removeDsp(lowpass).isOk(), "");
+            lowpass.release();
+        }
+        instance.stop(FmodStopMode.IMMEDIATE);
+        instance.release();
+        desc.releaseAllInstances();
+        StudioSystem.flushCommands();
+        CallbackDispatcher.update();
+
+        var baseline = StudioSystem.liveHandleCount();
+
+        // Channel odds on a paused stream
+        var stream = PcmStream.create(48000, 1);
+        var channel = stream.play(true);
+        check("chan_priority_roundtrip", channel.setPriority(100).isOk()
+            && channel.getPriority() == 100, 'value=${channel.getPriority()}');
+        check("chan_volume_ramp_roundtrip", channel.setVolumeRamp(true).isOk()
+            && channel.getVolumeRamp(), "");
+        info("chan_is_virtual", Std.string(channel.isVirtual()));
+        info("chan_audibility", Std.string(channel.getAudibility()));
+        info("chan_index", Std.string(channel.getIndex()));
+        check("chan_loop_points_roundtrip", channel.setLoopPoints(10, 90).isOk()
+            && channel.getLoopPoints() != null && channel.getLoopPoints().loopStart == 10, "");
+        channel.setReverbWet(0, 0.4);
+        check("chan_reverb_wet_roundtrip", Math.abs(channel.getReverbWet(0) - 0.4) < 0.001,
+            'value=${channel.getReverbWet(0)}');
+        channel.set3DConeOrientation(0, 0, 1);
+        var orientation = channel.get3DConeOrientation();
+        // Cone orientation reads back on 3D channels only, informational here
+        info("chan_cone_orientation", orientation == null ? "unavailable" : 'z=${orientation.z}');
+        var echo = Dsp.create(DspType.ECHO);
+        channel.addDsp(0, echo);
+        check("chan_dsp_introspection", channel.getDspCount() >= 1
+            && !channel.getDsp(0).isNull(), 'count=${channel.getDspCount()}');
+        channel.removeDsp(echo);
+        echo.release();
+        channel.stop();
+        stream.release();
+
+        // Memory sounds and their metadata
+        var pcm = haxe.io.Bytes.alloc(9600);
+        var sound = Sound.fromPcm(pcm, 48000, 1);
+        info("sound_name", '"${sound.getName()}"');
+        check("sound_group_getter", !sound.getSoundGroup().isNull(), "");
+        check("sound_loop_count_roundtrip", sound.setLoopCount(2).isOk()
+            && sound.getLoopCount() == 2, "");
+        var playChannel = sound.play(true);
+        check("chan_current_sound_dedup", (playChannel.getCurrentSound() : Int) == (sound : Int),
+            'current=${(playChannel.getCurrentSound() : Int)} sound=${(sound : Int)}');
+        playChannel.stop();
+        sound.release();
+
+        // Sound group volume and counters
+        var soundGroup = SoundGroup.create("probe-audit-sg");
+        check("sg_volume_roundtrip", soundGroup.setVolume(0.5).isOk()
+            && Math.abs(soundGroup.getVolume() - 0.5) < 0.001, "");
+        check("sg_fade_getter", soundGroup.setMuteFadeSpeed(0.7).isOk()
+            && Math.abs(soundGroup.getMuteFadeSpeed() - 0.7) < 0.001, "");
+        info("sg_playing_count", Std.string(soundGroup.getPlayingCount()));
+        soundGroup.release();
+
+        // Drivers
+        check("sys_driver_roundtrip", CoreSystem.setDriver(0).isOk()
+            && CoreSystem.getDriver() == 0, "");
+
+        // DSP data params, info, and traversal
+        var convolution = Dsp.create(DspType.CONVOLUTIONREVERB);
+        var ir = haxe.io.Bytes.alloc((1 + 480) * 2);
+        ir.setUInt16(0, 1);
+        for (i in 0...480) {
+            var v = Std.int(Math.exp(-i / 100) * 16000);
+            ir.setUInt16((1 + i) * 2, v & 0xFFFF);
+        }
+        check("dsp_data_param_ir", convolution.setParameterData(0, ir).isOk(), "");
+        check("dsp_info_name", convolution.getName().indexOf("Convolution") >= 0,
+            'name=${convolution.getName()}');
+        info("dsp_idle", Std.string(convolution.isIdle()));
+        var target = Dsp.create(DspType.LOWPASS_SIMPLE);
+        var connection = target.addInput(convolution);
+        check("dsp_output_traversal", (convolution.getOutput(0) : Int) == (target : Int)
+            && (convolution.getOutputConnection(0) : Int) == (connection : Int), "");
+        check("conn_endpoints", (connection.getInputDsp() : Int) == (convolution : Int)
+            && (connection.getOutputDsp() : Int) == (target : Int), "");
+        target.disconnectFrom(convolution);
+        target.release();
+        convolution.release();
+
+        // Reverb3D getters
+        var zone = Reverb3D.create();
+        zone.set3DAttributes(1, 2, 3, 5, 20);
+        zone.setActive(true);
+        check("r3d_active_getter", zone.getActive(), "");
+        var zoneAttrs = zone.get3DAttributes();
+        check("r3d_attrs_roundtrip", zoneAttrs != null && Math.abs(zoneAttrs.x - 1) < 0.001
+            && Math.abs(zoneAttrs.minDistance - 5) < 0.001, "");
+        zone.release();
+
+        // Group spatial mirror round-trips
+        var group = ChannelGroup.create("probe-audit-cg");
+        check("cg_mirror_setters", group.setPan(0.5).isOk()
+            && group.setLowPassGain(0.5).isOk()
+            && group.setMode(ChannelMode.MODE_3D).isOk()
+            && group.set3DAttributes(1, 2, 3).isOk()
+            && group.set3DMinMaxDistance(2, 50).isOk()
+            && group.set3DOcclusion(0.4, 0.2).isOk()
+            && group.setMixMatrix([1, 0, 0, 1], 2, 2).isOk(), "");
+        var groupAttrs = group.get3DAttributes();
+        check("cg_attrs_roundtrip", groupAttrs != null && Math.abs(groupAttrs.posX - 1) < 0.001, "");
+        var groupMinMax = group.get3DMinMaxDistance();
+        check("cg_min_max_roundtrip", groupMinMax != null
+            && Math.abs(groupMinMax.minDistance - 2) < 0.001, "");
+        check("cg_level_roundtrip", group.set3DLevel(0.8).isOk()
+            && Math.abs(group.get3DLevel() - 0.8) < 0.001, "");
+        check("cg_spread_roundtrip", group.set3DSpread(45).isOk()
+            && Math.abs(group.get3DSpread() - 45) < 0.1, "");
+        check("cg_doppler_roundtrip", group.set3DDopplerLevel(0.7).isOk()
+            && Math.abs(group.get3DDopplerLevel() - 0.7) < 0.001, "");
+        check("cg_cone_roundtrip", group.set3DConeSettings(30, 60, 0.5).isOk()
+            && group.get3DConeSettings() != null
+            && Math.abs(group.get3DConeSettings().insideAngle - 30) < 0.1, "");
+        check("cg_cone_orient_roundtrip", group.set3DConeOrientation(0, 0, 1).isOk()
+            && group.get3DConeOrientation() != null
+            && Math.abs(group.get3DConeOrientation().z - 1) < 0.001, "");
+        check("cg_reverb_wet_roundtrip", group.setReverbWet(0, 0.4).isOk()
+            && Math.abs(group.getReverbWet(0) - 0.4) < 0.001, "");
+        check("cg_volume_ramp_roundtrip", group.setVolumeRamp(true).isOk()
+            && group.getVolumeRamp(), "");
+        check("cg_name", group.getName() == "probe-audit-cg", 'name=${group.getName()}');
+        info("cg_audibility", Std.string(group.getAudibility()));
+        check("cg_channel_introspection", group.getChannelCount() == 0
+            && group.getChannel(0).isNull(), "");
+        group.release();
+
+        // Command capture round-trip with replay lifecycle
+        var capturePath = "probe-capture.cmd.txt";
+        check("capture_start", StudioSystem.startCommandCapture(capturePath).isOk(), "");
+        FmodManager.Update();
+        check("capture_stop", StudioSystem.stopCommandCapture().isOk(), "");
+        var replay = StudioSystem.loadCommandReplay(capturePath);
+        check("replay_load", !replay.isNull(), 'handle=${(replay : Int)}');
+        if (!replay.isNull()) {
+            info("replay_length", Std.string(replay.getLength()));
+            check("replay_is_valid", replay.isValid(), "");
+            check("replay_pause_roundtrip", replay.setPaused(true).isOk() && replay.getPaused(), "");
+            replay.setPaused(false);
+            // Playback controls on the loaded replay (the capture holds one
+            // frame of commands, so the replay is over almost immediately)
+            check("replay_seek", replay.seekToTime(0).isOk(),
+                'result=${StudioSystem.lastResult().toString()}');
+            check("replay_start", replay.start().isOk(),
+                'result=${StudioSystem.lastResult().toString()}');
+            // The one-frame capture can finish before the stop call lands,
+            // and FMOD's result for stopping a finished replay is its own
+            info("replay_stop", replay.stop().toString());
+            check("replay_release", replay.release().isOk(), "");
+            check("replay_stale_invalid", !replay.isValid(), "");
+        }
+
+        // Bank from memory: covered by the js harness on html5; native loads
+        // the real bank bytes here
+        #if sys
+        var bankBytes = try sys.io.File.getBytes("assets/fmod/Desktop/Master.bank") catch (e:Dynamic) null;
+        if (bankBytes == null) {
+            info("bank_memory", "bank file not reachable from cwd, skipped");
+        } else {
+            var memoryBank = StudioSystem.loadBankMemory(bankBytes);
+            // The example project has one bank, already loaded: ALREADY_LOADED
+            // proves the path reaches FMOD either way
+            var loaded = !memoryBank.isNull()
+                || StudioSystem.lastResult() == FmodResult.FMOD_ERR_EVENT_ALREADY_LOADED;
+            check("bank_memory", loaded, 'result=${StudioSystem.lastResult().toString()}');
+            if (!memoryBank.isNull()) memoryBank.unload();
+        }
+        #else
+        info("bank_memory", "verified by the js harness");
+        #end
+
+        check("no_handle_leaks_audit", StudioSystem.liveHandleCount() == baseline,
+            'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
+    }
+
+    /**
+     * The wrapper tail no other section reaches: by-ID lookups, user
+     * properties, listener configuration, bank enumeration and sample
+     * data, instance properties, and the DSP calls with no other caller.
+     * Exercising the marshaling against the real FFI is the point, so
+     * data-dependent values log as info while structure and error
+     * contracts are gating checks.
+     */
+    function probeParityTail2():Void {
+        // Warm the persistent lookups first: the bank handle and the bus
+        // handles its enumeration mints (a bus nobody looked up yet gets a
+        // session-lived dedup handle) must all sit inside the baseline
+        var bank = StudioSystem.getBank("bank:/Master");
+        if (bank.isNull()) bank = StudioSystem.getBank("Master.bank");
+        if (!bank.isNull()) {
+            bank.getBusList();
+            bank.getVCAList();
+        }
+        var baseline = StudioSystem.liveHandleCount();
+
+        // By-ID lookups resolve to the same cached handles as by-path
+        var master = StudioSystem.getBus("bus:/");
+        var busById = StudioSystem.getBusByID(master.getID());
+        check("sys_get_bus_by_id", (busById : Int) == (master : Int), 'guid=${master.getID()}');
+        var eventById = StudioSystem.getEventByID(FmodEvents.FmodEventsGuids.SFXJump);
+        check("sys_get_event_by_id",
+            (eventById : Int) == (StudioSystem.getEvent(FmodEvents.SFXJump) : Int), "");
+
+        // Malformed GUIDs are rejected up front on every target instead of
+        // resolving a zero-padded wrong GUID on native
+        var badGuid = StudioSystem.getEventByID("not-a-guid");
+        check("bad_guid_rejected", badGuid.isNull()
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_PARAM,
+            'result=${StudioSystem.lastResult().toString()}');
+        var shortGroups = StudioSystem.getBusByID("{12-34-56-7890-AABBCCDDEEFF}");
+        check("short_guid_groups_rejected", shortGroups.isNull()
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_PARAM,
+            'result=${StudioSystem.lastResult().toString()}');
+
+        // Path and ID string lookups agree with the generated constants
+        check("sys_lookup_id", (StudioSystem.lookupID(FmodEvents.SFXJump) : String).toLowerCase()
+            == FmodEvents.FmodEventsGuids.SFXJump, 'value=${StudioSystem.lookupID(FmodEvents.SFXJump)}');
+        check("sys_lookup_path", StudioSystem.lookupPath(FmodEvents.FmodEventsGuids.SFXJump)
+            == FmodEvents.SFXJump, 'value=${StudioSystem.lookupPath(FmodEvents.FmodEventsGuids.SFXJump)}');
+
+        // VCA misses and the stale-handle contract. The authored vca:/Main
+        // happy path runs in probeAuthoredSurface.
+        var missingVca = StudioSystem.getVCA("vca:/Nope");
+        check("sys_get_vca_missing", missingVca.isNull(),
+            'result=${StudioSystem.lastResult().toString()}');
+        check("null_vca_defaults", missingVca.getVolume() == 0.0 && !missingVca.setVolume(1.0).isOk()
+            && missingVca.getPath() == "" && !missingVca.isValid(), "");
+        // A well-formed GUID that belongs to an event, not a VCA
+        var missingVcaById = StudioSystem.getVCAByID(FmodEvents.FmodEventsGuids.SFXJump);
+        check("sys_get_vca_by_id_wrong_type", missingVcaById.isNull(), "");
+
+        // Bank enumeration: getID, counts, lists, and sample data (the
+        // handle was warmed above, before the baseline)
+        check("sys_get_bank", !bank.isNull(), 'result=${StudioSystem.lastResult().toString()}');
+        if (!bank.isNull()) {
+            var bankGuid:String = bank.getID();
+            check("bank_get_id", bankGuid.length == 38 && StringTools.startsWith(bankGuid, "{"),
+                'value=$bankGuid');
+            check("sys_get_bank_by_id", (StudioSystem.getBankByID(bankGuid) : Int) == (bank : Int), "");
+            var busCount = bank.getBusCount();
+            var vcaCount = bank.getVCACount();
+            check("bank_bus_list", bank.getBusList().length == busCount,
+                'count=$busCount listed=${bank.getBusList().length}');
+            check("bank_vca_list", bank.getVCAList().length == vcaCount,
+                'count=$vcaCount listed=${bank.getVCAList().length}');
+            info("bank_string_guid", bank.getStringGuid(0));
+            check("bank_load_sample_data", bank.loadSampleData().isOk(), "");
+            StudioSystem.flushSampleLoading();
+            check("bank_sample_state_loaded",
+                bank.getSampleLoadingState() == FmodLoadingState.LOADED,
+                'state=${(bank.getSampleLoadingState() : Int)}');
+            check("bank_unload_sample_data", bank.unloadSampleData().isOk(), "");
+        }
+        check("sys_reset_buffer_usage", StudioSystem.resetBufferUsage().isOk(), "");
+
+        // Listener configuration round trips
+        check("sys_set_num_listeners", StudioSystem.setNumListeners(2).isOk()
+            && StudioSystem.getNumListeners() == 2, 'count=${StudioSystem.getNumListeners()}');
+        check("sys_listener_weight", StudioSystem.setListenerWeight(0, 0.5).isOk()
+            && Math.abs(StudioSystem.getListenerWeight(0) - 0.5) < 0.001,
+            'value=${StudioSystem.getListenerWeight(0)}');
+        StudioSystem.setListenerWeight(0, 1.0);
+        StudioSystem.setNumListeners(1);
+
+        // Description metadata with nothing authored behind it
+        var desc = StudioSystem.getEvent(FmodEvents.SFXJump);
+        check("evd_sound_size", desc.getSoundSize() >= 0, 'value=${desc.getSoundSize()}');
+        check("evd_min_max_distance", desc.getMinMaxDistance() != null, "");
+        check("evd_doppler", !desc.isDopplerEnabled(), "");
+        check("evd_sustain", !desc.hasSustainPoint(), "");
+        check("evd_user_property_count", desc.getUserPropertyCount() == 0,
+            'count=${desc.getUserPropertyCount()}');
+        check("evd_user_property_miss", desc.getUserPropertyByIndex(0) == null
+            && desc.getUserPropertyByName("nope") == null, "");
+        check("evd_parameter_label_miss", desc.getParameterLabel("Nope", 0) == ""
+            && !StudioSystem.lastResult().isOk(), 'result=${StudioSystem.lastResult().toString()}');
+
+        // Instance-level surface never touched elsewhere
+        var inst = desc.createInstance();
+        check("evi_listener_mask", inst.setListenerMask(1).isOk() && inst.getListenerMask() == 1,
+            'value=${inst.getListenerMask()}');
+        check("evi_set_property",
+            inst.setProperty(FmodEventProperty.CHANNELPRIORITY, 64).isOk(), "");
+        check("evi_reverb_level", inst.setReverbLevel(0, 0.25).isOk()
+            && Math.abs(inst.getReverbLevel(0) - 0.25) < 0.001, 'value=${inst.getReverbLevel(0)}');
+        inst.start();
+        check("evi_set_timeline_position", inst.setTimelinePosition(10).isOk(), "");
+        info("evi_timeline_position", Std.string(inst.getTimelinePosition()));
+        info("evi_key_off_no_sustain", inst.keyOff().toString());
+        info("evi_parameter_final_miss", Std.string(inst.getParameterFinal("Nope")));
+        check("evi_label_miss", !inst.setParameterWithLabel("Nope", "x").isOk(),
+            'result=${StudioSystem.lastResult().toString()}');
+        inst.stop(FmodStopMode.IMMEDIATE);
+        inst.release();
+        StudioSystem.flushCommands();
+        CallbackDispatcher.update();
+
+        // DSP calls with no other caller: bool parameters (compressor
+        // LINKED), reset, output counts, disconnectAll, FFT, metering
+        var compressor = Dsp.create(DspType.COMPRESSOR);
+        check("dsp_param_bool_roundtrip", compressor.setParameterBool(6, false).isOk()
+            && !compressor.getParameterBool(6)
+            && compressor.setParameterBool(6, true).isOk()
+            && compressor.getParameterBool(6), "");
+        check("dsp_reset", compressor.reset().isOk(), "");
+        var fft = Dsp.create(DspType.FFT);
+        var fftConn = fft.addInput(compressor);
+        check("dsp_output_count", compressor.getOutputCount() == 1 && !fftConn.isNull(),
+            'value=${compressor.getOutputCount()}');
+        check("dsp_disconnect_all", fft.disconnectAll().isOk(), "");
+        check("dsp_metering_toggle", fft.setMeteringEnabled(true, true).isOk(), "");
+        // Metering data needs processed blocks, which this DSP never gets
+        // (unattached, same frame). The read exercises the marshaling, and the
+        // js harnesses assert real values after attaching and pumping.
+        var metering = fft.getMetering();
+        info("dsp_metering_read", metering == null
+            ? 'no data result=${StudioSystem.lastResult().toString()}'
+            : 'peaks=${metering.peakLevel.length}');
+        var spectrum = fft.getFftSpectrum(64);
+        info("dsp_fft_spectrum", spectrum == null
+            ? 'unavailable result=${StudioSystem.lastResult().toString()}'
+            : 'bins=${spectrum.length}');
+        fft.release();
+        compressor.release();
+
+        // Channel position on a paused in-memory sound
+        var pcm = haxe.io.Bytes.alloc(9600);
+        var posSound = Sound.fromPcm(pcm, 48000, 1);
+        var posChannel = posSound.play(true);
+        check("chan_set_position", posChannel.setPosition(50).isOk(),
+            'result=${StudioSystem.lastResult().toString()}');
+        check("chan_get_position", posChannel.getPosition() == 50,
+            'value=${posChannel.getPosition()}');
+        posChannel.stop();
+        posSound.release();
+
+        check("no_handle_leaks_tail2", StudioSystem.liveHandleCount() == baseline,
+            'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
+    }
+
+    /**
+     * Facade predicates against real asynchronous playback states: a song
+     * or sound started this frame is still in the STARTING state, and must
+     * already report playing. The song slot keeps its stopped instance by
+     * design, so this runs before any section snapshots a leak baseline.
+     */
+    function probeFacadeSong():Void {
+        FmodManager.PlaySong(FmodEvents.MusicMainLevel);
+        check("facade_song_playing_at_once", FmodManager.IsSongPlaying(),
+            'path=${FmodManager.GetCurrentSongPath()}');
+        var sound = FmodManager.PlaySound(FmodEvents.SFXJump);
+        check("facade_sound_created", !sound.isNull(), "");
+        check("facade_sound_playing_at_once", sound.isPlaying(), "");
+        sound.stopImmediately();
+        sound.release();
+        FmodManager.StopSongImmediately();
+    }
+
+    /**
+     * Instances FMOD destroys asynchronously (releaseAllInstances, bank
+     * unload) must not leak handle slots, and every handle derived from a
+     * dead instance must go stale safely. Reclaiming happens when the
+     * DESTROYED events drain, so the probe flushes commands and drains
+     * explicitly to make each step deterministic.
+     */
+    function probeInstanceLifecycle():Void {
+        // Earlier sections leave DESTROYED events queued (the audit-closure
+        // section deliberately releases an instance whose channel-group
+        // handle the drain reclaims). Drain that backlog first so the
+        // baseline only moves with this section's own work.
+        StudioSystem.flushCommands();
+        CallbackDispatcher.update();
+
+        var desc = StudioSystem.getEvent(FmodEvents.SFXJump);
+        var baseline = StudioSystem.liveHandleCount();
+
+        // Bulk destruction reclaims every instance slot through the drain
+        var a = desc.createInstance();
+        var b = desc.createInstance();
+        check("lifecycle_two_instances", StudioSystem.liveHandleCount() == baseline + 2,
+            'now=${StudioSystem.liveHandleCount()}');
+        check("lifecycle_release_all", desc.releaseAllInstances().isOk(), "");
+        StudioSystem.flushCommands();
+        CallbackDispatcher.update();
+        check("no_slot_leak_release_all", StudioSystem.liveHandleCount() == baseline,
+            'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
+        var staleRelease = a.release();
+        check("lifecycle_stale_release_safe", !staleRelease.isOk(),
+            'result=${staleRelease.toString()}');
+        b.release();
+
+        // Release on a destroyed-but-not-yet-drained instance still
+        // reclaims the slot (FMOD reports INVALID_HANDLE for it)
+        var c = desc.createInstance();
+        desc.releaseAllInstances();
+        StudioSystem.flushCommands();
+        var lateRelease = c.release();
+        check("lifecycle_release_after_destroy", !lateRelease.isOk(),
+            'result=${lateRelease.toString()}');
+        CallbackDispatcher.update();
+        check("no_slot_leak_after_destroy", StudioSystem.liveHandleCount() == baseline,
+            'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
+
+        // An instance's channel group handle is reclaimed when the
+        // instance is destroyed, not left dangling for pointer dedup to
+        // alias onto a future group
+        var d = desc.createInstance();
+        d.start();
+        StudioSystem.flushCommands();
+        var group = d.getChannelGroup();
+        check("lifecycle_instance_group", !group.isNull(),
+            'result=${StudioSystem.lastResult().toString()}');
+        d.stop(FmodStopMode.IMMEDIATE);
+        d.release();
+        // The release-all triggers the html5 sweep that reclaims the dead
+        // group's slot there (native reclaims it through the drain below)
+        desc.releaseAllInstances();
+        StudioSystem.flushCommands();
+        CallbackDispatcher.update();
+        check("no_slot_leak_instance_group", StudioSystem.liveHandleCount() == baseline,
+            'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
+        group.setVolume(1.0);
+        check("lifecycle_group_handle_stale",
+            StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_HANDLE,
+            'result=${StudioSystem.lastResult().toString()}');
+
+        // Graph-destroying calls invalidate every connection handle
+        var dspA = Dsp.create(DspType.ECHO);
+        var dspB = Dsp.create(DspType.OSCILLATOR);
+        var conn = dspA.addInput(dspB);
+        check("lifecycle_conn_created", !conn.isNull(),
+            'result=${StudioSystem.lastResult().toString()}');
+        var stream = PcmStream.create(48000, 1);
+        var channel = stream.play(true);
+        var echo = Dsp.create(DspType.ECHO);
+        channel.addDsp(0, echo);
+        check("lifecycle_conn_survives_add", !conn.isNull() && (conn : Int) != 0, "");
+        var removeResult = channel.removeDsp(echo);
+        check("lifecycle_remove_dsp", removeResult.isOk(), 'result=${removeResult.toString()}');
+        conn.getMix();
+        check("lifecycle_conn_dead_after_remove_dsp",
+            StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_HANDLE,
+            'result=${StudioSystem.lastResult().toString()}');
+        var conn2 = dspA.addInput(dspB);
+        check("lifecycle_conn2_created", !conn2.isNull(), "");
+        channel.stop();
+        conn2.getMix();
+        check("lifecycle_conn_dead_after_chan_stop",
+            StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_HANDLE,
+            'result=${StudioSystem.lastResult().toString()}');
+        dspA.disconnectAll();
+        echo.release();
+        dspB.release();
+        dspA.release();
+        stream.release();
+        check("no_slot_leak_lifecycle_section", StudioSystem.liveHandleCount() == baseline,
+            'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
+    }
+
+    var _chanEvents:Array<ChannelEvent> = [];
+    var _chanEventSound:Sound = Sound.NULL;
+    var _chanEventChannel:Channel = Channel.NULL;
+    var _chanEventBaseline:Int = 0;
+    var _chanEventFrames:Int = 0;
+    var _waitingForDspData:Bool = false;
+    var _waitingForChannelEvents:Bool = false;
+    var _oneShotFrames:Int = 0;
+    var _waitingForOcclusion:Bool = false;
+    var _waitingForOneShot:Bool = false;
+    var _oneShotBaseline:Int = 0;
+    var _oneShotAttachedBaseline:Int = 0;
+    var _remintInstance:EventInstance = EventInstance.NULL;
+    var _remintBaseline:Int = 0;
+    var _remintBeats:Int = 0;
+    var _remintBeatPropertiesOk:Bool = false;
+    var _remintFrames:Int = 0;
+    var _waitingForRemint:Bool = false;
+    var _waitingForRemintDrain:Bool = false;
+    var _remintDrainFrames:Int = 0;
+    var _transitionFrames:Int = 0;
+    var _waitingForTransition:Bool = false;
+
+    /**
+     * Plays a tenth of a second of PCM with a sync point at its middle and
+     * a channel callback registered. Both events must arrive through the
+     * per-frame queue drain before the probe completes.
+     */
+    function probeChannelEvents():Void {
+        _chanEventBaseline = StudioSystem.liveHandleCount();
+        var samples = 4800;
+        var pcm = haxe.io.Bytes.alloc(samples * 2);
+        _chanEventSound = Sound.fromPcm(pcm, 48000, 1);
+        check("chanev_sound", !_chanEventSound.isNull(), 'handle=${(_chanEventSound : Int)}');
+        var syncPoint = _chanEventSound.addSyncPoint(50, "mid");
+        check("chanev_sync_point", !syncPoint.isNull() && syncPoint.index() == 0, 'point=${syncPoint.index()} result=${StudioSystem.lastResult().toString()}');
+        var syncInfo = _chanEventSound.getSyncPointInfo(syncPoint);
+        check("chanev_sync_info", _chanEventSound.getSyncPointCount() == 1
+            && syncInfo != null && syncInfo.name == "mid" && syncInfo.offset == 50, syncInfo == null ? "null" : 'name=${syncInfo.name} offset=${syncInfo.offset}');
+        _chanEventChannel = _chanEventSound.play(false);
+        check("chanev_play", !_chanEventChannel.isNull(), 'handle=${(_chanEventChannel : Int)}');
+        _chanEventChannel.setCallback(function(e) _chanEvents.push(e));
+        _waitingForChannelEvents = true;
+    }
+
+    function finishChannelEvents():Void {
+        var sawSync = false;
+        var sawEnd = false;
+        for (e in _chanEvents) {
+            switch (e) {
+                case SyncPoint(0): sawSync = true;
+                case End: sawEnd = true;
+                default:
+            }
+        }
+        check("chanev_syncpoint_delivered", sawSync, 'events=${_chanEvents.length} frames=$_chanEventFrames');
+        check("chanev_end_delivered", sawEnd, 'events=${_chanEvents.length} frames=$_chanEventFrames');
+        _chanEventChannel.stop();
+        _chanEventSound.release();
+        check("no_handle_leaks_chanev", StudioSystem.liveHandleCount() == _chanEventBaseline,
+            'baseline=$_chanEventBaseline now=${StudioSystem.liveHandleCount()}');
+
+        probeRemintCallbacks();
+    }
+
+    /**
+     * An instance re-acquired through getInstanceList after its handle was
+     * released must deliver callbacks on the fresh handle. Async: finishes
+     * from update() once a beat lands (or the wait times out).
+     */
+    function probeRemintCallbacks():Void {
+        // probeFacadeSong left its stopped MusicMainLevel instance in the
+        // facade slot (the slot keeps it by design). Replacing the song
+        // releases it, so the instance list below holds exactly the
+        // instance this phase creates.
+        FmodManager.PlaySong(FmodEvents.SFXJump);
+        FmodManager.StopSongImmediately();
+        StudioSystem.flushCommands();
+        CallbackDispatcher.update();
+
+        _remintBaseline = StudioSystem.liveHandleCount();
+        var desc = StudioSystem.getEvent(FmodEvents.MusicMainLevel);
+        var original = desc.createInstance();
+        original.start();
+        original.release(); // handle freed, the instance keeps playing
+
+        var relisted = desc.getInstanceList();
+        check("remint_relisted", relisted.length == 1, 'count=${relisted.length}');
+        if (relisted.length != 1) {
+            finishRemintCallbacks();
+            return;
+        }
+        _remintInstance = relisted[0];
+        check("remint_fresh_handle", (_remintInstance : Int) != (original : Int)
+            && !_remintInstance.isNull(),
+            'old=${(original : Int)} new=${(_remintInstance : Int)}');
+        _remintInstance.setCallback(function(data) {
+            switch (data) {
+                case TimelineBeat(properties):
+                    _remintBeats++;
+                    if (properties.tempo > 0 && properties.timeSignatureUpper > 0
+                        && properties.timeSignatureLower > 0 && properties.bar > 0) _remintBeatPropertiesOk = true;
+                default:
+            }
+        });
+        _waitingForRemint = true;
+    }
+
+    function finishRemintCallbacks():Void {
+        check("remint_beats_delivered", _remintBeats > 0,
+            'beats=$_remintBeats frames=$_remintFrames');
+        check("remint_beat_properties_filled", _remintBeatPropertiesOk, 'beats=$_remintBeats');
+        if (!_remintInstance.isNull()) {
+            _remintInstance.stop(FmodStopMode.IMMEDIATE);
+            _remintInstance.release();
+        }
+        // The instance's last callback records (a plugin or programmer
+        // sound Destroyed frees the handle its Created minted) arrive from
+        // FMOD's Studio thread a few frames after the release, later on
+        // mac than on linux, so the leak check waits for the count to
+        // settle. Async: finishes from update().
+        _remintDrainFrames = 0;
+        _waitingForRemintDrain = true;
+    }
+
+    function finishRemintDrain():Void {
+        check("no_handle_leaks_remint", StudioSystem.liveHandleCount() == _remintBaseline,
+            'baseline=$_remintBaseline now=${StudioSystem.liveHandleCount()} frames=$_remintDrainFrames');
+
+        // The occlusion wait runs next, on its own (see update), and the
+        // transition follows it
+        _waitingForOcclusion = true;
+    }
+
+    /**
+     * The facade's transition machinery end to end: the old song fades,
+     * its Stopped event arrives through the queue, and the once-only
+     * handler starts the next song. Async: finishes from update() when the
+     * next song owns the slot (or the wait times out).
+     */
+    function probeSongTransition():Void {
+        FmodManager.PlaySong(FmodEvents.MusicMainLevel);
+        check("transition_first_song", FmodManager.GetCurrentSongPath() == FmodEvents.MusicMainLevel, "");
+        FmodManager.PlaySongTransition(FmodEvents.SFXCoin);
+        _waitingForTransition = true;
+    }
+
+    function finishSongTransition():Void {
+        check("transition_next_song_took_slot",
+            FmodManager.GetCurrentSongPath() == FmodEvents.SFXCoin,
+            'path=${FmodManager.GetCurrentSongPath()} frames=$_transitionFrames');
+        FmodManager.StopSongImmediately();
+
+        if (skipAuthored()) {
+            info("snapshot_phase", "skipped (HAXEFMOD_PROBE_SKIP_AUTHORED)");
+            probeOneShotAttached();
+            return;
+        }
+        probeSnapshot();
+    }
+
+    var _snapshotInstance:EventInstance = EventInstance.NULL;
+    var _snapshotBaseline:Int = 0;
+    var _snapshotFrames:Int = 0;
+    var _snapshotPreVolume:Float = 1.0;
+    var _waitingForSnapshotActive:Bool = false;
+    var _waitingForSnapshotRecovery:Bool = false;
+
+    /**
+     * The Underwater snapshot as a live event instance. It scopes the
+     * master bus volume to -10 dB, so the bus final volume must drop to
+     * about 0.32 while the snapshot plays and recover after it stops.
+     * Async: the intensity ramp and the recovery both take real frames.
+     */
+    function probeSnapshot():Void {
+        // The description lookup mints a persistent dedup handle: warm it
+        // before the baseline
+        var desc = StudioSystem.getEvent(FmodSnapshots.Underwater);
+        _snapshotBaseline = StudioSystem.liveHandleCount();
+        check("snapshot_lookup", !desc.isNull(),
+            'result=${StudioSystem.lastResult().toString()}');
+        check("evd_is_snapshot", desc.isSnapshot(), "");
+        _snapshotPreVolume = StudioSystem.getBus("bus:/").getFinalVolume();
+        _snapshotInstance = desc.createInstance();
+        check("snapshot_create_instance", !_snapshotInstance.isNull(), "");
+        check("snapshot_start", _snapshotInstance.start().isOk(), "");
+        _snapshotFrames = 0;
+        _waitingForSnapshotActive = true;
+    }
+
+    function finishSnapshotActive():Void {
+        var active = StudioSystem.getBus("bus:/").getFinalVolume();
+        // -10 dB is a factor of about 0.316. The band pins the authored
+        // value while leaving room for the ramp's tail.
+        check("snapshot_ducks_master", active > 0.2 && active < 0.45,
+            'value=$active pre=$_snapshotPreVolume frames=$_snapshotFrames');
+        check("snapshot_playing",
+            _snapshotInstance.getPlaybackState() != FmodPlaybackState.STOPPED,
+            'state=${(_snapshotInstance.getPlaybackState() : Int)}');
+        _snapshotInstance.stop(IMMEDIATE);
+        _snapshotFrames = 0;
+        _waitingForSnapshotRecovery = true;
+    }
+
+    function finishSnapshotRecovery():Void {
+        var recovered = StudioSystem.getBus("bus:/").getFinalVolume();
+        check("snapshot_stop_recovers", Math.abs(recovered - _snapshotPreVolume) < 0.1,
+            'value=$recovered pre=$_snapshotPreVolume frames=$_snapshotFrames');
+        _snapshotInstance.release();
+        _snapshotInstance = EventInstance.NULL;
+        StudioSystem.flushCommands();
+        CallbackDispatcher.update();
+        // Fewer handles than the baseline only means an earlier probe's
+        // callback events drained late
+        check("no_handle_leaks_snapshot", StudioSystem.liveHandleCount() <= _snapshotBaseline,
+            'baseline=$_snapshotBaseline now=${StudioSystem.liveHandleCount()}');
+
+        probeSustain();
+    }
+
+    var _sustainInstance:EventInstance = EventInstance.NULL;
+    var _sustainBaseline:Int = 0;
+    var _sustainFrames:Int = 0;
+    var _waitingForSustainHold:Bool = false;
+    var _waitingForSustainStop:Bool = false;
+
+    /**
+     * The Hold event carries a sustain point near its start: the instance
+     * must reach the SUSTAINING state, keyOff must advance it, and the
+     * event then plays out and stops. Async: both transitions take real
+     * frames.
+     */
+    function probeSustain():Void {
+        // Warm the description lookup before the baseline
+        var desc = StudioSystem.getEvent(FmodEvents.SFXHold);
+        _sustainBaseline = StudioSystem.liveHandleCount();
+        check("sustain_lookup", !desc.isNull(),
+            'result=${StudioSystem.lastResult().toString()}');
+        check("evd_has_sustain_point", desc.hasSustainPoint(), "");
+        _sustainInstance = desc.createInstance();
+        check("sustain_create_instance", !_sustainInstance.isNull(), "");
+        check("sustain_start", _sustainInstance.start().isOk(), "");
+        _sustainFrames = 0;
+        _waitingForSustainHold = true;
+    }
+
+    function finishSustainHold():Void {
+        var state = _sustainInstance.getPlaybackState();
+        check("sustain_holds", state == FmodPlaybackState.SUSTAINING,
+            'state=${(state : Int)} frames=$_sustainFrames');
+        check("evi_key_off", _sustainInstance.keyOff().isOk(),
+            'result=${StudioSystem.lastResult().toString()}');
+        _sustainFrames = 0;
+        _waitingForSustainStop = true;
+    }
+
+    function finishSustainStop():Void {
+        check("sustain_plays_out_after_key_off",
+            _sustainInstance.getPlaybackState() == FmodPlaybackState.STOPPED,
+            'state=${(_sustainInstance.getPlaybackState() : Int)} frames=$_sustainFrames');
+        _sustainInstance.release();
+        _sustainInstance = EventInstance.NULL;
+        StudioSystem.flushCommands();
+        CallbackDispatcher.update();
+        check("no_handle_leaks_sustain", StudioSystem.liveHandleCount() == _sustainBaseline,
+            'baseline=$_sustainBaseline now=${StudioSystem.liveHandleCount()}');
+
+        probeOneShotAttached();
+    }
+
+    /**
+     * A one-shot played attached must track its instance while playing,
+     * release it when the event stops, and prune the attachment. Async:
+     * finishes from update() once the attachment count drops back (or the
+     * wait times out).
+     */
+    function probeOneShotAttached():Void {
+        // Warm the description lookup so its persistent dedup handle is
+        // inside the baseline
+        StudioSystem.getEvent(FmodEvents.SFXJump);
+        _oneShotBaseline = StudioSystem.liveHandleCount();
+        _oneShotAttachedBaseline = FmodRuntime.attachedCount();
+        FmodRuntime.playOneShotAttached(FmodEvents.SFXJump, new ProbeMovingProvider());
+        check("oneshot_attached_tracked", FmodRuntime.attachedCount() == _oneShotAttachedBaseline + 1,
+            'count=${FmodRuntime.attachedCount()}');
+        // The one-shot must clean itself up even when every callback
+        // registration is wiped while it plays (release rides the attach
+        // loop's STOPPED check, not a callback)
+        FmodManager.ClearAllCallbacks();
+        _waitingForOneShot = true;
+    }
+
+    function finishOneShotAttached():Void {
+        check("oneshot_attached_pruned", FmodRuntime.attachedCount() == _oneShotAttachedBaseline,
+            'count=${FmodRuntime.attachedCount()} frames=$_oneShotFrames');
+        check("no_handle_leaks_oneshot", StudioSystem.liveHandleCount() == _oneShotBaseline,
+            'baseline=$_oneShotBaseline now=${StudioSystem.liveHandleCount()}');
+
+        info("live_handle_count_after", Std.string(StudioSystem.liveHandleCount()));
+        log('API_PROBE: COMPLETE passed=$_passCount failed=$_failCount');
+        host.setStatus('API_PROBE complete: $_passCount passed, $_failCount failed');
+        _done = true;
+    }
+
+    /** Exercises the sound group and remaining system surface through the real FFI. */
+    function probeSoundGroupsAndSystem():Void {
+        var baseline = StudioSystem.liveHandleCount();
+        var group = SoundGroup.create("probe-sg");
+        check("sg_create", !group.isNull(), 'handle=${(group : Int)}');
+        check("sg_max_audible_roundtrip", group.setMaxAudible(2).isOk()
+            && group.getMaxAudible() == 2, 'value=${group.getMaxAudible()}');
+        check("sg_behavior_roundtrip", group.setMaxAudibleBehavior(SoundGroup.BEHAVIOR_STEAL_LOWEST).isOk()
+            && group.getMaxAudibleBehavior() == SoundGroup.BEHAVIOR_STEAL_LOWEST, "");
+        check("sg_mute_fade", group.setMuteFadeSpeed(0.5).isOk(), "");
+
+        var pcm = haxe.io.Bytes.alloc(9600);
+        var sound = Sound.fromPcm(pcm, 48000, 1);
+        check("sg_assign", sound.setSoundGroup(group).isOk(), "");
+        check("sg_sound_count", group.getSoundCount() == 1, 'value=${group.getSoundCount()}');
+        check("sg_stop", group.stop().isOk(), "");
+        var master = SoundGroup.master();
+        check("sg_master", !master.isNull(), 'handle=${(master : Int)}');
+        sound.setSoundGroup(master);
+        check("sg_release", group.release().isOk(), "");
+        sound.release();
+
+        check("sys_3d_settings_roundtrip", CoreSystem.set3DSettings(1.5, 1.0, 1.0).isOk()
+            && CoreSystem.get3DSettings() != null
+            && Math.abs(CoreSystem.get3DSettings().dopplerScale - 1.5) < 0.001, "");
+        CoreSystem.set3DSettings(1.0, 1.0, 1.0);
+        check("sys_drivers", CoreSystem.getDriverCount() >= 1
+            && CoreSystem.getDriverName(0).length > 0, 'name=${CoreSystem.getDriverName(0)}');
+
+        // Getter symmetry through the real FFI
+        var stream = PcmStream.create3d(48000, 1);
+        var channel = stream.play(true);
+        channel.setLoopCount(-1);
+        check("chan_get_loop_count", channel.getLoopCount() == -1, "");
+        channel.setLowPassGain(0.5);
+        check("chan_get_low_pass_gain", Math.abs(channel.getLowPassGain() - 0.5) < 0.001, "");
+        check("chan_get_mode", channel.getMode() != 0, 'mode=${channel.getMode()}');
+        channel.set3DConeSettings(30, 60, 0.5);
+        var cone = channel.get3DConeSettings();
+        check("chan_get_cone", cone != null && Math.abs(cone.insideAngle - 30) < 0.1, "");
+        channel.set3DSpread(45);
+        check("chan_get_spread", Math.abs(channel.get3DSpread() - 45) < 0.1, "");
+        channel.set3DMinMaxDistance(2, 50);
+        var minMax = channel.get3DMinMaxDistance();
+        check("chan_get_min_max", minMax != null && Math.abs(minMax.minDistance - 2) < 0.001, "");
+        channel.set3DAttributes(1, 2, 3);
+        var attrs = channel.get3DAttributes();
+        check("chan_get_3d_attributes", attrs != null && Math.abs(attrs.posX - 1) < 0.001
+            && Math.abs(attrs.posY - 2) < 0.001, "");
+        var clocks = channel.getDspClock();
+        if (clocks != null) {
+            channel.setDelay(0, clocks.parent + 96000);
+            var delay = channel.getDelay();
+            check("chan_get_delay", delay != null
+                && Math.abs(delay.endClock - (clocks.parent + 96000)) < 1, "");
+        }
+        channel.stop();
+        stream.release();
+
+        var dsp = Dsp.create(DspType.LOWPASS_SIMPLE);
+        dsp.setWetDryMix(1, 0.8, 0.2);
+        var mix = dsp.getWetDryMix();
+        check("dsp_get_wet_dry", mix != null && Math.abs(mix.postwet - 0.8) < 0.001, "");
+        // A detached DSP's default active state varies by platform, so the
+        // round-trip sets it explicitly first
+        dsp.setActive(true);
+        check("dsp_get_active", dsp.getActive(), "");
+        dsp.setMeteringEnabled(true, false);
+        var metering = dsp.getMeteringEnabled();
+        check("dsp_get_metering_enabled", metering != null && metering.input && !metering.output, "");
+        dsp.release();
+
+        // The master sound group handle persists like the other master lookups
+        var now = StudioSystem.liveHandleCount();
+        check("no_handle_leaks_sg", now == baseline + 1,
+            'baseline=$baseline now=$now');
+    }
+
+    /** Exercises the M3 mass-binding surface: events, instances, banks, VCAs, system. */
+    function probeM3Surface():Void {
+        // Event description lookup and queries
+        var desc = StudioSystem.getEvent(FmodEvents.MusicMainLevel);
+        check("sys_get_event", !desc.isNull(), 'handle=${(desc : Int)}');
+        check("evd_is_valid", desc.isValid(), "");
+        check("evd_get_path", desc.getPath() == FmodEvents.MusicMainLevel, 'value=${desc.getPath()}');
+        var descGuid:String = desc.getID();
+        check("evd_get_id", descGuid.length == 38, 'value=$descGuid');
+        check("evd_get_length", desc.getLength() > 0, 'value=${desc.getLength()}');
+        info("evd_is_snapshot", Std.string(desc.isSnapshot()));
+        info("evd_is_oneshot", Std.string(desc.isOneshot()));
+        // The music asset is authored as streaming
+        check("evd_is_stream", desc.isStream(), "");
+        info("evd_is_3d", Std.string(desc.is3D()));
+
+        // GUID round trip: path -> GUID -> event -> same handle
+        var lookedUp = StudioSystem.lookupID(FmodEvents.MusicMainLevel);
+        check("sys_lookup_id", lookedUp == descGuid, 'value=$lookedUp');
+        var byId = StudioSystem.getEventByID(descGuid);
+        check("sys_get_event_by_id", (byId : Int) == (desc : Int), 'handle=${(byId : Int)}');
+        var pathBack = StudioSystem.lookupPath(descGuid);
+        check("sys_lookup_path", pathBack == FmodEvents.MusicMainLevel, 'value=$pathBack');
+
+        // Parameters on the event
+        var paramCount = desc.getParameterDescriptionCount();
+        info("evd_parameter_description_count", Std.string(paramCount));
+        if (paramCount > 0) {
+            var param = desc.getParameterDescriptionByIndex(0);
+            check("evd_get_parameter_description_by_index", param != null,
+                param == null ? "" : 'name=${param.name} min=${param.minimum} max=${param.maximum} default=${param.defaultValue}');
+            if (param != null) {
+                var byName = desc.getParameterDescriptionByName(param.name);
+                check("evd_get_parameter_description_by_name", byName != null && byName.name == param.name, "");
+                // The ID from the by-index fetch must resolve back to the
+                // same description through the by-ID lookup
+                var byId = desc.getParameterDescriptionByID(param.id);
+                check("evd_get_parameter_description_by_id", byId != null && byId.name == param.name,
+                    byId == null ? 'id=${param.id.data1}/${param.id.data2}' : 'name=${byId.name}');
+                var missing = desc.getParameterDescriptionByID({data1: 0x7FFFFFFF, data2: 0x7FFFFFFF});
+                check("evd_param_desc_by_id_miss", missing == null, "");
+            }
+        }
+
+        // Instance lifecycle. Every handle created between this baseline and
+        // the leak check below is released, so the live count must not move.
+        var lifecycleBaseline = StudioSystem.liveHandleCount();
+        var instance = desc.createInstance();
+        check("evd_create_instance", !instance.isNull(), 'handle=${(instance : Int)}');
+        check("evi_is_valid", instance.isValid(), "");
+        check("evi_get_description", (instance.getDescription() : Int) == (desc : Int), "");
+
+        var volResult = instance.setVolume(0.8);
+        check("evi_set_volume", volResult.isOk(), "");
+        check("evi_get_volume", Math.abs(instance.getVolume() - 0.8) < 0.001, 'value=${instance.getVolume()}');
+        var pitchResult = instance.setPitch(1.5);
+        check("evi_set_pitch", pitchResult.isOk(), "");
+        check("evi_get_pitch", Math.abs(instance.getPitch() - 1.5) < 0.001, 'value=${instance.getPitch()}');
+        instance.setPitch(1.0);
+
+        if (paramCount > 0) {
+            var param = desc.getParameterDescriptionByIndex(0);
+            if (param != null) {
+                var target = param.maximum;
+                check("evi_set_param_by_name", instance.setParameter(param.name, target).isOk(), 'name=${param.name}');
+                check("evi_get_param_by_name", Math.abs(instance.getParameter(param.name) - target) < 0.001,
+                    'value=${instance.getParameter(param.name)}');
+                check("evi_set_param_by_id", instance.setParameterByID(param.id, param.defaultValue).isOk(), "");
+            }
+        }
+
+        var startResult = instance.start();
+        check("evi_start", startResult.isOk(), 'result=${startResult.toString()}');
+        info("evi_get_playback_state", Std.string((instance.getPlaybackState() : Int)));
+        info("evi_is_virtual", Std.string(instance.isVirtual()));
+
+        var stopResult = instance.stop(FmodStopMode.IMMEDIATE);
+        check("evi_stop", stopResult.isOk(), 'result=${stopResult.toString()}');
+        var releaseResult = instance.release();
+        check("evi_release", releaseResult.isOk(), 'result=${releaseResult.toString()}');
+        check("evi_released_handle_invalid", !instance.isValid(), "");
+
+        // Instance property and 3D surface (event may be 2D - informational)
+        var instance2 = desc.createInstance();
+        if (!instance2.isNull()) {
+            info("evi_get_property_channelpriority", Std.string(instance2.getProperty(CHANNELPRIORITY)));
+            var attrResult = instance2.setPosition2D(3.0, 4.0);
+            info("evi_set_3d_attributes", attrResult.toString());
+            var attrs = instance2.get3DAttributes();
+            info("evi_get_3d_attributes", attrs == null ? "unavailable" : 'x=${attrs.position.x} y=${attrs.position.y}');
+            instance2.release();
+        }
+        check("no_handle_leaks_lifecycle", StudioSystem.liveHandleCount() == lifecycleBaseline,
+            'baseline=$lifecycleBaseline now=${StudioSystem.liveHandleCount()}');
+
+        // Bank surface
+        var bankCount = StudioSystem.getBankCount();
+        check("sys_get_bank_count", bankCount >= 2, 'value=$bankCount');
+        var banks = StudioSystem.getBankList();
+        check("sys_get_bank_list", banks.length == bankCount, 'count=${banks.length}');
+        if (banks.length > 0) {
+            var foundEvents = false;
+            for (bank in banks) {
+                check("bank_is_valid", bank.isValid(), 'path=${bank.getPath()}');
+                info("bank_loading_state", Std.string((bank.getLoadingState() : Int)));
+                var eventCount = bank.getEventCount();
+                if (eventCount > 0) {
+                    foundEvents = true;
+                    var events = bank.getEventList();
+                    check("bank_get_event_list", events.length == eventCount, 'count=${events.length}');
+                    check("bank_event_valid", events[0].isValid(), 'path=${events[0].getPath()}');
+                }
+                var stringCount = bank.getStringCount();
+                if (stringCount > 0) {
+                    info("bank_string_info_first", bank.getStringPath(0));
+                }
+            }
+            check("bank_events_enumerated", foundEvents, "");
+        }
+
+        // A missing VCA lookup returns null (vca:/Main positives run in
+        // probeAuthoredSurface)
+        var vca = StudioSystem.getVCA("vca:/DoesNotExist");
+        check("sys_get_vca_missing", vca.isNull(), 'lastResult=${StudioSystem.lastResult().toString()}');
+
+        // Global parameter positives run in probeAuthoredSurface
+        info("sys_parameter_description_count", Std.string(StudioSystem.getParameterDescriptionCount()));
+
+        // Listeners
+        var listenerCount = StudioSystem.getNumListeners();
+        check("sys_get_num_listeners", listenerCount >= 1, 'value=$listenerCount');
+        var listenerResult = StudioSystem.setListenerPosition2D(0, 1.0, 2.0);
+        check("sys_set_listener_attributes", listenerResult.isOk(), 'result=${listenerResult.toString()}');
+        var listener = StudioSystem.getListenerAttributes(0);
+        check("sys_get_listener_attributes", listener != null && Math.abs(listener.position.x - 1.0) < 0.001,
+            listener == null ? "unavailable" : 'x=${listener.position.x} y=${listener.position.y}');
+        StudioSystem.setListenerPosition2D(0, 0.0, 0.0);
+        info("sys_get_listener_weight", Std.string(StudioSystem.getListenerWeight(0)));
+
+        // System profiling - informational (unsupported pieces on html5)
+        var sysCpu = StudioSystem.getCpuUsage();
+        info("sys_get_cpu_usage", sysCpu == null ? 'unavailable result=${StudioSystem.lastResult().toString()}' : 'dsp=${sysCpu.dsp}');
+        var sysMem = StudioSystem.getMemoryUsage();
+        info("sys_get_memory_usage", sysMem == null ? 'unavailable result=${StudioSystem.lastResult().toString()}' : 'inclusive=${sysMem.inclusive}');
+        var bufferUsage = StudioSystem.getBufferUsage();
+        info("sys_get_buffer_usage", bufferUsage == null ? "unavailable" : 'cmdqueue_peak=${bufferUsage.studioCommandQueue.peakUsage}');
+
+        // Sample data round trip
+        var sampleResult = desc.loadSampleData();
+        check("evd_load_sample_data", sampleResult.isOk(), 'result=${sampleResult.toString()}');
+        info("evd_get_sample_loading_state", Std.string((desc.getSampleLoadingState() : Int)));
+        desc.unloadSampleData();
+    }
+
+    /**
+     * Runtime-verifies the generational handle table's safety promises
+     * through the real FFI: stale handles, cross-type misuse, double
+     * release, and slot reuse must all return
+     * FMOD_ERR_INVALID_HANDLE (or default getter values) instead of
+     * crashing or touching another object.
+     */
+    function probeHandleSafety():Void {
+        // Lookups below are deduplicated, so every handle this section
+        // creates is released and the live count must return to baseline
+        var baseline = StudioSystem.liveHandleCount();
+        var desc = StudioSystem.getEvent(FmodEvents.MusicMainLevel);
+        var master = StudioSystem.getBus("bus:/");
+
+        // Stale handle: every call must be a safe no-op after release
+        var stale:EventInstance = desc.createInstance();
+        check("abuse_setup_instance", !stale.isNull(), 'handle=${(stale : Int)}');
+        stale.release();
+        check("stale_handle_invalid", !stale.isValid(), "");
+        var staleStart:FmodResult = stale.start();
+        check("stale_start_invalid_handle", staleStart == FmodResult.FMOD_ERR_INVALID_HANDLE,
+            'result=${staleStart.toString()}');
+        check("stale_get_volume_default", stale.getVolume() == 0.0, 'value=${stale.getVolume()}');
+        check("stale_get_timeline_default", stale.getTimelinePosition() == 0,
+            'value=${stale.getTimelinePosition()}');
+
+        // Cross-type misuse: a Bus handle passed as an EventInstance
+        var wrongInstance:EventInstance = cast (master : Int);
+        check("crosstype_bus_as_instance_invalid", !wrongInstance.isValid(), "");
+        var wrongStart:FmodResult = wrongInstance.start();
+        check("crosstype_bus_as_instance_start", wrongStart == FmodResult.FMOD_ERR_INVALID_HANDLE,
+            'result=${wrongStart.toString()}');
+
+        // ... and the reverse: an EventInstance handle passed as a Bus
+        var live:EventInstance = desc.createInstance();
+        var wrongBus:Bus = cast (live : Int);
+        var wrongSet:FmodResult = wrongBus.setVolume(1.0);
+        check("crosstype_instance_as_bus_set_volume", wrongSet == FmodResult.FMOD_ERR_INVALID_HANDLE,
+            'result=${wrongSet.toString()}');
+        live.release();
+
+        // Double release reports INVALID_HANDLE
+        var doubleRelease:FmodResult = stale.release();
+        check("double_release_invalid_handle", doubleRelease == FmodResult.FMOD_ERR_INVALID_HANDLE,
+            'result=${doubleRelease.toString()}');
+
+        // Slot reuse: a new instance may reuse the freed slot, but the old
+        // handle's generation is stale and must never resolve to it
+        var reused:EventInstance = desc.createInstance();
+        check("reuse_new_instance_valid", reused.isValid(), 'handle=${(reused : Int)}');
+        check("reuse_stale_still_invalid", !stale.isValid(),
+            'stale=${(stale : Int)} new=${(reused : Int)}');
+        reused.release();
+
+        check("no_handle_leaks_abuse", StudioSystem.liveHandleCount() == baseline,
+            'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
+    }
+
+    /**
+     * Exercises the Core PCM stream and channel surface through the real
+     * FFI: ring write accounting, channel control round-trips, and the
+     * handle-safety promises extended to the new type tags. The channel
+     * starts paused so the probe stays deterministic (drain timing is
+     * covered by the js harness and the synth test, which pump the mixer).
+     */
+    function probeCoreSurface():Void {
+        var baseline = StudioSystem.liveHandleCount();
+
+        var stream = PcmStream.create(48000, 1);
+        check("core_pcm_create", !stream.isNull(), 'handle=${(stream : Int)}');
+
+        // A quarter second of a 440Hz sine (16-bit mono, little-endian)
+        var samples = Std.int(48000 * 0.25);
+        var data = haxe.io.Bytes.alloc(samples * 2);
+        for (i in 0...samples) {
+            var v = Std.int(Math.sin(2 * Math.PI * 440 * i / 48000) * 0x3000);
+            data.setUInt16(i * 2, v & 0xFFFF);
+        }
+        var spaceBefore = stream.space();
+        check("core_pcm_space", spaceBefore > 0, 'value=$spaceBefore');
+        var wrote = stream.write(data);
+        var expected = data.length < spaceBefore ? data.length : spaceBefore;
+        check("core_pcm_write", wrote == expected, 'wrote=$wrote expected=$expected');
+        check("core_pcm_space_shrinks", stream.space() == spaceBefore - wrote,
+            'value=${stream.space()}');
+        info("core_pcm_underruns", Std.string(stream.takeUnderruns()));
+
+        // Write validation: an oversized count clamps to the real buffer
+        // size (an unclamped count would read past the buffer), and a zero
+        // count is rejected with INVALID_PARAM on every backend
+        var spaceLeft = stream.space();
+        var oversized = stream.write(data, data.length * 4);
+        var clampExpected = data.length < spaceLeft ? data.length : spaceLeft;
+        check("core_pcm_write_oversized_clamped", oversized == clampExpected,
+            'wrote=$oversized expected=$clampExpected');
+        var zeroWrite = stream.write(data, 0);
+        check("core_pcm_write_zero_rejected", zeroWrite == 0
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_PARAM,
+            'wrote=$zeroWrite result=${StudioSystem.lastResult().toString()}');
+
+        var channel = stream.play(true);
+        check("core_pcm_play", !channel.isNull(), 'handle=${(channel : Int)}');
+        check("chan_starts_paused", channel.getPaused(), "");
+        // A paused channel is still live as far as FMOD is concerned
+        check("chan_is_playing", channel.isPlaying(), "");
+
+        var volResult:FmodResult = channel.setVolume(0.5);
+        check("chan_set_volume", volResult.isOk(), 'result=${volResult.toString()}');
+        check("chan_get_volume", Math.abs(channel.getVolume() - 0.5) < 0.001,
+            'value=${channel.getVolume()}');
+        var pitchResult:FmodResult = channel.setPitch(1.5);
+        check("chan_set_pitch", pitchResult.isOk(), 'result=${pitchResult.toString()}');
+        check("chan_get_pitch", Math.abs(channel.getPitch() - 1.5) < 0.001,
+            'value=${channel.getPitch()}');
+
+        // Stop always frees the channel slot
+        channel.stop();
+        var staleChanSet:FmodResult = channel.setVolume(1.0);
+        check("stale_chan_invalid_handle", staleChanSet == FmodResult.FMOD_ERR_INVALID_HANDLE,
+            'result=${staleChanSet.toString()}');
+        check("stale_chan_getter_defaults", channel.getVolume() == 0.0 && !channel.isPlaying(), "");
+
+        // Cross-type misuse across the new tags
+        var wrongChannel:Channel = cast (stream : Int);
+        var wrongSet:FmodResult = wrongChannel.setVolume(1.0);
+        check("crosstype_pcm_as_chan", wrongSet == FmodResult.FMOD_ERR_INVALID_HANDLE,
+            'result=${wrongSet.toString()}');
+
+        var releaseResult:FmodResult = stream.release();
+        check("core_pcm_release", releaseResult.isOk(), 'result=${releaseResult.toString()}');
+        var staleWrite = stream.write(data, 4);
+        check("stale_pcm_write", staleWrite == 0, 'wrote=$staleWrite');
+        var doubleRelease:FmodResult = stream.release();
+        check("pcm_double_release_invalid_handle", doubleRelease == FmodResult.FMOD_ERR_INVALID_HANDLE,
+            'result=${doubleRelease.toString()}');
+
+        check("no_handle_leaks_core", StudioSystem.liveHandleCount() == baseline,
+            'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
+    }
+
+    /**
+     * Sound creation with FMOD_MODE flags and from a file image in memory,
+     * play calls routed into a channel group at start, the Channel chain
+     * position constants, and the game-sound and instrument-name
+     * programmer sound forms. The audible proof of the programmer sound
+     * forms lives in ProgrammerSoundTestState, this covers the contracts.
+     */
+    function probeSoundRouting():Void {
+        // The description lookup and the master group mint persistent
+        // handles: warm both before the baseline
+        StudioSystem.getEvent(FmodEvents.SFXJump);
+        ChannelGroup.master();
+        var baseline = StudioSystem.liveHandleCount();
+        var group = ChannelGroup.create("probe-routing");
+        check("routing_group", !group.isNull(), 'result=${StudioSystem.lastResult().toString()}');
+
+        var pcm = haxe.io.Bytes.alloc(4096);
+        var stream = PcmStream.create(48000, 1);
+        var pcmChannel = stream.play(true, group);
+        check("core_pcm_play_into_group", !pcmChannel.isNull() && pcmChannel.getChannelGroup() == group,
+            'channel=${(pcmChannel : Int)} group=${(pcmChannel.getChannelGroup() : Int)} want=${(group : Int)}');
+        pcmChannel.stop();
+        stream.release();
+
+        var osc = Dsp.create(DspType.OSCILLATOR);
+        var oscChannel = osc.play(true, group);
+        check("sys_play_dsp_into_group", !oscChannel.isNull() && oscChannel.getChannelGroup() == group,
+            'channel=${(oscChannel : Int)} group=${(oscChannel.getChannelGroup() : Int)}');
+        oscChannel.stop();
+        osc.release();
+
+        var sound = Sound.fromPcm(pcm, 48000, 1);
+        var routed = sound.play(true, group);
+        check("core_play_sound_into_group", !routed.isNull() && routed.getChannelGroup() == group,
+            'channel=${(routed : Int)} group=${(routed.getChannelGroup() : Int)}');
+        // The head lookup mints a handle for FMOD's pooled channel DSP,
+        // which outlives the channel like the group lookups in
+        // ProbeGroupDsp. It is allowed for in the leak check below.
+        var beforeHead = StudioSystem.liveHandleCount();
+        check("channel_dsp_head_constant", !routed.getDsp(Channel.DSP_HEAD).isNull(),
+            'result=${StudioSystem.lastResult().toString()}');
+        var headLookup = StudioSystem.liveHandleCount() - beforeHead;
+        check("channel_dsp_constants_match_group", Channel.DSP_HEAD == ChannelGroup.DSP_HEAD
+            && Channel.DSP_FADER == ChannelGroup.DSP_FADER && Channel.DSP_TAIL == ChannelGroup.DSP_TAIL, "");
+        routed.stop();
+        var unrouted = sound.play(true);
+        check("core_play_sound_default_master", !unrouted.isNull() && unrouted.getChannelGroup() == ChannelGroup.master(),
+            'group=${(unrouted.getChannelGroup() : Int)} master=${(ChannelGroup.master() : Int)}');
+        unrouted.stop();
+        var dead = ChannelGroup.create("probe-dead");
+        dead.release();
+        check("core_play_sound_stale_group_refused", sound.play(true, dead).isNull()
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_HANDLE,
+            'result=${StudioSystem.lastResult().toString()}');
+        sound.release();
+
+        // A wav image straight from memory
+        var image = probeWavBytes();
+        var memory = Sound.fromMemory(image, ChannelMode.MODE_3D);
+        #if sys
+        check("core_create_sound_memory", !memory.isNull() && memory.getLength() == 1000,
+            'handle=${(memory : Int)} length=${memory.getLength()} result=${StudioSystem.lastResult().toString()}');
+        check("core_create_sound_memory_mode", (memory.getMode() & ChannelMode.MODE_3D) != 0, 'mode=${memory.getMode()}');
+        var memoryChannel = memory.play(true);
+        check("core_create_sound_memory_plays", !memoryChannel.isNull(), 'result=${StudioSystem.lastResult().toString()}');
+        memoryChannel.stop();
+        memory.release();
+        #else
+        // The web build decodes FSB only
+        check("core_create_sound_memory_format_limit", memory.isNull()
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_FORMAT,
+            'handle=${(memory : Int)} result=${StudioSystem.lastResult().toString()}');
+        #end
+        check("core_create_sound_memory_null", Sound.fromMemory(null).isNull(), "");
+        check("core_create_sound_memory_empty", Sound.fromMemory(haxe.io.Bytes.alloc(0)).isNull()
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_PARAM,
+            'result=${StudioSystem.lastResult().toString()}');
+
+        #if sys
+        var wavPath = writeProbeWav();
+        var flagged = Sound.create(wavPath, true, false, ChannelMode.MODE_3D | ChannelMode.CREATESTREAM);
+        var flaggedMode = flagged.getMode();
+        check("core_create_sound_mode_flags", !flagged.isNull()
+            && (flaggedMode & ChannelMode.MODE_3D) != 0 && (flaggedMode & ChannelMode.CREATESTREAM) != 0
+            && (flaggedMode & ChannelMode.LOOP_NORMAL) != 0,
+            'handle=${(flagged : Int)} mode=$flaggedMode result=${StudioSystem.lastResult().toString()}');
+        flagged.release();
+        var async = Sound.create(wavPath, false, false, ChannelMode.NONBLOCKING);
+        check("core_create_sound_nonblocking", !async.isNull(), 'result=${StudioSystem.lastResult().toString()}');
+        var state = async.getOpenState();
+        var polls = 0;
+        while (state != FmodOpenState.READY && state != FmodOpenState.ERROR && polls++ < 500) {
+            Sys.sleep(0.005);
+            state = async.getOpenState();
+        }
+        check("core_sound_nonblocking_becomes_ready", state == FmodOpenState.READY, 'state=${(state : Int)} polls=$polls');
+        var asyncChannel = async.play(true);
+        check("core_sound_nonblocking_plays", !asyncChannel.isNull(), 'result=${StudioSystem.lastResult().toString()}');
+        asyncChannel.stop();
+        async.release();
+        var indexed = Sound.create(wavPath, false, false, 0, 0);
+        check("core_create_sound_initial_subsound_accepted", !indexed.isNull(),
+            'result=${StudioSystem.lastResult().toString()}');
+        indexed.release();
+        try sys.FileSystem.deleteFile(wavPath) catch (e:Dynamic) {}
+        #end
+
+        // The programmer sound forms on a live instance (the audible run is
+        // in ProgrammerSoundTestState)
+        var desc = StudioSystem.getEvent(FmodEvents.SFXJump);
+        var psBaseline = StudioSystem.liveHandleCount();
+        var inst = desc.createInstance();
+        var owned = Sound.fromPcm(pcm, 48000, 1);
+        #if js
+        check("ps_assign_sound_unsupported", inst.assignProgrammerSoundFrom(owned) == FmodResult.FMOD_ERR_UNSUPPORTED,
+            'result=${StudioSystem.lastResult().toString()}');
+        check("ps_assign_named_unsupported",
+            inst.assignProgrammerSoundForName("Line", "hello") == FmodResult.FMOD_ERR_UNSUPPORTED, "");
+        check("ps_assign_sounds_unsupported",
+            inst.assignProgrammerSounds(["Line" => "hello"]) == FmodResult.FMOD_ERR_UNSUPPORTED, "");
+        #else
+        check("ps_assign_sound", inst.assignProgrammerSoundFrom(owned, 0).isOk(),
+            'result=${StudioSystem.lastResult().toString()}');
+        check("ps_assign_sound_null_refused", inst.assignProgrammerSoundFrom(Sound.NULL) == FmodResult.FMOD_ERR_INVALID_PARAM, "");
+        check("ps_assign_sound_bad_subsound_refused", inst.assignProgrammerSoundFrom(owned, -2) == FmodResult.FMOD_ERR_INVALID_PARAM, "");
+        var deadSound = Sound.fromPcm(pcm, 48000, 1);
+        deadSound.release();
+        check("ps_assign_sound_stale_refused", inst.assignProgrammerSoundFrom(deadSound) == FmodResult.FMOD_ERR_INVALID_HANDLE, "");
+        check("ps_assign_named", inst.assignProgrammerSoundForName("Line", "hello").isOk(),
+            'result=${StudioSystem.lastResult().toString()}');
+        check("ps_assign_named_replace", inst.assignProgrammerSoundForName("Line", "goodbye").isOk(), "");
+        check("ps_assign_named_overlong_name_refused",
+            inst.assignProgrammerSoundForName(StringTools.rpad("n", "n", 100), "k") == FmodResult.FMOD_ERR_INVALID_PARAM, "");
+        var filled = true;
+        for (i in 0...7) filled = filled && inst.assignProgrammerSoundForName('Line$i', "hello").isOk();
+        check("ps_assign_named_eight_entries", filled, "");
+        check("ps_assign_named_ninth_refused", inst.assignProgrammerSoundForName("Overflow", "hello") == FmodResult.FMOD_ERR_MEMORY,
+            'result=${StudioSystem.lastResult().toString()}');
+        check("ps_assign_sounds_map", inst.assignProgrammerSounds(["Line" => "hello", "Line0" => "goodbye"]).isOk(), "");
+        check("ps_start_with_forms_armed", inst.start().isOk(), "");
+        inst.stop(IMMEDIATE);
+        check("ps_clear_all_forms", inst.clearProgrammerSound().isOk(), "");
+        check("ps_named_table_free_after_clear", inst.assignProgrammerSoundForName("Overflow", "hello").isOk(), "");
+        #end
+        inst.release();
+        owned.release();
+        StudioSystem.flushCommands();
+        CallbackDispatcher.update();
+        check("no_handle_leaks_ps_forms", StudioSystem.liveHandleCount() == psBaseline,
+            'baseline=$psBaseline now=${StudioSystem.liveHandleCount()}');
+
+        group.release();
+        StudioSystem.flushCommands();
+        CallbackDispatcher.update();
+        check("no_handle_leaks_sound_routing", StudioSystem.liveHandleCount() == baseline + headLookup
+            && headLookup <= 1,
+            'baseline=$baseline headLookup=$headLookup now=${StudioSystem.liveHandleCount()}');
+    }
+
+    /**
+     * Exercises the DSP, channel group, bus bridge, and reverb surface
+     * through the real FFI, with the handle-safety promises extended to
+     * the new type tags.
+     */
+    function probeDspSurface():Void {
+        var baseline = StudioSystem.liveHandleCount();
+
+        var lowpass = Dsp.create(DspType.LOWPASS_SIMPLE);
+        check("dsp_create", !lowpass.isNull(), 'handle=${(lowpass : Int)}');
+        var setResult = lowpass.setParameter(0, 2000);
+        check("dsp_set_parameter", setResult.isOk(), 'result=${setResult.toString()}');
+        check("dsp_get_parameter", Math.abs(lowpass.getParameter(0) - 2000) < 1,
+            'value=${lowpass.getParameter(0)}');
+        check("dsp_get_type", lowpass.getType() == DspType.LOWPASS_SIMPLE,
+            'value=${(lowpass.getType() : Int)}');
+        check("dsp_get_parameter_count", lowpass.getParameterCount() > 0,
+            'value=${lowpass.getParameterCount()}');
+        check("dsp_bypass_roundtrip", lowpass.setBypass(true).isOk() && lowpass.getBypass()
+            && lowpass.setBypass(false).isOk() && !lowpass.getBypass(), "");
+
+        // Master group round-trips and effect attach
+        var master = ChannelGroup.master();
+        check("cg_get_master", !master.isNull(), 'handle=${(master : Int)}');
+        var again = ChannelGroup.master();
+        check("cg_master_dedup", (again : Int) == (master : Int), "");
+        var addResult = master.addDsp(0, lowpass);
+        check("cg_add_dsp", addResult.isOk(), 'result=${addResult.toString()}');
+        var removeResult = master.removeDsp(lowpass);
+        check("cg_remove_dsp", removeResult.isOk(), 'result=${removeResult.toString()}');
+
+        // Custom group lifecycle
+        var group = ChannelGroup.create("probe-group");
+        check("cg_create", !group.isNull(), 'handle=${(group : Int)}');
+        check("cg_volume_roundtrip", group.setVolume(0.5).isOk()
+            && Math.abs(group.getVolume() - 0.5) < 0.001, 'value=${group.getVolume()}');
+        check("cg_pitch_roundtrip", group.setPitch(1.25).isOk()
+            && Math.abs(group.getPitch() - 1.25) < 0.001, 'value=${group.getPitch()}');
+        check("cg_mute_roundtrip", group.setMute(true).isOk() && group.getMute()
+            && group.setMute(false).isOk() && !group.getMute(), "");
+        check("cg_paused_roundtrip", group.setPaused(true).isOk() && group.getPaused()
+            && group.setPaused(false).isOk() && !group.getPaused(), "");
+
+        // A stream channel reroutes into the group and gets a per-channel effect
+        var stream = PcmStream.create(48000, 1);
+        var channel = stream.play(true);
+        check("chan_set_channel_group", channel.setChannelGroup(group).isOk(), "");
+        var echo = Dsp.create(DspType.ECHO);
+        check("chan_add_dsp", channel.addDsp(0, echo).isOk(), "");
+        check("chan_remove_dsp", channel.removeDsp(echo).isOk(), "");
+        echo.release();
+        check("chan_set_pan", channel.setPan(0.5).isOk(), "");
+        check("chan_frequency_roundtrip", channel.setFrequency(24000).isOk()
+            && Math.abs(channel.getFrequency() - 24000) < 1, 'value=${channel.getFrequency()}');
+        check("chan_set_reverb_wet", channel.setReverbWet(0, 0.5).isOk(), "");
+        channel.stop();
+        stream.release();
+        check("cg_release", group.release().isOk(), "");
+
+        // Oscillator through playDSP proves DSPs as sound sources
+        var osc = Dsp.create(DspType.OSCILLATOR);
+        osc.setParameterInt(0, 0);
+        osc.setParameter(1, 440);
+        var oscChannel = osc.play(true);
+        check("sys_play_dsp", !oscChannel.isNull(), 'handle=${(oscChannel : Int)}');
+        oscChannel.stop();
+        osc.release();
+
+        // Studio bus bridge: effects attach to Studio-mixed audio
+        var bus = StudioSystem.getBus("bus:/");
+        var lockResult = bus.lockChannelGroup();
+        check("bus_lock_channel_group", lockResult.isOk(), 'result=${lockResult.toString()}');
+        var busGroup = bus.getChannelGroup();
+        check("bus_get_channel_group", !busGroup.isNull(), 'handle=${(busGroup : Int)}');
+        check("bus_group_add_dsp", busGroup.addDsp(0, lowpass).isOk(), "");
+        check("bus_group_remove_dsp", busGroup.removeDsp(lowpass).isOk(), "");
+        check("bus_unlock_channel_group", bus.unlockChannelGroup().isOk(), "");
+
+        // Reverb properties round-trip, then off
+        var props = Reverb.PRESET_CONCERTHALL;
+        check("reverb_set", Reverb.set(0, props).isOk(), "");
+        var back = Reverb.get(0);
+        check("reverb_get_roundtrip", back != null && Math.abs(back.decayTime - 3900) < 1,
+            'decayTime=${back == null ? -1 : back.decayTime}');
+        Reverb.off(0);
+
+        // 3D stream accepts positional control
+        var stream3d = PcmStream.create3d(48000, 1);
+        check("pcm_create_3d", !stream3d.isNull(), 'handle=${(stream3d : Int)}');
+        var channel3d = stream3d.play(true);
+        check("chan_set_3d_attributes", channel3d.set3DAttributes(1, 0, 0).isOk(), "");
+        check("chan_set_3d_min_max", channel3d.set3DMinMaxDistance(1, 100).isOk(), "");
+        channel3d.stop();
+        stream3d.release();
+
+        // Handle safety over the new tags
+        var staleDsp:FmodResult = lowpass.setParameter(0, 500);
+        check("dsp_live_before_release", staleDsp.isOk(), 'result=${staleDsp.toString()}');
+        lowpass.release();
+        staleDsp = lowpass.setParameter(0, 500);
+        check("stale_dsp_invalid_handle", staleDsp == FmodResult.FMOD_ERR_INVALID_HANDLE,
+            'result=${staleDsp.toString()}');
+        var wrongDsp:Dsp = cast (master : Int);
+        var crossResult:FmodResult = wrongDsp.setParameter(0, 500);
+        check("crosstype_cg_as_dsp", crossResult == FmodResult.FMOD_ERR_INVALID_HANDLE,
+            'result=${crossResult.toString()}');
+
+        // Two lookup handles may legitimately persist: the cached master
+        // group, and the bus group if FMOD kept it alive after the unlock.
+        // Everything owned (DSPs, streams, the custom group) must be gone.
+        var persistent = 1; // the master group handle cached above
+        busGroup.getVolume();
+        var busGroupAlive = StudioSystem.lastResult() != FmodResult.FMOD_ERR_INVALID_HANDLE;
+        if (busGroupAlive && (busGroup : Int) != (master : Int)) persistent++;
+        var now = StudioSystem.liveHandleCount();
+        check("no_handle_leaks_dsp", now == baseline + persistent,
+            'baseline=$baseline now=$now persistent=$persistent busGroupAlive=$busGroupAlive');
+    }
+
+    /**
+     * Exercises the parity tail through the real FFI: the connection
+     * graph, group nesting, scheduling, spatial extras, reverb zones,
+     * memory sounds, and system queries, with handle safety over the
+     * new type tags.
+     */
+    function probeParityTail():Void {
+        var baseline = StudioSystem.liveHandleCount();
+
+        // Connection graph: an oscillator wired into a lowpass
+        var osc = Dsp.create(DspType.OSCILLATOR);
+        var lowpass = Dsp.create(DspType.LOWPASS_SIMPLE);
+        var conn = lowpass.addInput(osc);
+        check("dsp_add_input", !conn.isNull(), 'handle=${(conn : Int)}');
+        check("conn_mix_roundtrip", conn.setMix(0.5).isOk()
+            && Math.abs(conn.getMix() - 0.5) < 0.001, 'value=${conn.getMix()}');
+        check("dsp_input_count", lowpass.getInputCount() == 1,
+            'value=${lowpass.getInputCount()}');
+        check("dsp_input_dedup", (lowpass.getInput(0) : Int) == (osc : Int), "");
+        check("dsp_input_conn_dedup", (lowpass.getInputConnection(0) : Int) == (conn : Int), "");
+        var disconnect = lowpass.disconnectFrom(osc);
+        check("dsp_disconnect", disconnect.isOk(), 'result=${disconnect.toString()}');
+        // Graph changes invalidate every connection handle deterministically
+        var staleConn:FmodResult = conn.setMix(1.0);
+        check("stale_conn_invalid_handle", staleConn == FmodResult.FMOD_ERR_INVALID_HANDLE,
+            'result=${staleConn.toString()}');
+
+        // Nesting
+        var parent = ChannelGroup.create("probe-parent");
+        var child = ChannelGroup.create("probe-child");
+        check("cg_add_group", parent.addGroup(child).isOk(), "");
+        check("cg_group_count", parent.getGroupCount() == 1, 'value=${parent.getGroupCount()}');
+        check("cg_group_dedup", (parent.getGroup(0) : Int) == (child : Int), "");
+        check("cg_parent_dedup", (child.getParentGroup() : Int) == (parent : Int), "");
+
+        // Scheduling on a live channel
+        var oscChannel = osc.play(true);
+        var clocks = oscChannel.getDspClock();
+        check("chan_dsp_clock", clocks != null, clocks == null ? "" : 'parent=${clocks.parent}');
+        if (clocks != null) {
+            var base = clocks.parent;
+            check("chan_set_delay", oscChannel.setDelay(0, base + 96000).isOk(), "");
+            check("chan_fade_points", oscChannel.addFadePoint(base + 4800, 1.0).isOk()
+                && oscChannel.addFadePoint(base + 48000, 0.0).isOk(), "");
+            check("chan_fade_ramp", oscChannel.setFadePointRamp(base + 9600, 0.5).isOk(), "");
+            check("chan_remove_fades", oscChannel.removeFadePoints(0, base + 96000).isOk(), "");
+            check("cg_scheduling", parent.getDspClock() != null
+                && parent.addFadePoint(base + 4800, 0.5).isOk()
+                && parent.removeFadePoints(0, base + 96000).isOk()
+                && parent.setDelay(0, base + 96000).isOk(), "");
+        }
+        check("chan_mute_roundtrip", oscChannel.setMute(true).isOk() && oscChannel.getMute()
+            && oscChannel.setMute(false).isOk() && !oscChannel.getMute(), "");
+        check("chan_low_pass_gain", oscChannel.setLowPassGain(0.5).isOk(), "");
+        check("chan_mix_matrix", oscChannel.setMixMatrix([1, 0, 0, 1], 2, 2).isOk(), "");
+        oscChannel.stop();
+        osc.release();
+        lowpass.release();
+        child.release();
+        parent.release();
+
+        // Spatial extras on a positional stream
+        var stream3d = PcmStream.create3d(48000, 1);
+        var channel3d = stream3d.play(true);
+        check("chan_cone", channel3d.set3DConeSettings(30, 60, 0.5).isOk()
+            && channel3d.set3DConeOrientation(0, 0, 1).isOk(), "");
+        check("chan_occlusion_roundtrip", channel3d.set3DOcclusion(0.5, 0.3).isOk()
+            && channel3d.get3DOcclusion() != null
+            && Math.abs(channel3d.get3DOcclusion().direct - 0.5) < 0.001, "");
+        check("chan_spatial_extras", channel3d.set3DSpread(45).isOk()
+            && channel3d.set3DLevel(0.8).isOk()
+            && channel3d.set3DDopplerLevel(1.0).isOk(), "");
+        check("chan_set_mode", channel3d.setMode(ChannelMode.MODE_3D | ChannelMode.LINEAR_ROLLOFF_3D).isOk(), "");
+        channel3d.stop();
+        stream3d.release();
+
+        // Reverb zone lifecycle
+        var zone = Reverb3D.create();
+        check("reverb3d_create", !zone.isNull(), 'handle=${(zone : Int)}');
+        check("reverb3d_surface", zone.set3DAttributes(0, 0, 0, 5, 20).isOk()
+            && zone.setProperties(Reverb.PRESET_CAVE).isOk()
+            && zone.getProperties() != null
+            && zone.setActive(true).isOk(), "");
+        check("reverb3d_release", zone.release().isOk(), "");
+        var staleZone:FmodResult = zone.setActive(false);
+        check("stale_reverb3d", staleZone == FmodResult.FMOD_ERR_INVALID_HANDLE,
+            'result=${staleZone.toString()}');
+
+        // Memory sounds
+        var samples = 4800;
+        var pcm = haxe.io.Bytes.alloc(samples * 2);
+        for (i in 0...samples) {
+            var v = Std.int(Math.sin(2 * Math.PI * 440 * i / 48000) * 0x3000);
+            pcm.setUInt16(i * 2, v & 0xFFFF);
+        }
+        var sound = Sound.fromPcm(pcm, 48000, 1);
+        check("coresound_from_pcm", !sound.isNull(), 'handle=${(sound : Int)}');
+        check("coresound_defaults", sound.setDefaults(24000, 128).isOk()
+            && sound.getDefaults() != null
+            && Math.abs(sound.getDefaults().frequency - 24000) < 1, "");
+        check("coresound_mode", sound.setMode(ChannelMode.LOOP_NORMAL).isOk()
+            && (sound.getMode() & ChannelMode.LOOP_NORMAL) != 0, "");
+        check("coresound_loop_points", sound.setLoopPoints(10, 90).isOk()
+            && sound.getLoopPoints() != null && sound.getLoopPoints().loopStart == 10, "");
+        check("coresound_format", sound.getFormat() != null
+            && sound.getFormat().channels == 1 && sound.getFormat().bits == 16, "");
+        check("coresound_open_state", sound.getOpenState() == 0,
+            'state=${sound.getOpenState()}');
+        var soundChannel = sound.play(true);
+        check("coresound_play", !soundChannel.isNull(), 'handle=${(soundChannel : Int)}');
+        soundChannel.stop();
+        check("coresound_release", sound.release().isOk(), "");
+
+        // System queries
+        check("sys_channels_playing", CoreSystem.getChannelsPlaying() != null, "");
+        check("sys_mixer_suspend_resume", CoreSystem.mixerSuspend().isOk()
+            && CoreSystem.mixerResume().isOk(), "");
+        var format = CoreSystem.getSoftwareFormat();
+        check("sys_software_format", format != null && format.sampleRate > 0,
+            format == null ? "" : 'rate=${format.sampleRate}');
+
+        check("no_handle_leaks_tail", StudioSystem.liveHandleCount() == baseline,
+            'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
+    }
+
+    /**
+     * The completeness tail: plain getters and setters on objects the
+     * library already wrapped, checked as round trips against FMOD.
+     */
+    /**
+     * Time units on the length, loop point, sync point, and position calls,
+     * and the extra fields on getFormat and getOpenStateInfo. A 4800 frame
+     * mono sound at 48 kHz is 100 ms, 4800 samples, and 9600 PCM bytes.
+     */
+    function probeTimeUnitsAndSoundInfo():Void {
+        var baseline = StudioSystem.liveHandleCount();
+        var frames = 4800;
+        var sound = Sound.fromPcm(haxe.io.Bytes.alloc(frames * 2), 48000, 1);
+        check("tu_sound", !sound.isNull(), 'handle=${(sound : Int)}');
+        check("tu_length_ms", sound.getLength() == 100, 'ms=${sound.getLength()}');
+        check("tu_length_pcm", sound.getLength(FmodTimeUnit.PCM) == frames, 'pcm=${sound.getLength(FmodTimeUnit.PCM)}');
+        check("tu_length_pcmbytes", sound.getLength(FmodTimeUnit.PCMBYTES) == frames * 2,
+            'bytes=${sound.getLength(FmodTimeUnit.PCMBYTES)}');
+
+        sound.setMode(ChannelMode.LOOP_NORMAL);
+        check("tu_sound_loop_points_pcm", sound.setLoopPoints(480, 2400, FmodTimeUnit.PCM).isOk(),
+            'result=${StudioSystem.lastResult().toString()}');
+        var loopsPcm = sound.getLoopPoints(FmodTimeUnit.PCM);
+        check("tu_sound_loop_points_pcm_roundtrip", loopsPcm != null && loopsPcm.loopStart == 480 && loopsPcm.loopEnd == 2400,
+            loopsPcm == null ? "null" : 'start=${loopsPcm.loopStart} end=${loopsPcm.loopEnd}');
+        var loopsMs = sound.getLoopPoints();
+        check("tu_sound_loop_points_ms_view", loopsMs != null && loopsMs.loopStart == 10 && loopsMs.loopEnd == 50,
+            loopsMs == null ? "null" : 'start=${loopsMs.loopStart} end=${loopsMs.loopEnd}');
+
+        var half = sound.addSyncPoint(2400, "half", FmodTimeUnit.PCM);
+        check("tu_sync_add_pcm", !half.isNull(), 'result=${StudioSystem.lastResult().toString()}');
+        var halfMs = sound.getSyncPointInfo(half);
+        var halfPcm = sound.getSyncPointInfo(half, FmodTimeUnit.PCM);
+        check("tu_sync_offset_ms", halfMs != null && halfMs.offset == 50, halfMs == null ? "null" : 'ms=${halfMs.offset}');
+        check("tu_sync_offset_pcm", halfPcm != null && halfPcm.offset == 2400, halfPcm == null ? "null" : 'pcm=${halfPcm.offset}');
+        check("tu_sync_name", halfMs != null && halfMs.name == "half", halfMs == null ? "null" : 'name=${halfMs.name}');
+        check("tu_sync_delete", sound.deleteSyncPoint(half).isOk() && sound.getSyncPointCount() == 0, "");
+
+        var format = sound.getFormat();
+        check("tu_format_type_raw", format != null && format.type == FmodSoundType.RAW,
+            format == null ? "null" : 'type=${(format.type : Int)}');
+        check("tu_format_pcm16", format != null && format.format == FmodSoundFormat.PCM16,
+            format == null ? "null" : 'format=${(format.format : Int)}');
+        check("tu_format_channels_bits", format != null && format.channels == 1 && format.bits == 16,
+            format == null ? "null" : 'ch=${format.channels} bits=${format.bits}');
+
+        var openInfo = sound.getOpenStateInfo();
+        // diskBusy is a transient flag (HL/C builds see it set right after
+        // the open), so only the state and starvation are gated
+        check("tu_open_state_info", openInfo != null && openInfo.state == FmodOpenState.READY
+            && !openInfo.starving,
+            openInfo == null ? "null" : 'state=${(openInfo.state : Int)} buffered=${openInfo.percentBuffered} starving=${openInfo.starving} diskBusy=${openInfo.diskBusy}');
+        check("tu_open_state_plain", openInfo != null && sound.getOpenState() == openInfo.state, "");
+
+        var channel = sound.play(true);
+        check("tu_play", !channel.isNull(), 'handle=${(channel : Int)}');
+        check("tu_chan_set_position_pcm", channel.setPosition(2400, FmodTimeUnit.PCM).isOk(),
+            'result=${StudioSystem.lastResult().toString()}');
+        check("tu_chan_get_position_ms", channel.getPosition() == 50, 'ms=${channel.getPosition()}');
+        check("tu_chan_get_position_pcm", channel.getPosition(FmodTimeUnit.PCM) == 2400,
+            'pcm=${channel.getPosition(FmodTimeUnit.PCM)}');
+        check("tu_chan_loop_points_pcm", channel.setLoopPoints(960, 1920, FmodTimeUnit.PCM).isOk(),
+            'result=${StudioSystem.lastResult().toString()}');
+        var chLoops = channel.getLoopPoints();
+        check("tu_chan_loop_points_ms_view", chLoops != null && chLoops.loopStart == 20 && chLoops.loopEnd == 40,
+            chLoops == null ? "null" : 'start=${chLoops.loopStart} end=${chLoops.loopEnd}');
+        channel.stop();
+        sound.release();
+
+        var stale = sound.getOpenStateInfo();
+        check("tu_stale_open_state_info", stale == null && StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_HANDLE,
+            'result=${StudioSystem.lastResult().toString()}');
+        check("no_handle_leaks_timeunits", StudioSystem.liveHandleCount() == baseline,
+            'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
+    }
+
+    function probeCompletenessTail():Void {
+        var baseline = StudioSystem.liveHandleCount();
+
+        // Sound cone and rolloff distances
+        var samples = 4800;
+        var pcm = haxe.io.Bytes.alloc(samples * 2);
+        for (i in 0...samples) {
+            var v = Std.int(Math.sin(2 * Math.PI * 440 * i / 48000) * 0x3000);
+            pcm.setUInt16(i * 2, v & 0xFFFF);
+        }
+        var sound = Sound.fromPcm(pcm, 48000, 1);
+        sound.setMode(ChannelMode.MODE_3D);
+        var cone = sound.set3DConeSettings(30, 60, 0.5);
+        var coneBack = sound.get3DConeSettings();
+        check("sound_cone_roundtrip", cone.isOk() && coneBack != null
+            && Math.abs(coneBack.insideAngle - 30) < 0.01 && Math.abs(coneBack.outsideAngle - 60) < 0.01
+            && Math.abs(coneBack.outsideVolume - 0.5) < 0.001,
+            coneBack == null ? 'result=${cone.toString()}' : 'inside=${coneBack.insideAngle} outside=${coneBack.outsideAngle}');
+        var minMax = sound.set3DMinMaxDistance(2, 50);
+        var minMaxBack = sound.get3DMinMaxDistance();
+        check("sound_min_max_roundtrip", minMax.isOk() && minMaxBack != null
+            && Math.abs(minMaxBack.minDistance - 2) < 0.001 && Math.abs(minMaxBack.maxDistance - 50) < 0.001,
+            minMaxBack == null ? 'result=${minMax.toString()}' : 'min=${minMaxBack.minDistance} max=${minMaxBack.maxDistance}');
+
+        // DSP chain position on a paused channel, then a fade point and
+        // mix matrix readback
+        var channel = sound.play(true);
+        var lowpass = Dsp.create(DspType.LOWPASS);
+        var echo = Dsp.create(DspType.ECHO);
+        channel.addDsp(0, lowpass);
+        channel.addDsp(0, echo);
+        check("chan_dsp_index_before_move", channel.getDspIndex(echo) == 0 && channel.getDspIndex(lowpass) == 1,
+            'echo=${channel.getDspIndex(echo)} lowpass=${channel.getDspIndex(lowpass)}');
+        var move = channel.setDspIndex(echo, 1);
+        check("chan_dsp_index_move", move.isOk() && channel.getDspIndex(echo) == 1 && channel.getDspIndex(lowpass) == 0,
+            'result=${move.toString()} echo=${channel.getDspIndex(echo)} lowpass=${channel.getDspIndex(lowpass)}');
+        var clocks = channel.getDspClock();
+        var base = clocks == null ? 0.0 : clocks.parent;
+        channel.addFadePoint(base + 4800, 0.25);
+        channel.addFadePoint(base + 9600, 0.75);
+        #if js
+        // html5: the glue binds getFadePoints with single value slots and
+        // every getMixMatrix pointer as one float, so neither readback
+        // exists on the web (the setters work)
+        check("chan_fade_points_readback_unsupported", channel.getFadePoints() == null
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED, 'result=${StudioSystem.lastResult().toString()}');
+        channel.removeFadePoints(0, base + 96000);
+        check("chan_set_mix_matrix", channel.setMixMatrix([0.5, 0.25, 0.25, 0.5], 2, 2).isOk(),
+            'result=${StudioSystem.lastResult().toString()}');
+        check("chan_mix_matrix_readback_unsupported", channel.getMixMatrix(2, 2) == null
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED, 'result=${StudioSystem.lastResult().toString()}');
+        #else
+        var fades = channel.getFadePoints();
+        check("chan_fade_points_readback", fades != null && fades.length == 2
+            && Math.abs(fades[0].clock - (base + 4800)) < 1 && Math.abs(fades[0].volume - 0.25) < 0.001
+            && Math.abs(fades[1].clock - (base + 9600)) < 1 && Math.abs(fades[1].volume - 0.75) < 0.001,
+            fades == null ? 'result=${StudioSystem.lastResult().toString()}' : 'count=${fades.length}');
+        channel.removeFadePoints(0, base + 96000);
+        check("chan_fade_points_cleared", channel.getFadePoints() != null && channel.getFadePoints().length == 0, "");
+        channel.setMixMatrix([0.5, 0.25, 0.25, 0.5], 2, 2);
+        var matrix = channel.getMixMatrix(2, 2);
+        check("chan_mix_matrix_readback", matrix != null && matrix.matrix.length == 4
+            && Math.abs(matrix.matrix[0] - 0.5) < 0.001 && Math.abs(matrix.matrix[1] - 0.25) < 0.001
+            && Math.abs(matrix.matrix[3] - 0.5) < 0.001 && matrix.outChannels == 2 && matrix.inChannels == 2,
+            matrix == null ? 'result=${StudioSystem.lastResult().toString()}'
+            : 'out=${matrix.outChannels} in=${matrix.inChannels} m0=${matrix.matrix[0]}');
+        check("chan_mix_matrix_bad_size", channel.getMixMatrix(0, 0, 33) == null
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_PARAM, "");
+        #end
+
+        // The group getter hands back the handle the setter took
+        var group = ChannelGroup.create("probe-tail-group");
+        channel.setChannelGroup(group);
+        check("chan_get_channel_group", (channel.getChannelGroup() : Int) == (group : Int),
+            'got=${(channel.getChannelGroup() : Int)} set=${(group : Int)}');
+        group.addDsp(0, lowpass);
+        check("cg_dsp_index_readback", group.getDspIndex(lowpass) == 0, 'value=${group.getDspIndex(lowpass)}');
+        var groupClocks = group.getDspClock();
+        var groupBase = groupClocks == null ? 0.0 : groupClocks.parent;
+        group.addFadePoint(groupBase + 4800, 0.5);
+        #if js
+        check("cg_fade_points_readback_unsupported", group.getFadePoints() == null
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED, 'result=${StudioSystem.lastResult().toString()}');
+        group.removeFadePoints(0, groupBase + 96000);
+        check("cg_set_mix_matrix", group.setMixMatrix([1, 0, 0, 1], 2, 2).isOk(), 'result=${StudioSystem.lastResult().toString()}');
+        check("cg_mix_matrix_readback_unsupported", group.getMixMatrix(2, 2) == null
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED, 'result=${StudioSystem.lastResult().toString()}');
+        #else
+        var groupFades = group.getFadePoints();
+        check("cg_fade_points_readback", groupFades != null && groupFades.length == 1
+            && Math.abs(groupFades[0].volume - 0.5) < 0.001,
+            groupFades == null ? 'result=${StudioSystem.lastResult().toString()}' : 'count=${groupFades.length}');
+        group.removeFadePoints(0, groupBase + 96000);
+        group.setMixMatrix([1, 0, 0, 1], 2, 2);
+        var groupMatrix = group.getMixMatrix(2, 2);
+        check("cg_mix_matrix_readback", groupMatrix != null && groupMatrix.matrix.length == 4
+            && Math.abs(groupMatrix.matrix[0] - 1) < 0.001 && Math.abs(groupMatrix.matrix[1]) < 0.001,
+            groupMatrix == null ? 'result=${StudioSystem.lastResult().toString()}' : 'm0=${groupMatrix.matrix[0]}');
+        #end
+
+        // The pool channel by index is the playing channel, deduplicated
+        var index = channel.getIndex();
+        var pooled = CoreSystem.getChannel(index);
+        check("sys_get_channel", index >= 0 && !pooled.isNull() && pooled.getIndex() == index && pooled.getPaused(),
+            'index=$index pooled=${(pooled : Int)} pooledIndex=${pooled.getIndex()}');
+        check("sys_get_channel_dedup", (CoreSystem.getChannel(index) : Int) == (pooled : Int), "");
+        check("sys_get_channel_bad_index", CoreSystem.getChannel(-1).isNull(), "");
+
+        // Sound group name and enumeration
+        var soundGroup = SoundGroup.create("probe-tail-sg");
+        check("sg_get_name", soundGroup.getName() == "probe-tail-sg", 'name=${soundGroup.getName()}');
+        sound.setSoundGroup(soundGroup);
+        check("sg_get_sound", soundGroup.getSoundCount() == 1 && (soundGroup.getSound(0) : Int) == (sound : Int),
+            'count=${soundGroup.getSoundCount()} got=${(soundGroup.getSound(0) : Int)} have=${(sound : Int)}');
+        check("sg_get_sound_past_end", soundGroup.getSound(5).isNull(), "");
+
+        // System queries
+        check("sys_get_output", (CoreSystem.getOutput() : Int) >= 0, 'value=${CoreSystem.getOutput()}');
+        check("sys_speaker_mode_channels", CoreSystem.getSpeakerModeChannels(3) == 2,
+            'value=${CoreSystem.getSpeakerModeChannels(3)}');
+        #if js
+        check("sys_default_mix_matrix_unsupported", CoreSystem.getDefaultMixMatrix(3, 3) == null
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED, 'result=${StudioSystem.lastResult().toString()}');
+        check("sys_default_mix_matrix_hop_unsupported", CoreSystem.getDefaultMixMatrix(3, 3, 4) == null
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED, 'result=${StudioSystem.lastResult().toString()}');
+        #else
+        var identity = CoreSystem.getDefaultMixMatrix(3, 3);
+        check("sys_default_mix_matrix_identity", identity != null && identity.length == 4
+            && Math.abs(identity[0] - 1) < 0.001 && Math.abs(identity[1]) < 0.001
+            && Math.abs(identity[2]) < 0.001 && Math.abs(identity[3] - 1) < 0.001,
+            identity == null ? 'result=${StudioSystem.lastResult().toString()}' : 'values=${identity.join(",")}');
+        var hopped = CoreSystem.getDefaultMixMatrix(3, 3, 4);
+        check("sys_default_mix_matrix_hop", hopped != null && hopped.length == 8
+            && Math.abs(hopped[0] - 1) < 0.001 && Math.abs(hopped[5] - 1) < 0.001,
+            hopped == null ? 'result=${StudioSystem.lastResult().toString()}' : 'length=${hopped.length}');
+        #end
+
+        // DSP descriptors and channel formats
+        #if js
+        // The glue cannot marshal FMOD_DSP_PARAMETER_DESC
+        check("dsp_parameter_info_cutoff_unsupported", lowpass.getParameterInfo(0) == null
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED, 'result=${StudioSystem.lastResult().toString()}');
+        #else
+        var info = lowpass.getParameterInfo(0);
+        check("dsp_parameter_info_cutoff", info != null && info.name.toLowerCase().indexOf("cutoff") >= 0
+            && info.type == Dsp.PARAMETER_FLOAT && info.floatDesc != null && info.floatDesc.max > info.floatDesc.min
+            && info.floatDesc.defaultVal >= info.floatDesc.min && info.floatDesc.defaultVal <= info.floatDesc.max,
+            info == null ? 'result=${StudioSystem.lastResult().toString()}'
+            : info.floatDesc == null ? 'name=${info.name} type=${info.type} floatDesc=null'
+            : 'name=${info.name} type=${info.type} min=${info.floatDesc.min} max=${info.floatDesc.max} default=${info.floatDesc.defaultVal}');
+        #end
+        check("dsp_parameter_info_bad_index", lowpass.getParameterInfo(99) == null, "");
+        var fft = Dsp.create(DspType.FFT);
+        check("dsp_data_parameter_index", fft.getDataParameterIndex(-4) >= 0,
+            'value=${fft.getDataParameterIndex(-4)}');
+        check("dsp_data_parameter_index_missing", lowpass.getDataParameterIndex(-4) == -1, "");
+        var format = echo.setChannelFormat(0, 2, 3);
+        var formatBack = echo.getChannelFormat();
+        check("dsp_channel_format_roundtrip", format.isOk() && formatBack != null
+            && formatBack.channels == 2 && formatBack.speakerMode == 3,
+            formatBack == null ? 'result=${format.toString()}' : 'channels=${formatBack.channels} mode=${formatBack.speakerMode}');
+        var outFormat = echo.getOutputChannelFormat(0, 2, 3);
+        check("dsp_output_channel_format", outFormat != null && outFormat.channels == 2,
+            outFormat == null ? 'result=${StudioSystem.lastResult().toString()}' : 'channels=${outFormat.channels}');
+
+        // Connection mix matrix round trip
+        var osc = Dsp.create(DspType.OSCILLATOR);
+        var conn = fft.addInput(osc);
+        var connSet = conn.setMixMatrix([0.5, 0, 0, 0.5], 2, 2);
+        #if js
+        check("conn_mix_matrix_set", connSet.isOk(), 'result=${connSet.toString()}');
+        check("conn_mix_matrix_readback_unsupported", conn.getMixMatrix(2, 2) == null
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED, 'result=${StudioSystem.lastResult().toString()}');
+        #else
+        var connMatrix = conn.getMixMatrix(2, 2);
+        check("conn_mix_matrix_roundtrip", connSet.isOk() && connMatrix != null && connMatrix.matrix.length == 4
+            && Math.abs(connMatrix.matrix[0] - 0.5) < 0.001 && Math.abs(connMatrix.matrix[1]) < 0.001
+            && connMatrix.outChannels == 2 && connMatrix.inChannels == 2,
+            connMatrix == null ? 'result=${StudioSystem.lastResult().toString()}'
+            : 'out=${connMatrix.outChannels} in=${connMatrix.inChannels} m0=${connMatrix.matrix[0]}');
+        #end
+
+        fft.disconnectFrom(osc);
+        channel.stop();
+        // The pool slot handle is its own handle and needs its own stop
+        pooled.stop();
+        osc.release();
+        fft.release();
+        echo.release();
+        lowpass.release();
+        group.release();
+        sound.release();
+        soundGroup.release();
+        check("no_handle_leaks_completeness_tail", StudioSystem.liveHandleCount() == baseline,
+            'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
+    }
+
+    /**
+     * Verifies the engine volume bridge installed by host.setupInit():
+     * the engine's own volume and mute controls must land on the FMOD
+     * master bus. The host owns the checks since the controls differ per
+     * engine.
+     */
+    function probeEngineBridge():Void {
+        host.checkVolumeBridge(check);
+    }
+
+    /**
+     * Verifies focus-driven muting through the real FFI and the engine
+     * focus wiring installed by host.setupInit(). Losing focus
+     * mutes the core master channel group, regaining it unmutes, and the
+     * opt-out keeps audio playing while unfocused. Restores focus at the
+     * end so the run never finishes muted.
+     */
+    function probeFocusMute():Void {
+        // The master group is cached by the DSP probe above, so this lookup
+        // allocates nothing and the live count must hold across the section.
+        var master = ChannelGroup.master();
+        var baseline = StudioSystem.liveHandleCount();
+
+        check("focus_starts_focused", FmodManager.IsWindowFocused(), "");
+        check("focus_master_unmuted", !master.getMute(), "");
+
+        // Losing and regaining focus mutes and unmutes the real master group
+        FmodManager.SetWindowFocused(false);
+        check("focus_lost_mutes_master", master.getMute(), "");
+        FmodManager.SetWindowFocused(true);
+        check("focus_gained_unmutes_master", !master.getMute(), "");
+
+        // The engine's own focus events drive the same path end to end
+        host.setFocusThroughEngine(false);
+        check("focus_engine_signal_mutes", master.getMute(), "");
+        host.setFocusThroughEngine(true);
+        check("focus_engine_signal_unmutes", !master.getMute(), "");
+
+        // Opting out keeps the master group unmuted while unfocused
+        FmodManager.SetMuteWhenUnfocused(false);
+        FmodManager.SetWindowFocused(false);
+        check("focus_optout_keeps_playing", !master.getMute(), "");
+        // Re-enabling the policy while already unfocused mutes right away
+        FmodManager.SetMuteWhenUnfocused(true);
+        check("focus_reenable_mutes", master.getMute(), "");
+
+        // Restore defaults so the run never finishes muted or unfocused
+        FmodManager.SetWindowFocused(true);
+        check("focus_restored_unmuted", FmodManager.IsWindowFocused() && !master.getMute(), "");
+
+        check("no_handle_leaks_focus", StudioSystem.liveHandleCount() == baseline,
+            'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
+    }
+
+    public function update(elapsed:Float):Void {
+        if (_waitingForDspData) {
+            ProbeDspData.tick(this);
+            if (ProbeDspData.pending()) return;
+            _waitingForDspData = false;
+            probeChannelEvents();
+        }
+        // The occlusion probe holds four handles of its own and counts
+        // them against a baseline, so it is a phase of its own: nothing
+        // else is in flight while it runs (the transition, snapshot,
+        // sustain and one-shot phases create and release instances, and
+        // on a slow frame one of those landed between its baseline and
+        // its count while it ticked alongside them)
+        if (_waitingForOcclusion) {
+            ProbeChannelControl.tick(this);
+            if (!ProbeChannelControl.pending()) {
+                _waitingForOcclusion = false;
+                probeSongTransition();
+            }
+        }
+        if (_waitingForChannelEvents) {
+            _chanEventFrames++;
+            var sawEnd = false;
+            for (e in _chanEvents) if (e.match(End)) sawEnd = true;
+            // 0.1s of audio: events land within a few frames. The timeout
+            // makes a broken delivery path fail loudly instead of hanging.
+            if (sawEnd || _chanEventFrames > 300) {
+                _waitingForChannelEvents = false;
+                finishChannelEvents();
+            }
+        }
+        if (_waitingForRemint) {
+            _remintFrames++;
+            // MainLevel runs around two beats per second. The timeout makes
+            // a broken re-mint routing path fail loudly instead of hanging
+            if (_remintBeats > 0 || _remintFrames > 600) {
+                _waitingForRemint = false;
+                finishRemintCallbacks();
+            }
+        }
+        if (_waitingForRemintDrain) {
+            _remintDrainFrames++;
+            StudioSystem.flushCommands();
+            if (StudioSystem.liveHandleCount() == _remintBaseline || _remintDrainFrames > 180) {
+                _waitingForRemintDrain = false;
+                finishRemintDrain();
+            }
+        }
+        if (_waitingForTransition) {
+            _transitionFrames++;
+            // The fade is authored: give it ten seconds before calling the
+            // handoff broken
+            if ((FmodManager.GetCurrentSongPath() == FmodEvents.SFXCoin
+                    && FmodManager.IsSongPlaying()) || _transitionFrames > 600) {
+                _waitingForTransition = false;
+                finishSongTransition();
+            }
+        }
+        if (_waitingForSnapshotActive) {
+            _snapshotFrames++;
+            var ducked = StudioSystem.getBus("bus:/").getFinalVolume() < 0.45;
+            // The blending ramp is quick. The timeout makes a snapshot that
+            // never ducks fail loudly through the band check instead of
+            // hanging.
+            if (ducked || _snapshotFrames > 600) {
+                _waitingForSnapshotActive = false;
+                finishSnapshotActive();
+            }
+        }
+        if (_waitingForSnapshotRecovery) {
+            _snapshotFrames++;
+            var recovered = Math.abs(StudioSystem.getBus("bus:/").getFinalVolume() - _snapshotPreVolume) < 0.1;
+            if (recovered || _snapshotFrames > 600) {
+                _waitingForSnapshotRecovery = false;
+                finishSnapshotRecovery();
+            }
+        }
+        if (_waitingForSustainHold) {
+            _sustainFrames++;
+            var holding = _sustainInstance.getPlaybackState() == FmodPlaybackState.SUSTAINING;
+            // The sustain point sits well under a second in
+            if (holding || _sustainFrames > 600) {
+                _waitingForSustainHold = false;
+                finishSustainHold();
+            }
+        }
+        if (_waitingForSustainStop) {
+            _sustainFrames++;
+            var stopped = _sustainInstance.getPlaybackState() == FmodPlaybackState.STOPPED;
+            if (stopped || _sustainFrames > 600) {
+                _waitingForSustainStop = false;
+                finishSustainStop();
+            }
+        }
+        if (_waitingForOneShot) {
+            _oneShotFrames++;
+            // The jump blip is well under a second. The generous timeout
+            // makes a broken release path fail loudly instead of hanging
+            if (FmodRuntime.attachedCount() == _oneShotAttachedBaseline || _oneShotFrames > 600) {
+                _waitingForOneShot = false;
+                finishOneShotAttached();
+            }
+        }
+        if (!_done) return;
+
+        // Give the renderer a few frames so the result text is visible, then exit
+        _framesWaited++;
+        if (_framesWaited > 30) {
+            host.exit(_failCount > 0 ? 1 : 0);
+        }
+    }
+}
+
+/** A drifting position source for the one-shot attachment probe. */
+private class ProbeMovingProvider implements IFmodPositionProvider {
+    var x:Float = 10;
+
+    public function new() {}
+
+    public function fmodX():Float {
+        x += 1;
+        return x;
+    }
+
+    public function fmodY():Float return 5;
+    public function fmodVelocityX():Float return 60;
+    public function fmodVelocityY():Float return 0;
+}

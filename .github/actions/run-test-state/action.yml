@@ -62,6 +62,9 @@ runs:
         fi
 
         export HAXEFMOD_TEST_STATE="${{ inputs.state }}"
+        # GUI executables on Windows have no stdout: the examples mirror
+        # their traces into this file
+        export HAXEFMOD_LOG_FILE="$LOG_FILE"
         if [ "${{ inputs.use-wavwriter }}" = "true" ]; then
           export FMOD_WAVWRITER="${RUNNER_TEMP}/state-${{ inputs.state }}.wav"
         fi
@@ -73,16 +76,26 @@ runs:
             export LD_LIBRARY_PATH="$(pwd):$LD_LIBRARY_PATH"
             # The game binary directly. PostBuild's run.sh is only a fallback
             # (on HL builds it can point at hlboot.dat instead of the exe)
-            EXE=$(find . -maxdepth 1 -type f -executable ! -name "*.so*" ! -name "*.hdll" ! -name "*.sh" ! -name "*.dat" -print -quit)
+            EXE=$(find . -maxdepth 1 -type f -executable ! -name "*.so*" ! -name "*.hdll" ! -name "*.sh" ! -name "*.dat" ! -name "*.hl" ! -name "*.ndll" -print -quit)
             if [ -z "$EXE" ] && [ -f run.sh ]; then
               EXE=./run.sh
             fi
             ;;
           Darwin*)
-            EXE=$(find . -maxdepth 1 -type f ! -name "*.dylib" ! -name "*.hdll" ! -name "*.ndll" ! -name "*.so*" -print -quit)
+            # Executable bit required: the api-probe leaves data files in
+            # the bin dir (probe-lastseven.cmd.txt) that would match otherwise
+            EXE=$(find . -maxdepth 1 -type f -perm -u+x ! -name "*.dylib" ! -name "*.hdll" ! -name "*.ndll" ! -name "*.so*" ! -name "*.hl" ! -name "run.sh" -print -quit)
+            # A HashLink bytecode build has no executable, only the launcher
+            # the stage command wrote
+            if [ -z "$EXE" ] && [ -f run.sh ]; then
+              EXE=./run.sh
+            fi
             ;;
           *)
             EXE=$(find . -maxdepth 1 -name "*.exe" -print -quit)
+            if [ -z "$EXE" ] && [ -f run.cmd ]; then
+              EXE=./run.cmd
+            fi
             ;;
         esac
         echo "Running state ${{ inputs.state }} via $EXE"

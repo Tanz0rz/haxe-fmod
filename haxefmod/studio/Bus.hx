@@ -1,6 +1,7 @@
 package haxefmod.studio;
 
 import haxefmod.studio.Types;
+import haxefmod.studio.UserData;
 import haxefmod.studio.native.NativeStudio;
 import haxefmod.studio.native.Scratch;
 
@@ -24,8 +25,8 @@ abstract Bus(Int) from Int to Int {
         return this != 0 && NativeStudio.bus_is_valid(this);
     }
 
-    /** The bus GUID as a string, e.g. "{1f687138-e06c-40f5-9bac-57f84bbcedd3}". */
-    public inline function getID():String {
+    /** The bus GUID. */
+    public inline function getID():FmodGuid {
         return NativeStudio.bus_get_id(this);
     }
 
@@ -69,19 +70,33 @@ abstract Bus(Int) from Int to Int {
         return NativeStudio.bus_stop_all_events(this, stopMode);
     }
 
-    /** CPU usage of this bus, or null on failure. Requires profiling enabled. */
+#if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /** CPU usage of this bus, or null on failure. Needs the profiling setting on at init (unsupported in HTML5, null there). */
+    public macro function getCpuUsage(self:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("Bus.getCpuUsage", "FMOD's JavaScript API does not expose per-object CPU usage");
+    }
+    #else
+    /** CPU usage of this bus, or null on failure. Needs the profiling setting on at init (unsupported in HTML5, null there). */
     public function getCpuUsage():Null<FmodCpuUsage> {
         var result:FmodResult = NativeStudio.bus_get_cpu_usage(this);
         if (!result.isOk()) return null;
         return {exclusive: Scratch.readI(0), inclusive: Scratch.readI(1)};
     }
+    #end
 
-    /** Memory usage of this bus, or null on failure. */
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /** Memory usage of this bus, or null on failure (unsupported in HTML5, null there). */
+    public macro function getMemoryUsage(self:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("Bus.getMemoryUsage", "FMOD's JavaScript API does not expose memory usage");
+    }
+    #else
+    /** Memory usage of this bus, or null on failure (unsupported in HTML5, null there). */
     public function getMemoryUsage():Null<FmodMemoryUsage> {
         var result:FmodResult = NativeStudio.bus_get_memory_usage(this);
         if (!result.isOk()) return null;
         return {exclusive: Scratch.readI(0), inclusive: Scratch.readI(1), sampledata: Scratch.readI(2)};
     }
+    #end
 
     /**
      * Forces the bus's core channel group to exist so effects can attach
@@ -95,6 +110,48 @@ abstract Bus(Int) from Int to Int {
         return NativeStudio.bus_unlock_channel_group(this);
     }
 
+#if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /**
+     * The output port this bus is assigned to, FmodPortIndex.NONE when it
+     * plays through the main mix (unsupported in HTML5, NONE there). FMOD
+     * routes buses to ports on consoles only, desktop reports NONE.
+     */
+    public macro function getPortIndex(self:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("Bus.getPortIndex", "the web build has no bus port index");
+    }
+    #else
+    /**
+     * The output port this bus is assigned to, FmodPortIndex.NONE when it
+     * plays through the main mix (unsupported in HTML5, NONE there). FMOD
+     * routes buses to ports on consoles only, desktop reports NONE.
+     */
+    public inline function getPortIndex():FmodPortIndex {
+        return NativeStudio.bus_get_port_index(this);
+    }
+    #end
+
+#if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /**
+     * Assigns this bus to an output port, FmodPortIndex.NONE for the main
+     * mix (unsupported in HTML5). FMOD routes buses to ports on consoles
+     * only, desktop returns FMOD_ERR_UNSUPPORTED. The bus's channel group
+     * is recreated on the port, so effects attached to it are dropped.
+     */
+    public macro function setPortIndex(self:haxe.macro.Expr, index:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("Bus.setPortIndex", "the web build has no bus port index");
+    }
+    #else
+    /**
+     * Assigns this bus to an output port, FmodPortIndex.NONE for the main
+     * mix (unsupported in HTML5). FMOD routes buses to ports on consoles
+     * only, desktop returns FMOD_ERR_UNSUPPORTED. The bus's channel group
+     * is recreated on the port, so effects attached to it are dropped.
+     */
+    public inline function setPortIndex(index:FmodPortIndex):FmodResult {
+        return NativeStudio.bus_set_port_index(this, index);
+    }
+    #end
+
     /**
      * The core channel group carrying this bus's audio, for attaching DSP
      * effects to Studio-mixed sound. Lock it first, and never release it
@@ -102,5 +159,20 @@ abstract Bus(Int) from Int to Int {
      */
     public inline function getChannelGroup():haxefmod.core.ChannelGroup {
         return NativeStudio.bus_get_channel_group(this);
+    }
+
+    /**
+     * Attaches a Haxe value to this handle. The value lives on the Haxe
+     * side keyed by the handle and is dropped when the handle is released.
+     * A recycled native slot gets a new generation and therefore a new
+     * handle int, so a stale entry never shows up on a later handle.
+     */
+    public inline function setUserData(value:Dynamic):Void {
+        UserData.set(UserDataKind.Bus, this, value);
+    }
+
+    /** The value attached with setUserData, or null. */
+    public inline function getUserData():Dynamic {
+        return UserData.get(UserDataKind.Bus, this);
     }
 }

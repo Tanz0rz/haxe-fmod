@@ -1,6 +1,9 @@
 package haxefmod.core;
 
 import haxefmod.studio.FmodResult;
+import haxefmod.studio.Types;
+import haxefmod.studio.Types.FmodVector;
+import haxefmod.studio.UserData;
 import haxefmod.studio.native.NativeStudio;
 import haxefmod.studio.native.Scratch;
 
@@ -83,12 +86,33 @@ abstract ChannelGroup(Int) from Int to Int {
         return NativeStudio.cg_stop(this);
     }
 
-    /** Routes a child group's output through this one (group hierarchies). */
-    public inline function addGroup(child:ChannelGroup):FmodResult {
-        return NativeStudio.cg_add_group(this, child);
+    /**
+     * Routes a child group's output through this one (group hierarchies).
+     * propagateDspClock keeps the child's mixer clock in step with this
+     * group's, which sample-accurate scheduling across the tree needs.
+     * addGroupConnection does the same and hands back the connection.
+     */
+    public function addGroup(child:ChannelGroup, propagateDspClock:Bool = true):FmodResult {
+        NativeStudio.cg_add_group(this, child, propagateDspClock);
+        return haxefmod.studio.StudioSystem.lastResult();
+    }
+
+    /**
+     * Routes a child group's output through this one and returns the
+     * connection between the two, DspConnection.NULL on failure with the
+     * reason in StudioSystem.lastResult(). Any later graph change
+     * invalidates the connection handle.
+     */
+    public inline function addGroupConnection(child:ChannelGroup, propagateDspClock:Bool = true):DspConnection {
+        return NativeStudio.cg_add_group(this, child, propagateDspClock);
     }
 
     public inline function getGroupCount():Int {
+        return NativeStudio.cg_get_num_groups(this);
+    }
+
+    /** The same count as getGroupCount under FMOD's name. */
+    public inline function getNumGroups():Int {
         return NativeStudio.cg_get_num_groups(this);
     }
 
@@ -106,15 +130,44 @@ abstract ChannelGroup(Int) from Int to Int {
      * `clock` is this group's own time, `parent` the enclosing group's,
      * which is the timeline setDelay and fade points schedule against.
      */
-    public function getDspClock():Null<{clock:Float, parent:Float}> {
+    public function getDspClock():Null<FmodDspClock> {
         var result:FmodResult = NativeStudio.cg_get_dsp_clock(this);
         if (!result.isOk()) return null;
         return {clock: Scratch.readF(0), parent: Scratch.readF(1)};
     }
 
-    /** Sample-accurate start/stop window on the parent clock (0 = no bound). */
-    public inline function setDelay(startClock:Float, endClock:Float, stopChannels:Bool = false):FmodResult {
+    /**
+     * Sample-accurate start/stop window on the parent clock (0 = no
+     * bound). With stopChannels on, the group's channels stop at
+     * endClock, off they pause there and can be resumed.
+     */
+    public inline function setDelay(startClock:Float, endClock:Float, stopChannels:Bool = true):FmodResult {
         return NativeStudio.cg_set_delay(this, startClock, endClock, stopChannels);
+    }
+
+    public function getDelay():Null<FmodDelay> {
+        var result:FmodResult = NativeStudio.cg_get_delay(this);
+        if (!result.isOk()) return null;
+        return {startClock: Scratch.readF(0), endClock: Scratch.readF(1), stopChannels: Scratch.readF(2) > 0.5};
+    }
+
+    /** True while any channel in the group or a nested group is playing. */
+    public inline function isPlaying():Bool {
+        return NativeStudio.cg_is_playing(this);
+    }
+
+    /**
+     * Delivers ChannelEvent values for this group (drained once per frame
+     * with the other callbacks). FMOD raises only Occlusion on a group,
+     * for 3D groups when geometry is in use. release() removes the
+     * handler.
+     */
+    public inline function setCallback(handler:haxefmod.core.ChannelEvent.ChannelCallback):Void {
+        haxefmod.core.ChannelCallbacks.setGroup(this, handler);
+    }
+
+    public inline function clearCallback():Void {
+        haxefmod.core.ChannelCallbacks.removeGroup(this);
     }
 
     /** Schedules a volume point at a parent-clock time. FMOD ramps between points. */
@@ -136,13 +189,18 @@ abstract ChannelGroup(Int) from Int to Int {
         return NativeStudio.cg_set_pan(this, pan);
     }
 
-    /**
-     * A built-in lowpass on the group (1.0 = open, 0.0 = closed). The
-     * matching getter is channel-only (its group binding misreads on
-     * HTML5, see the platform notes).
-     */
+    /** A built-in lowpass on the group (1.0 = open, 0.0 = closed). */
     public inline function setLowPassGain(gain:Float):FmodResult {
         return NativeStudio.cg_set_low_pass_gain(this, gain);
+    }
+
+    /**
+     * The group's lowpass gain, 0.0 on failure. FMOD 2.03.12 reports OK
+     * for a group but leaves the value at zero on every target, so keep
+     * the gain you set if you need it back.
+     */
+    public inline function getLowPassGain():Float {
+        return NativeStudio.cg_get_low_pass_gain(this);
     }
 
     /** Combines ChannelMode flags (looping, 2D/3D, rolloff shape). */
@@ -160,7 +218,7 @@ abstract ChannelGroup(Int) from Int to Int {
         return NativeStudio.cg_set_3d_attributes(this, posX, posY, posZ, velX, velY, velZ);
     }
 
-    public function get3DAttributes():Null<{posX:Float, posY:Float, posZ:Float, velX:Float, velY:Float, velZ:Float}> {
+    public function get3DAttributes():Null<FmodChannel3DAttributes> {
         var result:FmodResult = NativeStudio.cg_get_3d_attributes(this);
         if (!result.isOk()) return null;
         return {posX: Scratch.readF(0), posY: Scratch.readF(1), posZ: Scratch.readF(2),
@@ -171,18 +229,92 @@ abstract ChannelGroup(Int) from Int to Int {
         return NativeStudio.cg_set_3d_min_max(this, minDistance, maxDistance);
     }
 
-    public function get3DMinMaxDistance():Null<{minDistance:Float, maxDistance:Float}> {
+    public function get3DMinMaxDistance():Null<FmodMinMaxDistance> {
         var result:FmodResult = NativeStudio.cg_get_3d_min_max(this);
         if (!result.isOk()) return null;
         return {minDistance: Scratch.readF(0), maxDistance: Scratch.readF(1)};
     }
 
-    /**
-     * Muffles the group as if behind an obstacle. The matching getter is
-     * channel-only (its group binding misreads on HTML5).
-     */
+    /** Muffles the group as if behind an obstacle (0.0 = clear, 1.0 = fully blocked). */
     public inline function set3DOcclusion(direct:Float, reverb:Float):FmodResult {
         return NativeStudio.cg_set_3d_occlusion(this, direct, reverb);
+    }
+
+    /**
+     * The group's occlusion levels, null on failure. FMOD 2.03.12 reports
+     * OK for a group but leaves both values at zero on every target, so
+     * keep the levels you set if you need them back.
+     */
+    public function get3DOcclusion():Null<FmodOcclusion> {
+        var result:FmodResult = NativeStudio.cg_get_3d_occlusion(this);
+        if (!result.isOk()) return null;
+        return {direct: Scratch.readF(0), reverb: Scratch.readF(1)};
+    }
+
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /**
+     * Replaces the distance rolloff curve with the given points. Each
+     * point's x is the distance and y the volume (0 to 1), sorted by
+     * distance. An empty array restores the mode-driven rolloff
+     * (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED). The
+     * binding keeps its own copy of the points for the group's
+     * lifetime.
+     */
+    public macro function set3DCustomRolloff(self:haxe.macro.Expr, points:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("ChannelGroup.set3DCustomRolloff", "the web boundary rejects custom rolloff points");
+    }
+    #else
+    /**
+     * Replaces the distance rolloff curve with the given points. Each
+     * point's x is the distance and y the volume (0 to 1), sorted by
+     * distance. An empty array restores the mode-driven rolloff
+     * (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED). The
+     * binding keeps its own copy of the points for the group's
+     * lifetime.
+     */
+    public function set3DCustomRolloff(points:Array<FmodVector>):FmodResult {
+        var packed = Scratch.packVectors(points);
+        return NativeStudio.cg_set_3d_custom_rolloff(this, packed, packed == null ? 0 : points.length);
+    }
+    #end
+
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /**
+     * The custom rolloff points (unsupported in HTML5, always empty
+     * there), empty when none are set or on failure (see
+     * StudioSystem.lastResult). Capped at Scratch.VECTOR_CAPACITY points.
+     */
+    public macro function get3DCustomRolloff(self:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("ChannelGroup.get3DCustomRolloff", "custom rolloff points cannot be set in the web build, so there is nothing to read");
+    }
+    #else
+    /**
+     * The custom rolloff points (unsupported in HTML5, always empty
+     * there), empty when none are set or on failure (see
+     * StudioSystem.lastResult). Capped at Scratch.VECTOR_CAPACITY points.
+     */
+    public function get3DCustomRolloff():Array<FmodVector> {
+        var count = NativeStudio.cg_get_3d_custom_rolloff(this);
+        if (count <= 0) return [];
+        return Scratch.readVectors(count);
+    }
+    #end
+
+    /**
+     * Overrides the distance lowpass on this group's 3D channels. With
+     * custom on, customLevel (0 to 1) replaces the distance-derived
+     * attenuation and centerFreq sets the filter's center in Hz. The
+     * distanceFilter setting must be on at init for any of this to take
+     * effect.
+     */
+    public inline function set3DDistanceFilter(custom:Bool, customLevel:Float, centerFreq:Float):FmodResult {
+        return NativeStudio.cg_set_3d_distance_filter(this, custom, customLevel, centerFreq);
+    }
+
+    public function get3DDistanceFilter():Null<FmodDistanceFilter> {
+        var result:FmodResult = NativeStudio.cg_get_3d_distance_filter(this);
+        if (!result.isOk()) return null;
+        return {custom: Scratch.readF(0) != 0, customLevel: Scratch.readF(1), centerFreq: Scratch.readF(2)};
     }
 
     public inline function set3DLevel(level:Float):FmodResult {
@@ -213,7 +345,7 @@ abstract ChannelGroup(Int) from Int to Int {
         return NativeStudio.cg_set_3d_cone_settings(this, insideAngle, outsideAngle, outsideVolume);
     }
 
-    public function get3DConeSettings():Null<{insideAngle:Float, outsideAngle:Float, outsideVolume:Float}> {
+    public function get3DConeSettings():Null<FmodConeSettings> {
         var result:FmodResult = NativeStudio.cg_get_3d_cone_settings(this);
         if (!result.isOk()) return null;
         return {insideAngle: Scratch.readF(0), outsideAngle: Scratch.readF(1), outsideVolume: Scratch.readF(2)};
@@ -223,7 +355,7 @@ abstract ChannelGroup(Int) from Int to Int {
         return NativeStudio.cg_set_3d_cone_orientation(this, x, y, z);
     }
 
-    public function get3DConeOrientation():Null<{x:Float, y:Float, z:Float}> {
+    public function get3DConeOrientation():Null<FmodVector> {
         var result:FmodResult = NativeStudio.cg_get_3d_cone_orientation(this);
         if (!result.isOk()) return null;
         return {x: Scratch.readF(0), y: Scratch.readF(1), z: Scratch.readF(2)};
@@ -234,18 +366,30 @@ abstract ChannelGroup(Int) from Int to Int {
         return NativeStudio.cg_set_reverb_wet(this, instance, wet);
     }
 
+    /** The same reverb send as setReverbWet under FMOD's name (ChannelControl::setReverbProperties). */
+    public inline function setReverbProperties(instance:Int, wet:Float):FmodResult {
+        return NativeStudio.cg_set_reverb_wet(this, instance, wet);
+    }
+
+    /** The wet level of a reverb send, the same read as getReverbWet under FMOD's name. */
+    public inline function getReverbProperties(instance:Int):Float {
+        return NativeStudio.cg_get_reverb_wet(this, instance);
+    }
+
     public inline function getReverbWet(instance:Int):Float {
         return NativeStudio.cg_get_reverb_wet(this, instance);
     }
 
-    /** Routes inputs to speakers with explicit gains (row-major, up to 32x32). */
-    public function setMixMatrix(matrix:Array<Float>, outChannels:Int, inChannels:Int):FmodResult {
-        var total = outChannels * inChannels;
-        if (total < 0 || total > matrix.length || total > Scratch.CAPACITY) {
-            return haxefmod.studio.FmodResult.FMOD_ERR_INVALID_PARAM;
-        }
-        for (i in 0...total) Scratch.writeF(i, matrix[i]);
-        return NativeStudio.cg_set_mix_matrix(this, outChannels, inChannels);
+    /**
+     * Routes input channels to output speakers with explicit gains. The
+     * matrix is one flat row-major array, one row per output channel,
+     * with inChannelHop floats per row (0 = packed to inChannels). FMOD
+     * mixes at most 32 channels, so larger shapes are refused with
+     * FMOD_ERR_INVALID_PARAM.
+     */
+    public function setMixMatrix(matrix:Array<Float>, outChannels:Int, inChannels:Int, inChannelHop:Int = 0):FmodResult {
+        if (!MixMatrix.pack(matrix, outChannels, inChannels, inChannelHop)) return FmodResult.FMOD_ERR_INVALID_PARAM;
+        return NativeStudio.cg_set_mix_matrix(this, outChannels, inChannels, inChannelHop);
     }
 
     /** Short volume ramping on changes (on by default, prevents clicks). */
@@ -262,11 +406,75 @@ abstract ChannelGroup(Int) from Int to Int {
         return NativeStudio.cg_get_audibility(this);
     }
 
+    /** Moves an attached effect to another chain position (0 = head). */
+    public inline function setDspIndex(dsp:Dsp, index:Int):haxefmod.studio.FmodResult {
+        return NativeStudio.cg_set_dsp_index(this, dsp, index);
+    }
+
+    /** The chain position of an attached effect, -1 when it is not attached or on failure. */
+    public inline function getDspIndex(dsp:Dsp):Int {
+        return NativeStudio.cg_get_dsp_index(this, dsp);
+    }
+
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /**
+     * The scheduled fade points as parent-clock and volume pairs
+     * (unsupported in HTML5, null there). Null on failure, at most
+     * Scratch.CAPACITY / 2 points.
+     */
+    public macro function getFadePoints(self:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("ChannelGroup.getFadePoints", "FMOD's web glue never returns the fade point arrays");
+    }
+    #else
+    /**
+     * The scheduled fade points as parent-clock and volume pairs
+     * (unsupported in HTML5, null there). Null on failure, at most
+     * Scratch.CAPACITY / 2 points.
+     */
+    public function getFadePoints():Null<Array<FmodFadePoint>> {
+        var count = NativeStudio.cg_get_fade_points(this);
+        var result:haxefmod.studio.FmodResult = haxefmod.studio.StudioSystem.lastResult();
+        if (!result.isOk()) return null;
+        return [for (i in 0...count) {clock: Scratch.readF(i * 2), volume: Scratch.readF(i * 2 + 1)}];
+    }
+    #end
+
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /**
+     * Reads the mix matrix back as one flat row-major array with
+     * inChannelHop floats per row (0 = packed to the input count), and
+     * the output and input channel counts FMOD reports (unsupported in
+     * HTML5, null there). outChannels and inChannels above 0 keep only
+     * that many rows and columns. Null on failure, at most 32 by 32.
+     */
+    public macro function getMixMatrix(self:haxe.macro.Expr, ?outChannels:haxe.macro.Expr, ?inChannels:haxe.macro.Expr, ?inChannelHop:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("ChannelGroup.getMixMatrix", "FMOD's web glue binds the matrix as a single float");
+    }
+    #else
+    /**
+     * Reads the mix matrix back as one flat row-major array with
+     * inChannelHop floats per row (0 = packed to the input count), and
+     * the output and input channel counts FMOD reports (unsupported in
+     * HTML5, null there). outChannels and inChannels above 0 keep only
+     * that many rows and columns. Null on failure, at most 32 by 32.
+     */
+    public function getMixMatrix(outChannels:Int = 0, inChannels:Int = 0, inChannelHop:Int = 0):Null<FmodMixMatrix> {
+        var total = NativeStudio.cg_get_mix_matrix(this, inChannelHop);
+        if (total <= 0) return null;
+        return MixMatrix.read(total, outChannels, inChannels, inChannelHop);
+    }
+    #end
+
     public inline function getName():String {
         return NativeStudio.cg_get_name(this);
     }
 
     public inline function getChannelCount():Int {
+        return NativeStudio.cg_get_num_channels(this);
+    }
+
+    /** The same count as getChannelCount under FMOD's name. */
+    public inline function getNumChannels():Int {
         return NativeStudio.cg_get_num_channels(this);
     }
 
@@ -280,6 +488,65 @@ abstract ChannelGroup(Int) from Int to Int {
      * release the master group or a Studio bus's group.
      */
     public inline function release():FmodResult {
+        haxefmod.core.ChannelCallbacks.removeGroup(this);
+        UserData.clear(UserDataKind.ChannelGroup, this);
         return NativeStudio.cg_release(this);
+    }
+
+    /**
+     * Attaches a Haxe value to this handle. The value lives on the Haxe
+     * side keyed by the handle and is dropped when the handle is released.
+     * A recycled native slot gets a new generation and therefore a new
+     * handle int, so a stale entry never shows up on a later handle.
+     */
+    public inline function setUserData(value:Dynamic):Void {
+        UserData.set(UserDataKind.ChannelGroup, this, value);
+    }
+
+    /** The value attached with setUserData, or null. */
+    public inline function getUserData():Dynamic {
+        return UserData.get(UserDataKind.ChannelGroup, this);
+    }
+    /**
+     * Sets the gain of each incoming signal channel before the mix matrix,
+     * one level per input channel (1 to 32, an empty list is rejected
+     * with FMOD_ERR_INVALID_PARAM). More levels than the signal has
+     * channels are ignored, fewer leave the rest at their current gain.
+     */
+    public function setMixLevelsInput(levels:Array<Float>):FmodResult {
+        if (levels == null || levels.length == 0 || levels.length > 32) return FmodResult.FMOD_ERR_INVALID_PARAM;
+        for (i in 0...levels.length) Scratch.writeF(i, levels[i]);
+        return NativeStudio.cg_set_mix_levels_input(this, levels.length);
+    }
+
+    /**
+     * Sets the gain of each output speaker directly, which replaces the
+     * mix matrix with a standard speaker layout. Speakers the output
+     * lacks are ignored.
+     */
+    public inline function setMixLevelsOutput(frontLeft:Float, frontRight:Float, center:Float, lowFrequency:Float,
+            surroundLeft:Float, surroundRight:Float, backLeft:Float, backRight:Float):FmodResult {
+        return NativeStudio.cg_set_mix_levels_output(this, frontLeft, frontRight, center, lowFrequency,
+            surroundLeft, surroundRight, backLeft, backRight);
+    }
+
+    /** How many DSP units sit in this group's chain (the fader counts, so a fresh group reports 1). */
+    public inline function getDspCount():Int {
+        return NativeStudio.cg_get_num_dsps(this);
+    }
+
+    /** The same count as getDspCount under FMOD's name. */
+    public inline function getNumDSPs():Int {
+        return NativeStudio.cg_get_num_dsps(this);
+    }
+
+    /**
+     * The effect at chain position `index`. DSP_HEAD, DSP_FADER and DSP_TAIL
+     * work here too, and the fader is always the tail unit, so
+     * `getDsp(DSP_TAIL)` is the unit a group-wide send takes its input from.
+     * A known DSP returns its existing handle. Null when the index is out of range.
+     */
+    public inline function getDsp(index:Int):Dsp {
+        return NativeStudio.cg_get_dsp(this, index);
     }
 }

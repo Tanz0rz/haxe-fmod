@@ -1,0 +1,160 @@
+name: Docs
+
+# Builds the documentation site (guides from docs/ plus the dox API
+# reference under /api/) on every push and pull request, and publishes it
+# to GitHub Pages from the default branch, the 3.0.0 branch, and release
+# tags.
+
+on:
+  push:
+    branches: [master, 3.0.0]
+    tags: ["*"]
+    paths:
+      - "docs/**"
+      - "mkdocs.yml"
+      - "haxefmod/**"
+      - "ci/check-readme-snippets.py"
+      - "ci/docs-root-pages.py"
+      - "ci/haxe-bindings.py"
+      - "extension/**"
+      - "native/**"
+      - "LIMITATIONS.md"
+      - "MIGRATION.md"
+      - "CHANGELOG.md"
+      - ".github/workflows/docs.yml"
+  pull_request:
+    paths:
+      - "docs/**"
+      - "mkdocs.yml"
+      - "haxefmod/**"
+      - "ci/check-readme-snippets.py"
+      - "ci/docs-root-pages.py"
+      - "ci/haxe-bindings.py"
+      - "extension/**"
+      - "native/**"
+      - "LIMITATIONS.md"
+      - "MIGRATION.md"
+      - "CHANGELOG.md"
+      - ".github/workflows/docs.yml"
+  workflow_dispatch:
+
+env:
+  HAXE_VERSION: 4.3.6
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    # Pushes and manual dispatches build on the self-hosted runner. Pull
+    # requests stay on GitHub-hosted runners so fork PRs never execute on
+    # local hardware.
+    runs-on: ${{ github.event_name != 'pull_request' && 'self-hosted' || 'ubuntu-latest' }}
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v2
+        with:
+          haxe-version: ${{ env.HAXE_VERSION }}
+
+      - name: Cache haxelib
+        uses: actions/cache@v5
+        with:
+          path: ~/haxelib
+          key: haxelib-docs-${{ runner.os }}-${{ env.HAXE_VERSION }}-flixel-heaps
+
+      - name: Install Haxe libraries
+        run: |
+          haxelib setup ~/haxelib
+          haxelib install dox --always --quiet
+          haxelib install lime 8.3.0 --always --quiet
+          haxelib install openfl 9.5.0 --always --quiet
+          haxelib install flixel 6.1.2 --always --quiet
+          haxelib install heaps 2.1.0 --always --quiet
+
+      - name: Check the generated bindings table and example translations
+        run: |
+          python3 ci/haxe-bindings.py --check
+          python3 ci/haxe-catalog.py --check
+
+      - name: Check every docs-tab entry is reviewed
+        run: python3 ci/example-ledger.py --status --require-all
+
+      - name: Compile the guide examples
+        run: python3 ci/check-readme-snippets.py docs extension/haxe extension/functions.md
+
+      - name: Drive the extension over the fixture matrix
+        run: |
+          npm install playwright > /dev/null
+          # --with-deps needs apt and root, so the self-hosted runner
+          # installs the browser alone and relies on system libraries
+          if [ "${{ runner.environment }}" = "self-hosted" ]; then npx playwright install chromium; else npx playwright install --with-deps chromium; fi
+          node extension/test/run.js --headless --all
+
+      - name: Generate type XML
+        run: |
+          mkdir -p /tmp/haxefmod-docs
+          # Typed as an html5 build so the flixel components resolve.
+          # The CLI (sys-only) and the native shim package are internal
+          # and stay out of the reference.
+          haxe -cp . -lib flixel -lib openfl -lib lime \
+            -D FLX_STANDARD_ASSETS_DIRECTORY -D openfl-html5 -D html5 \
+            --no-output -js /dev/null \
+            --macro "include('haxefmod', true, ['haxefmod.tools', 'haxefmod.studio.native', 'haxefmod.heaps', 'haxefmod.kha'])" \
+            --xml /tmp/haxefmod-docs/types.xml
+
+      - name: Render the API reference
+        run: |
+          haxelib run dox -i /tmp/haxefmod-docs -o site-api -in haxefmod --title "haxefmod API reference"
+          python3 ci/api-module-pages.py /tmp/haxefmod-docs/types.xml site-api
+
+      - name: Setup Python
+        # setup-python has no prebuilt interpreters for Debian, so the
+        # self-hosted runner uses its system Python through a venv below
+        if: ${{ runner.environment != 'self-hosted' }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install MkDocs
+        run: |
+          if [ "${{ runner.environment }}" = "self-hosted" ]; then
+            python3 -m venv "$RUNNER_TEMP/mkdocs-venv"
+            "$RUNNER_TEMP/mkdocs-venv/bin/pip" install --quiet mkdocs-material
+            echo "$RUNNER_TEMP/mkdocs-venv/bin" >> "$GITHUB_PATH"
+          else
+            pip install mkdocs-material
+          fi
+
+      - name: Build the site
+        run: |
+          mkdocs build --strict
+          rm -rf site/api
+          mv site-api site/api
+          python3 ci/check-site-links.py site
+
+      - name: Upload the site
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: site
+
+  deploy:
+    if: ${{ github.event_name != 'pull_request' }}
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -2,10 +2,10 @@
 	"name" : "haxefmod",
 	"url" : "https://github.com/Tanz0rz/haxe-fmod/",
 	"license" : "MIT",
-	"tags": ["fmod", "audio", "windows", "linux", "mac", "hashlink", "html5", "web", "openfl", "lime", "flixel"],
+	"tags": ["fmod", "audio", "windows", "linux", "mac", "hashlink", "html5", "web", "openfl", "lime", "flixel", "heaps", "kha"],
 	"description" : "Use FMOD Studio with Haxe on HTML5, HashLink, Windows, Linux, and macOS",
-	"version" : "2.0.0",
-	"releasenote" : "Full FMOD Studio API at runtime, typed sound handles and payload callbacks, refcounted banks, flixel components, and bank-driven constants generation. See MIGRATION.md",
+	"version" : "3.0.0",
+	"releasenote" : "Parity with the FMOD API: every FMOD type declared in Haxe, callbacks deliver FMOD's structs, time units, sound modes, DSP data parameters, init settings, and an HTML5 compile gate. Documentation site and fmod.com Haxe tab. Breaking, see MIGRATION.md",
 	"contributors" : ["Tanz0rz"],
 	"dependencies" : { },
 	"main" : "haxefmod.tools.Run"

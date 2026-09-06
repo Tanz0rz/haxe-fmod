@@ -5,7 +5,9 @@ import haxe.macro.Context;
 
 /**
  * Compile-time environment check, wired by include.xml so it runs on every
- * lime build of a project using haxefmod.
+ * lime build of a project using haxefmod. Heaps and Kha builds run it
+ * too, and any other build opts in with -D haxefmod_build_check plus
+ * --macro haxefmod.tools.BuildCheck.verify() in its hxml.
  *
  * The checks live in a macro because lime ignores postbuild failures: an
  * error reported there scrolls past while the game still compiles, then
@@ -18,9 +20,10 @@ class BuildCheck {
         // IDE completion/diagnostics runs compile the project without the
         // shell environment. Never block those
         if (Context.defined("display")) return;
-        // Only lime builds ship FMOD runtimes. Unit tests and plain haxe
-        // compiles have nothing to verify
-        if (!Context.defined("lime")) return;
+        // Unit tests and plain haxe compiles ship no FMOD runtime and have
+        // nothing to verify
+        if (!Context.defined("lime") && !Context.defined("heaps") && !Context.defined("kha")
+            && !Context.defined("haxefmod_build_check")) return;
 
         // Lime defines "html5" for the html5 target. "js" covers the same
         // build if that define ever changes (the only lime js target is html5)
@@ -62,7 +65,9 @@ class BuildCheck {
             requireSdkFile("FMOD_SDK", PostBuild.nativeCoreLib(targetPlatform()));
         }
 
-        if (Context.defined("hl")) {
+        // Kha's HashLink target is HL/C with hlaxe_fmod.c compiled into the
+        // executable, so no hdll is ever loaded there
+        if (Context.defined("hl") && !Context.defined("kha")) {
             verifyHlHdllGate();
         }
         if (Context.defined("html5") || Context.defined("js")) {

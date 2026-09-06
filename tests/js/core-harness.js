@@ -73,6 +73,7 @@ function main() {
         testChannelCallbacks(studio);
         testSoundGroups();
         testSystemSettingsAndGetters(studio);
+        testGroupDspChain(studio);
 
         console.log(`CORE_TEST: failures = ${failures}`);
         console.log('CORE_TEST: COMPLETE');
@@ -808,5 +809,42 @@ function testSystemSettingsAndGetters(studio) {
     check('dsp_get_metering_enabled', dsp.getMeteringEnabled(mi, mo) === FMOD.OK
         && mi.val === true && mo.val === false, `in=${mi.val} out=${mo.val}`);
     dsp.release();
+    pump(studio, 5);
+}
+
+// Walking a channel group's DSP chain: the fader sits at the tail, an added
+// unit comes back by index as the same object, and removal restores the count.
+// Every getDSP call hands out a fresh wrapper, so identity is the FMOD pointer
+// stored in the wrapper's first word, which is what jaxe.rawPtr compares.
+function fmodPtr(obj) {
+    return obj && obj.$$ ? FMOD.HEAPU32[obj.$$.ptr >> 2] : 0;
+}
+
+function testGroupDspChain(studio) {
+    const mOut = {};
+    ok(gCore.getMasterChannelGroup(mOut), 'getMasterChannelGroup');
+    const master = mOut.val;
+    const n = {};
+    check('cg_get_num_dsps', master.getNumDSPs(n) === FMOD.OK && n.val >= 1, `count=${n.val}`);
+    const before = n.val;
+    const fader = {}, tail = {};
+    check('cg_get_dsp_fader', master.getDSP(-2, fader) === FMOD.OK && typeof fader.val === 'object', '');
+    check('cg_get_dsp_tail_is_fader', master.getDSP(-3, tail) === FMOD.OK
+        && fmodPtr(tail.val) !== 0 && fmodPtr(tail.val) === fmodPtr(fader.val), '');
+    const lpOut = {};
+    gCore.createDSPByType(18, lpOut);
+    const lp = lpOut.val;
+    check('cg_add_dsp_head', master.addDSP(-1, lp) === FMOD.OK);
+    master.getNumDSPs(n);
+    check('cg_get_num_dsps_grew', n.val === before + 1, `before=${before} after=${n.val}`);
+    const head = {};
+    check('cg_get_dsp_index', master.getDSP(0, head) === FMOD.OK && fmodPtr(head.val) === fmodPtr(lp), '');
+    const oor = {};
+    const oorResult = master.getDSP(n.val + 5, oor);
+    check('cg_get_dsp_out_of_range', oorResult === FMOD.ERR_DSP_NOTFOUND, `result=${oorResult}`);
+    check('cg_remove_dsp', master.removeDSP(lp) === FMOD.OK);
+    master.getNumDSPs(n);
+    check('cg_get_num_dsps_restored', n.val === before, `count=${n.val}`);
+    lp.release();
     pump(studio, 5);
 }

@@ -2,6 +2,7 @@ package haxefmod.studio;
 
 import haxefmod.studio.Callbacks;
 import haxefmod.studio.Types;
+import haxefmod.studio.UserData;
 import haxefmod.studio.native.NativeStudio;
 import haxefmod.studio.native.Scratch;
 
@@ -59,6 +60,7 @@ abstract EventInstance(Int) from Int to Int {
      */
     public inline function release():FmodResult {
         CallbackDispatcher.remove(this);
+        UserData.clear(UserDataKind.EventInstance, this);
         return NativeStudio.evi_release(this);
     }
 
@@ -114,7 +116,7 @@ abstract EventInstance(Int) from Int to Int {
     }
 
     /** Minimum and maximum attenuation distances, or null on failure. */
-    public function getMinMaxDistance():Null<{min:Float, max:Float}> {
+    public function getMinMaxDistance():Null<FmodEventMinMaxDistance> {
         var result:FmodResult = NativeStudio.evi_get_min_max_distance(this);
         if (!result.isOk()) return null;
         return {min: Scratch.readF(0), max: Scratch.readF(1)};
@@ -206,19 +208,67 @@ abstract EventInstance(Int) from Int to Int {
         return NativeStudio.evi_set_param_by_id_with_label(this, id.data1, id.data2, label, ignoreSeekSpeed);
     }
 
+    /** The same parameter read as getParameter, under FMOD's name. */
+    public inline function getParameterByName(name:String):Float {
+        return NativeStudio.evi_get_param_by_name(this, name);
+    }
+
+    /** The final value of a parameter after automation and seek speed, by name. */
+    public inline function getParameterByNameFinal(name:String):Float {
+        return NativeStudio.evi_get_param_by_name_final(this, name);
+    }
+
+    /** The same parameter write as setParameter, under FMOD's name. */
+    public inline function setParameterByName(name:String, value:Float, ignoreSeekSpeed:Bool = false):FmodResult {
+        return NativeStudio.evi_set_param_by_name(this, name, value, ignoreSeekSpeed);
+    }
+
+    /** The same labeled write as setParameterWithLabel, under FMOD's name. */
+    public inline function setParameterByNameWithLabel(name:String, label:String, ignoreSeekSpeed:Bool = false):FmodResult {
+        return NativeStudio.evi_set_param_by_name_with_label(this, name, label, ignoreSeekSpeed);
+    }
+
+    /**
+     * Sets several parameters on this instance in one call. ids and values
+     * pair up by index, the shorter list sets the count. At most
+     * Scratch.CAPACITY / 2 pairs, more returns FMOD_ERR_INVALID_PARAM.
+     */
+    public function setParametersByIDs(ids:Array<FmodParameterId>, values:Array<Float>, ignoreSeekSpeed:Bool = false):FmodResult {
+        var count = @:privateAccess StudioSystem.packParameterBatch(ids, values);
+        if (count < 0) return FmodResult.FMOD_ERR_INVALID_PARAM;
+        return NativeStudio.evi_set_parameters_by_ids(this, count, ignoreSeekSpeed);
+    }
+
     /**
      * Registers a typed payload callback for this instance (replaces any
      * existing handler. removed automatically when the instance is
      * destroyed). Delivered from FmodManager.Update / FmodRuntime.update.
      */
-    public inline function setCallback(handler:EventCallbackData->Void, ?mask:Int):Void {
+    public inline function setCallback(handler:EventCallback, ?mask:Int):Void {
         CallbackDispatcher.setCallback(this, handler, mask);
     }
 
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
     /**
      * Assigns the audio-table key (or file path fallback) this instance's
-     * programmer instrument should play. The native shim resolves it on the
-     * FMOD thread when the instrument triggers. Assign BEFORE start().
+     * programmer instrument should play (unsupported in HTML5). The native
+     * shim resolves it on the FMOD thread when the instrument triggers.
+     * Assign BEFORE start().
+     *
+     * Returns FMOD_ERR_UNSUPPORTED on html5. FMOD's JS runtime cannot
+     * complete the programmer-sound flow (assigning the created sound
+     * stops the event and ends its callback delivery, reproduced with
+     * FMOD's own example pattern in tests/js/fmod_ps_glue_repro.html).
+     */
+    public macro function assignProgrammerSound(self:haxe.macro.Expr, key:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("EventInstance.assignProgrammerSound", "programmer sounds fail inside FMOD's JavaScript runtime");
+    }
+    #else
+    /**
+     * Assigns the audio-table key (or file path fallback) this instance's
+     * programmer instrument should play (unsupported in HTML5). The native
+     * shim resolves it on the FMOD thread when the instrument triggers.
+     * Assign BEFORE start().
      *
      * Returns FMOD_ERR_UNSUPPORTED on html5. FMOD's JS runtime cannot
      * complete the programmer-sound flow (assigning the created sound
@@ -229,23 +279,139 @@ abstract EventInstance(Int) from Int to Int {
         if (key == null) return FmodResult.FMOD_ERR_INVALID_PARAM;
         return NativeStudio.ps_assign(this, key);
     }
+    #end
 
-    /** Removes the programmer-sound assignment. */
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /**
+     * Hands a sound the game owns to this instance's programmer
+     * instrument (unsupported in HTML5). subsoundIndex picks a subsound of
+     * an FSB or other container, -1 plays the sound itself. The instrument
+     * never releases it, the game does once the instrument is finished
+     * (ProgrammerSoundDestroyed in setCallback, or after the event stops).
+     * A sound still loading (NONBLOCKING) is fine, FMOD waits for it.
+     * Assign BEFORE start(). Wins over a key or name assignment.
+     */
+    public macro function assignProgrammerSoundFrom(self:haxe.macro.Expr, sound:haxe.macro.Expr, ?subsoundIndex:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("EventInstance.assignProgrammerSoundFrom", "programmer sounds fail inside FMOD's JavaScript runtime");
+    }
+    #else
+    /**
+     * Hands a sound the game owns to this instance's programmer
+     * instrument (unsupported in HTML5). subsoundIndex picks a subsound of
+     * an FSB or other container, -1 plays the sound itself. The instrument
+     * never releases it, the game does once the instrument is finished
+     * (ProgrammerSoundDestroyed in setCallback, or after the event stops).
+     * A sound still loading (NONBLOCKING) is fine, FMOD waits for it.
+     * Assign BEFORE start(). Wins over a key or name assignment.
+     */
+    public inline function assignProgrammerSoundFrom(sound:haxefmod.core.Sound, subsoundIndex:Int = -1):FmodResult {
+        if (sound.isNull()) return FmodResult.FMOD_ERR_INVALID_PARAM;
+        return NativeStudio.ps_assign_sound(this, sound, subsoundIndex);
+    }
+    #end
+
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /**
+     * Maps one programmer instrument name to the audio table key or file
+     * path it should play (unsupported in HTML5). An event with several
+     * programmer instruments gets one entry per instrument name, up to
+     * eight per instance. A name with no entry falls back to the single
+     * assignProgrammerSound key. Names must be under 64 UTF-8 bytes and
+     * keys under 512. Assign BEFORE start().
+     */
+    public macro function assignProgrammerSoundForName(self:haxe.macro.Expr, name:haxe.macro.Expr, key:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("EventInstance.assignProgrammerSoundForName", "programmer sounds fail inside FMOD's JavaScript runtime");
+    }
+    #else
+    /**
+     * Maps one programmer instrument name to the audio table key or file
+     * path it should play (unsupported in HTML5). An event with several
+     * programmer instruments gets one entry per instrument name, up to
+     * eight per instance. A name with no entry falls back to the single
+     * assignProgrammerSound key. Names must be under 64 UTF-8 bytes and
+     * keys under 512. Assign BEFORE start().
+     */
+    public inline function assignProgrammerSoundForName(name:String, key:String):FmodResult {
+        if (name == null || key == null) return FmodResult.FMOD_ERR_INVALID_PARAM;
+        return NativeStudio.ps_assign_named(this, name, key);
+    }
+    #end
+
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /**
+     * assignProgrammerSoundForName for every entry of a name to key map
+     * (unsupported in HTML5). Stops at the first failure and returns it.
+     */
+    public macro function assignProgrammerSounds(self:haxe.macro.Expr, names:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("EventInstance.assignProgrammerSounds", "programmer sounds fail inside FMOD's JavaScript runtime");
+    }
+    #else
+    /**
+     * assignProgrammerSoundForName for every entry of a name to key map
+     * (unsupported in HTML5). Stops at the first failure and returns it.
+     */
+    public function assignProgrammerSounds(names:Map<String, String>):FmodResult {
+        if (names == null) return FmodResult.FMOD_ERR_INVALID_PARAM;
+        for (name => key in names) {
+            var result = assignProgrammerSoundForName(name, key);
+            if (!result.isOk()) return result;
+        }
+        return FmodResult.FMOD_OK;
+    }
+    #end
+
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /** Removes the programmer-sound assignment (unsupported in HTML5, where nothing can be assigned). */
+    public macro function clearProgrammerSound(self:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("EventInstance.clearProgrammerSound", "programmer sounds fail inside FMOD's JavaScript runtime, so there is no assignment to clear");
+    }
+    #else
+    /** Removes every programmer-sound assignment, key, game sound, and names (unsupported in HTML5, where nothing can be assigned). */
     public inline function clearProgrammerSound():FmodResult {
         return NativeStudio.ps_clear(this);
     }
+    #end
 
-    /** CPU usage of this instance, or null on failure (unsupported on html5). */
+#if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /** CPU usage of this instance, or null on failure. Needs the profiling setting on at init (unsupported in HTML5, null there). */
+    public macro function getCpuUsage(self:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("EventInstance.getCpuUsage", "FMOD's JavaScript API does not expose per-object CPU usage");
+    }
+    #else
+    /** CPU usage of this instance, or null on failure. Needs the profiling setting on at init (unsupported in HTML5, null there). */
     public function getCpuUsage():Null<FmodCpuUsage> {
         var result:FmodResult = NativeStudio.evi_get_cpu_usage(this);
         if (!result.isOk()) return null;
         return {exclusive: Scratch.readI(0), inclusive: Scratch.readI(1)};
     }
+    #end
 
-    /** Memory usage of this instance, or null on failure (unsupported on html5). */
+    #if (macro || (js && !haxefmod_html5_allow_unsupported))
+    /** Memory usage of this instance, or null on failure (unsupported in HTML5, null there). */
+    public macro function getMemoryUsage(self:haxe.macro.Expr):haxe.macro.Expr {
+        return haxefmod.studio.native.Html5Gate.block("EventInstance.getMemoryUsage", "FMOD's JavaScript API does not expose memory usage");
+    }
+    #else
+    /** Memory usage of this instance, or null on failure (unsupported in HTML5, null there). */
     public function getMemoryUsage():Null<FmodMemoryUsage> {
         var result:FmodResult = NativeStudio.evi_get_memory_usage(this);
         if (!result.isOk()) return null;
         return {exclusive: Scratch.readI(0), inclusive: Scratch.readI(1), sampledata: Scratch.readI(2)};
+    }
+    #end
+
+    /**
+     * Attaches a Haxe value to this handle. The value lives on the Haxe
+     * side keyed by the handle and is dropped when the handle is released.
+     * A recycled native slot gets a new generation and therefore a new
+     * handle int, so a stale entry never shows up on a later handle.
+     */
+    public inline function setUserData(value:Dynamic):Void {
+        UserData.set(UserDataKind.EventInstance, this, value);
+    }
+
+    /** The value attached with setUserData, or null. */
+    public inline function getUserData():Dynamic {
+        return UserData.get(UserDataKind.EventInstance, this);
     }
 }

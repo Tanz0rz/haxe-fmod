@@ -1,5 +1,7 @@
 package haxefmod.studio;
 
+import haxefmod.studio.Types;
+
 /**
  * FMOD_STUDIO_EVENT_CALLBACK_* bits, pinned to FMOD 2.03.12.
  * Combine with | to build masks for callback registration.
@@ -24,12 +26,17 @@ enum abstract EventCallbackType(Int) from Int to Int {
     var VIRTUAL_TO_REAL = 0x00010000;
     var START_EVENT_COMMAND = 0x00020000;
     var NESTED_TIMELINE_BEAT = 0x00040000;
-
-    /** All playback lifecycle events (no programmer sound / plugin / command hooks). */
-    public static inline var PLAYBACK_ALL:Int = CREATED | DESTROYED | STARTING | STARTED | RESTARTED
-        | STOPPED | START_FAILED | TIMELINE_MARKER | TIMELINE_BEAT | SOUND_PLAYED | SOUND_STOPPED
-        | REAL_TO_VIRTUAL | VIRTUAL_TO_REAL | NESTED_TIMELINE_BEAT;
+    var ALL = 0xFFFFFFFF;
 }
+
+/**
+ * FMOD_STUDIO_EVENT_CALLBACK as game code holds it. The handler receives
+ * the decoded payload on the game thread from FmodManager.Update, so the
+ * FMOD side has no instance or parameters argument and nothing to
+ * return. EventInstance.setCallback and EventDescription.setCallback
+ * take one.
+ */
+typedef EventCallback = EventCallbackData->Void;
 
 /**
  * A decoded FMOD Studio event callback with its payload.
@@ -43,13 +50,42 @@ enum EventCallbackData {
     Restarted;
     Stopped;
     StartFailed;
-    TimelineMarker(name:String, positionMs:Int);
-    TimelineBeat(bar:Int, beat:Int, positionMs:Int, tempo:Float, timeSigUpper:Int, timeSigLower:Int);
-    NestedTimelineBeat(bar:Int, beat:Int, positionMs:Int, tempo:Float, timeSigUpper:Int, timeSigLower:Int);
+    /** A marker on the timeline, with its name and position (FMOD_STUDIO_TIMELINE_MARKER_PROPERTIES). */
+    TimelineMarker(properties:FmodTimelineMarkerProperties);
+    /** A beat on the timeline (FMOD_STUDIO_TIMELINE_BEAT_PROPERTIES). */
+    TimelineBeat(properties:FmodTimelineBeatProperties);
+    /**
+     * A beat on a referenced event's timeline (FMOD_STUDIO_TIMELINE_NESTED_BEAT_PROPERTIES).
+     * properties.eventId is the GUID FMOD reports for that timeline, in FMOD's text form.
+     */
+    NestedTimelineBeat(properties:FmodTimelineNestedBeatProperties);
     SoundPlayed;
     SoundStopped;
     RealToVirtual;
     VirtualToReal;
-    /** A callback type without a dedicated constructor (e.g. plugin hooks). */
+    /**
+     * A programmer instrument received its sound (FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES).
+     * properties.name is the instrument's name in FMOD Studio, properties.sound
+     * the Sound it plays and properties.subsoundIndex the subsound inside it.
+     */
+    ProgrammerSoundCreated(properties:FmodProgrammerSoundProperties);
+    /**
+     * A programmer instrument finished with its sound. properties.sound
+     * carries the same handle ProgrammerSoundCreated delivered, for
+     * matching. A sound the library created no longer resolves after this,
+     * one the game handed over stays the game's.
+     */
+    ProgrammerSoundDestroyed(properties:FmodProgrammerSoundProperties);
+    /**
+     * A plugin effect on the instance was created (FMOD_STUDIO_PLUGIN_INSTANCE_PROPERTIES).
+     * properties.dsp is the effect unit, valid until PluginDestroyed arrives for it.
+     */
+    PluginCreated(properties:FmodPluginInstanceProperties);
+    /**
+     * A plugin effect on the instance is gone. properties.dsp carries the
+     * same handle PluginCreated delivered, for matching, and no longer resolves.
+     */
+    PluginDestroyed(properties:FmodPluginInstanceProperties);
+    /** A callback type without a dedicated constructor. */
     Other(type:EventCallbackType);
 }
