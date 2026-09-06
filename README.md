@@ -1,10 +1,12 @@
 # FMOD for Haxe on HTML5, HashLink, Windows, Linux, and macOS
 
-Works with HaxeFlixel, Heaps, and Kha, each with drop-in components and its own setup guide.
+Works natively on HaxeFlixel, Heaps, and Kha
 
 Having problems or want to chat? [Join the Haxe Discord](https://discordapp.com/invite/0uEuWH3spjck73Lo), then follow the [haxe-fmod thread](https://discord.com/channels/162395145352904705/1472372604433076446).
 
 **Setup instructions, guides, and the API reference live on the [documentation site](https://tanz0rz.github.io/haxe-fmod/).**
+
+**The [haxefmod for FMOD docs](https://tanz0rz.github.io/haxe-fmod/extension/) browser extension adds a Haxe tab to every function on fmod.com's API reference.**
 
 ## Table of Contents
 
@@ -50,7 +52,7 @@ Once you are set up, `haxelib run haxefmod check` verifies your local dev enviro
 
 The FmodManager class is the primary way to interact with FMOD in your game. It abstracts away nearly all of the low-level details of the FMOD API. The `FmodEvents` constants used below are generated from your banks (see [Generating constants](https://tanz0rz.github.io/haxe-fmod/guides/constants/)). You can look through all of the available function calls with descriptions [here](https://github.com/Tanz0rz/haxe-fmod/blob/master/haxefmod/FmodManager.hx).
 
-Start with the one setup call for your engine. It initializes FMOD, keeps the per-frame update running, and wires focus and volume.
+Start with the one setup call for your engine. It initializes FMOD, keeps the per-frame update running, and wires focus and volume:
 
 <details>
 <summary>HaxeFlixel</summary>

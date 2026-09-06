@@ -51,6 +51,7 @@ hooks:
 nav:
   - Welcome: index.md
   - Getting started: getting-started.md
+  - FMOD docs extension: extension.md
   - Guides:
       - FmodManager: guides/fmod-manager.md
       - Generated constants: guides/constants.md
