@@ -1,17 +1,17 @@
 # haxefmod
 
-haxefmod is FMOD Studio for Haxe on HTML5, HashLink, Windows, Linux, and macOS, with drop-in components for HaxeFlixel, Heaps, and Kha. The library binds the full [FMOD Studio API](https://www.fmod.com/docs/2.03/api/studio-api.html) and the FMOD Core API at runtime. Around them it adds the pieces a game needs:
+haxefmod is FMOD Studio for Haxe on HTML5, HashLink, Windows, Linux, and macOS, with native support for HaxeFlixel, Heaps, and Kha. The library binds the full [FMOD Studio API](https://www.fmod.com/docs/2.03/api/studio-api.html) and the FMOD Core API at runtime. Around them it adds the pieces a game needs:
 
 - Helper class to simplify FMOD calls
 - Typed sound handles so sounds can be treated like objects in the code
-- payload callbacks
+- Typed callbacks with payloads
 - refcounted bank loading
 - engine components
 - constants generated from your banks
 
 ## Two sets of docs
 
-FMOD's own documentation at [fmod.com/docs](https://www.fmod.com/docs/2.03/api/welcome.html) describes every FMOD function, type, and guide. The [haxefmod for FMOD docs](guides/extension.md) browser extension adds a Haxe tab to each of them with the haxefmod signature. Every haxefmod method that wraps an FMOD function keeps the FMOD name. A page there maps directly onto a class here.
+FMOD's own documentation at [fmod.com/docs](https://www.fmod.com/docs/2.03/api/welcome.html) describes every FMOD function, type, and guide. The [fmod.com extension](guides/extension.md) adds a Haxe tab to each of them with the haxefmod signature. Every haxefmod method that wraps an FMOD function keeps the FMOD name. A page there maps directly onto a class here.
 
 These pages cover only what the library adds: setup, the helper class, the runtime layer, handle conventions, engine components, and the command line.
 

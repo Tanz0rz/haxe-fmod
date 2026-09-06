@@ -15,7 +15,7 @@ Having problems or want to chat? [Join the Haxe Discord](https://discordapp.com/
 - [Generating Constants From Your Banks](#generating-constants-from-your-banks)
 - [FMOD Studio Live Update](#fmod-studio-live-update)
 - [Tracking Sound Work With TODOs](#tracking-sound-work-with-todos)
-- [Haxe Tab on the FMOD Docs](#haxe-tab-on-the-fmod-docs)
+- [fmod.com Extension](#fmodcom-extension)
 - [Migrating From Previous haxe-fmod Versions?](#migrating-from-previous-haxe-fmod-versions)
 - [License](#license)
 - [Special Thanks](#special-thanks)
@@ -25,7 +25,7 @@ Having problems or want to chat? [Join the Haxe Discord](https://discordapp.com/
 
 - Native support for HaxeFlixel, Heaps, and Kha
 - [FMOD Studio API](https://www.fmod.com/docs/2.03/api/studio-api.html) at runtime: events, buses, VCAs, snapshots, banks, global and labeled [parameters](https://www.fmod.com/docs/2.03/studio/parameters-reference.html), 3D/listeners, and profiling with some known [limitations](LIMITATIONS.md)
-- Typed [callbacks](https://www.fmod.com/docs/2.03/api/studio-api-eventinstance.html#fmod_studio_event_callback_type) that carry event data (beats, timeline markers, etc.)
+- Typed [callbacks](https://www.fmod.com/docs/2.03/api/studio-api-eventinstance.html#fmod_studio_event_callback_type) with payloads (beats, timeline markers, etc.)
 - [Live Update](https://fmod.com/docs/2.03/studio/editing-during-live-update.html) for mixing sounds while playtesting
 - Helper class to map FMOD Studio calls/events to game code
 - TODO markers for SFX that wil be added in later
@@ -53,7 +53,7 @@ Once you are set up, `haxelib run haxefmod check` verifies your local dev enviro
 
 ## Using the Library in Code
 
-The FmodManager class is the primary way to interact with FMOD in your game. It abstracts away nearly all of the low-level details of the FMOD API. The `FmodEvents` constants used below are generated from your banks (see [Generating constants](https://tanz0rz.github.io/haxe-fmod/guides/constants/)). You can look through all of the available function calls with descriptions [here](https://github.com/Tanz0rz/haxe-fmod/blob/master/haxefmod/FmodManager.hx).
+The FmodManager class is the primary way to interact with FMOD in your game. It abstracts away nearly all of the low-level details of the FMOD API. The `FmodEvents` constants used below are generated from your banks (see [Generating constants](https://tanz0rz.github.io/haxe-fmod/guides/constants/)). Every call and its description is in the [FmodManager API reference](https://tanz0rz.github.io/haxe-fmod/api/haxefmod/FmodManager.html).
 
 Start with the one setup call for your engine. It initializes FMOD, keeps the per-frame update running, and wires focus and volume:
 
@@ -187,9 +187,9 @@ FmodManager.Todo("door creak when the vault opens");
 
 `haxelib run haxefmod todos` lists every remaining marker with its file and line. The call compiles away in release builds, and debug builds can even play a placeholder blip at each marker so you hear the gaps while playtesting. Details are in [the docs](https://tanz0rz.github.io/haxe-fmod/guides/fmod-manager/#sound-todo-markers).
 
-## Haxe Tab on the FMOD Docs
+## fmod.com Extension
 
-The [haxefmod for FMOD docs](https://tanz0rz.github.io/haxe-fmod/guides/extension/) browser extension adds a Haxe tab beside C, C++, C#, and JS on every function of the [FMOD API reference](https://www.fmod.com/docs/2.03/api/welcome.html). The tab shows the haxefmod method that wraps the function. Functions haxefmod does not expose say so and give the reason. The [install steps](https://tanz0rz.github.io/haxe-fmod/guides/extension/#install) cover Chrome, Firefox, and the userscript.
+The [fmod.com extension](https://tanz0rz.github.io/haxe-fmod/guides/extension/) adds a Haxe tab beside C, C++, C#, and JS on every function of the [FMOD API reference](https://www.fmod.com/docs/2.03/api/welcome.html). The tab shows the haxefmod method that wraps the function. Functions haxefmod does not expose say so and give the reason. The [install steps](https://tanz0rz.github.io/haxe-fmod/guides/extension/#install) cover Chrome, Firefox, and the userscript.
 
 ![The Haxe tab on fmod.com](.github/fmod_extension.png)
 
