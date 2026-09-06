@@ -185,7 +185,7 @@ FmodManager.Todo("door creak when the vault opens");
 
 ## Haxe Tab on the FMOD Docs
 
-The [haxefmod for FMOD docs](https://tanz0rz.github.io/haxe-fmod/extension/) browser extension adds a Haxe tab beside C, C++, C#, and JS on every function of the [FMOD API reference](https://www.fmod.com/docs/2.03/api/welcome.html). The tab shows the haxefmod method that wraps the function. Functions haxefmod does not expose say so and give the reason. The [install steps](https://tanz0rz.github.io/haxe-fmod/extension/#install) cover Chrome, Firefox, and the userscript.
+The [haxefmod for FMOD docs](https://tanz0rz.github.io/haxe-fmod/guides/extension/) browser extension adds a Haxe tab beside C, C++, C#, and JS on every function of the [FMOD API reference](https://www.fmod.com/docs/2.03/api/welcome.html). The tab shows the haxefmod method that wraps the function. Functions haxefmod does not expose say so and give the reason. The [install steps](https://tanz0rz.github.io/haxe-fmod/guides/extension/#install) cover Chrome, Firefox, and the userscript.
 
 ![The Haxe tab on fmod.com](.github/fmod_extension.png)
 

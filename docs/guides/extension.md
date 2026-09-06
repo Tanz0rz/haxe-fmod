@@ -1,10 +1,10 @@
-# FMOD docs extension
+# fmod.com extension
 
 The haxefmod for FMOD docs browser extension adds a **Haxe** tab beside C, C++, C#, and JS on every function of the [FMOD API reference](https://www.fmod.com/docs/2.03/api/welcome.html). The tab shows the haxefmod method that wraps the function and its Haxe signature. Type definitions show the Haxe declaration, and guide examples show the Haxe version. Functions haxefmod does not expose say so and give the reason.
 
 FMOD's own reference stays the place to read what a function does. The tab only adds the Haxe side.
 
-![The Haxe tab on fmod.com](img/fmod_extension.png)
+![The Haxe tab on fmod.com](../img/fmod_extension.png)
 
 ## Install
 
