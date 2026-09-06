@@ -12,6 +12,7 @@ Having problems or want to chat? [Join the Haxe Discord](https://discordapp.com/
  - [Supported Platforms](#supported-platforms)
  - [Getting Started](#getting-started)
  - [Using the Library in Code](#using-the-library-in-code)
+ - [Generating Constants From Your Banks](#generating-constants-from-your-banks)
  - [FMOD Studio Live Update](#fmod-studio-live-update)
  - [Tracking Sound Work With TODOs](#tracking-sound-work-with-todos)
  - [Migrating From Previous haxe-fmod Versions?](#migrating-from-previous-haxe-fmod-versions)
@@ -87,6 +88,19 @@ music.setVolume(0.5);
 var description = StudioSystem.getEvent("event:/Ambience/Forest");
 trace(description.getParameterDescriptionCount());
 ```
+
+## Generating Constants From Your Banks
+
+The [export script](https://github.com/Tanz0rz/haxe-fmod/blob/master/fmod-scripts/ExportHaxeConstants.js) turns every event, bus, VCA, snapshot, and parameter in your FMOD Studio project into a Haxe constant. Once installed, `Ctrl+B` in FMOD Studio writes the constants to your project and builds your banks in one step. Your Haxe code and your FMOD Studio project stay in sync, and a renamed event fails at compile time.
+
+![Haxe Constants Demo](https://raw.githubusercontent.com/Tanz0rz/haxe-fmod/master/.github/fmod_constants.gif)
+
+```haxe
+FmodManager.PlaySong(FmodEvents.MusicMainLevel);
+FmodManager.PlaySong("event:/Music/MainLevel"); // the same call with the path
+```
+
+[Generating constants in the docs](https://tanz0rz.github.io/haxe-fmod/guides/tools-cli/#generate) covers the setup and what gets generated.
 
 ## FMOD Studio Live Update
 
