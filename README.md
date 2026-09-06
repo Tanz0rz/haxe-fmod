@@ -8,43 +8,123 @@ Having problems or want to chat? [Join the Haxe Discord](https://discordapp.com/
 
 ## Table of Contents
 
- - [Features](#features)
- - [Supported Platforms](#supported-platforms)
- - [Getting Started](#getting-started)
- - [Using the Library in Code](#using-the-library-in-code)
- - [Generating Constants From Your Banks](#generating-constants-from-your-banks)
- - [FMOD Studio Live Update](#fmod-studio-live-update)
- - [Tracking Sound Work With TODOs](#tracking-sound-work-with-todos)
- - [Migrating From Previous haxe-fmod Versions?](#migrating-from-previous-haxe-fmod-versions)
- - [License](#license)
- - [Special Thanks](#special-thanks)
- - [Feature Requests and Contact](#feature-requests-and-contact)
+- [Features](#features)
+- [Supported Platforms](#supported-platforms)
+- [Getting Started](#getting-started)
+- [Setting Up Your Engine](#setting-up-your-engine)
+- [Using the Library in Code](#using-the-library-in-code)
+- [Generating Constants From Your Banks](#generating-constants-from-your-banks)
+- [FMOD Studio Live Update](#fmod-studio-live-update)
+- [Tracking Sound Work With TODOs](#tracking-sound-work-with-todos)
+- [Migrating From Previous haxe-fmod Versions?](#migrating-from-previous-haxe-fmod-versions)
+- [License](#license)
+- [Special Thanks](#special-thanks)
+- [Feature Requests and Contact](#feature-requests-and-contact)
 
 ## Features
 
+- Native support for HaxeFlixel, Heaps, and Kha
 - [FMOD Studio API](https://www.fmod.com/docs/2.03/api/studio-api.html) at runtime: events, buses, VCAs, snapshots, banks, global and labeled [parameters](https://www.fmod.com/docs/2.03/studio/parameters-reference.html), 3D/listeners, and profiling with some known [limitations](LIMITATIONS.md)
 - Typed [callbacks](https://www.fmod.com/docs/2.03/api/studio-api-eventinstance.html#fmod_studio_event_callback_type) that carry event data (beats, timeline markers, etc.)
 - [Live Update](https://fmod.com/docs/2.03/studio/editing-during-live-update.html) for mixing sounds while playtesting
-- Drop-in [engine components](https://tanz0rz.github.io/haxe-fmod/guides/components/) for HaxeFlixel, Heaps, and Kha: emitters that follow your game objects, listeners, bank loaders, and parameter triggers
-- Helper scripts to map FMOD Studio events to game code
-- Many, many more
+- Helper class to map FMOD Studio calls/events to game code
+- TODO markers for SFX that wil be added in later
 
 This is a faithful implementation of the FMOD stack. If this library doesn't support something you need, make an Issue and I will try to add it!
 
 ## Supported Platforms
 
-| Platform | Architecture | HaxeFlixel | Heaps | Kha |
-|----------|--------------|------------|-------|-----|
-| HTML5 | All | WebAssembly | WebAssembly | WebAssembly |
-| Windows | x86_64 | C++, HashLink | HashLink | Kore C++, Kore HL/C |
-| Linux | x86_64 | C++, HashLink | HashLink | Kore C++, Kore HL/C |
-| macOS | ARM64 (Apple Silicon) | C++, HashLink | HashLink through HL/C | Kore C++, Kore HL/C |
+| Platform | Architecture          | HaxeFlixel    | Heaps                 | Kha                 |
+| -------- | --------------------- | ------------- | --------------------- | ------------------- |
+| HTML5    | All                   | WebAssembly   | WebAssembly           | WebAssembly         |
+| Windows  | x86_64                | C++, HashLink | HashLink              | Kore C++, Kore HL/C |
+| Linux    | x86_64                | C++, HashLink | HashLink              | Kore C++, Kore HL/C |
+| macOS    | ARM64 (Apple Silicon) | C++, HashLink | HashLink through HL/C | Kore C++, Kore HL/C |
 
 ## Getting Started
 
 The [getting started walkthrough](https://tanz0rz.github.io/haxe-fmod/getting-started/) takes a new project from an empty build file to a playing sound. Every step that differs by engine has HaxeFlixel, Heaps, and Kha tabs, and picking yours once switches the whole site to it.
 
 Once you are set up, `haxelib run haxefmod check` verifies your local dev environment and is **highly recommended** whenever something misbehaves.
+
+## Setting Up Your Engine
+
+One call per engine initializes FMOD, keeps the per-frame update running, and wires focus and volume. After it, the helper class is ready to use.
+
+<details>
+<summary>HaxeFlixel</summary>
+
+Call `FmodFlxSetup.init()` once in your first state.
+
+```haxe
+import haxefmod.flixel.FmodFlxSetup;
+
+public function StartGame():Void {
+    FmodFlxSetup.init();
+    FmodManager.PlaySong(FmodEvents.MusicMainLevel);
+}
+
+public function JumpPressed():Void {
+    FmodManager.PlaySoundOneShot(FmodEvents.SFXJump);
+}
+```
+
+</details>
+
+<details>
+<summary>Heaps</summary>
+
+Call `FmodHeapsSetup.init()` once from your `hxd.App`'s `init()`.
+
+```haxe
+import haxefmod.FmodManager;
+import haxefmod.heaps.FmodHeapsSetup;
+
+class Main extends hxd.App {
+    override function init() {
+        FmodHeapsSetup.init();
+        FmodManager.PlaySong(FmodEvents.MusicMainLevel);
+    }
+
+    function JumpPressed() {
+        FmodManager.PlaySoundOneShot(FmodEvents.SFXJump);
+    }
+
+    static function main() {
+        new Main();
+    }
+}
+```
+
+</details>
+
+<details>
+<summary>Kha</summary>
+
+Call `FmodKhaSetup.init()` once from the `System.start` callback.
+
+```haxe
+import haxefmod.FmodManager;
+import haxefmod.kha.FmodKhaSetup;
+import kha.System;
+
+class Main {
+    static function main() {
+        System.start({title: "Game", width: 640, height: 480}, _ -> {
+            FmodKhaSetup.init();
+            FmodManager.PlaySong(FmodEvents.MusicMainLevel);
+        });
+    }
+
+    static function JumpPressed() {
+        FmodManager.PlaySoundOneShot(FmodEvents.SFXJump);
+    }
+}
+```
+
+</details>
+
+Each engine also gets drop-in [components](https://tanz0rz.github.io/haxe-fmod/guides/components/): an emitter that follows a game object, a listener, a bank loader, and a parameter trigger.
 
 ## Using the Library in Code
 
