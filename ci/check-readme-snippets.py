@@ -131,6 +131,7 @@ STUB_MODULES = {
     public static inline var SFXJump = "event:/SFX/Jump";
     public static inline var SFXCoin = "event:/SFX/Coin";
     public static inline var MusicMainLevel = "event:/Music/MainLevel";
+    public static inline var MusicLetsGo = "event:/Music/LetsGo";
     public static inline var MusicTitle = "event:/Music/Title";
 }
 """,
