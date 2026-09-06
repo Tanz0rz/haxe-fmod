@@ -24,7 +24,7 @@ import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DEFAULT_SDK = "/workspace/gamedev/fmod-sdk-cache/sdk/2.03.12/linux"
+DEFAULT_SDK = "/workspace/fmod/fmod-sdk-cache/sdk/2.03.12/linux"
 HAXE_OUT = os.path.join(ROOT, "haxefmod", "core", "DspParameters.hx")
 C_OUT = os.path.join(ROOT, "tests", "native", "faxe_dsp_parameters.h")
 

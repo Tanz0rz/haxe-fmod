@@ -77,7 +77,7 @@ python3 ci/haxe-catalog.py
 python3 ci/example-ledger.py --status
 ```
 
-Functions haxefmod does not expose are listed with their reasons on the documentation site's "Unsupported functions" page, generated from `functions.md` by `ci/haxe-bindings.py`. Adding a binding means removing its section there, at which point the generator picks the new method up from the sources.
+Functions haxefmod does not expose carry their reasons in `functions.md`, which the Haxe tab shows in place of a signature. Adding a binding means removing its section there, at which point the generator picks the new method up from the sources.
 
 ## Package for the stores
 

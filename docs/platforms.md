@@ -1,6 +1,6 @@
 # Platforms
 
-The Haxe API is identical on every target. This page covers what differs underneath: how the native library is found, what initializes asynchronously, and which FMOD features the web build lacks. The complete list of unsupported features is in [Limitations](limitations.md).
+The Haxe API is identical on every target. This page covers what differs underneath: what initializes asynchronously, how the native binding is found, and how to run an FMOD Engine other than the bundled one. The FMOD features the web build lacks are listed in [Limitations](limitations.md#html5).
 
 ## HTML5
 
@@ -26,24 +26,13 @@ Bank loads are always asynchronous on HTML5, because a bank file exists in the b
 
 Browsers refuse to start audio before the user interacts with the page. The library resumes FMOD's mixer on the first click in the page, so audio started before that plays from that moment on. Games that want sound from the first frame put a "click to start" screen ahead of it.
 
-### What the web build cannot do
+### Native-only calls
 
-- Programmer sounds. `assignProgrammerSound` and its variants fail because of a defect in FMOD's JavaScript runtime, so they belong to the native-only group below and return `FMOD_ERR_UNSUPPORTED` when the project opts in. Author dialogue and swappable audio as ordinary events on HTML5.
-- Loose audio files. The web build decodes FSB only, so `Sound.create` on a `.wav`, `.ogg`, or `.mp3` path returns `FMOD_ERR_FORMAT`, and so does `Sound.fromMemory` with such an image. An FSB image loads from memory. Bank content plays normally, and `Sound.fromPcm` and `PcmStream` work everywhere because they take raw PCM. `NONBLOCKING` loads run synchronously on the web, the sound is `READY` when `create` returns.
-- The `Destroyed` callback. FMOD's JavaScript glue corrupts the module if an instance is destroyed while a callback is installed, so callbacks are uninstalled before destruction and `Destroyed` cannot be delivered. `release()` removes handlers on every target, so cleanup placed there behaves identically everywhere.
-- Numeric user properties. Reading an integer, boolean, or float user property crashes FMOD's runtime, so those reads return `FMOD_ERR_UNSUPPORTED`. String properties work.
-- Live Update. FMOD does not support it in browsers.
-- Firefox never delivers `NestedTimelineBeat`, and fires an extra empty callback alongside each real marker. Chromium-based browsers deliver both correctly.
-- Geometry occlusion, microphone recording, custom 3D rolloff curves, sample readback, plugin loading, console output ports, and the mix matrix, fade point, DSP parameter description, and default mix matrix readers. These are native only, and [Limitations](limitations.md#html5) lists what each call returns on HTML5.
-- The init settings `memoryPoolSize`, `threadAttributes`, `logFile`, and `logFlags`. The web build allocates from the wasm heap, runs on the browser's audio thread, and logs to the console, so the runtime warns once and skips them. `output` accepts only `WEBAUDIO`, `AUDIOWORKLET`, `NOSOUND`, and `NOSOUND_NRT` there, and any other value fails init with `FMOD_ERR_UNSUPPORTED`. `dspBufferSize` and `dspNumBuffers` apply on HTML5 like everywhere else, with 2048 samples by 2 buffers as the web default.
-
-A call from that native-only group is a compile error in a js build. The compiler stops at the call site, names the method and the reason, and points at the opt-out, so a web build cannot ship a call that silently does nothing. Projects that share code across targets and branch at runtime set `-D haxefmod_html5_allow_unsupported`. The calls then compile, return `FMOD_ERR_UNSUPPORTED` at runtime in the browser, and the library prints one warning per build saying so.
+A call to a feature the web build lacks is a compile error in a js build. The compiler stops at the call site, names the method and the reason, and points at the opt-out. Projects that share code across targets and branch at runtime set `-D haxefmod_html5_allow_unsupported`. The calls then compile, return `FMOD_ERR_UNSUPPORTED` at runtime in the browser, and the library prints one warning per build saying so.
 
 ## HashLink
 
 HashLink loads the binding from `hlaxe_fmod.hdll`, a native library compiled against a specific FMOD Engine version. The library bundles pre-built hdlls for 2.03.12 on Linux, macOS, and Windows.
-
-### How the hdll is resolved
 
 At build time `lime test hl` (and the [stage command](guides/tools-cli.md#stage) for Heaps builds) looks for the hdll in order:
 
@@ -54,23 +43,13 @@ The build log states which one was used. At runtime the library checks the hdll'
 
 Kha builds never involve the hdll, on the Kore HL/C target included, since the binding is compiled into the executable there.
 
-### HashLink headers
-
-`build-hdll` finds HashLink's headers in the common install locations. Set `HASHLINK_DIR` to the HashLink installation directory when it cannot.
-
 ## C++
 
 C++ builds compile the binding (`linc_faxe.cpp`) into the executable alongside your game and link against the FMOD libraries in `FMOD_SDK`. Kha's native targets do this through the library's `kfile.js`. There is nothing version-specific to rebuild. Switching FMOD Engine versions means pointing `FMOD_SDK` at the new SDK and rebuilding.
 
-macOS may block the FMOD dylibs downloaded through a browser. `xattr -dr com.apple.quarantine "$FMOD_SDK"` clears the quarantine flag.
+## Other FMOD Engine versions
 
-## Selecting an FMOD Engine version
-
-The officially supported FMOD Engine version is 2.03.12. Other versions **may work fine**, but I have not tested them.
-
-This library comes pre-bundled with HashLink binaries (hdlls) for FMOD Engine version 2.03.12. C++, Kha, and HTML5 builds pick up whichever SDK the environment variables point at, so those need nothing extra.
-
-If you use a different FMOD Engine version and want HashLink builds, you **must** compile the hdll for your platform from source against your installed version of the FMOD Engine:
+The officially supported FMOD Engine version is 2.03.12. Other versions may work but are not tested. C++, Kha, and HTML5 builds compile or load against whichever SDK `FMOD_SDK` and `FMOD_SDK_WEB` point at, so they need nothing extra. HashLink builds load the pre-built hdll, which is compiled against 2.03.12, so another version needs the hdll compiled from source against your installed SDK:
 
 ```bash
 # 1. Set FMOD_SDK to your version
@@ -83,11 +62,7 @@ haxelib run haxefmod build-hdll
 lime test hl
 ```
 
-This requires a C compiler (`gcc` on Linux, `cc` on macOS, `cl` on Windows) and HashLink headers installed on your system. See [build-hdll](guides/tools-cli.md#build-hdll) for the details.
-
-Bank files require an engine at least as new as the FMOD Studio that built them, so the Studio version and the engine version move together.
-
-`StudioSystem.getVersion()` reports the engine version the running build actually loaded, as a string like `"2.03.12"`. Log it at startup to confirm that `FMOD_SDK`, `FMOD_SDK_WEB`, or the hdll points where you expect.
+[build-hdll](guides/tools-cli.md#build-hdll) covers what the command needs. Bank files require an engine at least as new as the FMOD Studio that built them, so the Studio version and the engine version move together. `StudioSystem.getVersion()` reports the engine the running build loaded, formatted like `"2.03.12"`, which confirms where `FMOD_SDK`, `FMOD_SDK_WEB`, or the hdll points.
 
 ## Live Update
 

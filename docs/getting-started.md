@@ -100,7 +100,7 @@ This will be the tool you use to manage all audio for your game. Download FMOD S
 
 This library requires you to supply your own FMOD Engine SDK (separate from FMOD Studio). The only officially supported version is 2.03.12. Download it from [fmod.com/download](https://www.fmod.com/download).
 
-If you would like to use any other version of the FMOD Engine, see [Selecting an FMOD Engine version](platforms.md#selecting-an-fmod-engine-version).
+If you would like to use any other version of the FMOD Engine, see [Other FMOD Engine versions](platforms.md#other-fmod-engine-versions).
 
 **For C++ and HashLink builds**, set the `FMOD_SDK` environment variable to point to the FMOD Engine directory:
 
@@ -144,7 +144,7 @@ Banks are loaded from `assets/fmod/Desktop` by default (see [Banks and settings]
 
 === "HaxeFlixel"
 
-    Call `haxefmod.flixel.FmodFlxSetup.init()` once in your first state. It initializes FMOD, keeps `FmodManager.Update()` running every frame in every state, and wires the flixel volume keys to the FMOD master bus (see [Engine components](guides/components.md)).
+    Call `haxefmod.flixel.FmodFlxSetup.init()` once in your first state. It initializes FMOD and keeps the per-frame update running, see [Engine components](guides/components.md#setup).
 
     ```haxe
     import haxefmod.flixel.FmodFlxSetup;
@@ -161,7 +161,7 @@ Banks are loaded from `assets/fmod/Desktop` by default (see [Banks and settings]
 
 === "Heaps"
 
-    Call `FmodHeapsSetup.init()` once from your `hxd.App`'s `init()`. It initializes FMOD, keeps `FmodManager.Update()` running every frame, and mutes the master output while the window is unfocused (see [Engine components](guides/components.md)).
+    Call `FmodHeapsSetup.init()` once from your `hxd.App`'s `init()`. It initializes FMOD and keeps the per-frame update running, see [Engine components](guides/components.md#setup).
 
     ```haxe
     import haxefmod.FmodManager;
@@ -185,7 +185,7 @@ Banks are loaded from `assets/fmod/Desktop` by default (see [Banks and settings]
 
 === "Kha"
 
-    Call `FmodKhaSetup.init()` once from the `System.start` callback. It initializes FMOD, keeps `FmodManager.Update()` running every frame, and mutes the master output while the application is in the background (see [Engine components](guides/components.md)).
+    Call `FmodKhaSetup.init()` once from the `System.start` callback. It initializes FMOD and keeps the per-frame update running, see [Engine components](guides/components.md#setup).
 
     ```haxe
     import haxefmod.FmodManager;
@@ -298,6 +298,3 @@ HTML5 initializes asynchronously, so an HTML5 game waits for `FmodManager.IsInit
 
 The library has no hard dependency on any engine. Add `-lib haxefmod` to your build, follow the Heaps tabs for the SDK and staging steps, and call `FmodManager.Update()` once per frame from your game loop.
 
-## Next
-
-[FmodManager](guides/fmod-manager.md) covers the facade in full, [Engine components](guides/components.md) covers the drop-in emitters, listeners, and loaders, and [Handles and results](guides/handles-and-results.md) explains the conventions every deeper call follows.

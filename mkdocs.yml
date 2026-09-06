@@ -61,7 +61,6 @@ nav:
       - Tools CLI: guides/tools-cli.md
   - Platforms: platforms.md
   - Coverage: coverage.md
-  - Unsupported functions: unsupported.md
   - Limitations: limitations.md
   - Migration: migration.md
   - Changelog: changelog.md

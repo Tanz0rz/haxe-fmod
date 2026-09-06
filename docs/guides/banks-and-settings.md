@@ -27,15 +27,11 @@ FmodRuntime.onceReady(() -> {
 
 `onceReady` runs the handler immediately when initialization already completed, otherwise on the first serviced frame after it does. Values pushed to FMOD before that point land on objects that do not exist yet, so setup code that applies state belongs inside it.
 
-`StudioSystem.getVersion()` returns the FMOD Engine version the running build loaded, as a string like `"2.03.12"`, or an empty string on failure. It is the quickest way to confirm which SDK or hdll a build picked up.
-
 `FmodRuntime.update()` services the runtime. It drains the callback queue, pushes attached-instance positions, and calls FMOD's update when the background auto-update is off. `FmodManager.Update()` calls it, so a game only needs one of the two.
 
 ## Settings
 
 `FmodSettings` is a typedef with every field optional. An unset field falls back to a compile-time define, then to the built-in default.
-
-The engine reports what it runs with after init: `CoreSystem.getSoftwareFormat()`, `getSoftwareChannels()`, `getDSPBufferSize()`, and `getStreamBufferSize()` read the values FMOD settled on, defaults included.
 
 | Field | Define | Default | Meaning |
 |---|---|---|---|
@@ -55,7 +51,7 @@ The engine reports what it runs with after init: `CoreSystem.getSoftwareFormat()
 | `softwareChannels` | `haxefmod_software_channels` | 0 | Real (audible) voices the mixer runs at once. Voices past the cap go virtual. 0 uses FMOD's default of 64. |
 | `streamBufferSize` | | 0 | File buffer size in bytes for streamed sounds. 0 uses FMOD's default of 16384. |
 | `profiling` | | false | Turns on FMOD profiling. `Bus`, `EventInstance`, and `Dsp` report `getCpuUsage()` only with this on, and the FMOD Profiler can connect to the game. |
-| `distanceFilter` | | false | Turns on the per-channel distance lowpass. 3D core channels then muffle with distance, and `Channel.set3DDistanceFilter` tunes it. See [Core API](core-api.md#channels). |
+| `distanceFilter` | | false | Turns on the per-channel distance lowpass. 3D core channels then muffle with distance, and `Channel.set3DDistanceFilter` tunes it. |
 | `liveUpdate` | `haxefmod_live_update`, `haxefmod_no_live_update` | true in `-debug` builds | Opens the Live Update connection on TCP port 9264. Native only. |
 | `logLevel` | `haxefmod_log_level` | 1 | FMOD debug logging. 0 none, 1 errors, 2 warnings, 3 everything. |
 | `bankFolder` | `haxefmod_bank_folder` | `assets/fmod/Desktop` | Folder bank file names resolve against. |
@@ -95,8 +91,6 @@ The engine reports what it runs with after init: `CoreSystem.getSoftwareFormat()
 
 `FmodRuntime.settings()` returns the fully resolved settings after init, and `null` before it.
 
-`StudioSystem.getAdvancedSettings()` and `getStudioAdvancedSettings()` read the advanced settings FMOD is running with (unsupported in HTML5, where they return `null`).
-
 The Live Update port is fixed at 9264 by FMOD. Enabling it triggers a firewall dialog on macOS and Windows the first time the game runs.
 
 ## Bank loading
@@ -129,18 +123,6 @@ A path that settles in `ERROR` is not deduplicated. Loading it again replaces th
 
 Two spellings of one file share one refcount, since `BankRegistry.normalizePath` collapses separators and `.` segments. Windows backslashes are accepted.
 
-## Direct bank calls
+## Loading outside the registry
 
-The registry is a convenience over `StudioSystem` and `Bank`, which remain available.
-
-- `StudioSystem.loadBankFile(path, ?flags)` loads a bank and returns its handle. `NONBLOCKING` starts an asynchronous load.
-- `StudioSystem.loadBankMemory(bytes, ?flags)` loads a bank from bytes you fetched or embedded, with the same flags. The data is copied.
-- `StudioSystem.getBank("bank:/Master")` looks a loaded bank up by its FMOD path, and `getBankList()` enumerates them.
-- `Bank.getLoadingState()`, `loadSampleData()`, `unloadSampleData()`, `getSampleLoadingState()`, `getEventList()`, `getBusList()`, `getVCAList()`, and `unload()`.
-- `StudioSystem.unloadAll()` unloads everything. The registry keeps its reference counts, so a later registry load carries them forward.
-
-Sample data (the audio itself) loads lazily the first time an event plays unless you call `loadSampleData` on the bank or event description ahead of time. `StudioSystem.flushSampleLoading()` blocks until pending sample loads finish.
-
-## Bank version rule
-
-Bank files require an FMOD Engine at least as new as the FMOD Studio that built them. Rebuilding banks with a newer Studio raises the minimum engine version players' builds must bundle.
+`StudioSystem.loadBankFile`, `loadBankMemory`, `getBank`, and the `Bank` methods are FMOD's own calls and remain available. A bank loaded that way is adopted by the registry on the first registry load of the same path, and `StudioSystem.unloadAll()` unloads everything while the registry keeps its reference counts, so a later registry load carries them forward.

@@ -1,8 +1,12 @@
 # haxefmod
 
-FMOD Studio for Haxe on HTML5, HashLink, Windows, Linux, and macOS, with drop-in components for HaxeFlixel, Heaps, and Kha. The library binds the full [FMOD Studio API](https://www.fmod.com/docs/2.03/api/studio-api.html) and the FMOD Core API at runtime, and adds the pieces a game needs around them: typed sound handles, payload callbacks, refcounted bank loading, engine components, and constants generated from your banks.
+FMOD Studio for Haxe on HTML5, HashLink, Windows, Linux, and macOS, with drop-in components for HaxeFlixel, Heaps, and Kha. The library binds the full [FMOD Studio API](https://www.fmod.com/docs/2.03/api/studio-api.html) and the FMOD Core API at runtime, and adds the pieces a game needs around them: a facade, typed sound handles, payload callbacks, refcounted bank loading, engine components, and constants generated from your banks.
 
-These pages cover the Haxe side of the integration. FMOD's own documentation at [fmod.com/docs](https://www.fmod.com/docs/2.03/api/welcome.html) remains the place to read about what each FMOD function does. Every haxefmod method that wraps an FMOD function keeps the FMOD name, so a page there maps directly onto a class here.
+## Two sets of docs
+
+FMOD's own documentation at [fmod.com/docs](https://www.fmod.com/docs/2.03/api/welcome.html) describes every FMOD function, type, and guide, and the [haxefmod for FMOD docs](https://github.com/Tanz0rz/haxe-fmod/tree/master/extension) browser extension adds a Haxe tab there with the haxefmod signature for each of them. Every haxefmod method that wraps an FMOD function keeps the FMOD name, so a page there maps directly onto a class here.
+
+These pages cover only what the library adds on top of FMOD: setup, the facade, the runtime layer, the conventions every handle follows, the engine components, and the command line. Nothing here repeats an FMOD function's documentation.
 
 ## Three tiers
 
@@ -21,18 +25,14 @@ Pick the lowest tier that does what you need. They compose, so a game can start 
 - New project: [Getting started](getting-started.md), with HaxeFlixel, Heaps, and Kha tabs on every step that differs. Pick your engine once and the whole site follows.
 - Playing music and sounds from game code: [FmodManager](guides/fmod-manager.md).
 - How handles, null handles, and return codes behave: [Handles and results](guides/handles-and-results.md).
-- Loading banks and configuring the engine: [Banks and settings](guides/banks-and-settings.md).
-- Beats, markers, listeners, and moving emitters: [Callbacks and 3D](guides/callbacks-and-3d.md).
-- Generated audio, effects, reverb, and sound groups: [Core API](guides/core-api.md).
+- Initializing the engine and loading banks: [Banks and settings](guides/banks-and-settings.md).
+- Typed callbacks, listeners, and moving emitters: [Callbacks and 3D](guides/callbacks-and-3d.md).
+- Generated audio and the sound factories: [Core API helpers](guides/core-api.md).
 - Emitters, listeners, and loaders for your engine: [Engine components](guides/components.md).
 - The command line (`check`, `generate`, `todos`, `stage`, `build-hdll`): [Tools CLI](guides/tools-cli.md).
 - Per-target behavior: [Platforms](platforms.md).
+- Which FMOD functions are bound, and by what: [Coverage](coverage.md).
 - Every class and method: [API reference](/haxe-fmod/api/).
-- Which FMOD functions are bound, and by what: [Coverage](coverage.md). Which are not, and why: [Unsupported functions](unsupported.md).
-
-## The Haxe tab on fmod.com
-
-The [haxefmod for FMOD docs](https://github.com/Tanz0rz/haxe-fmod/tree/master/extension) browser extension adds a Haxe tab beside C, C++, C#, and JS on every function of the FMOD API reference, showing the haxefmod method that wraps it. It is the fastest way to go from an FMOD function to the Haxe call.
 
 ## Getting help
 
