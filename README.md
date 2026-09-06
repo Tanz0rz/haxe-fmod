@@ -6,10 +6,6 @@ Having problems or want to chat? [Join the Haxe Discord](https://discordapp.com/
 
 **Setup instructions, guides, and the API reference live on the [documentation site](https://tanz0rz.github.io/haxe-fmod/).**
 
-**The [haxefmod for FMOD docs](https://tanz0rz.github.io/haxe-fmod/extension/) browser extension adds a Haxe tab to every function on fmod.com's API reference.**
-
-![The Haxe tab on fmod.com](.github/fmod_extension.png)
-
 ## Table of Contents
 
 - [Features](#features)
@@ -19,6 +15,7 @@ Having problems or want to chat? [Join the Haxe Discord](https://discordapp.com/
 - [Generating Constants From Your Banks](#generating-constants-from-your-banks)
 - [FMOD Studio Live Update](#fmod-studio-live-update)
 - [Tracking Sound Work With TODOs](#tracking-sound-work-with-todos)
+- [Haxe Tab on the FMOD Docs](#haxe-tab-on-the-fmod-docs)
 - [Migrating From Previous haxe-fmod Versions?](#migrating-from-previous-haxe-fmod-versions)
 - [License](#license)
 - [Special Thanks](#special-thanks)
@@ -185,6 +182,12 @@ FmodManager.Todo("door creak when the vault opens");
 ```
 
 `haxelib run haxefmod todos` lists every remaining marker with its file and line. The call compiles away in release builds, and debug builds can even play a placeholder blip at each marker so you hear the gaps while playtesting. Details are in [the docs](https://tanz0rz.github.io/haxe-fmod/guides/fmod-manager/#sound-todo-markers).
+
+## Haxe Tab on the FMOD Docs
+
+The [haxefmod for FMOD docs](https://tanz0rz.github.io/haxe-fmod/extension/) browser extension adds a Haxe tab beside C, C++, C#, and JS on every function of the [FMOD API reference](https://www.fmod.com/docs/2.03/api/welcome.html). The tab shows the haxefmod method that wraps the function. Functions haxefmod does not expose say so and give the reason. The [install steps](https://tanz0rz.github.io/haxe-fmod/extension/#install) cover Chrome, Firefox, and the userscript.
+
+![The Haxe tab on fmod.com](.github/fmod_extension.png)
 
 ## Migrating From Previous haxe-fmod Versions?
 
