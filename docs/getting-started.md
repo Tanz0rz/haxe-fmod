@@ -94,7 +94,7 @@ haxelib install haxefmod
 
 ## 2. Download FMOD Studio and set up your project
 
-FMOD Studio is the tool you use to manage all audio for your game. Download it [here](https://fmod.com/download). Then install the [constants export script](guides/tools-cli.md#the-fmod-studio-export-script). A bank build then also writes the Haxe constants your code references.
+FMOD Studio is the tool you use to manage all audio for your game. Download it [here](https://fmod.com/download). Then install the [constants export script](guides/constants.md#the-fmod-studio-export-script). A bank build then also writes the Haxe constants your code references.
 
 ## 3. Set up the FMOD Engine SDK
 
@@ -206,7 +206,7 @@ Banks load from `assets/fmod/Desktop` by default. [Banks and settings](guides/ba
     }
     ```
 
-`FmodEvents` is one of the [generated constants classes](guides/tools-cli.md#generate). The string paths work too, for example `FmodManager.PlaySong("event:/Music/MainLevel")`.
+`FmodEvents` is one of the [generated constants classes](guides/constants.md). The string paths work too, for example `FmodManager.PlaySong("event:/Music/MainLevel")`.
 
 HTML5 initializes asynchronously. An HTML5 game waits for `FmodManager.IsInitialized()` before its first scene. [Platforms](platforms.md#html5) shows the loading state pattern.
 

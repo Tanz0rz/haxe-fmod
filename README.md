@@ -48,7 +48,7 @@ Once you are set up, `haxelib run haxefmod check` verifies your local dev enviro
 
 ## Using the Library in Code
 
-The FmodManager class is the primary way to interact with FMOD in your game. It abstracts away nearly all of the low-level details of the FMOD API. The `FmodEvents` constants used below are generated from your banks (see [Generating constants](https://tanz0rz.github.io/haxe-fmod/guides/tools-cli/#generate)). You can look through all of the available function calls with descriptions [here](https://github.com/Tanz0rz/haxe-fmod/blob/master/haxefmod/FmodManager.hx).
+The FmodManager class is the primary way to interact with FMOD in your game. It abstracts away nearly all of the low-level details of the FMOD API. The `FmodEvents` constants used below are generated from your banks (see [Generating constants](https://tanz0rz.github.io/haxe-fmod/guides/constants/)). You can look through all of the available function calls with descriptions [here](https://github.com/Tanz0rz/haxe-fmod/blob/master/haxefmod/FmodManager.hx).
 
 Start with the one setup call for your engine. It initializes FMOD, keeps the per-frame update running, and wires focus and volume.
 
@@ -160,7 +160,7 @@ FmodManager.PlaySong(FmodEvents.MusicMainLevel);
 FmodManager.PlaySong("event:/Music/MainLevel"); // the same call with the path
 ```
 
-[Generating constants in the docs](https://tanz0rz.github.io/haxe-fmod/guides/tools-cli/#generate) covers the setup and what gets generated.
+[Generating constants in the docs](https://tanz0rz.github.io/haxe-fmod/guides/constants/) covers the setup and what gets generated.
 
 ## FMOD Studio Live Update
 

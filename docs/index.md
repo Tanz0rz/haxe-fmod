@@ -31,6 +31,7 @@ Pick the lowest tier that does what you need. The tiers compose. A game can star
 
 - New project: [Getting started](getting-started.md), with HaxeFlixel, Heaps, and Kha tabs on every step that differs. Pick your engine once and the whole site follows.
 - Playing music and sounds from game code: [FmodManager](guides/fmod-manager.md).
+- Event, bus, and parameter names as Haxe constants: [Generated constants](guides/constants.md).
 - How handles, null handles, and return codes behave: [Handles and results](guides/handles-and-results.md).
 - Initializing the engine and loading banks: [Banks and settings](guides/banks-and-settings.md).
 - Typed callbacks, listeners, and moving emitters: [Callbacks and 3D](guides/callbacks-and-3d.md).
