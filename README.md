@@ -8,6 +8,8 @@ Having problems or want to chat? [Join the Haxe Discord](https://discordapp.com/
 
 **The [haxefmod for FMOD docs](https://tanz0rz.github.io/haxe-fmod/extension/) browser extension adds a Haxe tab to every function on fmod.com's API reference.**
 
+![The Haxe tab on fmod.com](https://raw.githubusercontent.com/Tanz0rz/haxe-fmod/master/.github/fmod_extension.gif)
+
 ## Table of Contents
 
 - [Features](#features)
