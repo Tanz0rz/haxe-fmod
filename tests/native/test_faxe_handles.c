@@ -159,12 +159,16 @@ int main(void) {
         int idx = ha & 0xFFFF;
         void* first = malloc(16);
         void* second = malloc(16);
+        assert(faxe_handle_get_aux(ha) == NULL);  /* nothing parked on a fresh slot */
         faxe_handle_set_aux(ha, first);
         assert(gFaxeSlots[idx].aux == first);
+        assert(faxe_handle_get_aux(ha) == first);
         faxe_handle_set_aux(ha, second);          /* frees first */
         assert(gFaxeSlots[idx].aux == second);
+        assert(faxe_handle_get_aux(ha) == second);
         faxe_handle_set_aux(ha, NULL);            /* frees second, leaves nothing */
         assert(gFaxeSlots[idx].aux == NULL);
+        assert(faxe_handle_get_aux(ha) == NULL);
         faxe_handle_set_aux(ha, malloc(16));
         faxe_handle_free(ha);                     /* free releases the block */
         assert(gFaxeSlots[idx].aux == NULL);
