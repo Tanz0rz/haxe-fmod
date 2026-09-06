@@ -33,12 +33,14 @@ This is a faithful implementation of the FMOD stack. If this library doesn't sup
 
 ## Supported Platforms
 
-| Platform | Architecture | Targets |
-|----------|--------------|---------|
-| HTML5 | All | WebAssembly |
-| Windows | x86_64 | C++, HashLink |
-| Linux | x86_64 | C++, HashLink |
-| macOS | ARM64 (Apple Silicon) | C++, HashLink |
+| Platform | Architecture |
+|----------|--------------|
+| HTML5 | All |
+| Windows | x86_64 |
+| Linux | x86_64 |
+| macOS | ARM64 (Apple Silicon) |
+
+HTML5 builds run on WebAssembly. On desktop, HaxeFlixel builds with C++ or HashLink, Heaps with HashLink, and Kha with Kore C++ or Kore HL/C. The [Getting started](https://tanz0rz.github.io/haxe-fmod/getting-started/) page has the table for each engine.
 
 ## Getting Started
 
