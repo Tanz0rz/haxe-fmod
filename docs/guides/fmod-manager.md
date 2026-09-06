@@ -2,7 +2,7 @@
 
 `haxefmod.FmodManager` is the facade most games talk to. It owns one background song slot, plays sound effects either fire-and-forget or through a handle, and exposes the master and bus controls a settings menu needs. It is built entirely on the public layers underneath, so anything it does not cover is reachable through `haxefmod.runtime.FmodRuntime` and `haxefmod.studio.*` with no hidden state to work around.
 
-Nothing on this page depends on an engine. Every call behaves the same on HaxeFlixel, Heaps, and Kha, and the [engine setup calls](components.md#setup) only keep `Update()` running and wire focus and volume.
+Every call behaves the same on HaxeFlixel, Heaps, and Kha. The [engine setup calls](components.md#setup) only keep `Update()` running and wire focus and volume.
 
 ## Initialization and update
 

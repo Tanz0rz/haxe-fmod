@@ -24,7 +24,7 @@ Run it after installing the SDK and whenever a build fails unexpectedly. It repo
 
 ## generate
 
-Constants classes turn FMOD Studio paths into Haxe identifiers with autocomplete, so a renamed event is a compile error rather than a silent failure at runtime.
+Constants classes turn FMOD Studio paths into Haxe identifiers with autocomplete, so a renamed event fails at compile time.
 
 ```haxe
 FmodManager.PlaySong(FmodEvents.MusicMainLevel);

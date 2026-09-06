@@ -6,7 +6,7 @@ FMOD Studio for Haxe on HTML5, HashLink, Windows, Linux, and macOS, with drop-in
 
 FMOD's own documentation at [fmod.com/docs](https://www.fmod.com/docs/2.03/api/welcome.html) describes every FMOD function, type, and guide, and the [haxefmod for FMOD docs](https://github.com/Tanz0rz/haxe-fmod/tree/master/extension) browser extension adds a Haxe tab there with the haxefmod signature for each of them. Every haxefmod method that wraps an FMOD function keeps the FMOD name, so a page there maps directly onto a class here.
 
-These pages cover only what the library adds on top of FMOD: setup, the facade, the runtime layer, the conventions every handle follows, the engine components, and the command line. Nothing here repeats an FMOD function's documentation.
+These pages cover only what the library adds on top of FMOD: setup, the facade, the runtime layer, the conventions every handle follows, the engine components, and the command line.
 
 ## Three tiers
 

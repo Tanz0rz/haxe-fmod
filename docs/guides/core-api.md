@@ -1,6 +1,6 @@
 # Core API helpers
 
-`haxefmod.core` binds the FMOD Core API with the same handle conventions as the studio layer (see [Handles and results](handles-and-results.md)). Every method keeps its FMOD name, so the [FMOD Core API reference](https://www.fmod.com/docs/2.03/api/core-api.html) with its Haxe tab describes each one. This page covers only what the library adds: where FMOD's objects live, the sound factories, and `PcmStream`.
+`haxefmod.core` binds the FMOD Core API with the same handle conventions as the studio layer (see [Handles and results](handles-and-results.md)). Every method keeps its FMOD name, so the [FMOD Core API reference](https://www.fmod.com/docs/2.03/api/core-api.html) with its Haxe tab describes each one.
 
 ## Where FMOD's objects live
 

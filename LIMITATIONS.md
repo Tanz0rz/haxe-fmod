@@ -1,6 +1,6 @@
 # Limitations
 
-What haxefmod does not do, and why. The library keeps one API surface that behaves the same on every target, so a feature that cannot work on one platform is generally left out everywhere and listed here instead of failing quietly on the platform that lacks it. The behavioral contracts described here are pinned by the test suite.
+Native builds bind every FMOD function that Haxe can host. The functions left out are the callbacks FMOD runs on its own threads, plus a few raw-pointer and platform-specific entry points. The web build has significantly fewer features than the native builds. FMOD's Emscripten runtime lacks them, and a call to one of them is a compile error in a js build.
 
 ## Platform support
 
@@ -10,7 +10,7 @@ What haxefmod does not do, and why. The library keeps one API surface that behav
 | Linux | x86_64 | FMOD publishes no ARM64 Linux SDK |
 | macOS | Apple Silicon (arm64) | Intel Macs are not supported |
 | HTML5 | WebAssembly | See the HTML5 section below |
-| Mobile and consoles | No | Desktop and web only |
+| Mobile and consoles | Not yet | Planned for a later release |
 
 ## HTML5
 

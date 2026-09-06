@@ -1,6 +1,6 @@
 # Handles and results
 
-Every FMOD object in `haxefmod.studio` and `haxefmod.core` is a typed handle: `EventInstance`, `EventDescription`, `Bank`, `Bus`, `Vca`, `CommandReplay`, `Sound`, `Channel`, `ChannelGroup`, `Dsp`, `SoundGroup`, and so on. This page describes the conventions all of them share, which is what you need to know to read any of their reference pages.
+Every FMOD object in `haxefmod.studio` and `haxefmod.core` is a typed handle: `EventInstance`, `EventDescription`, `Bank`, `Bus`, `Vca`, `CommandReplay`, `Sound`, `Channel`, `ChannelGroup`, `Dsp`, `SoundGroup`, and so on. All of them share these conventions.
 
 ## Handles are integers
 

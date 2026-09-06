@@ -1,6 +1,6 @@
 # Platforms
 
-The Haxe API is identical on every target. This page covers what differs underneath: what initializes asynchronously, how the native binding is found, and how to run an FMOD Engine other than the bundled one. The FMOD features the web build lacks are listed in [Limitations](limitations.md#html5).
+The Haxe API is identical on every target. Underneath, the targets differ in what initializes asynchronously, how the native binding is found, and how another FMOD Engine version is used. [Limitations](limitations.md#html5) has the FMOD features the web build lacks.
 
 ## HTML5
 

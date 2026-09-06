@@ -1,6 +1,6 @@
 # Getting started
 
-This walks a new project from an empty build file to a playing sound. Where engines differ, the step shows one tab per engine. Pick yours on any tab group and every tab group on the site follows, so this page and the guides read as if they were written for your engine alone.
+Where engines differ, a step shows one tab per engine. Pick yours on any tab group and every tab group on the site follows.
 
 The library is tested on games built with the `lime` and `openfl` CLI tools (HaxeFlixel and friends), on Heaps, and on Kha. Each engine has a complete example game: [EZPlatformer](https://github.com/Tanz0rz/haxe-fmod/tree/master/example-project/EZPlatformer) (HaxeFlixel), [HeapsPlatformer](https://github.com/Tanz0rz/haxe-fmod/tree/master/example-project/HeapsPlatformer), and [KhaPlatformer](https://github.com/Tanz0rz/haxe-fmod/tree/master/example-project/KhaPlatformer). [Using another framework?](#using-another-framework) covers everything else.
 
