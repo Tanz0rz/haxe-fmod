@@ -54,7 +54,6 @@ nav:
   - FmodManager: guides/fmod-manager.md
   - Generated constants: guides/constants.md
   - Live Update: live-update.md
-  - Sound TODO markers: todo-markers.md
   - fmod.com extension: guides/extension.md
   - More guides:
       - Handles and results: guides/handles-and-results.md

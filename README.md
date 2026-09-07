@@ -108,7 +108,7 @@ Sound effects usually land after the gameplay they belong to, so leave a marker 
 FmodManager.Todo("door creak when the vault opens");
 ```
 
-`haxelib run haxefmod todos` lists every remaining marker with its file and line. The call compiles away in release builds, and debug builds can even play a placeholder blip at each marker so you hear the gaps while playtesting. Details are in [the docs](https://tanz0rz.github.io/haxe-fmod/todo-markers/).
+`haxelib run haxefmod todos` lists every remaining marker with its file and line. The call compiles away in release builds, and debug builds can even play a placeholder blip at each marker so you hear the gaps while playtesting. Details are in [the docs](https://tanz0rz.github.io/haxe-fmod/guides/fmod-manager/#sound-todo-markers).
 
 ## fmod.com Extension
 
