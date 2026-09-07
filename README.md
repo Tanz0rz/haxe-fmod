@@ -81,7 +81,7 @@ trace(description.getParameterDescriptionCount());
 
 ## Generating Constants From Your Banks
 
-The [export script](https://github.com/Tanz0rz/haxe-fmod/blob/master/fmod-scripts/ExportHaxeConstants.js) turns every event, bus, VCA, snapshot, and parameter in your FMOD Studio project into a Haxe constant. Once installed, `Ctrl+B` in FMOD Studio writes the constants to your project and builds your banks in one step. Your Haxe code and your FMOD Studio project stay in sync, and a renamed event fails at compile time.
+The [export script](https://github.com/Tanz0rz/haxe-fmod/blob/master/fmod-scripts/ExportHaxeConstants.js) turns every event, bus, VCA, snapshot, and parameter in your FMOD Studio project into a Haxe constant. Once installed, `Ctrl+B` in FMOD Studio writes the constants to your project and builds your banks in one step.
 
 ![Haxe Constants Demo](https://raw.githubusercontent.com/Tanz0rz/haxe-fmod/master/.github/fmod_constants.gif)
 
