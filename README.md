@@ -13,7 +13,7 @@ Having problems or want to chat? [Join the Haxe Discord](https://discordapp.com/
 - Typed [callbacks](https://www.fmod.com/docs/2.03/api/studio-api-eventinstance.html#fmod_studio_event_callback_type) with payloads (beats, timeline markers, etc.)
 - [Live Update](https://fmod.com/docs/2.03/studio/editing-during-live-update.html) for mixing sounds while playtesting
 - [Helper class](https://tanz0rz.github.io/haxe-fmod/guides/fmod-manager/) to map FMOD Studio calls/events to game code
-- [Generated constants](https://tanz0rz.github.io/haxe-fmod/guides/constants/) for every event, bus, VCA, snapshot, and parameter in your banks, so a renamed event fails at compile time
+- [Generated constants](https://tanz0rz.github.io/haxe-fmod/guides/constants/) for every event, bus, VCA, snapshot, and parameter in your banks
 - [Engine components](https://tanz0rz.github.io/haxe-fmod/guides/components/) for HaxeFlixel, Heaps, and Kha: emitters that follow your game objects, listeners, bank loaders, and parameter triggers
 - [TODO markers](#tracking-sound-work-with-todos) for sound effects that will be added later
 - The [fmod.com extension](https://tanz0rz.github.io/haxe-fmod/guides/extension/), a Haxe tab on every function of the FMOD API reference
