@@ -16,7 +16,7 @@ Live Update is on by default in `-debug` builds and off everywhere else. Three s
 
 | Switch | Effect |
 |---|---|
-| `liveUpdate` in the [settings](guides/banks-and-settings.md#settings) | Forces it on or off for that build. It wins over the defines. |
+| `liveUpdate` in the [settings](guides/settings.md#settings) | Forces it on or off for that build. It wins over the defines. |
 | `-D haxefmod_live_update` | Forces it on in every build. |
 | `-D haxefmod_no_live_update` | Forces it off in every build. |
 

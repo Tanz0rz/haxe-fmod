@@ -20,7 +20,7 @@ function update():Void {
 
 The [example project's `LoadFmodState.hx`](https://github.com/Tanz0rz/haxe-fmod/blob/master/example-project/EZPlatformer/source/LoadFmodState.hx) is the flixel version of this pattern. Setup code that pushes state to FMOD can use `FmodRuntime.onceReady` instead of a poll.
 
-Bank loads are always asynchronous on HTML5. A bank file exists in the browser's virtual filesystem only after a fetch wrote it. `BankRegistry.load` and `loadAsync` behave the same there. See [Banks and settings](guides/banks-and-settings.md#bank-loading).
+Bank loads are always asynchronous on HTML5. A bank file exists in the browser's virtual filesystem only after a fetch wrote it. `BankRegistry.load` and `loadAsync` behave the same there. See [Banks and settings](guides/bank-loading.md).
 
 ### Browser autoplay
 

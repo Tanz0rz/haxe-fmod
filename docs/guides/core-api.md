@@ -7,7 +7,7 @@
 | FMOD | haxefmod |
 |---|---|
 | `Studio::System` | `haxefmod.studio.StudioSystem`, all static. It also holds the core `System` calls a Studio game uses: plugins, recording, profiling, listeners, the DSP lock, and `lastResult()`. |
-| `System` | `haxefmod.core.CoreSystem`, all static. It holds the mixer, driver, speaker, network, and 3D settings calls. Every value FMOD accepts only before initialization is a [setting](banks-and-settings.md#settings). |
+| `System` | `haxefmod.core.CoreSystem`, all static. It holds the mixer, driver, speaker, network, and 3D settings calls. Every value FMOD accepts only before initialization is a [setting](settings.md#settings). |
 | `System::getMasterChannelGroup`, `getMasterSoundGroup` | `ChannelGroup.master()`, `SoundGroup.master()` |
 | `System::createChannelGroup`, `createSoundGroup`, `createDSPByType`, `createDSPByPlugin`, `createGeometry`, `createReverb3D` | `ChannelGroup.create`, `SoundGroup.create`, `Dsp.create`, `Dsp.createByPlugin`, `Geometry.create`, `Reverb3D.create` |
 | `System::setReverbProperties`, `getReverbProperties` | `Reverb.set`, `Reverb.get`, and `Reverb.off`. The `FMOD_PRESET_*` environments are `Reverb.PRESET_*`. |

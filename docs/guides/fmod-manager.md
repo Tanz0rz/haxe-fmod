@@ -6,7 +6,7 @@ Every call behaves the same on HaxeFlixel, Heaps, and Kha. The [engine setup cal
 
 ## Initialization and update
 
-`FmodManager.Initialize(?settings)` starts FMOD. Every other `FmodManager` call initializes with defaults on first use, so the call is optional. Call it yourself to pass [settings](banks-and-settings.md#settings) or to control when the engine starts. The first initialization wins. The library ignores settings passed to a later call.
+`FmodManager.Initialize(?settings)` starts FMOD. Every other `FmodManager` call initializes with defaults on first use, so the call is optional. Call it yourself to pass [settings](settings.md#settings) or to control when the engine starts. The first initialization wins. The library ignores settings passed to a later call.
 
 ```haxe
 FmodManager.Initialize({liveUpdate: true, numChannels: 256});
