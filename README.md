@@ -30,7 +30,7 @@ This is a faithful implementation of the FMOD stack. If this library doesn't sup
 
 ## Getting Started
 
-The [getting started walkthrough](https://tanz0rz.github.io/haxe-fmod/getting-started/) takes a new project from an empty build file to a playing sound. Every step that differs by engine has HaxeFlixel, Heaps, and Kha tabs, and picking yours once switches the whole site to it.
+The [getting started walkthrough](https://tanz0rz.github.io/haxe-fmod/getting-started/) takes a new project from an empty build file to a playing sound. Every step that differs by engine has HaxeFlixel, Heaps, and Kha tabs. Pick yours once and the whole site switches to it.
 
 Once you are set up, `haxelib run haxefmod check` verifies your local dev environment and is **highly recommended** whenever something misbehaves.
 
