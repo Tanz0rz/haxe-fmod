@@ -7,6 +7,7 @@ import haxefmod.studio.EventInstance;
  * attributes to FMOD once per update. Instances that die (released,
  * stopped and destroyed, stale handles) are pruned automatically.
  */
+@:dox(hide)
 class AttachedInstances {
     var entries:Array<{instance:EventInstance, provider:IFmodPositionProvider, autoRelease:Bool}> = [];
 

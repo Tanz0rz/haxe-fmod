@@ -62,6 +62,9 @@ def main():
             if not os.path.exists(os.path.join(out, *path.split(".")) + ".html"):
                 continue
             rows.append(f'<tr class="{html.escape(kind)}"><td style="width:200px;"><a href="{html.escape(href)}" title="{html.escape(path)}">{html.escape(name)}</a></td><td><p>{html.escape(summary)}</p></td></tr>')
+        # A module whose types are all hidden from dox gets no page
+        if not rows:
+            continue
         body = (f"<h1>{html.escape(module)}</h1><p>Module of package "
                 f'<a href="index.html" title="{html.escape(".".join(parts[:-1]))}">{html.escape(".".join(parts[:-1]))}</a>, declaring the types below. '
                 f"Import the module (<code>import {html.escape(module)};</code>) to use all of them.</p>"

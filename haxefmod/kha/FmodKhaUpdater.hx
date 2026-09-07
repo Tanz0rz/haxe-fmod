@@ -54,6 +54,7 @@ class FmodKhaUpdater {
 }
 
 /** A component the updater ticks once per frame with the elapsed seconds. **/
+@:dox(hide)
 interface IKhaTicker {
     function tick(dt:Float):Void;
 }

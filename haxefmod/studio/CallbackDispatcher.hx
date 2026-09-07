@@ -17,6 +17,7 @@ import haxefmod.studio.native.NativeStudio;
  * One handler per event instance handle (registering again replaces it).
  * Handlers are removed automatically when the instance reports Destroyed.
  */
+@:dox(hide)
 class CallbackDispatcher {
     /**
      * Queue records with this bit set belong to core channel callbacks,

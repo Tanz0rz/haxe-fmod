@@ -7,6 +7,7 @@ import haxefmod.core.Sound;
  * ints rather than an enum so the names do not shadow the abstracts in
  * files that import this module.
  */
+@:dox(hide)
 class UserDataKind {
     public static inline var EventDescription:Int = 0;
     public static inline var EventInstance:Int = 1;
@@ -43,6 +44,7 @@ class UserDataKind {
  * newer handle. Entries for handles that die without passing through one
  * of those paths (a channel that ends by itself) linger until clearAll.
  */
+@:dox(hide)
 class UserData {
     static var maps:Array<Map<Int, Dynamic>> = [for (i in 0...UserDataKind.COUNT) new Map()];
 

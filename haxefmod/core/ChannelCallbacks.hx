@@ -13,6 +13,7 @@ import haxefmod.studio.native.NativeStudio;
  * Register through Channel.setCallback or ChannelGroup.setCallback
  * rather than directly.
  */
+@:dox(hide)
 class ChannelCallbacks {
     /** Channel event types in the queue's 0x40000000 namespace. */
     public static inline var TYPE_END:Int = 0x40000001;

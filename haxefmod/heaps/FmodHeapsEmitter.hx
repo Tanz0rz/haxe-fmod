@@ -90,6 +90,7 @@ class FmodHeapsEmitter implements IHeapsTicker {
     of its scene-space bounds, with velocity derived between samples.
     Call sample(dt) once per frame (the heaps components do).
 **/
+@:dox(hide)
 class H2dObjectPositionProvider extends DerivedVelocityProvider {
     public function new(target:Object, teleportDistance:Float = 500) {
         super(() -> centerX(target), () -> centerY(target), teleportDistance);

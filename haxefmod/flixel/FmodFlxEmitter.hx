@@ -102,6 +102,7 @@ class FmodFlxEmitter extends FlxBasic {
 }
 
 /** Adapts a FlxObject (midpoint + velocity) to the runtime's position interface. **/
+@:dox(hide)
 class FlxObjectPositionProvider implements IFmodPositionProvider {
     var target:FlxObject;
 

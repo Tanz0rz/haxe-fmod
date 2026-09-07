@@ -274,6 +274,7 @@ typedef ResolvedFmodSettings = {
     var encryptionKey:String;
 }
 
+@:dox(hide)
 class FmodSettingsResolver {
     /** Applies define-level and built-in defaults to an optional settings object. */
     public static function resolve(?settings:FmodSettings):ResolvedFmodSettings {

@@ -7,6 +7,7 @@ import haxe.macro.Expr;
  * Compile-time access to -D haxefmod_* define values (getDefine is only
  * available in macro context, so runtime code goes through these helpers).
  */
+@:dox(hide)
 class Defines {
     public static macro function getInt(name:String, fallback:Int):Expr {
         var value = Context.definedValue(name);

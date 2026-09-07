@@ -100,6 +100,7 @@ class FmodKhaEmitter implements IKhaTicker {
     velocity derived between samples. Call sample(dt) once per frame
     (the Kha components do).
 **/
+@:dox(hide)
 class KhaBodyPositionProvider extends DerivedVelocityProvider {
     public function new(target:KhaBody, teleportDistance:Float = 500) {
         super(() -> midX(target), () -> midY(target), teleportDistance);

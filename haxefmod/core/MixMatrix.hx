@@ -9,6 +9,7 @@ import haxefmod.studio.native.Scratch;
  * the rows are packed to inChannels. FMOD mixes at most 32 channels, so
  * the native buffers hold 32 by 32 floats and larger shapes are refused.
  */
+@:dox(hide)
 class MixMatrix {
     public static inline var MAX_CHANNELS:Int = 32;
 
