@@ -15,7 +15,7 @@ Having problems or want to chat? [Join the Haxe Discord](https://discordapp.com/
 - [Helper class](https://tanz0rz.github.io/haxe-fmod/guides/fmod-manager/) to map FMOD Studio calls/events to game code
 - [Generated constants](https://tanz0rz.github.io/haxe-fmod/guides/constants/) for every event, bus, VCA, snapshot, and parameter in your banks
 - [TODO markers](#tracking-sound-work-with-todos) for sound effects that will be added later
-- The [fmod.com extension](https://tanz0rz.github.io/haxe-fmod/guides/extension/), a Haxe tab on every function of the FMOD API reference
+- An [extension for fmod.com](https://tanz0rz.github.io/haxe-fmod/guides/extension/) to integrate Haxe examples into the official docs
 
 This is a faithful implementation of the FMOD stack. If this library doesn't support something you need, make an Issue and I will try to add it!
 
