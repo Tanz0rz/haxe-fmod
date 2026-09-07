@@ -29,6 +29,10 @@ def main():
                 url = html.unescape(match.group(1))
                 if re.match(r"^[a-z]+:", url) or url.startswith("//"):
                     continue
+                if url.startswith(prefix + "a/"):
+                    # The analytics directory is proxied by the docs host and
+                    # is not part of the build
+                    continue
                 if url.startswith(prefix):
                     target = os.path.join(root, url[len(prefix):])
                 elif url.startswith("/"):

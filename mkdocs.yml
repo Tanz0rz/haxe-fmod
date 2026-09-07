@@ -1,6 +1,6 @@
 site_name: haxefmod
 site_description: FMOD Studio for Haxe on HTML5, HashLink, Windows, Linux, and macOS
-site_url: https://tanz0rz.github.io/haxe-fmod/
+site_url: https://tanz0rz.com/haxe-fmod/
 repo_url: https://github.com/Tanz0rz/haxe-fmod
 repo_name: Tanz0rz/haxe-fmod
 edit_uri: edit/master/docs/
@@ -10,6 +10,7 @@ strict: true
 
 theme:
   name: material
+  custom_dir: overrides
   features:
     - navigation.sections
     - navigation.top
@@ -42,6 +43,12 @@ markdown_extensions:
   - pymdownx.details
   - pymdownx.tabbed:
       alternate_style: true
+
+# Umami analytics, loaded from the site's own first-party proxy directory
+# (overrides/partials/integrations/analytics/custom.html)
+extra:
+  analytics:
+    provider: custom
 
 # Serves LIMITATIONS.md from the repo root inside the site so it appears
 # in the nav without a second copy in docs/

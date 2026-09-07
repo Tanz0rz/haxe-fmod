@@ -15309,7 +15309,7 @@ const HAXEFMOD_EXAMPLES = {
     // keeps its own flag as well.
     var OWN_KEY = "haxefmod.selected";
     var NATIVE_LANGS = ["language-c", "language-cpp", "language-c-cpp", "language-csharp", "language-javascript"];
-    var GUIDES = "https://tanz0rz.github.io/haxe-fmod/";
+    var GUIDES = "https://tanz0rz.com/haxe-fmod/";
     var DATA = typeof HAXEFMOD_BINDINGS !== "undefined" ? HAXEFMOD_BINDINGS : null;
     var EXAMPLES = typeof HAXEFMOD_EXAMPLES !== "undefined" ? HAXEFMOD_EXAMPLES : {};
 

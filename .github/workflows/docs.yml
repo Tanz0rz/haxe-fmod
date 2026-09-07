@@ -2,8 +2,10 @@ name: Docs
 
 # Builds the documentation site (guides from docs/ plus the dox API
 # reference under /api/) on every push and pull request, and publishes it
-# to GitHub Pages from the default branch, the 3.0.0 branch, and release
-# tags.
+# to https://tanz0rz.com/haxe-fmod/ from the default branch, the 3.0.0
+# branch, and release tags. The site is rsynced from the self-hosted runner
+# to the docs host and swapped in atomically. GitHub Pages keeps serving a
+# redirect to the new address for old links.
 
 on:
   push:
@@ -16,6 +18,10 @@ on:
       - "ci/check-readme-snippets.py"
       - "ci/docs-root-pages.py"
       - "ci/haxe-bindings.py"
+      - "ci/docs-analytics.py"
+      - "ci/docs-release-swap.sh"
+      - "ci/pages-redirect/**"
+      - "overrides/**"
       - "extension/**"
       - "native/**"
       - "LIMITATIONS.md"
@@ -28,6 +34,10 @@ on:
       - "ci/check-readme-snippets.py"
       - "ci/docs-root-pages.py"
       - "ci/haxe-bindings.py"
+      - "ci/docs-analytics.py"
+      - "ci/docs-release-swap.sh"
+      - "ci/pages-redirect/**"
+      - "overrides/**"
       - "extension/**"
       - "native/**"
       - "LIMITATIONS.md"
@@ -140,14 +150,34 @@ jobs:
           mkdocs build --strict
           rm -rf site/api
           mv site-api site/api
+          python3 ci/docs-analytics.py site/api
           python3 ci/check-site-links.py site
 
-      - name: Upload the site
+      - name: Ship the site to tanz0rz.com
+        # Pushes and dispatches run on the self-hosted runner, which holds
+        # the SSH config and key for the docs host. Pull requests only
+        # build. The release lands under a fresh directory and goes live
+        # with one symlink swap.
+        if: ${{ github.event_name != 'pull_request' }}
+        env:
+          RELEASE: ${{ github.run_id }}-${{ github.run_attempt }}
+          SSH_CONFIG: /home/runner/.ssh/tanz0rz_deploy_config
+        run: |
+          rsync -az --delete --link-dest=/var/www/tanz0rz/haxe-fmod/ \
+            -e "ssh -F $SSH_CONFIG" \
+            site/ "deploy-target:/var/www/releases/$RELEASE/haxe-fmod/"
+          scp -F "$SSH_CONFIG" ci/docs-release-swap.sh "deploy-target:/var/www/releases/release-swap.sh"
+          ssh -F "$SSH_CONFIG" deploy-target "bash /var/www/releases/release-swap.sh /var/www/releases/$RELEASE"
+          curl -fsS -o /dev/null https://tanz0rz.com/haxe-fmod/
+          curl -fsS -o /dev/null https://tanz0rz.com/haxe-fmod/api/
+
+      - name: Upload the GitHub Pages redirect
         uses: actions/upload-pages-artifact@v4
         with:
-          path: site
+          path: ci/pages-redirect
 
   deploy:
+    # Keeps the old GitHub Pages address alive as a redirect to tanz0rz.com
     if: ${{ github.event_name != 'pull_request' }}
     needs: build
     runs-on: ubuntu-latest
