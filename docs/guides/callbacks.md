@@ -74,7 +74,7 @@ line.start();
 
 ## System events
 
-`StudioSystem.setSystemCallback(handler, ?coreMask, ?studioMask)` installs one `SystemCallback` for events the systems themselves raise. The binding delivers them as `SystemEvent` values through the same per-frame drain. `DeviceListChanged` and `DeviceLost` come from the core system when the audio device list changes or the active device goes away. `Error(info)` comes from the core system when an FMOD call fails, once `SystemCallbacks.CORE_ERROR` is in the core mask. Its `FmodErrorCallbackInfo` holds the result, the object kind and handle, the function name, and the parameters. `BankUnload(path)`, `LiveUpdateConnected`, and `LiveUpdateDisconnected` come from Studio.
+`StudioSystem.setSystemCallback(handler, ?coreMask, ?studioMask)` installs one `SystemCallback` for events the systems themselves raise. The binding delivers them as `SystemEvent` values through the same per-frame drain. The constructors are `DeviceListChanged`, `DeviceLost`, and `Error(info)` from the core system, and `BankUnload(path)`, `LiveUpdateConnected`, and `LiveUpdateDisconnected` from Studio. `Error` arrives once `SystemCallbacks.CORE_ERROR` is in the core mask, with FMOD's error callback struct as `FmodErrorCallbackInfo`.
 
 A second registration replaces the handler. `clearSystemCallback()` removes it.
 
