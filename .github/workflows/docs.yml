@@ -163,6 +163,7 @@ jobs:
           RELEASE: ${{ github.run_id }}-${{ github.run_attempt }}
           SSH_CONFIG: /home/runner/.ssh/tanz0rz_deploy_config
         run: |
+          ssh -F "$SSH_CONFIG" deploy-target "mkdir -p /var/www/releases/$RELEASE"
           rsync -az --delete --link-dest=/var/www/tanz0rz/haxe-fmod/ \
             -e "ssh -F $SSH_CONFIG" \
             site/ "deploy-target:/var/www/releases/$RELEASE/haxe-fmod/"
