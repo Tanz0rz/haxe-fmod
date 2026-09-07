@@ -19,6 +19,9 @@ surface matters to the examples.
 Run: python3 ci/check-readme-snippets.py [file.md | directory ...]
 With no argument README.md and MIGRATION.md are checked. A directory is
 searched for *.md files recursively.
+     python3 ci/check-readme-snippets.py --kha-stubs <dir>
+Writes the kha stubs to a directory and exits, for the API reference
+build that compiles haxefmod.kha without a Kha checkout.
 """
 
 import concurrent.futures
@@ -246,8 +249,23 @@ def collect_docs(args):
     return docs
 
 
+def write_kha_stubs(directory):
+    """Writes the Kha stub modules to a directory, for builds outside this
+    script that need to compile haxefmod.kha without a Kha checkout (the
+    API reference)."""
+    for name, content in KHA_STUB_MODULES.items():
+        path = os.path.join(directory, name)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w", encoding="utf-8") as out:
+            out.write(content)
+
+
 def main():
-    docs = collect_docs(sys.argv[1:])
+    args = sys.argv[1:]
+    if len(args) == 2 and args[0] == "--kha-stubs":
+        write_kha_stubs(args[1])
+        return 0
+    docs = collect_docs(args)
     fences = []
     for doc in docs:
         with open(doc, encoding="utf-8") as fh:
