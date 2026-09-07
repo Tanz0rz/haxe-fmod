@@ -51,69 +51,7 @@ Once you are set up, `haxelib run haxefmod check` verifies your local dev enviro
 
 The FmodManager class is the primary way to interact with FMOD in your game. It abstracts away nearly all of the low-level details of the FMOD API. The `FmodEvents` constants used below are generated from your banks (see [Generating constants](https://tanz0rz.github.io/haxe-fmod/guides/constants/)). Every call and its description is in the [FmodManager API reference](https://tanz0rz.github.io/haxe-fmod/api/haxefmod/FmodManager.html).
 
-```bash
-haxelib install haxefmod
-```
-
-Start with the one setup call for your engine. It initializes FMOD, keeps the per-frame update running, and wires focus and volume:
-
-<details>
-<summary>HaxeFlixel</summary>
-
-Call `FmodFlxSetup.init()` once in your first state.
-
-```haxe
-import haxefmod.flixel.FmodFlxSetup;
-
-public function StartGame():Void {
-    FmodFlxSetup.init();
-}
-```
-
-</details>
-
-<details>
-<summary>Heaps</summary>
-
-Call `FmodHeapsSetup.init()` once from your `hxd.App`'s `init()`.
-
-```haxe
-import haxefmod.heaps.FmodHeapsSetup;
-
-class Main extends hxd.App {
-    override function init() {
-        FmodHeapsSetup.init();
-    }
-
-    static function main() {
-        new Main();
-    }
-}
-```
-
-</details>
-
-<details>
-<summary>Kha</summary>
-
-Call `FmodKhaSetup.init()` once from the `System.start` callback.
-
-```haxe
-import haxefmod.kha.FmodKhaSetup;
-import kha.System;
-
-class Main {
-    static function main() {
-        System.start({title: "Game", width: 640, height: 480}, _ -> {
-            FmodKhaSetup.init();
-        });
-    }
-}
-```
-
-</details>
-
-From there the calls are the same on every engine. On HTML5 the engine initializes asynchronously, so make the first call after `FmodManager.IsInitialized()` reports true. [Getting started](https://tanz0rz.github.io/haxe-fmod/getting-started/) shows the loading pattern.
+The calls are the same on every engine. On HTML5 the engine initializes asynchronously, so make the first call after `FmodManager.IsInitialized()` reports true. [Getting started](https://tanz0rz.github.io/haxe-fmod/getting-started/) shows the loading pattern.
 
 ```haxe
 var engine:FmodSound;
