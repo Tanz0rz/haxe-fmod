@@ -19,7 +19,6 @@ on:
       - "extension/**"
       - "native/**"
       - "LIMITATIONS.md"
-      - "MIGRATION.md"
       - "CHANGELOG.md"
       - ".github/workflows/docs.yml"
   pull_request:
@@ -33,7 +32,6 @@ on:
       - "extension/**"
       - "native/**"
       - "LIMITATIONS.md"
-      - "MIGRATION.md"
       - "CHANGELOG.md"
       - ".github/workflows/docs.yml"
   workflow_dispatch:

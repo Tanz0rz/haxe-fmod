@@ -1,8 +1,8 @@
 """MkDocs hook that serves the repo-root docs from inside the site.
 
-LIMITATIONS.md, MIGRATION.md, and CHANGELOG.md ship in the haxelib
+LIMITATIONS.md and CHANGELOG.md ship in the haxelib
 package and are linked from the README, so they stay at the repo root.
-This hook adds them to the site build as limitations.md, migration.md,
+This hook adds them to the site build as limitations.md
 and changelog.md without keeping a second copy under docs/.
 
 Relative links inside those files point at repo-root files (LICENSE,
@@ -19,7 +19,6 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 ROOT_PAGES = {
     "LIMITATIONS.md": "limitations.md",
-    "MIGRATION.md": "migration.md",
     "CHANGELOG.md": "changelog.md",
 }
 

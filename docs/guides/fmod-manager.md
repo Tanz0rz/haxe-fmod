@@ -109,13 +109,3 @@ FmodManager.SetWindowFocused(false);
 ```
 
 `SetMuteWhenUnfocused(false)` keeps audio playing in the background. The `muteWhenUnfocused` setting and the `haxefmod_no_mute_when_unfocused` define do the same. The focus mute applies to the core master channel group, a separate node from the Studio master bus. It never disturbs a mute your game set on `bus:/`. Games that never lose focus can ignore all of this.
-
-## Sound TODO markers
-
-`FmodManager.Todo("description")` marks a spot in game code that still needs a sound. Release builds compile the call away. Debug builds trace each call site once. A build with `-D haxefmod_todo_beep` also plays a short placeholder blip, so missing sounds are audible during playtesting.
-
-```haxe
-FmodManager.Todo("door creak when the cellar opens");
-```
-
-`haxelib run haxefmod todos` lists every remaining marker in the project. See [Tools CLI](tools-cli.md#todos).
