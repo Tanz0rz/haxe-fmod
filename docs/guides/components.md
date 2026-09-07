@@ -241,7 +241,7 @@ The trigger drives an FMOD parameter from a rectangular zone. While the target i
 
 ## Utilities
 
-`PlaySoundOneShotAttached(path, target)` plays a self-ending event that follows a game object until it finishes. [Callbacks and 3D](callbacks-and-3d.md#positioned-events) has the runtime call behind it.
+`PlaySoundOneShotAttached(path, target)` plays a self-ending event that follows a game object until it finishes. [Callbacks and 3D](3d.md#positioned-events) has the runtime call behind it.
 
 === "HaxeFlixel"
 

@@ -4,7 +4,7 @@ haxefmod is FMOD Studio for Haxe on HTML5, HashLink, Windows, Linux, and macOS, 
 
 - The [FMOD Studio API](https://www.fmod.com/docs/2.03/api/studio-api.html) and [FMOD Core API](https://www.fmod.com/docs/2.03/api/core-api.html) at runtime, with some known [limitations](limitations.md)
     - Events, buses, VCAs, snapshots, banks, global and labeled parameters, and more
-- Typed callbacks with payloads (beats, timeline markers, etc.), see [Callbacks and 3D](guides/callbacks-and-3d.md)
+- Typed callbacks with payloads (beats, timeline markers, etc.), see [Callbacks](guides/callbacks.md)
 - [Live Update](live-update.md) for mixing sounds while playtesting
 - [Helper class](guides/fmod-manager.md) to map FMOD Studio calls/events to game code
 - [Generated constants](guides/constants.md) for every event, bus, VCA, snapshot, and parameter in your banks

@@ -63,7 +63,7 @@ FmodRuntime.onceReady(() -> {
 | `defaultDecodeBufferSize`, `profilePort`, `geometryMaxFadeTime`, `distanceFilterCenterFreq`, `randomSeed` | | 0 | The remaining core advanced settings. The library passes them through as given. 0 keeps FMOD's default. |
 | `commandQueueSize`, `handleInitialSize`, `studioUpdatePeriod`, `idleSampleDataPoolSize`, `streamingScheduleDelay` | | 0 | The Studio advanced settings. 0 keeps FMOD's default. |
 | `encryptionKey` | | none | The key for banks built with encryption in FMOD Studio. |
-| `maxAttachedVelocity` | | 0 | Caps the velocity magnitude pushed for attached instances and the engine listeners. The unit is game units per second. 0 means no cap. See [Callbacks and 3D](callbacks-and-3d.md#doppler-and-velocity). |
+| `maxAttachedVelocity` | | 0 | Caps the velocity magnitude pushed for attached instances and the engine listeners. The unit is game units per second. 0 means no cap. See [Callbacks and 3D](3d.md#doppler-and-velocity). |
 
 === "HaxeFlixel"
 

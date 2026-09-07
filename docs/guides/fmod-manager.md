@@ -38,7 +38,7 @@ Parameters on the song use `SetEventParameterOnSong(name, value)` and `GetEventP
 
 ### Song callbacks
 
-`OnSongEvent` registers a typed callback on the current song. Beats, markers, and lifecycle events arrive as [`EventCallbackData`](callbacks-and-3d.md#typed-callbacks) values.
+`OnSongEvent` registers a typed callback on the current song. Beats, markers, and lifecycle events arrive as [`EventCallbackData`](callbacks.md) values.
 
 ```haxe
 FmodManager.OnSongEvent(data -> switch (data) {

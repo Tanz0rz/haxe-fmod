@@ -58,7 +58,9 @@ nav:
       - Handles and results: guides/handles-and-results.md
       - Runtime and settings: guides/settings.md
       - Bank loading: guides/bank-loading.md
-      - Callbacks and 3D: guides/callbacks-and-3d.md
+      - Callbacks: guides/callbacks.md
+      - 3D and listeners: guides/3d.md
+      - Parameters: guides/parameters.md
       - Core API: guides/core-api.md
       - Engine components: guides/components.md
       - Tools CLI: guides/tools-cli.md
