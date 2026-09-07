@@ -24,7 +24,7 @@ Having problems or want to chat? [Join the Haxe Discord](https://discordapp.com/
 ## Features
 
 - Native support for HaxeFlixel, Heaps, and Kha
-- [FMOD Studio API](https://www.fmod.com/docs/2.03/api/studio-api.html) at runtime: events, buses, VCAs, snapshots, banks, global and labeled [parameters](https://www.fmod.com/docs/2.03/studio/parameters-reference.html), 3D/listeners, and profiling with some known [limitations](LIMITATIONS.md)
+- The full [FMOD Studio API](https://www.fmod.com/docs/2.03/api/studio-api.html) and [FMOD Core API](https://www.fmod.com/docs/2.03/api/core-api.html) at runtime: events, buses, VCAs, snapshots, banks, global and labeled [parameters](https://www.fmod.com/docs/2.03/studio/parameters-reference.html), 3D and listeners, plus raw sounds, DSP effects, reverb, geometry, and recording, with some known [limitations](LIMITATIONS.md)
 - Typed [callbacks](https://www.fmod.com/docs/2.03/api/studio-api-eventinstance.html#fmod_studio_event_callback_type) with payloads (beats, timeline markers, etc.)
 - [Live Update](https://fmod.com/docs/2.03/studio/editing-during-live-update.html) for mixing sounds while playtesting
 - [Helper class](https://tanz0rz.github.io/haxe-fmod/guides/fmod-manager/) to map FMOD Studio calls/events to game code
