@@ -52,12 +52,12 @@ class FlxTestHost implements TestHost {
         check("flx_bridge_volume", Math.abs(FmodManager.GetBusVolumeMaster() - 0.5) < 0.001,
             'value=${FmodManager.GetBusVolumeMaster()}');
         FlxG.sound.toggleMuted();
-        check("flx_bridge_mute", FmodManager.GetBusMuteMaster(), "");
+        check("flx_bridge_mute", FmodManager.GetBusIsMutedMaster(), "");
         // Volume is carried by the mute flag, so it must survive the mute
         check("flx_bridge_volume_kept", Math.abs(FmodManager.GetBusVolumeMaster() - 0.5) < 0.001,
             'value=${FmodManager.GetBusVolumeMaster()}');
         FlxG.sound.toggleMuted();
-        check("flx_bridge_mute_cleared", !FmodManager.GetBusMuteMaster(), "");
+        check("flx_bridge_mute_cleared", !FmodManager.GetBusIsMutedMaster(), "");
         FlxG.sound.volume = 1.0;
         check("flx_bridge_volume_restored", Math.abs(FmodManager.GetBusVolumeMaster() - 1.0) < 0.001,
             'value=${FmodManager.GetBusVolumeMaster()}');

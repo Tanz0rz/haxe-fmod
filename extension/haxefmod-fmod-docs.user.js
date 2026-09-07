@@ -9634,8 +9634,8 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "",
-     "name": "GetBusMute",
-     "signature": "GetBusMute(busPath:String):Bool",
+     "name": "GetBusIsMuted",
+     "signature": "GetBusIsMuted(busPath:String):Bool",
      "static": true,
      "type": "haxefmod.FmodManager"
     },

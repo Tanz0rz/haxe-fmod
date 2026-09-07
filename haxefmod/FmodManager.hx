@@ -158,7 +158,7 @@ class FmodManager {
         StudioSystem.getBus(busPath).setMute(mute);
     }
 
-    public static function GetBusMute(busPath:String):Bool {
+    public static function GetBusIsMuted(busPath:String):Bool {
         ensureInitialized();
         return StudioSystem.getBus(busPath).getMute();
     }
@@ -176,8 +176,8 @@ class FmodManager {
         SetBusMute("bus:/", mute);
     }
 
-    public static function GetBusMuteMaster():Bool {
-        return GetBusMute("bus:/");
+    public static function GetBusIsMutedMaster():Bool {
+        return GetBusIsMuted("bus:/");
     }
 
     //// Music (single song slot)

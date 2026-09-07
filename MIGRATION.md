@@ -47,6 +47,7 @@ instance.setCallback(handler, EventCallbackType.STARTED | EventCallbackType.TIME
 - `Sound.getFormat` returns `type` and `format` next to `channels` and `bits`.
 - GUIDs are `FmodGuid`, an abstract over the braced text form. It converts to and from `String`, so string call sites keep compiling.
 - `haxefmod.studio.CoreSound` is deprecated. Use `haxefmod.core.Sound`.
+- `FmodManager.GetBusMute(path)` is now `GetBusIsMuted(path)`, and `GetBusMuteMaster()` is `GetBusIsMutedMaster()`. The setters keep their names.
 
 ## HTML5 builds
 
@@ -118,7 +119,7 @@ The `haxefmod.flixel` package in 2.0 fully absorbs the separate flixel-fmod libr
 | 1.x | 2.0 |
 |---|---|
 | `SetMasterVolume(v)` / `GetMasterVolume()` | `SetBusVolumeMaster(v)` / `GetBusVolumeMaster()` |
-| `SetMasterMute(m)` / `GetMasterMute()` | `SetBusMuteMaster(m)` / `GetBusMuteMaster()` |
+| `SetMasterMute(m)` / `GetMasterMute()` | `SetBusMuteMaster(m)` / `GetBusIsMutedMaster()` |
 
 ### Removed without replacement
 

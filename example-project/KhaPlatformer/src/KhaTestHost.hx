@@ -45,11 +45,11 @@ class KhaTestHost implements TestHost {
         check("kha_bridge_volume", Math.abs(FmodManager.GetBusVolumeMaster() - 0.5) < 0.001,
             'value=${FmodManager.GetBusVolumeMaster()}');
         FmodManager.SetBusMuteMaster(true);
-        check("kha_bridge_mute", FmodManager.GetBusMuteMaster(), "");
+        check("kha_bridge_mute", FmodManager.GetBusIsMutedMaster(), "");
         check("kha_bridge_volume_kept", Math.abs(FmodManager.GetBusVolumeMaster() - 0.5) < 0.001,
             'value=${FmodManager.GetBusVolumeMaster()}');
         FmodManager.SetBusMuteMaster(false);
-        check("kha_bridge_mute_cleared", !FmodManager.GetBusMuteMaster(), "");
+        check("kha_bridge_mute_cleared", !FmodManager.GetBusIsMutedMaster(), "");
         FmodManager.SetBusVolumeMaster(1.0);
         check("kha_bridge_volume_restored", Math.abs(FmodManager.GetBusVolumeMaster() - 1.0) < 0.001,
             'value=${FmodManager.GetBusVolumeMaster()}');
