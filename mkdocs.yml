@@ -62,6 +62,7 @@ nav:
       - Engine components: guides/components.md
       - Tools CLI: guides/tools-cli.md
   - Platforms: platforms.md
+  - Live Update: live-update.md
   - Coverage: coverage.md
   - Limitations: limitations.md
   - Migration: migration.md

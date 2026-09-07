@@ -6,29 +6,16 @@ Having problems or want to chat? [Join the Haxe Discord](https://discordapp.com/
 
 **Setup instructions, guides, and the API reference live on the [documentation site](https://tanz0rz.github.io/haxe-fmod/).**
 
-## Table of Contents
-
-- [Features](#features)
-- [Supported Platforms](#supported-platforms)
-- [Getting Started](#getting-started)
-- [Using the Library in Code](#using-the-library-in-code)
-- [Generating Constants From Your Banks](#generating-constants-from-your-banks)
-- [FMOD Studio Live Update](#fmod-studio-live-update)
-- [Tracking Sound Work With TODOs](#tracking-sound-work-with-todos)
-- [fmod.com Extension](#fmodcom-extension)
-- [Migrating From Previous haxe-fmod Versions?](#migrating-from-previous-haxe-fmod-versions)
-- [License](#license)
-- [Special Thanks](#special-thanks)
-- [Feature Requests and Contact](#feature-requests-and-contact)
-
 ## Features
 
-- Native support for HaxeFlixel, Heaps, and Kha
-- The full [FMOD Studio API](https://www.fmod.com/docs/2.03/api/studio-api.html) and [FMOD Core API](https://www.fmod.com/docs/2.03/api/core-api.html) at runtime: events, buses, VCAs, snapshots, banks, global and labeled [parameters](https://www.fmod.com/docs/2.03/studio/parameters-reference.html), 3D and listeners, plus raw sounds, DSP effects, reverb, geometry, and recording, with some known [limitations](LIMITATIONS.md)
+- The full [FMOD Studio API](https://www.fmod.com/docs/2.03/api/studio-api.html) and [FMOD Core API](https://www.fmod.com/docs/2.03/api/core-api.html) at runtime: events, buses, VCAs, snapshots, banks, global and labeled [parameters](https://www.fmod.com/docs/2.03/studio/parameters-reference.html), 3D and listeners, plus raw sounds, DSP effects, reverb, geometry, and recording, with some known [limitations](https://tanz0rz.github.io/haxe-fmod/limitations/)
 - Typed [callbacks](https://www.fmod.com/docs/2.03/api/studio-api-eventinstance.html#fmod_studio_event_callback_type) with payloads (beats, timeline markers, etc.)
 - [Live Update](https://fmod.com/docs/2.03/studio/editing-during-live-update.html) for mixing sounds while playtesting
 - [Helper class](https://tanz0rz.github.io/haxe-fmod/guides/fmod-manager/) to map FMOD Studio calls/events to game code
-- TODO markers for SFX that wil be added in later
+- [Generated constants](https://tanz0rz.github.io/haxe-fmod/guides/constants/) for every event, bus, VCA, snapshot, and parameter in your banks, so a renamed event fails at compile time
+- [Engine components](https://tanz0rz.github.io/haxe-fmod/guides/components/) for HaxeFlixel, Heaps, and Kha: emitters that follow your game objects, listeners, bank loaders, and parameter triggers
+- [TODO markers](#tracking-sound-work-with-todos) for sound effects that will be added later
+- The [fmod.com extension](https://tanz0rz.github.io/haxe-fmod/guides/extension/), a Haxe tab on every function of the FMOD API reference
 
 This is a faithful implementation of the FMOD stack. If this library doesn't support something you need, make an Issue and I will try to add it!
 
@@ -49,9 +36,7 @@ Once you are set up, `haxelib run haxefmod check` verifies your local dev enviro
 
 ## Using the Library in Code
 
-The FmodManager class is the primary way to interact with FMOD in your game. It abstracts away nearly all of the low-level details of the FMOD API. The `FmodEvents` constants used below are generated from your banks (see [Generating constants](https://tanz0rz.github.io/haxe-fmod/guides/constants/)). Every call and its description is in the [FmodManager API reference](https://tanz0rz.github.io/haxe-fmod/api/haxefmod/FmodManager.html).
-
-The calls are the same on every engine. On HTML5 the engine initializes asynchronously, so make the first call after `FmodManager.IsInitialized()` reports true. [Getting started](https://tanz0rz.github.io/haxe-fmod/getting-started/) shows the loading pattern.
+The FmodManager class is the primary way to interact with FMOD in your game. The `FmodEvents` constants used below are generated from your banks (see [Generating constants](https://tanz0rz.github.io/haxe-fmod/guides/constants/)). Every call and its description is in the [FmodManager API reference](https://tanz0rz.github.io/haxe-fmod/api/haxefmod/FmodManager.html).
 
 ```haxe
 var engine:FmodSound;
@@ -113,7 +98,7 @@ One of the most powerful features of the FMOD ecosystem. Mix your sounds in real
 
 Live Update **only works on C++ and HashLink builds**. HTML5 builds will not work. The FMOD team said this is a limitation caused by running games inside web browsers and they have no plans to support this.
 
-It is on by default in debug builds, and [Live Update in the docs](https://tanz0rz.github.io/haxe-fmod/platforms/#live-update) covers turning it on anywhere else.
+[Live Update in the docs](https://tanz0rz.github.io/haxe-fmod/live-update/) covers turning it on and off.
 
 ## Tracking Sound Work With TODOs
 
@@ -133,7 +118,7 @@ The [fmod.com extension](https://tanz0rz.github.io/haxe-fmod/guides/extension/) 
 
 ## Migrating From Previous haxe-fmod Versions?
 
-See [MIGRATION.md](MIGRATION.md) for the complete mapping.
+See the [migration guide](https://tanz0rz.github.io/haxe-fmod/migration/) for the complete mapping.
 
 ## License
 

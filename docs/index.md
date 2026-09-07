@@ -1,13 +1,15 @@
 # haxefmod
 
-haxefmod is FMOD Studio for Haxe on HTML5, HashLink, Windows, Linux, and macOS, with native support for HaxeFlixel, Heaps, and Kha. The library binds the full [FMOD Studio API](https://www.fmod.com/docs/2.03/api/studio-api.html) and the FMOD Core API at runtime. Around them it adds the pieces a game needs:
+haxefmod is FMOD Studio for Haxe on HTML5, HashLink, Windows, Linux, and macOS, with native support for HaxeFlixel, Heaps, and Kha.
 
-- [Helper class](guides/fmod-manager.md) to simplify FMOD calls
-- Typed sound handles so sounds can be treated like objects in the code
-- Typed callbacks with payloads
-- refcounted bank loading
-- engine components
-- constants generated from your banks
+- The full [FMOD Studio API](https://www.fmod.com/docs/2.03/api/studio-api.html) and [FMOD Core API](https://www.fmod.com/docs/2.03/api/core-api.html) at runtime: events, buses, VCAs, snapshots, banks, global and labeled parameters, 3D and listeners, plus raw sounds, DSP effects, reverb, geometry, and recording, with some known [limitations](limitations.md)
+- Typed callbacks with payloads (beats, timeline markers, etc.), see [Callbacks and 3D](guides/callbacks-and-3d.md)
+- [Live Update](live-update.md) for mixing sounds while playtesting
+- [Helper class](guides/fmod-manager.md) to map FMOD Studio calls/events to game code
+- [Generated constants](guides/constants.md) for every event, bus, VCA, snapshot, and parameter in your banks, so a renamed event fails at compile time
+- [Engine components](guides/components.md) for HaxeFlixel, Heaps, and Kha: emitters that follow your game objects, listeners, bank loaders, and parameter triggers
+- [TODO markers](guides/fmod-manager.md#sound-todo-markers) for sound effects that will be added later
+- The [fmod.com extension](guides/extension.md), a Haxe tab on every function of the FMOD API reference
 
 ## Two sets of docs
 
@@ -26,21 +28,6 @@ Pick the lowest tier that does what you need. The tiers compose. A game can star
 | Studio and Core | `haxefmod.studio`, `haxefmod.core`           | Typed handles for every FMOD Studio and Core object. The binding is complete except for the callback-driven APIs that no Haxe target can host. [Limitations](limitations.md) lists them. |
 
 `haxefmod.flixel`, `haxefmod.heaps`, and `haxefmod.kha` hold drop-in components for their engines. `haxefmod.tools` is the `haxelib run haxefmod` command line.
-
-## Where to go
-
-- New project: [Getting started](getting-started.md), with HaxeFlixel, Heaps, and Kha tabs on every step that differs. Pick your engine once and the whole site follows.
-- Playing music and sounds from game code: [FmodManager](guides/fmod-manager.md).
-- Event, bus, and parameter names as Haxe constants: [Generated constants](guides/constants.md).
-- How handles, null handles, and return codes behave: [Handles and results](guides/handles-and-results.md).
-- Initializing the engine and loading banks: [Banks and settings](guides/banks-and-settings.md).
-- Typed callbacks, listeners, and moving emitters: [Callbacks and 3D](guides/callbacks-and-3d.md).
-- Generated audio and the sound factories: [Core API helpers](guides/core-api.md).
-- Emitters, listeners, and loaders for your engine: [Engine components](guides/components.md).
-- The command line (`check`, `generate`, `todos`, `stage`, `build-hdll`): [Tools CLI](guides/tools-cli.md).
-- Per-target behavior: [Platforms](platforms.md).
-- Which FMOD functions are bound, and by what: [Coverage](coverage.md).
-- Every class and method: [API reference](/haxe-fmod/api/).
 
 ## Getting help
 
