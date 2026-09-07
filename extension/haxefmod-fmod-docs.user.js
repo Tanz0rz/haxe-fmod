@@ -4520,7 +4520,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "Turns on FMOD debug logging and FmodManager operation traces.",
+     "doc": "Turns on FMOD debug logging at its most verbose level and traces every FmodManager operation.",
      "gated": false,
      "name": "EnableDebugMessages",
      "signature": "EnableDebugMessages():Void",
@@ -9633,7 +9633,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "",
+     "doc": "Returns true when the bus is muted.",
      "name": "GetBusIsMuted",
      "signature": "GetBusIsMuted(busPath:String):Bool",
      "static": true,
@@ -9641,7 +9641,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "",
+     "doc": "Returns the volume of a bus, from 0.0 to 1.0.",
      "name": "GetBusVolume",
      "signature": "GetBusVolume(busPath:String):Float",
      "static": true,
@@ -9649,7 +9649,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "",
+     "doc": "Mutes or unmutes a bus.",
      "name": "SetBusMute",
      "signature": "SetBusMute(busPath:String, mute:Bool):Void",
      "static": true,
@@ -9657,7 +9657,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "",
+     "doc": "Sets the volume of a bus.",
      "name": "SetBusVolume",
      "signature": "SetBusVolume(busPath:String, volume:Float):Void",
      "static": true,
@@ -9665,7 +9665,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "",
+     "doc": "Stops every event routed through the master bus immediately, the song included.",
      "name": "StopAllSounds",
      "signature": "StopAllSounds():Void",
      "static": true,
@@ -10324,7 +10324,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "Removes every registered callback (song, sounds, descriptions, core channels, the system, and PCM streams).",
+     "doc": "Removes every registered callback.",
      "name": "ClearAllCallbacks",
      "signature": "ClearAllCallbacks():Void",
      "static": true,
@@ -10583,7 +10583,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Services FMOD: delivers callbacks, updates attached instances, and drives song transitions.",
+     "doc": "Services FMOD.",
      "name": "Update",
      "signature": "Update():Void",
      "static": true,
@@ -10600,7 +10600,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "",
+     "doc": "Freezes the song at its position.",
      "gated": false,
      "name": "PauseSong",
      "signature": "PauseSong():Void",
@@ -11911,7 +11911,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "Removes every registered callback (song, sounds, descriptions, core channels, the system, and PCM streams).",
+     "doc": "Removes every registered callback.",
      "name": "ClearAllCallbacks",
      "signature": "ClearAllCallbacks():Void",
      "static": true,

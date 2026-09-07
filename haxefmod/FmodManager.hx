@@ -12,12 +12,10 @@ import haxefmod.studio.Types;
 import haxefmod.studio.native.NativeStudio;
 
 /**
- * High-level FMOD helper class: one background song slot plus fire-and-forget
- * and handle-based sound effects. Built entirely on the public layers
- * underneath - use haxefmod.runtime.FmodRuntime for banks/3D/settings and
- * haxefmod.studio.* for the complete FMOD Studio API.
+ * The helper class for FMOD. It holds one background song slot and plays sound effects fire-and-forget or through a handle.
+ * It is built on the public layers underneath. Use haxefmod.runtime.FmodRuntime for banks, 3D, and settings, and haxefmod.studio for the complete FMOD Studio API.
  *
- * Call FmodManager.Update() every frame (or add FmodFlxUpdater once).
+ * Call FmodManager.Update() every frame, or let the engine setup call do it.
  */
 class FmodManager {
     // Single music slot
@@ -32,10 +30,9 @@ class FmodManager {
     //// System
 
     /**
-     * Initializes FMOD. Optional settings control channels, live update,
-     * bank folder/auto-loading, and more (see FmodSettings). Every other
-     * FmodManager call initializes with defaults on first use. First
-     * initialization wins: settings passed to a later call are ignored.
+     * Initializes FMOD. The optional settings control channels, Live Update, the bank folder, the auto-loaded banks, and more.
+     * See FmodSettings. Every other FmodManager call initializes with defaults on first use.
+     * The first initialization wins. Settings passed to a later call are ignored.
      */
     public static function Initialize(?settings:FmodSettings):Void {
         if (initialized) {
@@ -50,22 +47,22 @@ class FmodManager {
         log("Initialized");
     }
 
-    /** Turns on FMOD debug logging and FmodManager operation traces. */
+    /** Turns on FMOD debug logging at its most verbose level and traces every FmodManager operation. Debug builds enable it automatically. */
     public static function EnableDebugMessages():Void {
         debug = true;
         NativeStudio.sys_set_debug_level(3); // 3 = log everything (the FmodSettings.logLevel scale)
     }
 
-    /** True once FMOD is ready (html5 initializes asynchronously). */
+    /**
+     * Reports true once FMOD and the default banks are usable. Native targets are ready immediately.
+     * HTML5 initializes asynchronously, so poll this before the first scene.
+     */
     public static function IsInitialized():Bool {
         ensureInitialized();
         return FmodRuntime.isInitialized();
     }
 
-    /**
-     * Services FMOD: delivers callbacks, updates attached instances, and
-     * drives song transitions. Call once per frame.
-     */
+    /** Services FMOD. It delivers callbacks, updates attached instances, and drives song transitions. Call it once per frame. */
     public static function Update():Void {
         ensureInitialized();
         lastUpdateCall = Date.now().getTime();
@@ -73,9 +70,8 @@ class FmodManager {
     }
 
     /**
-     * Toggles the background auto-update that keeps audio running when the
-     * game loop stalls (on by default). Typed callbacks still only arrive
-     * from Update.
+     * Turns the background auto-update on or off. It is on by default and keeps audio running when the game loop stalls.
+     * Typed callbacks still arrive only from Update().
      */
     public static function SetAutoUpdate(enabled:Bool):Void {
         ensureInitialized();
@@ -85,30 +81,23 @@ class FmodManager {
     //// Window focus
 
     /**
-     * Reports a window focus change to FMOD. While unfocused, the master
-     * output is muted so audio doesn't play to a window nobody is looking
-     * at - but FMOD keeps mixing, so sounds play out in real time instead of
-     * queuing up and blasting out the moment the window regains focus (see
-     * SetMuteWhenUnfocused to change that, or the muteWhenUnfocused setting).
-     *
-     * Call this from wherever your game observes window focus changes.
-     * Games that never lose focus can ignore it.
+     * Reports a window focus change to FMOD. While the window is unfocused, the master output is muted.
+     * FMOD keeps mixing, so sounds finish on schedule and do not burst out when focus returns.
+     * SetMuteWhenUnfocused(false) or the muteWhenUnfocused setting keeps audio playing in the background.
+     * Call this from wherever your game observes focus changes. Games that never lose focus can ignore it.
      */
     public static function SetWindowFocused(isFocused:Bool):Void {
         ensureInitialized();
         FmodRuntime.setWindowFocused(isFocused);
     }
 
+    /** Reports the last focus state passed to SetWindowFocused. It is true until the game reports otherwise. */
     public static function IsWindowFocused():Bool {
         ensureInitialized();
         return FmodRuntime.isWindowFocused();
     }
 
-    /**
-     * Chooses whether the master output is muted while the window is
-     * unfocused: true (the default) mutes it, false keeps audio playing in
-     * the background.
-     */
+    /** Chooses whether the master output is muted while the window is unfocused. True, the default, mutes it. False keeps audio playing in the background. */
     public static function SetMuteWhenUnfocused(enabled:Bool):Void {
         ensureInitialized();
         FmodRuntime.setMuteWhenUnfocused(enabled);
@@ -116,19 +105,15 @@ class FmodManager {
 
     //// Global controls
 
+    /** Stops every event routed through the master bus immediately, the song included. */
     public static function StopAllSounds():Void {
         ensureInitialized();
         StudioSystem.getBus("bus:/").stopAllEvents(IMMEDIATE);
     }
 
     /**
-     * Pauses the master bus, freezing every sound routed through it at
-     * its current position. Pair with UnpauseAllSounds to resume.
-     *
-     * Intended for a full pause menu where the game's audio should stop
-     * completely but temporarily. While this pause state is active, new
-     * sound events are queued up and all play the moment the unpause
-     * function is called.
+     * Pauses the master bus and freezes every sound at its position. Call UnpauseAllSounds to resume.
+     * This suits a full pause menu. Events started while paused queue up and play on unpause.
      */
     public static function PauseAllSounds():Void {
         ensureInitialized();
@@ -143,39 +128,49 @@ class FmodManager {
 
     //// Buses
 
+    /**
+     * Sets the volume of a bus. The path comes from FMOD Studio, for example "bus:/SFX".
+     * Volume runs from 0.0, silent, to 1.0, full.
+     */
     public static function SetBusVolume(busPath:String, volume:Float):Void {
         ensureInitialized();
         StudioSystem.getBus(busPath).setVolume(volume);
     }
 
+    /** Returns the volume of a bus, from 0.0 to 1.0. */
     public static function GetBusVolume(busPath:String):Float {
         ensureInitialized();
         return StudioSystem.getBus(busPath).getVolume();
     }
 
+    /** Mutes or unmutes a bus. The volume survives a mute and unmute round trip. */
     public static function SetBusMute(busPath:String, mute:Bool):Void {
         ensureInitialized();
         StudioSystem.getBus(busPath).setMute(mute);
     }
 
+    /** Returns true when the bus is muted. */
     public static function GetBusIsMuted(busPath:String):Bool {
         ensureInitialized();
         return StudioSystem.getBus(busPath).getMute();
     }
 
-    /** Master-bus ("bus:/") convenience variants. */
+    /** Sets the volume of the master bus, "bus:/", from 0.0 to 1.0. */
     public static function SetBusVolumeMaster(volume:Float):Void {
         SetBusVolume("bus:/", volume);
     }
 
+    /** Returns the volume of the master bus, from 0.0 to 1.0. */
     public static function GetBusVolumeMaster():Float {
         return GetBusVolume("bus:/");
     }
 
+    /** Mutes or unmutes the master bus. */
     public static function SetBusMuteMaster(mute:Bool):Void {
         SetBusMute("bus:/", mute);
     }
 
+    /** Returns true when the master bus is muted. */
     public static function GetBusIsMutedMaster():Bool {
         return GetBusIsMuted("bus:/");
     }
@@ -183,8 +178,9 @@ class FmodManager {
     //// Music (single song slot)
 
     /**
-     * Plays a song, immediately replacing any current song. Calling it
-     * again with the current song restarts playback only if it stopped.
+     * Plays a song and replaces the current song immediately with no fade.
+     * A second call with the current song does nothing. If that song stopped or is fading out, the call restarts it.
+     * A missing event logs a warning and leaves the slot empty.
      */
     public static function PlaySong(songPath:String):Void {
         ensureInitialized();
@@ -218,13 +214,9 @@ class FmodManager {
     }
 
     /**
-     * Fades out the current song (as authored), then plays the new one
-     * once the Stopped event arrives. Requires Update() every frame.
-     *
-     * The song has a single callback slot: the transition occupies it
-     * until the fade completes, so registering OnSongEvent during the
-     * fade cancels the transition, and a second transition during the
-     * fade cuts to the new song instead of crossfading.
+     * Fades the current song out as authored, then plays the new one when the fade completes. It needs Update() every frame.
+     * The song has one callback slot and the transition holds it until the fade completes.
+     * OnSongEvent during the fade cancels the transition. A second transition during the fade cuts to the newest song.
      */
     public static function PlaySongTransition(songPath:String):Void {
         ensureInitialized();
@@ -277,7 +269,7 @@ class FmodManager {
         }
     }
 
-    /** Fades the song out (as authored) and cancels any pending transition. */
+    /** Fades the song out as authored and cancels any pending transition. */
     public static function StopSong():Void {
         ensureInitialized();
         NextSong = null;
@@ -291,6 +283,7 @@ class FmodManager {
         if (!songInstance.isNull()) songInstance.stop(IMMEDIATE);
     }
 
+    /** Freezes the song at its position. */
     public static function PauseSong():Void {
         ensureInitialized();
         if (!songInstance.isNull()) {
@@ -303,41 +296,45 @@ class FmodManager {
         }
     }
 
+    /** Resumes a song paused by PauseSong. */
     public static function UnpauseSong():Void {
         ensureInitialized();
         if (!songInstance.isNull()) songInstance.setPaused(false);
     }
 
+    /** Returns true while the song is starting, playing, sustaining, or fading out. Only a fully stopped song returns false. */
     public static function IsSongPlaying():Bool {
         ensureInitialized();
         return !songInstance.isNull() && isInstancePlaying(songInstance);
     }
 
+    /** Returns the event path passed to the last PlaySong. It is empty before the first song. */
     public static function GetCurrentSongPath():String {
         return CurrentSong;
     }
 
-    /** Timeline position of the current song in milliseconds. */
+    /** Returns the timeline position of the song in milliseconds. It is 0 with no song. */
     public static function GetSongTimelinePosition():Int {
         ensureInitialized();
         return songInstance.isNull() ? 0 : songInstance.getTimelinePosition();
     }
 
+    /** Returns the value of a parameter on the song. It is 0 with no song. */
     public static function GetEventParameterOnSong(parameterName:String):Float {
         ensureInitialized();
         return songInstance.isNull() ? 0.0 : songInstance.getParameter(parameterName);
     }
 
+    /** Sets a parameter on the song. It does nothing with no song. */
     public static function SetEventParameterOnSong(parameterName:String, parameterValue:Float):Void {
         ensureInitialized();
         if (!songInstance.isNull()) songInstance.setParameter(parameterName, parameterValue);
     }
 
     /**
-     * Registers a typed payload callback (beats, markers, lifecycle) on the
-     * current song, delivered from Update(). Replaces any previous handler,
-     * including a pending PlaySongTransition's completion handler (the
-     * transition is then cancelled).
+     * Registers a typed callback on the song. Beats, markers, and lifecycle events arrive from Update() as EventCallbackData values.
+     * The optional mask limits the delivered EventCallbackType bits.
+     * A new registration replaces the previous handler. That includes the handler a pending PlaySongTransition uses, so the transition is cancelled.
      */
     public static function OnSongEvent(handler:EventCallbackData->Void, ?mask:Int):Void {
         ensureInitialized();
@@ -345,9 +342,8 @@ class FmodManager {
     }
 
     /**
-     * Registers a song callback that fires for the FIRST delivered event
-     * and then removes itself (use the mask to pick which events qualify).
-     * Replaces any previous song handler, like OnSongEvent.
+     * Registers a song callback that fires for the first delivered event and then removes itself.
+     * The mask picks which events qualify. It replaces any previous song handler, like OnSongEvent.
      */
     public static function OnceSongEvent(handler:EventCallbackData->Void, ?mask:Int):Void {
         ensureInitialized();
@@ -368,14 +364,14 @@ class FmodManager {
 
     //// Sound effects
 
-    /** Fire-and-forget playback. */
+    /** Starts an event and releases it straight away. FMOD destroys it when it finishes. */
     public static function PlaySoundOneShot(soundPath:String):Void {
         ensureInitialized();
         log('PlaySoundOneShot $soundPath');
         FmodRuntime.playOneShot(soundPath);
     }
 
-    /** Fire-and-forget playback positioned in 2D space (uses listener 0). */
+    /** Starts a one-shot event at a 2D position relative to listener 0. */
     public static function PlaySoundOneShotAt(soundPath:String, x:Float, y:Float):Void {
         ensureInitialized();
         log('PlaySoundOneShotAt $soundPath');
@@ -383,9 +379,9 @@ class FmodManager {
     }
 
     /**
-     * Fire-and-forget playback that follows a moving object until the event
-     * ends. Intended for one-shot (self-ending) events. Flixel games can
-     * pass a FlxObject through FmodFlxUtilities.PlaySoundOneShotAttached.
+     * Starts a one-shot event that follows a moving object until the event ends.
+     * Use it for self-ending events only. A looping event never ends, so it never releases.
+     * Flixel games can pass a FlxObject through FmodFlxUtilities.PlaySoundOneShotAttached.
      */
     public static function PlaySoundOneShotAttached(soundPath:String, provider:haxefmod.runtime.IFmodPositionProvider):Void {
         ensureInitialized();
@@ -394,9 +390,8 @@ class FmodManager {
     }
 
     /**
-     * Plays a sound and returns a typed handle for further control
-     * (parameters, callbacks, stop/pause). Call release() when done with
-     * the handle.
+     * Plays a sound and returns a typed handle for parameters, callbacks, stop, and pause. Call release() when you are done with the handle.
+     * A missing event logs a warning and returns FmodSound.NULL. Every call on that handle is a safe no-op.
      */
     public static function PlaySound(soundPath:String):FmodSound {
         ensureInitialized();
@@ -411,7 +406,10 @@ class FmodManager {
         return instance;
     }
 
-    /** Removes every registered callback (song, sounds, descriptions, core channels, the system, and PCM streams). Userdata is left alone. */
+    /**
+     * Removes every registered callback. That covers song and sound handlers, event description handlers, core channel and group handlers, the system callback, and PCM stream read callbacks.
+     * Userdata stays.
+     */
     public static function ClearAllCallbacks():Void {
         CallbackDispatcher.clearAll();
         haxefmod.studio.EventDescription.clearAllCallbacks();
@@ -421,15 +419,10 @@ class FmodManager {
     }
 
     /**
-     * Marks a spot that needs a sound so audio work can be scheduled
-     * later. List every remaining call site with:
-     *
-     *   haxelib run haxefmod todos
-     *
-     * Release builds compile the call away. Debug builds trace each call
-     * site once. Build with -D haxefmod_todo_beep to also play a short
-     * placeholder blip, which makes missing sounds audible during
-     * playtesting.
+     * Marks a spot in game code that still needs a sound.
+     * Release builds compile the call away. Debug builds trace each call site once.
+     * A build with -D haxefmod_todo_beep also plays a short placeholder blip, so missing sounds are audible during playtesting.
+     * List every remaining marker with `haxelib run haxefmod todos`.
      */
     public static inline function Todo(description:String, ?pos:haxe.PosInfos):Void {
         #if (debug || haxefmod_todo_beep)
