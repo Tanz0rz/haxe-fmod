@@ -43,10 +43,6 @@ This is a faithful implementation of the FMOD stack. If this library doesn't sup
 
 ## Getting Started
 
-```bash
-haxelib install haxefmod
-```
-
 The [getting started walkthrough](https://tanz0rz.github.io/haxe-fmod/getting-started/) takes a new project from an empty build file to a playing sound. Every step that differs by engine has HaxeFlixel, Heaps, and Kha tabs, and picking yours once switches the whole site to it.
 
 Once you are set up, `haxelib run haxefmod check` verifies your local dev environment and is **highly recommended** whenever something misbehaves.
@@ -54,6 +50,10 @@ Once you are set up, `haxelib run haxefmod check` verifies your local dev enviro
 ## Using the Library in Code
 
 The FmodManager class is the primary way to interact with FMOD in your game. It abstracts away nearly all of the low-level details of the FMOD API. The `FmodEvents` constants used below are generated from your banks (see [Generating constants](https://tanz0rz.github.io/haxe-fmod/guides/constants/)). Every call and its description is in the [FmodManager API reference](https://tanz0rz.github.io/haxe-fmod/api/haxefmod/FmodManager.html).
+
+```bash
+haxelib install haxefmod
+```
 
 Start with the one setup call for your engine. It initializes FMOD, keeps the per-frame update running, and wires focus and volume:
 
