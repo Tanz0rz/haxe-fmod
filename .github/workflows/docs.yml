@@ -19,7 +19,6 @@ on:
       - "extension/**"
       - "native/**"
       - "LIMITATIONS.md"
-      - "CHANGELOG.md"
       - ".github/workflows/docs.yml"
   pull_request:
     paths:
@@ -32,7 +31,6 @@ on:
       - "extension/**"
       - "native/**"
       - "LIMITATIONS.md"
-      - "CHANGELOG.md"
       - ".github/workflows/docs.yml"
   workflow_dispatch:
 

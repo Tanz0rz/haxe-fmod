@@ -43,8 +43,8 @@ markdown_extensions:
   - pymdownx.tabbed:
       alternate_style: true
 
-# Copies LIMITATIONS.md, MIGRATION.md, and CHANGELOG.md from the repo root
-# into the site so they appear in the nav without a second copy in docs/
+# Serves LIMITATIONS.md from the repo root inside the site so it appears
+# in the nav without a second copy in docs/
 hooks:
   - ci/docs-root-pages.py
 
@@ -67,5 +67,4 @@ nav:
       - Platforms: platforms.md
   - Coverage: coverage.md
   - Limitations: limitations.md
-  - Changelog: changelog.md
   - API reference: /haxe-fmod/api/

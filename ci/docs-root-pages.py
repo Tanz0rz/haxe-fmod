@@ -1,11 +1,10 @@
 """MkDocs hook that serves the repo-root docs from inside the site.
 
-LIMITATIONS.md and CHANGELOG.md ship in the haxelib
-package and are linked from the README, so they stay at the repo root.
-This hook adds them to the site build as limitations.md
-and changelog.md without keeping a second copy under docs/.
+LIMITATIONS.md ships in the haxelib package and is linked from the
+README, so it stays at the repo root. This hook adds it to the site
+build as limitations.md without keeping a second copy under docs/.
 
-Relative links inside those files point at repo-root files (LICENSE,
+Relative links inside the file point at repo-root files (LICENSE,
 fmod-scripts/...). They are rewritten to GitHub URLs so they keep working
 from the rendered site.
 """
@@ -19,7 +18,6 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 ROOT_PAGES = {
     "LIMITATIONS.md": "limitations.md",
-    "CHANGELOG.md": "changelog.md",
 }
 
 GITHUB_BLOB = "https://github.com/Tanz0rz/haxe-fmod/blob/master/"
