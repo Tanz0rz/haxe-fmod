@@ -2,7 +2,7 @@
 
 haxefmod is FMOD Studio for Haxe on HTML5, HashLink, Windows, Linux, and macOS, with native support for HaxeFlixel, Heaps, and Kha. The library binds the full [FMOD Studio API](https://www.fmod.com/docs/2.03/api/studio-api.html) and the FMOD Core API at runtime. Around them it adds the pieces a game needs:
 
-- Helper class to simplify FMOD calls
+- [Helper class](guides/fmod-manager.md) to simplify FMOD calls
 - Typed sound handles so sounds can be treated like objects in the code
 - Typed callbacks with payloads
 - refcounted bank loading
@@ -21,7 +21,7 @@ Pick the lowest tier that does what you need. The tiers compose. A game can star
 
 | Tier            | Package                                      | What it is                                                                                                                                                                               |
 | --------------- | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Helper class    | `haxefmod.FmodManager`, `haxefmod.FmodSound` | One background song slot, fire-and-forget and handle-based sound effects, bus volume helpers, and window focus handling. Enough for most games.                                          |
+| [Helper class](guides/fmod-manager.md) | `haxefmod.FmodManager`, `haxefmod.FmodSound` | One background song slot, fire-and-forget and handle-based sound effects, bus volume helpers, and window focus handling. Enough for most games.                                          |
 | Runtime         | `haxefmod.runtime`                           | Settings-driven initialization, the bank registry, 3D attachment, and the per-frame update that everything else rides on.                                                                |
 | Studio and Core | `haxefmod.studio`, `haxefmod.core`           | Typed handles for every FMOD Studio and Core object. The binding is complete except for the callback-driven APIs that no Haxe target can host. [Limitations](limitations.md) lists them. |
 

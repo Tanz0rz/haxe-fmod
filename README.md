@@ -27,7 +27,7 @@ Having problems or want to chat? [Join the Haxe Discord](https://discordapp.com/
 - [FMOD Studio API](https://www.fmod.com/docs/2.03/api/studio-api.html) at runtime: events, buses, VCAs, snapshots, banks, global and labeled [parameters](https://www.fmod.com/docs/2.03/studio/parameters-reference.html), 3D/listeners, and profiling with some known [limitations](LIMITATIONS.md)
 - Typed [callbacks](https://www.fmod.com/docs/2.03/api/studio-api-eventinstance.html#fmod_studio_event_callback_type) with payloads (beats, timeline markers, etc.)
 - [Live Update](https://fmod.com/docs/2.03/studio/editing-during-live-update.html) for mixing sounds while playtesting
-- Helper class to map FMOD Studio calls/events to game code
+- [Helper class](https://tanz0rz.github.io/haxe-fmod/guides/fmod-manager/) to map FMOD Studio calls/events to game code
 - TODO markers for SFX that wil be added in later
 
 This is a faithful implementation of the FMOD stack. If this library doesn't support something you need, make an Issue and I will try to add it!
