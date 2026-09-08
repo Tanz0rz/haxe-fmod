@@ -60,6 +60,7 @@
 
 ### Changed
 - `FmodManager.GetBusMute` is renamed `GetBusIsMuted`, and `GetBusMuteMaster` is renamed `GetBusIsMutedMaster`, so the name says what the `Bool` means.
+- `FmodManager.SetWindowFocused` and `IsWindowFocused` moved to `FmodRuntime.setWindowFocused` and `isWindowFocused`. Reporting focus is engine plumbing, which the setup calls for HaxeFlixel, Heaps, and Kha already do at the runtime layer. `FmodManager.SetMuteWhenUnfocused`, the game-facing choice, stays.
 - `EventInstance.setCallback` and `EventDescription.setCallback` deliver every callback type when no mask is given, the default FMOD's API and its C# integration use. `EventCallbackType.PLAYBACK_ALL`, a haxefmod-only member that FMOD's enum does not have, is gone: pass `EventCallbackType.ALL` or an explicit mask.
 - `Sound.getFormat()` now returns the container `type` (`FmodSoundType`) and sample `format` (`FmodSoundFormat`) next to `channels` and `bits`.
 - The native programmer sound callback creates its sound with `FMOD_NONBLOCKING`, the same as FMOD's own example, so audio table entries and files decode off the Studio thread. FMOD waits for the sound before the instrument plays it.
@@ -80,6 +81,8 @@
 - `CommandReplay.seekToTimeMs(timeMs)` and `getCommandAtTimeMs(timeMs)`, the millisecond forms of `seekToTime` and `getCommandAtTime`. The compiler warns at every use.
 
 ### Added
+- `FmodManager.SetGlobalParameter(name, value)`, `GetGlobalParameter(name)`, and `SetGlobalParameterWithLabel(name, label)` set and read FMOD Studio global parameters from the helper class. `FmodManager.SetEventParameterOnSongWithLabel(name, label)` and `FmodSound.setParameterWithLabel(name, label)` do the same for labeled parameters on the song and on a held sound.
+- `FmodManager.SetVCAVolume(path, volume)` and `GetVCAVolume(path)`, shaped like the bus calls, for projects that author their mixer sliders as VCAs.
 - Kha support: the `haxefmod.kha` package (`FmodKhaSetup.init()` one-call setup with per-frame update and application-state muting, `FmodKhaEmitter`, `FmodKhaListener`, `FmodKhaBankLoader`, `FmodKhaParameterTrigger`, `FmodKhaUtilities.PlaySoundOneShotAttached`, all following any object with `x` and `y`) on Kore C++, Kore HL/C and html5. A `kfile.js` at the library root compiles the native binding into Kha's executable when a khafile does `project.addLibrary('haxefmod')`. `example-project/KhaPlatformer` is the working recipe, including the OpenGL backend choice and the stage command for the runtime files.
 - Heaps support: the `haxefmod.heaps` package (`FmodHeapsSetup.init()` one-call setup with per-frame update and focus-driven muting, `FmodHeapsEmitter`, `FmodHeapsListener`, `FmodHeapsBankLoader`, `FmodHeapsParameterTrigger`, `FmodHeapsUtilities.PlaySoundOneShotAttached`) on HashLink and in the browser. `example-project/HeapsPlatformer` is the working recipe: hxml builds, the `stage` command for the runtime files, and a page that script-tags `fmodstudio.js`, `jaxe.js` and the game.
 - Engine-free component cores in `haxefmod.runtime` (`EmitterTracker`, `ListenerTracker`, `DerivedVelocityProvider`, `ZoneTrigger`, `BankLoadTracker`) for adapting haxefmod to any engine with a position source and a frame hook. The flixel and Heaps components are thin wrappers over them.

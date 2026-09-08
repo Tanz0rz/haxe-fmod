@@ -1,6 +1,7 @@
 package haxefmod.kha;
 
 import haxefmod.FmodManager;
+import haxefmod.runtime.FmodRuntime;
 import haxefmod.runtime.FmodSettings;
 import kha.System;
 
@@ -34,10 +35,10 @@ class FmodKhaSetup {
     }
 
     static function onForeground():Void {
-        FmodManager.SetWindowFocused(true);
+        FmodRuntime.setWindowFocused(true);
     }
 
     static function onBackground():Void {
-        FmodManager.SetWindowFocused(false);
+        FmodRuntime.setWindowFocused(false);
     }
 }

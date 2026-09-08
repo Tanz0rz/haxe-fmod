@@ -196,6 +196,7 @@ class ApiProbeScenario implements TestScenario {
             info("authored_surface", "skipped (HAXEFMOD_PROBE_SKIP_AUTHORED)");
         } else {
             probeAuthoredSurface();
+            probeHelperClass();
             ProbeStudioParity.runAuthored(this);
         }
         // Last of the synchronous sections: on html5 its meters fill
@@ -832,6 +833,68 @@ class ApiProbeScenario implements TestScenario {
      * labels, and the user property on the music event. Each of these had
      * only negative coverage before the project authored the content.
      */
+    /**
+     * The helper class against the authored content: global parameters by
+     * bare name and by generated path, labeled parameters on the song and
+     * on a held sound, VCA volume shaped like the bus calls, and a snapshot
+     * through the ordinary play calls. Every value is restored afterwards.
+     * The song part runs before the baseline because the song slot keeps
+     * its stopped instance by design.
+     */
+    function probeHelperClass():Void {
+        FmodManager.PlaySong(FmodEvents.SFXJump);
+        FmodManager.SetEventParameterOnSongWithLabel("Surface", "Stone");
+        check("helper_song_param_label", Math.abs(FmodManager.GetEventParameterOnSong("Surface") - 1) < 0.001,
+            'value=${FmodManager.GetEventParameterOnSong("Surface")}');
+        FmodManager.StopSongImmediately();
+        StudioSystem.flushCommands();
+        var baseline = StudioSystem.liveHandleCount();
+
+        var intensity = StudioSystem.getParameterDescriptionByName("Intensity");
+        check("helper_global_param_authored", intensity != null, "");
+        if (intensity != null) {
+            FmodManager.SetGlobalParameter("Intensity", intensity.maximum);
+            check("helper_global_param_set", Math.abs(FmodManager.GetGlobalParameter("Intensity") - intensity.maximum) < 0.001,
+                'value=${FmodManager.GetGlobalParameter("Intensity")}');
+            FmodManager.SetGlobalParameter(FmodParameters.Intensity, intensity.minimum);
+            check("helper_global_param_path_form", Math.abs(FmodManager.GetGlobalParameter(FmodParameters.Intensity) - intensity.minimum) < 0.001,
+                'value=${FmodManager.GetGlobalParameter(FmodParameters.Intensity)}');
+            FmodManager.SetGlobalParameter("Intensity", intensity.defaultValue);
+        }
+        var weather = StudioSystem.getParameterDescriptionByName("Weather");
+        FmodManager.SetGlobalParameterWithLabel(FmodParameters.Weather, "Storm");
+        check("helper_global_param_label", Math.abs(FmodManager.GetGlobalParameter("Weather") - 2) < 0.001,
+            'value=${FmodManager.GetGlobalParameter("Weather")}');
+        if (weather != null) StudioSystem.setParameter("Weather", weather.defaultValue, true);
+        check("helper_global_param_unknown_reads_zero", FmodManager.GetGlobalParameter("NoSuchParameter") == 0,
+            'value=${FmodManager.GetGlobalParameter("NoSuchParameter")}');
+
+        var jump = FmodManager.PlaySound(FmodEvents.SFXJump);
+        check("helper_sound_param_label", jump.setParameterWithLabel("Surface", "Metal").isOk()
+            && Math.abs(jump.getParameter("Surface") - 2) < 0.001, 'value=${jump.getParameter("Surface")}');
+        jump.stopImmediately();
+        jump.release();
+
+        FmodManager.SetVCAVolume(FmodVCAs.Main, 0.5);
+        check("helper_vca_volume", Math.abs(FmodManager.GetVCAVolume(FmodVCAs.Main) - 0.5) < 0.001,
+            'value=${FmodManager.GetVCAVolume(FmodVCAs.Main)}');
+        FmodManager.SetVCAVolume(FmodVCAs.Main, 1.0);
+        check("helper_vca_volume_restored", Math.abs(FmodManager.GetVCAVolume(FmodVCAs.Main) - 1.0) < 0.001,
+            'value=${FmodManager.GetVCAVolume(FmodVCAs.Main)}');
+        info("helper_vca_missing_reads", Std.string(FmodManager.GetVCAVolume("vca:/Nope")));
+
+        var underwater = FmodManager.PlaySound(FmodSnapshots.Underwater);
+        StudioSystem.flushCommands();
+        check("helper_snapshot_plays", !underwater.isNull() && underwater.isPlaying(), "");
+        underwater.stopImmediately();
+        underwater.release();
+        StudioSystem.flushCommands();
+        CallbackDispatcher.update();
+
+        check("no_handle_leaks_helper", StudioSystem.liveHandleCount() == baseline,
+            'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
+    }
+
     function probeAuthoredSurface():Void {
         // The VCA lookup mints a persistent dedup handle, so warm it
         // before the baseline like the bus and event lookups
@@ -2833,13 +2896,13 @@ class ApiProbeScenario implements TestScenario {
         var master = ChannelGroup.master();
         var baseline = StudioSystem.liveHandleCount();
 
-        check("focus_starts_focused", FmodManager.IsWindowFocused(), "");
+        check("focus_starts_focused", FmodRuntime.isWindowFocused(), "");
         check("focus_master_unmuted", !master.getMute(), "");
 
         // Losing and regaining focus mutes and unmutes the real master group
-        FmodManager.SetWindowFocused(false);
+        FmodRuntime.setWindowFocused(false);
         check("focus_lost_mutes_master", master.getMute(), "");
-        FmodManager.SetWindowFocused(true);
+        FmodRuntime.setWindowFocused(true);
         check("focus_gained_unmutes_master", !master.getMute(), "");
 
         // The engine's own focus events drive the same path end to end
@@ -2850,15 +2913,15 @@ class ApiProbeScenario implements TestScenario {
 
         // Opting out keeps the master group unmuted while unfocused
         FmodManager.SetMuteWhenUnfocused(false);
-        FmodManager.SetWindowFocused(false);
+        FmodRuntime.setWindowFocused(false);
         check("focus_optout_keeps_playing", !master.getMute(), "");
         // Re-enabling the policy while already unfocused mutes right away
         FmodManager.SetMuteWhenUnfocused(true);
         check("focus_reenable_mutes", master.getMute(), "");
 
         // Restore defaults so the run never finishes muted or unfocused
-        FmodManager.SetWindowFocused(true);
-        check("focus_restored_unmuted", FmodManager.IsWindowFocused() && !master.getMute(), "");
+        FmodRuntime.setWindowFocused(true);
+        check("focus_restored_unmuted", FmodRuntime.isWindowFocused() && !master.getMute(), "");
 
         check("no_handle_leaks_focus", StudioSystem.liveHandleCount() == baseline,
             'baseline=$baseline now=${StudioSystem.liveHandleCount()}');

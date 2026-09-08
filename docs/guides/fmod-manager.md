@@ -1,6 +1,6 @@
 # FmodManager
 
-`haxefmod.FmodManager` is the helper class most games talk to. It owns one background song slot. It plays sound effects fire-and-forget or through a handle. It exposes the master and bus controls a settings menu needs. It is built entirely on the public layers underneath. Anything it does not cover is reachable through `haxefmod.runtime.FmodRuntime` and `haxefmod.studio.*`, with no hidden state.
+`haxefmod.FmodManager` is the helper class most games talk to. It owns one background song slot. It plays sound effects fire-and-forget or through a handle. It exposes the bus, VCA, and global parameter controls a settings menu and a dynamic mix need. Every call takes an FMOD Studio path or name and holds no handle. It is built entirely on the public layers underneath. Anything it does not cover is reachable through `haxefmod.runtime.FmodRuntime` and `haxefmod.studio.*`, with no hidden state. See [Beyond the helper class](#beyond-the-helper-class).
 
 Every call behaves the same on HaxeFlixel, Heaps, and Kha. The [engine setup calls](components.md#setup) only keep `Update()` running and wire focus and volume.
 
@@ -34,7 +34,12 @@ FmodManager.PlaySongTransition(FmodEvents.MusicTitle);
 
 `StopSong` fades out and `StopSongImmediately` cuts. Both cancel any pending transition. `PauseSong` and `UnpauseSong` freeze and resume the timeline. `IsSongPlaying` counts starting, playing, sustaining, and fading as playing. FMOD starts sounds asynchronously, and the PLAYING state alone would misreport the first frames.
 
-Parameters on the song use `SetEventParameterOnSong(name, value)` and `GetEventParameterOnSong(name)`. `GetSongTimelinePosition()` returns the timeline position in milliseconds. `GetCurrentSongPath()` returns the event path that was passed to `PlaySong`.
+Parameters on the song use `SetEventParameterOnSong(name, value)` and `GetEventParameterOnSong(name)`. A labeled parameter takes its label text through `SetEventParameterOnSongWithLabel(name, label)`. `GetSongTimelinePosition()` returns the timeline position in milliseconds. `GetCurrentSongPath()` returns the event path that was passed to `PlaySong`.
+
+```haxe
+FmodManager.SetEventParameterOnSong("Tension", 0.8);
+FmodManager.SetEventParameterOnSongWithLabel("Section", "Chorus");
+```
 
 ### Song callbacks
 
@@ -74,7 +79,12 @@ engine.stop();
 engine.release();
 ```
 
-`FmodSound` wraps an `EventInstance` handle with the everyday operations: `stop` (with the authored fadeout), `stopImmediately`, `pause`, `unpause`, `getVolume` and `setVolume`, `getPitch` and `setPitch`, `getParameter` and `setParameter`, `onEvent`, `isPlaying`, and `release`. Call `release()` when you are done with the handle. The handle becomes invalid immediately. The sound plays to completion unless you stopped it first.
+`FmodSound` wraps an `EventInstance` handle with the everyday operations: `stop` (with the authored fadeout), `stopImmediately`, `pause`, `unpause`, `getVolume` and `setVolume`, `getPitch` and `setPitch`, `getParameter`, `setParameter`, and `setParameterWithLabel`, `onEvent`, `isPlaying`, and `release`. Call `release()` when you are done with the handle. The handle becomes invalid immediately. The sound plays to completion unless you stopped it first.
+
+```haxe
+var footstep = FmodManager.PlaySound(FmodEvents.SFXFootstep);
+footstep.setParameterWithLabel("Surface", "Grass");
+```
 
 The full event instance API is one cast away. `FmodSound` is an abstract over `EventInstance`.
 
@@ -82,8 +92,10 @@ The full event instance API is one cast away. `FmodSound` is an abstract over `E
 var sound = FmodManager.PlaySound(FmodEvents.SFXEngine);
 var instance:haxefmod.studio.EventInstance = sound;
 instance.setPosition2D(100, 50);
-instance.setParameterWithLabel("Surface", "Grass");
+instance.setTimelinePosition(2000);
 ```
+
+Snapshots are events to FMOD, so the same calls play them. `PlaySound(FmodSnapshots.Underwater)` applies the snapshot until you stop and release the handle, and `PlaySoundOneShot` applies a snapshot with a timeline that ends on its own.
 
 `PlaySound` returns `FmodSound.NULL` when FMOD cannot create the event, and logs a warning that names the path. Every method on a null handle is a safe no-op, so a mistyped path degrades to silence. See [Handles and results](handles-and-results.md).
 
@@ -96,16 +108,35 @@ instance.setParameterWithLabel("Surface", "Grass");
 | `SetBusVolume(path, volume)` / `GetBusVolume(path)` | Linear bus volume, 0.0 silent to 1.0 full. |
 | `SetBusMute(path, mute)` / `GetBusIsMuted(path)` | Bus mute flag. Volume survives a mute and unmute round trip. |
 | `SetBusVolumeMaster`, `GetBusVolumeMaster`, `SetBusMuteMaster`, `GetBusIsMutedMaster` | The same for `bus:/`. |
+| `SetVCAVolume(path, volume)` / `GetVCAVolume(path)` | Linear VCA volume, 0.0 to 1.0. A VCA scales every bus assigned to it. |
 | `ClearAllCallbacks()` | Removes every registered callback: song and sound handlers, event description handlers, core channel and group handlers, the system callback, and PCM stream read callbacks. Userdata stays. |
 
-Bus paths come from FMOD Studio, for example `bus:/SFX`. The generated `FmodBuses` class holds them as constants.
+Bus and VCA paths come from FMOD Studio, for example `bus:/SFX` and `vca:/Music`. The generated `FmodBuses` and `FmodVCAs` classes hold them as constants. Projects that author their Master, Music, and SFX sliders as VCAs use the VCA calls, and projects that author them as buses use the bus calls.
+
+```haxe
+FmodManager.SetBusVolume(FmodBuses.SFX, 0.5);
+FmodManager.SetVCAVolume(FmodVCAs.Music, 0.8);
+```
+
+## Global parameters
+
+A global parameter is shared by every event in the project. `SetGlobalParameter(name, value)` sets one and `GetGlobalParameter(name)` reads it back. A labeled parameter takes its label text through `SetGlobalParameterWithLabel(name, label)`. The names and labels come from FMOD Studio, and the generated `FmodParameters` class holds the names as constants.
+
+```haxe
+FmodManager.SetGlobalParameter(FmodParameters.Intensity, 0.75);
+FmodManager.SetGlobalParameterWithLabel(FmodParameters.Weather, "Rain");
+```
+
+A parameter local to one event is set on that event. The song takes `SetEventParameterOnSong`, and a sound from `PlaySound` takes `setParameter` on its handle. FMOD reports a value of 0 for a name it does not know.
 
 ## Window focus
 
-By default the library mutes the master output while the game window is unfocused. FMOD keeps mixing, so sounds finish on schedule and do not burst out when focus returns. The [engine setup calls](components.md#setup) report focus changes for you. A game without one reports them from wherever its framework observes them.
+By default the library mutes the master output while the game window is unfocused. FMOD keeps mixing, so sounds finish on schedule and do not burst out when focus returns. The [engine setup calls](components.md#setup) report focus changes for you. A game without one reports them to the runtime layer from wherever its framework observes them.
 
 ```haxe
-FmodManager.SetWindowFocused(false);
+import haxefmod.runtime.FmodRuntime;
+
+FmodRuntime.setWindowFocused(false);
 ```
 
 `SetMuteWhenUnfocused(false)` keeps audio playing in the background. The `muteWhenUnfocused` setting and the `haxefmod_no_mute_when_unfocused` define do the same. The focus mute applies to the core master channel group, a separate node from the Studio master bus. It never disturbs a mute your game set on `bus:/`. Games that never lose focus can ignore all of this.
@@ -119,3 +150,15 @@ FmodManager.Todo("door creak when the cellar opens");
 ```
 
 `haxelib run haxefmod todos` lists every remaining marker in the project. See [Tools CLI](tools-cli.md#todos).
+
+## Beyond the helper class
+
+`FmodManager` covers what a game needs before its first settings menu and its first dynamic music moment. Every call is one action on one FMOD Studio path or name. The layers underneath cover the rest, and mixing them with the helper class is safe. The helper class holds no state FMOD does not hold, apart from the song slot.
+
+| Need | Layer | Guide |
+|---|---|---|
+| Banks, the listener, attached instances, focus, settings after init | `haxefmod.runtime.FmodRuntime` | [Runtime and settings](settings.md), [Bank loading](bank-loading.md), [3D and listeners](3d.md) |
+| Every FMOD Studio object by handle: events, buses, VCAs, snapshots, banks, command replay | `haxefmod.studio` | [Handles and results](handles-and-results.md), [Callbacks](callbacks.md), the Haxe tab on fmod.com |
+| The FMOD Core API: sounds, channels, groups, DSP, geometry | `haxefmod.core` | [Core API helpers](core-api.md) |
+
+`PlaySound` returns the only handle the helper class hands out, and the cast above reaches the full `EventInstance` API from it.

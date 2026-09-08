@@ -1,6 +1,7 @@
 package haxefmod.heaps;
 
 import haxefmod.FmodManager;
+import haxefmod.runtime.FmodRuntime;
 import haxefmod.runtime.FmodSettings;
 import hxd.Event;
 
@@ -33,8 +34,8 @@ class FmodHeapsSetup {
 
     static function onWindowEvent(event:Event):Void {
         switch (event.kind) {
-            case EFocus: FmodManager.SetWindowFocused(true);
-            case EFocusLost: FmodManager.SetWindowFocused(false);
+            case EFocus: FmodRuntime.setWindowFocused(true);
+            case EFocusLost: FmodRuntime.setWindowFocused(false);
             default:
         }
     }

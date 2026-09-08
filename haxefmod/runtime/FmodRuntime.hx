@@ -267,6 +267,7 @@ class FmodRuntime {
         applyFocusMute();
     }
 
+    /** Reports the last focus state passed to setWindowFocused. It is true until the game reports otherwise. */
     public static function isWindowFocused():Bool {
         return focused;
     }

@@ -133,6 +133,7 @@ STUB_MODULES = {
     public static inline var SFXEngine = "event:/SFX/Engine";
     public static inline var SFXJump = "event:/SFX/Jump";
     public static inline var SFXCoin = "event:/SFX/Coin";
+    public static inline var SFXFootstep = "event:/SFX/Footstep";
     public static inline var MusicMainLevel = "event:/Music/MainLevel";
     public static inline var MusicLetsGo = "event:/Music/LetsGo";
     public static inline var MusicTitle = "event:/Music/Title";
@@ -145,6 +146,19 @@ STUB_MODULES = {
     "FmodBuses.hx": """class FmodBuses {
     public static inline var SFX = "bus:/SFX";
     public static inline var Music = "bus:/Music";
+}
+""",
+    "FmodVCAs.hx": """class FmodVCAs {
+    public static inline var Music = "vca:/Music";
+}
+""",
+    "FmodSnapshots.hx": """class FmodSnapshots {
+    public static inline var Underwater = "snapshot:/Underwater";
+}
+""",
+    "FmodParameters.hx": """class FmodParameters {
+    public static inline var Intensity = "parameter:/Intensity";
+    public static inline var Weather = "parameter:/Weather";
 }
 """,
 }

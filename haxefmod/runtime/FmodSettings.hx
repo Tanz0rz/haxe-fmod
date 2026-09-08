@@ -165,8 +165,8 @@ typedef FmodSettings = {
      * sounds play out in real time instead of queuing up and blasting out
      * the instant focus returns. Default true.
      *
-     * The game must report focus changes via FmodManager.SetWindowFocused
-     * (or FmodRuntime.setWindowFocused) for this to take effect. Set false
+     * The game must report focus changes via FmodRuntime.setWindowFocused
+     * for this to take effect. The engine setup calls do that. Set false
      * (or -D haxefmod_no_mute_when_unfocused) to keep audio playing in the
      * background.
      */

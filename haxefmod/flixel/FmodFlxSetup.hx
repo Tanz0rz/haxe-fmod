@@ -2,6 +2,7 @@ package haxefmod.flixel;
 
 import flixel.FlxG;
 import haxefmod.FmodManager;
+import haxefmod.runtime.FmodRuntime;
 import haxefmod.runtime.FmodSettings;
 
 /**
@@ -29,8 +30,8 @@ class FmodFlxSetup {
     static var readyHandler:Void->Void = () -> applyVolume();
     #end
 
-    static var focusGainedHandler:Void->Void = () -> FmodManager.SetWindowFocused(true);
-    static var focusLostHandler:Void->Void = () -> FmodManager.SetWindowFocused(false);
+    static var focusGainedHandler:Void->Void = () -> FmodRuntime.setWindowFocused(true);
+    static var focusLostHandler:Void->Void = () -> FmodRuntime.setWindowFocused(false);
 
     public static function init(?settings:FmodSettings):Void {
         FmodManager.Initialize(settings);

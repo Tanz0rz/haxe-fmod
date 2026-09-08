@@ -89,6 +89,11 @@ abstract FmodSound(EventInstance) from EventInstance to EventInstance {
         return this.setParameter(name, value);
     }
 
+    /** Sets a labeled parameter on this sound by its label text, for example "Surface" to "Grass". */
+    public inline function setParameterWithLabel(name:String, label:String):FmodResult {
+        return this.setParameterWithLabel(name, label);
+    }
+
     /**
      * Registers a typed callback for this sound. Beats, markers, and lifecycle events arrive from FmodManager.Update() as EventCallbackData values.
      * The optional mask limits the delivered EventCallbackType bits. A new registration replaces the previous handler.

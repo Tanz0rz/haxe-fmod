@@ -9773,6 +9773,14 @@ const HAXEFMOD_BINDINGS = {
      "signature": "getParameterFinal(name:String):Float",
      "static": true,
      "type": "haxefmod.studio.StudioSystem"
+    },
+    {
+     "direct": false,
+     "doc": "Returns the value of a global parameter.",
+     "name": "GetGlobalParameter",
+     "signature": "GetGlobalParameter(parameterName:String):Float",
+     "static": true,
+     "type": "haxefmod.FmodManager"
     }
    ],
    "html5": false
@@ -9912,6 +9920,22 @@ const HAXEFMOD_BINDINGS = {
      "signature": "getVCA(path:String):Vca",
      "static": true,
      "type": "haxefmod.studio.StudioSystem"
+    },
+    {
+     "direct": false,
+     "doc": "Returns the volume of a VCA, from 0.0 to 1.0.",
+     "name": "GetVCAVolume",
+     "signature": "GetVCAVolume(vcaPath:String):Float",
+     "static": true,
+     "type": "haxefmod.FmodManager"
+    },
+    {
+     "direct": false,
+     "doc": "Sets the volume of a VCA.",
+     "name": "SetVCAVolume",
+     "signature": "SetVCAVolume(vcaPath:String, volume:Float):Void",
+     "static": true,
+     "type": "haxefmod.FmodManager"
     }
    ],
    "html5": false
@@ -10310,6 +10334,14 @@ const HAXEFMOD_BINDINGS = {
      "signature": "setParameter(name:String, value:Float, ignoreSeekSpeed:Bool = false):FmodResult",
      "static": true,
      "type": "haxefmod.studio.StudioSystem"
+    },
+    {
+     "direct": false,
+     "doc": "Sets a global parameter.",
+     "name": "SetGlobalParameter",
+     "signature": "SetGlobalParameter(parameterName:String, parameterValue:Float):Void",
+     "static": true,
+     "type": "haxefmod.FmodManager"
     }
    ],
    "html5": false
@@ -10335,6 +10367,14 @@ const HAXEFMOD_BINDINGS = {
      "signature": "setParameterWithLabel(name:String, label:String, ignoreSeekSpeed:Bool = false):FmodResult",
      "static": true,
      "type": "haxefmod.studio.StudioSystem"
+    },
+    {
+     "direct": false,
+     "doc": "Sets a labeled global parameter by its label text, for example \"Weather\" to \"Rain\".",
+     "name": "SetGlobalParameterWithLabel",
+     "signature": "SetGlobalParameterWithLabel(parameterName:String, label:String):Void",
+     "static": true,
+     "type": "haxefmod.FmodManager"
     }
    ],
    "html5": false

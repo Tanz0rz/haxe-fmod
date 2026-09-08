@@ -1,6 +1,6 @@
 # Core API helpers
 
-`haxefmod.core` binds the FMOD Core API with the handle conventions of [Handles and results](handles-and-results.md). Every method keeps its FMOD name. The [FMOD Core API reference](https://www.fmod.com/docs/2.03/api/core-api.html) with its Haxe tab describes each method.
+`haxefmod.core` is the lowest layer, under [FmodManager](fmod-manager.md) and `haxefmod.studio`. It binds the FMOD Core API with the handle conventions of [Handles and results](handles-and-results.md). Every method keeps its FMOD name. The [FMOD Core API reference](https://www.fmod.com/docs/2.03/api/core-api.html) with its Haxe tab describes each method.
 
 ## Where FMOD's objects live
 

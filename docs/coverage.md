@@ -512,14 +512,14 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_Studio_System_GetMemoryUsage` | `StudioSystem.getMemoryUsage` | compile error |
 | `FMOD_Studio_System_GetNumListeners` | `StudioSystem.getNumListeners` |  |
 | `FMOD_Studio_System_GetParameterByID` | `StudioSystem.getParameterByID`<br>`StudioSystem.getParameterByIDFinal` |  |
-| `FMOD_Studio_System_GetParameterByName` | `StudioSystem.getParameterByName`<br>`StudioSystem.getParameter`<br>`StudioSystem.getParameterByNameFinal`<br>`StudioSystem.getParameterFinal` |  |
+| `FMOD_Studio_System_GetParameterByName` | `StudioSystem.getParameterByName`<br>`StudioSystem.getParameter`<br>`StudioSystem.getParameterByNameFinal`<br>`StudioSystem.getParameterFinal`<br>`FmodManager.GetGlobalParameter` |  |
 | `FMOD_Studio_System_GetParameterDescriptionByName` | `StudioSystem.getParameterDescriptionByName` |  |
 | `FMOD_Studio_System_GetParameterDescriptionCount` | `StudioSystem.getParameterDescriptionCount` |  |
 | `FMOD_Studio_System_GetParameterDescriptionList` | `StudioSystem.getParameterDescriptionByIndex` |  |
 | `FMOD_Studio_System_GetParameterLabelByName` | `StudioSystem.getParameterLabelByName`<br>`StudioSystem.getParameterLabel` |  |
 | `FMOD_Studio_System_GetSoundInfo` | `StudioSystem.getSoundInfo` |  |
 | `FMOD_Studio_System_GetUserData` | `StudioSystem.getUserData` |  |
-| `FMOD_Studio_System_GetVCA` | `StudioSystem.getVCA` |  |
+| `FMOD_Studio_System_GetVCA` | `StudioSystem.getVCA`<br>`FmodManager.GetVCAVolume`<br>`FmodManager.SetVCAVolume` |  |
 | `FMOD_Studio_System_GetVCAByID` | `StudioSystem.getVCAByID` |  |
 | `FMOD_Studio_System_Initialize` | `FmodManager.Initialize`<br>`FmodRuntime.init` |  |
 | `FMOD_Studio_System_LoadBankFile` | `StudioSystem.loadBankFile` |  |
@@ -536,8 +536,8 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_Studio_System_SetNumListeners` | `StudioSystem.setNumListeners` |  |
 | `FMOD_Studio_System_SetParameterByID` | `StudioSystem.setParameterByID` |  |
 | `FMOD_Studio_System_SetParameterByIDWithLabel` | `StudioSystem.setParameterByIDWithLabel` |  |
-| `FMOD_Studio_System_SetParameterByName` | `StudioSystem.setParameterByName`<br>`StudioSystem.setParameter` |  |
-| `FMOD_Studio_System_SetParameterByNameWithLabel` | `StudioSystem.setParameterByNameWithLabel`<br>`StudioSystem.setParameterWithLabel` |  |
+| `FMOD_Studio_System_SetParameterByName` | `StudioSystem.setParameterByName`<br>`StudioSystem.setParameter`<br>`FmodManager.SetGlobalParameter` |  |
+| `FMOD_Studio_System_SetParameterByNameWithLabel` | `StudioSystem.setParameterByNameWithLabel`<br>`StudioSystem.setParameterWithLabel`<br>`FmodManager.SetGlobalParameterWithLabel` |  |
 | `FMOD_Studio_System_SetParametersByIDs` | `StudioSystem.setParametersByIDs` |  |
 | `FMOD_Studio_System_SetUserData` | `StudioSystem.setUserData` |  |
 | `FMOD_Studio_System_StartCommandCapture` | `StudioSystem.startCommandCapture` |  |

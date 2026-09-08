@@ -25,7 +25,7 @@
 
 === "HaxeFlixel"
 
-    Call `FmodFlxSetup.init(?settings)` once, in your first state. It initializes FMOD with the given [settings](settings.md#settings). It registers `FmodFlxUpdater` as a global plugin, so `FmodManager.Update()` runs every frame in every state. It forwards `FlxG.signals.focusGained` and `focusLost` to `FmodManager.SetWindowFocused` (see [FmodManager](fmod-manager.md#window-focus)).
+    Call `FmodFlxSetup.init(?settings)` once, in your first state. It initializes FMOD with the given [settings](settings.md#settings). It registers `FmodFlxUpdater` as a global plugin, so `FmodManager.Update()` runs every frame in every state. It forwards `FlxG.signals.focusGained` and `focusLost` to `FmodRuntime.setWindowFocused` (see [Window focus](fmod-manager.md#window-focus)).
 
     It also wires flixel's own audio controls to FMOD. The volume keys and the sound tray drive the FMOD master bus. `FlxG.sound.volume` and `FlxG.sound.muted` map to bus volume and mute. The tray's beep is silenced because FMOD owns the audio now.
 
@@ -41,7 +41,7 @@
 
 === "Heaps"
 
-    Call `FmodHeapsSetup.init(?settings)` once from your `hxd.App`'s `init()`. It initializes FMOD with the given [settings](settings.md#settings). It installs `FmodHeapsUpdater`, so `FmodManager.Update()` runs every frame. It forwards the window's focus events to `FmodManager.SetWindowFocused` (see [FmodManager](fmod-manager.md#window-focus)).
+    Call `FmodHeapsSetup.init(?settings)` once from your `hxd.App`'s `init()`. It initializes FMOD with the given [settings](settings.md#settings). It installs `FmodHeapsUpdater`, so `FmodManager.Update()` runs every frame. It forwards the window's focus events to `FmodRuntime.setWindowFocused` (see [Window focus](fmod-manager.md#window-focus)).
 
     ```haxe
     import haxefmod.heaps.FmodHeapsSetup;

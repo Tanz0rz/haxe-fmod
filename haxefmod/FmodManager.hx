@@ -13,7 +13,8 @@ import haxefmod.studio.native.NativeStudio;
 
 /**
  * The helper class for FMOD. It holds one background song slot and plays sound effects fire-and-forget or through a handle.
- * It is built on the public layers underneath. Use haxefmod.runtime.FmodRuntime for banks, 3D, and settings, and haxefmod.studio for the complete FMOD Studio API.
+ * It sets bus and VCA volumes and global parameters by their FMOD Studio paths and names.
+ * It is built on the public layers underneath. Use haxefmod.runtime.FmodRuntime for banks, 3D, focus, and settings, and haxefmod.studio for the complete FMOD Studio API.
  *
  * Call FmodManager.Update() every frame, or let the engine setup call do it.
  */
@@ -81,23 +82,9 @@ class FmodManager {
     //// Window focus
 
     /**
-     * Reports a window focus change to FMOD. While the window is unfocused, the master output is muted.
-     * FMOD keeps mixing, so sounds finish on schedule and do not burst out when focus returns.
-     * SetMuteWhenUnfocused(false) or the muteWhenUnfocused setting keeps audio playing in the background.
-     * Call this from wherever your game observes focus changes. Games that never lose focus can ignore it.
+     * Chooses whether the master output is muted while the window is unfocused. True, the default, mutes it. False keeps audio playing in the background.
+     * The engine setup calls report focus changes through FmodRuntime.setWindowFocused. A game without one reports them there itself.
      */
-    public static function SetWindowFocused(isFocused:Bool):Void {
-        ensureInitialized();
-        FmodRuntime.setWindowFocused(isFocused);
-    }
-
-    /** Reports the last focus state passed to SetWindowFocused. It is true until the game reports otherwise. */
-    public static function IsWindowFocused():Bool {
-        ensureInitialized();
-        return FmodRuntime.isWindowFocused();
-    }
-
-    /** Chooses whether the master output is muted while the window is unfocused. True, the default, mutes it. False keeps audio playing in the background. */
     public static function SetMuteWhenUnfocused(enabled:Bool):Void {
         ensureInitialized();
         FmodRuntime.setMuteWhenUnfocused(enabled);
@@ -173,6 +160,50 @@ class FmodManager {
     /** Returns true when the master bus is muted. */
     public static function GetBusIsMutedMaster():Bool {
         return GetBusIsMuted("bus:/");
+    }
+
+    //// VCAs
+
+    /**
+     * Sets the volume of a VCA. The path comes from FMOD Studio, for example "vca:/Music".
+     * Volume runs from 0.0, silent, to 1.0, full. A VCA scales every bus assigned to it.
+     */
+    public static function SetVCAVolume(vcaPath:String, volume:Float):Void {
+        ensureInitialized();
+        StudioSystem.getVCA(vcaPath).setVolume(volume);
+    }
+
+    /** Returns the volume of a VCA, from 0.0 to 1.0. */
+    public static function GetVCAVolume(vcaPath:String):Float {
+        ensureInitialized();
+        return StudioSystem.getVCA(vcaPath).getVolume();
+    }
+
+    //// Global parameters
+
+    /**
+     * Sets a global parameter. Global parameters are shared by every event in the project.
+     * The name comes from FMOD Studio, for example "Intensity". The generated FmodParameters constants, which hold "parameter:/" paths, are accepted too.
+     * A parameter on one event instance is set through the FmodSound returned by PlaySound, or through SetEventParameterOnSong for the song.
+     */
+    public static function SetGlobalParameter(parameterName:String, parameterValue:Float):Void {
+        ensureInitialized();
+        StudioSystem.setParameter(globalParameterName(parameterName), parameterValue);
+    }
+
+    /** Returns the value of a global parameter. It is 0 for a name FMOD does not know. */
+    public static function GetGlobalParameter(parameterName:String):Float {
+        ensureInitialized();
+        return StudioSystem.getParameter(globalParameterName(parameterName));
+    }
+
+    /**
+     * Sets a labeled global parameter by its label text, for example "Weather" to "Rain".
+     * The labels are the ones authored in FMOD Studio. The name takes the same forms as SetGlobalParameter.
+     */
+    public static function SetGlobalParameterWithLabel(parameterName:String, label:String):Void {
+        ensureInitialized();
+        StudioSystem.setParameterWithLabel(globalParameterName(parameterName), label);
     }
 
     //// Music (single song slot)
@@ -329,6 +360,12 @@ class FmodManager {
     public static function SetEventParameterOnSong(parameterName:String, parameterValue:Float):Void {
         ensureInitialized();
         if (!songInstance.isNull()) songInstance.setParameter(parameterName, parameterValue);
+    }
+
+    /** Sets a labeled parameter on the song by its label text, for example "Section" to "Chorus". It does nothing with no song. */
+    public static function SetEventParameterOnSongWithLabel(parameterName:String, label:String):Void {
+        ensureInitialized();
+        if (!songInstance.isNull()) songInstance.setParameterWithLabel(parameterName, label);
     }
 
     /**
@@ -493,6 +530,13 @@ class FmodManager {
     static inline function needsRestart(instance:EventInstance):Bool {
         var state = instance.getPlaybackState();
         return state == FmodPlaybackState.STOPPED || state == FmodPlaybackState.STOPPING;
+    }
+
+    // FMOD addresses a global parameter by its bare name, and the generated
+    // FmodParameters constants carry the "parameter:/" path form, so the
+    // global parameter calls accept both
+    static inline function globalParameterName(name:String):String {
+        return StringTools.startsWith(name, "parameter:/") ? name.substr("parameter:/".length) : name;
     }
 
     static function log(message:String):Void {

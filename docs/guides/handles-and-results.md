@@ -1,6 +1,6 @@
 # Handles and results
 
-Every FMOD object in `haxefmod.studio` and `haxefmod.core` is a typed handle: `EventInstance`, `EventDescription`, `Bank`, `Bus`, `Vca`, `CommandReplay`, `Sound`, `Channel`, `ChannelGroup`, `Dsp`, `SoundGroup`, and so on. All of them share these conventions.
+This guide covers the layers under [FmodManager](fmod-manager.md), where a game works with FMOD objects directly. Every FMOD object in `haxefmod.studio` and `haxefmod.core` is a typed handle: `EventInstance`, `EventDescription`, `Bank`, `Bus`, `Vca`, `CommandReplay`, `Sound`, `Channel`, `ChannelGroup`, `Dsp`, `SoundGroup`, and so on. All of them share these conventions.
 
 ## Handles are integers
 
