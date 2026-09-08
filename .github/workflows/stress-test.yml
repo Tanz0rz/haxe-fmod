@@ -183,10 +183,24 @@ jobs:
           cd example-project/EZPlatformer
           haxelib run lime build linux -64 -Daudio_test
 
-      - name: Patch FMOD libraries
+      - name: Verify FMOD libraries have no executable stack
         run: |
-          for lib in example-project/EZPlatformer/export/linux*/bin/*.so*; do
+          BIN_DIR=$(ls -d example-project/EZPlatformer/export/linux*/bin | head -1)
+          FOUND=0
+          for lib in "$BIN_DIR"/libfmod*.so*; do
+            [ -L "$lib" ] && continue
+            FOUND=1
+            LINE=$(readelf -lW "$lib" | grep GNU_STACK) || {
+              echo "FAIL: $lib has no GNU_STACK header"; exit 1; }
+            FLAGS=$(echo "$LINE" | awk '{print $7}')
+            echo "$lib: GNU_STACK $FLAGS"
+            case "$FLAGS" in *E*)
+              echo "FAIL: $lib still has an executable stack (PostBuild should have cleared it)"
+              exit 1;;
+            esac
           done
+          [ "$FOUND" = "1" ] || { echo "FAIL: no FMOD libraries found in $BIN_DIR"; exit 1; }
+          echo "All FMOD libraries are loadable on modern kernels"
 
       - name: Run api-probe under valgrind
         run: |
