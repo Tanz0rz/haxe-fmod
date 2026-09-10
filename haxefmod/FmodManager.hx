@@ -12,9 +12,9 @@ import haxefmod.studio.Types;
 import haxefmod.studio.native.NativeStudio;
 
 /**
- * The helper class for FMOD. It owns six areas: lifecycle, one background song slot, sound effects, the mixer (buses, VCAs, and snapshots), global parameters, and game policy.
+ * The helper class for FMOD. It owns six areas: lifecycle (init, update, and banks), one background song slot, sound effects, the mixer (buses, VCAs, and snapshots), global parameters, and game policy.
  * Every call takes an FMOD Studio path or name and holds no handle. The song slot is the one piece of state, and PlaySound returns the one handle.
- * World space, banks, focus reporting, and everything by handle live in the public layers underneath: haxefmod.runtime.FmodRuntime and haxefmod.studio.
+ * World space, focus reporting, and everything by handle live in the public layers underneath: haxefmod.runtime.FmodRuntime and haxefmod.studio.
  *
  * Call FmodManager.Update() every frame, or let the engine setup call do it.
  */
@@ -77,6 +77,32 @@ class FmodManager {
     public static function SetAutoUpdate(enabled:Bool):Void {
         ensureInitialized();
         NativeStudio.sys_set_auto_update(enabled);
+    }
+
+    //// Banks
+
+    /**
+     * Loads a bank, or adds a reference to one that is loaded. The name is a file name resolved against the bank folder setting, for example "Level1.bank", or a full path.
+     * Native targets load synchronously. HTML5 loads asynchronously, so poll IsBankLoaded before the first event from the bank.
+     * Every LoadBank needs one UnloadBank. Initialize loads the banks named in the autoLoadBanks setting, Master and Master.strings by default.
+     */
+    public static function LoadBank(bankName:String):Void {
+        ensureInitialized();
+        if (FmodRuntime.banks.load(FmodRuntime.bankPath(bankName)).isNull()) {
+            log('LoadBank: could not load $bankName (${StudioSystem.lastResult().toString()})');
+        }
+    }
+
+    /** Releases one reference to a bank. The bank unloads when its last reference goes, and its events stop. */
+    public static function UnloadBank(bankName:String):Void {
+        ensureInitialized();
+        FmodRuntime.banks.unload(FmodRuntime.bankPath(bankName));
+    }
+
+    /** Returns true once a bank is loaded and its events are usable. */
+    public static function IsBankLoaded(bankName:String):Bool {
+        ensureInitialized();
+        return FmodRuntime.banks.isLoaded(FmodRuntime.bankPath(bankName));
     }
 
     //// Window focus

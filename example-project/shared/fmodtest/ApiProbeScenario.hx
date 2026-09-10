@@ -849,6 +849,34 @@ class ApiProbeScenario implements TestScenario {
             'value=${FmodManager.GetSongParameter("Surface")}');
         FmodManager.StopSongImmediately();
         StudioSystem.flushCommands();
+
+        // Banks by file name, against the registry's reference count. The
+        // Extras bank may already be held by another section, so the
+        // checks read the delta. html5 loads asynchronously, so the loaded
+        // flag is only asserted on native. Before the baseline: a bank
+        // handle created and freed here settles with the studio thread.
+        var extrasPath = FmodRuntime.bankPath("Extras.bank");
+        var extrasRefs = FmodRuntime.banks.refCount(extrasPath);
+        FmodManager.LoadBank("Extras.bank");
+        check("helper_bank_load_refs", FmodRuntime.banks.refCount(extrasPath) == extrasRefs + 1,
+            'before=$extrasRefs now=${FmodRuntime.banks.refCount(extrasPath)}');
+        #if !js
+        check("helper_bank_loaded", FmodManager.IsBankLoaded("Extras.bank"), "");
+        #else
+        info("helper_bank_loaded", 'async on html5, state=${FmodRuntime.banks.loadingState(extrasPath)}');
+        #end
+        FmodManager.LoadBank(extrasPath);
+        check("helper_bank_load_path_form", FmodRuntime.banks.refCount(extrasPath) == extrasRefs + 2,
+            'now=${FmodRuntime.banks.refCount(extrasPath)}');
+        FmodManager.UnloadBank(extrasPath);
+        FmodManager.UnloadBank("Extras.bank");
+        check("helper_bank_unload_refs", FmodRuntime.banks.refCount(extrasPath) == extrasRefs,
+            'now=${FmodRuntime.banks.refCount(extrasPath)}');
+        if (extrasRefs == 0) check("helper_bank_unloaded", !FmodManager.IsBankLoaded("Extras.bank"), "");
+        FmodManager.UnloadBank("NoSuch.bank");
+        check("helper_bank_unload_unknown_is_noop", true, "");
+        StudioSystem.flushCommands();
+        CallbackDispatcher.update();
         var baseline = StudioSystem.liveHandleCount();
 
         var intensity = StudioSystem.getParameterDescriptionByName("Intensity");

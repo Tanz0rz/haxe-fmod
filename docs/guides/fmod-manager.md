@@ -1,6 +1,6 @@
 # FmodManager
 
-`haxefmod.FmodManager` is the helper class most games talk to. It owns six areas: lifecycle, one background song slot, sound effects, the mixer (buses, VCAs, and snapshots), global parameters, and game policy. Every call takes an FMOD Studio path or name and holds no handle. The song slot is its one piece of state, and `PlaySound` returns its one handle. It is built entirely on the public layers underneath. Anything it does not cover is reachable through `haxefmod.runtime.FmodRuntime` and `haxefmod.studio.*`, with no hidden state. See [Beyond the helper class](#beyond-the-helper-class).
+`haxefmod.FmodManager` is the helper class most games talk to. It owns six areas: lifecycle with banks, one background song slot, sound effects, the mixer (buses, VCAs, and snapshots), global parameters, and game policy. Every call takes an FMOD Studio path or name and holds no handle. The song slot is its one piece of state, and `PlaySound` returns its one handle. It is built entirely on the public layers underneath. Anything it does not cover is reachable through `haxefmod.runtime.FmodRuntime` and `haxefmod.studio.*`, with no hidden state. See [Beyond the helper class](#beyond-the-helper-class).
 
 Every call behaves the same on HaxeFlixel, Heaps, and Kha. The [engine setup calls](components.md#setup) only keep `Update()` running and wire focus and volume.
 
@@ -17,6 +17,18 @@ Call `FmodManager.Update()` once per frame. It delivers callbacks, pushes positi
 `IsInitialized()` reports true once the engine and the default banks are usable. Native targets initialize synchronously, so it is true immediately. HTML5 initializes asynchronously, and games gate their first scene on it.
 
 `EnableDebugMessages()` turns on FMOD's own logging at its most verbose level and traces every `FmodManager` operation. Debug builds enable it automatically.
+
+### Banks
+
+`Initialize` loads the banks named in the `autoLoadBanks` setting, `Master.bank` and `Master.strings.bank` by default. A game with more banks loads them when it needs them. `LoadBank(name)` takes a file name and resolves it against the bank folder setting, or takes a full path. `UnloadBank(name)` releases it, and `IsBankLoaded(name)` reports when its events are usable.
+
+```haxe
+FmodManager.LoadBank("Level1.bank");
+// on leaving the level
+FmodManager.UnloadBank("Level1.bank");
+```
+
+Loads are counted. A bank loaded twice unloads on the second `UnloadBank`, so a level that loads a bank another level still holds does not pull it away. Native targets load synchronously. HTML5 loads asynchronously, so poll `IsBankLoaded` before the first event from the bank. The [engine components](components.md) load a bank for a state's lifetime without any of these calls, and [Bank loading](bank-loading.md) covers the registry underneath.
 
 ## Music
 
@@ -174,7 +186,7 @@ FmodManager.Todo("door creak when the cellar opens");
 
 | Need | Layer | Guide |
 |---|---|---|
-| Banks, the listener, attached instances, focus, settings after init | `haxefmod.runtime.FmodRuntime` | [Runtime and settings](settings.md), [Bank loading](bank-loading.md), [3D and listeners](3d.md) |
+| The listener, attached instances, focus, settings after init, the bank registry's states and counts | `haxefmod.runtime.FmodRuntime` | [Runtime and settings](settings.md), [Bank loading](bank-loading.md), [3D and listeners](3d.md) |
 | Every FMOD Studio object by handle: events, buses, VCAs, snapshots, banks, command replay | `haxefmod.studio` | [Handles and results](handles-and-results.md), [Callbacks](callbacks.md), the Haxe tab on fmod.com |
 | The FMOD Core API: sounds, channels, groups, DSP, geometry | `haxefmod.core` | [Core API helpers](core-api.md) |
 
