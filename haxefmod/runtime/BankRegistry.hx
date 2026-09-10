@@ -35,6 +35,30 @@ class BankRegistry {
     }
 
     /**
+     * Loads a bank from bytes the engine's loader delivered, registered
+     * under the path the file load would use. A loaded entry for the path
+     * gets its refcount bumped instead. The load is synchronous on every
+     * backend. Returns Bank.NULL on failure.
+     */
+    public function loadMemory(path:String, bytes:haxe.io.Bytes):Bank {
+        path = normalizePath(path);
+        var entry = banks.get(path);
+        if (entry != null && entry.bank.isValid() && entry.bank.getLoadingState() != FmodLoadingState.ERROR) {
+            entry.refs++;
+            return entry.bank;
+        }
+        var carriedRefs = entry != null ? entry.refs + 1 : 1;
+        if (entry != null && !entry.bank.isNull()) entry.bank.unload();
+        var bank = StudioSystem.loadBankMemory(bytes);
+        if (bank.isNull()) {
+            banks.remove(path);
+            return Bank.NULL;
+        }
+        banks.set(path, {bank: bank, refs: carriedRefs});
+        return bank;
+    }
+
+    /**
      * Starts an async load (or bumps the refcount of an existing entry).
      * The returned handle is usable once loadingState(path) == LOADED.
      */
@@ -121,6 +145,11 @@ class BankRegistry {
         banks.remove(path);
         entry.bank.unload();
         return true;
+    }
+
+    /** True while the path has a registry entry, loaded or still loading. */
+    public function isRegistered(path:String):Bool {
+        return banks.exists(normalizePath(path));
     }
 
     /** True when the bank is registered and its load has completed. */

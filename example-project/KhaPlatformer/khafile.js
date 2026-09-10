@@ -12,6 +12,9 @@ project.addSources('src');
 project.addSources('../shared');
 project.addLibrary('haxefmod');
 project.addParameter('-resource ../EZPlatformer/assets/level.csv@level');
+// The default banks load as Kha assets, so FmodKhaSetup.preload has them
+// before the first scene (Master.bank is the blob Master_bank)
+project.addAssets('../EZPlatformer/assets/fmod/Desktop/*.bank');
 project.addParameter('--macro haxefmod.tools.BuildCheck.verify()');
 
 if (platform === 'html5') {

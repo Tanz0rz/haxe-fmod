@@ -8,7 +8,13 @@ The FMOD web build is a WebAssembly module. The library's post-build step copies
 
 ### Asynchronous initialization
 
-The wasm module and the default banks load in the background. `FmodManager.IsInitialized()` (or `FmodRuntime.isInitialized()`) reports true once both are usable. An HTML5 game runs a loading scene first and starts the real game from it. The same code is correct on native targets, where the check is true immediately.
+The wasm module and the default banks load in the background. `FmodManager.IsInitialized()` (or `FmodRuntime.isInitialized()`) reports true once both are usable.
+
+The engine preloaders make that wait invisible. `FmodFlxPreloader` runs inside lime's preloader, and `FmodHeapsSetup.preload` and `FmodKhaSetup.preload` call back once FMOD is ready. Each hands the default banks to the runtime as bytes from the engine's own loading, so the banks are fetched once and the first scene starts with FMOD usable. [Engine components](guides/components.md#setup) shows the three.
+
+The bytes go through `FmodRuntime.provideBank(fileName, bytes)`, with the `banksProvided` setting on. A game on another engine does the same from whatever loads its assets, then calls `FmodRuntime.onceReady(start, onFailed)`.
+
+A game that starts FMOD without a preloader polls the flag from a loading scene and starts the real game from it. The same code is correct on native targets, where the check is true immediately.
 
 ```haxe
 function update():Void {
@@ -18,7 +24,7 @@ function update():Void {
 }
 ```
 
-`FmodManager.InitializeFailed()` reports that a default bank failed to load, so the poll never turns true. A loading scene checks it beside `IsInitialized()` and shows a message. `AnyBankFailed()` reports the same for a bank loaded later.
+`FmodManager.InitializeFailed()` reports that a default bank failed to load, so the poll never turns true. A loading scene checks it beside `IsInitialized()` and shows a message. The preloaders do this for you. `AnyBankFailed()` reports the same for a bank loaded later.
 
 ```haxe
 function updateLoadingScene():Void {
@@ -30,7 +36,7 @@ function updateLoadingScene():Void {
 }
 ```
 
-The [example project's `LoadFmodState.hx`](https://github.com/Tanz0rz/haxe-fmod/blob/master/example-project/EZPlatformer/source/LoadFmodState.hx) is the flixel version of this pattern. Setup code that pushes state to FMOD can use `FmodRuntime.onceReady` instead of a poll.
+The three example games start through their preloaders and have no loading scene. Setup code that pushes state to FMOD can use `FmodRuntime.onceReady` instead of a poll.
 
 Bank loads are always asynchronous on HTML5. A bank file exists in the browser's virtual filesystem only after a fetch wrote it. `BankRegistry.load` and `loadAsync` behave the same there. See [Bank loading](guides/bank-loading.md).
 

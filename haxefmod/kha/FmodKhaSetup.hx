@@ -22,8 +22,58 @@ import kha.System;
     is the volume. Use FmodManager.SetMasterVolume and SetMasterMute.
 
     Calling init() again is safe and keeps a single focus wiring.
+
+    preload() does the same and takes the default banks from the Kha
+    assets, then calls back once FMOD is ready. The first scene can then
+    play events at once, on HTML5 too.
 **/
 class FmodKhaSetup {
+    /**
+        Initializes FMOD with the default banks taken from kha.Assets.blobs,
+        and calls onReady once everything is usable. Add the bank folder to
+        the khafile assets and call this from the kha.Assets.loadEverything
+        callback. A bank named Master.bank is the blob Master_bank, the way
+        khamake names assets. onFailed runs instead when a bank is not
+        among the assets or fails to load, and the console names it.
+        @param settings The FmodSettings for Initialize. banksProvided is set here.
+        @param onReady Called once FMOD and the default banks are usable.
+        @param onFailed Called when a default bank is missing or fails to load.
+    **/
+    public static function preload(?settings:FmodSettings, onReady:Void->Void, ?onFailed:Void->Void):Void {
+        if (settings == null) settings = {};
+        settings.banksProvided = true;
+        var resolved = haxefmod.runtime.FmodSettingsResolver.resolve(settings);
+        var failed = false;
+        for (fileName in resolved.autoLoadBanks) {
+            var blob:kha.Blob = kha.Assets.blobs.get(blobName(fileName));
+            if (blob == null) {
+                trace('Error: FMOD - the default bank $fileName is not among the Kha assets (blob ${blobName(fileName)}).'
+                    + ' Add the bank folder to the khafile assets.');
+                failed = true;
+                continue;
+            }
+            FmodRuntime.provideBank(fileName, blob.bytes);
+        }
+        if (failed) {
+            if (onFailed != null) onFailed();
+            return;
+        }
+        // Native init loads the default banks inside init, from the bytes
+        // provided above. HTML5 loads them once the module is ready.
+        init(settings);
+        FmodRuntime.onceReady(onReady, function() {
+            if (onFailed != null) onFailed();
+        });
+    }
+
+    /** The Kha asset name of a bank file: khamake turns dots, dashes, spaces, and slashes into underscores. **/
+    public static function blobName(fileName:String):String {
+        var slash = fileName.lastIndexOf("/");
+        var name = slash >= 0 ? fileName.substr(slash + 1) : fileName;
+        name = ~/[-@ .\/\\]/g.replace(name, "_");
+        return ~/^[0-9]/.match(name) ? "_" + name : name;
+    }
+
     /** Initializes FMOD and wires the Kha updater and application state hooks. **/
     public static function init(?settings:FmodSettings):Void {
         FmodManager.Initialize(settings);

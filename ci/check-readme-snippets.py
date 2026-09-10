@@ -190,6 +190,24 @@ class System {
         pause:Void->Void, background:Void->Void, shutdown:Void->Void):Void {}
 }
 """,
+    os.path.join("kha", "Assets.hx"): """package kha;
+
+class Assets {
+    public static var blobs:BlobList = new BlobList();
+    public static function loadEverything(callback:Void->Void):Void {}
+}
+
+class BlobList {
+    public function new() {}
+    public function get(name:String):Blob return null;
+}
+""",
+    os.path.join("kha", "Blob.hx"): """package kha;
+
+class Blob {
+    public var bytes:haxe.io.Bytes;
+}
+""",
     os.path.join("kha", "Scheduler.hx"): """package kha;
 
 class Scheduler {

@@ -915,6 +915,11 @@ class ApiProbeScenario implements TestScenario {
         check("helper_event_param_path_form", Math.abs(created.getParameter(FmodParameters.Surface) - 1) < 0.001
             && Math.abs(created.getParameter("Surface") - 1) < 0.001, 'value=${created.getParameter("Surface")}');
         check("helper_event_not_paused", !created.isPaused(), "");
+        // Every example starts through its engine preloader, which hands the
+        // default banks to the runtime as bytes. The runtime then loaded
+        // them from memory instead of fetching files.
+        check("preload_banks_provided", FmodRuntime.providedBankCount() == FmodRuntime.settings().autoLoadBanks.length
+            && FmodRuntime.allBanksProvided(), 'provided=${FmodRuntime.providedBankCount()} expected=${FmodRuntime.settings().autoLoadBanks.length}');
         check("helper_init_not_failed", !FmodManager.InitializeFailed() && !FmodManager.AnyBankFailed(), "");
         created.setParameterWithLabel("Surface", "Stone");
         check("helper_create_event_start", created.start().isOk() && Math.abs(created.getParameter("Surface") - 1) < 0.001,

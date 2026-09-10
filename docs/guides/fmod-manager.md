@@ -14,7 +14,7 @@ FmodManager.Initialize({liveUpdate: true, numChannels: 256});
 
 Call `FmodManager.Update()` once per frame. It delivers callbacks, pushes positions for attached instances, and drives song transitions. Audio continues without it, because a background thread (native) or timer (HTML5) services the FMOD mixer. Typed callbacks only arrive from `Update()`. `SetAutoUpdate(false)` turns the background servicing off for games that drive FMOD from their own loop. `IsAutoUpdate()` reports the state.
 
-`IsInitialized()` reports true once the engine and the default banks are usable. Native targets initialize synchronously, so it is true immediately. HTML5 initializes asynchronously, and games gate their first scene on it. `InitializeFailed()` reports that a default bank failed to load, so initialization cannot complete. A loading scene shows a message instead of waiting forever.
+`IsInitialized()` reports true once the engine and the default banks are usable. Native targets initialize synchronously, so it is true immediately. HTML5 initializes asynchronously. The [engine preloaders](components.md#setup) wait for it before the first scene, so a game that uses them never sees it false. `InitializeFailed()` reports that a default bank failed to load, so initialization cannot complete. The preloaders show a message and start the game without audio. A loading scene of your own checks both.
 
 `EnableDebugMessages()` turns on FMOD's own logging at its most verbose level and traces every `FmodManager` operation. Debug builds enable it automatically.
 

@@ -144,28 +144,23 @@ Banks load from `assets/fmod/Desktop` by default. [Bank loading](guides/bank-loa
 
 === "HaxeFlixel"
 
-    Call `haxefmod.flixel.FmodFlxSetup.init()` once in your first state. It initializes FMOD and keeps the per-frame update running. See [Engine components](guides/components.md#setup).
+    Set the library's preloader in `Project.xml`. It initializes FMOD while lime loads the assets, and the default banks come from those assets. The first state then plays at once, on HTML5 too.
+
+    ```xml
+    <app preloader="haxefmod.flixel.FmodFlxPreloader" />
+    ```
+
+    Call `haxefmod.flixel.FmodFlxSetup.init()` once in your first state. It keeps the per-frame update running and wires focus and volume. See [Engine components](guides/components.md#setup).
 
     ```haxe
     import haxefmod.FmodManager;
     import haxefmod.flixel.FmodFlxSetup;
 
     class PlayState extends flixel.FlxState {
-        var started = false;
-
         override function create():Void {
             super.create();
             FmodFlxSetup.init();
-        }
-
-        override function update(elapsed:Float):Void {
-            super.update(elapsed);
-            // Initialization is asynchronous on HTML5, so the first
-            // scene waits for it
-            if (!started && FmodManager.IsInitialized()) {
-                started = true;
-                FmodManager.PlaySong(FmodEvents.MusicMainLevel);
-            }
+            FmodManager.PlaySong(FmodEvents.MusicMainLevel);
         }
 
         function JumpPressed():Void {
@@ -174,28 +169,23 @@ Banks load from `assets/fmod/Desktop` by default. [Bank loading](guides/bank-loa
     }
     ```
 
+    A subclass of `FmodFlxPreloader` passes [settings](guides/settings.md#settings) by overriding `settings()`, and draws its own visuals the way an `FlxPreloader` subclass does.
+
 === "Heaps"
 
-    Call `FmodHeapsSetup.init()` once from your `hxd.App`'s `init()`. It initializes FMOD and keeps the per-frame update running. See [Engine components](guides/components.md#setup).
+    Call `FmodHeapsSetup.preload()` once from your `hxd.App`'s `init()`. It initializes FMOD, loads the default banks through Heaps' own binary loader, and calls back once both are ready. The first scene then plays at once, on HTML5 too. See [Engine components](guides/components.md#setup).
 
     ```haxe
     import haxefmod.FmodManager;
     import haxefmod.heaps.FmodHeapsSetup;
 
     class Main extends hxd.App {
-        var started = false;
-
         override function init() {
-            FmodHeapsSetup.init();
+            FmodHeapsSetup.preload(null, startGame);
         }
 
-        override function update(dt:Float) {
-            // Initialization is asynchronous on HTML5, so the first
-            // scene waits for it
-            if (!started && FmodManager.IsInitialized()) {
-                started = true;
-                FmodManager.PlaySong(FmodEvents.MusicMainLevel);
-            }
+        function startGame() {
+            FmodManager.PlaySong(FmodEvents.MusicMainLevel);
         }
 
         function JumpPressed() {
@@ -208,33 +198,31 @@ Banks load from `assets/fmod/Desktop` by default. [Bank loading](guides/bank-loa
     }
     ```
 
+    The first argument takes [settings](guides/settings.md#settings). A third argument runs instead when a bank cannot be loaded.
+
 === "Kha"
 
-    Call `FmodKhaSetup.init()` once from the `System.start` callback. It initializes FMOD and keeps the per-frame update running. See [Engine components](guides/components.md#setup).
+    Add the bank folder to the khafile assets, so `kha.Assets.loadEverything` loads the banks with everything else. Then call `FmodKhaSetup.preload()` from its callback. It initializes FMOD from those assets and calls back once FMOD is ready. The first scene then plays at once, on HTML5 too. See [Engine components](guides/components.md#setup).
+
+    ```js
+    project.addAssets('assets/fmod/Desktop/*.bank');
+    ```
 
     ```haxe
     import haxefmod.FmodManager;
     import haxefmod.kha.FmodKhaSetup;
-    import kha.Scheduler;
+    import kha.Assets;
     import kha.System;
 
     class Main {
         static function main() {
             System.start({title: "Game", width: 640, height: 480}, _ -> {
-                FmodKhaSetup.init();
-                Scheduler.addFrameTask(update, 0);
+                Assets.loadEverything(() -> FmodKhaSetup.preload(null, startGame));
             });
         }
 
-        static var started = false;
-
-        static function update() {
-            // Initialization is asynchronous on HTML5, so the first
-            // scene waits for it
-            if (!started && FmodManager.IsInitialized()) {
-                started = true;
-                FmodManager.PlaySong(FmodEvents.MusicMainLevel);
-            }
+        static function startGame() {
+            FmodManager.PlaySong(FmodEvents.MusicMainLevel);
         }
 
         static function JumpPressed() {
@@ -243,9 +231,11 @@ Banks load from `assets/fmod/Desktop` by default. [Bank loading](guides/bank-loa
     }
     ```
 
+    The first argument takes [settings](guides/settings.md#settings). A third argument runs instead when a bank is missing from the assets.
+
 `FmodEvents` is one of the [generated constants classes](guides/constants.md). The string paths work too, for example `FmodManager.PlaySong("event:/Music/MainLevel")`.
 
-HTML5 initializes asynchronously. An HTML5 game waits for `FmodManager.IsInitialized()` before its first scene. [Platforms](platforms.md#html5) shows the loading state pattern.
+HTML5 initializes asynchronously. The preloaders above cover that, so the first scene starts with FMOD ready. A game that starts FMOD some other way polls `FmodManager.IsInitialized()` first. [Platforms](platforms.md#html5) shows that pattern.
 
 ## 6. Build and run
 

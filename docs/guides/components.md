@@ -37,6 +37,8 @@
 
     On HTML5 the volume wiring waits for the asynchronous initialization through `FmodRuntime.onceReady`. A call to `init` before FMOD is ready is safe.
 
+    `FmodFlxPreloader` is the lime preloader that has FMOD ready before the first state. Set it in `Project.xml` with `<app preloader="haxefmod.flixel.FmodFlxPreloader" />`. It initializes FMOD while lime loads the assets, and the default banks come from those assets, so nothing is fetched twice. It completes once FMOD reports initialized. A subclass overrides `settings()` to pass [settings](settings.md#settings), since the first initialization wins and `init` cannot change them afterwards. It also overrides `create()` and `update()` for custom visuals, the way `FlxPreloader` allows. When a default bank fails to load, the preloader shows the failure for `failureDisplayTime` seconds and then starts the game without audio.
+
     A game that does not want the volume wiring calls `FmodManager.Initialize()` and `FmodFlxUpdater.init()` separately. `FmodFlxUpdater.isInstalled()` reports whether the hook is on, and `removeHook()` takes it off. The Heaps and Kha updaters carry the same two calls. A game that calls `FmodManager.Update()` from its own frame code removes the hook first. Otherwise FMOD updates twice per frame.
 
 === "Heaps"
@@ -47,6 +49,14 @@
     import haxefmod.heaps.FmodHeapsSetup;
 
     FmodHeapsSetup.init({liveUpdate: true});
+    ```
+
+    `FmodHeapsSetup.preload(?settings, onReady, ?onFailed)` does the same and has FMOD ready before the first scene. It loads the default banks through `hxd.net.BinaryLoader` from the bank folder, hands them to the runtime, and calls `onReady` once FMOD is usable. On HTML5 the bank fetches and the FMOD module load run in parallel. On HashLink both are synchronous and `onReady` runs before `preload` returns. `onFailed` runs instead when a bank cannot be loaded, and the console names it.
+
+    ```haxe
+    import haxefmod.heaps.FmodHeapsSetup;
+
+    FmodHeapsSetup.preload({liveUpdate: true}, startGame, () -> trace("no audio"));
     ```
 
     Heaps has no global volume control of its own, so the FMOD master bus is the volume. Wire your settings menu to `FmodManager.SetMasterVolume` and `SetMasterMute`.
@@ -61,6 +71,19 @@
     import haxefmod.kha.FmodKhaSetup;
 
     FmodKhaSetup.init({liveUpdate: true});
+    ```
+
+    `FmodKhaSetup.preload(?settings, onReady, ?onFailed)` does the same and has FMOD ready before the first scene. Add the bank folder to the khafile assets, so `kha.Assets.loadEverything` loads the banks with everything else. Then call `preload` from its callback. It takes each bank in `autoLoadBanks` from `kha.Assets.blobs` (a bank named `Master.bank` is the blob `Master_bank`, the way khamake names assets), hands it to the runtime, and calls `onReady` once FMOD is usable. `onFailed` runs instead when a bank is not among the assets, and the console names it.
+
+    ```js
+    project.addAssets('assets/fmod/Desktop/*.bank');
+    ```
+
+    ```haxe
+    import haxefmod.kha.FmodKhaSetup;
+    import kha.Assets;
+
+    Assets.loadEverything(() -> FmodKhaSetup.preload({liveUpdate: true}, startGame));
     ```
 
     Kha ships no global volume control. The FMOD master bus therefore carries the game's volume. Point your settings menu at `FmodManager.SetMasterVolume` and `SetMasterMute`.

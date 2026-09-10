@@ -491,7 +491,11 @@ class NativeStudioStub {
     public static function dsp_get_metering_enabled(handle:Int):Int return ERR_UNSUPPORTED;
 
     // Bank loading from memory
-    public static function sys_load_bank_memory(data:haxe.io.Bytes, len:Int, flags:Int):Int return 0;
+    public static var testBankMemoryLoads:Array<Int> = [];
+    public static function sys_load_bank_memory(data:haxe.io.Bytes, len:Int, flags:Int):Int {
+        testBankMemoryLoads.push(len);
+        return testSyntheticHandles ? ++testNextHandle : 0;
+    }
 
     // Event instance core bridge
     public static function evi_get_channel_group(handle:Int):Int return 0;

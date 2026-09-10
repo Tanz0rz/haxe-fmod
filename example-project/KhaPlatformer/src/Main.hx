@@ -1,6 +1,8 @@
 package;
 
 import kha.Framebuffer;
+import haxefmod.kha.FmodKhaSetup;
+import haxefmod.runtime.FmodSettings;
 import haxefmod.studio.Types;
 import kha.Scheduler;
 import kha.System;
@@ -36,12 +38,28 @@ class Main {
         mirrorTraceToFile();
         #end
 
+
+        // The game's own reaction to focus. The FMOD master mute on
+        // focus loss is wired separately by FmodKhaSetup.
+        System.notifyOnApplicationState(onForeground, onForeground, onBackground, onBackground, null);
+
+        // Kha runs frame tasks in ascending priority order. The game moves
+        // things at 0, and FmodKhaUpdater samples them at its higher number.
+        Scheduler.addFrameTask(update, 0);
+        System.notifyOnFrames(render);
+        // The default banks are Kha assets, loaded by loadEverything before
+        // this constructor ran. FMOD initializes from them and the first
+        // scene starts once it is ready, on HTML5 too.
+        FmodKhaSetup.preload(fmodSettings(), startGame, onFmodFailed);
+    }
+
+    static function fmodSettings():FmodSettings {
         #if audio_test_manual_update
         // The manual-update CI variant: every scenario then runs on
         // FmodManager.Update's manual sys_update pushes instead of the
         // native auto-update thread. This variant also runs FMOD from a
         // fixed memory pool.
-        FmodManager.Initialize({autoUpdate: false, profiling: true, distanceFilter: true,
+        return ({autoUpdate: false, profiling: true, distanceFilter: true,
             dspBufferSize: 1024, dspNumBuffers: 4, softwareChannels: 64, streamBufferSize: 65536,
             vol0VirtualVol: 0.01, randomSeed: 12345, commandQueueSize: 65536,
             memoryTracking: true, resamplerMethod: FmodDspResampler.CUBIC, memoryPoolSize: 96 * 1024 * 1024,
@@ -52,7 +70,7 @@ class Main {
         // api-probe can confirm both work. The build pins the buffer
         // settings. It sets the advanced settings to nondefault values
         // that the api-probe reads back
-        FmodManager.Initialize({profiling: true, distanceFilter: true,
+        return ({profiling: true, distanceFilter: true,
             dspBufferSize: 1024, dspNumBuffers: 4, softwareChannels: 64, streamBufferSize: 65536,
             vol0VirtualVol: 0.01, randomSeed: 12345, commandQueueSize: 65536,
             memoryTracking: true, resamplerMethod: FmodDspResampler.CUBIC,
@@ -61,18 +79,27 @@ class Main {
         #else
         // The plain game keeps audio running while unfocused, so the
         // HighPass filter the play states apply on focus loss is audible
-        FmodManager.Initialize({muteWhenUnfocused: false});
+        return ({muteWhenUnfocused: false});
         #end
+    }
 
-        // The game's own reaction to focus. The FMOD master mute on
-        // focus loss is wired separately by FmodKhaSetup.
-        System.notifyOnApplicationState(onForeground, onForeground, onBackground, onBackground, null);
+    function startGame():Void {
+        #if audio_test
+        // A test build with no state requested is the plain game, so CI
+        // builds one variant for every leg
+        var state = TestConfig.requestedState();
+        if (state != null) {
+            switchScene(new TestScene(state));
+            return;
+        }
+        #end
+        switchScene(new PlayScene());
+    }
 
-        switchScene(new LoadScene());
-        // Kha runs frame tasks in ascending priority order. The game moves
-        // things at 0, and FmodKhaUpdater samples them at its higher number.
-        Scheduler.addFrameTask(update, 0);
-        System.notifyOnFrames(render);
+    function onFmodFailed():Void {
+        // The console named the bank. The game runs without audio.
+        trace("FMOD did not initialize, starting without audio");
+        startGame();
     }
 
     function update():Void {

@@ -1,6 +1,8 @@
 package;
 
 import h2d.Scene;
+import haxefmod.heaps.FmodHeapsSetup;
+import haxefmod.runtime.FmodSettings;
 import haxefmod.studio.Types;
 import hxd.Event;
 
@@ -36,12 +38,21 @@ class Main extends hxd.App {
         // rate caps requestAnimationFrame anyway
         engine.backgroundColor = 0xffaaaaaa;
 
+
+        hxd.Window.getInstance().addEventTarget(onWindowEvent);
+        // FMOD initializes and the default banks load through Heaps'
+        // own binary loader. The first scene starts once both are ready,
+        // on HTML5 too, so no loading scene is needed.
+        FmodHeapsSetup.preload(fmodSettings(), startGame, onFmodFailed);
+    }
+
+    static function fmodSettings():FmodSettings {
         #if audio_test_manual_update
         // The manual-update CI variant: every scenario then runs on
         // FmodManager.Update's manual sys_update pushes instead of the
         // native auto-update thread. This variant also runs FMOD from a
         // fixed memory pool.
-        FmodManager.Initialize({autoUpdate: false, profiling: true, distanceFilter: true,
+        return ({autoUpdate: false, profiling: true, distanceFilter: true,
             dspBufferSize: 1024, dspNumBuffers: 4, softwareChannels: 64, streamBufferSize: 65536,
             vol0VirtualVol: 0.01, randomSeed: 12345, commandQueueSize: 65536,
             memoryTracking: true, resamplerMethod: FmodDspResampler.CUBIC, memoryPoolSize: 96 * 1024 * 1024,
@@ -52,7 +63,7 @@ class Main extends hxd.App {
         // api-probe can see both work. They also pin the buffer settings.
         // The advanced settings take nondefault values that the api-probe
         // reads back
-        FmodManager.Initialize({profiling: true, distanceFilter: true,
+        return ({profiling: true, distanceFilter: true,
             dspBufferSize: 1024, dspNumBuffers: 4, softwareChannels: 64, streamBufferSize: 65536,
             vol0VirtualVol: 0.01, randomSeed: 12345, commandQueueSize: 65536,
             memoryTracking: true, resamplerMethod: FmodDspResampler.CUBIC,
@@ -61,11 +72,27 @@ class Main extends hxd.App {
         #else
         // The plain game keeps audio running while unfocused, so the
         // HighPass filter the play states apply on focus loss is audible
-        FmodManager.Initialize({muteWhenUnfocused: false});
+        return ({muteWhenUnfocused: false});
         #end
+    }
 
-        hxd.Window.getInstance().addEventTarget(onWindowEvent);
-        switchScene(new LoadScene());
+    function startGame():Void {
+        #if audio_test
+        // A test build with no state requested is the plain game, so CI
+        // builds one variant for every leg
+        var state = TestConfig.requestedState();
+        if (state != null) {
+            switchScene(new TestScene(state));
+            return;
+        }
+        #end
+        switchScene(new PlayScene());
+    }
+
+    function onFmodFailed():Void {
+        // The console named the bank. The game runs without audio.
+        trace("FMOD did not initialize, starting without audio");
+        startGame();
     }
 
     override function update(dt:Float) {

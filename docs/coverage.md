@@ -523,7 +523,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_Studio_System_GetVCAByID` | `StudioSystem.getVCAByID` |  |
 | `FMOD_Studio_System_Initialize` | `FmodManager.Initialize`<br>`FmodRuntime.init` |  |
 | `FMOD_Studio_System_LoadBankFile` | `StudioSystem.loadBankFile` |  |
-| `FMOD_Studio_System_LoadBankMemory` | `StudioSystem.loadBankMemory` |  |
+| `FMOD_Studio_System_LoadBankMemory` | `StudioSystem.loadBankMemory`<br>`BankRegistry.loadMemory` |  |
 | `FMOD_Studio_System_LoadCommandReplay` | `StudioSystem.loadCommandReplay` |  |
 | `FMOD_Studio_System_LookupID` | `StudioSystem.lookupID` |  |
 | `FMOD_Studio_System_LookupPath` | `StudioSystem.lookupPath` |  |

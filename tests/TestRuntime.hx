@@ -259,7 +259,25 @@ class TestRuntime {
 		stub.testInitialized = false;
 		stub.testLastInit = null;
 		stub.testPreInitCalls = [];
-		FmodRuntime.init({autoLoadBanks: [], dspBufferSize: 1024, dspNumBuffers: 3,
+
+		// Provided banks: the engine preloader hands bytes over, and init
+		// loads them from memory under the path a file load would use
+		var registry = new BankRegistry();
+		stub.testSyntheticHandles = true;
+		stub.testBankMemoryLoads = [];
+		var memoryBank = registry.loadMemory("assets/fmod/Desktop/Mem.bank", haxe.io.Bytes.alloc(16));
+		assert(!memoryBank.isNull(), "loadMemory returns a bank");
+		assert(stub.testBankMemoryLoads.length == 1 && stub.testBankMemoryLoads[0] == 16, "loadMemory hands the byte count to native");
+		assert(registry.isRegistered("assets/fmod/Desktop/Mem.bank") && registry.refCount("./assets/fmod/Desktop/Mem.bank") == 1,
+			"loadMemory registers under the normalized path");
+		assert((registry.loadMemory("assets/fmod/Desktop/Mem.bank", haxe.io.Bytes.alloc(1)) : Int) == (memoryBank : Int)
+			&& registry.refCount("assets/fmod/Desktop/Mem.bank") == 2, "a second loadMemory bumps the refcount");
+		assert(!FmodRuntime.allBanksProvided(), "nothing is provided before init resolves the settings");
+		FmodRuntime.provideBank("assets/fmod/Desktop/Master.bank", haxe.io.Bytes.alloc(32));
+		assert(FmodRuntime.bankPath("Master.bank", "custom/banks") == "custom/banks/Master.bank", "bankPath takes the folder before init");
+		assert(FmodRuntime.providedBankCount() == 0, "no provided bank is loaded before init");
+		stub.testBankMemoryLoads = [];
+		FmodRuntime.init({autoLoadBanks: ["Master.bank"], banksProvided: true, dspBufferSize: 1024, dspNumBuffers: 3,
 			output: FmodOutputType.NOSOUND, resamplerMethod: FmodDspResampler.SPLINE, rawSpeakers: 4,
 			memoryTracking: true, memoryPoolSize: 1000, logFile: "fmod-test.log", logLevel: 3,
 			logFlags: FmodDebugFlags.TYPE_MEMORY,
@@ -274,6 +292,13 @@ class TestRuntime {
 			handleInitialSize: 16384, studioUpdatePeriod: 30, idleSampleDataPoolSize: 524288,
 			streamingScheduleDelay: 4096, encryptionKey: "secret"});
 		assert(!FmodRuntime.isInitialized(), "settings alone do not make it initialized");
+		assert(FmodRuntime.settings().banksProvided, "banksProvided reaches the resolved settings");
+		assert(FmodRuntime.allBanksProvided(), "the provided bank is found by its file name");
+		assert(FmodRuntime.providedBankCount() == 1 && stub.testBankMemoryLoads.length == 1 && stub.testBankMemoryLoads[0] == 32,
+			"init loads the provided bank from memory");
+		assert(FmodRuntime.banks.isRegistered("assets/fmod/Desktop/Master.bank"), "the provided bank is registered under the file path");
+		assert(!FmodRuntime.initFailed(), "a provided bank that loads is not a failure");
+		stub.testSyntheticHandles = false;
 		// The one init call this suite gets also proves the settings reach
 		// the native call in the right slots
 		var init = stub.testLastInit;

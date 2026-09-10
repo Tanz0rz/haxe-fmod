@@ -153,6 +153,14 @@ typedef FmodSettings = {
     @:optional var autoLoadBanks:Array<String>;
 
     /**
+     * The engine's own loader delivers the default banks as bytes through
+     * FmodRuntime.provideBank, so the runtime never fetches them by URL.
+     * Initialization then waits for every bank in autoLoadBanks to be
+     * provided. The engine preloaders set this. Default false.
+     */
+    @:optional var banksProvided:Bool;
+
+    /**
      * Drives FMOD from a background thread (native) or timer (HTML5) so
      * audio keeps running when the game loop stalls. Default true.
      * Typed callbacks are still only delivered from update().
@@ -253,6 +261,7 @@ typedef ResolvedFmodSettings = {
     var logLevel:Int;
     var bankFolder:String;
     var autoLoadBanks:Array<String>;
+    var banksProvided:Bool;
     var autoUpdate:Bool;
     var muteWhenUnfocused:Bool;
     var maxAttachedVelocity:Float;
@@ -323,6 +332,7 @@ class FmodSettingsResolver {
             autoLoadBanks: settings != null && settings.autoLoadBanks != null
                 ? settings.autoLoadBanks
                 : ["Master.bank", "Master.strings.bank"],
+            banksProvided: settings != null && settings.banksProvided != null ? settings.banksProvided : false,
             autoUpdate: settings != null && settings.autoUpdate != null ? settings.autoUpdate : true,
             muteWhenUnfocused: settings != null && settings.muteWhenUnfocused != null
                 ? settings.muteWhenUnfocused

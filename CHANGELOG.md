@@ -3,6 +3,8 @@
 ## 3.0.0 (unreleased)
 
 ### Added
+- Engine preloaders that have FMOD ready before the first scene, on HTML5 too. `haxefmod.flixel.FmodFlxPreloader` is a lime preloader that initializes FMOD while lime loads the assets and takes the default banks from them. `FmodHeapsSetup.preload` loads the banks through `hxd.net.BinaryLoader`. `FmodKhaSetup.preload` takes them from `kha.Assets.blobs`. Each calls back once FMOD is usable, or when a bank failed. The three example games start through them and have no loading scene.
+- `FmodRuntime.provideBank(fileName, bytes)`, `allBanksProvided()`, `providedBankCount()`, the `banksProvided` setting, `BankRegistry.loadMemory` and `isRegistered`, and an `onFailed` argument on `FmodRuntime.onceReady`. Together they let any loader hand the default banks to the runtime as bytes.
 - `isInstalled()` and `removeHook()` on `FmodFlxUpdater`, `FmodHeapsUpdater`, and `FmodKhaUpdater`, and `FmodRuntime.maxAttachedVelocity()`.
 - `FmodManager.IsAutoUpdate()` and `IsMuteWhenUnfocused()`, the getters for `SetAutoUpdate` and `SetMuteWhenUnfocused`. `FmodRuntime.setAutoUpdate`, `isAutoUpdate`, and `isMuteWhenUnfocused` back them.
 - Init settings for the engine knobs FMOD only accepts before initialization: `FmodSettings.dspBufferSize` and `dspNumBuffers` (mixer latency, the web build starts at 2048 by 2 and takes the values as well), `softwareChannels` (the audible voice cap, separate from the virtual count in `numChannels`), `streamBufferSize`, `profiling` (turns on FMOD profiling so `Bus`, `EventInstance`, and `Dsp` `getCpuUsage()` report values), and `distanceFilter`. Defines `haxefmod_dsp_buffer_size` and `haxefmod_software_channels` set `dspBufferSize` and `softwareChannels` from `Project.xml`.
