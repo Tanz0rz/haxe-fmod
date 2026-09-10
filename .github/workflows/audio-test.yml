@@ -19,7 +19,7 @@ env:
   # first Kha jobs ran on. Its Kore links a macOS executable the stage
   # command can add the dylib rpath to. The 2026-09-01 Kore update links
   # without header padding, so install_name_tool refuses the edit there.
-  KHA_COMMIT: 1fb7ad4b5bc1
+  KHA_COMMIT: 1fb7ad4b5bc1e1b15a3f2be4b762cd4068d5f64c
   FMOD_SDK: ${{ github.workspace }}/fmod-sdk
 
 jobs:
