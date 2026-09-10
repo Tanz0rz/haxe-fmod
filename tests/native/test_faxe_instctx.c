@@ -60,7 +60,7 @@ int main(void) {
     assert(strcmp(key, "untouched") == 0);
     assert(faxe_instctx_ps_find_named(ctx, NULL, key) == 0);
     for (i = 1; i < FAXE_PS_NAMED_MAX; i++) {
-        sprintf(name, "n%d", i);
+        snprintf(name, sizeof name, "n%d", i);
         assert(faxe_instctx_ps_set_named(ctx, name, "k") == 1);
     }
     assert(ctx->psNamedCount == FAXE_PS_NAMED_MAX);

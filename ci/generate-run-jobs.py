@@ -434,8 +434,8 @@ def browser_steps(j):
           grep -o "$GATE:.*" "$RAW" | sed 's/",.*$//' | tee "$LOG"
           grep -q "$GATE: COMPLETE" "$LOG"
           if [ "$STATE" = cb-test ]; then
-            # Delivery end to end. Chromium delivers no nested timeline
-            # beats, so that check is informational in the browser.
+            # Delivery end to end. The scenario reports the nested beats as
+            # information in a browser, because the web glue delivers none.
             grep -q "CB_TEST: Stopped" "$LOG"
           fi
           if grep -q "pass=false" "$LOG"; then

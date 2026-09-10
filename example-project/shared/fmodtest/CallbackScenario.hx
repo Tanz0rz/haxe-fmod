@@ -191,21 +191,17 @@ class CallbackScenario implements TestScenario {
         _nestedFrames++;
         if (_nestedBeats < 2 && _nestedFrames <= RECOVERY_WAIT_FRAMES) return;
 
-        var firefoxGlue = false;
         #if js
-        firefoxGlue = js.Browser.navigator.userAgent.indexOf("Firefox") >= 0;
+        // FMOD's JS runtime never invokes the nested-beat callback. The
+        // Chromium and Firefox jobs both report zero beats while the parent
+        // receives the referenced timeline's markers, so the gating check
+        // lives on the native targets.
+        log('CB_TEST: nested_beats_delivered info=not delivered by the web glue'
+            + ' beats=$_nestedBeats frames=$_nestedFrames');
+        #else
+        check("nested_beats_delivered", _nestedBeats >= 2 && _nestedTempoOk,
+            'beats=$_nestedBeats tempoOk=$_nestedTempoOk frames=$_nestedFrames');
         #end
-        if (firefoxGlue) {
-            // FMOD's JS runtime never invokes the nested-beat callback on
-            // Firefox. The parent receives the referenced timeline's
-            // markers, and chromium delivers the beats, so the gating
-            // check lives on the other targets.
-            log('CB_TEST: nested_beats_delivered info=not delivered by the firefox glue'
-                + ' beats=$_nestedBeats frames=$_nestedFrames');
-        } else {
-            check("nested_beats_delivered", _nestedBeats >= 2 && _nestedTempoOk,
-                'beats=$_nestedBeats tempoOk=$_nestedTempoOk frames=$_nestedFrames');
-        }
         _nestedInstance.stop(IMMEDIATE);
         _nestedInstance.release();
         StudioSystem.flushCommands();

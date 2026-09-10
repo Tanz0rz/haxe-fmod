@@ -375,10 +375,10 @@ class jaxe {
             ev.i5 = parameters.timesignaturelower | 0;
             ev.f1 = parameters.tempo || 0.0;
         } else if (type == 0x00040000 /* NESTED_TIMELINE_BEAT */ && parameters) {
-            // FMOD's JS glue has no marshaler for the nested-beat struct, so
-            // the C-side properties sub-object never appears. Read the flat
-            // beat keys when the glue provides them and fall back to the
-            // nested shape in case a future glue adds it.
+            // FMOD's JS glue has no marshaler for the nested-beat struct and
+            // never invokes this callback in the tested browsers. Read the
+            // flat beat keys when a glue provides them, and fall back to
+            // the nested shape.
             var beatProps = parameters.properties ? parameters.properties : parameters;
             ev.i1 = beatProps.bar | 0;
             ev.i2 = beatProps.beat | 0;
