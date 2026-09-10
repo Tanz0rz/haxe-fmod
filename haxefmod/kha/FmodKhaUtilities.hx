@@ -18,6 +18,8 @@ class FmodKhaUtilities {
     **/
     public static function PlayOneShotAttached(eventPath:String, target:KhaBody):Void {
         var provider = new KhaBodyPositionProvider(target);
+        // The first push happens inside the call, so sample the target now
+        provider.sample(0);
         FmodManager.PlayOneShotAttached(eventPath, provider);
         // The provider has to be sampled every frame for as long as the
         // one-shot lives. The sampler unregisters once the runtime drops

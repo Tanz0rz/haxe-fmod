@@ -228,6 +228,11 @@ class FmodRuntime {
         if (isInitialized()) NativeStudio.sys_set_auto_update(enabled);
     }
 
+    /** The velocity cap attached instances and listeners apply, 0 for none. */
+    public static function maxAttachedVelocity():Float {
+        return attached.maxVelocity;
+    }
+
     /** True while the background auto-update thread is on. */
     public static function isAutoUpdate():Bool {
         return resolved == null || resolved.autoUpdate;

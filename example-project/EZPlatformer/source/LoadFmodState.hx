@@ -38,7 +38,9 @@ class LoadFmodState extends FlxState {
             threadAttributes: [{type: FmodThreadType.STUDIO_UPDATE, priority: FmodThreadPriority.STUDIO_UPDATE,
                 stackSize: FmodThreadStackSize.STUDIO_UPDATE}]});
         #else
-        FmodManager.Initialize();
+        // The plain game keeps audio running while unfocused, so the
+        // HighPass filter the play states apply on focus loss is audible
+        FmodManager.Initialize({muteWhenUnfocused: false});
         #end
 
         var loadingText = new FlxText(0, 0, "Loading...");
@@ -48,6 +50,7 @@ class LoadFmodState extends FlxState {
         add(loadingText);
     }
     override public function update(elapsed:Float):Void {
+        super.update(elapsed);
         if(FmodManager.IsInitialized()){
             #if audio_test
             // A test build with no state requested is the plain game, so CI

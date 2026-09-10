@@ -3,6 +3,7 @@
 ## 3.0.0 (unreleased)
 
 ### Added
+- `FmodHeapsUpdater.isInstalled()` and `removeHook()`, `FmodKhaUpdater.isInstalled()` and `removeTask()`, and `FmodRuntime.maxAttachedVelocity()`.
 - `FmodManager.IsAutoUpdate()` and `IsMuteWhenUnfocused()`, the getters for `SetAutoUpdate` and `SetMuteWhenUnfocused`. `FmodRuntime.setAutoUpdate`, `isAutoUpdate`, and `isMuteWhenUnfocused` back them.
 - `FmodFlxUpdater.isInstalled()` and `remove()`.
 - Init settings for the engine knobs FMOD only accepts before initialization: `FmodSettings.dspBufferSize` and `dspNumBuffers` (mixer latency, the web build starts at 2048 by 2 and takes the values as well), `softwareChannels` (the audible voice cap, separate from the virtual count in `numChannels`), `streamBufferSize`, `profiling` (turns on FMOD profiling so `Bus`, `EventInstance`, and `Dsp` `getCpuUsage()` report values), and `distanceFilter`. Defines `haxefmod_dsp_buffer_size` and `haxefmod_software_channels` set the first two from `Project.xml`.
@@ -99,6 +100,11 @@
 - `Sound.getSyncPointName` and `getSyncPointOffset` are replaced by `getSyncPointInfo(point)`, which returns the name and offset together. The compiler warns at every use.
 
 ### Fixed
+- `FmodKhaUpdater` runs its frame task at priority 100, after the game's own tasks. Kha runs frame tasks in ascending priority order, so the earlier priority 0 sampled positions a frame late.
+- The Heaps and Kha emitters and `PlayOneShotAttached` sample the target before the first push, so an event no longer starts at the world origin for its first mix block.
+- `FmodKhaSetup.init` rewires the application state listeners with remove-then-add, like the Flixel and Heaps setups.
+- `BuildCheck.verify` runs for every hl, cpp, and js build that invokes the macro. Before, a plain haxe build without a lime, heaps, or kha define skipped the check and shipped a game with no audio.
+- The build check, the postbuild error messages, and `build-hdll` read the expected FMOD version from the library instead of a literal, the web SDK gate compares versions as numbers, the postbuild error names the symptom of the target being built, and `todos` rejects an unknown option or a missing directory instead of scanning the working directory.
 - The native shims release the programmer sound they created when `clearProgrammerSound` runs before the instance ends. Before, the clear unsubscribed the callback that released it.
 - `BankUnload` carries paths of 64 bytes and more on native targets (the stash held 63), and `unloadAll` reports every bank instead of the first 32.
 - The HTML5 shim returns 0.0 instead of an error code from the parameter getters given a non-string name, rejects a null or oversized buffer in `loadBankMemory`, bounds the inclusion list it hands FMOD, reports `FMOD_ERR_MEMORY` when the handle table is full, truncates callback strings at the native limits, resolves the instance of a core `Error` callback, and uninstalls a callback it no longer needs. Bank paths are cached for `BankUnload` only while a system callback subscribes to it.

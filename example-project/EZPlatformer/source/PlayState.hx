@@ -95,7 +95,7 @@ class PlayState extends FlxState {
                 FmodManager.SetSongParameter("FadeArpIn", 0);
             }
             if (_winTimer >= 6.0) {
-                FlxG.switchState(new PlayState2());
+                FlxG.switchState(PlayState2.new);
             }
         }
 

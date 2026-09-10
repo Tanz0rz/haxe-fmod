@@ -29,8 +29,7 @@ class ListenerTracker {
         if (provider == null) return;
         var velX = provider.fmodVelocityX();
         var velY = provider.fmodVelocityY();
-        var settings = FmodRuntime.settings();
-        var maxVelocity = settings != null ? settings.maxAttachedVelocity : 0.0;
+        var maxVelocity = FmodRuntime.maxAttachedVelocity();
         var scale = AttachedInstances.velocityScale(velX, velY, maxVelocity);
         StudioSystem.setListenerPosition2D(listenerIndex, provider.fmodX(), provider.fmodY(),
             velX * scale, velY * scale);

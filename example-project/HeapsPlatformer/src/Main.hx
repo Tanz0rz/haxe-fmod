@@ -59,7 +59,9 @@ class Main extends hxd.App {
             threadAttributes: [{type: FmodThreadType.STUDIO_UPDATE, priority: FmodThreadPriority.STUDIO_UPDATE,
                 stackSize: FmodThreadStackSize.STUDIO_UPDATE}]});
         #else
-        FmodManager.Initialize();
+        // The plain game keeps audio running while unfocused, so the
+        // HighPass filter the play states apply on focus loss is audible
+        FmodManager.Initialize({muteWhenUnfocused: false});
         #end
 
         hxd.Window.getInstance().addEventTarget(onWindowEvent);

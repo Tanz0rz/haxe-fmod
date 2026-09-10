@@ -26,8 +26,9 @@ class Run {
 			case "build-hdll":
 				BuildHdll.run(libRoot, cwd);
 			case "postbuild":
-				if (userArgs.length < 4) {
-					Sys.println("Usage: haxelib run haxefmod postbuild <platform> <target> <libroot>");
+				if (userArgs.length < 3) {
+					Sys.println("Usage: haxelib run haxefmod postbuild <platform> <target> [libroot]");
+					Sys.println("  libroot is ignored, include.xml passes it and the root is resolved here");
 					Sys.exit(1);
 				}
 				// cwd from haxelib is the caller's working directory (project
@@ -99,28 +100,16 @@ class Run {
 		Sys.println("  stage          Copy the FMOD runtime files into a build output directory (Heaps, Kha, plain haxe builds)");
 		Sys.println("  verify-native  Verify the native shims are in lockstep with the FFI manifest");
 		Sys.println("  generate       Generate Haxe constant classes (FmodEvents, FmodBuses, ...) from Master.strings.bank");
-		Sys.println("  todos          List every FmodManager.Todo sound marker in the project (--json for machine output)");
+		Sys.println("  todos          List every FmodManager.Todo sound marker: todos [dir] [--json]");
 		Sys.println("  postbuild      Copy the FMOD runtime files after a lime build (include.xml runs this)");
 		Sys.println("  help           Show this message");
-	}
-
-	/** The FMOD version the pre-built binaries expect, read from the library's marker file. */
-	static function expectedFmodVersion(libRoot:String):String {
-		var versionFile = haxe.io.Path.join([libRoot, "fmod_expected_version"]);
-		if (!FileSystem.exists(versionFile)) return "the expected FMOD version";
-		return PostBuild.hexToVersion(StringTools.trim(File.getContent(versionFile)));
-	}
-
-	/** The version as it appears in FMOD's package names, 2.03.12 as 20312. */
-	static function packageDigits(version:String):String {
-		return version.split(".").join("");
 	}
 
 	static function runCheck(cwd:String, libRoot:String) {
 		Sys.println("haxefmod check - checking your environment...");
 		Sys.println("");
-		var expectedVersion = expectedFmodVersion(libRoot);
-		var digits = packageDigits(expectedVersion);
+		var expectedVersion = PostBuild.expectedFmodVersion(libRoot);
+		var digits = PostBuild.packageDigits(expectedVersion);
 
 		// 1. Haxe installed
 		checkCommand("Haxe installed", "haxe", ["--version"]);

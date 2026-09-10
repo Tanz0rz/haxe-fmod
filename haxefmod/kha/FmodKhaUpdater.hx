@@ -7,25 +7,41 @@ import kha.Scheduler;
     Per-frame driver for FMOD in a Kha game. Call init() once at startup
     (FmodKhaSetup.init() does this for you).
 
-    The updater is a Scheduler frame task. Every haxefmod.kha component
-    registers here. The updater ticks each component before
-    FmodManager.Update() runs, so the positions it samples reach FMOD in
-    the same frame.
+    The updater is a Scheduler frame task at priority 100. Kha runs frame
+    tasks in ascending priority order, so it runs after the game's own
+    tasks at lower numbers. Every haxefmod.kha component registers here.
+    The updater ticks each component before FmodManager.Update() runs, so
+    the positions the game set this frame reach FMOD in the same frame.
 **/
 class FmodKhaUpdater {
     /** How many times the frame task was actually installed (1 after init). **/
     public static var installCount(default, null):Int = 0;
 
+    /** The frame task priority. Lower numbers run first, so the game's tasks go below this. **/
+    public static inline var PRIORITY:Int = 100;
+
     static var tickers:Array<IKhaTicker> = [];
     static var lastStamp:Float = -1;
+    static var taskId:Int = -1;
 
     /** Installs the frame task once. Later calls do nothing. **/
     public static function init():Void {
-        if (installCount > 0) return;
+        if (taskId >= 0) return;
         installCount++;
-        // Priority 0 runs after the game's own frame tasks at higher
-        // priorities. Positions set this frame are then what FMOD sees.
-        Scheduler.addFrameTask(frame, 0);
+        taskId = Scheduler.addFrameTask(frame, PRIORITY);
+    }
+
+    /** True while the frame task is installed. **/
+    public static function isInstalled():Bool {
+        return taskId >= 0;
+    }
+
+    /** Removes the frame task. FmodManager.Update() then runs only when the game calls it. **/
+    public static function removeTask():Void {
+        if (taskId < 0) return;
+        Scheduler.removeFrameTask(taskId);
+        taskId = -1;
+        lastStamp = -1;
     }
 
     /** Registers a component to be ticked every frame, installing the frame task if needed. **/

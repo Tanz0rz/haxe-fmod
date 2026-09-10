@@ -73,9 +73,9 @@ class PostBuild {
 
 		if (sdkPath == null || sdkPath == "") {
 			if (platform == "html5") {
-				printSdkWebError();
+				printSdkWebError(libRoot);
 			} else {
-				printSdkError();
+				printSdkError(libRoot, target);
 			}
 			Sys.exit(1);
 		}
@@ -663,7 +663,7 @@ class PostBuild {
 		var jsSrc = Path.join([sdkDir, "api", "studio", "lib", "wasm", "fmodstudio.js"]);
 		if (FileSystem.exists(jsSrc)) {
 			copyFile(jsSrc, Path.join([libDir, "fmodstudio.js"]));
-			log("Replaced fmodstudio.js");
+			log(standalone ? "Copied fmodstudio.js" : "Replaced fmodstudio.js");
 		} else {
 			log('ERROR: $jsSrc not found');
 			Sys.exit(1);
@@ -672,7 +672,7 @@ class PostBuild {
 		var wasmSrc = Path.join([sdkDir, "api", "studio", "lib", "wasm", "fmodstudio.wasm"]);
 		if (FileSystem.exists(wasmSrc)) {
 			copyFile(wasmSrc, Path.join([libDir, "fmodstudio.wasm"]));
-			log("Replaced fmodstudio.wasm");
+			log(standalone ? "Copied fmodstudio.wasm" : "Replaced fmodstudio.wasm");
 		} else {
 			log('ERROR: $wasmSrc not found');
 			Sys.exit(1);
@@ -865,23 +865,42 @@ class PostBuild {
 
 	//// Error messages
 
-	static function printSdkError():Void {
+	/** The FMOD version the pre-built binaries expect, from the library's marker file. */
+	public static function expectedFmodVersion(libRoot:String):String {
+		var versionFile = Path.join([libRoot, "fmod_expected_version"]);
+		if (!FileSystem.exists(versionFile)) return "the expected FMOD version";
+		return hexToVersion(StringTools.trim(File.getContent(versionFile)));
+	}
+
+	/** The version as it appears in FMOD's package names, 2.03.12 as 20312. */
+	public static function packageDigits(version:String):String {
+		return version.split(".").join("");
+	}
+
+	static function printSdkError(libRoot:String, target:String):Void {
+		var version = expectedFmodVersion(libRoot);
+		var digits = packageDigits(version);
 		Sys.println("");
 		Sys.println("============================================================");
 		Sys.println("  ERROR: FMOD_SDK environment variable is not set.");
 		Sys.println("");
 		Sys.println("  Your build will NOT work without FMOD libraries!");
-		Sys.println("  You will see: Failed to load library hlaxe_fmod.hdll");
+		if (target == "hl") {
+			Sys.println("  You will see: Failed to load library hlaxe_fmod.hdll");
+		} else {
+			Sys.println("  The game exits at startup because libfmod is missing.");
+		}
 		Sys.println("============================================================");
 		Sys.println("");
 		Sys.println("  haxe-fmod requires you to supply your own FMOD Engine SDK.");
 		Sys.println("");
 		Sys.println("  1. Download FMOD Engine from https://www.fmod.com/download");
-		Sys.println("     - All platforms: version 2.03.12");
+		Sys.println('     - All platforms: version $version');
 		Sys.println("");
 		Sys.println("  2. Install/extract it and set FMOD_SDK to point to the SDK directory.");
 		Sys.println("");
-		Sys.println("     export FMOD_SDK=/path/to/fmodstudioapi20312");
+		Sys.println('     export FMOD_SDK=/path/to/fmodstudioapi$digits');
+		Sys.println('     set FMOD_SDK=C:\\path\\to\\fmodstudioapi$digits   (Windows)');
 		Sys.println("");
 		Sys.println("     Note: Set FMOD_SDK to the installed/extracted SDK directory.");
 		Sys.println("           Switch FMOD_SDK when building for different platforms.");
@@ -892,22 +911,24 @@ class PostBuild {
 		Sys.println("");
 	}
 
-	static function printSdkWebError():Void {
+	static function printSdkWebError(libRoot:String):Void {
+		var version = expectedFmodVersion(libRoot);
+		var digits = packageDigits(version);
 		Sys.println("");
 		Sys.println("============================================================");
 		Sys.println("  ERROR: FMOD_SDK_WEB environment variable is not set.");
 		Sys.println("");
 		Sys.println("  HTML5 builds require the FMOD Engine SDK for HTML5.");
 		Sys.println("");
-		Sys.println("  1. Download FMOD Engine 2.03.12 for HTML5 from:");
+		Sys.println('  1. Download FMOD Engine $version for HTML5 from:');
 		Sys.println("     https://www.fmod.com/download");
 		Sys.println("");
 		Sys.println("  2. Extract it and set FMOD_SDK_WEB:");
 		Sys.println("");
-		Sys.println("     export FMOD_SDK_WEB=/path/to/fmodstudioapi20312html5");
+		Sys.println('     export FMOD_SDK_WEB=/path/to/fmodstudioapi${digits}html5');
 		Sys.println("");
 		Sys.println("     Or on Windows:");
-		Sys.println("     set FMOD_SDK_WEB=C:\\path\\to\\fmodstudioapi20312html5");
+		Sys.println('     set FMOD_SDK_WEB=C:\\path\\to\\fmodstudioapi${digits}html5');
 		Sys.println("");
 		Sys.println("  3. Run 'haxelib run haxefmod check' to verify your setup.");
 		Sys.println("");

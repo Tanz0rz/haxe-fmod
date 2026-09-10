@@ -42,8 +42,14 @@ class PlayScene2 implements GameScene {
         #end
 
         level.moveAndCollide(player, dt);
+        if (coin.alive && coin.overlaps(player)) getCoin();
         // Keep the run going at the wall: velocity is zeroed on contact
         if (player.velocityX == 0) player.velocityX = 40;
+    }
+
+    function getCoin():Void {
+        FmodManager.PlayOneShot(FmodEvents.SFXCoin);
+        coin.kill();
     }
 
     public function render(g2:Graphics):Void {

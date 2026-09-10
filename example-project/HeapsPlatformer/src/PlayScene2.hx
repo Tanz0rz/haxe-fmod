@@ -10,6 +10,8 @@ class PlayScene2 implements GameScene {
     var root:Object;
     var level:Level;
     var player:Body;
+    var coin:Body;
+    var status:Text;
     var jumped:Bool = false;
 
     public function new() {}
@@ -19,7 +21,7 @@ class PlayScene2 implements GameScene {
         level = new Level(root);
 
         // Coin on the floor to jump over
-        new Body(root, 16 * 8 + 3, 28 * 8 + 2, 2, 4, 0xffff00);
+        coin = new Body(root, 16 * 8 + 3, 28 * 8 + 2, 2, 4, 0xffff00);
 
         // Player auto-moves right
         player = new Body(root, 5 * 8, 28 * 8, 8, 8, 0xff0000);
@@ -28,7 +30,7 @@ class PlayScene2 implements GameScene {
         player.accelerationY = 200;
         player.velocityX = 40;
 
-        var status = new Text(hxd.res.DefaultFont.get(), root);
+        status = new Text(hxd.res.DefaultFont.get(), root);
         status.text = "Jump sound";
         status.textAlign = Center;
         status.maxWidth = 320;
@@ -54,8 +56,15 @@ class PlayScene2 implements GameScene {
         #end
 
         level.moveAndCollide(player, dt);
+        if (coin.alive && coin.overlaps(player)) getCoin();
         // Keep the run going at the wall: velocity is zeroed on contact
         if (player.velocityX == 0) player.velocityX = 40;
+    }
+
+    function getCoin():Void {
+        FmodManager.PlayOneShot(FmodEvents.SFXCoin);
+        coin.kill();
+        status.text = "Oops! Collected the coin.";
     }
 
     public function dispose():Void {

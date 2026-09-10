@@ -168,9 +168,19 @@ Banks load from `assets/fmod/Desktop` by default. [Bank loading](guides/bank-loa
     import haxefmod.heaps.FmodHeapsSetup;
 
     class Main extends hxd.App {
+        var started = false;
+
         override function init() {
             FmodHeapsSetup.init();
-            FmodManager.PlaySong(FmodEvents.MusicMainLevel);
+        }
+
+        override function update(dt:Float) {
+            // Initialization is asynchronous on HTML5, so the first
+            // scene waits for it
+            if (!started && FmodManager.IsInitialized()) {
+                started = true;
+                FmodManager.PlaySong(FmodEvents.MusicMainLevel);
+            }
         }
 
         function JumpPressed() {
@@ -190,14 +200,26 @@ Banks load from `assets/fmod/Desktop` by default. [Bank loading](guides/bank-loa
     ```haxe
     import haxefmod.FmodManager;
     import haxefmod.kha.FmodKhaSetup;
+    import kha.Scheduler;
     import kha.System;
 
     class Main {
         static function main() {
             System.start({title: "Game", width: 640, height: 480}, _ -> {
                 FmodKhaSetup.init();
-                FmodManager.PlaySong(FmodEvents.MusicMainLevel);
+                Scheduler.addFrameTask(update, 0);
             });
+        }
+
+        static var started = false;
+
+        static function update() {
+            // Initialization is asynchronous on HTML5, so the first
+            // scene waits for it
+            if (!started && FmodManager.IsInitialized()) {
+                started = true;
+                FmodManager.PlaySong(FmodEvents.MusicMainLevel);
+            }
         }
 
         static function JumpPressed() {
@@ -294,7 +316,7 @@ HTML5 initializes asynchronously. An HTML5 game waits for `FmodManager.IsInitial
 
     `linux` is the Kore C++ target. `linux-hl` builds the same game as HashLink instead, and Kore compiles it to a native executable. For the HashLink targets, set `HAXEFMOD_KHA_HL=1` in the environment before khamake. The library then compiles its HashLink binding into the executable instead of the C++ one. On the other platforms the khamake targets are `osx`/`osx-hl` and `windows`/`windows-hl`. Pass the platform name to the [stage command](guides/tools-cli.md#stage).
 
-    The stage target is `cpp` for every native Kha build, the HashLink ones included. The binding is inside the executable either way, so no hdll or VM is involved. Only the FMOD libraries need staging. Copy your banks to `assets/fmod/Desktop` next to the executable and run it from that directory.
+    The stage target is `cpp` for every native Kha build, the HashLink ones included. The binding is inside the executable either way, so no hdll or VM is involved. Only the FMOD libraries need staging. Copy your banks to `assets/fmod/Desktop` next to the executable and start it through the `run.sh` the stage command wrote there.
 
     You hear your event as soon as the window opens. A silent run with a clean build points at missing banks. The console output names the failing path when `FmodManager.EnableDebugMessages()` is on.
 

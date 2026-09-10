@@ -39,10 +39,10 @@ The generator parses the compiled strings bank, so it reflects exactly what the 
 ## todos
 
 ```bash
-haxelib run haxefmod todos [--json]
+haxelib run haxefmod todos [dir] [--json]
 ```
 
-Finds every `FmodManager.Todo(...)` call in the project, so the sound work they mark can be scheduled. The scanner is comment-aware and string-aware. It skips commented-out calls and mentions inside string literals. Calls with a literal first argument show their description. The scanner still finds a computed description and reports it as dynamic. `--json` prints machine-readable output for build dashboards.
+Finds every `FmodManager.Todo(...)` call in the project, so the sound work they mark can be scheduled. The scanner is comment-aware and string-aware. It skips commented-out calls and mentions inside string literals. Calls with a literal first argument show their description. The scanner still finds a computed description and reports it as dynamic. `dir` scans a directory other than the current one. `--json` prints machine-readable output for build dashboards.
 
 ## stage
 
@@ -52,8 +52,10 @@ haxelib run haxefmod stage <platform> <target> <outdir>
 
 Lime builds get the FMOD runtime files copied next to the game automatically. Every other build runs `stage` after compiling to do the same: Heaps, Kha, and plain haxe builds. The platform is `mac`, `linux`, `windows`, or `html5`. The target is `hl`, `cpp`, or `html5`.
 
-- `hl` copies the FMOD libraries and `hlaxe_fmod.hdll`, resolved through the same tiers as a lime build (see [Platforms](../platforms.md#hashlink)). It also writes a launcher that starts the game with the right library path. The launcher is `run.sh` on Linux and macOS and `run.cmd` on Windows.
-- `cpp` copies the FMOD libraries only, for executables the binding was compiled into. Kha's native targets use this on Kore HL/C builds too.
+- `hl` copies the FMOD libraries and `hlaxe_fmod.hdll`, resolved through the same tiers as a lime build (see [Platforms](../platforms.md#hashlink)).
+- `cpp` copies the FMOD libraries, for executables the binding was compiled into. Kha's native targets use this on Kore HL/C builds too.
+
+Both native targets also get a launcher that starts the game with the right library path: `run.sh` on Linux, `run.cmd` on Windows, and `run.sh` on macOS for HashLink VM output only.
 - `html5` copies the FMOD web engine (`fmodstudio.js`, `fmodstudio.wasm`) and the library's `jaxe.js` glue into the directory. Your page then loads them with script tags ahead of the game.
 
 The command reads `FMOD_SDK` (or `FMOD_SDK_WEB` for HTML5). It stops with the reason when the variable is unset, points at the wrong package, or holds an unusable version. The Heaps and Kha tabs of [Getting started](../getting-started.md#6-build-and-run) show it inside a full build.

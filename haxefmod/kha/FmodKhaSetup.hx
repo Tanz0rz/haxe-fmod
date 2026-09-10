@@ -24,17 +24,13 @@ import kha.System;
     Calling init() again is safe and keeps a single focus wiring.
 **/
 class FmodKhaSetup {
-    static var wired:Bool = false;
-
     /** Initializes FMOD and wires the Kha updater and application state hooks. **/
     public static function init(?settings:FmodSettings):Void {
         FmodManager.Initialize(settings);
         FmodKhaUpdater.init();
-        // Kha keeps its listeners forever, so wire once.
-        if (!wired) {
-            wired = true;
-            System.notifyOnApplicationState(onForeground, onForeground, onBackground, onBackground, null);
-        }
+        // Remove-then-add keeps a single wiring across repeated init calls
+        System.removeApplicationStateListeners(onForeground, onForeground, onBackground, onBackground, null);
+        System.notifyOnApplicationState(onForeground, onForeground, onBackground, onBackground, null);
     }
 
     static function onForeground():Void {

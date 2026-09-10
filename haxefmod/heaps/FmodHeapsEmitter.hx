@@ -49,6 +49,9 @@ class FmodHeapsEmitter implements IHeapsTicker {
     **/
     public function new(instance:EventInstance, target:Object) {
         provider = new H2dObjectPositionProvider(target);
+        // The attach pushes a position at once, so the provider needs a
+        // sample first or the event starts at the world origin
+        provider.sample(0);
         tracker = new EmitterTracker(instance, provider);
         FmodHeapsUpdater.add(this);
     }

@@ -4,7 +4,7 @@
 
    Generates the same files as `haxelib run haxefmod generate`
    (FmodEvents.hx, FmodBuses.hx, FmodVCAs.hx, FmodSnapshots.hx,
-   FmodParameters.hx) directly from the open FMOD Studio project, then
+   FmodParameters.hx, FmodEventEnum.hx) directly from the open FMOD Studio project, then
    builds the banks. Because it runs as part of the export itself, the
    constants can never drift from the project - this is the recommended
    workflow. The CLI generator produces byte-identical output from a built

@@ -6,8 +6,9 @@ import haxe.macro.Context;
 /**
  * Compile-time environment check, wired by include.xml so it runs on every
  * lime build of a project using haxefmod. Heaps and Kha builds run it
- * too, and any other build opts in with -D haxefmod_build_check plus
- * --macro haxefmod.tools.BuildCheck.verify() in its hxml.
+ * too, and any other build opts in with --macro
+ * haxefmod.tools.BuildCheck.verify() in its hxml. The check applies to
+ * the hl, cpp, and js targets, the ones that ship an FMOD runtime.
  *
  * The checks live in a macro because lime ignores postbuild failures. An
  * error reported there scrolls past while the game still compiles. The game
@@ -20,10 +21,11 @@ class BuildCheck {
         // IDE completion/diagnostics runs compile the project without the
         // shell environment. Never block those.
         if (Context.defined("display")) return;
-        // Unit tests and plain haxe compiles ship no FMOD runtime and have
-        // nothing to verify.
-        if (!Context.defined("lime") && !Context.defined("heaps") && !Context.defined("kha")
-            && !Context.defined("haxefmod_build_check")) return;
+        // Only a build that ships an FMOD runtime has anything to verify.
+        // An interp or neko run of the tools has none.
+        if (!Context.defined("hl") && !Context.defined("cpp") && !Context.defined("js")) return;
+        var expectedVersion = expectedFmodVersion();
+        var digits = expectedVersion.split(".").join("");
 
         // Lime defines "html5" for the html5 target. "js" covers the same
         // build if that define ever changes (the only lime js target is html5).
@@ -31,9 +33,9 @@ class BuildCheck {
             requireEnv("FMOD_SDK_WEB",
                 "haxefmod: FMOD_SDK_WEB is not set - HTML5 builds cannot include the FMOD engine.\n"
                 + "\n"
-                + "  1. Download the FMOD Engine HTML5 package (version 2.03.12) from https://www.fmod.com/download\n"
+                + '  1. Download the FMOD Engine HTML5 package (version $expectedVersion) from https://www.fmod.com/download\n'
                 + "  2. Set FMOD_SDK_WEB to the extracted directory, e.g.\n"
-                + "       export FMOD_SDK_WEB=\"$HOME/fmod/fmodstudioapi20312html5\"\n"
+                + '       export FMOD_SDK_WEB="$$HOME/fmod/fmodstudioapi${digits}html5"\n'
                 + "  3. Restart your terminal (or IDE) so the build sees the variable\n"
                 + "\n"
                 + "  Verify your setup with: haxelib run haxefmod check");
@@ -41,10 +43,10 @@ class BuildCheck {
             requireEnv("FMOD_SDK",
                 "haxefmod: FMOD_SDK is not set - the game would launch without any audio.\n"
                 + "\n"
-                + "  1. Download the FMOD Engine (version 2.03.12) from https://www.fmod.com/download\n"
+                + '  1. Download the FMOD Engine (version $expectedVersion) from https://www.fmod.com/download\n'
                 + "  2. Set FMOD_SDK to the extracted directory, e.g.\n"
-                + "       export FMOD_SDK=\"$HOME/fmod/fmodstudioapi20312\"   (Linux/macOS)\n"
-                + "       FMOD_SDK=C:\\path\\to\\fmodstudioapi20312           (Windows)\n"
+                + '       export FMOD_SDK="$$HOME/fmod/fmodstudioapi$digits"   (Linux/macOS)\n'
+                + '       FMOD_SDK=C:\\path\\to\\fmodstudioapi$digits           (Windows)\n'
                 + "  3. Restart your terminal (or IDE) so the build sees the variable\n"
                 + "\n"
                 + "  Verify your setup with: haxelib run haxefmod check");
@@ -93,7 +95,7 @@ class BuildCheck {
         if (!sys.FileSystem.exists(versionFile)) return;
         var expectedHex = StringTools.trim(sys.io.File.getContent(versionFile));
         var sdkHex = PostBuild.parseFmodVersion(sdkHeader);
-        if (sdkHex == null || sdkHex == expectedHex) return;
+        if (sdkHex == null || PostBuild.sameVersion(sdkHex, expectedHex)) return;
 
         var sdkVer = PostBuild.hexToVersion(sdkHex);
         var expectedVer = PostBuild.hexToVersion(expectedHex);
@@ -240,6 +242,15 @@ class BuildCheck {
     // The library root is the parent of the haxefmod/ classpath this macro
     // was loaded from. Path-based, so it survives lime's space-splitting of
     // postbuild arguments and needs no haxelib subprocess.
+    /** The FMOD version the pre-built binaries expect, from the library's marker file. */
+    static function expectedFmodVersion():String {
+        var libRoot = resolveLibRoot();
+        if (libRoot == null) return "the expected FMOD version";
+        var versionFile = haxe.io.Path.join([libRoot, "fmod_expected_version"]);
+        if (!sys.FileSystem.exists(versionFile)) return "the expected FMOD version";
+        return PostBuild.hexToVersion(StringTools.trim(sys.io.File.getContent(versionFile)));
+    }
+
     static function resolveLibRoot():Null<String> {
         try {
             var here = Context.resolvePath("haxefmod/tools/BuildCheck.hx");
@@ -288,7 +299,13 @@ class BuildCheck {
         the file that pulls in haxefmod. The message then names the project
         configuration problem instead of "(unknown)". */
     static function errorPos() {
-        for (candidate in ["project.xml", "Project.xml", "application.xml"]) {
+        // Heaps and Kha projects have no lime project file, so their
+        // build file or khafile carries the error instead
+        var candidates = ["project.xml", "Project.xml", "application.xml", "khafile.js"];
+        for (file in sys.FileSystem.readDirectory(".")) {
+            if (StringTools.endsWith(file, ".hxml")) candidates.push(file);
+        }
+        for (candidate in candidates) {
             if (sys.FileSystem.exists(candidate)) {
                 return Context.makePosition({min: 0, max: 0, file: candidate});
             }

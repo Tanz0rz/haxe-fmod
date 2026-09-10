@@ -134,8 +134,8 @@ class TestTodoScanner {
 		assert("relative arg resolves against the caller cwd",
 			StringTools.replace(resolved, "\\", "/") == StringTools.replace(haxe.io.Path.join([cwd, "tests"]), "\\", "/"));
 		assert("absolute arg kept", Todos.resolveRoot([cwd], "/somewhere/else") == cwd);
-		assert("missing arg falls back to the caller cwd",
-			Todos.resolveRoot(["no-such-dir-here"], cwd) == cwd);
+		assert("missing directory resolves to null",
+			Todos.resolveRoot(["no-such-dir-here"], cwd) == null);
 		assert("no arg falls back to the caller cwd", Todos.resolveRoot([], cwd) == cwd);
 		assert("json flag is not a directory", Todos.resolveRoot(["--json"], cwd) == cwd);
 	}

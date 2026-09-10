@@ -27,7 +27,11 @@ class Todos {
 
 	public static function run(args:Array<String>, cwd:String) {
 		var json = args.indexOf("--json") >= 0;
+		for (arg in args) {
+			if (arg != "--json" && StringTools.startsWith(arg, "-")) usageError('unknown option "$arg"');
+		}
 		var root = resolveRoot(args, cwd);
+		if (root == null) usageError("no such directory: " + [for (a in args) if (a != "--json") a].join(" "));
 		var entries = scanDirectory(root);
 		if (json) {
 			Sys.println(haxe.Json.stringify(entries));
@@ -47,16 +51,24 @@ class Todos {
 	/**
 	 * Resolves the scan root from the arguments. A relative directory is
 	 * the caller's. Under haxelib run the process cwd is the library root,
-	 * so resolving against it would scan the wrong tree. It could also fall
-	 * back silently when the name does not exist there. Exposed for tests.
+	 * so resolving against it would scan the wrong tree. With no directory
+	 * argument the root is the caller's cwd. A directory argument that
+	 * does not exist resolves to null. Exposed for tests.
 	 */
-	public static function resolveRoot(args:Array<String>, cwd:String):String {
+	public static function resolveRoot(args:Array<String>, cwd:String):Null<String> {
 		for (arg in args) {
 			if (arg == "--json") continue;
 			var candidate = haxe.io.Path.isAbsolute(arg) ? arg : haxe.io.Path.join([cwd, arg]);
 			if (FileSystem.exists(candidate) && FileSystem.isDirectory(candidate)) return candidate;
+			return null;
 		}
 		return cwd;
+	}
+
+	static function usageError(message:String):Void {
+		Sys.println('haxefmod todos: $message');
+		Sys.println("Usage: haxelib run haxefmod todos [dir] [--json]");
+		Sys.exit(1);
 	}
 
 	/** Scans every .hx file under root, skipping build output and metadata directories. */

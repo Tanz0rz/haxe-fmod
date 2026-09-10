@@ -488,6 +488,11 @@ jobs:
             echo "FAIL: tag $TAG does not match haxelib.json version $VERSION"
             exit 1
           fi
+          EXT=$(grep '"version"' extension/manifest.json | sed 's/.*: *"\([^"]*\)".*/\1/')
+          if [ "$EXT" != "$VERSION" ]; then
+            echo "FAIL: extension/manifest.json version $EXT does not match haxelib.json version $VERSION"
+            exit 1
+          fi
           HEADING=$(grep -m1 "^## $VERSION" CHANGELOG.md || true)
           if [ -z "$HEADING" ]; then
             echo "FAIL: CHANGELOG.md has no '## $VERSION' section"

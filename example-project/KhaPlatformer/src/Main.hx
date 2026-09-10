@@ -59,7 +59,9 @@ class Main {
             threadAttributes: [{type: FmodThreadType.STUDIO_UPDATE, priority: FmodThreadPriority.STUDIO_UPDATE,
                 stackSize: FmodThreadStackSize.STUDIO_UPDATE}]});
         #else
-        FmodManager.Initialize();
+        // The plain game keeps audio running while unfocused, so the
+        // HighPass filter the play states apply on focus loss is audible
+        FmodManager.Initialize({muteWhenUnfocused: false});
         #end
 
         // The game's own reaction to focus. The FMOD master mute on
@@ -67,9 +69,9 @@ class Main {
         System.notifyOnApplicationState(onForeground, onForeground, onBackground, onBackground, null);
 
         switchScene(new LoadScene());
-        // Priority above FmodKhaUpdater's frame task, so the game moves
-        // things before the updater samples them
-        Scheduler.addFrameTask(update, 10);
+        // Kha runs frame tasks in ascending priority order. The game moves
+        // things at 0, and FmodKhaUpdater samples them at its higher number.
+        Scheduler.addFrameTask(update, 0);
         System.notifyOnFrames(render);
     }
 

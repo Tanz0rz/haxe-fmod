@@ -186,12 +186,15 @@ class System {
     public static function start(options:SystemOptions, callback:Dynamic->Void):Void {}
     public static function notifyOnApplicationState(foreground:Void->Void, resume:Void->Void,
         pause:Void->Void, background:Void->Void, shutdown:Void->Void):Void {}
+    public static function removeApplicationStateListeners(foreground:Void->Void, resume:Void->Void,
+        pause:Void->Void, background:Void->Void, shutdown:Void->Void):Void {}
 }
 """,
     os.path.join("kha", "Scheduler.hx"): """package kha;
 
 class Scheduler {
     public static function addFrameTask(task:Void->Void, priority:Int):Int return 0;
+    public static function removeFrameTask(id:Int):Void {}
     public static function realTime():Float return 0;
 }
 """,

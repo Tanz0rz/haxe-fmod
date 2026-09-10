@@ -51,11 +51,11 @@
 
     Heaps has no global volume control of its own, so the FMOD master bus is the volume. Wire your settings menu to `FmodManager.SetMasterVolume` and `SetMasterMute`.
 
-    On HashLink the updater rides the main thread's event loop. In the browser it is a `requestAnimationFrame` loop. A game that drives FMOD itself calls `FmodManager.Initialize()` and `FmodHeapsUpdater.init()` separately. It can also skip the updater and call `FmodManager.Update()` from its own loop.
+    On HashLink the updater rides the main thread's event loop, which Heaps pumps before `hxd.App.update`. In the browser it is a `requestAnimationFrame` loop. The positions an update sets reach FMOD at the start of the next frame. A game that wants them in the same frame calls `FmodManager.Update()` at the end of its own `update` and removes the hook with `FmodHeapsUpdater.removeHook()`. A game that drives FMOD itself calls `FmodManager.Initialize()` without the setup.
 
 === "Kha"
 
-    Call `FmodKhaSetup.init(?settings)` once from the `System.start` callback. It initializes FMOD with the given [settings](settings.md#settings). It installs `FmodKhaUpdater` as a `Scheduler` frame task, so `FmodManager.Update()` runs every frame. It mutes the master output while the application is paused or in the background, through `System.notifyOnApplicationState` (see [FmodManager](fmod-manager.md#window-focus)).
+    Call `FmodKhaSetup.init(?settings)` once from the `System.start` callback. It initializes FMOD with the given [settings](settings.md#settings). It installs `FmodKhaUpdater` as a `Scheduler` frame task at priority 100. Kha runs frame tasks in ascending priority order, so give the game's own frame tasks a lower number and `FmodManager.Update()` runs after them every frame. It mutes the master output while the application is paused or in the background, through `System.notifyOnApplicationState` (see [FmodManager](fmod-manager.md#window-focus)).
 
     ```haxe
     import haxefmod.kha.FmodKhaSetup;
@@ -65,7 +65,7 @@
 
     Kha ships no global volume control. The FMOD master bus therefore carries the game's volume. Point your settings menu at `FmodManager.SetMasterVolume` and `SetMasterMute`.
 
-    A game that prefers its own wiring calls `FmodManager.Initialize()` and `FmodKhaUpdater.init()` separately. It can also leave the updater out and call `FmodManager.Update()` from its own frame code.
+    A game that prefers its own wiring calls `FmodManager.Initialize()` and `FmodKhaUpdater.init()` separately. `FmodKhaUpdater.removeTask()` takes the frame task out again for a game that calls `FmodManager.Update()` from its own frame code.
 
 ## Bank loader
 
@@ -117,7 +117,7 @@ The emitter keeps an event instance positioned at a moving game object for as lo
     emitter.instance.setParameter("RPM", 0.4);
     ```
 
-    `FmodFlxEmitter.play(path, target)` creates and starts an instance. `new FmodFlxEmitter(instance, target)` wraps an instance you already created. The runtime update pushes the positions, so the emitter has no per-frame work of its own.
+    `FmodFlxEmitter.play(path, target)` creates and starts an instance. `new FmodFlxEmitter(instance, target)` wraps an instance you already created. The runtime update pushes the positions. Distance culling runs from the emitter's own `update`, so add the emitter to the state.
 
 === "Heaps"
 

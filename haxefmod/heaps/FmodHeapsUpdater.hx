@@ -8,11 +8,15 @@ import haxefmod.FmodManager;
 
     Heaps has no component list to hook. On HashLink the updater is a
     repeating event on the main thread's event loop. hxd.System pumps
-    that loop once per frame. haxe.MainLoop is never ticked there on
-    Haxe 4.2 and later. In the browser the updater is a
-    requestAnimationFrame loop. Every haxefmod.heaps component registers
-    here. The updater ticks each component before FmodManager.Update()
-    runs, so the positions it samples reach FMOD in the same frame.
+    that loop once per frame, before hxd.App.update. haxe.MainLoop is
+    never ticked there on Haxe 4.2 and later. In the browser the updater
+    is a requestAnimationFrame loop. Every haxefmod.heaps component
+    registers here. The updater ticks each component before
+    FmodManager.Update() runs. The positions it samples are the ones the
+    last update set, so they reach FMOD at the start of the next frame.
+    A game that needs them in the same frame calls FmodManager.Update()
+    at the end of its own update and leaves this updater out with
+    removeHook().
 **/
 class FmodHeapsUpdater {
     /** How many times the frame hook was actually installed (1 after init). **/
@@ -20,25 +24,55 @@ class FmodHeapsUpdater {
 
     static var tickers:Array<IHeapsTicker> = [];
     static var lastStamp:Float = -1;
+    static var installed:Bool = false;
+    #if js
+    static var frameRequest:Int = 0;
+    #elseif (target.threaded && haxe_ver >= 4.2)
+    static var eventHandler:sys.thread.EventLoop.EventHandler = null;
+    #else
+    static var mainLoopEvent:haxe.MainLoop.MainEvent = null;
+    #end
 
     /** Installs the frame hook once. Later calls do nothing. **/
     public static function init():Void {
-        if (installCount > 0) return;
+        if (installed) return;
+        installed = true;
         installCount++;
         #if js
-        js.Browser.window.requestAnimationFrame(browserFrame);
+        frameRequest = js.Browser.window.requestAnimationFrame(browserFrame);
         #elseif (target.threaded && haxe_ver >= 4.2)
         // Interval 0 runs the event exactly once per progress() call.
-        sys.thread.Thread.current().events.repeat(frame, 0);
+        eventHandler = sys.thread.Thread.current().events.repeat(frame, 0);
         #else
-        haxe.MainLoop.add(frame);
+        mainLoopEvent = haxe.MainLoop.add(frame);
+        #end
+    }
+
+    /** True while the frame hook is installed. **/
+    public static function isInstalled():Bool {
+        return installed;
+    }
+
+    /** Removes the frame hook. FmodManager.Update() then runs only when the game calls it. **/
+    public static function removeHook():Void {
+        if (!installed) return;
+        installed = false;
+        lastStamp = -1;
+        #if js
+        js.Browser.window.cancelAnimationFrame(frameRequest);
+        #elseif (target.threaded && haxe_ver >= 4.2)
+        sys.thread.Thread.current().events.cancel(eventHandler);
+        eventHandler = null;
+        #else
+        mainLoopEvent.stop();
+        mainLoopEvent = null;
         #end
     }
 
     #if js
     static function browserFrame(_:Float):Void {
         frame();
-        js.Browser.window.requestAnimationFrame(browserFrame);
+        frameRequest = js.Browser.window.requestAnimationFrame(browserFrame);
     }
     #end
 

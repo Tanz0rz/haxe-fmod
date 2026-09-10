@@ -28,8 +28,10 @@ class BuildHdll {
 		var fmodSdk = Sys.getEnv("FMOD_SDK");
 		if (fmodSdk == null || fmodSdk == "") {
 			error("FMOD_SDK environment variable is not set.");
+			var digits = PostBuild.packageDigits(PostBuild.expectedFmodVersion(libRoot));
 			Sys.println("  Set it to point to your FMOD Engine SDK directory:");
-			Sys.println("  export FMOD_SDK=/path/to/fmodstudioapi");
+			Sys.println('  export FMOD_SDK=/path/to/fmodstudioapi$digits');
+			Sys.println('  set FMOD_SDK=C:\\path\\to\\fmodstudioapi$digits   (Windows)');
 			Sys.exit(1);
 		}
 
