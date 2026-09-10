@@ -36,6 +36,22 @@ jobs:
         with:
           haxe-version: ${{ env.HAXE_VERSION }}
 
+      - name: Cache haxelib
+        uses: actions/cache@v5
+        with:
+          path: ~/haxelib
+          key: haxelib-unit-${{ runner.os }}-${{ env.HAXE_VERSION }}-flixel-heaps
+
+      - name: Install the engine libraries
+        # The deprecated engine utility aliases compile against their
+        # engines in the deprecation check below
+        run: |
+          haxelib setup ~/haxelib
+          haxelib install lime 8.3.0 --always --quiet
+          haxelib install openfl 9.5.0 --always --quiet
+          haxelib install flixel 6.1.2 --always --quiet
+          haxelib install heaps 2.1.0 --always --quiet
+
       - name: Run unit tests
         run: haxe tests/build.hxml
 
