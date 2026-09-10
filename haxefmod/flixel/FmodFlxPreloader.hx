@@ -35,7 +35,9 @@ class FmodFlxPreloader extends FlxPreloader {
     public var failureDisplayTime:Float = 4;
 
     var initialized:Bool = false;
+    var assetsLoaded:Bool = false;
     var provided:Bool = false;
+    var pendingLoads:Int = 0;
     var failedAt:Float = -1;
     var failureText:TextField;
 
@@ -70,6 +72,7 @@ class FmodFlxPreloader extends FlxPreloader {
     override public function onLoaded():Void {
         super.onLoaded();
         _loaded = false;
+        assetsLoaded = true;
     }
 
     /** True once lime's default library holds every bank in autoLoadBanks. **/
@@ -87,31 +90,49 @@ class FmodFlxPreloader extends FlxPreloader {
         return resolved != null ? resolved : haxefmod.runtime.FmodSettingsResolver.resolve(settings());
     }
 
-    /** Hands every bank in autoLoadBanks that lime loaded to the runtime. **/
+    /**
+        Hands every bank in autoLoadBanks to the runtime. A bank lime
+        preloaded is read at once. A bank the project marked as not
+        preloaded is fetched here, and initialization waits for it.
+    **/
     function provideBanks():Void {
         var resolved = resolvedSettings();
         for (fileName in resolved.autoLoadBanks) {
             var path = FmodRuntime.bankPath(fileName, resolved.bankFolder);
-            FmodRuntime.provideBank(fileName, Assets.getBytes(path));
+            if (lime.utils.Assets.isLocal(path, BINARY)) {
+                FmodRuntime.provideBank(fileName, Assets.getBytes(path));
+                continue;
+            }
+            pendingLoads++;
+            lime.utils.Assets.loadBytes(path).onComplete(function(bytes) {
+                FmodRuntime.provideBank(fileName, bytes);
+                pendingLoads--;
+            }).onError(function(error) {
+                trace('Error: FMOD - the preloader could not load $path: $error');
+                pendingLoads--;
+            });
         }
     }
 
     override public function update(percent:Float):Void {
         super.update(percent);
         if (!provided) {
+            // Lime hands out asset bytes after its own preload, and on
+            // native targets it registers the library a frame or two after
+            // the preloader started. A bank missing from the project assets
+            // is reported once the library is there.
+            if (!assetsLoaded) return;
             if (!banksAvailable()) {
-                // The library appears a frame or two after the preloader
-                // on native targets. A bank missing from the project assets
-                // is reported once lime reports the load complete.
-                if (_percent >= 1 && lime.utils.Assets.getLibrary("default") != null) reportMissing();
+                if (lime.utils.Assets.getLibrary("default") != null) reportMissing();
                 return;
             }
             provided = true;
             provideBanks();
-            // Native init loads the default banks inside Initialize, so the
-            // bytes go in first. HTML5 initialized in create()
-            initialize();
         }
+        if (pendingLoads > 0) return;
+        // Native init loads the default banks inside Initialize, so the
+        // bytes go in first. HTML5 initialized in create()
+        initialize();
         FmodManager.Update();
         if (FmodManager.IsInitialized()) {
             _loaded = true;

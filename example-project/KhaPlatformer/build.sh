@@ -46,6 +46,9 @@ case "$TARGET" in
     fi
     [ -n "$EXE" ] || { echo "no executable found under $B/$TARGET-build"; exit 1; }
     cp "$EXE" "$OUT/KhaPlatformer$( [ "$PLATFORM" = windows ] && echo .exe )"
+    # Kha loads the bank assets by bare name next to the executable
+    # (kinc_file_contents). khamake copied them beside the original.
+    cp ../EZPlatformer/assets/fmod/Desktop/*.bank "$OUT/"
     haxelib run haxefmod stage "$PLATFORM" cpp "$OUT"
     rm -rf "$OUT/assets"
     mkdir -p "$OUT/assets/fmod"
