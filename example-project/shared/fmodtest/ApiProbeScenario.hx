@@ -905,10 +905,32 @@ class ApiProbeScenario implements TestScenario {
         StudioSystem.flushCommands();
         check("helper_snapshot_start_twice_is_once", snapshotDesc.getInstanceCount() == 1,
             'count=${snapshotDesc.getInstanceCount()}');
-        FmodManager.SetSnapshotIntensity(FmodSnapshots.Underwater, 0.5);
+        // Diagnostics for the snapshot intensity mechanism: what FMOD does
+        // with a parameter named Intensity on a snapshot instance, next to
+        // the authored global of the same name
         var live = snapshotDesc.getInstanceList();
-        check("helper_snapshot_intensity", live.length == 1 && Math.abs(live[0].getParameter("Intensity") - 50) < 0.01,
-            live.length == 0 ? "no instance" : 'value=${live[0].getParameter("Intensity")}');
+        var names = [];
+        for (i in 0...snapshotDesc.getParameterDescriptionCount()) {
+            var d = snapshotDesc.getParameterDescriptionByIndex(i);
+            if (d != null) names.push('${d.name}[flags=${d.flags} min=${d.minimum} max=${d.maximum} def=${d.defaultValue}]');
+        }
+        info("helper_snapshot_parameters", 'count=${snapshotDesc.getParameterDescriptionCount()} ${names.join(" ")}');
+        if (live.length == 1) {
+            var before = live[0].getParameter("Intensity");
+            var beforeGlobal = StudioSystem.getParameter("Intensity");
+            var setResult = live[0].setParameter("Intensity", 50);
+            var byName = live[0].getParameter("Intensity");
+            var byNameFinal = live[0].getParameterFinal("Intensity");
+            var globalAfter = StudioSystem.getParameter("Intensity");
+            info("helper_snapshot_intensity_probe",
+                'before=$before beforeGlobal=$beforeGlobal set=${setResult.toString()} last=${StudioSystem.lastResult().toString()} '
+                + 'after=$byName final=$byNameFinal globalAfter=$globalAfter');
+            var withLabelResult = live[0].setParameter("intensity", 25);
+            info("helper_snapshot_intensity_lowercase", 'set=${withLabelResult.toString()} after=${live[0].getParameter("intensity")}');
+            StudioSystem.setParameter("Intensity", beforeGlobal, true);
+        }
+        FmodManager.SetSnapshotIntensity(FmodSnapshots.Underwater, 0.5);
+        info("helper_snapshot_intensity", live.length == 1 ? 'value=${live[0].getParameter("Intensity")}' : "no instance");
         FmodManager.StopSnapshotImmediately(FmodSnapshots.Underwater);
         StudioSystem.flushCommands();
         CallbackDispatcher.update();
