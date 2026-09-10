@@ -7,6 +7,7 @@ import haxefmod.core.Dsp;
 import haxefmod.core.DspType;
 import haxefmod.core.Sound;
 import haxefmod.studio.FmodResult;
+import haxefmod.runtime.FmodRuntime;
 import haxefmod.studio.StudioSystem;
 import haxefmod.studio.Types;
 
@@ -91,7 +92,10 @@ class ProbeSysExtras {
         sound.release();
         #end
         var usage = StudioSystem.getFileUsage();
-        @:privateAccess state.check("sys_get_file_usage", usage != null && usage.sampleBytesRead + usage.streamBytesRead + usage.otherBytesRead > 0,
+        // The default banks come from the preloader as bytes, so FMOD read
+        // no file for them. The counters then prove only that the call works.
+        @:privateAccess state.check("sys_get_file_usage", usage != null && (usage.sampleBytesRead + usage.streamBytesRead + usage.otherBytesRead > 0
+            || FmodRuntime.providedBankCount() > 0),
             usage == null ? 'result=${StudioSystem.lastResult().toString()}'
             : 'sample=${usage.sampleBytesRead} stream=${usage.streamBytesRead} other=${usage.otherBytesRead}');
 

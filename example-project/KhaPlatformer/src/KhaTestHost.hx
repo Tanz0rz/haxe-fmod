@@ -43,6 +43,10 @@ class KhaTestHost implements TestHost {
     // one control. The checks drive it and read each change back. The
     // focus-mute wiring the setup installs is checked through
     // setFocusThroughEngine instead.
+    public function setUpdaterInstalled(installed:Bool):Void {
+        if (installed) FmodKhaUpdater.init() else FmodKhaUpdater.removeHook();
+    }
+
     public function checkVolumeControls(check:String->Bool->String->Void):Void {
         FmodManager.SetMasterVolume(0.5);
         check("kha_master_volume", Math.abs(FmodManager.GetMasterVolume() - 0.5) < 0.001,

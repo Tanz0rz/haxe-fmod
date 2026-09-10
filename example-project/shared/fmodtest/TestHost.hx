@@ -30,6 +30,13 @@ interface TestHost {
      */
     function checkVolumeControls(check:String->Bool->String->Void):Void;
 
+    /**
+     * Installs or removes the engine's per-frame updater. A scenario that
+     * must observe an undrained callback queue removes it for that phase
+     * and puts it back afterwards.
+     */
+    function setUpdaterInstalled(installed:Bool):Void;
+
     /** Raises the engine's own focus lost or gained event. */
     function setFocusThroughEngine(focused:Bool):Void;
 

@@ -843,6 +843,10 @@ class PostBuild {
 			if (!FileSystem.isDirectory(fullPath)) candidates.push(fullPath);
 		}
 		if (candidates.length == 0) return null;
+		// An asset khamake copied next to the executable carries an
+		// extension, the executable itself carries none
+		var plain = [for (c in candidates) if (Path.withoutDirectory(c).indexOf(".") == -1) c];
+		if (plain.length > 0) candidates = plain;
 		if (candidates.length > 1) {
 			log('WARNING: several files in $dir look like the executable, using ${candidates[0]}');
 			for (other in candidates.slice(1)) log('  also: $other');

@@ -233,6 +233,9 @@ class CallbackScenario implements TestScenario {
 
         log('CB_TEST: Overflow phase starting instances=$OVERFLOW_INSTANCES');
         host.setStatus("CB_TEST overflow phase");
+        // The engine updater drains the queue every frame. It goes away
+        // for this phase, so the queue can fill and report the overflow.
+        host.setUpdaterInstalled(false);
         for (i in 0...OVERFLOW_INSTANCES) {
             var instance = desc.createInstance();
             var isRecoveryProbe = i == 0;
@@ -259,6 +262,7 @@ class CallbackScenario implements TestScenario {
         if (!_overflowSeen && _overflowFrames <= OVERFLOW_WAIT_FRAMES) return;
 
         check("queue_overflowed", _overflowSeen, 'frames=$_overflowFrames');
+        host.setUpdaterInstalled(true);
 
         // Recovery: quiet the flood first. The other instances keep firing
         // beat and marker callbacks. On a machine with slow frames they

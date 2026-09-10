@@ -46,6 +46,10 @@ class FlxTestHost implements TestHost {
             'installed=${FmodFlxUpdater.isInstalled()} (one postUpdate hook)');
     }
 
+    public function setUpdaterInstalled(installed:Bool):Void {
+        if (installed) FmodFlxUpdater.init() else FmodFlxUpdater.removeHook();
+    }
+
     public function checkVolumeControls(check:String->Bool->String->Void):Void {
         FlxG.sound.volume = 0.5;
         check("flx_bridge_volume", Math.abs(FmodManager.GetMasterVolume() - 0.5) < 0.001,
