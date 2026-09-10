@@ -9369,6 +9369,14 @@ const HAXEFMOD_BINDINGS = {
      "signature": "flushSampleLoading():FmodResult",
      "static": true,
      "type": "haxefmod.studio.StudioSystem"
+    },
+    {
+     "direct": false,
+     "doc": "Blocks until every pending bank and sample load has completed.",
+     "name": "WaitForBanks",
+     "signature": "WaitForBanks():Void",
+     "static": true,
+     "type": "haxefmod.FmodManager"
     }
    ],
    "html5": false
@@ -9481,6 +9489,14 @@ const HAXEFMOD_BINDINGS = {
      "signature": "getBus(path:String):Bus",
      "static": true,
      "type": "haxefmod.studio.StudioSystem"
+    },
+    {
+     "direct": true,
+     "doc": "Returns the bus at a path, for everything the bus calls above do not cover: the final volume after VCAs and snapshots, the channel group under the bus, profiling.",
+     "name": "GetBus",
+     "signature": "GetBus(busPath:String):Bus",
+     "static": true,
+     "type": "haxefmod.FmodManager"
     },
     {
      "direct": false,
@@ -9625,6 +9641,14 @@ const HAXEFMOD_BINDINGS = {
      "signature": "getEvent(path:String):EventDescription",
      "static": true,
      "type": "haxefmod.studio.StudioSystem"
+    },
+    {
+     "direct": false,
+     "doc": "Returns the event description at a path, for the authored facts about an event: length, distances, parameters and their labels, user properties, sample data preloading.",
+     "name": "GetEventDescription",
+     "signature": "GetEventDescription(eventPath:String):EventDescription",
+     "static": true,
+     "type": "haxefmod.FmodManager"
     },
     {
      "direct": false,
@@ -9968,6 +9992,14 @@ const HAXEFMOD_BINDINGS = {
      "signature": "getVCA(path:String):Vca",
      "static": true,
      "type": "haxefmod.studio.StudioSystem"
+    },
+    {
+     "direct": true,
+     "doc": "Returns the VCA at a path.",
+     "name": "GetVCA",
+     "signature": "GetVCA(vcaPath:String):Vca",
+     "static": true,
+     "type": "haxefmod.FmodManager"
     },
     {
      "direct": false,

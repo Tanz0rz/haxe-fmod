@@ -494,18 +494,18 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 |---|---|---|
 | `FMOD_Studio_System_Create` | `FmodManager.Initialize`<br>`FmodRuntime.init` |  |
 | `FMOD_Studio_System_FlushCommands` | `StudioSystem.flushCommands` |  |
-| `FMOD_Studio_System_FlushSampleLoading` | `StudioSystem.flushSampleLoading` |  |
+| `FMOD_Studio_System_FlushSampleLoading` | `StudioSystem.flushSampleLoading`<br>`FmodManager.WaitForBanks` |  |
 | `FMOD_Studio_System_GetAdvancedSettings` | `StudioSystem.getStudioAdvancedSettings` | compile error |
 | `FMOD_Studio_System_GetBank` | `StudioSystem.getBank` |  |
 | `FMOD_Studio_System_GetBankByID` | `StudioSystem.getBankByID` |  |
 | `FMOD_Studio_System_GetBankCount` | `StudioSystem.getBankCount` |  |
 | `FMOD_Studio_System_GetBankList` | `StudioSystem.getBankList` |  |
 | `FMOD_Studio_System_GetBufferUsage` | `StudioSystem.getBufferUsage` |  |
-| `FMOD_Studio_System_GetBus` | `StudioSystem.getBus`<br>`FmodManager.GetBusVolume`<br>`FmodManager.IsBusMuted`<br>`FmodManager.IsBusPaused`<br>`FmodManager.SetBusMute`<br>`FmodManager.SetBusPaused`<br>`FmodManager.SetBusVolume`<br>`FmodManager.StopAllSounds`<br>`FmodRuntime.muteAll`<br>`FmodRuntime.pauseAll` |  |
+| `FMOD_Studio_System_GetBus` | `StudioSystem.getBus`<br>`FmodManager.GetBus`<br>`FmodManager.GetBusVolume`<br>`FmodManager.IsBusMuted`<br>`FmodManager.IsBusPaused`<br>`FmodManager.SetBusMute`<br>`FmodManager.SetBusPaused`<br>`FmodManager.SetBusVolume`<br>`FmodManager.StopAllSounds`<br>`FmodRuntime.muteAll`<br>`FmodRuntime.pauseAll` |  |
 | `FMOD_Studio_System_GetBusByID` | `StudioSystem.getBusByID` |  |
 | `FMOD_Studio_System_GetCPUUsage` | `StudioSystem.getCpuUsage` |  |
 | `FMOD_Studio_System_GetCoreSystem` | `FmodManager.Initialize`<br>`FmodRuntime.init` |  |
-| `FMOD_Studio_System_GetEvent` | `StudioSystem.getEvent`<br>`FmodManager.IsSnapshotActive`<br>`FmodManager.StartSnapshot`<br>`FmodManager.StopSnapshot`<br>`FmodManager.StopSnapshotImmediately`<br>`FmodRuntime.createInstance` |  |
+| `FMOD_Studio_System_GetEvent` | `StudioSystem.getEvent`<br>`FmodManager.GetEventDescription`<br>`FmodManager.IsSnapshotActive`<br>`FmodManager.StartSnapshot`<br>`FmodManager.StopSnapshot`<br>`FmodManager.StopSnapshotImmediately`<br>`FmodRuntime.createInstance` |  |
 | `FMOD_Studio_System_GetEventByID` | `StudioSystem.getEventByID` |  |
 | `FMOD_Studio_System_GetListenerAttributes` | `StudioSystem.getListenerAttributes`<br>`EmitterTracker.update` |  |
 | `FMOD_Studio_System_GetListenerWeight` | `StudioSystem.getListenerWeight` |  |
@@ -519,7 +519,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_Studio_System_GetParameterLabelByName` | `StudioSystem.getParameterLabelByName`<br>`StudioSystem.getParameterLabel` |  |
 | `FMOD_Studio_System_GetSoundInfo` | `StudioSystem.getSoundInfo` |  |
 | `FMOD_Studio_System_GetUserData` | `StudioSystem.getUserData` |  |
-| `FMOD_Studio_System_GetVCA` | `StudioSystem.getVCA`<br>`FmodManager.GetVCAVolume`<br>`FmodManager.SetVCAVolume` |  |
+| `FMOD_Studio_System_GetVCA` | `StudioSystem.getVCA`<br>`FmodManager.GetVCA`<br>`FmodManager.GetVCAVolume`<br>`FmodManager.SetVCAVolume` |  |
 | `FMOD_Studio_System_GetVCAByID` | `StudioSystem.getVCAByID` |  |
 | `FMOD_Studio_System_Initialize` | `FmodManager.Initialize`<br>`FmodRuntime.init` |  |
 | `FMOD_Studio_System_LoadBankFile` | `StudioSystem.loadBankFile` |  |

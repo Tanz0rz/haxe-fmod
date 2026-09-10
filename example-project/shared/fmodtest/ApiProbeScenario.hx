@@ -875,9 +875,35 @@ class ApiProbeScenario implements TestScenario {
         if (extrasRefs == 0) check("helper_bank_unloaded", !FmodManager.IsBankLoaded("Extras.bank"), "");
         FmodManager.UnloadBank("NoSuch.bank");
         check("helper_bank_unload_unknown_is_noop", true, "");
+        FmodManager.WaitForBanks();
+        #if !js
+        check("helper_no_bank_loading_after_wait", !FmodManager.IsAnyBankLoading(), "");
+        #else
+        info("helper_no_bank_loading_after_wait", 'loading=${FmodManager.IsAnyBankLoading()}');
+        #end
         StudioSystem.flushCommands();
         CallbackDispatcher.update();
         var baseline = StudioSystem.liveHandleCount();
+
+        // FMOD's own objects through the helper: the same cached handles
+        // the parity layer serves, so nothing new is minted
+        check("helper_get_bus", (FmodManager.GetBus(FmodBuses.Reverb) : Int) == (StudioSystem.getBus(FmodBuses.Reverb) : Int)
+            && !FmodManager.GetBus(FmodBuses.Reverb).isNull(), "");
+        check("helper_get_vca", (FmodManager.GetVCA(FmodVCAs.Main) : Int) == (StudioSystem.getVCA(FmodVCAs.Main) : Int)
+            && FmodManager.GetVCA(FmodVCAs.Main).getPath() == FmodVCAs.Main, "");
+        check("helper_get_event_description", FmodManager.GetEventDescription(FmodEvents.SFXJump).getPath() == FmodEvents.SFXJump, "");
+        check("helper_get_bus_missing_is_null", FmodManager.GetBus("bus:/Nope").isNull(), "");
+
+        // A sound created without starting: parameters land before the first frame
+        var created = FmodManager.CreateSound(FmodEvents.SFXJump);
+        check("helper_create_sound_not_started", !created.isNull() && !created.isPlaying(), "");
+        created.setParameterWithLabel("Surface", "Stone");
+        check("helper_create_sound_start", created.start().isOk() && Math.abs(created.getParameter("Surface") - 1) < 0.001,
+            'value=${created.getParameter("Surface")}');
+        created.stopImmediately();
+        created.release();
+        StudioSystem.flushCommands();
+        CallbackDispatcher.update();
 
         var intensity = StudioSystem.getParameterDescriptionByName("Intensity");
         check("helper_global_param_authored", intensity != null, "");

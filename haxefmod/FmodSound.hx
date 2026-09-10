@@ -39,6 +39,11 @@ abstract FmodSound(EventInstance) from EventInstance to EventInstance {
         return this.getPlaybackState() != FmodPlaybackState.STOPPED;
     }
 
+    /** Starts a sound from FmodManager.CreateSound. A sound from PlaySound is already started, and starting it again restarts it from the beginning. */
+    public inline function start():FmodResult {
+        return this.start();
+    }
+
     /** Stops the sound with the fadeout authored in FMOD Studio. */
     public inline function stop():FmodResult {
         return this.stop(ALLOWFADEOUT);

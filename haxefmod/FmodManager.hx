@@ -2,19 +2,23 @@ package haxefmod;
 
 import haxefmod.core.Sound;
 import haxefmod.FmodSound;
+import haxefmod.studio.Bus;
 import haxefmod.studio.CallbackDispatcher;
+import haxefmod.studio.EventDescription;
 import haxefmod.runtime.FmodRuntime;
 import haxefmod.runtime.FmodSettings;
 import haxefmod.studio.Callbacks;
 import haxefmod.studio.EventInstance;
 import haxefmod.studio.StudioSystem;
 import haxefmod.studio.Types;
+import haxefmod.studio.Vca;
 import haxefmod.studio.native.NativeStudio;
 
 /**
  * The helper class for FMOD. It owns six areas: lifecycle (init, update, and banks), one background song slot, sound effects, the mixer (buses, VCAs, and snapshots), global parameters, and game policy.
- * Every call takes an FMOD Studio path or name and holds no handle. The song slot is the one piece of state, and PlaySound returns the one handle.
- * World space, focus reporting, and everything by handle live in the public layers underneath: haxefmod.runtime.FmodRuntime and haxefmod.studio.
+ * Every call takes an FMOD Studio path or name and holds no handle. The song slot is the one piece of state.
+ * PlaySound and CreateSound return an FmodSound, the one handle with a lifetime. GetBus, GetVCA, and GetEventDescription return FMOD's own objects, which need no release, for everything beyond the path calls.
+ * World space and focus reporting live in the public layers underneath: haxefmod.runtime.FmodRuntime and haxefmod.studio.
  *
  * Call FmodManager.Update() every frame, or let the engine setup call do it.
  */
@@ -103,6 +107,21 @@ class FmodManager {
     public static function IsBankLoaded(bankName:String):Bool {
         ensureInitialized();
         return FmodRuntime.banks.isLoaded(FmodRuntime.bankPath(bankName));
+    }
+
+    /** Returns true while any bank loaded through this class or FmodRuntime is still loading. */
+    public static function IsAnyBankLoading():Bool {
+        ensureInitialized();
+        return FmodRuntime.banks.anyLoading();
+    }
+
+    /**
+     * Blocks until every pending bank and sample load has completed.
+     * HTML5 cannot block, so the call returns at once there. Poll IsAnyBankLoading or IsBankLoaded from Update instead.
+     */
+    public static function WaitForBanks():Void {
+        ensureInitialized();
+        StudioSystem.flushSampleLoading();
     }
 
     //// Window focus
@@ -243,6 +262,32 @@ class FmodManager {
     public static function GetVCAVolume(vcaPath:String):Float {
         ensureInitialized();
         return StudioSystem.getVCA(vcaPath).getVolume();
+    }
+
+    //// FMOD objects
+
+    /**
+     * Returns the bus at a path, for everything the bus calls above do not cover: the final volume after VCAs and snapshots, the channel group under the bus, profiling.
+     * The object belongs to FMOD and needs no release. A bad path returns Bus.NULL, and every call on it is a safe no-op.
+     */
+    public static function GetBus(busPath:String):Bus {
+        ensureInitialized();
+        return StudioSystem.getBus(busPath);
+    }
+
+    /** Returns the VCA at a path. The object belongs to FMOD and needs no release. A bad path returns Vca.NULL. */
+    public static function GetVCA(vcaPath:String):Vca {
+        ensureInitialized();
+        return StudioSystem.getVCA(vcaPath);
+    }
+
+    /**
+     * Returns the event description at a path, for the authored facts about an event: length, distances, parameters and their labels, user properties, sample data preloading.
+     * The object belongs to FMOD and needs no release. A bad path returns EventDescription.NULL.
+     */
+    public static function GetEventDescription(eventPath:String):EventDescription {
+        ensureInitialized();
+        return StudioSystem.getEvent(eventPath);
     }
 
     //// Snapshots
@@ -561,6 +606,20 @@ class FmodManager {
      * Plays a sound and returns a typed handle for parameters, callbacks, stop, and pause. Call release() when you are done with the handle.
      * A missing event logs a warning and returns FmodSound.NULL. Every call on that handle is a safe no-op.
      */
+    /**
+     * Creates a sound without starting it, so parameters and a position can be set before the first frame plays. Call start() on the handle when ready.
+     * Everything else matches PlaySound, including FmodSound.NULL for a path FMOD cannot create.
+     */
+    public static function CreateSound(soundPath:String):FmodSound {
+        ensureInitialized();
+        var instance = FmodRuntime.createInstance(soundPath);
+        if (instance.isNull()) {
+            log('CreateSound: could not create $soundPath (${StudioSystem.lastResult().toString()})');
+            return FmodSound.NULL;
+        }
+        return instance;
+    }
+
     public static function PlaySound(soundPath:String):FmodSound {
         ensureInitialized();
         log('PlaySound $soundPath');

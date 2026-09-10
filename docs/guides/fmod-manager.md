@@ -1,6 +1,6 @@
 # FmodManager
 
-`haxefmod.FmodManager` is the helper class most games talk to. It owns six areas: lifecycle with banks, one background song slot, sound effects, the mixer (buses, VCAs, and snapshots), global parameters, and game policy. Every call takes an FMOD Studio path or name and holds no handle. The song slot is its one piece of state, and `PlaySound` returns its one handle. It is built entirely on the public layers underneath. Anything it does not cover is reachable through `haxefmod.runtime.FmodRuntime` and `haxefmod.studio.*`, with no hidden state. See [Beyond the helper class](#beyond-the-helper-class).
+`haxefmod.FmodManager` is the helper class most games talk to. It owns six areas: lifecycle with banks, one background song slot, sound effects, the mixer (buses, VCAs, and snapshots), global parameters, and game policy. Every call takes an FMOD Studio path or name and holds no handle. The song slot is its one piece of state. `PlaySound` and `CreateSound` return an `FmodSound`, the one handle with a lifetime, and `GetBus`, `GetVCA`, and `GetEventDescription` return FMOD's own objects for anything beyond the path calls. It is built entirely on the public layers underneath. Anything it does not cover is reachable through `haxefmod.runtime.FmodRuntime` and `haxefmod.studio.*`, with no hidden state. See [Beyond the helper class](#beyond-the-helper-class).
 
 Every call behaves the same on HaxeFlixel, Heaps, and Kha. The [engine setup calls](components.md#setup) only keep `Update()` running and wire focus and volume.
 
@@ -28,7 +28,7 @@ FmodManager.LoadBank("Level1.bank");
 FmodManager.UnloadBank("Level1.bank");
 ```
 
-Loads are counted. A bank loaded twice unloads on the second `UnloadBank`, so a level that loads a bank another level still holds does not pull it away. Native targets load synchronously. HTML5 loads asynchronously, so poll `IsBankLoaded` before the first event from the bank. The [engine components](components.md) load a bank for a state's lifetime without any of these calls, and [Bank loading](bank-loading.md) covers the registry underneath.
+Loads are counted. A bank loaded twice unloads on the second `UnloadBank`, so a level that loads a bank another level still holds does not pull it away. Native targets load synchronously. HTML5 loads asynchronously, so poll `IsBankLoaded` before the first event from the bank. `IsAnyBankLoading()` reports whether any bank is still loading, and `WaitForBanks()` blocks until every pending load completes on native targets. HTML5 cannot block, so it returns at once there. The [engine components](components.md) load a bank for a state's lifetime without any of these calls, and [Bank loading](bank-loading.md) covers the registry underneath.
 
 ## Music
 
@@ -76,7 +76,7 @@ FmodManager.PlaySoundOneShot(FmodEvents.SFXCoin);
 FmodManager.PlaySoundOneShotAt(FmodEvents.SFXCoin, 320, 240);
 ```
 
-`PlaySound(path)` returns an `FmodSound` for sounds you control over time.
+`PlaySound(path)` returns an `FmodSound` for sounds you control over time. `CreateSound(path)` returns the same handle without starting it, so parameters and a position land before the first frame plays, and `start()` plays it.
 
 ```haxe
 var engine = FmodManager.PlaySound(FmodEvents.SFXEngine);
@@ -91,12 +91,13 @@ engine.stop();
 engine.release();
 ```
 
-`FmodSound` wraps an `EventInstance` handle with the everyday operations: `stop` (with the authored fadeout), `stopImmediately`, `pause`, `unpause`, `getVolume` and `setVolume`, `getPitch` and `setPitch`, `getParameter`, `setParameter`, and `setParameterWithLabel`, `onEvent`, `isPlaying`, and `release`. Call `release()` when you are done with the handle. The handle becomes invalid immediately. The sound plays to completion unless you stopped it first.
-
 ```haxe
-var footstep = FmodManager.PlaySound(FmodEvents.SFXFootstep);
+var footstep = FmodManager.CreateSound(FmodEvents.SFXFootstep);
 footstep.setParameterWithLabel("Surface", "Grass");
+footstep.start();
 ```
+
+`FmodSound` wraps an `EventInstance` handle with the everyday operations: `start`, `stop` (with the authored fadeout), `stopImmediately`, `pause`, `unpause`, `getVolume` and `setVolume`, `getPitch` and `setPitch`, `getParameter`, `setParameter`, and `setParameterWithLabel`, `onEvent`, `isPlaying`, and `release`. Call `release()` when you are done with the handle. The handle becomes invalid immediately. The sound plays to completion unless you stopped it first.
 
 The full event instance API is one cast away. `FmodSound` is an abstract over `EventInstance`.
 
@@ -190,4 +191,9 @@ FmodManager.Todo("door creak when the cellar opens");
 | Every FMOD Studio object by handle: events, buses, VCAs, snapshots, banks, command replay | `haxefmod.studio` | [Handles and results](handles-and-results.md), [Callbacks](callbacks.md), the Haxe tab on fmod.com |
 | The FMOD Core API: sounds, channels, groups, DSP, geometry | `haxefmod.core` | [Core API helpers](core-api.md) |
 
-`PlaySound` returns the only handle the helper class hands out, and the cast above reaches the full `EventInstance` API from it.
+`PlaySound` and `CreateSound` return the one handle with a lifetime, and the cast above reaches the full `EventInstance` API from it. For FMOD's other objects the helper class hands out the object itself: `GetBus(path)`, `GetVCA(path)`, and `GetEventDescription(path)` return the same cached handles `haxefmod.studio` serves. They belong to FMOD and need no release, and a bad path returns a null handle whose every call is a safe no-op. Use them for what the path calls do not cover: a bus's final volume after VCAs and snapshots, the channel group under a bus for effects, an event's length and distances, its parameters and labels, or preloading its sample data.
+
+```haxe
+var shown = FmodManager.GetBus(FmodBuses.Music).getFinalVolume();
+FmodManager.GetEventDescription(FmodEvents.MusicMainLevel).loadSampleData();
+```
