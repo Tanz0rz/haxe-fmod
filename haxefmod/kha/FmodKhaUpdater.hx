@@ -8,8 +8,9 @@ import kha.Scheduler;
     (FmodKhaSetup.init() does this for you).
 
     The updater is a Scheduler frame task. Every haxefmod.kha component
-    registers here and is ticked before FmodManager.Update() runs, so the
-    positions it samples reach FMOD in the same frame.
+    registers here. The updater ticks each component before
+    FmodManager.Update() runs, so the positions it samples reach FMOD in
+    the same frame.
 **/
 class FmodKhaUpdater {
     /** How many times the frame task was actually installed (1 after init). **/
@@ -18,11 +19,12 @@ class FmodKhaUpdater {
     static var tickers:Array<IKhaTicker> = [];
     static var lastStamp:Float = -1;
 
+    /** Installs the frame task once. Later calls do nothing. **/
     public static function init():Void {
         if (installCount > 0) return;
         installCount++;
         // Priority 0 runs after the game's own frame tasks at higher
-        // priorities, so positions set this frame are what FMOD sees
+        // priorities. Positions set this frame are then what FMOD sees.
         Scheduler.addFrameTask(frame, 0);
     }
 
@@ -32,6 +34,7 @@ class FmodKhaUpdater {
         if (tickers.indexOf(ticker) == -1) tickers.push(ticker);
     }
 
+    /** Unregisters a component. The updater stops ticking it. **/
     public static function remove(ticker:IKhaTicker):Void {
         tickers.remove(ticker);
     }
@@ -45,7 +48,7 @@ class FmodKhaUpdater {
         var now = Scheduler.realTime();
         var dt = lastStamp < 0 ? 0.0 : now - lastStamp;
         lastStamp = now;
-        // Copy first: a ticker may remove itself (a loader that just fired)
+        // Copy first: a ticker can remove itself (a loader that just fired)
         for (ticker in tickers.copy()) {
             ticker.tick(dt);
         }

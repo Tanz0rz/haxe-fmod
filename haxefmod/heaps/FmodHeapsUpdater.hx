@@ -7,12 +7,12 @@ import haxefmod.FmodManager;
     (FmodHeapsSetup.init() does this for you).
 
     Heaps has no component list to hook. On HashLink the updater is a
-    repeating event on the main thread's event loop, which hxd.System
-    pumps once per frame (haxe.MainLoop is never ticked there on Haxe
-    4.2+). In the browser it is a requestAnimationFrame loop. Every
-    haxefmod.heaps component registers here and is ticked before
-    FmodManager.Update() runs, so the positions it samples reach FMOD in
-    the same frame.
+    repeating event on the main thread's event loop. hxd.System pumps
+    that loop once per frame. haxe.MainLoop is never ticked there on
+    Haxe 4.2 and later. In the browser the updater is a
+    requestAnimationFrame loop. Every haxefmod.heaps component registers
+    here. The updater ticks each component before FmodManager.Update()
+    runs, so the positions it samples reach FMOD in the same frame.
 **/
 class FmodHeapsUpdater {
     /** How many times the frame hook was actually installed (1 after init). **/
@@ -21,6 +21,7 @@ class FmodHeapsUpdater {
     static var tickers:Array<IHeapsTicker> = [];
     static var lastStamp:Float = -1;
 
+    /** Installs the frame hook once. Later calls do nothing. **/
     public static function init():Void {
         if (installCount > 0) return;
         installCount++;
@@ -47,6 +48,7 @@ class FmodHeapsUpdater {
         if (tickers.indexOf(ticker) == -1) tickers.push(ticker);
     }
 
+    /** Unregisters a component. The updater stops ticking it. **/
     public static function remove(ticker:IHeapsTicker):Void {
         tickers.remove(ticker);
     }
@@ -60,7 +62,7 @@ class FmodHeapsUpdater {
         var now = haxe.Timer.stamp();
         var dt = lastStamp < 0 ? 0.0 : now - lastStamp;
         lastStamp = now;
-        // Copy first: a ticker may remove itself (a loader that just fired)
+        // Copy first: a ticker can remove itself (a loader that just fired)
         for (ticker in tickers.copy()) {
             ticker.tick(dt);
         }

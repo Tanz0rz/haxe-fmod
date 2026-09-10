@@ -15,12 +15,15 @@ import haxefmod.studio.native.Scratch;
  * FMOD_ERR_INVALID_HANDLE).
  */
 abstract EventInstance(Int) from Int to Int {
+    /** The null handle. Every call on it is a safe no-op. */
     public static inline var NULL:EventInstance = cast 0;
 
+    /** True if this is the invalid handle (creation failed). */
     public inline function isNull():Bool {
         return this == 0;
     }
 
+    /** True if the handle resolves to a live FMOD event instance. */
     public inline function isValid():Bool {
         return this != 0 && NativeStudio.evi_is_valid(this);
     }
@@ -30,10 +33,12 @@ abstract EventInstance(Int) from Int to Int {
         return NativeStudio.evi_get_description(this);
     }
 
+    /** Starts playback. On an instance that is already playing it restarts the event. */
     public inline function start():FmodResult {
         return NativeStudio.evi_start(this);
     }
 
+    /** Stops playback. ALLOWFADEOUT lets AHDSR releases and effect tails finish, IMMEDIATE stops at once. */
     public inline function stop(stopMode:FmodStopMode = ALLOWFADEOUT):FmodResult {
         return NativeStudio.evi_stop(this, stopMode);
     }
@@ -54,9 +59,9 @@ abstract EventInstance(Int) from Int to Int {
 
     /**
      * Releases the instance. FMOD destroys it once it stops. The handle
-     * becomes invalid immediately and any registered callback is removed
-     * (the html5 backend cannot deliver events after release, so cleanup
-     * happens here on every target for consistent behavior).
+     * becomes invalid immediately and any registered callback is removed.
+     * The HTML5 backend cannot deliver events after release, so the
+     * cleanup happens here on every target for consistent behavior.
      */
     public inline function release():FmodResult {
         CallbackDispatcher.remove(this);
@@ -64,18 +69,22 @@ abstract EventInstance(Int) from Int to Int {
         return NativeStudio.evi_release(this);
     }
 
+    /** The playback state (see FmodPlaybackState). */
     public inline function getPlaybackState():FmodPlaybackState {
         return NativeStudio.evi_get_playback_state(this);
     }
 
+    /** True if the instance is paused. */
     public inline function getPaused():Bool {
         return NativeStudio.evi_get_paused(this);
     }
 
+    /** Pauses or resumes the instance. */
     public inline function setPaused(paused:Bool):FmodResult {
         return NativeStudio.evi_set_paused(this, paused);
     }
 
+    /** The volume as set by the API (linear: 0.0 = silent, 1.0 = full). */
     public inline function getVolume():Float {
         return NativeStudio.evi_get_volume(this);
     }
@@ -85,18 +94,22 @@ abstract EventInstance(Int) from Int to Int {
         return NativeStudio.evi_get_volume_final(this);
     }
 
+    /** Sets the volume as a linear level (0.0 = silent, 1.0 = full). */
     public inline function setVolume(volume:Float):FmodResult {
         return NativeStudio.evi_set_volume(this, volume);
     }
 
+    /** The pitch multiplier as set by the API (1.0 = unchanged). */
     public inline function getPitch():Float {
         return NativeStudio.evi_get_pitch(this);
     }
 
+    /** The final combined pitch multiplier (set pitch x event/snapshot automation). */
     public inline function getFinalPitch():Float {
         return NativeStudio.evi_get_pitch_final(this);
     }
 
+    /** Sets the pitch multiplier applied to the event's pitch (1.0 = unchanged). */
     public inline function setPitch(pitch:Float):FmodResult {
         return NativeStudio.evi_set_pitch(this, pitch);
     }
@@ -106,11 +119,12 @@ abstract EventInstance(Int) from Int to Int {
         return NativeStudio.evi_get_timeline_position(this);
     }
 
+    /** Moves the timeline cursor to a position in milliseconds. */
     public inline function setTimelinePosition(positionMs:Int):FmodResult {
         return NativeStudio.evi_set_timeline_position(this, positionMs);
     }
 
-    /** True if the instance has been virtualized (inaudible, not mixed). */
+    /** True if the instance has been virtualized. A virtual instance is inaudible and stays out of the mix. */
     public inline function isVirtual():Bool {
         return NativeStudio.evi_is_virtual(this);
     }
@@ -134,6 +148,7 @@ abstract EventInstance(Int) from Int to Int {
         };
     }
 
+    /** Sets the instance's 3D position, velocity, forward, and up vectors. */
     public inline function set3DAttributes(attributes:Fmod3DAttributes):FmodResult {
         return NativeStudio.evi_set_3d_attributes(this,
             attributes.position.x, attributes.position.y, attributes.position.z,
@@ -152,6 +167,7 @@ abstract EventInstance(Int) from Int to Int {
         return NativeStudio.evi_get_listener_mask(this);
     }
 
+    /** Sets the bitmask of listeners this instance is audible to. */
     public inline function setListenerMask(mask:Int):FmodResult {
         return NativeStudio.evi_set_listener_mask(this, mask);
     }
@@ -161,6 +177,7 @@ abstract EventInstance(Int) from Int to Int {
         return NativeStudio.evi_get_property(this, property);
     }
 
+    /** Overrides an instance property (see FmodEventProperty). */
     public inline function setProperty(property:FmodEventProperty, value:Float):FmodResult {
         return NativeStudio.evi_set_property(this, property, value);
     }
@@ -170,10 +187,12 @@ abstract EventInstance(Int) from Int to Int {
         return NativeStudio.evi_get_reverb_level(this, index);
     }
 
+    /** Sets the core reverb send level for reverb instance 0-3. */
     public inline function setReverbLevel(index:Int, level:Float):FmodResult {
         return NativeStudio.evi_set_reverb_level(this, index, level);
     }
 
+    /** A parameter's value as set by the API, by name. */
     public inline function getParameter(name:String):Float {
         return NativeStudio.evi_get_param_by_name(this, name);
     }
@@ -183,6 +202,7 @@ abstract EventInstance(Int) from Int to Int {
         return NativeStudio.evi_get_param_by_name_final(this, name);
     }
 
+    /** Sets a parameter by name. ignoreSeekSpeed skips the parameter's seek speed and applies the value at once. */
     public inline function setParameter(name:String, value:Float, ignoreSeekSpeed:Bool = false):FmodResult {
         return NativeStudio.evi_set_param_by_name(this, name, value, ignoreSeekSpeed);
     }
@@ -192,18 +212,22 @@ abstract EventInstance(Int) from Int to Int {
         return NativeStudio.evi_set_param_by_name_with_label(this, name, label, ignoreSeekSpeed);
     }
 
+    /** A parameter's value as set by the API, by ID. */
     public inline function getParameterByID(id:FmodParameterId):Float {
         return NativeStudio.evi_get_param_by_id(this, id.data1, id.data2);
     }
 
+    /** The final value of a parameter after automation and seek speed, by ID. */
     public inline function getParameterByIDFinal(id:FmodParameterId):Float {
         return NativeStudio.evi_get_param_by_id_final(this, id.data1, id.data2);
     }
 
+    /** Sets a parameter by ID. ignoreSeekSpeed skips the parameter's seek speed and applies the value at once. */
     public inline function setParameterByID(id:FmodParameterId, value:Float, ignoreSeekSpeed:Bool = false):FmodResult {
         return NativeStudio.evi_set_param_by_id(this, id.data1, id.data2, value, ignoreSeekSpeed);
     }
 
+    /** Sets a labeled parameter by ID and label text. ignoreSeekSpeed skips the seek speed and applies the value at once. */
     public inline function setParameterByIDWithLabel(id:FmodParameterId, label:String, ignoreSeekSpeed:Bool = false):FmodResult {
         return NativeStudio.evi_set_param_by_id_with_label(this, id.data1, id.data2, label, ignoreSeekSpeed);
     }
@@ -251,14 +275,15 @@ abstract EventInstance(Int) from Int to Int {
     #if (macro || (js && !haxefmod_html5_allow_unsupported))
     /**
      * Assigns the audio-table key (or file path fallback) this instance's
-     * programmer instrument should play (unsupported in HTML5). The native
+     * programmer instrument plays (unsupported in HTML5). The native
      * shim resolves it on the FMOD thread when the instrument triggers.
      * Assign BEFORE start().
      *
-     * Returns FMOD_ERR_UNSUPPORTED on html5. FMOD's JS runtime cannot
-     * complete the programmer-sound flow (assigning the created sound
-     * stops the event and ends its callback delivery, reproduced with
-     * FMOD's own example pattern in tests/js/fmod_ps_glue_repro.html).
+     * Returns FMOD_ERR_UNSUPPORTED on HTML5. FMOD's JS runtime cannot
+     * complete the programmer-sound flow. Assigning the created sound
+     * stops the event and ends its callback delivery. The page
+     * tests/js/fmod_ps_glue_repro.html reproduces this with FMOD's own
+     * example pattern.
      */
     public macro function assignProgrammerSound(self:haxe.macro.Expr, key:haxe.macro.Expr):haxe.macro.Expr {
         return haxefmod.studio.native.Html5Gate.block("EventInstance.assignProgrammerSound", "programmer sounds fail inside FMOD's JavaScript runtime");
@@ -266,14 +291,15 @@ abstract EventInstance(Int) from Int to Int {
     #else
     /**
      * Assigns the audio-table key (or file path fallback) this instance's
-     * programmer instrument should play (unsupported in HTML5). The native
+     * programmer instrument plays (unsupported in HTML5). The native
      * shim resolves it on the FMOD thread when the instrument triggers.
      * Assign BEFORE start().
      *
-     * Returns FMOD_ERR_UNSUPPORTED on html5. FMOD's JS runtime cannot
-     * complete the programmer-sound flow (assigning the created sound
-     * stops the event and ends its callback delivery, reproduced with
-     * FMOD's own example pattern in tests/js/fmod_ps_glue_repro.html).
+     * Returns FMOD_ERR_UNSUPPORTED on HTML5. FMOD's JS runtime cannot
+     * complete the programmer-sound flow. Assigning the created sound
+     * stops the event and ends its callback delivery. The page
+     * tests/js/fmod_ps_glue_repro.html reproduces this with FMOD's own
+     * example pattern.
      */
     public inline function assignProgrammerSound(key:String):FmodResult {
         if (key == null) return FmodResult.FMOD_ERR_INVALID_PARAM;
@@ -284,12 +310,13 @@ abstract EventInstance(Int) from Int to Int {
     #if (macro || (js && !haxefmod_html5_allow_unsupported))
     /**
      * Hands a sound the game owns to this instance's programmer
-     * instrument (unsupported in HTML5). subsoundIndex picks a subsound of
-     * an FSB or other container, -1 plays the sound itself. The instrument
-     * never releases it, the game does once the instrument is finished
-     * (ProgrammerSoundDestroyed in setCallback, or after the event stops).
-     * A sound still loading (NONBLOCKING) is fine, FMOD waits for it.
-     * Assign BEFORE start(). Wins over a key or name assignment.
+     * instrument (unsupported in HTML5). The subsoundIndex argument picks
+     * a subsound of an FSB or other container, -1 plays the sound itself.
+     * The instrument never releases the sound. The game releases it once
+     * the instrument is finished (ProgrammerSoundDestroyed in setCallback,
+     * or after the event stops). A sound still loading (NONBLOCKING) is
+     * fine, FMOD waits for it. Assign BEFORE start(). Wins over a key or
+     * name assignment.
      */
     public macro function assignProgrammerSoundFrom(self:haxe.macro.Expr, sound:haxe.macro.Expr, ?subsoundIndex:haxe.macro.Expr):haxe.macro.Expr {
         return haxefmod.studio.native.Html5Gate.block("EventInstance.assignProgrammerSoundFrom", "programmer sounds fail inside FMOD's JavaScript runtime");
@@ -297,12 +324,13 @@ abstract EventInstance(Int) from Int to Int {
     #else
     /**
      * Hands a sound the game owns to this instance's programmer
-     * instrument (unsupported in HTML5). subsoundIndex picks a subsound of
-     * an FSB or other container, -1 plays the sound itself. The instrument
-     * never releases it, the game does once the instrument is finished
-     * (ProgrammerSoundDestroyed in setCallback, or after the event stops).
-     * A sound still loading (NONBLOCKING) is fine, FMOD waits for it.
-     * Assign BEFORE start(). Wins over a key or name assignment.
+     * instrument (unsupported in HTML5). The subsoundIndex argument picks
+     * a subsound of an FSB or other container, -1 plays the sound itself.
+     * The instrument never releases the sound. The game releases it once
+     * the instrument is finished (ProgrammerSoundDestroyed in setCallback,
+     * or after the event stops). A sound still loading (NONBLOCKING) is
+     * fine, FMOD waits for it. Assign BEFORE start(). Wins over a key or
+     * name assignment.
      */
     public inline function assignProgrammerSoundFrom(sound:haxefmod.core.Sound, subsoundIndex:Int = -1):FmodResult {
         if (sound.isNull()) return FmodResult.FMOD_ERR_INVALID_PARAM;
@@ -313,7 +341,7 @@ abstract EventInstance(Int) from Int to Int {
     #if (macro || (js && !haxefmod_html5_allow_unsupported))
     /**
      * Maps one programmer instrument name to the audio table key or file
-     * path it should play (unsupported in HTML5). An event with several
+     * path it plays (unsupported in HTML5). An event with several
      * programmer instruments gets one entry per instrument name, up to
      * eight per instance. A name with no entry falls back to the single
      * assignProgrammerSound key. Names must be under 64 UTF-8 bytes and
@@ -325,7 +353,7 @@ abstract EventInstance(Int) from Int to Int {
     #else
     /**
      * Maps one programmer instrument name to the audio table key or file
-     * path it should play (unsupported in HTML5). An event with several
+     * path it plays (unsupported in HTML5). An event with several
      * programmer instruments gets one entry per instrument name, up to
      * eight per instance. A name with no entry falls back to the single
      * assignProgrammerSound key. Names must be under 64 UTF-8 bytes and

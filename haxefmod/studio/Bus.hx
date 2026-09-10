@@ -13,6 +13,7 @@ import haxefmod.studio.native.Scratch;
  * return defaults, setters return FMOD_ERR_INVALID_HANDLE).
  */
 abstract Bus(Int) from Int to Int {
+    /** The null handle. Every call on it is a safe no-op. */
     public static inline var NULL:Bus = cast 0;
 
     /** True if this is the invalid handle (lookup failed). */
@@ -45,22 +46,27 @@ abstract Bus(Int) from Int to Int {
         return NativeStudio.bus_get_final_volume(this);
     }
 
+    /** Sets the volume as a linear level (0.0 = silent, 1.0 = full). */
     public inline function setVolume(volume:Float):FmodResult {
         return NativeStudio.bus_set_volume(this, volume);
     }
 
+    /** True if the bus is paused. */
     public inline function getPaused():Bool {
         return NativeStudio.bus_get_paused(this);
     }
 
+    /** Pauses or resumes all audio routed into the bus. */
     public inline function setPaused(paused:Bool):FmodResult {
         return NativeStudio.bus_set_paused(this, paused);
     }
 
+    /** True if the bus is muted. */
     public inline function getMute():Bool {
         return NativeStudio.bus_get_mute(this);
     }
 
+    /** Mutes or unmutes the bus. Muting has the same effect as a volume of zero. */
     public inline function setMute(mute:Bool):FmodResult {
         return NativeStudio.bus_set_mute(this, mute);
     }
@@ -106,6 +112,7 @@ abstract Bus(Int) from Int to Int {
         return NativeStudio.bus_lock_channel_group(this);
     }
 
+    /** Releases the lock from lockChannelGroup, so FMOD can destroy the channel group when it is not needed. */
     public inline function unlockChannelGroup():FmodResult {
         return NativeStudio.bus_unlock_channel_group(this);
     }

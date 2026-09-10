@@ -11,8 +11,8 @@ import haxefmod.studio.EventInstance;
     Keeps an event instance's 3D position synced to a moving h2d.Object.
 
     The instance follows the center of the object's bounds. Heaps objects
-    carry no velocity, so one is derived from the movement between frames
-    (a jump larger than teleportDistance in one frame counts as a cut).
+    carry no velocity, so one is derived from the movement between frames.
+    A jump larger than teleportDistance in one frame counts as a cut.
     The emitter registers with FmodHeapsUpdater and needs no per-frame
     call of its own.
 
@@ -42,8 +42,10 @@ class FmodHeapsEmitter implements IHeapsTicker {
     var provider:H2dObjectPositionProvider;
 
     /**
-        Attaches an existing event instance to an object. The caller is
-        responsible for starting the instance. dispose() releases it.
+        Attaches an existing event instance to an object. The caller
+        starts the instance. dispose() releases it.
+        @param instance The event instance to position.
+        @param target The object to follow.
     **/
     public function new(instance:EventInstance, target:Object) {
         provider = new H2dObjectPositionProvider(target);
@@ -60,6 +62,7 @@ class FmodHeapsEmitter implements IHeapsTicker {
         return new FmodHeapsEmitter(instance, target);
     }
 
+    /** Samples the object's position and runs the culling distance check. **/
     public function tick(dt:Float):Void {
         provider.sample(dt);
         tracker.update();
@@ -85,9 +88,10 @@ class FmodHeapsEmitter implements IHeapsTicker {
 }
 
 /**
-    Adapts an h2d.Object to the runtime's position interface: the center
-    of its scene-space bounds, with velocity derived between samples.
-    Call sample(dt) once per frame (the heaps components do).
+    Adapts an h2d.Object to the runtime's position interface. The position
+    is the center of its scene-space bounds. The velocity is derived
+    between samples. Call sample(dt) once per frame (the Heaps components
+    do).
 **/
 @:dox(hide)
 class H2dObjectPositionProvider extends DerivedVelocityProvider {

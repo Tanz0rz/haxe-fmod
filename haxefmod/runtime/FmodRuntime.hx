@@ -49,7 +49,7 @@ class FmodRuntime {
     /**
      * Initializes FMOD with the given settings (see FmodSettings for the
      * define-driven defaults). First initialization wins: settings passed
-     * to any later init call are ignored. On html5 initialization is
+     * to any later init call are ignored. On HTML5 initialization is
      * asynchronous: poll isInitialized(), or just call update() every
      * frame and start playing sounds once it reports true.
      */
@@ -147,7 +147,7 @@ class FmodRuntime {
         // stub backend has none to load)
         defaultBanksLoaded = true;
         #end
-        // html5: init completes asynchronously. The default banks load
+        // HTML5: init completes asynchronously. The default banks load
         // through the registry once the system is ready, and
         // isInitialized() reports true only when they are usable.
         return result;
@@ -156,7 +156,7 @@ class FmodRuntime {
     /**
      * True once FMOD is usable: the system is initialized AND the
      * settings' autoLoadBanks are loaded. Native init does both
-     * synchronously. On html5 both are asynchronous, so games gate their
+     * synchronously. On HTML5 both are asynchronous, so games gate their
      * first state on this.
      */
     public static function isInitialized():Bool {
@@ -201,7 +201,7 @@ class FmodRuntime {
     /**
      * Runs the handler once FMOD is ready: immediately when initialization
      * already completed, otherwise on the first serviced frame after the
-     * asynchronous html5 init finishes. Values pushed to FMOD before that
+     * asynchronous HTML5 init finishes. Values pushed to FMOD before that
      * point land on objects that do not exist yet, so wiring that applies
      * state at setup time replays it through this hook.
      */
@@ -225,7 +225,7 @@ class FmodRuntime {
     public static function update():Void {
         if (!isInitialized()) return;
         if (!focusMuteSynced) {
-            // html5 initialization completes asynchronously, so state
+            // HTML5 initialization completes asynchronously, so state
             // reported during init is applied on the first serviced frame
             // (native init applies it directly, so this is a no-op there)
             focusMuteSynced = true;
@@ -314,13 +314,14 @@ class FmodRuntime {
         return description.createInstance();
     }
 
-    /** Fire-and-forget playback, optionally positioned in 2D space. */
-    public static function playOneShot(eventPath:String, ?x:Float, ?y:Float):Void {
+    /** Fire-and-forget playback, optionally positioned in 2D space. Returns false when FMOD cannot create the event. */
+    public static function playOneShot(eventPath:String, ?x:Float, ?y:Float):Bool {
         var instance = createInstance(eventPath);
-        if (instance.isNull()) return;
+        if (instance.isNull()) return false;
         if (x != null && y != null) instance.setPosition2D(x, y);
         instance.start();
         instance.release();
+        return true;
     }
 
     /**
@@ -328,16 +329,18 @@ class FmodRuntime {
      * ends, then releases itself. Intended for one-shot (self-ending)
      * events: a looping event played this way never stops on its own, so it
      * never releases - use attach/detach with an instance you own instead.
+     * Returns false when FMOD cannot create the event.
      */
-    public static function playOneShotAttached(eventPath:String, provider:IFmodPositionProvider):Void {
+    public static function playOneShotAttached(eventPath:String, provider:IFmodPositionProvider):Bool {
         var instance = createInstance(eventPath);
-        if (instance.isNull()) return;
+        if (instance.isNull()) return false;
         // release() cannot happen up front like playOneShot: it invalidates
         // the handle immediately, which would end the position updates. The
         // attach loop releases once the event reports STOPPED instead (a
         // callback registration would not survive ClearAllCallbacks).
         attached.attach(instance, provider, true);
         instance.start();
+        return true;
     }
 
     /** Keeps an instance's 3D position synced to a moving object every update. */

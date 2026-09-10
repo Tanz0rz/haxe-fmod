@@ -11,10 +11,10 @@ class FmodHeapsUtilities {
     /**
         Fire-and-forget playback that follows an object (center of its
         bounds, derived velocity) until the event ends. Intended for
-        one-shot (self-ending) events - a looping event played this way
+        one-shot (self-ending) events. A looping event played this way
         never releases.
-        @param eventPath the full event path (e.g. "event:/SFX/Explosion")
-        @param target the object the event follows
+        @param eventPath The full event path, for example "event:/SFX/Explosion".
+        @param target The object the event follows.
     **/
     public static function PlayOneShotAttached(eventPath:String, target:Object):Void {
         var provider = new H2dObjectPositionProvider(target);
@@ -24,12 +24,15 @@ class FmodHeapsUtilities {
         // the attachment, which happens when the instance ends.
         FmodHeapsUpdater.add(new OneShotSampler(provider));
     }
+
+    /** Deprecated alias of PlayOneShotAttached. **/
     @:deprecated("FmodHeapsUtilities.PlaySoundOneShotAttached is now PlayOneShotAttached")
     public static function PlaySoundOneShotAttached(eventPath:String, target:Object):Void {
         PlayOneShotAttached(eventPath, target);
     }
 }
 
+/** Samples a one-shot's provider every frame until the runtime drops the attachment. **/
 private class OneShotSampler implements IHeapsTicker {
     var provider:H2dObjectPositionProvider;
 

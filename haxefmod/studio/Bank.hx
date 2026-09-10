@@ -13,6 +13,7 @@ import haxefmod.studio.native.Scratch;
  * safe no-op (getters return defaults, setters return FMOD_ERR_INVALID_HANDLE).
  */
 abstract Bank(Int) from Int to Int {
+    /** The null handle. Every call on it is a safe no-op. */
     public static inline var NULL:Bank = cast 0;
 
     /** True if this is the invalid handle (lookup/load failed). */
@@ -49,6 +50,7 @@ abstract Bank(Int) from Int to Int {
         return NativeStudio.bank_load_sample_data(this);
     }
 
+    /** Unloads the non-streaming sample data for the bank's events. FMOD reference counts it, so it stays loaded until every load has a matching unload. */
     public inline function unloadSampleData():FmodResult {
         return NativeStudio.bank_unload_sample_data(this);
     }
@@ -75,6 +77,7 @@ abstract Bank(Int) from Int to Int {
         return [for (i in 0...count) (Scratch.readI(i) : EventDescription)];
     }
 
+    /** Number of buses in the bank. */
     public inline function getBusCount():Int {
         return NativeStudio.bank_get_bus_count(this);
     }
@@ -86,6 +89,7 @@ abstract Bank(Int) from Int to Int {
         return [for (i in 0...count) (Scratch.readI(i) : Bus)];
     }
 
+    /** Number of VCAs in the bank. */
     public inline function getVCACount():Int {
         return NativeStudio.bank_get_vca_count(this);
     }

@@ -6,10 +6,10 @@ import haxefmod.runtime.BankLoadTracker;
 /**
     Loads a set of banks and reports when they are all ready.
 
-    File names are resolved against the configured bank folder (see
-    FmodSettings.bankFolder), so pass plain names like "Vehicles.bank".
-    Loading is refcounted through FmodRuntime.banks: destroy() releases
-    this loader's references, and the banks unload once nobody else holds
+    File names resolve against the configured bank folder (see
+    FmodSettings.bankFolder). Pass plain names like "Vehicles.bank".
+    Loading is refcounted through FmodRuntime.banks. destroy() releases
+    this loader's references. The banks unload once nobody else holds
     them. Add the loader to the state so its update() can poll:
 
         add(new FmodFlxBankLoader(["Vehicles.bank"], () -> spawnCars()));
@@ -21,20 +21,21 @@ class FmodFlxBankLoader extends FlxBasic {
     var tracker:BankLoadTracker;
 
     /**
-        Starts loading once FMOD is ready.
-        @param bankFiles bank file names (resolved via FmodRuntime.bankPath)
-        @param onLoaded called exactly once, when all banks are loaded
-        @param onError called exactly once, when any bank settles in an
-        error state (a missing file or a failed fetch on html5). Without
-        it a failed load is only visible through loadingState polling.
-        @param async load in the background (default). Pass false to load
-        synchronously on native targets
+        Loading starts once FMOD is ready, on the first update after that.
+        @param bankFiles Bank file names, resolved through FmodRuntime.bankPath.
+        @param onLoaded Called exactly once, when all banks are loaded.
+        @param onError Called exactly once, when any bank settles in an
+        error state (a missing file or a failed fetch on HTML5). Without
+        it, a failed load is only visible through loadingState polling.
+        @param async Loads in the background (default). Pass false to load
+        synchronously on native targets.
     **/
     public function new(bankFiles:Array<String>, ?onLoaded:Void->Void, ?onError:Void->Void, async:Bool = true) {
         super();
         tracker = new BankLoadTracker(bankFiles, onLoaded, onError, async);
     }
 
+    /** Polls the loading state and fires the callbacks once the banks settle. **/
     override public function update(elapsed:Float):Void {
         super.update(elapsed);
         tracker.update();

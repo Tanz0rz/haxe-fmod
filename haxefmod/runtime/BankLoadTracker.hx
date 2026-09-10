@@ -3,13 +3,13 @@ package haxefmod.runtime;
 import haxefmod.studio.Types;
 
 /**
-    Engine-free half of a bank loader component: loads a set of banks and
+    Engine-free half of a bank loader component. Loads a set of banks and
     reports once when they are all ready, or once when any of them fails.
 
-    File names are resolved against the configured bank folder (see
-    FmodSettings.bankFolder), so pass plain names like "Vehicles.bank".
-    Loading is refcounted through FmodRuntime.banks: dispose() releases
-    this loader's references, and the banks unload once nobody else holds
+    File names resolve against the configured bank folder (see
+    FmodSettings.bankFolder). Pass plain names like "Vehicles.bank".
+    Loading is refcounted through FmodRuntime.banks. dispose() releases
+    this loader's references. The banks unload once nobody else holds
     them. Engine adapters call update() every frame.
 **/
 class BankLoadTracker {
@@ -23,19 +23,20 @@ class BankLoadTracker {
     var errored:Bool = false;
     var async:Bool;
     var started:Bool = false;
-    // Only paths whose load this loader actually registered are unloaded
-    // by dispose(), so a rejected load can never steal a reference some
-    // other holder registered for the same path later
+    // dispose() unloads only the paths whose load this loader registered.
+    // A rejected load therefore never steals a reference some other
+    // holder registered for the same path later.
     var owned:Array<String> = [];
 
     /**
-        @param bankFiles bank file names (resolved via FmodRuntime.bankPath)
-        @param onLoaded called exactly once, when all banks are loaded
-        @param onError called exactly once, when any bank settles in an
-        error state (a missing file or a failed fetch on html5). Without
-        it a failed load is only visible through loadingState polling.
-        @param async load in the background (default). Pass false to load
-        synchronously on native targets
+        Loading starts once FMOD is ready, on the first update after that.
+        @param bankFiles Bank file names, resolved through FmodRuntime.bankPath.
+        @param onLoaded Called exactly once, when all banks are loaded.
+        @param onError Called exactly once, when any bank settles in an
+        error state (a missing file or a failed fetch on HTML5). Without
+        it, a failed load is only visible through loadingState polling.
+        @param async Loads in the background (default). Pass false to load
+        synchronously on native targets.
     **/
     public function new(bankFiles:Array<String>, ?onLoaded:Void->Void, ?onError:Void->Void, async:Bool = true) {
         this.onLoaded = onLoaded;
@@ -44,9 +45,9 @@ class BankLoadTracker {
         paths = [for (file in bankFiles) FmodRuntime.bankPath(file)];
     }
 
-    // Loads start on the first serviced frame after FMOD is ready, so a
+    // Loads start on the first serviced frame after FMOD is ready. A
     // loader constructed before (or during) initialization waits instead
-    // of failing outright
+    // of failing outright.
     function startLoads():Void {
         started = true;
         for (path in paths) {
@@ -55,9 +56,10 @@ class BankLoadTracker {
         }
     }
 
+    /** Starts the loads once FMOD is ready, then polls until the banks settle. **/
     public function update():Void {
-        // A disposed loader has an empty path list, which would read as
-        // "all banks loaded" and fire onLoaded after the banks were released
+        // A disposed loader has an empty path list. That reads as "all
+        // banks loaded" and fires onLoaded after the banks were released.
         if (loaded || disposed || errored) return;
         if (!started) {
             if (!FmodRuntime.isInitialized()) return;

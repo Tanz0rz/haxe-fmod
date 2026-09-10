@@ -7,15 +7,15 @@ import haxefmod.studio.Types;
  * back to compile-time defines, then to the built-in defaults.
  *
  * Compile-time defines (project.xml <haxedef/> or -D):
- *   -D haxefmod_num_channels=128
- *   -D haxefmod_sample_rate=48000
- *   -D haxefmod_live_update        (force live update ON in any build)
- *   -D haxefmod_no_live_update     (force live update OFF in any build)
- *   -D haxefmod_no_mute_when_unfocused  (keep audio playing when unfocused)
- *   -D haxefmod_bank_folder=assets/fmod/Desktop
- *   -D haxefmod_log_level=2
- *   -D haxefmod_dsp_buffer_size=1024
- *   -D haxefmod_software_channels=64
+ *   -D haxefmod_num_channels=128 sets numChannels.
+ *   -D haxefmod_sample_rate=48000 sets sampleRate.
+ *   -D haxefmod_live_update forces live update on in any build.
+ *   -D haxefmod_no_live_update forces live update off in any build.
+ *   -D haxefmod_no_mute_when_unfocused keeps audio playing when unfocused.
+ *   -D haxefmod_bank_folder=assets/fmod/Desktop sets bankFolder.
+ *   -D haxefmod_log_level=2 sets logLevel.
+ *   -D haxefmod_dsp_buffer_size=1024 sets dspBufferSize.
+ *   -D haxefmod_software_channels=64 sets softwareChannels.
  */
 typedef FmodSettings = {
     /** Max virtual voices. Default 128. */
@@ -36,12 +36,12 @@ typedef FmodSettings = {
     /**
      * Output backend (System::setOutput before init). Default AUTODETECT,
      * the platform's own output. NOSOUND and NOSOUND_NRT run the mixer
-     * without a device, WAVWRITER and WAVWRITER_NRT write the mix to
-     * fmodoutput.wav in the working directory, and the platform values
+     * without a device. WAVWRITER and WAVWRITER_NRT write the mix to
+     * fmodoutput.wav in the working directory. The platform values
      * (WASAPI, ASIO, PULSEAUDIO, ALSA, COREAUDIO) pick a driver on the
      * platform that has it. The FMOD_WAVWRITER environment variable still
-     * wins when set: it forces WAVWRITER into the file it names. On HTML5
-     * only WEBAUDIO, AUDIOWORKLET, NOSOUND, and NOSOUND_NRT exist, and any
+     * wins when set. It forces WAVWRITER into the file it names. On HTML5
+     * only WEBAUDIO, AUDIOWORKLET, NOSOUND, and NOSOUND_NRT exist. Any
      * other value makes init fail with FMOD_ERR_UNSUPPORTED.
      */
     @:optional var output:FmodOutputType;
@@ -75,8 +75,8 @@ typedef FmodSettings = {
     /**
      * Tracks memory per object (FMOD_STUDIO_INIT_MEMORY_TRACKING) so
      * getMemoryUsage on StudioSystem, Bank, Bus, and EventInstance reports
-     * real numbers. Only the logging FMOD libraries (libfmodstudioL) count,
-     * the release libraries report zero. Costs a little CPU per
+     * real numbers. Only the logging FMOD libraries (libfmodstudioL) count.
+     * The release libraries report zero. Costs a little CPU per
      * allocation. Default false.
      */
     @:optional var memoryTracking:Bool;
@@ -84,7 +84,7 @@ typedef FmodSettings = {
     /**
      * Priority, stack size, and core affinity per FMOD worker thread
      * (FMOD_Thread_SetAttributes before the system is created). One entry
-     * per thread type, later entries for the same type win. An unset field
+     * per thread type. Later entries for the same type win. An unset field
      * keeps FMOD's default for that thread. Default []. Not available on
      * HTML5, where the web build has no threads to place.
      */
@@ -99,8 +99,8 @@ typedef FmodSettings = {
     @:optional var logFile:String;
 
     /**
-     * Extra FmodDebugFlags bits on top of logLevel: the TYPE_ bits turn
-     * on memory, file, codec, trace, and virtual voice logging, and the
+     * Extra FmodDebugFlags bits on top of logLevel. The TYPE_ bits turn
+     * on memory, file, codec, trace, and virtual voice logging. The
      * DISPLAY_ bits add timestamps, line numbers, and thread ids to every
      * line. Default 0. Not available on HTML5.
      */
@@ -153,29 +153,29 @@ typedef FmodSettings = {
     @:optional var autoLoadBanks:Array<String>;
 
     /**
-     * Drives FMOD from a background thread (native) or timer (html5) so
+     * Drives FMOD from a background thread (native) or timer (HTML5) so
      * audio keeps running when the game loop stalls. Default true.
      * Typed callbacks are still only delivered from update().
      */
     @:optional var autoUpdate:Bool;
 
     /**
-     * Mutes the master output while the game window is unfocused, so audio
-     * does not play to a window nobody is looking at. FMOD keeps mixing, so
-     * sounds play out in real time instead of queuing up and blasting out
-     * the instant focus returns. Default true.
+     * Mutes the master output while the game window is unfocused. Audio
+     * then does not play to a window nobody is looking at. FMOD keeps mixing, so
+     * sounds play out in real time. They do not queue up and blast out the
+     * instant focus returns. Default true.
      *
-     * The game must report focus changes via FmodRuntime.setWindowFocused
-     * for this to take effect. The engine setup calls do that. Set false
-     * (or -D haxefmod_no_mute_when_unfocused) to keep audio playing in the
-     * background.
+     * The game must report focus changes through
+     * FmodRuntime.setWindowFocused for this to take effect. The engine
+     * setup calls do that. Set false (or -D haxefmod_no_mute_when_unfocused)
+     * to keep audio playing in the background.
      */
     @:optional var muteWhenUnfocused:Bool;
 
     /**
-     * Clamps the velocity magnitude pushed for attached instances and the
-     * flixel listener, in game units per second. Fast-moving objects can
-     * produce audible doppler pitch flutter, and this caps the velocity
+     * Clamps the velocity magnitude pushed for attached instances and
+     * every engine listener, in game units per second. Fast-moving objects
+     * can produce audible doppler pitch flutter. This caps the velocity
      * FMOD sees without touching the position. Default 0 (no clamp).
      */
     @:optional var maxAttachedVelocity:Float;

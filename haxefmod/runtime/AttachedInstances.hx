@@ -22,8 +22,8 @@ class AttachedInstances {
     /**
      * Attaches an instance. Replaces the provider if already attached.
      * With autoRelease the instance is released as soon as it reports
-     * STOPPED, which is how one-shots clean themselves up without relying
-     * on a callback registration that ClearAllCallbacks could remove.
+     * STOPPED. This is how one-shots clean themselves up. They do not
+     * rely on a callback registration that ClearAllCallbacks could remove.
      */
     public function attach(instance:EventInstance, provider:IFmodPositionProvider, autoRelease:Bool = false):Void {
         if (instance.isNull() || provider == null) return;
@@ -86,8 +86,9 @@ class AttachedInstances {
 
     /**
      * Multiplier that caps a velocity vector at maxMagnitude, preserving
-     * direction. Returns 1.0 when no cap applies (also used by the flixel
-     * listener, so listener and emitter velocities clamp identically).
+     * direction. Returns 1.0 when no cap applies. ListenerTracker also
+     * uses it, so listener and emitter velocities clamp identically on
+     * every engine.
      */
     public static function velocityScale(velX:Float, velY:Float, maxMagnitude:Float):Float {
         if (maxMagnitude <= 0) return 1.0;

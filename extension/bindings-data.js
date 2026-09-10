@@ -7141,7 +7141,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Number of buses in the bank.",
      "gated": false,
      "name": "getBusCount",
      "signature": "getBusCount():Int",
@@ -7335,7 +7335,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Number of VCAs in the bank.",
      "gated": false,
      "name": "getVCACount",
      "signature": "getVCACount():Int",
@@ -7431,7 +7431,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Unloads the non-streaming sample data for the bank's events.",
      "gated": false,
      "name": "unloadSampleData",
      "signature": "unloadSampleData():FmodResult",
@@ -7511,7 +7511,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "True if the bus is muted.",
      "gated": false,
      "name": "getMute",
      "signature": "getMute():Bool",
@@ -7543,7 +7543,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "True if the bus is paused.",
      "gated": false,
      "name": "getPaused",
      "signature": "getPaused():Bool",
@@ -7632,7 +7632,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Mutes or unmutes the bus.",
      "gated": false,
      "name": "setMute",
      "signature": "setMute(mute:Bool):FmodResult",
@@ -7648,7 +7648,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Pauses or resumes all audio routed into the bus.",
      "gated": false,
      "name": "setPaused",
      "signature": "setPaused(paused:Bool):FmodResult",
@@ -7680,7 +7680,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Sets the volume as a linear level (0.0 = silent, 1.0 = full).",
      "gated": false,
      "name": "setVolume",
      "signature": "setVolume(volume:Float):FmodResult",
@@ -7712,7 +7712,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Releases the lock from lockChannelGroup, so FMOD can destroy the channel group when it is not needed.",
      "gated": false,
      "name": "unlockChannelGroup",
      "signature": "unlockChannelGroup():FmodResult",
@@ -8271,7 +8271,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Loading state of the event's non-streaming sample data.",
      "gated": false,
      "name": "getSampleLoadingState",
      "signature": "getSampleLoadingState():FmodLoadingState",
@@ -8360,7 +8360,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "True if the event has at least one sustain point on its timeline.",
      "gated": false,
      "name": "hasSustainPoint",
      "signature": "hasSustainPoint():Bool",
@@ -8376,7 +8376,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "True if the event is 3D.",
      "gated": false,
      "name": "is3D",
      "signature": "is3D():Bool",
@@ -8392,7 +8392,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "True if the event has Doppler enabled.",
      "gated": false,
      "name": "isDopplerEnabled",
      "signature": "isDopplerEnabled():Bool",
@@ -8408,7 +8408,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "True if the event is oneshot.",
      "gated": false,
      "name": "isOneshot",
      "signature": "isOneshot():Bool",
@@ -8424,7 +8424,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "True if this description is a snapshot.",
      "gated": false,
      "name": "isSnapshot",
      "signature": "isSnapshot():Bool",
@@ -8440,7 +8440,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "True if the event contains streamed sound.",
      "gated": false,
      "name": "isStream",
      "signature": "isStream():Bool",
@@ -8456,7 +8456,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "True if the handle resolves to a live FMOD event description.",
      "gated": false,
      "name": "isValid",
      "signature": "isValid():Bool",
@@ -8529,7 +8529,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Unloads the non-streaming sample data from loadSampleData.",
      "gated": false,
      "name": "unloadSampleData",
      "signature": "unloadSampleData():FmodResult",
@@ -8657,7 +8657,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "A parameter's value as set by the API, by ID.",
      "gated": false,
      "name": "getParameterByID",
      "signature": "getParameterByID(id:FmodParameterId):Float",
@@ -8666,7 +8666,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "",
+     "doc": "The final value of a parameter after automation and seek speed, by ID.",
      "gated": false,
      "name": "getParameterByIDFinal",
      "signature": "getParameterByIDFinal(id:FmodParameterId):Float",
@@ -8691,7 +8691,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "",
+     "doc": "A parameter's value as set by the API, by name.",
      "gated": false,
      "name": "getParameter",
      "signature": "getParameter(name:String):Float",
@@ -8725,7 +8725,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "True if the instance is paused.",
      "gated": false,
      "name": "getPaused",
      "signature": "getPaused():Bool",
@@ -8741,7 +8741,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "The pitch multiplier as set by the API (1.0 = unchanged).",
      "gated": false,
      "name": "getPitch",
      "signature": "getPitch():Float",
@@ -8750,7 +8750,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "",
+     "doc": "The final combined pitch multiplier (set pitch x event/snapshot automation).",
      "gated": false,
      "name": "getFinalPitch",
      "signature": "getFinalPitch():Float",
@@ -8766,7 +8766,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "The playback state (see FmodPlaybackState).",
      "gated": false,
      "name": "getPlaybackState",
      "signature": "getPlaybackState():FmodPlaybackState",
@@ -8855,7 +8855,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "The volume as set by the API (linear: 0.0 = silent, 1.0 = full).",
      "gated": false,
      "name": "getVolume",
      "signature": "getVolume():Float",
@@ -8880,7 +8880,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "True if the handle resolves to a live FMOD event instance.",
      "gated": false,
      "name": "isValid",
      "signature": "isValid():Bool",
@@ -8896,7 +8896,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "True if the instance has been virtualized (inaudible, not mixed).",
+     "doc": "True if the instance has been virtualized.",
      "gated": false,
      "name": "isVirtual",
      "signature": "isVirtual():Bool",
@@ -8944,7 +8944,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Sets the instance's 3D position, velocity, forward, and up vectors.",
      "gated": false,
      "name": "set3DAttributes",
      "signature": "set3DAttributes(attributes:Fmod3DAttributes):FmodResult",
@@ -8977,7 +8977,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "Assigns the audio-table key (or file path fallback) this instance's programmer instrument should play (unsupported in HTML5).",
+     "doc": "Assigns the audio-table key (or file path fallback) this instance's programmer instrument plays (unsupported in HTML5).",
      "gated": true,
      "name": "assignProgrammerSound",
      "signature": "assignProgrammerSound(key:String):FmodResult",
@@ -8986,7 +8986,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "Maps one programmer instrument name to the audio table key or file path it should play (unsupported in HTML5).",
+     "doc": "Maps one programmer instrument name to the audio table key or file path it plays (unsupported in HTML5).",
      "gated": true,
      "name": "assignProgrammerSoundForName",
      "signature": "assignProgrammerSoundForName(name:String, key:String):FmodResult",
@@ -9020,7 +9020,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Sets the bitmask of listeners this instance is audible to.",
      "gated": false,
      "name": "setListenerMask",
      "signature": "setListenerMask(mask:Int):FmodResult",
@@ -9036,7 +9036,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Sets a parameter by ID.",
      "gated": false,
      "name": "setParameterByID",
      "signature": "setParameterByID(id:FmodParameterId, value:Float, ignoreSeekSpeed:Bool = false):FmodResult",
@@ -9052,7 +9052,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Sets a labeled parameter by ID and label text.",
      "gated": false,
      "name": "setParameterByIDWithLabel",
      "signature": "setParameterByIDWithLabel(id:FmodParameterId, label:String, ignoreSeekSpeed:Bool = false):FmodResult",
@@ -9077,7 +9077,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "",
+     "doc": "Sets a parameter by name.",
      "gated": false,
      "name": "setParameter",
      "signature": "setParameter(name:String, value:Float, ignoreSeekSpeed:Bool = false):FmodResult",
@@ -9134,7 +9134,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Pauses or resumes the instance.",
      "gated": false,
      "name": "setPaused",
      "signature": "setPaused(paused:Bool):FmodResult",
@@ -9150,7 +9150,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Sets the pitch multiplier applied to the event's pitch (1.0 = unchanged).",
      "gated": false,
      "name": "setPitch",
      "signature": "setPitch(pitch:Float):FmodResult",
@@ -9166,7 +9166,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Overrides an instance property (see FmodEventProperty).",
      "gated": false,
      "name": "setProperty",
      "signature": "setProperty(property:FmodEventProperty, value:Float):FmodResult",
@@ -9182,7 +9182,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Sets the core reverb send level for reverb instance 0-3.",
      "gated": false,
      "name": "setReverbLevel",
      "signature": "setReverbLevel(index:Int, level:Float):FmodResult",
@@ -9198,7 +9198,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Moves the timeline cursor to a position in milliseconds.",
      "gated": false,
      "name": "setTimelinePosition",
      "signature": "setTimelinePosition(positionMs:Int):FmodResult",
@@ -9230,7 +9230,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Sets the volume as a linear level (0.0 = silent, 1.0 = full).",
      "gated": false,
      "name": "setVolume",
      "signature": "setVolume(volume:Float):FmodResult",
@@ -9246,7 +9246,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Starts playback.",
      "gated": false,
      "name": "start",
      "signature": "start():FmodResult",
@@ -9262,7 +9262,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Stops playback.",
      "gated": false,
      "name": "stop",
      "signature": "stop(stopMode:FmodStopMode = ALLOWFADEOUT):FmodResult",
@@ -9383,7 +9383,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Looks up a loaded bank by GUID.",
      "gated": false,
      "name": "getBankByID",
      "signature": "getBankByID(guid:FmodGuid):Bank",
@@ -9688,7 +9688,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "",
+     "doc": "Runs the culling distance check.",
      "name": "update",
      "signature": "update():Void",
      "static": false,
@@ -9703,7 +9703,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "A listener's weight (0.0 = no effect on the mix, 1.0 = full, the default).",
      "gated": false,
      "name": "getListenerWeight",
      "signature": "getListenerWeight(index:Int):Float",
@@ -9735,7 +9735,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Number of listeners (1 to 8).",
      "gated": false,
      "name": "getNumListeners",
      "signature": "getNumListeners():Int",
@@ -9751,7 +9751,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "A global parameter's value as set by the API, by ID.",
      "gated": false,
      "name": "getParameterByID",
      "signature": "getParameterByID(id:FmodParameterId):Float",
@@ -9760,7 +9760,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "",
+     "doc": "The final value of a global parameter after automation and seek speed, by ID.",
      "gated": false,
      "name": "getParameterByIDFinal",
      "signature": "getParameterByIDFinal(id:FmodParameterId):Float",
@@ -9785,7 +9785,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "",
+     "doc": "A global parameter's value as set by the API, by name.",
      "gated": false,
      "name": "getParameter",
      "signature": "getParameter(name:String):Float",
@@ -9803,7 +9803,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "",
+     "doc": "The final value of a global parameter after automation and seek speed, by name.",
      "gated": false,
      "name": "getParameterFinal",
      "signature": "getParameterFinal(name:String):Float",
@@ -9918,7 +9918,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "What FMOD would load for an audio table key: the file it reports (empty for a bank held in memory), the ChannelMode flags, where the sample sits in that file, and the subsound index inside it.",
+     "doc": "What FMOD loads for an audio table key.",
      "gated": false,
      "name": "getSoundInfo",
      "signature": "getSoundInfo(key:String):Null<FmodSoundInfo>",
@@ -9990,7 +9990,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Looks up a VCA by GUID.",
      "gated": false,
      "name": "getVCAByID",
      "signature": "getVCAByID(guid:FmodGuid):Vca",
@@ -10169,7 +10169,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Resets the peak usage and stall counts reported by getBufferUsage.",
      "gated": false,
      "name": "resetBufferUsage",
      "signature": "resetBufferUsage():FmodResult",
@@ -10284,7 +10284,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "",
+     "doc": "Pushes the provider's position and clamped velocity to the listener.",
      "name": "update",
      "signature": "update():Void",
      "static": false,
@@ -10299,7 +10299,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Sets how much a listener influences the mix (0.0 = no effect, 1.0 = full, the default).",
      "gated": false,
      "name": "setListenerWeight",
      "signature": "setListenerWeight(index:Int, weight:Float):FmodResult",
@@ -10315,7 +10315,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Sets the number of listeners (1 to 8).",
      "gated": false,
      "name": "setNumListeners",
      "signature": "setNumListeners(count:Int):FmodResult",
@@ -10331,7 +10331,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Sets a global parameter by ID.",
      "gated": false,
      "name": "setParameterByID",
      "signature": "setParameterByID(id:FmodParameterId, value:Float, ignoreSeekSpeed:Bool = false):FmodResult",
@@ -10347,7 +10347,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Sets a labeled global parameter by ID and label text.",
      "gated": false,
      "name": "setParameterByIDWithLabel",
      "signature": "setParameterByIDWithLabel(id:FmodParameterId, label:String, ignoreSeekSpeed:Bool = false):FmodResult",
@@ -10372,7 +10372,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "",
+     "doc": "Sets a global parameter by name.",
      "gated": false,
      "name": "setParameter",
      "signature": "setParameter(name:String, value:Float, ignoreSeekSpeed:Bool = false):FmodResult",
@@ -10405,7 +10405,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "",
+     "doc": "Sets a labeled global parameter by name and label text (e.g.",
      "gated": false,
      "name": "setParameterWithLabel",
      "signature": "setParameterWithLabel(name:String, label:String, ignoreSeekSpeed:Bool = false):FmodResult",
@@ -10477,7 +10477,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Stops the command recording started by startCommandCapture.",
      "gated": false,
      "name": "stopCommandCapture",
      "signature": "stopCommandCapture():FmodResult",
@@ -10624,7 +10624,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Sets the volume as a linear level (0.0 = silent, 1.0 = full).",
      "gated": false,
      "name": "setVolume",
      "signature": "setVolume(volume:Float):FmodResult",
@@ -11588,7 +11588,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Holds the mixer until unlockDsp so several graph edits (adding, removing, or reconnecting DSPs) land in one mixer update instead of being heard one at a time.",
+     "doc": "Holds the mixer until unlockDsp.",
      "gated": false,
      "name": "lockDsp",
      "signature": "lockDsp():FmodResult",

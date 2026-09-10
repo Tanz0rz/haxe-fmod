@@ -5,12 +5,12 @@ import haxefmod.studio.StudioSystem;
 import haxefmod.studio.Types;
 
 /**
-    Engine-free half of an emitter component: keeps an event instance
+    Engine-free half of an emitter component. Keeps an event instance
     attached to a position provider and optionally culls it by distance.
 
-    Positions are pushed by FmodRuntime.update(), so the only per-frame
+    FmodRuntime.update() pushes the positions, so the only per-frame
     work here is the culling check in update(). Engine adapters wrap this
-    in whatever their scene graph calls a component and forward update()
+    in whatever their scene graph calls a component. They forward update()
     and dispose().
 **/
 class EmitterTracker {
@@ -19,12 +19,12 @@ class EmitterTracker {
 
     /**
         Stops the event with a fadeout while the emitter is beyond its
-        authored max distance from the listener, and restarts it when the
-        listener comes back in range, saving voices on far-away looping
-        emitters. Off by default. Only an instance the emitter itself
-        stopped is restarted, so an instance the game stops stays stopped.
-        A restart begins from the event's start with the instance's
-        parameter values still applied.
+        authored max distance from the listener. Restarts it when the
+        listener comes back in range. This saves voices on far-away
+        looping emitters. Off by default. Only an instance the emitter
+        itself stopped is restarted. An instance the game stops stays
+        stopped. A restart begins from the event's start with the
+        instance's parameter values still applied.
     **/
     public var stopEventsOutsideMaxDistance:Bool = false;
 
@@ -40,8 +40,8 @@ class EmitterTracker {
     /**
         Culling distance override in world units. The default -1 uses the
         event's authored max distance and applies only to 3D events. A 2D
-        event is never culled by default, so give it an explicit value
-        here to cull it.
+        event is never culled by default. Give it an explicit value here
+        to cull it.
     **/
     public var cullMaxDistance:Float = -1;
 
@@ -67,11 +67,12 @@ class EmitterTracker {
         return new EmitterTracker(instance, provider);
     }
 
+    /** Runs the culling distance check. Call it once per frame. **/
     public function update():Void {
         if (instance.isNull()) return;
         if (!stopEventsOutsideMaxDistance) {
-            // Turning culling off while culled would otherwise leave the
-            // event stopped with nothing left to restart it
+            // Turning culling off while culled leaves the event stopped
+            // with nothing left to restart it, so restart it here
             if (culled) {
                 culled = false;
                 instance.start();
@@ -80,21 +81,21 @@ class EmitterTracker {
         }
 
         // The check costs a native listener fetch, so it runs on an
-        // interval rather than every frame
+        // interval instead of every frame
         cullFrameCounter++;
         if (cullFrameCounter < cullCheckInterval) return;
         cullFrameCounter = 0;
 
-        // One-shots are exempt, matching FMOD's own integration: stopping
-        // and restarting a self-ending event would replay it long after it
-        // would have finished
+        // One-shots are exempt, matching FMOD's own integration. A stop
+        // and restart of a self-ending event replays it long after its
+        // natural end.
         if (cullOneshot == null) cullOneshot = instance.getDescription().isOneshot();
         if (cullOneshot) return;
 
         if (cullMaxDistance < 0) {
             // Authored distances only gate 3D events. A 2D event still
-            // reports the default macro range from newer bank formats, so
-            // a nonzero max cannot be the test here.
+            // reports the default macro range from later bank formats. A
+            // nonzero max therefore cannot be the test here.
             if (cull3d == null) cull3d = instance.getDescription().is3D();
             if (!cull3d) return;
             var minMax = instance.getMinMaxDistance();
@@ -110,9 +111,9 @@ class EmitterTracker {
         var outside = dx * dx + dy * dy > cullMaxDistance * cullMaxDistance;
 
         if (outside && !culled) {
-            // Only an instance that is actually playing gets culled, and
-            // culled means "stopped by this emitter" - an instance the
-            // game stopped itself is never restarted on re-entry
+            // Only an instance that is actually playing gets culled.
+            // Culled means "stopped by this emitter". An instance the game
+            // stopped itself is never restarted on re-entry.
             var state = instance.getPlaybackState();
             if (state == FmodPlaybackState.PLAYING
                 || state == FmodPlaybackState.STARTING

@@ -11,7 +11,7 @@ import haxefmod.runtime.ListenerTracker;
 
     With a target object, the listener follows the center of its bounds
     (typical for a player character). With a scene, it follows the center
-    of the scene's camera view, which suits games where the camera is the
+    of the scene's camera view. That suits games where the camera is the
     player's ear.
 
     Velocity is derived from the movement between frames, so authored
@@ -23,9 +23,9 @@ import haxefmod.runtime.ListenerTracker;
 **/
 class FmodHeapsListener implements IHeapsTicker {
     /**
-        Jumps larger than this in one frame count as a cut, not movement,
-        and push zero velocity instead of a doppler spike. 0 means auto:
-        one view width in scene-follow mode, 500 units for an object.
+        Jumps larger than this in one frame count as a cut. A cut pushes
+        zero velocity instead of a doppler spike. 0 means auto: one view
+        width in scene-follow mode, 500 units for an object.
     **/
     public var teleportDistance:Float = 0;
 
@@ -34,9 +34,9 @@ class FmodHeapsListener implements IHeapsTicker {
     var scene:Scene;
 
     /**
-        @param target the object to follow
-        @param listenerIndex which listener to drive (0 unless using
-        multiple listeners via StudioSystem.setNumListeners)
+        @param target The object to follow.
+        @param listenerIndex The listener to drive. Leave it at 0 unless the
+        game uses multiple listeners through StudioSystem.setNumListeners.
     **/
     public function new(?target:Object, listenerIndex:Int = 0) {
         tracker = new ListenerTracker(null, listenerIndex);
@@ -60,12 +60,13 @@ class FmodHeapsListener implements IHeapsTicker {
 
     /**
         Restarts velocity tracking after a camera cut the game performed
-        itself, so the jump reads as a teleport rather than movement.
+        itself. The jump then reads as a teleport with zero velocity.
     **/
     public function resetMotion():Void {
         if (provider != null) provider.reset();
     }
 
+    /** Unregisters the listener from FmodHeapsUpdater. **/
     public function dispose():Void {
         FmodHeapsUpdater.remove(this);
     }
@@ -80,6 +81,7 @@ class FmodHeapsListener implements IHeapsTicker {
         return camera.y + (0.5 - camera.anchorY) * scene.height / camera.scaleY;
     }
 
+    /** Samples the followed position and pushes it to the listener. **/
     public function tick(dt:Float):Void {
         if (provider == null) return;
         if (scene != null) {

@@ -14,12 +14,15 @@ import haxefmod.studio.native.Scratch;
  * under the hood. A stale or invalid handle makes every call a safe no-op.
  */
 abstract EventDescription(Int) from Int to Int {
+    /** The null handle. Every call on it is a safe no-op. */
     public static inline var NULL:EventDescription = cast 0;
 
+    /** True if this is the invalid handle (lookup failed). */
     public inline function isNull():Bool {
         return this == 0;
     }
 
+    /** True if the handle resolves to a live FMOD event description. */
     public inline function isValid():Bool {
         return this != 0 && NativeStudio.evd_is_valid(this);
     }
@@ -51,26 +54,32 @@ abstract EventDescription(Int) from Int to Int {
         return NativeStudio.evd_get_sound_size(this);
     }
 
+    /** True if this description is a snapshot. */
     public inline function isSnapshot():Bool {
         return NativeStudio.evd_is_snapshot(this);
     }
 
+    /** True if the event is oneshot. A oneshot event ends on its own in bounded time after it starts. */
     public inline function isOneshot():Bool {
         return NativeStudio.evd_is_oneshot(this);
     }
 
+    /** True if the event contains streamed sound. */
     public inline function isStream():Bool {
         return NativeStudio.evd_is_stream(this);
     }
 
+    /** True if the event is 3D. FMOD counts an event as 3D when its master track carries a spatializer effect. */
     public inline function is3D():Bool {
         return NativeStudio.evd_is_3d(this);
     }
 
+    /** True if the event has Doppler enabled. */
     public inline function isDopplerEnabled():Bool {
         return NativeStudio.evd_is_doppler_enabled(this);
     }
 
+    /** True if the event has at least one sustain point on its timeline. */
     public inline function hasSustainPoint():Bool {
         return NativeStudio.evd_has_sustain_point(this);
     }
@@ -91,8 +100,8 @@ abstract EventDescription(Int) from Int to Int {
     static var descriptionCallbacks:Map<Int, {handler:EventCallbackData->Void, mask:Null<Int>}> = new Map();
 
     /**
-     * Remembers a handler that createInstance installs on every instance
-     * made from this description from now on, the way
+     * Remembers a handler that createInstance installs on every later
+     * instance made from this description, the way
      * Studio::EventDescription::setCallback does. Instances created before
      * this call keep whatever handler they already had. The mask defaults
      * to the playback types, as on EventInstance.setCallback. Calling again
@@ -112,6 +121,7 @@ abstract EventDescription(Int) from Int to Int {
         descriptionCallbacks.remove(this);
     }
 
+    /** True if setCallback remembers a handler for this description. */
     public inline function hasCallback():Bool {
         return descriptionCallbacks.exists(this);
     }
@@ -143,10 +153,12 @@ abstract EventDescription(Int) from Int to Int {
         return NativeStudio.evd_load_sample_data(this);
     }
 
+    /** Unloads the non-streaming sample data from loadSampleData. FMOD reference counts it, so it stays loaded until every load has a matching unload. */
     public inline function unloadSampleData():FmodResult {
         return NativeStudio.evd_unload_sample_data(this);
     }
 
+    /** Loading state of the event's non-streaming sample data. */
     public inline function getSampleLoadingState():FmodLoadingState {
         return NativeStudio.evd_get_sample_loading_state(this);
     }

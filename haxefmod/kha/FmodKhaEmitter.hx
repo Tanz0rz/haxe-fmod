@@ -8,8 +8,8 @@ import haxefmod.studio.EventInstance;
 
 /**
     Anything with a position the Kha components can follow. Kha has no
-    scene graph, so a plain object with x and y (and optionally a size,
-    to follow the midpoint) is the target.
+    scene graph, so the target is a plain object with x and y. An
+    optional width and height make the components follow the midpoint.
 **/
 typedef KhaBody = {
     var x:Float;
@@ -23,8 +23,8 @@ typedef KhaBody = {
 
     The instance follows the body's midpoint. Kha bodies carry no
     velocity for FMOD, so one is derived from the movement between
-    frames (a jump larger than teleportDistance in one frame counts as a
-    cut). The emitter registers with FmodKhaUpdater and needs no
+    frames. A jump larger than teleportDistance in one frame counts as a
+    cut. The emitter registers with FmodKhaUpdater and needs no
     per-frame call of its own.
 
         var emitter = FmodKhaEmitter.play(FmodEvents.SFXEngine, car);
@@ -53,8 +53,10 @@ class FmodKhaEmitter implements IKhaTicker {
     var provider:KhaBodyPositionProvider;
 
     /**
-        Attaches an existing event instance to a body. The caller is
-        responsible for starting the instance. dispose() releases it.
+        Attaches an existing event instance to a body. The caller starts
+        the instance. dispose() releases it.
+        @param instance The event instance to position.
+        @param target The body to follow.
     **/
     public function new(instance:EventInstance, target:KhaBody) {
         provider = new KhaBodyPositionProvider(target);
@@ -71,6 +73,7 @@ class FmodKhaEmitter implements IKhaTicker {
         return new FmodKhaEmitter(instance, target);
     }
 
+    /** Samples the body's position and runs the culling distance check. **/
     public function tick(dt:Float):Void {
         provider.sample(dt);
         tracker.update();
@@ -96,9 +99,9 @@ class FmodKhaEmitter implements IKhaTicker {
 }
 
 /**
-    Adapts a body to the runtime's position interface: its midpoint, with
-    velocity derived between samples. Call sample(dt) once per frame
-    (the Kha components do).
+    Adapts a body to the runtime's position interface. The position is
+    the body's midpoint. The velocity is derived between samples. Call
+    sample(dt) once per frame (the Kha components do).
 **/
 @:dox(hide)
 class KhaBodyPositionProvider extends DerivedVelocityProvider {

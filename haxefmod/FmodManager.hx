@@ -29,7 +29,7 @@ class FmodManager {
     static var debug:Bool = false;
     static var initialized:Bool = false;
 
-    //// System
+    //// Lifecycle
 
     /**
      * Initializes FMOD. The optional settings control channels, Live Update, the bank folder, the auto-loaded banks, and more.
@@ -79,7 +79,7 @@ class FmodManager {
         NativeStudio.sys_set_auto_update(enabled);
     }
 
-    //// Banks
+    //// Lifecycle: banks
 
     /**
      * Loads a bank, or adds a reference to one that is loaded. The name is a file name resolved against the bank folder setting, for example "Level1.bank", or a full path.
@@ -89,7 +89,7 @@ class FmodManager {
     public static function LoadBank(bankName:String):Void {
         ensureInitialized();
         if (FmodRuntime.banks.load(FmodRuntime.bankPath(bankName)).isNull()) {
-            log('LoadBank: could not load $bankName (${StudioSystem.lastResult().toString()})');
+            warnMissing("LoadBank", bankName);
         }
     }
 
@@ -120,7 +120,7 @@ class FmodManager {
         StudioSystem.flushSampleLoading();
     }
 
-    //// Window focus
+    //// Game policy: window focus
 
     /**
      * Chooses whether the master output is muted while the window is unfocused. True, the default, mutes it. False keeps audio playing in the background.
@@ -131,7 +131,7 @@ class FmodManager {
         FmodRuntime.setMuteWhenUnfocused(enabled);
     }
 
-    //// Global controls
+    //// Mixer: the whole mix
 
     /** Stops every event routed through the master bus immediately, the song included. */
     public static function StopAllEvents():Void {
@@ -154,7 +154,7 @@ class FmodManager {
         FmodRuntime.pauseAll(false);
     }
 
-    //// Buses
+    //// Mixer: buses
 
     /**
      * Sets the volume of a bus. The path comes from FMOD Studio, for example "bus:/SFX".
@@ -218,7 +218,7 @@ class FmodManager {
         return IsBusMuted("bus:/");
     }
 
-    //// VCAs
+    //// Mixer: VCAs
 
     /**
      * Sets the volume of a VCA. The path comes from FMOD Studio, for example "vca:/Music".
@@ -261,7 +261,7 @@ class FmodManager {
         return StudioSystem.getEvent(eventPath);
     }
 
-    //// Snapshots
+    //// Mixer: snapshots
 
     /**
      * Applies a snapshot until StopSnapshot. The path comes from FMOD Studio, for example "snapshot:/Paused".
@@ -272,13 +272,13 @@ class FmodManager {
         ensureInitialized();
         var description = StudioSystem.getEvent(snapshotPath);
         if (description.isNull()) {
-            log('StartSnapshot: no snapshot at $snapshotPath (${StudioSystem.lastResult().toString()})');
+            warnMissing("StartSnapshot", snapshotPath);
             return;
         }
         if (description.getInstanceCount() > 0) return;
         var instance = description.createInstance();
         if (instance.isNull()) {
-            log('StartSnapshot: could not create $snapshotPath (${StudioSystem.lastResult().toString()})');
+            warnMissing("StartSnapshot", snapshotPath);
             return;
         }
         instance.start();
@@ -300,7 +300,7 @@ class FmodManager {
         ensureInitialized();
         var description = StudioSystem.getEvent(snapshotPath);
         if (description.isNull()) return;
-        // FMOD's own stop-and-release of every instance. On html5 this is
+        // FMOD's own stop-and-release of every instance. On HTML5 this is
         // also the sweep that reclaims the dead instances' handle slots
         description.releaseAllInstances();
     }
@@ -338,7 +338,7 @@ class FmodManager {
         StudioSystem.setParameterWithLabel(globalParameterName(parameterName), label);
     }
 
-    //// Music (single song slot)
+    //// Song slot
 
     /**
      * Plays a song and replaces the current song immediately with no fade.
@@ -367,8 +367,7 @@ class FmodManager {
         log('PlaySong $songPath');
         var instance = FmodRuntime.createInstance(songPath);
         if (instance.isNull()) {
-            trace('Warn: FMOD - PlaySong could not create "' + songPath
-                + '" (check the event path, that its bank is loaded, and that FMOD is initialized)');
+            warnMissing("PlaySong", songPath);
             return;
         }
         instance.start();
@@ -537,14 +536,14 @@ class FmodManager {
     public static function PlayOneShot(eventPath:String):Void {
         ensureInitialized();
         log('PlayOneShot $eventPath');
-        FmodRuntime.playOneShot(eventPath);
+        if (!FmodRuntime.playOneShot(eventPath)) warnMissing("PlayOneShot", eventPath);
     }
 
     /** Starts a one-shot event at a 2D position relative to listener 0. */
     public static function PlayOneShotAt(eventPath:String, x:Float, y:Float):Void {
         ensureInitialized();
         log('PlayOneShotAt $eventPath');
-        FmodRuntime.playOneShot(eventPath, x, y);
+        if (!FmodRuntime.playOneShot(eventPath, x, y)) warnMissing("PlayOneShotAt", eventPath);
     }
 
     /**
@@ -555,7 +554,7 @@ class FmodManager {
     public static function PlayOneShotAttached(eventPath:String, provider:haxefmod.runtime.IFmodPositionProvider):Void {
         ensureInitialized();
         log('PlayOneShotAttached $eventPath');
-        FmodRuntime.playOneShotAttached(eventPath, provider);
+        if (!FmodRuntime.playOneShotAttached(eventPath, provider)) warnMissing("PlayOneShotAttached", eventPath);
     }
 
     /**
@@ -566,7 +565,7 @@ class FmodManager {
         ensureInitialized();
         var instance = FmodRuntime.createInstance(eventPath);
         if (instance.isNull()) {
-            log('CreateEvent: could not create $eventPath (${StudioSystem.lastResult().toString()})');
+            warnMissing("CreateEvent", eventPath);
             return FmodEvent.NULL;
         }
         return instance;
@@ -581,8 +580,7 @@ class FmodManager {
         log('PlayEvent $eventPath');
         var instance = FmodRuntime.createInstance(eventPath);
         if (instance.isNull()) {
-            trace('Warn: FMOD - PlayEvent could not create "' + eventPath
-                + '" (check the event path, that its bank is loaded, and that FMOD is initialized)');
+            warnMissing("PlayEvent", eventPath);
             return FmodEvent.NULL;
         }
         instance.start();
@@ -769,5 +767,12 @@ class FmodManager {
 
     static function log(message:String):Void {
         if (debug) trace('FMOD: $message');
+    }
+
+    // A bad path is a game bug, so it is reported in every build, the same
+    // way PlaySong and PlayEvent report theirs
+    static function warnMissing(call:String, path:String):Void {
+        trace('Warn: FMOD - $call could not find "$path" (${StudioSystem.lastResult().toString()}). '
+            + "Check the path, that its bank is loaded, and that FMOD is initialized.");
     }
 }

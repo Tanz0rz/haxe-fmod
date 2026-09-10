@@ -12,6 +12,7 @@ import haxefmod.studio.native.NativeStudio;
  * return defaults, setters return FMOD_ERR_INVALID_HANDLE).
  */
 abstract Vca(Int) from Int to Int {
+    /** The null handle. Every call on it is a safe no-op. */
     public static inline var NULL:Vca = cast 0;
 
     /** True if this is the invalid handle (lookup failed). */
@@ -44,6 +45,7 @@ abstract Vca(Int) from Int to Int {
         return NativeStudio.vca_get_final_volume(this);
     }
 
+    /** Sets the volume as a linear level (0.0 = silent, 1.0 = full). */
     public inline function setVolume(volume:Float):FmodResult {
         return NativeStudio.vca_set_volume(this, volume);
     }

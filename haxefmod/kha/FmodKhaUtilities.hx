@@ -11,10 +11,10 @@ class FmodKhaUtilities {
     /**
         Fire-and-forget playback that follows a body (midpoint, derived
         velocity) until the event ends. Intended for one-shot
-        (self-ending) events - a looping event played this way never
+        (self-ending) events. A looping event played this way never
         releases.
-        @param eventPath the full event path (e.g. "event:/SFX/Explosion")
-        @param target the body the sound follows
+        @param eventPath The full event path, for example "event:/SFX/Explosion".
+        @param target The body the event follows.
     **/
     public static function PlayOneShotAttached(eventPath:String, target:KhaBody):Void {
         var provider = new KhaBodyPositionProvider(target);
@@ -24,12 +24,15 @@ class FmodKhaUtilities {
         // the attachment, which happens when the instance ends.
         FmodKhaUpdater.add(new OneShotSampler(provider));
     }
+
+    /** Deprecated alias of PlayOneShotAttached. **/
     @:deprecated("FmodKhaUtilities.PlaySoundOneShotAttached is now PlayOneShotAttached")
     public static function PlaySoundOneShotAttached(eventPath:String, target:KhaBody):Void {
         PlayOneShotAttached(eventPath, target);
     }
 }
 
+/** Samples a one-shot's provider every frame until the runtime drops the attachment. **/
 private class OneShotSampler implements IKhaTicker {
     var provider:KhaBodyPositionProvider;
 

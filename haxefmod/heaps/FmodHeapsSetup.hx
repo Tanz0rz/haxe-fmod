@@ -7,21 +7,24 @@ import hxd.Event;
 
 /**
     One-call FMOD setup for Heaps games. Call init() once from your
-    hxd.App's init():
+    hxd.App's init(). init() does the following.
 
-    - initializes FMOD (settings pass through to FmodManager.Initialize;
-      first initialization wins, so settings are ignored if something
-      already initialized FMOD)
-    - installs FmodHeapsUpdater so FmodManager.Update() runs every frame
-    - mutes the FMOD master output while the window is unfocused, through
-      the window's focus events
+    It initializes FMOD. Settings pass through to FmodManager.Initialize.
+    The first initialization wins. Settings are ignored if something
+    already initialized FMOD.
+
+    It installs FmodHeapsUpdater so FmodManager.Update() runs every frame.
+
+    It mutes the FMOD master output while the window is unfocused, through
+    the window's focus events.
 
     Heaps has no global volume control of its own, so the FMOD master bus
-    is the volume: FmodManager.SetMasterVolume and SetMasterMute.
+    is the volume. Use FmodManager.SetMasterVolume and SetMasterMute.
 
     Calling init() again is safe and keeps a single focus wiring.
 **/
 class FmodHeapsSetup {
+    /** Initializes FMOD and wires the Heaps updater and focus hooks. **/
     public static function init(?settings:FmodSettings):Void {
         FmodManager.Initialize(settings);
         FmodHeapsUpdater.init();

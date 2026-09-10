@@ -68,6 +68,7 @@ class StudioSystem {
         return NativeStudio.sys_get_vca(path);
     }
 
+    /** Looks up a VCA by GUID. */
     public static function getVCAByID(guid:FmodGuid):Vca {
         return NativeStudio.sys_get_vca_by_id(guid);
     }
@@ -77,6 +78,7 @@ class StudioSystem {
         return NativeStudio.sys_get_bank(path);
     }
 
+    /** Looks up a loaded bank by GUID. */
     public static function getBankByID(guid:FmodGuid):Bank {
         return NativeStudio.sys_get_bank_by_id(guid);
     }
@@ -104,7 +106,7 @@ class StudioSystem {
     }
 
     /**
-     * Loads a bank file. On html5 the file must already be in the virtual
+     * Loads a bank file. On HTML5 the file must already be in the virtual
      * filesystem (the default banks are preloaded. Use FmodRuntime for
      * fetch-based loading). Returns Bank.NULL on failure.
      */
@@ -156,14 +158,15 @@ class StudioSystem {
         return NativeStudio.sys_start_command_capture(path, flags);
     }
 
+    /** Stops the command recording started by startCommandCapture. */
     public static function stopCommandCapture():FmodResult {
         return NativeStudio.sys_stop_command_capture();
     }
 
     /**
      * Loads a capture file for playback. FAST_FORWARD plays it back as fast
-     * as it can, SKIP_CLEANUP leaves the objects it created alive at the
-     * end, and SKIP_BANK_LOAD keeps it from loading banks. Returns
+     * as it can. SKIP_CLEANUP leaves the objects it created alive at the
+     * end. SKIP_BANK_LOAD keeps it from loading banks. Returns
      * CommandReplay.NULL on failure.
      */
     public static function loadCommandReplay(path:String, flags:FmodCommandReplayFlags = NORMAL):CommandReplay {
@@ -182,34 +185,42 @@ class StudioSystem {
 
     //// Global parameters
 
+    /** A global parameter's value as set by the API, by name. */
     public static function getParameter(name:String):Float {
         return NativeStudio.sys_get_param_by_name(name);
     }
 
+    /** The final value of a global parameter after automation and seek speed, by name. */
     public static function getParameterFinal(name:String):Float {
         return NativeStudio.sys_get_param_by_name_final(name);
     }
 
+    /** Sets a global parameter by name. ignoreSeekSpeed skips the parameter's seek speed and applies the value at once. */
     public static function setParameter(name:String, value:Float, ignoreSeekSpeed:Bool = false):FmodResult {
         return NativeStudio.sys_set_param_by_name(name, value, ignoreSeekSpeed);
     }
 
+    /** Sets a labeled global parameter by name and label text (e.g. discrete enum names). */
     public static function setParameterWithLabel(name:String, label:String, ignoreSeekSpeed:Bool = false):FmodResult {
         return NativeStudio.sys_set_param_by_name_with_label(name, label, ignoreSeekSpeed);
     }
 
+    /** A global parameter's value as set by the API, by ID. */
     public static function getParameterByID(id:FmodParameterId):Float {
         return NativeStudio.sys_get_param_by_id(id.data1, id.data2);
     }
 
+    /** The final value of a global parameter after automation and seek speed, by ID. */
     public static function getParameterByIDFinal(id:FmodParameterId):Float {
         return NativeStudio.sys_get_param_by_id_final(id.data1, id.data2);
     }
 
+    /** Sets a global parameter by ID. ignoreSeekSpeed skips the parameter's seek speed and applies the value at once. */
     public static function setParameterByID(id:FmodParameterId, value:Float, ignoreSeekSpeed:Bool = false):FmodResult {
         return NativeStudio.sys_set_param_by_id(id.data1, id.data2, value, ignoreSeekSpeed);
     }
 
+    /** Sets a labeled global parameter by ID and label text. ignoreSeekSpeed skips the seek speed and applies the value at once. */
     public static function setParameterByIDWithLabel(id:FmodParameterId, label:String, ignoreSeekSpeed:Bool = false):FmodResult {
         return NativeStudio.sys_set_param_by_id_with_label(id.data1, id.data2, label, ignoreSeekSpeed);
     }
@@ -311,7 +322,7 @@ class StudioSystem {
         return NativeStudio.sys_set_parameters_by_ids(count, ignoreSeekSpeed);
     }
 
-    /** Writes id pairs to the Scratch int buffer and values to the float buffer, returns the pair count or -1 when the batch does not fit. */
+    /** Writes id pairs to the Scratch int buffer and values to the float buffer. Returns the pair count, or -1 when the batch does not fit. */
     @:allow(haxefmod.studio.EventInstance)
     static function packParameterBatch(ids:Array<FmodParameterId>, values:Array<Float>):Int {
         if (ids == null || values == null) return -1;
@@ -327,10 +338,12 @@ class StudioSystem {
 
     //// Listeners
 
+    /** Number of listeners (1 to 8). */
     public static function getNumListeners():Int {
         return NativeStudio.sys_get_num_listeners();
     }
 
+    /** Sets the number of listeners (1 to 8). */
     public static function setNumListeners(count:Int):FmodResult {
         return NativeStudio.sys_set_num_listeners(count);
     }
@@ -353,9 +366,10 @@ class StudioSystem {
 
     /**
      * Sets a listener's 3D attributes. attenuationPosition is the point
-     * distance attenuation is measured from when it differs from the
-     * listener position (a third-person camera that hears from the
-     * character). Left out, FMOD attenuates from the listener position.
+     * FMOD measures distance attenuation from. Use it when that point
+     * differs from the listener position (a third-person camera that
+     * hears from the character). Left out, FMOD attenuates from the
+     * listener position.
      */
     public static function setListenerAttributes(index:Int, attributes:Fmod3DAttributes,
             ?attenuationPosition:FmodVector):FmodResult {
@@ -378,10 +392,12 @@ class StudioSystem {
             velocityX, velocityY, 0, 0, 0, 1, 0, 1, 0, false, 0, 0, 0);
     }
 
+    /** A listener's weight (0.0 = no effect on the mix, 1.0 = full, the default). */
     public static function getListenerWeight(index:Int):Float {
         return NativeStudio.sys_get_listener_weight(index);
     }
 
+    /** Sets how much a listener influences the mix (0.0 = no effect, 1.0 = full, the default). The weight applies to 3D panning, Doppler, and the automatic distance parameter. */
     public static function setListenerWeight(index:Int, weight:Float):FmodResult {
         return NativeStudio.sys_set_listener_weight(index, weight);
     }
@@ -425,6 +441,7 @@ class StudioSystem {
         };
     }
 
+    /** Resets the peak usage and stall counts reported by getBufferUsage. */
     public static function resetBufferUsage():FmodResult {
         return NativeStudio.sys_reset_buffer_usage();
     }
@@ -572,18 +589,18 @@ class StudioSystem {
     /**
      * Installs a handler for system events (device changes from the core
      * system, bank unloads and Live Update connections from Studio).
-     * Events are delivered from the callback drain on the game thread,
-     * one handler at a time, registering again replaces it.
+     * Events are delivered from the callback drain on the game thread.
+     * One handler is active at a time, registering again replaces it.
      *
-     * coreMask defaults to DEVICELISTCHANGED | DEVICELOST and studioMask
-     * to BANK_UNLOAD | LIVEUPDATE_CONNECTED | LIVEUPDATE_DISCONNECTED (the
-     * SystemCallbacks constants). PreUpdate and PostUpdate fire on every
+     * coreMask defaults to DEVICELISTCHANGED | DEVICELOST. studioMask
+     * defaults to BANK_UNLOAD | LIVEUPDATE_CONNECTED | LIVEUPDATE_DISCONNECTED.
+     * Both are SystemCallbacks constants. PreUpdate and PostUpdate fire on every
      * update, so add STUDIO_PREUPDATE or STUDIO_POSTUPDATE to studioMask
      * only when needed.
      *
      * BankUnload carries the path when the bank went through Bank.unload
-     * or unloadAll (FMOD refuses reads on the bank inside the callback, so
-     * the bindings read the path ahead of the unload). A bank that FMOD
+     * or unloadAll. FMOD refuses reads on the bank inside the callback, so
+     * the bindings read the path ahead of the unload. A bank that FMOD
      * drops on its own arrives with an empty path. On HTML5 the core
      * device events never fire under the browser output.
      */
@@ -628,10 +645,10 @@ class StudioSystem {
     //// System extras
 
     /**
-     * Holds the mixer until unlockDsp so several graph edits (adding,
-     * removing, or reconnecting DSPs) land in one mixer update instead
-     * of being heard one at a time. Keep the section short, the mixer
-     * waits for it.
+     * Holds the mixer until unlockDsp. Several graph edits (adding,
+     * removing, or reconnecting DSPs) then land in one mixer update
+     * instead of being heard one at a time. Keep the section short, the
+     * mixer waits for it.
      */
     public static inline function lockDsp():FmodResult {
         return NativeStudio.sys_lock_dsp();
@@ -643,10 +660,11 @@ class StudioSystem {
     }
 
     /**
-     * What FMOD would load for an audio table key: the file it reports
-     * (empty for a bank held in memory), the ChannelMode flags, where the
-     * sample sits in that file, and the subsound index inside it. Null when
-     * the key is not in any loaded audio table (lastResult says why).
+     * What FMOD loads for an audio table key. The result holds the file
+     * FMOD reports (empty for a bank held in memory) and the ChannelMode
+     * flags. It also holds where the sample sits in that file and the
+     * subsound index inside it. Null when the key is not in any loaded
+     * audio table (lastResult says why).
      */
     public static function getSoundInfo(key:String):Null<FmodSoundInfo> {
         var name = NativeStudio.sys_get_sound_info(key);
@@ -664,8 +682,8 @@ class StudioSystem {
 
     /**
      * Bytes FMOD currently has allocated and the most it has ever had.
-     * blocking (the default, matching FMOD) makes FMOD flush pending
-     * commands first so the numbers are exact. Null on failure.
+     * With blocking (the default, matching FMOD) FMOD flushes pending
+     * commands first, so the numbers are exact. Null on failure.
      */
     public static function getMemoryStats(blocking:Bool = true):Null<FmodMemoryStats> {
         var result:FmodResult = NativeStudio.sys_get_memory_stats(blocking);
@@ -683,9 +701,9 @@ class StudioSystem {
         if (!result.isOk()) return null;
         return {sampleBytesRead: Scratch.readF(0), streamBytesRead: Scratch.readF(1), otherBytesRead: Scratch.readF(2)};
     }
-    // Plugins. Plugin handles are FMOD's own ids, not haxefmod handles, so
-    // they never show up in liveHandleCount and a stale one is reported by
-    // FMOD as FMOD_ERR_INVALID_HANDLE.
+    // Plugins. Plugin handles are FMOD's own ids rather than haxefmod
+    // handles, so they never show up in liveHandleCount. FMOD reports a
+    // stale one as FMOD_ERR_INVALID_HANDLE.
 
 #if (macro || (js && !haxefmod_html5_allow_unsupported))
     /** Sets the directory FMOD searches for plugins given by file name (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED). */
@@ -702,9 +720,10 @@ class StudioSystem {
 #if (macro || (js && !haxefmod_html5_allow_unsupported))
     /**
      * Loads a plugin shared library and returns FMOD's plugin handle
-     * (unsupported in HTML5, returns 0 there). 0 on failure with the reason
-     * in lastResult, FMOD_ERR_FILE_NOTFOUND for a missing file. A relative
-     * path is resolved against setPluginPath, not the working directory.
+     * (unsupported in HTML5, returns 0 there). Returns 0 on failure with
+     * the reason in lastResult, FMOD_ERR_FILE_NOTFOUND for a missing file.
+     * FMOD resolves a relative path against setPluginPath rather than the
+     * working directory.
      */
     public static macro function loadPlugin(path:haxe.macro.Expr, ?priority:haxe.macro.Expr):haxe.macro.Expr {
         return haxefmod.studio.native.Html5Gate.block("StudioSystem.loadPlugin", "the web build has no plugin host");
@@ -712,9 +731,10 @@ class StudioSystem {
     #else
     /**
      * Loads a plugin shared library and returns FMOD's plugin handle
-     * (unsupported in HTML5, returns 0 there). 0 on failure with the reason
-     * in lastResult, FMOD_ERR_FILE_NOTFOUND for a missing file. A relative
-     * path is resolved against setPluginPath, not the working directory.
+     * (unsupported in HTML5, returns 0 there). Returns 0 on failure with
+     * the reason in lastResult, FMOD_ERR_FILE_NOTFOUND for a missing file.
+     * FMOD resolves a relative path against setPluginPath rather than the
+     * working directory.
      */
     public static inline function loadPlugin(path:String, priority:Int = 0):Int {
         return NativeStudio.sys_load_plugin(path == null ? "" : path, priority);
@@ -725,9 +745,9 @@ class StudioSystem {
     /**
      * Unloads a plugin from loadPlugin (unsupported in HTML5, returns
      * FMOD_ERR_UNSUPPORTED). Release every Dsp created from it first. FMOD
-     * frees a released unit from its mixer thread, so an unload that
-     * answers FMOD_ERR_DSP_INUSE right after the release succeeds when it
-     * is retried a few frames later.
+     * frees a released unit from its mixer thread. An unload right after
+     * the release can answer FMOD_ERR_DSP_INUSE, a retry a few frames
+     * later succeeds.
      */
     public static macro function unloadPlugin(handle:haxe.macro.Expr):haxe.macro.Expr {
         return haxefmod.studio.native.Html5Gate.block("StudioSystem.unloadPlugin", "the web build has no plugin host");
@@ -736,9 +756,9 @@ class StudioSystem {
     /**
      * Unloads a plugin from loadPlugin (unsupported in HTML5, returns
      * FMOD_ERR_UNSUPPORTED). Release every Dsp created from it first. FMOD
-     * frees a released unit from its mixer thread, so an unload that
-     * answers FMOD_ERR_DSP_INUSE right after the release succeeds when it
-     * is retried a few frames later.
+     * frees a released unit from its mixer thread. An unload right after
+     * the release can answer FMOD_ERR_DSP_INUSE, a retry a few frames
+     * later succeeds.
      */
     public static inline function unloadPlugin(handle:Int):FmodResult {
         return NativeStudio.sys_unload_plugin(handle);
