@@ -487,8 +487,11 @@ class PostBuild {
 					var code = proc.exitCode();
 					proc.close();
 					if (code != 0 && err.indexOf("would duplicate") == -1) {
-						log('WARNING: install_name_tool exited with $code for $exe');
+						log('ERROR: install_name_tool could not add the dylib search path to $exe (exit $code)');
 						if (StringTools.trim(err + out) != "") log("  " + StringTools.trim(err + out));
+						log("  The game then fails at startup with: Library not loaded: @rpath/libfmod.dylib");
+						log("  Link the executable with -Wl,-headerpad_max_install_names, or add an rpath at link time.");
+						Sys.exit(1);
 					}
 				} catch (e:Dynamic) {
 					log('WARNING: install_name_tool could not run: $e');

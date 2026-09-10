@@ -51,11 +51,11 @@
 
     Heaps has no global volume control of its own, so the FMOD master bus is the volume. Wire your settings menu to `FmodManager.SetMasterVolume` and `SetMasterMute`.
 
-    On HashLink the updater rides the main thread's event loop, which Heaps pumps before `hxd.App.update`. In the browser it is a `requestAnimationFrame` loop. The positions an update sets reach FMOD at the start of the next frame. A game that wants them in the same frame calls `FmodManager.Update()` at the end of its own `update` and removes the hook with `FmodHeapsUpdater.removeHook()`. A game that drives FMOD itself calls `FmodManager.Initialize()` without the setup.
+    On HashLink the updater rides the main thread's event loop, which Heaps pumps before `hxd.App.update`. In the browser it is a `requestAnimationFrame` loop. The positions an update sets reach FMOD at the start of the next frame. A game that wants them in the same frame calls `FmodManager.Update()` at the end of its own `update`. It removes the hook first with `FmodHeapsUpdater.removeHook()`. A game that drives FMOD itself calls `FmodManager.Initialize()` without the setup.
 
 === "Kha"
 
-    Call `FmodKhaSetup.init(?settings)` once from the `System.start` callback. It initializes FMOD with the given [settings](settings.md#settings). It installs `FmodKhaUpdater` as a `Scheduler` frame task at priority 100. Kha runs frame tasks in ascending priority order, so give the game's own frame tasks a lower number and `FmodManager.Update()` runs after them every frame. It mutes the master output while the application is paused or in the background, through `System.notifyOnApplicationState` (see [FmodManager](fmod-manager.md#window-focus)).
+    Call `FmodKhaSetup.init(?settings)` once from the `System.start` callback. It initializes FMOD with the given [settings](settings.md#settings). It installs `FmodKhaUpdater` as a `Scheduler` frame task at priority 100. Kha runs frame tasks in ascending priority order. Give the game's own frame tasks a lower number, and `FmodManager.Update()` runs after them every frame. It mutes the master output while the application is paused or in the background, through `System.notifyOnApplicationState` (see [FmodManager](fmod-manager.md#window-focus)).
 
     ```haxe
     import haxefmod.kha.FmodKhaSetup;
@@ -272,4 +272,4 @@ The trigger drives an FMOD parameter from a rectangular zone. While the target i
 
 ## Rolling your own
 
-Everything the components do goes through public runtime calls: `FmodRuntime.attach` with an `IFmodPositionProvider`, `StudioSystem.setListenerPosition2D`, and `FmodRuntime.banks`. A game on an engine without a component package writes the same few lines against its own object types. The engine-free cores in `haxefmod.runtime` (`EmitterTracker`, `ListenerTracker`, `ZoneTrigger`, `BankLoadTracker`) carry the shared behavior.
+Everything the components do goes through public runtime calls: `FmodRuntime.attach` with an `IFmodPositionProvider`, `StudioSystem.setListenerPosition2D`, and `FmodRuntime.banks`. A game on an engine without a component package writes the same few lines against its own object types. On Heaps and Kha, `FmodHeapsUpdater.add(ticker)` and `FmodKhaUpdater.add(ticker)` tick a custom component every frame, and `remove(ticker)` stops it. The engine-free cores in `haxefmod.runtime` (`EmitterTracker`, `ListenerTracker`, `ZoneTrigger`, `BankLoadTracker`) carry the shared behavior.

@@ -112,7 +112,7 @@ jobs:
           # The dox output takes the api/ path, so a docs/api page cannot exist
           if [ -e site/api ]; then echo "FAIL: site/api exists before the API reference is moved in"; exit 1; fi
           mv site-api site/api
-          python3 ci/docs-analytics.py site/api
+          DOCS_ANALYTICS=custom python3 ci/docs-analytics.py site/api
           python3 ci/check-site-links.py site
 
       - name: Ship the site to tanz0rz.com

@@ -28,7 +28,7 @@ FmodManager.LoadBank("Level1.bank");
 FmodManager.UnloadBank("Level1.bank");
 ```
 
-Loads are counted. A bank loaded twice unloads on the second `UnloadBank`. A level never pulls away a bank another level still holds. Native targets load synchronously. HTML5 loads asynchronously, so poll `IsBankLoaded` before the first event from the bank. `IsAnyBankLoading()` reports whether any bank is still loading, and `AnyBankFailed()` reports a load that ended in error. `WaitForBanks()` blocks until every pending load completes on native targets. HTML5 cannot block, so it returns at once there. The [engine components](components.md) load a bank for a state's lifetime without any of these calls, and [Bank loading](bank-loading.md) covers the registry underneath.
+Loads are counted. A bank loaded twice unloads on the second `UnloadBank`. A level never pulls away a bank another level still holds. Native targets load synchronously. HTML5 loads asynchronously, so poll `IsBankLoaded` before the first event from the bank. `IsAnyBankLoading()` reports whether any bank is still loading, and `AnyBankFailed()` reports a load that ended in error. `WaitForBanks()` blocks until every pending load completes on native targets. HTML5 cannot block, so it returns at once there. The [engine components](components.md) load a bank for a state's lifetime without any of these calls. [Bank loading](bank-loading.md) covers the registry underneath.
 
 ## Music
 
@@ -97,7 +97,7 @@ footstep.setParameterWithLabel("Surface", "Grass");
 footstep.start();
 ```
 
-`FmodEvent` wraps an `EventInstance` handle with the everyday operations. Playback: `start`, `stop` (with the authored fadeout), `stopImmediately`, `pause`, `unpause`, `isPlaying`, and `isPaused`. Timeline: `getTimelinePosition` and `setTimelinePosition(ms)`. Mix: `getVolume`, `setVolume`, `getPitch`, `setPitch`, and `setPosition2D(x, y, velocityX = 0, velocityY = 0)`. Parameters: `getParameter`, `setParameter`, and `setParameterWithLabel`. Lifecycle: `onEvent`, `onceEvent`, and `release`. `onceEvent` fires for the first delivered event and then removes itself. Call `release()` when you are done with the handle. The handle becomes invalid immediately. The event plays to completion unless you stopped it first.
+`FmodEvent` wraps an `EventInstance` handle with the everyday operations. Validity: `isNull` and `isValid`. Playback: `start`, `stop` (with the authored fadeout), `stopImmediately`, `pause`, `unpause`, `isPlaying`, and `isPaused`. Timeline: `getTimelinePosition` and `setTimelinePosition(ms)`. Mix: `getVolume`, `setVolume`, `getPitch`, `setPitch`, and `setPosition2D(x, y, velocityX = 0, velocityY = 0)`. Parameters: `getParameter`, `setParameter`, and `setParameterWithLabel`. Lifecycle: `onEvent`, `onceEvent`, and `release`. `onceEvent` fires for the first delivered event and then removes itself. Call `release()` when you are done with the handle. The handle becomes invalid immediately. The event plays to completion unless you stopped it first.
 
 The full event instance API is one cast away. `FmodEvent` is an abstract over `EventInstance`.
 

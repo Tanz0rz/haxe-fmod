@@ -75,6 +75,7 @@ class FmodKhaListener implements IKhaTicker {
     }
 
     /** Samples the followed position and pushes it to the listener. **/
+    @:dox(hide)
     public function tick(dt:Float):Void {
         if (provider == null) return;
         provider.teleportDistance = effectiveTeleportDistance();

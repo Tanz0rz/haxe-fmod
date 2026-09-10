@@ -15,6 +15,7 @@ import kha.Scheduler;
 **/
 class FmodKhaUpdater {
     /** How many times the frame task was actually installed (1 after init). **/
+    @:dox(hide)
     public static var installCount(default, null):Int = 0;
 
     /** The frame task priority. Lower numbers run first, so the game's tasks go below this. **/
@@ -56,6 +57,7 @@ class FmodKhaUpdater {
     }
 
     /** How many components are registered. **/
+    @:dox(hide)
     public static function count():Int {
         return tickers.length;
     }

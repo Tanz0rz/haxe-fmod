@@ -66,6 +66,7 @@ class FmodHeapsEmitter implements IHeapsTicker {
     }
 
     /** Samples the object's position and runs the culling distance check. **/
+    @:dox(hide)
     public function tick(dt:Float):Void {
         provider.sample(dt);
         tracker.update();

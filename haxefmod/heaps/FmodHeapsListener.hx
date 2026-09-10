@@ -83,6 +83,7 @@ class FmodHeapsListener implements IHeapsTicker {
     }
 
     /** Samples the followed position and pushes it to the listener. **/
+    @:dox(hide)
     public function tick(dt:Float):Void {
         if (provider == null) return;
         if (scene != null) {

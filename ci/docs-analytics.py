@@ -8,6 +8,7 @@ same tags into each generated page before </head>.
 Usage: python3 ci/docs-analytics.py site/api
 """
 import pathlib
+import os
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -22,6 +23,10 @@ def tags():
 
 
 def main():
+    # The site build carries the tags only when the docs workflow asks
+    if not os.environ.get("DOCS_ANALYTICS"):
+        print("docs-analytics: DOCS_ANALYTICS is unset, no tags added")
+        return
     if len(sys.argv) != 2:
         sys.exit(__doc__)
     api = pathlib.Path(sys.argv[1])

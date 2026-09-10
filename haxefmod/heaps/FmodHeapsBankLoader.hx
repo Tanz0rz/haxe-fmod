@@ -35,6 +35,7 @@ class FmodHeapsBankLoader implements IHeapsTicker {
     }
 
     /** Polls the loading state and fires the callbacks once the banks settle. **/
+    @:dox(hide)
     public function tick(dt:Float):Void {
         tracker.update();
     }

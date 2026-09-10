@@ -48,6 +48,7 @@ class FmodKhaParameterTrigger implements IKhaTicker {
     }
 
     /** Samples the body and applies the parameter on an edge crossing. **/
+    @:dox(hide)
     public function tick(dt:Float):Void {
         provider.sample(dt);
         trigger.update();

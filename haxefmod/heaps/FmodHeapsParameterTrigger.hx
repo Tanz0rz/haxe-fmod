@@ -44,6 +44,7 @@ class FmodHeapsParameterTrigger implements IHeapsTicker {
     }
 
     /** Samples the target and applies the parameter on an edge crossing. **/
+    @:dox(hide)
     public function tick(dt:Float):Void {
         provider.sample(dt);
         trigger.update();

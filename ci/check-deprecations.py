@@ -12,6 +12,7 @@ Run: python3 ci/check-deprecations.py
 
 import glob
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -120,12 +121,21 @@ def main():
     # Every @:deprecated member in the library must have a row, so a new
     # alias without a compile proof fails here
     listed = {row[0] for row in DEPRECATED + ENGINE_DEPRECATED}
-    in_source = 0
+    in_source = set()
+    member = re.compile(r"@:deprecated\b[^\n]*\n\s*(?:public\s+|static\s+|inline\s+|macro\s+)*(?:function|var|typedef|class)\s+([A-Za-z0-9_]+)")
     for path in sorted(glob.glob(os.path.join(ROOT, "haxefmod", "**", "*.hx"), recursive=True)):
         with open(path, encoding="utf-8") as fh:
-            in_source += fh.read().count("@:deprecated(")
-    if in_source != len(listed):
-        print(f"FAIL: {in_source} @:deprecated members in haxefmod/, {len(listed)} listed here")
+            text = fh.read()
+        rel = os.path.relpath(path, ROOT)[:-3].replace(os.sep, ".")
+        for match in member.finditer(text):
+            name = match.group(1)
+            # A deprecated type is listed by its own path, a member by owner.member
+            in_source.add(rel if name == rel.split(".")[-1] else rel + "." + name)
+    for name in sorted(in_source - listed):
+        print(f"FAIL: {name} is @:deprecated in the source but has no row here")
+        failures += 1
+    for name in sorted(listed - in_source):
+        print(f"FAIL: {name} is listed here but not @:deprecated in the source")
         failures += 1
     print(f"check-deprecations: {len(DEPRECATED) + len(ENGINE_DEPRECATED)} alias(es), {failures} failure(s)")
     return 1 if failures else 0

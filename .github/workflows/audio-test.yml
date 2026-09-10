@@ -15,8 +15,9 @@ concurrency:
 
 env:
   HAXE_VERSION: 4.3.6
-  # Kode/Kha main as checked out for the first Kha jobs (2026-08-28)
-  KHA_COMMIT: 0b2f97fe1c1612604efb5535c940ffdc4cc29f1e
+  # Kode/Kha main tip of 2026-09-01. Its Kore links macOS executables with
+  # header padding, so the stage command can add the dylib rpath.
+  KHA_COMMIT: a69e08224badb7ecad1e6805afdc3eca53a332f1
   FMOD_SDK: ${{ github.workspace }}/fmod-sdk
 
 jobs:

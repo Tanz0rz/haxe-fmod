@@ -20,6 +20,7 @@ import haxefmod.FmodManager;
 **/
 class FmodHeapsUpdater {
     /** How many times the frame hook was actually installed (1 after init). **/
+    @:dox(hide)
     public static var installCount(default, null):Int = 0;
 
     static var tickers:Array<IHeapsTicker> = [];
@@ -88,6 +89,7 @@ class FmodHeapsUpdater {
     }
 
     /** How many components are registered. **/
+    @:dox(hide)
     public static function count():Int {
         return tickers.length;
     }
