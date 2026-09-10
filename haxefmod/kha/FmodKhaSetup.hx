@@ -33,8 +33,10 @@ class FmodKhaSetup {
         and calls onReady once everything is usable. Add the bank folder to
         the khafile assets and call this from the kha.Assets.loadEverything
         callback. A bank named Master.bank is the blob Master_bank, the way
-        khamake names assets. onFailed runs instead when a bank is not
-        among the assets or fails to load, and the console names it.
+        khamake names assets. On a native target a bank missing from the
+        blobs is read from the bank folder on disk instead, the folder the
+        stage command fills. onFailed runs instead when a bank is not
+        available either way or fails to load, and the console names it.
         @param settings The FmodSettings for Initialize. banksProvided is set here.
         @param onReady Called once FMOD and the default banks are usable.
         @param onFailed Called when a default bank is missing or fails to load.
@@ -46,13 +48,26 @@ class FmodKhaSetup {
         var failed = false;
         for (fileName in resolved.autoLoadBanks) {
             var blob:kha.Blob = kha.Assets.blobs.get(blobName(fileName));
-            if (blob == null) {
-                trace('Error: FMOD - the default bank $fileName is not among the Kha assets (blob ${blobName(fileName)}).'
-                    + ' Add the bank folder to the khafile assets.');
+            if (blob != null) {
+                FmodRuntime.provideBank(fileName, blob.bytes);
+                continue;
+            }
+            #if sys
+            // The stage command put the bank folder next to the executable
+            var path = FmodRuntime.bankPath(fileName, resolved.bankFolder);
+            try {
+                FmodRuntime.provideBank(fileName, sys.io.File.getBytes(path));
+                continue;
+            } catch (e:Dynamic) {
+                trace('Error: FMOD - the default bank $fileName is not among the Kha assets (blob ${blobName(fileName)})'
+                    + ' and could not be read from $path: $e');
                 failed = true;
                 continue;
             }
-            FmodRuntime.provideBank(fileName, blob.bytes);
+            #end
+            trace('Error: FMOD - the default bank $fileName is not among the Kha assets (blob ${blobName(fileName)}).'
+                + ' Add the bank folder to the khafile assets.');
+            failed = true;
         }
         if (failed) {
             if (onFailed != null) onFailed();
