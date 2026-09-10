@@ -630,7 +630,7 @@ jobs:
         run: |
           set -o pipefail
           git ls-files \
-            | grep -vE '^(\.github/|\.gitignore|\.vscode/|ci/|tests/|example-project/|package\.sh|docs/|extension/|logo/|mkdocs\.yml|overrides/)' \
+            | grep -vE '^(\.github/|\.gitignore|\.vscode/|ci/|tests/|example-project/|package\.sh|docs/|extension/|mkdocs\.yml|overrides/)' \
             | sort > /tmp/tracked-shippable.txt
           unzip -Z1 haxefmod.zip | grep -v '/$' | sort > /tmp/zip-contents.txt
           MISSING=$(comm -23 /tmp/tracked-shippable.txt /tmp/zip-contents.txt)
@@ -2216,7 +2216,14 @@ jobs:
             kill -0 $GAME_PID 2>/dev/null || break
             sleep 1
           done
+          # A game that ignores SIGTERM must not hold the job until its
+          # timeout, so a KILL follows after ten seconds
           kill $GAME_PID 2>/dev/null || true
+          for i in $(seq 10); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill -9 $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
 
       - name: Validate volume/mute
@@ -2348,7 +2355,14 @@ jobs:
             kill -0 $GAME_PID 2>/dev/null || break
             sleep 1
           done
+          # A game that ignores SIGTERM must not hold the job until its
+          # timeout, so a KILL follows after ten seconds
           kill $GAME_PID 2>/dev/null || true
+          for i in $(seq 10); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill -9 $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
 
           echo "=== Game log ==="
@@ -2387,7 +2401,14 @@ jobs:
             kill -0 $GAME_PID 2>/dev/null || break
             sleep 1
           done
+          # A game that ignores SIGTERM must not hold the job until its
+          # timeout, so a KILL follows after ten seconds
           kill $GAME_PID 2>/dev/null || true
+          for i in $(seq 10); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill -9 $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
 
       - name: Validate volume/mute
@@ -3720,7 +3741,14 @@ jobs:
             kill -0 $GAME_PID 2>/dev/null || break
             sleep 1
           done
+          # A game that ignores SIGTERM must not hold the job until its
+          # timeout, so a KILL follows after ten seconds
           kill $GAME_PID 2>/dev/null || true
+          for i in $(seq 10); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill -9 $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
 
       - name: Validate audio
@@ -3779,7 +3807,14 @@ jobs:
             kill -0 $GAME_PID 2>/dev/null || break
             sleep 1
           done
+          # A game that ignores SIGTERM must not hold the job until its
+          # timeout, so a KILL follows after ten seconds
           kill $GAME_PID 2>/dev/null || true
+          for i in $(seq 10); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill -9 $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
           grep "STRESS_TEST:" "$LOG" || true
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }
@@ -3887,7 +3922,14 @@ jobs:
             kill -0 $GAME_PID 2>/dev/null || break
             sleep 1
           done
+          # A game that ignores SIGTERM must not hold the job until its
+          # timeout, so a KILL follows after ten seconds
           kill $GAME_PID 2>/dev/null || true
+          for i in $(seq 10); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill -9 $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
 
       - name: Validate audio
@@ -3935,7 +3977,14 @@ jobs:
             kill -0 $GAME_PID 2>/dev/null || break
             sleep 1
           done
+          # A game that ignores SIGTERM must not hold the job until its
+          # timeout, so a KILL follows after ten seconds
           kill $GAME_PID 2>/dev/null || true
+          for i in $(seq 10); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill -9 $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
           grep "STRESS_TEST:" "$LOG" || true
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }
@@ -4213,7 +4262,14 @@ jobs:
             kill -0 $GAME_PID 2>/dev/null || break
             sleep 1
           done
+          # A game that ignores SIGTERM must not hold the job until its
+          # timeout, so a KILL follows after ten seconds
           kill $GAME_PID 2>/dev/null || true
+          for i in $(seq 10); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill -9 $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
           echo "=== Game log ==="
           cat /tmp/game-mac-cpp.log || true
@@ -4233,7 +4289,14 @@ jobs:
             kill -0 $GAME_PID 2>/dev/null || break
             sleep 1
           done
+          # A game that ignores SIGTERM must not hold the job until its
+          # timeout, so a KILL follows after ten seconds
           kill $GAME_PID 2>/dev/null || true
+          for i in $(seq 10); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill -9 $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
 
       - name: Validate audio
@@ -4281,7 +4344,14 @@ jobs:
             kill -0 $GAME_PID 2>/dev/null || break
             sleep 1
           done
+          # A game that ignores SIGTERM must not hold the job until its
+          # timeout, so a KILL follows after ten seconds
           kill $GAME_PID 2>/dev/null || true
+          for i in $(seq 10); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill -9 $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
           grep "STRESS_TEST:" "$LOG" || true
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }
@@ -4363,7 +4433,14 @@ jobs:
             kill -0 $GAME_PID 2>/dev/null || break
             sleep 1
           done
+          # A game that ignores SIGTERM must not hold the job until its
+          # timeout, so a KILL follows after ten seconds
           kill $GAME_PID 2>/dev/null || true
+          for i in $(seq 10); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill -9 $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
           echo "=== Game log ==="
           cat /tmp/game-mac-hl.log || true
@@ -4383,7 +4460,14 @@ jobs:
             kill -0 $GAME_PID 2>/dev/null || break
             sleep 1
           done
+          # A game that ignores SIGTERM must not hold the job until its
+          # timeout, so a KILL follows after ten seconds
           kill $GAME_PID 2>/dev/null || true
+          for i in $(seq 10); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill -9 $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
 
       - name: Validate audio
@@ -4431,7 +4515,14 @@ jobs:
             kill -0 $GAME_PID 2>/dev/null || break
             sleep 1
           done
+          # A game that ignores SIGTERM must not hold the job until its
+          # timeout, so a KILL follows after ten seconds
           kill $GAME_PID 2>/dev/null || true
+          for i in $(seq 10); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill -9 $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
           grep "STRESS_TEST:" "$LOG" || true
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }
@@ -4584,7 +4675,14 @@ jobs:
             kill -0 $GAME_PID 2>/dev/null || break
             sleep 1
           done
+          # A game that ignores SIGTERM must not hold the job until its
+          # timeout, so a KILL follows after ten seconds
           kill $GAME_PID 2>/dev/null || true
+          for i in $(seq 10); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill -9 $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
           grep "STRESS_TEST:" "$LOG" || true
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }
@@ -4729,7 +4827,14 @@ jobs:
             kill -0 $GAME_PID 2>/dev/null || break
             sleep 1
           done
+          # A game that ignores SIGTERM must not hold the job until its
+          # timeout, so a KILL follows after ten seconds
           kill $GAME_PID 2>/dev/null || true
+          for i in $(seq 10); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill -9 $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
           grep "STRESS_TEST:" "$LOG" || true
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }
@@ -4875,7 +4980,14 @@ jobs:
             kill -0 $GAME_PID 2>/dev/null || break
             sleep 1
           done
+          # A game that ignores SIGTERM must not hold the job until its
+          # timeout, so a KILL follows after ten seconds
           kill $GAME_PID 2>/dev/null || true
+          for i in $(seq 10); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill -9 $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
 
       - name: Validate audio
@@ -4934,7 +5046,14 @@ jobs:
             kill -0 $GAME_PID 2>/dev/null || break
             sleep 1
           done
+          # A game that ignores SIGTERM must not hold the job until its
+          # timeout, so a KILL follows after ten seconds
           kill $GAME_PID 2>/dev/null || true
+          for i in $(seq 10); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill -9 $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
           grep "STRESS_TEST:" "$LOG" || true
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }
@@ -5212,7 +5331,14 @@ jobs:
             kill -0 $GAME_PID 2>/dev/null || break
             sleep 1
           done
+          # A game that ignores SIGTERM must not hold the job until its
+          # timeout, so a KILL follows after ten seconds
           kill $GAME_PID 2>/dev/null || true
+          for i in $(seq 10); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill -9 $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
           echo "=== Game log ==="
           cat /tmp/game-heaps-mac-hl.log || true
@@ -5232,7 +5358,14 @@ jobs:
             kill -0 $GAME_PID 2>/dev/null || break
             sleep 1
           done
+          # A game that ignores SIGTERM must not hold the job until its
+          # timeout, so a KILL follows after ten seconds
           kill $GAME_PID 2>/dev/null || true
+          for i in $(seq 10); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill -9 $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
 
       - name: Validate audio
@@ -5280,7 +5413,14 @@ jobs:
             kill -0 $GAME_PID 2>/dev/null || break
             sleep 1
           done
+          # A game that ignores SIGTERM must not hold the job until its
+          # timeout, so a KILL follows after ten seconds
           kill $GAME_PID 2>/dev/null || true
+          for i in $(seq 10); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill -9 $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
           grep "STRESS_TEST:" "$LOG" || true
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }
@@ -5433,7 +5573,14 @@ jobs:
             kill -0 $GAME_PID 2>/dev/null || break
             sleep 1
           done
+          # A game that ignores SIGTERM must not hold the job until its
+          # timeout, so a KILL follows after ten seconds
           kill $GAME_PID 2>/dev/null || true
+          for i in $(seq 10); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill -9 $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
           grep "STRESS_TEST:" "$LOG" || true
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }
@@ -5550,7 +5697,14 @@ jobs:
             kill -0 $GAME_PID 2>/dev/null || break
             sleep 1
           done
+          # A game that ignores SIGTERM must not hold the job until its
+          # timeout, so a KILL follows after ten seconds
           kill $GAME_PID 2>/dev/null || true
+          for i in $(seq 10); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill -9 $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
 
       - name: Validate audio
@@ -5609,7 +5763,14 @@ jobs:
             kill -0 $GAME_PID 2>/dev/null || break
             sleep 1
           done
+          # A game that ignores SIGTERM must not hold the job until its
+          # timeout, so a KILL follows after ten seconds
           kill $GAME_PID 2>/dev/null || true
+          for i in $(seq 10); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill -9 $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
           grep "STRESS_TEST:" "$LOG" || true
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }
@@ -5717,7 +5878,14 @@ jobs:
             kill -0 $GAME_PID 2>/dev/null || break
             sleep 1
           done
+          # A game that ignores SIGTERM must not hold the job until its
+          # timeout, so a KILL follows after ten seconds
           kill $GAME_PID 2>/dev/null || true
+          for i in $(seq 10); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill -9 $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
 
       - name: Validate audio
@@ -5765,7 +5933,14 @@ jobs:
             kill -0 $GAME_PID 2>/dev/null || break
             sleep 1
           done
+          # A game that ignores SIGTERM must not hold the job until its
+          # timeout, so a KILL follows after ten seconds
           kill $GAME_PID 2>/dev/null || true
+          for i in $(seq 10); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill -9 $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
           grep "STRESS_TEST:" "$LOG" || true
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }
@@ -6043,7 +6218,14 @@ jobs:
             kill -0 $GAME_PID 2>/dev/null || break
             sleep 1
           done
+          # A game that ignores SIGTERM must not hold the job until its
+          # timeout, so a KILL follows after ten seconds
           kill $GAME_PID 2>/dev/null || true
+          for i in $(seq 10); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill -9 $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
           echo "=== Game log ==="
           cat /tmp/game-kha-mac.log || true
@@ -6063,7 +6245,14 @@ jobs:
             kill -0 $GAME_PID 2>/dev/null || break
             sleep 1
           done
+          # A game that ignores SIGTERM must not hold the job until its
+          # timeout, so a KILL follows after ten seconds
           kill $GAME_PID 2>/dev/null || true
+          for i in $(seq 10); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill -9 $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
 
       - name: Validate audio
@@ -6111,7 +6300,14 @@ jobs:
             kill -0 $GAME_PID 2>/dev/null || break
             sleep 1
           done
+          # A game that ignores SIGTERM must not hold the job until its
+          # timeout, so a KILL follows after ten seconds
           kill $GAME_PID 2>/dev/null || true
+          for i in $(seq 10); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill -9 $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
           grep "STRESS_TEST:" "$LOG" || true
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }
@@ -6193,7 +6389,14 @@ jobs:
             kill -0 $GAME_PID 2>/dev/null || break
             sleep 1
           done
+          # A game that ignores SIGTERM must not hold the job until its
+          # timeout, so a KILL follows after ten seconds
           kill $GAME_PID 2>/dev/null || true
+          for i in $(seq 10); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill -9 $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
           echo "=== Game log ==="
           cat /tmp/game-kha-mac-hl.log || true
@@ -6213,7 +6416,14 @@ jobs:
             kill -0 $GAME_PID 2>/dev/null || break
             sleep 1
           done
+          # A game that ignores SIGTERM must not hold the job until its
+          # timeout, so a KILL follows after ten seconds
           kill $GAME_PID 2>/dev/null || true
+          for i in $(seq 10); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill -9 $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
 
       - name: Validate audio
@@ -6261,7 +6471,14 @@ jobs:
             kill -0 $GAME_PID 2>/dev/null || break
             sleep 1
           done
+          # A game that ignores SIGTERM must not hold the job until its
+          # timeout, so a KILL follows after ten seconds
           kill $GAME_PID 2>/dev/null || true
+          for i in $(seq 10); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill -9 $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
           grep "STRESS_TEST:" "$LOG" || true
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }
@@ -6414,7 +6631,14 @@ jobs:
             kill -0 $GAME_PID 2>/dev/null || break
             sleep 1
           done
+          # A game that ignores SIGTERM must not hold the job until its
+          # timeout, so a KILL follows after ten seconds
           kill $GAME_PID 2>/dev/null || true
+          for i in $(seq 10); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill -9 $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
           grep "STRESS_TEST:" "$LOG" || true
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }
@@ -6559,7 +6783,14 @@ jobs:
             kill -0 $GAME_PID 2>/dev/null || break
             sleep 1
           done
+          # A game that ignores SIGTERM must not hold the job until its
+          # timeout, so a KILL follows after ten seconds
           kill $GAME_PID 2>/dev/null || true
+          for i in $(seq 10); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill -9 $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
           grep "STRESS_TEST:" "$LOG" || true
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }

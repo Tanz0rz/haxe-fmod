@@ -82,7 +82,7 @@ class StringsBankParser {
 		var stdt = findChunk(bytes, 12, end, "STDT");
 		if (stdt == null) {
 			throw new haxe.Exception('No string table (STDT chunk) found in $sourceName'
-				+ " - this looks like a regular bank, not the strings bank."
+				+ " - this is a regular bank. The generator needs Master.strings.bank."
 				+ " Point --strings at the Master.strings.bank file.");
 		}
 

@@ -4396,9 +4396,16 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Turns on FMOD debug logging at its most verbose level and traces every FmodManager operation.",
-     "gated": false,
      "name": "EnableDebugMessages",
      "signature": "EnableDebugMessages():Void",
+     "static": true,
+     "type": "haxefmod.FmodManager"
+    },
+    {
+     "direct": true,
+     "doc": "Services FMOD.",
+     "name": "Update",
+     "signature": "Update():Void",
      "static": true,
      "type": "haxefmod.FmodManager"
     },
@@ -4408,6 +4415,24 @@ const HAXEFMOD_BINDINGS = {
      "gated": false,
      "name": "init",
      "signature": "init(?settings:FmodSettings):FmodResult",
+     "static": true,
+     "type": "haxefmod.runtime.FmodRuntime"
+    },
+    {
+     "direct": false,
+     "doc": "Sets FMOD's log level on the FmodSettings.logLevel scale.",
+     "gated": false,
+     "name": "setDebugLevel",
+     "signature": "setDebugLevel(level:Int):Void",
+     "static": true,
+     "type": "haxefmod.runtime.FmodRuntime"
+    },
+    {
+     "direct": true,
+     "doc": "Services FMOD: drains the callback queue and pushes attached-instance positions.",
+     "gated": false,
+     "name": "update",
+     "signature": "update():Void",
      "static": true,
      "type": "haxefmod.runtime.FmodRuntime"
     }

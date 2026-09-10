@@ -31,7 +31,7 @@ One class per path category found in the strings bank:
 | `FmodSnapshots.hx` | `snapshot:/...` |
 | `FmodParameters.hx` | `parameter:/...` |
 
-The `FmodParameters` constants hold full `parameter:/` paths. `setParameter` on `StudioSystem` takes the bare name. The parameter description lookups and the `FmodManager` global parameter calls accept either form.
+The `FmodParameters` constants hold full `parameter:/` paths. Every parameter call in `FmodManager` and on `FmodEvent` takes either form, and so do `setParameter`, `getParameter`, and `setParameterWithLabel` on `EventInstance`. FMOD addresses a parameter by its bare name, so the prefix is stripped for it. The parameter description lookups and FMOD's own `setParameterByName` forms take the bare name.
 
 Each file also holds a companion `...Guids` class with the same identifiers mapped to GUID strings. The class is separate so autocomplete on the main class shows paths only.
 

@@ -141,7 +141,7 @@ class CallbackDispatcher {
             try {
                 handler(decode(type, i1, i2, i3, i4, i5, f1, str));
             } catch (e:haxe.Exception) {
-                trace('Warn: FMOD - a callback handler threw: ${e.message}');
+                trace('Warn: FMOD - a callback handler threw: ${e.details()}');
             }
         }
         if (type == (EventCallbackType.DESTROYED : Int)) {

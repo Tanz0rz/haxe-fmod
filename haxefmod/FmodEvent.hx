@@ -85,9 +85,24 @@ abstract FmodEvent(EventInstance) from EventInstance to EventInstance {
         return this.setPitch(pitch);
     }
 
-    /** Places the event in 2D space relative to listener 0, the same space PlayOneShotAt uses. */
-    public inline function setPosition2D(x:Float, y:Float):FmodResult {
-        return this.setPosition2D(x, y);
+    /** Places the event in 2D space relative to listener 0, the same space PlayOneShotAt uses. The velocity feeds doppler and is zero when omitted. */
+    public inline function setPosition2D(x:Float, y:Float, velocityX:Float = 0, velocityY:Float = 0):FmodResult {
+        return this.setPosition2D(x, y, velocityX, velocityY);
+    }
+
+    /** True while the event is paused. */
+    public inline function isPaused():Bool {
+        return this.getPaused();
+    }
+
+    /** The timeline position in milliseconds, 0 on failure. */
+    public inline function getTimelinePosition():Int {
+        return this.getTimelinePosition();
+    }
+
+    /** Moves the timeline to a position in milliseconds. */
+    public inline function setTimelinePosition(positionMs:Int):FmodResult {
+        return this.setTimelinePosition(positionMs);
     }
 
     /** Returns the value of a parameter on this event. */
@@ -111,6 +126,22 @@ abstract FmodEvent(EventInstance) from EventInstance to EventInstance {
      */
     public inline function onEvent(handler:EventCallbackData->Void, ?mask:Int):Void {
         this.setCallback(handler, mask);
+    }
+
+    /**
+     * Registers a typed callback that fires for the first delivered event and then removes itself, like FmodManager.OnceSongEvent.
+     * The mask picks which events qualify. It replaces any previous handler.
+     */
+    public function onceEvent(handler:EventCallbackData->Void, ?mask:Int):Void {
+        var instance:EventInstance = this;
+        instance.setCallback(data -> {
+            var unwanted = switch (data) {
+                case Destroyed: mask != null && (mask & EventCallbackType.DESTROYED) == 0;
+                default: false;
+            }
+            instance.setCallback(null);
+            if (!unwanted) handler(data);
+        }, mask);
     }
 
     /** Releases the event. It plays to completion unless you stopped it first. The handle becomes invalid immediately. */

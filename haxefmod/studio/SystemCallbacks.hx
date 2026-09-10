@@ -157,7 +157,7 @@ class SystemCallbacks {
         try {
             handler(event);
         } catch (e:haxe.Exception) {
-            trace('Warn: FMOD - a system callback handler threw: ${e.message}');
+            trace('Warn: FMOD - a system callback handler threw: ${e.details()}');
         }
     }
 }

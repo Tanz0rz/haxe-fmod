@@ -98,7 +98,11 @@ FmodRuntime.onceReady(() -> {
 | Call | Effect |
 |---|---|
 | `setWindowFocused(focused)` / `isWindowFocused()` | Reports a window focus change. The [engine setup calls](components.md#setup) do this for you. |
-| `setMuteWhenUnfocused(enabled)` / `isFocusMuted()` | The focus mute policy, and whether it is muting the master output right now. |
+| `setMuteWhenUnfocused(enabled)` / `isMuteWhenUnfocused()` | The focus mute policy. |
+| `isFocusMuted()` | Whether the focus mute is holding the master output down right now. |
+| `maxAttachedVelocity()` | The velocity cap applied to attached instances and the engine listeners, 0 for none. |
+| `setDebugLevel(level)` | FMOD's log level on the `logLevel` scale. On HTML5 it is applied once the module is ready, so a call before initialization completes is not lost. |
+| `initFailed()` | Whether a default bank failure stopped initialization. `FmodManager.InitializeFailed()` reports the same. |
 | `pauseAll(paused)` / `muteAll(muted)` | Pauses or mutes the master bus. `FmodManager.PauseAllEvents`, `UnpauseAllEvents`, and `SetMasterMute` call these. |
 | `playOneShot(path, ?x, ?y)` / `playOneShotAttached(path, provider)` | The one-shot calls behind `FmodManager.PlayOneShot`, `PlayOneShotAt`, and `PlayOneShotAttached`. |
 | `isAttachedProvider(provider)` | Whether an attached instance still follows a position provider. |

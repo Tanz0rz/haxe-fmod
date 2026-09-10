@@ -14,7 +14,7 @@ import haxefmod.studio.native.NativeStudio;
  * isLoaded.
  */
 class BankRegistry {
-    var banks:Map<String, {bank:Bank, refs:Int}> = new Map();
+    var banks:Map<String, {bank:Bank, refs:Int, ?errorLogged:Bool}> = new Map();
 
     /** Creates an empty registry. */
     public function new() {}
@@ -134,7 +134,13 @@ class BankRegistry {
     public function loadingState(path:String):FmodLoadingState {
         var entry = banks.get(normalizePath(path));
         if (entry == null) return UNLOADED;
-        return entry.bank.getLoadingState();
+        var state = entry.bank.getLoadingState();
+        if (state == FmodLoadingState.ERROR && entry.errorLogged != true) {
+            entry.errorLogged = true;
+            trace('Warn: FMOD - bank failed to load: $path. Check the file name and the bank folder setting.'
+                + ' On HTML5 the browser fetches it relative to the page.');
+        }
+        return state;
     }
 
     /** How many references are held for the path (0 if not registered). */

@@ -5,7 +5,7 @@
 | Command | Purpose |
 |---|---|
 | `check` | Verifies the FMOD SDK path and version, the haxelib libraries, and on Windows the MSVC toolchain. |
-| `generate` | Writes the `FmodEvents`, `FmodBuses`, `FmodVCAs`, `FmodSnapshots`, and `FmodParameters` constants classes from `Master.strings.bank`. |
+| `generate` | Writes the `FmodEvents`, `FmodBuses`, `FmodVCAs`, `FmodSnapshots`, and `FmodParameters` constants classes and `FmodEventEnum.hx` from `Master.strings.bank`. |
 | `todos` | Lists every `FmodManager.Todo` marker in the project. |
 | `stage` | Copies the FMOD runtime files into a build output directory, for builds lime does not manage. |
 | `build-hdll` | Compiles the HashLink native library against your installed FMOD SDK. |
@@ -33,6 +33,8 @@ haxelib run haxefmod generate [--strings <path>] [--out <dir>] [--package <pkg>]
 - `--strings` is the path to `Master.strings.bank`. Default `assets/fmod/Desktop/Master.strings.bank`.
 - `--out` is the output directory. Default `source/` if it exists, otherwise the current directory.
 - `--package` is the package for the generated classes. Default top-level.
+
+It also writes `FmodEventEnum.hx`, the enum covering every event, and a `...Guids` class beside each constants class.
 
 The generator parses the compiled strings bank, so it reflects exactly what the banks contain. Run it again after every bank build.
 

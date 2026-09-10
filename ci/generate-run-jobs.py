@@ -248,7 +248,14 @@ def run_for(j, seconds, log, wav_env):
             kill -0 $GAME_PID 2>/dev/null || break
             sleep 1
           done
+          # A game that ignores SIGTERM must not hold the job until its
+          # timeout, so a KILL follows after ten seconds
           kill $GAME_PID 2>/dev/null || true
+          for i in $(seq 10); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill -9 $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
 """
 
@@ -329,7 +336,14 @@ def native_steps(j):
             kill -0 $GAME_PID 2>/dev/null || break
             sleep 1
           done
+          # A game that ignores SIGTERM must not hold the job until its
+          # timeout, so a KILL follows after ten seconds
           kill $GAME_PID 2>/dev/null || true
+          for i in $(seq 10); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill -9 $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
           grep "STRESS_TEST:" "$LOG" || true
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || {{ echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }}

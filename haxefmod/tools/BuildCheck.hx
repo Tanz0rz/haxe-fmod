@@ -163,7 +163,14 @@ class BuildCheck {
             && (markerHex == null || sdkHex == null || PostBuild.sameVersion(markerHex, sdkHex));
         var hdll = useCustom ? customHdll : haxe.io.Path.join(
             [libRoot, "templates", "bin", "hl", prebuiltPlatformDir(), "hlaxe_fmod.hdll"]);
-        if (!sys.FileSystem.exists(hdll)) return; // postbuild reports the missing hdll.
+        if (!sys.FileSystem.exists(hdll)) {
+            fail("hlaxe_fmod.hdll is missing", 'haxefmod: hlaxe_fmod.hdll is missing - the game would fail to load.\n'
+                + "\n"
+                + '  Checked: $hdll\n'
+                + "\n"
+                + "  Reinstall haxefmod, or compile one with: haxelib run haxefmod build-hdll");
+            return;
+        }
         var found = PostBuild.scanHdllAbi(hdll);
         if (found != expectedAbi) {
             fail('hlaxe_fmod.hdll binding ABI mismatch (hdll has '
@@ -199,7 +206,7 @@ class BuildCheck {
                 + "\n"
                 + '  $name = $value\n'
                 + "\n"
-                + "  HTML5 builds need the HTML5 package, not the desktop one.\n"
+                + "  HTML5 builds need the HTML5 package. FMOD_SDK is where the desktop one goes.\n"
                 + "  Download it from https://www.fmod.com/download\n"
                 + "\n"
                 + "  Verify your setup with: haxelib run haxefmod check");

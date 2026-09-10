@@ -18,13 +18,25 @@ function update():Void {
 }
 ```
 
+`FmodManager.InitializeFailed()` reports that a default bank failed to load, so the poll never turns true. A loading scene checks it beside `IsInitialized()` and shows a message. `AnyBankFailed()` reports the same for a bank loaded later.
+
+```haxe
+function updateLoadingScene():Void {
+    if (FmodManager.InitializeFailed()) {
+        trace("Audio could not start");
+    } else if (FmodManager.IsInitialized()) {
+        startGame();
+    }
+}
+```
+
 The [example project's `LoadFmodState.hx`](https://github.com/Tanz0rz/haxe-fmod/blob/master/example-project/EZPlatformer/source/LoadFmodState.hx) is the flixel version of this pattern. Setup code that pushes state to FMOD can use `FmodRuntime.onceReady` instead of a poll.
 
 Bank loads are always asynchronous on HTML5. A bank file exists in the browser's virtual filesystem only after a fetch wrote it. `BankRegistry.load` and `loadAsync` behave the same there. See [Bank loading](guides/bank-loading.md).
 
 ### Browser autoplay
 
-Browsers refuse to start audio before the user interacts with the page. The library resumes FMOD's mixer on the first click in the page. Audio started before that click plays from that moment on. A game that wants sound from the first frame puts a "click to start" screen ahead of it.
+Browsers refuse to start audio before the user interacts with the page. The library listens for `click`, `keydown`, `pointerdown`, and `touchstart` from the moment its script loads. It resumes FMOD's mixer on the first of them, so a gesture made during the loading screen counts. An event started before that gesture is silent until the mixer resumes, then plays from that moment on. A game that wants sound from the first frame puts a "click to start" screen ahead of it.
 
 ### Native-only calls
 

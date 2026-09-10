@@ -27,11 +27,6 @@ class FmodKhaUtilities {
         FmodKhaUpdater.add(new OneShotSampler(provider));
     }
 
-    /** Deprecated alias of PlayOneShotAttached. **/
-    @:deprecated("FmodKhaUtilities.PlaySoundOneShotAttached is now PlayOneShotAttached")
-    public static function PlaySoundOneShotAttached(eventPath:String, target:KhaBody):Void {
-        PlayOneShotAttached(eventPath, target);
-    }
 }
 
 /** Samples a one-shot's provider every frame until the runtime drops the attachment. **/

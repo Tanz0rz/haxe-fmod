@@ -2,6 +2,8 @@
 
 haxefmod is FMOD Studio for Haxe on HTML5, HashLink, Windows, Linux, and macOS. It has native support for HaxeFlixel, Heaps, and Kha.
 
+[Getting started](getting-started.md) takes a new project from an empty build file to a playing sound. Every step that differs by engine has HaxeFlixel, Heaps, and Kha tabs.
+
 - The [FMOD Studio API](https://www.fmod.com/docs/2.03/api/studio-api.html) and [FMOD Core API](https://www.fmod.com/docs/2.03/api/core-api.html) at runtime, with some known [limitations](limitations.md)
     - Events, buses, VCAs, snapshots, banks, global and labeled parameters, and more
 - Typed callbacks with payloads (beats, timeline markers, etc.), see [Callbacks](guides/callbacks.md)

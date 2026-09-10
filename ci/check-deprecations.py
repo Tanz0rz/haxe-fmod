@@ -36,9 +36,6 @@ DEPRECATED = [
     ("haxefmod.FmodManager.SetEventParameterOnSong",
      "haxefmod.FmodManager.SetEventParameterOnSong(\"x\", 1);",
      "FmodManager.SetEventParameterOnSong is now SetSongParameter"),
-    ("haxefmod.FmodManager.SetEventParameterOnSongWithLabel",
-     "haxefmod.FmodManager.SetEventParameterOnSongWithLabel(\"x\", \"y\");",
-     "FmodManager.SetEventParameterOnSongWithLabel is now SetSongParameterWithLabel"),
     ("haxefmod.FmodManager.GetBusMute",
      "trace(haxefmod.FmodManager.GetBusMute(\"bus:/\"));",
      "FmodManager.GetBusMute is now IsBusMuted"),
@@ -83,21 +80,13 @@ DEPRECATED = [
      "FmodManager.UnpauseAllSounds is now UnpauseAllEvents"),
 ]
 
-# Aliases in the engine packages compile against that engine. Flixel and
-# Heaps come from haxelib, Kha from the stubs the snippet checker writes.
+# Aliases in the engine packages compile against that engine. Flixel comes
+# from haxelib. The Heaps and Kha packages are new in 3.0.0 and carry none.
 ENGINE_DEPRECATED = [
     ("haxefmod.flixel.FmodFlxUtilities.PlaySoundOneShotAttached",
      "haxefmod.flixel.FmodFlxUtilities.PlaySoundOneShotAttached(\"event:/x\", null);",
      "FmodFlxUtilities.PlaySoundOneShotAttached is now PlayOneShotAttached",
      ["-lib", "flixel", "-lib", "openfl", "-lib", "lime", "-D", "FLX_STANDARD_ASSETS_DIRECTORY", "-D", "openfl-html5", "-D", "html5", "-js", "/dev/null"]),
-    ("haxefmod.heaps.FmodHeapsUtilities.PlaySoundOneShotAttached",
-     "haxefmod.heaps.FmodHeapsUtilities.PlaySoundOneShotAttached(\"event:/x\", null);",
-     "FmodHeapsUtilities.PlaySoundOneShotAttached is now PlayOneShotAttached",
-     ["-lib", "heaps", "-D", "html5", "-js", "/dev/null"]),
-    ("haxefmod.kha.FmodKhaUtilities.PlaySoundOneShotAttached",
-     "haxefmod.kha.FmodKhaUtilities.PlaySoundOneShotAttached(\"event:/x\", null);",
-     "FmodKhaUtilities.PlaySoundOneShotAttached is now PlayOneShotAttached",
-     ["KHA_STUBS", "-D", "html5", "-js", "/dev/null"]),
 ]
 
 

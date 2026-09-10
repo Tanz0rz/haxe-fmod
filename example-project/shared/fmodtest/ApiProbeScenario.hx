@@ -853,6 +853,13 @@ class ApiProbeScenario implements TestScenario {
         FmodManager.SetSongParameterWithLabel("Surface", "Stone");
         check("helper_song_param_label", Math.abs(FmodManager.GetSongParameter("Surface") - 1) < 0.001,
             'value=${FmodManager.GetSongParameter("Surface")}');
+        // The generated constants hold parameter:/ paths, and every
+        // parameter call takes them
+        FmodManager.SetSongParameter(FmodParameters.Surface, 0);
+        check("helper_song_param_path_form", Math.abs(FmodManager.GetSongParameter(FmodParameters.Surface)) < 0.001
+            && Math.abs(FmodManager.GetSongParameter("Surface")) < 0.001, 'value=${FmodManager.GetSongParameter("Surface")}');
+        FmodManager.SetSongTimelinePosition(0);
+        check("helper_song_timeline_set", FmodManager.GetSongTimelinePosition() >= 0, 'position=${FmodManager.GetSongTimelinePosition()}');
         FmodManager.StopSongImmediately();
         StudioSystem.flushCommands();
 
@@ -904,6 +911,11 @@ class ApiProbeScenario implements TestScenario {
         // A sound created without starting: parameters land before the first frame
         var created = FmodManager.CreateEvent(FmodEvents.SFXJump);
         check("helper_create_event_not_started", !created.isNull() && !created.isPlaying(), "");
+        created.setParameter(FmodParameters.Surface, 1);
+        check("helper_event_param_path_form", Math.abs(created.getParameter(FmodParameters.Surface) - 1) < 0.001
+            && Math.abs(created.getParameter("Surface") - 1) < 0.001, 'value=${created.getParameter("Surface")}');
+        check("helper_event_not_paused", !created.isPaused(), "");
+        check("helper_init_not_failed", !FmodManager.InitializeFailed() && !FmodManager.AnyBankFailed(), "");
         created.setParameterWithLabel("Surface", "Stone");
         check("helper_create_event_start", created.start().isOk() && Math.abs(created.getParameter("Surface") - 1) < 0.001,
             'value=${created.getParameter("Surface")}');

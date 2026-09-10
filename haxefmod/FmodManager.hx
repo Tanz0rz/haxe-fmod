@@ -53,7 +53,7 @@ class FmodManager {
     /** Turns on FMOD debug logging at its most verbose level and traces every FmodManager operation. Debug builds enable it automatically. */
     public static function EnableDebugMessages():Void {
         debug = true;
-        NativeStudio.sys_set_debug_level(3); // 3 = log everything (the FmodSettings.logLevel scale)
+        FmodRuntime.setDebugLevel(3); // 3 = log everything (the FmodSettings.logLevel scale)
     }
 
     /**
@@ -78,6 +78,14 @@ class FmodManager {
     public static function SetAutoUpdate(enabled:Bool):Void {
         ensureInitialized();
         FmodRuntime.setAutoUpdate(enabled);
+    }
+
+    /**
+     * True when initialization cannot complete: a default bank failed to load.
+     * IsInitialized() stays false then. A loading scene shows a message instead of waiting.
+     */
+    public static function InitializeFailed():Bool {
+        return FmodRuntime.initFailed();
     }
 
     /** True while the background auto-update is on. */
@@ -109,6 +117,12 @@ class FmodManager {
     public static function IsBankLoaded(bankName:String):Bool {
         ensureInitialized();
         return FmodRuntime.banks.isLoaded(FmodRuntime.bankPath(bankName));
+    }
+
+    /** True when a bank load ended in error, for example a file that is missing. HTML5 reports the error after the fetch settles. */
+    public static function AnyBankFailed():Bool {
+        ensureInitialized();
+        return FmodRuntime.banks.anyError();
     }
 
     /** Returns true while any bank loaded through this class or FmodRuntime is still loading. */
@@ -493,6 +507,12 @@ class FmodManager {
         return songInstance.isNull() ? 0 : songInstance.getTimelinePosition();
     }
 
+    /** Moves the song to a timeline position in milliseconds. It does nothing with no song. */
+    public static function SetSongTimelinePosition(positionMs:Int):Void {
+        ensureInitialized();
+        if (!songInstance.isNull()) songInstance.setTimelinePosition(positionMs);
+    }
+
     /** Returns the value of a parameter on the song. It is 0 with no song. */
     public static function GetSongParameter(parameterName:String):Float {
         ensureInitialized();
@@ -719,11 +739,6 @@ class FmodManager {
         SetSongParameter(parameterName, parameterValue);
     }
 
-    @:deprecated("FmodManager.SetEventParameterOnSongWithLabel is now SetSongParameterWithLabel")
-    public static function SetEventParameterOnSongWithLabel(parameterName:String, label:String):Void {
-        SetSongParameterWithLabel(parameterName, label);
-    }
-
     @:deprecated("FmodManager.PlaySound is now PlayEvent")
     public static function PlaySound(eventPath:String):FmodEvent {
         return PlayEvent(eventPath);
@@ -789,7 +804,7 @@ class FmodManager {
     // FmodParameters constants carry the "parameter:/" path form, so the
     // global parameter calls accept both.
     static inline function globalParameterName(name:String):String {
-        return StringTools.startsWith(name, "parameter:/") ? name.substr("parameter:/".length) : name;
+        return EventInstance.bareParameterName(name);
     }
 
     static function log(message:String):Void {

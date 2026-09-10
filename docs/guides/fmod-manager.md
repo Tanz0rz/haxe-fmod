@@ -14,7 +14,7 @@ FmodManager.Initialize({liveUpdate: true, numChannels: 256});
 
 Call `FmodManager.Update()` once per frame. It delivers callbacks, pushes positions for attached instances, and drives song transitions. Audio continues without it, because a background thread (native) or timer (HTML5) services the FMOD mixer. Typed callbacks only arrive from `Update()`. `SetAutoUpdate(false)` turns the background servicing off for games that drive FMOD from their own loop. `IsAutoUpdate()` reports the state.
 
-`IsInitialized()` reports true once the engine and the default banks are usable. Native targets initialize synchronously, so it is true immediately. HTML5 initializes asynchronously, and games gate their first scene on it.
+`IsInitialized()` reports true once the engine and the default banks are usable. Native targets initialize synchronously, so it is true immediately. HTML5 initializes asynchronously, and games gate their first scene on it. `InitializeFailed()` reports that a default bank failed to load, so initialization cannot complete. A loading scene shows a message instead of waiting forever.
 
 `EnableDebugMessages()` turns on FMOD's own logging at its most verbose level and traces every `FmodManager` operation. Debug builds enable it automatically.
 
@@ -28,7 +28,7 @@ FmodManager.LoadBank("Level1.bank");
 FmodManager.UnloadBank("Level1.bank");
 ```
 
-Loads are counted. A bank loaded twice unloads on the second `UnloadBank`. A level never pulls away a bank another level still holds. Native targets load synchronously. HTML5 loads asynchronously, so poll `IsBankLoaded` before the first event from the bank. `IsAnyBankLoading()` reports whether any bank is still loading, and `WaitForBanks()` blocks until every pending load completes on native targets. HTML5 cannot block, so it returns at once there. The [engine components](components.md) load a bank for a state's lifetime without any of these calls, and [Bank loading](bank-loading.md) covers the registry underneath.
+Loads are counted. A bank loaded twice unloads on the second `UnloadBank`. A level never pulls away a bank another level still holds. Native targets load synchronously. HTML5 loads asynchronously, so poll `IsBankLoaded` before the first event from the bank. `IsAnyBankLoading()` reports whether any bank is still loading, and `AnyBankFailed()` reports a load that ended in error. `WaitForBanks()` blocks until every pending load completes on native targets. HTML5 cannot block, so it returns at once there. The [engine components](components.md) load a bank for a state's lifetime without any of these calls, and [Bank loading](bank-loading.md) covers the registry underneath.
 
 ## Music
 
@@ -46,7 +46,7 @@ FmodManager.PlaySongTransition(FmodEvents.MusicTitle);
 
 `StopSong` fades out and `StopSongImmediately` cuts. Both cancel any pending transition. `PauseSong` and `UnpauseSong` freeze and resume the timeline. `IsSongPlaying` counts starting, playing, sustaining, and fading as playing. FMOD starts sounds asynchronously, and the PLAYING state alone would misreport the first frames.
 
-Parameters on the song use `SetSongParameter(name, value)` and `GetSongParameter(name)`. A labeled parameter takes its label text through `SetSongParameterWithLabel(name, label)`. `GetSongTimelinePosition()` returns the timeline position in milliseconds. `GetCurrentSongPath()` returns the event path that was passed to `PlaySong`.
+Parameters on the song use `SetSongParameter(name, value)` and `GetSongParameter(name)`. A labeled parameter takes its label text through `SetSongParameterWithLabel(name, label)`. `GetSongTimelinePosition()` returns the timeline position in milliseconds, and `SetSongTimelinePosition(ms)` moves it. `GetCurrentSongPath()` returns the event path that was passed to `PlaySong`.
 
 ```haxe
 FmodManager.SetSongParameter("Tension", 0.8);
@@ -97,7 +97,7 @@ footstep.setParameterWithLabel("Surface", "Grass");
 footstep.start();
 ```
 
-`FmodEvent` wraps an `EventInstance` handle with the everyday operations. Playback: `start`, `stop` (with the authored fadeout), `stopImmediately`, `pause`, `unpause`, and `isPlaying`. Mix: `getVolume`, `setVolume`, `getPitch`, `setPitch`, and `setPosition2D`. Parameters: `getParameter`, `setParameter`, and `setParameterWithLabel`. Lifecycle: `onEvent` and `release`. Call `release()` when you are done with the handle. The handle becomes invalid immediately. The event plays to completion unless you stopped it first.
+`FmodEvent` wraps an `EventInstance` handle with the everyday operations. Playback: `start`, `stop` (with the authored fadeout), `stopImmediately`, `pause`, `unpause`, `isPlaying`, and `isPaused`. Timeline: `getTimelinePosition` and `setTimelinePosition(ms)`. Mix: `getVolume`, `setVolume`, `getPitch`, `setPitch`, and `setPosition2D(x, y, velocityX = 0, velocityY = 0)`. Parameters: `getParameter`, `setParameter`, and `setParameterWithLabel`. Lifecycle: `onEvent`, `onceEvent`, and `release`. `onceEvent` fires for the first delivered event and then removes itself. Call `release()` when you are done with the handle. The handle becomes invalid immediately. The event plays to completion unless you stopped it first.
 
 The full event instance API is one cast away. `FmodEvent` is an abstract over `EventInstance`.
 
@@ -134,7 +134,7 @@ FmodManager.SetVCAVolume(FmodVCAs.Music, 0.8);
 
 ## Global parameters
 
-A global parameter is shared by every event in the project. `SetGlobalParameter(name, value)` sets one and `GetGlobalParameter(name)` reads it back. A labeled parameter takes its label text through `SetGlobalParameterWithLabel(name, label)`. The names and labels come from FMOD Studio, and the generated `FmodParameters` class holds the names as constants.
+A global parameter is shared by every event in the project. `SetGlobalParameter(name, value)` sets one and `GetGlobalParameter(name)` reads it back. A labeled parameter takes its label text through `SetGlobalParameterWithLabel(name, label)`. The names and labels come from FMOD Studio. The generated `FmodParameters` constants hold `parameter:/Name` paths. Every parameter call in this class takes either form, and so does `setParameter`, `getParameter`, and `setParameterWithLabel` on `FmodEvent`.
 
 ```haxe
 FmodManager.SetGlobalParameter(FmodParameters.Intensity, 0.75);

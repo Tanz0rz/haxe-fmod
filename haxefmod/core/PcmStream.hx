@@ -110,7 +110,7 @@ abstract PcmStream(Int) from Int to Int {
             try {
                 result = readers.get(handle)(stream, buffer, room);
             } catch (e:haxe.Exception) {
-                trace('Warn: FMOD - a PCM read callback threw: ${e.message}');
+                trace('Warn: FMOD - a PCM read callback threw: ${e.details()}');
             }
             if (result == FmodResult.FMOD_OK) stream.write(buffer, room);
         }

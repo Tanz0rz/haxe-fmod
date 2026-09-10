@@ -163,7 +163,7 @@ class PostBuild {
 		if (wantWeb) {
 			log('ERROR: $sdkEnvName does not point at the HTML5 FMOD Engine package');
 			log('  $sdkEnvName = $sdkPath');
-			log("  HTML5 builds need the HTML5 package, not the desktop one.");
+			log("  HTML5 builds need the HTML5 package. FMOD_SDK is where the desktop one goes.");
 		} else {
 			log('ERROR: $sdkEnvName points at the HTML5 FMOD Engine package');
 			log('  $sdkEnvName = $sdkPath');
@@ -389,7 +389,7 @@ class PostBuild {
 	// happens even when the SDK matches the pre-built expectation.
 	// A missing or unreadable marker means the custom hdll is trusted
 	// as-is (build-hdll always writes one).
-	public static function customHdllMatchesSdk(projectDir:String):Bool {
+	public static function customHdllMatchesSdk(projectDir:String, quiet:Bool = false):Bool {
 		var markerFile = Path.join([projectDir, ".haxefmod", "hlaxe_fmod.version"]);
 		if (!FileSystem.exists(markerFile)) return true;
 		var sdkPath = Sys.getEnv("FMOD_SDK");
@@ -400,9 +400,11 @@ class PostBuild {
 		if (sdkHex == null) return true;
 		var markerHex = StringTools.trim(File.getContent(markerFile));
 		if (sameVersion(markerHex, sdkHex)) return true;
-		log('Custom hdll in .haxefmod/ was built for FMOD ${hexToVersion(markerHex)},'
-			+ ' the SDK is ${hexToVersion(sdkHex)} - using the pre-built hdll.'
-			+ ' Run "haxelib run haxefmod build-hdll" to rebuild it, or delete .haxefmod/.');
+		if (!quiet) {
+			log('Custom hdll in .haxefmod/ was built for FMOD ${hexToVersion(markerHex)},'
+				+ ' the SDK is ${hexToVersion(sdkHex)} - using the pre-built hdll.'
+				+ ' Run "haxelib run haxefmod build-hdll" to rebuild it, or delete .haxefmod/.');
+		}
 		return false;
 	}
 
@@ -884,7 +886,6 @@ class PostBuild {
 		Sys.println("============================================================");
 		Sys.println("  ERROR: FMOD_SDK environment variable is not set.");
 		Sys.println("");
-		Sys.println("  Your build will NOT work without FMOD libraries!");
 		if (target == "hl") {
 			Sys.println("  You will see: Failed to load library hlaxe_fmod.hdll");
 		} else {

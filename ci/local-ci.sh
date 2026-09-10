@@ -166,6 +166,8 @@ run_native_state() {
       sleep 1
     done
     kill $GAME_PID 2>/dev/null || true
+    for i in $(seq 10); do kill -0 $GAME_PID 2>/dev/null || break; sleep 1; done
+    kill -9 $GAME_PID 2>/dev/null || true
     wait $GAME_PID 2>/dev/null || true
   )
   unset HAXEFMOD_TEST_STATE FMOD_WAVWRITER

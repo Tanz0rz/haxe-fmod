@@ -46,6 +46,14 @@ SCANNED = [
     "native/jaxe/jaxe.js",
     "native/hlaxe/hlaxe_fmod.c",
     "native/faxe/linc_faxe.cpp",
+    "docs/coverage.md",
+    "docs/guides/handles-and-results.md",
+    "haxefmod/studio/Callbacks.hx",
+    "haxefmod/studio/FmodResult.hx",
+    "haxefmod/studio/StudioSystem.hx",
+    "extension/haxefmod-fmod-docs.user.js",
+    "extension/bindings-data.js",
+    "extension/examples-data.js",
 ]
 
 # FMOD versions are always major.minor(2).patch(2), e.g. 2.03.12. Other

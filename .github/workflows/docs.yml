@@ -107,7 +107,8 @@ jobs:
 
       - name: Build the site
         run: |
-          mkdocs build --strict
+          # The edit link points at the branch this build came from
+          DOCS_EDIT_URI="edit/${GITHUB_REF_NAME}/docs/" mkdocs build --strict
           rm -rf site/api
           mv site-api site/api
           python3 ci/docs-analytics.py site/api

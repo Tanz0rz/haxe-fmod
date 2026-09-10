@@ -233,7 +233,15 @@ abstract EventInstance(Int) from Int to Int {
      * zero. StudioSystem.lastResult() tells the two apart.
      */
     public inline function getParameter(name:String):Float {
-        return NativeStudio.evi_get_param_by_name(this, name);
+        return NativeStudio.evi_get_param_by_name(this, bareParameterName(name));
+    }
+
+    /**
+     * The name FMOD's parameter calls take. The generated FmodParameters
+     * constants hold `parameter:/Name` paths, so the prefix is stripped.
+     */
+    public static inline function bareParameterName(name:String):String {
+        return StringTools.startsWith(name, "parameter:/") ? name.substr("parameter:/".length) : name;
     }
 
     /**
@@ -246,12 +254,12 @@ abstract EventInstance(Int) from Int to Int {
 
     /** Sets a parameter by name. ignoreSeekSpeed skips the parameter's seek speed and applies the value at once. */
     public inline function setParameter(name:String, value:Float, ignoreSeekSpeed:Bool = false):FmodResult {
-        return NativeStudio.evi_set_param_by_name(this, name, value, ignoreSeekSpeed);
+        return NativeStudio.evi_set_param_by_name(this, bareParameterName(name), value, ignoreSeekSpeed);
     }
 
     /** Sets a labeled parameter by label text (e.g. discrete enum names). */
     public inline function setParameterWithLabel(name:String, label:String, ignoreSeekSpeed:Bool = false):FmodResult {
-        return NativeStudio.evi_set_param_by_name_with_label(this, name, label, ignoreSeekSpeed);
+        return NativeStudio.evi_set_param_by_name_with_label(this, bareParameterName(name), label, ignoreSeekSpeed);
     }
 
     /**

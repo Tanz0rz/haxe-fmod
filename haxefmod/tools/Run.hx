@@ -257,7 +257,7 @@ class Run {
 			if (result.exitCode != 0) missing.push(lib);
 		}
 		if (missing.length > 0) {
-			fail("haxelib dependencies", 'Missing: ${missing.join(", ")}. Install with: haxelib install <name>');
+			fail("haxelib dependencies", 'Missing: ${missing.join(", ")}. Install with: haxelib install ${missing.join(" ")}');
 		} else {
 			pass('haxelib dependencies (${libs.join(", ")})', "");
 		}
@@ -291,7 +291,7 @@ class Run {
 		if (clRan) {
 			pass("Visual Studio C++ tools (for lime build windows)", "cl.exe in PATH");
 		} else {
-			fail("Visual Studio C++ tools (needed for lime build windows, not needed for lime build hl)", "Not detected via vswhere or PATH");
+			fail("Visual Studio C++ tools (needed for lime build windows)", "Not detected via vswhere or PATH");
 			Sys.println("         Install Build Tools for Visual Studio 2022:");
 			Sys.println("");
 			Sys.println("         Direct download:");
@@ -373,7 +373,7 @@ class Run {
 		var customHdll = haxe.io.Path.join([projectDir, ".haxefmod", "hlaxe_fmod.hdll"]);
 		var markerFile = haxe.io.Path.join([projectDir, ".haxefmod", "hlaxe_fmod.version"]);
 		var hdll:String = null;
-		if (FileSystem.exists(customHdll) && PostBuild.customHdllMatchesSdk(projectDir)) {
+		if (FileSystem.exists(customHdll) && PostBuild.customHdllMatchesSdk(projectDir, true)) {
 			hdll = customHdll;
 			if (FileSystem.exists(markerFile)) {
 				pass("Custom-compiled hdll matches SDK", '${PostBuild.hexToVersion(sdkHex)} (from .haxefmod/)');
@@ -430,6 +430,7 @@ class Run {
 
 		if (!FileSystem.exists(fmodSdkWeb) || !FileSystem.isDirectory(fmodSdkWeb)) {
 			fail("FMOD_SDK_WEB directory exists", 'Directory not found: $fmodSdkWeb');
+			Sys.println('         Check that the path in FMOD_SDK_WEB is correct: $fmodSdkWeb');
 			return;
 		}
 
@@ -473,14 +474,20 @@ class Run {
 	}
 
 	static function checkBankFiles(cwd:String) {
-		var bankPath = haxe.io.Path.join([cwd, "assets", "fmod", "Desktop", "Master.bank"]);
-		if (findProjectXml(cwd) == null) {
+		var projectXml = findProjectXml(cwd);
+		if (projectXml == null) {
 			return; // Not in a project directory
 		}
+		// The project can move the bank folder with the haxefmod_bank_folder define
+		var folder = "assets/fmod/Desktop";
+		var content = ~/<!--[\s\S]*?-->/g.replace(File.getContent(projectXml), "");
+		var define = ~/<haxedef\s+name="haxefmod_bank_folder"\s+value="([^"]+)"/;
+		if (define.match(content)) folder = define.matched(1);
+		var bankPath = haxe.io.Path.join([cwd].concat(folder.split("/")).concat(["Master.bank"]));
 		if (FileSystem.exists(bankPath)) {
 			pass("FMOD bank files present", bankPath);
 		} else {
-			warn("FMOD bank files present", 'Not found: assets/fmod/Desktop/Master.bank. Build banks in FMOD Studio (Ctrl+B) before running the game.');
+			warn("FMOD bank files present", 'Not found: $folder/Master.bank. Build the banks in FMOD Studio (File > Build, F7) into that folder before running the game.');
 		}
 	}
 

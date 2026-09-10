@@ -3,10 +3,14 @@ site_description: FMOD Studio for Haxe on HTML5, HashLink, Windows, Linux, and m
 site_url: https://tanz0rz.com/haxe-fmod/
 repo_url: https://github.com/Tanz0rz/haxe-fmod
 repo_name: Tanz0rz/haxe-fmod
-edit_uri: edit/master/docs/
+# The edit link follows the branch the site was built from (the docs
+# workflow sets it), so the pencil never points at a branch without docs/
+edit_uri: !ENV [DOCS_EDIT_URI, "edit/master/docs/"]
 docs_dir: docs
 site_dir: site
 strict: true
+validation:
+  anchors: warn
 
 theme:
   name: material

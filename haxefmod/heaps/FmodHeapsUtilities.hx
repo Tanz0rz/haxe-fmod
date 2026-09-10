@@ -27,11 +27,6 @@ class FmodHeapsUtilities {
         FmodHeapsUpdater.add(new OneShotSampler(provider));
     }
 
-    /** Deprecated alias of PlayOneShotAttached. **/
-    @:deprecated("FmodHeapsUtilities.PlaySoundOneShotAttached is now PlayOneShotAttached")
-    public static function PlaySoundOneShotAttached(eventPath:String, target:Object):Void {
-        PlayOneShotAttached(eventPath, target);
-    }
 }
 
 /** Samples a one-shot's provider every frame until the runtime drops the attachment. **/

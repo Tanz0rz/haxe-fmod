@@ -221,7 +221,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 
 | FMOD | haxefmod | HTML5 |
 |---|---|---|
-| `FMOD_Debug_Initialize` | `FmodManager.Initialize`<br>`FmodManager.EnableDebugMessages`<br>`FmodRuntime.init` | limited |
+| `FMOD_Debug_Initialize` | `FmodManager.Initialize`<br>`FmodManager.EnableDebugMessages`<br>`FmodManager.Update`<br>`FmodRuntime.init`<br>`FmodRuntime.setDebugLevel`<br>`FmodRuntime.update` | limited |
 
 ## File
 

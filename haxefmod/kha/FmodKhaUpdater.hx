@@ -37,7 +37,7 @@ class FmodKhaUpdater {
     }
 
     /** Removes the frame task. FmodManager.Update() then runs only when the game calls it. **/
-    public static function removeTask():Void {
+    public static function removeHook():Void {
         if (taskId < 0) return;
         Scheduler.removeFrameTask(taskId);
         taskId = -1;

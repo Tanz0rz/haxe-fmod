@@ -37,7 +37,7 @@
 
     On HTML5 the volume wiring waits for the asynchronous initialization through `FmodRuntime.onceReady`. A call to `init` before FMOD is ready is safe.
 
-    A game that does not want the volume wiring calls `FmodManager.Initialize()` and `FmodFlxUpdater.init()` separately.
+    A game that does not want the volume wiring calls `FmodManager.Initialize()` and `FmodFlxUpdater.init()` separately. `FmodFlxUpdater.isInstalled()` reports whether the hook is on, and `removeHook()` takes it off. The Heaps and Kha updaters carry the same two calls. A game that calls `FmodManager.Update()` from its own frame code removes the hook first. Otherwise FMOD updates twice per frame.
 
 === "Heaps"
 
@@ -65,7 +65,7 @@
 
     Kha ships no global volume control. The FMOD master bus therefore carries the game's volume. Point your settings menu at `FmodManager.SetMasterVolume` and `SetMasterMute`.
 
-    A game that prefers its own wiring calls `FmodManager.Initialize()` and `FmodKhaUpdater.init()` separately. `FmodKhaUpdater.removeTask()` takes the frame task out again for a game that calls `FmodManager.Update()` from its own frame code.
+    A game that prefers its own wiring calls `FmodManager.Initialize()` and `FmodKhaUpdater.init()` separately. `FmodKhaUpdater.removeHook()` takes the frame task out again for a game that calls `FmodManager.Update()` from its own frame code.
 
 ## Bank loader
 
@@ -117,7 +117,7 @@ The emitter keeps an event instance positioned at a moving game object for as lo
     emitter.instance.setParameter("RPM", 0.4);
     ```
 
-    `FmodFlxEmitter.play(path, target)` creates and starts an instance. `new FmodFlxEmitter(instance, target)` wraps an instance you already created. The runtime update pushes the positions. Distance culling runs from the emitter's own `update`, so add the emitter to the state.
+    `FmodFlxEmitter.play(path, target)` creates and starts an instance. `new FmodFlxEmitter(instance, target)` wraps an instance you already created. The constructor installs `FmodFlxUpdater`, and the runtime update pushes the positions. Distance culling runs from the emitter's own `update`. An emitter the state never adds is positioned but never culled. Add it to the state when you turn culling on.
 
 === "Heaps"
 

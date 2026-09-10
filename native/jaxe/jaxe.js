@@ -13,6 +13,9 @@ class jaxe {
     static gSystem = {};
     static gSystemCore = {};
     static gAudioResumed = false;
+    // A user gesture seen before the core system existed. The resume runs
+    // as soon as onRuntimeInitialized creates the system.
+    static gGesturePending = false;
     static FmodIsInitialized = false;
     static autoUpdateIntervalId = null;
 
@@ -5489,6 +5492,40 @@ class jaxe {
         return flags;
     }
 
+    // Browsers keep an AudioContext suspended until a user gesture. The
+    // gate listens from script load, so a click on the loading screen is
+    // not lost while the wasm fetch is still running. Every gesture type
+    // counts, in the capture phase, so a canvas that stops propagation
+    // cannot swallow it. The listeners remove themselves after the resume.
+    static gestureTypes = ['click', 'keydown', 'pointerdown', 'touchstart'];
+
+    static onGesture = function () {
+        if (jaxe.gAudioResumed) return;
+        if (jaxe.gSystemCore && typeof jaxe.gSystemCore.mixerSuspend === 'function') {
+            jaxe.resumeAudio();
+        } else {
+            jaxe.gGesturePending = true;
+        }
+    };
+
+    static resumeAudio() {
+        if (jaxe.gAudioResumed) return;
+        jaxe.gSystemCore.mixerSuspend();
+        jaxe.gSystemCore.mixerResume();
+        jaxe.gAudioResumed = true;
+        jaxe.gGesturePending = false;
+        for (var i = 0; i < jaxe.gestureTypes.length; i++) {
+            document.removeEventListener(jaxe.gestureTypes[i], jaxe.onGesture, true);
+        }
+    }
+
+    static installGestureGate() {
+        if (typeof document === 'undefined') return;
+        for (var i = 0; i < jaxe.gestureTypes.length; i++) {
+            document.addEventListener(jaxe.gestureTypes[i], jaxe.onGesture, true);
+        }
+    }
+
     static onRuntimeInitialized = function () {
         var outval = {};
         // Settings from fmod_sys_init_ex, null when the module came up
@@ -5526,14 +5563,9 @@ class jaxe {
             jaxe.gSystemCore.setSoftwareFormat(outval.val, jaxe.FMOD.SPEAKERMODE_DEFAULT, 0);
         }
 
-        // Browser audio resume handler
-        document.addEventListener('click', function () {
-            if (!jaxe.gAudioResumed) {
-                jaxe.gSystemCore.mixerSuspend();
-                jaxe.gSystemCore.mixerResume();
-                jaxe.gAudioResumed = true;
-            }
-        });
+        // A gesture that arrived while the wasm was still loading counts.
+        // The listeners were installed at script load (installGestureGate).
+        if (jaxe.gGesturePending) jaxe.resumeAudio();
 
         jaxe.applyPendingCoreSettings(jaxe.gSystemCore, init);
         jaxe.applyPendingAdvancedSettings(jaxe.gSystemCore, jaxe.gSystem, init);
@@ -6393,3 +6425,6 @@ class jaxe {
         return false;
     }
 }
+
+// Listen for the first user gesture from script load, before the wasm fetch
+jaxe.installGestureGate();

@@ -28,7 +28,7 @@ class FmodFlxUpdater {
     }
 
     /** Removes the hook. FmodManager.Update() then runs only when the game calls it. **/
-    public static function remove():Void {
+    public static function removeHook():Void {
         FlxG.signals.postUpdate.remove(handler);
     }
 }

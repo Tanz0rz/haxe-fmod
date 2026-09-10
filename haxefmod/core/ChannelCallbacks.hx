@@ -102,8 +102,8 @@ class ChannelCallbacks {
                     case TYPE_OCCLUSION: handler(Occlusion(f1, haxe.io.FPHelper.i32ToFloat(i1)));
                     default:
                 }
-            } catch (e:Dynamic) {
-                trace('Warn: FMOD - a channel callback threw: $e');
+            } catch (e:haxe.Exception) {
+                trace('Warn: FMOD - a channel callback threw: ${e.details()}');
             }
         }
         if (type == TYPE_END) {

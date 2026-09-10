@@ -187,9 +187,9 @@ class FmodRuntime {
             if (banks.isLoaded(path)) continue;
             if (banks.loadingState(path) == FmodLoadingState.ERROR && !defaultBankErrorLogged) {
                 defaultBankErrorLogged = true;
-                trace('Warn: FMOD - default bank failed to load: $path'
-                    + ' (check the file is deployed next to the game).'
-                    + ' Initialization cannot complete without it.');
+                trace('Error: FMOD - default bank failed to load: $path.'
+                    + ' The browser fetches it relative to the page, from the bank folder setting.'
+                    + ' Check the path in the network tab. Initialization cannot complete without it.');
             }
             return false;
         }
@@ -228,6 +228,31 @@ class FmodRuntime {
         if (isInitialized()) NativeStudio.sys_set_auto_update(enabled);
     }
 
+    /**
+     * True when initialization cannot complete because a default bank
+     * failed to load. isInitialized() stays false then. Native targets
+     * load the default banks inside init, so this is an HTML5 state.
+     */
+    public static function initFailed():Bool {
+        #if js
+        return defaultBankErrorLogged;
+        #else
+        return false;
+        #end
+    }
+
+    static var debugLevel:Int = -1;
+
+    /**
+     * Sets FMOD's log level on the FmodSettings.logLevel scale. On HTML5
+     * the level is applied when the module is ready, so a call before
+     * initialization completes is not lost.
+     */
+    public static function setDebugLevel(level:Int):Void {
+        debugLevel = level;
+        if (NativeStudio.sys_is_initialized()) NativeStudio.sys_set_debug_level(level);
+    }
+
     /** The velocity cap attached instances and listeners apply, 0 for none. */
     public static function maxAttachedVelocity():Float {
         return attached.maxVelocity;
@@ -253,15 +278,17 @@ class FmodRuntime {
             #if js
             // The shim enables auto-update unconditionally when the module
             // becomes ready, so an autoUpdate:false setting is applied here.
+            // The debug level set before the module existed lands now too.
             if (resolved != null) NativeStudio.sys_set_auto_update(resolved.autoUpdate);
+            if (debugLevel >= 0) NativeStudio.sys_set_debug_level(debugLevel);
             #end
             var pending = readyHandlers;
             readyHandlers = [];
             for (handler in pending) handler();
         }
-        #if (cpp || hl)
+        // Manual mode ticks FMOD here on every backend. On HTML5 the shim's
+        // timer is the only other caller, and it is off in manual mode.
         if (resolved == null || !resolved.autoUpdate) NativeStudio.sys_update();
-        #end
         attached.update();
         CallbackDispatcher.update();
     }

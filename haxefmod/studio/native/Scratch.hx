@@ -46,7 +46,7 @@ class Scratch {
     /** Shared warning for list getters that hit the scratch capacity. */
     public static function warnTruncated(what:String, returned:Int, total:Int):Void {
         if (total > returned) {
-            trace('Warn: FMOD - $what list truncated ($returned of $total). Raise FAXE_LIST_MAX/Scratch.CAPACITY.');
+            trace('Warn: FMOD - $what list truncated ($returned of $total). The list getters return at most 1024 entries. Query by name or GUID for the rest.');
         }
     }
 

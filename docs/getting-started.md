@@ -147,15 +147,30 @@ Banks load from `assets/fmod/Desktop` by default. [Bank loading](guides/bank-loa
     Call `haxefmod.flixel.FmodFlxSetup.init()` once in your first state. It initializes FMOD and keeps the per-frame update running. See [Engine components](guides/components.md#setup).
 
     ```haxe
+    import haxefmod.FmodManager;
     import haxefmod.flixel.FmodFlxSetup;
 
-    public function StartGame():Void {
-        FmodFlxSetup.init();
-        FmodManager.PlaySong(FmodEvents.MusicMainLevel);
-    }
+    class PlayState extends flixel.FlxState {
+        var started = false;
 
-    public function JumpPressed():Void {
-        FmodManager.PlayOneShot(FmodEvents.SFXJump);
+        override function create():Void {
+            super.create();
+            FmodFlxSetup.init();
+        }
+
+        override function update(elapsed:Float):Void {
+            super.update(elapsed);
+            // Initialization is asynchronous on HTML5, so the first
+            // scene waits for it
+            if (!started && FmodManager.IsInitialized()) {
+                started = true;
+                FmodManager.PlaySong(FmodEvents.MusicMainLevel);
+            }
+        }
+
+        function JumpPressed():Void {
+            FmodManager.PlayOneShot(FmodEvents.SFXJump);
+        }
     }
     ```
 
@@ -246,7 +261,9 @@ HTML5 initializes asynchronously. An HTML5 game waits for `FmodManager.IsInitial
     lime test mac
     ```
 
-    You hear your event as soon as the game window opens. If the build succeeds but stays silent, run `haxelib run haxefmod check` from the project directory. Then read the game's console output with `FmodManager.EnableDebugMessages()` on.
+    On a native target you hear your event as soon as the game window opens. In the browser audio starts after the player's first click, key press, pointer, or touch. Browsers hold audio suspended until then, and the loading screen counts.
+
+    If the build succeeds but stays silent, run `haxelib run haxefmod check` from the project directory. It covers the environment. Then read the game's console output with `FmodManager.EnableDebugMessages()` on. In the browser the network tab shows whether the bank files were fetched.
 
 === "Heaps"
 
@@ -279,7 +296,7 @@ HTML5 initializes asynchronously. An HTML5 game waits for `FmodManager.IsInitial
 
     `$LIBS` holds one `.hdll` path for each library that `build/hlc/hlc.json` names, apart from `std`. Take `hlaxe_fmod.hdll` from `.haxefmod/` and the rest from `$HL_PREFIX/lib`. `libuv` links directly, because the generated C calls its functions by name.
 
-    You hear your event right away. Silence with a successful build usually means the banks are missing from `assets/fmod/Desktop`. The game's console output says so when `FmodManager.EnableDebugMessages()` is on.
+    You hear your event right away. Silence with a successful build usually means the banks are missing from `assets/fmod/Desktop`. The game's console output says so when `FmodManager.EnableDebugMessages()` is on. `haxelib run haxefmod check` covers the environment.
 
     **In the browser**: a js build stages the FMOD web engine instead of native libraries.
 
@@ -295,6 +312,8 @@ HTML5 initializes asynchronously. An HTML5 game waits for `FmodManager.IsInitial
     <script src="lib/jaxe.js"></script>
     <script src="game.js"></script>
     ```
+
+    In the browser audio starts after the player's first click, key press, pointer, or touch. Browsers hold audio suspended until then, and the loading screen counts. A silent page with no errors is usually a bank that never arrived. Check the network tab for the `.bank` requests.
 
 === "Kha"
 
@@ -334,6 +353,8 @@ HTML5 initializes asynchronously. An HTML5 game waits for `FmodManager.IsInitial
     <script src="lib/jaxe.js"></script>
     <script src="kha.js"></script>
     ```
+
+    In the browser audio starts after the player's first click, key press, pointer, or touch. Browsers hold audio suspended until then, and the loading screen counts. Check the network tab for the `.bank` requests when the page stays silent.
 
 **macOS note**: SDK libraries downloaded through a browser carry the quarantine attribute. FMOD signs its libraries, so builds normally run without issue. If macOS blocks the dylibs, clear the flag with `xattr -dr com.apple.quarantine "$FMOD_SDK"`.
 
