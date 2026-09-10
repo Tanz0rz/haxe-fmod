@@ -155,7 +155,7 @@ Banks load from `assets/fmod/Desktop` by default. [Bank loading](guides/bank-loa
     }
 
     public function JumpPressed():Void {
-        FmodManager.PlaySoundOneShot(FmodEvents.SFXJump);
+        FmodManager.PlayOneShot(FmodEvents.SFXJump);
     }
     ```
 
@@ -174,7 +174,7 @@ Banks load from `assets/fmod/Desktop` by default. [Bank loading](guides/bank-loa
         }
 
         function JumpPressed() {
-            FmodManager.PlaySoundOneShot(FmodEvents.SFXJump);
+            FmodManager.PlayOneShot(FmodEvents.SFXJump);
         }
 
         static function main() {
@@ -201,7 +201,7 @@ Banks load from `assets/fmod/Desktop` by default. [Bank loading](guides/bank-loa
         }
 
         static function JumpPressed() {
-            FmodManager.PlaySoundOneShot(FmodEvents.SFXJump);
+            FmodManager.PlayOneShot(FmodEvents.SFXJump);
         }
     }
     ```

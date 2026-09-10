@@ -1,6 +1,6 @@
 # FmodManager
 
-`haxefmod.FmodManager` is the helper class most games talk to. It owns six areas: lifecycle with banks, one background song slot, sound effects, the mixer (buses, VCAs, and snapshots), global parameters, and game policy. Every call takes an FMOD Studio path or name and holds no handle. The song slot is its one piece of state. `PlaySound` and `CreateSound` return an `FmodSound`, the one handle with a lifetime, and `GetBus`, `GetVCA`, and `GetEventDescription` return FMOD's own objects for anything beyond the path calls. It is built entirely on the public layers underneath. Anything it does not cover is reachable through `haxefmod.runtime.FmodRuntime` and `haxefmod.studio.*`, with no hidden state. See [Beyond the helper class](#beyond-the-helper-class).
+`haxefmod.FmodManager` is the helper class most games talk to. It owns six areas: lifecycle with banks, one background song slot, events, the mixer (buses, VCAs, and snapshots), global parameters, and game policy. Every call takes an FMOD Studio path or name and holds no handle. The song slot is its one piece of state. `PlayEvent` and `CreateEvent` return an `FmodEvent`, the one handle with a lifetime, and `GetBus`, `GetVCA`, and `GetEventDescription` return FMOD's own objects for anything beyond the path calls. It is built entirely on the public layers underneath. Anything it does not cover is reachable through `haxefmod.runtime.FmodRuntime` and `haxefmod.studio.*`, with no hidden state. See [Beyond the helper class](#beyond-the-helper-class).
 
 Every call behaves the same on HaxeFlixel, Heaps, and Kha. The [engine setup calls](components.md#setup) only keep `Update()` running and wire focus and volume.
 
@@ -67,19 +67,19 @@ FmodManager.OnSongEvent(data -> switch (data) {
 
 The song has one callback slot. A new registration replaces any previous handler. That includes the handler a pending `PlaySongTransition` uses to hand off, so a registration during a fade cancels the transition. `OnceSongEvent` fires for the first delivered event and then removes itself. Both take an optional mask of `EventCallbackType` bits to limit which events are delivered.
 
-## Sound effects
+## Events
 
-`PlaySoundOneShot(path)` starts an event and releases it straight away. FMOD destroys it when it finishes. `PlaySoundOneShotAt(path, x, y)` does the same at a 2D position relative to listener 0. `PlaySoundOneShotAttached(path, provider)` follows a moving object until the event ends. Attached playback is for one-shot events only. A looping event never ends, so it would never release.
+`PlayOneShot(path)` starts an event and releases it straight away. FMOD destroys it when it finishes. `PlayOneShotAt(path, x, y)` does the same at a 2D position relative to listener 0. `PlayOneShotAttached(path, provider)` follows a moving object until the event ends. Attached playback is for one-shot events only. A looping event never ends, so it would never release.
 
 ```haxe
-FmodManager.PlaySoundOneShot(FmodEvents.SFXCoin);
-FmodManager.PlaySoundOneShotAt(FmodEvents.SFXCoin, 320, 240);
+FmodManager.PlayOneShot(FmodEvents.SFXCoin);
+FmodManager.PlayOneShotAt(FmodEvents.SFXCoin, 320, 240);
 ```
 
-`PlaySound(path)` returns an `FmodSound` for sounds you control over time. `CreateSound(path)` returns the same handle without starting it, so parameters and a position land before the first frame plays, and `start()` plays it.
+`PlayEvent(path)` returns an `FmodEvent` for sounds you control over time. `CreateEvent(path)` returns the same handle without starting it, so parameters and a position land before the first frame plays, and `start()` plays it.
 
 ```haxe
-var engine = FmodManager.PlaySound(FmodEvents.SFXEngine);
+var engine = FmodManager.PlayEvent(FmodEvents.SFXEngine);
 engine.setParameter("RPM", 0.5);
 engine.setVolume(0.8);
 engine.onEvent(data -> switch (data) {
@@ -92,17 +92,17 @@ engine.release();
 ```
 
 ```haxe
-var footstep = FmodManager.CreateSound(FmodEvents.SFXFootstep);
+var footstep = FmodManager.CreateEvent(FmodEvents.SFXFootstep);
 footstep.setParameterWithLabel("Surface", "Grass");
 footstep.start();
 ```
 
-`FmodSound` wraps an `EventInstance` handle with the everyday operations: `start`, `stop` (with the authored fadeout), `stopImmediately`, `pause`, `unpause`, `getVolume` and `setVolume`, `getPitch` and `setPitch`, `getParameter`, `setParameter`, and `setParameterWithLabel`, `onEvent`, `isPlaying`, and `release`. Call `release()` when you are done with the handle. The handle becomes invalid immediately. The sound plays to completion unless you stopped it first.
+`FmodEvent` wraps an `EventInstance` handle with the everyday operations: `start`, `stop` (with the authored fadeout), `stopImmediately`, `pause`, `unpause`, `getVolume` and `setVolume`, `getPitch` and `setPitch`, `getParameter`, `setParameter`, and `setParameterWithLabel`, `setPosition2D`, `onEvent`, `isPlaying`, and `release`. It is a Studio event instance, unrelated to `haxefmod.core.Sound`, which is a Core API sample. Call `release()` when you are done with the handle. The handle becomes invalid immediately. The sound plays to completion unless you stopped it first.
 
-The full event instance API is one cast away. `FmodSound` is an abstract over `EventInstance`.
+The full event instance API is one cast away. `FmodEvent` is an abstract over `EventInstance`.
 
 ```haxe
-var sound = FmodManager.PlaySound(FmodEvents.SFXEngine);
+var sound = FmodManager.PlayEvent(FmodEvents.SFXEngine);
 var instance:haxefmod.studio.EventInstance = sound;
 instance.setPosition2D(100, 50);
 instance.setTimelinePosition(2000);
@@ -110,14 +110,14 @@ instance.setTimelinePosition(2000);
 
 Snapshots are events to FMOD, so these calls accept them too. The [Snapshots](#snapshots) section covers the calls made for them.
 
-`PlaySound` returns `FmodSound.NULL` when FMOD cannot create the event, and logs a warning that names the path. Every method on a null handle is a safe no-op, so a mistyped path degrades to silence. See [Handles and results](handles-and-results.md).
+`PlayEvent` returns `FmodEvent.NULL` when FMOD cannot create the event, and logs a warning that names the path. Every method on a null handle is a safe no-op, so a mistyped path degrades to silence. See [Handles and results](handles-and-results.md).
 
 ## Global controls
 
 | Call | Effect |
 |---|---|
-| `StopAllSounds()` | Stops every event routed through the master bus immediately. |
-| `PauseAllSounds()` / `UnpauseAllSounds()` | Pauses the master bus and freezes every sound at its position. Events started while paused queue up and play on unpause. |
+| `StopAllEvents()` | Stops every event routed through the master bus immediately. |
+| `PauseAllEvents()` / `UnpauseAllEvents()` | Pauses the master bus and freezes every sound at its position. Events started while paused queue up and play on unpause. |
 | `SetBusVolume(path, volume)` / `GetBusVolume(path)` | Linear bus volume, 0.0 silent to 1.0 full. |
 | `SetBusMute(path, mute)` / `IsBusMuted(path)` | Bus mute flag. Volume survives a mute and unmute round trip. |
 | `SetBusPaused(path, paused)` / `IsBusPaused(path)` | Pauses one bus. Every event through it freezes at its position and resumes from there. A pause menu pauses `bus:/SFX` and keeps the music bus running. |
@@ -141,7 +141,7 @@ FmodManager.SetGlobalParameter(FmodParameters.Intensity, 0.75);
 FmodManager.SetGlobalParameterWithLabel(FmodParameters.Weather, "Rain");
 ```
 
-A parameter local to one event is set on that event. The song takes `SetSongParameter`, and a sound from `PlaySound` takes `setParameter` on its handle. FMOD reports a value of 0 for a name it does not know.
+A parameter local to one event is set on that event. The song takes `SetSongParameter`, and a sound from `PlayEvent` takes `setParameter` on its handle. FMOD reports a value of 0 for a name it does not know.
 
 ## Snapshots
 
@@ -157,7 +157,7 @@ FmodManager.StopSnapshot(FmodSnapshots.Paused);
 
 A snapshot's intensity is authored in FMOD Studio and is not a parameter the API can set. To vary it at runtime, the sound designer automates the intensity on a parameter, and the game drives that parameter with `SetGlobalParameter` or on the snapshot's own instance.
 
-The calls hold no handle. FMOD keeps a started snapshot alive until it stops, and the calls find it again by its path. A snapshot with a timeline that ends on its own can also be fired through `PlaySoundOneShot`.
+The calls hold no handle. FMOD keeps a started snapshot alive until it stops, and the calls find it again by its path. A snapshot with a timeline that ends on its own can also be fired through `PlayOneShot`.
 
 ## Window focus
 
@@ -191,7 +191,7 @@ FmodManager.Todo("door creak when the cellar opens");
 | Every FMOD Studio object by handle: events, buses, VCAs, snapshots, banks, command replay | `haxefmod.studio` | [Handles and results](handles-and-results.md), [Callbacks](callbacks.md), the Haxe tab on fmod.com |
 | The FMOD Core API: sounds, channels, groups, DSP, geometry | `haxefmod.core` | [Core API helpers](core-api.md) |
 
-`PlaySound` and `CreateSound` return the one handle with a lifetime, and the cast above reaches the full `EventInstance` API from it. For FMOD's other objects the helper class hands out the object itself: `GetBus(path)`, `GetVCA(path)`, and `GetEventDescription(path)` return the same cached handles `haxefmod.studio` serves. They belong to FMOD and need no release, and a bad path returns a null handle whose every call is a safe no-op. Use them for what the path calls do not cover: a bus's final volume after VCAs and snapshots, the channel group under a bus for effects, an event's length and distances, its parameters and labels, or preloading its sample data.
+`PlayEvent` and `CreateEvent` return the one handle with a lifetime, and the cast above reaches the full `EventInstance` API from it. For FMOD's other objects the helper class hands out the object itself: `GetBus(path)`, `GetVCA(path)`, and `GetEventDescription(path)` return the same cached handles `haxefmod.studio` serves. They belong to FMOD and need no release, and a bad path returns a null handle whose every call is a safe no-op. Use them for what the path calls do not cover: a bus's final volume after VCAs and snapshots, the channel group under a bus for effects, an event's length and distances, its parameters and labels, or preloading its sample data.
 
 ```haxe
 var shown = FmodManager.GetBus(FmodBuses.Music).getFinalVolume();

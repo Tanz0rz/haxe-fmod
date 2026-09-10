@@ -241,7 +241,7 @@ The trigger drives an FMOD parameter from a rectangular zone. While the target i
 
 ## Utilities
 
-`PlaySoundOneShotAttached(path, target)` plays a self-ending event that follows a game object until it finishes. [Callbacks and 3D](3d.md#positioned-events) has the runtime call behind it.
+`PlayOneShotAttached(path, target)` plays a self-ending event that follows a game object until it finishes. [Callbacks and 3D](3d.md#positioned-events) has the runtime call behind it.
 
 === "HaxeFlixel"
 
@@ -249,7 +249,7 @@ The trigger drives an FMOD parameter from a rectangular zone. While the target i
     import haxefmod.flixel.FmodFlxUtilities;
 
     FmodFlxUtilities.TransitionToStateAndStopMusic(MenuState.new);
-    FmodFlxUtilities.PlaySoundOneShotAttached(FmodEvents.SFXCoin, coin);
+    FmodFlxUtilities.PlayOneShotAttached(FmodEvents.SFXCoin, coin);
     ```
 
     `TransitionToStateAndStopMusic(state)` stops the current song with its authored fadeout, waits for it to report stopped, and then switches state. `TransitionToState(state)` switches immediately.
@@ -259,7 +259,7 @@ The trigger drives an FMOD parameter from a rectangular zone. While the target i
     ```haxe
     import haxefmod.heaps.FmodHeapsUtilities;
 
-    FmodHeapsUtilities.PlaySoundOneShotAttached(FmodEvents.SFXCoin, coin);
+    FmodHeapsUtilities.PlayOneShotAttached(FmodEvents.SFXCoin, coin);
     ```
 
 === "Kha"
@@ -267,7 +267,7 @@ The trigger drives an FMOD parameter from a rectangular zone. While the target i
     ```haxe
     import haxefmod.kha.FmodKhaUtilities;
 
-    FmodKhaUtilities.PlaySoundOneShotAttached(FmodEvents.SFXCoin, coin);
+    FmodKhaUtilities.PlayOneShotAttached(FmodEvents.SFXCoin, coin);
     ```
 
 ## Rolling your own

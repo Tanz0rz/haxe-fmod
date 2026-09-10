@@ -22,7 +22,7 @@ import haxefmod.runtime.FmodRuntime;
 FmodRuntime.banks.loadAsync(FmodRuntime.bankPath("Vehicles.bank"));
 // in update, once per frame
 if (FmodRuntime.banks.isLoaded(FmodRuntime.bankPath("Vehicles.bank"))) {
-    FmodManager.PlaySoundOneShot("event:/Vehicles/Horn");
+    FmodManager.PlayOneShot("event:/Vehicles/Horn");
 }
 ```
 

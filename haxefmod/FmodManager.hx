@@ -1,7 +1,7 @@
 package haxefmod;
 
 import haxefmod.core.Sound;
-import haxefmod.FmodSound;
+import haxefmod.FmodEvent;
 import haxefmod.studio.Bus;
 import haxefmod.studio.CallbackDispatcher;
 import haxefmod.studio.EventDescription;
@@ -15,9 +15,9 @@ import haxefmod.studio.Vca;
 import haxefmod.studio.native.NativeStudio;
 
 /**
- * The helper class for FMOD. It owns six areas: lifecycle (init, update, and banks), one background song slot, sound effects, the mixer (buses, VCAs, and snapshots), global parameters, and game policy.
+ * The helper class for FMOD. It owns six areas: lifecycle (init, update, and banks), one background song slot, events, the mixer (buses, VCAs, and snapshots), global parameters, and game policy.
  * Every call takes an FMOD Studio path or name and holds no handle. The song slot is the one piece of state.
- * PlaySound and CreateSound return an FmodSound, the one handle with a lifetime. GetBus, GetVCA, and GetEventDescription return FMOD's own objects, which need no release, for everything beyond the path calls.
+ * PlayEvent and CreateEvent return an FmodEvent, the one handle with a lifetime. GetBus, GetVCA, and GetEventDescription return FMOD's own objects, which need no release, for everything beyond the path calls.
  * World space and focus reporting live in the public layers underneath: haxefmod.runtime.FmodRuntime and haxefmod.studio.
  *
  * Call FmodManager.Update() every frame, or let the engine setup call do it.
@@ -138,22 +138,22 @@ class FmodManager {
     //// Global controls
 
     /** Stops every event routed through the master bus immediately, the song included. */
-    public static function StopAllSounds():Void {
+    public static function StopAllEvents():Void {
         ensureInitialized();
         StudioSystem.getBus("bus:/").stopAllEvents(IMMEDIATE);
     }
 
     /**
-     * Pauses the master bus and freezes every sound at its position. Call UnpauseAllSounds to resume.
+     * Pauses the master bus and freezes every sound at its position. Call UnpauseAllEvents to resume.
      * This suits a full pause menu. Events started while paused queue up and play on unpause.
      */
-    public static function PauseAllSounds():Void {
+    public static function PauseAllEvents():Void {
         ensureInitialized();
         FmodRuntime.pauseAll(true);
     }
 
-    /** Resumes the master bus paused by PauseAllSounds. */
-    public static function UnpauseAllSounds():Void {
+    /** Resumes the master bus paused by PauseAllEvents. */
+    public static function UnpauseAllEvents():Void {
         ensureInitialized();
         FmodRuntime.pauseAll(false);
     }
@@ -189,7 +189,7 @@ class FmodManager {
 
     /**
      * Pauses or resumes one bus. Every event routed through it freezes at its position and resumes from there.
-     * A pause menu pauses "bus:/SFX" and keeps the music bus running. PauseAllSounds pauses the master bus instead.
+     * A pause menu pauses "bus:/SFX" and keeps the music bus running. PauseAllEvents pauses the master bus instead.
      */
     public static function SetBusPaused(busPath:String, paused:Bool):Void {
         ensureInitialized();
@@ -345,7 +345,7 @@ class FmodManager {
     /**
      * Sets a global parameter. Global parameters are shared by every event in the project.
      * The name comes from FMOD Studio, for example "Intensity". The generated FmodParameters constants, which hold "parameter:/" paths, are accepted too.
-     * A parameter on one event instance is set through the FmodSound returned by PlaySound, or through SetSongParameter for the song.
+     * A parameter on one event instance is set through the FmodEvent returned by PlayEvent, or through SetSongParameter for the song.
      */
     public static function SetGlobalParameter(parameterName:String, parameterValue:Float):Void {
         ensureInitialized();
@@ -575,59 +575,59 @@ class FmodManager {
         }, mask);
     }
 
-    //// Sound effects
+    //// Events
 
     /** Starts an event and releases it straight away. FMOD destroys it when it finishes. */
-    public static function PlaySoundOneShot(soundPath:String):Void {
+    public static function PlayOneShot(soundPath:String):Void {
         ensureInitialized();
-        log('PlaySoundOneShot $soundPath');
+        log('PlayOneShot $soundPath');
         FmodRuntime.playOneShot(soundPath);
     }
 
     /** Starts a one-shot event at a 2D position relative to listener 0. */
-    public static function PlaySoundOneShotAt(soundPath:String, x:Float, y:Float):Void {
+    public static function PlayOneShotAt(soundPath:String, x:Float, y:Float):Void {
         ensureInitialized();
-        log('PlaySoundOneShotAt $soundPath');
+        log('PlayOneShotAt $soundPath');
         FmodRuntime.playOneShot(soundPath, x, y);
     }
 
     /**
      * Starts a one-shot event that follows a moving object until the event ends.
      * Use it for self-ending events only. A looping event never ends, so it never releases.
-     * Flixel games can pass a FlxObject through FmodFlxUtilities.PlaySoundOneShotAttached.
+     * Flixel games can pass a FlxObject through FmodFlxUtilities.PlayOneShotAttached.
      */
-    public static function PlaySoundOneShotAttached(soundPath:String, provider:haxefmod.runtime.IFmodPositionProvider):Void {
+    public static function PlayOneShotAttached(soundPath:String, provider:haxefmod.runtime.IFmodPositionProvider):Void {
         ensureInitialized();
-        log('PlaySoundOneShotAttached $soundPath');
+        log('PlayOneShotAttached $soundPath');
         FmodRuntime.playOneShotAttached(soundPath, provider);
     }
 
     /**
      * Plays a sound and returns a typed handle for parameters, callbacks, stop, and pause. Call release() when you are done with the handle.
-     * A missing event logs a warning and returns FmodSound.NULL. Every call on that handle is a safe no-op.
+     * A missing event logs a warning and returns FmodEvent.NULL. Every call on that handle is a safe no-op.
      */
     /**
      * Creates a sound without starting it, so parameters and a position can be set before the first frame plays. Call start() on the handle when ready.
-     * Everything else matches PlaySound, including FmodSound.NULL for a path FMOD cannot create.
+     * Everything else matches PlayEvent, including FmodEvent.NULL for a path FMOD cannot create.
      */
-    public static function CreateSound(soundPath:String):FmodSound {
+    public static function CreateEvent(soundPath:String):FmodEvent {
         ensureInitialized();
         var instance = FmodRuntime.createInstance(soundPath);
         if (instance.isNull()) {
-            log('CreateSound: could not create $soundPath (${StudioSystem.lastResult().toString()})');
-            return FmodSound.NULL;
+            log('CreateEvent: could not create $soundPath (${StudioSystem.lastResult().toString()})');
+            return FmodEvent.NULL;
         }
         return instance;
     }
 
-    public static function PlaySound(soundPath:String):FmodSound {
+    public static function PlayEvent(soundPath:String):FmodEvent {
         ensureInitialized();
-        log('PlaySound $soundPath');
+        log('PlayEvent $soundPath');
         var instance = FmodRuntime.createInstance(soundPath);
         if (instance.isNull()) {
-            trace('Warn: FMOD - PlaySound could not create "' + soundPath
+            trace('Warn: FMOD - PlayEvent could not create "' + soundPath
                 + '" (check the event path, that its bank is loaded, and that FMOD is initialized)');
-            return FmodSound.NULL;
+            return FmodEvent.NULL;
         }
         instance.start();
         return instance;
@@ -700,6 +700,48 @@ class FmodManager {
     static var todoBeepChannel:haxefmod.core.Channel = haxefmod.core.Channel.NULL;
     #end
     #end
+
+    //// Names kept from 2.0
+
+    @:deprecated("FmodManager.PlaySound is now PlayEvent")
+    public static function PlaySound(eventPath:String):FmodEvent {
+        return PlayEvent(eventPath);
+    }
+
+    @:deprecated("FmodManager.CreateSound is now CreateEvent")
+    public static function CreateSound(eventPath:String):FmodEvent {
+        return CreateEvent(eventPath);
+    }
+
+    @:deprecated("FmodManager.PlaySoundOneShot is now PlayOneShot")
+    public static function PlaySoundOneShot(eventPath:String):Void {
+        PlayOneShot(eventPath);
+    }
+
+    @:deprecated("FmodManager.PlaySoundOneShotAt is now PlayOneShotAt")
+    public static function PlaySoundOneShotAt(eventPath:String, x:Float, y:Float):Void {
+        PlayOneShotAt(eventPath, x, y);
+    }
+
+    @:deprecated("FmodManager.PlaySoundOneShotAttached is now PlayOneShotAttached")
+    public static function PlaySoundOneShotAttached(eventPath:String, provider:haxefmod.runtime.IFmodPositionProvider):Void {
+        PlayOneShotAttached(eventPath, provider);
+    }
+
+    @:deprecated("FmodManager.StopAllSounds is now StopAllEvents")
+    public static function StopAllSounds():Void {
+        StopAllEvents();
+    }
+
+    @:deprecated("FmodManager.PauseAllSounds is now PauseAllEvents")
+    public static function PauseAllSounds():Void {
+        PauseAllEvents();
+    }
+
+    @:deprecated("FmodManager.UnpauseAllSounds is now UnpauseAllEvents")
+    public static function UnpauseAllSounds():Void {
+        UnpauseAllEvents();
+    }
 
     //// Internals
 

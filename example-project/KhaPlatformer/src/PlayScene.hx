@@ -70,7 +70,7 @@ class PlayScene implements GameScene {
 
     function getCoin():Void {
         FmodManager.SetSongParameter("FadeArpIn", 1.0);
-        FmodManager.PlaySoundOneShot(FmodEvents.SFXCoin);
+        FmodManager.PlayOneShot(FmodEvents.SFXCoin);
         coin.kill();
         winTimer = 0;
     }

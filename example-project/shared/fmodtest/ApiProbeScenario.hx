@@ -775,7 +775,7 @@ class ApiProbeScenario implements TestScenario {
 
         // Facade failure branch: a bad event path warns and returns
         // without wedging the machine
-        var badSound = FmodManager.PlaySound("event:/DoesNotExist");
+        var badSound = FmodManager.PlayEvent("event:/DoesNotExist");
         check("hardening_facade_bad_sound_null", badSound.isNull(), "");
         FmodManager.PlaySong("event:/DoesNotExist");
         check("hardening_facade_bad_song_not_playing", !FmodManager.IsSongPlaying(), "");
@@ -788,7 +788,7 @@ class ApiProbeScenario implements TestScenario {
 
         // Thin facade delegations, each exercised once against the real
         // backend with state restored afterwards
-        var smoke = FmodManager.PlaySound(FmodEvents.SFXJump);
+        var smoke = FmodManager.PlayEvent(FmodEvents.SFXJump);
         check("hardening_sound_handle", !smoke.isNull(), "");
         smoke.pause();
         smoke.unpause();
@@ -798,10 +798,10 @@ class ApiProbeScenario implements TestScenario {
             'value=${smoke.getPitch()}');
         smoke.stopImmediately();
         smoke.release();
-        FmodManager.PlaySoundOneShotAt(FmodEvents.SFXJump, 3.0, 4.0);
-        FmodManager.PauseAllSounds();
-        FmodManager.UnpauseAllSounds();
-        FmodManager.StopAllSounds();
+        FmodManager.PlayOneShotAt(FmodEvents.SFXJump, 3.0, 4.0);
+        FmodManager.PauseAllEvents();
+        FmodManager.UnpauseAllEvents();
+        FmodManager.StopAllEvents();
         check("hardening_listener_position",
             FmodRuntime.setListenerPosition(0, 0.0, 0.0).isOk(), "");
         FmodManager.SetAutoUpdate(true);
@@ -895,7 +895,7 @@ class ApiProbeScenario implements TestScenario {
         check("helper_get_bus_missing_is_null", FmodManager.GetBus("bus:/Nope").isNull(), "");
 
         // A sound created without starting: parameters land before the first frame
-        var created = FmodManager.CreateSound(FmodEvents.SFXJump);
+        var created = FmodManager.CreateEvent(FmodEvents.SFXJump);
         check("helper_create_sound_not_started", !created.isNull() && !created.isPlaying(), "");
         created.setParameterWithLabel("Surface", "Stone");
         check("helper_create_sound_start", created.start().isOk() && Math.abs(created.getParameter("Surface") - 1) < 0.001,
@@ -924,7 +924,7 @@ class ApiProbeScenario implements TestScenario {
         check("helper_global_param_unknown_reads_zero", FmodManager.GetGlobalParameter("NoSuchParameter") == 0,
             'value=${FmodManager.GetGlobalParameter("NoSuchParameter")}');
 
-        var jump = FmodManager.PlaySound(FmodEvents.SFXJump);
+        var jump = FmodManager.PlayEvent(FmodEvents.SFXJump);
         check("helper_sound_param_label", jump.setParameterWithLabel("Surface", "Metal").isOk()
             && Math.abs(jump.getParameter("Surface") - 2) < 0.001, 'value=${jump.getParameter("Surface")}');
         jump.stopImmediately();
@@ -938,7 +938,7 @@ class ApiProbeScenario implements TestScenario {
             'value=${FmodManager.GetVCAVolume(FmodVCAs.Main)}');
         info("helper_vca_missing_reads", Std.string(FmodManager.GetVCAVolume("vca:/Nope")));
 
-        var underwater = FmodManager.PlaySound(FmodSnapshots.Underwater);
+        var underwater = FmodManager.PlayEvent(FmodSnapshots.Underwater);
         StudioSystem.flushCommands();
         check("helper_snapshot_plays", !underwater.isNull() && underwater.isPlaying(), "");
         underwater.stopImmediately();
@@ -1495,7 +1495,7 @@ class ApiProbeScenario implements TestScenario {
         FmodManager.PlaySong(FmodEvents.MusicMainLevel);
         check("facade_song_playing_at_once", FmodManager.IsSongPlaying(),
             'path=${FmodManager.GetCurrentSongPath()}');
-        var sound = FmodManager.PlaySound(FmodEvents.SFXJump);
+        var sound = FmodManager.PlayEvent(FmodEvents.SFXJump);
         check("facade_sound_created", !sound.isNull(), "");
         check("facade_sound_playing_at_once", sound.isPlaying(), "");
         sound.stopImmediately();

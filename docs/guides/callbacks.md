@@ -45,7 +45,7 @@ step.start();
 step.release();
 ```
 
-`FmodSound.onEvent` and `FmodManager.OnSongEvent` are the same mechanism on the handles of the helper class. `FmodManager.ClearAllCallbacks()` removes every handler at once.
+`FmodEvent.onEvent` and `FmodManager.OnSongEvent` are the same mechanism on the handles of the helper class. `FmodManager.ClearAllCallbacks()` removes every handler at once.
 
 ## Programmer sounds
 

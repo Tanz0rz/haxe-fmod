@@ -27,7 +27,7 @@ class PlayScene2 implements GameScene {
     public function update(dt:Float):Void {
         // Auto-jump when approaching the coin
         if (!jumped && player.x >= 14 * 8 && player.touchingDown) {
-            FmodManager.PlaySoundOneShot(FmodEvents.SFXJump);
+            FmodManager.PlayOneShot(FmodEvents.SFXJump);
             player.velocityY = -player.maxVelocityY / 2;
             jumped = true;
         }

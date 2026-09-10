@@ -15,14 +15,14 @@ if (description.isNull()) {
 }
 ```
 
-The studio handles (`EventInstance`, `EventDescription`, `Bank`, `Bus`, `Vca`, `CommandReplay`) and `FmodSound` also have `isValid()`. It asks the native side whether the handle still points at a live FMOD object. A released handle is stale, and so is a handle whose object FMOD destroyed on its own. `isNull()` is a local check and `isValid()` is a native call. The core handles have `isNull()` only. A stale core handle returns `FMOD_ERR_INVALID_HANDLE` from its next call.
+The studio handles (`EventInstance`, `EventDescription`, `Bank`, `Bus`, `Vca`, `CommandReplay`) and `FmodEvent` also have `isValid()`. It asks the native side whether the handle still points at a live FMOD object. A released handle is stale, and so is a handle whose object FMOD destroyed on its own. `isNull()` is a local check and `isValid()` is a native call. The core handles have `isNull()` only. A stale core handle returns `FMOD_ERR_INVALID_HANDLE` from its next call.
 
 ## Stale handles are safe
 
 Every call on a null or stale handle is a no-op. Getters return a default (`0`, `false`, `""`, `NULL`, or `null` for structs). Setters return `FMOD_ERR_INVALID_HANDLE`. There is no exception path. A sound that failed to play, or a handle kept past its release, never takes the game down.
 
 ```haxe
-var sound = FmodManager.PlaySound("event:/SFX/Typo");
+var sound = FmodManager.PlayEvent("event:/SFX/Typo");
 sound.setVolume(0.5); // returns FMOD_ERR_INVALID_HANDLE, does nothing
 sound.release();      // also safe
 ```

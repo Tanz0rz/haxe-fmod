@@ -37,11 +37,11 @@ DEFAULT_DOCS = [os.path.join(ROOT, "README.md"), os.path.join(ROOT, "MIGRATION.m
 
 SCAFFOLD = """{imports}
 import haxefmod.FmodManager;
-import haxefmod.FmodSound;
+import haxefmod.FmodEvent;
 import haxefmod.studio.StudioSystem;
 
 class Snippet{index} {{
-    static var engineSound:haxefmod.FmodSound;
+    static var engineSound:haxefmod.FmodEvent;
     static var channel:haxefmod.core.Channel;
     static var sound:haxefmod.core.Sound;
     static var dsp:haxefmod.core.Dsp;

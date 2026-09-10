@@ -285,7 +285,7 @@ class PanTestScenario implements TestScenario {
         // The next phase waits for playout so the auto-release branch runs
         // under the leak gate instead of outliving the scenario.
         _utilBaseline = FmodRuntime.attachedCount();
-        FmodHeapsUtilities.PlaySoundOneShotAttached(FmodEvents.SFXJump, _listenerSprite);
+        FmodHeapsUtilities.PlayOneShotAttached(FmodEvents.SFXJump, _listenerSprite);
         check("utilities_oneshot_attached", FmodRuntime.attachedCount() == _utilBaseline + 1,
             'count=${FmodRuntime.attachedCount()}');
         enterPhase("util_oneshot_playout");

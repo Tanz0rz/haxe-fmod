@@ -1,6 +1,6 @@
 package tests;
 
-import haxefmod.FmodSound;
+import haxefmod.FmodEvent;
 import haxefmod.runtime.FmodRuntime;
 import haxefmod.studio.native.NativeStudioStub;
 
@@ -24,7 +24,7 @@ class TestFacadePredicates {
 	}
 
 	static function testIsPlayingStates() {
-		var sound:FmodSound = cast 123;
+		var sound:FmodEvent = cast 123;
 
 		// FmodPlaybackState: PLAYING=0 SUSTAINING=1 STOPPED=2 STARTING=3 STOPPING=4
 		NativeStudioStub.testPlaybackState = 0;

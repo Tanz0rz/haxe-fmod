@@ -16,13 +16,17 @@ class FmodKhaUtilities {
         @param soundPath the full event path (e.g. "event:/SFX/Explosion")
         @param target the body the sound follows
     **/
-    public static function PlaySoundOneShotAttached(soundPath:String, target:KhaBody):Void {
+    public static function PlayOneShotAttached(soundPath:String, target:KhaBody):Void {
         var provider = new KhaBodyPositionProvider(target);
-        FmodManager.PlaySoundOneShotAttached(soundPath, provider);
+        FmodManager.PlayOneShotAttached(soundPath, provider);
         // The provider has to be sampled every frame for as long as the
         // one-shot lives. The sampler unregisters once the runtime drops
         // the attachment, which happens when the instance ends.
         FmodKhaUpdater.add(new OneShotSampler(provider));
+    }
+    @:deprecated("FmodKhaUtilities.PlaySoundOneShotAttached is now PlayOneShotAttached")
+    public static function PlaySoundOneShotAttached(soundPath:String, target:KhaBody):Void {
+        PlayOneShotAttached(soundPath, target);
     }
 }
 

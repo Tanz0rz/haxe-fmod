@@ -9698,8 +9698,8 @@ const HAXEFMOD_BINDINGS = {
     {
      "direct": false,
      "doc": "Stops every event routed through the master bus immediately, the song included.",
-     "name": "StopAllSounds",
-     "signature": "StopAllSounds():Void",
+     "name": "StopAllEvents",
+     "signature": "StopAllEvents():Void",
      "static": true,
      "type": "haxefmod.FmodManager"
     },

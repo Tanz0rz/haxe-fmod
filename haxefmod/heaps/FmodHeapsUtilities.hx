@@ -16,13 +16,17 @@ class FmodHeapsUtilities {
         @param soundPath the full event path (e.g. "event:/SFX/Explosion")
         @param target the object the sound follows
     **/
-    public static function PlaySoundOneShotAttached(soundPath:String, target:Object):Void {
+    public static function PlayOneShotAttached(soundPath:String, target:Object):Void {
         var provider = new H2dObjectPositionProvider(target);
-        FmodManager.PlaySoundOneShotAttached(soundPath, provider);
+        FmodManager.PlayOneShotAttached(soundPath, provider);
         // The provider has to be sampled every frame for as long as the
         // one-shot lives. The sampler unregisters once the runtime drops
         // the attachment, which happens when the instance ends.
         FmodHeapsUpdater.add(new OneShotSampler(provider));
+    }
+    @:deprecated("FmodHeapsUtilities.PlaySoundOneShotAttached is now PlayOneShotAttached")
+    public static function PlaySoundOneShotAttached(soundPath:String, target:Object):Void {
+        PlayOneShotAttached(soundPath, target);
     }
 }
 

@@ -67,7 +67,12 @@ class FmodFlxUtilities {
         @param soundPath the full event path (e.g. "event:/SFX/Explosion")
         @param target the object the sound follows
     **/
+    public static function PlayOneShotAttached(soundPath:String, target:FlxObject):Void {
+        FmodManager.PlayOneShotAttached(soundPath, new FlxObjectPositionProvider(target));
+    }
+
+    @:deprecated("FmodFlxUtilities.PlaySoundOneShotAttached is now PlayOneShotAttached")
     public static function PlaySoundOneShotAttached(soundPath:String, target:FlxObject):Void {
-        FmodManager.PlaySoundOneShotAttached(soundPath, new FlxObjectPositionProvider(target));
+        PlayOneShotAttached(soundPath, target);
     }
 }

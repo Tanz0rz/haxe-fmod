@@ -501,7 +501,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_Studio_System_GetBankCount` | `StudioSystem.getBankCount` |  |
 | `FMOD_Studio_System_GetBankList` | `StudioSystem.getBankList` |  |
 | `FMOD_Studio_System_GetBufferUsage` | `StudioSystem.getBufferUsage` |  |
-| `FMOD_Studio_System_GetBus` | `StudioSystem.getBus`<br>`FmodManager.GetBus`<br>`FmodManager.GetBusVolume`<br>`FmodManager.IsBusMuted`<br>`FmodManager.IsBusPaused`<br>`FmodManager.SetBusMute`<br>`FmodManager.SetBusPaused`<br>`FmodManager.SetBusVolume`<br>`FmodManager.StopAllSounds`<br>`FmodRuntime.muteAll`<br>`FmodRuntime.pauseAll` |  |
+| `FMOD_Studio_System_GetBus` | `StudioSystem.getBus`<br>`FmodManager.GetBus`<br>`FmodManager.GetBusVolume`<br>`FmodManager.IsBusMuted`<br>`FmodManager.IsBusPaused`<br>`FmodManager.SetBusMute`<br>`FmodManager.SetBusPaused`<br>`FmodManager.SetBusVolume`<br>`FmodManager.StopAllEvents`<br>`FmodRuntime.muteAll`<br>`FmodRuntime.pauseAll` |  |
 | `FMOD_Studio_System_GetBusByID` | `StudioSystem.getBusByID` |  |
 | `FMOD_Studio_System_GetCPUUsage` | `StudioSystem.getCpuUsage` |  |
 | `FMOD_Studio_System_GetCoreSystem` | `FmodManager.Initialize`<br>`FmodRuntime.init` |  |

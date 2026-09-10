@@ -39,7 +39,7 @@ Once you are set up, `haxelib run haxefmod check` verifies your local dev enviro
 The FmodManager class is the primary way to interact with FMOD in your game. The `FmodEvents` constants used below are generated from your banks (see [Generating constants](https://tanz0rz.com/haxe-fmod/guides/constants/)). Every call and its description is in the [FmodManager API reference](https://tanz0rz.com/haxe-fmod/api/haxefmod/FmodManager.html).
 
 ```haxe
-var engine:FmodSound;
+var engine:FmodEvent;
 
 public function StartLevel():Void {
     // One background song at a time. Transitions ride the authored fadeout
@@ -48,12 +48,12 @@ public function StartLevel():Void {
 
 public function JumpPressed():Void {
     // Fire-and-forget playback
-    FmodManager.PlaySoundOneShot(FmodEvents.SFXJump);
+    FmodManager.PlayOneShot(FmodEvents.SFXJump);
 }
 
 public function StartEngine():Void {
     // Handle-based playback for sounds you control over time
-    engine = FmodManager.PlaySound(FmodEvents.SFXEngine);
+    engine = FmodManager.PlayEvent(FmodEvents.SFXEngine);
     engine.setParameter("RPM", 0.2);
 }
 
@@ -112,7 +112,7 @@ FmodManager.Todo("door creak when the vault opens");
 
 ## fmod.com Extension
 
-The [fmod.com extension](https://tanz0rz.com/haxe-fmod/guides/extension/) adds a Haxe tab beside C, C++, C#, and JS on every function of the [FMOD API reference](https://www.fmod.com/docs/2.03/api/welcome.html). The tab shows the haxefmod method that wraps the function. Functions haxefmod does not expose say so and give the reason. The [install steps](https://tanz0rz.com/haxe-fmod/guides/extension/#install) cover Chrome, Firefox, and the userscript.
+The [fmod.com extension](https://tanz0rz.com/haxe-fmod/guides/extension/) adds a Haxe tab beside C, C++, C#, and JS on every function of the [FMOD API reference](https://www.fmod.com/docs/2.03/api/core-api.html). The tab shows the haxefmod method that wraps the function. Functions haxefmod does not expose say so and give the reason. The [install steps](https://tanz0rz.com/haxe-fmod/guides/extension/#install) cover Chrome, Firefox, and the userscript.
 
 ![The Haxe tab on fmod.com](.github/fmod_extension.png)
 

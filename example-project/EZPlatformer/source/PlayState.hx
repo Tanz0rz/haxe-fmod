@@ -113,7 +113,7 @@ class PlayState extends FlxState {
 
     function getCoin(Coin:FlxObject, Player:FlxObject):Void {
         FmodManager.SetSongParameter("FadeArpIn", 1.0);
-        FmodManager.PlaySoundOneShot(FmodEvents.SFXCoin);
+        FmodManager.PlayOneShot(FmodEvents.SFXCoin);
         Coin.kill();
         _status.text = "You win!";
         _winTimer = 0;
