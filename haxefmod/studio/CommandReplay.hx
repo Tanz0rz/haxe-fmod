@@ -39,7 +39,10 @@ abstract CommandReplay(Int) from Int to Int {
         return NativeStudio.replay_set_paused(this, paused);
     }
 
-    /** True while the replay is paused, false on failure. */
+    /**
+     * True while the replay is paused, false on failure. A running replay reports false as well.
+     * StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getPaused():Bool {
         return NativeStudio.replay_get_paused(this);
     }
@@ -54,7 +57,10 @@ abstract CommandReplay(Int) from Int to Int {
         return seekToTime(timeMs / 1000.0);
     }
 
-    /** Total capture length in seconds. */
+    /**
+     * Total capture length in seconds. Returns 0.0 both on failure and for an empty capture.
+     * StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getLength():Float {
         return NativeStudio.replay_get_length(this);
     }
@@ -69,7 +75,8 @@ abstract CommandReplay(Int) from Int to Int {
      * Attaches a Haxe value to this handle. The value lives on the Haxe
      * side keyed by the handle and is dropped when the handle is released.
      * A recycled native slot gets a new generation and therefore a new
-     * handle int, so a stale entry never shows up on a later handle.
+     * handle int, so a stale entry does not show up on the next handle
+     * in that slot.
      */
     public inline function setUserData(value:Dynamic):Void {
         UserData.set(UserDataKind.CommandReplay, this, value);
@@ -80,7 +87,7 @@ abstract CommandReplay(Int) from Int to Int {
         return UserData.get(UserDataKind.CommandReplay, this);
     }
 
-    /** Number of commands in the capture, -1 on failure. */
+    /** Number of commands in the capture, -1 on failure. StudioSystem.lastResult() holds the reason for a failure. */
     public inline function getCommandCount():Int {
         return NativeStudio.replay_get_command_count(this);
     }
@@ -101,12 +108,18 @@ abstract CommandReplay(Int) from Int to Int {
         };
     }
 
-    /** The command at index formatted the way FMOD's tools print it, or "" on failure. */
+    /**
+     * The command at index formatted the way FMOD's tools print it, or "" on failure. StudioSystem.lastResult()
+     * holds the reason for a failure.
+     */
     public inline function getCommandString(index:Int):String {
         return NativeStudio.replay_get_command_string(this, index);
     }
 
-    /** Index of the command playing at a time in seconds into the capture, -1 on failure. */
+    /**
+     * Index of the command playing at a time in seconds into the capture, -1 on failure.
+     * StudioSystem.lastResult() holds the reason for a failure.
+     */
     public inline function getCommandAtTime(seconds:Float):Int {
         return NativeStudio.replay_get_command_at_time(this, seconds);
     }
@@ -116,7 +129,10 @@ abstract CommandReplay(Int) from Int to Int {
         return NativeStudio.replay_seek_to_command(this, index);
     }
 
-    /** Playback state of the replay, STOPPED on failure. */
+    /**
+     * Playback state of the replay. Returns STOPPED both on failure and for a stopped replay.
+     * StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getPlaybackState():FmodPlaybackState {
         return NativeStudio.replay_get_playback_state(this);
     }

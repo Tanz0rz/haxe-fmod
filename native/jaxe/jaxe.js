@@ -17,7 +17,7 @@ class jaxe {
     static autoUpdateIntervalId = null;
 
     // Init settings stored by fmod_sys_init_ex and consumed by
-    // onRuntimeInitialized. Legacy fmod_init leaves this null (defaults).
+    // onRuntimeInitialized. Null until that call, and the defaults apply.
     static pendingInit = null;
     // Output type, resampler, and raw speaker count from
     // fmod_sys_set_init_format, folded into pendingInit by fmod_sys_init_ex
@@ -26,8 +26,8 @@ class jaxe {
     static asyncBankCounter = 0;
     // bank rawPtr -> MEMFS file name, so unload can delete the copied bytes
     static asyncBankFiles = new Map();
-    // Async bank fetches are aborted after this many ms (tests shrink it);
-    // the placeholder then reports loading state ERROR.
+    // Async bank fetches are aborted after this many ms (tests shrink it).
+    // The placeholder then reports loading state ERROR.
     static ASYNC_FETCH_TIMEOUT_MS = 30000;
 
     // Generational handle table - JS mirror of native/shared/faxe_handles.h.
@@ -63,8 +63,8 @@ class jaxe {
     // The FMOD JS bindings return a fresh wrapper object from every call, so
     // wrappers have no JS identity (=== and isAliasOf never match across
     // calls). Each wrapper's $$.ptr points at a small proxy struct whose
-    // first word is the real FMOD object pointer - read that word for
-    // identity (verified against the FMOD 2.03.12 wasm build).
+    // first word is the real FMOD object pointer. Read that word for
+    // identity, verified against the FMOD 2.03.12 wasm build.
     static rawPtr(obj) {
         if (obj && obj.$$ && jaxe.FMOD.HEAPU32) {
             return jaxe.FMOD.HEAPU32[obj.$$.ptr >> 2];
@@ -150,12 +150,13 @@ class jaxe {
         }
     }
 
-    // After an unload destroys bank content, drop every cached lookup slot
-    // whose object died so a reload cannot alias a recycled address under a
-    // stale handle. Flushing first makes the async unload observable to
-    // isValid. Mirrors faxe_handles_sweep_lookups in the native shims, and
-    // additionally sweeps instance slots: the native shims reclaim those
-    // when the DESTROYED event drains, which this target never receives.
+    // After an unload destroys bank content, drop every cached lookup
+    // slot whose object died. A reload can then not alias a recycled
+    // address under a stale handle. Flushing first makes the async unload
+    // observable to isValid. Mirrors faxe_handles_sweep_lookups in the
+    // native shims, and sweeps instance slots on top of that. The native
+    // shims reclaim those when the DESTROYED event drains, which this
+    // target never receives.
     static sweepDeadLookups() {
         if (jaxe.gSystem) jaxe.gSystem.flushCommands();
         for (var i = 0; i < jaxe.slots.length; i++) {
@@ -241,12 +242,38 @@ class jaxe {
         return jaxe.utf8Encoder.encode(s).length;
     }
 
+    // Queue record string budgets, in UTF-8 bytes with the terminator
+    // included, matching FAXE_CBQ_STR_MAX and FAXE_CBQ_STR2_MAX in
+    // faxe_cbqueue.h.
+    static CBQ_STR_MAX = 64;
+    static CBQ_STR2_MAX = 128;
+
+    // Cuts s to the same byte budget the native queue applies. The cut
+    // lands on a codepoint boundary, so a multi-byte character is dropped
+    // whole instead of leaving half of it behind.
+    static cbTruncate(s, maxBytes) {
+        if (typeof s !== "string" || s === "") return "";
+        if (jaxe.utf8ByteLength(s) < maxBytes) return s;
+        var limit = maxBytes - 1;
+        var used = 0;
+        var out = "";
+        for (var i = 0; i < s.length; ) {
+            var ch = String.fromCodePoint(s.codePointAt(i));
+            var size = jaxe.utf8ByteLength(ch);
+            if (used + size > limit) break;
+            out += ch;
+            used += size;
+            i += ch.length;
+        }
+        return out;
+    }
+
     // The programmer-sound bits are added while a key is assigned. Unlike
-    // cpp/hl, DESTROYED is NOT forced in: FMOD's JS glue corrupts the wasm
+    // cpp/hl, DESTROYED is NOT forced in. FMOD's JS glue corrupts the wasm
     // module if an instance is destroyed while a callback is installed
-    // ("Cannot use deleted val"), so callbacks are uninstalled in every
-    // destruction path instead (see uninstallCallback) and Destroyed events
-    // are never delivered on this backend.
+    // ("Cannot use deleted val"). Callbacks are uninstalled in every
+    // destruction path instead, see uninstallCallback, and Destroyed
+    // events are never delivered on this backend.
     static effectiveCallbackMask(handle) {
         var mask = (jaxe.cbMasks[handle] || 0) >>> 0;
         if (jaxe.psKeys[handle]) {
@@ -301,9 +328,9 @@ class jaxe {
     }
 
     static callbackHandler(type, event, parameters) {
-        // The event wrapper here is a fresh binding object (no JS identity
-        // with the stored wrapper), so read the handle from FMOD userdata -
-        // same mechanism as the cpp/hl shims.
+        // The event wrapper here is a fresh binding object with no JS
+        // identity to the stored wrapper. Read the handle from FMOD
+        // userdata, the same mechanism as the cpp/hl shims.
         var handle = 0;
         if (event && event.getUserData) {
             var ud = {};
@@ -313,6 +340,10 @@ class jaxe {
         }
         if (handle <= 0) return jaxe.FMOD.OK;
 
+        // Nothing reaches the two programmer-sound branches today.
+        // fmod_ps_assign and its siblings answer ERR_UNSUPPORTED before a
+        // key is ever stored, so psKeys stays empty. The branches wait for
+        // the glue release that makes the flow work.
         if (type == 0x80 /* CREATE_PROGRAMMER_SOUND */ && parameters) {
             var key = jaxe.psKeys[handle];
             if (key) {
@@ -356,9 +387,9 @@ class jaxe {
         if ((type == 0x80 || type == 0x100) && parameters) {
             if (typeof parameters.name === "string") ev.str = parameters.name;
             // The sound the instrument got becomes a handle when the record
-            // drains. Every sound on this target is one this shim created
-            // (assignProgrammerSoundFrom is native only), so i3 marks it for
-            // release of the handle on the destroy record.
+            // drains. Every sound on this target is one this shim created,
+            // since assignProgrammerSoundFrom is native only. i3 marks it
+            // for release of the handle on the destroy record.
             if (parameters.sound) ev.ptr = parameters.sound;
             ev.i2 = typeof parameters.subsoundIndex === "number" ? parameters.subsoundIndex | 0 : -1;
             ev.i3 = parameters.sound ? 1 : 0;
@@ -395,16 +426,17 @@ class jaxe {
         }
 
         // Destroyed events are documented as never delivered on this
-        // target (the uninstall-before-destroy design normally prevents
-        // them entirely). If a glue ever fires one anyway, the per-handle
-        // state still ends with the instance, but the record stays out of
-        // the queue so the documented contract holds.
+        // target, since the uninstall-before-destroy design normally
+        // prevents them entirely. If a glue ever fires one anyway, the
+        // per-handle state still ends with the instance. The record stays
+        // out of the queue so the documented contract holds.
         if (type == 0x02 /* DESTROYED */) {
             delete jaxe.cbMasks[handle];
             delete jaxe.psKeys[handle];
             return jaxe.FMOD.OK;
         }
 
+        ev.str = jaxe.cbTruncate(ev.str, jaxe.CBQ_STR_MAX);
         jaxe.cbQueue.push(ev);
         if (jaxe.cbQueue.length > jaxe.CBQ_CAPACITY) {
             jaxe.cbQueue.shift(); // drop oldest
@@ -431,6 +463,11 @@ class jaxe {
         } else if (cur.type == 0x100 /* DESTROY_PROGRAMMER_SOUND */) {
             cur.i1 = jaxe.handleFind(cur.ptr, jaxe.TYPE_SOUND);
             if (cur.i1 && cur.i3) jaxe.handleFree(cur.i1);
+        } else if (cur.type == (jaxe.CB_SYS_NAMESPACE | 0x80) /* core ERROR */) {
+            // The failing object's handle when the table knows it, never a
+            // fresh one: a sound FMOD rejected can already be gone.
+            var kind = jaxe.ERROR_INSTANCE_TYPES[cur.i2 | 0] || 0;
+            cur.i3 = kind == 0 ? 0 : jaxe.handleFind(cur.ptr, kind);
         }
         cur.ptr = null;
         return true;
@@ -479,6 +516,7 @@ class jaxe {
     static ERR_INVALID_HANDLE = 30;
     static ERR_INVALID_PARAM = 31;
     static ERR_UNSUPPORTED = 68;
+    static ERR_MEMORY = 38;         // handle table exhausted, the code the C shims report
     static ERR_INVALID_GUID = 31;   // malformed GUID string -> FMOD_ERR_INVALID_PARAM (shared shim convention)
     static ERR_NOTREADY = 46;
     static ERR_STUDIO_UNINITIALIZED = 75;
@@ -594,24 +632,28 @@ class jaxe {
 
     // List getters fill ibuf with handles (capped at LIST_MAX, kept in
     // lockstep with Scratch.CAPACITY and the C shims' FAXE_LIST_MAX) and return the
-    // count written. Entries the table has seen keep their existing handle
+    // count written. Entries the table has seen keep their existing handle.
+    // An entry the exhausted table cannot mint is left out rather than
+    // written as a zero, so the caller reads only real handles.
     static writeHandleList(items, count, ibuf, type) {
         var n = count | 0;
         if (n > jaxe.LIST_MAX) n = jaxe.LIST_MAX;
         if (items.length < n) n = items.length;
+        var written = 0;
         for (var i = 0; i < n; i++) {
-            ibuf[i] = jaxe.handleFindOrAlloc(items[i], type);
+            var handle = jaxe.handleFindOrAlloc(items[i], type);
+            if (handle != 0) ibuf[written++] = handle;
         }
-        return n;
+        return written;
     }
 
     static fmod_sys_last_result() {
         return jaxe.lastResult;
     }
 
-    // Settings-driven init: stores the settings for onRuntimeInitialized and
-    // kicks off module init exactly like fmod_init. Module startup is
-    // asynchronous - poll fmod_sys_is_initialized for completion. Returns 0 (OK).
+    // Settings-driven init: stores the settings for onRuntimeInitialized
+    // and starts the Emscripten module. Module startup is asynchronous.
+    // Poll fmod_sys_is_initialized for completion. Returns 0 (OK).
     // dspBufferLength and dspNumBuffers apply when nonzero, otherwise the
     // web build runs at 2048x2. softwareChannels and streamBufferSize
     // apply when nonzero. initFlags bit0 = profiling, bit1 = distance
@@ -623,8 +665,8 @@ class jaxe {
     // and dropped. The output type, resampler, and raw speaker count come
     // from the last fmod_sys_set_init_format call.
     static fmod_sys_init_ex(numChannels, sampleRate, speakerMode, studioFlags, dspBufferLength, dspNumBuffers, softwareChannels, streamBufferSize, initFlags, maxMPEGCodecs, maxVorbisCodecs, maxFADPCMCodecs, vol0VirtualVol, defaultDecodeBufferSize, profilePort, geometryMaxFadeTime, distanceFilterCenterFreq, randomSeed, commandQueueSize, handleInitialSize, studioUpdatePeriod, idleSampleDataPoolSize, streamingScheduleDelay, encryptionKey) {
-        // Trailing settings may be omitted by direct callers and mean the
-        // defaults. The key is "" for none, an explicit null is a caller bug.
+        // A direct caller can leave the trailing settings out, which means
+        // the defaults. The key is "" for none, an explicit null is a bug.
         if (encryptionKey === undefined) encryptionKey = "";
         if (typeof encryptionKey !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
         var format = jaxe.pendingFormat || { outputType: 0, resamplerMethod: 0, rawSpeakers: 0 };
@@ -806,7 +848,7 @@ class jaxe {
     }
 
     static fmod_sys_get_param_by_name(name) {
-        if (typeof name !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
+        if (typeof name !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return 0.0; }
         if (!jaxe.sysReady()) return 0.0;
         var value = {};
         jaxe.lastResult = jaxe.gSystem.getParameterByName(name, value, null);
@@ -814,7 +856,7 @@ class jaxe {
     }
 
     static fmod_sys_get_param_by_name_final(name) {
-        if (typeof name !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
+        if (typeof name !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return 0.0; }
         if (!jaxe.sysReady()) return 0.0;
         var value = {};
         var finalValue = {};
@@ -965,7 +1007,7 @@ class jaxe {
     }
 
     // bank loading (flags: bit0 = nonblocking). Returns bank handle or 0.
-    // Resolves bare filenames from the MEMFS root; on this target files
+    // Resolves bare filenames from the MEMFS root. On this target files
     // only exist there after an async load's fetch wrote them, so the
     // registry routes HTML5 loads through fmod_sys_load_bank_async.
     static fmod_sys_load_bank_file(path, flags) {
@@ -981,10 +1023,11 @@ class jaxe {
         return jaxe.handleFindOrAlloc(bank.val, jaxe.TYPE_BANK);
     }
 
-    // Async bank load over HTTP (the file is NOT in MEMFS): allocates a
-    // handle backed by a {pendingBankPath} placeholder immediately, fetches
-    // path relative to the page origin, writes the bytes into MEMFS under
-    // a unique flat name, then swaps the real bank into the slot. Poll
+    // Async bank load over HTTP, for a file that is NOT in MEMFS. It
+    // allocates a handle backed by a {pendingBankPath} placeholder right
+    // away, then fetches path relative to the page origin. The bytes land
+    // in MEMFS under a unique flat name, and the real bank swaps into the
+    // slot. Poll
     // bank_get_loading_state: 2 (LOADING) while the fetch is pending,
     // 4 (ERROR) if the fetch or load failed or ASYNC_FETCH_TIMEOUT_MS
     // elapsed. fmod_bank_unload on a still-pending placeholder cancels the
@@ -1342,10 +1385,10 @@ class jaxe {
 
     //// Bank
 
-    // Resolves a bank handle for the fmod_bank_* functions, treating async
-    // placeholders from fmod_sys_load_bank_async as not ready: sets
-    // lastResult = 46 (ERR_NOTREADY) and returns null so callers never touch
-    // a placeholder. bank_get_loading_state, bank_is_valid and bank_unload
+    // Resolves a bank handle for the fmod_bank_* functions. An async
+    // placeholder from fmod_sys_load_bank_async counts as not ready. It
+    // sets lastResult = 46 (ERR_NOTREADY) and returns null, so callers
+    // never touch a placeholder. bank_get_loading_state, bank_is_valid and bank_unload
     // special-case placeholders instead of using this helper.
     static resolveBankReady(handle) {
         var bank = jaxe.handleResolve(handle, jaxe.TYPE_BANK);
@@ -1380,9 +1423,9 @@ class jaxe {
         return outval.val;
     }
 
-    // real unload. Frees the bank handle on success. An async placeholder
-    // (pending or errored) is cancelled instead: abort the fetch, clear the
-    // timeout, free the handle, FMOD_OK - the bank never reached FMOD, so
+    // real unload. Frees the bank handle on success. An async placeholder,
+    // pending or errored, is cancelled instead: abort the fetch, clear the
+    // timeout, free the handle, FMOD_OK. The bank never reached FMOD, so
     // there is nothing to unload there.
     static fmod_bank_unload(handle) {
         var pending = jaxe.handleResolve(handle, jaxe.TYPE_BANK);
@@ -1553,8 +1596,9 @@ class jaxe {
         var bank = jaxe.resolveBankReady(handle);
         if (!bank) return "";
         var id = jaxe.guidOut();
-        var pathOut = {};
-        jaxe.lastResult = bank.getStringInfo(index, id, pathOut, 512, null);
+        // No path buffer, so a path longer than the buffer cannot turn
+        // this into ERR_TRUNCATED and lose the GUID.
+        jaxe.lastResult = bank.getStringInfo(index, id, null, 0, null);
         if (jaxe.lastResult != jaxe.FMOD.OK) return "";
         return jaxe.formatGuid(id);
     }
@@ -1690,9 +1734,9 @@ class jaxe {
         return jaxe.lastResult == jaxe.FMOD.OK ? outval.val | 0 : 0;
     }
 
-    // fills ibuf with instance handles. Instances the table has already seen
-    // keep their handle, unseen ones (created outside this binding) get a
-    // fresh handle stamped into their userdata for callback identification
+    // fills ibuf with instance handles. Instances the table has already
+    // seen keep their handle. An unseen one, created outside this binding,
+    // gets a fresh handle stamped into its userdata for callback identity
     static fmod_evd_get_instance_list(handle, ibuf) {
         var evd = jaxe.handleResolve(handle, jaxe.TYPE_EVD);
         if (!evd) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }
@@ -1703,21 +1747,21 @@ class jaxe {
         var n = count.val | 0;
         if (n > jaxe.LIST_MAX) n = jaxe.LIST_MAX;
         if (list.val.length < n) n = list.val.length;
+        var written = 0;
         for (var i = 0; i < n; i++) {
             var eviHandle = jaxe.handleFindOrAlloc(list.val[i], jaxe.TYPE_EVI);
-            if (eviHandle != 0) {
-                // Stamp the handle whenever userdata disagrees, so re-minted
-                // and alias-recycled instances route callbacks to the live
-                // handle. (A liveCount delta cannot detect the alias path:
-                // its free and alloc cancel out.)
-                var ud = {};
-                if (list.val[i].getUserData(ud) != jaxe.FMOD.OK || ud.val !== eviHandle) {
-                    list.val[i].setUserData(eviHandle);
-                }
+            if (eviHandle == 0) continue;
+            // Stamp the handle whenever userdata disagrees, so re-minted
+            // and alias-recycled instances route callbacks to the live
+            // handle. (A liveCount delta cannot detect the alias path:
+            // its free and alloc cancel out.)
+            var ud = {};
+            if (list.val[i].getUserData(ud) != jaxe.FMOD.OK || ud.val !== eviHandle) {
+                list.val[i].setUserData(eviHandle);
             }
-            ibuf[i] = eviHandle;
+            ibuf[written++] = eviHandle;
         }
-        return n;
+        return written;
     }
 
     static fmod_evd_release_all_instances(handle) {
@@ -2083,7 +2127,7 @@ class jaxe {
     }
 
     static fmod_evi_get_param_by_name(handle, name) {
-        if (typeof name !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
+        if (typeof name !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return 0.0; }
         var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
         if (!inst) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0.0; }
         var value = {};
@@ -2092,7 +2136,7 @@ class jaxe {
     }
 
     static fmod_evi_get_param_by_name_final(handle, name) {
-        if (typeof name !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
+        if (typeof name !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return 0.0; }
         var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
         if (!inst) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0.0; }
         var value = {};
@@ -2193,16 +2237,16 @@ class jaxe {
     //// Programmer sounds
 
     static fmod_ps_assign(handle, key) {
+        var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
+        if (!inst) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
         if (typeof key !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
         // Native stores keys in a 512-byte buffer (FAXE_PS_KEY_MAX) and
         // rejects longer ones. Reject here too, measured in UTF-8 bytes,
         // so a key that works on HTML5 also works native.
         if (jaxe.utf8ByteLength(key) >= 512) { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
-        var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
-        if (!inst) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
-        // The FMOD HTML5 glue cannot complete the programmer-sound flow:
-        // handing the created sound back from the create callback stops the
-        // event instantly and ends callback delivery for the instance.
+        // The FMOD HTML5 glue cannot complete the programmer-sound flow.
+        // Handing the created sound back from the create callback stops
+        // the event instantly and ends callback delivery for the instance.
         // FMOD's own example pattern fails the same way with no haxefmod
         // code involved (tests/js/fmod_ps_glue_repro.html). Refusing here
         // keeps the failure visible instead of wedging the event, until an
@@ -2226,10 +2270,10 @@ class jaxe {
     // The instrument-name form. Same refusal, same checks as native
     // (names under 64 bytes, keys under 512).
     static fmod_ps_assign_named(handle, name, key) {
-        if (typeof name !== "string" || typeof key !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
-        if (jaxe.utf8ByteLength(name) >= 64 || jaxe.utf8ByteLength(key) >= 512) { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
         var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
         if (!inst) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        if (typeof name !== "string" || typeof key !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
+        if (jaxe.utf8ByteLength(name) >= 64 || jaxe.utf8ByteLength(key) >= 512) { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
         jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
         return jaxe.lastResult;
     }
@@ -2238,7 +2282,16 @@ class jaxe {
         var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
         if (!inst) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
         delete jaxe.psKeys[handle];
-        jaxe.lastResult = inst.setCallback(jaxe.callbackHandler, jaxe.effectiveCallbackMask(handle));
+        var mask = jaxe.effectiveCallbackMask(handle);
+        if (mask == 0) {
+            // An empty mask means no event can arrive. Take the handler
+            // off entirely, and drop the tracked mask with it so
+            // hasCallbackState agrees that nothing is installed.
+            delete jaxe.cbMasks[handle];
+            jaxe.lastResult = inst.setCallback(null, 0);
+            return jaxe.lastResult;
+        }
+        jaxe.lastResult = inst.setCallback(jaxe.callbackHandler, mask);
         return jaxe.lastResult;
     }
 
@@ -2256,13 +2309,14 @@ class jaxe {
             exinfo.initialsubsound = initialSubsound | 0;
         }
         // Files live in the MEMFS root (banks are preloaded there). The
-        // glue rejects NONBLOCKING outright, so the flag is dropped and the
-        // load runs synchronously: the sound is READY when this returns,
-        // which is what a getOpenState poll expects to reach anyway.
+        // glue rejects NONBLOCKING outright, so the flag is dropped and
+        // the load runs synchronously. The sound is READY when this
+        // returns, which is what a getOpenState poll waits for anyway.
         jaxe.lastResult = jaxe.gSystemCore.createSound("/" + path, (mode & ~0x10000) >>> 0, exinfo, soundOut);
         if (jaxe.lastResult != jaxe.FMOD.OK || !soundOut.val) return 0;
         var handle = jaxe.handleAlloc(soundOut.val, jaxe.TYPE_SOUND);
         if (handle == 0) {
+            jaxe.lastResult = jaxe.ERR_MEMORY; // handle table exhausted
             soundOut.val.release();
             return 0;
         }
@@ -2270,7 +2324,7 @@ class jaxe {
     }
 
     // An encoded file image already in memory. The bytes are copied into
-    // a fresh typed array that the glue moves into the wasm heap, so the
+    // a fresh typed array, which the glue moves into the wasm heap. The
     // caller's buffer is free once this returns. The web build decodes
     // FSB only, so a wav or ogg image reports ERR_FORMAT here.
     static fmod_core_create_sound_memory(data, len, mode) {
@@ -2290,6 +2344,7 @@ class jaxe {
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
         var handle = jaxe.handleAlloc(out.val, jaxe.TYPE_SOUND);
         if (handle == 0) {
+            jaxe.lastResult = jaxe.ERR_MEMORY; // handle table exhausted
             out.val.release();
             return 0;
         }
@@ -2325,7 +2380,7 @@ class jaxe {
         exinfo.ignoresetfilesystem = ibuf[17] | 0;
         exinfo.audioqueuepolicy = ibuf[18] >>> 0;
         var listCount = ibuf[19] | 0;
-        if (listCount > 0) {
+        if (listCount > 0 && ibuf.length >= 20 + listCount) {
             var list = [];
             for (var i = 0; i < listCount; i++) list.push(ibuf[20 + i] | 0);
             exinfo.inclusionlist = list;
@@ -2353,6 +2408,7 @@ class jaxe {
         if (jaxe.lastResult != jaxe.FMOD.OK || !soundOut.val) return 0;
         var handle = jaxe.handleAlloc(soundOut.val, jaxe.TYPE_SOUND);
         if (handle == 0) {
+            jaxe.lastResult = jaxe.ERR_MEMORY; // handle table exhausted
             soundOut.val.release();
             return 0;
         }
@@ -2378,6 +2434,7 @@ class jaxe {
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
         var handle = jaxe.handleAlloc(out.val, jaxe.TYPE_SOUND);
         if (handle == 0) {
+            jaxe.lastResult = jaxe.ERR_MEMORY; // handle table exhausted
             out.val.release();
             return 0;
         }
@@ -2482,6 +2539,7 @@ class jaxe {
         var ps = { sound: soundOut.val, ring: ring };
         var handle = jaxe.handleAlloc(ps, jaxe.TYPE_PCM);
         if (handle == 0) {
+            jaxe.lastResult = jaxe.ERR_MEMORY; // handle table exhausted
             soundOut.val.release();
             return 0;
         }
@@ -2519,6 +2577,7 @@ class jaxe {
         var ps = { sound: soundOut.val, ring: ring };
         var handle = jaxe.handleAlloc(ps, jaxe.TYPE_PCM);
         if (handle == 0) {
+            jaxe.lastResult = jaxe.ERR_MEMORY; // handle table exhausted
             soundOut.val.release();
             return 0;
         }
@@ -2567,6 +2626,7 @@ class jaxe {
         if (jaxe.lastResult != jaxe.FMOD.OK || !chOut.val) return 0;
         var ch = jaxe.handleAlloc(chOut.val, jaxe.TYPE_CHAN);
         if (ch == 0) {
+            jaxe.lastResult = jaxe.ERR_MEMORY; // handle table exhausted
             chOut.val.stop();
             return 0;
         }
@@ -2647,7 +2707,7 @@ class jaxe {
         if (!ch) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
         // The channel is finished either way, so the slot is freed even
         // when FMOD reports the channel already gone. The map entry goes
-        // first: the glue fires the END callback synchronously inside
+        // first. The glue fires the END callback synchronously inside
         // stop(), which would otherwise enqueue an event for the handle
         // this call is about to free.
         jaxe.chanCallbackHandles.delete(jaxe.rawPtr(ch));
@@ -2676,6 +2736,7 @@ class jaxe {
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
         var handle = jaxe.handleAlloc(out.val, jaxe.TYPE_DSP);
         if (handle == 0) {
+            jaxe.lastResult = jaxe.ERR_MEMORY; // handle table exhausted
             out.val.release();
             return 0;
         }
@@ -2850,6 +2911,7 @@ class jaxe {
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
         var handle = jaxe.handleAlloc(out.val, jaxe.TYPE_CHANGROUP);
         if (handle == 0) {
+            jaxe.lastResult = jaxe.ERR_MEMORY; // handle table exhausted
             out.val.release();
             return 0;
         }
@@ -3066,7 +3128,7 @@ class jaxe {
         var bus = jaxe.handleResolve(handle, jaxe.TYPE_BUS);
         if (!bus) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
         jaxe.lastResult = bus.unlockChannelGroup();
-        // The group may be destroyed once unlocked: reclaim its cached
+        // The group can be destroyed once unlocked: reclaim its cached
         // handle before a recycled address can alias it
         if (jaxe.lastResult == jaxe.FMOD.OK) jaxe.sweepDeadLookups();
         return jaxe.lastResult;
@@ -3093,6 +3155,7 @@ class jaxe {
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
         var handle = jaxe.handleAlloc(out.val, jaxe.TYPE_CHAN);
         if (handle == 0) {
+            jaxe.lastResult = jaxe.ERR_MEMORY; // handle table exhausted
             out.val.stop();
             return 0;
         }
@@ -3460,6 +3523,7 @@ class jaxe {
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
         var handle = jaxe.handleAlloc(out.val, jaxe.TYPE_REVERB3D);
         if (handle == 0) {
+            jaxe.lastResult = jaxe.ERR_MEMORY; // handle table exhausted
             out.val.release();
             return 0;
         }
@@ -3532,6 +3596,7 @@ class jaxe {
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
         var handle = jaxe.handleAlloc(out.val, jaxe.TYPE_SOUND);
         if (handle == 0) {
+            jaxe.lastResult = jaxe.ERR_MEMORY; // handle table exhausted
             out.val.release();
             return 0;
         }
@@ -3548,6 +3613,7 @@ class jaxe {
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
         var chHandle = jaxe.handleAlloc(out.val, jaxe.TYPE_CHAN);
         if (chHandle == 0) {
+            jaxe.lastResult = jaxe.ERR_MEMORY; // handle table exhausted
             out.val.stop();
             return 0;
         }
@@ -3776,21 +3842,34 @@ class jaxe {
     static CB_SYS_STUDIO_BIT = 0x00000100;
 
     static pushSystemEvent(type, str) {
-        jaxe.cbQueue.push({ handle: 0, type: type, i1: 0, i2: 0, i3: 0, i4: 0, i5: 0, f1: 0.0, str: str || "" });
+        jaxe.cbQueue.push({ handle: 0, type: type, i1: 0, i2: 0, i3: 0, i4: 0, i5: 0, f1: 0.0,
+            str: jaxe.cbTruncate(str, jaxe.CBQ_STR_MAX) });
         if (jaxe.cbQueue.length > jaxe.CBQ_CAPACITY) {
             jaxe.cbQueue.shift();
             jaxe.cbOverflow = true;
         }
     }
 
-    // The web build never raises ERROR (verified on 2.03.12, the mask is
-    // accepted and nothing fires), so the record below only documents the
+    // The handle table type an error record's instance type maps to, 0 for
+    // kinds the table never holds. FMOD_ERRORCALLBACK_INSTANCETYPE order.
+    static ERROR_INSTANCE_TYPES = {
+        2: jaxe.TYPE_CHAN, 3: jaxe.TYPE_CHANGROUP, 5: jaxe.TYPE_SOUND,
+        6: jaxe.TYPE_SOUNDGROUP, 7: jaxe.TYPE_DSP, 8: jaxe.TYPE_DSPCONN,
+        9: jaxe.TYPE_GEOMETRY, 10: jaxe.TYPE_REVERB3D, 12: jaxe.TYPE_EVD,
+        13: jaxe.TYPE_EVI, 15: jaxe.TYPE_BUS, 16: jaxe.TYPE_VCA,
+        17: jaxe.TYPE_BANK, 18: jaxe.TYPE_REPLAY
+    };
+
+    // The web build never raises ERROR. The mask is accepted and nothing
+    // fires, verified on 2.03.12. The record below only documents the
     // shape the native shims fill.
     static systemCallback(system, type, commanddata1, commanddata2, userdata) {
         if (type === 0x80 /* ERROR */ && commanddata1 && typeof commanddata1 === "object") {
             var info = commanddata1;
             var ev = { handle: 0, type: jaxe.CB_SYS_NAMESPACE | type, i1: info.result | 0, i2: info.instancetype | 0,
-                i3: 0, i4: 0, i5: 0, f1: 0.0, str: String(info.functionname || ""), str2: String(info.functionparams || "") };
+                i3: 0, i4: 0, i5: 0, f1: 0.0, ptr: info.instance || null,
+                str: jaxe.cbTruncate(String(info.functionname || ""), jaxe.CBQ_STR_MAX),
+                str2: jaxe.cbTruncate(String(info.functionparams || ""), jaxe.CBQ_STR2_MAX) };
             jaxe.cbQueue.push(ev);
             if (jaxe.cbQueue.length > jaxe.CBQ_CAPACITY) {
                 jaxe.cbQueue.shift();
@@ -3802,11 +3881,15 @@ class jaxe {
         return jaxe.FMOD.OK;
     }
 
-    // The web build answers every read on the bank inside BANK_UNLOAD with
-    // NOTREADY (verified on 2.03.12), and the record lands on the update
+    // The web build answers every read on the bank inside BANK_UNLOAD
+    // with NOTREADY, verified on 2.03.12. The record lands on the update
     // after the unload call. The path comes from the copy cacheBankPath
     // stored before the unload, keyed by the bank's raw pointer.
     static bankPathByRaw = new Map();
+    // Mask last handed to fmod_sys_set_studio_callback_mask. The bank path
+    // cache reads bit 0x4 to know whether anything wants the paths.
+    static studioCallbackMask = 0;
+    static STUDIO_CB_BANK_UNLOAD = 0x4;
 
     static studioSystemCallback(system, type, commanddata, userdata) {
         var str = "";
@@ -3822,8 +3905,12 @@ class jaxe {
     }
 
     // Reads the bank's path while the bank can still answer. Called from
-    // the unload paths right before the unload.
+    // the unload paths right before the unload. Only a live BANK_UNLOAD
+    // subscription ever reads the result, so without one nothing is
+    // stored and the map cannot grow. Every unload in one batch keeps its
+    // entry, which a fixed-size cache could not promise.
     static cacheBankPath(bank) {
+        if ((jaxe.studioCallbackMask & jaxe.STUDIO_CB_BANK_UNLOAD) == 0) return;
         if (!bank || bank.pendingBankPath) return;
         var raw = jaxe.rawPtr(bank);
         if (raw == 0) return;
@@ -3852,11 +3939,12 @@ class jaxe {
 
     static fmod_sys_set_studio_callback_mask(mask) {
         if (!jaxe.sysReady()) return jaxe.lastResult;
-        if (mask === 0) {
-            jaxe.bankPathByRaw.clear();
+        jaxe.studioCallbackMask = mask >>> 0;
+        if ((jaxe.studioCallbackMask & jaxe.STUDIO_CB_BANK_UNLOAD) == 0) jaxe.bankPathByRaw.clear();
+        if (jaxe.studioCallbackMask === 0) {
             jaxe.lastResult = jaxe.gSystem.setCallback(null, 0);
         } else {
-            jaxe.lastResult = jaxe.gSystem.setCallback(jaxe.studioSystemCallback, mask >>> 0);
+            jaxe.lastResult = jaxe.gSystem.setCallback(jaxe.studioSystemCallback, jaxe.studioCallbackMask);
         }
         return jaxe.lastResult;
     }
@@ -3935,6 +4023,7 @@ class jaxe {
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
         var handle = jaxe.handleAlloc(out.val, jaxe.TYPE_SOUNDGROUP);
         if (handle == 0) {
+            jaxe.lastResult = jaxe.ERR_MEMORY; // handle table exhausted
             out.val.release();
             return 0;
         }
@@ -4195,7 +4284,11 @@ class jaxe {
 
     static fmod_sys_load_bank_memory(data, len, flags) {
         if (!jaxe.sysReady()) return 0;
-        var bytes = new Uint8Array(data, 0, Math.min(len, data.byteLength));
+        if (!data || len <= 0 || len > data.byteLength) {
+            jaxe.lastResult = jaxe.ERR_INVALID_PARAM;
+            return 0;
+        }
+        var bytes = new Uint8Array(data, 0, len);
         var bank = {};
         jaxe.lastResult = jaxe.gSystem.loadBankMemory(bytes, bytes.length,
             jaxe.FMOD.STUDIO_LOAD_MEMORY, flags >>> 0, bank);
@@ -4241,6 +4334,7 @@ class jaxe {
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
         var handle = jaxe.handleAlloc(out.val, jaxe.TYPE_REPLAY);
         if (handle == 0) {
+            jaxe.lastResult = jaxe.ERR_MEMORY; // handle table exhausted
             out.val.release();
             return 0;
         }
@@ -5005,9 +5099,9 @@ class jaxe {
 
     //// Custom 3D rolloff
 
-    // The web build rejects the point array outright (embind reports 29 for
-    // every array shape and the getter throws a BindingError on the
-    // FMOD_VECTOR pointer), so the rolloff never reaches FMOD here.
+    // The web build rejects the point array outright. embind reports 29
+    // for every array shape, and the getter throws a BindingError on the
+    // FMOD_VECTOR pointer. The rolloff never reaches FMOD here.
     static fmod_chan_set_3d_custom_rolloff(handle, data, count) {
         var ch = jaxe.resolveChan(handle);
         if (!ch) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
@@ -5083,8 +5177,6 @@ class jaxe {
     static fmod_geo_set_scale(handle, x, y, z) { return jaxe.geometryUnsupported(jaxe.ERR_UNSUPPORTED); }
     static fmod_geo_get_scale(handle, fbuf) { return jaxe.geometryUnsupported(jaxe.ERR_UNSUPPORTED); }
     static fmod_geo_save(handle, data, len) { return jaxe.geometryUnsupported(-1); }
-
-    //// Debug
 
     //// Completeness tail: getters and setters on objects the library already wraps
 
@@ -5220,8 +5312,8 @@ class jaxe {
         return jaxe.handleFindOrAlloc(out.val, jaxe.TYPE_SOUND);
     }
 
-    // The pool channel at this index. It may be idle, in which case every
-    // call on the handle reports FMOD_ERR_INVALID_HANDLE until FMOD reuses it.
+    // The pool channel at this index. An idle channel answers every call
+    // on the handle with FMOD_ERR_INVALID_HANDLE until FMOD reuses it.
     static fmod_sys_get_channel(index) {
         if (!jaxe.FmodIsInitialized) { jaxe.lastResult = jaxe.ERR_STUDIO_UNINITIALIZED; return 0; }
         var out = {};
@@ -5399,8 +5491,8 @@ class jaxe {
 
     static onRuntimeInitialized = function () {
         var outval = {};
-        // Settings from fmod_sys_init_ex. null on the plain fmod_init path
-        // (defaults below match that path exactly).
+        // Settings from fmod_sys_init_ex, null when the module came up
+        // without that call. The defaults below cover that case.
         var init = jaxe.pendingInit;
 
         jaxe.FMOD.Studio_System_Create(outval);
@@ -5851,8 +5943,6 @@ class jaxe {
         return index.val | 0;
     }
 
-    //// Channel group DSP chain walk
-
     //// DSP data parameters and unit info
 
     // ibuf[0] version, [1] channels, [2] config width, [3] config height. Returns the name.
@@ -5875,11 +5965,12 @@ class jaxe {
     }
 
     // The glue hands a data parameter back as a typed object rather than
-    // bytes, so this writes the byte image of the C struct for the shapes
-    // it knows (overall gain, FFT, dynamic response, attenuation range)
-    // and reports UNSUPPORTED for the rest. The FFT image carries the
+    // bytes. This writes the byte image of the C struct for the shapes it
+    // knows: overall gain, FFT, dynamic response, attenuation range. Every
+    // other shape reports UNSUPPORTED. The FFT image carries the
     // wasm32 layout, 136 bytes with zeroed spectrum pointers. Returns the
-    // length, copying up to cap bytes into out (out may be null).
+    // length, copying up to cap bytes into out. A null out asks for the
+    // length only.
     static fmod_dsp_get_param_data(handle, index, out, cap) {
         var dsp = jaxe.resolveDsp(handle);
         if (!dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return -1; }
@@ -6007,10 +6098,10 @@ class jaxe {
         return "";
     }
 
-    // The byte image of a typed data parameter (the faxe_dspdata.h kinds:
+    // The byte image of a typed data parameter, built from the flat image
+    // in f and i. Null for an unknown kind. The faxe_dspdata.h kinds are
     // 1 sidechain, 2 finite length, 3 attenuation range, 4 dynamic
-    // response, 5 loudness meter weighting) from the flat image in f and
-    // i, or null for an unknown kind. FMOD_BOOL is a 4 byte int.
+    // response, 5 loudness meter weighting. FMOD_BOOL is a 4 byte int.
     static typedParamImage(kind, f, i) {
         var image, view, n;
         if (kind === 1 || kind === 2) {
@@ -6046,9 +6137,9 @@ class jaxe {
         return jaxe.lastResult;
     }
 
-    // The glue types the block by the parameter it belongs to, so the
-    // kinds it knows (sidechain, finite length, attenuation range, dynamic
-    // response) read back from the object's fields and the loudness
+    // The glue types the block by the parameter it belongs to. The kinds
+    // it knows (sidechain, finite length, attenuation range, dynamic
+    // response) read back from the object's fields, and the loudness
     // weighting reports UNSUPPORTED. Sidechain and finite length are the
     // same four byte FMOD_BOOL block, so either flag field satisfies
     // either kind, the way the native byte copy does.
@@ -6098,7 +6189,7 @@ class jaxe {
     //// Init settings and system info: pre-create hooks, driver info, console ports
 
     // outputType must be one of the outputs the web build has (WEBAUDIO,
-    // AUDIOWORKLET, NOSOUND, NOSOUND_NRT) or 0 for the default, anything
+    // AUDIOWORKLET, NOSOUND, NOSOUND_NRT) or 0 for the default. Anything
     // else is refused with 68 (ERR_UNSUPPORTED) before the module starts.
     // resamplerMethod goes to the advanced settings and rawSpeakers to
     // setSoftwareFormat, both at init.
@@ -6106,7 +6197,6 @@ class jaxe {
         outputType = outputType | 0;
         if (jaxe.pendingInit || jaxe.FmodIsInitialized) { jaxe.lastResult = jaxe.ERR_INITIALIZED; return jaxe.lastResult; }
         if (!jaxe.WEB_OUTPUT_TYPES.includes(outputType)) {
-            console.warn("FMOD JS: output type " + outputType + " does not exist in the web build");
             jaxe.lastResult = jaxe.ERR_UNSUPPORTED;
             return jaxe.lastResult;
         }
@@ -6215,8 +6305,8 @@ class jaxe {
         return outval.val;
     }
 
-    // ibuf: id pairs, fbuf: values, count pairs. The glue cannot marshal an
-    // array of FMOD_STUDIO_PARAMETER_ID structs, so the batch is applied
+    // ibuf: id pairs, fbuf: values, count pairs. The glue cannot marshal
+    // an array of FMOD_STUDIO_PARAMETER_ID structs. The batch is applied
     // one id at a time, which FMOD folds into the same update either way.
     static parameterBatchOk(ibuf, fbuf, count) {
         if (count < 0 || count > 512 || !ibuf || !fbuf || ibuf.length < count * 2 || fbuf.length < count) {
@@ -6276,9 +6366,9 @@ class jaxe {
         return jaxe.lastResult;
     }
 
-    // The web glue has no Sound lock or unlock and no File_SetDiskBusy, so
-    // all four report 68 (ERR_UNSUPPORTED) on a live handle and the sound
-    // calls keep reporting 30 on a dead one.
+    // The web glue has no Sound lock or unlock and no File_SetDiskBusy.
+    // All four report 68 (ERR_UNSUPPORTED) on a live handle, and the
+    // sound calls keep reporting 30 on a dead one.
     static fmod_core_sound_lock(handle, offset, length, out) {
         var sound = jaxe.handleResolve(handle, jaxe.TYPE_SOUND);
         if (!sound) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return -jaxe.lastResult; }

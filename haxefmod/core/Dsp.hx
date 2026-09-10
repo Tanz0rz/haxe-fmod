@@ -40,6 +40,10 @@ abstract Dsp(Int) from Int to Int {
         return NativeStudio.dsp_set_param_float(this, index, value);
     }
 
+    /**
+     * A float parameter by index (see DspParameters for the built-in effects). Returns 0.0 both on failure and
+     * for a parameter set to zero. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getParameter(index:Int):Float {
         return NativeStudio.dsp_get_param_float(this, index);
     }
@@ -49,7 +53,10 @@ abstract Dsp(Int) from Int to Int {
         return NativeStudio.dsp_set_param_float(this, index, value);
     }
 
-    /** The same float read as getParameter under FMOD's name. */
+    /**
+     * The same float read as getParameter under FMOD's name. Returns 0.0 both on failure and for a parameter
+     * set to zero. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getParameterFloat(index:Int):Float {
         return NativeStudio.dsp_get_param_float(this, index);
     }
@@ -58,6 +65,10 @@ abstract Dsp(Int) from Int to Int {
         return NativeStudio.dsp_set_param_int(this, index, value);
     }
 
+    /**
+     * An integer parameter by index. Returns 0 both on failure and for a parameter set to zero.
+     * StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getParameterInt(index:Int):Int {
         return NativeStudio.dsp_get_param_int(this, index);
     }
@@ -66,19 +77,34 @@ abstract Dsp(Int) from Int to Int {
         return NativeStudio.dsp_set_param_bool(this, index, value);
     }
 
+    /**
+     * A boolean parameter by index. Returns false both on failure and for a parameter set to false.
+     * StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getParameterBool(index:Int):Bool {
         return NativeStudio.dsp_get_param_bool(this, index);
     }
 
+    /**
+     * How many parameters the effect exposes. Returns 0 both on failure and for an effect with no parameters.
+     * StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getParameterCount():Int {
         return NativeStudio.dsp_get_num_params(this);
     }
 
-    /** The same count as getParameterCount under FMOD's name. */
+    /**
+     * The same count as getParameterCount under FMOD's name. Returns 0 both on failure and for an effect with
+     * no parameters. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getNumParameters():Int {
         return NativeStudio.dsp_get_num_params(this);
     }
 
+    /**
+     * The built-in effect this unit runs. Returns DspType.UNKNOWN both on failure and for a unit FMOD does not
+     * name. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getType():DspType {
         return NativeStudio.dsp_get_type(this);
     }
@@ -88,6 +114,10 @@ abstract Dsp(Int) from Int to Int {
         return NativeStudio.dsp_set_bypass(this, bypass);
     }
 
+    /**
+     * True while the effect passes audio through unprocessed. Returns false both on failure and for an active
+     * effect. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getBypass():Bool {
         return NativeStudio.dsp_get_bypass(this);
     }
@@ -146,8 +176,8 @@ abstract Dsp(Int) from Int to Int {
 
     /**
      * The whole FFT payload: the bin count, the channel count, and one
-     * magnitude array per channel, each capped at maxBins (512 at most).
-     * Null when no data is available yet.
+     * magnitude array per channel. Each array and the bin count are
+     * capped at maxBins (512 at most). Null when no data is available yet.
      */
     public function getFftSpectrumInfo(maxBins:Int = 512):Null<FmodDspParameterFft> {
         if (maxBins > 512) maxBins = 512;
@@ -155,6 +185,7 @@ abstract Dsp(Int) from Int to Int {
         var numChannels = Scratch.readI(0);
         var length = Scratch.readI(1);
         if (bins <= 0 || numChannels <= 0) return null;
+        if (length > bins) length = bins;
         var spectrum = [[for (i in 0...bins) Scratch.readF(i)]];
         for (channel in 1...numChannels) {
             var count = NativeStudio.dsp_fft_get_spectrum_channel(this, channel, maxBins);
@@ -187,29 +218,50 @@ abstract Dsp(Int) from Int to Int {
         return NativeStudio.dsp_disconnect_all(this, inputs, outputs);
     }
 
+    /**
+     * How many DSP units feed this one. Returns 0 both on failure and for a unit with no input.
+     * StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getInputCount():Int {
         return NativeStudio.dsp_get_num_inputs(this);
     }
 
+    /**
+     * How many DSP units this one feeds. Returns 0 both on failure and for a unit with no output.
+     * StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getOutputCount():Int {
         return NativeStudio.dsp_get_num_outputs(this);
     }
 
-    /** The same count as getInputCount under FMOD's name. */
+    /**
+     * The same count as getInputCount under FMOD's name. Returns 0 both on failure and for a unit with no
+     * input. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getNumInputs():Int {
         return NativeStudio.dsp_get_num_inputs(this);
     }
 
-    /** The same count as getOutputCount under FMOD's name. */
+    /**
+     * The same count as getOutputCount under FMOD's name. Returns 0 both on failure and for a unit with no
+     * output. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getNumOutputs():Int {
         return NativeStudio.dsp_get_num_outputs(this);
     }
 
-    /** The DSP feeding input slot `index` (a known DSP returns its existing handle). */
+    /**
+     * The DSP feeding input slot `index` (a known DSP returns its existing handle). Returns Dsp.NULL on
+     * failure, with the reason in StudioSystem.lastResult().
+     */
     public inline function getInput(index:Int):Dsp {
         return NativeStudio.dsp_get_input_dsp(this, index);
     }
 
+    /**
+     * The connection carrying input slot `index` (a known connection returns its existing handle). Returns
+     * DspConnection.NULL on failure, with the reason in StudioSystem.lastResult().
+     */
     public inline function getInputConnection(index:Int):DspConnection {
         return NativeStudio.dsp_get_input_connection(this, index);
     }
@@ -220,6 +272,10 @@ abstract Dsp(Int) from Int to Int {
         return {prewet: Scratch.readF(0), postwet: Scratch.readF(1), dry: Scratch.readF(2)};
     }
 
+    /**
+     * True while the unit processes audio. Returns false both on failure and for an inactive unit.
+     * StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getActive():Bool {
         return NativeStudio.dsp_get_active(this);
     }
@@ -239,21 +295,34 @@ abstract Dsp(Int) from Int to Int {
         return NativeStudio.dsp_set_param_data(this, index, data, data.length);
     }
 
-    /** True when no signal has flowed through the unit recently. */
+    /**
+     * True when no signal has flowed through the unit recently. Returns false both on failure and for a unit
+     * that still carries signal. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function isIdle():Bool {
         return NativeStudio.dsp_get_idle(this);
     }
 
-    /** The effect's display name (e.g. "FMOD Convolution Reverb"). */
+    /**
+     * The effect's display name (e.g. "FMOD Convolution Reverb"). Returns "" on failure, with the reason in
+     * StudioSystem.lastResult().
+     */
     public inline function getName():String {
         return NativeStudio.dsp_get_info_name(this);
     }
 
-    /** The DSP fed by output slot `index` (a known DSP returns its existing handle). */
+    /**
+     * The DSP fed by output slot `index` (a known DSP returns its existing handle). Returns Dsp.NULL on
+     * failure, with the reason in StudioSystem.lastResult().
+     */
     public inline function getOutput(index:Int):Dsp {
         return NativeStudio.dsp_get_output_dsp(this, index);
     }
 
+    /**
+     * The connection carrying output slot `index` (a known connection returns its existing handle). Returns
+     * DspConnection.NULL on failure, with the reason in StudioSystem.lastResult().
+     */
     public inline function getOutputConnection(index:Int):DspConnection {
         return NativeStudio.dsp_get_output_connection(this, index);
     }
@@ -340,10 +409,9 @@ abstract Dsp(Int) from Int to Int {
     #end
 
     /**
-     * The index of the data parameter carrying the given
-     * FmodDspParameterDataType, -1 when the effect has none or on
-     * failure. Negative type values are FMOD's own types, 0 and up are
-     * user data.
+     * The index of the data parameter carrying the given FmodDspParameterDataType, -1 when the effect has none
+     * or on failure. Negative type values are FMOD's own types, 0 and up are user data.
+     * StudioSystem.lastResult() holds the reason for a failure.
      */
     public inline function getDataParameterIndex(dataType:FmodDspParameterDataType):Int {
         return NativeStudio.dsp_get_data_parameter_index(this, dataType);
@@ -381,7 +449,8 @@ abstract Dsp(Int) from Int to Int {
      * Attaches a Haxe value to this handle. The value lives on the Haxe
      * side keyed by the handle and is dropped when the handle is released.
      * A recycled native slot gets a new generation and therefore a new
-     * handle int, so a stale entry never shows up on a later handle.
+     * handle int, so a stale entry does not show up on the next handle
+     * in that slot.
      */
     public inline function setUserData(value:Dynamic):Void {
         UserData.set(UserDataKind.Dsp, this, value);

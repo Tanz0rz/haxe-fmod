@@ -20,6 +20,7 @@ carries the phrase "unsupported in HTML5".
 Run: python3 ci/check-html5-gate.py
 """
 
+import glob
 import os
 import re
 import subprocess
@@ -157,6 +158,18 @@ GATED = [
      "var d:Dsp = cast 1; var r = d.getParameterInfo(0);"),
     ("Dsp", "getLoudnessMeterInfo", "haxefmod/core/Dsp.hx",
      "var d:Dsp = cast 1; var r = d.getLoudnessMeterInfo();"),
+    ("Dsp", "getLoudnessMeterWeighting", "haxefmod/core/Dsp.hx",
+     "var d:Dsp = cast 1; var r = d.getLoudnessMeterWeighting();"),
+    ("Bus", "getPortIndex", "haxefmod/studio/Bus.hx",
+     "var b:Bus = cast 1; var r = b.getPortIndex();"),
+    ("Bus", "setPortIndex", "haxefmod/studio/Bus.hx",
+     "var b:Bus = cast 1; var r = b.setPortIndex(FmodPortIndex.NONE);"),
+    ("StudioSystem", "getRecordNumDrivers", "haxefmod/studio/StudioSystem.hx",
+     "var r = StudioSystem.getRecordNumDrivers();"),
+    ("StudioSystem", "getNumPlugins", "haxefmod/studio/StudioSystem.hx",
+     "var r = StudioSystem.getNumPlugins(FmodPluginType.DSP);"),
+    ("StudioSystem", "getNumNestedPlugins", "haxefmod/studio/StudioSystem.hx",
+     "var r = StudioSystem.getNumNestedPlugins(1);"),
     ("StudioSystem", "setPluginPath", "haxefmod/studio/StudioSystem.hx",
      "var r = StudioSystem.setPluginPath(\"plugins\");"),
     ("StudioSystem", "loadPlugin", "haxefmod/studio/StudioSystem.hx",
@@ -265,8 +278,23 @@ def check_doc(row):
     return None
 
 
+def source_gates():
+    """Every Type.method the source gates, read from the Html5Gate.block calls."""
+    names = set()
+    for path in glob.glob(os.path.join(ROOT, "haxefmod", "**", "*.hx"), recursive=True):
+        with open(path, encoding="utf-8") as fh:
+            for match in re.finditer(r'Html5Gate\.block\("([A-Za-z0-9_]+)\.([A-Za-z0-9_]+)"', fh.read()):
+                names.add((match.group(1), match.group(2)))
+    return names
+
+
 def main():
     failures = []
+    # A gate the table does not list gets neither the compile proof nor
+    # the doc check, so the table must name every gate in the source
+    listed = {(row[0], row[1]) for row in GATED}
+    for type_name, method in sorted(source_gates() - listed):
+        failures.append("%s.%s is gated in the source but missing from GATED in this script" % (type_name, method))
     for row in GATED:
         problem = check_doc(row)
         if problem:

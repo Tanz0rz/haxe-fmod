@@ -120,7 +120,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "The scale FMOD applies to the doppler effect (0.0 = off, 1.0 = normal).",
      "gated": false,
      "name": "get3DDopplerLevel",
      "signature": "get3DDopplerLevel():Float",
@@ -136,7 +136,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Blend between 2D and full 3D positioning (0.0 = 2D, 1.0 = 3D).",
      "gated": false,
      "name": "get3DLevel",
      "signature": "get3DLevel():Float",
@@ -184,7 +184,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Speaker spread of a 3D sound in degrees.",
      "gated": false,
      "name": "get3DSpread",
      "signature": "get3DSpread():Float",
@@ -360,7 +360,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Times to loop before stopping (-1 = forever, 0 = play once).",
      "gated": false,
      "name": "getLoopCount",
      "signature": "getLoopCount():Int",
@@ -392,7 +392,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "The gain of the dry signal under the built-in lowpass (1.0 = open, 0.0 = fully closed).",
      "gated": false,
      "name": "getLowPassGain",
      "signature": "getLowPassGain():Float",
@@ -424,7 +424,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "The ChannelMode flags in force (looping, 2D/3D, rolloff shape).",
      "gated": false,
      "name": "getMode",
      "signature": "getMode():Int",
@@ -440,7 +440,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "The mute state.",
      "gated": false,
      "name": "getMute",
      "signature": "getMute():Bool",
@@ -465,7 +465,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "",
+     "doc": "How many DSP units sit in this channel's chain.",
      "gated": false,
      "name": "getDspCount",
      "signature": "getDspCount():Int",
@@ -481,7 +481,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "The paused state.",
      "gated": false,
      "name": "getPaused",
      "signature": "getPaused():Bool",
@@ -529,7 +529,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Voice priority for virtualization, 0 (most important) to 256 (least).",
      "gated": false,
      "name": "getPriority",
      "signature": "getPriority():Int",
@@ -554,7 +554,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "",
+     "doc": "How much this channel feeds a reverb instance (0.0 = none, 1.0 = full).",
      "gated": false,
      "name": "getReverbWet",
      "signature": "getReverbWet(instance:Int):Float",
@@ -602,7 +602,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "True while volume changes ramp instead of applying at once.",
      "gated": false,
      "name": "getVolumeRamp",
      "signature": "getVolumeRamp():Bool",
@@ -618,7 +618,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "The playing state.",
      "gated": false,
      "name": "isPlaying",
      "signature": "isPlaying():Bool",
@@ -1450,7 +1450,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "The scale FMOD applies to the doppler effect (0.0 = off, 1.0 = normal).",
      "gated": false,
      "name": "get3DDopplerLevel",
      "signature": "get3DDopplerLevel():Float",
@@ -1459,7 +1459,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": true,
-     "doc": "",
+     "doc": "The scale FMOD applies to the doppler effect (0.0 = off, 1.0 = normal).",
      "gated": false,
      "name": "get3DDopplerLevel",
      "signature": "get3DDopplerLevel():Float",
@@ -1475,7 +1475,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Blend between 2D and full 3D positioning (0.0 = 2D, 1.0 = 3D).",
      "gated": false,
      "name": "get3DLevel",
      "signature": "get3DLevel():Float",
@@ -1484,7 +1484,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": true,
-     "doc": "",
+     "doc": "Blend between 2D and full 3D positioning (0.0 = 2D, 1.0 = 3D).",
      "gated": false,
      "name": "get3DLevel",
      "signature": "get3DLevel():Float",
@@ -1550,7 +1550,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Speaker spread of a 3D group in degrees.",
      "gated": false,
      "name": "get3DSpread",
      "signature": "get3DSpread():Float",
@@ -1559,7 +1559,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": true,
-     "doc": "",
+     "doc": "Speaker spread of a 3D sound in degrees.",
      "gated": false,
      "name": "get3DSpread",
      "signature": "get3DSpread():Float",
@@ -1821,7 +1821,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Times to loop before stopping (-1 = forever, 0 = play once).",
      "gated": false,
      "name": "getLoopCount",
      "signature": "getLoopCount():Int",
@@ -1862,7 +1862,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": true,
-     "doc": "",
+     "doc": "The gain of the dry signal under the built-in lowpass (1.0 = open, 0.0 = fully closed).",
      "gated": false,
      "name": "getLowPassGain",
      "signature": "getLowPassGain():Float",
@@ -1903,7 +1903,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "The ChannelMode flags in force (looping, 2D/3D, rolloff shape).",
      "gated": false,
      "name": "getMode",
      "signature": "getMode():Int",
@@ -1912,7 +1912,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": true,
-     "doc": "",
+     "doc": "The ChannelMode flags in force (looping, 2D/3D, rolloff shape).",
      "gated": false,
      "name": "getMode",
      "signature": "getMode():Int",
@@ -1928,7 +1928,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "The mute state.",
      "gated": false,
      "name": "getMute",
      "signature": "getMute():Bool",
@@ -1937,7 +1937,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": true,
-     "doc": "",
+     "doc": "The mute state.",
      "gated": false,
      "name": "getMute",
      "signature": "getMute():Bool",
@@ -1953,7 +1953,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "The name FMOD holds for this group.",
      "gated": false,
      "name": "getName",
      "signature": "getName():String",
@@ -1978,7 +1978,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "",
+     "doc": "How many channels are routed into this group.",
      "gated": false,
      "name": "getChannelCount",
      "signature": "getChannelCount():Int",
@@ -2021,7 +2021,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "",
+     "doc": "How many DSP units sit in this channel's chain.",
      "gated": false,
      "name": "getDspCount",
      "signature": "getDspCount():Int",
@@ -2046,7 +2046,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "",
+     "doc": "How many groups are nested directly inside this one.",
      "gated": false,
      "name": "getGroupCount",
      "signature": "getGroupCount():Int",
@@ -2062,7 +2062,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "The group this one feeds.",
      "gated": false,
      "name": "getParentGroup",
      "signature": "getParentGroup():ChannelGroup",
@@ -2078,7 +2078,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "The paused state.",
      "gated": false,
      "name": "getPaused",
      "signature": "getPaused():Bool",
@@ -2087,7 +2087,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": true,
-     "doc": "",
+     "doc": "The paused state.",
      "gated": false,
      "name": "getPaused",
      "signature": "getPaused():Bool",
@@ -2103,7 +2103,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "The group pitch multiplier (1.0 = as recorded, 2.0 = one octave up).",
      "gated": false,
      "name": "getPitch",
      "signature": "getPitch():Float",
@@ -2144,7 +2144,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Voice priority for virtualization, 0 (most important) to 256 (least).",
      "gated": false,
      "name": "getPriority",
      "signature": "getPriority():Int",
@@ -2169,7 +2169,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "",
+     "doc": "How much this group feeds a reverb instance (0.0 = none, 1.0 = full).",
      "gated": false,
      "name": "getReverbWet",
      "signature": "getReverbWet(instance:Int):Float",
@@ -2187,7 +2187,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "",
+     "doc": "How much this channel feeds a reverb instance (0.0 = none, 1.0 = full).",
      "gated": false,
      "name": "getReverbWet",
      "signature": "getReverbWet(instance:Int):Float",
@@ -2237,7 +2237,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "The group volume as set by the API (linear: 0.0 = silent, 1.0 = full).",
      "gated": false,
      "name": "getVolume",
      "signature": "getVolume():Float",
@@ -2262,7 +2262,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "True while volume changes ramp instead of applying at once.",
      "gated": false,
      "name": "getVolumeRamp",
      "signature": "getVolumeRamp():Bool",
@@ -2271,7 +2271,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": true,
-     "doc": "",
+     "doc": "True while volume changes ramp instead of applying at once.",
      "gated": false,
      "name": "getVolumeRamp",
      "signature": "getVolumeRamp():Bool",
@@ -2296,7 +2296,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": true,
-     "doc": "",
+     "doc": "The playing state.",
      "gated": false,
      "name": "isPlaying",
      "signature": "isPlaying():Bool",
@@ -2830,7 +2830,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "A built-in lowpass on the group (1.0 = open, 0.0 = closed).",
+     "doc": "A built-in lowpass (1.0 = open, 0.0 = closed).",
      "gated": false,
      "name": "setLowPassGain",
      "signature": "setLowPassGain(gain:Float):FmodResult",
@@ -3367,7 +3367,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "The scale FMOD applies to the doppler effect (0.0 = off, 1.0 = normal).",
      "gated": false,
      "name": "get3DDopplerLevel",
      "signature": "get3DDopplerLevel():Float",
@@ -3383,7 +3383,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Blend between 2D and full 3D positioning (0.0 = 2D, 1.0 = 3D).",
      "gated": false,
      "name": "get3DLevel",
      "signature": "get3DLevel():Float",
@@ -3431,7 +3431,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Speaker spread of a 3D group in degrees.",
      "gated": false,
      "name": "get3DSpread",
      "signature": "get3DSpread():Float",
@@ -3607,7 +3607,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "The ChannelMode flags in force (looping, 2D/3D, rolloff shape).",
      "gated": false,
      "name": "getMode",
      "signature": "getMode():Int",
@@ -3623,7 +3623,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "The mute state.",
      "gated": false,
      "name": "getMute",
      "signature": "getMute():Bool",
@@ -3639,7 +3639,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "The name FMOD holds for this group.",
      "gated": false,
      "name": "getName",
      "signature": "getName():String",
@@ -3664,7 +3664,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "",
+     "doc": "How many channels are routed into this group.",
      "gated": false,
      "name": "getChannelCount",
      "signature": "getChannelCount():Int",
@@ -3714,7 +3714,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "",
+     "doc": "How many groups are nested directly inside this one.",
      "gated": false,
      "name": "getGroupCount",
      "signature": "getGroupCount():Int",
@@ -3730,7 +3730,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "The group this one feeds.",
      "gated": false,
      "name": "getParentGroup",
      "signature": "getParentGroup():ChannelGroup",
@@ -3746,7 +3746,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "The paused state.",
      "gated": false,
      "name": "getPaused",
      "signature": "getPaused():Bool",
@@ -3762,7 +3762,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "The group pitch multiplier (1.0 = as recorded, 2.0 = one octave up).",
      "gated": false,
      "name": "getPitch",
      "signature": "getPitch():Float",
@@ -3787,7 +3787,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "",
+     "doc": "How much this group feeds a reverb instance (0.0 = none, 1.0 = full).",
      "gated": false,
      "name": "getReverbWet",
      "signature": "getReverbWet(instance:Int):Float",
@@ -3819,7 +3819,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "The group volume as set by the API (linear: 0.0 = silent, 1.0 = full).",
      "gated": false,
      "name": "getVolume",
      "signature": "getVolume():Float",
@@ -3835,7 +3835,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "True while volume changes ramp instead of applying at once.",
      "gated": false,
      "name": "getVolumeRamp",
      "signature": "getVolumeRamp():Bool",
@@ -4154,7 +4154,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "A built-in lowpass on the group (1.0 = open, 0.0 = closed).",
+     "doc": "A built-in lowpass (1.0 = open, 0.0 = closed).",
      "gated": false,
      "name": "setLowPassGain",
      "signature": "setLowPassGain(gain:Float):FmodResult",
@@ -4484,7 +4484,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "True while the unit processes audio.",
      "gated": false,
      "name": "getActive",
      "signature": "getActive():Bool",
@@ -4500,7 +4500,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "True while the effect passes audio through unprocessed.",
      "gated": false,
      "name": "getBypass",
      "signature": "getBypass():Bool",
@@ -4614,7 +4614,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "",
+     "doc": "The connection carrying input slot index (a known connection returns its existing handle).",
      "gated": false,
      "name": "getInputConnection",
      "signature": "getInputConnection(index:Int):DspConnection",
@@ -4671,7 +4671,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "",
+     "doc": "How many DSP units feed this one.",
      "gated": false,
      "name": "getInputCount",
      "signature": "getInputCount():Int",
@@ -4696,7 +4696,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "",
+     "doc": "How many DSP units this one feeds.",
      "gated": false,
      "name": "getOutputCount",
      "signature": "getOutputCount():Int",
@@ -4721,7 +4721,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "",
+     "doc": "How many parameters the effect exposes.",
      "gated": false,
      "name": "getParameterCount",
      "signature": "getParameterCount():Int",
@@ -4746,7 +4746,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "",
+     "doc": "The connection carrying output slot index (a known connection returns its existing handle).",
      "gated": false,
      "name": "getOutputConnection",
      "signature": "getOutputConnection(index:Int):DspConnection",
@@ -4778,7 +4778,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "A boolean parameter by index.",
      "gated": false,
      "name": "getParameterBool",
      "signature": "getParameterBool(index:Int):Bool",
@@ -4812,7 +4812,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "The whole FFT payload: the bin count, the channel count, and one magnitude array per channel, each capped at maxBins (512 at most).",
+     "doc": "The whole FFT payload: the bin count, the channel count, and one magnitude array per channel.",
      "gated": false,
      "name": "getFftSpectrumInfo",
      "signature": "getFftSpectrumInfo(maxBins:Int = 512):Null<FmodDspParameterFft>",
@@ -4882,7 +4882,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "",
+     "doc": "A float parameter by index (see DspParameters for the built-in effects).",
      "gated": false,
      "name": "getParameter",
      "signature": "getParameter(index:Int):Float",
@@ -4914,7 +4914,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "An integer parameter by index.",
      "gated": false,
      "name": "getParameterInt",
      "signature": "getParameterInt(index:Int):Int",
@@ -4939,7 +4939,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "The built-in effect this unit runs.",
      "gated": false,
      "name": "getType",
      "signature": "getType():DspType",
@@ -5308,7 +5308,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": false,
-     "doc": "",
+     "doc": "The DSP this connection feeds (a known DSP returns its existing handle).",
      "gated": false,
      "name": "getOutputDsp",
      "signature": "getOutputDsp():Dsp",
@@ -5605,7 +5605,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Whether the geometry occludes, false on failure (unsupported in HTML5, false there).",
+     "doc": "Whether the geometry occludes (unsupported in HTML5, false there).",
      "gated": true,
      "name": "getActive",
      "signature": "getActive():Bool",
@@ -5637,7 +5637,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Polygons added so far, -1 on failure (unsupported in HTML5, -1 there).",
+     "doc": "Polygons added so far (unsupported in HTML5, -1 there).",
      "gated": true,
      "name": "getNumPolygons",
      "signature": "getNumPolygons():Int",
@@ -5669,7 +5669,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Vertex count of one polygon, -1 on failure (unsupported in HTML5, -1 there).",
+     "doc": "Vertex count of one polygon (unsupported in HTML5, -1 there).",
      "gated": true,
      "name": "getPolygonNumVertices",
      "signature": "getPolygonNumVertices(index:Int):Int",
@@ -5992,7 +5992,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "True while this reverb sphere affects the mix.",
      "gated": false,
      "name": "getActive",
      "signature": "getActive():Bool",
@@ -6257,7 +6257,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Times to loop before stopping (-1 = forever).",
      "gated": false,
      "name": "getLoopCount",
      "signature": "getLoopCount():Int",
@@ -6289,7 +6289,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "The ChannelMode flags on the sound.",
      "gated": false,
      "name": "getMode",
      "signature": "getMode():Int",
@@ -6394,7 +6394,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "Number of sync points, 0 on failure.",
+     "doc": "Number of sync points.",
      "gated": false,
      "name": "getSyncPointCount",
      "signature": "getSyncPointCount():Int",
@@ -6649,7 +6649,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": true,
-     "doc": "Releases the sound and invalidates this handle.",
+     "doc": "Releases the sound and invalidates this handle and its subsound handles.",
      "gated": false,
      "name": "release",
      "signature": "release():FmodResult",
@@ -6882,7 +6882,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Most sounds from this group audible at once (-1 = unlimited).",
      "gated": false,
      "name": "getMaxAudible",
      "signature": "getMaxAudible():Int",
@@ -6914,7 +6914,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Fade time in seconds when BEHAVIOR_MUTE kicks in.",
      "gated": false,
      "name": "getMuteFadeSpeed",
      "signature": "getMuteFadeSpeed():Float",
@@ -6980,7 +6980,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "",
+     "doc": "How many sounds belong to this group.",
      "gated": false,
      "name": "getSoundCount",
      "signature": "getSoundCount():Int",
@@ -7037,7 +7037,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Volume scale over every sound in the group (linear, 1.0 = full).",
      "gated": false,
      "name": "getVolume",
      "signature": "getVolume():Float",
@@ -7864,7 +7864,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Playback state of the replay, STOPPED on failure.",
+     "doc": "Playback state of the replay.",
      "gated": false,
      "name": "getPlaybackState",
      "signature": "getPlaybackState():FmodPlaybackState",
@@ -8311,7 +8311,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Estimated non-streaming sample data size in bytes.",
+     "doc": "The largest Sound Size of the spatializers on the event's master track, in world units.",
      "gated": false,
      "name": "getSoundSize",
      "signature": "getSoundSize():Float",
@@ -10132,7 +10132,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Resolves a path to its GUID (\"\" on failure.",
+     "doc": "Resolves a path to its GUID (FmodGuid.NULL on failure.",
      "gated": false,
      "name": "lookupID",
      "signature": "lookupID(path:String):FmodGuid",
@@ -11022,7 +11022,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "The index of the output driver in use (see setDriver).",
      "gated": false,
      "name": "getDriver",
      "signature": "getDriver():Int",
@@ -11047,7 +11047,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "",
+     "doc": "The name of the output driver at index (see getDriverCount).",
      "gated": false,
      "name": "getDriverName",
      "signature": "getDriverName(index:Int):String",
@@ -11143,7 +11143,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": false,
-     "doc": "The current world size, 0 on failure (unsupported in HTML5, 0 there).",
+     "doc": "The current world size (unsupported in HTML5, 0 there).",
      "gated": true,
      "name": "getWorldSize",
      "signature": "getWorldSize():Float",
@@ -11248,7 +11248,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "",
+     "doc": "How many output drivers FMOD found.",
      "gated": false,
      "name": "getDriverCount",
      "signature": "getDriverCount():Int",
@@ -11419,7 +11419,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "The record cursor in PCM samples, or -1 on failure (unsupported in HTML5, always -1 there).",
+     "doc": "The record cursor in PCM samples (unsupported in HTML5, always -1 there).",
      "gated": true,
      "name": "getRecordPosition",
      "signature": "getRecordPosition(id:Int):Int",

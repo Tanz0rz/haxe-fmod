@@ -38,9 +38,9 @@ static int faxe_guid_is_space(char c) {
 
 /* Parses "{8-4-4-4-12}" (braces optional, surrounding whitespace allowed
  * to match the html5 shim's trim) into id. Returns 1 on success. Group
- * widths are enforced exactly and no trailing text is accepted, so a
- * malformed GUID fails here instead of resolving a zero-padded wrong GUID
- * (sscanf alone accepts short groups and ignores trailing garbage). */
+ * widths are enforced exactly and no trailing text is accepted. A
+ * malformed GUID fails here instead of resolving a zero-padded wrong one.
+ * sscanf alone accepts short groups and ignores trailing garbage. */
 static int faxe_guid_parse(const char* text, FMOD_GUID* id) {
     static const int groups[5] = { 8, 4, 4, 4, 12 };
     unsigned int d1;

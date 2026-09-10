@@ -31,7 +31,10 @@ abstract DspConnection(Int) from Int to Int {
         return this == 0;
     }
 
-    /** Signal scale through this connection (linear, 0.0 = silent, 1.0 = full). */
+    /**
+     * Signal scale through this connection (linear, 0.0 = silent, 1.0 = full). Returns 0.0 both on failure and
+     * for a silenced connection. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getMix():Float {
         return NativeStudio.dspconn_get_mix(this);
     }
@@ -40,16 +43,23 @@ abstract DspConnection(Int) from Int to Int {
         return NativeStudio.dspconn_set_mix(this, mix);
     }
 
-    /** The connection's type, STANDARD on failure. */
+    /** The connection's type, STANDARD on failure. StudioSystem.lastResult() holds the reason for a failure. */
     public inline function getType():DspConnectionType {
         return NativeStudio.dspconn_get_type(this);
     }
 
-    /** The DSP feeding this connection (a known DSP returns its existing handle). */
+    /**
+     * The DSP feeding this connection (a known DSP returns its existing handle). Returns Dsp.NULL on failure,
+     * with the reason in StudioSystem.lastResult().
+     */
     public inline function getInputDsp():Dsp {
         return NativeStudio.dspconn_get_input_dsp(this);
     }
 
+    /**
+     * The DSP this connection feeds (a known DSP returns its existing handle). Returns Dsp.NULL on failure,
+     * with the reason in StudioSystem.lastResult().
+     */
     public inline function getOutputDsp():Dsp {
         return NativeStudio.dspconn_get_output_dsp(this);
     }
@@ -95,9 +105,10 @@ abstract DspConnection(Int) from Int to Int {
     #end
     /**
      * Attaches a Haxe value to this handle. The value lives on the Haxe
-     * side keyed by the handle and is dropped when the handle is released.
+     * side keyed by the handle and is dropped by StudioSystem.unloadAll.
      * A recycled native slot gets a new generation and therefore a new
-     * handle int, so a stale entry never shows up on a later handle.
+     * handle int, so a stale entry does not show up on the next handle
+     * in that slot.
      */
     public inline function setUserData(value:Dynamic):Void {
         UserData.set(UserDataKind.DspConnection, this, value);

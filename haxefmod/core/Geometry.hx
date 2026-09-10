@@ -78,12 +78,18 @@ abstract Geometry(Int) from Int to Int {
     #end
 
     #if (macro || (js && !haxefmod_html5_allow_unsupported))
-    /** The current world size, 0 on failure (unsupported in HTML5, 0 there). */
+    /**
+     * The current world size (unsupported in HTML5, 0 there). Returns 0 on failure, with the reason in
+     * StudioSystem.lastResult().
+     */
     public static macro function getWorldSize():haxe.macro.Expr {
         return haxefmod.studio.native.Html5Gate.block("Geometry.getWorldSize", "the web build has no geometry occlusion");
     }
     #else
-    /** The current world size, 0 on failure (unsupported in HTML5, 0 there). */
+    /**
+     * The current world size (unsupported in HTML5, 0 there). Returns 0 on failure, with the reason in
+     * StudioSystem.lastResult().
+     */
     public static inline function getWorldSize():Float {
         return NativeStudio.sys_get_geometry_settings();
     }
@@ -155,12 +161,18 @@ abstract Geometry(Int) from Int to Int {
     #end
 
     #if (macro || (js && !haxefmod_html5_allow_unsupported))
-    /** Polygons added so far, -1 on failure (unsupported in HTML5, -1 there). */
+    /**
+     * Polygons added so far (unsupported in HTML5, -1 there). Returns -1 on failure, with the reason in
+     * StudioSystem.lastResult().
+     */
     public macro function getNumPolygons(self:haxe.macro.Expr):haxe.macro.Expr {
         return haxefmod.studio.native.Html5Gate.block("Geometry.getNumPolygons", "the web build has no geometry occlusion");
     }
     #else
-    /** Polygons added so far, -1 on failure (unsupported in HTML5, -1 there). */
+    /**
+     * Polygons added so far (unsupported in HTML5, -1 there). Returns -1 on failure, with the reason in
+     * StudioSystem.lastResult().
+     */
     public inline function getNumPolygons():Int {
         return NativeStudio.geo_get_num_polygons(this);
     }
@@ -181,12 +193,18 @@ abstract Geometry(Int) from Int to Int {
     #end
 
     #if (macro || (js && !haxefmod_html5_allow_unsupported))
-    /** Vertex count of one polygon, -1 on failure (unsupported in HTML5, -1 there). */
+    /**
+     * Vertex count of one polygon (unsupported in HTML5, -1 there). Returns -1 on failure, with the reason in
+     * StudioSystem.lastResult().
+     */
     public macro function getPolygonNumVertices(self:haxe.macro.Expr, index:haxe.macro.Expr):haxe.macro.Expr {
         return haxefmod.studio.native.Html5Gate.block("Geometry.getPolygonNumVertices", "the web build has no geometry occlusion");
     }
     #else
-    /** Vertex count of one polygon, -1 on failure (unsupported in HTML5, -1 there). */
+    /**
+     * Vertex count of one polygon (unsupported in HTML5, -1 there). Returns -1 on failure, with the reason in
+     * StudioSystem.lastResult().
+     */
     public inline function getPolygonNumVertices(index:Int):Int {
         return NativeStudio.geo_get_polygon_num_vertices(this, index);
     }
@@ -258,12 +276,18 @@ abstract Geometry(Int) from Int to Int {
     #end
 
     #if (macro || (js && !haxefmod_html5_allow_unsupported))
-    /** Whether the geometry occludes, false on failure (unsupported in HTML5, false there). */
+    /**
+     * Whether the geometry occludes (unsupported in HTML5, false there). Returns false both on failure and for
+     * geometry switched off. StudioSystem.lastResult() tells the two apart.
+     */
     public macro function getActive(self:haxe.macro.Expr):haxe.macro.Expr {
         return haxefmod.studio.native.Html5Gate.block("Geometry.getActive", "the web build has no geometry occlusion");
     }
     #else
-    /** Whether the geometry occludes, false on failure (unsupported in HTML5, false there). */
+    /**
+     * Whether the geometry occludes (unsupported in HTML5, false there). Returns false both on failure and for
+     * geometry switched off. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getActive():Bool {
         return NativeStudio.geo_get_active(this);
     }
@@ -382,7 +406,8 @@ abstract Geometry(Int) from Int to Int {
      * Attaches a Haxe value to this handle. The value lives on the Haxe
      * side keyed by the handle and is dropped when the handle is released.
      * A recycled native slot gets a new generation and therefore a new
-     * handle int, so a stale entry never shows up on a later handle.
+     * handle int, so a stale entry does not show up on the next handle
+     * in that slot.
      */
     public inline function setUserData(value:Dynamic):Void {
         haxefmod.studio.UserData.set(haxefmod.studio.UserData.UserDataKind.Geometry, this, value);

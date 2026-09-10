@@ -38,6 +38,10 @@ abstract SoundGroup(Int) from Int to Int {
         return NativeStudio.sg_set_max_audible(this, maxAudible);
     }
 
+    /**
+     * Most sounds from this group audible at once (-1 = unlimited). Returns 0 both on failure and for a group
+     * that allows none. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getMaxAudible():Int {
         return NativeStudio.sg_get_max_audible(this);
     }
@@ -47,7 +51,7 @@ abstract SoundGroup(Int) from Int to Int {
         return NativeStudio.sg_set_max_audible_behavior(this, behavior);
     }
 
-    /** The current behavior, FAIL on failure. */
+    /** The current behavior, FAIL on failure. StudioSystem.lastResult() holds the reason for a failure. */
     public inline function getMaxAudibleBehavior():SoundGroupBehavior {
         return NativeStudio.sg_get_max_audible_behavior(this);
     }
@@ -62,43 +66,67 @@ abstract SoundGroup(Int) from Int to Int {
         return NativeStudio.sg_set_volume(this, volume);
     }
 
+    /**
+     * Volume scale over every sound in the group (linear, 1.0 = full). Returns 0.0 both on failure and for a
+     * silent group. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getVolume():Float {
         return NativeStudio.sg_get_volume(this);
     }
 
+    /**
+     * Fade time in seconds when BEHAVIOR_MUTE kicks in. Returns 0.0 both on failure and for an instant fade.
+     * StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getMuteFadeSpeed():Float {
         return NativeStudio.sg_get_mute_fade_speed(this);
     }
 
+    /**
+     * How many sounds belong to this group. Returns 0 both on failure and for an empty group.
+     * StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getSoundCount():Int {
         return NativeStudio.sg_get_num_sounds(this);
     }
 
-    /** The name given at create(), "FMOD master" for the master group. */
+    /**
+     * The name given at create(), "FMOD master" for the master group. Returns "" on failure, with the reason in
+     * StudioSystem.lastResult().
+     */
     public inline function getName():String {
         return NativeStudio.sg_get_name(this);
     }
 
     /**
-     * The sound at position index in this group (a known sound returns its
-     * existing handle). Sound.NULL past the end. The group does not own
-     * the sound, so do not release a handle obtained this way.
+     * The sound at position index in this group (a known sound returns its existing handle). Sound.NULL past
+     * the end. The group does not own the sound, so do not release a handle obtained this way. Any other
+     * failure reports Sound.NULL as well, with the reason in StudioSystem.lastResult().
      */
     public inline function getSound(index:Int):haxefmod.core.Sound {
         return NativeStudio.sg_get_sound(this, index);
     }
 
-    /** Sounds from this group audible at this moment. */
+    /**
+     * Sounds from this group audible at this moment. Returns 0 both on failure and for a group with nothing
+     * audible. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getPlayingCount():Int {
         return NativeStudio.sg_get_num_playing(this);
     }
 
-    /** The same count as getSoundCount under FMOD's name. */
+    /**
+     * The same count as getSoundCount under FMOD's name. Returns 0 both on failure and for an empty group.
+     * StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getNumSounds():Int {
         return NativeStudio.sg_get_num_sounds(this);
     }
 
-    /** The same count as getPlayingCount under FMOD's name. */
+    /**
+     * The same count as getPlayingCount under FMOD's name. Returns 0 both on failure and for a group with
+     * nothing audible. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getNumPlaying():Int {
         return NativeStudio.sg_get_num_playing(this);
     }
@@ -121,7 +149,8 @@ abstract SoundGroup(Int) from Int to Int {
      * Attaches a Haxe value to this handle. The value lives on the Haxe
      * side keyed by the handle and is dropped when the handle is released.
      * A recycled native slot gets a new generation and therefore a new
-     * handle int, so a stale entry never shows up on a later handle.
+     * handle int, so a stale entry does not show up on the next handle
+     * in that slot.
      */
     public inline function setUserData(value:Dynamic):Void {
         UserData.set(UserDataKind.SoundGroup, this, value);

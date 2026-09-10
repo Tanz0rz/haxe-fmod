@@ -155,9 +155,10 @@ static FMOD_RESULT F_CALLBACK eventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type
                 ctx->psSound = sound;
             }
             // The record carries the sound the instrument got, so the drain
-            // can hand it to the game as a handle: ptr is the FMOD_SOUND, i2
-            // the subsound index, i3 set when this shim created the sound
-            // (its handle is freed again when the destroy record drains)
+            // can hand it to the game as a handle. ptr is the FMOD_SOUND, i2
+            // the subsound index, i3 set when this shim created the sound.
+            // A shim-created sound loses its handle again when the destroy
+            // record drains.
             if (props) {
                 ev.ptr = props->sound;
                 ev.i2 = props->subsoundIndex;
@@ -242,7 +243,7 @@ static FMOD_RESULT F_CALLBACK eventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type
     // The context's lifetime ends with the instance. DESTROYED is always in
     // the installed mask (see attach_instance_ctx), so hand-off is guaranteed.
     // The context rides the queue as the event's payload and the game-thread
-    // drain frees it: freeing here would race a game-thread caller that read
+    // drain frees it. Freeing here would race a game-thread caller that read
     // the context pointer from userdata just before this callback ran.
     if (type == FMOD_STUDIO_EVENT_CALLBACK_DESTROYED) {
         FMOD_Studio_EventInstance_SetUserData(event, NULL);
@@ -278,15 +279,20 @@ static FaxeInstCtx* instance_ctx(FMOD_STUDIO_EVENTINSTANCE* instance) {
     return (FaxeInstCtx*)userData;
 }
 
-// Builds the mask actually installed on the instance: the user's mask plus
-// DESTROYED (context cleanup) plus the programmer-sound bits when any
-// programmer sound assignment is present.
+// Builds the mask actually installed on the instance. That is the user's
+// mask, plus DESTROYED for context cleanup, plus the programmer-sound bits
+// while any assignment is present. A sound the shim already created
+// keeps the DESTROY bit on its own, so the release still runs after
+// ps_clear drops the assignment.
 static FMOD_STUDIO_EVENT_CALLBACK_TYPE effective_callback_mask(FaxeInstCtx* ctx) {
     unsigned int mask = ctx->cbMask | FMOD_STUDIO_EVENT_CALLBACK_DESTROYED;
     faxe_cbq_lock();
     if (faxe_instctx_ps_armed(ctx)) {
         mask |= FMOD_STUDIO_EVENT_CALLBACK_CREATE_PROGRAMMER_SOUND
               | FMOD_STUDIO_EVENT_CALLBACK_DESTROY_PROGRAMMER_SOUND;
+    }
+    if (faxe_instctx_ps_sound_pending(ctx)) {
+        mask |= FMOD_STUDIO_EVENT_CALLBACK_DESTROY_PROGRAMMER_SOUND;
     }
     faxe_cbq_unlock();
     return (FMOD_STUDIO_EVENT_CALLBACK_TYPE)mask;
@@ -380,9 +386,9 @@ HL_PRIM int HL_NAME(ps_assign)(int h, vbyte* key) {
     if (!ctx) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     /* The shim consumes this string itself (everywhere else strings go
      * to FMOD, whose own validation rejects NULL). A null vbyte would
-     * crash the strncpy, and a key at or past the buffer size would
-     * silently truncate - possibly mid-UTF-8 - and resolve the wrong
-     * sound, so both are rejected. */
+     * crash the strncpy. A key at or past the buffer size would silently
+     * truncate, possibly mid-UTF-8, and resolve the wrong sound. Both
+     * are rejected. */
     if (!key || strlen((const char*)key) >= FAXE_PS_KEY_MAX) {
         gLastResult = FMOD_ERR_INVALID_PARAM;
         return (int)gLastResult;
@@ -514,8 +520,8 @@ DEFINE_PRIM(_I32, core_create_sound_memory, _BYTES _I32 _I32);
 
 // Fills exinfo from the packed int slots (layout in the manifest next to
 // core_create_sound_ex) and the three strings. Empty strings mean unset.
-// list receives the inclusion list pointer, which must stay alive for
-// the create call. Returns 0 when the GUID text does not parse.
+// The inclusion list points straight into ints, which must stay alive
+// for the create call. Returns 0 when the GUID text does not parse.
 static int hlaxe_fill_exinfo(FMOD_CREATESOUNDEXINFO* exinfo, const int* ints, const char* dls,
         const char* key, const char* guidText, FMOD_GUID* guid) {
     memset(exinfo, 0, sizeof(*exinfo));
@@ -540,8 +546,11 @@ static int hlaxe_fill_exinfo(FMOD_CREATESOUNDEXINFO* exinfo, const int* ints, co
     exinfo->ignoresetfilesystem = ints[17];
     exinfo->audioqueuepolicy = (unsigned int)ints[18];
     if (ints[19] > 0) {
+        /* The buffer is FAXE_LIST_MAX ints and the list starts at slot 20,
+         * so a bigger count would read past the end. */
+        int listCount = ints[19] > FAXE_LIST_MAX - 20 ? FAXE_LIST_MAX - 20 : ints[19];
         exinfo->inclusionlist = (int*)(ints + 20);
-        exinfo->inclusionlistnum = ints[19];
+        exinfo->inclusionlistnum = listCount;
     }
     if (dls && dls[0]) exinfo->dlsname = dls;
     if (key && key[0]) exinfo->encryptionkey = key;
@@ -713,7 +722,7 @@ HL_PRIM int HL_NAME(core_pcm_create)(int sampleRate, int channels, int ringBytes
     exinfo.defaultfrequency = sampleRate;
     exinfo.format = FMOD_SOUND_FORMAT_PCM16;
     exinfo.decodebuffersize = 4096;
-    exinfo.length = (unsigned int)(sampleRate * channels * 2); /* a one second window */
+    exinfo.length = (unsigned int)sampleRate * (unsigned int)channels * 2u; /* a one second window */
     exinfo.pcmreadcallback = hlaxe_pcmread;
     exinfo.userdata = ps->ring;
 
@@ -756,7 +765,7 @@ HL_PRIM int HL_NAME(core_pcm_create_3d)(int sampleRate, int channels, int ringBy
     exinfo.defaultfrequency = sampleRate;
     exinfo.format = FMOD_SOUND_FORMAT_PCM16;
     exinfo.decodebuffersize = 4096;
-    exinfo.length = (unsigned int)(sampleRate * channels * 2); /* a one second window */
+    exinfo.length = (unsigned int)sampleRate * (unsigned int)channels * 2u; /* a one second window */
     exinfo.pcmreadcallback = hlaxe_pcmread;
     exinfo.userdata = ps->ring;
 
@@ -1093,16 +1102,21 @@ HL_PRIM int HL_NAME(dsp_get_metering)(int h, vbyte* out) {
     FMOD_DSP* dsp = resolve_dsp(h);
     FMOD_DSP_METERING_INFO info;
     double* outFloats = (double*)out;
-    int i;
+    int i, ch;
     if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     memset(&info, 0, sizeof(info));
     gLastResult = FMOD_DSP_GetMeteringInfo(dsp, NULL, &info);
     if (gLastResult != FMOD_OK) return 0;
-    for (i = 0; i < info.numchannels && i < 32; i++) {
+    /* FMOD_MAX_CHANNEL_WIDTH is 32, and the buffer holds two runs of that
+     * many. Clamping keeps the rms base and the count inside it. */
+    ch = (int)info.numchannels;
+    if (ch < 0) ch = 0;
+    if (ch > 32) ch = 32;
+    for (i = 0; i < ch; i++) {
         outFloats[i] = (double)info.peaklevel[i];
-        outFloats[info.numchannels + i] = (double)info.rmslevel[i];
+        outFloats[ch + i] = (double)info.rmslevel[i];
     }
-    return (int)info.numchannels;
+    return ch;
 }
 DEFINE_PRIM(_I32, dsp_get_metering, _I32 _BYTES);
 
@@ -1393,7 +1407,7 @@ HL_PRIM int HL_NAME(bus_unlock_channel_group)(int h) {
     FMOD_STUDIO_BUS* bus = (FMOD_STUDIO_BUS*)faxe_handle_resolve(h, FAXE_TYPE_BUS);
     if (!bus) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = FMOD_Studio_Bus_UnlockChannelGroup(bus);
-    // The group may be destroyed once unlocked: reclaim its cached handle
+    // The group can be destroyed once unlocked: reclaim its cached handle
     // before a recycled address can alias it
     if (gLastResult == FMOD_OK) hlaxe_reclaim_dead_lookups();
     return (int)gLastResult;
@@ -1959,6 +1973,9 @@ static FMOD_SOUND* resolve_core_sound(int h) {
     return (FMOD_SOUND*)faxe_handle_resolve(h, FAXE_TYPE_SOUND);
 }
 
+// Raw 16-bit PCM already in memory. A HashLink byte pointer carries no
+// size, so len cannot be checked against the buffer here the way cpp and
+// js check it. Sound.fromPcm clamps the count before the call.
 HL_PRIM int HL_NAME(core_create_sound_pcm)(vbyte* data, int len, int sampleRate, int channels) {
     FMOD_CREATESOUNDEXINFO exinfo;
     FMOD_SOUND* sound = NULL;
@@ -2323,20 +2340,21 @@ static FMOD_RESULT F_CALLBACK hlaxe_studio_system_callback(FMOD_STUDIO_SYSTEM* s
 // Reads a bank's path while the bank can still answer and stashes it for
 // the BANK_UNLOAD record. Haxe thread only.
 static void hlaxe_stash_bank_path(FMOD_STUDIO_BANK* bank) {
-    char path[FAXE_CBQ_STR_MAX];
+    char path[FAXE_BANKPATH_STR_MAX];
     int retrieved = 0;
     if (!gSystemCallbackMask) return;
-    if (FMOD_Studio_Bank_GetPath(bank, path, FAXE_CBQ_STR_MAX, &retrieved) == FMOD_OK) {
+    if (FMOD_Studio_Bank_GetPath(bank, path, FAXE_BANKPATH_STR_MAX, &retrieved) == FMOD_OK) {
         faxe_bankpath_put(bank, path);
     }
 }
 
 static void hlaxe_stash_all_bank_paths(void) {
-    FMOD_STUDIO_BANK* banks[FAXE_BANKPATH_CAPACITY];
+    static FMOD_STUDIO_BANK* banks[FAXE_LIST_MAX];
     int count = 0;
     int i;
     if (!gSystemCallbackMask || !gStudioSystem) return;
-    if (FMOD_Studio_System_GetBankList(gStudioSystem, banks, FAXE_BANKPATH_CAPACITY, &count) != FMOD_OK) return;
+    if (FMOD_Studio_System_GetBankList(gStudioSystem, banks, FAXE_LIST_MAX, &count) != FMOD_OK) return;
+    if (count > FAXE_LIST_MAX) count = FAXE_LIST_MAX;
     for (i = 0; i < count; i++) hlaxe_stash_bank_path(banks[i]);
 }
 
@@ -3568,6 +3586,12 @@ static FaxeCbEvent gCbCurrent;
 static void free_destroyed_ctx(FaxeInstCtx* ctx) {
     if (ctx->cgHandle != 0) faxe_handle_free(ctx->cgHandle);
     if (ctx->handle > 0) faxe_handle_free(ctx->handle);
+    /* A programmer sound the shim created outlives the instance when the
+     * instrument never got its destroy callback. Release it here. */
+    if (ctx->psSound) {
+        FMOD_Sound_Release((FMOD_SOUND*)ctx->psSound);
+        ctx->psSound = NULL;
+    }
     faxe_instctx_destroy(ctx);
 }
 
@@ -3606,7 +3630,7 @@ HL_PRIM bool HL_NAME(cb_next)() {
         if (gCbCurrent.i1 && gCbCurrent.i3) faxe_handle_free(gCbCurrent.i1);
     } else if (gCbCurrent.type == (FAXE_CB_SYS_NAMESPACE | (uint32_t)FMOD_SYSTEM_CALLBACK_ERROR)) {
         /* The failing object's handle when the table knows it, never a
-         * fresh one: a sound FMOD rejected may already be gone. */
+         * fresh one: a sound FMOD rejected can already be gone. */
         unsigned char kind = hlaxe_error_instance_type(gCbCurrent.i2);
         gCbCurrent.i3 = kind == FAXE_TYPE_NONE ? 0 : faxe_handle_find(gCbCurrent.ptr, kind);
     }
@@ -3843,7 +3867,7 @@ HL_PRIM int HL_NAME(sys_init_ex)(int numChannels, int sampleRate, int speakerMod
     if (gLastResult != FMOD_OK) {
         FMOD_Studio_System_Release(gStudioSystem);
         gStudioSystem = NULL;
-        /* The wavwriter and format branches above may have cached the core
+        /* The wavwriter and format branches above can have cached the core
          * system, which the release just destroyed */
         gCoreSystem = NULL;
         return (int)gLastResult;
@@ -3962,15 +3986,17 @@ HL_PRIM int HL_NAME(sys_get_bank_list)(vbyte* out) {
     FMOD_STUDIO_BANK** banks = (FMOD_STUDIO_BANK**)gListBuf;
     int count = 0;
     int i;
+    int written = 0;
     int* outInts = (int*)out;
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
     gLastResult = FMOD_Studio_System_GetBankList(gStudioSystem, banks, FAXE_LIST_MAX, &count);
     if (gLastResult != FMOD_OK) return 0;
     if (count > FAXE_LIST_MAX) count = FAXE_LIST_MAX;
     for (i = 0; i < count; i++) {
-        outInts[i] = faxe_handle_find_or_alloc(banks[i], FAXE_TYPE_BANK);
+        int handle = faxe_handle_find_or_alloc(banks[i], FAXE_TYPE_BANK);
+        if (handle != 0) outInts[written++] = handle;
     }
-    return count;
+    return written;
 }
 DEFINE_PRIM(_I32, sys_get_bank_list, _BYTES);
 
@@ -4621,15 +4647,17 @@ HL_PRIM int HL_NAME(bank_get_event_list)(int h, vbyte* out) {
     FMOD_STUDIO_EVENTDESCRIPTION** list = (FMOD_STUDIO_EVENTDESCRIPTION**)gListBuf;
     int count = 0;
     int i;
+    int written = 0;
     int* outInts = (int*)out;
     if (!bank) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_Studio_Bank_GetEventList(bank, list, FAXE_LIST_MAX, &count);
     if (gLastResult != FMOD_OK) return 0;
     if (count > FAXE_LIST_MAX) count = FAXE_LIST_MAX;
     for (i = 0; i < count; i++) {
-        outInts[i] = faxe_handle_find_or_alloc(list[i], FAXE_TYPE_EVD);
+        int handle = faxe_handle_find_or_alloc(list[i], FAXE_TYPE_EVD);
+        if (handle != 0) outInts[written++] = handle;
     }
-    return count;
+    return written;
 }
 DEFINE_PRIM(_I32, bank_get_event_list, _I32 _BYTES);
 
@@ -4648,15 +4676,17 @@ HL_PRIM int HL_NAME(bank_get_bus_list)(int h, vbyte* out) {
     FMOD_STUDIO_BUS** list = (FMOD_STUDIO_BUS**)gListBuf;
     int count = 0;
     int i;
+    int written = 0;
     int* outInts = (int*)out;
     if (!bank) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_Studio_Bank_GetBusList(bank, list, FAXE_LIST_MAX, &count);
     if (gLastResult != FMOD_OK) return 0;
     if (count > FAXE_LIST_MAX) count = FAXE_LIST_MAX;
     for (i = 0; i < count; i++) {
-        outInts[i] = faxe_handle_find_or_alloc(list[i], FAXE_TYPE_BUS);
+        int handle = faxe_handle_find_or_alloc(list[i], FAXE_TYPE_BUS);
+        if (handle != 0) outInts[written++] = handle;
     }
-    return count;
+    return written;
 }
 DEFINE_PRIM(_I32, bank_get_bus_list, _I32 _BYTES);
 
@@ -4675,15 +4705,17 @@ HL_PRIM int HL_NAME(bank_get_vca_list)(int h, vbyte* out) {
     FMOD_STUDIO_VCA** list = (FMOD_STUDIO_VCA**)gListBuf;
     int count = 0;
     int i;
+    int written = 0;
     int* outInts = (int*)out;
     if (!bank) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_Studio_Bank_GetVCAList(bank, list, FAXE_LIST_MAX, &count);
     if (gLastResult != FMOD_OK) return 0;
     if (count > FAXE_LIST_MAX) count = FAXE_LIST_MAX;
     for (i = 0; i < count; i++) {
-        outInts[i] = faxe_handle_find_or_alloc(list[i], FAXE_TYPE_VCA);
+        int handle = faxe_handle_find_or_alloc(list[i], FAXE_TYPE_VCA);
+        if (handle != 0) outInts[written++] = handle;
     }
-    return count;
+    return written;
 }
 DEFINE_PRIM(_I32, bank_get_vca_list, _I32 _BYTES);
 
@@ -4841,8 +4873,9 @@ HL_PRIM bool HL_NAME(evd_has_sustain_point)(int h) {
 }
 DEFINE_PRIM(_BOOL, evd_has_sustain_point, _I32);
 
-// Returns an instance handle or 0. The handle is stored in FMOD userdata so
-// FMOD-thread callbacks can identify the instance without the handle table.
+// Returns an instance handle or 0. FMOD userdata holds the instance's
+// context struct, which carries the handle, so FMOD-thread callbacks can
+// identify the instance without the handle table.
 HL_PRIM int HL_NAME(evd_create_instance)(int h) {
     FMOD_STUDIO_EVENTDESCRIPTION* desc = resolve_evd(h);
     FMOD_STUDIO_EVENTINSTANCE* instance = NULL;
@@ -4881,6 +4914,7 @@ HL_PRIM int HL_NAME(evd_get_instance_list)(int h, vbyte* out) {
     FMOD_STUDIO_EVENTINSTANCE** list = (FMOD_STUDIO_EVENTINSTANCE**)gListBuf;
     int count = 0;
     int i;
+    int written = 0;
     int* outInts = (int*)out;
     if (!desc) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_Studio_EventDescription_GetInstanceList(desc, list, FAXE_LIST_MAX, &count);
@@ -4888,7 +4922,7 @@ HL_PRIM int HL_NAME(evd_get_instance_list)(int h, vbyte* out) {
     if (count > FAXE_LIST_MAX) count = FAXE_LIST_MAX;
     for (i = 0; i < count; i++) {
         /* The instance's own context is the identity authority. Pointer
-         * dedup would be wrong here: a dead instance's slot keeps its
+         * dedup would be wrong here. A dead instance's slot keeps its
          * dangling pointer until the DESTROYED drain, and FMOD can hand a
          * new instance the same address inside that window. */
         FaxeInstCtx* ctx = instance_ctx(list[i]);
@@ -4896,9 +4930,11 @@ HL_PRIM int HL_NAME(evd_get_instance_list)(int h, vbyte* out) {
         if (ctx && faxe_handle_resolve(ctx->handle, FAXE_TYPE_EVI) == (void*)list[i]) {
             handle = ctx->handle;
         } else {
-            /* Released-but-still-playing (context holds a freed handle) or
-             * never managed: mint a fresh slot and point the context at it,
-             * or queued callbacks carry a dead handle and get dropped. */
+            /* Two cases land here: an instance released but still playing,
+             * whose context holds a freed handle, and one this shim never
+             * managed. Both mint a fresh slot and point the context at it.
+             * Without that, queued callbacks carry a dead handle and get
+             * dropped. */
             handle = faxe_handle_alloc(list[i], FAXE_TYPE_EVI);
             if (handle != 0) {
                 if (ctx) {
@@ -4916,9 +4952,9 @@ HL_PRIM int HL_NAME(evd_get_instance_list)(int h, vbyte* out) {
                 gLastResult = FMOD_ERR_MEMORY;
             }
         }
-        outInts[i] = handle;
+        if (handle != 0) outInts[written++] = handle;
     }
-    return count;
+    return written;
 }
 DEFINE_PRIM(_I32, evd_get_instance_list, _I32 _BYTES);
 
@@ -6122,11 +6158,9 @@ HL_PRIM int HL_NAME(chan_get_fade_points)(int h, vbyte* out) {
 }
 DEFINE_PRIM(_I32, chan_get_fade_points, _I32 _BYTES);
 
-// Shared by the three mix matrix getters. The caller names the region it
-// wants (outChannels rows of inChannels gains) and gets that region back
-// row-major in fout, with the object's real counts in iout[0] and iout[1].
-// Callers make the FMOD call before this one, since the counts are only
-// valid after it returns.
+// Scratch the three mix matrix getters read FMOD's gains into. Each one
+// makes its FMOD call first, then hands write_mix_matrix the result and
+// the two channel counts, which only hold values after that call.
 static float gMatrixBuf[32 * 32];
 
 // Copies outActual rows of stride floats (the hop, or inActual when the
@@ -6239,8 +6273,8 @@ HL_PRIM int HL_NAME(sg_get_sound)(int h, int index) {
 }
 DEFINE_PRIM(_I32, sg_get_sound, _I32 _I32);
 
-// The pool channel at this index. It may be idle, in which case every call
-// on the handle reports FMOD_ERR_INVALID_HANDLE until FMOD reuses it.
+// The pool channel at this index. An idle channel answers every call on
+// the handle with FMOD_ERR_INVALID_HANDLE until FMOD reuses it.
 HL_PRIM int HL_NAME(sys_get_channel)(int index) {
     FMOD_CHANNEL* channel = NULL;
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
@@ -7072,8 +7106,8 @@ HL_PRIM vbyte* HL_NAME(dsp_get_info)(int h, vbyte* iout) {
 }
 DEFINE_PRIM(_BYTES, dsp_get_info, _I32 _BYTES);
 
-// Copies up to cap bytes of the data block into out (out may be NULL to
-// ask for the size only). Returns the block length FMOD reports, -1 on
+// Copies up to cap bytes of the data block into out. A NULL out asks
+// for the size only. Returns the block length FMOD reports, -1 on
 // failure.
 HL_PRIM int HL_NAME(dsp_get_param_data)(int h, int index, vbyte* out, int cap) {
     FMOD_DSP* dsp = resolve_dsp(h);
@@ -7187,6 +7221,11 @@ HL_PRIM int HL_NAME(dsp_get_param_typed)(int h, int index, int kind, vbyte* f, v
     FMOD_DSP* dsp = resolve_dsp(h);
     void* data = NULL;
     unsigned int len = 0;
+    int n;
+    /* Every exit hands back a cleared image, so a caller that ignores the
+     * result code never reads the previous call's values. */
+    for (n = 0; n < FAXE_DSPDATA_TYPED_DOUBLES; n++) ((double*)f)[n] = 0.0;
+    for (n = 0; n < FAXE_DSPDATA_TYPED_INTS; n++) ((int*)i)[n] = 0;
     if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = FMOD_DSP_GetParameterData(dsp, index, &data, &len, NULL, 0);
     if (gLastResult != FMOD_OK) return (int)gLastResult;

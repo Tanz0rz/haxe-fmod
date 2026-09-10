@@ -126,6 +126,46 @@ async function main() {
     check('pcm_true_length_works', good > 0, `handle=${good}`);
     jaxe.fmod_core_release_sound(good);
 
+    // A non-string name reaches the f64 parameter getters through the same
+    // guard the C++ shim has, which answers 0.0 rather than the error code.
+    const eviNum = jaxe.fmod_evd_create_instance(evd);
+    check('sys_param_by_name_nonstring_returns_zero',
+        jaxe.fmod_sys_get_param_by_name(7) === 0 && jaxe.lastResult === 31,
+        `lastResult=${jaxe.lastResult}`);
+    check('sys_param_by_name_final_nonstring_returns_zero',
+        jaxe.fmod_sys_get_param_by_name_final(7) === 0 && jaxe.lastResult === 31,
+        `lastResult=${jaxe.lastResult}`);
+    check('evi_param_by_name_nonstring_returns_zero',
+        jaxe.fmod_evi_get_param_by_name(eviNum, 7) === 0 && jaxe.lastResult === 31,
+        `lastResult=${jaxe.lastResult}`);
+    check('evi_param_by_name_final_nonstring_returns_zero',
+        jaxe.fmod_evi_get_param_by_name_final(eviNum, 7) === 0 && jaxe.lastResult === 31,
+        `lastResult=${jaxe.lastResult}`);
+
+    // Handle first, then the string, the order native uses. A bad handle
+    // with a bad key reports the handle.
+    check('ps_assign_checks_handle_first',
+        jaxe.fmod_ps_assign(0, 12345) !== 0 && jaxe.lastResult === 30,
+        `lastResult=${jaxe.lastResult}`);
+    check('ps_assign_named_checks_handle_first',
+        jaxe.fmod_ps_assign_named(0, 12345, 12345) !== 0 && jaxe.lastResult === 30,
+        `lastResult=${jaxe.lastResult}`);
+    jaxe.fmod_evi_release(eviNum);
+
+    // Bank bytes from memory get the same length guard the core sound
+    // loader has, so a null buffer or a lied count never over-reads.
+    const bankBytes = fs.readFileSync(path.join(BANKS, 'Master.bank'));
+    const bankAb = bankBytes.buffer.slice(bankBytes.byteOffset, bankBytes.byteOffset + bankBytes.byteLength);
+    check('load_bank_memory_null_rejected',
+        jaxe.fmod_sys_load_bank_memory(null, 16, 0) === 0 && jaxe.lastResult === 31,
+        `lastResult=${jaxe.lastResult}`);
+    check('load_bank_memory_negative_len_rejected',
+        jaxe.fmod_sys_load_bank_memory(bankAb, -4, 0) === 0 && jaxe.lastResult === 31,
+        `lastResult=${jaxe.lastResult}`);
+    check('load_bank_memory_lied_length_rejected',
+        jaxe.fmod_sys_load_bank_memory(bankAb, bankAb.byteLength + 1, 0) === 0 && jaxe.lastResult === 31,
+        `lastResult=${jaxe.lastResult}`);
+
     console.log(`HOSTILE_TEST: failures = ${fails}`);
     console.log(fails === 0 ? 'HOSTILE_TEST: COMPLETE' : 'HOSTILE_TEST: FAILED');
     process.exit(fails === 0 ? 0 : 1);

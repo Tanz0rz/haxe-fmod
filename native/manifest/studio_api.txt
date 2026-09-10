@@ -455,6 +455,9 @@ r3d_get_properties i32 fbuf -> i32
 r3d_set_active i32 bool -> i32
 
 ## Core sound surface
+# The byte count must stay inside the buffer. cpp and js check it against
+# the array they receive. The HashLink pointer carries no size, so the
+# Haxe caller clamps the count before the call.
 core_create_sound_pcm bytes i32 i32 i32 -> i32
 core_play_sound i32 i32 bool -> i32
 sound_set_defaults i32 f32 i32 -> i32

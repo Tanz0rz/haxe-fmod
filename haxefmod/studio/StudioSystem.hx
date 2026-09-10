@@ -48,42 +48,57 @@ class StudioSystem {
         return bus;
     }
 
-    /** Looks up a bus by GUID. */
+    /** Looks up a bus by GUID. Returns Bus.NULL on failure, with the reason in StudioSystem.lastResult(). */
     public static function getBusByID(guid:FmodGuid):Bus {
         return NativeStudio.sys_get_bus_by_id(guid);
     }
 
-    /** Looks up an event description by path (e.g. "event:/Music/MainLevel" or "snapshot:/..."). */
+    /**
+     * Looks up an event description by path (e.g. "event:/Music/MainLevel" or "snapshot:/..."). Returns
+     * EventDescription.NULL on failure, with the reason in StudioSystem.lastResult().
+     */
     public static function getEvent(path:String):EventDescription {
         return NativeStudio.sys_get_event(path);
     }
 
-    /** Looks up an event description by GUID. */
+    /**
+     * Looks up an event description by GUID. Returns EventDescription.NULL on failure, with the reason in
+     * StudioSystem.lastResult().
+     */
     public static function getEventByID(guid:FmodGuid):EventDescription {
         return NativeStudio.sys_get_event_by_id(guid);
     }
 
-    /** Looks up a VCA by path (e.g. "vca:/Environment"). */
+    /**
+     * Looks up a VCA by path (e.g. "vca:/Environment"). Returns Vca.NULL on failure, with the reason in
+     * StudioSystem.lastResult().
+     */
     public static function getVCA(path:String):Vca {
         return NativeStudio.sys_get_vca(path);
     }
 
-    /** Looks up a VCA by GUID. */
+    /** Looks up a VCA by GUID. Returns Vca.NULL on failure, with the reason in StudioSystem.lastResult(). */
     public static function getVCAByID(guid:FmodGuid):Vca {
         return NativeStudio.sys_get_vca_by_id(guid);
     }
 
-    /** Looks up a loaded bank by path (e.g. "bank:/Master"). */
+    /**
+     * Looks up a loaded bank by path (e.g. "bank:/Master"). Returns Bank.NULL on failure, with the reason in
+     * StudioSystem.lastResult().
+     */
     public static function getBank(path:String):Bank {
         return NativeStudio.sys_get_bank(path);
     }
 
-    /** Looks up a loaded bank by GUID. */
+    /** Looks up a loaded bank by GUID. Returns Bank.NULL on failure, with the reason in StudioSystem.lastResult(). */
     public static function getBankByID(guid:FmodGuid):Bank {
         return NativeStudio.sys_get_bank_by_id(guid);
     }
 
-    /** Number of loaded banks. */
+    /**
+     * Number of loaded banks. Returns 0 both on failure and for a session with no bank loaded.
+     * StudioSystem.lastResult() tells the two apart.
+     */
     public static function getBankCount():Int {
         return NativeStudio.sys_get_bank_count();
     }
@@ -95,9 +110,10 @@ class StudioSystem {
         return [for (i in 0...count) (Scratch.readI(i) : Bank)];
     }
 
-    /** Resolves a path to its GUID ("" on failure. Needs the strings bank loaded). */
+    /** Resolves a path to its GUID (FmodGuid.NULL on failure. Needs the strings bank loaded). */
     public static function lookupID(path:String):FmodGuid {
-        return NativeStudio.sys_lookup_id(path);
+        var guid:String = NativeStudio.sys_lookup_id(path);
+        return guid == "" ? FmodGuid.NULL : (guid : FmodGuid);
     }
 
     /** Resolves a GUID to its path ("" on failure. Needs the strings bank loaded). */
@@ -116,12 +132,13 @@ class StudioSystem {
 
     /**
      * Unloads all banks. Every handle that came from a bank dies with it,
-     * so every userdata entry and every description-level callback is
-     * dropped here too.
+     * so every userdata entry, every description-level callback, and
+     * every instance callback is dropped here too.
      */
     public static function unloadAll():FmodResult {
         UserData.clearAll();
         EventDescription.clearAllCallbacks();
+        CallbackDispatcher.clearAll();
         return NativeStudio.sys_unload_all();
     }
 
@@ -185,12 +202,18 @@ class StudioSystem {
 
     //// Global parameters
 
-    /** A global parameter's value as set by the API, by name. */
+    /**
+     * A global parameter's value as set by the API, by name. Returns 0.0 both on failure and for a parameter
+     * set to zero. StudioSystem.lastResult() tells the two apart.
+     */
     public static function getParameter(name:String):Float {
         return NativeStudio.sys_get_param_by_name(name);
     }
 
-    /** The final value of a global parameter after automation and seek speed, by name. */
+    /**
+     * The final value of a global parameter after automation and seek speed, by name. Returns 0.0 both on
+     * failure and for a parameter set to zero. StudioSystem.lastResult() tells the two apart.
+     */
     public static function getParameterFinal(name:String):Float {
         return NativeStudio.sys_get_param_by_name_final(name);
     }
@@ -205,12 +228,18 @@ class StudioSystem {
         return NativeStudio.sys_set_param_by_name_with_label(name, label, ignoreSeekSpeed);
     }
 
-    /** A global parameter's value as set by the API, by ID. */
+    /**
+     * A global parameter's value as set by the API, by ID. Returns 0.0 both on failure and for a parameter set
+     * to zero. StudioSystem.lastResult() tells the two apart.
+     */
     public static function getParameterByID(id:FmodParameterId):Float {
         return NativeStudio.sys_get_param_by_id(id.data1, id.data2);
     }
 
-    /** The final value of a global parameter after automation and seek speed, by ID. */
+    /**
+     * The final value of a global parameter after automation and seek speed, by ID. Returns 0.0 both on failure
+     * and for a parameter set to zero. StudioSystem.lastResult() tells the two apart.
+     */
     public static function getParameterByIDFinal(id:FmodParameterId):Float {
         return NativeStudio.sys_get_param_by_id_final(id.data1, id.data2);
     }
@@ -225,7 +254,10 @@ class StudioSystem {
         return NativeStudio.sys_set_param_by_id_with_label(id.data1, id.data2, label, ignoreSeekSpeed);
     }
 
-    /** Number of global parameters. */
+    /**
+     * Number of global parameters. Returns 0 both on failure and for a project with no global parameter.
+     * StudioSystem.lastResult() tells the two apart.
+     */
     public static function getParameterDescriptionCount():Int {
         return NativeStudio.sys_get_parameter_description_count();
     }
@@ -242,7 +274,10 @@ class StudioSystem {
         return readParameterDescription(resolved);
     }
 
-    /** Label text for a labeled global parameter's value index. */
+    /**
+     * Label text for a labeled global parameter's value index. Returns "" on failure, with the reason in
+     * StudioSystem.lastResult().
+     */
     public static function getParameterLabel(parameterName:String, labelIndex:Int):String {
         return NativeStudio.sys_get_parameter_label(parameterName, labelIndex);
     }
@@ -270,13 +305,19 @@ class StudioSystem {
         return null;
     }
 
-    /** Label text for a labeled global parameter identified by ID. */
+    /**
+     * Label text for a labeled global parameter identified by ID. Returns "" on failure, with the reason in
+     * StudioSystem.lastResult().
+     */
     public static function getParameterLabelByID(id:FmodParameterId, labelIndex:Int):String {
         var desc = getParameterDescriptionByID(id);
         return desc == null ? "" : getParameterLabel(desc.name, labelIndex);
     }
 
-    /** Label text for a labeled global parameter named by name, the same call as getParameterLabel under FMOD's name. */
+    /**
+     * Label text for a labeled global parameter named by name, the same call as getParameterLabel under FMOD's
+     * name. Returns "" on failure, with the reason in StudioSystem.lastResult().
+     */
     public static inline function getParameterLabelByName(name:String, labelIndex:Int):String {
         return NativeStudio.sys_get_parameter_label(name, labelIndex);
     }
@@ -291,12 +332,18 @@ class StudioSystem {
         return list;
     }
 
-    /** The same global parameter read as getParameter, under FMOD's name. */
+    /**
+     * The same global parameter read as getParameter, under FMOD's name. Returns 0.0 both on failure and for a
+     * parameter set to zero. StudioSystem.lastResult() tells the two apart.
+     */
     public static inline function getParameterByName(name:String):Float {
         return NativeStudio.sys_get_param_by_name(name);
     }
 
-    /** The final value of a global parameter after automation and seek speed, by name. */
+    /**
+     * The final value of a global parameter after automation and seek speed, by name. Returns 0.0 both on
+     * failure and for a parameter set to zero. StudioSystem.lastResult() tells the two apart.
+     */
     public static inline function getParameterByNameFinal(name:String):Float {
         return NativeStudio.sys_get_param_by_name_final(name);
     }
@@ -338,7 +385,7 @@ class StudioSystem {
 
     //// Listeners
 
-    /** Number of listeners (1 to 8). */
+    /** Number of listeners (1 to 8). Returns 0 on failure, with the reason in StudioSystem.lastResult(). */
     public static function getNumListeners():Int {
         return NativeStudio.sys_get_num_listeners();
     }
@@ -392,7 +439,10 @@ class StudioSystem {
             velocityX, velocityY, 0, 0, 0, 1, 0, 1, 0, false, 0, 0, 0);
     }
 
-    /** A listener's weight (0.0 = no effect on the mix, 1.0 = full, the default). */
+    /**
+     * A listener's weight (0.0 = no effect on the mix, 1.0 = full, the default). Returns 0.0 both on failure
+     * and for a listener weighted at zero. StudioSystem.lastResult() tells the two apart.
+     */
     public static function getListenerWeight(index:Int):Float {
         return NativeStudio.sys_get_listener_weight(index);
     }
@@ -462,7 +512,10 @@ class StudioSystem {
 
     //// Version and recording
 
-    /** The linked FMOD version as "2.03.12", or "" on failure. */
+    /**
+     * The linked FMOD version as "2.03.12", or "" on failure. StudioSystem.lastResult() holds the reason for a
+     * failure.
+     */
     public static inline function getVersion():String {
         return NativeStudio.sys_get_version();
     }
@@ -561,24 +614,36 @@ class StudioSystem {
     #end
 
 #if (macro || (js && !haxefmod_html5_allow_unsupported))
-    /** True while a driver is recording (unsupported in HTML5, always false there). */
+    /**
+     * True while a driver is recording (unsupported in HTML5, always false there). Returns false both on
+     * failure and for an idle driver. StudioSystem.lastResult() tells the two apart.
+     */
     public static macro function isRecording(id:haxe.macro.Expr):haxe.macro.Expr {
         return haxefmod.studio.native.Html5Gate.block("StudioSystem.isRecording", "the web build has no microphone recording");
     }
     #else
-    /** True while a driver is recording (unsupported in HTML5, always false there). */
+    /**
+     * True while a driver is recording (unsupported in HTML5, always false there). Returns false both on
+     * failure and for an idle driver. StudioSystem.lastResult() tells the two apart.
+     */
     public static inline function isRecording(id:Int):Bool {
         return NativeStudio.sys_is_recording(id);
     }
     #end
 
 #if (macro || (js && !haxefmod_html5_allow_unsupported))
-    /** The record cursor in PCM samples, or -1 on failure (unsupported in HTML5, always -1 there). */
+    /**
+     * The record cursor in PCM samples (unsupported in HTML5, always -1 there). Returns -1 on failure, with
+     * the reason in StudioSystem.lastResult().
+     */
     public static macro function getRecordPosition(id:haxe.macro.Expr):haxe.macro.Expr {
         return haxefmod.studio.native.Html5Gate.block("StudioSystem.getRecordPosition", "the web build has no microphone recording");
     }
     #else
-    /** The record cursor in PCM samples, or -1 on failure (unsupported in HTML5, always -1 there). */
+    /**
+     * The record cursor in PCM samples (unsupported in HTML5, always -1 there). Returns -1 on failure, with
+     * the reason in StudioSystem.lastResult().
+     */
     public static inline function getRecordPosition(id:Int):Int {
         return NativeStudio.sys_get_record_position(id);
     }
@@ -766,36 +831,54 @@ class StudioSystem {
     #end
 
 #if (macro || (js && !haxefmod_html5_allow_unsupported))
-    /** The number of plugins of one type, built-in ones included (unsupported in HTML5, -1 there). -1 on failure. */
+    /**
+     * The number of plugins of one type, built-in ones included (unsupported in HTML5, -1 there). Returns -1
+     * on failure, with the reason in StudioSystem.lastResult().
+     */
     public static macro function getPluginCount(type:haxe.macro.Expr):haxe.macro.Expr {
         return haxefmod.studio.native.Html5Gate.block("StudioSystem.getPluginCount", "the web build has no plugin host");
     }
     #else
-    /** The number of plugins of one type, built-in ones included (unsupported in HTML5, -1 there). -1 on failure. */
+    /**
+     * The number of plugins of one type, built-in ones included (unsupported in HTML5, -1 there). Returns -1
+     * on failure, with the reason in StudioSystem.lastResult().
+     */
     public static inline function getPluginCount(type:FmodPluginType):Int {
         return NativeStudio.sys_get_num_plugins(type);
     }
     #end
 
 #if (macro || (js && !haxefmod_html5_allow_unsupported))
-    /** The same count as getPluginCount under FMOD's name (unsupported in HTML5, -1 there). */
+    /**
+     * The same count as getPluginCount under FMOD's name (unsupported in HTML5, -1 there). Returns -1 on
+     * failure, with the reason in StudioSystem.lastResult().
+     */
     public static macro function getNumPlugins(type:haxe.macro.Expr):haxe.macro.Expr {
         return haxefmod.studio.native.Html5Gate.block("StudioSystem.getNumPlugins", "the web build has no plugin host");
     }
     #else
-    /** The same count as getPluginCount under FMOD's name (unsupported in HTML5, -1 there). */
+    /**
+     * The same count as getPluginCount under FMOD's name (unsupported in HTML5, -1 there). Returns -1 on
+     * failure, with the reason in StudioSystem.lastResult().
+     */
     public static inline function getNumPlugins(type:FmodPluginType):Int {
         return NativeStudio.sys_get_num_plugins(type);
     }
     #end
 
 #if (macro || (js && !haxefmod_html5_allow_unsupported))
-    /** The plugin handle at an index within one type (unsupported in HTML5, 0 there). 0 for an index out of range. */
+    /**
+     * The plugin handle at an index within one type (unsupported in HTML5, 0 there). Returns 0 for an index
+     * out of range and on any other failure, with the reason in StudioSystem.lastResult().
+     */
     public static macro function getPluginHandle(type:haxe.macro.Expr, index:haxe.macro.Expr):haxe.macro.Expr {
         return haxefmod.studio.native.Html5Gate.block("StudioSystem.getPluginHandle", "the web build has no plugin host");
     }
     #else
-    /** The plugin handle at an index within one type (unsupported in HTML5, 0 there). 0 for an index out of range. */
+    /**
+     * The plugin handle at an index within one type (unsupported in HTML5, 0 there). Returns 0 for an index
+     * out of range and on any other failure, with the reason in StudioSystem.lastResult().
+     */
     public static inline function getPluginHandle(type:FmodPluginType, index:Int):Int {
         return NativeStudio.sys_get_plugin_handle(type, index);
     }
@@ -816,36 +899,54 @@ class StudioSystem {
     #end
 
 #if (macro || (js && !haxefmod_html5_allow_unsupported))
-    /** The number of plugins a loaded library contains, 1 for a plain plugin (unsupported in HTML5, -1 there). -1 on failure. */
+    /**
+     * The number of plugins a loaded library contains, 1 for a plain plugin (unsupported in HTML5, -1 there).
+     * Returns -1 on failure, with the reason in StudioSystem.lastResult().
+     */
     public static macro function getNestedPluginCount(handle:haxe.macro.Expr):haxe.macro.Expr {
         return haxefmod.studio.native.Html5Gate.block("StudioSystem.getNestedPluginCount", "the web build has no plugin host");
     }
     #else
-    /** The number of plugins a loaded library contains, 1 for a plain plugin (unsupported in HTML5, -1 there). -1 on failure. */
+    /**
+     * The number of plugins a loaded library contains, 1 for a plain plugin (unsupported in HTML5, -1 there).
+     * Returns -1 on failure, with the reason in StudioSystem.lastResult().
+     */
     public static inline function getNestedPluginCount(handle:Int):Int {
         return NativeStudio.sys_get_num_nested_plugins(handle);
     }
     #end
 
 #if (macro || (js && !haxefmod_html5_allow_unsupported))
-    /** The same count as getNestedPluginCount under FMOD's name (unsupported in HTML5, -1 there). */
+    /**
+     * The same count as getNestedPluginCount under FMOD's name (unsupported in HTML5, -1 there). Returns -1 on
+     * failure, with the reason in StudioSystem.lastResult().
+     */
     public static macro function getNumNestedPlugins(handle:haxe.macro.Expr):haxe.macro.Expr {
         return haxefmod.studio.native.Html5Gate.block("StudioSystem.getNumNestedPlugins", "the web build has no plugin host");
     }
     #else
-    /** The same count as getNestedPluginCount under FMOD's name (unsupported in HTML5, -1 there). */
+    /**
+     * The same count as getNestedPluginCount under FMOD's name (unsupported in HTML5, -1 there). Returns -1 on
+     * failure, with the reason in StudioSystem.lastResult().
+     */
     public static inline function getNumNestedPlugins(handle:Int):Int {
         return NativeStudio.sys_get_num_nested_plugins(handle);
     }
     #end
 
 #if (macro || (js && !haxefmod_html5_allow_unsupported))
-    /** The handle of one plugin inside a loaded library (unsupported in HTML5, 0 there). 0 for an index out of range. */
+    /**
+     * The handle of one plugin inside a loaded library (unsupported in HTML5, 0 there). Returns 0 for an index
+     * out of range and on any other failure, with the reason in StudioSystem.lastResult().
+     */
     public static macro function getNestedPlugin(handle:haxe.macro.Expr, index:haxe.macro.Expr):haxe.macro.Expr {
         return haxefmod.studio.native.Html5Gate.block("StudioSystem.getNestedPlugin", "the web build has no plugin host");
     }
     #else
-    /** The handle of one plugin inside a loaded library (unsupported in HTML5, 0 there). 0 for an index out of range. */
+    /**
+     * The handle of one plugin inside a loaded library (unsupported in HTML5, 0 there). Returns 0 for an index
+     * out of range and on any other failure, with the reason in StudioSystem.lastResult().
+     */
     public static inline function getNestedPlugin(handle:Int, index:Int):Int {
         return NativeStudio.sys_get_nested_plugin(handle, index);
     }

@@ -27,17 +27,23 @@ abstract EventDescription(Int) from Int to Int {
         return this != 0 && NativeStudio.evd_is_valid(this);
     }
 
-    /** The event GUID. */
+    /** The event GUID. Returns an empty FmodGuid on failure, with the reason in StudioSystem.lastResult(). */
     public inline function getID():FmodGuid {
         return NativeStudio.evd_get_id(this);
     }
 
-    /** The full event path, e.g. "event:/Music/MainLevel". */
+    /**
+     * The full event path, e.g. "event:/Music/MainLevel". Returns "" on failure, with the reason in
+     * StudioSystem.lastResult().
+     */
     public inline function getPath():String {
         return NativeStudio.evd_get_path(this);
     }
 
-    /** Timeline length in milliseconds. */
+    /**
+     * Timeline length in milliseconds. Returns 0 both on failure and for an event with no timeline.
+     * StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getLength():Int {
         return NativeStudio.evd_get_length(this);
     }
@@ -49,37 +55,59 @@ abstract EventDescription(Int) from Int to Int {
         return {min: Scratch.readF(0), max: Scratch.readF(1)};
     }
 
-    /** Estimated non-streaming sample data size in bytes. */
+    /**
+     * The largest Sound Size of the spatializers on the event's master track, in world units. Zero without a
+     * spatializer, and on failure. StudioSystem.lastResult() holds the reason for a failure.
+     */
     public inline function getSoundSize():Float {
         return NativeStudio.evd_get_sound_size(this);
     }
 
-    /** True if this description is a snapshot. */
+    /**
+     * True if this description is a snapshot. Returns false both on failure and for a plain event.
+     * StudioSystem.lastResult() tells the two apart.
+     */
     public inline function isSnapshot():Bool {
         return NativeStudio.evd_is_snapshot(this);
     }
 
-    /** True if the event is oneshot. A oneshot event ends on its own in bounded time after it starts. */
+    /**
+     * True if the event is oneshot. A oneshot event ends on its own in bounded time after it starts. Returns
+     * false both on failure and for an event that runs until it is stopped. StudioSystem.lastResult() tells the
+     * two apart.
+     */
     public inline function isOneshot():Bool {
         return NativeStudio.evd_is_oneshot(this);
     }
 
-    /** True if the event contains streamed sound. */
+    /**
+     * True if the event contains streamed sound. Returns false both on failure and for an event with no
+     * streamed sound. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function isStream():Bool {
         return NativeStudio.evd_is_stream(this);
     }
 
-    /** True if the event is 3D. FMOD counts an event as 3D when its master track carries a spatializer effect. */
+    /**
+     * True if the event is 3D. FMOD counts an event as 3D when its master track carries a spatializer effect.
+     * Returns false both on failure and for a 2D event. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function is3D():Bool {
         return NativeStudio.evd_is_3d(this);
     }
 
-    /** True if the event has Doppler enabled. */
+    /**
+     * True if the event has Doppler enabled. Returns false both on failure and for an event with Doppler off.
+     * StudioSystem.lastResult() tells the two apart.
+     */
     public inline function isDopplerEnabled():Bool {
         return NativeStudio.evd_is_doppler_enabled(this);
     }
 
-    /** True if the event has at least one sustain point on its timeline. */
+    /**
+     * True if the event has at least one sustain point on its timeline. Returns false both on failure and for a
+     * timeline with no sustain point. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function hasSustainPoint():Bool {
         return NativeStudio.evd_has_sustain_point(this);
     }
@@ -131,7 +159,10 @@ abstract EventDescription(Int) from Int to Int {
         descriptionCallbacks = new Map();
     }
 
-    /** Number of live instances of this event. */
+    /**
+     * Number of live instances of this event. Returns 0 both on failure and for an event with no live instance.
+     * StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getInstanceCount():Int {
         return NativeStudio.evd_get_instance_count(this);
     }
@@ -158,12 +189,18 @@ abstract EventDescription(Int) from Int to Int {
         return NativeStudio.evd_unload_sample_data(this);
     }
 
-    /** Loading state of the event's non-streaming sample data. */
+    /**
+     * Loading state of the event's non-streaming sample data. Returns FmodLoadingState.UNLOADED both on failure
+     * and for sample data that is not loaded. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getSampleLoadingState():FmodLoadingState {
         return NativeStudio.evd_get_sample_loading_state(this);
     }
 
-    /** Number of parameters on this event. */
+    /**
+     * Number of parameters on this event. Returns 0 both on failure and for an event with no parameter.
+     * StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getParameterDescriptionCount():Int {
         return NativeStudio.evd_get_parameter_description_count(this);
     }
@@ -180,17 +217,26 @@ abstract EventDescription(Int) from Int to Int {
         return readParameterDescription(resolved);
     }
 
-    /** Label text for a labeled parameter's value index (e.g. discrete enums). */
+    /**
+     * Label text for a labeled parameter's value index (e.g. discrete enums). Returns "" on failure, with the
+     * reason in StudioSystem.lastResult().
+     */
     public inline function getParameterLabel(parameterName:String, labelIndex:Int):String {
         return NativeStudio.evd_get_parameter_label(this, parameterName, labelIndex);
     }
 
-    /** Label text for a labeled parameter named by name, the same call as getParameterLabel under FMOD's name. */
+    /**
+     * Label text for a labeled parameter named by name, the same call as getParameterLabel under FMOD's name.
+     * Returns "" on failure, with the reason in StudioSystem.lastResult().
+     */
     public inline function getParameterLabelByName(name:String, labelIndex:Int):String {
         return NativeStudio.evd_get_parameter_label(this, name, labelIndex);
     }
 
-    /** Label text for a labeled parameter at a description index, "" when the index or the label is out of range. */
+    /**
+     * Label text for a labeled parameter at a description index, "" when the index or the label is out of
+     * range. Any other failure reports "" as well, with the reason in StudioSystem.lastResult().
+     */
     public inline function getParameterLabelByIndex(index:Int, labelIndex:Int):String {
         return NativeStudio.evd_get_parameter_label_by_index(this, index, labelIndex);
     }
@@ -206,13 +252,19 @@ abstract EventDescription(Int) from Int to Int {
             getParameterDescriptionCount(), i -> handle.getParameterDescriptionByIndex(i), id);
     }
 
-    /** Label text for a labeled parameter identified by ID. */
+    /**
+     * Label text for a labeled parameter identified by ID. Returns "" on failure, with the reason in
+     * StudioSystem.lastResult().
+     */
     public function getParameterLabelByID(id:FmodParameterId, labelIndex:Int):String {
         var desc = getParameterDescriptionByID(id);
         return desc == null ? "" : getParameterLabel(desc.name, labelIndex);
     }
 
-    /** Number of user properties authored on the event. */
+    /**
+     * Number of user properties authored on the event. Returns 0 both on failure and for an event with no user
+     * property. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getUserPropertyCount():Int {
         return NativeStudio.evd_get_user_property_count(this);
     }
@@ -250,9 +302,10 @@ abstract EventDescription(Int) from Int to Int {
 
     /**
      * Attaches a Haxe value to this handle. The value lives on the Haxe
-     * side keyed by the handle and is dropped when the handle is released.
+     * side keyed by the handle and is dropped when its bank unloads.
      * A recycled native slot gets a new generation and therefore a new
-     * handle int, so a stale entry never shows up on a later handle.
+     * handle int, so a stale entry does not show up on the next handle
+     * in that slot.
      */
     public inline function setUserData(value:Dynamic):Void {
         UserData.set(UserDataKind.EventDescription, this, value);

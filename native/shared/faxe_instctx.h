@@ -3,14 +3,14 @@
  *
  * Stored in FMOD userdata on every managed event instance (replacing the
  * raw handle int). FMOD callback threads receive it through the callback's
- * event pointer, so they can read the handle and programmer-sound key
- * without ever touching the handle table (which is only safe to access
- * from the Haxe thread).
+ * event pointer. They can read the handle and programmer-sound key
+ * without ever touching the handle table, which is only safe to access
+ * from the Haxe thread.
  *
  * Lifetime: allocated at instance creation. The DESTROYED callback detaches
  * the context from FMOD userdata and hands it to the callback queue as the
- * event's opaque payload (instance creation always installs the shim
- * callback with at least the DESTROYED bit, so hand-off is guaranteed).
+ * event's opaque payload. Instance creation always installs the shim
+ * callback with at least the DESTROYED bit, so hand-off is guaranteed.
  * The game-thread drain frees it, along with the instance's handle-table
  * slot and any channel-group handle recorded in cgHandle. Freeing on the
  * FMOD thread would race game-thread writers that read the context pointer
@@ -81,7 +81,17 @@ static int faxe_instctx_ps_armed(const FaxeInstCtx* ctx) {
     return ctx->psKey[0] != '\0' || ctx->psGameSound != NULL || ctx->psNamedCount > 0;
 }
 
-/* Drops every assignment. Caller holds the callback-queue lock. */
+/* True while the shim still owns a sound it created for the instrument.
+ * The installed callback mask keeps its DESTROY_PROGRAMMER_SOUND bit as
+ * long as this holds, so the release runs even after a clear. Caller
+ * holds the callback-queue lock. */
+static int faxe_instctx_ps_sound_pending(const FaxeInstCtx* ctx) {
+    return ctx->psSound != NULL;
+}
+
+/* Drops every assignment. psSound survives, because the sound behind it
+ * is live and still needs its release. Caller holds the callback-queue
+ * lock. */
 static void faxe_instctx_ps_clear(FaxeInstCtx* ctx) {
     ctx->psKey[0] = '\0';
     ctx->psGameSound = NULL;
@@ -114,9 +124,9 @@ static int faxe_instctx_ps_set_named(FaxeInstCtx* ctx, const char* name, const c
     return 1;
 }
 
-/* Copies the key for an instrument name into out (FAXE_PS_KEY_MAX bytes)
- * and returns 1, or returns 0 and leaves out alone when the name has no
- * entry. Caller holds the callback-queue lock. */
+/* Copies the key for an instrument name into out, which holds
+ * FAXE_PS_KEY_MAX bytes, and returns 1. A name with no entry returns 0
+ * and leaves out alone. Caller holds the callback-queue lock. */
 static int faxe_instctx_ps_find_named(const FaxeInstCtx* ctx, const char* name, char* out) {
     int i;
     if (!name || !ctx->psNamed) return 0;

@@ -2,7 +2,8 @@
  * Unit tests for native/shared/faxe_instctx.h, the per-instance context
  * the C++ and HashLink shims keep in FMOD userdata. The programmer sound
  * fields are the logic worth pinning. They are the name-to-key table, the
- * armed check the callback mask is built from, and the clear that drops
+ * armed check the callback mask is built from, the pending check that
+ * holds the destroy bit on a shim-created sound, and the clear that drops
  * every assignment at once.
  *
  * CI compiles and runs the file in both C99 and C++ modes. The build
@@ -45,6 +46,18 @@ int main(void) {
     assert(faxe_instctx_ps_armed(ctx));
     faxe_instctx_ps_clear(ctx);
     assert(ctx->psGameSound == NULL && ctx->psGameSubsound == -1);
+
+    /* a sound the shim created outlives the clear, so the installed mask
+     * keeps its destroy bit and the release still runs */
+    assert(!faxe_instctx_ps_sound_pending(ctx));
+    ctx->psSound = (void*)ctx;
+    strcpy(ctx->psKey, "hello");
+    assert(faxe_instctx_ps_armed(ctx) && faxe_instctx_ps_sound_pending(ctx));
+    faxe_instctx_ps_clear(ctx);
+    assert(!faxe_instctx_ps_armed(ctx));
+    assert(faxe_instctx_ps_sound_pending(ctx) && ctx->psSound == (void*)ctx);
+    ctx->psSound = NULL;
+    assert(!faxe_instctx_ps_sound_pending(ctx));
 
     /* the name table allocates on first use, replaces by name, and fills up */
     assert(faxe_instctx_ps_set_named(ctx, "Line", "hello") == 1);

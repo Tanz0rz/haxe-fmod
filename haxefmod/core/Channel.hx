@@ -31,7 +31,10 @@ abstract Channel(Int) from Int to Int {
         return this == 0;
     }
 
-    /** The volume as set by the API (linear: 0.0 = silent, 1.0 = full). */
+    /**
+     * The volume as set by the API (linear: 0.0 = silent, 1.0 = full). Returns 0.0 both on failure and for a
+     * silent channel. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getVolume():Float {
         return NativeStudio.chan_get_volume(this);
     }
@@ -40,7 +43,10 @@ abstract Channel(Int) from Int to Int {
         return NativeStudio.chan_set_volume(this, volume);
     }
 
-    /** The pitch multiplier (1.0 = as recorded, 2.0 = one octave up). */
+    /**
+     * The pitch multiplier (1.0 = as recorded, 2.0 = one octave up). Returns 0.0 both on failure and for a
+     * pitch of zero. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getPitch():Float {
         return NativeStudio.chan_get_pitch(this);
     }
@@ -49,6 +55,10 @@ abstract Channel(Int) from Int to Int {
         return NativeStudio.chan_set_pitch(this, pitch);
     }
 
+    /**
+     * The paused state. Returns false both on failure and for a channel that runs. StudioSystem.lastResult()
+     * tells the two apart.
+     */
     public inline function getPaused():Bool {
         return NativeStudio.chan_get_paused(this);
     }
@@ -57,6 +67,10 @@ abstract Channel(Int) from Int to Int {
         return NativeStudio.chan_set_paused(this, paused);
     }
 
+    /**
+     * The playing state. Returns false both on failure and for a channel that stopped.
+     * StudioSystem.lastResult() tells the two apart.
+     */
     public inline function isPlaying():Bool {
         return NativeStudio.chan_is_playing(this);
     }
@@ -66,7 +80,10 @@ abstract Channel(Int) from Int to Int {
         return NativeStudio.chan_set_pan(this, pan);
     }
 
-    /** Playback rate in samples per second (resampling: also shifts pitch). */
+    /**
+     * Playback rate in samples per second (resampling: also shifts pitch). Returns 0.0 on failure, with the
+     * reason in StudioSystem.lastResult().
+     */
     public inline function getFrequency():Float {
         return NativeStudio.chan_get_frequency(this);
     }
@@ -80,7 +97,10 @@ abstract Channel(Int) from Int to Int {
         return NativeStudio.chan_set_loop_count(this, loopCount);
     }
 
-    /** Playback position in unit (milliseconds by default, samples with FmodTimeUnit.PCM), or -1 on failure. */
+    /**
+     * Playback position in unit (milliseconds by default, samples with FmodTimeUnit.PCM), or -1 on failure.
+     * StudioSystem.lastResult() holds the reason for a failure.
+     */
     public inline function getPosition(unit:FmodTimeUnit = FmodTimeUnit.MS):Int {
         return NativeStudio.chan_get_position(this, unit);
     }
@@ -107,6 +127,8 @@ abstract Channel(Int) from Int to Int {
     /**
      * Positions the channel in 3D space. Only works on 3D sounds
      * (PcmStream.create3d). Uses the Studio listener for distance and pan.
+     * The velocity is written on every call, so a call that omits it
+     * sets the doppler velocity to zero.
      */
     public inline function set3DAttributes(posX:Float, posY:Float, posZ:Float,
             velX:Float = 0, velY:Float = 0, velZ:Float = 0):FmodResult {
@@ -128,11 +150,18 @@ abstract Channel(Int) from Int to Int {
         return NativeStudio.chan_set_reverb_wet(this, instance, wet);
     }
 
-    /** The wet level of a reverb send, the same read as getReverbWet under FMOD's name. */
+    /**
+     * The wet level of a reverb send, the same read as getReverbWet under FMOD's name. Returns 0.0 both on
+     * failure and for a dry send. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getReverbProperties(instance:Int):Float {
         return NativeStudio.chan_get_reverb_wet(this, instance);
     }
 
+    /**
+     * The mute state. Returns false both on failure and for a channel that is audible.
+     * StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getMute():Bool {
         return NativeStudio.chan_get_mute(this);
     }
@@ -309,14 +338,26 @@ abstract Channel(Int) from Int to Int {
         haxefmod.core.ChannelCallbacks.remove(this);
     }
 
+    /**
+     * Times to loop before stopping (-1 = forever, 0 = play once). Returns 0 both on failure and for a channel
+     * that plays once. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getLoopCount():Int {
         return NativeStudio.chan_get_loop_count(this);
     }
 
+    /**
+     * The gain of the dry signal under the built-in lowpass (1.0 = open, 0.0 = fully closed). Returns 0.0 both
+     * on failure and for a closed filter. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getLowPassGain():Float {
         return NativeStudio.chan_get_low_pass_gain(this);
     }
 
+    /**
+     * The ChannelMode flags in force (looping, 2D/3D, rolloff shape). Returns 0 both on failure and for
+     * FMOD_DEFAULT. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getMode():Int {
         return NativeStudio.chan_get_mode(this);
     }
@@ -327,14 +368,26 @@ abstract Channel(Int) from Int to Int {
         return {insideAngle: Scratch.readF(0), outsideAngle: Scratch.readF(1), outsideVolume: Scratch.readF(2)};
     }
 
+    /**
+     * Speaker spread of a 3D sound in degrees. Returns 0.0 both on failure and for a point source.
+     * StudioSystem.lastResult() tells the two apart.
+     */
     public inline function get3DSpread():Float {
         return NativeStudio.chan_get_3d_spread(this);
     }
 
+    /**
+     * Blend between 2D and full 3D positioning (0.0 = 2D, 1.0 = 3D). Returns 0.0 both on failure and for a
+     * fully 2D blend. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function get3DLevel():Float {
         return NativeStudio.chan_get_3d_level(this);
     }
 
+    /**
+     * The scale FMOD applies to the doppler effect (0.0 = off, 1.0 = normal). Returns 0.0 both on failure and
+     * for doppler switched off. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function get3DDopplerLevel():Float {
         return NativeStudio.chan_get_3d_doppler_level(this);
     }
@@ -363,16 +416,26 @@ abstract Channel(Int) from Int to Int {
         return NativeStudio.chan_set_priority(this, priority);
     }
 
+    /**
+     * Voice priority for virtualization, 0 (most important) to 256 (least). Returns 0 both on failure and for
+     * the most important priority. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getPriority():Int {
         return NativeStudio.chan_get_priority(this);
     }
 
-    /** True when FMOD virtualized the channel (inaudible, position still tracked). */
+    /**
+     * True when FMOD virtualized the channel (inaudible, position still tracked). Returns false both on failure
+     * and for an audible channel. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function isVirtual():Bool {
         return NativeStudio.chan_is_virtual(this);
     }
 
-    /** The final audible volume after group, 3D, and occlusion scaling. */
+    /**
+     * The final audible volume after group, 3D, and occlusion scaling. Returns 0.0 both on failure and for a
+     * fully attenuated channel. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getAudibility():Float {
         return NativeStudio.chan_get_audibility(this);
     }
@@ -382,11 +445,18 @@ abstract Channel(Int) from Int to Int {
         return NativeStudio.chan_set_volume_ramp(this, ramp);
     }
 
+    /**
+     * True while volume changes ramp instead of applying at once. Returns false both on failure and for
+     * instantaneous changes. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getVolumeRamp():Bool {
         return NativeStudio.chan_get_volume_ramp(this);
     }
 
-    /** The sound this channel plays (a borrowed reference: never release it). */
+    /**
+     * The sound this channel plays (a borrowed reference: never release it). Returns Sound.NULL on failure,
+     * with the reason in StudioSystem.lastResult().
+     */
     public inline function getCurrentSound():haxefmod.core.Sound {
         return NativeStudio.chan_get_current_sound(this);
     }
@@ -411,11 +481,18 @@ abstract Channel(Int) from Int to Int {
         return {loopStart: Scratch.readI(0), loopEnd: Scratch.readI(1)};
     }
 
+    /**
+     * How much this channel feeds a reverb instance (0.0 = none, 1.0 = full). Returns 0.0 both on failure and
+     * for a dry send. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getReverbWet(instance:Int):Float {
         return NativeStudio.chan_get_reverb_wet(this, instance);
     }
 
-    /** The channel's index inside FMOD's channel pool, or -1 on failure. */
+    /**
+     * The channel's index inside FMOD's channel pool, or -1 on failure. StudioSystem.lastResult() holds the
+     * reason for a failure.
+     */
     public inline function getIndex():Int {
         return NativeStudio.chan_get_index(this);
     }
@@ -426,16 +503,26 @@ abstract Channel(Int) from Int to Int {
         return {x: Scratch.readF(0), y: Scratch.readF(1), z: Scratch.readF(2)};
     }
 
+    /**
+     * How many DSP units sit in this channel's chain. The fader counts, so a playing channel reports at least
+     * 1. Returns 0 on failure, with the reason in StudioSystem.lastResult().
+     */
     public inline function getDspCount():Int {
         return NativeStudio.chan_get_num_dsps(this);
     }
 
-    /** The same count as getDspCount under FMOD's name. */
+    /**
+     * The same count as getDspCount under FMOD's name. Returns 0 on failure, with the reason in
+     * StudioSystem.lastResult().
+     */
     public inline function getNumDSPs():Int {
         return NativeStudio.chan_get_num_dsps(this);
     }
 
-    /** The effect at chain position `index` (a known DSP returns its existing handle). */
+    /**
+     * The effect at chain position `index` (a known DSP returns its existing handle). Returns Dsp.NULL on
+     * failure, with the reason in StudioSystem.lastResult().
+     */
     public inline function getDsp(index:Int):Dsp {
         return NativeStudio.chan_get_dsp(this, index);
     }
@@ -445,12 +532,18 @@ abstract Channel(Int) from Int to Int {
         return NativeStudio.chan_set_dsp_index(this, dsp, index);
     }
 
-    /** The chain position of an attached effect, -1 when it is not attached or on failure. */
+    /**
+     * The chain position of an attached effect, -1 when it is not attached or on failure.
+     * StudioSystem.lastResult() holds the reason for a failure.
+     */
     public inline function getDspIndex(dsp:Dsp):Int {
         return NativeStudio.chan_get_dsp_index(this, dsp);
     }
 
-    /** The group this channel is routed into (a known group returns its existing handle). */
+    /**
+     * The group this channel is routed into (a known group returns its existing handle). Returns
+     * ChannelGroup.NULL on failure, with the reason in StudioSystem.lastResult().
+     */
     public inline function getChannelGroup():ChannelGroup {
         return NativeStudio.chan_get_channel_group(this);
     }
@@ -517,7 +610,8 @@ abstract Channel(Int) from Int to Int {
      * Attaches a Haxe value to this handle. The value lives on the Haxe
      * side keyed by the handle and is dropped when the handle is released.
      * A recycled native slot gets a new generation and therefore a new
-     * handle int, so a stale entry never shows up on a later handle.
+     * handle int, so a stale entry does not show up on the next handle
+     * in that slot.
      */
     public inline function setUserData(value:Dynamic):Void {
         UserData.set(UserDataKind.Channel, this, value);

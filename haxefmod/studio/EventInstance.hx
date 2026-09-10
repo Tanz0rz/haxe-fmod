@@ -28,7 +28,10 @@ abstract EventInstance(Int) from Int to Int {
         return this != 0 && NativeStudio.evi_is_valid(this);
     }
 
-    /** The description this instance was created from. */
+    /**
+     * The description this instance was created from. Returns EventDescription.NULL on failure, with the reason
+     * in StudioSystem.lastResult().
+     */
     public inline function getDescription():EventDescription {
         return NativeStudio.evi_get_description(this);
     }
@@ -49,9 +52,9 @@ abstract EventInstance(Int) from Int to Int {
     }
 
     /**
-     * The core channel group carrying this instance's audio, for attaching
-     * DSP effects to a single event. The instance must be started. Never
-     * release the group (the instance owns it).
+     * The core channel group carrying this instance's audio, for attaching DSP effects to a single event. The
+     * instance must be started. Never release the group (the instance owns it). Returns ChannelGroup.NULL on
+     * failure, with the reason in StudioSystem.lastResult().
      */
     public inline function getChannelGroup():haxefmod.core.ChannelGroup {
         return NativeStudio.evi_get_channel_group(this);
@@ -69,12 +72,18 @@ abstract EventInstance(Int) from Int to Int {
         return NativeStudio.evi_release(this);
     }
 
-    /** The playback state (see FmodPlaybackState). */
+    /**
+     * The playback state (see FmodPlaybackState). Returns STOPPED both on failure and for a stopped instance.
+     * StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getPlaybackState():FmodPlaybackState {
         return NativeStudio.evi_get_playback_state(this);
     }
 
-    /** True if the instance is paused. */
+    /**
+     * True if the instance is paused. Returns false both on failure and for an instance that runs.
+     * StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getPaused():Bool {
         return NativeStudio.evi_get_paused(this);
     }
@@ -84,12 +93,18 @@ abstract EventInstance(Int) from Int to Int {
         return NativeStudio.evi_set_paused(this, paused);
     }
 
-    /** The volume as set by the API (linear: 0.0 = silent, 1.0 = full). */
+    /**
+     * The volume as set by the API (linear: 0.0 = silent, 1.0 = full). Returns 0.0 both on failure and for a
+     * silent instance. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getVolume():Float {
         return NativeStudio.evi_get_volume(this);
     }
 
-    /** The final combined volume (set volume x event/snapshot automation). */
+    /**
+     * The final combined volume (set volume x event/snapshot automation). Returns 0.0 both on failure and for a
+     * silent instance. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getFinalVolume():Float {
         return NativeStudio.evi_get_volume_final(this);
     }
@@ -99,12 +114,18 @@ abstract EventInstance(Int) from Int to Int {
         return NativeStudio.evi_set_volume(this, volume);
     }
 
-    /** The pitch multiplier as set by the API (1.0 = unchanged). */
+    /**
+     * The pitch multiplier as set by the API (1.0 = unchanged). Returns 0.0 both on failure and for a pitch of
+     * zero. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getPitch():Float {
         return NativeStudio.evi_get_pitch(this);
     }
 
-    /** The final combined pitch multiplier (set pitch x event/snapshot automation). */
+    /**
+     * The final combined pitch multiplier (set pitch x event/snapshot automation). Returns 0.0 both on failure
+     * and for a pitch of zero. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getFinalPitch():Float {
         return NativeStudio.evi_get_pitch_final(this);
     }
@@ -114,7 +135,10 @@ abstract EventInstance(Int) from Int to Int {
         return NativeStudio.evi_set_pitch(this, pitch);
     }
 
-    /** Timeline position in milliseconds. */
+    /**
+     * Timeline position in milliseconds. Returns 0 both on failure and for a cursor at the start.
+     * StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getTimelinePosition():Int {
         return NativeStudio.evi_get_timeline_position(this);
     }
@@ -124,7 +148,10 @@ abstract EventInstance(Int) from Int to Int {
         return NativeStudio.evi_set_timeline_position(this, positionMs);
     }
 
-    /** True if the instance has been virtualized. A virtual instance is inaudible and stays out of the mix. */
+    /**
+     * True if the instance has been virtualized. A virtual instance is inaudible and stays out of the mix.
+     * Returns false both on failure and for an audible instance. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function isVirtual():Bool {
         return NativeStudio.evi_is_virtual(this);
     }
@@ -162,7 +189,10 @@ abstract EventInstance(Int) from Int to Int {
         return NativeStudio.evi_set_3d_attributes(this, x, y, 0, velocityX, velocityY, 0, 0, 0, 1, 0, 1, 0);
     }
 
-    /** Bitmask of listeners this instance is audible to. */
+    /**
+     * Bitmask of listeners this instance is audible to. Returns 0 both on failure and for an instance no
+     * listener hears. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getListenerMask():Int {
         return NativeStudio.evi_get_listener_mask(this);
     }
@@ -172,7 +202,10 @@ abstract EventInstance(Int) from Int to Int {
         return NativeStudio.evi_set_listener_mask(this, mask);
     }
 
-    /** An overridable instance property (see FmodEventProperty). */
+    /**
+     * An overridable instance property (see FmodEventProperty). Returns 0.0 both on failure and for a property
+     * set to zero. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getProperty(property:FmodEventProperty):Float {
         return NativeStudio.evi_get_property(this, property);
     }
@@ -182,7 +215,10 @@ abstract EventInstance(Int) from Int to Int {
         return NativeStudio.evi_set_property(this, property, value);
     }
 
-    /** Core reverb send level for reverb instance 0-3. */
+    /**
+     * Core reverb send level for reverb instance 0-3. Returns 0.0 both on failure and for a dry send.
+     * StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getReverbLevel(index:Int):Float {
         return NativeStudio.evi_get_reverb_level(this, index);
     }
@@ -192,12 +228,18 @@ abstract EventInstance(Int) from Int to Int {
         return NativeStudio.evi_set_reverb_level(this, index, level);
     }
 
-    /** A parameter's value as set by the API, by name. */
+    /**
+     * A parameter's value as set by the API, by name. Returns 0.0 both on failure and for a parameter set to
+     * zero. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getParameter(name:String):Float {
         return NativeStudio.evi_get_param_by_name(this, name);
     }
 
-    /** The final parameter value after automation/seek speed. */
+    /**
+     * The final parameter value after automation/seek speed. Returns 0.0 both on failure and for a parameter
+     * set to zero. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getParameterFinal(name:String):Float {
         return NativeStudio.evi_get_param_by_name_final(this, name);
     }
@@ -212,12 +254,18 @@ abstract EventInstance(Int) from Int to Int {
         return NativeStudio.evi_set_param_by_name_with_label(this, name, label, ignoreSeekSpeed);
     }
 
-    /** A parameter's value as set by the API, by ID. */
+    /**
+     * A parameter's value as set by the API, by ID. Returns 0.0 both on failure and for a parameter set to
+     * zero. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getParameterByID(id:FmodParameterId):Float {
         return NativeStudio.evi_get_param_by_id(this, id.data1, id.data2);
     }
 
-    /** The final value of a parameter after automation and seek speed, by ID. */
+    /**
+     * The final value of a parameter after automation and seek speed, by ID. Returns 0.0 both on failure and
+     * for a parameter set to zero. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getParameterByIDFinal(id:FmodParameterId):Float {
         return NativeStudio.evi_get_param_by_id_final(this, id.data1, id.data2);
     }
@@ -232,12 +280,18 @@ abstract EventInstance(Int) from Int to Int {
         return NativeStudio.evi_set_param_by_id_with_label(this, id.data1, id.data2, label, ignoreSeekSpeed);
     }
 
-    /** The same parameter read as getParameter, under FMOD's name. */
+    /**
+     * The same parameter read as getParameter, under FMOD's name. Returns 0.0 both on failure and for a
+     * parameter set to zero. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getParameterByName(name:String):Float {
         return NativeStudio.evi_get_param_by_name(this, name);
     }
 
-    /** The final value of a parameter after automation and seek speed, by name. */
+    /**
+     * The final value of a parameter after automation and seek speed, by name. Returns 0.0 both on failure and
+     * for a parameter set to zero. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getParameterByNameFinal(name:String):Float {
         return NativeStudio.evi_get_param_by_name_final(this, name);
     }
@@ -432,7 +486,8 @@ abstract EventInstance(Int) from Int to Int {
      * Attaches a Haxe value to this handle. The value lives on the Haxe
      * side keyed by the handle and is dropped when the handle is released.
      * A recycled native slot gets a new generation and therefore a new
-     * handle int, so a stale entry never shows up on a later handle.
+     * handle int, so a stale entry does not show up on the next handle
+     * in that slot.
      */
     public inline function setUserData(value:Dynamic):Void {
         UserData.set(UserDataKind.EventInstance, this, value);

@@ -7,8 +7,8 @@ package haxefmod.studio.native;
  * read results back via readI/readF immediately after the call. Only ever
  * touched from the Haxe thread, so a single static buffer per type is safe.
  *
- * Capacity is 1024 slots each, in lockstep with the native FAXE_LIST_MAX -
- * list-returning bindings cap their output at this size and the abstracts
+ * Capacity is 1024 slots each, in lockstep with the native FAXE_LIST_MAX.
+ * List-returning bindings cap their output at this size. The abstracts
  * warn when a larger list gets truncated.
  */
 class Scratch {

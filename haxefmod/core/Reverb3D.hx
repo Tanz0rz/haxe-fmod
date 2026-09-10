@@ -72,6 +72,10 @@ abstract Reverb3D(Int) from Int to Int {
         return NativeStudio.r3d_set_active(this, active);
     }
 
+    /**
+     * True while this reverb sphere affects the mix. Returns false both on failure and for a sphere switched
+     * off. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getActive():Bool {
         return NativeStudio.r3d_get_active(this);
     }
@@ -93,7 +97,8 @@ abstract Reverb3D(Int) from Int to Int {
      * Attaches a Haxe value to this handle. The value lives on the Haxe
      * side keyed by the handle and is dropped when the handle is released.
      * A recycled native slot gets a new generation and therefore a new
-     * handle int, so a stale entry never shows up on a later handle.
+     * handle int, so a stale entry does not show up on the next handle
+     * in that slot.
      */
     public inline function setUserData(value:Dynamic):Void {
         UserData.set(UserDataKind.Reverb3D, this, value);

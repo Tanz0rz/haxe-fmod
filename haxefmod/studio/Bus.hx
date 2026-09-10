@@ -26,22 +26,28 @@ abstract Bus(Int) from Int to Int {
         return this != 0 && NativeStudio.bus_is_valid(this);
     }
 
-    /** The bus GUID. */
+    /** The bus GUID. Returns an empty FmodGuid on failure, with the reason in StudioSystem.lastResult(). */
     public inline function getID():FmodGuid {
         return NativeStudio.bus_get_id(this);
     }
 
-    /** The full bus path, e.g. "bus:/Music". */
+    /** The full bus path, e.g. "bus:/Music". Returns "" on failure, with the reason in StudioSystem.lastResult(). */
     public inline function getPath():String {
         return NativeStudio.bus_get_path(this);
     }
 
-    /** The volume as set by the API (linear: 0.0 = silent, 1.0 = full). */
+    /**
+     * The volume as set by the API (linear: 0.0 = silent, 1.0 = full). Returns 0.0 both on failure and for a
+     * silent bus. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getVolume():Float {
         return NativeStudio.bus_get_volume(this);
     }
 
-    /** The final combined volume (set volume x snapshots/automation). */
+    /**
+     * The final combined volume (set volume x snapshots/automation). Returns 0.0 both on failure and for a
+     * silent bus. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getFinalVolume():Float {
         return NativeStudio.bus_get_final_volume(this);
     }
@@ -51,7 +57,10 @@ abstract Bus(Int) from Int to Int {
         return NativeStudio.bus_set_volume(this, volume);
     }
 
-    /** True if the bus is paused. */
+    /**
+     * True if the bus is paused. Returns false both on failure and for a bus that runs.
+     * StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getPaused():Bool {
         return NativeStudio.bus_get_paused(this);
     }
@@ -61,7 +70,10 @@ abstract Bus(Int) from Int to Int {
         return NativeStudio.bus_set_paused(this, paused);
     }
 
-    /** True if the bus is muted. */
+    /**
+     * True if the bus is muted. Returns false both on failure and for a bus that is audible.
+     * StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getMute():Bool {
         return NativeStudio.bus_get_mute(this);
     }
@@ -121,7 +133,9 @@ abstract Bus(Int) from Int to Int {
     /**
      * The output port this bus is assigned to, FmodPortIndex.NONE when it
      * plays through the main mix (unsupported in HTML5, NONE there). FMOD
-     * routes buses to ports on consoles only, desktop reports NONE.
+     * routes buses to ports on consoles only, desktop reports NONE. A
+     * failure reports NONE as well, with the reason in
+     * StudioSystem.lastResult().
      */
     public macro function getPortIndex(self:haxe.macro.Expr):haxe.macro.Expr {
         return haxefmod.studio.native.Html5Gate.block("Bus.getPortIndex", "the web build has no bus port index");
@@ -130,7 +144,9 @@ abstract Bus(Int) from Int to Int {
     /**
      * The output port this bus is assigned to, FmodPortIndex.NONE when it
      * plays through the main mix (unsupported in HTML5, NONE there). FMOD
-     * routes buses to ports on consoles only, desktop reports NONE.
+     * routes buses to ports on consoles only, desktop reports NONE. A
+     * failure reports NONE as well, with the reason in
+     * StudioSystem.lastResult().
      */
     public inline function getPortIndex():FmodPortIndex {
         return NativeStudio.bus_get_port_index(this);
@@ -160,9 +176,9 @@ abstract Bus(Int) from Int to Int {
     #end
 
     /**
-     * The core channel group carrying this bus's audio, for attaching DSP
-     * effects to Studio-mixed sound. Lock it first, and never release it
-     * (the bus owns it). Returns ChannelGroup.NULL on failure.
+     * The core channel group carrying this bus's audio, for attaching DSP effects to Studio-mixed sound. Lock
+     * it first, and never release it (the bus owns it). Returns ChannelGroup.NULL on failure.
+     * StudioSystem.lastResult() holds the reason for a failure.
      */
     public inline function getChannelGroup():haxefmod.core.ChannelGroup {
         return NativeStudio.bus_get_channel_group(this);
@@ -170,9 +186,10 @@ abstract Bus(Int) from Int to Int {
 
     /**
      * Attaches a Haxe value to this handle. The value lives on the Haxe
-     * side keyed by the handle and is dropped when the handle is released.
+     * side keyed by the handle and is dropped by StudioSystem.unloadAll.
      * A recycled native slot gets a new generation and therefore a new
-     * handle int, so a stale entry never shows up on a later handle.
+     * handle int, so a stale entry does not show up on the next handle
+     * in that slot.
      */
     public inline function setUserData(value:Dynamic):Void {
         UserData.set(UserDataKind.Bus, this, value);

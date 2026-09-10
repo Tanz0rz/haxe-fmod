@@ -40,8 +40,8 @@ class UserDataKind {
  * its own. On HTML5 Destroyed never arrives, so the dispatcher drops the
  * entries of dead instance handles each update instead. The native handle
  * table recycles a slot with a new generation, so a reused slot produces
- * a different handle int. A stale entry can never be read through a
- * newer handle. Entries for handles that die without passing through one
+ * a different handle int, so a stale entry does not show up on the next
+ * handle in that slot. Entries for handles that die without passing through one
  * of those paths (a channel that ends by itself) linger until clearAll.
  */
 @:dox(hide)

@@ -40,6 +40,10 @@ abstract ChannelGroup(Int) from Int to Int {
         return this == 0;
     }
 
+    /**
+     * The group volume as set by the API (linear: 0.0 = silent, 1.0 = full). Returns 0.0 both on failure and
+     * for a silent group. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getVolume():Float {
         return NativeStudio.cg_get_volume(this);
     }
@@ -48,6 +52,10 @@ abstract ChannelGroup(Int) from Int to Int {
         return NativeStudio.cg_set_volume(this, volume);
     }
 
+    /**
+     * The group pitch multiplier (1.0 = as recorded, 2.0 = one octave up). Returns 0.0 both on failure and for
+     * a pitch of zero. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getPitch():Float {
         return NativeStudio.cg_get_pitch(this);
     }
@@ -56,6 +64,10 @@ abstract ChannelGroup(Int) from Int to Int {
         return NativeStudio.cg_set_pitch(this, pitch);
     }
 
+    /**
+     * The mute state. Returns false both on failure and for a group that is audible. StudioSystem.lastResult()
+     * tells the two apart.
+     */
     public inline function getMute():Bool {
         return NativeStudio.cg_get_mute(this);
     }
@@ -64,6 +76,10 @@ abstract ChannelGroup(Int) from Int to Int {
         return NativeStudio.cg_set_mute(this, mute);
     }
 
+    /**
+     * The paused state. Returns false both on failure and for a group that runs. StudioSystem.lastResult()
+     * tells the two apart.
+     */
     public inline function getPaused():Bool {
         return NativeStudio.cg_get_paused(this);
     }
@@ -107,20 +123,35 @@ abstract ChannelGroup(Int) from Int to Int {
         return NativeStudio.cg_add_group(this, child, propagateDspClock);
     }
 
+    /**
+     * How many groups are nested directly inside this one. Returns 0 both on failure and for a group with no
+     * children. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getGroupCount():Int {
         return NativeStudio.cg_get_num_groups(this);
     }
 
-    /** The same count as getGroupCount under FMOD's name. */
+    /**
+     * The same count as getGroupCount under FMOD's name. Returns 0 both on failure and for a group with no
+     * children. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getNumGroups():Int {
         return NativeStudio.cg_get_num_groups(this);
     }
 
-    /** A nested child group by index (a known group returns its existing handle). */
+    /**
+     * A nested child group by index (a known group returns its existing handle). Returns ChannelGroup.NULL on
+     * failure, with the reason in StudioSystem.lastResult().
+     */
     public inline function getGroup(index:Int):ChannelGroup {
         return NativeStudio.cg_get_group(this, index);
     }
 
+    /**
+     * The group this one feeds. The master group has no parent, so it reports ChannelGroup.NULL with
+     * lastResult still FMOD_OK. Returns ChannelGroup.NULL on failure, with the reason in
+     * StudioSystem.lastResult().
+     */
     public inline function getParentGroup():ChannelGroup {
         return NativeStudio.cg_get_parent_group(this);
     }
@@ -151,7 +182,10 @@ abstract ChannelGroup(Int) from Int to Int {
         return {startClock: Scratch.readF(0), endClock: Scratch.readF(1), stopChannels: Scratch.readF(2) > 0.5};
     }
 
-    /** True while any channel in the group or a nested group is playing. */
+    /**
+     * True while any channel in the group or a nested group is playing. Returns false both on failure and for a
+     * silent group. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function isPlaying():Bool {
         return NativeStudio.cg_is_playing(this);
     }
@@ -189,15 +223,15 @@ abstract ChannelGroup(Int) from Int to Int {
         return NativeStudio.cg_set_pan(this, pan);
     }
 
-    /** A built-in lowpass on the group (1.0 = open, 0.0 = closed). */
+    /** A built-in lowpass (1.0 = open, 0.0 = closed). FMOD supports it on a Channel only. The call returns FMOD_OK on a group and changes nothing. */
     public inline function setLowPassGain(gain:Float):FmodResult {
         return NativeStudio.cg_set_low_pass_gain(this, gain);
     }
 
     /**
-     * The group's lowpass gain, 0.0 on failure. FMOD 2.03.12 reports OK
-     * for a group but leaves the value at zero on every target. Keep
-     * the gain you set if you need it back.
+     * The group's lowpass gain, 0.0 on failure. FMOD 2.03.12 reports OK for a group but leaves the value at
+     * zero on every target. Keep the gain you set if you need it back. StudioSystem.lastResult() holds the
+     * reason for a failure.
      */
     public inline function getLowPassGain():Float {
         return NativeStudio.cg_get_low_pass_gain(this);
@@ -208,11 +242,15 @@ abstract ChannelGroup(Int) from Int to Int {
         return NativeStudio.cg_set_mode(this, mode);
     }
 
+    /**
+     * The ChannelMode flags in force (looping, 2D/3D, rolloff shape). Returns 0 both on failure and for
+     * FMOD_DEFAULT. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getMode():Int {
         return NativeStudio.cg_get_mode(this);
     }
 
-    /** Positions the whole group in 3D space (needs a 3D mode set). */
+    /** Positions the whole group in 3D space (needs a 3D mode set). The velocity is written on every call, so a call that omits it sets the doppler velocity to zero. */
     public inline function set3DAttributes(posX:Float, posY:Float, posZ:Float,
             velX:Float = 0, velY:Float = 0, velZ:Float = 0):FmodResult {
         return NativeStudio.cg_set_3d_attributes(this, posX, posY, posZ, velX, velY, velZ);
@@ -305,7 +343,8 @@ abstract ChannelGroup(Int) from Int to Int {
      * custom on, customLevel (0 to 1) replaces the distance-derived
      * attenuation and centerFreq sets the filter's center in Hz. The
      * distanceFilter setting must be on at init for any of this to take
-     * effect.
+     * effect. FMOD supports it on a Channel only. The call returns FMOD_OK
+     * on a group and changes nothing.
      */
     public inline function set3DDistanceFilter(custom:Bool, customLevel:Float, centerFreq:Float):FmodResult {
         return NativeStudio.cg_set_3d_distance_filter(this, custom, customLevel, centerFreq);
@@ -321,6 +360,10 @@ abstract ChannelGroup(Int) from Int to Int {
         return NativeStudio.cg_set_3d_level(this, level);
     }
 
+    /**
+     * Blend between 2D and full 3D positioning (0.0 = 2D, 1.0 = 3D). Returns 0.0 both on failure and for a
+     * fully 2D blend. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function get3DLevel():Float {
         return NativeStudio.cg_get_3d_level(this);
     }
@@ -329,6 +372,10 @@ abstract ChannelGroup(Int) from Int to Int {
         return NativeStudio.cg_set_3d_spread(this, angle);
     }
 
+    /**
+     * Speaker spread of a 3D group in degrees. Returns 0.0 both on failure and for a point source.
+     * StudioSystem.lastResult() tells the two apart.
+     */
     public inline function get3DSpread():Float {
         return NativeStudio.cg_get_3d_spread(this);
     }
@@ -337,6 +384,10 @@ abstract ChannelGroup(Int) from Int to Int {
         return NativeStudio.cg_set_3d_doppler_level(this, level);
     }
 
+    /**
+     * The scale FMOD applies to the doppler effect (0.0 = off, 1.0 = normal). Returns 0.0 both on failure and
+     * for doppler switched off. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function get3DDopplerLevel():Float {
         return NativeStudio.cg_get_3d_doppler_level(this);
     }
@@ -371,11 +422,18 @@ abstract ChannelGroup(Int) from Int to Int {
         return NativeStudio.cg_set_reverb_wet(this, instance, wet);
     }
 
-    /** The wet level of a reverb send, the same read as getReverbWet under FMOD's name. */
+    /**
+     * The wet level of a reverb send, the same read as getReverbWet under FMOD's name. Returns 0.0 both on
+     * failure and for a dry send. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getReverbProperties(instance:Int):Float {
         return NativeStudio.cg_get_reverb_wet(this, instance);
     }
 
+    /**
+     * How much this group feeds a reverb instance (0.0 = none, 1.0 = full). Returns 0.0 both on failure and for
+     * a dry send. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getReverbWet(instance:Int):Float {
         return NativeStudio.cg_get_reverb_wet(this, instance);
     }
@@ -397,11 +455,18 @@ abstract ChannelGroup(Int) from Int to Int {
         return NativeStudio.cg_set_volume_ramp(this, ramp);
     }
 
+    /**
+     * True while volume changes ramp instead of applying at once. Returns false both on failure and for
+     * instantaneous changes. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getVolumeRamp():Bool {
         return NativeStudio.cg_get_volume_ramp(this);
     }
 
-    /** The final audible volume after parent groups and 3D scaling. */
+    /**
+     * The final audible volume after parent groups and 3D scaling. Returns 0.0 both on failure and for a fully
+     * attenuated group. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getAudibility():Float {
         return NativeStudio.cg_get_audibility(this);
     }
@@ -411,7 +476,10 @@ abstract ChannelGroup(Int) from Int to Int {
         return NativeStudio.cg_set_dsp_index(this, dsp, index);
     }
 
-    /** The chain position of an attached effect, -1 when it is not attached or on failure. */
+    /**
+     * The chain position of an attached effect, -1 when it is not attached or on failure.
+     * StudioSystem.lastResult() holds the reason for a failure.
+     */
     public inline function getDspIndex(dsp:Dsp):Int {
         return NativeStudio.cg_get_dsp_index(this, dsp);
     }
@@ -467,20 +535,31 @@ abstract ChannelGroup(Int) from Int to Int {
     }
     #end
 
+    /** The name FMOD holds for this group. Returns "" on failure, with the reason in StudioSystem.lastResult(). */
     public inline function getName():String {
         return NativeStudio.cg_get_name(this);
     }
 
+    /**
+     * How many channels are routed into this group. Returns 0 both on failure and for an empty group.
+     * StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getChannelCount():Int {
         return NativeStudio.cg_get_num_channels(this);
     }
 
-    /** The same count as getChannelCount under FMOD's name. */
+    /**
+     * The same count as getChannelCount under FMOD's name. Returns 0 both on failure and for an empty group.
+     * StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getNumChannels():Int {
         return NativeStudio.cg_get_num_channels(this);
     }
 
-    /** A channel routed into this group by index (known channels dedup). */
+    /**
+     * A channel routed into this group by index (known channels dedup). Returns Channel.NULL on failure, with
+     * the reason in StudioSystem.lastResult().
+     */
     public inline function getChannel(index:Int):Channel {
         return NativeStudio.cg_get_channel(this, index);
     }
@@ -499,7 +578,8 @@ abstract ChannelGroup(Int) from Int to Int {
      * Attaches a Haxe value to this handle. The value lives on the Haxe
      * side keyed by the handle and is dropped when the handle is released.
      * A recycled native slot gets a new generation and therefore a new
-     * handle int, so a stale entry never shows up on a later handle.
+     * handle int, so a stale entry does not show up on the next handle
+     * in that slot.
      */
     public inline function setUserData(value:Dynamic):Void {
         UserData.set(UserDataKind.ChannelGroup, this, value);
@@ -514,6 +594,8 @@ abstract ChannelGroup(Int) from Int to Int {
      * one level per input channel (1 to 32). An empty list returns
      * FMOD_ERR_INVALID_PARAM. More levels than the signal has
      * channels are ignored, fewer leave the rest at their current gain.
+     * FMOD supports it on a Channel only. The call returns FMOD_OK on a
+     * group and changes nothing.
      */
     public function setMixLevelsInput(levels:Array<Float>):FmodResult {
         if (levels == null || levels.length == 0 || levels.length > 32) return FmodResult.FMOD_ERR_INVALID_PARAM;
@@ -532,21 +614,27 @@ abstract ChannelGroup(Int) from Int to Int {
             surroundLeft, surroundRight, backLeft, backRight);
     }
 
-    /** How many DSP units sit in this group's chain (the fader counts, so a fresh group reports 1). */
+    /**
+     * How many DSP units sit in this group's chain (the fader counts, so a fresh group reports 1). Returns 0 on
+     * failure, with the reason in StudioSystem.lastResult().
+     */
     public inline function getDspCount():Int {
         return NativeStudio.cg_get_num_dsps(this);
     }
 
-    /** The same count as getDspCount under FMOD's name. */
+    /**
+     * The same count as getDspCount under FMOD's name. Returns 0 on failure, with the reason in
+     * StudioSystem.lastResult().
+     */
     public inline function getNumDSPs():Int {
         return NativeStudio.cg_get_num_dsps(this);
     }
 
     /**
-     * The effect at chain position `index`. DSP_HEAD, DSP_FADER and DSP_TAIL
-     * work here too. The fader is always the tail unit, so
-     * `getDsp(DSP_TAIL)` is the unit a group-wide send takes its input from.
-     * A known DSP returns its existing handle. Null when the index is out of range.
+     * The effect at chain position `index`. DSP_HEAD, DSP_FADER and DSP_TAIL work here too. DSP_HEAD is the
+     * unit closest to the output, the one a group-wide send takes its input from. DSP_TAIL is closest to the
+     * input. A known DSP returns its existing handle. Returns Dsp.NULL when the index is out of range and on
+     * any other failure, with the reason in StudioSystem.lastResult().
      */
     public inline function getDsp(index:Int):Dsp {
         return NativeStudio.cg_get_dsp(this, index);

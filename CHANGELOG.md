@@ -99,6 +99,17 @@
 - `Sound.getSyncPointName` and `getSyncPointOffset` are replaced by `getSyncPointInfo(point)`, which returns the name and offset together. The compiler warns at every use.
 
 ### Fixed
+- The native shims release the programmer sound they created when `clearProgrammerSound` runs before the instance ends. Before, the clear unsubscribed the callback that released it.
+- `BankUnload` carries paths of 64 bytes and more on native targets (the stash held 63), and `unloadAll` reports every bank instead of the first 32.
+- The HTML5 shim returns 0.0 instead of an error code from the parameter getters given a non-string name, rejects a null or oversized buffer in `loadBankMemory`, bounds the inclusion list it hands FMOD, reports `FMOD_ERR_MEMORY` when the handle table is full, truncates callback strings at the native limits, resolves the instance of a core `Error` callback, and uninstalls a callback it no longer needs. Bank paths are cached for `BankUnload` only while a system callback subscribes to it.
+- The bank, bus, VCA, and instance list getters skip a handle that could not be minted on HashLink and HTML5, as the C++ backend already did, so a list never carries a zero handle.
+- The record window size in the PCM shims is computed in unsigned arithmetic, `dsp_get_param_typed` clears its scratch slots on failure, `dsp_get_metering` clamps to 32 channels, and the custom rolloff setters report `FMOD_ERR_MEMORY` on every backend.
+- `faxe_dspdata.h` compiles on its own. Three duplicated function bodies inside its include guards are gone.
+- `Bank.unload` drops the userdata and the description-level callbacks of the bank's event descriptions, and `StudioSystem.unloadAll` drops the instance callbacks too. Before, a dead level's handler stayed registered under a handle int a later bank reused.
+- A channel that ends by itself drops its userdata entry, and a channel callback that throws no longer stops the rest of the frame's queue.
+- `Sound.release` drops the userdata of the subsounds that die with the parent.
+- `StudioSystem.lookupID` returns `FmodGuid.NULL` on failure, the value `FmodGuid` documents, instead of an empty string.
+- `Dsp.getFftSpectrumInfo` caps `length` at the row length it returns, so a loop over `length` stays inside `spectrum`.
 - `FmodManager.SetAutoUpdate(false)` after init left FMOD unserviced: the runtime kept skipping its manual `update()` call because the resolved setting still said auto. The setting now follows the call.
 - A `.haxefmod/hlaxe_fmod.version` marker with no `hlaxe_fmod.hdll` next to it made PostBuild and `check` report a matching custom hdll, then ship the pre-built hdll for another FMOD version. The marker now counts only with the hdll present.
 - PostBuild compares FMOD version literals as numbers, so a header that writes `0X` or uppercase hex no longer fails the gate with two identical versions in the message.

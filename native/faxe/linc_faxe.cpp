@@ -140,9 +140,10 @@ static FMOD_RESULT F_CALLBACK eventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type
                 ctx->psSound = sound;
             }
             // The record carries the sound the instrument got, so the drain
-            // can hand it to the game as a handle: ptr is the FMOD_SOUND, i2
-            // the subsound index, i3 set when this shim created the sound
-            // (its handle is freed again when the destroy record drains)
+            // can hand it to the game as a handle. ptr is the FMOD_SOUND, i2
+            // the subsound index, i3 set when this shim created the sound.
+            // A shim-created sound loses its handle again when the destroy
+            // record drains.
             if (props) {
                 ev.ptr = props->sound;
                 ev.i2 = props->subsoundIndex;
@@ -227,7 +228,7 @@ static FMOD_RESULT F_CALLBACK eventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type
     // The context's lifetime ends with the instance. DESTROYED is always in
     // the installed mask (see attachInstanceCtx), so hand-off is guaranteed.
     // The context rides the queue as the event's payload and the game-thread
-    // drain frees it: freeing here would race a game-thread caller that read
+    // drain frees it. Freeing here would race a game-thread caller that read
     // the context pointer from userdata just before this callback ran.
     if (type == FMOD_STUDIO_EVENT_CALLBACK_DESTROYED) {
         instance->setUserData(NULL);
@@ -300,15 +301,20 @@ void fmod_sys_set_auto_update(bool enabled) {
 
 //// Callbacks
 
-// Builds the mask actually installed on the instance: the user's mask plus
-// DESTROYED (context cleanup) plus the programmer-sound bits when any
-// programmer sound assignment is present.
+// Builds the mask actually installed on the instance. That is the user's
+// mask, plus DESTROYED for context cleanup, plus the programmer-sound bits
+// while any assignment is present. A sound the shim already created
+// keeps the DESTROY bit on its own, so the release still runs after
+// fmod_ps_clear drops the assignment.
 static FMOD_STUDIO_EVENT_CALLBACK_TYPE effectiveCallbackMask(FaxeInstCtx* ctx) {
     unsigned int mask = ctx->cbMask | FMOD_STUDIO_EVENT_CALLBACK_DESTROYED;
     faxe_cbq_lock();
     if (faxe_instctx_ps_armed(ctx)) {
         mask |= FMOD_STUDIO_EVENT_CALLBACK_CREATE_PROGRAMMER_SOUND
               | FMOD_STUDIO_EVENT_CALLBACK_DESTROY_PROGRAMMER_SOUND;
+    }
+    if (faxe_instctx_ps_sound_pending(ctx)) {
+        mask |= FMOD_STUDIO_EVENT_CALLBACK_DESTROY_PROGRAMMER_SOUND;
     }
     faxe_cbq_unlock();
     return (FMOD_STUDIO_EVENT_CALLBACK_TYPE)mask;
@@ -333,9 +339,9 @@ int fmod_ps_assign(int h, const ::String& key) {
     if (!ctx) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     // The shim consumes this string itself (everywhere else strings go
     // to FMOD, whose own validation rejects NULL). A null hxcpp String
-    // yields a NULL c_str, and a key at or past the buffer size would
-    // silently truncate - possibly mid-UTF-8 - and resolve the wrong
-    // sound, so both are rejected.
+    // yields a NULL c_str. A key at or past the buffer size would
+    // silently truncate, possibly mid-UTF-8, and resolve the wrong
+    // sound. Both are rejected.
     if (key == null() || strlen(key.c_str()) >= FAXE_PS_KEY_MAX) {
         gLastResult = FMOD_ERR_INVALID_PARAM;
         return (int)gLastResult;
@@ -646,7 +652,7 @@ int fmod_core_pcm_create(int sampleRate, int channels, int ringBytes) {
     exinfo.defaultfrequency = sampleRate;
     exinfo.format = FMOD_SOUND_FORMAT_PCM16;
     exinfo.decodebuffersize = 4096;
-    exinfo.length = (unsigned int)(sampleRate * channels * 2); // a one second window
+    exinfo.length = (unsigned int)sampleRate * (unsigned int)channels * 2u; // a one second window
     exinfo.pcmreadcallback = lincPcmRead;
     exinfo.userdata = ps->ring;
 
@@ -687,7 +693,7 @@ int fmod_core_pcm_create_3d(int sampleRate, int channels, int ringBytes) {
     exinfo.defaultfrequency = sampleRate;
     exinfo.format = FMOD_SOUND_FORMAT_PCM16;
     exinfo.decodebuffersize = 4096;
-    exinfo.length = (unsigned int)(sampleRate * channels * 2); // a one second window
+    exinfo.length = (unsigned int)sampleRate * (unsigned int)channels * 2u; // a one second window
     exinfo.pcmreadcallback = lincPcmRead;
     exinfo.userdata = ps->ring;
 
@@ -993,11 +999,16 @@ int fmod_dsp_get_metering(int h, ::Array<Float> fbuf) {
     memset(&info, 0, sizeof(info));
     gLastResult = dsp->getMeteringInfo(NULL, &info);
     if (gLastResult != FMOD_OK) return 0;
-    for (int i = 0; i < info.numchannels && i < 32; i++) {
+    // FMOD_MAX_CHANNEL_WIDTH is 32, and the buffer holds two runs of that
+    // many. Clamping keeps the rms base and the count inside it.
+    int ch = (int)info.numchannels;
+    if (ch < 0) ch = 0;
+    if (ch > 32) ch = 32;
+    for (int i = 0; i < ch; i++) {
         fbuf[i] = (double)info.peaklevel[i];
-        fbuf[info.numchannels + i] = (double)info.rmslevel[i];
+        fbuf[ch + i] = (double)info.rmslevel[i];
     }
-    return (int)info.numchannels;
+    return ch;
 }
 
 // fbuf = channel-0 spectrum magnitudes, capped at maxBins. Returns bins written.
@@ -1252,7 +1263,7 @@ int fmod_bus_unlock_channel_group(int h) {
     FMOD::Studio::Bus* bus = (FMOD::Studio::Bus*)faxe_handle_resolve(h, FAXE_TYPE_BUS);
     if (!bus) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = bus->unlockChannelGroup();
-    // The group may be destroyed once unlocked: reclaim its cached handle
+    // The group can be destroyed once unlocked: reclaim its cached handle
     // before a recycled address can alias it
     if (gLastResult == FMOD_OK) lincReclaimDeadLookups();
     return (int)gLastResult;
@@ -1810,7 +1821,6 @@ int fmod_sound_get_defaults(int h, ::Array<Float> fbuf) {
     return (int)gLastResult;
 }
 
-// Both points share one FMOD_TIMEUNIT
 // Each point carries its own FMOD_TIMEUNIT
 int fmod_sound_set_loop_points(int h, int start, int startType, int end, int endType) {
     FMOD::Sound* sound = resolveSound(h);
@@ -2081,19 +2091,20 @@ static FMOD_RESULT F_CALLBACK lincStudioSystemCallback(FMOD_STUDIO_SYSTEM* syste
 // Reads a bank's path while the bank can still answer and stashes it for
 // the BANK_UNLOAD record. Haxe thread only.
 static void lincStashBankPath(FMOD::Studio::Bank* bank) {
-    char path[FAXE_CBQ_STR_MAX];
+    char path[FAXE_BANKPATH_STR_MAX];
     int retrieved = 0;
     if (!gSystemCallbackMask) return;
-    if (bank->getPath(path, FAXE_CBQ_STR_MAX, &retrieved) == FMOD_OK) {
+    if (bank->getPath(path, FAXE_BANKPATH_STR_MAX, &retrieved) == FMOD_OK) {
         faxe_bankpath_put(bank, path);
     }
 }
 
 static void lincStashAllBankPaths() {
-    FMOD::Studio::Bank* banks[FAXE_BANKPATH_CAPACITY];
+    static FMOD::Studio::Bank* banks[FAXE_LIST_MAX];
     int count = 0;
     if (!gSystemCallbackMask || !gStudioSystem) return;
-    if (gStudioSystem->getBankList(banks, FAXE_BANKPATH_CAPACITY, &count) != FMOD_OK) return;
+    if (gStudioSystem->getBankList(banks, FAXE_LIST_MAX, &count) != FMOD_OK) return;
+    if (count > FAXE_LIST_MAX) count = FAXE_LIST_MAX;
     for (int i = 0; i < count; i++) lincStashBankPath(banks[i]);
 }
 
@@ -3174,6 +3185,12 @@ static FaxeCbEvent gCbCurrent;
 static void freeDestroyedCtx(FaxeInstCtx* ctx) {
     if (ctx->cgHandle != 0) faxe_handle_free(ctx->cgHandle);
     if (ctx->handle > 0) faxe_handle_free(ctx->handle);
+    // A programmer sound the shim created outlives the instance when the
+    // instrument never got its destroy callback. Release it here.
+    if (ctx->psSound) {
+        ((FMOD::Sound*)ctx->psSound)->release();
+        ctx->psSound = NULL;
+    }
     faxe_instctx_destroy(ctx);
 }
 
@@ -3212,7 +3229,7 @@ bool fmod_cb_next() {
         if (gCbCurrent.i1 && gCbCurrent.i3) faxe_handle_free(gCbCurrent.i1);
     } else if (gCbCurrent.type == (FAXE_CB_SYS_NAMESPACE | (uint32_t)FMOD_SYSTEM_CALLBACK_ERROR)) {
         // The failing object's handle when the table knows it, never a
-        // fresh one: a sound FMOD rejected may already be gone.
+        // fresh one: a sound FMOD rejected can already be gone.
         unsigned char kind = lincErrorInstanceType(gCbCurrent.i2);
         gCbCurrent.i3 = kind == FAXE_TYPE_NONE ? 0 : faxe_handle_find(gCbCurrent.ptr, kind);
     }
@@ -3444,7 +3461,7 @@ int fmod_sys_init_ex(int numChannels, int sampleRate, int speakerMode, int studi
     if (gLastResult != FMOD_OK) {
         gStudioSystem->release();
         gStudioSystem = NULL;
-        // The wavwriter and format branches above may have cached the core
+        // The wavwriter and format branches above can have cached the core
         // system, which the release just destroyed
         gCoreSystem = NULL;
         return (int)gLastResult;
@@ -3735,7 +3752,7 @@ int fmod_sys_set_listener_weight(int index, double weight) {
     return (int)gLastResult;
 }
 
-// flags bit0 = nonblocking; returns a bank handle or 0
+// flags bit0 = nonblocking. Returns a bank handle or 0
 int fmod_sys_load_bank_file(const ::String& path, int flags) {
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
     FMOD_STUDIO_LOAD_BANK_FLAGS loadFlags = (flags & 1) ? FMOD_STUDIO_LOAD_BANK_NONBLOCKING : FMOD_STUDIO_LOAD_BANK_NORMAL;
@@ -4197,10 +4214,10 @@ const char* fmod_bank_get_string_guid(int h, int index) {
     FMOD::Studio::Bank* bank = resolveBank(h);
     if (!bank) { gLastResult = FMOD_ERR_INVALID_HANDLE; return gStringBuf; }
     FMOD_GUID id;
-    int retrieved = 0;
-    gLastResult = bank->getStringInfo(index, &id, gStringBuf, sizeof(gStringBuf), &retrieved);
+    // No path buffer, so a path longer than the buffer cannot turn this
+    // into FMOD_ERR_TRUNCATED and lose the GUID.
+    gLastResult = bank->getStringInfo(index, &id, NULL, 0, NULL);
     if (gLastResult == FMOD_OK) faxe_guid_format(&id, gStringBuf, sizeof(gStringBuf));
-    else gStringBuf[0] = '\0';
     return gStringBuf;
 }
 
@@ -4353,7 +4370,7 @@ int fmod_evd_get_instance_list(int h, ::Array<int> out) {
     int written = 0;
     for (int i = 0; i < count; i++) {
         // The instance's own context is the identity authority. Pointer
-        // dedup would be wrong here: a dead instance's slot keeps its
+        // dedup would be wrong here. A dead instance's slot keeps its
         // dangling pointer until the DESTROYED drain, and FMOD can hand a
         // new instance the same address inside that window.
         FaxeInstCtx* ctx = instanceCtx(instances[i]);
@@ -4361,9 +4378,11 @@ int fmod_evd_get_instance_list(int h, ::Array<int> out) {
         if (ctx && faxe_handle_resolve(ctx->handle, FAXE_TYPE_EVI) == (void*)instances[i]) {
             handle = ctx->handle;
         } else {
-            // Released-but-still-playing (context holds a freed handle) or
-            // never managed: mint a fresh slot and point the context at it,
-            // or queued callbacks carry a dead handle and get dropped.
+            // Two cases land here: an instance released but still playing,
+            // whose context holds a freed handle, and one this shim never
+            // managed. Both mint a fresh slot and point the context at it.
+            // Without that, queued callbacks carry a dead handle and get
+            // dropped.
             handle = faxe_handle_alloc(instances[i], FAXE_TYPE_EVI);
             if (handle != 0) {
                 if (ctx) {
@@ -4482,7 +4501,7 @@ int fmod_evd_get_user_property_type(int h, int index) {
     return (int)prop.type;
 }
 
-// int/bool coerced to float; 0.0 for string type
+// int/bool coerced to float. 0.0 for string type
 double fmod_evd_get_user_property_float(int h, int index) {
     FMOD::Studio::EventDescription* desc = resolveDescription(h);
     if (!desc) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0.0; }
@@ -5033,7 +5052,7 @@ int fmod_chan_set_3d_custom_rolloff(int h, ::Array<unsigned char> data, int coun
     if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     if (count < 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
     FMOD_VECTOR* points = rolloffCopy(data, count);
-    if (count > 0 && !points) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    if (count > 0 && !points) { gLastResult = FMOD_ERR_MEMORY; return (int)gLastResult; }
     gLastResult = ch->set3DCustomRolloff(points, points ? count : 0);
     if (gLastResult != FMOD_OK) { free(points); return (int)gLastResult; }
     faxe_handle_set_aux(h, points);
@@ -5055,7 +5074,7 @@ int fmod_cg_set_3d_custom_rolloff(int h, ::Array<unsigned char> data, int count)
     if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     if (count < 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
     FMOD_VECTOR* points = rolloffCopy(data, count);
-    if (count > 0 && !points) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    if (count > 0 && !points) { gLastResult = FMOD_ERR_MEMORY; return (int)gLastResult; }
     gLastResult = group->set3DCustomRolloff(points, points ? count : 0);
     if (gLastResult != FMOD_OK) { free(points); return (int)gLastResult; }
     faxe_handle_set_aux(h, points);
@@ -5077,7 +5096,7 @@ int fmod_core_sound_set_3d_custom_rolloff(int h, ::Array<unsigned char> data, in
     if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     if (count < 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
     FMOD_VECTOR* points = rolloffCopy(data, count);
-    if (count > 0 && !points) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    if (count > 0 && !points) { gLastResult = FMOD_ERR_MEMORY; return (int)gLastResult; }
     gLastResult = sound->set3DCustomRolloff(points, points ? count : 0);
     if (gLastResult != FMOD_OK) { free(points); return (int)gLastResult; }
     faxe_handle_set_aux(h, points);
@@ -5167,9 +5186,9 @@ int fmod_geo_add_polygon(int h, float direct, float reverb, bool doubleSided, ::
     FMOD::Geometry* geometry = resolveGeometry(h);
     int index = -1;
     if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -1; }
-    if (count < 3) { gLastResult = FMOD_ERR_INVALID_PARAM; return -1; }
+    if (vertices == null() || count < 3) { gLastResult = FMOD_ERR_INVALID_PARAM; return -1; }
     FMOD_VECTOR* points = rolloffCopy(vertices, count);
-    if (!points) { gLastResult = FMOD_ERR_INVALID_PARAM; return -1; }
+    if (!points) { gLastResult = FMOD_ERR_MEMORY; return -1; }
     gLastResult = geometry->addPolygon(direct, reverb, doubleSided, count, points, &index);
     free(points);
     if (gLastResult != FMOD_OK) return -1;
@@ -5426,11 +5445,9 @@ int fmod_chan_get_fade_points(int h, ::Array<Float> fbuf) {
     return writeFadePoints(count, fbuf);
 }
 
-// Shared by the three mix matrix getters. The caller names the region it
-// wants (outChannels rows of inChannels gains) and gets that region back
-// row-major in fbuf, with the object's real counts in ibuf[0] and ibuf[1].
-// Callers make the FMOD call before this one, since the counts are only
-// valid after it returns.
+// Scratch the three mix matrix getters read FMOD's gains into. Each one
+// makes its FMOD call first, then hands writeMixMatrix the result and the
+// two channel counts, which only hold values after that call.
 static float gMatrixBuf[32 * 32];
 
 // A read hop of 0 means packed rows. 32 is the widest matrix FMOD mixes.
@@ -5530,8 +5547,8 @@ int fmod_sg_get_sound(int h, int index) {
     return faxe_handle_find_or_alloc(sound, FAXE_TYPE_SOUND);
 }
 
-// The pool channel at this index. It may be idle, in which case every call
-// on the handle reports FMOD_ERR_INVALID_HANDLE until FMOD reuses it.
+// The pool channel at this index. An idle channel answers every call on
+// the handle with FMOD_ERR_INVALID_HANDLE until FMOD reuses it.
 int fmod_sys_get_channel(int index) {
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
     FMOD::Channel* ch = NULL;
@@ -6380,6 +6397,10 @@ int fmod_dsp_set_param_typed(int h, int index, int kind, ::Array<Float> fbuf, ::
 // Reads the block back as the kind into fbuf and ibuf. FMOD_ERR_INVALID_PARAM
 // for an unknown kind or a block shorter than the struct.
 int fmod_dsp_get_param_typed(int h, int index, int kind, ::Array<Float> fbuf, ::Array<int> ibuf) {
+    // Every exit hands back a cleared image, so a caller that ignores the
+    // result code never reads the previous call's values.
+    for (int i = 0; i < FAXE_DSPDATA_TYPED_DOUBLES; i++) fbuf[i] = 0.0;
+    for (int i = 0; i < FAXE_DSPDATA_TYPED_INTS; i++) ibuf[i] = 0;
     FMOD::DSP* dsp = resolveDsp(h);
     if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     void* data = NULL;

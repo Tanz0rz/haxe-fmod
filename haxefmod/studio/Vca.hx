@@ -25,22 +25,31 @@ abstract Vca(Int) from Int to Int {
         return this != 0 && NativeStudio.vca_is_valid(this);
     }
 
-    /** The VCA GUID. */
+    /** The VCA GUID. Returns an empty FmodGuid on failure, with the reason in StudioSystem.lastResult(). */
     public inline function getID():FmodGuid {
         return NativeStudio.vca_get_id(this);
     }
 
-    /** The full VCA path, e.g. "vca:/Environment". */
+    /**
+     * The full VCA path, e.g. "vca:/Environment". Returns "" on failure, with the reason in
+     * StudioSystem.lastResult().
+     */
     public inline function getPath():String {
         return NativeStudio.vca_get_path(this);
     }
 
-    /** The volume as set by the API (linear: 0.0 = silent, 1.0 = full). */
+    /**
+     * The volume as set by the API (linear: 0.0 = silent, 1.0 = full). Returns 0.0 both on failure and for a
+     * silent VCA. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getVolume():Float {
         return NativeStudio.vca_get_volume(this);
     }
 
-    /** The final combined volume (set volume x snapshots/automation). */
+    /**
+     * The final combined volume (set volume x snapshots/automation). Returns 0.0 both on failure and for a
+     * silent VCA. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getFinalVolume():Float {
         return NativeStudio.vca_get_final_volume(this);
     }
@@ -52,9 +61,10 @@ abstract Vca(Int) from Int to Int {
 
     /**
      * Attaches a Haxe value to this handle. The value lives on the Haxe
-     * side keyed by the handle and is dropped when the handle is released.
+     * side keyed by the handle and is dropped by StudioSystem.unloadAll.
      * A recycled native slot gets a new generation and therefore a new
-     * handle int, so a stale entry never shows up on a later handle.
+     * handle int, so a stale entry does not show up on the next handle
+     * in that slot.
      */
     public inline function setUserData(value:Dynamic):Void {
         UserData.set(UserDataKind.Vca, this, value);

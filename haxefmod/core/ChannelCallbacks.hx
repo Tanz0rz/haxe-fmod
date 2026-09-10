@@ -92,14 +92,25 @@ class ChannelCallbacks {
     public static function deliver(handle:Int, type:Int, i1:Int, f1:Float = 0.0):Void {
         var handler = handlers.get(handle);
         if (handler != null) {
-            switch (type) {
-                case TYPE_END: handler(End);
-                case TYPE_SYNCPOINT: handler(SyncPoint(i1));
-                case TYPE_VIRTUALVOICE: handler(VirtualVoice(i1 != 0));
-                case TYPE_OCCLUSION: handler(Occlusion(f1, haxe.io.FPHelper.i32ToFloat(i1)));
-                default:
+            // A throwing handler must not stop the rest of the frame's
+            // queue, the same guard the studio dispatcher has
+            try {
+                switch (type) {
+                    case TYPE_END: handler(End);
+                    case TYPE_SYNCPOINT: handler(SyncPoint(i1));
+                    case TYPE_VIRTUALVOICE: handler(VirtualVoice(i1 != 0));
+                    case TYPE_OCCLUSION: handler(Occlusion(f1, haxe.io.FPHelper.i32ToFloat(i1)));
+                    default:
+                }
+            } catch (e:Dynamic) {
+                trace('Warn: FMOD - a channel callback threw: $e');
             }
         }
-        if (type == TYPE_END) handlers.remove(handle);
+        if (type == TYPE_END) {
+            // The channel is gone. FMOD dropped its callback with it, and
+            // the userdata entry goes the way an instance's does on Destroyed
+            handlers.remove(handle);
+            haxefmod.studio.UserData.clear(haxefmod.studio.UserData.UserDataKind.Channel, handle);
+        }
     }
 }

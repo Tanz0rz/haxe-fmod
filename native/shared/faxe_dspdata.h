@@ -2,9 +2,9 @@
  * DSP data parameter packing shared by the haxefmod native shims.
  *
  * The Haxe side never lays out an FMOD struct byte by byte. It hands the
- * shims flat double arrays (the same Scratch float buffer the 3D
- * attribute setters use) and the helpers here build the FMOD structs,
- * so linc_faxe.cpp (C++) and hlaxe_fmod.c (C99) agree on every layout.
+ * shims flat double arrays, the same Scratch float buffer the 3D
+ * attribute setters use. The helpers here build the FMOD structs, so
+ * linc_faxe.cpp (C++) and hlaxe_fmod.c (C99) agree on every layout.
  * jaxe.js writes the same byte images with a DataView, because the web
  * glue takes data parameters as raw bytes.
  *
@@ -41,240 +41,12 @@
  * the unit test point at an SDK's headers itself. */
 #ifndef _FMOD_COMMON_H
 #include "fmod_common.h"
-/* Builds the struct of kind from the flat image (f holds
- * FAXE_DSPDATA_TYPED_DOUBLES values, i FAXE_DSPDATA_TYPED_INTS). Returns
- * the byte size to hand FMOD, 0 for a kind it does not know. */
-static unsigned int faxe_dspdata_pack_typed(int kind, faxe_dspdata_typed* out, const double* f, const int* i) {
-    int n;
-    memset(out, 0, sizeof(*out));
-    switch (kind) {
-    case FAXE_DSPDATA_KIND_SIDECHAIN:
-        out->sidechain.sidechainenable = f[0] != 0.0 ? 1 : 0;
-        return (unsigned int)sizeof(out->sidechain);
-    case FAXE_DSPDATA_KIND_FINITE_LENGTH:
-        out->finiteLength.finite = f[0] != 0.0 ? 1 : 0;
-        return (unsigned int)sizeof(out->finiteLength);
-    case FAXE_DSPDATA_KIND_ATTENUATION_RANGE:
-        out->attenuationRange.min = (float)f[0];
-        out->attenuationRange.max = (float)f[1];
-        return (unsigned int)sizeof(out->attenuationRange);
-    case FAXE_DSPDATA_KIND_DYNAMIC_RESPONSE:
-        n = i[0];
-        if (n < 0) n = 0;
-        if (n > FAXE_DSPDATA_CHANNEL_SLOTS) n = FAXE_DSPDATA_CHANNEL_SLOTS;
-        out->dynamicResponse.numchannels = n;
-        for (n = 0; n < out->dynamicResponse.numchannels; n++) out->dynamicResponse.rms[n] = (float)f[n];
-        return (unsigned int)sizeof(out->dynamicResponse);
-    case FAXE_DSPDATA_KIND_LOUDNESS_WEIGHTING:
-        for (n = 0; n < FAXE_DSPDATA_CHANNEL_SLOTS; n++) out->loudnessWeighting.channelweight[n] = (float)f[n];
-        return (unsigned int)sizeof(out->loudnessWeighting);
-    default:
-        return 0;
-    }
-}
-
-/* Reads a block FMOD returned as kind into the flat image. Returns 0
- * when the kind is unknown or the block is shorter than the struct, the
- * image is then zeroed. */
-static int faxe_dspdata_unpack_typed(int kind, const void* data, unsigned int len, double* f, int* i) {
-    faxe_dspdata_typed in;
-    unsigned int need = 0;
-    int n;
-    for (n = 0; n < FAXE_DSPDATA_TYPED_DOUBLES; n++) f[n] = 0.0;
-    for (n = 0; n < FAXE_DSPDATA_TYPED_INTS; n++) i[n] = 0;
-    switch (kind) {
-    case FAXE_DSPDATA_KIND_SIDECHAIN: need = (unsigned int)sizeof(in.sidechain); break;
-    case FAXE_DSPDATA_KIND_FINITE_LENGTH: need = (unsigned int)sizeof(in.finiteLength); break;
-    case FAXE_DSPDATA_KIND_ATTENUATION_RANGE: need = (unsigned int)sizeof(in.attenuationRange); break;
-    case FAXE_DSPDATA_KIND_DYNAMIC_RESPONSE: need = (unsigned int)sizeof(in.dynamicResponse); break;
-    case FAXE_DSPDATA_KIND_LOUDNESS_WEIGHTING: need = (unsigned int)sizeof(in.loudnessWeighting); break;
-    default: return 0;
-    }
-    if (!data || len < need) return 0;
-    memcpy(&in, data, need);
-    switch (kind) {
-    case FAXE_DSPDATA_KIND_SIDECHAIN:
-        f[0] = in.sidechain.sidechainenable ? 1.0 : 0.0;
-        break;
-    case FAXE_DSPDATA_KIND_FINITE_LENGTH:
-        f[0] = in.finiteLength.finite ? 1.0 : 0.0;
-        break;
-    case FAXE_DSPDATA_KIND_ATTENUATION_RANGE:
-        f[0] = (double)in.attenuationRange.min;
-        f[1] = (double)in.attenuationRange.max;
-        break;
-    case FAXE_DSPDATA_KIND_DYNAMIC_RESPONSE:
-        n = in.dynamicResponse.numchannels;
-        if (n < 0) n = 0;
-        if (n > FAXE_DSPDATA_CHANNEL_SLOTS) n = FAXE_DSPDATA_CHANNEL_SLOTS;
-        i[0] = n;
-        for (n = 0; n < i[0]; n++) f[n] = (double)in.dynamicResponse.rms[n];
-        break;
-    default:
-        for (n = 0; n < FAXE_DSPDATA_CHANNEL_SLOTS; n++) f[n] = (double)in.loudnessWeighting.channelweight[n];
-        break;
-    }
-    return 1;
-}
-
 #endif
 #ifndef _FMOD_DSP_H
 #include "fmod_dsp.h"
-/* Builds the struct of kind from the flat image (f holds
- * FAXE_DSPDATA_TYPED_DOUBLES values, i FAXE_DSPDATA_TYPED_INTS). Returns
- * the byte size to hand FMOD, 0 for a kind it does not know. */
-static unsigned int faxe_dspdata_pack_typed(int kind, faxe_dspdata_typed* out, const double* f, const int* i) {
-    int n;
-    memset(out, 0, sizeof(*out));
-    switch (kind) {
-    case FAXE_DSPDATA_KIND_SIDECHAIN:
-        out->sidechain.sidechainenable = f[0] != 0.0 ? 1 : 0;
-        return (unsigned int)sizeof(out->sidechain);
-    case FAXE_DSPDATA_KIND_FINITE_LENGTH:
-        out->finiteLength.finite = f[0] != 0.0 ? 1 : 0;
-        return (unsigned int)sizeof(out->finiteLength);
-    case FAXE_DSPDATA_KIND_ATTENUATION_RANGE:
-        out->attenuationRange.min = (float)f[0];
-        out->attenuationRange.max = (float)f[1];
-        return (unsigned int)sizeof(out->attenuationRange);
-    case FAXE_DSPDATA_KIND_DYNAMIC_RESPONSE:
-        n = i[0];
-        if (n < 0) n = 0;
-        if (n > FAXE_DSPDATA_CHANNEL_SLOTS) n = FAXE_DSPDATA_CHANNEL_SLOTS;
-        out->dynamicResponse.numchannels = n;
-        for (n = 0; n < out->dynamicResponse.numchannels; n++) out->dynamicResponse.rms[n] = (float)f[n];
-        return (unsigned int)sizeof(out->dynamicResponse);
-    case FAXE_DSPDATA_KIND_LOUDNESS_WEIGHTING:
-        for (n = 0; n < FAXE_DSPDATA_CHANNEL_SLOTS; n++) out->loudnessWeighting.channelweight[n] = (float)f[n];
-        return (unsigned int)sizeof(out->loudnessWeighting);
-    default:
-        return 0;
-    }
-}
-
-/* Reads a block FMOD returned as kind into the flat image. Returns 0
- * when the kind is unknown or the block is shorter than the struct, the
- * image is then zeroed. */
-static int faxe_dspdata_unpack_typed(int kind, const void* data, unsigned int len, double* f, int* i) {
-    faxe_dspdata_typed in;
-    unsigned int need = 0;
-    int n;
-    for (n = 0; n < FAXE_DSPDATA_TYPED_DOUBLES; n++) f[n] = 0.0;
-    for (n = 0; n < FAXE_DSPDATA_TYPED_INTS; n++) i[n] = 0;
-    switch (kind) {
-    case FAXE_DSPDATA_KIND_SIDECHAIN: need = (unsigned int)sizeof(in.sidechain); break;
-    case FAXE_DSPDATA_KIND_FINITE_LENGTH: need = (unsigned int)sizeof(in.finiteLength); break;
-    case FAXE_DSPDATA_KIND_ATTENUATION_RANGE: need = (unsigned int)sizeof(in.attenuationRange); break;
-    case FAXE_DSPDATA_KIND_DYNAMIC_RESPONSE: need = (unsigned int)sizeof(in.dynamicResponse); break;
-    case FAXE_DSPDATA_KIND_LOUDNESS_WEIGHTING: need = (unsigned int)sizeof(in.loudnessWeighting); break;
-    default: return 0;
-    }
-    if (!data || len < need) return 0;
-    memcpy(&in, data, need);
-    switch (kind) {
-    case FAXE_DSPDATA_KIND_SIDECHAIN:
-        f[0] = in.sidechain.sidechainenable ? 1.0 : 0.0;
-        break;
-    case FAXE_DSPDATA_KIND_FINITE_LENGTH:
-        f[0] = in.finiteLength.finite ? 1.0 : 0.0;
-        break;
-    case FAXE_DSPDATA_KIND_ATTENUATION_RANGE:
-        f[0] = (double)in.attenuationRange.min;
-        f[1] = (double)in.attenuationRange.max;
-        break;
-    case FAXE_DSPDATA_KIND_DYNAMIC_RESPONSE:
-        n = in.dynamicResponse.numchannels;
-        if (n < 0) n = 0;
-        if (n > FAXE_DSPDATA_CHANNEL_SLOTS) n = FAXE_DSPDATA_CHANNEL_SLOTS;
-        i[0] = n;
-        for (n = 0; n < i[0]; n++) f[n] = (double)in.dynamicResponse.rms[n];
-        break;
-    default:
-        for (n = 0; n < FAXE_DSPDATA_CHANNEL_SLOTS; n++) f[n] = (double)in.loudnessWeighting.channelweight[n];
-        break;
-    }
-    return 1;
-}
-
 #endif
 #ifndef _FMOD_DSP_EFFECTS_H
 #include "fmod_dsp_effects.h"
-/* Builds the struct of kind from the flat image (f holds
- * FAXE_DSPDATA_TYPED_DOUBLES values, i FAXE_DSPDATA_TYPED_INTS). Returns
- * the byte size to hand FMOD, 0 for a kind it does not know. */
-static unsigned int faxe_dspdata_pack_typed(int kind, faxe_dspdata_typed* out, const double* f, const int* i) {
-    int n;
-    memset(out, 0, sizeof(*out));
-    switch (kind) {
-    case FAXE_DSPDATA_KIND_SIDECHAIN:
-        out->sidechain.sidechainenable = f[0] != 0.0 ? 1 : 0;
-        return (unsigned int)sizeof(out->sidechain);
-    case FAXE_DSPDATA_KIND_FINITE_LENGTH:
-        out->finiteLength.finite = f[0] != 0.0 ? 1 : 0;
-        return (unsigned int)sizeof(out->finiteLength);
-    case FAXE_DSPDATA_KIND_ATTENUATION_RANGE:
-        out->attenuationRange.min = (float)f[0];
-        out->attenuationRange.max = (float)f[1];
-        return (unsigned int)sizeof(out->attenuationRange);
-    case FAXE_DSPDATA_KIND_DYNAMIC_RESPONSE:
-        n = i[0];
-        if (n < 0) n = 0;
-        if (n > FAXE_DSPDATA_CHANNEL_SLOTS) n = FAXE_DSPDATA_CHANNEL_SLOTS;
-        out->dynamicResponse.numchannels = n;
-        for (n = 0; n < out->dynamicResponse.numchannels; n++) out->dynamicResponse.rms[n] = (float)f[n];
-        return (unsigned int)sizeof(out->dynamicResponse);
-    case FAXE_DSPDATA_KIND_LOUDNESS_WEIGHTING:
-        for (n = 0; n < FAXE_DSPDATA_CHANNEL_SLOTS; n++) out->loudnessWeighting.channelweight[n] = (float)f[n];
-        return (unsigned int)sizeof(out->loudnessWeighting);
-    default:
-        return 0;
-    }
-}
-
-/* Reads a block FMOD returned as kind into the flat image. Returns 0
- * when the kind is unknown or the block is shorter than the struct, the
- * image is then zeroed. */
-static int faxe_dspdata_unpack_typed(int kind, const void* data, unsigned int len, double* f, int* i) {
-    faxe_dspdata_typed in;
-    unsigned int need = 0;
-    int n;
-    for (n = 0; n < FAXE_DSPDATA_TYPED_DOUBLES; n++) f[n] = 0.0;
-    for (n = 0; n < FAXE_DSPDATA_TYPED_INTS; n++) i[n] = 0;
-    switch (kind) {
-    case FAXE_DSPDATA_KIND_SIDECHAIN: need = (unsigned int)sizeof(in.sidechain); break;
-    case FAXE_DSPDATA_KIND_FINITE_LENGTH: need = (unsigned int)sizeof(in.finiteLength); break;
-    case FAXE_DSPDATA_KIND_ATTENUATION_RANGE: need = (unsigned int)sizeof(in.attenuationRange); break;
-    case FAXE_DSPDATA_KIND_DYNAMIC_RESPONSE: need = (unsigned int)sizeof(in.dynamicResponse); break;
-    case FAXE_DSPDATA_KIND_LOUDNESS_WEIGHTING: need = (unsigned int)sizeof(in.loudnessWeighting); break;
-    default: return 0;
-    }
-    if (!data || len < need) return 0;
-    memcpy(&in, data, need);
-    switch (kind) {
-    case FAXE_DSPDATA_KIND_SIDECHAIN:
-        f[0] = in.sidechain.sidechainenable ? 1.0 : 0.0;
-        break;
-    case FAXE_DSPDATA_KIND_FINITE_LENGTH:
-        f[0] = in.finiteLength.finite ? 1.0 : 0.0;
-        break;
-    case FAXE_DSPDATA_KIND_ATTENUATION_RANGE:
-        f[0] = (double)in.attenuationRange.min;
-        f[1] = (double)in.attenuationRange.max;
-        break;
-    case FAXE_DSPDATA_KIND_DYNAMIC_RESPONSE:
-        n = in.dynamicResponse.numchannels;
-        if (n < 0) n = 0;
-        if (n > FAXE_DSPDATA_CHANNEL_SLOTS) n = FAXE_DSPDATA_CHANNEL_SLOTS;
-        i[0] = n;
-        for (n = 0; n < i[0]; n++) f[n] = (double)in.dynamicResponse.rms[n];
-        break;
-    default:
-        for (n = 0; n < FAXE_DSPDATA_CHANNEL_SLOTS; n++) f[n] = (double)in.loudnessWeighting.channelweight[n];
-        break;
-    }
-    return 1;
-}
-
 #endif
 
 #define FAXE_DSPDATA_ATTR_DOUBLES 12
@@ -392,10 +164,10 @@ static void faxe_dspdata_unpack_desc(const FMOD_DSP_PARAMETER_DESC* desc, double
     }
 }
 
-/* Copies one text of the descriptor into buf: kind 0 is the label, 1 the
- * description, 2 and up the value name of (kind - 2) for int and bool
- * parameters. buf always ends up terminated, empty when the descriptor
- * has no such text. Returns 1 when a text was found. */
+/* Copies one text of the descriptor into buf. kind 0 is the label, 1 the
+ * description, and 2 and up the value name of (kind - 2) for int and
+ * bool parameters. buf always ends up terminated, empty when the
+ * descriptor has no such text. Returns 1 when a text was found. */
 static int faxe_dspdata_desc_text(const FMOD_DSP_PARAMETER_DESC* desc, int kind, char* buf, size_t size) {
     const char* text = 0;
     size_t len;

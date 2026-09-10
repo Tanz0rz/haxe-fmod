@@ -606,6 +606,60 @@ async function main() {
     jaxe.ASYNC_FETCH_TIMEOUT_MS = prevAsyncTimeout;
     global.fetch = prevFetch;
 
+    // --- shim-internal contracts shared with the C shims ---
+    // Queue strings are cut to the native record budgets (FAXE_CBQ_STR_MAX
+    // and FAXE_CBQ_STR2_MAX), on a codepoint boundary.
+    expect('cb_truncate keeps a short string', () => jaxe.cbTruncate('hi', 64), r => r === 'hi');
+    expect('cb_truncate str budget', () => jaxe.cbTruncate('a'.repeat(200), 64).length, r => r === 63);
+    expect('cb_truncate str2 budget', () => jaxe.cbTruncate('b'.repeat(400), 128).length, r => r === 127);
+    expect('cb_truncate two-byte boundary',
+        () => Buffer.byteLength(jaxe.cbTruncate('\u00e9'.repeat(60), 64), 'utf8'), r => r === 62);
+    expect('cb_truncate four-byte boundary',
+        () => Buffer.byteLength(jaxe.cbTruncate('\ud83d\ude00'.repeat(30), 64), 'utf8'), r => r === 60);
+
+    // Handle-table exhaustion reports FMOD_ERR_MEMORY, the code the C shims use
+    expect('ERR_MEMORY matches FMOD_RESULT', () => jaxe.ERR_MEMORY, r => r === 38);
+
+    // An inclusion list longer than the buffer behind it is ignored
+    const exShort = new Array(22).fill(0);
+    exShort[19] = 50;
+    expect('exinfo ignores an unbacked inclusion list',
+        () => jaxe.fillExInfo(exShort, '', '', '').inclusionlistnum, r => r === 0 || r === undefined);
+    const exFull = new Array(23).fill(0);
+    exFull[19] = 3;
+    expect('exinfo takes a backed inclusion list',
+        () => jaxe.fillExInfo(exFull, '', '', '').inclusionlistnum, r => r === 3);
+
+    // ps_clear with nothing left to deliver takes the handler off rather
+    // than installing one with an empty mask
+    const maskEvd = jaxe.fmod_sys_get_event('event:/Music/MainLevel');
+    const maskEvi = jaxe.fmod_evd_create_instance(maskEvd);
+    expect('mask 0 is tracked', () => {
+        jaxe.fmod_evi_set_callback_mask(maskEvi, 0);
+        return jaxe.hasCallbackState(maskEvi);
+    }, r => r === true);
+    expect('ps_clear on an empty mask uninstalls', () => {
+        jaxe.fmod_ps_clear(maskEvi);
+        return jaxe.hasCallbackState(maskEvi);
+    }, r => r === false);
+    jaxe.fmod_evi_release(maskEvi);
+
+    // The bank path cache only fills while a BANK_UNLOAD subscription wants it
+    expect('bank paths stay uncached without a subscription', () => {
+        jaxe.fmod_sys_set_studio_callback_mask(0);
+        jaxe.cacheAllBankPaths();
+        return jaxe.bankPathByRaw.size;
+    }, r => r === 0);
+    expect('bank paths cache under a subscription', () => {
+        jaxe.fmod_sys_set_studio_callback_mask(4);
+        jaxe.cacheAllBankPaths();
+        return jaxe.bankPathByRaw.size;
+    }, r => r > 0);
+    expect('dropping the subscription clears the cache', () => {
+        jaxe.fmod_sys_set_studio_callback_mask(0);
+        return jaxe.bankPathByRaw.size;
+    }, r => r === 0);
+
     // --- command replay validity ---
     expect('replay_is_valid stale', () => jaxe.fmod_replay_is_valid(0), r => r === false);
     expect('capture_start', () => jaxe.fmod_sys_start_command_capture('/probe.cmd.txt'), r => r === 0);

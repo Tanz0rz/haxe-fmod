@@ -26,21 +26,29 @@ abstract Bank(Int) from Int to Int {
         return this != 0 && NativeStudio.bank_is_valid(this);
     }
 
-    /** The bank GUID. */
+    /** The bank GUID. Returns an empty FmodGuid on failure, with the reason in StudioSystem.lastResult(). */
     public inline function getID():FmodGuid {
         return NativeStudio.bank_get_id(this);
     }
 
-    /** The full bank path, e.g. "bank:/Master". */
+    /**
+     * The full bank path, e.g. "bank:/Master". Returns "" on failure, with the reason in
+     * StudioSystem.lastResult().
+     */
     public inline function getPath():String {
         return NativeStudio.bank_get_path(this);
     }
 
     /**
      * Unloads the bank and invalidates this handle (and every event
-     * description/instance handle that came from it).
+     * description/instance handle that came from it). The userdata and
+     * the description-level callbacks of those descriptions are dropped.
      */
-    public inline function unload():FmodResult {
+    public function unload():FmodResult {
+        for (description in getEventList()) {
+            UserData.clear(UserDataKind.EventDescription, description);
+            description.clearCallback();
+        }
         UserData.clear(UserDataKind.Bank, this);
         return NativeStudio.bank_unload(this);
     }
@@ -55,17 +63,26 @@ abstract Bank(Int) from Int to Int {
         return NativeStudio.bank_unload_sample_data(this);
     }
 
-    /** Loading state of the bank metadata (poll after NONBLOCKING loads). */
+    /**
+     * Loading state of the bank metadata (poll after NONBLOCKING loads). Returns FmodLoadingState.UNLOADED both
+     * on failure and for a bank that is not loaded. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getLoadingState():FmodLoadingState {
         return NativeStudio.bank_get_loading_state(this);
     }
 
-    /** Loading state of the bank's sample data. */
+    /**
+     * Loading state of the bank's sample data. Returns FmodLoadingState.UNLOADED both on failure and for sample
+     * data that is not loaded. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getSampleLoadingState():FmodLoadingState {
         return NativeStudio.bank_get_sample_loading_state(this);
     }
 
-    /** Number of event descriptions in the bank. */
+    /**
+     * Number of event descriptions in the bank. Returns 0 both on failure and for a bank with no events.
+     * StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getEventCount():Int {
         return NativeStudio.bank_get_event_count(this);
     }
@@ -77,7 +94,10 @@ abstract Bank(Int) from Int to Int {
         return [for (i in 0...count) (Scratch.readI(i) : EventDescription)];
     }
 
-    /** Number of buses in the bank. */
+    /**
+     * Number of buses in the bank. Returns 0 both on failure and for a bank with no buses.
+     * StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getBusCount():Int {
         return NativeStudio.bank_get_bus_count(this);
     }
@@ -89,7 +109,10 @@ abstract Bank(Int) from Int to Int {
         return [for (i in 0...count) (Scratch.readI(i) : Bus)];
     }
 
-    /** Number of VCAs in the bank. */
+    /**
+     * Number of VCAs in the bank. Returns 0 both on failure and for a bank with no VCAs.
+     * StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getVCACount():Int {
         return NativeStudio.bank_get_vca_count(this);
     }
@@ -101,17 +124,26 @@ abstract Bank(Int) from Int to Int {
         return [for (i in 0...count) (Scratch.readI(i) : Vca)];
     }
 
-    /** Number of entries in the bank's string table (strings banks only). */
+    /**
+     * Number of entries in the bank's string table (strings banks only). Returns 0 both on failure and for a
+     * bank with no string table. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getStringCount():Int {
         return NativeStudio.bank_get_string_count(this);
     }
 
-    /** String table path by index (e.g. "event:/Music/MainLevel"). */
+    /**
+     * String table path by index (e.g. "event:/Music/MainLevel"). Returns "" on failure, with the reason in
+     * StudioSystem.lastResult().
+     */
     public inline function getStringPath(index:Int):String {
         return NativeStudio.bank_get_string_info(this, index);
     }
 
-    /** String table GUID by index. */
+    /**
+     * String table GUID by index. Returns an empty FmodGuid on failure, with the reason in
+     * StudioSystem.lastResult().
+     */
     public inline function getStringGuid(index:Int):FmodGuid {
         return NativeStudio.bank_get_string_guid(this, index);
     }
@@ -127,7 +159,8 @@ abstract Bank(Int) from Int to Int {
      * Attaches a Haxe value to this handle. The value lives on the Haxe
      * side keyed by the handle and is dropped when the handle is released.
      * A recycled native slot gets a new generation and therefore a new
-     * handle int, so a stale entry never shows up on a later handle.
+     * handle int, so a stale entry does not show up on the next handle
+     * in that slot.
      */
     public inline function setUserData(value:Dynamic):Void {
         UserData.set(UserDataKind.Bank, this, value);

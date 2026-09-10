@@ -153,6 +153,19 @@ int main(void) {
         assert(faxe_bankpath_take((const void*)(uintptr_t)(100 + FAXE_BANKPATH_CAPACITY), path) == 1);
         faxe_bankpath_clear();
         assert(faxe_bankpath_take((const void*)(uintptr_t)101, path) == 0);   /* cleared */
+        /* a path too long for the event record still reaches the stash and
+         * comes back cut to the record's size, never empty */
+        {
+            char longPath[FAXE_BANKPATH_STR_MAX];
+            int k;
+            for (k = 0; k < FAXE_BANKPATH_STR_MAX - 1; k++) longPath[k] = 'p';
+            longPath[FAXE_BANKPATH_STR_MAX - 1] = '\0';
+            faxe_bankpath_put(&bankA, longPath);
+            assert(faxe_bankpath_take(&bankA, path) == 1);
+            assert(strlen(path) == FAXE_CBQ_STR_MAX - 1);
+            assert(strncmp(path, longPath, FAXE_CBQ_STR_MAX - 1) == 0);
+            faxe_bankpath_clear();
+        }
     }
 
     /* empty pop */

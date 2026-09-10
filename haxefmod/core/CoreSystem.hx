@@ -52,16 +52,26 @@ class CoreSystem {
         return {dopplerScale: Scratch.readF(0), distanceFactor: Scratch.readF(1), rolloffScale: Scratch.readF(2)};
     }
 
+    /**
+     * How many output drivers FMOD found. Returns 0 both on failure and for a machine with no driver.
+     * StudioSystem.lastResult() tells the two apart.
+     */
     public static inline function getDriverCount():Int {
         return NativeStudio.sys_get_num_drivers();
     }
 
-    /** The same count as getDriverCount under FMOD's name. */
+    /**
+     * The same count as getDriverCount under FMOD's name. Returns 0 both on failure and for a machine with no
+     * driver. StudioSystem.lastResult() tells the two apart.
+     */
     public static inline function getNumDrivers():Int {
         return NativeStudio.sys_get_num_drivers();
     }
 
-    /** The audible voice cap FMOD runs with, 0 before init. FmodSettings.softwareChannels sets it. */
+    /**
+     * The audible voice cap FMOD runs with, 0 before init. FmodSettings.softwareChannels sets it. A failure
+     * reports 0 as well, with the reason in StudioSystem.lastResult().
+     */
     public static inline function getSoftwareChannels():Int {
         return NativeStudio.sys_get_software_channels();
     }
@@ -80,6 +90,10 @@ class CoreSystem {
         return {fileBufferSize: Scratch.readI(0), fileBufferSizeType: (Scratch.readI(1) : FmodTimeUnit)};
     }
 
+    /**
+     * The name of the output driver at index (see getDriverCount). Returns "" on failure, with the reason in
+     * StudioSystem.lastResult().
+     */
     public static inline function getDriverName(index:Int):String {
         return NativeStudio.sys_get_driver_name(index);
     }
@@ -138,29 +152,34 @@ class CoreSystem {
         return NativeStudio.sys_set_driver(index);
     }
 
+    /**
+     * The index of the output driver in use (see setDriver). Returns 0 both on failure and for the first
+     * driver. StudioSystem.lastResult() tells the two apart.
+     */
     public static inline function getDriver():Int {
         return NativeStudio.sys_get_driver();
     }
 
     /**
-     * The pool channel at index (see Channel.getIndex). FMOD hands back a
-     * reference to the pool slot rather than to the sound playing in it.
-     * This is a separate handle from the one play returned, shared by
-     * every call for the same index. The channel can be idle, and every
-     * call on an idle channel reports FMOD_ERR_INVALID_HANDLE until FMOD
-     * reuses the slot. Stop the handle when done with it to release it.
-     * Channel.NULL on failure.
+     * The pool channel at index (see Channel.getIndex). FMOD hands back a reference to the pool slot rather
+     * than to the sound playing in it. This is a separate handle from the one play returned, shared by every
+     * call for the same index. The channel can be idle, and every call on an idle channel reports
+     * FMOD_ERR_INVALID_HANDLE until FMOD reuses the slot. Stop the handle when done with it to release it.
+     * Channel.NULL on failure. StudioSystem.lastResult() holds the reason for a failure.
      */
     public static inline function getChannel(index:Int):Channel {
         return NativeStudio.sys_get_channel(index);
     }
 
-    /** The active output type (FMOD_OUTPUTTYPE), -1 on failure. */
+    /**
+     * The active output type (FMOD_OUTPUTTYPE), -1 on failure. StudioSystem.lastResult() holds the reason for a
+     * failure.
+     */
     public static inline function getOutput():FmodOutputType {
         return NativeStudio.sys_get_output();
     }
 
-    /** Speaker count of a speaker mode, 0 on failure. */
+    /** Speaker count of a speaker mode, 0 on failure. StudioSystem.lastResult() holds the reason for a failure. */
     public static inline function getSpeakerModeChannels(speakerMode:FmodSpeakerMode):Int {
         return NativeStudio.sys_get_speaker_mode_channels(speakerMode);
     }
@@ -193,7 +212,10 @@ class CoreSystem {
         return NativeStudio.sys_set_network_proxy(proxy);
     }
 
-    /** The proxy set by setNetworkProxy, "" when none is set or on failure. */
+    /**
+     * The proxy set by setNetworkProxy, "" when none is set or on failure. StudioSystem.lastResult() tells the
+     * two apart.
+     */
     public static inline function getNetworkProxy():String {
         return NativeStudio.sys_get_network_proxy();
     }
@@ -203,7 +225,10 @@ class CoreSystem {
         return NativeStudio.sys_set_network_timeout(ms);
     }
 
-    /** The network timeout in milliseconds, -1 on failure. */
+    /**
+     * The network timeout in milliseconds, -1 on failure. StudioSystem.lastResult() holds the reason for a
+     * failure.
+     */
     public static inline function getNetworkTimeout():Int {
         return NativeStudio.sys_get_network_timeout();
     }
@@ -246,7 +271,10 @@ class CoreSystem {
     }
     #end
 
-    /** The plugin handle of the output mode in use, 0 on failure. */
+    /**
+     * The plugin handle of the output mode in use, 0 on failure. StudioSystem.lastResult() holds the reason for
+     * a failure.
+     */
     public static inline function getOutputByPlugin():Int {
         return NativeStudio.sys_get_output_by_plugin();
     }
@@ -283,12 +311,18 @@ class CoreSystem {
     #end
 
     #if (macro || (js && !haxefmod_html5_allow_unsupported))
-    /** The global disk busy flag (unsupported in HTML5, false there). FMOD_File_GetDiskBusy. */
+    /**
+     * The global disk busy flag (unsupported in HTML5, false there). FMOD_File_GetDiskBusy. Returns false both
+     * on failure and for an idle disk. StudioSystem.lastResult() tells the two apart.
+     */
     public static macro function getDiskBusy():haxe.macro.Expr {
         return haxefmod.studio.native.Html5Gate.block("CoreSystem.getDiskBusy", "FMOD's web build has no file API");
     }
     #else
-    /** The global disk busy flag (unsupported in HTML5, false there). FMOD_File_GetDiskBusy. */
+    /**
+     * The global disk busy flag (unsupported in HTML5, false there). FMOD_File_GetDiskBusy. Returns false both
+     * on failure and for an idle disk. StudioSystem.lastResult() tells the two apart.
+     */
     public static inline function getDiskBusy():Bool {
         return NativeStudio.sys_get_disk_busy();
     }

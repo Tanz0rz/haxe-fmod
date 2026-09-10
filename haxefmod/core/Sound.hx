@@ -248,8 +248,9 @@ abstract Sound(Int) from Int to Int {
 
     /**
      * A sound from raw 16-bit PCM in memory (interleaved when stereo).
-     * The bytes are copied, so the buffer is free after this returns.
-     * Works on every supported platform.
+     * `length` is the byte count to read from `data`. The bytes are
+     * copied, so the buffer is free after this returns. Works on every
+     * supported platform.
      */
     public static function fromPcm(data:haxe.io.Bytes, sampleRate:Int, channels:Int, length:Int = -1):Sound {
         if (data == null) return NULL;
@@ -309,6 +310,10 @@ abstract Sound(Int) from Int to Int {
         return NativeStudio.sound_set_mode(this, mode);
     }
 
+    /**
+     * The ChannelMode flags on the sound. New channels start with them. Returns 0 both on failure and for
+     * FMOD_DEFAULT. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getMode():Int {
         return NativeStudio.sound_get_mode(this);
     }
@@ -362,20 +367,25 @@ abstract Sound(Int) from Int to Int {
         return NativeStudio.sound_delete_sync_point(this, point);
     }
 
-    /** Number of sync points, 0 on failure. */
+    /**
+     * Number of sync points. Returns 0 both on failure and for a sound with no sync points.
+     * StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getSyncPointCount():Int {
         return NativeStudio.sound_get_num_sync_points(this);
     }
 
-    /** Alias of getSyncPointCount under FMOD's name. */
+    /**
+     * Alias of getSyncPointCount under FMOD's name. Returns 0 both on failure and for a sound with no sync
+     * points. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getNumSyncPoints():Int {
         return NativeStudio.sound_get_num_sync_points(this);
     }
 
     /**
-     * The point at index in offset order, FmodSyncPoint.NULL when the
-     * index is out of range (StudioSystem.lastResult reports
-     * FMOD_ERR_INVALID_PARAM).
+     * The point at index in offset order, FmodSyncPoint.NULL when the index is out of range
+     * (StudioSystem.lastResult reports FMOD_ERR_INVALID_PARAM). Any other failure reports NULL as well.
      */
     public function getSyncPoint(index:Int):FmodSyncPoint {
         if (NativeStudio.sound_get_sync_point_offset(this, index, FmodTimeUnit.MS) < 0) return FmodSyncPoint.NULL;
@@ -394,20 +404,28 @@ abstract Sound(Int) from Int to Int {
 
     @:deprecated("Sound.getSyncPointName is now getSyncPointInfo(point).name")
     public inline function getSyncPointName(index:Int):String {
-        return getSyncPointInfo(index).name;
+        var info = getSyncPointInfo(index);
+        return info == null ? "" : info.name;
     }
 
     @:deprecated("Sound.getSyncPointOffset is now getSyncPointInfo(point, offsetType).offset")
     public inline function getSyncPointOffset(index:Int, unit:FmodTimeUnit = FmodTimeUnit.MS):Int {
-        return getSyncPointInfo(index, unit).offset;
+        var info = getSyncPointInfo(index, unit);
+        return info == null ? -1 : info.offset;
     }
 
-    /** The sound's name (raw memory sounds report an empty name). */
+    /**
+     * The sound's name (raw memory sounds report an empty name). A failure reports "" as well, with the reason
+     * in StudioSystem.lastResult().
+     */
     public inline function getName():String {
         return NativeStudio.sound_get_name(this);
     }
 
-    /** The group this sound belongs to (a known group returns its existing handle). */
+    /**
+     * The group this sound belongs to (a known group returns its existing handle). Returns SoundGroup.NULL on
+     * failure, with the reason in StudioSystem.lastResult().
+     */
     public inline function getSoundGroup():haxefmod.core.SoundGroup {
         return NativeStudio.sound_get_sound_group(this);
     }
@@ -417,6 +435,10 @@ abstract Sound(Int) from Int to Int {
         return NativeStudio.sound_set_loop_count(this, loopCount);
     }
 
+    /**
+     * Times to loop before stopping (-1 = forever). New channels inherit it. Returns 0 both on failure and for
+     * a sound that plays once. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getLoopCount():Int {
         return NativeStudio.sound_get_loop_count(this);
     }
@@ -455,7 +477,10 @@ abstract Sound(Int) from Int to Int {
         return {minDistance: Scratch.readF(0), maxDistance: Scratch.readF(1)};
     }
 
-    /** Length in unit (milliseconds by default, PCM samples with FmodTimeUnit.PCM), or -1 on failure. */
+    /**
+     * Length in unit (milliseconds by default, PCM samples with FmodTimeUnit.PCM), or -1 on failure.
+     * StudioSystem.lastResult() holds the reason for a failure.
+     */
     public inline function getLength(unit:FmodTimeUnit = FmodTimeUnit.MS):Int {
         return NativeStudio.core_get_sound_length(this, unit);
     }
@@ -509,8 +534,11 @@ abstract Sound(Int) from Int to Int {
     }
     #end
 
-    /** Releases the sound and invalidates this handle. */
-    public inline function release():FmodResult {
+    /** Releases the sound and invalidates this handle and its subsound handles. */
+    public function release():FmodResult {
+        // The subsounds die with the parent, and their entries go too
+        var subsounds = getNumSubSounds();
+        for (i in 0...(subsounds > 0 ? subsounds : 0)) UserData.clear(UserDataKind.Sound, getSubSound(i));
         UserData.clear(UserDataKind.Sound, this);
         return NativeStudio.core_release_sound(this);
     }
@@ -519,7 +547,8 @@ abstract Sound(Int) from Int to Int {
      * Attaches a Haxe value to this handle. The value lives on the Haxe
      * side keyed by the handle and is dropped when the handle is released.
      * A recycled native slot gets a new generation and therefore a new
-     * handle int, so a stale entry never shows up on a later handle.
+     * handle int, so a stale entry does not show up on the next handle
+     * in that slot.
      */
     public inline function setUserData(value:Dynamic):Void {
         UserData.set(UserDataKind.Sound, this, value);
@@ -564,12 +593,18 @@ abstract Sound(Int) from Int to Int {
     #end
 
     #if (macro || (js && !haxefmod_html5_allow_unsupported))
-    /** Volume of one tracker channel (unsupported in HTML5, returns 0 there). 0 on failure. */
+    /**
+     * Volume of one tracker channel (unsupported in HTML5, returns 0 there). Returns 0 both on failure and for
+     * a silent channel. StudioSystem.lastResult() tells the two apart.
+     */
     public macro function getMusicChannelVolume(self:haxe.macro.Expr, channel:haxe.macro.Expr):haxe.macro.Expr {
         return haxefmod.studio.native.Html5Gate.block("Sound.getMusicChannelVolume", "the web build cannot load tracker modules");
     }
     #else
-    /** Volume of one tracker channel (unsupported in HTML5, returns 0 there). 0 on failure. */
+    /**
+     * Volume of one tracker channel (unsupported in HTML5, returns 0 there). Returns 0 both on failure and for
+     * a silent channel. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getMusicChannelVolume(channel:Int):Float {
         return NativeStudio.core_sound_get_music_channel_volume(this, channel);
     }
@@ -588,12 +623,18 @@ abstract Sound(Int) from Int to Int {
     #end
 
     #if (macro || (js && !haxefmod_html5_allow_unsupported))
-    /** Playback speed of a tracker module (unsupported in HTML5, returns 0 there). 0 on failure. */
+    /**
+     * Playback speed of a tracker module (unsupported in HTML5, returns 0 there). Returns 0 on failure, with
+     * the reason in StudioSystem.lastResult().
+     */
     public macro function getMusicSpeed(self:haxe.macro.Expr):haxe.macro.Expr {
         return haxefmod.studio.native.Html5Gate.block("Sound.getMusicSpeed", "the web build cannot load tracker modules");
     }
     #else
-    /** Playback speed of a tracker module (unsupported in HTML5, returns 0 there). 0 on failure. */
+    /**
+     * Playback speed of a tracker module (unsupported in HTML5, returns 0 there). Returns 0 on failure, with
+     * the reason in StudioSystem.lastResult().
+     */
     public inline function getMusicSpeed():Float {
         return NativeStudio.core_sound_get_music_speed(this);
     }
@@ -601,33 +642,44 @@ abstract Sound(Int) from Int to Int {
 
     //// Subsounds and tags
 
-    /** Number of subsounds (FSB and multi-stream containers). 0 for plain sounds, -1 on failure. */
+    /**
+     * Number of subsounds (FSB and multi-stream containers). 0 for plain sounds, -1 on failure.
+     * StudioSystem.lastResult() holds the reason for a failure.
+     */
     public inline function getNumSubSounds():Int {
         return NativeStudio.core_sound_get_num_sub_sounds(this);
     }
 
     /**
-     * A subsound by index, or Sound.NULL when the index is out of
-     * range (StudioSystem.lastResult reports FMOD_ERR_INVALID_PARAM). The
-     * subsound belongs to its parent, so never call release() on it. FMOD
-     * frees it with the parent, and releasing the parent also drops every
-     * subsound handle taken from it.
+     * A subsound by index, or Sound.NULL when the index is out of range (StudioSystem.lastResult reports
+     * FMOD_ERR_INVALID_PARAM). The subsound belongs to its parent, so never call release() on it. FMOD frees it
+     * with the parent, and releasing the parent also drops every subsound handle taken from it. Any other
+     * failure reports Sound.NULL as well.
      */
     public inline function getSubSound(index:Int):Sound {
         return NativeStudio.core_sound_get_sub_sound(this, index);
     }
 
-    /** The sound this one is a subsound of, or Sound.NULL for a top-level sound (lastResult stays FMOD_OK). */
+    /**
+     * The sound this one is a subsound of, or Sound.NULL for a top-level sound (lastResult stays FMOD_OK). A
+     * failure reports Sound.NULL as well, with the reason in StudioSystem.lastResult().
+     */
     public inline function getSubSoundParent():Sound {
         return NativeStudio.core_sound_get_sub_sound_parent(this);
     }
 
-    /** Number of metadata tags, -1 on failure. Streams grow this as they play. */
+    /**
+     * Number of metadata tags, -1 on failure. Streams grow this as they play. StudioSystem.lastResult() holds
+     * the reason for a failure.
+     */
     public inline function getNumTags():Int {
         return NativeStudio.core_sound_get_num_tags(this);
     }
 
-    /** Tags that changed since the last getTag pass, -1 on failure. Meant for stream metadata polling. */
+    /**
+     * Tags that changed since the last getTag pass, -1 on failure. Meant for stream metadata polling.
+     * StudioSystem.lastResult() holds the reason for a failure.
+     */
     public function getNumTagsUpdated():Int {
         if (NativeStudio.core_sound_get_num_tags(this) < 0) return -1;
         return Scratch.readI(0);

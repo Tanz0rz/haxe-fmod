@@ -149,7 +149,7 @@ class TestStudioSurface {
 		assert(StudioSystem.getBank("bank:/x").isNull(), "sys getBank null");
 		assert(StudioSystem.getBankCount() == 0, "sys bank count default");
 		assert(StudioSystem.getBankList().length == 0, "sys bank list empty");
-		assert(StudioSystem.lookupID("event:/x") == "", "sys lookupID default");
+		assert(StudioSystem.lookupID("event:/x") == FmodGuid.NULL, "sys lookupID default");
 		assert(StudioSystem.lookupPath("{0}") == "", "sys lookupPath default");
 		assert(StudioSystem.loadBankFile("x.bank").isNull(), "sys loadBankFile null");
 		assert(!StudioSystem.unloadAll().isOk(), "sys unloadAll result");

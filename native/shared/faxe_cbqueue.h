@@ -61,7 +61,7 @@
  *
  * ptr is a borrowed FMOD object address with no ownership. The queue never
  * reads it, and a dropped event just loses it. The drain resolves it on the
- * Haxe thread, where the handle table may be touched.
+ * Haxe thread, where the handle table is safe to touch.
  */
 typedef struct {
     int32_t handle;             /* event instance handle (from FMOD userdata) */
@@ -121,10 +121,10 @@ static void faxe_cbq_unlock(void) {
 #endif
 }
 
-/* Called from FMOD callback threads. Copies the event into the ring;
- * drops the oldest event when full. A dropped event's payload is parked on
- * the orphan list (freeing it here would race the game thread, which may
- * still hold a pointer to it). */
+/* Called from FMOD callback threads. Copies the event into the ring, and
+ * drops the oldest event when full. A dropped event's payload is parked
+ * on the orphan list. Freeing it here would race the game thread, which
+ * can still hold a pointer to it. */
 static void faxe_cbq_push(const FaxeCbEvent* event) {
     if (!gCbqInitialized) return;
     faxe_cbq_lock();
@@ -187,15 +187,19 @@ static int faxe_cbq_take_overflow(void) {
 }
 
 /* Bank paths for the Studio BANK_UNLOAD callback. FMOD refuses reads on
- * the bank inside that callback (NOTREADY), so the unload paths stash the
+ * the bank inside that callback (NOTREADY). The unload paths stash the
  * path here first, keyed by the bank pointer, and the callback takes it.
  * Guarded by the queue lock: written on the Haxe thread, read on the
- * Studio thread. A full table overwrites the oldest entry. */
+ * Studio thread. A full table overwrites the oldest entry.
+ * Entries hold the whole path at the 512-byte native string size, so a
+ * long bank path reaches the stash instead of failing the read. The event
+ * record is narrower, so the take truncates. */
 #define FAXE_BANKPATH_CAPACITY 32
+#define FAXE_BANKPATH_STR_MAX 512
 
 typedef struct {
     const void* bank;
-    char path[FAXE_CBQ_STR_MAX];
+    char path[FAXE_BANKPATH_STR_MAX];
 } FaxeBankPathEntry;
 
 static FaxeBankPathEntry gBankPaths[FAXE_BANKPATH_CAPACITY];
@@ -213,13 +217,14 @@ static void faxe_bankpath_put(const void* bank, const char* path) {
         gBankPathHead = (gBankPathHead + 1) % FAXE_BANKPATH_CAPACITY;
     }
     gBankPaths[i].bank = bank;
-    strncpy(gBankPaths[i].path, path, FAXE_CBQ_STR_MAX - 1);
-    gBankPaths[i].path[FAXE_CBQ_STR_MAX - 1] = '\0';
+    strncpy(gBankPaths[i].path, path, FAXE_BANKPATH_STR_MAX - 1);
+    gBankPaths[i].path[FAXE_BANKPATH_STR_MAX - 1] = '\0';
     faxe_cbq_unlock();
 }
 
-/* Copies the stashed path into out (FAXE_CBQ_STR_MAX bytes) and frees
- * the entry. Returns 1 when found, 0 otherwise (out is then empty). */
+/* Copies the stashed path into out (FAXE_CBQ_STR_MAX bytes, the event
+ * record's string size, so a longer path arrives cut) and frees the
+ * entry. Returns 1 when found, 0 otherwise (out is then empty). */
 static int faxe_bankpath_take(const void* bank, char* out) {
     int i;
     int found = 0;
@@ -228,7 +233,8 @@ static int faxe_bankpath_take(const void* bank, char* out) {
     faxe_cbq_lock();
     for (i = 0; i < FAXE_BANKPATH_CAPACITY; i++) {
         if (gBankPaths[i].bank == bank) {
-            memcpy(out, gBankPaths[i].path, FAXE_CBQ_STR_MAX);
+            strncpy(out, gBankPaths[i].path, FAXE_CBQ_STR_MAX - 1);
+            out[FAXE_CBQ_STR_MAX - 1] = '\0';
             gBankPaths[i].bank = NULL;
             gBankPaths[i].path[0] = '\0';
             found = 1;
