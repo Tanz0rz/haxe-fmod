@@ -20,7 +20,7 @@ import zipfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DIST = os.path.join(HERE, "dist")
-FILES = ["background.js", "content.js", "content.css", "bindings-data.js", "examples-data.js",
+FILES = ["background.js", "content.js", "content.css", "keys.js", "bindings-data.js", "examples-data.js",
          "icon16.png", "icon32.png", "icon48.png", "icon128.png"]
 GECKO_ID = "haxefmod-docs@haxe-fmod.tanz0rz.github.io"
 

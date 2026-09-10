@@ -22,7 +22,7 @@ case NestedTimelineBeat(nested):   // FmodTimelineNestedBeatProperties: eventId,
 
 ## The default callback mask is every type
 
-`setCallback(handler)` without a mask now delivers every callback type. FMOD and its C# integration use the same default. `EventCallbackType.PLAYBACK_ALL` is gone. Pass the types a handler switches on as the mask. The mask also keeps a busy event from queuing more callbacks than the handler uses. Beat tracking at a fast tempo is one example:
+`setCallback(handler)` without a mask now delivers every callback type. FMOD and its C# integration use the same default. `EventCallbackType.PLAYBACK_ALL` is gone. `EventCallbackType.ALL` is the same mask under FMOD's name, and passing the types a handler switches on is better. The mask also keeps a busy event from queuing more callbacks than the handler uses. Beat tracking at a fast tempo is one example:
 
 ```haxe
 import haxefmod.studio.Callbacks;
@@ -33,17 +33,15 @@ instance.setCallback(handler, EventCallbackType.STARTED | EventCallbackType.TIME
 ## Defaults that now match FMOD
 
 - `Channel.setDelay` and `ChannelGroup.setDelay` default `stopChannels` to `true`. Pass `false` for the earlier pause-at-end behavior.
-- `StudioSystem.getMemoryStats` defaults `blocking` to `true`. Pass `false` for the earlier non-flushing read.
 - The programmer sound callback creates its sound with `NONBLOCKING`, so the file decodes off the Studio thread.
 
 ## Calls whose shape changed
 
-- `Sound.addSyncPoint` returns the new `FmodSyncPoint`. On failure it returns `FmodSyncPoint.NULL` with the result in `StudioSystem.lastResult()`. `getSyncPoint(index)`, `getSyncPointInfo(point)`, and `deleteSyncPoint(point)` take the handle. `getSyncPointName` and `getSyncPointOffset` are deprecated aliases.
+- `Sound.addSyncPoint` returns the new `FmodSyncPoint`. On failure it returns `FmodSyncPoint.NULL` with the result in `StudioSystem.lastResult()`. `getSyncPoint(index)` returns the handle, and `getSyncPointInfo(point)` and `deleteSyncPoint(point)` take it. `getSyncPointName` and `getSyncPointOffset` are deprecated aliases.
 - `setLoopPoints` and `getLoopPoints` on `Sound` and `Channel` take a time unit per point, `loopStartType` and `loopEndType`. The result fields are `loopStart` and `loopEnd`.
-- `CommandReplay.seekToTime` and `getCommandAtTime` take seconds as a `Float`. The millisecond forms remain as deprecated `seekToTimeMs` and `getCommandAtTimeMs`.
+- `CommandReplay.seekToTime` takes seconds as a `Float`. The millisecond form remains as the deprecated `seekToTimeMs`.
 - `EventDescription.getUserProperty` takes the property name. The index form is `getUserPropertyByIndex(index)`.
-- `Dsp.getMetering` and `getInputMetering` return `FmodDspMeteringInfo` with `numSamples`, `peakLevel`, `rmsLevel`, and `numChannels`. The `{peak, rms}` form is gone.
-- `Dsp.getParameterInfo` returns `FmodDspParameterDesc`, laid out like `FMOD_DSP_PARAMETER_DESC`. Only the member that matches `type` is set, one of `floatDesc`, `intDesc`, `boolDesc`, or `dataDesc`.
+- `Dsp.getMetering` returns `FmodDspMeteringInfo` with `numSamples`, `peakLevel`, `rmsLevel`, and `numChannels`. The `{peak, rms}` form is gone.
 - `Sound.getFormat` returns `type` and `format` next to `channels` and `bits`.
 - GUIDs are `FmodGuid`, an abstract over the braced text form. It converts to and from `String`, so string call sites keep compiling.
 - `haxefmod.studio.CoreSound` is deprecated. Use `haxefmod.core.Sound`.

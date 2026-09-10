@@ -1,7 +1,5 @@
 package haxefmod;
 
-import haxefmod.core.Sound;
-import haxefmod.FmodEvent;
 import haxefmod.studio.Bus;
 import haxefmod.studio.CallbackDispatcher;
 import haxefmod.studio.EventDescription;
@@ -18,7 +16,7 @@ import haxefmod.studio.native.NativeStudio;
  * The helper class for FMOD. It owns six areas: lifecycle (init, update, and banks), one background song slot, events, the mixer (buses, VCAs, and snapshots), global parameters, and game policy.
  * Every call takes an FMOD Studio path or name and holds no handle. The song slot is the one piece of state.
  * PlayEvent and CreateEvent return an FmodEvent, the one handle with a lifetime. GetBus, GetVCA, and GetEventDescription return FMOD's own objects, which need no release, for everything beyond the path calls.
- * World space and focus reporting live in the public layers underneath: haxefmod.runtime.FmodRuntime and haxefmod.studio.
+ * World space and focus reporting live in haxefmod.runtime.FmodRuntime, and every FMOD object is one lookup away in haxefmod.studio.
  *
  * Call FmodManager.Update() every frame, or let the engine setup call do it.
  */
@@ -28,7 +26,6 @@ class FmodManager {
     static var CurrentSong:String = "";
     static var NextSong:String;
 
-    static var lastUpdateCall:Float = 0;
     static var debug:Bool = false;
     static var initialized:Bool = false;
 
@@ -41,7 +38,7 @@ class FmodManager {
      */
     public static function Initialize(?settings:FmodSettings):Void {
         if (initialized) {
-            if (settings != null) log("Initialize called again - already initialized, settings ignored");
+            if (settings != null) log("Initialize: already initialized, settings ignored");
             return;
         }
         initialized = true;
@@ -70,7 +67,6 @@ class FmodManager {
     /** Services FMOD. It delivers callbacks, updates attached instances, and drives song transitions. Call it once per frame. */
     public static function Update():Void {
         ensureInitialized();
-        lastUpdateCall = Date.now().getTime();
         FmodRuntime.update();
     }
 
@@ -144,7 +140,7 @@ class FmodManager {
     }
 
     /**
-     * Pauses the master bus and freezes every sound at its position. Call UnpauseAllEvents to resume.
+     * Pauses the master bus and freezes every event at its position. Call UnpauseAllEvents to resume.
      * This suits a full pause menu. Events started while paused queue up and play on unpause.
      */
     public static function PauseAllEvents():Void {
@@ -220,31 +216,6 @@ class FmodManager {
     /** Returns true when the master bus is muted. */
     public static function IsMasterMuted():Bool {
         return IsBusMuted("bus:/");
-    }
-
-    @:deprecated("FmodManager.GetBusMute is replaced by IsBusMuted")
-    public static function GetBusMute(busPath:String):Bool {
-        return IsBusMuted(busPath);
-    }
-
-    @:deprecated("FmodManager.SetBusVolumeMaster is replaced by SetMasterVolume")
-    public static function SetBusVolumeMaster(volume:Float):Void {
-        SetMasterVolume(volume);
-    }
-
-    @:deprecated("FmodManager.GetBusVolumeMaster is replaced by GetMasterVolume")
-    public static function GetBusVolumeMaster():Float {
-        return GetMasterVolume();
-    }
-
-    @:deprecated("FmodManager.SetBusMuteMaster is replaced by SetMasterMute")
-    public static function SetBusMuteMaster(mute:Bool):Void {
-        SetMasterMute(mute);
-    }
-
-    @:deprecated("FmodManager.GetBusMuteMaster is replaced by IsMasterMuted")
-    public static function GetBusMuteMaster():Bool {
-        return IsMasterMuted();
     }
 
     //// VCAs
@@ -529,21 +500,6 @@ class FmodManager {
         if (!songInstance.isNull()) songInstance.setParameterWithLabel(parameterName, label);
     }
 
-    @:deprecated("FmodManager.GetEventParameterOnSong is replaced by GetSongParameter")
-    public static function GetEventParameterOnSong(parameterName:String):Float {
-        return GetSongParameter(parameterName);
-    }
-
-    @:deprecated("FmodManager.SetEventParameterOnSong is replaced by SetSongParameter")
-    public static function SetEventParameterOnSong(parameterName:String, parameterValue:Float):Void {
-        SetSongParameter(parameterName, parameterValue);
-    }
-
-    @:deprecated("FmodManager.SetEventParameterOnSongWithLabel is replaced by SetSongParameterWithLabel")
-    public static function SetEventParameterOnSongWithLabel(parameterName:String, label:String):Void {
-        SetSongParameterWithLabel(parameterName, label);
-    }
-
     /**
      * Registers a typed callback on the song. Beats, markers, and lifecycle events arrive from Update() as EventCallbackData values.
      * The optional mask limits the delivered EventCallbackType bits.
@@ -578,17 +534,17 @@ class FmodManager {
     //// Events
 
     /** Starts an event and releases it straight away. FMOD destroys it when it finishes. */
-    public static function PlayOneShot(soundPath:String):Void {
+    public static function PlayOneShot(eventPath:String):Void {
         ensureInitialized();
-        log('PlayOneShot $soundPath');
-        FmodRuntime.playOneShot(soundPath);
+        log('PlayOneShot $eventPath');
+        FmodRuntime.playOneShot(eventPath);
     }
 
     /** Starts a one-shot event at a 2D position relative to listener 0. */
-    public static function PlayOneShotAt(soundPath:String, x:Float, y:Float):Void {
+    public static function PlayOneShotAt(eventPath:String, x:Float, y:Float):Void {
         ensureInitialized();
-        log('PlayOneShotAt $soundPath');
-        FmodRuntime.playOneShot(soundPath, x, y);
+        log('PlayOneShotAt $eventPath');
+        FmodRuntime.playOneShot(eventPath, x, y);
     }
 
     /**
@@ -596,36 +552,36 @@ class FmodManager {
      * Use it for self-ending events only. A looping event never ends, so it never releases.
      * Flixel games can pass a FlxObject through FmodFlxUtilities.PlayOneShotAttached.
      */
-    public static function PlayOneShotAttached(soundPath:String, provider:haxefmod.runtime.IFmodPositionProvider):Void {
+    public static function PlayOneShotAttached(eventPath:String, provider:haxefmod.runtime.IFmodPositionProvider):Void {
         ensureInitialized();
-        log('PlayOneShotAttached $soundPath');
-        FmodRuntime.playOneShotAttached(soundPath, provider);
+        log('PlayOneShotAttached $eventPath');
+        FmodRuntime.playOneShotAttached(eventPath, provider);
     }
 
     /**
-     * Plays a sound and returns a typed handle for parameters, callbacks, stop, and pause. Call release() when you are done with the handle.
-     * A missing event logs a warning and returns FmodEvent.NULL. Every call on that handle is a safe no-op.
-     */
-    /**
-     * Creates a sound without starting it, so parameters and a position can be set before the first frame plays. Call start() on the handle when ready.
+     * Creates an event without starting it, so parameters and a position can be set before the first frame plays. Call start() on the handle when ready.
      * Everything else matches PlayEvent, including FmodEvent.NULL for a path FMOD cannot create.
      */
-    public static function CreateEvent(soundPath:String):FmodEvent {
+    public static function CreateEvent(eventPath:String):FmodEvent {
         ensureInitialized();
-        var instance = FmodRuntime.createInstance(soundPath);
+        var instance = FmodRuntime.createInstance(eventPath);
         if (instance.isNull()) {
-            log('CreateEvent: could not create $soundPath (${StudioSystem.lastResult().toString()})');
+            log('CreateEvent: could not create $eventPath (${StudioSystem.lastResult().toString()})');
             return FmodEvent.NULL;
         }
         return instance;
     }
 
-    public static function PlayEvent(soundPath:String):FmodEvent {
+    /**
+     * Plays an event and returns a typed handle for parameters, callbacks, stop, and pause. Call release() when you are done with the handle.
+     * A missing event logs a warning and returns FmodEvent.NULL. Every call on that handle is a safe no-op.
+     */
+    public static function PlayEvent(eventPath:String):FmodEvent {
         ensureInitialized();
-        log('PlayEvent $soundPath');
-        var instance = FmodRuntime.createInstance(soundPath);
+        log('PlayEvent $eventPath');
+        var instance = FmodRuntime.createInstance(eventPath);
         if (instance.isNull()) {
-            trace('Warn: FMOD - PlayEvent could not create "' + soundPath
+            trace('Warn: FMOD - PlayEvent could not create "' + eventPath
                 + '" (check the event path, that its bank is loaded, and that FMOD is initialized)');
             return FmodEvent.NULL;
         }
@@ -701,7 +657,47 @@ class FmodManager {
     #end
     #end
 
-    //// Names kept from 2.0
+    //// Deprecated names, removed in the next major release
+
+    @:deprecated("FmodManager.GetBusMute is now IsBusMuted")
+    public static function GetBusMute(busPath:String):Bool {
+        return IsBusMuted(busPath);
+    }
+
+    @:deprecated("FmodManager.SetBusVolumeMaster is now SetMasterVolume")
+    public static function SetBusVolumeMaster(volume:Float):Void {
+        SetMasterVolume(volume);
+    }
+
+    @:deprecated("FmodManager.GetBusVolumeMaster is now GetMasterVolume")
+    public static function GetBusVolumeMaster():Float {
+        return GetMasterVolume();
+    }
+
+    @:deprecated("FmodManager.SetBusMuteMaster is now SetMasterMute")
+    public static function SetBusMuteMaster(mute:Bool):Void {
+        SetMasterMute(mute);
+    }
+
+    @:deprecated("FmodManager.GetBusMuteMaster is now IsMasterMuted")
+    public static function GetBusMuteMaster():Bool {
+        return IsMasterMuted();
+    }
+
+    @:deprecated("FmodManager.GetEventParameterOnSong is now GetSongParameter")
+    public static function GetEventParameterOnSong(parameterName:String):Float {
+        return GetSongParameter(parameterName);
+    }
+
+    @:deprecated("FmodManager.SetEventParameterOnSong is now SetSongParameter")
+    public static function SetEventParameterOnSong(parameterName:String, parameterValue:Float):Void {
+        SetSongParameter(parameterName, parameterValue);
+    }
+
+    @:deprecated("FmodManager.SetEventParameterOnSongWithLabel is now SetSongParameterWithLabel")
+    public static function SetEventParameterOnSongWithLabel(parameterName:String, label:String):Void {
+        SetSongParameterWithLabel(parameterName, label);
+    }
 
     @:deprecated("FmodManager.PlaySound is now PlayEvent")
     public static function PlaySound(eventPath:String):FmodEvent {

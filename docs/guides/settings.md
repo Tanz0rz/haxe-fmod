@@ -63,7 +63,7 @@ FmodRuntime.onceReady(() -> {
 | `defaultDecodeBufferSize`, `profilePort`, `geometryMaxFadeTime`, `distanceFilterCenterFreq`, `randomSeed` | | 0 | The remaining core advanced settings. The library passes them through as given. 0 keeps FMOD's default. |
 | `commandQueueSize`, `handleInitialSize`, `studioUpdatePeriod`, `idleSampleDataPoolSize`, `streamingScheduleDelay` | | 0 | The Studio advanced settings. 0 keeps FMOD's default. |
 | `encryptionKey` | | none | The key for banks built with encryption in FMOD Studio. |
-| `maxAttachedVelocity` | | 0 | Caps the velocity magnitude pushed for attached instances and the engine listeners. The unit is game units per second. 0 means no cap. See [Callbacks and 3D](3d.md#doppler-and-velocity). |
+| `maxAttachedVelocity` | | 0 | Caps the velocity magnitude pushed for attached instances and the engine listeners. The unit is game units per second. 0 means no cap. See [3D and listeners](3d.md#doppler-and-velocity). |
 
 === "HaxeFlixel"
 
@@ -90,3 +90,17 @@ FmodRuntime.onceReady(() -> {
     ```
 
 `FmodRuntime.settings()` returns the fully resolved settings after init. Before init it returns `null`.
+
+## Runtime calls
+
+`haxefmod.runtime.FmodRuntime` carries the calls under the helper class that a game reaches for directly.
+
+| Call | Effect |
+|---|---|
+| `setWindowFocused(focused)` / `isWindowFocused()` | Reports a window focus change. The [engine setup calls](components.md#setup) do this for you. |
+| `setMuteWhenUnfocused(enabled)` / `isFocusMuted()` | The focus mute policy, and whether it is muting the master output right now. |
+| `pauseAll(paused)` / `muteAll(muted)` | Pauses or mutes the master bus. `FmodManager.PauseAllEvents` and `SetMasterMute` call these. |
+| `playOneShot(path, ?x, ?y)` / `playOneShotAttached(path, provider)` | The one-shot calls behind `FmodManager.PlayOneShot`, `PlayOneShotAt`, and `PlayOneShotAttached`. |
+| `isAttachedProvider(provider)` | Whether an attached instance still follows a position provider. |
+| `bankPath(fileName)` | Resolves a bank file name against the bank folder setting. |
+| `BINDING_ABI` | The native binding version a prebuilt `hlaxe_fmod.hdll` must match. See [Platforms](../platforms.md#hashlink). |

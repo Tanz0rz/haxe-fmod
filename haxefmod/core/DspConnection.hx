@@ -5,7 +5,6 @@ import haxefmod.studio.Types;
 import haxefmod.studio.Types.DspConnectionType;
 import haxefmod.studio.UserData;
 import haxefmod.studio.native.NativeStudio;
-import haxefmod.studio.native.Scratch;
 
 /**
  * A handle to a connection between two DSPs in the mixing graph.

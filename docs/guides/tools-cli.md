@@ -50,7 +50,7 @@ Finds every `FmodManager.Todo(...)` call in the project, so the sound work they 
 haxelib run haxefmod stage <platform> <target> <outdir>
 ```
 
-Lime builds get the FMOD runtime files copied next to the game automatically. Every other build runs `stage` after compiling to do the same: Heaps, Kha, and plain haxe builds. The platform is `mac`, `linux`, `windows`, or `html5`. The target is `hl` or `cpp`.
+Lime builds get the FMOD runtime files copied next to the game automatically. Every other build runs `stage` after compiling to do the same: Heaps, Kha, and plain haxe builds. The platform is `mac`, `linux`, `windows`, or `html5`. The target is `hl`, `cpp`, or `html5`.
 
 - `hl` copies the FMOD libraries and `hlaxe_fmod.hdll`, resolved through the same tiers as a lime build (see [Platforms](../platforms.md#hashlink)). It also writes a launcher that starts the game with the right library path. The launcher is `run.sh` on Linux and macOS and `run.cmd` on Windows.
 - `cpp` copies the FMOD libraries only, for executables the binding was compiled into. Kha's native targets use this on Kore HL/C builds too.

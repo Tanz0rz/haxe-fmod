@@ -13,20 +13,20 @@ class FmodKhaUtilities {
         velocity) until the event ends. Intended for one-shot
         (self-ending) events - a looping event played this way never
         releases.
-        @param soundPath the full event path (e.g. "event:/SFX/Explosion")
+        @param eventPath the full event path (e.g. "event:/SFX/Explosion")
         @param target the body the sound follows
     **/
-    public static function PlayOneShotAttached(soundPath:String, target:KhaBody):Void {
+    public static function PlayOneShotAttached(eventPath:String, target:KhaBody):Void {
         var provider = new KhaBodyPositionProvider(target);
-        FmodManager.PlayOneShotAttached(soundPath, provider);
+        FmodManager.PlayOneShotAttached(eventPath, provider);
         // The provider has to be sampled every frame for as long as the
         // one-shot lives. The sampler unregisters once the runtime drops
         // the attachment, which happens when the instance ends.
         FmodKhaUpdater.add(new OneShotSampler(provider));
     }
     @:deprecated("FmodKhaUtilities.PlaySoundOneShotAttached is now PlayOneShotAttached")
-    public static function PlaySoundOneShotAttached(soundPath:String, target:KhaBody):Void {
-        PlayOneShotAttached(soundPath, target);
+    public static function PlaySoundOneShotAttached(eventPath:String, target:KhaBody):Void {
+        PlayOneShotAttached(eventPath, target);
     }
 }
 

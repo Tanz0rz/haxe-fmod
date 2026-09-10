@@ -40,7 +40,7 @@ typedef ReverbProperties = {
  * properties) and channels contribute to it through their reverb wet level
  * (Channel.setReverbWet, on by default at 1.0).
  *
- * FMOD supports four reverb instances (0..3); games normally use 0.
+ * FMOD supports four reverb instances (0..3). Games normally use 0.
  */
 class Reverb {
     public static function set(instance:Int, properties:ReverbProperties):FmodResult {

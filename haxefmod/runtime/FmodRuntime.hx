@@ -3,7 +3,6 @@ package haxefmod.runtime;
 import haxefmod.core.ChannelGroup;
 import haxefmod.runtime.FmodSettings;
 import haxefmod.studio.CallbackDispatcher;
-import haxefmod.studio.Callbacks;
 import haxefmod.studio.EventDescription;
 import haxefmod.studio.EventInstance;
 import haxefmod.studio.FmodResult;
@@ -253,7 +252,7 @@ class FmodRuntime {
      * Tells the runtime whether the game window currently has focus.
      *
      * When it loses focus, the master output is muted (see
-     * setMuteWhenUnfocused) so audio doesn't play to a window nobody is
+     * setMuteWhenUnfocused) so audio does not play to a window nobody is
      * looking at. FMOD keeps mixing, so sounds still play out in real time
      * and end on schedule instead of piling up and blasting out the moment
      * focus returns.

@@ -27,6 +27,7 @@ class PlayScene implements GameScene {
         haxefmod.heaps.FmodHeapsSetup.init();
         FmodManager.EnableDebugMessages();
         FmodManager.PlaySong(FmodEvents.MusicMainLevel);
+        FmodManager.Todo("ambient wind loop behind the music");
 
         root = new Object(s2d);
         level = new Level(root);

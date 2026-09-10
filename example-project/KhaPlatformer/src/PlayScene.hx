@@ -24,6 +24,7 @@ class PlayScene implements GameScene {
         haxefmod.kha.FmodKhaSetup.init();
         FmodManager.EnableDebugMessages();
         FmodManager.PlaySong(FmodEvents.MusicMainLevel);
+        FmodManager.Todo("ambient wind loop behind the music");
 
         level = new Level();
         coin = new Body(16 * 8 + 3, 28 * 8 + 2, 2, 4, 0xffffff00);

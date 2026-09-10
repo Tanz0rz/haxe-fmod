@@ -199,9 +199,9 @@ def html5_limited():
 
 # --- haxe wrappers -------------------------------------------------------
 
-TYPE_DECL = re.compile(r"^(?:@:\w+(?:\([^)]*\))?\s*)*(?:enum\s+)?(class|abstract|typedef|interface)\s+(\w+)", re.M)
+TYPE_DECL = re.compile(r"^(?:@:\w+(?:\((?:[^()]|\([^()]*\))*\))?\s*)*(?:enum\s+)?(class|abstract|typedef|interface)\s+(\w+)", re.M)
 FUNCTION = re.compile(
-    r"(?:/\*\*(?P<doc>(?:(?!\*/).)*)\*/\s*)?(?P<meta>(?:@:\w+(?:\([^)]*\))?\s*)*)"
+    r"(?:/\*\*(?P<doc>(?:(?!\*/).)*)\*/\s*)?(?P<meta>(?:@:\w+(?:\((?:[^()]|\([^()]*\))*\))?\s*)*)"
     r"(?:override\s+)?public\s+(?P<static>static\s+)?(?:inline\s+)?(?:override\s+)?"
     r"function\s+(?P<name>\w+)\s*(?P<generics><[^>]*>)?\s*\((?P<args>(?:[^()]|\([^()]*\))*)\)",
     re.S)

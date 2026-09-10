@@ -874,7 +874,8 @@ class ApiProbeScenario implements TestScenario {
             'now=${FmodRuntime.banks.refCount(extrasPath)}');
         if (extrasRefs == 0) check("helper_bank_unloaded", !FmodManager.IsBankLoaded("Extras.bank"), "");
         FmodManager.UnloadBank("NoSuch.bank");
-        check("helper_bank_unload_unknown_is_noop", true, "");
+        check("helper_bank_unload_unknown_is_noop", FmodRuntime.banks.refCount(extrasPath) == extrasRefs
+            && !FmodManager.IsBankLoaded("NoSuch.bank"), 'refs=${FmodRuntime.banks.refCount(extrasPath)}');
         FmodManager.WaitForBanks();
         #if !js
         check("helper_no_bank_loading_after_wait", !FmodManager.IsAnyBankLoading(), "");
@@ -936,7 +937,20 @@ class ApiProbeScenario implements TestScenario {
         FmodManager.SetVCAVolume(FmodVCAs.Main, 1.0);
         check("helper_vca_volume_restored", Math.abs(FmodManager.GetVCAVolume(FmodVCAs.Main) - 1.0) < 0.001,
             'value=${FmodManager.GetVCAVolume(FmodVCAs.Main)}');
-        info("helper_vca_missing_reads", Std.string(FmodManager.GetVCAVolume("vca:/Nope")));
+        check("helper_vca_missing_reads_zero", FmodManager.GetVCAVolume("vca:/Nope") == 0,
+            'value=${FmodManager.GetVCAVolume("vca:/Nope")}');
+
+        // Per-bus volume and mute, the same shape as the master calls
+        var reverbVolume = FmodManager.GetBusVolume(FmodBuses.Reverb);
+        FmodManager.SetBusVolume(FmodBuses.Reverb, 0.25);
+        check("helper_bus_volume", Math.abs(FmodManager.GetBusVolume(FmodBuses.Reverb) - 0.25) < 0.001,
+            'value=${FmodManager.GetBusVolume(FmodBuses.Reverb)}');
+        FmodManager.SetBusVolume(FmodBuses.Reverb, reverbVolume);
+        FmodManager.SetBusMute(FmodBuses.Reverb, true);
+        check("helper_bus_muted", FmodManager.IsBusMuted(FmodBuses.Reverb), "");
+        FmodManager.SetBusMute(FmodBuses.Reverb, false);
+        check("helper_bus_unmuted", !FmodManager.IsBusMuted(FmodBuses.Reverb)
+            && Math.abs(FmodManager.GetBusVolume(FmodBuses.Reverb) - reverbVolume) < 0.001, "");
 
         var underwater = FmodManager.PlayEvent(FmodSnapshots.Underwater);
         StudioSystem.flushCommands();
@@ -965,7 +979,21 @@ class ApiProbeScenario implements TestScenario {
         check("helper_snapshot_stop", !FmodManager.IsSnapshotActive(FmodSnapshots.Underwater),
             'count=${snapshotDesc.getInstanceCount()}');
         FmodManager.StopSnapshot("snapshot:/Nope");
-        check("helper_snapshot_missing_is_noop", true, "");
+        check("helper_snapshot_missing_is_noop", !FmodManager.IsSnapshotActive("snapshot:/Nope"), "");
+
+        // The fading stop leaves the instance alive through its fade, so the
+        // snapshot reads as active right after the call and the immediate
+        // stop then clears it
+        FmodManager.StartSnapshot(FmodSnapshots.Underwater);
+        StudioSystem.flushCommands();
+        FmodManager.StopSnapshot(FmodSnapshots.Underwater);
+        check("helper_snapshot_stop_fades", FmodManager.IsSnapshotActive(FmodSnapshots.Underwater),
+            'count=${snapshotDesc.getInstanceCount()}');
+        FmodManager.StopSnapshotImmediately(FmodSnapshots.Underwater);
+        StudioSystem.flushCommands();
+        CallbackDispatcher.update();
+        check("helper_snapshot_stop_after_fade", !FmodManager.IsSnapshotActive(FmodSnapshots.Underwater),
+            'count=${snapshotDesc.getInstanceCount()}');
 
         // Per-bus pause, shaped like the mute pair
         var reverbBus = StudioSystem.getBus(FmodBuses.Reverb);

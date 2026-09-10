@@ -161,7 +161,7 @@ typedef FmodSettings = {
 
     /**
      * Mutes the master output while the game window is unfocused, so audio
-     * doesn't play to a window nobody is looking at. FMOD keeps mixing, so
+     * does not play to a window nobody is looking at. FMOD keeps mixing, so
      * sounds play out in real time instead of queuing up and blasting out
      * the instant focus returns. Default true.
      *

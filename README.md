@@ -17,7 +17,7 @@ Having problems or want to chat? [Join the Haxe Discord](https://discordapp.com/
 - [TODO markers](#tracking-sound-work-with-todos) for sound effects that will be added later
 - An [extension for fmod.com](https://tanz0rz.com/haxe-fmod/guides/extension/) to integrate Haxe examples into the official docs
 
-This is a faithful implementation of the FMOD stack. If this library doesn't support something you need, make an Issue and I will try to add it!
+This is a faithful implementation of the FMOD stack. If this library does not support something you need, make an Issue and I will try to add it!
 
 ## Supported Platforms
 
@@ -114,7 +114,7 @@ FmodManager.Todo("door creak when the vault opens");
 
 The [fmod.com extension](https://tanz0rz.com/haxe-fmod/guides/extension/) adds a Haxe tab beside C, C++, C#, and JS on every function of the [FMOD API reference](https://www.fmod.com/docs/2.03/api/core-api.html). The tab shows the haxefmod method that wraps the function. Functions haxefmod does not expose say so and give the reason. The [install steps](https://tanz0rz.com/haxe-fmod/guides/extension/#install) cover Chrome, Firefox, and the userscript.
 
-![The Haxe tab on fmod.com](.github/fmod_extension.png)
+![The Haxe tab on fmod.com](https://raw.githubusercontent.com/Tanz0rz/haxe-fmod/master/.github/fmod_extension.png)
 
 ## Migrating From Previous haxe-fmod Versions?
 

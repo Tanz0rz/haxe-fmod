@@ -35,28 +35,28 @@ DEPRECATED = [
      "Sound.getSyncPointOffset is replaced by getSyncPointInfo(point, offsetType).offset"),
     ("haxefmod.FmodManager.GetEventParameterOnSong",
      "trace(haxefmod.FmodManager.GetEventParameterOnSong(\"x\"));",
-     "FmodManager.GetEventParameterOnSong is replaced by GetSongParameter"),
+     "FmodManager.GetEventParameterOnSong is now GetSongParameter"),
     ("haxefmod.FmodManager.SetEventParameterOnSong",
      "haxefmod.FmodManager.SetEventParameterOnSong(\"x\", 1);",
-     "FmodManager.SetEventParameterOnSong is replaced by SetSongParameter"),
+     "FmodManager.SetEventParameterOnSong is now SetSongParameter"),
     ("haxefmod.FmodManager.SetEventParameterOnSongWithLabel",
      "haxefmod.FmodManager.SetEventParameterOnSongWithLabel(\"x\", \"y\");",
-     "FmodManager.SetEventParameterOnSongWithLabel is replaced by SetSongParameterWithLabel"),
+     "FmodManager.SetEventParameterOnSongWithLabel is now SetSongParameterWithLabel"),
     ("haxefmod.FmodManager.GetBusMute",
      "trace(haxefmod.FmodManager.GetBusMute(\"bus:/\"));",
-     "FmodManager.GetBusMute is replaced by IsBusMuted"),
+     "FmodManager.GetBusMute is now IsBusMuted"),
     ("haxefmod.FmodManager.SetBusVolumeMaster",
      "haxefmod.FmodManager.SetBusVolumeMaster(1);",
-     "FmodManager.SetBusVolumeMaster is replaced by SetMasterVolume"),
+     "FmodManager.SetBusVolumeMaster is now SetMasterVolume"),
     ("haxefmod.FmodManager.GetBusVolumeMaster",
      "trace(haxefmod.FmodManager.GetBusVolumeMaster());",
-     "FmodManager.GetBusVolumeMaster is replaced by GetMasterVolume"),
+     "FmodManager.GetBusVolumeMaster is now GetMasterVolume"),
     ("haxefmod.FmodManager.SetBusMuteMaster",
      "haxefmod.FmodManager.SetBusMuteMaster(false);",
-     "FmodManager.SetBusMuteMaster is replaced by SetMasterMute"),
+     "FmodManager.SetBusMuteMaster is now SetMasterMute"),
     ("haxefmod.FmodManager.GetBusMuteMaster",
      "trace(haxefmod.FmodManager.GetBusMuteMaster());",
-     "FmodManager.GetBusMuteMaster is replaced by IsMasterMuted"),
+     "FmodManager.GetBusMuteMaster is now IsMasterMuted"),
     ("haxefmod.FmodSound",
      "var e:haxefmod.FmodSound = haxefmod.FmodEvent.NULL; trace(e.isNull());",
      "FmodSound is now FmodEvent"),
@@ -86,16 +86,40 @@ DEPRECATED = [
      "FmodManager.UnpauseAllSounds is now UnpauseAllEvents"),
 ]
 
+# Aliases in the engine packages compile against that engine. Flixel and
+# Heaps come from haxelib, Kha from the stubs the snippet checker writes.
+ENGINE_DEPRECATED = [
+    ("haxefmod.flixel.FmodFlxUtilities.PlaySoundOneShotAttached",
+     "haxefmod.flixel.FmodFlxUtilities.PlaySoundOneShotAttached(\"event:/x\", null);",
+     "FmodFlxUtilities.PlaySoundOneShotAttached is now PlayOneShotAttached",
+     ["-lib", "flixel", "-lib", "openfl", "-lib", "lime", "-D", "FLX_STANDARD_ASSETS_DIRECTORY", "-D", "openfl-html5", "-D", "html5", "-js", "/dev/null"]),
+    ("haxefmod.heaps.FmodHeapsUtilities.PlaySoundOneShotAttached",
+     "haxefmod.heaps.FmodHeapsUtilities.PlaySoundOneShotAttached(\"event:/x\", null);",
+     "FmodHeapsUtilities.PlaySoundOneShotAttached is now PlayOneShotAttached",
+     ["-lib", "heaps", "-D", "html5", "-js", "/dev/null"]),
+    ("haxefmod.kha.FmodKhaUtilities.PlaySoundOneShotAttached",
+     "haxefmod.kha.FmodKhaUtilities.PlaySoundOneShotAttached(\"event:/x\", null);",
+     "FmodKhaUtilities.PlaySoundOneShotAttached is now PlayOneShotAttached",
+     ["KHA_STUBS", "-D", "html5", "-js", "/dev/null"]),
+]
+
 
 def main():
     failures = 0
     with tempfile.TemporaryDirectory(prefix="deprecations-") as workdir:
-        for index, (name, body, message) in enumerate(DEPRECATED):
+        stubs = os.path.join(workdir, "kha-stubs")
+        subprocess.run([sys.executable, os.path.join(ROOT, "ci", "check-readme-snippets.py"), "--kha-stubs", stubs],
+                       capture_output=True, text=True, check=True)
+        entries = [(name, body, message, ["--interp"]) for name, body, message in DEPRECATED]
+        entries += [(name, body, message, [stubs if a == "KHA_STUBS" else a for a in args]) for name, body, message, args in ENGINE_DEPRECATED]
+        for index, (name, body, message, args) in enumerate(entries):
             path = os.path.join(workdir, f"Dep{index}.hx")
             with open(path, "w", encoding="utf-8") as out:
                 out.write(f"class Dep{index} {{ static function main() {{ {body} }} }}\n")
+            extra = ["-cp", stubs] if stubs in args else []
+            args = [a for a in args if a != stubs]
             result = subprocess.run(
-                ["haxe", "-cp", ROOT, "-cp", workdir, "--no-output", "--interp", "-main", f"Dep{index}"],
+                ["haxe", "-cp", ROOT, "-cp", workdir, "--no-output", "-main", f"Dep{index}"] + extra + args,
                 capture_output=True, text=True)
             output = result.stdout + result.stderr
             if result.returncode != 0:
@@ -106,7 +130,7 @@ def main():
                 print(f"FAIL: {name} compiles without the deprecation warning: {message}")
             else:
                 print(f"ok: {name} warns")
-    print(f"check-deprecations: {len(DEPRECATED)} alias(es), {failures} failure(s)")
+    print(f"check-deprecations: {len(DEPRECATED) + len(ENGINE_DEPRECATED)} alias(es), {failures} failure(s)")
     return 1 if failures else 0
 
 

@@ -27,7 +27,7 @@
 
     Call `FmodFlxSetup.init(?settings)` once, in your first state. It initializes FMOD with the given [settings](settings.md#settings). It registers `FmodFlxUpdater` as a global plugin, so `FmodManager.Update()` runs every frame in every state. It forwards `FlxG.signals.focusGained` and `focusLost` to `FmodRuntime.setWindowFocused` (see [Window focus](fmod-manager.md#window-focus)).
 
-    It also wires flixel's own audio controls to FMOD. The volume keys and the sound tray drive the FMOD master bus. `FlxG.sound.volume` and `FlxG.sound.muted` map to bus volume and mute. The tray's beep is silenced because FMOD owns the audio now.
+    It also wires flixel's own audio controls to FMOD. The volume keys and the sound tray drive the FMOD master bus. `FlxG.sound.volume` and `FlxG.sound.muted` map to bus volume and mute. The tray's beep is silenced because FMOD owns the audio.
 
     ```haxe
     import haxefmod.flixel.FmodFlxSetup;
@@ -241,7 +241,7 @@ The trigger drives an FMOD parameter from a rectangular zone. While the target i
 
 ## Utilities
 
-`PlayOneShotAttached(path, target)` plays a self-ending event that follows a game object until it finishes. [Callbacks and 3D](3d.md#positioned-events) has the runtime call behind it.
+`PlayOneShotAttached(path, target)` plays a self-ending event that follows a game object until it finishes. [3D and listeners](3d.md#positioned-events) has the runtime call behind it.
 
 === "HaxeFlixel"
 

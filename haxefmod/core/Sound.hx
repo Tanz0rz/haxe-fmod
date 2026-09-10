@@ -30,7 +30,7 @@ abstract FmodSyncPoint(Int) from Int to Int {
 
 /**
  * A handle to an FMOD Core sound. Create from an audio file (native: a
- * path on disk; html5: a file preloaded into the virtual filesystem), a
+ * path on disk, and on html5 a file preloaded into the virtual filesystem), a
  * file image in memory, or raw PCM.
  */
 abstract Sound(Int) from Int to Int {

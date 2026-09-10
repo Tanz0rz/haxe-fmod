@@ -13,20 +13,20 @@ class FmodHeapsUtilities {
         bounds, derived velocity) until the event ends. Intended for
         one-shot (self-ending) events - a looping event played this way
         never releases.
-        @param soundPath the full event path (e.g. "event:/SFX/Explosion")
-        @param target the object the sound follows
+        @param eventPath the full event path (e.g. "event:/SFX/Explosion")
+        @param target the object the event follows
     **/
-    public static function PlayOneShotAttached(soundPath:String, target:Object):Void {
+    public static function PlayOneShotAttached(eventPath:String, target:Object):Void {
         var provider = new H2dObjectPositionProvider(target);
-        FmodManager.PlayOneShotAttached(soundPath, provider);
+        FmodManager.PlayOneShotAttached(eventPath, provider);
         // The provider has to be sampled every frame for as long as the
         // one-shot lives. The sampler unregisters once the runtime drops
         // the attachment, which happens when the instance ends.
         FmodHeapsUpdater.add(new OneShotSampler(provider));
     }
     @:deprecated("FmodHeapsUtilities.PlaySoundOneShotAttached is now PlayOneShotAttached")
-    public static function PlaySoundOneShotAttached(soundPath:String, target:Object):Void {
-        PlayOneShotAttached(soundPath, target);
+    public static function PlaySoundOneShotAttached(eventPath:String, target:Object):Void {
+        PlayOneShotAttached(eventPath, target);
     }
 }
 

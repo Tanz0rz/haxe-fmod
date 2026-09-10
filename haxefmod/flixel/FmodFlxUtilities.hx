@@ -64,15 +64,15 @@ class FmodFlxUtilities {
         Fire-and-forget playback that follows a FlxObject (midpoint and
         velocity) until the event ends. Intended for one-shot (self-ending)
         events - a looping event played this way never releases.
-        @param soundPath the full event path (e.g. "event:/SFX/Explosion")
-        @param target the object the sound follows
+        @param eventPath the full event path (e.g. "event:/SFX/Explosion")
+        @param target the object the event follows
     **/
-    public static function PlayOneShotAttached(soundPath:String, target:FlxObject):Void {
-        FmodManager.PlayOneShotAttached(soundPath, new FlxObjectPositionProvider(target));
+    public static function PlayOneShotAttached(eventPath:String, target:FlxObject):Void {
+        FmodManager.PlayOneShotAttached(eventPath, new FlxObjectPositionProvider(target));
     }
 
     @:deprecated("FmodFlxUtilities.PlaySoundOneShotAttached is now PlayOneShotAttached")
-    public static function PlaySoundOneShotAttached(soundPath:String, target:FlxObject):Void {
-        PlayOneShotAttached(soundPath, target);
+    public static function PlaySoundOneShotAttached(eventPath:String, target:FlxObject):Void {
+        PlayOneShotAttached(eventPath, target);
     }
 }

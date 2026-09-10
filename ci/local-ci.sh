@@ -278,7 +278,7 @@ job_unit_tests() {
     haxe -cp . --run haxefmod.tools.Todos example-project > "$1/todos.out"
     cat "$1/todos.out"
     grep -q "PlayState.hx:.*ambient wind loop behind the music" "$1/todos.out"
-    grep -q "1 sound TODO(s) remaining." "$1/todos.out"
+    grep -q "3 sound TODO(s) remaining." "$1/todos.out"
     haxe -cp . --no-output -js "$1/todo-typing.js" -D haxefmod_todo_beep --debug haxefmod.FmodManager' _ "$TMP"
   step "Verify native shims match the FFI manifest" haxe -cp . --run haxefmod.tools.NativeManifestCheck
   for t in handles cbqueue guid instctx pcmring; do

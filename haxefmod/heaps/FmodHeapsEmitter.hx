@@ -5,7 +5,6 @@ import haxefmod.heaps.FmodHeapsUpdater.IHeapsTicker;
 import haxefmod.runtime.EmitterTracker;
 import haxefmod.runtime.FmodRuntime;
 import haxefmod.runtime.ListenerTracker.DerivedVelocityProvider;
-import haxefmod.runtime.IFmodPositionProvider;
 import haxefmod.studio.EventInstance;
 
 /**

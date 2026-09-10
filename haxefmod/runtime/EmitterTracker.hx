@@ -33,7 +33,7 @@ class EmitterTracker {
 
     /**
         Frames between culling distance checks. The default keeps the
-        per-frame cost near zero; set 1 to check every frame.
+        per-frame cost near zero. Set 1 to check every frame.
     **/
     public var cullCheckInterval:Int = 6;
 

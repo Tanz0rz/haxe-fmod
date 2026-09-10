@@ -6499,24 +6499,6 @@ const HAXEFMOD_BINDINGS = {
      "signature": "getSyncPointInfo(point:FmodSyncPoint, offsetType:FmodTimeUnit = FmodTimeUnit.MS):Null<{name:String, offset:Int}>",
      "static": false,
      "type": "haxefmod.core.Sound"
-    },
-    {
-     "direct": false,
-     "doc": "",
-     "gated": false,
-     "name": "getSyncPointName",
-     "signature": "getSyncPointName(index:Int):String",
-     "static": false,
-     "type": "haxefmod.core.Sound"
-    },
-    {
-     "direct": false,
-     "doc": "",
-     "gated": false,
-     "name": "getSyncPointOffset",
-     "signature": "getSyncPointOffset(index:Int, unit:FmodTimeUnit = FmodTimeUnit.MS):Int",
-     "static": false,
-     "type": "haxefmod.core.Sound"
     }
    ],
    "html5": false
@@ -6540,24 +6522,6 @@ const HAXEFMOD_BINDINGS = {
      "gated": false,
      "name": "getSyncPoint",
      "signature": "getSyncPoint(index:Int):FmodSyncPoint",
-     "static": false,
-     "type": "haxefmod.core.Sound"
-    },
-    {
-     "direct": false,
-     "doc": "",
-     "gated": false,
-     "name": "getSyncPointName",
-     "signature": "getSyncPointName(index:Int):String",
-     "static": false,
-     "type": "haxefmod.core.Sound"
-    },
-    {
-     "direct": false,
-     "doc": "",
-     "gated": false,
-     "name": "getSyncPointOffset",
-     "signature": "getSyncPointOffset(index:Int, unit:FmodTimeUnit = FmodTimeUnit.MS):Int",
      "static": false,
      "type": "haxefmod.core.Sound"
     }

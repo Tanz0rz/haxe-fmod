@@ -21,7 +21,7 @@ class FmodFlxBankLoader extends FlxBasic {
     var tracker:BankLoadTracker;
 
     /**
-        Starts loading immediately.
+        Starts loading once FMOD is ready.
         @param bankFiles bank file names (resolved via FmodRuntime.bankPath)
         @param onLoaded called exactly once, when all banks are loaded
         @param onError called exactly once, when any bank settles in an
