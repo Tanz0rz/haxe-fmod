@@ -4812,7 +4812,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "The whole FFT payload: the bin count, the channel count, and one magnitude array per channel.",
+     "doc": "The whole FFT payload: FMOD's bin count, the channel count, and one magnitude array per channel.",
      "gated": false,
      "name": "getFftSpectrumInfo",
      "signature": "getFftSpectrumInfo(maxBins:Int = 512):Null<FmodDspParameterFft>",

@@ -109,7 +109,6 @@
 - A channel that ends by itself drops its userdata entry, and a channel callback that throws no longer stops the rest of the frame's queue.
 - `Sound.release` drops the userdata of the subsounds that die with the parent.
 - `StudioSystem.lookupID` returns `FmodGuid.NULL` on failure, the value `FmodGuid` documents, instead of an empty string.
-- `Dsp.getFftSpectrumInfo` caps `length` at the row length it returns, so a loop over `length` stays inside `spectrum`.
 - `FmodManager.SetAutoUpdate(false)` after init left FMOD unserviced: the runtime kept skipping its manual `update()` call because the resolved setting still said auto. The setting now follows the call.
 - A `.haxefmod/hlaxe_fmod.version` marker with no `hlaxe_fmod.hdll` next to it made PostBuild and `check` report a matching custom hdll, then ship the pre-built hdll for another FMOD version. The marker now counts only with the hdll present.
 - PostBuild compares FMOD version literals as numbers, so a header that writes `0X` or uppercase hex no longer fails the gate with two identical versions in the message.

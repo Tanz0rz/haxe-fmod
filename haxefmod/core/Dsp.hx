@@ -175,9 +175,10 @@ abstract Dsp(Int) from Int to Int {
     }
 
     /**
-     * The whole FFT payload: the bin count, the channel count, and one
-     * magnitude array per channel. Each array and the bin count are
-     * capped at maxBins (512 at most). Null when no data is available yet.
+     * The whole FFT payload: FMOD's bin count, the channel count, and one
+     * magnitude array per channel. Each array holds the lesser of that
+     * count and maxBins (512 at most), so loop over the array, not over
+     * `length`. Null when no data is available yet.
      */
     public function getFftSpectrumInfo(maxBins:Int = 512):Null<FmodDspParameterFft> {
         if (maxBins > 512) maxBins = 512;
@@ -185,7 +186,6 @@ abstract Dsp(Int) from Int to Int {
         var numChannels = Scratch.readI(0);
         var length = Scratch.readI(1);
         if (bins <= 0 || numChannels <= 0) return null;
-        if (length > bins) length = bins;
         var spectrum = [[for (i in 0...bins) Scratch.readF(i)]];
         for (channel in 1...numChannels) {
             var count = NativeStudio.dsp_fft_get_spectrum_channel(this, channel, maxBins);
