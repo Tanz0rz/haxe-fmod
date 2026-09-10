@@ -480,22 +480,24 @@ abstract Channel(Int) from Int to Int {
 
     #if (macro || (js && !haxefmod_html5_allow_unsupported))
     /**
-     * Reads the mix matrix back as one flat row-major array with
-     * inChannelHop floats per row (0 = packed to the input count), and
-     * the output and input channel counts FMOD reports (unsupported in
-     * HTML5, null there). outChannels and inChannels above 0 keep only
-     * that many rows and columns. Null on failure, at most 32 by 32.
+     * Reads the mix matrix back as one flat row-major array
+     * (unsupported in HTML5, null there). Each row holds inChannelHop
+     * floats (0 = packed to the input count). The result also carries
+     * the output and input channel counts FMOD reports. outChannels and
+     * inChannels above 0 keep only that many rows and columns. Null on
+     * failure, at most 32 by 32.
      */
     public macro function getMixMatrix(self:haxe.macro.Expr, ?outChannels:haxe.macro.Expr, ?inChannels:haxe.macro.Expr, ?inChannelHop:haxe.macro.Expr):haxe.macro.Expr {
         return haxefmod.studio.native.Html5Gate.block("Channel.getMixMatrix", "FMOD's web glue binds the matrix as a single float");
     }
     #else
     /**
-     * Reads the mix matrix back as one flat row-major array with
-     * inChannelHop floats per row (0 = packed to the input count), and
-     * the output and input channel counts FMOD reports (unsupported in
-     * HTML5, null there). outChannels and inChannels above 0 keep only
-     * that many rows and columns. Null on failure, at most 32 by 32.
+     * Reads the mix matrix back as one flat row-major array
+     * (unsupported in HTML5, null there). Each row holds inChannelHop
+     * floats (0 = packed to the input count). The result also carries
+     * the output and input channel counts FMOD reports. outChannels and
+     * inChannels above 0 keep only that many rows and columns. Null on
+     * failure, at most 32 by 32.
      */
     public function getMixMatrix(outChannels:Int = 0, inChannels:Int = 0, inChannelHop:Int = 0):Null<FmodMixMatrix> {
         var total = NativeStudio.chan_get_mix_matrix(this, inChannelHop);
@@ -527,8 +529,8 @@ abstract Channel(Int) from Int to Int {
     }
     /**
      * Sets the gain of each incoming signal channel before the mix matrix,
-     * one level per input channel (1 to 32, an empty list is rejected
-     * with FMOD_ERR_INVALID_PARAM). More levels than the signal has
+     * one level per input channel (1 to 32). An empty list returns
+     * FMOD_ERR_INVALID_PARAM. More levels than the signal has
      * channels are ignored, fewer leave the rest at their current gain.
      */
     public function setMixLevelsInput(levels:Array<Float>):FmodResult {

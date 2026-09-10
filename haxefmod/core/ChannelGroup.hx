@@ -196,7 +196,7 @@ abstract ChannelGroup(Int) from Int to Int {
 
     /**
      * The group's lowpass gain, 0.0 on failure. FMOD 2.03.12 reports OK
-     * for a group but leaves the value at zero on every target, so keep
+     * for a group but leaves the value at zero on every target. Keep
      * the gain you set if you need it back.
      */
     public inline function getLowPassGain():Float {
@@ -242,8 +242,8 @@ abstract ChannelGroup(Int) from Int to Int {
 
     /**
      * The group's occlusion levels, null on failure. FMOD 2.03.12 reports
-     * OK for a group but leaves both values at zero on every target, so
-     * keep the levels you set if you need them back.
+     * OK for a group but leaves both values at zero on every target. Keep
+     * the levels you set if you need them back.
      */
     public function get3DOcclusion():Null<FmodOcclusion> {
         var result:FmodResult = NativeStudio.cg_get_3d_occlusion(this);
@@ -441,22 +441,24 @@ abstract ChannelGroup(Int) from Int to Int {
 
     #if (macro || (js && !haxefmod_html5_allow_unsupported))
     /**
-     * Reads the mix matrix back as one flat row-major array with
-     * inChannelHop floats per row (0 = packed to the input count), and
-     * the output and input channel counts FMOD reports (unsupported in
-     * HTML5, null there). outChannels and inChannels above 0 keep only
-     * that many rows and columns. Null on failure, at most 32 by 32.
+     * Reads the mix matrix back as one flat row-major array
+     * (unsupported in HTML5, null there). Each row holds inChannelHop
+     * floats (0 = packed to the input count). The result also carries
+     * the output and input channel counts FMOD reports. outChannels and
+     * inChannels above 0 keep only that many rows and columns. Null on
+     * failure, at most 32 by 32.
      */
     public macro function getMixMatrix(self:haxe.macro.Expr, ?outChannels:haxe.macro.Expr, ?inChannels:haxe.macro.Expr, ?inChannelHop:haxe.macro.Expr):haxe.macro.Expr {
         return haxefmod.studio.native.Html5Gate.block("ChannelGroup.getMixMatrix", "FMOD's web glue binds the matrix as a single float");
     }
     #else
     /**
-     * Reads the mix matrix back as one flat row-major array with
-     * inChannelHop floats per row (0 = packed to the input count), and
-     * the output and input channel counts FMOD reports (unsupported in
-     * HTML5, null there). outChannels and inChannels above 0 keep only
-     * that many rows and columns. Null on failure, at most 32 by 32.
+     * Reads the mix matrix back as one flat row-major array
+     * (unsupported in HTML5, null there). Each row holds inChannelHop
+     * floats (0 = packed to the input count). The result also carries
+     * the output and input channel counts FMOD reports. outChannels and
+     * inChannels above 0 keep only that many rows and columns. Null on
+     * failure, at most 32 by 32.
      */
     public function getMixMatrix(outChannels:Int = 0, inChannels:Int = 0, inChannelHop:Int = 0):Null<FmodMixMatrix> {
         var total = NativeStudio.cg_get_mix_matrix(this, inChannelHop);
@@ -509,8 +511,8 @@ abstract ChannelGroup(Int) from Int to Int {
     }
     /**
      * Sets the gain of each incoming signal channel before the mix matrix,
-     * one level per input channel (1 to 32, an empty list is rejected
-     * with FMOD_ERR_INVALID_PARAM). More levels than the signal has
+     * one level per input channel (1 to 32). An empty list returns
+     * FMOD_ERR_INVALID_PARAM. More levels than the signal has
      * channels are ignored, fewer leave the rest at their current gain.
      */
     public function setMixLevelsInput(levels:Array<Float>):FmodResult {
@@ -542,7 +544,7 @@ abstract ChannelGroup(Int) from Int to Int {
 
     /**
      * The effect at chain position `index`. DSP_HEAD, DSP_FADER and DSP_TAIL
-     * work here too, and the fader is always the tail unit, so
+     * work here too. The fader is always the tail unit, so
      * `getDsp(DSP_TAIL)` is the unit a group-wide send takes its input from.
      * A known DSP returns its existing handle. Null when the index is out of range.
      */

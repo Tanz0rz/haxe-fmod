@@ -9,9 +9,9 @@ import haxefmod.studio.native.Scratch;
 /**
  * A handle to an FMOD DSP effect unit.
  *
- * Create with a DspType, set its parameters by index (parameter indices for
- * each effect are in the FMOD DSP effect reference), then attach it to a
- * Channel or ChannelGroup. Handles are plain ints under the hood. A stale
+ * Create with a DspType, set its parameters by index, then attach it to a
+ * Channel or ChannelGroup. The parameter indices for each effect are in
+ * the FMOD DSP effect reference. Handles are plain ints under the hood. A stale
  * or invalid handle makes every call a safe no-op (getters return defaults,
  * setters return FMOD_ERR_INVALID_HANDLE).
  */
@@ -113,8 +113,9 @@ abstract Dsp(Int) from Int to Int {
 
     /**
      * The FMOD_DSP_METERING_INFO of the output side, or of the input side
-     * with input set: peakLevel and rmsLevel per channel (linear 0..1),
-     * numChannels, and numSamples, the sample count the meter averaged.
+     * with input set. It carries peakLevel and rmsLevel per channel
+     * (linear 0..1), numChannels, and numSamples, the sample count the
+     * meter averaged.
      * Null when unavailable (metering disabled for that side, no signal
      * yet, or a stale handle).
      */
@@ -275,10 +276,10 @@ abstract Dsp(Int) from Int to Int {
      * The FMOD_DSP_PARAMETER_DESC of the parameter at index (unsupported
      * in HTML5, null there): type, name, label, description, and the
      * union member matching type. floatDesc carries the range, default,
-     * and mapping of a float parameter, intDesc the range, default,
-     * goesToInf, and valueNames of an int parameter, boolDesc the
-     * default and valueNames of a bool parameter, dataDesc the dataType
-     * of a data parameter. The other three members are null. valueNames
+     * and mapping of a float parameter. intDesc carries the range,
+     * default, goesToInf, and valueNames of an int parameter. boolDesc
+     * carries the default and valueNames of a bool parameter, dataDesc
+     * the dataType of a data parameter. The other three members are null. valueNames
      * is null when the unit names no values. Null on failure.
      */
     public macro function getParameterInfo(self:haxe.macro.Expr, index:haxe.macro.Expr):haxe.macro.Expr {
@@ -289,10 +290,10 @@ abstract Dsp(Int) from Int to Int {
      * The FMOD_DSP_PARAMETER_DESC of the parameter at index (unsupported
      * in HTML5, null there): type, name, label, description, and the
      * union member matching type. floatDesc carries the range, default,
-     * and mapping of a float parameter, intDesc the range, default,
-     * goesToInf, and valueNames of an int parameter, boolDesc the
-     * default and valueNames of a bool parameter, dataDesc the dataType
-     * of a data parameter. The other three members are null. valueNames
+     * and mapping of a float parameter. intDesc carries the range,
+     * default, goesToInf, and valueNames of an int parameter. boolDesc
+     * carries the default and valueNames of a bool parameter, dataDesc
+     * the dataType of a data parameter. The other three members are null. valueNames
      * is null when the unit names no values. Null on failure.
      */
     public function getParameterInfo(index:Int):Null<FmodDspParameterDesc> {
@@ -340,8 +341,9 @@ abstract Dsp(Int) from Int to Int {
 
     /**
      * The index of the data parameter carrying the given
-     * FmodDspParameterDataType (negative values are FMOD's own types, 0
-     * and up are user data), -1 when the effect has none or on failure.
+     * FmodDspParameterDataType, -1 when the effect has none or on
+     * failure. Negative type values are FMOD's own types, 0 and up are
+     * user data.
      */
     public inline function getDataParameterIndex(dataType:FmodDspParameterDataType):Int {
         return NativeStudio.dsp_get_data_parameter_index(this, dataType);
@@ -437,12 +439,13 @@ abstract Dsp(Int) from Int to Int {
     #if (macro || (js && !haxefmod_html5_allow_unsupported))
     /**
      * Wires another DSP's output into this one through a connection FMOD
-     * reserved ahead of time, so the mixer allocates nothing on the way in
-     * (unsupported in HTML5, returns DspConnection.NULL there). Returns
-     * the connection (DspConnection.NULL on failure). FMOD only accepts a
-     * connection it reserved itself, so with the connections this library
-     * can hand over it reports FMOD_ERR_INVALID_PARAM, and a NULL or stale
-     * connection reports FMOD_ERR_INVALID_HANDLE without reaching FMOD.
+     * reserved ahead of time
+     * (unsupported in HTML5, returns DspConnection.NULL there). The mixer
+     * then allocates nothing on the way in. Returns the connection
+     * (DspConnection.NULL on failure). FMOD only accepts a connection it
+     * reserved itself, so with the connections this library can hand over
+     * it reports FMOD_ERR_INVALID_PARAM. A NULL or stale connection
+     * reports FMOD_ERR_INVALID_HANDLE without reaching FMOD.
      */
     public macro function addInputPreallocated(self:haxe.macro.Expr, input:haxe.macro.Expr, connection:haxe.macro.Expr):haxe.macro.Expr {
         return haxefmod.studio.native.Html5Gate.block("Dsp.addInputPreallocated", "the web build has no addInputPreallocated");
@@ -450,12 +453,13 @@ abstract Dsp(Int) from Int to Int {
     #else
     /**
      * Wires another DSP's output into this one through a connection FMOD
-     * reserved ahead of time, so the mixer allocates nothing on the way in
-     * (unsupported in HTML5, returns DspConnection.NULL there). Returns
-     * the connection (DspConnection.NULL on failure). FMOD only accepts a
-     * connection it reserved itself, so with the connections this library
-     * can hand over it reports FMOD_ERR_INVALID_PARAM, and a NULL or stale
-     * connection reports FMOD_ERR_INVALID_HANDLE without reaching FMOD.
+     * reserved ahead of time
+     * (unsupported in HTML5, returns DspConnection.NULL there). The mixer
+     * then allocates nothing on the way in. Returns the connection
+     * (DspConnection.NULL on failure). FMOD only accepts a connection it
+     * reserved itself, so with the connections this library can hand over
+     * it reports FMOD_ERR_INVALID_PARAM. A NULL or stale connection
+     * reports FMOD_ERR_INVALID_HANDLE without reaching FMOD.
      */
     public inline function addInputPreallocated(input:Dsp, connection:DspConnection):DspConnection {
         return NativeStudio.dsp_add_input_preallocated(this, input, connection);
@@ -464,8 +468,8 @@ abstract Dsp(Int) from Int to Int {
 
     /**
      * The unit's description: display name, plugin version (BCD, 0x10000
-     * is 1.0), channel count (0 when the unit takes any), and the config
-     * dialog size a plugin declares. Null on failure.
+     * is 1.0), and channel count (0 when the unit takes any). It also
+     * carries the config dialog size a plugin declares. Null on failure.
      */
     public function getInfo():Null<FmodDspInfo> {
         var name = NativeStudio.dsp_get_info(this);
@@ -476,14 +480,14 @@ abstract Dsp(Int) from Int to Int {
 
     /**
      * A copy of the data block behind a data parameter, laid out as the
-     * effect's C struct (little endian, read it with haxe.io.Bytes
-     * getFloat and getInt32). The length is the one FMOD reports.
+     * effect's C struct. The block is little endian, read it with
+     * haxe.io.Bytes getFloat and getInt32. The length is the one FMOD reports.
      * Pointer fields inside a block, such as the FFT spectrum arrays,
      * carry nothing useful in the copy, getFftSpectrumInfo reads those.
      * Null when the parameter has no data yet or on failure. On HTML5
-     * the web glue types the block instead of exposing its bytes, so
-     * only overall gain, FFT, dynamic response, and attenuation range
-     * payloads come back and the rest report FMOD_ERR_UNSUPPORTED.
+     * the web glue types the block instead of exposing its bytes. Only
+     * overall gain, FFT, dynamic response, and attenuation range
+     * payloads come back there and the rest report FMOD_ERR_UNSUPPORTED.
      */
     public function getParameterData(index:Int):Null<haxe.io.Bytes> {
         var length = NativeStudio.dsp_get_param_data(this, index, null, 0);
@@ -575,7 +579,7 @@ abstract Dsp(Int) from Int to Int {
      * (FMOD_DSP_PARAMETER_3DATTRIBUTES_MULTI), the position of an
      * object panner or pan unit for every listener. relative holds the
      * emitter in each listener's space, one entry per listener (1 to
-     * MAX_LISTENERS), weights the per listener blend (1 each when
+     * MAX_LISTENERS). weights holds the per listener blend (1 each when
      * omitted), absolute the emitter in world space. The shim packs the
      * struct. FMOD_ERR_INVALID_PARAM for an empty or oversized list.
      */

@@ -415,8 +415,8 @@ def build_table():
     for fmod_name, entry in sorted(entries.items()):
         # A wrapper named like the FMOD function is the direct binding.
         # Helpers that reach the same function (a 2D convenience, a
-        # facade method) follow it, and the typed layer precedes the
-        # facade and runtime.
+        # helper class method) follow it, and the typed layer precedes the
+        # helper class and runtime.
         method_name = fmod_name.split("_")[-1].lower()
         entry["haxe"].sort(key=lambda m: (
             0 if m["name"].lower() == method_name else 1,

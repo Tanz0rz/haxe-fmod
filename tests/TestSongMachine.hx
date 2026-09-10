@@ -6,7 +6,7 @@ import haxefmod.studio.Callbacks;
 import haxefmod.studio.native.NativeStudioStub;
 
 /**
- * The facade's song state machine against the stub's synthetic handles:
+ * The helper class's song state machine against the stub's synthetic handles:
  * same-song restart semantics, the transition handoff (both the callback
  * path and the direct path for a fade that finished before the handler
  * armed), and once-registration consumption. The playback-state queue
@@ -23,7 +23,7 @@ class TestSongMachine {
 		NativeStudioStub.testSyntheticHandles = true;
 
 		// The hooks must be restored even when a test body throws, or one
-		// broken test cascades into every suite after this one. The facade
+		// broken test cascades into every suite after this one. The helper class
 		// statics this suite dirties (song slot, current path) are also
 		// stale after it: keep suites that read FmodManager song state
 		// ahead of this one in RunTests.

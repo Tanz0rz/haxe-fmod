@@ -557,7 +557,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Reads the mix matrix back as one flat row-major array with inChannelHop floats per row (0 = packed to the input count), and the output and input channel counts FMOD reports (unsupported in HTML5, null there).",
+     "doc": "Reads the mix matrix back as one flat row-major array (unsupported in HTML5, null there).",
      "gated": true,
      "name": "getMixMatrix",
      "signature": "getMixMatrix(outChannels:Int = 0, inChannels:Int = 0, inChannelHop:Int = 0):Null<FmodMixMatrix>",
@@ -1142,7 +1142,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Sets the gain of each incoming signal channel before the mix matrix, one level per input channel (1 to 32, an empty list is rejected with FMOD_ERR_INVALID_PARAM).",
+     "doc": "Sets the gain of each incoming signal channel before the mix matrix, one level per input channel (1 to 32).",
      "gated": false,
      "name": "setMixLevelsInput",
      "signature": "setMixLevelsInput(levels:Array<Float>):FmodResult",
@@ -2019,7 +2019,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Reads the mix matrix back as one flat row-major array with inChannelHop floats per row (0 = packed to the input count), and the output and input channel counts FMOD reports (unsupported in HTML5, null there).",
+     "doc": "Reads the mix matrix back as one flat row-major array (unsupported in HTML5, null there).",
      "gated": true,
      "name": "getMixMatrix",
      "signature": "getMixMatrix(outChannels:Int = 0, inChannels:Int = 0, inChannelHop:Int = 0):Null<FmodMixMatrix>",
@@ -2028,7 +2028,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": true,
-     "doc": "Reads the mix matrix back as one flat row-major array with inChannelHop floats per row (0 = packed to the input count), and the output and input channel counts FMOD reports (unsupported in HTML5, null there).",
+     "doc": "Reads the mix matrix back as one flat row-major array (unsupported in HTML5, null there).",
      "gated": true,
      "name": "getMixMatrix",
      "signature": "getMixMatrix(outChannels:Int = 0, inChannels:Int = 0, inChannelHop:Int = 0):Null<FmodMixMatrix>",
@@ -2988,7 +2988,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Sets the gain of each incoming signal channel before the mix matrix, one level per input channel (1 to 32, an empty list is rejected with FMOD_ERR_INVALID_PARAM).",
+     "doc": "Sets the gain of each incoming signal channel before the mix matrix, one level per input channel (1 to 32).",
      "gated": false,
      "name": "setMixLevelsInput",
      "signature": "setMixLevelsInput(levels:Array<Float>):FmodResult",
@@ -2997,7 +2997,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": true,
-     "doc": "Sets the gain of each incoming signal channel before the mix matrix, one level per input channel (1 to 32, an empty list is rejected with FMOD_ERR_INVALID_PARAM).",
+     "doc": "Sets the gain of each incoming signal channel before the mix matrix, one level per input channel (1 to 32).",
      "gated": false,
      "name": "setMixLevelsInput",
      "signature": "setMixLevelsInput(levels:Array<Float>):FmodResult",
@@ -3724,7 +3724,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Reads the mix matrix back as one flat row-major array with inChannelHop floats per row (0 = packed to the input count), and the output and input channel counts FMOD reports (unsupported in HTML5, null there).",
+     "doc": "Reads the mix matrix back as one flat row-major array (unsupported in HTML5, null there).",
      "gated": true,
      "name": "getMixMatrix",
      "signature": "getMixMatrix(outChannels:Int = 0, inChannels:Int = 0, inChannelHop:Int = 0):Null<FmodMixMatrix>",
@@ -4295,7 +4295,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Sets the gain of each incoming signal channel before the mix matrix, one level per input channel (1 to 32, an empty list is rejected with FMOD_ERR_INVALID_PARAM).",
+     "doc": "Sets the gain of each incoming signal channel before the mix matrix, one level per input channel (1 to 32).",
      "gated": false,
      "name": "setMixLevelsInput",
      "signature": "setMixLevelsInput(levels:Array<Float>):FmodResult",
@@ -4561,7 +4561,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Wires another DSP's output into this one through a connection FMOD reserved ahead of time, so the mixer allocates nothing on the way in (unsupported in HTML5, returns DspConnection.NULL there).",
+     "doc": "Wires another DSP's output into this one through a connection FMOD reserved ahead of time (unsupported in HTML5, returns DspConnection.NULL there).",
      "gated": true,
      "name": "addInputPreallocated",
      "signature": "addInputPreallocated(input:Dsp, connection:DspConnection):DspConnection",
@@ -4673,7 +4673,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "The index of the data parameter carrying the given FmodDspParameterDataType (negative values are FMOD's own types, 0 and up are user data), -1 when the effect has none or on failure.",
+     "doc": "The index of the data parameter carrying the given FmodDspParameterDataType, -1 when the effect has none or on failure.",
      "gated": false,
      "name": "getDataParameterIndex",
      "signature": "getDataParameterIndex(dataType:FmodDspParameterDataType):Int",
@@ -4705,7 +4705,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "The unit's description: display name, plugin version (BCD, 0x10000 is 1.0), channel count (0 when the unit takes any), and the config dialog size a plugin declares.",
+     "doc": "The unit's description: display name, plugin version (BCD, 0x10000 is 1.0), and channel count (0 when the unit takes any).",
      "gated": false,
      "name": "getInfo",
      "signature": "getInfo():Null<FmodDspInfo>",
@@ -4771,7 +4771,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": false,
-     "doc": "The FMOD_DSP_METERING_INFO of the output side, or of the input side with input set: peakLevel and rmsLevel per channel (linear 0..1), numChannels, and numSamples, the sample count the meter averaged.",
+     "doc": "The FMOD_DSP_METERING_INFO of the output side, or of the input side with input set.",
      "gated": false,
      "name": "getMetering",
      "signature": "getMetering(input:Bool = false):Null<FmodDspMeteringInfo>",
@@ -4919,7 +4919,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "A copy of the data block behind a data parameter, laid out as the effect's C struct (little endian, read it with haxe.io.Bytes getFloat and getInt32).",
+     "doc": "A copy of the data block behind a data parameter, laid out as the effect's C struct.",
      "gated": false,
      "name": "getParameterData",
      "signature": "getParameterData(index:Int):Null<haxe.io.Bytes>",
@@ -5417,7 +5417,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Reads the mix matrix back as one flat row-major array with inChannelHop floats per row (0 = packed to the input count), and the output and input channel counts FMOD reports (unsupported in HTML5, null there).",
+     "doc": "Reads the mix matrix back as one flat row-major array (unsupported in HTML5, null there).",
      "gated": true,
      "name": "getMixMatrix",
      "signature": "getMixMatrix(outChannels:Int = 0, inChannels:Int = 0, inChannelHop:Int = 0):Null<FmodMixMatrix>",
@@ -7080,7 +7080,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "Sounds from this group audible right now.",
+     "doc": "Sounds from this group audible at this moment.",
      "gated": false,
      "name": "getPlayingCount",
      "signature": "getPlayingCount():Int",
@@ -9605,7 +9605,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": true,
-     "doc": "Returns the bus at a path, for everything the bus calls above do not cover: the final volume after VCAs and snapshots, the channel group under the bus, profiling.",
+     "doc": "Returns the bus at a path, for everything the bus calls above do not cover.",
      "name": "GetBus",
      "signature": "GetBus(busPath:String):Bus",
      "static": true,
@@ -10554,7 +10554,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "Sets a labeled global parameter by name and label text (e.g.",
+     "doc": "Sets a labeled global parameter by name and label text (for example discrete enum names).",
      "gated": false,
      "name": "setParameterWithLabel",
      "signature": "setParameterWithLabel(name:String, label:String, ignoreSeekSpeed:Bool = false):FmodResult",
@@ -12227,7 +12227,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Where one output speaker sits for panning, as x (left -1 to right 1) and y (back -1 to front 1), and whether it is fed at all.",
+     "doc": "Where one output speaker sits for panning, and whether it is fed at all.",
      "gated": false,
      "name": "setSpeakerPosition",
      "signature": "setSpeakerPosition(speaker:FmodSpeaker, x:Float, y:Float, active:Bool):FmodResult",
@@ -12544,19 +12544,19 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "FMOD_MAX_CHANNEL_WIDTH": {
-   "code": "package haxefmod.studio;\n\nclass FmodLimits {\n    /** FMOD_MAX_CHANNEL_WIDTH, the widest mix matrix and channel format. */\n    public static inline var MAX_CHANNEL_WIDTH = 32;\n    /** FMOD_MAX_SYSTEMS, how many FMOD systems one process may create. haxefmod creates one. */\n    public static inline var MAX_SYSTEMS = 8;\n    /** FMOD_MAX_LISTENERS, the cap on StudioSystem.setNumListeners. */\n    public static inline var MAX_LISTENERS = 8;\n    /** FMOD_REVERB_MAXINSTANCES, the number of reverb instance slots. */\n    public static inline var REVERB_MAXINSTANCES = 4;\n    /** FMOD_STUDIO_LOAD_MEMORY_ALIGNMENT, the alignment loadBankMemory needs in point mode. */\n    public static inline var STUDIO_LOAD_MEMORY_ALIGNMENT = 32;\n}",
+   "code": "package haxefmod.studio;\n\nclass FmodLimits {\n    /** FMOD_MAX_CHANNEL_WIDTH, the widest mix matrix and channel format. */\n    public static inline var MAX_CHANNEL_WIDTH = 32;\n    /** FMOD_MAX_SYSTEMS, how many FMOD systems one process can create. haxefmod creates one. */\n    public static inline var MAX_SYSTEMS = 8;\n    /** FMOD_MAX_LISTENERS, the cap on StudioSystem.setNumListeners. */\n    public static inline var MAX_LISTENERS = 8;\n    /** FMOD_REVERB_MAXINSTANCES, the number of reverb instance slots. */\n    public static inline var REVERB_MAXINSTANCES = 4;\n    /** FMOD_STUDIO_LOAD_MEMORY_ALIGNMENT, the alignment loadBankMemory needs in point mode. */\n    public static inline var STUDIO_LOAD_MEMORY_ALIGNMENT = 32;\n}",
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_MAX_LISTENERS": {
-   "code": "package haxefmod.studio;\n\nclass FmodLimits {\n    /** FMOD_MAX_CHANNEL_WIDTH, the widest mix matrix and channel format. */\n    public static inline var MAX_CHANNEL_WIDTH = 32;\n    /** FMOD_MAX_SYSTEMS, how many FMOD systems one process may create. haxefmod creates one. */\n    public static inline var MAX_SYSTEMS = 8;\n    /** FMOD_MAX_LISTENERS, the cap on StudioSystem.setNumListeners. */\n    public static inline var MAX_LISTENERS = 8;\n    /** FMOD_REVERB_MAXINSTANCES, the number of reverb instance slots. */\n    public static inline var REVERB_MAXINSTANCES = 4;\n    /** FMOD_STUDIO_LOAD_MEMORY_ALIGNMENT, the alignment loadBankMemory needs in point mode. */\n    public static inline var STUDIO_LOAD_MEMORY_ALIGNMENT = 32;\n}",
+   "code": "package haxefmod.studio;\n\nclass FmodLimits {\n    /** FMOD_MAX_CHANNEL_WIDTH, the widest mix matrix and channel format. */\n    public static inline var MAX_CHANNEL_WIDTH = 32;\n    /** FMOD_MAX_SYSTEMS, how many FMOD systems one process can create. haxefmod creates one. */\n    public static inline var MAX_SYSTEMS = 8;\n    /** FMOD_MAX_LISTENERS, the cap on StudioSystem.setNumListeners. */\n    public static inline var MAX_LISTENERS = 8;\n    /** FMOD_REVERB_MAXINSTANCES, the number of reverb instance slots. */\n    public static inline var REVERB_MAXINSTANCES = 4;\n    /** FMOD_STUDIO_LOAD_MEMORY_ALIGNMENT, the alignment loadBankMemory needs in point mode. */\n    public static inline var STUDIO_LOAD_MEMORY_ALIGNMENT = 32;\n}",
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_MAX_SYSTEMS": {
-   "code": "package haxefmod.studio;\n\nclass FmodLimits {\n    /** FMOD_MAX_CHANNEL_WIDTH, the widest mix matrix and channel format. */\n    public static inline var MAX_CHANNEL_WIDTH = 32;\n    /** FMOD_MAX_SYSTEMS, how many FMOD systems one process may create. haxefmod creates one. */\n    public static inline var MAX_SYSTEMS = 8;\n    /** FMOD_MAX_LISTENERS, the cap on StudioSystem.setNumListeners. */\n    public static inline var MAX_LISTENERS = 8;\n    /** FMOD_REVERB_MAXINSTANCES, the number of reverb instance slots. */\n    public static inline var REVERB_MAXINSTANCES = 4;\n    /** FMOD_STUDIO_LOAD_MEMORY_ALIGNMENT, the alignment loadBankMemory needs in point mode. */\n    public static inline var STUDIO_LOAD_MEMORY_ALIGNMENT = 32;\n}",
+   "code": "package haxefmod.studio;\n\nclass FmodLimits {\n    /** FMOD_MAX_CHANNEL_WIDTH, the widest mix matrix and channel format. */\n    public static inline var MAX_CHANNEL_WIDTH = 32;\n    /** FMOD_MAX_SYSTEMS, how many FMOD systems one process can create. haxefmod creates one. */\n    public static inline var MAX_SYSTEMS = 8;\n    /** FMOD_MAX_LISTENERS, the cap on StudioSystem.setNumListeners. */\n    public static inline var MAX_LISTENERS = 8;\n    /** FMOD_REVERB_MAXINSTANCES, the number of reverb instance slots. */\n    public static inline var REVERB_MAXINSTANCES = 4;\n    /** FMOD_STUDIO_LOAD_MEMORY_ALIGNMENT, the alignment loadBankMemory needs in point mode. */\n    public static inline var STUDIO_LOAD_MEMORY_ALIGNMENT = 32;\n}",
    "notes": [],
    "type": null,
    "verdict": "bound"
@@ -12592,7 +12592,7 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "FMOD_MODE": {
-   "code": "package haxefmod.core;\n\nclass ChannelMode {\n    public static inline var DEFAULT:Int = 0x00000000;\n    public static inline var LOOP_OFF:Int = 0x00000001;\n    public static inline var LOOP_NORMAL:Int = 0x00000002;\n    public static inline var LOOP_BIDI:Int = 0x00000004;\n    public static inline var MODE_2D:Int = 0x00000008;\n    public static inline var MODE_3D:Int = 0x00000010;\n    public static inline var CREATESTREAM:Int = 0x00000080;\n    public static inline var CREATESAMPLE:Int = 0x00000100;\n    public static inline var CREATECOMPRESSEDSAMPLE:Int = 0x00000200;\n    public static inline var OPENUSER:Int = 0x00000400;\n    public static inline var OPENMEMORY:Int = 0x00000800;\n    public static inline var OPENMEMORY_POINT:Int = 0x10000000;\n    public static inline var OPENRAW:Int = 0x00001000;\n    public static inline var OPENONLY:Int = 0x00002000;\n    public static inline var ACCURATETIME:Int = 0x00004000;\n    public static inline var MPEGSEARCH:Int = 0x00008000;\n    public static inline var NONBLOCKING:Int = 0x00010000;\n    public static inline var UNIQUE:Int = 0x00020000;\n    public static inline var MODE_3D_HEADRELATIVE:Int = 0x00040000;\n    public static inline var MODE_3D_WORLDRELATIVE:Int = 0x00080000;\n    public static inline var MODE_3D_INVERSEROLLOFF:Int = 0x00100000;\n    public static inline var MODE_3D_LINEARROLLOFF:Int = 0x00200000;\n    public static inline var MODE_3D_LINEARSQUAREROLLOFF:Int = 0x00400000;\n    public static inline var MODE_3D_INVERSETAPEREDROLLOFF:Int = 0x00800000;\n    public static inline var MODE_3D_CUSTOMROLLOFF:Int = 0x04000000;\n    public static inline var MODE_3D_IGNOREGEOMETRY:Int = 0x40000000;\n    public static inline var IGNORETAGS:Int = 0x02000000;\n    public static inline var LOWMEM:Int = 0x08000000;\n    public static inline var VIRTUAL_PLAYFROMSTART:Int = 0x80000000;\n\n    /** The names haxefmod 2.0.0 gave the 3D flags, the same bits. */\n    public static inline var HEAD_RELATIVE_3D:Int = MODE_3D_HEADRELATIVE;\n    public static inline var WORLD_RELATIVE_3D:Int = MODE_3D_WORLDRELATIVE;\n    public static inline var INVERSE_ROLLOFF_3D:Int = MODE_3D_INVERSEROLLOFF;\n    public static inline var LINEAR_ROLLOFF_3D:Int = MODE_3D_LINEARROLLOFF;\n    public static inline var LINEAR_SQUARE_ROLLOFF_3D:Int = MODE_3D_LINEARSQUAREROLLOFF;\n    public static inline var INVERSE_TAPERED_ROLLOFF_3D:Int = MODE_3D_INVERSETAPEREDROLLOFF;\n}",
+   "code": "package haxefmod.core;\n\nclass ChannelMode {\n    public static inline var DEFAULT:Int = 0x00000000;\n    public static inline var LOOP_OFF:Int = 0x00000001;\n    public static inline var LOOP_NORMAL:Int = 0x00000002;\n    public static inline var LOOP_BIDI:Int = 0x00000004;\n    public static inline var MODE_2D:Int = 0x00000008;\n    public static inline var MODE_3D:Int = 0x00000010;\n    public static inline var CREATESTREAM:Int = 0x00000080;\n    public static inline var CREATESAMPLE:Int = 0x00000100;\n    public static inline var CREATECOMPRESSEDSAMPLE:Int = 0x00000200;\n    public static inline var OPENUSER:Int = 0x00000400;\n    public static inline var OPENMEMORY:Int = 0x00000800;\n    public static inline var OPENMEMORY_POINT:Int = 0x10000000;\n    public static inline var OPENRAW:Int = 0x00001000;\n    public static inline var OPENONLY:Int = 0x00002000;\n    public static inline var ACCURATETIME:Int = 0x00004000;\n    public static inline var MPEGSEARCH:Int = 0x00008000;\n    public static inline var NONBLOCKING:Int = 0x00010000;\n    public static inline var UNIQUE:Int = 0x00020000;\n    public static inline var MODE_3D_HEADRELATIVE:Int = 0x00040000;\n    public static inline var MODE_3D_WORLDRELATIVE:Int = 0x00080000;\n    public static inline var MODE_3D_INVERSEROLLOFF:Int = 0x00100000;\n    public static inline var MODE_3D_LINEARROLLOFF:Int = 0x00200000;\n    public static inline var MODE_3D_LINEARSQUAREROLLOFF:Int = 0x00400000;\n    public static inline var MODE_3D_INVERSETAPEREDROLLOFF:Int = 0x00800000;\n    public static inline var MODE_3D_CUSTOMROLLOFF:Int = 0x04000000;\n    public static inline var MODE_3D_IGNOREGEOMETRY:Int = 0x40000000;\n    public static inline var IGNORETAGS:Int = 0x02000000;\n    public static inline var LOWMEM:Int = 0x08000000;\n    public static inline var VIRTUAL_PLAYFROMSTART:Int = 0x80000000;\n\n    /** Aliases for the 3D flags with the older haxefmod spelling, the same bits. */\n    public static inline var HEAD_RELATIVE_3D:Int = MODE_3D_HEADRELATIVE;\n    public static inline var WORLD_RELATIVE_3D:Int = MODE_3D_WORLDRELATIVE;\n    public static inline var INVERSE_ROLLOFF_3D:Int = MODE_3D_INVERSEROLLOFF;\n    public static inline var LINEAR_ROLLOFF_3D:Int = MODE_3D_LINEARROLLOFF;\n    public static inline var LINEAR_SQUARE_ROLLOFF_3D:Int = MODE_3D_LINEARSQUAREROLLOFF;\n    public static inline var INVERSE_TAPERED_ROLLOFF_3D:Int = MODE_3D_INVERSETAPEREDROLLOFF;\n}",
    "notes": [],
    "type": null,
    "verdict": "bound"
@@ -13308,7 +13308,7 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "FMOD_REVERB_MAXINSTANCES": {
-   "code": "package haxefmod.studio;\n\nclass FmodLimits {\n    /** FMOD_MAX_CHANNEL_WIDTH, the widest mix matrix and channel format. */\n    public static inline var MAX_CHANNEL_WIDTH = 32;\n    /** FMOD_MAX_SYSTEMS, how many FMOD systems one process may create. haxefmod creates one. */\n    public static inline var MAX_SYSTEMS = 8;\n    /** FMOD_MAX_LISTENERS, the cap on StudioSystem.setNumListeners. */\n    public static inline var MAX_LISTENERS = 8;\n    /** FMOD_REVERB_MAXINSTANCES, the number of reverb instance slots. */\n    public static inline var REVERB_MAXINSTANCES = 4;\n    /** FMOD_STUDIO_LOAD_MEMORY_ALIGNMENT, the alignment loadBankMemory needs in point mode. */\n    public static inline var STUDIO_LOAD_MEMORY_ALIGNMENT = 32;\n}",
+   "code": "package haxefmod.studio;\n\nclass FmodLimits {\n    /** FMOD_MAX_CHANNEL_WIDTH, the widest mix matrix and channel format. */\n    public static inline var MAX_CHANNEL_WIDTH = 32;\n    /** FMOD_MAX_SYSTEMS, how many FMOD systems one process can create. haxefmod creates one. */\n    public static inline var MAX_SYSTEMS = 8;\n    /** FMOD_MAX_LISTENERS, the cap on StudioSystem.setNumListeners. */\n    public static inline var MAX_LISTENERS = 8;\n    /** FMOD_REVERB_MAXINSTANCES, the number of reverb instance slots. */\n    public static inline var REVERB_MAXINSTANCES = 4;\n    /** FMOD_STUDIO_LOAD_MEMORY_ALIGNMENT, the alignment loadBankMemory needs in point mode. */\n    public static inline var STUDIO_LOAD_MEMORY_ALIGNMENT = 32;\n}",
    "notes": [],
    "type": null,
    "verdict": "bound"
@@ -15148,7 +15148,7 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "FMOD_STUDIO_LOAD_MEMORY_ALIGNMENT": {
-   "code": "package haxefmod.studio;\n\nclass FmodLimits {\n    /** FMOD_MAX_CHANNEL_WIDTH, the widest mix matrix and channel format. */\n    public static inline var MAX_CHANNEL_WIDTH = 32;\n    /** FMOD_MAX_SYSTEMS, how many FMOD systems one process may create. haxefmod creates one. */\n    public static inline var MAX_SYSTEMS = 8;\n    /** FMOD_MAX_LISTENERS, the cap on StudioSystem.setNumListeners. */\n    public static inline var MAX_LISTENERS = 8;\n    /** FMOD_REVERB_MAXINSTANCES, the number of reverb instance slots. */\n    public static inline var REVERB_MAXINSTANCES = 4;\n    /** FMOD_STUDIO_LOAD_MEMORY_ALIGNMENT, the alignment loadBankMemory needs in point mode. */\n    public static inline var STUDIO_LOAD_MEMORY_ALIGNMENT = 32;\n}",
+   "code": "package haxefmod.studio;\n\nclass FmodLimits {\n    /** FMOD_MAX_CHANNEL_WIDTH, the widest mix matrix and channel format. */\n    public static inline var MAX_CHANNEL_WIDTH = 32;\n    /** FMOD_MAX_SYSTEMS, how many FMOD systems one process can create. haxefmod creates one. */\n    public static inline var MAX_SYSTEMS = 8;\n    /** FMOD_MAX_LISTENERS, the cap on StudioSystem.setNumListeners. */\n    public static inline var MAX_LISTENERS = 8;\n    /** FMOD_REVERB_MAXINSTANCES, the number of reverb instance slots. */\n    public static inline var REVERB_MAXINSTANCES = 4;\n    /** FMOD_STUDIO_LOAD_MEMORY_ALIGNMENT, the alignment loadBankMemory needs in point mode. */\n    public static inline var STUDIO_LOAD_MEMORY_ALIGNMENT = 32;\n}",
    "notes": [],
    "type": null,
    "verdict": "bound"

@@ -138,8 +138,7 @@ class TestPostBuild {
 		assert(!PostBuild.customHdllMatchesSdk(projectDir),
 			"stale marker rejects the custom hdll");
 
-		// Marker markers written by older build-hdll versions may be absent:
-		// the old trust-the-custom-hdll behavior applies then
+		// A custom hdll can lack the marker. The build then trusts the custom hdll
 		sys.FileSystem.deleteFile('$projectDir/.haxefmod/hlaxe_fmod.version');
 		assert(PostBuild.customHdllMatchesSdk(projectDir),
 			"missing marker keeps the old trusting behavior");

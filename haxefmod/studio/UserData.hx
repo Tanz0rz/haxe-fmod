@@ -31,16 +31,16 @@ class UserDataKind {
 /**
  * Haxe-side storage behind the setUserData / getUserData pair on every
  * handle abstract. FMOD's own userdata slot holds a raw pointer, which
- * cannot carry a Haxe value across the binding, so the value lives here
- * keyed by the handle int instead.
+ * cannot carry a Haxe value across the binding. The value therefore lives
+ * here keyed by the handle int instead.
  *
- * An entry is dropped when the handle is released through the abstract
- * (release, stop, unload) or when the dispatcher delivers Destroyed for an
- * event instance FMOD tore down on its own (on HTML5, where Destroyed
- * never arrives, the dispatcher drops the entries of dead instance
- * handles each update instead). The native handle table
- * recycles a slot with a new generation, so a reused slot produces a
- * different handle int and a stale entry can never be read through a
+ * The store drops an entry when the handle is released through the
+ * abstract (release, stop, unload). It also drops the entry when the
+ * dispatcher delivers Destroyed for an event instance FMOD tore down on
+ * its own. On HTML5 Destroyed never arrives, so the dispatcher drops the
+ * entries of dead instance handles each update instead. The native handle
+ * table recycles a slot with a new generation, so a reused slot produces
+ * a different handle int. A stale entry can never be read through a
  * newer handle. Entries for handles that die without passing through one
  * of those paths (a channel that ends by itself) linger until clearAll.
  */
@@ -86,11 +86,11 @@ class UserData {
 
     #if js
     /**
-     * Drops the event instance entries whose handle no longer resolves.
+     * Drops the event instance entries whose handle does not resolve.
      * FMOD's web glue never delivers Destroyed (the js backend uninstalls
-     * callbacks before every destruction path), so an instance FMOD tore
-     * down on its own is reclaimed by the backend's handle sweep instead,
-     * and the dispatcher calls this each update to drop its entry.
+     * callbacks before every destruction path). The backend's handle sweep
+     * instead reclaims an instance FMOD tore down on its own, and the
+     * dispatcher calls this each update to drop its entry.
      */
     @:allow(haxefmod.studio.CallbackDispatcher)
     static function dropDeadInstances():Void {

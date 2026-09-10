@@ -51,7 +51,7 @@ class FmodRuntime {
      * define-driven defaults). First initialization wins: settings passed
      * to any later init call are ignored. On HTML5 initialization is
      * asynchronous: poll isInitialized(), or just call update() every
-     * frame and start playing sounds once it reports true.
+     * frame and start events once it reports true.
      */
     public static function init(?settings:FmodSettings):FmodResult {
         if (initStarted) return FmodResult.FMOD_OK;
@@ -348,10 +348,12 @@ class FmodRuntime {
         attached.attach(instance, provider);
     }
 
+    /** Stops an instance from following its position provider. The instance keeps playing where it is. */
     public static function detach(instance:EventInstance):Void {
         attached.detach(instance);
     }
 
+    /** The number of instances that follow a position provider. */
     public static function attachedCount():Int {
         return attached.count();
     }

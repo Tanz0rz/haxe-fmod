@@ -46,7 +46,7 @@ instance.setCallback(handler, EventCallbackType.STARTED | EventCallbackType.TIME
 - GUIDs are `FmodGuid`, an abstract over the braced text form. It converts to and from `String`, so string call sites keep compiling.
 - `haxefmod.studio.CoreSound` is deprecated. Use `haxefmod.core.Sound`.
 - The `FmodManager` mixer calls read as questions and name the master bus: `GetBusMute(path)` is now `IsBusMuted(path)`, and `SetBusVolumeMaster`, `GetBusVolumeMaster`, `SetBusMuteMaster`, and `GetBusMuteMaster` are now `SetMasterVolume`, `GetMasterVolume`, `SetMasterMute`, and `IsMasterMuted`. `SetBusVolume` and `SetBusMute` keep their names. The old names remain as deprecated aliases for this release and the compiler warns at every use.
-- The helper class uses FMOD's word for a playable thing. `FmodManager.PlaySound` is now `PlayEvent`, `PlaySoundOneShot`, `PlaySoundOneShotAt`, and `PlaySoundOneShotAttached` are `PlayOneShot`, `PlayOneShotAt`, and `PlayOneShotAttached`, `StopAllSounds`, `PauseAllSounds`, and `UnpauseAllSounds` are `StopAllEvents`, `PauseAllEvents`, and `UnpauseAllEvents`, and the `FmodSound` handle type is `FmodEvent`. The engine utilities' `PlaySoundOneShotAttached` is `PlayOneShotAttached`. The old names remain as deprecated aliases for this release and the compiler warns at every use.
+- The helper class uses FMOD's word for a playable thing. `FmodManager.PlaySound` is now `PlayEvent`, `CreateSound` is `CreateEvent`, `PlaySoundOneShot`, `PlaySoundOneShotAt`, and `PlaySoundOneShotAttached` are `PlayOneShot`, `PlayOneShotAt`, and `PlayOneShotAttached`, `StopAllSounds`, `PauseAllSounds`, and `UnpauseAllSounds` are `StopAllEvents`, `PauseAllEvents`, and `UnpauseAllEvents`, and the `FmodSound` handle type is `FmodEvent`. The engine utilities' `PlaySoundOneShotAttached` is `PlayOneShotAttached`. The old names remain as deprecated aliases for this release and the compiler warns at every use.
 - `FmodManager.SetEventParameterOnSong`, `GetEventParameterOnSong`, and `SetEventParameterOnSongWithLabel` are now `SetSongParameter`, `GetSongParameter`, and `SetSongParameterWithLabel`. The old names remain as deprecated aliases for this release and the compiler warns at every use.
 - `FmodManager.SetWindowFocused(focused)` and `IsWindowFocused()` moved to `FmodRuntime.setWindowFocused(focused)` and `FmodRuntime.isWindowFocused()`. The engine setup calls already report focus there. A game that reported focus itself changes the two call sites. `FmodManager.SetMuteWhenUnfocused` stays.
 
@@ -113,7 +113,7 @@ The `haxefmod.flixel` package in 2.0 fully absorbs the separate flixel-fmod libr
 | `FlxFmod.stopMusicAndSwitchState(state)` | `haxefmod.flixel.FmodFlxUtilities.TransitionToStateAndStopMusic(state)` |
 | Hand-rolled sound tray / volume wiring | Covered by `FmodFlxSetup.init()` |
 
-`FmodFlxSetup.init()` does everything the old `Init()` did. It initializes FMOD, installs the per-frame update plugin, routes `FlxG.sound` volume to the FMOD master bus, and silences the sound tray beep. It also routes mute to the master bus mute flag, which flixel-fmod never did. It requires flixel 5.9.0 or newer. It is safe to combine with an earlier `FmodManager.Initialize()` call, for example in an html5 preloader. Initialization is guarded and the second call is a no-op.
+`FmodFlxSetup.init()` does everything the old `Init()` did. It initializes FMOD, installs the per-frame update plugin, routes `FlxG.sound` volume to the FMOD master bus, and silences the sound tray beep. It also routes mute to the master bus mute flag, which flixel-fmod never did. It requires flixel 5.9.0 or newer. It is safe to combine with an earlier `FmodManager.Initialize()` call, for example in an HTML5 preloader. Initialization is guarded and the second call is a no-op.
 
 ### Master volume aliases
 
@@ -131,9 +131,9 @@ The `haxefmod.flixel` package in 2.0 fully absorbs the separate flixel-fmod libr
 - `Initialize(?settings)` now accepts `haxefmod.runtime.FmodSettings` with channels, sample rate, bank folder, auto-loaded banks, and log level.
 - **Live Update is no longer always on.** It defaults to on only in `-debug` builds. Force it with `Initialize({liveUpdate: true})` or `-D haxefmod_live_update`. This restores the 1.x firewall prompt.
 - `PlaySongTransition` with nothing playing now starts the song immediately. 1.x did nothing until a song existed.
-- `PlaySong` now releases the previous song instance when it switches songs. 1.x leaked it on purpose to work around an html5 issue, and 2.0 fixes that issue.
+- `PlaySong` now releases the previous song instance when it switches songs. 1.x leaked it on purpose to work around an HTML5 issue, and 2.0 fixes that issue.
 - Song and sound callbacks registered through the removed `Register*` APIs fired at most once per frame. Typed handlers fire once per event.
-- html5 does not deliver `Destroyed` events. This is an FMOD JS binding limitation. Handler cleanup happens in `release()` instead.
+- HTML5 does not deliver `Destroyed` events. This is an FMOD JS binding limitation. Handler cleanup happens in `release()` instead.
 
 ## Bank loading
 

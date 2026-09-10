@@ -72,7 +72,7 @@ jobs:
           cat /tmp/todos.out
           grep -q "PlayState.hx:.*ambient wind loop behind the music" /tmp/todos.out
           grep -q "3 sound TODO(s) remaining." /tmp/todos.out
-          # The facade must type-check with the placeholder beep enabled
+          # The helper class must type-check with the placeholder beep enabled
           haxe -cp . --no-output -js /tmp/todo-typing.js -D haxefmod_todo_beep --debug haxefmod.FmodManager
 
       - name: Verify native shims match the FFI manifest
@@ -185,9 +185,6 @@ jobs:
             /tmp/tsan_$t
           done
 
-  # ===========================================================================
-  # API docs (dox) - rendered from the haxefmod package, uploaded as artifact
-  # ===========================================================================
   # ===========================================================================
   # Environment doctor: `haxelib run haxefmod check` must diagnose correctly
   # ===========================================================================
@@ -305,11 +302,11 @@ jobs:
           }
           echo "html5 build blocked with setup instructions"
 
-      # A set-but-wrong SDK path must fail the same as an unset one. It used
-      # to compile fine (HL needs no SDK at compile time), skip the postbuild
-      # version gate with a soft warning, and copy nothing - producing builds
-      # that only launched when stale libraries sat in export/ from earlier
-      # successful builds.
+      # A set-but-wrong SDK path must fail the same as an unset one. Without
+      # this gate the build compiles (HL needs no SDK at compile time), skips
+      # the postbuild version gate with a soft warning, and copies nothing.
+      # Such a build launches only when stale libraries sit in export/ from
+      # an earlier successful build.
       - name: Build blocks with a bogus FMOD_SDK (hl)
         env:
           FMOD_SDK: /tmp/definitely-not-an-sdk
@@ -364,9 +361,6 @@ jobs:
           }
           echo "postbuild blocked: incomplete SDK is a hard error"
 
-  # ===========================================================================
-  # Package check: the haxelib zip must install and build a project
-  # ===========================================================================
   # ===========================================================================
   # jaxe.js wasm harnesses (fast full-surface regression of the JS shim)
   # ===========================================================================
@@ -427,9 +421,6 @@ jobs:
         run: node tests/js/core-harness.js
 
   # ===========================================================================
-  # Environment doctor: `haxelib run haxefmod check` must diagnose correctly
-  # ===========================================================================
-  # ===========================================================================
   # API docs (dox) - rendered from the haxefmod package, uploaded as artifact
   # ===========================================================================
   api-docs:
@@ -475,9 +466,6 @@ jobs:
           name: haxefmod-api-docs
           path: /tmp/haxefmod-api-docs
 
-  # ===========================================================================
-  # Linux C++: build once, the states run in parallel in linux-cpp
-  # ===========================================================================
   # ===========================================================================
   # Package check: the haxelib zip must install and build a project
   # ===========================================================================
@@ -716,7 +704,7 @@ jobs:
           fi
           echo "OK: fmodstudio.wasm is $SIZE bytes (real SDK file)"
 
-      # The C++ target was previously assert-only from the package (the
+      # The C++ target is built and run from the package too (the
       # required-files comment above admitted it) - build it from the
       # installed zip too
       # The check and generate subcommands resolve their files from
@@ -739,7 +727,6 @@ jobs:
   # Package Check: C++ target
   # The hxcpp compile dominates package validation, so it runs as its own
   # job on full builds and tag runs only. Solo-tag debug runs skip it.
-  # ===========================================================================
   # ===========================================================================
   # Package Check: C++ target
   # The hxcpp compile dominates package validation, so it runs as its own
@@ -930,8 +917,6 @@ jobs:
           include-hidden-files: true
           overwrite: true
 
-  # The manual-update variant of linux-cpp, built on its own runner so the
-  # two hxcpp compiles do not queue behind each other
   # The manual-update variant of linux-cpp, built on its own runner so the
   # two hxcpp compiles do not queue behind each other
   linux-cpp-build-manual:
@@ -1536,7 +1521,7 @@ jobs:
   # Kha in the browser: khamake build, stage command, WebGL through SwiftShader
 
   # ===========================================================================
-  # Heaps on the HashLink VM, Linux: build once, the states run in parallel in heaps-hl
+  # macOS C++: build once, the states run in parallel in mac-cpp
   # ===========================================================================
   mac-cpp-build:
     name: Flixel / macOS C++ / build
@@ -2250,7 +2235,7 @@ jobs:
           overwrite: true
 
   # ===========================================================================
-  # Linux HTML5: build once, the states run in parallel in linux-html5-chromium via Browser
+  # macOS HashLink against FMOD 2.02: the older SDK line must still build and run
   # ===========================================================================
   mac-hl-compat:
     name: Flixel / macOS HashLink / FMOD 2.02 compat
@@ -2405,7 +2390,7 @@ jobs:
           overwrite: true
 
   # ===========================================================================
-  # Windows C++: build once, the states run in parallel in windows-cpp
+  # Windows HashLink against FMOD 2.02: the older SDK line must still build and run
   # ===========================================================================
   windows-hl-compat:
     name: Flixel / Windows HashLink / FMOD 2.02 compat
@@ -2627,7 +2612,6 @@ jobs:
 
   # ===========================================================================
   # jaxe.js wasm harnesses (fast full-surface regression of the JS shim)
-  # ===========================================================================
   # ===========================================================================
   # Kha in the browser: khamake build, stage command, WebGL through SwiftShader
 
@@ -3097,9 +3081,6 @@ jobs:
           include-hidden-files: true
           overwrite: true
 
-  # ===========================================================================
-  # Kha on Linux (Kore, hxcpp-generated C++), manual-update variant for the api-probe-manual leg of kha-linux
-  # ===========================================================================
   # ===========================================================================
   # Kha on Linux (Kore, hxcpp-generated C++), manual-update variant for the api-probe-manual leg of kha-linux
   # ===========================================================================
@@ -6580,7 +6561,7 @@ jobs:
           ref: ${{ github.head_ref || github.ref_name }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Ensure we're on a branch
+      - name: Ensure the run is on a branch
         run: |
           BRANCH_NAME="${{ github.head_ref || github.ref_name }}"
           echo "Checking out branch: $BRANCH_NAME"

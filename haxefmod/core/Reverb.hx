@@ -37,7 +37,7 @@ typedef ReverbProperties = {
 
 /**
  * The built-in system reverb. Set an environment (use a preset or your own
- * properties) and channels contribute to it through their reverb wet level
+ * properties). Channels contribute to it through their reverb wet level
  * (Channel.setReverbWet, on by default at 1.0).
  *
  * FMOD supports four reverb instances (0..3). Games normally use 0.

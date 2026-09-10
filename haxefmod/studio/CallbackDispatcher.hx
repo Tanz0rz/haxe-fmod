@@ -75,7 +75,7 @@ class CallbackDispatcher {
         // Always include DESTROYED so registrations clean themselves up.
         callbackMask |= EventCallbackType.DESTROYED;
         var result:FmodResult = NativeStudio.evi_set_callback_mask(handle, callbackMask);
-        // A stale handle will never deliver DESTROYED, so registering the
+        // A stale handle never delivers DESTROYED, so registering the
         // handler anyway would leak the closure for the rest of the session
         if (result == FmodResult.FMOD_ERR_INVALID_HANDLE) return;
         handlers.set(handle, handler);
@@ -115,7 +115,7 @@ class CallbackDispatcher {
     }
 
     /**
-     * Delivers one raw queue record to its handler. Handlers may mutate
+     * Delivers one raw queue record to its handler. Handlers can mutate
      * registrations freely (remove themselves, register other handles,
      * release instances): delivery looks up the handler per event and never
      * iterates the registration map. Public for unit tests.

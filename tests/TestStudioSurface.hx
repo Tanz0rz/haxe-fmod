@@ -1109,8 +1109,8 @@ class TestStudioSurface {
 
 	/**
 	 * The signatures retyped from Int to the header enums route through
-	 * the stub with the enum values, the old Int constants stay usable as
-	 * aliases, and the typedef fields carry the new types.
+	 * the stub with the enum values, the Int constants stay usable as
+	 * aliases, and the typedef fields carry the typed values.
 	 */
 	static function testTypedSignatures():Void {
 		var sound = Sound.fromPcm(haxe.io.Bytes.alloc(4), 48000, 1);

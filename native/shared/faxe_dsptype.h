@@ -11,7 +11,7 @@
  *
  * Used by linc_faxe.cpp (C++) and hlaxe_fmod.c (C99). jaxe.js does NOT
  * translate: the JS glue exports no symbolic type constants and no
- * version query, so html5 instead pins the web SDK to the expected
+ * version query, so HTML5 instead pins the web SDK to the expected
  * version at build time and keeps identity numbering.
  *
  * The MIT License (MIT)

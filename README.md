@@ -14,10 +14,10 @@ Having problems or want to chat? [Join the Haxe Discord](https://discordapp.com/
 - [Live Update](https://fmod.com/docs/2.03/studio/editing-during-live-update.html) for mixing sounds while playtesting
 - [Helper class](https://tanz0rz.com/haxe-fmod/guides/fmod-manager/) to map FMOD Studio calls/events to game code
 - [Generated constants](https://tanz0rz.com/haxe-fmod/guides/constants/) for every event, bus, VCA, snapshot, and parameter in your banks
-- [TODO markers](#tracking-sound-work-with-todos) for sound effects that will be added later
+- [TODO markers](#tracking-sound-work-with-todos) for sound effects to add later
 - An [extension for fmod.com](https://tanz0rz.com/haxe-fmod/guides/extension/) to integrate Haxe examples into the official docs
 
-This is a faithful implementation of the FMOD stack. If this library does not support something you need, make an Issue and I will try to add it!
+This is a faithful implementation of the FMOD stack. If this library does not support something you need, open an Issue.
 
 ## Supported Platforms
 
@@ -96,7 +96,7 @@ FmodManager.PlaySong("event:/Music/LetsGo"); // the same call with the path
 
 One of the most powerful features of the FMOD ecosystem. Mix your sounds in real-time by binding FMOD Studio to a running instance of your game.
 
-Live Update **only works on C++ and HashLink builds**. HTML5 builds will not work. The FMOD team said this is a limitation caused by running games inside web browsers and they have no plans to support this.
+Live Update **only works on C++ and HashLink builds**. HTML5 builds do not support it. The FMOD team says this is a limitation of running games inside web browsers, with no plans to support it.
 
 [Live Update in the docs](https://tanz0rz.com/haxe-fmod/live-update/) covers turning it on and off.
 
@@ -108,7 +108,7 @@ Sound effects usually land after the gameplay they belong to, so leave a marker 
 FmodManager.Todo("door creak when the vault opens");
 ```
 
-`haxelib run haxefmod todos` lists every remaining marker with its file and line. The call compiles away in release builds, and debug builds can even play a placeholder blip at each marker so you hear the gaps while playtesting. Details are in [the docs](https://tanz0rz.com/haxe-fmod/guides/fmod-manager/#sound-todo-markers).
+`haxelib run haxefmod todos` lists every remaining marker with its file and line. The call compiles away in release builds. Debug builds can play a placeholder blip at each marker, so you hear the gaps while playtesting. Details are in [the docs](https://tanz0rz.com/haxe-fmod/guides/fmod-manager/#sound-todo-markers).
 
 ## fmod.com Extension
 
@@ -132,6 +132,6 @@ This entire project was started as an expansion of Aaron Shea's [faxe](https://g
 
 If you have any feature requests or are having issues using the library, please do one (or both) of the following:
 
-- [Join the Haxe Discord](https://discordapp.com/invite/0uEuWH3spjck73Lo), then ask any questions you have in the [haxe-fmod thread](https://discord.com/channels/162395145352904705/1472372604433076446). Responses will be quick!
+- [Join the Haxe Discord](https://discordapp.com/invite/0uEuWH3spjck73Lo), then ask any questions you have in the [haxe-fmod thread](https://discord.com/channels/162395145352904705/1472372604433076446). Responses are quick.
 
 - [Open an Issue](https://github.com/Tanz0rz/haxe-fmod/issues) here on GitHub.

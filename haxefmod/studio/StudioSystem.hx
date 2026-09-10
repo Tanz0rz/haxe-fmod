@@ -200,7 +200,7 @@ class StudioSystem {
         return NativeStudio.sys_set_param_by_name(name, value, ignoreSeekSpeed);
     }
 
-    /** Sets a labeled global parameter by name and label text (e.g. discrete enum names). */
+    /** Sets a labeled global parameter by name and label text (for example discrete enum names). */
     public static function setParameterWithLabel(name:String, label:String, ignoreSeekSpeed:Bool = false):FmodResult {
         return NativeStudio.sys_set_param_by_name_with_label(name, label, ignoreSeekSpeed);
     }

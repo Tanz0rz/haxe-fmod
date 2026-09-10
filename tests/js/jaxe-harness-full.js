@@ -1,7 +1,7 @@
 // Loads the real jaxe.js shim under Node with browser stubs and runs the
 // ApiProbeState sequence against the real FMOD 2.03.12 wasm, extended to
 // cover the full domain-prefixed binding surface (sys_/bank_/evd_/evi_/vca_).
-// Usage: node harness.js
+// Usage: node jaxe-harness-full.js
 
 
 // --- Browser stubs (jaxe.js expects window/document. FS preload uses XHR paths) ---
@@ -393,13 +393,13 @@ async function main() {
     expect('evd_get_user_property_string invalid', () => jaxe.fmod_evd_get_user_property_string(BAD, 0), r => r === '');
 
     // --- EventInstance surface ---
-    // legacy instance `evi` (never released) must still be tracked
+    // the first instance `evi` (never released) must still be tracked
     const inst = expect('evd_create_instance', () => jaxe.fmod_evd_create_instance(evd), r => r > 0);
     expect('evd_get_instance_count', () => jaxe.fmod_evd_get_instance_count(evd), r => r === 2);
     const nInst = expect('evd_get_instance_list', () => jaxe.fmod_evd_get_instance_list(evd, ibuf), r => r === 2);
     const instList = ibuf.slice(0, nInst);
     expect('instance list dedupe (new evi)', () => instList.includes(inst), r => r === true);
-    expect('instance list dedupe (legacy evi)', () => instList.includes(evi), r => r === true);
+    expect('instance list dedupe (first evi)', () => instList.includes(evi), r => r === true);
     expect('evi_get_description dedupe', () => jaxe.fmod_evi_get_description(inst), r => r === evd);
 
     expect('evi_is_valid', () => jaxe.fmod_evi_is_valid(inst), r => r === true);
@@ -503,7 +503,7 @@ async function main() {
     expect('evi_get_cpu_usage invalid', () => jaxe.fmod_evi_get_cpu_usage(BAD, ibuf), r => r === 30);
     expect('evi_get_memory_usage invalid', () => jaxe.fmod_evi_get_memory_usage(BAD, ibuf), r => r === 30);
 
-    // --- releaseAllInstances (legacy `evi` is the only one left) ---
+    // --- releaseAllInstances (the first `evi` is the only one left) ---
     expect('evd_release_all_instances', () => jaxe.fmod_evd_release_all_instances(evd), r => r === 0);
     await pump(5);
     // released-but-tracked handles must still return safely, not throw

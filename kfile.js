@@ -1,7 +1,7 @@
 // Kinc project file for Kha builds. khamake picks this up when a khafile
-// does project.addLibrary('haxefmod') and compiles the native binding into
-// the game executable, since Kha's native targets never run hxcpp's own
-// build (Kore-hxcpp) or load hdlls (Kore-HL).
+// does project.addLibrary('haxefmod'). It compiles the native binding into
+// the game executable. Kha's native targets never run hxcpp's own build
+// (Kore-hxcpp) and never load hdlls (Kore-HL).
 //
 // Reads FMOD_SDK for the headers and libraries. The Kore-HL target is
 // selected with HAXEFMOD_KHA_HL=1 in the environment (the kfile has no

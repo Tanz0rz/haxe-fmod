@@ -31,9 +31,9 @@ enum abstract EventCallbackType(Int) from Int to Int {
 
 /**
  * FMOD_STUDIO_EVENT_CALLBACK as game code holds it. The handler receives
- * the decoded payload on the game thread from FmodManager.Update, so the
- * FMOD side has no instance or parameters argument and nothing to
- * return. EventInstance.setCallback and EventDescription.setCallback
+ * the decoded payload on the game thread from FmodManager.Update. The
+ * FMOD side therefore has no instance or parameters argument and nothing
+ * to return. EventInstance.setCallback and EventDescription.setCallback
  * take one.
  */
 typedef EventCallback = EventCallbackData->Void;
@@ -72,7 +72,7 @@ enum EventCallbackData {
     /**
      * A programmer instrument finished with its sound. properties.sound
      * carries the same handle ProgrammerSoundCreated delivered, for
-     * matching. A sound the library created no longer resolves after this,
+     * matching. A sound the library created does not resolve after this,
      * one the game handed over stays the game's.
      */
     ProgrammerSoundDestroyed(properties:FmodProgrammerSoundProperties);
@@ -83,7 +83,8 @@ enum EventCallbackData {
     PluginCreated(properties:FmodPluginInstanceProperties);
     /**
      * A plugin effect on the instance is gone. properties.dsp carries the
-     * same handle PluginCreated delivered, for matching, and no longer resolves.
+     * same handle PluginCreated delivered, for matching, and does not
+     * resolve after this.
      */
     PluginDestroyed(properties:FmodPluginInstanceProperties);
     /** A callback type without a dedicated constructor. */

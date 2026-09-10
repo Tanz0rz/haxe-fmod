@@ -13,7 +13,7 @@ import haxefmod.studio.Vca;
 import haxefmod.studio.native.NativeStudio;
 
 /**
- * The helper class for FMOD. It owns six areas: lifecycle (init, update, and banks), one background song slot, events, the mixer (buses, VCAs, and snapshots), global parameters, and game policy.
+ * The helper class for FMOD. It owns six areas. They are lifecycle (init, update, and banks), one background song slot, events, the mixer (buses, VCAs, and snapshots), global parameters, and game policy.
  * Every call takes an FMOD Studio path or name and holds no handle. The song slot is the one piece of state.
  * PlayEvent and CreateEvent return an FmodEvent, the one handle with a lifetime. GetBus, GetVCA, and GetEventDescription return FMOD's own objects, which need no release, for everything beyond the path calls.
  * World space and focus reporting live in haxefmod.runtime.FmodRuntime, and every FMOD object is one lookup away in haxefmod.studio.
@@ -89,7 +89,7 @@ class FmodManager {
     public static function LoadBank(bankName:String):Void {
         ensureInitialized();
         if (FmodRuntime.banks.load(FmodRuntime.bankPath(bankName)).isNull()) {
-            warnMissing("LoadBank", bankName);
+            warn('LoadBank could not load "$bankName". Check the file name and the bank folder setting');
         }
     }
 
@@ -210,7 +210,8 @@ class FmodManager {
 
     /** Mutes or unmutes the master bus. */
     public static function SetMasterMute(mute:Bool):Void {
-        SetBusMute("bus:/", mute);
+        ensureInitialized();
+        FmodRuntime.muteAll(mute);
     }
 
     /** Returns true when the master bus is muted. */
@@ -235,10 +236,10 @@ class FmodManager {
         return StudioSystem.getVCA(vcaPath).getVolume();
     }
 
-    //// FMOD objects
+    //// Mixer: bus and VCA objects
 
     /**
-     * Returns the bus at a path, for everything the bus calls above do not cover: the final volume after VCAs and snapshots, the channel group under the bus, profiling.
+     * Returns the bus at a path, for everything the bus calls above do not cover. Examples are the final volume after VCAs and snapshots, the channel group under the bus, and profiling.
      * The object belongs to FMOD and needs no release. A bad path returns Bus.NULL, and every call on it is a safe no-op.
      */
     public static function GetBus(busPath:String):Bus {
@@ -250,15 +251,6 @@ class FmodManager {
     public static function GetVCA(vcaPath:String):Vca {
         ensureInitialized();
         return StudioSystem.getVCA(vcaPath);
-    }
-
-    /**
-     * Returns the event description at a path, for the authored facts about an event: length, distances, parameters and their labels, user properties, sample data preloading.
-     * The object belongs to FMOD and needs no release. A bad path returns EventDescription.NULL.
-     */
-    public static function GetEventDescription(eventPath:String):EventDescription {
-        ensureInitialized();
-        return StudioSystem.getEvent(eventPath);
     }
 
     //// Mixer: snapshots
@@ -558,6 +550,15 @@ class FmodManager {
     }
 
     /**
+     * Returns the event description at a path, for the authored facts about an event: length, distances, parameters and their labels, user properties, sample data preloading.
+     * The object belongs to FMOD and needs no release. A bad path returns EventDescription.NULL.
+     */
+    public static function GetEventDescription(eventPath:String):EventDescription {
+        ensureInitialized();
+        return StudioSystem.getEvent(eventPath);
+    }
+
+    /**
      * Creates an event without starting it, so parameters and a position can be set before the first frame plays. Call start() on the handle when ready.
      * Everything else matches PlayEvent, including FmodEvent.NULL for a path FMOD cannot create.
      */
@@ -588,7 +589,7 @@ class FmodManager {
     }
 
     /**
-     * Removes every registered callback. That covers song and sound handlers, event description handlers, core channel and group handlers, the system callback, and PCM stream read callbacks.
+     * Removes every registered callback. That covers song and event handlers, event description handlers, core channel and group handlers, the system callback, and PCM stream read callbacks.
      * Userdata stays.
      */
     public static function ClearAllCallbacks():Void {
@@ -769,10 +770,13 @@ class FmodManager {
         if (debug) trace('FMOD: $message');
     }
 
-    // A bad path is a game bug, so it is reported in every build, the same
-    // way PlaySong and PlayEvent report theirs
+    // A bad path is a game bug, so every call reports it in every build
     static function warnMissing(call:String, path:String):Void {
-        trace('Warn: FMOD - $call could not find "$path" (${StudioSystem.lastResult().toString()}). '
-            + "Check the path, that its bank is loaded, and that FMOD is initialized.");
+        trace('Warn: FMOD - $call could not create "$path" (${StudioSystem.lastResult().toString()}). '
+            + "Check the event path, that its bank is loaded, and that FMOD is initialized.");
+    }
+
+    static function warn(message:String):Void {
+        trace('Warn: FMOD - $message (${StudioSystem.lastResult().toString()})');
     }
 }

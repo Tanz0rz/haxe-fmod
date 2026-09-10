@@ -159,7 +159,7 @@ class ApiProbeScenario implements TestScenario {
         var again = StudioSystem.getBus("bus:/");
         check("bus_lookup_cached", (again : Int) == (master : Int), "");
 
-        probeFacadeSong();
+        probeHelperSong();
         probeM3Surface();
         probeParityTail2();
         probeHandleSafety();
@@ -426,7 +426,7 @@ class ApiProbeScenario implements TestScenario {
 
     /**
      * Hostile inputs the shims reject identically on every target, the
-     * facade's failure branch and thin delegations, and the by-ID
+     * helper class's failure branch and thin delegations, and the by-ID
      * parameter plumbing (a swapped id.data1/data2 in any wrapper would
      * break exactly one of these round trips).
      */
@@ -581,7 +581,7 @@ class ApiProbeScenario implements TestScenario {
         check("chan_set_3d_custom_rolloff", chanSet.isOk(), 'result=${chanSet.toString()}');
         var chanGot = channel.get3DCustomRolloff();
         check("chan_get_3d_custom_rolloff", sameRolloff(chanGot), describe(chanGot));
-        // A second set replaces the copy (the old block is freed, not leaked)
+        // A second set replaces the copy (the first block is freed)
         var chanReset:FmodResult = channel.set3DCustomRolloff([{x: 0, y: 1, z: 0}, {x: 5, y: 0, z: 0}]);
         check("chan_set_3d_custom_rolloff_replace", chanReset.isOk() && channel.get3DCustomRolloff().length == 2,
             'result=${chanReset.toString()} count=${channel.get3DCustomRolloff().length}');
@@ -773,20 +773,20 @@ class ApiProbeScenario implements TestScenario {
         info("hardening_final_pitch", Std.string(inst.getFinalPitch()));
         inst.release();
 
-        // Facade failure branch: a bad event path warns and returns
+        // helper class failure branch: a bad event path warns and returns
         // without wedging the machine
         var badSound = FmodManager.PlayEvent("event:/DoesNotExist");
-        check("hardening_facade_bad_sound_null", badSound.isNull(), "");
+        check("hardening_helper_bad_sound_null", badSound.isNull(), "");
         FmodManager.PlaySong("event:/DoesNotExist");
-        check("hardening_facade_bad_song_not_playing", !FmodManager.IsSongPlaying(), "");
+        check("hardening_helper_bad_song_not_playing", !FmodManager.IsSongPlaying(), "");
         FmodManager.PlaySong(FmodEvents.MusicMainLevel);
-        check("hardening_facade_recovers_after_bad_song", FmodManager.IsSongPlaying(), "");
+        check("hardening_helper_recovers_after_bad_song", FmodManager.IsSongPlaying(), "");
         info("hardening_song_param_miss", Std.string(FmodManager.GetSongParameter("NoSuchParam")));
         FmodManager.PauseSong();
         FmodManager.UnpauseSong();
         FmodManager.StopSongImmediately();
 
-        // Thin facade delegations, each exercised once against the real
+        // Thin helper class delegations, each exercised once against the real
         // backend with state restored afterwards
         var smoke = FmodManager.PlayEvent(FmodEvents.SFXJump);
         check("hardening_sound_handle", !smoke.isNull(), "");
@@ -897,9 +897,9 @@ class ApiProbeScenario implements TestScenario {
 
         // A sound created without starting: parameters land before the first frame
         var created = FmodManager.CreateEvent(FmodEvents.SFXJump);
-        check("helper_create_sound_not_started", !created.isNull() && !created.isPlaying(), "");
+        check("helper_create_event_not_started", !created.isNull() && !created.isPlaying(), "");
         created.setParameterWithLabel("Surface", "Stone");
-        check("helper_create_sound_start", created.start().isOk() && Math.abs(created.getParameter("Surface") - 1) < 0.001,
+        check("helper_create_event_start", created.start().isOk() && Math.abs(created.getParameter("Surface") - 1) < 0.001,
             'value=${created.getParameter("Surface")}');
         created.stopImmediately();
         created.release();
@@ -1156,7 +1156,7 @@ class ApiProbeScenario implements TestScenario {
         // reclaim depends on the studio thread, so it happens
         // deterministically here before the baseline snapshot. SFXJump,
         // not the music event: releaseAllInstances on the music event
-        // would destroy the facade song slot's retained instance behind
+        // would destroy the helper class song slot's retained instance behind
         // FmodManager's back.
         var desc = StudioSystem.getEvent(FmodEvents.SFXJump);
         var instance = desc.createInstance();
@@ -1514,18 +1514,18 @@ class ApiProbeScenario implements TestScenario {
     }
 
     /**
-     * Facade predicates against real asynchronous playback states: a song
+     * helper class predicates against real asynchronous playback states: a song
      * or sound started this frame is still in the STARTING state, and must
      * already report playing. The song slot keeps its stopped instance by
      * design, so this runs before any section snapshots a leak baseline.
      */
-    function probeFacadeSong():Void {
+    function probeHelperSong():Void {
         FmodManager.PlaySong(FmodEvents.MusicMainLevel);
-        check("facade_song_playing_at_once", FmodManager.IsSongPlaying(),
+        check("helper_song_playing_at_once", FmodManager.IsSongPlaying(),
             'path=${FmodManager.GetCurrentSongPath()}');
         var sound = FmodManager.PlayEvent(FmodEvents.SFXJump);
-        check("facade_sound_created", !sound.isNull(), "");
-        check("facade_sound_playing_at_once", sound.isPlaying(), "");
+        check("helper_event_created", !sound.isNull(), "");
+        check("helper_event_playing_at_once", sound.isPlaying(), "");
         sound.stopImmediately();
         sound.release();
         FmodManager.StopSongImmediately();
@@ -1703,8 +1703,8 @@ class ApiProbeScenario implements TestScenario {
      * from update() once a beat lands (or the wait times out).
      */
     function probeRemintCallbacks():Void {
-        // probeFacadeSong left its stopped MusicMainLevel instance in the
-        // facade slot (the slot keeps it by design). Replacing the song
+        // probeHelperSong left its stopped MusicMainLevel instance in the
+        // helper class slot (the slot keeps it by design). Replacing the song
         // releases it, so the instance list below holds exactly the
         // instance this phase creates.
         FmodManager.PlaySong(FmodEvents.SFXJump);
@@ -1767,7 +1767,7 @@ class ApiProbeScenario implements TestScenario {
     }
 
     /**
-     * The facade's transition machinery end to end: the old song fades,
+     * The helper class's transition machinery end to end: the old song fades,
      * its Stopped event arrives through the queue, and the once-only
      * handler starts the next song. Async: finishes from update() when the
      * next song owns the slot (or the wait times out).

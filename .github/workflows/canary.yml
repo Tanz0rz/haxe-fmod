@@ -62,7 +62,7 @@ jobs:
         env:
           FMOD_SDK_WEB: ${{ env.FMOD_SDK }}
         run: |
-          # html5 needs no native toolchain and still compiles the flixel
+          # HTML5 needs no native toolchain and still compiles the flixel
           # components against the latest flixel
           cd example-project/EZPlatformer
           haxelib run lime build html5 -Daudio_test

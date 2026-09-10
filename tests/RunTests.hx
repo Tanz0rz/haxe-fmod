@@ -8,7 +8,7 @@ class RunTests {
 		var totalFailed = 0;
 		totalFailed += TestCallbackDispatcher.run();
 		totalFailed += TestComponentCores.run();
-		totalFailed += TestFacadePredicates.run();
+		totalFailed += TestHelperPredicates.run();
 		totalFailed += TestLayering.run();
 		totalFailed += TestPlugins.run();
 		totalFailed += TestPostBuild.run();

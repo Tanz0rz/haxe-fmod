@@ -22,7 +22,7 @@ abstract FmodEvent(EventInstance) from EventInstance to EventInstance {
     /** The null handle. Every call on it is a safe no-op. */
     public static inline var NULL:FmodEvent = cast 0;
 
-    /** Returns true when PlayEvent failed, because the event path is unknown or FMOD is not initialized. */
+    /** Returns true when PlayEvent or CreateEvent failed, because the event path is unknown or FMOD is not initialized. */
     public inline function isNull():Bool {
         return this.isNull();
     }
@@ -60,7 +60,7 @@ abstract FmodEvent(EventInstance) from EventInstance to EventInstance {
         return this.setPaused(true);
     }
 
-    /** Resumes a sound paused by pause(). */
+    /** Resumes an event paused by pause(). */
     public inline function unpause():FmodResult {
         return this.setPaused(false);
     }

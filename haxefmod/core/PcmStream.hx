@@ -63,7 +63,7 @@ abstract PcmStream(Int) from Int to Int {
     /**
      * Installs a callback that fills the ring from the game thread. Every
      * frame the ring has room, the callback receives a buffer and the
-     * byte count to fill, and the bytes go into the ring when it returns
+     * byte count to fill. The bytes go into the ring when it returns
      * FMOD_OK. Replaces any earlier callback, null removes it.
      */
     public function setReadCallback(callback:PcmReadCallback):Void {
@@ -95,7 +95,7 @@ abstract PcmStream(Int) from Int to Int {
 
     /** Fills every stream with a read callback. Public for tests, runs from the frame drain otherwise. */
     public static function pump():Void {
-        // A callback may remove itself, so walk a copy of the keys
+        // A callback can remove itself, so walk a copy of the keys
         for (handle in [for (k in readers.keys()) k]) {
             if (!readers.exists(handle)) continue;
             var stream:PcmStream = handle;
@@ -134,7 +134,7 @@ abstract PcmStream(Int) from Int to Int {
         return NativeStudio.core_pcm_write(this, data, len);
     }
 
-    /** Bytes that can be written right now. */
+    /** Bytes that can be written at this moment. */
     public inline function space():Int {
         return NativeStudio.core_pcm_space(this);
     }

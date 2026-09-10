@@ -35,7 +35,7 @@ typedef SystemCallback = SystemEvent->Void;
 /**
  * Routing for system events. They ride the same native queue as event
  * and channel callbacks under the 0x20000000 type namespace with handle
- * 0, and the CallbackDispatcher hands them here during its per-frame
+ * 0. The CallbackDispatcher hands them here during its per-frame
  * drain.
  *
  * Register through StudioSystem.setSystemCallback rather than directly.
@@ -126,8 +126,8 @@ class SystemCallbacks {
     /**
      * Decodes a raw queue record. Null for types this class does not know.
      * An Error record carries the result in i1, the instance type in i2,
-     * the instance handle in i3, the function name in str, and the
-     * parameters in str2.
+     * and the instance handle in i3. The function name sits in str and
+     * the parameters in str2.
      */
     public static function decode(type:Int, str:String, i1:Int = 0, i2:Int = 0, i3:Int = 0, str2:String = ""):Null<SystemEvent> {
         return switch (type) {

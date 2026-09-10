@@ -1,8 +1,7 @@
 // Prototype rig for the Core dynamic-audio surface, run against the real
-// FMOD 2.03.12 wasm build under Node. This is the phase-1 gate for the Core
-// bindings: it has to prove the embind surface actually behaves (created
-// sounds play, the pcmread callback fires with sane sizes, channels respond,
-// DSP types exist) before any Haxe API gets designed around it.
+// FMOD 2.03.12 wasm build under Node. It proves the embind surface behaves
+// (created sounds play, the pcmread callback fires with sane sizes, channels
+// respond, DSP types exist), so the Haxe Core API can rely on it.
 // Usage: node core-harness.js  (needs FMOD_SDK_WEB)
 
 const path = require('path');
@@ -225,7 +224,7 @@ function testChannelControl(studio) {
 
 function testDspEnumeration() {
     // FMOD_DSP_TYPE from the 2.03.12 SDK's own fmod_dsp_effects.h: a
-    // contiguous enum. The 1.x-era plugin host types no longer exist.
+    // contiguous enum. The plugin host types of FMOD 1.x do not exist in 2.03.
     const DSP_TYPES = {
         MIXER: 1, OSCILLATOR: 2, LOWPASS: 3, ITLOWPASS: 4, HIGHPASS: 5,
         ECHO: 6, FADER: 7, FLANGE: 8, DISTORTION: 9, NORMALIZE: 10,
@@ -329,7 +328,7 @@ function testDspParamsMeteringFft(studio) {
     check('dsp_set_metering', fft.setMeteringEnabled(true, true) === FMOD.OK);
     pump(studio, 40);
 
-    // 2.03 moved the FFT param indices: SPECTRUMDATA is 4 (1.x-era 2 is
+    // 2.03 moved the FFT param indices: SPECTRUMDATA is 4 (FMOD 1.x used 2, which is
     // BAND_START_FREQ, a float, and data-reading it must fail)
     const bad = {};
     let badResult;

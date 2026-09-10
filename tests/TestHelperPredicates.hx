@@ -9,12 +9,12 @@ import haxefmod.studio.native.NativeStudioStub;
  * test hooks. FMOD starts and stops instances asynchronously, so "playing"
  * must cover STARTING, SUSTAINING, and STOPPING, not just PLAYING.
  */
-class TestFacadePredicates {
+class TestHelperPredicates {
 	static var passed = 0;
 	static var failed = 0;
 
 	public static function run():Int {
-		Sys.println("--- Facade predicates ---");
+		Sys.println("--- helper class predicates ---");
 
 		testIsPlayingStates();
 		testOnceReady();

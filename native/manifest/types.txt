@@ -1,5 +1,5 @@
-# FMOD type -> haxefmod declaration, or a category (cannot | library | covered) with a reason.
-# Checked against the SDK headers by ci/check-type-parity.py and used by ci/haxe-examples.py.
+# FMOD type -> haxefmod declaration, or the word cannot with the reason the type has no Haxe side.
+# Checked against the SDK headers by ci/check-type-parity.py and used by ci/haxe-catalog.py.
 # Optional trailing `skip: A,B` names header values or fields Haxe leaves out on purpose.
 
 FMOD_3D_ATTRIBUTES                                  haxefmod.studio.Types.Fmod3DAttributes
@@ -254,3 +254,13 @@ FMOD_THREAD_STACK_SIZE                              haxefmod.studio.Types.FmodTh
 FMOD_THREAD_TYPE                                    haxefmod.studio.Types.FmodThreadType
 FMOD_TIMEUNIT                                       haxefmod.studio.Types.FmodTimeUnit
 FMOD_VECTOR                                         haxefmod.studio.Types.FmodVector
+FSBANK_BUILDFLAGS                                   cannot   FSBank is the offline bank compiler, a separate library the runtime binding does not link, the FMOD Studio tool builds banks
+FSBANK_FORMAT                                       cannot   FSBank is the offline bank compiler, a separate library the runtime binding does not link, the FMOD Studio tool builds banks
+FSBANK_FSBVERSION                                   cannot   FSBank is the offline bank compiler, a separate library the runtime binding does not link, the FMOD Studio tool builds banks
+FSBANK_INITFLAGS                                    cannot   FSBank is the offline bank compiler, a separate library the runtime binding does not link, the FMOD Studio tool builds banks
+FSBANK_PROGRESSITEM                                 cannot   FSBank is the offline bank compiler, a separate library the runtime binding does not link, the FMOD Studio tool builds banks
+FSBANK_RESULT                                       cannot   FSBank is the offline bank compiler, a separate library the runtime binding does not link, the FMOD Studio tool builds banks
+FSBANK_STATE                                        cannot   FSBank is the offline bank compiler, a separate library the runtime binding does not link, the FMOD Studio tool builds banks
+FSBANK_STATEDATA_FAILED                             cannot   FSBank is the offline bank compiler, a separate library the runtime binding does not link, the FMOD Studio tool builds banks
+FSBANK_STATEDATA_WARNING                            cannot   FSBank is the offline bank compiler, a separate library the runtime binding does not link, the FMOD Studio tool builds banks
+FSBANK_SUBSOUND                                     cannot   FSBank is the offline bank compiler, a separate library the runtime binding does not link, the FMOD Studio tool builds banks

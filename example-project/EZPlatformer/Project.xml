@@ -57,7 +57,7 @@
 	<!--Disable the Native cursor api for Flash target-->
 	<!--<haxedef name="FLX_NO_NATIVE_CURSOR" />-->
 	
-	<!--Optimise inputs, be careful you will get null errors if you don't use conditionals in your game-->
+	<!--Optimise inputs, be careful, null errors follow if you do not use conditionals in your game-->
 	<haxedef name="FLX_NO_MOUSE" if="mobile" />
 	<haxedef name="FLX_NO_KEYBOARD" if="mobile" />
 	<haxedef name="FLX_NO_TOUCH" if="desktop" />
@@ -75,7 +75,7 @@
 	<!--Disable the Flixel core debugger. Automatically gets set whenever you compile in release mode!-->
 	<haxedef name="FLX_NO_DEBUG" unless="debug" />
 	
-	<!--Enable this for Nape release builds for a serious peformance improvement-->
+	<!--Enable this for Nape release builds for a serious performance improvement-->
 	<haxedef name="NAPE_RELEASE_BUILD" unless="debug" />
 	
 	<!--The ApiProbeState calls methods FMOD's web build cannot serve on purpose, so the HTML5 build opts out of the haxefmod compile-time gate and checks the FMOD_ERR_UNSUPPORTED results at runtime instead-->

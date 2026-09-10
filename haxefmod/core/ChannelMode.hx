@@ -42,7 +42,7 @@ class ChannelMode {
     public static inline var LOWMEM:Int = 0x08000000;
     public static inline var VIRTUAL_PLAYFROMSTART:Int = 0x80000000;
 
-    /** The names haxefmod 2.0.0 gave the 3D flags, the same bits. */
+    /** Aliases for the 3D flags with the older haxefmod spelling, the same bits. */
     public static inline var HEAD_RELATIVE_3D:Int = MODE_3D_HEADRELATIVE;
     public static inline var WORLD_RELATIVE_3D:Int = MODE_3D_WORLDRELATIVE;
     public static inline var INVERSE_ROLLOFF_3D:Int = MODE_3D_INVERSEROLLOFF;

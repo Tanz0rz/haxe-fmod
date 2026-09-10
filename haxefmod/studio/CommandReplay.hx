@@ -105,10 +105,6 @@ abstract CommandReplay(Int) from Int to Int {
         return NativeStudio.replay_get_command_at_time(this, seconds);
     }
 
-    @:deprecated("CommandReplay.getCommandAtTimeMs is replaced by getCommandAtTime, which takes seconds")
-    public inline function getCommandAtTimeMs(timeMs:Int):Int {
-        return NativeStudio.replay_get_command_at_time(this, timeMs / 1000.0);
-    }
 
     public inline function seekToCommand(index:Int):FmodResult {
         return NativeStudio.replay_seek_to_command(this, index);

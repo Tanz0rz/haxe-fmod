@@ -144,9 +144,9 @@ class CoreSystem {
 
     /**
      * The pool channel at index (see Channel.getIndex). FMOD hands back a
-     * reference to the pool slot rather than to the sound playing in it,
-     * so this is a separate handle from the one play returned, shared by
-     * every call for the same index. The channel may be idle, and every
+     * reference to the pool slot rather than to the sound playing in it.
+     * This is a separate handle from the one play returned, shared by
+     * every call for the same index. The channel can be idle, and every
      * call on an idle channel reports FMOD_ERR_INVALID_HANDLE until FMOD
      * reuses the slot. Stop the handle when done with it to release it.
      * Channel.NULL on failure.
@@ -209,8 +209,8 @@ class CoreSystem {
     }
 
     /**
-     * Where one output speaker sits for panning, as x (left -1 to right 1)
-     * and y (back -1 to front 1), and whether it is fed at all.
+     * Where one output speaker sits for panning, and whether it is fed at
+     * all. x runs from left -1 to right 1, y from back -1 to front 1.
      */
     public static inline function setSpeakerPosition(speaker:FmodSpeaker, x:Float, y:Float, active:Bool):FmodResult {
         return NativeStudio.sys_set_speaker_position(speaker, x, y, active);

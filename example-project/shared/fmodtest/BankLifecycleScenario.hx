@@ -75,7 +75,7 @@ class BankLifecycleScenario implements TestScenario {
             'refs=${FmodRuntime.banks.refCount(_masterPath)}');
 
         // A second load of a registry-owned bank shares the entry instead
-        // of racing a duplicate load (or erroring, as the old html5 shim
+        // of racing a duplicate load (or erroring, as an HTML5 shim that owns the load
         // ownership forced)
         var dup = FmodRuntime.banks.loadAsync(_masterPath);
         check("duplicate_load_shares_entry",

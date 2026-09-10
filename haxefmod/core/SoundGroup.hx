@@ -88,7 +88,7 @@ abstract SoundGroup(Int) from Int to Int {
         return NativeStudio.sg_get_sound(this, index);
     }
 
-    /** Sounds from this group audible right now. */
+    /** Sounds from this group audible at this moment. */
     public inline function getPlayingCount():Int {
         return NativeStudio.sg_get_num_playing(this);
     }

@@ -15,7 +15,7 @@ import haxefmod.studio.native.Scratch;
  * the same number ChannelEvent.SyncPoint carries, so an Int converts both
  * ways. FMOD keeps its points sorted by offset. Deleting a point moves the
  * points after it down by one, and adding one at an earlier offset moves
- * the ones after it up, so fetch handles again with getSyncPoint after
+ * the ones after it up. Fetch handles again with getSyncPoint after
  * changing the set.
  */
 abstract FmodSyncPoint(Int) from Int to Int {
@@ -29,9 +29,9 @@ abstract FmodSyncPoint(Int) from Int to Int {
 }
 
 /**
- * A handle to an FMOD Core sound. Create from an audio file (native: a
- * path on disk, and on HTML5 a file preloaded into the virtual filesystem), a
- * file image in memory, or raw PCM.
+ * A handle to an FMOD Core sound. Create from an audio file, a file image
+ * in memory, or raw PCM. On native an audio file is a path on disk, and
+ * on HTML5 a file preloaded into the virtual filesystem.
  */
 abstract Sound(Int) from Int to Int {
     public static inline var NULL:Sound = cast 0;
@@ -190,9 +190,9 @@ abstract Sound(Int) from Int to Int {
      * path for sample data, readData stays the read path for decoded PCM.
      * Edit the bytes and hand them to unlock, which writes them back and
      * closes the lock. Null on failure with the reason in
-     * StudioSystem.lastResult(): FMOD_ERR_INVALID_PARAM when a lock is
-     * already open on this sound or the range is empty, and FMOD's own
-     * error for a stream or a range past the end. Only sample sounds
+     * StudioSystem.lastResult(). That is FMOD_ERR_INVALID_PARAM when a
+     * lock is already open on this sound or the range is empty. A stream
+     * or a range past the end reports FMOD's own error. Only sample sounds
      * (fromPcm, createRecordBuffer, or create without a stream mode) hold
      * a buffer to lock. The copy can be shorter than length when FMOD
      * clamps the range.
@@ -207,9 +207,9 @@ abstract Sound(Int) from Int to Int {
      * path for sample data, readData stays the read path for decoded PCM.
      * Edit the bytes and hand them to unlock, which writes them back and
      * closes the lock. Null on failure with the reason in
-     * StudioSystem.lastResult(): FMOD_ERR_INVALID_PARAM when a lock is
-     * already open on this sound or the range is empty, and FMOD's own
-     * error for a stream or a range past the end. Only sample sounds
+     * StudioSystem.lastResult(). That is FMOD_ERR_INVALID_PARAM when a
+     * lock is already open on this sound or the range is empty. A stream
+     * or a range past the end reports FMOD's own error. Only sample sounds
      * (fromPcm, createRecordBuffer, or create without a stream mode) hold
      * a buffer to lock. The copy can be shorter than length when FMOD
      * clamps the range.
@@ -609,7 +609,7 @@ abstract Sound(Int) from Int to Int {
     /**
      * A subsound by index, or Sound.NULL when the index is out of
      * range (StudioSystem.lastResult reports FMOD_ERR_INVALID_PARAM). The
-     * subsound belongs to its parent, so never call release() on it: FMOD
+     * subsound belongs to its parent, so never call release() on it. FMOD
      * frees it with the parent, and releasing the parent also drops every
      * subsound handle taken from it.
      */

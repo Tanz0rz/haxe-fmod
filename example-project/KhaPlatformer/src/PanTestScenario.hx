@@ -273,7 +273,7 @@ class PanTestScenario implements TestScenario {
         check("no_handle_leaks_cull", StudioSystem.liveHandleCount() == _cullBaseline,
             'baseline=$_cullBaseline now=${StudioSystem.liveHandleCount()}');
 
-        // Utilities wrapper: attach-and-forget playback through the facade.
+        // Utilities wrapper: attach-and-forget playback through the helper class.
         // The next phase waits for playout so the auto-release branch runs
         // under the leak gate instead of outliving the scenario.
         _utilBaseline = FmodRuntime.attachedCount();

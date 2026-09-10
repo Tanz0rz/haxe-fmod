@@ -89,7 +89,7 @@ async function main() {
     check('event_resolves_after_async_load', evd > 0, `handle=${evd}`);
 
     // A failed fetch surfaces as ERROR instead of hanging init forever
-    // (the old preRun preload turned a 404 into an unresolvable hang)
+    // (a preRun preload turns a 404 into an unresolvable hang)
     const missing = jaxe.fmod_sys_load_bank_async('assets/fmod/Desktop/Nope.bank');
     for (let i = 0; i < 200 && jaxe.fmod_bank_get_loading_state(missing) === 2; i++) await sleep(20);
     check('missing_bank_settles_error', jaxe.fmod_bank_get_loading_state(missing) === 4,

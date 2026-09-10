@@ -99,7 +99,7 @@ FmodRuntime.onceReady(() -> {
 |---|---|
 | `setWindowFocused(focused)` / `isWindowFocused()` | Reports a window focus change. The [engine setup calls](components.md#setup) do this for you. |
 | `setMuteWhenUnfocused(enabled)` / `isFocusMuted()` | The focus mute policy, and whether it is muting the master output right now. |
-| `pauseAll(paused)` / `muteAll(muted)` | Pauses or mutes the master bus. `FmodManager.PauseAllEvents` and `SetMasterMute` call these. |
+| `pauseAll(paused)` / `muteAll(muted)` | Pauses or mutes the master bus. `FmodManager.PauseAllEvents`, `UnpauseAllEvents`, and `SetMasterMute` call these. |
 | `playOneShot(path, ?x, ?y)` / `playOneShotAttached(path, provider)` | The one-shot calls behind `FmodManager.PlayOneShot`, `PlayOneShotAt`, and `PlayOneShotAttached`. |
 | `isAttachedProvider(provider)` | Whether an attached instance still follows a position provider. |
 | `bankPath(fileName)` | Resolves a bank file name against the bank folder setting. |

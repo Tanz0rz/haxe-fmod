@@ -5,7 +5,7 @@ name: Docs
 # branch, and release tags, and publishes it to
 # https://tanz0rz.com/haxe-fmod/. The site is rsynced from the self-hosted runner
 # to the docs host and swapped in atomically. GitHub Pages keeps serving a
-# redirect to the new address for old links.
+# redirect to tanz0rz.com for links made before the move.
 
 on:
   push:
@@ -89,7 +89,7 @@ jobs:
       - name: Generate type XML
         run: |
           mkdir -p /tmp/haxefmod-docs
-          # One compile typed as an html5 build with every engine library
+          # One compile typed as an HTML5 build with every engine library
           # on the path, so the flixel, Heaps, and Kha packages all land
           # in the reference. Kha compiles against the stubs the snippet
           # checker keeps, since Kha only exists as a checkout. The CLI
@@ -147,7 +147,7 @@ jobs:
           path: ci/pages-redirect
 
   deploy:
-    # Keeps the old GitHub Pages address alive as a redirect to tanz0rz.com
+    # Keeps the GitHub Pages address alive as a redirect to tanz0rz.com
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 10

@@ -68,22 +68,24 @@ abstract DspConnection(Int) from Int to Int {
 
     #if (macro || (js && !haxefmod_html5_allow_unsupported))
     /**
-     * Reads the mix matrix back as one flat row-major array with
-     * inChannelHop floats per row (0 = packed to the input count), and
-     * the output and input channel counts FMOD reports (unsupported in
-     * HTML5, null there). outChannels and inChannels above 0 keep only
-     * that many rows and columns. Null on failure, at most 32 by 32.
+     * Reads the mix matrix back as one flat row-major array
+     * (unsupported in HTML5, null there). Each row holds inChannelHop
+     * floats (0 = packed to the input count). The result also carries
+     * the output and input channel counts FMOD reports. outChannels and
+     * inChannels above 0 keep only that many rows and columns. Null on
+     * failure, at most 32 by 32.
      */
     public macro function getMixMatrix(self:haxe.macro.Expr, ?outChannels:haxe.macro.Expr, ?inChannels:haxe.macro.Expr, ?inChannelHop:haxe.macro.Expr):haxe.macro.Expr {
         return haxefmod.studio.native.Html5Gate.block("DspConnection.getMixMatrix", "FMOD's web glue binds the matrix as a single float");
     }
     #else
     /**
-     * Reads the mix matrix back as one flat row-major array with
-     * inChannelHop floats per row (0 = packed to the input count), and
-     * the output and input channel counts FMOD reports (unsupported in
-     * HTML5, null there). outChannels and inChannels above 0 keep only
-     * that many rows and columns. Null on failure, at most 32 by 32.
+     * Reads the mix matrix back as one flat row-major array
+     * (unsupported in HTML5, null there). Each row holds inChannelHop
+     * floats (0 = packed to the input count). The result also carries
+     * the output and input channel counts FMOD reports. outChannels and
+     * inChannels above 0 keep only that many rows and columns. Null on
+     * failure, at most 32 by 32.
      */
     public function getMixMatrix(outChannels:Int = 0, inChannels:Int = 0, inChannelHop:Int = 0):Null<FmodMixMatrix> {
         var total = NativeStudio.conn_get_mix_matrix(this, inChannelHop);

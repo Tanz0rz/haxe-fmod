@@ -3,8 +3,8 @@ package haxefmod.core;
 /**
  * FMOD_CHANNELCONTROL_CALLBACK as game code holds it. Channel.setCallback
  * and ChannelGroup.setCallback take one. The handle it was registered on
- * stands in for the channelcontrol and controltype arguments, the event
- * carries the callback type and its data, and nothing is returned.
+ * stands in for the channelcontrol and controltype arguments. The event
+ * carries the callback type and its data, and the handler returns nothing.
  */
 typedef ChannelCallback = ChannelEvent->Void;
 

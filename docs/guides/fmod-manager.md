@@ -76,7 +76,7 @@ FmodManager.PlayOneShot(FmodEvents.SFXCoin);
 FmodManager.PlayOneShotAt(FmodEvents.SFXCoin, 320, 240);
 ```
 
-`PlayEvent(path)` returns an `FmodEvent` for sounds you control over time. `CreateEvent(path)` returns the same handle without starting it, so parameters and a position land before the first frame plays, and `start()` plays it.
+`PlayEvent(path)` returns an `FmodEvent` for events you control over time. `CreateEvent(path)` returns the same handle without starting it, so parameters and a position land before the first frame plays, and `start()` plays it.
 
 ```haxe
 var engine = FmodManager.PlayEvent(FmodEvents.SFXEngine);
@@ -117,13 +117,13 @@ Snapshots are events to FMOD, so these calls accept them too. The [Snapshots](#s
 | Call | Effect |
 |---|---|
 | `StopAllEvents()` | Stops every event routed through the master bus immediately. |
-| `PauseAllEvents()` / `UnpauseAllEvents()` | Pauses the master bus and freezes every sound at its position. Events started while paused queue up and play on unpause. |
+| `PauseAllEvents()` / `UnpauseAllEvents()` | Pauses the master bus and freezes every event at its position. Events started while paused queue up and play on unpause. |
 | `SetBusVolume(path, volume)` / `GetBusVolume(path)` | Linear bus volume, 0.0 silent to 1.0 full. |
 | `SetBusMute(path, mute)` / `IsBusMuted(path)` | Bus mute flag. Volume survives a mute and unmute round trip. |
 | `SetBusPaused(path, paused)` / `IsBusPaused(path)` | Pauses one bus. Every event through it freezes at its position and resumes from there. A pause menu pauses `bus:/SFX` and keeps the music bus running. |
 | `SetMasterVolume(volume)`, `GetMasterVolume()`, `SetMasterMute(mute)`, `IsMasterMuted()` | The same for the master bus, `bus:/`. |
 | `SetVCAVolume(path, volume)` / `GetVCAVolume(path)` | Linear VCA volume, 0.0 to 1.0. A VCA scales every bus assigned to it. |
-| `ClearAllCallbacks()` | Removes every registered callback: song and sound handlers, event description handlers, core channel and group handlers, the system callback, and PCM stream read callbacks. Userdata stays. |
+| `ClearAllCallbacks()` | Removes every registered callback: song and event handlers, event description handlers, core channel and group handlers, the system callback, and PCM stream read callbacks. Userdata stays. |
 
 Bus and VCA paths come from FMOD Studio, for example `bus:/SFX` and `vca:/Music`. The generated `FmodBuses` and `FmodVCAs` classes hold them as constants. A project that authors its Master, Music, and SFX sliders as VCAs uses the VCA calls. A project that authors them as buses uses the bus calls.
 
@@ -141,7 +141,7 @@ FmodManager.SetGlobalParameter(FmodParameters.Intensity, 0.75);
 FmodManager.SetGlobalParameterWithLabel(FmodParameters.Weather, "Rain");
 ```
 
-A parameter local to one event is set on that event. The song takes `SetSongParameter`, and a sound from `PlayEvent` takes `setParameter` on its handle. FMOD reports a value of 0 for a name it does not know.
+A parameter local to one event is set on that event. The song takes `SetSongParameter`, and an event from `PlayEvent` takes `setParameter` on its handle. FMOD reports a value of 0 for a name it does not know.
 
 ## Snapshots
 
@@ -191,7 +191,7 @@ FmodManager.Todo("door creak when the cellar opens");
 | Every FMOD Studio object by handle: events, buses, VCAs, snapshots, banks, command replay | `haxefmod.studio` | [Handles and results](handles-and-results.md), [Callbacks](callbacks.md), the Haxe tab on fmod.com |
 | The FMOD Core API: sounds, channels, groups, DSP, geometry | `haxefmod.core` | [Core API helpers](core-api.md) |
 
-`PlayEvent` and `CreateEvent` return the one handle with a lifetime, and the cast above reaches the full `EventInstance` API from it. For FMOD's other objects the helper class hands out the object itself. `GetBus(path)`, `GetVCA(path)`, and `GetEventDescription(path)` return the same handles `haxefmod.studio` serves. They belong to FMOD and need no release. A bad path returns a null handle whose every call is a safe no-op. Use them for what the path calls do not cover. Examples are a bus's final volume after VCAs and snapshots, the channel group under a bus for effects, an event's length and distances, its parameters and labels, and preloading its sample data.
+`PlayEvent` and `CreateEvent` return the one handle with a lifetime. The cast above reaches the full `EventInstance` API from it. For FMOD's other objects the helper class hands out the object itself. `GetBus(path)`, `GetVCA(path)`, and `GetEventDescription(path)` return the same handles `haxefmod.studio` serves. They belong to FMOD and need no release. A bad path returns a null handle whose every call is a safe no-op. Use them for what the path calls do not cover. Examples are a bus's final volume after VCAs and snapshots, the channel group under a bus for effects, an event's length and distances, its parameters and labels, and preloading its sample data.
 
 ```haxe
 var shown = FmodManager.GetBus(FmodBuses.Music).getFinalVolume();

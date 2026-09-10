@@ -967,7 +967,7 @@ class jaxe {
     // bank loading (flags: bit0 = nonblocking). Returns bank handle or 0.
     // Resolves bare filenames from the MEMFS root; on this target files
     // only exist there after an async load's fetch wrote them, so the
-    // registry routes html5 loads through fmod_sys_load_bank_async.
+    // registry routes HTML5 loads through fmod_sys_load_bank_async.
     static fmod_sys_load_bank_file(path, flags) {
         if (typeof path !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return 0; }
         if (!jaxe.sysReady()) return 0;
@@ -1808,7 +1808,7 @@ class jaxe {
     // value union dereferences the raw number bits as a pointer and traps
     // (tests/js/fmod_userprop_glue_repro.html). The trap is catchable and
     // the module keeps working, so those properties report UNSUPPORTED
-    // and only string properties are readable on html5.
+    // and only string properties are readable on HTML5.
     static evdUserProp(handle, index) {
         var evd = jaxe.handleResolve(handle, jaxe.TYPE_EVD);
         if (!evd) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return null; }
@@ -2196,11 +2196,11 @@ class jaxe {
         if (typeof key !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
         // Native stores keys in a 512-byte buffer (FAXE_PS_KEY_MAX) and
         // rejects longer ones. Reject here too, measured in UTF-8 bytes,
-        // so a key that works on html5 also works native.
+        // so a key that works on HTML5 also works native.
         if (jaxe.utf8ByteLength(key) >= 512) { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
         var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
         if (!inst) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
-        // The FMOD html5 glue cannot complete the programmer-sound flow:
+        // The FMOD HTML5 glue cannot complete the programmer-sound flow:
         // handing the created sound back from the create callback stops the
         // event instantly and ends callback delivery for the instance.
         // FMOD's own example pattern fails the same way with no haxefmod
@@ -5399,8 +5399,8 @@ class jaxe {
 
     static onRuntimeInitialized = function () {
         var outval = {};
-        // Settings from fmod_sys_init_ex. null on the legacy fmod_init path
-        // (defaults below match the legacy behavior exactly).
+        // Settings from fmod_sys_init_ex. null on the plain fmod_init path
+        // (defaults below match that path exactly).
         var init = jaxe.pendingInit;
 
         jaxe.FMOD.Studio_System_Create(outval);

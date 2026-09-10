@@ -253,7 +253,7 @@ typedef FmodDspParameterFft = {
     var spectrum:Array<Array<Float>>;
 }
 
-/** FMOD_DSP_METERING_INFO, one side of a unit's meter: the sample count the meter averaged, the peak and RMS level per channel (linear 0..1), and the channel count. Dsp.getMetering and getInputMetering return it. */
+/** FMOD_DSP_METERING_INFO, one side of a unit's meter. It holds the sample count the meter averaged, the peak and RMS level per channel (linear 0..1), and the channel count. Dsp.getMetering and getInputMetering return it. */
 typedef FmodDspMeteringInfo = {
     var numSamples:Int;
     var peakLevel:Array<Float>;
@@ -355,8 +355,8 @@ typedef FmodListenerAttributes = {
 /**
  * FMOD_STUDIO_SOUND_INFO, what StudioSystem.getSoundInfo reports for an
  * audio table key. name is the file FMOD would open (the bank path for a
- * bank loaded from disk, "" for a bank held in memory), mode the
- * ChannelMode flags it would open it with, and the exinfo fields say where
+ * bank loaded from disk, "" for a bank held in memory). mode holds the
+ * ChannelMode flags it would open it with. The exinfo fields say where
  * the sample sits in that file: length in bytes, fileOffset in bytes,
  * initialSubsound, and numSubsounds. subSoundIndex is the subsound inside
  * the loaded sound that plays the key.
@@ -466,11 +466,12 @@ typedef FmodPluginInstanceProperties = {
 /**
  * FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES, the payload of
  * EventCallbackData.ProgrammerSoundCreated and ProgrammerSoundDestroyed.
- * name is the instrument's name in FMOD Studio, sound the Sound the
- * instrument plays (the one the game handed to assignProgrammerSoundFrom,
- * or the one the library created for the assigned key, released after
- * ProgrammerSoundDestroyed), and subsoundIndex the subsound inside it, -1
- * for the whole sound. sound is null when no assignment matched.
+ * name is the instrument's name in FMOD Studio, and sound the Sound the
+ * instrument plays. That is the one the game handed to
+ * assignProgrammerSoundFrom, or the one the library created for the
+ * assigned key, released after ProgrammerSoundDestroyed. subsoundIndex
+ * is the subsound inside it, -1 for the whole sound. sound is null when
+ * no assignment matched.
  */
 typedef FmodProgrammerSoundProperties = {
     var name:String;
@@ -481,10 +482,11 @@ typedef FmodProgrammerSoundProperties = {
 /**
  * FMOD_STUDIO_BANK_INFO, the description a custom bank load takes. size is
  * the struct size FMOD checks, userData and userDataLength the bytes FMOD
- * hands to the file callbacks. The four file callbacks (open, close, read,
- * seek) are left out because FMOD runs them on its loading threads, where
- * no Haxe target can execute code, so StudioSystem.loadBankCustom cannot
- * be bound and loadBankFile and loadBankMemory are the bank loading paths.
+ * hands to the file callbacks. This typedef leaves out the four file
+ * callbacks (open, close, read, seek). FMOD runs them on its loading
+ * threads, where no Haxe target can execute code. StudioSystem.loadBankCustom
+ * therefore cannot be bound, and loadBankFile and loadBankMemory are the
+ * bank loading paths.
  */
 typedef FmodStudioBankInfo = {
     var size:Int;
@@ -1077,7 +1079,7 @@ typedef FmodPluginInfo = {
     var version:Int;
 }
 
-/** What StudioSystem.getMemoryStats returns (Memory_GetStats): bytes allocated now and the high water mark */
+/** What StudioSystem.getMemoryStats returns (Memory_GetStats): bytes allocated at this moment and the high water mark */
 typedef FmodMemoryStats = {
     var current:Int;
     var maximum:Int;
@@ -1266,7 +1268,7 @@ enum abstract FmodPortIndex(Int) from Int to Int {
 class FmodLimits {
     /** FMOD_MAX_CHANNEL_WIDTH, the widest mix matrix and channel format. */
     public static inline var MAX_CHANNEL_WIDTH = 32;
-    /** FMOD_MAX_SYSTEMS, how many FMOD systems one process may create. haxefmod creates one. */
+    /** FMOD_MAX_SYSTEMS, how many FMOD systems one process can create. haxefmod creates one. */
     public static inline var MAX_SYSTEMS = 8;
     /** FMOD_MAX_LISTENERS, the cap on StudioSystem.setNumListeners. */
     public static inline var MAX_LISTENERS = 8;
@@ -1422,10 +1424,10 @@ class FmodVersion {
  * FMOD_CREATESOUNDEXINFO, the optional details of a Sound.create or
  * Sound.fromMemory call. Every field is optional and a missing one keeps
  * FMOD's default. skip: cbsize (set by the shim), inclusionlistnum (the
- * length of inclusionList), and the callback and pointer fields
- * (pcmreadcallback, pcmsetposcallback, nonblockcallback, userdata,
+ * length of inclusionList), and the callback and pointer fields. Those
+ * are pcmreadcallback, pcmsetposcallback, nonblockcallback, userdata,
  * fileuseropen, fileuserclose, fileuserread, fileuserseek,
- * fileuserasyncread, fileuserasynccancel, fileuserdata) because FMOD
+ * fileuserasyncread, fileuserasynccancel, and fileuserdata. FMOD
  * calls those on its own threads, where no Haxe code can run. PcmStream
  * feeds generated audio from the game thread instead.
  */

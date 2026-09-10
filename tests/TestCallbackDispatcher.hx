@@ -146,14 +146,14 @@ class TestCallbackDispatcher {
 		CallbackDispatcher.remove(70);
 		CallbackDispatcher.channelRouter = savedRouter;
 
-		// The facade clear covers both registries (events and channels)
+		// The helper class clear covers both registries (events and channels)
 		CallbackDispatcher.setCallback(50, _ -> {}, 0x20);
 		var chanEvents = 0;
 		haxefmod.core.ChannelCallbacks.set(60, _ -> chanEvents++);
 		haxefmod.FmodManager.ClearAllCallbacks();
-		assert("facade clear removes event handlers", !CallbackDispatcher.hasHandler(50));
+		assert("helper class clear removes event handlers", !CallbackDispatcher.hasHandler(50));
 		haxefmod.core.ChannelCallbacks.deliver(60, haxefmod.core.ChannelCallbacks.TYPE_END, 0);
-		assert("facade clear removes channel handlers", chanEvents == 0);
+		assert("helper class clear removes channel handlers", chanEvents == 0);
 	}
 
 	static function testReentrancy() {
@@ -303,11 +303,11 @@ class TestCallbackDispatcher {
 		haxefmod.studio.StudioSystem.setSystemCallback(function(e) throw "boom");
 		CallbackDispatcher.deliver(0, SC.TYPE_PREUPDATE, 0, 0, 0, 0, 0, 0.0, "");
 		assert("system handler fault contained", true);
-		// The facade clear removes the system handler as well
+		// The helper class clear removes the system handler as well
 		var after = 0;
 		haxefmod.studio.StudioSystem.setSystemCallback(function(e) after++);
 		haxefmod.FmodManager.ClearAllCallbacks();
-		assert("facade clear removes system handler", !SC.isSet());
+		assert("helper class clear removes system handler", !SC.isSet());
 		CallbackDispatcher.deliver(0, SC.TYPE_PREUPDATE, 0, 0, 0, 0, 0, 0.0, "");
 		assert("cleared system handler silent", after == 0);
 		// Explicit clear after a set, and a null handler equals clear
