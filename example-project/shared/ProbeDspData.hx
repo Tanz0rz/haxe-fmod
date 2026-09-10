@@ -133,9 +133,23 @@ class ProbeDspData {
         var inputAgain = fft.getMetering(true);
         @:privateAccess state.check("dsp_get_metering_input_flag", inputAgain != null && inputAgain.numChannels == input.numChannels, "");
 
+        // The FFT fills after the mixer has run a block through it. A
+        // loaded runner can reach this line first, so poll (bounded) until
+        // a spectrum with energy arrives.
         var spectrum = fft.getFftSpectrumInfo(64);
         var energy = 0.0;
         if (spectrum != null) for (v in spectrum.spectrum[0]) energy += v;
+        #if sys
+        var fftWaits = 0;
+        while ((spectrum == null || energy == 0) && fftWaits < 100) {
+            fftWaits++;
+            Sys.sleep(0.01);
+            StudioSystem.flushCommands();
+            spectrum = fft.getFftSpectrumInfo(64);
+            energy = 0.0;
+            if (spectrum != null) for (v in spectrum.spectrum[0]) energy += v;
+        }
+        #end
         // A headless browser with no audio device never runs the mixer, so
         // the web build can report no spectrum yet with FMOD_OK. The wasm
         // harness proves the values, here the shape is what is checked.

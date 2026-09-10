@@ -491,6 +491,21 @@ class PostBuild {
 						if (StringTools.trim(err + out) != "") log("  " + StringTools.trim(err + out));
 						log("  The game then fails at startup with: Library not loaded: @rpath/libfmod.dylib");
 						log("  Link the executable with -Wl,-headerpad_max_install_names, or add an rpath at link time.");
+						// The architectures and load commands say which slice lacks the room
+						for (probe in [["lipo", "-info", exe], ["otool", "-l", exe]]) {
+							try {
+								var p = new sys.io.Process(probe[0], probe.slice(1));
+								var text = p.stdout.readAll().toString();
+								p.stderr.readAll();
+								p.exitCode();
+								p.close();
+								if (probe[0] == "otool") {
+									var kept = [for (line in text.split("\n")) if (line.indexOf("LC_RPATH") != -1 || line.indexOf("path ") != -1 || line.indexOf("libfmod") != -1) StringTools.trim(line)];
+									text = kept.join("\n");
+								}
+								log('  ${probe[0]}: ' + StringTools.trim(text));
+							} catch (e:Dynamic) {}
+						}
 						Sys.exit(1);
 					}
 				} catch (e:Dynamic) {
