@@ -5514,6 +5514,7 @@ class jaxe {
         jaxe.gSystemCore.mixerResume();
         jaxe.gAudioResumed = true;
         jaxe.gGesturePending = false;
+        if (typeof document === 'undefined' || !document.removeEventListener) return;
         for (var i = 0; i < jaxe.gestureTypes.length; i++) {
             document.removeEventListener(jaxe.gestureTypes[i], jaxe.onGesture, true);
         }
@@ -5563,16 +5564,17 @@ class jaxe {
             jaxe.gSystemCore.setSoftwareFormat(outval.val, jaxe.FMOD.SPEAKERMODE_DEFAULT, 0);
         }
 
-        // A gesture that arrived while the wasm was still loading counts.
-        // The listeners were installed at script load (installGestureGate).
-        if (jaxe.gGesturePending) jaxe.resumeAudio();
-
         jaxe.applyPendingCoreSettings(jaxe.gSystemCore, init);
         jaxe.applyPendingAdvancedSettings(jaxe.gSystemCore, jaxe.gSystem, init);
 
         // 128 matches the native shims' fallback for a missing channel count
         var numChannels = (init && init.numChannels > 0) ? init.numChannels : 128;
         jaxe.gSystem.initialize(numChannels, jaxe.studioInitFlags(init), jaxe.coreInitFlags(init), null);
+
+        // A gesture that arrived while the wasm was still loading counts.
+        // The listeners were installed at script load (installGestureGate),
+        // and the resume needs the initialized system above.
+        if (jaxe.gGesturePending) jaxe.resumeAudio();
 
         // Enable auto-update by default (the runtime applies the
         // configured setting on its first serviced frame)

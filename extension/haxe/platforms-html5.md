@@ -1,22 +1,22 @@
 # platforms-html5
 
 ## Libraries
-verdict: library the post-build step (haxefmod.tools.PostBuild) copies fmodstudio.js and fmodstudio.wasm from FMOD_SDK_WEB into the output's lib folder and jaxe.js loads them, a Haxe project adds no script tag
+verdict: library the post-build step (haxefmod.tools.PostBuild) copies fmodstudio.js and fmodstudio.wasm from FMOD_SDK_WEB into the output's lib folder and jaxe.js loads them. A Haxe project adds no script tag
 
 ## Libraries#2
-verdict: library the post-build step (haxefmod.tools.PostBuild) copies fmodstudio.js and fmodstudio.wasm from FMOD_SDK_WEB into the output's lib folder and jaxe.js loads them, a Haxe project adds no script tag
+verdict: library the post-build step (haxefmod.tools.PostBuild) copies fmodstudio.js and fmodstudio.wasm from FMOD_SDK_WEB into the output's lib folder and jaxe.js loads them. A Haxe project adds no script tag
 
 ## Using FMOD with C/C++
-verdict: cannot Emscripten link flags for a C or C++ program compiled against FMOD, a Haxe HTML5 build compiles to JavaScript and runs FMOD's prebuilt fmodstudio.js, there is nothing to link
+verdict: cannot Emscripten link flags for a C or C++ program compiled against FMOD. A Haxe HTML5 build compiles to JavaScript and runs FMOD's prebuilt fmodstudio.js. There is nothing to link
 
 ## Flags using WASM pthread build
-verdict: cannot Emscripten link flags for a C or C++ program compiled against FMOD, a Haxe HTML5 build compiles to JavaScript and runs FMOD's prebuilt fmodstudio.js, there is nothing to link
+verdict: cannot Emscripten link flags for a C or C++ program compiled against FMOD. A Haxe HTML5 build compiles to JavaScript and runs FMOD's prebuilt fmodstudio.js. There is nothing to link
 
 ## Overriding FMOD's 'window' handle.
 verdict: library jaxe.js runs in the page's own window and calls FMODModule from it, so the module sees the right window and nothing is overridden
 
 ## Application setup
-verdict: library FmodManager.Initialize does this through jaxe.js, which sets preRun, onRuntimeInitialized, and a 64 MB INITIAL_MEMORY on the FMOD object and calls FMODModule, the game's main becomes FmodManager.IsInitialized() polled from a loading scene or a handler passed to FmodRuntime.onceReady
+verdict: library FmodManager.Initialize does this through jaxe.js, which sets preRun, onRuntimeInitialized, and a 64 MB INITIAL_MEMORY on the FMOD object and calls FMODModule. The game's main becomes FmodManager.IsInitialized() polled from a loading scene or a handler passed to FmodRuntime.onceReady
 
 ## Setting and getting
 verdict: bound
@@ -34,7 +34,7 @@ trace(name);
 verdict: covered FMOD_GUID is FmodGuid, the text form FMOD Studio shows, returned by EventDescription.getID and taken by StudioSystem.getEventByID, and FMOD_STUDIO_BANK_INFO is not exposed because StudioSystem.loadBankFile and StudioSystem.loadBankMemory load banks without file callbacks
 
 ## Direct from host, via FMOD's filesystem
-verdict: library the library fetches banks itself, FmodRuntime.banks.load (and the autoLoadBanks list in FmodSettings, resolved against bankFolder) fetches the path relative to the page and writes it into FMOD's virtual filesystem before calling loadBankFile, and loose audio files are not preloaded because the web build decodes FSB only
+verdict: library the library fetches banks itself. FmodRuntime.banks.load (and the autoLoadBanks list in FmodSettings, resolved against bankFolder) fetches the path relative to the page and writes it into FMOD's virtual filesystem before calling loadBankFile. Loose audio files are not preloaded because the web build decodes FSB only
 
 ## Direct from host, via FMOD's filesystem#2
 verdict: bound
@@ -61,16 +61,16 @@ if (sound.isNull()) {
 ```
 
 ## Via callbacks
-verdict: cannot file callbacks run on FMOD's file threads and custom file systems are not exposed, fetch the bytes yourself and hand them to StudioSystem.loadBankMemory
+verdict: cannot file callbacks run on FMOD's file threads and custom file systems are not exposed. Fetch the bytes yourself and hand them to StudioSystem.loadBankMemory
 
 ## Via callbacks#2
-verdict: cannot file callbacks run on FMOD's file threads and custom file systems are not exposed, fetch the bytes yourself and hand them to StudioSystem.loadBankMemory
+verdict: cannot file callbacks run on FMOD's file threads and custom file systems are not exposed. Fetch the bytes yourself and hand them to StudioSystem.loadBankMemory
 
 ## Via callbacks#3
-verdict: cannot file callbacks run on FMOD's file threads and custom file systems are not exposed, fetch the bytes yourself and hand them to StudioSystem.loadBankMemory
+verdict: cannot file callbacks run on FMOD's file threads and custom file systems are not exposed. Fetch the bytes yourself and hand them to StudioSystem.loadBankMemory
 
 ## CPU Overhead
-verdict: library jaxe.js does this at init, it reads the driver's rate with getDriverInfo and passes it to setSoftwareFormat when the sampleRate setting is 0 (the default), a game that wants another rate passes FmodManager.Initialize({sampleRate: 48000}) or sets -D haxefmod_sample_rate and reads the rate in use from CoreSystem.getSoftwareFormat()
+verdict: library jaxe.js does this at init. It reads the driver's rate with getDriverInfo and passes it to setSoftwareFormat when the sampleRate setting is 0 (the default). A game that wants another rate passes FmodManager.Initialize({sampleRate: 48000}) or sets -D haxefmod_sample_rate. CoreSystem.getSoftwareFormat() reports the rate in use
 
 ## Audio Stability (Stuttering)
 verdict: bound

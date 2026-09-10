@@ -250,7 +250,11 @@ class FmodRuntime {
      */
     public static function setDebugLevel(level:Int):Void {
         debugLevel = level;
+        #if js
         if (NativeStudio.sys_is_initialized()) NativeStudio.sys_set_debug_level(level);
+        #else
+        NativeStudio.sys_set_debug_level(level);
+        #end
     }
 
     /** The velocity cap attached instances and listeners apply, 0 for none. */

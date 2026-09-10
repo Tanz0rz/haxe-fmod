@@ -217,7 +217,7 @@ verdict: cannot the question is received only by a plugin callback on FMOD's mix
 verdict: cannot the per instance state received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units
 
 ## FMOD_DSP_STATE#2
-verdict: cannot a plugin read callback keeping its phase in plugindata, received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, the built-in oscillator unit (Dsp.create(DspType.OSCILLATOR)) plays the same tone from game code
+verdict: cannot a plugin read callback keeping its phase in plugindata. Only a plugin callback on FMOD's mixer thread receives it, and Haxe code cannot host one. The built-in oscillator unit (Dsp.create(DspType.OSCILLATOR)) plays the same tone from game code
 
 ## FMOD_DSP_STATE_DFT_FUNCTIONS
 verdict: cannot received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, Dsp.create gives the built-in units and StudioSystem.loadPlugin loads a compiled plugin

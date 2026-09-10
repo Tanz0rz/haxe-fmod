@@ -17,7 +17,7 @@ verdict: bound
 Type: haxefmod.studio.Types.FmodSystemCpuUsage
 
 ## FMOD_DEBUG_CALLBACK
-verdict: cannot FMOD calls it on whichever of its threads logs, no Haxe target can run code there. The log goes to the platform's standard output at the level set by FmodSettings.logLevel, or to the file named by FmodSettings.logFile on native targets.
+verdict: cannot FMOD calls it on whichever of its threads logs. No Haxe target can run code there. The log goes to the platform's standard output at the level set by FmodSettings.logLevel, or to the file named by FmodSettings.logFile on native targets.
 
 ## FMOD_DEBUG_FLAGS
 verdict: bound
@@ -44,13 +44,13 @@ verdict: bound
 Type: haxefmod.studio.Types.FmodLimits
 
 ## FMOD_MEMORY_ALLOC_CALLBACK
-verdict: cannot FMOD calls its allocator on every one of its threads, no Haxe target can run code there. FMOD keeps its default allocator, and StudioSystem.getMemoryStats reports what it has allocated.
+verdict: cannot FMOD calls its allocator on every one of its threads. No Haxe target can run code there. FMOD keeps its default allocator, and StudioSystem.getMemoryStats reports what it has allocated.
 
 ## FMOD_MEMORY_FREE_CALLBACK
-verdict: cannot FMOD calls its allocator on every one of its threads, no Haxe target can run code there. FMOD keeps its default allocator, and StudioSystem.getMemoryStats reports what it has allocated.
+verdict: cannot FMOD calls its allocator on every one of its threads. No Haxe target can run code there. FMOD keeps its default allocator, and StudioSystem.getMemoryStats reports what it has allocated.
 
 ## FMOD_MEMORY_REALLOC_CALLBACK
-verdict: cannot FMOD calls its allocator on every one of its threads, no Haxe target can run code there. FMOD keeps its default allocator, and StudioSystem.getMemoryStats reports what it has allocated.
+verdict: cannot FMOD calls its allocator on every one of its threads. No Haxe target can run code there. FMOD keeps its default allocator, and StudioSystem.getMemoryStats reports what it has allocated.
 
 ## FMOD_MEMORY_TYPE
 verdict: bound

@@ -3,8 +3,8 @@ site_description: FMOD Studio for Haxe on HTML5, HashLink, Windows, Linux, and m
 site_url: https://tanz0rz.com/haxe-fmod/
 repo_url: https://github.com/Tanz0rz/haxe-fmod
 repo_name: Tanz0rz/haxe-fmod
-# The edit link follows the branch the site was built from (the docs
-# workflow sets it), so the pencil never points at a branch without docs/
+# The docs workflow sets the edit link to the branch it builds from.
+# The pencil then points at a branch that has docs/.
 edit_uri: !ENV [DOCS_EDIT_URI, "edit/master/docs/"]
 docs_dir: docs
 site_dir: site
@@ -50,9 +50,11 @@ markdown_extensions:
 
 # Umami analytics, loaded from the site's own first-party proxy directory
 # (overrides/partials/integrations/analytics/custom.html)
+# The provider is set by the docs workflow, so a local build carries no
+# analytics tag
 extra:
   analytics:
-    provider: custom
+    provider: !ENV [DOCS_ANALYTICS, ""]
 
 # Serves LIMITATIONS.md from the repo root inside the site so it appears
 # in the nav without a second copy in docs/
@@ -78,5 +80,4 @@ nav:
       - Platforms: platforms.md
   - Coverage: coverage.md
   - Limitations: limitations.md
-  - Migrating: migration.md
   - API reference: /haxe-fmod/api/

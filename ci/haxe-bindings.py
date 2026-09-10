@@ -496,8 +496,8 @@ def render_userscript(table):
         "// @namespace    https://github.com/Tanz0rz/haxe-fmod",
         f"// @version      {haxelib_version()}",
         "// @description  Adds a Haxe tab to the FMOD API reference showing the haxefmod method for every function.",
-        "// @match        https://www.fmod.com/docs/*",
-        "// @match        https://fmod.com/docs/*",
+        "// @match        https://www.fmod.com/docs/2.03/api/*",
+        "// @match        https://fmod.com/docs/2.03/api/*",
         "// @grant        none",
         "// @run-at       document-idle",
         "// ==/UserScript==",
@@ -526,9 +526,9 @@ def render_coverage_md(table):
     lines = [
         "# Coverage",
         "",
-        f"Every FMOD function the native layer calls, with the haxefmod methods that reach it. Generated from the sources by `ci/haxe-bindings.py` for haxefmod {haxelib_version()} against FMOD {fmod_version()}. Functions absent from this list are not exposed, see [Limitations](limitations.md).",
+        f"Every FMOD function the native layer calls, with the haxefmod methods that reach it. Generated from the sources by `ci/haxe-bindings.py` for haxefmod {haxelib_version()} against FMOD {fmod_version()}. The functions the library leaves out are listed at the end with the reason for each.",
         "",
-        "The same table powers the browser extension that adds a Haxe tab to the [fmod.com API reference](https://www.fmod.com/docs/2.03/api/welcome.html). In the HTML5 column, \"compile error\" marks a call a js build refuses unless the project sets `-D haxefmod_html5_allow_unsupported`, after which it returns `FMOD_ERR_UNSUPPORTED` at runtime, and \"limited\" marks a call the web build only partly supports.",
+        "The same table powers the browser extension that adds a Haxe tab to the [fmod.com API reference](https://www.fmod.com/docs/2.03/api/welcome.html). In the HTML5 column, \"compile error\" marks a call a js build refuses. The project define `-D haxefmod_html5_allow_unsupported` compiles it anyway, and the call then returns `FMOD_ERR_UNSUPPORTED` at runtime. The word \"limited\" marks a call the web build only partly supports.",
         "",
     ]
     total = 0
@@ -548,6 +548,16 @@ def render_coverage_md(table):
         lines.append("")
     lines.insert(4, f"{total} FMOD functions are reached.")
     lines.insert(5, "")
+    # The note-only records: functions the library leaves out on purpose,
+    # each with the reason the extension shows on fmod.com
+    left_out = sorted((r for r in table.values() if not r["fmod"] and r.get("notes")),
+                      key=lambda r: r.get("heading", ""))
+    if left_out:
+        lines += ["## Not bound", "", "| FMOD | Reason |", "|---|---|"]
+        for record in left_out:
+            reason = " ".join(record["notes"]).replace("|", "\\|")
+            lines.append(f"| `{record.get('heading', '')}` | {reason} |")
+        lines.append("")
     return "\n".join(lines) + "\n"
 
 

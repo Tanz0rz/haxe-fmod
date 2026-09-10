@@ -76,7 +76,7 @@ reverb.set3DAttributes(pos.x, pos.y, pos.z, mindist, maxdist);
 
 ## 10.7.1 3D Reverbs#3
 verdict: bound
-waive: extra-calls the core set3DListenerAttributes has no Haxe form, the listener goes through Studio's setListenerAttributes
+waive: extra-calls the core set3DListenerAttributes has no Haxe form. The listener goes through Studio's setListenerAttributes
 ```haxe
 var listenerpos = {x: 0.0, y: 0.0, z: -1.0};
 StudioSystem.setListenerAttributes(0, {

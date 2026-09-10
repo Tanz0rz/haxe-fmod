@@ -67,6 +67,21 @@ function render(page, units) {
     return lines.join('\n');
 }
 
+// Pages the committed catalog records at least one tabbed unit for.
+// Every one of them must still render a tab strip.
+function tabbedPages() {
+    const names = new Set();
+    for (const file of fs.readdirSync(CATALOG)) {
+        if (!file.endsWith('.md')) continue;
+        const text = fs.readFileSync(path.join(CATALOG, file), 'utf8');
+        if (/^kind: function$/m.test(text) || /^tabbed: yes$/m.test(text)) names.add(file.slice(0, -3));
+    }
+    return names;
+}
+
+const TABBED_PAGES = tabbedPages();
+const markupDrift = [];
+
 async function crawl() {
     const launch = { args: ['--no-sandbox'] };
     if (process.env.CHROMIUM_PATH) launch.executablePath = process.env.CHROMIUM_PATH;
@@ -114,6 +129,44 @@ async function crawl() {
         }
 
         await page.evaluate(keysSource);
+        // The extension hangs the Haxe tab off the site's own tab strip
+        // and styles it inside the site's content container. A rename on
+        // their side breaks the tab without changing a single snippet,
+        // so the markup is checked here beside the snippets.
+        const markup = await page.evaluate((shell) => {
+            const problems = [];
+            const root = document.querySelector('div.manual-content');
+            if (shell) {
+                if (!document.querySelector('#Documentation')) problems.push('no #Documentation container');
+                else if (!document.querySelector('#Documentation div.documentation-content')) {
+                    problems.push('no div.documentation-content under #Documentation');
+                }
+            }
+            const selectors = root ? root.querySelectorAll('div.language-selector') : [];
+            for (const selector of selectors) {
+                const tabs = selector.querySelectorAll('div.language-tab');
+                if (!tabs.length) {
+                    problems.push('a div.language-selector holds no div.language-tab');
+                    break;
+                }
+                let missing = 0;
+                let unprefixed = 0;
+                for (const tab of tabs) {
+                    const value = tab.getAttribute('data-language');
+                    if (value === null) missing++;
+                    else if (value.indexOf('language-') !== 0) unprefixed++;
+                }
+                if (missing) { problems.push('a div.language-tab carries no data-language attribute'); break; }
+                if (unprefixed) { problems.push('a data-language value does not start with "language-"'); break; }
+            }
+            return { problems, selectors: selectors.length, blocks: root ? root.querySelectorAll('div.highlight').length : 0 };
+        }, !fromDir);
+        // A page whose blocks all sit under tab strips must have found
+        // strips. Zero of them with blocks present means the class is gone.
+        if (markup.blocks && !markup.selectors && TABBED_PAGES.has(name.replace(/\.html$/, ''))) {
+            markup.problems.push('no div.language-selector on a page that had tab strips');
+        }
+        if (markup.problems.length) markupDrift.push(...markup.problems.map(p => name.replace(/\.html$/, '') + ': ' + p));
         const units = await page.evaluate((languages) => {
             const root = document.querySelector('div.manual-content');
             return window.haxefmodKeys.units(root).map(unit => {
@@ -146,7 +199,7 @@ async function main() {
     const pages = await crawl();
     const total = Object.values(pages).reduce((n, u) => n + u.length, 0);
     console.log('crawled ' + Object.keys(pages).length + ' pages, ' + total + ' code locations');
-    const drift = [];
+    const drift = markupDrift.slice();
     const names = Object.keys(pages).sort();
     for (const name of names) {
         const file = path.join(CATALOG, name + '.md');
@@ -180,6 +233,10 @@ async function main() {
             }
         }
         console.log('wrote ' + names.length + ' files under extension/catalog/');
+        for (const line of markupDrift) console.log('  markup: ' + line);
+        if (markupDrift.length) {
+            console.log('The extension keys off that markup. Check extension/keys.js, content.js, and content.css.');
+        }
         return;
     }
     for (const existing of fs.readdirSync(CATALOG)) {
@@ -192,6 +249,9 @@ async function main() {
     console.log('catalog: fmod.com changed in ' + drift.length + ' place(s):');
     for (const line of drift) console.log('  ' + line);
     console.log('Run node extension/test/catalog-site.js --update, then bring extension/haxe/ in line.');
+    if (markupDrift.length) {
+        console.log('A "markup" line above is a renamed element, not a snippet edit. Fix extension/keys.js, content.js, or content.css for it.');
+    }
     process.exit(1);
 }
 

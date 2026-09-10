@@ -19,8 +19,8 @@
   "content_scripts": [
     {
       "matches": [
-        "https://www.fmod.com/docs/*",
-        "https://fmod.com/docs/*"
+        "https://www.fmod.com/docs/2.03/api/*",
+        "https://fmod.com/docs/2.03/api/*"
       ],
       "js": ["keys.js", "bindings-data.js",
         "examples-data.js",

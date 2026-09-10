@@ -13,7 +13,7 @@ if (sound.isNull()) {
 ```
 
 ## 4.1.1 Non-blocking Sound Creation#2
-verdict: cannot FMOD calls the callback on its async loader thread, no Haxe target can run code there. Poll Sound.getOpenState each frame instead, it reports READY once the sound can play and ERROR when the load failed.
+verdict: cannot FMOD calls the callback on its async loader thread. No Haxe target can run code there. Poll Sound.getOpenState each frame instead. It reports READY once the sound can play and ERROR when the load failed.
 
 ## 4.1.1 Non-blocking Sound Creation#3
 verdict: bound
@@ -119,19 +119,19 @@ if (sound.isNull()) {
 ```
 
 ## 4.5.1 Setup : Override FMOD's file system with callbacks
-verdict: cannot file callbacks run on FMOD's file threads, no Haxe target can run code there. Sound.create and StudioSystem.loadBankFile read the platform file system and StudioSystem.loadBankMemory takes bytes the game loaded itself.
+verdict: cannot file callbacks run on FMOD's file threads. No Haxe target can run code there. Sound.create and StudioSystem.loadBankFile read the platform file system and StudioSystem.loadBankMemory takes bytes the game loaded itself.
 
 ## 4.5.1 Setup : Override FMOD's file system with callbacks#2
-verdict: cannot async file callbacks run on FMOD's file threads, no Haxe target can run code there. Sound.create and StudioSystem.loadBankFile read the platform file system and StudioSystem.loadBankMemory takes bytes the game loaded itself.
+verdict: cannot async file callbacks run on FMOD's file threads. No Haxe target can run code there. Sound.create and StudioSystem.loadBankFile read the platform file system and StudioSystem.loadBankMemory takes bytes the game loaded itself.
 
 ## 4.5.2 Defining the basics - opening and closing the file handle.
-verdict: cannot file callbacks run on FMOD's file threads, no Haxe target can run code there. Sound.create and StudioSystem.loadBankFile read the platform file system and StudioSystem.loadBankMemory takes bytes the game loaded itself.
+verdict: cannot file callbacks run on FMOD's file threads. No Haxe target can run code there. Sound.create and StudioSystem.loadBankFile read the platform file system and StudioSystem.loadBankMemory takes bytes the game loaded itself.
 
 ## 4.5.3 Defining 'userasyncread'
-verdict: cannot async file callbacks run on FMOD's file threads, no Haxe target can run code there. Sound.create and StudioSystem.loadBankFile read the platform file system and StudioSystem.loadBankMemory takes bytes the game loaded itself.
+verdict: cannot async file callbacks run on FMOD's file threads. No Haxe target can run code there. Sound.create and StudioSystem.loadBankFile read the platform file system and StudioSystem.loadBankMemory takes bytes the game loaded itself.
 
 ## 4.5.4 Defining 'userasynccancel'
-verdict: cannot async file callbacks run on FMOD's file threads, no Haxe target can run code there. Sound.create and StudioSystem.loadBankFile read the platform file system and StudioSystem.loadBankMemory takes bytes the game loaded itself.
+verdict: cannot async file callbacks run on FMOD's file threads. No Haxe target can run code there. Sound.create and StudioSystem.loadBankFile read the platform file system and StudioSystem.loadBankMemory takes bytes the game loaded itself.
 
 ## 4.5.5 Filling out the FMOD_ASYNCREADINFO structure when performing a deferred read
 verdict: cannot the payload of an async read callback, which runs on FMOD's file threads and carries raw buffer pointers. Custom file systems are not exposed.

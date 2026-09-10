@@ -118,7 +118,7 @@ The [fmod.com extension](https://tanz0rz.com/haxe-fmod/guides/extension/) adds a
 
 ## Migrating From Previous haxe-fmod Versions?
 
-See [Migrating](https://tanz0rz.com/haxe-fmod/migration/) for the complete mapping.
+See [MIGRATION.md](https://github.com/Tanz0rz/haxe-fmod/blob/master/MIGRATION.md) for the complete mapping.
 
 ## License
 

@@ -1,9 +1,9 @@
 """MkDocs hook that serves the repo-root docs from inside the site.
 
-LIMITATIONS.md and MIGRATION.md ship in the haxelib package and are
-linked from the README, so they stay at the repo root. This hook adds
-them to the site build as limitations.md and migration.md without
-keeping a second copy under docs/.
+LIMITATIONS.md ships in the haxelib package and is linked from the
+README, so it stays at the repo root. This hook adds it to the site
+build as limitations.md without keeping a second copy under docs/.
+MIGRATION.md and the changelog stay off the site on purpose.
 
 Relative links inside the file point at repo-root files (LICENSE,
 fmod-scripts/...). They are rewritten to GitHub URLs so they keep working
@@ -19,14 +19,16 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 ROOT_PAGES = {
     "LIMITATIONS.md": "limitations.md",
-    "MIGRATION.md": "migration.md",
 }
 
-GITHUB_BLOB = "https://github.com/Tanz0rz/haxe-fmod/blob/master/"
+# The blob links follow the branch the site was built from, like the
+# edit link (the docs workflow sets DOCS_BRANCH)
+GITHUB_BLOB = "https://github.com/Tanz0rz/haxe-fmod/blob/" + os.environ.get("DOCS_BRANCH", "master") + "/"
 
 # Links that already resolve to another root page keep pointing inside
 # the site. Everything else that looks like a repo path goes to GitHub.
-_LINK = re.compile(r"\]\((?!https?://|#|mailto:)([^)\s]+)\)")
+# An image link is left alone, a blob page cannot render as an image.
+_LINK = re.compile(r"(?<!!)\]\((?!https?://|#|mailto:)([^)\s]+)\)")
 
 
 def _rewrite(match):

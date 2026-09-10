@@ -31,13 +31,20 @@
         return !!(n && n.classList.contains("language-selector"));
     }
 
+    // The nearest heading above the unit, when that heading is a
+    // function heading. The site puts a variable number of paragraphs,
+    // tables, and lists between the two, so the walk stops at the first
+    // heading of any level rather than after a fixed number of steps.
     function functionHeading(unit) {
         var node = unit.previousElementSibling;
-        for (var i = 0; node && i < 4; i++) {
-            if (node.tagName === "H2" && node.getAttribute("api") === "function") return node;
-            node = node.previousElementSibling;
+        while (node && !/^H[1-6]$/.test(node.tagName)) node = node.previousElementSibling;
+        if (!node) {
+            if (typeof console !== "undefined" && console.warn) {
+                console.warn("haxefmod: no heading above a code unit, its key falls back to the page");
+            }
+            return null;
         }
-        return null;
+        return node.tagName === "H2" && node.getAttribute("api") === "function" ? node : null;
     }
 
     function nearestHeading(unit) {

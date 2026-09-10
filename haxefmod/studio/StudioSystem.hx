@@ -207,7 +207,7 @@ class StudioSystem {
      * set to zero. StudioSystem.lastResult() tells the two apart.
      */
     public static function getParameter(name:String):Float {
-        return NativeStudio.sys_get_param_by_name(name);
+        return NativeStudio.sys_get_param_by_name(EventInstance.bareParameterName(name));
     }
 
     /**
@@ -215,17 +215,17 @@ class StudioSystem {
      * failure and for a parameter set to zero. StudioSystem.lastResult() tells the two apart.
      */
     public static function getParameterFinal(name:String):Float {
-        return NativeStudio.sys_get_param_by_name_final(name);
+        return NativeStudio.sys_get_param_by_name_final(EventInstance.bareParameterName(name));
     }
 
     /** Sets a global parameter by name. ignoreSeekSpeed skips the parameter's seek speed and applies the value at once. */
     public static function setParameter(name:String, value:Float, ignoreSeekSpeed:Bool = false):FmodResult {
-        return NativeStudio.sys_set_param_by_name(name, value, ignoreSeekSpeed);
+        return NativeStudio.sys_set_param_by_name(EventInstance.bareParameterName(name), value, ignoreSeekSpeed);
     }
 
     /** Sets a labeled global parameter by name and label text (for example discrete enum names). */
     public static function setParameterWithLabel(name:String, label:String, ignoreSeekSpeed:Bool = false):FmodResult {
-        return NativeStudio.sys_set_param_by_name_with_label(name, label, ignoreSeekSpeed);
+        return NativeStudio.sys_set_param_by_name_with_label(EventInstance.bareParameterName(name), label, ignoreSeekSpeed);
     }
 
     /**

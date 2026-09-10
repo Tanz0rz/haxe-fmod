@@ -1,7 +1,7 @@
 # core-api-dsp
 
 ## FMOD_DSP_CALLBACK
-verdict: cannot FMOD calls it on its mixer thread, no Haxe target can run code there. Dsp.setParameterData copies its bytes, so no release callback is needed.
+verdict: cannot FMOD calls it on its mixer thread. No Haxe target can run code there. Dsp.setParameterData copies its bytes, so no release callback is needed.
 
 ## FMOD_DSP_CALLBACK_TYPE
 verdict: bound

@@ -108,6 +108,10 @@
 - The `peak` and `rms` fields of the `Dsp.getMetering` and `getInputMetering` result. Read `peakLevel` and `rmsLevel` on `FmodDspMeteringInfo`.
 
 ### Fixed
+- The docs extension and the userscript run on the FMOD 2.03 API reference only, mark HTML5 support per method instead of per page, find a function heading past any number of siblings, and touch only the containers they read. `extension/package.py` derives its file list from the manifest and has a `--check` mode.
+- The FMOD Studio export script reports a missing model class, an empty project, and an unwritable folder, and its dialog takes the same package name as `generate --package`.
+- The HTML5 autoplay gate resumes the mixer after the system is initialized, `StudioSystem.setParameter`, `getParameter`, `getParameterFinal`, and `setParameterWithLabel` take the generated `parameter:/` paths too, and `FmodRuntime.setDebugLevel` reaches native FMOD before init.
+- `docs/coverage.md` ends with the functions the library leaves out and the reason for each.
 - `FmodKhaUpdater` runs its frame task at priority 100, after the game's own tasks. Kha runs frame tasks in ascending priority order, so the earlier priority 0 sampled positions a frame late.
 - The Heaps and Kha emitters and `PlayOneShotAttached` sample the target before the first push, so an event no longer starts at the world origin for its first mix block.
 - `FmodKhaSetup.init` rewires the application state listeners with remove-then-add, like the Flixel and Heaps setups.

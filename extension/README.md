@@ -1,6 +1,6 @@
 # haxefmod for FMOD docs
 
-A browser extension that adds a **Haxe** tab next to C, C++, C#, and JS on every function of the [FMOD API reference](https://www.fmod.com/docs/2.03/api/welcome.html). The tab shows the haxefmod method that wraps the function, its Haxe signature, the first line of its documentation, related helpers, and HTML5 caveats. Functions haxefmod does not expose say so.
+A browser extension that adds a **Haxe** tab next to C, C++, C#, and JS on every function of the [FMOD API reference](https://www.fmod.com/docs/2.03/api/welcome.html). The tab shows the haxefmod signature that wraps the function, the other Haxe methods that reach it, and HTML5 caveats. Functions haxefmod does not expose say so.
 
 FMOD's own reference stays the place to read what a function does. The tab only adds the Haxe side.
 
@@ -20,7 +20,7 @@ Firefox needs its own manifest (a background script instead of a service worker,
 
 ## How it works
 
-`content.js` runs on `fmod.com/docs` pages. The site renders each function as a heading with an id derived from the C++ name (`studio_eventinstance_start`), a language selector, and one signature block per language. The script appends a fifth tab and block, keyed by that id, using `bindings-data.js`.
+`content.js` runs on `fmod.com/docs/2.03/api/` pages, the version the bindings are generated for. The site renders each function as a heading with an id derived from the C++ name (`studio_eventinstance_start`), a language selector, and one signature block per language. The script appends a fifth tab and block, keyed by that id, using `bindings-data.js`.
 
 `bindings-data.js` is generated. `ci/haxe-bindings.py` reads the HashLink shim to learn which FMOD function each native binding calls, reads the Haxe sources to learn which public method calls each native binding, and reads the web shim for calls that report `FMOD_ERR_UNSUPPORTED`. Regenerate it after changing the bindings:
 
@@ -83,6 +83,9 @@ Functions haxefmod does not expose carry their reasons in `functions.md`, which 
 
 ```bash
 python3 extension/package.py
+python3 extension/package.py --check
 ```
+
+`--check` names every file the manifest asks for that is absent and writes nothing. The file list comes from the manifest itself, so a new content script reaches both zips with no edit to `package.py`.
 
 This writes `extension/dist/haxefmod-fmod-docs-chrome-<version>.zip` for the Chrome Web Store (and Edge, Brave, Opera) and `haxefmod-fmod-docs-firefox-<version>.zip` for addons.mozilla.org. The two differ only in the manifest: Firefox runs the background file as a script and carries the add-on id, which Chrome would warn about.

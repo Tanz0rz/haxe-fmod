@@ -10,6 +10,7 @@ it.
 Run: python3 ci/check-deprecations.py
 """
 
+import glob
 import os
 import subprocess
 import sys
@@ -116,6 +117,16 @@ def main():
                 print(f"FAIL: {name} compiles without the deprecation warning: {message}")
             else:
                 print(f"ok: {name} warns")
+    # Every @:deprecated member in the library must have a row, so a new
+    # alias without a compile proof fails here
+    listed = {row[0] for row in DEPRECATED + ENGINE_DEPRECATED}
+    in_source = 0
+    for path in sorted(glob.glob(os.path.join(ROOT, "haxefmod", "**", "*.hx"), recursive=True)):
+        with open(path, encoding="utf-8") as fh:
+            in_source += fh.read().count("@:deprecated(")
+    if in_source != len(listed):
+        print(f"FAIL: {in_source} @:deprecated members in haxefmod/, {len(listed)} listed here")
+        failures += 1
     print(f"check-deprecations: {len(DEPRECATED) + len(ENGINE_DEPRECATED)} alias(es), {failures} failure(s)")
     return 1 if failures else 0
 

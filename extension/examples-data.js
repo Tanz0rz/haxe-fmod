@@ -171,7 +171,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DEBUG_CALLBACK": {
    "code": null,
    "notes": [
-    "Cannot be bound. FMOD calls it on whichever of its threads logs, no Haxe target can run code there. The log goes to the platform's standard output at the level set by FmodSettings.logLevel, or to the file named by FmodSettings.logFile on native targets."
+    "Cannot be bound. FMOD calls it on whichever of its threads logs. No Haxe target can run code there. The log goes to the platform's standard output at the level set by FmodSettings.logLevel, or to the file named by FmodSettings.logFile on native targets."
    ],
    "type": null,
    "verdict": "cannot"
@@ -215,7 +215,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_MEMORY_ALLOC_CALLBACK": {
    "code": null,
    "notes": [
-    "Cannot be bound. FMOD calls its allocator on every one of its threads, no Haxe target can run code there. FMOD keeps its default allocator, and StudioSystem.getMemoryStats reports what it has allocated."
+    "Cannot be bound. FMOD calls its allocator on every one of its threads. No Haxe target can run code there. FMOD keeps its default allocator, and StudioSystem.getMemoryStats reports what it has allocated."
    ],
    "type": null,
    "verdict": "cannot"
@@ -223,7 +223,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_MEMORY_FREE_CALLBACK": {
    "code": null,
    "notes": [
-    "Cannot be bound. FMOD calls its allocator on every one of its threads, no Haxe target can run code there. FMOD keeps its default allocator, and StudioSystem.getMemoryStats reports what it has allocated."
+    "Cannot be bound. FMOD calls its allocator on every one of its threads. No Haxe target can run code there. FMOD keeps its default allocator, and StudioSystem.getMemoryStats reports what it has allocated."
    ],
    "type": null,
    "verdict": "cannot"
@@ -231,7 +231,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_MEMORY_REALLOC_CALLBACK": {
    "code": null,
    "notes": [
-    "Cannot be bound. FMOD calls its allocator on every one of its threads, no Haxe target can run code there. FMOD keeps its default allocator, and StudioSystem.getMemoryStats reports what it has allocated."
+    "Cannot be bound. FMOD calls its allocator on every one of its threads. No Haxe target can run code there. FMOD keeps its default allocator, and StudioSystem.getMemoryStats reports what it has allocated."
    ],
    "type": null,
    "verdict": "cannot"
@@ -647,7 +647,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_CALLBACK": {
    "code": null,
    "notes": [
-    "Cannot be bound. FMOD calls it on its mixer thread, no Haxe target can run code there. Dsp.setParameterData copies its bytes, so no release callback is needed."
+    "Cannot be bound. FMOD calls it on its mixer thread. No Haxe target can run code there. Dsp.setParameterData copies its bytes, so no release callback is needed."
    ],
    "type": null,
    "verdict": "cannot"
@@ -679,7 +679,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_Android_JNI_Init": {
    "code": null,
    "notes": [
-    "Cannot be bound. Android is not a haxefmod target, the library ships Windows, Linux, and macOS (C++ and HashLink) and HTML5 builds only"
+    "Cannot be bound. Android is not a haxefmod target. The library ships Windows, Linux, and macOS (C++ and HashLink) and HTML5 builds only"
    ],
    "type": null,
    "verdict": "cannot"
@@ -721,7 +721,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_AUDIOQUEUE_CODECPOLICY": {
    "code": null,
    "notes": [
-    "Cannot be bound. iOS is not a haxefmod target, the library ships Windows, Linux, and macOS (C++ and HashLink) and HTML5 builds only, and this enum exists only in the iOS headers"
+    "Cannot be bound. iOS is not a haxefmod target. The library ships Windows, Linux, and macOS (C++ and HashLink) and HTML5 builds only. This enum exists only in the iOS headers"
    ],
    "type": null,
    "verdict": "cannot"
@@ -1203,7 +1203,7 @@ const HAXEFMOD_EXAMPLES = {
   "4.1.1 Non-blocking Sound Creation#2": {
    "code": null,
    "notes": [
-    "Cannot be bound. FMOD calls the callback on its async loader thread, no Haxe target can run code there. Poll Sound.getOpenState each frame instead, it reports READY once the sound can play and ERROR when the load failed."
+    "Cannot be bound. FMOD calls the callback on its async loader thread. No Haxe target can run code there. Poll Sound.getOpenState each frame instead. It reports READY once the sound can play and ERROR when the load failed."
    ],
    "type": null,
    "verdict": "cannot"
@@ -1255,7 +1255,7 @@ const HAXEFMOD_EXAMPLES = {
   "4.5.1 Setup : Override FMOD's file system with callbacks": {
    "code": null,
    "notes": [
-    "Cannot be bound. file callbacks run on FMOD's file threads, no Haxe target can run code there. Sound.create and StudioSystem.loadBankFile read the platform file system and StudioSystem.loadBankMemory takes bytes the game loaded itself."
+    "Cannot be bound. file callbacks run on FMOD's file threads. No Haxe target can run code there. Sound.create and StudioSystem.loadBankFile read the platform file system and StudioSystem.loadBankMemory takes bytes the game loaded itself."
    ],
    "type": null,
    "verdict": "cannot"
@@ -1263,7 +1263,7 @@ const HAXEFMOD_EXAMPLES = {
   "4.5.1 Setup : Override FMOD's file system with callbacks#2": {
    "code": null,
    "notes": [
-    "Cannot be bound. async file callbacks run on FMOD's file threads, no Haxe target can run code there. Sound.create and StudioSystem.loadBankFile read the platform file system and StudioSystem.loadBankMemory takes bytes the game loaded itself."
+    "Cannot be bound. async file callbacks run on FMOD's file threads. No Haxe target can run code there. Sound.create and StudioSystem.loadBankFile read the platform file system and StudioSystem.loadBankMemory takes bytes the game loaded itself."
    ],
    "type": null,
    "verdict": "cannot"
@@ -1271,7 +1271,7 @@ const HAXEFMOD_EXAMPLES = {
   "4.5.2 Defining the basics - opening and closing the file handle.": {
    "code": null,
    "notes": [
-    "Cannot be bound. file callbacks run on FMOD's file threads, no Haxe target can run code there. Sound.create and StudioSystem.loadBankFile read the platform file system and StudioSystem.loadBankMemory takes bytes the game loaded itself."
+    "Cannot be bound. file callbacks run on FMOD's file threads. No Haxe target can run code there. Sound.create and StudioSystem.loadBankFile read the platform file system and StudioSystem.loadBankMemory takes bytes the game loaded itself."
    ],
    "type": null,
    "verdict": "cannot"
@@ -1279,7 +1279,7 @@ const HAXEFMOD_EXAMPLES = {
   "4.5.3 Defining 'userasyncread'": {
    "code": null,
    "notes": [
-    "Cannot be bound. async file callbacks run on FMOD's file threads, no Haxe target can run code there. Sound.create and StudioSystem.loadBankFile read the platform file system and StudioSystem.loadBankMemory takes bytes the game loaded itself."
+    "Cannot be bound. async file callbacks run on FMOD's file threads. No Haxe target can run code there. Sound.create and StudioSystem.loadBankFile read the platform file system and StudioSystem.loadBankMemory takes bytes the game loaded itself."
    ],
    "type": null,
    "verdict": "cannot"
@@ -1287,7 +1287,7 @@ const HAXEFMOD_EXAMPLES = {
   "4.5.4 Defining 'userasynccancel'": {
    "code": null,
    "notes": [
-    "Cannot be bound. async file callbacks run on FMOD's file threads, no Haxe target can run code there. Sound.create and StudioSystem.loadBankFile read the platform file system and StudioSystem.loadBankMemory takes bytes the game loaded itself."
+    "Cannot be bound. async file callbacks run on FMOD's file threads. No Haxe target can run code there. Sound.create and StudioSystem.loadBankFile read the platform file system and StudioSystem.loadBankMemory takes bytes the game loaded itself."
    ],
    "type": null,
    "verdict": "cannot"
@@ -1313,7 +1313,7 @@ const HAXEFMOD_EXAMPLES = {
   "Application Lifecycle Management": {
    "code": null,
    "notes": [
-    "Cannot be bound. Android is not a haxefmod target, the library ships Windows, Linux, and macOS (C++ and HashLink) and HTML5 builds only"
+    "Cannot be bound. Android is not a haxefmod target. The library ships Windows, Linux, and macOS (C++ and HashLink) and HTML5 builds only"
    ],
    "type": null,
    "verdict": "cannot"
@@ -1327,7 +1327,7 @@ const HAXEFMOD_EXAMPLES = {
   "Java": {
    "code": null,
    "notes": [
-    "Cannot be bound. Android is not a haxefmod target, the library ships Windows, Linux, and macOS (C++ and HashLink) and HTML5 builds only"
+    "Cannot be bound. Android is not a haxefmod target. The library ships Windows, Linux, and macOS (C++ and HashLink) and HTML5 builds only"
    ],
    "type": null,
    "verdict": "cannot"
@@ -1335,7 +1335,7 @@ const HAXEFMOD_EXAMPLES = {
   "Java#2": {
    "code": null,
    "notes": [
-    "Cannot be bound. Android is not a haxefmod target, the library ships Windows, Linux, and macOS (C++ and HashLink) and HTML5 builds only"
+    "Cannot be bound. Android is not a haxefmod target. The library ships Windows, Linux, and macOS (C++ and HashLink) and HTML5 builds only"
    ],
    "type": null,
    "verdict": "cannot"
@@ -1345,7 +1345,7 @@ const HAXEFMOD_EXAMPLES = {
   "Application setup": {
    "code": null,
    "notes": [
-    "No Haxe declaration, the library owns this choice. FmodManager.Initialize does this through jaxe.js, which sets preRun, onRuntimeInitialized, and a 64 MB INITIAL_MEMORY on the FMOD object and calls FMODModule, the game's main becomes FmodManager.IsInitialized() polled from a loading scene or a handler passed to FmodRuntime.onceReady"
+    "No Haxe declaration, the library owns this choice. FmodManager.Initialize does this through jaxe.js, which sets preRun, onRuntimeInitialized, and a 64 MB INITIAL_MEMORY on the FMOD object and calls FMODModule. The game's main becomes FmodManager.IsInitialized() polled from a loading scene or a handler passed to FmodRuntime.onceReady"
    ],
    "type": null,
    "verdict": "library"
@@ -1359,7 +1359,7 @@ const HAXEFMOD_EXAMPLES = {
   "CPU Overhead": {
    "code": null,
    "notes": [
-    "No Haxe declaration, the library owns this choice. jaxe.js does this at init, it reads the driver's rate with getDriverInfo and passes it to setSoftwareFormat when the sampleRate setting is 0 (the default), a game that wants another rate passes FmodManager.Initialize({sampleRate: 48000}) or sets -D haxefmod_sample_rate and reads the rate in use from CoreSystem.getSoftwareFormat()"
+    "No Haxe declaration, the library owns this choice. jaxe.js does this at init. It reads the driver's rate with getDriverInfo and passes it to setSoftwareFormat when the sampleRate setting is 0 (the default). A game that wants another rate passes FmodManager.Initialize({sampleRate: 48000}) or sets -D haxefmod_sample_rate. CoreSystem.getSoftwareFormat() reports the rate in use"
    ],
    "type": null,
    "verdict": "library"
@@ -1367,7 +1367,7 @@ const HAXEFMOD_EXAMPLES = {
   "Direct from host, via FMOD's filesystem": {
    "code": null,
    "notes": [
-    "No Haxe declaration, the library owns this choice. the library fetches banks itself, FmodRuntime.banks.load (and the autoLoadBanks list in FmodSettings, resolved against bankFolder) fetches the path relative to the page and writes it into FMOD's virtual filesystem before calling loadBankFile, and loose audio files are not preloaded because the web build decodes FSB only"
+    "No Haxe declaration, the library owns this choice. the library fetches banks itself. FmodRuntime.banks.load (and the autoLoadBanks list in FmodSettings, resolved against bankFolder) fetches the path relative to the page and writes it into FMOD's virtual filesystem before calling loadBankFile. Loose audio files are not preloaded because the web build decodes FSB only"
    ],
    "type": null,
    "verdict": "library"
@@ -1381,7 +1381,7 @@ const HAXEFMOD_EXAMPLES = {
   "Flags using WASM pthread build": {
    "code": null,
    "notes": [
-    "Cannot be bound. Emscripten link flags for a C or C++ program compiled against FMOD, a Haxe HTML5 build compiles to JavaScript and runs FMOD's prebuilt fmodstudio.js, there is nothing to link"
+    "Cannot be bound. Emscripten link flags for a C or C++ program compiled against FMOD. A Haxe HTML5 build compiles to JavaScript and runs FMOD's prebuilt fmodstudio.js. There is nothing to link"
    ],
    "type": null,
    "verdict": "cannot"
@@ -1389,7 +1389,7 @@ const HAXEFMOD_EXAMPLES = {
   "Libraries": {
    "code": null,
    "notes": [
-    "No Haxe declaration, the library owns this choice. the post-build step (haxefmod.tools.PostBuild) copies fmodstudio.js and fmodstudio.wasm from FMOD_SDK_WEB into the output's lib folder and jaxe.js loads them, a Haxe project adds no script tag"
+    "No Haxe declaration, the library owns this choice. the post-build step (haxefmod.tools.PostBuild) copies fmodstudio.js and fmodstudio.wasm from FMOD_SDK_WEB into the output's lib folder and jaxe.js loads them. A Haxe project adds no script tag"
    ],
    "type": null,
    "verdict": "library"
@@ -1397,7 +1397,7 @@ const HAXEFMOD_EXAMPLES = {
   "Libraries#2": {
    "code": null,
    "notes": [
-    "No Haxe declaration, the library owns this choice. the post-build step (haxefmod.tools.PostBuild) copies fmodstudio.js and fmodstudio.wasm from FMOD_SDK_WEB into the output's lib folder and jaxe.js loads them, a Haxe project adds no script tag"
+    "No Haxe declaration, the library owns this choice. the post-build step (haxefmod.tools.PostBuild) copies fmodstudio.js and fmodstudio.wasm from FMOD_SDK_WEB into the output's lib folder and jaxe.js loads them. A Haxe project adds no script tag"
    ],
    "type": null,
    "verdict": "library"
@@ -1419,7 +1419,7 @@ const HAXEFMOD_EXAMPLES = {
   "Using FMOD with C/C++": {
    "code": null,
    "notes": [
-    "Cannot be bound. Emscripten link flags for a C or C++ program compiled against FMOD, a Haxe HTML5 build compiles to JavaScript and runs FMOD's prebuilt fmodstudio.js, there is nothing to link"
+    "Cannot be bound. Emscripten link flags for a C or C++ program compiled against FMOD. A Haxe HTML5 build compiles to JavaScript and runs FMOD's prebuilt fmodstudio.js. There is nothing to link"
    ],
    "type": null,
    "verdict": "cannot"
@@ -1435,7 +1435,7 @@ const HAXEFMOD_EXAMPLES = {
   "Via callbacks": {
    "code": null,
    "notes": [
-    "Cannot be bound. file callbacks run on FMOD's file threads and custom file systems are not exposed, fetch the bytes yourself and hand them to StudioSystem.loadBankMemory"
+    "Cannot be bound. file callbacks run on FMOD's file threads and custom file systems are not exposed. Fetch the bytes yourself and hand them to StudioSystem.loadBankMemory"
    ],
    "type": null,
    "verdict": "cannot"
@@ -1443,7 +1443,7 @@ const HAXEFMOD_EXAMPLES = {
   "Via callbacks#2": {
    "code": null,
    "notes": [
-    "Cannot be bound. file callbacks run on FMOD's file threads and custom file systems are not exposed, fetch the bytes yourself and hand them to StudioSystem.loadBankMemory"
+    "Cannot be bound. file callbacks run on FMOD's file threads and custom file systems are not exposed. Fetch the bytes yourself and hand them to StudioSystem.loadBankMemory"
    ],
    "type": null,
    "verdict": "cannot"
@@ -1451,7 +1451,7 @@ const HAXEFMOD_EXAMPLES = {
   "Via callbacks#3": {
    "code": null,
    "notes": [
-    "Cannot be bound. file callbacks run on FMOD's file threads and custom file systems are not exposed, fetch the bytes yourself and hand them to StudioSystem.loadBankMemory"
+    "Cannot be bound. file callbacks run on FMOD's file threads and custom file systems are not exposed. Fetch the bytes yourself and hand them to StudioSystem.loadBankMemory"
    ],
    "type": null,
    "verdict": "cannot"
@@ -1467,7 +1467,7 @@ const HAXEFMOD_EXAMPLES = {
   "Handling Interruptions": {
    "code": null,
    "notes": [
-    "Cannot be bound. iOS is not a haxefmod target, the library ships Windows, Linux, and macOS (C++ and HashLink) and HTML5 builds only, on desktop CoreSystem.mixerSuspend and mixerResume play the role of the suspend callback"
+    "Cannot be bound. iOS is not a haxefmod target. The library ships Windows, Linux, and macOS (C++ and HashLink) and HTML5 builds only. On desktop CoreSystem.mixerSuspend and mixerResume play the role of the suspend callback"
    ],
    "type": null,
    "verdict": "cannot"
@@ -1475,7 +1475,7 @@ const HAXEFMOD_EXAMPLES = {
   "Latency": {
    "code": null,
    "notes": [
-    "Cannot be bound. iOS is not a haxefmod target, the library ships Windows, Linux, and macOS (C++ and HashLink) and HTML5 builds only, the matching sample rate and buffer size are set through FmodManager.Initialize settings"
+    "Cannot be bound. iOS is not a haxefmod target. The library ships Windows, Linux, and macOS (C++ and HashLink) and HTML5 builds only. The matching sample rate and buffer size are set through FmodManager.Initialize settings"
    ],
    "type": null,
    "verdict": "cannot"
@@ -1483,7 +1483,7 @@ const HAXEFMOD_EXAMPLES = {
   "Multi-channel Output": {
    "code": null,
    "notes": [
-    "Cannot be bound. iOS is not a haxefmod target, the library ships Windows, Linux, and macOS (C++ and HashLink) and HTML5 builds only"
+    "Cannot be bound. iOS is not a haxefmod target. The library ships Windows, Linux, and macOS (C++ and HashLink) and HTML5 builds only"
    ],
    "type": null,
    "verdict": "cannot"
@@ -1503,7 +1503,7 @@ const HAXEFMOD_EXAMPLES = {
   "JavaScript": {
    "code": null,
    "notes": [
-    "Cannot be bound. OpenHarmony is not a haxefmod target, this declares the ArkTS types of the platform's native module."
+    "Cannot be bound. OpenHarmony is not a haxefmod target. This declares the ArkTS types of the platform's native module."
    ],
    "type": null,
    "verdict": "cannot"
@@ -1511,7 +1511,7 @@ const HAXEFMOD_EXAMPLES = {
   "JavaScript#2": {
    "code": null,
    "notes": [
-    "Cannot be bound. OpenHarmony is not a haxefmod target, this is the platform module's package manifest."
+    "Cannot be bound. OpenHarmony is not a haxefmod target. This is the platform module's package manifest."
    ],
    "type": null,
    "verdict": "cannot"
@@ -1519,7 +1519,7 @@ const HAXEFMOD_EXAMPLES = {
   "JavaScript#3": {
    "code": null,
    "notes": [
-    "Cannot be bound. OpenHarmony is not a haxefmod target, this is an OpenHarmony project dependency entry."
+    "Cannot be bound. OpenHarmony is not a haxefmod target. This is an OpenHarmony project dependency entry."
    ],
    "type": null,
    "verdict": "cannot"
@@ -1527,7 +1527,7 @@ const HAXEFMOD_EXAMPLES = {
   "JavaScript#4": {
    "code": null,
    "notes": [
-    "Cannot be bound. OpenHarmony is not a haxefmod target, this imports the platform's native module."
+    "Cannot be bound. OpenHarmony is not a haxefmod target. This imports the platform's native module."
    ],
    "type": null,
    "verdict": "cannot"
@@ -1535,7 +1535,7 @@ const HAXEFMOD_EXAMPLES = {
   "JavaScript#5": {
    "code": null,
    "notes": [
-    "Cannot be bound. OpenHarmony is not a haxefmod target, fmod.init here is the platform module's ability hook, not FMOD's System init."
+    "Cannot be bound. OpenHarmony is not a haxefmod target. The fmod.init call here is the platform module's ability hook. FMOD's System init is a different call."
    ],
    "type": null,
    "verdict": "cannot"
@@ -1543,7 +1543,7 @@ const HAXEFMOD_EXAMPLES = {
   "JavaScript#6": {
    "code": null,
    "notes": [
-    "Cannot be bound. OpenHarmony is not a haxefmod target, fmod.close here is the platform module's ability hook, not FMOD's System release."
+    "Cannot be bound. OpenHarmony is not a haxefmod target. The fmod.close call here is the platform module's ability hook. FMOD's System release is a different call."
    ],
    "type": null,
    "verdict": "cannot"
@@ -1551,7 +1551,7 @@ const HAXEFMOD_EXAMPLES = {
   "JavaScript#7": {
    "code": null,
    "notes": [
-    "Cannot be bound. OpenHarmony is not a haxefmod target, this is the OpenHarmony window stage lifecycle callback."
+    "Cannot be bound. OpenHarmony is not a haxefmod target. This is the OpenHarmony window stage lifecycle callback."
    ],
    "type": null,
    "verdict": "cannot"
@@ -1595,7 +1595,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_CODEC_ALLOC_FUNC": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's threads inside a codec plugin, plugin authoring is C only"
+    "Cannot be bound. runs on FMOD's threads inside a codec plugin. Plugin authoring is C only"
    ],
    "type": null,
    "verdict": "cannot"
@@ -1603,7 +1603,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_CODEC_CLOSE_CALLBACK": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's threads inside a codec plugin, plugin authoring is C only"
+    "Cannot be bound. runs on FMOD's threads inside a codec plugin. Plugin authoring is C only"
    ],
    "type": null,
    "verdict": "cannot"
@@ -1619,7 +1619,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_CODEC_FILE_READ_FUNC": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's threads inside a codec plugin, plugin authoring is C only"
+    "Cannot be bound. runs on FMOD's threads inside a codec plugin. Plugin authoring is C only"
    ],
    "type": null,
    "verdict": "cannot"
@@ -1627,7 +1627,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_CODEC_FILE_SEEK_FUNC": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's threads inside a codec plugin, plugin authoring is C only"
+    "Cannot be bound. runs on FMOD's threads inside a codec plugin. Plugin authoring is C only"
    ],
    "type": null,
    "verdict": "cannot"
@@ -1635,7 +1635,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_CODEC_FILE_SIZE_FUNC": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's threads inside a codec plugin, plugin authoring is C only"
+    "Cannot be bound. runs on FMOD's threads inside a codec plugin. Plugin authoring is C only"
    ],
    "type": null,
    "verdict": "cannot"
@@ -1643,7 +1643,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_CODEC_FILE_TELL_FUNC": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's threads inside a codec plugin, plugin authoring is C only"
+    "Cannot be bound. runs on FMOD's threads inside a codec plugin. Plugin authoring is C only"
    ],
    "type": null,
    "verdict": "cannot"
@@ -1651,7 +1651,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_CODEC_FREE_FUNC": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's threads inside a codec plugin, plugin authoring is C only"
+    "Cannot be bound. runs on FMOD's threads inside a codec plugin. Plugin authoring is C only"
    ],
    "type": null,
    "verdict": "cannot"
@@ -1659,7 +1659,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_CODEC_GETLENGTH_CALLBACK": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's threads inside a codec plugin, plugin authoring is C only"
+    "Cannot be bound. runs on FMOD's threads inside a codec plugin. Plugin authoring is C only"
    ],
    "type": null,
    "verdict": "cannot"
@@ -1667,7 +1667,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_CODEC_GETPOSITION_CALLBACK": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's threads inside a codec plugin, plugin authoring is C only"
+    "Cannot be bound. runs on FMOD's threads inside a codec plugin. Plugin authoring is C only"
    ],
    "type": null,
    "verdict": "cannot"
@@ -1675,7 +1675,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_CODEC_GETWAVEFORMAT_CALLBACK": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's threads inside a codec plugin, plugin authoring is C only"
+    "Cannot be bound. runs on FMOD's threads inside a codec plugin. Plugin authoring is C only"
    ],
    "type": null,
    "verdict": "cannot"
@@ -1683,7 +1683,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_CODEC_LOG_FUNC": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's threads inside a codec plugin, plugin authoring is C only"
+    "Cannot be bound. runs on FMOD's threads inside a codec plugin. Plugin authoring is C only"
    ],
    "type": null,
    "verdict": "cannot"
@@ -1691,7 +1691,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_CODEC_METADATA_FUNC": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's threads inside a codec plugin, plugin authoring is C only"
+    "Cannot be bound. runs on FMOD's threads inside a codec plugin. Plugin authoring is C only"
    ],
    "type": null,
    "verdict": "cannot"
@@ -1699,7 +1699,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_CODEC_OPEN_CALLBACK": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's threads inside a codec plugin, plugin authoring is C only"
+    "Cannot be bound. runs on FMOD's threads inside a codec plugin. Plugin authoring is C only"
    ],
    "type": null,
    "verdict": "cannot"
@@ -1715,7 +1715,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_CODEC_READ_CALLBACK": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's threads inside a codec plugin, plugin authoring is C only"
+    "Cannot be bound. runs on FMOD's threads inside a codec plugin. Plugin authoring is C only"
    ],
    "type": null,
    "verdict": "cannot"
@@ -1723,7 +1723,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_CODEC_SEEK_METHOD": {
    "code": null,
    "notes": [
-    "Cannot be bound. only a codec plugin's seek function receives it, plugin authoring is C only"
+    "Cannot be bound. only a codec plugin's seek function receives it. Plugin authoring is C only"
    ],
    "type": null,
    "verdict": "cannot"
@@ -1731,7 +1731,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_CODEC_SETPOSITION_CALLBACK": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's threads inside a codec plugin, plugin authoring is C only"
+    "Cannot be bound. runs on FMOD's threads inside a codec plugin. Plugin authoring is C only"
    ],
    "type": null,
    "verdict": "cannot"
@@ -1739,7 +1739,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_CODEC_SOUNDCREATE_CALLBACK": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's threads inside a codec plugin, plugin authoring is C only"
+    "Cannot be bound. runs on FMOD's threads inside a codec plugin. Plugin authoring is C only"
    ],
    "type": null,
    "verdict": "cannot"
@@ -1747,7 +1747,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_CODEC_STATE": {
    "code": null,
    "notes": [
-    "Cannot be bound. FMOD hands it to codec plugin callbacks on its own threads, plugin authoring is C only"
+    "Cannot be bound. FMOD hands it to codec plugin callbacks on its own threads. Plugin authoring is C only"
    ],
    "type": null,
    "verdict": "cannot"
@@ -2251,7 +2251,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_DSP_STATE#2": {
    "code": null,
    "notes": [
-    "Cannot be bound. a plugin read callback keeping its phase in plugindata, received only by a plugin callback on FMOD's mixer thread, which Haxe code cannot host, the built-in oscillator unit (Dsp.create(DspType.OSCILLATOR)) plays the same tone from game code"
+    "Cannot be bound. a plugin read callback keeping its phase in plugindata. Only a plugin callback on FMOD's mixer thread receives it, and Haxe code cannot host one. The built-in oscillator unit (Dsp.create(DspType.OSCILLATOR)) plays the same tone from game code"
    ],
    "type": null,
    "verdict": "cannot"
@@ -2317,7 +2317,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_OUTPUT_ALLOC_FUNC": {
    "code": null,
    "notes": [
-    "Cannot be bound. a helper FMOD hands to an output plugin through FMOD_OUTPUT_STATE, only plugin C code can call it"
+    "Cannot be bound. a helper FMOD hands to an output plugin through FMOD_OUTPUT_STATE. Only plugin C code can call it"
    ],
    "type": null,
    "verdict": "cannot"
@@ -2325,7 +2325,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_OUTPUT_CLOSEPORT_CALLBACK": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside an output plugin, plugin authoring is C only"
+    "Cannot be bound. runs on FMOD's mixer thread inside an output plugin. Plugin authoring is C only"
    ],
    "type": null,
    "verdict": "cannot"
@@ -2333,7 +2333,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_OUTPUT_CLOSE_CALLBACK": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside an output plugin, plugin authoring is C only"
+    "Cannot be bound. runs on FMOD's mixer thread inside an output plugin. Plugin authoring is C only"
    ],
    "type": null,
    "verdict": "cannot"
@@ -2341,7 +2341,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_OUTPUT_COPYPORT_FUNC": {
    "code": null,
    "notes": [
-    "Cannot be bound. a helper FMOD hands to an output plugin through FMOD_OUTPUT_STATE, only plugin C code can call it"
+    "Cannot be bound. a helper FMOD hands to an output plugin through FMOD_OUTPUT_STATE. Only plugin C code can call it"
    ],
    "type": null,
    "verdict": "cannot"
@@ -2349,7 +2349,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_OUTPUT_DESCRIPTION": {
    "code": null,
    "notes": [
-    "Cannot be bound. output plugins are written in C, FMOD initializes the platform's default output and StudioSystem.loadPlugin with CoreSystem.setOutputByPlugin selects a compiled one"
+    "Cannot be bound. output plugins are written in C. FMOD initializes the platform's default output. StudioSystem.loadPlugin with CoreSystem.setOutputByPlugin selects a compiled one"
    ],
    "type": null,
    "verdict": "cannot"
@@ -2357,7 +2357,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_OUTPUT_DESCRIPTION#2": {
    "code": null,
    "notes": [
-    "Cannot be bound. FMODGetOutputDescription is the export of a compiled plugin library, a plugin built this way is loaded with StudioSystem.loadPlugin and selected with CoreSystem.setOutputByPlugin"
+    "Cannot be bound. FMODGetOutputDescription is the export of a compiled plugin library. A plugin built this way is loaded with StudioSystem.loadPlugin and selected with CoreSystem.setOutputByPlugin"
    ],
    "type": null,
    "verdict": "cannot"
@@ -2365,7 +2365,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_OUTPUT_DEVICELISTCHANGED_CALLBACK": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside an output plugin, plugin authoring is C only"
+    "Cannot be bound. runs on FMOD's mixer thread inside an output plugin. Plugin authoring is C only"
    ],
    "type": null,
    "verdict": "cannot"
@@ -2373,7 +2373,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_OUTPUT_FREE_FUNC": {
    "code": null,
    "notes": [
-    "Cannot be bound. a helper FMOD hands to an output plugin through FMOD_OUTPUT_STATE, only plugin C code can call it"
+    "Cannot be bound. a helper FMOD hands to an output plugin through FMOD_OUTPUT_STATE. Only plugin C code can call it"
    ],
    "type": null,
    "verdict": "cannot"
@@ -2381,7 +2381,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_OUTPUT_GETDRIVERINFO_CALLBACK": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside an output plugin, plugin authoring is C only"
+    "Cannot be bound. runs on FMOD's mixer thread inside an output plugin. Plugin authoring is C only"
    ],
    "type": null,
    "verdict": "cannot"
@@ -2389,7 +2389,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_OUTPUT_GETHANDLE_CALLBACK": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside an output plugin, plugin authoring is C only"
+    "Cannot be bound. runs on FMOD's mixer thread inside an output plugin. Plugin authoring is C only"
    ],
    "type": null,
    "verdict": "cannot"
@@ -2397,7 +2397,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_OUTPUT_GETNUMDRIVERS_CALLBACK": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside an output plugin, plugin authoring is C only"
+    "Cannot be bound. runs on FMOD's mixer thread inside an output plugin. Plugin authoring is C only"
    ],
    "type": null,
    "verdict": "cannot"
@@ -2405,7 +2405,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_OUTPUT_INIT_CALLBACK": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside an output plugin, plugin authoring is C only"
+    "Cannot be bound. runs on FMOD's mixer thread inside an output plugin. Plugin authoring is C only"
    ],
    "type": null,
    "verdict": "cannot"
@@ -2413,7 +2413,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_OUTPUT_LOG_FUNC": {
    "code": null,
    "notes": [
-    "Cannot be bound. a helper FMOD hands to an output plugin through FMOD_OUTPUT_STATE, only plugin C code can call it"
+    "Cannot be bound. a helper FMOD hands to an output plugin through FMOD_OUTPUT_STATE. Only plugin C code can call it"
    ],
    "type": null,
    "verdict": "cannot"
@@ -2427,7 +2427,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_OUTPUT_MIXER_CALLBACK": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside an output plugin, plugin authoring is C only"
+    "Cannot be bound. runs on FMOD's mixer thread inside an output plugin. Plugin authoring is C only"
    ],
    "type": null,
    "verdict": "cannot"
@@ -2435,7 +2435,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_OUTPUT_OBJECT3DALLOC_CALLBACK": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside an output plugin, plugin authoring is C only"
+    "Cannot be bound. runs on FMOD's mixer thread inside an output plugin. Plugin authoring is C only"
    ],
    "type": null,
    "verdict": "cannot"
@@ -2443,7 +2443,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_OUTPUT_OBJECT3DFREE_CALLBACK": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside an output plugin, plugin authoring is C only"
+    "Cannot be bound. runs on FMOD's mixer thread inside an output plugin. Plugin authoring is C only"
    ],
    "type": null,
    "verdict": "cannot"
@@ -2451,7 +2451,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_OUTPUT_OBJECT3DGETINFO_CALLBACK": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside an output plugin, plugin authoring is C only"
+    "Cannot be bound. runs on FMOD's mixer thread inside an output plugin. Plugin authoring is C only"
    ],
    "type": null,
    "verdict": "cannot"
@@ -2459,7 +2459,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_OUTPUT_OBJECT3DINFO": {
    "code": null,
    "notes": [
-    "Cannot be bound. filled by FMOD for an output plugin's object3dupdate callback on the mixer thread, plugin authoring is C only"
+    "Cannot be bound. filled by FMOD for an output plugin's object3dupdate callback on the mixer thread. Plugin authoring is C only"
    ],
    "type": null,
    "verdict": "cannot"
@@ -2467,7 +2467,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_OUTPUT_OBJECT3DUPDATE_CALLBACK": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside an output plugin, plugin authoring is C only"
+    "Cannot be bound. runs on FMOD's mixer thread inside an output plugin. Plugin authoring is C only"
    ],
    "type": null,
    "verdict": "cannot"
@@ -2475,7 +2475,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_OUTPUT_OPENPORT_CALLBACK": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside an output plugin, plugin authoring is C only"
+    "Cannot be bound. runs on FMOD's mixer thread inside an output plugin. Plugin authoring is C only"
    ],
    "type": null,
    "verdict": "cannot"
@@ -2483,7 +2483,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_OUTPUT_PLUGIN_VERSION": {
    "code": null,
    "notes": [
-    "Cannot be bound. the apiversion a compiled output plugin reports in its C description, no Haxe code writes one"
+    "Cannot be bound. the apiversion a compiled output plugin reports in its C description. No Haxe code writes one"
    ],
    "type": null,
    "verdict": "cannot"
@@ -2491,7 +2491,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_OUTPUT_READFROMMIXER_FUNC": {
    "code": null,
    "notes": [
-    "Cannot be bound. a helper FMOD hands to an output plugin through FMOD_OUTPUT_STATE, only plugin C code can call it"
+    "Cannot be bound. a helper FMOD hands to an output plugin through FMOD_OUTPUT_STATE. Only plugin C code can call it"
    ],
    "type": null,
    "verdict": "cannot"
@@ -2499,7 +2499,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_OUTPUT_REQUESTRESET_FUNC": {
    "code": null,
    "notes": [
-    "Cannot be bound. a helper FMOD hands to an output plugin through FMOD_OUTPUT_STATE, only plugin C code can call it"
+    "Cannot be bound. a helper FMOD hands to an output plugin through FMOD_OUTPUT_STATE. Only plugin C code can call it"
    ],
    "type": null,
    "verdict": "cannot"
@@ -2507,7 +2507,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_OUTPUT_START_CALLBACK": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside an output plugin, plugin authoring is C only"
+    "Cannot be bound. runs on FMOD's mixer thread inside an output plugin. Plugin authoring is C only"
    ],
    "type": null,
    "verdict": "cannot"
@@ -2515,7 +2515,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_OUTPUT_STATE": {
    "code": null,
    "notes": [
-    "Cannot be bound. the per instance state FMOD passes to an output plugin's C callbacks, plugin authoring is C only"
+    "Cannot be bound. the per instance state FMOD passes to an output plugin's C callbacks. Plugin authoring is C only"
    ],
    "type": null,
    "verdict": "cannot"
@@ -2523,7 +2523,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_OUTPUT_STOP_CALLBACK": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside an output plugin, plugin authoring is C only"
+    "Cannot be bound. runs on FMOD's mixer thread inside an output plugin. Plugin authoring is C only"
    ],
    "type": null,
    "verdict": "cannot"
@@ -2531,7 +2531,7 @@ const HAXEFMOD_EXAMPLES = {
   "FMOD_OUTPUT_UPDATE_CALLBACK": {
    "code": null,
    "notes": [
-    "Cannot be bound. runs on FMOD's mixer thread inside an output plugin, plugin authoring is C only"
+    "Cannot be bound. runs on FMOD's mixer thread inside an output plugin. Plugin authoring is C only"
    ],
    "type": null,
    "verdict": "cannot"

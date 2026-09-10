@@ -47,7 +47,7 @@ function calculatePannerAttributes(listener:Fmod3DAttributes, emitter:Fmod3DAttr
 
 ## 5.1 Controlling a Spatializer DSP#2
 verdict: bound
-waive: extra-calls the core set3DListenerAttributes has no Haxe form, the listener goes through Studio's setListenerAttributes
+waive: extra-calls the core set3DListenerAttributes has no Haxe form. The listener goes through Studio's setListenerAttributes
 ```haxe
 import haxefmod.studio.Types;
 
@@ -72,14 +72,14 @@ var velz = (posz - lastposz) * 1000 / timedelta;
 
 ## 5.1.1 Velocity#2
 verdict: bound
-waive: missing-numbers the snippet's = 6 is the arithmetic result, the fence carries it in the comment
+waive: missing-numbers the snippet's = 6 is the arithmetic result. The fence carries it in the comment
 ```haxe
 var vel = 0.1 * 1000 / 16.67; // 6 meters per second
 ```
 
 ## 5.1.1 Velocity#3
 verdict: bound
-waive: missing-numbers the snippet's = 6 is the arithmetic result, the fence carries it in the comment
+waive: missing-numbers the snippet's = 6 is the arithmetic result. The fence carries it in the comment
 ```haxe
 var vel = 0.2 * 1000 / 33.33; // 6 meters per second
 ```

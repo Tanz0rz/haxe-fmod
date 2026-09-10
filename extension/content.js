@@ -24,6 +24,9 @@
     var EXAMPLES = typeof HAXEFMOD_EXAMPLES !== "undefined" ? HAXEFMOD_EXAMPLES : {};
 
     if (!DATA) return;
+    // The bindings cover FMOD 2.03. An old userscript install with a
+    // wider match rule stops here on any other version of the reference.
+    if (window.location.pathname.indexOf("/docs/2.03/") < 0) return;
 
     function pageName() {
         var file = window.location.pathname.split("/").pop() || "";
@@ -31,6 +34,9 @@
     }
 
     var WARN_COLOR = "#a40000";
+    // Suffix on a signature that a js build refuses, when the sibling
+    // signatures of the same function build everywhere.
+    var GATED_MARK = "// HTML5 unsupported";
 
     function el(tag, className, text) {
         var node = document.createElement(tag);
@@ -112,10 +118,17 @@
             var also = entry.haxe.filter(function (m) { return !m.direct; });
             var shown = direct.length ? direct : also;
             var rest = direct.length ? also : [];
+            // The entry-level gated flag is true when any one method is
+            // gated. The red block belongs to the functions where every
+            // shown method is, the rest get a marker per signature.
+            var gated = shown.filter(function (m) { return m.gated; });
+            var allGated = gated.length > 0 && gated.length === shown.length;
             var lines = [];
             shown.forEach(function (m, i) {
                 if (i > 0) lines.push("");
-                lines.push(formatSignature(receiver(m), m.signature));
+                var text = formatSignature(receiver(m), m.signature);
+                if (m.gated && !allGated) text += " " + GATED_MARK;
+                lines.push(text);
             });
             pre.textContent = lines.join("\n");
 
@@ -126,18 +139,23 @@
                 var names = rest.map(function (m) { return shortType(m.type) + "." + m.name; });
                 note.appendChild(el("p", null, "Also reaches this function: " + names.join(", ")));
             }
-            if (entry.gated) {
+            if (allGated) {
                 var warn = el("div", "haxefmod-warn");
                 warn.appendChild(el("p", "haxefmod-warn-title", "HTML5 BUILD TARGET UNSUPPORTED"));
                 var list = el("ul", "haxefmod-warn-list");
-                list.appendChild(el("li", "haxefmod-warn-item", "FMOD's web build does not support this feature, so the call does not compile in a js build."));
-                list.appendChild(el("li", "haxefmod-warn-item", "The build flag haxefmod_html5_allow_unsupported compiles it anyway, and it then returns FMOD_ERR_UNSUPPORTED at runtime."));
+                list.appendChild(el("li", "haxefmod-warn-item", "FMOD's web build does not support this feature. The call does not compile in a js build."));
+                list.appendChild(el("li", "haxefmod-warn-item", "The build flag haxefmod_html5_allow_unsupported compiles it anyway. The call then returns FMOD_ERR_UNSUPPORTED at runtime."));
                 warn.appendChild(list);
                 note.appendChild(warn);
+            } else if (gated.length) {
+                var marked = el("p", "haxefmod-warn");
+                marked.appendChild(el("span", "haxefmod-warn-title", "HTML5 - "));
+                marked.appendChild(document.createTextNode("A signature marked " + GATED_MARK + " does not compile in a js build. The build flag haxefmod_html5_allow_unsupported compiles it anyway. The call then returns FMOD_ERR_UNSUPPORTED at runtime. The other signatures above build on every target."));
+                note.appendChild(marked);
             } else if (entry.html5) {
                 var limited = el("p", "haxefmod-warn");
                 limited.appendChild(el("span", "haxefmod-warn-title", "Warning - "));
-                limited.appendChild(document.createTextNode("HTML5: FMOD's web build does not support this call, haxefmod reports FMOD_ERR_UNSUPPORTED there."));
+                limited.appendChild(document.createTextNode("HTML5: FMOD's web build does not support this call. The call reports FMOD_ERR_UNSUPPORTED on that target."));
                 note.appendChild(limited);
             }
             notes.forEach(function (text) { note.appendChild(el("p", null, text)); });
@@ -248,8 +266,8 @@
     // blocks cover. A strip over blocks the site never toggles (no
     // language class) stays up. Native tabs get their selected state
     // from the site's own pass over every .language-tab.
-    function updateStrips(selected) {
-        var strips = document.querySelectorAll(".haxefmod-selector");
+    function updateStrips(root, selected) {
+        var strips = root.querySelectorAll(".haxefmod-selector");
         for (var i = 0; i < strips.length; i++) {
             var langs = (strips[i].getAttribute("data-haxefmod-langs") || "").split(" ").filter(Boolean);
             var show = selected === LANG || langs.length === 0 || langs.indexOf(selected) >= 0;
@@ -272,6 +290,21 @@
         return "language-cpp";
     }
 
+    // The reference body lives in div.manual-content. A search result
+    // page repeats the same block markup in div.searchresults, which
+    // content.css also styles the Haxe tab inside. Every read and every
+    // toggle stays within these containers.
+    var ROOTS = "div.manual-content, div.searchresults";
+
+    function roots() {
+        return document.querySelectorAll(ROOTS);
+    }
+
+    function updateAllStrips(selected) {
+        var containers = roots();
+        for (var i = 0; i < containers.length; i++) updateStrips(containers[i], selected);
+    }
+
     // Every code location on the page is keyed by extension/keys.js, the
     // same way the catalog was built, and looked up by that key.
     //
@@ -283,8 +316,16 @@
     // (the guides and platform pages) gets a strip per lone unit, since
     // there is no other place to pick Haxe from.
     function injectAll() {
-        var root = document.querySelector("div.manual-content");
-        if (!root || typeof haxefmodKeys === "undefined") return false;
+        if (typeof haxefmodKeys === "undefined") return false;
+        var containers = roots();
+        if (!containers.length) return false;
+        var found = 0;
+        for (var r = 0; r < containers.length; r++) found += injectInto(containers[r]);
+        updateAllStrips(current());
+        return found > 0;
+    }
+
+    function injectInto(root) {
         var siteSelector = !!root.querySelector("div.language-selector:not(.haxefmod-selector)");
         var units = haxefmodKeys.grouped(haxefmodKeys.units(root));
         var examples = EXAMPLES[pageName()] || {};
@@ -323,40 +364,49 @@
                 if (unit.langs.length === 0) nodes[m].classList.add("haxefmod-plain");
             }
         }
-        updateStrips(current());
-        return units.length > 0;
+        return units.length;
     }
 
-    function setDisplay(selectorList, display) {
-        var nodes = document.querySelectorAll(selectorList);
+    function setDisplay(root, selectorList, display) {
+        var nodes = root.querySelectorAll(selectorList);
         for (var i = 0; i < nodes.length; i++) nodes[i].style.display = display;
     }
 
-    function apply(selected) {
+    function applyIn(root, selected) {
         var haxeOn = selected === LANG;
-        setDisplay("." + LANG, haxeOn ? "block" : "none");
-        var tabs = document.querySelectorAll(".language-tab");
+        setDisplay(root, "." + LANG, haxeOn ? "block" : "none");
+        var tabs = root.querySelectorAll(".language-tab");
         for (var i = 0; i < tabs.length; i++) {
             var lang = tabs[i].getAttribute("data-language");
             if (lang === LANG) tabs[i].classList.toggle("selected", haxeOn);
             else if (haxeOn) tabs[i].classList.remove("selected");
         }
         if (haxeOn) {
-            setDisplay(NATIVE_LANGS.map(function (l) { return "." + l; }).join(", "), "none");
+            setDisplay(root, NATIVE_LANGS.map(function (l) { return "." + l; }).join(", "), "none");
         }
-        setDisplay(".haxefmod-plain", haxeOn ? "none" : "");
-        updateStrips(selected);
+        setDisplay(root, ".haxefmod-plain", haxeOn ? "none" : "");
+        updateStrips(root, selected);
     }
 
-    function applyNative(lang) {
-        var tabs = document.querySelectorAll(".language-tab");
+    function apply(selected) {
+        var containers = roots();
+        for (var i = 0; i < containers.length; i++) applyIn(containers[i], selected);
+    }
+
+    function applyNativeIn(root, lang) {
+        var tabs = root.querySelectorAll(".language-tab");
         for (var i = 0; i < tabs.length; i++) {
             tabs[i].classList.toggle("selected", tabs[i].getAttribute("data-language") === lang);
         }
         NATIVE_LANGS.forEach(function (other) {
-            setDisplay("." + other, other === lang ? "block" : "none");
+            setDisplay(root, "." + other, other === lang ? "block" : "none");
         });
-        updateStrips(lang);
+        updateStrips(root, lang);
+    }
+
+    function applyNative(lang) {
+        var containers = roots();
+        for (var i = 0; i < containers.length; i++) applyNativeIn(containers[i], lang);
         try { window.localStorage.setItem(STORAGE_KEY, lang); } catch (e) { /* ignore */ }
     }
 

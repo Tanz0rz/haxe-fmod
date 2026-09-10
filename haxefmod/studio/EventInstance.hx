@@ -249,7 +249,7 @@ abstract EventInstance(Int) from Int to Int {
      * set to zero. StudioSystem.lastResult() tells the two apart.
      */
     public inline function getParameterFinal(name:String):Float {
-        return NativeStudio.evi_get_param_by_name_final(this, name);
+        return NativeStudio.evi_get_param_by_name_final(this, bareParameterName(name));
     }
 
     /** Sets a parameter by name. ignoreSeekSpeed skips the parameter's seek speed and applies the value at once. */
