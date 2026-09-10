@@ -781,7 +781,7 @@ class ApiProbeScenario implements TestScenario {
         check("hardening_facade_bad_song_not_playing", !FmodManager.IsSongPlaying(), "");
         FmodManager.PlaySong(FmodEvents.MusicMainLevel);
         check("hardening_facade_recovers_after_bad_song", FmodManager.IsSongPlaying(), "");
-        info("hardening_song_param_miss", Std.string(FmodManager.GetEventParameterOnSong("NoSuchParam")));
+        info("hardening_song_param_miss", Std.string(FmodManager.GetSongParameter("NoSuchParam")));
         FmodManager.PauseSong();
         FmodManager.UnpauseSong();
         FmodManager.StopSongImmediately();
@@ -836,16 +836,17 @@ class ApiProbeScenario implements TestScenario {
     /**
      * The helper class against the authored content: global parameters by
      * bare name and by generated path, labeled parameters on the song and
-     * on a held sound, VCA volume shaped like the bus calls, and a snapshot
-     * through the ordinary play calls. Every value is restored afterwards.
+     * on a held sound, VCA volume shaped like the bus calls, a snapshot
+     * through the ordinary play calls and through the snapshot calls, and
+     * per-bus pause. Every value is restored afterwards.
      * The song part runs before the baseline because the song slot keeps
      * its stopped instance by design.
      */
     function probeHelperClass():Void {
         FmodManager.PlaySong(FmodEvents.SFXJump);
-        FmodManager.SetEventParameterOnSongWithLabel("Surface", "Stone");
-        check("helper_song_param_label", Math.abs(FmodManager.GetEventParameterOnSong("Surface") - 1) < 0.001,
-            'value=${FmodManager.GetEventParameterOnSong("Surface")}');
+        FmodManager.SetSongParameterWithLabel("Surface", "Stone");
+        check("helper_song_param_label", Math.abs(FmodManager.GetSongParameter("Surface") - 1) < 0.001,
+            'value=${FmodManager.GetSongParameter("Surface")}');
         FmodManager.StopSongImmediately();
         StudioSystem.flushCommands();
         var baseline = StudioSystem.liveHandleCount();
@@ -890,6 +891,38 @@ class ApiProbeScenario implements TestScenario {
         underwater.release();
         StudioSystem.flushCommands();
         CallbackDispatcher.update();
+
+        // The snapshot calls hold nothing: FMOD keeps the started instance
+        // alive and the description's instance list finds it again
+        var snapshotDesc = StudioSystem.getEvent(FmodSnapshots.Underwater);
+        check("helper_snapshot_inactive_before", !FmodManager.IsSnapshotActive(FmodSnapshots.Underwater),
+            'count=${snapshotDesc.getInstanceCount()}');
+        FmodManager.StartSnapshot(FmodSnapshots.Underwater);
+        StudioSystem.flushCommands();
+        check("helper_snapshot_start", FmodManager.IsSnapshotActive(FmodSnapshots.Underwater)
+            && snapshotDesc.getInstanceCount() == 1, 'count=${snapshotDesc.getInstanceCount()}');
+        FmodManager.StartSnapshot(FmodSnapshots.Underwater);
+        StudioSystem.flushCommands();
+        check("helper_snapshot_start_twice_is_once", snapshotDesc.getInstanceCount() == 1,
+            'count=${snapshotDesc.getInstanceCount()}');
+        FmodManager.SetSnapshotIntensity(FmodSnapshots.Underwater, 0.5);
+        var live = snapshotDesc.getInstanceList();
+        check("helper_snapshot_intensity", live.length == 1 && Math.abs(live[0].getParameter("Intensity") - 50) < 0.01,
+            live.length == 0 ? "no instance" : 'value=${live[0].getParameter("Intensity")}');
+        FmodManager.StopSnapshotImmediately(FmodSnapshots.Underwater);
+        StudioSystem.flushCommands();
+        CallbackDispatcher.update();
+        check("helper_snapshot_stop", !FmodManager.IsSnapshotActive(FmodSnapshots.Underwater),
+            'count=${snapshotDesc.getInstanceCount()}');
+        FmodManager.StopSnapshot("snapshot:/Nope");
+        check("helper_snapshot_missing_is_noop", true, "");
+
+        // Per-bus pause, shaped like the mute pair
+        var reverbBus = StudioSystem.getBus(FmodBuses.Reverb);
+        FmodManager.SetBusPaused(FmodBuses.Reverb, true);
+        check("helper_bus_paused", FmodManager.GetBusIsPaused(FmodBuses.Reverb) && reverbBus.getPaused(), "");
+        FmodManager.SetBusPaused(FmodBuses.Reverb, false);
+        check("helper_bus_unpaused", !FmodManager.GetBusIsPaused(FmodBuses.Reverb) && !reverbBus.getPaused(), "");
 
         check("no_handle_leaks_helper", StudioSystem.liveHandleCount() == baseline,
             'baseline=$baseline now=${StudioSystem.liveHandleCount()}');

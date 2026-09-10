@@ -154,6 +154,7 @@ STUB_MODULES = {
 """,
     "FmodSnapshots.hx": """class FmodSnapshots {
     public static inline var Underwater = "snapshot:/Underwater";
+    public static inline var Paused = "snapshot:/Paused";
 }
 """,
     "FmodParameters.hx": """class FmodParameters {

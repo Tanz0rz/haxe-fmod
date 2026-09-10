@@ -1,6 +1,6 @@
 # FmodManager
 
-`haxefmod.FmodManager` is the helper class most games talk to. It owns one background song slot. It plays sound effects fire-and-forget or through a handle. It exposes the bus, VCA, and global parameter controls a settings menu and a dynamic mix need. Every call takes an FMOD Studio path or name and holds no handle. It is built entirely on the public layers underneath. Anything it does not cover is reachable through `haxefmod.runtime.FmodRuntime` and `haxefmod.studio.*`, with no hidden state. See [Beyond the helper class](#beyond-the-helper-class).
+`haxefmod.FmodManager` is the helper class most games talk to. It owns six areas: lifecycle, one background song slot, sound effects, the mixer (buses, VCAs, and snapshots), global parameters, and game policy. Every call takes an FMOD Studio path or name and holds no handle. The song slot is its one piece of state, and `PlaySound` returns its one handle. It is built entirely on the public layers underneath. Anything it does not cover is reachable through `haxefmod.runtime.FmodRuntime` and `haxefmod.studio.*`, with no hidden state. See [Beyond the helper class](#beyond-the-helper-class).
 
 Every call behaves the same on HaxeFlixel, Heaps, and Kha. The [engine setup calls](components.md#setup) only keep `Update()` running and wire focus and volume.
 
@@ -34,11 +34,11 @@ FmodManager.PlaySongTransition(FmodEvents.MusicTitle);
 
 `StopSong` fades out and `StopSongImmediately` cuts. Both cancel any pending transition. `PauseSong` and `UnpauseSong` freeze and resume the timeline. `IsSongPlaying` counts starting, playing, sustaining, and fading as playing. FMOD starts sounds asynchronously, and the PLAYING state alone would misreport the first frames.
 
-Parameters on the song use `SetEventParameterOnSong(name, value)` and `GetEventParameterOnSong(name)`. A labeled parameter takes its label text through `SetEventParameterOnSongWithLabel(name, label)`. `GetSongTimelinePosition()` returns the timeline position in milliseconds. `GetCurrentSongPath()` returns the event path that was passed to `PlaySong`.
+Parameters on the song use `SetSongParameter(name, value)` and `GetSongParameter(name)`. A labeled parameter takes its label text through `SetSongParameterWithLabel(name, label)`. `GetSongTimelinePosition()` returns the timeline position in milliseconds. `GetCurrentSongPath()` returns the event path that was passed to `PlaySong`.
 
 ```haxe
-FmodManager.SetEventParameterOnSong("Tension", 0.8);
-FmodManager.SetEventParameterOnSongWithLabel("Section", "Chorus");
+FmodManager.SetSongParameter("Tension", 0.8);
+FmodManager.SetSongParameterWithLabel("Section", "Chorus");
 ```
 
 ### Song callbacks
@@ -95,7 +95,7 @@ instance.setPosition2D(100, 50);
 instance.setTimelinePosition(2000);
 ```
 
-Snapshots are events to FMOD, so the same calls play them. `PlaySound(FmodSnapshots.Underwater)` applies the snapshot until you stop and release the handle, and `PlaySoundOneShot` applies a snapshot with a timeline that ends on its own.
+Snapshots are events to FMOD, so these calls accept them too. The [Snapshots](#snapshots) section covers the calls made for them.
 
 `PlaySound` returns `FmodSound.NULL` when FMOD cannot create the event, and logs a warning that names the path. Every method on a null handle is a safe no-op, so a mistyped path degrades to silence. See [Handles and results](handles-and-results.md).
 
@@ -107,6 +107,7 @@ Snapshots are events to FMOD, so the same calls play them. `PlaySound(FmodSnapsh
 | `PauseAllSounds()` / `UnpauseAllSounds()` | Pauses the master bus and freezes every sound at its position. Events started while paused queue up and play on unpause. |
 | `SetBusVolume(path, volume)` / `GetBusVolume(path)` | Linear bus volume, 0.0 silent to 1.0 full. |
 | `SetBusMute(path, mute)` / `GetBusIsMuted(path)` | Bus mute flag. Volume survives a mute and unmute round trip. |
+| `SetBusPaused(path, paused)` / `GetBusIsPaused(path)` | Pauses one bus. Every event through it freezes at its position and resumes from there. A pause menu pauses `bus:/SFX` and keeps the music bus running. |
 | `SetBusVolumeMaster`, `GetBusVolumeMaster`, `SetBusMuteMaster`, `GetBusIsMutedMaster` | The same for `bus:/`. |
 | `SetVCAVolume(path, volume)` / `GetVCAVolume(path)` | Linear VCA volume, 0.0 to 1.0. A VCA scales every bus assigned to it. |
 | `ClearAllCallbacks()` | Removes every registered callback: song and sound handlers, event description handlers, core channel and group handlers, the system callback, and PCM stream read callbacks. Userdata stays. |
@@ -127,7 +128,21 @@ FmodManager.SetGlobalParameter(FmodParameters.Intensity, 0.75);
 FmodManager.SetGlobalParameterWithLabel(FmodParameters.Weather, "Rain");
 ```
 
-A parameter local to one event is set on that event. The song takes `SetEventParameterOnSong`, and a sound from `PlaySound` takes `setParameter` on its handle. FMOD reports a value of 0 for a name it does not know.
+A parameter local to one event is set on that event. The song takes `SetSongParameter`, and a sound from `PlaySound` takes `setParameter` on its handle. FMOD reports a value of 0 for a name it does not know.
+
+## Snapshots
+
+A snapshot is a mixer state the sound designer authored in FMOD Studio: bus volumes, effect settings, and sends, with a blend curve. Underwater, paused, and low health are typical snapshots. The game applies one and removes it, and FMOD blends the mixer toward the authored state and back. Several snapshots can be active together.
+
+```haxe
+FmodManager.StartSnapshot(FmodSnapshots.Paused);
+// later
+FmodManager.StopSnapshot(FmodSnapshots.Paused);
+```
+
+`StartSnapshot(path)` applies a snapshot until `StopSnapshot(path)` removes it with its authored fade. `StopSnapshotImmediately(path)` cuts. A second `StartSnapshot` for a snapshot that is already applied does nothing. `IsSnapshotActive(path)` reports whether it is applied, and stays true through the fade out. `SetSnapshotIntensity(path, intensity)` scales how strongly an applied snapshot pulls the mixer toward its authored state, from 0.0 to 1.0. The generated `FmodSnapshots` class holds the paths as constants.
+
+The calls hold no handle. FMOD keeps a started snapshot alive until it stops, and the calls find it again by its path. A snapshot with a timeline that ends on its own can also be fired through `PlaySoundOneShot`.
 
 ## Window focus
 

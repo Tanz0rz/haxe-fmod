@@ -67,7 +67,7 @@ class PlayScene implements GameScene {
             winTimer += dt;
             if (winTimer >= 3.0 && !fadedOut) {
                 fadedOut = true;
-                FmodManager.SetEventParameterOnSong("FadeArpIn", 0);
+                FmodManager.SetSongParameter("FadeArpIn", 0);
             }
             if (winTimer >= 6.0) {
                 Main.instance.switchScene(new PlayScene2());
@@ -80,7 +80,7 @@ class PlayScene implements GameScene {
     }
 
     function getCoin():Void {
-        FmodManager.SetEventParameterOnSong("FadeArpIn", 1.0);
+        FmodManager.SetSongParameter("FadeArpIn", 1.0);
         FmodManager.PlaySoundOneShot(FmodEvents.SFXCoin);
         coin.kill();
         status.text = "You win!";

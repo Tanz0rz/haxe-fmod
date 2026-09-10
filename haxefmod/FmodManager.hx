@@ -12,9 +12,9 @@ import haxefmod.studio.Types;
 import haxefmod.studio.native.NativeStudio;
 
 /**
- * The helper class for FMOD. It holds one background song slot and plays sound effects fire-and-forget or through a handle.
- * It sets bus and VCA volumes and global parameters by their FMOD Studio paths and names.
- * It is built on the public layers underneath. Use haxefmod.runtime.FmodRuntime for banks, 3D, focus, and settings, and haxefmod.studio for the complete FMOD Studio API.
+ * The helper class for FMOD. It owns six areas: lifecycle, one background song slot, sound effects, the mixer (buses, VCAs, and snapshots), global parameters, and game policy.
+ * Every call takes an FMOD Studio path or name and holds no handle. The song slot is the one piece of state, and PlaySound returns the one handle.
+ * World space, banks, focus reporting, and everything by handle live in the public layers underneath: haxefmod.runtime.FmodRuntime and haxefmod.studio.
  *
  * Call FmodManager.Update() every frame, or let the engine setup call do it.
  */
@@ -142,6 +142,21 @@ class FmodManager {
         return StudioSystem.getBus(busPath).getMute();
     }
 
+    /**
+     * Pauses or resumes one bus. Every event routed through it freezes at its position and resumes from there.
+     * A pause menu pauses "bus:/SFX" and keeps the music bus running. PauseAllSounds pauses the master bus instead.
+     */
+    public static function SetBusPaused(busPath:String, paused:Bool):Void {
+        ensureInitialized();
+        StudioSystem.getBus(busPath).setPaused(paused);
+    }
+
+    /** Returns true when the bus is paused. */
+    public static function GetBusIsPaused(busPath:String):Bool {
+        ensureInitialized();
+        return StudioSystem.getBus(busPath).getPaused();
+    }
+
     /** Sets the volume of the master bus, "bus:/", from 0.0 to 1.0. */
     public static function SetBusVolumeMaster(volume:Float):Void {
         SetBusVolume("bus:/", volume);
@@ -179,12 +194,63 @@ class FmodManager {
         return StudioSystem.getVCA(vcaPath).getVolume();
     }
 
+    //// Snapshots
+
+    /**
+     * Applies a snapshot until StopSnapshot. The path comes from FMOD Studio, for example "snapshot:/Paused".
+     * A snapshot is a mixer state the sound designer authored. FMOD blends the mixer toward it and back.
+     * A snapshot that is already applied is left as it is. FMOD keeps the instance alive while it plays, so no handle is held here.
+     */
+    public static function StartSnapshot(snapshotPath:String):Void {
+        ensureInitialized();
+        var description = StudioSystem.getEvent(snapshotPath);
+        if (description.isNull()) {
+            log('StartSnapshot: no snapshot at $snapshotPath (${StudioSystem.lastResult().toString()})');
+            return;
+        }
+        if (description.getInstanceCount() > 0) return;
+        var instance = description.createInstance();
+        if (instance.isNull()) {
+            log('StartSnapshot: could not create $snapshotPath (${StudioSystem.lastResult().toString()})');
+            return;
+        }
+        instance.start();
+        instance.release();
+    }
+
+    /** Removes a snapshot with its authored fade. It does nothing when the snapshot is not applied. */
+    public static function StopSnapshot(snapshotPath:String):Void {
+        stopSnapshotInstances(snapshotPath, ALLOWFADEOUT);
+    }
+
+    /** Removes a snapshot immediately, without its authored fade. */
+    public static function StopSnapshotImmediately(snapshotPath:String):Void {
+        stopSnapshotInstances(snapshotPath, IMMEDIATE);
+    }
+
+    /** Returns true while a snapshot is applied. It stays true through the fade out of StopSnapshot. */
+    public static function IsSnapshotActive(snapshotPath:String):Bool {
+        ensureInitialized();
+        return StudioSystem.getEvent(snapshotPath).getInstanceCount() > 0;
+    }
+
+    /**
+     * Sets how strongly an applied snapshot pulls the mixer toward its authored state.
+     * Intensity runs from 0.0, no effect, to 1.0, the authored state. It does nothing when the snapshot is not applied.
+     */
+    public static function SetSnapshotIntensity(snapshotPath:String, intensity:Float):Void {
+        ensureInitialized();
+        for (instance in StudioSystem.getEvent(snapshotPath).getInstanceList()) {
+            instance.setParameter("Intensity", intensity * 100.0);
+        }
+    }
+
     //// Global parameters
 
     /**
      * Sets a global parameter. Global parameters are shared by every event in the project.
      * The name comes from FMOD Studio, for example "Intensity". The generated FmodParameters constants, which hold "parameter:/" paths, are accepted too.
-     * A parameter on one event instance is set through the FmodSound returned by PlaySound, or through SetEventParameterOnSong for the song.
+     * A parameter on one event instance is set through the FmodSound returned by PlaySound, or through SetSongParameter for the song.
      */
     public static function SetGlobalParameter(parameterName:String, parameterValue:Float):Void {
         ensureInitialized();
@@ -351,21 +417,36 @@ class FmodManager {
     }
 
     /** Returns the value of a parameter on the song. It is 0 with no song. */
-    public static function GetEventParameterOnSong(parameterName:String):Float {
+    public static function GetSongParameter(parameterName:String):Float {
         ensureInitialized();
         return songInstance.isNull() ? 0.0 : songInstance.getParameter(parameterName);
     }
 
     /** Sets a parameter on the song. It does nothing with no song. */
-    public static function SetEventParameterOnSong(parameterName:String, parameterValue:Float):Void {
+    public static function SetSongParameter(parameterName:String, parameterValue:Float):Void {
         ensureInitialized();
         if (!songInstance.isNull()) songInstance.setParameter(parameterName, parameterValue);
     }
 
     /** Sets a labeled parameter on the song by its label text, for example "Section" to "Chorus". It does nothing with no song. */
-    public static function SetEventParameterOnSongWithLabel(parameterName:String, label:String):Void {
+    public static function SetSongParameterWithLabel(parameterName:String, label:String):Void {
         ensureInitialized();
         if (!songInstance.isNull()) songInstance.setParameterWithLabel(parameterName, label);
+    }
+
+    @:deprecated("FmodManager.GetEventParameterOnSong is replaced by GetSongParameter")
+    public static function GetEventParameterOnSong(parameterName:String):Float {
+        return GetSongParameter(parameterName);
+    }
+
+    @:deprecated("FmodManager.SetEventParameterOnSong is replaced by SetSongParameter")
+    public static function SetEventParameterOnSong(parameterName:String, parameterValue:Float):Void {
+        SetSongParameter(parameterName, parameterValue);
+    }
+
+    @:deprecated("FmodManager.SetEventParameterOnSongWithLabel is replaced by SetSongParameterWithLabel")
+    public static function SetEventParameterOnSongWithLabel(parameterName:String, label:String):Void {
+        SetSongParameterWithLabel(parameterName, label);
     }
 
     /**
@@ -530,6 +611,15 @@ class FmodManager {
     static inline function needsRestart(instance:EventInstance):Bool {
         var state = instance.getPlaybackState();
         return state == FmodPlaybackState.STOPPED || state == FmodPlaybackState.STOPPING;
+    }
+
+    // A started snapshot instance was released at start, so stopping it is
+    // enough: FMOD destroys it once the stop completes
+    static function stopSnapshotInstances(snapshotPath:String, mode:FmodStopMode):Void {
+        ensureInitialized();
+        var description = StudioSystem.getEvent(snapshotPath);
+        if (description.isNull()) return;
+        for (instance in description.getInstanceList()) instance.stop(mode);
     }
 
     // FMOD addresses a global parameter by its bare name, and the generated

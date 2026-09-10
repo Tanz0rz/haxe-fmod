@@ -112,8 +112,8 @@ class Main extends hxd.App {
     // loss is wired separately by FmodHeapsSetup.
     function onWindowEvent(event:Event):Void {
         switch (event.kind) {
-            case EFocus: if (Std.isOfType(scene, PlayScene) || Std.isOfType(scene, PlayScene2)) FmodManager.SetEventParameterOnSong("HighPass", 0);
-            case EFocusLost: if (Std.isOfType(scene, PlayScene) || Std.isOfType(scene, PlayScene2)) FmodManager.SetEventParameterOnSong("HighPass", 1);
+            case EFocus: if (Std.isOfType(scene, PlayScene) || Std.isOfType(scene, PlayScene2)) FmodManager.SetSongParameter("HighPass", 0);
+            case EFocusLost: if (Std.isOfType(scene, PlayScene) || Std.isOfType(scene, PlayScene2)) FmodManager.SetSongParameter("HighPass", 1);
             default:
         }
     }

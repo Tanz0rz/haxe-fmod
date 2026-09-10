@@ -9641,6 +9641,14 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
+     "doc": "Returns true when the bus is paused.",
+     "name": "GetBusIsPaused",
+     "signature": "GetBusIsPaused(busPath:String):Bool",
+     "static": true,
+     "type": "haxefmod.FmodManager"
+    },
+    {
+     "direct": false,
      "doc": "Returns the volume of a bus, from 0.0 to 1.0.",
      "name": "GetBusVolume",
      "signature": "GetBusVolume(busPath:String):Float",
@@ -9652,6 +9660,14 @@ const HAXEFMOD_BINDINGS = {
      "doc": "Mutes or unmutes a bus.",
      "name": "SetBusMute",
      "signature": "SetBusMute(busPath:String, mute:Bool):Void",
+     "static": true,
+     "type": "haxefmod.FmodManager"
+    },
+    {
+     "direct": false,
+     "doc": "Pauses or resumes one bus.",
+     "name": "SetBusPaused",
+     "signature": "SetBusPaused(busPath:String, paused:Bool):Void",
      "static": true,
      "type": "haxefmod.FmodManager"
     },
@@ -9758,6 +9774,30 @@ const HAXEFMOD_BINDINGS = {
      "signature": "getEvent(path:String):EventDescription",
      "static": true,
      "type": "haxefmod.studio.StudioSystem"
+    },
+    {
+     "direct": false,
+     "doc": "Returns true while a snapshot is applied.",
+     "name": "IsSnapshotActive",
+     "signature": "IsSnapshotActive(snapshotPath:String):Bool",
+     "static": true,
+     "type": "haxefmod.FmodManager"
+    },
+    {
+     "direct": false,
+     "doc": "Sets how strongly an applied snapshot pulls the mixer toward its authored state.",
+     "name": "SetSnapshotIntensity",
+     "signature": "SetSnapshotIntensity(snapshotPath:String, intensity:Float):Void",
+     "static": true,
+     "type": "haxefmod.FmodManager"
+    },
+    {
+     "direct": false,
+     "doc": "Applies a snapshot until StopSnapshot.",
+     "name": "StartSnapshot",
+     "signature": "StartSnapshot(snapshotPath:String):Void",
+     "static": true,
+     "type": "haxefmod.FmodManager"
     },
     {
      "direct": false,

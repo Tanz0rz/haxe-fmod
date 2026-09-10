@@ -20,12 +20,12 @@ class PlayState2 extends FlxState {
 
     override public function onFocus() {
         super.onFocus();
-        FmodManager.SetEventParameterOnSong("HighPass", 0);
+        FmodManager.SetSongParameter("HighPass", 0);
     }
 
     override public function onFocusLost() {
         super.onFocusLost();
-        FmodManager.SetEventParameterOnSong("HighPass", 1);
+        FmodManager.SetSongParameter("HighPass", 1);
     }
 
     override public function create():Void {

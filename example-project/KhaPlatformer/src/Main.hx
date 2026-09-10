@@ -124,10 +124,10 @@ class Main {
     }
 
     function onForeground():Void {
-        if (Std.isOfType(scene, PlayScene) || Std.isOfType(scene, PlayScene2)) FmodManager.SetEventParameterOnSong("HighPass", 0);
+        if (Std.isOfType(scene, PlayScene) || Std.isOfType(scene, PlayScene2)) FmodManager.SetSongParameter("HighPass", 0);
     }
 
     function onBackground():Void {
-        if (Std.isOfType(scene, PlayScene) || Std.isOfType(scene, PlayScene2)) FmodManager.SetEventParameterOnSong("HighPass", 1);
+        if (Std.isOfType(scene, PlayScene) || Std.isOfType(scene, PlayScene2)) FmodManager.SetSongParameter("HighPass", 1);
     }
 }

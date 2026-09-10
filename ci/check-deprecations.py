@@ -33,6 +33,15 @@ DEPRECATED = [
     ("haxefmod.core.Sound.getSyncPointOffset",
      "var s:haxefmod.core.Sound = haxefmod.core.Sound.NULL; trace(s.getSyncPointOffset(0));",
      "Sound.getSyncPointOffset is replaced by getSyncPointInfo(point, offsetType).offset"),
+    ("haxefmod.FmodManager.GetEventParameterOnSong",
+     "trace(haxefmod.FmodManager.GetEventParameterOnSong(\"x\"));",
+     "FmodManager.GetEventParameterOnSong is replaced by GetSongParameter"),
+    ("haxefmod.FmodManager.SetEventParameterOnSong",
+     "haxefmod.FmodManager.SetEventParameterOnSong(\"x\", 1);",
+     "FmodManager.SetEventParameterOnSong is replaced by SetSongParameter"),
+    ("haxefmod.FmodManager.SetEventParameterOnSongWithLabel",
+     "haxefmod.FmodManager.SetEventParameterOnSongWithLabel(\"x\", \"y\");",
+     "FmodManager.SetEventParameterOnSongWithLabel is replaced by SetSongParameterWithLabel"),
 ]
 
 
