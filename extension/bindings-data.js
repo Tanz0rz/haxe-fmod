@@ -9644,6 +9644,22 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
+     "doc": "Removes a snapshot with its authored fade.",
+     "name": "StopSnapshot",
+     "signature": "StopSnapshot(snapshotPath:String):Void",
+     "static": true,
+     "type": "haxefmod.FmodManager"
+    },
+    {
+     "direct": false,
+     "doc": "Removes a snapshot immediately, without its authored fade.",
+     "name": "StopSnapshotImmediately",
+     "signature": "StopSnapshotImmediately(snapshotPath:String):Void",
+     "static": true,
+     "type": "haxefmod.FmodManager"
+    },
+    {
+     "direct": false,
      "doc": "Creates an instance of an event.",
      "name": "createInstance",
      "signature": "createInstance(eventPath:String):EventInstance",

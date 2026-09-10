@@ -505,7 +505,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_Studio_System_GetBusByID` | `StudioSystem.getBusByID` |  |
 | `FMOD_Studio_System_GetCPUUsage` | `StudioSystem.getCpuUsage` |  |
 | `FMOD_Studio_System_GetCoreSystem` | `FmodManager.Initialize`<br>`FmodRuntime.init` |  |
-| `FMOD_Studio_System_GetEvent` | `StudioSystem.getEvent`<br>`FmodManager.IsSnapshotActive`<br>`FmodManager.StartSnapshot`<br>`FmodRuntime.createInstance` |  |
+| `FMOD_Studio_System_GetEvent` | `StudioSystem.getEvent`<br>`FmodManager.IsSnapshotActive`<br>`FmodManager.StartSnapshot`<br>`FmodManager.StopSnapshot`<br>`FmodManager.StopSnapshotImmediately`<br>`FmodRuntime.createInstance` |  |
 | `FMOD_Studio_System_GetEventByID` | `StudioSystem.getEventByID` |  |
 | `FMOD_Studio_System_GetListenerAttributes` | `StudioSystem.getListenerAttributes`<br>`EmitterTracker.update` |  |
 | `FMOD_Studio_System_GetListenerWeight` | `StudioSystem.getListenerWeight` |  |

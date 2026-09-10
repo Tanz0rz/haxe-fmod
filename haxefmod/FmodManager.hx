@@ -245,12 +245,22 @@ class FmodManager {
 
     /** Removes a snapshot with its authored fade. It does nothing when the snapshot is not applied. */
     public static function StopSnapshot(snapshotPath:String):Void {
-        stopSnapshotInstances(snapshotPath, ALLOWFADEOUT);
+        ensureInitialized();
+        var description = StudioSystem.getEvent(snapshotPath);
+        if (description.isNull()) return;
+        // The instances were released at start, so FMOD destroys each one
+        // when its fade completes
+        for (instance in description.getInstanceList()) instance.stop(ALLOWFADEOUT);
     }
 
     /** Removes a snapshot immediately, without its authored fade. */
     public static function StopSnapshotImmediately(snapshotPath:String):Void {
-        stopSnapshotInstances(snapshotPath, IMMEDIATE);
+        ensureInitialized();
+        var description = StudioSystem.getEvent(snapshotPath);
+        if (description.isNull()) return;
+        // FMOD's own stop-and-release of every instance. On html5 this is
+        // also the sweep that reclaims the dead instances' handle slots
+        description.releaseAllInstances();
     }
 
     /** Returns true while a snapshot is applied. It stays true through the fade out of StopSnapshot. */
@@ -625,15 +635,6 @@ class FmodManager {
     static inline function needsRestart(instance:EventInstance):Bool {
         var state = instance.getPlaybackState();
         return state == FmodPlaybackState.STOPPED || state == FmodPlaybackState.STOPPING;
-    }
-
-    // A started snapshot instance was released at start, so stopping it is
-    // enough: FMOD destroys it once the stop completes
-    static function stopSnapshotInstances(snapshotPath:String, mode:FmodStopMode):Void {
-        ensureInitialized();
-        var description = StudioSystem.getEvent(snapshotPath);
-        if (description.isNull()) return;
-        for (instance in description.getInstanceList()) instance.stop(mode);
     }
 
     // FMOD addresses a global parameter by its bare name, and the generated
